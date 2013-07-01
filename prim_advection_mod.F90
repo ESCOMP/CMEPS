@@ -1681,11 +1681,10 @@ contains
 	enddo
      endif
 
+     ! compute flux and advection term
 #if (defined ELEMENT_OPENMP)
 !$omp parallel do private(k)
 #endif
-
-     ! compute flux and advection term
      do k=1,nlev
         dp(:,:,k) = elem(ie)%derived%dp(:,:,k) - &
              rhs_multiplier*dt*elem(ie)%derived%divdp_proj(:,:,k) 
@@ -2142,7 +2141,7 @@ contains
     do ie = nets , nete
       !spheremp     => elem(ie)%spheremp
 #if (defined ELEMENT_OPENMP)
-!$omp parallel do private(q,k,i,j)
+!$omp parallel do private(q,k,i,j,dp0)
 #endif
       do q = 1 , qsize
         do k = 1 , nlev
