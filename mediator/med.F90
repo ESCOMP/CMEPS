@@ -1069,8 +1069,7 @@ contains
                if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
                ! Get deCount and dimCount
-               call ESMF_DistGridGet(elemDistGrid, deCount=deCount, dimCount=dimCount, &
-                     tileCount=tileCount, rc=rc)
+               call ESMF_DistGridGet(elemDistGrid, dimCount=dimCount, tileCount=tileCount, rc=rc)
                if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
                ! Allocate regDecomp accord. to dimCount
