@@ -1949,9 +1949,9 @@ contains
        if ( fldchk(is_local%wrap%FBImp(complnd,complnd) , 'Flgl_qice_elev', rc=rc) .and. &
             fldchk(is_local%wrap%FBImp(complnd,complnd) , 'Sl_tsrf_elev'  , rc=rc) .and. &
             fldchk(is_local%wrap%FBImp(complnd,complnd) , 'Sl_topo_elev'  , rc=rc) .and. &
-            fldchk(is_local%wrap%FBExp(compglc)         , 'Sg_ice_covered', rc=rc) .and. &
-            fldchk(is_local%wrap%FBExp(compglc)         , 'Sg_topo'       , rc=rc) .and. &
-            fldchk(is_local%wrap%FBExp(compglc)         , 'Flgg_hflx'     , rc=rc)) then
+            fldchk(is_local%wrap%FBExp(compglc)         , 'Flgl_qice'     , rc=rc) .and. &
+            fldchk(is_local%wrap%FBExp(compglc)         , 'Sl_tsrf'       , rc=rc) .and. &
+            fldchk(is_local%wrap%FBExp(compglc)         , 'Sl_topo'       , rc=rc)) then
 
           ! custom merging will be done here 
           call addmap(FldListFr(complnd)%flds, 'Flgl_qice_elev', compglc, mapconsf, 'none', lnd2glc_fmap)
