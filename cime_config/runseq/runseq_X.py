@@ -57,7 +57,7 @@ def runseq(case, coupling_times):
     outfile.write ("  MED -> ICE :remapMethod=redist     \n")
     outfile.write ("  MED med_phases_prep_wav            \n")
     outfile.write ("  MED -> WAV :remapMethod=redist     \n")
-    outfile.write ("  MED med_phases_prep_rof_accum_fast \n")
+    outfile.write ("  MED med_phases_prep_rof_accum      \n")
     outfile.write ("  MED med_phases_prep_rof_avg        \n")
     outfile.write ("  MED -> ROF :remapMethod=redist     \n")
     outfile.write ("  ICE                                \n")

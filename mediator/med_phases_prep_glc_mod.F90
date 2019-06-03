@@ -4,11 +4,13 @@ module med_phases_prep_glc_mod
   ! Mediator phases for preparing glc export from mediator
   !-----------------------------------------------------------------------------
 
-  use ESMF                , only : ESMF_FieldBundle
-  use shr_nuopc_utils_mod , only : chkerr => shr_nuopc_utils_ChkErr
-  use med_constants_mod   , only : R8, CS
-  use med_constants_mod   , only : czero => med_constants_czero
-  use med_constants_mod   , only : dbug_flag=>med_constants_dbug_flag
+  use ESMF                  , only : ESMF_FieldBundle
+  use shr_nuopc_utils_mod   , only : chkerr => shr_nuopc_utils_ChkErr
+  use shr_nuopc_methods_mod , only : shr_nuopc_methods_FB_GetFldPtr
+  use med_constants_mod     , only : R8, CS
+  use med_constants_mod     , only : czero => med_constants_czero
+  use med_constants_mod     , only : dbug_flag=>med_constants_dbug_flag
+  use esmFlds               , only : compglc, complnd
 
   implicit none
   private
@@ -29,7 +31,7 @@ module med_phases_prep_glc_mod
   integer :: nEC                     
 
   character(len=14) :: fldnames_fr_lnd(3) = (/'Flgl_qice_elev','Sl_tsrf_elev  ','Sl_topo_elev  '/)   
-  character(len=14) :: fldnames_to_glc(3) = (/'Flgl_qice     ','Sl_tsrf       ','Sl_topo       '/)   
+  character(len=14) :: fldnames_to_glc(2) = (/'Flgl_qice     ','Sl_tsrf       '/)
 
   character(*), parameter :: u_FILE_u  = &
        __FILE__
@@ -46,14 +48,16 @@ contains
 
     use ESMF                  , only : ESMF_GridComp, ESMF_GridCompGet
     use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
-    use ESMF                  , only : ESMF_FieldBundleGet
-    use ESMF                  , only : ESMF_MeshLoc, ESMF_Mesh, ESMF_Field
+    use ESMF                  , only : ESMF_FieldBundleGet, ESMF_FieldBundleAdd
+    use ESMF                  , only : ESMF_FieldBundleCreate, ESMF_FieldBundleIsCreated
+    use ESMF                  , only : ESMF_MeshLoc, ESMF_Mesh, ESMF_TYPEKIND_R8
+    use ESMF                  , only : ESMF_Field, ESMF_FieldGet, ESMF_FieldCreate
     use shr_nuopc_methods_mod , only : shr_nuopc_methods_FB_diagnose
     use shr_nuopc_methods_mod , only : shr_nuopc_methods_FB_reset
-    use med_internalstate_mod , only : InternalState, mastertask, logunit
-    use esmFlds               , only : compglc, complnd
-    use perf_mod              , only : t_startf, t_stopf
+    use shr_nuopc_methods_mod , only : shr_nuopc_methods_FB_getFieldN
+    use med_internalstate_mod , only : InternalState, logunit
     use glc_elevclass_mod     , only : glc_get_num_elevation_classes
+    use perf_mod              , only : t_startf, t_stopf
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -61,10 +65,12 @@ contains
 
     ! local variables
     type(InternalState) :: is_local
-    integer             :: i,j,n,ncnt
+    integer             :: i,n,ncnt
     type(ESMF_MeshLoc)  :: meshloc
     type(ESMF_Mesh)     :: lmesh
     type(ESMF_Field)    :: lfield
+    real(r8), pointer   :: data2d_in(:,:)
+    real(r8), pointer   :: data2d_out(:,:)
     logical             :: first_call = .true.
     character(len=*),parameter  :: subname='(med_phases_prep_glc_accum)'
     !---------------------------------------
@@ -90,37 +96,46 @@ contains
 
     if (first_call) then
        
-       ! Determine number of elevation classes
-       nEC = glc_get_num_elevation_classes()
-
        ! Create field bundles for the fldnames_fr_lnd that have an
        ! undistributed dimension corresponding to elevation classes
+       ! nec is the size of the undistributed dimension (number of elevation classes) 
 
-       call shr_nuopc_methods_FB_getFieldN(is_local%wrap%FBImp(complnd,complnd), 1, lfield, rc=rc)
+       ! Create accumulation field bundle from land on the land grid
+       call ESMF_FieldBundleGet(is_local%wrap%FBImp(complnd,complnd), fldnames_fr_lnd(1), field=lfield, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call shr_nuopc_methods_FB_GetFldPtr(is_local%wrap%FBImp(complnd,complnd), fldnames_fr_lnd(1), fldptr2=data2d_in, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       nec = size(data2d_in, dim=1)
        call ESMF_FieldGet(lfield, mesh=lmesh, meshloc=meshloc, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       FBLndAccum = ESMF_FieldBundleCreate(name='FBLndAccum_lnd', rc=rc)
+       FBLndAccum_lnd = ESMF_FieldBundleCreate(name='FBLndAccum_lnd', rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       lfield = ESMF_FieldCreate(lmesh, ESMF_TYPEKIND_R8, meshloc=meshloc, name=flds_fr_lnd, &
-            ungriddedLbound=1, ungriddedUbound=nec+1, gridToFieldMap=(/2/), rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_FieldBundleAdd(FBlndAccum_lnd, (/lfield/), rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       do n = 1,size(fldnames_fr_lnd)
+          lfield = ESMF_FieldCreate(lmesh, ESMF_TYPEKIND_R8, meshloc=meshloc, name=fldnames_fr_lnd(n), &
+               ungriddedLbound=(/1/), ungriddedUbound=(/nec/), gridToFieldMap=(/2/), rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_FieldBundleAdd(FBlndAccum_lnd, (/lfield/), rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+       end do
        call shr_nuopc_methods_FB_reset(FBLndAccum_lnd, value=0.0_r8, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-       call shr_nuopc_methods_FB_getFieldN(is_local%wrap%FBImp(compglc,compglc), 1, lfield, rc=rc)
+       ! Create accumulation field bundle from land on the glc grid
+       ! Determine glc mesh from the mesh from the first export field to glc
+       ! However FBlndAccum_glc has the fields fldnames_fr_lnd BUT ON the glc grid
+       call ESMF_FieldBundleGet(is_local%wrap%FBExp(compglc), fldnames_to_glc(1), field=lfield, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        call ESMF_FieldGet(lfield, mesh=lmesh, meshloc=meshloc, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       FBGlcAccum = ESMF_FieldBundleCreate(name='FBLndAccum_glc', rc=rc)
+       FBlndAccum_glc = ESMF_FieldBundleCreate(name='FBLndAccum_glc', rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       lfield = ESMF_FieldCreate(lmesh, ESMF_TYPEKIND_R8, meshloc=meshloc, name=flds_fr_lnd, &
-            ungriddedLbound=1, ungriddedUbound=nec+1, gridToFieldMap=(/2/), rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_FieldBundleAdd(FBlndAccum_glc, (/lfield/), rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       do n = 1,size(fldnames_fr_lnd)
+          lfield = ESMF_FieldCreate(lmesh, ESMF_TYPEKIND_R8, meshloc=meshloc, name=fldnames_fr_lnd(n), &
+               ungriddedLbound=(/1/), ungriddedUbound=(/nec/), gridToFieldMap=(/2/), rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_FieldBundleAdd(FBlndAccum_glc, (/lfield/), rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+       end do
        call shr_nuopc_methods_FB_reset(FBLndAccum_glc, value=0.0_r8, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
@@ -137,12 +152,9 @@ contains
        ncnt = 0
        call ESMF_LogWrite(trim(subname)//": FBImp(complnd,complnd) is not created", ESMF_LOGMSG_INFO)
     else 
-       ! The scalar field has been removed from all mediator field bundles - so check if the fieldCount is
-       ! 0 and not 1 here
+       ! The scalar field has been removed from all mediator field bundles - so determine ncnt for below
        call ESMF_FieldBundleGet(is_local%wrap%FBImp(complnd,complnd), fieldCount=ncnt, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_LogWrite(trim(subname)//": only scalar data is present in FBimp(complnd), returning", &
-            ESMF_LOGMSG_INFO)
     end if
 
     !---------------------------------------
@@ -151,25 +163,26 @@ contains
 
     if (ncnt > 0) then
 
-       call shr_nuopc_methods_FB_accum(FBLndAccum_lnd, is_local%wrap%FBImp(complnd,complnd), rc=rc)
-       if (chkErr(rc,__LINE__,u_FILE_u)) return
-
+       do n = 1, size(fldnames_fr_lnd)
+          call shr_nuopc_methods_FB_GetFldPtr(is_local%wrap%FBImp(complnd,complnd), fldnames_fr_lnd(n), fldptr2=data2d_in, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call shr_nuopc_methods_FB_GetFldPtr(FBLndAccum_lnd, fldnames_fr_lnd(n), fldptr2=data2d_out, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          do i = 1,size(data2d_out, dim=2)
+             data2d_out(:,i) = data2d_out(:,i) + data2d_in(:,i)
+          end do
+       end do
+       
        FBLndAccumCnt = FBLndAccumCnt + 1
 
-       if (dbug_flag > 10) then
+       if (dbug_flag > 1) then
           call shr_nuopc_methods_FB_diagnose(FBLndAccum_lnd, string=trim(subname)// ' FBLndAccum_lnd ',  rc=rc)
           if (chkErr(rc,__LINE__,u_FILE_u)) return
        end if
 
-       !---------------------------------------
-       ! TODO: update local scalar data - set valid input flag to .false.
-       !---------------------------------------
-
-       call med_infodata_set_valid_glc_input(.false., med_infodata, rc=rc)
-       if (chkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
-    if (dbug_flag > 20) then
+    if (dbug_flag > 5) then
        call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
     end if
     call t_stopf('MED:'//subname)
@@ -182,15 +195,13 @@ contains
 
     ! Prepares the GLC export Fields from the mediator
 
-    use NUOPC                 , only : NUOPC_IsConnected
-    use ESMF                  , only : ESMF_GridComp, ESMF_Clock, ESMF_Time, ESMF_Array, ESMF_ArrayGet
+    use ESMF                  , only : ESMF_GridComp, ESMF_FieldBundleGet
     use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
-    use ESMF                  , only : ESMF_GridCompGet
-    use ESMF                  , only : ESMF_FieldBundleGet, ESMF_FieldBundle, ESMF_FieldBundleIsCreated
-    use ESMF                  , only : ESMF_Field, ESMF_FieldGet, ESMF_Mesh, ESMF_MeshGet
-    use med_map_mod           , only : med_map_FB_Regrid_Norm
     use med_map_lnd2glc_mod   , only : med_map_lnd2glc
     use med_internalstate_mod , only : InternalState, logunit
+    use shr_nuopc_methods_mod , only : shr_nuopc_methods_FB_diagnose
+    use shr_nuopc_methods_mod , only : shr_nuopc_methods_FB_reset
+    use perf_mod              , only : t_startf, t_stopf
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -198,19 +209,8 @@ contains
 
     ! local variables
     type(InternalState)    :: is_local
-    real    , pointer      :: topolnd_g_ec(:,:)     ! topo in elevation classes
-    real(r8), pointer      :: dataptr_g(:)          ! temporary data pointer for one elevation class
-    real(r8), pointer      :: topoglc_g(:)          ! ice topographic height on the glc grid extracted from glc import
-    real(r8), pointer      :: data_ice_covered_g(:) ! data for ice-covered regions on the GLC grid
-    integer                :: nfld
-    integer                :: ec
-    integer                :: i,j,n,g,ncnt
-    integer                :: lsize_g
-    real(r8), pointer      :: glc_ice_covered(:)    ! if points on the glc grid is ice-covered (1) or ice-free (0)
-    integer , pointer      :: glc_elevclass(:)      ! elevation classes glc grid
-    real(r8), pointer      :: dataexp_g(:)          ! pointer into
-    real(r8)               :: elev_l, elev_u        ! lower and upper elevations in interpolation range
-    real(r8)               :: d_elev                ! elev_u - elev_l
+    integer                :: i, n, ncnt            ! counters
+    real(r8), pointer      :: data2d(:,:)
     character(len=*) , parameter   :: subname='(med_phases_prep_glc_avg)'
     !---------------------------------------
 
@@ -246,31 +246,38 @@ contains
     else
 
        !---------------------------------------
-       ! Average import from land accumuled FB
+       ! Average import from accumulated land import FB
        !---------------------------------------
 
-       call shr_nuopc_methods_FB_average(FBlndAccum_lnd, FBlndAccumCnt, rc=rc)
-       if (chkErr(rc,__LINE__,u_FILE_u)) return
+       do n = 1, size(fldnames_fr_lnd)
+          call shr_nuopc_methods_FB_GetFldPtr(FBLndAccum_lnd, fldnames_fr_lnd(n), fldptr2=data2d, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          data2d(:,:) = data2d(:,:) / real(FBLndAccumCnt)
+       end do
 
-       call shr_nuopc_methods_FB_diagnose(FBlndAccum_lnd, string=trim(subname)//&
-            ' FBlndAccum for after avg for field bundle ', rc=rc)
-       if (chkErr(rc,__LINE__,u_FILE_u)) return
+       if (dbug_flag > 1) then
+          call shr_nuopc_methods_FB_diagnose(FBlndAccum_lnd, string=trim(subname)//&
+               ' FBlndAccum for after avg for field bundle ', rc=rc)
+          if (chkErr(rc,__LINE__,u_FILE_u)) return
+       end if
 
        !---------------------------------------
        ! Map accumulated field bundle from land grid (with elevation classes) to glc grid (without elevation classes)
        ! and set FBExp(compglc) data
        !---------------------------------------
        
-       call med_map_lnd2glc(fldnames_fr_lnd, fldnames_to_glc, FBLndAcum_lnd, FBlndAccum_glc, gcomp, rc)
+       call med_map_lnd2glc(fldnames_fr_lnd, fldnames_to_glc, FBLndAccum_lnd, FBlndAccum_glc, gcomp, rc)
        if (chkErr(rc,__LINE__,u_FILE_u)) return
 
        !---------------------------------------
-       ! zero accumulator
+       ! zero accumulator and accumulated field bundles
        !---------------------------------------
        
        FBLndAccumCnt = 0
 
-       call shr_nuopc_methods_FB_reset(FBLndAccum, value=czero, rc=rc)
+       call shr_nuopc_methods_FB_reset(FBLndAccum_lnd, value=czero, rc=rc)
+       if (chkErr(rc,__LINE__,u_FILE_u)) return
+       call shr_nuopc_methods_FB_reset(FBLndAccum_glc, value=czero, rc=rc)
        if (chkErr(rc,__LINE__,u_FILE_u)) return
 
        !---------------------------------------
@@ -286,8 +293,8 @@ contains
        ! update local scalar data - set valid input flag to .true.  TODO:
        !---------------------------------------
 
-       call med_infodata_set_valid_glc_input(.true., med_infodata, rc=rc)
-       if (chkErr(rc,__LINE__,u_FILE_u)) return
+       !call med_infodata_set_valid_glc_input(.true., med_infodata, rc=rc) ! TODO: fix this
+       !if (chkErr(rc,__LINE__,u_FILE_u)) return
 
     end if
 

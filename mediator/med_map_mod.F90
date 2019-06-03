@@ -707,7 +707,7 @@ contains
              !-------------------------------------------------
 
              ! get a pointer to source field data in FBSrc
-             call FB_GetFldPtr(FBSrc, fldname, data_src, rc=rc)
+             call FB_GetFldPtr(FBSrc, fldname, fldptr1=data_src, rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
 
              ! allocate memory for a save array if not already allocated
@@ -720,7 +720,7 @@ contains
 
              ! get a pointer to the array of the normalization on the source grid - this must
              ! be the same size is as fraction on the source grid
-             call FB_GetFldPtr(FBFracSrc, trim(mapnorm), data_frac, rc=rc)
+             call FB_GetFldPtr(FBFracSrc, trim(mapnorm), fldptr1=data_frac, rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
 
              ! regrid FBSrc to FBDst
@@ -735,7 +735,7 @@ contains
              data_src = data_srctmp
 
              ! get the field from FBFrac that has the target normalization fraction
-             call FB_GetFldPtr(FBFracDst, mapnorm, data_norm, rc=rc)
+             call FB_GetFldPtr(FBFracDst, mapnorm, fldptr1=data_norm, rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
 
              ! normalize destination mapped values by the reciprocal of the mapped fraction
@@ -929,17 +929,20 @@ contains
 
     ! ----------------------------------------------
     ! Map fldnames in source field bundle with appropriate fraction weighting
+    ! There are 2 key assumptions below
+    ! ASSUME that all fields in FBSrc have the same rank
+    ! ASSUME that if FBSrc has fields of rank 2, those fields have an undistributed innermost dimension 
     ! ----------------------------------------------
 
-    use ESMF                  , only: ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
-    use ESMF                  , only: ESMF_LOGMSG_ERROR, ESMF_FAILURE
-    use ESMF                  , only: ESMF_FieldBundle, ESMF_FieldBundleIsCreated, ESMF_FieldBundleGet
-    use ESMF                  , only: ESMF_RouteHandle, ESMF_RouteHandleIsCreated, ESMF_Field
-    use perf_mod              , only: t_startf, t_stopf
+    use ESMF     , only: ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
+    use ESMF     , only: ESMF_LOGMSG_ERROR, ESMF_FAILURE
+    use ESMF     , only: ESMF_FieldBundle, ESMF_FieldBundleIsCreated, ESMF_FieldBundleGet
+    use ESMF     , only: ESMF_RouteHandle, ESMF_RouteHandleIsCreated, ESMF_Field
+    use perf_mod , only: t_startf, t_stopf
 
     ! input/output variables
     character(len=*)       , intent(in)           :: fldnames(:)
-    type(ESMF_FieldBundle) , intent(inout)        :: FBSrc
+    type(ESMF_FieldBundle) , intent(in)           :: FBSrc
     type(ESMF_FieldBundle) , intent(inout)        :: FBDst
     type(ESMF_FieldBundle) , intent(in)           :: FBFrac
     character(len=*)       , intent(in)           :: mapnorm
@@ -949,18 +952,22 @@ contains
 
     ! local variables
     integer                        :: i, n
-    type(ESMF_FieldBundle)         :: FBSrcTmp        ! temporary
-    type(ESMF_FieldBundle)         :: FBNormSrc       ! temporary
-    type(ESMF_FieldBundle)         :: FBNormDst       ! temporary
+    integer                        :: rank               ! rank of all fields in FBSrc (1 or 2)
+    type(ESMF_FieldBundle)         :: FBSrcTmp           ! temporary
+    type(ESMF_FieldBundle)         :: FBNormSrc          ! temporary
+    type(ESMF_FieldBundle)         :: FBNormDst          ! temporary
     character(len=CS)              :: lstring
     character(len=CS)              :: csize1, csize2
-    real(R8), pointer              :: data_srctmp(:)  ! temporary
-    real(R8), pointer              :: data_src(:)     ! temporary
-    real(R8), pointer              :: data_dst(:)     ! temporary
-    real(R8), pointer              :: data_srcnorm(:) ! temporary
-    real(R8), pointer              :: data_dstnorm(:) ! temporary
-    real(R8), pointer              :: data_frac(:)    ! temporary
-    real(R8), pointer              :: data_norm(:)    ! temporary
+    real(R8), pointer              :: data_srctmp1d(:)   ! temporary
+    real(R8), pointer              :: data_srctmp2d(:,:) ! temporary
+    real(R8), pointer              :: data_src1d(:)      ! temporary
+    real(R8), pointer              :: data_src2d(:,:)    ! temporary
+    real(R8), pointer              :: data_dst1d(:)      ! temporary
+    real(R8), pointer              :: data_dst2d(:,:)    ! temporary
+    real(R8), pointer              :: data_srcnorm(:)    ! temporary
+    real(R8), pointer              :: data_dstnorm(:)    ! temporary
+    real(R8), pointer              :: data_frac(:)       ! temporary
+    real(R8), pointer              :: data_norm(:)       ! temporary
     character(len=*), parameter    :: subname='(module_MED_Map:med_map_Regrid_Norm)'
     !-------------------------------------------------------------------------------
 
@@ -985,11 +992,19 @@ contains
     call FB_reset(FBDst, value=czero, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
+    call FB_GetFldPtr(FBSrc, trim(fldnames(1)), rank=rank, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
     do n = 1,size(fldnames)
 
        ! get pointer to source field data in FBSrc
-       call FB_GetFldPtr(FBSrc, trim(fldnames(n)), data_src, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (rank == 1) then
+          call FB_GetFldPtr(FBSrc, trim(fldnames(n)), fldptr1=data_src1d, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+       else if (rank == 2) then
+          call FB_GetFldPtr(FBSrc, trim(fldnames(n)), fldptr2=data_src2d, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+       end if
 
        ! create a new temporary field bundle, FBSrcTmp that will contain field data on the source grid
        if (.not. ESMF_FieldBundleIsCreated(FBSrcTmp)) then
@@ -997,8 +1012,13 @@ contains
                FBgeom=FBSrc, fieldNameList=(/'data_srctmp'/), name='data_srctmp', rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-          call FB_GetFldPtr(FBSrcTmp, 'data_srctmp', data_srctmp, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          if (rank == 1) then
+             call FB_GetFldPtr(FBSrcTmp, 'data_srctmp', fldptr1=data_srctmp1d, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+          else if (rank == 2) then
+             call FB_GetFldPtr(FBSrcTmp, 'data_srctmp', fldptr2=data_srctmp2d, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+          end if
        end if
 
        ! create a temporary field bundle that will contain normalization on the source grid
@@ -1007,7 +1027,7 @@ contains
                FBgeom=FBSrc, fieldNameList=(/trim(mapnorm)/), name='normsrc', rc=rc)
           if (chkerr(rc,__line__,u_file_u)) return
 
-          call FB_GetFldPtr(FBNormSrc, trim(mapnorm), data_srcnorm, rc=rc)
+          call FB_GetFldPtr(FBNormSrc, trim(mapnorm), fldptr1=data_srcnorm, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
        endif
 
@@ -1020,7 +1040,7 @@ contains
                FBgeom=FBDst, fieldNameList=(/trim(mapnorm)/), name='normdst', rc=rc)
           if (chkerr(rc,__line__,u_file_u)) return
 
-          call FB_GetFldPtr(FBFrac, trim(mapnorm), data_frac, rc=rc)
+          call FB_GetFldPtr(FBFrac, trim(mapnorm), fldptr1=data_frac, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
        endif
 
@@ -1038,22 +1058,43 @@ contains
                ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
           rc = ESMF_FAILURE
           return
-       else if (size(data_srcnorm) /= size(data_srctmp)) then
-          write(csize1,'(i8)') size(data_srcnorm)
-          write(csize2,'(i8)') size(data_srctmp)
-          call ESMF_LogWrite(trim(subname)//": ERROR data_srcnorm size "//trim(csize1)//&
-               " and data_srctmp size "//trim(csize2)//" are inconsistent", &
-               ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
-          rc = ESMF_FAILURE
-          return
+       else 
+          if (rank == 1) then
+             if (size(data_srcnorm) /= size(data_srctmp1d)) then
+                write(csize1,'(i8)') size(data_srcnorm)
+                write(csize2,'(i8)') size(data_srctmp1d)
+                call ESMF_LogWrite(trim(subname)//": ERROR data_srcnorm size "//trim(csize1)//&
+                     " and data_srctmp size "//trim(csize2)//" are inconsistent", &
+                     ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
+                rc = ESMF_FAILURE
+                return
+             end if
+          else if (rank == 2) then
+             if (size(data_srcnorm) /= size(data_srctmp2d, dim=2)) then
+                write(csize1,'(i8)') size(data_srcnorm)
+                write(csize2,'(i8)') size(data_srctmp2d, dim=2)
+                call ESMF_LogWrite(trim(subname)//": ERROR data_srcnorm size "//trim(csize1)//&
+                     " and data_srctmp2d size "//trim(csize2)//" are inconsistent", &
+                     ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
+                rc = ESMF_FAILURE
+                return
+             end if
+          end if
        end if
 
        ! now fill in the values for data_srcnorm and data_srctmp - these are the two arrays needed for normalization
        ! Note that FBsrcTmp will now have the data_srctmp value
-       do i = 1,size(data_frac)
-          data_srcnorm(i) = data_frac(i)
-          data_srctmp(i)  = data_src(i) * data_frac(i)  ! Multiply initial field by data_frac
-       end do
+       if (rank == 1) then
+          do i = 1,size(data_frac)
+             data_srcnorm(i) = data_frac(i)
+             data_srctmp1d(i)  = data_src1d(i) * data_frac(i)  ! Multiply initial field by data_frac
+          end do
+       else if (rank == 2) then
+          do i = 1,size(data_frac)
+             data_srcnorm(i) = data_frac(i)
+             data_srctmp2d(:,i)  = data_src2d(:,i) * data_frac(i)  ! Multiply initial field by data_frac
+          end do
+       end if
 
        ! regrid FBSrcTmp to FBDst
        if (trim(fldnames(n)) == trim(flds_scalar_name)) then
@@ -1068,19 +1109,34 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        ! multiply interpolated field (FBDst) by reciprocal of fraction on destination grid (FBNormDst)
-       call FB_GetFldPtr(FBNormDst, trim(mapnorm), data_dstnorm, rc=rc)
+       call FB_GetFldPtr(FBNormDst, trim(mapnorm), fldptr1=data_dstnorm, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-       call FB_GetFldPtr(FBDst, trim(fldnames(n)), data_dst, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (rank == 1) then
+          call FB_GetFldPtr(FBDst, trim(fldnames(n)), fldptr1=data_dst1d, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+       else
+          call FB_GetFldPtr(FBDst, trim(fldnames(n)), fldptr2=data_dst2d, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+       end if
 
-       do i= 1,size(data_dst)
-          if (data_dstnorm(i) == 0.0_R8) then
-             data_dst(i) = 0.0_R8
-          else
-             data_dst(i) = data_dst(i)/data_dstnorm(i)
-          endif
-       end do
+       if (rank == 1) then
+          do i= 1,size(data_dst1d)
+             if (data_dstnorm(i) == 0.0_R8) then
+                data_dst1d(i) = 0.0_R8
+             else
+                data_dst1d(i) = data_dst1d(i)/data_dstnorm(i)
+             endif
+          end do
+       else if (rank == 2) then
+          do i= 1,size(data_dst2d, dim=2)
+             if (data_dstnorm(i) == 0.0_R8) then
+                data_dst2d(:,i) = 0.0_R8
+             else
+                data_dst2d(i,:) = data_dst2d(:,i)/data_dstnorm(i)
+             endif
+          end do
+       end if
 
        if (dbug_flag > 1) then
           call FB_Field_diagnose(FBDst, fldnames(n), &

@@ -1645,10 +1645,11 @@ contains
     do n = 1, fieldCount
       call ESMF_FieldBundleGet(FBin, fieldName=lfieldnamelist(n), isPresent=exists, rc=rc)
       if (chkerr(rc,__LINE__,u_FILE_u)) return
+
       if (exists) then
-        call shr_nuopc_methods_FB_GetFldPtr(FBin,  lfieldnamelist(n), dataPtri1, dataPtri2, lranki, rc=rc)
+        call shr_nuopc_methods_FB_GetFldPtr(FBin,  lfieldnamelist(n), fldptr1=dataPtri1, fldptr2=dataPtri2, rank=lranki, rc=rc)
         if (chkerr(rc,__LINE__,u_FILE_u)) return
-        call shr_nuopc_methods_FB_GetFldPtr(FBout, lfieldnamelist(n), dataPtro1, dataPtro2, lranko, rc=rc)
+        call shr_nuopc_methods_FB_GetFldPtr(FBout, lfieldnamelist(n), fldptr1=dataPtro1, fldptr2=dataPtro2, rank=lranko, rc=rc)
         if (chkerr(rc,__LINE__,u_FILE_u)) return
 
         if (lranki == 1 .and. lranko == 1) then
@@ -1672,7 +1673,8 @@ contains
         elseif (lranki == 2 .and. lranko == 2) then
 
           if (.not.shr_nuopc_methods_FieldPtr_Compare(dataPtro2, dataPtri2, subname, rc)) then
-            call ESMF_LogWrite(trim(subname)//": ERROR in dataPtr2 size ", ESMF_LOGMSG_ERROR)
+            call ESMF_LogWrite(trim(subname)//": ERROR in dataPtr2 size for fieldname "//trim(lfieldnamelist(n)), &
+                 ESMF_LOGMSG_ERROR)
             rc = ESMF_FAILURE
             return
           endif

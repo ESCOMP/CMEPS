@@ -3,7 +3,7 @@ module med_phases_prep_rof_mod
   !-----------------------------------------------------------------------------
   ! Create rof export fields
   ! - accumulate import lnd fields on the land grid that are sent to rof 
-  !   this will be done in med_phases_prep_rof_accum_fast
+  !   this will be done in med_phases_prep_rof_accum
   ! - time avergage accumulated import lnd fields when necessary
   !   map the time averaged accumulated lnd fields to the rof grid
   !   merge the mapped lnd fields to create FBExp(comprof)
@@ -31,7 +31,7 @@ module med_phases_prep_rof_mod
   implicit none
   private
 
-  public  :: med_phases_prep_rof_accum_fast
+  public  :: med_phases_prep_rof_accum
   public  :: med_phases_prep_rof_avg
 
   private :: med_phases_prep_rof_irrig       
@@ -53,7 +53,7 @@ module med_phases_prep_rof_mod
 contains
 !-----------------------------------------------------------------------------
 
-  subroutine med_phases_prep_rof_accum_fast(gcomp, rc)
+  subroutine med_phases_prep_rof_accum(gcomp, rc)
 
     !------------------------------------
     ! Carry out fast accumulation for the river (rof) component
@@ -77,7 +77,7 @@ contains
     type(InternalState) :: is_local
     integer             :: i,j,n,ncnt
     integer             :: dbrc
-    character(len=*), parameter :: subname='(med_phases_prep_rof_mod: med_phases_prep_rof_accum_fast)'
+    character(len=*), parameter :: subname='(med_phases_prep_rof_mod: med_phases_prep_rof_accum)'
     !---------------------------------------
 
     call t_startf('MED:'//subname)
@@ -136,7 +136,7 @@ contains
     end if
     call t_stopf('MED:'//subname)
 
-  end subroutine med_phases_prep_rof_accum_fast
+  end subroutine med_phases_prep_rof_accum
 
   !-----------------------------------------------------------------------------
 

@@ -12,14 +12,23 @@ module med_map_lnd2glc_mod
 
 #include "shr_assert.h"
 
-  use ESMF                , only : ESMF_FieldBundle
-  use shr_nuopc_utils_mod , only : chkerr => shr_nuopc_utils_ChkErr
-  use med_constants_mod   , only : R8, CS
+  use ESMF                  , only : ESMF_FieldBundle
+  use shr_sys_mod           , only : shr_sys_abort
+  use shr_nuopc_utils_mod   , only : chkerr => shr_nuopc_utils_ChkErr
+  use med_constants_mod     , only : R8, CS
+  use med_constants_mod     , only : dbug_flag=>med_constants_dbug_flag
+  use med_internalstate_mod , only : InternalState, mastertask, logunit
+  use shr_nuopc_methods_mod , only : shr_nuopc_methods_FB_init
+  use shr_nuopc_methods_mod , only : shr_nuopc_methods_FB_getFldPtr
+  use esmFlds               , only : compglc, complnd, mapbilnr, mapconsf  
+
+  implicit none
+  private
 
   public  :: med_map_lnd2glc  ! map one field from LND -> GLC grid
 
   private :: get_glc_elevation_classes ! get the elevation class of each point on the glc grid
-  private :: renormalize_smb  ! renormalizes surface mass balance
+  private :: do_renormalize_smb  ! renormalizes surface mass balance
 
   ! needed for smb renormalization
   type(ESMF_FieldBundle) :: FBlnd_elev  ! contains fields with undistributed dimensions for elev classes
@@ -35,6 +44,9 @@ module med_map_lnd2glc_mod
   ! Should be set to true for 2-way coupled runs with evolving ice sheets.
   ! Does not need to be true for 1-way coupling.
   logical :: smb_renormalize
+
+  ! Number of elevation classes
+  integer :: nEC                     
 
   ! Field names without elevation class (_elev) suffix
   character(len=*), parameter :: qice_fieldname   = 'Flgl_qice' ! Name of flux field giving surface mass balance
@@ -54,11 +66,8 @@ contains
     use ESMF                  , only : ESMF_GridComp, ESMF_GridCompGet
     use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
     use ESMF                  , only : ESMF_FieldBundleGet
-    use shr_nuopc_methods_mod , only : shr_nuopc_methods_FB_init
-    use shr_nuopc_methods_mod , only : shr_nuopc_methods_FB_getFldPtr
     use med_map_mod           , only : med_map_FB_Regrid_Norm
-    use med_internalstate_mod , only : InternalState, mastertask, logunit
-    use esmFlds               , only : compglc, complnd 
+    use glc_elevclass_mod     , only : glc_get_num_elevation_classes
 
     ! input/output variables
     character(len=*)       , intent(in)    :: fldnames_fr_lnd(:)
@@ -79,14 +88,16 @@ contains
     real(r8), pointer   :: dataexp_g(:)          ! pointer into
     real(r8), pointer   :: dataptr2d(:,:)
     real(r8), pointer   :: dataptr1d(:)
+    real(r8), pointer   :: qice_g(:)             ! SMB (Flgl_qice) on glc grid without elev classes
+    real(r8), pointer   :: qice_l(:,:)           ! SMB (Flgl_qice) on land grid with elev classes
     real(r8)            :: elev_l, elev_u        ! lower and upper elevations in interpolation range
     real(r8)            :: d_elev                ! elev_u - elev_l
     integer             :: nfld, ec
     integer             :: i,j,n,g,ncnt, lsize_g
-    character(len=CS)   :: glc_renormalized_smb
+    character(len=CS)   :: glc_renormalize_smb
     logical             :: glc_coupled_fluxes
     logical             :: lnd_prognostic
-    logical             :: renormalize
+    logical             :: smb_renormalize
     logical             :: first_call = .true.
     character(len=*) , parameter   :: subname='(med_map_lnd2glc)'
     !---------------------------------------
@@ -105,14 +116,17 @@ contains
 
     if (first_call) then
 
+       ! Determine number of elevation classes
+       nEC = glc_get_num_elevation_classes()
+
        ! For now hardwire these
        ! TODO (mvertens, 2018-11-25) : put in the correct logic for the following rather than hardwiring
        glc_renormalize_smb = 'off'
        glc_coupled_fluxes  = .false.
        lnd_prognostic      = .false.
-       renormalize = do_renormalize_smb(glc_renormalize_smb, glc_coupled_fluxes, lnd_prognostic)
+       smb_renormalize = do_renormalize_smb(glc_renormalize_smb, glc_coupled_fluxes, lnd_prognostic)
 
-       if (renormalize) then
+       if (smb_renormalize) then
           call shr_nuopc_methods_FB_init(FBlnd_elev, is_local%wrap%flds_scalar_name, &
                FBgeom=is_local%wrap%FBImp(complnd,complnd), FBflds=is_local%wrap%FBImp(complnd,complnd), rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -160,9 +174,10 @@ contains
     ! notes that this could lead to a loss of conservation). Figure out how to handle
     ! this case.
     
-    call med_map_FB_Regrid_Norm(fldnames_fr_lnd, FBlndAccum, FBglcAccum, &
-         is_local%wrap%FBFrac(complnd), 'lfrac', &
-         is_local%wrap%RH(complnd,compglc,mapbilnr), &
+    call med_map_FB_Regrid_Norm(fldnames=fldnames_fr_lnd, &
+         FBSrc=FBlndAccum, FBDst=FBglcAccum, &
+         FBFrac=is_local%wrap%FBFrac(complnd), mapnorm='lfrac', &
+         RouteHandle=is_local%wrap%RH(complnd,compglc,mapbilnr), &
          string='mapping normalized elevation class data from lnd to to glc', rc=rc)
 
     ! ------------------------------------------------------------------------
@@ -275,19 +290,24 @@ contains
        ! scaling in the CISM NUOPC cap
 
        if (trim(fldnames_to_glc(nfld)) == trim(qice_fieldname) .and. smb_renormalize) then
-          call prep_glc_renormalize_smb(gcomp, dataexp_g, rc)
+          call shr_nuopc_methods_FB_getFldPtr(FBlndAccum, trim(qice_fieldname)//'_elev', fldptr2=qice_l, rc=rc)
+          if (chkErr(rc,__LINE__,u_FILE_u)) return
+
+          call shr_nuopc_methods_FB_getFldPtr(is_local%wrap%FBExp(compglc), qice_fieldname, fldptr1=qice_g, rc=rc)
+          if (chkErr(rc,__LINE__,u_FILE_u)) return
+
+          call prep_glc_renormalize_smb(gcomp, qice_l, qice_g, rc)
           if (chkErr(rc,__LINE__,u_FILE_u)) return
        end if
 
     end do  ! end of loop over fields
     deallocate(data_ice_covered_g)
 
-
   end subroutine med_map_lnd2glc
 
   !================================================================================================
 
-  subroutine prep_glc_renormalize_smb(gcomp, qice_g, rc)
+  subroutine prep_glc_renormalize_smb(gcomp, qice_l, qice_g, rc)
 
     !------------------
     ! Renormalizes surface mass balance (smb, here named qice_g) so that the global
@@ -306,7 +326,7 @@ contains
     !------------------
 
     use ESMF                  , only : ESMF_GridComp, ESMF_GridCompGet
-    use ESMF                  , only : ESMF_VM, ESMF_VMGet
+    use ESMF                  , only : ESMF_VM, ESMF_VMGet, ESMF_VMAllReduce, ESMF_REDUCE_SUM
     use ESMF                  , only : ESMF_FieldBundle, ESMF_FieldBundleGet, ESMF_Field, ESMF_FieldGet
     use ESMF                  , only : ESMF_Mesh, ESMF_MeshGet, ESMF_Array, ESMF_ArrayGet
     use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
@@ -315,21 +335,23 @@ contains
     use med_internalstate_mod , only : InternalState, mastertask, logunit
     use shr_nuopc_methods_mod , only : shr_nuopc_methods_FB_getFldPtr
     use shr_nuopc_methods_mod , only : shr_nuopc_methods_FB_getFieldN
+    use perf_mod              , only : t_startf, t_stopf
 
     ! input/output variables
-    type(ESMF_GridComp)      :: gcomp
-    real(r8) , pointer       :: qice_g(:)  ! qice data on glc grid
-    integer  , intent(out)   :: rc         ! return error code
+    type(ESMF_GridComp)    :: gcomp
+    real(r8) , pointer     :: qice_g(:)   ! SMB (Flgl_qice) on glc grid without elev classes
+    real(r8) , pointer     :: qice_l(:,:) ! SMB (Flgl_qice) on land grid with elev classes
+    integer  , intent(out) :: rc          ! return error code
 
     ! local variables
     ! Note: Sg_icemask defines where the ice sheet model can receive a nonzero SMB from the land model.
     type(InternalState) :: is_local
+    type(ESMF_VM)       :: vm
     type(ESMF_Mesh)     :: lmesh
     type(ESMF_Field)    :: lfield
     type(ESMF_Array)    :: larray
     real(r8), pointer   :: aream_l(:)      ! cell areas on land grid, for mapping
     real(r8), pointer   :: aream_g(:)      ! cell areas on glc grid, for mapping
-    real(r8), pointer   :: qice_l(:,:)     ! SMB (Flgl_qice) on land grid
     real(r8), pointer   :: frac_l(:,:)     ! EC fractions (Sg_ice_covered) on land grid
     real(r8), pointer   :: Sg_icemask_g(:) ! icemask on glc grid
     real(r8), pointer   :: Sg_icemask_l(:) ! icemask on land grid
@@ -338,10 +360,10 @@ contains
     integer             :: n
 
     ! local and global sums of accumulation and ablation; used to compute renormalization factors
-    real(r8) :: local_accum_on_land_grid, global_accum_on_land_grid
-    real(r8) :: local_accum_on_glc_grid , global_accum_on_glc_grid
-    real(r8) :: local_ablat_on_land_grid, global_ablat_on_land_grid
-    real(r8) :: local_ablat_on_glc_grid , global_ablat_on_glc_grid
+    real(r8), target :: local_accum_on_lnd_grid(1), global_accum_on_lnd_grid(1)
+    real(r8), target :: local_accum_on_glc_grid(1), global_accum_on_glc_grid(1)
+    real(r8), target :: local_ablat_on_lnd_grid(1), global_ablat_on_lnd_grid(1)
+    real(r8), target :: local_ablat_on_glc_grid(1), global_ablat_on_glc_grid(1)
 
     ! renormalization factors (should be close to 1, e.g. in range 0.95 to 1.05)
     real(r8) :: accum_renorm_factor ! ratio between global accumulation on the two grids
@@ -476,28 +498,26 @@ contains
     if (chkErr(rc,__LINE__,u_FILE_u)) return
 
     ! Note: qice_l comes from FBlndAccum
-    call shr_nuopc_methods_FB_getFldPtr(FBlndAccum, qice_fieldname, fldptr2=qice_l, rc=rc)
-    if (chkErr(rc,__LINE__,u_FILE_u)) return
 
     ! Sum qice_l over all elevation classes for each local land grid cell then do a global sum
 
-    local_accum_on_land_grid = 0.0_r8
-    local_ablat_on_land_grid = 0.0_r8
+    local_accum_on_lnd_grid(1) = 0.0_r8
+    local_ablat_on_lnd_grid(1) = 0.0_r8
     do n = 1, size(lfrac)
        ! Calculate effective area for sum -  need the mapped Sg_icemask_l
        effective_area = min(lfrac(n),Sg_icemask_l(n)) * aream_l(n)
 
        do ec = 1, nEC+1  
           if (qice_l(ec,n) >= 0.0_r8) then
-             local_accum_on_land_grid = local_accum_on_land_grid + effective_area * frac_l(ec,n) * qice_l(ec,n)
+             local_accum_on_lnd_grid(1) = local_accum_on_lnd_grid(1) + effective_area * frac_l(ec,n) * qice_l(ec,n)
           else
-             local_ablat_on_land_grid = local_ablat_on_land_grid + effective_area * frac_l(ec,n) * qice_l(ec,n)
+             local_ablat_on_lnd_grid(1) = local_ablat_on_lnd_grid(1) + effective_area * frac_l(ec,n) * qice_l(ec,n)
           endif
        enddo  ! ec
     enddo  ! n
-    call ESMF_VMAllreduce(vm, senddata=local_accum_on_land_grid, recvdata=global_accum_on_land_grid,&
+    call ESMF_VMAllreduce(vm, senddata=local_accum_on_lnd_grid, recvdata=global_accum_on_lnd_grid,&
          count=1, reduceflag=ESMF_REDUCE_SUM, rc=rc)
-    call ESMF_VMAllreduce(vm, senddata=local_ablat_on_land_grid, recvdata=global_ablat_on_land_grid,&
+    call ESMF_VMAllreduce(vm, senddata=local_ablat_on_lnd_grid, recvdata=global_ablat_on_lnd_grid,&
          count=1, reduceflag=ESMF_REDUCE_SUM, rc=rc)
 
     ! Sum qice_g over local glc grid cells.  
@@ -514,13 +534,13 @@ contains
     call shr_nuopc_methods_FB_getFldPtr(is_local%wrap%FBexp(compglc), Sg_icemask_field, fldptr1=Sg_icemask_g, rc=rc)
     if (chkErr(rc,__LINE__,u_FILE_u)) return
 
-    local_accum_on_glc_grid = 0.0_r8
-    local_ablat_on_glc_grid = 0.0_r8
+    local_accum_on_glc_grid(1) = 0.0_r8
+    local_ablat_on_glc_grid(1) = 0.0_r8
     do n = 1, size(qice_g)
        if (qice_g(n) >= 0.0_r8) then
-          local_accum_on_glc_grid = local_accum_on_glc_grid + Sg_icemask_g(n) * aream_g(n) * qice_g(n)
+          local_accum_on_glc_grid(1) = local_accum_on_glc_grid(1) + Sg_icemask_g(n) * aream_g(n) * qice_g(n)
        else
-          local_ablat_on_glc_grid = local_ablat_on_glc_grid + Sg_icemask_g(n) * aream_g(n) * qice_g(n)
+          local_ablat_on_glc_grid(1) = local_ablat_on_glc_grid(1) + Sg_icemask_g(n) * aream_g(n) * qice_g(n)
        endif
     enddo  ! n
     call ESMF_VMAllreduce(vm, senddata=local_accum_on_glc_grid, recvdata=global_accum_on_glc_grid,&
@@ -529,14 +549,14 @@ contains
          count=1, reduceflag=ESMF_REDUCE_SUM, rc=rc)
 
     ! Renormalize
-    if (global_accum_on_glc_grid > 0.0_r8) then
-       accum_renorm_factor = global_accum_on_land_grid / global_accum_on_glc_grid
+    if (global_accum_on_glc_grid(1) > 0.0_r8) then
+       accum_renorm_factor = global_accum_on_lnd_grid(1) / global_accum_on_glc_grid(1)
     else
        accum_renorm_factor = 0.0_r8
     endif
 
-    if (global_ablat_on_glc_grid < 0.0_r8) then  ! negative by definition
-       ablat_renorm_factor = global_ablat_on_land_grid / global_ablat_on_glc_grid
+    if (global_ablat_on_glc_grid(1) < 0.0_r8) then  ! negative by definition
+       ablat_renorm_factor = global_ablat_on_lnd_grid(1) / global_ablat_on_glc_grid(1)
     else
        ablat_renorm_factor = 0.0_r8
     endif
@@ -569,7 +589,6 @@ contains
     use glc_elevclass_mod     , only : GLC_ELEVCLASS_ERR_NONE, GLC_ELEVCLASS_ERR_TOO_LOW
     use glc_elevclass_mod     , only : GLC_ELEVCLASS_ERR_TOO_HIGH, glc_errcode_to_string
     use glc_elevclass_mod     , only : glc_get_elevation_class
-    use shr_sys_mod           , only : shr_sys_abort
 
     ! input/output variables
     real(r8), intent(in)  :: glc_ice_covered(:) ! ice-covered (1) vs. ice-free (0)
@@ -626,40 +645,42 @@ contains
 
   !================================================================================================
 
-  function renormalize_smb(glc_renormalize_smb, glc_coupled_fluxes, lnd_prognostic) &
-       result(do_renormalize_smb)
+  function do_renormalize_smb(glc_renormalize_smb, glc_coupled_fluxes, lnd_prognostic) &
+       result(smb_renormalize)
 
     ! Returns a logical saying whether we should do the smb renormalization
 
     ! function return
-    logical :: do_renormalize_smb   ! function return value
+    logical :: smb_renormalize   ! function return value
+
     ! input/output variables
     character(len=*), intent(in) :: glc_renormalize_smb  ! namelist option saying whether to do smb renormalization
     logical         , intent(in) :: glc_coupled_fluxes   ! does glc send fluxes to other components?
     logical         , intent(in) :: lnd_prognostic       ! is lnd a prognostic component?
+
     ! local variables
-    character(len=*), parameter :: subname = '(prep_glc_do_renormalize_smb)'
+    character(len=*), parameter :: subname = '(do_renormalize_smb)'
     !---------------------------------------------------------------
 
     select case (glc_renormalize_smb)
     case ('on')
-       do_renormalize_smb = .true.
+       smb_renormalize = .true.
 
     case ('off')
-       do_renormalize_smb = .false.
+       smb_renormalize = .false.
 
     case ('on_if_glc_coupled_fluxes')
        if (.not. lnd_prognostic) then
           ! Do not renormalize if running glc with dlnd (T compsets): In this case
           ! there is no feedback from glc to lnd, and conservation is not important
-          do_renormalize_smb = .false.
+          smb_renormalize = .false.
        else if (.not. glc_coupled_fluxes) then
           ! Do not renormalize if glc does not send fluxes to other components: In this
           ! case conservation is not important
-          do_renormalize_smb = .false.
+          smb_renormalize = .false.
        else
           ! lnd_prognostic is true and glc_coupled_fluxes is true
-          do_renormalize_smb = .true.
+          smb_renormalize = .true.
        end if
 
     case default
@@ -669,6 +690,6 @@ contains
 
     end select
 
-  end function renormalize_smb
+  end function do_renormalize_smb
 
 end module med_map_lnd2glc_mod
