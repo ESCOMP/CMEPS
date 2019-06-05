@@ -323,7 +323,8 @@ def _create_runseq(case, coupling_times):
 
         if (runseq_a1 or runseq_a2 or runseq_a3):
             from runseq_A import runseq
-        elif (comp_atm == 'xatm' and comp_ocn == "xocn" and comp_ice == 'xice' and comp_rof == 'xrof'):
+        elif (comp_atm == 'xatm' or comp_ocn == "xocn" or comp_ice == 'xice' or
+              comp_rof == 'xrof' or comp_wav == 'xwav' or comp_glc == 'xglc'):
             from runseq_X import runseq
         elif (comp_atm == 'cam' and comp_ocn == "docn"):
             from runseq_FQ import runseq
