@@ -333,7 +333,7 @@ def _create_runseq(case, coupling_times):
             from runseq_D import runseq
         elif ((comp_ocn == "mom" or comp_ocn == 'pop') and comp_atm == 'datm'):
             from runseq_CG import runseq
-        elif (comp_atm == 'cam' and comp_lnd == "clm" and comp_ocn == 'mom'):
+        elif (comp_atm == 'cam' and comp_lnd == "clm" and (comp_ocn == 'mom' or comp_ocn == "pop")):
             from runseq_B import runseq
         elif (comp_atm == 'fv3gfs' and comp_ocn == "mom" and comp_ice == 'cice'):
             from runseq_NEMS import runseq
