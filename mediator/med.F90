@@ -1068,28 +1068,19 @@ contains
                call ESMF_MeshGet(mesh, elementDistGrid=elemDistGrid, rc=rc)
                if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-               ! Get deCount and dimCount
-               call ESMF_DistGridGet(elemDistGrid, dimCount=dimCount, tileCount=tileCount, rc=rc)
+               newelemDistGrid = ESMF_DistGridCreate(elemDistGrid, balanceflag=.true., rc=rc)
                if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-               ! Allocate regDecomp accord. to dimCount
-               allocate(regDecompPTile(dimCount, tileCount))
-               regDecompPTile(:,:) = 1
-               regDecompPTile(1,1) = petCount
+               ! call ESMF_MeshGet(mesh, nodalDistGrid=nodalDistGrid, rc=rc)
+               ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-               ! Allocate minIndexPTile and maxIndexPTile accord. to dimCount and tileCount
-               allocate(minIndexPTile(dimCount, tileCount), maxIndexPTile(dimCount, tileCount))
-
-               ! Get minIndexPTile and maxIndexPTile
-               call ESMF_DistGridGet(elemDistGrid, minIndexPTile=minIndexPTile, maxIndexPTile=maxIndexPTile, rc=rc)
-               if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-               ! Create new distgrid
-               newelemDistGrid = ESMF_DistGridCreate(minIndex=minIndexPTile(:,1), maxIndex= maxIndexPTile(:,1), &
-                                  regDecomp=regDecompPTile(:,1), rc=rc)
-               if (ChkErr(rc,__LINE__,u_FILE_u)) return
+               ! newnodalDistGrid = ESMF_DistGridCreate(nodalDistGrid, balanceflag=.true., rc=rc)
+               ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
                ! Create a new Grid on the new DistGrid and swap it in the Field
+               ! newmesh = ESMF_MeshEmptyCreate(elementDistGrid=newelemDistGrid, nodalDistGrid=newnodalDistGrid, rc=rc)
+               ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
                newmesh = ESMF_MeshEmptyCreate(elementDistGrid=newelemDistGrid, rc=rc)
                if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
@@ -1120,9 +1111,6 @@ contains
                      if (ChkErr(rc,__LINE__,u_FILE_u)) return
                   endif
                enddo
-
-               ! local clean-up
-               deallocate(minIndexPTile, maxIndexPTile, regDecompPTile)
 
             else  ! geomtype
 
