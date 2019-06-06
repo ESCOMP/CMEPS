@@ -62,7 +62,7 @@ def runseq(case, coupling_times):
         outfile.write ("  ICE                                \n")
         outfile.write ("  ICE -> MED :remapMethod=redist     \n")
     outfile.write ("  MED med_fraction_set                   \n")
-    if (comp_ice == 'xwav'):
+    if (comp_wav == 'xwav'):
         outfile.write ("  MED med_phases_prep_wav            \n")
         outfile.write ("  MED -> WAV :remapMethod=redist     \n")
         outfile.write ("  WAV                                \n")
