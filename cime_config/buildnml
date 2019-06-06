@@ -304,7 +304,7 @@ def _create_runseq(case, coupling_times):
         comp_atm  = case.get_value("COMP_ATM")
         comp_ice  = case.get_value("COMP_ICE")
         # not yet in use
-        # comp_glc  = case.get_value("COMP_GLC")
+        comp_glc  = case.get_value("COMP_GLC")
         comp_lnd  = case.get_value("COMP_LND")
         comp_ocn  = case.get_value("COMP_OCN")
         comp_rof  = case.get_value("COMP_ROF")
@@ -316,7 +316,7 @@ def _create_runseq(case, coupling_times):
                      comp_rof == 'srof' and comp_wav == 'swav' and comp_lnd == 'dlnd') # ADWAV
         runseq_a3 = (comp_atm == 'satm' and comp_ocn == "socn" and comp_ice == 'sice' and
                      comp_rof == 'srof' and comp_wav == 'dwav' and comp_lnd == 'slnd') # ADLND
-        runseq_a4 = (comp_atm == 'datm' and comp_ocn == 'docn' and comp_ice == 'sice' and 
+        runseq_a4 = (comp_atm == 'datm' and comp_ocn == 'docn' and comp_ice == 'sice' and
                      comp_rof == 'srof' and comp_wav == 'swav' and comp_lnd == 'slnd') # A compsets
 
         # Create a run sequence file appropriate for target compset
