@@ -1285,6 +1285,10 @@ contains
           call NUOPC_DriverAddComp(driver, trim(compLabels(i)), ESPSetServices, PetList=petlist, comp=child, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
 #endif
+       else
+          write(msgstr,*) 'No component ',trim(compLabels(i)),' found'
+          call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
+          return
        endif
 
        call AddAttributes(child, driver, config, i+1, trim(compLabels(i)), inst_suffix, rc=rc)
