@@ -316,14 +316,17 @@ def _create_runseq(case, coupling_times):
                      comp_rof == 'srof' and comp_wav == 'swav' and comp_lnd == 'dlnd') # ADWAV
         runseq_a3 = (comp_atm == 'satm' and comp_ocn == "socn" and comp_ice == 'sice' and
                      comp_rof == 'srof' and comp_wav == 'dwav' and comp_lnd == 'slnd') # ADLND
+        runseq_a4 = (comp_atm == 'datm' and comp_ocn == 'docn' and comp_ice == 'sice' and 
+                     comp_rof == 'srof' and comp_wav == 'swav' and comp_lnd == 'slnd') # A compsets
 
         # Create a run sequence file appropriate for target compset
 
         sys.path.append(os.path.join(_CIMEROOT, "src", "drivers", "nuopc", "cime_config", "runseq"))
 
-        if (runseq_a1 or runseq_a2 or runseq_a3):
+        if (runseq_a1 or runseq_a2 or runseq_a3 or runseq_a4):
             from runseq_A import runseq
-        elif (comp_atm == 'xatm' and comp_ocn == "xocn" and comp_ice == 'xice' and comp_rof == 'xrof'):
+        elif (comp_atm == 'xatm' or comp_ocn == "xocn" or comp_ice == 'xice' or
+              comp_rof == 'xrof' or comp_wav == 'xwav' or comp_glc == 'xglc'):
             from runseq_X import runseq
         elif (comp_atm == 'cam' and comp_ocn == "docn"):
             from runseq_FQ import runseq

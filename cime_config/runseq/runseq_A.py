@@ -97,5 +97,34 @@ def runseq(case, coupling_times):
         outfile.write ("@                                \n" )
         outfile.write ("::                               \n" )
 
+    elif (comp_atm == 'datm' and comp_ocn == "docn" and comp_ice == 'sice' and
+          comp_rof == 'srof' and comp_wav == 'swav' and comp_lnd == 'slnd'):
+
+        outfile.write ("runSeq::                               \n")
+        outfile.write ("@" + str(ocn_cpl_dt) + "               \n")
+        outfile.write ("  MED med_phases_prep_ocn_accum_avg    \n")
+        outfile.write ("  MED -> OCN :remapMethod=redist       \n")
+        if (atm_cpl_dt < ocn_cpl_dt):
+            outfile.write ("  @" + str(atm_cpl_dt) + "         \n")
+        outfile.write ("    MED med_phases_prep_ocn_map        \n")
+        outfile.write ("    MED med_phases_aofluxes_run        \n")
+        outfile.write ("    MED med_phases_prep_ocn_merge      \n")
+        outfile.write ("    MED med_phases_prep_ocn_accum_fast \n")
+        outfile.write ("    MED med_phases_ocnalb_run          \n")
+        outfile.write ("    MED med_fraction_set               \n")
+        outfile.write ("    MED med_phases_prep_atm            \n")
+        outfile.write ("    MED -> ATM :remapMethod=redist     \n")
+        outfile.write ("    ATM                                \n")
+        outfile.write ("    ATM -> MED :remapMethod=redist     \n")
+        outfile.write ("    MED med_phases_history_write       \n")
+        outfile.write ("    MED med_phases_profile             \n")
+        if (atm_cpl_dt < ocn_cpl_dt):
+            outfile.write ("  @                                \n")
+        outfile.write ("  OCN                                  \n")
+        outfile.write ("  OCN -> MED :remapMethod=redist       \n")
+        outfile.write ("  MED med_phases_restart_write         \n")
+        outfile.write ("@                                      \n")
+        outfile.write ("::                                     \n")
+
     outfile.close()
     shutil.copy(os.path.join(caseroot, "CaseDocs", "nuopc.runseq"), rundir)
