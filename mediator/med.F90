@@ -69,7 +69,8 @@ contains
 
   subroutine SetServices(gcomp, rc)
 
-    use ESMF                    , only: ESMF_SUCCESS, ESMF_GridCompSetEntryPoint, ESMF_METHOD_INITIALIZE, ESMF_METHOD_RUN
+    use ESMF                    , only: ESMF_SUCCESS, ESMF_GridCompSetEntryPoint
+    use ESMF                    , only: ESMF_METHOD_INITIALIZE, ESMF_METHOD_RUN
     use ESMF                    , only: ESMF_GridComp, ESMF_MethodRemove
     use NUOPC                   , only: NUOPC_CompDerive, NUOPC_CompSetEntryPoint, NUOPC_CompSpecialize, NUOPC_NOOP
     use NUOPC_Mediator          , only: mediator_routine_SS             => SetServices
@@ -96,6 +97,13 @@ contains
     use med_phases_prep_ocn_mod , only: med_phases_prep_ocn_accum_avg
     use med_phases_ocnalb_mod   , only: med_phases_ocnalb_run
     use med_phases_aofluxes_mod , only: med_phases_aofluxes_run
+    use med_diag_mod            , only: med_phases_diag_accum, med_phases_diag_print
+    use med_diag_mod            , only: med_phases_diag_atm
+    use med_diag_mod            , only: med_phases_diag_lnd
+    use med_diag_mod            , only: med_phases_diag_rof
+    use med_diag_mod            , only: med_phases_diag_glc
+    use med_diag_mod            , only: med_phases_diag_ocn
+    use med_diag_mod            , only: med_phases_diag_ice_ice2med, med_phases_diag_ice_med2ice
     use med_fraction_mod        , only: med_fraction_init, med_fraction_set
     use med_phases_profile_mod  , only: med_phases_profile
 
@@ -343,6 +351,64 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
          specPhaseLabel="med_fraction_set", specRoutine=med_fraction_set, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    !------------------
+    ! phase routines for budget diagnostics
+    !------------------
+
+    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
+         phaseLabelList=(/"med_phases_diag_atm"/), userRoutine=mediator_routine_Run, rc=rc)
+    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
+         specPhaselabel="med_phases_diag_atm", specRoutine=med_phases_diag_atm, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
+         phaseLabelList=(/"med_phases_diag_lnd"/), userRoutine=mediator_routine_Run, rc=rc)
+    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
+         specPhaselabel="med_phases_diag_lnd", specRoutine=med_phases_diag_lnd, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
+         phaseLabelList=(/"med_phases_diag_rof"/), userRoutine=mediator_routine_Run, rc=rc)
+    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
+         specPhaselabel="med_phases_diag_rof", specRoutine=med_phases_diag_rof, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
+         phaseLabelList=(/"med_phases_diag_ocn"/), userRoutine=mediator_routine_Run, rc=rc)
+    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
+         specPhaselabel="med_phases_diag_ocn", specRoutine=med_phases_diag_ocn, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
+         phaseLabelList=(/"med_phases_diag_glc"/), userRoutine=mediator_routine_Run, rc=rc)
+    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
+         specPhaselabel="med_phases_diag_glc", specRoutine=med_phases_diag_glc, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
+         phaseLabelList=(/"med_phases_diag_ice_ice2med"/), userRoutine=mediator_routine_Run, rc=rc)
+    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
+         specPhaselabel="med_phases_diag_ice_ice2med", specRoutine=med_phases_diag_ice_ice2med, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
+         phaseLabelList=(/"med_phases_diag_ice_med2ice"/), userRoutine=mediator_routine_Run, rc=rc)
+    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
+         specPhaselabel="med_phases_diag_ice_med2ice", specRoutine=med_phases_diag_ice_med2ice, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
+         phaseLabelList=(/"med_phases_diag_accum"/), userRoutine=mediator_routine_Run, rc=rc)
+    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
+         specPhaselabel="med_phases_diag_accum", specRoutine=med_phases_diag_accum, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
+         phaseLabelList=(/"med_phases_diag_print"/), userRoutine=mediator_routine_Run, rc=rc)
+    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
+         specPhaseLabel="med_phases_diag_print", specRoutine=med_phases_diag_print, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !------------------
@@ -1503,6 +1569,7 @@ contains
     use med_phases_ocnalb_mod   , only : med_phases_ocnalb_run
     use med_phases_aofluxes_mod , only : med_phases_aofluxes_run
     use med_phases_profile_mod  , only : med_phases_profile
+    use med_diag_mod            , only : med_diag_zero, med_diag_init
     use med_map_mod             , only : med_map_MapNorm_init, med_map_RouteHandles_init
     use med_io_mod              , only : med_io_init
 
@@ -1689,6 +1756,9 @@ contains
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
             is_local%wrap%FBExpAccumCnt(n1) = 0
 
+            ! Create mesh info data
+            call med_meshinfo_create(is_local%wrap%FBImpAccum(n1,n1), is_local%wrap%mesh_info(n1), rc=rc)
+            if (ChkErr(rc,__LINE__,u_FILE_u)) return
          endif
 
          ! The following are FBImp and FBImpAccum mapped to different grids.
@@ -2037,9 +2107,18 @@ contains
 
        call med_io_init()
 
-      !---------------------------------------
-      ! read mediator restarts
-      !---------------------------------------
+       !---------------------------------------
+       ! Initialize mediator water/heat budget diags
+       !---------------------------------------
+
+       call med_diag_init(gcomp, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call med_diag_zero(gcomp, mode='all', rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       !---------------------------------------
+       ! read mediator restarts
+       !---------------------------------------
 
        call NUOPC_CompAttributeGet(gcomp, name="read_restart", value=cvalue, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -2056,12 +2135,10 @@ contains
     else ! Not all done
        call NUOPC_CompAttributeSet(gcomp, name="InitializeDataComplete", value="false", rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
        call ESMF_LogWrite("MED - Initialize-Data-Dependency allDone check Failed, another loop is required", &
             ESMF_LOGMSG_INFO)
 
     end if
-
     if (profile_memory) call ESMF_VMLogMemInfo("Leaving "//trim(subname))
     if (dbug_flag > 5) then
       call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)

@@ -700,6 +700,7 @@ contains
           end if
        end if
     end do
+
     deallocate(suffix)
 
     ! ---------------------------------------------------------------------
