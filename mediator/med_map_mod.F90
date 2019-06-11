@@ -15,10 +15,11 @@ module med_map_mod
   use shr_nuopc_methods_mod , only : FB_Clean          => shr_nuopc_methods_FB_Clean
   use shr_nuopc_methods_mod , only : FB_GetFldPtr      => shr_nuopc_methods_FB_GetFldPtr
   use shr_nuopc_methods_mod , only : FB_FieldRegrid    => shr_nuopc_methods_FB_FieldRegrid
+  use shr_nuopc_methods_mod , only : FB_Diagnose       => shr_nuopc_methods_FB_Diagnose
   use shr_nuopc_methods_mod , only : FB_Field_diagnose => shr_nuopc_methods_FB_Field_diagnose
-  use shr_nuopc_methods_mod , only : FB_FldChk         => shr_nuopc_methods_FB_FldChk 
+  use shr_nuopc_methods_mod , only : FB_FldChk         => shr_nuopc_methods_FB_FldChk
   use shr_nuopc_methods_mod , only : Field_diagnose    => shr_nuopc_methods_Field_diagnose
-  
+
   implicit none
   private
 
@@ -28,7 +29,7 @@ module med_map_mod
   public :: med_map_MapNorm_init
   public :: med_map_FB_Regrid_Norm
 
-  interface med_map_FB_Regrid_norm 
+  interface med_map_FB_Regrid_norm
      module procedure med_map_FB_Regrid_Norm_All
      module procedure med_map_FB_Regrid_Norm_Frac
   end interface
@@ -220,7 +221,7 @@ contains
                               srcTermProcessing=srcTermProcessing_Value, rc=rc)
                          if (chkerr(rc,__LINE__,u_FILE_u)) return
                       else
-                         ! Create route handle on the fly 
+                         ! Create route handle on the fly
                          if (mastertask) write(llogunit,'(3A)') subname,trim(string),&
                               ' RH regrid for '//trim(mapname)//' computed on the fly'
                          call ESMF_LogWrite(subname // trim(string) //&
@@ -338,6 +339,7 @@ contains
     !---------------------------------------------
 
     use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_LogFlush
+    use ESMF                  , only : ESMF_Failure, ESMF_LOGMSG_INFO
     use ESMF                  , only : ESMF_GridComp, ESMF_FieldBundle, ESMF_RouteHandle, ESMF_Field
     use ESMF                  , only : ESMF_FieldRedistStore, ESMF_FieldSMMStore, ESMF_FieldRegridStore
     use ESMF                  , only : ESMF_UNMAPPEDACTION_IGNORE, ESMF_REGRIDMETHOD_CONSERVE, ESMF_NORMTYPE_FRACAREA
@@ -396,6 +398,8 @@ contains
        call NUOPC_CompAttributeGet(gcomp, name=trim(rhname)//"_fmapname", value=mapfile, rc=rc)
        mapname = trim(mapnames(mapconsf))
     end if
+
+    write(6,*)'DEBUG: mapfile is ',trim(mapfile)
 
     if (mapfile == 'idmap') then
        call ESMF_LogWrite(trim(subname) // trim(string) //&
@@ -553,7 +557,7 @@ contains
     use ESMF                  , only: ESMF_REGION_SELECT, ESMF_REGION_TOTAL
     use ESMF                  , only: ESMF_Field, ESMF_FieldGet
     use esmFlds               , only: compname
-    use esmFlds               , only: mapnames, mapfcopy, mapconsd, mapconsf, mapnstod 
+    use esmFlds               , only: mapnames, mapfcopy, mapconsd, mapconsf, mapnstod
     use esmFlds               , only: mapnstod_consd, mapnstod_consf
     use esmFlds               , only: shr_nuopc_fldList_entry_type
     use perf_mod              , only: t_startf, t_stopf
@@ -580,7 +584,7 @@ contains
     type(ESMF_Field)      :: srcField
     type(ESMF_Field)      :: dstField
     type(ESMF_Field)      :: lfield
-    real(R8), allocatable :: data_srctmp(:)  
+    real(R8), allocatable :: data_srctmp(:)
     real(R8), pointer     :: data_src(:)
     real(R8), pointer     :: data_dst(:)
     real(R8), pointer     :: data_frac(:)
@@ -650,7 +654,7 @@ contains
        else if (.not. FB_FldChk(FBDst, fldname, rc=rc)) then
           call ESMF_LogWrite(trim(subname)//" field not found in FBDst: "//trim(fldname), ESMF_LOGMSG_INFO)
        else if (mapindex == mapnstod_consd) then
-          if (.not. ESMF_RouteHandleIsCreated(RouteHandles(mapconsd), rc=rc) .or. &
+          if ( .not. ESMF_RouteHandleIsCreated(RouteHandles(mapconsd), rc=rc) .or. &
                .not. ESMF_RouteHandleIsCreated(RouteHandles(mapnstod), rc=rc)) then
              call ESMF_LogWrite(trim(subname)//trim(lstring)//&
                   ": ERROR RH not available for "//mapnames(mapindex)//": fld="//trim(fldname), &
@@ -702,7 +706,7 @@ contains
           if ( trim(mapnorm) /= 'unset' .and. trim(mapnorm) /= 'one' .and. trim(mapnorm) /= 'none') then
 
              !-------------------------------------------------
-             ! fractional normalization (1) 
+             ! fractional normalization (1)
              ! multiple source field by fraction and map product
              !-------------------------------------------------
 
@@ -724,7 +728,7 @@ contains
              if (chkerr(rc,__LINE__,u_FILE_u)) return
 
              ! regrid FBSrc to FBDst
-             ! - copy data_src to data_srctmp 
+             ! - copy data_src to data_srctmp
              ! - multiply by fraction, regrid this then replace with original data_src
              ! - regrid field with name fldname from FBsrc to FBDst
              ! - restore original value
@@ -853,13 +857,15 @@ contains
 
   subroutine norm_field_dest (fldname, dstfield, frac, rc)
 
-    !------------------------------------------------ 
+    !------------------------------------------------
     ! normalize destination mapped values by the reciprocal of the
     ! mapped fraction or 'one'
     ! ------------------------------------------------
 
-    use ESMF , only : ESMF_Field, ESMF_FieldGet
-    use ESMF , only : ESMF_SUCCESS
+    use ESMF , only : ESMF_Field, ESMF_FieldGet, ESMF_FieldCreate
+    use ESMF , only : ESMF_SUCCESS, ESMF_FAILURE, ESMF_LOGMSG_INFO
+    use ESMF , only : ESMF_LogWrite
+
 
     ! input/output variables
     character(len=*) , intent(in)    :: fldname
@@ -874,14 +880,18 @@ contains
     real(R8), pointer :: data2d(:,:)
     integer           :: ungriddedUBound(1)     ! currently the size must equal 1 for rank 2 fields
     integer           :: gridToFieldMap(1)      ! currently the size must equal 1 for rank 2 fields
+    character(len=*), parameter    :: subname='(module_med_map:med_norm_field_dest)'
     ! ------------------------------------------------
 
     rc = ESMF_SUCCESS
 
+    ! Because the mediator always supports meshes dimcount is always 1 for all meshes
+    ! Number of undistributed dimensions will simply equal lrank -1
     call ESMF_FieldGet(dstfield, rank=lrank, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     if (lrank == 1) then
+
        call ESMF_FieldGet(dstfield, farrayPtr=data1d, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        do i= 1,size(data1d)
@@ -891,30 +901,35 @@ contains
              data1d(i) = data1d(i)/frac(i)
           endif
        enddo
+
     else if (lrank == 2) then
+
        call ESMF_FieldGet(dstfield, ungriddedUBound=ungriddedUBound, gridToFieldMap=gridToFieldMap, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (gridToFieldMap(1) /= 2) then
+          call ESMF_LogWrite(trim(subname)//": ERROR: only gridToFieldMap=2 is supported", &
+               ESMF_LOGMSG_INFO, rc=rc)
+          rc = ESMF_FAILURE
+          return
+       end if
        call ESMF_FieldGet(dstfield, farrayPtr=data2d, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        do n = 1,ungriddedUbound(1)
-          if (gridToFieldMap(1) == 1) then
-             do i = 1,size(data2d,dim=1)
-                if (frac(i) == 0.0_r8) then
-                   data2d(i,n) = 0.0_r8
-                else
-                   data2d(i,n) = data2d(i,n)/frac(i)
-                end if
-             end do
-          else if (gridToFieldMap(1) == 2) then
-             do i = 1,size(data2d,dim=2)
-                if (frac(i) == 0.0_r8) then
-                   data2d(n,i) = 0.0_r8
-                else
-                   data2d(n,i) = data2d(n,i)/frac(i)
-                end if
-             end do
-          end if
+          do i = 1,size(data2d,dim=2)
+             if (frac(i) == 0.0_r8) then
+                data2d(n,i) = 0.0_r8
+             else
+                data2d(n,i) = data2d(n,i)/frac(i)
+             end if
+          end do
        end do
+
+    else
+
+       call ESMF_LogWrite(trim(subname)//": ERROR rank not equal to 1 or 2 not supported", ESMF_LOGMSG_INFO, rc=rc)
+       rc = ESMF_FAILURE
+       return
+
     end if
 
     call Field_diagnose(dstfield, fldname, " --> after frac: ", rc=rc)
@@ -931,13 +946,16 @@ contains
     ! Map fldnames in source field bundle with appropriate fraction weighting
     ! There are 2 key assumptions below
     ! ASSUME that all fields in FBSrc have the same rank
-    ! ASSUME that if FBSrc has fields of rank 2, those fields have an undistributed innermost dimension 
+    ! ASSUME that if FBSrc has fields of rank 2, those fields have an undistributed innermost dimension
     ! ----------------------------------------------
 
     use ESMF     , only: ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
     use ESMF     , only: ESMF_LOGMSG_ERROR, ESMF_FAILURE
-    use ESMF     , only: ESMF_FieldBundle, ESMF_FieldBundleIsCreated, ESMF_FieldBundleGet
-    use ESMF     , only: ESMF_RouteHandle, ESMF_RouteHandleIsCreated, ESMF_Field
+    use ESMF     , only: ESMF_FieldBundle, ESMF_FieldBundleGet, ESMF_FieldBundleAdd
+    use ESMF     , only: ESMF_FieldBundleCreate, ESMF_FieldBundleIsCreated
+    use ESMF     , only: ESMF_RouteHandle, ESMF_RouteHandleIsCreated
+    use ESMF     , only: ESMF_Field, ESMF_FieldGet, ESMF_FieldCreate, ESMF_TYPEKIND_R8
+    use ESMF     , only: ESMF_Mesh, ESMF_MeshLoc
     use perf_mod , only: t_startf, t_stopf
 
     ! input/output variables
@@ -951,8 +969,11 @@ contains
     integer                , intent(out)          :: rc
 
     ! local variables
-    integer                        :: i, n
+    integer                        :: i, n, j
     integer                        :: rank               ! rank of all fields in FBSrc (1 or 2)
+    type(ESMF_Field)               :: lfield
+    type(ESMF_Mesh)                :: lmesh
+    type(ESMF_MeshLoc)             :: lmeshloc
     type(ESMF_FieldBundle)         :: FBSrcTmp           ! temporary
     type(ESMF_FieldBundle)         :: FBNormSrc          ! temporary
     type(ESMF_FieldBundle)         :: FBNormDst          ! temporary
@@ -968,6 +989,8 @@ contains
     real(R8), pointer              :: data_dstnorm(:)    ! temporary
     real(R8), pointer              :: data_frac(:)       ! temporary
     real(R8), pointer              :: data_norm(:)       ! temporary
+    integer                        :: ungriddedUBound(1) ! currently the size must equal 1 for rank 2 fields
+    integer                        :: gridToFieldMap(1)  ! currently the size must equal 1 for rank 2 fields
     character(len=*), parameter    :: subname='(module_MED_Map:med_map_Regrid_Norm)'
     !-------------------------------------------------------------------------------
 
@@ -985,6 +1008,75 @@ contains
     endif
 
     !-------------------------------------------------
+    ! Determine rank of fields in FBSrc
+    !-------------------------------------------------
+
+    ! Because the mediator always supports meshes dimcount is always 1 for all meshes
+    ! Number of undistributed dimensions will simply equal lrank - 1 (or 0 or 1)
+
+    ! create a temporary field bundle, FBSrcTmp that will contain FBSrc data
+    FBSrcTmp = ESMF_FieldBundleCreate(name='FBSrcTmp', rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    do n = 1,size(fldnames)
+       call ESMF_FieldBundleGet(FBSrc, fieldName=trim(fldnames(n)), field=lfield, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_FieldGet(lfield, rank=rank, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_FieldGet(lfield, mesh=lmesh, meshloc=lmeshloc, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (rank == 1) then
+           lfield = ESMF_FieldCreate(lmesh, ESMF_TYPEKIND_R8, meshloc=lmeshloc, name=fldnames(n), rc=rc)
+           if (chkerr(rc,__LINE__,u_FILE_u)) return
+       else if (rank == 2) then
+          call ESMF_FieldGet(lfield, ungriddedUBound=ungriddedUBound, gridToFieldMap=gridToFieldMap, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          !write(6,*)'DEBUG: adding 2dfld to FBSrcTmp ',trim(fldnames(n)),' with ungridded ubound= ',ungriddedUbound(1)
+          if (gridToFieldMap(1) /= 2) then
+             call ESMF_LogWrite(trim(subname)//": ERROR: only gridToFieldMap=2 is supported", &
+                  ESMF_LOGMSG_INFO, rc=rc)
+             rc = ESMF_FAILURE
+             return
+          end if
+          lfield = ESMF_FieldCreate(lmesh, ESMF_TYPEKIND_R8, meshloc=lmeshloc, name=fldnames(n), &
+               ungriddedLbound=(/1/), ungriddedUbound=ungriddedUbound, gridToFieldMap=(/2/))
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_FieldBundleAdd(FBSrcTmp, (/lfield/), rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+       end if
+    end do
+
+    ! create a temporary field bundle that will contain normalization on the source grid
+    call FB_init(FBout=FBNormSrc, flds_scalar_name=flds_scalar_name, &
+         FBgeom=FBSrc, fieldNameList=(/trim(mapnorm)/), name='normsrc', rc=rc)
+    if (chkerr(rc,__line__,u_file_u)) return
+    call FB_GetFldPtr(FBNormSrc, trim(mapnorm), fldptr1=data_srcnorm, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    ! create a temporary field bundle that will contain normalization on the destination grid
+    call FB_init(FBout=FBNormDst, flds_scalar_name=flds_scalar_name, &
+         FBgeom=FBDst, fieldNameList=(/trim(mapnorm)/), name='normdst', rc=rc)
+    if (chkerr(rc,__line__,u_file_u)) return
+    call FB_GetFldPtr(FBNormDst, trim(mapnorm), fldptr1=data_dstnorm, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    ! get pointer to FBFrac
+    call FB_GetFldPtr(FBFrac, trim(mapnorm), fldptr1=data_frac, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    ! error check
+    if (size(data_srcnorm) /= size(data_frac)) then
+       call ESMF_LogWrite(trim(subname)//" fldname= "//trim(fldnames(n))//" mapnorm= "//trim(mapnorm), &
+            ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
+       write(csize1,'(i8)') size(data_srcnorm)
+       write(csize2,'(i8)') size(data_frac)
+       call ESMF_LogWrite(trim(subname)//": ERROR data_normsrc size "//trim(csize1)//&
+            " and data_frac size "//trim(csize2)//" are inconsistent", &
+            ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
+       rc = ESMF_FAILURE
+       return
+    end if
+    
+    !-------------------------------------------------
     ! Loop over all fields in the source field bundle and map them to
     ! the destination field bundle accordingly
     !-------------------------------------------------
@@ -992,126 +1084,87 @@ contains
     call FB_reset(FBDst, value=czero, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    call FB_GetFldPtr(FBSrc, trim(fldnames(1)), rank=rank, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
     do n = 1,size(fldnames)
 
-       ! get pointer to source field data in FBSrc
+       ! get pointer to source field data in FBSrc and FBSrcTmp
        if (rank == 1) then
           call FB_GetFldPtr(FBSrc, trim(fldnames(n)), fldptr1=data_src1d, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call FB_GetFldPtr(FBSrcTmp, trim(fldnames(n)), fldptr1=data_srctmp1d, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
        else if (rank == 2) then
           call FB_GetFldPtr(FBSrc, trim(fldnames(n)), fldptr2=data_src2d, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call FB_GetFldPtr(FBSrcTmp, trim(fldnames(n)), fldptr2=data_srctmp2d, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
        end if
 
-       ! create a new temporary field bundle, FBSrcTmp that will contain field data on the source grid
-       if (.not. ESMF_FieldBundleIsCreated(FBSrcTmp)) then
-          call FB_init(FBSrcTmp, flds_scalar_name, &
-               FBgeom=FBSrc, fieldNameList=(/'data_srctmp'/), name='data_srctmp', rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-          if (rank == 1) then
-             call FB_GetFldPtr(FBSrcTmp, 'data_srctmp', fldptr1=data_srctmp1d, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-          else if (rank == 2) then
-             call FB_GetFldPtr(FBSrcTmp, 'data_srctmp', fldptr2=data_srctmp2d, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-          end if
-       end if
-
-       ! create a temporary field bundle that will contain normalization on the source grid
-       if (.not. ESMF_FieldBundleIsCreated(FBNormSrc)) then
-          call FB_init(FBout=FBNormSrc, flds_scalar_name=flds_scalar_name, &
-               FBgeom=FBSrc, fieldNameList=(/trim(mapnorm)/), name='normsrc', rc=rc)
-          if (chkerr(rc,__line__,u_file_u)) return
-
-          call FB_GetFldPtr(FBNormSrc, trim(mapnorm), fldptr1=data_srcnorm, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-       endif
-
-       call FB_reset(FBNormSrc, value=czero, rc=rc)
-       if (chkerr(rc,__line__,u_file_u)) return
-
-       ! create a temporary field bundle that will contain normalization on the destination grid
-       if (.not. ESMF_FieldBundleIsCreated(FBNormDst)) then
-          call FB_init(FBout=FBNormDst, flds_scalar_name=flds_scalar_name, &
-               FBgeom=FBDst, fieldNameList=(/trim(mapnorm)/), name='normdst', rc=rc)
-          if (chkerr(rc,__line__,u_file_u)) return
-
-          call FB_GetFldPtr(FBFrac, trim(mapnorm), fldptr1=data_frac, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-       endif
-
-       call FB_reset(FBNormDst, value=czero, rc=rc)
-       if (chkerr(rc,__line__,u_file_u)) return
-
-       ! error checks
-       if (size(data_srcnorm) /= size(data_frac)) then
-          call ESMF_LogWrite(trim(subname)//" fldname= "//trim(fldnames(n))//" mapnorm= "//trim(mapnorm), &
-               ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
-          write(csize1,'(i8)') size(data_srcnorm)
-          write(csize2,'(i8)') size(data_frac)
-          call ESMF_LogWrite(trim(subname)//": ERROR data_normsrc size "//trim(csize1)//&
-               " and data_frac size "//trim(csize2)//" are inconsistent", &
-               ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
-          rc = ESMF_FAILURE
-          return
-       else 
-          if (rank == 1) then
-             if (size(data_srcnorm) /= size(data_srctmp1d)) then
-                write(csize1,'(i8)') size(data_srcnorm)
-                write(csize2,'(i8)') size(data_srctmp1d)
-                call ESMF_LogWrite(trim(subname)//": ERROR data_srcnorm size "//trim(csize1)//&
-                     " and data_srctmp size "//trim(csize2)//" are inconsistent", &
-                     ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
-                rc = ESMF_FAILURE
-                return
-             end if
-          else if (rank == 2) then
-             if (size(data_srcnorm) /= size(data_srctmp2d, dim=2)) then
-                write(csize1,'(i8)') size(data_srcnorm)
-                write(csize2,'(i8)') size(data_srctmp2d, dim=2)
-                call ESMF_LogWrite(trim(subname)//": ERROR data_srcnorm size "//trim(csize1)//&
-                     " and data_srctmp2d size "//trim(csize2)//" are inconsistent", &
-                     ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
-                rc = ESMF_FAILURE
-                return
-             end if
-          end if
-       end if
+       !DEBUG
+       ! data_srctmp2d = data_src2d
+       ! call FB_field_diagnose(FBSrcTmp, trim(fldnames(n)), string=trim(subname)//' FBSrcTmp(1) ', rc=rc)
+       ! if (chkErr(rc,__LINE__,u_FILE_u)) return
+       !DEBUG
 
        ! now fill in the values for data_srcnorm and data_srctmp - these are the two arrays needed for normalization
        ! Note that FBsrcTmp will now have the data_srctmp value
        if (rank == 1) then
           do i = 1,size(data_frac)
-             data_srcnorm(i) = data_frac(i)
              data_srctmp1d(i)  = data_src1d(i) * data_frac(i)  ! Multiply initial field by data_frac
           end do
        else if (rank == 2) then
           do i = 1,size(data_frac)
-             data_srcnorm(i) = data_frac(i)
              data_srctmp2d(:,i)  = data_src2d(:,i) * data_frac(i)  ! Multiply initial field by data_frac
           end do
        end if
 
-       ! regrid FBSrcTmp to FBDst
-       if (trim(fldnames(n)) == trim(flds_scalar_name)) then
-          call ESMF_LogWrite(trim(subname)//trim(lstring)//": skip : fld="//trim(fldnames(n)), &
-               ESMF_LOGMSG_INFO)
-       else
-          call FB_FieldRegrid( FBSrcTmp, 'data_srctmp', FBDst, fldnames(n), RouteHandle, rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
+       ! regrid FBSrcTmp to FBDst for fldnames(n) field
+       call FB_FieldRegrid( FBSrcTmp, fldnames(n), FBDst, fldnames(n), RouteHandle, rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+       !DEBUG
+       call FB_field_diagnose(FBDst, trim(fldnames(n)), string=trim(subname)//' FBDst(1) ', rc=rc)
+       if (chkErr(rc,__LINE__,u_FILE_u)) return
+       !DEBUG
+
+       ! reset FBNormSrc and FBNormDst to zero
+       call FB_reset(FBNormDst, value=czero, rc=rc)
+       if (chkerr(rc,__line__,u_file_u)) return
+
+       ! error checks
+       if (rank == 1) then
+          if (size(data_srcnorm) /= size(data_srctmp1d)) then
+             write(csize1,'(i8)') size(data_srcnorm)
+             write(csize2,'(i8)') size(data_srctmp1d)
+             call ESMF_LogWrite(trim(subname)//": ERROR data_srcnorm size "//trim(csize1)//&
+                  " and data_srctmp size "//trim(csize2)//" are inconsistent", &
+                  ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
+             rc = ESMF_FAILURE
+             return
+          end if
+       else if (rank == 2) then
+          if (size(data_srcnorm) /= size(data_srctmp2d, dim=2)) then
+             write(csize1,'(i8)') size(data_srcnorm)
+             write(csize2,'(i8)') size(data_srctmp2d, dim=2)
+             call ESMF_LogWrite(trim(subname)//": ERROR data_srcnorm size "//trim(csize1)//&
+                  " and data_srctmp2d size "//trim(csize2)//" are inconsistent", &
+                  ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
+             rc = ESMF_FAILURE
+             return
+          end if
        end if
 
+       ! set FBNormSrc to frac
+       call FB_reset(FBNormSrc, value=czero, rc=rc)
+       if (chkerr(rc,__line__,u_file_u)) return
+       do i = 1,size(data_frac)
+          data_srcnorm(i) = data_frac(i)
+       end do
+
+       ! regrid FBNormSrc to FBNormDst
        call FB_FieldRegrid(FBNormSrc, mapnorm, FBNormDst, mapnorm, RouteHandle, rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        ! multiply interpolated field (FBDst) by reciprocal of fraction on destination grid (FBNormDst)
-       call FB_GetFldPtr(FBNormDst, trim(mapnorm), fldptr1=data_dstnorm, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-
        if (rank == 1) then
           call FB_GetFldPtr(FBDst, trim(fldnames(n)), fldptr1=data_dst1d, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -1133,7 +1186,7 @@ contains
              if (data_dstnorm(i) == 0.0_R8) then
                 data_dst2d(:,i) = 0.0_R8
              else
-                data_dst2d(i,:) = data_dst2d(:,i)/data_dstnorm(i)
+                data_dst2d(:,i) = data_dst2d(:,i)/data_dstnorm(i)
              endif
           end do
        end if
@@ -1147,18 +1200,12 @@ contains
     end do  ! loop over fields
 
     ! Clean up temporary field bundles
-    if (ESMF_FieldBundleIsCreated(FBSrcTmp)) then
-       call FB_clean(FBSrcTmp, rc=rc)
-       if (chkerr(rc,__line__,u_file_u)) return
-    end if
-    if (ESMF_FieldBundleIsCreated(FBNormSrc)) then
-       call FB_clean(FBNormSrc, rc=rc)
-       if (chkerr(rc,__line__,u_file_u)) return
-    end if
-    if (ESMF_FieldBundleIsCreated(FBNormDst)) then
-       call FB_clean(FBNormDst, rc=rc)
-       if (chkerr(rc,__line__,u_file_u)) return
-    end if
+    call FB_clean(FBSrcTmp, rc=rc)
+    if (chkerr(rc,__line__,u_file_u)) return
+    call FB_clean(FBNormSrc, rc=rc)
+    if (chkerr(rc,__line__,u_file_u)) return
+    call FB_clean(FBNormDst, rc=rc)
+    if (chkerr(rc,__line__,u_file_u)) return
     call t_stopf('MED:'//subname)
 
   end subroutine med_map_FB_Regrid_Norm_Frac

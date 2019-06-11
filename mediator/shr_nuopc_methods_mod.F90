@@ -358,11 +358,11 @@ contains
     type(ESMF_Mesh)        :: lmesh
     type(ESMF_StaggerLoc)  :: staggerloc
     type(ESMF_MeshLoc)     :: meshloc
+    integer                :: lrank 
     integer                :: ungriddedCount
-    integer, allocatable   :: ungriddedLBound(:)
-    integer, allocatable   :: ungriddedUBound(:)
-    integer                :: gridToFieldMapCount
-    integer, allocatable   :: gridToFieldMap(:)
+    integer                :: ungriddedLBound(1)
+    integer                :: ungriddedUBound(1)
+    integer                :: gridToFieldMap(1)
     logical                :: isPresent
     character(ESMF_MAXSTR), allocatable :: lfieldNameList(:)
     character(len=*), parameter :: subname='(shr_nuopc_methods_FB_init)'
@@ -553,35 +553,29 @@ contains
                 if (chkerr(rc,__LINE__,u_FILE_u)) return
              end if
 
-             ! Determine ungridded lower and upper bounds for lfield
-             ungriddedCount=0  ! initialize in case it was not set
-             call ESMF_AttributeGet(lfield, name="UngriddedLBound", convention="NUOPC", &
-                  purpose="Instance", itemCount=ungriddedCount,  isPresent=isPresent, rc=rc)
+             ! query the field for the number of ungridded dimensions
+             call ESMF_FieldGet(lfield, rank=lrank, rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
+             if (lrank == 2) then
+                ungriddedCount = 1
+             else
+                ungriddedCount = 0
+             end if
 
              ! Create the field on a lmesh
              if (ungriddedCount > 0) then
-                ! ungridded dimensions in field
-                allocate(ungriddedLBound(ungriddedCount), ungriddedUBound(ungriddedCount))
-                call ESMF_AttributeGet(lfield, name="UngriddedLBound", convention="NUOPC", &
-                     purpose="Instance", valueList=ungriddedLBound, rc=rc)
-                call ESMF_AttributeGet(lfield, name="UngriddedUBound", convention="NUOPC", &
-                     purpose="Instance", valueList=ungriddedUBound, rc=rc)
-
-                call ESMF_AttributeGet(lfield, name="GridToFieldMap", convention="NUOPC", &
-                     purpose="Instance", itemCount=gridToFieldMapCount, rc=rc)
+                ! One ungridded dimension in field
+                call ESMF_FieldGet(lfield, ungriddedUBound=ungriddedUBound, gridToFieldMap=gridToFieldMap, rc=rc)
                 if (chkerr(rc,__LINE__,u_FILE_u)) return
-                allocate(gridToFieldMap(gridToFieldMapCount))
-                call ESMF_AttributeGet(lfield, name="GridToFieldMap", convention="NUOPC", &
-                     purpose="Instance", valueList=gridToFieldMap, rc=rc)
-                if (chkerr(rc,__LINE__,u_FILE_u)) return
-
+                if (gridToFieldMap(1) /= 2) then
+                   call ESMF_LogWrite(trim(subname)//": ERROR: only gridToFieldMap=2 is supported", &
+                        ESMF_LOGMSG_INFO, rc=rc)
+                   rc = ESMF_FAILURE
+                   return
+                end if
                 field = ESMF_FieldCreate(lmesh, ESMF_TYPEKIND_R8, meshloc=meshloc, name=lfieldNameList(n), &
-                     ungriddedLbound=ungriddedLbound, ungriddedUbound=ungriddedUbound, &
-                     gridToFieldMap=gridToFieldMap)
+                     ungriddedLbound=(/1/), ungriddedUbound=ungriddedUbound, gridToFieldMap=(/2/))
                 if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-                deallocate( ungriddedLbound, ungriddedUbound, gridToFieldMap)
              else
                 ! No ungridded dimensions in field
                 field = ESMF_FieldCreate(lmesh, ESMF_TYPEKIND_R8, meshloc=meshloc, name=lfieldNameList(n), rc=rc)
@@ -1066,7 +1060,7 @@ contains
 
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
 
-    if (shr_nuopc_methods_FB_FldChk(FBin , trim(fldin) , rc=rc) .and. &
+    if ( shr_nuopc_methods_FB_FldChk(FBin , trim(fldin) , rc=rc) .and. &
          shr_nuopc_methods_FB_FldChk(FBout, trim(fldout), rc=rc)) then
 
        call shr_nuopc_methods_FB_getFieldByName(FBin, trim(fldin), field1, rc=rc)
@@ -1787,9 +1781,10 @@ contains
     integer           , intent(out)  , optional :: rc
 
     ! local variables
-    type(ESMF_Mesh) :: lmesh
-    integer         :: lrank, nnodes, nelements
-    logical         :: labort
+    character(len=CS) :: fldname
+    type(ESMF_Mesh)   :: lmesh
+    integer           :: lrank, nnodes, nelements
+    logical           :: labort
     character(len=*), parameter :: subname='(shr_nuopc_methods_Field_GetFldPtr)'
     ! ----------------------------------------------
 
@@ -1855,7 +1850,9 @@ contains
 
       elseif (lrank == 1) then
         if (.not.present(fldptr1)) then
-           call ESMF_LogWrite(trim(subname)//": ERROR missing rank=1 array ", &
+           call ESMF_FieldGet(field, name=fldname, rc=rc)
+           if (chkerr(rc,__LINE__,u_FILE_u)) return
+           call ESMF_LogWrite(trim(subname)//": ERROR missing rank=1 array for field "//trim(fldname), &
                 ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
           rc = ESMF_FAILURE
           return
@@ -1865,7 +1862,9 @@ contains
 
       elseif (lrank == 2) then
         if (.not.present(fldptr2)) then
-           call ESMF_LogWrite(trim(subname)//": ERROR missing rank=2 array ", &
+           call ESMF_FieldGet(field, name=fldname, rc=rc)
+           if (chkerr(rc,__LINE__,u_FILE_u)) return
+           call ESMF_LogWrite(trim(subname)//": ERROR missing rank=2 array for field "//trim(fldname), &
                 ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
           rc = ESMF_FAILURE
           return

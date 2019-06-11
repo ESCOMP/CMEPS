@@ -61,19 +61,24 @@ module med_map_lnd2glc_mod
 contains
 !================================================================================================
 
-  subroutine med_map_lnd2glc(fldnames_fr_lnd, fldnames_to_glc, FBlndAccum, FBglcAccum, gcomp, rc)
+  subroutine med_map_lnd2glc(fldnames_fr_lnd, fldnames_to_glc, FBlndAccum_lnd, FBlndAccum_glc, gcomp, rc)
 
     use ESMF                  , only : ESMF_GridComp, ESMF_GridCompGet
     use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
-    use ESMF                  , only : ESMF_FieldBundleGet
-    use med_map_mod           , only : med_map_FB_Regrid_Norm
+    use ESMF                  , only : ESMF_FieldBundleGet, ESMF_RouteHandleIsCreated
+    use med_map_mod           , only : med_map_FB_Regrid_Norm, med_map_Fractions_Init
     use glc_elevclass_mod     , only : glc_get_num_elevation_classes
+    use shr_nuopc_methods_mod , only : shr_nuopc_methods_FB_diagnose
+    !DEBUG
+    use ESMF, only : ESMF_FieldBundleIsCreated
+    use shr_sys_mod, only : shr_sys_abort
+    !DEBUG
 
     ! input/output variables
     character(len=*)       , intent(in)    :: fldnames_fr_lnd(:)
     character(len=*)       , intent(in)    :: fldnames_to_glc(:)
-    type(ESMF_FieldBundle) , intent(inout) :: FBlndAccum
-    type(ESMF_FieldBundle) , intent(inout) :: FBglcAccum
+    type(ESMF_FieldBundle) , intent(inout) :: FBlndAccum_lnd
+    type(ESMF_FieldBundle) , intent(inout) :: FBlndAccum_glc
     type(ESMF_GridComp)    , intent(inout) :: gcomp
     integer                , intent(out)   :: rc
 
@@ -97,9 +102,8 @@ contains
     character(len=CS)   :: glc_renormalize_smb
     logical             :: glc_coupled_fluxes
     logical             :: lnd_prognostic
-    logical             :: smb_renormalize
     logical             :: first_call = .true.
-    character(len=*) , parameter   :: subname='(med_map_lnd2glc)'
+    character(len=*) , parameter   :: subname='(med_map_lnd2glc_mod:med_map_lnd2glc)'
     !---------------------------------------
 
     !---------------------------------------
@@ -174,15 +178,54 @@ contains
     ! notes that this could lead to a loss of conservation). Figure out how to handle
     ! this case.
     
+    ! Create route handle if it has not been created
+    ! if (.not. ESMF_RouteHandleIsCreated(is_local%wrap%RH(complnd,compglc,mapbilnr))) then
+    !    call med_map_Fractions_init( gcomp, complnd, compglc, &
+    !         FBSrc=FBlndAccum_lnd, &
+    !         FBDst=FBlndAccum_glc, &
+    !         RouteHandle=is_local%wrap%RH(complnd,compglc,mapbilnr), rc=rc)
+    !    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    ! end if
+
+    ! if (.not. ESMF_FieldBundleIsCreated(FBlndAccum_lnd)) then
+    !    call shr_sys_abort('FBlndAccum_lnd not created')
+    ! else if (.not. ESMF_FieldBundleIsCreated(FBlndAccum_glc)) then
+    !    call shr_sys_abort('FBlndAccum_glc not created')
+    ! else if (.not. ESMF_FieldBundleIsCreated(is_local%wrap%FBFrac(complnd))) then
+    !    call shr_sys_abort('FBFrac(complnd) not created')
+    ! end if
+
+    if (dbug_flag > 1) then
+       call shr_nuopc_methods_FB_diagnose(FBLndAccum_lnd, string=trim(subname)//' FBlndAccum_lnd ', rc=rc)
+       if (chkErr(rc,__LINE__,u_FILE_u)) return
+    endif
+
+    if (dbug_flag > 1) then
+       call shr_nuopc_methods_FB_diagnose(is_local%wrap%FBfrac(complnd), string=trim(subname)//' FBFrac ', rc=rc)
+       if (chkErr(rc,__LINE__,u_FILE_u)) return
+    endif
+
     call med_map_FB_Regrid_Norm(fldnames=fldnames_fr_lnd, &
-         FBSrc=FBlndAccum, FBDst=FBglcAccum, &
+         FBSrc=FBlndAccum_lnd, FBDst=FBlndAccum_glc, &
          FBFrac=is_local%wrap%FBFrac(complnd), mapnorm='lfrac', &
          RouteHandle=is_local%wrap%RH(complnd,compglc,mapbilnr), &
          string='mapping normalized elevation class data from lnd to to glc', rc=rc)
+    if (chkErr(rc,__LINE__,u_FILE_u)) return
 
+    if (dbug_flag > 1) then
+       call shr_nuopc_methods_FB_diagnose(FBLndAccum_glc, string=trim(subname)//' FBlndAccum_glc ', rc=rc)
+       if (chkErr(rc,__LINE__,u_FILE_u)) return
+    endif
+    
     ! ------------------------------------------------------------------------
     ! Determine elevation class of each glc point on glc grid (output is topoglc_g)
     ! ------------------------------------------------------------------------
+
+    if (dbug_flag > 1) then
+       call shr_nuopc_methods_FB_diagnose(is_local%wrap%FBImp(compglc,compglc), &
+            string=trim(subname)//' FBImp(compglc,compglc) ', rc=rc)
+       if (chkErr(rc,__LINE__,u_FILE_u)) return
+    end if
 
     call shr_nuopc_methods_FB_getFldPtr(is_local%wrap%FBImp(compglc,compglc), Sg_frac_field, fldptr1=glc_ice_covered, rc=rc)
     if (chkErr(rc,__LINE__,u_FILE_u)) return
@@ -198,7 +241,7 @@ contains
     ! Determine topo field in multiple elevation classes on the glc grid
     ! ------------------------------------------------------------------------
 
-    call shr_nuopc_methods_FB_getFldPtr(FBglcAccum, 'Sl_topo_elev', fldptr2=topolnd_g_ec, rc=rc)
+    call shr_nuopc_methods_FB_getFldPtr(FBlndAccum_glc, 'Sl_topo_elev', fldptr2=topolnd_g_ec, rc=rc)
     if (chkErr(rc,__LINE__,u_FILE_u)) return
 
     ! ------------------------------------------------------------------------
@@ -219,14 +262,19 @@ contains
        ! ------------------------------------------------------------------------
 
        ! Get a pointer to the land data in multiple elevation classes on the glc grid
-       call shr_nuopc_methods_FB_getFldPtr(FBglcAccum, fldnames_fr_lnd(nfld), fldptr2=dataptr2d, rc=rc)
+       call shr_nuopc_methods_FB_getFldPtr(FBlndAccum_glc, fldnames_fr_lnd(nfld), &
+            fldptr2=dataptr2d, rc=rc)
        if (chkErr(rc,__LINE__,u_FILE_u)) return
 
        ! Get a pointer to the data for the field that will be sent to glc (without elevation classes)
-       call shr_nuopc_methods_FB_getFldPtr(is_local%wrap%FBExp(compglc), fldnames_to_glc(nfld), fldptr1=dataexp_g, rc=rc)
+       call shr_nuopc_methods_FB_getFldPtr(is_local%wrap%FBExp(compglc), fldnames_to_glc(nfld), &
+            fldptr1=dataexp_g, rc=rc)
        if (chkErr(rc,__LINE__,u_FILE_u)) return
 
-       data_ice_covered_g(:) = 0._r8
+       ! First set data_ice_covered_g to bare land everywehre
+       data_ice_covered_g(:) = dataptr2d(1,:)
+
+       ! Now overwrite with valid values
        do n = 1, lsize_g
 
           ! For each ice sheet point, find bounding EC values...
@@ -258,7 +306,7 @@ contains
                       write(logunit,*) 'Simply using mean of the two elevation classes,'
                       write(logunit,*) 'rather than the weighted mean.'
                       data_ice_covered_g(n) = dataptr2d(ec-1,n) * 0.5_r8 &
-                           + dataptr2d(ec  ,n) * 0.5_r8
+                                            + dataptr2d(ec  ,n) * 0.5_r8
                    else
 
                       data_ice_covered_g(n) =  dataptr2d(ec-1,n) * (elev_u - topoglc_g(n)) / d_elev  &
@@ -290,7 +338,7 @@ contains
        ! scaling in the CISM NUOPC cap
 
        if (trim(fldnames_to_glc(nfld)) == trim(qice_fieldname) .and. smb_renormalize) then
-          call shr_nuopc_methods_FB_getFldPtr(FBlndAccum, trim(qice_fieldname)//'_elev', fldptr2=qice_l, rc=rc)
+          call shr_nuopc_methods_FB_getFldPtr(FBlndAccum_lnd, trim(qice_fieldname)//'_elev', fldptr2=qice_l, rc=rc)
           if (chkErr(rc,__LINE__,u_FILE_u)) return
 
           call shr_nuopc_methods_FB_getFldPtr(is_local%wrap%FBExp(compglc), qice_fieldname, fldptr1=qice_g, rc=rc)
@@ -330,7 +378,8 @@ contains
     use ESMF                  , only : ESMF_FieldBundle, ESMF_FieldBundleGet, ESMF_Field, ESMF_FieldGet
     use ESMF                  , only : ESMF_Mesh, ESMF_MeshGet, ESMF_Array, ESMF_ArrayGet
     use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
-    use med_map_mod           , only : med_map_FB_Regrid_Norm
+    use ESMF                  , only : ESMF_RouteHandleIsCreated
+    use med_map_mod           , only : med_map_FB_Regrid_Norm, med_map_Fractions_init
     use med_map_glc2lnd_mod   , only : med_map_glc2lnd_elevclass
     use med_internalstate_mod , only : InternalState, mastertask, logunit
     use shr_nuopc_methods_mod , only : shr_nuopc_methods_FB_getFldPtr
@@ -339,8 +388,8 @@ contains
 
     ! input/output variables
     type(ESMF_GridComp)    :: gcomp
-    real(r8) , pointer     :: qice_g(:)   ! SMB (Flgl_qice) on glc grid without elev classes
     real(r8) , pointer     :: qice_l(:,:) ! SMB (Flgl_qice) on land grid with elev classes
+    real(r8) , pointer     :: qice_g(:)   ! SMB (Flgl_qice) on glc grid without elev classes
     integer  , intent(out) :: rc          ! return error code
 
     ! local variables
@@ -444,7 +493,7 @@ contains
 
     call med_map_FB_Regrid_Norm((/Sg_icemask_field/), &
          is_local%wrap%FBImp(compglc,compglc), FBlnd_icemask, &
-         is_local%wrap%FBNormOne(compglc,compglc,mapconsf ), 'one', &
+         is_local%wrap%FBNormOne(compglc,compglc,mapconsf), 'one', &
          is_local%wrap%RH(compglc, complnd, mapconsf), &
          string='mapping Sg_imask_g to Sg_imask_l (from glc to land)', rc=rc)
 
@@ -481,6 +530,15 @@ contains
     ! coupling, because GLC isn't connected with the rest of the system in terms of energy
     ! and mass in these cases. So in these cases, it's okay that the LND integral computed
     ! here differs from the integral that LND itself would compute.)
+
+    ! Create route handle if it has not been created
+    if (.not. ESMF_RouteHandleIsCreated(is_local%wrap%RH(compglc,complnd,mapconsf))) then
+       call med_map_Fractions_init( gcomp, compglc, complnd, &
+            FBSrc=is_local%wrap%FBImp(compglc,compglc), &
+            FBDst=is_local%wrap%FBImp(complnd,complnd), &
+            RouteHandle=is_local%wrap%RH(compglc,complnd,mapconsf), rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    end if
 
     ! Map frac_field on glc grid without elevation classes to frac_field on land grid with elevation classes
     call med_map_glc2lnd_elevclass(FBglc_icemask, FBglc_norm, &

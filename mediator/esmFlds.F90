@@ -821,8 +821,11 @@ contains
           if (nsrc /= ndst .and. med_coupling_active(nsrc,ndst)) then
              ! Write all the mappings for fields from the src to the destination component
              write(logunit,*)' '
+             !DEBUG
+             write(6,*) 'DEBUG: nsrc is ',trim(compname(nsrc)),' ndst is ',trim(compname(ndst))
              do n = 1,size(fldListFr(nsrc)%flds)
                 mapindex = fldListFr(nsrc)%flds(n)%mapindex(ndst)
+                write(6,*)'DEBUG:   n,name,mapindex= ',n,trim(fldListFr(nsrc)%flds(n)%stdname),mapindex
                 if ( mapindex /= mapunset) then
                    fldname  = trim(fldListFr(nsrc)%flds(n)%stdname)
                    mapnorm  = trim(fldListFr(nsrc)%flds(n)%mapnorm(ndst))

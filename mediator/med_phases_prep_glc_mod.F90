@@ -164,9 +164,11 @@ contains
     if (ncnt > 0) then
 
        do n = 1, size(fldnames_fr_lnd)
-          call shr_nuopc_methods_FB_GetFldPtr(is_local%wrap%FBImp(complnd,complnd), fldnames_fr_lnd(n), fldptr2=data2d_in, rc=rc)
+          call shr_nuopc_methods_FB_GetFldPtr(is_local%wrap%FBImp(complnd,complnd), &
+               fldnames_fr_lnd(n), fldptr2=data2d_in, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call shr_nuopc_methods_FB_GetFldPtr(FBLndAccum_lnd, fldnames_fr_lnd(n), fldptr2=data2d_out, rc=rc)
+          call shr_nuopc_methods_FB_GetFldPtr(FBLndAccum_lnd, &
+               fldnames_fr_lnd(n), fldptr2=data2d_out, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           do i = 1,size(data2d_out, dim=2)
              data2d_out(:,i) = data2d_out(:,i) + data2d_in(:,i)
@@ -269,6 +271,11 @@ contains
        call med_map_lnd2glc(fldnames_fr_lnd, fldnames_to_glc, FBLndAccum_lnd, FBlndAccum_glc, gcomp, rc)
        if (chkErr(rc,__LINE__,u_FILE_u)) return
 
+       if (dbug_flag > 1) then
+          call shr_nuopc_methods_FB_diagnose(is_local%wrap%FBExp(compglc), string=trim(subname)//' FBexp(compglc) ', rc=rc)
+          if (chkErr(rc,__LINE__,u_FILE_u)) return
+       endif
+
        !---------------------------------------
        ! zero accumulator and accumulated field bundles
        !---------------------------------------
@@ -279,15 +286,6 @@ contains
        if (chkErr(rc,__LINE__,u_FILE_u)) return
        call shr_nuopc_methods_FB_reset(FBLndAccum_glc, value=czero, rc=rc)
        if (chkErr(rc,__LINE__,u_FILE_u)) return
-
-       !---------------------------------------
-       ! diagnostic output
-       !---------------------------------------
-
-       if (dbug_flag > 1) then
-          call shr_nuopc_methods_FB_diagnose(is_local%wrap%FBExp(compglc), string=trim(subname)//' FBexp(compglc) ', rc=rc)
-          if (chkErr(rc,__LINE__,u_FILE_u)) return
-       endif
 
        !---------------------------------------
        ! update local scalar data - set valid input flag to .true.  TODO:
