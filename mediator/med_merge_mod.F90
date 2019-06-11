@@ -175,7 +175,6 @@ contains
                          end if
 
                       else if (ESMF_FieldBundleIsCreated(FBImp(compsrc), rc=rc)) then
-
                          if (FB_FldChk(FBImp(compsrc), trim(merge_field), rc=rc)) then
                             call med_merge_auto_field(trim(merge_type), &
                                  FBOut, fldname, FB=FBImp(compsrc), FBFld=merge_field, &
@@ -295,7 +294,8 @@ contains
     ! error checks
     if (lrank == 2) then
        if (ungriddedUBound_output(1) /= ungriddedUBound_input(1)) then
-          write(errmsg,*) trim(subname),"ungriddedUBound_input (",ungriddedUBound_input(1),") not equal to ungriddedUBound_output (",ungriddedUBound_output(1),")"
+          write(errmsg,*) trim(subname),"ungriddedUBound_input (",ungriddedUBound_input(1),&
+               ") not equal to ungriddedUBound_output (",ungriddedUBound_output(1),")"
           call ESMF_LogWrite(errmsg, ESMF_LOGMSG_ERROR)
           rc = ESMF_FAILURE
           return
