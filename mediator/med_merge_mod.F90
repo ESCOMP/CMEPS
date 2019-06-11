@@ -300,7 +300,10 @@ contains
           rc = ESMF_FAILURE
           return
        else if (gridToFieldMap_input(1) /= gridToFieldMap_output(1)) then
-          call ESMF_LOGWrite(trim(subname)//"gridToFieldMap_input not equal to gridToFieldMap_output", ESMF_LOGMSG_ERROR)
+          write(errmsg,*) trim(subname),"gridtofieldmap_input (",gridtofieldmap_input(1),&
+               ") not equal to gridtofieldmap_output (",gridtofieldmap_output(1),")"
+          call ESMF_LogWrite(errmsg, ESMF_LOGMSG_ERROR)
+
           rc = ESMF_FAILURE
           return
        end if
