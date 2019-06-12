@@ -274,6 +274,15 @@ contains
                    if (ChkErr(rc,__LINE__,u_FILE_u)) return
                 endif
 
+                ! Write export field bundles
+                if (ESMF_FieldBundleIsCreated(is_local%wrap%FBexp(n),rc=rc)) then
+                   !write(tmpstr,*) subname,' nx,ny = ',trim(compname(n)),nx,ny
+                   !call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO, rc=dbrc)
+                   call med_io_write(restart_file, iam, is_local%wrap%FBexp(n), &
+                       nx=nx, ny=ny, nt=1, whead=whead, wdata=wdata, pre=trim(compname(n))//'Exp', rc=rc)
+                   if (ChkErr(rc,__LINE__,u_FILE_u)) return
+                endif
+
                 ! Write fraction field bundles
                 if (ESMF_FieldBundleIsCreated(is_local%wrap%FBfrac(n),rc=rc)) then
                    !write(tmpstr,*) subname,' nx,ny = ',trim(compname(n)),nx,ny
