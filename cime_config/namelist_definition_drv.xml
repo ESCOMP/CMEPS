@@ -8,7 +8,7 @@
   <!--  DRIVER attributes                       -->
   <!-- ======================================== -->
 
-  <entry id="Verbosity@DRIVER_attributes">
+  <entry id="verbosity@driver_attributes">
     <type>char</type>
     <category>nuopc</category>
     <group>DRIVER_attributes</group>
@@ -19,7 +19,7 @@
 
   <!-- NUOPC generic input -->
 
-  <entry id="Profiling@DRIVER_attributes">
+  <entry id="profiling@driver_attributes">
     <type>char</type>
     <category>nuopc</category>
     <group>DRIVER_attributes</group>
@@ -28,7 +28,7 @@
     </values>
   </entry>
 
-  <entry id="Verbosity@MED_attributes">
+  <entry id="verbosity@med_attributes">
     <type>char</type>
     <category>nuopc</category>
     <group>MED_attributes</group>
@@ -37,7 +37,7 @@
     </values>
   </entry>
 
-  <entry id="Verbosity@ATM_attributes">
+  <entry id="verbosity@atm_attributes">
     <type>char</type>
     <category>nuopc</category>
     <group>ATM_attributes</group>
@@ -46,7 +46,7 @@
     </values>
   </entry>
 
-  <entry id="Verbosity@OCN_attributes">
+  <entry id="verbosity@ocn_attributes">
     <type>char</type>
     <category>nuopc</category>
     <group>OCN_attributes</group>
@@ -55,7 +55,7 @@
     </values>
   </entry>
 
-  <entry id="Verbosity@ICE_attributes">
+  <entry id="verbosity@ice_attributes">
     <type>char</type>
     <category>nuopc</category>
     <group>ICE_attributes</group>
@@ -64,7 +64,7 @@
     </values>
   </entry>
 
-  <entry id="Verbosity@ROF_attributes">
+  <entry id="verbosity@rof_attributes">
     <type>char</type>
     <category>nuopc</category>
     <group>ROF_attributes</group>
@@ -73,7 +73,7 @@
     </values>
   </entry>
 
-  <entry id="Verbosity@LND_attributes">
+  <entry id="verbosity@lnd_attributes">
     <type>char</type>
     <category>nuopc</category>
     <group>LND_attributes</group>
@@ -82,7 +82,7 @@
     </values>
   </entry>
 
-  <entry id="Verbosity@GLC_attributes">
+  <entry id="verbosity@glc_attributes">
     <type>char</type>
     <category>nuopc</category>
     <group>GLC_attributes</group>
@@ -91,7 +91,7 @@
     </values>
   </entry>
 
-  <entry id="Verbosity@WAV_attributes">
+  <entry id="verbosity@wav_attributes">
     <type>char</type>
     <category>nuopc</category>
     <group>WAV_attributes</group>
@@ -442,7 +442,7 @@
     </values>
   </entry>
 
-  <entry id="logFilePostFix">
+  <entry id="logfilepostfix">
     <type>char</type>
     <category>expdef</category>
     <group>DRIVER_attributes</group>
@@ -454,7 +454,7 @@
     </values>
   </entry>
 
-  <entry id="outPathRoot">
+  <entry id="outpathroot">
     <type>char</type>
     <category>expdef</category>
     <group>DRIVER_attributes</group>
@@ -490,7 +490,7 @@
     </values>
   </entry>
 
-  <entry id="MED_model">
+  <entry id="med_model">
     <type>char</type>
     <category>nuopc</category>
     <group>ALLCOMP_attributes</group>
@@ -498,7 +498,7 @@
       <value cime_model="cesm">cesm</value>
     </values>
   </entry>
-  <entry id="ATM_model" modify_via_xml="COMP_ATM">
+  <entry id="atm_model" modify_via_xml="COMP_ATM">
     <type>char</type>
     <category>nuopc</category>
     <group>ALLCOMP_attributes</group>
@@ -506,7 +506,7 @@
       <value>$COMP_ATM</value>
     </values>
   </entry>
-  <entry id="OCN_model" modify_via_xml="COMP_OCN">
+  <entry id="ocn_model" modify_via_xml="COMP_OCN">
     <type>char</type>
     <category>nuopc</category>
     <group>ALLCOMP_attributes</group>
@@ -514,7 +514,7 @@
       <value>$COMP_OCN</value>
     </values>
   </entry>
-  <entry id="ICE_model" modify_via_xml="COMP_ICE">
+  <entry id="ice_model" modify_via_xml="COMP_ICE">
     <type>char</type>
     <category>nuopc</category>
     <group>ALLCOMP_attributes</group>
@@ -522,7 +522,7 @@
       <value>$COMP_ICE</value>
     </values>
   </entry>
-  <entry id="ROF_model" modify_via_xml="COMP_ROF">
+  <entry id="rof_model" modify_via_xml="COMP_ROF">
     <type>char</type>
     <category>nuopc</category>
     <group>ALLCOMP_attributes</group>
@@ -530,7 +530,7 @@
       <value>$COMP_ROF</value>
     </values>
   </entry>
-  <entry id="LND_model" modify_via_xml="COMP_LND">
+  <entry id="lnd_model" modify_via_xml="COMP_LND">
     <type>char</type>
     <category>nuopc</category>
     <group>ALLCOMP_attributes</group>
@@ -538,7 +538,7 @@
       <value>$COMP_LND</value>
     </values>
   </entry>
-  <entry id="GLC_model" modify_via_xml="COMP_GLC">
+  <entry id="glc_model" modify_via_xml="COMP_GLC">
     <type>char</type>
     <category>nuopc</category>
     <group>ALLCOMP_attributes</group>
@@ -546,7 +546,7 @@
       <value>$COMP_GLC</value>
     </values>
   </entry>
-  <entry id="WAV_model" modify_via_xml="COMP_WAV">
+  <entry id="wav_model" modify_via_xml="COMP_WAV">
     <type>char</type>
     <category>nuopc</category>
     <group>ALLCOMP_attributes</group>
@@ -1517,7 +1517,7 @@ n    </desc>
   <!-- FLDS attributes              -->
   <!-- =========================== -->
 
-  <entry id="ScalarFieldName">
+  <entry id="scalarfieldname">
     <type>char</type>
     <category>expdef</category>
     <group>ALLCOMP_attributes</group>
@@ -1529,7 +1529,7 @@ n    </desc>
     </values>
   </entry>
 
-  <entry id="ScalarFieldCount">
+  <entry id="scalarfieldcount">
     <type>integer</type>
     <category>expdef</category>
     <group>ALLCOMP_attributes</group>
@@ -1541,7 +1541,7 @@ n    </desc>
     </values>
   </entry>
 
-  <entry id="ScalarFieldIdxGridNX">
+  <entry id="scalarfieldidxgridnx">
     <type>integer</type>
     <category>expdef</category>
     <group>ALLCOMP_attributes</group>
@@ -1553,7 +1553,7 @@ n    </desc>
     </values>
   </entry>
 
-  <entry id="ScalarFieldIdxGridNY">
+  <entry id="scalarfieldidxgridny">
     <type>integer</type>
     <category>expdef</category>
     <group>ALLCOMP_attributes</group>
@@ -1565,7 +1565,7 @@ n    </desc>
     </values>
   </entry>
 
-  <entry id="ScalarFieldIdxNextSwCday">
+  <entry id="scalarfieldidxnextswcday">
     <type>integer</type>
     <category>expdef</category>
     <group>ALLCOMP_attributes</group>
@@ -1577,7 +1577,7 @@ n    </desc>
     </values>
   </entry>
 
-  <entry id="ScalarFieldIdxValidGlcInput">
+  <entry id="scalarfieldidxvalidglcinput">
     <type>integer</type>
     <category>expdef</category>
     <group>ALLCOMP_attributes</group>
@@ -1589,7 +1589,7 @@ n    </desc>
     </values>
   </entry>
 
-  <entry id="ScalarFieldIdxPrecipFactor">
+  <entry id="scalarfieldidxprecipfactor">
     <type>integer</type>
     <category>expdef</category>
     <group>ALLCOMP_attributes</group>
