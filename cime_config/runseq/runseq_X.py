@@ -9,14 +9,13 @@ from standard_script_setup import *
 #from CIME.case import Case
 #from CIME.utils import expect
 #from textwrap import dedent
-
+#pylint: disable=undefined-variable
 logger = logging.getLogger(__name__)
 
 def runseq(case, coupling_times):
 
     rundir    = case.get_value("RUNDIR")
     caseroot  = case.get_value("CASEROOT")
-    cimeroot  = case.get_value("CIMEROOT")
     comp_atm  = case.get_value("COMP_ATM")
     comp_ice  = case.get_value("COMP_ICE")
     comp_glc  = case.get_value("COMP_GLC")
