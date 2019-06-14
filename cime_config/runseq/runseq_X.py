@@ -9,6 +9,7 @@ from standard_script_setup import *
 #from CIME.case import Case
 #from CIME.utils import expect
 #from textwrap import dedent
+
 #pylint: disable=undefined-variable
 logger = logging.getLogger(__name__)
 
