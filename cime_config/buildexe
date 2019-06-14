@@ -15,6 +15,7 @@ from CIME.build            import get_standard_makefile_args
 from CIME.case             import Case
 from CIME.utils            import expect, run_cmd
 
+#pylint: disable=undefined-variable
 logger = logging.getLogger(__name__)
 
 ###############################################################################
