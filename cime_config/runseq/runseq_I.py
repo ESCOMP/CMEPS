@@ -13,15 +13,11 @@ def runseq(case, coupling_times):
 
     rundir    = case.get_value("RUNDIR")
     caseroot  = case.get_value("CASEROOT")
-#    cimeroot  = case.get_value("CIMEROOT")
-#    comp_atm  = case.get_value("COMP_ATM")
     comp_glc  = case.get_value("COMP_GLC")
-#    comp_lnd  = case.get_value("COMP_LND")
     comp_rof  = case.get_value("COMP_ROF")
 
     outfile   = open(os.path.join(caseroot, "CaseDocs", "nuopc.runseq"), "w")
 
-#    glc_cpl_dt = coupling_times["glc_cpl_dt"]
     rof_cpl_dt = coupling_times["rof_cpl_dt"]
     atm_cpl_dt = coupling_times["atm_cpl_dt"]
 
