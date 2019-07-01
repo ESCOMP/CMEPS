@@ -876,7 +876,7 @@ contains
        rcode = pio_def_var(io_file(lfile_ind),trim(dname),PIO_DOUBLE,varid)
        if (rcode==PIO_NOERR) then
           if (NUOPC_FieldDictionaryHasEntry(trim(dname))) then
-             call NUOPC_FieldDictionaryGetEntry(itemc, canonicalUnits=cunit, rc=rc)
+             call NUOPC_FieldDictionaryGetEntry(dname, canonicalUnits=cunit, rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
              rcode = pio_put_att(io_file(lfile_ind),varid,"units",trim(cunit))
           end if
@@ -942,7 +942,7 @@ contains
        rcode = pio_def_dim(io_file(lfile_ind),trim(dname)//'_nx',lnx,dimid(1))
        rcode = pio_def_var(io_file(lfile_ind),trim(dname),PIO_DOUBLE,dimid,varid)
        if (NUOPC_FieldDictionaryHasEntry(trim(dname))) then
-          call NUOPC_FieldDictionaryGetEntry(itemc, canonicalUnits=cunit, rc=rc)
+          call NUOPC_FieldDictionaryGetEntry(dname, canonicalUnits=cunit, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           rcode = pio_put_att(io_file(lfile_ind),varid,"units",trim(cunit))
        end if
@@ -1009,7 +1009,7 @@ contains
        rcode = pio_def_dim(io_file(lfile_ind),trim(dname)//'_len',lnx,dimid(1))
        rcode = pio_def_var(io_file(lfile_ind),trim(dname),PIO_CHAR,dimid,varid)
        if (NUOPC_FieldDictionaryHasEntry(trim(dname))) then
-          call NUOPC_FieldDictionaryGetEntry(itemc, canonicalUnits=cunit, rc=rc)
+          call NUOPC_FieldDictionaryGetEntry(dname, canonicalUnits=cunit, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
        end if
        rcode = pio_put_att(io_file(lfile_ind),varid,"standard_name",trim(dname))
