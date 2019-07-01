@@ -53,24 +53,12 @@ module esmflds
   public :: shr_nuopc_fldList_AddFld
   public :: shr_nuopc_fldList_AddMap
   public :: shr_nuopc_fldList_AddMrg
-  public :: shr_nuopc_fldList_AddMetadata
-  public :: shr_nuopc_fldList_GetMetadata
   public :: shr_nuopc_fldList_GetFldNames
   public :: shr_nuopc_fldList_GetNumFlds
   public :: shr_nuopc_fldList_GetFldInfo
   public :: shr_nuopc_fldList_Realize
   public :: shr_nuopc_fldList_Document_Mapping
   public :: shr_nuopc_fldList_Document_Merging
-
-  !-----------------------------------------------
-  ! Metadata array
-  !-----------------------------------------------
-
-  integer, public , parameter  :: CSS = 256  ! use longer short character
-  character(len=*), parameter  :: undef     = 'undefined'
-  integer         , parameter  :: nmax      = 1000        ! maximum number of entries in metadta_entry
-  integer                      :: n_entries = 0           ! actual number of entries in metadta_entry
-  character(len=CSS)           :: shr_nuopc_fldList_Metadata(nmax,4) = undef
 
   !-----------------------------------------------
   ! Types and instantiations that determine fields, mappings, mergings
@@ -123,132 +111,6 @@ module esmflds
 !================================================================================
 contains
 !================================================================================
-
-  subroutine shr_nuopc_fldList_AddMetadata(fldname , longname, stdname, units)
-
-    use NUOPC , only : NUOPC_FieldDictionaryAddEntry, NUOPC_FieldDictionaryHasEntry
-    use ESMF  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_LogFoundError, ESMF_LOGERR_PASSTHRU
-    use ESMF  , only : ESMF_LOGMSG_ERROR, ESMF_FAILURE
-
-    ! input/output parameters:
-    character(len=*), intent(in) :: fldname
-    character(len=*), intent(in) :: longname
-    character(len=*), intent(in) :: stdname
-    character(len=*), intent(in) :: units
-
-    ! local variables
-    integer :: n
-    logical :: found,FDfound
-    integer :: rc
-    character(len=*),parameter :: subname = '(shr_nuopc_fldList_AddMetadata) '
-    !-------------------------------------------------------------------------------
-
-    FDfound = .true.
-    if (.not.NUOPC_FieldDictionaryHasEntry(fldname)) then
-       FDfound = .false.
-       call ESMF_LogWrite(subname//': Add:'//trim(fldname), ESMF_LOGMSG_INFO, rc=dbrc)
-       call NUOPC_FieldDictionaryAddEntry(standardName=fldname, canonicalUnits=units, rc=rc)
-       if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=u_FILE_u)) return
-    endif
-
-    found = .false.
-    ! only do the search if it was already in the FD.  If it wasn't,
-    ! then assume it's also not in the metadata table.
-    if (FDfound) then
-       n = 1
-       do while (n <= n_entries .and. .not.found)
-          if (fldname == shr_nuopc_fldList_Metadata(n,1)) found=.true.
-          n = n + 1
-       enddo
-    endif
-
-    if (.not. found) then
-       n_entries = n_entries + 1
-       if (n_entries > nmax) then
-          write(infostr,*) subname,' ERROR: n_entries= ',n_entries,' nmax = ',nmax,' fldname= ',trim(fldname)
-          call ESMF_LogWrite(trim(infostr),ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u, rc=dbrc)
-          write(infostr,*) subname,' ERROR: n_entries gt nmax'
-          call ESMF_LogWrite(trim(infostr),ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u, rc=dbrc)
-          rc = ESMF_FAILURE
-          return
-       end if
-       shr_nuopc_fldList_Metadata(n_entries,1) = trim(fldname)
-       shr_nuopc_fldList_Metadata(n_entries,2) = trim(longname)
-       shr_nuopc_fldList_Metadata(n_entries,3) = trim(stdname )
-       shr_nuopc_fldList_Metadata(n_entries,4) = trim(units   )
-    endif
-
-  end subroutine shr_nuopc_fldList_AddMetadata
-
-  !===============================================================================
-
-  subroutine shr_nuopc_fldList_GetMetadata(shortname, longname, stdname, units)
-
-    ! input/output variables
-    character(len=*),           intent(in)  :: shortname
-    character(len=*), optional, intent(out) :: longname
-    character(len=*), optional, intent(out) :: stdname
-    character(len=*), optional, intent(out) :: units
-
-    ! local variables
-    integer                    :: i,n
-    character(len=CSS)         :: llongname, lstdname, lunits, lshortname  ! local copies
-    character(len=*),parameter :: unknown = 'unknown'
-    logical                    :: found
-    character(len=*),parameter :: subname = '(shr_nuopc_fldList_GetMetadata) '
-    ! ----------------------------------------------
-
-    !--- define field metadata (name, long_name, standard_name, units) ---
-
-    llongname = trim(unknown)
-    lstdname  = trim(unknown)
-    lunits    = trim(unknown)
-
-    found = .false.
-
-    if (.not.found) then
-       i = 1
-       do while (i <= n_entries .and. .not.found)
-          lshortname = trim(shortname)
-          if (trim(lshortname) == trim(shr_nuopc_fldList_Metadata(i,1))) then
-             llongname = trim(shr_nuopc_fldList_Metadata(i,2))
-             lstdname  = trim(shr_nuopc_fldList_Metadata(i,3))
-             lunits    = trim(shr_nuopc_fldList_Metadata(i,4))
-             found     =.true.
-          end if
-          i = i + 1
-       end do
-    endif
-
-    if (.not.found) then
-       i = 1
-       do while (i <= n_entries .and. .not.found)
-          n = index(shortname, '_',.true.)
-          lshortname = ""
-          if (n < len_trim(shortname)) lshortname = shortname(n+1:len_trim(shortname))
-          if (trim(lshortname) == trim(shr_nuopc_fldList_Metadata(i,1))) then
-             llongname = trim(shr_nuopc_fldList_Metadata(i,2))
-             lstdname  = trim(shr_nuopc_fldList_Metadata(i,3))
-             lunits    = trim(shr_nuopc_fldList_Metadata(i,4))
-             found     = .true.
-          end if
-          i = i + 1
-       end do
-    endif
-
-    if (present(longname)) then
-       longname = trim(llongname)
-    endif
-    if (present(stdname))  then
-       stdname = trim(lstdname)
-    endif
-    if (present(units)) then
-       units = trim(lunits)
-    endif
-
-  end subroutine shr_nuopc_fldList_GetMetadata
-
-  !================================================================================
 
   subroutine shr_nuopc_fldList_AddFld(flds, stdname, shortname)
 

@@ -7,6 +7,8 @@ module med_io_mod
   use ESMF                  , only : ESMF_VM, ESMF_LogWrite, ESMF_LOGMSG_INFO
   use ESMF                  , only : ESMF_SUCCESS, ESMF_FAILURE
   use ESMF                  , only : ESMF_VMBroadCast
+  use NUOPC                 , only : NUOPC_FieldDictionaryGetEntry
+  use NUOPC                 , only : NUOPC_FieldDictionaryHasEntry
   use pio                   , only : file_desc_t, iosystem_desc_t
   use med_constants_mod     , only : R4, R8, I8, CL 
   use med_constants_mod     , only : dbug_flag    => med_constants_dbug_flag
@@ -375,7 +377,6 @@ contains
     use ESMF                  , only : ESMF_FieldBundleGet, ESMF_FieldGet, ESMF_MeshGet, ESMF_DistGridGet
     use ESMF                  , only : ESMF_Field, ESMF_FieldGet, ESMF_AttributeGet 
     use med_constants_mod     , only : fillvalue=>SHR_CONST_SPVAL
-    use esmFlds               , only : shr_nuopc_fldList_GetMetadata
     use pio                   , only : var_desc_t, io_desc_t, pio_offset_kind
     use pio                   , only : pio_def_dim, pio_inq_dimid, pio_real, pio_def_var, pio_put_att, pio_double
     use pio                   , only : pio_inq_varid, pio_setframe, pio_write_darray, pio_initdecomp, pio_freedecomp
@@ -579,9 +580,7 @@ contains
                    if (trim(itemc) /= "hgt") then
                       write(cnumber,'(i0)') n
                       name1 = trim(lpre)//'_'//trim(itemc)//trim(cnumber)
-                      call shr_nuopc_fldList_GetMetadata(itemc, longname=lname, stdname=sname, units=cunit)
                       call ESMF_LogWrite(trim(subname)//': defining '//trim(name1), ESMF_LOGMSG_INFO)
-
                       if (luse_float) then
                          rcode = pio_def_var(io_file(lfile_ind), trim(name1), PIO_REAL, dimid, varid)
                          rcode = pio_put_att(io_file(lfile_ind), varid,"_FillValue",real(lfillvalue,r4))
@@ -589,9 +588,12 @@ contains
                          rcode = pio_def_var(io_file(lfile_ind), trim(name1), PIO_DOUBLE, dimid, varid)
                          rcode = pio_put_att(io_file(lfile_ind),varid,"_FillValue",lfillvalue)
                       end if
-                      rcode = pio_put_att(io_file(lfile_ind), varid, "units"        , trim(cunit))
-                      rcode = pio_put_att(io_file(lfile_ind), varid, "long_name"    , trim(lname))
-                      rcode = pio_put_att(io_file(lfile_ind), varid, "standard_name", trim(sname))
+                      if (NUOPC_FieldDictionaryHasEntry(trim(itemc))) then
+                         call NUOPC_FieldDictionaryGetEntry(itemc, canonicalUnits=cunit, rc=rc)
+                         if (chkerr(rc,__LINE__,u_FILE_u)) return
+                         rcode = pio_put_att(io_file(lfile_ind), varid, "units"        , trim(cunit))
+                      end if
+                      rcode = pio_put_att(io_file(lfile_ind), varid, "standard_name", trim(name1))
                       if (present(tavg)) then
                          if (tavg) then
                             rcode = pio_put_att(io_file(lfile_ind), varid, "cell_methods", "time: mean")
@@ -601,7 +603,6 @@ contains
                 end do
              else
                 name1 = trim(lpre)//'_'//trim(itemc)
-                call shr_nuopc_fldList_GetMetadata(itemc,longname=lname,stdname=sname,units=cunit)
                 call ESMF_LogWrite(trim(subname)//':'//trim(itemc)//':'//trim(name1),ESMF_LOGMSG_INFO)
                 if (luse_float) then
                    rcode = pio_def_var(io_file(lfile_ind), trim(name1), PIO_REAL, dimid, varid)
@@ -610,9 +611,12 @@ contains
                    rcode = pio_def_var(io_file(lfile_ind), trim(name1), PIO_DOUBLE, dimid, varid)
                    rcode = pio_put_att(io_file(lfile_ind), varid, "_FillValue", lfillvalue)
                 end if
-                rcode = pio_put_att(io_file(lfile_ind), varid, "units"         , trim(cunit))
-                rcode = pio_put_att(io_file(lfile_ind), varid, "long_name"     , trim(lname))
-                rcode = pio_put_att(io_file(lfile_ind), varid, "standard_name" , trim(sname))
+                if (NUOPC_FieldDictionaryHasEntry(trim(itemc))) then
+                   call NUOPC_FieldDictionaryGetEntry(itemc, canonicalUnits=cunit, rc=rc)
+                   if (chkerr(rc,__LINE__,u_FILE_u)) return
+                   rcode = pio_put_att(io_file(lfile_ind), varid, "units", trim(cunit))
+                end if
+                rcode = pio_put_att(io_file(lfile_ind), varid, "standard_name", trim(name1))
                 if (present(tavg)) then
                    if (tavg) then
                       rcode = pio_put_att(io_file(lfile_ind), varid, "cell_methods", "time: mean")
@@ -697,8 +701,7 @@ contains
   !===============================================================================
   subroutine med_io_write_int(filename, iam, idata, dname, whead, wdata, file_ind, rc)
 
-    use pio    , only : var_desc_t, pio_def_var, pio_put_att, pio_int, pio_inq_varid, pio_put_var
-    use esmFlds, only : shr_nuopc_fldList_GetMetadata
+    use pio, only : var_desc_t, pio_def_var, pio_put_att, pio_int, pio_inq_varid, pio_put_var
 
     !---------------
     ! Write scalar integer to netcdf file
@@ -718,8 +721,6 @@ contains
     integer          :: rcode
     type(var_desc_t) :: varid
     character(CL)    :: cunit       ! var units
-    character(CL)    :: lname       ! long name
-    character(CL)    :: sname       ! standard name
     logical          :: lwhead, lwdata
     integer          :: lfile_ind
     character(*),parameter :: subName = '(med_io_write_int) '
@@ -741,13 +742,13 @@ contains
     if (present(file_ind)) lfile_ind=file_ind
 
     if (lwhead) then
-       call shr_nuopc_fldList_GetMetadata(trim(dname),longname=lname,stdname=sname,units=cunit)
+       call NUOPC_FieldDictionaryGetEntry(dname, canonicalUnits=cunit, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
        !       rcode = pio_def_dim(io_file(lfile_ind),trim(dname)//'_nx',1,dimid(1))
        !       rcode = pio_def_var(io_file(lfile_ind),trim(dname),PIO_INT,dimid,varid)
        rcode = pio_def_var(io_file(lfile_ind),trim(dname),PIO_INT,varid)
        rcode = pio_put_att(io_file(lfile_ind),varid,"units",trim(cunit))
-       rcode = pio_put_att(io_file(lfile_ind),varid,"long_name",trim(lname))
-       rcode = pio_put_att(io_file(lfile_ind),varid,"standard_name",trim(sname))
+       rcode = pio_put_att(io_file(lfile_ind),varid,"standard_name",trim(dname))
        if (lwdata) call med_io_enddef(filename, file_ind=lfile_ind)
     endif
 
@@ -769,7 +770,6 @@ contains
     use pio     , only : var_desc_t, pio_def_dim, pio_def_var
     use pio     , only : pio_put_att, pio_inq_varid, pio_put_var
     use pio     , only : pio_int, pio_def_var
-    use esmFlds , only : shr_nuopc_fldList_GetMetadata
 
     ! input/output arguments
     character(len=*),intent(in) :: filename ! file
@@ -810,13 +810,13 @@ contains
     if (present(file_ind)) lfile_ind=file_ind
 
     if (lwhead) then
-       call shr_nuopc_fldList_GetMetadata(trim(dname),longname=lname,stdname=sname,units=cunit)
+       call NUOPC_FieldDictionaryGetEntry(dname, canonicalUnits=cunit, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
        lnx = size(idata)
        rcode = pio_def_dim(io_file(lfile_ind),trim(dname)//'_nx',lnx,dimid(1))
        rcode = pio_def_var(io_file(lfile_ind),trim(dname),PIO_INT,dimid,varid)
        rcode = pio_put_att(io_file(lfile_ind),varid,"units",trim(cunit))
-       rcode = pio_put_att(io_file(lfile_ind),varid,"long_name",trim(lname))
-       rcode = pio_put_att(io_file(lfile_ind),varid,"standard_name",trim(sname))
+       rcode = pio_put_att(io_file(lfile_ind),varid,"standard_name",trim(dname))
        if (lwdata) call med_io_enddef(filename, file_ind=lfile_ind)
     endif
 
@@ -836,9 +836,8 @@ contains
     ! Write scalar double to netcdf file
     !---------------
 
-    use pio               , only : var_desc_t, pio_def_var, pio_put_att
-    use pio               , only : pio_double, pio_noerr, pio_inq_varid, pio_put_var
-    use esmFlds           , only : shr_nuopc_fldList_GetMetadata
+    use pio , only : var_desc_t, pio_def_var, pio_put_att
+    use pio , only : pio_double, pio_noerr, pio_inq_varid, pio_put_var
 
     ! input/output arguments
     character(len=*),intent(in) :: filename ! file
@@ -854,8 +853,6 @@ contains
     integer          :: rcode
     type(var_desc_t) :: varid
     character(CL)    :: cunit       ! var units
-    character(CL)    :: lname       ! long name
-    character(CL)    :: sname       ! standard name
     logical          :: lwhead, lwdata
     integer          :: lfile_ind
     character(*),parameter :: subName = '(med_io_write_r8) '
@@ -876,14 +873,14 @@ contains
     endif
 
     if (lwhead) then
-       call shr_nuopc_fldList_GetMetadata(trim(dname),longname=lname,stdname=sname,units=cunit)
-       !       rcode = pio_def_dim(io_file(lfile_ind),trim(dname)//'_nx',1,dimid(1))
-       !       rcode = pio_def_var(io_file(lfile_ind),trim(dname),PIO_DOUBLE,dimid,varid)
        rcode = pio_def_var(io_file(lfile_ind),trim(dname),PIO_DOUBLE,varid)
-       if(rcode==PIO_NOERR) then
-          rcode = pio_put_att(io_file(lfile_ind),varid,"units",trim(cunit))
-          rcode = pio_put_att(io_file(lfile_ind),varid,"long_name",trim(lname))
-          rcode = pio_put_att(io_file(lfile_ind),varid,"standard_name",trim(sname))
+       if (rcode==PIO_NOERR) then
+          if (NUOPC_FieldDictionaryHasEntry(trim(dname))) then
+             call NUOPC_FieldDictionaryGetEntry(itemc, canonicalUnits=cunit, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+             rcode = pio_put_att(io_file(lfile_ind),varid,"units",trim(cunit))
+          end if
+          rcode = pio_put_att(io_file(lfile_ind),varid,"standard_name",trim(dname))
           if (lwdata) call med_io_enddef(filename, file_ind=lfile_ind)
        end if
     endif
@@ -902,9 +899,8 @@ contains
     ! Write 1d double array to netcdf file
     !---------------
 
-    use pio               , only : var_desc_t, pio_def_dim, pio_def_var
-    use pio               , only : pio_inq_varid, pio_put_var, pio_double, pio_put_att
-    use esmFlds           , only : shr_nuopc_fldList_GetMetadata
+    use pio , only : var_desc_t, pio_def_dim, pio_def_var
+    use pio , only : pio_inq_varid, pio_put_var, pio_double, pio_put_att
 
     ! !INPUT/OUTPUT PARAMETERS:
     character(len=*),intent(in) :: filename ! file
@@ -921,8 +917,6 @@ contains
     integer          :: dimid(1)
     type(var_desc_t) :: varid
     character(CL)    :: cunit       ! var units
-    character(CL)    :: lname       ! long name
-    character(CL)    :: sname       ! standard name
     integer          :: lnx
     logical          :: lwhead, lwdata
     integer          :: lfile_ind
@@ -944,13 +938,15 @@ contains
     endif
 
     if (lwhead) then
-       call shr_nuopc_fldList_GetMetadata(trim(dname),longname=lname,stdname=sname,units=cunit)
        lnx = size(rdata)
        rcode = pio_def_dim(io_file(lfile_ind),trim(dname)//'_nx',lnx,dimid(1))
        rcode = pio_def_var(io_file(lfile_ind),trim(dname),PIO_DOUBLE,dimid,varid)
-       rcode = pio_put_att(io_file(lfile_ind),varid,"units",trim(cunit))
-       rcode = pio_put_att(io_file(lfile_ind),varid,"long_name",trim(lname))
-       rcode = pio_put_att(io_file(lfile_ind),varid,"standard_name",trim(sname))
+       if (NUOPC_FieldDictionaryHasEntry(trim(dname))) then
+          call NUOPC_FieldDictionaryGetEntry(itemc, canonicalUnits=cunit, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          rcode = pio_put_att(io_file(lfile_ind),varid,"units",trim(cunit))
+       end if
+       rcode = pio_put_att(io_file(lfile_ind),varid,"standard_name",trim(dname))
        if (lwdata) call med_io_enddef(filename, file_ind=lfile_ind)
     endif
 
@@ -968,9 +964,8 @@ contains
     ! Write char string to netcdf file
     !---------------
 
-    use pio     , only : var_desc_t, pio_def_dim, pio_put_att, pio_def_var, pio_inq_varid
-    use pio     , only : pio_char, pio_put_var
-    use esmFlds , only : shr_nuopc_fldList_GetMetadata
+    use pio , only : var_desc_t, pio_def_dim, pio_put_att, pio_def_var, pio_inq_varid
+    use pio , only : pio_char, pio_put_var
 
     ! input/output arguments
     character(len=*),intent(in) :: filename ! file
@@ -1010,13 +1005,14 @@ contains
     endif
 
     if (lwhead) then
-       call shr_nuopc_fldList_GetMetadata(trim(dname),longname=lname,stdname=sname,units=cunit)
        lnx = len(charvar)
        rcode = pio_def_dim(io_file(lfile_ind),trim(dname)//'_len',lnx,dimid(1))
        rcode = pio_def_var(io_file(lfile_ind),trim(dname),PIO_CHAR,dimid,varid)
-       rcode = pio_put_att(io_file(lfile_ind),varid,"units",trim(cunit))
-       rcode = pio_put_att(io_file(lfile_ind),varid,"long_name",trim(lname))
-       rcode = pio_put_att(io_file(lfile_ind),varid,"standard_name",trim(sname))
+       if (NUOPC_FieldDictionaryHasEntry(trim(dname))) then
+          call NUOPC_FieldDictionaryGetEntry(itemc, canonicalUnits=cunit, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+       end if
+       rcode = pio_put_att(io_file(lfile_ind),varid,"standard_name",trim(dname))
        if (lwdata) call med_io_enddef(filename, file_ind=lfile_ind)
     endif
     if (lwdata) then
