@@ -505,7 +505,7 @@ contains
          aoflux%roce_16O, aoflux%roce_HDO, aoflux%roce_18O, &
          aoflux%evap, aoflux%evap_16O, aoflux%evap_HDO, aoflux%evap_18O, &
          aoflux%taux, aoflux%tauy, aoflux%tref, aoflux%qref, &
-         aoflux%duu10n, ustar_sv=aoflux%ustar, re_sv=aoflux%re, ssq_sv=aoflux%ssq, &
+         0, aoflux%duu10n, ustar_sv=aoflux%ustar, re_sv=aoflux%re, ssq_sv=aoflux%ssq, &
          missval = 0.0_r8)
 
     do n = 1,lsize
