@@ -34,6 +34,7 @@ contains
     use esmflds               , only : compice, comprof, compwav, compglc, ncomps
     use esmflds               , only : mapbilnr, mapconsf, mapconsd, mappatch
     use esmflds               , only : mapfcopy, mapnstod, mapnstod_consd, mapnstod_consf
+    use esmflds               , only : mapuv_with_cart3d
     use esmflds               , only : fldListTo, fldListFr, fldListMed_aoflux, fldListMed_ocnalb
     use esmFlds               , only : coupling_mode
 
@@ -343,6 +344,17 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     if (isPresent) then
        call ESMF_LogWrite('ocn2wav_smapname = '// trim(ocn2wav_smap), ESMF_LOGMSG_INFO)
+    end if
+
+    !----------------------------------------------------------
+    ! Initialize if use 3d cartesian mapping for u,v
+    !----------------------------------------------------------
+
+    call NUOPC_CompAttributeGet(gcomp, name='mapuv_with_cart3d', value=cvalue, isPresent=isPresent, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    read(cvalue,*) mapuv_with_cart3d
+    if (isPresent) then
+       call ESMF_LogWrite('mapuv_with_cart3d = '// trim(cvalue), ESMF_LOGMSG_INFO)
     end if
 
     !=====================================================================
