@@ -38,7 +38,9 @@ module esmflds
   integer , public, parameter :: nmappers       = 8
 
   character(len=*) , public, parameter :: mapnames(nmappers) = & 
-       (/'bilnr      ','consf      ', 'consd      ', 'patch      ', 'fcopy      ', 'nstod      ', 'nstod_consd', 'nstod_consf'/)
+       (/'bilnr      ','consf      ','consd      ','patch      ','fcopy      ','nstod      ','nstod_consd','nstod_consf'/)
+
+  logical, public :: mapuv_with_cart3d ! rotate u,v to 3d cartesian space, map from src->dest, then rotate back
 
   !-----------------------------------------------
   ! Set coupling mode

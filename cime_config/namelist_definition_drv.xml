@@ -1604,6 +1604,16 @@ n    </desc>
     </values>
   </entry>
 
+  <entry id="mapuv_with_cart3d">
+    <type>logical</type>
+    <category>mapping</category>
+    <group>FLDS_attributes</group>
+    <desc>used for atm->ocn and atm-ice mapping of u and v; rotate u,v to 3d cartesian space, map from src->dest, then rotate back</desc>
+    <values>
+      <value>.false.</value>
+    </values>
+  </entry>
+
   <entry id="atm2ocn_fmapname" modify_via_xml="ATM2OCN_FMAPNAME">
     <type>char</type>
     <category>mapping</category>
