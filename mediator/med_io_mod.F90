@@ -742,12 +742,12 @@ contains
     if (present(file_ind)) lfile_ind=file_ind
 
     if (lwhead) then
-       call NUOPC_FieldDictionaryGetEntry(dname, canonicalUnits=cunit, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       !       rcode = pio_def_dim(io_file(lfile_ind),trim(dname)//'_nx',1,dimid(1))
-       !       rcode = pio_def_var(io_file(lfile_ind),trim(dname),PIO_INT,dimid,varid)
+       if (NUOPC_FieldDictionaryHasEntry(trim(dname))) then
+          call NUOPC_FieldDictionaryGetEntry(dname, canonicalUnits=cunit, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          rcode = pio_put_att(io_file(lfile_ind),varid,"units",trim(cunit))
+       end if
        rcode = pio_def_var(io_file(lfile_ind),trim(dname),PIO_INT,varid)
-       rcode = pio_put_att(io_file(lfile_ind),varid,"units",trim(cunit))
        rcode = pio_put_att(io_file(lfile_ind),varid,"standard_name",trim(dname))
        if (lwdata) call med_io_enddef(filename, file_ind=lfile_ind)
     endif
@@ -810,12 +810,14 @@ contains
     if (present(file_ind)) lfile_ind=file_ind
 
     if (lwhead) then
-       call NUOPC_FieldDictionaryGetEntry(dname, canonicalUnits=cunit, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (NUOPC_FieldDictionaryHasEntry(trim(dname))) then
+          call NUOPC_FieldDictionaryGetEntry(dname, canonicalUnits=cunit, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          rcode = pio_put_att(io_file(lfile_ind),varid,"units",trim(cunit))
+       end if
        lnx = size(idata)
        rcode = pio_def_dim(io_file(lfile_ind),trim(dname)//'_nx',lnx,dimid(1))
        rcode = pio_def_var(io_file(lfile_ind),trim(dname),PIO_INT,dimid,varid)
-       rcode = pio_put_att(io_file(lfile_ind),varid,"units",trim(cunit))
        rcode = pio_put_att(io_file(lfile_ind),varid,"standard_name",trim(dname))
        if (lwdata) call med_io_enddef(filename, file_ind=lfile_ind)
     endif
