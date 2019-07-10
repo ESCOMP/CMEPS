@@ -22,6 +22,7 @@ module MED
   use shr_nuopc_methods_mod , only : FB_Reset           => shr_nuopc_methods_FB_Reset
   use shr_nuopc_methods_mod , only : FB_Copy            => shr_nuopc_methods_FB_Copy
   use shr_nuopc_methods_mod , only : FB_FldChk          => shr_nuopc_methods_FB_FldChk
+  use shr_nuopc_methods_mod , only : FB_diagnose        => shr_nuopc_methods_FB_diagnose
   use shr_nuopc_methods_mod , only : clock_timeprint    => shr_nuopc_methods_clock_timeprint
   use shr_nuopc_time_mod    , only : set_stop_alarm     => shr_nuopc_time_set_component_stop_alarm
   use shr_nuopc_time_mod    , only : alarmInit          => shr_nuopc_time_alarmInit 
@@ -1766,6 +1767,12 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call med_fraction_set(gcomp,rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    ! should this be added here?
+    if (is_local%wrap%comp_present(compocn)) then
+       call med_phases_ocnalb_run(gcomp, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    end if
 
     !---------------------------------------
     ! Carry out data dependency for atm initialization if needed

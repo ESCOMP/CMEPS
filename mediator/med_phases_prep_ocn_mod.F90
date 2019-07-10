@@ -177,6 +177,8 @@ contains
     real(R8)        , parameter    :: const_lhvap = 2.501e6_R8  ! latent heat of evaporation ~ J/kg
     real(R8)        , parameter    :: albdif = 0.06_r8          ! 60 deg reference albedo, diffuse
     character(len=*), parameter    :: subname='(med_phases_prep_ocn_merge)'
+    ! Set the following to true if want to compare directly to MCT
+    logical :: compare_to_mct = .false.
     !---------------------------------------
 
     call t_startf('MED:'//subname)
@@ -346,6 +348,7 @@ contains
                    ifrac_scaled = ifrac(n) / (frac_sum)
                    ofrac_scaled = ofrac(n) / (frac_sum)
                 endif
+
                 ifracr_scaled = ifracr(n)
                 ofracr_scaled = ofracr(n)
                 frac_sum = ifracr(n) + ofracr(n)
@@ -364,25 +367,38 @@ contains
                 Foxx_swnet_afracr(n) = ofracr_scaled*(fswabsv + fswabsi) 
              end if
 
-             if (export_swnet_by_bands) then
-                if (import_swpen_by_bands) then
-                   ! use each individual band for swpen coming from the sea-ice
-                   Foxx_swnet_vdr(n) = Faxa_swvdr(n)*(1.0_R8-albvis_dir)*ofracr_scaled + Fioi_swpen_vdr(n)*ifrac_scaled
-                   Foxx_swnet_vdf(n) = Faxa_swvdf(n)*(1.0_R8-albvis_dif)*ofracr_scaled + Fioi_swpen_vdf(n)*ifrac_scaled
-                   Foxx_swnet_idr(n) = Faxa_swndr(n)*(1.0_R8-albnir_dir)*ofracr_scaled + Fioi_swpen_idr(n)*ifrac_scaled
-                   Foxx_swnet_idf(n) = Faxa_swndf(n)*(1.0_R8-albnir_dif)*ofracr_scaled + Fioi_swpen_idf(n)*ifrac_scaled
-                else
-                   ! scale total Foxx_swnet to get contributions from each band
-                   c1 = 0.285
-                   c2 = 0.285
-                   c3 = 0.215
-                   c4 = 0.215
-                   Foxx_swnet_vdr(n) = c1 * Foxx_swnet(n)
-                   Foxx_swnet_vdf(n) = c2 * Foxx_swnet(n)
-                   Foxx_swnet_idr(n) = c3 * Foxx_swnet(n)
-                   Foxx_swnet_idf(n) = c4 * Foxx_swnet(n)
+             ! To compare to mct
+             if (compare_to_mct) then
+                c1 = 0.285
+                c2 = 0.285
+                c3 = 0.215
+                c4 = 0.215
+                Foxx_swnet_vdr(n) = c1 * Foxx_swnet(n)
+                Foxx_swnet_vdf(n) = c2 * Foxx_swnet(n)
+                Foxx_swnet_idr(n) = c3 * Foxx_swnet(n)
+                Foxx_swnet_idf(n) = c4 * Foxx_swnet(n)
+             else
+                if (export_swnet_by_bands) then
+                   if (import_swpen_by_bands) then
+                      ! use each individual band for swpen coming from the sea-ice
+                      Foxx_swnet_vdr(n) = Faxa_swvdr(n)*(1.0_R8-albvis_dir)*ofracr_scaled + Fioi_swpen_vdr(n)*ifrac_scaled
+                      Foxx_swnet_vdf(n) = Faxa_swvdf(n)*(1.0_R8-albvis_dif)*ofracr_scaled + Fioi_swpen_vdf(n)*ifrac_scaled
+                      Foxx_swnet_idr(n) = Faxa_swndr(n)*(1.0_R8-albnir_dir)*ofracr_scaled + Fioi_swpen_idr(n)*ifrac_scaled
+                      Foxx_swnet_idf(n) = Faxa_swndf(n)*(1.0_R8-albnir_dif)*ofracr_scaled + Fioi_swpen_idf(n)*ifrac_scaled
+                   else
+                      ! scale total Foxx_swnet to get contributions from each band
+                      c1 = 0.285
+                      c2 = 0.285
+                      c3 = 0.215
+                      c4 = 0.215
+                      Foxx_swnet_vdr(n) = c1 * Foxx_swnet(n)
+                      Foxx_swnet_vdf(n) = c2 * Foxx_swnet(n)
+                      Foxx_swnet_idr(n) = c3 * Foxx_swnet(n)
+                      Foxx_swnet_idf(n) = c4 * Foxx_swnet(n)
+                   end if
                 end if
              end if
+             
           end if  ! if sea-ice is present
        end do
 

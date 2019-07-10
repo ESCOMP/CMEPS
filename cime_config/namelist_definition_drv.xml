@@ -807,6 +807,8 @@
     </desc>
     <values>
       <value>.true.</value>
+      <value atm_grid="T62">.false.</value>
+      <value atm_grid="TL319">.false.</value>
     </values>
   </entry>
 
@@ -1599,6 +1601,16 @@ n    </desc>
     <values>
       <value flux_epbal='off'>0</value>
       <value flux_epbal="ocn">5</value>
+    </values>
+  </entry>
+
+  <entry id="mapuv_with_cart3d">
+    <type>logical</type>
+    <category>mapping</category>
+    <group>FLDS_attributes</group>
+    <desc>used for atm->ocn and atm-ice mapping of u and v; rotate u,v to 3d cartesian space, map from src->dest, then rotate back</desc>
+    <values>
+      <value>.false.</value>
     </values>
   </entry>
 

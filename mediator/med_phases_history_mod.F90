@@ -279,9 +279,39 @@ contains
                        nx=nx, ny=ny, nt=1, whead=whead, wdata=wdata, pre=trim(compname(n))//'Exp', rc=rc)
                    if (ChkErr(rc,__LINE__,u_FILE_u)) return
                 endif
+                if (ESMF_FieldBundleIsCreated(is_local%wrap%FBFrac(n),rc=rc)) then
+                   nx = is_local%wrap%nx(n)
+                   ny = is_local%wrap%ny(n)
+                   call med_io_write(hist_file, iam, is_local%wrap%FBFrac(n), &
+                       nx=nx, ny=ny, nt=1, whead=whead, wdata=wdata, pre='Med_frac_'//trim(compname(n)), rc=rc)
+                   if (ChkErr(rc,__LINE__,u_FILE_u)) return
+                end if
              endif
           enddo
-
+          if (ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_ocnalb_o,rc=rc)) then
+             nx = is_local%wrap%nx(compocn)
+             ny = is_local%wrap%ny(compocn)
+             call med_io_write(hist_file, iam, is_local%wrap%FBMed_ocnalb_o, &
+                  nx=nx, ny=ny, nt=1, whead=whead, wdata=wdata, pre='Med_alb_ocn', rc=rc)
+          end if
+          if (ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_aoflux_o,rc=rc)) then
+             nx = is_local%wrap%nx(compocn)
+             ny = is_local%wrap%ny(compocn)
+             call med_io_write(hist_file, iam, is_local%wrap%FBMed_aoflux_o, &
+                  nx=nx, ny=ny, nt=1, whead=whead, wdata=wdata, pre='Med_aoflux_ocn', rc=rc)
+          end if
+          if (ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_ocnalb_a,rc=rc)) then
+             nx = is_local%wrap%nx(compatm)
+             ny = is_local%wrap%ny(compatm)
+             call med_io_write(hist_file, iam, is_local%wrap%FBMed_ocnalb_a, &
+                  nx=nx, ny=ny, nt=1, whead=whead, wdata=wdata, pre='Med_alb_atm', rc=rc)
+          end if
+          if (ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_aoflux_a,rc=rc)) then
+             nx = is_local%wrap%nx(compatm)
+             ny = is_local%wrap%ny(compatm)
+             call med_io_write(hist_file, iam, is_local%wrap%FBMed_aoflux_a, &
+                  nx=nx, ny=ny, nt=1, whead=whead, wdata=wdata, pre='Med_aoflux_atm', rc=rc)
+          end if
        enddo
 
        call med_io_close(hist_file, iam, rc=rc)
