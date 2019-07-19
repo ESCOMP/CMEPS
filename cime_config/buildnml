@@ -340,8 +340,10 @@ def _create_runseq(case, coupling_times):
             from runseq_B import runseq
         elif (comp_atm == 'fv3gfs' and comp_ocn == "mom" and comp_ice == 'cice'):
             from runseq_NEMS import runseq
-
-        runseq(case, coupling_times)
+        try:
+            runseq(case, coupling_times)
+        except Exception as e:
+            expect(False, "No run sequence found for compset {}".format(case.get_value("COMPSET")))
 
 ###############################################################################
 def compare_drv_flds_in(first, second, infile1, infile2):
