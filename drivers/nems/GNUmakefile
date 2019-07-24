@@ -33,7 +33,6 @@ all default: $(LIBRARY)
 
 $(LIBRARY): $(OBJ1)
 	$(AR) $(ARFLAGS) $@ $?
-	$(RM) *.i90 *.o *.mod
 
 %.o: $(MEDDIR)/%.F90
 	$(FC) $(FFLAGS) $(FREE) $(ESMF_INC) ${PIOLIB_INC} -c -I../../util $(MEDDIR)/$*.F90

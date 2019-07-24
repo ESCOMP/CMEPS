@@ -629,7 +629,9 @@ contains
 !
    if (.not. timing_initialized) return
 
+#ifdef NUOPC_INTERFACE
    ierr = GPTLprefix_set(trim(prefix_string))
+#endif
 
    end subroutine t_set_prefixf
 !
@@ -649,7 +651,9 @@ contains
 !
    if (.not. timing_initialized) return
 
+#ifdef NUOPC_INTERFACE
    ierr = GPTLprefix_unset()
+#endif
 
    end subroutine t_unset_prefixf
 !
@@ -898,14 +902,16 @@ contains
 
       write(cdetail,'(i2.2)') cur_timing_detail
       str_length = min(SHR_KIND_CM-3,len_trim(event))
+#ifdef NUOPC_INTERFACE
       ierr = GPTLstartstop_vals( &
          event(1:str_length)//'_'//cdetail, wtime, callcnt)
-
+#endif
    else
 
       str_length = min(SHR_KIND_CM,len_trim(event))
+#ifdef NUOPC_INTERFACE
       ierr = GPTLstartstop_vals(trim(event), wtime, callcnt)
-
+#endif
    endif
 
 !$OMP MASTER
@@ -1175,12 +1181,14 @@ contains
    unitn = shr_file_getUnit()
 
    ! determine what the current output mode is (append or write)
+#ifdef NUOPC_INTERFACE
    if (GPTLprint_mode_query() == GPTLprint_write) then
      pr_write = .true.
      ierr = GPTLprint_mode_set(GPTLprint_append)
    else
      pr_write = .false.
    endif
+#endif
 
    ! Determine whether to write all data to a single fie
    if (present(single_file)) then
@@ -1372,7 +1380,9 @@ contains
          endif
          close( unitn )
 
+#ifdef NUOPC_INTERFACE
          ierr = GPTLpr_file(trim(fname))
+#endif
       endif
 
    endif
