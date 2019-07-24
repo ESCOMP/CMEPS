@@ -183,7 +183,9 @@ contains
     use ESMF                  , only : ESMF_RouteHandleIsCreated, ESMF_FieldBundleIsCreated
     use ESMF                  , only : operator(+)
     use NUOPC                 , only : NUOPC_CompAttributeGet
+#ifdef CESMCOUPLED 
     use shr_orb_mod           , only : shr_orb_cosz, shr_orb_decl
+#endif
     use esmFlds               , only : mapconsf, mapnames
     use shr_nuopc_methods_mod , only : shr_nuopc_methods_FB_GetFldPtr
     use shr_nuopc_methods_mod , only : shr_nuopc_methods_FB_diagnose
@@ -357,7 +359,7 @@ contains
        ! Solar declination
        ! Will only do albedo calculation if nextsw_cday is not -1.
        if (nextsw_cday >= -0.5_r8) then
-
+#ifdef CESMCOUPLED
           call shr_orb_decl(nextsw_cday, eccen, mvelpp,lambm0, obliqr, delta, eccf)
 
           ! Compute albedos
@@ -379,6 +381,15 @@ contains
                 ocnalb%avsdf(n) = 1.0_r8
              end if
           end do
+#else
+          do n = 1,lsize
+             ocnalb%anidr(n) = albdir
+             ocnalb%avsdr(n) = albdir
+             ocnalb%anidf(n) = albdif
+             ocnalb%avsdf(n) = albdif
+          end do
+#endif
+
           update_alb = .true.
 
        endif    ! nextsw_cday
