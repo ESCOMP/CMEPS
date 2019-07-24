@@ -41,7 +41,8 @@ $(LIBRARY): $(OBJ1) $(OBJ2) $(OBJ3)
 	$(FC) $(FFLAGS) $(FREE) $(ESMF_INC) ${PIOLIB_INC} -I. -c $*.F90
 
 clean:
-	$(RM) -f $(LIBRARY) *.f90 *.i90 *.o *.mod
+	$(RM) -f $(LIBRARY) *.f90 *.i90 *.o *.mod 
+	$(RM) -f shr_infnan_mod.F90 shr_assert_mod.F90
 	$(RM) -f med_constants_mod.*
 
 med_constants_mod.o: shr_kind_mod.o shr_const_mod.o
