@@ -9,6 +9,7 @@ module med_merge_mod
   use med_constants_mod     , only : spval_init        => med_constants_spval_init
   use med_constants_mod     , only : spval             => med_constants_spval
   use med_constants_mod     , only : czero             => med_constants_czero
+  use med_constants_mod     , only : CL
   use shr_nuopc_utils_mod   , only : ChkErr            => shr_nuopc_utils_ChkErr
   use shr_nuopc_methods_mod , only : FB_FldChk         => shr_nuopc_methods_FB_FldChk
   use shr_nuopc_methods_mod , only : FB_GetNameN       => shr_nuopc_methods_FB_GetNameN
@@ -174,10 +175,10 @@ contains
                          end if
 
                       else if (ESMF_FieldBundleIsCreated(FBImp(compsrc), rc=rc)) then
-
                          if (FB_FldChk(FBImp(compsrc), trim(merge_field), rc=rc)) then
                             call med_merge_auto_field(trim(merge_type), &
-                                 FBOut, fldname, FB=FBImp(compsrc), FBFld=merge_field, FBw=FBfrac, fldw=trim(merge_fracname), rc=rc)
+                                 FBOut, fldname, FB=FBImp(compsrc), FBFld=merge_field, &
+                                 FBw=FBfrac, fldw=trim(merge_fracname), rc=rc)
                             if (ChkErr(rc,__LINE__,u_FILE_u)) return
                          end if
 
@@ -229,6 +230,7 @@ contains
     integer           :: ungriddedUBound_input(1)  ! currently the size must equal 1 for rank 2 fieldds
     integer           :: gridToFieldMap_output(1)  ! currently the size must equal 1 for rank 2 fieldds
     integer           :: gridToFieldMap_input(1)   ! currently the size must equal 1 for rank 2 fieldds
+    character(len=CL) :: errmsg
     character(len=*),parameter :: subname=' (med_merge_mod: med_merge)'
     !---------------------------------------
 
@@ -290,16 +292,22 @@ contains
     end if
 
     ! error checks
-    if (ungriddedUBound_output(1) /= ungriddedUBound_input(1)) then
-       call ESMF_LogWrite(trim(subname)//"ungriddedUBound_input not equal to ungriddedUBound_output", ESMF_LOGMSG_INFO)
-       rc = ESMF_FAILURE
-       return
-    else if (gridToFieldMap_input(1) /= gridToFieldMap_output(1)) then
-       call ESMF_LOGWrite(trim(subname)//"gridToFieldMap_input not equal to gridToFieldMap_output", ESMF_LOGMSG_INFO)
-       rc = ESMF_FAILURE
-       return
-    end if
+    if (lrank == 2) then
+       if (ungriddedUBound_output(1) /= ungriddedUBound_input(1)) then
+          write(errmsg,*) trim(subname),"ungriddedUBound_input (",ungriddedUBound_input(1),&
+               ") not equal to ungriddedUBound_output (",ungriddedUBound_output(1),")"
+          call ESMF_LogWrite(errmsg, ESMF_LOGMSG_ERROR)
+          rc = ESMF_FAILURE
+          return
+       else if (gridToFieldMap_input(1) /= gridToFieldMap_output(1)) then
+          write(errmsg,*) trim(subname),"gridtofieldmap_input (",gridtofieldmap_input(1),&
+               ") not equal to gridtofieldmap_output (",gridtofieldmap_output(1),")"
+          call ESMF_LogWrite(errmsg, ESMF_LOGMSG_ERROR)
 
+          rc = ESMF_FAILURE
+          return
+       end if
+    endif
     ! Get pointer to weights that weights are only rank 1
     if (merge_type == 'copy_with_weights' .or. merge_type == 'merge' .or. merge_type == 'sum_with_weights') then
        call ESMF_FieldBundleGet(FBw, fieldName=trim(fldw), field=lfield, rc=rc)
@@ -753,7 +761,7 @@ contains
 
     ! Get name of k-th field in colon deliminted list
 
-    use ESMF, only : ESMF_SUCCESS, ESMF_FAILURE, ESMF_LogWrite, ESMF_LOGMSG_INFO 
+    use ESMF, only : ESMF_SUCCESS, ESMF_FAILURE, ESMF_LogWrite, ESMF_LOGMSG_INFO
 
     ! input/output variables
     character(len=*)  ,intent(in)  :: list    ! list/string

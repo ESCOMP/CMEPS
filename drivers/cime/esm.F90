@@ -943,10 +943,25 @@ contains
     call NUOPC_CompAttributeAdd(gcomp, attrList=attrList, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     do n = 1,size(attrList)
-       call NUOPC_CompAttributeGet(driver, name=trim(attrList(n)), value=cvalue, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call NUOPC_CompAttributeSet(gcomp, name=trim(attrList(n)), value=trim(cvalue), rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (trim(attrList(n)) == "read_restart") then
+          call NUOPC_CompAttributeGet(driver, name="mediator_read_restart", value=cvalue, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          
+          read(cvalue,*) lvalue
+
+          if (.not. lvalue) then         
+            call NUOPC_CompAttributeGet(driver, name=trim(attrList(n)), value=cvalue, rc=rc)
+            if (chkerr(rc,__LINE__,u_FILE_u)) return
+          end if
+
+          call NUOPC_CompAttributeSet(gcomp, name=trim(attrList(n)), value=trim(cvalue), rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+       else 
+          call NUOPC_CompAttributeGet(driver, name=trim(attrList(n)), value=cvalue, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call NUOPC_CompAttributeSet(gcomp, name=trim(attrList(n)), value=trim(cvalue), rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+       end if
     enddo
     deallocate(attrList)
 
@@ -1285,6 +1300,10 @@ contains
           call NUOPC_DriverAddComp(driver, trim(compLabels(i)), ESPSetServices, PetList=petlist, comp=child, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
 #endif
+       else
+          write(msgstr,*) 'No component ',trim(compLabels(i)),' found'
+          call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
+          return
        endif
 
        call AddAttributes(child, driver, config, i+1, trim(compLabels(i)), inst_suffix, rc=rc)

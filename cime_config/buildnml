@@ -14,7 +14,7 @@ from CIME.utils import expect
 from CIME.utils import get_model, get_time_in_seconds, get_timestamp
 from CIME.buildnml import create_namelist_infile, parse_input
 from CIME.XML.files import Files
-
+#pylint: disable=undefined-variable
 logger = logging.getLogger(__name__)
 
 ###############################################################################
@@ -118,7 +118,7 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     for comp in comps:
         ncpl = case.get_value(comp.upper() + '_NCPL')
         if ncpl is not None:
-            cpl_dt = basedt / int(ncpl)
+            cpl_dt = basedt // int(ncpl)
             totaldt = cpl_dt * int(ncpl)
             if totaldt != basedt:
                 expect(False, " %s ncpl doesn't divide base dt evenly" %comp)
@@ -304,7 +304,7 @@ def _create_runseq(case, coupling_times):
         comp_atm  = case.get_value("COMP_ATM")
         comp_ice  = case.get_value("COMP_ICE")
         # not yet in use
-        # comp_glc  = case.get_value("COMP_GLC")
+        comp_glc  = case.get_value("COMP_GLC")
         comp_lnd  = case.get_value("COMP_LND")
         comp_ocn  = case.get_value("COMP_OCN")
         comp_rof  = case.get_value("COMP_ROF")
@@ -316,14 +316,17 @@ def _create_runseq(case, coupling_times):
                      comp_rof == 'srof' and comp_wav == 'swav' and comp_lnd == 'dlnd') # ADWAV
         runseq_a3 = (comp_atm == 'satm' and comp_ocn == "socn" and comp_ice == 'sice' and
                      comp_rof == 'srof' and comp_wav == 'dwav' and comp_lnd == 'slnd') # ADLND
+        runseq_a4 = (comp_atm == 'datm' and comp_ocn == 'docn' and comp_ice == 'sice' and
+                     comp_rof == 'srof' and comp_wav == 'swav' and comp_lnd == 'slnd') # A compsets
 
         # Create a run sequence file appropriate for target compset
 
         sys.path.append(os.path.join(_CIMEROOT, "src", "drivers", "nuopc", "cime_config", "runseq"))
 
-        if (runseq_a1 or runseq_a2 or runseq_a3):
+        if (runseq_a1 or runseq_a2 or runseq_a3 or runseq_a4):
             from runseq_A import runseq
-        elif (comp_atm == 'xatm' and comp_ocn == "xocn" and comp_ice == 'xice' and comp_rof == 'xrof'):
+        elif (comp_atm == 'xatm' or comp_ocn == "xocn" or comp_ice == 'xice' or
+              comp_rof == 'xrof' or comp_wav == 'xwav' or comp_glc == 'xglc'):
             from runseq_X import runseq
         elif (comp_atm == 'cam' and comp_ocn == "docn"):
             from runseq_FQ import runseq
@@ -333,14 +336,16 @@ def _create_runseq(case, coupling_times):
             from runseq_D import runseq
         elif ((comp_ocn == "mom" or comp_ocn == 'pop') and comp_atm == 'datm'):
             from runseq_CG import runseq
-        elif (comp_atm == 'cam' and comp_lnd == "clm" and comp_ocn == 'mom'):
+        elif (comp_atm == 'cam' and comp_lnd == "clm" and (comp_ocn == 'mom' or comp_ocn == "pop")):
             from runseq_B import runseq
         elif (comp_atm == 'fv3gfs' and comp_ocn == "mom" and comp_ice == 'cice'):
             from runseq_NEMS import runseq
         elif (comp_lnd == 'dlnd' and comp_glc == "cism"):
             from runseq_TG import runseq
-
-        runseq(case, coupling_times)
+        try:
+            runseq(case, coupling_times)
+        except Exception as e:
+            expect(False, "No run sequence found for compset {}".format(case.get_value("COMPSET")))
 
 ###############################################################################
 def compare_drv_flds_in(first, second, infile1, infile2):

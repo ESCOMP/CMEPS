@@ -27,7 +27,7 @@
          atm/ocn surface latent heat flux
      #
      - standard_name: Faox_sen
-       alias: mean_sensi_heat_flx_atm_into_ocn 
+       alias: mean_sensi_heat_flx_atm_into_ocn
        canonical_units: W m-2
        description: mediator export
          atm/ocn surface sensible heat flux
@@ -58,7 +58,7 @@
      #
      - standard_name: Fall_evap_wiso
        canonical_units: kg m-2 s-1
-       description: land export 
+       description: land export
      #
      - standard_name: Fall_fco2_lnd
        canonical_units: moles m-2 s-1
@@ -121,7 +121,7 @@
      #
      - standard_name: Sl_ddvel
        canonical_units: cm/sec
-       description: land export 
+       description: land export
           dry deposition velocities from (1->80)
      #
      - standard_name: Sl_fv
@@ -602,7 +602,7 @@
        canonical_units: tbd
        description: atmosphere export (fv3 only)
 
-######### fv3 work
+######### fv3 work start
 
      - standard_name: Faxa_taux
        alias: mean_zonal_moment_flx_atm
@@ -906,28 +906,28 @@
      #
      # NOTE: the following alias requires a new name change for CICE export
      - standard_name: Fioi_swpen_vdr
-       alias: mean_net_sw_vis_dir_flx
+       alias: mean_sw_pen_to_ocn_vis_dir_flx
        canonical_units: W m-2
        description: sea-ice export to ocean
          flux of vis dir shortwave through ice to ocean
      #
      # NOTE: the following alias requires a new name change for CICE export
      - standard_name: Fioi_swpen_vdf
-       alias: mean_net_sw_vis_dif_flx
+       alias: mean_sw_pen_to_ocn_vis_dif_flx
        canonical_units: W m-2
        description: sea-ice export to ocean
          flux of vif dir shortwave through ice to ocean
      #
      # NOTE: the following alias requires a new name change for CICE export
      - standard_name: Fioi_swpen_idr
-       alias: mean_net_sw_ir_dir_flx
+       alias: mean_sw_pen_to_ocn_ir_dir_flx
        canonical_units: W m-2
        description: sea-ice export to ocean
          flux of ir dir shortwave through ice to ocean
      #
      # NOTE: the following alias requires a new name change for CICE export
      - standard_name: Fioi_swpen_idf
-       alias: mean_net_sw_ir_dif_flx
+       alias: mean_sw_pen_to_ocn_ir_dif_flx
        canonical_units: W m-2
        description: sea-ice export to ocean
          flux of ir dif shortwave through ice to ocean
@@ -1308,12 +1308,12 @@
      - standard_name: mean_runoff_rate
        canonical_units: kg m-2 s-1
        description: ocean import
-          total runoff to ocean 
+          total runoff to ocean
      #
      - standard_name: mean_runoff_heat_flux
        canonical_units: kg m-2 s-1
        description: ocean import
-          heat content of runoff 
+          heat content of runoff
      #
      - standard_name: mean_calving_rate
        canonical_units: kg m-2 s-1
@@ -1323,7 +1323,7 @@
      - standard_name: mean_calving_heat_flux
        canonical_units: kg m-2 s-1
        description: ocean import
-          heat content of calving 
+          heat content of calving
      #
      - standard_name: Foxx_rofi
        canonical_units: kg m-2 s-1
@@ -1394,7 +1394,7 @@
          meridional surface stress
      #
      - standard_name: Fioi_swpen_ifrac_n
-       alias: mean_sw_pen_to_ocn_ifrac_n 
+       alias: mean_sw_pen_to_ocn_ifrac_n
        canonical_units: W m-2
        description: ocean import
          net shortwave radiation penetrating into ice and ocean times ice fraction for thickness category 1

@@ -1,9 +1,13 @@
 module med_map_mod
 
+  use ESMF                  , only : ESMF_Field, ESMF_FieldGet, ESMF_SUCCESS, ESMF_FAILURE
+  use ESMF                  , only : ESMF_LOGMSG_ERROR, ESMF_LOGMSG_INFO, ESMF_LogWrite
   use esmFlds               , only : mapbilnr, mapconsf, mapconsd, mappatch, mapfcopy
   use esmFlds               , only : mapunset, mapnames
   use esmFlds               , only : mapnstod, mapnstod_consd, mapnstod_consf
+  use esmFlds               , only : mapuv_with_cart3d
   use med_constants_mod     , only : CX, CS, CL, R8
+  use med_constants_mod     , only : shr_const_pi
   use med_constants_mod     , only : ispval_mask       => med_constants_ispval_mask
   use med_constants_mod     , only : czero             => med_constants_czero
   use med_constants_mod     , only : dbug_flag         => med_constants_dbug_flag
@@ -28,6 +32,7 @@ module med_map_mod
   public :: med_map_Fractions_init
   public :: med_map_MapNorm_init
   public :: med_map_FB_Regrid_Norm
+  public :: med_map_uv_cart3d
 
   interface med_map_FB_Regrid_norm
      module procedure med_map_FB_Regrid_Norm_All
@@ -589,6 +594,9 @@ contains
     real(R8), pointer     :: data_dst(:)
     real(R8), pointer     :: data_frac(:)
     real(R8), pointer     :: data_norm(:)
+    logical               :: used_cart3d_for_uvmapping
+    type(ESMF_Field)      :: usrc,vsrc
+    type(ESMF_Field)      :: udst,vdst
     character(len=*), parameter :: subname='(module_MED_Map:med_map_Regrid_Norm)'
     !-------------------------------------------------------------------------------
 
@@ -621,6 +629,7 @@ contains
     call ESMF_LogWrite(trim(subname)//" *** mapping from "//trim(compname(srccomp))//" to "//&
          trim(compname(destcomp))//" ***", ESMF_LOGMSG_INFO)
 
+    used_cart3d_for_uvmapping = .false.
     do n = 1,size(fldsSrc)
 
        ! Determine if field is a scalar - and if so go to next iternation
@@ -677,6 +686,36 @@ contains
                ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
           rc = ESMF_FAILURE
           return
+       end if
+
+       ! -------------------
+       ! Do cart3d mapping for u and v fields from atm if appropriate
+       ! -------------------
+       
+       if (mapuv_with_cart3d) then
+          if ((trim(fldname) == 'Sa_u' .or. trim(fldname) == 'Sa_v')) then
+             if  (.not. used_cart3d_for_uvmapping) then
+                mapindex = fldsSrc(n)%mapindex(destcomp)
+                mapnorm  = fldsSrc(n)%mapnorm(destcomp)
+                call ESMF_FieldBundleGet(FBSrc, fieldName='Sa_u', field=usrc, rc=rc)
+                if (chkerr(rc,__LINE__,u_FILE_u)) return
+                call ESMF_FieldBundleGet(FBSrc, fieldName='Sa_v', field=vsrc, rc=rc)
+                if (chkerr(rc,__LINE__,u_FILE_u)) return
+                call ESMF_FieldBundleGet(FBDst, fieldName='Sa_u', field=udst, rc=rc)
+                if (chkerr(rc,__LINE__,u_FILE_u)) return
+                call ESMF_FieldBundleGet(FBDst, fieldName='Sa_v', field=vdst, rc=rc)
+                if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+                call ESMF_LogWrite(trim(subname)//" --> remapping "//trim(fldname)//" with "//trim(mapnames(mapindex)), &
+                     ESMF_LOGMSG_INFO)
+
+                call med_map_uv_cart3d(usrc, vsrc, udst, vdst, RouteHandles(mapindex), rc=rc)
+                if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+                used_cart3d_for_uvmapping = .true.
+             end if
+             CYCLE
+          end if
        end if
 
        ! -------------------
@@ -862,11 +901,6 @@ contains
     ! mapped fraction or 'one'
     ! ------------------------------------------------
 
-    use ESMF , only : ESMF_Field, ESMF_FieldGet, ESMF_FieldCreate
-    use ESMF , only : ESMF_SUCCESS, ESMF_FAILURE, ESMF_LOGMSG_INFO
-    use ESMF , only : ESMF_LogWrite
-
-
     ! input/output variables
     character(len=*) , intent(in)    :: fldname
     type(ESMF_Field) , intent(inout) :: dstfield
@@ -949,13 +983,8 @@ contains
     ! ASSUME that if FBSrc has fields of rank 2, those fields have an undistributed innermost dimension
     ! ----------------------------------------------
 
-    use ESMF     , only: ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
-    use ESMF     , only: ESMF_LOGMSG_ERROR, ESMF_FAILURE
-    use ESMF     , only: ESMF_FieldBundle, ESMF_FieldBundleGet, ESMF_FieldBundleAdd
-    use ESMF     , only: ESMF_FieldBundleCreate, ESMF_FieldBundleIsCreated
+    use ESMF     , only: ESMF_FieldBundle, ESMF_FieldBundleIsCreated, ESMF_FieldBundleGet
     use ESMF     , only: ESMF_RouteHandle, ESMF_RouteHandleIsCreated
-    use ESMF     , only: ESMF_Field, ESMF_FieldGet, ESMF_FieldCreate, ESMF_TYPEKIND_R8
-    use ESMF     , only: ESMF_Mesh, ESMF_MeshLoc
     use perf_mod , only: t_startf, t_stopf
 
     ! input/output variables
@@ -1209,5 +1238,141 @@ contains
     call t_stopf('MED:'//subname)
 
   end subroutine med_map_FB_Regrid_Norm_Frac
+
+  !================================================================================
+
+  subroutine med_map_uv_cart3d(usrc, vsrc, udst, vdst, RouteHandle, rc)
+
+    use ESMF, only : ESMF_Mesh, ESMF_MeshGet, ESMF_MESHLOC_ELEMENT, ESMF_TYPEKIND_R8
+    use ESMF, only : ESMF_FieldCreate, ESMF_FieldDestroy, ESMF_FieldRegrid 
+    use ESMF, only : ESMF_RouteHandle, ESMF_TERMORDER_SRCSEQ, ESMF_REGION_TOTAL 
+
+    ! input/output variables
+    type(ESMF_Field)       , intent(in)    :: usrc
+    type(ESMF_Field)       , intent(in)    :: vsrc
+    type(ESMF_Field)       , intent(inout) :: udst
+    type(ESMF_Field)       , intent(inout) :: vdst
+    type(ESMF_RouteHandle) , intent(inout) :: RouteHandle
+    integer                , intent(out)   :: rc
+
+    ! local variables
+    integer             :: n
+    real(r8)            :: lon,lat 
+    real(r8)            :: coslon,coslat 
+    real(r8)            :: sinlon,sinlat 
+    real(r8)            :: ux,uy,uz
+    type(ESMF_Mesh)     :: lmesh_src
+    type(ESMF_Mesh)     :: lmesh_dst
+    type(ESMF_Field)    :: field3d_src
+    type(ESMF_Field)    :: field3d_dst
+    real(r8), pointer   :: data_u_src(:)
+    real(r8), pointer   :: data_u_dst(:)
+    real(r8), pointer   :: data_v_src(:)
+    real(r8), pointer   :: data_v_dst(:)
+    real(r8), pointer   :: data2d_src(:,:)
+    real(r8), pointer   :: data2d_dst(:,:)
+    real(r8), pointer   :: ownedElemCoords_src(:)
+    real(r8), pointer   :: ownedElemCoords_dst(:)
+    integer             :: numOwnedElements
+    integer             :: spatialDim
+    logical             :: checkflag = .false.
+    real(r8), parameter :: deg2rad = shr_const_pi/180.0_R8  ! deg to rads
+    character(len=*), parameter :: subname='(module_MED_Map:med_map_uv_cart3d)'
+    !-------------------------------------------------------------------------------
+
+    rc = ESMF_SUCCESS
+
+    ! Create two field bundles vec_src3d and vec_dst3d that contain
+    ! all three fields with undistributed dimensions for each
+    
+    ! Get pointer to input u and v data source field data
+    call ESMF_FieldGet(usrc, farrayPtr=data_u_src, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldGet(vsrc, farrayPtr=data_v_src, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    ! Get pointer to destination data that will be filled in after
+    ! rotation back from cart3d
+    call ESMF_FieldGet(udst, farrayPtr=data_u_dst, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldGet(vdst, farrayPtr=data_v_dst, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    ! get source mesh and coordinates
+    call ESMF_FieldGet(usrc, mesh=lmesh_src, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_MeshGet(lmesh_src, spatialDim=spatialDim, numOwnedElements=numOwnedElements, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    allocate(ownedElemCoords_src(spatialDim*numOwnedElements))
+    call ESMF_MeshGet(lmesh_src, ownedElemCoords=ownedElemCoords_src)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    ! get destination mesh and coordinates
+    call ESMF_FieldGet(udst, mesh=lmesh_dst, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_MeshGet(lmesh_dst, spatialDim=spatialDim, numOwnedElements=numOwnedElements, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    allocate(ownedElemCoords_dst(spatialDim*numOwnedElements))
+    call ESMF_MeshGet(lmesh_dst, ownedElemCoords=ownedElemCoords_dst)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    ! create source field and destination fields 
+    field3d_src = ESMF_FieldCreate(lmesh_src, ESMF_TYPEKIND_R8, name='src3d', &
+         ungriddedLbound=(/1/), ungriddedUbound=(/3/), gridToFieldMap=(/2/), &
+         meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    field3d_dst = ESMF_FieldCreate(lmesh_dst, ESMF_TYPEKIND_R8, name='dst3d', &
+         ungriddedLbound=(/1/), ungriddedUbound=(/3/), gridToFieldMap=(/2/), &
+         meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    ! get pointers to source and destination data that will be filled in with rotation to cart3d
+    call ESMF_FieldGet(field3d_src, farrayPtr=data2d_src, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldGet(field3d_dst, farrayPtr=data2d_dst, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    ! Rotate Source data to cart3d
+    do n = 1,size(data_u_src)
+       lon = ownedElemCoords_src(2*n-1)
+       lat = ownedElemCoords_src(2*n)
+       sinlon = sin(lon*deg2rad)
+       coslon = cos(lon*deg2rad)
+       sinlat = sin(lat*deg2rad)
+       coslat = cos(lat*deg2rad)
+       data2d_src(1,n) = -coslon*sinlat*data_v_src(n) - sinlon*data_u_src(n) ! x
+       data2d_src(2,n) = -sinlon*sinlat*data_v_src(n) + coslon*data_u_src(n) ! y
+       data2d_src(3,n) =  coslat*data_v_src(n)                               ! z
+    enddo
+
+    ! Map all thee vector fields at once from source to destination grid
+    call ESMF_FieldRegrid(field3d_src, field3d_dst, RouteHandle, &
+         termorderflag=ESMF_TERMORDER_SRCSEQ, checkflag=checkflag, zeroregion=ESMF_REGION_TOTAL, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    ! Rotate destination data back from cart3d to original 
+    do n = 1,size(data_u_dst)
+       lon = ownedElemCoords_dst(2*n-1)
+       lat = ownedElemCoords_dst(2*n)
+       sinlon = sin(lon*deg2rad)
+       coslon = cos(lon*deg2rad)
+       sinlat = sin(lat*deg2rad)
+       coslat = cos(lat*deg2rad)
+       ux = data2d_dst(1,n)
+       uy = data2d_dst(2,n)
+       uz = data2d_dst(3,n)
+       data_u_dst(n) = -sinlon*ux + coslon*uy
+       data_v_dst(n) = -coslon*sinlat*ux - sinlon*sinlat*uy + coslat*uz
+    enddo
+
+    ! Deallocate data
+    deallocate(ownedElemCoords_src)
+    deallocate(ownedElemCoords_dst)
+    call ESMF_FieldDestroy(field3d_src, noGarbage=.true., rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldDestroy(field3d_dst, noGarbage=.true., rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+  end subroutine med_map_uv_cart3d
 
 end module med_map_mod
