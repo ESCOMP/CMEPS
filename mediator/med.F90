@@ -486,7 +486,6 @@ contains
          nestedState=is_local%wrap%NStateImp(compwav), rc=rc)
     call NUOPC_AddNamespace(importState, namespace="GLC", nestedStateName="NestedState-GlcImp", &
          nestedState=is_local%wrap%NStateImp(compglc), rc=rc)
-
     call NUOPC_AddNamespace(exportState, namespace="ATM", nestedStateName="NestedState-AtmExp", &
          nestedState=is_local%wrap%NStateExp(compatm), rc=rc)
     call NUOPC_AddNamespace(exportState, namespace="OCN", nestedStateName="NestedState-OcnExp", &
@@ -1392,6 +1391,7 @@ contains
     use esmFldsExchange_mod     , only : esmFldsExchange
     use med_fraction_mod        , only : med_fraction_init, med_fraction_set
     use med_phases_restart_mod  , only : med_phases_restart_read
+    use med_phases_prep_glc_mod , only : med_phases_prep_glc_init
     use med_phases_prep_atm_mod , only : med_phases_prep_atm
     use med_phases_ocnalb_mod   , only : med_phases_ocnalb_run
     use med_phases_aofluxes_mod , only : med_phases_aofluxes_run
@@ -1780,6 +1780,15 @@ contains
     ! should this be added here?
     if (is_local%wrap%comp_present(compocn)) then
        call med_phases_ocnalb_run(gcomp, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    end if
+
+    !---------------------------------------
+    ! Initialize module variables needed to accumulate input to glc
+    !---------------------------------------
+
+    if (is_local%wrap%comp_present(compglc)) then
+       call  med_phases_prep_glc_init(gcomp, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 

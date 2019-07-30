@@ -20,7 +20,7 @@ module med_map_lnd2glc_mod
   use med_internalstate_mod , only : InternalState, mastertask, logunit
   use shr_nuopc_methods_mod , only : shr_nuopc_methods_FB_init
   use shr_nuopc_methods_mod , only : shr_nuopc_methods_FB_getFldPtr
-  use esmFlds               , only : compglc, complnd, mapbilnr, mapconsf  
+  use esmFlds               , only : compglc, complnd, mapbilnr, mapconsf
 
   implicit none
   private
@@ -46,7 +46,7 @@ module med_map_lnd2glc_mod
   logical :: smb_renormalize
 
   ! Number of elevation classes
-  integer :: nEC                     
+  integer :: nEC
 
   ! Field names without elevation class (_elev) suffix
   character(len=*), parameter :: qice_fieldname   = 'Flgl_qice' ! Name of flux field giving surface mass balance
@@ -171,13 +171,13 @@ contains
     ! Map the accumulate land field from the land grid (in multiple elevation classes)
     ! to the glc grid (in multiple elevation classes) using bilinear interpolation
     ! ------------------------------------------------------------------------
-    
+
     ! TODO(wjs, 2015-01-20) This implies that we pass data to CISM even in places that
     ! CISM says is ocean (so CISM will ignore the incoming value). This differs from the
     ! current glint implementation, which sets acab and artm to 0 over ocean (although
     ! notes that this could lead to a loss of conservation). Figure out how to handle
     ! this case.
-    
+
     ! Create route handle if it has not been created
     ! if (.not. ESMF_RouteHandleIsCreated(is_local%wrap%RH(complnd,compglc,mapbilnr))) then
     !    call med_map_Fractions_init( gcomp, complnd, compglc, &
@@ -216,7 +216,7 @@ contains
        call shr_nuopc_methods_FB_diagnose(FBLndAccum_glc, string=trim(subname)//' FBlndAccum_glc ', rc=rc)
        if (chkErr(rc,__LINE__,u_FILE_u)) return
     endif
-    
+
     ! ------------------------------------------------------------------------
     ! Determine elevation class of each glc point on glc grid (output is topoglc_g)
     ! ------------------------------------------------------------------------
@@ -332,9 +332,9 @@ contains
        ! integral on the glc grid is equal to the global integral on the land grid.
        ! ------------------------------------------------------------------------
 
-       ! No longer need to make a preemptive adjustment to qice_g to account for area differences 
-       ! between CISM and the coupler. In NUOPC, the area correction is done in! the cap not in the 
-       ! mediator, so to preserve the bilinear mapping values, do not need to do any area correction 
+       ! No longer need to make a preemptive adjustment to qice_g to account for area differences
+       ! between CISM and the coupler. In NUOPC, the area correction is done in! the cap not in the
+       ! mediator, so to preserve the bilinear mapping values, do not need to do any area correction
        ! scaling in the CISM NUOPC cap
 
        if (trim(fldnames_to_glc(nfld)) == trim(qice_fieldname) .and. smb_renormalize) then
@@ -453,7 +453,7 @@ contains
     call shr_nuopc_methods_FB_getFldPtr(is_local%wrap%FBFrac(complnd), 'lfrac', fldptr1=lfrac, rc=rc)
     if (chkErr(rc,__LINE__,u_FILE_u)) return
 
-    ! determine areas on land grid 
+    ! determine areas on land grid
     call shr_nuopc_methods_FB_getFieldN(is_local%wrap%FBImp(complnd,complnd), fieldnum=1, field=lfield, rc=rc)
     if (chkErr(rc,__LINE__,u_FILE_u)) return
     call ESMF_FieldGet(lfield, mesh=lmesh, rc=rc)
@@ -463,7 +463,7 @@ contains
     call ESMF_ArrayGet(larray, farrayptr=aream_l, rc=rc)
     if (chkErr(rc,__LINE__,u_FILE_u)) return
 
-    ! Determine areas on glc grid 
+    ! Determine areas on glc grid
     call shr_nuopc_methods_FB_getFieldN(is_local%wrap%FBImp(compglc,compglc), fieldnum=1, field=lfield, rc=rc)
     if (chkErr(rc,__LINE__,u_FILE_u)) return
     call ESMF_FieldGet(lfield, mesh=lmesh, rc=rc)
@@ -565,7 +565,7 @@ contains
        ! Calculate effective area for sum -  need the mapped Sg_icemask_l
        effective_area = min(lfrac(n),Sg_icemask_l(n)) * aream_l(n)
 
-       do ec = 1, nEC+1  
+       do ec = 1, nEC+1
           if (qice_l(ec,n) >= 0.0_r8) then
              local_accum_on_lnd_grid(1) = local_accum_on_lnd_grid(1) + effective_area * frac_l(ec,n) * qice_l(ec,n)
           else
@@ -578,7 +578,7 @@ contains
     call ESMF_VMAllreduce(vm, senddata=local_ablat_on_lnd_grid, recvdata=global_ablat_on_lnd_grid,&
          count=1, reduceflag=ESMF_REDUCE_SUM, rc=rc)
 
-    ! Sum qice_g over local glc grid cells.  
+    ! Sum qice_g over local glc grid cells.
 
     ! TODO: is the following a problem
     ! Note: This sum uses the coupler areas (aream_g), which differ from the native CISM areas.
