@@ -786,7 +786,7 @@ contains
 
        ! NEMS-orig - merged ocn/ice temp and unmerged ocn temp
        else if (fldchk(is_local%wrap%FBExp(compatm)        , 'So_t', rc=rc) .and. &
-                fldchk(is_local%wrap%FBExp(compatm)        , 'Si_t', rc=rc)).and. &
+                fldchk(is_local%wrap%FBExp(compatm)        , 'Si_t', rc=rc) .and. &
                 fldchk(is_local%wrap%FBImp(compocn,compocn), 'So_t', rc=rc) .and. &
                 fldchk(is_local%wrap%FBImp(compice,compice), 'Si_t', rc=rc)) then
           call addmap(fldListFr(compice)%flds, 'Si_t', compatm, mapnstod_consf, 'ifrac', ice2atm_fmap)
