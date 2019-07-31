@@ -12,15 +12,32 @@ module med_map_lnd2glc_mod
 
 #include "shr_assert.h"
 
+  use ESMF                  , only : ESMF_VM, ESMF_VMGet, ESMF_VMAllReduce, ESMF_REDUCE_SUM
   use ESMF                  , only : ESMF_FieldBundle
+  use ESMF                  , only : ESMF_GridComp, ESMF_GridCompGet
+  use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
+  use ESMF                  , only : ESMF_RouteHandleIsCreated
+  use ESMF                  , only : ESMF_FieldBundle, ESMF_FieldBundleGet, ESMF_FieldBundleIsCreated
+  use ESMF                  , only : ESMF_Field, ESMF_FieldGet
+  use ESMF                  , only : ESMF_Mesh, ESMF_MeshGet, ESMF_Array, ESMF_ArrayGet
+  use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
+  use esmFlds               , only : compglc, complnd, mapbilnr, mapconsf, compname
+  use esmFlds               , only : shr_nuopc_fldlist_type
   use shr_sys_mod           , only : shr_sys_abort
-  use shr_nuopc_utils_mod   , only : chkerr => shr_nuopc_utils_ChkErr
+  use med_internalstate_mod , only : InternalState, mastertask, logunit
   use med_constants_mod     , only : R8, CS
   use med_constants_mod     , only : dbug_flag=>med_constants_dbug_flag
   use med_internalstate_mod , only : InternalState, mastertask, logunit
+  use med_map_mod           , only : med_map_FB_Regrid_Norm, med_map_Fractions_Init
   use shr_nuopc_methods_mod , only : shr_nuopc_methods_FB_init
   use shr_nuopc_methods_mod , only : shr_nuopc_methods_FB_getFldPtr
-  use esmFlds               , only : compglc, complnd, mapbilnr, mapconsf
+  use shr_nuopc_methods_mod , only : shr_nuopc_methods_FB_diagnose
+  use shr_nuopc_methods_mod , only : shr_nuopc_methods_FB_getFldPtr
+  use shr_nuopc_methods_mod , only : shr_nuopc_methods_FB_getFieldN
+  use shr_nuopc_utils_mod   , only : chkerr => shr_nuopc_utils_ChkErr
+  use med_map_glc2lnd_mod   , only : med_map_glc2lnd_elevclass
+  use glc_elevclass_mod     , only : glc_get_num_elevation_classes
+  use perf_mod              , only : t_startf, t_stopf
 
   implicit none
   private
@@ -61,26 +78,17 @@ module med_map_lnd2glc_mod
 contains
 !================================================================================================
 
-  subroutine med_map_lnd2glc(fldnames_fr_lnd, fldnames_to_glc, FBlndAccum_lnd, FBlndAccum_glc, gcomp, rc)
-
-    use ESMF                  , only : ESMF_GridComp, ESMF_GridCompGet
-    use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
-    use ESMF                  , only : ESMF_FieldBundleGet, ESMF_RouteHandleIsCreated
-    use med_map_mod           , only : med_map_FB_Regrid_Norm, med_map_Fractions_Init
-    use glc_elevclass_mod     , only : glc_get_num_elevation_classes
-    use shr_nuopc_methods_mod , only : shr_nuopc_methods_FB_diagnose
-    !DEBUG
-    use ESMF, only : ESMF_FieldBundleIsCreated
-    use shr_sys_mod, only : shr_sys_abort
-    !DEBUG
+  subroutine med_map_lnd2glc(fldlist_lnd2glc, fldnames_fr_lnd, fldnames_to_glc, &
+       FBlndAccum_lnd, FBlndAccum_glc, gcomp, rc)
 
     ! input/output variables
-    character(len=*)       , intent(in)    :: fldnames_fr_lnd(:)
-    character(len=*)       , intent(in)    :: fldnames_to_glc(:)
-    type(ESMF_FieldBundle) , intent(inout) :: FBlndAccum_lnd
-    type(ESMF_FieldBundle) , intent(inout) :: FBlndAccum_glc
-    type(ESMF_GridComp)    , intent(inout) :: gcomp
-    integer                , intent(out)   :: rc
+    type(shr_nuopc_fldlist_type) , intent(in)    :: fldlist_lnd2glc
+    character(len=*)             , intent(in)    :: fldnames_fr_lnd(:)
+    character(len=*)             , intent(in)    :: fldnames_to_glc(:)
+    type(ESMF_FieldBundle)       , intent(inout) :: FBlndAccum_lnd
+    type(ESMF_FieldBundle)       , intent(inout) :: FBlndAccum_glc
+    type(ESMF_GridComp)          , intent(inout) :: gcomp
+    integer                      , intent(out)   :: rc
 
     ! local variables
     type(InternalState) :: is_local
@@ -187,32 +195,20 @@ contains
     !    if (ChkErr(rc,__LINE__,u_FILE_u)) return
     ! end if
 
-    ! if (.not. ESMF_FieldBundleIsCreated(FBlndAccum_lnd)) then
-    !    call shr_sys_abort('FBlndAccum_lnd not created')
-    ! else if (.not. ESMF_FieldBundleIsCreated(FBlndAccum_glc)) then
-    !    call shr_sys_abort('FBlndAccum_glc not created')
-    ! else if (.not. ESMF_FieldBundleIsCreated(is_local%wrap%FBFrac(complnd))) then
-    !    call shr_sys_abort('FBFrac(complnd) not created')
-    ! end if
+    call med_map_FB_Regrid_Norm( fldsSrc=fldList_lnd2glc%flds, &
+         srccomp =complnd, destcomp=compglc, &
+         FBSrc=FBlndAccum_lnd, FBDst=FBlndAccum_glc, &
+         FBFracSrc=is_local%wrap%FBFrac(complnd), FBFracDst=is_local%wrap%FBFrac(compglc), &
+         FBNormOne=is_local%wrap%FBNormOne(complnd,compglc,:), &
+         RouteHandles=is_local%wrap%RH(complnd,compglc,:), &
+         string=trim(compname(complnd))//'2'//trim(compname(compglc)), rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     if (dbug_flag > 1) then
        call shr_nuopc_methods_FB_diagnose(FBLndAccum_lnd, string=trim(subname)//' FBlndAccum_lnd ', rc=rc)
        if (chkErr(rc,__LINE__,u_FILE_u)) return
-    endif
-
-    if (dbug_flag > 1) then
        call shr_nuopc_methods_FB_diagnose(is_local%wrap%FBfrac(complnd), string=trim(subname)//' FBFrac ', rc=rc)
        if (chkErr(rc,__LINE__,u_FILE_u)) return
-    endif
-
-    call med_map_FB_Regrid_Norm(fldnames=fldnames_fr_lnd, &
-         FBSrc=FBlndAccum_lnd, FBDst=FBlndAccum_glc, &
-         FBFrac=is_local%wrap%FBFrac(complnd), mapnorm='lfrac', &
-         RouteHandle=is_local%wrap%RH(complnd,compglc,mapbilnr), &
-         string='mapping normalized elevation class data from lnd to to glc', rc=rc)
-    if (chkErr(rc,__LINE__,u_FILE_u)) return
-
-    if (dbug_flag > 1) then
        call shr_nuopc_methods_FB_diagnose(FBLndAccum_glc, string=trim(subname)//' FBlndAccum_glc ', rc=rc)
        if (chkErr(rc,__LINE__,u_FILE_u)) return
     endif
@@ -372,19 +368,6 @@ contains
     ! For high-level design, see:
     ! https://docs.google.com/document/d/1H_SuK6SfCv1x6dK91q80dFInPbLYcOkUj_iAa6WRnqQ/edit
     !------------------
-
-    use ESMF                  , only : ESMF_GridComp, ESMF_GridCompGet
-    use ESMF                  , only : ESMF_VM, ESMF_VMGet, ESMF_VMAllReduce, ESMF_REDUCE_SUM
-    use ESMF                  , only : ESMF_FieldBundle, ESMF_FieldBundleGet, ESMF_Field, ESMF_FieldGet
-    use ESMF                  , only : ESMF_Mesh, ESMF_MeshGet, ESMF_Array, ESMF_ArrayGet
-    use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
-    use ESMF                  , only : ESMF_RouteHandleIsCreated
-    use med_map_mod           , only : med_map_FB_Regrid_Norm, med_map_Fractions_init
-    use med_map_glc2lnd_mod   , only : med_map_glc2lnd_elevclass
-    use med_internalstate_mod , only : InternalState, mastertask, logunit
-    use shr_nuopc_methods_mod , only : shr_nuopc_methods_FB_getFldPtr
-    use shr_nuopc_methods_mod , only : shr_nuopc_methods_FB_getFieldN
-    use perf_mod              , only : t_startf, t_stopf
 
     ! input/output variables
     type(ESMF_GridComp)    :: gcomp

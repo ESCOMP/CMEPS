@@ -11,7 +11,8 @@ module med_phases_prep_glc_mod
   use ESMF                  , only : ESMF_FieldBundleCreate, ESMF_FieldBundleIsCreated
   use ESMF                  , only : ESMF_MeshLoc, ESMF_Mesh, ESMF_TYPEKIND_R8
   use ESMF                  , only : ESMF_Field, ESMF_FieldGet, ESMF_FieldCreate
-  use esmFlds               , only : compglc, complnd
+  use esmFlds               , only : compglc, complnd, mapconsf, mapbilnr
+  use esmFlds               , only : shr_nuopc_fldlist_type
   use med_constants_mod     , only : R8, CS
   use med_constants_mod     , only : czero => med_constants_czero
   use med_constants_mod     , only : dbug_flag=>med_constants_dbug_flag
@@ -40,6 +41,7 @@ module med_phases_prep_glc_mod
   type(ESMF_FieldBundle) :: FBLndAccum_lnd
   type(ESMF_FieldBundle) :: FBLndAccum_glc
   integer                :: FBLndAccumCnt
+  type(shr_nuopc_fldlist_type) :: fldlist_lnd2glc
 
   character(len=14) :: fldnames_fr_lnd(3) = (/'Flgl_qice_elev','Sl_tsrf_elev  ','Sl_topo_elev  '/)
   character(len=14) :: fldnames_to_glc(2) = (/'Flgl_qice     ','Sl_tsrf       '/)
@@ -105,7 +107,7 @@ contains
     ! undistributed dimension corresponding to elevation classes
     ! nec is the size of the undistributed dimension (number of elevation classes)
     !---------------------------------------
-    
+
     if (ncnt > 0) then
 
        ! Create accumulation field bundle from land on the land grid
@@ -151,6 +153,17 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        FBLndAccumCnt = 0
+
+       allocate(fldlist_lnd2glc%flds(3))
+       fldlist_lnd2glc%flds(1)%shortname = trim(fldnames_fr_lnd(1))
+       fldlist_lnd2glc%flds(2)%shortname = trim(fldnames_fr_lnd(2))
+       fldlist_lnd2glc%flds(3)%shortname = trim(fldnames_fr_lnd(3))
+       fldlist_lnd2glc%flds(1)%mapindex(compglc) = mapconsf
+       fldlist_lnd2glc%flds(2)%mapindex(compglc) = mapbilnr
+       fldlist_lnd2glc%flds(3)%mapindex(compglc) = mapbilnr
+       fldlist_lnd2glc%flds(1)%mapnorm(compglc) = 'lfrac'
+       fldlist_lnd2glc%flds(2)%mapnorm(compglc) = 'lfrac'
+       fldlist_lnd2glc%flds(3)%mapnorm(compglc) = 'lfrac'
 
     end if
 
@@ -313,7 +326,7 @@ contains
        ! and set FBExp(compglc) data
        !---------------------------------------
 
-       call med_map_lnd2glc(fldnames_fr_lnd, fldnames_to_glc, FBLndAccum_lnd, FBlndAccum_glc, gcomp, rc)
+       call med_map_lnd2glc(fldlist_lnd2glc, fldnames_fr_lnd, fldnames_to_glc, FBLndAccum_lnd, FBlndAccum_glc, gcomp, rc)
        if (chkErr(rc,__LINE__,u_FILE_u)) return
 
        if (dbug_flag > 1) then
