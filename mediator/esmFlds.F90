@@ -46,6 +46,8 @@ module esmflds
 
   character(len=10), public :: coupling_mode ! valid values are [cesm,nems_orig,nems_frac]
 
+  logical, public :: mapuv_with_cart3d = .false. ! rotate u,v to 3d cartesian space, map from src->dest, then rotate back
+
   !-----------------------------------------------
   ! PUblic methods
   !-----------------------------------------------
