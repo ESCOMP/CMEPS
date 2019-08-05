@@ -187,18 +187,22 @@ contains
     ! this case.
 
     ! Create route handle if it has not been created
-    ! if (.not. ESMF_RouteHandleIsCreated(is_local%wrap%RH(complnd,compglc,mapbilnr))) then
-    !    call med_map_Fractions_init( gcomp, complnd, compglc, &
-    !         FBSrc=FBlndAccum_lnd, &
-    !         FBDst=FBlndAccum_glc, &
-    !         RouteHandle=is_local%wrap%RH(complnd,compglc,mapbilnr), rc=rc)
-    !    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    ! end if
+    if (.not. ESMF_RouteHandleIsCreated(is_local%wrap%RH(complnd,compglc,mapbilnr))) then
+       write(6,*)'DEBUG: creating bilnear route handle for lnd->glc'
+       call med_map_Fractions_init( gcomp, complnd, compglc, &
+            FBSrc=FBlndAccum_lnd, &
+            FBDst=FBlndAccum_glc, &
+            RouteHandle=is_local%wrap%RH(complnd,compglc,mapbilnr), rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    end if
 
     call med_map_FB_Regrid_Norm( fldsSrc=fldList_lnd2glc%flds, &
-         srccomp =complnd, destcomp=compglc, &
-         FBSrc=FBlndAccum_lnd, FBDst=FBlndAccum_glc, &
-         FBFracSrc=is_local%wrap%FBFrac(complnd), FBFracDst=is_local%wrap%FBFrac(compglc), &
+         srccomp=complnd, &
+         destcomp=compglc, &
+         FBSrc=FBlndAccum_lnd, &
+         FBDst=FBlndAccum_glc, &
+         FBFracSrc=is_local%wrap%FBFrac(complnd), &
+         FBFracDst=is_local%wrap%FBFrac(compglc), &
          FBNormOne=is_local%wrap%FBNormOne(complnd,compglc,:), &
          RouteHandles=is_local%wrap%RH(complnd,compglc,:), &
          string=trim(compname(complnd))//'2'//trim(compname(compglc)), rc=rc)
@@ -270,79 +274,83 @@ contains
        ! First set data_ice_covered_g to bare land everywehre
        data_ice_covered_g(:) = dataptr2d(1,:)
 
+       !DEBUG
+       dataexp_g(:) = data_ice_covered_g(:)
+       !DEBUG
+
        ! Now overwrite with valid values
-       do n = 1, lsize_g
+    !    do n = 1, lsize_g
 
-          ! For each ice sheet point, find bounding EC values...
+    !       ! For each ice sheet point, find bounding EC values...
 
-          if (topoglc_g(n) < topolnd_g_ec(1,n)) then
+    !       if (topoglc_g(n) < topolnd_g_ec(2,n)) then
 
-             ! lower than lowest mean EC elevation value
-             data_ice_covered_g(n) = dataptr2d(1,n)
+    !          ! lower than lowest mean EC elevation value
+    !          data_ice_covered_g(n) = dataptr2d(1,n)
 
-          else if (topoglc_g(n) >= topolnd_g_ec(nEC, n)) then
+    !       else if (topoglc_g(n) >= topolnd_g_ec(nEC+1, n)) then
 
-             ! higher than highest mean EC elevation value
-             data_ice_covered_g(n) = dataptr2d(nEC,n)
+    !          ! higher than highest mean EC elevation value
+    !          data_ice_covered_g(n) = dataptr2d(nEC,n)
 
-          else
+    !       else
 
-             ! do linear interpolation of data in the vertical
-             do ec = 2, nEC ! TODO: are these the right bounds?
-                if (topoglc_g(n) < topolnd_g_EC(ec,n)) then
-                   elev_l = topolnd_g_EC(ec-1,n)
-                   elev_u = topolnd_g_EC(ec  ,n)
-                   d_elev = elev_u - elev_l
-                   if (d_elev <= 0) then
-                      ! This shouldn't happen, but handle it in case it does. In this case,
-                      ! let's arbitrarily use the mean of the two elevation classes, rather
-                      ! than the weighted mean.
-                      write(logunit,*) subname//' WARNING: topo diff between elevation classes <= 0'
-                      write(logunit,*) 'n, ec, elev_l, elev_u = ', n, ec, elev_l, elev_u
-                      write(logunit,*) 'Simply using mean of the two elevation classes,'
-                      write(logunit,*) 'rather than the weighted mean.'
-                      data_ice_covered_g(n) = dataptr2d(ec-1,n) * 0.5_r8 &
-                                            + dataptr2d(ec  ,n) * 0.5_r8
-                   else
+    !          ! do linear interpolation of data in the vertical
+    !          do ec = 3, nEC+1 
+    !             if (topoglc_g(n) < topolnd_g_EC(ec,n)) then
+    !                elev_l = topolnd_g_EC(ec-1,n)
+    !                elev_u = topolnd_g_EC(ec  ,n)
+    !                d_elev = elev_u - elev_l
+    !                if (d_elev <= 0) then
+    !                   ! This shouldn't happen, but handle it in case it does. In this case,
+    !                   ! let's arbitrarily use the mean of the two elevation classes, rather
+    !                   ! than the weighted mean.
+    !                   write(logunit,*) subname//' WARNING: topo diff between elevation classes <= 0'
+    !                   write(logunit,*) 'n, ec, elev_l, elev_u = ', n, ec, elev_l, elev_u
+    !                   write(logunit,*) 'Simply using mean of the two elevation classes,'
+    !                   write(logunit,*) 'rather than the weighted mean.'
+    !                   data_ice_covered_g(n) = dataptr2d(ec-1,n) * 0.5_r8 &
+    !                                         + dataptr2d(ec  ,n) * 0.5_r8
+    !                else
 
-                      data_ice_covered_g(n) =  dataptr2d(ec-1,n) * (elev_u - topoglc_g(n)) / d_elev  &
-                                             + dataptr2d(ec  ,n) * (topoglc_g(n) - elev_l) / d_elev
-                   end if
+    !                   data_ice_covered_g(n) =  dataptr2d(ec-1,n) * (elev_u - topoglc_g(n)) / d_elev  &
+    !                                          + dataptr2d(ec  ,n) * (topoglc_g(n) - elev_l) / d_elev
+    !                end if
 
-                   exit
-                end if
-             end do
-          end if  ! topoglc_g(n)
+    !                exit
+    !             end if
+    !          end do
+    !       end if  ! topoglc_g(n)
 
-          if (glc_elevclass(n) /= 0) then
-             ! ice-covered cells have interpolated values
-             dataexp_g(n) = data_ice_covered_g(n)
-          else
-             ! non ice-covered cells have bare land value
-             dataexp_g(n) = real(dataptr2d(1,n))
-          end if
-       end do  ! lsize_g
+    !       if (glc_elevclass(n) /= 0) then
+    !          ! ice-covered cells have interpolated values
+    !          dataexp_g(n) = data_ice_covered_g(n)
+    !       else
+    !          ! non ice-covered cells have bare land value
+    !          dataexp_g(n) = real(dataptr2d(1,n))
+    !       end if
+    !    end do  ! lsize_g
 
-       ! ------------------------------------------------------------------------
-       ! Renormalize surface mass balance (smb, here named dataexp_g) so that the global
-       ! integral on the glc grid is equal to the global integral on the land grid.
-       ! ------------------------------------------------------------------------
+    !    ! ------------------------------------------------------------------------
+    !    ! Renormalize surface mass balance (smb, here named dataexp_g) so that the global
+    !    ! integral on the glc grid is equal to the global integral on the land grid.
+    !    ! ------------------------------------------------------------------------
 
-       ! No longer need to make a preemptive adjustment to qice_g to account for area differences
-       ! between CISM and the coupler. In NUOPC, the area correction is done in! the cap not in the
-       ! mediator, so to preserve the bilinear mapping values, do not need to do any area correction
-       ! scaling in the CISM NUOPC cap
+    !    ! No longer need to make a preemptive adjustment to qice_g to account for area differences
+    !    ! between CISM and the coupler. In NUOPC, the area correction is done in! the cap not in the
+    !    ! mediator, so to preserve the bilinear mapping values, do not need to do any area correction
+    !    ! scaling in the CISM NUOPC cap
 
-       if (trim(fldnames_to_glc(nfld)) == trim(qice_fieldname) .and. smb_renormalize) then
-          call shr_nuopc_methods_FB_getFldPtr(FBlndAccum_lnd, trim(qice_fieldname)//'_elev', fldptr2=qice_l, rc=rc)
-          if (chkErr(rc,__LINE__,u_FILE_u)) return
+    !    if (trim(fldnames_to_glc(nfld)) == trim(qice_fieldname) .and. smb_renormalize) then
+    !       call shr_nuopc_methods_FB_getFldPtr(FBlndAccum_lnd, trim(qice_fieldname)//'_elev', fldptr2=qice_l, rc=rc)
+    !       if (chkErr(rc,__LINE__,u_FILE_u)) return
 
-          call shr_nuopc_methods_FB_getFldPtr(is_local%wrap%FBExp(compglc), qice_fieldname, fldptr1=qice_g, rc=rc)
-          if (chkErr(rc,__LINE__,u_FILE_u)) return
+    !       call shr_nuopc_methods_FB_getFldPtr(is_local%wrap%FBExp(compglc), qice_fieldname, fldptr1=qice_g, rc=rc)
+    !       if (chkErr(rc,__LINE__,u_FILE_u)) return
 
-          call prep_glc_renormalize_smb(gcomp, qice_l, qice_g, rc)
-          if (chkErr(rc,__LINE__,u_FILE_u)) return
-       end if
+    !       call prep_glc_renormalize_smb(gcomp, qice_l, qice_g, rc)
+    !       if (chkErr(rc,__LINE__,u_FILE_u)) return
+    !    end if
 
     end do  ! end of loop over fields
     deallocate(data_ice_covered_g)

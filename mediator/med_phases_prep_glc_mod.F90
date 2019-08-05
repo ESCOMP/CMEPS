@@ -9,7 +9,7 @@ module med_phases_prep_glc_mod
   use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
   use ESMF                  , only : ESMF_FieldBundleGet, ESMF_FieldBundleAdd
   use ESMF                  , only : ESMF_FieldBundleCreate, ESMF_FieldBundleIsCreated
-  use ESMF                  , only : ESMF_MeshLoc, ESMF_Mesh, ESMF_TYPEKIND_R8
+  use ESMF                  , only : ESMF_MeshLoc, ESMF_Mesh, ESMF_TYPEKIND_R8, ESMF_MESHLOC_ELEMENT
   use ESMF                  , only : ESMF_Field, ESMF_FieldGet, ESMF_FieldCreate
   use esmFlds               , only : compglc, complnd, mapconsf, mapbilnr
   use esmFlds               , only : shr_nuopc_fldlist_type
@@ -123,6 +123,7 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        do n = 1,size(fldnames_fr_lnd)
           lfield = ESMF_FieldCreate(lmesh, ESMF_TYPEKIND_R8, name=fldnames_fr_lnd(n), &
+               meshloc=ESMF_MESHLOC_ELEMENT, &
                ungriddedLbound=(/1/), ungriddedUbound=(/nec/), gridToFieldMap=(/2/), rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           call ESMF_FieldBundleAdd(FBlndAccum_lnd, (/lfield/), rc=rc)
@@ -144,6 +145,7 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        do n = 1,size(fldnames_fr_lnd)
           lfield = ESMF_FieldCreate(lmesh, ESMF_TYPEKIND_R8, name=fldnames_fr_lnd(n), &
+               meshloc=ESMF_MESHLOC_ELEMENT, &
                ungriddedLbound=(/1/), ungriddedUbound=(/nec/), gridToFieldMap=(/2/), rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           call ESMF_FieldBundleAdd(FBlndAccum_glc, (/lfield/), rc=rc)
@@ -162,8 +164,8 @@ contains
        fldlist_lnd2glc%flds(2)%mapindex(compglc) = mapbilnr
        fldlist_lnd2glc%flds(3)%mapindex(compglc) = mapbilnr
        fldlist_lnd2glc%flds(1)%mapnorm(compglc) = 'lfrac'
-       fldlist_lnd2glc%flds(2)%mapnorm(compglc) = 'lfrac'
-       fldlist_lnd2glc%flds(3)%mapnorm(compglc) = 'lfrac'
+       fldlist_lnd2glc%flds(2)%mapnorm(compglc) = 'none'
+       fldlist_lnd2glc%flds(3)%mapnorm(compglc) = 'none'
 
     end if
 
@@ -233,8 +235,7 @@ contains
           call shr_nuopc_methods_FB_GetFldPtr(is_local%wrap%FBImp(complnd,complnd), &
                fldnames_fr_lnd(n), fldptr2=data2d_in, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call shr_nuopc_methods_FB_GetFldPtr(FBLndAccum_lnd, &
-               fldnames_fr_lnd(n), fldptr2=data2d_out, rc=rc)
+          call shr_nuopc_methods_FB_GetFldPtr(FBLndAccum_lnd, fldnames_fr_lnd(n), fldptr2=data2d_out, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           do i = 1,size(data2d_out, dim=2)
              data2d_out(:,i) = data2d_out(:,i) + data2d_in(:,i)
@@ -325,6 +326,9 @@ contains
        ! Map accumulated field bundle from land grid (with elevation classes) to glc grid (without elevation classes)
        ! and set FBExp(compglc) data
        !---------------------------------------
+
+       call shr_nuopc_methods_FB_reset(FBLndAccum_glc, value=0.0_r8, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        call med_map_lnd2glc(fldlist_lnd2glc, fldnames_fr_lnd, fldnames_to_glc, FBLndAccum_lnd, FBlndAccum_glc, gcomp, rc)
        if (chkErr(rc,__LINE__,u_FILE_u)) return
