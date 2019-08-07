@@ -172,8 +172,8 @@ contains
     real(R8), pointer   :: wgtp01(:)
     real(R8), pointer   :: wgtm01(:)
     real(R8), pointer   :: customwgt(:)
-    real(R8), pointer   :: ocnwgt(:)
-    real(R8), pointer   :: icewgt(:)
+    !real(R8), pointer   :: ocnwgt(:)
+    !real(R8), pointer   :: icewgt(:)
     !
     character(len=64), allocatable :: fldnames(:)
     real(R8)        , parameter    :: const_lhvap = 2.501e6_R8  ! latent heat of evaporation ~ J/kg
@@ -465,8 +465,8 @@ contains
           allocate(wgtp01(lsize))
           allocate(wgtm01(lsize))
           allocate(customwgt(lsize))
-          allocate(icewgt(lsize))
-          allocate(ocnwgt(lsize))
+          !allocate(icewgt(lsize))
+          !allocate(ocnwgt(lsize))
 
           do n = 1,lsize
              if (ifrac(n) <= 0._R8) then
@@ -533,20 +533,25 @@ contains
                FBinC=is_local%wrap%FBImp(compatm,compocn), fnameC='Faxa_lwnet' , wgtc=wgtp01, rc=rc)
 
           ! NOTE: The following two calls are bug fixes that will cause answer changes with respect to v0.3
-          call med_merge_field(is_local%wrap%FBExp(compocn),      'Faxa_rain' , &
-               FBInA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_rain' , wgtA=ocnwgt, &
-               FBInB=is_local%wrap%FBImp(compice,compocn), fnameB='Fioi_meltw', wgtB=icewgt, rc=rc)
+          !call med_merge_field(is_local%wrap%FBExp(compocn),      'Faxa_rain' , &
+          !     FBInA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_rain' , wgtA=ocnwgt, &
+          !     FBInB=is_local%wrap%FBImp(compice,compocn), fnameB='Fioi_meltw', wgtB=icewgt, rc=rc)
+          call med_merge_field(is_local%wrap%FBExp(compocn),       'Faxa_rain' , &
+                FBInA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_rain' , wgtA=ofrac, &
+                FBInB=is_local%wrap%FBImp(compice,compocn), fnameB='Fioi_meltw', wgtB=ifrac, rc=rc)
 
+          !call med_merge_field(is_local%wrap%FBExp(compocn),      'Faxa_snow' , &
+          !     FBInA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_snow' , wgtA=ocnwgt, rc=rc)
           call med_merge_field(is_local%wrap%FBExp(compocn),      'Faxa_snow' , &
-               FBInA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_snow' , wgtA=ocnwgt, rc=rc)
+                FBInA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_snow' , wgtA=ofrac, rc=rc)
 
           deallocate(ocnwgt1)
           deallocate(icewgt1)
           deallocate(wgtp01)
           deallocate(wgtm01)
           deallocate(customwgt)
-          deallocate(ocnwgt)
-          deallocate(icewgt)
+          !deallocate(ocnwgt)
+          !deallocate(icewgt)
 
        end if  ! end of NEMS-orig ocn prep phase
 
