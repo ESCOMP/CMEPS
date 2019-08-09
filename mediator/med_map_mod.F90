@@ -21,6 +21,7 @@ module med_map_mod
   use shr_nuopc_methods_mod , only : FB_FieldRegrid    => shr_nuopc_methods_FB_FieldRegrid
   use shr_nuopc_methods_mod , only : FB_Field_diagnose => shr_nuopc_methods_FB_Field_diagnose
   use shr_nuopc_methods_mod , only : FB_FldChk         => shr_nuopc_methods_FB_FldChk
+  use shr_nuopc_methods_mod , only : FB_GetFieldByName => shr_nuopc_methods_FB_GetFieldByName
   use shr_nuopc_methods_mod , only : Field_diagnose    => shr_nuopc_methods_Field_diagnose
 
   implicit none
@@ -164,10 +165,10 @@ contains
 
              if (is_local%wrap%med_coupling_active(n1,n2)) then ! If coupling is active between n1 and n2
 
-                call FB_getFieldN(is_local%wrap%FBImp(n1,n1), 1, fldsrc, rc)
+                call FB_GetFieldN(is_local%wrap%FBImp(n1,n1), 1, fldsrc, rc)
                 if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-                call FB_getFieldN(is_local%wrap%FBImp(n1,n2), 1, flddst, rc)
+                call FB_GetFieldN(is_local%wrap%FBImp(n1,n2), 1, flddst, rc)
                 if (chkerr(rc,__LINE__,u_FILE_u)) return
 
                 ! Loop over fields
@@ -579,6 +580,7 @@ contains
 
     ! local variables
     integer               :: i, n, k
+    integer               :: lrank
     character(len=CS)     :: lstring
     integer               :: mapindex
     character(len=CS)     :: mapnorm
@@ -590,14 +592,18 @@ contains
     type(ESMF_Field)      :: frac_field_src
     type(ESMF_Field)      :: frac_field_dst
     real(R8), allocatable :: data_srctmp(:)
-    real(R8), pointer     :: data_src(:)
-    real(R8), pointer     :: data_dst(:)
+    real(R8), allocatable :: data_srctmp_1d(:)
+    real(R8), allocatable :: data_srctmp_2d(:,:)  
+    real(R8), pointer     :: data_src_1d(:)
+    real(R8), pointer     :: data_src_2d(:,:)
     real(R8), pointer     :: data_frac(:)
     real(R8), pointer     :: data_norm(:)
     logical               :: used_cart3d_for_uvmapping
     logical               :: frac_field_created
     type(ESMF_Field)      :: usrc,vsrc
     type(ESMF_Field)      :: udst,vdst
+    integer               :: ungriddedUBound(1)     ! currently the size must equal 1 for rank 2 fields
+    integer               :: gridToFieldMap(1)      ! currently the size must equal 1 for rank 2 fields
     logical               :: checkflag = .false.
     character(len=*), parameter :: subname='(module_MED_Map:med_map_Regrid_Norm)'
     !-------------------------------------------------------------------------------
@@ -750,32 +756,81 @@ contains
 
           if ( trim(mapnorm) /= 'unset' .and. trim(mapnorm) /= 'one' .and. trim(mapnorm) /= 'none') then
 
-             ! get a pointer to source field data in FBSrc
-             call FB_GetFldPtr(FBSrc, fldname, data_src, rc=rc)
+             call FB_getFieldByName(FBSrc, fldname, lfield, rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+             call ESMF_FieldGet(lfield, rank=lrank, rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-             if (.not. allocated(data_srctmp) .or. size(data_srctmp) /= size(data_src)) then
-                if (allocated(data_srctmp)) then
-                   deallocate(data_srctmp)
+             ! get a pointer to source field data in FBSrc
+             if (lrank == 1) then
+                call ESMF_FieldGet(srcfield, farrayPtr=data_src_1d, rc=rc)
+                if (chkerr(rc,__LINE__,u_FILE_u)) return
+             else if (lrank == 2) then
+                call ESMF_FieldGet(srcfield, ungriddedUBound=ungriddedUBound, gridToFieldMap=gridToFieldMap, rc=rc)
+                if (chkerr(rc,__LINE__,u_FILE_u)) return
+                if (gridToFieldMap(1) /= 2) then
+                   call ESMF_LogWrite(trim(subname)//" fldname= "//trim(fldname)//&
+                        "has gridTofieldMap not equal to 2",  ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
+                   rc = ESMF_FAILURE
+                   return
+                end if
+                call ESMF_FieldGet(srcfield, farrayPtr=data_src_2d, rc=rc)
+                if (chkerr(rc,__LINE__,u_FILE_u)) return
+             end if
+
+             ! allocate memory for a save array if not already allocated
+             if (lrank == 1) then
+                if (.not. allocated(data_srctmp_1d) .or. size(data_srctmp_1d) /= size(data_src_1d)) then
+                   if (allocated(data_srctmp_1d)) then
+                      deallocate(data_srctmp_1d)
+                   endif
+                   allocate(data_srctmp_1d(size(data_src_1d)))
                 endif
-                allocate(data_srctmp(size(data_src)))
-             endif
+             elseif (lrank == 2) then
+                if (.not. allocated(data_srctmp_2d) .or. size(data_srctmp_2d) /= size(data_src_2d)) then
+                   if (allocated(data_srctmp_2d)) then
+                      deallocate(data_srctmp_2d)
+                   endif
+                   allocate(data_srctmp_2d(size(data_src_2d,dim=1), size(data_src_2d,dim=2)))
+                endif
+             end if
 
              ! get a pointer to the array of the normalization on the source grid - this must
              ! be the same size is as fraction on the source grid
              call FB_GetFldPtr(FBFracSrc, trim(mapnorm), data_frac, rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-             ! regrid FBSrc to FBDst
-             ! - copy data_src to data_srctmp
-             ! - multiply by fraction, regrid this then replace with original data_src
-             ! - regrid field with name fldname from FBsrc to FBDst
-             ! - restore original value
-             data_srctmp = data_src
-             data_src = data_src * data_frac
+             ! copy data_src to data_srctmp then multiply data_src by fraction
+             if (lrank == 1) then
+                data_srctmp_1d(:) = data_src_1d(:)
+                data_src_1d(:) = data_src_1d(:) * data_frac(:)
+             elseif (lrank == 2) then
+                if (size(data_frac) /= size(data_src_2d,dim=2)) then
+                   write(6,*)'ERROR: size(frac)   = ',size(data_frac)
+                   write(6,*)'ERROR: size(data_src_2d,dim=1),size(data_src_2d,dim=2) = ',&
+                        size(data_src_2d,dim=1),size(data_src_2d,dim=2)
+                   call ESMF_LogWrite(trim(subname)//" fldname= "//trim(fldname)//&
+                        "size of frac not equal to size of distributed data", &
+                        ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
+                   rc = ESMF_FAILURE
+                   return
+                end if
+                data_srctmp_2d(:,:) = data_src_2d(:,:)
+                do i = 1,size(data_frac)
+                   data_src_2d(:,i) =  data_src_2d(:,i) * data_frac(i)
+                end do
+             end if
+
+             ! regrid field with name fldname from FBsrc to FBDst
              call map_field_src2dst (fldname, srcfield, dstfield, RouteHandles, mapindex, rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
-             data_src = data_srctmp
+
+             ! restore original value
+             if (lrank == 1) then
+                data_src_1d(:) = data_srctmp_1d(:)
+             elseif (lrank == 2) then
+                data_src_2d(:,:) = data_srctmp_2d(:,:) 
+             end if
 
              ! regrid fraction from source to dest
              if (.not. ESMF_FieldIsCreated(frac_field_dst)) then

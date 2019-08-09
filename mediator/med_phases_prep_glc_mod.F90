@@ -160,12 +160,12 @@ contains
        fldlist_lnd2glc%flds(1)%shortname = trim(fldnames_fr_lnd(1))
        fldlist_lnd2glc%flds(2)%shortname = trim(fldnames_fr_lnd(2))
        fldlist_lnd2glc%flds(3)%shortname = trim(fldnames_fr_lnd(3))
-       fldlist_lnd2glc%flds(1)%mapindex(compglc) = mapconsf
+       fldlist_lnd2glc%flds(1)%mapindex(compglc) = mapbilnr
        fldlist_lnd2glc%flds(2)%mapindex(compglc) = mapbilnr
        fldlist_lnd2glc%flds(3)%mapindex(compglc) = mapbilnr
        fldlist_lnd2glc%flds(1)%mapnorm(compglc) = 'lfrac'
-       fldlist_lnd2glc%flds(2)%mapnorm(compglc) = 'none'
-       fldlist_lnd2glc%flds(3)%mapnorm(compglc) = 'none'
+       fldlist_lnd2glc%flds(2)%mapnorm(compglc) = 'lfrac'
+       fldlist_lnd2glc%flds(3)%mapnorm(compglc) = 'lfrac'
 
     end if
 
