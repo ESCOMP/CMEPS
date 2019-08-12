@@ -395,7 +395,6 @@ contains
     integer, intent(in) :: compid
     type(iosystem_desc_t), pointer :: iosystem
 
-
     iosystem => iosystems(shr_pio_getindex(compid))
 
   end function shr_pio_getiosys_fromid
