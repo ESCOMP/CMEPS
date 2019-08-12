@@ -204,10 +204,13 @@
       <!-- NOTE: if the following is changed from 24 -> 4 - then a new run sequence is needed since the -->
       <!-- ocn coupling interval for this case is 24 - but the atm is longer -->
       <value compset="_DATM.*_SLND.*_DICE.*_POP2"	>24</value>
+      <value compset="_DATM.*_SLND.*_DICE.*_MOM6"	>24</value>
       <value compset="_DATM.*_SLND.*_CICE.*_POP2"	>24</value>
+      <value compset="_DATM.*_SLND.*_CICE.*_MOM6"	>24</value>
       <value compset="_DATM.*_CICE.*_DOCN"		>24</value>
       <value compset="_DATM.*_DOCN%US20"		>24</value>
       <value compset="_DATM%CPLHIST.+POP\d"		>48</value>
+      <value compset="_DATM%CPLHIST.+MOM\d"		>48</value>
       <value compset="_MPAS"				>1</value>
       <value compset=".+" grid="a%0.23x0.31"		>96</value>
       <value compset=".+" grid="a%ne60np4"		>96</value>
@@ -270,6 +273,7 @@
     <default_value>$ATM_NCPL</default_value>
     <values match="last">
       <value compset="_POP2">24</value>
+      <value compset="_MOM6">24</value>
       <value compset="_POP2" grid="oi%tx0.1v2">4</value>
       <value compset="_POP2" grid="oi%gx1v6">24</value>
       <value compset="_POP2" grid="oi%gx1v7">24</value>
@@ -324,9 +328,11 @@
     <default_value>$ATM_NCPL</default_value>
     <values match="last">
       <value compset="_DATM.*_POP2.*_DROF">$ATM_NCPL</value>
+      <value compset="_DATM.*_MOM6.*_DROF">$ATM_NCPL</value>
       <value compset="_DATM.*_DOCN%SOM">$ATM_NCPL</value>
       <value compset="_DATM.*_SLND.*_DICE.*_DOCN">$ATM_NCPL</value>
       <value compset="_DATM%CPLHIST.+POP\d">8</value>
+      <value compset="_DATM%CPLHIST.+MOM\d">8</value>
       <value compset="_XATM.*_XLND.*_XICE.*_XOCN">$ATM_NCPL</value>
       <value compset="_DLND.*_CISM\d">1</value>
     </values>
@@ -356,6 +362,7 @@
     <default_value>FALSE</default_value>
     <values match="last">
       <value compset="DATM.+POP\d">TRUE</value>
+      <value compset="DATM.+MOM\d">TRUE</value>
       <value compset="DATM.+DOCN%IAF">TRUE</value>
       <value compset="DATM%CPLHIST.+POP\d">FALSE</value>
     </values>
