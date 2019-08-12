@@ -195,7 +195,7 @@ contains
        end if
 
        ! compute potential temperature as a custom calculation
-       if (.not. fldchk(is_local%wrap%FBImp(compatm,compatm), 'Sa_ptem',rc=rc)) then
+       if (.not. fldchk(is_local%wrap%FBImp(compatm,compatm), 'Sa_ptem',rc=rc) .and. fldchk(is_local%wrap%FBExp(compice), 'Sa_ptem', rc=rc)) then
           call ESMF_LogWrite(trim(subname)//": computing potential temp as a custom calculation", ESMF_LOGMSG_INFO)
 
           call FB_GetFldPtr(is_local%wrap%FBExp(compice), 'Sa_ptem', pot_temp, rc=rc)
