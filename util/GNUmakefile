@@ -43,10 +43,10 @@ $(LIBRARY): $(OBJ1) $(OBJ2) $(OBJ3)
 
 %.o: %.F90.in
 	perl genf90.pl $< > $(@:.o=.F90)
-	$(ESMF_F90COMPILER) -c $(ESMF_F90COMPILEOPTS) $(ESMF_F90COMPILEPATHS) ${PIO_INCDIR} -DFORTRANUNDERSCORE -DCPRINTEL $(@:.o=.F90)
+	$(ESMF_F90COMPILER) -c $(ESMF_F90COMPILEOPTS) $(ESMF_F90COMPILEPATHS) -I${PIO_INCDIR} -DFORTRANUNDERSCORE -DCPRINTEL $(@:.o=.F90)
 
 %.o: %.F90
-	$(ESMF_F90COMPILER) -c $(ESMF_F90COMPILEOPTS) $(ESMF_F90COMPILEPATHS) ${PIO_INCDIR} -I. $*.F90
+	$(ESMF_F90COMPILER) -c $(ESMF_F90COMPILEOPTS) $(ESMF_F90COMPILEPATHS) -I${PIO_INCDIR} -I. $*.F90
 
 clean:
 	$(RM) -f $(LIBRARY) *.f90 *.i90 *.o *.mod 
@@ -55,7 +55,7 @@ clean:
 
 med_constants_mod.o: shr_kind_mod.o shr_const_mod.o
 	cp -f ../mediator/med_constants_mod.F90 .
-	$(ESMF_F90COMPILER) -c $(ESMF_F90COMPILEOPTS) $(ESMF_F90COMPILEPATHS) ${PIO_INCDIR} -I. $*.F90
+	$(ESMF_F90COMPILER) -c $(ESMF_F90COMPILEOPTS) $(ESMF_F90COMPILEPATHS) -I${PIO_INCDIR} -I. $*.F90
 perf_mod.o: perf_utils.o shr_sys_mod.o shr_kind_mod.o shr_mpi_mod.o gptl.inc
 perf_utils.o: gptl.inc
 shr_abort_mod.o: shr_kind_mod.o shr_mpi_mod.o shr_log_mod.o
