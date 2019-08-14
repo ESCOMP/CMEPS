@@ -783,6 +783,7 @@
     <values>
       <value>0.01</value>
       <value atm_grid="0.9x1.25">0.0</value>
+      <value cime_model='cesm' COMP_ATM="fv3gfs">0.0</value>
     </values>
   </entry>
 
@@ -795,6 +796,7 @@
     </desc>
     <values>
       <value>5</value>
+      <value cime_model='cesm' COMP_ATM="fv3gfs">2</value>
     </values>
   </entry>
 
