@@ -12,6 +12,7 @@ module med_phases_prep_rof_mod
 
   use ESMF                  , only : ESMF_FieldBundle
   use esmFlds               , only : ncomps, complnd, comprof, compname, mapconsf
+  use esmFlds               , only : shr_nuopc_fldlist_type
   use med_constants_mod     , only : R8, CS
   use med_constants_mod     , only : dbug_flag       => med_constants_dbug_flag
   use shr_nuopc_utils_mod   , only : chkerr          => shr_nuopc_utils_ChkErr
@@ -40,6 +41,7 @@ module med_phases_prep_rof_mod
   type(ESMF_FieldBundle)      :: FBrofVolr          ! needed for lnd2rof irrigation
   type(ESMF_FieldBundle)      :: FBlndIrrig         ! needed for lnd2rof irrigation
   type(ESMF_FieldBundle)      :: FBrofIrrig         ! needed for lnd2rof irrigation
+  type(shr_nuopc_fldlist_type):: fldlist_lnd2rof    ! needed for lnd2rof irrigation
 
   character(len=*), parameter :: volr_field             = 'Flrr_volrmch'
   character(len=*), parameter :: irrig_flux_field       = 'Flrl_irrig'
@@ -412,6 +414,14 @@ contains
             FBgeom=is_local%wrap%FBImp(comprof,comprof), &
             fieldNameList=(/irrig_normalized_field, irrig_volr0_field/), rc=rc)
        if (chkerr(rc,__line__,u_file_u)) return
+
+       allocate(fldlist_lnd2rof%flds(2))
+       fldlist_lnd2rof%flds(1)%shortname = irrig_normalized_field
+       fldlist_lnd2rof%flds(2)%shortname = irrig_volr0_field
+       fldlist_lnd2rof%flds(1)%mapindex(comprof) = mapconsf
+       fldlist_lnd2rof%flds(2)%mapindex(comprof) = mapconsf
+       fldlist_lnd2rof%flds(1)%mapnorm(comprof) = 'lfrac'
+       fldlist_lnd2rof%flds(2)%mapnorm(comprof) = 'lfrac'
     end if
 
     ! ------------------------------------------------------------------------
@@ -489,12 +499,15 @@ contains
     !     convert to a total irrigation flux on the ROF grid
     ! ------------------------------------------------------------------------
 
-    call med_map_FB_Regrid_Norm(&
-         (/irrig_normalized_field, irrig_volr0_field/), &
+    call med_map_FB_Regrid_Norm( &
+         fldList_lnd2rof%flds, complnd, comprof, &
          FBlndIrrig, FBrofIrrig, &
-         is_local%wrap%FBFrac(complnd), 'lfrac', &
-         is_local%wrap%RH(complnd, comprof, mapconsf), &
-         string='mapping normalized irrig from lnd to to rof', rc=rc)
+         is_local%wrap%FBFrac(complnd), &
+         is_local%wrap%FBFrac(comprof), &
+         is_local%wrap%FBNormOne(complnd,comprof,:), &
+         is_local%wrap%RH(complnd,comprof,:), &
+         string=trim(compname(complnd))//'2'//trim(compname(comprof)), rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     call FB_getFldPtr(FBrofIrrig, trim(irrig_normalized_field), irrig_normalized_r, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
