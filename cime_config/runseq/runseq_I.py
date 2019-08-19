@@ -85,7 +85,6 @@ def runseq(case, coupling_times):
         outfile.write ("  MED med_phases_prep_glc_accum           \n" )
         outfile.write ("  ATM                                     \n" )
         outfile.write ("  ATM -> MED :remapMethod=redist          \n" )
-        outfile.write ("  MED med_phases_profile                  \n" )
         if atm_cpl_dt < rof_cpl_dt:
             outfile.write ("@                                     \n" )
         outfile.write ("  ROF -> MED :remapMethod=redist          \n" )
@@ -93,6 +92,7 @@ def runseq(case, coupling_times):
         outfile.write ("  GLC -> MED :remapMethod=redist          \n" )
         outfile.write ("  MED med_phases_history_write            \n" )
         outfile.write ("  MED med_phases_restart_write            \n" )
+        outfile.write ("  MED med_phases_profile                  \n" )
         outfile.write ("@                                         \n" )
         outfile.write ("::                                        \n" )
 

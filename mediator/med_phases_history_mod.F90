@@ -205,9 +205,6 @@ contains
     else
        alarmisOn = .false.
     endif
-    !DEBUG
-    alarmisOn = .true.
-    !DEBUG
 
     ! Set average history output alarm TODO: fix the following
     ! if (.not. ESMF_AlarmIsCreated(AlarmHistAvg, rc=rc)) then
