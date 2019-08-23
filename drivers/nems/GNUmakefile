@@ -1,11 +1,5 @@
 include ../../../conf/configure.nems
 
-# remove openmp flag from ESMF_F90COMPILEOPTS if NEMS is not compiled with openmp flag
-ifeq ($(OPENMP),N)
-ESMF_F90COMPILEOPTS:=$(filter-out $(FFLAGS_OPENMP),$(ESMF_F90COMPILEOPTS))
-ESMF_F90COMPILEOPTS:=$(filter-out -threads,$(ESMF_F90COMPILEOPTS))
-endif
-
 MEDDIR = ../../mediator
 LIBRARY = libcmeps.a
 
@@ -41,7 +35,7 @@ $(LIBRARY): $(OBJ1)
 	$(AR) $(ARFLAGS) $@ $?
 
 %.o: $(MEDDIR)/%.F90
-	$(ESMF_F90COMPILER) -c $(ESMF_F90COMPILEOPTS) $(ESMF_F90COMPILEPATHS) -I${PIO_INCDIR} -I../../util $(MEDDIR)/$*.F90
+	$(ESMF_F90COMPILER) -c $(ESMF_F90COMPILEPATHS) -I${PIO_INC} -I../../util $(MEDDIR)/$*.F90
 
 clean:
 	$(RM) -f $(LIBRARY) *.i90 *.o *.mod
