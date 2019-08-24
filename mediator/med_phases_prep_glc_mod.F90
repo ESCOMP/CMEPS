@@ -32,6 +32,7 @@ module med_phases_prep_glc_mod
   use shr_nuopc_utils_mod   , only : chkerr => shr_nuopc_utils_ChkErr
   use glc_elevclass_mod     , only : glc_get_num_elevation_classes
   use glc_elevclass_mod     , only : glc_get_elevation_classes
+  use glc_elevclass_mod     , only : glc_mean_elevation_virtual
   use perf_mod              , only : t_startf, t_stopf
 
   implicit none
@@ -101,7 +102,9 @@ contains
     type(ESMF_Field)    :: lfield
     real(r8), pointer   :: data2d_in(:,:)
     real(r8), pointer   :: data2d_out(:,:)
-    integer             :: nec ! Number of elevation classes
+    character(len=CS)   :: glc_renormalize_smb
+    logical             :: glc_coupled_fluxes
+    logical             :: lnd_prognostic
     character(len=*),parameter  :: subname='(med_phases_prep_glc_init)'
     !---------------------------------------
 
@@ -198,8 +201,61 @@ contains
        fldlist_lnd2glc%flds(2)%mapnorm(compglc) = 'lfrac'
        fldlist_lnd2glc%flds(3)%mapnorm(compglc) = 'lfrac'
 
-    end if
+       ! Create route handle if it has not been created
+       if (.not. ESMF_RouteHandleIsCreated(is_local%wrap%RH(complnd,compglc,mapbilnr))) then
+          call med_map_Fractions_init( gcomp, complnd, compglc, &
+               FBSrc=FBlndAccum_lnd, &
+               FBDst=FBlndAccum_glc, &
+               RouteHandle=is_local%wrap%RH(complnd,compglc,mapbilnr), rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       end if
 
+       ! Determine number of elevation classes
+       nEC = glc_get_num_elevation_classes()
+
+       ! For now hardwire these
+       ! TODO (mvertens, 2018-11-25) : put in the correct logic for the following rather than hardwiring
+       glc_renormalize_smb = 'off'
+       glc_coupled_fluxes  = .false.
+       lnd_prognostic      = .false.
+       smb_renormalize = do_renormalize_smb(glc_renormalize_smb, glc_coupled_fluxes, lnd_prognostic)
+
+       if (smb_renormalize) then
+          call shr_nuopc_methods_FB_init(FBlnd_elev, is_local%wrap%flds_scalar_name, &
+               FBgeom=is_local%wrap%FBImp(complnd,complnd), FBflds=is_local%wrap%FBImp(complnd,complnd), rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+          ! The following are fields with no undistributed dimension for the elevation classes
+
+          call shr_nuopc_methods_FB_init(FBglc_icemask, is_local%wrap%flds_scalar_name, &
+               FBgeom=is_local%wrap%FBImp(compglc,compglc), fieldnameList=(/Sg_icemask_field/), rc=rc)
+          if (chkerr(rc,__line__,u_file_u)) return
+          call shr_nuopc_methods_FB_init(FBlnd_icemask, is_local%wrap%flds_scalar_name, &
+               FBgeom=is_local%wrap%FBImp(complnd,complnd), fieldNameList=(/Sg_icemask_field/), rc=rc)
+          if (chkerr(rc,__line__,u_file_u)) return
+
+          call shr_nuopc_methods_FB_init(FBglc_frac, is_local%wrap%flds_scalar_name, &
+               FBgeom=is_local%wrap%FBImp(compglc,compglc), fieldNameList=(/Sg_frac_field/), rc=rc)
+          if (chkerr(rc,__line__,u_file_u)) return
+          call shr_nuopc_methods_FB_init(FBlnd_frac, is_local%wrap%flds_scalar_name, &
+               FBgeom=is_local%wrap%FBImp(complnd,complnd), fieldNameList=(/Sg_frac_field/), rc=rc)
+          if (chkerr(rc,__line__,u_file_u)) return
+
+          call shr_nuopc_methods_FB_init(FBglc_other, is_local%wrap%flds_scalar_name, &
+               FBgeom=is_local%wrap%FBImp(compglc,compglc), fieldNameList=(/Sg_topo_field/), rc=rc)
+          if (chkerr(rc,__line__,u_file_u)) return
+          call shr_nuopc_methods_FB_init(FBlnd_other, is_local%wrap%flds_scalar_name, &
+               FBgeom=is_local%wrap%FBImp(complnd,complnd), fieldNameList=(/Sg_topo_field/), rc=rc)
+          if (chkerr(rc,__line__,u_file_u)) return
+
+          ! Create a field bundle that will contain
+          ! (fraction in this elevation class) x (icemask) for a given elevation class
+          call shr_nuopc_methods_FB_init(FBglc_norm, is_local%wrap%flds_scalar_name, &
+               FBgeom=is_local%wrap%FBImp(complnd,complnd), fieldNameList=(/'Sg_frac_times_icemask'/), rc=rc)
+          if (chkerr(rc,__line__,u_file_u)) return
+       end if
+
+    end if
 
     if (dbug_flag > 5) then
        call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
@@ -361,7 +417,7 @@ contains
        call shr_nuopc_methods_FB_reset(FBLndAccum_glc, value=0.0_r8, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-       call map_lnd2glc(fldlist_lnd2glc, fldnames_fr_lnd, fldnames_to_glc, FBLndAccum_lnd, FBlndAccum_glc, gcomp, rc)
+       call map_lnd2glc(gcomp, rc)
        if (chkErr(rc,__LINE__,u_FILE_u)) return
 
        if (dbug_flag > 1) then
@@ -398,15 +454,9 @@ contains
 
   !================================================================================================
 
-  subroutine map_lnd2glc(fldlist_lnd2glc, fldnames_fr_lnd, fldnames_to_glc, &
-       FBlndAccum_lnd, FBlndAccum_glc, gcomp, rc)
+  subroutine map_lnd2glc(gcomp, rc)
 
     ! input/output variables
-    type(shr_nuopc_fldlist_type) , intent(in)    :: fldlist_lnd2glc
-    character(len=*)             , intent(in)    :: fldnames_fr_lnd(:)
-    character(len=*)             , intent(in)    :: fldnames_to_glc(:)
-    type(ESMF_FieldBundle)       , intent(inout) :: FBlndAccum_lnd
-    type(ESMF_FieldBundle)       , intent(inout) :: FBlndAccum_glc
     type(ESMF_GridComp)          , intent(inout) :: gcomp
     integer                      , intent(out)   :: rc
 
@@ -427,10 +477,6 @@ contains
     real(r8)            :: d_elev                ! elev_u - elev_l
     integer             :: nfld, ec
     integer             :: i,j,n,g,ncnt, lsize_g
-    character(len=CS)   :: glc_renormalize_smb
-    logical             :: glc_coupled_fluxes
-    logical             :: lnd_prognostic
-    logical             :: first_call = .true.
     character(len=*) , parameter   :: subname='(med_map_lnd2glc_mod:med_map_lnd2glc)'
     !---------------------------------------
 
@@ -443,59 +489,6 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! ------------------------------------------------------------------------
-    ! Initialize module variables on first call
-    ! ------------------------------------------------------------------------
-
-    if (first_call) then
-
-       ! Determine number of elevation classes
-       nEC = glc_get_num_elevation_classes()
-
-       ! For now hardwire these
-       ! TODO (mvertens, 2018-11-25) : put in the correct logic for the following rather than hardwiring
-       glc_renormalize_smb = 'off'
-       glc_coupled_fluxes  = .false.
-       lnd_prognostic      = .false.
-       smb_renormalize = do_renormalize_smb(glc_renormalize_smb, glc_coupled_fluxes, lnd_prognostic)
-
-       if (smb_renormalize) then
-          call shr_nuopc_methods_FB_init(FBlnd_elev, is_local%wrap%flds_scalar_name, &
-               FBgeom=is_local%wrap%FBImp(complnd,complnd), FBflds=is_local%wrap%FBImp(complnd,complnd), rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-          ! The following are fields with no undistributed dimension for the elevation classes
-
-          call shr_nuopc_methods_FB_init(FBglc_icemask, is_local%wrap%flds_scalar_name, &
-               FBgeom=is_local%wrap%FBImp(compglc,compglc), fieldnameList=(/Sg_icemask_field/), rc=rc)
-          if (chkerr(rc,__line__,u_file_u)) return
-          call shr_nuopc_methods_FB_init(FBlnd_icemask, is_local%wrap%flds_scalar_name, &
-               FBgeom=is_local%wrap%FBImp(complnd,complnd), fieldNameList=(/Sg_icemask_field/), rc=rc)
-          if (chkerr(rc,__line__,u_file_u)) return
-
-          call shr_nuopc_methods_FB_init(FBglc_frac, is_local%wrap%flds_scalar_name, &
-               FBgeom=is_local%wrap%FBImp(compglc,compglc), fieldNameList=(/Sg_frac_field/), rc=rc)
-          if (chkerr(rc,__line__,u_file_u)) return
-          call shr_nuopc_methods_FB_init(FBlnd_frac, is_local%wrap%flds_scalar_name, &
-               FBgeom=is_local%wrap%FBImp(complnd,complnd), fieldNameList=(/Sg_frac_field/), rc=rc)
-          if (chkerr(rc,__line__,u_file_u)) return
-
-          call shr_nuopc_methods_FB_init(FBglc_other, is_local%wrap%flds_scalar_name, &
-               FBgeom=is_local%wrap%FBImp(compglc,compglc), fieldNameList=(/Sg_topo_field/), rc=rc)
-          if (chkerr(rc,__line__,u_file_u)) return
-          call shr_nuopc_methods_FB_init(FBlnd_other, is_local%wrap%flds_scalar_name, &
-               FBgeom=is_local%wrap%FBImp(complnd,complnd), fieldNameList=(/Sg_topo_field/), rc=rc)
-          if (chkerr(rc,__line__,u_file_u)) return
-
-          ! Create a field bundle that will contain
-          ! (fraction in this elevation class) x (icemask) for a given elevation class
-          call shr_nuopc_methods_FB_init(FBglc_norm, is_local%wrap%flds_scalar_name, &
-               FBgeom=is_local%wrap%FBImp(complnd,complnd), fieldNameList=(/'Sg_frac_times_icemask'/), rc=rc)
-          if (chkerr(rc,__line__,u_file_u)) return
-       end if
-       first_call = .false.
-    end if
-
-    ! ------------------------------------------------------------------------
     ! Map the accumulate land field from the land grid (in multiple elevation classes)
     ! to the glc grid (in multiple elevation classes) using bilinear interpolation
     ! ------------------------------------------------------------------------
@@ -505,15 +498,6 @@ contains
     ! current glint implementation, which sets acab and artm to 0 over ocean (although
     ! notes that this could lead to a loss of conservation). Figure out how to handle
     ! this case.
-
-    ! Create route handle if it has not been created
-    if (.not. ESMF_RouteHandleIsCreated(is_local%wrap%RH(complnd,compglc,mapbilnr))) then
-       call med_map_Fractions_init( gcomp, complnd, compglc, &
-            FBSrc=FBlndAccum_lnd, &
-            FBDst=FBlndAccum_glc, &
-            RouteHandle=is_local%wrap%RH(complnd,compglc,mapbilnr), rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    end if
 
     call shr_nuopc_methods_FB_reset(FBLndAccum_glc, value=0.0_r8, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -585,13 +569,11 @@ contains
        ! ------------------------------------------------------------------------
 
        ! Get a pointer to the land data in multiple elevation classes on the glc grid
-       call shr_nuopc_methods_FB_getFldPtr(FBlndAccum_glc, fldnames_fr_lnd(nfld), &
-            fldptr2=dataptr2d, rc=rc)
+       call shr_nuopc_methods_FB_getFldPtr(FBlndAccum_glc, fldnames_fr_lnd(nfld), fldptr2=dataptr2d, rc=rc)
        if (chkErr(rc,__LINE__,u_FILE_u)) return
 
        ! Get a pointer to the data for the field that will be sent to glc (without elevation classes)
-       call shr_nuopc_methods_FB_getFldPtr(is_local%wrap%FBExp(compglc), fldnames_to_glc(nfld), &
-            fldptr1=dataexp_g, rc=rc)
+       call shr_nuopc_methods_FB_getFldPtr(is_local%wrap%FBExp(compglc), fldnames_to_glc(nfld), fldptr1=dataexp_g, rc=rc)
        if (chkErr(rc,__LINE__,u_FILE_u)) return
 
        ! First set data_ice_covered_g to bare land everywehre
@@ -631,11 +613,9 @@ contains
                       data_ice_covered_g(n) = dataptr2d(ec-1,n) * 0.5_r8 &
                                             + dataptr2d(ec  ,n) * 0.5_r8
                    else
-
                       data_ice_covered_g(n) =  dataptr2d(ec-1,n) * (elev_u - topoglc_g(n)) / d_elev  &
                                              + dataptr2d(ec  ,n) * (topoglc_g(n) - elev_l) / d_elev
                    end if
-
                    exit
                 end if
              end do
@@ -678,25 +658,23 @@ contains
 
 !================================================================================================
 
-  subroutine map_glc2lnd_elevclass(FBglc_icemask, FBglc_norm, &
-       FBglc_frac, FBlnd_frac, FBglc_other, FBlnd_other, &
-       icemask_field, frac_field, topo_field, fields_to_map, ntopo_field, RouteHandle, FBlnd_elev, rc)
+  subroutine map_glc2lnd_elevclass( fields_to_map, RouteHandle, rc)
 
     !------------------
     ! Maps fields from the GLC grid to the LND grid.
     ! On the GLC grid the fields will not have elevation classes.
     ! On the LND grid they will have elevation classes.
     !
-    ! Maps frac_field, topo_field, plus all fields defined in extra_fields (a character array)
+    ! Maps Sg_frac_field, topo_field, plus all fields defined in extra_fields (a character array)
     ! without the '_elev' suffix.
     !
     ! Assumes that 
-    ! - FBglc_icemask contains icemask_field (NOT mapped here, but needed as an input to the mapping)
-    ! - FBglc_frac  and FBlnd_frac  contain frac_field
+    ! - FBglc_icemask contains Sg_icemask_field (NOT mapped here, but needed as an input to the mapping)
+    ! - FBglc_frac  and FBlnd_frac  contain Sg_frac_field
     ! - FBglc_other and FBlnd_other contain fields_to_map (topo_field plus each field in extra_fields)
     !
     ! Assumes that FBlnd (on land grid) contains:
-    ! - frac_field (with multiple elevation classes in undistributed dimension)
+    ! - Sg_frac_field (with multiple elevation classes in undistributed dimension)
     ! - topo_field (with multiple elevation classes in undistributed dimension)
     ! - And similarly for each field in extra_fields
     !------------------
@@ -705,22 +683,10 @@ contains
     use ESMF                  , only : ESMF_FieldBundle, ESMF_FieldBundleGet, ESMF_RouteHandle
     use shr_nuopc_methods_mod , only : shr_nuopc_methods_FB_getFldPtr
     use shr_nuopc_methods_mod , only : shr_nuopc_methods_FB_diagnose
-    use glc_elevclass_mod     , only : glc_mean_elevation_virtual
 
     ! input/output variables
-    type(ESMF_FieldBundle) , intent(in)           :: FBglc_icemask
-    type(ESMF_FieldBundle) , intent(inout)        :: FBglc_norm 
-    type(ESMF_FieldBundle) , intent(inout)        :: FBglc_frac 
-    type(ESMF_FieldBundle) , intent(inout)        :: FBlnd_frac 
-    type(ESMF_FieldBundle) , intent(inout)        :: FBglc_other
-    type(ESMF_FieldBundle) , intent(inout)        :: FBlnd_other
-    character(len=*)       , intent(in)           :: icemask_field    ! name  of field FBglc_icemask containing ice mask
-    character(len=*)       , intent(in)           :: frac_field       ! name  of field FBglc_frac    containing ice fraction
-    character(len=*)       , intent(in)           :: topo_field       ! name  of field FBglc_topo    containing topo
     character(len=*)       , intent(in)           :: fields_to_map(:) ! names of fields_to_map other than frac_field
-    integer                , intent(in)           :: ntopo_field      ! index of topo_field in fields_to_map(:)
     type(ESMF_RouteHandle) , intent(inout)        :: RouteHandle      ! glc->lnd mapping route handle
-    type(ESMF_FieldBundle) , intent(inout)        :: FBlnd_elev       ! output field bundle with 2d fields for elev classes
     integer                , intent(out)          :: rc
 
     ! local variables
@@ -752,11 +718,11 @@ contains
     ! ------------------------------------------------------------------------
 
     ! glc_frac is the total ice fraction in each glc gridcell
-    call shr_nuopc_methods_FB_getFldPtr(FBglc_frac, trim(frac_field), fldptr1=glc_frac_g, rc=rc)
+    call shr_nuopc_methods_FB_getFldPtr(FBglc_frac, trim(Sg_frac_field), fldptr1=glc_frac_g, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! glc_topo is the topographic height of each glc gridcell
-    call shr_nuopc_methods_FB_getFldPtr(FBglc_other, trim(topo_field), fldptr1=glc_topo_g,  rc=rc)
+    call shr_nuopc_methods_FB_getFldPtr(FBglc_other, trim(Sg_topo_field), fldptr1=glc_topo_g,  rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! given glc_topo for each glc grid cell, set the glc elevation classes, glc_elevclass
@@ -778,7 +744,7 @@ contains
 
        ! set pointer to array holding glc fraction in one elev class, on the glc grid
        ! the values in frac_field_glc will be reset for each loop iteration over elevation classes
-       call shr_nuopc_methods_FB_getFldPtr(FBglc_frac, frac_field, fldptr1=glc_frac_g_ec, rc=rc)
+       call shr_nuopc_methods_FB_getFldPtr(FBglc_frac, Sg_frac_field, fldptr1=glc_frac_g_ec, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        ! set fractional ice coverage for a given elevation class (THIS IS WHAT WILL GET MAPPED)
@@ -799,21 +765,21 @@ contains
        ! Note that FBlnd_frac does not contain an undistributed dimension
        write(cvalue,*) ec
        call med_map_FB_Regrid_Norm( &
-            fldnames=(/frac_field/),&
+            fldnames=(/Sg_frac_field/),&
             FBSrc=FBglc_frac, &
             FBDst=FBlnd_frac, &
-            FBfrac=FBglc_icemask, mapnorm=trim(icemask_field), &
+            FBfrac=FBglc_icemask, mapnorm=trim(Sg_icemask_field), &
             RouteHandle=RouteHandle, &
             string='mapping elevation class fraction from glc to land elev class '//trim(cvalue), rc=rc)
 
        ! set pointer to array holding glc fraction in one elev class, on the land grid
        ! the values in glc_frac_l_ec will be reset for each loop iteration over elevation classes
-       call shr_nuopc_methods_FB_getFldPtr(FBlnd_frac, trim(frac_field), fldptr1=glc_frac_l_ec, rc=rc)
+       call shr_nuopc_methods_FB_getFldPtr(FBlnd_frac, trim(Sg_frac_field), fldptr1=glc_frac_l_ec, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-       ! frac_field_lnd2d and topo_field_lnd2d are 2d arrays where the elevation class is the 
+       ! frac_field_lnd2d and Sg_topo_field_lnd2d are 2d arrays where the elevation class is the 
        ! inner most index
-       call shr_nuopc_methods_FB_getFldPtr(FBlnd_elev, trim(frac_field), fldptr2=dataptr2d, rc=rc)
+       call shr_nuopc_methods_FB_getFldPtr(FBlnd_elev, trim(Sg_frac_field), fldptr2=dataptr2d, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        dataptr2d(ec+1,:) = glc_frac_l_ec(:) 
@@ -831,7 +797,7 @@ contains
 
        ! Determine ice mask field on glc grid (glc_icemask)
 
-       call shr_nuopc_methods_FB_getFldPtr(FBglc_icemask, trim(icemask_field), fldptr1=glc_icemask_g)
+       call shr_nuopc_methods_FB_getFldPtr(FBglc_icemask, trim(Sg_icemask_field), fldptr1=glc_icemask_g)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        glc_frac_times_icemask_g_ec(:) = glc_frac_g(:) * glc_icemask_g(:)
@@ -859,24 +825,6 @@ contains
           if (chkerr(rc,__LINE__,u_FILE_u)) return
 
           dataptr2d(ec+1,:) = dataptr1d(:)
-       end do
-
-       ! ------------------------------------------------------------------------
-       ! set the topo field for virtual columns, in a given elevation class.
-       ! ------------------------------------------------------------------------
-       
-       ! This is needed because virtual columns (i.e., elevation classes that have no
-       ! contributing glc grid cells) won't have any topographic information mapped onto
-       ! them, so would otherwise end up with an elevation of 0.
-       
-       call shr_nuopc_methods_FB_getFldPtr(FBlnd_elev, trim(fields_to_map(ntopo_field))//'_elev', fldptr2=dataptr2d, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-       topo_virtual = glc_mean_elevation_virtual(ec)
-       do n = 1,size(dataptr2d, dim=2)
-          if (glc_frac_l_ec(n) <= 0._r8) then
-             dataptr2d(ec+1,n) = topo_virtual
-          end if
        end do
 
     end do  ! loop over elevation classes
@@ -1066,15 +1014,7 @@ contains
     end if
 
     ! Map frac_field on glc grid without elevation classes to frac_field on land grid with elevation classes
-    call map_glc2lnd_elevclass(FBglc_icemask, FBglc_norm, &
-         FBglc_frac, FBlnd_frac, FBglc_other, FBlnd_other, &
-         icemask_field=Sg_icemask_field, &
-         frac_field=Sg_frac_field, &
-         topo_field=Sg_topo_field, &
-         fields_to_map=(/Sg_topo_field/), &
-         ntopo_field=1, &
-         RouteHandle=is_local%wrap%RH(compglc,complnd,mapconsf), &
-         FBlnd_elev=FBlnd_elev, rc=rc)
+    call map_glc2lnd_elevclass(fields_to_map=(/Sg_topo_field/), RouteHandle=is_local%wrap%RH(compglc,complnd,mapconsf), rc=rc)
 
     ! Note: frac_l comes from med_map_glc2lnd_elevclass
     call shr_nuopc_methods_FB_getFldPtr(FBlnd_elev, trim(Sg_frac_field)//'_elev', fldptr2=frac_l, rc=rc)
