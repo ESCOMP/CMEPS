@@ -225,13 +225,13 @@ contains
        if (is_local%wrap%med_coupling_active(complnd,comprof)) then
 
           call med_map_FB_Regrid_Norm( &
-               fldListFr(complnd)%flds, complnd, comprof, &
-               is_local%wrap%FBImpAccum(complnd,complnd), &
-               is_local%wrap%FBImpAccum(complnd,comprof), &
-               is_local%wrap%FBFrac(complnd), &
-               is_local%wrap%FBFrac(comprof), &
-               is_local%wrap%FBNormOne(complnd,comprof,:), &
-               is_local%wrap%RH(complnd,comprof,:), &
+               fldsSrc=fldListFr(complnd)%flds, &
+               srccomp=complnd, destcomp=comprof, &
+               FBSrc=is_local%wrap%FBImpAccum(complnd,complnd), &
+               FBDst=is_local%wrap%FBImpAccum(complnd,comprof), &
+               FBFracSrc=is_local%wrap%FBFrac(complnd), &
+               FBNormOne=is_local%wrap%FBNormOne(complnd,comprof,:), &
+               RouteHandles=is_local%wrap%RH(complnd,comprof,:), &
                string=trim(compname(complnd))//'2'//trim(compname(comprof)), rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
 
@@ -500,12 +500,13 @@ contains
     ! ------------------------------------------------------------------------
 
     call med_map_FB_Regrid_Norm( &
-         fldList_lnd2rof%flds, complnd, comprof, &
-         FBlndIrrig, FBrofIrrig, &
-         is_local%wrap%FBFrac(complnd), &
-         is_local%wrap%FBFrac(comprof), &
-         is_local%wrap%FBNormOne(complnd,comprof,:), &
-         is_local%wrap%RH(complnd,comprof,:), &
+         fldsSrc=fldList_lnd2rof%flds, &
+         srccomp=complnd, destcomp=comprof, &
+         FBSrc=FBlndIrrig, &
+         FBDst=FBrofIrrig, &
+         FBFracSrc=is_local%wrap%FBFrac(complnd), &
+         FBNormOne=is_local%wrap%FBNormOne(complnd,comprof,:), &
+         RouteHandles=is_local%wrap%RH(complnd,comprof,:), &
          string=trim(compname(complnd))//'2'//trim(compname(comprof)), rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 

@@ -365,4 +365,53 @@ contains
 
   end subroutine med_phases_prep_glc_avg
 
+  !================================================================================================
+
+  function do_renormalize_smb(glc_renormalize_smb, glc_coupled_fluxes, lnd_prognostic) &
+       result(smb_renormalize)
+
+    ! Returns a logical saying whether we should do the smb renormalization
+
+    ! function return
+    logical :: smb_renormalize   ! function return value
+
+    ! input/output variables
+    character(len=*), intent(in) :: glc_renormalize_smb  ! namelist option saying whether to do smb renormalization
+    logical         , intent(in) :: glc_coupled_fluxes   ! does glc send fluxes to other components?
+    logical         , intent(in) :: lnd_prognostic       ! is lnd a prognostic component?
+
+    ! local variables
+    character(len=*), parameter :: subname = '(do_renormalize_smb)'
+    !---------------------------------------------------------------
+
+    select case (glc_renormalize_smb)
+    case ('on')
+       smb_renormalize = .true.
+
+    case ('off')
+       smb_renormalize = .false.
+
+    case ('on_if_glc_coupled_fluxes')
+       if (.not. lnd_prognostic) then
+          ! Do not renormalize if running glc with dlnd (T compsets): In this case
+          ! there is no feedback from glc to lnd, and conservation is not important
+          smb_renormalize = .false.
+       else if (.not. glc_coupled_fluxes) then
+          ! Do not renormalize if glc does not send fluxes to other components: In this
+          ! case conservation is not important
+          smb_renormalize = .false.
+       else
+          ! lnd_prognostic is true and glc_coupled_fluxes is true
+          smb_renormalize = .true.
+       end if
+
+    case default
+       write(logunit,*) subname,' ERROR: unknown value for glc_renormalize_smb: ', &
+            trim(glc_renormalize_smb)
+       call shr_sys_abort(subname//' ERROR: unknown value for glc_renormalize_smb')
+
+    end select
+
+  end function do_renormalize_smb
+
 end module med_phases_prep_glc_mod

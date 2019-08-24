@@ -448,13 +448,13 @@ contains
 
     ! Map the field bundle from the ocean to the atm grid
     call med_map_FB_Regrid_Norm( &
-         fldListMed_ocnalb%flds, compocn, compatm, &
-         is_local%wrap%FBMed_ocnalb_o, &
-         is_local%wrap%FBMed_ocnalb_a, &
-         is_local%wrap%FBFrac(compocn), &
-         is_local%wrap%FBFrac(compatm), &
-         is_local%wrap%FBNormOne(compocn,compatm,:), &
-         is_local%wrap%RH(compocn,compatm,:), &
+         fldsSrc=fldListMed_ocnalb%flds, &
+         srccomp=compocn, destcomp=compatm, &
+         FBSrc=is_local%wrap%FBMed_ocnalb_o, &
+         FBDst=is_local%wrap%FBMed_ocnalb_a, &
+         FBFracSrc=is_local%wrap%FBFrac(compocn), &
+         FBNormOne=is_local%wrap%FBNormOne(compocn,compatm,:), &
+         RouteHandles=is_local%wrap%RH(compocn,compatm,:), &
          string='FBMed_ocnalb_o_To_FBMed_ocnalb_a', rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call t_stopf('MED:'//subname)
