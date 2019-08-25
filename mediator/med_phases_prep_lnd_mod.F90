@@ -32,7 +32,7 @@ module med_phases_prep_lnd_mod
   use med_merge_mod         , only : med_merge_auto
   use glc_elevclass_mod     , only : glc_mean_elevation_virtual
   use glc_elevclass_mod     , only : glc_get_num_elevation_classes
-  !use glc_elevclass_mod     , only : glc_get_fractional_icecov  !TODO: implement this
+  use glc_elevclass_mod     , only : glc_get_fractional_icecov
   use perf_mod              , only : t_startf, t_stopf
 
   implicit none
@@ -232,7 +232,7 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     num_elevation_classes = glc_get_num_elevation_classes()
-    ubound = num_elevation_classes + 1
+    ubound = num_elevation_classes 
     
     !---------------------------------------
     ! Get the glc and lnd meshes
@@ -266,7 +266,7 @@ contains
     FBglc_frac = ESMF_FieldBundleCreate(rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     lfield = ESMF_FieldCreate(lmesh_glc, ESMF_TYPEKIND_R8, name=trim(Sg_frac_field), meshloc=ESMF_MESHLOC_ELEMENT, &
-         ungriddedLbound=(/1/), ungriddedUbound=(/ubound/), gridToFieldMap=(/2/), rc=rc)
+         ungriddedLbound=(/0/), ungriddedUbound=(/ubound/), gridToFieldMap=(/2/), rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call ESMF_FieldBundleAdd(FBglc_frac, (/lfield/), rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -274,7 +274,7 @@ contains
     FBlnd_frac = ESMF_FieldBundleCreate(rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     lfield = ESMF_FieldCreate(lmesh_lnd, ESMF_TYPEKIND_R8, name=trim(Sg_frac_field), meshloc=ESMF_MESHLOC_ELEMENT, &
-         ungriddedLbound=(/1/), ungriddedUbound=(/ubound/), gridToFieldMap=(/2/), rc=rc)
+         ungriddedLbound=(/0/), ungriddedUbound=(/ubound/), gridToFieldMap=(/2/), rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call ESMF_FieldBundleAdd(FBlnd_frac, (/lfield/), rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -391,7 +391,6 @@ contains
     ! Assumes that 
     ! - FBglc_icemask contains icemask_field (NOT mapped here, but needed as an input to the mapping)
     ! - FBglc_frac  and FBlnd_frac  contain frac_field
-    ! - FBglc_other and FBlnd_other contain fields_to_map (topo_field plus each field in extra_fields)
     !
     ! Assumes that FBlnd (on land grid) contains:
     ! - frac_field (with multiple elevation classes in undistributed dimension)
@@ -443,21 +442,17 @@ contains
 
     nec = glc_get_num_elevation_classes()
 
-    ! glc_topo is the topographic height of each glc gridcell
+    ! set FBglc_frac on the glc grid (fractional ice coverage per elevation class)
+    ! glc_topo_g(:) is the topographic height of each glc gridcell
+    ! glc_frac_g(:) is the total ice fraction in each glc gridcell
+    ! glc_frac_g_ec(:,:) are the glc fractions on the glc grid for each elevation class (inner dimension)
     call FB_getFldPtr(is_local%wrap%FBImp(compglc,compglc), trim(Sg_topo_field), fldptr1=glc_topo_g,  rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    ! glc_frac is the total ice fraction in each glc gridcell
     call FB_getFldPtr(is_local%wrap%FBImp(compglc,compglc), trim(Sg_frac_field), fldptr1=glc_frac_g, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    ! set a pointer to data in in FBglc_frac
-    call FB_getFldPtr(FBglc_frac, trim(Sg_frac_field), fldptr2=glc_frac_g_ec, rc=rc)
+    call FB_getFldPtr(FBglc_frac, Sg_frac_field, fldptr2=glc_frac_g_ec, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    ! determine the value of glc_frac_g_ec 
-    ! TODO: implement this
-    !call glc_get_fractional_icecov(nec, glc_topo_g, glc_frac_g, logunit, glc_frac_g_ec)
+    call glc_get_fractional_icecov(nec, glc_topo_g, glc_frac_g, glc_frac_g_ec, logunit)
 
     !---------------------------------------
     ! Set FBglc_icemask and  FBglc_frac_times_icemask on the glc grid
