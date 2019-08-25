@@ -26,7 +26,7 @@ def runseq(case, coupling_times):
     outfile.write ("  MED med_phases_prep_glc_accum  \n" )
     outfile.write ("  MED med_phases_prep_glc_avg    \n" )
     outfile.write ("  MED -> GLC :remapMethod=redist \n" )
-    outfile.write ("  GLC                            \n" )
+    outfile.write ("  GLC cism_valid_inputs          \n" )
     outfile.write ("  GLC -> MED :remapMethod=redist \n" )
     outfile.write ("  MED med_phases_history_write   \n" )
     outfile.write ("  MED med_phases_profile         \n" )
@@ -36,7 +36,3 @@ def runseq(case, coupling_times):
 
     outfile.close()
     shutil.copy(os.path.join(caseroot, "CaseDocs", "nuopc.runseq"), rundir)
-
-
-
-
