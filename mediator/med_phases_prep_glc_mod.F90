@@ -223,7 +223,11 @@ contains
        call NUOPC_CompAttributeGet(gcomp, name='glc_renormalize_smb', value=glc_renormalize_smb, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
+       ! TODO: talk to Bill Sacks to determine if this is the correct logic
        glc_coupled_fluxes = is_local%wrap%med_coupling_active(compglc,complnd)
+       ! Note glc_coupled_fluxes should be false in the no_evolve cases
+       ! Goes back to the zero-gcm fluxes variable - if zero-gcm fluxes is true than do not renormalize
+       ! The user can set this to true in an evolve cases
 
        select case (glc_renormalize_smb)
        case ('on')
@@ -302,7 +306,7 @@ contains
           FBglc_frac = ESMF_FieldBundleCreate(rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           lfield = ESMF_FieldCreate(lmesh_glc, ESMF_TYPEKIND_R8, name=trim(Sg_frac_field), meshloc=ESMF_MESHLOC_ELEMENT, &
-               ungriddedLbound=(/0/), ungriddedUbound=(/nec/), gridToFieldMap=(/2/), rc=rc)
+               ungriddedLbound=(/1/), ungriddedUbound=(/nec+1/), gridToFieldMap=(/2/), rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           call ESMF_FieldBundleAdd(FBglc_frac, (/lfield/), rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -310,7 +314,7 @@ contains
           FBlnd_frac = ESMF_FieldBundleCreate(rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           lfield = ESMF_FieldCreate(lmesh_lnd, ESMF_TYPEKIND_R8, name=trim(Sg_frac_field), meshloc=ESMF_MESHLOC_ELEMENT, &
-               ungriddedLbound=(/0/), ungriddedUbound=(/nec/), gridToFieldMap=(/2/), rc=rc)
+               ungriddedLbound=(/1/), ungriddedUbound=(/nec+1/), gridToFieldMap=(/2/), rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           call ESMF_FieldBundleAdd(FBlnd_frac, (/lfield/), rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -559,7 +563,6 @@ contains
     integer             :: i,j,n,g,ncnt, lsize_g
     character(len=*) , parameter   :: subname='(med_phases_prep_glc_mod:med_phases_prep_glc_map_lnd2glc)'
     !---------------------------------------
-
     !---------------------------------------
     ! Get the internal state
     !---------------------------------------
@@ -915,7 +918,7 @@ contains
        ! Calculate effective area for sum -  need the mapped Sg_icemask_l
        effective_area = min(lfrac(n), Sg_icemask_l(n)) * aream_l(n)
 
-       do ec = 0, nEC
+       do ec = 1, nEC+1
           if (qice_l(ec,n) >= 0.0_r8) then
              local_accum_lnd(1) = local_accum_lnd(1) + effective_area * glc_frac_l_ec(ec,n) * qice_l(ec,n)
           else
