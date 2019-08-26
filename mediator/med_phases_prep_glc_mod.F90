@@ -151,12 +151,14 @@ contains
 
     if (ncnt > 0) then
 
-       ! Create accumulation field bundle from land on the land grid
+       ! Number of elevation classes (without bare land)
+       nec = glc_get_num_elevation_classes()
+
+       ! Create accumulation field bundle from land on the land grid (including bare land)
        call ESMF_FieldBundleGet(is_local%wrap%FBImp(complnd,complnd), fldnames_fr_lnd(1), field=lfield, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        call FB_GetFldPtr(is_local%wrap%FBImp(complnd,complnd), fldnames_fr_lnd(1), fldptr2=data2d_in, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       nec = size(data2d_in, dim=1)
        call ESMF_FieldGet(lfield, mesh=lmesh_lnd, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
@@ -165,7 +167,7 @@ contains
        do n = 1,size(fldnames_fr_lnd)
           lfield = ESMF_FieldCreate(lmesh_lnd, ESMF_TYPEKIND_R8, name=fldnames_fr_lnd(n), &
                meshloc=ESMF_MESHLOC_ELEMENT, &
-               ungriddedLbound=(/1/), ungriddedUbound=(/nec/), gridToFieldMap=(/2/), rc=rc)
+               ungriddedLbound=(/1/), ungriddedUbound=(/nec+1/), gridToFieldMap=(/2/), rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           call ESMF_FieldBundleAdd(FBlndAccum_lnd, (/lfield/), rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -187,7 +189,7 @@ contains
        do n = 1,size(fldnames_fr_lnd)
           lfield = ESMF_FieldCreate(lmesh_glc, ESMF_TYPEKIND_R8, name=fldnames_fr_lnd(n), &
                meshloc=ESMF_MESHLOC_ELEMENT, &
-               ungriddedLbound=(/1/), ungriddedUbound=(/nec/), gridToFieldMap=(/2/), rc=rc)
+               ungriddedLbound=(/1/), ungriddedUbound=(/nec+1/), gridToFieldMap=(/2/), rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           call ESMF_FieldBundleAdd(FBlndAccum_glc, (/lfield/), rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -216,9 +218,6 @@ contains
                RouteHandle=is_local%wrap%RH(complnd,compglc,mapbilnr), rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
-
-       ! Determine number of elevation classes
-       nEC = glc_get_num_elevation_classes()
 
        ! Determine if renormalize smb
        call NUOPC_CompAttributeGet(gcomp, name='glc_renormalize_smb', value=glc_renormalize_smb, rc=rc)
@@ -620,7 +619,8 @@ contains
     call FB_getFldPtr(is_local%wrap%FBImp(compglc,compglc), Sg_topo_field, fldptr1=topoglc_g, rc=rc)
     if (chkErr(rc,__LINE__,u_FILE_u)) return
 
-    ! get elevation classes - for grid cells that are ice-free, the elevation class is set to 0.
+    ! get elevation classes with bare land
+    ! for grid cells that are ice-free, the elevation class is set to 0.
     lsize_g = size(glc_ice_covered)
     allocate(glc_elevclass(lsize_g))
     call glc_get_elevation_classes(glc_ice_covered, topoglc_g, glc_elevclass, logunit)
@@ -867,6 +867,7 @@ contains
     ! glc_topo_g(:) is the topographic height of each glc gridcell
     ! glc_frac_g(:) is the total ice fraction in each glc gridcell
     ! glc_frac_g_ec(:,:) are the glc fractions on the glc grid for each elevation class (inner dimension)
+    ! setting glc_frac_g_ec (in the call to glc_get_fractional_icecov) sets the contents of FBglc_frac
     call FB_getFldPtr(is_local%wrap%FBImp(compglc,compglc), trim(Sg_topo_field), fldptr1=glc_topo_g,  rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call FB_getFldPtr(is_local%wrap%FBImp(compglc,compglc), trim(Sg_frac_field), fldptr1=glc_frac_g, rc=rc)
