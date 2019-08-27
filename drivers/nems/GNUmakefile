@@ -8,6 +8,10 @@ ifneq ($(origin PIO_INC), environment)
 $(error PIO_INC should point to PIO include directory.)
 endif
 
+ifneq ($(origin PNETCDF_LD_OPTS), environment)
+$(error PNETCDF_LD_OPTS must be set to pnetcdf linking options)
+endif
+
 MEDDIR = ../../mediator
 LIBRARY = libcmeps.a
 LIBRARY_UTIL = ../../util/libcmeps_util.a
@@ -46,12 +50,15 @@ install: $(LIBRARY)
 	@echo "# src location: $(PWD)" >> cmeps.mk.install
 	@echo  >> cmeps.mk.install
 	@echo "ESMF_DEP_FRONT     = MED" >> cmeps.mk.install
-	@echo "ESMF_DEP_INCPATH   = $(INSTALLDIR)" >> cmeps.mk.install
+	@echo "ESMF_DEP_INCPATH   = $(INSTALLDIR)/include" >> cmeps.mk.install
 	@echo "ESMF_DEP_CMPL_OBJS = " >> cmeps.mk.install
-	@echo "ESMF_DEP_LINK_OBJS = $(INSTALLDIR)/libcmeps.a $(INSTALLDIR)/libcmeps_util.a $(PIO_LIB)" >> cmeps.mk.install
+	@echo "ESMF_DEP_LINK_OBJS = $(INSTALLDIR)/libcmeps.a $(INSTALLDIR)/libcmeps_util.a $(PIO_LIB) $(PNETCDF_LD_OPTS)" >> cmeps.mk.install
 	mkdir -p $(INSTALLDIR)
+	mkdir -p $(INSTALLDIR)/include
 	cp -f $(LIBRARY_UTIL) $(INSTALLDIR)
 	cp -f $(LIBRARY) $(INSTALLDIR)
+	cp -f *.mod $(INSTALLDIR)/include
+	cp -f ../../util/*.mod $(INSTALLDIR)/include
 	cp -f cmeps.mk.install $(INSTALLDIR)/cmeps.mk
 
 $(LIBRARY): $(OBJ1)
