@@ -804,10 +804,9 @@ contains
                mrg_from1=compocn, mrg_fld1='So_t', mrg_type1='merge', mrg_fracname1='ofrac')
           call addmrg(fldListTo(compatm)%flds, 'So_t', &
                mrg_from1=compocn, mrg_fld1='So_t', mrg_type1='copy')
-       end if
 
        ! NEMS-frac - unmerged ice temp
-       if ( fldchk(is_local%wrap%FBexp(compatm)        , 'Si_t', rc=rc) .and. &
+       else if ( fldchk(is_local%wrap%FBexp(compatm)        , 'Si_t', rc=rc) .and. &
             fldchk(is_local%wrap%FBImp(compice,compice), 'Si_t', rc=rc)) then
           call addmap(fldListFr(compice)%flds, 'Si_t', compatm, mapconsf , 'ifrac', ice2atm_fmap)
           call addmrg(fldListTo(compatm)%flds, 'Si_t', &
