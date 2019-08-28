@@ -1091,19 +1091,19 @@ contains
        rcode = pio_put_att(io_file(lfile_ind),varid,'units',trim(time_units))
 
        if (calendar == ESMF_CALKIND_360DAY) then
-          calname = 'ESMF_CALKIND_360DAY'
+          calname = '360_day'
        else if (calendar == ESMF_CALKIND_GREGORIAN) then
-          calname = 'ESMF_CALKIND_GREGORIAN'
+          calname = 'gregorian'
        else if (calendar == ESMF_CALKIND_JULIAN) then
-          calname = 'ESMF_CALKIND_JULIAN'
+          calname = 'julian'
        else if (calendar == ESMF_CALKIND_JULIANDAY) then
           calname = 'ESMF_CALKIND_JULIANDAY'
        else if (calendar == ESMF_CALKIND_MODJULIANDAY) then
           calname = 'ESMF_CALKIND_MODJULIANDAY'
        else if (calendar == ESMF_CALKIND_NOCALENDAR) then
-          calname = 'ESMF_CALKIND_NOCALENDAR'
+          calname = 'none'
        else if (calendar == ESMF_CALKIND_NOLEAP) then
-          calname = 'ESMF_CALKIND_NOLEAP'
+          calname = 'noleap'
        end if
        rcode = pio_put_att(io_file(lfile_ind),varid,'calendar',trim(calname))
 
