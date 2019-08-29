@@ -790,7 +790,7 @@ contains
     use ESMF                  , only : ESMF_LOGMSG_ERROR, ESMF_FAILURE, ESMF_MAXSTR
     use ESMF                  , only : ESMF_FieldBundle, ESMF_FieldBundleGet
     use ESMF                  , only : ESMF_Field, ESMF_FieldGet, ESMF_FieldRegrid
-    use ESMF                  , only : ESMF_TERMORDER_SRCSEQ, ESMF_Region_Flag, ESMF_REGION_TOTAL
+    use ESMF                  , only : ESMF_TERMORDER_SRCSEQ, ESMF_Region_Flag, ESMF_REGION_TOTAL, ESMF_REGION_SELECT
     use ESMF                  , only : ESMF_RouteHandle, ESMF_RouteHandleIsCreated
 
     ! input/output variables
@@ -820,7 +820,7 @@ contains
           if (chkerr(rc,__LINE__,u_FILE_u)) return
        end if
        call ESMF_FieldRegrid(srcfield, dstfield, routehandle=RouteHandles(mapconsd), &
-            termorderflag=ESMF_TERMORDER_SRCSEQ, checkflag=checkflag, zeroregion=ESMF_REGION_TOTAL, rc=rc)
+            termorderflag=ESMF_TERMORDER_SRCSEQ, checkflag=checkflag, zeroregion=ESMF_REGION_SELECT, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        if (dbug_flag > 1) then
           call Field_diagnose(dstfield, fldname, " --> after consd: ", rc=rc)
@@ -835,7 +835,7 @@ contains
           if (chkerr(rc,__LINE__,u_FILE_u)) return
        end if
        call ESMF_FieldRegrid(srcfield, dstfield, routehandle=RouteHandles(mapconsf), &
-            termorderflag=ESMF_TERMORDER_SRCSEQ, checkflag=checkflag, zeroregion=ESMF_REGION_TOTAL, rc=rc)
+            termorderflag=ESMF_TERMORDER_SRCSEQ, checkflag=checkflag, zeroregion=ESMF_REGION_SELECT, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        if (dbug_flag > 1) then
           call Field_diagnose(dstfield, fldname, " --> after consf: ", rc=rc)

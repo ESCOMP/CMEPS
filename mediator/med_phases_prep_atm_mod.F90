@@ -172,13 +172,7 @@ contains
                  is_local%wrap%FBImp(:,compatm), fldListTo(compatm), rc=rc)
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
          end if
-
-         if (dbug_flag > 1) then
-            call FB_diagnose(is_local%wrap%FBExp(compatm), &
-                 string=trim(subname)//' FBexp(compatm) ', rc=rc)
-            if (ChkErr(rc,__LINE__,u_FILE_u)) return
-         end if
-
+         
          !---------------------------------------
          !--- custom calculations
          !---------------------------------------
@@ -210,6 +204,12 @@ contains
             do n = 1,size(dataptr1)
                dataptr1(n) = dataptr2(n)
             end do
+         end if
+
+         if (dbug_flag > 1) then
+            call FB_diagnose(is_local%wrap%FBExp(compatm), &
+                 string=trim(subname)//' FBexp(compatm) ', rc=rc)
+            if (ChkErr(rc,__LINE__,u_FILE_u)) return
          end if
 
          !---------------------------------------
