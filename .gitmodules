@@ -1,0 +1,4 @@
+[submodule "lib/ParallelIO"]
+	path = lib/ParallelIO
+	url = https://github.com/NCAR/ParallelIO.git
+	branch = master
