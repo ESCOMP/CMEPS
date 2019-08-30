@@ -566,7 +566,7 @@ contains
        else
           if ( fldchk(is_local%wrap%FBExp(complnd)         , trim(fldname), rc=rc) .and. &
                fldchk(is_local%wrap%FBImp(compglc, compglc), trim(fldname), rc=rc)) then
-             call addmap(fldListFr(compglc)%flds, trim(fldname), complnd,  mapconsf, 'one', glc2lnd_smap)
+             call addmap(fldListFr(compglc)%flds, trim(fldname), complnd,  mapconsf, 'one', 'unset')
              call addmrg(fldListTo(complnd)%flds, trim(fldname), &
                   mrg_from1=compglc, mrg_fld1=trim(fldname), mrg_type1='copy')
           end if
@@ -574,34 +574,22 @@ contains
     end do
     deallocate(flds)
 
+    ! ---------------------------------------------------------------------
+    ! to lnd: fields from glc in multiple elevation classes
+    ! ---------------------------------------------------------------------
     ! for glc fields with multiple elevation classes in glc->lnd
     ! fields from glc->med do NOT have elevation classes
     ! fields from med->lnd are BROKEN into multiple elevation classes
 
     if (phase == 'advertise') then
        call addfld(fldListFr(compglc)%flds, 'Sg_ice_covered') ! fraction of glacier area
-       call addfld(fldListFr(compglc)%flds, 'Sg_topo')        ! surface height of glacer
-       call addfld(fldListFr(compglc)%flds, 'Flgg_hflx')      ! downward heat flux from glacier interior
-
        call addfld(fldListTo(complnd)%flds, 'Sg_ice_covered_elev')
+       call addfld(fldListFr(compglc)%flds, 'Sg_topo')        ! surface height of glacer
        call addfld(fldListTo(complnd)%flds, 'Sg_topo_elev')
+       call addfld(fldListFr(compglc)%flds, 'Flgg_hflx')      ! downward heat flux from glacier interior
        call addfld(fldListTo(complnd)%flds, 'Flgg_hflx_elev')
     else
-       if ( fldchk(is_local%wrap%FBExp(complnd)         , 'Sg_ice_covered_elev', rc=rc) .and. &
-            fldchk(is_local%wrap%FBExp(complnd)         , 'Sg_topo_elev'       , rc=rc) .and. &
-            fldchk(is_local%wrap%FBExp(complnd)         , 'Flgg_hflx_elev'     , rc=rc) .and. &
-
-            fldchk(is_local%wrap%FBImp(compglc,compglc) , 'Sg_ice_covered'     , rc=rc) .and. &
-            fldchk(is_local%wrap%FBImp(compglc,compglc) , 'Sg_topo'            , rc=rc) .and. &
-            fldchk(is_local%wrap%FBImp(compglc,compglc) , 'Flgg_hflx'          , rc=rc)) then
-
-          ! Custom merges will be done here
-          call addmap(FldListFr(compglc)%flds, 'Sg_ice_covered' , complnd, mapconsf, 'unset' , glc2lnd_fmap)
-          call addmap(FldListFr(compglc)%flds, 'Sg_topo'        , compglc, mapconsf, 'custom', glc2lnd_fmap)
-          call addmap(FldListFr(compglc)%flds, 'Flgg_hflx'      , compglc, mapconsf, 'custom', glc2lnd_fmap)
-
-          ! Custom merge in med_phases_prep_lnd
-       end if
+       ! Note custom mapping and merging is done in med_phases_prep_lnd.F90
     end if
 
     !=====================================================================

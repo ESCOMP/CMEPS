@@ -13,8 +13,8 @@ def runseq(case, coupling_times):
 
     rundir    = case.get_value("RUNDIR")
     caseroot  = case.get_value("CASEROOT")
-    comp_glc  = case.get_value("COMP_GLC")
     comp_rof  = case.get_value("COMP_ROF")
+    comp_glc  = case.get_value("COMP_GLC")
 
     outfile   = open(os.path.join(caseroot, "CaseDocs", "nuopc.runseq"), "w")
 
@@ -66,11 +66,17 @@ def runseq(case, coupling_times):
 
     elif ((comp_rof == 'mosart' or comp_rof == 'rtm') and comp_glc == "cism"):
 
+        cism_evolve = case.get_value("CISM_EVOLVE")
+        print "cism_evolve = ",cism_evolve
+
         outfile.write ("runSeq::                                  \n" )
         outfile.write ("@" + str(glc_cpl_dt) + "                  \n" )
         outfile.write ("  MED med_phases_prep_glc_avg             \n" )
         outfile.write ("  MED -> GLC :remapMethod=redist          \n" )
-        outfile.write ("  GLC                                     \n" )
+        if (cism_evolve == False): 
+            outfile.write ("  GLC cism_invalid_inputs             \n" )
+        else:
+            outfile.write ("  GLC cism_valid_inputs               \n" )
         outfile.write ("@" + str(rof_cpl_dt) + "                  \n" )
         outfile.write ("  MED med_phases_prep_rof_avg             \n" )
         outfile.write ("  MED -> ROF :remapMethod=redist          \n" )
