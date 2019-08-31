@@ -148,19 +148,22 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        !---------------------------------------
-       !--- custom calculations
+       !--- custom calculations 
        !---------------------------------------
 
-       if (first_call) then
-          call med_map_glc2lnd_init(gcomp, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          first_call = .false.
-       end if
+       ! The following is only done if glc->lnd coupling is active
+       if (is_local%wrap%comp_present(compglc) .and. (is_local%wrap%med_coupling_active(compglc,complnd))) then
+          if (first_call) then
+             call med_map_glc2lnd_init(gcomp, rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             first_call = .false.
+          end if
 
-       ! The will following will map and merge Sg_frac and Sg_topo
-       ! (and in the future Flgg_hflx)
-       call med_map_glc2lnd(gcomp, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          ! The will following will map and merge Sg_frac and Sg_topo
+          ! (and in the future Flgg_hflx)
+          call med_map_glc2lnd(gcomp, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       end if
 
        !---------------------------------------
        !--- update scalar data
@@ -201,6 +204,7 @@ contains
        !---------------------------------------
 
     end if
+
 
     if (dbug_flag > 5) then
        call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
