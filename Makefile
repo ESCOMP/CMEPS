@@ -7,19 +7,19 @@ endif
 
 include $(ESMFMKFILE)
 
-ifndef $(INSTALLDIR)
+ifndef INSTALLDIR
 $(error INSTALLDIR not defined)
 endif
 
-ifndef $(FC)
+ifndef FC
 $(error FC not defined)
 endif
 
-ifndef $(CC)
+ifndef CC
 $(error CC not defined)
 endif
 
-ifndef $(CXX)
+ifndef CXX
 $(error CXX not defined)
 endif
 
