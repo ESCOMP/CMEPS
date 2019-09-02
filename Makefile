@@ -7,10 +7,6 @@ endif
 
 include $(ESMFMKFILE)
 
-ifndef INSTALLDIR
-$(error INSTALLDIR not defined)
-endif
-
 ifndef FC
 $(error FC not defined)
 endif
@@ -33,6 +29,9 @@ PIO_INCLUDE_DIR := $(PIO_INSTALL_DIR)/include
 all default: install
 
 install: $(LIBRARY_MEDIATOR)
+ifndef INSTALLDIR
+	$(error INSTALLDIR not defined for CMEPS installation location)
+else
 	rm -f cmeps.mk.install
 	@echo "# ESMF self-describing build dependency makefile fragment" > cmeps.mk.install
 	@echo "# src location: $(PWD)" >> cmeps.mk.install
@@ -50,6 +49,7 @@ install: $(LIBRARY_MEDIATOR)
 	cp -f mediator/*.mod $(INSTALLDIR)/include
 	cp -f util/*.mod $(INSTALLDIR)/include
 	cp -f cmeps.mk.install $(INSTALLDIR)/cmeps.mk
+endif
 
 $(LIBRARY_MEDIATOR): $(LIBRARY_UTIL)
 	cd mediator ;\
