@@ -10,6 +10,7 @@ module med_phases_history_mod
   implicit none
   private
 
+  public :: med_phases_history_alarm_init
   public :: med_phases_history_write
 
   type(ESMF_Alarm)        :: AlarmHist
@@ -20,6 +21,100 @@ module med_phases_history_mod
 !===============================================================================
 contains
 !===============================================================================
+
+  subroutine med_phases_history_alarm_init(gcomp, rc)
+
+    ! Initialize mediator history file alarm
+
+    use ESMF                  , only : ESMF_GridComp, ESMF_GridCompGet
+    use ESMF                  , only : ESMF_Clock, ESMF_ClockGet
+    use ESMF                  , only : ESMF_Calendar
+    use ESMF                  , only : ESMF_Time, ESMF_TimeGet
+    use ESMF                  , only : ESMF_TimeInterval, ESMF_TimeIntervalGet
+    use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_LOGMSG_ERROR
+    use ESMF                  , only : ESMF_SUCCESS, ESMF_FAILURE
+    use ESMF                  , only : operator(==), operator(-)
+    use ESMF                  , only : ESMF_AlarmIsCreated
+    use NUOPC                 , only : NUOPC_CompAttributeGet
+    use shr_nuopc_utils_mod   , only : chkerr          => shr_nuopc_utils_ChkErr
+    use shr_nuopc_time_mod    , only : alarmInit       => shr_nuopc_time_alarmInit
+    use med_constants_mod     , only : dbug_flag       => med_constants_dbug_flag
+
+    ! input/output variables
+    type(ESMF_GridComp)  :: gcomp
+    integer, intent(out) :: rc
+
+    ! local variables
+    type(ESMF_Clock)        :: clock
+    type(ESMF_Time)         :: currtime
+    type(ESMF_Time)         :: reftime
+    type(ESMF_Time)         :: starttime
+    type(ESMF_Time)         :: nexttime
+    type(ESMF_Calendar)     :: calendar       ! calendar type
+    character(len=64)       :: currtimestr
+    character(CS)           :: histavg_option ! Histavg option units
+    integer                 :: yr,mon,day,sec ! time units
+    character(CL)           :: cvalue         ! attribute string
+    character(CL)           :: freq_option    ! freq_option setting (ndays, nsteps, etc)
+    integer                 :: freq_n         ! freq_n setting relative to freq_option
+    integer                 :: dbrc
+    integer                 :: iam
+    character(len=*), parameter :: subname='(med_phases_history_alarm_init)'
+    !---------------------------------------
+
+    if (dbug_flag > 5) then
+       call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO, rc=dbrc)
+    endif
+    rc = ESMF_SUCCESS
+
+    !---------------------------------------
+    ! --- Get the communicator and localpet
+    !---------------------------------------
+
+    call ESMF_GridCompGet(gcomp, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    !---------------------------------------
+    ! --- Get the clock info
+    !---------------------------------------
+
+    call ESMF_GridCompGet(gcomp, clock=clock, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call ESMF_ClockGet(clock, currtime=currtime, reftime=reftime, starttime=starttime, calendar=calendar, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call ESMF_TimeGet(currtime,yy=yr, mm=mon, dd=day, s=sec, rc=dbrc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    write(currtimestr,'(i4.4,a,i2.2,a,i2.2,a,i5.5)') yr,'-',mon,'-',day,'-',sec
+    if (dbug_flag > 1) then
+       call ESMF_LogWrite(trim(subname)//": currtime = "//trim(currtimestr), ESMF_LOGMSG_INFO, rc=dbrc)
+    endif
+
+    !---------------------------------------
+    ! --- History Alarms
+    !---------------------------------------
+
+    if (.not. ESMF_AlarmIsCreated(AlarmHist, rc=rc)) then
+       ! Set instantaneous history output alarm
+       call NUOPC_CompAttributeGet(gcomp, name='history_option', value=cvalue, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       freq_option = cvalue
+
+       call NUOPC_CompAttributeGet(gcomp, name='history_n', value=cvalue, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       read(cvalue,*) freq_n
+
+       call ESMF_LogWrite(trim(subname)//" init history alarm with option, n = "//&
+            trim(freq_option)//","//trim(cvalue), ESMF_LOGMSG_INFO, rc=dbrc)
+
+       call alarmInit(clock, AlarmHist, option=freq_option, opt_n=freq_n, &
+            RefTime=RefTime, alarmname='history', rc=rc)
+    endif
+
+  end subroutine med_phases_history_alarm_init
+
+  !===============================================================================
 
   subroutine med_phases_history_write(gcomp, rc)
 
@@ -172,23 +267,6 @@ contains
     !---------------------------------------
     ! --- History Alarms
     !---------------------------------------
-
-    if (.not. ESMF_AlarmIsCreated(AlarmHist, rc=rc)) then
-       ! Set instantaneous history output alarm
-       call NUOPC_CompAttributeGet(gcomp, name='history_option', value=cvalue, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       freq_option = cvalue
-
-       call NUOPC_CompAttributeGet(gcomp, name='history_n', value=cvalue, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       read(cvalue,*) freq_n
-
-       call ESMF_LogWrite(trim(subname)//" init history alarm with option, n = "//&
-            trim(freq_option)//","//trim(cvalue), ESMF_LOGMSG_INFO, rc=dbrc)
-
-       call alarmInit(clock, AlarmHist, option=freq_option, opt_n=freq_n, &
-            RefTime=RefTime, alarmname='history', rc=rc)
-    endif
 
     if (ESMF_AlarmIsRinging(AlarmHist, rc=rc)) then
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
