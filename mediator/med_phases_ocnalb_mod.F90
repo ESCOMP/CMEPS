@@ -1,6 +1,6 @@
 module med_phases_ocnalb_mod
 
-  use med_constants_mod  , only : R8
+  use shr_const_mod, only : R8
   use shr_nuopc_utils_mod, only : chkerr => shr_nuopc_utils_chkerr
 
   implicit none
@@ -58,8 +58,8 @@ contains
     use shr_nuopc_methods_mod , only : shr_nuopc_methods_FB_GetFldPtr
     use shr_nuopc_methods_mod , only : shr_nuopc_methods_FB_getFieldN
     use med_internalstate_mod , only : InternalState
-    use med_constants_mod     , only : CL, R8
-    use med_constants_mod     , only : dbug_flag =>med_constants_dbug_flag
+    use shr_const_mod         , only : CL, R8
+    use shr_const_mod         , only : dbug_flag
     use esmFlds               , only : compatm, compocn
     use perf_mod              , only : t_startf, t_stopf
     ! Arguments
@@ -191,9 +191,9 @@ contains
     use shr_nuopc_methods_mod , only : shr_nuopc_methods_FB_diagnose
     use shr_nuopc_methods_mod , only : shr_nuopc_methods_State_GetScalar
     use shr_nuopc_methods_mod , only : shr_nuopc_methods_FB_FieldRegrid
-    use med_constants_mod     , only : CS, CL, R8
-    use med_constants_mod     , only : dbug_flag =>med_constants_dbug_flag
-    use med_constants_mod     , only : shr_const_pi
+    use shr_const_mod         , only : CS, CL, R8
+    use shr_const_mod         , only : dbug_flag
+    use shr_const_mod         , only : shr_const_pi
     use med_internalstate_mod , only : InternalState, logunit
     use esmFlds               , only : compatm, compocn
     use perf_mod              , only : t_startf, t_stopf
@@ -430,8 +430,8 @@ contains
     use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
     use med_map_mod           , only : med_map_FB_Regrid_Norm
     use med_internalstate_mod , only : InternalState
-    use med_constants_mod     , only : R8
-    use med_constants_mod     , only : dbug_flag =>med_constants_dbug_flag
+    use shr_const_mod         , only : R8
+    use shr_const_mod         , only : dbug_flag
     use esmFlds               , only : fldListMed_ocnalb
     use esmFlds               , only : compatm, compocn
     use perf_mod              , only : t_startf, t_stopf

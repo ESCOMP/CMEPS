@@ -5,7 +5,7 @@ module med_phases_prep_ocn_mod
   !-----------------------------------------------------------------------------
 
   use med_internalstate_mod , only : mastertask
-  use med_constants_mod     , only : dbug_flag     => med_constants_dbug_flag
+  use shr_const_mod         , only : dbug_flag
   use shr_nuopc_utils_mod   , only : memcheck      => shr_nuopc_memcheck
   use shr_nuopc_utils_mod   , only : chkerr        => shr_nuopc_utils_ChkErr
   use shr_nuopc_methods_mod , only : FB_diagnose   => shr_nuopc_methods_FB_diagnose
@@ -116,7 +116,7 @@ contains
     use ESMF                  , only : ESMF_GridComp, ESMF_FieldBundleGet
     use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
     use ESMF                  , only : ESMF_FAILURE,  ESMF_LOGMSG_ERROR
-    use med_constants_mod     , only : R8, CS
+    use shr_const_mod         , only : R8, CS
     use med_internalstate_mod , only : InternalState, mastertask, logunit
     use med_merge_mod         , only : med_merge_auto, med_merge_field
     use esmFlds               , only : fldListTo
@@ -654,7 +654,7 @@ contains
     use ESMF                  , only : ESMF_GridComp, ESMF_Clock, ESMF_Time
     use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
     use ESMF                  , only : ESMF_FieldBundleGet
-    use med_constants_mod     , only : czero=>med_constants_czero
+    use shr_const_mod         , only : czero
     use med_internalstate_mod , only : InternalState
     use esmFlds               , only : compocn
     use perf_mod              , only : t_startf, t_stopf

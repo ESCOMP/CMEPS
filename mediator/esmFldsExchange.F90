@@ -22,7 +22,7 @@ contains
 
     use ESMF
     use NUOPC
-    use med_constants_mod     , only : CX, CS, CL
+    use shr_const_mod         , only : CX, CS, CL
     use shr_nuopc_utils_mod   , only : chkerr => shr_nuopc_utils_chkerr
     use shr_nuopc_methods_mod , only : fldchk => shr_nuopc_methods_FB_FldChk
     use med_internalstate_mod , only : InternalState

@@ -10,10 +10,10 @@ module shr_nuopc_methods_mod
   use ESMF               , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_FAILURE
   use ESMF               , only : ESMF_LOGERR_PASSTHRU, ESMF_LogFoundError, ESMF_LOGMSG_ERROR
   use ESMF               , only : ESMF_MAXSTR, ESMF_LOGMSG_WARNING, ESMF_POLEMETHOD_ALLAVG
-  use med_constants_mod  , only : R8, CS, CL
-  use med_constants_mod  , only : dbug_flag => med_constants_dbug_flag
-  use med_constants_mod  , only : czero => med_constants_czero
-  use med_constants_mod  , only : spval_init => med_constants_spval_init
+  use shr_const_mod      , only : R8, CS, CL
+  use shr_const_mod      , only : dbug_flag
+  use shr_const_mod      , only : czero
+  use shr_const_mod      , only : spval_init
   use shr_nuopc_utils_mod, only : ChkErr => shr_nuopc_utils_ChkErr
 
   implicit none

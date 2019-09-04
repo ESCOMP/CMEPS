@@ -8,8 +8,8 @@ module med_io_mod
   use ESMF                  , only : ESMF_SUCCESS, ESMF_FAILURE
   use ESMF                  , only : ESMF_VMBroadCast
   use pio                   , only : file_desc_t, iosystem_desc_t
-  use med_constants_mod     , only : R4, R8, I8, CL 
-  use med_constants_mod     , only : dbug_flag    => med_constants_dbug_flag
+  use shr_const_mod         , only : R4, R8, I8, CL 
+  use shr_const_mod         , only : dbug_flag
   use med_internalstate_mod , only : logunit, med_id
   use shr_nuopc_methods_mod , only : FB_getFieldN => shr_nuopc_methods_FB_getFieldN
   use shr_nuopc_methods_mod , only : FB_getFldPtr => shr_nuopc_methods_FB_getFldPtr
@@ -374,7 +374,7 @@ contains
     use ESMF                  , only : ESMF_FieldBundleIsCreated, ESMF_FieldBundle, ESMF_Mesh, ESMF_DistGrid
     use ESMF                  , only : ESMF_FieldBundleGet, ESMF_FieldGet, ESMF_MeshGet, ESMF_DistGridGet
     use ESMF                  , only : ESMF_Field, ESMF_FieldGet, ESMF_AttributeGet 
-    use med_constants_mod     , only : fillvalue=>SHR_CONST_SPVAL
+    use shr_const_mod         , only : fillvalue=>SPVAL
     use esmFlds               , only : shr_nuopc_fldList_GetMetadata
     use pio                   , only : var_desc_t, io_desc_t, pio_offset_kind
     use pio                   , only : pio_def_dim, pio_inq_dimid, pio_real, pio_def_var, pio_put_att, pio_double
@@ -1157,8 +1157,8 @@ contains
     use pio                   , only : pio_inq_varid
     use pio                   , only : pio_double, pio_get_att, pio_seterrorhandling, pio_freedecomp, pio_closefile
     use pio                   , only : pio_read_darray, pio_offset_kind, pio_setframe
-    use med_constants_mod     , only : dbug_flag=>med_constants_dbug_flag
-    use med_constants_mod     , only : fillvalue=>SHR_CONST_SPVAL
+    use shr_const_mod         , only : dbug_flag
+    use shr_const_mod         , only : fillvalue=>SPVAL
 
     ! input/output arguments
     character(len=*)                        ,intent(in)  :: filename ! file
@@ -1546,7 +1546,7 @@ contains
 
   !===============================================================================
   subroutine med_io_read_r8(filename, vm, iam, rdata, dname, rc)
-    use med_constants_mod, only : R8
+    use shr_const_mod, only : R8
 
     !---------------
     ! Read scalar double from netcdf file

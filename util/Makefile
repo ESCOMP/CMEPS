@@ -11,9 +11,6 @@ endif
 LIBRARY  = libcmeps_util.a
 
 OBJ1= \
-med_constants_mod.o
-
-OBJ2= \
 perf_mod.o \
 perf_utils.o \
 shr_abort_mod.o \
@@ -30,16 +27,19 @@ shr_string_mod.o \
 shr_strconvert_mod.o \
 shr_sys_mod.o \
 shr_timer_mod.o \
+shr_nuopc_methods_mod.o \
+shr_nuopc_time_mod.o \
+shr_nuopc_utils_mod.o \
 water_isotopes.o
 
-OBJ3 = \
+OBJ2 = \
 shr_infnan_mod.o \
 shr_assert_mod.o
 
 all default: $(LIBRARY)
 
-$(LIBRARY): $(OBJ1) $(OBJ2) $(OBJ3)
-	$(AR) $(ARFLAGS) $@ $(OBJ2) $(OBJ3)
+$(LIBRARY): $(OBJ1) $(OBJ2)
+	$(AR) $(ARFLAGS) $@ $(OBJ1) $(OBJ2)
 
 %.o: %.F90.in
 	perl genf90.pl $< > $(@:.o=.F90)
@@ -53,9 +53,6 @@ clean:
 	$(RM) -f shr_infnan_mod.F90 shr_assert_mod.F90
 	$(RM) -f med_constants_mod.*
 
-med_constants_mod.o: shr_kind_mod.o shr_const_mod.o
-	cp -f ../mediator/med_constants_mod.F90 .
-	$(ESMF_F90COMPILER) -c $(ESMF_F90COMPILEPATHS) -I. $*.F90
 perf_mod.o: perf_utils.o shr_sys_mod.o shr_kind_mod.o shr_mpi_mod.o gptl.inc
 perf_utils.o: gptl.inc
 shr_abort_mod.o: shr_kind_mod.o shr_mpi_mod.o shr_log_mod.o
@@ -64,7 +61,7 @@ shr_assert_mod.o: dtypes.h shr_kind_mod.o shr_sys_mod.o shr_log_mod.o shr_infnan
    shr_strconvert_mod.o
 shr_cal_mod.o: shr_kind_mod.o shr_const_mod.o shr_sys_mod.o shr_string_mod.o \
    shr_log_mod.o
-shr_const_mod.o: shr_kind_mod.o
+shr_const_mod.o: shr_const_mod.F90 shr_kind_mod.o
 shr_file_mod.o: shr_kind_mod.o shr_sys_mod.o shr_log_mod.o
 shr_flux_mod.o: shr_kind_mod.o shr_const_mod.o shr_sys_mod.o shr_log_mod.o water_isotopes.o
 shr_infnan_mod.o: dtypes.h shr_kind_mod.o
@@ -78,3 +75,6 @@ shr_strconvert_mod.o: shr_kind_mod.o shr_infnan_mod.o
 shr_sys_mod.o: shr_kind_mod.o shr_log_mod.o shr_abort_mod.o
 shr_timer_mod.o: shr_kind_mod.o shr_log_mod.o shr_sys_mod.o
 water_isotopes.o: shr_kind_mod.o shr_const_mod.o
+shr_nuopc_methods_mod.o: shr_const_mod.o shr_nuopc_utils_mod.o
+shr_nuopc_time_mod.o: shr_const_mod.o shr_nuopc_utils_mod.o
+shr_nuopc_utils_mod.o: shr_const_mod.o

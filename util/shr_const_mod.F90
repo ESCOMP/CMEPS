@@ -7,12 +7,38 @@ MODULE shr_const_mod
 
    use shr_kind_mod
 
-   integer(SHR_KIND_IN),parameter,private :: R8 = SHR_KIND_R8 ! rename for local readability only
+   public
+
+   !----------------------------------------------------------------------------
+   ! type constants 
+   !----------------------------------------------------------------------------
+
+   integer(SHR_KIND_IN),parameter :: R8 = SHR_KIND_R8 ! rename for local readability only
+   integer(SHR_KIND_IN),parameter :: R4 = SHR_KIND_R4 ! rename for local readability only
+   integer(SHR_KIND_IN),parameter :: RN = SHR_KIND_RN ! rename for local readability only
+   integer(SHR_KIND_IN),parameter :: I8 = SHR_KIND_R8 ! rename for local readability only
+   integer(SHR_KIND_IN),parameter :: I4 = SHR_KIND_R4 ! rename for local readability only
+   integer(SHR_KIND_IN),parameter :: IN = SHR_KIND_RN ! rename for local readability only
+   integer(SHR_KIND_IN),parameter :: CS = SHR_KIND_CS ! rename for local readability only
+   integer(SHR_KIND_IN),parameter :: CM = SHR_KIND_CM ! rename for local readability only
+   integer(SHR_KIND_IN),parameter :: CL = SHR_KIND_CL ! rename for local readability only
+   integer(SHR_KIND_IN),parameter :: CX = SHR_KIND_CX ! rename for local readability only
+   integer(SHR_KIND_IN),parameter :: CXX = SHR_KIND_CXX ! rename for local readability only
+
+   !----------------------------------------------------------------------------
+   ! numerical constants 
+   !----------------------------------------------------------------------------
+
+   real(R8),parameter :: CZERO = 0.0_R8 
+   real(R8),parameter :: SPVAL_INIT = 0.0_R8
+   logical,parameter  :: STATEWRITE_FLAG = .false.
+   real(R8),parameter :: SPVAL = 0.0_R8                      ! spval
+   integer,parameter  :: ISPVAL_MASK = -987987               ! spval for RH mask values
+   integer,parameter  :: SECPERDAY = 86400                   ! Seconds per day
 
    !----------------------------------------------------------------------------
    ! physical constants (all data public)
    !----------------------------------------------------------------------------
-   public
 
    real(R8),parameter :: SHR_CONST_PI      = 3.14159265358979323846_R8  ! pi
    real(R8),parameter :: SHR_CONST_CDAY    = 86400.0_R8      ! sec in calendar day ~ sec
@@ -82,6 +108,12 @@ MODULE shr_const_mod
    real(R8),parameter :: SHR_CONST_VSMOW_H   = 0.99984426_R8  ! 1H/Tot in VMSOW 
    ! For best numerics in CAM5
    real(R8),parameter :: SHR_CONST_RSTD_H2ODEV   = 1.0_R8      ! Rstd Dev Use 
+
+   !----------------------------------------------------------------------------
+   ! shared variables 
+   !----------------------------------------------------------------------------
+
+   integer :: dbug_flag = 0
 
 contains
 

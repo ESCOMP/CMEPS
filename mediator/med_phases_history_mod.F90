@@ -5,7 +5,7 @@ module med_phases_history_mod
   !-----------------------------------------------------------------------------
 
   use ESMF              , only : ESMF_Alarm
-  use med_constants_mod , only : R8, CL, CS, I8
+  use shr_const_mod     , only : R8, CL, CS, I8
 
   implicit none
   private
@@ -46,8 +46,8 @@ contains
     use shr_nuopc_methods_mod , only : FB_accum        => shr_nuopc_methods_FB_accum
     use shr_nuopc_methods_mod , only : State_GetScalar => shr_nuopc_methods_State_GetScalar
     use shr_nuopc_time_mod    , only : alarmInit       => shr_nuopc_time_alarmInit
-    use med_constants_mod     , only : dbug_flag       => med_constants_dbug_flag
-    use med_constants_mod     , only : SecPerDay       => med_constants_SecPerDay
+    use shr_const_mod         , only : dbug_flag
+    use shr_const_mod         , only : SecPerDay
     use med_map_mod           , only : med_map_FB_Regrid_Norm
     use med_internalstate_mod , only : InternalState, mastertask
     use med_io_mod            , only : med_io_write, med_io_wopen, med_io_enddef
