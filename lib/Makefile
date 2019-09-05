@@ -12,18 +12,9 @@ BASE_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 PIO_SRC_DIR := "$(BASE_DIR)/ParallelIO"
 PIO_BUILD_DIR := "$(BASE_DIR)/ParallelIO/build"
 
-#CMAKE_ENV_VARS := CC="$(CC)"   \
-#                  CXX="$(CXX)" \
-#                  FC="$(FC)"
-
-#CMAKE_OPTS += -D CMAKE_Fortran_FLAGS:STRING="$(FFLAGS) $(EXTRA_PIO_FPPDEFS) $(INCLDIR)" \
-#              -D CMAKE_C_FLAGS:STRING="$(CFLAGS) $(EXTRA_PIO_CPPDEFS) $(INCLDIR)" \
-#              -D CMAKE_CXX_FLAGS:STRING="$(CXXFLAGS) $(EXTRA_PIO_CPPDEFS) $(INCLDIR)" \
-#              -D CMAKE_VERBOSE_MAKEFILE:BOOL=ON \
-#              -D GPTL_PATH:STRING=$(INSTALL_SHAREDPATH) \
-#              -D PIO_ENABLE_TESTS:BOOL=OFF \
-#              -D PIO_USE_MALLOC:BOOL=OFF \
-#              -D USER_CMAKE_MODULE_PATH:LIST="$(CIMEROOT)/src/CMake;$(CIMEROOT)/src/externals/pio2/cmake" \
+CMAKE_ENV_VARS := CC="$(CC)"   \
+                  CXX="$(CXX)" \
+                  FC="$(FC)"
 
 CMAKE_OPTS := -D CMAKE_VERBOSE_MAKEFILE:BOOL=ON \
               -D PIO_ENABLE_TESTS:BOOL=OFF \
@@ -31,16 +22,6 @@ CMAKE_OPTS := -D CMAKE_VERBOSE_MAKEFILE:BOOL=ON \
               -D GENF90_PATH=$(BASE_DIR)/genf90 \
               -D USER_CMAKE_MODULE_PATH=$(PIO_SRC_DIR)/cmake \
               -D CMAKE_INSTALL_PREFIX=$(PIO_INSTALL_DIR)  
-
-#CMAKE_OPTS := -D CMAKE_C_COMPILER:STRING="$(CC)" \
-#              -D CMAKE_CXX_COMPILER:STRING="$(CXX)" \
-#              -D CMAKE_FORTRAN_COMPILER:STRING="$(FC)" \
-#              -D CMAKE_VERBOSE_MAKEFILE:BOOL=ON \
-#              -D PIO_ENABLE_TESTS:BOOL=OFF \
-#              -D PIO_USE_MALLOC:BOOL=OFF \
-#              -D GENF90_PATH=$(BASE_DIR)/genf90 \
-#              -D USER_CMAKE_MODULE_PATH=$(PIO_SRC_DIR)/cmake \
-#              -D CMAKE_INSTALL_PREFIX=$(PIO_INSTALL_DIR)
 
 ifdef NETCDF
 CMAKE_OPTS += -D NetCDF_PATH:PATH=$(NETCDF)

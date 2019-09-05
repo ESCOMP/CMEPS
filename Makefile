@@ -61,7 +61,7 @@ $(LIBRARY_UTIL): $(PIO_INSTALL_LIBS) .FORCE
 
 $(PIO_INSTALL_LIBS):
 	cd lib ;\
-	exec $(MAKE) install PIO_INSTALL_DIR=$(PIO_INSTALL_DIR)
+	exec $(MAKE) install FC="$(FC)" CC="$(CC)" CXX="$(CXX)" PIO_INSTALL_DIR=$(PIO_INSTALL_DIR)
 
 .FORCE:
 
