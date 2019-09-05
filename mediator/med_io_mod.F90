@@ -406,6 +406,7 @@ contains
     integer                       :: rcode
     integer                       :: nf,ns,ng
     integer                       :: k,n
+    integer                       :: ndims, nelements
     integer    ,target            :: dimid2(2)
     integer    ,target            :: dimid3(3)
     integer    ,pointer           :: dimid(:)
@@ -429,6 +430,7 @@ contains
     integer                       :: lfile_ind
     real(r8), pointer             :: fldptr1(:)
     real(r8), pointer             :: fldptr2(:,:)
+    real(r8), allocatable         :: ownedElemCoords(:), ownedElemCoords_x(:), ownedElemCoords_y(:)
     character(len=number_strlen)  :: cnumber
     character(CL)                 :: tmpstr
     type(ESMF_Field)              :: lfield
@@ -502,6 +504,24 @@ contains
 
     call ESMF_MeshGet(mesh, elementDistgrid=distgrid, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    call ESMF_MeshGet(mesh, spatialDim=ndims, numOwnedElements=nelements, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    write(tmpstr,*) subname, 'ndims, nelements = ', ndims, nelements
+    call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
+
+    if (.not. allocated(ownedElemCoords) .and. ndims > 0 .and. nelements > 0) then
+       allocate(ownedElemCoords(ndims*nelements))
+       allocate(ownedElemCoords_x(ndims*nelements/2))
+       allocate(ownedElemCoords_y(ndims*nelements/2))
+
+       call ESMF_MeshGet(mesh, ownedElemCoords=ownedElemCoords, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+       ownedElemCoords_x = ownedElemCoords(1::2)
+       ownedElemCoords_y = ownedElemCoords(2::2)
+    end if
 
     call ESMF_DistGridGet(distgrid, dimCount=dimCount, tileCount=tileCount, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -622,6 +642,27 @@ contains
           end if
        end do
 
+       ! Add coordinate information to file
+       name1 = trim(lpre)//'_lon'
+       if (luse_float) then
+          rcode = pio_def_var(io_file(lfile_ind), trim(name1), PIO_REAL, dimid, varid)
+       else
+          rcode = pio_def_var(io_file(lfile_ind), trim(name1), PIO_DOUBLE, dimid, varid)
+       end if
+       rcode = pio_put_att(io_file(lfile_ind), varid, "long_name", "longitude")
+       rcode = pio_put_att(io_file(lfile_ind), varid, "units", "degrees_east")
+       rcode = pio_put_att(io_file(lfile_ind), varid, "standard_name", "longitude")
+
+       name1 = trim(lpre)//'_lat'
+       if (luse_float) then
+          rcode = pio_def_var(io_file(lfile_ind), trim(name1), PIO_REAL, dimid, varid)
+       else
+          rcode = pio_def_var(io_file(lfile_ind), trim(name1), PIO_DOUBLE, dimid, varid)
+       end if
+       rcode = pio_put_att(io_file(lfile_ind), varid, "long_name", "latitude")
+       rcode = pio_put_att(io_file(lfile_ind), varid, "units", "degrees_north")
+       rcode = pio_put_att(io_file(lfile_ind), varid, "standard_name", "latitude")
+
        ! Finish define mode
        if (lwdata) call med_io_enddef(filename, file_ind=lfile_ind)
 
@@ -683,6 +724,17 @@ contains
 
           end if ! end if not "hgt"
        end do  ! end loop over fields in FB
+
+       ! Fill coordinate variables
+       name1 = trim(lpre)//'_lon'
+       rcode = pio_inq_varid(io_file(lfile_ind), trim(name1), varid)
+       call pio_setframe(io_file(lfile_ind),varid,frame)
+       call pio_write_darray(io_file(lfile_ind), varid, iodesc, ownedElemCoords_x, rcode, fillval=lfillvalue)         
+
+       name1 = trim(lpre)//'_lat'
+       rcode = pio_inq_varid(io_file(lfile_ind), trim(name1), varid)
+       call pio_setframe(io_file(lfile_ind),varid,frame)
+       call pio_write_darray(io_file(lfile_ind), varid, iodesc, ownedElemCoords_y, rcode, fillval=lfillvalue)
 
        call pio_syncfile(io_file(lfile_ind))
        call pio_freedecomp(io_file(lfile_ind), iodesc)
