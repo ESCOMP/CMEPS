@@ -45,10 +45,6 @@ module shr_flux_mod
 
 !EOP
 
-   !--- rename kinds for local readability only ---
-   integer,parameter :: R8 = SHR_KIND_R8  ! 8 byte real
-   integer,parameter :: IN = SHR_KIND_IN  ! native/default integer
-
    integer,parameter :: debug = 0 ! internal debug level
 
 ! The follow variables are not declared as parameters so that they can be

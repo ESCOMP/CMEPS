@@ -76,5 +76,5 @@ shr_sys_mod.o: shr_kind_mod.o shr_log_mod.o shr_abort_mod.o
 shr_timer_mod.o: shr_kind_mod.o shr_log_mod.o shr_sys_mod.o
 water_isotopes.o: shr_kind_mod.o shr_const_mod.o
 shr_nuopc_methods_mod.o: shr_const_mod.o shr_nuopc_utils_mod.o
-shr_nuopc_time_mod.o: shr_const_mod.o shr_nuopc_utils_mod.o
+shr_nuopc_time_mod.o: shr_const_mod.o shr_nuopc_utils_mod.o shr_cal_mod.o
 shr_nuopc_utils_mod.o: shr_const_mod.o
