@@ -8,6 +8,10 @@ ifndef PIO_INCLUDE_DIR
 $(error PIO_INCLUDE_DIR not set)
 endif
 
+ifdef INTERNAL_PIO_INIT
+CPPDEFS := -DINTERNAL_PIO_INIT
+endif
+
 LIBRARY := libcmeps.a
 
 OBJ = $(patsubst %.F90, %.o, $(wildcard *.F90))
@@ -18,7 +22,7 @@ $(LIBRARY): $(OBJ)
 	$(AR) $(ARFLAGS) $@ $?
 
 %.o: %.F90 
-	$(ESMF_F90COMPILER) -c $(ESMF_F90COMPILEPATHS) -I${PIO_INCLUDE_DIR} -I../util $*.F90
+	$(ESMF_F90COMPILER) -c $(ESMF_F90COMPILEPATHS) $(CPPDEFS) -I${PIO_INCLUDE_DIR} -I../util $*.F90
 
 clean:
 	$(RM) -f $(LIBRARY) *.i90 *.o *.mod

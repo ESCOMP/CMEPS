@@ -18,6 +18,7 @@ CMAKE_ENV_VARS := CC="$(CC)"   \
 
 CMAKE_OPTS := -D CMAKE_VERBOSE_MAKEFILE:BOOL=ON \
               -D PIO_ENABLE_TESTS:BOOL=OFF \
+              -D PIO_ENABLE_TIMING:BOOL=ON \
               -D PIO_USE_MALLOC:BOOL=OFF \
               -D GENF90_PATH=$(BASE_DIR)/genf90 \
               -D USER_CMAKE_MODULE_PATH=$(PIO_SRC_DIR)/cmake \

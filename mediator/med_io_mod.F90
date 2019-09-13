@@ -123,6 +123,32 @@ contains
 
     use shr_pio_mod , only : shr_pio_getiosys, shr_pio_getiotype, shr_pio_getioformat
 
+    ! if CMEPS is the only component using PIO, then
+    ! it needs to initialize PIO
+#ifdef INTERNAL_PIO_INIT
+    use shr_pio_mod , only : shr_pio_init2
+    use ESMF, only : ESMF_VMGetCurrent, ESMF_VMGet
+
+    type(ESMF_VM)         :: vm
+    integer               :: comms(1), comps(1)
+    logical               :: comp_iamin(1)
+    integer               :: comp_comm_iam(1)
+    character(len=32)     :: compLabels(1)
+    integer               :: rc
+    
+    call ESMF_VMGetCurrent(vm=vm, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    call ESMF_VMGet(vm, mpiCommunicator=comms(1), localPet=comp_comm_iam(1), rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    comps(1) = med_id
+    compLabels(1) = "MED"
+    comp_iamin(1) = .true.
+
+    call shr_pio_init2(comps, compLabels, comp_iamin, comms, comp_comm_iam)
+#endif
+
     io_subsystem => shr_pio_getiosys(med_id)
     pio_iotype   =  shr_pio_getiotype(med_id)
     pio_ioformat =  shr_pio_getioformat(med_id)
