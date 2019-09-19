@@ -60,7 +60,9 @@ module perf_mod
    public t_disablef
    public t_adj_detailf
    public t_barrierf
+#if 0
    public t_prf
+#endif
    public t_finalizef
 
 !-----------------------------------------------------------------------
@@ -1098,6 +1100,9 @@ contains
 !
 !========================================================================
 !
+
+#if 0
+
    subroutine t_prf(filename, mpicom, num_outpe, stride_outpe, &
                     single_file, global_stats, output_thispe)
 !-----------------------------------------------------------------------
@@ -1399,6 +1404,9 @@ contains
 
    return
    end subroutine t_prf
+
+#endif
+
 !
 !========================================================================
 !
