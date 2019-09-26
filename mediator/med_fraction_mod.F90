@@ -113,9 +113,9 @@ module med_fraction_mod
   !-----------------------------------------------------------------------------
 
   use esmFlds               , only : ncomps
-  use med_constants_mod     , only : R8
-  use med_constants_mod     , only : dbug_flag      => med_constants_dbug_flag
-  use med_constants_mod     , only : czero          => med_constants_czero
+  use shr_const_mod         , only : R8
+  use shr_const_mod         , only : dbug_flag
+  use shr_const_mod         , only : czero
   use shr_nuopc_utils_mod   , only : chkErr         => shr_nuopc_utils_ChkErr
   use shr_nuopc_methods_mod , only : FB_init        => shr_nuopc_methods_FB_init
   use shr_nuopc_methods_mod , only : FB_reset       => shr_nuopc_methods_FB_reset
@@ -640,7 +640,7 @@ contains
     ! local variables
     type(InternalState)        :: is_local
     real(r8), pointer          :: lfrac(:)
-    real(r8), pointer          :: ifrac(:)
+    real(r8), pointer          :: ifrac(:), ifrac_nstod(:)
     real(r8), pointer          :: ofrac(:)
     real(r8), pointer          :: Si_ifrac(:)
     real(r8), pointer          :: Si_imask(:)
@@ -762,16 +762,25 @@ contains
                   zeroregion=ESMF_REGION_TOTAL, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+             call FB_getFldPtr(is_local%wrap%FBfrac(compatm), 'ifrac', ifrac_nstod, rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
              call FB_FieldRegrid(&
                   is_local%wrap%FBfrac(compice), 'ifrac', &
                   is_local%wrap%FBfrac(compatm), 'ifrac', &
                   is_local%wrap%RH(compice,compatm,mapconsf), &
-                  zeroregion=ESMF_REGION_SELECT, rc=rc)
+                  zeroregion=ESMF_REGION_TOTAL, rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+             call FB_getFldPtr(is_local%wrap%FBfrac(compatm), 'ifrac', ifrac, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
              ! Now set ofrac=1-ifrac and lfrac=0 on the atm grid
              call FB_getFldPtr(is_local%wrap%FBfrac(compatm), 'ifrac', ifrac, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             where (ifrac .eq. 0.0_R8 .and. abs(ifrac_nstod) .gt.  0.0_R8)
+                ifrac = ifrac_nstod
+             endwhere
              call FB_getFldPtr(is_local%wrap%FBfrac(compatm), 'ofrac', ofrac, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
              call FB_getFldPtr(is_local%wrap%FBfrac(compatm), 'lfrac', lfrac, rc=rc)

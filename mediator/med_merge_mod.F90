@@ -4,12 +4,12 @@ module med_merge_mod
   ! Performs merges from source field bundles to destination field bundle
   !-----------------------------------------------------------------------------
 
-  use med_constants_mod     , only : R8
-  use med_constants_mod     , only : dbug_flag         => med_constants_dbug_flag
-  use med_constants_mod     , only : spval_init        => med_constants_spval_init
-  use med_constants_mod     , only : spval             => med_constants_spval
-  use med_constants_mod     , only : czero             => med_constants_czero
-  use med_constants_mod     , only : CL
+  use shr_const_mod         , only : R8
+  use shr_const_mod         , only : dbug_flag
+  use shr_const_mod         , only : spval_init
+  use shr_const_mod         , only : spval
+  use shr_const_mod         , only : czero
+  use shr_const_mod         , only : CL
   use shr_nuopc_utils_mod   , only : ChkErr            => shr_nuopc_utils_ChkErr
   use shr_nuopc_methods_mod , only : FB_FldChk         => shr_nuopc_methods_FB_FldChk
   use shr_nuopc_methods_mod , only : FB_GetNameN       => shr_nuopc_methods_FB_GetNameN
@@ -44,7 +44,7 @@ contains
     use ESMF                  , only : ESMF_FieldBundleIsCreated, ESMF_FieldBundleGet
     use ESMF                  , only : ESMF_SUCCESS, ESMF_FAILURE, ESMF_LogWrite, ESMF_LogMsg_Info
     use ESMF                  , only : ESMF_LogSetError, ESMF_RC_OBJ_NOT_CREATED
-    use med_constants_mod     , only : CL, CX, CS
+    use shr_const_mod         , only : CL, CX, CS
     use esmFlds               , only : compmed, compname
     use esmFlds               , only : shr_nuopc_fldList_type
     use esmFlds               , only : shr_nuopc_fldList_GetNumFlds

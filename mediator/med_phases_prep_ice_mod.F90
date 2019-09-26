@@ -35,7 +35,7 @@ contains
     use shr_nuopc_methods_mod , only : FB_getNumFlds     => shr_nuopc_methods_FB_getNumFlds
     use shr_nuopc_methods_mod , only : State_GetScalar   => shr_nuopc_methods_State_GetScalar
     use shr_nuopc_methods_mod , only : State_SetScalar   => shr_nuopc_methods_State_SetScalar
-    use med_constants_mod     , only : CS, R8, dbug_flag => med_constants_dbug_flag
+    use shr_const_mod         , only : CS, R8, dbug_flag
     use med_merge_mod         , only : med_merge_auto
     use med_map_mod           , only : med_map_FB_Regrid_Norm
     use med_internalstate_mod , only : InternalState, logunit, mastertask
@@ -195,7 +195,7 @@ contains
        end if
 
        ! compute potential temperature as a custom calculation
-       if (.not. fldchk(is_local%wrap%FBImp(compatm,compatm), 'Sa_ptem',rc=rc)) then
+       if (.not. fldchk(is_local%wrap%FBImp(compatm,compatm), 'Sa_ptem',rc=rc) .and. fldchk(is_local%wrap%FBExp(compice), 'Sa_ptem', rc=rc)) then
           call ESMF_LogWrite(trim(subname)//": computing potential temp as a custom calculation", ESMF_LOGMSG_INFO)
 
           call FB_GetFldPtr(is_local%wrap%FBExp(compice), 'Sa_ptem', pot_temp, rc=rc)

@@ -24,8 +24,8 @@ contains
     use ESMF                  , only : ESMF_ClockPrint
     use esmFlds               , only : compwav, ncomps, compname
     use esmFlds               , only : fldListFr, fldListTo
-    use med_constants_mod     , only : CS
-    use med_constants_mod     , only : dbug_flag     => med_constants_dbug_flag
+    use shr_const_mod         , only : CS
+    use shr_const_mod         , only : dbug_flag
     use shr_nuopc_utils_mod   , only : chkerr        => shr_nuopc_utils_ChkErr
     use shr_nuopc_methods_mod , only : FB_diagnose   => shr_nuopc_methods_FB_diagnose
     use shr_nuopc_methods_mod , only : FB_getNumFlds => shr_nuopc_methods_FB_getNumFlds

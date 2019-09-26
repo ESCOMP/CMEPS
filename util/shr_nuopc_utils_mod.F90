@@ -62,7 +62,7 @@ contains
 
   subroutine shr_nuopc_log_clock_advance(clock, component, logunit)
     use ESMF, only : ESMF_Clock, ESMF_ClockPrint
-    use med_constants_mod, only : CL
+    use shr_const_mod, only : CL
 
     type(ESMF_Clock) :: clock
     character(len=*), intent(in) :: component

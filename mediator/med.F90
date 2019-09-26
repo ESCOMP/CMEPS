@@ -4,12 +4,12 @@ module MED
   ! Mediator Component.
   !-----------------------------------------------------------------------------
 
-  use med_constants_mod     , only : CX, R8, CL, CS
-  use med_constants_mod     , only : dbug_flag          => med_constants_dbug_flag
-  use med_constants_mod     , only : spval_init         => med_constants_spval_init
-  use med_constants_mod     , only : spval              => med_constants_spval
-  use med_constants_mod     , only : czero              => med_constants_czero
-  use med_constants_mod     , only : ispval_mask        => med_constants_ispval_mask
+  use shr_const_mod         , only : CX, R8, CL, CS
+  use shr_const_mod         , only : dbug_flag
+  use shr_const_mod         , only : spval_init
+  use shr_const_mod         , only : spval
+  use shr_const_mod         , only : czero
+  use shr_const_mod         , only : ispval_mask
   use shr_nuopc_utils_mod   , only : chkerr             => shr_nuopc_utils_ChkErr
   use shr_nuopc_methods_mod , only : Field_GeomPrint    => shr_nuopc_methods_Field_GeomPrint
   use shr_nuopc_methods_mod , only : State_GeomPrint    => shr_nuopc_methods_State_GeomPrint

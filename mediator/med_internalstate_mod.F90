@@ -7,7 +7,7 @@ module med_internalstate_mod
   use ESMF              , only : ESMF_RouteHandle, ESMF_FieldBundle, ESMF_State
   use ESMF              , only : ESMF_VM
   use esmFlds           , only : ncomps, nmappers
-  use med_constants_mod , only : CL
+  use shr_const_mod     , only : CL
 
   implicit none
   private

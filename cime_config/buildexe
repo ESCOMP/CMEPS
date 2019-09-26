@@ -54,6 +54,7 @@ def _main_func():
         out.write(os.path.join(caseroot, "SourceMods", "src.drv") + "\n")
         out.write(os.path.join(cimeroot, "src", "drivers", "nuopc", "mediator") + "\n")
         out.write(os.path.join(cimeroot, "src", "drivers", "nuopc", "drivers", "cime") + "\n")
+        out.write(os.path.join(cimeroot, "src", "util", "nuopc") + "\n")
 
 
     # build model executable

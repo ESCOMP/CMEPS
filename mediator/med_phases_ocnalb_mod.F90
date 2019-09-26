@@ -1,6 +1,6 @@
 module med_phases_ocnalb_mod
 
-  use med_constants_mod  , only : R8
+  use shr_const_mod, only : R8
   use shr_nuopc_utils_mod, only : chkerr => shr_nuopc_utils_chkerr
 
   implicit none
@@ -58,8 +58,8 @@ contains
     use shr_nuopc_methods_mod , only : shr_nuopc_methods_FB_GetFldPtr
     use shr_nuopc_methods_mod , only : shr_nuopc_methods_FB_getFieldN
     use med_internalstate_mod , only : InternalState
-    use med_constants_mod     , only : CL, R8
-    use med_constants_mod     , only : dbug_flag =>med_constants_dbug_flag
+    use shr_const_mod         , only : CL, R8
+    use shr_const_mod         , only : dbug_flag
     use esmFlds               , only : compatm, compocn
     use perf_mod              , only : t_startf, t_stopf
     ! Arguments
@@ -183,15 +183,17 @@ contains
     use ESMF                  , only : ESMF_RouteHandleIsCreated, ESMF_FieldBundleIsCreated
     use ESMF                  , only : operator(+)
     use NUOPC                 , only : NUOPC_CompAttributeGet
+#ifdef CESMCOUPLED 
     use shr_orb_mod           , only : shr_orb_cosz, shr_orb_decl
+#endif
     use esmFlds               , only : mapconsf, mapnames
     use shr_nuopc_methods_mod , only : shr_nuopc_methods_FB_GetFldPtr
     use shr_nuopc_methods_mod , only : shr_nuopc_methods_FB_diagnose
     use shr_nuopc_methods_mod , only : shr_nuopc_methods_State_GetScalar
     use shr_nuopc_methods_mod , only : shr_nuopc_methods_FB_FieldRegrid
-    use med_constants_mod     , only : CS, CL, R8
-    use med_constants_mod     , only : dbug_flag =>med_constants_dbug_flag
-    use med_constants_mod     , only : shr_const_pi
+    use shr_const_mod         , only : CS, CL, R8
+    use shr_const_mod         , only : dbug_flag
+    use shr_const_mod         , only : shr_const_pi
     use med_internalstate_mod , only : InternalState, logunit
     use esmFlds               , only : compatm, compocn
     use perf_mod              , only : t_startf, t_stopf
@@ -357,7 +359,7 @@ contains
        ! Solar declination
        ! Will only do albedo calculation if nextsw_cday is not -1.
        if (nextsw_cday >= -0.5_r8) then
-
+#ifdef CESMCOUPLED
           call shr_orb_decl(nextsw_cday, eccen, mvelpp,lambm0, obliqr, delta, eccf)
 
           ! Compute albedos
@@ -379,6 +381,15 @@ contains
                 ocnalb%avsdf(n) = 1.0_r8
              end if
           end do
+#else
+          do n = 1,lsize
+             ocnalb%anidr(n) = albdir
+             ocnalb%avsdr(n) = albdir
+             ocnalb%anidf(n) = albdif
+             ocnalb%avsdf(n) = albdif
+          end do
+#endif
+
           update_alb = .true.
 
        endif    ! nextsw_cday
@@ -419,8 +430,8 @@ contains
     use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
     use med_map_mod           , only : med_map_FB_Regrid_Norm
     use med_internalstate_mod , only : InternalState
-    use med_constants_mod     , only : R8
-    use med_constants_mod     , only : dbug_flag =>med_constants_dbug_flag
+    use shr_const_mod         , only : R8
+    use shr_const_mod         , only : dbug_flag
     use esmFlds               , only : fldListMed_ocnalb
     use esmFlds               , only : compatm, compocn
     use perf_mod              , only : t_startf, t_stopf
