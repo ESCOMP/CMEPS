@@ -1784,15 +1784,6 @@ contains
     end if
 
     !---------------------------------------
-    ! Initialize module variables needed to accumulate input to glc
-    !---------------------------------------
-
-    if (is_local%wrap%comp_present(compglc)) then
-       call  med_phases_prep_glc_init(gcomp, rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    end if
-
-    !---------------------------------------
     ! Carry out data dependency for atm initialization if needed
     !---------------------------------------
 

@@ -47,7 +47,7 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     config['flux_epbal'] = 'ocn' if case.get_value('CPL_EPBAL')  == 'ocn' else 'off'
     config['atm_grid'] = case.get_value('ATM_GRID')
 
-    # needed for determining the run sequence
+    # needed for determining the run sequence as well as glc_renormalize_smb
     config['COMP_ATM'] = case.get_value("COMP_ATM")
     config['COMP_ICE'] = case.get_value("COMP_ICE")
     config['COMP_GLC'] = case.get_value("COMP_GLC")

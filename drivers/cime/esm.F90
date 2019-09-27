@@ -523,6 +523,7 @@ contains
     use shr_wv_sat_mod   , only : shr_wv_sat_set_default, shr_wv_sat_init
     use shr_wv_sat_mod   , only : shr_wv_sat_make_tables, ShrWVSatTableSpec
     use shr_wv_sat_mod   , only : shr_wv_sat_get_scheme_idx, shr_wv_sat_valid_idx
+    use glc_elevclass_mod, only : glc_elevclass_init
    !use shr_scam_mod     , only : shr_scam_checkSurface
 
     ! input/output variables
@@ -554,6 +555,7 @@ contains
     real(R8)                     :: orb_lambm0            ! Mean long of perihelion at vernal equinox (radians)
     real(R8)                     :: orb_mvelpp            ! moving vernal equinox long
     real(R8)                     :: wall_time_limit       ! wall time limit in hours
+    integer                      :: glc_nec               ! number of elevation classes in the land component for lnd->glc
     logical                      :: single_column         ! scm mode logical
     real(R8)                     :: scmlon                ! single column lon
     real(R8)                     :: scmlat                ! single column lat
@@ -738,6 +740,18 @@ contains
 
     ! TODO: need to update orbital parameters during run time - actually - each component needs to update its orbital
     ! parameters to be consistent
+
+    !----------------------------------------------------------
+    ! Initialize glc_elevclass_mod module variables
+    !----------------------------------------------------------
+
+    ! This must be called on all processors of the driver
+
+    call NUOPC_CompAttributeGet(driver, name='glc_nec', value=cvalue, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    read(cvalue,*) glc_nec
+
+    call glc_elevclass_init(glc_nec, logunit=logunit)
 
     !----------------------------------------------------------
     ! Initialize water vapor info

@@ -32,8 +32,8 @@ module med_phases_prep_lnd_mod
   use med_map_mod           , only : med_map_FB_Regrid_Norm
   use med_map_mod           , only : med_map_Fractions_Init
   use med_merge_mod         , only : med_merge_auto
-  use glc_elevclass_mod     , only : glc_mean_elevation_virtual
   use glc_elevclass_mod     , only : glc_get_num_elevation_classes
+  use glc_elevclass_mod     , only : glc_mean_elevation_virtual
   use glc_elevclass_mod     , only : glc_get_fractional_icecov
   use perf_mod              , only : t_startf, t_stopf
   use shr_sys_mod           , only : shr_sys_abort
@@ -63,7 +63,8 @@ module med_phases_prep_lnd_mod
   type(shr_nuopc_fldlist_type) :: fldlist_glc2lnd_norm_icemask
   type(shr_nuopc_fldlist_type) :: fldlist_glc2lnd_norm_none
 
-  integer :: nec ! number of elevation classes (excluding bare land)
+  ! the number of elevation classes (excluding bare land) = ungriddedCount - 1
+  integer :: ungriddedCount ! this equals the number of elevation classes + 1 (for bare land)
 
   character(*) , parameter :: u_FILE_u = &
        __FILE__
@@ -226,6 +227,7 @@ contains
     type(ESMF_Field)    :: lfield
     type(ESMF_Mesh)     :: lmesh_lnd
     type(ESMF_Mesh)     :: lmesh_glc
+    integer             :: ungriddedUBound_output(1) ! currently the size must equal 1 for rank 2 fieldds
     character(len=*) , parameter   :: subname='(med_map_glc2lnd_mod:med_map_glc2lnd_init)'
     !---------------------------------------
 
@@ -243,7 +245,13 @@ contains
     ! Set the module variable for the number of elevation classes
     !---------------------------------------
 
-    nec = glc_get_num_elevation_classes()
+    ! Determine number of elevation classes by querying a field that has elevation classes in it
+    call ESMF_FieldBundleGet(is_local%wrap%FBExp(complnd), 'Sl_topo_elev', field=lfield, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldGet(lfield, ungriddedUBound=ungriddedUBound_output, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    ungriddedCount = ungriddedUBound_output(1)
+    ! TODO: check that ungriddedCount = glc_nec+1
 
     !---------------------------------------
     ! Get the glc and land meshes
@@ -278,7 +286,7 @@ contains
     FBglc_frac_x_icemask = ESMF_FieldBundleCreate(rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     lfield = ESMF_FieldCreate(lmesh_glc, ESMF_TYPEKIND_R8, name=trim(Sg_frac_x_icemask), meshloc=ESMF_MESHLOC_ELEMENT, &
-         ungriddedLbound=(/1/), ungriddedUbound=(/nec+1/), gridToFieldMap=(/2/), rc=rc)
+         ungriddedLbound=(/1/), ungriddedUbound=(/ungriddedCount/), gridToFieldMap=(/2/), rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call ESMF_FieldBundleAdd(FBglc_frac_x_icemask, (/lfield/), rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -286,7 +294,7 @@ contains
     FBlnd_frac_x_icemask = ESMF_FieldBundleCreate(rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     lfield = ESMF_FieldCreate(lmesh_lnd, ESMF_TYPEKIND_R8, name=trim(Sg_frac_x_icemask), meshloc=ESMF_MESHLOC_ELEMENT, &
-         ungriddedLbound=(/1/), ungriddedUbound=(/nec+1/), gridToFieldMap=(/2/), rc=rc)
+         ungriddedLbound=(/1/), ungriddedUbound=(/ungriddedCount/), gridToFieldMap=(/2/), rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call ESMF_FieldBundleAdd(FBlnd_frac_x_icemask, (/lfield/), rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -303,7 +311,7 @@ contains
     FBglc_ec = ESMF_FieldBundleCreate(rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     lfield = ESMF_FieldCreate(lmesh_glc, ESMF_TYPEKIND_R8, name='field_ec', meshloc=ESMF_MESHLOC_ELEMENT, &
-         ungriddedLbound=(/1/), ungriddedUbound=(/nec+1/), gridToFieldMap=(/2/), rc=rc)
+         ungriddedLbound=(/1/), ungriddedUbound=(/ungriddedCount/), gridToFieldMap=(/2/), rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call ESMF_FieldBundleAdd(FBglc_ec, (/lfield/), rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -311,7 +319,7 @@ contains
     FBlnd_ec = ESMF_FieldBundleCreate(rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     lfield = ESMF_FieldCreate(lmesh_lnd, ESMF_TYPEKIND_R8, name='field_ec', meshloc=ESMF_MESHLOC_ELEMENT, &
-         ungriddedLbound=(/1/), ungriddedUbound=(/nec+1/), gridToFieldMap=(/2/), rc=rc)
+         ungriddedLbound=(/1/), ungriddedUbound=(/ungriddedCount/), gridToFieldMap=(/2/), rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call ESMF_FieldBundleAdd(FBlnd_ec, (/lfield/), rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -415,7 +423,7 @@ contains
     call FB_getFldPtr(FBglc_ec, 'field_ec', fldptr2=frac_g_ec, rc=rc) 
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     ! compute frac_g_ec
-    call glc_get_fractional_icecov(nec, topo_g, frac_g, frac_g_ec, logunit)
+    call glc_get_fractional_icecov(ungriddedCount-1, topo_g, frac_g, frac_g_ec, logunit)
 
     ! Set the contents of FBglc_icemask
     call FB_getFldPtr(FBglc_icemask, trim(Sg_icemask), fldptr1=icemask_g,  rc=rc)
@@ -428,7 +436,7 @@ contains
     call FB_getFldPtr(FBglc_frac_x_icemask, trim(Sg_frac_x_icemask), fldptr2=frac_x_icemask_g_ec, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    do ec = 1, nec+1
+    do ec = 1, ungriddedCount
        frac_x_icemask_g_ec(ec,:) = frac_g_ec(ec,:) * icemask_g(:)
     end do
 
@@ -468,7 +476,7 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call FB_getFldPtr(FBglc_ec, 'field_ec', fldptr2=topo_x_icemask_g, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    do ec = 1,nec+1
+    do ec = 1,ungriddedCount
        do l = 1,size(topo_g)
           topo_x_icemask_g(:,:) = topo_g(l) * frac_x_icemask_g_ec(ec,l)
        end do
@@ -517,7 +525,7 @@ contains
     ! them, so would otherwise end up with an elevation of 0.
     call FB_getFldPtr(is_local%wrap%FBExp(complnd), trim(Sg_topo)//'_elev', fldptr2=dataptr2d_exp, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    do ec = 1,nec+1
+    do ec = 1,ungriddedCount
        !write(6,*)'DEBUG: ec = ',ec
        topo_virtual = glc_mean_elevation_virtual(ec)
        !write(6,*)'DEBUG: ec, topo_virtual = ',ec,topo_virtual

@@ -813,6 +813,7 @@
     </desc>
     <values>
       <value>on_if_glc_coupled_fluxes</value>
+      <value COMP_LND="xlnd">off</value> 
     </values>
   </entry>
 

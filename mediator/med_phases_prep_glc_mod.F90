@@ -78,8 +78,8 @@ module med_phases_prep_glc_mod
   character(len=*), parameter  :: Sg_topo_field    = 'Sg_topo'
   character(len=*), parameter  :: Sg_icemask_field = 'Sg_icemask'
 
-  ! Number of elevation classes
-  integer :: nEC
+  ! Size of undistributed dimension from land
+  integer :: ungriddedCount ! this equals the number of elevation classes + 1 (for bare land)
 
   character(*), parameter :: u_FILE_u  = &
        __FILE__
@@ -112,6 +112,8 @@ contains
     type(ESMF_Array)    :: larray
     type(ESMF_DistGrid) :: ldistgrid
     integer             :: lsize
+    logical             :: isPresent
+    integer             :: ungriddedUBound_output(1) ! currently the size must equal 1 for rank 2 fieldds
     character(len=*),parameter  :: subname='(med_phases_prep_glc_init)'
     !---------------------------------------
 
@@ -146,17 +148,18 @@ contains
     !---------------------------------------
     ! Create field bundles for the fldnames_fr_lnd that have an
     ! undistributed dimension corresponding to elevation classes
-    ! nec is the size of the undistributed dimension (number of elevation classes)
     !---------------------------------------
 
     if (ncnt > 0) then
 
-       ! Number of elevation classes (without bare land)
-       nec = glc_get_num_elevation_classes()
-
        ! Create accumulation field bundle from land on the land grid (including bare land)
        call ESMF_FieldBundleGet(is_local%wrap%FBImp(complnd,complnd), fldnames_fr_lnd(1), field=lfield, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_FieldGet(lfield, ungriddedUBound=ungriddedUBound_output, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       ungriddedCount = ungriddedUBound_output(1)
+       ! TODO: check that ungriddedCount = glc_nec+1
+
        call FB_GetFldPtr(is_local%wrap%FBImp(complnd,complnd), fldnames_fr_lnd(1), fldptr2=data2d_in, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        call ESMF_FieldGet(lfield, mesh=lmesh_lnd, rc=rc)
@@ -167,7 +170,7 @@ contains
        do n = 1,size(fldnames_fr_lnd)
           lfield = ESMF_FieldCreate(lmesh_lnd, ESMF_TYPEKIND_R8, name=fldnames_fr_lnd(n), &
                meshloc=ESMF_MESHLOC_ELEMENT, &
-               ungriddedLbound=(/1/), ungriddedUbound=(/nec+1/), gridToFieldMap=(/2/), rc=rc)
+               ungriddedLbound=(/1/), ungriddedUbound=(/ungriddedCount/), gridToFieldMap=(/2/), rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           call ESMF_FieldBundleAdd(FBlndAccum_lnd, (/lfield/), rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -186,10 +189,11 @@ contains
 
        FBlndAccum_glc = ESMF_FieldBundleCreate(name='FBlndAccum_glc', rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
+
        do n = 1,size(fldnames_fr_lnd)
           lfield = ESMF_FieldCreate(lmesh_glc, ESMF_TYPEKIND_R8, name=fldnames_fr_lnd(n), &
                meshloc=ESMF_MESHLOC_ELEMENT, &
-               ungriddedLbound=(/1/), ungriddedUbound=(/nec+1/), gridToFieldMap=(/2/), rc=rc)
+               ungriddedLbound=(/1/), ungriddedUbound=(/ungriddedCount/), gridToFieldMap=(/2/), rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           call ESMF_FieldBundleAdd(FBlndAccum_glc, (/lfield/), rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -306,7 +310,7 @@ contains
           FBglc_frac = ESMF_FieldBundleCreate(rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           lfield = ESMF_FieldCreate(lmesh_glc, ESMF_TYPEKIND_R8, name=trim(Sg_frac_field), meshloc=ESMF_MESHLOC_ELEMENT, &
-               ungriddedLbound=(/1/), ungriddedUbound=(/nec+1/), gridToFieldMap=(/2/), rc=rc)
+               ungriddedLbound=(/1/), ungriddedUbound=(/ungriddedCount/), gridToFieldMap=(/2/), rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           call ESMF_FieldBundleAdd(FBglc_frac, (/lfield/), rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -314,7 +318,7 @@ contains
           FBlnd_frac = ESMF_FieldBundleCreate(rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           lfield = ESMF_FieldCreate(lmesh_lnd, ESMF_TYPEKIND_R8, name=trim(Sg_frac_field), meshloc=ESMF_MESHLOC_ELEMENT, &
-               ungriddedLbound=(/1/), ungriddedUbound=(/nec+1/), gridToFieldMap=(/2/), rc=rc)
+               ungriddedLbound=(/1/), ungriddedUbound=(/ungriddedCount/), gridToFieldMap=(/2/), rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           call ESMF_FieldBundleAdd(FBlnd_frac, (/lfield/), rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -361,6 +365,7 @@ contains
     integer             :: i,n,ncnt
     real(r8), pointer   :: data2d_in(:,:)
     real(r8), pointer   :: data2d_out(:,:)
+    logical             :: first_time = .true.
     character(len=*),parameter  :: subname='(med_phases_prep_glc_accum)'
     !---------------------------------------
 
@@ -397,6 +402,13 @@ contains
     !---------------------------------------
 
     if (ncnt > 0) then
+
+       ! Initialize module variables needed to accumulate input to glc
+       if (first_time) then
+          call  med_phases_prep_glc_init(gcomp, rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          first_time = .false.
+       end if
 
        do n = 1, size(fldnames_fr_lnd)
           call FB_GetFldPtr(is_local%wrap%FBImp(complnd,complnd), &
@@ -673,15 +685,15 @@ contains
              ! lower than lowest mean EC elevation value
              data_ice_covered_g(n) = dataptr2d(2,n)
 
-          else if (topoglc_g(n) >= topolnd_g_ec(nEC+1, n)) then
+          else if (topoglc_g(n) >= topolnd_g_ec(ungriddedCount, n)) then
 
              ! higher than highest mean EC elevation value
-             data_ice_covered_g(n) = dataptr2d(nEC+1,n)
+             data_ice_covered_g(n) = dataptr2d(ungriddedCount,n)
 
           else
 
              ! do linear interpolation of data in the vertical
-             do ec = 3, nEC+1
+             do ec = 3, ungriddedCount
                 if (topoglc_g(n) < topolnd_g_EC(ec,n)) then
                    elev_l = topolnd_g_EC(ec-1,n)
                    elev_u = topolnd_g_EC(ec  ,n)
@@ -877,7 +889,8 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call FB_getFldPtr(FBglc_frac, Sg_frac_field, fldptr2=glc_frac_g_ec, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call glc_get_fractional_icecov(nec, glc_topo_g, glc_frac_g, glc_frac_g_ec, logunit)
+    ! note that nec = ungriddedCount - 1
+    call glc_get_fractional_icecov(ungriddedCount-1, glc_topo_g, glc_frac_g, glc_frac_g_ec, logunit)
 
     ! map fraction in each elevation class from the glc grid to the land grid
     call med_map_FB_Regrid_Norm( &
@@ -918,7 +931,7 @@ contains
        ! Calculate effective area for sum -  need the mapped Sg_icemask_l
        effective_area = min(lfrac(n), Sg_icemask_l(n)) * aream_l(n)
 
-       do ec = 1, nEC+1
+       do ec = 1, ungriddedCount
           if (qice_l(ec,n) >= 0.0_r8) then
              local_accum_lnd(1) = local_accum_lnd(1) + effective_area * glc_frac_l_ec(ec,n) * qice_l(ec,n)
           else
