@@ -246,7 +246,7 @@ contains
     !---------------------------------------
 
     ! Determine number of elevation classes by querying a field that has elevation classes in it
-    call ESMF_FieldBundleGet(is_local%wrap%FBExp(complnd), 'Sl_topo_elev', field=lfield, rc=rc)
+    call ESMF_FieldBundleGet(is_local%wrap%FBExp(complnd), 'Sg_topo_elev', field=lfield, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call ESMF_FieldGet(lfield, ungriddedUBound=ungriddedUBound_output, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -526,8 +526,7 @@ contains
     call FB_getFldPtr(is_local%wrap%FBExp(complnd), trim(Sg_topo)//'_elev', fldptr2=dataptr2d_exp, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     do ec = 1,ungriddedCount
-       !write(6,*)'DEBUG: ec = ',ec
-       topo_virtual = glc_mean_elevation_virtual(ec)
+       topo_virtual = glc_mean_elevation_virtual(ec-1) ! glc_mean_elevation_virtual uses 0:glc_nec
        !write(6,*)'DEBUG: ec, topo_virtual = ',ec,topo_virtual
        do l = 1,size(frac_x_icemask_l, dim=2)
           if (frac_l_ec(ec,l) <= 0._r8) then

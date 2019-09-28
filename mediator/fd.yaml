@@ -750,11 +750,13 @@
      #
      - standard_name: Flgg_hflx
        canonical_units: W m-2
-       description: Downward heat flux from glacier interior, from mediator (land-ice export)
+       description: land-ice export to mediator (no elevatino classes)
+         Downward heat flux from glacier interior, from mediator, elev class 0
      #
      - standard_name: Flgg_hflx_elev
        canonical_units: W m-2
-       description: Downward heat flux from glacier interior, from mediator, elev class 1->glc_nec
+       description: mediator land-ice export to lnd (elevation classes 1->glc_nec)
+         Downward heat flux from glacier interior, from mediator, elev class 1->glc_nec
      #
      - standard_name: Sg_ice_covered
        canonical_units: 1
@@ -766,23 +768,24 @@
      #
      - standard_name: Sg_icemask
        canonical_units: 1
-       description: ice sheet grid coverage on global grid (land-ice export)
+       description: land-ice export
      #
      - standard_name: Sg_icemask_coupled_fluxes
        canonical_units: 1
-       description: Ice sheet mask where we are potentially sending non-zero fluxes (land-ice export)
+       description: land-ice export
      #
      - standard_name: Sg_topo
        canonical_units: m
-       description: Surface height of glacier (land-ice export)
+       description: land-ice export to mediator (no elevation classes)
      #
      - standard_name: Sg_topo_elev
        canonical_units: m
-       description: Surface height of glacier in elevation classes 1->glc_nec (mediator export to lnd)
+       description: mediator land-ice export to lnd (elevation classes 1->glc_nec)
      #
      - standard_name: Fogg_rofi
        canonical_units: kg m-2 s-1
-       description: glacier_frozen_runoff_flux_to_ocean (land-ice export)
+       description: land-ice export
+         glacier_frozen_runoff_flux_to_ocean
      #
      - standard_name: Fogg_rofi_wiso
        canonical_units: kg m-2 s-1
