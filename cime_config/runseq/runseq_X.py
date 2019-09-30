@@ -78,7 +78,6 @@ def runseq(case, coupling_times):
         outfile.write ("  ATM                                \n")
         outfile.write ("  ATM -> MED :remapMethod=redist     \n")
     if (comp_glc == 'xglc'):
-        outfile.write ("  MED med_phases_prep_glc            \n")
         outfile.write ("  MED -> GLC :remapMethod=redist     \n")
         outfile.write ("  GLC                                \n")
         outfile.write ("  GLC -> MED :remapMethod=redist     \n")
