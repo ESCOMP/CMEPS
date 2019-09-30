@@ -58,6 +58,7 @@ module shr_nuopc_methods_mod
   public shr_nuopc_methods_FB_GetFldPtr
   public shr_nuopc_methods_FB_getNameN
   public shr_nuopc_methods_FB_getFieldN
+  public shr_nuopc_methods_FB_getFieldByName
   public shr_nuopc_methods_FB_FieldRegrid
   public shr_nuopc_methods_FB_getNumflds
   public shr_nuopc_methods_FB_Field_diagnose
@@ -89,7 +90,6 @@ module shr_nuopc_methods_mod
   private shr_nuopc_methods_FB_GeomPrint
   private shr_nuopc_methods_FB_GeomWrite
   private shr_nuopc_methods_FB_RWFields
-  private shr_nuopc_methods_FB_getFieldByName
   private shr_nuopc_methods_FB_SetFldPtr
   private shr_nuopc_methods_FB_copyFB2FB
   private shr_nuopc_methods_FB_accumFB2FB

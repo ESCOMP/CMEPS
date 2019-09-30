@@ -3,7 +3,7 @@ module med_phases_prep_rof_mod
   !-----------------------------------------------------------------------------
   ! Create rof export fields
   ! - accumulate import lnd fields on the land grid that are sent to rof 
-  !   this will be done in med_phases_prep_rof_accum_fast
+  !   this will be done in med_phases_prep_rof_accum
   ! - time avergage accumulated import lnd fields when necessary
   !   map the time averaged accumulated lnd fields to the rof grid
   !   merge the mapped lnd fields to create FBExp(comprof)
@@ -12,6 +12,7 @@ module med_phases_prep_rof_mod
 
   use ESMF                  , only : ESMF_FieldBundle
   use esmFlds               , only : ncomps, complnd, comprof, compname, mapconsf
+  use esmFlds               , only : shr_nuopc_fldlist_type
   use med_constants_mod     , only : R8, CS
   use med_constants_mod     , only : dbug_flag       => med_constants_dbug_flag
   use shr_nuopc_utils_mod   , only : chkerr          => shr_nuopc_utils_ChkErr
@@ -31,7 +32,7 @@ module med_phases_prep_rof_mod
   implicit none
   private
 
-  public  :: med_phases_prep_rof_accum_fast
+  public  :: med_phases_prep_rof_accum
   public  :: med_phases_prep_rof_avg
 
   private :: med_phases_prep_rof_irrig       
@@ -40,6 +41,7 @@ module med_phases_prep_rof_mod
   type(ESMF_FieldBundle)      :: FBrofVolr          ! needed for lnd2rof irrigation
   type(ESMF_FieldBundle)      :: FBlndIrrig         ! needed for lnd2rof irrigation
   type(ESMF_FieldBundle)      :: FBrofIrrig         ! needed for lnd2rof irrigation
+  type(shr_nuopc_fldlist_type):: fldlist_lnd2rof    ! needed for lnd2rof irrigation
 
   character(len=*), parameter :: volr_field             = 'Flrr_volrmch'
   character(len=*), parameter :: irrig_flux_field       = 'Flrl_irrig'
@@ -53,7 +55,7 @@ module med_phases_prep_rof_mod
 contains
 !-----------------------------------------------------------------------------
 
-  subroutine med_phases_prep_rof_accum_fast(gcomp, rc)
+  subroutine med_phases_prep_rof_accum(gcomp, rc)
 
     !------------------------------------
     ! Carry out fast accumulation for the river (rof) component
@@ -77,7 +79,7 @@ contains
     type(InternalState) :: is_local
     integer             :: i,j,n,ncnt
     integer             :: dbrc
-    character(len=*), parameter :: subname='(med_phases_prep_rof_mod: med_phases_prep_rof_accum_fast)'
+    character(len=*), parameter :: subname='(med_phases_prep_rof_mod: med_phases_prep_rof_accum)'
     !---------------------------------------
 
     call t_startf('MED:'//subname)
@@ -136,7 +138,7 @@ contains
     end if
     call t_stopf('MED:'//subname)
 
-  end subroutine med_phases_prep_rof_accum_fast
+  end subroutine med_phases_prep_rof_accum
 
   !-----------------------------------------------------------------------------
 
@@ -223,13 +225,13 @@ contains
        if (is_local%wrap%med_coupling_active(complnd,comprof)) then
 
           call med_map_FB_Regrid_Norm( &
-               fldListFr(complnd)%flds, complnd, comprof, &
-               is_local%wrap%FBImpAccum(complnd,complnd), &
-               is_local%wrap%FBImpAccum(complnd,comprof), &
-               is_local%wrap%FBFrac(complnd), &
-               is_local%wrap%FBFrac(comprof), &
-               is_local%wrap%FBNormOne(complnd,comprof,:), &
-               is_local%wrap%RH(complnd,comprof,:), &
+               fldsSrc=fldListFr(complnd)%flds, &
+               srccomp=complnd, destcomp=comprof, &
+               FBSrc=is_local%wrap%FBImpAccum(complnd,complnd), &
+               FBDst=is_local%wrap%FBImpAccum(complnd,comprof), &
+               FBFracSrc=is_local%wrap%FBFrac(complnd), &
+               FBNormOne=is_local%wrap%FBNormOne(complnd,comprof,:), &
+               RouteHandles=is_local%wrap%RH(complnd,comprof,:), &
                string=trim(compname(complnd))//'2'//trim(compname(comprof)), rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
 
@@ -412,6 +414,14 @@ contains
             FBgeom=is_local%wrap%FBImp(comprof,comprof), &
             fieldNameList=(/irrig_normalized_field, irrig_volr0_field/), rc=rc)
        if (chkerr(rc,__line__,u_file_u)) return
+
+       allocate(fldlist_lnd2rof%flds(2))
+       fldlist_lnd2rof%flds(1)%shortname = irrig_normalized_field
+       fldlist_lnd2rof%flds(2)%shortname = irrig_volr0_field
+       fldlist_lnd2rof%flds(1)%mapindex(comprof) = mapconsf
+       fldlist_lnd2rof%flds(2)%mapindex(comprof) = mapconsf
+       fldlist_lnd2rof%flds(1)%mapnorm(comprof) = 'lfrac'
+       fldlist_lnd2rof%flds(2)%mapnorm(comprof) = 'lfrac'
     end if
 
     ! ------------------------------------------------------------------------
@@ -489,12 +499,16 @@ contains
     !     convert to a total irrigation flux on the ROF grid
     ! ------------------------------------------------------------------------
 
-    call med_map_FB_Regrid_Norm(&
-         (/irrig_normalized_field, irrig_volr0_field/), &
-         FBlndIrrig, FBrofIrrig, &
-         is_local%wrap%FBFrac(complnd), 'lfrac', &
-         is_local%wrap%RH(complnd, comprof, mapconsf), &
-         string='mapping normalized irrig from lnd to to rof', rc=rc)
+    call med_map_FB_Regrid_Norm( &
+         fldsSrc=fldList_lnd2rof%flds, &
+         srccomp=complnd, destcomp=comprof, &
+         FBSrc=FBlndIrrig, &
+         FBDst=FBrofIrrig, &
+         FBFracSrc=is_local%wrap%FBFrac(complnd), &
+         FBNormOne=is_local%wrap%FBNormOne(complnd,comprof,:), &
+         RouteHandles=is_local%wrap%RH(complnd,comprof,:), &
+         string=trim(compname(complnd))//'2'//trim(compname(comprof)), rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     call FB_getFldPtr(FBrofIrrig, trim(irrig_normalized_field), irrig_normalized_r, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return

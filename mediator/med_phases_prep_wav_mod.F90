@@ -78,13 +78,13 @@ contains
        do n1 = 1,ncomps
           if (is_local%wrap%med_coupling_active(n1,compwav)) then
              call med_map_FB_Regrid_Norm( &
-                  fldListFr(n1)%flds, n1, compwav, &
-                  is_local%wrap%FBImp(n1,n1), &
-                  is_local%wrap%FBImp(n1,compwav), &
-                  is_local%wrap%FBFrac(n1), &
-                  is_local%wrap%FBFrac(compwav), &
-                  is_local%wrap%FBNormOne(n1,compwav,:), &
-                  is_local%wrap%RH(n1,compwav,:), &
+                  fldsSrc=fldListFr(n1)%flds, &
+                  srccomp=n1, destcomp=compwav, &
+                  FBSrc=is_local%wrap%FBImp(n1,n1), &
+                  FBDst=is_local%wrap%FBImp(n1,compwav), &
+                  FBFracSrc=is_local%wrap%FBFrac(n1), &
+                  FBNormOne=is_local%wrap%FBNormOne(n1,compwav,:), &
+                  RouteHandles=is_local%wrap%RH(n1,compwav,:), &
                   string=trim(compname(n1))//'2'//trim(compname(compwav)), rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           endif

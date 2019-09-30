@@ -13,19 +13,15 @@ def runseq(case, coupling_times):
 
     rundir    = case.get_value("RUNDIR")
     caseroot  = case.get_value("CASEROOT")
-#    cimeroot  = case.get_value("CIMEROOT")
     comp_atm  = case.get_value("COMP_ATM")
     comp_ice  = case.get_value("COMP_ICE")
-#    comp_glc  = case.get_value("COMP_GLC")
     comp_lnd  = case.get_value("COMP_LND")
     comp_ocn  = case.get_value("COMP_OCN")
     comp_rof  = case.get_value("COMP_ROF")
     comp_wav  = case.get_value("COMP_WAV")
-#    budgets   = case.get_value("BUDGETS")
 
     atm_cpl_dt = coupling_times["atm_cpl_dt"]
     ocn_cpl_dt = coupling_times["ocn_cpl_dt"]
-#    rof_cpl_dt = coupling_times["rof_cpl_dt"]
     wav_cpl_dt = coupling_times["wav_cpl_dt"]
     lnd_cpl_dt = coupling_times["lnd_cpl_dt"]
 
@@ -47,7 +43,7 @@ def runseq(case, coupling_times):
         outfile.write ("    MED med_phases_ocnalb_run          \n")
         outfile.write ("    MED med_phases_prep_ice            \n")
         outfile.write ("    MED -> ICE :remapMethod=redist     \n")
-        outfile.write ("    MED med_phases_prep_rof_accum_fast \n")
+        outfile.write ("    MED med_phases_prep_rof_accum      \n")
         outfile.write ("    MED med_phases_prep_rof_avg        \n")
         outfile.write ("    MED -> ROF :remapMethod=redist     \n")
         outfile.write ("    ICE                                \n")

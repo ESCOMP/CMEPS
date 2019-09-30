@@ -98,13 +98,13 @@ contains
        do n1 = 1,ncomps
           if (is_local%wrap%med_coupling_active(n1,compice)) then
              call med_map_FB_Regrid_Norm( &
-                  fldListFr(n1)%flds, n1, compice, &
-                  is_local%wrap%FBImp(n1,n1), &
-                  is_local%wrap%FBImp(n1,compice), &
-                  is_local%wrap%FBFrac(n1), &
-                  is_local%wrap%FBFrac(compice), &
-                  is_local%wrap%FBNormOne(n1,compice,:), &
-                  is_local%wrap%RH(n1,compice,:), &
+                  fldsSrc=fldListFr(n1)%flds, &
+                  srccomp=n1, destcomp=compice, &
+                  FBSrc=is_local%wrap%FBImp(n1,n1), &
+                  FBDst=is_local%wrap%FBImp(n1,compice), &
+                  FBFracSrc=is_local%wrap%FBFrac(n1), &
+                  FBNormOne=is_local%wrap%FBNormOne(n1,compice,:), &
+                  RouteHandles=is_local%wrap%RH(n1,compice,:), &
                   string=trim(compname(n1))//'2'//trim(compname(compice)), rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
           end if

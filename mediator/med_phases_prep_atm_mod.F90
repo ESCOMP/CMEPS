@@ -113,13 +113,13 @@ contains
          do n1 = 1,ncomps
             if (is_local%wrap%med_coupling_active(n1,compatm)) then
                call med_map_FB_Regrid_Norm( &
-                    fldListFr(n1)%flds, n1, compatm, &
-                    is_local%wrap%FBImp(n1,n1), &
-                    is_local%wrap%FBImp(n1,compatm), &
-                    is_local%wrap%FBFrac(n1), &
-                    is_local%wrap%FBFrac(compatm), &
-                    is_local%wrap%FBNormOne(n1,compatm,:), &
-                    is_local%wrap%RH(n1,compatm,:), &
+                    fldsSrc=fldListFr(n1)%flds, &
+                    srccomp=n1, destcomp=compatm, &
+                    FBSrc=is_local%wrap%FBImp(n1,n1), &
+                    FBDst=is_local%wrap%FBImp(n1,compatm), &
+                    FBFracSrc=is_local%wrap%FBFrac(n1), &
+                    FBNormOne=is_local%wrap%FBNormOne(n1,compatm,:), &
+                    RouteHandles=is_local%wrap%RH(n1,compatm,:), &
                     string=trim(compname(n1))//'2'//trim(compname(compatm)), rc=rc)
                if (ChkErr(rc,__LINE__,u_FILE_u)) return
             endif
@@ -139,13 +139,13 @@ contains
 
          if (trim(coupling_mode) == 'cesm' .or. trim(coupling_mode) == 'nems_orig') then
             call med_map_FB_Regrid_Norm(&
-                 fldListMed_aoflux%flds, compocn, compatm, &
-                 is_local%wrap%FBMed_aoflux_o, &
-                 is_local%wrap%FBMed_aoflux_a, &
-                 is_local%wrap%FBFrac(compocn), &
-                 is_local%wrap%FBFrac(compatm), &
-                 is_local%wrap%FBNormOne(compocn,compatm,:), &
-                 is_local%wrap%RH(compocn,compatm,:), &
+                 fldsSrc=fldListMed_aoflux%flds, &
+                 srccomp=compocn, destcomp=compatm, &
+                 FBSrc=is_local%wrap%FBMed_aoflux_o, &
+                 FBDst=is_local%wrap%FBMed_aoflux_a, &
+                 FBFracSrc=is_local%wrap%FBFrac(compocn), &
+                 FBNormOne=is_local%wrap%FBNormOne(compocn,compatm,:), &
+                 RouteHandles=is_local%wrap%RH(compocn,compatm,:), &
                  string='FBMed_aoflux_o_To_FBMEd_aoflux_a', rc=rc)
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
          endif

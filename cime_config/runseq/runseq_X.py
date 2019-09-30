@@ -67,7 +67,7 @@ def runseq(case, coupling_times):
         outfile.write ("  WAV                                \n")
         outfile.write ("  WAV -> MED :remapMethod=redist     \n")
     if (comp_rof == 'xrof'):
-        outfile.write ("  MED med_phases_prep_rof_accum_fast \n")
+        outfile.write ("  MED med_phases_prep_rof_accum      \n")
         outfile.write ("  MED med_phases_prep_rof_avg        \n")
         outfile.write ("  MED -> ROF :remapMethod=redist     \n")
         outfile.write ("  ROF                                \n")
@@ -78,7 +78,6 @@ def runseq(case, coupling_times):
         outfile.write ("  ATM                                \n")
         outfile.write ("  ATM -> MED :remapMethod=redist     \n")
     if (comp_glc == 'xglc'):
-        outfile.write ("  MED med_phases_prep_glc            \n")
         outfile.write ("  MED -> GLC :remapMethod=redist     \n")
         outfile.write ("  GLC                                \n")
         outfile.write ("  GLC -> MED :remapMethod=redist     \n")

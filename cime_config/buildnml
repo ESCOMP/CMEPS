@@ -47,7 +47,7 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     config['flux_epbal'] = 'ocn' if case.get_value('CPL_EPBAL')  == 'ocn' else 'off'
     config['atm_grid'] = case.get_value('ATM_GRID')
 
-    # needed for determining the run sequence
+    # needed for determining the run sequence as well as glc_renormalize_smb
     config['COMP_ATM'] = case.get_value("COMP_ATM")
     config['COMP_ICE'] = case.get_value("COMP_ICE")
     config['COMP_GLC'] = case.get_value("COMP_GLC")
@@ -323,10 +323,8 @@ def _create_runseq(case, coupling_times):
 
         sys.path.append(os.path.join(_CIMEROOT, "src", "drivers", "nuopc", "cime_config", "runseq"))
 
-        if (runseq_a1 or runseq_a2 or runseq_a3 or runseq_a4):
-            from runseq_A import runseq
-        elif (comp_atm == 'xatm' or comp_ocn == "xocn" or comp_ice == 'xice' or
-              comp_rof == 'xrof' or comp_wav == 'xwav' or comp_glc == 'xglc'):
+        if (comp_atm == 'xatm' or comp_ocn == "xocn" or comp_ice == 'xice' or
+            comp_rof == 'xrof' or comp_wav == 'xwav' or comp_glc == 'xglc'):
             from runseq_X import runseq
         elif (comp_atm == 'cam' and comp_ocn == "docn"):
             from runseq_FQ import runseq
@@ -340,6 +338,10 @@ def _create_runseq(case, coupling_times):
             from runseq_B import runseq
         elif (comp_atm == 'fv3gfs' and comp_ocn == "mom" and comp_ice == 'cice'):
             from runseq_NEMS import runseq
+        elif (comp_lnd == 'dlnd' and comp_glc == "cism"):
+            from runseq_TG import runseq
+        elif (runseq_a1 or runseq_a2 or runseq_a3 or runseq_a4):
+            from runseq_A import runseq
         try:
             runseq(case, coupling_times)
         except Exception as e:
