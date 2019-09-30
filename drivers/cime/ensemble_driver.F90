@@ -9,7 +9,7 @@ module Ensemble_driver
 
   use shr_kind_mod          , only : cl=>shr_kind_cl
   use shr_nuopc_utils_mod   , only : chkerr => shr_nuopc_utils_ChkErr
-  use med_constants_mod     , only : dbug_flag => med_constants_dbug_flag
+  use shr_const_mod         , only : dbug_flag
   use med_internalstate_mod , only : mastertask
 
   implicit none

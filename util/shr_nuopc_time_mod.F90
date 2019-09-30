@@ -15,7 +15,7 @@ module shr_nuopc_time_mod
   use ESMF                , only : operator(-), operator(*) , operator(>=)
   use ESMF                , only : operator(<=), operator(>), operator(==)
   use NUOPC               , only : NUOPC_CompAttributeGet
-  use med_constants_mod   , only : dbug_flag => med_constants_dbug_flag
+  use shr_const_mod       , only : dbug_flag
   use shr_nuopc_utils_mod , only : chkerr => shr_nuopc_utils_ChkErr
 
   implicit none
@@ -63,7 +63,7 @@ contains
 
   subroutine shr_nuopc_time_clockInit(ensemble_driver, esmdriver, logunit, rc)
 
-    use med_constants_mod     , only : CL, CS
+    use shr_const_mod         , only : CL, CS
     use shr_cal_mod           , only : shr_cal_noleap, shr_cal_gregorian, shr_cal_calendarname
 
     ! input/output variables
@@ -939,7 +939,7 @@ contains
     use netcdf                , only : nf90_open, nf90_nowrite, nf90_noerr
     use netcdf                , only : nf90_inq_varid, nf90_get_var, nf90_close
     use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO
-    use med_constants_mod     , only : CL
+    use shr_const_mod         , only : CL
 
     ! input/output variables
     character(len=*), intent(in) :: restart_file

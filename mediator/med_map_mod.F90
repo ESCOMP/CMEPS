@@ -6,11 +6,11 @@ module med_map_mod
   use esmFlds               , only : mapunset, mapnames
   use esmFlds               , only : mapnstod, mapnstod_consd, mapnstod_consf
   use esmFlds               , only : mapuv_with_cart3d
-  use med_constants_mod     , only : CX, CS, CL, R8
-  use med_constants_mod     , only : shr_const_pi
-  use med_constants_mod     , only : ispval_mask       => med_constants_ispval_mask
-  use med_constants_mod     , only : czero             => med_constants_czero
-  use med_constants_mod     , only : dbug_flag         => med_constants_dbug_flag
+  use shr_const_mod         , only : CX, CS, CL, R8
+  use shr_const_mod         , only : shr_const_pi
+  use shr_const_mod         , only : ispval_mask
+  use shr_const_mod         , only : czero
+  use shr_const_mod         , only : dbug_flag
   use shr_nuopc_utils_mod   , only : chkerr            => shr_nuopc_utils_ChkErr
   use shr_nuopc_utils_mod   , only : memcheck          => shr_nuopc_memcheck
   use shr_nuopc_methods_mod , only : FB_getFieldN      => shr_nuopc_methods_FB_getFieldN
