@@ -24,7 +24,7 @@ contains
     use ESMF                  , only : ESMF_ClockPrint
     use esmFlds               , only : compwav, ncomps, compname
     use esmFlds               , only : fldListFr, fldListTo
-    use shr_const_mod         , only : CS
+    use shr_kind_mod          , only : CS=>SHR_KIND_CS
     use shr_const_mod         , only : dbug_flag
     use shr_nuopc_utils_mod   , only : chkerr        => shr_nuopc_utils_ChkErr
     use shr_nuopc_methods_mod , only : FB_diagnose   => shr_nuopc_methods_FB_diagnose

@@ -6,7 +6,7 @@ module med_map_mod
   use esmFlds               , only : mapunset, mapnames
   use esmFlds               , only : mapnstod, mapnstod_consd, mapnstod_consf
   use esmFlds               , only : mapuv_with_cart3d
-  use shr_const_mod         , only : CX, CS, CL, R8
+  use shr_const_mod         , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
   use shr_const_mod         , only : shr_const_pi
   use shr_const_mod         , only : ispval_mask
   use shr_const_mod         , only : czero

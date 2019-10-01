@@ -1,6 +1,6 @@
 module esmflds
 
-  use shr_const_mod, only : CX, CS, CL
+  use shr_kind_mod, only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL
 
   implicit none
   private

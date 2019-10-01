@@ -5,7 +5,8 @@ module med_phases_history_mod
   !-----------------------------------------------------------------------------
 
   use ESMF              , only : ESMF_Alarm
-  use shr_const_mod     , only : R8, CL, CS, I8
+  use shr_kind_mod      , only : R8=>SHR_KIND_R8, CL=>SHR_KIND_CL
+  use shr_kind_mod      , only : CS=>SHR_KIND_CS, I8=>SHR_KIND_I8
 
   implicit none
   private

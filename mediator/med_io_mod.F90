@@ -10,7 +10,8 @@ module med_io_mod
   use NUOPC                 , only : NUOPC_FieldDictionaryGetEntry
   use NUOPC                 , only : NUOPC_FieldDictionaryHasEntry
   use pio                   , only : file_desc_t, iosystem_desc_t
-  use shr_const_mod         , only : R4, R8, I8, CL 
+  use shr_kind_mod          , only : R4=>SHR_KIND_R4, R8=>SHR_KIND_R8
+  use shr_kind_mod          , only : I8=>SHR_KIND_I8, CL=>SHR_KIND_CL
   use shr_const_mod         , only : dbug_flag
   use med_internalstate_mod , only : logunit, med_id
   use shr_nuopc_methods_mod , only : FB_getFieldN => shr_nuopc_methods_FB_getFieldN
@@ -402,7 +403,7 @@ contains
     use ESMF                  , only : ESMF_FieldBundleIsCreated, ESMF_FieldBundle, ESMF_Mesh, ESMF_DistGrid
     use ESMF                  , only : ESMF_FieldBundleGet, ESMF_FieldGet, ESMF_MeshGet, ESMF_DistGridGet
     use ESMF                  , only : ESMF_Field, ESMF_FieldGet, ESMF_AttributeGet 
-    use shr_const_mod         , only : fillvalue=>SPVAL
+    use shr_const_mod         , only : fillvalue=>SPVAL_INIT
     use pio                   , only : var_desc_t, io_desc_t, pio_offset_kind
     use pio                   , only : pio_def_dim, pio_inq_dimid, pio_real, pio_def_var, pio_put_att, pio_double
     use pio                   , only : pio_inq_varid, pio_setframe, pio_write_darray, pio_initdecomp, pio_freedecomp
@@ -1234,7 +1235,7 @@ contains
     use pio                   , only : pio_double, pio_get_att, pio_seterrorhandling, pio_freedecomp, pio_closefile
     use pio                   , only : pio_read_darray, pio_offset_kind, pio_setframe
     use shr_const_mod         , only : dbug_flag
-    use shr_const_mod         , only : fillvalue=>SPVAL
+    use shr_const_mod         , only : fillvalue=>SPVAL_INIT
 
     ! input/output arguments
     character(len=*)                        ,intent(in)  :: filename ! file
@@ -1622,7 +1623,7 @@ contains
 
   !===============================================================================
   subroutine med_io_read_r8(filename, vm, iam, rdata, dname, rc)
-    use shr_const_mod, only : R8
+    use shr_kind_mod, only : R8=>SHR_KIND_R8
 
     !---------------
     ! Read scalar double from netcdf file

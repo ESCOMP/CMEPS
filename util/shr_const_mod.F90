@@ -13,17 +13,17 @@ MODULE shr_const_mod
    ! type constants 
    !----------------------------------------------------------------------------
 
-   integer(SHR_KIND_IN),parameter :: R8 = SHR_KIND_R8 ! rename for local readability only
-   integer(SHR_KIND_IN),parameter :: R4 = SHR_KIND_R4 ! rename for local readability only
-   integer(SHR_KIND_IN),parameter :: RN = SHR_KIND_RN ! rename for local readability only
-   integer(SHR_KIND_IN),parameter :: I8 = SHR_KIND_R8 ! rename for local readability only
-   integer(SHR_KIND_IN),parameter :: I4 = SHR_KIND_R4 ! rename for local readability only
-   integer(SHR_KIND_IN),parameter :: IN = SHR_KIND_RN ! rename for local readability only
-   integer(SHR_KIND_IN),parameter :: CS = SHR_KIND_CS ! rename for local readability only
-   integer(SHR_KIND_IN),parameter :: CM = SHR_KIND_CM ! rename for local readability only
-   integer(SHR_KIND_IN),parameter :: CL = SHR_KIND_CL ! rename for local readability only
-   integer(SHR_KIND_IN),parameter :: CX = SHR_KIND_CX ! rename for local readability only
-   integer(SHR_KIND_IN),parameter :: CXX = SHR_KIND_CXX ! rename for local readability only
+   !integer(SHR_KIND_IN),parameter :: R8 = SHR_KIND_R8 ! rename for local readability only
+   !integer(SHR_KIND_IN),parameter :: R4 = SHR_KIND_R4 ! rename for local readability only
+   !integer(SHR_KIND_IN),parameter :: RN = SHR_KIND_RN ! rename for local readability only
+   !integer(SHR_KIND_IN),parameter :: I8 = SHR_KIND_R8 ! rename for local readability only
+   !integer(SHR_KIND_IN),parameter :: I4 = SHR_KIND_R4 ! rename for local readability only
+   !integer(SHR_KIND_IN),parameter :: IN = SHR_KIND_RN ! rename for local readability only
+   !integer(SHR_KIND_IN),parameter :: CS = SHR_KIND_CS ! rename for local readability only
+   !integer(SHR_KIND_IN),parameter :: CM = SHR_KIND_CM ! rename for local readability only
+   !integer(SHR_KIND_IN),parameter :: CL = SHR_KIND_CL ! rename for local readability only
+   !integer(SHR_KIND_IN),parameter :: CX = SHR_KIND_CX ! rename for local readability only
+   !integer(SHR_KIND_IN),parameter :: CXX = SHR_KIND_CXX ! rename for local readability only
 
    !----------------------------------------------------------------------------
    ! numerical constants 

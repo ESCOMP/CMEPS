@@ -13,7 +13,7 @@ module med_phases_prep_rof_mod
   use ESMF                  , only : ESMF_FieldBundle
   use esmFlds               , only : ncomps, complnd, comprof, compname, mapconsf
   use esmFlds               , only : shr_nuopc_fldlist_type
-  use shr_const_mod         , only : R8, CS
+  use shr_kind_mod          , only : R8=>SHR_KIND_R8, CS=>SHR_KIND_CS
   use shr_const_mod         , only : dbug_flag
   use shr_nuopc_utils_mod   , only : chkerr          => shr_nuopc_utils_ChkErr
   use shr_nuopc_methods_mod , only : FB_init         => shr_nuopc_methods_FB_init

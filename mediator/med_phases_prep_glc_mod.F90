@@ -20,9 +20,8 @@ module med_phases_prep_glc_mod
   use esmFlds               , only : compglc, complnd, mapbilnr, mapconsf, compname
   use esmFlds               , only : shr_nuopc_fldlist_type
   use shr_sys_mod           , only : shr_sys_abort
-  use med_internalstate_mod , only : InternalState, mastertask, logunit
-  use med_constants_mod     , only : R8, CS
-  use med_constants_mod     , only : dbug_flag=>med_constants_dbug_flag
+  use shr_kind_mod          , only : R8=>SHR_KIND_R8, CS=>SHR_KIND_CS
+  use shr_const_mod         , only : dbug_flag
   use med_internalstate_mod , only : InternalState, mastertask, logunit
   use med_map_mod           , only : med_map_FB_Regrid_Norm
   use med_map_mod           , only : med_map_Fractions_Init
@@ -86,7 +85,6 @@ module med_phases_prep_glc_mod
 
 !================================================================================================
 contains
-<<<<<<< HEAD
 !================================================================================================
 
   subroutine med_phases_prep_glc_init(gcomp, rc)
