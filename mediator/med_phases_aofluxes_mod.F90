@@ -1,8 +1,8 @@
 module med_phases_aofluxes_mod
 
-  use med_constants_mod     , only : R8, CL, CX
+  use shr_const_mod         , only : R8, CL, CX
   use med_internalstate_mod , only : mastertask, logunit
-  use med_constants_mod     , only : dbug_flag    => med_constants_dbug_flag
+  use shr_const_mod         , only : dbug_flag
   use shr_nuopc_utils_mod   , only : memcheck     => shr_nuopc_memcheck
   use shr_nuopc_utils_mod   , only : chkerr       => shr_nuopc_utils_chkerr
   use shr_nuopc_methods_mod , only : FB_fldchk    => shr_nuopc_methods_FB_FldChk

@@ -25,8 +25,8 @@ contains
       use esmFlds               , only : fldListFr, fldListTo
       use esmFlds               , only : fldListMed_aoflux
       use esmFlds               , only : coupling_mode
-      use med_constants_mod     , only : R8
-      use med_constants_mod     , only : dbug_flag       => med_constants_dbug_flag
+      use shr_const_mod         , only : R8
+      use shr_const_mod         , only : dbug_flag
       use shr_nuopc_utils_mod   , only : memcheck        => shr_nuopc_memcheck
       use shr_nuopc_utils_mod   , only : chkerr          => shr_nuopc_utils_ChkErr
       use shr_nuopc_methods_mod , only : FB_fldchk       => shr_nuopc_methods_FB_FldChk
@@ -172,13 +172,7 @@ contains
                  is_local%wrap%FBImp(:,compatm), fldListTo(compatm), rc=rc)
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
          end if
-
-         if (dbug_flag > 1) then
-            call FB_diagnose(is_local%wrap%FBExp(compatm), &
-                 string=trim(subname)//' FBexp(compatm) ', rc=rc)
-            if (ChkErr(rc,__LINE__,u_FILE_u)) return
-         end if
-
+         
          !---------------------------------------
          !--- custom calculations
          !---------------------------------------
@@ -210,6 +204,12 @@ contains
             do n = 1,size(dataptr1)
                dataptr1(n) = dataptr2(n)
             end do
+         end if
+
+         if (dbug_flag > 1) then
+            call FB_diagnose(is_local%wrap%FBExp(compatm), &
+                 string=trim(subname)//' FBexp(compatm) ', rc=rc)
+            if (ChkErr(rc,__LINE__,u_FILE_u)) return
          end if
 
          !---------------------------------------

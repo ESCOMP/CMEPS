@@ -1113,7 +1113,7 @@ contains
     use NUOPC                 , only : NUOPC_CompAttributeGet
     use NUOPC_Driver          , only : NUOPC_DriverAddComp
     use shr_string_mod        , only : toLower => shr_string_toLower
-    use med_constants_mod     , only : dbug_flag => med_constants_dbug_flag, CS, CL
+    use shr_const_mod         , only : dbug_flag, CS, CL
     use mpi                   , only : MPI_COMM_NULL
     use mct_mod               , only : mct_world_init
     use shr_pio_mod           , only : shr_pio_init2

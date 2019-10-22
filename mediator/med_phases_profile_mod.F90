@@ -2,7 +2,7 @@ module med_phases_profile_mod
   !-----------------------------------------------------------------------------
   ! Output med profile to log file
   !-----------------------------------------------------------------------------
-  use med_constants_mod, only : R8
+  use shr_const_mod, only : R8
   implicit none
   private
 
@@ -29,7 +29,7 @@ contains
     use ESMF, only : operator(-)
     use NUOPC, only : NUOPC_CompAttributeGet
     use shr_nuopc_utils_mod, only : shr_nuopc_utils_chkerr, shr_nuopc_memcheck
-    use med_constants_mod, only : dbug_flag=>med_constants_dbug_flag, CS, CL
+    use shr_const_mod, only : dbug_flag, CS, CL
     use med_internalstate_mod, only : mastertask, logunit
 
     use perf_mod, only : t_startf, t_stopf

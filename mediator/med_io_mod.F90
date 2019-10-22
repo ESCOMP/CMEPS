@@ -10,8 +10,8 @@ module med_io_mod
   use NUOPC                 , only : NUOPC_FieldDictionaryGetEntry
   use NUOPC                 , only : NUOPC_FieldDictionaryHasEntry
   use pio                   , only : file_desc_t, iosystem_desc_t
-  use med_constants_mod     , only : R4, R8, I8, CL 
-  use med_constants_mod     , only : dbug_flag    => med_constants_dbug_flag
+  use shr_const_mod         , only : R4, R8, I8, CL 
+  use shr_const_mod         , only : dbug_flag
   use med_internalstate_mod , only : logunit, med_id
   use shr_nuopc_methods_mod , only : FB_getFieldN => shr_nuopc_methods_FB_getFieldN
   use shr_nuopc_methods_mod , only : FB_getFldPtr => shr_nuopc_methods_FB_getFldPtr
@@ -124,6 +124,32 @@ contains
     !---------------
 
     use shr_pio_mod , only : shr_pio_getiosys, shr_pio_getiotype, shr_pio_getioformat
+
+    ! if CMEPS is the only component using PIO, then
+    ! it needs to initialize PIO
+#ifdef INTERNAL_PIO_INIT
+    use shr_pio_mod , only : shr_pio_init2
+    use ESMF, only : ESMF_VMGetCurrent, ESMF_VMGet
+
+    type(ESMF_VM)         :: vm
+    integer               :: comms(1), comps(1)
+    logical               :: comp_iamin(1)
+    integer               :: comp_comm_iam(1)
+    character(len=32)     :: compLabels(1)
+    integer               :: rc
+    
+    call ESMF_VMGetCurrent(vm=vm, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    call ESMF_VMGet(vm, mpiCommunicator=comms(1), localPet=comp_comm_iam(1), rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    comps(1) = med_id
+    compLabels(1) = "MED"
+    comp_iamin(1) = .true.
+
+    call shr_pio_init2(comps, compLabels, comp_iamin, comms, comp_comm_iam)
+#endif
 
     io_subsystem => shr_pio_getiosys(med_id)
     pio_iotype   =  shr_pio_getiotype(med_id)
@@ -376,11 +402,11 @@ contains
     use ESMF                  , only : ESMF_FieldBundleIsCreated, ESMF_FieldBundle, ESMF_Mesh, ESMF_DistGrid
     use ESMF                  , only : ESMF_FieldBundleGet, ESMF_FieldGet, ESMF_MeshGet, ESMF_DistGridGet
     use ESMF                  , only : ESMF_Field, ESMF_FieldGet, ESMF_AttributeGet 
-    use med_constants_mod     , only : fillvalue=>SHR_CONST_SPVAL
     use pio                   , only : var_desc_t, io_desc_t, pio_offset_kind
     use pio                   , only : pio_def_dim, pio_inq_dimid, pio_real, pio_def_var, pio_put_att, pio_double
     use pio                   , only : pio_inq_varid, pio_setframe, pio_write_darray, pio_initdecomp, pio_freedecomp
     use pio                   , only : pio_syncfile
+    use shr_const_mod         , only : fillvalue=>SPVAL
 
     ! input/output variables
     character(len=*),           intent(in) :: filename  ! file
@@ -407,6 +433,7 @@ contains
     integer                       :: rcode
     integer                       :: nf,ns,ng
     integer                       :: k,n
+    integer                       :: ndims, nelements
     integer    ,target            :: dimid2(2)
     integer    ,target            :: dimid3(3)
     integer    ,pointer           :: dimid(:)
@@ -430,6 +457,7 @@ contains
     integer                       :: lfile_ind
     real(r8), pointer             :: fldptr1(:)
     real(r8), pointer             :: fldptr2(:,:)
+    real(r8), allocatable         :: ownedElemCoords(:), ownedElemCoords_x(:), ownedElemCoords_y(:)
     character(len=number_strlen)  :: cnumber
     character(CL)                 :: tmpstr
     type(ESMF_Field)              :: lfield
@@ -503,6 +531,24 @@ contains
 
     call ESMF_MeshGet(mesh, elementDistgrid=distgrid, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    call ESMF_MeshGet(mesh, spatialDim=ndims, numOwnedElements=nelements, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    write(tmpstr,*) subname, 'ndims, nelements = ', ndims, nelements
+    call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
+
+    if (.not. allocated(ownedElemCoords) .and. ndims > 0 .and. nelements > 0) then
+       allocate(ownedElemCoords(ndims*nelements))
+       allocate(ownedElemCoords_x(ndims*nelements/2))
+       allocate(ownedElemCoords_y(ndims*nelements/2))
+
+       call ESMF_MeshGet(mesh, ownedElemCoords=ownedElemCoords, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+       ownedElemCoords_x = ownedElemCoords(1::2)
+       ownedElemCoords_y = ownedElemCoords(2::2)
+    end if
 
     call ESMF_DistGridGet(distgrid, dimCount=dimCount, tileCount=tileCount, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -626,6 +672,27 @@ contains
           end if
        end do
 
+       ! Add coordinate information to file
+       name1 = trim(lpre)//'_lon'
+       if (luse_float) then
+          rcode = pio_def_var(io_file(lfile_ind), trim(name1), PIO_REAL, dimid, varid)
+       else
+          rcode = pio_def_var(io_file(lfile_ind), trim(name1), PIO_DOUBLE, dimid, varid)
+       end if
+       rcode = pio_put_att(io_file(lfile_ind), varid, "long_name", "longitude")
+       rcode = pio_put_att(io_file(lfile_ind), varid, "units", "degrees_east")
+       rcode = pio_put_att(io_file(lfile_ind), varid, "standard_name", "longitude")
+
+       name1 = trim(lpre)//'_lat'
+       if (luse_float) then
+          rcode = pio_def_var(io_file(lfile_ind), trim(name1), PIO_REAL, dimid, varid)
+       else
+          rcode = pio_def_var(io_file(lfile_ind), trim(name1), PIO_DOUBLE, dimid, varid)
+       end if
+       rcode = pio_put_att(io_file(lfile_ind), varid, "long_name", "latitude")
+       rcode = pio_put_att(io_file(lfile_ind), varid, "units", "degrees_north")
+       rcode = pio_put_att(io_file(lfile_ind), varid, "standard_name", "latitude")
+
        ! Finish define mode
        if (lwdata) call med_io_enddef(filename, file_ind=lfile_ind)
 
@@ -687,6 +754,17 @@ contains
 
           end if ! end if not "hgt"
        end do  ! end loop over fields in FB
+
+       ! Fill coordinate variables
+       name1 = trim(lpre)//'_lon'
+       rcode = pio_inq_varid(io_file(lfile_ind), trim(name1), varid)
+       call pio_setframe(io_file(lfile_ind),varid,frame)
+       call pio_write_darray(io_file(lfile_ind), varid, iodesc, ownedElemCoords_x, rcode, fillval=lfillvalue)         
+
+       name1 = trim(lpre)//'_lat'
+       rcode = pio_inq_varid(io_file(lfile_ind), trim(name1), varid)
+       call pio_setframe(io_file(lfile_ind),varid,frame)
+       call pio_write_darray(io_file(lfile_ind), varid, iodesc, ownedElemCoords_y, rcode, fillval=lfillvalue)
 
        call pio_syncfile(io_file(lfile_ind))
        call pio_freedecomp(io_file(lfile_ind), iodesc)
@@ -1089,19 +1167,19 @@ contains
        rcode = pio_put_att(io_file(lfile_ind),varid,'units',trim(time_units))
 
        if (calendar == ESMF_CALKIND_360DAY) then
-          calname = 'ESMF_CALKIND_360DAY'
+          calname = '360_day'
        else if (calendar == ESMF_CALKIND_GREGORIAN) then
-          calname = 'ESMF_CALKIND_GREGORIAN'
+          calname = 'gregorian'
        else if (calendar == ESMF_CALKIND_JULIAN) then
-          calname = 'ESMF_CALKIND_JULIAN'
+          calname = 'julian'
        else if (calendar == ESMF_CALKIND_JULIANDAY) then
           calname = 'ESMF_CALKIND_JULIANDAY'
        else if (calendar == ESMF_CALKIND_MODJULIANDAY) then
           calname = 'ESMF_CALKIND_MODJULIANDAY'
        else if (calendar == ESMF_CALKIND_NOCALENDAR) then
-          calname = 'ESMF_CALKIND_NOCALENDAR'
+          calname = 'none'
        else if (calendar == ESMF_CALKIND_NOLEAP) then
-          calname = 'ESMF_CALKIND_NOLEAP'
+          calname = 'noleap'
        end if
        rcode = pio_put_att(io_file(lfile_ind),varid,'calendar',trim(calname))
 
@@ -1155,8 +1233,8 @@ contains
     use pio                   , only : pio_inq_varid
     use pio                   , only : pio_double, pio_get_att, pio_seterrorhandling, pio_freedecomp, pio_closefile
     use pio                   , only : pio_read_darray, pio_offset_kind, pio_setframe
-    use med_constants_mod     , only : dbug_flag=>med_constants_dbug_flag
-    use med_constants_mod     , only : fillvalue=>SHR_CONST_SPVAL
+    use shr_const_mod         , only : dbug_flag
+    use shr_const_mod         , only : fillvalue=>SPVAL
 
     ! input/output arguments
     character(len=*)                        ,intent(in)  :: filename ! file
@@ -1544,7 +1622,7 @@ contains
 
   !===============================================================================
   subroutine med_io_read_r8(filename, vm, iam, rdata, dname, rc)
-    use med_constants_mod, only : R8
+    use shr_const_mod, only : R8
 
     !---------------
     ! Read scalar double from netcdf file
