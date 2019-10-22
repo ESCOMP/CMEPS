@@ -797,14 +797,14 @@ contains
                mrg_from1=compocn, mrg_fld1='So_t', mrg_type1='copy')
 
        ! NEMS-orig - merged ocn/ice temp and unmerged ocn temp
-       else if (fldchk(is_local%wrap%FBExp(compatm)        , 'So_t', rc=rc) .and. &
-                fldchk(is_local%wrap%FBExp(compatm)        , 'Si_t', rc=rc) .and. &
+       else if (fldchk(is_local%wrap%FBexp(compatm)        , 'Sx_t', rc=rc) .and. &
                 fldchk(is_local%wrap%FBImp(compocn,compocn), 'So_t', rc=rc) .and. &
                 fldchk(is_local%wrap%FBImp(compice,compice), 'Si_t', rc=rc)) then
           call addmap(fldListFr(compice)%flds, 'Si_t', compatm, mapnstod_consf, 'ifrac', ice2atm_fmap)
           call addmap(fldListFr(compocn)%flds, 'So_t', compatm, mapnstod_consf, 'none' , ocn2atm_fmap)
-          call addmrg(fldListTo(compatm)%flds, 'Si_t', &
-               mrg_from1=compice, mrg_fld1='Si_t', mrg_type1='copy')
+          call addmrg(fldListTo(compatm)%flds, 'Sx_t', &
+                mrg_from1=compice, mrg_fld1='Si_t', mrg_type1='merge', mrg_fracname1='ifrac', &
+                mrg_from2=compocn, mrg_fld2='So_t', mrg_type2='merge', mrg_fracname2='ofrac')
           call addmrg(fldListTo(compatm)%flds, 'So_t', &
                mrg_from1=compocn, mrg_fld1='So_t', mrg_type1='copy')
 
