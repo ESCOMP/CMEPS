@@ -403,12 +403,11 @@ contains
     use ESMF                  , only : ESMF_FieldBundleIsCreated, ESMF_FieldBundle, ESMF_Mesh, ESMF_DistGrid
     use ESMF                  , only : ESMF_FieldBundleGet, ESMF_FieldGet, ESMF_MeshGet, ESMF_DistGridGet
     use ESMF                  , only : ESMF_Field, ESMF_FieldGet, ESMF_AttributeGet 
-    use shr_const_mod         , only : fillvalue=>SPVAL_INIT
     use pio                   , only : var_desc_t, io_desc_t, pio_offset_kind
     use pio                   , only : pio_def_dim, pio_inq_dimid, pio_real, pio_def_var, pio_put_att, pio_double
     use pio                   , only : pio_inq_varid, pio_setframe, pio_write_darray, pio_initdecomp, pio_freedecomp
     use pio                   , only : pio_syncfile
-    use shr_const_mod         , only : fillvalue=>SPVAL
+    use shr_const_mod         , only : fillvalue=>SPVAL_INIT
 
     ! input/output variables
     character(len=*),           intent(in) :: filename  ! file
