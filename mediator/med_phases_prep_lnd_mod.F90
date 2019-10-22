@@ -26,8 +26,8 @@ module med_phases_prep_lnd_mod
   use shr_nuopc_methods_mod , only : State_GetScalar => shr_nuopc_methods_State_GetScalar
   use shr_nuopc_methods_mod , only : State_SetScalar => shr_nuopc_methods_State_SetScalar
   use shr_nuopc_utils_mod   , only : chkerr          => shr_nuopc_utils_ChkErr
-  use med_constants_mod     , only : R8, CS
-  use med_constants_mod     , only : dbug_flag=>med_constants_dbug_flag
+  use shr_kind_mod          , only : R8=>SHR_KIND_R8, CS=>SHR_KIND_CS
+  use shr_const_mod         , only : dbug_flag
   use med_internalstate_mod , only : InternalState, logunit
   use med_map_mod           , only : med_map_FB_Regrid_Norm
   use med_map_mod           , only : med_map_Fractions_Init

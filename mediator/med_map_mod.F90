@@ -5,7 +5,8 @@ module med_map_mod
   use esmFlds               , only : mapbilnr, mapconsf, mapconsd, mappatch, mapfcopy
   use esmFlds               , only : mapunset, mapnames
   use esmFlds               , only : mapnstod, mapnstod_consd, mapnstod_consf
-  use shr_const_mod         , only : CX, CS, CL, R8
+  use esmFlds               , only : mapuv_with_cart3d
+  use shr_const_mod         , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
   use shr_const_mod         , only : shr_const_pi
   use shr_const_mod         , only : ispval_mask
   use shr_const_mod         , only : czero
@@ -931,12 +932,7 @@ contains
     use ESMF                  , only : ESMF_LOGMSG_ERROR, ESMF_FAILURE, ESMF_MAXSTR
     use ESMF                  , only : ESMF_FieldBundle, ESMF_FieldBundleGet
     use ESMF                  , only : ESMF_Field, ESMF_FieldGet, ESMF_FieldRegrid
-<<<<<<< HEAD
-    use ESMF                  , only : ESMF_TERMORDER_SRCSEQ, ESMF_Region_Flag, ESMF_REGION_TOTAL
-    use ESMF                  , only : ESMF_REGION_SELECT
-=======
     use ESMF                  , only : ESMF_TERMORDER_SRCSEQ, ESMF_Region_Flag, ESMF_REGION_TOTAL, ESMF_REGION_SELECT
->>>>>>> origin/nems_integration
     use ESMF                  , only : ESMF_RouteHandle, ESMF_RouteHandleIsCreated
 
     ! input/output variables

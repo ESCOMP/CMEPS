@@ -1113,7 +1113,8 @@ contains
     use NUOPC                 , only : NUOPC_CompAttributeGet
     use NUOPC_Driver          , only : NUOPC_DriverAddComp
     use shr_string_mod        , only : toLower => shr_string_toLower
-    use shr_const_mod         , only : dbug_flag, CS, CL
+    use shr_kind_mod          , only : CS=>SHR_KIND_CS, CL=>SHR_KIND_CL
+    use shr_const_mod         , only : dbug_flag
     use mpi                   , only : MPI_COMM_NULL
     use mct_mod               , only : mct_world_init
     use shr_pio_mod           , only : shr_pio_init2

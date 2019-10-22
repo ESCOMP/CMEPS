@@ -4,10 +4,10 @@ module MED
   ! Mediator Component.
   !-----------------------------------------------------------------------------
 
-  use shr_const_mod         , only : CX, R8, CL, CS
+  use shr_kind_mod          , only : CX=>SHR_KIND_CX, R8=>SHR_KIND_R8
+  use shr_kind_mod          , only : CL=>SHR_KIND_CL, CS=>SHR_KIND_CS
   use shr_const_mod         , only : dbug_flag
   use shr_const_mod         , only : spval_init
-  use shr_const_mod         , only : spval
   use shr_const_mod         , only : czero
   use shr_const_mod         , only : ispval_mask
   use shr_nuopc_utils_mod   , only : chkerr             => shr_nuopc_utils_ChkErr

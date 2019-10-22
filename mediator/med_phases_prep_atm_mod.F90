@@ -25,7 +25,7 @@ contains
       use esmFlds               , only : fldListFr, fldListTo
       use esmFlds               , only : fldListMed_aoflux
       use esmFlds               , only : coupling_mode
-      use shr_const_mod         , only : R8
+      use shr_kind_mod          , only : R8=>SHR_KIND_R8
       use shr_const_mod         , only : dbug_flag
       use shr_nuopc_utils_mod   , only : memcheck        => shr_nuopc_memcheck
       use shr_nuopc_utils_mod   , only : chkerr          => shr_nuopc_utils_ChkErr

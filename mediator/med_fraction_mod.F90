@@ -113,7 +113,7 @@ module med_fraction_mod
   !-----------------------------------------------------------------------------
 
   use esmFlds               , only : ncomps
-  use shr_const_mod         , only : R8
+  use shr_kind_mod          , only : R8=>SHR_KIND_R8
   use shr_const_mod         , only : dbug_flag
   use shr_const_mod         , only : czero
   use shr_nuopc_utils_mod   , only : chkErr         => shr_nuopc_utils_ChkErr

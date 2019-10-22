@@ -116,7 +116,7 @@ contains
     use ESMF                  , only : ESMF_GridComp, ESMF_FieldBundleGet
     use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
     use ESMF                  , only : ESMF_FAILURE,  ESMF_LOGMSG_ERROR
-    use shr_const_mod         , only : R8, CS
+    use shr_kind_mod          , only : R8=>SHR_KIND_R8, CS=>SHR_KIND_CS
     use med_internalstate_mod , only : InternalState, mastertask, logunit
     use med_merge_mod         , only : med_merge_auto, med_merge_field
     use esmFlds               , only : fldListTo
