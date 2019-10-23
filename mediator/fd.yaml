@@ -906,28 +906,28 @@
      #
      # NOTE: the following alias requires a new name change for CICE export
      - standard_name: Fioi_swpen_vdr
-       alias: mean_net_sw_vis_dir_flx
+       alias: mean_sw_pen_to_ocn_vis_dir_flx
        canonical_units: W m-2
        description: sea-ice export to ocean
          flux of vis dir shortwave through ice to ocean
      #
      # NOTE: the following alias requires a new name change for CICE export
      - standard_name: Fioi_swpen_vdf
-       alias: mean_net_sw_vis_dif_flx
+       alias: mean_sw_pen_to_ocn_vis_dif_flx
        canonical_units: W m-2
        description: sea-ice export to ocean
          flux of vif dir shortwave through ice to ocean
      #
      # NOTE: the following alias requires a new name change for CICE export
      - standard_name: Fioi_swpen_idr
-       alias: mean_net_sw_ir_dir_flx
+       alias: mean_sw_pen_to_ocn_ir_dir_flx
        canonical_units: W m-2
        description: sea-ice export to ocean
          flux of ir dir shortwave through ice to ocean
      #
      # NOTE: the following alias requires a new name change for CICE export
      - standard_name: Fioi_swpen_idf
-       alias: mean_net_sw_ir_dif_flx
+       alias: mean_sw_pen_to_ocn_ir_dif_flx
        canonical_units: W m-2
        description: sea-ice export to ocean
          flux of ir dif shortwave through ice to ocean
