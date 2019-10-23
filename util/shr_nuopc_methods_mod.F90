@@ -10,7 +10,7 @@ module shr_nuopc_methods_mod
   use ESMF               , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_FAILURE
   use ESMF               , only : ESMF_LOGERR_PASSTHRU, ESMF_LogFoundError, ESMF_LOGMSG_ERROR
   use ESMF               , only : ESMF_MAXSTR, ESMF_LOGMSG_WARNING, ESMF_POLEMETHOD_ALLAVG
-  use shr_const_mod      , only : R8, CS, CL
+  use shr_kind_mod       , only : R8=>SHR_KIND_R8, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL
   use shr_const_mod      , only : dbug_flag
   use shr_const_mod      , only : czero
   use shr_const_mod      , only : spval_init

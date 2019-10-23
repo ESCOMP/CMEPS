@@ -1,4 +1,6 @@
 #!/bin/bash
+# This script updates util/ directory from CIME repository
+# The util/ directory is needed when CMEPS is used outside of CIME
 
 # list of files that are needed to create libcmeps_util.a
 lst="dtypes.h
@@ -23,21 +25,26 @@ shr_strconvert_mod.F90
 shr_string_mod.F90
 shr_sys_mod.F90
 shr_timer_mod.F90
-water_isotopes.F90"
+water_isotopes.F90
+shr_nuopc_methods_mod.F90
+shr_nuopc_time_mod.F90
+shr_nuopc_utils_mod.F90
+glc_elevclass_mod.F90"
 
 # clone cime
+rm -rf .cime
 git clone https://github.com/ESMCI/cime .cime
 cd .cime
-git checkout cmeps_v0.4.2
+git checkout nems_integration
 cd -
 
 # copy files
 for i in $lst
 do
-  f=`find .cime/. -not -path '*/*/*/pio*' -not -path '*/tools*' -name "$i*"`
+  f=`find .cime/. -not -path '*/*/*/pio*' -not -path '*/tools*' -not -path '*/mct*' -not -path '*/moab*' -name "$i*"`
   if [ -z "$f" ]; then
     f=`find .cime/. -name "$i*"`
-  fi  
+  fi
   cp -f $f .
 done
 

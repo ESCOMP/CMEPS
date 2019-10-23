@@ -60,9 +60,7 @@ module perf_mod
    public t_disablef
    public t_adj_detailf
    public t_barrierf
-#if 0
    public t_prf
-#endif
    public t_finalizef
 
 !-----------------------------------------------------------------------
@@ -630,7 +628,6 @@ contains
 !-----------------------------------------------------------------------
 !
    if (.not. timing_initialized) return
-
 #ifdef NUOPC_INTERFACE
    ierr = GPTLprefix_set(trim(prefix_string))
 #endif
@@ -652,7 +649,6 @@ contains
 !-----------------------------------------------------------------------
 !
    if (.not. timing_initialized) return
-
 #ifdef NUOPC_INTERFACE
    ierr = GPTLprefix_unset()
 #endif
@@ -908,12 +904,14 @@ contains
       ierr = GPTLstartstop_vals( &
          event(1:str_length)//'_'//cdetail, wtime, callcnt)
 #endif
+
    else
 
       str_length = min(SHR_KIND_CM,len_trim(event))
 #ifdef NUOPC_INTERFACE
       ierr = GPTLstartstop_vals(trim(event), wtime, callcnt)
 #endif
+
    endif
 
 !$OMP MASTER
@@ -1100,9 +1098,6 @@ contains
 !
 !========================================================================
 !
-
-#if 0
-
    subroutine t_prf(filename, mpicom, num_outpe, stride_outpe, &
                     single_file, global_stats, output_thispe)
 !-----------------------------------------------------------------------
@@ -1186,12 +1181,11 @@ contains
    unitn = shr_file_getUnit()
 
    ! determine what the current output mode is (append or write)
+   pr_write = .false.
 #ifdef NUOPC_INTERFACE
    if (GPTLprint_mode_query() == GPTLprint_write) then
      pr_write = .true.
      ierr = GPTLprint_mode_set(GPTLprint_append)
-   else
-     pr_write = .false.
    endif
 #endif
 
@@ -1385,9 +1379,7 @@ contains
          endif
          close( unitn )
 
-#ifdef NUOPC_INTERFACE
          ierr = GPTLpr_file(trim(fname))
-#endif
       endif
 
    endif
@@ -1395,18 +1387,17 @@ contains
    call shr_file_freeUnit( unitn )
 
    ! reset GPTL output mode
+#ifdef NUOPC_INTERFACE
    if (pr_write) then
      ierr = GPTLprint_mode_set(GPTLprint_write)
    endif
+#endif
 
 !$OMP END MASTER
    call t_stopf("t_prf")
 
    return
    end subroutine t_prf
-
-#endif
-
 !
 !========================================================================
 !

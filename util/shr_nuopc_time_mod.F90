@@ -63,7 +63,7 @@ contains
 
   subroutine shr_nuopc_time_clockInit(ensemble_driver, esmdriver, logunit, rc)
 
-    use shr_const_mod         , only : CL, CS
+    use shr_kind_mod          , only : CL=>SHR_KIND_CL, CS=>SHR_KIND_CS
     use shr_cal_mod           , only : shr_cal_noleap, shr_cal_gregorian, shr_cal_calendarname
 
     ! input/output variables
@@ -939,7 +939,7 @@ contains
     use netcdf                , only : nf90_open, nf90_nowrite, nf90_noerr
     use netcdf                , only : nf90_inq_varid, nf90_get_var, nf90_close
     use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO
-    use shr_const_mod         , only : CL
+    use shr_kind_mod          , only : CL=>SHR_KIND_CL
 
     ! input/output variables
     character(len=*), intent(in) :: restart_file
