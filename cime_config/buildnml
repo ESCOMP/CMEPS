@@ -338,6 +338,8 @@ def _create_runseq(case, coupling_times):
             from runseq_B import runseq
         elif (comp_atm == 'fv3gfs' and comp_ocn == "mom" and comp_ice == 'cice'):
             from runseq_NEMS import runseq
+        elif (comp_atm == 'fv3gfs' and comp_ocn == "socn" and comp_ice == 'sice'):
+            from runseq_FV3GFS import runseq
         elif (comp_lnd == 'dlnd' and comp_glc == "cism"):
             from runseq_TG import runseq
         elif (runseq_a1 or runseq_a2 or runseq_a3 or runseq_a4):

@@ -1272,9 +1272,11 @@ contains
        comps(i+1) = i+1
 
        if (trim(compLabels(i)) == 'MED') then
-          med_id = i + 1
-          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), MEDSetServices, petList=petlist, comp=child, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          if (componentCount > 1) then
+             med_id = i + 1
+             call NUOPC_DriverAddComp(driver, trim(compLabels(i)), MEDSetServices, petList=petlist, comp=child, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+          end if
 #ifdef ATM_PRESENT
        elseif(trim(compLabels(i)) .eq. 'ATM') then
           call NUOPC_DriverAddComp(driver, trim(compLabels(i)), ATMSetServices, petList=petlist, comp=child, rc=rc)

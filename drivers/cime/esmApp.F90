@@ -167,4 +167,9 @@ program esmApp
   ! Finalize ESMF
   call ESMF_Finalize()
 
+  !-----------------------------------------------------------------------------
+  ! Print out termination message
+  !-----------------------------------------------------------------------------
+
+  write(*,*) ' SUCCESSFUL TERMINATION OF APP'
 end program
