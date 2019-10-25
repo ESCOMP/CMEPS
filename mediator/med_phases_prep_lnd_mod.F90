@@ -543,8 +543,8 @@ contains
 
     if (dbug_flag > 5) then
        call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
-       call t_stopf('MED:'//subname)
     end if
+    call t_stopf('MED:'//subname)
 
   end subroutine med_map_glc2lnd
 
