@@ -18,8 +18,8 @@ def runseq(case, coupling_times):
     atm_cpl_dt = coupling_times["atm_cpl_dt"]
     ocn_cpl_dt = coupling_times["ocn_cpl_dt"]
 
-    print "atm_cpl_dt = ",atm_cpl_dt
-    print "atm_cpl_dt = ",ocn_cpl_dt
+    print ("atm_cpl_dt = ",atm_cpl_dt)
+    print ("atm_cpl_dt = ",ocn_cpl_dt)
     outfile   = open(os.path.join(caseroot, "CaseDocs", "nuopc.runseq"), "w")
 
     # The following is for RASM_OPTION1
