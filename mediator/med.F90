@@ -27,6 +27,7 @@ module MED
   use shr_nuopc_time_mod    , only : set_stop_alarm     => shr_nuopc_time_set_component_stop_alarm
   use shr_nuopc_time_mod    , only : alarmInit          => shr_nuopc_time_alarmInit 
   use shr_nuopc_utils_mod   , only : memcheck           => shr_nuopc_memcheck
+  use med_phases_history_mod, only : histAlarmInit      => med_phases_history_alarm_init
 
   implicit none
   private
@@ -2081,6 +2082,9 @@ contains
          call ESMF_AlarmSet(glc_avg_alarm, clock=mediatorclock, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
       end if
+
+      ! Initialize med history file alarm
+      call histAlarmInit(gcomp, rc)
 
       call set_stop_alarm(gcomp, rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
