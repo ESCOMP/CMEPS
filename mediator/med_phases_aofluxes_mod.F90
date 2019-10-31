@@ -50,7 +50,6 @@ module med_phases_aofluxes_mod
      real(R8) , pointer :: roce_HDO    (:) ! ocn HDO ratio
      real(R8) , pointer :: roce_18O    (:) ! ocn H218O ratio
      real(R8) , pointer :: pbot        (:) ! atm bottom pressure
-     real(R8) , pointer :: qbot        (:) ! atm bottom specific humidity
      real(R8) , pointer :: dens        (:) ! atm bottom density
      real(R8) , pointer :: tbot        (:) ! atm bottom surface T
      real(R8) , pointer :: sen         (:) ! heat flux: sensible
@@ -497,15 +496,18 @@ contains
        end do
     end if
 
+    ! TODO(mvertens, 2019-10-30): remove the hard-wiring of minwind and replace it with namelist input
     call shr_flux_atmocn (&
-         lsize, aoflux%zbot, aoflux%ubot, aoflux%vbot, aoflux%thbot, &
-         aoflux%shum, aoflux%shum_16O, aoflux%shum_HDO, aoflux%shum_18O, aoflux%dens , &
-         aoflux%tbot, aoflux%uocn, aoflux%vocn, &
-         aoflux%tocn, aoflux%mask, aoflux%sen, aoflux%lat, aoflux%lwup, &
-         aoflux%roce_16O, aoflux%roce_HDO, aoflux%roce_18O, &
-         aoflux%evap, aoflux%evap_16O, aoflux%evap_HDO, aoflux%evap_18O, &
-         aoflux%taux, aoflux%tauy, aoflux%tref, aoflux%qref, &
-         0, aoflux%duu10n, ustar_sv=aoflux%ustar, re_sv=aoflux%re, ssq_sv=aoflux%ssq, &
+         nMax=lsize, zbot=aoflux%zbot, ubot=aoflux%ubot, vbot=aoflux%vbot, thbot=aoflux%thbot, &
+         qbot=aoflux%shum, s16O=aoflux%shum_16O, sHDO=aoflux%shum_HDO, s18O=aoflux%shum_18O, rbot=aoflux%dens, &
+         tbot=aoflux%tbot, us=aoflux%uocn, vs=aoflux%vocn, &
+         ts=aoflux%tocn, mask=aoflux%mask, seq_flux_atmocn_minwind=0.5_r8, &
+         sen=aoflux%sen, lat=aoflux%lat, lwup=aoflux%lwup, &
+         r16O=aoflux%roce_16O, rhdo=aoflux%roce_HDO, r18O=aoflux%roce_18O, &
+         evap=aoflux%evap, evap_16O=aoflux%evap_16O, evap_HDO=aoflux%evap_HDO, evap_18O=aoflux%evap_18O, &
+         taux=aoflux%taux, tauy=aoflux%tauy, tref=aoflux%tref, qref=aoflux%qref, &
+         ocn_surface_flux_scheme=0, &
+         duu10n=aoflux%duu10n, ustar_sv=aoflux%ustar, re_sv=aoflux%re, ssq_sv=aoflux%ssq, &
          missval = 0.0_r8)
 
     do n = 1,lsize
