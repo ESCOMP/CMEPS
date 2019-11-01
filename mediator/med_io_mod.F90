@@ -13,10 +13,10 @@ module med_io_mod
   use med_constants_mod     , only : R4, R8, I8, CL 
   use med_constants_mod     , only : dbug_flag    => med_constants_dbug_flag
   use med_internalstate_mod , only : logunit, med_id
-  use shr_nuopc_methods_mod , only : FB_getFieldN => shr_nuopc_methods_FB_getFieldN
-  use shr_nuopc_methods_mod , only : FB_getFldPtr => shr_nuopc_methods_FB_getFldPtr
-  use shr_nuopc_methods_mod , only : FB_getNameN  => shr_nuopc_methods_FB_getNameN
-  use shr_nuopc_utils_mod   , only : chkerr       => shr_nuopc_utils_ChkErr
+  use med_methods_mod       , only : FB_getFieldN => med_methods_FB_getFieldN
+  use med_methods_mod       , only : FB_getFldPtr => med_methods_FB_getFldPtr
+  use med_methods_mod       , only : FB_getNameN  => med_methods_FB_getNameN
+  use med_utils_mod         , only : chkerr       => med_utils_ChkErr
 
   implicit none
   private

@@ -1,7 +1,7 @@
 module med_phases_ocnalb_mod
 
   use med_constants_mod  , only : R8
-  use shr_nuopc_utils_mod, only : chkerr => shr_nuopc_utils_chkerr
+  use med_utils_mod, only : chkerr => med_utils_chkerr
 
   implicit none
   private
@@ -55,13 +55,14 @@ contains
     use ESMF                  , only : ESMF_GridCompGet, ESMF_VMGet, ESMF_FieldGet, ESMF_GEOMTYPE_MESH
     use ESMF                  , only : ESMF_MeshGet
     use ESMF                  , only : operator(==)
-    use shr_nuopc_methods_mod , only : shr_nuopc_methods_FB_GetFldPtr
-    use shr_nuopc_methods_mod , only : shr_nuopc_methods_FB_getFieldN
+    use med_methods_mod       , only : med_methods_FB_GetFldPtr
+    use med_methods_mod       , only : med_methods_FB_getFieldN
     use med_internalstate_mod , only : InternalState
     use med_constants_mod     , only : CL, R8
     use med_constants_mod     , only : dbug_flag =>med_constants_dbug_flag
     use esmFlds               , only : compatm, compocn
     use perf_mod              , only : t_startf, t_stopf
+
     ! Arguments
     type(ESMF_GridComp)               :: gcomp
     type(ocnalb_type) , intent(inout) :: ocnalb
@@ -84,6 +85,7 @@ contains
     integer                  :: dbrc
     character(*), parameter  :: subname = '(med_phases_ocnalb_init) '
     !-----------------------------------------------------------------------
+
     call t_startf('MED:'//subname)
     if (dbug_flag > 5) then
       call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO, rc=dbrc)
@@ -109,13 +111,13 @@ contains
     ! These must must be on the ocean grid since the ocean albedo computation is on the ocean grid
     ! The following sets pointers to the module arrays
 
-    call shr_nuopc_methods_FB_GetFldPtr(is_local%wrap%FBMed_ocnalb_o, fldname='So_avsdr', fldptr1=ocnalb%avsdr, rc=rc)
+    call med_methods_FB_GetFldPtr(is_local%wrap%FBMed_ocnalb_o, fldname='So_avsdr', fldptr1=ocnalb%avsdr, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call shr_nuopc_methods_FB_GetFldPtr(is_local%wrap%FBMed_ocnalb_o, fldname='So_avsdf', fldptr1=ocnalb%avsdf, rc=rc)
+    call med_methods_FB_GetFldPtr(is_local%wrap%FBMed_ocnalb_o, fldname='So_avsdf', fldptr1=ocnalb%avsdf, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call shr_nuopc_methods_FB_GetFldPtr(is_local%wrap%FBMed_ocnalb_o, fldname='So_anidr', fldptr1=ocnalb%anidr, rc=rc)
+    call med_methods_FB_GetFldPtr(is_local%wrap%FBMed_ocnalb_o, fldname='So_anidr', fldptr1=ocnalb%anidr, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call shr_nuopc_methods_FB_GetFldPtr(is_local%wrap%FBMed_ocnalb_o, fldname='So_anidf', fldptr1=ocnalb%anidf, rc=rc)
+    call med_methods_FB_GetFldPtr(is_local%wrap%FBMed_ocnalb_o, fldname='So_anidf', fldptr1=ocnalb%anidf, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     !----------------------------------
@@ -124,7 +126,7 @@ contains
 
     ! The following assumes that all fields in FBMed_ocnalb_o have the same grid - so
     ! only need to query field 1
-    call shr_nuopc_methods_FB_getFieldN(is_local%wrap%FBMed_ocnalb_o, fieldnum=1, field=lfield, rc=rc)
+    call med_methods_FB_getFieldN(is_local%wrap%FBMed_ocnalb_o, fieldnum=1, field=lfield, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! Determine if first field is on a grid or a mesh - default will be mesh
@@ -185,10 +187,10 @@ contains
     use NUOPC                 , only : NUOPC_CompAttributeGet
     use shr_orb_mod           , only : shr_orb_cosz, shr_orb_decl
     use esmFlds               , only : mapconsf, mapnames
-    use shr_nuopc_methods_mod , only : shr_nuopc_methods_FB_GetFldPtr
-    use shr_nuopc_methods_mod , only : shr_nuopc_methods_FB_diagnose
-    use shr_nuopc_methods_mod , only : shr_nuopc_methods_State_GetScalar
-    use shr_nuopc_methods_mod , only : shr_nuopc_methods_FB_FieldRegrid
+    use med_methods_mod       , only : med_methods_FB_GetFldPtr
+    use med_methods_mod       , only : med_methods_FB_diagnose
+    use med_methods_mod       , only : med_methods_State_GetScalar
+    use med_methods_mod       , only : med_methods_FB_FieldRegrid
     use med_constants_mod     , only : CS, CL, R8
     use med_constants_mod     , only : dbug_flag =>med_constants_dbug_flag
     use med_constants_mod     , only : shr_const_pi
@@ -299,7 +301,7 @@ contains
           call ESMF_TimeGet( currTime, dayOfYear_r8=nextsw_cday, rc=rc )
           if (chkerr(rc,__LINE__,u_FILE_u)) return
        else
-          call shr_nuopc_methods_State_GetScalar(&
+          call med_methods_State_GetScalar(&
                state=is_local%wrap%NstateImp(compatm), &
                flds_scalar_name=is_local%wrap%flds_scalar_name, &
                flds_scalar_num=is_local%wrap%flds_scalar_num, &
@@ -312,8 +314,8 @@ contains
 
     else
 
-       ! Note that shr_nuopc_methods_State_GetScalar includes a broadcast to all other pets
-       call shr_nuopc_methods_State_GetScalar(&
+       ! Note that med_methods_State_GetScalar includes a broadcast to all other pets
+       call med_methods_State_GetScalar(&
             state=is_local%wrap%NstateImp(compatm), &
             flds_scalar_name=is_local%wrap%flds_scalar_name, &
             flds_scalar_num=is_local%wrap%flds_scalar_num, &
@@ -386,20 +388,20 @@ contains
 
     ! Update current ifrad/ofrad values if albedo was updated in field bundle
     if (update_alb) then
-       call shr_nuopc_methods_FB_getFldPtr(is_local%wrap%FBfrac(compocn), fldname='ifrac', fldptr1=ifrac, rc=rc)
+       call med_methods_FB_getFldPtr(is_local%wrap%FBfrac(compocn), fldname='ifrac', fldptr1=ifrac, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call shr_nuopc_methods_FB_getFldPtr(is_local%wrap%FBfrac(compocn), fldname='ifrad', fldptr1=ifrad, rc=rc)
+       call med_methods_FB_getFldPtr(is_local%wrap%FBfrac(compocn), fldname='ifrad', fldptr1=ifrad, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call shr_nuopc_methods_FB_getFldPtr(is_local%wrap%FBfrac(compocn), fldname='ofrac', fldptr1=ofrac, rc=rc)
+       call med_methods_FB_getFldPtr(is_local%wrap%FBfrac(compocn), fldname='ofrac', fldptr1=ofrac, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call shr_nuopc_methods_FB_getFldPtr(is_local%wrap%FBfrac(compocn), fldname='ofrad', fldptr1=ofrad, rc=rc)
+       call med_methods_FB_getFldPtr(is_local%wrap%FBfrac(compocn), fldname='ofrad', fldptr1=ofrad, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        ifrad(:) = ifrac(:)
        ofrad(:) = ofrac(:)
     endif
 
     if (dbug_flag > 1) then
-       call shr_nuopc_methods_FB_diagnose(is_local%wrap%FBMed_ocnalb_o, &
+       call med_methods_FB_diagnose(is_local%wrap%FBMed_ocnalb_o, &
             string=trim(subname)//' FBMed_ocnalb_o', rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     end if

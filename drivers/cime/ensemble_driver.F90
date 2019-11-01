@@ -8,7 +8,7 @@ module Ensemble_driver
   !-----------------------------------------------------------------------------
 
   use shr_kind_mod          , only : cl=>shr_kind_cl
-  use shr_nuopc_utils_mod   , only : chkerr => shr_nuopc_utils_ChkErr
+  use med_utils_mod         , only : chkerr => med_utils_ChkErr
   use med_constants_mod     , only : dbug_flag => med_constants_dbug_flag
   use med_internalstate_mod , only : mastertask
 
@@ -87,7 +87,7 @@ module Ensemble_driver
     use NUOPC_Driver          , only : NUOPC_DriverAddComp
     use esm                   , only : ESMSetServices => SetServices, ReadAttributes
    !use pio_interface         , only : PIOSetServices => SetServices
-    use shr_nuopc_time_mod    , only : shr_nuopc_time_clockInit
+    use med_time_mod          , only : med_time_clockInit
     use med_internalstate_mod , only : logunit  ! initialized here
     use shr_log_mod           , only : shrloglev=>shr_log_level, shrlogunit=> shr_log_unit
     use shr_file_mod          , only : shr_file_getUnit, shr_file_getLoglevel
@@ -259,7 +259,7 @@ module Ensemble_driver
           call shr_file_setLogUnit (logunit)
        endif
     enddo
-    call shr_nuopc_time_clockInit(ensemble_driver, driver, logunit, rc)
+    call med_time_clockInit(ensemble_driver, driver, logunit, rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     deallocate(petList)

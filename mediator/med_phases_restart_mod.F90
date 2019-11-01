@@ -6,7 +6,8 @@ module med_phases_restart_mod
 
   use med_constants_mod   , only : R8
   use med_constants_mod   , only : dbug_flag => med_constants_dbug_flag
-  use shr_nuopc_utils_mod , only : chkerr    => shr_nuopc_utils_ChkErr
+  use med_constants_mod   , only : SecPerDay => med_constants_SecPerDay
+  use med_utils_mod       , only : chkerr    => med_utils_ChkErr
 
   implicit none
   private
@@ -35,7 +36,6 @@ contains
     use ESMF                  , only : ESMF_Calendar
     use NUOPC                 , only : NUOPC_CompAttributeGet
     use esmFlds               , only : ncomps, compname, compocn
-    use med_constants_mod     , only : SecPerDay => med_constants_SecPerDay
     use med_internalstate_mod , only : mastertask, logunit, InternalState
     use med_io_mod            , only : med_io_write, med_io_wopen, med_io_enddef
     use med_io_mod            , only : med_io_close, med_io_date2yyyymmdd
