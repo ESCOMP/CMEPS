@@ -23,13 +23,13 @@ contains
     use ESMF
     use NUOPC
     use med_constants_mod     , only : CX, CS, CL
-    use shr_nuopc_utils_mod   , only : chkerr => shr_nuopc_utils_chkerr
-    use shr_nuopc_methods_mod , only : fldchk => shr_nuopc_methods_FB_FldChk
+    use med_utils_mod         , only : chkerr => med_utils_chkerr
+    use med_methods_mod       , only : fldchk => med_methods_FB_FldChk
     use med_internalstate_mod , only : InternalState
-    use esmFlds               , only : shr_nuopc_fldList_type
-    use esmFlds               , only : addfld => shr_nuopc_fldList_AddFld
-    use esmFlds               , only : addmap => shr_nuopc_fldList_AddMap
-    use esmFlds               , only : addmrg => shr_nuopc_fldList_AddMrg
+    use esmFlds               , only : med_fldList_type
+    use esmFlds               , only : addfld => med_fldList_AddFld
+    use esmFlds               , only : addmap => med_fldList_AddMap
+    use esmFlds               , only : addmrg => med_fldList_AddMrg
     use esmflds               , only : compmed, compatm, complnd, compocn
     use esmflds               , only : compice, comprof, compwav, compglc, ncomps
     use esmflds               , only : mapbilnr, mapconsf, mapconsd, mappatch

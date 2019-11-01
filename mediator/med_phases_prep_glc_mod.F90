@@ -18,7 +18,7 @@ module med_phases_prep_glc_mod
   use ESMF                  , only : ESMF_Mesh, ESMF_MeshGet, ESMF_MESHLOC_ELEMENT
   use ESMF                  , only : ESMF_TYPEKIND_R8
   use esmFlds               , only : compglc, complnd, mapbilnr, mapconsf, compname
-  use esmFlds               , only : shr_nuopc_fldlist_type
+  use esmFlds               , only : med_fldlist_type
   use shr_sys_mod           , only : shr_sys_abort
   use med_internalstate_mod , only : InternalState, mastertask, logunit
   use med_constants_mod     , only : R8, CS
@@ -26,11 +26,11 @@ module med_phases_prep_glc_mod
   use med_internalstate_mod , only : InternalState, mastertask, logunit
   use med_map_mod           , only : med_map_FB_Regrid_Norm
   use med_map_mod           , only : med_map_Fractions_Init
-  use shr_nuopc_methods_mod , only : FB_Init      => shr_nuopc_methods_FB_init
-  use shr_nuopc_methods_mod , only : FB_getFldPtr => shr_nuopc_methods_FB_getFldPtr
-  use shr_nuopc_methods_mod , only : FB_diagnose  => shr_nuopc_methods_FB_diagnose
-  use shr_nuopc_methods_mod , only : FB_reset     => shr_nuopc_methods_FB_reset
-  use shr_nuopc_utils_mod   , only : chkerr       => shr_nuopc_utils_ChkErr
+  use med_methods_mod       , only : FB_Init      => med_methods_FB_init
+  use med_methods_mod       , only : FB_getFldPtr => med_methods_FB_getFldPtr
+  use med_methods_mod       , only : FB_diagnose  => med_methods_FB_diagnose
+  use med_methods_mod       , only : FB_reset     => med_methods_FB_reset
+  use med_utils_mod         , only : chkerr       => med_utils_ChkErr
   use glc_elevclass_mod     , only : glc_get_num_elevation_classes
   use glc_elevclass_mod     , only : glc_get_elevation_classes
   use glc_elevclass_mod     , only : glc_get_fractional_icecov
@@ -52,12 +52,12 @@ module med_phases_prep_glc_mod
   ! Need to keep track of the lnd->med fields destined for glc in the FBlndAccum field bundle.
 
   ! Needed for standard lnd->glc mapping
-  type(ESMF_FieldBundle)       :: FBlndAccum_lnd
-  type(ESMF_FieldBundle)       :: FBlndAccum_glc
-  integer                      :: FBlndAccumCnt
-  type(shr_nuopc_fldlist_type) :: fldlist_lnd2glc
-  character(len=14)            :: fldnames_fr_lnd(3) = (/'Flgl_qice_elev','Sl_tsrf_elev  ','Sl_topo_elev  '/)
-  character(len=14)            :: fldnames_to_glc(2) = (/'Flgl_qice     ','Sl_tsrf       '/)
+  type(ESMF_FieldBundle) :: FBlndAccum_lnd
+  type(ESMF_FieldBundle) :: FBlndAccum_glc
+  integer                :: FBlndAccumCnt
+  type(med_fldlist_type) :: fldlist_lnd2glc
+  character(len=14)      :: fldnames_fr_lnd(3) = (/'Flgl_qice_elev','Sl_tsrf_elev  ','Sl_topo_elev  '/)
+  character(len=14)      :: fldnames_to_glc(2) = (/'Flgl_qice     ','Sl_tsrf       '/)
 
   ! Whether to renormalize the SMB for conservation.
   ! Should be set to true for 2-way coupled runs with evolving ice sheets.
@@ -65,18 +65,18 @@ module med_phases_prep_glc_mod
   logical :: smb_renormalize
 
   ! Needed if renormalize SMB
-  type(ESMF_FieldBundle)       :: FBglc_icemask
-  type(ESMF_FieldBundle)       :: FBlnd_icemask
-  type(shr_nuopc_fldlist_type) :: fldlist_glc2lnd_icemask
-  type(ESMF_FieldBundle)       :: FBglc_frac
-  type(ESMF_FieldBundle)       :: FBlnd_frac
-  type(shr_nuopc_fldlist_type) :: fldlist_glc2lnd_frac
-  real(r8) , pointer           :: aream_l(:)         ! cell areas on land grid, for mapping
-  real(r8) , pointer           :: aream_g(:)         ! cell areas on glc grid, for mapping
-  character(len=*), parameter  :: qice_fieldname   = 'Flgl_qice' ! Name of flux field giving surface mass balance
-  character(len=*), parameter  :: Sg_frac_field    = 'Sg_ice_covered'
-  character(len=*), parameter  :: Sg_topo_field    = 'Sg_topo'
-  character(len=*), parameter  :: Sg_icemask_field = 'Sg_icemask'
+  type(ESMF_FieldBundle)      :: FBglc_icemask
+  type(ESMF_FieldBundle)      :: FBlnd_icemask
+  type(med_fldlist_type)      :: fldlist_glc2lnd_icemask
+  type(ESMF_FieldBundle)      :: FBglc_frac
+  type(ESMF_FieldBundle)      :: FBlnd_frac
+  type(med_fldlist_type)      :: fldlist_glc2lnd_frac
+  real(r8) , pointer          :: aream_l(:)         ! cell areas on land grid, for mapping
+  real(r8) , pointer          :: aream_g(:)         ! cell areas on glc grid, for mapping
+  character(len=*), parameter :: qice_fieldname   = 'Flgl_qice' ! Name of flux field giving surface mass balance
+  character(len=*), parameter :: Sg_frac_field    = 'Sg_ice_covered'
+  character(len=*), parameter :: Sg_topo_field    = 'Sg_topo'
+  character(len=*), parameter :: Sg_icemask_field = 'Sg_icemask'
 
   ! Size of undistributed dimension from land
   integer :: ungriddedCount ! this equals the number of elevation classes + 1 (for bare land)

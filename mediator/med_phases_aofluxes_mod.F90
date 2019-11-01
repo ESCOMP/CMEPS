@@ -1,14 +1,17 @@
 module med_phases_aofluxes_mod
 
   use med_constants_mod     , only : R8, CL, CX
+  use med_internalstate_mod , only : InternalState
   use med_internalstate_mod , only : mastertask, logunit
   use med_constants_mod     , only : dbug_flag    => med_constants_dbug_flag
-  use shr_nuopc_utils_mod   , only : memcheck     => shr_nuopc_memcheck
-  use shr_nuopc_utils_mod   , only : chkerr       => shr_nuopc_utils_chkerr
-  use shr_nuopc_methods_mod , only : FB_fldchk    => shr_nuopc_methods_FB_FldChk
-  use shr_nuopc_methods_mod , only : FB_GetFldPtr => shr_nuopc_methods_FB_GetFldPtr
-  use shr_nuopc_methods_mod , only : FB_diagnose  => shr_nuopc_methods_FB_diagnose
-  use shr_nuopc_methods_mod , only : FB_init      => shr_nuopc_methods_FB_init
+  use med_utils_mod         , only : memcheck     => med_memcheck
+  use med_utils_mod         , only : chkerr       => med_utils_chkerr
+  use med_methods_mod       , only : FB_fldchk    => med_methods_FB_FldChk
+  use med_methods_mod       , only : FB_GetFldPtr => med_methods_FB_GetFldPtr
+  use med_methods_mod       , only : FB_diagnose  => med_methods_FB_diagnose
+  use med_methods_mod       , only : FB_init      => med_methods_FB_init
+  use med_map_mod           , only : med_map_FB_Regrid_Norm
+  use perf_mod              , only : t_startf, t_stopf
 
   implicit none
   private
@@ -85,15 +88,12 @@ contains
 
   subroutine med_phases_aofluxes_run(gcomp, rc)
 
-    use ESMF                  , only : ESMF_GridComp, ESMF_Clock, ESMF_GridCompGet
-    use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
-    use ESMF                  , only : ESMF_FieldBundleIsCreated
-    use NUOPC                 , only : NUOPC_IsConnected, NUOPC_CompAttributeGet
-    use med_internalstate_mod , only : InternalState
-    use med_map_mod           , only : med_map_FB_Regrid_Norm
-    use esmFlds               , only : shr_nuopc_fldList_GetNumFlds, shr_nuopc_fldList_GetFldNames
-    use esmFlds               , only : fldListFr, fldListMed_aoflux, compatm, compocn, compname
-    use perf_mod              , only : t_startf, t_stopf
+    use ESMF     , only : ESMF_GridComp, ESMF_Clock, ESMF_GridCompGet
+    use ESMF     , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
+    use ESMF     , only : ESMF_FieldBundleIsCreated
+    use NUOPC    , only : NUOPC_IsConnected, NUOPC_CompAttributeGet
+    use esmFlds  , only : med_fldList_GetNumFlds, med_fldList_GetFldNames
+    use esmFlds  , only : fldListFr, fldListMed_aoflux, compatm, compocn, compname
 
     !-----------------------------------------------------------------------
     ! Compute atm/ocn fluxes
@@ -189,7 +189,6 @@ contains
     use ESMF     , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_VM
     use ESMF     , only : ESMF_Field, ESMF_FieldGet, ESMF_FieldBundle, ESMF_VMGet
     use NUOPC    , only : NUOPC_CompAttributeGet
-    use perf_mod , only : t_startf, t_stopf
 
     !-----------------------------------------------------------------------
     ! Initialize pointers to the module variables
@@ -397,7 +396,6 @@ contains
     use ESMF          , only : ESMF_LogWrite, ESMF_LogMsg_Info
     use NUOPC         , only : NUOPC_CompAttributeGet
     use shr_flux_mod  , only : shr_flux_atmocn, shr_flux_adjust_constants
-    use perf_mod      , only : t_startf, t_stopf
 
     !-----------------------------------------------------------------------
     ! Determine atm/ocn fluxes eother on atm or on ocean grid

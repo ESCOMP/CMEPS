@@ -1,8 +1,17 @@
 module med_phases_profile_mod
+
   !-----------------------------------------------------------------------------
   ! Output med profile to log file
   !-----------------------------------------------------------------------------
-  use med_constants_mod, only : R8
+
+  use med_constants_mod     , only : R8
+  use med_constants_mod     , only : dbug_flag=>med_constants_dbug_flag, CS, CL
+  use med_utils_mod         , only : med_utils_chkerr, med_memcheck
+  use med_internalstate_mod , only : mastertask, logunit
+  use med_utils_mod         , only : med_utils_chkerr
+  use perf_mod              , only : t_startf, t_stopf
+  use shr_mem_mod           , only : shr_mem_getusage
+
   implicit none
   private
 
@@ -14,26 +23,22 @@ module med_phases_profile_mod
   real(R8) :: accumulated_time=0_R8, timestep_length
   real(r8) :: previous_time=0_R8
   integer  :: iterations=0
+
 !=================================================================================
 contains
 !=================================================================================
 
   subroutine med_phases_profile(gcomp, rc)
-    use ESMF, only : ESMF_VMGetCurrent, ESMF_CLOCK, ESMF_GridComp, ESMF_LogMsg_Info
-    use ESMF, only : ESMF_LogWrite, ESMF_GridCompGet, ESMF_SUCCESS, ESMF_VM
-    use ESMF, only : ESMF_VMGet, ESMF_ClockGetAlarm, ESMF_AlarmRingerOff
-    use ESMF, only : ESMF_Alarm, ESMF_AlarmisRinging, ESMF_VMWtime
-    use ESMF, only : ESMF_TimeSyncToRealTime, ESMF_Time, ESMF_TimeSet
-    use ESMF, only : ESMF_TimeInterval, ESMF_AlarmGet, ESMF_TimeIntervalGet
-    use ESMF, only : ESMF_ClockGetNextTime, ESMF_TimeGet, ESMF_ClockGet
-    use ESMF, only : operator(-)
-    use NUOPC, only : NUOPC_CompAttributeGet
-    use shr_nuopc_utils_mod, only : shr_nuopc_utils_chkerr, shr_nuopc_memcheck
-    use med_constants_mod, only : dbug_flag=>med_constants_dbug_flag, CS, CL
-    use med_internalstate_mod, only : mastertask, logunit
 
-    use perf_mod, only : t_startf, t_stopf
-    use shr_mem_mod, only : shr_mem_getusage
+    use ESMF                  , only : ESMF_VMGetCurrent, ESMF_CLOCK, ESMF_GridComp, ESMF_LogMsg_Info
+    use ESMF                  , only : ESMF_LogWrite, ESMF_GridCompGet, ESMF_SUCCESS, ESMF_VM
+    use ESMF                  , only : ESMF_VMGet, ESMF_ClockGetAlarm, ESMF_AlarmRingerOff
+    use ESMF                  , only : ESMF_Alarm, ESMF_AlarmisRinging, ESMF_VMWtime
+    use ESMF                  , only : ESMF_TimeSyncToRealTime, ESMF_Time, ESMF_TimeSet
+    use ESMF                  , only : ESMF_TimeInterval, ESMF_AlarmGet, ESMF_TimeIntervalGet
+    use ESMF                  , only : ESMF_ClockGetNextTime, ESMF_TimeGet, ESMF_ClockGet
+    use ESMF                  , only : operator(-)
+    use NUOPC                 , only : NUOPC_CompAttributeGet
 
     ! write profile output
 
@@ -65,17 +70,17 @@ contains
     rc = ESMF_SUCCESS
 
     call ESMF_VMGetCurrent(vm, rc=rc)
-    if (shr_nuopc_utils_chkerr(rc,__LINE__,u_FILE_u)) return
+    if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
 
     call ESMF_VMGet(vm, localPet=iam, rc=rc)
-    if (shr_nuopc_utils_chkerr(rc,__LINE__,u_FILE_u)) return
+    if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
 
     call NUOPC_CompAttributeGet(gcomp, name='inst_suffix', isPresent=isPresent, rc=rc)
-    if (shr_nuopc_utils_chkerr(rc,__LINE__,u_FILE_u)) return
+    if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
 
     if(isPresent) then
        call NUOPC_CompAttributeGet(gcomp, name='inst_suffix', value=cpl_inst_tag, rc=rc)
-       if (shr_nuopc_utils_chkerr(rc,__LINE__,u_FILE_u)) return
+       if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
     else
        cpl_inst_tag = ""
     endif
@@ -84,20 +89,20 @@ contains
     ! --- profiler Alarm
     !---------------------------------------
     call ESMF_GridCompGet(gcomp, clock=clock, rc=rc)
-    if (shr_nuopc_utils_chkerr(rc,__LINE__,u_FILE_u)) return
+    if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
     if (iterations == 0) then
        ! intialize and return
        call ESMF_VMWtime(previous_time, rc=rc)
-       if (shr_nuopc_utils_chkerr(rc,__LINE__,u_FILE_u)) return
+       if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
        ! Here we are just getting a single timestep interval
        call ESMF_ClockGet( clock, timestep=timestep, rc=rc)
-       if (shr_nuopc_utils_chkerr(rc,__LINE__,u_FILE_u)) return
+       if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
 
        call ESMF_ClockGet(clock, currTime=prevtime, rc=rc)
-       if (shr_nuopc_utils_ChkErr(rc,__LINE__,u_FILE_u)) return
+       if (med_utils_ChkErr(rc,__LINE__,u_FILE_u)) return
 
        call ESMF_TimeIntervalGet(timestep, d_r8=timestep_length, rc=rc)
-       if (shr_nuopc_utils_chkerr(rc,__LINE__,u_FILE_u)) return
+       if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
        iterations = 1
     else
        !---------------------------------------
@@ -105,21 +110,21 @@ contains
        !---------------------------------------
 
        call ESMF_ClockGetAlarm(clock, alarmname='med_profile_alarm', alarm=alarm, rc=rc)
-       if (shr_nuopc_utils_chkerr(rc,__LINE__,u_FILE_u)) return
+       if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
 
        if (ESMF_AlarmIsRinging(alarm, rc=rc)) then
-          if (shr_nuopc_utils_chkerr(rc,__LINE__,u_FILE_u)) return
+          if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
           alarmIsOn = .true.
           call ESMF_AlarmRingerOff( alarm, rc=rc )
-          if (shr_nuopc_utils_chkerr(rc,__LINE__,u_FILE_u)) return
+          if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
        else
           call ESMF_ClockGetAlarm(clock, alarmname='alarm_stop', alarm=salarm, rc=rc)
-          if (shr_nuopc_utils_chkerr(rc,__LINE__,u_FILE_u)) return
+          if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
           if (ESMF_AlarmIsRinging(salarm, rc=rc)) then
-             if (shr_nuopc_utils_chkerr(rc,__LINE__,u_FILE_u)) return
+             if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
              stopalarmIsOn = .true.
              call ESMF_AlarmRingerOff( salarm, rc=rc )
-             if (shr_nuopc_utils_chkerr(rc,__LINE__,u_FILE_u)) return
+             if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
           else
              AlarmIsOn = .false.
              stopalarmison = .false.
@@ -128,39 +133,39 @@ contains
        if ((stopalarmison .or. alarmIsOn .or. iterations==1) .and. mastertask) then
           ! We need to get the next time for display
           call ESMF_ClockGetNextTime(clock, nextTime=nexttime, rc=rc)
-          if (shr_nuopc_utils_ChkErr(rc,__LINE__,u_FILE_u)) return
+          if (med_utils_ChkErr(rc,__LINE__,u_FILE_u)) return
 
           call ESMF_VMWtime(current_time, rc=rc)
-          if (shr_nuopc_utils_chkerr(rc,__LINE__,u_FILE_u)) return
+          if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
 
           wallclockelapsed = current_time - previous_time
           accumulated_time = accumulated_time + wallclockelapsed
 
           if (alarmison) then
              call ESMF_AlarmGet( alarm, ringInterval=ringInterval, rc=rc)
-             if (shr_nuopc_utils_chkerr(rc,__LINE__,u_FILE_u)) return
+             if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
              call ESMF_TimeIntervalGet(ringInterval, d_r8=ringdays, rc=rc)
-             if (shr_nuopc_utils_chkerr(rc,__LINE__,u_FILE_u)) return
+             if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
              avgdt = accumulated_time/(ringdays*real(iterations-1))
           else if (stopalarmison) then
              ! Here we need the interval since the last call to this function
              call ESMF_TimeIntervalGet(nexttime-prevtime, d_r8=ringdays, rc=rc)
-             if (shr_nuopc_utils_chkerr(rc,__LINE__,u_FILE_u)) return
+             if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
           else
              avgdt = wallclockelapsed/timestep_length
              ringdays = timestep_length
           endif
           prevtime = nexttime
           call ESMF_TimeGet(nexttime, timestring=nexttimestr, rc=rc)
-          if (shr_nuopc_utils_ChkErr(rc,__LINE__,u_FILE_u)) return
+          if (med_utils_ChkErr(rc,__LINE__,u_FILE_u)) return
           ! get current wall clock time
           call ESMF_TimeSet(wallclocktime, rc=rc)
-          if (shr_nuopc_utils_chkerr(rc,__LINE__,u_FILE_u)) return
+          if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
           call ESMF_TimeSyncToRealTime(wallclocktime, rc=rc)
-          if (shr_nuopc_utils_chkerr(rc,__LINE__,u_FILE_u)) return
+          if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
 
           call ESMF_TimeGet(wallclocktime,timeString=walltimestr, rc=rc)
-          if (shr_nuopc_utils_ChkErr(rc,__LINE__,u_FILE_u)) return
+          if (med_utils_ChkErr(rc,__LINE__,u_FILE_u)) return
 
 
           ! 1 model day/ x seconds = 1/365 yrs/ (wallclockelapsed s/86400spd
@@ -188,10 +193,10 @@ contains
 
   end subroutine med_phases_profile
 
+!=================================================================================
+
   subroutine med_phases_profile_finalize()
     use ESMF, only : ESMF_VMWtime
-    use med_internalstate_mod, only : logunit
-    use shr_nuopc_utils_mod, only : shr_nuopc_utils_chkerr
 
     real(r8) :: SYPD
     character(*), parameter :: FormatR = '(": =============== ", A31,F12.3,1x,  " ===============")'
@@ -199,7 +204,7 @@ contains
     integer :: rc
 
     call ESMF_VMWtime(current_time, rc=rc)
-    if (shr_nuopc_utils_chkerr(rc,__LINE__,u_FILE_u)) return
+    if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
 
     wallclockelapsed = current_time - previous_time
     accumulated_time = accumulated_time + wallclockelapsed
@@ -208,6 +213,5 @@ contains
     write(logunit,FormatR) '# simulated years / cmp-day = ', SYPD
 
   end subroutine med_phases_profile_finalize
-
 
 end module med_phases_profile_mod

@@ -112,17 +112,17 @@ module med_fraction_mod
   !
   !-----------------------------------------------------------------------------
 
-  use esmFlds               , only : ncomps
-  use med_constants_mod     , only : R8
-  use med_constants_mod     , only : dbug_flag      => med_constants_dbug_flag
-  use med_constants_mod     , only : czero          => med_constants_czero
-  use shr_nuopc_utils_mod   , only : chkErr         => shr_nuopc_utils_ChkErr
-  use shr_nuopc_methods_mod , only : FB_init        => shr_nuopc_methods_FB_init
-  use shr_nuopc_methods_mod , only : FB_reset       => shr_nuopc_methods_FB_reset
-  use shr_nuopc_methods_mod , only : FB_getFldPtr   => shr_nuopc_methods_FB_getFldPtr
-  use shr_nuopc_methods_mod , only : FB_FieldRegrid => shr_nuopc_methods_FB_FieldRegrid
-  use shr_nuopc_methods_mod , only : FB_diagnose    => shr_nuopc_methods_FB_diagnose
-  use shr_nuopc_methods_mod , only : FB_fldChk      => shr_nuopc_methods_FB_fldChk
+  use med_constants_mod , only : R8
+  use med_constants_mod , only : dbug_flag      => med_constants_dbug_flag
+  use med_constants_mod , only : czero          => med_constants_czero
+  use med_utils_mod     , only : chkErr         => med_utils_ChkErr
+  use med_methods_mod   , only : FB_init        => med_methods_FB_init
+  use med_methods_mod   , only : FB_reset       => med_methods_FB_reset
+  use med_methods_mod   , only : FB_getFldPtr   => med_methods_FB_getFldPtr
+  use med_methods_mod   , only : FB_FieldRegrid => med_methods_FB_FieldRegrid
+  use med_methods_mod   , only : FB_diagnose    => med_methods_FB_diagnose
+  use med_methods_mod   , only : FB_fldChk      => med_methods_FB_fldChk
+  use esmFlds           , only : ncomps
 
   implicit none
   private

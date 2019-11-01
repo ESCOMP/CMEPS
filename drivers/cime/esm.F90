@@ -6,8 +6,8 @@ module ESM
 
   use ESMF                  , only : ESMF_Clock
   use shr_kind_mod          , only : r8=>shr_kind_r8, cl=>shr_kind_cl, cs=>shr_kind_cs
-  use shr_nuopc_utils_mod   , only : chkerr => shr_nuopc_utils_ChkErr
-  use shr_nuopc_utils_mod   , only : shr_nuopc_memcheck
+  use med_utils_mod         , only : chkerr => med_utils_ChkErr
+  use med_utils_mod         , only : med_memcheck
   use med_internalstate_mod , only : logunit, loglevel, mastertask, med_id
 
   implicit none
@@ -116,14 +116,12 @@ contains
     use NUOPC                 , only : NUOPC_CompAttributeAdd, NUOPC_CompAttributeSet
     use NUOPC_Driver          , only : NUOPC_DriverAddComp, NUOPC_DriverGetComp
 
-    use shr_nuopc_methods_mod , only : shr_nuopc_methods_Clock_TimePrint
     use shr_file_mod          , only : shr_file_setLogunit, shr_file_getunit
     use pio                   , only : pio_file_is_open, pio_closefile, file_desc_t
     use perf_mod              , only : t_initf
     use shr_mem_mod           , only : shr_mem_init
     use shr_file_mod          , only : shr_file_setLogunit, shr_file_getunit
     use shr_log_mod           , only : shrlogunit=> shr_log_unit
-    use shr_nuopc_methods_mod , only : shr_nuopc_methods_Clock_TimePrint
 
     ! input/output variables
     type(ESMF_GridComp)    :: driver
@@ -582,7 +580,7 @@ contains
 
     rc = ESMF_SUCCESS
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
-    call shr_nuopc_memcheck(subname, 0, mastertask)
+    call med_memcheck(subname, 0, mastertask)
 
     !----------------------------------------------------------
     ! Initialize options for reproducible sums

@@ -4,18 +4,22 @@ module med_phases_prep_ocn_mod
   ! Mediator phases for preparing ocn export from mediator
   !-----------------------------------------------------------------------------
 
-  use med_internalstate_mod , only : mastertask
+  use med_constants_mod     , only : czero=>med_constants_czero
   use med_constants_mod     , only : dbug_flag     => med_constants_dbug_flag
-  use shr_nuopc_utils_mod   , only : memcheck      => shr_nuopc_memcheck
-  use shr_nuopc_utils_mod   , only : chkerr        => shr_nuopc_utils_ChkErr
-  use shr_nuopc_methods_mod , only : FB_diagnose   => shr_nuopc_methods_FB_diagnose
-  use shr_nuopc_methods_mod , only : FB_getNumFlds => shr_nuopc_methods_FB_getNumFlds
-  use shr_nuopc_methods_mod , only : FB_fldchk     => shr_nuopc_methods_FB_FldChk
-  use shr_nuopc_methods_mod , only : FB_GetFldPtr  => shr_nuopc_methods_FB_GetFldPtr
-  use shr_nuopc_methods_mod , only : FB_accum      => shr_nuopc_methods_FB_accum
-  use shr_nuopc_methods_mod , only : FB_average    => shr_nuopc_methods_FB_average
-  use shr_nuopc_methods_mod , only : FB_copy       => shr_nuopc_methods_FB_copy
-  use shr_nuopc_methods_mod , only : FB_reset      => shr_nuopc_methods_FB_reset
+  use med_constants_mod     , only : R8, CS
+  use med_internalstate_mod , only : InternalState, mastertask, logunit
+  use med_merge_mod         , only : med_merge_auto, med_merge_field
+  use med_map_mod           , only : med_map_FB_Regrid_Norm
+  use med_utils_mod         , only : memcheck      => med_memcheck
+  use med_utils_mod         , only : chkerr        => med_utils_ChkErr
+  use med_methods_mod       , only : FB_diagnose   => med_methods_FB_diagnose
+  use med_methods_mod       , only : FB_getNumFlds => med_methods_FB_getNumFlds
+  use med_methods_mod       , only : FB_fldchk     => med_methods_FB_FldChk
+  use med_methods_mod       , only : FB_GetFldPtr  => med_methods_FB_GetFldPtr
+  use med_methods_mod       , only : FB_accum      => med_methods_FB_accum
+  use med_methods_mod       , only : FB_average    => med_methods_FB_average
+  use med_methods_mod       , only : FB_copy       => med_methods_FB_copy
+  use med_methods_mod       , only : FB_reset      => med_methods_FB_reset
 
   implicit none
   private
@@ -42,8 +46,6 @@ contains
     use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO,ESMF_SUCCESS
     use ESMF                  , only : ESMF_GridCompGet, ESMF_ClockGet, ESMF_TimeGet, ESMF_ClockPrint
     use ESMF                  , only : ESMF_FieldBundleGet
-    use med_internalstate_mod , only : InternalState
-    use med_map_mod           , only : med_map_FB_Regrid_Norm
     use esmFlds               , only : fldListFr
     use esmFlds               , only : compocn, ncomps, compname
     use perf_mod              , only : t_startf, t_stopf
@@ -116,9 +118,6 @@ contains
     use ESMF                  , only : ESMF_GridComp, ESMF_FieldBundleGet
     use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
     use ESMF                  , only : ESMF_FAILURE,  ESMF_LOGMSG_ERROR
-    use med_constants_mod     , only : R8, CS
-    use med_internalstate_mod , only : InternalState, mastertask, logunit
-    use med_merge_mod         , only : med_merge_auto, med_merge_field
     use esmFlds               , only : fldListTo
     use esmFlds               , only : compocn, compname, compatm, compice
     use esmFlds               , only : coupling_mode
@@ -594,7 +593,6 @@ contains
     use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
     use ESMF                  , only : ESMF_GridCompGet, ESMF_ClockGet, ESMF_TimeGet, ESMF_ClockPrint
     use ESMF                  , only : ESMF_FieldBundleGet
-    use med_internalstate_mod , only : InternalState, mastertask
     use esmFlds               , only : compocn
     use perf_mod              , only : t_startf, t_stopf
 
@@ -670,8 +668,6 @@ contains
     use ESMF                  , only : ESMF_GridComp, ESMF_Clock, ESMF_Time
     use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
     use ESMF                  , only : ESMF_FieldBundleGet
-    use med_constants_mod     , only : czero=>med_constants_czero
-    use med_internalstate_mod , only : InternalState
     use esmFlds               , only : compocn
     use perf_mod              , only : t_startf, t_stopf
 

@@ -16,16 +16,16 @@ module med_phases_prep_lnd_mod
   use ESMF                  , only : ESMF_TYPEKIND_R8
   use esmFlds               , only : complnd, compatm, compglc, ncomps, compname, mapconsf
   use esmFlds               , only : fldListFr, fldListTo
-  use esmFlds               , only : shr_nuopc_fldlist_type
-  use shr_nuopc_methods_mod , only : FB_getFieldN    => shr_nuopc_methods_FB_getFieldN
-  use shr_nuopc_methods_mod , only : FB_getFldPtr    => shr_nuopc_methods_FB_getFldPtr
-  use shr_nuopc_methods_mod , only : FB_getNumFlds   => shr_nuopc_methods_FB_getNumFlds
-  use shr_nuopc_methods_mod , only : FB_init         => shr_nuopc_methods_FB_init
-  use shr_nuopc_methods_mod , only : FB_diagnose     => shr_nuopc_methods_FB_diagnose
-  use shr_nuopc_methods_mod , only : FB_FldChk       => shr_nuopc_methods_FB_FldChk
-  use shr_nuopc_methods_mod , only : State_GetScalar => shr_nuopc_methods_State_GetScalar
-  use shr_nuopc_methods_mod , only : State_SetScalar => shr_nuopc_methods_State_SetScalar
-  use shr_nuopc_utils_mod   , only : chkerr          => shr_nuopc_utils_ChkErr
+  use esmFlds               , only : med_fldlist_type
+  use med_methods_mod       , only : FB_getFieldN    => med_methods_FB_getFieldN
+  use med_methods_mod       , only : FB_getFldPtr    => med_methods_FB_getFldPtr
+  use med_methods_mod       , only : FB_getNumFlds   => med_methods_FB_getNumFlds
+  use med_methods_mod       , only : FB_init         => med_methods_FB_init
+  use med_methods_mod       , only : FB_diagnose     => med_methods_FB_diagnose
+  use med_methods_mod       , only : FB_FldChk       => med_methods_FB_FldChk
+  use med_methods_mod       , only : State_GetScalar => med_methods_State_GetScalar
+  use med_methods_mod       , only : State_SetScalar => med_methods_State_SetScalar
+  use med_utils_mod         , only : chkerr          => med_utils_ChkErr
   use med_constants_mod     , only : R8, CS
   use med_constants_mod     , only : dbug_flag=>med_constants_dbug_flag
   use med_internalstate_mod , only : InternalState, logunit
@@ -59,9 +59,9 @@ module med_phases_prep_lnd_mod
   type(ESMF_FieldBundle) :: FBglc_ec
   type(ESMF_FieldBundle) :: FBlnd_ec
 
-  type(shr_nuopc_fldlist_type) :: fldlist_glc2lnd_frac_x_icemask
-  type(shr_nuopc_fldlist_type) :: fldlist_glc2lnd_norm_icemask
-  type(shr_nuopc_fldlist_type) :: fldlist_glc2lnd_norm_none
+  type(med_fldlist_type) :: fldlist_glc2lnd_frac_x_icemask
+  type(med_fldlist_type) :: fldlist_glc2lnd_norm_icemask
+  type(med_fldlist_type) :: fldlist_glc2lnd_norm_none
 
   ! the number of elevation classes (excluding bare land) = ungriddedCount - 1
   integer :: ungriddedCount ! this equals the number of elevation classes + 1 (for bare land)

@@ -3,26 +3,32 @@ module med_map_mod
   use ESMF                  , only : ESMF_Field, ESMF_FieldGet, ESMF_SUCCESS, ESMF_FAILURE
   use ESMF                  , only : ESMF_LOGMSG_ERROR, ESMF_LOGMSG_INFO, ESMF_LogWrite
   use esmFlds               , only : mapbilnr, mapconsf, mapconsd, mappatch, mapfcopy
-  use esmFlds               , only : mapunset, mapnames
+  use esmFlds               , only : mapunset, mapnames, nmappers
   use esmFlds               , only : mapnstod, mapnstod_consd, mapnstod_consf
+  use esmFlds               , only : ncomps, compice, compocn, compname
+  use esmFlds               , only : mapfcopy, mapconsd, mapconsf, mapnstod
   use esmFlds               , only : mapuv_with_cart3d
+  use esmFlds               , only : med_fldList_entry_type
+  use esmFlds               , only : fldListFr, fldListTo
+  use med_internalstate_mod , only : InternalState
   use med_constants_mod     , only : CX, CS, CL, R8
   use med_constants_mod     , only : shr_const_pi
   use med_constants_mod     , only : ispval_mask       => med_constants_ispval_mask
   use med_constants_mod     , only : czero             => med_constants_czero
   use med_constants_mod     , only : dbug_flag         => med_constants_dbug_flag
-  use shr_nuopc_utils_mod   , only : chkerr            => shr_nuopc_utils_ChkErr
-  use shr_nuopc_utils_mod   , only : memcheck          => shr_nuopc_memcheck
-  use shr_nuopc_methods_mod , only : FB_getFieldN      => shr_nuopc_methods_FB_getFieldN
-  use shr_nuopc_methods_mod , only : FB_init           => shr_nuopc_methods_FB_Init
-  use shr_nuopc_methods_mod , only : FB_reset          => shr_nuopc_methods_FB_Reset
-  use shr_nuopc_methods_mod , only : FB_Clean          => shr_nuopc_methods_FB_Clean
-  use shr_nuopc_methods_mod , only : FB_GetFldPtr      => shr_nuopc_methods_FB_GetFldPtr
-  use shr_nuopc_methods_mod , only : FB_FieldRegrid    => shr_nuopc_methods_FB_FieldRegrid
-  use shr_nuopc_methods_mod , only : FB_Field_diagnose => shr_nuopc_methods_FB_Field_diagnose
-  use shr_nuopc_methods_mod , only : FB_FldChk         => shr_nuopc_methods_FB_FldChk
-  use shr_nuopc_methods_mod , only : FB_GetFieldByName => shr_nuopc_methods_FB_GetFieldByName
-  use shr_nuopc_methods_mod , only : Field_diagnose    => shr_nuopc_methods_Field_diagnose
+  use med_utils_mod         , only : chkerr            => med_utils_ChkErr
+  use med_utils_mod         , only : memcheck          => med_memcheck
+  use med_methods_mod       , only : FB_getFieldN      => med_methods_FB_getFieldN
+  use med_methods_mod       , only : FB_init           => med_methods_FB_Init
+  use med_methods_mod       , only : FB_reset          => med_methods_FB_Reset
+  use med_methods_mod       , only : FB_Clean          => med_methods_FB_Clean
+  use med_methods_mod       , only : FB_GetFldPtr      => med_methods_FB_GetFldPtr
+  use med_methods_mod       , only : FB_FieldRegrid    => med_methods_FB_FieldRegrid
+  use med_methods_mod       , only : FB_Field_diagnose => med_methods_FB_Field_diagnose
+  use med_methods_mod       , only : FB_FldChk         => med_methods_FB_FldChk
+  use med_methods_mod       , only : FB_GetFieldByName => med_methods_FB_GetFieldByName
+  use med_methods_mod       , only : Field_diagnose    => med_methods_Field_diagnose
+  use perf_mod              , only : t_startf, t_stopf
 
   implicit none
   private
@@ -81,18 +87,14 @@ contains
     !        for the field
     !---------------------------------------------
 
-    use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_LogFlush, ESMF_KIND_I4
-    use ESMF                  , only : ESMF_GridComp, ESMF_VM, ESMF_Field, ESMF_PoleMethod_Flag, ESMF_POLEMETHOD_ALLAVG
-    use ESMF                  , only : ESMF_GridCompGet, ESMF_VMGet, ESMF_FieldSMMStore, ESMF_RouteHandleIsCreated
-    use ESMF                  , only : ESMF_FieldRedistStore, ESMF_FieldRegridStore, ESMF_REGRIDMETHOD_BILINEAR
-    use ESMF                  , only : ESMF_UNMAPPEDACTION_IGNORE, ESMF_REGRIDMETHOD_CONSERVE, ESMF_NORMTYPE_FRACAREA
-    use ESMF                  , only : ESMF_REGRIDMETHOD_NEAREST_STOD
-    use ESMF                  , only : ESMF_NORMTYPE_DSTAREA, ESMF_REGRIDMETHOD_PATCH, ESMF_RouteHandlePrint
-    use NUOPC                 , only : NUOPC_Write
-    use esmFlds               , only : ncomps, compice, compocn, compname
-    use esmFlds               , only : fldListFr, fldListTo
-    use med_internalstate_mod , only : InternalState
-    use perf_mod              , only : t_startf, t_stopf
+    use ESMF  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_LogFlush, ESMF_KIND_I4
+    use ESMF  , only : ESMF_GridComp, ESMF_VM, ESMF_Field, ESMF_PoleMethod_Flag, ESMF_POLEMETHOD_ALLAVG
+    use ESMF  , only : ESMF_GridCompGet, ESMF_VMGet, ESMF_FieldSMMStore, ESMF_RouteHandleIsCreated
+    use ESMF  , only : ESMF_FieldRedistStore, ESMF_FieldRegridStore, ESMF_REGRIDMETHOD_BILINEAR
+    use ESMF  , only : ESMF_UNMAPPEDACTION_IGNORE, ESMF_REGRIDMETHOD_CONSERVE, ESMF_NORMTYPE_FRACAREA
+    use ESMF  , only : ESMF_REGRIDMETHOD_NEAREST_STOD
+    use ESMF  , only : ESMF_NORMTYPE_DSTAREA, ESMF_REGRIDMETHOD_PATCH, ESMF_RouteHandlePrint
+    use NUOPC , only : NUOPC_Write
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -341,14 +343,11 @@ contains
     ! for mapping fractions
     !---------------------------------------------
 
-    use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_LogFlush
-    use ESMF                  , only : ESMF_GridComp, ESMF_FieldBundle, ESMF_RouteHandle, ESMF_Field
-    use ESMF                  , only : ESMF_FieldRedistStore, ESMF_FieldSMMStore, ESMF_FieldRegridStore
-    use ESMF                  , only : ESMF_UNMAPPEDACTION_IGNORE, ESMF_REGRIDMETHOD_CONSERVE, ESMF_NORMTYPE_FRACAREA
-    use NUOPC                 , only : NUOPC_CompAttributeGet
-    use esmFlds               , only : ncomps, compice, compocn, compname
-    use esmflds               , only : mapnames, mapconsf
-    use perf_mod              , only : t_startf, t_stopf
+    use ESMF  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_LogFlush
+    use ESMF  , only : ESMF_GridComp, ESMF_FieldBundle, ESMF_RouteHandle, ESMF_Field
+    use ESMF  , only : ESMF_FieldRedistStore, ESMF_FieldSMMStore, ESMF_FieldRegridStore
+    use ESMF  , only : ESMF_UNMAPPEDACTION_IGNORE, ESMF_REGRIDMETHOD_CONSERVE, ESMF_NORMTYPE_FRACAREA
+    use NUOPC , only : NUOPC_CompAttributeGet
 
     type(ESMF_GridComp)                    :: gcomp
     integer                , intent(in)    :: n1
@@ -447,12 +446,9 @@ contains
     ! and do the mapping for unity normalization up front
     !---------------------------------------
 
-    use ESMF                  , only: ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_LogFlush
-    use ESMF                  , only: ESMF_GridComp, ESMF_FieldBundle, ESMF_RouteHandleIsCreated
-    use esmFlds               , only: ncomps, compice, compocn, compname
-    use esmFlds               , only: mapnames, nmappers
-    use med_internalstate_mod , only: InternalState
-    use perf_mod              , only: t_startf, t_stopf
+    use ESMF , only: ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_LogFlush
+    use ESMF , only: ESMF_GridComp, ESMF_FieldBundle, ESMF_RouteHandleIsCreated
+
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
     integer, intent(in)  :: llogunit
@@ -559,14 +555,9 @@ contains
     use ESMF     , only: ESMF_FieldDestroy, ESMF_FieldCreate
     use ESMF     , only: ESMF_TERMORDER_SRCSEQ, ESMF_Region_Flag, ESMF_REGION_TOTAL
     use ESMF     , only: ESMF_REGION_SELECT, ESMF_FieldRegrid
-    use esmFlds  , only: compname
-    use esmFlds  , only: mapnames, mapfcopy, mapconsd, mapconsf, mapnstod
-    use esmFlds  , only: mapnstod_consd, mapnstod_consf
-    use esmFlds  , only: shr_nuopc_fldList_entry_type
-    use perf_mod , only: t_startf, t_stopf
 
     ! input/output variables
-    type(shr_nuopc_fldList_entry_type) , pointer       :: fldsSrc(:)
+    type(med_fldList_entry_type) , pointer       :: fldsSrc(:)
     integer                            , intent(in)    :: srccomp
     integer                            , intent(in)    :: destcomp
     type(ESMF_FieldBundle)             , intent(inout) :: FBSrc
@@ -928,13 +919,13 @@ contains
     ! map the source field to the destination field
     !---------------------------------------------------
 
-    use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
-    use ESMF                  , only : ESMF_LOGMSG_ERROR, ESMF_FAILURE, ESMF_MAXSTR
-    use ESMF                  , only : ESMF_FieldBundle, ESMF_FieldBundleGet
-    use ESMF                  , only : ESMF_Field, ESMF_FieldGet, ESMF_FieldRegrid
-    use ESMF                  , only : ESMF_TERMORDER_SRCSEQ, ESMF_Region_Flag, ESMF_REGION_TOTAL
-    use ESMF                  , only : ESMF_REGION_SELECT
-    use ESMF                  , only : ESMF_RouteHandle, ESMF_RouteHandleIsCreated
+    use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
+    use ESMF , only : ESMF_LOGMSG_ERROR, ESMF_FAILURE, ESMF_MAXSTR
+    use ESMF , only : ESMF_FieldBundle, ESMF_FieldBundleGet
+    use ESMF , only : ESMF_Field, ESMF_FieldGet, ESMF_FieldRegrid
+    use ESMF , only : ESMF_TERMORDER_SRCSEQ, ESMF_Region_Flag, ESMF_REGION_TOTAL
+    use ESMF , only : ESMF_REGION_SELECT
+    use ESMF , only : ESMF_RouteHandle, ESMF_RouteHandleIsCreated
 
     ! input/output variables
     character(len=*)       , intent(in)    :: fldname
@@ -1071,9 +1062,8 @@ contains
     ! Map fldnames in source field bundle with appropriate fraction weighting
     ! ----------------------------------------------
 
-    use ESMF     , only: ESMF_FieldBundle, ESMF_FieldBundleIsCreated, ESMF_FieldBundleGet
-    use ESMF     , only: ESMF_RouteHandle, ESMF_RouteHandleIsCreated
-    use perf_mod , only: t_startf, t_stopf
+    use ESMF , only: ESMF_FieldBundle, ESMF_FieldBundleIsCreated, ESMF_FieldBundleGet
+    use ESMF , only: ESMF_RouteHandle, ESMF_RouteHandleIsCreated
 
     ! input/output variables
     character(len=*)       , intent(in)           :: fldnames(:)

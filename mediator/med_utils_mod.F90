@@ -1,11 +1,13 @@
-module shr_nuopc_utils_mod
+module med_utils_mod
+
+  use med_constants_mod, only : CL
 
   implicit none
   private
 
-  public :: shr_nuopc_memcheck
-  public :: shr_nuopc_utils_ChkErr
-  public :: shr_nuopc_log_clock_advance
+  public :: med_memcheck
+  public :: med_utils_ChkErr
+  public :: med_log_clock_advance
 
   integer     , parameter :: memdebug_level=1
   character(*), parameter :: u_FILE_u = &
@@ -15,7 +17,7 @@ module shr_nuopc_utils_mod
 contains
 !===============================================================================
 
-  subroutine shr_nuopc_memcheck(string, level, mastertask)
+  subroutine med_memcheck(string, level, mastertask)
     character(len=*), intent(in) :: string
     integer, intent(in) :: level
     logical, intent(in) :: mastertask
@@ -24,11 +26,11 @@ contains
     if((mastertask .and. memdebug_level > level) .or. memdebug_level > level+1) then
        ierr = GPTLprint_memusage(string)
     endif
-  end subroutine shr_nuopc_memcheck
+  end subroutine med_memcheck
 
 !===============================================================================
 
-  logical function shr_nuopc_utils_ChkErr(rc, line, file, mpierr)
+  logical function med_utils_ChkErr(rc, line, file, mpierr)
 
     use mpi , only : MPI_ERROR_STRING, MPI_MAX_ERROR_STRING, MPI_SUCCESS
     use ESMF, only : ESMF_LogFoundError, ESMF_LOGERR_PASSTHRU, ESMF_LOGMSG_INFO
@@ -43,7 +45,7 @@ contains
     character(MPI_MAX_ERROR_STRING) :: lstring
     integer :: dbrc, lrc, len, ierr
 
-    shr_nuopc_utils_ChkErr = .false.
+    med_utils_ChkErr = .false.
     lrc = rc
     if (present(mpierr) .and. mpierr) then
        if (rc == MPI_SUCCESS) return
@@ -53,16 +55,15 @@ contains
     endif
 
     if (ESMF_LogFoundError(rcToCheck=lrc, msg=ESMF_LOGERR_PASSTHRU, line=line, file=file)) then
-      shr_nuopc_utils_ChkErr = .true.
+      med_utils_ChkErr = .true.
     endif
 
-  end function shr_nuopc_utils_ChkErr
+  end function med_utils_ChkErr
 
 !===============================================================================
 
-  subroutine shr_nuopc_log_clock_advance(clock, component, logunit)
+  subroutine med_log_clock_advance(clock, component, logunit)
     use ESMF, only : ESMF_Clock, ESMF_ClockPrint
-    use med_constants_mod, only : CL
 
     type(ESMF_Clock) :: clock
     character(len=*), intent(in) :: component
@@ -74,14 +75,14 @@ contains
     write(prestring, *) "------>Advancing ",trim(component)," from: "
     call ESMF_ClockPrint(clock, options="currTime", unit=cvalue, &
          preString=trim(prestring), rc=rc)
-    if (shr_nuopc_utils_ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (med_utils_ChkErr(rc,__LINE__,u_FILE_u)) return
     write(logunit, *) trim(cvalue)
 
     call ESMF_ClockPrint(clock, options="stopTime", unit=cvalue, &
          preString="--------------------------------> to: ", rc=rc)
-    if (shr_nuopc_utils_ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (med_utils_ChkErr(rc,__LINE__,u_FILE_u)) return
     write(logunit, *) trim(cvalue)
 
-  end subroutine shr_nuopc_log_clock_advance
+  end subroutine med_log_clock_advance
 
-end module shr_nuopc_utils_mod
+end module med_utils_mod

@@ -26,9 +26,9 @@ contains
     use esmFlds               , only : fldListFr, fldListTo
     use med_constants_mod     , only : CS
     use med_constants_mod     , only : dbug_flag     => med_constants_dbug_flag
-    use shr_nuopc_utils_mod   , only : chkerr        => shr_nuopc_utils_ChkErr
-    use shr_nuopc_methods_mod , only : FB_diagnose   => shr_nuopc_methods_FB_diagnose
-    use shr_nuopc_methods_mod , only : FB_getNumFlds => shr_nuopc_methods_FB_getNumFlds
+    use med_utils_mod         , only : chkerr        => med_utils_ChkErr
+    use med_methods_mod       , only : FB_diagnose   => med_methods_FB_diagnose
+    use med_methods_mod       , only : FB_getNumFlds => med_methods_FB_getNumFlds
     use med_merge_mod         , only : med_merge_auto
     use med_map_mod           , only : med_map_FB_Regrid_Norm
     use med_internalstate_mod , only : InternalState, mastertask
