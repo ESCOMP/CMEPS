@@ -121,7 +121,8 @@ contains
 
        do n1 = 1,ncomps
           if (is_local%wrap%med_coupling_active(n1,complnd)) then
-             ! The following will map all atm->lnd, rof->lnd, Sg_icemask_field and Sg_topo_field
+             ! The following will map all atm->lnd, rof->lnd, and 
+             ! glc->lnd only for Sg_icemask_field and Sg_icemask_coupled_fluxes
              call med_map_FB_Regrid_Norm( &
                   fldsSrc=fldListFr(n1)%flds, &
                   srccomp=n1, destcomp=complnd, &
@@ -139,8 +140,8 @@ contains
        !--- auto merges to create FBExp(complnd)
        !---------------------------------------
 
-       ! The following will merge all fields in fldsSrc (for glc these
-       ! are Sg_icemask and Sg_topo)
+       ! The following will merge all fields in fldsSrc 
+       ! (for glc these are Sg_icemask and Sg_icemask_coupled_fluxes)
        call med_merge_auto(trim(compname(complnd)), &
             is_local%wrap%FBExp(complnd), &
             is_local%wrap%FBFrac(complnd), &
@@ -160,8 +161,7 @@ contains
              first_call = .false.
           end if
 
-          ! The will following will map and merge Sg_frac and Sg_topo
-          ! (and in the future Flgg_hflx)
+          ! The will following will map and merge Sg_frac and Sg_topo (and in the future Flgg_hflx)
           call med_map_glc2lnd(gcomp, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
@@ -372,7 +372,7 @@ contains
 
     ! local variables
     type(InternalState)   :: is_local
-    integer               :: ec, nfld, n, l
+    integer               :: ec, nfld, n, l, g
     real(r8)              :: topo_virtual
     real(r8), pointer     :: icemask_g(:)             ! glc ice mask field on glc grid
     real(r8), pointer     :: frac_g(:)                ! total ice fraction in each glc cell
@@ -391,7 +391,6 @@ contains
     !-----------------------------------------------------------------------
 
     call t_startf('MED:'//subname)
-
     if (dbug_flag > 5) then
        call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
     end if
@@ -478,7 +477,7 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     do ec = 1,ungriddedCount
        do l = 1,size(topo_g)
-          topo_x_icemask_g(:,:) = topo_g(l) * frac_x_icemask_g_ec(ec,l)
+          topo_x_icemask_g(ec,l) = topo_g(l) * frac_x_icemask_g_ec(ec,l)
        end do
     end do
 
@@ -527,7 +526,6 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     do ec = 1,ungriddedCount
        topo_virtual = glc_mean_elevation_virtual(ec-1) ! glc_mean_elevation_virtual uses 0:glc_nec
-       !write(6,*)'DEBUG: ec, topo_virtual = ',ec,topo_virtual
        do l = 1,size(frac_x_icemask_l, dim=2)
           if (frac_l_ec(ec,l) <= 0._r8) then
              dataptr2d_exp(ec,l) = topo_virtual
@@ -543,8 +541,8 @@ contains
 
     if (dbug_flag > 5) then
        call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
-       call t_stopf('MED:'//subname)
     end if
+    call t_stopf('MED:'//subname)
 
   end subroutine med_map_glc2lnd
 
