@@ -4,10 +4,10 @@ module med_internalstate_mod
   ! Mediator Internal State Datatype.
   !-----------------------------------------------------------------------------
 
-  use ESMF              , only : ESMF_RouteHandle, ESMF_FieldBundle, ESMF_State
-  use ESMF              , only : ESMF_VM
-  use esmFlds           , only : ncomps, nmappers
-  use med_constants_mod , only : CL
+  use ESMF         , only : ESMF_RouteHandle, ESMF_FieldBundle, ESMF_State
+  use ESMF         , only : ESMF_VM
+  use esmFlds      , only : ncomps, nmappers
+  use shr_kind_mod , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
 
   implicit none
   private

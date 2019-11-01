@@ -4,6 +4,8 @@ module med_phases_prep_lnd_mod
   ! Mediator phases for preparing land export from mediator
   !-----------------------------------------------------------------------------
 
+  use shr_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
+  use shr_sys_mod           , only : shr_sys_abort
   use ESMF                  , only : operator(/=)
   use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
   use ESMF                  , only : ESMF_FieldBundle, ESMF_FieldBundleGet
@@ -26,8 +28,7 @@ module med_phases_prep_lnd_mod
   use med_methods_mod       , only : State_GetScalar => med_methods_State_GetScalar
   use med_methods_mod       , only : State_SetScalar => med_methods_State_SetScalar
   use med_utils_mod         , only : chkerr          => med_utils_ChkErr
-  use med_constants_mod     , only : R8, CS
-  use med_constants_mod     , only : dbug_flag=>med_constants_dbug_flag
+  use med_constants_mod     , only : dbug_flag       => med_constants_dbug_flag
   use med_internalstate_mod , only : InternalState, logunit
   use med_map_mod           , only : med_map_FB_Regrid_Norm
   use med_map_mod           , only : med_map_Fractions_Init
@@ -36,7 +37,6 @@ module med_phases_prep_lnd_mod
   use glc_elevclass_mod     , only : glc_mean_elevation_virtual
   use glc_elevclass_mod     , only : glc_get_fractional_icecov
   use perf_mod              , only : t_startf, t_stopf
-  use shr_sys_mod           , only : shr_sys_abort
 
   implicit none
   private

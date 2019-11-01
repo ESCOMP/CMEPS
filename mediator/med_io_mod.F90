@@ -4,15 +4,17 @@ module med_io_mod
   ! Create mediator history files
   !------------------------------------------
 
+  use shr_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, I8=>SHR_KIND_I8, R8=>SHR_KIND_R8
+  use shr_kind_mod          , only : R4=>SHR_KIND_R4
+  use shr_const_mod         , only : fillvalue => SHR_CONST_SPVAL
   use ESMF                  , only : ESMF_VM, ESMF_LogWrite, ESMF_LOGMSG_INFO
   use ESMF                  , only : ESMF_SUCCESS, ESMF_FAILURE
   use ESMF                  , only : ESMF_VMBroadCast
   use NUOPC                 , only : NUOPC_FieldDictionaryGetEntry
   use NUOPC                 , only : NUOPC_FieldDictionaryHasEntry
   use pio                   , only : file_desc_t, iosystem_desc_t
-  use med_constants_mod     , only : R4, R8, I8, CL 
-  use med_constants_mod     , only : dbug_flag    => med_constants_dbug_flag
   use med_internalstate_mod , only : logunit, med_id
+  use med_constants_mod     , only : dbug_flag    => med_constants_dbug_flag
   use med_methods_mod       , only : FB_getFieldN => med_methods_FB_getFieldN
   use med_methods_mod       , only : FB_getFldPtr => med_methods_FB_getFldPtr
   use med_methods_mod       , only : FB_getNameN  => med_methods_FB_getNameN
@@ -372,15 +374,14 @@ contains
     ! Write FB to netcdf file
     !---------------
 
-    use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_FAILURE
-    use ESMF                  , only : ESMF_FieldBundleIsCreated, ESMF_FieldBundle, ESMF_Mesh, ESMF_DistGrid
-    use ESMF                  , only : ESMF_FieldBundleGet, ESMF_FieldGet, ESMF_MeshGet, ESMF_DistGridGet
-    use ESMF                  , only : ESMF_Field, ESMF_FieldGet, ESMF_AttributeGet 
-    use med_constants_mod     , only : fillvalue=>SHR_CONST_SPVAL
-    use pio                   , only : var_desc_t, io_desc_t, pio_offset_kind
-    use pio                   , only : pio_def_dim, pio_inq_dimid, pio_real, pio_def_var, pio_put_att, pio_double
-    use pio                   , only : pio_inq_varid, pio_setframe, pio_write_darray, pio_initdecomp, pio_freedecomp
-    use pio                   , only : pio_syncfile
+    use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_FAILURE
+    use ESMF , only : ESMF_FieldBundleIsCreated, ESMF_FieldBundle, ESMF_Mesh, ESMF_DistGrid
+    use ESMF , only : ESMF_FieldBundleGet, ESMF_FieldGet, ESMF_MeshGet, ESMF_DistGridGet
+    use ESMF , only : ESMF_Field, ESMF_FieldGet, ESMF_AttributeGet 
+    use pio  , only : var_desc_t, io_desc_t, pio_offset_kind
+    use pio  , only : pio_def_dim, pio_inq_dimid, pio_real, pio_def_var, pio_put_att, pio_double
+    use pio  , only : pio_inq_varid, pio_setframe, pio_write_darray, pio_initdecomp, pio_freedecomp
+    use pio  , only : pio_syncfile
 
     ! input/output variables
     character(len=*),           intent(in) :: filename  ! file
@@ -1145,18 +1146,16 @@ contains
     ! Read FB from netcdf file
     !---------------
 
-    use ESMF                  , only : ESMF_FieldBundle, ESMF_Field, ESMF_Mesh, ESMF_DistGrid
-    use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
-    use ESMF                  , only : ESMF_LOGMSG_ERROR, ESMF_FAILURE
-    use ESMF                  , only : ESMF_FieldBundleIsCreated, ESMF_FieldBundleGet
-    use ESMF                  , only : ESMF_FieldGet, ESMF_MeshGet, ESMF_DistGridGet
-    use pio                   , only : file_desc_T, var_desc_t, io_desc_t, pio_nowrite, pio_openfile
-    use pio                   , only : pio_noerr, PIO_BCAST_ERROR, PIO_INTERNAL_ERROR
-    use pio                   , only : pio_inq_varid
-    use pio                   , only : pio_double, pio_get_att, pio_seterrorhandling, pio_freedecomp, pio_closefile
-    use pio                   , only : pio_read_darray, pio_offset_kind, pio_setframe
-    use med_constants_mod     , only : dbug_flag=>med_constants_dbug_flag
-    use med_constants_mod     , only : fillvalue=>SHR_CONST_SPVAL
+    use ESMF , only : ESMF_FieldBundle, ESMF_Field, ESMF_Mesh, ESMF_DistGrid
+    use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
+    use ESMF , only : ESMF_LOGMSG_ERROR, ESMF_FAILURE
+    use ESMF , only : ESMF_FieldBundleIsCreated, ESMF_FieldBundleGet
+    use ESMF , only : ESMF_FieldGet, ESMF_MeshGet, ESMF_DistGridGet
+    use pio  , only : file_desc_T, var_desc_t, io_desc_t, pio_nowrite, pio_openfile
+    use pio  , only : pio_noerr, PIO_BCAST_ERROR, PIO_INTERNAL_ERROR
+    use pio  , only : pio_inq_varid
+    use pio  , only : pio_double, pio_get_att, pio_seterrorhandling, pio_freedecomp, pio_closefile
+    use pio  , only : pio_read_darray, pio_offset_kind, pio_setframe
 
     ! input/output arguments
     character(len=*)                        ,intent(in)  :: filename ! file
@@ -1544,7 +1543,6 @@ contains
 
   !===============================================================================
   subroutine med_io_read_r8(filename, vm, iam, rdata, dname, rc)
-    use med_constants_mod, only : R8
 
     !---------------
     ! Read scalar double from netcdf file

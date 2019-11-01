@@ -4,6 +4,31 @@ module med_phases_prep_atm_mod
   ! Mediator phases for preparing atm export from mediator
   !-----------------------------------------------------------------------------
 
+  use shr_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
+  use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
+  use ESMF                  , only : ESMF_FieldBundleGet, ESMF_GridCompGet, ESMF_ClockGet, ESMF_TimeGet
+  use ESMF                  , only : ESMF_GridComp, ESMF_Clock, ESMF_Time, ESMF_ClockPrint
+  use med_constants_mod     , only : dbug_flag       => med_constants_dbug_flag
+  use med_utils_mod         , only : memcheck        => med_memcheck
+  use med_utils_mod         , only : chkerr          => med_utils_ChkErr
+  use med_methods_mod       , only : FB_fldchk       => med_methods_FB_FldChk
+  use med_methods_mod       , only : FB_GetFldPtr    => med_methods_FB_GetFldPtr
+  use med_methods_mod       , only : FB_diagnose     => med_methods_FB_diagnose
+  use med_methods_mod       , only : FB_init         => med_methods_FB_init
+  use med_methods_mod       , only : FB_rest         => med_methods_FB_reset
+  use med_methods_mod       , only : FB_getNumFlds   => med_methods_FB_getNumFlds
+  use med_methods_mod       , only : State_GetScalar => med_methods_State_GetScalar
+  use med_methods_mod       , only : State_SetScalar => med_methods_State_SetScalar
+  use med_merge_mod         , only : med_merge_auto
+  use med_map_mod           , only : med_map_FB_Regrid_Norm
+  use med_internalstate_mod , only : InternalState, mastertask
+  use med_phases_ocnalb_mod , only : med_phases_ocnalb_mapo2a
+  use esmFlds               , only : compatm, compocn, compice, ncomps, compname
+  use esmFlds               , only : fldListFr, fldListTo
+  use esmFlds               , only : fldListMed_aoflux
+  use esmFlds               , only : coupling_mode
+  use perf_mod              , only : t_startf, t_stopf
+
   implicit none
   private
 
@@ -17,31 +42,6 @@ contains
 !-----------------------------------------------------------------------------
 
   subroutine med_phases_prep_atm(gcomp, rc)
-
-    use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
-    use ESMF                  , only : ESMF_FieldBundleGet, ESMF_GridCompGet, ESMF_ClockGet, ESMF_TimeGet
-    use ESMF                  , only : ESMF_GridComp, ESMF_Clock, ESMF_Time, ESMF_ClockPrint
-    use esmFlds               , only : compatm, compocn, compice, ncomps, compname
-    use esmFlds               , only : fldListFr, fldListTo
-    use esmFlds               , only : fldListMed_aoflux
-    use esmFlds               , only : coupling_mode
-    use med_constants_mod     , only : R8
-    use med_constants_mod     , only : dbug_flag       => med_constants_dbug_flag
-    use med_utils_mod         , only : memcheck        => med_memcheck
-    use med_utils_mod         , only : chkerr          => med_utils_ChkErr
-    use med_methods_mod       , only : FB_fldchk       => med_methods_FB_FldChk
-    use med_methods_mod       , only : FB_GetFldPtr    => med_methods_FB_GetFldPtr
-    use med_methods_mod       , only : FB_diagnose     => med_methods_FB_diagnose
-    use med_methods_mod       , only : FB_init         => med_methods_FB_init
-    use med_methods_mod       , only : FB_rest         => med_methods_FB_reset
-    use med_methods_mod       , only : FB_getNumFlds   => med_methods_FB_getNumFlds
-    use med_methods_mod       , only : State_GetScalar => med_methods_State_GetScalar
-    use med_methods_mod       , only : State_SetScalar => med_methods_State_SetScalar
-    use med_merge_mod         , only : med_merge_auto
-    use med_map_mod           , only : med_map_FB_Regrid_Norm
-    use med_internalstate_mod , only : InternalState, mastertask
-    use med_phases_ocnalb_mod , only : med_phases_ocnalb_mapo2a
-    use perf_mod              , only : t_startf, t_stopf
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp

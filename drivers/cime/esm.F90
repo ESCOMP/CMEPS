@@ -513,7 +513,6 @@ contains
     use NUOPC            , only : NUOPC_CompAttributeGet, NUOPC_CompAttributeSet, NUOPC_CompAttributeAdd
     use shr_orb_mod      , only : shr_orb_params, SHR_ORB_UNDEF_INT, SHR_ORB_UNDEF_REAL
     use shr_assert_mod   , only : shr_assert_in_domain
-    use shr_cal_mod      , only : shr_cal_date2ymd
     use shr_const_mod    , only : shr_const_tkfrz, shr_const_tktrip
     use shr_const_mod    , only : shr_const_mwwv, shr_const_mwdair
     use shr_frz_mod      , only : shr_frz_freezetemp_init
@@ -1107,10 +1106,9 @@ contains
     use ESMF                  , only : ESMF_LogWrite, ESMF_SUCCESS, ESMF_LOGMSG_INFO, ESMF_Config
     use ESMF                  , only : ESMF_ConfigGetLen, ESMF_LogFoundAllocError, ESMF_ConfigGetAttribute
     use ESMF                  , only : ESMF_RC_NOT_VALID, ESMF_LogSetError
-    use ESMF                  , only : ESMF_GridCompIsPetLocal, ESMF_MethodAdd
+    use ESMF                  , only : ESMF_GridCompIsPetLocal, ESMF_MethodAdd, ESMF_UtilStringLowerCase
     use NUOPC                 , only : NUOPC_CompAttributeGet
     use NUOPC_Driver          , only : NUOPC_DriverAddComp
-    use shr_string_mod        , only : toLower => shr_string_toLower
     use med_constants_mod     , only : dbug_flag => med_constants_dbug_flag, CS, CL
     use mpi                   , only : MPI_COMM_NULL
     use mct_mod               , only : mct_world_init
@@ -1137,7 +1135,6 @@ contains
 #ifdef GLC_PRESENT
     use glc_comp_nuopc        , only : GLCSetServices => SetServices
 #endif
-
 
     ! input/output variables
     type(ESMF_GridComp)            :: driver
@@ -1212,7 +1209,7 @@ contains
     comms(1) = Global_Comm
     do i=1,componentCount
 
-       namestr = toLower(compLabels(i))
+       namestr = ESMF_UtilStringLowerCase(compLabels(i))
        if (namestr == 'med') namestr = 'cpl'
        call NUOPC_CompAttributeGet(driver, name=trim(namestr)//'_ntasks', value=cvalue, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return

@@ -4,9 +4,9 @@ module med_phases_prep_ocn_mod
   ! Mediator phases for preparing ocn export from mediator
   !-----------------------------------------------------------------------------
 
+  use shr_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
   use med_constants_mod     , only : czero=>med_constants_czero
   use med_constants_mod     , only : dbug_flag     => med_constants_dbug_flag
-  use med_constants_mod     , only : R8, CS
   use med_internalstate_mod , only : InternalState, mastertask, logunit
   use med_merge_mod         , only : med_merge_auto, med_merge_field
   use med_map_mod           , only : med_map_FB_Regrid_Norm
@@ -20,6 +20,10 @@ module med_phases_prep_ocn_mod
   use med_methods_mod       , only : FB_average    => med_methods_FB_average
   use med_methods_mod       , only : FB_copy       => med_methods_FB_copy
   use med_methods_mod       , only : FB_reset      => med_methods_FB_reset
+  use esmFlds               , only : fldListFr, fldListTo
+  use esmFlds               , only : compocn, compatm, compice, ncomps, compname
+  use esmFlds               , only : coupling_mode
+  use perf_mod              , only : t_startf, t_stopf
 
   implicit none
   private
@@ -42,13 +46,10 @@ contains
     ! Map all fields in from relevant source components to the ocean grid
     !---------------------------------------
 
-    use ESMF                  , only : ESMF_GridComp, ESMF_Clock, ESMF_Time
-    use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO,ESMF_SUCCESS
-    use ESMF                  , only : ESMF_GridCompGet, ESMF_ClockGet, ESMF_TimeGet, ESMF_ClockPrint
-    use ESMF                  , only : ESMF_FieldBundleGet
-    use esmFlds               , only : fldListFr
-    use esmFlds               , only : compocn, ncomps, compname
-    use perf_mod              , only : t_startf, t_stopf
+    use ESMF , only : ESMF_GridComp, ESMF_Clock, ESMF_Time
+    use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_INFO,ESMF_SUCCESS
+    use ESMF , only : ESMF_GridCompGet, ESMF_ClockGet, ESMF_TimeGet, ESMF_ClockPrint
+    use ESMF , only : ESMF_FieldBundleGet
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -115,13 +116,9 @@ contains
 
   subroutine med_phases_prep_ocn_merge(gcomp, rc)
 
-    use ESMF                  , only : ESMF_GridComp, ESMF_FieldBundleGet
-    use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
-    use ESMF                  , only : ESMF_FAILURE,  ESMF_LOGMSG_ERROR
-    use esmFlds               , only : fldListTo
-    use esmFlds               , only : compocn, compname, compatm, compice
-    use esmFlds               , only : coupling_mode
-    use perf_mod              , only : t_startf, t_stopf
+    use ESMF , only : ESMF_GridComp, ESMF_FieldBundleGet
+    use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
+    use ESMF , only : ESMF_FAILURE,  ESMF_LOGMSG_ERROR
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -589,12 +586,10 @@ contains
 
     ! Carry out fast accumulation for the ocean
 
-    use ESMF                  , only : ESMF_GridComp, ESMF_Clock, ESMF_Time
-    use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
-    use ESMF                  , only : ESMF_GridCompGet, ESMF_ClockGet, ESMF_TimeGet, ESMF_ClockPrint
-    use ESMF                  , only : ESMF_FieldBundleGet
-    use esmFlds               , only : compocn
-    use perf_mod              , only : t_startf, t_stopf
+    use ESMF , only : ESMF_GridComp, ESMF_Clock, ESMF_Time
+    use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
+    use ESMF , only : ESMF_GridCompGet, ESMF_ClockGet, ESMF_TimeGet, ESMF_ClockPrint
+    use ESMF , only : ESMF_FieldBundleGet
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -665,11 +660,9 @@ contains
 
     ! Prepare the OCN import Fields.
 
-    use ESMF                  , only : ESMF_GridComp, ESMF_Clock, ESMF_Time
-    use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
-    use ESMF                  , only : ESMF_FieldBundleGet
-    use esmFlds               , only : compocn
-    use perf_mod              , only : t_startf, t_stopf
+    use ESMF , only : ESMF_GridComp, ESMF_Clock, ESMF_Time
+    use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
+    use ESMF , only : ESMF_FieldBundleGet
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp

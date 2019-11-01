@@ -22,7 +22,7 @@ contains
 
     use ESMF
     use NUOPC
-    use med_constants_mod     , only : CX, CS, CL
+    use shr_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
     use med_utils_mod         , only : chkerr => med_utils_chkerr
     use med_methods_mod       , only : fldchk => med_methods_FB_FldChk
     use med_internalstate_mod , only : InternalState
@@ -2118,7 +2118,7 @@ contains
     !-----------------------------------------------------------------------------
     ! TODO: add this
     ! if (carma_flds /= ' ') then
-    !    do n = 1,shr_string_listGetNum(carma_flds)
+    !    do n = 1,)number_of_fields in carm_flds)
     !       call addfld(fldListFr(complnd)%flds, trim(fldname))
     !       call addmap(fldListFr(complnd)%flds, trim(fldname), compatm, mapconsf, 'one',lnd2atm_smap)
     !       call addfld(fldListTo(compatm)%flds, trim(fldname), mrg_from1=complnd, mrg_fld1=trim(fldname), mrg_type1='copy')

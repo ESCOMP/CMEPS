@@ -4,13 +4,13 @@ module med_methods_mod
   ! Generic operation methods used by the Mediator Component.
   !-----------------------------------------------------------------------------
 
+  use shr_kind_mod       , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
   use ESMF               , only : operator(<), operator(/=), operator(+), operator(-), operator(*) , operator(>=)
   use ESMF               , only : operator(<=), operator(>), operator(==)
   use ESMF               , only : ESMF_GeomType_Flag, ESMF_FieldStatus_Flag, ESMF_PoleMethod_Flag
   use ESMF               , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_FAILURE
   use ESMF               , only : ESMF_LOGERR_PASSTHRU, ESMF_LogFoundError, ESMF_LOGMSG_ERROR
   use ESMF               , only : ESMF_MAXSTR, ESMF_LOGMSG_WARNING, ESMF_POLEMETHOD_ALLAVG
-  use med_constants_mod  , only : R8, CS, CL
   use med_constants_mod  , only : dbug_flag => med_constants_dbug_flag
   use med_constants_mod  , only : czero => med_constants_czero
   use med_constants_mod  , only : spval_init => med_constants_spval_init

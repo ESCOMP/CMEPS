@@ -4,8 +4,8 @@ module med_phases_profile_mod
   ! Output med profile to log file
   !-----------------------------------------------------------------------------
 
-  use med_constants_mod     , only : R8
-  use med_constants_mod     , only : dbug_flag=>med_constants_dbug_flag, CS, CL
+  use shr_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
+  use med_constants_mod     , only : dbug_flag=>med_constants_dbug_flag
   use med_utils_mod         , only : med_utils_chkerr, med_memcheck
   use med_internalstate_mod , only : mastertask, logunit
   use med_utils_mod         , only : med_utils_chkerr
@@ -30,15 +30,15 @@ contains
 
   subroutine med_phases_profile(gcomp, rc)
 
-    use ESMF                  , only : ESMF_VMGetCurrent, ESMF_CLOCK, ESMF_GridComp, ESMF_LogMsg_Info
-    use ESMF                  , only : ESMF_LogWrite, ESMF_GridCompGet, ESMF_SUCCESS, ESMF_VM
-    use ESMF                  , only : ESMF_VMGet, ESMF_ClockGetAlarm, ESMF_AlarmRingerOff
-    use ESMF                  , only : ESMF_Alarm, ESMF_AlarmisRinging, ESMF_VMWtime
-    use ESMF                  , only : ESMF_TimeSyncToRealTime, ESMF_Time, ESMF_TimeSet
-    use ESMF                  , only : ESMF_TimeInterval, ESMF_AlarmGet, ESMF_TimeIntervalGet
-    use ESMF                  , only : ESMF_ClockGetNextTime, ESMF_TimeGet, ESMF_ClockGet
-    use ESMF                  , only : operator(-)
-    use NUOPC                 , only : NUOPC_CompAttributeGet
+    use ESMF  , only : ESMF_VMGetCurrent, ESMF_CLOCK, ESMF_GridComp, ESMF_LogMsg_Info
+    use ESMF  , only : ESMF_LogWrite, ESMF_GridCompGet, ESMF_SUCCESS, ESMF_VM
+    use ESMF  , only : ESMF_VMGet, ESMF_ClockGetAlarm, ESMF_AlarmRingerOff
+    use ESMF  , only : ESMF_Alarm, ESMF_AlarmisRinging, ESMF_VMWtime
+    use ESMF  , only : ESMF_TimeSyncToRealTime, ESMF_Time, ESMF_TimeSet
+    use ESMF  , only : ESMF_TimeInterval, ESMF_AlarmGet, ESMF_TimeIntervalGet
+    use ESMF  , only : ESMF_ClockGetNextTime, ESMF_TimeGet, ESMF_ClockGet
+    use ESMF  , only : operator(-)
+    use NUOPC , only : NUOPC_CompAttributeGet
 
     ! write profile output
 
@@ -47,21 +47,21 @@ contains
     integer, intent(out) :: rc
 
     ! local variables
-    character(len=CS) :: cpl_inst_tag
-    type(ESMF_CLOCK) :: clock
-    type(ESMF_TIME)  :: wallclocktime, nexttime
-    type(ESMF_TIME), save :: prevtime
-    type(ESMF_VM) :: vm
-    type(ESMF_Alarm) :: alarm, salarm
+    character(len=CS)       :: cpl_inst_tag
+    type(ESMF_CLOCK)        :: clock
+    type(ESMF_TIME)         :: wallclocktime, nexttime
+    type(ESMF_TIME), save   :: prevtime
+    type(ESMF_VM)           :: vm
+    type(ESMF_Alarm)        :: alarm, salarm
     type(ESMF_TimeInterval) :: ringInterval, timestep
-    integer :: yr, mon, day, hr, min, sec
-    integer :: iam
-    logical :: ispresent
-    logical :: alarmison=.false., stopalarmison=.false.
-    real(R8) :: current_time, wallclockelapsed, ypd
-    real(r8) :: msize, mrss, ringdays
-    real(r8), save :: avgdt
-    character(len=CL) :: walltimestr, nexttimestr
+    integer                 :: yr, mon, day, hr, min, sec
+    integer                 :: iam
+    logical                 :: ispresent
+    logical                 :: alarmison=.false., stopalarmison=.false.
+    real(R8)                :: current_time, wallclockelapsed, ypd
+    real(r8)                :: msize, mrss, ringdays
+    real(r8), save          :: avgdt
+    character(len=CL)       :: walltimestr, nexttimestr
     character(len=*), parameter :: subname='(med_phases_profile)'
     !---------------------------------------
 

@@ -1,7 +1,17 @@
 module med_phases_ocnalb_mod
 
-  use med_constants_mod  , only : R8
-  use med_utils_mod, only : chkerr => med_utils_chkerr
+  use shr_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
+  use shr_const_mod         , only : shr_const_pi
+  use med_constants_mod     , only : dbug_flag => med_constants_dbug_flag
+  use med_utils_mod         , only : chkerr    => med_utils_chkerr
+  use med_internalstate_mod , only : InternalState, logunit
+  use med_methods_mod       , only : FB_GetFldPtr => med_methods_FB_GetFldPtr
+  use med_methods_mod       , only : FB_getFieldN => med_methods_FB_getFieldN
+  use med_methods_mod       , only : FB_diagnose => med_methods_FB_diagnose
+  use med_methods_mod       , only : FB_FieldRegrid => med_methods_FB_FieldRegrid
+  use med_methods_mod       , only : State_GetScalar => med_methods_State_GetScalar
+  use esmFlds               , only : compatm, compocn
+  use perf_mod              , only : t_startf, t_stopf
 
   implicit none
   private
@@ -50,18 +60,11 @@ contains
     ! All input field bundles are ASSUMED to be on the ocean grid
     !-----------------------------------------------------------------------
 
-    use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_FAILURE
-    use ESMF                  , only : ESMF_GridComp, ESMF_VM, ESMF_Field, ESMF_Grid, ESMF_Mesh, ESMF_GeomType_Flag
-    use ESMF                  , only : ESMF_GridCompGet, ESMF_VMGet, ESMF_FieldGet, ESMF_GEOMTYPE_MESH
-    use ESMF                  , only : ESMF_MeshGet
-    use ESMF                  , only : operator(==)
-    use med_methods_mod       , only : med_methods_FB_GetFldPtr
-    use med_methods_mod       , only : med_methods_FB_getFieldN
-    use med_internalstate_mod , only : InternalState
-    use med_constants_mod     , only : CL, R8
-    use med_constants_mod     , only : dbug_flag =>med_constants_dbug_flag
-    use esmFlds               , only : compatm, compocn
-    use perf_mod              , only : t_startf, t_stopf
+    use ESMF            , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_FAILURE
+    use ESMF            , only : ESMF_GridComp, ESMF_VM, ESMF_Field, ESMF_Grid, ESMF_Mesh, ESMF_GeomType_Flag
+    use ESMF            , only : ESMF_GridCompGet, ESMF_VMGet, ESMF_FieldGet, ESMF_GEOMTYPE_MESH
+    use ESMF            , only : ESMF_MeshGet
+    use ESMF            , only : operator(==)
 
     ! Arguments
     type(ESMF_GridComp)               :: gcomp
@@ -111,13 +114,13 @@ contains
     ! These must must be on the ocean grid since the ocean albedo computation is on the ocean grid
     ! The following sets pointers to the module arrays
 
-    call med_methods_FB_GetFldPtr(is_local%wrap%FBMed_ocnalb_o, fldname='So_avsdr', fldptr1=ocnalb%avsdr, rc=rc)
+    call FB_GetFldPtr(is_local%wrap%FBMed_ocnalb_o, fldname='So_avsdr', fldptr1=ocnalb%avsdr, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call med_methods_FB_GetFldPtr(is_local%wrap%FBMed_ocnalb_o, fldname='So_avsdf', fldptr1=ocnalb%avsdf, rc=rc)
+    call FB_GetFldPtr(is_local%wrap%FBMed_ocnalb_o, fldname='So_avsdf', fldptr1=ocnalb%avsdf, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call med_methods_FB_GetFldPtr(is_local%wrap%FBMed_ocnalb_o, fldname='So_anidr', fldptr1=ocnalb%anidr, rc=rc)
+    call FB_GetFldPtr(is_local%wrap%FBMed_ocnalb_o, fldname='So_anidr', fldptr1=ocnalb%anidr, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call med_methods_FB_GetFldPtr(is_local%wrap%FBMed_ocnalb_o, fldname='So_anidf', fldptr1=ocnalb%anidf, rc=rc)
+    call FB_GetFldPtr(is_local%wrap%FBMed_ocnalb_o, fldname='So_anidf', fldptr1=ocnalb%anidf, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     !----------------------------------
@@ -126,7 +129,7 @@ contains
 
     ! The following assumes that all fields in FBMed_ocnalb_o have the same grid - so
     ! only need to query field 1
-    call med_methods_FB_getFieldN(is_local%wrap%FBMed_ocnalb_o, fieldnum=1, field=lfield, rc=rc)
+    call FB_getFieldN(is_local%wrap%FBMed_ocnalb_o, fieldnum=1, field=lfield, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! Determine if first field is on a grid or a mesh - default will be mesh
@@ -187,16 +190,7 @@ contains
     use NUOPC                 , only : NUOPC_CompAttributeGet
     use shr_orb_mod           , only : shr_orb_cosz, shr_orb_decl
     use esmFlds               , only : mapconsf, mapnames
-    use med_methods_mod       , only : med_methods_FB_GetFldPtr
-    use med_methods_mod       , only : med_methods_FB_diagnose
-    use med_methods_mod       , only : med_methods_State_GetScalar
-    use med_methods_mod       , only : med_methods_FB_FieldRegrid
-    use med_constants_mod     , only : CS, CL, R8
-    use med_constants_mod     , only : dbug_flag =>med_constants_dbug_flag
-    use med_constants_mod     , only : shr_const_pi
-    use med_internalstate_mod , only : InternalState, logunit
     use esmFlds               , only : compatm, compocn
-    use perf_mod              , only : t_startf, t_stopf
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -301,7 +295,7 @@ contains
           call ESMF_TimeGet( currTime, dayOfYear_r8=nextsw_cday, rc=rc )
           if (chkerr(rc,__LINE__,u_FILE_u)) return
        else
-          call med_methods_State_GetScalar(&
+          call State_GetScalar(&
                state=is_local%wrap%NstateImp(compatm), &
                flds_scalar_name=is_local%wrap%flds_scalar_name, &
                flds_scalar_num=is_local%wrap%flds_scalar_num, &
@@ -315,7 +309,7 @@ contains
     else
 
        ! Note that med_methods_State_GetScalar includes a broadcast to all other pets
-       call med_methods_State_GetScalar(&
+       call State_GetScalar(&
             state=is_local%wrap%NstateImp(compatm), &
             flds_scalar_name=is_local%wrap%flds_scalar_name, &
             flds_scalar_num=is_local%wrap%flds_scalar_num, &
@@ -388,21 +382,20 @@ contains
 
     ! Update current ifrad/ofrad values if albedo was updated in field bundle
     if (update_alb) then
-       call med_methods_FB_getFldPtr(is_local%wrap%FBfrac(compocn), fldname='ifrac', fldptr1=ifrac, rc=rc)
+       call FB_getFldPtr(is_local%wrap%FBfrac(compocn), fldname='ifrac', fldptr1=ifrac, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call med_methods_FB_getFldPtr(is_local%wrap%FBfrac(compocn), fldname='ifrad', fldptr1=ifrad, rc=rc)
+       call FB_getFldPtr(is_local%wrap%FBfrac(compocn), fldname='ifrad', fldptr1=ifrad, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call med_methods_FB_getFldPtr(is_local%wrap%FBfrac(compocn), fldname='ofrac', fldptr1=ofrac, rc=rc)
+       call FB_getFldPtr(is_local%wrap%FBfrac(compocn), fldname='ofrac', fldptr1=ofrac, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call med_methods_FB_getFldPtr(is_local%wrap%FBfrac(compocn), fldname='ofrad', fldptr1=ofrad, rc=rc)
+       call FB_getFldPtr(is_local%wrap%FBfrac(compocn), fldname='ofrad', fldptr1=ofrad, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        ifrad(:) = ifrac(:)
        ofrad(:) = ofrac(:)
     endif
 
     if (dbug_flag > 1) then
-       call med_methods_FB_diagnose(is_local%wrap%FBMed_ocnalb_o, &
-            string=trim(subname)//' FBMed_ocnalb_o', rc=rc)
+       call FB_diagnose(is_local%wrap%FBMed_ocnalb_o, string=trim(subname)//' FBMed_ocnalb_o', rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     end if
     call t_stopf('MED:'//subname)
@@ -417,15 +410,11 @@ contains
     ! Map ocean albedos from ocn to atm grid
     !----------------------------------------------------------
 
-    use ESMF                  , only : ESMF_GridComp
-    use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
-    use med_map_mod           , only : med_map_FB_Regrid_Norm
-    use med_internalstate_mod , only : InternalState
-    use med_constants_mod     , only : R8
-    use med_constants_mod     , only : dbug_flag =>med_constants_dbug_flag
-    use esmFlds               , only : fldListMed_ocnalb
-    use esmFlds               , only : compatm, compocn
-    use perf_mod              , only : t_startf, t_stopf
+    use ESMF        , only : ESMF_GridComp
+    use ESMF        , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
+    use med_map_mod , only : med_map_FB_Regrid_Norm
+    use esmFlds     , only : fldListMed_ocnalb
+    use esmFlds     , only : compatm, compocn
 
     ! Arguments
     type(ESMF_GridComp)    :: gcomp

@@ -1,6 +1,6 @@
 module med_utils_mod
 
-  use med_constants_mod, only : CL
+  use shr_kind_mod, only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
 
   implicit none
   private

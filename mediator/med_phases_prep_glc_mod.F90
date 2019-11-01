@@ -4,6 +4,8 @@ module med_phases_prep_glc_mod
   ! Mediator phases for preparing glc export from mediator
   !-----------------------------------------------------------------------------
 
+  use shr_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
+  use shr_sys_mod           , only : shr_sys_abort
   use NUOPC                 , only : NUOPC_CompAttributeGet
   use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_FAILURE
   use ESMF                  , only : ESMF_VM, ESMF_VMGet, ESMF_VMAllReduce, ESMF_REDUCE_SUM
@@ -19,9 +21,7 @@ module med_phases_prep_glc_mod
   use ESMF                  , only : ESMF_TYPEKIND_R8
   use esmFlds               , only : compglc, complnd, mapbilnr, mapconsf, compname
   use esmFlds               , only : med_fldlist_type
-  use shr_sys_mod           , only : shr_sys_abort
   use med_internalstate_mod , only : InternalState, mastertask, logunit
-  use med_constants_mod     , only : R8, CS
   use med_constants_mod     , only : dbug_flag=>med_constants_dbug_flag
   use med_internalstate_mod , only : InternalState, mastertask, logunit
   use med_map_mod           , only : med_map_FB_Regrid_Norm
