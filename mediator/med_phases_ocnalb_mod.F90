@@ -10,8 +10,11 @@ module med_phases_ocnalb_mod
   use med_methods_mod       , only : FB_diagnose => med_methods_FB_diagnose
   use med_methods_mod       , only : FB_FieldRegrid => med_methods_FB_FieldRegrid
   use med_methods_mod       , only : State_GetScalar => med_methods_State_GetScalar
-  use esmFlds               , only : compatm, compocn
+  use esmFlds               , only : mapconsf, mapnames, compatm, compocn
   use perf_mod              , only : t_startf, t_stopf
+#ifdef CESMCOUPLED 
+  use shr_orb_mod           , only : shr_orb_cosz, shr_orb_decl
+#endif
 
   implicit none
   private
@@ -60,11 +63,11 @@ contains
     ! All input field bundles are ASSUMED to be on the ocean grid
     !-----------------------------------------------------------------------
 
-    use ESMF            , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_FAILURE
-    use ESMF            , only : ESMF_GridComp, ESMF_VM, ESMF_Field, ESMF_Grid, ESMF_Mesh, ESMF_GeomType_Flag
-    use ESMF            , only : ESMF_GridCompGet, ESMF_VMGet, ESMF_FieldGet, ESMF_GEOMTYPE_MESH
-    use ESMF            , only : ESMF_MeshGet
-    use ESMF            , only : operator(==)
+    use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_FAILURE
+    use ESMF , only : ESMF_GridComp, ESMF_VM, ESMF_Field, ESMF_Grid, ESMF_Mesh, ESMF_GeomType_Flag
+    use ESMF , only : ESMF_GridCompGet, ESMF_VMGet, ESMF_FieldGet, ESMF_GEOMTYPE_MESH
+    use ESMF , only : ESMF_MeshGet
+    use ESMF , only : operator(==)
 
     ! Arguments
     type(ESMF_GridComp)               :: gcomp
@@ -188,9 +191,6 @@ contains
     use ESMF                  , only : ESMF_RouteHandleIsCreated, ESMF_FieldBundleIsCreated
     use ESMF                  , only : operator(+)
     use NUOPC                 , only : NUOPC_CompAttributeGet
-    use shr_orb_mod           , only : shr_orb_cosz, shr_orb_decl
-    use esmFlds               , only : mapconsf, mapnames
-    use esmFlds               , only : compatm, compocn
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -353,7 +353,7 @@ contains
        ! Solar declination
        ! Will only do albedo calculation if nextsw_cday is not -1.
        if (nextsw_cday >= -0.5_r8) then
-
+#ifdef CESMCOUPLED
           call shr_orb_decl(nextsw_cday, eccen, mvelpp,lambm0, obliqr, delta, eccf)
 
           ! Compute albedos
@@ -375,6 +375,14 @@ contains
                 ocnalb%avsdf(n) = 1.0_r8
              end if
           end do
+#else
+          do n = 1,lsize
+             ocnalb%anidr(n) = albdir
+             ocnalb%avsdr(n) = albdir
+             ocnalb%anidf(n) = albdif
+             ocnalb%avsdf(n) = albdif
+          end do
+#endif
           update_alb = .true.
 
        endif    ! nextsw_cday
