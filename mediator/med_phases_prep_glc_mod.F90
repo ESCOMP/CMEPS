@@ -5,7 +5,6 @@ module med_phases_prep_glc_mod
   !-----------------------------------------------------------------------------
 
   use shr_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
-  use shr_sys_mod           , only : shr_sys_abort
   use NUOPC                 , only : NUOPC_CompAttributeGet
   use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_FAILURE
   use ESMF                  , only : ESMF_VM, ESMF_VMGet, ESMF_VMAllReduce, ESMF_REDUCE_SUM
@@ -248,7 +247,10 @@ contains
           end if
        case default
           write(logunit,*) subname,' ERROR: unknown value for glc_renormalize_smb: ', trim(glc_renormalize_smb)
-          call shr_sys_abort(subname//' ERROR: unknown value for glc_renormalize_smb')
+          call ESMF_LogWrite(trim(subname)//' ERROR: unknown value for glc_renormalize_smb: '// trim(glc_renormalize_smb), &
+               ESMF_LOGMSG_ERROR, line=__LINE__, file=__FILE__, rc=dbrc)
+          rc = ESMF_FAILURE
+          return
        end select
 
        ! -------------------------------
