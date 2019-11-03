@@ -6,7 +6,7 @@ module med_phases_prep_lnd_mod
 
   use shr_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
   use ESMF                  , only : operator(/=)
-  use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_FAILURE
+  use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_LOGMSG_ERROR, ESMF_SUCCESS, ESMF_FAILURE
   use ESMF                  , only : ESMF_FieldBundle, ESMF_FieldBundleGet
   use ESMF                  , only : ESMF_FieldBundleCreate, ESMF_FieldBundleAdd
   use ESMF                  , only : ESMF_RouteHandle, ESMF_RouteHandleIsCreated
@@ -351,7 +351,7 @@ contains
 
     if (FB_fldchk(is_local%wrap%FBExp(complnd), trim(Flgg_hflx), rc=rc)) then
        call ESMF_LogWrite(trim(subname)//'ERROR: Flgg_hflx to land has not been implemented yet', &
-            ESMF_LOGMSG_ERROR, line=__LINE__, file=__FILE__, rc=dbrc)
+            ESMF_LOGMSG_ERROR, line=__LINE__, file=__FILE__)
        rc = ESMF_FAILURE
        return
     end if
