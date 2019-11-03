@@ -3,7 +3,6 @@ module shr_pio_mod
   use pio
   use ESMF         , only : ESMF_UtilStringLowerCase, ESMF_UtilStringUpperCase
   use shr_kind_mod , only : shr_kind_CS, shr_kind_cl, shr_kind_in
-  use shr_file_mod , only : shr_file_getunit, shr_file_freeunit
   use shr_log_mod  , only : shr_log_unit
   use shr_mpi_mod  , only : shr_mpi_bcast, shr_mpi_chkerr
   use shr_sys_mod  , only : shr_sys_abort
@@ -43,8 +42,6 @@ module shr_pio_mod
   interface shr_pio_getrearranger
      module procedure shr_pio_getrearranger_fromid, shr_pio_getrearranger_fromname
   end interface
-
-
 
   type pio_comp_t
      integer :: compid
@@ -481,8 +478,7 @@ contains
     pio_rearr_comm_enable_isend_io2comp = .false.
 
     if(iamroot) then
-       unitn=shr_file_getunit()
-       open( unitn, file=trim(nlfilename), status='old' , iostat=ierr)
+       open(newunit=unitn, file=trim(nlfilename), status='old' , iostat=ierr)
        if(ierr/=0) then
           write(shr_log_unit,*) 'File ',trim(nlfilename),' not found, setting default values.'
        else
@@ -495,7 +491,6 @@ contains
              end if
           end do
           close(unitn)
-          call shr_file_freeUnit( unitn )
 
           call shr_pio_getiotypefromname(pio_typename, pio_iotype, pio_iotype_netcdf)
        end if
@@ -569,8 +564,7 @@ contains
     pio_netcdf_format = '64bit_offset'
 
     if(iamroot) then
-       unitn=shr_file_getunit()
-       open( unitn, file=trim(nlfilename), status='old' , iostat=ierr)
+       open(newunit=unitn, file=trim(nlfilename), status='old' , iostat=ierr)
        if( ierr /= 0) then
           write(shr_log_unit,*) 'No ',trim(nlfilename),' found, using defaults for pio settings'
            pio_stride     = pio_default_stride
@@ -589,7 +583,6 @@ contains
              end if
           end do
           close(unitn)
-          call shr_file_freeUnit( unitn )
 
           call shr_pio_getiotypefromname(pio_typename, pio_iotype, pio_default_iotype)
           call shr_pio_getioformatfromname(pio_netcdf_format, pio_netcdf_ioformat, pio_default_netcdf_ioformat)

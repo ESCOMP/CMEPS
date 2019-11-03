@@ -15,7 +15,6 @@ perf_mod.o \
 perf_utils.o \
 shr_abort_mod.o \
 shr_const_mod.o \
-shr_file_mod.o \
 shr_flux_mod.o \
 shr_kind_mod.o \
 shr_log_mod.o \
@@ -45,11 +44,10 @@ perf_mod.o: perf_utils.o shr_sys_mod.o shr_kind_mod.o shr_mpi_mod.o gptl.inc
 perf_utils.o: gptl.inc
 shr_abort_mod.o: shr_kind_mod.o shr_mpi_mod.o shr_log_mod.o
 shr_const_mod.o: shr_kind_mod.o shr_const_mod.F90
-shr_file_mod.o: shr_kind_mod.o shr_sys_mod.o shr_log_mod.o
 shr_flux_mod.o: shr_kind_mod.o shr_const_mod.o shr_sys_mod.o shr_log_mod.o
 shr_log_mod.o: shr_kind_mod.o
 shr_mem_mod.o: shr_kind_mod.o shr_log_mod.o
 shr_mpi_mod.o: shr_kind_mod.o shr_log_mod.o
-shr_pio_mod.o: shr_kind_mod.o shr_file_mod.o shr_log_mod.o shr_mpi_mod.o shr_sys_mod.o
+shr_pio_mod.o: shr_kind_mod.o shr_log_mod.o shr_mpi_mod.o shr_sys_mod.o
 shr_sys_mod.o: shr_kind_mod.o shr_log_mod.o shr_abort_mod.o
 glc_elevclass_mod.o: shr_kind_mod.o

@@ -26,8 +26,6 @@ module perf_utils
    public perfutils_setunit
    public shr_sys_abort
    public shr_mpi_barrier
-   public shr_file_getUnit
-   public shr_file_freeUnit
    public find_group_name
    public to_lower
    public shr_mpi_bcast
@@ -319,104 +317,6 @@ SUBROUTINE shr_mpi_bcastl0(vec,comm,string)
    endif
 
 END SUBROUTINE shr_mpi_bcastl0
-
-!===============================================================================
-
-!================== Routines from csm_share/shr/shr_file_mod.F90 ===============
-!===============================================================================
-!BOP ===========================================================================
-!
-! !IROUTINE: shr_file_getUnit -- Get a free FORTRAN unit number
-!
-! !DESCRIPTION: Get the next free FORTRAN unit number.
-!
-! !REVISION HISTORY:
-!     2005-Dec-14 - E. Kluzek - creation
-!     2007-Oct-21 - P. Worley - dumbed down for use in perf_mod
-!
-! !INTERFACE: ------------------------------------------------------------------
-
-INTEGER FUNCTION shr_file_getUnit ()
-
-   implicit none
-
-!EOP
-
-   !----- local parameters -----
-   integer(SHR_KIND_IN),parameter :: shr_file_minUnit = 10      ! Min unit number to give
-   integer(SHR_KIND_IN),parameter :: shr_file_maxUnit = 99      ! Max unit number to give
-
-   !----- local variables -----
-   integer(SHR_KIND_IN)   :: n      ! loop index
-   logical                :: opened ! If unit opened or not
-
-   !----- formats -----
-   character(*),parameter :: subName = '(shr_file_getUnit) '
-   character(*),parameter :: F00   = "('(shr_file_getUnit) ',A,I4,A)"
-
-!-------------------------------------------------------------------------------
-! Notes:
-!-------------------------------------------------------------------------------
-
-   ! --- Choose first available unit other than 0, 5, or 6  ------
-   do n=shr_file_minUnit, shr_file_maxUnit
-      inquire( n, opened=opened )
-      if (n == 5 .or. n == 6 .or. opened) then
-         cycle
-      end if
-      shr_file_getUnit = n
-      return
-   end do
-
-   call shr_sys_abort( subName//': Error: no available units found' )
-
-END FUNCTION shr_file_getUnit
-!===============================================================================
-
-!===============================================================================
-!BOP ===========================================================================
-!
-! !IROUTINE: shr_file_freeUnit -- Free up a FORTRAN unit number
-!
-! !DESCRIPTION: Free up the given unit number
-!
-! !REVISION HISTORY:
-!     2005-Dec-14 - E. Kluzek - creation
-!     2007-Oct-21 - P. Worley - dumbed down for use in perf_mod
-!
-! !INTERFACE: ------------------------------------------------------------------
-
-SUBROUTINE shr_file_freeUnit ( unit)
-
-   implicit none
-
-! !INPUT/OUTPUT PARAMETERS:
-
-   integer(SHR_KIND_IN),intent(in) :: unit  ! unit number to be freed
-
-!EOP
-
-   !----- local parameters -----
-   integer(SHR_KIND_IN),parameter :: shr_file_minUnit = 10      ! Min unit number to give
-   integer(SHR_KIND_IN),parameter :: shr_file_maxUnit = 99      ! Max unit number to give
-
-   !----- formats -----
-   character(*), parameter :: subName = '(shr_file_freeUnit) '
-   character(*), parameter :: F00 =   "('(shr_file_freeUnit) ',A,I4,A)"
-
-!-------------------------------------------------------------------------------
-! Notes:
-!-------------------------------------------------------------------------------
-
-   if (unit < 0 .or. unit > shr_file_maxUnit) then
-!pw   if (s_loglev > 0) write(pu_logunit,F00) 'invalid unit number request:', unit
-   else if (unit == 0 .or. unit == 5 .or. unit == 6) then
-      call shr_sys_abort( subName//': Error: units 0, 5, and 6 must not be freed' )
-   end if
-
-   return
-
-END SUBROUTINE shr_file_freeUnit
 !===============================================================================
 
 !============= Routines from atm/cam/src/utils/namelist_utils.F90 ==============

@@ -30,7 +30,6 @@ module perf_mod
    use shr_kind_mod,      only: SHR_KIND_CS, SHR_KIND_CM, SHR_KIND_CX, &
                                 SHR_KIND_R8, SHR_KIND_I8
    use shr_mpi_mod,       only: shr_mpi_barrier, shr_mpi_bcast
-   use shr_file_mod,      only: shr_file_getUnit, shr_file_freeUnit
    use namelist_utils,    only: find_group_name
 #endif
    use mpi
@@ -1178,8 +1177,6 @@ contains
      fname(i:i) = " "
    enddo
 
-   unitn = shr_file_getUnit()
-
    ! determine what the current output mode is (append or write)
    pr_write = .false.
 #ifdef NUOPC_INTERFACE
@@ -1257,7 +1254,7 @@ contains
       if (me .eq. 0) then
 
          if (glb_stats) then
-            open( unitn, file=trim(fname), status='UNKNOWN', access='SEQUENTIAL' )
+            open(newunit=unitn, file=trim(fname), status='UNKNOWN', access='SEQUENTIAL' )
             write( unitn, 100) npes
  100        format(/,"***** GLOBAL STATISTICS (",I6," MPI TASKS) *****",/)
             close( unitn )
@@ -1267,9 +1264,9 @@ contains
 
          if (write_data) then
             if (glb_stats) then
-               open( unitn, file=trim(fname), status='OLD', access='SEQUENTIAL', position='APPEND' )
+               open(newunit=unitn, file=trim(fname), status='OLD', access='SEQUENTIAL', position='APPEND' )
             else
-               open( unitn, file=trim(fname), status='UNKNOWN', access='SEQUENTIAL' )
+               open(newunit=unitn, file=trim(fname), status='UNKNOWN', access='SEQUENTIAL' )
             endif
 
             if (perf_ovhd_measurement) then
@@ -1300,7 +1297,7 @@ contains
          end if
 
          if (write_data) then
-            open( unitn, file=trim(fname), status='OLD', access='SEQUENTIAL', position='APPEND' )
+            open(newunit=unitn, file=trim(fname), status='OLD', access='SEQUENTIAL', position='APPEND' )
             if (perf_ovhd_measurement) then
                write( unitn, 101) me, gme
                write( unitn, 102) perf_timing_ovhd
@@ -1330,7 +1327,7 @@ contains
          fname(str_length+1:str_length+6) = '_stats'
 
          if (me .eq. 0) then
-            open( unitn, file=trim(fname), status='UNKNOWN', access='SEQUENTIAL' )
+            open(newunit=unitn, file=trim(fname), status='UNKNOWN', access='SEQUENTIAL' )
             write( unitn, 100) npes
             close( unitn )
          endif
@@ -1370,7 +1367,7 @@ contains
          fname(str_length+1:str_length+1) = '.'
          fname(str_length+2:str_length+cme_adj) = cme
 
-         open( unitn, file=trim(fname), status='UNKNOWN', access='SEQUENTIAL' )
+         open(newunit=unitn, file=trim(fname), status='UNKNOWN', access='SEQUENTIAL' )
          if (perf_ovhd_measurement) then
             write( unitn, 101) me, gme
             write( unitn, 102) perf_timing_ovhd
@@ -1383,8 +1380,6 @@ contains
       endif
 
    endif
-
-   call shr_file_freeUnit( unitn )
 
    ! reset GPTL output mode
 #ifdef NUOPC_INTERFACE
@@ -1534,10 +1529,9 @@ contains
        ! Read in the prof_inparm namelist from NLFilename if it exists
 
        write(p_logunit,*) '(t_initf) Read in prof_inparm namelist from: '//trim(NLFilename)
-       unitn = shr_file_getUnit()
 
        ierr = 1
-       open( unitn, file=trim(NLFilename), status="OLD", form="FORMATTED", access="SEQUENTIAL", iostat=ierr )
+       open(newunit=unitn, file=trim(NLFilename), status="OLD", form="FORMATTED", access="SEQUENTIAL", iostat=ierr )
        if (ierr .eq. 0) then
 
           ! Look for prof_inparm group name in the input file.
@@ -1555,7 +1549,6 @@ contains
           close(unitn)
 
        endif
-       call shr_file_freeUnit( unitn )
 
     endif
 
@@ -1606,10 +1599,9 @@ contains
           ! Read in the papi_inparm namelist from NLFilename if it exists
 
           write(p_logunit,*) '(t_initf) Read in papi_inparm namelist from: '//trim(NLFilename)
-          unitn = shr_file_getUnit()
 
           ierr = 1
-          open( unitn, file=trim(NLFilename), status="OLD", form="FORMATTED", access="SEQUENTIAL", iostat=ierr )
+          open(newunit=unitn, file=trim(NLFilename), status="OLD", form="FORMATTED", access="SEQUENTIAL", iostat=ierr )
           if (ierr .eq. 0) then
              ! Look for papi_inparm group name in the input file.
              ! If found, leave the file positioned at that namelist group.
@@ -1626,7 +1618,6 @@ contains
              close(unitn)
 
           endif
-          call shr_file_freeUnit( unitn )
 
           ! if enabled and nothing set, use "defaults"
           if ((papi_ctr1_str(1:11) .eq. "PAPI_NO_CTR") .and. &
