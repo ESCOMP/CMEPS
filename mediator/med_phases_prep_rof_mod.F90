@@ -10,7 +10,7 @@ module med_phases_prep_rof_mod
   !   this will be done in med_phases_prep_rof_avg
   !-----------------------------------------------------------------------------
 
-  use shr_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
+  use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
   use ESMF                  , only : ESMF_FieldBundle
   use esmFlds               , only : ncomps, complnd, comprof, compname, mapconsf
   use esmFlds               , only : med_fldlist_type

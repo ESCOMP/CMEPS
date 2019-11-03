@@ -4,7 +4,7 @@ module med_phases_prep_ice_mod
   ! Mediator phases for preparing ice export from mediator
   !-----------------------------------------------------------------------------
 
-  use shr_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
+  use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
   use med_utils_mod         , only : chkerr            => med_utils_ChkErr
   use med_methods_mod       , only : fldchk            => med_methods_FB_FldChk
   use med_methods_mod       , only : FB_GetFldPtr      => med_methods_FB_GetFldPtr

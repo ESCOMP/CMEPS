@@ -1,6 +1,6 @@
 module med_phases_aofluxes_mod
 
-  use shr_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
+  use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
   use med_internalstate_mod , only : InternalState
   use med_internalstate_mod , only : mastertask, logunit
   use med_constants_mod     , only : dbug_flag    => med_constants_dbug_flag

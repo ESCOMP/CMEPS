@@ -7,7 +7,7 @@ module med_internalstate_mod
   use ESMF         , only : ESMF_RouteHandle, ESMF_FieldBundle, ESMF_State
   use ESMF         , only : ESMF_VM
   use esmFlds      , only : ncomps, nmappers
-  use shr_kind_mod , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
+  use med_kind_mod , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
 
   implicit none
   private
