@@ -4,10 +4,13 @@ module med_phases_restart_mod
   ! Write/Read mediator restart files
   !-----------------------------------------------------------------------------
 
-  use med_constants_mod   , only : R8
-  use med_constants_mod   , only : dbug_flag => med_constants_dbug_flag
-  use med_constants_mod   , only : SecPerDay => med_constants_SecPerDay
-  use med_utils_mod       , only : chkerr    => med_utils_ChkErr
+  use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
+  use med_constants_mod     , only : dbug_flag => med_constants_dbug_flag
+  use med_constants_mod     , only : SecPerDay => med_constants_SecPerDay
+  use med_utils_mod         , only : chkerr    => med_utils_ChkErr
+  use med_internalstate_mod , only : mastertask, logunit, InternalState
+  use esmFlds               , only : ncomps, compname, compocn
+  use perf_mod              , only : t_startf, t_stopf
 
   implicit none
   private
@@ -26,21 +29,17 @@ contains
 
     ! Write mediator restart
 
-    use ESMF                  , only : ESMF_GridComp, ESMF_VM, ESMF_Clock, ESMF_Time, ESMF_Alarm
-    use ESMF                  , only : ESMF_TimeInterval, ESMF_CalKind_Flag, ESMF_MAXSTR
-    use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_FAILURE
-    use ESMF                  , only : ESMF_LOGMSG_ERROR, operator(==), operator(-)
-    use ESMF                  , only : ESMF_GridCompGet, ESMF_VMGet, ESMF_ClockGet, ESMF_ClockGetNextTime
-    use ESMF                  , only : ESMF_TimeGet, ESMF_ClockGetAlarm, ESMF_ClockPrint, ESMF_TimeIntervalGet
-    use ESMF                  , only : ESMF_AlarmIsRinging, ESMF_AlarmRingerOff, ESMF_FieldBundleIsCreated
-    use ESMF                  , only : ESMF_Calendar
-    use NUOPC                 , only : NUOPC_CompAttributeGet
-    use esmFlds               , only : ncomps, compname, compocn
-    use med_internalstate_mod , only : mastertask, logunit, InternalState
-    use med_io_mod            , only : med_io_write, med_io_wopen, med_io_enddef
-    use med_io_mod            , only : med_io_close, med_io_date2yyyymmdd
-    use med_io_mod            , only : med_io_sec2hms
-    use perf_mod              , only : t_startf, t_stopf
+    use ESMF       , only : ESMF_GridComp, ESMF_VM, ESMF_Clock, ESMF_Time, ESMF_Alarm
+    use ESMF       , only : ESMF_TimeInterval, ESMF_CalKind_Flag, ESMF_MAXSTR
+    use ESMF       , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_FAILURE
+    use ESMF       , only : ESMF_LOGMSG_ERROR, operator(==), operator(-)
+    use ESMF       , only : ESMF_GridCompGet, ESMF_VMGet, ESMF_ClockGet, ESMF_ClockGetNextTime
+    use ESMF       , only : ESMF_TimeGet, ESMF_ClockGetAlarm, ESMF_ClockPrint, ESMF_TimeIntervalGet
+    use ESMF       , only : ESMF_AlarmIsRinging, ESMF_AlarmRingerOff, ESMF_FieldBundleIsCreated
+    use ESMF       , only : ESMF_Calendar
+    use NUOPC      , only : NUOPC_CompAttributeGet
+    use med_io_mod , only : med_io_write, med_io_wopen, med_io_enddef
+    use med_io_mod , only : med_io_close, med_io_date2yyyymmdd, med_io_sec2hms
 
     ! Input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -343,10 +342,7 @@ contains
     use ESMF                  , only : ESMF_GridCompGet, ESMF_VMGet, ESMF_ClockGet, ESMF_ClockPrint
     use ESMF                  , only : ESMF_FieldBundleIsCreated, ESMF_TimeGet
     use NUOPC                 , only : NUOPC_CompAttributeGet
-    use esmFlds               , only : ncomps, compname
-    use med_internalstate_mod , only : InternalState
     use med_io_mod            , only : med_io_read
-    use perf_mod              , only : t_startf, t_stopf
 
     ! Input/output variables
     type(ESMF_GridComp)              :: gcomp

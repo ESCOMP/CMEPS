@@ -1,5 +1,6 @@
 module med_time_mod
 
+  use med_kind_mod        , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
   use ESMF                , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_GridCompSet
   use ESMF                , only : ESMF_Clock, ESMF_ClockCreate, ESMF_ClockGet, ESMF_ClockSet
   use ESMF                , only : ESMF_ClockAdvance
@@ -62,9 +63,6 @@ contains
 !===============================================================================
 
   subroutine med_time_clockInit(ensemble_driver, esmdriver, logunit, rc)
-
-    use med_constants_mod     , only : CL, CS
-    use shr_cal_mod           , only : shr_cal_noleap, shr_cal_gregorian, shr_cal_calendarname
 
     ! input/output variables
     type(ESMF_GridComp)  :: ensemble_driver, esmdriver
@@ -431,21 +429,29 @@ contains
 
  end subroutine med_time_clockInit
 
- subroutine med_time_set_component_stop_alarm(gcomp, rc)
-   use ESMF, only : ESMF_GridComp, ESMF_Alarm, ESMF_Clock, ESMF_ClockGet
-   use ESMF, only : ESMF_AlarmSet
-   use NUOPC, only : NUOPC_CompAttributeGet
-   use NUOPC_Model, only : NUOPC_ModelGet
-   type(ESMF_gridcomp) :: gcomp
+!===============================================================================
 
-   character(len=256)       :: stop_option    ! Stop option units
-   integer                  :: stop_n         ! Number until stop interval
-   integer                  :: stop_ymd       ! Stop date (YYYYMMDD)
-   type(ESMF_ALARM)         :: stop_alarm
-   character(len=256)       :: cvalue
-   type(ESMF_Clock)         :: mclock
-   type(ESMF_Time)          :: mCurrTime
-   integer                  :: rc
+ subroutine med_time_set_component_stop_alarm(gcomp, rc)
+
+   use ESMF        , only : ESMF_GridComp, ESMF_Alarm, ESMF_Clock, ESMF_ClockGet
+   use ESMF        , only : ESMF_AlarmSet
+   use NUOPC       , only : NUOPC_CompAttributeGet
+   use NUOPC_Model , only : NUOPC_ModelGet
+
+    ! input/output variables
+   type(ESMF_gridcomp)  :: gcomp
+   integer, intent(out) :: rc
+
+   ! local variables
+   character(len=256) :: stop_option    ! Stop option units
+   integer            :: stop_n         ! Number until stop interval
+   integer            :: stop_ymd       ! Stop date (YYYYMMDD)
+   type(ESMF_ALARM)   :: stop_alarm
+   character(len=256) :: cvalue
+   type(ESMF_Clock)   :: mclock
+   type(ESMF_Time)    :: mCurrTime
+    !-----------------------------------------------------------
+
    !----------------
    ! Stop alarm
    !----------------
@@ -936,10 +942,9 @@ contains
   subroutine med_time_read_restart(restart_file, &
        start_ymd, start_tod, ref_ymd, ref_tod, curr_ymd, curr_tod, rc)
 
-    use netcdf                , only : nf90_open, nf90_nowrite, nf90_noerr
-    use netcdf                , only : nf90_inq_varid, nf90_get_var, nf90_close
-    use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO
-    use med_constants_mod     , only : CL
+    use netcdf , only : nf90_open, nf90_nowrite, nf90_noerr
+    use netcdf , only : nf90_inq_varid, nf90_get_var, nf90_close
+    use ESMF   , only : ESMF_LogWrite, ESMF_LOGMSG_INFO
 
     ! input/output variables
     character(len=*), intent(in) :: restart_file

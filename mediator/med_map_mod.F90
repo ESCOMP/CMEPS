@@ -1,5 +1,7 @@
 module med_map_mod
 
+  use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
+  use shr_const_mod         , only : shr_const_pi
   use ESMF                  , only : ESMF_Field, ESMF_FieldGet, ESMF_SUCCESS, ESMF_FAILURE
   use ESMF                  , only : ESMF_LOGMSG_ERROR, ESMF_LOGMSG_INFO, ESMF_LogWrite
   use esmFlds               , only : mapbilnr, mapconsf, mapconsd, mappatch, mapfcopy
@@ -11,8 +13,6 @@ module med_map_mod
   use esmFlds               , only : med_fldList_entry_type
   use esmFlds               , only : fldListFr, fldListTo
   use med_internalstate_mod , only : InternalState
-  use med_constants_mod     , only : CX, CS, CL, R8
-  use med_constants_mod     , only : shr_const_pi
   use med_constants_mod     , only : ispval_mask       => med_constants_ispval_mask
   use med_constants_mod     , only : czero             => med_constants_czero
   use med_constants_mod     , only : dbug_flag         => med_constants_dbug_flag

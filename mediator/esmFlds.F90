@@ -1,6 +1,6 @@
 module esmflds
 
-  use med_constants_mod, only : CX, CS, CL
+  use med_kind_mod, only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
 
   implicit none
   private
@@ -354,7 +354,6 @@ contains
     use ESMF              , only : ESMF_StateGet, ESMF_LogFoundError
     use ESMF              , only : ESMF_LogWrite, ESMF_LOGMSG_ERROR, ESMF_FAILURE, ESMF_LOGERR_PASSTHRU
     use ESMF              , only : ESMF_LOGMSG_INFO, ESMF_StateRemove, ESMF_SUCCESS
-    use med_constants_mod , only : dbug_flag=>med_constants_dbug_flag
 
     ! input/output variables
     type(ESMF_State)            , intent(inout)            :: state

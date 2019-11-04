@@ -4,8 +4,8 @@ module med_phases_history_mod
   ! Mediator Phases
   !-----------------------------------------------------------------------------
 
+  use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
   use ESMF                  , only : ESMF_Alarm
-  use med_constants_mod     , only : R8, CL, CS, I8
   use med_constants_mod     , only : dbug_flag       => med_constants_dbug_flag
   use med_constants_mod     , only : SecPerDay       => med_constants_SecPerDay
   use med_utils_mod         , only : chkerr          => med_utils_ChkErr

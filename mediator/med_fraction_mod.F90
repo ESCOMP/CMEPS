@@ -112,7 +112,7 @@ module med_fraction_mod
   !
   !-----------------------------------------------------------------------------
 
-  use med_constants_mod , only : R8
+  use med_kind_mod      , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
   use med_constants_mod , only : dbug_flag      => med_constants_dbug_flag
   use med_constants_mod , only : czero          => med_constants_czero
   use med_utils_mod     , only : chkErr         => med_utils_ChkErr

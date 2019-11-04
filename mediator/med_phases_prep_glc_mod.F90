@@ -4,8 +4,9 @@ module med_phases_prep_glc_mod
   ! Mediator phases for preparing glc export from mediator
   !-----------------------------------------------------------------------------
 
+  use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
   use NUOPC                 , only : NUOPC_CompAttributeGet
-  use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_FAILURE
+  use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_LOGMSG_ERROR, ESMF_SUCCESS, ESMF_FAILURE
   use ESMF                  , only : ESMF_VM, ESMF_VMGet, ESMF_VMAllReduce, ESMF_REDUCE_SUM
   use ESMF                  , only : ESMF_FieldBundle
   use ESMF                  , only : ESMF_GridComp, ESMF_GridCompGet
@@ -19,9 +20,7 @@ module med_phases_prep_glc_mod
   use ESMF                  , only : ESMF_TYPEKIND_R8
   use esmFlds               , only : compglc, complnd, mapbilnr, mapconsf, compname
   use esmFlds               , only : med_fldlist_type
-  use shr_sys_mod           , only : shr_sys_abort
   use med_internalstate_mod , only : InternalState, mastertask, logunit
-  use med_constants_mod     , only : R8, CS
   use med_constants_mod     , only : dbug_flag=>med_constants_dbug_flag
   use med_internalstate_mod , only : InternalState, mastertask, logunit
   use med_map_mod           , only : med_map_FB_Regrid_Norm
@@ -248,7 +247,10 @@ contains
           end if
        case default
           write(logunit,*) subname,' ERROR: unknown value for glc_renormalize_smb: ', trim(glc_renormalize_smb)
-          call shr_sys_abort(subname//' ERROR: unknown value for glc_renormalize_smb')
+          call ESMF_LogWrite(trim(subname)//' ERROR: unknown value for glc_renormalize_smb: '// trim(glc_renormalize_smb), &
+               ESMF_LOGMSG_ERROR, line=__LINE__, file=__FILE__)
+          rc = ESMF_FAILURE
+          return
        end select
 
        ! -------------------------------
