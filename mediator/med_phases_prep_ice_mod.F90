@@ -179,6 +179,7 @@ contains
        end if
 
        ! compute air density as a custom calculation
+       ! if Sa_dens is not sent by the atm
        if ( .not. fldchk(is_local%wrap%FBImp(compatm,compatm), 'Sa_dens',rc=rc)) then
           call ESMF_LogWrite(trim(subname)//": computing air density as a custom calculation", ESMF_LOGMSG_INFO)
 
@@ -196,8 +197,10 @@ contains
           end do
        end if
 
-       ! compute potential temperature as a custom calculation
-       if (.not. fldchk(is_local%wrap%FBImp(compatm,compatm), 'Sa_ptem',rc=rc)) then
+       ! compute potential temperature as a custom calculation - 
+       ! if Sa_ptem is not sent by the atm but is required by the ice
+       if (.not. fldchk(is_local%wrap%FBImp(compatm,compatm), 'Sa_ptem',rc=rc) .and. &
+                 fldchk(is_local%wrap%FBExp(compice), 'Sa_ptem',rc=rc)) then
           call ESMF_LogWrite(trim(subname)//": computing potential temp as a custom calculation", ESMF_LOGMSG_INFO)
 
           call FB_GetFldPtr(is_local%wrap%FBExp(compice), 'Sa_ptem', pot_temp, rc=rc)

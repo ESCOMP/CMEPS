@@ -9,7 +9,7 @@ module med_io_mod
   use shr_const_mod         , only : fillvalue => SHR_CONST_SPVAL
   use ESMF                  , only : ESMF_VM, ESMF_LogWrite, ESMF_LOGMSG_INFO
   use ESMF                  , only : ESMF_SUCCESS, ESMF_FAILURE
-  use ESMF                  , only : ESMF_VMBroadCast
+  use ESMF                  , only : ESMF_VMGetCurrent, ESMF_VMGet, ESMF_VMBroadCast
   use NUOPC                 , only : NUOPC_FieldDictionaryGetEntry
   use NUOPC                 , only : NUOPC_FieldDictionaryHasEntry
   use pio                   , only : file_desc_t, iosystem_desc_t
@@ -33,7 +33,7 @@ module med_io_mod
   public :: med_io_write
   public :: med_io_init
   public :: med_io_date2yyyymmdd
-  public :: med_io_datetod2string 
+  public :: med_io_datetod2string
   public :: med_io_ymd2date
 
   ! private member functions
@@ -126,6 +126,29 @@ contains
     !---------------
 
     use shr_pio_mod , only : shr_pio_getiosys, shr_pio_getiotype, shr_pio_getioformat
+#ifdef INTERNAL_PIO_INIT
+    ! if CMEPS is the only component using PIO, then it needs to initialize PIO
+    use shr_pio_mod , only : shr_pio_init2
+
+    type(ESMF_VM)         :: vm
+    integer               :: comms(1), comps(1)
+    logical               :: comp_iamin(1)
+    integer               :: comp_comm_iam(1)
+    character(len=32)     :: compLabels(1)
+    integer               :: rc
+
+    call ESMF_VMGetCurrent(vm=vm, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    call ESMF_VMGet(vm, mpiCommunicator=comms(1), localPet=comp_comm_iam(1), rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    comps(1) = med_id
+    compLabels(1) = "MED"
+    comp_iamin(1) = .true.
+
+    call shr_pio_init2(comps, compLabels, comp_iamin, comms, comp_comm_iam)
+#endif
 
     io_subsystem => shr_pio_getiosys(med_id)
     pio_iotype   =  shr_pio_getiotype(med_id)
@@ -377,7 +400,7 @@ contains
     use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_FAILURE
     use ESMF , only : ESMF_FieldBundleIsCreated, ESMF_FieldBundle, ESMF_Mesh, ESMF_DistGrid
     use ESMF , only : ESMF_FieldBundleGet, ESMF_FieldGet, ESMF_MeshGet, ESMF_DistGridGet
-    use ESMF , only : ESMF_Field, ESMF_FieldGet, ESMF_AttributeGet 
+    use ESMF , only : ESMF_Field, ESMF_FieldGet, ESMF_AttributeGet
     use pio  , only : var_desc_t, io_desc_t, pio_offset_kind
     use pio  , only : pio_def_dim, pio_inq_dimid, pio_real, pio_def_var, pio_put_att, pio_double
     use pio  , only : pio_inq_varid, pio_setframe, pio_write_darray, pio_initdecomp, pio_freedecomp
@@ -408,6 +431,7 @@ contains
     integer                       :: rcode
     integer                       :: nf,ns,ng
     integer                       :: k,n
+    integer                       :: ndims, nelements
     integer    ,target            :: dimid2(2)
     integer    ,target            :: dimid3(3)
     integer    ,pointer           :: dimid(:)
@@ -431,6 +455,7 @@ contains
     integer                       :: lfile_ind
     real(r8), pointer             :: fldptr1(:)
     real(r8), pointer             :: fldptr2(:,:)
+    real(r8), allocatable         :: ownedElemCoords(:), ownedElemCoords_x(:), ownedElemCoords_y(:)
     character(len=number_strlen)  :: cnumber
     character(CL)                 :: tmpstr
     type(ESMF_Field)              :: lfield
@@ -505,6 +530,24 @@ contains
     call ESMF_MeshGet(mesh, elementDistgrid=distgrid, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
+    call ESMF_MeshGet(mesh, spatialDim=ndims, numOwnedElements=nelements, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    write(tmpstr,*) subname, 'ndims, nelements = ', ndims, nelements
+    call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
+
+    if (.not. allocated(ownedElemCoords) .and. ndims > 0 .and. nelements > 0) then
+       allocate(ownedElemCoords(ndims*nelements))
+       allocate(ownedElemCoords_x(ndims*nelements/2))
+       allocate(ownedElemCoords_y(ndims*nelements/2))
+
+       call ESMF_MeshGet(mesh, ownedElemCoords=ownedElemCoords, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+       ownedElemCoords_x = ownedElemCoords(1::2)
+       ownedElemCoords_y = ownedElemCoords(2::2)
+    end if
+
     call ESMF_DistGridGet(distgrid, dimCount=dimCount, tileCount=tileCount, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
@@ -574,7 +617,7 @@ contains
                 if (chkerr(rc,__LINE__,u_FILE_u)) return
                 write(cnumber,'(i0)') ungriddedUbound(1)
                 call ESMF_LogWrite(trim(subname)//':'//'field '//trim(itemc)// &
-                     ' has an griddedUBound of  '//trim(cnumber), ESMF_LOGMSG_INFO) 
+                     ' has an griddedUBound of  '//trim(cnumber), ESMF_LOGMSG_INFO)
 
                 ! Create a new output variable for each element of the undistributed dimension
                 do n = 1,ungriddedUBound(1)
@@ -627,6 +670,27 @@ contains
           end if
        end do
 
+       ! Add coordinate information to file
+       name1 = trim(lpre)//'_lon'
+       if (luse_float) then
+          rcode = pio_def_var(io_file(lfile_ind), trim(name1), PIO_REAL, dimid, varid)
+       else
+          rcode = pio_def_var(io_file(lfile_ind), trim(name1), PIO_DOUBLE, dimid, varid)
+       end if
+       rcode = pio_put_att(io_file(lfile_ind), varid, "long_name", "longitude")
+       rcode = pio_put_att(io_file(lfile_ind), varid, "units", "degrees_east")
+       rcode = pio_put_att(io_file(lfile_ind), varid, "standard_name", "longitude")
+
+       name1 = trim(lpre)//'_lat'
+       if (luse_float) then
+          rcode = pio_def_var(io_file(lfile_ind), trim(name1), PIO_REAL, dimid, varid)
+       else
+          rcode = pio_def_var(io_file(lfile_ind), trim(name1), PIO_DOUBLE, dimid, varid)
+       end if
+       rcode = pio_put_att(io_file(lfile_ind), varid, "long_name", "latitude")
+       rcode = pio_put_att(io_file(lfile_ind), varid, "units", "degrees_north")
+       rcode = pio_put_att(io_file(lfile_ind), varid, "standard_name", "latitude")
+
        ! Finish define mode
        if (lwdata) call med_io_enddef(filename, file_ind=lfile_ind)
 
@@ -672,7 +736,7 @@ contains
                    name1 = trim(lpre)//'_'//trim(itemc)//trim(cnumber)
                    rcode = pio_inq_varid(io_file(lfile_ind), trim(name1), varid)
                    call pio_setframe(io_file(lfile_ind),varid,frame)
-                   
+
                    if (gridToFieldMap(1) == 1) then
                       call pio_write_darray(io_file(lfile_ind), varid, iodesc, fldptr2(:,n), rcode, fillval=lfillvalue)
                    else if (gridToFieldMap(1) == 2) then
@@ -688,6 +752,17 @@ contains
 
           end if ! end if not "hgt"
        end do  ! end loop over fields in FB
+
+       ! Fill coordinate variables
+       name1 = trim(lpre)//'_lon'
+       rcode = pio_inq_varid(io_file(lfile_ind), trim(name1), varid)
+       call pio_setframe(io_file(lfile_ind),varid,frame)
+       call pio_write_darray(io_file(lfile_ind), varid, iodesc, ownedElemCoords_x, rcode, fillval=lfillvalue)
+
+       name1 = trim(lpre)//'_lat'
+       rcode = pio_inq_varid(io_file(lfile_ind), trim(name1), varid)
+       call pio_setframe(io_file(lfile_ind),varid,frame)
+       call pio_write_darray(io_file(lfile_ind), varid, iodesc, ownedElemCoords_y, rcode, fillval=lfillvalue)
 
        call pio_syncfile(io_file(lfile_ind))
        call pio_freedecomp(io_file(lfile_ind), iodesc)
@@ -850,7 +925,7 @@ contains
     logical,optional,intent(in) :: whead    ! write header
     logical,optional,intent(in) :: wdata    ! write data
     integer,optional,intent(in) :: file_ind
-    integer         ,intent(out):: rc 
+    integer         ,intent(out):: rc
 
     ! local variables
     integer          :: rcode
@@ -913,7 +988,7 @@ contains
     logical,optional,intent(in) :: whead    ! write header
     logical,optional,intent(in) :: wdata    ! write data
     integer,optional,intent(in) :: file_ind
-    integer         ,intent(out):: rc 
+    integer         ,intent(out):: rc
 
     ! local variables
     integer          :: rcode
@@ -978,7 +1053,7 @@ contains
     logical,optional,intent(in) :: whead    ! write header
     logical,optional,intent(in) :: wdata    ! write data
     integer,optional,intent(in) :: file_ind
-    integer         ,intent(out):: rc 
+    integer         ,intent(out):: rc
 
     ! local variables
     integer          :: rcode
@@ -1038,7 +1113,7 @@ contains
     use ESMF, only : operator(==)
     use ESMF, only : ESMF_Calendar
     use ESMF, only : ESMF_CALKIND_360DAY, ESMF_CALKIND_GREGORIAN
-    use ESMF, only : ESMF_CALKIND_JULIAN, ESMF_CALKIND_JULIANDAY, ESMF_CALKIND_MODJULIANDAY  
+    use ESMF, only : ESMF_CALKIND_JULIAN, ESMF_CALKIND_JULIANDAY, ESMF_CALKIND_MODJULIANDAY
     use ESMF, only : ESMF_CALKIND_NOCALENDAR, ESMF_CALKIND_NOLEAP
     use pio , only : var_desc_t, PIO_UNLIMITED
     use pio , only : pio_double, pio_def_dim, pio_def_var, pio_put_att
@@ -1048,14 +1123,14 @@ contains
     character(len=*)    ,           intent(in) :: filename   ! file
     integer             ,           intent(in) :: iam        ! local pet
     character(len=*)    ,           intent(in) :: time_units ! units of time
-    type(ESMF_Calendar) ,           intent(in) :: calendar   ! calendar 
+    type(ESMF_Calendar) ,           intent(in) :: calendar   ! calendar
     real(r8)            ,           intent(in) :: time_val   ! data to be written
     integer             , optional, intent(in) :: nt
     logical             , optional, intent(in) :: whead      ! write header
     logical             , optional, intent(in) :: wdata      ! write data
     real(r8)            , optional, intent(in) :: tbnds(2)   ! time bounds
     integer             , optional, intent(in) :: file_ind
-    integer             ,           intent(out):: rc 
+    integer             ,           intent(out):: rc
 
     ! local variables
     integer          :: rcode
@@ -1090,19 +1165,19 @@ contains
        rcode = pio_put_att(io_file(lfile_ind),varid,'units',trim(time_units))
 
        if (calendar == ESMF_CALKIND_360DAY) then
-          calname = 'ESMF_CALKIND_360DAY'
+          calname = '360_day'
        else if (calendar == ESMF_CALKIND_GREGORIAN) then
-          calname = 'ESMF_CALKIND_GREGORIAN'
+          calname = 'gregorian'
        else if (calendar == ESMF_CALKIND_JULIAN) then
-          calname = 'ESMF_CALKIND_JULIAN'
+          calname = 'julian'
        else if (calendar == ESMF_CALKIND_JULIANDAY) then
           calname = 'ESMF_CALKIND_JULIANDAY'
        else if (calendar == ESMF_CALKIND_MODJULIANDAY) then
           calname = 'ESMF_CALKIND_MODJULIANDAY'
        else if (calendar == ESMF_CALKIND_NOCALENDAR) then
-          calname = 'ESMF_CALKIND_NOCALENDAR'
+          calname = 'none'
        else if (calendar == ESMF_CALKIND_NOLEAP) then
-          calname = 'ESMF_CALKIND_NOLEAP'
+          calname = 'noleap'
        end if
        rcode = pio_put_att(io_file(lfile_ind),varid,'calendar',trim(calname))
 
@@ -1356,7 +1431,7 @@ contains
     use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_FAILURE
     use ESMF , only : ESMF_FieldBundleIsCreated, ESMF_FieldBundle, ESMF_Mesh, ESMF_DistGrid
     use ESMF , only : ESMF_FieldBundleGet, ESMF_FieldGet, ESMF_MeshGet, ESMF_DistGridGet
-    use ESMF , only : ESMF_Field, ESMF_FieldGet, ESMF_AttributeGet 
+    use ESMF , only : ESMF_Field, ESMF_FieldGet, ESMF_AttributeGet
     use pio  , only : file_desc_T, var_desc_t, io_desc_t, pio_nowrite, pio_openfile
     use pio  , only : pio_noerr, pio_inq_varndims
     use pio  , only : pio_inq_dimid, pio_inq_dimlen, pio_inq_varid, pio_inq_vardimid
@@ -1554,7 +1629,7 @@ contains
     integer          , intent(in)    :: iam
     real(r8)         , intent(inout) :: rdata    ! real data
     character(len=*) , intent(in)    :: dname    ! name of data
-    integer          , intent(out)   :: rc 
+    integer          , intent(out)   :: rc
 
     ! local variables
     real(r8) :: r1d(1)
