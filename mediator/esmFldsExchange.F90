@@ -352,9 +352,11 @@ contains
 
     call NUOPC_CompAttributeGet(gcomp, name='mapuv_with_cart3d', value=cvalue, isPresent=isPresent, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) mapuv_with_cart3d
     if (isPresent) then
+       read(cvalue,*) mapuv_with_cart3d
        call ESMF_LogWrite('mapuv_with_cart3d = '// trim(cvalue), ESMF_LOGMSG_INFO)
+    else
+       mapuv_with_cart3d = .false.
     end if
 
     !=====================================================================
@@ -1236,24 +1238,21 @@ contains
     if (phase == 'advertise') then
        call addfld(fldListFr(compatm)%flds , 'Faxa_sen')
        call addfld(fldListMed_aoflux%flds  , 'Faox_sen')
-       call addfld(fldListFr(compice)%flds , 'Fioi_melth')
        call addfld(fldListTo(compocn)%flds , 'Foxx_sen')
     else
        ! NEMS orig
        if ( fldchk(is_local%wrap%FBexp(compocn)         , 'Foxx_sen'  , rc=rc) .and. &
             fldchk(is_local%wrap%FBMed_aoflux_o         , 'Faox_sen'  , rc=rc) .and. &
-            fldchk(is_local%wrap%FBImp(compice, compice), 'Fioi_melth', rc=rc) .and. &
             fldchk(is_local%wrap%FBImp(compatm, compatm), 'Faxa_sen'  , rc=rc)) then
           call addmap(fldListFr(compatm)%flds, 'Faxa_sen'  , compocn, mapconsf, 'one'  , atm2ocn_fmap) ! map atm->ocn
-          call addmap(fldListFr(compice)%flds, 'Fioi_melth', compocn, mapfcopy, 'unset', 'unset')
+          ! Custom merge in med_phases_prep_ocn
 
        ! NEMS frac
        else if ( fldchk(is_local%wrap%FBexp(compocn)         , 'Foxx_sen', rc=rc) .and. &
                  fldchk(is_local%wrap%FBImp(compatm, compatm), 'Faxa_sen', rc=rc)) then
           call addmap(fldListFr(compatm)%flds, 'Faxa_sen', compocn, mapconsf, 'one'  , atm2ocn_fmap) ! map atm->ocn
           call addmrg(fldListTo(compocn)%flds, 'Foxx_sen', &
-               mrg_from1=compatm, mrg_fld1='Faxa_sen'  , mrg_type1='merge', mrg_fracname1='ofrac', &
-               mrg_from2=compice, mrg_fld2='Fioi_melth', mrg_type2='merge', mrg_fracname2='ifrac')
+               mrg_from1=compatm, mrg_fld1='Faxa_sen'  , mrg_type1='merge', mrg_fracname1='ofrac')
 
        ! CESM
        else if ( fldchk(is_local%wrap%FBexp(compocn), 'Foxx_sen', rc=rc) .and. &
@@ -1267,7 +1266,6 @@ contains
     ! to ocn: surface latent heat flux and evaporation water flux
     ! ---------------------------------------------------------------------
     if (phase == 'advertise') then
-
        call addfld(fldListFr(compatm)%flds, 'Faxa_lat' )
        call addfld(fldListMed_aoflux%flds , 'Faox_lat' )
        call addfld(fldListMed_aoflux%flds , 'Faox_evap')
@@ -1423,17 +1421,12 @@ contains
           call addfld(fldListFr(compice)%flds , 'Fioi_meltw'//iso(n))
           call addfld(fldListTo(compocn)%flds , 'Fioi_meltw'//iso(n))
        else
-          if (coupling_mode == 'cesm') then
+          if (coupling_mode == 'cesm' .or. trim(coupling_mode) == 'nems_orig') then
              if ( fldchk(is_local%wrap%FBexp(compocn)         , 'Fioi_meltw'//iso(n), rc=rc) .and. &
                   fldchk(is_local%wrap%FBImp(compice, compice), 'Fioi_meltw'//iso(n), rc=rc)) then
                 call addmap(fldListFr(compice)%flds, 'Fioi_meltw'//iso(n),    compocn,  mapfcopy, 'unset', 'unset')
                 call addmrg(fldListTo(compocn)%flds, 'Fioi_meltw'//iso(n), &
                      mrg_from1=compice, mrg_fld1='Fioi_meltw'//iso(n), mrg_type1='copy_with_weights', mrg_fracname1='ifrac')
-             end if
-          else if (coupling_mode == 'nems_orig') then
-             if (fldchk(is_local%wrap%FBImp(compice, compice), 'Fioi_meltw'//iso(n), rc=rc)) then
-                call addmap(fldListFr(compice)%flds, 'Fioi_meltw'//iso(n),    compocn,  mapfcopy, 'unset', 'unset')
-                ! custom merge in med_phases_prep_ocn
              end if
           else if (coupling_mode == 'nems_frac') then
              if (fldchk(is_local%wrap%FBImp(compice, compice), 'Fioi_meltw'//iso(n), rc=rc)) then
@@ -1452,7 +1445,6 @@ contains
     ! to ocn: hydrophobic black carbon deposition flux from ice
     ! to ocn: dust flux from ice
     ! ---------------------------------------------------------------------
-    ! TODO (mvertens, 2019-01-07): is fioi_melth being handled here?
     ! Is fd.yaml correctly aliasing Fioi_melth?
 
     allocate(flds(5))

@@ -494,7 +494,7 @@ def buildnml(case, caseroot, component):
 
     # copy fd.yaml to rundir
     cimeroot = case.get_value("CIMEROOT")
-    fd_dir = os.path.join(cimeroot, "src","drivers","nuopc","mediator")
+    fd_dir = os.path.join(cimeroot, "src","drivers","nuopc","drivers", "cime")
     filename = os.path.join(fd_dir,"fd.yaml")
     shutil.copy(filename, rundir)
 

@@ -235,46 +235,6 @@
        description: atmosphere export
           mean merge longwave flux from atm (NEMS)
      #
-     - standard_name: inst_down_lw_flx
-       canonical_units: W m-2
-       description: atmosphere export
-         instantaneous downward long wave radiation flux (fv3 only)
-     #
-     - standard_name: inst_net_lw_flx_atm
-       canonical_units: W m-2
-       description: atmosphere export
-         instantaneous NET long wave radiation flux (fv3 only)
-     #
-     - standard_name: inst_down_sw_flx
-       canonical_units: W m-2
-       description: atmosphere export
-         instantaneous downward solar radiation flux (fv3 only)
-     #
-     - standard_name: inst_net_sw_flx
-       canonical_units: W m-2
-       description: atmosphere export
-         instantaneous NET solar radiation flux over the ocean (fv3 only)
-     #
-     - standard_name: inst_net_sw_ir_dir_flx
-       canonical_units: W m-2
-       description: atmosphere export
-         Instataneous net sfc nir direct flux (fv3 only)
-     #
-     - standard_name: inst_net_sw_ir_dif_flx
-       canonical_units: W m-2
-       description: atmosphere export
-         Instataneous net sfc nir diffuse flux (fv3 only)
-     #
-     - standard_name: inst_net_sw_vis_dir_flx
-       canonical_units: W m-2
-       description: atmosphere export
-         Instataneous net sfc uv+vis direct flux (fv3 only)
-     #
-     - standard_name: inst_net_sw_vis_dif_flx
-       canonical_units: W m-2
-       description: atmosphere export
-         Instataneous net sfc uv+vis diffuse flux (fv3 only)
-     #
      - standard_name: Faxa_ndep
        canonical_units: kg(N)/m2/sec
        description: atmosphere export to land and ocean
@@ -363,35 +323,15 @@
        description: atmosphere export
          mean surface downward uv+visvdirect flux
      #
-     - standard_name: inst_down_sw_ir_dif_flx
-       canonical_units: W m-2
-       description: atmosphere export
-         instataneous downward nir diffuse flux (fv3 only)
-     #
-     - standard_name: inst_down_sw_ir_dir_flx
-       canonical_units: W m-2
-       description: atmosphere export
-         instataneous downward nir directflux (fv3 only)
-     #
-     - standard_name: inst_down_sw_vis_dif_flx
-       canonical_units: W m-2
-       description: atmosphere export
-         instataneous downward uv+vis diffuse flux (fv3 only)
-     #
-     - standard_name: inst_down_sw_vis_dir_flx
-       canonical_units: W m-2
-       description: atmosphere export
-         instataneous downward uv+vis directflux (fv3 only)
-     #
      - standard_name: Sa_co2diag
        canonical_units: 1e-6 mol/mol
        description: atmosphere export
-         Diagnostic CO2 at the lowest model level (cesm only)
+         Diagnostic CO2 at the lowest model level
      #
      - standard_name: Sa_co2prog
        canonical_units: 1e-6 mol/mol
        description: atmosphere export
-         prognostic CO2 at the lowest model level (cesm only)
+         prognostic CO2 at the lowest model level
      #
      - standard_name: Sa_topo
        alias: inst_surface_height
@@ -403,7 +343,7 @@
        alias: air_density_height_lowest
        canonical_units: kg m-3
        description: atmosphere export
-         density at the lowest model layer (cesm only)
+         density at the lowest model layer
      #
      - standard_name: Sa_pbot
        alias: inst_pres_height_lowest
@@ -420,7 +360,7 @@
      - standard_name: Sa_ptem
        canonical_units: K
        description: atmosphere export
-         bottom layer potential temperature (cesm only)
+         bottom layer potential temperature
      #
      - standard_name: Sa_shum
        alias: inst_spec_humid_height_lowest
@@ -434,21 +374,11 @@
        description: atmosphere export
          bottom layer specific humidity 16O, 18O, HDO (cesm only)
      #
-     - standard_name: inst_spec_humid_height2m
-       canonical_units: K
-       description: atmosphere export
-         instantaneous specific humidity 2m above ground (fv3 only)
-     #
      - standard_name: Sa_tbot
        alias: inst_temp_height_lowest
        canonical_units: K
        description: atmosphere export
          bottom layer temperature
-     #
-     - standard_name: inst_temp_height2m
-       canonical_units: K
-       description: atmosphere export
-         instantaneous temperature 2m above ground (fv3 only)
      #
      - standard_name: Sa_u
        alias: inst_zonal_wind_height_lowest
@@ -467,184 +397,6 @@
        canonical_units: m
        description: atmosphere export
          bottom layer height
-     #
-     - standard_name: inst_zonal_wind_height10m
-       canonical_units: m s-1
-       description: atmosphere export
-         instataneous u wind (m/s) 10 m above ground (fv3 only)
-     #
-     - standard_name: inst_merid_wind_height10m
-       canonical_units: m s-1
-       description: atmosphere export
-         instataneous v wind (m/s) 10 m above ground (fv3 only)
-     #
-     - standard_name: inst_zonal_moment_flx
-       canonical_units: N m-2
-       description: atmosphere export
-         instataneous zonal compt of momentum flux (fv3 only)
-     #
-     - standard_name: inst_merid_moment_flx
-       canonical_units: N m-2
-       description: atmosphere export
-         instataneous merid compt of momentum flux (fv3 only)
-     #
-     - standard_name: inst_sensi_heat_flx
-       canonical_units: N m-2
-       description: atmosphere export
-         instataneous sensible heat flux (fv3 only)
-     #
-     - standard_name: inst_laten_heat_flx
-       canonical_units: N m-2
-       description: atmosphere export
-         instataneous latent heat flux (fv3 only)
-     #
-     - standard_name: inst_tracer_mass_frac
-       canonical_units: 1
-       description: atmosphere export (fv3 only)
-     #
-     - standard_name: inst_pres_interface
-       canonical_units: Pa
-       description: atmosphere export (fv3 only)
-     #
-     - standard_name: inst_pres_levels
-       canonical_units: Pa
-       description: atmosphere export (fv3 only)
-     #
-     - standard_name: inst_geop_interface
-       canonical_units: tbd
-       description: atmosphere export (fv3 only)
-     #
-     - standard_name: inst_geop_levels
-       canonical_units: tbd
-       description: atmosphere export (fv3 only)
-     #
-     - standard_name: inst_temp_interface
-       canonical_units: K
-       description: atmosphere export (fv3 only)
-     #
-     - standard_name: inst_temp_levels
-       canonical_units: K
-       description: atmosphere export (fv3 only)
-     #
-     - standard_name: inst_zonal_wind_levels
-       canonical_units: m s-1
-       description: atmosphere export (fv3 only)
-     #
-     - standard_name: inst_merid_wind_levels
-       canonical_units: m s-1
-       description: atmosphere export (fv3 only)
-     #
-     - standard_name: inst_omega_levels
-       canonical_units: tbd
-       description: atmosphere export (fv3 only)
-     #
-     - standard_name: inst_tracer_mass_frac
-       canonical_units: 1
-       description: atmosphere export (fv3 only)
-     #
-     - standard_name: inst_soil_moisture_content
-       canonical_units: tbd
-       description: atmosphere export (fv3 only)
-     #
-     - standard_name: soil_type
-       canonical_units: tbd
-       description: atmosphere export (fv3 only)
-     #
-     - standard_name: inst_pbl_height
-       canonical_units: tbd
-       description: atmosphere export (fv3 only)
-     #
-     - standard_name: surface_cell_area
-       canonical_units: tbd
-       description: atmosphere export (fv3 only)
-     #
-     - standard_name: inst_convective_rainfall_amount
-       canonical_units: tbd
-       description: atmosphere export (fv3 only)
-     #
-     - standard_name: inst_exchange_coefficient_heat_levels
-       canonical_units: tbd
-       description: atmosphere export (fv3 only)
-     #
-     - standard_name: inst_friction_velocity
-       canonical_units: tbd
-       description: atmosphere export (fv3 only)
-     #
-     - standard_name: inst_rainfall_amount
-       canonical_units: tbd
-       description: atmosphere export (fv3 only)
-     #
-     - standard_name: inst_land_sea_mask
-       canonical_units: tbd
-       description: atmosphere export (fv3 only)
-     #
-     - standard_name: inst_temp_height_surface
-       canonical_units: tbd
-       description: atmosphere export (fv3 only)
-     #
-     - standard_name: inst_up_sensi_heat_flx
-       canonical_units: tbd
-       description: atmosphere export (fv3 only)
-     #
-     - standard_name: inst_lwe_snow_thickness
-       canonical_units: tbd
-       description: atmosphere export (fv3 only)
-     #
-     - standard_name: vegetation_type
-       canonical_units: tbd
-       description: atmosphere export (fv3 only)
-     #
-     - standard_name: inst_vegetation_area_frac
-       canonical_units: tbd
-       description: atmosphere export (fv3 only)
-     #
-     - standard_name: inst_surface_roughness
-       canonical_units: tbd
-       description: atmosphere export (fv3 only)
-
-######### fv3 work start
-
-     - standard_name: Faxa_taux
-       alias: mean_zonal_moment_flx_atm
-       canonical_units: N m-2
-       description: atmosphere export
-         zonal component of momentum flux
-     #
-     - standard_name: Faxa_tauy
-       alias: mean_merid_moment_flx_atm
-       canonical_units: N m-2
-       description: atmosphere export
-         meridional component of momentum flux
-     #
-     - standard_name: Faxa_lat
-       alias: mean_laten_heat_flx_atm
-       canonical_units: W m-2
-       description: atmosphere export
-     #
-     - standard_name: Faxa_sen
-       alias: mean_sensi_heat_flx_atm
-       canonical_units: W m-2
-       description: atmosphere export
-     #
-     - standard_name: inst_zonal_moment_flx_atm
-       canonical_units: N m-2
-       description: atmosphere export
-         zonal component of momentum flux
-     #
-     - standard_name: inst_merid_moment_flx_atm
-       canonical_units: N m-2
-       description: atmosphere export
-         meridional component of momentum flux
-     #
-     - standard_name: inst_laten_heat_flx_atm
-       canonical_units: W m-2
-       description: atmosphere export
-     #
-     - standard_name: inst_sensi_heat_flx_atm
-       canonical_units: W m-2
-       description: atmosphere export
-
-### FV3 work - NEMS S2S benchmark (not including fractional branch)
 
      - standard_name: mean_up_lw_flx
        alias: Faxx_lwup
@@ -906,28 +658,28 @@
      #
      # NOTE: the following alias requires a new name change for CICE export
      - standard_name: Fioi_swpen_vdr
-       alias: mean_sw_pen_to_ocn_vis_dir_flx
+       alias: mean_net_sw_vis_dir_flx        # NEMS CICE5 - this conflicts with an ocn export below
        canonical_units: W m-2
        description: sea-ice export to ocean
          flux of vis dir shortwave through ice to ocean
      #
      # NOTE: the following alias requires a new name change for CICE export
      - standard_name: Fioi_swpen_vdf
-       alias: mean_sw_pen_to_ocn_vis_dif_flx
+       alias: mean_net_sw_vis_dif_flx        # NEMS CICE5 - this conflicts with an ocn export below
        canonical_units: W m-2
        description: sea-ice export to ocean
          flux of vif dir shortwave through ice to ocean
      #
      # NOTE: the following alias requires a new name change for CICE export
      - standard_name: Fioi_swpen_idr
-       alias: mean_sw_pen_to_ocn_ir_dir_flx
+       alias: mean_net_sw_ir_dir_flx         # NEMS CICE5 - this conflicts with ocn export below
        canonical_units: W m-2
        description: sea-ice export to ocean
          flux of ir dir shortwave through ice to ocean
      #
      # NOTE: the following alias requires a new name change for CICE export
      - standard_name: Fioi_swpen_idf
-       alias: mean_sw_pen_to_ocn_ir_dif_flx
+       alias: mean_net_sw_ir_dif_flx         # NEMS CICE5 - this conflicts with ocn export below
        canonical_units: W m-2
        description: sea-ice export to ocean
          flux of ir dif shortwave through ice to ocean
@@ -1000,7 +752,7 @@
          volume of snow per unit area
      #
      - standard_name: Si_t
-       alias: sea_ice_temperature
+       alias: sea_ice_surface_temperature # NEMS cice
        canonical_units: K
        description: sea-ice export
      #
