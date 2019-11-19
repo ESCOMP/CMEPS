@@ -80,7 +80,7 @@ def runseq(case, coupling_times):
     elif comp_wav == 'ww' or comp_wav == "dwav":
 
         if atm_cpl_dt < ocn_cpl_dt:
-            expect(False, "for C or G compset assume that atm_cpl_ct >= ocn_cpl_dt")
+            expect(False, "for C or G compset require that atm_cpl_ct >= ocn_cpl_dt")
 
         outfile.write ("runSeq::                                \n")
         outfile.write ("@" + str(atm_cpl_dt) + "                \n") 
