@@ -221,6 +221,8 @@ contains
     rc = ESMF_SUCCESS
     call memcheck(subname, 5, mastertask)
 
+    call t_start('MED:'//subname)
+
     !----------------------------------
     ! get attributes that are set as module variables
     !----------------------------------
