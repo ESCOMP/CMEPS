@@ -519,30 +519,28 @@ contains
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
           call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_sen',    &
-               FBinA=is_local%wrap%FBMed_aoflux_o        , fnameA='Faox_sen '  , wgtA=ocnwgt1, &
-               FBinB=is_local%wrap%FBImp(compice,compocn), fnameB='Fioi_melth' , wgtB=icewgt1, &
-               FBinC=is_local%wrap%FBImp(compatm,compocn), fnameC='Faxa_sen'   , wgtc=wgtm01, rc=rc)
+               FBinA=is_local%wrap%FBMed_aoflux_o        , fnameA='Faox_sen ', wgtA=ocnwgt1, &
+               FBinC=is_local%wrap%FBImp(compatm,compocn), fnameB='Faxa_sen' , wgtB=wgtm01, rc=rc)
 
           call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_taux',  &
                FBinA=is_local%wrap%FBMed_aoflux_o        , fnameA='Faox_taux ', wgtA=ocnwgt1, &
                FBinB=is_local%wrap%FBImp(compice,compocn), fnameB='Fioi_taux' , wgtB=icewgt1, &
-               FBinC=is_local%wrap%FBImp(compatm,compocn), fnameC='Faxa_taux' , wgtc=wgtm01, rc=rc)
+               FBinC=is_local%wrap%FBImp(compatm,compocn), fnameC='Faxa_taux' , wgtC=wgtm01, rc=rc)
 
           call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_tauy',  &
                FBinA=is_local%wrap%FBMed_aoflux_o        , fnameA='Faox_tauy ', wgtA=ocnwgt1, &
                FBinB=is_local%wrap%FBImp(compice,compocn), fnameB='Fioi_tauy' , wgtB=icewgt1, &
-               FBinC=is_local%wrap%FBImp(compatm,compocn), fnameC='Faxa_tauy' , wgtc=wgtm01, rc=rc)
+               FBinC=is_local%wrap%FBImp(compatm,compocn), fnameC='Faxa_tauy' , wgtC=wgtm01, rc=rc)
 
           ! If there is no ice on the ocn gridcell (ocnwgt1=0) - sum Faxa_lwdn and Faxa_lwup
           ! If there is ice on the ocn gridcell -  merge Faox_lwup and Faxa_lwdn and ignore Faxa_lwup
           call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_lwnet', &
                FBinA=is_local%wrap%FBMed_aoflux_o        , fnameA='Faox_lwup ', wgtA=ocnwgt1, &
                FBinB=is_local%wrap%FBImp(compatm,compocn), fnameB='Faxa_lwdn' , wgtB=ocnwgt1, &
-               FBinC=is_local%wrap%FBImp(compatm,compocn), fnameC='Faxa_lwnet' , wgtc=wgtp01, rc=rc)
+               FBinC=is_local%wrap%FBImp(compatm,compocn), fnameC='Faxa_lwnet', wgtC=wgtp01, rc=rc)
 
           call med_merge_field(is_local%wrap%FBExp(compocn),      'Faxa_rain' , &
-               FBInA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_rain' , wgtA=ofrac, &
-               FBInB=is_local%wrap%FBImp(compice,compocn), fnameB='Fioi_meltw', wgtB=ifrac, rc=rc)
+               FBInA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_rain' , wgtA=ofrac, rc=rc)
 
           call med_merge_field(is_local%wrap%FBExp(compocn),      'Faxa_snow' , &
                FBInA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_snow' , wgtA=ofrac, rc=rc)

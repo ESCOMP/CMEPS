@@ -510,7 +510,7 @@
     <default_value>FALSE</default_value>
     <valid_values>TRUE,FALSE</valid_values>
     <file>env_run.xml</file>
-    <desc>Logical to determine whether CESM run has been submitted with the submit script or not</desc>
+    <desc>Logical to determine whether run has been submitted with the submit script or not</desc>
   </entry>
 
  <entry id="JOB_IDS">
@@ -2354,15 +2354,6 @@
     <desc>yyyymmdd format, sets coupler snapshot history date (like REST_DATE)</desc>
   </entry>
 
-  <entry id="CPL_DECOMP">
-    <type>integer</type>
-    <valid_values>0,1,2,3,4,5,6</valid_values>
-    <default_value>0</default_value>
-    <group>run_flags</group>
-    <file>env_run.xml</file>
-    <desc>Coupler decomposition option.</desc>
-  </entry>
-
   <entry id="INFO_DBUG">
     <type>integer</type>
     <valid_values>0,1,2,3,4,5,6,7,8,9</valid_values>
@@ -2386,6 +2377,7 @@
       is set to TRUE. Note that is only available on a limited set of
       machines/compilers.</desc>
   </entry>
+
 
   <!-- Prerun/postrun custom script options -->
 

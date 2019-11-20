@@ -1086,7 +1086,7 @@
       2=+detailed lnd/ocn/ice component budgets,
       3=+detailed atm budgets
       default: 0
-n    </desc>
+    </desc>
     <values>
       <value>0</value>
     </values>
@@ -1190,20 +1190,6 @@ n    </desc>
     </desc>
     <values>
       <value>0</value>
-    </values>
-  </entry>
-
-  <entry id="cpl_decomp" modify_via_xml="CPL_DECOMP">
-    <type>integer</type>
-    <category>expdef</category>
-    <group>MED_attributes</group>
-    <valid_values>0,1,2,3,4,5,6</valid_values>
-    <desc>
-      cpl decomp option (0=default, 1=comp decomp, 2=rearr comp decomp, 3=new single 1d seg
-      default: 0
-    </desc>
-    <values>
-      <value>$CPL_DECOMP</value>
     </values>
   </entry>
 

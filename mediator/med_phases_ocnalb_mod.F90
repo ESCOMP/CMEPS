@@ -235,6 +235,12 @@ contains
 
     rc = ESMF_SUCCESS
 
+#ifndef CESMCOUPLED
+
+    RETURN  ! the following code is not executed unless the model is CESM
+
+#else
+
     ! Get the internal state from Component.
     nullify(is_local%wrap)
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
@@ -353,7 +359,6 @@ contains
        ! Solar declination
        ! Will only do albedo calculation if nextsw_cday is not -1.
        if (nextsw_cday >= -0.5_r8) then
-#ifdef CESMCOUPLED
           call shr_orb_decl(nextsw_cday, eccen, mvelpp,lambm0, obliqr, delta, eccf)
 
           ! Compute albedos
@@ -375,14 +380,6 @@ contains
                 ocnalb%avsdf(n) = 1.0_r8
              end if
           end do
-#else
-          do n = 1,lsize
-             ocnalb%anidr(n) = albdir
-             ocnalb%avsdr(n) = albdir
-             ocnalb%anidf(n) = albdif
-             ocnalb%avsdf(n) = albdif
-          end do
-#endif
           update_alb = .true.
 
        endif    ! nextsw_cday
@@ -407,6 +404,8 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     end if
     call t_stopf('MED:'//subname)
+
+#endif
 
   end subroutine med_phases_ocnalb_run
 

@@ -641,6 +641,7 @@ contains
     type(InternalState)        :: is_local
     real(r8), pointer          :: lfrac(:)
     real(r8), pointer          :: ifrac(:)
+    real(r8), pointer          :: ifrac_nstod(:)
     real(r8), pointer          :: ofrac(:)
     real(r8), pointer          :: Si_ifrac(:)
     real(r8), pointer          :: Si_imask(:)
@@ -761,28 +762,36 @@ contains
                   is_local%wrap%RH(compice,compatm,mapnstod), &
                   zeroregion=ESMF_REGION_TOTAL, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             call FB_getFldPtr(is_local%wrap%FBfrac(compatm), 'ifrac', ifrac_nstod, rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
              call FB_FieldRegrid(&
                   is_local%wrap%FBfrac(compice), 'ifrac', &
                   is_local%wrap%FBfrac(compatm), 'ifrac', &
                   is_local%wrap%RH(compice,compatm,mapconsf), &
-                  zeroregion=ESMF_REGION_SELECT, rc=rc)
+                  zeroregion=ESMF_REGION_TOTAL, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-             ! Now set ofrac=1-ifrac and lfrac=0 on the atm grid
+             ! Determine ifrac on atm grid
              call FB_getFldPtr(is_local%wrap%FBfrac(compatm), 'ifrac', ifrac, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             where (ifrac .eq. 0.0_R8 .and. abs(ifrac_nstod) .gt.  0.0_R8)
+                ifrac = ifrac_nstod
+             endwhere
+
+             ! Determine ofrac and lfrac on atm grid - set ofrac=1-ifrac and lfrac=0
              call FB_getFldPtr(is_local%wrap%FBfrac(compatm), 'ofrac', ofrac, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
              call FB_getFldPtr(is_local%wrap%FBfrac(compatm), 'lfrac', lfrac, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-             ofrac = 1.0_R8 - ifrac
-             lfrac = 0.0_R8
+             ofrac(:) = 1.0_R8 - ifrac(:)
+             lfrac(:) = 0.0_R8
 
           else
 
              if (ESMF_RouteHandleIsCreated(is_local%wrap%RH(compice,compatm,mapfcopy), rc=rc)) then
+                ! TODO (mvertens, 2019-11-20): this is not being used when ice and atm are on the same grid
+                ! - this needs to be implemented
                 maptype = mapfcopy
              else
                 maptype = mapconsf
