@@ -24,6 +24,7 @@ module MED
   use med_methods_mod        , only : FB_Copy            => med_methods_FB_Copy
   use med_methods_mod        , only : FB_FldChk          => med_methods_FB_FldChk
   use med_methods_mod        , only : FB_diagnose        => med_methods_FB_diagnose
+  use med_methods_mod        , only : FB_getFieldN       => med_methods_FB_getFieldN
   use med_methods_mod        , only : clock_timeprint    => med_methods_clock_timeprint
   use med_time_mod           , only : alarmInit          => med_time_alarmInit
   use med_utils_mod          , only : memcheck           => med_memcheck
@@ -1757,6 +1758,7 @@ contains
             is_local%wrap%FBExpAccumCnt(n1) = 0
 
             ! Create mesh info data
+            write(6,*)'DEBUG: calling med_meshinfo_create for ',trim(compname(n1))
             call med_meshinfo_create(is_local%wrap%FBImpAccum(n1,n1), is_local%wrap%mesh_info(n1), rc=rc)
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
          endif
@@ -2288,7 +2290,6 @@ contains
   !-----------------------------------------------------------------------------
 
   subroutine med_grid_write(grid, fileName, rc)
-
     use ESMF, only : ESMF_Grid, ESMF_Array, ESMF_ArrayBundle
     use ESMF, only : ESMF_ArrayBundleCreate, ESMF_GridGet
     use ESMF, only : ESMF_GridGetCoord, ESMF_ArraySet, ESMF_ArrayBundleAdd

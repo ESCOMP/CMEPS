@@ -15,17 +15,23 @@ module med_diag_mod
   !    salt  flux    ~ (kg/s)/m^2
   !----------------------------------------------------------------------------
 
-  use NUOPC
-  use ESMF
+  use NUOPC                 , only : NUOPC_CompAttributeGet
+  use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
+  use ESMF                  , only : ESMF_FAILURE,  ESMF_LOGMSG_ERROR
+  use ESMF                  , only : ESMF_GridComp, ESMF_Clock, ESMF_Time
+  use ESMF                  , only : ESMF_VM, ESMF_VMReduce, ESMF_REDUCE_SUM
+  use ESMF                  , only : ESMF_GridCompGet, ESMF_ClockGet, ESMF_TimeGet
+  use ESMF                  , only : ESMF_Alarm, ESMF_ClockGetAlarm, ESMF_AlarmIsRinging
+  use ESMF                  , only : ESMF_FieldBundle
   use shr_sys_mod           , only : shr_sys_abort
   use shr_const_mod         , only : shr_const_rearth, shr_const_pi, shr_const_latice
   use shr_const_mod         , only : shr_const_ice_ref_sal, shr_const_ocn_ref_sal, shr_const_isspval
-  use med_constants_mod     , only : R8, CS, CL
+  use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
   use med_internalstate_mod , only : InternalState, logunit, mastertask
-  use shr_nuopc_methods_mod , only : fldchk => shr_nuopc_methods_FB_FldChk
-  use shr_nuopc_utils_mod   , only : chkerr => shr_nuopc_utils_ChkErr
-  use shr_nuopc_methods_mod , only : FB_GetFldPtr => shr_nuopc_methods_FB_GetFldPtr
-
+  use med_methods_mod       , only : FB_FldChk    => med_methods_FB_FldChk
+  use med_methods_mod       , only : FB_GetFldPtr => med_methods_FB_GetFldPtr
+  use med_utils_mod         , only : chkerr       => med_utils_ChkErr
+ 
   implicit none
   private
 
@@ -695,7 +701,7 @@ contains
       real(r8), pointer :: data(:)
       ! ------------------------------------------------------------------
       rc = ESMF_SUCCESS
-      if ( fldchk(FB, trim(fldname), rc=rc)) then
+      if ( FB_fldchk(FB, trim(fldname), rc=rc)) then
          call FB_GetFldPtr(FB, trim(fldname), fldptr1=data , rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
          ip = period_inst
@@ -733,7 +739,7 @@ contains
       real(r8), pointer :: data(:,:)
       ! ------------------------------------------------------------------
       rc = ESMF_SUCCESS
-      if ( fldchk(FB, trim(fldname), rc=rc)) then
+      if ( FB_fldchk(FB, trim(fldname), rc=rc)) then
          call FB_GetFldPtr(FB, trim(fldname), fldptr2=data, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
          ip = period_inst
@@ -893,7 +899,7 @@ contains
       ! ------------------------------------------------------------------
       rc = ESMF_SUCCESS
 
-      if ( fldchk(FB, trim(fldname), rc=rc)) then
+      if ( FB_fldchk(FB, trim(fldname), rc=rc)) then
          call FB_GetFldPtr(FB, trim(fldname), fldptr1=data, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
          ip = period_inst
@@ -926,7 +932,7 @@ contains
       ! ------------------------------------------------------------------
       rc = ESMF_SUCCESS
 
-      if ( fldchk(FB, trim(fldname), rc=rc)) then
+      if ( FB_fldchk(FB, trim(fldname), rc=rc)) then
          call FB_GetFldPtr(FB, trim(fldname), fldptr2=data, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
          ip = period_inst
@@ -1038,7 +1044,7 @@ contains
       ! ------------------------------------------------------------------
       rc = ESMF_SUCCESS
 
-      if ( fldchk(FB, trim(fldname), rc=rc)) then
+      if ( FB_fldchk(FB, trim(fldname), rc=rc)) then
          call FB_GetFldPtr(FB, trim(fldname), fldptr1=data, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
          ip = period_inst
@@ -1071,7 +1077,7 @@ contains
       ! ------------------------------------------------------------------
       rc = ESMF_SUCCESS
 
-      if ( fldchk(FB, trim(fldname), rc=rc)) then
+      if ( FB_fldchk(FB, trim(fldname), rc=rc)) then
          call FB_GetFldPtr(FB, trim(fldname), fldptr2=data, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
          ip = period_inst
@@ -1152,7 +1158,7 @@ contains
       real(r8), pointer :: data(:)
       ! ------------------------------------------------------------------
       rc = ESMF_SUCCESS
-      if ( fldchk(FB, trim(fldname), rc=rc)) then
+      if ( FB_fldchk(FB, trim(fldname), rc=rc)) then
          call FB_GetFldPtr(FB, trim(fldname), fldptr1=data, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
          ip = period_inst
@@ -1220,7 +1226,7 @@ contains
        budget_local(f_area,ic,ip) = budget_local(f_area,ic,ip) + areas(n)*ofrac(n)
     end do
 
-    if ( fldchk(is_local%wrap%FBImp(compocn,compocn), 'Fioo_q', rc=rc)) then
+    if ( FB_fldchk(is_local%wrap%FBImp(compocn,compocn), 'Fioo_q', rc=rc)) then
        call FB_getFldPtr(is_local%wrap%FBImp(compocn,compocn), 'Fioo_q', fldptr1=data, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        do n = 1,size(ifrac)
@@ -1300,7 +1306,7 @@ contains
       real(r8), pointer :: data(:)
       ! ------------------------------------------------------------------
       rc = ESMF_SUCCESS
-      if ( fldchk(FB, trim(fldname), rc=rc)) then
+      if ( FB_fldchk(FB, trim(fldname), rc=rc)) then
          call FB_GetFldPtr(FB, trim(fldname), fldptr1=data, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
          ip = period_inst
@@ -1329,7 +1335,7 @@ contains
       ! ------------------------------------------------------------------
       rc = ESMF_SUCCESS
 
-      if ( fldchk(FB, trim(fldname), rc=rc)) then
+      if ( FB_fldchk(FB, trim(fldname), rc=rc)) then
          call FB_GetFldPtr(FB, trim(fldname), fldptr2=data, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
          ip = period_inst
@@ -1437,7 +1443,7 @@ contains
       real(r8), pointer :: data(:)
       ! ------------------------------------------------------------------
       rc = ESMF_SUCCESS
-      if ( fldchk(FB, trim(fldname), rc=rc)) then
+      if ( FB_fldchk(FB, trim(fldname), rc=rc)) then
          call FB_GetFldPtr(FB, trim(fldname), fldptr1=data , rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
          ip = period_inst
@@ -1484,7 +1490,7 @@ contains
       ! ------------------------------------------------------------------
       rc = ESMF_SUCCESS
 
-      if ( fldchk(FB, trim(fldname), rc=rc)) then
+      if ( FB_fldchk(FB, trim(fldname), rc=rc)) then
          call FB_GetFldPtr(FB, trim(fldname), fldptr2=data, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
          ip = period_inst
@@ -1571,7 +1577,7 @@ contains
     call diag_ice_wiso(is_local%wrap%FBExp(compice), 'Faxa_snow_wiso', &
          f_watr_snow_16O, f_watr_snow_18O, f_watr_snow_HDO, areas, lats, ifrac, budget_local, rc=rc)
 
-    if ( fldchk(is_local%wrap%FBExp(compice), 'Fioo_q', rc=rc)) then
+    if ( FB_fldchk(is_local%wrap%FBExp(compice), 'Fioo_q', rc=rc)) then
        call FB_getFldPtr(is_local%wrap%FBExp(compice), 'Fioo_q', fldptr1=data, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        do n = 1,size(data)
@@ -1617,7 +1623,7 @@ contains
       real(r8), pointer :: data(:)
       ! ------------------------------------------------------------------
       rc = ESMF_SUCCESS
-      if ( fldchk(FB, trim(fldname), rc=rc)) then
+      if ( FB_fldchk(FB, trim(fldname), rc=rc)) then
          call FB_GetFldPtr(FB, trim(fldname), fldptr1=data , rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
          ip = period_inst
@@ -1664,7 +1670,7 @@ contains
       ! ------------------------------------------------------------------
       rc = ESMF_SUCCESS
 
-      if ( fldchk(FB, trim(fldname), rc=rc)) then
+      if ( FB_fldchk(FB, trim(fldname), rc=rc)) then
          call FB_GetFldPtr(FB, trim(fldname), fldptr2=data, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
          ip = period_inst

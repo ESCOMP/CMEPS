@@ -227,7 +227,6 @@ contains
     character(CL)           :: cvalue
     character(CS)           :: starttype        ! config start type
     character(CL)           :: runtype          ! initial, continue, hybrid, branch
-    character(CL)           :: aoflux_grid
     logical                 :: flux_albav       ! flux avg option
     real(R8)                :: nextsw_cday      ! calendar day of next atm shortwave
     real(R8), pointer       :: ofrac(:)
