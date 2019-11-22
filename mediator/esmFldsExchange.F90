@@ -809,7 +809,7 @@ contains
                   mrg_from1=compocn, mrg_fld1='So_t', mrg_type1='copy')
           end if
 
-       else if (coupling_mode = 'nems_orig') then
+       else if (coupling_mode == 'nems_orig') then
           if ( fldchk(is_local%wrap%FBExp(compatm)        , 'So_t', rc=rc) .and. &
                fldchk(is_local%wrap%FBExp(compatm)        , 'Si_t', rc=rc) .and. &
                fldchk(is_local%wrap%FBImp(compocn,compocn), 'So_t', rc=rc) .and. &
@@ -823,7 +823,7 @@ contains
                   mrg_from1=compocn, mrg_fld1='So_t', mrg_type1='copy')
           end if
 
-       else if (coupling_model == 'nems_frac') then
+       else if (coupling_mode == 'nems_frac') then
           if ( fldchk(is_local%wrap%FBexp(compatm)        , 'Si_t', rc=rc) .and. &
                fldchk(is_local%wrap%FBImp(compice,compice), 'Si_t', rc=rc)) then
              ! NEMS-frac - unmerged ice temp
