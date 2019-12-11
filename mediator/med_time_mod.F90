@@ -48,7 +48,6 @@ module med_time_mod
 !===============================================================================
 contains
 !===============================================================================
-
   subroutine med_time_alarmInit( clock, alarm, option, &
        opt_n, opt_ymd, opt_tod, RefTime, alarmname, rc)
 
