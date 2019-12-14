@@ -37,6 +37,7 @@ contains
     use esmflds               , only : mapuv_with_cart3d
     use esmflds               , only : fldListTo, fldListFr, fldListMed_aoflux, fldListMed_ocnalb
     use esmFlds               , only : coupling_mode
+    use med_internalstate_mod , only : mastertask, logunit
 
     ! input/output parameters:
     type(ESMF_GridComp)              :: gcomp
@@ -125,6 +126,11 @@ contains
 
           coupling_mode = 'nems_frac'
 
+       end if
+
+       call ESMF_LogWrite(trim(subname) //' coupling mode is '//trim(coupling_mode), ESMF_LOGMSG_INFO)
+       if (mastertask) then
+          write(logunit,*) trim(subname) //' coupling mode is '//trim(coupling_mode)
        end if
     end if
 
@@ -821,6 +827,9 @@ contains
                   mrg_from1=compice, mrg_fld1='Si_t', mrg_type1='copy')
              call addmrg(fldListTo(compatm)%flds, 'So_t', &
                   mrg_from1=compocn, mrg_fld1='So_t', mrg_type1='copy')
+          else
+             call ESMF_LogWrite(trim(subname) //'incorrect fields for nems_orig mode', ESMF_LOGMSG_INFO)
+             call ESMF_Finalize(endflag=ESMF_END_ABORT)
           end if
 
        else if (coupling_mode == 'nems_frac') then
@@ -830,6 +839,9 @@ contains
              call addmap(fldListFr(compice)%flds, 'Si_t', compatm, mapconsf , 'ifrac', ice2atm_fmap)
              call addmrg(fldListTo(compatm)%flds, 'Si_t', &
                   mrg_from1=compice, mrg_fld1='Si_t', mrg_type1='copy')
+          else
+             call ESMF_LogWrite(trim(subname) //'incorrect fields for nems_frac mode', ESMF_LOGMSG_INFO)
+             call ESMF_Finalize(endflag=ESMF_END_ABORT)
           end if
        end if
     end if

@@ -240,7 +240,7 @@
        description: atmosphere export
          instantaneous downward long wave radiation flux (fv3 only)
      #
-     - standard_name: inst_net_lw_flx_atm
+     - standard_name: inst_net_lw_flx
        canonical_units: W m-2
        description: atmosphere export
          instantaneous NET long wave radiation flux (fv3 only)
@@ -646,21 +646,21 @@
        canonical_units: W m-2
        description: atmosphere export
      #
-     - standard_name: inst_zonal_moment_flx_atm
+     - standard_name: inst_zonal_moment_flx
        canonical_units: N m-2
        description: atmosphere export
          zonal component of momentum flux
      #
-     - standard_name: inst_merid_moment_flx_atm
+     - standard_name: inst_merid_moment_flx
        canonical_units: N m-2
        description: atmosphere export
          meridional component of momentum flux
      #
-     - standard_name: inst_laten_heat_flx_atm
+     - standard_name: inst_laten_heat_flx
        canonical_units: W m-2
        description: atmosphere export
      #
-     - standard_name: inst_sensi_heat_flx_atm
+     - standard_name: inst_sensi_heat_flx
        canonical_units: W m-2
        description: atmosphere export
 
