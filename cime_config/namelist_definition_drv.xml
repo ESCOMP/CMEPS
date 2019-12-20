@@ -2138,7 +2138,8 @@
       False => CISM does not evolve but only sends initial information back to CTSM
     </desc>
     <values>
-     <value>$CISM_EVOLVE</value>
+     <value>.false.</value>
+     <value COMP_GLC="cism">$CISM_EVOLVE</value>
     </values>
   </entry>
 

@@ -259,6 +259,10 @@ contains
                whead=whead, wdata=wdata, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+          call med_io_write(restart_file, iam, is_local%wrap%FBImpAccumCnt, dname='ImpAccumCnt', &
+               whead=whead, wdata=wdata, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
           do n = 1,ncomps
              if (is_local%wrap%comp_present(n)) then
                 nx = is_local%wrap%nx(n)
@@ -300,6 +304,17 @@ contains
                        nx=nx, ny=ny, nt=1, whead=whead, wdata=wdata, pre=trim(compname(n))//'ExpAccum', rc=rc)
                    if (ChkErr(rc,__LINE__,u_FILE_u)) return
                 endif
+
+                ! Write import accumulators
+                if (ESMF_FieldBundleIsCreated(is_local%wrap%FBImpAccum(n,n),rc=rc)) then
+                   ! TODO: only write this out if actually have done accumulation
+                   !write(tmpstr,*) subname,' nx,ny = ',trim(compname(n)),nx,ny
+                   !call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO, rc=dbrc)
+                   call med_io_write(restart_file, iam,  is_local%wrap%FBImpAccum(n,n), &
+                       nx=nx, ny=ny, nt=1, whead=whead, wdata=wdata, pre=trim(compname(n))//'ImpAccum', rc=rc)
+                   if (ChkErr(rc,__LINE__,u_FILE_u)) return
+                endif
+
              endif
           enddo
 

@@ -25,8 +25,6 @@ def runseq(case, coupling_times):
 
     glc_couplint_time = glc_cpl_dt
 
-    print "DEBUG: i am here0"
-
     # NOTE: in the mediator the glc_avg_period will be set as an alarm
     # on the mediator clock - when this alarm rings - the averaging will be done AND an
     # attribute will be set on the glc export state from the mediator
@@ -42,14 +40,11 @@ def runseq(case, coupling_times):
         med_to_rof = True
         rof_to_med = True
 
-    print "DEBUG: comp_glc = ",comp_glc
     cism_evolve = False
     if (comp_glc == 'sglc'):
         glc_to_med = False
         med_to_glc = False
-        print "DEBUG: i am here1"
     elif (comp_glc == 'cism'):
-        print "DEBUG: i am here2"
         cism_evolve = case.get_value("CISM_EVOLVE")
         glc_to_med = True
         if cism_evolve:
@@ -59,7 +54,6 @@ def runseq(case, coupling_times):
     else:
         expect(False, "Invalid comp_glc %s " %compglc)
         
-
     # If CISM is not evolving only get data back from cism at the initial time
     # However will still need to call the exchange at the end if the stop_option
     # is nsteps or days - or otherwise just every ndays
