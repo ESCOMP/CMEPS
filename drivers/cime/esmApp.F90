@@ -9,18 +9,19 @@ program esmApp
   use ESMF,            only : ESMF_GridCompSetServices, ESMF_GridCompFinalize, ESMF_LogSet, ESMF_LogWrite
   use ESMF,            only : ESMF_GridCompDestroy, ESMF_LOGMSG_INFO, ESMF_GridComp, ESMF_GridCompRun
   use ESMF,            only : ESMF_GridCompFinalize, ESMF_GridCompCreate, ESMF_GridCompInitialize
-  use ESMF,            only : ESMF_LOGKIND_MULTI_ON_ERROR
+  use ESMF,            only : ESMF_LOGKIND_MULTI_ON_ERROR, ESMF_LogKind_Flag
   use mpi,             only : MPI_COMM_WORLD, MPI_COMM_NULL, MPI_Init, MPI_FINALIZE
   use NUOPC,           only : NUOPC_FieldDictionarySetup
   use ensemble_driver, only : SetServices
-  use shr_pio_mod,     only : shr_pio_init1, shr_pio_init2
+  use shr_pio_mod,     only : shr_pio_init1
 
   implicit none
 
   ! local variables
-  integer                    :: COMP_COMM
-  integer                    :: rc, urc
-  type(ESMF_GridComp)        :: ensemble_driver_comp
+  integer                 :: COMP_COMM
+  integer                 :: rc, urc
+  type(ESMF_LogKind_Flag) :: logkindflag
+  type(ESMF_GridComp)     :: ensemble_driver_comp
 
   !-----------------------------------------------------------------------------
   ! Initiallize MPI
@@ -41,7 +42,6 @@ program esmApp
   call shr_pio_init1(8, "drv_in", COMP_COMM)
 
   if (COMP_COMM .eq. MPI_COMM_NULL) then
-     ! call shr_pio_init2(
      call mpi_finalize(ierror=rc)
      stop
   endif
@@ -50,13 +50,14 @@ program esmApp
   ! Initialize ESMF
   !-----------------------------------------------------------------------------
 
-#ifdef DEBUG
-  call ESMF_Initialize(mpiCommunicator=COMP_COMM, logkindflag=ESMF_LOGKIND_MULTI, logappendflag=.false., &
+  ! by default, ESMF_LOGKIND_MULTI_ON_ERROR does not create files PET[N*].ESMF_LogFile unless there is an error
+  ! if want those files, comment out the following line and uncomment the line logkindflag = ESMF_LOGKIND_MULTI
+
+  logkindflag = ESMF_LOGKIND_MULTI_ON_ERROR
+  ! logkindflag = ESMF_LOGKIND_MULTI
+
+  call ESMF_Initialize(mpiCommunicator=COMP_COMM, logkindflag=logkindflag, logappendflag=.false., &
        defaultCalkind=ESMF_CALKIND_GREGORIAN, ioUnitLBound=5001, ioUnitUBound=5101, rc=rc)
-#else
-  call ESMF_Initialize(mpiCommunicator=COMP_COMM, logkindflag=ESMF_LOGKIND_MULTI_ON_ERROR, logappendflag=.false., &
-       defaultCalkind=ESMF_CALKIND_GREGORIAN, ioUnitLBound=5001, ioUnitUBound=5101, rc=rc)
-#endif
   if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
        line=__LINE__, &
        file=__FILE__)) &
@@ -147,6 +148,7 @@ program esmApp
        call ESMF_Finalize(endflag=ESMF_END_ABORT)
 
   call ESMF_LogWrite("ESMF_GridCompDestroy called", ESMF_LOGMSG_INFO, rc=rc)
+
   ! call ESMF_LogSet(flush=.true., trace=.true., rc=rc)
   call ESMF_GridCompDestroy(ensemble_driver_comp, rc=rc)
   if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
@@ -164,7 +166,7 @@ program esmApp
        line=__LINE__, &
        file=__FILE__)) &
        call ESMF_Finalize(endflag=ESMF_END_ABORT)
-  ! Finalize ESMF
+
   call ESMF_Finalize()
 
 end program
