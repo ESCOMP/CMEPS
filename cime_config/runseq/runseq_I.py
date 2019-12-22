@@ -116,6 +116,9 @@ def runseq(case, coupling_times):
     if glc_to_med or med_to_glc:
         outfile.write ("@                                     \n" )
 
+    if not rof_to_med and not med_to_rof: 
+        outfile.write ("@                                     \n" )
+
     outfile.write ("::                                        \n" )
 
     outfile.close()
