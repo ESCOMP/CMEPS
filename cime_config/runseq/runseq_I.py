@@ -75,7 +75,6 @@ def runseq(case, coupling_times):
     if glc_to_med or med_to_glc:
         outfile.write ("@" + str(glc_coupling_time) + "       \n" )
     if med_to_glc:
-        outfile.write ("  MED med_phases_prep_glc_accum       \n" )
         outfile.write ("  MED med_phases_prep_glc_avg         \n" )
         outfile.write ("  MED -> GLC :remapMethod=redist      \n" )
         outfile.write ("  GLC                                 \n" )
@@ -96,7 +95,12 @@ def runseq(case, coupling_times):
     outfile.write ("  MED -> LND :remapMethod=redist          \n" )
     outfile.write ("  LND                                     \n" )
     outfile.write ("  LND -> MED :remapMethod=redist          \n" )
-    outfile.write ("  MED med_phases_prep_rof_accum           \n" )
+
+    if med_to_rof:
+        outfile.write ("  MED med_phases_prep_rof_accum       \n" )
+    if med_to_glc:
+        outfile.write ("  MED med_phases_prep_glc_accum       \n" )
+
     outfile.write ("  ATM                                     \n" )
     outfile.write ("  ATM -> MED :remapMethod=redist          \n" )
     outfile.write ("  MED med_phases_profile                  \n" )
@@ -105,10 +109,11 @@ def runseq(case, coupling_times):
         if atm_cpl_dt < rof_cpl_dt:
             outfile.write ("@                                 \n" )
         outfile.write ("  ROF -> MED :remapMethod=redist      \n" )
-
-    outfile.write ("  MED med_phases_history_write            \n" )
-    outfile.write ("  MED med_phases_restart_write            \n" )
-    outfile.write ("  MED med_phases_profile                  \n" )
+        # write out history and restart files if there is no active glc coupling
+        if not med_to_glc:
+            outfile.write ("  MED med_phases_history_write     \n" )
+            outfile.write ("  MED med_phases_restart_write     \n" )
+            outfile.write ("  MED med_phases_profile           \n" )
 
     if med_to_rof:
         outfile.write ("@                                     \n" )
@@ -117,6 +122,7 @@ def runseq(case, coupling_times):
         outfile.write ("@                                     \n" )
 
     if not rof_to_med and not med_to_rof: 
+        outfile.write ("  MED med_phases_history_write        \n" )
         outfile.write ("@                                     \n" )
 
     outfile.write ("::                                        \n" )

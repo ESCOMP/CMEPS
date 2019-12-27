@@ -200,10 +200,10 @@ contains
        !---------------------------------------
 
        write(restart_file,"(6a)") &
-            trim(case_name), '.med',trim(cpl_inst_tag),'.r.', trim(nexttimestr),'.nc'
+            trim(case_name), '.cpl',trim(cpl_inst_tag),'.r.', trim(nexttimestr),'.nc'
 
        if (iam == 0) then
-          restart_pfile = "rpointer.med"//cpl_inst_tag
+          restart_pfile = "rpointer.cpl"//cpl_inst_tag
           call ESMF_LogWrite(trim(subname)//" write rpointer file = "//trim(restart_pfile), ESMF_LOGMSG_INFO, rc=dbrc)
           open(newunit=unitn, file=restart_pfile, form='FORMATTED')
           write(unitn,'(a)') trim(restart_file)
@@ -438,7 +438,7 @@ contains
 
     ! Get the restart file name from the pointer file
 
-    restart_pfile = "rpointer.med"//cpl_inst_tag
+    restart_pfile = "rpointer.cpl"//cpl_inst_tag
     if (iam == 0) then
        call ESMF_LogWrite(trim(subname)//" read rpointer file = "//trim(restart_pfile), ESMF_LOGMSG_INFO, rc=dbrc)
        open(newunit=unitn, file=restart_pfile, form='FORMATTED', status='old', iostat=ierr)

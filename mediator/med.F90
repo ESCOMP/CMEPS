@@ -24,10 +24,8 @@ module MED
   use med_methods_mod        , only : FB_FldChk          => med_methods_FB_FldChk
   use med_methods_mod        , only : FB_diagnose        => med_methods_FB_diagnose
   use med_methods_mod        , only : clock_timeprint    => med_methods_clock_timeprint
-  use med_time_mod           , only : set_stop_alarm     => med_time_set_component_stop_alarm
   use med_time_mod           , only : alarmInit          => med_time_alarmInit 
   use med_utils_mod          , only : memcheck           => med_memcheck
-  use med_phases_history_mod , only : histAlarmInit      => med_phases_history_alarm_init
   use med_internalstate_mod  , only : InternalState
   use med_internalstate_mod  , only : med_coupling_allowed, logunit, mastertask
   use med_phases_profile_mod , only : med_phases_profile_finalize
@@ -1957,19 +1955,27 @@ contains
     integer, intent(out) :: rc
 
     ! local variables
-    type(ESMF_Clock)         :: mediatorClock, driverClock
-    type(ESMF_Time)          :: currTime
-    type(ESMF_TimeInterval)  :: timeStep
-    character(len=256)       :: cvalue
-    character(len=256)       :: restart_option       ! Restart option units
-    integer                  :: restart_n            ! Number until restart interval
-    integer                  :: restart_ymd          ! Restart date (YYYYMMDD)
-    type(ESMF_ALARM)         :: restart_alarm
-    type(ESMF_ALARM)         :: med_profile_alarm
-    type(ESMF_ALARM)         :: glc_avg_alarm
-    logical                  :: glc_present
-    character(len=16)        :: glc_avg_period
-    logical                :: first_time = .true.
+    type(ESMF_Clock)        :: mediatorClock, driverClock
+    type(ESMF_Time)         :: currTime
+    type(ESMF_TimeInterval) :: timeStep
+    character(len=256)      :: cvalue
+    character(len=256)      :: restart_option       ! Restart option units
+    integer                 :: restart_n            ! Number until restart interval
+    integer                 :: restart_ymd          ! Restart date (YYYYMMDD)
+    type(ESMF_ALARM)        :: restart_alarm
+    type(ESMF_ALARM)        :: med_profile_alarm
+    type(ESMF_ALARM)        :: glc_avg_alarm
+    logical                 :: glc_present
+    character(len=16)       :: glc_avg_period
+    character(len=256)      :: stop_option    ! Stop option units
+    integer                 :: stop_n         ! Number until stop interval
+    integer                 :: stop_ymd       ! Stop date (YYYYMMDD)
+    type(ESMF_ALARM)        :: stop_alarm
+    character(len=256)      :: option           
+    integer                 :: opt_n            
+    integer                 :: opt_ymd          
+    type(ESMF_ALARM)        :: alarm
+    logical                 :: first_time = .true.
     character(len=*),parameter :: subname='(module_MED:SetRunClock)'
     !-----------------------------------------------------------
 
@@ -1980,8 +1986,7 @@ contains
     endif
 
     ! query the Mediator for clocks
-    call NUOPC_MediatorGet(gcomp, mediatorClock=mediatorClock, &
-      driverClock=driverClock, rc=rc)
+    call NUOPC_MediatorGet(gcomp, mediatorClock=mediatorClock, driverClock=driverClock, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if (dbug_flag > 1) then
@@ -2010,7 +2015,9 @@ contains
 
     if (first_time) then
 
+       ! --------------------
        ! Set mediator restart alarm
+       ! --------------------
 
        call NUOPC_CompAttributeGet(gcomp, name="restart_option", value=restart_option, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -2023,17 +2030,61 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        read(cvalue,*) restart_ymd
 
-       call alarmInit(mediatorclock, restart_alarm, restart_option, &
-            opt_n   = restart_n,           &
-            opt_ymd = restart_ymd,         &
-            RefTime = currTime,           &
-            alarmname = 'alarm_restart', rc=rc)
+       call alarmInit(mediatorclock, restart_alarm, restart_option, opt_n=restart_n, opt_ymd=restart_ymd,  &
+            RefTime=currTime, alarmname = 'alarm_restart', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        call ESMF_AlarmSet(restart_alarm, clock=mediatorclock, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+       ! --------------------
+       ! Set mediator instantaneous history output alarm
+       ! --------------------
+
+       call NUOPC_CompAttributeGet(gcomp, name='history_option', value=option, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       call NUOPC_CompAttributeGet(gcomp, name='history_n', value=cvalue, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       read(cvalue,*) opt_n
+
+       call alarmInit(mediatorClock, alarm, option=option, opt_n=opt_n, RefTime=currTime, &
+            alarmname='alarm_history_inst', rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       call ESMF_AlarmSet(alarm, clock=mediatorclock, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       if (mastertask) then
+          call ESMF_LogWrite(trim(subname)//" initialized instantaneous history alarm with option, n = "//&
+               trim(option)//","//trim(cvalue), ESMF_LOGMSG_INFO)
+          write(logunit,*)trim(subname)//" initialized instantaneous history alarm with option, n = "//trim(option)
+       end if
+
+       ! --------------------
+       ! Set mediator average history output alarm
+       ! --------------------
+
+       call NUOPC_CompAttributeGet(gcomp, name='histavg_option', value=option, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       call NUOPC_CompAttributeGet(gcomp, name='histavg_n', value=cvalue, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       read(cvalue,*) opt_n
+
+       call alarmInit(mediatorClock, alarm, option=option, opt_n=opt_n, RefTime=currTime, &
+            alarmname='alarm_history_avg', rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       call ESMF_AlarmSet(alarm, clock=mediatorclock, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       call ESMF_LogWrite(trim(subname)//" initialize average history alarm with option, n = "//&
+            trim(option)//","//trim(cvalue), ESMF_LOGMSG_INFO)
+
+       ! --------------------
        ! Set mediator profile alarm - HARD CODED to daily
+       ! --------------------
 
        call alarmInit(mediatorclock, med_profile_alarm, 'ndays', &
             opt_n = 1, alarmname = 'med_profile_alarm', rc=rc)
@@ -2042,7 +2093,9 @@ contains
        call ESMF_AlarmSet(med_profile_alarm, clock=mediatorclock, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+       ! --------------------
        ! Set glc averaging alarm if appropriate
+       ! --------------------
 
        call NUOPC_CompAttributeGet(gcomp, name="glc_present", value=cvalue, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -2052,20 +2105,14 @@ contains
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
           if (trim(glc_avg_period) == 'hour') then
-             call alarmInit(mediatorclock, glc_avg_alarm, 'nhours', &
-                  opt_n = 1, alarmname = 'alarm_glc_avg', rc=rc)
+             call alarmInit(mediatorclock, glc_avg_alarm, 'nhours', opt_n=1, alarmname='alarm_glc_avg', rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
           else if (trim(glc_avg_period) == 'day') then
-             call alarmInit(mediatorclock, glc_avg_alarm, 'ndays', &
-                  opt_n = 1, alarmname = 'alarm_glc_avg', rc=rc)
+             call alarmInit(mediatorclock, glc_avg_alarm, 'ndays' , opt_n=1, alarmname='alarm_glc_avg', rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
           else if (trim(glc_avg_period) == 'yearly') then
-             call alarmInit(mediatorclock, glc_avg_alarm, 'nyears', &
-                  opt_n = 1, alarmname = 'alarm_glc_avg', rc=rc)
+             call alarmInit(mediatorclock, glc_avg_alarm, 'nyears', opt_n=1, alarmname='alarm_glc_avg', rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
           else
             call ESMF_LogWrite(trim(subname)//&
                  ": ERROR glc_avg_period = "//trim(glc_avg_period)//" not supported", &
@@ -2077,10 +2124,22 @@ contains
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
       end if
 
-      ! Initialize med history file alarm
-      call histAlarmInit(gcomp, rc)
+      !----------------
+      ! Mediator stop alarm
+      !----------------
+      call NUOPC_CompAttributeGet(gcomp, name="stop_option", value=stop_option, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-      call set_stop_alarm(gcomp, rc)
+      call NUOPC_CompAttributeGet(gcomp, name="stop_n", value=cvalue, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      read(cvalue,*) stop_n
+
+      call NUOPC_CompAttributeGet(gcomp, name="stop_ymd", value=cvalue, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      read(cvalue,*) stop_ymd
+
+      call alarmInit(mediatorClock, stop_alarm, stop_option, opt_n=stop_n, opt_ymd=stop_ymd, &
+           RefTime = currTime,  alarmname = 'alarm_stop', rc=rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        first_time = .false.
