@@ -2,11 +2,13 @@
 
 import os, shutil, sys
 from CIME.utils import expect
+from gen_runseq import RunSeq
 
-_CIMEROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..","..","..","..")
+_CIMEROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir,os.pardir,os.pardir,os.pardir))
 sys.path.append(os.path.join(_CIMEROOT, "scripts", "Tools"))
 
 from standard_script_setup import *
+
 #pylint:disable=undefined-variable
 logger = logging.getLogger(__name__)
 
@@ -17,28 +19,21 @@ def runseq(case, coupling_times):
     comp_rof  = case.get_value("COMP_ROF")
     comp_glc  = case.get_value("COMP_GLC")
 
-    outfile   = open(os.path.join(caseroot, "CaseDocs", "nuopc.runseq"), "w")
-
     rof_cpl_dt = coupling_times["rof_cpl_dt"]
     atm_cpl_dt = coupling_times["atm_cpl_dt"]
     glc_cpl_dt = coupling_times["glc_cpl_dt"]
-
-    glc_couplint_time = glc_cpl_dt
 
     # NOTE: in the mediator the glc_avg_period will be set as an alarm
     # on the mediator clock - when this alarm rings - the averaging will be done AND an
     # attribute will be set on the glc export state from the mediator
     # saying that the data coming to glc is valid
+    glc_couplint_time = glc_cpl_dt
 
+    # ASSUME that will not run I compset with data runoff - either stub or prognostic
     if (comp_rof == 'srof'):
-        med_to_rof = False
-        rof_to_med = False
-    elif (comp_rof == 'drof'):
-        med_to_rof = False
-        rof_to_med = True
+        couple_rof = False
     else:
-        med_to_rof = True
-        rof_to_med = True
+        couple_rof = True
 
     cism_evolve = False
     if (comp_glc == 'sglc'):
@@ -69,63 +64,47 @@ def runseq(case, coupling_times):
                 glc_coupling_time = stop_n * 86400
             else:
                 glc_coupling_time = 86400
-
-    outfile.write ("runSeq::                                  \n" )
-
-    if glc_to_med or med_to_glc:
-        outfile.write ("@" + str(glc_coupling_time) + "       \n" )
-    if med_to_glc:
-        outfile.write ("  MED med_phases_prep_glc_avg         \n" )
-        outfile.write ("  MED -> GLC :remapMethod=redist      \n" )
-        outfile.write ("  GLC                                 \n" )
-    if glc_to_med:
-        outfile.write ("  GLC -> MED :remapMethod=redist      \n" )
-
-    if med_to_rof:
-        outfile.write ("@" + str(rof_cpl_dt) + "              \n" )
-        outfile.write ("  MED med_phases_prep_rof_avg         \n" )
-        outfile.write ("  MED -> ROF :remapMethod=redist      \n" )
-        outfile.write ("  ROF                                 \n" )
-        if atm_cpl_dt < rof_cpl_dt:
-            outfile.write ("@" + str(atm_cpl_dt) + "          \n" )
     else:
-        outfile.write ("@" + str(atm_cpl_dt) + "              \n" )
+        glc_coupling_time = 0
 
-    outfile.write ("  MED med_phases_prep_lnd                 \n" )
-    outfile.write ("  MED -> LND :remapMethod=redist          \n" )
-    outfile.write ("  LND                                     \n" )
-    outfile.write ("  LND -> MED :remapMethod=redist          \n" )
+    # ----------------------------------
+    # Write nuopc.runseq
+    # ----------------------------------
 
-    if med_to_rof:
-        outfile.write ("  MED med_phases_prep_rof_accum       \n" )
-    if med_to_glc:
-        outfile.write ("  MED med_phases_prep_glc_accum       \n" )
+    with RunSeq(os.path.join(caseroot, "CaseDocs", "nuopc.runseq")) as runseq:
 
-    outfile.write ("  ATM                                     \n" )
-    outfile.write ("  ATM -> MED :remapMethod=redist          \n" )
-    outfile.write ("  MED med_phases_profile                  \n" )
+        runseq.enter_time_loop(glc_coupling_time, active=med_to_glc, if_newtime=(glc_to_med or med_to_glc)) 
 
-    if rof_to_med:
-        if atm_cpl_dt < rof_cpl_dt:
-            outfile.write ("@                                 \n" )
-        outfile.write ("  ROF -> MED :remapMethod=redist      \n" )
-        # write out history and restart files if there is no active glc coupling
-        if not med_to_glc:
-            outfile.write ("  MED med_phases_history_write     \n" )
-            outfile.write ("  MED med_phases_restart_write     \n" )
-            outfile.write ("  MED med_phases_profile           \n" )
+        runseq.add_action("MED med_phases_prep_glc_avg"    , med_to_glc)
+        runseq.add_action("MED -> GLC :remapMethod=redist" , med_to_glc)
+        runseq.add_action("GLC"                            , med_to_glc)
+        runseq.add_action("GLC -> MED :remapMethod=redist" , glc_to_med)
 
-    if med_to_rof:
-        outfile.write ("@                                     \n" )
-        
-    if glc_to_med or med_to_glc:
-        outfile.write ("@                                     \n" )
+        runseq.enter_time_loop(rof_cpl_dt, if_newtime=couple_rof) 
 
-    if not rof_to_med and not med_to_rof: 
-        outfile.write ("  MED med_phases_history_write        \n" )
-        outfile.write ("@                                     \n" )
+        runseq.add_action("MED med_phases_prep_rof_avg"    , couple_rof)
+        runseq.add_action("MED -> ROF :remapMethod=redist" , couple_rof)
+        runseq.add_action("ROF"                            , couple_rof)
 
-    outfile.write ("::                                        \n" )
+        runseq.enter_time_loop(atm_cpl_dt, if_newtime=((not couple_rof) or (atm_cpl_dt < rof_cpl_dt)))
 
-    outfile.close()
+        runseq.add_action("MED med_phases_prep_lnd"            , True)
+        runseq.add_action("MED -> LND :remapMethod=redist"     , True)
+        runseq.add_action("LND"                                , True)
+        runseq.add_action("LND -> MED :remapMethod=redist"     , True)
+        runseq.add_action("MED med_phases_prep_rof_accum"      , couple_rof )
+        runseq.add_action("MED med_phases_prep_glc_accum"      , med_to_glc )
+        runseq.add_action("ATM"                                , True)
+        runseq.add_action("ATM -> MED :remapMethod=redist"     , True)
+       #runseq.add_action("MED med_phases_history_write"       , atm_cpl_dt < rof_cpl_dt)
+
+        runseq.leave_time_loop(couple_rof and (atm_cpl_dt < rof_cpl_dt))
+
+        runseq.add_action("ROF -> MED :remapMethod=redist"     , couple_rof)
+        runseq.add_action("MED med_phases_history_write"       , couple_rof)
+
+        runseq.leave_time_loop(couple_rof and (atm_cpl_dt < rof_cpl_dt))
+
     shutil.copy(os.path.join(caseroot, "CaseDocs", "nuopc.runseq"), rundir)
+    
+

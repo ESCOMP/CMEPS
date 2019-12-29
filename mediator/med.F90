@@ -2038,51 +2038,6 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        ! --------------------
-       ! Set mediator instantaneous history output alarm
-       ! --------------------
-
-       call NUOPC_CompAttributeGet(gcomp, name='history_option', value=option, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-       call NUOPC_CompAttributeGet(gcomp, name='history_n', value=cvalue, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       read(cvalue,*) opt_n
-
-       call alarmInit(mediatorClock, alarm, option=option, opt_n=opt_n, RefTime=currTime, &
-            alarmname='alarm_history_inst', rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-       call ESMF_AlarmSet(alarm, clock=mediatorclock, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-       if (mastertask) then
-          call ESMF_LogWrite(trim(subname)//" initialized instantaneous history alarm with option, n = "//&
-               trim(option)//","//trim(cvalue), ESMF_LOGMSG_INFO)
-          write(logunit,*)trim(subname)//" initialized instantaneous history alarm with option, n = "//trim(option)
-       end if
-
-       ! --------------------
-       ! Set mediator average history output alarm
-       ! --------------------
-
-       call NUOPC_CompAttributeGet(gcomp, name='histavg_option', value=option, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-       call NUOPC_CompAttributeGet(gcomp, name='histavg_n', value=cvalue, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       read(cvalue,*) opt_n
-
-       call alarmInit(mediatorClock, alarm, option=option, opt_n=opt_n, RefTime=currTime, &
-            alarmname='alarm_history_avg', rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-       call ESMF_AlarmSet(alarm, clock=mediatorclock, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-       call ESMF_LogWrite(trim(subname)//" initialize average history alarm with option, n = "//&
-            trim(option)//","//trim(cvalue), ESMF_LOGMSG_INFO)
-
-       ! --------------------
        ! Set mediator profile alarm - HARD CODED to daily
        ! --------------------
 
