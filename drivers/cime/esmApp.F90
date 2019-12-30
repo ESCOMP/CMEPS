@@ -10,7 +10,11 @@ program esmApp
   use ESMF,            only : ESMF_GridCompDestroy, ESMF_LOGMSG_INFO, ESMF_GridComp, ESMF_GridCompRun
   use ESMF,            only : ESMF_GridCompFinalize, ESMF_GridCompCreate, ESMF_GridCompInitialize
   use ESMF,            only : ESMF_LOGKIND_MULTI_ON_ERROR, ESMF_LogKind_Flag
+#ifdef USE_MPI2
   use mpi,             only : MPI_COMM_WORLD, MPI_COMM_NULL, MPI_Init, MPI_FINALIZE
+#else
+  use mpi
+#endif
   use NUOPC,           only : NUOPC_FieldDictionarySetup
   use ensemble_driver, only : SetServices
   use shr_pio_mod,     only : shr_pio_init1
@@ -40,11 +44,6 @@ program esmApp
   ! supported
 
   call shr_pio_init1(8, "drv_in", COMP_COMM)
-
-  if (COMP_COMM .eq. MPI_COMM_NULL) then
-     call mpi_finalize(ierror=rc)
-     stop
-  endif
 
   !-----------------------------------------------------------------------------
   ! Initialize ESMF
