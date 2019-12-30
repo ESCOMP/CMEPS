@@ -43,7 +43,6 @@ class RunSeq:
             self.__outfile.write ("  {}\n".format(action))
 
     def leave_time_loop(self, if_leave_time, if_write_hist_rest=False ):
-        print " i am here"
         if if_leave_time and self.__time_loop:
             time_loop, active_depth = self.__time_loop.pop()
             if if_write_hist_rest or active_depth == 0:

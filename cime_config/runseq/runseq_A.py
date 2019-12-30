@@ -1,11 +1,14 @@
 #!/usr/bin/env python
 
 import os, shutil, sys
+from CIME.utils import expect
+from gen_runseq import RunSeq
 
-_CIMEROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..","..","..","..")
+_CIMEROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir,os.pardir,os.pardir,os.pardir))
 sys.path.append(os.path.join(_CIMEROOT, "scripts", "Tools"))
 
 from standard_script_setup import *
+
 #pylint:disable=undefined-variable
 logger = logging.getLogger(__name__)
 
@@ -25,102 +28,96 @@ def runseq(case, coupling_times):
     wav_cpl_dt = coupling_times["wav_cpl_dt"]
     lnd_cpl_dt = coupling_times["lnd_cpl_dt"]
 
-    outfile   = open(os.path.join(caseroot, "CaseDocs", "nuopc.runseq"), "w")
+    #force_prognostic = case.get_value("FORCE_PROGNOSTIC_FOR_DATAMODELS")
+    force_prognostic = False
 
-    if (comp_atm == 'datm' and comp_ocn == "docn" and comp_ice == 'dice' and
-        comp_rof == 'drof' and comp_wav == 'swav' and comp_lnd == 'slnd'):
+    if (comp_atm == 'datm'):
+        couple_atm = True
+        med_to_atm = force_prognostic
+    else:
+        couple_atm = False
+        med_to_atm = False
 
-        outfile.write ("runSeq::                               \n")
-        outfile.write ("@" + str(ocn_cpl_dt) + "               \n")
-        outfile.write ("  MED med_phases_prep_ocn_accum_avg    \n")
-        outfile.write ("  MED -> OCN :remapMethod=redist       \n")
-        if (atm_cpl_dt < ocn_cpl_dt):
-            outfile.write ("  @" + str(atm_cpl_dt) + "         \n")
-        outfile.write ("    MED med_phases_prep_ocn_map        \n")
-        outfile.write ("    MED med_phases_aofluxes_run        \n")
-        outfile.write ("    MED med_phases_prep_ocn_merge      \n")
-        outfile.write ("    MED med_phases_prep_ocn_accum_fast \n")
-        outfile.write ("    MED med_phases_ocnalb_run          \n")
-        outfile.write ("    MED med_phases_prep_ice            \n")
-        outfile.write ("    MED -> ICE :remapMethod=redist     \n")
-        outfile.write ("    MED med_phases_prep_rof_accum      \n")
-        outfile.write ("    MED med_phases_prep_rof_avg        \n")
-        outfile.write ("    MED -> ROF :remapMethod=redist     \n")
-        outfile.write ("    ICE                                \n")
-        outfile.write ("    ROF                                \n")
-        outfile.write ("    ICE -> MED :remapMethod=redist     \n")
-        outfile.write ("    MED med_fraction_set               \n")
-        outfile.write ("    ROF -> MED :remapMethod=redist     \n")
-        outfile.write ("    MED med_phases_prep_atm            \n")
-        outfile.write ("    MED -> ATM :remapMethod=redist     \n")
-        outfile.write ("    ATM                                \n")
-        outfile.write ("    ATM -> MED :remapMethod=redist     \n")
-        outfile.write ("    MED med_phases_history_write       \n")
-        outfile.write ("    MED med_phases_profile             \n")
-        if (atm_cpl_dt < ocn_cpl_dt):
-            outfile.write ("  @                                \n")
-        outfile.write ("  OCN                                  \n")
-        outfile.write ("  OCN -> MED :remapMethod=redist       \n")
-        outfile.write ("  MED med_phases_restart_write         \n")
-        outfile.write ("@                                      \n")
-        outfile.write ("::                                     \n")
+    if (comp_lnd == 'dlnd'):
+        couple_lnd = True
+        med_to_lnd = force_prognostic
+    else:
+        couple_lnd = False
+        med_to_lnd = False
 
-    elif (comp_atm == 'satm' and comp_ocn == "socn" and comp_ice == 'sice' and
-          comp_rof == 'srof' and comp_wav == 'dwav' and comp_lnd == 'slnd'):
+    if (comp_ice == 'dice'):
+        couple_ice = True
+        med_to_ice = force_prognostic
+    else:
+        couple_ice = False
+        med_to_ice = False
 
-        outfile.write ("runSeq::                          \n" )
-        outfile.write ("@" + str(wav_cpl_dt) + "          \n" )
-        outfile.write ("  WAV                             \n" )
-        outfile.write ("  WAV -> MED :remapMethod=redist  \n" )
-        outfile.write ("  MED med_fraction_set            \n" )
-        outfile.write ("  MED med_phases_history_write    \n" )
-        outfile.write ("  MED med_phases_profile          \n" )
-        outfile.write ("  MED med_phases_restart_write    \n" )
-        outfile.write ("@                                 \n" )
-        outfile.write ("::                                \n" )
+    if (comp_ocn == 'docn'):
+        couple_ocn = True
+        docn_mode = case.get_value("DOCN_MODE")
+        med_to_ocn = ('som' in docn_mode or 'interannual' in docn_mode or force_prognostic)
+    else:
+        couple_ocn = False
+        med_to_ocn = False 
 
-    elif (comp_atm == 'satm' and comp_ocn == "socn" and comp_ice == 'sice' and
-          comp_rof == 'srof' and comp_wav == 'swav' and comp_lnd == 'dlnd'):
+    if (comp_rof == 'drof'):
+        couple_rof = True
+        med_to_rof = force_prognostic
+    else:
+        couple_rof = False
+        med_to_rof = False
 
-        outfile.write ("runSeq::                         \n" )
-        outfile.write ("@" + str(lnd_cpl_dt) + "         \n" )
-        outfile.write ("  LND                            \n" )
-        outfile.write ("  LND -> MED :remapMethod=redist \n" )
-        outfile.write ("  MED med_fraction_set           \n" )
-        outfile.write ("  MED med_phases_history_write   \n" )
-        outfile.write ("  MED med_phases_profile         \n" )
-        outfile.write ("  MED med_phases_restart_write   \n" )
-        outfile.write ("@                                \n" )
-        outfile.write ("::                               \n" )
+    if (comp_wav == 'dwav'):
+        couple_wav = True
+        med_to_wav = force_prognostic
+    else:
+        couple_wav = False
+        med_to_wav = False
 
-    elif (comp_atm == 'datm' and comp_ocn == "docn" and comp_ice == 'sice' and
-          comp_rof == 'srof' and comp_wav == 'swav' and comp_lnd == 'slnd'):
+    # set coupling time
+    if couple_wav:
+        coupling_time = wav_cpl_dt
+    elif couple_lnd:
+        coupling_time = lnd_cpl_dt
+    else:
+        coupling_time = ocn_cpl_dt
 
-        outfile.write ("runSeq::                               \n")
-        outfile.write ("@" + str(ocn_cpl_dt) + "               \n")
-        outfile.write ("  MED med_phases_prep_ocn_accum_avg    \n")
-        outfile.write ("  MED -> OCN :remapMethod=redist       \n")
-        if (atm_cpl_dt < ocn_cpl_dt):
-            outfile.write ("  @" + str(atm_cpl_dt) + "         \n")
-        outfile.write ("    MED med_phases_prep_ocn_map        \n")
-        outfile.write ("    MED med_phases_aofluxes_run        \n")
-        outfile.write ("    MED med_phases_prep_ocn_merge      \n")
-        outfile.write ("    MED med_phases_prep_ocn_accum_fast \n")
-        outfile.write ("    MED med_phases_ocnalb_run          \n")
-        outfile.write ("    MED med_fraction_set               \n")
-        outfile.write ("    MED med_phases_prep_atm            \n")
-        outfile.write ("    MED -> ATM :remapMethod=redist     \n")
-        outfile.write ("    ATM                                \n")
-        outfile.write ("    ATM -> MED :remapMethod=redist     \n")
-        outfile.write ("    MED med_phases_history_write       \n")
-        outfile.write ("    MED med_phases_profile             \n")
-        if (atm_cpl_dt < ocn_cpl_dt):
-            outfile.write ("  @                                \n")
-        outfile.write ("  OCN                                  \n")
-        outfile.write ("  OCN -> MED :remapMethod=redist       \n")
-        outfile.write ("  MED med_phases_restart_write         \n")
-        outfile.write ("@                                      \n")
-        outfile.write ("::                                     \n")
+    with RunSeq(os.path.join(caseroot, "CaseDocs", "nuopc.runseq")) as runseq:
 
-    outfile.close()
+        runseq.enter_time_loop(coupling_time)
+
+        runseq.add_action ("MED med_phases_prep_ocn_accum_avg"  , med_to_ocn)
+        runseq.add_action ("MED -> OCN :remapMethod=redist"     , med_to_ocn)
+
+        runseq.add_action ("MED med_phases_prep_ocn_map"        , med_to_ocn)
+        runseq.add_action ("MED med_phases_aofluxes_run"        , med_to_atm or med_to_ocn)
+        runseq.add_action ("MED med_phases_prep_ocn_merge"      , med_to_ocn)
+        runseq.add_action ("MED med_phases_prep_ocn_accum_fast" , med_to_ocn)
+        runseq.add_action ("MED med_phases_ocnalb_run"          , med_to_atm or med_to_ocn)
+
+        runseq.add_action ("MED med_phases_prep_ice"            , couple_ice)
+        runseq.add_action ("MED -> ICE :remapMethod=redist"     , couple_ice)
+        runseq.add_action ("MED med_phases_prep_rof_accum"      , med_to_rof)
+        runseq.add_action ("MED med_phases_prep_rof_avg"        , med_to_rof)
+        runseq.add_action ("MED -> ROF :remapMethod=redist"     , med_to_rof)
+        runseq.add_action ("ICE"                                , couple_ice)
+        runseq.add_action ("ROF"                                , couple_ice)
+        runseq.add_action ("ICE -> MED :remapMethod=redist"     , couple_ice)
+        runseq.add_action ("MED med_fraction_set"               , couple_ice)
+        runseq.add_action ("ROF -> MED :remapMethod=redist"     , couple_rof)
+        runseq.add_action ("MED med_phases_prep_atm"            , med_to_atm)
+        runseq.add_action ("MED -> ATM :remapMethod=redist"     , med_to_atm)
+        runseq.add_action ("ATM"                                , couple_atm)
+        runseq.add_action ("ATM -> MED :remapMethod=redist"     , couple_atm)
+        runseq.add_action ("OCN"                                , couple_ocn)
+        runseq.add_action ("OCN -> MED :remapMethod=redist"     , couple_ocn)
+        runseq.add_action ("WAV"                                , couple_wav)
+        runseq.add_action ("WAV -> MED :remapMethod=redist"     , couple_wav)
+        runseq.add_action ("LND"                                , couple_lnd)
+        runseq.add_action ("LND -> MED :remapMethod=redist"     , couple_lnd)
+        runseq.add_action ("MED med_fraction_set"               , couple_lnd)
+        runseq.add_action ("MED med_phases_history_write"       , True)
+
+        runseq.leave_time_loop(True, if_write_hist_rest=True)
+
     shutil.copy(os.path.join(caseroot, "CaseDocs", "nuopc.runseq"), rundir)

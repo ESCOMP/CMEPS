@@ -326,12 +326,12 @@ def _create_runseq(case, coupling_times):
         if (comp_atm == 'xatm' or comp_ocn == "xocn" or comp_ice == 'xice' or
             comp_rof == 'xrof' or comp_wav == 'xwav' or comp_glc == 'xglc'):
             from runseq_X import runseq
-        elif (comp_atm == 'cam' and comp_ocn == "docn"):
-            from runseq_FQ import runseq
+        elif (comp_atm == 'cam' and (comp_ocn == "docn" or comp_ocn == "socn")):
+            from runseq_general import runseq
         elif (comp_lnd == "clm" and comp_atm == 'datm'):
-            from runseq_I import runseq
+            from runseq_general import runseq
         elif (comp_ice == "cice" and comp_atm == 'datm' and comp_ocn == "docn"):
-            from runseq_D import runseq
+            from runseq_general import runseq
         elif ((comp_ocn == "mom" or comp_ocn == 'pop') and comp_atm == 'datm'):
             from runseq_CG import runseq
         elif (comp_atm == 'cam' and comp_lnd == "clm" and (comp_ocn == 'mom' or comp_ocn == "pop")):
@@ -342,10 +342,11 @@ def _create_runseq(case, coupling_times):
             from runseq_TG import runseq
         elif (runseq_a1 or runseq_a2 or runseq_a3 or runseq_a4):
             from runseq_A import runseq
-        try:
-            runseq(case, coupling_times)
-        except Exception as e:
+        else:
             expect(False, "No run sequence found for compset {}".format(case.get_value("COMPSET")))
+
+        # create the run sequence
+        runseq(case, coupling_times)
 
 ###############################################################################
 def compare_drv_flds_in(first, second, infile1, infile2):

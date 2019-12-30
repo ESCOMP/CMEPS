@@ -1914,7 +1914,7 @@
 
   <entry id="PIO_VERSION">
     <type>integer</type>
-    <default_value>2</default_value>
+    <default_value>1</default_value>
     <valid_values>1,2</valid_values>
     <group>build_macros</group>
     <file>env_build.xml</file>
@@ -2515,6 +2515,19 @@
    <group>job_submission</group>
    <file>env_workflow.xml</file>
    <desc>whether the PROJECT value is required on this machine</desc>
+ </entry>
+
+  <!-- ===================================================================== -->
+  <!-- data model force prognostic mode -->
+  <!-- ===================================================================== -->
+
+ <entry id="FORCE_PROGNOSTIC_FOR_DATAMODELS">
+   <type>logical</type>
+   <valid_values>TRUE,FALSE</valid_values>
+   <default_value>FALSE</default_value>
+   <group>data_models</group>
+   <file>env_run.xml</file>
+   <desc>if true, all data models are expected to get input sent back from the mediator</desc>
  </entry>
 
  <help>

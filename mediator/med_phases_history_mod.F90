@@ -159,7 +159,7 @@ contains
        write(logunit,100) trim(subname)//" history clock timestep = ",timestep_length
        write(logunit,100) trim(subname)//" set instantaneous mediator history alarm with option "//&
             trim(histinst_option)//" and frequency ",histinst_n
-       write(logunit,100) trim(subname)//" set instantaneous averaged history alarm with option "//&
+       write(logunit,100) trim(subname)//" set averaged mediator history alarm with option "//&
             trim(histavg_option)//" and frequency ",histavg_n
 100    format(a,2x,i8)
        write(logunit,*)
@@ -236,6 +236,7 @@ contains
     logical                 :: isPresent
     type(ESMF_TimeInterval) :: RingInterval
     integer                 :: ringInterval_length
+    logical                 :: first_time = .true.   
     character(len=*), parameter :: subname='(med_phases_history_write)'
     !---------------------------------------
 
@@ -275,39 +276,10 @@ contains
        cpl_inst_tag = ""
     endif
 
-    ! DEBUG
-    ! call NUOPC_ModelGet(gcomp, driverClock=dclock, modelClock=mclock,  rc=rc)
-    ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    ! call ESMF_ClockGet(dclock, timeStep=dtimestep, rc=rc)
-    ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    ! call ESMF_ClockGet(mclock, timeStep=mtimestep, rc=rc)
-    ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    ! call ESMF_TimeIntervalGet(dtimestep, s=timestep_length, rc=rc)
-    ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    ! if (mastertask) then
-    !    write(logunit,*) trim(subname)//" driver clock timestep = ",timestep_length
-    ! end if
-    ! call ESMF_TimeIntervalGet(mtimestep, s=timestep_length, rc=rc)
-    ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    ! if (mastertask) then
-    !    write(logunit,*) trim(subname)//" mediator clock timestep = ",timestep_length
-    ! end if
-    ! DEBUG
-
     call NUOPC_ModelGet(gcomp, modelClock=mclock, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_ClockGetAlarmList(mclock, alarmlistflag=ESMF_ALARMLIST_ALL, alarmCount=alarmCount, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    ! Assume at this point that the model clock already has 3 alarms: restart, stop and profile 
-    if (alarmCount == 3) then
-       if (mastertask) then
-          write(logunit,*)'number of alarms in mediator clock is ',alarmCount
-       end if
-       write(6,*)'calling med_phases_alarm_init'
+    if (first_time) then
        call med_phases_history_alarm_init(gcomp, rc)
-       if (mastertask) then
-          write(logunit,*)'number of alarms in mediator clock is ',alarmCount
-       end if
     end if
 
     !---------------------------------------
@@ -343,13 +315,12 @@ contains
     write(nexttimestr,'(i4.4,a,i2.2,a,i2.2,a,i5.5)') yr,'-',mon,'-',day,'-',sec
     if (mastertask) then
        write(logunit,*)
-       write(logunit,*) trim(subname)//": ringinterval = ", ringInterval_length 
-       write(logunit,' (a)') trim(subname)//": currtime = "//trim(currtimestr)
-       write(logunit,' (a)') trim(subname)//": nexttime = "//trim(nexttimestr)
-       write(logunit,*) trim(subname) //' alarm is ringing = ', ESMF_AlarmIsRinging(alarm)
+       write(logunit,*) trim(subname)//": history alarm ringinterval = ", ringInterval_length 
+       write(logunit,' (a)') trim(subname)//": currtime = "//trim(currtimestr)//" nexttime = "//trim(nexttimestr)
+       write(logunit,*) trim(subname) //' history alarm is ringing = ', ESMF_AlarmIsRinging(alarm)
     end if
-
     !DEBUG
+
     if (ESMF_AlarmIsRinging(alarm, rc=rc)) then
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
@@ -480,6 +451,8 @@ contains
        call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
     endif
     call t_stopf('MED:'//subname)
+
+    first_time = .false.
 
   end subroutine med_phases_history_write
 
