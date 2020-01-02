@@ -3223,6 +3223,7 @@ contains
       if (chkerr(rc,__LINE__,u_FILE_u)) return
       scalar_value = tmp(1)
     else
+      scalar_value = 0.0_R8
       call ESMF_LogWrite(trim(subname)//": no ESMF_Field found named: "//trim(flds_scalar_name), ESMF_LOGMSG_INFO)
     end if 
 
