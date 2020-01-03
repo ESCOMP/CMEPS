@@ -30,8 +30,8 @@ class RunSeq:
         else:
             return -1
 
-    def enter_time_loop(self, coupling_time, active=True, if_newtime=True):
-        if if_newtime:
+    def enter_time_loop(self, coupling_time, active=True, newtime=True):
+        if newtime:
             self.__outfile.write ("@" + str(coupling_time) + " \n" )
             if active:
                 self.__time_loop.append((self.time_loop+1, self.active_depth+1))
@@ -42,8 +42,8 @@ class RunSeq:
         if if_add:
             self.__outfile.write ("  {}\n".format(action))
 
-    def leave_time_loop(self, if_leave_time, if_write_hist_rest=False ):
-        if if_leave_time and self.__time_loop:
+    def leave_time_loop(self, leave_time, if_write_hist_rest=False ):
+        if leave_time and self.__time_loop:
             time_loop, active_depth = self.__time_loop.pop()
             if if_write_hist_rest or active_depth == 0:
                 self.__outfile.write ("  MED med_phases_restart_write        \n" )

@@ -29,20 +29,20 @@ def runseq(case, coupling_times):
 
     with RunSeq(os.path.join(caseroot, "CaseDocs", "nuopc.runseq")) as runseq:
 
-        runseq.enter_time_loop(glc_coupling_time, active=med_to_glc, if_newtime=(glc_to_med or med_to_glc)) 
+        runseq.enter_time_loop(glc_coupling_time, active=med_to_glc, newtime=(glc_to_med or med_to_glc)) 
 
         runseq.add_action("MED med_phases_prep_glc_avg"    , med_to_glc)
         runseq.add_action("MED -> GLC :remapMethod=redist" , med_to_glc)
         runseq.add_action("GLC"                            , med_to_glc)
         runseq.add_action("GLC -> MED :remapMethod=redist" , glc_to_med)
 
-        runseq.enter_time_loop(rof_coupling_time, if_newtime=rof_to_med) 
+        runseq.enter_time_loop(rof_coupling_time, newtime=rof_to_med) 
 
         runseq.add_action("MED med_phases_prep_rof_avg"    , rof_to_med)
         runseq.add_action("MED -> ROF :remapMethod=redist" , rof_to_med)
         runseq.add_action("ROF"                            , rof_to_med)
 
-        runseq.enter_time_loop(atm_coupling_time, if_newtime=((not rof_to_med) or (atm_coupling_time < rof_coupling_time)))
+        runseq.enter_time_loop(atm_coupling_time, newtime=((not rof_to_med) or (atm_coupling_time < rof_coupling_time)))
 
         runseq.add_action("MED med_phases_prep_lnd"        , med_to_lnd)
         runseq.add_action("MED -> LND :remapMethod=redist" , med_to_lnd)

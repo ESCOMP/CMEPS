@@ -405,6 +405,30 @@
     </desc>
   </entry>
 
+  <entry id="CPL_SEQ_OPTION">
+    <type>char</type>
+    <valid_values>TIGHT,RASM</valid_values>
+    <default_value>TIGHT</default_value>
+    <values match="last">
+      <value compset="_DATM.*_DOCN%SOM"			>RASM</value>
+      <value compset="_POP2"				>RASM</value>
+      <value compset="_MOM6"				>RASM</value>
+      <value compset="_POP2" grid="oi%gx1v6"		>RASM</value>
+      <value compset="_POP2" grid="oi%gx1v7"		>RASM</value>
+      <value compset="_DATM%NYF.*_SLND.*_DICE.*_DOCN"	>RASM</value>
+      <value compset="_XATM.*_XLND.*_XICE.*_XOCN"	>RASM</value>
+      <value compset="_SOCN"				>RASM</value>
+    </values>
+    <group>run_coupling</group>
+    <file>env_run.xml</file>
+    <desc>
+      RASM runs prep ocean before the ocean coupling reducing
+      most of the lags and field inconsistency but still allowing the ocean to run
+      concurrently with the ice and atmosphere.
+      TIGHT are consistent with the old variables ocean_tight_coupling = true in the driver.
+    </desc>
+  </entry>
+
   <entry id="AVGHIST_OPTION">
     <type>char</type>
     <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>

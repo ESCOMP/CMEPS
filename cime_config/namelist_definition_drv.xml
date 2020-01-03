@@ -3343,6 +3343,22 @@
   </entry>
 
   <!-- =========================== -->
+  <!-- group debug_inparm          -->
+  <!--  used in esmApp.F90         -->
+  <!-- =========================== -->
+
+  <entry id="create_esmf_pet_files" modify_via_xml="CREATE_ESMF_PET_FILES">
+    <type>logical</type>
+    <category>debugging</category>
+    <group>debug_inparm</group>
+    <desc>
+    </desc>
+    <values>
+      <value>$CREATE_ESMF_PET_FILES</value>
+    </values>
+  </entry>
+
+  <!-- =========================== -->
   <!-- group prof_inparm           -->
   <!--  in perf_mod.F90            -->
   <!-- =========================== -->

@@ -81,6 +81,8 @@ module med_phases_prep_glc_mod
   ! Size of undistributed dimension from land
   integer :: ungriddedCount ! this equals the number of elevation classes + 1 (for bare land)
 
+  logical :: init_prep_glc = .false.
+
   character(*), parameter :: u_FILE_u  = &
        __FILE__
 
@@ -158,6 +160,7 @@ contains
        call ESMF_FieldGet(lfield, ungriddedUBound=ungriddedUBound_output, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        ungriddedCount = ungriddedUBound_output(1)
+
        ! TODO: check that ungriddedCount = glc_nec+1
 
        call FB_GetFldPtr(is_local%wrap%FBImp(complnd,complnd), fldnames_fr_lnd(1), fldptr2=data2d_in, rc=rc)
@@ -174,6 +177,8 @@ contains
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           call ESMF_FieldBundleAdd(FBlndAccum_lnd, (/lfield/), rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_LogWrite(trim(subname)//' adding field '//trim(fldnames_fr_lnd(n))//' to FBLndAccum_lnd', &
+               ESMF_LOGMSG_INFO)
        end do
        call FB_reset(FBlndAccum_lnd, value=0.0_r8, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -368,7 +373,6 @@ contains
     integer             :: i,n,ncnt
     real(r8), pointer   :: data2d_in(:,:)
     real(r8), pointer   :: data2d_out(:,:)
-    logical             :: first_time = .true.
     character(len=*),parameter  :: subname='(med_phases_prep_glc_accum)'
     !---------------------------------------
 
@@ -407,10 +411,10 @@ contains
     if (ncnt > 0) then
 
        ! Initialize module variables needed to accumulate input to glc
-       if (first_time) then
+       if (.not. init_prep_glc) then
           call  med_phases_prep_glc_init(gcomp, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          first_time = .false.
+          init_prep_glc = .true.
        end if
 
        do n = 1, size(fldnames_fr_lnd)
@@ -458,6 +462,7 @@ contains
     type(ESMF_Alarm)       :: alarm
     integer                :: i, n, ncnt            ! counters
     real(r8), pointer      :: data2d(:,:)
+    real(r8), pointer      :: data2d_import(:,:)
     character(len=*) , parameter   :: subname='(med_phases_prep_glc_avg)'
     !---------------------------------------
 
@@ -493,10 +498,17 @@ contains
        RETURN
     end if
 
+    ! Initialize module variables needed to accumulate input to glc
+    if (.not. init_prep_glc) then
+       call  med_phases_prep_glc_init(gcomp, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       init_prep_glc = .true.
+    end if
+
     !---------------------------------------
     ! Determine if avg alarm is ringing - and if not ringing then return
     !---------------------------------------
-    
+
     call ESMF_GridCompGet(gcomp, clock=clock, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
@@ -522,12 +534,21 @@ contains
     ! Average import from accumulated land import FB
     !---------------------------------------
 
-    call ESMF_LogWrite(trim(subname)//": glc_avg alarm is ringing - averaging input to lnd", ESMF_LOGMSG_INFO)
+    call ESMF_LogWrite(trim(subname)//": glc_avg alarm is ringing - averaging input from lnd to glc", ESMF_LOGMSG_INFO)
 
     do n = 1, size(fldnames_fr_lnd)
        call FB_GetFldPtr(FBlndAccum_lnd, fldnames_fr_lnd(n), fldptr2=data2d, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       data2d(:,:) = data2d(:,:) / real(FBlndAccumCnt)
+       if (FBlndAccumCnt > 0) then
+          ! If accumulation count is greater than 0, do the averaging
+          data2d(:,:) = data2d(:,:) / real(FBlndAccumCnt)
+       else
+          ! If accumulation count is 0, then simply set the averaged field bundle values from the land
+          ! to the import field bundle values
+          call FB_GetFldPtr(is_local%wrap%FBImp(complnd,complnd), fldnames_fr_lnd(n), fldptr2=data2d_import, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          data2d(:,:) = data2d_import(:,:)
+       end if
     end do
 
     if (dbug_flag > 1) then
@@ -603,7 +624,7 @@ contains
     real(r8)            :: elev_l, elev_u        ! lower and upper elevations in interpolation range
     real(r8)            :: d_elev                ! elev_u - elev_l
     integer             :: nfld, ec
-    integer             :: i,j,n,g,ncnt, lsize_g
+    integer             :: i,j,n,g,lsize_g
     character(len=*) , parameter   :: subname='(med_phases_prep_glc_mod:med_phases_prep_glc_map_lnd2glc)'
     !---------------------------------------
     !---------------------------------------

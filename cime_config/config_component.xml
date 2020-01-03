@@ -1914,7 +1914,7 @@
 
   <entry id="PIO_VERSION">
     <type>integer</type>
-    <default_value>1</default_value>
+    <default_value>2</default_value>
     <valid_values>1,2</valid_values>
     <group>build_macros</group>
     <file>env_build.xml</file>
@@ -2528,6 +2528,19 @@
    <group>data_models</group>
    <file>env_run.xml</file>
    <desc>if true, all data models are expected to get input sent back from the mediator</desc>
+ </entry>
+
+  <!-- ===================================================================== -->
+  <!-- write ESMF PET log files even without an error -->
+  <!-- ===================================================================== -->
+
+ <entry id="CREATE_ESMF_PET_FILES">
+   <type>logical</type>
+   <valid_values>TRUE,FALSE</valid_values>
+   <default_value>FALSE</default_value>
+   <group>run_debug</group>
+   <file>env_run.xml</file>
+   <desc>if true, create ESMF PET log files even if there is no error encountered </desc>
  </entry>
 
  <help>
