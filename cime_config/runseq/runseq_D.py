@@ -19,17 +19,17 @@ def runseq(case, coupling_times):
     caseroot = case.get_value("CASEROOT")
 
     driver_config = DriverConfig(case, coupling_times)
-    atm_to_med, med_to_atm, atm_coupling_time = driver_config['atm']
-    ice_to_med, med_to_ice, ice_coupling_time = driver_config['ice']
-    ocn_to_med, med_to_ocn, ocn_coupling_time = driver_config['ocn']
-    rof_to_med, med_to_rof, rof_coupling_time = driver_config['rof']
+    run_atm, atm_to_med, med_to_atm, atm_cpl_time = driver_config['atm']
+    run_ice, ice_to_med, med_to_ice, ice_cpl_time = driver_config['ice']
+    run_ocn, ocn_to_med, med_to_ocn, ocn_cpl_time = driver_config['ocn']  
+    run_rof, rof_to_med, med_to_rof, rof_cpl_time = driver_config['rof']
 
     with RunSeq(os.path.join(caseroot, "CaseDocs", "nuopc.runseq")) as runseq:
 
         runseq.enter_time_loop(ocn_cpl_time, newtime=((ocn_cpl_time)))
 
-        runseq.add_action ("MED med_phases_prep_ocn_accum_avg", med_to_ocn))
-        runseq.add_action ("MED -> OCN :remapMethod=redist", med_to_ocn)
+        runseq.add_action("MED med_phases_prep_ocn_accum_avg", med_to_ocn)
+        runseq.add_action("MED -> OCN :remapMethod=redist"   , med_to_ocn)
 
         runseq.enter_time_loop(atm_cpl_time, newtime=((atm_cpl_time < ocn_cpl_time)))
 

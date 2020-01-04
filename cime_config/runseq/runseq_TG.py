@@ -20,7 +20,7 @@ def runseq(case, coupling_times):
 
     driver_config = DriverConfig(case, coupling_times)
     run_glc, glc_to_med, med_to_glc, glc_cpl_time = driver_config['glc']
-    run_lnd, lnd_to_med, med_to_lnd, lnd_cpl_time = driver_config['lnd']
+    run_lnd, lnd_to_med, _         , _            = driver_config['lnd']
 
     with RunSeq(os.path.join(caseroot, "CaseDocs", "nuopc.runseq")) as runseq:
 

@@ -19,13 +19,13 @@ def runseq(case, coupling_times):
     caseroot = case.get_value("CASEROOT")
 
     driver_config = DriverConfig(case, coupling_times)
-    atm_to_med, med_to_atm, atm_coupling_time = driver_config['atm']
-    ice_to_med, med_to_ice, ice_coupling_time = driver_config['ice']
-    glc_to_med, med_to_glc, glc_coupling_time = driver_config['glc']
-    lnd_to_med, med_to_lnd, lnd_coupling_time = driver_config['lnd']
-    ocn_to_med, med_to_ocn, ocn_coupling_time = driver_config['ocn']
-    rof_to_med, med_to_rof, rof_coupling_time = driver_config['rof']
-    wav_to_med, med_to_wav, wav_coupling_time = driver_config['wav']
+    run_atm, atm_to_med, med_to_atm, atm_cpl_time = driver_config['atm']
+    run_ice, ice_to_med, med_to_ice, ice_cpl_time = driver_config['ice']
+    run_glc, glc_to_med, med_to_glc, glc_cpl_time = driver_config['glc']
+    run_lnd, lnd_to_med, med_to_lnd, lnd_cpl_time = driver_config['lnd']
+    run_ocn, ocn_to_med, med_to_ocn, ocn_cpl_time = driver_config['ocn']  
+    run_rof, rof_to_med, med_to_rof, rof_cpl_time = driver_config['rof']
+    run_wav, wav_to_med, med_to_wav, wav_cpl_time = driver_config['wav']
 
     with RunSeq(os.path.join(caseroot, "CaseDocs", "nuopc.runseq")) as runseq:
 
