@@ -20,7 +20,10 @@ def gen_runseq(case, coupling_times):
 
     driver_config = DriverConfig(case, coupling_times)
     run_glc, glc_to_med, med_to_glc, glc_cpl_time = driver_config['glc']
-    run_lnd, lnd_to_med, _         , _            = driver_config['lnd']
+    run_lnd, lnd_to_med, _         , lnd_cpl_time = driver_config['lnd']
+
+    if lnd_cpl_time != glc_cpl_time:
+        expect(False,"for TG compset require that lnd_cpl_time equal glc_cpl_time")
 
     with RunSeq(os.path.join(caseroot, "CaseDocs", "nuopc.runseq")) as runseq:
 

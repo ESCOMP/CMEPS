@@ -22,7 +22,7 @@ def gen_runseq(case, coupling_times):
     cpl_seq_option = case.get_value('CPL_SEQ_OPTION')
 
     driver_config = DriverConfig(case, coupling_times)
-    run_atm, atm_to_med, med_to_atm, atm_cpl_time = driver_config['atm']
+    run_atm, atm_to_med, _         , atm_cpl_time = driver_config['atm']
     run_ice, ice_to_med, med_to_ice, ice_cpl_time = driver_config['ice']
     run_ocn, ocn_to_med, med_to_ocn, ocn_cpl_time = driver_config['ocn']
     run_rof, rof_to_med, _         , rof_cpl_time = driver_config['rof']
