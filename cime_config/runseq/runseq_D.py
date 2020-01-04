@@ -13,7 +13,7 @@ from standard_script_setup import *
 #pylint:disable=undefined-variable
 logger = logging.getLogger(__name__)
 
-def runseq(case, coupling_times):
+def gen_runseq(case, coupling_times):
 
     rundir   = case.get_value("RUNDIR")
     caseroot = case.get_value("CASEROOT")
@@ -22,8 +22,11 @@ def runseq(case, coupling_times):
     run_atm, atm_to_med, med_to_atm, atm_cpl_time = driver_config['atm']
     run_ice, ice_to_med, med_to_ice, ice_cpl_time = driver_config['ice']
     run_ocn, ocn_to_med, med_to_ocn, ocn_cpl_time = driver_config['ocn']  
-    run_rof, rof_to_med, med_to_rof, rof_cpl_time = driver_config['rof']
+    run_rof, rof_to_med, _         , _            = driver_config['rof']
 
+    if ice_cpl_time != atm_cpl_time:
+        expect(False,"for D compsets require that ice_cpl_time equal atm_cpl_time")
+        
     with RunSeq(os.path.join(caseroot, "CaseDocs", "nuopc.runseq")) as runseq:
 
         runseq.enter_time_loop(ocn_cpl_time, newtime=((ocn_cpl_time)))
@@ -47,13 +50,14 @@ def runseq(case, coupling_times):
         runseq.add_action ("MED med_fraction_set"               , ice_to_med)
         runseq.add_action ("ROF -> MED :remapMethod=redist"     , rof_to_med)
         runseq.add_action ("ATM -> MED :remapMethod=redist"     , atm_to_med)
-        runseq.add_action ("MED med_phases_history_write"       , True)
+        runseq.add_action ("MED med_phases_history_write"       , atm_cpl_time == ocn_cpl_time)
 
         runseq.leave_time_loop(rof_to_med and (atm_cpl_time < ocn_cpl_time))
 
         runseq.add_action ("OCN", run_ocn)
         runseq.add_action ("OCN -> MED :remapMethod=redist", ocn_to_med)
-            
+        runseq.add_action ("MED med_phases_history_write"       , atm_cpl_time < ocn_cpl_time)
+
         runseq.leave_time_loop(True)
 
     shutil.copy(os.path.join(caseroot, "CaseDocs", "nuopc.runseq"), rundir)

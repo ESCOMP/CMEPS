@@ -315,22 +315,22 @@ def _create_runseq(case, coupling_times):
 
         if (comp_atm == 'xatm' or comp_ocn == "xocn" or comp_ice == 'xice' or
             comp_rof == 'xrof' or comp_wav == 'xwav' or comp_glc == 'xglc'):
-            from runseq_X import runseq
+            from runseq_X import gen_runseq
         elif (comp_ice == "cice" and comp_atm == 'datm' and comp_ocn == "docn"):
-            from runseq_D import runseq
+            from runseq_D import gen_runseq
         elif ((comp_ocn == "mom" or comp_ocn == 'pop') and comp_atm == 'datm'):
-            from runseq_CG import runseq
+            from runseq_CG import gen_runseq
         elif (comp_atm == 'cam' and comp_lnd == "clm" and (comp_ocn == 'mom' or comp_ocn == "pop")):
-            from runseq_B import runseq
+            from runseq_B import gen_runseq
         elif (comp_lnd == 'dlnd' and comp_glc == "cism"):
-            from runseq_TG import runseq
+            from runseq_TG import gen_runseq
         elif (comp_atm == 'fv3gfs' and comp_ocn == "mom" and comp_ice == 'cice'):
-            from runseq_NEMS import runseq
+            from runseq_NEMS import gen_runseq
         else: 
-            from runseq_general import runseq
+            from runseq_general import gen_runseq
 
         # create the run sequence
-        runseq(case, coupling_times)
+        gen_runseq(case, coupling_times)
 
 ###############################################################################
 def compare_drv_flds_in(first, second, infile1, infile2):

@@ -9,18 +9,10 @@ from standard_script_setup import *
 #pylint:disable=undefined-variable
 logger = logging.getLogger(__name__)
 
-def runseq(case, coupling_times):
+def gen_runseq(case, coupling_times):
 
     rundir    = case.get_value("RUNDIR")
     caseroot  = case.get_value("CASEROOT")
-#    cimeroot  = case.get_value("CIMEROOT")
-#    comp_atm  = case.get_value("COMP_ATM")
-#    comp_ice  = case.get_value("COMP_ICE")
-#    comp_glc  = case.get_value("COMP_GLC")
-#    comp_lnd  = case.get_value("COMP_LND")
-#    comp_ocn  = case.get_value("COMP_OCN")
-#    comp_rof  = case.get_value("COMP_ROF")
-#    comp_wav  = case.get_value("COMP_WAV")
 
     ocn_cpl_dt = coupling_times["ocn_cpl_dt"]
     atm_cpl_dt = coupling_times["atm_cpl_dt"]

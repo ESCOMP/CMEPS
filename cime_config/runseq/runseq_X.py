@@ -13,7 +13,7 @@ from standard_script_setup import *
 #pylint:disable=undefined-variable
 logger = logging.getLogger(__name__)
 
-def runseq(case, coupling_times):
+def gen_runseq(case, coupling_times):
 
     rundir   = case.get_value("RUNDIR")
     caseroot = case.get_value("CASEROOT")
