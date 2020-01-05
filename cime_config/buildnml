@@ -301,15 +301,13 @@ def _create_runseq(case, coupling_times):
 
     else:
 
-        comp_atm  = case.get_value("COMP_ATM")
-        comp_ice  = case.get_value("COMP_ICE")
-        comp_glc  = case.get_value("COMP_GLC")
-        comp_lnd  = case.get_value("COMP_LND")
-        comp_ocn  = case.get_value("COMP_OCN")
-        comp_rof  = case.get_value("COMP_ROF")
-        comp_wav  = case.get_value("COMP_WAV")
-
         # Create a run sequence file appropriate for target compset
+
+        comp_atm = case.get_value("COMP_ATM")
+        comp_ice = case.get_value("COMP_ICE")
+        comp_glc = case.get_value("COMP_GLC")
+        comp_lnd = case.get_value("COMP_LND")
+        comp_ocn = case.get_value("COMP_OCN")
 
         sys.path.append(os.path.join(_CIMEROOT, "src", "drivers", "nuopc", "cime_config", "runseq"))
 

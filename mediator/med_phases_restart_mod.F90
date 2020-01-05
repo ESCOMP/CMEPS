@@ -52,8 +52,8 @@ contains
     type(ESMF_TimeInterval)    :: timediff       ! Used to calculate curr_time
     type(ESMF_Alarm)           :: alarm
     type(ESMF_Calendar)        :: calendar
-    character(len=64)          :: currtimestr
-    character(len=64)          :: nexttimestr
+    character(len=CS)          :: currtimestr
+    character(len=CS)          :: nexttimestr
     type(InternalState)        :: is_local
     integer                    :: i,j,m,n,n1,ncnt
     integer                    :: curr_ymd       ! Current date YYYYMMDD
@@ -367,7 +367,7 @@ contains
     type(ESMF_VM)          :: vm
     type(ESMF_Clock)       :: clock
     type(ESMF_Time)        :: currtime
-    character(len=64)      :: currtimestr
+    character(len=CS)      :: currtimestr
     type(InternalState)    :: is_local
     integer                :: i,j,m,n,n1,ncnt
     integer                :: ierr, unitn

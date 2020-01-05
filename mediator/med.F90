@@ -2015,42 +2015,31 @@ contains
 
     if (first_time) then
 
-       ! --------------------
        ! Set mediator restart alarm
-       ! --------------------
 
        call NUOPC_CompAttributeGet(gcomp, name="restart_option", value=restart_option, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
        call NUOPC_CompAttributeGet(gcomp, name="restart_n", value=cvalue, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        read(cvalue,*) restart_n
-
        call NUOPC_CompAttributeGet(gcomp, name="restart_ymd", value=cvalue, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        read(cvalue,*) restart_ymd
-
        call alarmInit(mediatorclock, restart_alarm, restart_option, opt_n=restart_n, opt_ymd=restart_ymd,  &
             RefTime=currTime, alarmname = 'alarm_restart', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
        call ESMF_AlarmSet(restart_alarm, clock=mediatorclock, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-       ! --------------------
        ! Set mediator profile alarm - HARD CODED to daily
-       ! --------------------
 
        call alarmInit(mediatorclock, med_profile_alarm, 'ndays', &
             opt_n = 1, alarmname = 'med_profile_alarm', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
        call ESMF_AlarmSet(med_profile_alarm, clock=mediatorclock, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-       ! --------------------
        ! Set glc averaging alarm if appropriate
-       ! --------------------
 
        call NUOPC_CompAttributeGet(gcomp, name="glc_present", value=cvalue, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -2058,7 +2047,6 @@ contains
        if (glc_present) then
           call NUOPC_CompAttributeGet(gcomp, name="glc_avg_period", value=glc_avg_period, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
           if (trim(glc_avg_period) == 'hour') then
              call alarmInit(mediatorclock, glc_avg_alarm, 'nhours', opt_n=1, alarmname='alarm_glc_avg', rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -2079,20 +2067,16 @@ contains
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
       end if
 
-      !----------------
       ! Mediator stop alarm
-      !----------------
+
       call NUOPC_CompAttributeGet(gcomp, name="stop_option", value=stop_option, rc=rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
       call NUOPC_CompAttributeGet(gcomp, name="stop_n", value=cvalue, rc=rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
       read(cvalue,*) stop_n
-
       call NUOPC_CompAttributeGet(gcomp, name="stop_ymd", value=cvalue, rc=rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
       read(cvalue,*) stop_ymd
-
       call alarmInit(mediatorClock, stop_alarm, stop_option, opt_n=stop_n, opt_ymd=stop_ymd, &
            RefTime = currTime,  alarmname = 'alarm_stop', rc=rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
