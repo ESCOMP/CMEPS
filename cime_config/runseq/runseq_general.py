@@ -42,7 +42,6 @@ def gen_runseq(case, coupling_times):
     if rof_cpl_time < ocn_cpl_time:
         expect(False, "assume that rof_cpl_time is always greater than or equal to ocn_cpl_time")
 
-    glc_outer_loop = run_glc
     rof_outer_loop = run_rof and rof_cpl_time > atm_cpl_time
     ocn_outer_loop = run_ocn and ocn_cpl_time > atm_cpl_time  
 
