@@ -313,15 +313,8 @@ def _create_runseq(case, coupling_times):
 
         sys.path.append(os.path.join(_CIMEROOT, "src", "drivers", "nuopc", "cime_config", "runseq"))
 
-        if (comp_atm == 'xatm' or comp_ocn == "xocn" or comp_ice == 'xice' or
-            comp_rof == 'xrof' or comp_wav == 'xwav' or comp_glc == 'xglc'):
-            from runseq_X import gen_runseq
-        elif (comp_ice == "cice" and comp_atm == 'datm' and comp_ocn == "docn"):
+        if (comp_ice == "cice" and comp_atm == 'datm' and comp_ocn == "docn"):
             from runseq_D import gen_runseq
-        elif ((comp_ocn == "mom" or comp_ocn == 'pop') and comp_atm == 'datm'):
-            from runseq_CG import gen_runseq
-        elif (comp_atm == 'cam' and comp_lnd == "clm" and (comp_ocn == 'mom' or comp_ocn == "pop")):
-            from runseq_B import gen_runseq
         elif (comp_lnd == 'dlnd' and comp_glc == "cism"):
             from runseq_TG import gen_runseq
         elif (comp_atm == 'fv3gfs' and comp_ocn == "mom" and comp_ice == 'cice'):
