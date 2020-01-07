@@ -841,6 +841,18 @@
     </values>
   </entry>
 
+  <entry id="domain_atm" modify_via_xml="ATM_DOMAIN_FILE">
+    <type>char</type>
+    <category>mapping</category>
+    <group>ATM_attributes</group>
+    <desc>
+      DOMAIN description of atm grid 
+    </desc>
+    <values>
+      <value>$ATM_DOMAIN_PATH/$ATM_DOMAIN_FILE</value>
+    </values>
+  </entry>
+
   <entry id="mesh_lnd" modify_via_xml="LND_DOMAIN_MESH">
     <type>char</type>
     <category>mapping</category>
@@ -850,6 +862,18 @@
     </desc>
     <values>
       <value>$LND_DOMAIN_MESH</value>
+    </values>
+  </entry>
+
+  <entry id="domain_lnd" modify_via_xml="LND_DOMAIN_FILE">
+    <type>char</type>
+    <category>mapping</category>
+    <group>LND_attributes</group>
+    <desc>
+      DOMAIN description of lnd grid 
+    </desc>
+    <values>
+      <value>$LND_DOMAIN_PATH/$LND_DOMAIN_FILE</value>
     </values>
   </entry>
 
@@ -1099,7 +1123,7 @@
       Mediator restart pointer file.
     </desc>
     <values>
-      <value>rpointer.med</value>
+      <value>rpointer.cpl</value>
     </values>
   </entry>
 
@@ -2127,6 +2151,19 @@
     </desc>
     <values>
       <value>$ICE_NCAT</value>
+    </values>
+  </entry>
+
+  <entry  id="cism_evolve" modify_via_xml="CISM_EVOLVE">
+    <type>logical</type>
+    <category>flds</category>
+    <group>ALLCOMP_attributes</group>
+    <desc>
+      False => CISM does not evolve but only sends initial information back to CTSM
+    </desc>
+    <values>
+     <value>.false.</value>
+     <value COMP_GLC="cism">$CISM_EVOLVE</value>
     </values>
   </entry>
 
@@ -3302,6 +3339,22 @@
     </desc>
     <values>
       <value>$ESMF_LOGFILE_KIND</value>
+    </values>
+  </entry>
+
+  <!-- =========================== -->
+  <!-- group debug_inparm          -->
+  <!--  used in esmApp.F90         -->
+  <!-- =========================== -->
+
+  <entry id="create_esmf_pet_files" modify_via_xml="CREATE_ESMF_PET_FILES">
+    <type>logical</type>
+    <category>debugging</category>
+    <group>debug_inparm</group>
+    <desc>
+    </desc>
+    <values>
+      <value>$CREATE_ESMF_PET_FILES</value>
     </values>
   </entry>
 

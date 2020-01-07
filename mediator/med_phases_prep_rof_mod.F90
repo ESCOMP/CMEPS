@@ -94,7 +94,7 @@ contains
     rc = ESMF_SUCCESS
 
     !---------------------------------------
-    ! --- Get the internal state
+    ! Get the internal state
     !---------------------------------------
 
     nullify(is_local%wrap)
@@ -102,7 +102,7 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     !---------------------------------------
-    !--- Count the number of fields outside of scalar data, if zero, then return
+    ! Count the number of fields outside of scalar data, if zero, then return
     !---------------------------------------
 
     if (.not. ESMF_FieldBundleIsCreated(is_local%wrap%FBImp(complnd,complnd))) then
@@ -119,8 +119,11 @@ contains
     end if
 
     !---------------------------------------
-    !-- Accumulate lnd input on lnd grid to send to rof
+    ! Accumulate lnd input on lnd grid 
     !---------------------------------------
+
+    ! Note that all import fields from the land are accumulated - but
+    ! only a few will actaully be sent to the river model
 
     if (ncnt > 0) then
        call FB_accum(&
@@ -204,8 +207,7 @@ contains
        !--- average import from land accumuled FB
        !---------------------------------------
 
-       call FB_average(is_local%wrap%FBImpAccum(complnd,complnd), &
-                                         is_local%wrap%FBImpAccumCnt(complnd), rc=rc)
+       call FB_average(is_local%wrap%FBImpAccum(complnd,complnd), is_local%wrap%FBImpAccumCnt(complnd), rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        if (dbug_flag > 1) then

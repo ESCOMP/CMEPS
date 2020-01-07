@@ -567,7 +567,7 @@ contains
        endif
 
        ! Set 'lfrac' in FBFrac(compglc)
-       if (is_local%wrap%comp_present(complnd)) then
+       if ( is_local%wrap%comp_present(complnd) .and. is_local%wrap%med_coupling_active(complnd,compglc)) then
           if (.not. ESMF_RouteHandleIsCreated(is_local%wrap%RH(complnd,compglc,mapconsf), rc=rc)) then
              call med_map_Fractions_init( gcomp, complnd, compglc, &
                   FBSrc=is_local%wrap%FBImp(complnd,complnd), &

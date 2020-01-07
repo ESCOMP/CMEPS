@@ -1,7 +1,20 @@
 module med_phases_history_mod
 
   !-----------------------------------------------------------------------------
-  ! Mediator Phases
+  ! Mediator History control
+  !
+  ! Each time loop has its own associated clock object. NUOPC manages
+  ! these clock objects, i.e. their creation and destruction, as well as
+  ! startTime, endTime, timeStep adjustments during the execution. The
+  ! outer most time loop of the run sequence is a special case. It uses
+  ! the driver clock itself. If a single outer most loop is defined in
+  ! the run sequence provided by freeFormat, this loop becomes the driver
+  ! loop level directly. Therefore, setting the timeStep or runDuration
+  ! for the outer most time loop results modifiying the driver clock
+  ! itself. However, for cases with concatenated loops on the upper level
+  ! of the run sequence in freeFormat, a single outer loop is added
+  ! automatically during ingestion, and the driver clock is used for this
+  ! loop instead.
   !-----------------------------------------------------------------------------
 
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
@@ -9,18 +22,19 @@ module med_phases_history_mod
   use med_constants_mod     , only : dbug_flag       => med_constants_dbug_flag
   use med_constants_mod     , only : SecPerDay       => med_constants_SecPerDay
   use med_utils_mod         , only : chkerr          => med_utils_ChkErr
-  use med_time_mod          , only : alarmInit       => med_time_alarmInit
   use med_methods_mod       , only : FB_reset        => med_methods_FB_reset
   use med_methods_mod       , only : FB_diagnose     => med_methods_FB_diagnose
   use med_methods_mod       , only : FB_GetFldPtr    => med_methods_FB_GetFldPtr
   use med_methods_mod       , only : FB_accum        => med_methods_FB_accum
   use med_methods_mod       , only : State_GetScalar => med_methods_State_GetScalar
   use med_map_mod           , only : med_map_FB_Regrid_Norm
-  use med_internalstate_mod , only : InternalState, mastertask
+  use med_internalstate_mod , only : InternalState, mastertask, logunit
+  use med_time_mod          , only : med_time_alarmInit      
   use med_io_mod            , only : med_io_write, med_io_wopen, med_io_enddef
   use med_io_mod            , only : med_io_close, med_io_date2yyyymmdd, med_io_sec2hms
   use med_io_mod            , only : med_io_ymd2date
   use perf_mod              , only : t_startf, t_stopf
+  use esmFlds               , only : ncomps
 
   implicit none
   private
@@ -28,8 +42,9 @@ module med_phases_history_mod
   public :: med_phases_history_alarm_init
   public :: med_phases_history_write
 
-  type(ESMF_Alarm)        :: AlarmHist
-  type(ESMF_Alarm)        :: AlarmHistAvg
+  ! type(ESMF_Alarm)        :: alarm_hist_inst
+  ! type(ESMF_Alarm)        :: alarm_hist_avg
+
   character(*), parameter :: u_FILE_u  = &
        __FILE__
 
@@ -39,89 +54,119 @@ contains
 
   subroutine med_phases_history_alarm_init(gcomp, rc)
 
-    ! Initialize mediator history file alarm
+    ! --------------------------------------
+    ! Initialize mediator history file alarms (module variables)
+    ! --------------------------------------
 
     use ESMF  , only : ESMF_GridComp, ESMF_GridCompGet
-    use ESMF  , only : ESMF_Clock, ESMF_ClockGet
-    use ESMF  , only : ESMF_Calendar
-    use ESMF  , only : ESMF_Time, ESMF_TimeGet
+    use ESMF  , only : ESMF_Clock, ESMF_ClockGet, ESMF_ClockAdvance, ESMF_ClockSet
+    use ESMF  , only : ESMF_Time  
     use ESMF  , only : ESMF_TimeInterval, ESMF_TimeIntervalGet
     use ESMF  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_LOGMSG_ERROR
     use ESMF  , only : ESMF_SUCCESS, ESMF_FAILURE
     use ESMF  , only : operator(==), operator(-)
-    use ESMF  , only : ESMF_AlarmIsCreated
+    use ESMF  , only : ESMF_ALARMLIST_ALL, ESMF_Alarm, ESMF_AlarmSet
     use NUOPC , only : NUOPC_CompAttributeGet
+    use NUOPC_Model, only : NUOPC_ModelGet
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc
 
     ! local variables
-    type(ESMF_Clock)        :: clock
-    type(ESMF_Time)         :: currtime
-    type(ESMF_Time)         :: reftime
-    type(ESMF_Time)         :: starttime
-    type(ESMF_Time)         :: nexttime
-    type(ESMF_Calendar)     :: calendar       ! calendar type
-    character(len=64)       :: currtimestr
-    character(CS)           :: histavg_option ! Histavg option units
-    integer                 :: yr,mon,day,sec ! time units
-    character(CL)           :: cvalue         ! attribute string
-    character(CL)           :: freq_option    ! freq_option setting (ndays, nsteps, etc)
-    integer                 :: freq_n         ! freq_n setting relative to freq_option
-    integer                 :: dbrc
-    integer                 :: iam
+    type(ESMF_Alarm)        :: alarm
+    type(ESMF_Clock)        :: mclock, dclock
+    type(ESMF_TimeInterval) :: mtimestep, dtimestep
+    type(ESMF_Time)         :: mCurrTime
+    type(ESMF_TimeInterval) :: timestep
+    integer                 :: alarmcount
+    integer                 :: timestep_length
+    character(CL)           :: cvalue          ! attribute string
+    character(CL)           :: histinst_option ! freq_option setting (ndays, nsteps, etc)
+    character(CL)           :: histavg_option  ! freq_option setting (ndays, nsteps, etc)
+    integer                 :: histinst_n      ! freq_n setting relative to freq_option
+    integer                 :: histavg_n       ! freq_n setting relative to freq_option
     character(len=*), parameter :: subname='(med_phases_history_alarm_init)'
     !---------------------------------------
 
-    if (dbug_flag > 5) then
-       call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO, rc=dbrc)
-    endif
     rc = ESMF_SUCCESS
 
-    !---------------------------------------
-    ! --- Get the communicator and localpet
-    !---------------------------------------
-
-    call ESMF_GridCompGet(gcomp, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    !---------------------------------------
-    ! --- Get the clock info
-    !---------------------------------------
-
-    call ESMF_GridCompGet(gcomp, clock=clock, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    call ESMF_ClockGet(clock, currtime=currtime, reftime=reftime, starttime=starttime, calendar=calendar, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    call ESMF_TimeGet(currtime,yy=yr, mm=mon, dd=day, s=sec, rc=dbrc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    write(currtimestr,'(i4.4,a,i2.2,a,i2.2,a,i5.5)') yr,'-',mon,'-',day,'-',sec
-    if (dbug_flag > 1) then
-       call ESMF_LogWrite(trim(subname)//": currtime = "//trim(currtimestr), ESMF_LOGMSG_INFO, rc=dbrc)
+    if (dbug_flag > 5) then
+       call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
     endif
 
-    !---------------------------------------
-    ! --- History Alarms
-    !---------------------------------------
+    ! -----------------------------
+    ! Get model clock
+    ! -----------------------------
 
-    if (.not. ESMF_AlarmIsCreated(AlarmHist, rc=rc)) then
-       ! Set instantaneous history output alarm
-       call NUOPC_CompAttributeGet(gcomp, name='history_option', value=cvalue, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       freq_option = cvalue
+    call NUOPC_ModelGet(gcomp, modelClock=mclock,  rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-       call NUOPC_CompAttributeGet(gcomp, name='history_n', value=cvalue, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       read(cvalue,*) freq_n
+    ! -----------------------------
+    ! Set alarm for instantaneous mediator history output
+    ! -----------------------------
 
-       call ESMF_LogWrite(trim(subname)//" init history alarm with option, n = "//&
-            trim(freq_option)//","//trim(cvalue), ESMF_LOGMSG_INFO, rc=dbrc)
+    call NUOPC_CompAttributeGet(gcomp, name='history_option', value=histinst_option, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompAttributeGet(gcomp, name='history_n', value=cvalue, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    read(cvalue,*) histinst_n
 
-       call alarmInit(clock, AlarmHist, option=freq_option, opt_n=freq_n, &
-            RefTime=RefTime, alarmname='history', rc=rc)
+    call med_time_alarmInit(mclock, alarm, option=histinst_option, opt_n=histinst_n, &
+         alarmname='alarm_history_inst', rc=rc)
+
+    call ESMF_AlarmSet(alarm, clock=mclock, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    ! -----------------------------
+    ! Set alarm for averaged mediator history output
+    ! -----------------------------
+
+    call NUOPC_CompAttributeGet(gcomp, name='histavg_option', value=histavg_option, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompAttributeGet(gcomp, name='histavg_n', value=cvalue, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    read(cvalue,*) histavg_n
+
+    call med_time_alarmInit(mclock, alarm, option=histavg_option, opt_n=histavg_n, &
+         alarmname='alarm_history_avg', rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call ESMF_AlarmSet(alarm, clock=mclock, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    !--------------------------------
+    ! Advance model clock to trigger alarms then reset model clock back to currtime
+    !--------------------------------
+
+    call ESMF_ClockGet(mclock, currTime=mCurrTime, timeStep=mtimestep, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_TimeIntervalGet(mtimestep, s=timestep_length, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call ESMF_ClockAdvance(mclock,rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call ESMF_ClockSet(mclock, currTime=mcurrtime, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    ! -----------------------------
+    ! Write mediator diagnostic output
+    ! -----------------------------
+
+    if (mastertask) then
+       write(logunit,*)
+       write(logunit,100) trim(subname)//" history clock timestep = ",timestep_length
+       write(logunit,100) trim(subname)//" set instantaneous mediator history alarm with option "//&
+            trim(histinst_option)//" and frequency ",histinst_n
+       write(logunit,100) trim(subname)//" set averaged mediator history alarm with option "//&
+            trim(histavg_option)//" and frequency ",histavg_n
+100    format(a,2x,i8)
+       write(logunit,*)
+    end if
+
+    if (dbug_flag > 5) then
+       call ESMF_LogWrite(trim(subname)//": exited", ESMF_LOGMSG_INFO)
     endif
 
   end subroutine med_phases_history_alarm_init
@@ -130,30 +175,38 @@ contains
 
   subroutine med_phases_history_write(gcomp, rc)
 
+    ! --------------------------------------
     ! Write mediator history file
+    ! --------------------------------------
 
-    use ESMF                  , only : ESMF_GridComp, ESMF_GridCompGet
-    use ESMF                  , only : ESMF_VM, ESMF_VMGet
-    use ESMF                  , only : ESMF_Clock, ESMF_ClockGet, ESMF_ClockGetNextTime
-    use ESMF                  , only : ESMF_Calendar
-    use ESMF                  , only : ESMF_Time, ESMF_TimeGet
-    use ESMF                  , only : ESMF_TimeInterval, ESMF_TimeIntervalGet
-    use ESMF                  , only : ESMF_Alarm, ESMF_AlarmIsRinging, ESMF_AlarmRingerOff
-    use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_LOGMSG_ERROR
-    use ESMF                  , only : ESMF_SUCCESS, ESMF_FAILURE
-    use ESMF                  , only : operator(==), operator(-)
-    use ESMF                  , only : ESMF_FieldBundleIsCreated, ESMF_MAXSTR, ESMF_ClockPrint, ESMF_AlarmIsCreated
-    use NUOPC                 , only : NUOPC_CompAttributeGet
-    use esmFlds               , only : compatm, complnd, compocn, compice, comprof, compglc, ncomps, compname
-    use esmFlds               , only : fldListFr, fldListTo
+    use ESMF    , only : ESMF_GridComp, ESMF_GridCompGet
+    use ESMF    , only : ESMF_VM, ESMF_VMGet
+    use ESMF    , only : ESMF_Clock, ESMF_ClockGet, ESMF_ClockGetNextTime, ESMF_ClockGetAlarm
+    use ESMF    , only : ESMF_Calendar
+    use ESMF    , only : ESMF_Time, ESMF_TimeGet
+    use ESMF    , only : ESMF_TimeInterval, ESMF_TimeIntervalGet
+    use ESMF    , only : ESMF_Alarm, ESMF_AlarmIsRinging, ESMF_AlarmRingerOff, ESMF_AlarmGet
+    use ESMF    , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_LOGMSG_ERROR
+    use ESMF    , only : ESMF_SUCCESS, ESMF_FAILURE
+    use ESMF    , only : ESMF_FieldBundleIsCreated, ESMF_MAXSTR, ESMF_ClockPrint, ESMF_AlarmIsCreated
+    use ESMF    , only : operator(==), operator(-)
+    use ESMF    , only : ESMF_ALARMLIST_ALL, ESMF_ClockGetAlarmList
+    use NUOPC   , only : NUOPC_CompAttributeGet
+    use esmFlds , only : compatm, complnd, compocn, compice, comprof, compglc, ncomps, compname
+    use esmFlds , only : fldListFr, fldListTo
+    use NUOPC_Model, only : NUOPC_ModelGet
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc
 
     ! local variables
+    type(ESMF_Clock)        :: mclock, dclock
+    type(ESMF_TimeInterval) :: mtimestep, dtimestep
+    integer                 :: timestep_length
+    type(ESMF_Alarm)        :: alarm
+    integer                 :: alarmCount
     type(ESMF_VM)           :: vm
-    type(ESMF_Clock)        :: clock
     type(ESMF_Time)         :: currtime
     type(ESMF_Time)         :: reftime
     type(ESMF_Time)         :: starttime
@@ -177,21 +230,19 @@ contains
     character(CL)           :: hist_file      ! Local path to history filename
     character(CS)           :: cpl_inst_tag   ! instance tag
     character(CL)           :: cvalue         ! attribute string
-    character(CL)           :: freq_option    ! freq_option setting (ndays, nsteps, etc)
-    integer                 :: freq_n         ! freq_n setting relative to freq_option
-    logical                 :: alarmIsOn      ! generic alarm flag
     real(r8)                :: tbnds(2)       ! CF1.0 time bounds
     logical                 :: whead,wdata    ! for writing restart/history cdf files
-    integer                 :: dbrc
     integer                 :: iam
     logical                 :: isPresent
-    logical,save            :: first_call = .true.
+    type(ESMF_TimeInterval) :: RingInterval
+    integer                 :: ringInterval_length
+    logical                 :: first_time = .true.   
     character(len=*), parameter :: subname='(med_phases_history_write)'
     !---------------------------------------
 
     call t_startf('MED:'//subname)
     if (dbug_flag > 5) then
-       call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO, rc=dbrc)
+       call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
     endif
     rc = ESMF_SUCCESS
 
@@ -225,73 +276,17 @@ contains
        cpl_inst_tag = ""
     endif
 
-    !---------------------------------------
-    ! --- Get the clock info
-    !---------------------------------------
-
-    call ESMF_GridCompGet(gcomp, clock=clock, rc=rc)
+    call NUOPC_ModelGet(gcomp, modelClock=mclock, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    call ESMF_ClockGet(clock, currtime=currtime, reftime=reftime, starttime=starttime, calendar=calendar, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    call ESMF_ClockGetNextTime(clock, nextTime=nexttime, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    call ESMF_TimeGet(currtime,yy=yr, mm=mon, dd=day, s=sec, rc=dbrc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    write(currtimestr,'(i4.4,a,i2.2,a,i2.2,a,i5.5)') yr,'-',mon,'-',day,'-',sec
-    if (dbug_flag > 1) then
-       call ESMF_LogWrite(trim(subname)//": currtime = "//trim(currtimestr), ESMF_LOGMSG_INFO, rc=dbrc)
-    endif
-
-    call ESMF_TimeGet(nexttime,yy=yr, mm=mon, dd=day, s=sec, rc=dbrc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    write(nexttimestr,'(i4.4,a,i2.2,a,i2.2,a,i5.5)') yr,'-',mon,'-',day,'-',sec
-    if (dbug_flag > 1) then
-       call ESMF_LogWrite(trim(subname)//": nexttime = "//trim(nexttimestr), ESMF_LOGMSG_INFO, rc=dbrc)
-    endif
-    timediff = nexttime - reftime
-    call ESMF_TimeIntervalGet(timediff, d=day, s=sec, rc=rc)
-    dayssince = day + sec/real(SecPerDay,R8)
-
-    call ESMF_TimeGet(reftime, yy=yr, mm=mon, dd=day, s=sec, rc=dbrc)
-    call med_io_ymd2date(yr,mon,day,start_ymd)
-    start_tod = sec
-    time_units = 'days since ' // trim(med_io_date2yyyymmdd(start_ymd)) // ' ' // med_io_sec2hms(start_tod, rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    !---------------------------------------
-    ! --- History Alarms
-    !---------------------------------------
-
-    if (ESMF_AlarmIsRinging(AlarmHist, rc=rc)) then
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       alarmIsOn = .true.
-       call ESMF_AlarmRingerOff( AlarmHist, rc=rc )
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-#if DEBUG
-       if (mastertask) then
-          call ESMF_ClockPrint(clock, options="currTime", preString="-------->"//trim(subname)//&
-               " history alarm for: ", rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (first_time) then
+       call med_phases_history_alarm_init(gcomp, rc)
     end if
-#endif
-    else
-       alarmisOn = .false.
-    endif
 
-    ! Set average history output alarm TODO: fix the following
-    ! if (.not. ESMF_AlarmIsCreated(AlarmHistAvg, rc=rc)) then
-    !    call NUOPC_CompAttributeGet(gcomp, name="histavg_option", value=histavg_option, rc=rc)
-    !    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    !    freq_option = cvalue
-    !    call NUOPC_CompAttributeGet(gcomp, name="histavg_n", value=cvalue, rc=rc)
-    !    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    !    read(cvalue,*) freq_n
-    !    call alarmInit(clock, AlarmHistAvg, option=freq_option, opt_n=freq_n, &
-    !         RefTime=RefTime, alarmname='history_avg', rc=rc)
-    ! end if
+    !---------------------------------------
+    ! Check if history alarm is ringing - and if so write the mediator history file
+    !---------------------------------------
+
+    ! TODO: Add history averaging functionality and Determine if history average alarm is on
     ! if (ESMF_AlarmIsRinging(AlarmHistAvg, rc=rc)) then
     !    if (ChkErr(rc,__LINE__,u_FILE_u)) return
     !    alarmIsOn = .true.
@@ -301,18 +296,79 @@ contains
     !    alarmisOn = .false.
     ! endif
 
-    !---------------------------------------
-    ! --- History File
-    ! Use nexttimestr rather than currtimestr here since that is the time at the end of
-    ! the timestep and is preferred for history file names
-    !---------------------------------------
+    !DEBUG
+    call ESMF_ClockGetAlarm(mclock, alarmname='alarm_history_inst', alarm=alarm, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_AlarmGet(alarm, ringInterval=ringInterval, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_TimeIntervalGet(ringInterval, s=ringinterval_length, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_ClockGet(mclock, currtime=currtime, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_TimeGet(currtime,yy=yr, mm=mon, dd=day, s=sec, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    write(currtimestr,'(i4.4,a,i2.2,a,i2.2,a,i5.5)') yr,'-',mon,'-',day,'-',sec
+    call ESMF_ClockGetNextTime(mclock, nextTime=nexttime, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_TimeGet(nexttime, yy=yr, mm=mon, dd=day, s=sec, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    write(nexttimestr,'(i4.4,a,i2.2,a,i2.2,a,i5.5)') yr,'-',mon,'-',day,'-',sec
+    if (mastertask) then
+       write(logunit,*)
+       write(logunit,*) trim(subname)//": history alarm ringinterval = ", ringInterval_length 
+       write(logunit,' (a)') trim(subname)//": currtime = "//trim(currtimestr)//" nexttime = "//trim(nexttimestr)
+       write(logunit,*) trim(subname) //' history alarm is ringing = ', ESMF_AlarmIsRinging(alarm)
+    end if
+    !DEBUG
 
-    if (alarmIsOn) then
-       write(hist_file,"(6a)") &
-            trim(case_name), '.cpl',trim(cpl_inst_tag),'.hi.', trim(nexttimestr),'.nc'
-       call ESMF_LogWrite(trim(subname)//": write "//trim(hist_file), ESMF_LOGMSG_INFO, rc=dbrc)
+    if (ESMF_AlarmIsRinging(alarm, rc=rc)) then
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       ! Turn ringer off
+       call ESMF_AlarmRingerOff( alarm, rc=rc )
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       ! Get time info for history file
+       call ESMF_GridCompGet(gcomp, clock=mclock, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       call ESMF_ClockGet(mclock, currtime=currtime, reftime=reftime, starttime=starttime, calendar=calendar, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       call ESMF_ClockGetNextTime(mclock, nextTime=nexttime, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       call ESMF_TimeGet(currtime,yy=yr, mm=mon, dd=day, s=sec, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       write(currtimestr,'(i4.4,a,i2.2,a,i2.2,a,i5.5)') yr,'-',mon,'-',day,'-',sec
+
+       call ESMF_TimeGet(nexttime,yy=yr, mm=mon, dd=day, s=sec, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       write(nexttimestr,'(i4.4,a,i2.2,a,i2.2,a,i5.5)') yr,'-',mon,'-',day,'-',sec
+       timediff = nexttime - reftime
+       call ESMF_TimeIntervalGet(timediff, d=day, s=sec, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       dayssince = day + sec/real(SecPerDay,R8)
+
+       call ESMF_TimeGet(reftime, yy=yr, mm=mon, dd=day, s=sec, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call med_io_ymd2date(yr,mon,day,start_ymd)
+       start_tod = sec
+       time_units = 'days since ' // trim(med_io_date2yyyymmdd(start_ymd)) // ' ' // med_io_sec2hms(start_tod, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       ! Use nexttimestr rather than currtimestr here since that is the time at the end of
+       ! the timestep and is preferred for history file names
+       write(hist_file,"(6a)") trim(case_name), '.cpl',trim(cpl_inst_tag),'.hi.', trim(nexttimestr),'.nc'
+
+       if (mastertask) then
+          write(logunit,*)
+          write(logunit,' (a)') trim(subname)//": writing mediator history file "//trim(hist_file)
+          write(logunit,' (a)') trim(subname)//": currtime = "//trim(currtimestr)
+          write(logunit,' (a)') trim(subname)//": nexttime = "//trim(nexttimestr)
+       end if
+
        call med_io_wopen(hist_file, vm, iam, clobber=.true.)
-
        do m = 1,2
           whead=.false.
           wdata=.false.
@@ -325,15 +381,12 @@ contains
 
           tbnds = dayssince
 
-          call ESMF_LogWrite(trim(subname)//": time "//trim(time_units), ESMF_LOGMSG_INFO, rc=dbrc)
           if (tbnds(1) >= tbnds(2)) then
-             call med_io_write(hist_file, iam, &
-                  time_units=time_units, calendar=calendar, time_val=dayssince, &
+             call med_io_write(hist_file, iam, time_units=time_units, calendar=calendar, time_val=dayssince, &
                   whead=whead, wdata=wdata, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           else
-             call med_io_write(hist_file, iam, &
-                  time_units=time_units, calendar=calendar, time_val=dayssince, &
+             call med_io_write(hist_file, iam, time_units=time_units, calendar=calendar, time_val=dayssince, &
                   whead=whead, wdata=wdata, tbnds=tbnds, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           endif
@@ -394,16 +447,12 @@ contains
 
     endif
 
-    !---------------------------------------
-    !--- clean up
-    !---------------------------------------
-
-    first_call = .false.
-
     if (dbug_flag > 5) then
-       call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO, rc=dbrc)
+       call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
     endif
     call t_stopf('MED:'//subname)
+
+    first_time = .false.
 
   end subroutine med_phases_history_write
 
