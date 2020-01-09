@@ -924,9 +924,7 @@ contains
     integer                        :: n
     integer                        :: stat
     integer                        :: inst_index
-    logical                        :: is_present
     character(len=CL)              :: cvalue
-    character(len=32), allocatable :: compLabels(:)
     character(len=32), allocatable :: attrList(:)
     integer                        :: componentCount
     character(len=*), parameter    :: subname = "(esm.F90:AddAttributes)"

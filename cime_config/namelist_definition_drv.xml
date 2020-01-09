@@ -495,6 +495,7 @@
     <group>ALLCOMP_attributes</group>
     <values>
       <value>$COMP_ROF</value>
+      <value ROF_MODE='null'>srof</value>
     </values>
   </entry>
   <entry id="LND_model" modify_via_xml="COMP_LND">
