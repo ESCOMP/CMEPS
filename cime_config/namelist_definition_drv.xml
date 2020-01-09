@@ -152,160 +152,6 @@
     </values>
   </entry>
 
-  <entry id="orb_mode">
-    <type>char</type>
-    <category>orbital</category>
-    <group>DRIVER_attributes</group>
-    <valid_values>fixed_year,variable_year,fixed_parameters</valid_values>
-    <desc>
-      orbital model setting.  this sets how the orbital mode will be
-      configured.
-      "fixed_year" uses the orb_iyear and other orb inputs are ignored.  In
-      this mode, the orbital parameters are constant and based on the year.
-      "variable_year" uses the orb_iyear and orb_iyear_align.  In this mode,
-      the orbital parameters vary as the model year advances and the model
-      year orb_iyear_align has the equivalent orbital year of orb_iyear.
-      "fixed_parameters" uses the orb_eccen, orb_mvelp, and orb_obliq to set
-      the orbital parameters which then remain constant through the model
-      integration. [fixed_year, variable_year, fixed_parameters]  (default: 'fixed_year'.)
-    </desc>
-    <values>
-      <value>fixed_year</value>
-      <value iyear='HIST'>variable_year</value>
-    </values>
-  </entry>
-
-  <entry id="orb_iyear_align">
-    <type>integer</type>
-    <category>orbital</category>
-    <group>DRIVER_attributes</group>
-    <desc>
-      model year associated with orb_iyear when orb_mode is variable_year. (default: 1990)
-    </desc>
-    <values>
-      <value>1990</value>
-      <value iyear="1850">1850</value>
-      <value iyear="2000">2000</value>
-      <value iyear='HIST'>1850</value>
-    </values>
-  </entry>
-
-  <entry id="orb_iyear">
-    <type>integer</type>
-    <category>orbital</category>
-    <group>DRIVER_attributes</group>
-    <desc>
-      year of orbit, used when orb_mode is fixed_year or variable_year. (default: 1990)
-    </desc>
-    <values>
-      <value>1990</value>
-      <value iyear="1850">1850</value>
-      <value iyear="2000">2000</value>
-      <value iyear='HIST'>1850</value>
-    </values>
-  </entry>
-
-  <entry id="orb_eccen">
-    <type>real</type>
-    <category>orbital</category>
-    <group>DRIVER_attributes</group>
-    <desc>
-      eccentricity of orbit, used when orb_mode is fixed_parameters.
-      default: SHR_ORB_UNDEF_REAL (1.e36) (Not currently used in build-namelist)
-    </desc>
-    <values>
-      <value>1.e36</value>
-    </values>
-  </entry>
-
-  <entry id="orb_mvelp">
-    <type>real</type>
-    <category>orbital</category>
-    <group>DRIVER_attributes</group>
-    <desc>
-      location of vernal equinox in longitude degrees, used when orb_mode is fixed_parameters.
-      default: SHR_ORB_UNDEF_REAL (1.e36)(Not currently used in build-namelist)
-    </desc>
-    <values>
-      <value>1.e36</value>
-    </values>
-  </entry>
-
-  <entry id="orb_obliq">
-    <type>real</type>
-    <category>orbital</category>
-    <group>DRIVER_attributes</group>
-    <desc>
-      obliquity of orbit in degrees, used when orb_mode is fixed_parameters.
-      default: SHR_ORB_UNDEF_REAL (1.e36) (Not currently used in build-namelist)
-    </desc>
-    <values>
-      <value>1.e36</value>
-    </values>
-  </entry>
-
-  <entry id="wv_sat_scheme">
-    <type>char</type>
-    <category>wv_sat</category>
-    <group>DRIVER_attributes</group>
-    <valid_values>GoffGratch,MurphyKoop,Bolton,Flatau</valid_values>
-    <desc>
-      Type of water vapor saturation vapor pressure scheme employed. 'GoffGratch' for
-      Goff and Gratch (1946); 'MurphyKoop' for Murphy and Koop (2005); 'Bolton' for
-      Bolton (1980); 'Flatau' for Flatau, Walko, and Cotton (1992).
-      Default: GoffGratch
-    </desc>
-    <values>
-      <value>GoffGratch</value>
-    </values>
-  </entry>
-
-  <entry id="wv_sat_transition_start">
-    <type>real</type>
-    <category>wv_sat</category>
-    <group>DRIVER_attributes</group>
-    <desc>
-      Width of the liquid-ice transition range in mixed-phase water saturation vapor
-      pressure calculations. The range always ends at 0 degrees Celsius, so this
-      variable only affects the start of the transition.
-      Default: 20K
-      WARNING: CAM is tuned to the default value of this variable. Because it affects
-      so many different parameterizations, changes to this variable may require a
-      significant retuning of CAM's cloud physics to give reasonable results.
-    </desc>
-    <values>
-      <value>20.0D0</value>
-    </values>
-  </entry>
-
-  <entry id="wv_sat_use_tables">
-    <type>logical</type>
-    <category>wv_sat</category>
-    <group>DRIVER_attributes</group>
-    <desc>
-      Whether or not to produce lookup tables at init time to use as a cache for
-      saturation vapor pressure.
-      Default: .false.
-    </desc>
-    <values>
-      <value>.false.</value>
-    </values>
-  </entry>
-
-  <entry id="wv_sat_table_spacing">
-    <type>real</type>
-    <category>wv_sat</category>
-    <group>DRIVER_attributes</group>
-    <desc>
-      Temperature resolution of saturation vapor pressure lookup tables in Kelvin.
-      (This is only used if wv_sat_use_tables is .true.)
-      Default: 1.0
-    </desc>
-    <values>
-      <value>1.0D0</value>
-    </values>
-  </entry>
-
   <entry id="wall_time_limit">
     <type>real</type>
     <category>control</category>
@@ -456,6 +302,172 @@
       <value>ATM OCN ICE LND ROF GLC WAV MED</value>
     </values>
   </entry>
+
+  <!-- =========================================== -->
+  <!-- DRIVER saturation vapor attributes          -->
+  <!-- =========================================== -->
+
+  <entry id="wv_sat_scheme">
+    <type>char</type>
+    <category>wv_sat</category>
+    <group>DRIVER_attributes</group>
+    <valid_values>GoffGratch,MurphyKoop,Bolton,Flatau</valid_values>
+    <desc>
+      Type of water vapor saturation vapor pressure scheme employed. 'GoffGratch' for
+      Goff and Gratch (1946); 'MurphyKoop' for Murphy and Koop (2005); 'Bolton' for
+      Bolton (1980); 'Flatau' for Flatau, Walko, and Cotton (1992).
+      Default: GoffGratch
+    </desc>
+    <values>
+      <value>GoffGratch</value>
+    </values>
+  </entry>
+
+  <entry id="wv_sat_transition_start">
+    <type>real</type>
+    <category>wv_sat</category>
+    <group>DRIVER_attributes</group>
+    <desc>
+      Width of the liquid-ice transition range in mixed-phase water saturation vapor
+      pressure calculations. The range always ends at 0 degrees Celsius, so this
+      variable only affects the start of the transition.
+      Default: 20K
+      WARNING: CAM is tuned to the default value of this variable. Because it affects
+      so many different parameterizations, changes to this variable may require a
+      significant retuning of CAM's cloud physics to give reasonable results.
+    </desc>
+    <values>
+      <value>20.0D0</value>
+    </values>
+  </entry>
+
+  <entry id="wv_sat_use_tables">
+    <type>logical</type>
+    <category>wv_sat</category>
+    <group>DRIVER_attributes</group>
+    <desc>
+      Whether or not to produce lookup tables at init time to use as a cache for
+      saturation vapor pressure.
+      Default: .false.
+    </desc>
+    <values>
+      <value>.false.</value>
+    </values>
+  </entry>
+
+  <entry id="wv_sat_table_spacing">
+    <type>real</type>
+    <category>wv_sat</category>
+    <group>DRIVER_attributes</group>
+    <desc>
+      Temperature resolution of saturation vapor pressure lookup tables in Kelvin.
+      (This is only used if wv_sat_use_tables is .true.)
+      Default: 1.0
+    </desc>
+    <values>
+      <value>1.0D0</value>
+    </values>
+  </entry>
+
+  <!-- =========================================== -->
+  <!-- All components orbital attributes           -->
+  <!-- =========================================== -->
+
+  <entry id="orb_mode">
+    <type>char</type>
+    <category>orbital</category>
+    <group>ALLCOMP_attributes</group>
+    <valid_values>fixed_year,variable_year,fixed_parameters</valid_values>
+    <desc>
+      orbital model setting.  this sets how the orbital mode will be
+      configured.
+      "fixed_year" uses the orb_iyear and other orb inputs are ignored.  In
+      this mode, the orbital parameters are constant and based on the year.
+      "variable_year" uses the orb_iyear and orb_iyear_align.  In this mode,
+      the orbital parameters vary as the model year advances and the model
+      year orb_iyear_align has the equivalent orbital year of orb_iyear.
+      "fixed_parameters" uses the orb_eccen, orb_mvelp, and orb_obliq to set
+      the orbital parameters which then remain constant through the model
+      integration. [fixed_year, variable_year, fixed_parameters]  (default: 'fixed_year'.)
+    </desc>
+    <values>
+      <value>fixed_year</value>
+      <value iyear='HIST'>variable_year</value>
+    </values>
+  </entry>
+
+  <entry id="orb_iyear_align">
+    <type>integer</type>
+    <category>orbital</category>
+    <group>ALLCOMP_attributes</group>
+    <desc>
+      model year associated with orb_iyear when orb_mode is variable_year. (default: 1990)
+    </desc>
+    <values>
+      <value>1990</value>
+      <value iyear="1850">1850</value>
+      <value iyear="2000">2000</value>
+      <value iyear='HIST'>1850</value>
+    </values>
+  </entry>
+
+  <entry id="orb_iyear">
+    <type>integer</type>
+    <category>orbital</category>
+    <group>ALLCOMP_attributes</group>
+    <desc>
+      year of orbit, used when orb_mode is fixed_year or variable_year. (default: 1990)
+    </desc>
+    <values>
+      <value>1990</value>
+      <value iyear="1850">1850</value>
+      <value iyear="2000">2000</value>
+      <value iyear='HIST'>1850</value>
+    </values>
+  </entry>
+
+  <entry id="orb_eccen">
+    <type>real</type>
+    <category>orbital</category>
+    <group>ALLCOMP_attributes</group>
+    <desc>
+      eccentricity of orbit, used when orb_mode is fixed_parameters.
+      default: SHR_ORB_UNDEF_REAL (1.e36) (Not currently used in build-namelist)
+    </desc>
+    <values>
+      <value>1.e36</value>
+    </values>
+  </entry>
+
+  <entry id="orb_mvelp">
+    <type>real</type>
+    <category>orbital</category>
+    <group>ALLCOMP_attributes</group>
+    <desc>
+      location of vernal equinox in longitude degrees, used when orb_mode is fixed_parameters.
+      default: SHR_ORB_UNDEF_REAL (1.e36)(Not currently used in build-namelist)
+    </desc>
+    <values>
+      <value>1.e36</value>
+    </values>
+  </entry>
+
+  <entry id="orb_obliq">
+    <type>real</type>
+    <category>orbital</category>
+    <group>ALLCOMP_attributes</group>
+    <desc>
+      obliquity of orbit in degrees, used when orb_mode is fixed_parameters.
+      default: SHR_ORB_UNDEF_REAL (1.e36) (Not currently used in build-namelist)
+    </desc>
+    <values>
+      <value>1.e36</value>
+    </values>
+  </entry>
+
+  <!-- =========================================== -->
+  <!-- All component general attributes            -->
+  <!-- =========================================== -->
 
   <entry id="MED_model">
     <type>char</type>
@@ -1588,18 +1600,6 @@
     </desc>
     <values>
       <value>3</value>
-    </values>
-  </entry>
-
-  <entry id="ScalarFieldIdxValidGlcInput">
-    <type>integer</type>
-    <category>expdef</category>
-    <group>ALLCOMP_attributes</group>
-    <desc>
-      index of valid glc input from mediator
-    </desc>
-    <values>
-      <value>4</value>
     </values>
   </entry>
 

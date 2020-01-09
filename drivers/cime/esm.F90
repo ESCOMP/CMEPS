@@ -240,7 +240,7 @@ contains
   subroutine SetRunSequence(driver, rc)
 
     use ESMF                  , only : ESMF_GridComp, ESMF_LogWrite, ESMF_SUCCESS, ESMF_LOGMSG_INFO
-    use ESMF                  , only : ESMF_Time, ESMF_TimeInterval, ESMF_Config
+    use ESMF                  , only : ESMF_Config
     use ESMF                  , only : ESMF_GridCompGet, ESMF_ConfigCreate
     use ESMF                  , only : ESMF_ConfigLoadFile
     use NUOPC                 , only : NUOPC_FreeFormat, NUOPC_FreeFormatDestroy
@@ -511,7 +511,6 @@ contains
     use ESMF             , only : ESMF_RC_NOT_VALID
     use ESMF             , only : ESMF_GridCompIsPetLocal, ESMF_VMBroadcast
     use NUOPC            , only : NUOPC_CompAttributeGet, NUOPC_CompAttributeSet, NUOPC_CompAttributeAdd
-    use shr_orb_mod      , only : shr_orb_params, SHR_ORB_UNDEF_INT, SHR_ORB_UNDEF_REAL
     use shr_assert_mod   , only : shr_assert_in_domain
     use shr_const_mod    , only : shr_const_tkfrz, shr_const_tktrip
     use shr_const_mod    , only : shr_const_mwwv, shr_const_mwdair
@@ -529,28 +528,12 @@ contains
     integer             , intent(out)   :: rc                 ! return code
 
     ! local variables
-    type(ESMF_Clock)             :: clock
-    type(ESMF_Time)              :: currTime
     character(len=CL)            :: errstring
     character(len=CL)            :: cvalue
     logical                      :: reprosum_use_ddpdd    ! setup reprosum, use ddpdd
     real(R8)                     :: reprosum_diffmax      ! setup reprosum, set rel_diff_max
     logical                      :: reprosum_recompute    ! setup reprosum, recompute if tolerance exceeded
-    integer                      :: year                  ! Current date (YYYY)
     character(LEN=CS)            :: tfreeze_option        ! Freezing point calculation
-    character(len=CL)            :: orb_mode              ! orbital mode
-    integer                      :: orb_iyear             ! orbital year
-    integer                      :: orb_iyear_align       ! associated with model year
-    integer                      :: orb_cyear             ! orbital year for current orbital computation
-    integer                      :: orb_nyear             ! orbital year associated with currrent model year
-    integer                      :: orbitmp(4)            ! array for integer parameter broadcast
-    real(R8)                     :: orbrtmp(6)            ! array for real parameter broadcast
-    real(R8)                     :: orb_eccen             ! orbital eccentricity
-    real(R8)                     :: orb_obliq             ! obliquity in degrees
-    real(R8)                     :: orb_mvelp             ! moving vernal equinox long
-    real(R8)                     :: orb_obliqr            ! Earths obliquity in rad
-    real(R8)                     :: orb_lambm0            ! Mean long of perihelion at vernal equinox (radians)
-    real(R8)                     :: orb_mvelpp            ! moving vernal equinox long
     real(R8)                     :: wall_time_limit       ! wall time limit in hours
     integer                      :: glc_nec               ! number of elevation classes in the land component for lnd->glc
     logical                      :: single_column         ! scm mode logical
@@ -571,9 +554,6 @@ contains
     integer          , parameter :: ens1=1                ! use first instance of ensemble only
     integer          , parameter :: fix1=1                ! temporary hard-coding to first ensemble, needs to be fixed
     real(R8)         , parameter :: epsilo = shr_const_mwwv/shr_const_mwdair
-    character(len=*) , parameter :: orb_fixed_year       = 'fixed_year'
-    character(len=*) , parameter :: orb_variable_year    = 'variable_year'
-    character(len=*) , parameter :: orb_fixed_parameters = 'fixed_parameters'
     character(len=*) , parameter :: subname = '(InitAttributes)'
     !----------------------------------------------------------
 
@@ -609,134 +589,12 @@ contains
 
     call shr_frz_freezetemp_init(tfreeze_option, mastertask)
 
-    !----------------------------------------------------------
-    ! Initialize orbital related values
-    !----------------------------------------------------------
-
-    call NUOPC_CompAttributeGet(driver, name="orb_mode", value=cvalue, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) orb_mode
-
-    call NUOPC_CompAttributeGet(driver, name="orb_iyear", value=cvalue, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) orb_iyear
-
-    call NUOPC_CompAttributeGet(driver, name="orb_iyear_align", value=cvalue, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) orb_iyear_align
-
-    call NUOPC_CompAttributeGet(driver, name="orb_obliq", value=cvalue, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) orb_obliq
-
-    call NUOPC_CompAttributeGet(driver, name="orb_eccen", value=cvalue, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) orb_eccen
-
-    call NUOPC_CompAttributeGet(driver, name="orb_mvelp", value=cvalue, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) orb_mvelp
-
-    if (trim(orb_mode) == trim(orb_fixed_year)) then
-       orb_obliq = SHR_ORB_UNDEF_REAL
-       orb_eccen = SHR_ORB_UNDEF_REAL
-       orb_mvelp = SHR_ORB_UNDEF_REAL
-       if (orb_iyear == SHR_ORB_UNDEF_INT) then
-          write(logunit,*) trim(subname),' ERROR: invalid settings orb_mode =',trim(orb_mode)
-          write(logunit,*) trim(subname),' ERROR: fixed_year settings = ',orb_iyear
-          write (msgstr, *) ' ERROR: invalid settings for orb_mode '//trim(orb_mode)
-          call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
-          return  ! bail out
-       endif
-    elseif (trim(orb_mode) == trim(orb_variable_year)) then
-       orb_obliq = SHR_ORB_UNDEF_REAL
-       orb_eccen = SHR_ORB_UNDEF_REAL
-       orb_mvelp = SHR_ORB_UNDEF_REAL
-       if (orb_iyear == SHR_ORB_UNDEF_INT .or. orb_iyear_align == SHR_ORB_UNDEF_INT) then
-          write(logunit,*) trim(subname),' ERROR: invalid settings orb_mode =',trim(orb_mode)
-          write(logunit,*) trim(subname),' ERROR: variable_year settings = ',orb_iyear, orb_iyear_align
-          write (msgstr, *) subname//' ERROR: invalid settings for orb_mode '//trim(orb_mode)
-          call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
-          return  ! bail out
-       endif
-    elseif (trim(orb_mode) == trim(orb_fixed_parameters)) then
-       !-- force orb_iyear to undef to make sure shr_orb_params works properly
-       orb_iyear = SHR_ORB_UNDEF_INT
-       orb_iyear_align = SHR_ORB_UNDEF_INT
-       if (orb_eccen == SHR_ORB_UNDEF_REAL .or. &
-           orb_obliq == SHR_ORB_UNDEF_REAL .or. &
-           orb_mvelp == SHR_ORB_UNDEF_REAL) then
-          write(logunit,*) trim(subname),' ERROR: invalid settings orb_mode =',trim(orb_mode)
-          write(logunit,*) trim(subname),' ERROR: orb_eccen = ',orb_eccen
-          write(logunit,*) trim(subname),' ERROR: orb_obliq = ',orb_obliq
-          write(logunit,*) trim(subname),' ERROR: orb_mvelp = ',orb_mvelp
-          write (msgstr, *) subname//' ERROR: invalid settings for orb_mode '//trim(orb_mode)
-          call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
-          return  ! bail out
-       endif
-    else
-       write (msgstr, *) subname//' ERROR: invalid orb_mode '//trim(orb_mode)
-       call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
-       return  ! bail out
-    endif
 
     call NUOPC_CompAttributeGet(driver, name='cpl_rootpe', value=cvalue, rc=rc)
     read(cvalue, *) rootpe_med
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call ESMF_GridCompGet(driver, localPet=localPet, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    ! Determine orbital params
-    if (trim(orb_mode) == trim(orb_variable_year)) then
-       call ESMF_GridCompGet(driver, clock=clock, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-       call ESMF_ClockGet(clock, CurrTime=CurrTime, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-       call ESMF_TimeGet(CurrTime, yy=year, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-       orb_cyear = orb_iyear + (year - orb_iyear_align)
-       call shr_orb_params(orb_cyear, orb_eccen, orb_obliq, orb_mvelp, &
-                           orb_obliqr, orb_lambm0, orb_mvelpp, mastertask)
-    else
-       call shr_orb_params(orb_iyear, orb_eccen, orb_obliq, orb_mvelp, &
-                           orb_obliqr, orb_lambm0, orb_mvelpp, mastertask)
-    end if
-
-    if (orb_eccen  == SHR_ORB_UNDEF_REAL .or. &
-         orb_obliqr == SHR_ORB_UNDEF_REAL .or. &
-         orb_mvelpp == SHR_ORB_UNDEF_REAL .or. &
-         orb_lambm0 == SHR_ORB_UNDEF_REAL) then
-       write (msgstr, *) subname//' ERROR: orb params incorrect'
-       call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
-       return  ! bail out
-    endif
-
-    ! Add updated orbital params to driver attributes
-
-    call NUOPC_CompAttributeAdd(driver, attrList=(/'orb_obliqr', 'orb_lambm0', 'orb_mvelpp'/), rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    write(cvalue,*) orb_eccen
-    call NUOPC_CompAttributeSet(driver, name="orb_eccen", value=cvalue, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    write(cvalue,*) orb_obliqr
-    call NUOPC_CompAttributeSet(driver, name="orb_obliqr", value=cvalue, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    write(cvalue,*) orb_lambm0
-    call NUOPC_CompAttributeSet(driver, name="orb_lambm0", value=cvalue, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    write(cvalue,*) orb_mvelpp
-    call NUOPC_CompAttributeSet(driver, name="orb_mvelpp", value=cvalue, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    ! TODO: need to update orbital parameters during run time - actually - each component needs to update its orbital
-    ! parameters to be consistent
 
     !----------------------------------------------------------
     ! Initialize glc_elevclass_mod module variables
@@ -946,8 +804,8 @@ contains
     !------
     ! Add all the other attributes in AttrList (which have already been added to driver attributes)
     !------
-    allocate(attrList(5))
-    attrList =  (/"read_restart", "orb_eccen   ", "orb_obliqr  ", "orb_lambm0  ", "orb_mvelpp  "/)
+    allocate(attrList(1))
+    attrList =  (/"read_restart"/)
 
     call NUOPC_CompAttributeAdd(gcomp, attrList=attrList, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -955,14 +813,11 @@ contains
        if (trim(attrList(n)) == "read_restart") then
           call NUOPC_CompAttributeGet(driver, name="mediator_read_restart", value=cvalue, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
-          
           read(cvalue,*) lvalue
-
           if (.not. lvalue) then         
             call NUOPC_CompAttributeGet(driver, name=trim(attrList(n)), value=cvalue, rc=rc)
             if (chkerr(rc,__LINE__,u_FILE_u)) return
           end if
-
           call NUOPC_CompAttributeSet(gcomp, name=trim(attrList(n)), value=trim(cvalue), rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
        else 
