@@ -1005,6 +1005,7 @@ contains
     real(R8), pointer :: data2d(:,:)
     integer           :: ungriddedUBound(1)     ! currently the size must equal 1 for rank 2 fields
     integer           :: gridToFieldMap(1)      ! currently the size must equal 1 for rank 2 fields
+
     ! ------------------------------------------------
 
     rc = ESMF_SUCCESS
