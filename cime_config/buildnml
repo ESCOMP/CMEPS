@@ -323,7 +323,7 @@ def _create_runseq(case, coupling_times):
             from runseq_D import gen_runseq
         elif (comp_lnd == 'dlnd' and comp_glc == "cism"):
             from runseq_TG import gen_runseq
-        elif (comp_atm == 'fv3gfs' and comp_ocn == "mom" and comp_ice == 'cice'):
+        elif (comp_atm == 'ufsatm' and comp_ocn == "mom" and comp_ice == 'cice'):
             from runseq_NEMS import gen_runseq
         else: 
             from runseq_general import gen_runseq
