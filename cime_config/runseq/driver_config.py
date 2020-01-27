@@ -153,11 +153,13 @@ class DriverConfig(dict):
             if_prognostic = False
             med_to_rof = if_prognostic
         else:
-            # this is active runoff - if clm is active check the accelerated spinup mode flag
-            # otherwise if clm is not active then assume data lnd for now
-            if (case.get_value("COMP_LND") == 'clm'):
-                if (case.get_value("CLM_ACCELERATED_SPINUP") == 'on'):
-                    run_rof = False
+            # this is active runoff - determine if the mode or the grid is null - and in that case
+            # remove all interactions with rof from the run sequence
+            if ((case.get_value("COMP_ROF") == 'mosart' and case.get_value("MOSART_MODE") == 'NULL') or
+                (case.get_value("COMP_ROF") == 'rtm' and case.get_value("RTM_MODE") == 'NULL') or
+                (case.get_value("ROF_GRID") == 'null')):
+                run_rof = False
+                med_to_rof = False
 
         return (run_rof, med_to_rof, coupling_times["rof_cpl_dt"])
 

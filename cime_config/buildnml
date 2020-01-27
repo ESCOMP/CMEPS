@@ -56,6 +56,10 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     config['COMP_ROF'] = case.get_value("COMP_ROF")
     config['COMP_WAV'] = case.get_value("COMP_WAV")
 
+    if ((case.get_value("COMP_ROF") == 'mosart' and case.get_value("MOSART_MODE") == 'NULL') or
+        (case.get_value("COMP_ROF") == 'rtm' and case.get_value("RTM_MODE") == 'NULL') or
+        (case.get_value("ROF_GRID") == 'null')):
+        config['ROF_MODE'] = 'null'
 
     if case.get_value('RUN_TYPE') == 'startup':
         config['run_type'] = 'startup'
@@ -229,6 +233,10 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
             if item != 'esp': #no esp xcpl component
                 if case.get_value(item.upper() + "_NX") == "0" and case.get_value(item.upper() + "_NY") == "0":
                     skip_comps.append(item.upper)
+    # special case - mosart or rtm in NULL mode
+    if (case.get_value("COMP_ROF") == 'mosart' or case.get_value("COMP_ROF") == 'rtm'):
+        if (case.get_value("MOSART_MODE") == 'NULL' or case.get_value("RTM_MODE") == 'NULL'):
+            skip_comps.append('ROF')
 
     logger.info("Writing nuopc_runseq will skip components {}".format(skip_comps))
 
