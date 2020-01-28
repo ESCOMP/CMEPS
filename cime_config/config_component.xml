@@ -2513,7 +2513,7 @@
    <valid_values>TRUE,FALSE</valid_values>
    <default_value>FALSE</default_value>
    <group>job_submission</group>
-   <file>env_workflow.xml</file>
+   <file>env_batch.xml</file>
    <desc>whether the PROJECT value is required on this machine</desc>
  </entry>
 

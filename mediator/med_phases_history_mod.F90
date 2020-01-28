@@ -78,6 +78,7 @@ contains
     type(ESMF_Clock)        :: mclock, dclock
     type(ESMF_TimeInterval) :: mtimestep, dtimestep
     type(ESMF_Time)         :: mCurrTime
+    type(ESMF_Time)         :: mStartTime
     type(ESMF_TimeInterval) :: timestep
     integer                 :: alarmcount
     integer                 :: timestep_length
@@ -102,6 +103,10 @@ contains
     call NUOPC_ModelGet(gcomp, modelClock=mclock,  rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+    ! get start time
+    call ESMF_ClockGet(mclock, startTime=mStartTime,  rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
     ! -----------------------------
     ! Set alarm for instantaneous mediator history output
     ! -----------------------------
@@ -113,7 +118,7 @@ contains
     read(cvalue,*) histinst_n
 
     call med_time_alarmInit(mclock, alarm, option=histinst_option, opt_n=histinst_n, &
-         alarmname='alarm_history_inst', rc=rc)
+         reftime=mStartTime, alarmname='alarm_history_inst', rc=rc)
 
     call ESMF_AlarmSet(alarm, clock=mclock, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -129,7 +134,7 @@ contains
     read(cvalue,*) histavg_n
 
     call med_time_alarmInit(mclock, alarm, option=histavg_option, opt_n=histavg_n, &
-         alarmname='alarm_history_avg', rc=rc)
+         reftime=mStartTime, alarmname='alarm_history_avg', rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     call ESMF_AlarmSet(alarm, clock=mclock, rc=rc)
@@ -313,7 +318,7 @@ contains
     call ESMF_TimeGet(nexttime, yy=yr, mm=mon, dd=day, s=sec, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     write(nexttimestr,'(i4.4,a,i2.2,a,i2.2,a,i5.5)') yr,'-',mon,'-',day,'-',sec
-    if ((mastertask .and. dbug_flag > 2) .or. dbug_flag > 5) then
+    if (mastertask .and. dbug_flag>2) then
        write(logunit,*)
        write(logunit,*) trim(subname)//": history alarm ringinterval = ", ringInterval_length
        write(logunit,' (a)') trim(subname)//": currtime = "//trim(currtimestr)//" nexttime = "//trim(nexttimestr)
