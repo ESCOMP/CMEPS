@@ -16,7 +16,7 @@ module MED
   use med_methods_mod        , only : State_GeomWrite    => med_methods_State_GeomWrite
   use med_methods_mod        , only : State_reset        => med_methods_State_reset
   use med_methods_mod        , only : State_getNumFields => med_methods_State_getNumFields
-  use med_methods_mod        , only : State_GetScalar    => med_methods_State_GetScalar 
+  use med_methods_mod        , only : State_GetScalar    => med_methods_State_GetScalar
   use med_methods_mod        , only : FB_Init            => med_methods_FB_init
   use med_methods_mod        , only : FB_Init_pointer    => med_methods_FB_Init_pointer
   use med_methods_mod        , only : FB_Reset           => med_methods_FB_Reset
@@ -24,7 +24,7 @@ module MED
   use med_methods_mod        , only : FB_FldChk          => med_methods_FB_FldChk
   use med_methods_mod        , only : FB_diagnose        => med_methods_FB_diagnose
   use med_methods_mod        , only : clock_timeprint    => med_methods_clock_timeprint
-  use med_time_mod           , only : alarmInit          => med_time_alarmInit 
+  use med_time_mod           , only : alarmInit          => med_time_alarmInit
   use med_utils_mod          , only : memcheck           => med_memcheck
   use med_internalstate_mod  , only : InternalState
   use med_internalstate_mod  , only : med_coupling_allowed, logunit, mastertask
@@ -664,7 +664,8 @@ contains
     use ESMF , only : ESMF_GridComp, ESMF_State, ESMF_Clock, ESMF_VM, ESMF_SUCCESS
     use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_TimeInterval
     use ESMF , only : ESMF_VMGet, ESMF_StateIsCreated, ESMF_GridCompGet
-
+    use ESMF , only : ESMF_StateSet, ESMF_StateIntent_Import, ESMF_StateIntent_Export
+    use ESMF , only : ESMF_StateIntent_Flag
     ! Input/output variables
     type(ESMF_GridComp)  :: gcomp
     type(ESMF_State)     :: importState, exportState
@@ -674,6 +675,7 @@ contains
     ! local variables
     type(InternalState)        :: is_local
     type(ESMF_VM)              :: vm
+    type(ESMF_StateIntent_Flag)     :: stateIntent
     integer                    :: n
     character(len=*),parameter :: subname='(module_MED:InitializeIPDv03p3)'
     !-----------------------------------------------------------
@@ -694,12 +696,16 @@ contains
     ! Realize States
     do n = 1,ncomps
       if (ESMF_StateIsCreated(is_local%wrap%NStateImp(n), rc=rc)) then
+         call ESMF_StateSet(is_local%wrap%NStateImp(n), stateIntent=ESMF_StateIntent_Import, rc=rc)
+         if (ChkErr(rc,__LINE__,u_FILE_u)) return
          call med_fldList_Realize(is_local%wrap%NStateImp(n), fldListFr(n), &
               is_local%wrap%flds_scalar_name, is_local%wrap%flds_scalar_num, &
               tag=subname//':Fr_'//trim(compname(n)), rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
       endif
       if (ESMF_StateIsCreated(is_local%wrap%NStateExp(n), rc=rc)) then
+         call ESMF_StateSet(is_local%wrap%NStateExp(n), stateIntent=ESMF_StateIntent_Export, rc=rc)
+         if (ChkErr(rc,__LINE__,u_FILE_u)) return
          call med_fldList_Realize(is_local%wrap%NStateExp(n), fldListTo(n), &
               is_local%wrap%flds_scalar_name, is_local%wrap%flds_scalar_num, &
               tag=subname//':To_'//trim(compname(n)), rc=rc)
@@ -1970,9 +1976,9 @@ contains
     integer                 :: stop_n         ! Number until stop interval
     integer                 :: stop_ymd       ! Stop date (YYYYMMDD)
     type(ESMF_ALARM)        :: stop_alarm
-    character(len=256)      :: option           
-    integer                 :: opt_n            
-    integer                 :: opt_ymd          
+    character(len=256)      :: option
+    integer                 :: opt_n
+    integer                 :: opt_ymd
     type(ESMF_ALARM)        :: alarm
     logical                 :: first_time = .true.
     character(len=*),parameter :: subname='(module_MED:SetRunClock)'

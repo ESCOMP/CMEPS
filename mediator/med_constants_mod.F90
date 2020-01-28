@@ -11,6 +11,9 @@ module med_constants_mod
   real(R8), parameter :: med_constants_czero           = 0.0_R8  ! spval
   integer,  parameter :: med_constants_ispval_mask     = -987987 ! spval for RH mask values
   integer,  parameter :: med_constants_SecPerDay       = 86400   ! Seconds per day
+#ifdef DEBUG
+  integer             :: med_constants_dbug_flag       = 5
+#else
   integer             :: med_constants_dbug_flag       = 0
-
+#endif
 end module med_constants_mod
