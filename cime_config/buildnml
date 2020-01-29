@@ -48,13 +48,12 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     config['atm_grid'] = case.get_value('ATM_GRID')
 
     # needed for determining the run sequence as well as glc_renormalize_smb
-    config['COMP_ATM'] = case.get_value("COMP_ATM")
-    config['COMP_ICE'] = case.get_value("COMP_ICE")
-    config['COMP_GLC'] = case.get_value("COMP_GLC")
-    config['COMP_LND'] = case.get_value("COMP_LND")
-    config['COMP_OCN'] = case.get_value("COMP_OCN")
-    config['COMP_ROF'] = case.get_value("COMP_ROF")
-    config['COMP_WAV'] = case.get_value("COMP_WAV")
+
+    for comp in case.get_values("COMP_CLASSES"):
+        compname = "COMP_"+comp
+        compval = case.get_value(compname)
+        if compval:
+            config[compname] = compval
 
     if ((case.get_value("COMP_ROF") == 'mosart' and case.get_value("MOSART_MODE") == 'NULL') or
         (case.get_value("COMP_ROF") == 'rtm' and case.get_value("RTM_MODE") == 'NULL') or
@@ -221,15 +220,16 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     skip_comps = []
     for item in comp_types:
         # stub comps
-        if case.get_value("COMP_" + item.upper()) == 's' + item:
+        compname = case.get_value("COMP_" + item.upper())
+        if not compname or compname  == 's' + item:
             skip_comps.append(item.upper())
         # data comps
-        if case.get_value("COMP_" + item.upper()) == 'd' + item:
+        if compname == 'd' + item:
             if item != 'glc': #no glc data component
                 if case.get_value("D" + item.upper()) == 'NULL' or case.get_value("D" + item.upper()) == 'null':
                     skip_comps.append(item.upper)
         # xcpl_comps
-        if case.get_value("COMP_" + item.upper()) == 'x' + item:
+        if compname == 'x' + item:
             if item != 'esp': #no esp xcpl component
                 if case.get_value(item.upper() + "_NX") == "0" and case.get_value(item.upper() + "_NY") == "0":
                     skip_comps.append(item.upper)
@@ -325,7 +325,7 @@ def _create_runseq(case, coupling_times):
             from runseq_TG import gen_runseq
         elif (comp_atm == 'ufsatm' and comp_ocn == "mom" and comp_ice == 'cice'):
             from runseq_NEMS import gen_runseq
-        else: 
+        else:
             from runseq_general import gen_runseq
 
         # create the run sequence
