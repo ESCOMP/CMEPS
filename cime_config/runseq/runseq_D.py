@@ -19,10 +19,10 @@ def gen_runseq(case, coupling_times):
     caseroot = case.get_value("CASEROOT")
 
     driver_config = DriverConfig(case, coupling_times)
-    run_atm, atm_to_med, med_to_atm, atm_cpl_time = driver_config['atm']
-    run_ice, ice_to_med, med_to_ice, ice_cpl_time = driver_config['ice']
-    run_ocn, ocn_to_med, med_to_ocn, ocn_cpl_time = driver_config['ocn']  
-    run_rof, rof_to_med, _         , _            = driver_config['rof']
+    run_atm, med_to_atm, atm_cpl_time = driver_config['atm']
+    run_ice, med_to_ice, ice_cpl_time = driver_config['ice']
+    run_ocn, med_to_ocn, ocn_cpl_time = driver_config['ocn']  
+    run_rof, _         , _            = driver_config['rof']
 
     if ice_cpl_time != atm_cpl_time:
         expect(False,"for D compsets require that ice_cpl_time equal atm_cpl_time")
@@ -46,16 +46,16 @@ def gen_runseq(case, coupling_times):
         runseq.add_action ("ICE"                                , run_ice)
         runseq.add_action ("ROF"                                , run_rof)
         runseq.add_action ("ATM"                                , run_atm)
-        runseq.add_action ("ICE -> MED :remapMethod=redist"     , ice_to_med)
-        runseq.add_action ("MED med_fraction_set"               , ice_to_med)
-        runseq.add_action ("ROF -> MED :remapMethod=redist"     , rof_to_med)
-        runseq.add_action ("ATM -> MED :remapMethod=redist"     , atm_to_med)
+        runseq.add_action ("ICE -> MED :remapMethod=redist"     , run_ice)
+        runseq.add_action ("MED med_fraction_set"               , run_ice)
+        runseq.add_action ("ROF -> MED :remapMethod=redist"     , run_rof)
+        runseq.add_action ("ATM -> MED :remapMethod=redist"     , run_atm)
         runseq.add_action ("MED med_phases_history_write"       , atm_cpl_time == ocn_cpl_time)
 
-        runseq.leave_time_loop(rof_to_med and (atm_cpl_time < ocn_cpl_time))
+        runseq.leave_time_loop(run_rof and (atm_cpl_time < ocn_cpl_time))
 
         runseq.add_action ("OCN", run_ocn)
-        runseq.add_action ("OCN -> MED :remapMethod=redist", ocn_to_med)
+        runseq.add_action ("OCN -> MED :remapMethod=redist"     , run_ocn)
         runseq.add_action ("MED med_phases_history_write"       , atm_cpl_time < ocn_cpl_time)
 
         runseq.leave_time_loop(True)
