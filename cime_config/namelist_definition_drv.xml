@@ -783,6 +783,18 @@
   <!-- MED general attributes                      -->
   <!-- =========================================== -->
 
+  <entry id="coupling_mode" modify_via_xml="COUPLING_MODE">
+    <type>char</type>
+    <category>control</category>
+    <group>MED_attributes</group>
+    <desc>
+      Type of coupling mode to use in the mediator
+    </desc>
+    <values>
+      <value>$COUPLING_MODE</value>
+    </values>
+  </entry>
+
   <entry id="glc_renormalize_smb">
     <type>char</type>
     <category>control</category>

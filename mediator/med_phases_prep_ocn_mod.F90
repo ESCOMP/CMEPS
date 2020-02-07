@@ -162,13 +162,11 @@ contains
     integer             :: lsize
     integer             :: dbrc
     character(CS)       :: cvalue
-    ! NEMS-orig
     real(R8), pointer   :: ocnwgt1(:)
     real(R8), pointer   :: icewgt1(:)
     real(R8), pointer   :: wgtp01(:)
     real(R8), pointer   :: wgtm01(:)
     real(R8), pointer   :: customwgt(:)
-    !
     character(len=64), allocatable :: fldnames(:)
     real(R8)        , parameter    :: const_lhvap = 2.501e6_R8  ! latent heat of evaporation ~ J/kg
     real(R8)        , parameter    :: albdif = 0.06_r8          ! 60 deg reference albedo, diffuse
@@ -205,16 +203,20 @@ contains
        !--- auto merges to ocn
        !---------------------------------------
 
-       if (trim(coupling_mode) == 'cesm' .or. trim(coupling_mode) == 'nems_orig') then
+       if (trim(coupling_mode) == 'cesm' .or. trim(coupling_mode) == 'nems_orig_data') then
           call med_merge_auto(trim(compname(compocn)), &
-               is_local%wrap%FBExp(compocn), is_local%wrap%FBFrac(compocn), &
-               is_local%wrap%FBImp(:,compocn), fldListTo(compocn), &
+               is_local%wrap%FBExp(compocn), &
+               is_local%wrap%FBFrac(compocn), &
+               is_local%wrap%FBImp(:,compocn), &
+               fldListTo(compocn), &
                FBMed1=is_local%wrap%FBMed_aoflux_o, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       else if (trim(coupling_mode) == 'nems_frac') then
+       else if (trim(coupling_mode) == 'nems_orig_active' .or. trim(coupling_mode) == 'nems_frac') then
           call med_merge_auto(trim(compname(compocn)), &
-               is_local%wrap%FBExp(compocn), is_local%wrap%FBFrac(compocn), &
-               is_local%wrap%FBImp(:,compocn), fldListTo(compocn), rc=rc)
+               is_local%wrap%FBExp(compocn), &
+               is_local%wrap%FBFrac(compocn), &
+               is_local%wrap%FBImp(:,compocn), &
+               fldListTo(compocn), rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
 
@@ -222,245 +224,269 @@ contains
        !--- custom calculations
        !---------------------------------------
 
-       !-------------
-       ! Compute netsw for ocean
-       !-------------
-
-       ! netsw_for_ocn = downsw_from_atm * (1-ocn_albedo) * (1-ice_fraction) + pensw_from_ice * (ice_fraction)
-
-       ! Input from atm
-       call FB_GetFldPtr(is_local%wrap%FBImp(compatm,compocn), 'Faxa_swvdr', Faxa_swvdr, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call FB_GetFldPtr(is_local%wrap%FBImp(compatm,compocn), 'Faxa_swndr', Faxa_swndr, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call FB_GetFldPtr(is_local%wrap%FBImp(compatm,compocn), 'Faxa_swvdf', Faxa_swvdf, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call FB_GetFldPtr(is_local%wrap%FBImp(compatm,compocn), 'Faxa_swndf', Faxa_swndf, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       lsize = size(Faxa_swvdr)
-
-       ! Input from mediator, ice-covered ocean and open ocean fractions
-       call FB_GetFldPtr(is_local%wrap%FBfrac(compocn), 'ifrac' , ifrac, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call FB_GetFldPtr(is_local%wrap%FBfrac(compocn), 'ofrac' , ofrac, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-       ! Input from mediator, ocean albedos
        if (trim(coupling_mode) == 'cesm') then
-          call FB_GetFldPtr(is_local%wrap%FBMed_ocnalb_o, 'So_avsdr' , avsdr, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          call FB_GetFldPtr(is_local%wrap%FBMed_ocnalb_o, 'So_anidr' , anidr, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          call FB_GetFldPtr(is_local%wrap%FBMed_ocnalb_o, 'So_avsdf' , avsdf, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          call FB_GetFldPtr(is_local%wrap%FBMed_ocnalb_o, 'So_anidf' , anidf, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          call FB_GetFldPtr(is_local%wrap%FBfrac(compocn), 'ifrad' , ifracr, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          call FB_GetFldPtr(is_local%wrap%FBfrac(compocn), 'ofrad' , ofracr, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       end if
 
-       ! Input from ice
-       if (is_local%wrap%comp_present(compice)) then
-          call FB_GetFldPtr(is_local%wrap%FBImp(compice,compocn), 'Fioi_swpen', Fioi_swpen, rc=rc)
+          ! Compute netsw for ocean
+          ! netsw_for_ocn = downsw_from_atm * (1-ocn_albedo) * (1-ice_fraction) + pensw_from_ice * (ice_fraction)
+          
+          ! Input from atm
+          call FB_GetFldPtr(is_local%wrap%FBImp(compatm,compocn), 'Faxa_swvdr', Faxa_swvdr, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          if (FB_fldchk(is_local%wrap%FBImp(compice,compice), 'Fioi_swpen_vdr', rc=rc)) then
-             import_swpen_by_bands = .true.
-             call FB_GetFldPtr(is_local%wrap%FBImp(compice,compocn), 'Fioi_swpen_vdr', Fioi_swpen_vdr, rc=rc)
+          call FB_GetFldPtr(is_local%wrap%FBImp(compatm,compocn), 'Faxa_swndr', Faxa_swndr, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call FB_GetFldPtr(is_local%wrap%FBImp(compatm,compocn), 'Faxa_swvdf', Faxa_swvdf, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call FB_GetFldPtr(is_local%wrap%FBImp(compatm,compocn), 'Faxa_swndf', Faxa_swndf, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          lsize = size(Faxa_swvdr)
+
+          ! Input from mediator, ice-covered ocean and open ocean fractions
+          call FB_GetFldPtr(is_local%wrap%FBfrac(compocn), 'ifrac' , ifrac, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call FB_GetFldPtr(is_local%wrap%FBfrac(compocn), 'ofrac' , ofrac, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+          ! Input from mediator, ocean albedos
+          if (trim(coupling_mode) == 'cesm') then
+             call FB_GetFldPtr(is_local%wrap%FBMed_ocnalb_o, 'So_avsdr' , avsdr, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             call FB_GetFldPtr(is_local%wrap%FBImp(compice,compocn), 'Fioi_swpen_vdf', Fioi_swpen_vdf, rc=rc)
+             call FB_GetFldPtr(is_local%wrap%FBMed_ocnalb_o, 'So_anidr' , anidr, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             call FB_GetFldPtr(is_local%wrap%FBImp(compice,compocn), 'Fioi_swpen_idr', Fioi_swpen_idr, rc=rc)
+             call FB_GetFldPtr(is_local%wrap%FBMed_ocnalb_o, 'So_avsdf' , avsdf, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             call FB_GetFldPtr(is_local%wrap%FBImp(compice,compocn), 'Fioi_swpen_idf', Fioi_swpen_idf, rc=rc)
+             call FB_GetFldPtr(is_local%wrap%FBMed_ocnalb_o, 'So_anidf' , anidf, rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             call FB_GetFldPtr(is_local%wrap%FBfrac(compocn), 'ifrad' , ifracr, rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             call FB_GetFldPtr(is_local%wrap%FBfrac(compocn), 'ofrad' , ofracr, rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          end if
+
+          ! Input from ice
+          if (is_local%wrap%comp_present(compice)) then
+             call FB_GetFldPtr(is_local%wrap%FBImp(compice,compocn), 'Fioi_swpen', Fioi_swpen, rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             if (FB_fldchk(is_local%wrap%FBImp(compice,compice), 'Fioi_swpen_vdr', rc=rc)) then
+                import_swpen_by_bands = .true.
+                call FB_GetFldPtr(is_local%wrap%FBImp(compice,compocn), 'Fioi_swpen_vdr', Fioi_swpen_vdr, rc=rc)
+                if (ChkErr(rc,__LINE__,u_FILE_u)) return
+                call FB_GetFldPtr(is_local%wrap%FBImp(compice,compocn), 'Fioi_swpen_vdf', Fioi_swpen_vdf, rc=rc)
+                if (ChkErr(rc,__LINE__,u_FILE_u)) return
+                call FB_GetFldPtr(is_local%wrap%FBImp(compice,compocn), 'Fioi_swpen_idr', Fioi_swpen_idr, rc=rc)
+                if (ChkErr(rc,__LINE__,u_FILE_u)) return
+                call FB_GetFldPtr(is_local%wrap%FBImp(compice,compocn), 'Fioi_swpen_idf', Fioi_swpen_idf, rc=rc)
+                if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             else
+                import_swpen_by_bands = .false.
+             end if
+          end if
+
+          ! Output to ocean swnet 
+          if (FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_swnet', rc=rc)) then
+             call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Foxx_swnet',  Foxx_swnet, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           else
-             import_swpen_by_bands = .false.
-         end if
-       end if
+             lsize = size(Faxa_swvdr)
+             allocate(Foxx_swnet(lsize))
+          end if
 
-       ! Output to ocean swnet 
-       if (FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_swnet', rc=rc)) then
-          call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Foxx_swnet',  Foxx_swnet, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       else
-          lsize = size(Faxa_swvdr)
-          allocate(Foxx_swnet(lsize))
-       end if
+          ! Output to ocean swnet by radiation bands
+          if (FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_swnet_vdr', rc=rc)) then
+             export_swnet_by_bands = .true.
+             call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Foxx_swnet_vdr', Foxx_swnet_vdr, rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Foxx_swnet_vdf', Foxx_swnet_vdf, rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Foxx_swnet_idr', Foxx_swnet_idr, rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Foxx_swnet_idf', Foxx_swnet_idf, rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          else
+             export_swnet_by_bands = .false.
+          end if
 
-       ! Output to ocean swnet by radiation bands
-       if (FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_swnet_vdr', rc=rc)) then
-          export_swnet_by_bands = .true.
-          call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Foxx_swnet_vdr', Foxx_swnet_vdr, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Foxx_swnet_vdf', Foxx_swnet_vdf, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Foxx_swnet_idr', Foxx_swnet_idr, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Foxx_swnet_idf', Foxx_swnet_idf, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       else
-          export_swnet_by_bands = .false.
-       end if
+          ! Swnet without swpen from sea-ice
+          if ( FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_swnet_afracr',rc=rc)) then
+             call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Foxx_swnet_afracr', Foxx_swnet_afracr, rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             export_swnet_afracr = .true.
+          else
+             export_swnet_afracr = .false.
+          end if
 
-       ! Swnet without swpen from sea-ice
-       if ( FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_swnet_afracr',rc=rc)) then
-          call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Foxx_swnet_afracr', Foxx_swnet_afracr, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          export_swnet_afracr = .true.
-       else
-          export_swnet_afracr = .false.
-       end if
-
-       do n = 1,lsize
-
-          ! Determine ocean albedos
-          if (trim(coupling_mode) == 'cesm') then
+          do n = 1,lsize
+             ! Determine ocean albedos
              albvis_dir = avsdr(n)
              albvis_dif = avsdf(n)
              albnir_dir = anidr(n)
              albnir_dif = anidf(n)
-          else
-             albvis_dir = albdif
-             albvis_dif = albdif
-             albnir_dir = albdif
-             albnir_dif = albdif
-          end if
 
-          ! Compute total swnet to ocean independent of swpen from sea-ice
-          fswabsv  = Faxa_swvdr(n) * (1.0_R8 - albvis_dir) + Faxa_swvdf(n) * (1.0_R8 - albvis_dif)
-          fswabsi  = Faxa_swndr(n) * (1.0_R8 - albnir_dir) + Faxa_swndf(n) * (1.0_R8 - albnir_dif)
-          Foxx_swnet(n) = fswabsv + fswabsi
+             ! Compute total swnet to ocean independent of swpen from sea-ice
+             fswabsv  = Faxa_swvdr(n) * (1.0_R8 - albvis_dir) + Faxa_swvdf(n) * (1.0_R8 - albvis_dif)
+             fswabsi  = Faxa_swndr(n) * (1.0_R8 - albnir_dir) + Faxa_swndf(n) * (1.0_R8 - albnir_dif)
+             Foxx_swnet(n) = fswabsv + fswabsi
 
-          ! Add swpen from sea ice if sea ice is present
-          if (is_local%wrap%comp_present(compice)) then
+             ! Add swpen from sea ice if sea ice is present
+             if (is_local%wrap%comp_present(compice)) then
 
-             if (trim(coupling_mode) == 'cesm') then
-                ifrac_scaled = ifrac(n)
-                ofrac_scaled = ofrac(n)
-                frac_sum = ifrac(n) + ofrac(n)
-                if (frac_sum /= 0._R8) then
-                   ifrac_scaled = ifrac(n) / (frac_sum)
-                   ofrac_scaled = ofrac(n) / (frac_sum)
-                endif
+                if (trim(coupling_mode) == 'cesm') then
+                   ifrac_scaled = ifrac(n)
+                   ofrac_scaled = ofrac(n)
+                   frac_sum = ifrac(n) + ofrac(n)
+                   if (frac_sum /= 0._R8) then
+                      ifrac_scaled = ifrac(n) / (frac_sum)
+                      ofrac_scaled = ofrac(n) / (frac_sum)
+                   endif
+                   ifracr_scaled = ifracr(n)
+                   ofracr_scaled = ofracr(n)
+                   frac_sum = ifracr(n) + ofracr(n)
+                   if (frac_sum /= 0._R8) then
+                      ifracr_scaled = ifracr(n) / (frac_sum)
+                      ofracr_scaled = ofracr(n) / (frac_sum)
+                   endif
+                else
+                   ofracr_scaled = ofrac(n)
+                   ifrac_scaled  = ifrac(n)
+                end if
 
-                ifracr_scaled = ifracr(n)
-                ofracr_scaled = ofracr(n)
-                frac_sum = ifracr(n) + ofracr(n)
-                if (frac_sum /= 0._R8) then
-                   ifracr_scaled = ifracr(n) / (frac_sum)
-                   ofracr_scaled = ofracr(n) / (frac_sum)
-                endif
-             else
-                ofracr_scaled = ofrac(n)
-                ifrac_scaled  = ifrac(n)
-             end if
+                Foxx_swnet(n) = ofracr_scaled*(fswabsv + fswabsi) + ifrac_scaled*Fioi_swpen(n)
+                if (export_swnet_afracr) then
+                   Foxx_swnet_afracr(n) = ofracr_scaled*(fswabsv + fswabsi) 
+                end if
 
-             Foxx_swnet(n) = ofracr_scaled*(fswabsv + fswabsi) + ifrac_scaled*Fioi_swpen(n)
-
-             if (export_swnet_afracr) then
-                Foxx_swnet_afracr(n) = ofracr_scaled*(fswabsv + fswabsi) 
-             end if
-
-             ! To compare to mct
-             if (compare_to_mct) then
-                c1 = 0.285
-                c2 = 0.285
-                c3 = 0.215
-                c4 = 0.215
-                Foxx_swnet_vdr(n) = c1 * Foxx_swnet(n)
-                Foxx_swnet_vdf(n) = c2 * Foxx_swnet(n)
-                Foxx_swnet_idr(n) = c3 * Foxx_swnet(n)
-                Foxx_swnet_idf(n) = c4 * Foxx_swnet(n)
-             else
-                if (export_swnet_by_bands) then
-                   if (import_swpen_by_bands) then
-                      ! use each individual band for swpen coming from the sea-ice
-                      Foxx_swnet_vdr(n) = Faxa_swvdr(n)*(1.0_R8-albvis_dir)*ofracr_scaled + Fioi_swpen_vdr(n)*ifrac_scaled
-                      Foxx_swnet_vdf(n) = Faxa_swvdf(n)*(1.0_R8-albvis_dif)*ofracr_scaled + Fioi_swpen_vdf(n)*ifrac_scaled
-                      Foxx_swnet_idr(n) = Faxa_swndr(n)*(1.0_R8-albnir_dir)*ofracr_scaled + Fioi_swpen_idr(n)*ifrac_scaled
-                      Foxx_swnet_idf(n) = Faxa_swndf(n)*(1.0_R8-albnir_dif)*ofracr_scaled + Fioi_swpen_idf(n)*ifrac_scaled
-                   else
-                      ! scale total Foxx_swnet to get contributions from each band
-                      c1 = 0.285
-                      c2 = 0.285
-                      c3 = 0.215
-                      c4 = 0.215
-                      Foxx_swnet_vdr(n) = c1 * Foxx_swnet(n)
-                      Foxx_swnet_vdf(n) = c2 * Foxx_swnet(n)
-                      Foxx_swnet_idr(n) = c3 * Foxx_swnet(n)
-                      Foxx_swnet_idf(n) = c4 * Foxx_swnet(n)
+                ! To compare to mct
+                if (compare_to_mct) then
+                   c1 = 0.285
+                   c2 = 0.285
+                   c3 = 0.215
+                   c4 = 0.215
+                   Foxx_swnet_vdr(n) = c1 * Foxx_swnet(n)
+                   Foxx_swnet_vdf(n) = c2 * Foxx_swnet(n)
+                   Foxx_swnet_idr(n) = c3 * Foxx_swnet(n)
+                   Foxx_swnet_idf(n) = c4 * Foxx_swnet(n)
+                else
+                   if (export_swnet_by_bands) then
+                      if (import_swpen_by_bands) then
+                         ! use each individual band for swpen coming from the sea-ice
+                         Foxx_swnet_vdr(n) = Faxa_swvdr(n)*(1.0_R8-albvis_dir)*ofracr_scaled + Fioi_swpen_vdr(n)*ifrac_scaled
+                         Foxx_swnet_vdf(n) = Faxa_swvdf(n)*(1.0_R8-albvis_dif)*ofracr_scaled + Fioi_swpen_vdf(n)*ifrac_scaled
+                         Foxx_swnet_idr(n) = Faxa_swndr(n)*(1.0_R8-albnir_dir)*ofracr_scaled + Fioi_swpen_idr(n)*ifrac_scaled
+                         Foxx_swnet_idf(n) = Faxa_swndf(n)*(1.0_R8-albnir_dif)*ofracr_scaled + Fioi_swpen_idf(n)*ifrac_scaled
+                      else
+                         ! scale total Foxx_swnet to get contributions from each band
+                         c1 = 0.285
+                         c2 = 0.285
+                         c3 = 0.215
+                         c4 = 0.215
+                         Foxx_swnet_vdr(n) = c1 * Foxx_swnet(n)
+                         Foxx_swnet_vdf(n) = c2 * Foxx_swnet(n)
+                         Foxx_swnet_idr(n) = c3 * Foxx_swnet(n)
+                         Foxx_swnet_idf(n) = c4 * Foxx_swnet(n)
+                      end if
                    end if
                 end if
-             end if
-             
-          end if  ! if sea-ice is present
-       end do
 
-       ! Deallocate Foxx_swnet if it was allocated in this subroutine
-       if (.not. FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_swnet', rc=rc)) then
-          deallocate(Foxx_swnet)
-       end if
-
-       ! Output to ocean per ice thickness fraction and sw penetrating into ocean
-       if ( FB_fldchk(is_local%wrap%FBExp(compocn), 'Sf_afrac', rc=rc)) then
-          call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Sf_afrac', fldptr1=dataptr_o, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          dataptr_o(:) = ofrac(:)
-       end if
-       if ( FB_fldchk(is_local%wrap%FBExp(compocn), 'Sf_afracr', rc=rc)) then
-          call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Sf_afracr', fldptr1=dataptr_o, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          dataptr_o(:) = ofracr(:)
-       end if
-
-       !-------------
-       ! application of precipitation factor from ocean
-       !-------------
-       precip_fact = 1.0_R8
-       if (precip_fact /= 1.0_R8) then
-          if (first_precip_fact_call .and. mastertask) then
-             write(logunit,'(a)')'(merge_to_ocn): Scaling rain, snow, liquid and ice runoff by precip_fact '
-             first_precip_fact_call = .false.
-          end if
-          write(cvalue,*) precip_fact
-          call ESMF_LogWrite(trim(subname)//" precip_fact is "//trim(cvalue), ESMF_LOGMSG_INFO, rc=dbrc)
-
-          allocate(fldnames(4))
-          fldnames = (/'Faxa_rain','Faxa_snow', 'Foxx_rofl', 'Foxx_rofi'/)
-          do n = 1,size(fldnames)
-             if (FB_fldchk(is_local%wrap%FBExp(compocn), trim(fldnames(n)), rc=rc)) then
-                call FB_GetFldPtr(is_local%wrap%FBExp(compocn), trim(fldnames(n)) , dataptr, rc=rc)
-                if (ChkErr(rc,__LINE__,u_FILE_u)) return
-                dataptr(:) = dataptr(:) * precip_fact
-             end if
+             end if  ! if sea-ice is present
           end do
-          deallocate(fldnames)
+
+          ! Deallocate Foxx_swnet if it was allocated in this subroutine
+          if (.not. FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_swnet', rc=rc)) then
+             deallocate(Foxx_swnet)
+          end if
+
+          ! Output to ocean per ice thickness fraction and sw penetrating into ocean
+          if ( FB_fldchk(is_local%wrap%FBExp(compocn), 'Sf_afrac', rc=rc)) then
+             call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Sf_afrac', fldptr1=dataptr_o, rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             dataptr_o(:) = ofrac(:)
+          end if
+          if ( FB_fldchk(is_local%wrap%FBExp(compocn), 'Sf_afracr', rc=rc)) then
+             call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Sf_afracr', fldptr1=dataptr_o, rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             dataptr_o(:) = ofracr(:)
+          end if
+
+          ! Application of precipitation factor from ocean
+          precip_fact = 1.0_R8
+          if (precip_fact /= 1.0_R8) then
+             if (first_precip_fact_call .and. mastertask) then
+                write(logunit,'(a)')'(merge_to_ocn): Scaling rain, snow, liquid and ice runoff by precip_fact '
+                first_precip_fact_call = .false.
+             end if
+             write(cvalue,*) precip_fact
+             call ESMF_LogWrite(trim(subname)//" precip_fact is "//trim(cvalue), ESMF_LOGMSG_INFO, rc=dbrc)
+
+             allocate(fldnames(4))
+             fldnames = (/'Faxa_rain','Faxa_snow', 'Foxx_rofl', 'Foxx_rofi'/)
+             do n = 1,size(fldnames)
+                if (FB_fldchk(is_local%wrap%FBExp(compocn), trim(fldnames(n)), rc=rc)) then
+                   call FB_GetFldPtr(is_local%wrap%FBExp(compocn), trim(fldnames(n)) , dataptr, rc=rc)
+                   if (ChkErr(rc,__LINE__,u_FILE_u)) return
+                   dataptr(:) = dataptr(:) * precip_fact
+                end if
+             end do
+             deallocate(fldnames)
+          end if
        end if
 
        !-------------
-       ! custom calculation for nems_frac coupling
+       ! Custom calculation for nems_orig_active coupling
        !-------------
-       if (trim(coupling_mode) == 'nems_frac') then
-
-          ! determine evaporation to send to ocean 
-          ! Note - don't need to scale the calculated evap by ofrac - since the merged latent heat
-          ! to the ocean has already had this scaling done
-          ! TODO (mvertens, 2018-12-16): is this the right sign below? Minus here is based on nems mediator
+       if (trim(coupling_mode) == 'nems_orig_active') then
 
           allocate(customwgt(lsize))
-          customwgt(:) = - 1._r8 / const_lhvap
-          call med_merge_field(is_local%wrap%FBExp(compocn), 'Foxx_evap', &
-               FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_lat',  wgtA=customwgt, rc=rc)
+
+          customwgt(:) = -ofrac(:) / const_lhvap
+          call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_evap', &
+               FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_lat' , wgtA=customwgt, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+          customwgt(:) = -ofrac(:)
+          call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_sen',  &
+               FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_sen', wgtA=customwgt, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+          call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_taux',  &
+               FBinA=is_local%wrap%FBImp(compice,compocn), fnameA='Fioi_taux' , wgtA=ifrac, &
+               FBinB=is_local%wrap%FBImp(compatm,compocn), fnameB='Faxa_taux' , wgtB=customwgt, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+          call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_tauy',  &
+               FBinA=is_local%wrap%FBImp(compice,compocn), fnameA='Fioi_tauy' , wgtA=ifrac, &
+               FBinB=is_local%wrap%FBImp(compatm,compocn), fnameB='Faxa_tauy' , wgtB=customwgt, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+          ! netsw_for_ocn = downsw_from_atm * (1-ocn_albedo) * (1-ice_fraction) + pensw_from_ice * (ice_fraction)
+
+          customwgt(:) = ofrac(:) * (1.0 - 0.06)
+
+          call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_swnet_vdr',                 &
+               FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_swvdr'    , wgtA=customwgt, &
+               FBinB=is_local%wrap%FBImp(compice,compocn), fnameB='Foxx_swnet_vdr', wgtB=ifrac, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+          call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_swnet_vdf',                 &
+               FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_swvdf'    , wgtA=customwgt, &
+               FBinB=is_local%wrap%FBImp(compice,compocn), fnameB='Foxx_swnet_vdf', wgtB=ifrac, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+          call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_swnet_idr',                 &
+               FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_swndr'    , wgtA=customwgt, &
+               FBinB=is_local%wrap%FBImp(compice,compocn), fnameB='Foxx_swnet_idr', wgtB=ifrac, rc=rc)
+
+          call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_swnet_idf',                 &
+               FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_swndf'    , wgtA=customwgt, &
+               FBinB=is_local%wrap%FBImp(compice,compocn), fnameB='Foxx_swnet_idf', wgtB=ifrac, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
           deallocate(customwgt)
-       end if
+
+       end if  ! end of nems_orig_active
 
        !-------------
-       ! Custom calculation for nems_orig coupling
+       ! Custom calculation for nems_orig_data coupling
        !-------------
-       if (trim(coupling_mode) == 'nems_orig') then
+       if (trim(coupling_mode) == 'nems_orig_data') then
 
           ! open ocean (i.e. atm)  and ice fraction
           ! ocnwgt and icewgt are the "normal" fractions
@@ -520,17 +546,18 @@ contains
 
           call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_sen',    &
                FBinA=is_local%wrap%FBMed_aoflux_o        , fnameA='Faox_sen ', wgtA=ocnwgt1, &
-               FBinC=is_local%wrap%FBImp(compatm,compocn), fnameB='Faxa_sen' , wgtB=wgtm01, rc=rc)
-
+               FBinB=is_local%wrap%FBImp(compatm,compocn), fnameB='Faxa_sen' , wgtB=wgtm01, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
           call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_taux',  &
                FBinA=is_local%wrap%FBMed_aoflux_o        , fnameA='Faox_taux ', wgtA=ocnwgt1, &
                FBinB=is_local%wrap%FBImp(compice,compocn), fnameB='Fioi_taux' , wgtB=icewgt1, &
                FBinC=is_local%wrap%FBImp(compatm,compocn), fnameC='Faxa_taux' , wgtC=wgtm01, rc=rc)
-
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
           call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_tauy',  &
                FBinA=is_local%wrap%FBMed_aoflux_o        , fnameA='Faox_tauy ', wgtA=ocnwgt1, &
                FBinB=is_local%wrap%FBImp(compice,compocn), fnameB='Fioi_tauy' , wgtB=icewgt1, &
                FBinC=is_local%wrap%FBImp(compatm,compocn), fnameC='Faxa_tauy' , wgtC=wgtm01, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
           ! If there is no ice on the ocn gridcell (ocnwgt1=0) - sum Faxa_lwdn and Faxa_lwup
           ! If there is ice on the ocn gridcell -  merge Faox_lwup and Faxa_lwdn and ignore Faxa_lwup
@@ -538,12 +565,13 @@ contains
                FBinA=is_local%wrap%FBMed_aoflux_o        , fnameA='Faox_lwup ', wgtA=ocnwgt1, &
                FBinB=is_local%wrap%FBImp(compatm,compocn), fnameB='Faxa_lwdn' , wgtB=ocnwgt1, &
                FBinC=is_local%wrap%FBImp(compatm,compocn), fnameC='Faxa_lwnet', wgtC=wgtp01, rc=rc)
-
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
           call med_merge_field(is_local%wrap%FBExp(compocn),      'Faxa_rain' , &
                FBInA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_rain' , wgtA=ofrac, rc=rc)
-
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
           call med_merge_field(is_local%wrap%FBExp(compocn),      'Faxa_snow' , &
                FBInA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_snow' , wgtA=ofrac, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
           deallocate(ocnwgt1)
           deallocate(icewgt1)
@@ -551,19 +579,16 @@ contains
           deallocate(wgtm01)
           deallocate(customwgt)
 
-       end if  ! end of NEMS-orig ocn prep phase
+       end if  ! end of nems_orig_data custom phase
 
        !---------------------------------------
        !--- diagnose output
        !---------------------------------------
 
        if (dbug_flag > 1) then
-          call FB_diagnose(is_local%wrap%FBExp(compocn), &
-               string=trim(subname)//' FBexp(compocn) ', rc=rc)
+          call FB_diagnose(is_local%wrap%FBExp(compocn), string=trim(subname)//' FBexp(compocn) ', rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
-
-       ! TODO (mvertens, 2018-12-16): document above custom calculation
 
        !---------------------------------------
        !--- clean up

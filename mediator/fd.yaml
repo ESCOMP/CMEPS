@@ -230,7 +230,7 @@
          mean downward SW heat flux
      #
      - standard_name: Faxa_lwnet
-       alias: mean_net_lw_flx_atm
+       alias: mean_net_lw_flx
        canonical_units: W m-2
        description: atmosphere export
           mean merge longwave flux from atm (NEMS)
@@ -605,42 +605,29 @@
 ######### fv3 work start
 
      - standard_name: Faxa_taux
-       alias: mean_zonal_moment_flx_atm
+       alias: mean_zonal_moment_flx
        canonical_units: N m-2
        description: atmosphere export
          zonal component of momentum flux
      #
      - standard_name: Faxa_tauy
-       alias: mean_merid_moment_flx_atm
+       alias: mean_merid_moment_flx
        canonical_units: N m-2
        description: atmosphere export
          meridional component of momentum flux
      #
+     - standard_name: Faxa_evap
+       alias: mean_evap_rate
+       canonical_units: W m-2
+       description: atmosphere export
+     #
      - standard_name: Faxa_lat
-       alias: mean_laten_heat_flx_atm
+       alias: mean_laten_heat_flx
        canonical_units: W m-2
        description: atmosphere export
      #
      - standard_name: Faxa_sen
-       alias: mean_sensi_heat_flx_atm
-       canonical_units: W m-2
-       description: atmosphere export
-     #
-     - standard_name: inst_zonal_moment_flx_atm
-       canonical_units: N m-2
-       description: atmosphere export
-         zonal component of momentum flux
-     #
-     - standard_name: inst_merid_moment_flx_atm
-       canonical_units: N m-2
-       description: atmosphere export
-         meridional component of momentum flux
-     #
-     - standard_name: inst_laten_heat_flx_atm
-       canonical_units: W m-2
-       description: atmosphere export
-     #
-     - standard_name: inst_sensi_heat_flx_atm
+       alias: mean_sensi_heat_flx
        canonical_units: W m-2
        description: atmosphere export
 
@@ -1000,7 +987,7 @@
          volume of snow per unit area
      #
      - standard_name: Si_t
-       alias: sea_ice_temperature
+       alias: sea_ice_surface_temperature
        canonical_units: K
        description: sea-ice export
      #
