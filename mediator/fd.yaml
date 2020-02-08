@@ -679,6 +679,10 @@
        canonical_units: kg m-2 s-1
        description: atmosphere import (cesm only)
      #
+     - standard_name: Faxx_lat
+       canonical_units: W m-2
+       description: atmosphere import (cesm) or sent from atm (fv3)
+     #
      - standard_name: Faxx_lwup
        canonical_units: W m-2
        description: atmosphere import (cesm only)
@@ -1001,7 +1005,7 @@
          volume of snow per unit area
      #
      - standard_name: Si_t
-       alias: sea_ice_surface_temperature
+       alias: sea_ice_temperature
        canonical_units: K
        description: sea-ice export
      #

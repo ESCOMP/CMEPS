@@ -4,42 +4,40 @@ module MED
   ! Mediator Component.
   !-----------------------------------------------------------------------------
 
-  use med_kind_mod                         , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
-  use med_constants_mod                    , only : dbug_flag          => med_constants_dbug_flag
-  use med_constants_mod                    , only : spval_init         => med_constants_spval_init
-  use med_constants_mod                    , only : spval              => med_constants_spval
-  use med_constants_mod                    , only : czero              => med_constants_czero
-  use med_constants_mod                    , only : ispval_mask        => med_constants_ispval_mask
-  use med_utils_mod                        , only : chkerr             => med_utils_ChkErr
-  use med_methods_mod                      , only : Field_GeomPrint    => med_methods_Field_GeomPrint
-  use med_methods_mod                      , only : State_GeomPrint    => med_methods_State_GeomPrint
-  use med_methods_mod                      , only : State_GeomWrite    => med_methods_State_GeomWrite
-  use med_methods_mod                      , only : State_reset        => med_methods_State_reset
-  use med_methods_mod                      , only : State_getNumFields => med_methods_State_getNumFields
-  use med_methods_mod                      , only : State_GetScalar    => med_methods_State_GetScalar 
-  use med_methods_mod                      , only : FB_Init            => med_methods_FB_init
-  use med_methods_mod                      , only : FB_Init_pointer    => med_methods_FB_Init_pointer
-  use med_methods_mod                      , only : FB_Reset           => med_methods_FB_Reset
-  use med_methods_mod                      , only : FB_Copy            => med_methods_FB_Copy
-  use med_methods_mod                      , only : FB_FldChk          => med_methods_FB_FldChk
-  use med_methods_mod                      , only : FB_diagnose        => med_methods_FB_diagnose
-  use med_methods_mod                      , only : clock_timeprint    => med_methods_clock_timeprint
-  use med_time_mod                         , only : set_stop_alarm     => med_time_set_component_stop_alarm
-  use med_time_mod                         , only : alarmInit          => med_time_alarmInit 
-  use med_utils_mod                        , only : memcheck           => med_memcheck
-  use med_phases_history_mod               , only : histAlarmInit      => med_phases_history_alarm_init
-  use med_internalstate_mod                , only : InternalState
-  use med_internalstate_mod                , only : med_coupling_allowed, logunit, mastertask
-  use med_phases_profile_mod               , only : med_phases_profile_finalize
-  use esmFlds                              , only : ncomps, compname
-  use esmFlds                              , only : fldListFr, fldListTo, med_fldList_Realize
-  use esmFlds                              , only : ncomps, compname, ncomps, compmed, compatm, compocn
-  use esmFlds                              , only : compice, complnd, comprof, compwav, compglc, compname
-  use esmFlds                              , only : fldListMed_ocnalb, fldListMed_aoflux
-  use esmFlds                              , only : med_fldList_GetNumFlds
-  use esmFlds                              , only : med_fldList_GetFldNames
-  use esmFlds                              , only : med_fldList_Document_Mapping
-  use esmFlds                              , only : med_fldList_Document_Merging
+  use med_kind_mod           , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
+  use med_constants_mod      , only : dbug_flag          => med_constants_dbug_flag
+  use med_constants_mod      , only : spval_init         => med_constants_spval_init
+  use med_constants_mod      , only : spval              => med_constants_spval
+  use med_constants_mod      , only : czero              => med_constants_czero
+  use med_constants_mod      , only : ispval_mask        => med_constants_ispval_mask
+  use med_utils_mod          , only : chkerr             => med_utils_ChkErr
+  use med_methods_mod        , only : Field_GeomPrint    => med_methods_Field_GeomPrint
+  use med_methods_mod        , only : State_GeomPrint    => med_methods_State_GeomPrint
+  use med_methods_mod        , only : State_GeomWrite    => med_methods_State_GeomWrite
+  use med_methods_mod        , only : State_reset        => med_methods_State_reset
+  use med_methods_mod        , only : State_getNumFields => med_methods_State_getNumFields
+  use med_methods_mod        , only : State_GetScalar    => med_methods_State_GetScalar 
+  use med_methods_mod        , only : FB_Init            => med_methods_FB_init
+  use med_methods_mod        , only : FB_Init_pointer    => med_methods_FB_Init_pointer
+  use med_methods_mod        , only : FB_Reset           => med_methods_FB_Reset
+  use med_methods_mod        , only : FB_Copy            => med_methods_FB_Copy
+  use med_methods_mod        , only : FB_FldChk          => med_methods_FB_FldChk
+  use med_methods_mod        , only : FB_diagnose        => med_methods_FB_diagnose
+  use med_methods_mod        , only : clock_timeprint    => med_methods_clock_timeprint
+  use med_time_mod           , only : alarmInit          => med_time_alarmInit 
+  use med_utils_mod          , only : memcheck           => med_memcheck
+  use med_internalstate_mod  , only : InternalState
+  use med_internalstate_mod  , only : med_coupling_allowed, logunit, mastertask
+  use med_phases_profile_mod , only : med_phases_profile_finalize
+  use esmFlds                , only : ncomps, compname
+  use esmFlds                , only : fldListFr, fldListTo, med_fldList_Realize
+  use esmFlds                , only : ncomps, compname, ncomps, compmed, compatm, compocn
+  use esmFlds                , only : compice, complnd, comprof, compwav, compglc, compname
+  use esmFlds                , only : fldListMed_ocnalb, fldListMed_aoflux
+  use esmFlds                , only : med_fldList_GetNumFlds
+  use esmFlds                , only : med_fldList_GetFldNames
+  use esmFlds                , only : med_fldList_Document_Mapping
+  use esmFlds                , only : med_fldList_Document_Merging
   use esmFlds                              , only : coupling_mode
   use esmFldsExchange_nems_orig_active_mod , only : esmFldsExchange_nems_orig_active
   use esmFldsExchange_nems_orig_data_mod   , only : esmFldsExchange_nems_orig_data
@@ -382,7 +380,6 @@ contains
     use ESMF  , only : ESMF_GridComp, ESMF_State, ESMF_Clock, ESMF_VM, ESMF_SUCCESS
     use ESMF  , only : ESMF_GridCompGet, ESMF_VMGet, ESMF_AttributeGet
     use ESMF  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_METHOD_INITIALIZE
-    use ESMF  , only : ESMF_GridCompGet
     use NUOPC , only : NUOPC_CompFilterPhaseMap
     use med_internalstate_mod, only : mastertask
 
@@ -1979,19 +1976,27 @@ contains
     integer, intent(out) :: rc
 
     ! local variables
-    type(ESMF_Clock)         :: mediatorClock, driverClock
-    type(ESMF_Time)          :: currTime
-    type(ESMF_TimeInterval)  :: timeStep
-    character(len=256)       :: cvalue
-    character(len=256)       :: restart_option       ! Restart option units
-    integer                  :: restart_n            ! Number until restart interval
-    integer                  :: restart_ymd          ! Restart date (YYYYMMDD)
-    type(ESMF_ALARM)         :: restart_alarm
-    type(ESMF_ALARM)         :: med_profile_alarm
-    type(ESMF_ALARM)         :: glc_avg_alarm
-    logical                  :: glc_present
-    character(len=16)        :: glc_avg_period
-    logical                :: first_time = .true.
+    type(ESMF_Clock)        :: mediatorClock, driverClock
+    type(ESMF_Time)         :: currTime
+    type(ESMF_TimeInterval) :: timeStep
+    character(len=256)      :: cvalue
+    character(len=256)      :: restart_option       ! Restart option units
+    integer                 :: restart_n            ! Number until restart interval
+    integer                 :: restart_ymd          ! Restart date (YYYYMMDD)
+    type(ESMF_ALARM)        :: restart_alarm
+    type(ESMF_ALARM)        :: med_profile_alarm
+    type(ESMF_ALARM)        :: glc_avg_alarm
+    logical                 :: glc_present
+    character(len=16)       :: glc_avg_period
+    character(len=256)      :: stop_option    ! Stop option units
+    integer                 :: stop_n         ! Number until stop interval
+    integer                 :: stop_ymd       ! Stop date (YYYYMMDD)
+    type(ESMF_ALARM)        :: stop_alarm
+    character(len=256)      :: option           
+    integer                 :: opt_n            
+    integer                 :: opt_ymd          
+    type(ESMF_ALARM)        :: alarm
+    logical                 :: first_time = .true.
     character(len=*),parameter :: subname='(module_MED:SetRunClock)'
     !-----------------------------------------------------------
 
@@ -2002,8 +2007,7 @@ contains
     endif
 
     ! query the Mediator for clocks
-    call NUOPC_MediatorGet(gcomp, mediatorClock=mediatorClock, &
-      driverClock=driverClock, rc=rc)
+    call NUOPC_MediatorGet(gcomp, mediatorClock=mediatorClock, driverClock=driverClock, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if (dbug_flag > 1) then
@@ -2036,22 +2040,15 @@ contains
 
        call NUOPC_CompAttributeGet(gcomp, name="restart_option", value=restart_option, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
        call NUOPC_CompAttributeGet(gcomp, name="restart_n", value=cvalue, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        read(cvalue,*) restart_n
-
        call NUOPC_CompAttributeGet(gcomp, name="restart_ymd", value=cvalue, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        read(cvalue,*) restart_ymd
-
-       call alarmInit(mediatorclock, restart_alarm, restart_option, &
-            opt_n   = restart_n,           &
-            opt_ymd = restart_ymd,         &
-            RefTime = currTime,           &
-            alarmname = 'alarm_restart', rc=rc)
+       call alarmInit(mediatorclock, restart_alarm, restart_option, opt_n=restart_n, opt_ymd=restart_ymd,  &
+            RefTime=currTime, alarmname = 'alarm_restart', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
        call ESMF_AlarmSet(restart_alarm, clock=mediatorclock, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
@@ -2060,7 +2057,6 @@ contains
        call alarmInit(mediatorclock, med_profile_alarm, 'ndays', &
             opt_n = 1, alarmname = 'med_profile_alarm', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
        call ESMF_AlarmSet(med_profile_alarm, clock=mediatorclock, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
@@ -2072,22 +2068,15 @@ contains
        if (glc_present) then
           call NUOPC_CompAttributeGet(gcomp, name="glc_avg_period", value=glc_avg_period, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
           if (trim(glc_avg_period) == 'hour') then
-             call alarmInit(mediatorclock, glc_avg_alarm, 'nhours', &
-                  opt_n = 1, alarmname = 'alarm_glc_avg', rc=rc)
+             call alarmInit(mediatorclock, glc_avg_alarm, 'nhours', opt_n=1, alarmname='alarm_glc_avg', rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
           else if (trim(glc_avg_period) == 'day') then
-             call alarmInit(mediatorclock, glc_avg_alarm, 'ndays', &
-                  opt_n = 1, alarmname = 'alarm_glc_avg', rc=rc)
+             call alarmInit(mediatorclock, glc_avg_alarm, 'ndays' , opt_n=1, alarmname='alarm_glc_avg', rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
           else if (trim(glc_avg_period) == 'yearly') then
-             call alarmInit(mediatorclock, glc_avg_alarm, 'nyears', &
-                  opt_n = 1, alarmname = 'alarm_glc_avg', rc=rc)
+             call alarmInit(mediatorclock, glc_avg_alarm, 'nyears', opt_n=1, alarmname='alarm_glc_avg', rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
           else
             call ESMF_LogWrite(trim(subname)//&
                  ": ERROR glc_avg_period = "//trim(glc_avg_period)//" not supported", &
@@ -2099,10 +2088,18 @@ contains
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
       end if
 
-      ! Initialize med history file alarm
-      call histAlarmInit(gcomp, rc)
+      ! Mediator stop alarm
 
-      call set_stop_alarm(gcomp, rc)
+      call NUOPC_CompAttributeGet(gcomp, name="stop_option", value=stop_option, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      call NUOPC_CompAttributeGet(gcomp, name="stop_n", value=cvalue, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      read(cvalue,*) stop_n
+      call NUOPC_CompAttributeGet(gcomp, name="stop_ymd", value=cvalue, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      read(cvalue,*) stop_ymd
+      call alarmInit(mediatorClock, stop_alarm, stop_option, opt_n=stop_n, opt_ymd=stop_ymd, &
+           RefTime = currTime,  alarmname = 'alarm_stop', rc=rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        first_time = .false.

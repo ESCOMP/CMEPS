@@ -58,10 +58,6 @@ module med_phases_prep_lnd_mod
   type(ESMF_FieldBundle) :: FBglc_ec
   type(ESMF_FieldBundle) :: FBlnd_ec
 
-  type(med_fldlist_type) :: fldlist_glc2lnd_frac_x_icemask
-  type(med_fldlist_type) :: fldlist_glc2lnd_norm_icemask
-  type(med_fldlist_type) :: fldlist_glc2lnd_norm_none
-
   ! the number of elevation classes (excluding bare land) = ungriddedCount - 1
   integer :: ungriddedCount ! this equals the number of elevation classes + 1 (for bare land)
 
@@ -267,7 +263,7 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! -------------------------------
-    ! Create module field bundlel ice masks on glc grid (no elevation classes)
+    ! Create module field bundles
     ! -------------------------------
 
     FBglc_icemask = ESMF_FieldBundleCreate(rc=rc)
@@ -276,11 +272,6 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call ESMF_FieldBundleAdd(FBglc_icemask, (/lfield/), rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    ! -------------------------------
-    ! Create module field bundle for icefrac times icemask in multiple elevation classes
-    ! on glc and land (fraction in this elevation class) x (icemask) for a given elevation class
-    ! -------------------------------
 
     FBglc_frac_x_icemask = ESMF_FieldBundleCreate(rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -298,15 +289,6 @@ contains
     call ESMF_FieldBundleAdd(FBlnd_frac_x_icemask, (/lfield/), rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    allocate(fldlist_glc2lnd_frac_x_icemask%flds(1))
-    fldlist_glc2lnd_frac_x_icemask%flds(1)%shortname = trim(Sg_frac_x_icemask)
-    fldlist_glc2lnd_frac_x_icemask%flds(1)%mapindex(complnd) = mapconsf
-    fldlist_glc2lnd_frac_x_icemask%flds(1)%mapnorm(complnd) = 'none'
-
-    ! -------------------------------
-    ! Create generic multiple elevation module field bundles that can be re-used
-    ! -------------------------------
-
     FBglc_ec = ESMF_FieldBundleCreate(rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     lfield = ESMF_FieldCreate(lmesh_glc, ESMF_TYPEKIND_R8, name='field_ec', meshloc=ESMF_MESHLOC_ELEMENT, &
@@ -322,17 +304,6 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call ESMF_FieldBundleAdd(FBlnd_ec, (/lfield/), rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    ! determine different mapping types and normalization for generic field bundles above
-    allocate(fldlist_glc2lnd_norm_icemask%flds(1))
-    fldlist_glc2lnd_norm_icemask%flds(1)%shortname = 'field_ec'
-    fldlist_glc2lnd_norm_icemask%flds(1)%mapindex(complnd) = mapconsf
-    fldlist_glc2lnd_norm_icemask%flds(1)%mapnorm(complnd) = trim(Sg_icemask)
-
-    allocate(fldlist_glc2lnd_norm_none%flds(1))
-    fldlist_glc2lnd_norm_none%flds(1)%shortname = 'field_ec'
-    fldlist_glc2lnd_norm_none%flds(1)%mapindex(complnd) = mapconsf
-    fldlist_glc2lnd_norm_none%flds(1)%mapnorm(complnd) = 'none'
 
     ! -------------------------------
     ! Create route handle if it has not been created
@@ -374,6 +345,7 @@ contains
 
     ! local variables
     type(InternalState)   :: is_local
+    type(med_fldlist_type) :: fldlist
     integer               :: ec, nfld, n, l, g
     real(r8)              :: topo_virtual
     real(r8), pointer     :: icemask_g(:)             ! glc ice mask field on glc grid
@@ -445,8 +417,12 @@ contains
     if (dbug_flag > 1) then
        call ESMF_LogWrite(trim(subname)//": calling mapping elevation class fractions from glc to land", ESMF_LOGMSG_INFO)
     end if
+    allocate(fldlist%flds(1))
+    fldlist%flds(1)%shortname = 'field_ec'
+    fldlist%flds(1)%mapindex(complnd) = mapconsf
+    fldlist%flds(1)%mapnorm(complnd) = trim(Sg_icemask)
     call med_map_FB_Regrid_Norm( &
-         fldsSrc=fldList_glc2lnd_norm_icemask%flds, &
+         fldsSrc=fldList%flds, &
          srccomp=compglc, &
          destcomp=complnd, &
          FBSrc=FBglc_ec, & ! this has multiple elevation classes
@@ -456,7 +432,7 @@ contains
          RouteHandles=is_local%wrap%RH(compglc,complnd,:), &
          string='mapping elevation class fractions from glc to land ', rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-
+    deallocate(fldlist%flds)
     call FB_getFldPtr(FBlnd_ec, 'field_ec', fldptr2=frac_l_ec, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call FB_getFldPtr(is_local%wrap%FBExp(complnd), trim(Sg_frac)//'_elev', fldptr2=dataptr2d_exp, rc=rc)
@@ -487,8 +463,12 @@ contains
     if (dbug_flag > 1) then
        call ESMF_LogWrite(trim(subname)//": calling mapping of topo from glc to land", ESMF_LOGMSG_INFO)
     end if
+    allocate(fldlist%flds(1))
+    fldlist%flds(1)%shortname = 'field_ec'
+    fldlist%flds(1)%mapindex(complnd) = mapconsf
+    fldlist%flds(1)%mapnorm(complnd) = 'none'
     call med_map_FB_Regrid_Norm( &
-         fldsSrc=fldList_glc2lnd_norm_none%flds, &
+         fldsSrc=fldlist%flds, &
          srccomp=compglc, &
          destcomp=complnd, &
          FBSrc=FBglc_ec, &
@@ -498,6 +478,7 @@ contains
          RouteHandles=is_local%wrap%RH(compglc,complnd,:), &
          string='mapping topo from glc to land (with elevation classes)', rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
+    deallocate(fldlist%flds)
     call FB_getFldPtr(FBlnd_ec, 'field_ec', fldptr2=topo_l_ec , rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
@@ -505,8 +486,12 @@ contains
     if (dbug_flag > 1) then
        call ESMF_LogWrite(trim(subname)//": calling mapping of frac_x_icemask from glc to land", ESMF_LOGMSG_INFO)
     end if
+    allocate(fldlist%flds(1))
+    fldlist%flds(1)%shortname = trim(Sg_frac_x_icemask)
+    fldlist%flds(1)%mapindex(complnd) = mapconsf
+    fldlist%flds(1)%mapnorm(complnd) = 'none'
     call med_map_FB_Regrid_Norm( &
-         fldsSrc=fldList_glc2lnd_frac_x_icemask%flds, &
+         fldsSrc=fldList%flds, &
          srccomp=compglc, &
          destcomp=complnd, &
          FBSrc=FBglc_frac_x_icemask, &
@@ -516,7 +501,8 @@ contains
          RouteHandles=is_local%wrap%RH(compglc,complnd,:), &
          string='mapping frac_x_icemask from glc to land (with elevation classes)', rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call FB_getFldPtr(FBlnd_ec, 'field_ec', fldptr2=frac_x_icemask_l , rc=rc)
+    deallocate(fldlist%flds)
+    call FB_getFldPtr(FBlnd_frac_x_icemask, trim(Sg_frac_x_icemask), fldptr2=frac_x_icemask_l , rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! set Sg_topo values in export state to land (in multiple elevation classes)

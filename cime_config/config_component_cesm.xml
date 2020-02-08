@@ -295,6 +295,9 @@
     <default_value>1</default_value>
     <values match="last">
       <value compset="_DLND.*_CISM\d">1</value>
+      <value compset="_SGLC">$ATM_NCPL</value>
+      <value compset="_XGLC">$ATM_NCPL</value>
+      <value compset="_MOM6">1</value>
     </values>
     <group>run_coupling</group>
     <file>env_run.xml</file>
@@ -324,8 +327,7 @@
 
   <entry id="ROF_NCPL">
     <type>integer</type>
-    <!-- TODO: (mvertens, 2019-02-02): for now are setting the rof couping frequency to the atm coupling frequency -->
-    <default_value>$ATM_NCPL</default_value>
+    <default_value>8</default_value>
     <values match="last">
       <value compset="_DATM.*_POP2.*_DROF">$ATM_NCPL</value>
       <value compset="_DATM.*_MOM6.*_DROF">$ATM_NCPL</value>
@@ -335,6 +337,7 @@
       <value compset="_DATM%CPLHIST.+MOM\d">8</value>
       <value compset="_XATM.*_XLND.*_XICE.*_XOCN">$ATM_NCPL</value>
       <value compset="_DLND.*_CISM\d">1</value>
+      <value compset="_XROF">$ATM_NCPL</value>
     </values>
     <group>run_coupling</group>
     <file>env_run.xml</file>
@@ -402,6 +405,30 @@
       evaporation and ocn global salinity does not drift. This is intended
       for use when coupling POP to a DATM. Only used for C, G and J compsets.
       Default is off
+    </desc>
+  </entry>
+
+  <entry id="CPL_SEQ_OPTION">
+    <type>char</type>
+    <valid_values>TIGHT,RASM</valid_values>
+    <default_value>TIGHT</default_value>
+    <values match="last">
+      <value compset="_DATM.*_DOCN%SOM"			>RASM</value>
+      <value compset="_POP2"				>RASM</value>
+      <value compset="_MOM6"				>RASM</value>
+      <value compset="_POP2" grid="oi%gx1v6"		>RASM</value>
+      <value compset="_POP2" grid="oi%gx1v7"		>RASM</value>
+      <value compset="_DATM%NYF.*_SLND.*_DICE.*_DOCN"	>RASM</value>
+      <value compset="_XATM.*_XLND.*_XICE.*_XOCN"	>RASM</value>
+      <value compset="_SOCN"				>RASM</value>
+    </values>
+    <group>run_coupling</group>
+    <file>env_run.xml</file>
+    <desc>
+      RASM runs prep ocean before the ocean coupling reducing
+      most of the lags and field inconsistency but still allowing the ocean to run
+      concurrently with the ice and atmosphere.
+      TIGHT are consistent with the old variables ocean_tight_coupling = true in the driver.
     </desc>
   </entry>
 

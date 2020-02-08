@@ -33,8 +33,11 @@ contains
 !===============================================================================
 
   logical function med_utils_ChkErr(rc, line, file, mpierr)
-
+#ifdef USE_MPI2
     use mpi , only : MPI_ERROR_STRING, MPI_MAX_ERROR_STRING, MPI_SUCCESS
+#else
+    use mpi, only : MPI_SUCCESS
+#endif
     use ESMF, only : ESMF_LogFoundError, ESMF_LOGERR_PASSTHRU, ESMF_LOGMSG_INFO
     use ESMF, only : ESMF_FAILURE, ESMF_LogWrite
 
@@ -43,7 +46,9 @@ contains
 
     character(len=*), intent(in) :: file
     logical, optional, intent(in) :: mpierr
-
+#ifndef USE_MPI2
+    integer, parameter :: MPI_MAX_ERROR_STRING=80
+#endif
     character(MPI_MAX_ERROR_STRING) :: lstring
     integer :: dbrc, lrc, len, ierr
 
@@ -51,7 +56,11 @@ contains
     lrc = rc
     if (present(mpierr) .and. mpierr) then
        if (rc == MPI_SUCCESS) return
+#ifdef USE_MPI2
        call MPI_ERROR_STRING(rc, lstring, len, ierr)
+#else
+       write(lstring,*) "ERROR in mct mpi-serial library rc=",rc
+#endif
        call ESMF_LogWrite("ERROR: "//trim(lstring), ESMF_LOGMSG_INFO, line=line, file=file, rc=dbrc)
        lrc = ESMF_FAILURE
     endif
