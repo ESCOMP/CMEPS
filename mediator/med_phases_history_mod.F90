@@ -29,7 +29,7 @@ module med_phases_history_mod
   use med_methods_mod       , only : State_GetScalar => med_methods_State_GetScalar
   use med_map_mod           , only : med_map_FB_Regrid_Norm
   use med_internalstate_mod , only : InternalState, mastertask, logunit
-  use med_time_mod          , only : med_time_alarmInit      
+  use med_time_mod          , only : med_time_alarmInit
   use med_io_mod            , only : med_io_write, med_io_wopen, med_io_enddef
   use med_io_mod            , only : med_io_close, med_io_date2yyyymmdd, med_io_sec2hms
   use med_io_mod            , only : med_io_ymd2date
@@ -60,7 +60,7 @@ contains
 
     use ESMF  , only : ESMF_GridComp, ESMF_GridCompGet
     use ESMF  , only : ESMF_Clock, ESMF_ClockGet, ESMF_ClockAdvance, ESMF_ClockSet
-    use ESMF  , only : ESMF_Time  
+    use ESMF  , only : ESMF_Time
     use ESMF  , only : ESMF_TimeInterval, ESMF_TimeIntervalGet
     use ESMF  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_LOGMSG_ERROR
     use ESMF  , only : ESMF_SUCCESS, ESMF_FAILURE
@@ -78,6 +78,7 @@ contains
     type(ESMF_Clock)        :: mclock, dclock
     type(ESMF_TimeInterval) :: mtimestep, dtimestep
     type(ESMF_Time)         :: mCurrTime
+    type(ESMF_Time)         :: mStartTime
     type(ESMF_TimeInterval) :: timestep
     integer                 :: alarmcount
     integer                 :: timestep_length
@@ -102,6 +103,10 @@ contains
     call NUOPC_ModelGet(gcomp, modelClock=mclock,  rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+    ! get start time
+    call ESMF_ClockGet(mclock, startTime=mStartTime,  rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
     ! -----------------------------
     ! Set alarm for instantaneous mediator history output
     ! -----------------------------
@@ -113,7 +118,7 @@ contains
     read(cvalue,*) histinst_n
 
     call med_time_alarmInit(mclock, alarm, option=histinst_option, opt_n=histinst_n, &
-         alarmname='alarm_history_inst', rc=rc)
+         reftime=mStartTime, alarmname='alarm_history_inst', rc=rc)
 
     call ESMF_AlarmSet(alarm, clock=mclock, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -129,7 +134,7 @@ contains
     read(cvalue,*) histavg_n
 
     call med_time_alarmInit(mclock, alarm, option=histavg_option, opt_n=histavg_n, &
-         alarmname='alarm_history_avg', rc=rc)
+         reftime=mStartTime, alarmname='alarm_history_avg', rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     call ESMF_AlarmSet(alarm, clock=mclock, rc=rc)
@@ -236,7 +241,7 @@ contains
     logical                 :: isPresent
     type(ESMF_TimeInterval) :: RingInterval
     integer                 :: ringInterval_length
-    logical                 :: first_time = .true.   
+    logical                 :: first_time = .true.
     character(len=*), parameter :: subname='(med_phases_history_write)'
     !---------------------------------------
 
@@ -313,9 +318,9 @@ contains
     call ESMF_TimeGet(nexttime, yy=yr, mm=mon, dd=day, s=sec, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     write(nexttimestr,'(i4.4,a,i2.2,a,i2.2,a,i5.5)') yr,'-',mon,'-',day,'-',sec
-    if (mastertask) then
+    if (mastertask .and. dbug_flag>2) then
        write(logunit,*)
-       write(logunit,*) trim(subname)//": history alarm ringinterval = ", ringInterval_length 
+       write(logunit,*) trim(subname)//": history alarm ringinterval = ", ringInterval_length
        write(logunit,' (a)') trim(subname)//": currtime = "//trim(currtimestr)//" nexttime = "//trim(nexttimestr)
        write(logunit,*) trim(subname) //' history alarm is ringing = ', ESMF_AlarmIsRinging(alarm)
     end if
