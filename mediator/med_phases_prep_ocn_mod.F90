@@ -247,20 +247,18 @@ contains
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
           ! Input from mediator, ocean albedos
-          if (trim(coupling_mode) == 'cesm') then
-             call FB_GetFldPtr(is_local%wrap%FBMed_ocnalb_o, 'So_avsdr' , avsdr, rc=rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             call FB_GetFldPtr(is_local%wrap%FBMed_ocnalb_o, 'So_anidr' , anidr, rc=rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             call FB_GetFldPtr(is_local%wrap%FBMed_ocnalb_o, 'So_avsdf' , avsdf, rc=rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             call FB_GetFldPtr(is_local%wrap%FBMed_ocnalb_o, 'So_anidf' , anidf, rc=rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             call FB_GetFldPtr(is_local%wrap%FBfrac(compocn), 'ifrad' , ifracr, rc=rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             call FB_GetFldPtr(is_local%wrap%FBfrac(compocn), 'ofrad' , ofracr, rc=rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          end if
+          call FB_GetFldPtr(is_local%wrap%FBMed_ocnalb_o, 'So_avsdr' , avsdr, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call FB_GetFldPtr(is_local%wrap%FBMed_ocnalb_o, 'So_anidr' , anidr, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call FB_GetFldPtr(is_local%wrap%FBMed_ocnalb_o, 'So_avsdf' , avsdf, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call FB_GetFldPtr(is_local%wrap%FBMed_ocnalb_o, 'So_anidf' , anidf, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call FB_GetFldPtr(is_local%wrap%FBfrac(compocn), 'ifrad' , ifracr, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call FB_GetFldPtr(is_local%wrap%FBfrac(compocn), 'ofrad' , ofracr, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
           ! Input from ice
           if (is_local%wrap%comp_present(compice)) then
