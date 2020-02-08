@@ -55,7 +55,7 @@ module esmFldsExchange_nems_frac_mod
   ! med -> fv3
   ! ------------
   ! So_t      - sea_surface_temperature           from ocn only
-  ! Si_t      - sea_ice_surface_temperature       from ice only
+  ! ---       - sea_ice_surface_temperature       from ice only (* should be Si_t but cesm/nems have conflict)
   ! Si_ifrac  - ice_fraction                      from ice only
   ! Si_vice   - mean_ice_volume                   from ice only
   ! Si_vsno   - mean_snow_volume                  from ice only
@@ -88,33 +88,27 @@ module esmFldsExchange_nems_frac_mod
   ! Faxa_lat       - mean_laten_heat_flx           to ocn
   ! Faxa_swdn      - mean_down_sw_flx              to ocn
   ! Faxa_lwnet     - mean_net_lw_flx               to ocn
-  ! Foxx_swnet_vdr - mean_net_sw_vis_dir_flx       to ocn
-  ! Foxx_swnet_vdf - mean_net_sw_vis_dif_flx       to ocn
-  ! Foxx_swnet_idr - mean_net_sw_ir_dir_flx        to ocn
-  ! Foxx_swnet_idf - mean_net_sw_ir_dif_flx        to ocn
   ! Faxa_rain      - mean_prec_rate                to ocn
   ! Faxa_snow      - mean_fprec_rate               to ocn
-  ! Faxa_evap      - mean_evap_rate                to ocn
   ! -------------------------------------------------
-
+  !
   ! ------------
   ! med -> mom6
   ! ------------
   ! Fioi_salt      - mean_salt_rate
   ! Fioi_salt      - mean_zonal_moment_flx
+  ! Fioi_meltw     - mean_fresh_water_to_ocean_rate
+  ! Fioi_melth     - net_heat_flx_to_ocn
   ! Foxx_tauy      - mean_merid_moment_flx
   ! Foxx_sen       - mean_sensi_heat_flx
   ! Foxx_evap      - mean_evap_rate
   ! Faxa_lwnet     - mean_net_lw_flx   ! TODO: there should be no _atm suffix
-  ! Foxx_swnet     - mean_net_sw_flx
-  ! Foxx_swnet_vdr - mean_net_sw_vis_dir_flx
-  ! Foxx_swnet_vdf - mean_net_sw_vis_dif_flx
-  ! Foxx_swnet_idr - mean_net_sw_ir_dir_flx
-  ! Foxx_swnet_idf - mean_net_sw_ir_dif_flx
+  ! ---            - mean_net_sw_vis_dir_flx (* should be Foxx_swnet_vdr but fd.yaml alias confict)
+  ! ---            - mean_net_sw_vis_dif_flx (* should be Foxx_swnet_vdf but fd.yaml alias confict)
+  ! ---            - mean_net_sw_ir_dir_flx  (* should be Foxx_swnet_idr but fd.yaml alias confict)
+  ! ---            - mean_net_sw_ir_dif_flx  (* should be Foxx_swnet_idf but fd.yaml alias confict)
   ! Faxa_rain      - mean_prec_rate
   ! Faxa_snow      - mean_fprec_rate
-  ! Fioi_meltw     - mean_fresh_water_to_ocean_rate
-  ! Fioi_melth     - net_heat_flx_to_ocn
   ! Sa_pslv        - inst_pres_height_surface
   !
   ! ------------
@@ -130,11 +124,11 @@ module esmFldsExchange_nems_frac_mod
   ! Fioo_q   - freezing_melting_potential
   !
   ! ------------
-  ! cice -> med
+  ! cice -> med (see * note below)
   ! ------------
   ! Si_imask       - ice_mask
   ! Si_ifrac       - ice_fraction
-  ! Si_t           - sea_ice_surface_temperature ! TODO: bug in the yaml file
+  ! ---            - sea_ice_surface_temperature (* should be Si_t but cesm/nems have conflict)
   ! Si_avsdr       - inst_ice_vis_dir_albedo
   ! Si_anidr       - inst_ice_ir_dir_albedo
   ! Si_avsdf       - inst_ice_vis_dif_albedo
@@ -144,10 +138,10 @@ module esmFldsExchange_nems_frac_mod
   ! Fioi_taux      - stress_on_ocn_ice_zonal
   ! Fioi_tauy      - stress_on_ocn_ice_merid
   ! Fioi_swpen     - mean_sw_pen_to_ocn
-  ! Foxx_swnet_vdr - mean_net_sw_vis_dir_flx
-  ! Foxx_swnet_vdf - mean_net_sw_vis_dif_flx
-  ! Foxx_swnet_idr - mean_net_sw_ir_dir_flx
-  ! Foxx_swnet_idf - mean_net_sw_ir_dif_flx
+  ! ---            - mean_net_sw_vis_dir_flx (* should be Fioi_swpen_ but fd.yaml alias confict)
+  ! ---            - mean_net_sw_vis_dif_flx (* should be Fioi_swpen_ but fd.yaml alias confict)
+  ! ---            - mean_net_sw_ir_dir_flx  (* should be Fioi_swpen_ but fd.yaml alias confict)
+  ! ---            - mean_net_sw_ir_dif_flx  (* should be Fioi_swpen_ but fd.yaml alias confict)
   ! Faii_lwup      - mean_up_lw_flx_ice
   ! Faii_sen       - mean_sensi_heat_flx_atm_into_ice
   ! Faii_lat       - mean_laten_heat_flx_atm_into_ice
@@ -208,8 +202,7 @@ contains
     use esmFlds               , only : addmap => med_fldList_AddMap
     use esmFlds               , only : addmrg => med_fldList_AddMrg
     use esmflds               , only : compmed, compatm, compocn, compice, ncomps
-    use esmflds               , only : mapbilnr, mapconsf, mapconsd, mappatch
-    use esmflds               , only : mapfcopy, mapnstod, mapnstod_consd, mapnstod_consf
+    use esmflds               , only : mapbilnr, mapconsf, mappatch, mapfcopy
     use esmflds               , only : fldListTo, fldListFr
     use med_internalstate_mod , only : mastertask, logunit
 
@@ -223,7 +216,7 @@ contains
     integer             :: i, n
     character(len=CL)   :: cvalue
     character(len=CS)   :: name
-    character(len=*) , parameter   :: subname='(esmFldsExchange_ufs)'
+    character(len=*) , parameter   :: subname='(esmFldsExchange_nems_frac)'
     !--------------------------------------
 
     rc = ESMF_SUCCESS
@@ -308,11 +301,11 @@ contains
          mrg_from1=compice, mrg_fld1='Faii_evap', mrg_type1='copy')
 
     ! to atm: unmerged temperatures from ice
-    call addfld(fldListFr(compice)%flds, 'Si_t')
-    call addfld(fldListTo(compatm)%flds, 'Si_t')
-    call addmap(fldListFr(compice)%flds, 'Si_t', compatm, mapconsf, 'ifrac', 'unset')
-    call addmrg(fldListTo(compatm)%flds, 'Si_t', &
-         mrg_from1=compice, mrg_fld1='Si_t', mrg_type1='copy')
+    call addfld(fldListFr(compice)%flds, 'sea_ice_surface_temperature')
+    call addfld(fldListTo(compatm)%flds, 'sea_ice_surface_temperature')
+    call addmap(fldListFr(compice)%flds, 'sea_ice_surface_temperature', compatm, mapconsf, 'ifrac')
+    call addmrg(fldListTo(compatm)%flds, 'sea_ice_surface_temperature', &
+         mrg_from1=compice, mrg_fld1='sea_ice_surface_temperature', mrg_type1='copy')
 
     ! to atm: unmerged temperatures from ocn
     call addfld(fldListFr(compocn)%flds, 'So_t')
@@ -320,13 +313,6 @@ contains
     call addmap(fldListFr(compocn)%flds, 'So_t', compatm, mapconsf, 'none' , 'unset')
     call addmrg(fldListTo(compatm)%flds, 'So_t', &
          mrg_from1=compocn, mrg_fld1='So_t', mrg_type1='copy')
-
-    ! to atm: surface snow depth from ice
-    call addfld(fldListFr(compice)%flds, 'Si_snowh')
-    call addfld(fldListTo(compatm)%flds, 'Si_snowh')
-    call addmap(fldListFr(compice)%flds, 'Si_snowh', compatm, mapconsf, 'ifrac', 'unset')
-    call addmrg(fldListTo(compatm)%flds, 'Si_snowh', &
-         mrg_from1=compice, mrg_fld1='Si_snowh', mrg_type1='copy')
 
     ! to atm: mean ice volume per unit area  from ice
     call addfld(fldListFr(compice)%flds, 'Si_vice')
@@ -360,30 +346,27 @@ contains
          mrg_from1=compatm, mrg_fld1='Faxa_lwnet', mrg_type1='copy_with_weights', mrg_fracname1='ofrac')
 
     ! to ocn: net shortwave radiation from med
+    ! *** custom merge in med_phases_prep_ocn ***
     call addfld(fldListFr(compatm)%flds, 'Faxa_swvdr')
     call addfld(fldListFr(compatm)%flds, 'Faxa_swndr')
     call addfld(fldListFr(compatm)%flds, 'Faxa_swvdf')
     call addfld(fldListFr(compatm)%flds, 'Faxa_swndf')
-
-    call addfld(fldListFr(compice)%flds, 'Fioi_swpen_vdr')
-    call addfld(fldListFr(compice)%flds, 'Fioi_swpen_vdf')
-    call addfld(fldListFr(compice)%flds, 'Fioi_swpen_idr')
-    call addfld(fldListFr(compice)%flds, 'Fioi_swpen_idf')
-
-    call addfld(fldListTo(compocn)%flds, 'Foxx_swnet_vdr')
-    call addfld(fldListTo(compocn)%flds, 'Foxx_swnet_vdf')
-    call addfld(fldListTo(compocn)%flds, 'Foxx_swnet_idr')
-    call addfld(fldListTo(compocn)%flds, 'Foxx_swnet_idf')
-    call addmap(fldListFr(compice)%flds, 'Fioi_swpen_vdr' , compocn, mapfcopy, 'unset', 'unset')
-    call addmap(fldListFr(compice)%flds, 'Fioi_swpen_vdf' , compocn, mapfcopy, 'unset', 'unset')
-    call addmap(fldListFr(compice)%flds, 'Fioi_swpen_idr' , compocn, mapfcopy, 'unset', 'unset')
-    call addmap(fldListFr(compice)%flds, 'Fioi_swpen_idf' , compocn, mapfcopy, 'unset', 'unset')
-
     call addmap(fldListFr(compatm)%flds, 'Faxa_swvdr', compocn, mapconsf, 'one', 'unset')
     call addmap(fldListFr(compatm)%flds, 'Faxa_swvdf', compocn, mapconsf, 'one', 'unset')
     call addmap(fldListFr(compatm)%flds, 'Faxa_swndr', compocn, mapconsf, 'one', 'unset')
     call addmap(fldListFr(compatm)%flds, 'Faxa_swndf', compocn, mapconsf, 'one', 'unset')
-    ! Custom merge in med_phases_prep_ocn
+    call addfld(fldListFr(compice)%flds, 'mean_net_sw_vis_dir_flx')
+    call addfld(fldListFr(compice)%flds, 'mean_net_sw_vis_dif_flx')
+    call addfld(fldListFr(compice)%flds, 'mean_net_sw_ir_dir_flx' )
+    call addfld(fldListFr(compice)%flds, 'mean_net_sw_ir_dif_flx' )
+    call addmap(fldListFr(compice)%flds, 'mean_net_sw_vis_dir_flx', compocn, mapfcopy, 'unset', 'unset')
+    call addmap(fldListFr(compice)%flds, 'mean_net_sw_vis_dif_flx', compocn, mapfcopy, 'unset', 'unset')
+    call addmap(fldListFr(compice)%flds, 'mean_net_sw_ir_dir_flx' , compocn, mapfcopy, 'unset', 'unset')
+    call addmap(fldListFr(compice)%flds, 'mean_net_sw_ir_dif_flx' , compocn, mapfcopy, 'unset', 'unset')
+    call addfld(fldListTo(compocn)%flds, 'Foxx_swnet_vdr')
+    call addfld(fldListTo(compocn)%flds, 'Foxx_swnet_vdf')
+    call addfld(fldListTo(compocn)%flds, 'Foxx_swnet_idr')
+    call addfld(fldListTo(compocn)%flds, 'Foxx_swnet_idf')
 
     !  to ocn: precipitation rate water equivalent from atm
     call addfld(fldListFr(compatm)%flds, 'Faxa_rain')
@@ -400,15 +383,16 @@ contains
          mrg_from1=compatm, mrg_fld1='Faxa_snow', mrg_type1='copy_with_weights', mrg_fracname1='ofrac')
 
     ! to ocn: merged sensible heat flux
+    ! *** custom merge in med_phases_prep_ocn ***
     call addfld(fldListFr(compatm)%flds, 'Faxa_sen')
     call addfld(fldListTo(compocn)%flds, 'Foxx_sen')
     call addmap(fldListFr(compatm)%flds, 'Faxa_sen', compocn, mapconsf, 'one', 'unset')
 
     ! to ocn: surface latent heat flux and evaporation water flux
+    ! *** custom merge in med_phases_prep_ocn ***
     call addfld(fldListFr(compatm)%flds, 'Faxa_lat')
-    call addfld(fldListFr(compatm)%flds, 'Faxa_evap')
     call addfld(fldListTo(compocn)%flds, 'Foxx_evap')
-    call addmap(fldListFr(compatm)%flds, 'Faxa_lat', compocn, mapconsf, 'one', 'unset')
+    call addmap(fldListFr(compatm)%flds, 'Faxa_lat' , compocn, mapconsf, 'one', 'unset')
 
     ! to ocn: sea level pressure from atm
     call addfld(fldListFr(compatm)%flds, 'Sa_pslv')
@@ -419,17 +403,17 @@ contains
          mrg_from1=compatm, mrg_fld1='Sa_pslv', mrg_type1='copy')
 
     ! to ocn: merge zonal surface stress from ice and atm
+    ! *** custom merge in med_phases_prep_ocn ***
     call addfld(fldListFr(compice)%flds, 'Fioi_taux')
-    call addfld(fldListFr(compatm)%flds, 'Faxa_taux')
-    call addfld(fldListTo(compocn)%flds, 'Foxx_taux')
-    call addmap(fldListFr(compatm)%flds, 'Faxa_taux', compocn, mapconsf, 'one'  , 'unset')
-    call addmap(fldListFr(compice)%flds, 'Fioi_taux', compocn, mapfcopy, 'unset', 'unset')
     call addfld(fldListFr(compice)%flds, 'Fioi_tauy')
+    call addfld(fldListFr(compatm)%flds, 'Faxa_taux')
     call addfld(fldListFr(compatm)%flds, 'Faxa_tauy')
+    call addfld(fldListTo(compocn)%flds, 'Foxx_taux')
     call addfld(fldListTo(compocn)%flds, 'Foxx_tauy')
-    call addmap(fldListFr(compatm)%flds, 'Faxa_tauy', compocn, mapconsf, 'one'  , 'unset')
+    call addmap(fldListFr(compice)%flds, 'Fioi_taux', compocn, mapfcopy, 'unset', 'unset')
     call addmap(fldListFr(compice)%flds, 'Fioi_tauy', compocn, mapfcopy, 'unset', 'unset')
-    ! Custom merge in med_phases_prep_ocn
+    call addmap(fldListFr(compatm)%flds, 'Faxa_taux', compocn, mapconsf, 'one'  , 'unset')
+    call addmap(fldListFr(compatm)%flds, 'Faxa_tauy', compocn, mapconsf, 'one'  , 'unset')
 
     ! to ocn: water flux due to melting ice from ice
     call addfld(fldListFr(compice)%flds, 'Fioi_meltw')
