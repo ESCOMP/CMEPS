@@ -1,4 +1,4 @@
-module esmFldsExchange_mod
+module esmFldsExchange_cesm_mod
 
   !---------------------------------------------------------------------
   ! This is a mediator specific routine that determines ALL possible
@@ -9,7 +9,7 @@ module esmFldsExchange_mod
   implicit none
   public
 
-  public :: esmFldsExchange
+  public :: esmFldsExchange_cesm
 
   character(*), parameter :: u_FILE_u = &
        __FILE__
@@ -18,7 +18,7 @@ module esmFldsExchange_mod
 contains
 !================================================================================
 
-  subroutine esmFldsExchange(gcomp, phase, rc)
+  subroutine esmFldsExchange_cesm(gcomp, phase, rc)
 
     use ESMF
     use NUOPC
@@ -90,42 +90,6 @@ contains
        nullify(is_local%wrap)
        call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-    end if
-
-    !----------------------------------------------------------
-    ! Determine supported coupling model
-    !----------------------------------------------------------
-
-    if (phase /= 'advertise') then
-
-       ! CESM Default settings
-       coupling_mode = 'cesm'
-
-       if ( fldchk(is_local%wrap%FBexp(compatm)        , 'Faxx_taux', rc=rc) .and. &
-            fldchk(is_local%wrap%FBImp(compice,compice), 'Faii_taux', rc=rc) .and. &
-            fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_taux', rc=rc)) then
-
-          ! NEMS orig
-          ! atm receives merged atm/ocn fluxes computed in mediator and
-          ! atm/ice and fluxes computed in ice. The atm/ocn fluxes are
-          ! only used for gridcells that If no interpolated values can be
-          ! obtained over ocn/ice gridcells on the atm grid (using
-          ! bilinear or conservative methods), the interpolated values
-          ! from the nearest neighbor method will be used.
-
-          coupling_mode = 'nems_orig'
-
-       else if ( fldchk(is_local%wrap%FBexp(compatm)        , 'Faii_taux', rc=rc) .and. &
-                 fldchk(is_local%wrap%FBImp(compice,compice), 'Faii_taux', rc=rc) .and. &
-                 fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_taux', rc=rc)) then
-
-          ! NEMS frac
-          ! atm receives atm/ice fluxes computed in the ice component and returns merged
-          ! lnd/ice/ocn surface fluxes and states back to the mediator
-
-          coupling_mode = 'nems_frac'
-
-       end if
     end if
 
     !--------------------------------------
@@ -389,39 +353,37 @@ contains
     ! to med: atm and ocn fields required for atm/ocn flux calculation'
     ! ---------------------------------------------------------------------
     if (phase /= 'advertise') then
-       if (trim(coupling_mode) == 'cesm' .or. trim(coupling_mode) == 'nems_orig') then
-          call addfld(fldListFr(compatm)%flds, 'Sa_u')
-          call addmap(fldListFr(compatm)%flds, 'Sa_u'   , compocn, mappatch, 'one', atm2ocn_vmap)
+       call addfld(fldListFr(compatm)%flds, 'Sa_u')
+       call addmap(fldListFr(compatm)%flds, 'Sa_u'   , compocn, mappatch, 'one', atm2ocn_vmap)
 
-          call addfld(fldListFr(compatm)%flds, 'Sa_v')
-          call addmap(fldListFr(compatm)%flds, 'Sa_v'   , compocn, mappatch, 'one', atm2ocn_vmap)
+       call addfld(fldListFr(compatm)%flds, 'Sa_v')
+       call addmap(fldListFr(compatm)%flds, 'Sa_v'   , compocn, mappatch, 'one', atm2ocn_vmap)
 
-          call addfld(fldListFr(compatm)%flds, 'Sa_z')
-          call addmap(fldListFr(compatm)%flds, 'Sa_z'   , compocn, mapbilnr, 'one', atm2ocn_smap)
+       call addfld(fldListFr(compatm)%flds, 'Sa_z')
+       call addmap(fldListFr(compatm)%flds, 'Sa_z'   , compocn, mapbilnr, 'one', atm2ocn_smap)
 
-          call addfld(fldListFr(compatm)%flds, 'Sa_tbot')
-          call addmap(fldListFr(compatm)%flds, 'Sa_tbot', compocn, mapbilnr, 'one', atm2ocn_smap)
+       call addfld(fldListFr(compatm)%flds, 'Sa_tbot')
+       call addmap(fldListFr(compatm)%flds, 'Sa_tbot', compocn, mapbilnr, 'one', atm2ocn_smap)
 
-          call addfld(fldListFr(compatm)%flds, 'Sa_pbot')
-          call addmap(fldListFr(compatm)%flds, 'Sa_pbot', compocn, mapbilnr, 'one', atm2ocn_smap)
+       call addfld(fldListFr(compatm)%flds, 'Sa_pbot')
+       call addmap(fldListFr(compatm)%flds, 'Sa_pbot', compocn, mapbilnr, 'one', atm2ocn_smap)
 
-          call addfld(fldListFr(compatm)%flds, 'Sa_shum')
-          call addmap(fldListFr(compatm)%flds, 'Sa_shum', compocn, mapbilnr, 'one', atm2ocn_smap)
+       call addfld(fldListFr(compatm)%flds, 'Sa_shum')
+       call addmap(fldListFr(compatm)%flds, 'Sa_shum', compocn, mapbilnr, 'one', atm2ocn_smap)
 
-          if (fldchk(is_local%wrap%FBImp(compatm,compatm), 'Sa_shum_wiso', rc=rc)) then
-             call addfld(fldListFr(compatm)%flds, 'Sa_shum_wiso')
-             call addmap(fldListFr(compatm)%flds, 'Sa_shum_wiso', compocn, mapbilnr, 'one', atm2ocn_smap)
-          end if
+       if (fldchk(is_local%wrap%FBImp(compatm,compatm), 'Sa_shum_wiso', rc=rc)) then
+          call addfld(fldListFr(compatm)%flds, 'Sa_shum_wiso')
+          call addmap(fldListFr(compatm)%flds, 'Sa_shum_wiso', compocn, mapbilnr, 'one', atm2ocn_smap)
+       end if
 
-          if (fldchk(is_local%wrap%FBImp(compatm,compatm), 'Sa_ptem', rc=rc)) then
-             call addfld(fldListFr(compatm)%flds, 'Sa_ptem')
-             call addmap(fldListFr(compatm)%flds, 'Sa_ptem', compocn, mapbilnr, 'one', atm2ocn_smap)
-          end if
+       if (fldchk(is_local%wrap%FBImp(compatm,compatm), 'Sa_ptem', rc=rc)) then
+          call addfld(fldListFr(compatm)%flds, 'Sa_ptem')
+          call addmap(fldListFr(compatm)%flds, 'Sa_ptem', compocn, mapbilnr, 'one', atm2ocn_smap)
+       end if
 
-          if (fldchk(is_local%wrap%FBImp(compatm,compatm), 'Sa_dens', rc=rc)) then
-             call addfld(fldListFr(compatm)%flds, 'Sa_dens')
-             call addmap(fldListFr(compatm)%flds, 'Sa_dens', compocn, mapbilnr, 'one', atm2ocn_smap)
-          end if
+       if (fldchk(is_local%wrap%FBImp(compatm,compatm), 'Sa_dens', rc=rc)) then
+          call addfld(fldListFr(compatm)%flds, 'Sa_dens')
+          call addmap(fldListFr(compatm)%flds, 'Sa_dens', compocn, mapbilnr, 'one', atm2ocn_smap)
        end if
     end if
 
@@ -634,7 +596,7 @@ contains
           call addfld(fldListMed_ocnalb%flds , 'So_'//trim(suffix(n)))
           call addfld(fldListTo(compatm)%flds, 'Sx_'//trim(suffix(n)))
        else
-          ! CESM (cam, non-aqua-planet)
+          ! (cam, non-aqua-planet)
           if ( fldchk(is_local%wrap%FBexp(compatm)        , 'Sx_'//trim(suffix(n)), rc=rc) .and. &
                fldchk(is_local%wrap%FBImp(complnd,complnd), 'Sl_'//trim(suffix(n)), rc=rc) .and. &
                fldchk(is_local%wrap%FBImp(compice,compice), 'Si_'//trim(suffix(n)), rc=rc) .and. &
@@ -647,7 +609,7 @@ contains
                   mrg_from2=compice, mrg_fld2='Si_'//trim(suffix(n)), mrg_type2='merge', mrg_fracname2='ifrac', &
                   mrg_from3=compmed, mrg_fld3='So_'//trim(suffix(n)), mrg_type3='merge', mrg_fracname3='ofrac')
 
-          ! CESM (cam, aqua-planet)
+          ! (cam, aqua-planet)
           else if (fldchk(is_local%wrap%FBMed_ocnalb_a, 'So_'//trim(suffix(n)), rc=rc) .and. &
                    fldchk(is_local%wrap%FBexp(compatm), 'Sx_'//trim(suffix(n)), rc=rc)) then
              call addmap(fldListMed_ocnalb%flds , 'So_'//trim(suffix(n)), compatm, mapconsf, 'ofrac', ocn2atm_smap)
@@ -674,7 +636,7 @@ contains
           call addfld(fldListMed_aoflux%flds  , 'So_'//trim(suffix(n)))
           call addfld(fldListTo(compatm)%flds , 'Sx_'//trim(suffix(n)))
        else
-          ! CESM (cam, non-aqua-planet)
+          ! (cam, non-aqua-planet)
           if ( fldchk(is_local%wrap%FBexp(compatm)         , 'Sx_'//trim(suffix(n)), rc=rc) .and. &
                fldchk(is_local%wrap%FBImp(complnd,complnd ), 'Sl_'//trim(suffix(n)), rc=rc) .and. &
                fldchk(is_local%wrap%FBImp(compice,compice ), 'Si_'//trim(suffix(n)), rc=rc) .and. &
@@ -688,17 +650,7 @@ contains
                   mrg_from2=compice, mrg_fld2='Si_'//trim(suffix(n)), mrg_type2='merge', mrg_fracname2='ifrac', &
                   mrg_from3=compmed, mrg_fld3='So_'//trim(suffix(n)), mrg_type3='merge', mrg_fracname3='ofrac')
 
-          ! NEMS-orig - merged ocn temp
-          else if (fldchk(is_local%wrap%FBexp(compatm)        , 'Sx_'//trim(suffix(n)), rc=rc) .and. &
-                   fldchk(is_local%wrap%FBImp(compocn,compocn), 'So_'//trim(suffix(n)), rc=rc) .and. &
-                   fldchk(is_local%wrap%FBImp(compice,compice), 'Si_'//trim(suffix(n)), rc=rc)) then
-             call addmap(fldListFr(compice)%flds, 'Si_'//trim(suffix(n)), compatm, mapnstod_consf, 'ifrac', ice2atm_fmap)
-             call addmap(fldListFr(compocn)%flds, 'So_'//trim(suffix(n)), compatm, mapnstod_consf, 'none' , ocn2atm_fmap)
-             call addmrg(fldListTo(compatm)%flds, 'Sx_'//trim(suffix(n)), &
-                  mrg_from1=compice, mrg_fld1='Si_'//trim(suffix(n)), mrg_type1='merge', mrg_fracname1='ifrac', &
-                  mrg_from2=compocn, mrg_fld2='So_'//trim(suffix(n)), mrg_type2='merge', mrg_fracname2='ofrac')
-
-          ! CESM (cam, aqua-planet)
+          ! (cam, aqua-planet)
           else if (fldchk(is_local%wrap%FBMed_aoflux_o, 'So_'//trim(suffix(n)), rc=rc)) then
              call addmap(fldListMed_aoflux%flds , 'So_'//trim(suffix(n)), compatm, mapconsf, 'ofrac', ocn2atm_fmap) ! map ocn->atm
              call addmrg(fldListTo(compatm)%flds, 'Sx_'//trim(suffix(n)), &
@@ -725,10 +677,9 @@ contains
           call addfld(fldListMed_aoflux%flds , 'Faox_'//trim(suffix(n)))
           call addfld(fldListFr(complnd)%flds, 'Fall_'//trim(suffix(n)))
           call addfld(fldListFr(compice)%flds, 'Faii_'//trim(suffix(n)))
-          call addfld(fldListTo(compatm)%flds, 'Faii_'//trim(suffix(n))) ! nems-frac
-          call addfld(fldListTo(compatm)%flds, 'Faxx_'//trim(suffix(n))) ! cesm, nems-orig
+          call addfld(fldListTo(compatm)%flds, 'Faxx_'//trim(suffix(n)))
        else
-          ! CESM (non aqua-planet)
+          ! (non aqua-planet)
           if ( fldchk(is_local%wrap%FBImp(complnd,complnd), 'Fall_'//trim(suffix(n)), rc=rc) .and. &
                fldchk(is_local%wrap%FBImp(compice,compice), 'Faii_'//trim(suffix(n)), rc=rc) .and. &
                fldchk(is_local%wrap%FBMed_aoflux_o        , 'Faox_'//trim(suffix(n)), rc=rc) .and. &
@@ -741,24 +692,7 @@ contains
                   mrg_from2=compice, mrg_fld2='Faii_'//trim(suffix(n)), mrg_type2='merge', mrg_fracname2='ifrac', &
                   mrg_from3=compmed, mrg_fld3='Faox_'//trim(suffix(n)), mrg_type3='merge', mrg_fracname3='ofrac')
 
-          ! NEMS orig (here ofrac = 1.-ifrac)
-          else if ( fldchk(is_local%wrap%FBImp(compice,compice), 'Faii_'//trim(suffix(n)), rc=rc) .and. &
-                    fldchk(is_local%wrap%FBMed_aoflux_o        , 'Faox_'//trim(suffix(n)), rc=rc) .and. &
-                    fldchk(is_local%wrap%FBexp(compatm)        , 'Faxx_'//trim(suffix(n)), rc=rc)) then
-             call addmap(fldListMed_aoflux%flds  , 'Faox_'//trim(suffix(n)), compatm, mapnstod_consf, 'none' , ocn2atm_fmap)
-             call addmap(fldListFr(compice)%flds , 'Faii_'//trim(suffix(n)), compatm, mapnstod_consf, 'ifrac', ice2atm_fmap)
-             call addmrg(fldListTo(compatm)%flds , 'Faxx_'//trim(suffix(n)), &
-                  mrg_from1=compice, mrg_fld1='Faii_'//trim(suffix(n)), mrg_type1='merge', mrg_fracname1='ifrac', &
-                  mrg_from2=compmed, mrg_fld2='Faox_'//trim(suffix(n)), mrg_type2='merge', mrg_fracname2='ofrac')
-
-          ! NEMS frac (merge done in fv3)
-          else if ( fldchk(is_local%wrap%FBImp(compice,compice), 'Faii_'//trim(suffix(n)), rc=rc) .and. &
-                    fldchk(is_local%wrap%FBexp(compatm)        , 'Faii_'//trim(suffix(n)), rc=rc)) then
-             call addmap(fldListFr(compice)%flds, 'Faii_'//trim(suffix(n)), compatm, mapconsf, 'ifrac', ice2atm_fmap)
-             call addmrg(fldListTo(compatm)%flds, 'Faii_'//trim(suffix(n)), &
-                  mrg_from1=compice, mrg_fld1='Faii_'//trim(suffix(n)), mrg_type1='merge', mrg_fracname1='ifrac')
-
-          ! CESM (cam, aqua-planet)
+          ! (cam, aqua-planet)
           else if (fldchk(is_local%wrap%FBMed_aoflux_o, 'Faox_'//trim(suffix(n)), rc=rc) .and. &
                    fldchk(is_local%wrap%FBexp(compatm), 'Faxx_'//trim(suffix(n)), rc=rc)) then
              call addmap(fldListMed_aoflux%flds , 'Faox_'//trim(suffix(n)), compatm, mapconsf, 'ofrac', ocn2atm_fmap)
@@ -777,11 +711,10 @@ contains
        call addfld(fldListFr(compice)%flds, 'Si_t')
        call addfld(fldListFr(compocn)%flds, 'So_t')
 
-       call addfld(fldListTo(compatm)%flds, 'So_t') ! cesm, nems-frac
-       call addfld(fldListTo(compatm)%flds, 'Si_t') ! nems-frac
-       call addfld(fldListTo(compatm)%flds, 'Sx_t') ! cesm, nems-orig
+       call addfld(fldListTo(compatm)%flds, 'So_t')
+       call addfld(fldListTo(compatm)%flds, 'Sx_t')
     else
-       ! CESM - merged ocn/ice/lnd temp and unmerged ocn temp
+       ! merged ocn/ice/lnd temp and unmerged ocn temp
        if (fldchk(is_local%wrap%FBexp(compatm)        , 'Sx_t', rc=rc) .and. &
            fldchk(is_local%wrap%FBImp(complnd,complnd), 'Sl_t', rc=rc) .and. &
            fldchk(is_local%wrap%FBImp(compice,compice), 'Si_t', rc=rc) .and. &
@@ -796,19 +729,7 @@ contains
           call addmrg(fldListTo(compatm)%flds, 'So_t', &
                mrg_from1=compocn, mrg_fld1='So_t', mrg_type1='copy')
 
-       ! NEMS-orig - merged ocn/ice temp and unmerged ocn temp
-       else if (fldchk(is_local%wrap%FBexp(compatm)        , 'Sx_t', rc=rc) .and. &
-                fldchk(is_local%wrap%FBImp(compocn,compocn), 'So_t', rc=rc) .and. &
-                fldchk(is_local%wrap%FBImp(compice,compice), 'Si_t', rc=rc)) then
-          call addmap(fldListFr(compice)%flds, 'Si_t', compatm, mapnstod_consf, 'ifrac', ice2atm_fmap)
-          call addmap(fldListFr(compocn)%flds, 'So_t', compatm, mapnstod_consf, 'none' , ocn2atm_fmap)
-          call addmrg(fldListTo(compatm)%flds, 'Sx_t', &
-                mrg_from1=compice, mrg_fld1='Si_t', mrg_type1='merge', mrg_fracname1='ifrac', &
-                mrg_from2=compocn, mrg_fld2='So_t', mrg_type2='merge', mrg_fracname2='ofrac')
-          call addmrg(fldListTo(compatm)%flds, 'So_t', &
-               mrg_from1=compocn, mrg_fld1='So_t', mrg_type1='copy')
-
-       ! CESM aqua-planet - merged and unmerged ocn temp are the same
+       ! aqua-planet - merged and unmerged ocn temp are the same
        else if ( fldchk(is_local%wrap%FBexp(compatm)        , 'Sx_t', rc=rc) .and. &
                  fldchk(is_local%wrap%FBImp(compocn,compocn), 'So_t', rc=rc)) then
           call addmap(fldListFr(compocn)%flds, 'So_t', compatm, mapconsf, 'ofrac', ocn2atm_fmap)
@@ -817,18 +738,10 @@ contains
           call addmrg(fldListTo(compatm)%flds, 'So_t', &
                mrg_from1=compocn, mrg_fld1='So_t', mrg_type1='copy')
        end if
-
-       ! NEMS-frac - unmerged ice temp
-       if ( fldchk(is_local%wrap%FBexp(compatm)        , 'Si_t', rc=rc) .and. &
-            fldchk(is_local%wrap%FBImp(compice,compice), 'Si_t', rc=rc)) then
-          call addmap(fldListFr(compice)%flds, 'Si_t', compatm, mapconsf , 'ifrac', ice2atm_fmap)
-          call addmrg(fldListTo(compatm)%flds, 'Si_t', &
-               mrg_from1=compice, mrg_fld1='Si_t', mrg_type1='copy')
-       end if
     end if
 
     ! ---------------------------------------------------------------------
-    ! to atm: surface snow depth             from ice
+    ! to atm: surface snow depth             from ice (needed for cam)
     ! to atm: mean ice volume per unit area  from ice
     ! to atm: mean snow volume per unit area from ice
     ! ---------------------------------------------------------------------
@@ -843,11 +756,7 @@ contains
        else
           if ( fldchk(is_local%wrap%FBexp(compatm)        , trim(fldname), rc=rc) .and. &
                fldchk(is_local%wrap%FBImp(compice,compice), trim(fldname), rc=rc)) then
-             if (trim(coupling_mode) == 'nems_orig') then
-                call addmap(fldListFr(compice)%flds, trim(fldname), compatm, mapnstod_consf, 'ifrac', ice2atm_fmap)
-             else
-                call addmap(fldListFr(compice)%flds, trim(fldname), compatm, mapconsf      , 'ifrac', ice2atm_fmap)
-             end if
+             call addmap(fldListFr(compice)%flds, trim(fldname), compatm, mapconsf      , 'ifrac', ice2atm_fmap)
              call addmrg(fldListTo(compatm)%flds, trim(fldname), &
                   mrg_from1=compice, mrg_fld1=trim(fldname), mrg_type1='copy')
           end if
@@ -1027,7 +936,7 @@ contains
     ! ---------------------------------------------------------------------
     if (phase == 'advertise') then
        call addfld(fldListMed_aoflux%flds  , 'Faox_lwup')
-       call addfld(fldListTo(compocn)%flds , 'Foxx_lwup') ! cesm, docn
+       call addfld(fldListTo(compocn)%flds , 'Foxx_lwup')
     else
        if ( fldchk(is_local%wrap%FBMed_aoflux_o, 'Faox_lwup', rc=rc) .and. &
             fldchk(is_local%wrap%FBExp(compocn), 'Foxx_lwup', rc=rc)) then
@@ -1045,29 +954,14 @@ contains
        call addfld(fldListMed_aoflux%flds  , 'Faox_lwup' )
        call addfld(fldListTo(compocn)%flds , 'Foxx_lwnet')
     else
-       ! NEMS-orig (mom6) (send longwave net to ocn via custom merge)
+       ! (mom6) (send longwave net to ocn via auto merge)
        if ( fldchk(is_local%wrap%FBExp(compocn)        , 'Foxx_lwnet', rc=rc) .and. &
             fldchk(is_local%wrap%FBMed_aoflux_o        , 'Faox_lwup' , rc=rc) .and. &
-            fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_lwdn' , rc=rc) .and. &
-            fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_lwnet', rc=rc)) then
-          call addmap(fldListFr(compatm)%flds, 'Faxa_lwdn' , compocn, mapconsf, 'one'  , atm2ocn_fmap)
-          call addmap(fldListFr(compatm)%flds, 'Faxa_lwnet', compocn, mapconsf, 'one'  , atm2ocn_fmap)
-
-       ! CESM (mom6) (send longwave net to ocn via auto merge)
-       else if ( fldchk(is_local%wrap%FBExp(compocn)        , 'Foxx_lwnet', rc=rc) .and. &
-                 fldchk(is_local%wrap%FBMed_aoflux_o        , 'Faox_lwup' , rc=rc) .and. &
-                 fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_lwdn' , rc=rc)) then
+            fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_lwdn' , rc=rc)) then
           call addmap(fldListFr(compatm)%flds, 'Faxa_lwdn', compocn, mapconsf, 'one'  , atm2ocn_fmap)
           call addmrg(fldListTo(compocn)%flds, 'Foxx_lwnet', &
                mrg_from1=compmed, mrg_fld1='Faox_lwup', mrg_type1='merge', mrg_fracname1='ofrac', &
                mrg_from2=compatm, mrg_fld2='Faxa_lwdn', mrg_type2='merge', mrg_fracname2='ofrac')
-
-      ! NEMS-frac (mom6) (send longwave net to ocean via auto merge)
-       else if ( fldchk(is_local%wrap%FBExp(compocn)        , 'Foxx_lwnet', rc=rc) .and. &
-                 fldchk(is_local%wrap%FBImp(compatm,compatm), 'Foxx_lwnet', rc=rc)) then
-          call addmap(fldListFr(compatm)%flds, 'Faxa_lwnet', compocn, mapconsf, 'one'  , atm2ocn_fmap)
-          call addmrg(fldListTo(compocn)%flds, 'Foxx_lwnet', &
-               mrg_from1=compatm, mrg_fld1='Foxx_lwnet', mrg_type1='merge', mrg_fracname1='ofrac')
        end if
     end if
 
@@ -1188,8 +1082,7 @@ contains
           ! which by default is not actually used
           if ( fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_rainl'//iso(n), rc=rc) .and. &
                fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_rainc'//iso(n), rc=rc) .and. &
-              (fldchk(is_local%wrap%FBExp(compocn)        , 'Faxa_rain' //iso(n), rc=rc) &
-               .or. trim(coupling_mode) == 'cesm' .or. trim(coupling_mode) == 'nems_orig')) then
+               fldchk(is_local%wrap%FBExp(compocn)        , 'Faxa_rain' //iso(n), rc=rc)) then
              call addmap(fldListFr(compatm)%flds, 'Faxa_rainl'//iso(n), compocn, mapconsf, 'one', atm2ocn_fmap)
              call addmap(fldListFr(compatm)%flds, 'Faxa_rainc'//iso(n), compocn, mapconsf, 'one', atm2ocn_fmap)
              if (iso(n) == ' ') then
@@ -1239,25 +1132,8 @@ contains
        call addfld(fldListFr(compice)%flds , 'Fioi_melth')
        call addfld(fldListTo(compocn)%flds , 'Foxx_sen')
     else
-       ! NEMS orig
-       if ( fldchk(is_local%wrap%FBexp(compocn)         , 'Foxx_sen'  , rc=rc) .and. &
-            fldchk(is_local%wrap%FBMed_aoflux_o         , 'Faox_sen'  , rc=rc) .and. &
-            fldchk(is_local%wrap%FBImp(compice, compice), 'Fioi_melth', rc=rc) .and. &
-            fldchk(is_local%wrap%FBImp(compatm, compatm), 'Faxa_sen'  , rc=rc)) then
-          call addmap(fldListFr(compatm)%flds, 'Faxa_sen'  , compocn, mapconsf, 'one'  , atm2ocn_fmap) ! map atm->ocn
-          call addmap(fldListFr(compice)%flds, 'Fioi_melth', compocn, mapfcopy, 'unset', 'unset')
-
-       ! NEMS frac
-       else if ( fldchk(is_local%wrap%FBexp(compocn)         , 'Foxx_sen', rc=rc) .and. &
-                 fldchk(is_local%wrap%FBImp(compatm, compatm), 'Faxa_sen', rc=rc)) then
-          call addmap(fldListFr(compatm)%flds, 'Faxa_sen', compocn, mapconsf, 'one'  , atm2ocn_fmap) ! map atm->ocn
-          call addmrg(fldListTo(compocn)%flds, 'Foxx_sen', &
-               mrg_from1=compatm, mrg_fld1='Faxa_sen'  , mrg_type1='merge', mrg_fracname1='ofrac', &
-               mrg_from2=compice, mrg_fld2='Fioi_melth', mrg_type2='merge', mrg_fracname2='ifrac')
-
-       ! CESM
-       else if ( fldchk(is_local%wrap%FBexp(compocn), 'Foxx_sen', rc=rc) .and. &
-                 fldchk(is_local%wrap%FBMed_aoflux_o, 'Faox_sen', rc=rc)) then
+       if ( fldchk(is_local%wrap%FBexp(compocn), 'Foxx_sen', rc=rc) .and. &
+            fldchk(is_local%wrap%FBMed_aoflux_o, 'Faox_sen', rc=rc)) then
           call addmrg(fldListTo(compocn)%flds, 'Foxx_sen', &
                mrg_from1=compmed, mrg_fld1='Faox_sen', mrg_type1='merge', mrg_fracname1='ofrac')
        end if
@@ -1274,7 +1150,6 @@ contains
        call addfld(fldListTo(compocn)%flds, 'Foxx_lat' )
        call addfld(fldListTo(compocn)%flds, 'Foxx_evap')
     else
-       ! CESM
        if ( fldchk(is_local%wrap%FBexp(compocn), 'Foxx_lat', rc=rc) .and. &
             fldchk(is_local%wrap%FBMed_aoflux_o, 'Faox_lat', rc=rc)) then
           call addmrg(fldListTo(compocn)%flds, 'Foxx_lat', &
@@ -1285,18 +1160,6 @@ contains
           call addmrg(fldListTo(compocn)%flds, 'Foxx_evap', &
                mrg_from1=compmed, mrg_fld1='Faox_evap', mrg_type1='merge', mrg_fracname1='ofrac')
        end if
-       ! NEMS orig
-       if ( fldchk(is_local%wrap%FBexp(compocn)         , 'Foxx_evap' , rc=rc) .and. &
-            fldchk(is_local%wrap%FBMed_aoflux_o         , 'Faox_evap' , rc=rc) .and. &
-            fldchk(is_local%wrap%FBImp(compatm, compatm), 'Faxa_lat'  , rc=rc)) then
-          call addmap(fldListFr(compatm)%flds, 'Faxa_lat', compocn, mapconsf, 'one', atm2ocn_fmap)
-       end if
-
-       ! NEMS-frac and NEMS-orig
-       ! Foxx_evap is passed to mom6 but but not the latent heat flux and  mom6 then computes
-       ! the latent heat flux from the imported evaporative flux. However, the evap passed to mom6
-       ! in med_phases_prep_ocn is in fact derived from  the latent heat flux obtained from the atm (fv3).
-       ! TODO (mvertens, 2019-10-01): Can we unify this and have MOM6 use latent heat flux?
     end if
 
     if (phase == 'advertise') then
@@ -1389,23 +1252,8 @@ contains
           call addfld(fldListFr(compatm)%flds , 'Faxa_'//trim(suffix(n)))
           call addfld(fldListTo(compocn)%flds , 'Foxx_'//trim(suffix(n)))
        else
-          ! NEMS orig and NEMS frac
-          if ( fldchk(is_local%wrap%FBexp(compocn)        , 'Foxx_'//trim(suffix(n)), rc=rc) .and. &
-               fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_'//trim(suffix(n)), rc=rc) .and. &
-               fldchk(is_local%wrap%FBImp(compice,compice), 'Fioi_'//trim(suffix(n)), rc=rc)) then
-             call addmap(fldListFr(compatm)%flds, 'Faxa_'//trim(suffix(n)), compocn, mapconsf, 'one'  , atm2ocn_fmap) ! map atm->ocn
-             call addmap(fldListFr(compice)%flds, 'Fioi_'//trim(suffix(n)), compocn, mapfcopy, 'unset', 'unset')
-
-             ! NEMS-frac
-             call addmrg(fldListTo(compocn)%flds, 'Foxx_'//trim(suffix(n)), &
-                  mrg_from1=compatm, mrg_fld1='Faxa_'//trim(suffix(n)), mrg_type1='merge', mrg_fracname1='ofrac', &
-                  mrg_from2=compice, mrg_fld2='Fioi_'//trim(suffix(n)), mrg_type2='merge', mrg_fracname2='ifrac')
-             ! NEMS-orig
-             ! custom merge calculation in med_phases_prep_ocn will be done that will overwrite the auto-merge done above
-
-          ! CESM
-          else if (fldchk(is_local%wrap%FBexp(compocn), 'Foxx_'//trim(suffix(n)), rc=rc) .and. &
-                   fldchk(is_local%wrap%FBMed_aoflux_o, 'Faox_'//trim(suffix(n)), rc=rc)) then
+          if ( fldchk(is_local%wrap%FBexp(compocn), 'Foxx_'//trim(suffix(n)), rc=rc) .and. &
+               fldchk(is_local%wrap%FBMed_aoflux_o, 'Faox_'//trim(suffix(n)), rc=rc)) then
              call addmap(fldListFr(compice)%flds, 'Fioi_'//trim(suffix(n)), compocn, mapfcopy, 'unset', 'unset')
              call addmrg(fldListTo(compocn)%flds, 'Foxx_'//trim(suffix(n)), &
                   mrg_from1=compmed, mrg_fld1='Faox_'//trim(suffix(n)), mrg_type1='merge', mrg_fracname1='ofrac', &
@@ -1423,24 +1271,11 @@ contains
           call addfld(fldListFr(compice)%flds , 'Fioi_meltw'//iso(n))
           call addfld(fldListTo(compocn)%flds , 'Fioi_meltw'//iso(n))
        else
-          if (coupling_mode == 'cesm') then
-             if ( fldchk(is_local%wrap%FBexp(compocn)         , 'Fioi_meltw'//iso(n), rc=rc) .and. &
-                  fldchk(is_local%wrap%FBImp(compice, compice), 'Fioi_meltw'//iso(n), rc=rc)) then
-                call addmap(fldListFr(compice)%flds, 'Fioi_meltw'//iso(n),    compocn,  mapfcopy, 'unset', 'unset')
-                call addmrg(fldListTo(compocn)%flds, 'Fioi_meltw'//iso(n), &
-                     mrg_from1=compice, mrg_fld1='Fioi_meltw'//iso(n), mrg_type1='copy_with_weights', mrg_fracname1='ifrac')
-             end if
-          else if (coupling_mode == 'nems_orig') then
-             if (fldchk(is_local%wrap%FBImp(compice, compice), 'Fioi_meltw'//iso(n), rc=rc)) then
-                call addmap(fldListFr(compice)%flds, 'Fioi_meltw'//iso(n),    compocn,  mapfcopy, 'unset', 'unset')
-                ! custom merge in med_phases_prep_ocn
-             end if
-          else if (coupling_mode == 'nems_frac') then
-             if (fldchk(is_local%wrap%FBImp(compice, compice), 'Fioi_meltw'//iso(n), rc=rc)) then
-                call addmap(fldListFr(compice)%flds, 'Fioi_meltw'//iso(n),    compocn,  mapfcopy, 'unset', 'unset')
-                call addmrg(fldListTo(compocn)%flds, 'Fioi_meltw'//iso(n), &
-                     mrg_from1=compice, mrg_fld1='Fioi_meltw'//iso(n), mrg_type1='copy_with_weights', mrg_fracname1='ifrac')
-             end if
+          if ( fldchk(is_local%wrap%FBexp(compocn)         , 'Fioi_meltw'//iso(n), rc=rc) .and. &
+               fldchk(is_local%wrap%FBImp(compice, compice), 'Fioi_meltw'//iso(n), rc=rc)) then
+             call addmap(fldListFr(compice)%flds, 'Fioi_meltw'//iso(n),    compocn,  mapfcopy, 'unset', 'unset')
+             call addmrg(fldListTo(compocn)%flds, 'Fioi_meltw'//iso(n), &
+                  mrg_from1=compice, mrg_fld1='Fioi_meltw'//iso(n), mrg_type1='copy_with_weights', mrg_fracname1='ifrac')
           end if
        end if
     end do
@@ -2125,6 +1960,6 @@ contains
     !    enddo
     ! endif
 
-  end subroutine esmFldsExchange
+  end subroutine esmFldsExchange_cesm
 
-end module esmFldsExchange_mod
+end module esmFldsExchange_cesm_mod
