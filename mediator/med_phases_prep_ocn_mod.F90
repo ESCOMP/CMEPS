@@ -458,9 +458,69 @@ contains
        end if
 
        !-------------
-       ! Custom calculation for nems_orig coupling
+       ! Custom calculation for nems_orig_active
        !-------------
+
        if (trim(coupling_mode) == 'nems_orig') then
+
+          ! get ice and open ocean fractions on the ocn mesh
+          call FB_GetFldPtr(is_local%wrap%FBfrac(compocn), 'ifrac' , ifrac, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call FB_GetFldPtr(is_local%wrap%FBfrac(compocn), 'ofrac' , ofrac, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+          ! determine local size - pick any export field to do this
+          call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Foxx_evap', dataptr, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          lsize = size(dataptr)
+          allocate(customwgt(lsize))
+
+          customwgt(:) = -ofrac(:) / const_lhvap
+          call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_evap', &
+               FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_lat' , wgtA=customwgt, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+          customwgt(:) = -ofrac(:)
+          call med_merge_field(is_local%wrap%FBExp(compocn),      'Faxa_sen',  &
+               FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Foxx_sen', wgtA=customwgt, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_taux',  &
+               FBinA=is_local%wrap%FBImp(compice,compocn), fnameA='Fioi_taux' , wgtA=ifrac, &
+               FBinB=is_local%wrap%FBImp(compatm,compocn), fnameB='Faxa_taux' , wgtB=customwgt, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_tauy',  &
+               FBinA=is_local%wrap%FBImp(compice,compocn), fnameA='Fioi_tauy' , wgtA=ifrac, &
+               FBinB=is_local%wrap%FBImp(compatm,compocn), fnameB='Faxa_tauy' , wgtB=customwgt, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+          ! netsw_for_ocn = [downsw_from_atm*(1-ice_fraction)*(1-ocn_albedo)] + [pensw_from_ice*(ice_fraction)]
+          customwgt(:) = ofrac(:) * (1.0 - 0.06)
+          call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_swnet_vdr', &
+               FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_swvdr'    , wgtA=customwgt, &
+               FBinB=is_local%wrap%FBImp(compice,compocn), fnameB='Fioi_swpen_vdr', wgtB=ifrac, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_swnet_vdf', &
+               FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_swvdf'    , wgtA=customwgt, &
+               FBinB=is_local%wrap%FBImp(compice,compocn), fnameB='Fioi_swpen_vdf', wgtB=ifrac, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_swnet_idr', &
+               FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_swndr'    , wgtA=customwgt, &
+               FBinB=is_local%wrap%FBImp(compice,compocn), fnameB='Fioi_swpen_idr', wgtB=ifrac, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_swnet_idf', &
+               FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_swndf'    , wgtA=customwgt, &
+               FBinB=is_local%wrap%FBImp(compice,compocn), fnameB='Fioi_swpen_idf', wgtB=ifrac, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+          deallocate(customwgt)
+
+       end if  ! end of nems_orig_active or nems_frac
+
+       !-------------
+       ! Custom calculation for nems_orig_data
+       !-------------
+
+       if (trim(coupling_mode) == 'nems_orig_data') then
 
           ! open ocean (i.e. atm)  and ice fraction
           ! ocnwgt and icewgt are the "normal" fractions
