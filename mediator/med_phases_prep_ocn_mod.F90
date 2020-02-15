@@ -454,10 +454,7 @@ contains
           call FB_GetFldPtr(is_local%wrap%FBfrac(compocn), 'ofrac' , ofrac, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-          ! determine local size - pick any export field to do this
-          call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Foxx_evap', dataptr, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          lsize = size(dataptr)
+          lsize = size(ofrac)
           allocate(customwgt(lsize))
 
           customwgt(:) = -ofrac(:) / const_lhvap
@@ -465,12 +462,19 @@ contains
                FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_lat' , wgtA=customwgt, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+          call med_merge_field(is_local%wrap%FBExp(compocn),      'Faxa_rain',  &
+               FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_rain' , wgtA=ofrac, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call med_merge_field(is_local%wrap%FBExp(compocn),      'Faxa_snow',  &
+               FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_snow' , wgtA=ofrac, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_lwnet',  &
+               FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_lwnet', wgtA=ofrac, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
           customwgt(:) = -ofrac(:)
           call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_sen',  &
                FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_sen', wgtA=customwgt, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_lwnet',  &
-               FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_lwnet', wgtA=customwgt, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_taux',  &
                FBinA=is_local%wrap%FBImp(compice,compocn), fnameA='Fioi_taux' , wgtA=ifrac, &
@@ -514,8 +518,7 @@ contains
           ! open ocean (i.e. atm)  and ice fraction
           ! ocnwgt and icewgt are the "normal" fractions
           ! ocnwgt1, icewgt1, and wgtp01 are the fractions that switch between atm and mediator fluxes
-          ! wgtp01 and wgtm01 are the same just one is +1 and the other is -1 to change sign depending on the ice fraction.  
-          !   ocnwgt1+icewgt1+wgtp01 = 1.0 always 
+          ! wgtp01 and wgtm01 are the same just one is +1 and the other is -1 to change sign depending on the ice fraction.          !   ocnwgt1+icewgt1+wgtp01 = 1.0 always 
           !   wgtp01 = 1 and wgtm01 = -1 when ice fraction = 0  
           !   wgtp01 = 0 and wgtm01 =  0 when ice fraction > 0
        
@@ -600,7 +603,7 @@ contains
           deallocate(wgtm01)
           deallocate(customwgt)
 
-       end if  ! end of NEMS-orig ocn prep phase
+       end if  ! end of nems_orig_data custom 
 
        !---------------------------------------
        !--- diagnose output
