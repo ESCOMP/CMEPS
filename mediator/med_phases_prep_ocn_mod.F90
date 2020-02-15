@@ -466,8 +466,11 @@ contains
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
           customwgt(:) = -ofrac(:)
-          call med_merge_field(is_local%wrap%FBExp(compocn),      'Faxa_sen',  &
-               FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Foxx_sen', wgtA=customwgt, rc=rc)
+          call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_sen',  &
+               FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_sen', wgtA=customwgt, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_lwnet',  &
+               FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_lwnet', wgtA=customwgt, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_taux',  &
                FBinA=is_local%wrap%FBImp(compice,compocn), fnameA='Fioi_taux' , wgtA=ifrac, &
@@ -477,6 +480,7 @@ contains
                FBinA=is_local%wrap%FBImp(compice,compocn), fnameA='Fioi_tauy' , wgtA=ifrac, &
                FBinB=is_local%wrap%FBImp(compatm,compocn), fnameB='Faxa_tauy' , wgtB=customwgt, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
 
           ! netsw_for_ocn = [downsw_from_atm*(1-ice_fraction)*(1-ocn_albedo)] + [pensw_from_ice*(ice_fraction)]
           customwgt(:) = ofrac(:) * (1.0 - 0.06)

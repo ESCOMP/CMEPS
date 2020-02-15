@@ -233,19 +233,24 @@ contains
        call addmap(fldListFr(compatm)%flds , 'Faxa_lwnet', compocn, mapconsf, 'none', 'unset')
     end if
 
-    !  to ocn: precipitation rate water equivalent and snow rate water equivalent from atm
+    !  to ocn: rain from atm
     call addfld(fldListTo(compocn)%flds, 'Faxa_rain' )
-    call addfld(fldListTo(compocn)%flds, 'Faxa_snow' )
     call addfld(fldListFr(compatm)%flds, 'Faxa_rain' )
-    call addfld(fldListFr(compatm)%flds, 'Faxa_snow' )
     if (trim(coupling_mode) == 'nems_orig') then
        call addmap(fldListFr(compatm)%flds, 'Faxa_rain', compocn, mapnstod_consf, 'none', 'unset')
-       call addmap(fldListFr(compatm)%flds, 'Faxa_snow', compocn, mapnstod_consf, 'none', 'unset')
     else
        call addmap(fldListFr(compatm)%flds, 'Faxa_rain', compocn, mapconsf, 'none', 'unset')
-       call addmap(fldListFr(compatm)%flds, 'Faxa_snow', compocn, mapconsf, 'none', 'unset')
     end if
     call addmrg(fldListTo(compocn)%flds, 'Faxa_rain', mrg_from1=compatm, mrg_fld1='Faxa_rain', mrg_type1='copy')
+
+    !  to ocn: snow from atm
+    call addfld(fldListTo(compocn)%flds, 'Faxa_snow' )
+    call addfld(fldListFr(compatm)%flds, 'Faxa_snow' )
+    if (trim(coupling_mode) == 'nems_orig') then
+       call addmap(fldListFr(compatm)%flds, 'Faxa_snow', compocn, mapnstod_consf, 'none', 'unset')
+    else
+       call addmap(fldListFr(compatm)%flds, 'Faxa_snow', compocn, mapconsf, 'none', 'unset')
+    end if
     call addmrg(fldListTo(compocn)%flds, 'Faxa_snow', mrg_from1=compatm, mrg_fld1='Faxa_snow', mrg_type1='copy')
 
     ! to ocn: merged sensible heat flux (custom merge in med_phases_prep_ocn)
@@ -270,42 +275,55 @@ contains
     end if
     call addmrg(fldListTo(compocn)%flds, 'Sa_pslv', mrg_from1=compatm, mrg_fld1='Sa_pslv', mrg_type1='copy')
 
-    ! to ocn: merge zonal surface stress from ice and atm (custom merge calculation in med_phases_prep_ocn)
-    allocate(suffix(2))
-    suffix = (/'taux', 'tauy'/)
-    do n = 1,size(suffix)
-       call addfld(fldListTo(compocn)%flds, 'Foxx_'//trim(suffix(n)))
-       call addfld(fldListFr(compice)%flds, 'Fioi_'//trim(suffix(n)))
-       call addfld(fldListFr(compatm)%flds, 'Faxa_'//trim(suffix(n)))
-       if (trim(coupling_mode) == 'nems_orig') then
-          call addmap(fldListFr(compatm)%flds, 'Faxa_'//trim(suffix(n)), compocn, mapnstod_consf, 'none', 'unset')
-       else
-          call addmap(fldListFr(compatm)%flds, 'Faxa_'//trim(suffix(n)), compocn, mapconsf, 'none', 'unset')
-       end if
-       call addmap(fldListFr(compice)%flds, 'Fioi_'//trim(suffix(n)), compocn, mapfcopy, 'unset', 'unset')
-    end do
-    deallocate(suffix)
+    ! to ocn: merge zonal surface stress (custom merge calculation in med_phases_prep_ocn)
+    call addfld(fldListTo(compocn)%flds, 'Foxx_taux')
+    call addfld(fldListFr(compice)%flds, 'Fioi_taux')
+    call addfld(fldListFr(compatm)%flds, 'Faxa_taux')
+    if (trim(coupling_mode) == 'nems_orig') then
+       call addmap(fldListFr(compatm)%flds, 'Faxa_taux', compocn, mapnstod_consf, 'none', 'unset')
+    else
+       call addmap(fldListFr(compatm)%flds, 'Faxa_taux', compocn, mapconsf, 'none', 'unset')
+    end if
+    call addmap(fldListFr(compice)%flds, 'Fioi_taux', compocn, mapfcopy, 'unset', 'unset')
+
+    ! to ocn: meridional surface stress (custom merge calculation in med_phases_prep_ocn)
+    call addfld(fldListTo(compocn)%flds, 'Foxx_tauy')
+    call addfld(fldListFr(compice)%flds, 'Fioi_tauy')
+    call addfld(fldListFr(compatm)%flds, 'Faxa_tauy')
+    if (trim(coupling_mode) == 'nems_orig') then
+       call addmap(fldListFr(compatm)%flds, 'Faxa_tauy', compocn, mapnstod_consf, 'none', 'unset')
+    else
+       call addmap(fldListFr(compatm)%flds, 'Faxa_tauy', compocn, mapconsf, 'none', 'unset')
+    end if
+    call addmap(fldListFr(compice)%flds, 'Fioi_tauy', compocn, mapfcopy, 'unset', 'unset')
 
     ! to ocn: water flux due to melting ice from ice
     call addfld(fldListFr(compice)%flds, 'Fioi_meltw')
     call addfld(fldListTo(compocn)%flds, 'Fioi_meltw')
-    call addmap(fldListFr(compice)%flds, 'Fioi_meltw',    compocn,  mapfcopy, 'unset', 'unset')
+    call addmap(fldListFr(compice)%flds, 'Fioi_meltw', compocn,  mapfcopy, 'unset', 'unset')
+    call addmrg(fldListTo(compocn)%flds, 'Fioi_meltw', &
+         mrg_from1=compice, mrg_fld1='Fioi_meltw', mrg_type1='copy_with_weights', mrg_fracname1='ifrac')
+
+    ! to ocn: water flux due to melting ice from ice
+    call addfld(fldListFr(compice)%flds, 'Fioi_meltw')
+    call addfld(fldListTo(compocn)%flds, 'Fioi_meltw')
+    call addmap(fldListFr(compice)%flds, 'Fioi_meltw', compocn,  mapfcopy, 'unset', 'unset')
     call addmrg(fldListTo(compocn)%flds, 'Fioi_meltw', &
          mrg_from1=compice, mrg_fld1='Fioi_meltw', mrg_type1='copy_with_weights', mrg_fracname1='ifrac')
 
     ! to ocn: heat flux from melting ice from ice
+    call addfld(fldListFr(compice)%flds, 'Fioi_melth')
+    call addfld(fldListTo(compocn)%flds, 'Fioi_melth')
+    call addmap(fldListFr(compice)%flds, 'Fioi_melth', compocn,  mapfcopy, 'unset', 'unset')
+    call addmrg(fldListTo(compocn)%flds, 'Fioi_melth', &
+         mrg_from1=compice, mrg_fld1='Fioi_melth', mrg_type1='copy_with_weights', mrg_fracname1='ifrac')
+
     ! to ocn: salt flux from ice
-    allocate(flds(2))
-    flds = (/'Fioi_melth ', 'Fioi_salt  '/)
-    do n = 1,size(flds)
-       fldname = trim(flds(n))
-       call addfld(fldListFr(compice)%flds, trim(fldname))
-       call addfld(fldListTo(compocn)%flds, trim(fldname))
-       call addmap(fldListFr(compice)%flds, trim(fldname), compocn,  mapfcopy, 'unset', 'unset')
-       call addmrg(fldListTo(compocn)%flds, trim(fldname), &
-            mrg_from1=compice, mrg_fld1=trim(fldname), mrg_type1='copy_with_weights', mrg_fracname1='ifrac')
-    end do
-    deallocate(flds)
+    call addfld(fldListFr(compice)%flds, 'Fioi_salt')
+    call addfld(fldListTo(compocn)%flds, 'Fioi_salt')
+    call addmap(fldListFr(compice)%flds, 'Fioi_salt', compocn,  mapfcopy, 'unset', 'unset')
+    call addmrg(fldListTo(compocn)%flds, 'Fioi_salt', &
+         mrg_from1=compice, mrg_fld1='Fioi_salt', mrg_type1='copy_with_weights', mrg_fracname1='ifrac')
 
     !=====================================================================
     ! FIELDS TO ICE (compice)
@@ -328,15 +346,16 @@ contains
     end do
     deallocate(flds)
 
-    ! to ice: convective and large scale precipitation rate water equivalent from atm
-    ! to ice: rain and snow rate from atm
+    ! to ice: rain from atm
     call addfld(fldListFr(compatm)%flds, 'Faxa_rain' )
-    call addfld(fldListFr(compatm)%flds, 'Faxa_snow' )
     call addfld(fldListTo(compice)%flds, 'Faxa_rain' ) 
-    call addfld(fldListTo(compice)%flds, 'Faxa_snow' )
     call addmap(fldListFr(compatm)%flds, 'Faxa_rain', compice, mapconsf, 'none', 'unset')
-    call addmap(fldListFr(compatm)%flds, 'Faxa_snow', compice, mapconsf, 'none', 'unset')
     call addmrg(fldListTo(compice)%flds, 'Faxa_rain', mrg_from1=compatm, mrg_fld1='Faxa_rain', mrg_type1='copy')
+
+    ! to ice: snow from atm
+    call addfld(fldListFr(compatm)%flds, 'Faxa_snow' )
+    call addfld(fldListTo(compice)%flds, 'Faxa_snow' )
+    call addmap(fldListFr(compatm)%flds, 'Faxa_snow', compice, mapconsf, 'none', 'unset')
     call addmrg(fldListTo(compice)%flds, 'Faxa_snow', mrg_from1=compatm, mrg_fld1='Faxa_snow', mrg_type1='copy')
 
     ! to ice: height at the lowest model level from atm
