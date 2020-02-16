@@ -60,7 +60,7 @@
          mean downward SW heat flux
      #
      - standard_name: Faxa_lwnet
-       alias: mean_net_lw_flx_atm
+       alias: mean_net_lw_flx
        canonical_units: W m-2
        description: atmosphere export
           mean merge longwave flux from atm (NEMS)
@@ -394,24 +394,24 @@
      ######### fv3 work start
 
      - standard_name: Faxa_taux
-       alias: mean_zonal_moment_flx_atm
+       alias: mean_zonal_moment_flx
        canonical_units: N m-2
        description: atmosphere export
          zonal component of momentum flux
      #
      - standard_name: Faxa_tauy
-       alias: mean_merid_moment_flx_atm
+       alias: mean_merid_moment_flx
        canonical_units: N m-2
        description: atmosphere export
          meridional component of momentum flux
      #
      - standard_name: Faxa_lat
-       alias: mean_laten_heat_flx_atm
+       alias: mean_laten_heat_flx
        canonical_units: W m-2
        description: atmosphere export
      #
      - standard_name: Faxa_sen
-       alias: mean_sensi_heat_flx_atm
+       alias: mean_sensi_heat_flx
        canonical_units: W m-2
        description: atmosphere export
      #
@@ -449,38 +449,6 @@
      - standard_name: land_mask
        canonical_units: 1
        description: land export
-     #
-     - standard_name: Faxx_evap
-       canonical_units: kg m-2 s-1
-       description: atmosphere import
-     #
-     - standard_name: Faxx_lat
-       alias: mean_laten_heat_flx
-       canonical_units: W m-2
-       description: atmosphere export atm (fv3)
-     #
-     - standard_name: Faxx_lwup
-       canonical_units: W m-2
-       description: atmosphere import
-     #
-     - standard_name: Faxx_sen
-       alias: mean_sensi_heat_flx
-       canonical_units: W m-2
-       description: atmosphere import
-     #
-     - standard_name: Faxx_taux
-       alias: mean_zonal_moment_flx
-       canonical_units: N m-2
-       description: atmosphere import
-         zonal component of momentum flux
-         for fv3, for sea ice covered area
-         for cesm, merged ice/ocn/land
-     #
-     - standard_name: Faxx_tauy
-       alias: mean_merid_moment_flx
-       canonical_units: N m-2
-       description: atmosphere import
-         meridional component of momentum flux for sea ice covered area
      #
      #-----------------------------------
      # section: sea-ice export
@@ -747,33 +715,6 @@
        description: ocean import
          specific humidity flux
      #
-     - standard_name: Foxx_lat
-       canonical_units: W m-2
-       description: ocean import
-         latent heat flux into ocean (cesm only)
-     #
-     - standard_name: Foxx_lat
-       canonical_units: W m-2
-       description: ocean import
-         latent heat flux into ocean (cesm only)
-     #
-     - standard_name: Foxx_sen
-       alias: mean_sensi_heat_flx
-       canonical_units: W m-2
-       description: ocean import
-         sensible heat flux into ocean
-     #
-     - standard_name: Foxx_lwup
-       canonical_units: W m-2
-       description: ocean import
-         surface upward longwave heat flux
-     #
-     - standard_name: Foxx_lwnet
-       alias: mean_net_lw_flx
-       canonical_units: W m-2
-       description: ocean import
-         mean NET long wave radiation flux to ocean
-     #
      - standard_name: mean_runoff_rate
        canonical_units: kg m-2 s-1
        description: ocean import
@@ -834,18 +775,6 @@
        canonical_units: W m-2
        description: ocean import
          net shortwave ir diffuse radiation to ocean
-     #
-     - standard_name: Foxx_taux
-       alias: mean_zonal_moment_flx
-       canonical_units: N m-2
-       description: ocean import
-         zonal surface stress
-     #
-     - standard_name: Foxx_tauy
-       alias: mean_merid_moment_flx
-       canonical_units: N m-2
-       description: ocean import
-         meridional surface stress
      #
      #-----------------------------------
      # mediator fields

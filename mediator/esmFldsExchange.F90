@@ -136,14 +136,10 @@ contains
     suffix = (/'taux     ', 'tauy     ', 'lat      ', 'sen      ', 'lwup     ', 'evap     '/)
     do n = 1,size(suffix)
        call addfld(fldListFr(compice)%flds, 'Faii_'//trim(suffix(n)))
-       call addfld(fldListTo(compatm)%flds, 'Faxx_'//trim(suffix(n))) ! TODO: rmeove this in FV3 renameing
        call addmap(fldListFr(compice)%flds, 'Faii_'//trim(suffix(n)), compatm, mapnstod_consf, 'ifrac', 'unset')
-       call addmrg(fldListTo(compatm)%flds, 'Faxx_'//trim(suffix(n)), &
+       call addfld(fldListTo(compatm)%flds, 'Faii_'//trim(suffix(n)))
+       call addmrg(fldListTo(compatm)%flds, 'Faii_'//trim(suffix(n)), &
             mrg_from1=compice, mrg_fld1='Faii_'//trim(suffix(n)), mrg_type1='copy')
-
-      !call addfld(fldListTo(compatm)%flds, 'Faii_'//trim(suffix(n))) ! TODO: add this in FV3 renaming
-      !call addmrg(fldListTo(compatm)%flds , 'Faii_'//trim(suffix(n)), &
-      !    mrg_from1=compice, mrg_fld1='Faii_'//trim(suffix(n)), mrg_type1='copy')
     end do
     deallocate(suffix)
 
@@ -228,9 +224,9 @@ contains
     call addmap(fldListFr(compice)%flds, 'Fioi_swpen_idf' , compocn, mapfcopy, 'unset', 'unset')
 
     ! to ocn: longwave net heat flux (custom merge in med_phases_prep_ocn)
-    call addfld(fldListTo(compocn)%flds , 'Foxx_lwnet')
-    call addfld(fldListFr(compatm)%flds , 'Faxa_lwdn')
+    call addfld(fldListTo(compocn)%flds , 'Faxa_lwnet') !TODO: need to change name
     call addfld(fldListFr(compatm)%flds , 'Faxa_lwnet')
+    call addfld(fldListFr(compatm)%flds , 'Faxa_lwdn')
     if (trim(coupling_mode) == 'nems_orig') then
        call addmap(fldListFr(compatm)%flds , 'Faxa_lwdn' , compocn, mapnstod_consf, 'none', 'unset')
        call addmap(fldListFr(compatm)%flds , 'Faxa_lwnet', compocn, mapnstod_consf, 'none', 'unset')
@@ -258,7 +254,7 @@ contains
     end if
 
     ! to ocn: merged sensible heat flux (custom merge in med_phases_prep_ocn)
-    call addfld(fldListTo(compocn)%flds, 'Foxx_sen')
+    call addfld(fldListTo(compocn)%flds, 'Faxa_sen') ! TODO: need to change name
     call addfld(fldListFr(compatm)%flds, 'Faxa_sen')
     call addmap(fldListFr(compatm)%flds, 'Faxa_sen'  , compocn, mapconsf, 'none'  , 'unset')
 
@@ -268,7 +264,7 @@ contains
     call addmap(fldListFr(compatm)%flds, 'Faxa_lat', compocn, mapconsf, 'none', 'unset')
 
     ! to ocn: merge zonal surface stress (custom merge calculation in med_phases_prep_ocn)
-    call addfld(fldListTo(compocn)%flds, 'Foxx_taux')
+    call addfld(fldListTo(compocn)%flds, 'Faxa_taux') ! TODO: need to change name
     call addfld(fldListFr(compice)%flds, 'Fioi_taux')
     call addfld(fldListFr(compatm)%flds, 'Faxa_taux')
     if (trim(coupling_mode) == 'nems_orig') then
@@ -279,7 +275,7 @@ contains
     call addmap(fldListFr(compice)%flds, 'Fioi_taux', compocn, mapfcopy, 'unset', 'unset')
 
     ! to ocn: meridional surface stress (custom merge calculation in med_phases_prep_ocn)
-    call addfld(fldListTo(compocn)%flds, 'Foxx_tauy')
+    call addfld(fldListTo(compocn)%flds, 'Faxa_tauy') ! TODO: need to change name
     call addfld(fldListFr(compice)%flds, 'Fioi_tauy')
     call addfld(fldListFr(compatm)%flds, 'Faxa_tauy')
     if (trim(coupling_mode) == 'nems_orig') then
@@ -325,7 +321,7 @@ contains
        fldname = trim(flds(n))
        call addfld(fldListFr(compatm)%flds, trim(fldname))
        call addfld(fldListTo(compice)%flds, trim(fldname))
-       call addmap(fldListFr(compatm)%flds, trim(fldname), compice, mapconsf, 'none', 'unset')
+       call addmap(fldListFr(compatm)%flds, trim(fldname), compice, mapnstod_consf, 'none', 'unset')
        call addmrg(fldListTo(compice)%flds, trim(fldname), mrg_from1=compatm, mrg_fld1=trim(fldname), mrg_type1='copy')
     end do
     deallocate(flds)
@@ -333,13 +329,13 @@ contains
     ! to ice: rain from atm
     call addfld(fldListFr(compatm)%flds, 'Faxa_rain' )
     call addfld(fldListTo(compice)%flds, 'Faxa_rain' ) 
-    call addmap(fldListFr(compatm)%flds, 'Faxa_rain', compice, mapconsf, 'none', 'unset')
+    call addmap(fldListFr(compatm)%flds, 'Faxa_rain', compice, mapnstod_consf, 'none', 'unset')
     call addmrg(fldListTo(compice)%flds, 'Faxa_rain', mrg_from1=compatm, mrg_fld1='Faxa_rain', mrg_type1='copy')
 
     ! to ice: snow from atm
     call addfld(fldListFr(compatm)%flds, 'Faxa_snow' )
     call addfld(fldListTo(compice)%flds, 'Faxa_snow' )
-    call addmap(fldListFr(compatm)%flds, 'Faxa_snow', compice, mapconsf, 'none', 'unset')
+    call addmap(fldListFr(compatm)%flds, 'Faxa_snow', compice, mapnstod_consf, 'none', 'unset')
     call addmrg(fldListTo(compice)%flds, 'Faxa_snow', mrg_from1=compatm, mrg_fld1='Faxa_snow', mrg_type1='copy')
 
     ! to ice: height at the lowest model level from atm
