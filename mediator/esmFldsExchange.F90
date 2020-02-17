@@ -196,7 +196,7 @@ contains
     ! - downward dirrect visible incident solar radiation
     ! - downward diffuse visible incident solar radiation
     allocate(flds(4))
-    flds = (/'Faxa_swndr', 'Faxa_swndf', 'Faxa_swvdr', 'Faxa_swndf'/)
+    flds = (/'Faxa_swndr', 'Faxa_swndf', 'Faxa_swvdr', 'Faxa_swvdf'/)
     do n = 1,size(flds)
        fldname = trim(flds(n))
        call addfld(fldListTo(compocn)%flds, trim(fldname))
@@ -214,10 +214,10 @@ contains
     call addfld(fldListTo(compocn)%flds, 'Foxx_swnet_vdf')
     call addfld(fldListTo(compocn)%flds, 'Foxx_swnet_idr')
     call addfld(fldListTo(compocn)%flds, 'Foxx_swnet_idf')
-    call addfld(fldListFr(compice)%flds, 'Fioi_swpen_idf')
     call addfld(fldListFr(compice)%flds, 'Fioi_swpen_vdr')
     call addfld(fldListFr(compice)%flds, 'Fioi_swpen_vdf')
     call addfld(fldListFr(compice)%flds, 'Fioi_swpen_idr')
+    call addfld(fldListFr(compice)%flds, 'Fioi_swpen_idf')
     call addmap(fldListFr(compice)%flds, 'Fioi_swpen_vdr' , compocn, mapfcopy, 'unset', 'unset')
     call addmap(fldListFr(compice)%flds, 'Fioi_swpen_vdf' , compocn, mapfcopy, 'unset', 'unset')
     call addmap(fldListFr(compice)%flds, 'Fioi_swpen_idr' , compocn, mapfcopy, 'unset', 'unset')
