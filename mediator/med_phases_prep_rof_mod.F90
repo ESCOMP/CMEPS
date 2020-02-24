@@ -394,25 +394,25 @@ contains
             flds_scalar_name=is_local%wrap%flds_scalar_name, &
             FBgeom=is_local%wrap%FBImp(complnd,complnd), &
             fieldNameList=(/trim(volr_field)/), rc=rc)
-       if (chkerr(rc,__LINE__,u_file_u)) return
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        call FB_init(FBout=FBrofVolr, &
             flds_scalar_name=is_local%wrap%flds_scalar_name, &
             FBgeom=is_local%wrap%FBImp(comprof,comprof), &
             fieldNameList=(/trim(volr_field)/), rc=rc)
-       if (chkerr(rc,__LINE__,u_file_u)) return
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        call FB_init(FBout=FBlndIrrig, &
             flds_scalar_name=is_local%wrap%flds_scalar_name, &
             FBgeom=is_local%wrap%FBImp(complnd,complnd), &
             fieldNameList=(/irrig_normalized_field, irrig_volr0_field/), rc=rc)
-       if (chkerr(rc,__LINE__,u_file_u)) return
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        call FB_init(FBout=FBrofIrrig, &
             flds_scalar_name=is_local%wrap%flds_scalar_name, &
             FBgeom=is_local%wrap%FBImp(comprof,comprof), &
             fieldNameList=(/irrig_normalized_field, irrig_volr0_field/), rc=rc)
-       if (chkerr(rc,__LINE__,u_file_u)) return
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        allocate(fldlist_lnd2rof%flds(2))
        fldlist_lnd2rof%flds(1)%shortname = irrig_normalized_field

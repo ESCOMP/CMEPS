@@ -84,7 +84,7 @@ module med_io_mod
   integer                        :: pio_iotype
   integer                        :: pio_ioformat
   type(iosystem_desc_t), pointer :: io_subsystem
-  character(*),parameter         :: u_file_u = &
+  character(*),parameter         :: u_FILE_u = &
        __FILE__
 
 !=================================================================================

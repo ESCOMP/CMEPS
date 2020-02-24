@@ -301,11 +301,11 @@ contains
           ! -------------------------------
           call FB_init(FBglc_icemask, is_local%wrap%flds_scalar_name, &
                FBgeom=is_local%wrap%FBExp(compglc), fieldnameList=(/Sg_icemask_field/), rc=rc)
-          if (chkerr(rc,__LINE__,u_file_u)) return
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
 
           call FB_init(FBlnd_icemask, is_local%wrap%flds_scalar_name, &
                FBgeom=is_local%wrap%FBImp(complnd,complnd), fieldNameList=(/Sg_icemask_field/), rc=rc)
-          if (chkerr(rc,__LINE__,u_file_u)) return
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
 
           allocate(fldlist_glc2lnd_icemask%flds(1))
           fldlist_glc2lnd_icemask%flds(1)%shortname = Sg_icemask_field
