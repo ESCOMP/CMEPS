@@ -4,6 +4,7 @@ module MED
   ! Mediator Component.
   !-----------------------------------------------------------------------------
 
+  use ESMF                   , only : ESMF_VMLogMemInfo
   use med_kind_mod           , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
   use med_constants_mod      , only : dbug_flag          => med_constants_dbug_flag
   use med_constants_mod      , only : spval_init         => med_constants_spval_init
@@ -58,6 +59,7 @@ module MED
   character(len=*), parameter :: grid_arbopt = "grid_reg"   ! grid_reg or grid_arb
   character(len=*), parameter :: u_FILE_u  = &
        __FILE__
+  logical :: profile_memory = .true.
 
 !-----------------------------------------------------------------------------
 contains
@@ -97,8 +99,10 @@ contains
 
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc
+    character(len=*),parameter :: subname='(module_MED:SetServices)'
 
     rc = ESMF_SUCCESS
+    if (profile_memory) call ESMF_VMLogMemInfo("Entering "//trim(subname))
 
     !------------------
     ! the NUOPC model component mediator_routine_SS will register the generic methods
@@ -368,6 +372,8 @@ contains
          specRoutine=med_finalize, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+    if (profile_memory) call ESMF_VMLogMemInfo("Leaving "//trim(subname))
+
   end subroutine SetServices
 
   !-----------------------------------------------------------------------------
@@ -395,6 +401,7 @@ contains
     !-----------------------------------------------------------
 
     rc = ESMF_SUCCESS
+    if (profile_memory) call ESMF_VMLogMemInfo("Entering "//trim(subname))
     call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call ESMF_VMGet(vm, localPet=localPet, rc=rc)
@@ -416,6 +423,7 @@ contains
     call NUOPC_CompFilterPhaseMap(gcomp, ESMF_METHOD_INITIALIZE, acceptStringList=(/"IPDv03p"/), rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+    if (profile_memory) call ESMF_VMLogMemInfo("Leaving "//trim(subname))
     call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
 
   end subroutine InitializeP0
@@ -463,6 +471,7 @@ contains
 
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
     rc = ESMF_SUCCESS
+    if (profile_memory) call ESMF_VMLogMemInfo("Entering "//trim(subname))
 
     !------------------
     ! Allocate memory for the internal state and set it in the Component.
@@ -654,6 +663,7 @@ contains
        end if
     end do ! end of ncomps loop
 
+    if (profile_memory) call ESMF_VMLogMemInfo("Leaving "//trim(subname))
     call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
 
   end subroutine InitializeIPDv03p1
@@ -683,6 +693,7 @@ contains
 
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
     rc = ESMF_SUCCESS
+    if (profile_memory) call ESMF_VMLogMemInfo("Entering "//trim(subname))
 
     ! Get the internal state from Component.
     nullify(is_local%wrap)
@@ -710,6 +721,7 @@ contains
       endif
     enddo
 
+    if (profile_memory) call ESMF_VMLogMemInfo("Leaving "//trim(subname))
     call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
 
   end subroutine InitializeIPDv03p3
@@ -738,6 +750,7 @@ contains
 
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
     rc = ESMF_SUCCESS
+    if (profile_memory) call ESMF_VMLogMemInfo("Entering "//trim(subname))
 
     ! Get the internal state from the mediator gridded component.
     nullify(is_local%wrap)
@@ -760,6 +773,7 @@ contains
        endif
        call ESMF_LogWrite(trim(subname)//": finished for component "//trim(compname(n1)), ESMF_LOGMSG_INFO)
     enddo
+    if (profile_memory) call ESMF_VMLogMemInfo("Leaving "//trim(subname))
     call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
 
   contains  !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -815,6 +829,7 @@ contains
 
       call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
       rc = ESMF_Success
+      if (profile_memory) call ESMF_VMLogMemInfo("Entering "//trim(subname))
 
       call ESMF_StateGet(State, itemCount=fieldCount, rc=rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -1158,6 +1173,7 @@ contains
 
       deallocate(fieldNameList)
 
+      if (profile_memory) call ESMF_VMLogMemInfo("Leaving "//trim(subname))
       call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
 
     end subroutine realizeConnectedGrid
@@ -1189,6 +1205,7 @@ contains
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
 
     rc = ESMF_SUCCESS
+    if (profile_memory) call ESMF_VMLogMemInfo("Entering "//trim(subname))
 
     ! Get the internal state from Component.
     nullify(is_local%wrap)
@@ -1229,6 +1246,7 @@ contains
       endif
     enddo
 
+    if (profile_memory) call ESMF_VMLogMemInfo("Leaving "//trim(subname))
     call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
 
   contains  !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1260,11 +1278,13 @@ contains
       integer, allocatable        :: gridToFieldMap(:)
       integer, allocatable        :: ungriddedLBound(:), ungriddedUBound(:)
       logical                     :: isPresent
+      logical                     :: meshcreated
       character(len=*),parameter  :: subname='(module_MED:completeFieldInitialization)'
       !-----------------------------------------------------------
 
       call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
       rc = ESMF_Success
+      if (profile_memory) call ESMF_VMLogMemInfo("Entering "//trim(subname))
 
       call State_GetNumFields(State, fieldCount, rc=rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -1274,6 +1294,7 @@ contains
         call NUOPC_getStateMemberLists(State, fieldList=fieldList, rc=rc)
         if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+        meshcreated = .false.
         do n=1, fieldCount
 
           call ESMF_FieldGet(fieldList(n), status=fieldStatus, name=fieldName, &
@@ -1290,8 +1311,11 @@ contains
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
             ! Convert grid to mesh
-            mesh = ESMF_GridToMeshCell(grid,rc=rc)
-            if (ChkErr(rc,__LINE__,u_FILE_u)) return
+            if (.not. meshcreated) then
+               mesh = ESMF_GridToMeshCell(grid,rc=rc)
+               if (ChkErr(rc,__LINE__,u_FILE_u)) return
+               meshcreated = .true.
+            end if
 
             meshField = ESMF_FieldCreate(mesh, typekind=ESMF_TYPEKIND_R8, &
                  meshloc=ESMF_MESHLOC_ELEMENT, name=fieldName, rc=rc)
@@ -1340,6 +1364,7 @@ contains
         deallocate(fieldList)
       endif
 
+      if (profile_memory) call ESMF_VMLogMemInfo("Leaving "//trim(subname))
       call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
 
     end subroutine completeFieldInitialization
@@ -1428,6 +1453,7 @@ contains
 
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
     rc = ESMF_SUCCESS
+    if (profile_memory) call ESMF_VMLogMemInfo("Entering "//trim(subname))
 
     call NUOPC_CompAttributeSet(gcomp, name="InitializeDataComplete", value="false", rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -1934,6 +1960,7 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
+    if (profile_memory) call ESMF_VMLogMemInfo("Leaving "//trim(subname))
     if (dbug_flag > 5) then
       call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
     endif
