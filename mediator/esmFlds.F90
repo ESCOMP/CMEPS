@@ -461,7 +461,7 @@ contains
           call ESMF_StateGet(state, field=field, itemName=trim(shortname), rc=rc)
           if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=u_FILE_u)) return
 
-          call NUOPC_GetAttribute(field, name=transferActionAttr, value=transferAction, rc=rc)
+          call NUOPC_GetAttribute(field, name="TransferActionAttr", value=transferAction, rc=rc)
           if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=u_FILE_u)) return
 
           if (trim(transferAction) == "accept") then  ! accept
