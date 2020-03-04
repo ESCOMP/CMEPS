@@ -35,6 +35,7 @@ module med_merge_mod
 
   private :: med_merge_auto_field
 
+  character(len=CL) :: errmsg
   character(*),parameter :: u_FILE_u = &
        __FILE__
 
@@ -228,7 +229,6 @@ contains
     integer           :: ungriddedUBound_input(1)  ! currently the size must equal 1 for rank 2 fieldds
     integer           :: gridToFieldMap_output(1)  ! currently the size must equal 1 for rank 2 fieldds
     integer           :: gridToFieldMap_input(1)   ! currently the size must equal 1 for rank 2 fieldds
-    character(len=CL) :: errmsg
     character(len=*),parameter :: subname=' (med_merge_mod: med_merge)'
     !---------------------------------------
 
@@ -434,7 +434,8 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     lb1 = lbound(dataOut,1)
     ub1 = ubound(dataOut,1)
-    allocate(wgt(lb1:ub1))
+! tcraig, this is a memory leak
+!    allocate(wgt(lb1:ub1))
 
     dataOut = czero
 
@@ -605,7 +606,8 @@ contains
     ub1 = ubound(dataOut,1)
     lb2 = lbound(dataOut,2)
     ub2 = ubound(dataOut,2)
-    allocate(wgt(lb1:ub1,lb2:ub2))
+! tcraig, this is a memory leak
+!    allocate(wgt(lb1:ub1,lb2:ub2))
 
     dataOut = czero
 

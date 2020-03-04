@@ -205,13 +205,17 @@ contains
        !--- auto merges to ocn
        !---------------------------------------
 
-       if (trim(coupling_mode) == 'cesm' .or. trim(coupling_mode) == 'nems_orig') then
+       !TODO: DW should be 'nems_orig_data' and then the 'else' is
+       ! == nems_frac .or. nems_orig  
+       !if (trim(coupling_mode) == 'cesm' .or. trim(coupling_mode) == 'nems_orig') then
+       if (trim(coupling_mode) == 'cesm' .or. trim(coupling_mode) == 'nems_orig_data') then
           call med_merge_auto(trim(compname(compocn)), &
                is_local%wrap%FBExp(compocn), is_local%wrap%FBFrac(compocn), &
                is_local%wrap%FBImp(:,compocn), fldListTo(compocn), &
                FBMed1=is_local%wrap%FBMed_aoflux_o, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       else if (trim(coupling_mode) == 'nems_frac') then
+       !else if (trim(coupling_mode) == 'nems_frac') then
+       else if (trim(coupling_mode) == 'nems_frac' .or. trim(coupling_mode) == 'nems_orig') then
           call med_merge_auto(trim(compname(compocn)), &
                is_local%wrap%FBExp(compocn), is_local%wrap%FBFrac(compocn), &
                is_local%wrap%FBImp(:,compocn), fldListTo(compocn), rc=rc)
