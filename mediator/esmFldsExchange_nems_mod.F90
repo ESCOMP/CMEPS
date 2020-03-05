@@ -1,4 +1,4 @@
-module esmFldsExchange_mod
+module esmFldsExchange_nems_mod
 
   !---------------------------------------------------------------------
   ! This is a mediator specific routine that determines ALL possible
@@ -9,7 +9,7 @@ module esmFldsExchange_mod
   implicit none
   public
 
-  public :: esmFldsExchange
+  public :: esmFldsExchange_nems
 
   character(*), parameter :: u_FILE_u = &
        __FILE__
@@ -18,7 +18,7 @@ module esmFldsExchange_mod
 contains
 !================================================================================
 
-  subroutine esmFldsExchange(gcomp, phase, rc)
+  subroutine esmFldsExchange_nems(gcomp, phase, rc)
 
     use ESMF
     use NUOPC
@@ -50,13 +50,6 @@ contains
     !--------------------------------------
 
     rc = ESMF_SUCCESS
-
-    if (phase /= 'advertise') then
-       return
-    end if
-
-    ! Determine supported coupling model
-    coupling_mode = 'nems_orig'
 
     ! Initialize if use 3d cartesian mapping for u,v
     mapuv_with_cart3d = .false.
@@ -388,6 +381,6 @@ contains
     call addmap(fldListFr(compocn)%flds, 'Fioo_q', compice,  mapfcopy, 'unset', 'unset')
     call addmrg(fldListTo(compice)%flds, 'Fioo_q', mrg_from1=compocn, mrg_fld1='Fioo_q', mrg_type1='copy')
 
-  end subroutine esmFldsExchange
+  end subroutine esmFldsExchange_nems
 
-end module esmFldsExchange_mod
+end module esmFldsExchange_nems_mod

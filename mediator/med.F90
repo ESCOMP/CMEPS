@@ -41,6 +41,9 @@ module MED
   use esmFlds                , only : med_fldList_GetFldNames
   use esmFlds                , only : med_fldList_Document_Mapping
   use esmFlds                , only : med_fldList_Document_Merging
+  use esmFlds                  , only : coupling_mode
+  use esmFldsExchange_nems_mod , only : esmFldsExchange_nems
+  use esmFldsExchange_cesm_mod , only : esmFldsExchange_cesm
 
   implicit none
   private
@@ -445,7 +448,7 @@ contains
     use esmFlds               , only : fldListFr, fldListTo
     use esmFlds               , only : med_fldList_GetNumFlds
     use esmFlds               , only : med_fldList_GetFldInfo
-    use esmFldsExchange_mod   , only : esmFldsExchange
+    use esmFldsExchange_nems_mod, only : esmFldsExchange_nems
     use med_internalstate_mod , only : mastertask
 
     ! input/output variables
@@ -527,8 +530,20 @@ contains
     ! Initialize mediator flds (should be identical to the list in esmDict_Init)
     !------------------
 
-    call esmFldsExchange(gcomp, phase='advertise', rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    ! first determine supported coupling model
+    ! call NUOPC_CompAttributeGet(gcomp, name='coupling_mode', value=coupling_mode, rc=rc)
+    ! if (chkerr(rc,__LINE__,u_FILE_u)) return
+    ! call ESMF_LogWrite('coupling_mode = '// trim(coupling_mode), ESMF_LOGMSG_INFO)
+    coupling_mode = 'nems_orig'
+    write(logunit,*)' Mediator Coupling Mode is ',trim(coupling_mode)
+
+    if (trim(coupling_mode) == 'cesm') then
+       call esmFldsExchange_cesm(gcomp, phase='advertise', rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    else if (trim(coupling_mode) == 'nems_orig' .or. trim(coupling_mode) == 'nems_orig_data') then
+       call esmFldsExchange_nems(gcomp, phase='advertise', rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    end if
 
     !------------------
     ! Determine component present indices
@@ -1408,7 +1423,6 @@ contains
     use ESMF                    , only : ESMF_VM
     use NUOPC                   , only : NUOPC_CompAttributeSet, NUOPC_IsAtTime, NUOPC_SetAttribute
     use NUOPC                   , only : NUOPC_CompAttributeGet
-    use esmFldsExchange_mod     , only : esmFldsExchange
     use med_fraction_mod        , only : med_fraction_init, med_fraction_set
     use med_phases_restart_mod  , only : med_phases_restart_read
     use med_phases_prep_glc_mod , only : med_phases_prep_glc_init
@@ -1712,8 +1726,10 @@ contains
       ! Determine mapping and merging info for field exchanges in mediator
       !---------------------------------------
 
-      call esmFldsExchange(gcomp, phase='initialize', rc=rc)
-      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      if (trim(coupling_mode) == 'cesm') then
+         call esmFldsExchange_cesm(gcomp, phase='initialize', rc=rc)
+         if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      end if
 
       if (mastertask) then
          call med_fldList_Document_Mapping(logunit, is_local%wrap%med_coupling_active)
