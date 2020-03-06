@@ -26,6 +26,15 @@
     <desc>Name of coupling component</desc>
   </entry>
 
+  <entry id="COUPLING_MODE">
+    <type>char</type>
+    <valid_values>cesm,nems_orig_active,nems_orig_data,nems_frac</valid_values>
+    <default_value>cesm</default_value>
+    <group>run_coupling</group>
+    <file>env_run.xml</file>
+    <desc>coupling mode</desc>
+  </entry>
+
   <!-- ===================================================================== -->
   <!-- master configuration file that specifies all relevant filenames and -->
   <!-- and directories to configure a case -->
@@ -2515,6 +2524,32 @@
    <group>job_submission</group>
    <file>env_workflow.xml</file>
    <desc>whether the PROJECT value is required on this machine</desc>
+ </entry>
+
+  <!-- ===================================================================== -->
+  <!-- data model force prognostic mode -->
+  <!-- ===================================================================== -->
+
+ <entry id="FORCE_PROGNOSTIC_FOR_DATAMODELS">
+   <type>logical</type>
+   <valid_values>TRUE,FALSE</valid_values>
+   <default_value>FALSE</default_value>
+   <group>data_models</group>
+   <file>env_run.xml</file>
+   <desc>if true, all data models are expected to get input sent back from the mediator</desc>
+ </entry>
+
+  <!-- ===================================================================== -->
+  <!-- write ESMF PET log files even without an error -->
+  <!-- ===================================================================== -->
+
+ <entry id="CREATE_ESMF_PET_FILES">
+   <type>logical</type>
+   <valid_values>TRUE,FALSE</valid_values>
+   <default_value>FALSE</default_value>
+   <group>run_debug</group>
+   <file>env_run.xml</file>
+   <desc>if true, create ESMF PET log files even if there is no error encountered </desc>
  </entry>
 
  <help>
