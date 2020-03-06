@@ -52,7 +52,8 @@ contains
     type(ESMF_TimeInterval)    :: timediff       ! Used to calculate curr_time
     type(ESMF_Alarm)           :: alarm
     type(ESMF_Calendar)        :: calendar
-    character(len=64)          :: currtimestr, nexttimestr
+    character(len=CS)          :: currtimestr
+    character(len=CS)          :: nexttimestr
     type(InternalState)        :: is_local
     integer                    :: i,j,m,n,n1,ncnt
     integer                    :: curr_ymd       ! Current date YYYYMMDD
@@ -163,8 +164,9 @@ contains
        if (dbug_flag > 1) then
           call ESMF_LogWrite(trim(subname)//": nexttime = "//trim(nexttimestr), ESMF_LOGMSG_INFO, rc=dbrc)
        endif
-       if(mastertask) then
-          call ESMF_ClockPrint(clock, options="currTime", preString="-------->"//trim(subname)//" mediating for: ", unit=cvalue, rc=rc)
+       if (mastertask) then
+          call ESMF_ClockPrint(clock, options="currTime", preString="-------->"//trim(subname)//&
+               " mediating for: ", unit=cvalue, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           write(logunit, *) trim(cvalue)
        endif
@@ -201,7 +203,7 @@ contains
             trim(case_name), '.cpl',trim(cpl_inst_tag),'.r.', trim(nexttimestr),'.nc'
 
        if (iam == 0) then
-          restart_pfile = "rpointer.med"//cpl_inst_tag
+          restart_pfile = "rpointer.cpl"//cpl_inst_tag
           call ESMF_LogWrite(trim(subname)//" write rpointer file = "//trim(restart_pfile), ESMF_LOGMSG_INFO, rc=dbrc)
           open(newunit=unitn, file=restart_pfile, form='FORMATTED')
           write(unitn,'(a)') trim(restart_file)
@@ -237,10 +239,9 @@ contains
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           endif
 
-          ! Write out next ymd/tod in place of curr ymd/tod because
-          ! the currently the restart represents the time at end of
-          ! the current timestep and that is where we want to start
-          ! the next run.
+          ! Write out next ymd/tod in place of curr ymd/tod because the
+          ! restart represents the time at end of the current timestep 
+          ! and that is where we want to start the next run.
 
           call med_io_write(restart_file, iam, start_ymd, 'start_ymd', whead=whead, wdata=wdata, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -256,6 +257,9 @@ contains
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
           call med_io_write(restart_file, iam, is_local%wrap%FBExpAccumCnt, dname='ExpAccumCnt', &
+               whead=whead, wdata=wdata, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call med_io_write(restart_file, iam, is_local%wrap%FBImpAccumCnt, dname='ImpAccumCnt', &
                whead=whead, wdata=wdata, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
@@ -291,7 +295,7 @@ contains
                    if (ChkErr(rc,__LINE__,u_FILE_u)) return
                 endif
 
-                ! Write export accumulators
+                ! Write export field bundle accumulators
                 if (ESMF_FieldBundleIsCreated(is_local%wrap%FBExpAccum(n),rc=rc)) then
                    ! TODO: only write this out if actually have done accumulation
                    !write(tmpstr,*) subname,' nx,ny = ',trim(compname(n)),nx,ny
@@ -300,10 +304,21 @@ contains
                        nx=nx, ny=ny, nt=1, whead=whead, wdata=wdata, pre=trim(compname(n))//'ExpAccum', rc=rc)
                    if (ChkErr(rc,__LINE__,u_FILE_u)) return
                 endif
+
+                ! Write import field bundle accumulators
+                if (ESMF_FieldBundleIsCreated(is_local%wrap%FBImpAccum(n,n),rc=rc)) then
+                   ! TODO: only write this out if actually have done accumulation
+                   !write(tmpstr,*) subname,' nx,ny = ',trim(compname(n)),nx,ny
+                   !call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO, rc=dbrc)
+                   call med_io_write(restart_file, iam,  is_local%wrap%FBImpAccum(n,n), &
+                       nx=nx, ny=ny, nt=1, whead=whead, wdata=wdata, pre=trim(compname(n))//'ImpAccum', rc=rc)
+                   if (ChkErr(rc,__LINE__,u_FILE_u)) return
+                endif
+
              endif
           enddo
 
-          !Write ocn albedo field bundle (CESM only)
+          ! Write ocn albedo field bundle (CESM only)
           if (ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_ocnalb_o,rc=rc)) then
              nx = is_local%wrap%nx(compocn)
              ny = is_local%wrap%ny(compocn)
@@ -336,13 +351,13 @@ contains
 
     ! Read mediator restart
 
-    use ESMF                  , only : ESMF_GridComp, ESMF_VM, ESMF_Clock, ESMF_Time, ESMF_MAXSTR
-    use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_FAILURE
-    use ESMF                  , only : ESMF_LOGMSG_ERROR, ESMF_VMBroadCast
-    use ESMF                  , only : ESMF_GridCompGet, ESMF_VMGet, ESMF_ClockGet, ESMF_ClockPrint
-    use ESMF                  , only : ESMF_FieldBundleIsCreated, ESMF_TimeGet
-    use NUOPC                 , only : NUOPC_CompAttributeGet
-    use med_io_mod            , only : med_io_read
+    use ESMF       , only : ESMF_GridComp, ESMF_VM, ESMF_Clock, ESMF_Time, ESMF_MAXSTR
+    use ESMF       , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_FAILURE
+    use ESMF       , only : ESMF_LOGMSG_ERROR, ESMF_VMBroadCast
+    use ESMF       , only : ESMF_GridCompGet, ESMF_VMGet, ESMF_ClockGet, ESMF_ClockPrint
+    use ESMF       , only : ESMF_FieldBundleIsCreated, ESMF_TimeGet
+    use NUOPC      , only : NUOPC_CompAttributeGet
+    use med_io_mod , only : med_io_read
 
     ! Input/output variables
     type(ESMF_GridComp)              :: gcomp
@@ -352,7 +367,7 @@ contains
     type(ESMF_VM)          :: vm
     type(ESMF_Clock)       :: clock
     type(ESMF_Time)        :: currtime
-    character(len=64)      :: currtimestr
+    character(len=CS)      :: currtimestr
     type(InternalState)    :: is_local
     integer                :: i,j,m,n,n1,ncnt
     integer                :: ierr, unitn
@@ -416,16 +431,17 @@ contains
        call ESMF_ClockPrint(clock, options="currTime", preString="-------->"//trim(subname)//" mediating for: ", rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     endif
+
     !---------------------------------------
     ! --- Restart File
     !---------------------------------------
 
+    ! Get the restart file name from the pointer file
 
-    restart_pfile = "rpointer.med"//cpl_inst_tag
-
+    restart_pfile = "rpointer.cpl"//cpl_inst_tag
     if (iam == 0) then
        call ESMF_LogWrite(trim(subname)//" read rpointer file = "//trim(restart_pfile), ESMF_LOGMSG_INFO, rc=dbrc)
-       open(newunit=unitn, file=restart_pfile, form='FORMATTED', status='old',iostat=ierr)
+       open(newunit=unitn, file=restart_pfile, form='FORMATTED', status='old', iostat=ierr)
        if (ierr < 0) then
           call ESMF_LogWrite(trim(subname)//' rpointer file open returns error', ESMF_LOGMSG_INFO, rc=dbrc)
           rc=ESMF_Failure
@@ -442,10 +458,13 @@ contains
             ESMF_LOGMSG_INFO, rc=dbrc)
     endif
     call ESMF_VMBroadCast(vm, restart_file, len(restart_file), 0, rc=rc)
-
     call ESMF_LogWrite(trim(subname)//": read "//trim(restart_file), ESMF_LOGMSG_INFO, rc=dbrc)
 
+    ! Now read in the restart file
+
     call med_io_read(restart_file, vm, iam, is_local%wrap%FBExpAccumCnt, dname='ExpAccumCnt', rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call med_io_read(restart_file, vm, iam, is_local%wrap%FBImpAccumCnt, dname='ImpAccumCnt', rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     do n = 1,ncomps
@@ -457,7 +476,14 @@ contains
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           endif
 
-          ! Read import fractions
+          ! Read export field bundle
+          if (ESMF_FieldBundleIsCreated(is_local%wrap%FBExp(n),rc=rc)) then
+             call med_io_read(restart_file, vm, iam, is_local%wrap%FBexp(n), &
+                 pre=trim(compname(n))//'Exp', rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          endif
+
+          ! Read fraction field bundles
           if (ESMF_FieldBundleIsCreated(is_local%wrap%FBfrac(n),rc=rc)) then
              call med_io_read(restart_file, vm, iam, is_local%wrap%FBfrac(n), &
                  pre=trim(compname(n))//'Frac', rc=rc)
@@ -468,6 +494,13 @@ contains
           if (ESMF_FieldBundleIsCreated(is_local%wrap%FBExpAccum(n),rc=rc)) then
              call med_io_read(restart_file, vm, iam, is_local%wrap%FBExpAccum(n), &
                  pre=trim(compname(n))//'ExpAccum', rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          endif
+
+          ! Read import field bundle accumulator
+          if (ESMF_FieldBundleIsCreated(is_local%wrap%FBImpAccum(n,n),rc=rc)) then
+             call med_io_read(restart_file, vm, iam, is_local%wrap%FBImpAccum(n,n), &
+                 pre=trim(compname(n))//'ImpAccum', rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           endif
        endif
@@ -490,15 +523,13 @@ contains
   end subroutine med_phases_restart_read
 
   !===============================================================================
+
   subroutine ymd2date(year,month,day,date)
     ! Converts  year, month, day to coded-date
     ! NOTE: this calendar has a year zero (but no day or month zero)
 
     integer,intent(in ) :: year,month,day  ! calendar year,month,day
     integer,intent(out) :: date            ! coded (yyyymmdd) calendar date
-
-    ! local variables
-    character(*),parameter :: subName = "(ymd2date)"
     !---------------------------------------
 
     date = abs(year)*10000 + month*100 + day  ! coded calendar date
