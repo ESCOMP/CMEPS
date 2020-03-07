@@ -150,17 +150,11 @@ contains
     read(cvalue,*) read_restart
 
     if (read_restart) then
-
        call NUOPC_CompAttributeGet(esmdriver, name='restart_file', value=restart_file, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        !--- read rpointer if restart_file is set to str_undefined ---
        if (trim(restart_file) == 'str_undefined') then
-
-          ! Error check on restart_pfile
-          call NUOPC_CompAttributeGet(esmdriver, name="restart_pfile", value=restart_pfile, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
           call NUOPC_CompAttributeGet(esmdriver, name="inst_suffix", isPresent=isPresent, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           if(isPresent) then
@@ -169,13 +163,7 @@ contains
           else
              inst_suffix = ""
           endif
-          if ( len_trim(restart_pfile) == 0 ) then
-             call ESMF_LogWrite(trim(subname)//' ERROR restart_pfile must be defined', &
-                  ESMF_LOGMSG_INFO, line=__LINE__, file=__FILE__)
-             rc = ESMF_FAILURE
-             return
-          end if
-          restart_pfile = trim(restart_pfile)//inst_suffix
+          restart_pfile = "rpointer.cpl"//inst_suffix
           if (mastertask) then
              call ESMF_LogWrite(trim(subname)//" read rpointer file = "//trim(restart_pfile), &
                   ESMF_LOGMSG_INFO)

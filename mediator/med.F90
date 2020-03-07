@@ -27,7 +27,6 @@ module MED
   use med_methods_mod        , only : clock_timeprint    => med_methods_clock_timeprint
   use med_time_mod           , only : alarmInit          => med_time_alarmInit 
   use med_utils_mod          , only : memcheck           => med_memcheck
-  use med_phases_history_mod , only : histAlarmInit      => med_phases_history_alarm_init
   use med_internalstate_mod  , only : InternalState
   use med_internalstate_mod  , only : med_coupling_allowed, logunit, mastertask
   use med_phases_profile_mod , only : med_phases_profile_finalize
@@ -414,7 +413,6 @@ contains
     call ESMF_AttributeGet(gcomp, name="Verbosity", value=value, defaultValue="max", &
          convention="NUOPC", purpose="Instance", rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
     call ESMF_LogWrite(trim(subname)//": Mediator verbosity is "//trim(value), ESMF_LOGMSG_INFO)
 
     write(msgString,'(A,i6)') trim(subname)//' dbug_flag = ',dbug_flag
@@ -459,6 +457,7 @@ contains
     ! local variables
     character(len=CS)   :: stdname, shortname
     integer             :: n, n1, n2, ncomp, nflds
+    logical             :: isPresent, isSet
     character(len=CS)   :: transferOffer
     character(len=CS)   :: cvalue
     type(InternalState) :: is_local
@@ -553,36 +552,50 @@ contains
                     'rof_present','wav_present','glc_present','med_present'/), rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    med_present = "true"
-    atm_present = "true"
-    lnd_present = "true"
-    ocn_present = "true"
-    ice_present = "true"
-    rof_present = "true"
-    wav_present = "true"
-    glc_present = "true"
+    med_present = "false"
+    atm_present = "false"
+    lnd_present = "false"
+    ocn_present = "false"
+    ice_present = "false"
+    rof_present = "false"
+    wav_present = "false"
+    glc_present = "false"
 
-    call NUOPC_CompAttributeGet(gcomp, name='ATM_model', value=cvalue, rc=rc)
+    call NUOPC_CompAttributeGet(gcomp, name='ATM_model', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (trim(cvalue) == 'satm') atm_present = "false"
-    call NUOPC_CompAttributeGet(gcomp, name='LND_model', value=cvalue, rc=rc)
+    if (isPresent .and. isSet) then
+       if (trim(cvalue) /= 'satm') atm_present = "true"
+    end if
+    call NUOPC_CompAttributeGet(gcomp, name='LND_model', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (trim(cvalue) == 'slnd') lnd_present = "false"
-    call NUOPC_CompAttributeGet(gcomp, name='OCN_model', value=cvalue, rc=rc)
+    if (isPresent .and. isSet) then
+       if (trim(cvalue) /= 'slnd') lnd_present = "true"
+    end if
+    call NUOPC_CompAttributeGet(gcomp, name='OCN_model', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (trim(cvalue) == 'socn') ocn_present = "false"
-    call NUOPC_CompAttributeGet(gcomp, name='ICE_model', value=cvalue, rc=rc)
+    if (isPresent .and. isSet) then
+       if (trim(cvalue) /= 'socn') ocn_present = "true"
+    end if
+    call NUOPC_CompAttributeGet(gcomp, name='ICE_model', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (trim(cvalue) == 'sice') ice_present = "false"
-    call NUOPC_CompAttributeGet(gcomp, name='ROF_model', value=cvalue, rc=rc)
+    if (isPresent .and. isSet) then
+       if (trim(cvalue) /= 'sice') ice_present = "true"
+    end if
+    call NUOPC_CompAttributeGet(gcomp, name='ROF_model', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (trim(cvalue) == 'srof') rof_present = "false"
-    call NUOPC_CompAttributeGet(gcomp, name='WAV_model', value=cvalue, rc=rc)
+    if (isPresent .and. isSet) then
+       if (trim(cvalue) /= 'srof') rof_present = "true"
+    end if
+    call NUOPC_CompAttributeGet(gcomp, name='WAV_model', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (trim(cvalue) == 'swav') wav_present = "false"
-    call NUOPC_CompAttributeGet(gcomp, name='GLC_model', value=cvalue, rc=rc)
+    if (isPresent .and. isSet) then
+       if (trim(cvalue) /= 'swav') wav_present = "true"
+    end if
+    call NUOPC_CompAttributeGet(gcomp, name='GLC_model', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (trim(cvalue) == 'sglc') glc_present = "false"
+    if (isPresent .and. isSet) then
+       if (trim(cvalue) /= 'sglc') glc_present = "true"
+    end if
 
     call NUOPC_CompAttributeSet(gcomp, name="atm_present", value=atm_present, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -630,13 +643,21 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     read(cvalue,*) is_local%wrap%flds_scalar_index_ny
 
-    call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldIdxNextSwCday", value=cvalue, rc=rc)
+    call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldIdxNextSwCday", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) is_local%wrap%flds_scalar_index_nextsw_cday
+    if (isPresent .and. isSet) then
+       read(cvalue,*) is_local%wrap%flds_scalar_index_nextsw_cday
+    else
+       is_local%wrap%flds_scalar_index_nextsw_cday = spval
+    end if
 
-    call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldIdxPrecipFactor", value=cvalue, rc=rc)
+    call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldIdxPrecipFactor", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) is_local%wrap%flds_scalar_index_precip_factor
+    if (isPresent .and. isSet) then
+       read(cvalue,*) is_local%wrap%flds_scalar_index_precip_factor
+    else
+       is_local%wrap%flds_scalar_index_precip_factor = spval
+    end if
 
     !------------------
     ! Advertise import/export mediator field names
@@ -2113,18 +2134,19 @@ contains
       end if
 
       ! Mediator stop alarm
+      ! TODO: - check that this is not needed - the stop time must be set by the driver clock not the mediator clock
 
-      call NUOPC_CompAttributeGet(gcomp, name="stop_option", value=stop_option, rc=rc)
-      if (ChkErr(rc,__LINE__,u_FILE_u)) return
-      call NUOPC_CompAttributeGet(gcomp, name="stop_n", value=cvalue, rc=rc)
-      if (ChkErr(rc,__LINE__,u_FILE_u)) return
-      read(cvalue,*) stop_n
-      call NUOPC_CompAttributeGet(gcomp, name="stop_ymd", value=cvalue, rc=rc)
-      if (ChkErr(rc,__LINE__,u_FILE_u)) return
-      read(cvalue,*) stop_ymd
-      call alarmInit(mediatorClock, stop_alarm, stop_option, opt_n=stop_n, opt_ymd=stop_ymd, &
-           RefTime = currTime,  alarmname = 'alarm_stop', rc=rc)
-      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      ! call NUOPC_CompAttributeGet(gcomp, name="stop_option", value=stop_option, rc=rc)
+      ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      ! call NUOPC_CompAttributeGet(gcomp, name="stop_n", value=cvalue, rc=rc)
+      ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      ! read(cvalue,*) stop_n
+      ! call NUOPC_CompAttributeGet(gcomp, name="stop_ymd", value=cvalue, rc=rc)
+      ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      ! read(cvalue,*) stop_ymd
+      ! call alarmInit(mediatorClock, stop_alarm, stop_option, opt_n=stop_n, opt_ymd=stop_ymd, &
+      !      RefTime = currTime,  alarmname = 'alarm_stop', rc=rc)
+      ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        first_time = .false.
     end if
