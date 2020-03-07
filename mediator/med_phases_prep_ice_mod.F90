@@ -26,9 +26,10 @@ module med_phases_prep_ice_mod
   implicit none
   private
 
-  character(*)      , parameter :: u_FILE_u  = __FILE__
-
   public  :: med_phases_prep_ice
+
+  character(*), parameter :: u_FILE_u  = &
+       __FILE__
 
 !-----------------------------------------------------------------------------
 contains
@@ -126,7 +127,7 @@ contains
        !--- custom calculations
        !---------------------------------------
 
-       if (coupling_mode == 'cesm') then
+       if (trim(coupling_mode) == 'cesm') then
 
           ! application of precipitation factor from ocean
           ! TODO (mvertens, 2019-03-18): precip_fact here is not valid if
