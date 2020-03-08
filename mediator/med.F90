@@ -2133,17 +2133,17 @@ contains
       ! Mediator stop alarm
       ! TODO: - check that this is not needed - the stop time must be set by the driver clock not the mediator clock
 
-      ! call NUOPC_CompAttributeGet(gcomp, name="stop_option", value=stop_option, rc=rc)
-      ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
-      ! call NUOPC_CompAttributeGet(gcomp, name="stop_n", value=cvalue, rc=rc)
-      ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
-      ! read(cvalue,*) stop_n
-      ! call NUOPC_CompAttributeGet(gcomp, name="stop_ymd", value=cvalue, rc=rc)
-      ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
-      ! read(cvalue,*) stop_ymd
-      ! call alarmInit(mediatorClock, stop_alarm, stop_option, opt_n=stop_n, opt_ymd=stop_ymd, &
-      !      RefTime = currTime,  alarmname = 'alarm_stop', rc=rc)
-      ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      call NUOPC_CompAttributeGet(gcomp, name="stop_option", value=stop_option, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      call NUOPC_CompAttributeGet(gcomp, name="stop_n", value=cvalue, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      read(cvalue,*) stop_n
+      call NUOPC_CompAttributeGet(gcomp, name="stop_ymd", value=cvalue, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      read(cvalue,*) stop_ymd
+      call alarmInit(mediatorClock, stop_alarm, stop_option, opt_n=stop_n, opt_ymd=stop_ymd, &
+           RefTime = currTime,  alarmname = 'alarm_stop', rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        first_time = .false.
     end if

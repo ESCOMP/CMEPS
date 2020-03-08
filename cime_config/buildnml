@@ -480,7 +480,7 @@ def buildnml(case, caseroot, component):
     cimeroot = case.get_value("CIMEROOT")
     fd_dir = os.path.join(cimeroot, "src","drivers","nuopc","mediator")
     filename = os.path.join(fd_dir,"fd_cesm.yaml")
-    shutil.copy(filename, os.path.join(rundir, "fd.yaml")
+    shutil.copy(filename, os.path.join(rundir, "fd.yaml"))
 
 ###############################################################################
 def _main_func():

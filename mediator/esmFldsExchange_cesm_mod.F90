@@ -913,7 +913,7 @@ contains
     ! to ocn: downward diffuse visible incident solar radiation from atm
     ! ---------------------------------------------------------------------
     allocate(flds(5))
-    flds = (/'Faxa_lwdn ', 'Faxa_swndr', 'Faxa_swndf', 'Faxa_swvdr', 'Faxa_Faxa_swvdf'/)
+    flds = (/'Faxa_lwdn ', 'Faxa_swndr', 'Faxa_swndf', 'Faxa_swvdr', 'Faxa_swvdf'/)
 
     do n = 1,size(flds)
        fldname = trim(flds(n))
@@ -950,7 +950,6 @@ contains
     ! ---------------------------------------------------------------------
     if (phase == 'advertise') then
        call addfld(fldListFr(compatm)%flds , 'Faxa_lwdn')
-       call addfld(fldListFr(compatm)%flds , 'Faxa_lwnet')
        call addfld(fldListMed_aoflux%flds  , 'Faox_lwup' )
        call addfld(fldListTo(compocn)%flds , 'Foxx_lwnet')
     else
