@@ -2025,11 +2025,9 @@ contains
     integer                 :: restart_n            ! Number until restart interval
     integer                 :: restart_ymd          ! Restart date (YYYYMMDD)
     type(ESMF_ALARM)        :: restart_alarm
-    type(ESMF_ALARM)        :: med_profile_alarm
     type(ESMF_ALARM)        :: glc_avg_alarm
     logical                 :: glc_present
     character(len=16)       :: glc_avg_period
-    character(len=256)      :: option           
     integer                 :: opt_n            
     integer                 :: opt_ymd          
     type(ESMF_ALARM)        :: alarm
@@ -2087,14 +2085,6 @@ contains
             RefTime=currTime, alarmname = 'alarm_restart', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call ESMF_AlarmSet(restart_alarm, clock=mediatorclock, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-       ! Set mediator profile alarm - HARD CODED to daily
-
-       call alarmInit(mediatorclock, med_profile_alarm, 'ndays', &
-            opt_n = 1, alarmname = 'med_profile_alarm', rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_AlarmSet(med_profile_alarm, clock=mediatorclock, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        ! Set glc averaging alarm if appropriate

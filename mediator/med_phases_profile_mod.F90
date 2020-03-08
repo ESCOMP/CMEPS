@@ -8,7 +8,7 @@ module med_phases_profile_mod
   use med_constants_mod     , only : dbug_flag=>med_constants_dbug_flag
   use med_utils_mod         , only : med_utils_chkerr, med_memcheck
   use med_internalstate_mod , only : mastertask, logunit
-  use med_utils_mod         , only : med_utils_chkerr
+  use med_utils_mod         , only : chkerr    => med_utils_ChkErr
   use med_time_mod          , only : alarmInit => med_time_alarmInit 
   use perf_mod              , only : t_startf, t_stopf
   use shr_mem_mod           , only : shr_mem_getusage
@@ -34,11 +34,11 @@ contains
     use ESMF  , only : ESMF_VMGetCurrent, ESMF_CLOCK, ESMF_GridComp, ESMF_LogMsg_Info
     use ESMF  , only : ESMF_LogWrite, ESMF_GridCompGet, ESMF_SUCCESS, ESMF_VM
     use ESMF  , only : ESMF_VMGet, ESMF_ClockGetAlarm, ESMF_AlarmRingerOff
-    use ESMF  , only : ESMF_Alarm, ESMF_AlarmisRinging, ESMF_VMWtime
+    use ESMF  , only : ESMF_Alarm, ESMF_AlarmSet, ESMF_AlarmisRinging, ESMF_VMWtime
     use ESMF  , only : ESMF_TimeSyncToRealTime, ESMF_Time, ESMF_TimeSet
     use ESMF  , only : ESMF_TimeInterval, ESMF_AlarmGet, ESMF_TimeIntervalGet
     use ESMF  , only : ESMF_ClockGetNextTime, ESMF_TimeGet, ESMF_ClockGet
-    use ESMF  , only : ESMF_ClockAdvance, ESMF_ClockSet 
+    use ESMF  , only : ESMF_ClockAdvance, ESMF_ClockSet, ESMF_ClockIsStopTime 
     use ESMF  , only : operator(-)
     use NUOPC , only : NUOPC_CompAttributeGet
 
@@ -50,45 +50,32 @@ contains
 
     ! local variables
     character(len=CS)       :: cpl_inst_tag
-    type(ESMF_CLOCK)        :: clock
-    type(ESMF_TIME)         :: wallclocktime, nexttime
-    type(ESMF_TIME), save   :: prevtime
-    type(ESMF_VM)           :: vm
-    type(ESMF_Alarm)        :: alarm, salarm
-    type(ESMF_TimeInterval) :: ringInterval, timestep
+    type(ESMF_Clock)        :: clock
+    type(ESMF_Time)         :: wallclockTime, nextTime
     type(ESMF_Time)         :: currTime
+    type(ESMF_Time), save   :: prevTime
+    type(ESMF_TimeInterval) :: ringInterval, timestep
+    type(ESMF_Alarm)        :: alarm
     integer                 :: yr, mon, day, hr, min, sec
-    integer                 :: iam
     logical                 :: ispresent
     logical                 :: alarmison=.false., stopalarmison=.false.
     real(R8)                :: current_time, wallclockelapsed, ypd
     real(r8)                :: msize, mrss, ringdays
     real(r8), save          :: avgdt
-    character(len=256)      :: stop_option    ! Stop option units
-    integer                 :: stop_n         ! Number until stop interval
-    type(ESMF_ALARM)        :: stop_alarm
     character(len=CL)       :: walltimestr, nexttimestr
-    character(len=CS)       :: cvalue
-    logical                 :: first_time = .true.
     character(len=*), parameter :: subname='(med_phases_profile)'
     !---------------------------------------
 
     call t_startf('MED:'//subname)
-    call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO, rc=rc)
+
     rc = ESMF_SUCCESS
 
-    call ESMF_VMGetCurrent(vm, rc=rc)
-    if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
-
-    call ESMF_VMGet(vm, localPet=iam, rc=rc)
-    if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
-
     call NUOPC_CompAttributeGet(gcomp, name='inst_suffix', isPresent=isPresent, rc=rc)
-    if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     if(isPresent) then
        call NUOPC_CompAttributeGet(gcomp, name='inst_suffix', value=cpl_inst_tag, rc=rc)
-       if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
     else
        cpl_inst_tag = ""
     endif
@@ -97,49 +84,41 @@ contains
     ! --- profiler Alarm
     !---------------------------------------
     call ESMF_GridCompGet(gcomp, clock=clock, rc=rc)
-    if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
-
-    if (first_time) then
-       call NUOPC_CompAttributeGet(gcomp, name="stop_option", value=stop_option, rc=rc)
-       if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
-
-       call NUOPC_CompAttributeGet(gcomp, name="stop_n", value=cvalue, rc=rc)
-       if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
-       read(cvalue,*) stop_n
-
-       call ESMF_ClockGet(clock, currTime=currTime, timeStep=timeStep, rc=rc)
-       if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
-
-       call alarmInit(clock, stop_alarm, stop_option, opt_n=stop_n, &
-            RefTime=currTime,  alarmname='alarm_stop', rc=rc)
-       if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
-
-       ! Advance med clock to trigger alarms then reset model clock back to currtime
-       call ESMF_ClockAdvance(clock, rc=rc)
-       if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_ClockSet(clock, currTime=currtime, timeStep=timestep, rc=rc)
-       if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
-
-       first_time = .false.
-    end if
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     if (iterations == 0) then
-       ! intialize and return
+
+       ! Set mediator profile alarm - HARD CODED to daily
+       call alarmInit(clock, alarm, 'ndays', opt_n=1, alarmname='med_profile_alarm', rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_AlarmSet(alarm, clock=clock, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       ! Advance model clock to trigger alarms then reset model clock back to currtime
+       call ESMF_ClockGet(clock, currTime=currTime, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_ClockAdvance(clock,rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_ClockSet(clock, currTime=currtime, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       ! intialize 
        call ESMF_VMWtime(previous_time, rc=rc)
-       if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        ! Here we are just getting a single timestep interval
        call ESMF_ClockGet( clock, timestep=timestep, rc=rc)
-       if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        call ESMF_ClockGet(clock, currTime=prevtime, rc=rc)
-       if (med_utils_ChkErr(rc,__LINE__,u_FILE_u)) return
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        call ESMF_TimeIntervalGet(timestep, d_r8=timestep_length, rc=rc)
-       if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
        iterations = 1
 
     else
+
        !---------------------------------------
        ! --- Get the clock info
        !---------------------------------------
@@ -153,15 +132,10 @@ contains
           call ESMF_AlarmRingerOff( alarm, rc=rc )
           if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
        else
-          call ESMF_ClockGetAlarm(clock, alarmname='alarm_stop', alarm=salarm, rc=rc)
-          if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
-          if (ESMF_AlarmIsRinging(salarm, rc=rc)) then
-             if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
+          if (ESMF_ClockIsStopTime(clock)) then
              stopalarmIsOn = .true.
-             call ESMF_AlarmRingerOff( salarm, rc=rc )
-             if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
           else
-             AlarmIsOn = .false.
+             alarmIsOn = .false.
              stopalarmison = .false.
           endif
        endif
@@ -240,7 +214,7 @@ contains
     integer :: rc
 
     call ESMF_VMWtime(current_time, rc=rc)
-    if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     wallclockelapsed = current_time - previous_time
     accumulated_time = accumulated_time + wallclockelapsed
