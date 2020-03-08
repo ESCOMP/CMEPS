@@ -2029,10 +2029,6 @@ contains
     type(ESMF_ALARM)        :: glc_avg_alarm
     logical                 :: glc_present
     character(len=16)       :: glc_avg_period
-    character(len=256)      :: stop_option    ! Stop option units
-    integer                 :: stop_n         ! Number until stop interval
-    integer                 :: stop_ymd       ! Stop date (YYYYMMDD)
-    type(ESMF_ALARM)        :: stop_alarm
     character(len=256)      :: option           
     integer                 :: opt_n            
     integer                 :: opt_ymd          
@@ -2129,22 +2125,7 @@ contains
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
       end if
 
-      ! Mediator stop alarm
-      ! TODO: - check that this is not needed - the stop time must be set by the driver clock not the mediator clock
-
-      call NUOPC_CompAttributeGet(gcomp, name="stop_option", value=stop_option, rc=rc)
-      if (ChkErr(rc,__LINE__,u_FILE_u)) return
-      call NUOPC_CompAttributeGet(gcomp, name="stop_n", value=cvalue, rc=rc)
-      if (ChkErr(rc,__LINE__,u_FILE_u)) return
-      read(cvalue,*) stop_n
-      call NUOPC_CompAttributeGet(gcomp, name="stop_ymd", value=cvalue, rc=rc)
-      if (ChkErr(rc,__LINE__,u_FILE_u)) return
-      read(cvalue,*) stop_ymd
-      call alarmInit(mediatorClock, stop_alarm, stop_option, opt_n=stop_n, opt_ymd=stop_ymd, &
-           RefTime = currTime,  alarmname = 'alarm_stop', rc=rc)
-      if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-       first_time = .false.
+      first_time = .false.
     end if
 
     !--------------------------------

@@ -9,6 +9,7 @@ module med_phases_profile_mod
   use med_utils_mod         , only : med_utils_chkerr, med_memcheck
   use med_internalstate_mod , only : mastertask, logunit
   use med_utils_mod         , only : med_utils_chkerr
+  use med_time_mod          , only : alarmInit => med_time_alarmInit 
   use perf_mod              , only : t_startf, t_stopf
   use shr_mem_mod           , only : shr_mem_getusage
 
@@ -37,6 +38,7 @@ contains
     use ESMF  , only : ESMF_TimeSyncToRealTime, ESMF_Time, ESMF_TimeSet
     use ESMF  , only : ESMF_TimeInterval, ESMF_AlarmGet, ESMF_TimeIntervalGet
     use ESMF  , only : ESMF_ClockGetNextTime, ESMF_TimeGet, ESMF_ClockGet
+    use ESMF  , only : ESMF_ClockAdvance, ESMF_ClockSet 
     use ESMF  , only : operator(-)
     use NUOPC , only : NUOPC_CompAttributeGet
 
@@ -54,6 +56,7 @@ contains
     type(ESMF_VM)           :: vm
     type(ESMF_Alarm)        :: alarm, salarm
     type(ESMF_TimeInterval) :: ringInterval, timestep
+    type(ESMF_Time)         :: currTime
     integer                 :: yr, mon, day, hr, min, sec
     integer                 :: iam
     logical                 :: ispresent
@@ -61,7 +64,12 @@ contains
     real(R8)                :: current_time, wallclockelapsed, ypd
     real(r8)                :: msize, mrss, ringdays
     real(r8), save          :: avgdt
+    character(len=256)      :: stop_option    ! Stop option units
+    integer                 :: stop_n         ! Number until stop interval
+    type(ESMF_ALARM)        :: stop_alarm
     character(len=CL)       :: walltimestr, nexttimestr
+    character(len=CS)       :: cvalue
+    logical                 :: first_time = .true.
     character(len=*), parameter :: subname='(med_phases_profile)'
     !---------------------------------------
 
@@ -90,10 +98,36 @@ contains
     !---------------------------------------
     call ESMF_GridCompGet(gcomp, clock=clock, rc=rc)
     if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
+
+    if (first_time) then
+       call NUOPC_CompAttributeGet(gcomp, name="stop_option", value=stop_option, rc=rc)
+       if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
+
+       call NUOPC_CompAttributeGet(gcomp, name="stop_n", value=cvalue, rc=rc)
+       if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
+       read(cvalue,*) stop_n
+
+       call ESMF_ClockGet(clock, currTime=currTime, timeStep=timeStep, rc=rc)
+       if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
+
+       call alarmInit(clock, stop_alarm, stop_option, opt_n=stop_n, &
+            RefTime=currTime,  alarmname='alarm_stop', rc=rc)
+       if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
+
+       ! Advance med clock to trigger alarms then reset model clock back to currtime
+       call ESMF_ClockAdvance(clock, rc=rc)
+       if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_ClockSet(clock, currTime=currtime, timeStep=timestep, rc=rc)
+       if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
+
+       first_time = .false.
+    end if
+
     if (iterations == 0) then
        ! intialize and return
        call ESMF_VMWtime(previous_time, rc=rc)
        if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
+
        ! Here we are just getting a single timestep interval
        call ESMF_ClockGet( clock, timestep=timestep, rc=rc)
        if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
@@ -104,6 +138,7 @@ contains
        call ESMF_TimeIntervalGet(timestep, d_r8=timestep_length, rc=rc)
        if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
        iterations = 1
+
     else
        !---------------------------------------
        ! --- Get the clock info
@@ -130,6 +165,7 @@ contains
              stopalarmison = .false.
           endif
        endif
+
        if ((stopalarmison .or. alarmIsOn .or. iterations==1) .and. mastertask) then
           ! We need to get the next time for display
           call ESMF_ClockGetNextTime(clock, nextTime=nexttime, rc=rc)
