@@ -133,10 +133,9 @@ contains
     deallocate(flds)
 
     ! to atm: unmerged surface temperatures from ocn
-    ! TODO: ERROR - this mapping must be weighted by 'ofrac' not 'none'
     call addfld(fldListFr(compocn)%flds, 'So_t')
     call addfld(fldListTo(compatm)%flds, 'So_t')
-    call addmap(fldListFr(compocn)%flds, 'So_t', compatm, mapnstod_consf, 'none' , 'unset')
+    call addmap(fldListFr(compocn)%flds, 'So_t', compatm, mapnstod_consf, 'ofrac', 'unset')
     call addmrg(fldListTo(compatm)%flds, 'So_t', mrg_from1=compocn, mrg_fld1='So_t', mrg_type1='copy')
 
     !=====================================================================
@@ -184,14 +183,22 @@ contains
     deallocate(flds)
 
     ! to ocn: merged sensible heat flux (custom merge in med_phases_prep_ocn)
-    ! to ocn: surface latent heat flux and evaporation water flux (custom merge in med_phases_prep_ocn)
-    ! TODO: this seems to be a bug here 
-    call addfld(fldListTo(compocn)%flds, 'Faxa_sen') ! TODO: need to change name
+    call addfld(fldListTo(compocn)%flds, 'Faxa_sen')
     call addfld(fldListFr(compatm)%flds, 'Faxa_sen')
-    call addmap(fldListFr(compatm)%flds, 'Faxa_sen', compocn, mapconsf, 'none'  , 'unset')
+    if (trim(coupling_mode) == 'nems_orig' .or. trim(coupling_mode) == 'nems_orig_data') then
+       call addmap(fldListFr(compatm)%flds, 'Faxa_sen', compocn, mapnstod_consf, 'none', 'unset')
+    else
+       call addmap(fldListFr(compatm)%flds, 'Faxa_sen', compocn, mapconsf, 'none', 'unset')
+    end if
+
+    ! to ocn: surface latent heat flux and evaporation water flux (custom merge in med_phases_prep_ocn)
     call addfld(fldListTo(compocn)%flds, 'Foxx_evap')
-    call addfld(fldListFr(compatm)%flds, 'Faxa_lat' )
-    call addmap(fldListFr(compatm)%flds, 'Faxa_lat', compocn, mapconsf, 'none', 'unset')
+    call addfld(fldListFr(compatm)%flds, 'Faxa_lat')
+    if (trim(coupling_mode) == 'nems_orig' .or. trim(coupling_mode) == 'nems_orig_data') then
+       call addmap(fldListFr(compatm)%flds, 'Faxa_lat', compocn, mapnstod_consf, 'none', 'unset')
+    else
+       call addmap(fldListFr(compatm)%flds, 'Faxa_lat', compocn, mapconsf, 'none', 'unset')
+    end if
 
     ! to ocn: merge zonal surface stress (custom merge calculation in med_phases_prep_ocn)
     call addfld(fldListTo(compocn)%flds, 'Faxa_taux') ! TODO: need to change name
