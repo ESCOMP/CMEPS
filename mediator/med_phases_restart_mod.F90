@@ -9,6 +9,7 @@ module med_phases_restart_mod
   use med_constants_mod     , only : SecPerDay => med_constants_SecPerDay
   use med_utils_mod         , only : chkerr    => med_utils_ChkErr
   use med_internalstate_mod , only : mastertask, logunit, InternalState
+  use med_time_mod          , only : med_time_AlarmInit
   use esmFlds               , only : ncomps, compname, compocn
   use perf_mod              , only : t_startf, t_stopf
 
@@ -18,12 +19,108 @@ module med_phases_restart_mod
   public  :: med_phases_restart_read
   public  :: med_phases_restart_write
 
+  private :: med_phases_restart_alarm_init
+
   character(*), parameter :: u_FILE_u  = &
        __FILE__
 
 !=================================================================================
 contains
 !=================================================================================
+
+  subroutine med_phases_restart_alarm_init(gcomp, rc)
+
+    ! --------------------------------------
+    ! Initialize mediator restart file alarms (module variables)
+    ! --------------------------------------
+
+    use ESMF  , only : ESMF_GridComp, ESMF_GridCompGet
+    use ESMF  , only : ESMF_Clock, ESMF_ClockGet, ESMF_ClockAdvance, ESMF_ClockSet
+    use ESMF  , only : ESMF_Time
+    use ESMF  , only : ESMF_TimeInterval, ESMF_TimeIntervalGet
+    use ESMF  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_LOGMSG_ERROR
+    use ESMF  , only : ESMF_SUCCESS, ESMF_FAILURE
+    use ESMF  , only : operator(==), operator(-)
+    use ESMF  , only : ESMF_ALARMLIST_ALL, ESMF_Alarm, ESMF_AlarmSet
+    use NUOPC , only : NUOPC_CompAttributeGet
+    use NUOPC_Model, only : NUOPC_ModelGet
+
+    ! input/output variables
+    type(ESMF_GridComp)  :: gcomp
+    integer, intent(out) :: rc
+
+    ! local variables
+    type(ESMF_Alarm)        :: alarm
+    type(ESMF_Clock)        :: mclock
+    type(ESMF_TimeInterval) :: mtimestep
+    type(ESMF_Time)         :: mCurrTime
+    type(ESMF_Time)         :: mStartTime
+    type(ESMF_TimeInterval) :: timestep
+    integer                 :: timestep_length
+    character(CL)           :: cvalue          ! attribute string
+    character(CL)           :: restart_option  ! freq_option setting (ndays, nsteps, etc)
+    integer                 :: restart_n       ! freq_n setting relative to freq_option
+    character(len=*), parameter :: subname='(med_phases_restart_alarm_init)'
+    !---------------------------------------
+
+    rc = ESMF_SUCCESS
+
+    ! -----------------------------
+    ! Get model clock
+    ! -----------------------------
+
+    call NUOPC_ModelGet(gcomp, modelClock=mclock,  rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    ! get start time
+    call ESMF_ClockGet(mclock, startTime=mStartTime,  rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    ! -----------------------------
+    ! Set alarm for instantaneous mediator restart output
+    ! -----------------------------
+
+    call NUOPC_CompAttributeGet(gcomp, name='restart_option', value=restart_option, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompAttributeGet(gcomp, name='restart_n', value=cvalue, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    read(cvalue,*) restart_n
+
+    call med_time_alarmInit(mclock, alarm, option=restart_option, opt_n=restart_n, &
+         reftime=mStartTime, alarmname='alarm_restart', rc=rc)
+
+    call ESMF_AlarmSet(alarm, clock=mclock, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    !--------------------------------
+    ! Advance model clock to trigger alarms then reset model clock back to currtime
+    !--------------------------------
+
+    call ESMF_ClockGet(mclock, currTime=mCurrTime, timeStep=mtimestep, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_TimeIntervalGet(mtimestep, s=timestep_length, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_ClockAdvance(mclock,rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_ClockSet(mclock, currTime=mcurrtime, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    ! -----------------------------
+    ! Write mediator diagnostic output
+    ! -----------------------------
+
+    if (mastertask) then
+       write(logunit,*)
+       write(logunit,100) trim(subname)//" restart clock timestep = ",timestep_length
+       write(logunit,100) trim(subname)//" set restart alarm with option "//&
+            trim(restart_option)//" and frequency ",restart_n
+100    format(a,2x,i8)
+       write(logunit,*)
+    end if
+
+  end subroutine med_phases_restart_alarm_init
+
+  !===============================================================================
 
   subroutine med_phases_restart_write(gcomp, rc)
 
@@ -38,6 +135,7 @@ contains
     use ESMF       , only : ESMF_AlarmIsRinging, ESMF_AlarmRingerOff, ESMF_FieldBundleIsCreated
     use ESMF       , only : ESMF_Calendar
     use NUOPC      , only : NUOPC_CompAttributeGet
+    use NUOPC_Model, only : NUOPC_ModelGet
     use med_io_mod , only : med_io_write, med_io_wopen, med_io_enddef
     use med_io_mod , only : med_io_close, med_io_date2yyyymmdd, med_io_sec2hms
 
@@ -83,6 +181,7 @@ contains
     character(len=ESMF_MAXSTR) :: tmpstr
     integer                    :: dbrc
     logical                    :: isPresent
+    logical                    :: first_time = .true.
     character(len=*), parameter :: subname='(med_phases_restart_write)'
     !---------------------------------------
 
@@ -118,11 +217,16 @@ contains
        cpl_inst_tag = ""
     endif
 
+    if (first_time) then
+       call med_phases_restart_alarm_init(gcomp, rc)
+       first_time = .false.
+    end if
+
     !---------------------------------------
     ! --- Get the clock info
     !---------------------------------------
 
-    call ESMF_GridCompGet(gcomp, clock=clock, rc=rc)
+    call NUOPC_ModelGet(gcomp, modelClock=clock, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !---------------------------------------
