@@ -201,7 +201,7 @@ contains
     end if
 
     ! to ocn: merge zonal surface stress (custom merge calculation in med_phases_prep_ocn)
-    call addfld(fldListTo(compocn)%flds, 'Faxa_taux') ! TODO: need to change name
+    call addfld(fldListTo(compocn)%flds, 'Foxx_taux')
     call addfld(fldListFr(compice)%flds, 'Fioi_taux')
     call addfld(fldListFr(compatm)%flds, 'Faxa_taux')
     if (trim(coupling_mode) == 'nems_orig' .or. trim(coupling_mode) == 'nems_orig_data') then
@@ -212,7 +212,7 @@ contains
     call addmap(fldListFr(compice)%flds, 'Fioi_taux', compocn, mapfcopy, 'unset', 'unset')
 
     ! to ocn: meridional surface stress (custom merge calculation in med_phases_prep_ocn)
-    call addfld(fldListTo(compocn)%flds, 'Faxa_tauy') ! TODO: need to change name
+    call addfld(fldListTo(compocn)%flds, 'Foxx_tauy')
     call addfld(fldListFr(compice)%flds, 'Fioi_tauy')
     call addfld(fldListFr(compatm)%flds, 'Faxa_tauy')
     if (trim(coupling_mode) == 'nems_orig' .or. trim(coupling_mode) == 'nems_orig_data') then

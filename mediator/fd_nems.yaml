@@ -133,12 +133,12 @@
        description: atmosphere export - bottom layer height
      #
      - standard_name: Faxa_taux
-       alias: mean_zonal_moment_flx
+       alias: mean_zonal_moment_flx_atm
        canonical_units: N m-2
        description: atmosphere export- zonal component of momentum flux
      #
      - standard_name: Faxa_tauy
-       alias: mean_merid_moment_flx
+       alias: mean_merid_moment_flx_atm
        canonical_units: N m-2
        description: atmosphere export - meridional component of momentum flux
      #
@@ -416,7 +416,7 @@
      - standard_name: Foxx_evap
        alias: mean_evap_rate
        canonical_units: kg m-2 s-1
-       description: ocean import- specific humidity flux
+       description: ocean import- specific humidity flux to ocean
      #
      - standard_name: Foxx_swnet
        alias: mean_net_sw_flx
@@ -442,6 +442,16 @@
        alias: mean_net_sw_ir_dif_flx
        canonical_units: W m-2
        description: ocean import - net shortwave ir diffuse radiation to ocean
+     #
+     - standard_name: Foxx_taux
+       alias: mean_zonal_moment_flx
+       canonical_units: N m-2
+       description: ocean import - zonal surface stress to ocean
+     #
+     - standard_name: Foxx_tauy
+       alias: mean_merid_moment_flx
+       canonical_units: N m-2
+       description: ocean import - meridional surface stress to ocean
      #
      #-----------------------------------
      # mediator fields
