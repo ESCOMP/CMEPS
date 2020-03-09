@@ -192,7 +192,7 @@ contains
     end if
 
     ! to ocn: surface latent heat flux and evaporation water flux (custom merge in med_phases_prep_ocn)
-    call addfld(fldListTo(compocn)%flds, 'Foxx_evap')
+    call addfld(fldListTo(compocn)%flds, 'Faxa_evap')
     call addfld(fldListFr(compatm)%flds, 'Faxa_lat')
     if (trim(coupling_mode) == 'nems_orig' .or. trim(coupling_mode) == 'nems_orig_data') then
        call addmap(fldListFr(compatm)%flds, 'Faxa_lat', compocn, mapnstod_consf, 'none', 'unset')

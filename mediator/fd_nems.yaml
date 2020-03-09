@@ -152,6 +152,11 @@
        canonical_units: W m-2
        description: atmosphere export - sensible heat flux
      #
+     - standard_name: Faxa_evap
+       alias: mean_evap_rate
+       canonical_units: kg m-2 s-1
+       description: calculated in mediator - specific humidity flux to ocean
+     #
      - standard_name: Faxx_lwup
        alias: mean_up_lw_flx
        canonical_units: W m-2
@@ -412,11 +417,6 @@
        alias: mean_runoff_rate
        canonical_units: kg m-2 s-1
        description: ocean import - water flux due to runoff (liquid)
-     #
-     - standard_name: Foxx_evap
-       alias: mean_evap_rate
-       canonical_units: kg m-2 s-1
-       description: ocean import- specific humidity flux to ocean
      #
      - standard_name: Foxx_swnet
        alias: mean_net_sw_flx

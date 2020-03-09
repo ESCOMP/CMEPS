@@ -129,6 +129,7 @@ contains
     integer             :: n, ncnt
     real(R8)            :: c1,c2,c3,c4
     real(R8), pointer   :: dataptr(:)
+    real(R8), pointer   :: dataptr_o(:)
     real(R8), pointer   :: ifrac(:), ofrac(:)
     real(R8), pointer   :: ifracr(:), ofracr(:)
     real(R8), pointer   :: avsdr(:), avsdf(:)
@@ -142,12 +143,6 @@ contains
     real(R8), pointer   :: Fioi_swpen_vdr(:), Fioi_swpen_vdf(:)
     real(R8), pointer   :: Fioi_swpen_idr(:), Fioi_swpen_idf(:)
     real(R8), pointer   :: Fioi_swpen(:)
-    real(R8), pointer   :: Foxx_evap(:)
-    real(R8), pointer   :: Foxx_lwnet(:)
-    real(R8), pointer   :: Faox_lwup(:)
-    real(R8), pointer   :: Faxa_lwdn(:)
-    real(R8), pointer   :: dataptr_i(:), dataptr_o(:)
-    real(R8), pointer   :: dataptr2d_i(:,:), dataptr2d_o(:,:)
     real(R8)            :: ifrac_scaled, ofrac_scaled
     real(R8)            :: ifracr_scaled, ofracr_scaled
     real(R8)            :: frac_sum
@@ -162,19 +157,16 @@ contains
     integer             :: lsize
     integer             :: dbrc
     character(CS)       :: cvalue
-    ! NEMS-orig
-    real(R8), pointer   :: ocnwgt1(:)
-    real(R8), pointer   :: icewgt1(:)
-    real(R8), pointer   :: wgtp01(:)
-    real(R8), pointer   :: wgtm01(:)
-    real(R8), pointer   :: customwgt(:)
-    !
+    real(R8), pointer   :: ocnwgt1(:)   ! NEMS_orig_data
+    real(R8), pointer   :: icewgt1(:)   ! NEMS_orig_data
+    real(R8), pointer   :: wgtp01(:)    ! NEMS_orig_data
+    real(R8), pointer   :: wgtm01(:)    ! NEMS_orig_data
+    real(R8), pointer   :: customwgt(:) ! NEMS_orig_data
     character(len=64), allocatable :: fldnames(:)
     real(R8)        , parameter    :: const_lhvap = 2.501e6_R8  ! latent heat of evaporation ~ J/kg
     real(R8)        , parameter    :: albdif = 0.06_r8          ! 60 deg reference albedo, diffuse
     character(len=*), parameter    :: subname='(med_phases_prep_ocn_merge)'
-    ! Set the following to true if want to compare directly to MCT
-    logical :: compare_to_mct = .false.
+    logical :: compare_to_mct = .false. ! Set the following to true if want to compare directly to MCT
     !---------------------------------------
 
     call t_startf('MED:'//subname)
@@ -429,7 +421,7 @@ contains
        end if
 
        !-------------
-       ! Custom calculation for nems_orig_active
+       ! Custom calculation for nems_orig or nems_frac
        !-------------
 
        if (trim(coupling_mode) == 'nems_orig' .or. trim(coupling_mode) == 'nems_frac') then
@@ -443,11 +435,6 @@ contains
           lsize = size(ofrac)
           allocate(customwgt(lsize))
 
-          customwgt(:) = -ofrac(:) / const_lhvap
-          call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_evap', &
-               FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_lat' , wgtA=customwgt, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
           call med_merge_field(is_local%wrap%FBExp(compocn),      'Faxa_rain',  &
                FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_rain' , wgtA=ofrac, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -456,6 +443,11 @@ contains
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           call med_merge_field(is_local%wrap%FBExp(compocn),      'Faxa_lwnet',  &
                FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_lwnet', wgtA=ofrac, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+          customwgt(:) = -ofrac(:) / const_lhvap
+          call med_merge_field(is_local%wrap%FBExp(compocn),      'Faxa_evap', &
+               FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_lat' , wgtA=customwgt, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
           customwgt(:) = -ofrac(:)
@@ -493,7 +485,7 @@ contains
 
           deallocate(customwgt)
 
-       end if  ! end of nems_orig_active or nems_frac
+       end if  ! end of nems_orig or nems_frac
 
        !-------------
        ! Custom calculation for nems_orig_data
@@ -552,12 +544,12 @@ contains
           end do
 
           customwgt(:) = wgtm01(:) / const_lhvap
-          call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_evap', &
+          call med_merge_field(is_local%wrap%FBExp(compocn),      'Faxa_evap', &
                FBinA=is_local%wrap%FBMed_aoflux_o        , fnameA='Faox_evap', wgtA=ocnwgt1, &
                FBinB=is_local%wrap%FBImp(compatm,compocn), fnameB='Faxa_lat' , wgtB=customwgt, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-          call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_sen',    &
+          call med_merge_field(is_local%wrap%FBExp(compocn),      'Faxa_sen',    &
                FBinA=is_local%wrap%FBMed_aoflux_o        , fnameA='Faox_sen ', wgtA=ocnwgt1, &
                FBinC=is_local%wrap%FBImp(compatm,compocn), fnameB='Faxa_sen' , wgtB=wgtm01, rc=rc)
 
