@@ -7,11 +7,12 @@ module med_map_mod
   use esmFlds               , only : mapbilnr, mapconsf, mapconsd, mappatch, mapfcopy
   use esmFlds               , only : mapunset, mapnames, nmappers
   use esmFlds               , only : mapnstod, mapnstod_consd, mapnstod_consf
-  use esmFlds               , only : ncomps, compice, compocn, compname
+  use esmFlds               , only : ncomps, compatm, compice, compocn, compname
   use esmFlds               , only : mapfcopy, mapconsd, mapconsf, mapnstod
   use esmFlds               , only : mapuv_with_cart3d
   use esmFlds               , only : med_fldList_entry_type
   use esmFlds               , only : fldListFr, fldListTo
+  use esmFlds               , only : coupling_mode
   use med_internalstate_mod , only : InternalState
   use med_constants_mod     , only : ispval_mask       => med_constants_ispval_mask
   use med_constants_mod     , only : czero             => med_constants_czero
@@ -150,10 +151,27 @@ contains
     do n1 = 1, ncomps
        do n2 = 1, ncomps
 
-          dstMaskValue = ispval_mask
-          srcMaskValue = ispval_mask
-          if (n1 == compocn .or. n1 == compice) srcMaskValue = 0
-          if (n2 == compocn .or. n2 == compice) dstMaskValue = 0
+          if (trim(coupling_mode) == 'cesm') then
+             dstMaskValue = ispval_mask
+             srcMaskValue = ispval_mask
+             if (n1 == compocn .or. n1 == compice) srcMaskValue = 0
+             if (n2 == compocn .or. n2 == compice) dstMaskValue = 0
+          else if (coupling_mode(1:5) == 'nems_') then
+             if (n1 == compatm .and. (n2 == compocn .or. n2 == compice)) then
+                srcMaskValue = 1
+                dstMaskValue = 0
+             else if (n2 == compatm .and. (n1 == compocn .or. n1 == compice)) then
+                srcMaskValue = 0
+                dstMaskValue = 1
+             else if ((n1 == compocn .and. n2 == compice) .or. (n1 == compice .and. n2 == compocn)) then
+                srcMaskValue = 0
+                dstMaskValue = 0
+             else
+                ! TODO: what should the condition be here?
+                dstMaskValue = ispval_mask
+                srcMaskValue = ispval_mask
+             end if
+          end if
 
           !--- get single fields from bundles
           !--- 1) ASSUMES all fields in the bundle are on identical grids

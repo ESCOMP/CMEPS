@@ -154,53 +154,70 @@ contains
           end if
        end if
 
-       if ( trim(coupling_mode) == 'nems_orig_active' .or. trim(coupling_mode) == 'nems_orig_data'   .or. &
-            trim(coupling_mode) == 'nems_frac') then
+       if (trim(coupling_mode(1:4)) == 'nems') then
 
-          ! Determine Sa_pbot on the ice grid and get a pointer to it
-          if (.not. ESMF_RouteHandleIsCreated(is_local%wrap%RH(compatm,compice,mapbilnr))) then
-             call ESMF_LogWrite(trim(subname)//": ERROR bilinr RH not available for atm->ice", &
-                  ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
-             rc = ESMF_FAILURE
-             return
-          end if
-          call FB_FieldRegrid( &
-               is_local%wrap%FBImp(compatm,compatm), 'Sa_pbot', &
-               is_local%wrap%FBImp(compatm,compice), 'Sa_pbot', &
-               is_local%wrap%RH(compatm,compice,mapbilnr), rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call FB_GetFldPtr(is_local%wrap%FBImp(compatm,compice), 'Sa_pbot', pressure, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          ! If either air density or ptem from atm is not available - then need pbot since it will be
+          ! required for either calculation
+          if ( .not. fldchk(is_local%wrap%FBImp(compatm,compatm), 'Sa_dens',rc=rc) .or. &
+               .not. fldchk(is_local%wrap%FBImp(compatm,compatm), 'Sa_ptem',rc=rc)) then 
 
-          ! Get a pointer to Sa_tbot on the ice grid
-          call FB_GetFldPtr(is_local%wrap%FBImp(compatm,compice), 'Sa_tbot', temperature, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-          ! Compute air density as a custom calculation
-          call ESMF_LogWrite(trim(subname)//": computing air density as a custom calculation", ESMF_LOGMSG_INFO)
-          call FB_GetFldPtr(is_local%wrap%FBImp(compatm,compice), 'Sa_shum', humidity, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call FB_GetFldPtr(is_local%wrap%FBExp(compice), 'Sa_dens', air_density, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          do n = 1,size(temperature)
-             if (temperature(n) /= 0._R8) then
-                air_density(n) = pressure(n) / (287.058_R8*(1._R8 + 0.608_R8*humidity(n))*temperature(n))
-             else
-                air_density(n) = 0._R8
-             endif
-          end do
-
-          ! Compute potential temperature as a custom calculation - 
-          call ESMF_LogWrite(trim(subname)//": computing potential temp as a custom calculation", ESMF_LOGMSG_INFO)
-          call FB_GetFldPtr(is_local%wrap%FBExp(compice), 'Sa_ptem', pot_temp, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          do n = 1,size(temperature)
-             if (pressure(n) /= 0._R8) then
-                pot_temp(n) = temperature(n) * (100000._R8/pressure(n))**0.286_R8 ! Potential temperature (K)
-             else
-                pot_temp(n) = 0._R8
+             ! Determine Sa_pbot on the ice grid and get a pointer to it
+             if (.not. fldchk(is_local%wrap%FBExp(compice), 'Sa_pbot',rc=rc)) then
+                if (.not. ESMF_RouteHandleIsCreated(is_local%wrap%RH(compatm,compice,mapbilnr))) then
+                   call ESMF_LogWrite(trim(subname)//": ERROR bilinr RH not available for atm->ice", &
+                        ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
+                   rc = ESMF_FAILURE
+                   return
+                end if
+                call FB_FieldRegrid( &
+                     is_local%wrap%FBImp(compatm,compatm), 'Sa_pbot', &
+                     is_local%wrap%FBImp(compatm,compice), 'Sa_pbot', &
+                     is_local%wrap%RH(compatm,compice,mapbilnr), rc=rc)
+                if (chkerr(rc,__LINE__,u_FILE_u)) return
              end if
-          end do
+             call FB_GetFldPtr(is_local%wrap%FBImp(compatm,compice), 'Sa_pbot', pressure, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+             ! Get a pointer to Sa_tbot on the ice grid
+             call FB_GetFldPtr(is_local%wrap%FBImp(compatm,compice), 'Sa_tbot', temperature, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+          end if
+
+          ! compute air density as a custom calculation
+          ! if Sa_dens is not sent by the atm
+          if ( .not. fldchk(is_local%wrap%FBImp(compatm,compatm), 'Sa_dens',rc=rc)) then
+             call ESMF_LogWrite(trim(subname)//": computing air density as a custom calculation", ESMF_LOGMSG_INFO)
+
+             call FB_GetFldPtr(is_local%wrap%FBImp(compatm,compice), 'Sa_shum', humidity, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+             call FB_GetFldPtr(is_local%wrap%FBExp(compice), 'Sa_dens', air_density, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+             do n = 1,size(temperature)
+                if (temperature(n) /= 0._R8) then
+                   air_density(n) = pressure(n) / (287.058_R8*(1._R8 + 0.608_R8*humidity(n))*temperature(n))
+                else
+                   air_density(n) = 0._R8
+                endif
+             end do
+          end if
+
+          ! compute potential temperature as a custom calculation - 
+          ! if Sa_ptem is not sent by the atm but is required by the ice
+          if (.not. fldchk(is_local%wrap%FBImp(compatm,compatm), 'Sa_ptem',rc=rc) .and. &
+               fldchk(is_local%wrap%FBExp(compice), 'Sa_ptem',rc=rc)) then
+             call ESMF_LogWrite(trim(subname)//": computing potential temp as a custom calculation", ESMF_LOGMSG_INFO)
+
+             call FB_GetFldPtr(is_local%wrap%FBExp(compice), 'Sa_ptem', pot_temp, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+             do n = 1,size(temperature)
+                if (pressure(n) /= 0._R8) then
+                   pot_temp(n) = temperature(n) * (100000._R8/pressure(n))**0.286_R8 ! Potential temperature (K)
+                else
+                   pot_temp(n) = 0._R8
+                end if
+             end do
+          end if
 
        end if
 

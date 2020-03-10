@@ -418,6 +418,7 @@ contains
     integer                 :: flux_max_iteration      ! maximum number of iterations for convergence
     logical                 :: coldair_outbreak_mod    ! cold air outbreak adjustment  (Mahrt & Sun 1995,MWR)
     character(len=CX)       :: tmpstr
+    logical                 :: isPresent, isSet
     logical,save            :: first_call = .true.
     character(*),parameter  :: subName = '(med_aofluxes_run) '
     !-----------------------------------------------------------------------
@@ -429,17 +430,29 @@ contains
     !----------------------------------
 
     if (first_call) then
-       call NUOPC_CompAttributeGet(gcomp, name='coldair_outbreak_mod', value=cvalue, rc=rc)
+       call NUOPC_CompAttributeGet(gcomp, name='coldair_outbreak_mod', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       read(cvalue,*) coldair_outbreak_mod
+       if (isPresent .and. isSet) then
+          read(cvalue,*) coldair_outbreak_mod
+       else
+          coldair_outbreak_mod = .false.
+       end if
 
-       call NUOPC_CompAttributeGet(gcomp, name='flux_max_iteration', value=cvalue, rc=rc)
+       call NUOPC_CompAttributeGet(gcomp, name='flux_max_iteration', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       read(cvalue,*) flux_max_iteration
+       if (isPresent .and. isSet) then
+          read(cvalue,*) flux_max_iteration
+       else
+          flux_max_iteration = 1
+       end if
 
-       call NUOPC_CompAttributeGet(gcomp, name='flux_convergence', value=cvalue, rc=rc)
+       call NUOPC_CompAttributeGet(gcomp, name='flux_convergence', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       read(cvalue,*) flux_convergence
+       if (isPresent .and. isSet) then
+          read(cvalue,*) flux_convergence
+       else
+          flux_convergence = 0.0_r8
+       end if
 
        call shr_flux_adjust_constants(&
             flux_convergence_tolerance=flux_convergence, &
