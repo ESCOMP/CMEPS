@@ -476,11 +476,15 @@ def buildnml(case, caseroot, component):
     for filename in glob.glob(os.path.join(confdir, "*modelio*")):
         shutil.copy(filename, rundir)
 
-    # copy fd.yaml to rundir
+    # copy fd_cesm.yaml to rundir
     cimeroot = case.get_value("CIMEROOT")
     fd_dir = os.path.join(cimeroot, "src","drivers","nuopc","mediator")
-    filename = os.path.join(fd_dir,"fd.yaml")
-    shutil.copy(filename, rundir)
+    coupling_mode = case.get_value('COUPLING_MODE')
+    if coupling_mode == 'cesm':
+        filename = os.path.join(fd_dir,"fd_cesm.yaml")
+    else:
+        filename = os.path.join(fd_dir,"fd_nems.yaml")
+    shutil.copy(filename, os.path.join(rundir, "fd.yaml"))
 
 ###############################################################################
 def _main_func():

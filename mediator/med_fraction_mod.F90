@@ -316,7 +316,7 @@ contains
                   flds_scalar_name=is_local%wrap%flds_scalar_name, &
                   FBgeom=is_local%wrap%FBImp(compatm,compatm), &
                   fieldNameList=(/'Fldtemp'/), name='FBtemp', rc=rc)
-             if (chkerr(rc,__line__,u_file_u)) return
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
           end if
 
           ! Determine map type

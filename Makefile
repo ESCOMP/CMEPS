@@ -39,7 +39,7 @@ else
 	@echo "ESMF_DEP_FRONT     = MED" >> cmeps.mk.install
 	@echo "ESMF_DEP_INCPATH   = $(INSTALLDIR)/include" >> cmeps.mk.install
 	@echo "ESMF_DEP_CMPL_OBJS = " >> cmeps.mk.install
-	@echo "ESMF_DEP_LINK_OBJS = $(INSTALLDIR)/libcmeps.a $(INSTALLDIR)/libcmeps_util.a $(INSTALLDIR)/libgptl.a $(INSTALLDIR)/libpiof.a $(INSTALLDIR)/libpioc.a $(INSTALLDIR)/libgptl.a $(PNETCDF_LD_OPTS)" >> cmeps.mk.install
+	@echo "ESMF_DEP_LINK_OBJS = $(INSTALLDIR)/libcmeps.a $(INSTALLDIR)/libcmeps_util.a $(INSTALLDIR)/libpiof.a $(INSTALLDIR)/libpioc.a $(PNETCDF_LD_OPTS)" >> cmeps.mk.install
 	mkdir -p $(INSTALLDIR)
 	mkdir -p $(INSTALLDIR)/include
 	cp -f $(PIO_INSTALL_DIR)/lib/*.a $(INSTALLDIR)

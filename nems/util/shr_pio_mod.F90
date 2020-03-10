@@ -103,7 +103,7 @@ contains
     call MPI_comm_rank(Global_Comm, drank, ierr)
 
     io_comm = MPI_COMM_NULL
-    allocate(pio_comp_settings(ncomps))
+    if(.not.allocated(pio_comp_settings))allocate(pio_comp_settings(ncomps))
     do i=1,ncomps
        pio_comp_settings(i)%pio_root = pio_root
        pio_comp_settings(i)%pio_stride = pio_stride

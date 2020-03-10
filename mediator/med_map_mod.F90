@@ -7,11 +7,12 @@ module med_map_mod
   use esmFlds               , only : mapbilnr, mapconsf, mapconsd, mappatch, mapfcopy
   use esmFlds               , only : mapunset, mapnames, nmappers
   use esmFlds               , only : mapnstod, mapnstod_consd, mapnstod_consf
-  use esmFlds               , only : ncomps, compice, compocn, compname
+  use esmFlds               , only : ncomps, compatm, compice, compocn, compname
   use esmFlds               , only : mapfcopy, mapconsd, mapconsf, mapnstod
   use esmFlds               , only : mapuv_with_cart3d
   use esmFlds               , only : med_fldList_entry_type
   use esmFlds               , only : fldListFr, fldListTo
+  use esmFlds               , only : coupling_mode
   use med_internalstate_mod , only : InternalState
   use med_constants_mod     , only : ispval_mask       => med_constants_ispval_mask
   use med_constants_mod     , only : czero             => med_constants_czero
@@ -150,10 +151,27 @@ contains
     do n1 = 1, ncomps
        do n2 = 1, ncomps
 
-          dstMaskValue = ispval_mask
-          srcMaskValue = ispval_mask
-          if (n1 == compocn .or. n1 == compice) srcMaskValue = 0
-          if (n2 == compocn .or. n2 == compice) dstMaskValue = 0
+          if (trim(coupling_mode) == 'cesm') then
+             dstMaskValue = ispval_mask
+             srcMaskValue = ispval_mask
+             if (n1 == compocn .or. n1 == compice) srcMaskValue = 0
+             if (n2 == compocn .or. n2 == compice) dstMaskValue = 0
+          else if (coupling_mode(1:5) == 'nems_') then
+             if (n1 == compatm .and. (n2 == compocn .or. n2 == compice)) then
+                srcMaskValue = 1
+                dstMaskValue = 0
+             else if (n2 == compatm .and. (n1 == compocn .or. n1 == compice)) then
+                srcMaskValue = 0
+                dstMaskValue = 1
+             else if ((n1 == compocn .and. n2 == compice) .or. (n1 == compice .and. n2 == compocn)) then
+                srcMaskValue = 0
+                dstMaskValue = 0
+             else
+                ! TODO: what should the condition be here?
+                dstMaskValue = ispval_mask
+                srcMaskValue = ispval_mask
+             end if
+          end if
 
           !--- get single fields from bundles
           !--- 1) ASSUMES all fields in the bundle are on identical grids
@@ -498,16 +516,16 @@ contains
                            flds_scalar_name=flds_scalar_name, &
                            FBgeom=is_local%wrap%FBImp(n1,n2), &
                            fieldNameList=(/trim(normname)/), name='FBNormOne', rc=rc)
-                      if (chkerr(rc,__line__,u_file_u)) return
+                      if (chkerr(rc,__LINE__,u_FILE_u)) return
 
                       call FB_reset(is_local%wrap%FBNormOne(n1,n2,m), value=czero, rc=rc)
-                      if (chkerr(rc,__line__,u_file_u)) return
+                      if (chkerr(rc,__LINE__,u_FILE_u)) return
 
                       call FB_init(FBout=FBTmp, &
                            flds_scalar_name=flds_scalar_name, &
                            STgeom=is_local%wrap%NStateImp(n1), &
                            fieldNameList=(/trim(normname)/), name='FBTmp', rc=rc)
-                      if (chkerr(rc,__line__,u_file_u)) return
+                      if (chkerr(rc,__LINE__,u_FILE_u)) return
 
                       call FB_GetFldPtr(FBTmp, trim(normname), fldptr1=dataPtr, rc=rc)
                       if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -520,7 +538,7 @@ contains
                       if (chkerr(rc,__LINE__,u_FILE_u)) return
 
                       call FB_clean(FBTmp, rc=rc)
-                      if (chkerr(rc,__line__,u_file_u)) return
+                      if (chkerr(rc,__LINE__,u_FILE_u)) return
                    end if
                 end do
              end if
@@ -1005,6 +1023,7 @@ contains
     real(R8), pointer :: data2d(:,:)
     integer           :: ungriddedUBound(1)     ! currently the size must equal 1 for rank 2 fields
     integer           :: gridToFieldMap(1)      ! currently the size must equal 1 for rank 2 fields
+
     ! ------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -1133,27 +1152,27 @@ contains
        if (.not. ESMF_FieldBundleIsCreated(FBNormSrc)) then
           call FB_init(FBout=FBNormSrc, flds_scalar_name=flds_scalar_name, &
                FBgeom=FBSrc, fieldNameList=(/trim(mapnorm)/), name='normsrc', rc=rc)
-          if (chkerr(rc,__line__,u_file_u)) return
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
 
           call FB_GetFldPtr(FBNormSrc, trim(mapnorm), data_srcnorm, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
        endif
 
        call FB_reset(FBNormSrc, value=czero, rc=rc)
-       if (chkerr(rc,__line__,u_file_u)) return
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        ! create a temporary field bundle that will contain normalization on the destination grid
        if (.not. ESMF_FieldBundleIsCreated(FBNormDst)) then
           call FB_init(FBout=FBNormDst, flds_scalar_name=flds_scalar_name, &
                FBgeom=FBDst, fieldNameList=(/trim(mapnorm)/), name='normdst', rc=rc)
-          if (chkerr(rc,__line__,u_file_u)) return
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
 
           call FB_GetFldPtr(FBFrac, trim(mapnorm), data_frac, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
        endif
 
        call FB_reset(FBNormDst, value=czero, rc=rc)
-       if (chkerr(rc,__line__,u_file_u)) return
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        ! error checks
        if (size(data_srcnorm) /= size(data_frac)) then
@@ -1221,15 +1240,15 @@ contains
     ! Clean up temporary field bundles
     if (ESMF_FieldBundleIsCreated(FBSrcTmp)) then
        call FB_clean(FBSrcTmp, rc=rc)
-       if (chkerr(rc,__line__,u_file_u)) return
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
     end if
     if (ESMF_FieldBundleIsCreated(FBNormSrc)) then
        call FB_clean(FBNormSrc, rc=rc)
-       if (chkerr(rc,__line__,u_file_u)) return
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
     end if
     if (ESMF_FieldBundleIsCreated(FBNormDst)) then
        call FB_clean(FBNormDst, rc=rc)
-       if (chkerr(rc,__line__,u_file_u)) return
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
     end if
     call t_stopf('MED:'//subname)
 

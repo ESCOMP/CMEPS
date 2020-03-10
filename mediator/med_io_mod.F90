@@ -84,7 +84,7 @@ module med_io_mod
   integer                        :: pio_iotype
   integer                        :: pio_ioformat
   type(iosystem_desc_t), pointer :: io_subsystem
-  character(*),parameter         :: u_file_u = &
+  character(*),parameter         :: u_FILE_u = &
        __FILE__
 
 !=================================================================================
@@ -128,7 +128,7 @@ contains
     use shr_pio_mod , only : shr_pio_getiosys, shr_pio_getiotype, shr_pio_getioformat
 #ifdef INTERNAL_PIO_INIT
     ! if CMEPS is the only component using PIO, then it needs to initialize PIO
-    use shr_pio_mod , only : shr_pio_init2
+    use shr_pio_mod , only : shr_pio_init1, shr_pio_init2
 
     type(ESMF_VM)         :: vm
     integer               :: comms(1), comps(1)
@@ -147,6 +147,7 @@ contains
     compLabels(1) = "MED"
     comp_iamin(1) = .true.
 
+    call shr_pio_init1(1, "pio_in", comms(1))
     call shr_pio_init2(comps, compLabels, comp_iamin, comms, comp_comm_iam)
 #endif
 

@@ -504,6 +504,7 @@ contains
 
     rc = ESMF_SUCCESS
 
+#ifdef CESMCOUPLED 
     ! Determine orbital attributes from input
     call NUOPC_CompAttributeGet(gcomp, name="orb_mode", value=cvalue, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -573,6 +574,7 @@ contains
        rc = ESMF_FAILURE
        return  ! bail out
     endif
+#endif
 
   end subroutine med_phases_ocnalb_orbital_init
 
@@ -607,6 +609,7 @@ contains
     character(len=*) , parameter :: subname = "(lnd_orbital_update)"
     !-------------------------------------------
 
+#ifdef CESMCOUPLED 
     rc = ESMF_SUCCESS
 
     if (trim(orb_mode) == trim(orb_variable_year)) then
@@ -635,6 +638,7 @@ contains
        call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
        return  ! bail out
     endif
+#endif
 
   end subroutine med_phases_ocnalb_orbital_update
 
