@@ -530,7 +530,7 @@ contains
     call NUOPC_CompAttributeGet(gcomp, name='coupling_mode', value=coupling_mode, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call ESMF_LogWrite('coupling_mode = '// trim(coupling_mode), ESMF_LOGMSG_INFO)
-    write(logunit,*)' Mediator Coupling Mode is ',trim(coupling_mode)
+    if(mastertask)write(logunit,*)' Mediator Coupling Mode is ',trim(coupling_mode)
 
     if (trim(coupling_mode) == 'cesm') then
        call esmFldsExchange_cesm(gcomp, phase='advertise', rc=rc)

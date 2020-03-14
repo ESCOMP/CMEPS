@@ -53,7 +53,7 @@ med_phases_prep_lnd_mod.o : med_kind_mod.o med_internalstate_mod.o med_map_mod.o
 med_phases_prep_ocn_mod.o : med_kind_mod.o med_internalstate_mod.o med_constants_mod.o med_map_mod.o med_merge_mod.o med_methods_mod.o esmFlds.o med_utils_mod.o   
 med_phases_prep_rof_mod.o : med_kind_mod.o med_internalstate_mod.o med_map_mod.o med_constants_mod.o med_merge_mod.o med_methods_mod.o esmFlds.o med_utils_mod.o   
 med_phases_prep_wav_mod.o : med_kind_mod.o med_utils_mod.o med_internalstate_mod.o med_constants_mod.o med_map_mod.o med_methods_mod.o med_merge_mod.o esmFlds.o   
-med_phases_profile_mod.o : med_kind_mod.o med_utils_mod.o med_constants_mod.o med_internalstate_mod.o   
-med_phases_restart_mod.o : med_kind_mod.o med_utils_mod.o med_constants_mod.o med_internalstate_mod.o esmFlds.o med_io_mod.o   
+med_phases_profile_mod.o : med_kind_mod.o med_utils_mod.o med_constants_mod.o med_internalstate_mod.o med_time_mod.o
+med_phases_restart_mod.o : med_kind_mod.o med_utils_mod.o med_constants_mod.o med_internalstate_mod.o esmFlds.o med_io_mod.o
 med_time_mod.o : med_kind_mod.o med_utils_mod.o med_constants_mod.o   
 med_utils_mod.o : med_kind_mod.o med_utils_mod.F90    
