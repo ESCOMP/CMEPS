@@ -25,10 +25,8 @@ module MED
   use med_methods_mod        , only : FB_FldChk          => med_methods_FB_FldChk
   use med_methods_mod        , only : FB_diagnose        => med_methods_FB_diagnose
   use med_methods_mod        , only : clock_timeprint    => med_methods_clock_timeprint
-  use med_time_mod           , only : set_stop_alarm     => med_time_set_component_stop_alarm
   use med_time_mod           , only : alarmInit          => med_time_alarmInit 
   use med_utils_mod          , only : memcheck           => med_memcheck
-  use med_phases_history_mod , only : histAlarmInit      => med_phases_history_alarm_init
   use med_internalstate_mod  , only : InternalState
   use med_internalstate_mod  , only : med_coupling_allowed, logunit, mastertask
   use med_phases_profile_mod , only : med_phases_profile_finalize
@@ -41,6 +39,9 @@ module MED
   use esmFlds                , only : med_fldList_GetFldNames
   use esmFlds                , only : med_fldList_Document_Mapping
   use esmFlds                , only : med_fldList_Document_Merging
+  use esmFlds                  , only : coupling_mode
+  use esmFldsExchange_nems_mod , only : esmFldsExchange_nems
+  use esmFldsExchange_cesm_mod , only : esmFldsExchange_cesm
 
   implicit none
   private
@@ -383,7 +384,6 @@ contains
     use ESMF  , only : ESMF_GridComp, ESMF_State, ESMF_Clock, ESMF_VM, ESMF_SUCCESS
     use ESMF  , only : ESMF_GridCompGet, ESMF_VMGet, ESMF_AttributeGet
     use ESMF  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_METHOD_INITIALIZE
-    use ESMF  , only : ESMF_GridCompGet
     use NUOPC , only : NUOPC_CompFilterPhaseMap
     use med_internalstate_mod, only : mastertask
 
@@ -412,7 +412,6 @@ contains
     call ESMF_AttributeGet(gcomp, name="Verbosity", value=value, defaultValue="max", &
          convention="NUOPC", purpose="Instance", rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
     call ESMF_LogWrite(trim(subname)//": Mediator verbosity is "//trim(value), ESMF_LOGMSG_INFO)
 
     write(msgString,'(A,i6)') trim(subname)//' dbug_flag = ',dbug_flag
@@ -445,7 +444,7 @@ contains
     use esmFlds               , only : fldListFr, fldListTo
     use esmFlds               , only : med_fldList_GetNumFlds
     use esmFlds               , only : med_fldList_GetFldInfo
-    use esmFldsExchange_mod   , only : esmFldsExchange
+    use esmFldsExchange_nems_mod, only : esmFldsExchange_nems
     use med_internalstate_mod , only : mastertask
 
     ! input/output variables
@@ -457,6 +456,7 @@ contains
     ! local variables
     character(len=CS)   :: stdname, shortname
     integer             :: n, n1, n2, ncomp, nflds
+    logical             :: isPresent, isSet
     character(len=CS)   :: transferOffer
     character(len=CS)   :: cvalue
     type(InternalState) :: is_local
@@ -527,8 +527,18 @@ contains
     ! Initialize mediator flds (should be identical to the list in esmDict_Init)
     !------------------
 
-    call esmFldsExchange(gcomp, phase='advertise', rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompAttributeGet(gcomp, name='coupling_mode', value=coupling_mode, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_LogWrite('coupling_mode = '// trim(coupling_mode), ESMF_LOGMSG_INFO)
+    write(logunit,*)' Mediator Coupling Mode is ',trim(coupling_mode)
+
+    if (trim(coupling_mode) == 'cesm') then
+       call esmFldsExchange_cesm(gcomp, phase='advertise', rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    else if (trim(coupling_mode(1:4)) == 'nems') then
+       call esmFldsExchange_nems(gcomp, phase='advertise', rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    end if
 
     !------------------
     ! Determine component present indices
@@ -539,36 +549,50 @@ contains
                     'rof_present','wav_present','glc_present','med_present'/), rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    med_present = "true"
-    atm_present = "true"
-    lnd_present = "true"
-    ocn_present = "true"
-    ice_present = "true"
-    rof_present = "true"
-    wav_present = "true"
-    glc_present = "true"
+    med_present = "false"
+    atm_present = "false"
+    lnd_present = "false"
+    ocn_present = "false"
+    ice_present = "false"
+    rof_present = "false"
+    wav_present = "false"
+    glc_present = "false"
 
-    call NUOPC_CompAttributeGet(gcomp, name='ATM_model', value=cvalue, rc=rc)
+    call NUOPC_CompAttributeGet(gcomp, name='ATM_model', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (trim(cvalue) == 'satm') atm_present = "false"
-    call NUOPC_CompAttributeGet(gcomp, name='LND_model', value=cvalue, rc=rc)
+    if (isPresent .and. isSet) then
+       if (trim(cvalue) /= 'satm') atm_present = "true"
+    end if
+    call NUOPC_CompAttributeGet(gcomp, name='LND_model', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (trim(cvalue) == 'slnd') lnd_present = "false"
-    call NUOPC_CompAttributeGet(gcomp, name='OCN_model', value=cvalue, rc=rc)
+    if (isPresent .and. isSet) then
+       if (trim(cvalue) /= 'slnd') lnd_present = "true"
+    end if
+    call NUOPC_CompAttributeGet(gcomp, name='OCN_model', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (trim(cvalue) == 'socn') ocn_present = "false"
-    call NUOPC_CompAttributeGet(gcomp, name='ICE_model', value=cvalue, rc=rc)
+    if (isPresent .and. isSet) then
+       if (trim(cvalue) /= 'socn') ocn_present = "true"
+    end if
+    call NUOPC_CompAttributeGet(gcomp, name='ICE_model', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (trim(cvalue) == 'sice') ice_present = "false"
-    call NUOPC_CompAttributeGet(gcomp, name='ROF_model', value=cvalue, rc=rc)
+    if (isPresent .and. isSet) then
+       if (trim(cvalue) /= 'sice') ice_present = "true"
+    end if
+    call NUOPC_CompAttributeGet(gcomp, name='ROF_model', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (trim(cvalue) == 'srof') rof_present = "false"
-    call NUOPC_CompAttributeGet(gcomp, name='WAV_model', value=cvalue, rc=rc)
+    if (isPresent .and. isSet) then
+       if (trim(cvalue) /= 'srof') rof_present = "true"
+    end if
+    call NUOPC_CompAttributeGet(gcomp, name='WAV_model', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (trim(cvalue) == 'swav') wav_present = "false"
-    call NUOPC_CompAttributeGet(gcomp, name='GLC_model', value=cvalue, rc=rc)
+    if (isPresent .and. isSet) then
+       if (trim(cvalue) /= 'swav') wav_present = "true"
+    end if
+    call NUOPC_CompAttributeGet(gcomp, name='GLC_model', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (trim(cvalue) == 'sglc') glc_present = "false"
+    if (isPresent .and. isSet) then
+       if (trim(cvalue) /= 'sglc') glc_present = "true"
+    end if
 
     call NUOPC_CompAttributeSet(gcomp, name="atm_present", value=atm_present, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -616,13 +640,21 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     read(cvalue,*) is_local%wrap%flds_scalar_index_ny
 
-    call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldIdxNextSwCday", value=cvalue, rc=rc)
+    call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldIdxNextSwCday", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) is_local%wrap%flds_scalar_index_nextsw_cday
+    if (isPresent .and. isSet) then
+       read(cvalue,*) is_local%wrap%flds_scalar_index_nextsw_cday
+    else
+       is_local%wrap%flds_scalar_index_nextsw_cday = spval
+    end if
 
-    call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldIdxPrecipFactor", value=cvalue, rc=rc)
+    call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldIdxPrecipFactor", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) is_local%wrap%flds_scalar_index_precip_factor
+    if (isPresent .and. isSet) then
+       read(cvalue,*) is_local%wrap%flds_scalar_index_precip_factor
+    else
+       is_local%wrap%flds_scalar_index_precip_factor = spval
+    end if
 
     !------------------
     ! Advertise import/export mediator field names
@@ -1408,7 +1440,6 @@ contains
     use ESMF                    , only : ESMF_VM
     use NUOPC                   , only : NUOPC_CompAttributeSet, NUOPC_IsAtTime, NUOPC_SetAttribute
     use NUOPC                   , only : NUOPC_CompAttributeGet
-    use esmFldsExchange_mod     , only : esmFldsExchange
     use med_fraction_mod        , only : med_fraction_init, med_fraction_set
     use med_phases_restart_mod  , only : med_phases_restart_read
     use med_phases_prep_glc_mod , only : med_phases_prep_glc_init
@@ -1712,8 +1743,10 @@ contains
       ! Determine mapping and merging info for field exchanges in mediator
       !---------------------------------------
 
-      call esmFldsExchange(gcomp, phase='initialize', rc=rc)
-      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      if (trim(coupling_mode) == 'cesm') then
+         call esmFldsExchange_cesm(gcomp, phase='initialize', rc=rc)
+         if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      end if
 
       if (mastertask) then
          call med_fldList_Document_Mapping(logunit, is_local%wrap%med_coupling_active)
@@ -1984,19 +2017,21 @@ contains
     integer, intent(out) :: rc
 
     ! local variables
-    type(ESMF_Clock)         :: mediatorClock, driverClock
-    type(ESMF_Time)          :: currTime
-    type(ESMF_TimeInterval)  :: timeStep
-    character(len=256)       :: cvalue
-    character(len=256)       :: restart_option       ! Restart option units
-    integer                  :: restart_n            ! Number until restart interval
-    integer                  :: restart_ymd          ! Restart date (YYYYMMDD)
-    type(ESMF_ALARM)         :: restart_alarm
-    type(ESMF_ALARM)         :: med_profile_alarm
-    type(ESMF_ALARM)         :: glc_avg_alarm
-    logical                  :: glc_present
-    character(len=16)        :: glc_avg_period
-    logical                :: first_time = .true.
+    type(ESMF_Clock)        :: mediatorClock, driverClock
+    type(ESMF_Time)         :: currTime
+    type(ESMF_TimeInterval) :: timeStep
+    character(len=256)      :: cvalue
+    character(len=256)      :: restart_option       ! Restart option units
+    integer                 :: restart_n            ! Number until restart interval
+    integer                 :: restart_ymd          ! Restart date (YYYYMMDD)
+    type(ESMF_ALARM)        :: restart_alarm
+    type(ESMF_ALARM)        :: glc_avg_alarm
+    logical                 :: glc_present
+    character(len=16)       :: glc_avg_period
+    integer                 :: opt_n            
+    integer                 :: opt_ymd          
+    type(ESMF_ALARM)        :: alarm
+    logical                 :: first_time = .true.
     character(len=*),parameter :: subname='(module_MED:SetRunClock)'
     !-----------------------------------------------------------
 
@@ -2007,8 +2042,7 @@ contains
     endif
 
     ! query the Mediator for clocks
-    call NUOPC_MediatorGet(gcomp, mediatorClock=mediatorClock, &
-      driverClock=driverClock, rc=rc)
+    call NUOPC_MediatorGet(gcomp, mediatorClock=mediatorClock, driverClock=driverClock, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if (dbug_flag > 1) then
@@ -2032,67 +2066,27 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !--------------------------------
-    ! set restart alarm,  med log summary alarm and glc averaging alarm if appropriate
+    ! set glc averaging alarm if appropriate
     !--------------------------------
 
     if (first_time) then
-
-       ! Set mediator restart alarm
-
-       call NUOPC_CompAttributeGet(gcomp, name="restart_option", value=restart_option, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-       call NUOPC_CompAttributeGet(gcomp, name="restart_n", value=cvalue, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       read(cvalue,*) restart_n
-
-       call NUOPC_CompAttributeGet(gcomp, name="restart_ymd", value=cvalue, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       read(cvalue,*) restart_ymd
-
-       call alarmInit(mediatorclock, restart_alarm, restart_option, &
-            opt_n   = restart_n,           &
-            opt_ymd = restart_ymd,         &
-            RefTime = currTime,           &
-            alarmname = 'alarm_restart', rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-       call ESMF_AlarmSet(restart_alarm, clock=mediatorclock, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-       ! Set mediator profile alarm - HARD CODED to daily
-
-       call alarmInit(mediatorclock, med_profile_alarm, 'ndays', &
-            opt_n = 1, alarmname = 'med_profile_alarm', rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-       call ESMF_AlarmSet(med_profile_alarm, clock=mediatorclock, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
        ! Set glc averaging alarm if appropriate
-
        call NUOPC_CompAttributeGet(gcomp, name="glc_present", value=cvalue, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        glc_present = (cvalue == "true")
+
        if (glc_present) then
           call NUOPC_CompAttributeGet(gcomp, name="glc_avg_period", value=glc_avg_period, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
           if (trim(glc_avg_period) == 'hour') then
-             call alarmInit(mediatorclock, glc_avg_alarm, 'nhours', &
-                  opt_n = 1, alarmname = 'alarm_glc_avg', rc=rc)
+             call alarmInit(mediatorclock, glc_avg_alarm, 'nhours', opt_n=1, alarmname='alarm_glc_avg', rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
           else if (trim(glc_avg_period) == 'day') then
-             call alarmInit(mediatorclock, glc_avg_alarm, 'ndays', &
-                  opt_n = 1, alarmname = 'alarm_glc_avg', rc=rc)
+             call alarmInit(mediatorclock, glc_avg_alarm, 'ndays' , opt_n=1, alarmname='alarm_glc_avg', rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
           else if (trim(glc_avg_period) == 'yearly') then
-             call alarmInit(mediatorclock, glc_avg_alarm, 'nyears', &
-                  opt_n = 1, alarmname = 'alarm_glc_avg', rc=rc)
+             call alarmInit(mediatorclock, glc_avg_alarm, 'nyears', opt_n=1, alarmname='alarm_glc_avg', rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
           else
             call ESMF_LogWrite(trim(subname)//&
                  ": ERROR glc_avg_period = "//trim(glc_avg_period)//" not supported", &
@@ -2104,13 +2098,7 @@ contains
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
       end if
 
-      ! Initialize med history file alarm
-      call histAlarmInit(gcomp, rc)
-
-      call set_stop_alarm(gcomp, rc)
-      if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-       first_time = .false.
+      first_time = .false.
     end if
 
     !--------------------------------
@@ -2128,6 +2116,7 @@ contains
     endif
 
   end subroutine SetRunClock
+
   !-----------------------------------------------------------------------------
 
   subroutine med_finalize(gcomp, rc)

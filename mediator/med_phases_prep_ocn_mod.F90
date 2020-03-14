@@ -129,6 +129,7 @@ contains
     integer             :: n, ncnt
     real(R8)            :: c1,c2,c3,c4
     real(R8), pointer   :: dataptr(:)
+    real(R8), pointer   :: dataptr_o(:)
     real(R8), pointer   :: ifrac(:), ofrac(:)
     real(R8), pointer   :: ifracr(:), ofracr(:)
     real(R8), pointer   :: avsdr(:), avsdf(:)
@@ -142,12 +143,6 @@ contains
     real(R8), pointer   :: Fioi_swpen_vdr(:), Fioi_swpen_vdf(:)
     real(R8), pointer   :: Fioi_swpen_idr(:), Fioi_swpen_idf(:)
     real(R8), pointer   :: Fioi_swpen(:)
-    real(R8), pointer   :: Foxx_evap(:)
-    real(R8), pointer   :: Foxx_lwnet(:)
-    real(R8), pointer   :: Faox_lwup(:)
-    real(R8), pointer   :: Faxa_lwdn(:)
-    real(R8), pointer   :: dataptr_i(:), dataptr_o(:)
-    real(R8), pointer   :: dataptr2d_i(:,:), dataptr2d_o(:,:)
     real(R8)            :: ifrac_scaled, ofrac_scaled
     real(R8)            :: ifracr_scaled, ofracr_scaled
     real(R8)            :: frac_sum
@@ -162,19 +157,16 @@ contains
     integer             :: lsize
     integer             :: dbrc
     character(CS)       :: cvalue
-    ! NEMS-orig
-    real(R8), pointer   :: ocnwgt1(:)
-    real(R8), pointer   :: icewgt1(:)
-    real(R8), pointer   :: wgtp01(:)
-    real(R8), pointer   :: wgtm01(:)
-    real(R8), pointer   :: customwgt(:)
-    !
+    real(R8), pointer   :: ocnwgt1(:)   ! NEMS_orig_data
+    real(R8), pointer   :: icewgt1(:)   ! NEMS_orig_data
+    real(R8), pointer   :: wgtp01(:)    ! NEMS_orig_data
+    real(R8), pointer   :: wgtm01(:)    ! NEMS_orig_data
+    real(R8), pointer   :: customwgt(:) ! NEMS_orig_data
     character(len=64), allocatable :: fldnames(:)
     real(R8)        , parameter    :: const_lhvap = 2.501e6_R8  ! latent heat of evaporation ~ J/kg
     real(R8)        , parameter    :: albdif = 0.06_r8          ! 60 deg reference albedo, diffuse
     character(len=*), parameter    :: subname='(med_phases_prep_ocn_merge)'
-    ! Set the following to true if want to compare directly to MCT
-    logical :: compare_to_mct = .false.
+    logical :: compare_to_mct = .false. ! Set the following to true if want to compare directly to MCT
     !---------------------------------------
 
     call t_startf('MED:'//subname)
@@ -205,16 +197,12 @@ contains
        !--- auto merges to ocn
        !---------------------------------------
 
-       !TODO: DW should be 'nems_orig_data' and then the 'else' is
-       ! == nems_frac .or. nems_orig  
-       !if (trim(coupling_mode) == 'cesm' .or. trim(coupling_mode) == 'nems_orig') then
        if (trim(coupling_mode) == 'cesm' .or. trim(coupling_mode) == 'nems_orig_data') then
           call med_merge_auto(trim(compname(compocn)), &
                is_local%wrap%FBExp(compocn), is_local%wrap%FBFrac(compocn), &
                is_local%wrap%FBImp(:,compocn), fldListTo(compocn), &
                FBMed1=is_local%wrap%FBMed_aoflux_o, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       !else if (trim(coupling_mode) == 'nems_frac') then
        else if (trim(coupling_mode) == 'nems_frac' .or. trim(coupling_mode) == 'nems_orig') then
           call med_merge_auto(trim(compname(compocn)), &
                is_local%wrap%FBExp(compocn), is_local%wrap%FBFrac(compocn), &
@@ -231,9 +219,9 @@ contains
           !-------------
           ! Compute netsw for ocean
           !-------------
-          
+
           ! netsw_for_ocn = downsw_from_atm * (1-ocn_albedo) * (1-ice_fraction) + pensw_from_ice * (ice_fraction)
-          
+
           ! Input from atm
           call FB_GetFldPtr(is_local%wrap%FBImp(compatm,compocn), 'Faxa_swvdr', Faxa_swvdr, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -252,20 +240,18 @@ contains
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
           ! Input from mediator, ocean albedos
-          if (trim(coupling_mode) == 'cesm') then
-             call FB_GetFldPtr(is_local%wrap%FBMed_ocnalb_o, 'So_avsdr' , avsdr, rc=rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             call FB_GetFldPtr(is_local%wrap%FBMed_ocnalb_o, 'So_anidr' , anidr, rc=rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             call FB_GetFldPtr(is_local%wrap%FBMed_ocnalb_o, 'So_avsdf' , avsdf, rc=rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             call FB_GetFldPtr(is_local%wrap%FBMed_ocnalb_o, 'So_anidf' , anidf, rc=rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             call FB_GetFldPtr(is_local%wrap%FBfrac(compocn), 'ifrad' , ifracr, rc=rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             call FB_GetFldPtr(is_local%wrap%FBfrac(compocn), 'ofrad' , ofracr, rc=rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          end if
+          call FB_GetFldPtr(is_local%wrap%FBMed_ocnalb_o, 'So_avsdr' , avsdr, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call FB_GetFldPtr(is_local%wrap%FBMed_ocnalb_o, 'So_anidr' , anidr, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call FB_GetFldPtr(is_local%wrap%FBMed_ocnalb_o, 'So_avsdf' , avsdf, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call FB_GetFldPtr(is_local%wrap%FBMed_ocnalb_o, 'So_anidf' , anidf, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call FB_GetFldPtr(is_local%wrap%FBfrac(compocn), 'ifrad' , ifracr, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call FB_GetFldPtr(is_local%wrap%FBfrac(compocn), 'ofrad' , ofracr, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
           ! Input from ice
           if (is_local%wrap%comp_present(compice)) then
@@ -286,7 +272,7 @@ contains
              end if
           end if
 
-          ! Output to ocean swnet 
+          ! Output to ocean swnet
           if (FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_swnet', rc=rc)) then
              call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Foxx_swnet',  Foxx_swnet, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -322,17 +308,10 @@ contains
           do n = 1,lsize
 
              ! Determine ocean albedos
-             if (trim(coupling_mode) == 'cesm') then
-                albvis_dir = avsdr(n)
-                albvis_dif = avsdf(n)
-                albnir_dir = anidr(n)
-                albnir_dif = anidf(n)
-             else
-                albvis_dir = albdif
-                albvis_dif = albdif
-                albnir_dir = albdif
-                albnir_dif = albdif
-             end if
+             albvis_dir = avsdr(n)
+             albvis_dif = avsdf(n)
+             albnir_dir = anidr(n)
+             albnir_dif = anidf(n)
 
              ! Compute total swnet to ocean independent of swpen from sea-ice
              fswabsv  = Faxa_swvdr(n) * (1.0_R8 - albvis_dir) + Faxa_swvdf(n) * (1.0_R8 - albvis_dif)
@@ -342,31 +321,26 @@ contains
              ! Add swpen from sea ice if sea ice is present
              if (is_local%wrap%comp_present(compice)) then
 
-                if (trim(coupling_mode) == 'cesm') then
-                   ifrac_scaled = ifrac(n)
-                   ofrac_scaled = ofrac(n)
-                   frac_sum = ifrac(n) + ofrac(n)
-                   if (frac_sum /= 0._R8) then
-                      ifrac_scaled = ifrac(n) / (frac_sum)
-                      ofrac_scaled = ofrac(n) / (frac_sum)
-                   endif
+                ifrac_scaled = ifrac(n)
+                ofrac_scaled = ofrac(n)
+                frac_sum = ifrac(n) + ofrac(n)
+                if (frac_sum /= 0._R8) then
+                   ifrac_scaled = ifrac(n) / (frac_sum)
+                   ofrac_scaled = ofrac(n) / (frac_sum)
+                endif
 
-                   ifracr_scaled = ifracr(n)
-                   ofracr_scaled = ofracr(n)
-                   frac_sum = ifracr(n) + ofracr(n)
-                   if (frac_sum /= 0._R8) then
-                      ifracr_scaled = ifracr(n) / (frac_sum)
-                      ofracr_scaled = ofracr(n) / (frac_sum)
-                   endif
-                else
-                   ofracr_scaled = ofrac(n)
-                   ifrac_scaled  = ifrac(n)
-                end if
+                ifracr_scaled = ifracr(n)
+                ofracr_scaled = ofracr(n)
+                frac_sum = ifracr(n) + ofracr(n)
+                if (frac_sum /= 0._R8) then
+                   ifracr_scaled = ifracr(n) / (frac_sum)
+                   ofracr_scaled = ofracr(n) / (frac_sum)
+                endif
 
                 Foxx_swnet(n) = ofracr_scaled*(fswabsv + fswabsi) + ifrac_scaled*Fioi_swpen(n)
 
                 if (export_swnet_afracr) then
-                   Foxx_swnet_afracr(n) = ofracr_scaled*(fswabsv + fswabsi) 
+                   Foxx_swnet_afracr(n) = ofracr_scaled*(fswabsv + fswabsi)
                 end if
 
                 ! To compare to mct
@@ -447,7 +421,7 @@ contains
        end if
 
        !-------------
-       ! Custom calculation for nems_orig_active
+       ! Custom calculation for nems_orig or nems_frac
        !-------------
 
        if (trim(coupling_mode) == 'nems_orig' .or. trim(coupling_mode) == 'nems_frac') then
@@ -461,11 +435,6 @@ contains
           lsize = size(ofrac)
           allocate(customwgt(lsize))
 
-          customwgt(:) = -ofrac(:) / const_lhvap
-          call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_evap', &
-               FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_lat' , wgtA=customwgt, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
           call med_merge_field(is_local%wrap%FBExp(compocn),      'Faxa_rain',  &
                FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_rain' , wgtA=ofrac, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -476,15 +445,20 @@ contains
                FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_lwnet', wgtA=ofrac, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+          customwgt(:) = -ofrac(:) / const_lhvap
+          call med_merge_field(is_local%wrap%FBExp(compocn),      'Faxa_evap', &
+               FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_lat' , wgtA=customwgt, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
           customwgt(:) = -ofrac(:)
           call med_merge_field(is_local%wrap%FBExp(compocn),      'Faxa_sen',  &
                FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_sen', wgtA=customwgt, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          call med_merge_field(is_local%wrap%FBExp(compocn),      'Faxa_taux',  &
+          call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_taux',  &
                FBinA=is_local%wrap%FBImp(compice,compocn), fnameA='Fioi_taux' , wgtA=ifrac, &
                FBinB=is_local%wrap%FBImp(compatm,compocn), fnameB='Faxa_taux' , wgtB=customwgt, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          call med_merge_field(is_local%wrap%FBExp(compocn),      'Faxa_tauy',  &
+          call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_tauy',  &
                FBinA=is_local%wrap%FBImp(compice,compocn), fnameA='Fioi_tauy' , wgtA=ifrac, &
                FBinB=is_local%wrap%FBImp(compatm,compocn), fnameB='Faxa_tauy' , wgtB=customwgt, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -511,7 +485,7 @@ contains
 
           deallocate(customwgt)
 
-       end if  ! end of nems_orig_active or nems_frac
+       end if  ! end of nems_orig or nems_frac
 
        !-------------
        ! Custom calculation for nems_orig_data
@@ -522,10 +496,11 @@ contains
           ! open ocean (i.e. atm)  and ice fraction
           ! ocnwgt and icewgt are the "normal" fractions
           ! ocnwgt1, icewgt1, and wgtp01 are the fractions that switch between atm and mediator fluxes
-          ! wgtp01 and wgtm01 are the same just one is +1 and the other is -1 to change sign depending on the ice fraction.          !   ocnwgt1+icewgt1+wgtp01 = 1.0 always 
-          !   wgtp01 = 1 and wgtm01 = -1 when ice fraction = 0  
+          ! ocnwgt1+icewgt1+wgtp01 = 1.0 always
+          ! wgtp01 and wgtm01 are the same just one is +1 and the other is -1 to change sign depending on the ice fraction.
+          !   wgtp01 = 1 and wgtm01 = -1 when ice fraction = 0
           !   wgtp01 = 0 and wgtm01 =  0 when ice fraction > 0
-       
+
           allocate(ocnwgt1(lsize))
           allocate(icewgt1(lsize))
           allocate(wgtp01(lsize))
@@ -555,9 +530,9 @@ contains
                 write(6,100)trim(subname)//'ERROR: n, ofrac, ifrac, sum',&
                      n,ofrac(n),ifrac(n),ofrac(n)+ifrac(n)
                 write(6,101)trim(subname)//'ERROR: n, ocnwgt1, icewgt1, wgtp01, sum ', &
-                     n,ocnwgt1(n),icewgt1(n),wgtp01(n),ocnwgt1(n)+icewgt1(n)+wgtp01(n)  
+                     n,ocnwgt1(n),icewgt1(n),wgtp01(n),ocnwgt1(n)+icewgt1(n)+wgtp01(n)
                 write(6,101)trim(subname)//'ERROR: n, ocnwgt1, icewgt1, -wgtm01, sum ', &
-                     n,ocnwgt1(n),icewgt1(n),-wgtp01(n),ocnwgt1(n)+icewgt1(n)-wgtm01(n)  
+                     n,ocnwgt1(n),icewgt1(n),-wgtp01(n),ocnwgt1(n)+icewgt1(n)-wgtm01(n)
 100             format(a,i8,2x,3(d20.13,2x))
 101             format(a,i8,2x,4(d20.13,2x))
 
@@ -569,12 +544,12 @@ contains
           end do
 
           customwgt(:) = wgtm01(:) / const_lhvap
-          call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_evap', &
+          call med_merge_field(is_local%wrap%FBExp(compocn),      'Faxa_evap', &
                FBinA=is_local%wrap%FBMed_aoflux_o        , fnameA='Faox_evap', wgtA=ocnwgt1, &
                FBinB=is_local%wrap%FBImp(compatm,compocn), fnameB='Faxa_lat' , wgtB=customwgt, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-          call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_sen',    &
+          call med_merge_field(is_local%wrap%FBExp(compocn),      'Faxa_sen',    &
                FBinA=is_local%wrap%FBMed_aoflux_o        , fnameA='Faox_sen ', wgtA=ocnwgt1, &
                FBinC=is_local%wrap%FBImp(compatm,compocn), fnameB='Faxa_sen' , wgtB=wgtm01, rc=rc)
 
@@ -607,7 +582,7 @@ contains
           deallocate(wgtm01)
           deallocate(customwgt)
 
-       end if  ! end of nems_orig_data custom 
+       end if  ! end of nems_orig_data custom
 
        !---------------------------------------
        !--- diagnose output

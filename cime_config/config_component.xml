@@ -26,6 +26,15 @@
     <desc>Name of coupling component</desc>
   </entry>
 
+  <entry id="COUPLING_MODE">
+    <type>char</type>
+    <valid_values>cesm,nems_orig_active,nems_orig_data,nems_frac</valid_values>
+    <default_value>cesm</default_value>
+    <group>run_coupling</group>
+    <file>env_run.xml</file>
+    <desc>coupling mode</desc>
+  </entry>
+
   <!-- ===================================================================== -->
   <!-- master configuration file that specifies all relevant filenames and -->
   <!-- and directories to configure a case -->
@@ -2105,16 +2114,15 @@
     <file>env_run.xml</file>
     <desc>pio rearranger choice box=1, subset=2 </desc>
     <values>
-      <value>$PIO_VERSION</value>
-      <value compclass="ATM"></value>
-      <value compclass="CPL"></value>
-      <value compclass="OCN"></value>
-      <value compclass="WAV"></value>
-      <value compclass="GLC"></value>
-      <value compclass="ICE"></value>
-      <value compclass="ROF"></value>
-      <value compclass="LND"></value>
-      <value compclass="ESP"></value>
+      <value compclass="ATM">1</value>
+      <value compclass="CPL">1</value>
+      <value compclass="OCN">1</value>
+      <value compclass="WAV">1</value>
+      <value compclass="GLC">1</value>
+      <value compclass="ICE">1</value>
+      <value compclass="ROF">1</value>
+      <value compclass="LND">1</value>
+      <value compclass="ESP">1</value>
     </values>
   </entry>
 
@@ -2515,6 +2523,32 @@
    <group>job_submission</group>
    <file>env_workflow.xml</file>
    <desc>whether the PROJECT value is required on this machine</desc>
+ </entry>
+
+  <!-- ===================================================================== -->
+  <!-- data model force prognostic mode -->
+  <!-- ===================================================================== -->
+
+ <entry id="FORCE_PROGNOSTIC_FOR_DATAMODELS">
+   <type>logical</type>
+   <valid_values>TRUE,FALSE</valid_values>
+   <default_value>FALSE</default_value>
+   <group>data_models</group>
+   <file>env_run.xml</file>
+   <desc>if true, all data models are expected to get input sent back from the mediator</desc>
+ </entry>
+
+  <!-- ===================================================================== -->
+  <!-- write ESMF PET log files even without an error -->
+  <!-- ===================================================================== -->
+
+ <entry id="CREATE_ESMF_PET_FILES">
+   <type>logical</type>
+   <valid_values>TRUE,FALSE</valid_values>
+   <default_value>FALSE</default_value>
+   <group>run_debug</group>
+   <file>env_run.xml</file>
+   <desc>if true, create ESMF PET log files even if there is no error encountered </desc>
  </entry>
 
  <help>

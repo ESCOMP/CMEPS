@@ -434,8 +434,6 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     lb1 = lbound(dataOut,1)
     ub1 = ubound(dataOut,1)
-! tcraig, this is a memory leak
-!    allocate(wgt(lb1:ub1))
 
     dataOut = czero
 
@@ -606,8 +604,6 @@ contains
     ub1 = ubound(dataOut,1)
     lb2 = lbound(dataOut,2)
     ub2 = ubound(dataOut,2)
-! tcraig, this is a memory leak
-!    allocate(wgt(lb1:ub1,lb2:ub2))
 
     dataOut = czero
 

@@ -293,17 +293,21 @@ contains
 
     ! intput/output variables
     type(med_fldList_entry_type) , intent(inout) :: flds(:)
-    character(len=*)                   , intent(in)    :: fldname
-    integer                            , intent(in)    :: destcomp
-    integer                            , intent(in)    :: maptype
-    character(len=*)                   , intent(in)    :: mapnorm
-    character(len=*)                   , intent(in)    :: mapfile
+    character(len=*)             , intent(in)    :: fldname
+    integer                      , intent(in)    :: destcomp
+    integer                      , intent(in)    :: maptype
+    character(len=*)             , intent(in)    :: mapnorm
+    character(len=*), optional   , intent(in)    :: mapfile
 
     ! local variables
-    integer :: id, n
-    integer :: rc
+    integer       :: id, n
+    integer       :: rc
+    character(CX) :: lmapfile
     character(len=*),parameter  :: subname='(med_fldList_AddMap)'
     ! ----------------------------------------------
+
+    lmapfile = 'unset'
+    if (present(mapfile)) lmapfile = mapfile
 
     id = 0
     do n = 1,size(flds)
@@ -329,7 +333,7 @@ contains
 
     flds(id)%mapindex(destcomp) = maptype
     flds(id)%mapnorm(destcomp)  = trim(mapnorm)
-    flds(id)%mapfile(destcomp)  = trim(mapfile)
+    flds(id)%mapfile(destcomp)  = trim(lmapfile)
 
     ! overwrite values if appropriate
     if (flds(id)%mapindex(destcomp) == mapfcopy) then

@@ -38,7 +38,7 @@ def _main_func():
         atm_model = case.get_value("COMP_ATM")
         gmake_args = get_standard_makefile_args(case)
 
-    if ocn_model == 'mom' or atm_model == "fv3gfs":
+    if ocn_model == 'mom' or atm_model == "ufsatm":
         gmake_args += "USE_FMS=TRUE"
 
     comp_classes = case.get_values("COMP_CLASSES")
