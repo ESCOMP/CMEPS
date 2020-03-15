@@ -299,7 +299,12 @@ contains
 
     call t_startf('MED:'//subname)
 
+    ! get clock
+    call ESMF_GridCompGet(gcomp, clock=clock)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
     if (first_call) then
+
        ! Initialize ocean albedo calculation
        call med_phases_ocnalb_init(gcomp, ocnalb, rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -320,8 +325,6 @@ contains
           return
        end if
 
-       call ESMF_GridCompGet(gcomp, clock=clock)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
        call ESMF_ClockGet( clock, currTime=currTime, timeStep=timeStep, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
