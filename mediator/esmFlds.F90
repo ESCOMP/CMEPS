@@ -290,6 +290,7 @@ contains
   subroutine med_fldList_AddMap(flds, fldname, destcomp, maptype, mapnorm, mapfile)
 
     use ESMF, only : ESMF_LOGMSG_ERROR, ESMF_FAILURE, ESMF_LogWrite, ESMF_LOGMSG_INFO
+    use ESMF, only : ESMF_Finalize, ESMF_END_ABORT
 
     ! intput/output variables
     type(med_fldList_entry_type) , intent(inout) :: flds(:)
@@ -303,6 +304,7 @@ contains
     integer       :: id, n
     integer       :: rc
     character(CX) :: lmapfile
+    character(CL) :: errmsg
     character(len=*),parameter  :: subname='(med_fldList_AddMap)'
     ! ----------------------------------------------
 
@@ -317,12 +319,14 @@ contains
        end if
     end do
     if (id == 0) then
+       write(errmsg,*) trim(subname),'ERROR: fldname '//trim(fldname)//' not found in following input flds'
+       call ESMF_LogWrite(errmsg, ESMF_LOGMSG_ERROR)
        do n = 1,size(flds)
-          write(6,*) trim(subname)//' input flds entry is ',trim(flds(n)%stdname)
+          write(errmsg,*) trim(subname),' input flds entry is ',trim(flds(n)%stdname)
+          call ESMF_LogWrite(errmsg, ESMF_LOGMSG_ERROR)
        end do
-       call ESMF_LogWrite(subname // 'ERROR: fldname '// trim(fldname) // ' not found in input flds', ESMF_LOGMSG_INFO)
        rc = ESMF_FAILURE
-       return
+       call ESMF_Finalize(endflag=ESMF_END_ABORT)
     end if
 
     ! Note - default values are already set for the fld entries - so only non-default
