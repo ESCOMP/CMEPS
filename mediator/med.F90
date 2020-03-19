@@ -1831,8 +1831,7 @@ contains
     call med_fraction_set(gcomp,rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    ! should this be added here?
-    if (is_local%wrap%comp_present(compocn)) then
+    if (is_local%wrap%comp_present(compocn) .or. is_local%wrap%comp_present(compatm)) then
        call med_phases_ocnalb_run(gcomp, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
@@ -1845,8 +1844,8 @@ contains
     if (.not. is_local%wrap%comp_present(compatm)) atmDone = .true.
 
     if (.not. atmDone .and. ocnDone .and. is_local%wrap%comp_present(compatm)) then
-       atmDone = .true.  ! reset if an item is found that is not done
 
+       atmDone = .true.  ! reset if an item is found that is not done
        call ESMF_StateGet(is_local%wrap%NStateImp(compatm), itemCount=fieldCount, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        allocate(fieldNameList(fieldCount))
@@ -1868,16 +1867,6 @@ contains
        deallocate(fieldNameList)
 
        if (.not. atmdone) then  ! atmdone is not true
-          ! Update fractions again in case any import fields have changed
-          call med_fraction_init(gcomp,rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          call med_fraction_set(gcomp, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-          ! Initialize ocean albedo module and compute ocean albedos
-          call med_phases_ocnalb_run(gcomp, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
           ! do the merge to the atmospheric component
           call med_phases_prep_atm(gcomp, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
