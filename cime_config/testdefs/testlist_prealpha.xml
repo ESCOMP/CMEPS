@@ -314,7 +314,7 @@
     <machines>
       <machine name="cheyenne" compiler="intel" category="prealpha">
         <options>
-          <option name="wallclock">0:20</option>
+          <option name="wallclock">00:20:00</option>
         </options>
       </machine>
     </machines>
@@ -323,7 +323,7 @@
     <machines>
       <machine name="cheyenne" compiler="intel" category="prealpha">
         <options>
-          <option name="wallclock">2:00</option>
+          <option name="wallclock">00:20:00</option>
         </options>
       </machine>
     </machines>
@@ -332,7 +332,7 @@
     <machines>
       <machine name="cheyenne" compiler="gnu" category="prealpha">
         <options>
-          <option name="wallclock">0:30</option>
+          <option name="wallclock">00:30:00</option>
         </options>
       </machine>
     </machines>

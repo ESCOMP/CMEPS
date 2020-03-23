@@ -37,7 +37,7 @@ module esmflds
   integer , public, parameter :: mapnstod_consf = 8 ! nearest source to destination followed by conservative frac
   integer , public, parameter :: nmappers       = 8
 
-  character(len=*) , public, parameter :: mapnames(nmappers) = & 
+  character(len=*) , public, parameter :: mapnames(nmappers) = &
        (/'bilnr      ','consf      ','consd      ','patch      ','fcopy      ','nstod      ','nstod_consd','nstod_consf'/)
 
   logical, public :: mapuv_with_cart3d ! rotate u,v to 3d cartesian space, map from src->dest, then rotate back
@@ -102,8 +102,8 @@ module esmflds
   type (med_fldList_type), public :: fldListTo(ncomps) ! advertise fields to components
   type (med_fldList_type), public :: fldListFr(ncomps) ! advertise fields from components
 
-  type (med_fldList_type), public :: fldListMed_aoflux 
-  type (med_fldList_type), public :: fldListMed_ocnalb 
+  type (med_fldList_type), public :: fldListMed_aoflux
+  type (med_fldList_type), public :: fldListMed_ocnalb
 
   integer                    :: dbrc
   character(len=CL)          :: infostr
@@ -206,7 +206,7 @@ contains
     ! ----------------------------------------------
 
     use ESMF, only : ESMF_FAILURE, ESMF_LogWrite
-    use ESMF, only : ESMF_LOGMSG_INFO, ESMF_LOGMSG_ERROR 
+    use ESMF, only : ESMF_LOGMSG_INFO, ESMF_LOGMSG_ERROR
 
     ! input/output variables
     type(med_fldList_entry_type) , pointer                :: flds(:)
@@ -290,24 +290,21 @@ contains
   subroutine med_fldList_AddMap(flds, fldname, destcomp, maptype, mapnorm, mapfile)
 
     use ESMF, only : ESMF_LOGMSG_ERROR, ESMF_FAILURE, ESMF_LogWrite, ESMF_LOGMSG_INFO
-    use ESMF, only : ESMF_Finalize, ESMF_END_ABORT
 
     ! intput/output variables
     type(med_fldList_entry_type) , intent(inout) :: flds(:)
-    character(len=*)             , intent(in)    :: fldname
-    integer                      , intent(in)    :: destcomp
-    integer                      , intent(in)    :: maptype
-    character(len=*)             , intent(in)    :: mapnorm
-    character(len=*), optional   , intent(in)    :: mapfile
+    character(len=*)                   , intent(in)    :: fldname
+    integer                            , intent(in)    :: destcomp
+    integer                            , intent(in)    :: maptype
+    character(len=*)                   , intent(in)    :: mapnorm
+    character(len=*), optional         , intent(in)    :: mapfile
 
     ! local variables
-    integer       :: id, n
-    integer       :: rc
-    character(CX) :: lmapfile
-    character(CL) :: errmsg
+    integer :: id, n
+    integer :: rc
+    character(len=CX)                                  :: lmapfile
     character(len=*),parameter  :: subname='(med_fldList_AddMap)'
     ! ----------------------------------------------
-
     lmapfile = 'unset'
     if (present(mapfile)) lmapfile = mapfile
 
@@ -319,14 +316,12 @@ contains
        end if
     end do
     if (id == 0) then
-       write(errmsg,*) trim(subname),'ERROR: fldname '//trim(fldname)//' not found in following input flds'
-       call ESMF_LogWrite(errmsg, ESMF_LOGMSG_ERROR)
        do n = 1,size(flds)
-          write(errmsg,*) trim(subname),' input flds entry is ',trim(flds(n)%stdname)
-          call ESMF_LogWrite(errmsg, ESMF_LOGMSG_ERROR)
+          write(6,*) trim(subname)//' input flds entry is ',trim(flds(n)%stdname)
        end do
+       call ESMF_LogWrite(subname // 'ERROR: fldname '// trim(fldname) // ' not found in input flds', ESMF_LOGMSG_INFO)
        rc = ESMF_FAILURE
-       call ESMF_Finalize(endflag=ESMF_END_ABORT)
+       return
     end if
 
     ! Note - default values are already set for the fld entries - so only non-default
@@ -362,6 +357,8 @@ contains
     use ESMF              , only : ESMF_StateGet, ESMF_LogFoundError
     use ESMF              , only : ESMF_LogWrite, ESMF_LOGMSG_ERROR, ESMF_FAILURE, ESMF_LOGERR_PASSTHRU
     use ESMF              , only : ESMF_LOGMSG_INFO, ESMF_StateRemove, ESMF_SUCCESS
+    use ESMF              , only : ESMF_STATEINTENT_IMPORT, ESMF_STATEINTENT_EXPORT, ESMF_StateIntent_Flag
+    use ESMF              , only : ESMF_RC_ARG_BAD, ESMF_LogSetError, operator(==)
 
     ! input/output variables
     type(ESMF_State)            , intent(inout)            :: state
@@ -379,6 +376,8 @@ contains
     type(ESMF_Field)                :: field
     character(CS)                   :: shortname
     character(CS)                   :: stdname
+    type(ESMF_StateIntent_Flag)     :: stateIntent
+    character(ESMF_MAXSTR)          :: transferActionAttr
     character(ESMF_MAXSTR)          :: transferAction
     character(ESMF_MAXSTR), pointer :: StandardNameList(:)
     character(ESMF_MAXSTR), pointer :: ConnectedList(:)
@@ -442,6 +441,20 @@ contains
 #endif
 
     nflds = size(fldList%flds)
+    call ESMF_StateGet(state, stateIntent=stateIntent, rc=rc)
+    if (stateIntent==ESMF_STATEINTENT_EXPORT) then
+       transferActionAttr="ProducerTransferAction"
+    elseif (stateIntent==ESMF_STATEINTENT_IMPORT) then
+       transferActionAttr="ConsumerTransferAction"
+    else
+       call ESMF_LogSetError(ESMF_RC_ARG_BAD, &
+            msg="The stateIntent must either be IMPORT or EXPORT here.", &
+            line=__LINE__, &
+            file=__FILE__, &
+            rcToReturn=rc)
+       return  ! bail out
+    endif
+
 
     do n = 1, nflds
        shortname = fldList%flds(n)%shortname
@@ -452,7 +465,7 @@ contains
           call ESMF_StateGet(state, field=field, itemName=trim(shortname), rc=rc)
           if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=u_FILE_u)) return
 
-          call NUOPC_GetAttribute(field, name="TransferActionGeomObject", value=transferAction, rc=rc)
+          call NUOPC_GetAttribute(field, name=TransferActionAttr, value=transferAction, rc=rc)
           if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=u_FILE_u)) return
 
           if (trim(transferAction) == "accept") then  ! accept
@@ -661,7 +674,7 @@ contains
 
     ! input/output variables
     integer, intent(in)  :: logunit
-    logical, intent(in)  :: med_coupling_active(:,:) 
+    logical, intent(in)  :: med_coupling_active(:,:)
 
     ! local variables
     integer           :: nsrc,ndst,nf,nm,n
@@ -682,7 +695,7 @@ contains
     !-----------------------------------------------------------
 
     !---------------------------------------
-    ! Document mapping (also add albedo and aoflux) 
+    ! Document mapping (also add albedo and aoflux)
     !---------------------------------------
 
     ! Loop over src components
@@ -755,12 +768,12 @@ contains
   subroutine med_fldList_Document_Merging(logunit, med_coupling_active)
 
     !---------------------------------------
-    ! Document merging to target destination fields 
+    ! Document merging to target destination fields
     !---------------------------------------
 
     ! input/output variables
     integer, intent(in)  :: logunit
-    logical, intent(in)  :: med_coupling_active(:,:) 
+    logical, intent(in)  :: med_coupling_active(:,:)
 
     ! local variables
     integer           :: nsrc,ndst,nf,n
@@ -800,7 +813,7 @@ contains
                 merge_frac  = fldListTo(ndst)%flds(nf)%merge_fracnames(nsrc)
 
                 if (merge_type == 'merge' .or. merge_type == 'sum_with_weights') then
-                   string = trim(merge_frac)//'*'//trim(merge_field)//'('//trim(src_comp)//')'                
+                   string = trim(merge_frac)//'*'//trim(merge_field)//'('//trim(src_comp)//')'
                    if (mrgstr == ' ') then
                       mrgstr = trim(prefix)//": "// trim(dst_field) //'('//trim(dst_comp)//')'//' = '//trim(string)
                    else
