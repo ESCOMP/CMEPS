@@ -5,6 +5,7 @@ module MED
   !-----------------------------------------------------------------------------
 
   use ESMF                   , only : ESMF_VMLogMemInfo
+  use NUOPC_Mediator         , only: SetVM
   use med_kind_mod           , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
   use med_constants_mod      , only : dbug_flag          => med_constants_dbug_flag
   use med_constants_mod      , only : spval_init         => med_constants_spval_init
@@ -47,7 +48,7 @@ module MED
   private
 
   public  SetServices
-
+  public  SetVM
   private InitializeP0
   private InitializeIPDv03p1 ! advertise fields
   private InitializeIPDv03p3 ! realize connected Fields with transfer action "provide"

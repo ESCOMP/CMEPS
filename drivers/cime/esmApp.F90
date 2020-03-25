@@ -11,33 +11,39 @@ program esmApp
   use ESMF,            only : ESMF_GridCompFinalize, ESMF_GridCompCreate, ESMF_GridCompInitialize
   use ESMF,            only : ESMF_LOGKIND_MULTI_ON_ERROR, ESMF_LogKind_Flag
 #ifdef USE_MPI2
-  use mpi,             only : MPI_COMM_WORLD, MPI_COMM_NULL, MPI_Init, MPI_FINALIZE, MPI_BCAST, MPI_COMM_RANK
+  use mpi,             only : MPI_COMM_WORLD, MPI_COMM_NULL, MPI_Init_Thread, MPI_FINALIZE, MPI_BCAST, MPI_COMM_RANK
+  use mpi,             only : MPI_SUCCESS, MPI_THREAD_SERIALIZED
 #else
   use mpi
 #endif
   use NUOPC,           only : NUOPC_FieldDictionarySetup
   use ensemble_driver, only : SetServices
   use shr_pio_mod,     only : shr_pio_init1
-  use shr_sys_mod,     only : shr_sys_abort     
+  use shr_sys_mod,     only : shr_sys_abort
 
   implicit none
 
   ! local variables
   integer                 :: COMP_COMM
-  integer                 :: rc, urc
+  integer                 :: rc, urc, provided
   type(ESMF_LogKind_Flag) :: logkindflag
   type(ESMF_GridComp)     :: ensemble_driver_comp
   logical                 :: create_esmf_pet_files = .false.
   integer                 :: iam, ier
   integer                 :: fileunit
 
-  namelist /debug_inparm / create_esmf_pet_files 
+  namelist /debug_inparm / create_esmf_pet_files
 
   !-----------------------------------------------------------------------------
   ! Initiallize MPI
   !-----------------------------------------------------------------------------
 
-  call MPI_init(rc)
+  call MPI_init_thread(MPI_THREAD_SERIALIZED, provided, ierror=rc)
+  if (rc .ne. MPI_SUCCESS) then
+     write(*,*) 'ERROR in mpi_init_thread rc=', rc, ' provided = ',provided
+     stop
+  endif
+
   COMP_COMM = MPI_COMM_WORLD
 
   !-----------------------------------------------------------------------------
