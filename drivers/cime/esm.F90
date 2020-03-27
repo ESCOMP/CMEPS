@@ -1019,66 +1019,72 @@ contains
 #ifdef MED_PRESENT
        if (trim(compLabels(i)) == 'MED') then
           med_id = i + 1
-!          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), MEDSetServices!, MEDSetVM, petList=petlist, &
-!               comp=child, info=info, rc=rc)
-          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), MEDSetServices, petList=petlist, &
-               comp=child, rc=rc)
+          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), MEDSetServices, MEDSetVM, &
+               petList=petlist, comp=child, info=info, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           found_comp = .true.
        end if
 #endif
 #ifdef ATM_PRESENT
        elseif(trim(compLabels(i)) .eq. 'ATM') then
-          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), ATMSetServices, ATMSetVM, petList=petlist, comp=child, info=info, rc=rc)
+          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), ATMSetServices, &!ATMSetVM, &
+               petList=petlist, comp=child, info=info, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           found_comp = .true.
        end if
 #endif
 #ifdef LND_PRESENT
        elseif(trim(compLabels(i)) .eq. 'LND') then
-          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), LNDSetServices, LNDSetVM, PetList=petlist, comp=child, info=info, rc=rc)
+          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), LNDSetServices, &!LNDSetVM, &
+               PetList=petlist, comp=child, info=info, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           found_comp = .true.
        end if
 #endif
 #ifdef OCN_PRESENT
-       if (trim(compLabels(i)) .eq. 'OCN') then
-          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), OCNSetServices, PetList=petlist, comp=child, rc=rc)
+       elseif(trim(compLabels(i)) .eq. 'OCN') then
+          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), OCNSetServices, &!OCNSetVM, &
+               PetList=petlist, comp=child, info=info, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           found_comp = .true.
        end if
 #endif
 #ifdef ICE_PRESENT
        elseif(trim(compLabels(i)) .eq. 'ICE') then
-          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), ICESetServices, ICESetVM, PetList=petlist, comp=child, info=info, rc=rc)
+          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), ICESetServices, &!ICESetVM, &
+               PetList=petlist, comp=child, info=info, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           found_comp = .true.
        end if
 #endif
 #ifdef GLC_PRESENT
        elseif(trim(compLabels(i)) .eq. 'GLC') then
-          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), GLCSetServices, GLCSetVM, PetList=petlist, comp=child, info=info, rc=rc)
+          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), GLCSetServices, &!GLCSetVM, &
+               PetList=petlist, comp=child, info=info, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           found_comp = .true.
        end if
 #endif
 #ifdef ROF_PRESENT
        elseif(trim(compLabels(i)) .eq. 'ROF') then
-          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), ROFSetServices, ROFSetVM, PetList=petlist, comp=child, info=info, rc=rc)
+          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), ROFSetServices, &!ROFSetVM, &
+               PetList=petlist, comp=child, info=info, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           found_comp = .true.
        end if
 #endif
 #ifdef WAV_PRESENT
        elseif(trim(compLabels(i)) .eq. 'WAV') then
-          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), WAVSetServices, WAVSetVM, PetList=petlist, comp=child, info=info, rc=rc)
+          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), WAVSetServices, &!WAVSetVM, &
+               PetList=petlist, comp=child, info=info, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           found_comp = .true.
        end if
 #endif
 #ifdef ESP_PRESENT
        elseif(trim(compLabels(i)) .eq. 'ESP') then
-          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), ESPSetServices, ESPSetVM, PetList=petlist, comp=child, info=info, rc=rc)
+          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), ESPSetServices, &!ESPSetVM, &
+               PetList=petlist, comp=child, info=info, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           found_comp = .true.
        end if
