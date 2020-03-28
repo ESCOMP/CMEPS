@@ -216,6 +216,8 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     # (3) Write nuopc.runconfig file and add to input dataset list.
     #--------------------------------
 
+    # TODO: remove items from comptypes if the component is a stub
+
     # Determine components that are not present
     comp_types = ['atm','lnd','ice','ocn','rof','glc','wav','esp']
     skip_comps = []
@@ -233,6 +235,22 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
             if item != 'esp': #no esp xcpl component
                 if case.get_value(item.upper() + "_NX") == "0" and case.get_value(item.upper() + "_NY") == "0":
                     skip_comps.append(item.upper)
+
+    # set the driver rpointer file if there is only one non-stub component then skip mediator 
+    drv_restart_pointer = "rpointer.cpl"
+    if len(skip_comps) == 7:
+        skip_mediator = True
+        # TODO: add this logic for the other components
+        if 'ATM' not in skip_comps:
+            drv_restart_pointer = "rpointer.atm"
+    else:
+        skip_mediator = False
+    if skip_mediator:
+        nmlgen.set_value('mediator_present', value='.false.')
+
+    # why does this not work???
+    #nmlgen.set_value("drv_restart_rpointer", value = drv_restart_pointer)
+
     # special case - mosart or rtm in NULL mode
     if (case.get_value("COMP_ROF") == 'mosart' or case.get_value("COMP_ROF") == 'rtm'):
         if (case.get_value("MOSART_MODE") == 'NULL' or case.get_value("RTM_MODE") == 'NULL'):
@@ -241,7 +259,8 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     logger.info("Writing nuopc_runseq will skip components {}".format(skip_comps))
 
     nuopc_config_file = os.path.join(confdir, "nuopc.runconfig")
-    nmlgen.write_nuopc_config_file(nuopc_config_file, data_list_path=data_list_path, skip_comps=skip_comps)
+    nmlgen.write_nuopc_config_file(nuopc_config_file, data_list_path=data_list_path, 
+                                   skip_comps=skip_comps, skip_mediator=skip_mediator)
 
     #--------------------------------
     # (4) Write nuopc.runseq
@@ -408,6 +427,18 @@ def _create_component_modelio_namelists(confdir, case, files):
                     outfile.write("     {}{}{}".format("diro = ", moddiro,"\n"))
                     outfile.write("     {}{}{}".format("logfile = ", logfile,"\n"))
                     outfile.write("::\n\n")
+
+                    # also write out a driver log file 
+                    if model == 'cpl':
+                        name = "DRV"
+                        logfile = 'drv' + inst_string + ".log." + str(lid)
+                        if inst_string:
+                            outfile.write("{}_modelio{}::\n".format(name,inst_string))
+                        else:
+                            outfile.write("{}_modelio::\n".format(name))
+                            outfile.write("     {}{}{}".format("diro = ", moddiro,"\n"))
+                            outfile.write("     {}{}{}".format("logfile = ", logfile,"\n"))
+                            outfile.write("::\n\n")
 
                 inst_index = inst_index + 1
 

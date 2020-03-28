@@ -384,8 +384,8 @@ contains
     use ESMF  , only : ESMF_GridComp, ESMF_State, ESMF_Clock, ESMF_VM, ESMF_SUCCESS
     use ESMF  , only : ESMF_GridCompGet, ESMF_VMGet, ESMF_AttributeGet
     use ESMF  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_METHOD_INITIALIZE
-    use NUOPC , only : NUOPC_CompFilterPhaseMap
-    use med_internalstate_mod, only : mastertask
+    use NUOPC , only : NUOPC_CompFilterPhaseMap, NUOPC_CompAttributeGet
+    use med_internalstate_mod, only : mastertask, logunit
 
     type(ESMF_GridComp)   :: gcomp
     type(ESMF_State)      :: importState, exportState
@@ -393,10 +393,13 @@ contains
     integer, intent(out)  :: rc
 
     ! local variables
-    type(ESMF_VM)      :: vm
-    character(len=128) :: value
-    integer            :: localPet
-    character(len=CX)  :: msgString
+    type(ESMF_VM)     :: vm
+    character(len=CL) :: value
+    integer           :: localPet
+    logical           :: isPresent, isSet
+    character(len=CX) :: msgString
+    character(len=CX) :: diro
+    character(len=CX) :: logfile
     character(len=*),parameter :: subname='(module_MED:InitializeP0)'
     !-----------------------------------------------------------
 
@@ -408,6 +411,23 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     mastertask = .false.
     if (localPet == 0) mastertask=.true.
+
+    ! Determine mediator logunit 
+    if (mastertask) then
+       call NUOPC_CompAttributeGet(gcomp, name="diro", value=diro, isPresent=isPresent, isSet=isSet, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (.not. isPresent .and. .not. isSet) then
+          diro = './'
+       end if
+       call NUOPC_CompAttributeGet(gcomp, name="logfile", value=logfile, isPresent=isPresent, isSet=isSet, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (.not. isPresent .and. .not. isSet) then
+          logfile = 'mediator.log'
+       end if
+       open(newunit=logunit, file=trim(diro)//"/"//trim(logfile))
+    else
+       logUnit = 6
+    endif
 
     call ESMF_AttributeGet(gcomp, name="Verbosity", value=value, defaultValue="max", &
          convention="NUOPC", purpose="Instance", rc=rc)
@@ -465,7 +485,7 @@ contains
     character(len=8)    :: ice_present, rof_present
     character(len=8)    :: glc_present, med_present
     character(len=8)    :: ocn_present, wav_present
-    character(len=32)   :: attrList(8)
+    character(len=CS)   :: attrList(8)
     character(len=*),parameter :: subname='(module_MED:InitializeIPDv03p1)'
     !-----------------------------------------------------------
 
@@ -530,7 +550,9 @@ contains
     call NUOPC_CompAttributeGet(gcomp, name='coupling_mode', value=coupling_mode, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call ESMF_LogWrite('coupling_mode = '// trim(coupling_mode), ESMF_LOGMSG_INFO)
-    write(logunit,*)' Mediator Coupling Mode is ',trim(coupling_mode)
+    if (mastertask) then
+       write(logunit,*)' Mediator Coupling Mode is ',trim(coupling_mode)
+    end if
 
     if (trim(coupling_mode) == 'cesm') then
        call esmFldsExchange_cesm(gcomp, phase='advertise', rc=rc)
@@ -2020,16 +2042,15 @@ contains
     type(ESMF_Clock)        :: mediatorClock, driverClock
     type(ESMF_Time)         :: currTime
     type(ESMF_TimeInterval) :: timeStep
-    character(len=256)      :: cvalue
-    character(len=256)      :: restart_option       ! Restart option units
+    character(len=CL)       :: cvalue
+    character(len=CL)       :: restart_option       ! Restart option units
     integer                 :: restart_n            ! Number until restart interval
     integer                 :: restart_ymd          ! Restart date (YYYYMMDD)
     type(ESMF_ALARM)        :: restart_alarm
     type(ESMF_ALARM)        :: glc_avg_alarm
     logical                 :: glc_present
-    character(len=16)       :: glc_avg_period
-    integer                 :: opt_n
-    integer                 :: opt_ymd
+    character(len=CS)       :: glc_avg_period
+    integer                 :: glc_cpl_dt
     type(ESMF_ALARM)        :: alarm
     logical                 :: first_time = .true.
     character(len=*),parameter :: subname='(module_MED:SetRunClock)'
@@ -2087,9 +2108,14 @@ contains
           else if (trim(glc_avg_period) == 'yearly') then
              call alarmInit(mediatorclock, glc_avg_alarm, 'nyears', opt_n=1, alarmname='alarm_glc_avg', rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          else if (trim(glc_avg_period) == 'glc_coupling_period') then
+             call NUOPC_CompAttributeGet(gcomp, name="glc_cpl_dt", value=cvalue, rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             read(cvalue,*) glc_cpl_dt
+             call alarmInit(mediatorclock, glc_avg_alarm, 'nseconds', opt_n=1, alarmname='alarm_glc_avg', rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
           else
-            call ESMF_LogWrite(trim(subname)//&
-                 ": ERROR glc_avg_period = "//trim(glc_avg_period)//" not supported", &
+            call ESMF_LogWrite(trim(subname)// ": ERROR glc_avg_period = "//trim(glc_avg_period)//" not supported", &
                  ESMF_LOGMSG_INFO, rc=rc)
             rc = ESMF_FAILURE
             RETURN
