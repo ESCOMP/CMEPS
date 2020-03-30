@@ -40,6 +40,7 @@ contains
   subroutine SetServices(driver, rc)
 
     use NUOPC        , only : NUOPC_CompDerive, NUOPC_CompSpecialize, NUOPC_CompSetInternalEntryPoint
+    use NUOPC        , only : NUOPC_CompAttributeSet
     use NUOPC_Driver , only : driver_routine_SS             => SetServices
     use NUOPC_Driver , only : driver_label_SetModelServices => label_SetModelServices
     use NUOPC_Driver , only : driver_label_SetRunSequence   => label_SetRunSequence
@@ -47,13 +48,14 @@ contains
     use ESMF         , only : ESMF_GridComp, ESMF_Config, ESMF_GridCompSet, ESMF_ConfigLoadFile
     use ESMF         , only : ESMF_METHOD_INITIALIZE
     use ESMF         , only : ESMF_SUCCESS, ESMF_LogWrite, ESMF_LOGMSG_INFO
-
+    use ESMF         , only : ESMF_AttributeGet, ESMF_MAXSTR
     ! input/output variables
     type(ESMF_GridComp)  :: driver
     integer, intent(out) :: rc
 
     ! local variables
     type(ESMF_Config) :: runSeq
+    character(len=ESMF_MAXSTR) :: value
     character(len=*), parameter :: subname = "(esm.F90:SetServices)"
     !---------------------------------------
 
@@ -96,6 +98,18 @@ contains
     call ESMF_GridCompSet(driver, configFile="nuopc.runconfig", rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
+    call NUOPC_CompAttributeSet(driver, name="Verbosity", &
+         value="high", rc=rc)
+
+    call ESMF_AttributeGet(driver, name="Verbosity", value=value, defaultValue="max", &
+         convention="NUOPC", purpose="Instance", rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_LogWrite(trim(subname)//": Driver verbosity is "//trim(value), ESMF_LOGMSG_INFO)
+
+
+
+
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
     call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
 
   end subroutine SetServices
@@ -827,15 +841,18 @@ contains
     use ESMF         , only : ESMF_ConfigGetLen, ESMF_LogFoundAllocError, ESMF_ConfigGetAttribute
     use ESMF         , only : ESMF_RC_NOT_VALID, ESMF_LogSetError
     use ESMF         , only : ESMF_GridCompIsPetLocal, ESMF_MethodAdd, ESMF_UtilStringLowerCase
+    use ESMF         , only : ESMF_INFO, ESMF_InfoCreate, ESMF_InfoDestroy, ESMF_AttributeSet
+    use ESMF         , only : ESMF_VMBarrier
+
     use NUOPC        , only : NUOPC_CompAttributeGet
     use NUOPC_Driver , only : NUOPC_DriverAddComp
     use mpi          , only : MPI_COMM_NULL
     use mct_mod      , only : mct_world_init
     use shr_pio_mod  , only : shr_pio_init2
-
+    use shr_string_mod        , only : toLower => shr_string_toLower
 #ifdef MED_PRESENT
     use med_internalstate_mod , only : med_id
-    use med                   , only : MedSetServices => SetServices
+    use med                   , only : MedSetServices => SetServices, MEDSetVM => SetVM
 #endif
 #ifdef ATM_PRESENT
     use atm_comp_nuopc        , only : ATMSetServices => SetServices, ATMSetVM => SetVM
@@ -998,18 +1015,19 @@ contains
 
        namestr = toLower(compLabels(i))
        if (namestr == 'med') namestr = 'cpl'
+       do ntask = rootpe(i), rootpe(i) + maxthreads*(ntasks(i)*stride(i))-1, stride(i)
+          if (modulo(ntask-rootpe(i), maxthreads) .lt. nthrds(i)) then
+             petlist(cnt) = ntask
+             cnt = cnt + 1
+             if (ntask > PetCount) then
+                write (msgstr, *) "Invalid pelayout value specified for component: ",namestr, ' rootpe+ntasks: ',rootpe(i)+ntasks(i), ' nthrds:',nthrds(i), ' PetCount:',PetCount
+                call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
+                return
+             endif
+          endif
+       enddo
+       print *, __FILE__,__LINE__,trim(namestr),petlist(:)
 
-!       do ntask = rootpe(i), rootpe(i) + maxthreads*(ntasks(i)*stride(i))-1, stride(i)
-!          if (modulo(ntask-rootpe(i), maxthreads) .lt. nthrds(i)) then
-!             petlist(cnt) = ntask
-!             cnt = cnt + 1
-!             if (ntask > PetCount) then
-!                write (msgstr, *) "Invalid pelayout value specified for component: ",namestr, ' rootpe+ntasks: ',rootpe(i)+ntasks(i), ' nthrds:',nthrds(i), ' PetCount:',PetCount
-!                call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
-!                return
-!             endif
-!          endif
-!       enddo
 
        comps(i+1) = i+1
 
@@ -1026,64 +1044,64 @@ contains
        end if
 #endif
 #ifdef ATM_PRESENT
-       elseif(trim(compLabels(i)) .eq. 'ATM') then
-          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), ATMSetServices, &!ATMSetVM, &
+       if(trim(compLabels(i)) .eq. 'ATM') then
+          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), ATMSetServices, ATMSetVM, &
                petList=petlist, comp=child, info=info, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           found_comp = .true.
        end if
 #endif
 #ifdef LND_PRESENT
-       elseif(trim(compLabels(i)) .eq. 'LND') then
-          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), LNDSetServices, &!LNDSetVM, &
+       if(trim(compLabels(i)) .eq. 'LND') then
+          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), LNDSetServices, LNDSetVM, &
                PetList=petlist, comp=child, info=info, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           found_comp = .true.
        end if
 #endif
 #ifdef OCN_PRESENT
-       elseif(trim(compLabels(i)) .eq. 'OCN') then
-          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), OCNSetServices, &!OCNSetVM, &
+       if(trim(compLabels(i)) .eq. 'OCN') then
+          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), OCNSetServices, OCNSetVM, &
                PetList=petlist, comp=child, info=info, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           found_comp = .true.
        end if
 #endif
 #ifdef ICE_PRESENT
-       elseif(trim(compLabels(i)) .eq. 'ICE') then
-          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), ICESetServices, &!ICESetVM, &
+       if(trim(compLabels(i)) .eq. 'ICE') then
+          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), ICESetServices, ICESetVM, &
                PetList=petlist, comp=child, info=info, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           found_comp = .true.
        end if
 #endif
 #ifdef GLC_PRESENT
-       elseif(trim(compLabels(i)) .eq. 'GLC') then
-          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), GLCSetServices, &!GLCSetVM, &
+       if(trim(compLabels(i)) .eq. 'GLC') then
+          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), GLCSetServices, GLCSetVM, &
                PetList=petlist, comp=child, info=info, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           found_comp = .true.
        end if
 #endif
 #ifdef ROF_PRESENT
-       elseif(trim(compLabels(i)) .eq. 'ROF') then
-          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), ROFSetServices, &!ROFSetVM, &
+       if(trim(compLabels(i)) .eq. 'ROF') then
+          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), ROFSetServices, ROFSetVM, &
                PetList=petlist, comp=child, info=info, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           found_comp = .true.
        end if
 #endif
 #ifdef WAV_PRESENT
-       elseif(trim(compLabels(i)) .eq. 'WAV') then
-          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), WAVSetServices, &!WAVSetVM, &
+       if(trim(compLabels(i)) .eq. 'WAV') then
+          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), WAVSetServices, WAVSetVM, &
                PetList=petlist, comp=child, info=info, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           found_comp = .true.
        end if
 #endif
 #ifdef ESP_PRESENT
-       elseif(trim(compLabels(i)) .eq. 'ESP') then
-          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), ESPSetServices, &!ESPSetVM, &
+       if(trim(compLabels(i)) .eq. 'ESP') then
+          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), ESPSetServices, ESPSetVM, &
                PetList=petlist, comp=child, info=info, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           found_comp = .true.

@@ -28,6 +28,7 @@ contains
   subroutine SetServices(ensemble_driver, rc)
 
     use NUOPC        , only : NUOPC_CompDerive, NUOPC_CompSpecialize
+    use NUOPC        , only : NUOPC_CompAttributeSet
     use NUOPC_Driver , only : driver_routine_SS             => SetServices
     use NUOPC_Driver , only : ensemble_label_SetModelServices => label_SetModelServices
     use ESMF         , only : ESMF_GridComp, ESMF_GridCompSet
@@ -64,7 +65,14 @@ contains
     call ESMF_GridCompSet(ensemble_driver, config=config, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
+    call NUOPC_CompAttributeSet(ensemble_driver, name="Verbosity", &
+         value="high", rc=rc)
+
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    if (dbug_flag > 5) then
+      call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO, rc=dbrc)
+    endif
 
   end subroutine SetServices
 
@@ -134,7 +142,7 @@ contains
     call ReadAttributes(ensemble_driver, config, "CLOCK_attributes::", rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    call NUOPC_CompAttributeGet(ensemble_driver, 'calendar', calendar, rc=rc) 
+    call NUOPC_CompAttributeGet(ensemble_driver, 'calendar', calendar, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     if (calendar == 'NO_LEAP') then
        call ESMF_CalendarSetDefault(ESMF_CALKIND_NOLEAP, rc=rc)
@@ -247,7 +255,7 @@ contains
           call ReadAttributes(driver, config, "DRV_modelio"//trim(inst_suffix)//"::", rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-          ! Set the driver log to the driver task 0 
+          ! Set the driver log to the driver task 0
           if (mod(localPet, ntasks_per_member) == 0) then
              call NUOPC_CompAttributeGet(driver, name="diro", value=diro, rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
