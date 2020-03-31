@@ -60,7 +60,6 @@ module MED
   character(len=*), parameter :: grid_arbopt = "grid_reg"   ! grid_reg or grid_arb
   character(len=*), parameter :: u_FILE_u  = &
        __FILE__
-  !logical :: profile_memory = .true.
   logical :: profile_memory = .false.
 
 !-----------------------------------------------------------------------------
