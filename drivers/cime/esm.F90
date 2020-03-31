@@ -1026,7 +1026,6 @@ contains
              endif
           endif
        enddo
-       print *, __FILE__,__LINE__,trim(namestr),petlist(:)
 
 
        comps(i+1) = i+1
