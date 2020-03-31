@@ -42,8 +42,8 @@ module med_phases_history_mod
   public :: med_phases_history_alarm_init
   public :: med_phases_history_write
 
-  ! type(ESMF_Alarm)        :: alarm_hist_inst
-  ! type(ESMF_Alarm)        :: alarm_hist_avg
+  ! type(ESMF_Alarm) :: alarm_hist_inst
+  ! type(ESMF_Alarm) :: alarm_hist_avg
 
   character(*), parameter :: u_FILE_u  = &
        __FILE__
@@ -301,30 +301,31 @@ contains
     !    alarmisOn = .false.
     ! endif
 
-    !DEBUG
     call ESMF_ClockGetAlarm(mclock, alarmname='alarm_history_inst', alarm=alarm, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_AlarmGet(alarm, ringInterval=ringInterval, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_TimeIntervalGet(ringInterval, s=ringinterval_length, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_ClockGet(mclock, currtime=currtime, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_TimeGet(currtime,yy=yr, mm=mon, dd=day, s=sec, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    write(currtimestr,'(i4.4,a,i2.2,a,i2.2,a,i5.5)') yr,'-',mon,'-',day,'-',sec
-    call ESMF_ClockGetNextTime(mclock, nextTime=nexttime, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_TimeGet(nexttime, yy=yr, mm=mon, dd=day, s=sec, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    write(nexttimestr,'(i4.4,a,i2.2,a,i2.2,a,i5.5)') yr,'-',mon,'-',day,'-',sec
-    if (mastertask .and. dbug_flag>2) then
-       write(logunit,*)
-       write(logunit,*) trim(subname)//": history alarm ringinterval = ", ringInterval_length
-       write(logunit,' (a)') trim(subname)//": currtime = "//trim(currtimestr)//" nexttime = "//trim(nexttimestr)
-       write(logunit,*) trim(subname) //' history alarm is ringing = ', ESMF_AlarmIsRinging(alarm)
+
+    if (dbug_flag > 2) then
+       call ESMF_AlarmGet(alarm, ringInterval=ringInterval, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_TimeIntervalGet(ringInterval, s=ringinterval_length, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_ClockGet(mclock, currtime=currtime, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_TimeGet(currtime,yy=yr, mm=mon, dd=day, s=sec, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       write(currtimestr,'(i4.4,a,i2.2,a,i2.2,a,i5.5)') yr,'-',mon,'-',day,'-',sec
+       call ESMF_ClockGetNextTime(mclock, nextTime=nexttime, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_TimeGet(nexttime, yy=yr, mm=mon, dd=day, s=sec, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       if (mastertask) then
+          write(nexttimestr,'(i4.4,a,i2.2,a,i2.2,a,i5.5)') yr,'-',mon,'-',day,'-',sec
+          write(logunit,*)
+          write(logunit,*) trim(subname)//": history alarm ringinterval = ", ringInterval_length
+          write(logunit,' (a)') trim(subname)//": currtime = "//trim(currtimestr)//" nexttime = "//trim(nexttimestr)
+          write(logunit,*) trim(subname) //' history alarm is ringing = ', ESMF_AlarmIsRinging(alarm)
+       end if
     end if
-    !DEBUG
 
     if (ESMF_AlarmIsRinging(alarm, rc=rc)) then
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
