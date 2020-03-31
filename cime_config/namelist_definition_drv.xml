@@ -303,6 +303,30 @@
     </values>
   </entry>
 
+ <entry id="drv_restart_pointer">
+    <type>char</type>
+    <category>expdef</category>
+    <group>DRIVER_attributes</group>
+    <desc>
+      Driver restart pointer file to initialize time info
+    </desc>
+    <values>
+      <value>rpointer.cpl</value>
+    </values>
+  </entry>
+
+  <entry id="drv_restart_file">
+    <type>char</type>
+    <category>expdef</category>
+    <group>DRIVER_attributes</group>
+    <desc>
+      Full archive path to restart file for driver to initialize time info
+    </desc>
+    <values>
+      <value>str_undefined</value>
+    </values>
+  </entry>
+
   <!-- =========================================== -->
   <!-- DRIVER saturation vapor attributes          -->
   <!-- =========================================== -->
@@ -533,6 +557,16 @@
     <values>
       <value>$COMP_WAV</value>
     </values>
+  </entry>
+
+  <entry id="mediator_present">
+    <type>logical</type>
+    <category>nuopc</category>
+    <group>ALLCOMP_attributes</group>
+    <values>
+      <value>true</value>
+    </values>
+    <desc>if true, mediator is present in run </desc>
   </entry>
 
   <entry id="model_version">
