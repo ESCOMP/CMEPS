@@ -185,7 +185,7 @@ contains
 
           if (mastertask) then
              write(logunit,*) ' NOTE: the current compset has no mediator - which provides the clock restart information'
-             write(logunit,*) '   In this case the restarts are handled solely by the component being used and' 
+             write(logunit,*) '   In this case the restarts are handled solely by the component being used and'
              write(logunit,*) '   and the driver clock will always be starting from the initial date on restart'
           end if
           curr_ymd = start_ymd
@@ -631,7 +631,7 @@ contains
 
    use netcdf , only : nf90_open, nf90_nowrite, nf90_noerr
    use netcdf , only : nf90_inq_varid, nf90_get_var, nf90_close
-   use ESMF   , only : ESMF_LogWrite, ESMF_LOGMSG_INFO
+   use ESMF   , only : ESMF_LogWrite, ESMF_LOGMSG_ERROR, ESMF_LOGMSG_INFO
 
    ! input/output variables
    character(len=*), intent(in) :: restart_file
@@ -646,71 +646,70 @@ contains
    character(CL)           :: tmpstr              ! temporary
    character(len=*), parameter :: subname = "(esm_time_read_restart)"
    !----------------------------------------------------------------
-
+   rc = ESMF_SUCCESS
    ! use netcdf here since it's serial
    status = nf90_open(restart_file, NF90_NOWRITE, ncid)
    if (status /= nf90_NoErr) then
       print *,__FILE__,__LINE__,trim(restart_file)
-      call ESMF_LogWrite(trim(subname)//' ERROR: nf90_open', ESMF_LOGMSG_INFO)
+      call ESMF_LogWrite(trim(subname)//' ERROR: nf90_open', ESMF_LOGMSG_ERROR)
       rc = ESMF_FAILURE
       return
    endif
 
    status = nf90_inq_varid(ncid, 'start_ymd', varid)
    if (status /= nf90_NoErr) then
-      call ESMF_LogWrite(trim(subname)//' ERROR: nf90_inq_varid start_ymd', ESMF_LOGMSG_INFO)
+      call ESMF_LogWrite(trim(subname)//' ERROR: nf90_inq_varid start_ymd', ESMF_LOGMSG_ERROR)
       rc = ESMF_FAILURE
       return
    end if
    status = nf90_get_var(ncid, varid, start_ymd)
    if (status /= nf90_NoErr) then
-      call ESMF_LogWrite(trim(subname)//' ERROR: nf90_get_var start_ymd', ESMF_LOGMSG_INFO)
+      call ESMF_LogWrite(trim(subname)//' ERROR: nf90_get_var start_ymd', ESMF_LOGMSG_ERROR)
       rc = ESMF_FAILURE
       return
    end if
 
    status = nf90_inq_varid(ncid, 'start_tod', varid)
    if (status /= nf90_NoErr) then
-      call ESMF_LogWrite(trim(subname)//' ERROR: nf90_inq_varid start_tod', ESMF_LOGMSG_INFO)
+      call ESMF_LogWrite(trim(subname)//' ERROR: nf90_inq_varid start_tod', ESMF_LOGMSG_ERROR)
       rc = ESMF_FAILURE
       return
    end if
    status = nf90_get_var(ncid, varid, start_tod)
    if (status /= nf90_NoErr) then
-      call ESMF_LogWrite(trim(subname)//' ERROR: nf90_get_var start_tod', ESMF_LOGMSG_INFO)
+      call ESMF_LogWrite(trim(subname)//' ERROR: nf90_get_var start_tod', ESMF_LOGMSG_ERROR)
       rc = ESMF_FAILURE
       return
    end if
-
    status = nf90_inq_varid(ncid, 'curr_ymd', varid)
    if (status /= nf90_NoErr) then
-      call ESMF_LogWrite(trim(subname)//' ERROR: nf90_inq_varid curr_ymd', ESMF_LOGMSG_INFO)
+      call ESMF_LogWrite(trim(subname)//' ERROR: nf90_inq_varid curr_ymd', ESMF_LOGMSG_ERROR)
       rc = ESMF_FAILURE
       return
    end if
    status = nf90_get_var(ncid, varid, curr_ymd)
    if (status /= nf90_NoErr) then
-      call ESMF_LogWrite(trim(subname)//' ERROR: nf90_get_var curr_ymd', ESMF_LOGMSG_INFO)
+      call ESMF_LogWrite(trim(subname)//' ERROR: nf90_get_var curr_ymd', ESMF_LOGMSG_ERROR)
       rc = ESMF_FAILURE
       return
    end if
 
    status = nf90_inq_varid(ncid, 'curr_tod', varid)
    if (status /= nf90_NoErr) then
-      call ESMF_LogWrite(trim(subname)//' ERROR: nf90_inq_varid curr_tod', ESMF_LOGMSG_INFO)
+      call ESMF_LogWrite(trim(subname)//' ERROR: nf90_inq_varid curr_tod', ESMF_LOGMSG_ERROR)
       rc = ESMF_FAILURE
       return
    end if
    status = nf90_get_var(ncid, varid, curr_tod)
    if (status /= nf90_NoErr) then
-      call ESMF_LogWrite(trim(subname)//' ERROR: nf90_get_var curr_tod', ESMF_LOGMSG_INFO)
+      call ESMF_LogWrite(trim(subname)//' ERROR: nf90_get_var curr_tod', ESMF_LOGMSG_ERROR)
       rc = ESMF_FAILURE
       return
    end if
 
    status = nf90_close(ncid)
    if (status /= nf90_NoErr) then
-      call ESMF_LogWrite(trim(subname)//' ERROR: nf90_close', ESMF_LOGMSG_INFO)
+      call ESMF_LogWrite(trim(subname)//' ERROR: nf90_close', ESMF_LOGMSG_ERROR)
       rc = ESMF_FAILURE
       return
    end if
