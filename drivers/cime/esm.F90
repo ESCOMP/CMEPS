@@ -12,7 +12,7 @@ module ESM
   use shr_file_mod , only : shr_file_setLogunit
   use esm_utils_mod, only : logunit, mastertask, dbug_flag, chkerr
   use perf_mod     , only : t_initf
-
+  use ESMF         , only : ESMF_VMLogMemInfo
   implicit none
   private
 
@@ -1000,6 +1000,8 @@ contains
        endif
 
     enddo
+    call ESMF_VMLogMemInfo(trim(subname)//' Before Nuopc_DriverAddComp')
+
     do i=1,componentCount
        ! info used to set component threading
        info = ESMF_InfoCreate(rc=rc)
@@ -1015,8 +1017,8 @@ contains
 
        namestr = toLower(compLabels(i))
        if (namestr == 'med') namestr = 'cpl'
-       do ntask = rootpe(i), rootpe(i) + maxthreads*(ntasks(i)*stride(i))-1, stride(i)
-          if (modulo(ntask-rootpe(i), maxthreads) .lt. nthrds(i)) then
+       do ntask = rootpe(i), rootpe(i) + nthrds(i)*(ntasks(i)*stride(i))-1, stride(i)
+!          if (modulo(ntask-rootpe(i), nthrds(i)) .lt. nthrds(i)) then
              petlist(cnt) = ntask
              cnt = cnt + 1
              if (ntask > PetCount) then
@@ -1024,19 +1026,19 @@ contains
                 call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
                 return
              endif
-          endif
+!          endif
        enddo
-
 
        comps(i+1) = i+1
 
        found_comp = .false.
        call ESMF_AttributeSet(info, name="maxPeCountPerPet", value=nthrds(i), rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
+       print *,__FILE__,__LINE__,trim(complabels(i)),petlist
 #ifdef MED_PRESENT
        if (trim(compLabels(i)) == 'MED') then
           med_id = i + 1
-          if (nthrds(i) > 1) then
+          if (maxthreads > 1) then
              call NUOPC_DriverAddComp(driver, trim(compLabels(i)), MEDSetServices, MEDSetVM, &
                   petList=petlist, comp=child, info=info, rc=rc)
           else
@@ -1049,7 +1051,7 @@ contains
 #endif
 #ifdef ATM_PRESENT
        if(trim(compLabels(i)) .eq. 'ATM') then
-          if (nthrds(i) > 1) then
+          if (maxthreads > 1) then
              call NUOPC_DriverAddComp(driver, trim(compLabels(i)), ATMSetServices, ATMSetVM, &
                   petList=petlist, comp=child, info=info, rc=rc)
           else
@@ -1062,7 +1064,7 @@ contains
 #endif
 #ifdef LND_PRESENT
        if(trim(compLabels(i)) .eq. 'LND') then
-          if (nthrds(i) > 1) then
+          if (maxthreads > 1) then
              call NUOPC_DriverAddComp(driver, trim(compLabels(i)), LNDSetServices, LNDSetVM, &
                   PetList=petlist, comp=child, info=info, rc=rc)
           else
@@ -1075,7 +1077,7 @@ contains
 #endif
 #ifdef OCN_PRESENT
        if(trim(compLabels(i)) .eq. 'OCN') then
-          if (nthrds(i) > 1) then
+          if (maxthreads > 1) then
              call NUOPC_DriverAddComp(driver, trim(compLabels(i)), OCNSetServices, OCNSetVM, &
                   PetList=petlist, comp=child, info=info, rc=rc)
           else
@@ -1088,7 +1090,7 @@ contains
 #endif
 #ifdef ICE_PRESENT
        if(trim(compLabels(i)) .eq. 'ICE') then
-          if (nthrds(i) > 1) then
+          if (maxthreads > 1) then
              call NUOPC_DriverAddComp(driver, trim(compLabels(i)), ICESetServices, ICESetVM, &
                   PetList=petlist, comp=child, info=info, rc=rc)
           else
@@ -1101,7 +1103,7 @@ contains
 #endif
 #ifdef GLC_PRESENT
        if(trim(compLabels(i)) .eq. 'GLC') then
-          if (nthrds(i) > 1) then
+          if (maxthreads > 1) then
              call NUOPC_DriverAddComp(driver, trim(compLabels(i)), GLCSetServices, GLCSetVM, &
                   PetList=petlist, comp=child, info=info, rc=rc)
           else
@@ -1114,7 +1116,7 @@ contains
 #endif
 #ifdef ROF_PRESENT
        if(trim(compLabels(i)) .eq. 'ROF') then
-          if (nthrds(i) > 1) then
+          if (maxthreads > 1) then
              call NUOPC_DriverAddComp(driver, trim(compLabels(i)), ROFSetServices, ROFSetVM, &
                   PetList=petlist, comp=child, info=info, rc=rc)
           else
@@ -1127,7 +1129,7 @@ contains
 #endif
 #ifdef WAV_PRESENT
        if(trim(compLabels(i)) .eq. 'WAV') then
-          if (nthrds(i) > 1) then
+          if (maxthreads > 1) then
              call NUOPC_DriverAddComp(driver, trim(compLabels(i)), WAVSetServices, WAVSetVM, &
                   PetList=petlist, comp=child, info=info, rc=rc)
           else
@@ -1140,7 +1142,7 @@ contains
 #endif
 #ifdef ESP_PRESENT
        if(trim(compLabels(i)) .eq. 'ESP') then
-          if (nthrds(i) > 1) then
+          if (maxthreads > 1) then
              call NUOPC_DriverAddComp(driver, trim(compLabels(i)), ESPSetServices, ESPSetVM, &
                   PetList=petlist, comp=child, info=info, rc=rc)
           else
@@ -1179,6 +1181,7 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     enddo
+    call ESMF_VMLogMemInfo(trim(subname)//' After Nuopc_DriverAddComp')
 
     ! Initialize MCT (this is needed for data models and cice prescribed capability)
     call mct_world_init(componentCount+1, GLOBAL_COMM, comms, comps)

@@ -413,7 +413,7 @@ contains
     mastertask = .false.
     if (localPet == 0) mastertask=.true.
 
-    ! Determine mediator logunit 
+    ! Determine mediator logunit
     if (mastertask) then
        call NUOPC_CompAttributeGet(gcomp, name="diro", value=diro, isPresent=isPresent, isSet=isSet, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -572,7 +572,7 @@ contains
                     'rof_present','wav_present','glc_present','med_present'/), rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    med_present = "false"
+    med_present = "true"
     atm_present = "false"
     lnd_present = "false"
     ocn_present = "false"
