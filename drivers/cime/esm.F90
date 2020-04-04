@@ -22,8 +22,6 @@ module ESM
   private :: SetModelServices
   private :: SetRunSequence
   private :: ModifyCplLists
-  private :: IsRestart
-  private :: InitRestart
   private :: InitAttributes
   private :: CheckAttributes
   private :: AddAttributes
@@ -226,13 +224,6 @@ contains
 
     call t_initf('drv_in', LogPrint=.true., mpicom=global_comm, mastertask=mastertask, MaxThreads=maxthreads)
 
-    !-------------------------------------------
-    ! Perform restarts if appropriate
-    !-------------------------------------------
-
-    call InitRestart(driver, rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
     call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
 
   end subroutine SetModelServices
@@ -406,97 +397,6 @@ contains
     call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
 
   end subroutine ModifyCplLists
-
-  !================================================================================
-
-  function IsRestart(gcomp, rc)
-
-    use ESMF         , only : ESMF_GridComp, ESMF_SUCCESS
-    use ESMF         , only : ESMF_LogSetError, ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_RC_NOT_VALID
-    use NUOPC        , only : NUOPC_CompAttributeGet
-
-    ! input/output variables
-    logical                                :: IsRestart
-    type(ESMF_GridComp)    , intent(inout) :: gcomp
-    integer                , intent(out)   :: rc
-
-    ! locals
-    character(len=CL)            :: start_type     ! Type of startup
-    character(len=CL)            :: msgstr
-    character(len=*) , parameter :: start_type_start = "startup"
-    character(len=*) , parameter :: start_type_cont  = "continue"
-    character(len=*) , parameter :: start_type_brnch = "branch"
-    character(len=*) , parameter  :: subname = "(esm.F90:IsRestart)"
-    !---------------------------------------
-
-    rc = ESMF_SUCCESS
-
-    ! First Determine if restart is read
-    call NUOPC_CompAttributeGet(gcomp, name='start_type', value=start_type, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    if ((trim(start_type) /= start_type_start) .and.  &
-        (trim(start_type) /= start_type_cont ) .and.  &
-        (trim(start_type) /= start_type_brnch)) then
-       write (msgstr, *) subname//': start_type invalid = '//trim(start_type)
-       call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
-       return
-    end if
-
-    ! Note - this is currently hard-wired to CIME start/continue types in terms of gcomp
-    IsRestart = .false.
-    if (trim(start_type) == trim(start_type_cont) .or. trim(start_type) == trim(start_type_brnch)) then
-       IsRestart = .true.
-    end if
-
-  end function IsRestart
-
-  !================================================================================
-
-  subroutine InitRestart(driver, rc)
-
-    !-----------------------------------------------------
-    ! Determine if will restart and read pointer file if appropriate
-    !-----------------------------------------------------
-
-    use ESMF  , only : ESMF_GridComp, ESMF_VM, ESMF_GridCompGet, ESMF_VMGet, ESMF_SUCCESS
-    use ESMF  , only : ESMF_LogSetError, ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_RC_NOT_VALID
-    use NUOPC , only : NUOPC_CompAttributeGet, NUOPC_CompAttributeSet, NUOPC_CompAttributeAdd
-
-    ! input/output variables
-    type(ESMF_GridComp)    , intent(inout) :: driver
-    integer                , intent(out)   :: rc
-
-    ! local variables
-    logical           :: read_restart   ! read the restart file, based on start_type
-    character(len=CL) :: cvalue         ! temporary
-    character(len=CL) :: rest_case_name ! Short case identification
-    character(len=*) , parameter :: subname = "(esm.F90:InitRestart)"
-    !-------------------------------------------
-
-    rc = ESMF_SUCCESS
-    call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO, rc=rc)
-
-    !-----------------------------------------------------
-    ! Carry out restart if appropriate
-    !-----------------------------------------------------
-
-    read_restart = IsRestart(driver, rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    ! Add rest_case_name and read_restart to driver attributes
-    call NUOPC_CompAttributeAdd(driver, attrList=(/'rest_case_name','read_restart  '/), rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    rest_case_name = ' '
-    call NUOPC_CompAttributeSet(driver, name='rest_case_name', value=rest_case_name, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    write(cvalue,*) read_restart
-    call NUOPC_CompAttributeSet(driver, name='read_restart', value=trim(cvalue), rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-  end subroutine InitRestart
 
   !================================================================================
 
@@ -709,7 +609,6 @@ contains
     !----- local -----
     character(len=CL) :: cvalue         ! temporary
     character(len=CL) :: start_type     ! Type of startup
-    character(len=CL) :: rest_case_name ! Short case identification
     character(len=CS) :: logFilePostFix ! postfix for output log files
     character(len=CL) :: outPathRoot    ! root for output log files
     character(len=CS) :: cime_model
@@ -743,15 +642,6 @@ contains
     if ( index(outPathRoot, "/", back=.true.) /= len_trim(outPathRoot) ) then
        call shr_sys_abort( subname//': outPathRoot must end with a slash' )
     end if
-
-    ! --- Case name and restart case name ------
-    ! call NUOPC_CompAttributeGet(driver, name="rest_case_name", value=rest_case_name, rc=rc)
-    ! if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    ! if ((trim(start_type) == start_type_cont ) .and. (trim(case_name)  /= trim(rest_case_name))) then
-    !    write(logunit,'(10a)') subname,' case_name =',trim(case_name),':',' rest_case_name =',trim(rest_case_name),':'
-    !    call shr_sys_abort(subname//': invalid continue restart case name = '//trim(rest_case_name))
-    ! endif
 
   end subroutine CheckAttributes
 

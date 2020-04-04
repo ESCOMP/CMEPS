@@ -2112,7 +2112,7 @@ contains
              call NUOPC_CompAttributeGet(gcomp, name="glc_cpl_dt", value=cvalue, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
              read(cvalue,*) glc_cpl_dt
-             call alarmInit(mediatorclock, glc_avg_alarm, 'nseconds', opt_n=1, alarmname='alarm_glc_avg', rc=rc)
+             call alarmInit(mediatorclock, glc_avg_alarm, 'nseconds', opt_n=glc_cpl_dt, alarmname='alarm_glc_avg', rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           else
             call ESMF_LogWrite(trim(subname)// ": ERROR glc_avg_period = "//trim(glc_avg_period)//" not supported", &

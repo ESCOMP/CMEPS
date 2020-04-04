@@ -315,18 +315,6 @@
     </values>
   </entry>
 
-  <entry id="drv_restart_file">
-    <type>char</type>
-    <category>expdef</category>
-    <group>DRIVER_attributes</group>
-    <desc>
-      Full archive path to restart file for driver to initialize time info
-    </desc>
-    <values>
-      <value>str_undefined</value>
-    </values>
-  </entry>
-
   <!-- =========================================== -->
   <!-- DRIVER saturation vapor attributes          -->
   <!-- =========================================== -->
@@ -1172,29 +1160,6 @@
     </desc>
     <values>
       <value>0</value>
-    </values>
-  </entry>
- <entry id="restart_pfile">
-    <type>char</type>
-    <category>expdef</category>
-    <group>MED_attributes</group>
-    <desc>
-      Mediator restart pointer file.
-    </desc>
-    <values>
-      <value>rpointer.cpl</value>
-    </values>
-  </entry>
-
-  <entry id="restart_file">
-    <type>char</type>
-    <category>expdef</category>
-    <group>MED_attributes</group>
-    <desc>
-      Full archive path to restart file for mediator
-    </desc>
-    <values>
-      <value>str_undefined</value>
     </values>
   </entry>
 

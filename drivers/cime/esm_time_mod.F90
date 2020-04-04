@@ -52,11 +52,12 @@ module esm_time_mod
 contains
 !===============================================================================
 
-  subroutine esm_time_clockInit(ensemble_driver, esmdriver, logunit, rc)
+  subroutine esm_time_clockInit(ensemble_driver, esmdriver, logunit, mastertask, rc)
 
     ! input/output variables
     type(ESMF_GridComp)  :: ensemble_driver, esmdriver
     integer, intent(in)  :: logunit
+    logical, intent(in)  :: mastertask
     integer, intent(out) :: rc
 
     ! local variables
@@ -97,7 +98,6 @@ contains
     integer                 :: dtime_drv           ! time-step to use
     integer                 :: yr, mon, day, sec   ! Year, month, day, secs as integers
     integer                 :: localPet            ! local pet in esm domain
-    logical                 :: mastertask          ! true if mastertask in esm domain
     integer                 :: unitn               ! unit number
     integer                 :: ierr                ! Return code
     character(CL)           :: tmpstr              ! temporary
@@ -111,19 +111,10 @@ contains
 
     call ESMF_GridCompGet(esmdriver, vm=vm, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    ! We may want to get the ensemble_driver vm here instead so that
-    ! files are read on global task 0 only instead of each esm member task 0
-    call ESMF_VMGet(vm, localPet=localPet, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    mastertask = localPet == 0
 
     !---------------------------------------------------------------------------
     ! Determine start time, reference time and current time
     !---------------------------------------------------------------------------
-
-    curr_ymd = 0
-    curr_tod = 0
 
     call NUOPC_CompAttributeGet(esmdriver, name="start_ymd", value=cvalue, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -139,16 +130,19 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     read(cvalue,*) ref_tod
 
+    curr_ymd = 0
+    curr_tod = 0
+
     call NUOPC_CompAttributeGet(esmdriver, name='read_restart', value=cvalue, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     read(cvalue,*) read_restart
-
     if (read_restart) then
-       call NUOPC_CompAttributeGet(esmdriver, name='drv_restart_file', value=restart_file, rc=rc)
+
+       call NUOPC_CompAttributeGet(esmdriver, name='drv_restart_pointer', value=restart_file, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-       !--- read rpointer if restart_file is set to str_undefined ---
-       if (trim(restart_file) == 'str_undefined') then
+       if (trim(restart_file) /= 'none') then
+
           call NUOPC_CompAttributeGet(esmdriver, name="inst_suffix", isPresent=isPresent, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           if(isPresent) then
@@ -157,8 +151,7 @@ contains
           else
              inst_suffix = ""
           endif
-          call NUOPC_CompAttributeGet(esmdriver, name='drv_restart_pointer', value=restart_file, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
           restart_pfile = trim(restart_file)//inst_suffix
           if (mastertask) then
              call ESMF_LogWrite(trim(subname)//" read rpointer file = "//trim(restart_pfile), &
@@ -180,28 +173,32 @@ contains
              close(unitn)
              call ESMF_LogWrite(trim(subname)//" read driver restart from file = "//trim(restart_file), &
                   ESMF_LOGMSG_INFO)
+
+             call esm_time_read_restart(restart_file, &
+                  start_ymd, start_tod, ref_ymd, ref_tod, curr_ymd, curr_tod, rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
           endif
-       endif
-       if (mastertask) then
-          call esm_time_read_restart(restart_file, &
-               start_ymd, start_tod, ref_ymd, ref_tod, curr_ymd, curr_tod, rc)
+
+          tmp(1) = start_ymd ; tmp(2) = start_tod
+          tmp(3) = ref_ymd   ; tmp(4) = ref_tod
+          tmp(5) = curr_ymd  ; tmp(6) = curr_tod
+          call ESMF_VMBroadcast(vm, tmp, 6, 0, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       endif
-       tmp(1) = start_ymd
-       tmp(2) = start_tod
-       tmp(3) = ref_ymd
-       tmp(4) = ref_tod
-       tmp(5) = curr_ymd
-       tmp(6) = curr_tod
-       call ESMF_VMBroadcast(vm, tmp, 6, 0, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       start_ymd = tmp(1)
-       start_tod = tmp(2)
-       ref_ymd = tmp(3)
-       ref_tod = tmp(4)
-       curr_ymd = tmp(5)
-       curr_tod = tmp(6)
-    end if
+          start_ymd = tmp(1) ; start_tod = tmp(2)
+          ref_ymd   = tmp(3) ; ref_tod   = tmp(4)
+          curr_ymd  = tmp(5) ; curr_tod  = tmp(6)
+
+       else
+
+          if (mastertask) then
+             write(logunit,*) ' NOTE: the current compset has no mediator - which provides the clock restart information'
+             write(logunit,*) '   In this case the restarts are handled solely by the component being used and' 
+             write(logunit,*) '   and the driver clock will always be starting from the initial date on restart'
+          end if
+
+       end if
+
+    end if ! end if read_restart
 
     if ( ref_ymd == 0 ) then
        ref_ymd = start_ymd

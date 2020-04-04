@@ -7,10 +7,10 @@ module Ensemble_driver
   ! esm driver and its components layed out concurently across mpi tasks.
   !-----------------------------------------------------------------------------
 
-  use shr_kind_mod  , only : cl=>shr_kind_cl
+  use shr_kind_mod  , only : cl=>shr_kind_cl, cs=>shr_kind_cs
   use shr_log_mod   , only : shrlogunit=> shr_log_unit
   use shr_file_mod  , only : shr_file_setLogUnit
-  use esm_utils_mod , only : mastertask, logunit, dbug_flag, chkerr
+  use esm_utils_mod , only : mastertask, logunit, chkerr
 
   implicit none
   private
@@ -30,23 +30,20 @@ contains
     use NUOPC        , only : NUOPC_CompDerive, NUOPC_CompSpecialize
     use NUOPC_Driver , only : driver_routine_SS             => SetServices
     use NUOPC_Driver , only : ensemble_label_SetModelServices => label_SetModelServices
-    use ESMF         , only : ESMF_GridComp, ESMF_Config, ESMF_GridCompSet, ESMF_ConfigLoadFile
-    use ESMF         , only : ESMF_ConfigCreate
+    use ESMF         , only : ESMF_GridComp, ESMF_GridCompSet
+    use ESMF         , only : ESMF_Config, ESMF_ConfigCreate, ESMF_ConfigLoadFile
     use ESMF         , only : ESMF_SUCCESS, ESMF_LogWrite, ESMF_LOGMSG_INFO
 
     type(ESMF_GridComp)  :: ensemble_driver
     integer, intent(out) :: rc
 
     ! local variables
-    type(ESMF_Config)    :: config
-    integer              :: dbrc
+    type(ESMF_Config) :: config
     character(len=*), parameter :: subname = "(ensemble_driver.F90:SetServices)"
     !---------------------------------------
 
     rc = ESMF_SUCCESS
-    if (dbug_flag > 5) then
-      call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO, rc=dbrc)
-    endif
+    call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
 
     ! NUOPC_Driver registers the generic methods
     call NUOPC_CompDerive(ensemble_driver, driver_routine_SS, rc=rc)
@@ -67,9 +64,7 @@ contains
     call ESMF_GridCompSet(ensemble_driver, config=config, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    if (dbug_flag > 5) then
-      call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO, rc=dbrc)
-    endif
+    call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
 
   end subroutine SetServices
 
@@ -87,7 +82,6 @@ contains
     use NUOPC         , only : NUOPC_CompAttributeGet, NUOPC_CompAttributeSet, NUOPC_CompAttributeAdd
     use NUOPC_Driver  , only : NUOPC_DriverAddComp
     use esm           , only : ESMSetServices => SetServices, ReadAttributes
-   !use pio_interface , only : PIOSetServices => SetServices
     use esm_time_mod  , only : esm_time_clockInit
 
     ! input/output variables
@@ -108,7 +102,7 @@ contains
     character(len=512)     :: logfile
     integer                :: global_comm
     logical                :: read_restart
-    integer                :: dbrc
+    character(len=CS)      :: read_restart_string
     integer                :: inst
     integer                :: number_of_members
     integer                :: ntasks_per_member
@@ -125,9 +119,7 @@ contains
     !-------------------------------------------
 
     rc = ESMF_SUCCESS
-    if (dbug_flag > 5) then
-       call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO, rc=dbrc)
-    endif
+    call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
 
     call ESMF_GridCompGet(ensemble_driver, config=config, vm=vm, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -159,9 +151,6 @@ contains
        return  ! bail out
     end if
 
-    call ReadAttributes(ensemble_driver, config, "PELAYOUT_attributes::", rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
     ! Check valid values of start type
     call NUOPC_CompAttributeGet(ensemble_driver, name="start_type", value=start_type, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -174,19 +163,34 @@ contains
        return
     end if
 
-    call InitRestart(ensemble_driver, read_restart, rc)
+    if (trim(start_type) == trim(start_type_cont) .or. trim(start_type) == trim(start_type_brnch)) then
+       read_restart = .true.
+    else
+       read_restart = .false.
+    endif
+    write(read_restart_string,*) read_restart
+
+    ! Add read_restart to ensemble_driver attributes
+    call NUOPC_CompAttributeAdd(ensemble_driver, attrList=(/'read_restart'/), rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompAttributeGet(ensemble_driver, name="ninst", value=cvalue, rc=rc)
+    call NUOPC_CompAttributeSet(ensemble_driver, name='read_restart', value=trim(read_restart_string), rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue, *) number_of_members
 
     !-------------------------------------------
     ! Extract the config object from the ensemble_driver
     !-------------------------------------------
+
+    call ReadAttributes(ensemble_driver, config, "PELAYOUT_attributes::", rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    call NUOPC_CompAttributeGet(ensemble_driver, name="ninst", value=cvalue, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    read(cvalue,*) number_of_members
+
     ntasks_per_member = PetCount/number_of_members
     if(ntasks_per_member*number_of_members .ne. PetCount) then
-       write (msgstr,'(a,i5,a,i3,a,i3,a)') "PetCount (",PetCount,&
-            ") must be evenly divisable by number of members (",number_of_members,")"
+       write (msgstr,'(a,i5,a,i3,a,i3,a)') &
+            "PetCount (",PetCount,") must be evenly divisable by number of members (",number_of_members,")"
        call ESMF_LogSetError(ESMF_RC_ARG_BAD, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
        return
     endif
@@ -218,10 +222,9 @@ contains
              inst_suffix = ''
           endif
 
-          write(cvalue,*) read_restart
           call NUOPC_CompAttributeAdd(driver, attrList=(/'read_restart'/), rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call NUOPC_CompAttributeSet(driver, name='read_restart', value=trim(cvalue), rc=rc)
+          call NUOPC_CompAttributeSet(driver, name='read_restart', value=trim(read_restart_string), rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
 
           call ReadAttributes(driver, config, "CLOCK_attributes::", rc=rc)
@@ -247,89 +250,16 @@ contains
           endif
           call shr_file_setLogUnit (logunit)
 
-          call esm_time_clockInit(ensemble_driver, driver, logunit, rc)
+          call esm_time_clockInit(ensemble_driver, driver, logunit, mastertask, rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        endif
     enddo
 
-
     deallocate(petList)
+
+    call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
 
   end subroutine SetModelServices
 
-  !================================================================================
-
-  subroutine InitRestart(ensemble_driver, read_restart, rc)
-
-    !-----------------------------------------------------
-    ! Determine if will restart and read pointer file
-    ! if appropriate
-    !-----------------------------------------------------
-
-    use ESMF  , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_SUCCESS
-    use ESMF  , only : ESMF_LogSetError, ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_RC_NOT_VALID
-    use NUOPC , only : NUOPC_CompAttributeGet, NUOPC_CompAttributeSet, NUOPC_CompAttributeAdd
-
-    ! input/output variables
-    type(ESMF_GridComp)    , intent(inout) :: ensemble_driver
-    logical                , intent(out)   :: read_restart   ! read the restart file, based on start_type
-    integer                , intent(out)   :: rc
-
-    ! local variables
-    character(len=CL)            :: cvalue         ! temporary
-    integer                      :: ierr           ! error return
-    character(len=CL)            :: rest_case_name ! Short case identification
-    character(len=CL)            :: start_type     ! Type of startup
-    character(len=CL)            :: msgstr
-    character(len=*) , parameter :: start_type_start = "startup"
-    character(len=*) , parameter :: start_type_cont  = "continue"
-    character(len=*) , parameter :: start_type_brnch = "branch"
-    character(len=*) , parameter :: sp_str = 'str_undefined'
-    character(len=*) , parameter :: subname = "(esm.F90:InitRestart)"
-    !-------------------------------------------
-
-    rc = ESMF_SUCCESS
-    if (dbug_flag > 5) then
-       call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
-    endif
-
-    !-----------------------------------------------------
-    ! Carry out restart if appropriate
-    !-----------------------------------------------------
-
-    ! First Determine if restart is read
-    call NUOPC_CompAttributeGet(ensemble_driver, name='start_type', value=start_type, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    ! Check valid values of start type
-
-    if ((trim(start_type) /= start_type_start) .and.  &
-        (trim(start_type) /= start_type_cont ) .and.  &
-        (trim(start_type) /= start_type_brnch)) then
-       write (msgstr, *) subname//': start_type invalid = '//trim(start_type)
-       call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
-       return
-    end if
-
-    !TODO: this is hard-wired to CIME start/continue types in terms of gcomp
-    read_restart = .false.
-    if (trim(start_type) == trim(start_type_cont) .or. trim(start_type) == trim(start_type_brnch)) then
-       read_restart = .true.
-    endif
-
-    ! Add rest_case_name and read_restart to ensemble_driver attributes
-    call NUOPC_CompAttributeAdd(ensemble_driver, attrList=(/'rest_case_name','read_restart  '/), rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    rest_case_name = ' '
-    call NUOPC_CompAttributeSet(ensemble_driver, name='rest_case_name', value=rest_case_name, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    write(cvalue,*) read_restart
-    call NUOPC_CompAttributeSet(ensemble_driver, name='read_restart', value=trim(cvalue), rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-  end subroutine InitRestart
-
-end module ENSEMBLE_DRIVER
+end module Ensemble_driver
