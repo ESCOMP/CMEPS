@@ -67,12 +67,11 @@ contains
 
     call NUOPC_CompAttributeSet(ensemble_driver, name="Verbosity", &
          value="high", rc=rc)
-
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    if (dbug_flag > 5) then
-      call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO, rc=dbrc)
-    endif
+    call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
 
   end subroutine SetServices
 
