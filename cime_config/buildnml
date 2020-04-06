@@ -237,7 +237,8 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
             valid_comps.append(item)
 
     # set the driver rpointer file if there is only one non-stub component then skip mediator 
-    if len(valid_comps) == 2:
+   
+    if len(valid_comps) == 2 and  "dwav" not in case.get_value("COMP_WAV") and "dlnd" not in case.get_value("COMP_LND"):
         skip_mediator = True
         valid_comps.remove("CPL")
         nmlgen.set_value('mediator_present', value='.false.')

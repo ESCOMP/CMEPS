@@ -2483,32 +2483,6 @@
     </values>
   </entry>
 
-  <entry id="ref_ymd">
-    <type>integer</type>
-    <category>time</category>
-    <group>CLOCK_attributes</group>
-    <desc>
-      Reference date in yyyymmdd format
-      default: 0
-    </desc>
-    <values>
-      <value>0</value>
-    </values>
-  </entry>
-
-  <entry id="ref_tod">
-    <type>integer</type>
-    <category>time</category>
-    <group>CLOCK_attributes</group>
-    <desc>
-      Reference time of day in seconds
-      default: 0
-    </desc>
-    <values>
-      <value>0</value>
-    </values>
-  </entry>
-
   <entry id="end_restart">
     <type>logical</type>
     <category>time</category>

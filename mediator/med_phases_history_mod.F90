@@ -213,7 +213,6 @@ contains
     integer                 :: alarmCount
     type(ESMF_VM)           :: vm
     type(ESMF_Time)         :: currtime
-    type(ESMF_Time)         :: reftime
     type(ESMF_Time)         :: starttime
     type(ESMF_Time)         :: nexttime
     type(ESMF_TimeInterval) :: timediff       ! Used to calculate curr_time
@@ -338,7 +337,7 @@ contains
        call ESMF_GridCompGet(gcomp, clock=mclock, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-       call ESMF_ClockGet(mclock, currtime=currtime, reftime=reftime, starttime=starttime, calendar=calendar, rc=rc)
+       call ESMF_ClockGet(mclock, currtime=currtime, starttime=starttime, calendar=calendar, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        call ESMF_ClockGetNextTime(mclock, nextTime=nexttime, rc=rc)
@@ -351,12 +350,12 @@ contains
        call ESMF_TimeGet(nexttime,yy=yr, mm=mon, dd=day, s=sec, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        write(nexttimestr,'(i4.4,a,i2.2,a,i2.2,a,i5.5)') yr,'-',mon,'-',day,'-',sec
-       timediff = nexttime - reftime
+       timediff = nexttime - starttime
        call ESMF_TimeIntervalGet(timediff, d=day, s=sec, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        dayssince = day + sec/real(SecPerDay,R8)
 
-       call ESMF_TimeGet(reftime, yy=yr, mm=mon, dd=day, s=sec, rc=rc)
+       call ESMF_TimeGet(starttime, yy=yr, mm=mon, dd=day, s=sec, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call med_io_ymd2date(yr,mon,day,start_ymd)
        start_tod = sec

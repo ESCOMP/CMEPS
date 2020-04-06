@@ -38,13 +38,17 @@ def _main_func():
         atm_model = case.get_value("COMP_ATM")
         gmake_args = get_standard_makefile_args(case)
 
-    comp_types = ['atm','lnd','ice','ocn','rof','glc','wav','esp']
-    skip_comps = []
-    for item in comp_types:
-        # stub comps
-        if case.get_value("COMP_" + item.upper()) == 's' + item:
-            skip_comps.append(item.upper())
-    if len(skip_comps) == 7:
+    # Determine valid components
+    valid_comps = []
+    for item in case.get_values("COMP_CLASSES"):
+        comp = case.get_value("COMP_" + item)
+        valid = True
+        if comp == 's' + item.lower():
+            valid = False
+        if valid:
+            valid_comps.append(item)
+
+    if len(valid_comps) == 2 and  "dwav" not in case.get_value("COMP_WAV") and "dlnd" not in case.get_value("COMP_LND"):
         skip_mediator = True
     else:
         skip_mediator = False

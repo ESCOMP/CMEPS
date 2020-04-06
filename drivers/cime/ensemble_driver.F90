@@ -1,7 +1,7 @@
 module Ensemble_driver
 
   !-----------------------------------------------------------------------------
-  ! Code that creates the ensemble driver layer above the esm driver.
+  ! Code that creates the ensemble driver layer above the esm driver instance.
   ! The ensmeble driver is configured to run a single clock cycle in nuopc with time step
   ! length of stop_time - start_time.  It's purpose is to instantiate NINST copies of the
   ! esm driver and its components layed out concurently across mpi tasks.
@@ -124,9 +124,6 @@ contains
     call ESMF_GridCompGet(ensemble_driver, config=config, vm=vm, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    call ESMF_VMGet(vm, localPet=localPet, PetCount=PetCount, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
     !-------------------------------------------
     ! Initialize clocks
     !-------------------------------------------
@@ -183,9 +180,16 @@ contains
     call ReadAttributes(ensemble_driver, config, "PELAYOUT_attributes::", rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
+    !-------------------------------------------
+    ! Determine number of ensemble members and the number of tasks per member
+    !-------------------------------------------
+
     call NUOPC_CompAttributeGet(ensemble_driver, name="ninst", value=cvalue, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     read(cvalue,*) number_of_members
+
+    call ESMF_VMGet(vm, localPet=localPet, PetCount=PetCount, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ntasks_per_member = PetCount/number_of_members
     if(ntasks_per_member*number_of_members .ne. PetCount) then
@@ -195,16 +199,22 @@ contains
        return
     endif
 
+    !-------------------------------------------
+    ! Loop over number of ensemblel members
+    !-------------------------------------------
+
     allocate(petList(ntasks_per_member))
 
     do inst=1,number_of_members
 
+       ! Determine pet list for driver instance
        petList(1) = (inst-1) * ntasks_per_member
        do n=2,ntasks_per_member
           petList(n) = petList(n-1) + 1
        enddo
-       write(drvrinst,'(a,i4.4)') "ESM",inst
 
+       ! Add driver instance to ensemble driver
+       write(drvrinst,'(a,i4.4)') "ESM",inst
        call NUOPC_DriverAddComp(ensemble_driver, drvrinst, ESMSetServices, petList=petList, comp=gridcomptmp, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
@@ -222,6 +232,7 @@ contains
              inst_suffix = ''
           endif
 
+          ! Set the driver instance attributes
           call NUOPC_CompAttributeAdd(driver, attrList=(/'read_restart'/), rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           call NUOPC_CompAttributeSet(driver, name='read_restart', value=trim(read_restart_string), rc=rc)
@@ -250,6 +261,7 @@ contains
           endif
           call shr_file_setLogUnit (logunit)
 
+          ! Create a clock for each driver instance
           call esm_time_clockInit(ensemble_driver, driver, logunit, mastertask, rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
 
