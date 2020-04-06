@@ -183,9 +183,6 @@ contains
     call ReadAttributes(driver, config, "DRIVER_attributes::", formatprint=.true., rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    call ReadAttributes(driver, config, "FLDS_attributes::", formatprint=.true., rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
     call ReadAttributes(driver, config, "CLOCK_attributes::", formatprint=.true., rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
@@ -723,12 +720,6 @@ contains
     !------
     if (compname == 'MED') then
        call ReadAttributes(gcomp, config, "MED_attributes::", rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-       call ReadAttributes(gcomp, config, "MED_history_attributes::", rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-       call ReadAttributes(gcomp, config, "FLDS_attributes::", rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     endif
 
