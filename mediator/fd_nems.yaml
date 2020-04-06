@@ -585,3 +585,5 @@
        canonical_units: W m-2
      - standard_name: land_mask
        canonical_units: 1
+     - standard_name: wave_z0_roughness_length
+       canonical_units: 1

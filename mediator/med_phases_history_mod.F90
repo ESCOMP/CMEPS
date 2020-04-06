@@ -127,18 +127,19 @@ contains
     ! Set alarm for averaged mediator history output
     ! -----------------------------
 
-    call NUOPC_CompAttributeGet(gcomp, name='histavg_option', value=histavg_option, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompAttributeGet(gcomp, name='histavg_n', value=cvalue, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) histavg_n
+    !TODO: add isSet and isPresent flags to reading these and other config attributes
+    !call NUOPC_CompAttributeGet(gcomp, name='histavg_option', value=histavg_option, rc=rc)
+    !if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    !call NUOPC_CompAttributeGet(gcomp, name='histavg_n', value=cvalue, rc=rc)
+    !if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    !read(cvalue,*) histavg_n
 
-    call med_time_alarmInit(mclock, alarm, option=histavg_option, opt_n=histavg_n, &
-         reftime=mStartTime, alarmname='alarm_history_avg', rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    !call med_time_alarmInit(mclock, alarm, option=histavg_option, opt_n=histavg_n, &
+    !     reftime=mStartTime, alarmname='alarm_history_avg', rc=rc)
+    !if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call ESMF_AlarmSet(alarm, clock=mclock, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    !call ESMF_AlarmSet(alarm, clock=mclock, rc=rc)
+    !if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !--------------------------------
     ! Advance model clock to trigger alarms then reset model clock back to currtime
@@ -164,8 +165,8 @@ contains
        write(logunit,100) trim(subname)//" history clock timestep = ",timestep_length
        write(logunit,100) trim(subname)//" set instantaneous mediator history alarm with option "//&
             trim(histinst_option)//" and frequency ",histinst_n
-       write(logunit,100) trim(subname)//" set averaged mediator history alarm with option "//&
-            trim(histavg_option)//" and frequency ",histavg_n
+       !write(logunit,100) trim(subname)//" set averaged mediator history alarm with option "//&
+       !     trim(histavg_option)//" and frequency ",histavg_n
 100    format(a,2x,i8)
        write(logunit,*)
     end if
@@ -427,6 +428,7 @@ contains
              call med_io_write(hist_file, iam, is_local%wrap%FBMed_ocnalb_o, &
                   nx=nx, ny=ny, nt=1, whead=whead, wdata=wdata, pre='Med_alb_ocn', rc=rc)
           end if
+          !TODO: don't write aoflux_(oa) when they're not being used
           if (ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_aoflux_o,rc=rc)) then
              nx = is_local%wrap%nx(compocn)
              ny = is_local%wrap%ny(compocn)

@@ -155,7 +155,9 @@ contains
        end if
 
        if (trim(coupling_mode(1:4)) == 'nems') then
-
+       !TODO: the EMC CICE5 cap calculates Sa_ptem; the Sa_ptem is not an exchanged field
+       !so the calcuation here is un-used. It should be retained however for eventual use after 
+       !a unified CICE6 cap is implemented
           ! If either air density or ptem from atm is not available - then need pbot since it will be
           ! required for either calculation
           if ( .not. fldchk(is_local%wrap%FBImp(compatm,compatm), 'Sa_dens',rc=rc) .or. &
