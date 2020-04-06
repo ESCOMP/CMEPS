@@ -1034,7 +1034,6 @@ contains
        found_comp = .false.
        call ESMF_AttributeSet(info, name="maxPeCountPerPet", value=nthrds(i), rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       print *,__FILE__,__LINE__,trim(complabels(i)),petlist
 #ifdef MED_PRESENT
        if (trim(compLabels(i)) == 'MED') then
           med_id = i + 1
