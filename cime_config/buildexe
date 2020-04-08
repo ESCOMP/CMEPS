@@ -32,11 +32,26 @@ def _main_func():
         exeroot   = case.get_value("EXEROOT")
         gmake     = case.get_value("GMAKE")
         gmake_j   = case.get_value("GMAKE_J")
-        cime_model     = case.get_value("MODEL")
+        cime_model = case.get_value("MODEL")
         num_esp   = case.get_value("NUM_COMP_INST_ESP")
         ocn_model = case.get_value("COMP_OCN")
         atm_model = case.get_value("COMP_ATM")
         gmake_args = get_standard_makefile_args(case)
+
+    # Determine valid components
+    valid_comps = []
+    for item in case.get_values("COMP_CLASSES"):
+        comp = case.get_value("COMP_" + item)
+        valid = True
+        if comp == 's' + item.lower():
+            valid = False
+        if valid:
+            valid_comps.append(item)
+
+    if len(valid_comps) == 2 and  "dwav" not in case.get_value("COMP_WAV") and "dlnd" not in case.get_value("COMP_LND"):
+        skip_mediator = True
+    else:
+        skip_mediator = False
 
     if ocn_model == 'mom' or atm_model == "ufsatm":
         gmake_args += "USE_FMS=TRUE"
@@ -47,14 +62,17 @@ def _main_func():
         stubcomp = "s{}".format(comp.lower())
         if model == stubcomp:
             gmake_args += " {}_PRESENT=FALSE".format(comp)
+    if skip_mediator:
+        gmake_args += " MED_PRESENT=FALSE"
+
     gmake_args += " IAC_PRESENT=FALSE"
     expect((num_esp is None) or (int(num_esp) == 1), "ESP component restricted to one instance")
 
     with open('Filepath', 'w') as out:
+        if not skip_mediator:
+            out.write(os.path.join(cimeroot, "src", "drivers", "nuopc", "mediator") + "\n")
         out.write(os.path.join(caseroot, "SourceMods", "src.drv") + "\n")
-        out.write(os.path.join(cimeroot, "src", "drivers", "nuopc", "mediator") + "\n")
         out.write(os.path.join(cimeroot, "src", "drivers", "nuopc", "drivers", "cime") + "\n")
-
 
     # build model executable
 

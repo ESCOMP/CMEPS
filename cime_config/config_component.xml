@@ -2095,15 +2095,15 @@
      be computed based on PIO_NUMTASKS and number of compute tasks
     </desc>
     <values>
-      <value compclass="ATM"></value>
-      <value compclass="CPL"></value>
-      <value compclass="OCN"></value>
-      <value compclass="WAV"></value>
-      <value compclass="GLC"></value>
-      <value compclass="ICE"></value>
-      <value compclass="ROF"></value>
-      <value compclass="LND"></value>
-      <value compclass="ESP"></value>
+      <value compclass="ATM">$MAX_MPITASKS_PER_NODE</value>
+      <value compclass="CPL">$MAX_MPITASKS_PER_NODE</value>
+      <value compclass="OCN">$MAX_MPITASKS_PER_NODE</value>
+      <value compclass="WAV">$MAX_MPITASKS_PER_NODE</value>
+      <value compclass="GLC">$MAX_MPITASKS_PER_NODE</value>
+      <value compclass="ICE">$MAX_MPITASKS_PER_NODE</value>
+      <value compclass="ROF">$MAX_MPITASKS_PER_NODE</value>
+      <value compclass="LND">$MAX_MPITASKS_PER_NODE</value>
+      <value compclass="ESP">$MAX_MPITASKS_PER_NODE</value>
     </values>
   </entry>
 
@@ -2114,15 +2114,15 @@
     <file>env_run.xml</file>
     <desc>pio rearranger choice box=1, subset=2 </desc>
     <values>
-      <value compclass="ATM">1</value>
-      <value compclass="CPL">1</value>
-      <value compclass="OCN">1</value>
-      <value compclass="WAV">1</value>
-      <value compclass="GLC">1</value>
-      <value compclass="ICE">1</value>
-      <value compclass="ROF">1</value>
-      <value compclass="LND">1</value>
-      <value compclass="ESP">1</value>
+      <value compclass="ATM">2</value>
+      <value compclass="CPL">2</value>
+      <value compclass="OCN">2</value>
+      <value compclass="WAV">2</value>
+      <value compclass="GLC">2</value>
+      <value compclass="ICE">2</value>
+      <value compclass="ROF">2</value>
+      <value compclass="LND">2</value>
+      <value compclass="ESP">2</value>
     </values>
   </entry>
 

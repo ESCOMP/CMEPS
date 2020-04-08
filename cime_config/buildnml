@@ -216,37 +216,48 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     # (3) Write nuopc.runconfig file and add to input dataset list.
     #--------------------------------
 
-    # Determine components that are not present
-    comp_types = ['atm','lnd','ice','ocn','rof','glc','wav','esp']
-    skip_comps = []
-    for item in comp_types:
+    # Determine valid components
+    valid_comps = []
+    for item in case.get_values("COMP_CLASSES"):
+        comp = case.get_value("COMP_" + item)
+        valid = True
         # stub comps
-        if case.get_value("COMP_" + item.upper()) == 's' + item:
-            skip_comps.append(item.upper())
-        # data comps
-        if case.get_value("COMP_" + item.upper()) == 'd' + item:
-            if item != 'glc': #no glc data component
-                if case.get_value("D" + item.upper()) == 'NULL' or case.get_value("D" + item.upper()) == 'null':
-                    skip_comps.append(item.upper)
+        if comp == 's' + item.lower():
+            valid = False
         # xcpl_comps
-        if case.get_value("COMP_" + item.upper()) == 'x' + item:
-            if item != 'esp': #no esp xcpl component
-                if case.get_value(item.upper() + "_NX") == "0" and case.get_value(item.upper() + "_NY") == "0":
-                    skip_comps.append(item.upper)
-    # special case - mosart or rtm in NULL mode
-    if (case.get_value("COMP_ROF") == 'mosart' or case.get_value("COMP_ROF") == 'rtm'):
-        if (case.get_value("MOSART_MODE") == 'NULL' or case.get_value("RTM_MODE") == 'NULL'):
-            skip_comps.append('ROF')
+        elif comp == 'x' + item.lower():
+            if item != 'ESP': #no esp xcpl component
+                if case.get_value(item + "_NX") == "0" and case.get_value(item + "_NY") == "0":
+                    valid = False
+        # special case - mosart or rtm in NULL mode
+        elif (case.get_value("COMP_ROF") == 'mosart' or case.get_value("COMP_ROF") == 'rtm'):
+            if (case.get_value("MOSART_MODE") == 'NULL' or case.get_value("RTM_MODE") == 'NULL'):
+                valid = False
+        if valid:
+            valid_comps.append(item)
 
-    logger.info("Writing nuopc_runseq will skip components {}".format(skip_comps))
+    # set the driver rpointer file if there is only one non-stub component then skip mediator 
+   
+    if len(valid_comps) == 2 and  "dwav" not in case.get_value("COMP_WAV") and "dlnd" not in case.get_value("COMP_LND"):
+        skip_mediator = True
+        valid_comps.remove("CPL")
+        nmlgen.set_value('mediator_present', value='.false.')
+        nmlgen.set_value("drv_restart_pointer", value="none")
+        nmlgen.set_value("component_list", value=" ".join(valid_comps))
+    else:
+        skip_mediator = False
+        nmlgen.set_value("drv_restart_pointer", value="rpointer.cpl")
+        valid_comps_string = " ".join(valid_comps)
+        nmlgen.set_value("component_list", value=valid_comps_string.replace("CPL","MED"))
 
+    logger.info("Writing nuopc_runseq for components {}".format(valid_comps))
     nuopc_config_file = os.path.join(confdir, "nuopc.runconfig")
-    nmlgen.write_nuopc_config_file(nuopc_config_file, data_list_path=data_list_path, skip_comps=skip_comps)
+    nmlgen.write_nuopc_config_file(nuopc_config_file, data_list_path=data_list_path) 
 
     #--------------------------------
     # (4) Write nuopc.runseq
     #--------------------------------
-    _create_runseq(case, coupling_times)
+    _create_runseq(case, coupling_times, valid_comps)
 
     #--------------------------------
     # (5) Write drv_flds_in
@@ -294,42 +305,57 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
         nmlgen.write_output_file(drv_flds_in)
 
 ###############################################################################
-def _create_runseq(case, coupling_times):
+def _create_runseq(case, coupling_times, valid_comps):
 ###############################################################################
 
     caseroot  = case.get_value("CASEROOT")
     user_file = os.path.join(caseroot, "nuopc.runseq")
+    rundir = case.get_value("RUNDIR")
+
     if os.path.exists(user_file):
 
         # Determine if there is a user run sequence file in CASEROOT, use it
-        rundir    = case.get_value("RUNDIR")
         shutil.copy(user_file, rundir)
         shutil.copy(user_file, os.path.join(caseroot,"CaseDocs"))
         logger.info("NUOPC run sequence: copying custom run sequence from case root")
 
     else:
 
-        # Create a run sequence file appropriate for target compset
+        if len(valid_comps) == 1: 
 
-        comp_atm = case.get_value("COMP_ATM")
-        comp_ice = case.get_value("COMP_ICE")
-        comp_glc = case.get_value("COMP_GLC")
-        comp_lnd = case.get_value("COMP_LND")
-        comp_ocn = case.get_value("COMP_OCN")
+            # Create run sequence with no mediator
+            outfile = open(os.path.join(caseroot, "CaseDocs", "nuopc.runseq"), "w")
+            dtime = coupling_times[valid_comps[0].lower() + '_cpl_dt']
+            outfile.write ("runSeq:: \n")
+            outfile.write ("@" + str(dtime) + " \n")
+            outfile.write ("  " + valid_comps[0] + " \n")
+            outfile.write ("@  \n")
+            outfile.write (":: \n")
+            outfile.close()
+            shutil.copy(os.path.join(caseroot, "CaseDocs", "nuopc.runseq"), rundir)
+            
+        else:
 
-        sys.path.append(os.path.join(_CIMEROOT, "src", "drivers", "nuopc", "cime_config", "runseq"))
+            # Create a run sequence file appropriate for target compset
+            comp_atm = case.get_value("COMP_ATM")
+            comp_ice = case.get_value("COMP_ICE")
+            comp_glc = case.get_value("COMP_GLC")
+            comp_lnd = case.get_value("COMP_LND")
+            comp_ocn = case.get_value("COMP_OCN")
 
-        if (comp_ice == "cice" and comp_atm == 'datm' and comp_ocn == "docn"):
-            from runseq_D import gen_runseq
-        elif (comp_lnd == 'dlnd' and comp_glc == "cism"):
-            from runseq_TG import gen_runseq
-        elif (comp_atm == 'ufsatm' and comp_ocn == "mom" and comp_ice == 'cice'):
-            from runseq_NEMS import gen_runseq
-        else: 
-            from runseq_general import gen_runseq
+            sys.path.append(os.path.join(_CIMEROOT, "src", "drivers", "nuopc", "cime_config", "runseq"))
 
-        # create the run sequence
-        gen_runseq(case, coupling_times)
+            if (comp_ice == "cice" and comp_atm == 'datm' and comp_ocn == "docn"):
+                from runseq_D import gen_runseq
+            elif (comp_lnd == 'dlnd' and comp_glc == "cism"):
+                from runseq_TG import gen_runseq
+            elif (comp_atm == 'ufsatm' and comp_ocn == "mom" and comp_ice == 'cice'):
+                from runseq_NEMS import gen_runseq
+            else: 
+                from runseq_general import gen_runseq
+
+            # create the run sequence
+            gen_runseq(case, coupling_times)
 
 ###############################################################################
 def compare_drv_flds_in(first, second, infile1, infile2):
@@ -408,6 +434,18 @@ def _create_component_modelio_namelists(confdir, case, files):
                     outfile.write("     {}{}{}".format("diro = ", moddiro,"\n"))
                     outfile.write("     {}{}{}".format("logfile = ", logfile,"\n"))
                     outfile.write("::\n\n")
+
+                    # also write out a driver log file 
+                    if model == 'cpl':
+                        name = "DRV"
+                        logfile = 'drv' + inst_string + ".log." + str(lid)
+                        if inst_string:
+                            outfile.write("{}_modelio{}::\n".format(name,inst_string))
+                        else:
+                            outfile.write("{}_modelio::\n".format(name))
+                        outfile.write("     {}{}{}".format("diro = ", moddiro,"\n"))
+                        outfile.write("     {}{}{}".format("logfile = ", logfile,"\n"))
+                        outfile.write("::\n\n")
 
                 inst_index = inst_index + 1
 

@@ -862,14 +862,15 @@ contains
     end if
 
     ! 'wild fire plume height'
+    fldname  = 'Sl_fztop'
     if (phase == 'advertise') then
-       call addfld(fldListFr(complnd)%flds, 'Sl_fztop')
-       call addfld(fldListTo(compatm)%flds, 'Sl_fztop')
+       call addfld(fldListFr(complnd)%flds, trim(fldname))
+       call addfld(fldListTo(compatm)%flds, trim(fldname))
     else
-       if ( fldchk(is_local%wrap%FBImp(complnd, complnd), 'Sl_fztop', rc=rc) .and. &
-            fldchk(is_local%wrap%FBExp(compatm)         , 'Sl_fztop', rc=rc)) then
-          call addmap(fldListFr(complnd)%flds, 'Sl_fztop', compatm, mapconsf, 'one', lnd2atm_smap)
-          call addmrg(fldListTo(compatm)%flds, 'Sl_fztop', &
+       if ( fldchk(is_local%wrap%FBImp(complnd, complnd), trim(fldname), rc=rc) .and. &
+            fldchk(is_local%wrap%FBExp(compatm)         , trim(fldname), rc=rc)) then
+          call addmap(fldListFr(complnd)%flds, trim(fldname), compatm, mapconsf, 'one', lnd2atm_smap)
+          call addmrg(fldListTo(compatm)%flds, trim(fldname), &
                mrg_from1=complnd, mrg_fld1=trim(fldname), mrg_type1='copy')
        end if
     end if
@@ -1942,7 +1943,7 @@ contains
           call addfld(fldListFr(compocn)%flds, 'Faoo_fco2_ocn')
           call addfld(fldListTo(compatm)%flds, 'Faoo_fco2_ocn')
        else
-          call addmap(fldListFr(complnd)%flds, 'Faoo_fco2_ocn', compatm, mapconsf, 'one', atm2lnd_smap)
+          call addmap(fldListFr(compocn)%flds, 'Faoo_fco2_ocn', compatm, mapconsf, 'one', atm2lnd_smap)
           ! custom merge in med_phases_prep_atm
        end if
     endif

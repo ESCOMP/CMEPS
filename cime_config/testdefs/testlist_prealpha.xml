@@ -1,0 +1,529 @@
+<?xml version="1.0"?>
+<testlist version="2.0">
+
+  <!-- ======================================= -->
+  <!-- driver tests -->
+  <!-- ======================================= -->
+
+  <test name="ERS_C3" grid="f19_g17_rx1" compset="A">
+    <machines>
+      <machine name="cheyenne" compiler="pgi" category="prealpha">
+        <options>
+          <option name="wallclock">00:30:00</option>
+        </options>
+      </machine>
+    </machines>
+  </test>
+  <test name="ERR" grid="f45_g37_rx1" compset="A">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="prealpha">
+        <options>
+          <option name="wallclock">00:30:00</option>
+        </options>
+      </machine>
+    </machines>
+  </test>
+  <test name="ERS_Ld3" grid="f45_g37_rx1" compset="A">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="prealpha">
+        <options>
+          <option name="wallclock">00:30:00</option>
+        </options>
+      </machine>
+      <machine name="cheyenne" compiler="pgi" category="prealpha">
+        <options>
+          <option name="wallclock">00:30:00</option>
+        </options>
+      </machine>
+    </machines>
+  </test>
+  <test name="ERS_Ld3" grid="f19_g16" compset="X">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="prealpha">
+        <options>
+          <option name="wallclock">00:30:00</option>
+        </options>
+      </machine>
+      <machine name="cheyenne" compiler="pgi" category="prealpha">
+        <options>
+          <option name="wallclock">00:30:00</option>
+        </options>
+      </machine>
+    </machines>
+  </test>
+  <test name="ERS_Lm3" grid="T62_g16" compset="AIAF">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="prealpha">
+        <options>
+          <option name="wallclock">00:30:00</option>
+        </options>
+      </machine>
+    </machines>
+  </test>
+
+  <!-- ======================================= -->
+  <!-- cam prealpha -->
+  <!-- ======================================= -->
+
+  <test compset="F2000climo" grid="f09_f09_mg17" name="ERS_Ln12" testmods="cam/outfrq9s">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="prealpha"/>
+    </machines>
+    <options>
+      <option name="wallclock">00:20:00</option>
+    </options>
+  </test>
+  <test compset="F2010climo" grid="f09_f09_mg17" name="ERS_Ln12" testmods="cam/outfrq9s">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="prealpha"/>
+    </machines>
+    <options>
+      <option name="wallclock">00:20:00</option>
+    </options>
+  </test>
+  <test compset="FHIST" grid="f09_f09_mg17" name="ERS_Ln12" testmods="cam/outfrq9s">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="prealpha"/>
+    </machines>
+    <options>
+      <option name="wallclock">00:20:00</option>
+    </options>
+  </test>
+  <test compset="FHIST_BGC" grid="f09_f09_mg17" name="ERS_Ln12" testmods="cam/outfrq9s">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="prealpha"/>
+    </machines>
+    <options>
+      <option name="wallclock">00:20:00</option>
+    </options>
+  </test>
+  <test compset="F1850" grid="f09_f09_mg17" name="ERS_Ln12" testmods="cam/outfrq9s">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="prealpha"/>
+    </machines>
+    <options>
+      <option name="wallclock">00:20:00</option>
+    </options>
+  </test>
+  <test compset="F2000climo" grid="f19_f19_mg17" name="ERS_Ln12" testmods="cam/outfrq9s">
+    <machines>
+      <machine name="cheyenne" compiler="gnu" category="prealpha"/>
+    </machines>
+    <options>
+      <option name="wallclock">00:20:00</option>
+    </options>
+  </test>
+  <test compset="QPC6" grid="f19_f19_mg17" name="ERS_D_Ln12" testmods="cam/outfrq9s">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="prealpha"/>
+    </machines>
+    <options>
+      <option name="wallclock">00:20:00</option>
+    </options>
+  </test>
+  <test compset="QSC6" grid="f09_f09_mg17" name="ERS_D_Ln9" testmods="cam/outfrq9s">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="prealpha"/>
+    </machines>
+    <options>
+      <option name="wallclock">00:20:00</option>
+    </options>
+  </test>
+  <test compset="FDABIP04" grid="T42z30_T42_mg17" name="ERS_D_Ln9" testmods="cam/outfrq9s">
+    <machines>
+      <machine name="hobart" compiler="nag" category="prealpha"/>
+    </machines>
+  </test>
+  <test compset="FSCAM" grid="T42_T42" name="SMS_D_Ln9" testmods="cam/scam_mpace_outfrq9s">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="prealpha"/>
+    </machines>
+  </test>
+  <test compset="FSD" grid="f19_f19_mg17" name="ERS_D_Ln9" testmods="cam/outfrq9s_sd">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="prealpha"/>
+    </machines>
+    <options>
+      <option name="wallclock">00:20:00</option>
+    </options>
+  </test>
+  <test compset="FCHIST" grid="f09_f09_mg17" name="SMS_D_Ln9" testmods="cam/outfrq9s">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="prealpha"/>
+    </machines>
+    <options>
+      <option name="wallclock">00:30:00</option>
+    </options>
+  </test>
+  <test compset="FCfireHIST" grid="f09_f09_mg17" name="ERS_Ld3" testmods="cam/outfrq1d">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="prealpha"/>
+    </machines>
+    <options>
+      <option name="wallclock">00:40:00</option>
+    </options>
+  </test>
+  <test compset="FSPCAMM" grid="f19_f19_mg17" name="ERS_Ln9" testmods="cam/outfrq9s">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="prealpha"/>
+    </machines>
+    <options>
+      <option name="wallclock">00:20:00</option>
+    </options>
+  </test>
+  <test compset="FW2010climo" grid="f09_f09_mg17" name="SMS_Ld1" testmods="cam/outfrq1d">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="prealpha"/>
+    </machines>
+    <options>
+      <option name="wallclock">00:30:00</option>
+    </options>
+  </test>    
+  <test compset="FW1850" grid="f09_f09_mg17" name="SMS_Ln9" testmods="cam/reduced_hist3s">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="prealpha"/>
+    </machines>
+    <options>
+      <option name="wallclock">00:20:00</option>
+    </options>
+  </test>
+  <test compset="FWHIST" grid="f09_f09_mg17" name="SMS_D_Ln9" testmods="cam/reduced_hist3s">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="prealpha"/>
+    </machines>
+    <options>
+      <option name="wallclock">00:20:00</option>
+    </options>
+  </test>
+  <test compset="FC6X2000" grid="f09_f09_mg17" name="ERS_Ln9"   testmods="cam/outfrq9s">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="prealpha"/>
+    </machines>
+    <options>
+      <option name="wallclock">00:30:00</option>
+    </options>
+  </test>
+  <test compset="FC6XHIST" grid="f09_f09_mg17" name="SMS_D_Ln9"   testmods="cam/outfrq9s">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="prealpha"/>
+    </machines>
+    <options>
+      <option name="wallclock">00:30:00</option>
+    </options>
+  </test>
+  <test compset="FX2000" grid="f19_f19_mg17" name="ERS_Ln9"   testmods="cam/outfrq9s">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="prealpha"/>
+    </machines>
+    <options>
+      <option name="wallclock">00:20:00</option>
+    </options>
+  </test>
+  <test compset="FXSD" grid="f19_f19_mg17" name="SMS_Ld1"   testmods="cam/outfrq1d">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="prealpha"/>
+    </machines>
+    <options>
+      <option name="wallclock">00:20:00</option>
+    </options>
+  </test>
+  <test compset="FWmaHIST" grid="f09_f09_mg17" name="SMS_D_Ln9" testmods="cam/outfrq9s">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="waccm"/>
+    </machines>
+  </test>
+  <test compset="FW4madHIST" grid="f19_f19_mg17" name="SMS_D_Ln9" testmods="cam/outfrq9s" supported="false">
+    <machines>
+      <machine name="hobart" compiler="nag" category="prealpha"/>
+    </machines>
+    <options>
+      <option name="wallclock">00:20:00</option>
+    </options>
+  </test>
+  <test compset="FWsc1850" grid="f09_f09_mg17" name="SMS_D_Ln9" testmods="cam/outfrq9s">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="prealpha"/>
+    </machines>
+    <options>
+      <option name="wallclock">00:20:00</option>
+    </options>
+  </test>
+  <test compset="FWscHIST" grid="f09_f09_mg17" name="SMS_D_Ln9" testmods="cam/outfrq9s">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="prealpha"/>
+    </machines>
+    <options>
+      <option name="wallclock">00:20:00</option>
+    </options>
+  </test>
+  <test compset="FWsc2010climo" grid="f19_f19_mg17" name="SMS_D_Ln9" testmods="cam/outfrq9s">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="prealpha"/>
+    </machines>
+    <options>
+      <option name="wallclock">00:20:00</option>
+    </options>
+  </test>
+  <test compset="FW2000climo" grid="ne30_ne30_mg17" name="SMS_Ln9" testmods="cam/outfrq9s_wcm_ne30">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="prealpha"/>
+    </machines>
+  </test>
+  <test compset="PC4" grid="f19_f19_mg17" name="SMS" testmods="cam/cam4_port">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="prealpha"/>
+    </machines>
+    <options>
+      <option name="wallclock">00:20:00</option>
+    </options>
+  </test>
+  <test compset="PC5" grid="f45_f45_mg37" name="SMS_D" testmods="cam/cam5_port_f45">
+    <machines>
+      <machine name="hobart" compiler="nag" category="prealpha"/>
+    </machines>
+  </test>
+  <test compset="PC5" grid="ne30_ne30_mg17" name="SMS_D" testmods="cam/cam5_port_ne30">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="prealpha"/>
+    </machines>
+    <options>
+      <option name="wallclock">00:20:00</option>
+    </options>
+  </test>
+
+  <!-- ======================================= -->
+  <!-- cice prealpha tests -->
+  <!-- ======================================= -->
+
+  <test name="ERI" grid="f19_g17_rx1" compset="DTEST" testmods="cice/default">
+    <machines>
+      <machine name="cheyenne" compiler="gnu" category="prealpha"/>
+    </machines>
+  </test>
+  <test name="ERS_Ld5" grid="f19_g17" compset="ETEST" testmods="cice/default">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="aux_cice"/>
+    </machines>
+  </test>
+
+  <!-- ======================================= -->
+  <!-- cism prealpha tests -->
+  <!-- ======================================= -->
+
+  <test name="ERS_Ly7" grid="f09_g17_gl4" compset="T1850G">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="prealpha">
+        <options>
+          <option name="wallclock">00:20:00</option>
+        </options>
+      </machine>
+    </machines>
+  </test>
+  <test name="SMS_Lm13" grid="f10_f10_musgs" compset="I1850Clm50SpG">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="prealpha">
+        <options>
+          <option name="wallclock">00:20:00</option>
+        </options>
+      </machine>
+    </machines>
+  </test>
+  <test name="SMS_D" grid="f09_g17_gl20" compset="T1850G1">
+    <machines>
+      <machine name="cheyenne" compiler="gnu" category="prealpha">
+        <options>
+          <option name="wallclock">00:30:00</option>
+        </options>
+      </machine>
+    </machines>
+  </test>
+
+  <!-- ======================================= -->
+  <!-- clm prealpha tests -->
+  <!-- ======================================= -->
+
+  <test name="ERS_P36x1_D_Ld5" grid="f10_f10_musgs" compset="I1850Clm45BgcCru" testmods="clm/ciso">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="prealpha"/>
+    </machines>
+    <options>
+      <option name="wallclock">00:20:00</option>
+    </options>
+  </test>
+  <test name="ERS_P180x1_D_Ld5" grid="f19_g17_gl4" compset="I1850Clm50BgcCropG" testmods="clm/default">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="prealpha"/>
+    </machines>
+    <options>
+      <option name="wallclock">00:20:00</option>
+    </options>
+  </test>
+  <test name="NCK_Ld1" grid="f10_f10_musgs" compset="I2000Clm50BgcCrop" testmods="clm/default">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="prealpha"/>
+    </machines>
+    <options>
+      <option name="wallclock">00:20:00</option>
+    </options>
+  </test>
+  <test name="SMS_D_Ld1" grid="f45_f45_mg37" compset="I2000Clm50SpGs" testmods="clm/ptsRLA">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="prealpha"/>
+      <machine name="cheyenne" compiler="gnu" category="prealpha"/>
+    </machines>
+    <options>
+      <option name="wallclock">00:20:00</option>
+    </options>
+  </test>
+  <test name="SMS_D_Ld1" grid="f45_f45_mg37" compset="I2000Clm50SpGs" testmods="clm/ptsRLA">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="prealpha"/>
+      <machine name="izumi" compiler="nag" category="prealpha"/>
+      <machine name="cheyenne" compiler="gnu" category="prealpha"/>
+    </machines>
+    <options>
+      <option name="wallclock">00:20:00</option>
+    </options>
+  </test>
+
+  <!-- ======================================= -->
+  <!-- mom prealpha tests -->
+  <!-- ======================================= -->
+
+  <test name="SMS_Ld40" grid="T62_t061" compset="CMOM_IAF">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="prealpha"/>
+    </machines>
+    <options>
+      <option name="wallclock">01:00:00</option>
+    </options>
+  </test>
+  <test name="ERS_Vnuopc_Ld5" compset="CMOM" grid="T62_t061">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="nuopc"/>
+      <machine name="theia" compiler="intel" category="nuopc"/>
+      <machine name="izumi" compiler="intel" category="nuopc"/>
+    </machines>
+    <options>
+      <option name="wallclock"> 00:40:00 </option>
+    </options>
+  </test>
+  <test name="ERS_Vnuopc_Ld5" compset="GMOM" grid="T62_t061">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="nuopc"/>
+      <machine name="theia" compiler="intel" category="nuopc"/>
+      <machine name="izumi" compiler="intel" category="nuopc"/>
+    </machines>
+    <options>
+      <option name="wallclock"> 00:20:00 </option>
+    </options>
+  </test>
+
+  <!-- ======================================= -->
+  <!-- pop prealpha tests -->
+  <!-- ======================================= -->
+
+  <test name="ERI" grid="T62_g16" compset="C1850ECO" testmods="pop/ecosys">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="prealpha"/>
+    </machines>
+  </test>
+  <test name="ERI" grid="T62_g37" compset="G" testmods="pop/cice">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="prealpha"/>
+    </machines>
+  </test>
+  <test name="ERS" grid="T62_g16" compset="C" testmods="pop/default">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="prealpha"/>
+    </machines>
+  </test>
+  <test name="ERS" grid="T62_g37" compset="G" testmods="pop/cice">
+    <machines>
+      <machine name="cheyenne" compiler="gnu" category="prealpha"/>
+    </machines>
+  </test>
+  <test name="ERS_IOP" grid="T62_g16" compset="CIAF" testmods="pop/default">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="prealpha"/>
+    </machines>
+  </test>
+  <test name="SMS_Ld1_P136_D" grid="T62_g17" compset="C" testmods="pop/144blocks_320x384_spacecurve">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="prealpha"/>
+    </machines>
+  </test>
+  <test name="SMS_Ld2_P72_D" grid="T62_g37" compset="C1850ECO" testmods="pop/ecosys_81blocks_100x116_spacecurve">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="prealpha"/>
+    </machines>
+  </test>
+  <test name="SMS_Ld2_P80_D" grid="T62_g37" compset="C1850ECO" testmods="pop/ecosys_81blocks_100x116_spacecurve">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="prealpha"/>
+    </machines>
+  </test>
+
+  <!-- ======================================= -->
+  <!-- pop prealpha tests -->
+  <!-- ======================================= -->
+
+  <test name="ERR" grid="f19_g17" compset="B1850" testmods="allactive/defaultio">
+    <machines>
+      <machine name="edison" compiler="intel" category="prealpha"/>
+    </machines>
+    <options>
+      <option name="wallclock"> 00:30 </option>
+    </options>
+  </test>
+  <test name="NCK" grid="f19_g17" compset="B1850" testmods="allactive/defaultiomi">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="prealpha"/>
+    </machines>
+    <options>
+      <option name="wallclock"> 02:00:00 </option>
+    </options>
+  </test>
+  <test name="ERS_D" grid="f09_g17" compset="B1850" testmods="allactive/defaultio">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="prealpha"/>
+    </machines>
+    <options>
+      <option name="wallclock"> 06:00:00 </option>
+    </options>
+  </test>
+  <test name="IRT_Ld7" grid="f09_g17" compset="BHIST" testmods="allactive/defaultio">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="prealpha"/>
+    </machines>
+    <options>
+      <option name="wallclock"> 01:00:00 </option>
+    </options>
+  </test>
+  <test name="ERS_Ld7" grid="f19_g17" compset="B1850" testmods="allactive/defaultio">
+    <machines>
+      <machine name="cheyenne"   compiler="intel" category="prealpha"/>
+    </machines>
+    <options>
+      <option name="wallclock"> 00:30:00 </option>
+    </options>
+  </test>
+  <test name="IRT_N3_PM3_Ld7" grid="f19_g17" compset="BHIST" testmods="allactive/defaultio">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="prealpha"/>
+      <machine name="cheyenne" compiler="gnu" category="prebeta"/>
+    </machines>
+    <options>
+      <option name="wallclock"> 02:00:00 </option>
+    </options>
+  </test>
+  <test name="SMS_Ld5" grid="f19_g17" compset="B1850G" testmods="allactive/cism/test_coupling">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="prealpha"/>
+    </machines>
+    <options>
+      <option name="wallclock"> 00:30:00 </option>
+    </options>
+  </test>
+
+</testlist>
