@@ -130,6 +130,8 @@ contains
        call NUOPC_CompAttributeGet(instance_driver, name='drv_restart_pointer', value=restart_file, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+       write(6,*)'DEBUG: restart_file = ',trim(restart_file)
+
        if (trim(restart_file) /= 'none') then
 
           call NUOPC_CompAttributeGet(instance_driver, name="inst_suffix", isPresent=isPresent, rc=rc)
@@ -142,6 +144,8 @@ contains
           endif
 
           restart_pfile = trim(restart_file)//inst_suffix
+          write(6,*)'DEBUG: restart_pfile = ',restart_pfile
+
           if (mastertask) then
              call ESMF_LogWrite(trim(subname)//" read rpointer file = "//trim(restart_pfile), &
                   ESMF_LOGMSG_INFO)
@@ -165,10 +169,13 @@ contains
 
              call esm_time_read_restart(restart_file, start_ymd, start_tod, curr_ymd, curr_tod, rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+             write(6,*)'DEBUG: curr_ymd = ',curr_ymd
+             write(6,*)'DEBUG: curr_tod = ',curr_tod
+             tmp(1) = start_ymd ; tmp(2) = start_tod
+             tmp(3) = curr_ymd  ; tmp(4) = curr_tod
           endif
 
-          tmp(1) = start_ymd ; tmp(2) = start_tod
-          tmp(3) = curr_ymd  ; tmp(4) = curr_tod
           call ESMF_VMBroadcast(vm, tmp, 4, 0, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           start_ymd = tmp(1) ; start_tod = tmp(2)
