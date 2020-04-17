@@ -108,10 +108,11 @@
     <type>char</type>
     <category>expdef</category>
     <group>DRIVER_attributes</group>
-    <valid_values>cesm</valid_values>
+    <valid_values>cesm,ufs</valid_values>
     <desc>cime model</desc>
     <values>
       <value cime_model='cesm'>cesm</value>
+      <value cime_model='ufs'>ufs</value>
     </values>
   </entry>
 
