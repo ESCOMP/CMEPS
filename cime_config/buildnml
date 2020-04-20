@@ -255,6 +255,44 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     nmlgen.write_nuopc_config_file(nuopc_config_file, data_list_path=data_list_path) 
 
     #--------------------------------
+    # (3.1) Update nuopc.runconfig file if component needs it 
+    #--------------------------------
+
+    # Read nuopc.runconfig 
+    with open(nuopc_config_file, 'r') as f:
+        lines_cpl = f.readlines()
+
+    # Look for only active components except CPL
+    lines_comp = []
+    for comp in comps:
+        if comp != 'CPL' and case.get_value("COMP_{}".format(comp)) != 'd'+comp.lower():
+            # Read *.configure file for component
+            caseroot = case.get_value('CASEROOT')
+            comp_config_file = os.path.join(caseroot,"Buildconf","{}conf".format(case.get_value("COMP_{}".format(comp))),"{}.configure".format(case.get_value("COMP_{}".format(comp))))
+            if os.path.isfile(comp_config_file):
+                with open(comp_config_file, 'r') as f:
+                    lines_comp = f.readlines()
+
+            if lines_comp:
+                # Loop over nuopc.runconfig
+                lines_cpl_new = []
+                for line_cpl in lines_cpl:
+                    lines_cpl_new.append(line_cpl)
+                    # Query group name
+                    for line_comp in lines_comp:
+                        if "_attributes::" in line_comp:
+                            group_name = line_comp
+                        if group_name in line_cpl:
+                            if "::" in line_comp or not line_comp.strip():
+                                continue
+                            lines_cpl_new.append(line_comp)
+
+                # Write to a file
+                with open(nuopc_config_file, 'w') as f:
+                    for line in lines_cpl_new:
+                        f.write(line)
+
+    #--------------------------------
     # (4) Write nuopc.runseq
     #--------------------------------
     _create_runseq(case, coupling_times, valid_comps)
