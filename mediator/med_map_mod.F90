@@ -156,6 +156,7 @@ contains
              srcMaskValue = ispval_mask
              if (n1 == compocn .or. n1 == compice) srcMaskValue = 0
              if (n2 == compocn .or. n2 == compice) dstMaskValue = 0
+             if (n1 == compatm .and. (n2 == compocn .or. n2 == compice)) srcMaskValue = 1
           else if (coupling_mode(1:5) == 'nems_') then
              if (n1 == compatm .and. (n2 == compocn .or. n2 == compice)) then
                 srcMaskValue = 1
