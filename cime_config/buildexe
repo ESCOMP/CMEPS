@@ -37,6 +37,7 @@ def _main_func():
         ocn_model = case.get_value("COMP_OCN")
         atm_model = case.get_value("COMP_ATM")
         gmake_args = get_standard_makefile_args(case)
+        blddir = os.path.join(case.get_value("EXEROOT"),"cpl","obj")
 
     # Determine valid components
     valid_comps = []
@@ -68,7 +69,7 @@ def _main_func():
     gmake_args += " IAC_PRESENT=FALSE"
     expect((num_esp is None) or (int(num_esp) == 1), "ESP component restricted to one instance")
 
-    with open('Filepath', 'w') as out:
+    with open(os.path.join(blddir,'Filepath'), 'w') as out:
         if not skip_mediator:
             out.write(os.path.join(cimeroot, "src", "drivers", "nuopc", "mediator") + "\n")
         out.write(os.path.join(caseroot, "SourceMods", "src.drv") + "\n")
@@ -85,7 +86,7 @@ def _main_func():
     cmd = "{} exec_se -j {} EXEC_SE={} MODEL=driver {} -f {} "\
         .format(gmake, gmake_j, exename, gmake_args, makefile)
 
-    rc, out, err = run_cmd(cmd)
+    rc, out, err = run_cmd(cmd, from_dir=blddir)
     expect(rc==0,"Command {} failed rc={}\nout={}\nerr={}".format(cmd,rc,out,err))
     logger.info(out)
 
