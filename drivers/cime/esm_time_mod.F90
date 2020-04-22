@@ -16,8 +16,7 @@ module esm_time_mod
   use ESMF                , only : operator(-), operator(*) , operator(>=)
   use ESMF                , only : operator(<=), operator(>), operator(==)
   use NUOPC               , only : NUOPC_CompAttributeGet
-  use med_utils_mod       , only : chkerr => med_utils_ChkErr
-  use med_time_mod        , only : med_time_alarmInit
+  use esm_utils_mod       , only : chkerr
 
   implicit none
   private    ! default private
@@ -25,6 +24,7 @@ module esm_time_mod
   public  :: esm_time_clockInit  ! initialize driver clock (assumes default calendar)
 
   private :: esm_time_timeInit
+  private :: esm_time_alarmInit
   private :: esm_time_date2ymd
 
   ! Clock and alarm options
@@ -52,11 +52,12 @@ module esm_time_mod
 contains
 !===============================================================================
 
-  subroutine esm_time_clockInit(ensemble_driver, esmdriver, logunit, rc)
+  subroutine esm_time_clockInit(ensemble_driver, instance_driver, logunit, mastertask, rc)
 
     ! input/output variables
-    type(ESMF_GridComp)  :: ensemble_driver, esmdriver
+    type(ESMF_GridComp)  :: ensemble_driver, instance_driver
     integer, intent(in)  :: logunit
+    logical, intent(in)  :: mastertask
     integer, intent(out) :: rc
 
     ! local variables
@@ -66,8 +67,6 @@ contains
     type(ESMF_Time)         :: RefTime             ! Reference time
     type(ESMF_Time)         :: CurrTime            ! Current time
     type(ESMF_Time)         :: StopTime            ! Stop time
-    type(ESMF_Time)         :: StopTime1           ! Stop time
-    type(ESMF_Time)         :: StopTime2           ! Stop time
     type(ESMF_Time)         :: Clocktime           ! Loop time
     type(ESMF_TimeInterval) :: TimeStep            ! Clock time-step
     type(ESMF_Alarm)        :: alarm_stop          ! alarm
@@ -97,67 +96,56 @@ contains
     integer                 :: dtime_drv           ! time-step to use
     integer                 :: yr, mon, day, sec   ! Year, month, day, secs as integers
     integer                 :: localPet            ! local pet in esm domain
-    logical                 :: mastertask          ! true if mastertask in esm domain
     integer                 :: unitn               ! unit number
     integer                 :: ierr                ! Return code
     character(CL)           :: tmpstr              ! temporary
     character(CS)           :: inst_suffix
-    integer                 :: tmp(6)              ! Array for Broadcast
+    integer                 :: tmp(4)              ! Array for Broadcast
     logical                 :: isPresent
     character(len=*), parameter :: subname = '(esm_time_clockInit): '
     !-------------------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
 
-    call ESMF_GridCompGet(esmdriver, vm=vm, rc=rc)
+    call ESMF_GridCompGet(instance_driver, vm=vm, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    ! We may want to get the ensemble_driver vm here instead so that
-    ! files are read on global task 0 only instead of each esm member task 0
-    call ESMF_VMGet(vm, localPet=localPet, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    mastertask = localPet == 0
 
     !---------------------------------------------------------------------------
     ! Determine start time, reference time and current time
     !---------------------------------------------------------------------------
 
-    curr_ymd = 0
-    curr_tod = 0
-
-    call NUOPC_CompAttributeGet(esmdriver, name="start_ymd", value=cvalue, rc=rc)
+    call NUOPC_CompAttributeGet(instance_driver, name="start_ymd", value=cvalue, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     read(cvalue,*) start_ymd
-    call NUOPC_CompAttributeGet(esmdriver, name="start_tod", value=cvalue, rc=rc)
+    call NUOPC_CompAttributeGet(instance_driver, name="start_tod", value=cvalue, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     read(cvalue,*) start_tod
 
-    call NUOPC_CompAttributeGet(esmdriver, name="ref_ymd", value=cvalue, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) ref_ymd
-    call NUOPC_CompAttributeGet(esmdriver, name="ref_tod", value=cvalue, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) ref_tod
-
-    call NUOPC_CompAttributeGet(esmdriver, name='read_restart', value=cvalue, rc=rc)
+    call NUOPC_CompAttributeGet(instance_driver, name='read_restart', value=cvalue, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     read(cvalue,*) read_restart
 
     if (read_restart) then
-       call NUOPC_CompAttributeGet(esmdriver, name='restart_file', value=restart_file, rc=rc)
+
+       call NUOPC_CompAttributeGet(instance_driver, name='drv_restart_pointer', value=restart_file, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-       !--- read rpointer if restart_file is set to str_undefined ---
-       if (trim(restart_file) == 'str_undefined') then
-          call NUOPC_CompAttributeGet(esmdriver, name="inst_suffix", isPresent=isPresent, rc=rc)
+       write(6,*)'DEBUG: restart_file = ',trim(restart_file)
+
+       if (trim(restart_file) /= 'none') then
+
+          call NUOPC_CompAttributeGet(instance_driver, name="inst_suffix", isPresent=isPresent, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           if(isPresent) then
-             call NUOPC_CompAttributeGet(esmdriver, name="inst_suffix", value=inst_suffix, rc=rc)
+             call NUOPC_CompAttributeGet(instance_driver, name="inst_suffix", value=inst_suffix, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           else
              inst_suffix = ""
           endif
-          restart_pfile = "rpointer.cpl"//inst_suffix
+
+          restart_pfile = trim(restart_file)//inst_suffix
+          write(6,*)'DEBUG: restart_pfile = ',restart_pfile
+
           if (mastertask) then
              call ESMF_LogWrite(trim(subname)//" read rpointer file = "//trim(restart_pfile), &
                   ESMF_LOGMSG_INFO)
@@ -178,37 +166,39 @@ contains
              close(unitn)
              call ESMF_LogWrite(trim(subname)//" read driver restart from file = "//trim(restart_file), &
                   ESMF_LOGMSG_INFO)
-          endif
-       endif
-       if (mastertask) then
-          call esm_time_read_restart(restart_file, &
-               start_ymd, start_tod, ref_ymd, ref_tod, curr_ymd, curr_tod, rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       endif
-       tmp(1) = start_ymd
-       tmp(2) = start_tod
-       tmp(3) = ref_ymd
-       tmp(4) = ref_tod
-       tmp(5) = curr_ymd
-       tmp(6) = curr_tod
-       call ESMF_VMBroadcast(vm, tmp, 6, 0, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       start_ymd = tmp(1)
-       start_tod = tmp(2)
-       ref_ymd = tmp(3)
-       ref_tod = tmp(4)
-       curr_ymd = tmp(5)
-       curr_tod = tmp(6)
-    end if
 
-    if ( ref_ymd == 0 ) then
-       ref_ymd = start_ymd
-       ref_tod = start_tod
-    endif
-    if ( curr_ymd == 0 ) then
+             call esm_time_read_restart(restart_file, start_ymd, start_tod, curr_ymd, curr_tod, rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+             write(6,*)'DEBUG: curr_ymd = ',curr_ymd
+             write(6,*)'DEBUG: curr_tod = ',curr_tod
+             tmp(1) = start_ymd ; tmp(2) = start_tod
+             tmp(3) = curr_ymd  ; tmp(4) = curr_tod
+          endif
+
+          call ESMF_VMBroadcast(vm, tmp, 4, 0, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          start_ymd = tmp(1) ; start_tod = tmp(2)
+          curr_ymd  = tmp(3) ; curr_tod  = tmp(4)
+
+       else
+
+          if (mastertask) then
+             write(logunit,*) ' NOTE: the current compset has no mediator - which provides the clock restart information'
+             write(logunit,*) '   In this case the restarts are handled solely by the component being used and' 
+             write(logunit,*) '   and the driver clock will always be starting from the initial date on restart'
+          end if
+          curr_ymd = start_ymd
+          curr_tod = start_tod
+
+       end if
+
+    else
+
        curr_ymd = start_ymd
        curr_tod = start_tod
-    endif
+
+    end if ! end if read_restart
 
     ! Determine start time (THE FOLLOWING ASSUMES THAT THE DEFAULT CALENDAR IS SET in the driver)
 
@@ -225,20 +215,6 @@ contains
        write(logunit,*)   trim(subname)//': driver start_tod: '// trim(tmpstr)
     endif
 
-    ! Determine reference time
-    call esm_time_date2ymd(ref_ymd, yr, mon, day)
-    call ESMF_TimeSet( RefTime, yy=yr, mm=mon, dd=day, s=ref_tod, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    if(mastertask) then
-       write(tmpstr,'(i10)') ref_ymd
-       call ESMF_LogWrite(trim(subname)//': driver ref_ymd: '// trim(tmpstr), ESMF_LOGMSG_INFO)
-       write(logunit,*)   trim(subname)//': driver ref_ymd: '// trim(tmpstr)
-       write(tmpstr,'(i10)') ref_tod
-       call ESMF_LogWrite(trim(subname)//': driver ref_tod: '// trim(tmpstr), ESMF_LOGMSG_INFO)
-       write(logunit,*)   trim(subname)//': driver ref_tod: '// trim(tmpstr)
-    endif
-
     ! Determine current time
     call esm_time_date2ymd(curr_ymd, yr, mon, day)
     call ESMF_TimeSet( CurrTime, yy=yr, mm=mon, dd=day, s=curr_tod, rc=rc)
@@ -253,39 +229,46 @@ contains
        write(logunit,*)   trim(subname)//': driver curr_tod: '// trim(tmpstr)
     endif
 
+    ! Set reference time - HARD-CODED TO START TIME
+    ref_ymd = start_ymd
+    ref_tod = start_tod
+    call esm_time_date2ymd(ref_ymd, yr, mon, day)
+    call ESMF_TimeSet( RefTime, yy=yr, mm=mon, dd=day, s=ref_tod, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
     !---------------------------------------------------------------------------
     ! Determine driver clock timestep
     !---------------------------------------------------------------------------
 
-    call NUOPC_CompAttributeGet(esmdriver, name="atm_cpl_dt", value=cvalue, rc=rc)
+    call NUOPC_CompAttributeGet(instance_driver, name="atm_cpl_dt", value=cvalue, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     read(cvalue,*) atm_cpl_dt
 
-    call NUOPC_CompAttributeGet(esmdriver, name="lnd_cpl_dt", value=cvalue, rc=rc)
+    call NUOPC_CompAttributeGet(instance_driver, name="lnd_cpl_dt", value=cvalue, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     read(cvalue,*) lnd_cpl_dt
 
-    call NUOPC_CompAttributeGet(esmdriver, name="ice_cpl_dt", value=cvalue, rc=rc)
+    call NUOPC_CompAttributeGet(instance_driver, name="ice_cpl_dt", value=cvalue, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     read(cvalue,*) ice_cpl_dt
 
-    call NUOPC_CompAttributeGet(esmdriver, name="ocn_cpl_dt", value=cvalue, rc=rc)
+    call NUOPC_CompAttributeGet(instance_driver, name="ocn_cpl_dt", value=cvalue, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     read(cvalue,*) ocn_cpl_dt
 
-    call NUOPC_CompAttributeGet(esmdriver, name="glc_cpl_dt", value=cvalue, rc=rc)
+    call NUOPC_CompAttributeGet(instance_driver, name="glc_cpl_dt", value=cvalue, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     read(cvalue,*) glc_cpl_dt
 
-    call NUOPC_CompAttributeGet(esmdriver, name="rof_cpl_dt", value=cvalue, rc=rc)
+    call NUOPC_CompAttributeGet(instance_driver, name="rof_cpl_dt", value=cvalue, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     read(cvalue,*) rof_cpl_dt
 
-    call NUOPC_CompAttributeGet(esmdriver, name="wav_cpl_dt", value=cvalue, rc=rc)
+    call NUOPC_CompAttributeGet(instance_driver, name="wav_cpl_dt", value=cvalue, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     read(cvalue,*) wav_cpl_dt
 
-    call NUOPC_CompAttributeGet(esmdriver, name="glc_avg_period", value=glc_avg_period, rc=rc)
+    call NUOPC_CompAttributeGet(instance_driver, name="glc_avg_period", value=glc_avg_period, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     read(cvalue,*) glc_avg_period
 
@@ -299,7 +282,7 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !---------------------------------------------------------------------------
-    ! Create the driver clock with an artificial stop time
+    ! Create an instance_driver clock
     !---------------------------------------------------------------------------
 
     ! Create the clock
@@ -316,20 +299,20 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end do
 
-    ! Set the driver gridded component clock to the created clock
-    call ESMF_GridCompSet(esmdriver, clock=clock, rc=rc)
+    ! Set the ensemble driver gridded component clock to the created clock
+    call ESMF_GridCompSet(instance_driver, clock=clock, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! Set driver clock stop time
-    call NUOPC_CompAttributeGet(esmdriver, name="stop_option", value=stop_option, rc=rc)
+    call NUOPC_CompAttributeGet(instance_driver, name="stop_option", value=stop_option, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompAttributeGet(esmdriver, name="stop_n", value=cvalue, rc=rc)
+    call NUOPC_CompAttributeGet(instance_driver, name="stop_n", value=cvalue, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     read(cvalue,*) stop_n
-    call NUOPC_CompAttributeGet(esmdriver, name="stop_ymd", value=cvalue, rc=rc)
+    call NUOPC_CompAttributeGet(instance_driver, name="stop_ymd", value=cvalue, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     read(cvalue,*) stop_ymd
-    call NUOPC_CompAttributeGet(esmdriver, name="stop_tod", value=cvalue, rc=rc)
+    call NUOPC_CompAttributeGet(instance_driver, name="stop_tod", value=cvalue, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     read(cvalue,*) stop_tod
     if ( stop_ymd < 0) then
@@ -346,7 +329,7 @@ contains
        write(logunit,*)   trim(subname)//': driver stop_tod: '// trim(tmpstr)
     endif
 
-    call med_time_alarmInit(clock, &
+    call esm_time_alarmInit(clock, &
          alarm   = alarm_stop,           &
          option  = stop_option,          &
          opt_n   = stop_n,               &
@@ -364,16 +347,214 @@ contains
 
     !---------------------------------------------------------------------------
     ! Create the ensemble driver clock
+    ! TODO: this is done repeatedly - but only needs to be done the first time this is called
     !---------------------------------------------------------------------------
 
     TimeStep = StopTime - ClockTime
     clock = ESMF_ClockCreate(TimeStep, ClockTime, StopTime=StopTime, &
          refTime=RefTime, name='ESMF ensemble Driver Clock', rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
     call ESMF_GridCompSet(ensemble_driver, clock=clock, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
  end subroutine esm_time_clockInit
+
+ !===============================================================================
+
+ subroutine esm_time_alarmInit( clock, alarm, option, &
+      opt_n, opt_ymd, opt_tod, RefTime, alarmname, rc)
+
+   ! Setup an alarm in a clock
+   ! Notes: The ringtime sent to AlarmCreate MUST be the next alarm
+   ! time.  If you send an arbitrary but proper ringtime from the
+   ! past and the ring interval, the alarm will always go off on the
+   ! next clock advance and this will cause serious problems.  Even
+   ! if it makes sense to initialize an alarm with some reference
+   ! time and the alarm interval, that reference time has to be
+   ! advance forward to be >= the current time.  In the logic below
+   ! we set an appropriate "NextAlarm" and then we make sure to
+   ! advance it properly based on the ring interval.
+
+   ! input/output variables
+   type(ESMF_Clock)            , intent(inout) :: clock     ! clock
+   type(ESMF_Alarm)            , intent(inout) :: alarm     ! alarm
+   character(len=*)            , intent(in)    :: option    ! alarm option
+   integer          , optional , intent(in)    :: opt_n     ! alarm freq
+   integer          , optional , intent(in)    :: opt_ymd   ! alarm ymd
+   integer          , optional , intent(in)    :: opt_tod   ! alarm tod (sec)
+   type(ESMF_Time)  , optional , intent(in)    :: RefTime   ! ref time
+   character(len=*) , optional , intent(in)    :: alarmname ! alarm name
+   integer                     , intent(inout) :: rc        ! Return code
+
+   ! local variables
+   type(ESMF_Calendar)     :: cal              ! calendar
+   integer                 :: lymd             ! local ymd
+   integer                 :: ltod             ! local tod
+   integer                 :: cyy,cmm,cdd,csec ! time info
+   character(len=64)       :: lalarmname       ! local alarm name
+   logical                 :: update_nextalarm ! update next alarm
+   type(ESMF_Time)         :: CurrTime         ! Current Time
+   type(ESMF_Time)         :: NextAlarm        ! Next restart alarm time
+   type(ESMF_TimeInterval) :: AlarmInterval    ! Alarm interval
+   integer                 :: sec
+   character(len=*), parameter :: subname = '(med_time_alarmInit): '
+   !-------------------------------------------------------------------------------
+
+   rc = ESMF_SUCCESS
+
+   lalarmname = 'alarm_unknown'
+   if (present(alarmname)) lalarmname = trim(alarmname)
+   ltod = 0
+   if (present(opt_tod)) ltod = opt_tod
+   lymd = -1
+   if (present(opt_ymd)) lymd = opt_ymd
+
+   call ESMF_ClockGet(clock, CurrTime=CurrTime, rc=rc)
+   if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+   call ESMF_TimeGet(CurrTime, yy=cyy, mm=cmm, dd=cdd, s=csec, rc=rc )
+   if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+   ! initial guess of next alarm, this will be updated below
+   if (present(RefTime)) then
+      NextAlarm = RefTime
+   else
+      NextAlarm = CurrTime
+   endif
+
+   ! Get calendar from clock
+   call ESMF_ClockGet(clock, calendar=cal)
+
+   ! Error checks
+   if (trim(option) == optdate) then
+      if (.not. present(opt_ymd)) then
+         call ESMF_LogWrite(trim(subname)//trim(option)//' requires opt_ymd', ESMF_LOGMSG_INFO)
+         rc = ESMF_FAILURE
+         return
+      end if
+      if (lymd < 0 .or. ltod < 0) then
+         call ESMF_LogWrite(subname//trim(option)//'opt_ymd, opt_tod invalid', ESMF_LOGMSG_INFO)
+         rc = ESMF_FAILURE
+         return
+      end if
+   else if (trim(option) == optNSteps   .or. &
+        trim(option) == optNSeconds .or. &
+        trim(option) == optNMinutes .or. &
+        trim(option) == optNHours   .or. &
+        trim(option) == optNDays    .or. &
+        trim(option) == optNMonths  .or. &
+        trim(option) == optNYears) then
+      if (.not.present(opt_n)) then
+         call ESMF_LogWrite(subname//trim(option)//' requires opt_n', ESMF_LOGMSG_INFO)
+         rc = ESMF_FAILURE
+         return
+      end if
+      if (opt_n <= 0) then
+         call ESMF_LogWrite(subname//trim(option)//' invalid opt_n', ESMF_LOGMSG_INFO)
+         rc = ESMF_FAILURE
+         return
+      end if
+   end if
+
+   ! Determine inputs for call to create alarm
+   selectcase (trim(option))
+
+   case (optNONE)
+      call ESMF_TimeIntervalSet(AlarmInterval, yy=9999, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      call ESMF_TimeSet( NextAlarm, yy=9999, mm=12, dd=1, s=0, calendar=cal, rc=rc )
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      update_nextalarm  = .false.
+
+   case (optNever)
+      call ESMF_TimeIntervalSet(AlarmInterval, yy=9999, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      call ESMF_TimeSet( NextAlarm, yy=9999, mm=12, dd=1, s=0, calendar=cal, rc=rc )
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      update_nextalarm  = .false.
+
+   case (optNSteps)
+      call ESMF_ClockGet(clock, TimeStep=AlarmInterval, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      AlarmInterval = AlarmInterval * opt_n
+      update_nextalarm  = .true.
+
+   case (optNSeconds)
+      call ESMF_TimeIntervalSet(AlarmInterval, s=1, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      AlarmInterval = AlarmInterval * opt_n
+      update_nextalarm  = .true.
+
+   case (optNMinutes)
+      call ESMF_TimeIntervalSet(AlarmInterval, s=60, rc=rc)
+      AlarmInterval = AlarmInterval * opt_n
+      update_nextalarm  = .true.
+
+   case (optNHours)
+      call ESMF_TimeIntervalSet(AlarmInterval, s=3600, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      AlarmInterval = AlarmInterval * opt_n
+      update_nextalarm  = .true.
+
+   case (optNDays)
+      call ESMF_TimeIntervalSet(AlarmInterval, d=1, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      AlarmInterval = AlarmInterval * opt_n
+      update_nextalarm  = .true.
+
+   case (optNMonths)
+      call ESMF_TimeIntervalSet(AlarmInterval, mm=1, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      AlarmInterval = AlarmInterval * opt_n
+      update_nextalarm  = .true.
+
+   case (optMonthly)
+      call ESMF_TimeIntervalSet(AlarmInterval, mm=1, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      call ESMF_TimeSet( NextAlarm, yy=cyy, mm=cmm, dd=1, s=0, calendar=cal, rc=rc )
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      update_nextalarm  = .true.
+
+   case (optNYears)
+      call ESMF_TimeIntervalSet(AlarmInterval, yy=1, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      AlarmInterval = AlarmInterval * opt_n
+      update_nextalarm  = .true.
+
+   case (optYearly)
+      call ESMF_TimeIntervalSet(AlarmInterval, yy=1, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      call ESMF_TimeSet( NextAlarm, yy=cyy, mm=1, dd=1, s=0, calendar=cal, rc=rc )
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      update_nextalarm  = .true.
+
+   case default
+      call ESMF_LogWrite(subname//'unknown option '//trim(option), ESMF_LOGMSG_INFO)
+      rc = ESMF_FAILURE
+      return
+
+   end select
+
+   ! --------------------------------------------------------------------------------
+   ! --- AlarmInterval and NextAlarm should be set ---
+   ! --------------------------------------------------------------------------------
+
+   ! --- advance Next Alarm so it won't ring on first timestep for
+   ! --- most options above. go back one alarminterval just to be careful
+
+   if (update_nextalarm) then
+      NextAlarm = NextAlarm - AlarmInterval
+      do while (NextAlarm <= CurrTime)
+         NextAlarm = NextAlarm + AlarmInterval
+      enddo
+   endif
+
+   alarm = ESMF_AlarmCreate( name=lalarmname, clock=clock, ringTime=NextAlarm, &
+        ringInterval=AlarmInterval, rc=rc)
+   if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+ end subroutine esm_time_alarmInit
 
  !===============================================================================
 
@@ -446,8 +627,7 @@ contains
 
  !===============================================================================
 
- subroutine esm_time_read_restart(restart_file, &
-      start_ymd, start_tod, ref_ymd, ref_tod, curr_ymd, curr_tod, rc)
+ subroutine esm_time_read_restart(restart_file, start_ymd, start_tod, curr_ymd, curr_tod, rc)
 
    use netcdf , only : nf90_open, nf90_nowrite, nf90_noerr
    use netcdf , only : nf90_inq_varid, nf90_get_var, nf90_close
@@ -455,8 +635,6 @@ contains
 
    ! input/output variables
    character(len=*), intent(in) :: restart_file
-   integer, intent(out)         :: ref_ymd             ! Reference date (YYYYMMDD)
-   integer, intent(out)         :: ref_tod             ! Reference time of day (seconds)
    integer, intent(out)         :: start_ymd           ! Start date (YYYYMMDD)
    integer, intent(out)         :: start_tod           ! Start time of day (seconds)
    integer, intent(out)         :: curr_ymd            ! Current ymd (YYYYMMDD)
@@ -477,6 +655,7 @@ contains
       rc = ESMF_FAILURE
       return
    endif
+
    status = nf90_inq_varid(ncid, 'start_ymd', varid)
    if (status /= nf90_NoErr) then
       call ESMF_LogWrite(trim(subname)//' ERROR: nf90_inq_varid start_ymd', ESMF_LOGMSG_INFO)
@@ -489,6 +668,7 @@ contains
       rc = ESMF_FAILURE
       return
    end if
+
    status = nf90_inq_varid(ncid, 'start_tod', varid)
    if (status /= nf90_NoErr) then
       call ESMF_LogWrite(trim(subname)//' ERROR: nf90_inq_varid start_tod', ESMF_LOGMSG_INFO)
@@ -501,30 +681,7 @@ contains
       rc = ESMF_FAILURE
       return
    end if
-   status = nf90_inq_varid(ncid, 'ref_ymd', varid)
-   if (status /= nf90_NoErr) then
-      call ESMF_LogWrite(trim(subname)//' ERROR: nf90_inq_varid ref_ymd', ESMF_LOGMSG_INFO)
-      rc = ESMF_FAILURE
-      return
-   end if
-   status = nf90_get_var(ncid, varid, ref_ymd)
-   if (status /= nf90_NoErr) then
-      call ESMF_LogWrite(trim(subname)//' ERROR: nf90_get_var ref_ymd', ESMF_LOGMSG_INFO)
-      rc = ESMF_FAILURE
-      return
-   end if
-   status = nf90_inq_varid(ncid, 'ref_tod', varid)
-   if (status /= nf90_NoErr) then
-      call ESMF_LogWrite(trim(subname)//' ERROR: nf90_inq_varid ref_tod', ESMF_LOGMSG_INFO)
-      rc = ESMF_FAILURE
-      return
-   end if
-   status = nf90_get_var(ncid, varid, ref_tod)
-   if (status /= nf90_NoErr) then
-      call ESMF_LogWrite(trim(subname)//' ERROR: nf90_get_var ref_tod', ESMF_LOGMSG_INFO)
-      rc = ESMF_FAILURE
-      return
-   end if
+
    status = nf90_inq_varid(ncid, 'curr_ymd', varid)
    if (status /= nf90_NoErr) then
       call ESMF_LogWrite(trim(subname)//' ERROR: nf90_inq_varid curr_ymd', ESMF_LOGMSG_INFO)
@@ -537,6 +694,7 @@ contains
       rc = ESMF_FAILURE
       return
    end if
+
    status = nf90_inq_varid(ncid, 'curr_tod', varid)
    if (status /= nf90_NoErr) then
       call ESMF_LogWrite(trim(subname)//' ERROR: nf90_inq_varid curr_tod', ESMF_LOGMSG_INFO)
@@ -549,6 +707,7 @@ contains
       rc = ESMF_FAILURE
       return
    end if
+
    status = nf90_close(ncid)
    if (status /= nf90_NoErr) then
       call ESMF_LogWrite(trim(subname)//' ERROR: nf90_close', ESMF_LOGMSG_INFO)
@@ -558,14 +717,13 @@ contains
 
    write(tmpstr,*) trim(subname)//" read start_ymd = ",start_ymd
    call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
+
    write(tmpstr,*) trim(subname)//" read start_tod = ",start_tod
    call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
-   write(tmpstr,*) trim(subname)//" read ref_ymd   = ",ref_ymd
-   call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
-   write(tmpstr,*) trim(subname)//" read ref_tod   = ",ref_tod
-   call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
+
    write(tmpstr,*) trim(subname)//" read curr_ymd  = ",curr_ymd
    call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
+
    write(tmpstr,*) trim(subname)//" read curr_tod  = ",curr_tod
    call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
 

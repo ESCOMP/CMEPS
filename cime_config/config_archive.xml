@@ -4,7 +4,7 @@
     <hist_file_extension>hi?\d*.*\.nc$</hist_file_extension>
     <rest_history_varname>unset</rest_history_varname>
     <rpointer>
-      <rpointer_file>rpointer$NINST_STRING.drv</rpointer_file>
+      <rpointer_file>rpointer.cpl$NINST_STRING</rpointer_file>
       <rpointer_content >$CASE.cpl$NINST_STRING.r.$DATENAME.nc</rpointer_content>
     </rpointer>
     <test_file_names>

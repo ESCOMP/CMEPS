@@ -251,6 +251,7 @@ contains
     real(R8), parameter     :: albdir = 0.07_r8 ! 60 deg reference albedo, direct
     real(R8), parameter     :: const_deg2rad = shr_const_pi/180.0_R8  ! deg to rads
     integer                 :: dbrc
+    character(CL)           :: msg
     logical                 :: first_call = .true.
     character(len=*)  , parameter :: subname='(med_phases_ocnalb_run)'
     !---------------------------------------
@@ -379,6 +380,9 @@ contains
     else
        ! Solar declination
        ! Will only do albedo calculation if nextsw_cday is not -1.
+       write(msg,*)trim(subname)//' nextsw_cday = ',nextsw_cday
+       call ESMF_LogWrite(trim(msg), ESMF_LOGMSG_INFO) 
+
        if (nextsw_cday >= -0.5_r8) then
           call shr_orb_decl(nextsw_cday, eccen, mvelpp,lambm0, obliqr, delta, eccf)
 

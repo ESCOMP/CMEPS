@@ -139,18 +139,18 @@
     </values>
   </entry>
 
-  <entry id="bfbflag" modify_via_xml="BFBFLAG">
-    <type>logical</type>
-    <category>expdef</category>
-    <group>DRIVER_attributes</group>
-    <desc>
-      turns on bfb option in coupler which produce bfb results in the
-      coupler on different processor counts.  (default: .false.)
-    </desc>
-    <values>
-      <value>$BFBFLAG</value>
-    </values>
-  </entry>
+  <!-- <entry id="bfbflag" modify_via_xml="BFBFLAG"> -->
+  <!--   <type>logical</type> -->
+  <!--   <category>expdef</category> -->
+  <!--   <group>DRIVER_attributes</group> -->
+  <!--   <desc> -->
+  <!--     turns on bfb option in coupler which produce bfb results in the -->
+  <!--     coupler on different processor counts.  (default: .false.) -->
+  <!--   </desc> -->
+  <!--   <values> -->
+  <!--     <value>$BFBFLAG</value> -->
+  <!--   </values> -->
+  <!-- </entry> -->
 
   <entry id="wall_time_limit">
     <type>real</type>
@@ -300,6 +300,18 @@
     </desc>
     <values>
       <value>ATM OCN ICE LND ROF GLC WAV MED</value>
+    </values>
+  </entry>
+
+ <entry id="drv_restart_pointer">
+    <type>char</type>
+    <category>expdef</category>
+    <group>DRIVER_attributes</group>
+    <desc>
+      Driver restart pointer file to initialize time info
+    </desc>
+    <values>
+      <value>rpointer.cpl</value>
     </values>
   </entry>
 
@@ -533,6 +545,16 @@
     <values>
       <value>$COMP_WAV</value>
     </values>
+  </entry>
+
+  <entry id="mediator_present">
+    <type>logical</type>
+    <category>nuopc</category>
+    <group>ALLCOMP_attributes</group>
+    <values>
+      <value>true</value>
+    </values>
+    <desc>if true, mediator is present in run </desc>
   </entry>
 
   <entry id="model_version">
@@ -1140,29 +1162,6 @@
       <value>0</value>
     </values>
   </entry>
- <entry id="restart_pfile">
-    <type>char</type>
-    <category>expdef</category>
-    <group>MED_attributes</group>
-    <desc>
-      Mediator restart pointer file.
-    </desc>
-    <values>
-      <value>rpointer.cpl</value>
-    </values>
-  </entry>
-
-  <entry id="restart_file">
-    <type>char</type>
-    <category>expdef</category>
-    <group>MED_attributes</group>
-    <desc>
-      Full archive path to restart file for mediator
-    </desc>
-    <values>
-      <value>str_undefined</value>
-    </values>
-  </entry>
 
   <entry id="budget_month">
     <type>integer</type>
@@ -1249,7 +1248,7 @@
   <entry id="do_histinit">
     <type>logical</type>
     <category>history</category>
-    <group>MED_history_attributes</group>
+    <group>MED_attributes</group>
     <desc>
       logical to write an extra initial coupler history file
     </desc>
@@ -1258,301 +1257,301 @@
     </values>
   </entry>
 
-  <entry id="histavg_atm">
-    <type>logical</type>
-    <category>history</category>
-    <group>MED_history_attributes</group>
-    <desc>
-      writes atm fields in coupler average history files.
-      default: true
-    </desc>
-    <values>
-	<value>.true.</value>
-    </values>
-  </entry>
+  <!-- <entry id="histavg_atm"> -->
+  <!--   <type>logical</type> -->
+  <!--   <category>history</category> -->
+  <!--   <group>MED_attributes</group> -->
+  <!--   <desc> -->
+  <!--     writes atm fields in coupler average history files. -->
+  <!--     default: true -->
+  <!--   </desc> -->
+  <!--   <values> -->
+  <!-- 	<value>.true.</value> -->
+  <!--   </values> -->
+  <!-- </entry> -->
 
-  <entry id="histavg_lnd">
-    <type>logical</type>
-    <category>history</category>
-    <group>MED_history_attributes</group>
-    <desc>
-      writes lnd fields in coupler average history files.
-      default: true
-    </desc>
-    <values>
-      <value>.true.</value>
-    </values>
-  </entry>
+  <!-- <entry id="histavg_lnd"> -->
+  <!--   <type>logical</type> -->
+  <!--   <category>history</category> -->
+  <!--   <group>MED_attributes</group> -->
+  <!--   <desc> -->
+  <!--     writes lnd fields in coupler average history files. -->
+  <!--     default: true -->
+  <!--   </desc> -->
+  <!--   <values> -->
+  <!--     <value>.true.</value> -->
+  <!--   </values> -->
+  <!-- </entry> -->
 
-  <entry id="histavg_ocn">
-    <type>logical</type>
-    <category>history</category>
-    <group>MED_history_attributes</group>
-    <desc>
-      writes ocn fields in coupler average history files.
-      default: true
-    </desc>
-    <values>
-      <value>.true.</value>
-    </values>
-  </entry>
+  <!-- <entry id="histavg_ocn"> -->
+  <!--   <type>logical</type> -->
+  <!--   <category>history</category> -->
+  <!--   <group>MED_attributes</group> -->
+  <!--   <desc> -->
+  <!--     writes ocn fields in coupler average history files. -->
+  <!--     default: true -->
+  <!--   </desc> -->
+  <!--   <values> -->
+  <!--     <value>.true.</value> -->
+  <!--   </values> -->
+  <!-- </entry> -->
 
-  <entry id="histavg_ice">
-    <type>logical</type>
-    <category>history</category>
-    <group>MED_history_attributes</group>
-    <desc>
-      writes ice fields in coupler average history files.
-      default: true
-    </desc>
-    <values>
-      <value>.true.</value>
-    </values>
-  </entry>
+  <!-- <entry id="histavg_ice"> -->
+  <!--   <type>logical</type> -->
+  <!--   <category>history</category> -->
+  <!--   <group>MED_attributes</group> -->
+  <!--   <desc> -->
+  <!--     writes ice fields in coupler average history files. -->
+  <!--     default: true -->
+  <!--   </desc> -->
+  <!--   <values> -->
+  <!--     <value>.true.</value> -->
+  <!--   </values> -->
+  <!-- </entry> -->
 
-  <entry id="histavg_rof">
-    <type>logical</type>
-    <category>history</category>
-    <group>MED_history_attributes</group>
-    <desc>
-      writes rof fields in coupler average history files.
-      default: true
-    </desc>
-    <values>
-      <value>.true.</value>
-    </values>
-  </entry>
+  <!-- <entry id="histavg_rof"> -->
+  <!--   <type>logical</type> -->
+  <!--   <category>history</category> -->
+  <!--   <group>MED_attributes</group> -->
+  <!--   <desc> -->
+  <!--     writes rof fields in coupler average history files. -->
+  <!--     default: true -->
+  <!--   </desc> -->
+  <!--   <values> -->
+  <!--     <value>.true.</value> -->
+  <!--   </values> -->
+  <!-- </entry> -->
 
-  <entry id="histavg_glc">
-    <type>logical</type>
-    <category>history</category>
-    <group>MED_history_attributes</group>
-    <desc>
-      writes glc fields in coupler average history files.
-      default: true
-    </desc>
-    <values>
-      <value>.true.</value>
-    </values>
-  </entry>
+  <!-- <entry id="histavg_glc"> -->
+  <!--   <type>logical</type> -->
+  <!--   <category>history</category> -->
+  <!--   <group>MED_attributes</group> -->
+  <!--   <desc> -->
+  <!--     writes glc fields in coupler average history files. -->
+  <!--     default: true -->
+  <!--   </desc> -->
+  <!--   <values> -->
+  <!--     <value>.true.</value> -->
+  <!--   </values> -->
+  <!-- </entry> -->
 
-  <entry id="histavg_wav">
-    <type>logical</type>
-    <category>history</category>
-    <group>MED_history_attributes</group>
-    <desc>
-      writes wav fields in coupler average history files.
-      default: true
-    </desc>
-    <values>
-      <value>.true.</value>
-    </values>
-  </entry>
+  <!-- <entry id="histavg_wav"> -->
+  <!--   <type>logical</type> -->
+  <!--   <category>history</category> -->
+  <!--   <group>MED_attributes</group> -->
+  <!--   <desc> -->
+  <!--     writes wav fields in coupler average history files. -->
+  <!--     default: true -->
+  <!--   </desc> -->
+  <!--   <values> -->
+  <!--     <value>.true.</value> -->
+  <!--   </values> -->
+  <!-- </entry> -->
 
-  <entry id="histavg_xao">
-    <type>logical</type>
-    <category>history</category>
-    <group>MED_history_attributes</group>
-    <desc>
-      writes xao fields in coupler average history files.
-      default: true
-    </desc>
-    <values>
-      <value>.true.</value>
-    </values>
-  </entry>
+  <!-- <entry id="histavg_xao"> -->
+  <!--   <type>logical</type> -->
+  <!--   <category>history</category> -->
+  <!--   <group>MED_attributes</group> -->
+  <!--   <desc> -->
+  <!--     writes xao fields in coupler average history files. -->
+  <!--     default: true -->
+  <!--   </desc> -->
+  <!--   <values> -->
+  <!--     <value>.true.</value> -->
+  <!--   </values> -->
+  <!-- </entry> -->
 
-  <entry id="histaux_a2x">
-    <type>logical</type>
-    <category>history</category>
-    <group>MED_history_attributes</group>
-    <desc>
-      turns on coupler history stream for instantaneous atm to coupler fields.
-      default: false
-    </desc>
-    <values>
-      <value>.false.</value>
-    </values>
-  </entry>
+  <!-- <entry id="histaux_a2x"> -->
+  <!--   <type>logical</type> -->
+  <!--   <category>history</category> -->
+  <!--   <group>MED_attributes</group> -->
+  <!--   <desc> -->
+  <!--     turns on coupler history stream for instantaneous atm to coupler fields. -->
+  <!--     default: false -->
+  <!--   </desc> -->
+  <!--   <values> -->
+  <!--     <value>.false.</value> -->
+  <!--   </values> -->
+  <!-- </entry> -->
 
-  <entry id="histaux_a2x1hr">
-    <type>logical</type>
-    <category>history</category>
-    <group>MED_history_attributes</group>
-    <desc>
-      turns on coupler history stream for 1-hour average atm to coupler fields.
-      default: false
-    </desc>
-    <values>
-      <value>.false.</value>
-    </values>
-  </entry>
+  <!-- <entry id="histaux_a2x1hr"> -->
+  <!--   <type>logical</type> -->
+  <!--   <category>history</category> -->
+  <!--   <group>MED_attributes</group> -->
+  <!--   <desc> -->
+  <!--     turns on coupler history stream for 1-hour average atm to coupler fields. -->
+  <!--     default: false -->
+  <!--   </desc> -->
+  <!--   <values> -->
+  <!--     <value>.false.</value> -->
+  <!--   </values> -->
+  <!-- </entry> -->
 
-  <entry id="histaux_a2x1hri">
-    <type>logical</type>
-    <category>history</category>
-    <group>MED_history_attributes</group>
-    <desc>
-      turns on coupler history stream for 1-hour instantaneous atm to coupler fields.
-      default: false
-    </desc>
-    <values>
-      <value>.false.</value>
-    </values>
-  </entry>
+  <!-- <entry id="histaux_a2x1hri"> -->
+  <!--   <type>logical</type> -->
+  <!--   <category>history</category> -->
+  <!--   <group>MED_attributes</group> -->
+  <!--   <desc> -->
+  <!--     turns on coupler history stream for 1-hour instantaneous atm to coupler fields. -->
+  <!--     default: false -->
+  <!--   </desc> -->
+  <!--   <values> -->
+  <!--     <value>.false.</value> -->
+  <!--   </values> -->
+  <!-- </entry> -->
 
-  <entry id="histaux_a2x3hr">
-    <type>logical</type>
-    <category>history</category>
-    <group>MED_history_attributes</group>
-    <desc>
-      turns on coupler history stream for 3-hour average atm to coupler fields.
-      default: false
-    </desc>
-    <values>
-      <value>.false.</value>
-    </values>
-  </entry>
+  <!-- <entry id="histaux_a2x3hr"> -->
+  <!--   <type>logical</type> -->
+  <!--   <category>history</category> -->
+  <!--   <group>MED_attributes</group> -->
+  <!--   <desc> -->
+  <!--     turns on coupler history stream for 3-hour average atm to coupler fields. -->
+  <!--     default: false -->
+  <!--   </desc> -->
+  <!--   <values> -->
+  <!--     <value>.false.</value> -->
+  <!--   </values> -->
+  <!-- </entry> -->
 
-  <entry id="histaux_a2x3hrp">
-    <type>logical</type>
-    <category>history</category>
-    <group>MED_history_attributes</group>
-    <desc>
-      turns on coupler history stream for 3-hour average atm to coupler precip fields.
-      default: false
-    </desc>
-    <values>
-      <value>.false.</value>
-    </values>
-  </entry>
+  <!-- <entry id="histaux_a2x3hrp"> -->
+  <!--   <type>logical</type> -->
+  <!--   <category>history</category> -->
+  <!--   <group>MED_attributes</group> -->
+  <!--   <desc> -->
+  <!--     turns on coupler history stream for 3-hour average atm to coupler precip fields. -->
+  <!--     default: false -->
+  <!--   </desc> -->
+  <!--   <values> -->
+  <!--     <value>.false.</value> -->
+  <!--   </values> -->
+  <!-- </entry> -->
 
-  <entry id="histaux_a2x24hr">
-    <type>logical</type>
-    <category>history</category>
-    <group>MED_history_attributes</group>
-    <desc>
-      turns on coupler history stream for daily average atm to coupler fields.
-      default: false
-    </desc>
-    <values>
-      <value>.false.</value>
-    </values>
-  </entry>
+  <!-- <entry id="histaux_a2x24hr"> -->
+  <!--   <type>logical</type> -->
+  <!--   <category>history</category> -->
+  <!--   <group>MED_attributes</group> -->
+  <!--   <desc> -->
+  <!--     turns on coupler history stream for daily average atm to coupler fields. -->
+  <!--     default: false -->
+  <!--   </desc> -->
+  <!--   <values> -->
+  <!--     <value>.false.</value> -->
+  <!--   </values> -->
+  <!-- </entry> -->
 
-  <entry id="histaux_l2x">
-    <type>logical</type>
-    <category>history</category>
-    <group>MED_history_attributes</group>
-    <desc>
-      turns on coupler history stream for instantaneous land to coupler fields.
-      default: false
-    </desc>
-    <values>
-      <value>.false.</value>
-    </values>
-  </entry>
+  <!-- <entry id="histaux_l2x"> -->
+  <!--   <type>logical</type> -->
+  <!--   <category>history</category> -->
+  <!--   <group>MED_attributes</group> -->
+  <!--   <desc> -->
+  <!--     turns on coupler history stream for instantaneous land to coupler fields. -->
+  <!--     default: false -->
+  <!--   </desc> -->
+  <!--   <values> -->
+  <!--     <value>.false.</value> -->
+  <!--   </values> -->
+  <!-- </entry> -->
 
-  <entry id="histaux_r2x">
-    <type>logical</type>
-    <category>history</category>
-    <group>MED_history_attributes</group>
-    <desc>
-      turns on coupler history stream for instantaneous runoff to coupler fields.
-      default: false
-    </desc>
-    <values>
-      <value>.false.</value>
-    </values>
-  </entry>
+  <!-- <entry id="histaux_r2x"> -->
+  <!--   <type>logical</type> -->
+  <!--   <category>history</category> -->
+  <!--   <group>MED_attributes</group> -->
+  <!--   <desc> -->
+  <!--     turns on coupler history stream for instantaneous runoff to coupler fields. -->
+  <!--     default: false -->
+  <!--   </desc> -->
+  <!--   <values> -->
+  <!--     <value>.false.</value> -->
+  <!--   </values> -->
+  <!-- </entry> -->
 
-  <entry id="histaux_l2x1yr">
-    <type>logical</type>
-    <category>history</category>
-    <group>MED_history_attributes</group>
-    <desc>
-      turns on coupler history stream for annual sno to coupler fields.
-      default: false
-    </desc>
-    <values>
-      <value>.false.</value>
-    </values>
-  </entry>
+  <!-- <entry id="histaux_l2x1yr"> -->
+  <!--   <type>logical</type> -->
+  <!--   <category>history</category> -->
+  <!--   <group>MED_attributes</group> -->
+  <!--   <desc> -->
+  <!--     turns on coupler history stream for annual sno to coupler fields. -->
+  <!--     default: false -->
+  <!--   </desc> -->
+  <!--   <values> -->
+  <!--     <value>.false.</value> -->
+  <!--   </values> -->
+  <!-- </entry> -->
 
-  <entry id="hist_a2x_flds">
-    <type>char</type>
-    <category>aux_hist</category>
-    <group>MED_history_attributes</group>
-    <desc>
-      Auxiliary coupler a2x history fields
-    </desc>
-    <values>
-      <value>Faxa_swndr:Faxa_swvdr:Faxa_swndf:Faxa_swvdf</value>
-    </values>
-  </entry>
+  <!-- <entry id="hist_a2x_flds"> -->
+  <!--   <type>char</type> -->
+  <!--   <category>aux_hist</category> -->
+  <!--   <group>MED_attributes</group> -->
+  <!--   <desc> -->
+  <!--     Auxiliary coupler a2x history fields -->
+  <!--   </desc> -->
+  <!--   <values> -->
+  <!--     <value>Faxa_swndr:Faxa_swvdr:Faxa_swndf:Faxa_swvdf</value> -->
+  <!--   </values> -->
+  <!-- </entry> -->
 
-  <entry id="hist_a2x3hrp_flds">
-    <type>char</type>
-    <category>aux_hist</category>
-    <group>MED_history_attributes</group>
-    <desc>
-      Auxiliary coupler a2x precipitation history output every 3 hours
-    </desc>
-    <values>
-      <value>Faxa_rainc:Faxa_rainl:Faxa_snowc:Faxa_snowl</value>
-    </values>
-  </entry>
+  <!-- <entry id="hist_a2x3hrp_flds"> -->
+  <!--   <type>char</type> -->
+  <!--   <category>aux_hist</category> -->
+  <!--   <group>MED_attributes</group> -->
+  <!--   <desc> -->
+  <!--     Auxiliary coupler a2x precipitation history output every 3 hours -->
+  <!--   </desc> -->
+  <!--   <values> -->
+  <!--     <value>Faxa_rainc:Faxa_rainl:Faxa_snowc:Faxa_snowl</value> -->
+  <!--   </values> -->
+  <!-- </entry> -->
 
-  <entry id="hist_a2x24hr_flds">
-    <type>char</type>
-    <category>aux_hist</category>
-    <group>MED_history_attributes</group>
-    <desc>
-      Auxiliary coupler a2x history output every 24 hours
-    </desc>
-    <values>
-      <value>Faxa_bcphiwet:Faxa_bcphodry:Faxa_bcphidry:Faxa_ocphiwet:Faxa_ocphidry:Faxa_ocphodry:Faxa_dstwet1:Faxa_dstdry1:Faxa_dstwet2:Faxa_dstdry2:Faxa_dstwet3:Faxa_dstdry3:Faxa_dstwet4:Faxa_dstdry4:Sa_co2prog:Sa_co2diag</value>
-    </values>
-  </entry>
+  <!-- <entry id="hist_a2x24hr_flds"> -->
+  <!--   <type>char</type> -->
+  <!--   <category>aux_hist</category> -->
+  <!--   <group>MED_attributes</group> -->
+  <!--   <desc> -->
+  <!--     Auxiliary coupler a2x history output every 24 hours -->
+  <!--   </desc> -->
+  <!--   <values> -->
+  <!--     <value>Faxa_bcphiwet:Faxa_bcphodry:Faxa_bcphidry:Faxa_ocphiwet:Faxa_ocphidry:Faxa_ocphodry:Faxa_dstwet1:Faxa_dstdry1:Faxa_dstwet2:Faxa_dstdry2:Faxa_dstwet3:Faxa_dstdry3:Faxa_dstwet4:Faxa_dstdry4:Sa_co2prog:Sa_co2diag</value> -->
+  <!--   </values> -->
+  <!-- </entry> -->
 
-  <entry id="hist_a2x1hri_flds">
-    <type>char</type>
-    <category>aux_hist</category>
-    <group>MED_history_attributes</group>
-    <desc>
-      Auxiliary coupler a2x instantaneous history output every hour
-    </desc>
-    <values>
-      <value>Faxa_swndr:Faxa_swvdr:Faxa_swndf:Faxa_swvdf</value>
-    </values>
-  </entry>
+  <!-- <entry id="hist_a2x1hri_flds"> -->
+  <!--   <type>char</type> -->
+  <!--   <category>aux_hist</category> -->
+  <!--   <group>MED_attributes</group> -->
+  <!--   <desc> -->
+  <!--     Auxiliary coupler a2x instantaneous history output every hour -->
+  <!--   </desc> -->
+  <!--   <values> -->
+  <!--     <value>Faxa_swndr:Faxa_swvdr:Faxa_swndf:Faxa_swvdf</value> -->
+  <!--   </values> -->
+  <!-- </entry> -->
 
-  <entry id="hist_a2x1hr_flds">
-    <type>char</type>
-    <category>aux_hist</category>
-    <group>MED_history_attributes</group>
-    <desc>
-      Auxiliary coupler a2x averaged history output every hour
-    </desc>
-    <values>
-      <value>Sa_u:Sa_v</value>
-    </values>
-  </entry>
+  <!-- <entry id="hist_a2x1hr_flds"> -->
+  <!--   <type>char</type> -->
+  <!--   <category>aux_hist</category> -->
+  <!--   <group>MED_attributes</group> -->
+  <!--   <desc> -->
+  <!--     Auxiliary coupler a2x averaged history output every hour -->
+  <!--   </desc> -->
+  <!--   <values> -->
+  <!--     <value>Sa_u:Sa_v</value> -->
+  <!--   </values> -->
+  <!-- </entry> -->
 
-  <entry id="hist_a2x3hr_flds">
-    <type>char</type>
-    <category>aux_hist</category>
-    <group>MED_history_attributes</group>
-    <desc>
-      Auxiliary coupler a2x averaged history output every 3 hours
-    </desc>
-    <values>
-      <value>Sa_z:Sa_topo:Sa_u:Sa_v:Sa_tbot:Sa_ptem:Sa_shum:Sa_dens:Sa_pbot:Sa_pslv:Faxa_lwdn:Faxa_rainc:Faxa_rainl:Faxa_snowc:Faxa_snowl:Faxa_swndr:Faxa_swvdr:Faxa_swndf:Faxa_swvdf:Sa_co2diag:Sa_co2prog</value>
-    </values>
-  </entry>
+  <!-- <entry id="hist_a2x3hr_flds"> -->
+  <!--   <type>char</type> -->
+  <!--   <category>aux_hist</category> -->
+  <!--   <group>MED_attributes</group> -->
+  <!--   <desc> -->
+  <!--     Auxiliary coupler a2x averaged history output every 3 hours -->
+  <!--   </desc> -->
+  <!--   <values> -->
+  <!--     <value>Sa_z:Sa_topo:Sa_u:Sa_v:Sa_tbot:Sa_ptem:Sa_shum:Sa_dens:Sa_pbot:Sa_pslv:Faxa_lwdn:Faxa_rainc:Faxa_rainl:Faxa_snowc:Faxa_snowl:Faxa_swndr:Faxa_swvdr:Faxa_swndf:Faxa_swvdf:Sa_co2diag:Sa_co2prog</value> -->
+  <!--   </values> -->
+  <!-- </entry> -->
 
   <!-- =========================== -->
-  <!-- FLDS attributes              -->
+  <!-- MED attributes              -->
   <!-- =========================== -->
 
   <entry id="ScalarFieldName">
@@ -1631,7 +1630,7 @@
   <entry id="mapuv_with_cart3d">
     <type>logical</type>
     <category>mapping</category>
-    <group>FLDS_attributes</group>
+    <group>MED_attributes</group>
     <desc>used for atm->ocn and atm-ice mapping of u and v; rotate u,v to 3d cartesian space, map from src->dest, then rotate back</desc>
     <values>
       <value>.false.</value>
@@ -1642,7 +1641,7 @@
     <type>char</type>
     <category>mapping</category>
     <input_pathname>abs</input_pathname>
-    <group>FLDS_attributes</group>
+    <group>MED_attributes</group>
     <desc>atm to ocn flux mapping file for fluxes</desc>
     <values>
       <value>$ATM2OCN_FMAPNAME</value>
@@ -1653,7 +1652,7 @@
     <type>char</type>
     <category>mapping</category>
     <input_pathname>abs</input_pathname>
-    <group>FLDS_attributes</group>
+    <group>MED_attributes</group>
     <desc>
       atm to ocn state mapping file for states
     </desc>
@@ -1666,7 +1665,7 @@
     <type>char</type>
     <category>mapping</category>
     <input_pathname>abs</input_pathname>
-    <group>FLDS_attributes</group>
+    <group>MED_attributes</group>
     <desc>
       atm to ocn state mapping file for velocity
     </desc>
@@ -1679,7 +1678,7 @@
     <type>char</type>
     <category>mapping</category>
     <input_pathname>abs</input_pathname>
-    <group>FLDS_attributes</group>
+    <group>MED_attributes</group>
     <desc>
       ocn to atm mapping file for fluxes
     </desc>
@@ -1692,7 +1691,7 @@
     <type>char</type>
     <category>mapping</category>
     <input_pathname>abs</input_pathname>
-    <group>FLDS_attributes</group>
+    <group>MED_attributes</group>
     <desc>
       ocn to atm mapping file for states
     </desc>
@@ -1705,7 +1704,7 @@
     <type>char</type>
     <category>mapping</category>
     <input_pathname>abs</input_pathname>
-    <group>FLDS_attributes</group>
+    <group>MED_attributes</group>
     <desc>
       atm to ice flux mapping file for fluxes
     </desc>
@@ -1718,7 +1717,7 @@
     <type>char</type>
     <category>mapping</category>
     <input_pathname>abs</input_pathname>
-    <group>FLDS_attributes</group>
+    <group>MED_attributes</group>
     <desc>
       atm to ice state mapping file for states
     </desc>
@@ -1731,7 +1730,7 @@
     <type>char</type>
     <category>mapping</category>
     <input_pathname>abs</input_pathname>
-    <group>FLDS_attributes</group>
+    <group>MED_attributes</group>
     <desc>
       atm to ice state mapping file for velocity
     </desc>
@@ -1744,7 +1743,7 @@
     <type>char</type>
     <category>mapping</category>
     <input_pathname>abs</input_pathname>
-    <group>FLDS_attributes</group>
+    <group>MED_attributes</group>
     <desc>
       ice to atm mapping file for fluxes
     </desc>
@@ -1757,7 +1756,7 @@
     <type>char</type>
     <category>mapping</category>
     <input_pathname>abs</input_pathname>
-    <group>FLDS_attributes</group>
+    <group>MED_attributes</group>
     <desc>
       ice to atm mapping file for states
     </desc>
@@ -1770,7 +1769,7 @@
     <type>char</type>
     <category>mapping</category>
     <input_pathname>abs</input_pathname>
-    <group>FLDS_attributes</group>
+    <group>MED_attributes</group>
     <desc>
       atm to land mapping file for fluxes
     </desc>
@@ -1783,7 +1782,7 @@
     <type>char</type>
     <category>mapping</category>
     <input_pathname>abs</input_pathname>
-    <group>FLDS_attributes</group>
+    <group>MED_attributes</group>
     <desc>
       atm to land mapping file for states
     </desc>
@@ -1796,7 +1795,7 @@
     <type>char</type>
     <category>mapping</category>
     <input_pathname>abs</input_pathname>
-    <group>FLDS_attributes</group>
+    <group>MED_attributes</group>
     <desc>
       atm to land mapping file for states
     </desc>
@@ -1809,7 +1808,7 @@
     <type>char</type>
     <category>mapping</category>
     <input_pathname>abs</input_pathname>
-    <group>FLDS_attributes</group>
+    <group>MED_attributes</group>
     <desc>
       land to atm mapping file for fluxes
     </desc>
@@ -1822,7 +1821,7 @@
     <type>char</type>
     <category>mapping</category>
     <input_pathname>abs</input_pathname>
-    <group>FLDS_attributes</group>
+    <group>MED_attributes</group>
     <desc>
       land to atm mapping file for states
     </desc>
@@ -1835,7 +1834,7 @@
     <type>char</type>
     <category>mapping</category>
     <input_pathname>abs</input_pathname>
-    <group>FLDS_attributes</group>
+    <group>MED_attributes</group>
     <desc>
       lnd to runoff conservative mapping file
     </desc>
@@ -1848,7 +1847,7 @@
     <type>char</type>
     <category>mapping</category>
     <input_pathname>abs</input_pathname>
-    <group>FLDS_attributes</group>
+    <group>MED_attributes</group>
     <desc>
       runoff to lnd conservative mapping file
     </desc>
@@ -1861,7 +1860,7 @@
     <type>char</type>
     <category>mapping</category>
     <input_pathname>abs</input_pathname>
-    <group>FLDS_attributes</group>
+    <group>MED_attributes</group>
     <desc>
       runoff to lnd conservative mapping file
     </desc>
@@ -1874,7 +1873,7 @@
     <type>char</type>
     <category>mapping</category>
     <input_pathname>abs</input_pathname>
-    <group>FLDS_attributes</group>
+    <group>MED_attributes</group>
     <desc>
       runoff to ocn area overlap conservative mapping file
     </desc>
@@ -1887,7 +1886,7 @@
     <type>char</type>
     <category>mapping</category>
     <input_pathname>abs</input_pathname>
-    <group>FLDS_attributes</group>
+    <group>MED_attributes</group>
     <desc>
       glc2ocn runoff mapping file for liquid runoff
     </desc>
@@ -1900,7 +1899,7 @@
     <type>char</type>
     <category>mapping</category>
     <input_pathname>abs</input_pathname>
-    <group>FLDS_attributes</group>
+    <group>MED_attributes</group>
     <desc>
       glc to ice runoff conservative mapping file
     </desc>
@@ -1913,7 +1912,7 @@
     <type>char</type>
     <category>mapping</category>
     <input_pathname>abs</input_pathname>
-    <group>FLDS_attributes</group>
+    <group>MED_attributes</group>
     <desc>
       glc2ocn runoff mapping file for ice runoff
     </desc>
@@ -1926,7 +1925,7 @@
     <type>char</type>
     <category>mapping</category>
     <input_pathname>abs</input_pathname>
-    <group>FLDS_attributes</group>
+    <group>MED_attributes</group>
     <desc>
       runoff to ocn nearest neighbor plus smoothing conservative mapping file
     </desc>
@@ -1939,7 +1938,7 @@
     <type>char</type>
     <category>mapping</category>
     <input_pathname>abs</input_pathname>
-    <group>FLDS_attributes</group>
+    <group>MED_attributes</group>
     <desc>
       runoff to ocn nearest neighbor plus smoothing conservative mapping file
     </desc>
@@ -1952,7 +1951,7 @@
     <type>char</type>
     <category>mapping</category>
     <input_pathname>abs</input_pathname>
-    <group>FLDS_attributes</group>
+    <group>MED_attributes</group>
     <desc>
       land to glc mapping file for fluxes
     </desc>
@@ -1965,7 +1964,7 @@
     <type>char</type>
     <category>mapping</category>
     <input_pathname>abs</input_pathname>
-    <group>FLDS_attributes</group>
+    <group>MED_attributes</group>
     <desc>
       land to glc mapping file for states
     </desc>
@@ -1978,7 +1977,7 @@
     <type>char</type>
     <category>mapping</category>
     <input_pathname>abs</input_pathname>
-    <group>FLDS_attributes</group>
+    <group>MED_attributes</group>
     <desc>
       glc to land mapping file for fluxes
     </desc>
@@ -1991,7 +1990,7 @@
     <type>char</type>
     <category>mapping</category>
     <input_pathname>abs</input_pathname>
-    <group>FLDS_attributes</group>
+    <group>MED_attributes</group>
     <desc>
       glc to land mapping file for states
     </desc>
@@ -2004,7 +2003,7 @@
     <type>char</type>
     <category>mapping</category>
     <input_pathname>abs</input_pathname>
-    <group>FLDS_attributes</group>
+    <group>MED_attributes</group>
     <desc>
       atm to wav state mapping file for states
     </desc>
@@ -2017,7 +2016,7 @@
     <type>char</type>
     <category>mapping</category>
     <input_pathname>abs</input_pathname>
-    <group>FLDS_attributes</group>
+    <group>MED_attributes</group>
     <desc>
       atm to wav state mapping file for states
     </desc>
@@ -2030,7 +2029,7 @@
     <type>char</type>
     <category>mapping</category>
     <input_pathname>abs</input_pathname>
-    <group>FLDS_attributes</group>
+    <group>MED_attributes</group>
     <desc>
       ocn to wav state mapping file for states
     </desc>
@@ -2043,7 +2042,7 @@
     <type>char</type>
     <category>mapping</category>
     <input_pathname>abs</input_pathname>
-    <group>FLDS_attributes</group>
+    <group>MED_attributes</group>
     <desc>
       ice to wav state mapping file for states
     </desc>
@@ -2056,7 +2055,7 @@
     <type>char</type>
     <category>mapping</category>
     <input_pathname>abs</input_pathname>
-    <group>FLDS_attributes</group>
+    <group>MED_attributes</group>
     <desc>
       wav to ocn state mapping file for states
     </desc>
@@ -2311,23 +2310,23 @@
     </values>
   </entry>
 
-  <entry id="esp_run_on_pause" modify_via_xml="ESP_RUN_ON_PAUSE">
-    <type>logical</type>
-    <category>time</category>
-    <group>CLOCK_attributes</group>
-    <desc>
-      true => ESP component runs after driver 'pause cycle' If any
-      component 'pauses' (see PAUSE_OPTION,
-      PAUSE_N and DATA_ASSIMILATION_XXX XML
-      variables), the ESP component (if present) will be run to
-      process the component 'pause' (restart) files and set any
-      required 'resume' signals.  If true, esp_cpl_dt and
-      esp_cpl_offset settings are ignored.  default: true
-    </desc>
-    <values>
-      <value>.true.</value>
-    </values>
-  </entry>
+  <!-- <entry id="esp_run_on_pause" modify_via_xml="ESP_RUN_ON_PAUSE"> -->
+  <!--   <type>logical</type> -->
+  <!--   <category>time</category> -->
+  <!--   <group>CLOCK_attributes</group> -->
+  <!--   <desc> -->
+  <!--     true => ESP component runs after driver 'pause cycle' If any -->
+  <!--     component 'pauses' (see PAUSE_OPTION, -->
+  <!--     PAUSE_N and DATA_ASSIMILATION_XXX XML -->
+  <!--     variables), the ESP component (if present) will be run to -->
+  <!--     process the component 'pause' (restart) files and set any -->
+  <!--     required 'resume' signals.  If true, esp_cpl_dt and -->
+  <!--     esp_cpl_offset settings are ignored.  default: true -->
+  <!--   </desc> -->
+  <!--   <values> -->
+  <!--     <value>.true.</value> -->
+  <!--   </values> -->
+  <!-- </entry> -->
 
   <entry id="calendar" modify_via_xml="CALENDAR">
     <type>char</type>
@@ -2484,32 +2483,6 @@
     </values>
   </entry>
 
-  <entry id="ref_ymd">
-    <type>integer</type>
-    <category>time</category>
-    <group>CLOCK_attributes</group>
-    <desc>
-      Reference date in yyyymmdd format
-      default: 0
-    </desc>
-    <values>
-      <value>0</value>
-    </values>
-  </entry>
-
-  <entry id="ref_tod">
-    <type>integer</type>
-    <category>time</category>
-    <group>CLOCK_attributes</group>
-    <desc>
-      Reference time of day in seconds
-      default: 0
-    </desc>
-    <values>
-      <value>0</value>
-    </values>
-  </entry>
-
   <entry id="end_restart">
     <type>logical</type>
     <category>time</category>
@@ -2579,58 +2552,58 @@
     </values>
   </entry>
 
-  <entry id="histavg_option" modify_via_xml="HISTAVG_OPTION">
-    <type>char</type>
-    <category>time</category>
-    <group>CLOCK_attributes</group>
-    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,monthly,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
-    <desc>
-      coupler time average history option (used with histavg_n and histavg_ymd)
-      set by AVGHIST_OPTION in env_run.xml.
-      histavg_option alarms are:
-      [none/never], turns option off
-      [nstep/s]   , history snapshot every histavg_n nsteps  , relative to current run start time
-      [nsecond/s] , history snapshot every histavg_n nseconds, relative to current run start time
-      [nminute/s] , history snapshot every histavg_n nminutes, relative to current run start time
-      [nhour/s]   , history snapshot every histavg_n nhours  , relative to current run start time
-      [nday/s]    , history snapshot every histavg_n ndays   , relative to current run start time
-      [monthly/s] , history snapshot every           month   , relative to current run start time
-      [nmonth/s]  , history snapshot every histavg_n nmonths , relative to current run start time
-      [nyear/s]   , history snapshot every histavg_n nyears  , relative to current run start time
-      [date]      , history snapshot at histavg_ymd value
-      [ifdays0]   , history snapshot at histavg_n calendar day value and seconds equal 0
-      [end]       , history snapshot at end
-    </desc>
-    <values>
-      <value>$AVGHIST_OPTION</value>
-    </values>
-  </entry>
+  <!-- <entry id="histavg_option" modify_via_xml="HISTAVG_OPTION"> -->
+  <!--   <type>char</type> -->
+  <!--   <category>time</category> -->
+  <!--   <group>CLOCK_attributes</group> -->
+  <!--   <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,monthly,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values> -->
+  <!--   <desc> -->
+  <!--     coupler time average history option (used with histavg_n and histavg_ymd) -->
+  <!--     set by AVGHIST_OPTION in env_run.xml. -->
+  <!--     histavg_option alarms are: -->
+  <!--     [none/never], turns option off -->
+  <!--     [nstep/s]   , history snapshot every histavg_n nsteps  , relative to current run start time -->
+  <!--     [nsecond/s] , history snapshot every histavg_n nseconds, relative to current run start time -->
+  <!--     [nminute/s] , history snapshot every histavg_n nminutes, relative to current run start time -->
+  <!--     [nhour/s]   , history snapshot every histavg_n nhours  , relative to current run start time -->
+  <!--     [nday/s]    , history snapshot every histavg_n ndays   , relative to current run start time -->
+  <!--     [monthly/s] , history snapshot every           month   , relative to current run start time -->
+  <!--     [nmonth/s]  , history snapshot every histavg_n nmonths , relative to current run start time -->
+  <!--     [nyear/s]   , history snapshot every histavg_n nyears  , relative to current run start time -->
+  <!--     [date]      , history snapshot at histavg_ymd value -->
+  <!--     [ifdays0]   , history snapshot at histavg_n calendar day value and seconds equal 0 -->
+  <!--     [end]       , history snapshot at end -->
+  <!--   </desc> -->
+  <!--   <values> -->
+  <!--     <value>$AVGHIST_OPTION</value> -->
+  <!--   </values> -->
+  <!-- </entry> -->
 
-  <entry id="histavg_n" modify_via_xml="HISTAVG_N">
-    <type>integer</type>
-    <category>time</category>
-    <group>CLOCK_attributes</group>
-    <desc>
-      Sets coupler time-average history file frequency (like restart_option)
-      set by AVGHIST_N in env_run.xml.
-    </desc>
-    <values>
-      <value>$AVGHIST_N</value>
-    </values>
-  </entry>
+  <!-- <entry id="histavg_n" modify_via_xml="HISTAVG_N"> -->
+  <!--   <type>integer</type> -->
+  <!--   <category>time</category> -->
+  <!--   <group>CLOCK_attributes</group> -->
+  <!--   <desc> -->
+  <!--     Sets coupler time-average history file frequency (like restart_option) -->
+  <!--     set by AVGHIST_N in env_run.xml. -->
+  <!--   </desc> -->
+  <!--   <values> -->
+  <!--     <value>$AVGHIST_N</value> -->
+  <!--   </values> -->
+  <!-- </entry> -->
 
-  <entry id="histavg_ymd" modify_via_xml="HISTAVG_YMD">
-    <type>integer</type>
-    <category>time</category>
-    <group>CLOCK_attributes</group>
-    <desc>
-      date associated with histavg_option date.  yyyymmdd format.
-      set by AVGHIST_DATE in env_run.xml.
-    </desc>
-    <values>
-      <value>$AVGHIST_DATE</value>
-    </values>
-  </entry>
+  <!-- <entry id="histavg_ymd" modify_via_xml="HISTAVG_YMD"> -->
+  <!--   <type>integer</type> -->
+  <!--   <category>time</category> -->
+  <!--   <group>CLOCK_attributes</group> -->
+  <!--   <desc> -->
+  <!--     date associated with histavg_option date.  yyyymmdd format. -->
+  <!--     set by AVGHIST_DATE in env_run.xml. -->
+  <!--   </desc> -->
+  <!--   <values> -->
+  <!--     <value>$AVGHIST_DATE</value> -->
+  <!--   </values> -->
+  <!-- </entry> -->
 
   <entry id="barrier_option" modify_via_xml="BARRIER_OPTION">
     <type>char</type>
@@ -2722,136 +2695,136 @@
     </values>
   </entry>
 
-  <entry id="pause_option" modify_via_xml="PAUSE_OPTION">
-    <type>char</type>
-    <category>time</category>
-    <group>CLOCK_attributes</group>
-    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,monthly,nmonths,nmonth,nyears,nyear</valid_values>
-    <desc>
-      sets the pause frequency with pause_n
-      pause_option alarms are:
-      [none/never], turns option off
-      [nstep/s]   , pauses every pause_n nsteps  , relative to start or last pause time
-      [nsecond/s] , pauses every pause_n nseconds, relative to start or last pause time
-      [nminute/s] , pauses every pause_n nminutes, relative to start or last pause time
-      [nhour/s]   , pauses every pause_n nhours  , relative to start or last pause time
-      [nday/s]    , pauses every pause_n ndays   , relative to start or last pause time
-      [nmonth/s]  , pauses every pause_n nmonths , relative to start or last pause time
-      [monthly/s] , pauses every        month    , relative to start or last pause time
-      [nyear/s]   , pauses every pause_n nyears  , relative to start or last pause time
-    </desc>
-    <values>
-      <value>$PAUSE_OPTION</value>
-    </values>
-  </entry>
+  <!-- <entry id="pause_option" modify_via_xml="PAUSE_OPTION"> -->
+  <!--   <type>char</type> -->
+  <!--   <category>time</category> -->
+  <!--   <group>CLOCK_attributes</group> -->
+  <!--   <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,monthly,nmonths,nmonth,nyears,nyear</valid_values> -->
+  <!--   <desc> -->
+  <!--     sets the pause frequency with pause_n -->
+  <!--     pause_option alarms are: -->
+  <!--     [none/never], turns option off -->
+  <!--     [nstep/s]   , pauses every pause_n nsteps  , relative to start or last pause time -->
+  <!--     [nsecond/s] , pauses every pause_n nseconds, relative to start or last pause time -->
+  <!--     [nminute/s] , pauses every pause_n nminutes, relative to start or last pause time -->
+  <!--     [nhour/s]   , pauses every pause_n nhours  , relative to start or last pause time -->
+  <!--     [nday/s]    , pauses every pause_n ndays   , relative to start or last pause time -->
+  <!--     [nmonth/s]  , pauses every pause_n nmonths , relative to start or last pause time -->
+  <!--     [monthly/s] , pauses every        month    , relative to start or last pause time -->
+  <!--     [nyear/s]   , pauses every pause_n nyears  , relative to start or last pause time -->
+  <!--   </desc> -->
+  <!--   <values> -->
+  <!--     <value>$PAUSE_OPTION</value> -->
+  <!--   </values> -->
+  <!-- </entry> -->
 
-  <entry id="pause_n" modify_via_xml="PAUSE_N">
-    <type>integer</type>
-    <category>time</category>
-    <group>CLOCK_attributes</group>
-    <desc>
-      Sets the pause frequency with pause_option
-    </desc>
-    <values>
-      <value>$PAUSE_N</value>
-    </values>
-  </entry>
+  <!-- <entry id="pause_n" modify_via_xml="PAUSE_N"> -->
+  <!--   <type>integer</type> -->
+  <!--   <category>time</category> -->
+  <!--   <group>CLOCK_attributes</group> -->
+  <!--   <desc> -->
+  <!--     Sets the pause frequency with pause_option -->
+  <!--   </desc> -->
+  <!--   <values> -->
+  <!--     <value>$PAUSE_N</value> -->
+  <!--   </values> -->
+  <!-- </entry> -->
 
-  <entry id="pause_active_atm" modify_via_xml="PAUSE_ACTIVE_ATM">
-    <type>logical</type>
-    <category>time</category>
-    <group>CLOCK_attributes</group>
-    <desc>
-      Whether Pause signals are active for component atm
-    </desc>
-    <values>
-      <value>$PAUSE_ACTIVE_ATM</value>
-    </values>
-  </entry>
+  <!-- <entry id="pause_active_atm" modify_via_xml="PAUSE_ACTIVE_ATM"> -->
+  <!--   <type>logical</type> -->
+  <!--   <category>time</category> -->
+  <!--   <group>CLOCK_attributes</group> -->
+  <!--   <desc> -->
+  <!--     Whether Pause signals are active for component atm -->
+  <!--   </desc> -->
+  <!--   <values> -->
+  <!--     <value>$PAUSE_ACTIVE_ATM</value> -->
+  <!--   </values> -->
+  <!-- </entry> -->
 
-  <entry id="pause_active_cpl" modify_via_xml="PAUSE_ACTIVE_CPL">
-    <type>logical</type>
-    <category>time</category>
-    <group>CLOCK_attributes</group>
-    <desc>
-      Whether Pause signals are active for component CPL
-    </desc>
-    <values>
-      <value>$PAUSE_ACTIVE_CPL</value>
-    </values>
-  </entry>
+  <!-- <entry id="pause_active_cpl" modify_via_xml="PAUSE_ACTIVE_CPL"> -->
+  <!--   <type>logical</type> -->
+  <!--   <category>time</category> -->
+  <!--   <group>CLOCK_attributes</group> -->
+  <!--   <desc> -->
+  <!--     Whether Pause signals are active for component CPL -->
+  <!--   </desc> -->
+  <!--   <values> -->
+  <!--     <value>$PAUSE_ACTIVE_CPL</value> -->
+  <!--   </values> -->
+  <!-- </entry> -->
 
-  <entry id="pause_active_ocn" modify_via_xml="PAUSE_ACTIVE_OCN">
-    <type>logical</type>
-    <category>time</category>
-    <group>CLOCK_attributes</group>
-    <desc>
-      Whether Pause signals are active for component ocn
-    </desc>
-    <values>
-      <value>$PAUSE_ACTIVE_OCN</value>
-    </values>
-  </entry>
+  <!-- <entry id="pause_active_ocn" modify_via_xml="PAUSE_ACTIVE_OCN"> -->
+  <!--   <type>logical</type> -->
+  <!--   <category>time</category> -->
+  <!--   <group>CLOCK_attributes</group> -->
+  <!--   <desc> -->
+  <!--     Whether Pause signals are active for component ocn -->
+  <!--   </desc> -->
+  <!--   <values> -->
+  <!--     <value>$PAUSE_ACTIVE_OCN</value> -->
+  <!--   </values> -->
+  <!-- </entry> -->
 
-  <entry id="pause_active_wav" modify_via_xml="PAUSE_ACTIVE_WAV">
-    <type>logical</type>
-    <category>time</category>
-    <group>CLOCK_attributes</group>
-    <desc>
-      Whether Pause signals are active for component wav
-    </desc>
-    <values>
-      <value>$PAUSE_ACTIVE_WAV</value>
-    </values>
-  </entry>
+  <!-- <entry id="pause_active_wav" modify_via_xml="PAUSE_ACTIVE_WAV"> -->
+  <!--   <type>logical</type> -->
+  <!--   <category>time</category> -->
+  <!--   <group>CLOCK_attributes</group> -->
+  <!--   <desc> -->
+  <!--     Whether Pause signals are active for component wav -->
+  <!--   </desc> -->
+  <!--   <values> -->
+  <!--     <value>$PAUSE_ACTIVE_WAV</value> -->
+  <!--   </values> -->
+  <!-- </entry> -->
 
-  <entry id="pause_active_glc" modify_via_xml="PAUSE_ACTIVE_GLC">
-    <type>logical</type>
-    <category>time</category>
-    <group>CLOCK_attributes</group>
-    <desc>
-      Whether Pause signals are active for component glc
-    </desc>
-    <values>
-      <value>$PAUSE_ACTIVE_GLC</value>
-    </values>
-  </entry>
+  <!-- <entry id="pause_active_glc" modify_via_xml="PAUSE_ACTIVE_GLC"> -->
+  <!--   <type>logical</type> -->
+  <!--   <category>time</category> -->
+  <!--   <group>CLOCK_attributes</group> -->
+  <!--   <desc> -->
+  <!--     Whether Pause signals are active for component glc -->
+  <!--   </desc> -->
+  <!--   <values> -->
+  <!--     <value>$PAUSE_ACTIVE_GLC</value> -->
+  <!--   </values> -->
+  <!-- </entry> -->
 
-  <entry id="pause_active_rof" modify_via_xml="PAUSE_ACTIVE_ROF">
-    <type>logical</type>
-    <category>time</category>
-    <group>CLOCK_attributes</group>
-    <desc>
-      Whether Pause signals are active for component rof
-    </desc>
-    <values>
-      <value>$PAUSE_ACTIVE_ROF</value>
-    </values>
-  </entry>
+  <!-- <entry id="pause_active_rof" modify_via_xml="PAUSE_ACTIVE_ROF"> -->
+  <!--   <type>logical</type> -->
+  <!--   <category>time</category> -->
+  <!--   <group>CLOCK_attributes</group> -->
+  <!--   <desc> -->
+  <!--     Whether Pause signals are active for component rof -->
+  <!--   </desc> -->
+  <!--   <values> -->
+  <!--     <value>$PAUSE_ACTIVE_ROF</value> -->
+  <!--   </values> -->
+  <!-- </entry> -->
 
-  <entry id="pause_active_ice" modify_via_xml="PAUSE_ACTIVE_ICE">
-    <type>logical</type>
-    <category>time</category>
-    <group>CLOCK_attributes</group>
-    <desc>
-      Whether Pause signals are active for component ice
-    </desc>
-    <values>
-      <value>$PAUSE_ACTIVE_ICE</value>
-    </values>
-  </entry>
+  <!-- <entry id="pause_active_ice" modify_via_xml="PAUSE_ACTIVE_ICE"> -->
+  <!--   <type>logical</type> -->
+  <!--   <category>time</category> -->
+  <!--   <group>CLOCK_attributes</group> -->
+  <!--   <desc> -->
+  <!--     Whether Pause signals are active for component ice -->
+  <!--   </desc> -->
+  <!--   <values> -->
+  <!--     <value>$PAUSE_ACTIVE_ICE</value> -->
+  <!--   </values> -->
+  <!-- </entry> -->
 
-  <entry id="pause_active_lnd" modify_via_xml="PAUSE_ACTIVE_LND">
-    <type>logical</type>
-    <category>time</category>
-    <group>CLOCK_attributes</group>
-    <desc>
-      Whether Pause signals are active for component lnd
-    </desc>
-    <values>
-      <value>$PAUSE_ACTIVE_LND</value>
-    </values>
-  </entry>
+  <!-- <entry id="pause_active_lnd" modify_via_xml="PAUSE_ACTIVE_LND"> -->
+  <!--   <type>logical</type> -->
+  <!--   <category>time</category> -->
+  <!--   <group>CLOCK_attributes</group> -->
+  <!--   <desc> -->
+  <!--     Whether Pause signals are active for component lnd -->
+  <!--   </desc> -->
+  <!--   <values> -->
+  <!--     <value>$PAUSE_ACTIVE_LND</value> -->
+  <!--   </values> -->
+  <!-- </entry> -->
 
   <!-- =========================== -->
   <!-- group seq_cime_pes          -->
@@ -3741,100 +3714,100 @@
     </values>
   </entry>
 
-  <entry id="data_assimilation_atm" modify_via_xml="DATA_ASSIMILATION_ATM">
-    <type>logical</type>
-    <category>data_assimilation</category>
-    <group>CLOCK_attributes</group>
-    <desc>
-      Whether Data Assimilation is on for component atm
-    </desc>
-    <values>
-      <value>$DATA_ASSIMILATION_ATM</value>
-    </values>
-  </entry>
+  <!-- <entry id="data_assimilation_atm" modify_via_xml="DATA_ASSIMILATION_ATM"> -->
+  <!--   <type>logical</type> -->
+  <!--   <category>data_assimilation</category> -->
+  <!--   <group>ALLCOMP_attributes</group> -->
+  <!--   <desc> -->
+  <!--     Whether Data Assimilation is on for component atm -->
+  <!--   </desc> -->
+  <!--   <values> -->
+  <!--     <value>$DATA_ASSIMILATION_ATM</value> -->
+  <!--   </values> -->
+  <!-- </entry> -->
 
-  <entry id="data_assimilation_cpl" modify_via_xml="DATA_ASSIMILATION_CPL">
-    <type>logical</type>
-    <category>data_assimilation</category>
-    <group>CLOCK_attributes</group>
-    <desc>
-      Whether Data Assimilation is on for component CPL
-    </desc>
-    <values>
-      <value>$DATA_ASSIMILATION_CPL</value>
-    </values>
-  </entry>
+  <!-- <entry id="data_assimilation_cpl" modify_via_xml="DATA_ASSIMILATION_CPL"> -->
+  <!--   <type>logical</type> -->
+  <!--   <category>data_assimilation</category> -->
+  <!--   <group>ALLCOMP_attributes</group> -->
+  <!--   <desc> -->
+  <!--     Whether Data Assimilation is on for component CPL -->
+  <!--   </desc> -->
+  <!--   <values> -->
+  <!--     <value>$DATA_ASSIMILATION_CPL</value> -->
+  <!--   </values> -->
+  <!-- </entry> -->
 
-  <entry id="data_assimilation_ocn" modify_via_xml="DATA_ASSIMILATION_OCN">
-    <type>logical</type>
-    <category>data_assimilation</category>
-    <group>CLOCK_attributes</group>
-    <desc>
-      Whether Data Assimilation is on for component ocn
-    </desc>
-    <values>
-      <value>$DATA_ASSIMILATION_OCN</value>
-    </values>
-  </entry>
+  <!-- <entry id="data_assimilation_ocn" modify_via_xml="DATA_ASSIMILATION_OCN"> -->
+  <!--   <type>logical</type> -->
+  <!--   <category>data_assimilation</category> -->
+  <!--   <group>ALLCOMP_attributes</group> -->
+  <!--   <desc> -->
+  <!--     Whether Data Assimilation is on for component ocn -->
+  <!--   </desc> -->
+  <!--   <values> -->
+  <!--     <value>$DATA_ASSIMILATION_OCN</value> -->
+  <!--   </values> -->
+  <!-- </entry> -->
 
-  <entry id="data_assimilation_wav" modify_via_xml="DATA_ASSIMILATION_WAV">
-    <type>logical</type>
-    <category>data_assimilation</category>
-    <group>CLOCK_attributes</group>
-    <desc>
-      Whether Data Assimilation is on for component wav
-    </desc>
-    <values>
-      <value>$DATA_ASSIMILATION_WAV</value>
-    </values>
-  </entry>
+  <!-- <entry id="data_assimilation_wav" modify_via_xml="DATA_ASSIMILATION_WAV"> -->
+  <!--   <type>logical</type> -->
+  <!--   <category>data_assimilation</category> -->
+  <!--   <group>ALLCOMP_attributes</group> -->
+  <!--   <desc> -->
+  <!--     Whether Data Assimilation is on for component wav -->
+  <!--   </desc> -->
+  <!--   <values> -->
+  <!--     <value>$DATA_ASSIMILATION_WAV</value> -->
+  <!--   </values> -->
+  <!-- </entry> -->
 
-  <entry id="data_assimilation_glc" modify_via_xml="DATA_ASSIMILATION_GLC">
-    <type>logical</type>
-    <category>data_assimilation</category>
-    <group>CLOCK_attributes</group>
-    <desc>
-      Whether Data Assimilation is on for component glc
-    </desc>
-    <values>
-      <value>$DATA_ASSIMILATION_GLC</value>
-    </values>
-  </entry>
+  <!-- <entry id="data_assimilation_glc" modify_via_xml="DATA_ASSIMILATION_GLC"> -->
+  <!--   <type>logical</type> -->
+  <!--   <category>data_assimilation</category> -->
+  <!--   <group>ALLCOMP_attributes</group> -->
+  <!--   <desc> -->
+  <!--     Whether Data Assimilation is on for component glc -->
+  <!--   </desc> -->
+  <!--   <values> -->
+  <!--     <value>$DATA_ASSIMILATION_GLC</value> -->
+  <!--   </values> -->
+  <!-- </entry> -->
 
-  <entry id="data_assimilation_rof" modify_via_xml="DATA_ASSIMILATION_ROF">
-    <type>logical</type>
-    <category>data_assimilation</category>
-    <group>CLOCK_attributes</group>
-    <desc>
-      Whether Data Assimilation is on for component rof
-    </desc>
-    <values>
-      <value>$DATA_ASSIMILATION_ROF</value>
-    </values>
-  </entry>
+  <!-- <entry id="data_assimilation_rof" modify_via_xml="DATA_ASSIMILATION_ROF"> -->
+  <!--   <type>logical</type> -->
+  <!--   <category>data_assimilation</category> -->
+  <!--   <group>ALLCOMP_attributes</group> -->
+  <!--   <desc> -->
+  <!--     Whether Data Assimilation is on for component rof -->
+  <!--   </desc> -->
+  <!--   <values> -->
+  <!--     <value>$DATA_ASSIMILATION_ROF</value> -->
+  <!--   </values> -->
+  <!-- </entry> -->
 
-  <entry id="data_assimilation_ice" modify_via_xml="DATA_ASSIMILATION_ICE">
-    <type>logical</type>
-    <category>data_assimilation</category>
-    <group>CLOCK_attributes</group>
-    <desc>
-      Whether Data Assimilation is on for component ice
-    </desc>
-    <values>
-      <value>$DATA_ASSIMILATION_ICE</value>
-    </values>
-  </entry>
+  <!-- <entry id="data_assimilation_ice" modify_via_xml="DATA_ASSIMILATION_ICE"> -->
+  <!--   <type>logical</type> -->
+  <!--   <category>data_assimilation</category> -->
+  <!--   <group>ALLCOMP_attributes</group> -->
+  <!--   <desc> -->
+  <!--     Whether Data Assimilation is on for component ice -->
+  <!--   </desc> -->
+  <!--   <values> -->
+  <!--     <value>$DATA_ASSIMILATION_ICE</value> -->
+  <!--   </values> -->
+  <!-- </entry> -->
 
-  <entry id="data_assimilation_lnd" modify_via_xml="DATA_ASSIMILATION_LND">
-    <type>logical</type>
-    <category>data_assimilation</category>
-    <group>CLOCK_attributes</group>
-    <desc>
-      Whether Data Assimilation is on for component lnd
-    </desc>
-    <values>
-      <value>$DATA_ASSIMILATION_LND</value>
-    </values>
-  </entry>
+  <!-- <entry id="data_assimilation_lnd" modify_via_xml="DATA_ASSIMILATION_LND"> -->
+  <!--   <type>logical</type> -->
+  <!--   <category>data_assimilation</category> -->
+  <!--   <group>ALLCOMP_attributes</group> -->
+  <!--   <desc> -->
+  <!--     Whether Data Assimilation is on for component lnd -->
+  <!--   </desc> -->
+  <!--   <values> -->
+  <!--     <value>$DATA_ASSIMILATION_LND</value> -->
+  <!--   </values> -->
+  <!-- </entry> -->
 
 </entry_id>
