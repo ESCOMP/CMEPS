@@ -1377,19 +1377,23 @@ contains
 
             ! Convert grid to mesh
             if (.not. meshcreated) then
-               if (dbug_flag > 1) then
-                 call med_grid_write(grid, trim(fieldName)//'_premesh.nc', rc) 
-                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
-               end if
+               !if (dbug_flag > 1) then
+               !  call med_grid_write(grid, trim(fieldName)//'_premesh.nc', rc) 
+               !  if (ChkErr(rc,__LINE__,u_FILE_u)) return
+               !end if
+               call med_grid_write(grid, 'hycom_grid.nc', rc)
+               if (chkerr(rc,__LINE__,u_FILE_u)) return
 
                mesh = ESMF_GridToMeshCell(grid,rc=rc)
                if (ChkErr(rc,__LINE__,u_FILE_u)) return
                meshcreated = .true.
 
-               if (dbug_flag > 1) then
-                 call ESMF_MeshWrite(mesh, filename=trim(fieldName)//'_postmesh', rc=rc)
-                 if (chkerr(rc,__LINE__,u_FILE_u)) return
-               end if
+               !if (dbug_flag > 1) then
+               !  call ESMF_MeshWrite(mesh, filename=trim(fieldName)//'_postmesh', rc=rc)
+               !  if (chkerr(rc,__LINE__,u_FILE_u)) return
+               !end if
+               call ESMF_MeshWrite(mesh, filename='hycom_mesh', rc=rc)
+               if (chkerr(rc,__LINE__,u_FILE_u)) return
             end if
 
             meshField = ESMF_FieldCreate(mesh, typekind=ESMF_TYPEKIND_R8, &
