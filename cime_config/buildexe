@@ -70,9 +70,10 @@ def _main_func():
     expect((num_esp is None) or (int(num_esp) == 1), "ESP component restricted to one instance")
 
     with open(os.path.join(blddir,'Filepath'), 'w') as out:
+        # This path must be first so that it is used instead of the default file
+        out.write(os.path.join(caseroot, "SourceMods", "src.drv") + "\n")
         if not skip_mediator:
             out.write(os.path.join(cimeroot, "src", "drivers", "nuopc", "mediator") + "\n")
-        out.write(os.path.join(caseroot, "SourceMods", "src.drv") + "\n")
         out.write(os.path.join(cimeroot, "src", "drivers", "nuopc", "drivers", "cime") + "\n")
 
     # build model executable

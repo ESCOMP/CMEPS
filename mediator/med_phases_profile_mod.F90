@@ -9,7 +9,7 @@ module med_phases_profile_mod
   use med_utils_mod         , only : med_utils_chkerr, med_memcheck
   use med_internalstate_mod , only : mastertask, logunit
   use med_utils_mod         , only : chkerr    => med_utils_ChkErr
-  use med_time_mod          , only : alarmInit => med_time_alarmInit 
+  use med_time_mod          , only : alarmInit => med_time_alarmInit
   use perf_mod              , only : t_startf, t_stopf
   use shr_mem_mod           , only : shr_mem_getusage
 
@@ -38,7 +38,7 @@ contains
     use ESMF  , only : ESMF_TimeSyncToRealTime, ESMF_Time, ESMF_TimeSet
     use ESMF  , only : ESMF_TimeInterval, ESMF_AlarmGet, ESMF_TimeIntervalGet
     use ESMF  , only : ESMF_ClockGetNextTime, ESMF_TimeGet, ESMF_ClockGet
-    use ESMF  , only : ESMF_ClockAdvance, ESMF_ClockSet, ESMF_ClockIsStopTime 
+    use ESMF  , only : ESMF_ClockAdvance, ESMF_ClockSet, ESMF_ClockIsStopTime
     use ESMF  , only : operator(-)
     use NUOPC , only : NUOPC_CompAttributeGet
 
@@ -102,7 +102,7 @@ contains
        call ESMF_ClockSet(clock, currTime=currtime, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-       ! intialize 
+       ! intialize
        call ESMF_VMWtime(previous_time, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
@@ -156,7 +156,7 @@ contains
              if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
              call ESMF_TimeIntervalGet(ringInterval, d_r8=ringdays, rc=rc)
              if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
-             avgdt = accumulated_time/(ringdays*real(iterations-1))
+             avgdt = accumulated_time/(timestep_length*real(iterations-1))
           else if (stopalarmison) then
              ! Here we need the interval since the last call to this function
              call ESMF_TimeIntervalGet(nexttime-prevtime, d_r8=ringdays, rc=rc)
