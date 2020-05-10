@@ -8,7 +8,6 @@ module med_phases_ocnalb_mod
   use med_methods_mod       , only : FB_GetFldPtr => med_methods_FB_GetFldPtr
   use med_methods_mod       , only : FB_getFieldN => med_methods_FB_getFieldN
   use med_methods_mod       , only : FB_diagnose => med_methods_FB_diagnose
-  use med_methods_mod       , only : FB_FieldRegrid => med_methods_FB_FieldRegrid
   use med_methods_mod       , only : State_GetScalar => med_methods_State_GetScalar
   use esmFlds               , only : mapconsf, mapnames, compatm, compocn
   use perf_mod              , only : t_startf, t_stopf
@@ -207,8 +206,8 @@ contains
     use ESMF  , only : ESMF_Clock, ESMF_ClockGet, ESMF_Time, ESMF_TimeGet
     use ESMF  , only : ESMF_VM, ESMF_VMGet
     use ESMF  , only : ESMF_LogWrite, ESMF_LogFoundError
-    use ESMF  , only : ESMf_SUCCESS, ESMF_FAILURE, ESMF_LOGMSG_INFO 
-    use ESMF  , only : ESMF_RouteHandleIsCreated, ESMF_FieldBundleIsCreated
+    use ESMF  , only : ESMF_SUCCESS, ESMF_FAILURE, ESMF_LOGMSG_INFO 
+    use ESMF  , only : ESMF_FieldBundleIsCreated
     use ESMF  , only : operator(+)
     use NUOPC , only : NUOPC_CompAttributeGet
 
