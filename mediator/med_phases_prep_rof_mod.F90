@@ -27,11 +27,11 @@ module med_phases_prep_rof_mod
   use med_methods_mod       , only : FB_average      => med_methods_FB_average
   use med_methods_mod       , only : FB_reset        => med_methods_FB_reset
   use med_methods_mod       , only : FB_clean        => med_methods_FB_clean
-  use med_methods_mod       , only : FB_FieldRegrid  => med_methods_FB_FieldRegrid
   use med_methods_mod       , only : State_GetScalar => med_methods_State_GetScalar
   use med_methods_mod       , only : State_SetScalar => med_methods_State_SetScalar
   use med_merge_mod         , only : med_merge_auto
-  use med_map_mod           , only : med_map_FB_Regrid_Norm
+  use med_map_mod           , only : med_map_FB_Regrid_Norm, med_map_RH_is_created
+  use med_map_mod           , only : med_map_FB_Field_Regrid
   use perf_mod              , only : t_startf, t_stopf
 
   implicit none
@@ -329,9 +329,9 @@ contains
     !     (non-volr-normalized) flux on the rof grid.
     !---------------------------------------------------------------
 
-    use ESMF , only : ESMF_GridComp, ESMF_Field, ESMF_FieldRegrid
+    use ESMF , only : ESMF_GridComp, ESMF_Field
     use ESMF , only : ESMF_FieldBundle, ESMF_FieldBundleGet, ESMF_FieldBundleIsCreated
-    use ESMF , only : ESMF_SUCCESS, ESMF_FAILURE, ESMF_RouteHandleIsCreated
+    use ESMF , only : ESMF_SUCCESS, ESMF_FAILURE
     use ESMF , only : ESMF_LOGMSG_INFO, ESMF_LogWrite
 
     ! input/output variables
@@ -368,13 +368,13 @@ contains
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    if (.not. ESMF_RouteHandleIsCreated(is_local%wrap%RH(complnd,comprof,mapconsf), rc=rc)) then
+    if (.not. med_map_RH_is_created(is_local%wrap%RH(complnd,comprof,:),mapconsf, rc=rc)) then
        call ESMF_LogWrite(trim(subname)//": ERROR conservativing route handle not created for lnd->rof mapping", &
             ESMF_LOGMSG_INFO, rc=rc)
        rc = ESMF_FAILURE
        return
     end if
-    if (.not. ESMF_RouteHandleIsCreated(is_local%wrap%RH(comprof,complnd,mapconsf), rc=rc)) then
+    if (.not. med_map_RH_is_created(is_local%wrap%RH(comprof,complnd,:),mapconsf, rc=rc)) then
        call ESMF_LogWrite(trim(subname)//": ERROR conservativing route handle not created for rof->lnd mapping", &
             ESMF_LOGMSG_INFO, rc=rc)
        rc = ESMF_FAILURE
@@ -448,8 +448,8 @@ contains
     end do
 
     ! Map volr_r to volr_l (rof->lnd) using conservative mapping without any fractional weighting
-    call FB_FieldRegrid(FBrofVolr, trim(volr_field), FBlndVolr, trim(volr_field), &
-         is_local%wrap%RH(comprof, complnd, mapconsf), rc=rc)
+    call med_map_FB_Field_Regrid(FBrofVolr, trim(volr_field), FBlndVolr, trim(volr_field), &
+         is_local%wrap%RH(comprof, complnd, :), mapconsf, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! Get volr_l

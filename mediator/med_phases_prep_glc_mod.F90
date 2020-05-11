@@ -11,7 +11,6 @@ module med_phases_prep_glc_mod
   use ESMF                  , only : ESMF_FieldBundle, ESMF_Clock
   use ESMF                  , only : ESMF_Alarm, ESMF_ClockGetAlarm, ESMF_AlarmIsRinging, ESMF_AlarmRingerOff
   use ESMF                  , only : ESMF_GridComp, ESMF_GridCompGet
-  use ESMF                  , only : ESMF_RouteHandleIsCreated
   use ESMF                  , only : ESMF_FieldBundle, ESMF_FieldBundleGet, ESMF_FieldBundleAdd
   use ESMF                  , only : ESMF_FieldBundleCreate, ESMF_FieldBundleIsCreated
   use ESMF                  , only : ESMF_Field, ESMF_FieldGet, ESMF_FieldCreate
@@ -24,7 +23,7 @@ module med_phases_prep_glc_mod
   use med_internalstate_mod , only : InternalState, mastertask, logunit
   use med_constants_mod     , only : dbug_flag=>med_constants_dbug_flag
   use med_internalstate_mod , only : InternalState, mastertask, logunit
-  use med_map_mod           , only : med_map_FB_Regrid_Norm
+  use med_map_mod           , only : med_map_FB_Regrid_Norm, med_map_RH_is_created
   use med_map_mod           , only : med_map_Fractions_Init
   use med_methods_mod       , only : FB_Init      => med_methods_FB_init
   use med_methods_mod       , only : FB_getFldPtr => med_methods_FB_getFldPtr
@@ -220,7 +219,7 @@ contains
        fldlist_lnd2glc%flds(3)%mapnorm(compglc) = 'lfrac'
 
        ! Create route handle if it has not been created
-       if (.not. ESMF_RouteHandleIsCreated(is_local%wrap%RH(complnd,compglc,mapbilnr))) then
+       if (.not. med_map_RH_is_created(is_local%wrap%RH(complnd,compglc,:),mapbilnr,rc=rc)) then
           call med_map_Fractions_init( gcomp, complnd, compglc, &
                FBSrc=FBlndAccum_lnd, &
                FBDst=FBlndAccum_glc, &
@@ -337,7 +336,7 @@ contains
           fldlist_glc2lnd_frac%flds(1)%mapnorm(complnd) = trim(Sg_icemask_field)  ! will use FBglc_icemask
 
           ! Create route handle if it has not been created
-          if (.not. ESMF_RouteHandleIsCreated(is_local%wrap%RH(compglc,complnd,mapconsf))) then
+          if (.not. med_map_RH_is_created(is_local%wrap%RH(compglc,complnd,:),mapconsf,rc=rc)) then
              call med_map_Fractions_init( gcomp, compglc, complnd, &
                   FBSrc=FBlndAccum_glc, &
                   FBDst=FBlndAccum_lnd, &

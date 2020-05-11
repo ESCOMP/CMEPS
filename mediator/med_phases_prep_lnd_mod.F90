@@ -9,7 +9,7 @@ module med_phases_prep_lnd_mod
   use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_LOGMSG_ERROR, ESMF_SUCCESS, ESMF_FAILURE
   use ESMF                  , only : ESMF_FieldBundle, ESMF_FieldBundleGet
   use ESMF                  , only : ESMF_FieldBundleCreate, ESMF_FieldBundleAdd
-  use ESMF                  , only : ESMF_RouteHandle, ESMF_RouteHandleIsCreated
+  use ESMF                  , only : ESMF_RouteHandle
   use ESMF                  , only : ESMF_GridComp, ESMF_GridCompGet
   use ESMF                  , only : ESMF_StateGet, ESMF_StateItem_Flag, ESMF_STATEITEM_NOTFOUND
   use ESMF                  , only : ESMF_Mesh, ESMF_MeshLoc, ESMF_MESHLOC_ELEMENT
@@ -29,7 +29,7 @@ module med_phases_prep_lnd_mod
   use med_utils_mod         , only : chkerr          => med_utils_ChkErr
   use med_constants_mod     , only : dbug_flag       => med_constants_dbug_flag
   use med_internalstate_mod , only : InternalState, logunit
-  use med_map_mod           , only : med_map_FB_Regrid_Norm
+  use med_map_mod           , only : med_map_FB_Regrid_Norm, med_map_RH_is_created
   use med_map_mod           , only : med_map_Fractions_Init
   use med_merge_mod         , only : med_merge_auto
   use glc_elevclass_mod     , only : glc_get_num_elevation_classes
@@ -309,7 +309,7 @@ contains
     ! Create route handle if it has not been created
     ! -------------------------------
 
-    if (.not. ESMF_RouteHandleIsCreated(is_local%wrap%RH(compglc,complnd,mapconsf))) then
+    if (.not. med_map_RH_is_created(is_local%wrap%RH(compglc,complnd,:),mapconsf,rc=rc)) then
        call med_map_Fractions_init( gcomp, compglc, complnd, &
             FBSrc=FBglc_ec, FBDst=FBlnd_ec, &
             RouteHandle=is_local%wrap%RH(compglc,complnd,mapconsf), rc=rc)

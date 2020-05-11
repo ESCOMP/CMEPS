@@ -59,7 +59,6 @@ module med_methods_mod
   public med_methods_FB_getNameN
   public med_methods_FB_getFieldN
   public med_methods_FB_getFieldByName
-  public med_methods_FB_FieldRegrid
   public med_methods_FB_getNumflds
   public med_methods_FB_Field_diagnose
   public med_methods_Field_diagnose
@@ -1020,74 +1019,6 @@ contains
     endif
 
   end subroutine med_methods_FB_reset
-
-  !-----------------------------------------------------------------------------
-
-  subroutine med_methods_FB_FieldRegrid(FBin,fldin,FBout,fldout,RH,rc,zeroregion)
-
-    ! ----------------------------------------------
-    ! Regrid a field in a field bundle to another field in a field bundle
-    ! ----------------------------------------------
-
-    use ESMF     , only : ESMF_FieldBundle, ESMF_RouteHandle, ESMF_FieldRegrid, ESMF_Field
-    use ESMF     , only : ESMF_TERMORDER_SRCSEQ, ESMF_FieldRegridStore, ESMF_SparseMatrixWrite
-    use ESMF     , only : ESMF_Region_Flag, ESMF_REGION_TOTAL
-    use perf_mod , only : t_startf, t_stopf
-
-    type(ESMF_FieldBundle), intent(in)           :: FBin
-    character(len=*)      , intent(in)           :: fldin
-    type(ESMF_FieldBundle), intent(inout)        :: FBout
-    character(len=*)      , intent(in)           :: fldout
-    type(ESMF_RouteHandle), intent(inout)        :: RH
-    integer               , intent(out)          :: rc
-    type(ESMF_Region_Flag), intent(in), optional :: zeroregion
-    ! ----------------------------------------------
-
-    ! local
-    real(R8), pointer      :: factorList(:)
-    integer,  pointer      :: factorIndexList(:,:)
-    type(ESMF_Field)       :: field1, field2
-    integer                :: rank
-    logical                :: checkflag = .false.
-    character(len=8)       :: filename
-    type(ESMF_Region_Flag) :: localzr
-    character(len=*),parameter :: subname='(med_methods_FB_FieldRegrid)'
-    ! ----------------------------------------------
-#ifdef DEBUG
-    checkflag = .true.
-#endif
-    call t_startf(subname)
-    rc = ESMF_SUCCESS
-
-    localzr = ESMF_REGION_TOTAL
-    if (present(zeroregion)) then
-       localzr = zeroregion
-    endif
-
-    call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
-
-    if (med_methods_FB_FldChk(FBin , trim(fldin) , rc=rc) .and. &
-         med_methods_FB_FldChk(FBout, trim(fldout), rc=rc)) then
-
-       call med_methods_FB_getFieldByName(FBin, trim(fldin), field1, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-       call med_methods_FB_getFieldByName(FBout, trim(fldout), field2, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-       call ESMF_FieldRegrid(field1, field2, routehandle=RH, &
-            termorderflag=ESMF_TERMORDER_SRCSEQ, checkflag=checkflag, & 
-            zeroregion=localzr, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-    else
-       call ESMF_LogWrite(trim(subname)//" field not found: "//&
-            trim(fldin)//","//trim(fldout), ESMF_LOGMSG_INFO)
-    endif
-
-    call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
-    call t_stopf(subname)
-
-   end subroutine med_methods_FB_FieldRegrid
 
   !-----------------------------------------------------------------------------
 

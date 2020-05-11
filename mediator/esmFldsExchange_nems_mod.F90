@@ -289,8 +289,8 @@ contains
     ! to ice: zonal wind at the lowest model level from atm
     ! to ice: meridional wind at the lowest model level from atm
     ! to ice: specific humidity at the lowest model level from atm
-    allocate(flds(7))
-    flds = (/'Sa_z        ', 'Sa_pbot     ', 'Sa_tbot     ', 'Sa_dens     ', 'Sa_u        ', 'Sa_v        ', 'Sa_shum     '/)
+    allocate(flds(8))
+    flds = (/'Sa_z        ', 'Sa_pbot     ', 'Sa_tbot     ', 'Sa_ptem     ', 'Sa_dens     ', 'Sa_u        ', 'Sa_v        ', 'Sa_shum     '/)
     do n = 1,size(flds)
        fldname = trim(flds(n))
        call addfld(fldListTo(compice)%flds, trim(fldname))
