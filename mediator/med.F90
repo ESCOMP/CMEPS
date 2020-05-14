@@ -42,6 +42,7 @@ module MED
   use esmFlds                  , only : coupling_mode
   use esmFldsExchange_nems_mod , only : esmFldsExchange_nems
   use esmFldsExchange_cesm_mod , only : esmFldsExchange_cesm
+  use esmFldsExchange_hafs_mod , only : esmFldsExchange_hafs
 
   implicit none
   private
@@ -465,6 +466,7 @@ contains
     use esmFlds               , only : med_fldList_GetNumFlds
     use esmFlds               , only : med_fldList_GetFldInfo
     use esmFldsExchange_nems_mod, only : esmFldsExchange_nems
+    use esmFldsExchange_hafs_mod, only : esmFldsExchange_hafs
     use med_internalstate_mod , only : mastertask
 
     ! input/output variables
@@ -559,6 +561,9 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     else if (trim(coupling_mode(1:4)) == 'nems') then
        call esmFldsExchange_nems(gcomp, phase='advertise', rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    else if (trim(coupling_mode(1:4)) == 'hafs') then
+       call esmFldsExchange_hafs(gcomp, phase='advertise', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
@@ -1377,21 +1382,19 @@ contains
 
             ! Convert grid to mesh
             if (.not. meshcreated) then
-               !if (dbug_flag > 1) then
-               !  call med_grid_write(grid, trim(fieldName)//'_premesh.nc', rc) 
-               !  if (ChkErr(rc,__LINE__,u_FILE_u)) return
-               !end if
-               call med_grid_write(grid, 'hycom_grid.nc', rc)
-               if (chkerr(rc,__LINE__,u_FILE_u)) return
+               if (dbug_flag > 20) then
+                 call med_grid_write(grid, trim(fieldName)//'_premesh.nc', rc) 
+                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
+               end if
 
                mesh = ESMF_GridToMeshCell(grid,rc=rc)
                if (ChkErr(rc,__LINE__,u_FILE_u)) return
                meshcreated = .true.
 
-               !if (dbug_flag > 1) then
-               !  call ESMF_MeshWrite(mesh, filename=trim(fieldName)//'_postmesh', rc=rc)
-               !  if (chkerr(rc,__LINE__,u_FILE_u)) return
-               !end if
+               if (dbug_flag > 20) then
+                 call ESMF_MeshWrite(mesh, filename=trim(fieldName)//'_postmesh', rc=rc)
+                 if (chkerr(rc,__LINE__,u_FILE_u)) return
+               end if
                call ESMF_MeshWrite(mesh, filename='hycom_mesh', rc=rc)
                if (chkerr(rc,__LINE__,u_FILE_u)) return
             end if
@@ -1792,6 +1795,9 @@ contains
 
       if (trim(coupling_mode) == 'cesm') then
          call esmFldsExchange_cesm(gcomp, phase='initialize', rc=rc)
+         if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      else if (trim(coupling_mode) == 'hafs') then
+         call esmFldsExchange_hafs(gcomp, phase='initialize', rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
       end if
 

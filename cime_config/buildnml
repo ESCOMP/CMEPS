@@ -556,7 +556,7 @@ def buildnml(case, caseroot, component):
     cimeroot = case.get_value("CIMEROOT")
     fd_dir = os.path.join(cimeroot, "src","drivers","nuopc","mediator")
     coupling_mode = case.get_value('COUPLING_MODE')
-    if coupling_mode == 'cesm':
+    if coupling_mode == 'cesm' or coupling_mode == 'hafs':
         filename = os.path.join(fd_dir,"fd_cesm.yaml")
     else:
         filename = os.path.join(fd_dir,"fd_nems.yaml")

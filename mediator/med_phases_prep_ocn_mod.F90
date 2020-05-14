@@ -197,7 +197,9 @@ contains
        !--- auto merges to ocn
        !---------------------------------------
 
-       if (trim(coupling_mode) == 'cesm' .or. trim(coupling_mode) == 'nems_orig_data') then
+       if (trim(coupling_mode) == 'cesm' .or. &
+           trim(coupling_mode) == 'nems_orig_data' .or. & 
+           trim(coupling_mode) == 'hafs') then
           call med_merge_auto(trim(compname(compocn)), &
                is_local%wrap%FBExp(compocn), is_local%wrap%FBFrac(compocn), &
                is_local%wrap%FBImp(:,compocn), fldListTo(compocn), &
@@ -214,7 +216,7 @@ contains
        !--- custom calculations
        !---------------------------------------
 
-       if (trim(coupling_mode) == 'cesm') then
+       if (trim(coupling_mode) == 'cesm' .or. trim(coupling_mode) == 'hafs') then
 
           !-------------
           ! Compute netsw for ocean

@@ -171,6 +171,11 @@ contains
                 dstMaskValue = ispval_mask
                 srcMaskValue = ispval_mask
              end if
+          else if (trim(coupling_mode) == 'hafs') then
+             dstMaskValue = ispval_mask
+             srcMaskValue = ispval_mask
+             if (n1 == compocn .or. n1 == compice) srcMaskValue = 0
+             if (n2 == compocn .or. n2 == compice) dstMaskValue = 0
           end if
 
           !--- get single fields from bundles
