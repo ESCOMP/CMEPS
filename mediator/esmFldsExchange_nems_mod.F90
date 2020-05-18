@@ -284,13 +284,11 @@ contains
     ! to ice: height at the lowest model level from atm
     ! to ice: pressure at the lowest model level from atm
     ! to ice: temperature at the lowest model level from atm
-    ! to ice: potential temperature at the lowest model level from atm
-    ! to ice: density at the lowest model level from atm
     ! to ice: zonal wind at the lowest model level from atm
     ! to ice: meridional wind at the lowest model level from atm
     ! to ice: specific humidity at the lowest model level from atm
-    allocate(flds(8))
-    flds = (/'Sa_z        ', 'Sa_pbot     ', 'Sa_tbot     ', 'Sa_ptem     ', 'Sa_dens     ', 'Sa_u        ', 'Sa_v        ', 'Sa_shum     '/)
+    allocate(flds(6))
+    flds = (/'Sa_z        ', 'Sa_pbot     ', 'Sa_tbot     ','Sa_u        ','Sa_v        ','Sa_shum     '/)
     do n = 1,size(flds)
        fldname = trim(flds(n))
        call addfld(fldListTo(compice)%flds, trim(fldname))
