@@ -45,7 +45,6 @@ contains
 
     ! local variables:
     type(InternalState) :: is_local
-    logical             :: flds_i2o_per_cat
     integer             :: dbrc
     integer             :: num, i, n
     integer             :: n1, n2, n3, n4
@@ -105,11 +104,6 @@ contains
     ! these computation will use the logical 'use_med_aoflux' below. This is used to determine
     ! mappings between the atm and ocn needed for these computations.
     !--------------------------------------
-
-    call NUOPC_CompAttributeGet(gcomp, name='flds_i2o_per_cat', value=cvalue, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) flds_i2o_per_cat
-    call ESMF_LogWrite('flds_i2o_per_cat = '// trim(cvalue), ESMF_LOGMSG_INFO)
 
     !----------------------------------------------------------
     ! Initialize mapping file names
@@ -313,12 +307,7 @@ contains
     ! Initialize if use 3d cartesian mapping for u,v
     !----------------------------------------------------------
 
-    call NUOPC_CompAttributeGet(gcomp, name='mapuv_with_cart3d', value=cvalue, isPresent=isPresent, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) mapuv_with_cart3d
-    if (isPresent) then
-       call ESMF_LogWrite('mapuv_with_cart3d = '// trim(cvalue), ESMF_LOGMSG_INFO)
-    end if
+    mapuv_with_cart3d = .false.
 
     !=====================================================================
     ! scalar information
@@ -341,7 +330,7 @@ contains
     ! to med: masks from components
     !----------------------------------------------------------
     if (phase == 'advertise') then
-       call addfld(fldListFr(complnd)%flds, 'Sl_lfrin')
+    !   call addfld(fldListFr(complnd)%flds, 'Sl_lfrin')
        call addfld(fldListFr(compocn)%flds, 'So_omask')
        call addfld(fldListFr(compice)%flds, 'Si_imask')
     else
@@ -349,44 +338,76 @@ contains
     end if
 
     ! ---------------------------------------------------------------------
-    ! to med: atm and ocn fields required for atm/ocn flux calculation'
+    ! to med: atm and ocn fields required for atm/ocn flux calculation
     ! ---------------------------------------------------------------------
     if (phase /= 'advertise') then
-       call addfld(fldListFr(compatm)%flds, 'Sa_u')
-       !call addmap(fldListFr(compatm)%flds, 'Sa_u'   , compocn, mappatch, 'one', atm2ocn_vmap)
-       call addmap(fldListFr(compatm)%flds, 'Sa_u'   , compocn, mapbilnr, 'one', atm2ocn_vmap)
-
-       call addfld(fldListFr(compatm)%flds, 'Sa_v')
-       !call addmap(fldListFr(compatm)%flds, 'Sa_v'   , compocn, mappatch, 'one', atm2ocn_vmap)
-       call addmap(fldListFr(compatm)%flds, 'Sa_v'   , compocn, mapbilnr, 'one', atm2ocn_vmap)
-
-       call addfld(fldListFr(compatm)%flds, 'Sa_z')
-       call addmap(fldListFr(compatm)%flds, 'Sa_z'   , compocn, mapbilnr, 'one', atm2ocn_smap)
-
-       call addfld(fldListFr(compatm)%flds, 'Sa_tbot')
-       call addmap(fldListFr(compatm)%flds, 'Sa_tbot', compocn, mapbilnr, 'one', atm2ocn_smap)
-
-       call addfld(fldListFr(compatm)%flds, 'Sa_pbot')
-       call addmap(fldListFr(compatm)%flds, 'Sa_pbot', compocn, mapbilnr, 'one', atm2ocn_smap)
-
-       call addfld(fldListFr(compatm)%flds, 'Sa_shum')
-       call addmap(fldListFr(compatm)%flds, 'Sa_shum', compocn, mapbilnr, 'one', atm2ocn_smap)
-
-       if (fldchk(is_local%wrap%FBImp(compatm,compatm), 'Sa_shum_wiso', rc=rc)) then
-          call addfld(fldListFr(compatm)%flds, 'Sa_shum_wiso')
-          call addmap(fldListFr(compatm)%flds, 'Sa_shum_wiso', compocn, mapbilnr, 'one', atm2ocn_smap)
-       end if
-
-       if (fldchk(is_local%wrap%FBImp(compatm,compatm), 'Sa_ptem', rc=rc)) then
-          call addfld(fldListFr(compatm)%flds, 'Sa_ptem')
-          call addmap(fldListFr(compatm)%flds, 'Sa_ptem', compocn, mapbilnr, 'one', atm2ocn_smap)
-       end if
-
-       if (fldchk(is_local%wrap%FBImp(compatm,compatm), 'Sa_dens', rc=rc)) then
-          call addfld(fldListFr(compatm)%flds, 'Sa_dens')
-          call addmap(fldListFr(compatm)%flds, 'Sa_dens', compocn, mapbilnr, 'one', atm2ocn_smap)
-       end if
+      allocate(flds(6))
+      flds = (/'Sa_u', 'Sa_v', 'Sa_z', 'Sa_tbot', 'Sa_pbot', 'Sa_shum'/)
+      do n = 1,size(flds)
+         fldname = trim(flds(n))
+         call addfld(fldListFr(compatm)%flds, trim(fldname))
+         if (trim(fldname) == 'Sa_u' .or. trim(fldname) == 'Sa_v') then
+            !call addmap(fldListFr(compatm)%flds, 'Sa_u'   , compocn, mappatch, 'one', atm2ocn_vmap)
+            call addmap(fldListFr(compatm)%flds, 'Sa_u'   , compocn, mapbilnr, 'one', atm2ocn_smap)
+         else
+            !nems - call addmap(fldListFr(compatm)%flds, trim(fldname), compocn, mapnstod_consf, 'none', 'unset')
+            call addmap(fldListFr(compatm)%flds, trim(fldname), compocn, mapbilnr, 'one', atm2ocn_smap)
+         end if
+      end do
+      deallocate(flds)
     end if
+
+    ! ---------------------------------------------------------------------
+    ! to med: unused fields needed by the atm/ocn flux computation
+    ! ---------------------------------------------------------------------
+    if (phase /= 'advertise') then
+       allocate(flds(13))
+       flds = (/'So_tref  ', 'So_qref  ', 'So_u10   ', 'So_ustar ', 'So_ssq   ', &
+                'So_re    ', 'So_duu10n', 'Faox_lwup', 'Faox_sen ', 'Faox_lat ', &
+                'Faox_evap', 'Faox_taux', 'Faox_tauy'/)
+       do n = 1, size(flds)
+          fldname = trim(flds(n))
+          call addfld(fldListMed_aoflux%flds, trim(fldname))
+       end do
+       deallocate(flds)
+    end if
+
+    !if (phase /= 'advertise') then
+    !   call addfld(fldListFr(compatm)%flds, 'Sa_u')
+    !   !call addmap(fldListFr(compatm)%flds, 'Sa_u'   , compocn, mappatch, 'one', atm2ocn_vmap)
+    !   call addmap(fldListFr(compatm)%flds, 'Sa_u'   , compocn, mapbilnr, 'one', atm2ocn_vmap)
+
+    !   call addfld(fldListFr(compatm)%flds, 'Sa_v')
+    !   !call addmap(fldListFr(compatm)%flds, 'Sa_v'   , compocn, mappatch, 'one', atm2ocn_vmap)
+    !   call addmap(fldListFr(compatm)%flds, 'Sa_v'   , compocn, mapbilnr, 'one', atm2ocn_vmap)
+
+    !   call addfld(fldListFr(compatm)%flds, 'Sa_z')
+    !   call addmap(fldListFr(compatm)%flds, 'Sa_z'   , compocn, mapbilnr, 'one', atm2ocn_smap)
+
+    !   call addfld(fldListFr(compatm)%flds, 'Sa_tbot')
+    !   call addmap(fldListFr(compatm)%flds, 'Sa_tbot', compocn, mapbilnr, 'one', atm2ocn_smap)
+
+    !   call addfld(fldListFr(compatm)%flds, 'Sa_pbot')
+    !   call addmap(fldListFr(compatm)%flds, 'Sa_pbot', compocn, mapbilnr, 'one', atm2ocn_smap)
+
+    !   call addfld(fldListFr(compatm)%flds, 'Sa_shum')
+    !   call addmap(fldListFr(compatm)%flds, 'Sa_shum', compocn, mapbilnr, 'one', atm2ocn_smap)
+
+    !   if (fldchk(is_local%wrap%FBImp(compatm,compatm), 'Sa_shum_wiso', rc=rc)) then
+    !      call addfld(fldListFr(compatm)%flds, 'Sa_shum_wiso')
+    !      call addmap(fldListFr(compatm)%flds, 'Sa_shum_wiso', compocn, mapbilnr, 'one', atm2ocn_smap)
+    !   end if
+
+    !   if (fldchk(is_local%wrap%FBImp(compatm,compatm), 'Sa_ptem', rc=rc)) then
+    !      call addfld(fldListFr(compatm)%flds, 'Sa_ptem')
+    !      call addmap(fldListFr(compatm)%flds, 'Sa_ptem', compocn, mapbilnr, 'one', atm2ocn_smap)
+    !   end if
+
+    !   if (fldchk(is_local%wrap%FBImp(compatm,compatm), 'Sa_dens', rc=rc)) then
+    !      call addfld(fldListFr(compatm)%flds, 'Sa_dens')
+    !      call addmap(fldListFr(compatm)%flds, 'Sa_dens', compocn, mapbilnr, 'one', atm2ocn_smap)
+    !   end if
+    !end if
 
     ! ---------------------------------------------------------------------
     ! to med: swnet fluxes used for budget calculation
@@ -467,8 +488,8 @@ contains
     ! are not treated the same was as in cesm2.0 release
     ! TODO (mvertens, 2019-03-10): add water isotopes from atm
 
-    allocate(flds(14))
-    flds = (/'Faxa_rainc ', 'Faxa_rainl ', 'Faxa_snowc ', 'Faxa_snowl ',                &
+    allocate(flds(15))
+    flds = (/'Faxa_rainc ', 'Faxa_rainl ', 'Faxa_snowc ', 'Faxa_snowl ', 'Faxa_swdn',               &
              'Faxa_lwdn  ', 'Faxa_swndr ', 'Faxa_swvdr ', 'Faxa_swndf ', 'Faxa_swvdf ', &
              'Faxa_bcph  ', 'Faxa_ocph  ', 'Faxa_dstwet', 'Faxa_dstdry', 'Faxa_ndep  ' /)
 
@@ -701,8 +722,8 @@ contains
     ! to ocn: downward dirrect visible incident solar radiation from atm
     ! to ocn: downward diffuse visible incident solar radiation from atm
     ! ---------------------------------------------------------------------
-    allocate(flds(5))
-    flds = (/'Faxa_lwdn ', 'Faxa_swndr', 'Faxa_swndf', 'Faxa_swvdr', 'Faxa_swvdf'/)
+    allocate(flds(6))
+    flds = (/'Faxa_lwdn', 'Faxa_swdn', 'Faxa_swndr', 'Faxa_swndf', 'Faxa_swvdr', 'Faxa_swvdf'/)
 
     do n = 1,size(flds)
        fldname = trim(flds(n))
@@ -750,6 +771,21 @@ contains
           call addmrg(fldListTo(compocn)%flds, 'Foxx_lwnet', &
                mrg_from1=compmed, mrg_fld1='Faox_lwup', mrg_type1='merge', mrg_fracname1='ofrac', &
                mrg_from2=compatm, mrg_fld2='Faxa_lwdn', mrg_type2='merge', mrg_fracname2='ofrac')
+       end if
+    end if
+
+    ! ---------------------------------------------------------------------
+    ! to ocn: downward shortwave heat flux
+    ! ---------------------------------------------------------------------
+    if (phase == 'advertise') then
+       call addfld(fldListFr(compatm)%flds, 'Faxa_swdn')
+       call addfld(fldListTo(compocn)%flds, 'Faxa_swdn')
+    else
+       if (fldchk(is_local%wrap%FBImp(compatm, compatm), 'Faxa_swdn', rc=rc) .and. &
+           fldchk(is_local%wrap%FBExp(compocn)         , 'Faxa_swdn', rc=rc)) then
+          call addmap(fldListFr(compatm)%flds, 'Faxa_swdn', compocn, mapconsf, 'one', atm2ocn_fmap)
+          call addmrg(fldListTo(compocn)%flds, 'Faxa_swdn', &
+               mrg_from1=compatm, mrg_fld1='Faxa_swdn', mrg_type1='copy')
        end if
     end if
 
@@ -854,7 +890,6 @@ contains
     ! to ocn: surface latent heat flux and evaporation water flux
     ! ---------------------------------------------------------------------
     if (phase == 'advertise') then
-
        call addfld(fldListFr(compatm)%flds, 'Faxa_lat' )
        call addfld(fldListMed_aoflux%flds , 'Faox_lat' )
        call addfld(fldListMed_aoflux%flds , 'Faox_evap')
@@ -901,21 +936,32 @@ contains
 
     ! ---------------------------------------------------------------------
     ! to ocn: sea level pressure from atm
+    ! to ocn: zonal wind at the lowest model level from atm
+    ! to ocn: meridional wind at the lowest model level from atm
+    ! to ocn: temperature at the lowest model level from atm
+    ! to ocn: specific humidity at the lowest model level from atm
     ! ---------------------------------------------------------------------
-    if (phase == 'advertise') then
-       call addfld(fldListFr(compatm)%flds, 'Sa_pslv')
-       call addfld(fldListTo(compocn)%flds, 'Sa_pslv')
-    else
-       if ( fldchk(is_local%wrap%FBImp(compatm, compatm), 'Sa_pslv', rc=rc) .and. &
-            fldchk(is_local%wrap%FBExp(compocn)         , 'Sa_pslv', rc=rc)) then
+    allocate(flds(5))
+    flds = (/'Sa_pslv', 'Sa_u', 'Sa_v', 'Sa_tbot', 'Sa_shum'/)
+    !flds = (/'Sa_pslv', 'Sa_u', 'Sa_v', 'Sa_ptem', 'Sa_shum'/)
+    !allocate(flds(4))
+    !flds = (/'Sa_pslv', 'Sa_u', 'Sa_v', 'Sa_shum'/)
 
-          call addmap(fldListFr(compatm)%flds, 'Sa_pslv', compocn, mapbilnr, 'one', atm2ocn_smap)
-          call addmap(fldListFr(compatm)%flds, 'Sa_pslv', compice, mapbilnr, 'one', atm2ocn_smap)
-
-          call addmrg(fldListTo(compocn)%flds, 'Sa_pslv', &
-               mrg_from1=compatm, mrg_fld1='Sa_pslv', mrg_type1='copy')
+    do n = 1,size(flds)
+       fldname = trim(flds(n))
+       if (phase == 'advertise') then
+          call addfld(fldListFr(compatm)%flds, trim(fldname))
+          call addfld(fldListTo(compocn)%flds, trim(fldname))
+       else
+          if (fldchk(is_local%wrap%FBImp(compatm, compatm), trim(fldname), rc=rc) .and. &
+              fldchk(is_local%wrap%FBExp(compocn)         , trim(fldname), rc=rc)) then
+             call addmap(fldListFr(compatm)%flds, trim(fldname), compocn, mapbilnr, 'one', atm2ocn_smap)
+             call addmrg(fldListTo(compocn)%flds, trim(fldname), &
+                  mrg_from1=compatm, mrg_fld1=trim(fldname), mrg_type1='copy')
+          end if
        end if
-    end if
+    end do
+    deallocate(flds)    
 
     ! ---------------------------------------------------------------------
     ! to ocn: merge zonal surface stress from ice and (atm or med)
