@@ -372,42 +372,42 @@ contains
        deallocate(flds)
     end if
 
-    !if (phase /= 'advertise') then
-    !   call addfld(fldListFr(compatm)%flds, 'Sa_u')
-    !   !call addmap(fldListFr(compatm)%flds, 'Sa_u'   , compocn, mappatch, 'one', atm2ocn_vmap)
-    !   call addmap(fldListFr(compatm)%flds, 'Sa_u'   , compocn, mapbilnr, 'one', atm2ocn_vmap)
+    if (phase /= 'advertise') then
+       call addfld(fldListFr(compatm)%flds, 'Sa_u')
+       !call addmap(fldListFr(compatm)%flds, 'Sa_u'   , compocn, mappatch, 'one', atm2ocn_vmap)
+       call addmap(fldListFr(compatm)%flds, 'Sa_u'   , compocn, mapbilnr, 'one', atm2ocn_vmap)
 
-    !   call addfld(fldListFr(compatm)%flds, 'Sa_v')
-    !   !call addmap(fldListFr(compatm)%flds, 'Sa_v'   , compocn, mappatch, 'one', atm2ocn_vmap)
-    !   call addmap(fldListFr(compatm)%flds, 'Sa_v'   , compocn, mapbilnr, 'one', atm2ocn_vmap)
+       call addfld(fldListFr(compatm)%flds, 'Sa_v')
+       !call addmap(fldListFr(compatm)%flds, 'Sa_v'   , compocn, mappatch, 'one', atm2ocn_vmap)
+       call addmap(fldListFr(compatm)%flds, 'Sa_v'   , compocn, mapbilnr, 'one', atm2ocn_vmap)
 
-    !   call addfld(fldListFr(compatm)%flds, 'Sa_z')
-    !   call addmap(fldListFr(compatm)%flds, 'Sa_z'   , compocn, mapbilnr, 'one', atm2ocn_smap)
+       call addfld(fldListFr(compatm)%flds, 'Sa_z')
+       call addmap(fldListFr(compatm)%flds, 'Sa_z'   , compocn, mapbilnr, 'one', atm2ocn_smap)
 
-    !   call addfld(fldListFr(compatm)%flds, 'Sa_tbot')
-    !   call addmap(fldListFr(compatm)%flds, 'Sa_tbot', compocn, mapbilnr, 'one', atm2ocn_smap)
+       call addfld(fldListFr(compatm)%flds, 'Sa_tbot')
+       call addmap(fldListFr(compatm)%flds, 'Sa_tbot', compocn, mapbilnr, 'one', atm2ocn_smap)
 
-    !   call addfld(fldListFr(compatm)%flds, 'Sa_pbot')
-    !   call addmap(fldListFr(compatm)%flds, 'Sa_pbot', compocn, mapbilnr, 'one', atm2ocn_smap)
+       call addfld(fldListFr(compatm)%flds, 'Sa_pbot')
+       call addmap(fldListFr(compatm)%flds, 'Sa_pbot', compocn, mapbilnr, 'one', atm2ocn_smap)
 
-    !   call addfld(fldListFr(compatm)%flds, 'Sa_shum')
-    !   call addmap(fldListFr(compatm)%flds, 'Sa_shum', compocn, mapbilnr, 'one', atm2ocn_smap)
+       call addfld(fldListFr(compatm)%flds, 'Sa_shum')
+       call addmap(fldListFr(compatm)%flds, 'Sa_shum', compocn, mapbilnr, 'one', atm2ocn_smap)
 
-    !   if (fldchk(is_local%wrap%FBImp(compatm,compatm), 'Sa_shum_wiso', rc=rc)) then
-    !      call addfld(fldListFr(compatm)%flds, 'Sa_shum_wiso')
-    !      call addmap(fldListFr(compatm)%flds, 'Sa_shum_wiso', compocn, mapbilnr, 'one', atm2ocn_smap)
-    !   end if
+       if (fldchk(is_local%wrap%FBImp(compatm,compatm), 'Sa_shum_wiso', rc=rc)) then
+          call addfld(fldListFr(compatm)%flds, 'Sa_shum_wiso')
+          call addmap(fldListFr(compatm)%flds, 'Sa_shum_wiso', compocn, mapbilnr, 'one', atm2ocn_smap)
+       end if
 
-    !   if (fldchk(is_local%wrap%FBImp(compatm,compatm), 'Sa_ptem', rc=rc)) then
-    !      call addfld(fldListFr(compatm)%flds, 'Sa_ptem')
-    !      call addmap(fldListFr(compatm)%flds, 'Sa_ptem', compocn, mapbilnr, 'one', atm2ocn_smap)
-    !   end if
+       if (fldchk(is_local%wrap%FBImp(compatm,compatm), 'Sa_ptem', rc=rc)) then
+          call addfld(fldListFr(compatm)%flds, 'Sa_ptem')
+          call addmap(fldListFr(compatm)%flds, 'Sa_ptem', compocn, mapbilnr, 'one', atm2ocn_smap)
+       end if
 
-    !   if (fldchk(is_local%wrap%FBImp(compatm,compatm), 'Sa_dens', rc=rc)) then
-    !      call addfld(fldListFr(compatm)%flds, 'Sa_dens')
-    !      call addmap(fldListFr(compatm)%flds, 'Sa_dens', compocn, mapbilnr, 'one', atm2ocn_smap)
-    !   end if
-    !end if
+       if (fldchk(is_local%wrap%FBImp(compatm,compatm), 'Sa_dens', rc=rc)) then
+          call addfld(fldListFr(compatm)%flds, 'Sa_dens')
+          call addmap(fldListFr(compatm)%flds, 'Sa_dens', compocn, mapbilnr, 'one', atm2ocn_smap)
+       end if
+    end if
 
     ! ---------------------------------------------------------------------
     ! to med: swnet fluxes used for budget calculation
@@ -943,9 +943,6 @@ contains
     ! ---------------------------------------------------------------------
     allocate(flds(5))
     flds = (/'Sa_pslv', 'Sa_u', 'Sa_v', 'Sa_tbot', 'Sa_shum'/)
-    !flds = (/'Sa_pslv', 'Sa_u', 'Sa_v', 'Sa_ptem', 'Sa_shum'/)
-    !allocate(flds(4))
-    !flds = (/'Sa_pslv', 'Sa_u', 'Sa_v', 'Sa_shum'/)
 
     do n = 1,size(flds)
        fldname = trim(flds(n))
