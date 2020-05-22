@@ -1,0 +1,279 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Application Specific Field Exchange Specification &mdash; CMEPS master documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Introduction" href="introduction.html" /> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> CMEPS
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                master
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Application Specific Field Exchange Specification</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#id1">Field Naming Convention</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">CMEPS</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Application Specific Field Exchange Specification</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/field_naming_convention.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="application-specific-field-exchange-specification">
+<span id="field-naming-convention"></span><h1>Application Specific Field Exchange Specification<a class="headerlink" href="#application-specific-field-exchange-specification" title="Permalink to this headline">¶</a></h1>
+<dl class="docutils">
+<dt>CMEPS contains two component specific files that determine:</dt>
+<dd><ul class="first last simple">
+<li>the fields that are exchanged between components</li>
+<li>how source fields are mapped to destination fields</li>
+<li>how source fields are merged after mapping to destination fields</li>
+</ul>
+</dd>
+</dl>
+</div>
+<div class="section" id="id1">
+<h1>Field Naming Convention<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h1>
+<p>The mediator variable names can be seen in the application specific YAML field dictionary. Currently, three
+field dictionaries are supported:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">fd_cesm</span><span class="o">.</span><span class="n">yaml</span>
+<span class="n">fd_nems</span><span class="o">.</span><span class="n">yaml</span>
+<span class="n">fd_hafs</span><span class="o">.</span><span class="n">yaml</span>
+</pre></div>
+</div>
+<p>The CMEPS field name convention in these YAML files is independent of the model components.
+The convention differentiates between variables that are state fields versus flux fields.</p>
+<p>State variables have a prefix that always start with an <code class="docutils literal notranslate"><span class="pre">S</span></code> followned by a two character string:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">state</span><span class="o">-</span><span class="n">prefix</span>
+  <span class="n">first</span> <span class="mi">3</span> <span class="n">characters</span><span class="p">:</span> <span class="n">Sx_</span><span class="p">,</span> <span class="n">Sa_</span><span class="p">,</span> <span class="n">Si_</span><span class="p">,</span> <span class="n">Sl_</span><span class="p">,</span> <span class="n">So_</span>
+  <span class="n">one</span> <span class="n">letter</span> <span class="n">indices</span><span class="p">:</span> <span class="n">x</span><span class="p">,</span><span class="n">a</span><span class="p">,</span><span class="n">l</span><span class="p">,</span><span class="n">i</span><span class="p">,</span><span class="n">o</span><span class="p">,</span><span class="n">g</span><span class="p">,</span><span class="n">r</span>
+  <span class="n">x</span> <span class="o">=&gt;</span> <span class="n">mediator</span> <span class="p">(</span><span class="n">mapping</span><span class="p">,</span> <span class="n">merging</span><span class="p">)</span>
+  <span class="n">a</span> <span class="o">=&gt;</span> <span class="n">atmosphere</span>
+  <span class="n">l</span> <span class="o">=&gt;</span> <span class="n">land</span>
+  <span class="n">i</span> <span class="o">=&gt;</span> <span class="n">sea</span><span class="o">-</span><span class="n">ice</span>
+  <span class="n">o</span> <span class="o">=&gt;</span> <span class="n">ocean</span>
+  <span class="n">g</span> <span class="o">=&gt;</span> <span class="n">land</span><span class="o">-</span><span class="n">ice</span>
+  <span class="n">r</span> <span class="o">=&gt;</span> <span class="n">river</span>
+  <span class="n">w</span> <span class="o">=&gt;</span> <span class="n">wave</span>
+
+<span class="n">state</span><span class="o">-</span><span class="n">name</span>
+  <span class="n">what</span> <span class="n">follows</span> <span class="n">state</span> <span class="n">prefix</span>
+</pre></div>
+</div>
+<p>As an example, <code class="docutils literal notranslate"><span class="pre">Sx_t</span></code> is the merged surface temperature from land, ice and ocean sent to the atmopshere for CESM.</p>
+<p>Flux variables that specifies both source and destination components and have a 5 character prefix:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">flux</span><span class="o">-</span><span class="n">prefix</span>
+  <span class="n">first</span> <span class="mi">5</span> <span class="n">characters</span><span class="p">:</span> <span class="n">Flmn_</span>
+  <span class="n">lm</span> <span class="o">=&gt;</span> <span class="n">between</span> <span class="n">components</span> <span class="n">l</span> <span class="ow">and</span> <span class="n">m</span>
+  <span class="n">n</span>  <span class="o">=&gt;</span> <span class="n">computed</span> <span class="n">by</span> <span class="n">component</span> <span class="n">n</span>
+  <span class="n">example</span><span class="p">:</span> <span class="n">Fioi</span> <span class="o">=&gt;</span> <span class="n">ice</span><span class="o">-</span><span class="n">ocn</span> <span class="n">flux</span> <span class="n">computed</span> <span class="n">by</span> <span class="n">ice</span>
+  <span class="n">example</span><span class="p">:</span> <span class="n">Fall</span> <span class="o">=&gt;</span> <span class="n">atm</span><span class="o">-</span><span class="n">lnd</span> <span class="n">flux</span> <span class="n">computed</span> <span class="n">by</span> <span class="n">lnd</span>
+
+ <span class="n">flux</span><span class="o">-</span><span class="n">name</span>
+   <span class="n">what</span> <span class="n">follows</span> <span class="n">flux</span><span class="o">-</span><span class="n">prefix</span>
+</pre></div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+      
+        <a href="introduction.html" class="btn btn-neutral" title="Introduction" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2020, U.S. National Science Foundation.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+     
+<script>var version_json_loc = "../../versions.json";</script>
+
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'master',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="_static/language_data.js"></script>
+      <script type="text/javascript" src="_static/pop_ver.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
