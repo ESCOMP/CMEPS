@@ -350,7 +350,6 @@ contains
             !call addmap(fldListFr(compatm)%flds, 'Sa_u'   , compocn, mappatch, 'one', atm2ocn_vmap)
             call addmap(fldListFr(compatm)%flds, 'Sa_u'   , compocn, mapbilnr, 'one', atm2ocn_smap)
          else
-            !nems - call addmap(fldListFr(compatm)%flds, trim(fldname), compocn, mapnstod_consf, 'none', 'unset')
             call addmap(fldListFr(compatm)%flds, trim(fldname), compocn, mapbilnr, 'one', atm2ocn_smap)
          end if
       end do
