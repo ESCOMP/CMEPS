@@ -10,30 +10,28 @@ Are changes expected to change answers (and if so in what way)?
 
 Any User Interface Changes (namelist or namelist defaults changes)?
 
-Testing performed if application target is CESM:(either EMC or CESM testing is required):
-
+Testing performed if application target is CESM:(either UFS-S2S or CESM testing is required):
 - [ ] (required) CIME_DRIVER=nuopc scripts_regression_tests.py
    - machines:
-
+   - details (e.g. failed tests):
 - [ ] (required) CESM testlist_drv.xml
    - machines and compilers:
-
+   - details (e.g. failed tests):
 - [ ] (optional) CESM prealpha test
    - machines and compilers
+   - details (e.g. failed tests):
 
 Testing performed if application target is UFS-S2S:
-
 - [ ] (required) UFS-S2S testing
    - description:
+   - details (e.g. failed tests):
 
 Hashes used for testing:
-
-- If CESM:
+- [ ] CESM:
   - repository to check out: https://github.com/ESCOMP/CESM.git
-  - branch:
+  - branch: nuopc_dev
   - hash:
-
-- If UFS-S2S, then umbrella repostiory to check out and associated hash:
+- [ ] UFS-S2S, then umbrella repostiory to check out and associated hash:
   - repository to check out:
   - branch:
   - hash:
