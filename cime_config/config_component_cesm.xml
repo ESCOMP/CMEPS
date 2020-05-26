@@ -333,6 +333,7 @@
       <value compset="_DATM.*_MOM6.*_DROF">$ATM_NCPL</value>
       <value compset="_DATM.*_DOCN%SOM">$ATM_NCPL</value>
       <value compset="_DATM.*_SLND.*_DICE.*_DOCN">$ATM_NCPL</value>
+      <value compset="_MIZUROUTE_">1</value>
       <value compset="_DATM%CPLHIST.+POP\d">8</value>
       <value compset="_DATM%CPLHIST.+MOM\d">8</value>
       <value compset="_XATM.*_XLND.*_XICE.*_XOCN">$ATM_NCPL</value>
