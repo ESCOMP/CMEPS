@@ -597,13 +597,11 @@
        description: ww3 import 
      #
      - standard_name: surface_eastward_sea_water_velocity
-       #alias: So_u
        alias: ocn_current_zonal
        canonical_units: m s-1
        description: ww3 import 
      #
      - standard_name: surface_northward_sea_water_velocity
-       #alias: So_v
        alias: ocn_current_merid
        canonical_units: m s-1
        description: ww3 import 
@@ -619,7 +617,6 @@
        description: ww3 import 
      #
      - standard_name: sea_ice_concentration
-       #alias: Si_ifrac
        alias: ice_fraction
        canonical_units: 1
        description: ww3 import 
