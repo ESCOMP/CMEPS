@@ -123,12 +123,6 @@ contains
        call ESMF_LogWrite('ice2atm_smapname = '// trim(ice2atm_smap), ESMF_LOGMSG_INFO)
     end if
 
-    call NUOPC_CompAttributeGet(gcomp, name='lnd2atm_fmapname', value=lnd2atm_fmap, isPresent=isPresent, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       call ESMF_LogWrite('lnd2atm_fmapname = '// trim(lnd2atm_fmap), ESMF_LOGMSG_INFO)
-    end if
-
     call NUOPC_CompAttributeGet(gcomp, name='ocn2atm_smapname', value=ocn2atm_smap, isPresent=isPresent, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     if (isPresent) then
@@ -139,44 +133,6 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     if (isPresent) then
        call ESMF_LogWrite('ocn2atm_fmapname = '// trim(ocn2atm_fmap), ESMF_LOGMSG_INFO)
-    end if
-
-    call NUOPC_CompAttributeGet(gcomp, name='lnd2atm_smapname', value=lnd2atm_smap, isPresent=isPresent, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       call ESMF_LogWrite('lnd2atm_smapname = '// trim(lnd2atm_smap), ESMF_LOGMSG_INFO)
-    end if
-
-    ! to lnd
-
-    call NUOPC_CompAttributeGet(gcomp, name='atm2lnd_fmapname', value=atm2lnd_fmap, isPresent=isPresent, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       call ESMF_LogWrite('atm2lnd_fmapname = '// trim(atm2lnd_fmap), ESMF_LOGMSG_INFO)
-    end if
-
-    call NUOPC_CompAttributeGet(gcomp, name='atm2lnd_smapname', value=atm2lnd_smap, isPresent=isPresent, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       call ESMF_LogWrite('atm2lnd_smapname = '// trim(atm2lnd_smap), ESMF_LOGMSG_INFO)
-    end if
-
-    call NUOPC_CompAttributeGet(gcomp, name='rof2lnd_fmapname', value=rof2lnd_fmap, isPresent=isPresent, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       call ESMF_LogWrite('rof2lnd_fmapname = '// trim(rof2lnd_fmap), ESMF_LOGMSG_INFO)
-    end if
-
-    call NUOPC_CompAttributeGet(gcomp, name='glc2lnd_fmapname', value=glc2lnd_fmap, isPresent=isPresent, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       call ESMF_LogWrite('glc2lnd_smapname = '// trim(glc2lnd_fmap), ESMF_LOGMSG_INFO)
-    end if
-
-    call NUOPC_CompAttributeGet(gcomp, name='glc2lnd_smapname', value=glc2lnd_smap, isPresent=isPresent, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       call ESMF_LogWrite('glc2lnd_smapname = '// trim(glc2lnd_smap), ESMF_LOGMSG_INFO)
     end if
 
     ! to ice
@@ -199,12 +155,6 @@ contains
        call ESMF_LogWrite('atm2ice_vmapname = '// trim(atm2ice_vmap), ESMF_LOGMSG_INFO)
     end if
 
-    call NUOPC_CompAttributeGet(gcomp, name='glc2ice_rmapname', value=glc2ice_rmap, isPresent=isPresent, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       call ESMF_LogWrite('glc2ice_rmapname = '// trim(glc2ice_rmap), ESMF_LOGMSG_INFO)
-    end if
-
     ! to ocn
 
     call NUOPC_CompAttributeGet(gcomp, name='atm2ocn_fmapname', value=atm2ocn_fmap, isPresent=isPresent, rc=rc)
@@ -223,84 +173,6 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     if (isPresent) then
        call ESMF_LogWrite('atm2ocn_vmapname = '// trim(atm2ocn_vmap), ESMF_LOGMSG_INFO)
-    end if
-
-    call NUOPC_CompAttributeGet(gcomp, name='glc2ocn_liq_rmapname', value=glc2ocn_liq_rmap, isPresent=isPresent, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       call ESMF_LogWrite('glc2ocn_liq_rmapname = '// trim(glc2ocn_liq_rmap), ESMF_LOGMSG_INFO)
-    end if
-
-    call NUOPC_CompAttributeGet(gcomp, name='glc2ocn_ice_rmapname', value=glc2ocn_ice_rmap, isPresent=isPresent, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       call ESMF_LogWrite('glc2ocn_ice_rmapname = '// trim(glc2ocn_ice_rmap), ESMF_LOGMSG_INFO)
-    end if
-
-    call NUOPC_CompAttributeGet(gcomp, name='wav2ocn_smapname', value=wav2ocn_smap, isPresent=isPresent, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       call ESMF_LogWrite('wav2ocn_smapname = '// trim(wav2ocn_smap), ESMF_LOGMSG_INFO)
-    end if
-
-    call NUOPC_CompAttributeGet(gcomp, name='rof2ocn_fmapname', value=rof2ocn_fmap, isPresent=isPresent, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       call ESMF_LogWrite('rof2ocn_fmapname = '// trim(rof2ocn_fmap), ESMF_LOGMSG_INFO)
-    end if
-
-    call NUOPC_CompAttributeGet(gcomp, name='rof2ocn_liq_rmapname', value=rof2ocn_liq_rmap, isPresent=isPresent, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       call ESMF_LogWrite('rof2ocn_liq_rmapname = '// trim(rof2ocn_liq_rmap), ESMF_LOGMSG_INFO)
-    end if
-
-    call NUOPC_CompAttributeGet(gcomp, name='rof2ocn_ice_rmapname', value=rof2ocn_ice_rmap, isPresent=isPresent, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       call ESMF_LogWrite('rof2ocn_ice_rmapname = '// trim(rof2ocn_ice_rmap), ESMF_LOGMSG_INFO)
-    end if
-
-    ! to rof
-
-    call NUOPC_CompAttributeGet(gcomp, name='lnd2rof_fmapname', value=lnd2rof_fmap, isPresent=isPresent, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       call ESMF_LogWrite('lnd2rof_fmapname = '// trim(lnd2rof_fmap), ESMF_LOGMSG_INFO)
-    end if
-
-    ! to glc
-
-    call NUOPC_CompAttributeGet(gcomp, name='lnd2glc_fmapname', value=lnd2glc_fmap, isPresent=isPresent, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       call ESMF_LogWrite('lnd2glc_fmapname = '// trim(lnd2glc_fmap), ESMF_LOGMSG_INFO)
-    end if
-
-    call NUOPC_CompAttributeGet(gcomp, name='lnd2glc_smapname', value=lnd2glc_smap, isPresent=isPresent, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       call ESMF_LogWrite('lnd2glc_smapname = '// trim(lnd2glc_smap), ESMF_LOGMSG_INFO)
-    end if
-
-    ! to wav
-
-    call NUOPC_CompAttributeGet(gcomp, name='atm2wav_smapname', value=atm2wav_smap, isPresent=isPresent, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       call ESMF_LogWrite('atm2wav_smapname = '// trim(atm2wav_smap), ESMF_LOGMSG_INFO)
-    end if
-
-    call NUOPC_CompAttributeGet(gcomp, name='ice2wav_smapname', value=ice2wav_smap, isPresent=isPresent, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       call ESMF_LogWrite('ice2wav_smapname = '// trim(ice2wav_smap), ESMF_LOGMSG_INFO)
-    end if
-
-    call NUOPC_CompAttributeGet(gcomp, name='ocn2wav_smapname', value=ocn2wav_smap, isPresent=isPresent, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       call ESMF_LogWrite('ocn2wav_smapname = '// trim(ocn2wav_smap), ESMF_LOGMSG_INFO)
     end if
 
     !----------------------------------------------------------
@@ -330,7 +202,6 @@ contains
     ! to med: masks from components
     !----------------------------------------------------------
     if (phase == 'advertise') then
-    !   call addfld(fldListFr(complnd)%flds, 'Sl_lfrin')
        call addfld(fldListFr(compocn)%flds, 'So_omask')
        call addfld(fldListFr(compice)%flds, 'Si_imask')
     else
@@ -347,8 +218,8 @@ contains
          fldname = trim(flds(n))
          call addfld(fldListFr(compatm)%flds, trim(fldname))
          if (trim(fldname) == 'Sa_u' .or. trim(fldname) == 'Sa_v') then
-            !call addmap(fldListFr(compatm)%flds, 'Sa_u'   , compocn, mappatch, 'one', atm2ocn_vmap)
-            call addmap(fldListFr(compatm)%flds, 'Sa_u'   , compocn, mapbilnr, 'one', atm2ocn_smap)
+            !call addmap(fldListFr(compatm)%flds, trim(fldname), compocn, mappatch, 'one', atm2ocn_vmap)
+            call addmap(fldListFr(compatm)%flds, trim(fldname), compocn, mapbilnr, 'one', atm2ocn_smap)
          else
             call addmap(fldListFr(compatm)%flds, trim(fldname), compocn, mapbilnr, 'one', atm2ocn_smap)
          end if
@@ -425,88 +296,6 @@ contains
           call addmap(fldListFr(compice)%flds, 'Faii_swnet', compocn, mapfcopy, 'unset', 'unset')
        end if
     end if
-
-    !=====================================================================
-    ! FIELDS TO LAND
-    !=====================================================================
-
-    ! ---------------------------------------------------------------------
-    ! from atm:
-    ! to lnd: height at the lowest model level from atm
-    ! to lnd: surface height from atm
-    ! to lnd: zonal wind at the lowest model level from atm
-    ! to lnd: meridional wind at the lowest model level from atm
-    ! to lnd: Temperature at the lowest model level from atm
-    ! to lnd: potential temperature at the lowest model level from atm
-    ! to lnd: Pressure at the lowest model level from atm
-    ! to lnd: specific humidity at the lowest model level from atm
-    ! ---------------------------------------------------------------------
-
-    allocate(flds(9))
-    flds = (/'Sa_z        ', 'Sa_topo     ', 'Sa_u        ', 'Sa_v        ', 'Sa_tbot     ', &
-             'Sa_ptem     ', 'Sa_pbot     ', 'Sa_shum     ', 'Sa_shum_wiso'/)
-
-    do n = 1,size(flds)
-       fldname = trim(flds(n))
-       if (phase == 'advertise') then
-          call addfld(fldListFr(compatm)%flds, trim(fldname))
-          call addfld(fldListTo(complnd)%flds, trim(fldname))
-       else
-          if ( fldchk(is_local%wrap%FBexp(complnd)         , trim(fldname), rc=rc) .and. &
-               fldchk(is_local%wrap%FBImp(compatm,compatm ), trim(fldname), rc=rc)) then
-             call addmap(fldListFr(compatm)%flds, trim(fldname), complnd, mapbilnr, 'one', atm2lnd_smap)
-             call addmrg(fldListTo(complnd)%flds, trim(fldname), &
-                  mrg_from1=compatm, mrg_fld1=trim(fldname), mrg_type1='copy')
-          end if
-       end if
-    end do
-    deallocate(flds)
-
-    ! ---------------------------------------------------------------------
-    ! to lnd: convective and large scale precipitation rate water equivalent from atm
-    ! to lnd: convective and large-scale (stable) snow rate from atm
-    ! to lnd: downward longwave heat flux from atm
-    ! to lnd: downward direct near-infrared incident solar radiation  from atm
-    ! to lnd: downward direct visible incident solar radiation        from atm
-    ! to lnd: downward diffuse near-infrared incident solar radiation from atm
-    ! to lnd: downward Diffuse visible incident solar radiation       from atm
-    ! to lnd: black carbon deposition fluxes from atm
-    !   - hydrophylic black carbon dry deposition flux
-    !   - hydrophobic black carbon dry deposition flux
-    !   - hydrophylic black carbon wet deposition flux
-    ! to lnd: organic carbon deposition fluxes from atm
-    !   - hydrophylic organic carbon dry deposition flux
-    !   - hydrophobic organic carbon dry deposition flux
-    !   - hydrophylic organic carbon wet deposition flux
-    ! to lnd: dust wet deposition flux (sizes 1-4) from atm
-    ! to lnd: dust dry deposition flux (sizes 1-4) from atm
-    ! to lnd: nitrogen deposition fields from atm
-    ! ---------------------------------------------------------------------
-
-    ! TODO (mvertens, 2018-12-13): the nitrogen deposition fluxes here
-    ! are not treated the same was as in cesm2.0 release
-    ! TODO (mvertens, 2019-03-10): add water isotopes from atm
-
-    allocate(flds(15))
-    flds = (/'Faxa_rainc ', 'Faxa_rainl ', 'Faxa_snowc ', 'Faxa_snowl ', 'Faxa_swdn',               &
-             'Faxa_lwdn  ', 'Faxa_swndr ', 'Faxa_swvdr ', 'Faxa_swndf ', 'Faxa_swvdf ', &
-             'Faxa_bcph  ', 'Faxa_ocph  ', 'Faxa_dstwet', 'Faxa_dstdry', 'Faxa_ndep  ' /)
-
-    do n = 1,size(flds)
-       fldname = trim(flds(n))
-       if (phase == 'advertise') then
-          call addfld(fldListFr(compatm)%flds, trim(fldname))
-          call addfld(fldListTo(complnd)%flds, trim(fldname))
-       else
-          if ( fldchk(is_local%wrap%FBexp(complnd)         , trim(fldname), rc=rc) .and. &
-               fldchk(is_local%wrap%FBImp(compatm,compatm ), trim(fldname), rc=rc)) then
-             call addmap(fldListFr(compatm)%flds, trim(fldname), complnd, mapconsf, 'one', atm2lnd_fmap)
-             call addmrg(fldListTo(complnd)%flds, trim(fldname), &
-                  mrg_from1=compatm, mrg_fld1=trim(fldname), mrg_type1='copy')
-          end if
-       end if
-    end do
-    deallocate(flds)
 
     !=====================================================================
     ! FIELDS TO ATMOSPHERE
@@ -702,6 +491,47 @@ contains
     !=====================================================================
     ! FIELDS TO OCEAN (compocn)
     !=====================================================================
+
+    !----------------------------------------------------------
+    ! to ocn: req. fields to satisfy mediator (can be removed later)
+    !----------------------------------------------------------
+    allocate(flds(2))
+    flds = (/'Faxa_snowc', 'Faxa_snowl'/)
+!
+    do n = 1,size(flds)
+       fldname = trim(flds(n))
+       if (phase == 'advertise') then
+          call addfld(fldListFr(compatm)%flds, trim(fldname))
+          call addfld(fldListTo(compocn)%flds, trim(fldname))
+       else
+          if ( fldchk(is_local%wrap%FBexp(compocn)         , trim(fldname), rc=rc) .and. &
+               fldchk(is_local%wrap%FBImp(compatm,compatm ), trim(fldname), rc=rc)) then
+             call addmap(fldListFr(compatm)%flds, trim(fldname), compocn, mapconsf, 'one', atm2ocn_fmap)
+             call addmrg(fldListTo(compocn)%flds, trim(fldname), &
+                  mrg_from1=compatm, mrg_fld1=trim(fldname), mrg_type1='copy')
+          end if
+       end if
+    end do
+    deallocate(flds)
+
+    allocate(flds(4))
+    flds = (/'Sa_topo', 'Sa_z', 'Sa_ptem', 'Sa_pbot'/)
+
+    do n = 1,size(flds)
+       fldname = trim(flds(n))
+       if (phase == 'advertise') then
+          call addfld(fldListFr(compatm)%flds, trim(fldname))
+          call addfld(fldListTo(compocn)%flds, trim(fldname))
+       else
+          if ( fldchk(is_local%wrap%FBexp(compocn)         , trim(fldname), rc=rc) .and. &
+               fldchk(is_local%wrap%FBImp(compatm,compatm ), trim(fldname), rc=rc)) then
+             call addmap(fldListFr(compatm)%flds, trim(fldname), compocn, mapbilnr, 'one', atm2ocn_smap)
+             call addmrg(fldListTo(compocn)%flds, trim(fldname), &
+                  mrg_from1=compatm, mrg_fld1=trim(fldname), mrg_type1='copy')
+          end if
+       end if
+    end do
+    deallocate(flds)
 
     !----------------------------------------------------------
     ! to ocn: fractional ice coverage wrt ocean from ice
@@ -1001,11 +831,7 @@ contains
        else
           if ( fldchk(is_local%wrap%FBexp(compice)         , trim(fldname), rc=rc) .and. &
                fldchk(is_local%wrap%FBImp(compatm,compatm ), trim(fldname), rc=rc)) then
-             !if (trim(fldname) == 'Sa_u' .or. trim(fldname) == 'Sa_v') then
-             !   call addmap(fldListFr(compatm)%flds, trim(fldname), compice, mappatch, 'one', atm2ice_vmap)
-             !else
-                call addmap(fldListFr(compatm)%flds, trim(fldname), compice, mapbilnr, 'one', atm2ice_smap)
-             !end if
+             call addmap(fldListFr(compatm)%flds, trim(fldname), compice, mapbilnr, 'one', atm2ice_smap)
              call addmrg(fldListTo(compice)%flds, trim(fldname), &
                   mrg_from1=compatm, mrg_fld1=trim(fldname), mrg_type1='copy')
           end if
