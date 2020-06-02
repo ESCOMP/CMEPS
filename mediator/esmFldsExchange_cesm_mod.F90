@@ -966,6 +966,21 @@ contains
     end if
 
     ! ---------------------------------------------------------------------
+    ! to ocn: downward shortwave heat flux
+    ! ---------------------------------------------------------------------
+    if (phase == 'advertise') then
+       call addfld(fldListFr(compatm)%flds, 'Faxa_swdn')
+       call addfld(fldListTo(compocn)%flds, 'Faxa_swdn')
+    else
+       if (fldchk(is_local%wrap%FBImp(compatm, compatm), 'Faxa_swdn', rc=rc) .and. &
+           fldchk(is_local%wrap%FBExp(compocn)         , 'Faxa_swdn', rc=rc)) then
+          call addmap(fldListFr(compatm)%flds, 'Faxa_swdn', compocn, mapconsf, 'one', atm2ocn_fmap)
+          call addmrg(fldListTo(compocn)%flds, 'Faxa_swdn', &
+               mrg_from1=compatm, mrg_fld1='Faxa_swdn', mrg_type1='copy')
+       end if
+    end if
+
+    ! ---------------------------------------------------------------------
     ! to ocn: net shortwave radiation from med
     ! ---------------------------------------------------------------------
     if (phase == 'advertise') then
