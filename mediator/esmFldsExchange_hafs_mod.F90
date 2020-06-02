@@ -551,8 +551,8 @@ contains
     ! to ocn: downward dirrect visible incident solar radiation from atm
     ! to ocn: downward diffuse visible incident solar radiation from atm
     ! ---------------------------------------------------------------------
-    allocate(flds(6))
-    flds = (/'Faxa_lwdn', 'Faxa_swdn', 'Faxa_swndr', 'Faxa_swndf', 'Faxa_swvdr', 'Faxa_swvdf'/)
+    allocate(flds(5))
+    flds = (/'Faxa_lwdn', 'Faxa_swndr', 'Faxa_swndf', 'Faxa_swvdr', 'Faxa_swvdf'/)
 
     do n = 1,size(flds)
        fldname = trim(flds(n))
