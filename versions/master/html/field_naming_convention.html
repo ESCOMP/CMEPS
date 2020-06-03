@@ -86,8 +86,8 @@
 <li class="toctree-l1"><a class="reference internal" href="introduction.html">1. Introduction</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">2. Application Specific Field Exchange Specification</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#id1">2.1. Field Naming Convention</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#ufs-s2s-fields">2.1.1. UFS-S2S fields:</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#cesm-fields">2.1.2. CESM fields:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#state-variable-names">2.1.1. State variable names</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#flux-variable-names">2.1.2. Flux variable names</a></li>
 </ul>
 </li>
 </ul>
@@ -205,6 +205,8 @@ well as the mediator</p>
 <span class="n">w</span> <span class="o">=&gt;</span> <span class="n">wave</span>
 </pre></div>
 </div>
+<div class="section" id="state-variable-names">
+<h3>2.1.1. State variable names<a class="headerlink" href="#state-variable-names" title="Permalink to this headline">¶</a></h3>
 <p>State variables have a prefix that always start with an <code class="docutils literal notranslate"><span class="pre">S</span></code> followned by a two character string:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">state</span><span class="o">-</span><span class="n">prefix</span>
   <span class="n">first</span> <span class="mi">3</span> <span class="n">characters</span><span class="p">:</span> <span class="n">Sx_</span><span class="p">,</span> <span class="n">Sa_</span><span class="p">,</span> <span class="n">Si_</span><span class="p">,</span> <span class="n">Sl_</span><span class="p">,</span> <span class="n">So_</span>
@@ -214,121 +216,171 @@ well as the mediator</p>
 </pre></div>
 </div>
 <p>As an example, <code class="docutils literal notranslate"><span class="pre">Sx_t</span></code> is the merged surface temperature from land, ice and ocean sent to the atmopshere for CESM.</p>
-<p>Flux variables that specifies both source and destination components and have a 5 character prefix:</p>
+<p>The following state names are currently supported. Note that each application might only use a subset of these fields.</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="25%" />
+<col width="75%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">state names</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>Sa_dens</td>
+<td>air density at lowest model layer</td>
+</tr>
+<tr class="row-odd"><td>Sa_pbot</td>
+<td>air pressure at lowest model layer</td>
+</tr>
+<tr class="row-even"><td>Sa_pslv</td>
+<td>air pressure at land and sea surface</td>
+</tr>
+<tr class="row-odd"><td>Sa_shum</td>
+<td>air specific humidity at lowest model layer</td>
+</tr>
+<tr class="row-even"><td>Sa_tbot</td>
+<td>air temperature at lowest model layer</td>
+</tr>
+<tr class="row-odd"><td>Sa_u</td>
+<td>air zonal wind at lowest model layer</td>
+</tr>
+<tr class="row-even"><td>Sa_v</td>
+<td>air meridioinal wind at lowest model layer</td>
+</tr>
+<tr class="row-odd"><td>Sa_z</td>
+<td>air height wind at lowest model layer</td>
+</tr>
+<tr class="row-even"><td>Si_anidf</td>
+<td>ice near infrared diffuse albedo</td>
+</tr>
+<tr class="row-odd"><td>Si_anidr</td>
+<td>ice near infrared direct albedo</td>
+</tr>
+<tr class="row-even"><td>Si_avsdf</td>
+<td>ice vissible diffuse albedo</td>
+</tr>
+<tr class="row-odd"><td>Si_avsdr</td>
+<td>ice vissible direct albedo</td>
+</tr>
+<tr class="row-even"><td>Si_ifrac</td>
+<td>ice fraction</td>
+</tr>
+<tr class="row-odd"><td>Si_imask</td>
+<td>ice mask</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="flux-variable-names">
+<h3>2.1.2. Flux variable names<a class="headerlink" href="#flux-variable-names" title="Permalink to this headline">¶</a></h3>
+<p>Flux variables specify both source and destination components and have a 5 character prefix:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">flux</span><span class="o">-</span><span class="n">prefix</span>
   <span class="n">first</span> <span class="mi">5</span> <span class="n">characters</span><span class="p">:</span> <span class="n">Flmn_</span>
   <span class="n">lm</span> <span class="o">=&gt;</span> <span class="n">between</span> <span class="n">components</span> <span class="n">l</span> <span class="ow">and</span> <span class="n">m</span>
   <span class="n">n</span>  <span class="o">=&gt;</span> <span class="n">computed</span> <span class="n">by</span> <span class="n">component</span> <span class="n">n</span>
 <span class="n">flux</span><span class="o">-</span><span class="n">name</span>
-   <span class="n">what</span> <span class="n">follows</span> <span class="n">flux</span><span class="o">-</span><span class="n">prefix</span>
+   <span class="n">what</span> <span class="n">follows</span> <span class="n">the</span> <span class="n">flux</span><span class="o">-</span><span class="n">prefix</span>
 </pre></div>
 </div>
-<div class="section" id="ufs-s2s-fields">
-<h3>2.1.1. UFS-S2S fields:<a class="headerlink" href="#ufs-s2s-fields" title="Permalink to this headline">¶</a></h3>
-<p>For the UFS-S2S application, the following fields and fluxes are used in <code class="docutils literal notranslate"><span class="pre">esmFldsExchange_nems_mod.F90</span></code>:</p>
+<p>The following flux prefixes are used:</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
-<col width="29%" />
-<col width="57%" />
-<col width="14%" />
+<col width="25%" />
+<col width="75%" />
 </colgroup>
 <thead valign="bottom">
-<tr class="row-odd"><th class="head">variable</th>
+<tr class="row-odd"><th class="head">flux prefix</th>
 <th class="head">description</th>
-<th class="head">source</th>
-</tr>
-</thead>
-<tbody valign="top">
-<tr class="row-even"><td>Faii_taux</td>
-<td>air-ice zonal stress, positive downwards</td>
-<td>ice</td>
-</tr>
-<tr class="row-odd"><td>Faii_tauy</td>
-<td>air-ice meridional stress, positive downwards</td>
-<td>ice</td>
-</tr>
-<tr class="row-even"><td>Faii_lat</td>
-<td>air-ice latent heat, positive downwards</td>
-<td>ice</td>
-</tr>
-<tr class="row-odd"><td>Faii_sen</td>
-<td>air-ice sensible heat, positive downwards</td>
-<td>ice</td>
-</tr>
-<tr class="row-even"><td>Faii_evap</td>
-<td>air-ice evaporative water flux, positive downwards</td>
-<td>ice</td>
-</tr>
-<tr class="row-odd"><td>Faii_lwup</td>
-<td>air-ice surface longwave flux, positive downwards</td>
-<td>ice</td>
-</tr>
-<tr class="row-even"><td>Si_vice</td>
-<td>mean ice volume per unit area</td>
-<td>ice</td>
-</tr>
-<tr class="row-odd"><td>Si_vsno</td>
-<td>mean snow volume per unit area</td>
-<td>ice</td>
-</tr>
-<tr class="row-even"><td>Si_t</td>
-<td>ice surface surface temperature</td>
-<td>ice</td>
-</tr>
-</tbody>
-</table>
-</div>
-<div class="section" id="cesm-fields">
-<h3>2.1.2. CESM fields:<a class="headerlink" href="#cesm-fields" title="Permalink to this headline">¶</a></h3>
-<p>For CESM the following fields and fluxes are used in <code class="docutils literal notranslate"><span class="pre">esmFldsExchange_cesm_mod.F90</span></code>:</p>
-<table border="1" class="colwidths-given docutils">
-<colgroup>
-<col width="29%" />
-<col width="57%" />
-<col width="14%" />
-</colgroup>
-<thead valign="bottom">
-<tr class="row-odd"><th class="head">variable</th>
-<th class="head">description</th>
-<th class="head">source</th>
 </tr>
 </thead>
 <tbody valign="top">
 <tr class="row-even"><td>Faxa_</td>
-<td>atm flux sent to the mediator</td>
-<td>atm</td>
+<td>atm flux computed by atm</td>
 </tr>
-<tr class="row-odd"><td>Fioi_</td>
-<td>ice-ocn flux</td>
-<td>ice</td>
+<tr class="row-odd"><td>Fall_</td>
+<td>lnd-atm flux computed by lnd</td>
 </tr>
-<tr class="row-even"><td>Fall_</td>
-<td>lnd-atm flux</td>
-<td>lnd</td>
+<tr class="row-even"><td>Fioi_</td>
+<td>ice-ocn flux computed by ice</td>
 </tr>
 <tr class="row-odd"><td>Faii_</td>
-<td>ice_atm flux</td>
-<td>ice</td>
+<td>ice_atm flux computed by ice</td>
 </tr>
 <tr class="row-even"><td>Flrr_</td>
-<td>lnd-rof flux</td>
-<td>rof</td>
+<td>lnd-rof flux computed by rof</td>
 </tr>
 <tr class="row-odd"><td>Firr_</td>
-<td>rof-ice flux</td>
-<td>rof</td>
+<td>rof-ice flux computed by rof</td>
 </tr>
 <tr class="row-even"><td>Faxx_</td>
 <td>mediator merged fluxes sent to the atm</td>
-<td>med</td>
 </tr>
 <tr class="row-odd"><td>Foxx_</td>
 <td>mediator merged fluxes sent to the ocn</td>
-<td>med</td>
 </tr>
 <tr class="row-even"><td>Fixx_</td>
 <td>mediator merged fluxes sent to the ice</td>
-<td>med</td>
+</tr>
+</tbody>
+</table>
+<p>The following flux-names are used:</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="25%" />
+<col width="75%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">flux name</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>_evap</td>
+<td>air-ice evaporative water flux, positive downwards</td>
+</tr>
+<tr class="row-odd"><td>_lat</td>
+<td>air-ice latent heat, positive downwards</td>
+</tr>
+<tr class="row-even"><td>_lwup</td>
+<td>air-ice surface longwave flux, positive downwards</td>
+</tr>
+<tr class="row-odd"><td>_sen</td>
+<td>air-ice sensible heat, positive downwards</td>
+</tr>
+<tr class="row-even"><td>_swnet</td>
+<td>net short wave, positive downwards</td>
+</tr>
+<tr class="row-odd"><td>_melth</td>
+<td>net heat flux to ocean from ice</td>
+</tr>
+<tr class="row-even"><td>_meltw</td>
+<td>fresh water flux to ocean from ice</td>
+</tr>
+<tr class="row-odd"><td>_salt</td>
+<td>salt to ocean from ice</td>
+</tr>
+<tr class="row-even"><td>_swpen</td>
+<td>flux of shortwave through ice to ocean</td>
+</tr>
+<tr class="row-odd"><td>_swpen_vdr</td>
+<td>flux of visible direct shortwave through ice to ocean</td>
+</tr>
+<tr class="row-even"><td>_swpen_vdf</td>
+<td>flux of visible diffuse shortwave thrrouh ice to ocean</td>
+</tr>
+<tr class="row-odd"><td>_swpen_idr</td>
+<td>flux of near infrared direct through ice to ocean</td>
+</tr>
+<tr class="row-even"><td>_swpen_idf</td>
+<td>flux of near infrared diffuse through ice to ocean</td>
+</tr>
+<tr class="row-odd"><td>_taux</td>
+<td>zonal stress, positive downwards</td>
+</tr>
+<tr class="row-even"><td>_tauy</td>
+<td>air-ice meridional stress, positive downwards</td>
 </tr>
 </tbody>
 </table>

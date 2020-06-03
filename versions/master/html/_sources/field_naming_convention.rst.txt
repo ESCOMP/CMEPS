@@ -52,6 +52,9 @@ well as the mediator ::
   r => river
   w => wave
 
+State variable names
+~~~~~~~~~~~~~~~~~~~~
+
 State variables have a prefix that always start with an ``S`` followned by a two character string::
 
   state-prefix
@@ -62,49 +65,74 @@ State variables have a prefix that always start with an ``S`` followned by a two
 
 As an example, ``Sx_t`` is the merged surface temperature from land, ice and ocean sent to the atmopshere for CESM.
 
-Flux variables that specifies both source and destination components and have a 5 character prefix::
+The following state names are currently supported. Note that each application might only use a subset of these fields.
+
+.. csv-table::
+   :header: "state names", "description"
+   :widths: 20, 60
+
+   "Sa_dens", "air density at lowest model layer"
+   "Sa_pbot", "air pressure at lowest model layer"
+   "Sa_pslv", "air pressure at land and sea surface"
+   "Sa_shum", "air specific humidity at lowest model layer"
+   "Sa_tbot", "air temperature at lowest model layer"
+   "Sa_u", "air zonal wind at lowest model layer"
+   "Sa_v", "air meridioinal wind at lowest model layer"
+   "Sa_z", "air height wind at lowest model layer"
+   "Si_anidf", "ice near infrared diffuse albedo"
+   "Si_anidr", "ice near infrared direct albedo"
+   "Si_avsdf", "ice vissible diffuse albedo"
+   "Si_avsdr", "ice vissible direct albedo"
+   "Si_ifrac", "ice fraction"
+   "Si_imask", "ice mask"
+
+
+Flux variable names
+~~~~~~~~~~~~~~~~~~~
+
+Flux variables specify both source and destination components and have a 5 character prefix::
 
   flux-prefix
     first 5 characters: Flmn_
     lm => between components l and m
     n  => computed by component n
   flux-name
-     what follows flux-prefix
+     what follows the flux-prefix
 
-UFS-S2S fields:
-~~~~~~~~~~~~~~~
-
-For the UFS-S2S application, the following fields and fluxes are used in ``esmFldsExchange_nems_mod.F90``:
+The following flux prefixes are used:
 
 .. csv-table::
-   :header: "variable", "description", "source"
-   :widths: 20, 40, 10
+   :header: "flux prefix", "description"
+   :widths: 20, 60
 
-   "Faii_taux", "air-ice zonal stress, positive downwards", "ice"
-   "Faii_tauy", "air-ice meridional stress, positive downwards", "ice"
-   "Faii_lat", "air-ice latent heat, positive downwards", "ice"
-   "Faii_sen", "air-ice sensible heat, positive downwards", "ice"
-   "Faii_evap", "air-ice evaporative water flux, positive downwards", "ice"
-   "Faii_lwup", "air-ice surface longwave flux, positive downwards", "ice"
-   "Si_vice", "mean ice volume per unit area", "ice"
-   "Si_vsno", "mean snow volume per unit area", "ice"
-   "Si_t", "ice surface surface temperature", "ice"
+   "Faxa\_", "atm flux computed by atm"
+   "Fall\_", "lnd-atm flux computed by lnd"
+   "Fioi\_", "ice-ocn flux computed by ice"
+   "Faii\_", "ice_atm flux computed by ice"
+   "Flrr\_", "lnd-rof flux computed by rof"
+   "Firr\_", "rof-ice flux computed by rof"
+   "Faxx\_", "mediator merged fluxes sent to the atm"
+   "Foxx\_", "mediator merged fluxes sent to the ocn"
+   "Fixx\_", "mediator merged fluxes sent to the ice"
 
-CESM fields:
-~~~~~~~~~~~~
-
-For CESM the following fields and fluxes are used in ``esmFldsExchange_cesm_mod.F90``:
+The following flux-names are used:
 
 .. csv-table::
-   :header: "variable", "description", "source"
-   :widths: 20, 40, 10
+   :header: "flux name", "description"
+   :widths: 20, 60
 
-   "Faxa\_", "atm flux sent to the mediator", "atm"
-   "Fioi\_", "ice-ocn flux", "ice"
-   "Fall\_", "lnd-atm flux", "lnd"
-   "Faii\_", "ice_atm flux", "ice"
-   "Flrr\_", "lnd-rof flux", "rof"
-   "Firr\_", "rof-ice flux", "rof"
-   "Faxx\_", "mediator merged fluxes sent to the atm", "med"
-   "Foxx\_", "mediator merged fluxes sent to the ocn", "med"
-   "Fixx\_", "mediator merged fluxes sent to the ice", "med"
+   "_evap", "air-ice evaporative water flux, positive downwards"
+   "_lat", "air-ice latent heat, positive downwards"
+   "_lwup", "air-ice surface longwave flux, positive downwards"
+   "_sen", "air-ice sensible heat, positive downwards"
+   "_swnet", "net short wave, positive downwards"
+   "_melth", "net heat flux to ocean from ice"
+   "_meltw", "fresh water flux to ocean from ice"
+   "_salt", "salt to ocean from ice"
+   "_swpen", "flux of shortwave through ice to ocean"
+   "_swpen_vdr", "flux of visible direct shortwave through ice to ocean"
+   "_swpen_vdf", "flux of visible diffuse shortwave thrrouh ice to ocean"
+   "_swpen_idr", "flux of near infrared direct through ice to ocean"
+   "_swpen_idf", "flux of near infrared diffuse through ice to ocean"
+   "_taux", "zonal stress, positive downwards"
+   "_tauy", "air-ice meridional stress, positive downwards"
