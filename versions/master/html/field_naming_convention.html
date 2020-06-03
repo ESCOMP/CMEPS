@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Application Specific Field Exchange Specification &mdash; CMEPS master documentation</title>
+  <title>2. Application Specific Field Exchange Specification &mdash; CMEPS master documentation</title>
   
 
   
@@ -29,7 +29,7 @@
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="prev" title="Introduction" href="introduction.html" /> 
+    <link rel="prev" title="1. Introduction" href="introduction.html" /> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -83,9 +83,15 @@
             
             
               <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Application Specific Field Exchange Specification</a></li>
-<li class="toctree-l1"><a class="reference internal" href="#id1">Field Naming Convention</a></li>
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">1. Introduction</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">2. Application Specific Field Exchange Specification</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#id1">2.1. Field Naming Convention</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#ufs-s2s-fields">2.1.1. UFS-S2S fields:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cesm-fields">2.1.2. CESM fields:</a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 
             
@@ -131,7 +137,7 @@
     
       <li><a href="index.html">Docs</a> &raquo;</li>
         
-      <li>Application Specific Field Exchange Specification</li>
+      <li>2. Application Specific Field Exchange Specification</li>
     
     
       <li class="wy-breadcrumbs-aside">
@@ -151,19 +157,33 @@
            <div itemprop="articleBody">
             
   <div class="section" id="application-specific-field-exchange-specification">
-<span id="field-naming-convention"></span><h1>Application Specific Field Exchange Specification<a class="headerlink" href="#application-specific-field-exchange-specification" title="Permalink to this headline">¶</a></h1>
-<dl class="docutils">
-<dt>CMEPS contains two component specific files that determine:</dt>
-<dd><ul class="first last simple">
-<li>the fields that are exchanged between components</li>
-<li>how source fields are mapped to destination fields</li>
-<li>how source fields are merged after mapping to destination fields</li>
-</ul>
-</dd>
-</dl>
+<span id="field-naming-convention"></span><h1>2. Application Specific Field Exchange Specification<a class="headerlink" href="#application-specific-field-exchange-specification" title="Permalink to this headline">¶</a></h1>
+<p>CMEPS is a community mediator in that it supports multiple coupling systems.
+CMEPS contains two coupled model specific files that determine:
+- the fields that are exchanged between components
+- how source fields are mapped to destination fields
+- how source fields are merged after mapping to destination fields</p>
+<p>For CESM, this occurs via the files,:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">esmFldsExchange_cesm_mod</span><span class="o">.</span><span class="n">F90</span> <span class="ow">and</span> <span class="n">fd_cesm</span><span class="o">.</span><span class="n">yaml</span>
+</pre></div>
 </div>
+<p>For UFS-S2S, this occurs via the files:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">esmFldsExchange_nems_mod</span><span class="o">.</span><span class="n">F90</span> <span class="ow">and</span> <span class="n">fd_nems</span><span class="o">.</span><span class="n">yaml</span>
+</pre></div>
+</div>
+<p>UFS-HAFS, this occurs via the files:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">esmFldsExchange_hafs_mod</span><span class="o">.</span><span class="n">F90</span> <span class="ow">and</span> <span class="n">fd_hafs</span><span class="o">.</span><span class="n">yaml</span>
+</pre></div>
+</div>
+<dl class="docutils">
+<dt>CMEPS advertises <strong>all possible fields</strong> that can be imported to and</dt>
+<dd>exported by the mediator for the target coupled system. Not all of
+these fields will be connected to the various components. The
+connections will be determined by what the components advertise in
+their respective advtise phase.</dd>
+</dl>
 <div class="section" id="id1">
-<h1>Field Naming Convention<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h1>
+<h2>2.1. Field Naming Convention<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
 <p>The mediator variable names can be seen in the application specific YAML field dictionary. Currently, three
 field dictionaries are supported:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">fd_cesm</span><span class="o">.</span><span class="n">yaml</span>
@@ -173,19 +193,22 @@ field dictionaries are supported:</p>
 </div>
 <p>The CMEPS field name convention in these YAML files is independent of the model components.
 The convention differentiates between variables that are state fields versus flux fields.</p>
+<p>In naming convention assumes the following one letter designation for the various components as
+well as the mediator</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">x</span> <span class="o">=&gt;</span> <span class="n">mediator</span> <span class="p">(</span><span class="n">where</span> <span class="n">mapping</span> <span class="ow">and</span> <span class="n">merging</span> <span class="ow">is</span> <span class="n">done</span><span class="p">)</span>
+<span class="n">a</span> <span class="o">=&gt;</span> <span class="n">atmosphere</span>
+<span class="n">i</span> <span class="o">=&gt;</span> <span class="n">sea</span><span class="o">-</span><span class="n">ice</span>
+<span class="n">l</span> <span class="o">=&gt;</span> <span class="n">land</span>
+<span class="n">g</span> <span class="o">=&gt;</span> <span class="n">land</span><span class="o">-</span><span class="n">ice</span>
+<span class="n">o</span> <span class="o">=&gt;</span> <span class="n">ocean</span>
+<span class="n">r</span> <span class="o">=&gt;</span> <span class="n">river</span>
+<span class="n">w</span> <span class="o">=&gt;</span> <span class="n">wave</span>
+</pre></div>
+</div>
 <p>State variables have a prefix that always start with an <code class="docutils literal notranslate"><span class="pre">S</span></code> followned by a two character string:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">state</span><span class="o">-</span><span class="n">prefix</span>
   <span class="n">first</span> <span class="mi">3</span> <span class="n">characters</span><span class="p">:</span> <span class="n">Sx_</span><span class="p">,</span> <span class="n">Sa_</span><span class="p">,</span> <span class="n">Si_</span><span class="p">,</span> <span class="n">Sl_</span><span class="p">,</span> <span class="n">So_</span>
-  <span class="n">one</span> <span class="n">letter</span> <span class="n">indices</span><span class="p">:</span> <span class="n">x</span><span class="p">,</span><span class="n">a</span><span class="p">,</span><span class="n">l</span><span class="p">,</span><span class="n">i</span><span class="p">,</span><span class="n">o</span><span class="p">,</span><span class="n">g</span><span class="p">,</span><span class="n">r</span>
-  <span class="n">x</span> <span class="o">=&gt;</span> <span class="n">mediator</span> <span class="p">(</span><span class="n">mapping</span><span class="p">,</span> <span class="n">merging</span><span class="p">)</span>
-  <span class="n">a</span> <span class="o">=&gt;</span> <span class="n">atmosphere</span>
-  <span class="n">l</span> <span class="o">=&gt;</span> <span class="n">land</span>
-  <span class="n">i</span> <span class="o">=&gt;</span> <span class="n">sea</span><span class="o">-</span><span class="n">ice</span>
-  <span class="n">o</span> <span class="o">=&gt;</span> <span class="n">ocean</span>
-  <span class="n">g</span> <span class="o">=&gt;</span> <span class="n">land</span><span class="o">-</span><span class="n">ice</span>
-  <span class="n">r</span> <span class="o">=&gt;</span> <span class="n">river</span>
-  <span class="n">w</span> <span class="o">=&gt;</span> <span class="n">wave</span>
-
+  <span class="n">one</span> <span class="n">letter</span> <span class="n">indices</span><span class="p">:</span> <span class="n">x</span><span class="p">,</span><span class="n">a</span><span class="p">,</span><span class="n">i</span><span class="p">,</span><span class="n">g</span><span class="p">,</span><span class="n">l</span><span class="p">,</span><span class="n">o</span><span class="p">,</span><span class="n">g</span><span class="p">,</span><span class="n">r</span><span class="p">,</span><span class="n">w</span>
 <span class="n">state</span><span class="o">-</span><span class="n">name</span>
   <span class="n">what</span> <span class="n">follows</span> <span class="n">state</span> <span class="n">prefix</span>
 </pre></div>
@@ -196,12 +219,120 @@ The convention differentiates between variables that are state fields versus flu
   <span class="n">first</span> <span class="mi">5</span> <span class="n">characters</span><span class="p">:</span> <span class="n">Flmn_</span>
   <span class="n">lm</span> <span class="o">=&gt;</span> <span class="n">between</span> <span class="n">components</span> <span class="n">l</span> <span class="ow">and</span> <span class="n">m</span>
   <span class="n">n</span>  <span class="o">=&gt;</span> <span class="n">computed</span> <span class="n">by</span> <span class="n">component</span> <span class="n">n</span>
-  <span class="n">example</span><span class="p">:</span> <span class="n">Fioi</span> <span class="o">=&gt;</span> <span class="n">ice</span><span class="o">-</span><span class="n">ocn</span> <span class="n">flux</span> <span class="n">computed</span> <span class="n">by</span> <span class="n">ice</span>
-  <span class="n">example</span><span class="p">:</span> <span class="n">Fall</span> <span class="o">=&gt;</span> <span class="n">atm</span><span class="o">-</span><span class="n">lnd</span> <span class="n">flux</span> <span class="n">computed</span> <span class="n">by</span> <span class="n">lnd</span>
-
- <span class="n">flux</span><span class="o">-</span><span class="n">name</span>
+<span class="n">flux</span><span class="o">-</span><span class="n">name</span>
    <span class="n">what</span> <span class="n">follows</span> <span class="n">flux</span><span class="o">-</span><span class="n">prefix</span>
 </pre></div>
+</div>
+<div class="section" id="ufs-s2s-fields">
+<h3>2.1.1. UFS-S2S fields:<a class="headerlink" href="#ufs-s2s-fields" title="Permalink to this headline">¶</a></h3>
+<p>For the UFS-S2S application, the following fields and fluxes are used in <code class="docutils literal notranslate"><span class="pre">esmFldsExchange_nems_mod.F90</span></code>:</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="29%" />
+<col width="57%" />
+<col width="14%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">variable</th>
+<th class="head">description</th>
+<th class="head">source</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>Faii_taux</td>
+<td>air-ice zonal stress, positive downwards</td>
+<td>ice</td>
+</tr>
+<tr class="row-odd"><td>Faii_tauy</td>
+<td>air-ice meridional stress, positive downwards</td>
+<td>ice</td>
+</tr>
+<tr class="row-even"><td>Faii_lat</td>
+<td>air-ice latent heat, positive downwards</td>
+<td>ice</td>
+</tr>
+<tr class="row-odd"><td>Faii_sen</td>
+<td>air-ice sensible heat, positive downwards</td>
+<td>ice</td>
+</tr>
+<tr class="row-even"><td>Faii_evap</td>
+<td>air-ice evaporative water flux, positive downwards</td>
+<td>ice</td>
+</tr>
+<tr class="row-odd"><td>Faii_lwup</td>
+<td>air-ice surface longwave flux, positive downwards</td>
+<td>ice</td>
+</tr>
+<tr class="row-even"><td>Si_vice</td>
+<td>mean ice volume per unit area</td>
+<td>ice</td>
+</tr>
+<tr class="row-odd"><td>Si_vsno</td>
+<td>mean snow volume per unit area</td>
+<td>ice</td>
+</tr>
+<tr class="row-even"><td>Si_t</td>
+<td>ice surface surface temperature</td>
+<td>ice</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="cesm-fields">
+<h3>2.1.2. CESM fields:<a class="headerlink" href="#cesm-fields" title="Permalink to this headline">¶</a></h3>
+<p>For CESM the following fields and fluxes are used in <code class="docutils literal notranslate"><span class="pre">esmFldsExchange_cesm_mod.F90</span></code>:</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="29%" />
+<col width="57%" />
+<col width="14%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">variable</th>
+<th class="head">description</th>
+<th class="head">source</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>Faxa_</td>
+<td>atm flux sent to the mediator</td>
+<td>atm</td>
+</tr>
+<tr class="row-odd"><td>Fioi_</td>
+<td>ice-ocn flux</td>
+<td>ice</td>
+</tr>
+<tr class="row-even"><td>Fall_</td>
+<td>lnd-atm flux</td>
+<td>lnd</td>
+</tr>
+<tr class="row-odd"><td>Faii_</td>
+<td>ice_atm flux</td>
+<td>ice</td>
+</tr>
+<tr class="row-even"><td>Flrr_</td>
+<td>lnd-rof flux</td>
+<td>rof</td>
+</tr>
+<tr class="row-odd"><td>Firr_</td>
+<td>rof-ice flux</td>
+<td>rof</td>
+</tr>
+<tr class="row-even"><td>Faxx_</td>
+<td>mediator merged fluxes sent to the atm</td>
+<td>med</td>
+</tr>
+<tr class="row-odd"><td>Foxx_</td>
+<td>mediator merged fluxes sent to the ocn</td>
+<td>med</td>
+</tr>
+<tr class="row-even"><td>Fixx_</td>
+<td>mediator merged fluxes sent to the ice</td>
+<td>med</td>
+</tr>
+</tbody>
+</table>
+</div>
 </div>
 </div>
 
@@ -214,7 +345,7 @@ The convention differentiates between variables that are state fields versus flu
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
       
-        <a href="introduction.html" class="btn btn-neutral" title="Introduction" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="introduction.html" class="btn btn-neutral" title="1. Introduction" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

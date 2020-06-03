@@ -3,14 +3,32 @@
 Application Specific Field Exchange Specification
 =================================================
 
-CMEPS contains two component specific files that determine:
- - the fields that are exchanged between components
- - how source fields are mapped to destination fields
- - how source fields are merged after mapping to destination fields
+CMEPS is a community mediator in that it supports multiple coupling systems.
+CMEPS contains two coupled model specific files that determine:
+- the fields that are exchanged between components
+- how source fields are mapped to destination fields
+- how source fields are merged after mapping to destination fields
 
+For CESM, this occurs via the files,::
+
+  esmFldsExchange_cesm_mod.F90 and fd_cesm.yaml
+
+For UFS-S2S, this occurs via the files: ::
+
+  esmFldsExchange_nems_mod.F90 and fd_nems.yaml
+
+UFS-HAFS, this occurs via the files: ::
+
+  esmFldsExchange_hafs_mod.F90 and fd_hafs.yaml
+
+CMEPS advertises **all possible fields** that can be imported to and
+   exported by the mediator for the target coupled system. Not all of
+   these fields will be connected to the various components. The
+   connections will be determined by what the components advertise in
+   their respective advtise phase.
 
 Field Naming Convention
-=======================
+-----------------------
 
 The mediator variable names can be seen in the application specific YAML field dictionary. Currently, three
 field dictionaries are supported::
@@ -22,20 +40,23 @@ field dictionaries are supported::
 The CMEPS field name convention in these YAML files is independent of the model components.
 The convention differentiates between variables that are state fields versus flux fields.
 
+In naming convention assumes the following one letter designation for the various components as
+well as the mediator ::
+
+  x => mediator (where mapping and merging is done)
+  a => atmosphere
+  i => sea-ice
+  l => land
+  g => land-ice
+  o => ocean
+  r => river
+  w => wave
+
 State variables have a prefix that always start with an ``S`` followned by a two character string::
 
   state-prefix
     first 3 characters: Sx_, Sa_, Si_, Sl_, So_
-    one letter indices: x,a,l,i,o,g,r
-    x => mediator (mapping, merging)
-    a => atmosphere
-    l => land
-    i => sea-ice
-    o => ocean
-    g => land-ice
-    r => river
-    w => wave
-
+    one letter indices: x,a,i,g,l,o,g,r,w
   state-name
     what follows state prefix
 
@@ -47,8 +68,43 @@ Flux variables that specifies both source and destination components and have a 
     first 5 characters: Flmn_
     lm => between components l and m
     n  => computed by component n
-    example: Fioi => ice-ocn flux computed by ice
-    example: Fall => atm-lnd flux computed by lnd
-
-   flux-name
+  flux-name
      what follows flux-prefix
+
+UFS-S2S fields:
+~~~~~~~~~~~~~~~
+
+For the UFS-S2S application, the following fields and fluxes are used in ``esmFldsExchange_nems_mod.F90``:
+
+.. csv-table::
+   :header: "variable", "description", "source"
+   :widths: 20, 40, 10
+
+   "Faii_taux", "air-ice zonal stress, positive downwards", "ice"
+   "Faii_tauy", "air-ice meridional stress, positive downwards", "ice"
+   "Faii_lat", "air-ice latent heat, positive downwards", "ice"
+   "Faii_sen", "air-ice sensible heat, positive downwards", "ice"
+   "Faii_evap", "air-ice evaporative water flux, positive downwards", "ice"
+   "Faii_lwup", "air-ice surface longwave flux, positive downwards", "ice"
+   "Si_vice", "mean ice volume per unit area", "ice"
+   "Si_vsno", "mean snow volume per unit area", "ice"
+   "Si_t", "ice surface surface temperature", "ice"
+
+CESM fields:
+~~~~~~~~~~~~
+
+For CESM the following fields and fluxes are used in ``esmFldsExchange_cesm_mod.F90``:
+
+.. csv-table::
+   :header: "variable", "description", "source"
+   :widths: 20, 40, 10
+
+   "Faxa\_", "atm flux sent to the mediator", "atm"
+   "Fioi\_", "ice-ocn flux", "ice"
+   "Fall\_", "lnd-atm flux", "lnd"
+   "Faii\_", "ice_atm flux", "ice"
+   "Flrr\_", "lnd-rof flux", "rof"
+   "Firr\_", "rof-ice flux", "rof"
+   "Faxx\_", "mediator merged fluxes sent to the atm", "med"
+   "Foxx\_", "mediator merged fluxes sent to the ocn", "med"
+   "Fixx\_", "mediator merged fluxes sent to the ice", "med"
