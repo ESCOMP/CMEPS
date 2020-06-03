@@ -29,6 +29,7 @@
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="3. API for emsFldsExchange_xxx module" href="esmfldsexchange.html" />
     <link rel="prev" title="1. Introduction" href="introduction.html" /> 
 
   
@@ -86,12 +87,13 @@
 <li class="toctree-l1"><a class="reference internal" href="introduction.html">1. Introduction</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">2. Application Specific Field Exchange Specification</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#id1">2.1. Field Naming Convention</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#state-variable-names">2.1.1. State variable names</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#flux-variable-names">2.1.2. Flux variable names</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#state-variables">2.1.1. State Variables</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id2">2.1.2. State Variables</a></li>
 </ul>
 </li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="esmfldsexchange.html">3. API for emsFldsExchange_xxx module</a></li>
 </ul>
 
             
@@ -163,39 +165,33 @@ CMEPS contains two coupled model specific files that determine:
 - the fields that are exchanged between components
 - how source fields are mapped to destination fields
 - how source fields are merged after mapping to destination fields</p>
-<p>For CESM, this occurs via the files,:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">esmFldsExchange_cesm_mod</span><span class="o">.</span><span class="n">F90</span> <span class="ow">and</span> <span class="n">fd_cesm</span><span class="o">.</span><span class="n">yaml</span>
-</pre></div>
-</div>
-<p>For UFS-S2S, this occurs via the files:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">esmFldsExchange_nems_mod</span><span class="o">.</span><span class="n">F90</span> <span class="ow">and</span> <span class="n">fd_nems</span><span class="o">.</span><span class="n">yaml</span>
-</pre></div>
-</div>
-<p>UFS-HAFS, this occurs via the files:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">esmFldsExchange_hafs_mod</span><span class="o">.</span><span class="n">F90</span> <span class="ow">and</span> <span class="n">fd_hafs</span><span class="o">.</span><span class="n">yaml</span>
-</pre></div>
-</div>
-<dl class="docutils">
-<dt>CMEPS advertises <strong>all possible fields</strong> that can be imported to and</dt>
-<dd>exported by the mediator for the target coupled system. Not all of
+<p>This occurs via the following files:</p>
+<ul class="simple">
+<li><code class="docutils literal notranslate"><span class="pre">esmFldsExchange_cesm_mod.F90</span></code></li>
+<li><code class="docutils literal notranslate"><span class="pre">esmFldsExchange_nems_mod.F90</span></code></li>
+<li><code class="docutils literal notranslate"><span class="pre">esmFldsExchange_hafs_mod.F90</span></code></li>
+</ul>
+<p>CMEPS advertises <strong>all possible fields</strong> that can be imported to and
+exported by the mediator for the target coupled system. Not all of
 these fields will be connected to the various components. The
 connections will be determined by what the components advertise in
-their respective advtise phase.</dd>
-</dl>
+their respective advtise phase.</p>
+<p>The mediator variable names can be seen in the application specific
+YAML field dictionary. Currently, three field dictionaries are
+supported for the target coupled model applications:</p>
+<ul class="simple">
+<li><code class="docutils literal notranslate"><span class="pre">fd_cesm.yaml</span></code> for CESM</li>
+<li><code class="docutils literal notranslate"><span class="pre">fd_nems.yaml</span></code> for UFS-S2S</li>
+<li><code class="docutils literal notranslate"><span class="pre">fd_hafs.yaml</span></code> for UFS-HAFS</li>
+</ul>
 <div class="section" id="id1">
 <h2>2.1. Field Naming Convention<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
-<p>The mediator variable names can be seen in the application specific YAML field dictionary. Currently, three
-field dictionaries are supported:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">fd_cesm</span><span class="o">.</span><span class="n">yaml</span>
-<span class="n">fd_nems</span><span class="o">.</span><span class="n">yaml</span>
-<span class="n">fd_hafs</span><span class="o">.</span><span class="n">yaml</span>
-</pre></div>
-</div>
 <p>The CMEPS field name convention in these YAML files is independent of the model components.
 The convention differentiates between variables that are state fields versus flux fields.</p>
-<p>In naming convention assumes the following one letter designation for the various components as
+<p>The CMEPS naming convention assumes the following one letter designation for the various components as
 well as the mediator</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">x</span> <span class="o">=&gt;</span> <span class="n">mediator</span> <span class="p">(</span><span class="n">where</span> <span class="n">mapping</span> <span class="ow">and</span> <span class="n">merging</span> <span class="ow">is</span> <span class="n">done</span><span class="p">)</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">to</span> <span class="n">mediator</span>
+<span class="o">==================</span>
 <span class="n">a</span> <span class="o">=&gt;</span> <span class="n">atmosphere</span>
 <span class="n">i</span> <span class="o">=&gt;</span> <span class="n">sea</span><span class="o">-</span><span class="n">ice</span>
 <span class="n">l</span> <span class="o">=&gt;</span> <span class="n">land</span>
@@ -203,10 +199,14 @@ well as the mediator</p>
 <span class="n">o</span> <span class="o">=&gt;</span> <span class="n">ocean</span>
 <span class="n">r</span> <span class="o">=&gt;</span> <span class="n">river</span>
 <span class="n">w</span> <span class="o">=&gt;</span> <span class="n">wave</span>
+
+<span class="n">export</span> <span class="kn">from</span> <span class="nn">mediator</span> <span class="p">(</span><span class="n">after</span>  <span class="n">mapping</span> <span class="ow">and</span> <span class="n">merging</span><span class="p">)</span>
+<span class="o">==================</span>
+<span class="n">x</span> <span class="o">=&gt;</span> <span class="n">mediator</span>
 </pre></div>
 </div>
-<div class="section" id="state-variable-names">
-<h3>2.1.1. State variable names<a class="headerlink" href="#state-variable-names" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="state-variables">
+<h3>2.1.1. State Variables<a class="headerlink" href="#state-variables" title="Permalink to this headline">¶</a></h3>
 <p>State variables have a prefix that always start with an <code class="docutils literal notranslate"><span class="pre">S</span></code> followned by a two character string:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">state</span><span class="o">-</span><span class="n">prefix</span>
   <span class="n">first</span> <span class="mi">3</span> <span class="n">characters</span><span class="p">:</span> <span class="n">Sx_</span><span class="p">,</span> <span class="n">Sa_</span><span class="p">,</span> <span class="n">Si_</span><span class="p">,</span> <span class="n">Sl_</span><span class="p">,</span> <span class="n">So_</span>
@@ -217,17 +217,24 @@ well as the mediator</p>
 </div>
 <p>As an example, <code class="docutils literal notranslate"><span class="pre">Sx_t</span></code> is the merged surface temperature from land, ice and ocean sent to the atmopshere for CESM.</p>
 <p>The following state names are currently supported. Note that each application might only use a subset of these fields.</p>
-<table border="1" class="colwidths-given docutils">
+<table border="1" class="colwidths-given docutils" id="id3">
+<caption><span class="caption-text">“Atmospheric State Names (import to mediator)”</span><a class="headerlink" href="#id3" title="Permalink to this table">¶</a></caption>
 <colgroup>
 <col width="25%" />
 <col width="75%" />
 </colgroup>
 <thead valign="bottom">
-<tr class="row-odd"><th class="head">state names</th>
+<tr class="row-odd"><th class="head">stat name</th>
 <th class="head">description</th>
 </tr>
 </thead>
 <tbody valign="top">
+<tr class="row-even"><td>Sa_co2diag</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>Sa_co2prog</td>
+<td>&#160;</td>
+</tr>
 <tr class="row-even"><td>Sa_dens</td>
 <td>air density at lowest model layer</td>
 </tr>
@@ -237,11 +244,17 @@ well as the mediator</p>
 <tr class="row-even"><td>Sa_pslv</td>
 <td>air pressure at land and sea surface</td>
 </tr>
-<tr class="row-odd"><td>Sa_shum</td>
+<tr class="row-odd"><td>Sa_ptem</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>Sa_shum</td>
 <td>air specific humidity at lowest model layer</td>
 </tr>
-<tr class="row-even"><td>Sa_tbot</td>
+<tr class="row-odd"><td>Sa_tbot</td>
 <td>air temperature at lowest model layer</td>
+</tr>
+<tr class="row-even"><td>Sa_topo</td>
+<td>&#160;</td>
 </tr>
 <tr class="row-odd"><td>Sa_u</td>
 <td>air zonal wind at lowest model layer</td>
@@ -252,6 +265,20 @@ well as the mediator</p>
 <tr class="row-odd"><td>Sa_z</td>
 <td>air height wind at lowest model layer</td>
 </tr>
+</tbody>
+</table>
+<table border="1" class="colwidths-given docutils" id="id4">
+<caption><span class="caption-text">“Sea Ice State Names (import to mediator)”</span><a class="headerlink" href="#id4" title="Permalink to this table">¶</a></caption>
+<colgroup>
+<col width="25%" />
+<col width="75%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">name</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
 <tr class="row-even"><td>Si_anidf</td>
 <td>ice near infrared diffuse albedo</td>
 </tr>
@@ -270,11 +297,294 @@ well as the mediator</p>
 <tr class="row-odd"><td>Si_imask</td>
 <td>ice mask</td>
 </tr>
+<tr class="row-even"><td>Si_ifrac_n</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>Si_imask</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>Si_qref</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>Si_qref_wiso</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>Si_t</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>Si_tref</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>Si_u10</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>Si_vice</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>Si_snowh</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>Si_vsno</td>
+<td>&#160;</td>
+</tr>
+</tbody>
+</table>
+<table border="1" class="colwidths-given docutils" id="id5">
+<caption><span class="caption-text">“Land State Names (import to mediator)”</span><a class="headerlink" href="#id5" title="Permalink to this table">¶</a></caption>
+<colgroup>
+<col width="25%" />
+<col width="75%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">name</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>Sl_anidf</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>Sl_anidr</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>Sl_avsdf</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>Sl_avsdr</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>Sl_ddvel</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>Sl_fv</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>Sl_fztop</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>Sl_lfrac</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>Sl_lfrin</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>Sl_qref</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>Sl_qref_wiso</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>Sl_ram1</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>Sl_snowh</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>Sl_snowh_wiso</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>Sl_t</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>Sl_topo_elev</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>Sl_topo</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>Sl_tsrf_elev</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>Sl_tsrf</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>Sl_tref</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>Sl_u10</td>
+<td>&#160;</td>
+</tr>
+</tbody>
+</table>
+<table border="1" class="colwidths-given docutils" id="id6">
+<caption><span class="caption-text">“Ocean State Names (import to mediator)”</span><a class="headerlink" href="#id6" title="Permalink to this table">¶</a></caption>
+<colgroup>
+<col width="25%" />
+<col width="75%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">name</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>So_blddepth</td>
+<td>ocean boundary layer depth</td>
+</tr>
+<tr class="row-odd"><td>So_anidf</td>
+<td>ocean near infrared diffuse albedo</td>
+</tr>
+<tr class="row-even"><td>So_anidr</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>So_avsdf</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>So_avsdr</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>So_bldepth</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>So_dhdx</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>So_dhdy</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>So_duu10n</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>So_fswpen</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>So_ofrac</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>So_omask</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>So_qref</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>So_re</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>So_s</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>So_ssq</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>So_t</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>So_tref</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>So_u</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>So_u10</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>So_ustar</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>So_v</td>
+<td>&#160;</td>
+</tr>
+</tbody>
+</table>
+<table border="1" class="colwidths-given docutils" id="id7">
+<caption><span class="caption-text">“Land Ice State Names (import to mediator)”</span><a class="headerlink" href="#id7" title="Permalink to this table">¶</a></caption>
+<colgroup>
+<col width="25%" />
+<col width="75%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">name</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>Sg_ice_covered</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>Sg_ice_covered_elev</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>Sg_icemask</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>Sg_icemask_coupled_fluxes</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>Sg_topo</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>Sg_topo_elev</td>
+<td>&#160;</td>
+</tr>
+</tbody>
+</table>
+<table border="1" class="colwidths-given docutils" id="id8">
+<caption><span class="caption-text">“Wave State Names (import to mediator) “</span><a class="headerlink" href="#id8" title="Permalink to this table">¶</a></caption>
+<colgroup>
+<col width="25%" />
+<col width="75%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">name</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>Sw_hstokes</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>Sw_lamult</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>Sw_ustokes</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>Sw_vstokes</td>
+<td>&#160;</td>
+</tr>
+</tbody>
+</table>
+<table border="1" class="colwidths-given docutils" id="id9">
+<caption><span class="caption-text">“Mediator State Names (export from mediator)”</span><a class="headerlink" href="#id9" title="Permalink to this table">¶</a></caption>
+<colgroup>
+<col width="25%" />
+<col width="75%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">name</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>Sx_anidf</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>Sx_anidr</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>Sx_avsdf</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>Sx_avsdr</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>Sx_qref</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>Sx_t</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>Sx_tref</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>Sx_u10</td>
+<td>&#160;</td>
+</tr>
 </tbody>
 </table>
 </div>
-<div class="section" id="flux-variable-names">
-<h3>2.1.2. Flux variable names<a class="headerlink" href="#flux-variable-names" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="id2">
+<h3>2.1.2. State Variables<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
 <p>Flux variables specify both source and destination components and have a 5 character prefix:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">flux</span><span class="o">-</span><span class="n">prefix</span>
   <span class="n">first</span> <span class="mi">5</span> <span class="n">characters</span><span class="p">:</span> <span class="n">Flmn_</span>
@@ -382,6 +692,9 @@ well as the mediator</p>
 <tr class="row-even"><td>_tauy</td>
 <td>air-ice meridional stress, positive downwards</td>
 </tr>
+<tr class="row-odd"><td>_q</td>
+<td>ice-ocn freezing melting potential</td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -395,6 +708,8 @@ well as the mediator</p>
           <footer>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="esmfldsexchange.html" class="btn btn-neutral float-right" title="3. API for emsFldsExchange_xxx module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
         <a href="introduction.html" class="btn btn-neutral" title="1. Introduction" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
