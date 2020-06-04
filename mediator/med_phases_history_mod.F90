@@ -27,7 +27,6 @@ module med_phases_history_mod
   use med_methods_mod       , only : FB_GetFldPtr    => med_methods_FB_GetFldPtr
   use med_methods_mod       , only : FB_accum        => med_methods_FB_accum
   use med_methods_mod       , only : State_GetScalar => med_methods_State_GetScalar
-  use med_map_mod           , only : med_map_FB_Regrid_Norm
   use med_internalstate_mod , only : InternalState, mastertask, logunit
   use med_time_mod          , only : med_time_alarmInit
   use med_io_mod            , only : med_io_write, med_io_wopen, med_io_enddef

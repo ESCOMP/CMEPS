@@ -37,6 +37,7 @@ def _main_func():
         ocn_model = case.get_value("COMP_OCN")
         atm_model = case.get_value("COMP_ATM")
         gmake_args = get_standard_makefile_args(case)
+        blddir = os.path.join(case.get_value("EXEROOT"),"cpl","obj")
 
     # Determine valid components
     valid_comps = []
@@ -88,6 +89,7 @@ def _main_func():
 
     cmd = "{} exec_se -j {} EXEC_SE={} MODEL=driver {} -f {} "\
         .format(gmake, gmake_j, exename, gmake_args, makefile)
+
 
     rc, out, err = run_cmd(cmd,from_dir=bld_root)
     expect(rc==0,"Command {} failed rc={}\nout={}\nerr={}".format(cmd,rc,out,err))

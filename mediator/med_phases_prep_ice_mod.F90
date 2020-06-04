@@ -9,18 +9,19 @@ module med_phases_prep_ice_mod
   use med_methods_mod       , only : fldchk            => med_methods_FB_FldChk
   use med_methods_mod       , only : FB_GetFldPtr      => med_methods_FB_GetFldPtr
   use med_methods_mod       , only : FB_diagnose       => med_methods_FB_diagnose
-  use med_methods_mod       , only : FB_FieldRegrid    => med_methods_FB_FieldRegrid
   use med_methods_mod       , only : FB_getNumFlds     => med_methods_FB_getNumFlds
   use med_methods_mod       , only : State_GetScalar   => med_methods_State_GetScalar
   use med_methods_mod       , only : State_SetScalar   => med_methods_State_SetScalar
   use med_constants_mod     , only : dbug_flag => med_constants_dbug_flag
   use med_merge_mod         , only : med_merge_auto
-  use med_map_mod           , only : med_map_FB_Regrid_Norm
+  use med_map_mod           , only : med_map_FB_Regrid_Norm, med_map_RH_is_created
+  use med_map_mod           , only : med_map_FB_Field_Regrid
   use med_internalstate_mod , only : InternalState, logunit, mastertask
   use esmFlds               , only : compatm, compice, comprof, compglc, ncomps, compname
   use esmFlds               , only : fldListFr, fldListTo
-  use esmFlds               , only : mapbilnr
+  use esmFlds               , only : mapnames
   use esmFlds               , only : coupling_mode
+  use esmFlds               , only : med_fldList_GetFldInfo
   use perf_mod              , only : t_startf, t_stopf
 
   implicit none
@@ -40,7 +41,7 @@ contains
     use ESMF  , only : operator(/=)
     use ESMF  , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_StateGet 
     use ESMF  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
-    use ESMF  , only : ESMF_FieldBundleGet, ESMF_RouteHandleIsCreated
+    use ESMF  , only : ESMF_FieldBundleGet
     use ESMF  , only : ESMF_LOGMSG_ERROR, ESMF_FAILURE
     use ESMF  , only : ESMF_StateItem_Flag, ESMF_STATEITEM_NOTFOUND
     use NUOPC , only : NUOPC_IsConnected
@@ -54,6 +55,8 @@ contains
     type(InternalState)            :: is_local
     integer                        :: i,n,n1,ncnt
     character(len=CS)              :: fldname
+    integer                        :: fldnum
+    integer                        :: mapindex
     real(R8), pointer              :: dataptr(:)
     real(R8), pointer              :: temperature(:)
     real(R8), pointer              :: pressure(:)
@@ -152,75 +155,6 @@ contains
              end do
              deallocate(fldnames)
           end if
-       end if
-
-       if (trim(coupling_mode(1:4)) == 'nems') then
-       !TODO: the EMC CICE5 cap calculates Sa_ptem; the Sa_ptem is not an exchanged field
-       !so the calcuation here is un-used. It should be retained however for eventual use after 
-       !a unified CICE6 cap is implemented
-          ! If either air density or ptem from atm is not available - then need pbot since it will be
-          ! required for either calculation
-          if ( .not. fldchk(is_local%wrap%FBImp(compatm,compatm), 'Sa_dens',rc=rc) .or. &
-               .not. fldchk(is_local%wrap%FBImp(compatm,compatm), 'Sa_ptem',rc=rc)) then 
-
-             ! Determine Sa_pbot on the ice grid and get a pointer to it
-             if (.not. fldchk(is_local%wrap%FBExp(compice), 'Sa_pbot',rc=rc)) then
-                if (.not. ESMF_RouteHandleIsCreated(is_local%wrap%RH(compatm,compice,mapbilnr))) then
-                   call ESMF_LogWrite(trim(subname)//": ERROR bilinr RH not available for atm->ice", &
-                        ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
-                   rc = ESMF_FAILURE
-                   return
-                end if
-                call FB_FieldRegrid( &
-                     is_local%wrap%FBImp(compatm,compatm), 'Sa_pbot', &
-                     is_local%wrap%FBImp(compatm,compice), 'Sa_pbot', &
-                     is_local%wrap%RH(compatm,compice,mapbilnr), rc=rc)
-                if (chkerr(rc,__LINE__,u_FILE_u)) return
-             end if
-             call FB_GetFldPtr(is_local%wrap%FBImp(compatm,compice), 'Sa_pbot', pressure, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-             ! Get a pointer to Sa_tbot on the ice grid
-             call FB_GetFldPtr(is_local%wrap%FBImp(compatm,compice), 'Sa_tbot', temperature, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-          end if
-
-          ! compute air density as a custom calculation
-          ! if Sa_dens is not sent by the atm
-          if ( .not. fldchk(is_local%wrap%FBImp(compatm,compatm), 'Sa_dens',rc=rc)) then
-             call ESMF_LogWrite(trim(subname)//": computing air density as a custom calculation", ESMF_LOGMSG_INFO)
-
-             call FB_GetFldPtr(is_local%wrap%FBImp(compatm,compice), 'Sa_shum', humidity, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-             call FB_GetFldPtr(is_local%wrap%FBExp(compice), 'Sa_dens', air_density, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-             do n = 1,size(temperature)
-                if (temperature(n) /= 0._R8) then
-                   air_density(n) = pressure(n) / (287.058_R8*(1._R8 + 0.608_R8*humidity(n))*temperature(n))
-                else
-                   air_density(n) = 0._R8
-                endif
-             end do
-          end if
-
-          ! compute potential temperature as a custom calculation - 
-          ! if Sa_ptem is not sent by the atm but is required by the ice
-          if (.not. fldchk(is_local%wrap%FBImp(compatm,compatm), 'Sa_ptem',rc=rc) .and. &
-               fldchk(is_local%wrap%FBExp(compice), 'Sa_ptem',rc=rc)) then
-             call ESMF_LogWrite(trim(subname)//": computing potential temp as a custom calculation", ESMF_LOGMSG_INFO)
-
-             call FB_GetFldPtr(is_local%wrap%FBExp(compice), 'Sa_ptem', pot_temp, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-             do n = 1,size(temperature)
-                if (pressure(n) /= 0._R8) then
-                   pot_temp(n) = temperature(n) * (100000._R8/pressure(n))**0.286_R8 ! Potential temperature (K)
-                else
-                   pot_temp(n) = 0._R8
-                end if
-             end do
-          end if
-
        end if
 
        if (dbug_flag > 1) then

@@ -7,6 +7,11 @@
 *.o
 *.obj
 
+# Python compiled files
+*.pyc
+cime_config/buildnmlc
+cime_config/buildexec
+
 # Precompiled Headers
 *.gch
 *.pch

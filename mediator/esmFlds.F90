@@ -93,7 +93,8 @@ module esmflds
   interface med_fldList_GetFldInfo ; module procedure &
        med_fldList_GetFldInfo_general, &
        med_fldList_GetFldInfo_stdname, &
-       med_fldList_GetFldInfo_merging
+       med_fldList_GetFldInfo_merging, &
+       med_fldList_GetFldInfo_index
   end interface
 
   !-----------------------------------------------
@@ -593,20 +594,44 @@ contains
 
   !================================================================================
 
-  subroutine med_fldList_GetFldInfo_stdname(fldList, fldindex, stdname)
+  subroutine med_fldList_GetFldInfo_stdname(fldList, fldindex_in, stdname_out)
     ! ----------------------------------------------
     ! Get field info
     ! ----------------------------------------------
     type(med_fldList_type) , intent(in)  :: fldList
-    integer                      , intent(in)  :: fldindex
-    character(len=*)             , intent(out) :: stdname
+    integer                      , intent(in)  :: fldindex_in
+    character(len=*)             , intent(out) :: stdname_out
 
     ! local variables
     character(len=*), parameter :: subname='(med_fldList_GetFldInfo_stdname)'
     ! ----------------------------------------------
 
-    stdname   = fldList%flds(fldindex)%stdname
+    stdname_out   = fldList%flds(fldindex_in)%stdname
   end subroutine med_fldList_GetFldInfo_stdname
+
+  !================================================================================
+
+  subroutine med_fldList_GetFldInfo_index(fldList, stdname_in, fldindex_out)
+    ! ----------------------------------------------
+    ! Get field info
+    ! ----------------------------------------------
+    type(med_fldList_type) , intent(in)  :: fldList
+    character(len=*)             , intent(in)  :: stdname_in
+    integer                      , intent(out) :: fldindex_out
+
+    ! local variables
+    integer :: n
+    character(len=*), parameter :: subname='(med_fldList_GetFldInfo_index)'
+    ! ----------------------------------------------
+
+    fldindex_out = 0
+    if (associated(fldList%flds)) then
+       do n = 1,size(fldList%flds)
+          if (trim(fldList%flds(n)%stdname) == stdname_in) fldindex_out = n
+       enddo
+    endif
+
+  end subroutine med_fldList_GetFldInfo_index
 
   !================================================================================
 

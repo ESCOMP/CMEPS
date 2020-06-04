@@ -453,6 +453,7 @@
        canonical_units: N m-2
        description: ocean import - meridional surface stress to ocean
      #
+     #
      #-----------------------------------
      # mediator fields
      #-----------------------------------
@@ -585,5 +586,121 @@
        canonical_units: W m-2
      - standard_name: land_mask
        canonical_units: 1
+     #
+     #-----------------------------------
+     # WW3 import
+     #-----------------------------------
+     #
+     - standard_name: sea_surface_height_above_sea_level
+       canonical_units: m 
+       description: ww3 import 
+     #
+     - standard_name: sea_surface_salinity
+       alias: s_surf
+       canonical_units: g kg-1
+       description: ww3 import
+     #
+     - standard_name: surface_eastward_sea_water_velocity
+       alias: ocn_current_zonal
+       canonical_units: m s-1
+       description: ww3 import 
+     #
+     - standard_name: surface_northward_sea_water_velocity
+       alias: ocn_current_merid
+       canonical_units: m s-1
+       description: ww3 import 
+     #
+     - standard_name: eastward_wind_at_10m_height
+       alias: inst_zonal_wind_height10m
+       canonical_units: m s-1
+       description: ww3 import 
+     #
+     - standard_name: northward_wind_at_10m_height
+       alias: inst_merid_wind_height10m
+       canonical_units: m s-1
+       description: ww3 import 
+     #
+     - standard_name: sea_ice_concentration
+       alias: ice_fraction
+       canonical_units: 1
+       description: ww3 import
+     #
+     #
+     # WW3 export
+     #
+     - standard_name: wave_induced_charnock_parameter
+       canonical_units: 1
+       description: ww3 export 
+     #
      - standard_name: wave_z0_roughness_length
        canonical_units: 1
+       description: ww3 export 
+     #
+     - standard_name: northward_stokes_drift_current
+       canonical_units: m s-1
+       description: ww3 export 
+     #
+     - standard_name: eastward_stokes_drift_current
+       canonical_units: m s-1
+       description: ww3 export 
+     #
+     - standard_name: eastward_partitioned_stokes_drift_1
+       canonical_units: m s-1
+       description: ww3 export 
+     #
+     - standard_name: eastward_partitioned_stokes_drift_2
+       canonical_units: m s-1
+       description: ww3 export 
+     #
+     - standard_name: eastward_partitioned_stokes_drift_3
+       canonical_units: m s-1
+       description: ww3 export 
+     #
+     - standard_name: northward_partitioned_stokes_drift_1
+       canonical_units: m s-1
+       description: ww3 export 
+     #
+     - standard_name: northward_partitioned_stokes_drift_2
+       canonical_units: m s-1
+       description: ww3 export 
+     #
+     - standard_name: northward_partitioned_stokes_drift_3
+       canonical_units: m s-1
+       description: ww3 export 
+     #
+     - standard_name: eastward_wave_bottom_current
+       canonical_units: m s-1
+       description: ww3 export 
+     #
+     - standard_name: northward_wave_bottom_current
+       canonical_units: m s-1
+       description: ww3 export 
+     #
+     - standard_name: wave_bottom_current_radian_frequency
+       canonical_units: rad s-1
+       description: ww3 export 
+     #
+     - standard_name: eastward_wave_radiation_stress_gradient
+       canonical_units: Pa
+       description: ww3 export 
+     #
+     - standard_name: northward_wave_radiation_stress_gradient
+       canonical_units: Pa
+       description: ww3 export 
+     #
+     - standard_name: eastward_wave_radiation_stress
+       canonical_units: N m-1
+       description: ww3 export 
+     #
+     - standard_name: eastward_northward_wave_radiation_stress
+       canonical_units: N m-1
+       description: ww3 export 
+     #
+     - standard_name: wave_bottom_current_period
+       canonical_units: s
+       description: ww3 export 
+     #
+     - standard_name: northward_wave_radiation_stress
+       canonical_units: Pa
+       description: ww3 export 
+     #
