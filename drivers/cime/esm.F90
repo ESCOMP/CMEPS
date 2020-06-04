@@ -617,8 +617,8 @@ contains
 
     call NUOPC_CompAttributeGet(driver, name="cime_model", value=cime_model, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if ( trim(cime_model) /= 'cesm') then
-       call shr_sys_abort( subname//': cime_model must be set to cesm, aborting')
+    if ( trim(cime_model) /= 'cesm' .and. trim(cime_model) /= 'ufs') then
+       call shr_sys_abort( subname//': cime_model must be set to cesm or ufs, aborting')
     end if
 
     ! --- LogFile ending name -----

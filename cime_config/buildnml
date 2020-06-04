@@ -255,6 +255,44 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     nmlgen.write_nuopc_config_file(nuopc_config_file, data_list_path=data_list_path) 
 
     #--------------------------------
+    # (3.1) Update nuopc.runconfig file if component needs it 
+    #--------------------------------
+
+    # Read nuopc.runconfig 
+    with open(nuopc_config_file, 'r') as f:
+        lines_cpl = f.readlines()
+
+    # Look for only active components except CPL
+    lines_comp = []
+    for comp in comps:
+        if comp != 'CPL' and case.get_value("COMP_{}".format(comp)) != 'd'+comp.lower():
+            # Read *.configure file for component
+            caseroot = case.get_value('CASEROOT')
+            comp_config_file = os.path.join(caseroot,"Buildconf","{}conf".format(case.get_value("COMP_{}".format(comp))),"{}.configure".format(case.get_value("COMP_{}".format(comp))))
+            if os.path.isfile(comp_config_file):
+                with open(comp_config_file, 'r') as f:
+                    lines_comp = f.readlines()
+
+            if lines_comp:
+                # Loop over nuopc.runconfig
+                lines_cpl_new = []
+                for line_cpl in lines_cpl:
+                    lines_cpl_new.append(line_cpl)
+                    # Query group name
+                    for line_comp in lines_comp:
+                        if "_attributes::" in line_comp:
+                            group_name = line_comp
+                        if group_name in line_cpl:
+                            if "::" in line_comp or not line_comp.strip():
+                                continue
+                            lines_cpl_new.append(line_comp)
+
+                # Write to a file
+                with open(nuopc_config_file, 'w') as f:
+                    for line in lines_cpl_new:
+                        f.write(line)
+
+    #--------------------------------
     # (4) Write nuopc.runseq
     #--------------------------------
     _create_runseq(case, coupling_times, valid_comps)
@@ -471,10 +509,10 @@ def buildnml(case, caseroot, component):
 
     # TODO: to get the right attributes of COMP_ROOT_DIR_CPL in evaluating definition_file - need
     # to do the following first - this needs to be changed so that the following two lines are not needed!
-    comp_root_dir_cpl = files.get_value( "COMP_ROOT_DIR_CPL",{"component":"drv-nuopc"}, resolved=False)
+    comp_root_dir_cpl = files.get_value( "COMP_ROOT_DIR_CPL",{"component":"cpl"}, resolved=False)
     files.set_value("COMP_ROOT_DIR_CPL", comp_root_dir_cpl)
 
-    definition_file = [files.get_value("NAMELIST_DEFINITION_FILE", {"component": "drv-nuopc"})]
+    definition_file = [files.get_value("NAMELIST_DEFINITION_FILE", {"component": "cpl"})]
     fd_dir = os.path.dirname(definition_file[0])
     user_definition = os.path.join(user_xml_dir, "namelist_definition_drv.xml")
     if os.path.isfile(user_definition):
@@ -518,7 +556,7 @@ def buildnml(case, caseroot, component):
     cimeroot = case.get_value("CIMEROOT")
     fd_dir = os.path.join(cimeroot, "src","drivers","nuopc","mediator")
     coupling_mode = case.get_value('COUPLING_MODE')
-    if coupling_mode == 'cesm':
+    if coupling_mode == 'cesm' or coupling_mode == 'hafs':
         filename = os.path.join(fd_dir,"fd_cesm.yaml")
     else:
         filename = os.path.join(fd_dir,"fd_nems.yaml")
