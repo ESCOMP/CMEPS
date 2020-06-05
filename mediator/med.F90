@@ -1395,8 +1395,6 @@ contains
                  call ESMF_MeshWrite(mesh, filename=trim(fieldName)//'_postmesh', rc=rc)
                  if (chkerr(rc,__LINE__,u_FILE_u)) return
                end if
-               call ESMF_MeshWrite(mesh, filename='hycom_mesh', rc=rc)
-               if (chkerr(rc,__LINE__,u_FILE_u)) return
             end if
 
             meshField = ESMF_FieldCreate(mesh, typekind=ESMF_TYPEKIND_R8, &
