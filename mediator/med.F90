@@ -2184,7 +2184,7 @@ contains
   subroutine med_grid_write(grid, fileName, rc)
 
     use ESMF, only : ESMF_Grid, ESMF_Array, ESMF_ArrayBundle
-    use ESMF, only : ESMF_ArrayBundleCreate
+    use ESMF, only : ESMF_ArrayBundleCreate, ESMF_GridGet
     use ESMF, only : ESMF_GridGetCoord, ESMF_ArraySet, ESMF_ArrayBundleAdd
     use ESMF, only : ESMF_GridGetItem, ESMF_ArrayBundleWrite, ESMF_ArrayBundleDestroy
     use ESMF, only : ESMF_STAGGERLOC_CENTER, ESMF_STAGGERLOC_CORNER
@@ -2198,149 +2198,157 @@ contains
     ! local variables
     type(ESMF_Array) :: array
     type(ESMF_ArrayBundle) :: arrayBundle
+    integer :: tileCount
     logical :: isPresent
     character(len=*), parameter :: subname='(module_MED_Map:med_grid_write)'
     !-------------------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
 
-    ! Create arraybundle to store grid information
-    arrayBundle = ESMF_ArrayBundleCreate(rc=rc)
+    ! Check that the grid has tiles or not
+    ! Currently only supports single tile
+    call ESMF_GridGet(grid, tileCount=tileCount, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    ! Query grid for center stagger
-    ! Coordinates
-    call ESMF_GridGetCoord(grid, staggerLoc=ESMF_STAGGERLOC_CENTER, &
-          isPresent=isPresent, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    if (isPresent) then
-      call ESMF_GridGetCoord(grid, coordDim=1, &
-           staggerLoc=ESMF_STAGGERLOC_CENTER, array=array, rc=rc)
+    if (tileCount .eq. 1) then
+      ! Create arraybundle to store grid information
+      arrayBundle = ESMF_ArrayBundleCreate(rc=rc)
       if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-      call ESMF_ArraySet(array, name="lon_center", rc=rc)
+      ! Query grid for center stagger
+      ! Coordinates
+      call ESMF_GridGetCoord(grid, staggerLoc=ESMF_STAGGERLOC_CENTER, &
+            isPresent=isPresent, rc=rc)
       if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-      call ESMF_ArrayBundleAdd(arrayBundle, (/array/), rc=rc)
+      if (isPresent) then
+        call ESMF_GridGetCoord(grid, coordDim=1, &
+             staggerLoc=ESMF_STAGGERLOC_CENTER, array=array, rc=rc)
+        if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+        call ESMF_ArraySet(array, name="lon_center", rc=rc)
+        if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+        call ESMF_ArrayBundleAdd(arrayBundle, (/array/), rc=rc)
+        if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+        call ESMF_GridGetCoord(grid, coordDim=2, &
+             staggerLoc=ESMF_STAGGERLOC_CENTER, array=array, rc=rc)
+        if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+        call ESMF_ArraySet(array, name="lat_center", rc=rc)
+        if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+        call ESMF_ArrayBundleAdd(arrayBundle, (/array/), rc=rc)
+        if (chkerr(rc,__LINE__,u_FILE_u)) return
+      endif
+
+
+      ! Mask
+      call ESMF_GridGetItem(grid, itemflag=ESMF_GRIDITEM_MASK, &
+           staggerLoc=ESMF_STAGGERLOC_CENTER, isPresent=isPresent, rc=rc)
       if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-      call ESMF_GridGetCoord(grid, coordDim=2, &
-           staggerLoc=ESMF_STAGGERLOC_CENTER, array=array, rc=rc)
+      if (isPresent) then
+        call ESMF_GridGetItem(grid, staggerLoc=ESMF_STAGGERLOC_CENTER, &
+             itemflag=ESMF_GRIDITEM_MASK, array=array, rc=rc)
+        if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+        call ESMF_ArraySet(array, name="mask_center", rc=rc)
+        if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+        call ESMF_ArrayBundleAdd(arrayBundle, (/array/), rc=rc)
+        if (chkerr(rc,__LINE__,u_FILE_u)) return
+      endif
+
+      ! Area
+      call ESMF_GridGetItem(grid, itemflag=ESMF_GRIDITEM_AREA, &
+           staggerLoc=ESMF_STAGGERLOC_CENTER, isPresent=isPresent, rc=rc)
       if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-      call ESMF_ArraySet(array, name="lat_center", rc=rc)
+      if (isPresent) then
+        call ESMF_GridGetItem(grid, staggerLoc=ESMF_STAGGERLOC_CENTER, &
+             itemflag=ESMF_GRIDITEM_AREA, array=array, rc=rc)
+        if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+        call ESMF_ArraySet(array, name="area_center", rc=rc)
+        if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+        call ESMF_ArrayBundleAdd(arrayBundle, (/array/), rc=rc)
+        if (chkerr(rc,__LINE__,u_FILE_u)) return
+      endif
+
+      ! Query grid for corner stagger
+      ! Coordinates
+      call ESMF_GridGetCoord(grid, staggerLoc=ESMF_STAGGERLOC_CORNER, &
+            isPresent=isPresent, rc=rc)
       if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-      call ESMF_ArrayBundleAdd(arrayBundle, (/array/), rc=rc)
-      if (chkerr(rc,__LINE__,u_FILE_u)) return
-    endif
+      if (isPresent) then
+        call ESMF_GridGetCoord(grid, coordDim=1, &
+             staggerLoc=ESMF_STAGGERLOC_CORNER, array=array, rc=rc)
+        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
+        call ESMF_ArraySet(array, name="lon_corner", rc=rc)
+        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    ! Mask
-    call ESMF_GridGetItem(grid, itemflag=ESMF_GRIDITEM_MASK, &
-         staggerLoc=ESMF_STAGGERLOC_CENTER, isPresent=isPresent, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
+        call ESMF_ArrayBundleAdd(arrayBundle, (/array/), rc=rc)
+        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    if (isPresent) then
-      call ESMF_GridGetItem(grid, staggerLoc=ESMF_STAGGERLOC_CENTER, &
-           itemflag=ESMF_GRIDITEM_MASK, array=array, rc=rc)
-      if (chkerr(rc,__LINE__,u_FILE_u)) return
+        call ESMF_GridGetCoord(grid, coordDim=2, &
+             staggerLoc=ESMF_STAGGERLOC_CORNER, array=array, rc=rc)
+        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-      call ESMF_ArraySet(array, name="mask_center", rc=rc)
-      if (chkerr(rc,__LINE__,u_FILE_u)) return
+        call ESMF_ArraySet(array, name="lat_corner", rc=rc)
+        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-      call ESMF_ArrayBundleAdd(arrayBundle, (/array/), rc=rc)
-      if (chkerr(rc,__LINE__,u_FILE_u)) return
-    endif
+        call ESMF_ArrayBundleAdd(arrayBundle, (/array/), rc=rc)
+        if (chkerr(rc,__LINE__,u_FILE_u)) return
+      endif
 
-    ! Area
-    call ESMF_GridGetItem(grid, itemflag=ESMF_GRIDITEM_AREA, &
-         staggerLoc=ESMF_STAGGERLOC_CENTER, isPresent=isPresent, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    if (isPresent) then
-      call ESMF_GridGetItem(grid, staggerLoc=ESMF_STAGGERLOC_CENTER, &
-           itemflag=ESMF_GRIDITEM_AREA, array=array, rc=rc)
+      ! Mask
+      call ESMF_GridGetItem(grid, itemflag=ESMF_GRIDITEM_MASK, &
+           staggerLoc=ESMF_STAGGERLOC_CORNER, isPresent=isPresent, rc=rc)
       if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-      call ESMF_ArraySet(array, name="area_center", rc=rc)
+      if (isPresent) then
+        call ESMF_GridGetItem(grid, staggerLoc=ESMF_STAGGERLOC_CORNER, &
+             itemflag=ESMF_GRIDITEM_MASK, array=array, rc=rc)
+        if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+        call ESMF_ArraySet(array, name="mask_corner", rc=rc)
+        if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+        call ESMF_ArrayBundleAdd(arrayBundle, (/array/), rc=rc)
+        if (chkerr(rc,__LINE__,u_FILE_u)) return
+      endif
+
+      ! Area
+      call ESMF_GridGetItem(grid, itemflag=ESMF_GRIDITEM_AREA, &
+           staggerLoc=ESMF_STAGGERLOC_CORNER, isPresent=isPresent, rc=rc)
       if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-      call ESMF_ArrayBundleAdd(arrayBundle, (/array/), rc=rc)
-      if (chkerr(rc,__LINE__,u_FILE_u)) return
-    endif
+      if (isPresent) then
+        call ESMF_GridGetItem(grid, staggerLoc=ESMF_STAGGERLOC_CORNER, &
+             itemflag=ESMF_GRIDITEM_AREA, array=array, rc=rc)
+        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    ! Query grid for corner stagger
-    ! Coordinates
-    call ESMF_GridGetCoord(grid, staggerLoc=ESMF_STAGGERLOC_CORNER, &
-          isPresent=isPresent, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
+        call ESMF_ArraySet(array, name="area_corner", rc=rc)
+        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    if (isPresent) then
-      call ESMF_GridGetCoord(grid, coordDim=1, &
-           staggerLoc=ESMF_STAGGERLOC_CORNER, array=array, rc=rc)
-      if (chkerr(rc,__LINE__,u_FILE_u)) return
+        call ESMF_ArrayBundleAdd(arrayBundle, (/array/), rc=rc)
+        if (chkerr(rc,__LINE__,u_FILE_u)) return
+      endif
 
-      call ESMF_ArraySet(array, name="lon_corner", rc=rc)
-      if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-      call ESMF_ArrayBundleAdd(arrayBundle, (/array/), rc=rc)
+      ! Write arraybundle to file
+      call ESMF_ArrayBundleWrite(arrayBundle, &
+           fileName=trim(fileName), overwrite=.true., rc=rc)
       if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-      call ESMF_GridGetCoord(grid, coordDim=2, &
-           staggerLoc=ESMF_STAGGERLOC_CORNER, array=array, rc=rc)
+      ! Destroy arraybundle
+      call ESMF_ArrayBundleDestroy(arrayBundle, rc=rc)
       if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-      call ESMF_ArraySet(array, name="lat_corner", rc=rc)
-      if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-      call ESMF_ArrayBundleAdd(arrayBundle, (/array/), rc=rc)
-      if (chkerr(rc,__LINE__,u_FILE_u)) return
-    endif
-
-    ! Mask
-    call ESMF_GridGetItem(grid, itemflag=ESMF_GRIDITEM_MASK, &
-         staggerLoc=ESMF_STAGGERLOC_CORNER, isPresent=isPresent, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    if (isPresent) then
-      call ESMF_GridGetItem(grid, staggerLoc=ESMF_STAGGERLOC_CORNER, &
-           itemflag=ESMF_GRIDITEM_MASK, array=array, rc=rc)
-      if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-      call ESMF_ArraySet(array, name="mask_corner", rc=rc)
-      if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-      call ESMF_ArrayBundleAdd(arrayBundle, (/array/), rc=rc)
-      if (chkerr(rc,__LINE__,u_FILE_u)) return
-    endif
-
-    ! Area
-    call ESMF_GridGetItem(grid, itemflag=ESMF_GRIDITEM_AREA, &
-         staggerLoc=ESMF_STAGGERLOC_CORNER, isPresent=isPresent, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    if (isPresent) then
-      call ESMF_GridGetItem(grid, staggerLoc=ESMF_STAGGERLOC_CORNER, &
-           itemflag=ESMF_GRIDITEM_AREA, array=array, rc=rc)
-      if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-      call ESMF_ArraySet(array, name="area_corner", rc=rc)
-      if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-      call ESMF_ArrayBundleAdd(arrayBundle, (/array/), rc=rc)
-      if (chkerr(rc,__LINE__,u_FILE_u)) return
-    endif
-
-    ! Write arraybundle to file
-    call ESMF_ArrayBundleWrite(arrayBundle, &
-         fileName=trim(fileName), overwrite=.true., rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    ! Destroy arraybundle
-    call ESMF_ArrayBundleDestroy(arrayBundle, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    end if
 
   end subroutine med_grid_write
 
