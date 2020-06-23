@@ -4,7 +4,7 @@
 
 <entry_id version="2.0">
 
-  <!-- 
+  <!--
        The following lists all of the namelist variables that can appear in the Buildconf/xxxconf/drv_flds_in
        files, where xxx = [cam, clm, ...]. The driver buildnml treats all of these files as user_nl_cpl files
        for generating the driver drv_flds_in file, which will appear in CaseDocs and in $RUNDIR.

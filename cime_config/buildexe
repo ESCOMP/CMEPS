@@ -50,8 +50,8 @@ def _main_func():
             valid_comps.append(item)
 
     datamodel_in_compset = ("datm" in case.get_value("COMP_ATM") or
-                            "dice" in case.get_value("COMP_ICE") or 
-                            "dlnd" in case.get_value("COMP_LND") or 
+                            "dice" in case.get_value("COMP_ICE") or
+                            "dlnd" in case.get_value("COMP_LND") or
                             "docn" in case.get_value("COMP_OCN") or
                             "drof" in case.get_value("COMP_ROF") or
                             "dwav" in case.get_value("COMP_WAV"))

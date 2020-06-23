@@ -861,7 +861,7 @@
     </desc>
     <values>
       <value>on_if_glc_coupled_fluxes</value>
-      <value COMP_LND="xlnd">off</value> 
+      <value COMP_LND="xlnd">off</value>
     </values>
   </entry>
 
@@ -894,7 +894,7 @@
     <category>mapping</category>
     <group>ATM_attributes</group>
     <desc>
-      DOMAIN description of atm grid 
+      DOMAIN description of atm grid
     </desc>
     <values>
       <value>$ATM_DOMAIN_PATH/$ATM_DOMAIN_FILE</value>
@@ -918,7 +918,7 @@
     <category>mapping</category>
     <group>LND_attributes</group>
     <desc>
-      DOMAIN description of lnd grid 
+      DOMAIN description of lnd grid
     </desc>
     <values>
       <value>$LND_DOMAIN_PATH/$LND_DOMAIN_FILE</value>

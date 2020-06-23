@@ -4,10 +4,10 @@
 class DriverConfig(dict):
 
     ###############################################
-    def __init__(self, case, coupling_times): 
+    def __init__(self, case, coupling_times):
     ###############################################
-        # this initializes the dictionary  
-        super(DriverConfig,self).__init__() 
+        # this initializes the dictionary
+        super(DriverConfig,self).__init__()
 
         self['atm'] = self.__compute_atm(case, coupling_times)
         self['glc'] = self.__compute_glc(case, coupling_times)
@@ -36,7 +36,7 @@ class DriverConfig(dict):
 
         # TODO: need to put in special logical for adiabatic mode - where the atmosphere does
         # does not really send anything to the mediator
-        # This will be the case if (case.get_value('COMP_OCN') == 'socn'): 
+        # This will be the case if (case.get_value('COMP_OCN') == 'socn'):
         # In this case - a special run sequence should be written
 
         return (run_atm, med_to_atm, coupling_times["atm_cpl_dt"])
@@ -95,7 +95,7 @@ class DriverConfig(dict):
         if (comp_ice == 'sice'):
             run_ice = False
             med_to_ice = False
-        
+
         return (run_ice, med_to_ice, coupling_times["ice_cpl_dt"])
 
     ###############################################
@@ -181,4 +181,3 @@ class DriverConfig(dict):
             med_to_wav = if_prognostic
 
         return (run_wav, med_to_wav, coupling_times["wav_cpl_dt"])
-
