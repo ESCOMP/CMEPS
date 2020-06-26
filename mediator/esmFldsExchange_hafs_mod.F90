@@ -770,8 +770,8 @@ contains
     ! to ocn: temperature at the lowest model level from atm
     ! to ocn: specific humidity at the lowest model level from atm
     ! ---------------------------------------------------------------------
-    allocate(flds(5))
-    flds = (/'Sa_pslv', 'Sa_u', 'Sa_v', 'Sa_tbot', 'Sa_shum'/)
+    allocate(flds(6))
+    flds = (/'Sa_pslv', 'Sa_u', 'Sa_v', 'Sa_wspd', 'Sa_tbot', 'Sa_shum'/)
 
     do n = 1,size(flds)
        fldname = trim(flds(n))

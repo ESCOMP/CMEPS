@@ -359,6 +359,11 @@
        canonical_units: m s-1
        description: atmosphere export - bottom layer meridional wind
      #
+     - standard_name: Sa_wspd
+       alias: inst_wind_speed_height_lowest
+       canonical_units: m s-1
+       description: atmosphere export - bottom layer wind speed
+     #
      - standard_name: Sa_z
        alias: inst_height_lowest
        canonical_units: m
