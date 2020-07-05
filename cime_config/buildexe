@@ -49,7 +49,14 @@ def _main_func():
         if valid:
             valid_comps.append(item)
 
-    if len(valid_comps) == 2 and  "dwav" not in case.get_value("COMP_WAV") and "dlnd" not in case.get_value("COMP_LND"):
+    datamodel_in_compset = ("datm" in case.get_value("COMP_ATM") or
+                            "dice" in case.get_value("COMP_ICE") or
+                            "dlnd" in case.get_value("COMP_LND") or
+                            "docn" in case.get_value("COMP_OCN") or
+                            "drof" in case.get_value("COMP_ROF") or
+                            "dwav" in case.get_value("COMP_WAV"))
+
+    if len(valid_comps) == 2 and not datamodel_in_compset:
         skip_mediator = True
     else:
         skip_mediator = False

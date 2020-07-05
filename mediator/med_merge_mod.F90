@@ -287,7 +287,7 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     if (dbug_flag > 1) then
        write(msg,*)trim(subname),'input field ',trim(FBfld),' has rank ',lrank_input
-       call ESMF_LogWrite(msg, ESMF_LOGMSG_ERROR)
+       call ESMF_LogWrite(msg, ESMF_LOGMSG_INFO)
     end if
 
     if (lrank_input == 1) then

@@ -38,7 +38,7 @@ def gen_runseq(case, coupling_times):
         runseq.add_action ("GLC"                            , run_glc)
         runseq.add_action ("GLC -> MED :remapMethod=redist" , run_glc)
         runseq.add_action ("MED med_phases_history_write"   , True)
-        
+
         runseq.leave_time_loop(True)
-        
+
     shutil.copy(os.path.join(caseroot, "CaseDocs", "nuopc.runseq"), rundir)
