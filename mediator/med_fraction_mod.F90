@@ -2,7 +2,7 @@ module med_fraction_mod
 
   !-----------------------------------------------------------------------------
   ! Mediator Component.
-  ! Sets fracations on all component grids
+  ! Sets fractions on all component grids
   !  the fractions fields are now afrac, ifrac, ofrac, lfrac, and lfrin.
   !    afrac = fraction of atm on a grid
   !    lfrac = fraction of lnd on a grid
@@ -142,23 +142,7 @@ module med_fraction_mod
   character(len=5),parameter,dimension(1) :: fraclist_w = (/'wfrac'/)
 
   !--- standard ---
-  real(R8),parameter :: eps_fracsum = 1.0e-02      ! allowed error in sum of fracs
-  real(R8),parameter :: eps_fracval = 1.0e-02      ! allowed error in any frac +- 0,1
-  real(R8),parameter :: eps_fraclim = 1.0e-03      ! truncation limit in fractions_a(lfrac)
-  logical ,parameter :: atm_frac_correct = .false. ! turn on frac correction on atm grid
-
-  !--- standard plus atm fraction consistency ---
-  !  real(R8),parameter :: eps_fracsum = 1.0e-12   ! allowed error in sum of fracs
-  !  real(R8),parameter :: eps_fracval = 1.0e-02   ! allowed error in any frac +- 0,1
-  !  real(R8),parameter :: eps_fraclim = 1.0e-03   ! truncation limit in fractions_a(lfrac)
-  !  logical ,parameter :: atm_frac_correct = .true. ! turn on frac correction on atm grid
-
-  !--- unconstrained and area conserving? ---
-  !  real(R8),parameter :: eps_fracsum = 1.0e-12   ! allowed error in sum of fracs
-  !  real(R8),parameter :: eps_fracval = 1.0e-02   ! allowed error in any frac +- 0,1
-  !  real(R8),parameter :: eps_fraclim = 1.0e-20   ! truncation limit in fractions_a(lfrac)
-  !  logical ,parameter :: atm_frac_correct = .true. ! turn on frac correction on atm grid
-
+  real(R8)    , parameter :: eps_fraclim = 1.0e-03      ! truncation limit in fractions_a(lfrac)
   character(*), parameter :: u_FILE_u =  &
        __FILE__
 
@@ -174,9 +158,10 @@ contains
     use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
     use ESMF                  , only : ESMF_GridCompGet, ESMF_StateIsCreated
     use ESMF                  , only : ESMF_FieldBundle, ESMF_FieldBundleIsCreated, ESMF_FieldBundleDestroy
+    use esmFlds               , only : coupling_mode
     use esmFlds               , only : compatm, compocn, compice, complnd
     use esmFlds               , only : comprof, compglc, compwav, compname
-    use esmFlds               , only : mapconsf, mapfcopy
+    use esmFlds               , only : mapconsf, mapfcopy, mapnstod_consf
     use med_map_mod           , only : med_map_Fractions_init, med_map_RH_is_created
     use med_internalstate_mod , only : InternalState
     use perf_mod              , only : t_startf, t_stopf
@@ -289,6 +274,7 @@ contains
              endif
           end if
        end do
+
     end if
 
     !---------------------------------------
@@ -359,7 +345,7 @@ contains
     end if
 
     !---------------------------------------
-    ! Set 'ifrac' in FBFrac(compice) and BFrac(compatm)
+    ! Set 'ifrac' in FBFrac(compice) and FBFrac(compatm)
     !---------------------------------------
 
     if (is_local%wrap%comp_present(compice)) then
@@ -443,17 +429,11 @@ contains
 
           if (.not. is_local%wrap%comp_present(complnd)) then
              lfrac(:) = 0.0_R8
-             if (atm_frac_correct) then
-                ofrac(:) = 1.0_R8
-             end if
           else
              do n = 1,size(lfrac)
                 lfrac(n) = 1.0_R8 - ofrac(n)
                 if (abs(lfrac(n)) < eps_fraclim) then
                    lfrac(n) = 0.0_R8
-                   if (atm_frac_correct) then
-                      ofrac(n) = 1.0_R8
-                   end if
                 end if
              end do
           end if
@@ -469,9 +449,6 @@ contains
              ofrac(n) = 1.0_R8 - lfrac(n)
              if (abs(ofrac(n)) < eps_fraclim) then
                 ofrac(n) = 0.0_R8
-                if (atm_frac_correct) then
-                   lfrac(n) = 1.0_R8
-                endif
              end if
           end do
 
@@ -627,7 +604,7 @@ contains
     use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
     use ESMF                  , only : ESMF_REGION_TOTAL, ESMF_REGION_SELECT
     use esmFlds               , only : compatm, compocn, compice, compname
-    use esmFlds               , only : mapconsf, mapnstod, mapfcopy
+    use esmFlds               , only : mapconsf, mapnstod, mapfcopy, mapnstod_consf
     use esmFlds               , only : coupling_mode
     use med_internalstate_mod , only : InternalState
     use med_map_mod           , only : med_map_Fractions_init, med_map_RH_is_created
@@ -641,7 +618,6 @@ contains
     type(InternalState)        :: is_local
     real(r8), pointer          :: lfrac(:)
     real(r8), pointer          :: ifrac(:)
-    real(r8), pointer          :: ifrac_nstod(:)
     real(r8), pointer          :: ofrac(:)
     real(r8), pointer          :: Si_ifrac(:)
     real(r8), pointer          :: Si_imask(:)
@@ -719,12 +695,8 @@ contains
        ! set ifrac = Si_ifrac * Si_imask
        ifrac(:) = Si_ifrac(:) * Si_imask(:)
 
-       if (trim(coupling_mode) == 'nems_orig') then
-          ofrac(:) = 1._r8 - ifrac(:)
-       else
-          ! set ofrac = Si_imask - ifrac
-          ofrac(:) = Si_imask(:) - ifrac(:)
-       end if
+       ! set ofrac = Si_imask - ifrac
+       ofrac(:) = Si_imask(:) - ifrac(:)
 
        ! -------------------------------------------
        ! Set FBfrac(compocn)
@@ -751,94 +723,38 @@ contains
        ! -------------------------------------------
        ! Set FBfrac(compatm)
        ! -------------------------------------------
+
        if (is_local%wrap%comp_present(compatm)) then
-
-          if (trim(coupling_mode) == 'nems_orig') then
-
-             ! Map 'ifrac' from FBfrac(compice) to FBfrac(compatm)
-             call FB_FieldRegrid(&
-                  is_local%wrap%FBfrac(compice), 'ifrac', &
-                  is_local%wrap%FBfrac(compatm), 'ifrac', &
-                  is_local%wrap%RH(compice,compatm,:),mapnstod, rc=rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             call FB_getFldPtr(is_local%wrap%FBfrac(compatm), 'ifrac', ifrac_nstod, rc=rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-             call FB_FieldRegrid(&
-                  is_local%wrap%FBfrac(compice), 'ifrac', &
-                  is_local%wrap%FBfrac(compatm), 'ifrac', &
-                  is_local%wrap%RH(compice,compatm,:),mapconsf, rc=rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-             ! Determine ifrac on atm grid
-             call FB_getFldPtr(is_local%wrap%FBfrac(compatm), 'ifrac', ifrac, rc=rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             where (ifrac .eq. 0.0_R8 .and. abs(ifrac_nstod) .gt.  0.0_R8)
-                ifrac = ifrac_nstod
-             endwhere
-
-             ! Determine ofrac and lfrac on atm grid - set ofrac=1-ifrac and lfrac=0
-             call FB_getFldPtr(is_local%wrap%FBfrac(compatm), 'ofrac', ofrac, rc=rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             call FB_getFldPtr(is_local%wrap%FBfrac(compatm), 'lfrac', lfrac, rc=rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             ofrac(:) = 1.0_R8 - ifrac(:)
-             lfrac(:) = 0.0_R8
-
+          if (trim(coupling_mode) == 'nems_orig' ) then
+             maptype = mapnstod_consf
           else
-
              if (med_map_RH_is_created(is_local%wrap%RH(compice,compatm,:),mapfcopy, rc=rc)) then
-                ! TODO (mvertens, 2019-11-20): this is not being used when ice and atm are on the same grid
-                ! - this needs to be implemented
                 maptype = mapfcopy
              else
                 maptype = mapconsf
              end if
+          end if
 
-             ! Map 'ifrac' from FBfrac(compice) to FBfrac(compatm)
-             if (is_local%wrap%med_coupling_active(compice,compatm)) then
-                call FB_FieldRegrid(&
-                     is_local%wrap%FBfrac(compice), 'ifrac', &
-                     is_local%wrap%FBfrac(compatm), 'ifrac', &
-                     is_local%wrap%RH(compice,compatm,:),maptype, rc=rc)
-                if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             end if
+          ! Map 'ifrac' from FBfrac(compice) to FBfrac(compatm)
+          if (is_local%wrap%med_coupling_active(compice,compatm)) then
+             call FB_FieldRegrid(&
+                  is_local%wrap%FBfrac(compice), 'ifrac', &
+                  is_local%wrap%FBfrac(compatm), 'ifrac', &
+                  is_local%wrap%RH(compice,compatm,:),maptype, rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          end if
 
-             ! Map 'ofrac' from FBfrac(compice) to FBfrac(compatm)
-             if (is_local%wrap%med_coupling_active(compocn,compatm)) then
-                call FB_FieldRegrid(&
-                     is_local%wrap%FBfrac(compice), 'ofrac', &
-                     is_local%wrap%FBfrac(compatm), 'ofrac', &
-                     is_local%wrap%RH(compice,compatm,:),maptype, rc=rc)
-                if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             end if
-
-             ! Note: 'lfrac' from FBFrac(compatm) is just going to be in the init
-             if ( is_local%wrap%med_coupling_active(compice,compatm) .and. &
-                  is_local%wrap%med_coupling_active(compocn,compatm) ) then
-
-                if (atm_frac_correct) then
-                   call FB_getFldPtr(is_local%wrap%FBfrac(compatm), 'ifrac', ifrac, rc=rc)
-                   if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-                   call FB_getFldPtr(is_local%wrap%FBfrac(compatm), 'ofrac', ofrac, rc=rc)
-                   if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-                   call FB_getFldPtr(is_local%wrap%FBfrac(compatm), 'lfrac', lfrac, rc=rc)
-                   if (ChkErr(rc,__LINE__,u_FILE_u)) return
-                   where (ifrac + ofrac > 0.0_R8)
-                      ifrac = ifrac * ((1.0_R8 - lfrac)/(ofrac+ifrac))
-                      ofrac = ofrac * ((1.0_R8 - lfrac)/(ofrac+ifrac))
-                   elsewhere
-                      ifrac = 0.0_R8
-                      ofrac = 0.0_R8
-                   end where
-                endif
-             endif
-
+          ! Map 'ofrac' from FBfrac(compice) to FBfrac(compatm)
+          if (is_local%wrap%med_coupling_active(compocn,compatm)) then
+             call FB_FieldRegrid(&
+                  is_local%wrap%FBfrac(compice), 'ofrac', &
+                  is_local%wrap%FBfrac(compatm), 'ofrac', &
+                  is_local%wrap%RH(compice,compatm,:),maptype, rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
        end if
-    end if
+
+    end if ! end of if present compice
 
     !---------------------------------------
     ! Diagnostic output
