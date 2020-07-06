@@ -1829,6 +1829,27 @@ contains
       ! *** Now return ****
       !---------------------------------------
 
+      ! The Connectors are being "called" for the transfer of Meshes
+      ! (or Grids).  However, being "called" can mean different
+      ! things! It can mean calling Initialization() phases, or Run()
+      ! phases. For most of the initialization hand-shake, only
+      ! Initialization() phases are called. This includes the entire
+      ! GeomTransfer protocol. However, ONLY the Run phase of a
+      ! Connector (full) transfers data AND timestamps!
+
+      ! Once the first time DataInitialize() of CMEPS returns (below),
+      ! and NUOPC sees that its InitializeDataComplete is not yet
+      ! true, the NUOPC Driver will finally (for the first time!)
+      ! execute the Run() phase of all of the Connectors that fit the
+      ! *-TO-MED pattern. After that it will call CMEPS
+      ! DataInitialize() again. Note that the time stamps are only set
+      ! when the Run() phase of all the connectors are run.
+
+      ! The Connectors Run() phase is called before the second call of
+      ! the CMEPS DataInitialize phase.  As a result, CMEPS will see
+      ! the correct timestamps, which also indicates that the actual
+      ! data has been transferred reliably, and CMEPS can safely use it.
+
       RETURN
 
     endif  ! end first_call if-block
@@ -2027,12 +2048,15 @@ contains
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
        endif
        call med_phases_profile(gcomp, rc)
-    else
+
+    else ! Not all done
        call NUOPC_CompAttributeSet(gcomp, name="InitializeDataComplete", value="false", rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-       call ESMF_LogWrite("MED - Initialize-Data-Dependency allDone check Failed, another loop is required", ESMF_LOGMSG_INFO, rc=rc)
+       call ESMF_LogWrite("MED - Initialize-Data-Dependency allDone check Failed, another loop is required", &
+            ESMF_LOGMSG_INFO, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
     end if
 
     if (profile_memory) call ESMF_VMLogMemInfo("Leaving "//trim(subname))

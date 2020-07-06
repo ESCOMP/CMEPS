@@ -725,6 +725,7 @@ contains
        ! -------------------------------------------
 
        if (is_local%wrap%comp_present(compatm)) then
+
           if (trim(coupling_mode) == 'nems_orig' ) then
              maptype = mapnstod_consf
           else
