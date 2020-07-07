@@ -242,7 +242,7 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     for comp in comp_classes:
         dcompname = "d"+comp.lower()
         if dcompname in case.get_value("COMP_{}".format(comp)):
-                                       datamodel_in_compset = True
+            datamodel_in_compset = True
 
     # Determine if will skip the mediator and then set the
     # driver rpointer file if there is only one non-stub component then skip mediator
