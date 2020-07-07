@@ -236,15 +236,25 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
         if valid:
             valid_comps.append(item)
 
-    # set the driver rpointer file if there is only one non-stub component then skip mediator 
-   
-    if len(valid_comps) == 2 and  "dwav" not in case.get_value("COMP_WAV") and "dlnd" not in case.get_value("COMP_LND"):
+    # Determine if there are any data components in the compset
+    datamodel_in_compset = False 
+    comp_classes = case.get_values("COMP_CLASSES")
+    for comp in comp_classes:
+        dcompname = "d"+comp.lower()
+        if dcompname in case.get_value("COMP_{}".format(comp)):
+            datamodel_in_compset = True
+
+    # Determine if will skip the mediator and then set the
+    # driver rpointer file if there is only one non-stub component then skip mediator
+    if len(valid_comps) == 2 and not datamodel_in_compset:
+        # skip the mediator if there is a prognostic component and all other components are stub
         skip_mediator = True
         valid_comps.remove("CPL")
         nmlgen.set_value('mediator_present', value='.false.')
         nmlgen.set_value("drv_restart_pointer", value="none")
         nmlgen.set_value("component_list", value=" ".join(valid_comps))
     else:
+        # do not skip mediator if there is a data component but all other components are stub
         skip_mediator = False
         nmlgen.set_value("drv_restart_pointer", value="rpointer.cpl")
         valid_comps_string = " ".join(valid_comps)
@@ -252,13 +262,13 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
 
     logger.info("Writing nuopc_runseq for components {}".format(valid_comps))
     nuopc_config_file = os.path.join(confdir, "nuopc.runconfig")
-    nmlgen.write_nuopc_config_file(nuopc_config_file, data_list_path=data_list_path) 
+    nmlgen.write_nuopc_config_file(nuopc_config_file, data_list_path=data_list_path)
 
     #--------------------------------
-    # (3.1) Update nuopc.runconfig file if component needs it 
+    # (3.1) Update nuopc.runconfig file if component needs it
     #--------------------------------
 
-    # Read nuopc.runconfig 
+    # Read nuopc.runconfig
     with open(nuopc_config_file, 'r') as f:
         lines_cpl = f.readlines()
 
@@ -268,7 +278,8 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
         if comp != 'CPL' and case.get_value("COMP_{}".format(comp)) != 'd'+comp.lower():
             # Read *.configure file for component
             caseroot = case.get_value('CASEROOT')
-            comp_config_file = os.path.join(caseroot,"Buildconf","{}conf".format(case.get_value("COMP_{}".format(comp))),"{}.configure".format(case.get_value("COMP_{}".format(comp))))
+            comp_config_file = os.path.join(caseroot,"Buildconf","{}conf".format(case.get_value("COMP_{}".format(comp))),
+                                            "{}.configure".format(case.get_value("COMP_{}".format(comp))))
             if os.path.isfile(comp_config_file):
                 with open(comp_config_file, 'r') as f:
                     lines_comp = f.readlines()
@@ -359,7 +370,7 @@ def _create_runseq(case, coupling_times, valid_comps):
 
     else:
 
-        if len(valid_comps) == 1: 
+        if len(valid_comps) == 1:
 
             # Create run sequence with no mediator
             outfile = open(os.path.join(caseroot, "CaseDocs", "nuopc.runseq"), "w")
@@ -371,7 +382,7 @@ def _create_runseq(case, coupling_times, valid_comps):
             outfile.write (":: \n")
             outfile.close()
             shutil.copy(os.path.join(caseroot, "CaseDocs", "nuopc.runseq"), rundir)
-            
+
         else:
 
             # Create a run sequence file appropriate for target compset
@@ -389,7 +400,7 @@ def _create_runseq(case, coupling_times, valid_comps):
                 from runseq_TG import gen_runseq
             elif (comp_atm == 'ufsatm' and comp_ocn == "mom" and comp_ice == 'cice'):
                 from runseq_NEMS import gen_runseq
-            else: 
+            else:
                 from runseq_general import gen_runseq
 
             # create the run sequence
@@ -473,7 +484,7 @@ def _create_component_modelio_namelists(confdir, case, files):
                     outfile.write("     {}{}{}".format("logfile = ", logfile,"\n"))
                     outfile.write("::\n\n")
 
-                    # also write out a driver log file 
+                    # also write out a driver log file
                     if model == 'cpl':
                         name = "DRV"
                         logfile = 'drv' + inst_string + ".log." + str(lid)

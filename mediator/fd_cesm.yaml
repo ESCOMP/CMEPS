@@ -684,7 +684,7 @@
        description: sea-ice export to atm
      #
      - standard_name: Si_t
-       alias: sea_ice_temperature
+       alias: sea_ice_surface_temperature
        canonical_units: K
        description: sea-ice export
      #

@@ -21,12 +21,12 @@ def gen_runseq(case, coupling_times):
     driver_config = DriverConfig(case, coupling_times)
     run_atm, med_to_atm, atm_cpl_time = driver_config['atm']
     run_ice, med_to_ice, ice_cpl_time = driver_config['ice']
-    run_ocn, med_to_ocn, ocn_cpl_time = driver_config['ocn']  
+    run_ocn, med_to_ocn, ocn_cpl_time = driver_config['ocn']
     run_rof, _         , _            = driver_config['rof']
 
     if ice_cpl_time != atm_cpl_time:
         expect(False,"for D compsets require that ice_cpl_time equal atm_cpl_time")
-        
+
     with RunSeq(os.path.join(caseroot, "CaseDocs", "nuopc.runseq")) as runseq:
 
         runseq.enter_time_loop(ocn_cpl_time, newtime=((ocn_cpl_time)))
