@@ -395,7 +395,7 @@ contains
 
     ! local variables
     type(ESMF_VM)     :: vm
-    character(len=CL) :: value
+    character(len=CL) :: cvalue
     integer           :: localPet
     logical           :: isPresent, isSet
     character(len=CX) :: msgString
@@ -413,7 +413,7 @@ contains
     mastertask = .false.
     if (localPet == 0) mastertask=.true.
 
-    ! Determine mediator logunit 
+    ! Determine mediator logunit
     if (mastertask) then
        call NUOPC_CompAttributeGet(gcomp, name="diro", value=diro, isPresent=isPresent, isSet=isSet, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -430,14 +430,20 @@ contains
        logUnit = 6
     endif
 
-    call ESMF_AttributeGet(gcomp, name="Verbosity", value=value, defaultValue="max", &
+    ! Obtain Verbosity setting from MED_attributes
+    call ESMF_AttributeGet(gcomp, name="Verbosity", value=cvalue, defaultValue="max", &
          convention="NUOPC", purpose="Instance", rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_LogWrite(trim(subname)//": Mediator verbosity is "//trim(value), ESMF_LOGMSG_INFO)
+    call ESMF_LogWrite(trim(subname)//": Mediator verbosity is "//trim(cvalue), ESMF_LOGMSG_INFO)
 
-    write(msgString,'(A,i6)') trim(subname)//' dbug_flag = ',dbug_flag
+    ! Obtain dbug_flag setting from MED_attributes if present; otherwise use default value in med_constants
+    call NUOPC_CompAttributeGet(gcomp, name='dbug_flag', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+     read(cvalue,*) dbug_flag
+    end if
+    write(msgString,'(A,i6)') trim(subname)//': Mediator dbug_flag is ',dbug_flag
     call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
-    call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
 
     ! Switch to IPDv03 by filtering all other phaseMap entries
     call NUOPC_CompFilterPhaseMap(gcomp, ESMF_METHOD_INITIALIZE, acceptStringList=(/"IPDv03p"/), rc=rc)
@@ -1383,7 +1389,7 @@ contains
             ! Convert grid to mesh
             if (.not. meshcreated) then
                if (dbug_flag > 20) then
-                 call med_grid_write(grid, trim(fieldName)//'_premesh.nc', rc) 
+                 call med_grid_write(grid, trim(fieldName)//'_premesh.nc', rc)
                  if (ChkErr(rc,__LINE__,u_FILE_u)) return
                end if
 
@@ -1520,10 +1526,8 @@ contains
     character(CL)                      :: cvalue
     character(CL)                      :: start_type
     logical                            :: read_restart
-    logical                            :: LocalDone
-    logical,save                       :: atmDone = .false.
-    logical,save                       :: ocnDone = .false.
-    logical,save                       :: allDone = .false.
+    logical                            :: allDone = .false.
+    logical,save                       :: compDone(ncomps)
     logical,save                       :: first_call = .true.
     real(r8)                           :: real_nx, real_ny
     character(len=CX)                  :: msgString
@@ -1668,7 +1672,7 @@ contains
             ! Create import accumulation field bundles
             call FB_init(is_local%wrap%FBImpAccum(n1,n1), is_local%wrap%flds_scalar_name, &
                  STgeom=is_local%wrap%NStateImp(n1), STflds=is_local%wrap%NStateImp(n1), &
-                 name='FBImp'//trim(compname(n1)), rc=rc)
+                 name='FBImpAccum'//trim(compname(n1)), rc=rc)
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
             call FB_reset(is_local%wrap%FBImpAccum(n1,n1), value=czero, rc=rc)
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -1814,61 +1818,47 @@ contains
       call med_map_MapNorm_init(gcomp, logunit, rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-      first_call = .false.
+      !---------------------------------------
+      ! Set the data initialize flag to false
+      !---------------------------------------
 
       call NUOPC_CompAttributeSet(gcomp, name="InitializeDataComplete", value="false", rc=rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-      return
+
+      !---------------------------------------
+      ! Set the first call flag to false
+      !---------------------------------------
+
+      first_call = .false.
+
+      !---------------------------------------
+      ! *** Now return ****
+      !---------------------------------------
+
+      ! The Connectors are being "called" for the transfer of Meshes
+      ! (or Grids).  However, being "called" can mean different
+      ! things! It can mean calling Initialization() phases, or Run()
+      ! phases. For most of the initialization hand-shake, only
+      ! Initialization() phases are called. This includes the entire
+      ! GeomTransfer protocol. However, ONLY the Run phase of a
+      ! Connector (full) transfers data AND timestamps!
+
+      ! Once the first time DataInitialize() of CMEPS returns (below),
+      ! and NUOPC sees that its InitializeDataComplete is not yet
+      ! true, the NUOPC Driver will finally (for the first time!)
+      ! execute the Run() phase of all of the Connectors that fit the
+      ! *-TO-MED pattern. After that it will call CMEPS
+      ! DataInitialize() again. Note that the time stamps are only set
+      ! when the Run() phase of all the connectors are run.
+
+      ! The Connectors Run() phase is called before the second call of
+      ! the CMEPS DataInitialize phase.  As a result, CMEPS will see
+      ! the correct timestamps, which also indicates that the actual
+      ! data has been transferred reliably, and CMEPS can safely use it.
+
+      RETURN
 
     endif  ! end first_call if-block
-
-    !---------------------------------------
-    ! Initialize mediator fields and infodata
-    ! This is called every loop around DataInitialize
-    !---------------------------------------
-
-    call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    do n1 = 1,ncomps
-       LocalDone = .true.
-       if (is_local%wrap%comp_present(n1) .and. ESMF_StateIsCreated(is_local%wrap%NStateImp(n1),rc=rc)) then
-
-          call ESMF_StateGet(is_local%wrap%NStateImp(n1), itemCount=fieldCount, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-          allocate(fieldNameList(fieldCount))
-          call ESMF_StateGet(is_local%wrap%NStateImp(n1), itemNameList=fieldNameList, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-          do n=1, fieldCount
-             call ESMF_StateGet(is_local%wrap%NStateImp(n1), itemName=fieldNameList(n), field=field, rc=rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-             atCorrectTime = NUOPC_IsAtTime(field, time, rc=rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-             if (atCorrectTime) then
-                if (fieldNameList(n) == is_local%wrap%flds_scalar_name) then
-                   call ESMF_LogWrite(trim(subname)//" MED - Initialize-Data-Dependency CSTI "//trim(compname(n1)), &
-                        ESMF_LOGMSG_INFO, rc=rc)
-                   if (ChkErr(rc,__LINE__,u_FILE_u)) return
-                endif
-             else
-                LocalDone=.false.
-             endif
-          enddo
-          deallocate(fieldNameList)
-
-          if (LocalDone) then
-             call ESMF_LogWrite(trim(subname)//" MED - Initialize-Data-Dependency Copy Import "//&
-                  trim(compname(n1)), ESMF_LOGMSG_INFO, rc=rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             if (n1 == compocn) ocnDone = .true.
-             if (n1 == compatm) atmDone = .true.
-          endif
-       endif
-    enddo
 
     !----------------------------------------------------------
     ! Create FBfrac field bundles and initialize fractions
@@ -1882,70 +1872,107 @@ contains
     call med_fraction_set(gcomp,rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    if (is_local%wrap%comp_present(compocn) .or. is_local%wrap%comp_present(compatm)) then
-       call med_phases_ocnalb_run(gcomp, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    !----------------------------------------------------------
+    ! Initialize ocean albedos (this is needed for cesm and hafs)
+    !----------------------------------------------------------
+
+    if (trim(coupling_mode(1:5)) /= 'nems_') then
+       if (is_local%wrap%comp_present(compocn) .or. is_local%wrap%comp_present(compatm)) then
+          call med_phases_ocnalb_run(gcomp, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       end if
     end if
+
+    !---------------------------------------
+    ! Loop over components and determine if they are at correct time
+    !---------------------------------------
+
+    do n1 = 1,ncomps
+       compDone(n1) = .true. ! even if component is not present
+       if (is_local%wrap%comp_present(n1) .and. ESMF_StateIsCreated(is_local%wrap%NStateImp(n1),rc=rc)) then
+          call ESMF_StateGet(is_local%wrap%NStateImp(n1), itemCount=fieldCount, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          allocate(fieldNameList(fieldCount))
+          call ESMF_StateGet(is_local%wrap%NStateImp(n1), itemNameList=fieldNameList, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          do n=1, fieldCount
+             call ESMF_StateGet(is_local%wrap%NStateImp(n1), itemName=fieldNameList(n), field=field, rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             atCorrectTime = NUOPC_IsAtTime(field, time, rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             if (.not. atCorrectTime) then
+                compDone(n1) = .false.
+             endif
+          enddo
+          deallocate(fieldNameList)
+       endif
+    enddo
 
     !---------------------------------------
     ! Carry out data dependency for atm initialization if needed
     !---------------------------------------
 
-    if (.not. is_local%wrap%comp_present(compocn)) ocnDone = .true.
-    if (.not. is_local%wrap%comp_present(compatm)) atmDone = .true.
-
-    if (.not. atmDone .and. ocnDone .and. is_local%wrap%comp_present(compatm)) then
-
-       atmDone = .true.  ! reset if an item is found that is not done
-       call ESMF_StateGet(is_local%wrap%NStateImp(compatm), itemCount=fieldCount, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       allocate(fieldNameList(fieldCount))
-       call ESMF_StateGet(is_local%wrap%NStateImp(compatm), itemNameList=fieldNameList, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       do n=1, fieldCount
-          call ESMF_StateGet(is_local%wrap%NStateImp(compatm), itemName=fieldNameList(n), field=field, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          atCorrectTime = NUOPC_IsAtTime(field, time, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          if (.not. atCorrectTime) then
-             ! If any atm import fields are not time stamped correctly, then dependency is not satisified - must return to atm
-             call ESMF_LogWrite("MED - Initialize-Data-Dependency from ATM NOT YET SATISFIED!!!", ESMF_LOGMSG_INFO, rc=rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             atmdone = .false.
-             exit  ! break out of the loop when first not satisfied found
-          endif
-       enddo
-       deallocate(fieldNameList)
-
-       if (.not. atmdone) then  ! atmdone is not true
-          ! do the merge to the atmospheric component
-          call med_phases_prep_atm(gcomp, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-          ! change 'Updated' attribute to true for ALL exportState fields
-          call ESMF_StateGet(is_local%wrap%NStateExp(compatm), itemCount=fieldCount, rc=rc)
+    if (is_local%wrap%comp_present(compatm)) then
+       if (.not. compDone(compatm) .and. compDone(compocn)) then
+          compDone(compatm) = .true.  ! reset if an item is found that is not done
+          call ESMF_StateGet(is_local%wrap%NStateImp(compatm), itemCount=fieldCount, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           allocate(fieldNameList(fieldCount))
-          call ESMF_StateGet(is_local%wrap%NStateExp(compatm), itemNameList=fieldNameList, rc=rc)
+          call ESMF_StateGet(is_local%wrap%NStateImp(compatm), itemNameList=fieldNameList, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           do n=1, fieldCount
-             call ESMF_StateGet(is_local%wrap%NStateExp(compatm), itemName=fieldNameList(n), field=field, rc=rc)
+             call ESMF_StateGet(is_local%wrap%NStateImp(compatm), itemName=fieldNameList(n), field=field, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             call NUOPC_SetAttribute(field, name="Updated", value="true", rc=rc)
+             atCorrectTime = NUOPC_IsAtTime(field, time, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          end do
+             if (.not. atCorrectTime) then
+                ! If any atm import fields are not time stamped correctly,
+                ! then dependency is not satisified - must return to atm
+                call ESMF_LogWrite("MED - Initialize-Data-Dependency from ATM NOT YET SATISFIED!!!", &
+                     ESMF_LOGMSG_INFO, rc=rc)
+                if (ChkErr(rc,__LINE__,u_FILE_u)) return
+                if (mastertask) then
+                   write(logunit,'(A)') trim(subname)//"MED - Initialize-Data-Dependency from ATM NOT YET SATISFIED!!!"
+                end if
+                compDone(compatm) = .false.
+                exit  ! break out of the loop when first not satisfied found
+             endif
+          enddo
           deallocate(fieldNameList)
 
-          ! Connectors will be automatically called between the mediator and atm until allDone is true
-          call ESMF_LogWrite("MED - Initialize-Data-Dependency Sending Data to ATM", ESMF_LOGMSG_INFO, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-      endif
-    endif
+          if (.not. compDone(compatm)) then  ! atmdone is not true
+             ! do the merge to the atmospheric component
+             call med_phases_prep_atm(gcomp, rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+             ! change 'Updated' attribute to true for ALL exportState fields
+             call ESMF_StateGet(is_local%wrap%NStateExp(compatm), itemCount=fieldCount, rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             allocate(fieldNameList(fieldCount))
+             call ESMF_StateGet(is_local%wrap%NStateExp(compatm), itemNameList=fieldNameList, rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             do n=1, fieldCount
+                call ESMF_StateGet(is_local%wrap%NStateExp(compatm), itemName=fieldNameList(n), field=field, rc=rc)
+                if (ChkErr(rc,__LINE__,u_FILE_u)) return
+                call NUOPC_SetAttribute(field, name="Updated", value="true", rc=rc)
+                if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             end do
+             deallocate(fieldNameList)
+
+             ! Connectors will be automatically called between the mediator and atm until allDone is true
+             call ESMF_LogWrite("MED - Initialize-Data-Dependency Sending Data to ATM", ESMF_LOGMSG_INFO, rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          endif
+       endif
+    end if
+
+    !---------------------------------------
+    ! Loop over components again and determine if all are at the correct time
+    !---------------------------------------
 
     allDone = .true.
     do n1 = 1,ncomps
        if (is_local%wrap%comp_present(n1) .and. ESMF_StateIsCreated(is_local%wrap%NStateImp(n1),rc=rc)) then
-
           call ESMF_StateGet(is_local%wrap%NStateImp(n1), itemCount=fieldCount, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           allocate(fieldNameList(fieldCount))
@@ -1958,27 +1985,29 @@ contains
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
              if (.not. atCorrectTime) then
                 allDone=.false.
+                if (mastertask) then
+                   write(logunit,'(A)') trim(subname)//" MED - Initialize-Data-Dependency check Failed for "//&
+                        trim(compname(n1))
+                end if
              endif
           enddo
           deallocate(fieldNameList)
        endif
-
     enddo
-
-    ! set InitializeDataComplete Component Attribute to "true", indicating
-    ! to the driver that this Component has fully initialized its data
-
     if (allDone) then
+       ! set InitializeDataComplete Component Attribute to "true", indicating
+       ! to the driver that this Component has fully initialized its data
        call NUOPC_CompAttributeSet(gcomp, name="InitializeDataComplete", value="true", rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
        call ESMF_LogWrite("MED - Initialize-Data-Dependency allDone check Passed", ESMF_LOGMSG_INFO, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    end if
 
-       !---------------------------------------
-       ! Create component dimensions in mediator internal state
-       !---------------------------------------
+    !---------------------------------------
+    ! Create component dimensions in mediator internal state
+    !---------------------------------------
 
+    if (allDone) then
        if (mastertask) write(logunit,*)
        do n1 = 1,ncomps
           if (is_local%wrap%comp_present(n1) .and. ESMF_StateIsCreated(is_local%wrap%NStateImp(n1),rc=rc)) then
@@ -2025,12 +2054,15 @@ contains
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
        endif
        call med_phases_profile(gcomp, rc)
-    else
+
+    else ! Not all done
        call NUOPC_CompAttributeSet(gcomp, name="InitializeDataComplete", value="false", rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-       call ESMF_LogWrite("MED - Initialize-Data-Dependency allDone check Failed, another loop is required", ESMF_LOGMSG_INFO, rc=rc)
+       call ESMF_LogWrite("MED - Initialize-Data-Dependency allDone check Failed, another loop is required", &
+            ESMF_LOGMSG_INFO, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
     end if
 
     if (profile_memory) call ESMF_VMLogMemInfo("Leaving "//trim(subname))

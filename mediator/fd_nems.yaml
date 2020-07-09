@@ -43,6 +43,22 @@
      # section: atmosphere export
      #-----------------------------------
      #
+     - standard_name: Faxa_bcph
+       canonical_units: kg m-2 s-1
+       description: atmosphere export
+     #
+     - standard_name: Faxa_dstdry
+       canonical_units: kg m-2 s-1
+       description: atmosphere export
+     #
+     - standard_name: Faxa_dstwet
+       canonical_units: kg m-2 s-1
+       description: atmosphere export
+     #
+     #-----------------------------------
+     # section: atmosphere export
+     #-----------------------------------
+     #
      - standard_name: Faxa_swdn
        alias: mean_down_sw_flx
        canonical_units: W m-2
@@ -105,7 +121,11 @@
      - standard_name: Sa_pslv
        alias: inst_pres_height_surface
        canonical_units: Pa
-       description: atmosphere export - instataneous pressure land and sea surface
+       description: atmosphere export - instantaneous pressure land and sea surface
+     #
+     - standard_name: Sa_ptem
+       canonical_units: K
+       description: atmosphere export - bottom layer potential temperature
      #
      - standard_name: Sa_shum
        alias: inst_spec_humid_height_lowest
@@ -200,6 +220,18 @@
        canonical_units: N m-2
        description: sea-ice export - air ice meridional stress
      #
+     - standard_name: Fioi_bcphi
+       canonical_units: kg m-2 s-1
+       description: sea-ice export to ocean - hydrophilic black carbon flux to ocean
+     #
+     - standard_name: Fioi_bcpho
+       canonical_units: kg m-2 s-1
+       description: sea-ice export to ocean - hydrophobic black carbon flux to ocean
+     #
+     - standard_name: Fioi_flxdst
+       canonical_units: kg m-2 s-1
+       description: sea-ice export to ocean - dust aerosol flux to ocean
+     #
      - standard_name: Fioi_melth
        alias: net_heat_flx_to_ocn
        canonical_units: W m-2
@@ -209,6 +241,11 @@
        alias: mean_fresh_water_to_ocean_rate
        canonical_units: kg m-2 s-1
        description: sea-ice export to ocean - fresh water to ocean (h2o flux from melting)
+     #
+     - standard_name: Fioi_meltw_wiso
+       alias: mean_fresh_water_to_ocean_rate_wiso
+       canonical_units: kg m-2 s-1
+       description: sea-ice export to ocean - fresh water to ocean (h2o flux from melting) for 16O, 18O, HDO
      #
      - standard_name: Fioi_salt
        alias: mean_salt_rate
@@ -280,6 +317,10 @@
        canonical_units: 1
        description: sea-ice export - ice mask
      #
+     - standard_name: Si_qref
+       canonical_units: kg kg-1
+       description: sea-ice export to atm
+     #
      - standard_name: Si_t
        alias: sea_ice_surface_temperature
        canonical_units: K
@@ -298,6 +339,10 @@
        canonical_units: m
        description: sea-ice export
          volume of ice per unit area
+     #
+     - standard_name: Si_snowh
+       canonical_units: m
+       description: sea-ice export - surface_snow_water_equivalent
      #
      - standard_name: Si_vsno
        alias: mean_snow_volume
@@ -452,7 +497,6 @@
        alias: mean_merid_moment_flx
        canonical_units: N m-2
        description: ocean import - meridional surface stress to ocean
-     #
      #
      #-----------------------------------
      # mediator fields

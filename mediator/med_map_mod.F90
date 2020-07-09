@@ -161,7 +161,7 @@ contains
              srcMaskValue = ispval_mask
              if (n1 == compocn .or. n1 == compice) srcMaskValue = 0
              if (n2 == compocn .or. n2 == compice) dstMaskValue = 0
-          else if (coupling_mode(1:5) == 'nems_') then
+          else if (coupling_mode(1:4) == 'nems') then
              if (n1 == compatm .and. (n2 == compocn .or. n2 == compice)) then
                 srcMaskValue = 1
                 dstMaskValue = 0
@@ -225,7 +225,7 @@ contains
                          if (mastertask) then
                             write(llogunit,'(3A)') subname,trim(string),' RH redist '
                          end if
-                         call ESMF_LogWrite(trim(subname) // trim(string) // ' RH redist ', ESMF_LOGMSG_INFO)
+                         call ESMF_LogWrite(subname // trim(string) // ' RH redist ', ESMF_LOGMSG_INFO)
                          call ESMF_FieldRedistStore(fldsrc, flddst, &
                               routehandle=is_local%wrap%RH(n1,n2,mapindex), &
                               ignoreUnmatchedIndices = .true., rc=rc)
@@ -572,7 +572,7 @@ contains
                       if (dbug_flag > 1) then
                          write(cn1,'(i1)') n1; write(cn2,'(i1)') n2; write(cm ,'(i1)') m
                          call ESMF_LogWrite(trim(subname)//":"//'creating FBMapNormOne for '&
-                              //compname(n1)//'->'//compname(n2)//'with mapping '//mapnames(m), &
+                              //compname(n1)//'->'//compname(n2)//' with mapping '//mapnames(m), &
                               ESMF_LOGMSG_INFO)
                       endif
                       call FB_init(FBout=is_local%wrap%FBNormOne(n1,n2,m), &

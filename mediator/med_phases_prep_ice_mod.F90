@@ -169,6 +169,7 @@ contains
        call ESMF_StateGet(is_local%wrap%NStateImp(compatm), trim(is_local%wrap%flds_scalar_name), itemType, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        if (itemType /= ESMF_STATEITEM_NOTFOUND) then
+        if (is_local%wrap%flds_scalar_index_nextsw_cday .ne. 0) then
           ! send nextsw_cday to ice - first obtain it from atm import 
           call State_GetScalar(&
                scalar_value=nextsw_cday, &
@@ -184,6 +185,7 @@ contains
                flds_scalar_name=is_local%wrap%flds_scalar_name, &
                flds_scalar_num=is_local%wrap%flds_scalar_num, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
+        end if
        end if
 
        !---------------------------------------

@@ -163,7 +163,7 @@ contains
         enddo
 
         call med_methods_FB_diagnose(FB, 'read '//trim(fname), rc)
-	if (present(flag)) flag = .true.
+        if (present(flag)) flag = .true.
       endif
 
     else
