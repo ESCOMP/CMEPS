@@ -13,20 +13,20 @@ exchange of fields between components. In particular, this module uses the subro
   application
 
 * ``addmap`` determines how each source field is mapped from its
-  source mesh to a target destinatinon mesh. note that a given source
+  source mesh to a target destinatinon mesh. Note that a given source
   field may be mapped to more than one destination meshes and so there
-  will be more than one call to ``addmap`` for that source field.
+  can be more than one call to ``addmap`` for that source field.
 
-* subsequent to the field mapping, how a collection of source fields
+* ``addmrg`` subsequent to the field mapping, how a collection of source fields
   is merged to the target destination field.
 
-This section describes the API for the calls that determine this
+This section describes the API for the calls that determine the above
 information. All of the API's discussed below use the code in the
 module ``esmFlds.F90``.
 
 ``addfld``
 ----------
-CMEPS advertises all possible fields that it can receive from a component or send to any component via calling ``addfld``.
+CMEPS advertises all possible fields that it can receive from a component or send to any component via a call to ``addfld``.
 The API for this call is:
 
 .. code-block:: Fortran
@@ -40,7 +40,7 @@ The API for this call is:
 
 ``addmap``
 ----------
-CMEPS determines how to map each source field from its source mesh to a target destination mesh via calling ``addmap``.
+CMEPS determines how to map each source field from its source mesh to a target destination mesh via a call to ``addmap``.
 The API for this call is:
 
 .. code-block:: Fortran
@@ -99,8 +99,8 @@ where
 
   * ``<filename>``: read in corresponding full pathname
 
-Fractional normalization is needed to improve the accuracy of ice,
-ocean.  Consider a case where two ice cells of equal area underlie a
+Fractional normalization is needed to improve the accuracy field exchanges between ice and
+ocean and atmosphere.  Consider a case where two ice cells of equal area underlie a
 single atmosphere cell completely.  The mapping weight of each ice
 cell generated offline would be 0.5 in this case and if ice
 temperatures of -1.0 and -2.0 in the two cells respectively were
