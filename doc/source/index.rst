@@ -15,6 +15,9 @@ Table of contents
 -----------------
 .. toctree::
    :maxdepth: 2
+   :numbered:
 
    introduction.rst
    field_naming_convention.rst
+   esmfldsexchange.rst
+   fractions.rst
