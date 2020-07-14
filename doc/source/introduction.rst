@@ -19,6 +19,10 @@ source model components on every source desintation mesh
 4. totally generic components that carry out the mediator
 functionality such as mapping, merging, restarts and history writes.
 
+.. todo::
+
+   add description of what nuopc is, including advertise, etc.
+
 CMEPS application specfic code
 ----------------------------------------
 
