@@ -1741,6 +1741,19 @@
     </desc>
   </entry>
 
+  <entry id="DIN_LOC_IC">
+    <type>char</type>
+    <default_value>$DIN_LOC_ROOT/initial</default_value>
+    <group>run_din</group>
+    <file>env_run.xml</file>
+    <desc>
+      The root directory of transient input data for the selected machine.
+      This is usually a shared disk area.
+      Default values for the target machine are in the
+      $CIMEROOT/machines/config_machines.xml
+    </desc>
+  </entry>
+
   <entry id="DIN_LOC_ROOT_CLMFORC">
     <type>char</type>
     <default_value>UNSET</default_value>
