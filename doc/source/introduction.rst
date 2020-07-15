@@ -38,8 +38,13 @@ specific to each application.
 
  .. todo::
 
-   add description of what nuopc is, including advertise, etc.
-
+   * section about the generic code, mostly med.F90 and esmFlds.F90.
+   * drivers are application specific and that we assume a few attributes in the mediator that must come from the driver
+   * nems.configure: the top most interface; depends on driver. the attribute names that cmeps requires and needs for whatever driver is being used
+   * include "use of cmeps mediator section": nems.configure and the run sequence, driver, moving the history writes around
+   
+   * add description of what nuopc is, including advertise, etc.
+   
 Organization of the CMEPS mediator code
 #######################################
 

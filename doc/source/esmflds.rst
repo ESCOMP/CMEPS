@@ -61,8 +61,8 @@ well as the mediator. Furthermore, the naming convention distinguishes between s
 **State Variables** ::
 
   State variables have a 3 character prefix followed by the state
-  name.  The prefix has the form S[a,i,l,g,o,r,w]_ and is followed by
-  the field name.  As an example, ``Sx_t`` is the merged surface
+  name. The prefix has the form S[a,i,l,g,o,r,w]_ and is followed by
+  the field name. As an example, ``Sx_t`` is the merged surface
   temperature from land, ice and ocean sent to the atmopshere for CESM.
 
 **Flux variables** ::
