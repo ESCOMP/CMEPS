@@ -35,7 +35,6 @@ Details of the naming conventions and API's of this file can be found
 in the description of the :ref:`exchange of fields in
 CMEPS<api-for-esmflds>`.
 
-
 Field Naming Convention
 -----------------------
 
@@ -75,6 +74,17 @@ well as the mediator. Furthermore, the naming convention distinguishes between s
     n  => computed by component n
   flux-name
      what follows the flux-prefix
+  mediator import flux prefix:
+    Faxa_, atm flux computed by atm
+    Fall_, lnd-atm flux computed by lnd
+    Fioi_, ice-ocn flux computed by ice
+    Faii_, ice_atm flux computed by ice
+    Flrr_, lnd-rof flux computed by rof
+    Firr_, rof-ice flux computed by rof
+  mediator export flux prefix:
+    Faxx_, mediator merged fluxes sent to the atm
+    Foxx_, mediator merged fluxes sent to the ocn
+    Fixx_, mediator merged fluxes sent to the ice
 
 Exchange of fields
 ------------------
@@ -100,7 +110,7 @@ This section describes the API for the calls that determine the above
 information. All of the API's discussed below use the code in the
 module ``esmFlds.F90``.
 
-``addfld``
+`addfld`
 ~~~~~~~~~~
 CMEPS advertises all possible fields that it can receive from a component or send to any component via a call to ``addfld``.
 The API for this call is:
@@ -109,12 +119,12 @@ The API for this call is:
 
    call addfld(fldListFr(comp_index)%flds, 'field_name')
 
-      where
+   where
 
    comp_index = component index, can be any of [compatm, compice, compglc, complnd, compocn, comprof, compwav]
    field_name = the field name that will be advertised
 
-``addmap``
+`addmap`
 ~~~~~~~~~~
 CMEPS determines how to map each source field from its source mesh to a target destination mesh via a call to ``addmap``.
 The API for this call is:
@@ -175,18 +185,11 @@ where
 
   * ``<filename>``: read in corresponding full pathname
 
-Fractional normalization is needed to improve the accuracy field exchanges between ice and
-ocean and atmosphere.  Consider a case where two ice cells of equal area underlie a
-single atmosphere cell completely.  The mapping weight of each ice
-cell generated offline would be 0.5 in this case and if ice
-temperatures of -1.0 and -2.0 in the two cells respectively were
-mapped to the atmosphere grid, a resulting ice temperature on the
-atmosphere grid of -1.5 would result.
-
-Consider now the case where one
-cell has an ice fraction of 0.3 and the other has a fraction of 0.5.
-Mapping the ice fraction to the atmospheric cell results in a value of
-0.4.  If the same temperatures are mapped in the same way, a
+Fractional normalization is needed to improve the accuracy field
+exchanges between ice and ocean and atmosphere.  Consider now the case
+where one cell has an ice fraction of 0.3 and the other has a fraction
+of 0.5.  Mapping the ice fraction to the atmospheric cell results in a
+value of 0.4.  If the same temperatures are mapped in the same way, a
 temperature of -1.5 results which is reasonable, but not entirely
 accurate.  Because of the relative ice fractions, the weight of the
 second cell should be greater than the weight of the first cell.
@@ -195,11 +198,24 @@ temperature of -1.625 in this example.  This is the fraction
 correction that is carried out whenever ocean and ice fields are
 mapped to the atmosphere grid.
 
-Time varying fraction corrections are
-not required in other mappings to improve accuracy because their
-relative fractions remain static.
+Time varying fraction corrections are not required in other mappings
+to improve accuracy because their relative fractions remain static.
 
-``addmrg``
+An example of addmap for CESM is shown below:
+
+.. code-block:: Fortran
+
+   call addmap(fldListFr(compice)%flds, 'Si_snowh', compatm, mapconsf, 'ifrac', ice2atm_fmap)
+
+This will create an entry in ``fldListFr(compatm)`` specifying that the
+``Si_snowh`` field from the ice should be mapped conservatively to the
+atmosphere using fractional normalization where the ice fraction is
+obtained from ``Frac(compice)[snowh]``. The ``ice2atm_fmap`` is a
+character string obtained as an attribute from the driver and in
+general is set to ``unset`` specifying that an run time route handle
+for this mapping needs to be created.
+
+`addmrg`
 ~~~~~~~~~~
 CMEPS determines how to map a set of one or more mapped source fields to create the target destination field in the export state.
 The API for this call is:
