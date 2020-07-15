@@ -18,6 +18,6 @@ Table of contents
    :numbered:
 
    introduction.rst
-   field_naming_convention.rst
-   esmfldsexchange.rst
+   esmflds.rst
    fractions.rst
+   fieldnames.rst

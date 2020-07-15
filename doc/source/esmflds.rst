@@ -1,7 +1,83 @@
 .. _api-for-esmflds:
 
+================================
+ CMEPS application specfic code
+================================
+
+CMEPS contains two coupled model specific files that determine:
+
+* the allowed field names in the mediator and aliases for those names that the components might have
+* the fields that are exchanged between components
+* how source fields are mapped to destination fields
+* how source fields are merged after mapping to destination fields
+
+This occurs via the following files:
+
+* **esmFldsExchange_cesm_mod.F90**
+* **esmFldsExchange_nems_mod.F90**
+* **esmFldsExchange_hafs_mod.F90**
+
+CMEPS advertises **all possible fields** that can be imported to and
+exported by the mediator for the target coupled system. Not all of
+these fields will be connected to the various components. The
+connections will be determined by what the components advertise in
+their respective advertise phase.
+
+The mediator variable names can be seen in the application specific
+YAML field dictionary. Currently, three field dictionaries are
+supported for the target coupled model applications:
+
+* **fd_cesm.yaml** for CESM
+* **fd_nems.yaml** for UFS-S2S
+* **fd_hafs.yaml** for UFS-HAFS
+
+Details of the naming conventions and API's of this file can be found
+in the description of the :ref:`exchange of fields in
+CMEPS<api-for-esmflds>`.
+
+
+Field Naming Convention
+-----------------------
+
+The CMEPS field name convention in these YAML files is independent of the model components.
+The convention differentiates between variables that are state fields versus flux fields.
+
+The CMEPS naming convention assumes the following one letter designation for the various components as
+well as the mediator. Furthermore, the naming convention distinguishes between state and flux variables.
+
+**import to mediator**::
+
+  a => atmosphere
+  i => sea-ice
+  l => land
+  g => land-ice
+  o => ocean
+  r => river
+  w => wave
+
+**export from mediator (after  mapping and merging)**::
+
+  x => mediator
+
+**State Variables** ::
+
+  State variables have a 3 character prefix followed by the state
+  name.  The prefix has the form S[a,i,l,g,o,r,w]_ and is followed by
+  the field name.  As an example, ``Sx_t`` is the merged surface
+  temperature from land, ice and ocean sent to the atmopshere for CESM.
+
+**Flux variables** ::
+
+  Specify both source and destination components and have a 5 character prefix::
+  flux-prefix
+    first 5 characters: Flmn_
+    lm => between components l and m
+    n  => computed by component n
+  flux-name
+     what follows the flux-prefix
+
 Exchange of fields
-==================
+------------------
 
 The application specific module, ``esmFldsExchange_xxx.F90`` contains
 all of the information that determines how the mediator performs the
@@ -25,7 +101,7 @@ information. All of the API's discussed below use the code in the
 module ``esmFlds.F90``.
 
 ``addfld``
-----------
+~~~~~~~~~~
 CMEPS advertises all possible fields that it can receive from a component or send to any component via a call to ``addfld``.
 The API for this call is:
 
@@ -39,7 +115,7 @@ The API for this call is:
    field_name = the field name that will be advertised
 
 ``addmap``
-----------
+~~~~~~~~~~
 CMEPS determines how to map each source field from its source mesh to a target destination mesh via a call to ``addmap``.
 The API for this call is:
 
@@ -105,7 +181,7 @@ single atmosphere cell completely.  The mapping weight of each ice
 cell generated offline would be 0.5 in this case and if ice
 temperatures of -1.0 and -2.0 in the two cells respectively were
 mapped to the atmosphere grid, a resulting ice temperature on the
-atmosphere grid of -1.5 would result.  
+atmosphere grid of -1.5 would result.
 
 Consider now the case where one
 cell has an ice fraction of 0.3 and the other has a fraction of 0.5.
@@ -117,14 +193,14 @@ second cell should be greater than the weight of the first cell.
 Taking this into account properly results in a fraction weighted ice
 temperature of -1.625 in this example.  This is the fraction
 correction that is carried out whenever ocean and ice fields are
-mapped to the atmosphere grid.  
+mapped to the atmosphere grid.
 
 Time varying fraction corrections are
 not required in other mappings to improve accuracy because their
 relative fractions remain static.
 
 ``addmrg``
-----------
+~~~~~~~~~~
 CMEPS determines how to map a set of one or more mapped source fields to create the target destination field in the export state.
 The API for this call is:
 
