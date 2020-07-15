@@ -105,7 +105,9 @@ single atmosphere cell completely.  The mapping weight of each ice
 cell generated offline would be 0.5 in this case and if ice
 temperatures of -1.0 and -2.0 in the two cells respectively were
 mapped to the atmosphere grid, a resulting ice temperature on the
-atmosphere grid of -1.5 would result.  Consider the case where one
+atmosphere grid of -1.5 would result.  
+
+Consider now the case where one
 cell has an ice fraction of 0.3 and the other has a fraction of 0.5.
 Mapping the ice fraction to the atmospheric cell results in a value of
 0.4.  If the same temperatures are mapped in the same way, a
@@ -115,7 +117,9 @@ second cell should be greater than the weight of the first cell.
 Taking this into account properly results in a fraction weighted ice
 temperature of -1.625 in this example.  This is the fraction
 correction that is carried out whenever ocean and ice fields are
-mapped to the atmosphere grid.  Time varying fraction corrections are
+mapped to the atmosphere grid.  
+
+Time varying fraction corrections are
 not required in other mappings to improve accuracy because their
 relative fractions remain static.
 
@@ -146,11 +150,9 @@ where
   * ``copy``: simply copy the source mapped field into the destination field bundle
 
   * ``copy_with_weights``: weight the mapped source field by its fraction on the destination mesh.
-    This is given by the field ``mrg_fracnameN`` in ``FBFrac(comp_index_dst)``.
-    If copy_with_weights is chose as the ``mrg_typeN`` value then ``mrg_fracnameN`` is also required as an argument.
 
   * ``sum_with_weights``: do a cumulative sum of all the mapped source fields where each field is weighed by by its fraction on the destination mesh.
-    As mentioned above, this is given by the field ``mrg_fracnameN`` in ``FBFrac(comp_index_dst)``.
-    If sum_with_weights is chose as the ``mrg_typeN`` value then ``mrg_fracnameN`` is also required as an argument.
 
   * ``sum_with_weights``: do a cumulative sum of all the mapped source fields.
+
+For ``copy_with_weights`` and ``sum_with_weights``, the mapped source field is weighted by ``mrg_fracnameN`` in ``FBFrac(comp_index_dst)``. If copy_with_weights is chose as the ``mrg_typeN`` value then ``mrg_fracnameN`` is also required as an argument. If sum_with_weights is chose as the ``mrg_typeN`` value then ``mrg_fracnameN`` is also required as an argument.
