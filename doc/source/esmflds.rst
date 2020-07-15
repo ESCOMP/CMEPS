@@ -157,63 +157,47 @@ where
 
   * ``mapnstod_consf``: nearest source to destination followed by conservative fraction
 
-* **mapnorm** determines the  mapping normalization and can have values of:
+* **mapnorm** determines the mapping normalization and can have values of:
 
-  * ``unset`` : no normalization is set, should only be used only if maptype is 'mapfcopy'
+  * ``unset`` : no normalization is set, should only be used if maptype is 'mapfcopy'
 
   * ``none``  : no normalization is done, should only be used if maptype is not 'mapfcopy'
 
   * ``one``   : normalize by 1. (see description below for normalization)
 
-  * ``lfrin`` : normalize by the ``lfrin`` field in FBFrac(complnd) (i.e. ``Ffrac(complnd)[lfrin]``).
-    Used to map lnd->atm, (see description of :ref:`fractions<fractions>`).
-    Scale the field by ``FBfrac(complnd)[`lfrin`]`` before mapping and unscale it by the mapped ``FBFrac(complnd)[lfrin]`` after mapping.
-
-  * ``ifrac`` : normalize by the 'ifrac' field in FBFrac(compice). Used to map ice->atm, (see description of :ref:`fractions<fractions>`).
-    Used to map lnd->atm, (see description of :ref:`fractions<fractions>`).
-    Scale the field by ``FBfrac(compice)[`ifrac`]`` before mapping and unscale it by the mapped ``FBFrac(compice)[ifrac]`` after mapping.
-
-  * ``ofrac`` : normalize by the 'ofrac' field in FBFrac(compocn). Used to map ice->atm, (see description of :ref:`fractions<fractions>`).
-    Used to map lnd->atm, (see description of :ref:`fractions<fractions>`).
-    Scale the field by ``FBfrac(compocn)[`ofrac`]`` before mapping and unscale it by the mapped ``FBFrac(compice)[ofrac]`` after mapping.
+  * ``lfrin`` : normalize by the ``lfrin`` field in FBFrac(complnd). Used to map lnd->atm (see description of :ref:`fractions<fractions>`).
+    
+  * ``ifrac`` : normalize by the 'ifrac' field in FBFrac(compice). Used to map ice->atm (see description of :ref:`fractions<fractions>`).
+    
+  * ``ofrac`` : normalize by the 'ofrac' field in FBFrac(compocn). Used to map ice->atm (see description of :ref:`fractions<fractions>`).
 
   * ``custom`` : custom mapping and normalization will be done in the prep phase for the corresponding field (used to map glc->lnd).
-
+  
+  .. note:: When **mapnorm** is used, the field will first be scaled by the relevant ``FBfrac`` before mapping and then unscaled by the same ``FBfrac`` after mapping. For example, when ``ifrac`` is the normalization, the field will be scaled by ``FBfrac(compice)[ifrac]`` before mapping and unscaled by the mapped ``FBFrac(compice)[ifrac]`` after mapping.
+  
 * **mapfile**  determines if a mapping file will be read in or the route handle will be generated at run time:
 
   * ``unset``  : online route handles will be generated
 
   * ``<filename>``: read in corresponding full pathname
+ 
+**Normalization** :
+Fractional normalization is needed to improve the accuracy field exchanges between ice and ocean and atmosphere. Consider the case where one cell has an ice
+fraction of 0.3 and the other has a fraction of 0.5. Mapping the ice fraction to the atmospheric cell results in a value of 0.4. If the same temperatures are
+mapped in the same way, a temperature of -1.5 results which is reasonable, but not entirely accurate. Because of the relative ice fractions, the weight of the
+second cell should be greater than the weight of the first cell. Taking this into account properly results in a fraction weighted ice temperature of -1.625 in
+this example. This is the fraction correction that is carried out whenever ocean and ice fields are mapped to the atmosphere grid. Note that time varying
+fraction corrections are not required in other mappings to improve accuracy because their relative fractions remain static.
 
-Fractional normalization is needed to improve the accuracy field
-exchanges between ice and ocean and atmosphere.  Consider now the case
-where one cell has an ice fraction of 0.3 and the other has a fraction
-of 0.5.  Mapping the ice fraction to the atmospheric cell results in a
-value of 0.4.  If the same temperatures are mapped in the same way, a
-temperature of -1.5 results which is reasonable, but not entirely
-accurate.  Because of the relative ice fractions, the weight of the
-second cell should be greater than the weight of the first cell.
-Taking this into account properly results in a fraction weighted ice
-temperature of -1.625 in this example.  This is the fraction
-correction that is carried out whenever ocean and ice fields are
-mapped to the atmosphere grid.
-
-Time varying fraction corrections are not required in other mappings
-to improve accuracy because their relative fractions remain static.
-
-An example of addmap for CESM is shown below:
+**Example** :
 
 .. code-block:: Fortran
 
    call addmap(fldListFr(compice)%flds, 'Si_snowh', compatm, mapconsf, 'ifrac', ice2atm_fmap)
 
-This will create an entry in ``fldListFr(compatm)`` specifying that the
-``Si_snowh`` field from the ice should be mapped conservatively to the
-atmosphere using fractional normalization where the ice fraction is
-obtained from ``Frac(compice)[snowh]``. The ``ice2atm_fmap`` is a
-character string obtained as an attribute from the driver and in
-general is set to ``unset`` specifying that an run time route handle
-for this mapping needs to be created.
+This will create an entry in ``fldListFr(compatm)`` specifying that the ``Si_snowh`` field from the ice should be mapped conservatively to the atmosphere using
+fractional normalization where the ice fraction is obtained from ``Frac(compice)[snowh]``. The ``ice2atm_fmap`` is a character string obtained as an attribute
+from the driver and in general is set to ``unset`` specifying that an run time route handle for this mapping needs to be created.
 
 `addmrg`
 ~~~~~~~~~~
@@ -247,4 +231,6 @@ where
 
   * ``sum_with_weights``: do a cumulative sum of all the mapped source fields.
 
-For ``copy_with_weights`` and ``sum_with_weights``, the mapped source field is weighted by ``mrg_fracnameN`` in ``FBFrac(comp_index_dst)``. If copy_with_weights is chose as the ``mrg_typeN`` value then ``mrg_fracnameN`` is also required as an argument. If sum_with_weights is chose as the ``mrg_typeN`` value then ``mrg_fracnameN`` is also required as an argument.
+For ``copy_with_weights`` and ``sum_with_weights``, the mapped source field is weighted by ``mrg_fracnameN`` in ``FBFrac(comp_index_dst)``. If
+copy_with_weights is chose as the ``mrg_typeN`` value then ``mrg_fracnameN`` is also required as an argument. If sum_with_weights is chose as the ``mrg_typeN``
+value then ``mrg_fracnameN`` is also required as an argument.
