@@ -20,4 +20,5 @@ Table of contents
    introduction.rst
    esmflds.rst
    fractions.rst
+   prep.rst
    fieldnames.rst

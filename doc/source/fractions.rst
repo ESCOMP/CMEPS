@@ -1,7 +1,7 @@
 .. _fractions:
 
-Fractions
-=========
+CMEPS Fractions
+===============
 
 The component fractions on their corresponding meshes are defined and
 updated in ``med_fractions_mod.F90.`` We now describe how these fractions are defined and computed.
