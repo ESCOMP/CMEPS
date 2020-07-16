@@ -36,9 +36,13 @@ Each prep phase module has several sections:
 2. Merging the set of source fields that have been mapped to the destination mesh.
    This is obtained from the ``addmrg`` calls in ``esmFldsExchange_cesm_mod.F90``.
 
-3. Carrying out optional custom calculaitons that cannot be specified
-   via ``addmap`` or ``addmrg`` calls. Currently this encompasses the
-   following:
+3. Carrying out optional custom calculations that cannot be specified
+   via ``addmap`` or ``addmrg`` calls. Custom calculations are the
+   only part of the CMEPS prep phases that can be can be application
+   specific. The attribute ``coupling_mode`` is utilized to by the
+   prep phases to determine if a particular customization is targeted
+   for only one application. Currently prep phase customization
+   encompasses the following:
 
    * ``med_phases_prep_atm``:
 
