@@ -8,7 +8,7 @@
   <!--  DRIVER attributes                       -->
   <!-- ======================================== -->
 
-  <entry id="verbosity@driver_attributes">
+  <entry id="Verbosity@driver_attributes">
     <type>char</type>
     <category>nuopc</category>
     <group>DRIVER_attributes</group>
@@ -19,7 +19,7 @@
 
   <!-- NUOPC generic input -->
 
-  <entry id="profiling@driver_attributes">
+  <entry id="Profiling@driver_attributes">
     <type>char</type>
     <category>nuopc</category>
     <group>DRIVER_attributes</group>
@@ -28,7 +28,7 @@
     </values>
   </entry>
 
-  <entry id="verbosity@med_attributes">
+  <entry id="Verbosity@med_attributes">
     <type>char</type>
     <category>nuopc</category>
     <group>MED_attributes</group>
@@ -37,7 +37,7 @@
     </values>
   </entry>
 
-  <entry id="verbosity@atm_attributes">
+  <entry id="Verbosity@atm_attributes">
     <type>char</type>
     <category>nuopc</category>
     <group>ATM_attributes</group>
@@ -46,7 +46,7 @@
     </values>
   </entry>
 
-  <entry id="verbosity@ocn_attributes">
+  <entry id="Verbosity@ocn_attributes">
     <type>char</type>
     <category>nuopc</category>
     <group>OCN_attributes</group>
@@ -55,7 +55,7 @@
     </values>
   </entry>
 
-  <entry id="verbosity@ice_attributes">
+  <entry id="Verbosity@ice_attributes">
     <type>char</type>
     <category>nuopc</category>
     <group>ICE_attributes</group>
@@ -64,7 +64,7 @@
     </values>
   </entry>
 
-  <entry id="verbosity@rof_attributes">
+  <entry id="Verbosity@rof_attributes">
     <type>char</type>
     <category>nuopc</category>
     <group>ROF_attributes</group>
@@ -73,7 +73,7 @@
     </values>
   </entry>
 
-  <entry id="verbosity@lnd_attributes">
+  <entry id="Verbosity@lnd_attributes">
     <type>char</type>
     <category>nuopc</category>
     <group>LND_attributes</group>
@@ -82,7 +82,7 @@
     </values>
   </entry>
 
-  <entry id="verbosity@glc_attributes">
+  <entry id="Verbosity@glc_attributes">
     <type>char</type>
     <category>nuopc</category>
     <group>GLC_attributes</group>
@@ -91,7 +91,7 @@
     </values>
   </entry>
 
-  <entry id="verbosity@wav_attributes">
+  <entry id="Verbosity@wav_attributes">
     <type>char</type>
     <category>nuopc</category>
     <group>WAV_attributes</group>
