@@ -2572,6 +2572,19 @@
    <desc>if true, create ESMF PET log files even if there is no error encountered </desc>
  </entry>
 
+  <!-- ===================================================================== -->
+  <!-- write ESMF PET log files even without an error -->
+  <!-- ===================================================================== -->
+
+ <entry id="ADD_AOFLUX_TO_RUNSEQ">
+   <type>logical</type>
+   <valid_values>TRUE,FALSE</valid_values>
+   <default_value>TRUE</default_value>
+   <group>run_coupling</group>
+   <file>env_run.xml</file>
+   <desc>add aoflux calculation to runseq</desc>
+ </entry>
+
  <help>
     =========================================
     Notes:
