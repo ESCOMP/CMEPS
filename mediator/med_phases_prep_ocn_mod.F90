@@ -216,7 +216,7 @@ contains
        !--- custom calculations
        !---------------------------------------
 
-       if (trim(coupling_mode) == 'cesm' .or. trim(coupling_mode) == 'hafs') then
+       if (trim(coupling_mode) == 'cesm') then
 
           !-------------
           ! Compute netsw for ocean
