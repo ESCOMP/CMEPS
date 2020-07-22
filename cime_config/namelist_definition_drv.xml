@@ -8,13 +8,13 @@
   <!--  DRIVER attributes                       -->
   <!-- ======================================== -->
 
-  <entry id="Verbosity@driver_attributes">
+  <entry id="Verbosity@driver_attributes" modify_via_xml="ESMF_VERBOSITY_LEVEL">
     <type>char</type>
     <category>nuopc</category>
     <group>DRIVER_attributes</group>
     <valid_values>off,low,high,max</valid_values>
     <values>
-      <value>low</value>
+      <value>$ESMF_VERBOSITY_LEVEL</value>
     </values>
   </entry>
 
@@ -22,9 +22,8 @@
     <type>char</type>
     <category>nuopc</category>
     <group>DRIVER_attributes</group>
-    <valid_values>off,low,high,max</valid_values>
     <values>
-      <value>off</value>
+      <value>$ESMF_PROFILING_LEVEL</value>
     </values>
   </entry>
 
@@ -34,7 +33,7 @@
     <group>MED_attributes</group>
     <valid_values>off,low,high,max</valid_values>
     <values>
-      <value>low</value>
+      <value>$ESMF_VERBOSITY_LEVEL</value>
     </values>
   </entry>
 
@@ -44,7 +43,7 @@
     <group>ATM_attributes</group>
     <valid_values>off,low,high,max</valid_values>
     <values>
-      <value>low</value>
+      <value>$ESMF_VERBOSITY_LEVEL</value>
     </values>
   </entry>
 
@@ -54,7 +53,7 @@
     <group>OCN_attributes</group>
     <valid_values>off,low,high,max</valid_values>
     <values>
-      <value>low</value>
+      <value>$ESMF_VERBOSITY_LEVEL</value>
     </values>
   </entry>
 
@@ -64,7 +63,7 @@
     <group>ICE_attributes</group>
     <valid_values>off,low,high,max</valid_values>
     <values>
-      <value>low</value>
+      <value>$ESMF_VERBOSITY_LEVEL</value>
     </values>
   </entry>
 
@@ -74,7 +73,7 @@
     <group>ROF_attributes</group>
     <valid_values>off,low,high,max</valid_values>
     <values>
-      <value>low</value>
+      <value>$ESMF_VERBOSITY_LEVEL</value>
     </values>
   </entry>
 
@@ -84,7 +83,7 @@
     <group>LND_attributes</group>
     <valid_values>off,low,high,max</valid_values>
     <values>
-      <value>low</value>
+      <value>$ESMF_VERBOSITY_LEVEL</value>
     </values>
   </entry>
 
@@ -94,7 +93,7 @@
     <group>GLC_attributes</group>
     <valid_values>off,low,high,max</valid_values>
     <values>
-      <value>low</value>
+      <value>$ESMF_VERBOSITY_LEVEL</value>
     </values>
   </entry>
 
@@ -104,7 +103,7 @@
     <valid_values>off,low,high,max</valid_values>
     <group>WAV_attributes</group>
     <values>
-      <value>low</value>
+      <value>$ESMF_VERBOSITY_LEVEL</value>
     </values>
   </entry>
 
