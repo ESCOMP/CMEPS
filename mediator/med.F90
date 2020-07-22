@@ -433,12 +433,12 @@ contains
     call ESMF_AttributeGet(gcomp, name="Verbosity", value=value, &
          convention="NUOPC", purpose="Instance", rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_LogWrite(trim(subname)//": Mediator verbosity is "//trim(value), ESMF_LOGMSG_INFO)
+    call ESMF_LogWrite(trim(subname)//": Mediator verbosity is set to "//trim(value), ESMF_LOGMSG_INFO)
 
     call ESMF_AttributeGet(gcomp, name="Profiling", value=value, &
          convention="NUOPC", purpose="Instance", rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_LogWrite(trim(subname)//": Mediator profiling is "//trim(value), ESMF_LOGMSG_INFO)
+    call ESMF_LogWrite(trim(subname)//": Mediator profiling is set to "//trim(value), ESMF_LOGMSG_INFO)
 
     write(msgString,'(A,i6)') trim(subname)//' dbug_flag = ',dbug_flag
     call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
