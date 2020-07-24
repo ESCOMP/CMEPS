@@ -19,6 +19,7 @@ def gen_runseq(case, coupling_times):
     caseroot       = case.get_value("CASEROOT")
     cpl_seq_option = case.get_value('CPL_SEQ_OPTION')
     cpl_add_aoflux = case.get_value('ADD_AOFLUX_TO_RUNSEQ')
+    coupling_mode  = case.get_value('COUPLING_MODE')
 
     # It is assumed that if a component will be run it will send information to the mediator
     # so the flags run_xxx and xxx_to_med are redundant
@@ -103,7 +104,10 @@ def gen_runseq(case, coupling_times):
         runseq.add_action("ROF"                                    , run_rof and not rof_outer_loop)
         runseq.add_action("WAV"                                    , run_wav)
         runseq.add_action("OCN"                                    , run_ocn and not ocn_outer_loop)
-        runseq.add_action("OCN -> MED :remapMethod=redist"         , run_ocn and not ocn_outer_loop)
+        if coupling_mode == 'hafs':
+            runseq.add_action("OCN -> MED :remapMethod=redist:ignoreUnmatchedIndices=true"         , run_ocn and not ocn_outer_loop)
+        else:
+            runseq.add_action("OCN -> MED :remapMethod=redist"         , run_ocn and not ocn_outer_loop)
         if (cpl_seq_option == 'TIGHT'):
             runseq.add_action("MED med_phases_prep_ocn_map"        , med_to_ocn)
             if cpl_add_aoflux:
@@ -128,7 +132,10 @@ def gen_runseq(case, coupling_times):
         #------------------
 
         runseq.add_action("OCN"                                    , run_ocn and ocn_outer_loop)
-        runseq.add_action("OCN -> MED :remapMethod=redist"         , run_ocn and ocn_outer_loop)
+        if coupling_mode == 'hafs':
+            runseq.add_action("OCN -> MED :remapMethod=redist:ignoreUnmatchedIndices=true"         , run_ocn and ocn_outer_loop)
+        else:
+            runseq.add_action("OCN -> MED :remapMethod=redist"         , run_ocn and ocn_outer_loop)
 
         #------------------
         runseq.leave_time_loop(ocn_outer_loop)
