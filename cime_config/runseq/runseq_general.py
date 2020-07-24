@@ -28,7 +28,7 @@ def gen_runseq(case, coupling_times):
     run_ice, med_to_ice, ice_cpl_time = driver_config['ice']
     run_glc, med_to_glc, glc_cpl_time = driver_config['glc']
     run_lnd, med_to_lnd, lnd_cpl_time = driver_config['lnd']
-    run_ocn, med_to_ocn, ocn_cpl_time = driver_config['ocn']  
+    run_ocn, med_to_ocn, ocn_cpl_time = driver_config['ocn']
     run_rof, med_to_rof, rof_cpl_time = driver_config['rof']
     run_wav, med_to_wav, wav_cpl_time = driver_config['wav']
 
@@ -44,10 +44,10 @@ def gen_runseq(case, coupling_times):
         expect(False, "assume that rof_cpl_time is always greater than or equal to ocn_cpl_time")
 
     rof_outer_loop = run_rof and rof_cpl_time > atm_cpl_time
-    ocn_outer_loop = run_ocn and ocn_cpl_time > atm_cpl_time  
+    ocn_outer_loop = run_ocn and ocn_cpl_time > atm_cpl_time
 
     inner_loop = ((atm_cpl_time < ocn_cpl_time) or
-                  (atm_cpl_time < rof_cpl_time) or 
+                  (atm_cpl_time < rof_cpl_time) or
                   (run_glc and atm_cpl_time < glc_cpl_time) or
                   atm_cpl_time == ocn_cpl_time)
 
@@ -76,7 +76,7 @@ def gen_runseq(case, coupling_times):
 
         runseq.add_action("MED med_phases_prep_ocn_accum_avg"  , med_to_ocn and ocn_outer_loop)
         runseq.add_action("MED -> OCN :remapMethod=redist"     , med_to_ocn and ocn_outer_loop)
-        
+
         #------------------
         runseq.enter_time_loop(atm_cpl_time, newtime=inner_loop)
         #------------------

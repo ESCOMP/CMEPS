@@ -161,7 +161,7 @@ contains
              srcMaskValue = ispval_mask
              if (n1 == compocn .or. n1 == compice) srcMaskValue = 0
              if (n2 == compocn .or. n2 == compice) dstMaskValue = 0
-          else if (coupling_mode(1:5) == 'nems_') then
+          else if (coupling_mode(1:4) == 'nems') then
              if (n1 == compatm .and. (n2 == compocn .or. n2 == compice)) then
                 srcMaskValue = 1
                 dstMaskValue = 0
@@ -225,7 +225,7 @@ contains
                          if (mastertask) then
                             write(llogunit,'(3A)') subname,trim(string),' RH redist '
                          end if
-                         call ESMF_LogWrite(trim(subname) // trim(string) // ' RH redist ', ESMF_LOGMSG_INFO)
+                         call ESMF_LogWrite(subname // trim(string) // ' RH redist ', ESMF_LOGMSG_INFO)
                          call ESMF_FieldRedistStore(fldsrc, flddst, &
                               routehandle=is_local%wrap%RH(n1,n2,mapindex), &
                               ignoreUnmatchedIndices = .true., rc=rc)
