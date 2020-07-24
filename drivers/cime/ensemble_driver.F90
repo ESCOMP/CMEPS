@@ -261,10 +261,6 @@ contains
           endif
           call shr_file_setLogUnit (logunit)
 
-          ! Disable hierarchy connectors
-          !call NUOPC_CompAttributeSet(driver, name="HierarchyProtocol", value="OFF", rc=rc)
-          !if (chkerr(rc,__LINE__,u_FILE_u)) return
-
           ! Create a clock for each driver instance
           call esm_time_clockInit(ensemble_driver, driver, logunit, mastertask, rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
