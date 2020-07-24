@@ -18,7 +18,7 @@
     </values>
   </entry>
 
-  <entry id="Profiling@driver_attributes">
+  <entry id="Profiling@driver_attributes" modify_via_xml="ESMF_PROFILING_LEVEL">
     <type>char</type>
     <category>nuopc</category>
     <group>DRIVER_attributes</group>
@@ -27,7 +27,7 @@
     </values>
   </entry>
 
-  <entry id="Verbosity@med_attributes">
+  <entry id="Verbosity@med_attributes" modify_via_xml="ESMF_VERBOSITY_LEVEL">
     <type>char</type>
     <category>nuopc</category>
     <group>MED_attributes</group>
@@ -37,7 +37,7 @@
     </values>
   </entry>
 
-  <entry id="Verbosity@atm_attributes">
+  <entry id="Verbosity@atm_attributes" modify_via_xml="ESMF_VERBOSITY_LEVEL">
     <type>char</type>
     <category>nuopc</category>
     <group>ATM_attributes</group>
@@ -47,7 +47,7 @@
     </values>
   </entry>
 
-  <entry id="Verbosity@ocn_attributes">
+  <entry id="Verbosity@ocn_attributes" modify_via_xml="ESMF_VERBOSITY_LEVEL">
     <type>char</type>
     <category>nuopc</category>
     <group>OCN_attributes</group>
@@ -57,7 +57,7 @@
     </values>
   </entry>
 
-  <entry id="Verbosity@ice_attributes">
+  <entry id="Verbosity@ice_attributes" modify_via_xml="ESMF_VERBOSITY_LEVEL">
     <type>char</type>
     <category>nuopc</category>
     <group>ICE_attributes</group>
@@ -67,7 +67,7 @@
     </values>
   </entry>
 
-  <entry id="Verbosity@rof_attributes">
+  <entry id="Verbosity@rof_attributes" modify_via_xml="ESMF_VERBOSITY_LEVEL">
     <type>char</type>
     <category>nuopc</category>
     <group>ROF_attributes</group>
@@ -77,7 +77,7 @@
     </values>
   </entry>
 
-  <entry id="Verbosity@lnd_attributes">
+  <entry id="Verbosity@lnd_attributes" modify_via_xml="ESMF_VERBOSITY_LEVEL">
     <type>char</type>
     <category>nuopc</category>
     <group>LND_attributes</group>
@@ -87,7 +87,7 @@
     </values>
   </entry>
 
-  <entry id="Verbosity@glc_attributes">
+  <entry id="Verbosity@glc_attributes" modify_via_xml="ESMF_VERBOSITY_LEVEL">
     <type>char</type>
     <category>nuopc</category>
     <group>GLC_attributes</group>
@@ -97,7 +97,7 @@
     </values>
   </entry>
 
-  <entry id="Verbosity@wav_attributes">
+  <entry id="Verbosity@wav_attributes" modify_via_xml="ESMF_VERBOSITY_LEVEL">
     <type>char</type>
     <category>nuopc</category>
     <valid_values>off,low,high,max</valid_values>
