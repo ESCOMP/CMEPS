@@ -28,7 +28,7 @@ model.
 
 Field  connections  made  by  the  CMEPS mediator  between  components  rely  on
 matching of  standard field names. These  standard names are defined  in a field
-dictionary.  Because CMEPS  is a  community mediator,  these standard  names are
+dictionary.  Since CMEPS  is a  community mediator,  these standard  names are
 specific to each application.
 
    
@@ -41,7 +41,7 @@ groups:
 
 * totally generic components that carry  out the mediator functionality such as mapping, 
   merging, restarts and history writes. Included here is a a  "fraction" module that 
-  determine  the fractions of different  source model components on every source 
+  determines  the fractions of different  source model components on every source 
   destination mesh.
 
 * application specific  code that determines what fields  are exchanged between 

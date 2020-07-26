@@ -13,9 +13,9 @@ For each supported application, CMEPS contains two specific files that determine
 
 Three application specific versions are currently contained within CMEPS:
 
-* **esmFldsExchange_cesm_mod.F90** and **fd_cesm.yaml** for CESM
-* **esmFldsExchange_nems_mod.F90** and **fd_nems.yaml** for UFS-S2S
-* **esmFldsExchange_hafs_mod.F90** and **fd_hafs.yaml** for UFS-HAFS
+* for CESM: **esmFldsExchange_cesm_mod.F90** and **fd_cesm.yaml**
+* for UFS-S2S: **esmFldsExchange_nems_mod.F90** and **fd_nems.yaml**
+* for UFS-HAFS: **esmFldsExchange_hafs_mod.F90** and **fd_hafs.yaml**
 
 CMEPS advertises **all possible fields** that can be imported to and
 exported by the mediator for the target coupled system. Not all of
@@ -24,7 +24,7 @@ connections will be determined by what the components advertise in
 their respective advertise phase.
 
 Across applications, component-specific names for the same fields may vary. The field 
-dictionary is used to define how the application or component specific name relates
+dictionary is used to define how the application or component-specific name relates
 to the name that the CMEPS mediator uses for that field. The mediator variable 
 names and their application specific aliases are found in the YAML field dictionary. 
 
@@ -90,7 +90,7 @@ Exchange of fields
 ------------------
 
 The application specific module, ``esmFldsExchange_xxx.F90`` contains
-all of the information that determines how the mediator performs the
+all of the information to determine how the mediator performs the
 exchange of fields between components. In particular, this module uses the subroutines
 ``addfld``, ``addmap`` and ``addmrg`` to do the following:
 
@@ -103,14 +103,14 @@ exchange of fields between components. In particular, this module uses the subro
   field may be mapped to more than one destination meshes and so there
   can be more than one call to ``addmap`` for that source field.
 
-* ``addmrg`` subsequent to the field mapping, how a collection of source fields
+* ``addmrg`` determines how a collection of mapped source fields
   is merged to the target destination field.
 
 .. note:: In all these functions, specific components are accessed using a comp_index, where comp_index can be any of [compatm, compice, compglc, complnd, compocn, comprof, compwav].
 
 This section describes the API for the calls that determine the above
 information. All of the API's discussed below use the code in the
-module ``esmFlds.F90``.
+generic module ``esmFlds.F90``.
 
 .. _addfld:
 
@@ -159,7 +159,7 @@ where
 
   * ``mapfcopy``: redist mapping
 
-  * ``mapnstod``: nearest source to destintation mapping
+  * ``mapnstod``: nearest source to destination mapping
 
   * ``mapnstod_consd``: nearest source to destination followed by conservative destination
 

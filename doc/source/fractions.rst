@@ -9,13 +9,13 @@ updated in ``med_fractions_mod.F90.``
 
 CMEPS component fractions are defined as follows:
 
-* Below, ``comp_index`` is the component index and can be one of ``compatm``, ``compice``, ``complnd``, ``compglc``, ``compocn``, ``comprof`` or ``compwav``.
-
 * An array of field bundles, ``Frac(:)`` is created, where the size of
   ``Frac`` corresponds to the number of active components.
 
 * For each active component, a fraction field bundle is created, ``Frac(comp_index)``, where the fields in the field bundle are unique.
   Below, ``Frac(comp_index)[fieldname]`` refers to the field in the ``Frac(comp_index)`` field bundle that has the name ``fieldname``.
+
+.. note:: comp_index can be any of [compatm, compice, compglc, complnd, compocn, comprof, compwav].
 
 * The following are the field names for each component of FBFrac::
 
