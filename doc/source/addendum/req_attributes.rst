@@ -30,7 +30,6 @@ Scalar attributes
 -----------------
 
 **ScalarFieldCount**
-
   The maximum number of scalars that are going to be communicated
   between the mediator and a component.  Currently scalar values are
   put into a field bundle that only contains an undistributed
@@ -39,11 +38,9 @@ Scalar attributes
   component.
 
 **ScalarFieldName** (required)
-
   This is the name of the scalar field bundle. By default it is ``cpl_scalars``.
 
 **ScalarFieldIdxGridNX**, **ScalarFieldIdxGridNY** (required)
-
   The global number of longitude and latitude points. For unstructured grids::
 
     ScalarFieldIdxGridNY = 1
@@ -53,7 +50,6 @@ Scalar attributes
   is needed by the mediator for the history output.
 
 **ScalarFieldIdxNextSwCday** (optional)
-
  Send by the atmosphere component to specify the calendar day of its
  next short wave computation.  This is subsequently used by other
  components (e.g. cesm-land and sea-ice) in determining the zenith
@@ -65,13 +61,8 @@ Mediator history and restart attributes
 ---------------------------------------
 
 **history_option**, **history_n** (required)
-
   Determines the write frequency for a mediator history file (see :ref:`mediator history writes<history_writes>`).
-
 **restart_option**, **restart_n** (required)
-
   Determines the write frequency for a mediator restart file (see :ref:`mediator restart writes<restart_writes>`).
-
 **read_restart** (required)
-
   Determines if a mediator restart file is read in.
