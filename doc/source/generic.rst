@@ -36,8 +36,8 @@ application specific and provide general functionality.
 
     .. note:: Once the first time DataInitialize() of CMEPS returns,
 	      NUOPC sees that its InitializeDataComplete is not yet true, the
-	      NUOPC Driver execute the Run() phase of all of the Connectors that
-	      fit the xxx-TO-MED pattern. After that it will call CMEPS
+	      NUOPC Driver executes the Run() phase of all of the Connectors that
+	      fit the xxx-TO-MED pattern. After that, it will call CMEPS
 	      DataInitialize() again. Note that the time stamps are only set
 	      when the Run() phase of all the connectors are run.  The
 	      Connectors Run() phase is called before the second call of the
@@ -67,7 +67,7 @@ application specific and provide general functionality.
   :ref:`prep_modules<prep_modules>` by calling
   ``med_map_FB_Regrid_Norm``.  Mapping is done by using the
   ``fldListFr(:)`` data that was initialized in the
-  ``esmFldsExchange_xxx_mod.F90`` calls to ``addmap``.
+  ``esmFldsExchange_xxxx_mod.F90`` calls to ``addmap``.
 
 **med_merge_mod.F90**
 

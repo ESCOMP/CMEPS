@@ -18,8 +18,6 @@ and coordinates,  and information on  the parallel decomposition of  the fields.
 Note that while CMEPS itself is  a mesh based mediator, component models coupled
 by the CMEPS mediator can be either grid or mesh based.
 
-
-
 Each component model  using the CMEPS mediator is serviced  by a NUOPC-compliant
 cap. The NUOPC cap  is a small software layer between  the underlying model code
 and  the mediator.  Fields  for  which the  mediator  has  created a  connection
@@ -28,34 +26,23 @@ component within  the NUOPC cap.  The information contained within  these states
 is then passed into  native model arrays or structures for  use by the component
 model.
 
-
-
 Field  connections  made  by  the  CMEPS mediator  between  components  rely  on
 matching of  standard field names. These  standard names are defined  in a field
 dictionary.  Because CMEPS  is a  community mediator,  these standard  names are
 specific to each application.
 
-
- .. todo::
-
-   * section about the generic code, mostly med.F90 and esmFlds.F90.
-   * drivers are application specific and that we assume a few attributes in the mediator that must come from the driver
-   * nems.configure: the top most interface; depends on driver. the attribute names that cmeps requires and needs for whatever driver is being used
-   * include "use of cmeps mediator section": nems.configure and the run sequence, driver, moving the history writes around
-   
-   * add description of what nuopc is, including advertise, etc.
    
 Organization of the CMEPS mediator code
 #######################################
 
 
-When you check out the code you  will files, which can be separated into several
+When you check out the code you  will files, which can be organized into three
 groups:
 
 * totally generic components that carry  out the mediator functionality such as mapping, 
   merging, restarts and history writes. Included here is a a  "fraction" module that 
   determine  the fractions of different  source model components on every source 
-  desinatation mesh.
+  destination mesh.
 
 * application specific  code that determines what fields  are exchanged between 
   components and how they are merged and mapped.
@@ -85,4 +72,4 @@ med_time_mod.F90
 med_utils_mod.F90
 =========================== ============================ ===========================
 
-.. note:: Some modules, such as med_phases_prep_ocn.F90 and med_frac_mod.F90 contain application specific-code blocks.
+.. note:: Some modules, such as med_phases_prep_ocn.F90 and med_frac_mod.F90 also contain application specific-code blocks.

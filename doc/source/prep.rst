@@ -30,11 +30,11 @@ The following modules comprise the "prep phase" CMEPS code:
 Each prep phase module has several sections:
 
 1. Mapping each source field that needs to be mapped to the destination mesh.
-   This is obtained from the ``addmap`` calls in ``esmFldsExchange_cesm_mod.F90``.
+   This is obtained from the ``addmap`` calls in the application specific ``esmFldsExchange_xxxx_mod.F90``.
    Each `prep` module will call the generic routine  ``med_map_FB_Regrid_Norm`` to do this mapping.
 
 2. Merging the set of source fields that have been mapped to the destination mesh.
-   This is obtained from the ``addmrg`` calls in ``esmFldsExchange_cesm_mod.F90``.
+   This is obtained from the ``addmrg`` calls in the application specific ``esmFldsExchange_xxxx_mod.F90``.
 
 3. Carrying out optional custom calculations that cannot be specified
    via ``addmap`` or ``addmrg`` calls. Custom calculations are the
@@ -48,10 +48,10 @@ Each prep phase module has several sections:
 
      * Calculation of ocean albedos and atmosphere/ocean fluxes (for CESM).
      * Calculation of land, ice and ocean fractions to send to the atmosphere if those components are present.
-   * ``med_phases_pre_ice``:
+   * ``med_phases_prep_ice``:
 
-     * Update the scalar data for the time of the next short wave calculation caried out by the atmosphere (this is needed to the
-       ice component to determine the zenith angle) (for CESM)
+     * Update the scalar data for the time of the next short wave calculation carried out by the atmosphere, used by the
+       ice component to determine the zenith angle (for CESM)
      * applicate of precipitation factor received from the ocean component (for CESM)
 
    * ``med_phases_prep_glc``:
@@ -78,13 +78,13 @@ Each prep phase module has several sections:
 
      * computation of net shortwave that is sent to the ocean.
      * apply precipitation fractor to scale rain and snow sent to ocean (for CESM)
-     * carry out custom merges for NEMS coupling mode (for NEMS)
+     * carry out custom merges for NEMS coupling modes (for NEMS)
 
    * ``med_phases_prep_rof``:
 
      * reset the irrigation flux to the river model by pulling in
        irrigation out of the rof cells that are proportial to the
-       river volumn in each cell (for CESM).
+       river volume in each cell (for CESM).
 
    * ``med_phases_prep_wav``:
 
