@@ -1,0 +1,432 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>CMEPS generic modules &mdash; CMEPS master documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="&lt;no title&gt;" href="addendum/index.html" />
+    <link rel="prev" title="CMEPS prep modules" href="prep.html" /> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> CMEPS
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                master
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="esmflds.html">CMEPS application specific code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="fractions.html">CMEPS <cite>fractions</cite> module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="prep.html">CMEPS <cite>prep</cite> modules</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">CMEPS <cite>generic</cite> modules</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="addendum/fieldnames.html">CMEPS field names</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">CMEPS</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>CMEPS <cite>generic</cite> modules</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/generic.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="cmeps-generic-modules">
+<span id="generic-modules"></span><h1>CMEPS <cite>generic</cite> modules<a class="headerlink" href="#cmeps-generic-modules" title="Permalink to this headline">¶</a></h1>
+<p>The following describes in some detail the CMEPS modules that are not
+application specific and provide general functionality.</p>
+<p><strong>med.F90</strong></p>
+<blockquote>
+<div><p>This module is initializes the CMEPS mediator functionality by performing the following functions:</p>
+<ul>
+<li><p class="first">adding a namespace (i.e. nested state) for each import and export
+component state in the mediator’s InternalState</p>
+</li>
+<li><p class="first">initializing the mediator component specific fields via a call to
+<code class="docutils literal notranslate"><span class="pre">esmFldsExchange_xxx_</span></code> (where currently xxx can be <code class="docutils literal notranslate"><span class="pre">cesm</span></code>, <code class="docutils literal notranslate"><span class="pre">nems</span></code> or <code class="docutils literal notranslate"><span class="pre">hafs</span></code>).</p>
+</li>
+<li><p class="first">determining which components are present</p>
+</li>
+<li><p class="first">advertising the import and export mediator fields</p>
+</li>
+<li><p class="first">creating import (<code class="docutils literal notranslate"><span class="pre">FBImp</span></code>), export (<code class="docutils literal notranslate"><span class="pre">FBExp</span></code>) and accumulation (<code class="docutils literal notranslate"><span class="pre">FBExpAccum</span></code>) field bundles</p>
+</li>
+<li><p class="first">initializing the mediatory route handles and field bundles needed for normalization</p>
+</li>
+<li><p class="first">initializing component <code class="docutils literal notranslate"><span class="pre">FBFrac</span></code> field bundles</p>
+</li>
+<li><p class="first">reading mediator restarts</p>
+</li>
+<li><p class="first">optionally carrying out initializations for atmosphere/ocean flux
+calculations and ocean albedo calculations (these are needed by CESM)</p>
+</li>
+<li><p class="first">carrying out the NUOPC data initialization via the <code class="docutils literal notranslate"><span class="pre">DataInitialize</span></code> routine.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Once the first time DataInitialize() of CMEPS returns,
+NUOPC sees that its InitializeDataComplete is not yet true, the
+NUOPC Driver executes the Run() phase of all of the Connectors that
+fit the xxx-TO-MED pattern. After that, it will call CMEPS
+DataInitialize() again. Note that the time stamps are only set
+when the Run() phase of all the connectors are run.  The
+Connectors Run() phase is called before the second call of the
+CMEPS DataInitialize phase.  As a result, CMEPS will see the
+correct timestamps, which also indicates that the actual data has
+been transferred reliably, and CMEPS can safely use it.</p>
+</div>
+</li>
+</ul>
+</div></blockquote>
+<p><strong>med_map_mod.F90</strong></p>
+<blockquote>
+<div><p>This module creates the required route handles that are needed for
+the model run.  The route handles are stored in the multi-dimensional array
+<code class="docutils literal notranslate"><span class="pre">RH(ncomps,ncomps,nmappers)</span></code> in the module <code class="docutils literal notranslate"><span class="pre">med_internal_state_mod.F90</span></code>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">nmappers</span></code> is the total number of mapping types that CMEPS  supports (currently 8).
+These are described in <a class="reference internal" href="esmflds.html#addmap"><span class="std std-ref">mapping types</span></a>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">ncomps,ncomps</span></code> corresponds to the source and destination component indices.</p>
+<p>As an example <code class="docutils literal notranslate"><span class="pre">RH(compatm,compocn,mapbilnr)</span></code> is the atm-&gt;ocn bilinear route handle.</p>
+<p><strong>med_map_mod.F90</strong> also initializes additional field bundles that
+are needed for mapping fractional normalization (see the
+<a class="reference internal" href="esmflds.html#normalization"><span class="std std-ref">mapping normalization</span></a>). Normalization is
+normally done using the relevant field from <code class="docutils literal notranslate"><span class="pre">FBFrac(:)</span></code>.</p>
+<p>The default call to carry out mediator mapping is done in the
+<a class="reference internal" href="prep.html#prep-modules"><span class="std std-ref">prep_modules</span></a> by calling
+<code class="docutils literal notranslate"><span class="pre">med_map_FB_Regrid_Norm</span></code>.  Mapping is done by using the
+<code class="docutils literal notranslate"><span class="pre">fldListFr(:)</span></code> data that was initialized in the
+<code class="docutils literal notranslate"><span class="pre">esmFldsExchange_xxxx_mod.F90</span></code> calls to <code class="docutils literal notranslate"><span class="pre">addmap</span></code>.</p>
+</div></blockquote>
+<p><strong>med_merge_mod.F90</strong></p>
+<blockquote>
+<div>This module carries out merging of one or more mapped source fields
+to the target destination field (see <a class="reference internal" href="esmflds.html#addmrg"><span class="std std-ref">merging
+types</span></a>). The <a class="reference internal" href="prep.html#prep-modules"><span class="std std-ref">prep_modules</span></a> carry out
+merging via the call to <code class="docutils literal notranslate"><span class="pre">med_merge_auto</span></code> Merging is done by using
+the <code class="docutils literal notranslate"><span class="pre">fldListTo(:)</span></code> data that was initialized in the
+<code class="docutils literal notranslate"><span class="pre">esmFldsExchange_xxx_mod.F90</span></code> calls to <code class="docutils literal notranslate"><span class="pre">addmrg</span></code>.</div></blockquote>
+<p><strong>med_io_mod.F90</strong></p>
+<blockquote>
+<div>CMEPS uses the PIO2 parallel library to carry out all IO. PIO
+provides a netCDF-like API, and allows users to designate some
+subset of processors to perform IO. Computational code calls
+netCDF-like functions to read and write data, and PIO uses the IO
+processors to perform all necessary IO. This module contains
+wrapper layers to PIO for writing and reading mediator restart
+files and for writing mediator history files.</div></blockquote>
+<p><strong>med_phases_history_mod.F90</strong></p>
+<blockquote>
+<div><p>This module writes mediator history files. The freqency of CMEPS
+history writes is controlled via the NUOPC attributes
+<code class="docutils literal notranslate"><span class="pre">history_option</span></code> and <code class="docutils literal notranslate"><span class="pre">history_n</span></code>. These attributes control
+instantaneous mediator history output as follows:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="19%" />
+<col width="81%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">history_option</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>none</td>
+<td>do not write any history files</td>
+</tr>
+<tr class="row-odd"><td>never</td>
+<td>do not write any history files</td>
+</tr>
+<tr class="row-even"><td>nsteps</td>
+<td>write files every <code class="docutils literal notranslate"><span class="pre">history_n</span></code> mediator coupling intervals</td>
+</tr>
+<tr class="row-odd"><td>nseconds</td>
+<td>write files every <code class="docutils literal notranslate"><span class="pre">history_n</span></code> seconds</td>
+</tr>
+<tr class="row-even"><td>nminutes</td>
+<td>write files every <code class="docutils literal notranslate"><span class="pre">history_n</span></code> minutes</td>
+</tr>
+<tr class="row-odd"><td>nhours</td>
+<td>write files every <code class="docutils literal notranslate"><span class="pre">history_n</span></code> hours</td>
+</tr>
+<tr class="row-even"><td>ndays</td>
+<td>write files every <code class="docutils literal notranslate"><span class="pre">history_n</span></code> days</td>
+</tr>
+<tr class="row-odd"><td>nmonths</td>
+<td>write files every <code class="docutils literal notranslate"><span class="pre">history_n</span></code> months</td>
+</tr>
+<tr class="row-even"><td>nyears</td>
+<td>write files every <code class="docutils literal notranslate"><span class="pre">history_n</span></code> years</td>
+</tr>
+<tr class="row-odd"><td>monthly</td>
+<td>write files on the month boundary</td>
+</tr>
+<tr class="row-even"><td>yearly</td>
+<td>write files on the year boundary</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">It is assumed that the NUOPC attributes <code class="docutils literal notranslate"><span class="pre">history_option</span></code> and <code class="docutils literal notranslate"><span class="pre">history_n</span></code>
+are obtained by the model driver and passed down to the mediator.</p>
+</div>
+</div></blockquote>
+<p><strong>med_phases_history_mod.F90</strong></p>
+<blockquote>
+<div><p>This module reads and writes mediator restart files. The freqency of CMEPS
+restart writes is controlled via the NUOPC attributes
+<code class="docutils literal notranslate"><span class="pre">restart_option</span></code> and <code class="docutils literal notranslate"><span class="pre">restart_n</span></code>. These attributes control
+instantaneous mediator history output as follows:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="19%" />
+<col width="81%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">restart_option</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>none</td>
+<td>do not write any restart files</td>
+</tr>
+<tr class="row-odd"><td>never</td>
+<td>do not write any restart files</td>
+</tr>
+<tr class="row-even"><td>nsteps</td>
+<td>write files every <code class="docutils literal notranslate"><span class="pre">restart_n</span></code> mediator coupling intervals</td>
+</tr>
+<tr class="row-odd"><td>nseconds</td>
+<td>write files every <code class="docutils literal notranslate"><span class="pre">restart_n</span></code> seconds</td>
+</tr>
+<tr class="row-even"><td>nminutes</td>
+<td>write files every <code class="docutils literal notranslate"><span class="pre">restart_n</span></code> minutes</td>
+</tr>
+<tr class="row-odd"><td>nhours</td>
+<td>write files every <code class="docutils literal notranslate"><span class="pre">restart_n</span></code> hours</td>
+</tr>
+<tr class="row-even"><td>ndays</td>
+<td>write files every <code class="docutils literal notranslate"><span class="pre">restart_n</span></code> days</td>
+</tr>
+<tr class="row-odd"><td>nmonths</td>
+<td>write files every <code class="docutils literal notranslate"><span class="pre">restart_n</span></code> months</td>
+</tr>
+<tr class="row-even"><td>nyears</td>
+<td>write files every <code class="docutils literal notranslate"><span class="pre">restart_n</span></code> years</td>
+</tr>
+<tr class="row-odd"><td>monthly</td>
+<td>write files on the month boundary</td>
+</tr>
+<tr class="row-even"><td>yearly</td>
+<td>write files on the year boundary</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">It is assumed that the NUOPC attributes <code class="docutils literal notranslate"><span class="pre">restart_option</span></code> and <code class="docutils literal notranslate"><span class="pre">restart_n</span></code>
+are obtained by the model driver and passed down to the mediator.</p>
+</div>
+</div></blockquote>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="addendum/index.html" class="btn btn-neutral float-right" title="&lt;no title&gt;" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="prep.html" class="btn btn-neutral" title="CMEPS prep modules" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2020, U.S. National Science Foundation.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+     
+<script>var version_json_loc = "../../versions.json";</script>
+
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'master',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="_static/language_data.js"></script>
+      <script type="text/javascript" src="_static/pop_ver.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

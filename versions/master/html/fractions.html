@@ -1,0 +1,335 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>CMEPS fractions module &mdash; CMEPS master documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="CMEPS prep modules" href="prep.html" />
+    <link rel="prev" title="CMEPS application specific code" href="esmflds.html" /> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> CMEPS
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                master
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="esmflds.html">CMEPS application specific code</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">CMEPS <cite>fractions</cite> module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="prep.html">CMEPS <cite>prep</cite> modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generic.html">CMEPS <cite>generic</cite> modules</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="addendum/fieldnames.html">CMEPS field names</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">CMEPS</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>CMEPS <cite>fractions</cite> module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/fractions.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="cmeps-fractions-module">
+<span id="fractions"></span><h1>CMEPS <cite>fractions</cite> module<a class="headerlink" href="#cmeps-fractions-module" title="Permalink to this headline">¶</a></h1>
+<p>The component fractions on their corresponding meshes are defined and
+updated in <code class="docutils literal notranslate"><span class="pre">med_fractions_mod.F90.</span></code></p>
+<p>CMEPS component fractions are defined as follows:</p>
+<ul class="simple">
+<li>An array of field bundles, <code class="docutils literal notranslate"><span class="pre">Frac(:)</span></code> is created, where the size of
+<code class="docutils literal notranslate"><span class="pre">Frac</span></code> corresponds to the number of active components.</li>
+<li>For each active component, a fraction field bundle is created, <code class="docutils literal notranslate"><span class="pre">Frac(comp_index)</span></code>, where the fields in the field bundle are unique.
+Below, <code class="docutils literal notranslate"><span class="pre">Frac(comp_index)[fieldname]</span></code> refers to the field in the <code class="docutils literal notranslate"><span class="pre">Frac(comp_index)</span></code> field bundle that has the name <code class="docutils literal notranslate"><span class="pre">fieldname</span></code>.</li>
+</ul>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">comp_index can be any of [compatm, compice, compglc, complnd, compocn, comprof, compwav].</p>
+</div>
+<ul>
+<li><p class="first">The following are the field names for each component of FBFrac:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Frac</span><span class="p">(</span><span class="n">compatm</span><span class="p">)</span> <span class="o">=</span> <span class="n">afrac</span><span class="p">,</span><span class="n">ifrac</span><span class="p">,</span><span class="n">ofrac</span><span class="p">,</span><span class="n">lfrac</span><span class="p">,</span><span class="n">lfrin</span>
+<span class="n">Frac</span><span class="p">(</span><span class="n">compocn</span><span class="p">)</span> <span class="o">=</span> <span class="n">afrac</span><span class="p">,</span><span class="n">ifrac</span><span class="p">,</span><span class="n">ofrac</span><span class="p">,</span><span class="n">ifrad</span><span class="p">,</span><span class="n">ofrad</span>
+<span class="n">Frac</span><span class="p">(</span><span class="n">compice</span><span class="p">)</span> <span class="o">=</span> <span class="n">afrac</span><span class="p">,</span><span class="n">ifrac</span><span class="p">,</span><span class="n">ofrac</span>
+<span class="n">Frac</span><span class="p">(</span><span class="n">complnd</span><span class="p">)</span> <span class="o">=</span> <span class="n">afrac</span><span class="p">,</span><span class="n">lfrac</span><span class="p">,</span><span class="n">lfrin</span>
+<span class="n">Frac</span><span class="p">(</span><span class="n">compglc</span><span class="p">)</span> <span class="o">=</span> <span class="n">gfrac</span><span class="p">,</span><span class="n">lfrac</span>
+<span class="n">Frac</span><span class="p">(</span><span class="n">comprof</span><span class="p">)</span> <span class="o">=</span> <span class="n">lfrac</span><span class="p">,</span><span class="n">rfrac</span>
+<span class="n">Frac</span><span class="p">(</span><span class="n">compwav</span><span class="p">)</span> <span class="o">=</span> <span class="n">wfrac</span>
+</pre></div>
+</div>
+</li>
+</ul>
+<p>where:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>afrac = fraction of atm on a grid
+lfrac = fraction of lnd on a grid
+ifrac = fraction of ice on a grid
+ofrac = fraction of ocn on a grid
+lfrin = land fraction defined by the land model
+rfrac = fraction of rof on a grid
+wfrac = fraction of wav on a grid
+ifrad = fraction of ocn on a grid at last radiation time
+ofrad = fraction of ice on a grid at last radiation time
+
+As an example, ``Frac(compatm)[lfrac]`` is the land fraction on
+the atmosphere mesh.
+</pre></div>
+</div>
+<ul class="simple">
+<li><code class="docutils literal notranslate"><span class="pre">lfrin</span></code> and <code class="docutils literal notranslate"><span class="pre">lfrac</span></code> can be different from <code class="docutils literal notranslate"><span class="pre">lfrac</span></code> when the
+atmosphere and land meshes are different.  <code class="docutils literal notranslate"><span class="pre">lfrac</span></code> is the land
+fraction consistent with the ocean mask where <code class="docutils literal notranslate"><span class="pre">lfrin</span></code> is the land
+fraction in the land component.</li>
+<li><code class="docutils literal notranslate"><span class="pre">ifrad</span></code> and <code class="docutils literal notranslate"><span class="pre">ofrad</span></code> are fractions at the last radiation
+timestep.  These fractions preserve conservation of heat in the net
+shortwave calculation because the net shortwave calculation is one
+timestep behind the ice fraction evolution in the system.</li>
+</ul>
+<p>The following assumptions are made regarding fractions:</p>
+<ul class="simple">
+<li>The ocean and ice are on the same meshes with same masks</li>
+<li>The ice fraction can evolve in time</li>
+<li>The land fraction does not evolve in time</li>
+<li>the ocean fraction is just the complement of the ice fraction over the region
+of the ocean/ice mask.</li>
+<li>The component fractions are always the relative fraction covered.
+For example, if an ice cell can be up to 50% covered in
+ice and 50% land, then the ice domain should have a fraction
+value of 0.5 at that grid cell. At run time though, the ice
+fraction will be between 0.0 and 1.0 meaning that grid cells
+is covered with between 0.0 and 0.5 by ice.  The “relative” fractions
+sent at run-time are corrected by the model to be total fractions
+such that in general, on every mesh cell:<ul>
+<li><code class="docutils literal notranslate"><span class="pre">Frac(:)[afrac]</span></code> = 1.0</li>
+<li><code class="docutils literal notranslate"><span class="pre">Frac(:)[ifrac]</span></code> + <code class="docutils literal notranslate"><span class="pre">Frac(:)[ofrac]</span></code> + <code class="docutils literal notranslate"><span class="pre">Frac(:)[lfrac]</span></code> = 1.0</li>
+</ul>
+</li>
+</ul>
+<p>Initialization of the fractions occurs as follows (note that all mapping is first order conservative):</p>
+<ul class="simple">
+<li><code class="docutils literal notranslate"><span class="pre">Frac(compatm)[afrac]</span></code> = 1.0</li>
+<li><code class="docutils literal notranslate"><span class="pre">Frac(compocn)[afrac]</span></code> = map atm -&gt; ocn <code class="docutils literal notranslate"><span class="pre">Frac(compatm)[afrac]</span></code></li>
+<li><code class="docutils literal notranslate"><span class="pre">Frac(compice)[afrac]</span></code> = map atm -&gt; ice <code class="docutils literal notranslate"><span class="pre">Frac(compatm)[afrac]</span></code></li>
+<li><code class="docutils literal notranslate"><span class="pre">Frac(complnd)[afrac]</span></code> = map atm -&gt; lnd <code class="docutils literal notranslate"><span class="pre">Frac(compatm)[afrac]</span></code></li>
+<li><code class="docutils literal notranslate"><span class="pre">FBfrac(:)[ifrac]</span></code>     = 0.0</li>
+<li><code class="docutils literal notranslate"><span class="pre">Frac(compocn)[ofrac]</span></code> = ocean mask provided by ocean</li>
+<li><code class="docutils literal notranslate"><span class="pre">Frac(complnd)[lfrin]</span></code> = land fraction provided by land</li>
+<li><code class="docutils literal notranslate"><span class="pre">Frac(compatm)[ofrac]</span></code> = map ocn -&gt; atm <code class="docutils literal notranslate"><span class="pre">Frac(compocn)[ofrac]</span></code></li>
+<li><code class="docutils literal notranslate"><span class="pre">Frac(compatm)[lfrin]</span></code> = map lnd -&gt; atm <code class="docutils literal notranslate"><span class="pre">Frac(complnd)[lfrin]</span></code></li>
+<li><code class="docutils literal notranslate"><span class="pre">Frac(compatm)[lfrac]</span></code> = 1.0 - <code class="docutils literal notranslate"><span class="pre">Frac(compatm)[ofrac]</span></code>
+(this is truncated to zero for very small values (&lt; 0.001) to attempt to preserve non-land gridcells.)</li>
+<li><code class="docutils literal notranslate"><span class="pre">Frac(complnd)[lfrac]</span></code> = map atm -&gt; lnd <code class="docutils literal notranslate"><span class="pre">Frac(compatm)[lfrac]</span></code></li>
+<li><code class="docutils literal notranslate"><span class="pre">Frac(comprof)[lfrac]</span></code> = map lnd -&gt; rof <code class="docutils literal notranslate"><span class="pre">Frac(complnd)[lfrac]</span></code></li>
+<li><code class="docutils literal notranslate"><span class="pre">Frac(compglc)[lfrac]</span></code> = map lnd -&gt; glc <code class="docutils literal notranslate"><span class="pre">Frac(complnd)[lfrac]</span></code></li>
+</ul>
+<p>Run time calculation of fractions is as follows:</p>
+<ul class="simple">
+<li><code class="docutils literal notranslate"><span class="pre">Frac(compice)[ofrac]</span></code> = 1.0 - <code class="docutils literal notranslate"><span class="pre">Frac(compice)[ifrac]</span></code>
+(Note: the relative fractions are corrected to total fractions)</li>
+<li><code class="docutils literal notranslate"><span class="pre">Frac(compocn)[ifrac]</span></code> = map ice -&gt; ocn <code class="docutils literal notranslate"><span class="pre">Frac(compice)[ifrac]</span></code></li>
+<li><code class="docutils literal notranslate"><span class="pre">Frac(compocn)[ofrac]</span></code> = map ice -&gt; ocn <code class="docutils literal notranslate"><span class="pre">Frac(compice)[ofrac]</span></code></li>
+<li><code class="docutils literal notranslate"><span class="pre">Frac(compatm)[ifrac]</span></code> = map ice -&gt; atm <code class="docutils literal notranslate"><span class="pre">Frac(compice)[ifrac]</span></code></li>
+<li><code class="docutils literal notranslate"><span class="pre">Frac(compatm)[ofrac]</span></code> = map ice -&gt; atm <code class="docutils literal notranslate"><span class="pre">Frac(compice)[ofrac]</span></code></li>
+<li><code class="docutils literal notranslate"><span class="pre">Frac(compatm)[lfrac]</span></code> + <code class="docutils literal notranslate"><span class="pre">Frac(compatm)[ofrac]</span></code> + <code class="docutils literal notranslate"><span class="pre">Frac(compatm)[ifrac]</span></code> ~ 1.0
+(0.0-eps &lt; Frac(:)[*] &lt; 1.0+eps)</li>
+</ul>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="prep.html" class="btn btn-neutral float-right" title="CMEPS prep modules" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="esmflds.html" class="btn btn-neutral" title="CMEPS application specific code" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2020, U.S. National Science Foundation.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+     
+<script>var version_json_loc = "../../versions.json";</script>
+
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'master',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="_static/language_data.js"></script>
+      <script type="text/javascript" src="_static/pop_ver.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

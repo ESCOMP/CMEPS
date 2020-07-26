@@ -1,0 +1,707 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>CMEPS field names &mdash; CMEPS master documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+    <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="prev" title="&lt;no title&gt;" href="index.html" /> 
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> CMEPS
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                master
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../esmflds.html">CMEPS application specific code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../fractions.html">CMEPS <cite>fractions</cite> module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../prep.html">CMEPS <cite>prep</cite> modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../generic.html">CMEPS <cite>generic</cite> modules</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">CMEPS field names</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#state-variables">State Variables</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">CMEPS</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="index.html">&lt;no title&gt;</a> &raquo;</li>
+        
+      <li>CMEPS field names</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/addendum/fieldnames.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="cmeps-field-names">
+<span id="field-naming-convention"></span><h1>CMEPS field names<a class="headerlink" href="#cmeps-field-names" title="Permalink to this headline">¶</a></h1>
+<p>The following state names are currently supported. Note that each application might only use a subset of these fields.</p>
+<table border="1" class="colwidths-given docutils" id="id1">
+<caption><span class="caption-text">“Atmospheric State Names (import to mediator)”</span><a class="headerlink" href="#id1" title="Permalink to this table">¶</a></caption>
+<colgroup>
+<col width="25%" />
+<col width="75%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">stat name</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>Sa_co2diag</td>
+<td>diagnostic CO2 at the lowest model level</td>
+</tr>
+<tr class="row-odd"><td>Sa_co2prog</td>
+<td>prognostic CO2 at the lowest model level</td>
+</tr>
+<tr class="row-even"><td>Sa_dens</td>
+<td>air density at lowest model layer</td>
+</tr>
+<tr class="row-odd"><td>Sa_pbot</td>
+<td>air pressure at lowest model layer</td>
+</tr>
+<tr class="row-even"><td>Sa_pslv</td>
+<td>air pressure at land and sea surface</td>
+</tr>
+<tr class="row-odd"><td>Sa_ptem</td>
+<td>potential temperature at lowest model layer</td>
+</tr>
+<tr class="row-even"><td>Sa_shum</td>
+<td>air specific humidity at lowest model layer</td>
+</tr>
+<tr class="row-odd"><td>Sa_tbot</td>
+<td>air temperature at lowest model layer</td>
+</tr>
+<tr class="row-even"><td>Sa_topo</td>
+<td>surface topographic height</td>
+</tr>
+<tr class="row-odd"><td>Sa_u</td>
+<td>air zonal wind at lowest model layer</td>
+</tr>
+<tr class="row-even"><td>Sa_v</td>
+<td>air meridional wind at lowest model layer</td>
+</tr>
+<tr class="row-odd"><td>Sa_z</td>
+<td>air height wind at lowest model layer</td>
+</tr>
+</tbody>
+</table>
+<table border="1" class="colwidths-given docutils" id="id2">
+<caption><span class="caption-text">“Sea Ice State Names (import to mediator)”</span><a class="headerlink" href="#id2" title="Permalink to this table">¶</a></caption>
+<colgroup>
+<col width="25%" />
+<col width="75%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">name</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>Si_anidf</td>
+<td>sea ice near infrared diffuse albedo</td>
+</tr>
+<tr class="row-odd"><td>Si_anidr</td>
+<td>sea ice near infrared direct albedo</td>
+</tr>
+<tr class="row-even"><td>Si_avsdf</td>
+<td>sea ice visible diffuse albedo</td>
+</tr>
+<tr class="row-odd"><td>Si_avsdr</td>
+<td>sea ice visible direct albedo</td>
+</tr>
+<tr class="row-even"><td>Si_ifrac</td>
+<td>sea ice fraction</td>
+</tr>
+<tr class="row-odd"><td>Si_imask</td>
+<td>sea ice land mask</td>
+</tr>
+<tr class="row-even"><td>Si_ifrac_n</td>
+<td>ice fraction by thickness category</td>
+</tr>
+<tr class="row-odd"><td>Si_qref</td>
+<td>reference height specific humidity</td>
+</tr>
+<tr class="row-even"><td>Si_qref_wiso</td>
+<td>reference specific water isotope humidity at 2 meters</td>
+</tr>
+<tr class="row-odd"><td>Si_t</td>
+<td>sea ice surface temperature</td>
+</tr>
+<tr class="row-even"><td>Si_tref</td>
+<td>reference height temperature</td>
+</tr>
+<tr class="row-odd"><td>Si_u10</td>
+<td>10m wind speed</td>
+</tr>
+<tr class="row-even"><td>Si_vice</td>
+<td>volume of sea ice per unit area</td>
+</tr>
+<tr class="row-odd"><td>Si_snowh</td>
+<td>surface snow water equivalent</td>
+</tr>
+<tr class="row-even"><td>Si_vsno</td>
+<td>volume of snow per unit area</td>
+</tr>
+</tbody>
+</table>
+<table border="1" class="colwidths-given docutils" id="id3">
+<caption><span class="caption-text">“Land State Names (import to mediator)”</span><a class="headerlink" href="#id3" title="Permalink to this table">¶</a></caption>
+<colgroup>
+<col width="25%" />
+<col width="75%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">name</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>Sl_anidf</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>Sl_anidr</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>Sl_avsdf</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>Sl_avsdr</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>Sl_ddvel</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>Sl_fv</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>Sl_fztop</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>Sl_lfrac</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>Sl_lfrin</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>Sl_qref</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>Sl_qref_wiso</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>Sl_ram1</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>Sl_snowh</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>Sl_snowh_wiso</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>Sl_t</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>Sl_topo_elev</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>Sl_topo</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>Sl_tsrf_elev</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>Sl_tsrf</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>Sl_tref</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>Sl_u10</td>
+<td>&#160;</td>
+</tr>
+</tbody>
+</table>
+<table border="1" class="colwidths-given docutils" id="id4">
+<caption><span class="caption-text">“Ocean State Names (import to mediator)”</span><a class="headerlink" href="#id4" title="Permalink to this table">¶</a></caption>
+<colgroup>
+<col width="25%" />
+<col width="75%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">name</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>So_blddepth</td>
+<td>ocean boundary layer depth</td>
+</tr>
+<tr class="row-odd"><td>So_anidf</td>
+<td>ocean near infrared diffuse albedo</td>
+</tr>
+<tr class="row-even"><td>So_anidr</td>
+<td>ocean near infrared direct albedo</td>
+</tr>
+<tr class="row-odd"><td>So_avsdf</td>
+<td>ocean visible diffuse albedo</td>
+</tr>
+<tr class="row-even"><td>So_avsdr</td>
+<td>ocean visible direct albedo</td>
+</tr>
+<tr class="row-odd"><td>So_bldepth</td>
+<td>ocean mixed layer depth</td>
+</tr>
+<tr class="row-even"><td>So_dhdx</td>
+<td>sea surface slope in meridional direction</td>
+</tr>
+<tr class="row-odd"><td>So_dhdy</td>
+<td>sea surface slope in zonal direction</td>
+</tr>
+<tr class="row-even"><td>So_duu10n</td>
+<td>10m wind speed</td>
+</tr>
+<tr class="row-odd"><td>So_fswpen</td>
+<td>shortwave penetration through sea ice (all bands)</td>
+</tr>
+<tr class="row-even"><td>So_ofrac</td>
+<td>ocean fraction</td>
+</tr>
+<tr class="row-odd"><td>So_omask</td>
+<td>ocean land mask</td>
+</tr>
+<tr class="row-even"><td>So_qref</td>
+<td>reference specific humidity at 2 meters</td>
+</tr>
+<tr class="row-odd"><td>So_re</td>
+<td>square of exchange coefficient for tracers (mediator aoflux)</td>
+</tr>
+<tr class="row-even"><td>So_s</td>
+<td>sea surface salinity</td>
+</tr>
+<tr class="row-odd"><td>So_ssq</td>
+<td>surface saturation specific humidity in ocean (mediator aoflux)</td>
+</tr>
+<tr class="row-even"><td>So_t</td>
+<td>sea surface temperature</td>
+</tr>
+<tr class="row-odd"><td>So_tref</td>
+<td>reference temperature at 2 meters</td>
+</tr>
+<tr class="row-even"><td>So_u</td>
+<td>ocean current in zonal direction</td>
+</tr>
+<tr class="row-odd"><td>So_u10</td>
+<td>10m wind speed</td>
+</tr>
+<tr class="row-even"><td>So_ustar</td>
+<td>friction velocity (mediator aoflux)</td>
+</tr>
+<tr class="row-odd"><td>So_v</td>
+<td>ocean current in meridional direction</td>
+</tr>
+</tbody>
+</table>
+<table border="1" class="colwidths-given docutils" id="id5">
+<caption><span class="caption-text">“Land Ice State Names (import to mediator)”</span><a class="headerlink" href="#id5" title="Permalink to this table">¶</a></caption>
+<colgroup>
+<col width="25%" />
+<col width="75%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">name</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>Sg_ice_covered</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>Sg_ice_covered_elev</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>Sg_icemask</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>Sg_icemask_coupled_fluxes</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>Sg_topo</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>Sg_topo_elev</td>
+<td>&#160;</td>
+</tr>
+</tbody>
+</table>
+<table border="1" class="colwidths-given docutils" id="id6">
+<caption><span class="caption-text">“Wave State Names (import to mediator) “</span><a class="headerlink" href="#id6" title="Permalink to this table">¶</a></caption>
+<colgroup>
+<col width="25%" />
+<col width="75%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">name</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>Sw_hstokes</td>
+<td>Stokes drift depth</td>
+</tr>
+<tr class="row-odd"><td>Sw_lamult</td>
+<td>Langmuir multiplier</td>
+</tr>
+<tr class="row-even"><td>Sw_ustokes</td>
+<td>Stokes drift u-component</td>
+</tr>
+<tr class="row-odd"><td>Sw_vstokes</td>
+<td>Stokes drift v-component</td>
+</tr>
+</tbody>
+</table>
+<table border="1" class="colwidths-given docutils" id="id7">
+<caption><span class="caption-text">“Mediator State Names (export from mediator)”</span><a class="headerlink" href="#id7" title="Permalink to this table">¶</a></caption>
+<colgroup>
+<col width="25%" />
+<col width="75%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">name</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>Sx_anidf</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>Sx_anidr</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>Sx_avsdf</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>Sx_avsdr</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>Sx_qref</td>
+<td>merged reference specific humidity at 2 meters</td>
+</tr>
+<tr class="row-odd"><td>Sx_t</td>
+<td>merged ice and ocean surface temperature</td>
+</tr>
+<tr class="row-even"><td>Sx_tref</td>
+<td>merged reference temperature at 2 meters</td>
+</tr>
+<tr class="row-odd"><td>Sx_u10</td>
+<td>merged 10m wind speed</td>
+</tr>
+</tbody>
+</table>
+<div class="section" id="state-variables">
+<h2>State Variables<a class="headerlink" href="#state-variables" title="Permalink to this headline">¶</a></h2>
+<p>The following flux prefixes are used:</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="25%" />
+<col width="75%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">flux prefix</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>Faxa_</td>
+<td>atm flux computed by atm</td>
+</tr>
+<tr class="row-odd"><td>Fall_</td>
+<td>lnd-atm flux computed by lnd</td>
+</tr>
+<tr class="row-even"><td>Fioi_</td>
+<td>ice-ocn flux computed by ice</td>
+</tr>
+<tr class="row-odd"><td>Faii_</td>
+<td>ice_atm flux computed by ice</td>
+</tr>
+<tr class="row-even"><td>Flrr_</td>
+<td>lnd-rof flux computed by rof</td>
+</tr>
+<tr class="row-odd"><td>Firr_</td>
+<td>rof-ice flux computed by rof</td>
+</tr>
+<tr class="row-even"><td>Faxx_</td>
+<td>mediator merged fluxes sent to the atm</td>
+</tr>
+<tr class="row-odd"><td>Foxx_</td>
+<td>mediator merged fluxes sent to the ocn</td>
+</tr>
+<tr class="row-even"><td>Fixx_</td>
+<td>mediator merged fluxes sent to the ice</td>
+</tr>
+</tbody>
+</table>
+<p>The following flux-names are used:</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="25%" />
+<col width="75%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">flux name</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>_evap</td>
+<td>air-ice evaporative water flux, positive downwards</td>
+</tr>
+<tr class="row-odd"><td>_lat</td>
+<td>air-ice latent heat, positive downwards</td>
+</tr>
+<tr class="row-even"><td>_lwup</td>
+<td>air-ice surface longwave flux, positive downwards</td>
+</tr>
+<tr class="row-odd"><td>_sen</td>
+<td>air-ice sensible heat, positive downwards</td>
+</tr>
+<tr class="row-even"><td>_swnet</td>
+<td>net short wave, positive downwards</td>
+</tr>
+<tr class="row-odd"><td>_melth</td>
+<td>net heat flux to ocean from ice</td>
+</tr>
+<tr class="row-even"><td>_meltw</td>
+<td>fresh water flux to ocean from ice</td>
+</tr>
+<tr class="row-odd"><td>_salt</td>
+<td>salt to ocean from ice</td>
+</tr>
+<tr class="row-even"><td>_swpen</td>
+<td>flux of shortwave through ice to ocean</td>
+</tr>
+<tr class="row-odd"><td>_swpen_vdr</td>
+<td>flux of visible direct shortwave through ice to ocean</td>
+</tr>
+<tr class="row-even"><td>_swpen_vdf</td>
+<td>flux of visible diffuse shortwave through ice to ocean</td>
+</tr>
+<tr class="row-odd"><td>_swpen_idr</td>
+<td>flux of near infrared direct through ice to ocean</td>
+</tr>
+<tr class="row-even"><td>_swpen_idf</td>
+<td>flux of near infrared diffuse through ice to ocean</td>
+</tr>
+<tr class="row-odd"><td>_taux</td>
+<td>zonal stress, positive downwards</td>
+</tr>
+<tr class="row-even"><td>_tauy</td>
+<td>air-ice meridional stress, positive downwards</td>
+</tr>
+<tr class="row-odd"><td>_q</td>
+<td>ice-ocn freezing melting potential</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+      
+        <a href="index.html" class="btn btn-neutral" title="&lt;no title&gt;" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2020, U.S. National Science Foundation.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+     
+<script>var version_json_loc = "../../../versions.json";</script>
+
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'master',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+      <script type="text/javascript" src="../_static/language_data.js"></script>
+      <script type="text/javascript" src="../_static/pop_ver.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>1. Introduction &mdash; CMEPS master documentation</title>
+  <title>Introduction &mdash; CMEPS master documentation</title>
   
 
   
@@ -29,7 +29,7 @@
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="2. Application Specific Field Exchange Specification" href="field_naming_convention.html" />
+    <link rel="next" title="CMEPS application specific code" href="esmflds.html" />
     <link rel="prev" title="CMEPS documentation" href="index.html" /> 
 
   
@@ -84,8 +84,17 @@
             
             
               <ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#">1. Introduction</a></li>
-<li class="toctree-l1"><a class="reference internal" href="field_naming_convention.html">2. Application Specific Field Exchange Specification</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Introduction</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#organization-of-the-cmeps-mediator-code">Organization of the CMEPS mediator code</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="esmflds.html">CMEPS application specific code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="fractions.html">CMEPS <cite>fractions</cite> module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="prep.html">CMEPS <cite>prep</cite> modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generic.html">CMEPS <cite>generic</cite> modules</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="addendum/fieldnames.html">CMEPS field names</a></li>
 </ul>
 
             
@@ -131,7 +140,7 @@
     
       <li><a href="index.html">Docs</a> &raquo;</li>
         
-      <li>1. Introduction</li>
+      <li>Introduction</li>
     
     
       <li class="wy-breadcrumbs-aside">
@@ -151,8 +160,132 @@
            <div itemprop="articleBody">
             
   <div class="section" id="introduction">
-<h1>1. Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h1>
-<p>Content to go here:</p>
+<h1>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h1>
+<p>CMEPS is a NUOPC-compliant mediator which uses ESMF to couple earth grid components in a hub and spoke system.</p>
+<p>As a mediator, CMEPS is responsible  for transferring field information from one
+model component to another. This transfer  can require one or more operations on
+the transferred  fields, including  mapping of  fields between  component grids,
+merging  of fields  between different  components and  time-averaging of  fields
+over varying coupling periods.</p>
+<p>Components share information via import  and export states, which are containers
+for  ESMF data  types  that wrap  native  model data.  The  states also  contain
+metadata, which  includes physical  field names,  the underlying  grid structure
+and coordinates,  and information on  the parallel decomposition of  the fields.
+Note that while CMEPS itself is  a mesh based mediator, component models coupled
+by the CMEPS mediator can be either grid or mesh based.</p>
+<p>Each component model  using the CMEPS mediator is serviced  by a NUOPC-compliant
+cap. The NUOPC cap  is a small software layer between  the underlying model code
+and  the mediator.  Fields  for  which the  mediator  has  created a  connection
+between model components are placed in either  the import or export state of the
+component within  the NUOPC cap.  The information contained within  these states
+is then passed into  native model arrays or structures for  use by the component
+model.</p>
+<p>Field  connections  made  by  the  CMEPS mediator  between  components  rely  on
+matching of  standard field names. These  standard names are defined  in a field
+dictionary.  Since CMEPS  is a  community mediator,  these standard  names are
+specific to each application.</p>
+<div class="section" id="organization-of-the-cmeps-mediator-code">
+<h2>Organization of the CMEPS mediator code<a class="headerlink" href="#organization-of-the-cmeps-mediator-code" title="Permalink to this headline">¶</a></h2>
+<p>When you check out the code you  will files, which can be organized into three
+groups:</p>
+<ul class="simple">
+<li>totally generic components that carry  out the mediator functionality such as mapping,
+merging, restarts and history writes. Included here is a a  “fraction” module that
+determines  the fractions of different  source model components on every source
+destination mesh.</li>
+<li>application specific  code that determines what fields  are exchanged between
+components and how they are merged and mapped.</li>
+<li>prep phase modules  that carry out the mapping and merging  from one or more
+source components to  the destination component.</li>
+</ul>
+<table border="1" class="docutils">
+<colgroup>
+<col width="33%" />
+<col width="34%" />
+<col width="33%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Generic Code</th>
+<th class="head">Application Specific Code</th>
+<th class="head">Prep Phase Code</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>med.F90</td>
+<td>esmFldsExchange_cesm_mod.F90</td>
+<td>med_phases_prep_atm_mod.F90</td>
+</tr>
+<tr class="row-odd"><td>esmFlds.F90</td>
+<td>esmFldsExchange_nems_mod.F90</td>
+<td>med_phases_prep_ice_mod.F90</td>
+</tr>
+<tr class="row-even"><td>med_map_mod.F90</td>
+<td>esmFldsExchange_hafs_mod.F90</td>
+<td>med_phases_prep_ocn_mod.F90</td>
+</tr>
+<tr class="row-odd"><td>med_merge_mod.F90</td>
+<td>fd_cesm.yaml</td>
+<td>med_phases_prep_glc_mod.F90</td>
+</tr>
+<tr class="row-even"><td>med_frac_mod.F90</td>
+<td>fd_nems.yaml</td>
+<td>med_phases_prep_lnd_mod.F90</td>
+</tr>
+<tr class="row-odd"><td>med_internalstate_mod.F90</td>
+<td>fd_hafs.yaml</td>
+<td>med_phases_prep_rof_mod.F90</td>
+</tr>
+<tr class="row-even"><td>med_methods_mod.F90.</td>
+<td>&#160;</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>med_phases_aofluxes_mod.F90</td>
+<td>&#160;</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>med_phases_ocnalb_mod.F90</td>
+<td>&#160;</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>med_phases_history_mod.F90</td>
+<td>&#160;</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>med_phases_restart_mod.F90</td>
+<td>&#160;</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>med_phases_profile_mod.F90</td>
+<td>&#160;</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>med_io_mod.F90</td>
+<td>&#160;</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>med_constants_mod.F90</td>
+<td>&#160;</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>med_kind_mod.F90</td>
+<td>&#160;</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>med_time_mod.F90</td>
+<td>&#160;</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>med_utils_mod.F90</td>
+<td>&#160;</td>
+<td>&#160;</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Some modules, such as med_phases_prep_ocn.F90 and med_frac_mod.F90 also contain application specific-code blocks.</p>
+</div>
+</div>
 </div>
 
 
@@ -163,7 +296,7 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="field_naming_convention.html" class="btn btn-neutral float-right" title="2. Application Specific Field Exchange Specification" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="esmflds.html" class="btn btn-neutral float-right" title="CMEPS application specific code" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
         <a href="index.html" class="btn btn-neutral" title="CMEPS documentation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>

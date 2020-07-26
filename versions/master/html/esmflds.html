@@ -1,0 +1,450 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>CMEPS application specific code &mdash; CMEPS master documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="CMEPS fractions module" href="fractions.html" />
+    <link rel="prev" title="Introduction" href="introduction.html" /> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> CMEPS
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                master
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">CMEPS application specific code</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#field-naming-convention">Field Naming Convention</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#exchange-of-fields">Exchange of fields</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#addfld"><cite>addfld</cite></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#addmap"><cite>addmap</cite></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#addmrg"><cite>addmrg</cite></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="fractions.html">CMEPS <cite>fractions</cite> module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="prep.html">CMEPS <cite>prep</cite> modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generic.html">CMEPS <cite>generic</cite> modules</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="addendum/fieldnames.html">CMEPS field names</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">CMEPS</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>CMEPS application specific code</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/esmflds.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="cmeps-application-specific-code">
+<span id="api-for-esmflds"></span><h1>CMEPS application specific code<a class="headerlink" href="#cmeps-application-specific-code" title="Permalink to this headline">¶</a></h1>
+<p>For each supported application, CMEPS contains two specific files that determine:</p>
+<ul class="simple">
+<li>the allowed field names in the mediator and aliases for those names that the components might have</li>
+<li>the fields that are exchanged between components</li>
+<li>how source fields are mapped to destination fields</li>
+<li>how source fields are merged after mapping to destination fields</li>
+</ul>
+<p>Three application specific versions are currently contained within CMEPS:</p>
+<ul class="simple">
+<li>for CESM: <strong>esmFldsExchange_cesm_mod.F90</strong> and <strong>fd_cesm.yaml</strong></li>
+<li>for UFS-S2S: <strong>esmFldsExchange_nems_mod.F90</strong> and <strong>fd_nems.yaml</strong></li>
+<li>for UFS-HAFS: <strong>esmFldsExchange_hafs_mod.F90</strong> and <strong>fd_hafs.yaml</strong></li>
+</ul>
+<p>CMEPS advertises <strong>all possible fields</strong> that can be imported to and
+exported by the mediator for the target coupled system. Not all of
+these fields will be connected to the various components. The
+connections will be determined by what the components advertise in
+their respective advertise phase.</p>
+<p>Across applications, component-specific names for the same fields may vary. The field
+dictionary is used to define how the application or component-specific name relates
+to the name that the CMEPS mediator uses for that field. The mediator variable
+names and their application specific aliases are found in the YAML field dictionary.</p>
+<p>Details of the naming conventions and API’s of this file can be found
+in the description of the <a class="reference internal" href="#api-for-esmflds"><span class="std std-ref">exchange of fields in
+CMEPS</span></a>.</p>
+<div class="section" id="field-naming-convention">
+<h2>Field Naming Convention<a class="headerlink" href="#field-naming-convention" title="Permalink to this headline">¶</a></h2>
+<p>The CMEPS field name convention in the YAML files is independent of the model components.
+The convention differentiates between variables that are state fields versus flux fields.
+The naming convention assumes the following one letter designation for the various components as
+well as the mediator.</p>
+<p><strong>import to mediator</strong>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">a</span> <span class="o">=&gt;</span> <span class="n">atmosphere</span>
+<span class="n">i</span> <span class="o">=&gt;</span> <span class="n">sea</span><span class="o">-</span><span class="n">ice</span>
+<span class="n">l</span> <span class="o">=&gt;</span> <span class="n">land</span>
+<span class="n">g</span> <span class="o">=&gt;</span> <span class="n">land</span><span class="o">-</span><span class="n">ice</span>
+<span class="n">o</span> <span class="o">=&gt;</span> <span class="n">ocean</span>
+<span class="n">r</span> <span class="o">=&gt;</span> <span class="n">river</span>
+<span class="n">w</span> <span class="o">=&gt;</span> <span class="n">wave</span>
+</pre></div>
+</div>
+<p><strong>export from mediator (after  mapping and merging)</strong>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">x</span> <span class="o">=&gt;</span> <span class="n">mediator</span>
+</pre></div>
+</div>
+<p><strong>State Variables</strong>:</p>
+<blockquote>
+<div><p>State variables have a 3 character prefix followed by the state
+name. The prefix has the form <code class="docutils literal notranslate"><span class="pre">S[a,i,l,g,o,r,w,x]_</span></code> and is followed by
+the field name.</p>
+<p>As an example, <code class="docutils literal notranslate"><span class="pre">Sx_t</span></code> is the merged surface
+temperature from land, ice and ocean sent to the atmosphere for CESM.</p>
+</div></blockquote>
+<p><strong>Flux variables</strong>:</p>
+<blockquote>
+<div><p>Flux variables specify both source and destination components and have a
+5 character prefix followed by an identifier name of the flux. The first 5
+characters of the flux prefix <code class="docutils literal notranslate"><span class="pre">Flmn_</span></code> indicate a flux between
+components l and m, computed by component n. The flux-prefix is followed
+by the relevant flux-name.</p>
+<p><strong>mediator import flux prefixes</strong>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Faxa_</span><span class="p">,</span> <span class="n">atm</span> <span class="n">flux</span> <span class="n">computed</span> <span class="n">by</span> <span class="n">atm</span>
+<span class="n">Fall_</span><span class="p">,</span> <span class="n">lnd</span><span class="o">-</span><span class="n">atm</span> <span class="n">flux</span> <span class="n">computed</span> <span class="n">by</span> <span class="n">lnd</span>
+<span class="n">Fioi_</span><span class="p">,</span> <span class="n">ice</span><span class="o">-</span><span class="n">ocn</span> <span class="n">flux</span> <span class="n">computed</span> <span class="n">by</span> <span class="n">ice</span>
+<span class="n">Faii_</span><span class="p">,</span> <span class="n">ice_atm</span> <span class="n">flux</span> <span class="n">computed</span> <span class="n">by</span> <span class="n">ice</span>
+<span class="n">Flrr_</span><span class="p">,</span> <span class="n">lnd</span><span class="o">-</span><span class="n">rof</span> <span class="n">flux</span> <span class="n">computed</span> <span class="n">by</span> <span class="n">rof</span>
+<span class="n">Firr_</span><span class="p">,</span> <span class="n">rof</span><span class="o">-</span><span class="n">ice</span> <span class="n">flux</span> <span class="n">computed</span> <span class="n">by</span> <span class="n">rof</span>
+</pre></div>
+</div>
+<p><strong>mediator export flux prefixes</strong>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Faxx_</span><span class="p">,</span> <span class="n">mediator</span> <span class="n">merged</span> <span class="n">fluxes</span> <span class="n">sent</span> <span class="n">to</span> <span class="n">the</span> <span class="n">atm</span>
+<span class="n">Foxx_</span><span class="p">,</span> <span class="n">mediator</span> <span class="n">merged</span> <span class="n">fluxes</span> <span class="n">sent</span> <span class="n">to</span> <span class="n">the</span> <span class="n">ocn</span>
+<span class="n">Fixx_</span><span class="p">,</span> <span class="n">mediator</span> <span class="n">merged</span> <span class="n">fluxes</span> <span class="n">sent</span> <span class="n">to</span> <span class="n">the</span> <span class="n">ice</span>
+</pre></div>
+</div>
+</div></blockquote>
+</div>
+<div class="section" id="exchange-of-fields">
+<h2>Exchange of fields<a class="headerlink" href="#exchange-of-fields" title="Permalink to this headline">¶</a></h2>
+<p>The application specific module, <code class="docutils literal notranslate"><span class="pre">esmFldsExchange_xxx.F90</span></code> contains
+all of the information to determine how the mediator performs the
+exchange of fields between components. In particular, this module uses the subroutines
+<code class="docutils literal notranslate"><span class="pre">addfld</span></code>, <code class="docutils literal notranslate"><span class="pre">addmap</span></code> and <code class="docutils literal notranslate"><span class="pre">addmrg</span></code> to do the following:</p>
+<ul class="simple">
+<li><code class="docutils literal notranslate"><span class="pre">addfld</span></code> advertises all possible fields that the mediator can send
+to and receive from each component that is part of the target
+application</li>
+<li><code class="docutils literal notranslate"><span class="pre">addmap</span></code> determines how each source field is mapped from its
+source mesh to a target destinations mesh. Note that a given source
+field may be mapped to more than one destination meshes and so there
+can be more than one call to <code class="docutils literal notranslate"><span class="pre">addmap</span></code> for that source field.</li>
+<li><code class="docutils literal notranslate"><span class="pre">addmrg</span></code> determines how a collection of mapped source fields
+is merged to the target destination field.</li>
+</ul>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">In all these functions, specific components are accessed using a comp_index, where comp_index can be any of [compatm, compice, compglc, complnd, compocn, comprof, compwav].</p>
+</div>
+<p>This section describes the API for the calls that determine the above
+information. All of the API’s discussed below use the code in the
+generic module <code class="docutils literal notranslate"><span class="pre">esmFlds.F90</span></code>.</p>
+<div class="section" id="addfld">
+<span id="id1"></span><h3><cite>addfld</cite><a class="headerlink" href="#addfld" title="Permalink to this headline">¶</a></h3>
+<p>CMEPS advertises all possible fields that it can receive from a component or send to any component via a call to <code class="docutils literal notranslate"><span class="pre">addfld</span></code>.
+The API for this call is:</p>
+<div class="highlight-Fortran notranslate"><div class="highlight"><pre><span></span><span class="k">call </span><span class="n">addfld</span><span class="p">(</span><span class="n">fldListFr</span><span class="p">(</span><span class="n">comp_index</span><span class="p">)%</span><span class="n">flds</span><span class="p">,</span> <span class="s1">&#39;field_name&#39;</span><span class="p">)</span>
+<span class="k">call </span><span class="n">addfld</span><span class="p">(</span><span class="n">fldListTo</span><span class="p">(</span><span class="n">comp_index</span><span class="p">)%</span><span class="n">flds</span><span class="p">,</span> <span class="s1">&#39;field_name&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>where:</p>
+<ul class="simple">
+<li><code class="docutils literal notranslate"><span class="pre">comp_index</span></code> is the component index</li>
+<li><code class="docutils literal notranslate"><span class="pre">'field_name'</span></code> is the field name that will be advertised</li>
+</ul>
+</div>
+<div class="section" id="addmap">
+<span id="id2"></span><h3><cite>addmap</cite><a class="headerlink" href="#addmap" title="Permalink to this headline">¶</a></h3>
+<p>CMEPS determines how to map each source field from its source mesh to a target destination mesh via a call to <code class="docutils literal notranslate"><span class="pre">addmap</span></code>.
+The API for this call is:</p>
+<div class="highlight-Fortran notranslate"><div class="highlight"><pre><span></span><span class="k">call </span><span class="n">addmap</span><span class="p">(</span><span class="n">FldListFr</span><span class="p">(</span><span class="n">comp_index_src</span><span class="p">)%</span><span class="n">flds</span><span class="p">,</span> <span class="s1">&#39;field_name&#39;</span><span class="p">,</span> <span class="n">comp_index_dst</span><span class="p">,</span> <span class="n">maptype</span><span class="p">,</span> <span class="n">mapnorm</span><span class="p">,</span> <span class="n">mapfile</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>where</p>
+<ul class="simple">
+<li><code class="docutils literal notranslate"><span class="pre">comp_index_src</span></code> is the  source component index</li>
+<li><code class="docutils literal notranslate"><span class="pre">comp_index_dst</span></code> is the  destination component index</li>
+<li><strong>maptype</strong> determines the mapping type and can have values of:<ul>
+<li><code class="docutils literal notranslate"><span class="pre">mapbilnr</span></code>: bilinear mapping</li>
+<li><code class="docutils literal notranslate"><span class="pre">mapconsf</span></code>: first order conservative mapping with normalization type of conservative fraction.</li>
+<li><code class="docutils literal notranslate"><span class="pre">mapconsd</span></code>: first order conservative mapping with normalization type of conservative fraction.</li>
+<li><code class="docutils literal notranslate"><span class="pre">mappatch</span></code>: patch mapping</li>
+<li><code class="docutils literal notranslate"><span class="pre">mapfcopy</span></code>: redist mapping</li>
+<li><code class="docutils literal notranslate"><span class="pre">mapnstod</span></code>: nearest source to destination mapping</li>
+<li><code class="docutils literal notranslate"><span class="pre">mapnstod_consd</span></code>: nearest source to destination followed by conservative destination</li>
+<li><code class="docutils literal notranslate"><span class="pre">mapnstod_consf</span></code>: nearest source to destination followed by conservative fraction</li>
+</ul>
+</li>
+</ul>
+<ul id="normalization">
+<li><p class="first"><strong>mapnorm</strong> determines the mapping normalization and can have values of:</p>
+<ul class="simple">
+<li><code class="docutils literal notranslate"><span class="pre">unset</span></code> : no normalization is set, should only be used if maptype is ‘mapfcopy’</li>
+<li><code class="docutils literal notranslate"><span class="pre">none</span></code>  : no normalization is done, should only be used if maptype is not ‘mapfcopy’</li>
+<li><code class="docutils literal notranslate"><span class="pre">one</span></code>   : normalize by 1. (see description below for normalization)</li>
+<li><code class="docutils literal notranslate"><span class="pre">lfrin</span></code> : normalize by the <code class="docutils literal notranslate"><span class="pre">lfrin</span></code> field in FBFrac(complnd). Used to map lnd-&gt;atm (see description of <a class="reference internal" href="fractions.html#fractions"><span class="std std-ref">fractions</span></a>).</li>
+<li><code class="docutils literal notranslate"><span class="pre">ifrac</span></code> : normalize by the ‘ifrac’ field in FBFrac(compice). Used to map ice-&gt;atm (see description of <a class="reference internal" href="fractions.html#fractions"><span class="std std-ref">fractions</span></a>).</li>
+<li><code class="docutils literal notranslate"><span class="pre">ofrac</span></code> : normalize by the ‘ofrac’ field in FBFrac(compocn). Used to map ice-&gt;atm (see description of <a class="reference internal" href="fractions.html#fractions"><span class="std std-ref">fractions</span></a>).</li>
+<li><code class="docutils literal notranslate"><span class="pre">custom</span></code> : custom mapping and normalization will be done in the prep phase for the corresponding field (used to map glc-&gt;lnd).</li>
+</ul>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">When <strong>mapnorm</strong> is used, the field will first be scaled by the relevant <code class="docutils literal notranslate"><span class="pre">FBfrac</span></code> before mapping and then unscaled by the same <code class="docutils literal notranslate"><span class="pre">FBfrac</span></code> after mapping. For example, when <code class="docutils literal notranslate"><span class="pre">ifrac</span></code> is the normalization, the field will be scaled by <code class="docutils literal notranslate"><span class="pre">FBfrac(compice)[ifrac]</span></code> before mapping and unscaled by the mapped <code class="docutils literal notranslate"><span class="pre">FBFrac(compice)[ifrac]</span></code> after mapping.</p>
+</div>
+</li>
+<li><p class="first"><strong>mapfile</strong>  determines if a mapping file will be read in or the route handle will be generated at run time:</p>
+<ul class="simple">
+<li><code class="docutils literal notranslate"><span class="pre">unset</span></code>  : online route handles will be generated</li>
+<li><code class="docutils literal notranslate"><span class="pre">mapfile</span></code>: read in corresponding full pathname. The <code class="docutils literal notranslate"><span class="pre">&lt;filename&gt;</span></code> is obtained as an attribute from the driver</li>
+</ul>
+</li>
+</ul>
+<p><strong>Normalization</strong> :
+Fractional normalization is needed to improve the accuracy field exchanges between ice and ocean and atmosphere. Consider the case where one cell has an ice
+fraction of 0.3 and the other has a fraction of 0.5. Mapping the ice fraction to the atmospheric cell results in a value of 0.4. If the same temperatures are
+mapped in the same way, a temperature of -1.5 results which is reasonable, but not entirely accurate. Because of the relative ice fractions, the weight of the
+second cell should be greater than the weight of the first cell. Taking this into account properly results in a fraction weighted ice temperature of -1.625 in
+this example. This is the fraction correction that is carried out whenever ocean and ice fields are mapped to the atmosphere grid. Note that time varying
+fraction corrections are not required in other mappings to improve accuracy because their relative fractions remain static.</p>
+<p><strong>Example</strong> :</p>
+<div class="highlight-Fortran notranslate"><div class="highlight"><pre><span></span><span class="k">call </span><span class="n">addmap</span><span class="p">(</span><span class="n">fldListFr</span><span class="p">(</span><span class="n">compice</span><span class="p">)%</span><span class="n">flds</span><span class="p">,</span> <span class="s1">&#39;Si_snowh&#39;</span><span class="p">,</span> <span class="n">compatm</span><span class="p">,</span> <span class="n">mapconsf</span><span class="p">,</span> <span class="s1">&#39;ifrac&#39;</span><span class="p">,</span> <span class="s1">&#39;unset&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This will create an entry in <code class="docutils literal notranslate"><span class="pre">fldListFr(compatm)</span></code> specifying that the <code class="docutils literal notranslate"><span class="pre">Si_snowh</span></code> field from the ice should be mapped conservatively to the atmosphere using
+fractional normalization where the ice fraction is obtained from <code class="docutils literal notranslate"><span class="pre">FBFrac(compice)[snowh]</span></code>. The route handle for this mapping will be created at run time.</p>
+</div>
+<div class="section" id="addmrg">
+<span id="id3"></span><h3><cite>addmrg</cite><a class="headerlink" href="#addmrg" title="Permalink to this headline">¶</a></h3>
+<p>CMEPS determines how to map a set of one or more mapped source fields to create the target destination field in the export state.
+The API for this call is:</p>
+<div class="highlight-Fortran notranslate"><div class="highlight"><pre><span></span><span class="k">call </span><span class="n">addmrg</span><span class="p">(</span><span class="n">fldListTo</span><span class="p">(</span><span class="n">comp_index_dst</span><span class="p">)%</span><span class="n">flds</span><span class="p">,</span> <span class="n">dst_fieldname</span><span class="p">,</span> <span class="p">&amp;</span>
+            <span class="n">mrg_from1</span><span class="p">,</span> <span class="n">mrg_fld1</span><span class="p">,</span> <span class="n">mrg_type1</span><span class="p">,</span> <span class="n">mrg_fracname1</span><span class="p">,</span> <span class="p">&amp;</span>
+            <span class="n">mrg_from2</span><span class="p">,</span> <span class="n">mrg_fld2</span><span class="p">,</span> <span class="n">mrg_type2</span><span class="p">,</span> <span class="n">mrg_fracname2</span><span class="p">,</span> <span class="p">&amp;</span>
+            <span class="n">mrg_from3</span><span class="p">,</span> <span class="n">mrg_fld3</span><span class="p">,</span> <span class="n">mrg_type3</span><span class="p">,</span> <span class="n">mrg_fracname3</span><span class="p">,</span> <span class="p">&amp;</span>
+            <span class="n">mrg_from4</span><span class="p">,</span> <span class="n">mrg_fld4</span><span class="p">,</span> <span class="n">mrg_type4</span><span class="p">,</span> <span class="n">mrg_fracname4</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>where</p>
+<ul class="simple">
+<li><code class="docutils literal notranslate"><span class="pre">mrg_fromN</span></code>, <code class="docutils literal notranslate"><span class="pre">mrgfldN</span></code>, <code class="docutils literal notranslate"><span class="pre">mrgtypeN</span></code> and <code class="docutils literal notranslate"><span class="pre">mrg_fracnameN</span></code>, where <code class="docutils literal notranslate"><span class="pre">N=[1,2,3,4]</span></code>, are optional arguments.
+<code class="docutils literal notranslate"><span class="pre">mrgfrom1</span></code> is corresponds to the first source component index (e.g. <code class="docutils literal notranslate"><span class="pre">compatm</span></code>).</li>
+<li><strong>mrg_fromN</strong>: is an integer corresponding to the source component index</li>
+<li><strong>mrg_fldN</strong> : is a character string corresponding to the field name in the mapped field bundle of the source component with index <code class="docutils literal notranslate"><span class="pre">mrg_fromN</span></code></li>
+<li><strong>mrg_typeN</strong>: the type of merging that will be carried out for component with index <code class="docutils literal notranslate"><span class="pre">mrg_fromN</span></code>. The allowed values are:<ul>
+<li><code class="docutils literal notranslate"><span class="pre">copy</span></code>: simply copy the source mapped field into the destination field bundle</li>
+<li><code class="docutils literal notranslate"><span class="pre">copy_with_weights</span></code>: weight the mapped source field by its fraction on the destination mesh.</li>
+<li><code class="docutils literal notranslate"><span class="pre">sum_with_weights</span></code>: do a cumulative sum of all the mapped source fields where each field is weighed by by its fraction on the destination mesh.</li>
+<li><code class="docutils literal notranslate"><span class="pre">sum_with_weights</span></code>: do a cumulative sum of all the mapped source fields.</li>
+</ul>
+</li>
+</ul>
+<p>For <code class="docutils literal notranslate"><span class="pre">copy_with_weights</span></code> and <code class="docutils literal notranslate"><span class="pre">sum_with_weights</span></code>, the mapped source field is weighted by <code class="docutils literal notranslate"><span class="pre">mrg_fracnameN</span></code> in <code class="docutils literal notranslate"><span class="pre">FBFrac(comp_index_dst)</span></code>. If
+copy_with_weights is chose as the <code class="docutils literal notranslate"><span class="pre">mrg_typeN</span></code> value then <code class="docutils literal notranslate"><span class="pre">mrg_fracnameN</span></code> is also required as an argument. If sum_with_weights is chose as the <code class="docutils literal notranslate"><span class="pre">mrg_typeN</span></code>
+value then <code class="docutils literal notranslate"><span class="pre">mrg_fracnameN</span></code> is also required as an argument.</p>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="fractions.html" class="btn btn-neutral float-right" title="CMEPS fractions module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="introduction.html" class="btn btn-neutral" title="Introduction" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2020, U.S. National Science Foundation.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+     
+<script>var version_json_loc = "../../versions.json";</script>
+
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'master',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="_static/language_data.js"></script>
+      <script type="text/javascript" src="_static/pop_ver.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

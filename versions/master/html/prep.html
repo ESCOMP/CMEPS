@@ -1,0 +1,308 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>CMEPS prep modules &mdash; CMEPS master documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="CMEPS generic modules" href="generic.html" />
+    <link rel="prev" title="CMEPS fractions module" href="fractions.html" /> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> CMEPS
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                master
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="esmflds.html">CMEPS application specific code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="fractions.html">CMEPS <cite>fractions</cite> module</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">CMEPS <cite>prep</cite> modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generic.html">CMEPS <cite>generic</cite> modules</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="addendum/fieldnames.html">CMEPS field names</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">CMEPS</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>CMEPS <cite>prep</cite> modules</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/prep.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="cmeps-prep-modules">
+<span id="prep-modules"></span><h1>CMEPS <cite>prep</cite> modules<a class="headerlink" href="#cmeps-prep-modules" title="Permalink to this headline">¶</a></h1>
+<p>The following modules comprise the “prep phase” CMEPS code:</p>
+<p><strong>med_phases_prep_atm_mod.F90</strong>: prepares the mediator export state to the atmosphere component</p>
+<p><strong>med_phases_prep_ice_mod.F90</strong>: prepares the mediator export state to the sea-ice component</p>
+<p><strong>med_phases_prep_glc_mod.F90</strong>: prepares the mediator export state to the land-ice component</p>
+<p><strong>med_phases_prep_lnd_mod.F90</strong>: prepares the mediator export state to the land component</p>
+<p><strong>med_phases_prep_ocn_mod.F90</strong>: prepares the mediator export state to the ocean component</p>
+<p><strong>med_phases_prep_rof_mod.F90</strong>: prepares the mediator export state to the river component</p>
+<p><strong>med_phases_prep_wav_mod.F90</strong>: prepares the mediator export state to the wave component</p>
+<p>Each prep phase module has several sections:</p>
+<ol class="arabic simple">
+<li>Mapping each source field that needs to be mapped to the destination mesh.
+This is obtained from the <code class="docutils literal notranslate"><span class="pre">addmap</span></code> calls in the application specific <code class="docutils literal notranslate"><span class="pre">esmFldsExchange_xxxx_mod.F90</span></code>.
+Each <cite>prep</cite> module will call the generic routine  <code class="docutils literal notranslate"><span class="pre">med_map_FB_Regrid_Norm</span></code> to do this mapping.</li>
+<li>Merging the set of source fields that have been mapped to the destination mesh.
+This is obtained from the <code class="docutils literal notranslate"><span class="pre">addmrg</span></code> calls in the application specific <code class="docutils literal notranslate"><span class="pre">esmFldsExchange_xxxx_mod.F90</span></code>.</li>
+<li>Carrying out optional custom calculations that cannot be specified
+via <code class="docutils literal notranslate"><span class="pre">addmap</span></code> or <code class="docutils literal notranslate"><span class="pre">addmrg</span></code> calls. Custom calculations are the
+only part of the CMEPS prep phases that can be can be application
+specific. The attribute <code class="docutils literal notranslate"><span class="pre">coupling_mode</span></code> is utilized to by the
+prep phases to determine if a particular customization is targeted
+for only one application. Currently prep phase customization
+encompasses the following:<ul>
+<li><code class="docutils literal notranslate"><span class="pre">med_phases_prep_atm</span></code>:<ul>
+<li>Calculation of ocean albedos and atmosphere/ocean fluxes (for CESM).</li>
+<li>Calculation of land, ice and ocean fractions to send to the atmosphere if those components are present.</li>
+</ul>
+</li>
+<li><code class="docutils literal notranslate"><span class="pre">med_phases_prep_ice</span></code>:<ul>
+<li>Update the scalar data for the time of the next short wave calculation carried out by the atmosphere, used by the
+ice component to determine the zenith angle (for CESM)</li>
+<li>applicate of precipitation factor received from the ocean component (for CESM)</li>
+</ul>
+</li>
+<li><code class="docutils literal notranslate"><span class="pre">med_phases_prep_glc</span></code>:<ul>
+<li>the land-ice component prep phase <cite>ONLY</cite> uses custom code. Land
+import fields that are destined for the land-ice component are
+in elevation classes, whereas the land-ice components requires
+import data that is not in elevation classes. In addition, the
+land-ice component couples at a much longer time scale than the
+land component. The custom code in this module carries out the
+mapping and merged to take data from the land component,
+accumulate it and map the data both in resolution and in the
+compression of elevation class input to non-elevation class
+output. (for CESM)</li>
+</ul>
+</li>
+<li><code class="docutils literal notranslate"><span class="pre">med_phases_prep_lnd</span></code>:<ul>
+<li>carry out land-ice to land mapping if land-ice is present (for CESM)</li>
+<li>update the scalar data for the time of the next short
+wave calculation caried out by the atmosphere (this is needed to the
+land component to determine the zenith angle) (for CESM)</li>
+</ul>
+</li>
+<li><code class="docutils literal notranslate"><span class="pre">med_phases_prep_ocn</span></code>:<ul>
+<li>computation of net shortwave that is sent to the ocean.</li>
+<li>apply precipitation fractor to scale rain and snow sent to ocean (for CESM)</li>
+<li>carry out custom merges for NEMS coupling modes (for NEMS)</li>
+</ul>
+</li>
+<li><code class="docutils literal notranslate"><span class="pre">med_phases_prep_rof</span></code>:<ul>
+<li>reset the irrigation flux to the river model by pulling in
+irrigation out of the rof cells that are proportial to the
+river volume in each cell (for CESM).</li>
+</ul>
+</li>
+<li><code class="docutils literal notranslate"><span class="pre">med_phases_prep_wav</span></code>:<ul>
+<li>currently there are no custom calculations.</li>
+</ul>
+</li>
+</ul>
+</li>
+</ol>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="generic.html" class="btn btn-neutral float-right" title="CMEPS generic modules" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="fractions.html" class="btn btn-neutral" title="CMEPS fractions module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2020, U.S. National Science Foundation.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+     
+<script>var version_json_loc = "../../versions.json";</script>
+
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'master',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="_static/language_data.js"></script>
+      <script type="text/javascript" src="_static/pop_ver.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
