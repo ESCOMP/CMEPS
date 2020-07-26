@@ -110,6 +110,8 @@ This section describes the API for the calls that determine the above
 information. All of the API's discussed below use the code in the
 module ``esmFlds.F90``.
 
+.. _addfld:
+
 `addfld`
 ~~~~~~~~~~
 CMEPS advertises all possible fields that it can receive from a component or send to any component via a call to ``addfld``.
@@ -123,6 +125,8 @@ The API for this call is:
 
    comp_index = component index, can be any of [compatm, compice, compglc, complnd, compocn, comprof, compwav]
    field_name = the field name that will be advertised
+
+.. _addmap:
 
 `addmap`
 ~~~~~~~~~~
@@ -157,6 +161,8 @@ where
 
   * ``mapnstod_consf``: nearest source to destination followed by conservative fraction
 
+.. _normalization:
+
 * **mapnorm** determines the mapping normalization and can have values of:
 
   * ``unset`` : no normalization is set, should only be used if maptype is 'mapfcopy'
@@ -166,21 +172,21 @@ where
   * ``one``   : normalize by 1. (see description below for normalization)
 
   * ``lfrin`` : normalize by the ``lfrin`` field in FBFrac(complnd). Used to map lnd->atm (see description of :ref:`fractions<fractions>`).
-    
+
   * ``ifrac`` : normalize by the 'ifrac' field in FBFrac(compice). Used to map ice->atm (see description of :ref:`fractions<fractions>`).
-    
+
   * ``ofrac`` : normalize by the 'ofrac' field in FBFrac(compocn). Used to map ice->atm (see description of :ref:`fractions<fractions>`).
 
   * ``custom`` : custom mapping and normalization will be done in the prep phase for the corresponding field (used to map glc->lnd).
-  
+
   .. note:: When **mapnorm** is used, the field will first be scaled by the relevant ``FBfrac`` before mapping and then unscaled by the same ``FBfrac`` after mapping. For example, when ``ifrac`` is the normalization, the field will be scaled by ``FBfrac(compice)[ifrac]`` before mapping and unscaled by the mapped ``FBFrac(compice)[ifrac]`` after mapping.
-  
+
 * **mapfile**  determines if a mapping file will be read in or the route handle will be generated at run time:
 
   * ``unset``  : online route handles will be generated
 
   * ``<filename>``: read in corresponding full pathname
- 
+
 **Normalization** :
 Fractional normalization is needed to improve the accuracy field exchanges between ice and ocean and atmosphere. Consider the case where one cell has an ice
 fraction of 0.3 and the other has a fraction of 0.5. Mapping the ice fraction to the atmospheric cell results in a value of 0.4. If the same temperatures are
@@ -198,6 +204,8 @@ fraction corrections are not required in other mappings to improve accuracy beca
 This will create an entry in ``fldListFr(compatm)`` specifying that the ``Si_snowh`` field from the ice should be mapped conservatively to the atmosphere using
 fractional normalization where the ice fraction is obtained from ``Frac(compice)[snowh]``. The ``ice2atm_fmap`` is a character string obtained as an attribute
 from the driver and in general is set to ``unset`` specifying that an run time route handle for this mapping needs to be created.
+
+.. _addmrg:
 
 `addmrg`
 ~~~~~~~~~~

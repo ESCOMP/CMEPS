@@ -1,7 +1,8 @@
 .. _fractions:
 
-CMEPS Fractions
-===============
+==========================
+ CMEPS `fractions` module
+==========================
 
 The component fractions on their corresponding meshes are defined and
 updated in ``med_fractions_mod.F90.`` We now describe how these fractions are defined and computed.
@@ -26,7 +27,7 @@ CMEPS component fractions are defined as follows:
     Frac(comprof) = lfrac,rfrac
     Frac(compwav) = wfrac
 
-    where
+where::
 
     afrac = fraction of atm on a grid
     lfrac = fraction of lnd on a grid
