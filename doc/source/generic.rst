@@ -88,6 +88,8 @@ application specific and provide general functionality.
    wrapper layers to PIO for writing and reading mediator restart
    files and for writing mediator history files.
 
+.. _history_writes:
+
 **med_phases_history_mod.F90**
 
    This module writes mediator history files. The freqency of CMEPS
@@ -114,7 +116,9 @@ application specific and provide general functionality.
    .. note:: It is assumed that the NUOPC attributes ``history_option`` and ``history_n``
 	     are obtained by the model driver and passed down to the mediator.
 
-**med_phases_history_mod.F90**
+.. _restart_writes:
+
+**med_phases_restart_mod.F90**
 
    This module reads and writes mediator restart files. The freqency of CMEPS
    restart writes is controlled via the NUOPC attributes
