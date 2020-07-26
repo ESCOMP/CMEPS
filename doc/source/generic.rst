@@ -34,16 +34,16 @@ application specific and provide general functionality.
 
   * carrying out the NUOPC data initialization via the ``DataInitialize`` routine.
 
-    .. note:: Once the first time DataInitialize() of CMEPS returns,
-	      NUOPC sees that its InitializeDataComplete is not yet true, the
-	      NUOPC Driver executes the Run() phase of all of the Connectors that
-	      fit the xxx-TO-MED pattern. After that, it will call CMEPS
-	      DataInitialize() again. Note that the time stamps are only set
-	      when the Run() phase of all the connectors are run.  The
-	      Connectors Run() phase is called before the second call of the
-	      CMEPS DataInitialize phase.  As a result, CMEPS will see the
-	      correct timestamps, which also indicates that the actual data has
-	      been transferred reliably, and CMEPS can safely use it.
+    .. note:: After the first DataInitialize() of CMEPS returns,
+	          NUOPC will note that its InitializeDataComplete is not yet true. The
+	          NUOPC Driver will then execute the Run() phase of all of the Connectors that
+	          fit the xxx-TO-MED pattern. After that, it will call CMEPS
+	          DataInitialize() again. Note that the time stamps are only set
+	          when the Run() phase of all the connectors are run and the
+	          Connectors Run() phase is called before the second call of the
+	          CMEPS DataInitialize phase. As a result, CMEPS will see the
+	          correct timestamps, which also indicates that the actual data has
+	          been transferred reliably, and CMEPS can safely use it.
 
 **med_map_mod.F90**
 
