@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>CMEPS generic modules &mdash; CMEPS master documentation</title>
+  <title>5. CMEPS generic modules &mdash; CMEPS master documentation</title>
   
 
   
@@ -29,8 +29,8 @@
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="&lt;no title&gt;" href="addendum/index.html" />
-    <link rel="prev" title="CMEPS prep modules" href="prep.html" /> 
+    <link rel="next" title="6. Addendum" href="addendum/index.html" />
+    <link rel="prev" title="4. CMEPS prep modules" href="prep.html" /> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -84,14 +84,12 @@
             
             
               <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
-<li class="toctree-l1"><a class="reference internal" href="esmflds.html">CMEPS application specific code</a></li>
-<li class="toctree-l1"><a class="reference internal" href="fractions.html">CMEPS <cite>fractions</cite> module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="prep.html">CMEPS <cite>prep</cite> modules</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">CMEPS <cite>generic</cite> modules</a></li>
-</ul>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="addendum/fieldnames.html">CMEPS field names</a></li>
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">1. Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="esmflds.html">2. CMEPS application specific code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="fractions.html">3. CMEPS <cite>fractions</cite> module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="prep.html">4. CMEPS <cite>prep</cite> modules</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">5. CMEPS <cite>generic</cite> modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="addendum/index.html">6. Addendum</a></li>
 </ul>
 
             
@@ -137,7 +135,7 @@
     
       <li><a href="index.html">Docs</a> &raquo;</li>
         
-      <li>CMEPS <cite>generic</cite> modules</li>
+      <li>5. CMEPS <cite>generic</cite> modules</li>
     
     
       <li class="wy-breadcrumbs-aside">
@@ -157,7 +155,7 @@
            <div itemprop="articleBody">
             
   <div class="section" id="cmeps-generic-modules">
-<span id="generic-modules"></span><h1>CMEPS <cite>generic</cite> modules<a class="headerlink" href="#cmeps-generic-modules" title="Permalink to this headline">¶</a></h1>
+<span id="generic-modules"></span><h1>5. CMEPS <cite>generic</cite> modules<a class="headerlink" href="#cmeps-generic-modules" title="Permalink to this headline">¶</a></h1>
 <p>The following describes in some detail the CMEPS modules that are not
 application specific and provide general functionality.</p>
 <p><strong>med.F90</strong></p>
@@ -188,14 +186,14 @@ calculations and ocean albedo calculations (these are needed by CESM)</p>
 <li><p class="first">carrying out the NUOPC data initialization via the <code class="docutils literal notranslate"><span class="pre">DataInitialize</span></code> routine.</p>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
-<p class="last">Once the first time DataInitialize() of CMEPS returns,
-NUOPC sees that its InitializeDataComplete is not yet true, the
-NUOPC Driver executes the Run() phase of all of the Connectors that
+<p class="last">After the first DataInitialize() of CMEPS returns,
+NUOPC will note that its InitializeDataComplete is not yet true. The
+NUOPC Driver will then execute the Run() phase of all of the Connectors that
 fit the xxx-TO-MED pattern. After that, it will call CMEPS
 DataInitialize() again. Note that the time stamps are only set
-when the Run() phase of all the connectors are run.  The
+when the Run() phase of all the connectors are run and the
 Connectors Run() phase is called before the second call of the
-CMEPS DataInitialize phase.  As a result, CMEPS will see the
+CMEPS DataInitialize phase. As a result, CMEPS will see the
 correct timestamps, which also indicates that the actual data has
 been transferred reliably, and CMEPS can safely use it.</p>
 </div>
@@ -238,7 +236,7 @@ netCDF-like functions to read and write data, and PIO uses the IO
 processors to perform all necessary IO. This module contains
 wrapper layers to PIO for writing and reading mediator restart
 files and for writing mediator history files.</div></blockquote>
-<p><strong>med_phases_history_mod.F90</strong></p>
+<p id="history-writes"><strong>med_phases_history_mod.F90</strong></p>
 <blockquote>
 <div><p>This module writes mediator history files. The freqency of CMEPS
 history writes is controlled via the NUOPC attributes
@@ -296,7 +294,7 @@ instantaneous mediator history output as follows:</p>
 are obtained by the model driver and passed down to the mediator.</p>
 </div>
 </div></blockquote>
-<p><strong>med_phases_history_mod.F90</strong></p>
+<p id="restart-writes"><strong>med_phases_restart_mod.F90</strong></p>
 <blockquote>
 <div><p>This module reads and writes mediator restart files. The freqency of CMEPS
 restart writes is controlled via the NUOPC attributes
@@ -364,10 +362,10 @@ are obtained by the model driver and passed down to the mediator.</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="addendum/index.html" class="btn btn-neutral float-right" title="&lt;no title&gt;" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="addendum/index.html" class="btn btn-neutral float-right" title="6. Addendum" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="prep.html" class="btn btn-neutral" title="CMEPS prep modules" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="prep.html" class="btn btn-neutral" title="4. CMEPS prep modules" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

@@ -15,16 +15,11 @@ Table of contents
 -----------------
 .. toctree::
    :maxdepth: 2
+   :numbered:
 
    introduction.rst
    esmflds.rst
    fractions.rst
    prep.rst
    generic.rst
-
-Addendum
---------
-.. toctree::
-   :maxdepth: 2
-
    addendum/index.rst

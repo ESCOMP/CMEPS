@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>CMEPS application specific code &mdash; CMEPS master documentation</title>
+  <title>2. CMEPS application specific code &mdash; CMEPS master documentation</title>
   
 
   
@@ -29,8 +29,8 @@
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="CMEPS fractions module" href="fractions.html" />
-    <link rel="prev" title="Introduction" href="introduction.html" /> 
+    <link rel="next" title="3. CMEPS fractions module" href="fractions.html" />
+    <link rel="prev" title="1. Introduction" href="introduction.html" /> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -84,23 +84,21 @@
             
             
               <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">CMEPS application specific code</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#field-naming-convention">Field Naming Convention</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#exchange-of-fields">Exchange of fields</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#addfld"><cite>addfld</cite></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#addmap"><cite>addmap</cite></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#addmrg"><cite>addmrg</cite></a></li>
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">1. Introduction</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">2. CMEPS application specific code</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#field-naming-convention">2.1. Field Naming Convention</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#exchange-of-fields">2.2. Exchange of fields</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#addfld">2.2.1. <cite>addfld</cite></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#addmap">2.2.2. <cite>addmap</cite></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#addmrg">2.2.3. <cite>addmrg</cite></a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="fractions.html">CMEPS <cite>fractions</cite> module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="prep.html">CMEPS <cite>prep</cite> modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="generic.html">CMEPS <cite>generic</cite> modules</a></li>
-</ul>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="addendum/fieldnames.html">CMEPS field names</a></li>
+<li class="toctree-l1"><a class="reference internal" href="fractions.html">3. CMEPS <cite>fractions</cite> module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="prep.html">4. CMEPS <cite>prep</cite> modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generic.html">5. CMEPS <cite>generic</cite> modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="addendum/index.html">6. Addendum</a></li>
 </ul>
 
             
@@ -146,7 +144,7 @@
     
       <li><a href="index.html">Docs</a> &raquo;</li>
         
-      <li>CMEPS application specific code</li>
+      <li>2. CMEPS application specific code</li>
     
     
       <li class="wy-breadcrumbs-aside">
@@ -166,7 +164,7 @@
            <div itemprop="articleBody">
             
   <div class="section" id="cmeps-application-specific-code">
-<span id="api-for-esmflds"></span><h1>CMEPS application specific code<a class="headerlink" href="#cmeps-application-specific-code" title="Permalink to this headline">¶</a></h1>
+<span id="api-for-esmflds"></span><h1>2. CMEPS application specific code<a class="headerlink" href="#cmeps-application-specific-code" title="Permalink to this headline">¶</a></h1>
 <p>For each supported application, CMEPS contains two specific files that determine:</p>
 <ul class="simple">
 <li>the allowed field names in the mediator and aliases for those names that the components might have</li>
@@ -193,7 +191,7 @@ names and their application specific aliases are found in the YAML field diction
 in the description of the <a class="reference internal" href="#api-for-esmflds"><span class="std std-ref">exchange of fields in
 CMEPS</span></a>.</p>
 <div class="section" id="field-naming-convention">
-<h2>Field Naming Convention<a class="headerlink" href="#field-naming-convention" title="Permalink to this headline">¶</a></h2>
+<h2>2.1. Field Naming Convention<a class="headerlink" href="#field-naming-convention" title="Permalink to this headline">¶</a></h2>
 <p>The CMEPS field name convention in the YAML files is independent of the model components.
 The convention differentiates between variables that are state fields versus flux fields.
 The naming convention assumes the following one letter designation for the various components as
@@ -245,7 +243,7 @@ by the relevant flux-name.</p>
 </div></blockquote>
 </div>
 <div class="section" id="exchange-of-fields">
-<h2>Exchange of fields<a class="headerlink" href="#exchange-of-fields" title="Permalink to this headline">¶</a></h2>
+<h2>2.2. Exchange of fields<a class="headerlink" href="#exchange-of-fields" title="Permalink to this headline">¶</a></h2>
 <p>The application specific module, <code class="docutils literal notranslate"><span class="pre">esmFldsExchange_xxx.F90</span></code> contains
 all of the information to determine how the mediator performs the
 exchange of fields between components. In particular, this module uses the subroutines
@@ -269,7 +267,7 @@ is merged to the target destination field.</li>
 information. All of the API’s discussed below use the code in the
 generic module <code class="docutils literal notranslate"><span class="pre">esmFlds.F90</span></code>.</p>
 <div class="section" id="addfld">
-<span id="id1"></span><h3><cite>addfld</cite><a class="headerlink" href="#addfld" title="Permalink to this headline">¶</a></h3>
+<span id="id1"></span><h3>2.2.1. <cite>addfld</cite><a class="headerlink" href="#addfld" title="Permalink to this headline">¶</a></h3>
 <p>CMEPS advertises all possible fields that it can receive from a component or send to any component via a call to <code class="docutils literal notranslate"><span class="pre">addfld</span></code>.
 The API for this call is:</p>
 <div class="highlight-Fortran notranslate"><div class="highlight"><pre><span></span><span class="k">call </span><span class="n">addfld</span><span class="p">(</span><span class="n">fldListFr</span><span class="p">(</span><span class="n">comp_index</span><span class="p">)%</span><span class="n">flds</span><span class="p">,</span> <span class="s1">&#39;field_name&#39;</span><span class="p">)</span>
@@ -283,7 +281,7 @@ The API for this call is:</p>
 </ul>
 </div>
 <div class="section" id="addmap">
-<span id="id2"></span><h3><cite>addmap</cite><a class="headerlink" href="#addmap" title="Permalink to this headline">¶</a></h3>
+<span id="id2"></span><h3>2.2.2. <cite>addmap</cite><a class="headerlink" href="#addmap" title="Permalink to this headline">¶</a></h3>
 <p>CMEPS determines how to map each source field from its source mesh to a target destination mesh via a call to <code class="docutils literal notranslate"><span class="pre">addmap</span></code>.
 The API for this call is:</p>
 <div class="highlight-Fortran notranslate"><div class="highlight"><pre><span></span><span class="k">call </span><span class="n">addmap</span><span class="p">(</span><span class="n">FldListFr</span><span class="p">(</span><span class="n">comp_index_src</span><span class="p">)%</span><span class="n">flds</span><span class="p">,</span> <span class="s1">&#39;field_name&#39;</span><span class="p">,</span> <span class="n">comp_index_dst</span><span class="p">,</span> <span class="n">maptype</span><span class="p">,</span> <span class="n">mapnorm</span><span class="p">,</span> <span class="n">mapfile</span><span class="p">)</span>
@@ -343,7 +341,7 @@ fraction corrections are not required in other mappings to improve accuracy beca
 fractional normalization where the ice fraction is obtained from <code class="docutils literal notranslate"><span class="pre">FBFrac(compice)[snowh]</span></code>. The route handle for this mapping will be created at run time.</p>
 </div>
 <div class="section" id="addmrg">
-<span id="id3"></span><h3><cite>addmrg</cite><a class="headerlink" href="#addmrg" title="Permalink to this headline">¶</a></h3>
+<span id="id3"></span><h3>2.2.3. <cite>addmrg</cite><a class="headerlink" href="#addmrg" title="Permalink to this headline">¶</a></h3>
 <p>CMEPS determines how to map a set of one or more mapped source fields to create the target destination field in the export state.
 The API for this call is:</p>
 <div class="highlight-Fortran notranslate"><div class="highlight"><pre><span></span><span class="k">call </span><span class="n">addmrg</span><span class="p">(</span><span class="n">fldListTo</span><span class="p">(</span><span class="n">comp_index_dst</span><span class="p">)%</span><span class="n">flds</span><span class="p">,</span> <span class="n">dst_fieldname</span><span class="p">,</span> <span class="p">&amp;</span>
@@ -382,10 +380,10 @@ value then <code class="docutils literal notranslate"><span class="pre">mrg_frac
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="fractions.html" class="btn btn-neutral float-right" title="CMEPS fractions module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="fractions.html" class="btn btn-neutral float-right" title="3. CMEPS fractions module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="introduction.html" class="btn btn-neutral" title="Introduction" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="introduction.html" class="btn btn-neutral" title="1. Introduction" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

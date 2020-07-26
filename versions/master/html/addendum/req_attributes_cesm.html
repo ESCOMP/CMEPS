@@ -1,0 +1,375 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>6.2. CMEPS CESM attributes &mdash; CMEPS master documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+    <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="6.3. CMEPS field names" href="fieldnames.html" />
+    <link rel="prev" title="6.1. CMEPS Application Independent Attributes" href="req_attributes.html" /> 
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> CMEPS
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                master
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../introduction.html">1. Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../esmflds.html">2. CMEPS application specific code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../fractions.html">3. CMEPS <cite>fractions</cite> module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../prep.html">4. CMEPS <cite>prep</cite> modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../generic.html">5. CMEPS <cite>generic</cite> modules</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">6. Addendum</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="req_attributes.html">6.1. CMEPS Application Independent Attributes</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">6.2. CMEPS CESM attributes</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#general">6.2.1. General</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#toggle-for-active-compoenents">6.2.2. Toggle for active compoenents</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#mediator-mapping-file-attributes">6.2.3. Mediator Mapping file attributes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#mediator-ocean-albedo-attributes">6.2.4. Mediator ocean albedo attributes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#mediator-land-ice-component-attribtes">6.2.5. Mediator land-ice component attribtes</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="fieldnames.html">6.3. CMEPS field names</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">CMEPS</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="index.html">6. Addendum</a> &raquo;</li>
+        
+      <li>6.2. CMEPS CESM attributes</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/addendum/req_attributes_cesm.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="cmeps-cesm-attributes">
+<span id="cesm-attributes"></span><h1>6.2. CMEPS CESM attributes<a class="headerlink" href="#cmeps-cesm-attributes" title="Permalink to this headline">¶</a></h1>
+<p>The following <em>additional</em> attributes are required for CESM model applications.</p>
+<div class="section" id="general">
+<h2>6.2.1. General<a class="headerlink" href="#general" title="Permalink to this headline">¶</a></h2>
+<dl class="docutils">
+<dt><strong>diro</strong>, <strong>logfile</strong></dt>
+<dd>Specifies the full pathname of the directory and filename of the directory and file name for mediator log output.
+For CESM this is determine in the attribute group <code class="docutils literal notranslate"><span class="pre">MED_modelio</span></code> that is generated by the CIME case control system.</dd>
+<dt><strong>flds_i2o_per_cat</strong></dt>
+<dd>if true, select per ice thickness category fields are passed to the ocean.</dd>
+</dl>
+</div>
+<div class="section" id="toggle-for-active-compoenents">
+<h2>6.2.2. Toggle for active compoenents<a class="headerlink" href="#toggle-for-active-compoenents" title="Permalink to this headline">¶</a></h2>
+<dl class="docutils">
+<dt><strong>ATM_model</strong>, <strong>GLC_model</strong>, <strong>ICE_model</strong>, <strong>LND_model</strong>, <strong>ROF_model</strong>, <strong>OCN_model</strong>, <strong>WAV_model</strong></dt>
+<dd>In CESM, stub components are still used. These attributes determine if the component is a stub component and sets the
+mediator present flag for that component to <code class="docutils literal notranslate"><span class="pre">false</span></code>.</dd>
+</dl>
+</div>
+<div class="section" id="mediator-mapping-file-attributes">
+<h2>6.2.3. Mediator Mapping file attributes<a class="headerlink" href="#mediator-mapping-file-attributes" title="Permalink to this headline">¶</a></h2>
+<blockquote>
+<div>If a mapping file value is set to <code class="docutils literal notranslate"><span class="pre">unset</span></code>, then CMEPS will create an online route handle instead.</div></blockquote>
+<dl class="docutils">
+<dt><strong>ice2atm_fmapname</strong>, <strong>ice2atm_smapname</strong></dt>
+<dd>ice -&gt; atm fluxes and state mapping files</dd>
+<dt><strong>lnd2atm_fmapname</strong>, <strong>lnd2atm_smapname</strong></dt>
+<dd>land -&gt; atm fluxes and state mapping files</dd>
+<dt><strong>ocn2atm_smapname</strong>, <strong>ocn2atm_fmapname</strong></dt>
+<dd>ocean -&gt; atm fluxes and state mapping files</dd>
+<dt><strong>atm2lnd_fmapname</strong>, <strong>atm2lnd_smapname</strong></dt>
+<dd>atm -&gt; land fluxes and state mapping files</dd>
+<dt><strong>atm2ice_fmapname</strong>, <strong>atm2ice_smapname</strong>, <strong>atm2ice_vmapname</strong></dt>
+<dd>atmosphere -&gt; sea-ice fluxes, state, and velocities</dd>
+<dt><strong>atm2ocn_fmapname</strong>, <strong>atm2ocn_smapname</strong>, <strong>atm2ocn_vmapname</strong></dt>
+<dd>atmosphere -&gt; ocean fluxes, state, and velocities</dd>
+<dt><strong>rof2lnd_fmapname</strong></dt>
+<dd>river -&gt; land flux mapping file</dd>
+<dt><strong>glc2lnd_fmapname</strong>, <strong>glc2lnd_smapname</strong></dt>
+<dd>land-ice -&gt; land fluxes and state mapping files</dd>
+<dt><strong>glc2ice_rmapname</strong></dt>
+<dd>“smoothed” land-ice -&gt; sea-ice liquid mapping file</dd>
+<dt><strong>glc2ocn_liq_rmapname</strong>, <strong>glc2ocn_ice_rmapname</strong></dt>
+<dd>“smoothed” land-ice -&gt; ocean liquid and ice mapping files</dd>
+<dt><strong>rof2ocn_liq_rmapname</strong>, <strong>rof2ocn_ice_rmapname</strong></dt>
+<dd>“smoothed” river -&gt; ocean liquid and ice mapping file</dd>
+<dt><strong>wav2ocn_smapname</strong></dt>
+<dd>wave -&gt; ocean state mapping file</dd>
+<dt><strong>lnd2rof_fmapname</strong></dt>
+<dd>land -&gt; river flux mapping file</dd>
+<dt><strong>lnd2glc_fmapname</strong>, <strong>lnd2glc_smapname</strong></dt>
+<dd>land -&gt; land-ice flux and state mapping file</dd>
+<dt><strong>atm2wav_smapname</strong>, <strong>ice2wav_smapname</strong>, <strong>ocn2wav_smapname</strong></dt>
+<dd>atmosphere -&gt; wave, ice -&gt; wave and ocean -&gt; wave state mapping files</dd>
+<dt><strong>mapuv_with_cart3d</strong></dt>
+<dd>used for atm-&gt;ocn and atm-ice mapping of u and v
+if true, rotate u,v to 3d cartesian space, map from src-&gt;dest, then rotate back</dd>
+</dl>
+</div>
+<div class="section" id="mediator-ocean-albedo-attributes">
+<h2>6.2.4. Mediator ocean albedo attributes<a class="headerlink" href="#mediator-ocean-albedo-attributes" title="Permalink to this headline">¶</a></h2>
+<blockquote>
+<div>The following are used by CMEPS to calculate ocean albedoes in used in <code class="docutils literal notranslate"><span class="pre">med_phases_ocnalb_mod.F90</span></code></div></blockquote>
+<dl class="docutils">
+<dt><strong>start_type</strong></dt>
+<dd>Determines if start type of the run. The currently supported values are <code class="docutils literal notranslate"><span class="pre">startup</span></code>, <code class="docutils literal notranslate"><span class="pre">continue</span></code> and <code class="docutils literal notranslate"><span class="pre">branch</span></code>.</dd>
+<dt><strong>orb_mode</strong></dt>
+<dd><p class="first">orbital model setting configured. The supported values are:</p>
+<div class="last highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">fixed_year</span><span class="p">:</span>  <span class="n">uses</span> <span class="n">the</span> <span class="n">orb_iyear</span> <span class="ow">and</span> <span class="n">other</span> <span class="n">orb</span> <span class="n">inputs</span> <span class="n">are</span> <span class="n">ignored</span><span class="o">.</span>  <span class="n">In</span>
+<span class="n">this</span> <span class="n">mode</span><span class="p">,</span> <span class="n">the</span> <span class="n">orbital</span> <span class="n">parameters</span> <span class="n">are</span> <span class="n">constant</span> <span class="ow">and</span> <span class="n">based</span> <span class="n">on</span> <span class="n">the</span> <span class="n">year</span><span class="o">.</span>
+
+<span class="n">variable_year</span><span class="p">:</span> <span class="n">uses</span> <span class="n">the</span> <span class="n">orb_iyear</span> <span class="ow">and</span> <span class="n">orb_iyear_align</span><span class="o">.</span>  <span class="n">In</span> <span class="n">this</span> <span class="n">mode</span><span class="p">,</span>
+<span class="n">the</span> <span class="n">orbital</span> <span class="n">parameters</span> <span class="n">vary</span> <span class="k">as</span> <span class="n">the</span> <span class="n">model</span> <span class="n">year</span> <span class="n">advances</span> <span class="ow">and</span> <span class="n">the</span> <span class="n">model</span>
+<span class="n">year</span> <span class="n">orb_iyear_align</span> <span class="n">has</span> <span class="n">the</span> <span class="n">equivalent</span> <span class="n">orbital</span> <span class="n">year</span> <span class="n">of</span> <span class="n">orb_iyear</span><span class="o">.</span>
+
+<span class="n">fixed_parameters</span><span class="p">:</span> <span class="n">uses</span> <span class="n">the</span> <span class="n">orb_eccen</span><span class="p">,</span> <span class="n">orb_mvelp</span><span class="p">,</span> <span class="ow">and</span> <span class="n">orb_obliq</span> <span class="n">to</span> <span class="nb">set</span>
+<span class="n">the</span> <span class="n">orbital</span> <span class="n">parameters</span> <span class="n">which</span> <span class="n">then</span> <span class="n">remain</span> <span class="n">constant</span> <span class="n">through</span> <span class="n">the</span> <span class="n">model</span> <span class="n">integration</span>
+</pre></div>
+</div>
+</dd>
+<dt><strong>orb_iyear</strong></dt>
+<dd>year of orbit, used when orb_mode is fixed_year or variable_year</dd>
+<dt><strong>orb_iyear_align</strong></dt>
+<dd>model year associated with orb_iyear when orb_mode is variable_year</dd>
+<dt><strong>orb_obliq</strong></dt>
+<dd>obliquity of orbit in degrees, used when orb_mode is fixed_parameters</dd>
+<dt><strong>orb_eccen</strong></dt>
+<dd>eccentricity of orbit, used when orb_mode is fixed_parameters.</dd>
+<dt><strong>orb_mvelp</strong></dt>
+<dd>location of vernal equinox in longitude degrees, used when orb_mode is fixed_parameters</dd>
+</dl>
+</div>
+<div class="section" id="mediator-land-ice-component-attribtes">
+<h2>6.2.5. Mediator land-ice component attribtes<a class="headerlink" href="#mediator-land-ice-component-attribtes" title="Permalink to this headline">¶</a></h2>
+<dl class="docutils">
+<dt><strong>glc_renormalize_smb</strong></dt>
+<dd><p class="first">Whether to renormalize the surface mass balance (smb) sent from lnd to glc so that the
+global integral on the glc grid agrees with the global integral on the lnd grid.</p>
+<p>Unlike most fluxes, smb is remapped with bilinear rather than conservative mapping weights,
+so this option is needed for conservation. However, conservation is not required in many
+cases, since we often run glc as a diagnostic (one-way-coupled) component.</p>
+<p>Allowable values are:
+<code class="docutils literal notranslate"><span class="pre">on</span></code>: always do this renormalization</p>
+<p><code class="docutils literal notranslate"><span class="pre">off</span></code>: never do this renormalization (see WARNING below)</p>
+<p class="last"><code class="docutils literal notranslate"><span class="pre">on_if_glc_coupled_fluxes</span></code>: Determine at runtime whether to do this renormalization.
+Does the renormalization if we’re running a two-way-coupled glc that sends fluxes
+to other components (which is the case where we need conservation).
+Does NOT do the renormalization if we’re running a one-way-coupled glc, or if
+we’re running a glc-only compset (T compsets).
+(In these cases, conservation is not important.)
+Only used if running with a prognostic GLC component.
+WARNING: Setting this to ‘off’ will break conservation when running with an
+evolving, two-way-coupled glc.</p>
+</dd>
+<dt><strong>glc_avg_period</strong></dt>
+<dd>Period at which coupler averages fields sent to GLC (the land-ice component).
+This supports doing the averaging to GLC less frequently than GLC is called
+(i.e., separating the averaging frequency from the calling frequency).
+This is useful because there are benefits to only averaging the GLC inputs
+as frequently as they are really needed (yearly for CISM), but GLC needs to
+still be called more frequently than that in order to support mid-year restarts.
+Setting glc_avg_period to ‘glc_coupling_period’ means that the averaging is
+done exactly when the GLC is called (governed by GLC_NCPL).</dd>
+<dt><strong>glc_cpl_dt</strong></dt>
+<dd>glc coupling interval in seconds</dd>
+</dl>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="fieldnames.html" class="btn btn-neutral float-right" title="6.3. CMEPS field names" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="req_attributes.html" class="btn btn-neutral" title="6.1. CMEPS Application Independent Attributes" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2020, U.S. National Science Foundation.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+     
+<script>var version_json_loc = "../../../versions.json";</script>
+
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'master',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+      <script type="text/javascript" src="../_static/language_data.js"></script>
+      <script type="text/javascript" src="../_static/pop_ver.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

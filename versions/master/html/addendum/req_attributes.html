@@ -1,0 +1,306 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>6.1. CMEPS Application Independent Attributes &mdash; CMEPS master documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+    <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="6.2. CMEPS CESM attributes" href="req_attributes_cesm.html" />
+    <link rel="prev" title="6. Addendum" href="index.html" /> 
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> CMEPS
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                master
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../introduction.html">1. Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../esmflds.html">2. CMEPS application specific code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../fractions.html">3. CMEPS <cite>fractions</cite> module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../prep.html">4. CMEPS <cite>prep</cite> modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../generic.html">5. CMEPS <cite>generic</cite> modules</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">6. Addendum</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">6.1. CMEPS Application Independent Attributes</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#general">6.1.1. General</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#scalar-attributes">6.1.2. Scalar attributes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#mediator-history-and-restart-attributes">6.1.3. Mediator history and restart attributes</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="req_attributes_cesm.html">6.2. CMEPS CESM attributes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fieldnames.html">6.3. CMEPS field names</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">CMEPS</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="index.html">6. Addendum</a> &raquo;</li>
+        
+      <li>6.1. CMEPS Application Independent Attributes</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/addendum/req_attributes.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="cmeps-application-independent-attributes">
+<span id="attributes"></span><h1>6.1. CMEPS Application Independent Attributes<a class="headerlink" href="#cmeps-application-independent-attributes" title="Permalink to this headline">¶</a></h1>
+<p>The following attributes are obtained from the respective driver and
+available to all components that the driver uses.  In the case of
+NEMS, the NEMS driver ingests these attributes from the
+<code class="docutils literal notranslate"><span class="pre">nems.configure</span></code> file.  In the case of CESM, the CESM driver ingests
+these attributes from the <code class="docutils literal notranslate"><span class="pre">nuopc.runconfig</span></code> file.  The list of
+attributes below are separated into application independent attributes
+and at this time additional attributes required by CESM. There are no
+NEMS-specific attributes required by the NEMS application.</p>
+<div class="section" id="general">
+<h2>6.1.1. General<a class="headerlink" href="#general" title="Permalink to this headline">¶</a></h2>
+<p><strong>coupling_mode</strong> (required)</p>
+<blockquote>
+<div><p>The coupling_mode attribute determines which
+<code class="docutils literal notranslate"><span class="pre">esmFlds_exchange_xxx_mod.F90</span></code> and <code class="docutils literal notranslate"><span class="pre">fd_xxx.yaml</span></code> is used by
+CMEPS and is also leveraged in some of the custom calculations in
+the <code class="docutils literal notranslate"><span class="pre">prep</span></code> modules.</p>
+<p>The currently supported values for <code class="docutils literal notranslate"><span class="pre">coupling_mode</span></code> are <code class="docutils literal notranslate"><span class="pre">cesm</span></code>, <code class="docutils literal notranslate"><span class="pre">nems_orig</span></code>, <code class="docutils literal notranslate"><span class="pre">nems_frac</span></code> and <code class="docutils literal notranslate"><span class="pre">hafs</span></code>.</p>
+</div></blockquote>
+</div>
+<div class="section" id="scalar-attributes">
+<h2>6.1.2. Scalar attributes<a class="headerlink" href="#scalar-attributes" title="Permalink to this headline">¶</a></h2>
+<dl class="docutils">
+<dt><strong>ScalarFieldCount</strong></dt>
+<dd>The maximum number of scalars that are going to be communicated
+between the mediator and a component.  Currently scalar values are
+put into a field bundle that only contains an undistributed
+dimension equal to the size of <code class="docutils literal notranslate"><span class="pre">ScalarFieldCount</span></code> and communicated
+between the component and the mediator on the <cite>master task</cite> of each
+component.</dd>
+<dt><strong>ScalarFieldName</strong> (required)</dt>
+<dd>This is the name of the scalar field bundle. By default it is <code class="docutils literal notranslate"><span class="pre">cpl_scalars</span></code>.</dd>
+<dt><strong>ScalarFieldIdxGridNX</strong>, <strong>ScalarFieldIdxGridNY</strong> (required)</dt>
+<dd><p class="first">The global number of longitude and latitude points. For unstructured grids:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ScalarFieldIdxGridNY</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">ScalarFieldIdxGridNX</span> <span class="o">=</span> <span class="k">global</span> <span class="n">size</span> <span class="n">of</span> <span class="n">mesh</span>
+</pre></div>
+</div>
+<p class="last">For cases where <code class="docutils literal notranslate"><span class="pre">ScalarFieldIdxGridNY</span></code> is not 1, this scalar data
+is needed by the mediator for the history output.</p>
+</dd>
+<dt><strong>ScalarFieldIdxNextSwCday</strong> (optional)</dt>
+<dd>Send by the atmosphere component to specify the calendar day of its
+next short wave computation.  This is subsequently used by other
+components (e.g. cesm-land and sea-ice) in determining the zenith
+angle for its albedo calculation. It is also used in the mediator
+routine <code class="docutils literal notranslate"><span class="pre">med_phases_ocnalb_mod.F90</span></code> to determine the zenith angle
+in the ocean albedo calculation.</dd>
+</dl>
+</div>
+<div class="section" id="mediator-history-and-restart-attributes">
+<h2>6.1.3. Mediator history and restart attributes<a class="headerlink" href="#mediator-history-and-restart-attributes" title="Permalink to this headline">¶</a></h2>
+<dl class="docutils">
+<dt><strong>history_option</strong>, <strong>history_n</strong> (required)</dt>
+<dd>Determines the write frequency for a mediator history file (see <a class="reference internal" href="../generic.html#history-writes"><span class="std std-ref">mediator history writes</span></a>).</dd>
+<dt><strong>restart_option</strong>, <strong>restart_n</strong> (required)</dt>
+<dd>Determines the write frequency for a mediator restart file (see <a class="reference internal" href="../generic.html#restart-writes"><span class="std std-ref">mediator restart writes</span></a>).</dd>
+<dt><strong>read_restart</strong> (required)</dt>
+<dd>Determines if a mediator restart file is read in.</dd>
+</dl>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="req_attributes_cesm.html" class="btn btn-neutral float-right" title="6.2. CMEPS CESM attributes" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="index.html" class="btn btn-neutral" title="6. Addendum" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2020, U.S. National Science Foundation.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+     
+<script>var version_json_loc = "../../../versions.json";</script>
+
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'master',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+      <script type="text/javascript" src="../_static/language_data.js"></script>
+      <script type="text/javascript" src="../_static/pop_ver.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
