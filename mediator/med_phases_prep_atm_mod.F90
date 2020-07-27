@@ -138,7 +138,6 @@ contains
        ! Assumption here is that fluxes are computed on the ocean grid
 
        if (trim(coupling_mode) == 'cesm' .or. &
-           trim(coupling_mode) == 'nems_orig' .or. &
            trim(coupling_mode) == 'hafs') then
           call med_map_FB_Regrid_Norm(&
                fldsSrc=fldListMed_aoflux%flds, &
