@@ -567,10 +567,14 @@ def buildnml(case, caseroot, component):
     cimeroot = case.get_value("CIMEROOT")
     fd_dir = os.path.join(cimeroot, "src","drivers","nuopc","mediator")
     coupling_mode = case.get_value('COUPLING_MODE')
-    if coupling_mode == 'cesm' or coupling_mode == 'hafs':
+    if coupling_mode == 'cesm':
         filename = os.path.join(fd_dir,"fd_cesm.yaml")
-    else:
+    elif coupling_mode == 'hafs':
+        filename = os.path.join(fd_dir,"fd_hafs.yaml")
+    elif coupling_mode == 'nems':
         filename = os.path.join(fd_dir,"fd_nems.yaml")
+    else:
+        expect(False, "coupling mode currently only supports cesm, hafs and nems")
     shutil.copy(filename, os.path.join(rundir, "fd.yaml"))
 
 ###############################################################################
