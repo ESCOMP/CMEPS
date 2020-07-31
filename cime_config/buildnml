@@ -46,7 +46,6 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     config['continue_run'] = '.true.' if case.get_value('CONTINUE_RUN') else '.false.'
     config['flux_epbal'] = 'ocn' if case.get_value('CPL_EPBAL')  == 'ocn' else 'off'
     config['atm_grid'] = case.get_value('ATM_GRID')
-
     # needed for determining the run sequence as well as glc_renormalize_smb
     config['COMP_ATM'] = case.get_value("COMP_ATM")
     config['COMP_ICE'] = case.get_value("COMP_ICE")
@@ -230,8 +229,11 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
                 if case.get_value(item + "_NX") == "0" and case.get_value(item + "_NY") == "0":
                     valid = False
         # special case - mosart or rtm in NULL mode
-        elif (case.get_value("COMP_ROF") == 'mosart' or case.get_value("COMP_ROF") == 'rtm'):
-            if (case.get_value("MOSART_MODE") == 'NULL' or case.get_value("RTM_MODE") == 'NULL'):
+        elif comp == "mosart":
+            if case.get_value("MOSART_MODE") == 'NULL':
+                valid = False
+        elif comp == "rtm":
+            if case.get_value("RTM_MODE") == 'NULL':
                 valid = False
         if valid:
             valid_comps.append(item)
