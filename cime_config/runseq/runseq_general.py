@@ -134,8 +134,6 @@ def gen_runseq(case, coupling_times):
         runseq.add_action("ROF -> MED :remapMethod=redist"         , run_rof and not rof_outer_loop)
         runseq.add_action("MED med_phases_diag_atm"                , run_atm and diag_mode)
         runseq.add_action("MED med_phases_diag_ice_med2ice"        , run_ice and diag_mode)
-        runseq.add_action("MED med_phases_diag_accum"              , diag_mode)
-        runseq.add_action("MED med_phases_diag_print"              , diag_mode)
         #------------------
         runseq.leave_time_loop(inner_loop)
         #------------------
@@ -146,6 +144,8 @@ def gen_runseq(case, coupling_times):
             runseq.add_action("OCN -> MED :remapMethod=redist:ignoreUnmatchedIndices=true"         , run_ocn and ocn_outer_loop)
         else:
             runseq.add_action("OCN -> MED :remapMethod=redist"         , run_ocn and ocn_outer_loop)
+        runseq.add_action("MED med_phases_diag_accum"              , diag_mode)
+        runseq.add_action("MED med_phases_diag_print"              , diag_mode)
 
         #------------------
         runseq.leave_time_loop(ocn_outer_loop)

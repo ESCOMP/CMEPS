@@ -188,7 +188,6 @@ contains
     !---------------------------------------
     !--- Count the number of fields outside of scalar data, if zero, then return
     !---------------------------------------
-    print *,__FILE__,__LINE__,sum(is_local%wrap%mesh_info(3)%areas)
     ! Note - the scalar field has been removed from all mediator field bundles - so this is why we check if the
     ! fieldCount is 0 and not 1 here
 
@@ -252,7 +251,6 @@ contains
              dataptr(:) = 0._r8
           end if
        endif
-    print *,__FILE__,__LINE__,sum(is_local%wrap%mesh_info(3)%areas)
 
        !---------------------------------------
        !--- auto merges to create FBExp(comprof)
@@ -270,7 +268,6 @@ contains
             is_local%wrap%FBImpAccum(:,comprof), &
             fldListTo(comprof), rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-    print *,__FILE__,__LINE__,sum(is_local%wrap%mesh_info(3)%areas)
 
        if (dbug_flag > 1) then
           call FB_diagnose(is_local%wrap%FBExp(comprof), &
@@ -287,7 +284,6 @@ contains
        call FB_reset(is_local%wrap%FBImpAccum(complnd,complnd), value=czero, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    print *,__FILE__,__LINE__,sum(is_local%wrap%mesh_info(3)%areas)
        !---------------------------------------
        !--- custom calculations
        !---------------------------------------
@@ -297,7 +293,6 @@ contains
        !---------------------------------------
 
     endif
-         print *,__FILE__,__LINE__,sum(is_local%wrap%mesh_info(3)%areas)
     if (dbug_flag > 20) then
        call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
     end if

@@ -108,8 +108,6 @@ contains
     call FB_getNumFlds(is_local%wrap%FBExp(complnd), trim(subname)//"FBexp(complnd)", ncnt, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    print *,__FILE__,__LINE__,complnd,sum(is_local%wrap%mesh_info(complnd)%areas)
-
     if (ncnt > 0) then
 
        !---------------------------------------

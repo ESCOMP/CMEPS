@@ -967,7 +967,6 @@ contains
     ! use netcdf here since it's serial
     status = nf90_open(restart_file, NF90_NOWRITE, ncid)
     if (status /= nf90_NoErr) then
-       print *,__FILE__,__LINE__,trim(restart_file)
        call ESMF_LogWrite(trim(subname)//' ERROR: nf90_open', ESMF_LOGMSG_INFO)
        rc = ESMF_FAILURE
        return

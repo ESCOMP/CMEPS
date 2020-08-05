@@ -1759,7 +1759,6 @@ contains
             is_local%wrap%FBExpAccumCnt(n1) = 0
 
             ! Create mesh info data
-            write(6,*)'DEBUG: calling med_meshinfo_create for ',n1,trim(compname(n1))
             call med_meshinfo_create(is_local%wrap%FBImpAccum(n1,n1), &
                  is_local%wrap%mesh_info(n1), rc=rc)
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -1794,7 +1793,6 @@ contains
 
             endif
          enddo ! loop over n2
-         print *,__FILE__,__LINE__,sum(is_local%wrap%mesh_info(3)%areas)
 
       enddo ! loop over n1
 
@@ -2328,7 +2326,6 @@ contains
     call ESMF_FieldGet(lfield, farrayPtr=dataptr, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     mesh_info%areas = dataptr
-    print *,__FILE__,__LINE__,sum(mesh_info%areas)
 
     allocate(mesh_info%lats(numOwnedElements))
     allocate(mesh_info%lons(numOwnedElements))

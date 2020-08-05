@@ -22,7 +22,7 @@ module med_diag_mod
   use ESMF                  , only : ESMF_VM, ESMF_VMReduce, ESMF_REDUCE_SUM
   use ESMF                  , only : ESMF_GridCompGet, ESMF_ClockGet, ESMF_TimeGet
   use ESMF                  , only : ESMF_Alarm, ESMF_ClockGetAlarm, ESMF_AlarmIsRinging
-  use ESMF                  , only : ESMF_FieldBundle
+  use ESMF                  , only : ESMF_FieldBundle, ESMF_AlarmRingerOff
   use ESMF                  , only : operator(==)
   use shr_sys_mod           , only : shr_sys_abort
   use shr_const_mod         , only : shr_const_rearth, shr_const_pi, shr_const_latice
@@ -217,9 +217,8 @@ module med_diag_mod
   real(r8), allocatable :: budget_local  (:,:,:) ! local sum, valid on all pes
   real(r8), allocatable :: budget_global (:,:,:) ! global sum, valid only on root pe
   real(r8), allocatable :: budget_counter(:,:,:) ! counter, valid only on root pe
-  real(r8), allocatable :: budget_local_1d(:)    ! needed for ESMF_VMReduce call
   real(r8), allocatable :: budget_global_1d(:)   ! needed for ESMF_VMReduce call
-
+  type(ESMF_Time)       :: prevtime              ! make sure diags are only printed once in a given model time
 
   character(len=*), parameter :: modName   = "(med_diag) "
   character(len=*), parameter :: u_FILE_u  = &
@@ -244,6 +243,8 @@ contains
     integer       :: c_size  ! number of component send/recvs
     integer       :: f_size  ! number of fields
     integer       :: p_size  ! number of period types
+    type(ESMF_Clock) :: clock
+
     ! ------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -343,7 +344,6 @@ contains
     allocate(budget_local    (f_size , c_size , p_size)) ! local sum, valid on all pes
     allocate(budget_global   (f_size , c_size , p_size)) ! global sum, valid only on root pe
     allocate(budget_counter  (f_size , c_size , p_size)) ! counter, valid only on root pe
-    allocate(budget_local_1d (f_size * c_size * p_size)) ! needed for ESMF_VMReduce call
     allocate(budget_global_1d(f_size * c_size * p_size)) ! needed for ESMF_VMReduce call
     !-------------------------------------------------------------------------------
     ! Get config variables
@@ -372,6 +372,13 @@ contains
     call NUOPC_CompAttributeGet(gcomp, name='budget_ltend', value=cvalue, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     read(cvalue,*) budget_print_ltend
+
+    ! Get time info
+    call ESMF_GridCompGet(gcomp, clock=clock, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call ESMF_ClockGet( clock, currTime=prevTime, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
    end subroutine med_diag_init
 
@@ -485,6 +492,9 @@ contains
        budget_local(:,:,ip) = budget_local(:,:,ip) + budget_local(:,:,period_inst)
     enddo
     budget_counter(:,:,:) = budget_counter(:,:,:) + 1.0_r8
+    print *,__FILE__,__LINE__,budget_counter(f_area,:,1)
+
+    write(logunit,*) 'DEBUG diag_accum',budget_counter(1,1,1)
 
   end subroutine med_phases_diag_accum
 
@@ -502,7 +512,6 @@ contains
 
     ! local variables
     type(ESMF_VM) :: vm
-    integer       :: nf,nc,np,n
     integer       :: count
     integer       :: c_size  ! number of component send/recvs
     integer       :: f_size  ! number of fields
@@ -519,31 +528,12 @@ contains
     c_size = size(budget_diags%comps)
     p_size = size(budget_diags%periods)
 
-    n = 0
-    do np = 1,p_size
-       do nc = 1,c_size
-          do nf = 1,f_size
-             n = n + 1
-             budget_local_1d(n) = budget_local(nf,nc,np)
-          end do
-       end do
-    end do
-    !budget_local_1d = reshape(budget_local,(/1/))
-
-    count  = size(budget_global_1d)
+    count  = size(budget_global)
     budget_global_1d(:) = 0.0_r8
-    call ESMF_VMReduce(vm, budget_local_1d, budget_global_1d, count, ESMF_REDUCE_SUM, 0, rc=rc)
+    call ESMF_VMReduce(vm, reshape(budget_local,(/count/)) , budget_global_1d, count, ESMF_REDUCE_SUM, 0, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    n = 0
-    do np = 1,p_size
-       do nc = 1,c_size
-          do nf = 1,f_size
-             n = n + 1
-             budget_global(nf,nc,np) = budget_global_1d(n)
-          end do
-       end do
-    end do
+    budget_global = reshape(budget_global_1d,(/f_size,c_size,p_size/))
 
     budget_local(:,:,:) = 0.0_r8
 
@@ -593,7 +583,7 @@ contains
 
     areas => is_local%wrap%mesh_info(compatm)%areas
     lats  => is_local%wrap%mesh_info(compatm)%lats
-    print *,__FILE__,__LINE__,compatm,sum(areas)
+
     !-------------------------------
     ! from atm to mediator
     !-------------------------------
@@ -809,7 +799,7 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     areas => is_local%wrap%mesh_info(complnd)%areas
-    print *,__FILE__,__LINE__,complnd,sum(areas)
+
     !-------------------------------
     ! from land to mediator
     !-------------------------------
@@ -979,7 +969,7 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     areas => is_local%wrap%mesh_info(comprof)%areas
-    print *,__FILE__,__LINE__,comprof,sum(areas)
+
     !-------------------------------
     ! from river to mediator
     !-------------------------------
@@ -1124,8 +1114,7 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     areas => is_local%wrap%mesh_info(compglc)%areas
-    print *,__FILE__,__LINE__,compglc,sum(areas)
-    print *,__FILE__,__LINE__,sum(is_local%wrap%mesh_info(3)%areas)
+
     !-------------------------------
     ! from glc to mediator
     !-------------------------------
@@ -1214,7 +1203,6 @@ contains
     sfrac(:) = ifrac(:) + ofrac(:)
 
     areas => is_local%wrap%mesh_info(compocn)%areas
-    print *,__FILE__,__LINE__,compocn,sum(areas)
 
     !-------------------------------
     ! from ocn to mediator
@@ -1222,7 +1210,6 @@ contains
 
     ip = period_inst
     ic = c_ocn_recv
-
     do n = 1,size(ofrac)
        budget_local(f_area,ic,ip) = budget_local(f_area,ic,ip) + areas(n)*ofrac(n)
     end do
@@ -1387,7 +1374,6 @@ contains
 
     areas => is_local%wrap%mesh_info(compice)%areas
     lats  => is_local%wrap%mesh_info(compice)%lats
-    print *,__FILE__,__LINE__,compice,sum(areas)
 
     ip = period_inst
 
@@ -1557,7 +1543,6 @@ contains
 
     areas => is_local%wrap%mesh_info(compice)%areas
     lats  => is_local%wrap%mesh_info(compice)%lats
-    print *,__FILE__,__LINE__,compice,sum(areas)
 
     ip = period_inst
 
@@ -1748,6 +1733,8 @@ contains
     call ESMF_TimeGet( currTime, yy=curr_year, mm=curr_mon, dd=curr_day, s=curr_tod, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     cdate = curr_year*10000 + curr_mon*100 + curr_day
+    if( currtime == prevtime )return
+    prevtime = currtime
 
     sumdone = .false.
     do ip = 1,size(budget_diags%periods)
@@ -1774,6 +1761,8 @@ contains
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           if (ESMF_AlarmIsRinging(stop_alarm, rc=rc)) then
              output_level = max(output_level, budget_print_ltend)
+             call ESMF_AlarmRingerOff( stop_alarm, rc=rc )
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
           endif
        endif
 
@@ -1781,8 +1770,6 @@ contains
           call ESMF_TimeGet(currtime,yy=yr, mm=mon, dd=day, s=sec, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           write(currtimestr,'(i4.4,a,i2.2,a,i2.2,a,i5.5)') yr,'-',mon,'-',day,'-',sec
-
-          write(logunit,*) 'DEBUG print diags ',output_level, ip, period_inf
           write(logunit,' (a)') trim(subname)//": currtime = "//trim(currtimestr)
        endif
        ! Currently output_level is limited to levels of 0,1,2, 3
@@ -1791,7 +1778,6 @@ contains
        if (output_level > 0) then
           if (.not. sumdone) then
              ! Some budgets will be printed for this period type
-
              ! Determine sums if not already done
              call med_diag_sum_master(gcomp, rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -1812,7 +1798,9 @@ contains
              if ( flds_wiso ) then
                 datagpr(iso0(1):isof(nisotopes),:,:) = datagpr(iso0(1):isof(nisotopes),:,:) * 1.0e6_r8
              end if
-             datagpr(:,:,:) = datagpr/budget_counter(:,:,:)
+             datagpr(:,:,:) = datagpr(:,:,:)/budget_counter(:,:,:)
+             print *,__FILE__,__LINE__,datagpr(f_area,:,1)
+             print *,__FILE__,__LINE__,budget_counter(f_area,:,1)
 
              ! Write diagnostic tables to logunit (mastertask only)
              if (output_level >= 3) then
