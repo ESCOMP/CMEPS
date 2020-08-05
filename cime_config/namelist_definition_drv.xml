@@ -2148,6 +2148,9 @@
     </values>
   </entry>
 
+  <!-- =========================== -->
+  <!-- GLC Attributes            -->
+  <!-- =========================== -->
   <entry  id="cism_evolve" modify_via_xml="CISM_EVOLVE">
     <type>logical</type>
     <category>flds</category>
@@ -2158,22 +2161,6 @@
     <values>
      <value>.false.</value>
      <value COMP_GLC="cism">$CISM_EVOLVE</value>
-    </values>
-  </entry>
-
-  <!-- =========================== -->
-  <!-- GLC Attributes            -->
-  <!-- =========================== -->
-
-  <entry  id="cism_evolve" modify_via_xml="CISM_EVOLVE">
-    <type>logical</type>
-    <category>flds</category>
-    <group>GLC_attributes</group>
-    <desc>
-      False => CISM does not evolve but only sends initial information back to CTSM
-    </desc>
-    <values>
-      <value>$CISM_EVOLVE</value>
     </values>
   </entry>
 

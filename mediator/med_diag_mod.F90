@@ -23,6 +23,7 @@ module med_diag_mod
   use ESMF                  , only : ESMF_GridCompGet, ESMF_ClockGet, ESMF_TimeGet
   use ESMF                  , only : ESMF_Alarm, ESMF_ClockGetAlarm, ESMF_AlarmIsRinging
   use ESMF                  , only : ESMF_FieldBundle
+  use ESMF                  , only : operator(==)
   use shr_sys_mod           , only : shr_sys_abort
   use shr_const_mod         , only : shr_const_rearth, shr_const_pi, shr_const_latice
   use shr_const_mod         , only : shr_const_ice_ref_sal, shr_const_ocn_ref_sal, shr_const_isspval
@@ -31,7 +32,7 @@ module med_diag_mod
   use med_methods_mod       , only : FB_FldChk    => med_methods_FB_FldChk
   use med_methods_mod       , only : FB_GetFldPtr => med_methods_FB_GetFldPtr
   use med_utils_mod         , only : chkerr       => med_utils_ChkErr
- 
+
   implicit none
   private
 
@@ -344,7 +345,6 @@ contains
     allocate(budget_counter  (f_size , c_size , p_size)) ! counter, valid only on root pe
     allocate(budget_local_1d (f_size * c_size * p_size)) ! needed for ESMF_VMReduce call
     allocate(budget_global_1d(f_size * c_size * p_size)) ! needed for ESMF_VMReduce call
-
     !-------------------------------------------------------------------------------
     ! Get config variables
     !-------------------------------------------------------------------------------
@@ -593,7 +593,7 @@ contains
 
     areas => is_local%wrap%mesh_info(compatm)%areas
     lats  => is_local%wrap%mesh_info(compatm)%lats
-
+    print *,__FILE__,__LINE__,compatm,sum(areas)
     !-------------------------------
     ! from atm to mediator
     !-------------------------------
@@ -809,14 +809,13 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     areas => is_local%wrap%mesh_info(complnd)%areas
-
+    print *,__FILE__,__LINE__,complnd,sum(areas)
     !-------------------------------
     ! from land to mediator
     !-------------------------------
 
     ic = c_lnd_recv
     ip = period_inst
-
     do n = 1, size(lfrac)
        budget_local(f_area,ic,ip) = budget_local(f_area,ic,ip) + areas(n)*lfrac(n)
     end do
@@ -980,7 +979,7 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     areas => is_local%wrap%mesh_info(comprof)%areas
-
+    print *,__FILE__,__LINE__,comprof,sum(areas)
     !-------------------------------
     ! from river to mediator
     !-------------------------------
@@ -1125,7 +1124,8 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     areas => is_local%wrap%mesh_info(compglc)%areas
-
+    print *,__FILE__,__LINE__,compglc,sum(areas)
+    print *,__FILE__,__LINE__,sum(is_local%wrap%mesh_info(3)%areas)
     !-------------------------------
     ! from glc to mediator
     !-------------------------------
@@ -1214,6 +1214,7 @@ contains
     sfrac(:) = ifrac(:) + ofrac(:)
 
     areas => is_local%wrap%mesh_info(compocn)%areas
+    print *,__FILE__,__LINE__,compocn,sum(areas)
 
     !-------------------------------
     ! from ocn to mediator
@@ -1386,6 +1387,7 @@ contains
 
     areas => is_local%wrap%mesh_info(compice)%areas
     lats  => is_local%wrap%mesh_info(compice)%lats
+    print *,__FILE__,__LINE__,compice,sum(areas)
 
     ip = period_inst
 
@@ -1555,6 +1557,7 @@ contains
 
     areas => is_local%wrap%mesh_info(compice)%areas
     lats  => is_local%wrap%mesh_info(compice)%lats
+    print *,__FILE__,__LINE__,compice,sum(areas)
 
     ip = period_inst
 
@@ -1724,6 +1727,10 @@ contains
     integer               :: f_size       ! number of fields
     integer               :: p_size       ! number of period types
     real(r8), allocatable :: datagpr(:,:,:)
+    character(len=20)     :: name
+    logical, save         :: firstcall = .true.
+    integer                 :: yr,mon,day,sec ! time units
+    character(len=64)       :: currtimestr
     character(*), parameter :: subName = '(med_phases_diag_print) '
     ! ------------------------------------------------------------------
 
@@ -1734,7 +1741,7 @@ contains
     !-------------------------------------------------------------------------------
 
     ! Get clock and alarm info
-    call ESMF_GridCompGet(gcomp, clock=clock, rc=rc)
+    call ESMF_GridCompGet(gcomp, clock=clock, name=name, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call ESMF_ClockGet( clock, currTime=currTime, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -1770,8 +1777,16 @@ contains
           endif
        endif
 
+       if(mastertask) then
+          call ESMF_TimeGet(currtime,yy=yr, mm=mon, dd=day, s=sec, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          write(currtimestr,'(i4.4,a,i2.2,a,i2.2,a,i5.5)') yr,'-',mon,'-',day,'-',sec
+
+          write(logunit,*) 'DEBUG print diags ',output_level, ip, period_inf
+          write(logunit,' (a)') trim(subname)//": currtime = "//trim(currtimestr)
+       endif
        ! Currently output_level is limited to levels of 0,1,2, 3
-       ! (see comment for print obtains at top)
+       ! (see comment for print options at top)
 
        if (output_level > 0) then
           if (.not. sumdone) then
@@ -2085,7 +2100,7 @@ contains
        if ( flds_wiso ) then
           do is = 1, nisotopes
 
-             ! heat budgets atm<->lnd, atm<->ocn, atm<->ice_nh, atm<->ice_sh for water isotopes
+            ! heat budgets atm<->lnd, atm<->ocn, atm<->ice_nh, atm<->ice_sh for water isotopes
 
              write(logunit,*) ' '
              write(logunit,FAH) subname,trim(str)//isoname(is)//' WATER BUDGET (kg/m2s*1e6): period = ',&

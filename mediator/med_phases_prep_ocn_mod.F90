@@ -215,6 +215,7 @@ contains
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+    print *,__FILE__,__LINE__,sum(is_local%wrap%mesh_info(3)%areas)
     ! Count the number of fields outside of scalar data, if zero, then return
     call FB_getNumFlds(is_local%wrap%FBExp(compocn), trim(subname)//"FBexp(compocn)", ncnt, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -233,6 +234,7 @@ contains
        end if
     endif
 
+    print *,__FILE__,__LINE__,sum(is_local%wrap%mesh_info(3)%areas)
     if (dbug_flag > 20) then
        call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
     end if

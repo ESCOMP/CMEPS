@@ -20,6 +20,7 @@ def gen_runseq(case, coupling_times):
     cpl_seq_option = case.get_value('CPL_SEQ_OPTION')
     cpl_add_aoflux = case.get_value('ADD_AOFLUX_TO_RUNSEQ')
     coupling_mode  = case.get_value('COUPLING_MODE')
+    diag_mode      = case.get_value('BUDGETS')
 
     # It is assumed that if a component will be run it will send information to the mediator
     # so the flags run_xxx and xxx_to_med are redundant
@@ -61,6 +62,7 @@ def gen_runseq(case, coupling_times):
         runseq.add_action("MED med_phases_prep_glc_avg"    , med_to_glc)
         runseq.add_action("MED -> GLC :remapMethod=redist" , med_to_glc)
         runseq.add_action("GLC"                            , run_glc and med_to_glc)
+        runseq.add_action("MED med_phases_diag_glc"        , run_glc and diag_mode)
         runseq.add_action("GLC -> MED :remapMethod=redist" , run_glc)
 
         #------------------
@@ -116,8 +118,12 @@ def gen_runseq(case, coupling_times):
             runseq.add_action("MED med_phases_prep_ocn_accum_fast" , med_to_ocn)
             runseq.add_action("MED med_phases_ocnalb_run"          , run_ocn and run_atm)
         runseq.add_action("LND -> MED :remapMethod=redist"         , run_lnd)
+        runseq.add_action("MED med_phases_diag_lnd"                , run_lnd and diag_mode)
+        runseq.add_action("MED med_phases_diag_rof"                , run_rof and diag_mode)
+        runseq.add_action("MED med_phases_diag_ice_ice2med"        , run_ice and diag_mode)
         runseq.add_action("ICE -> MED :remapMethod=redist"         , run_ice)
         runseq.add_action("MED med_fraction_set"                   , run_ice)
+
         runseq.add_action("MED med_phases_prep_rof_accum"          , med_to_rof)
         runseq.add_action("MED med_phases_prep_glc_accum"          , med_to_glc)
         runseq.add_action("MED med_phases_prep_atm"                , med_to_atm)
@@ -126,12 +132,16 @@ def gen_runseq(case, coupling_times):
         runseq.add_action("ATM -> MED :remapMethod=redist"         , run_atm)
         runseq.add_action("WAV -> MED :remapMethod=redist"         , run_wav)
         runseq.add_action("ROF -> MED :remapMethod=redist"         , run_rof and not rof_outer_loop)
-
+        runseq.add_action("MED med_phases_diag_atm"                , run_atm and diag_mode)
+        runseq.add_action("MED med_phases_diag_ice_med2ice"        , run_ice and diag_mode)
+        runseq.add_action("MED med_phases_diag_accum"              , diag_mode)
+        runseq.add_action("MED med_phases_diag_print"              , diag_mode)
         #------------------
         runseq.leave_time_loop(inner_loop)
         #------------------
 
         runseq.add_action("OCN"                                    , run_ocn and ocn_outer_loop)
+        runseq.add_action("MED med_phases_diag_ocn"                , run_ocn and diag_mode and ocn_outer_loop)
         if coupling_mode == 'hafs':
             runseq.add_action("OCN -> MED :remapMethod=redist:ignoreUnmatchedIndices=true"         , run_ocn and ocn_outer_loop)
         else:
