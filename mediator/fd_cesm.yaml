@@ -282,6 +282,10 @@
        canonical_units: W m-2
        description: atmosphere export
      #
+     - standard_name: Faxa_lwnet
+       canonical_units: W m-2
+       description: atmosphere export
+     #
      - standard_name: Faxa_swndf
        alias: mean_down_sw_ir_dif_flx
        canonical_units: W m-2
@@ -349,6 +353,11 @@
        canonical_units: K
        description: atmosphere export - bottom layer temperature
      #
+     - standard_name: Sa_tskn
+       alias: inst_temp_skin_temperature
+       canonical_units: K
+       description: atmosphere export - sea surface skin temperature
+     #
      - standard_name: Sa_u
        alias: inst_zonal_wind_height_lowest
        canonical_units: m s-1
@@ -358,6 +367,11 @@
        alias: inst_merid_wind_height_lowest
        canonical_units: m s-1
        description: atmosphere export - bottom layer meridional wind
+     #
+     - standard_name: Sa_wspd
+       alias: inst_wind_speed_height_lowest
+       canonical_units: m s-1
+       description: atmosphere export - bottom layer wind speed
      #
      - standard_name: Sa_z
        alias: inst_height_lowest

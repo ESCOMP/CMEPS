@@ -996,6 +996,33 @@
     </desc>
   </entry>
 
+  <entry id="ESMF_VERBOSITY_LEVEL">
+    <type>char</type>
+    <valid_values>off,low,high,max</valid_values>
+    <default_value>low</default_value>
+    <group>run_flags</group>
+    <file>env_run.xml</file>
+    <desc>
+      Determines the verbosity level in ESMF log files
+      "off": no verbosity
+      "low": some verbosity
+      "high": more verbosity
+      "max": all lower 16 bits
+      By default, the verbosity level is set to "low"
+    </desc>
+  </entry>
+
+  <entry id="ESMF_PROFILING_LEVEL">
+    <type>char</type>
+    <default_value>0</default_value>
+    <group>run_flags</group>
+    <file>env_run.xml</file>
+    <desc>
+      Determines the profiling level in ESMF log files
+      by default, it is set to 0 (only run method execution timings)
+    </desc>
+  </entry>
+
   <entry id="COMP_RUN_BARRIERS">
     <type>logical</type>
     <valid_values>TRUE,FALSE</valid_values>
@@ -2570,6 +2597,19 @@
    <group>run_debug</group>
    <file>env_run.xml</file>
    <desc>if true, create ESMF PET log files even if there is no error encountered </desc>
+ </entry>
+
+  <!-- ===================================================================== -->
+  <!-- write ESMF PET log files even without an error -->
+  <!-- ===================================================================== -->
+
+ <entry id="ADD_AOFLUX_TO_RUNSEQ">
+   <type>logical</type>
+   <valid_values>TRUE,FALSE</valid_values>
+   <default_value>TRUE</default_value>
+   <group>run_coupling</group>
+   <file>env_run.xml</file>
+   <desc>add aoflux calculation to runseq</desc>
  </entry>
 
  <help>
