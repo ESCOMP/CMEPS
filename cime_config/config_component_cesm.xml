@@ -222,11 +222,6 @@
       <value compset="_DATM.*_DICE.*_MOM6">24</value>
       <!-- TODO: currently a NUOPC runseqency cannot be generated with the ATM_NCPL < OCN_NCPL - as is the case -->
       <!-- with the POP2 C compset run sequence - for now will set these to be the same as MOM6 -->
-      <!-- <value compset="_DATM.*_DICE.*_POP2">4</value> -->
-      <!-- <value compset="_DATM.*_DICE.*_POP2.*_WW3">4</value> -->
-      <!-- <value compset="_DATM.*_DICE.*_MOM6.*_WW3">4</value> -->
-      <!-- <value compset="_DATM.*_DICE.*_POP2.*_DWAV">4</value> -->
-      <!-- <value compset="_DATM.*_DICE.*_MOM6.*_DWAV">4</value> -->
       <!-- =================================================== -->
       <!-- G compsets -->
       <!-- =================================================== -->
