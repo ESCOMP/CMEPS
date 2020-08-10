@@ -23,7 +23,6 @@ module med_diag_mod
   use ESMF                  , only : ESMF_GridCompGet, ESMF_ClockGet, ESMF_TimeGet
   use ESMF                  , only : ESMF_Alarm, ESMF_ClockGetAlarm, ESMF_AlarmIsRinging
   use ESMF                  , only : ESMF_FieldBundle, ESMF_AlarmRingerOff
-  use ESMF                  , only : operator(==)
   use shr_sys_mod           , only : shr_sys_abort
   use shr_const_mod         , only : shr_const_rearth, shr_const_pi, shr_const_latice
   use shr_const_mod         , only : shr_const_ice_ref_sal, shr_const_ocn_ref_sal, shr_const_isspval
@@ -218,7 +217,6 @@ module med_diag_mod
   real(r8), allocatable :: budget_global (:,:,:) ! global sum, valid only on root pe
   real(r8), allocatable :: budget_counter(:,:,:) ! counter, valid only on root pe
   real(r8), allocatable :: budget_global_1d(:)   ! needed for ESMF_VMReduce call
-  type(ESMF_Time)       :: prevtime              ! make sure diags are only printed once in a given model time
 
   character(len=*), parameter :: modName   = "(med_diag) "
   character(len=*), parameter :: u_FILE_u  = &
@@ -243,8 +241,6 @@ contains
     integer       :: c_size  ! number of component send/recvs
     integer       :: f_size  ! number of fields
     integer       :: p_size  ! number of period types
-    type(ESMF_Clock) :: clock
-
     ! ------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -373,13 +369,6 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     read(cvalue,*) budget_print_ltend
 
-    ! Get time info
-    call ESMF_GridCompGet(gcomp, clock=clock, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    call ESMF_ClockGet( clock, currTime=prevTime, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
    end subroutine med_diag_init
 
   !===============================================================================
@@ -492,7 +481,6 @@ contains
        budget_local(:,:,ip) = budget_local(:,:,ip) + budget_local(:,:,period_inst)
     enddo
     budget_counter(:,:,:) = budget_counter(:,:,:) + 1.0_r8
-    print *,__FILE__,__LINE__,budget_counter(f_area,:,1)
 
     write(logunit,*) 'DEBUG diag_accum',budget_counter(1,1,1)
 
@@ -533,7 +521,14 @@ contains
     call ESMF_VMReduce(vm, reshape(budget_local,(/count/)) , budget_global_1d, count, ESMF_REDUCE_SUM, 0, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+    print *,__FILE__,__LINE__,budget_local(f_area,c_ocn_asend,period_inst)
+    print *,__FILE__,__LINE__,budget_local(f_area,c_ocn_asend,:)
+
     budget_global = reshape(budget_global_1d,(/f_size,c_size,p_size/))
+    if(mastertask) then
+       print *,__FILE__,__LINE__,budget_global(f_area,c_ocn_asend,:)
+    endif
+
 
     budget_local(:,:,:) = 0.0_r8
 
@@ -1733,8 +1728,10 @@ contains
     call ESMF_TimeGet( currTime, yy=curr_year, mm=curr_mon, dd=curr_day, s=curr_tod, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     cdate = curr_year*10000 + curr_mon*100 + curr_day
-    if( currtime == prevtime )return
-    prevtime = currtime
+    if(mastertask) then
+       write(currtimestr,'(i4.4,a,i2.2,a,i2.2,a,i5.5)') curr_year,'-',curr_mon,'-',curr_day,'-',curr_tod
+       write(logunit,' (a)') trim(subname)//": currtime = "//trim(currtimestr)
+    endif
 
     sumdone = .false.
     do ip = 1,size(budget_diags%periods)
@@ -1765,62 +1762,55 @@ contains
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           endif
        endif
-
-       if(mastertask) then
-          call ESMF_TimeGet(currtime,yy=yr, mm=mon, dd=day, s=sec, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          write(currtimestr,'(i4.4,a,i2.2,a,i2.2,a,i5.5)') yr,'-',mon,'-',day,'-',sec
-          write(logunit,' (a)') trim(subname)//": currtime = "//trim(currtimestr)
-       endif
-       ! Currently output_level is limited to levels of 0,1,2, 3
-       ! (see comment for print options at top)
-
-       if (output_level > 0) then
-          if (.not. sumdone) then
-             ! Some budgets will be printed for this period type
-             ! Determine sums if not already done
-             call med_diag_sum_master(gcomp, rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-             sumdone = .true.
-          end if
-
-          if (mastertask) then
-             c_size = size(budget_diags%comps)
-             f_size = size(budget_diags%fields)
-             p_size = size(budget_diags%periods)
-             allocate(datagpr(f_size, c_size, p_size))
-             datagpr(:,:,:) = budget_global(:,:,:)
-
-             ! budget normalizations (global area and 1e6 for water)
-             datagpr = datagpr/(4.0_r8*shr_const_pi)
-             datagpr(f_watr_beg:f_watr_end,:,:) = datagpr(f_watr_beg:f_watr_end,:,:) * 1.0e6_r8
-             if ( flds_wiso ) then
-                datagpr(iso0(1):isof(nisotopes),:,:) = datagpr(iso0(1):isof(nisotopes),:,:) * 1.0e6_r8
-             end if
-             datagpr(:,:,:) = datagpr(:,:,:)/budget_counter(:,:,:)
-             print *,__FILE__,__LINE__,datagpr(f_area,:,1)
-             print *,__FILE__,__LINE__,budget_counter(f_area,:,1)
-
-             ! Write diagnostic tables to logunit (mastertask only)
-             if (output_level >= 3) then
-                ! detail atm budgets and breakdown into components ---
-                call med_diag_print_atm(datagpr, ip, cdate, curr_tod)
-             end if
-             if (output_level >= 2) then
-                ! detail lnd/ocn/ice component budgets ----
-                call med_diag_print_lnd_ice_ocn(datagpr, ip, cdate, curr_tod)
-             end if
-             if (output_level >= 1) then
-                ! net summary budgets
-                call med_diag_print_summary(datagpr, ip, cdate, curr_tod)
-             endif
-             write(logunit,*) ' '
-
-             deallocate(datagpr)
-          endif ! output_level > 0 and mastertask
-       end if ! if mastertask
+       if (output_level > 0) exit
     enddo  ! ip = 1, period_types
+
+    ! Currently output_level is limited to levels of 0,1,2, 3
+    ! (see comment for print options at top)
+
+    if (output_level > 0) then
+       if (.not. sumdone) then
+          ! Some budgets will be printed for this period type
+          ! Determine sums if not already done
+          call med_diag_sum_master(gcomp, rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+          sumdone = .true.
+       end if
+
+       if (mastertask) then
+          c_size = size(budget_diags%comps)
+          f_size = size(budget_diags%fields)
+          p_size = size(budget_diags%periods)
+          allocate(datagpr(f_size, c_size, p_size))
+          datagpr(:,:,:) = budget_global(:,:,:)
+
+          ! budget normalizations (global area and 1e6 for water)
+          datagpr = datagpr/(4.0_r8*shr_const_pi)
+          datagpr(f_watr_beg:f_watr_end,:,:) = datagpr(f_watr_beg:f_watr_end,:,:) * 1.0e6_r8
+          if ( flds_wiso ) then
+             datagpr(iso0(1):isof(nisotopes),:,:) = datagpr(iso0(1):isof(nisotopes),:,:) * 1.0e6_r8
+          end if
+          datagpr(:,:,:) = datagpr(:,:,:)/budget_counter(:,:,:)
+
+          ! Write diagnostic tables to logunit (mastertask only)
+          if (output_level >= 3) then
+             ! detail atm budgets and breakdown into components ---
+             call med_diag_print_atm(datagpr, ip, cdate, curr_tod)
+          end if
+          if (output_level >= 2) then
+             ! detail lnd/ocn/ice component budgets ----
+             call med_diag_print_lnd_ice_ocn(datagpr, ip, cdate, curr_tod)
+          end if
+          if (output_level >= 1) then
+             ! net summary budgets
+             call med_diag_print_summary(datagpr, ip, cdate, curr_tod)
+          endif
+          write(logunit,*) ' '
+
+          deallocate(datagpr)
+       endif ! output_level > 0 and mastertask
+    end if ! if mastertask
 
     !-------------------------------------------------------------------------------
     ! Zero budget data
