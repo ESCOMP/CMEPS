@@ -195,7 +195,7 @@ contains
     ! ---------------------------------------------------------------------
     if (phase /= 'advertise') then
       allocate(flds(6))
-      flds = (/'Sa_u', 'Sa_v', 'Sa_z', 'Sa_tbot', 'Sa_pbot', 'Sa_shum'/)
+      flds = (/'Sa_u   ', 'Sa_v   ', 'Sa_z   ', 'Sa_tbot', 'Sa_pbot', 'Sa_shum'/)
       do n = 1,size(flds)
          fldname = trim(flds(n))
          call addfld(fldListFr(compatm)%flds, trim(fldname))
@@ -294,7 +294,7 @@ contains
     deallocate(flds)
 
     allocate(flds(4))
-    flds = (/'Sa_topo', 'Sa_z', 'Sa_ptem', 'Sa_pbot'/)
+    flds = (/'Sa_topo', 'Sa_z   ', 'Sa_ptem', 'Sa_pbot'/)
 
     do n = 1,size(flds)
        fldname = trim(flds(n))
@@ -331,7 +331,7 @@ contains
     ! to ocn: downward diffuse visible incident solar radiation from atm
     ! ---------------------------------------------------------------------
     allocate(flds(5))
-    flds = (/'Faxa_lwdn', 'Faxa_swndr', 'Faxa_swndf', 'Faxa_swvdr', 'Faxa_swvdf'/)
+    flds = (/'Faxa_lwdn ', 'Faxa_swndr', 'Faxa_swndf', 'Faxa_swvdr', 'Faxa_swvdf'/)
 
     do n = 1,size(flds)
        fldname = trim(flds(n))
@@ -377,7 +377,7 @@ contains
     end if
 
     ! ---------------------------------------------------------------------
-    ! to ocn: net shortwave radiation from atm 
+    ! to ocn: net shortwave radiation from atm
     ! ---------------------------------------------------------------------
     if (phase == 'advertise') then
        call addfld(fldListFr(compatm)%flds, 'Faxa_swnet')
@@ -447,7 +447,7 @@ contains
     ! to ocn: specific humidity at the lowest model level from atm
     ! ---------------------------------------------------------------------
     allocate(flds(7))
-    flds = (/'Sa_pslv', 'Sa_u', 'Sa_v', 'Sa_wspd', 'Sa_tbot', 'Sa_tskn', 'Sa_shum'/)
+    flds = (/'Sa_pslv', 'Sa_u   ', 'Sa_v   ', 'Sa_wspd', 'Sa_tbot', 'Sa_tskn', 'Sa_shum'/)
 
     do n = 1,size(flds)
        fldname = trim(flds(n))
@@ -463,7 +463,7 @@ contains
           end if
        end if
     end do
-    deallocate(flds)    
+    deallocate(flds)
 
     ! ---------------------------------------------------------------------
     ! to ocn: zonal and meridional surface stress from atm
