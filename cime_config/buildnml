@@ -10,7 +10,8 @@ import shutil, glob, itertools
 from standard_script_setup import *
 from CIME.case import Case
 from CIME.nmlgen import NamelistGenerator
-from CIME.utils import expect
+from CIME.namelist import parse
+from CIME.utils import expect, safe_copy
 from CIME.utils import get_model, get_time_in_seconds, get_timestamp
 from CIME.buildnml import create_namelist_infile, parse_input
 from CIME.XML.files import Files
@@ -364,8 +365,8 @@ def _create_runseq(case, coupling_times, valid_comps):
     if os.path.exists(user_file):
 
         # Determine if there is a user run sequence file in CASEROOT, use it
-        shutil.copy(user_file, rundir)
-        shutil.copy(user_file, os.path.join(caseroot,"CaseDocs"))
+        safe_copy(user_file, rundir)
+        safe_copy(user_file, os.path.join(caseroot,"CaseDocs"))
         logger.info("NUOPC run sequence: copying custom run sequence from case root")
 
     else:
@@ -381,7 +382,7 @@ def _create_runseq(case, coupling_times, valid_comps):
             outfile.write ("@  \n")
             outfile.write (":: \n")
             outfile.close()
-            shutil.copy(os.path.join(caseroot, "CaseDocs", "nuopc.runseq"), rundir)
+            safe_copy(os.path.join(caseroot, "CaseDocs", "nuopc.runseq"), rundir)
 
         else:
 
@@ -551,17 +552,17 @@ def buildnml(case, caseroot, component):
     rundir = case.get_value("RUNDIR")
 
     # copy nuopc.runconfig to rundir
-    shutil.copy(os.path.join(confdir,"drv_in"), rundir)
-    shutil.copy(os.path.join(confdir,"nuopc.runconfig"), rundir)
+    safe_copy(os.path.join(confdir,"drv_in"), rundir)
+    safe_copy(os.path.join(confdir,"nuopc.runconfig"), rundir)
 
     # copy drv_flds_in to rundir
     drv_flds_in = os.path.join(caseroot, "CaseDocs", "drv_flds_in")
     if os.path.isfile(drv_flds_in):
-        shutil.copy(drv_flds_in, rundir)
+        safe_copy(drv_flds_in, rundir)
 
     # copy all *modelio* files to rundir
     for filename in glob.glob(os.path.join(confdir, "*modelio*")):
-        shutil.copy(filename, rundir)
+        safe_copy(filename, rundir)
 
     # copy fd_cesm.yaml to rundir
     cimeroot = case.get_value("CIMEROOT")
@@ -571,7 +572,28 @@ def buildnml(case, caseroot, component):
         filename = os.path.join(fd_dir,"fd_cesm.yaml")
     else:
         filename = os.path.join(fd_dir,"fd_nems.yaml")
-    shutil.copy(filename, os.path.join(rundir, "fd.yaml"))
+    safe_copy(filename, os.path.join(rundir, "fd.yaml"))
+
+    # Look for input.nml.mom and input.nml.fv3 and merge into input.nml
+    foundmom = False
+    foundfv3 = False
+    if os.path.exists(os.path.join(rundir, "input.nml.mom")):
+        foundmom = True
+    if os.path.exists(os.path.join(rundir, "input.nml.fv3")):
+        foundfv3 = True
+    if foundmom and foundfv3:
+        nmlmom = parse(in_file=os.path.join(rundir,"input.nml.mom"))
+        nmlfv3 = parse(in_file=os.path.join(rundir,"input.nml.fv3"))
+        nmlmom.merge_nl(nmlfv3)
+        nmlmom.write(os.path.join(rundir,"input.nml"))
+
+    elif foundmom:
+        symlink_force(os.path.exists(os.path.join(rundir,"input.nml.mom"),os.path.join(rundir,"input.nml"))) 
+    elif foundfv3:
+        symlink_force(os.path.exists(os.path.join(rundir,"input.nml.fv3"),os.path.join(rundir,"input.nml"))) 
+        
+
+
 
 ###############################################################################
 def _main_func():
