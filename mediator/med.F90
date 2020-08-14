@@ -436,6 +436,16 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call ESMF_LogWrite(trim(subname)//": Mediator verbosity is "//trim(cvalue), ESMF_LOGMSG_INFO)
 
+    call ESMF_AttributeGet(gcomp, name="Verbosity", value=value, &
+         convention="NUOPC", purpose="Instance", rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_LogWrite(trim(subname)//": Mediator verbosity is set to "//trim(value), ESMF_LOGMSG_INFO)
+
+    call ESMF_AttributeGet(gcomp, name="Profiling", value=value, &
+         convention="NUOPC", purpose="Instance", rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_LogWrite(trim(subname)//": Mediator profiling is set to "//trim(value), ESMF_LOGMSG_INFO)
+
     ! Obtain dbug_flag setting from MED_attributes if present; otherwise use default value in med_constants
     call NUOPC_CompAttributeGet(gcomp, name='dbug_flag', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
