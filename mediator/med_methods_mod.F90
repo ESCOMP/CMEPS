@@ -2305,7 +2305,6 @@ contains
 
        write (msgString,*) trim(subname)//":"//trim(string)//": distGrid=element"
        call ESMF_LogWrite(msgString, ESMF_LOGMSG_INFO)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        call ESMF_DistGridGet(distgrid, deLayout=deLayout, dimCount=dimCount, &
             tileCount=tileCount, deCount=deCount, rc=rc)
@@ -2313,22 +2312,18 @@ contains
 
        write (msgString,*) trim(subname)//":"//trim(string)//":    dimCount=", dimCount
        call ESMF_LogWrite(msgString, ESMF_LOGMSG_INFO)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        write (msgString,*) trim(subname)//":"//trim(string)//":    tileCount=", tileCount
        call ESMF_LogWrite(msgString, ESMF_LOGMSG_INFO)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        write (msgString,*) trim(subname)//":"//trim(string)//":    deCount=", deCount
        call ESMF_LogWrite(msgString, ESMF_LOGMSG_INFO)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        call ESMF_DELayoutGet(deLayout, localDeCount=localDeCount, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        write (msgString,*) trim(subname)//":"//trim(string)//":    localDeCount=", localDeCount
        call ESMF_LogWrite(msgString, ESMF_LOGMSG_INFO)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        ! allocate minIndexPTile and maxIndexPTile accord. to dimCount and tileCount
        allocate(minIndexPTile(dimCount, tileCount), &
@@ -2357,7 +2352,6 @@ contains
 
        write (msgString,*) trim(subname)//":"//trim(string)//": distGrid=nodal"
        call ESMF_LogWrite(msgString, ESMF_LOGMSG_INFO)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        call ESMF_DistGridGet(distgrid, deLayout=deLayout, dimCount=dimCount, &
             tileCount=tileCount, deCount=deCount, rc=rc)
@@ -2365,22 +2359,18 @@ contains
 
        write (msgString,*) trim(subname)//":"//trim(string)//":    dimCount=", dimCount
        call ESMF_LogWrite(msgString, ESMF_LOGMSG_INFO)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        write (msgString,*) trim(subname)//":"//trim(string)//":    tileCount=", tileCount
        call ESMF_LogWrite(msgString, ESMF_LOGMSG_INFO)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        write (msgString,*) trim(subname)//":"//trim(string)//":    deCount=", deCount
        call ESMF_LogWrite(msgString, ESMF_LOGMSG_INFO)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        call ESMF_DELayoutGet(deLayout, localDeCount=localDeCount, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        write (msgString,*) trim(subname)//":"//trim(string)//":    localDeCount=", localDeCount
        call ESMF_LogWrite(msgString, ESMF_LOGMSG_INFO)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        ! allocate minIndexPTile and maxIndexPTile accord. to dimCount and tileCount
        allocate(minIndexPTile(dimCount, tileCount), &
@@ -2393,11 +2383,9 @@ contains
 
        write (msgString,*) trim(subname)//":"//trim(string)//":    minIndexPTile=", minIndexPTile
        call ESMF_LogWrite(msgString, ESMF_LOGMSG_INFO)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        write (msgString,*) trim(subname)//":"//trim(string)//":    maxIndexPTile=", maxIndexPTile
        call ESMF_LogWrite(msgString, ESMF_LOGMSG_INFO)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        deallocate(minIndexPTile, maxIndexPTile)
 
@@ -2470,7 +2458,6 @@ contains
 
     write (msgString,*) trim(subname)//":"//trim(string)//": localDeCount=", localDeCount
     call ESMF_LogWrite(msgString, ESMF_LOGMSG_INFO)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! get dimCount and tileCount
     call ESMF_DistGridGet(distgrid, dimCount=dimCount, tileCount=tileCount, deCount=deCount, rc=rc)
@@ -2478,15 +2465,12 @@ contains
 
     write (msgString,*) trim(subname)//":"//trim(string)//": dimCount=", dimCount
     call ESMF_LogWrite(msgString, ESMF_LOGMSG_INFO)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     write (msgString,*) trim(subname)//":"//trim(string)//": tileCount=", tileCount
     call ESMF_LogWrite(msgString, ESMF_LOGMSG_INFO)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     write (msgString,*) trim(subname)//":"//trim(string)//": deCount=", deCount
     call ESMF_LogWrite(msgString, ESMF_LOGMSG_INFO)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! allocate minIndexPTile and maxIndexPTile accord. to dimCount and tileCount
     allocate(minIndexPTile(dimCount, tileCount), &
@@ -2499,11 +2483,9 @@ contains
 
     write (msgString,*) trim(subname)//":"//trim(string)//": minIndexPTile=", minIndexPTile
     call ESMF_LogWrite(msgString, ESMF_LOGMSG_INFO)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     write (msgString,*) trim(subname)//":"//trim(string)//": maxIndexPTile=", maxIndexPTile
     call ESMF_LogWrite(msgString, ESMF_LOGMSG_INFO)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     deallocate(minIndexPTile, maxIndexPTile)
 
@@ -2528,7 +2510,6 @@ contains
 
     write (msgString,*) trim(subname)//":"//trim(string)//": rank=", rank
     call ESMF_LogWrite(msgString, ESMF_LOGMSG_INFO)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     do n1 = 1,2
       if (n1 == 1) then
@@ -2546,7 +2527,6 @@ contains
       if (chkerr(rc,__LINE__,u_FILE_u)) return
       write (msgString,*) trim(subname)//":"//trim(staggerstr)//" present=",isPresent
       call ESMF_LogWrite(msgString, ESMF_LOGMSG_INFO)
-      if (chkerr(rc,__LINE__,u_FILE_u)) return
       if (isPresent) then
         do n3 = 0,localDECount-1
         do n2 = 1,dimCount
@@ -2561,7 +2541,6 @@ contains
             write (msgString,'(a,2i4,2f16.8)') trim(subname)//":"//trim(staggerstr)//" coord=",n2,n3,minval(fldptr2),maxval(fldptr2)
           endif
           call ESMF_LogWrite(msgString, ESMF_LOGMSG_INFO)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
         enddo
         enddo
       endif
