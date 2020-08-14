@@ -2238,14 +2238,11 @@ contains
     elseif (lrank == 1) then
       write (msgString,*) trim(subname)//":"//trim(string)//": dataptr bounds dim=1 ",lbound(dataptr1,1),ubound(dataptr1,1)
       call ESMF_LogWrite(msgString, ESMF_LOGMSG_INFO)
-      if (chkerr(rc,__LINE__,u_FILE_u)) return
     elseif (lrank == 2) then
       write (msgString,*) trim(subname)//":"//trim(string)//": dataptr bounds dim=1 ",lbound(dataptr2,1),ubound(dataptr2,1)
       call ESMF_LogWrite(msgString, ESMF_LOGMSG_INFO)
-      if (chkerr(rc,__LINE__,u_FILE_u)) return
       write (msgString,*) trim(subname)//":"//trim(string)//": dataptr bounds dim=2 ",lbound(dataptr2,2),ubound(dataptr2,2)
       call ESMF_LogWrite(msgString, ESMF_LOGMSG_INFO)
-      if (chkerr(rc,__LINE__,u_FILE_u)) return
     elseif (lrank == 0) then
       ! means data allocation does not exist yet
       continue
@@ -2336,11 +2333,9 @@ contains
 
        write (msgString,*) trim(subname)//":"//trim(string)//":    minIndexPTile=", minIndexPTile
        call ESMF_LogWrite(msgString, ESMF_LOGMSG_INFO)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        write (msgString,*) trim(subname)//":"//trim(string)//":    maxIndexPTile=", maxIndexPTile
        call ESMF_LogWrite(msgString, ESMF_LOGMSG_INFO)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        deallocate(minIndexPTile, maxIndexPTile)
 
@@ -2521,7 +2516,6 @@ contains
       else
         rc = ESMF_FAILURE
         call ESMF_LogWrite(trim(subname)//":staggerloc failure", ESMF_LOGMSG_INFO)
-        if (chkerr(rc,__LINE__,u_FILE_u)) return
       endif
       call ESMF_GridGetCoord(grid, staggerloc=staggerloc, isPresent=isPresent, rc=rc)
       if (chkerr(rc,__LINE__,u_FILE_u)) return
