@@ -280,19 +280,19 @@ contains
     if (ncnt > 0) then
 
        ! average ocn accumulator
-       if (dbug_flag > 1) then
+       !if (dbug_flag > 1) then
           call FB_diagnose(is_local%wrap%FBExpAccum(compocn), &
                string=trim(subname)//' FBExpAccum(compocn) before avg ', rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       end if
+       !end if
        call FB_average(is_local%wrap%FBExpAccum(compocn), &
             is_local%wrap%FBExpAccumCnt(compocn), rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       if (dbug_flag > 1) then
-          call FB_diagnose(is_local%wrap%FBExp(compocn), &
+       !if (dbug_flag > 1) then
+          call FB_diagnose(is_local%wrap%FBExpAccum(compocn), &
                string=trim(subname)//' FBExpAccum(compocn) after avg ', rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       end if
+       !end if
 
        ! copy to FBExp(compocn)
        call FB_copy(is_local%wrap%FBExp(compocn), is_local%wrap%FBExpAccum(compocn), rc=rc)
