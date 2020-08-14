@@ -42,13 +42,12 @@ contains
     ! local variables
     type(InternalState) :: is_local
     integer             :: i,j,n,n1,ncnt
-    integer             :: dbrc
     character(len=*),parameter  :: subname='(med_phases_prep_wav)'
     !---------------------------------------
 
     call t_startf('MED:'//subname)
     if (dbug_flag > 5) then
-       call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO, rc=dbrc)
+       call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
     end if
     rc = ESMF_SUCCESS
 
@@ -129,7 +128,7 @@ contains
     endif
 
     if (dbug_flag > 5) then
-       call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO, rc=dbrc)
+       call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
     end if
     call t_stopf('MED:'//subname)
 

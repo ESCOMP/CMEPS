@@ -82,14 +82,13 @@ contains
     ! local variables
     type(InternalState) :: is_local
     integer             :: i,j,n,ncnt
-    integer             :: dbrc
     character(len=*), parameter :: subname='(med_phases_prep_rof_mod: med_phases_prep_rof_accum)'
     !---------------------------------------
 
     call t_startf('MED:'//subname)
 
     if (dbug_flag > 20) then
-       call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO, rc=dbrc)
+       call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
     end if
     rc = ESMF_SUCCESS
 
@@ -108,7 +107,7 @@ contains
     if (.not. ESMF_FieldBundleIsCreated(is_local%wrap%FBImp(complnd,complnd))) then
        ncnt = 0
        call ESMF_LogWrite(trim(subname)//": FBImp(complnd,complnd) is not created", &
-            ESMF_LOGMSG_INFO, rc=dbrc)
+            ESMF_LOGMSG_INFO)
     else 
        ! The scalar field has been removed from all mediator field bundles - so check if the fieldCount is
        ! 0 and not 1 here
@@ -141,7 +140,7 @@ contains
     end if
 
     if (dbug_flag > 20) then
-       call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO, rc=dbrc)
+       call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
     end if
     call t_stopf('MED:'//subname)
 
@@ -167,7 +166,6 @@ contains
     ! local variables
     type(InternalState)         :: is_local
     integer                     :: i,j,n,n1,ncnt
-    integer                     :: dbrc
     logical                     :: connected
     real(r8), pointer           :: dataptr(:)
     character(len=*),parameter  :: subname='(med_phases_prep_rof_mod: med_phases_prep_rof_avg)'
@@ -175,7 +173,7 @@ contains
 
     call t_startf('MED:'//subname)
     if (dbug_flag > 20) then
-       call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO, rc=dbrc)
+       call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
     end if
     rc = ESMF_SUCCESS
 
@@ -200,7 +198,7 @@ contains
     if (ncnt == 0) then
 
        call ESMF_LogWrite(trim(subname)//": only scalar data is present in FBexp(comprof), returning", &
-            ESMF_LOGMSG_INFO, rc=dbrc)
+            ESMF_LOGMSG_INFO)
     else
 
        !---------------------------------------
@@ -298,7 +296,7 @@ contains
     endif
 
     if (dbug_flag > 20) then
-       call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO, rc=dbrc)
+       call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
     end if
     call t_stopf('MED:'//subname)
 
@@ -340,7 +338,6 @@ contains
 
     ! local variables
     integer                     :: r,l
-    integer                     :: dbrc
     type(InternalState)         :: is_local
     real(r8), pointer           :: volr_l(:)
     real(r8), pointer           :: volr_r(:), volr_r_import(:)
@@ -356,7 +353,7 @@ contains
     call t_startf('MED:'//subname)
 
     if (dbug_flag > 20) then
-       call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO, rc=dbrc)
+       call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
     end if
     rc = ESMF_SUCCESS
 
@@ -370,13 +367,13 @@ contains
 
     if (.not. med_map_RH_is_created(is_local%wrap%RH(complnd,comprof,:),mapconsf, rc=rc)) then
        call ESMF_LogWrite(trim(subname)//": ERROR conservativing route handle not created for lnd->rof mapping", &
-            ESMF_LOGMSG_INFO, rc=rc)
+            ESMF_LOGMSG_INFO)
        rc = ESMF_FAILURE
        return
     end if
     if (.not. med_map_RH_is_created(is_local%wrap%RH(comprof,complnd,:),mapconsf, rc=rc)) then
        call ESMF_LogWrite(trim(subname)//": ERROR conservativing route handle not created for rof->lnd mapping", &
-            ESMF_LOGMSG_INFO, rc=rc)
+            ESMF_LOGMSG_INFO)
        rc = ESMF_FAILURE
        return
     end if
@@ -525,7 +522,7 @@ contains
     end do
 
     if (dbug_flag > 20) then
-       call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO, rc=dbrc)
+       call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
     end if
     call t_stopf('MED:'//subname)
 

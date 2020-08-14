@@ -50,7 +50,7 @@ contains
     integer, parameter :: MPI_MAX_ERROR_STRING=80
 #endif
     character(MPI_MAX_ERROR_STRING) :: lstring
-    integer :: dbrc, lrc, len, ierr
+    integer :: lrc, len, ierr
 
     med_utils_ChkErr = .false.
     lrc = rc
@@ -61,7 +61,7 @@ contains
 #else
        write(lstring,*) "ERROR in mct mpi-serial library rc=",rc
 #endif
-       call ESMF_LogWrite("ERROR: "//trim(lstring), ESMF_LOGMSG_INFO, line=line, file=file, rc=dbrc)
+       call ESMF_LogWrite("ERROR: "//trim(lstring), ESMF_LOGMSG_INFO, line=line, file=file)
        lrc = ESMF_FAILURE
     endif
 

@@ -54,7 +54,6 @@ contains
     type(InternalState)        :: is_local
     real(R8), pointer          :: dataPtr1(:),dataPtr2(:)
     integer                    :: i, j, n, n1, ncnt
-    integer                    :: dbrc
     character(len=*),parameter :: subname='(med_phases_prep_atm)'
     !-------------------------------------------------------------------------------
 
@@ -62,7 +61,7 @@ contains
     rc = ESMF_SUCCESS
 
     if (dbug_flag > 5) then
-       call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO, rc=dbrc)
+       call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
     end if
     call memcheck(subname, 3, mastertask)
 
@@ -86,7 +85,7 @@ contains
 
     if (ncnt == 0) then
        call ESMF_LogWrite(trim(subname)//": only scalar data is present in FBexp(compatm), returning", &
-            ESMF_LOGMSG_INFO, rc=dbrc)
+            ESMF_LOGMSG_INFO)
     else
 
        !---------------------------------------
@@ -98,7 +97,7 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call ESMF_TimeGet(time,timestring=timestr)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_LogWrite(trim(subname)//": time = "//trim(timestr), ESMF_LOGMSG_INFO, rc=dbrc)
+       call ESMF_LogWrite(trim(subname)//": time = "//trim(timestr), ESMF_LOGMSG_INFO)
        if (dbug_flag > 1) then
           if (mastertask) then
              call ESMF_ClockPrint(clock, options="currTime", &
@@ -220,7 +219,7 @@ contains
     endif
 
     if (dbug_flag > 5) then
-       call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO, rc=dbrc)
+       call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
     end if
     call t_stopf('MED:'//subname)
 
