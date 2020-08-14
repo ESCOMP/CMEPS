@@ -430,7 +430,7 @@ contains
        logUnit = 6
     endif
 
-    ! Obtain Verbosity setting from MED_attributes
+    ! Obtain Verbosity
     call ESMF_AttributeGet(gcomp, name="Verbosity", value=cvalue, defaultValue="max", &
          convention="NUOPC", purpose="Instance", rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -446,7 +446,7 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call ESMF_LogWrite(trim(subname)//": Mediator profiling is set to "//trim(value), ESMF_LOGMSG_INFO)
 
-    ! Obtain dbug_flag setting from MED_attributes if present; otherwise use default value in med_constants
+    ! Obtain dbug_flag setting if present; otherwise use default value in med_constants
     call NUOPC_CompAttributeGet(gcomp, name='dbug_flag', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (isPresent .and. isSet) then
