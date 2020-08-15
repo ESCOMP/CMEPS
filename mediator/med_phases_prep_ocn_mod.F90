@@ -289,7 +289,7 @@ contains
             is_local%wrap%FBExpAccumCnt(compocn), rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        if (dbug_flag > 1) then
-          call FB_diagnose(is_local%wrap%FBExp(compocn), &
+          call FB_diagnose(is_local%wrap%FBExpAccum(compocn), &
                string=trim(subname)//' FBExpAccum(compocn) after avg ', rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if

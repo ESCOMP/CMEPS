@@ -187,14 +187,13 @@ contains
     real(R8), pointer          :: So_omask(:)
     integer                    :: i,j,n,n1
     integer                    :: maptype
-    integer                    :: dbrc
     logical, save              :: first_call = .true.
     character(len=*),parameter :: subname='(med_fraction_init)'
     !---------------------------------------
     call t_startf('MED:'//subname)
 
     if (dbug_flag > 20) then
-       call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO, rc=dbrc)
+       call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
     end if
     rc = ESMF_SUCCESS
 
@@ -586,7 +585,7 @@ contains
     end if
 
     if (dbug_flag > 20) then
-       call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO, rc=dbrc)
+       call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
     end if
 
     call t_stopf('MED:'//subname)
@@ -622,14 +621,13 @@ contains
     real(r8), pointer          :: Si_ifrac(:)
     real(r8), pointer          :: Si_imask(:)
     integer                    :: n
-    integer                    :: dbrc
     integer                    :: maptype
     character(len=*),parameter :: subname='(med_fraction_set)'
     !---------------------------------------
     call t_startf('MED:'//subname)
 
     if (dbug_flag > 20) then
-       call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO, rc=dbrc)
+       call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
     end if
     rc = ESMF_SUCCESS
 
@@ -772,7 +770,7 @@ contains
     end if
 
     if (dbug_flag > 20) then
-       call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO, rc=dbrc)
+       call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
     end if
 
     call t_stopf('MED:'//subname)

@@ -572,7 +572,7 @@ contains
                       if (dbug_flag > 1) then
                          write(cn1,'(i1)') n1; write(cn2,'(i1)') n2; write(cm ,'(i1)') m
                          call ESMF_LogWrite(trim(subname)//":"//'creating FBMapNormOne for '&
-                              //compname(n1)//'->'//compname(n2)//'with mapping '//mapnames(m), &
+                              //compname(n1)//'->'//compname(n2)//' with mapping '//mapnames(m), &
                               ESMF_LOGMSG_INFO)
                       endif
                       call FB_init(FBout=is_local%wrap%FBNormOne(n1,n2,m), &

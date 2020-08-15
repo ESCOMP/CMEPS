@@ -106,7 +106,7 @@ module esmflds
   type (med_fldList_type), public :: fldListMed_aoflux
   type (med_fldList_type), public :: fldListMed_ocnalb
 
-  integer                    :: dbrc
+  integer                    :: rc
   character(len=CL)          :: infostr
   character(len=*),parameter :: u_FILE_u = &
      __FILE__
@@ -394,7 +394,7 @@ contains
 
     if (present(grid) .and. present(mesh)) then
        call ESMF_LogWrite(trim(subname)//trim(tag)//": ERROR both grid and mesh not allowed", &
-            ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u, rc=dbrc)
+            ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u, rc=rc)
        rc = ESMF_FAILURE
        return
     endif
@@ -408,13 +408,13 @@ contains
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=u_FILE_u)) return
 
     write(infostr,'(i6)') itemCount
-    call ESMF_LogWrite(trim(subname)//trim(tag)//" count = "//trim(infostr), ESMF_LOGMSG_INFO, rc=dbrc)
+    call ESMF_LogWrite(trim(subname)//trim(tag)//" count = "//trim(infostr), ESMF_LOGMSG_INFO)
     if (itemCount > 0) then
        allocate(itemNameList(itemCount))
        call ESMF_StateGet(state, itemNameList=itemNameList, rc=rc)
        if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=u_FILE_u)) return
        do n = 1,itemCount
-          call ESMF_LogWrite(trim(subname)//trim(tag)//" itemNameList = "//trim(itemNameList(n)), ESMF_LOGMSG_INFO, rc=dbrc)
+          call ESMF_LogWrite(trim(subname)//trim(tag)//" itemNameList = "//trim(itemNameList(n)), ESMF_LOGMSG_INFO)
        enddo
        deallocate(itemNameList)
     endif
@@ -424,23 +424,23 @@ contains
          NamespaceList=NamespaceList, itemNameList=itemNameList, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=u_FILE_u)) return
     write(infostr,'(i6)') size(StandardNameList)
-    call ESMF_LogWrite(trim(subname)//trim(tag)//" size = "//trim(infostr), ESMF_LOGMSG_INFO, rc=dbrc)
+    call ESMF_LogWrite(trim(subname)//trim(tag)//" size = "//trim(infostr), ESMF_LOGMSG_INFO)
 
     do n = 1,size(StandardNameList)
        call ESMF_LogWrite(trim(subname)//trim(tag)//" StandardNameList = "//trim(StandardNameList(n)), &
-            ESMF_LOGMSG_INFO, rc=dbrc)
+            ESMF_LOGMSG_INFO)
     enddo
     do n = 1,size(ConnectedList)
        call ESMF_LogWrite(trim(subname)//trim(tag)//" ConnectedList = "//trim(ConnectedList(n)), &
-            ESMF_LOGMSG_INFO, rc=dbrc)
+            ESMF_LOGMSG_INFO)
     enddo
     do n = 1,size(NamespaceList)
        call ESMF_LogWrite(trim(subname)//trim(tag)//" NamespaceList = "//trim(NamespaceList(n)), &
-            ESMF_LOGMSG_INFO, rc=dbrc)
+            ESMF_LOGMSG_INFO)
     enddo
     do n = 1,size(ItemnameList)
        call ESMF_LogWrite(trim(subname)//trim(tag)//" ItemnameList = "//trim(ItemnameList(n)), &
-            ESMF_LOGMSG_INFO, rc=dbrc)
+            ESMF_LOGMSG_INFO)
     enddo
 #endif
 
@@ -464,7 +464,7 @@ contains
     do n = 1, nflds
        shortname = fldList%flds(n)%shortname
 
-       ! call ESMF_LogWrite(subname//' fld = '//trim(shortname), ESMF_LOGMSG_INFO, rc=dbrc)
+       ! call ESMF_LogWrite(subname//' fld = '//trim(shortname), ESMF_LOGMSG_INFO)
        if (NUOPC_IsConnected(state, fieldName=shortname)) then
 
           call ESMF_StateGet(state, field=field, itemName=trim(shortname), rc=rc)
@@ -480,30 +480,30 @@ contains
           if (trim(transferAction) == "accept") then  ! accept
 
              call ESMF_LogWrite(trim(subname)//trim(tag)//" Field = "//trim(shortname)//" is connected, grid/mesh TBD", &
-                  ESMF_LOGMSG_INFO, rc=dbrc)
+                  ESMF_LOGMSG_INFO)
 
           else   ! provide
 
              if (shortname == trim(flds_scalar_name)) then
                 call ESMF_LogWrite(trim(subname)//trim(tag)//" Field = "//trim(shortname)//" is connected on root pe", &
-                     ESMF_LOGMSG_INFO, rc=dbrc)
+                     ESMF_LOGMSG_INFO)
                 call SetScalarField(field, flds_scalar_name, flds_scalar_num, rc=rc)
                 if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=u_FILE_u)) return
              elseif (present(grid)) then
                 call ESMF_LogWrite(trim(subname)//trim(tag)//" Field = "//trim(shortname)//" is connected using grid", &
-                     ESMF_LOGMSG_INFO, rc=dbrc)
+                     ESMF_LOGMSG_INFO)
                 ! Create the field
                 field = ESMF_FieldCreate(grid, ESMF_TYPEKIND_R8, name=shortname,rc=rc)
                 if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=u_FILE_u)) return
              elseif (present(mesh)) then
                 call ESMF_LogWrite(trim(subname)//trim(tag)//" Field = "//trim(shortname)//" is connected using mesh", &
-                     ESMF_LOGMSG_INFO, rc=dbrc)
+                     ESMF_LOGMSG_INFO)
                 ! Create the field
                 field = ESMF_FieldCreate(mesh, ESMF_TYPEKIND_R8, name=shortname, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
                 if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=u_FILE_u)) return
              else
                 call ESMF_LogWrite(trim(subname)//trim(tag)//": ERROR grid or mesh expected", &
-                     ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u, rc=dbrc)
+                     ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
                 rc = ESMF_FAILURE
                 return
              endif
@@ -520,7 +520,7 @@ contains
        else
 
           call ESMF_LogWrite(subname // trim(tag) // " Field = "// trim(shortname) // " is not connected.", &
-               ESMF_LOGMSG_INFO, rc=dbrc)
+               ESMF_LOGMSG_INFO)
           call ESMF_StateRemove(state, (/shortname/), rc=rc)
           if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=u_FILE_u)) return
 
@@ -528,7 +528,7 @@ contains
 
     end do
 
-    call ESMF_LogWrite(subname//' done ', ESMF_LOGMSG_INFO, rc=dbrc)
+    call ESMF_LogWrite(subname//' done ', ESMF_LOGMSG_INFO)
 
   contains  !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -694,7 +694,7 @@ contains
        end do
     else
        call ESMF_LogWrite("med_fldList_GetFldNames: ERROR either flds or fldnames have not been allocate ", &
-            ESMF_LOGMSG_INFO, rc=rc)
+            ESMF_LOGMSG_INFO)
        rc = ESMF_FAILURE
        return
     end if
