@@ -37,7 +37,6 @@ def _main_func():
         ocn_model = case.get_value("COMP_OCN")
         atm_model = case.get_value("COMP_ATM")
         gmake_args = get_standard_makefile_args(case)
-        blddir = os.path.join(case.get_value("EXEROOT"),"cpl","obj")
 
     # Determine valid components
     valid_comps = []
@@ -50,7 +49,7 @@ def _main_func():
         if valid:
             valid_comps.append(item)
 
-    datamodel_in_compset = False 
+    datamodel_in_compset = False
     for comp in comp_classes:
         dcompname = "d"+comp.lower()
         if dcompname in case.get_value("COMP_{}".format(comp)):
