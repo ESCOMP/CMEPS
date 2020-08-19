@@ -426,7 +426,7 @@ contains
     ! ----------------------------------------------
 
     if (dbug_flag > 10) then
-       call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO, rc=dbrc)
+       call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
     endif
     rc=ESMF_SUCCESS
 
@@ -553,7 +553,7 @@ contains
     enddo  ! n
 
     if (dbug_flag > 10) then
-       call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO, rc=dbrc)
+       call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
     endif
 
   end subroutine med_merge_field_1D
@@ -606,7 +606,7 @@ contains
     ! ----------------------------------------------
 
     if (dbug_flag > 10) then
-       call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO, rc=dbrc)
+       call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
     endif
     rc=ESMF_SUCCESS
 
@@ -738,7 +738,7 @@ contains
     enddo  ! n
 
     if (dbug_flag > 10) then
-       call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO, rc=dbrc)
+       call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
     endif
 
   end subroutine med_merge_field_2D
@@ -811,7 +811,7 @@ contains
     end if
     if (.not. valid_list) then
        write(logunit,*) "ERROR: invalid list = ",trim(list)
-       call ESMF_LogWrite("ERROR: invalid list = "//trim(list), ESMF_LOGMSG_INFO, rc=rc)
+       call ESMF_LogWrite("ERROR: invalid list = "//trim(list), ESMF_LOGMSG_INFO)
        rc = ESMF_FAILURE
        return
     end if
@@ -821,7 +821,7 @@ contains
     if (k<1 .or. kFlds<k) then
        write(logunit,*) "ERROR: invalid index = ",k
        write(logunit,*) "ERROR:          list = ",trim(list)
-       call ESMF_LogWrite("ERROR: invalid index = "//trim(list), ESMF_LOGMSG_INFO, rc=rc)
+       call ESMF_LogWrite("ERROR: invalid index = "//trim(list), ESMF_LOGMSG_INFO)
        rc = ESMF_FAILURE
        return
     end if

@@ -161,7 +161,7 @@ contains
        end if
 
        ! custom merges to ocean
-       if (trim(coupling_mode) == 'cesm' .or. trim(coupling_mode) == 'hafs') then
+       if (trim(coupling_mode) == 'cesm') then
           call med_phases_prep_ocn_custom_cesm(gcomp, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        else if (trim(coupling_mode) == 'nems_orig' .or. trim(coupling_mode) == 'nems_frac') then
@@ -289,7 +289,7 @@ contains
             is_local%wrap%FBExpAccumCnt(compocn), rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        if (dbug_flag > 1) then
-          call FB_diagnose(is_local%wrap%FBExp(compocn), &
+          call FB_diagnose(is_local%wrap%FBExpAccum(compocn), &
                string=trim(subname)//' FBExpAccum(compocn) after avg ', rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 class RunSeq:
-    def __init__(self, outfile): 
+    def __init__(self, outfile):
         self.__time_loop = list()
         self.__outfile_name = outfile
         self.__outfile = None
@@ -10,7 +10,7 @@ class RunSeq:
         self.__outfile = open(self.__outfile_name, "w")
         self.__outfile.write("runSeq:: \n")
         return self
-    
+
     def __exit__(self, *_):
         self.__exit_sequence()
         self.__outfile.close()
@@ -50,10 +50,8 @@ class RunSeq:
                 self.__outfile.write ("  MED med_phases_restart_write        \n" )
                 self.__outfile.write ("  MED med_phases_profile              \n" )
             self.__outfile.write ("@ \n" )
-            
+
     def __exit_sequence(self):
         while self.__time_loop:
             self.leave_time_loop(True)
         self.__outfile.write ("::\n" )
-
-

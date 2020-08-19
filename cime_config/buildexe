@@ -41,7 +41,8 @@ def _main_func():
 
     # Determine valid components
     valid_comps = []
-    for item in case.get_values("COMP_CLASSES"):
+    comp_classes = case.get_values("COMP_CLASSES")
+    for item in comp_classes:
         comp = case.get_value("COMP_" + item)
         valid = True
         if comp == 's' + item.lower():
@@ -49,7 +50,13 @@ def _main_func():
         if valid:
             valid_comps.append(item)
 
-    if len(valid_comps) == 2 and  "dwav" not in case.get_value("COMP_WAV") and "dlnd" not in case.get_value("COMP_LND"):
+    datamodel_in_compset = False 
+    for comp in comp_classes:
+        dcompname = "d"+comp.lower()
+        if dcompname in case.get_value("COMP_{}".format(comp)):
+            datamodel_in_compset = True
+
+    if len(valid_comps) == 2 and not datamodel_in_compset:
         skip_mediator = True
     else:
         skip_mediator = False

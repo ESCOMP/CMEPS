@@ -6,9 +6,14 @@ Contributors other than yourself, if any:
 
 CMEPS Issues Fixed (include github issue #):
 
-Are changes expected to change answers (and if so in what way)?
+Are changes expected to change answers?
+ - [ ] bit for bit
+ - [ ] different at roundoff level
+ - [ ] more substantial 
 
 Any User Interface Changes (namelist or namelist defaults changes)?
+ - [ ] Yes
+ - [ ] No
 
 Testing performed if application target is CESM:(either UFS-S2S or CESM testing is required):
 - [ ] (required) CIME_DRIVER=nuopc scripts_regression_tests.py

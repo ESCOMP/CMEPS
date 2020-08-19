@@ -141,6 +141,7 @@ module med_fraction_mod
   character(len=5),parameter,dimension(2) :: fraclist_r = (/'rfrac','lfrac'/)
   character(len=5),parameter,dimension(1) :: fraclist_w = (/'wfrac'/)
 
+  !--- standard ---
   real(R8)    , parameter :: eps_fraclim = 1.0e-03      ! truncation limit in fractions_a(lfrac)
   character(*), parameter :: u_FILE_u =  &
        __FILE__
@@ -186,14 +187,13 @@ contains
     real(R8), pointer          :: So_omask(:)
     integer                    :: i,j,n,n1
     integer                    :: maptype
-    integer                    :: dbrc
     logical, save              :: first_call = .true.
     character(len=*),parameter :: subname='(med_fraction_init)'
     !---------------------------------------
     call t_startf('MED:'//subname)
 
     if (dbug_flag > 20) then
-       call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO, rc=dbrc)
+       call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
     end if
     rc = ESMF_SUCCESS
 
@@ -257,13 +257,13 @@ contains
                    maptype = mapfcopy
                 else
                    maptype = mapconsf
-                end if
-                if (.not. med_map_RH_is_created(is_local%wrap%RH(compatm,n,:),mapconsf, rc=rc)) then
-                   call med_map_Fractions_init( gcomp, compatm, n, &
-                        FBSrc=is_local%wrap%FBImp(compatm,compatm), &
-                        FBDst=is_local%wrap%FBImp(compatm,n), &
-                        RouteHandle=is_local%wrap%RH(compatm,n,mapconsf), rc=rc)
-                   if (ChkErr(rc,__LINE__,u_FILE_u)) return
+                   if (.not. med_map_RH_is_created(is_local%wrap%RH(compatm,n,:),mapconsf, rc=rc)) then
+                      call med_map_Fractions_init( gcomp, compatm, n, &
+                           FBSrc=is_local%wrap%FBImp(compatm,compatm), &
+                           FBDst=is_local%wrap%FBImp(compatm,n), &
+                           RouteHandle=is_local%wrap%RH(compatm,n,mapconsf), rc=rc)
+                      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+                   end if
                 end if
                 call FB_FieldRegrid(&
                      is_local%wrap%FBfrac(compatm), 'afrac', &
@@ -273,6 +273,7 @@ contains
              endif
           end if
        end do
+
     end if
 
     !---------------------------------------
@@ -408,6 +409,7 @@ contains
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
     end if
+
 
     !---------------------------------------
     ! Set 'lfrac' in FBFrac(compatm) and correct 'ofrac' in FBFrac(compatm)
@@ -583,7 +585,7 @@ contains
     end if
 
     if (dbug_flag > 20) then
-       call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO, rc=dbrc)
+       call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
     end if
 
     call t_stopf('MED:'//subname)
@@ -619,15 +621,13 @@ contains
     real(r8), pointer          :: Si_ifrac(:)
     real(r8), pointer          :: Si_imask(:)
     integer                    :: n
-    integer                    :: dbrc
     integer                    :: maptype
     character(len=*),parameter :: subname='(med_fraction_set)'
-
     !---------------------------------------
     call t_startf('MED:'//subname)
 
     if (dbug_flag > 20) then
-       call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO, rc=dbrc)
+       call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
     end if
     rc = ESMF_SUCCESS
 
@@ -682,7 +682,7 @@ contains
 
        call FB_getFldPtr(is_local%wrap%FBImp(compice,compice) , 'Si_ifrac', Si_ifrac, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call FB_getFldPtr(is_local%wrap%FBImp(compice,compice) , 'Si_imask', Si_imask, rc=rc)
+       call FB_getFldPtr(is_local%wrap%FBImp(compice,compice) , 'Si_imask' , Si_imask, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        call FB_getFldPtr(is_local%wrap%FBfrac(compice), 'ifrac', ifrac, rc=rc)
@@ -721,60 +721,39 @@ contains
        ! -------------------------------------------
        ! Set FBfrac(compatm)
        ! -------------------------------------------
+
        if (is_local%wrap%comp_present(compatm)) then
 
-          if (trim(coupling_mode) == 'nems_orig' .or. trim(coupling_mode) == 'nems_frac' ) then
-
-            ! Set maptype according to coupling_mode
-            if (trim(coupling_mode) == 'nems_orig' ) then
-              maptype = mapnstod_consf
-            else
-              maptype = mapconsf
-            end if
-
-            call FB_FieldRegrid(&
-                 is_local%wrap%FBfrac(compice), 'ifrac', &
-                 is_local%wrap%FBfrac(compatm), 'ifrac', &
-                 is_local%wrap%RH(compice,compatm,:),maptype, rc=rc)
-            if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-            call FB_FieldRegrid(&
-                 is_local%wrap%FBfrac(compice), 'ofrac', &
-                 is_local%wrap%FBfrac(compatm), 'ofrac', &
-                 is_local%wrap%RH(compice,compatm,:),maptype, rc=rc)
-            if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
+          if (trim(coupling_mode) == 'nems_orig' ) then
+             maptype = mapnstod_consf
           else
-
              if (med_map_RH_is_created(is_local%wrap%RH(compice,compatm,:),mapfcopy, rc=rc)) then
-                ! TODO (mvertens, 2019-11-20): this is not being used when ice and atm are on the same grid
-                ! - this needs to be implemented
                 maptype = mapfcopy
              else
                 maptype = mapconsf
              end if
+          end if
 
-             ! Map 'ifrac' from FBfrac(compice) to FBfrac(compatm)
-             if (is_local%wrap%med_coupling_active(compice,compatm)) then
-                call FB_FieldRegrid(&
-                     is_local%wrap%FBfrac(compice), 'ifrac', &
-                     is_local%wrap%FBfrac(compatm), 'ifrac', &
-                     is_local%wrap%RH(compice,compatm,:),maptype, rc=rc)
-                if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             end if
+          ! Map 'ifrac' from FBfrac(compice) to FBfrac(compatm)
+          if (is_local%wrap%med_coupling_active(compice,compatm)) then
+             call FB_FieldRegrid(&
+                  is_local%wrap%FBfrac(compice), 'ifrac', &
+                  is_local%wrap%FBfrac(compatm), 'ifrac', &
+                  is_local%wrap%RH(compice,compatm,:),maptype, rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          end if
 
-             ! Map 'ofrac' from FBfrac(compice) to FBfrac(compatm)
-             if (is_local%wrap%med_coupling_active(compocn,compatm)) then
-                call FB_FieldRegrid(&
-                     is_local%wrap%FBfrac(compice), 'ofrac', &
-                     is_local%wrap%FBfrac(compatm), 'ofrac', &
-                     is_local%wrap%RH(compice,compatm,:),maptype, rc=rc)
-                if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             end if
-
+          ! Map 'ofrac' from FBfrac(compice) to FBfrac(compatm)
+          if (is_local%wrap%med_coupling_active(compocn,compatm)) then
+             call FB_FieldRegrid(&
+                  is_local%wrap%FBfrac(compice), 'ofrac', &
+                  is_local%wrap%FBfrac(compatm), 'ofrac', &
+                  is_local%wrap%RH(compice,compatm,:),maptype, rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
        end if
-    end if
+
+    end if ! end of if present compice
 
     !---------------------------------------
     ! Diagnostic output
@@ -791,7 +770,7 @@ contains
     end if
 
     if (dbug_flag > 20) then
-       call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO, rc=dbrc)
+       call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
     end if
 
     call t_stopf('MED:'//subname)
