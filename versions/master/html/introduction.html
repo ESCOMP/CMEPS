@@ -86,6 +86,8 @@
               <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">1. Introduction</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#organization-of-the-cmeps-mediator-code">1.1. Organization of the CMEPS mediator code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#mapping-and-merging-primer">1.2. Mapping and Merging Primer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#area-corrections">1.3. Area Corrections</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="esmflds.html">2. CMEPS application specific code</a></li>
@@ -283,6 +285,316 @@ source components to  the destination component.</li>
 <p class="first admonition-title">Note</p>
 <p class="last">Some modules, such as med_phases_prep_ocn.F90 and med_frac_mod.F90 also contain application specific-code blocks.</p>
 </div>
+</div>
+<div class="section" id="mapping-and-merging-primer">
+<h2>1.2. Mapping and Merging Primer<a class="headerlink" href="#mapping-and-merging-primer" title="Permalink to this headline">¶</a></h2>
+<p>This section provides a primer on mapping (interpolation) and merging of gridded
+coupled fields.  Masks, support for partial fractions on grids, weights generation,
+and fraction
+weighted mapping and merging all play roles in the conservation and quality of the
+coupled fields.</p>
+<p>A pair of atmosphere and ocean/ice grids can be used to highlight the analysis.</p>
+<a class="reference internal image-reference" href="_images/CMEPS-grid1.png"><img alt="Sample CMEPS grids" src="_images/CMEPS-grid1.png" style="width: 400px;" /></a>
+<p>The most general CMEPS mediator assumes the ocean and sea ice surface grids are
+identical while the atmosphere and land grids are also identical.  The ocean/ice
+grid defines the mask which means each ocean/ice gridcell is either a fully
+active ocean/ice gridcell or not (i.e. land).  Other configurations have been
+and can be implemented and analyzed as well.</p>
+<p>The ocean/ice mask interpolated to the atmosphere/land grid
+determines the complementary ocean/ice and land masks on the atmosphere grid.
+The land model supports partially active gridcells such that each atmosphere
+gridcell may contain a fraction of land, ocean, and sea ice.</p>
+<p>Focusing on a single atmosphere grid cell.</p>
+<a class="reference internal image-reference" href="_images/CMEPS-grid2.png"><img alt="Sample CMEPS gridcell overlap" src="_images/CMEPS-grid2.png" style="width: 400px;" /></a>
+<p>The gridcells can be labeled as follows.</p>
+<a class="reference internal image-reference" href="_images/CMEPS-grid3.png"><img alt="Sample CMEPS gridcell naming convention" src="_images/CMEPS-grid3.png" style="width: 300px;" /></a>
+<p>The atmosphere gridcell is labeled “a”.  On the atmosphere gridcell (the red box),
+in general,
+there is a land fraction (fal), an ocean fraction (fao), and a sea ice fraction
+(fai).  The sum of the surface fractions should always be 1.0 in these
+conventions.  There is also a gridbox average field on the atmosphere grid (Fa).
+This could be a flux or a state that is
+derived from the equivalent land (Fal), ocean (Fao), and sea ice (Fai) fields.
+The gridbox average field is computed by merging the various surfaces:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Fa</span> <span class="o">=</span> <span class="n">fal</span><span class="o">*</span><span class="n">Fal</span> <span class="o">+</span> <span class="n">fao</span><span class="o">*</span><span class="n">Fao</span> <span class="o">+</span> <span class="n">fai</span><span class="o">*</span><span class="n">Fai</span>
+</pre></div>
+</div>
+<p>This is a standard merge where:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">fal</span> <span class="o">+</span> <span class="n">fao</span> <span class="o">+</span> <span class="n">fai</span> <span class="o">=</span> <span class="mf">1.0</span>
+</pre></div>
+</div>
+<p>and each surface field, Fal, Fao, and Fai are the values of the surface fields
+on the atmosphere grid.</p>
+<p>The ocean gridcells (blue boxes) are labeled 1, 2, 3, and 4 in this example.
+In general,
+each ocean/ice gridcell partially overlaps multiple atmosphere gridcells.
+Each ocean/ice gridcell has an overlapping Area (A) and a Mask (M) associated with it.
+In this example, land is colored green, ocean blue, and sea ice white so just for
+the figure depicted:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">M1</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">M2</span> <span class="o">=</span> <span class="n">M3</span> <span class="o">=</span> <span class="n">M4</span> <span class="o">=</span> <span class="mi">1</span>
+</pre></div>
+</div>
+<p>Again, the ocean/ice areas (A) are overlapping areas so the sum of the overlapping
+areas is equal to the atmophere area:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Aa</span> <span class="o">=</span> <span class="n">A1</span> <span class="o">+</span> <span class="n">A2</span> <span class="o">+</span> <span class="n">A3</span> <span class="o">+</span> <span class="n">A4</span>
+</pre></div>
+</div>
+<p>The mapping weight (w) defined in this example allows a field on the ocean/ice
+grid to be interpolated to the atmosphere/land grid.  The mapping weights can
+be constructed to be conservative, bilinear, bicubic, or with many other
+approaches.  The main point is that the weights represent a linear sparse matrix
+such that in general:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Xa</span> <span class="o">=</span> <span class="p">[</span><span class="n">W</span><span class="p">]</span> <span class="o">*</span> <span class="n">Xo</span>
+</pre></div>
+</div>
+<p>where Xa and Xo represent the vector of atmophere and ocean gridcells respectively,
+and W is the sparse matrix weights linking each ocean gridcell to a set of atmosphere
+gridcells.  Nonlinear interpolation is not yet supported in most coupled systems.</p>
+<p>Mapping weights can be defined in a number of ways even beyond conservative
+or bilinear.  They can be masked or normalized using multiple approaches.  The
+weights generation is intricately tied to other aspects of the coupling method.
+In CMEPS, area-overlap conservative weights are defined as follows:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">w1</span> <span class="o">=</span> <span class="n">A1</span><span class="o">/</span><span class="n">Aa</span>
+<span class="n">w2</span> <span class="o">=</span> <span class="n">A2</span><span class="o">/</span><span class="n">Aa</span>
+<span class="n">w3</span> <span class="o">=</span> <span class="n">A3</span><span class="o">/</span><span class="n">Aa</span>
+<span class="n">w4</span> <span class="o">=</span> <span class="n">A4</span><span class="o">/</span><span class="n">Aa</span>
+</pre></div>
+</div>
+<p>This simple approach which does not include any masking or normalization provides a
+number of useful attributes.  The weights always add up to 1.0:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">w1</span> <span class="o">+</span> <span class="n">w2</span> <span class="o">+</span> <span class="n">w3</span> <span class="o">+</span> <span class="n">w4</span> <span class="o">=</span> <span class="mf">1.0</span>
+</pre></div>
+</div>
+<p>and a general area weighted average of fields on the ocean/ice grid mapped to
+the atmosphere grid would be:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Fa</span> <span class="o">=</span> <span class="n">w1</span><span class="o">*</span><span class="n">F1</span> <span class="o">+</span> <span class="n">w2</span><span class="o">*</span><span class="n">F2</span> <span class="o">+</span> <span class="n">w3</span><span class="o">*</span><span class="n">F3</span> <span class="o">+</span> <span class="n">w4</span><span class="o">*</span><span class="n">F4</span>
+</pre></div>
+</div>
+<p>These weights conserve area:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">w1</span><span class="o">*</span><span class="n">Aa</span> <span class="o">+</span> <span class="n">w2</span><span class="o">*</span><span class="n">Aa</span> <span class="o">+</span> <span class="n">w3</span><span class="o">*</span><span class="n">Aa</span> <span class="o">+</span> <span class="n">w4</span><span class="o">*</span><span class="n">Aa</span> <span class="o">=</span> <span class="n">Aa</span>
+</pre></div>
+</div>
+<p>and can be used to interpolate the ocean/ice mask to the atmosphere grid to compute
+the land fraction:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">f_ocean</span> <span class="o">=</span> <span class="n">w1</span><span class="o">*</span><span class="n">M1</span> <span class="o">+</span> <span class="n">w2</span><span class="o">*</span><span class="n">M2</span> <span class="o">+</span> <span class="n">w3</span><span class="o">*</span><span class="n">M3</span> <span class="o">+</span> <span class="n">w4</span><span class="o">*</span><span class="n">M4</span>
+<span class="n">f_land</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">f_ocean</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>These weights also can be used to interpolate surface fractions:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">fal</span> <span class="o">=</span> <span class="n">w1</span><span class="o">*</span><span class="n">fl1</span> <span class="o">+</span> <span class="n">w2</span><span class="o">*</span><span class="n">fl2</span> <span class="o">+</span> <span class="n">w3</span><span class="o">*</span><span class="n">fl3</span> <span class="o">+</span> <span class="n">w4</span><span class="o">*</span><span class="n">fl4</span>
+<span class="n">fao</span> <span class="o">=</span> <span class="n">w1</span><span class="o">*</span><span class="n">fo1</span> <span class="o">+</span> <span class="n">w2</span><span class="o">*</span><span class="n">fo2</span> <span class="o">+</span> <span class="n">w3</span><span class="o">*</span><span class="n">fo3</span> <span class="o">+</span> <span class="n">w4</span><span class="o">*</span><span class="n">fo4</span>
+<span class="n">fai</span> <span class="o">=</span> <span class="n">w1</span><span class="o">*</span><span class="n">fi1</span> <span class="o">+</span> <span class="n">w2</span><span class="o">*</span><span class="n">fi2</span> <span class="o">+</span> <span class="n">w3</span><span class="o">*</span><span class="n">fi3</span> <span class="o">+</span> <span class="n">w4</span><span class="o">*</span><span class="n">fi4</span>
+</pre></div>
+</div>
+<p>Checking sums:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">fal</span> <span class="o">+</span> <span class="n">fao</span> <span class="o">+</span> <span class="n">fai</span> <span class="o">=</span> <span class="n">w1</span><span class="o">*</span><span class="p">(</span><span class="n">fl1</span><span class="o">+</span><span class="n">fo1</span><span class="o">+</span><span class="n">fi1</span><span class="p">)</span> <span class="o">+</span> <span class="n">w2</span><span class="o">*</span><span class="p">(</span><span class="n">fl2</span><span class="o">+</span><span class="n">fo2</span><span class="o">+</span><span class="n">fi2</span><span class="p">)</span> <span class="o">+</span> <span class="n">w3</span><span class="o">*</span><span class="p">(</span><span class="n">fl3</span><span class="o">+</span><span class="n">fo3</span><span class="o">+</span><span class="n">fi3</span><span class="p">)</span> <span class="o">+</span> <span class="n">w4</span><span class="o">*</span><span class="p">(</span><span class="n">fl4</span><span class="o">+</span><span class="n">fo4</span><span class="o">+</span><span class="n">fi4</span><span class="p">)</span>
+<span class="n">fal</span> <span class="o">+</span> <span class="n">fao</span> <span class="o">+</span> <span class="n">fai</span> <span class="o">=</span> <span class="n">w1</span> <span class="o">+</span> <span class="n">w2</span> <span class="o">+</span> <span class="n">w3</span> <span class="o">+</span> <span class="n">w4</span> <span class="o">=</span> <span class="mf">1.0</span>
+</pre></div>
+</div>
+<p>And the equation for f_land and fal above are consistent if fl_n is defined as 1-M_n:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">f_land</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">f_ocean</span>
+<span class="n">f_land</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="p">(</span><span class="n">w1</span><span class="o">*</span><span class="n">M1</span> <span class="o">+</span> <span class="n">w2</span><span class="o">*</span><span class="n">M2</span> <span class="o">+</span> <span class="n">w3</span><span class="o">*</span><span class="n">M3</span> <span class="o">+</span> <span class="n">w4</span><span class="o">*</span><span class="n">M4</span><span class="p">)</span>
+
+<span class="n">fal</span> <span class="o">=</span> <span class="n">w1</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">M1</span><span class="p">)</span> <span class="o">+</span> <span class="n">w2</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">M2</span><span class="p">)</span> <span class="o">+</span> <span class="n">w3</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">M3</span><span class="p">)</span> <span class="o">+</span> <span class="n">w4</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">M4</span><span class="p">)</span>
+<span class="n">fal</span> <span class="o">=</span> <span class="n">w1</span> <span class="o">+</span> <span class="n">w2</span> <span class="o">+</span> <span class="n">w3</span> <span class="o">+</span> <span class="n">w4</span> <span class="o">-</span> <span class="p">(</span><span class="n">w1</span><span class="o">*</span><span class="n">M1</span> <span class="o">+</span> <span class="n">w2</span><span class="o">*</span><span class="n">M2</span> <span class="o">+</span> <span class="n">w3</span><span class="o">*</span><span class="n">M3</span> <span class="o">+</span> <span class="n">w4</span><span class="o">*</span><span class="n">M4</span><span class="p">)</span>
+<span class="n">fal</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="p">(</span><span class="n">w1</span><span class="o">*</span><span class="n">M1</span> <span class="o">+</span> <span class="n">w2</span><span class="o">*</span><span class="n">M2</span> <span class="o">+</span> <span class="n">w3</span><span class="o">*</span><span class="n">M3</span> <span class="o">+</span> <span class="n">w4</span><span class="o">*</span><span class="n">M4</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Clearly defined and consistent weights, areas, fractions, and masks is critical
+to generating conservation in the system.</p>
+<p>When mapping masked or fraction weighted fields, these weights require that the
+mapped field be normalized by the mapped fraction.  Consider a case where sea
+surface temperature (SST) is to be mapped to the atmosphere grid with:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">M1</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">M2</span> <span class="o">=</span> <span class="n">M3</span> <span class="o">=</span> <span class="n">M4</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">w1</span><span class="p">,</span> <span class="n">w2</span><span class="p">,</span> <span class="n">w3</span><span class="p">,</span> <span class="n">w4</span> <span class="n">are</span> <span class="n">defined</span> <span class="k">as</span> <span class="n">above</span> <span class="n">A_n</span><span class="o">/</span><span class="n">Aa</span>
+</pre></div>
+</div>
+<p>There are a number of ways to compute the mapped field.  The direct weighted
+average equation, Fa = w1*Fo1 + w2*Fo2 + w3*Fo3 + w4*Fo4, is ill-defined
+because w1 is non-zero and Fo1 is underfined since it’s a land gridcell
+on the ocean grid.  A masked weighted average,
+Fa = M1*w1*Fo1 + M2*w2*Fo2 + M3*w3*Fo3 + M4*w4*Fo4 is also problematic.
+Because M1 is zero, the contribution of the first term is zero.  But the sum
+of the remaining weights (M2*w2 + M3*w3 + M4*w4) is now not identically 1
+which means the weighted average is incorrect.  (To test this, assume all the
+weights are each 0.25 and all the Fo values are 10 degC, Fa would then be 7.5 degC).
+Next consider a masked weighted normalized average,
+f_ocean = (w1*M1 + w2*M2 + w3*M3 + w4*M4) and
+Fa = (M1*w1*Fo1 + M2*w2*Fo2 + M3*w3*Fo3 + M4*w4*Fo4) / (f_ocean).
+This produces a reasonable result because the weighted average of the ocean
+SST is normalized by the weighted mask.  But in practice, this only works
+in cases where there is no sea ice because sea ice impacts the surface fractions.
+Finally, consider
+a fraction weighted normalized average using the dynamically varying
+ocean fraction that is exposed to the atmosphere:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">fo_n</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">fi_n</span>
+<span class="n">fao</span> <span class="o">=</span> <span class="n">w1</span><span class="o">*</span><span class="n">fo1</span> <span class="o">+</span> <span class="n">w2</span><span class="o">*</span><span class="n">fo2</span> <span class="o">+</span> <span class="n">w3</span><span class="o">*</span><span class="n">fo3</span> <span class="o">+</span> <span class="n">w4</span><span class="o">*</span><span class="n">fo4</span>
+<span class="n">Fao</span> <span class="o">=</span> <span class="p">(</span><span class="n">fo1</span><span class="o">*</span><span class="n">w1</span><span class="o">*</span><span class="n">Fo1</span> <span class="o">+</span> <span class="n">fo2</span><span class="o">*</span><span class="n">w2</span><span class="o">*</span><span class="n">Fo2</span> <span class="o">+</span> <span class="n">fo3</span><span class="o">*</span><span class="n">w3</span><span class="o">*</span><span class="n">Fo3</span> <span class="o">+</span> <span class="n">fo4</span><span class="o">*</span><span class="n">w4</span><span class="o">*</span><span class="n">Fo4</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">fao</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>where fo1, fo2, fo3, and fo4 are the ocean fractions on the ocean gridcells
+and depend on the sea ice fraction,
+fao is the mapped ocean fraction on the atmosphere gridcell, and Fa
+is the mapped SST.  The ocean fractions are only defined where the ocean
+mask is 1, otherwise the ocean and sea ice fractions are zero.
+Now, the SST in each ocean gridcell is weighted by the fraction of the ocean
+box exposed to the atmosphere and that weighted average is normalized by
+the mapped dynamically varying fraction.  This produces a reasonable result
+as well as a conservative result.</p>
+<p>The conservation check involves thinking of Fo and Fa as a flux.  On the
+ocean grid, the quantity associated with the flux is:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Qo</span> <span class="o">=</span> <span class="p">(</span><span class="n">Fo1</span><span class="o">*</span><span class="n">fo1</span><span class="o">*</span><span class="n">A1</span> <span class="o">+</span> <span class="n">Fo2</span><span class="o">*</span><span class="n">fo2</span><span class="o">*</span><span class="n">A2</span> <span class="o">+</span> <span class="n">Fo3</span><span class="o">*</span><span class="n">fo3</span><span class="o">*</span><span class="n">A3</span> <span class="o">+</span> <span class="n">Fo4</span><span class="o">*</span><span class="n">fo4</span><span class="o">*</span><span class="n">A4</span><span class="p">)</span> <span class="o">*</span> <span class="n">dt</span>
+</pre></div>
+</div>
+<p>on the atmosphere grid, that quantity is the ocean fraction times the mapped
+flux times the area times the timestep:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Qa</span> <span class="o">=</span> <span class="n">foa</span> <span class="o">*</span> <span class="n">Fao</span> <span class="o">*</span> <span class="n">Aa</span> <span class="o">*</span> <span class="n">dt</span>
+</pre></div>
+</div>
+<p>Via some simple math, it can be shown that Qo = Qa if:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">fao</span> <span class="o">=</span> <span class="n">w1</span><span class="o">*</span><span class="n">fo1</span> <span class="o">+</span> <span class="n">w2</span><span class="o">*</span><span class="n">fo2</span> <span class="o">+</span> <span class="n">w3</span><span class="o">*</span><span class="n">fo3</span> <span class="o">+</span> <span class="n">w4</span><span class="o">*</span><span class="n">fo4</span>
+<span class="n">Fao</span> <span class="o">=</span> <span class="p">(</span><span class="n">fo1</span><span class="o">*</span><span class="n">w1</span><span class="o">*</span><span class="n">Fo1</span> <span class="o">+</span> <span class="n">fo2</span><span class="o">*</span><span class="n">w2</span><span class="o">*</span><span class="n">Fo2</span> <span class="o">+</span> <span class="n">fo3</span><span class="o">*</span><span class="n">w3</span><span class="o">*</span><span class="n">Fo3</span> <span class="o">+</span> <span class="n">fo4</span><span class="o">*</span><span class="n">w4</span><span class="o">*</span><span class="n">Fo4</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">fao</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>In practice, the fraction weighted normlized mapping field is computed
+by mapping the ocean fraction and the fraction
+weighted field from the ocean to the atmosphere grid separately and then
+using the mapped fraction to normalize the field as a four step process:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Fo</span><span class="s1">&#39; = fo*Fo                                   (a)</span>
+<span class="n">fao</span> <span class="o">=</span> <span class="n">w1</span><span class="o">*</span><span class="n">fo1</span> <span class="o">+</span> <span class="n">w2</span><span class="o">*</span><span class="n">fo2</span> <span class="o">+</span> <span class="n">w3</span><span class="o">*</span><span class="n">fo3</span> <span class="o">+</span> <span class="n">w4</span><span class="o">*</span><span class="n">fo4</span>       <span class="p">(</span><span class="n">b</span><span class="p">)</span>
+<span class="n">Fao</span><span class="s1">&#39; = w1*Fo1&#39;</span> <span class="o">+</span> <span class="n">w2</span><span class="o">*</span><span class="n">Fo2</span><span class="s1">&#39; + w3*Fo3&#39;</span> <span class="o">+</span> <span class="n">w4</span><span class="o">*</span><span class="n">Fo4</span><span class="s1">&#39;  (c)</span>
+<span class="n">Fao</span> <span class="o">=</span> <span class="n">Fao</span><span class="s1">&#39;/fao                                (d)</span>
+</pre></div>
+</div>
+<p>Steps (b) and (c) above are the sparse matrix multiply by the standard
+conservative weights.
+Step (a) fraction weighs the field and step (d) normalizes the mapped field.</p>
+<p>Another way to think of this is that the mapped flux (Fao’) is normalized by the
+same fraction (fao) that is used in the merge, so they actually cancel.
+Both the normalization at the end of the mapping and the fraction weighting
+in the merge can be skipped and the results should be identical.  But then the mediator
+will carry around Fao’ instead of Fao and that field is far less intuitive
+as it no longer represents the gridcell average value, but some subarea average
+value.
+In addition, that approach is only valid when carrying out full surface merges.  If,
+for instance, the SST is to be interpolated and not merged with anything, the field
+must be normalized after mapping to be useful.</p>
+<p>The same mapping and merging process is valid for the sea ice:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">fai</span> <span class="o">=</span> <span class="n">w1</span><span class="o">*</span><span class="n">fi1</span> <span class="o">+</span> <span class="n">w2</span><span class="o">*</span><span class="n">fi2</span> <span class="o">+</span> <span class="n">w3</span><span class="o">*</span><span class="n">fi3</span> <span class="o">+</span> <span class="n">w4</span><span class="o">*</span><span class="n">fi4</span>
+<span class="n">Fai</span> <span class="o">=</span> <span class="p">(</span><span class="n">fi1</span><span class="o">*</span><span class="n">w1</span><span class="o">*</span><span class="n">Fi1</span> <span class="o">+</span> <span class="n">fi2</span><span class="o">*</span><span class="n">w2</span><span class="o">*</span><span class="n">Fi2</span> <span class="o">+</span> <span class="n">fi3</span><span class="o">*</span><span class="n">w3</span><span class="o">*</span><span class="n">Fi3</span> <span class="o">+</span> <span class="n">fi4</span><span class="o">*</span><span class="n">w4</span><span class="o">*</span><span class="n">Fi4</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">fai</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Putting this together with the original merge equation:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Fa</span> <span class="o">=</span> <span class="n">fal</span><span class="o">*</span><span class="n">Fal</span> <span class="o">+</span> <span class="n">fao</span><span class="o">*</span><span class="n">Fao</span> <span class="o">+</span> <span class="n">fai</span><span class="o">*</span><span class="n">Fai</span>
+</pre></div>
+</div>
+<p>where now:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">fal</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="p">(</span><span class="n">fao</span><span class="o">+</span><span class="n">fai</span><span class="p">)</span>
+<span class="n">fao</span> <span class="o">=</span> <span class="n">w1</span><span class="o">*</span><span class="n">fo1</span> <span class="o">+</span> <span class="n">w2</span><span class="o">*</span><span class="n">fo2</span> <span class="o">+</span> <span class="n">w3</span><span class="o">*</span><span class="n">fo3</span> <span class="o">+</span> <span class="n">w4</span><span class="o">*</span><span class="n">fo4</span>
+<span class="n">fai</span> <span class="o">=</span> <span class="n">w1</span><span class="o">*</span><span class="n">fi1</span> <span class="o">+</span> <span class="n">w2</span><span class="o">*</span><span class="n">fi2</span> <span class="o">+</span> <span class="n">w3</span><span class="o">*</span><span class="n">fi3</span> <span class="o">+</span> <span class="n">w4</span><span class="o">*</span><span class="n">fi4</span>
+<span class="n">Fal</span> <span class="o">=</span> <span class="n">Fl1</span> <span class="o">=</span> <span class="n">Fl2</span> <span class="o">=</span> <span class="n">Fl3</span> <span class="o">=</span> <span class="n">Fl4</span> <span class="k">as</span> <span class="n">defined</span> <span class="n">by</span> <span class="n">the</span> <span class="n">land</span> <span class="n">model</span> <span class="n">on</span> <span class="n">the</span> <span class="n">atm</span> <span class="n">grid</span>
+<span class="n">Fao</span> <span class="o">=</span> <span class="p">(</span><span class="n">fo1</span><span class="o">*</span><span class="n">w1</span><span class="o">*</span><span class="n">Fo1</span> <span class="o">+</span> <span class="n">fo2</span><span class="o">*</span><span class="n">w2</span><span class="o">*</span><span class="n">Fo2</span> <span class="o">+</span> <span class="n">fo3</span><span class="o">*</span><span class="n">w3</span><span class="o">*</span><span class="n">Fo3</span> <span class="o">+</span> <span class="n">fo4</span><span class="o">*</span><span class="n">w4</span><span class="o">*</span><span class="n">Fo4</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">fao</span><span class="p">)</span>
+<span class="n">Fai</span> <span class="o">=</span> <span class="p">(</span><span class="n">fi1</span><span class="o">*</span><span class="n">w1</span><span class="o">*</span><span class="n">Fi1</span> <span class="o">+</span> <span class="n">fi2</span><span class="o">*</span><span class="n">w2</span><span class="o">*</span><span class="n">Fi2</span> <span class="o">+</span> <span class="n">fi3</span><span class="o">*</span><span class="n">w3</span><span class="o">*</span><span class="n">Fi3</span> <span class="o">+</span> <span class="n">fi4</span><span class="o">*</span><span class="n">w4</span><span class="o">*</span><span class="n">Fi4</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">fai</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>will simplify to an equation that contains twelve distinct terms for each of the
+four ocean gridboxes and the three different surfaces:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Fa</span> <span class="o">=</span> <span class="p">(</span><span class="n">w1</span><span class="o">*</span><span class="n">fl1</span><span class="o">*</span><span class="n">Fl1</span> <span class="o">+</span> <span class="n">w2</span><span class="o">*</span><span class="n">fl2</span><span class="o">*</span><span class="n">Fl2</span>  <span class="o">+</span> <span class="n">w3</span><span class="o">*</span><span class="n">fl3</span><span class="o">*</span><span class="n">Fl3</span> <span class="o">+</span> <span class="n">w4</span><span class="o">*</span><span class="n">fl4</span><span class="o">*</span><span class="n">Fl4</span><span class="p">)</span> <span class="o">+</span>
+     <span class="p">(</span><span class="n">w1</span><span class="o">*</span><span class="n">fo1</span><span class="o">*</span><span class="n">Fo1</span> <span class="o">+</span> <span class="n">w2</span><span class="o">*</span><span class="n">fo2</span><span class="o">*</span><span class="n">Fo2</span>  <span class="o">+</span> <span class="n">w3</span><span class="o">*</span><span class="n">fo3</span><span class="o">*</span><span class="n">Fo3</span> <span class="o">+</span> <span class="n">w4</span><span class="o">*</span><span class="n">fo4</span><span class="o">*</span><span class="n">Fo4</span><span class="p">)</span> <span class="o">+</span>
+     <span class="p">(</span><span class="n">w1</span><span class="o">*</span><span class="n">fi1</span><span class="o">*</span><span class="n">Fi1</span> <span class="o">+</span> <span class="n">w2</span><span class="o">*</span><span class="n">fi2</span><span class="o">*</span><span class="n">Fi2</span>  <span class="o">+</span> <span class="n">w3</span><span class="o">*</span><span class="n">fi3</span><span class="o">*</span><span class="n">Fi3</span> <span class="o">+</span> <span class="n">w4</span><span class="o">*</span><span class="n">fi4</span><span class="o">*</span><span class="n">Fi4</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>and this further simplifies to something that looks like a mapping
+of the field merged on the ocean grid:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Fa</span> <span class="o">=</span> <span class="n">w1</span><span class="o">*</span><span class="p">(</span><span class="n">fl1</span><span class="o">*</span><span class="n">Fl1</span><span class="o">+</span><span class="n">fo1</span><span class="o">*</span><span class="n">Fo1</span><span class="o">+</span><span class="n">fi1</span><span class="o">*</span><span class="n">Fi1</span><span class="p">)</span> <span class="o">+</span>
+     <span class="n">w2</span><span class="o">*</span><span class="p">(</span><span class="n">fl2</span><span class="o">*</span><span class="n">Fl2</span><span class="o">+</span><span class="n">fo2</span><span class="o">*</span><span class="n">Fo2</span><span class="o">+</span><span class="n">fi2</span><span class="o">*</span><span class="n">Fi2</span><span class="p">)</span> <span class="o">+</span>
+     <span class="n">w3</span><span class="o">*</span><span class="p">(</span><span class="n">fl3</span><span class="o">*</span><span class="n">Fl3</span><span class="o">+</span><span class="n">fo3</span><span class="o">*</span><span class="n">Fo3</span><span class="o">+</span><span class="n">fi3</span><span class="o">*</span><span class="n">Fi3</span><span class="p">)</span> <span class="o">+</span>
+     <span class="n">w4</span><span class="o">*</span><span class="p">(</span><span class="n">fl4</span><span class="o">*</span><span class="n">Fl4</span><span class="o">+</span><span class="n">fo4</span><span class="o">*</span><span class="n">Fo4</span><span class="o">+</span><span class="n">fi4</span><span class="o">*</span><span class="n">Fi4</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Like the exercise with Fao above, these equations can be shown to be
+fully conservative.</p>
+<p>To summarize, multiple features such as area calculations,
+weights, masking, normalization, fraction weighting, and merging approaches
+have to be considered together to ensure conservation.  The CMEPS mediator
+uses unmasked and unnormalized weights and then generally
+maps using the fraction weighted normalized approach.  Merges are carried
+out with fraction weights.
+This is applied to both state and flux fields, with conservative, bilinear,
+and other mapping approaches, and for both merged and unmerged fields.
+This ensures that the fields are always useful gridcell average values
+when being coupled or analyzed throughout the coupling implementation.</p>
+</div>
+<div class="section" id="area-corrections">
+<h2>1.3. Area Corrections<a class="headerlink" href="#area-corrections" title="Permalink to this headline">¶</a></h2>
+<p>Area corrections are generally necessary when coupling fluxes between different
+component models if conservation is important.  The area corrections adjust
+the fluxes such that the quantity is conserved between different models.  The
+area corrections are necessary because different model usually compute gridcell
+areas using different approaches.  These approaches are inherently part of the
+model discretization, they are NOT ad-hoc.</p>
+<p>If the previous section, areas and weights were introduced.  Those areas
+were assumed to consist of the area overlaps between gridcells and were computed
+using a consistent approach such that the areas conserve.  ESMF is able to compute
+these area overlaps and the corresponding mapping weights such that fluxes can
+be mapped and quantities are conserved.</p>
+<p>However, the ESMF areas don’t necessarily agree with the model areas that are inherently
+computed in the individual component models.  As a result, the fluxes need to
+be corrected by the ratio of the model areas and the ESMF areas.  Consider a
+simple configuration where two grids are identical, the areas computed by
+ESMF are identical, and all the weights are 1.0.  So:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">A1</span> <span class="o">=</span> <span class="n">A2</span> <span class="p">(</span><span class="kn">from</span> <span class="nn">ESMF</span><span class="p">)</span>
+<span class="n">w1</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="p">(</span><span class="kn">from</span> <span class="nn">ESMF</span><span class="p">)</span>
+<span class="n">F2</span> <span class="o">=</span> <span class="n">w1</span><span class="o">*</span><span class="n">F1</span>  <span class="p">(</span><span class="n">mapping</span><span class="p">)</span>
+<span class="n">F2</span><span class="o">*</span><span class="n">A2</span> <span class="o">=</span> <span class="n">F1</span><span class="o">*</span><span class="n">A1</span> <span class="p">(</span><span class="n">conservation</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Now lets assume that the two models have fundamentally different discretizations,
+different area algorithms (i.e. great circle vs simpler lon/lat approximations),
+or even different
+assumptions about the size and shape of the earth.  The grids can be identical in
+terms of the longitude and latitude of the
+gridcell corners and centers, but the areas can also
+be different because of the underlying model implementation.  When a flux is passed
+to or from each component, the quantity associated with that flux is proportional to
+the model area, so:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">A1</span> <span class="o">=</span> <span class="n">A2</span> <span class="p">(</span><span class="n">ESMF</span> <span class="n">areas</span><span class="p">)</span>
+<span class="n">w1</span> <span class="o">=</span> <span class="mf">1.0</span>
+<span class="n">F2</span> <span class="o">=</span> <span class="n">w1</span><span class="o">*</span><span class="n">F1</span> <span class="p">(</span><span class="n">mapping</span><span class="p">)</span>
+<span class="n">F2</span> <span class="o">=</span> <span class="n">F1</span>
+<span class="n">A1m</span> <span class="o">!=</span> <span class="n">A2m</span>  <span class="p">(</span><span class="n">model</span> <span class="n">areas</span><span class="p">)</span>
+<span class="n">F1</span><span class="o">*</span><span class="n">A1m</span> <span class="o">!=</span> <span class="n">F2</span><span class="o">*</span><span class="n">A2m</span>  <span class="p">(</span><span class="n">loss</span> <span class="n">of</span> <span class="n">conservation</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This can be corrected by multiplying the fluxes
+by an area correction.  For each model, outgoing fluxes should be multiplied
+by the model area divided by the ESMF area.  Incoming fluxes should be multiplied
+by the ESMF area divided by the model area.  So:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">F1</span><span class="s1">&#39; = A1m/A1*F1</span>
+<span class="n">F2</span><span class="s1">&#39; = w1*F1&#39;</span>
+<span class="n">F2</span>  <span class="o">=</span> <span class="n">F2</span><span class="s1">&#39;*A2/A2m</span>
+
+<span class="n">Q2</span> <span class="o">=</span> <span class="n">F2</span><span class="o">*</span><span class="n">A2m</span>
+   <span class="o">=</span> <span class="p">(</span><span class="n">F2</span><span class="s1">&#39;*A2/A2m)*A2m</span>
+   <span class="o">=</span> <span class="n">F2</span><span class="s1">&#39;*A2</span>
+   <span class="o">=</span> <span class="p">(</span><span class="n">w1</span><span class="o">*</span><span class="n">F1</span><span class="s1">&#39;)*A2</span>
+   <span class="o">=</span> <span class="n">w1</span><span class="o">*</span><span class="p">(</span><span class="n">A1m</span><span class="o">/</span><span class="n">A1</span><span class="o">*</span><span class="n">F1</span><span class="p">)</span><span class="o">*</span><span class="n">A2</span>
+   <span class="o">=</span> <span class="n">A1m</span><span class="o">*</span><span class="n">F1</span>
+   <span class="o">=</span> <span class="n">Q1</span>
+</pre></div>
+</div>
+<p>and now the mapped flux conserves in the component models.  The area corrections
+should only be applied to fluxes.  These area corrections
+can actually be applied a number of ways.</p>
+<ul class="simple">
+<li>The model areas can be passed into ESMF as extra arguments and then the weights will be adjusted.  In this case, weights will no longer sum to 1 and different weights will need to be generated for mapping fluxes and states.</li>
+<li>Can pass quantities instead of fluxes, multiplying the flux in the component by the model area.  But this has a significant impact on the overall coupling strategy.</li>
+<li>Can pass the areas to the mediator and the mediator can multiple fluxes by the source model area before mapping and divide by the destination model area area after mapping.</li>
+<li>Can pass the areas to the mediator and implement an area correction term on the incoming and outgoing fluxes that is the ratio of the model and ESMF areas.  This is the approach shown above and is how CMEPS traditionally implements this feature.</li>
+</ul>
+<p>Model areas should be passed to the mediator at initialization so the area corrections
+can be computed and applied.  These area corrections do not vary in time.</p>
 </div>
 </div>
 
