@@ -78,7 +78,7 @@ module med_io_mod
   character(*),parameter         :: modName   = "(med_io_mod) "
   character(*),parameter         :: version   = "cmeps0"
   integer    , parameter         :: file_desc_t_cnt = 20 ! Note - this is hard-wired for now
-  integer    , parameter         :: number_strlen = 2
+  integer    , parameter         :: number_strlen = 8
   character(CL)                  :: wfilename = ''
   type(file_desc_t)              :: io_file(0:file_desc_t_cnt)
   integer                        :: pio_iotype

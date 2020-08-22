@@ -1,22 +1,22 @@
 module esm_time_mod
 
-  use shr_kind_mod        , only : cx=>shr_kind_cx, cs=>shr_kind_cs, cl=>shr_kind_cl, r8=>shr_kind_r8
-  use ESMF                , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_GridCompSet
-  use ESMF                , only : ESMF_Clock, ESMF_ClockCreate, ESMF_ClockGet, ESMF_ClockSet
-  use ESMF                , only : ESMF_ClockAdvance
-  use ESMF                , only : ESMF_Alarm, ESMF_AlarmCreate, ESMF_AlarmGet
-  use ESMF                , only : ESMF_Calendar, ESMF_CalKind_Flag, ESMF_CalendarCreate
-  use ESMF                , only : ESMF_CALKIND_NOLEAP, ESMF_CALKIND_GREGORIAN
-  use ESMF                , only : ESMF_Time, ESMF_TimeGet, ESMF_TimeSet
-  use ESMF                , only : ESMF_TimeInterval, ESMF_TimeIntervalSet, ESMF_TimeIntervalGet
-  use ESMF                , only : ESMF_SUCCESS, ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_FAILURE
-  use ESMF                , only : ESMF_VM, ESMF_VMGet, ESMF_VMBroadcast
-  use ESMF                , only : ESMF_LOGMSG_INFO, ESMF_FAILURE
-  use ESMF                , only : operator(<), operator(/=), operator(+)
-  use ESMF                , only : operator(-), operator(*) , operator(>=)
-  use ESMF                , only : operator(<=), operator(>), operator(==)
-  use NUOPC               , only : NUOPC_CompAttributeGet
-  use esm_utils_mod       , only : chkerr
+  use shr_kind_mod  , only : cx=>shr_kind_cx, cs=>shr_kind_cs, cl=>shr_kind_cl, r8=>shr_kind_r8
+  use ESMF          , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_GridCompSet
+  use ESMF          , only : ESMF_Clock, ESMF_ClockCreate, ESMF_ClockGet, ESMF_ClockSet
+  use ESMF          , only : ESMF_ClockAdvance
+  use ESMF          , only : ESMF_Alarm, ESMF_AlarmCreate, ESMF_AlarmGet
+  use ESMF          , only : ESMF_Calendar, ESMF_CalKind_Flag, ESMF_CalendarCreate
+  use ESMF          , only : ESMF_CALKIND_NOLEAP, ESMF_CALKIND_GREGORIAN
+  use ESMF          , only : ESMF_Time, ESMF_TimeGet, ESMF_TimeSet
+  use ESMF          , only : ESMF_TimeInterval, ESMF_TimeIntervalSet, ESMF_TimeIntervalGet
+  use ESMF          , only : ESMF_SUCCESS, ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_FAILURE
+  use ESMF          , only : ESMF_VM, ESMF_VMGet, ESMF_VMBroadcast
+  use ESMF          , only : ESMF_LOGMSG_INFO, ESMF_FAILURE
+  use ESMF          , only : operator(<), operator(/=), operator(+)
+  use ESMF          , only : operator(-), operator(*) , operator(>=)
+  use ESMF          , only : operator(<=), operator(>), operator(==)
+  use NUOPC         , only : NUOPC_CompAttributeGet
+  use esm_utils_mod , only : chkerr
 
   implicit none
   private    ! default private
@@ -107,91 +107,76 @@ contains
 
     rc = ESMF_SUCCESS
 
-    call ESMF_GridCompGet(instance_driver, vm=vm, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
     !---------------------------------------------------------------------------
     ! Determine start time, reference time and current time
     !---------------------------------------------------------------------------
 
-    call NUOPC_CompAttributeGet(instance_driver, name="start_ymd", value=cvalue, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) start_ymd
-    call NUOPC_CompAttributeGet(instance_driver, name="start_tod", value=cvalue, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) start_tod
-
+    ! The read_restart attribute is set in ensemble_driver and is based on the start_type
+    ! being equal to continue or branch
     call NUOPC_CompAttributeGet(instance_driver, name='read_restart', value=cvalue, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     read(cvalue,*) read_restart
 
     if (read_restart) then
 
+       ! Determine restart pointer file for driver time info
        call NUOPC_CompAttributeGet(instance_driver, name='drv_restart_pointer', value=restart_file, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-       write(6,*)'DEBUG: restart_file = ',trim(restart_file)
-
-       if (trim(restart_file) /= 'none') then
-
-          call NUOPC_CompAttributeGet(instance_driver, name="inst_suffix", isPresent=isPresent, rc=rc)
+       restart_file = 'rpointer.cpl'
+       call NUOPC_CompAttributeGet(instance_driver, name="inst_suffix", isPresent=isPresent, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       if(isPresent) then
+          call NUOPC_CompAttributeGet(instance_driver, name="inst_suffix", value=inst_suffix, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          if(isPresent) then
-             call NUOPC_CompAttributeGet(instance_driver, name="inst_suffix", value=inst_suffix, rc=rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          else
-             inst_suffix = ""
-          endif
-
-          restart_pfile = trim(restart_file)//inst_suffix
-
-          if (mastertask) then
-             call ESMF_LogWrite(trim(subname)//" read rpointer file = "//trim(restart_pfile), &
-                  ESMF_LOGMSG_INFO)
-             open(newunit=unitn, file=restart_pfile, form='FORMATTED', status='old',iostat=ierr)
-             if (ierr < 0) then
-                rc = ESMF_FAILURE
-                call ESMF_LogWrite(trim(subname)//' ERROR rpointer file open returns error', &
-                     ESMF_LOGMSG_INFO, line=__LINE__, file=__FILE__)
-                return
-             end if
-             read(unitn,'(a)', iostat=ierr) restart_file
-             if (ierr < 0) then
-                rc = ESMF_FAILURE
-                call ESMF_LogWrite(trim(subname)//' ERROR rpointer file read returns error', &
-                     ESMF_LOGMSG_INFO, line=__LINE__, file=__FILE__)
-                return
-             end if
-             close(unitn)
-             call ESMF_LogWrite(trim(subname)//" read driver restart from file = "//trim(restart_file), &
-                  ESMF_LOGMSG_INFO)
-
-             call esm_time_read_restart(restart_file, start_ymd, start_tod, curr_ymd, curr_tod, rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-             tmp(1) = start_ymd ; tmp(2) = start_tod
-             tmp(3) = curr_ymd  ; tmp(4) = curr_tod
-          endif
-
-          call ESMF_VMBroadcast(vm, tmp, 4, 0, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          start_ymd = tmp(1) ; start_tod = tmp(2)
-          curr_ymd  = tmp(3) ; curr_tod  = tmp(4)
-
        else
+          inst_suffix = ""
+       endif
+       restart_pfile = trim(restart_file)//inst_suffix
 
-          if (mastertask) then
-             write(logunit,*) ' NOTE: the current compset has no mediator - which provides the clock restart information'
-             write(logunit,*) '   In this case the restarts are handled solely by the component being used and'
-             write(logunit,*) '   and the driver clock will always be starting from the initial date on restart'
+       ! Read the restart pointer file and the restart time info for the driver
+       if (mastertask) then
+          call ESMF_LogWrite(trim(subname)//" read rpointer file = "//trim(restart_pfile), &
+               ESMF_LOGMSG_INFO)
+          open(newunit=unitn, file=restart_pfile, form='FORMATTED', status='old',iostat=ierr)
+          if (ierr < 0) then
+             rc = ESMF_FAILURE
+             call ESMF_LogWrite(trim(subname)//' ERROR rpointer file open returns error', &
+                  ESMF_LOGMSG_INFO, line=__LINE__, file=__FILE__)
+             return
           end if
-          curr_ymd = start_ymd
-          curr_tod = start_tod
+          read(unitn,'(a)', iostat=ierr) restart_file
+          if (ierr < 0) then
+             rc = ESMF_FAILURE
+             call ESMF_LogWrite(trim(subname)//' ERROR rpointer file read returns error', &
+                  ESMF_LOGMSG_INFO, line=__LINE__, file=__FILE__)
+             return
+          end if
+          close(unitn)
+          call ESMF_LogWrite(trim(subname)//" read driver restart from file = "//trim(restart_file), &
+               ESMF_LOGMSG_INFO)
+          
+          call esm_time_read_restart(restart_file, start_ymd, start_tod, curr_ymd, curr_tod, rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          
+          tmp(1) = start_ymd ; tmp(2) = start_tod
+          tmp(3) = curr_ymd  ; tmp(4) = curr_tod
+       endif
+       ! Broadcast info
+       call ESMF_GridCompGet(instance_driver, vm=vm, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_VMBroadcast(vm, tmp, 4, 0, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       start_ymd = tmp(1) ; start_tod = tmp(2)
+       curr_ymd  = tmp(3) ; curr_tod  = tmp(4)
 
-       end if
+    else ! run is a startup
 
-    else
-
+       call NUOPC_CompAttributeGet(instance_driver, name="start_ymd", value=cvalue, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       read(cvalue,*) start_ymd
+       call NUOPC_CompAttributeGet(instance_driver, name="start_tod", value=cvalue, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       read(cvalue,*) start_tod
        curr_ymd = start_ymd
        curr_tod = start_tod
 
