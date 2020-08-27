@@ -304,10 +304,10 @@
     <default_value>$ATM_NCPL</default_value>
     <values match="last">
       <value compset="_MOM6">24</value>
-      <value compset="_POP2">1</value>
-      <value compset="_POP2" grid="oi%tx0.1v2">4</value>
+      <value compset="_POP2">24</value>
       <value compset="_POP2" grid="oi%gx1v6">24</value>
       <value compset="_POP2" grid="oi%gx1v7">24</value>
+      <value compset="_POP2" grid="oi%tx0.1v2">48</value>
       <value compset="_POP2" grid="oi%tx0.1v3">48</value>
       <value compset="_DLND.*_CISM\d">1</value>
       <value compset="_NEMO">24</value>

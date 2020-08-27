@@ -152,6 +152,9 @@ class DriverConfig(dict):
             # If the prognostic flag is on, then should set med_to_rof to True
             if_prognostic = False
             med_to_rof = if_prognostic
+        elif case.get_value("PTS_MODE"):
+            run_rof = False
+            med_to_rof = False
         else:
             # this is active runoff - determine if the mode or the grid is null - and in that case
             # remove all interactions with rof from the run sequence

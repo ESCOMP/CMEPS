@@ -535,6 +535,7 @@ contains
 
     use ESMF  , only : ESMF_RouteHandle
 
+    ! input/output variables
     type(ESMF_RouteHandle) , intent(in)    :: RHs(:,:,:)
     integer                , intent(in)    :: n1
     integer                , intent(in)    :: n2
@@ -542,11 +543,13 @@ contains
     integer                , intent(out)   :: rc
 
     ! local variables
-    integer :: rc1, rc2
-    logical :: mapexists
     character(len=*), parameter :: subname=' (med_map_RH_is_created: ) '
+    !-----------------------------------------------------------
 
     rc = ESMF_SUCCESS
+
+    write(6,*)'calling med_map_RH_is_created_RH1d for n1 to n2 and mapindex= ',&
+         compname(n1), compname(n2), mapindex
 
     med_map_RH_is_created_RH3d = med_map_RH_is_created_RH1d(RHs(n1,n2,:),mapindex,rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -557,43 +560,151 @@ contains
 
   logical function med_map_RH_is_created_RH1d(RHs,mapindex,rc)
 
-    use ESMF  , only : ESMF_RouteHandle, ESMF_RouteHandleIsCreated
+    use ESMF, only : ESMF_RouteHandle, ESMF_RouteHandleIsCreated
 
+    ! input/output variables
     type(ESMF_RouteHandle) , intent(in)    :: RHs(:)
     integer                , intent(in)    :: mapindex
     integer                , intent(out)   :: rc
 
     ! local variables
-    integer :: rc1, rc2
     logical :: mapexists
+    logical :: map1, map2
     character(len=*), parameter :: subname=' (med_map_RH_is_created_RH1d: ) '
+    !-----------------------------------------------------------
 
     rc  = ESMF_SUCCESS
-    rc1 = ESMF_SUCCESS
-    rc2 = ESMF_SUCCESS
 
     mapexists = .false.
-    if      (mapindex == mapnstod_consd .and. &
-             ESMF_RouteHandleIsCreated(RHs(mapnstod), rc=rc1) .and. &
-             ESMF_RouteHandleIsCreated(RHs(mapconsd), rc=rc2)) then
-       mapexists = .true.
-    else if (mapindex == mapnstod_consf .and. &
-             ESMF_RouteHandleIsCreated(RHs(mapnstod), rc=rc1) .and. &
-             ESMF_RouteHandleIsCreated(RHs(mapconsf), rc=rc2)) then
-       mapexists = .true.
-    else if (ESMF_RouteHandleIsCreated(RHs(mapindex), rc=rc1)) then
-       mapexists = .true.
+    if (mapindex == mapnstod_consd) then
+       map1 = ESMF_RouteHandleIsCreated(RHs(mapnstod), rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       map2 = ESMF_RouteHandleIsCreated(RHs(mapconsd), rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (map1 .and. map2) mapexists = .true.
+    else if (mapindex == mapnstod_consf) then
+       map1 = ESMF_RouteHandleIsCreated(RHs(mapnstod), rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       map2 = ESMF_RouteHandleIsCreated(RHs(mapconsf), rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (map1 .and. map2) mapexists = .true.
+    else
+       map1 = ESMF_RouteHandleIsCreated(RHs(mapindex), rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (map1) mapexists = .true.
     end if
 
     med_map_RH_is_created_RH1d = mapexists
 
-    rc = rc1
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    rc = rc2
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
   end function med_map_RH_is_created_RH1d
 
+<<<<<<< HEAD
+=======
+!================================================================================
+
+  subroutine med_map_Fractions_init(gcomp, n1, n2, FBSrc, FBDst, RouteHandle, rc)
+
+    !---------------------------------------------
+    ! Initialize initialize additional route handles
+    ! for mapping fractions
+    !---------------------------------------------
+
+    use ESMF  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_LogFlush
+    use ESMF  , only : ESMF_GridComp, ESMF_FieldBundle, ESMF_RouteHandle, ESMF_Field
+    use ESMF  , only : ESMF_FieldRedistStore, ESMF_FieldSMMStore, ESMF_FieldRegridStore
+    use ESMF  , only : ESMF_UNMAPPEDACTION_IGNORE, ESMF_REGRIDMETHOD_CONSERVE, ESMF_NORMTYPE_FRACAREA
+    use NUOPC , only : NUOPC_CompAttributeGet
+
+    type(ESMF_GridComp)                    :: gcomp
+    integer                , intent(in)    :: n1
+    integer                , intent(in)    :: n2
+    type(ESMF_FieldBundle) , intent(in)    :: FBSrc
+    type(ESMF_FieldBundle) , intent(in)    :: FBDst
+    type(ESMF_RouteHandle) , intent(inout) :: RouteHandle
+    integer                , intent(out)   :: rc
+
+    ! local variables
+    type(ESMF_Field)   :: fldsrc
+    type(ESMF_Field)   :: flddst
+    character(len=128) :: rhname
+    character(len=CS)  :: mapname
+    character(len=CX)  :: mapfile
+    character(len=CS)  :: string
+    integer            :: SrcMaskValue
+    integer            :: DstMaskValue
+    real(R8), pointer  :: factorList(:)
+    character(len=*), parameter :: subname=' (med_map_fractions_init: ) '
+    !---------------------------------------------
+
+    call t_startf('MED:'//subname)
+
+    if (dbug_flag > 1) then
+       call ESMF_LogWrite("Initializing RHs not yet created and needed for mapping fractions", &
+            ESMF_LOGMSG_INFO)
+       call ESMF_LogFlush()
+    endif
+
+    rc = ESMF_SUCCESS
+
+    call FB_getFieldN(FBsrc, 1, fldsrc, rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    call FB_getFieldN(FBDst, 1, flddst, rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    dstMaskValue = ispval_mask
+    srcMaskValue = ispval_mask
+    if (n1 == compocn .or. n1 == compice) srcMaskValue = 0
+    if (n2 == compocn .or. n2 == compice) dstMaskValue = 0
+
+    rhname = trim(compname(n1))//"2"//trim(compname(n2))
+    string   = trim(rhname)//'_weights'
+    if ( (n1 == compocn .and. n2 == compice) .or. (n1 == compice .and. n2 == compocn)) then
+       mapfile = 'idmap'
+    else
+       call ESMF_LogWrite("Querying for attribute "//trim(rhname)//"_fmapname = ", ESMF_LOGMSG_INFO)
+       call NUOPC_CompAttributeGet(gcomp, name=trim(rhname)//"_fmapname", value=mapfile, rc=rc)
+       mapname = trim(mapnames(mapconsf))
+    end if
+
+    if (mapfile == 'idmap') then
+       call ESMF_LogWrite(trim(subname) // trim(string) //&
+            ' RH '//trim(mapname)// ' is redist', ESMF_LOGMSG_INFO)
+       call ESMF_FieldRedistStore(fldsrc, flddst, &
+            routehandle=RouteHandle, &
+            ignoreUnmatchedIndices = .true., rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+    else if (mapfile /= 'unset') then
+       call ESMF_LogWrite(subname // trim(string) //&
+            ' RH '//trim(mapname)//' via input file '//trim(mapfile), ESMF_LOGMSG_INFO)
+       call ESMF_FieldSMMStore(fldsrc, flddst, mapfile, &
+            routehandle=RouteHandle, &
+            ignoreUnmatchedIndices=.true., &
+            srcTermProcessing=srcTermProcessing_Value, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+    else
+       call ESMF_LogWrite(subname // trim(string) //&
+            ' RH '//trim(mapname)//' computed on the fly '//trim(mapfile), ESMF_LOGMSG_INFO)
+       call ESMF_FieldRegridStore(fldsrc, flddst, &
+            routehandle=RouteHandle, &
+            srcMaskValues=(/srcMaskValue/), &
+            dstMaskValues=(/dstMaskValue/), &
+            regridmethod=ESMF_REGRIDMETHOD_CONSERVE, &
+            normType=ESMF_NORMTYPE_FRACAREA, &
+            srcTermProcessing=srcTermProcessing_Value, &
+            factorList=factorList, &
+            ignoreDegenerate=.true., &
+            unmappedaction=ESMF_UNMAPPEDACTION_IGNORE, rc=rc)
+    end if
+
+    if (dbug_flag > 1) then
+      call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
+    endif
+    call t_stopf('MED:'//subname)
+
+  end subroutine med_map_Fractions_init
+
+>>>>>>> fixes necessary to run preapha tests
 !================================================================================
 
   subroutine med_map_MapNorm_init(gcomp, llogunit, rc)
