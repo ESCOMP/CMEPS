@@ -50,7 +50,7 @@ def _main_func():
         if valid:
             valid_comps.append(item)
 
-    datamodel_in_compset = False 
+    datamodel_in_compset = False
     for comp in comp_classes:
         dcompname = "d"+comp.lower()
         if dcompname in case.get_value("COMP_{}".format(comp)):
@@ -88,25 +88,24 @@ def _main_func():
 
     if atm_model == "ufsatm":
         # The FV3 atm doesnt build as other components and so we need a special link step
-        ncep_libs = os.environ.get("NCEPLIBS_DIR")        
-        if ncep_libs:
-            gmake_args += " USER_INCLDIR=-I{} ".format(os.path.join(exeroot,"atm","obj","FV3","mod"))
-            gmake_args += "USER_SLIBS=\""
-            gmake_args += " -L{} {} ".format(os.path.join(exeroot,"atm","obj","FV3")," -lfv3cap -lfv3core ")
-            gmake_args += " -L{} {} ".format(os.path.join(exeroot,"atm","obj","FV3","cpl")," -lfv3cpl ")
-            gmake_args += " -L{} {} ".format(os.path.join(exeroot,"atm","obj","FV3","io")," -lio ")
-            gmake_args += " -L{} {} ".format(os.path.join(exeroot,"atm","obj","FV3","ipd")," -lipd ")
-            gmake_args += " -L{} {} ".format(os.path.join(exeroot,"atm","obj","FV3","gfsphysics")," -lgfsphysics ")
-            gmake_args += " -L{} {} ".format(os.path.join(exeroot,"atm","obj","FV3","stochastic_physics")," -lstochastic_physics ")
-            gmake_args += " -L{} {} ".format(os.path.join(exeroot,"atm","obj","FV3","ccpp","driver")," -lccppdriver ")
-            gmake_args += " -L{} {} ".format(os.path.join(exeroot,"atm","obj","FV3","ccpp","physics")," -lccppphys ")
-            gmake_args += " -L{} {} ".format(os.path.join(exeroot,"atm","obj","FV3","ccpp","framework","src")," -lccpp ")
-            gmake_args +=     os.environ.get("NEMSIO_LIB")
-            gmake_args += " "+os.environ.get("BACIO_LIB4")
-            gmake_args += " "+os.environ.get("W3EMC_LIBd")
-            gmake_args += " "+os.environ.get("W3NCO_LIBd")
-            gmake_args += " "+os.environ.get("SP_LIBd")
-            gmake_args += "\""
+        gmake_args += " USER_INCLDIR=-I{} ".format(os.path.join(exeroot,"atm","obj","FV3","mod"))
+        gmake_args += "USER_SLIBS=\""
+        gmake_args += " -L{} {} ".format(os.path.join(exeroot,"atm","obj","FV3")," -lfv3atm -lfv3dycore ")
+        gmake_args += " -L{} {} ".format(os.path.join(exeroot,"atm","obj","FV3","cpl")," -lcpl ")
+        gmake_args += " -L{} {} ".format(os.path.join(exeroot,"atm","obj","FV3","io")," -lio ")
+        gmake_args += " -L{} {} ".format(os.path.join(exeroot,"atm","obj","FV3","ipd")," -lipd ")
+        gmake_args += " -L{} {} ".format(os.path.join(exeroot,"atm","obj","FV3","gfsphysics")," -lgfsphysics ")
+        gmake_args += " -L{} {} ".format(os.path.join(exeroot,"atm","obj","FV3","stochastic_physics")," -lstochastic_physics_wrapper ")
+        gmake_args += " -L{} {} ".format(os.path.join(exeroot,"atm","obj","stochastic_physics")," -lstochastic_physics ")
+        gmake_args += " -L{} {} ".format(os.path.join(exeroot,"atm","obj","FV3","ccpp","driver")," -lccppdriver ")
+        gmake_args += " -L{} {} ".format(os.path.join(exeroot,"atm","obj","FV3","ccpp","physics")," -lccppphys ")
+        gmake_args += " -L{} {} ".format(os.path.join(exeroot,"atm","obj","FV3","ccpp","framework","src")," -lccpp ")
+        gmake_args +=     os.environ.get("NEMSIO_LIB")
+        gmake_args += " "+os.environ.get("BACIO_LIB4")
+        gmake_args += " "+os.environ.get("W3EMC_LIBd")
+        gmake_args += " "+os.environ.get("W3NCO_LIBd")
+        gmake_args += " "+os.environ.get("SP_LIBd")
+        gmake_args += "\""
 
 
     # build model executable
