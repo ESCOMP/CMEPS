@@ -743,16 +743,13 @@
     </values>
   </entry>
 
-  <entry id="aqua_planet" modify_via_xml="DOCN_MODE">
+  <entry id="aqua_planet" skip_default_entry="true">
     <type>logical</type>
     <category>expdef</category>
     <group>ALLCOMP_attributes</group>
     <desc>
       true => turn on aquaplanet mode in cam
     </desc>
-    <values>
-      <value>.false.</value>
-    </values>
   </entry>
 
   <entry id="flds_i2o_per_cat" modify_via_xml="CPL_I2O_PER_CAT">

@@ -304,7 +304,7 @@
     <default_value>$ATM_NCPL</default_value>
     <values match="last">
       <value compset="_MOM6">24</value>
-      <value compset="_POP2">24</value>
+      <value compset="_POP2" grid="oi%gx3v7">1</value>
       <value compset="_POP2" grid="oi%gx1v6">24</value>
       <value compset="_POP2" grid="oi%gx1v7">24</value>
       <value compset="_POP2" grid="oi%tx0.1v2">48</value>
@@ -358,16 +358,16 @@
     <type>integer</type>
     <default_value>8</default_value>
     <values match="last">
-      <value compset="_DATM.*_POP2.*_DROF">$ATM_NCPL</value>
-      <value compset="_DATM.*_MOM6.*_DROF">$ATM_NCPL</value>
-      <value compset="_DATM.*_DOCN%SOM">$ATM_NCPL</value>
-      <value compset="_DATM.*_SLND.*_DICE.*_DOCN">$ATM_NCPL</value>
-      <value compset="_MIZUROUTE_">1</value>
-      <value compset="_DATM%CPLHIST.+POP\d">8</value>
-      <value compset="_DATM%CPLHIST.+MOM\d">8</value>
-      <value compset="_XATM.*_XLND.*_XICE.*_XOCN">$ATM_NCPL</value>
-      <value compset="_DLND.*_CISM\d">1</value>
-      <value compset="_XROF">$ATM_NCPL</value>
+      <value compset="_DATM.*_POP2.*_DROF" grid="oi%gx3v7">1</value>
+      <value compset="_DATM.*_MOM6.*_DROF"        >$ATM_NCPL</value>
+      <value compset="_DATM.*_DOCN%SOM"           >$ATM_NCPL</value>
+      <value compset="_DATM.*_SLND.*_DICE.*_DOCN" >$ATM_NCPL</value>
+      <value compset="_MIZUROUTE_"                >1</value>
+      <value compset="_DATM%CPLHIST.+POP\d"       >8</value>
+      <value compset="_DATM%CPLHIST.+MOM\d"       >8</value>
+      <value compset="_XATM.*_XLND.*_XICE.*_XOCN" >$ATM_NCPL</value>
+      <value compset="_DLND.*_CISM\d"             >1</value>
+      <value compset="_XROF"                      >$ATM_NCPL</value>
     </values>
     <group>run_coupling</group>
     <file>env_run.xml</file>

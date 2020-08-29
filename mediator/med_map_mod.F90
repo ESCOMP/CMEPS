@@ -1346,8 +1346,10 @@ contains
        end do
     end if
 
-    call Field_diagnose(dstfield, fldname, " --> after frac: ", rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    if (dbug_flag > 1) then
+       call Field_diagnose(dstfield, fldname, " --> after frac: ", rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+    end if
 
   end subroutine norm_field_dest
 
