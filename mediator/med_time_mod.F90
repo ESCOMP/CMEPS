@@ -15,7 +15,6 @@ module med_time_mod
   use ESMF                , only : operator(<), operator(/=), operator(+)
   use ESMF                , only : operator(-), operator(*) , operator(>=)
   use ESMF                , only : operator(<=), operator(>), operator(==)
-  use NUOPC               , only : NUOPC_CompAttributeGet
   use med_constants_mod   , only : dbug_flag => med_constants_dbug_flag
   use med_utils_mod       , only : chkerr => med_utils_ChkErr
 

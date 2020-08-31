@@ -83,6 +83,13 @@ contains
     use NUOPC_Mediator          , only: mediator_label_SetRunClock      => label_SetRunClock
     use NUOPC_Mediator          , only: mediator_label_Finalize         => label_Finalize
     use med_phases_history_mod  , only: med_phases_history_write
+    use med_phases_history_mod  , only: med_phases_history_write_atm
+    use med_phases_history_mod  , only: med_phases_history_write_ice
+    use med_phases_history_mod  , only: med_phases_history_write_glc
+    use med_phases_history_mod  , only: med_phases_history_write_lnd
+    use med_phases_history_mod  , only: med_phases_history_write_ocn
+    use med_phases_history_mod  , only: med_phases_history_write_rof
+    use med_phases_history_mod  , only: med_phases_history_write_wav
     use med_phases_restart_mod  , only: med_phases_restart_write
     use med_phases_prep_atm_mod , only: med_phases_prep_atm
     use med_phases_prep_ice_mod , only: med_phases_prep_ice
@@ -105,12 +112,15 @@ contains
     use med_diag_mod            , only: med_phases_diag_glc
     use med_diag_mod            , only: med_phases_diag_ocn
     use med_diag_mod            , only: med_phases_diag_ice_ice2med, med_phases_diag_ice_med2ice
+    use med_phases_history_mod  , only: med_phases_history_alarms_init
     use med_fraction_mod        , only: med_fraction_init, med_fraction_set
     use med_phases_profile_mod  , only: med_phases_profile
 
+    ! input/output variables
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc
     character(len=*),parameter :: subname='(module_MED:SetServices)'
+    !---------------------------------------
 
     rc = ESMF_SUCCESS
     if (profile_memory) call ESMF_VMLogMemInfo("Entering "//trim(subname))
@@ -177,7 +187,7 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !------------------
-    ! setup mediator history phase
+    ! setup mediator history phases
     !------------------
 
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
@@ -185,6 +195,55 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
          specPhaseLabel="med_phases_history_write", specRoutine=med_phases_history_write, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
+         phaseLabelList=(/"med_phases_history_write_atm"/), userRoutine=mediator_routine_Run, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
+         specPhaseLabel="med_phases_history_write_atm", specRoutine=med_phases_history_write_atm, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
+         phaseLabelList=(/"med_phases_history_write_ice"/), userRoutine=mediator_routine_Run, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
+         specPhaseLabel="med_phases_history_write_ice", specRoutine=med_phases_history_write_ice, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
+         phaseLabelList=(/"med_phases_history_write_glc"/), userRoutine=mediator_routine_Run, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
+         specPhaseLabel="med_phases_history_write_glc", specRoutine=med_phases_history_write_glc, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
+         phaseLabelList=(/"med_phases_history_write_lnd"/), userRoutine=mediator_routine_Run, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
+         specPhaseLabel="med_phases_history_write_lnd", specRoutine=med_phases_history_write_lnd, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
+         phaseLabelList=(/"med_phases_history_write_ocn"/), userRoutine=mediator_routine_Run, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
+         specPhaseLabel="med_phases_history_write_ocn", specRoutine=med_phases_history_write_ocn, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
+         phaseLabelList=(/"med_phases_history_write_rof"/), userRoutine=mediator_routine_Run, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
+         specPhaseLabel="med_phases_history_write_rof", specRoutine=med_phases_history_write_rof, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
+         phaseLabelList=(/"med_phases_history_write_wav"/), userRoutine=mediator_routine_Run, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
+         specPhaseLabel="med_phases_history_write_wav", specRoutine=med_phases_history_write_wav, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !------------------
@@ -1575,6 +1634,7 @@ contains
     use med_phases_prep_atm_mod , only : med_phases_prep_atm
     use med_phases_ocnalb_mod   , only : med_phases_ocnalb_run
     use med_phases_aofluxes_mod , only : med_phases_aofluxes_run
+    use med_phases_history_mod  , only : med_phases_history_alarms_init
     use med_phases_profile_mod  , only : med_phases_profile
     use med_diag_mod            , only : med_diag_zero, med_diag_init
     use med_map_mod             , only : med_map_MapNorm_init, med_map_RouteHandles_init
@@ -2137,7 +2197,15 @@ contains
          call med_phases_restart_read(gcomp, rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
        endif
+
+       !---------------------------------------
+       ! Initialize mediator hitory alarms
+       !---------------------------------------
+       call med_phases_history_alarms_init(gcomp, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
        call med_phases_profile(gcomp, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     else ! Not all done
        call NUOPC_CompAttributeSet(gcomp, name="InitializeDataComplete", value="false", rc=rc)

@@ -1268,7 +1268,6 @@
   <!--   <group>MED_attributes</group> -->
   <!--   <desc> -->
   <!--     writes atm fields in coupler average history files. -->
-  <!--     default: true -->
   <!--   </desc> -->
   <!--   <values> -->
   <!-- 	<value>.true.</value> -->
@@ -1281,7 +1280,6 @@
   <!--   <group>MED_attributes</group> -->
   <!--   <desc> -->
   <!--     writes lnd fields in coupler average history files. -->
-  <!--     default: true -->
   <!--   </desc> -->
   <!--   <values> -->
   <!--     <value>.true.</value> -->
@@ -1294,7 +1292,6 @@
   <!--   <group>MED_attributes</group> -->
   <!--   <desc> -->
   <!--     writes ocn fields in coupler average history files. -->
-  <!--     default: true -->
   <!--   </desc> -->
   <!--   <values> -->
   <!--     <value>.true.</value> -->
@@ -1307,7 +1304,6 @@
   <!--   <group>MED_attributes</group> -->
   <!--   <desc> -->
   <!--     writes ice fields in coupler average history files. -->
-  <!--     default: true -->
   <!--   </desc> -->
   <!--   <values> -->
   <!--     <value>.true.</value> -->
@@ -1320,7 +1316,6 @@
   <!--   <group>MED_attributes</group> -->
   <!--   <desc> -->
   <!--     writes rof fields in coupler average history files. -->
-  <!--     default: true -->
   <!--   </desc> -->
   <!--   <values> -->
   <!--     <value>.true.</value> -->
@@ -1333,7 +1328,6 @@
   <!--   <group>MED_attributes</group> -->
   <!--   <desc> -->
   <!--     writes glc fields in coupler average history files. -->
-  <!--     default: true -->
   <!--   </desc> -->
   <!--   <values> -->
   <!--     <value>.true.</value> -->
@@ -1346,7 +1340,6 @@
   <!--   <group>MED_attributes</group> -->
   <!--   <desc> -->
   <!--     writes wav fields in coupler average history files. -->
-  <!--     default: true -->
   <!--   </desc> -->
   <!--   <values> -->
   <!--     <value>.true.</value> -->
@@ -1359,201 +1352,128 @@
   <!--   <group>MED_attributes</group> -->
   <!--   <desc> -->
   <!--     writes xao fields in coupler average history files. -->
-  <!--     default: true -->
   <!--   </desc> -->
   <!--   <values> -->
   <!--     <value>.true.</value> -->
   <!--   </values> -->
   <!-- </entry> -->
 
-  <!-- <entry id="histaux_a2x"> -->
-  <!--   <type>logical</type> -->
-  <!--   <category>history</category> -->
-  <!--   <group>MED_attributes</group> -->
-  <!--   <desc> -->
-  <!--     turns on coupler history stream for instantaneous atm to coupler fields. -->
-  <!--     default: false -->
-  <!--   </desc> -->
-  <!--   <values> -->
-  <!--     <value>.false.</value> -->
-  <!--   </values> -->
-  <!-- </entry> -->
+  <entry id="histaux_r2x_flds">
+    <type>char</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>
+      turns on coupler history stream for instantaneous runoff to coupler fields.
+    </desc>
+    <valid_values>none,all</valid_values>
+    <values>
+      <value>none</value>
+    </values>
+  </entry>
 
-  <!-- <entry id="histaux_a2x1hr"> -->
-  <!--   <type>logical</type> -->
-  <!--   <category>history</category> -->
-  <!--   <group>MED_attributes</group> -->
-  <!--   <desc> -->
-  <!--     turns on coupler history stream for 1-hour average atm to coupler fields. -->
-  <!--     default: false -->
-  <!--   </desc> -->
-  <!--   <values> -->
-  <!--     <value>.false.</value> -->
-  <!--   </values> -->
-  <!-- </entry> -->
+  <entry id="histaux_l2x_flds">
+    <type>char</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>
+      turns on coupler history stream for instantaneous land to coupler fields.
+    </desc>
+    <valid_values>none,all</valid_values>
+    <values>
+      <value>none</value>
+    </values>
+  </entry>
 
-  <!-- <entry id="histaux_a2x1hri"> -->
-  <!--   <type>logical</type> -->
-  <!--   <category>history</category> -->
-  <!--   <group>MED_attributes</group> -->
-  <!--   <desc> -->
-  <!--     turns on coupler history stream for 1-hour instantaneous atm to coupler fields. -->
-  <!--     default: false -->
-  <!--   </desc> -->
-  <!--   <values> -->
-  <!--     <value>.false.</value> -->
-  <!--   </values> -->
-  <!-- </entry> -->
+  <entry id="histaux_l2x_1yr_flds">
+    <type>char</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>
+      turns on coupler history stream for annual sno to coupler fields.
+    </desc>
+    <valid_values>none,all</valid_values>
+    <values>
+      <value>none</value>
+    </values>
+  </entry>
 
-  <!-- <entry id="histaux_a2x3hr"> -->
-  <!--   <type>logical</type> -->
-  <!--   <category>history</category> -->
-  <!--   <group>MED_attributes</group> -->
-  <!--   <desc> -->
-  <!--     turns on coupler history stream for 3-hour average atm to coupler fields. -->
-  <!--     default: false -->
-  <!--   </desc> -->
-  <!--   <values> -->
-  <!--     <value>.false.</value> -->
-  <!--   </values> -->
-  <!-- </entry> -->
+  <entry id="histaux_a2x_flds">
+    <type>char</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>
+      Auxiliary mediator a2x history fields (default is none)
+    </desc>
+    <valid_values>none,all,Faxa_swndr:Faxa_swvdr:Faxa_swndf:Faxa_swvdf</valid_values>
+    <values>
+      <value>none</value>
+    </values>
+  </entry>
 
-  <!-- <entry id="histaux_a2x3hrp"> -->
-  <!--   <type>logical</type> -->
-  <!--   <category>history</category> -->
-  <!--   <group>MED_attributes</group> -->
-  <!--   <desc> -->
-  <!--     turns on coupler history stream for 3-hour average atm to coupler precip fields. -->
-  <!--     default: false -->
-  <!--   </desc> -->
-  <!--   <values> -->
-  <!--     <value>.false.</value> -->
-  <!--   </values> -->
-  <!-- </entry> -->
+  <entry id="histaux_a2x_1hr_flds">
+    <type>char</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>
+      Auxiliary coupler a2x averaged history output every hour
+    </desc>
+    <valid_values>none,all,Sa_u:Sa_v</valid_values>
+    <values>
+      <value>none</value>
+    </values>
+  </entry>
 
-  <!-- <entry id="histaux_a2x24hr"> -->
-  <!--   <type>logical</type> -->
-  <!--   <category>history</category> -->
-  <!--   <group>MED_attributes</group> -->
-  <!--   <desc> -->
-  <!--     turns on coupler history stream for daily average atm to coupler fields. -->
-  <!--     default: false -->
-  <!--   </desc> -->
-  <!--   <values> -->
-  <!--     <value>.false.</value> -->
-  <!--   </values> -->
-  <!-- </entry> -->
+  <entry id="histaux_a2x1hr_inst_flds">
+    <type>char</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>
+      Auxiliary coupler a2x instantaneous history output every hour
+    </desc>
+    <valid_values>none,all,Faxa_swndr:Faxa_swvdr:Faxa_swndf:Faxa_swvdf</valid_values>
+    <values>
+      <value>none</value>
+    </values>
+  </entry>
 
-  <!-- <entry id="histaux_l2x"> -->
-  <!--   <type>logical</type> -->
-  <!--   <category>history</category> -->
-  <!--   <group>MED_attributes</group> -->
-  <!--   <desc> -->
-  <!--     turns on coupler history stream for instantaneous land to coupler fields. -->
-  <!--     default: false -->
-  <!--   </desc> -->
-  <!--   <values> -->
-  <!--     <value>.false.</value> -->
-  <!--   </values> -->
-  <!-- </entry> -->
+  <entry id="histaux_a2x_24hr_flds">
+    <type>char</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>
+      Auxiliary coupler a2x history output every 24 hours
+    </desc>
+    <valid_values>none,all,Faxa_bcph:Faxa_ocph:Faxa_dstwet:Faxa_dstdry:Sa_co2prog:Sa_co2diag</valid_values>
+    <values>
+      <value>none</value>
+    </values>
+  </entry>
 
-  <!-- <entry id="histaux_r2x"> -->
-  <!--   <type>logical</type> -->
-  <!--   <category>history</category> -->
-  <!--   <group>MED_attributes</group> -->
-  <!--   <desc> -->
-  <!--     turns on coupler history stream for instantaneous runoff to coupler fields. -->
-  <!--     default: false -->
-  <!--   </desc> -->
-  <!--   <values> -->
-  <!--     <value>.false.</value> -->
-  <!--   </values> -->
-  <!-- </entry> -->
+  <entry id="histaux_a2x_3hr_prec_flds">
+    <type>char</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>
+      Auxiliary coupler a2x precipitation history output every 3 hours
+    </desc>
+    <valid_values>none,all,Faxa_rainc:Faxa_rainl:Faxa_snowc:Faxa_snowl</valid_values>
+    <values>
+      <value>none</value>
+    </values>
+  </entry>
 
-  <!-- <entry id="histaux_l2x1yr"> -->
-  <!--   <type>logical</type> -->
-  <!--   <category>history</category> -->
-  <!--   <group>MED_attributes</group> -->
-  <!--   <desc> -->
-  <!--     turns on coupler history stream for annual sno to coupler fields. -->
-  <!--     default: false -->
-  <!--   </desc> -->
-  <!--   <values> -->
-  <!--     <value>.false.</value> -->
-  <!--   </values> -->
-  <!-- </entry> -->
-
-  <!-- <entry id="hist_a2x_flds"> -->
-  <!--   <type>char</type> -->
-  <!--   <category>aux_hist</category> -->
-  <!--   <group>MED_attributes</group> -->
-  <!--   <desc> -->
-  <!--     Auxiliary coupler a2x history fields -->
-  <!--   </desc> -->
-  <!--   <values> -->
-  <!--     <value>Faxa_swndr:Faxa_swvdr:Faxa_swndf:Faxa_swvdf</value> -->
-  <!--   </values> -->
-  <!-- </entry> -->
-
-  <!-- <entry id="hist_a2x3hrp_flds"> -->
-  <!--   <type>char</type> -->
-  <!--   <category>aux_hist</category> -->
-  <!--   <group>MED_attributes</group> -->
-  <!--   <desc> -->
-  <!--     Auxiliary coupler a2x precipitation history output every 3 hours -->
-  <!--   </desc> -->
-  <!--   <values> -->
-  <!--     <value>Faxa_rainc:Faxa_rainl:Faxa_snowc:Faxa_snowl</value> -->
-  <!--   </values> -->
-  <!-- </entry> -->
-
-  <!-- <entry id="hist_a2x24hr_flds"> -->
-  <!--   <type>char</type> -->
-  <!--   <category>aux_hist</category> -->
-  <!--   <group>MED_attributes</group> -->
-  <!--   <desc> -->
-  <!--     Auxiliary coupler a2x history output every 24 hours -->
-  <!--   </desc> -->
-  <!--   <values> -->
-  <!--     <value>Faxa_bcphiwet:Faxa_bcphodry:Faxa_bcphidry:Faxa_ocphiwet:Faxa_ocphidry:Faxa_ocphodry:Faxa_dstwet1:Faxa_dstdry1:Faxa_dstwet2:Faxa_dstdry2:Faxa_dstwet3:Faxa_dstdry3:Faxa_dstwet4:Faxa_dstdry4:Sa_co2prog:Sa_co2diag</value> -->
-  <!--   </values> -->
-  <!-- </entry> -->
-
-  <!-- <entry id="hist_a2x1hri_flds"> -->
-  <!--   <type>char</type> -->
-  <!--   <category>aux_hist</category> -->
-  <!--   <group>MED_attributes</group> -->
-  <!--   <desc> -->
-  <!--     Auxiliary coupler a2x instantaneous history output every hour -->
-  <!--   </desc> -->
-  <!--   <values> -->
-  <!--     <value>Faxa_swndr:Faxa_swvdr:Faxa_swndf:Faxa_swvdf</value> -->
-  <!--   </values> -->
-  <!-- </entry> -->
-
-  <!-- <entry id="hist_a2x1hr_flds"> -->
-  <!--   <type>char</type> -->
-  <!--   <category>aux_hist</category> -->
-  <!--   <group>MED_attributes</group> -->
-  <!--   <desc> -->
-  <!--     Auxiliary coupler a2x averaged history output every hour -->
-  <!--   </desc> -->
-  <!--   <values> -->
-  <!--     <value>Sa_u:Sa_v</value> -->
-  <!--   </values> -->
-  <!-- </entry> -->
-
-  <!-- <entry id="hist_a2x3hr_flds"> -->
-  <!--   <type>char</type> -->
-  <!--   <category>aux_hist</category> -->
-  <!--   <group>MED_attributes</group> -->
-  <!--   <desc> -->
-  <!--     Auxiliary coupler a2x averaged history output every 3 hours -->
-  <!--   </desc> -->
-  <!--   <values> -->
-  <!--     <value>Sa_z:Sa_topo:Sa_u:Sa_v:Sa_tbot:Sa_ptem:Sa_shum:Sa_dens:Sa_pbot:Sa_pslv:Faxa_lwdn:Faxa_rainc:Faxa_rainl:Faxa_snowc:Faxa_snowl:Faxa_swndr:Faxa_swvdr:Faxa_swndf:Faxa_swvdf:Sa_co2diag:Sa_co2prog</value> -->
-  <!--   </values> -->
-  <!-- </entry> -->
+  <entry id="histaux_a2x_3hr_flds">
+    <type>char</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>
+      Auxiliary coupler a2x averaged history output every 3 hours
+    </desc>
+    <valid_values>none,all,Sa_z:Sa_topo:Sa_u:Sa_v:Sa_tbot:Sa_ptem:Sa_shum:Sa_dens:Sa_pbot:Sa_pslv:Faxa_lwdn:Faxa_rainc:Faxa_rainl:Faxa_snowc:Faxa_snowl:Faxa_swndr:Faxa_swvdr:Faxa_swndf:Faxa_swvdf:Sa_co2diag:Sa_co2prog</valid_values>
+    <values>
+      <value>none</value>
+    </values>
+  </entry>
 
   <!-- =========================== -->
   <!-- MED attributes              -->
