@@ -90,6 +90,7 @@ contains
     use med_phases_history_mod  , only: med_phases_history_write_ocn
     use med_phases_history_mod  , only: med_phases_history_write_rof
     use med_phases_history_mod  , only: med_phases_history_write_wav
+    use med_phases_history_mod  , only: med_phases_history_write_aux
     use med_phases_restart_mod  , only: med_phases_restart_write
     use med_phases_prep_atm_mod , only: med_phases_prep_atm
     use med_phases_prep_ice_mod , only: med_phases_prep_ice
@@ -244,6 +245,13 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
          specPhaseLabel="med_phases_history_write_wav", specRoutine=med_phases_history_write_wav, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
+         phaseLabelList=(/"med_phases_history_write_aux"/), userRoutine=mediator_routine_Run, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
+         specPhaseLabel="med_phases_history_write_aux", specRoutine=med_phases_history_write_aux, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !------------------

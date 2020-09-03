@@ -548,9 +548,6 @@ contains
 
     rc = ESMF_SUCCESS
 
-    write(6,*)'calling med_map_RH_is_created_RH1d for n1 to n2 and mapindex= ',&
-         compname(n1), compname(n2), mapindex
-
     med_map_RH_is_created_RH3d = med_map_RH_is_created_RH1d(RHs(n1,n2,:),mapindex,rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
