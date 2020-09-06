@@ -1406,20 +1406,19 @@
       <value>a2x1hi</value>
     </values>
   </entry>
-  <entry id="histaux_atm2med_file1_avgtype">
-    <type>char</type>
+  <entry id="histaux_atm2med_file1_useavg">
+    <type>logical</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
     <desc>
       Averaging type (inst or time average)
     </desc>
-    <valid_values>inst,timeavg</valid_values> 
     <values>
-      <value>inst</value>
+      <value>.false.</value>
     </values>
   </entry>
   <entry id="histaux_atm2med_file1_ntperfile">
-    <type>char</type>
+    <type>integer</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
     <desc>
@@ -1478,16 +1477,15 @@
       <value>a2x1h</value>
     </values>
   </entry>
-  <entry id="histaux_atm2med_file2_avgtype">
-    <type>char</type>
+  <entry id="histaux_atm2med_file2_useavg">
+    <type>logical</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
     <desc>
       Averaging type (inst or time average)
     </desc>
-    <valid_values>inst,timeavg</valid_values> 
     <values>
-      <value>timeavg</value>
+      <value>.true.</value>
     </values>
   </entry>
   <entry id="histaux_atm2med_file2_ntperfile">
@@ -1550,16 +1548,15 @@
       <value>a2x3h_prec</value>
     </values>
   </entry>
-  <entry id="histaux_atm2med_file3_avgtype">
-    <type>char</type>
+  <entry id="histaux_atm2med_file3_useavg">
+    <type>logical</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
     <desc>
       Averaging type (inst or time average)
     </desc>
-    <valid_values>inst,timeavg</valid_values> 
     <values>
-      <value>timeavg</value>
+      <value>.true.</value>
     </values>
   </entry>
   <entry id="histaux_atm2med_file3_ntperfile">
@@ -1622,16 +1619,15 @@
       <value>a2x3h</value>
     </values>
   </entry>
-  <entry id="histaux_atm2med_file4_avgtype">
-    <type>char</type>
+  <entry id="histaux_atm2med_file4_useavg">
+    <type>logical</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
     <desc>
       Averaging type (inst or time average)
     </desc>
-    <valid_values>inst,timeavg</valid_values> 
     <values>
-      <value>timeavg</value>
+      <value>.true.</value>
     </values>
   </entry>
   <entry id="histaux_atm2med_file4_ntperfile">
@@ -1694,16 +1690,15 @@
       <value>a2x24h</value>
     </values>
   </entry>
-  <entry id="histaux_atm2med_file5_avgtype">
-    <type>char</type>
+  <entry id="histaux_atm2med_file5_useavg">
+    <type>logical</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
     <desc>
       Averaging type (inst or time average)
     </desc>
-    <valid_values>inst,timeavg</valid_values> 
     <values>
-      <value>timeavg</value>
+      <value>.true.</value>
     </values>
   </entry>
   <entry id="histaux_atm2med_file5_ntperfile">
@@ -1726,7 +1721,7 @@
     <category>aux_hist</category>
     <group>MED_attributes</group>
     <desc>
-      Auxiliary coupler a2x precipitation history output every 3 hours
+      Auxiliary coupler l2x fields every year
     </desc>
     <valid_values>off,on</valid_values>
     <values>
@@ -1766,16 +1761,15 @@
       <value>a2x24h</value>
     </values>
   </entry>
-  <entry id="histaux_lnd2med_file1_avgtype">
-    <type>char</type>
+  <entry id="histaux_lnd2med_file1_useavg">
+    <type>logical</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
     <desc>
       Averaging type (inst or time average)
     </desc>
-    <valid_values>inst,timeavg</valid_values> 
     <values>
-      <value>timeavg</value>
+      <value>.true.</value>
     </values>
   </entry>
   <entry id="histaux_lnd2med_file1_ntperfile">
@@ -1787,19 +1781,6 @@
     </desc>
     <values>
       <value>1</value>
-    </values>
-  </entry>
-
-  <entry id="histaux_l2x_flds">
-    <type>char</type>
-    <category>aux_hist</category>
-    <group>MED_attributes</group>
-    <desc>
-      turns on coupler history stream for instantaneous land to coupler fields.
-    </desc>
-    <valid_values>none,all</valid_values>
-    <values>
-      <value>none</value>
     </values>
   </entry>
 
@@ -1868,16 +1849,15 @@
       <value>r2x24h</value>
     </values>
   </entry>
-  <entry id="histaux_rof2med_file1_avgtype">
+  <entry id="histaux_rof2med_file1_useavg">
     <type>char</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
     <desc>
       Averaging type (inst or time average)
     </desc>
-    <valid_values>inst,timeavg</valid_values> 
     <values>
-      <value>timeavg</value>
+      <value>.true.</value>
     </values>
   </entry>
   <entry id="histaux_rof2med_file1_ntperfile">

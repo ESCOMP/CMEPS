@@ -7,9 +7,9 @@ module med_io_mod
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, I8=>SHR_KIND_I8, R8=>SHR_KIND_R8
   use med_kind_mod          , only : R4=>SHR_KIND_R4
   use shr_const_mod         , only : fillvalue => SHR_CONST_SPVAL
-  use ESMF                  , only : ESMF_VM, ESMF_LogWrite, ESMF_LOGMSG_INFO
-  use ESMF                  , only : ESMF_SUCCESS, ESMF_FAILURE
-  use ESMF                  , only : ESMF_VMGetCurrent, ESMF_VMGet, ESMF_VMBroadCast
+  use ESMF                  , only : ESMF_VM, ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_LogFoundError
+  use ESMF                  , only : ESMF_SUCCESS, ESMF_FAILURE, ESMF_END_ABORT, ESMF_LOGERR_PASSTHRU
+  use ESMF                  , only : ESMF_VMGetCurrent, ESMF_VMGet, ESMF_VMBroadCast, ESMF_Finalize
   use NUOPC                 , only : NUOPC_FieldDictionaryGetEntry
   use NUOPC                 , only : NUOPC_FieldDictionaryHasEntry
   use pio                   , only : file_desc_t, iosystem_desc_t
@@ -70,16 +70,13 @@ module med_io_mod
      module procedure med_io_ymd2date_long
   end interface med_io_ymd2date
 
-  !-------------------------------------------------------------------------------
   ! module data
-  !-------------------------------------------------------------------------------
-
   character(*),parameter         :: prefix    = "med_io_"
   character(*),parameter         :: modName   = "(med_io_mod) "
   character(*),parameter         :: version   = "cmeps0"
-  integer    , parameter         :: file_desc_t_cnt = 20 ! Note - this is hard-wired for now
   integer    , parameter         :: number_strlen = 8
-  character(CL)                  :: wfilename = ''
+  integer    , parameter         :: file_desc_t_cnt = 20 ! Note - this is hard-wired for now
+  character(CL)                  :: wfilename(0:file_desc_t_cnt) = ''
   type(file_desc_t)              :: io_file(0:file_desc_t_cnt)
   integer                        :: pio_iotype
   integer                        :: pio_ioformat
@@ -202,7 +199,7 @@ contains
     if (.not. pio_file_is_open(io_file(lfile_ind))) then
 
        ! filename not open
-       wfilename = filename
+       wfilename(lfile_ind) = trim(filename)
 
        if (med_io_file_exists(vm, iam, filename)) then
           if (lclobber) then
@@ -242,15 +239,17 @@ contains
           rcode = pio_put_att(io_file(lfile_ind),pio_global,"file_version",version)
           rcode = pio_put_att(io_file(lfile_ind),pio_global,"model_doi_url",lmodel_doi_url)
        endif
-    elseif (trim(wfilename) /= trim(filename)) then
+
+    elseif (trim(wfilename(lfile_ind)) /= trim(filename)) then
        ! filename is open, better match open filename
        if (iam==0) then
           write(logunit,*) subname,' different  filename currently open ',trim(filename)
-          write(logunit,*) subname,' different wfilename currently open ',trim(wfilename)
+          write(logunit,*) subname,' different wfilename currently open ',trim(wfilename(lfile_ind))
        end if
        call ESMF_LogWrite(subname//'different file currently open '//trim(filename), ESMF_LOGMSG_INFO)
        rc = ESMF_FAILURE
        return
+
     else
        ! filename is already open, just return
     endif
@@ -281,21 +280,29 @@ contains
 
     lfile_ind = 0
     if (present(file_ind)) lfile_ind=file_ind
+    write(6,*)'DEBUG: lfile_ind = ',lfile_ind
 
     if (.not. pio_file_is_open(io_file(lfile_ind))) then
        ! filename not open, just return
-    elseif (trim(wfilename) == trim(filename)) then
+    elseif (trim(wfilename(lfile_ind)) == trim(filename)) then
        ! filename matches, close it
        call pio_closefile(io_file(lfile_ind))
+       !wfilename(lfile_ind) = ''
     else
        ! different filename is open, abort
-       if (iam==0) write(logunit,*) subname,' different  filename currently open, aborting ',trim(filename)
-       if (iam==0) write(logunit,*) subname,' different wfilename currently open, aborting ',trim(wfilename)
+       if (iam==0) then
+          write(logunit,*) subname,' different  wfilename and filename currently open, aborting '
+          write(logunit,*)  'filename  = ',trim(filename)
+          write(logunit,*)  'wfilename = ',trim(wfilename(lfile_ind))
+          write(logunit,*)  'lfile_ind = ',lfile_ind  
+       end if
        call ESMF_LogWrite(subname//'different file currently open, aborting '//trim(filename), ESMF_LOGMSG_INFO)
        rc = ESMF_FAILURE
-       return
+       if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=u_FILE_u)) then
+          call ESMF_Finalize(endflag=ESMF_END_ABORT)
+       end if
     endif
-    wfilename = ''
+
   end subroutine med_io_close
 
   !===============================================================================
@@ -604,11 +611,13 @@ contains
           ! Determine field name
           if (present(flds)) then
              itemc = trim(flds(k))
+             write(6,*)'DEBUG: using flds itemc = ',trim(itemc)
           else
              itemc = trim(fieldNameList(k))
           end if
 
           ! Determine rank of field with name itemc
+          write(6,*)' DEBUG: itemc= ',trim(itemc)
           call ESMF_FieldBundleGet(FB, itemc,  field=lfield, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           call ESMF_FieldGet(lfield, rank=rank, rc=rc)
@@ -756,7 +765,7 @@ contains
           end if ! end if not "hgt"
        end do  ! end loop over fields in FB
 
-       Fill coordinate variables - why is this being done each time?
+       ! Fill coordinate variables - why is this being done each time?
        name1 = trim(lpre)//'_lon'
        rcode = pio_inq_varid(io_file(lfile_ind), trim(name1), varid)
        call pio_setframe(io_file(lfile_ind),varid,frame)
@@ -1152,7 +1161,7 @@ contains
        ! should we write a warning?
        return
     endif
-    
+
     if (lwhead) then ! Write out header
 
        ! define time
@@ -1184,7 +1193,7 @@ contains
           rcode = pio_def_var(io_file(lfile_ind),'time_bnds',PIO_DOUBLE,dimid2,varid)
        endif
        if (lwdata) call med_io_enddef(filename, file_ind=lfile_ind)
-    
+
     else if (lwdata) then ! Write out data
 
        ! write time

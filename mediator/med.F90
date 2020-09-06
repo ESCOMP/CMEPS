@@ -1572,11 +1572,13 @@ contains
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
             allocate(ungriddedLBound(ungriddedCount), ungriddedUBound(ungriddedCount))
 
+
             if (ungriddedCount > 0) then
                call ESMF_AttributeGet(fieldList(n), name="UngriddedLBound", convention="NUOPC", &
                     purpose="Instance", valueList=ungriddedLBound, rc=rc)
                call ESMF_AttributeGet(fieldList(n), name="UngriddedUBound", convention="NUOPC", &
                     purpose="Instance", valueList=ungriddedUBound, rc=rc)
+               call ESMF_LogWrite(subname//"  "//trim(fieldName) // "has ungriddedcount > 0 ",ESMF_LOGMSG_INFO, rc=rc)
             endif
 
             call ESMF_FieldEmptyComplete(fieldList(n), typekind=ESMF_TYPEKIND_R8, gridToFieldMap=gridToFieldMap, &
