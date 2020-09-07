@@ -17,6 +17,7 @@ module med_time_mod
   use ESMF                , only : operator(<=), operator(>), operator(==)
   use med_constants_mod   , only : dbug_flag => med_constants_dbug_flag
   use med_utils_mod       , only : chkerr => med_utils_ChkErr
+  use med_internalstate_mod, only : mastertask, logunit
 
   implicit none
   private    ! default private
@@ -235,6 +236,10 @@ contains
           NextAlarm = NextAlarm + AlarmInterval
        enddo
     endif
+
+    if (mastertask) then
+       write(logunit,*)trim(subname) //' creating alarm '// trim(alarmname)
+    end if
 
     alarm = ESMF_AlarmCreate( name=lalarmname, clock=clock, ringTime=NextAlarm, &
          ringInterval=AlarmInterval, rc=rc)

@@ -209,14 +209,12 @@ contains
                 nmode = ior(nmode,pio_ioformat)
              endif
              rcode = pio_createfile(io_subsystem, io_file(lfile_ind), pio_iotype, trim(filename), nmode)
-             if(iam==0) write(logunit,*) subname,' create file ',trim(filename)
+             if(iam==0) write(logunit,'(a)') trim(subname)//' creating file '//trim(filename)
              rcode = pio_put_att(io_file(lfile_ind),pio_global,"file_version",version)
              rcode = pio_put_att(io_file(lfile_ind),pio_global,"model_doi_url",lmodel_doi_url)
           else
              rcode = pio_openfile(io_subsystem, io_file(lfile_ind), pio_iotype, trim(filename), pio_write)
-             if (iam==0) then
-                write(logunit,*) subname,' open file ',trim(filename)
-             end if
+             if (iam==0) write(logunit,'(a)') trim(subname)//' opening file '//trim(filename)
              call pio_seterrorhandling(io_file(lfile_ind),PIO_BCAST_ERROR)
              rcode = pio_get_att(io_file(lfile_ind),pio_global,"file_version",lversion)
              call pio_seterrorhandling(io_file(lfile_ind),PIO_INTERNAL_ERROR)
@@ -233,9 +231,7 @@ contains
              nmode = ior(nmode,pio_ioformat)
           endif
           rcode = pio_createfile(io_subsystem, io_file(lfile_ind), pio_iotype, trim(filename), nmode)
-          if (iam==0) then
-             write(logunit,*) subname,' create file ',trim(filename)
-          end if
+          if (iam==0) write(logunit,'(a)') trim(subname) //' creating file '// trim(filename)
           rcode = pio_put_att(io_file(lfile_ind),pio_global,"file_version",version)
           rcode = pio_put_att(io_file(lfile_ind),pio_global,"model_doi_url",lmodel_doi_url)
        endif
@@ -243,10 +239,10 @@ contains
     elseif (trim(wfilename(lfile_ind)) /= trim(filename)) then
        ! filename is open, better match open filename
        if (iam==0) then
-          write(logunit,*) subname,' different  filename currently open ',trim(filename)
-          write(logunit,*) subname,' different wfilename currently open ',trim(wfilename(lfile_ind))
+          write(logunit,'(a)') trim(subname)//' different  filename currently open '//trim(filename)
+          write(logunit,'(a)') trim(subname)//' different wfilename currently open '//trim(wfilename(lfile_ind))
        end if
-       call ESMF_LogWrite(subname//'different file currently open '//trim(filename), ESMF_LOGMSG_INFO)
+       call ESMF_LogWrite(trim(subname)//'different file currently open '//trim(filename), ESMF_LOGMSG_INFO)
        rc = ESMF_FAILURE
        return
 
@@ -280,7 +276,6 @@ contains
 
     lfile_ind = 0
     if (present(file_ind)) lfile_ind=file_ind
-    write(6,*)'DEBUG: lfile_ind = ',lfile_ind
 
     if (.not. pio_file_is_open(io_file(lfile_ind))) then
        ! filename not open, just return
@@ -294,7 +289,7 @@ contains
           write(logunit,*) subname,' different  wfilename and filename currently open, aborting '
           write(logunit,*)  'filename  = ',trim(filename)
           write(logunit,*)  'wfilename = ',trim(wfilename(lfile_ind))
-          write(logunit,*)  'lfile_ind = ',lfile_ind  
+          write(logunit,*)  'lfile_ind = ',lfile_ind
        end if
        call ESMF_LogWrite(subname//'different file currently open, aborting '//trim(filename), ESMF_LOGMSG_INFO)
        rc = ESMF_FAILURE
@@ -611,13 +606,11 @@ contains
           ! Determine field name
           if (present(flds)) then
              itemc = trim(flds(k))
-             write(6,*)'DEBUG: using flds itemc = ',trim(itemc)
           else
              itemc = trim(fieldNameList(k))
           end if
 
           ! Determine rank of field with name itemc
-          write(6,*)' DEBUG: itemc= ',trim(itemc)
           call ESMF_FieldBundleGet(FB, itemc,  field=lfield, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           call ESMF_FieldGet(lfield, rank=rank, rc=rc)
