@@ -82,7 +82,6 @@ contains
     use NUOPC_Mediator          , only: mediator_label_TimestampExport  => label_TimestampExport
     use NUOPC_Mediator          , only: mediator_label_SetRunClock      => label_SetRunClock
     use NUOPC_Mediator          , only: mediator_label_Finalize         => label_Finalize
-    use med_phases_history_mod  , only: med_phases_history_write
     use med_phases_history_mod  , only: med_phases_history_write_atm
     use med_phases_history_mod  , only: med_phases_history_write_ice
     use med_phases_history_mod  , only: med_phases_history_write_glc
@@ -90,7 +89,7 @@ contains
     use med_phases_history_mod  , only: med_phases_history_write_ocn
     use med_phases_history_mod  , only: med_phases_history_write_rof
     use med_phases_history_mod  , only: med_phases_history_write_wav
-    use med_phases_history_mod  , only: med_phases_history_write_aux
+    use med_phases_history_mod  , only: med_phases_history_write
     use med_phases_restart_mod  , only: med_phases_restart_write
     use med_phases_prep_atm_mod , only: med_phases_prep_atm
     use med_phases_prep_ice_mod , only: med_phases_prep_ice
@@ -245,13 +244,6 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
          specPhaseLabel="med_phases_history_write_wav", specRoutine=med_phases_history_write_wav, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
-         phaseLabelList=(/"med_phases_history_write_aux"/), userRoutine=mediator_routine_Run, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
-         specPhaseLabel="med_phases_history_write_aux", specRoutine=med_phases_history_write_aux, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !------------------
@@ -703,7 +695,7 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call ESMF_LogWrite('coupling_mode = '// trim(coupling_mode), ESMF_LOGMSG_INFO)
     if (mastertask) then
-       write(logunit,*)' Mediator Coupling Mode is ',trim(coupling_mode)
+       write(logunit,'(a)')' Mediator Coupling Mode is ',trim(coupling_mode)
     end if
 
     if (trim(coupling_mode) == 'cesm') then
@@ -795,16 +787,16 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if (mastertask) then
-       write(logunit,*)
-       write(logunit,*) "atm_present="//trim(atm_present)
-       write(logunit,*) "lnd_present="//trim(lnd_present)
-       write(logunit,*) "ocn_present="//trim(ocn_present)
-       write(logunit,*) "ice_present="//trim(ice_present)
-       write(logunit,*) "rof_present="//trim(rof_present)
-       write(logunit,*) "wav_present="//trim(wav_present)
-       write(logunit,*) "glc_present="//trim(glc_present)
-       write(logunit,*) "med_present="//trim(med_present)
-       write(logunit,*)
+       write(logunit,'(a)')
+       write(logunit,'(a)') "atm_present="//trim(atm_present)
+       write(logunit,'(a)') "lnd_present="//trim(lnd_present)
+       write(logunit,'(a)') "ocn_present="//trim(ocn_present)
+       write(logunit,'(a)') "ice_present="//trim(ice_present)
+       write(logunit,'(a)') "rof_present="//trim(rof_present)
+       write(logunit,'(a)') "wav_present="//trim(wav_present)
+       write(logunit,'(a)') "glc_present="//trim(glc_present)
+       write(logunit,'(a)') "med_present="//trim(med_present)
+       write(logunit,'(a)')
     end if
 
     call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldName", value=cvalue, rc=rc)
@@ -813,7 +805,7 @@ contains
 
     call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldCount", value=cvalue, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue, *) is_local%wrap%flds_scalar_num
+    read(cvalue,*) is_local%wrap%flds_scalar_num
 
     call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldIdxGridNX", value=cvalue, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -1759,8 +1751,8 @@ contains
       if (mastertask) then
          if (dbug_flag > 5) then
             write(logunit,*) ' '
-            write(logunit,'(A)') subname//' Allowed coupling flags'
-            write(logunit,'(2x,A10,20(A5))') '|from to->',(compname(n2),n2=1,ncomps)
+            write(logunit,'(a)') subname//' Allowed coupling flags'
+            write(logunit,'(2x,a10,20(a5))') '|from to->',(compname(n2),n2=1,ncomps)
             do n1 = 1,ncomps
                write(msgString,'(2x,a1,A,5x,20(L5))') '|',trim(compname(n1)),(med_coupling_allowed(n1,n2),n2=1,ncomps)
                do n2 = 1,len_trim(msgString)
@@ -1803,7 +1795,7 @@ contains
               ESMF_StateIsCreated(is_local%wrap%NStateImp(n1),rc=rc) .and. &
               ESMF_StateIsCreated(is_local%wrap%NStateExp(n1),rc=rc)) then
 
-            if (mastertask) write(logunit,*) subname,' initializing FBs for '//trim(compname(n1))
+            if (mastertask) write(logunit,'(a)') subname,' initializing FBs for '//trim(compname(n1))
 
             ! Create FBImp(:) with pointers directly into NStateImp(:)
             call FB_init_pointer(is_local%wrap%NStateImp(n1), is_local%wrap%FBImp(n1,n1), &
@@ -1848,7 +1840,7 @@ contains
                  ESMF_StateIsCreated(is_local%wrap%NStateImp(n1),rc=rc) .and. &
                  ESMF_StateIsCreated(is_local%wrap%NStateImp(n2),rc=rc)) then
 
-               if (mastertask) write(logunit,*) subname,' initializing FBs for '//&
+               if (mastertask) write(logunit,'(a)') subname,' initializing FBs for '//&
                     trim(compname(n1))//'_'//trim(compname(n2))
 
                call FB_init(is_local%wrap%FBImp(n1,n2), is_local%wrap%flds_scalar_name, &
@@ -1900,12 +1892,12 @@ contains
             call FB_init(is_local%wrap%FBMed_ocnalb_a, is_local%wrap%flds_scalar_name, &
                  STgeom=is_local%wrap%NStateImp(compatm), fieldnamelist=fldnames, name='FBMed_ocnalb_a', rc=rc)
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-            if (mastertask) write(logunit,*) subname,' initializing FB FBMed_ocnalb_a'
+            if (mastertask) write(logunit,'(a)') subname,' initializing FB FBMed_ocnalb_a'
 
             call FB_init(is_local%wrap%FBMed_ocnalb_o, is_local%wrap%flds_scalar_name, &
                  STgeom=is_local%wrap%NStateImp(compocn), fieldnamelist=fldnames, name='FBMed_ocnalb_o', rc=rc)
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-            if (mastertask) write(logunit,*) subname,' initializing FB FBMed_ocnalb_o'
+            if (mastertask) write(logunit,'(a)') subname,' initializing FB FBMed_ocnalb_o'
             deallocate(fldnames)
 
             ! The following assumes that the mediator atm/ocn flux calculation will be done on the ocean grid
@@ -1917,7 +1909,7 @@ contains
                     name='FBImp'//trim(compname(compatm))//'_'//trim(compname(compocn)), rc=rc)
                if (ChkErr(rc,__LINE__,u_FILE_u)) return
             end if
-            if (mastertask) write(logunit,*) subname,' initializing FBs for '// &
+            if (mastertask) write(logunit,'(a)') subname,' initializing FBs for '// &
                  trim(compname(compatm))//'_'//trim(compname(compocn))
          end if
 
@@ -1931,12 +1923,12 @@ contains
             call FB_init(is_local%wrap%FBMed_aoflux_a, is_local%wrap%flds_scalar_name, &
                  STgeom=is_local%wrap%NStateImp(compatm), fieldnamelist=fldnames, name='FBMed_aoflux_a', rc=rc)
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-            if (mastertask) write(logunit,*) subname,' initializing FB FBMed_aoflux_a'
+            if (mastertask) write(logunit,'(a)') subname,' initializing FB FBMed_aoflux_a'
 
             call FB_init(is_local%wrap%FBMed_aoflux_o, is_local%wrap%flds_scalar_name, &
                  STgeom=is_local%wrap%NStateImp(compocn), fieldnamelist=fldnames, name='FBMed_aoflux_o', rc=rc)
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-            if (mastertask) write(logunit,*) subname,' initializing FB FBMed_aoflux_o'
+            if (mastertask) write(logunit,'(a)') subname,' initializing FB FBMed_aoflux_o'
             deallocate(fldnames)
          end if
       end if
@@ -2171,7 +2163,7 @@ contains
              is_local%wrap%ny(n1) = nint(real_ny)
              write(msgString,'(2i8,2l4)') is_local%wrap%nx(n1), is_local%wrap%ny(n1)
              if (mastertask) then
-                write(logunit,*) 'global nx,ny sizes for '//trim(compname(n1))//":"//trim(msgString)
+                write(logunit,'(a)') 'global nx,ny sizes for '//trim(compname(n1))//":"//trim(msgString)
              end if
              call ESMF_LogWrite(trim(subname)//":"//trim(compname(n1))//":"//trim(msgString), ESMF_LOGMSG_INFO)
           end if
@@ -2429,7 +2421,7 @@ contains
     rc = ESMF_SUCCESS
     call memcheck("med_finalize", 0, mastertask)
     if (mastertask) then
-       write(logunit,*)' SUCCESSFUL TERMINATION OF CMEPS'
+       write(logunit,'(a)')' SUCCESSFUL TERMINATION OF CMEPS'
        call med_phases_profile_finalize()
     end if
 
