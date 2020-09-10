@@ -1555,7 +1555,7 @@
     </desc>
     <values>
       <value>on_if_glc_coupled_fluxes</value>
-      <value COMP_LND="xlnd">off</value> 
+      <value COMP_LND="xlnd">off</value>
     </values>
   </entry>
 
@@ -1588,7 +1588,7 @@
     <category>mapping</category>
     <group>ATM_attributes</group>
     <desc>
-      DOMAIN description of atm grid 
+      DOMAIN description of atm grid
     </desc>
     <values>
       <value>$ATM_DOMAIN_PATH/$ATM_DOMAIN_FILE</value>
@@ -1612,7 +1612,7 @@
     <category>mapping</category>
     <group>LND_attributes</group>
     <desc>
-      DOMAIN description of lnd grid 
+      DOMAIN description of lnd grid
     </desc>
     <values>
       <value>$LND_DOMAIN_PATH/$LND_DOMAIN_FILE</value>
@@ -2031,9 +2031,7 @@
     <type>char</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>
-      Auxiliary mediator atm2med instantaneous history output every hour.
-    </desc>
+    <desc>Auxiliary mediator atm2med instantaneous history output every hour.</desc>
     <valid_values>off,on</valid_values>
     <values>
       <value>off</value>
@@ -2043,9 +2041,7 @@
     <type>char</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>
-      Auxiliary mediator atm2med instantaneous history output every hour.
-    </desc>
+    <desc>Auxiliary mediator atm2med instantaneous history output every hour.</desc>
     <values>
       <value>Faxa_swndr:Faxa_swvdr:Faxa_swndf:Faxa_swvdf</value>
     </values>
@@ -2054,9 +2050,7 @@
     <type>char</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>
-      Auxiliary mediator atm2med interval.
-    </desc>
+    <desc>Auxiliary mediator atm2med interval.</desc>
     <values>
       <value>3600</value>
     </values>
@@ -2065,20 +2059,16 @@
     <type>char</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>
-      Auxiliary name identifier in history name
-    </desc>
+    <desc>Auxiliary name identifier in history name</desc>
     <values>
-      <value>a2x1hi</value>
+      <value>atm.1h.inst</value>
     </values>
   </entry>
   <entry id="histaux_atm2med_file1_useavg">
     <type>logical</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>
-      If true, use time average for aux file output.
-    </desc>
+    <desc>If true, use time average for aux file output.</desc>
     <values>
       <value>.false.</value>
     </values>
@@ -2087,9 +2077,7 @@
     <type>integer</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>
-      Number of time sames per file.
-    </desc>
+    <desc>Number of time sames per file.</desc>
     <values>
       <value>24</value>
     </values>
@@ -2102,9 +2090,7 @@
     <type>char</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>
-      Auxiliary atm2med history output averaged over 1 hour.
-    </desc>
+    <desc>Auxiliary atm2med history output averaged over 1 hour.</desc>
     <valid_values>off,on</valid_values>
     <values>
       <value>off</value>
@@ -2114,9 +2100,7 @@
     <type>char</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>
-      Auxiliary atm2med history output averaged over 1 hour.
-    </desc>
+    <desc>Auxiliary atm2med history output averaged over 1 hour.</desc>
     <values>
       <value>Sa_u:Sa_v</value>
     </values>
@@ -2125,9 +2109,7 @@
     <type>char</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>
-      Auxiliary mediator atm2med instantaneous history output every hour.
-    </desc>
+    <desc>Auxiliary mediator atm2med instantaneous history output every hour.</desc>
     <values>
       <value>3600</value>
     </values>
@@ -2136,20 +2118,16 @@
     <type>char</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>
-      Auxiliary name identifier in history name
-    </desc>
+    <desc>Auxiliary name identifier in history name</desc>
     <values>
-      <value>a2x1h</value>
+      <value>atm.1h.avrg</value>
     </values>
   </entry>
   <entry id="histaux_atm2med_file2_useavg">
     <type>logical</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>
-      If true, use time average for aux file output.
-    </desc>
+    <desc>If true, use time average for aux file output.</desc>
     <values>
       <value>.true.</value>
     </values>
@@ -2158,9 +2136,7 @@
     <type>char</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>
-      Number of time sames per file.
-    </desc>
+    <desc>Number of time sames per file.</desc>
     <values>
       <value>24</value>
     </values>
@@ -2185,9 +2161,7 @@
     <type>char</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>
-      Auxiliary mediator atm2med precipitation history output every 3 hours
-    </desc>
+    <desc>Auxiliary mediator atm2med precipitation history output every 3 hours</desc>
     <values>
       <value>Faxa_rainc:Faxa_rainl:Faxa_snowc:Faxa_snowl</value>
     </values>
@@ -2196,9 +2170,7 @@
     <type>char</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>
-      Auxiliary mediator atm2med interval.
-    </desc>
+    <desc>Auxiliary mediator atm2med interval.</desc>
     <values>
       <value>10800</value>
     </values>
@@ -2207,20 +2179,16 @@
     <type>char</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>
-      Auxiliary name identifier in history name.
-    </desc>
+    <desc>Auxiliary name identifier in history name.</desc>
     <values>
-      <value>a2x3h_prec</value>
+      <value>atm.3hprec.avrg</value>
     </values>
   </entry>
   <entry id="histaux_atm2med_file3_useavg">
     <type>logical</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>
-      If true, use time average for aux file output.
-    </desc>
+    <desc>If true, use time average for aux file output.</desc>
     <values>
       <value>.true.</value>
     </values>
@@ -2229,9 +2197,7 @@
     <type>char</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>
-      Number of time sames per file.
-    </desc>
+    <desc>Number of time sames per file.</desc>
     <values>
       <value>8</value>
     </values>
@@ -2278,20 +2244,16 @@
     <type>char</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>
-      Auxiliary name identifier in history name
-    </desc>
+    <desc>Auxiliary name identifier in history name</desc>
     <values>
-      <value>a2x3h</value>
+      <value>atm.3h.avrg</value>
     </values>
   </entry>
   <entry id="histaux_atm2med_file4_useavg">
     <type>logical</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>
-      If true, use time average for aux file output.
-    </desc>
+    <desc>If true, use time average for aux file output.</desc>
     <values>
       <value>.true.</value>
     </values>
@@ -2300,9 +2262,7 @@
     <type>char</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>
-      Number of time sames per file.
-    </desc>
+    <desc>Number of time sames per file.</desc>
     <values>
       <value>8</value>
     </values>
@@ -2315,9 +2275,7 @@
     <type>char</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>
-      Auxiliary mediator a2x precipitation history output every 3 hours
-    </desc>
+    <desc>Auxiliary mediator a2x precipitation history output every 3 hours</desc>
     <valid_values>off,on</valid_values>
     <values>
       <value>off</value>
@@ -2327,9 +2285,7 @@
     <type>char</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>
-      Auxiliary mediator a2x precipitation history output every 3 hours
-    </desc>
+    <desc>Auxiliary mediator a2x precipitation history output every 3 hours</desc>
     <values>
       <value>Faxa_bcph:Faxa_ocph:Faxa_dstwet:Faxa_dstdry:Sa_co2prog:Sa_co2diag</value>
     </values>
@@ -2338,9 +2294,7 @@
     <type>char</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>
-      Auxiliary mediator a2x instantaneous history output every hour.
-    </desc>
+    <desc>Auxiliary mediator atm2med output every 24 hours.</desc>
     <values>
       <value>86400</value>
     </values>
@@ -2349,20 +2303,16 @@
     <type>char</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>
-      Auxiliary name identifier in history name
-    </desc>
+    <desc>Auxiliary name identifier in history name</desc>
     <values>
-      <value>a2x24h</value>
+      <value>atm.24h.avrg</value>
     </values>
   </entry>
   <entry id="histaux_atm2med_file5_useavg">
     <type>logical</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>
-      If true, use time average for aux file output.
-    </desc>
+    <desc>If true, use time average for aux file output.</desc>
     <values>
       <value>.true.</value>
     </values>
@@ -2371,9 +2321,7 @@
     <type>char</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>
-      Number of time sames per file.
-    </desc>
+    <desc>Number of time sames per file.</desc>
     <values>
       <value>1</value>
     </values>
@@ -2386,9 +2334,7 @@
     <type>char</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>
-      Auxiliary mediator l2x fields every year
-    </desc>
+    <desc>Auxiliary mediator l2x fields every lnd coupling interval</desc>
     <valid_values>off,on</valid_values>
     <values>
       <value>off</value>
@@ -2398,9 +2344,7 @@
     <type>char</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>
-      Auxiliary mediator a2x precipitation history output every 3 hours
-    </desc>
+    <desc>Auxiliary mediator lnd2med output every lnd coupling interval</desc>
     <values>
       <value>all</value>
     </values>
@@ -2409,9 +2353,7 @@
     <type>char</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>
-      Auxiliary mediator l2x instantaneous history output every mediator coupling interval
-    </desc>
+    <desc>Time interval between output calls</desc>
     <values>
       <value>every_nstep</value>
     </values>
@@ -2420,31 +2362,25 @@
     <type>char</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>
-      Auxiliary name identifier in history name
-    </desc>
+    <desc>Auxiliary name identifier in history name</desc>
     <values>
-      <value>a2x24h</value>
+      <value>lnd.ncpl.inst</value>
     </values>
   </entry>
   <entry id="histaux_lnd2med_file1_useavg">
     <type>logical</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>
-      If true, use time average for aux file output.
-    </desc>
+    <desc>If true, use time average for aux file output.</desc>
     <values>
-      <value>.true.</value>
+      <value>.false.</value>
     </values>
   </entry>
   <entry id="histaux_lnd2med_file1_ntperfile">
     <type>char</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>
-      Number of time sames per file.
-    </desc>
+    <desc>Number of time sames per file.</desc>
     <values>
       <value>1</value>
     </values>
@@ -2453,19 +2389,72 @@
   <!-- ======================================= -->
   <!-- MED histaux lnd2med file 2 -->
   <!-- ======================================= -->
+  <entry id="histaux_lnd2med_file2_flag">
+    <type>char</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>Auxiliary mediator lnd2med fields every year</desc>
+    <valid_values>off,on</valid_values>
+    <values>
+      <value>off</value>
+    </values>
+  </entry>
+  <entry id="histaux_lnd2med_file2_flds">
+    <type>char</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>auxiliary file lnd2med output fields</desc>
+    <values>
+      <value>all</value>
+    </values>
+  </entry>
+  <entry id="histaux_lnd2med_file2_deltat">
+    <type>char</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>Auxiliary mediator l2x instantaneous history output every mediator coupling interval</desc>
+    <values>
+      <value>1year</value>
+    </values>
+  </entry>
+  <entry id="histaux_lnd2med_file2_auxname">
+    <type>char</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>Auxiliary name identifier in history name</desc>
+    <values>
+      <value>lnd.1yr.avrg</value>
+    </values>
+  </entry>
+  <entry id="histaux_lnd2med_file2_useavg">
+    <type>logical</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>If true, use time average for aux file output.</desc>
+    <values>
+      <value>.false.</value>
+    </values>
+  </entry>
+  <entry id="histaux_lnd2med_file2_ntperfile">
+    <type>char</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>Number of time sames per file.</desc>
+    <values>
+      <value>1</value>
+    </values>
+  </entry>
+
   <entry id="histaux_l2x_1yr_flds">
     <type>char</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>
-      turns on mediator history stream for annual sno to mediator.
-    </desc>
+    <desc>turns on mediator history stream for annual sno to mediator.</desc>
     <valid_values>none,all</valid_values>
     <values>
       <value>none</value>
     </values>
   </entry>
-
 
   <!-- ======================================= -->
   <!-- MED histaux rof2med file 1 -->
@@ -2474,9 +2463,7 @@
     <type>char</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>
-      Auxiliary mediator rof2med precipitation history output every 3 hours
-    </desc>
+    <desc>Auxiliary mediator rof2med precipitation history output every 3 hours</desc>
     <valid_values>off,on</valid_values>
     <values>
       <value>off</value>
@@ -2486,20 +2473,16 @@
     <type>char</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>
-      Auxiliary mediator rof2med precipitation history output.
-    </desc>
+    <desc>Auxiliary mediator rof2med precipitation history output.</desc>
     <values>
-      <value>all</value> 
+      <value>all</value>
     </values>
   </entry>
   <entry id="histaux_rof2med_file1_deltat">
     <type>char</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>
-      Auxiliary mediator rof2med history output time interval.
-    </desc>
+    <desc>Time interval between output calls</desc>
     <values>
       <value>86400</value>
     </values>
@@ -2508,20 +2491,16 @@
     <type>char</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>
-      Auxiliary name identifier in history name
-    </desc>
+    <desc>Auxiliary name identifier in history name</desc>
     <values>
-      <value>r2x24h</value>
+      <value>rof.24h.avrg</value>
     </values>
   </entry>
   <entry id="histaux_rof2med_file1_useavg">
     <type>char</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>
-      If true, use time average for aux file output.
-    </desc>
+    <desc>If true, use time average for aux file output.</desc>
     <values>
       <value>.true.</value>
     </values>
@@ -2530,9 +2509,7 @@
     <type>char</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>
-      Number of time sames per file.
-    </desc>
+    <desc>Number of time sames per file.</desc>
     <values>
       <value>1</value>
     </values>
