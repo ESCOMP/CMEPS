@@ -50,13 +50,13 @@ def gen_runseq(case, coupling_times):
         runseq.add_action ("MED med_fraction_set"               , run_ice)
         runseq.add_action ("ROF -> MED :remapMethod=redist"     , run_rof)
         runseq.add_action ("ATM -> MED :remapMethod=redist"     , run_atm)
-        runseq.add_action ("MED med_phases_history_write"       , atm_cpl_time == ocn_cpl_time)
+        runseq.add_action ("MED med_phases_history_write_all_inst", atm_cpl_time == ocn_cpl_time)
 
         runseq.leave_time_loop(run_rof and (atm_cpl_time < ocn_cpl_time))
 
         runseq.add_action ("OCN", run_ocn)
         runseq.add_action ("OCN -> MED :remapMethod=redist"     , run_ocn)
-        runseq.add_action ("MED med_phases_history_write"       , atm_cpl_time < ocn_cpl_time)
+        runseq.add_action ("MED med_phases_history_write_all_inst", atm_cpl_time < ocn_cpl_time)
 
         runseq.leave_time_loop(True)
 

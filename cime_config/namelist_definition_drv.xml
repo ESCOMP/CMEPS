@@ -2403,7 +2403,7 @@
     <type>char</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>auxiliary file lnd2med output fields</desc>
+    <desc>auxiliary file lnd2med sno fields averaged over a year</desc>
     <values>
       <value>all</value>
     </values>
@@ -2412,7 +2412,7 @@
     <type>char</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>Auxiliary mediator l2x instantaneous history output every mediator coupling interval</desc>
+    <desc>Auxiliary lnd2glc fields that are averaged over a year</desc>
     <values>
       <value>1year</value>
     </values>
@@ -2442,17 +2442,6 @@
     <desc>Number of time sames per file.</desc>
     <values>
       <value>1</value>
-    </values>
-  </entry>
-
-  <entry id="histaux_l2x_1yr_flds">
-    <type>char</type>
-    <category>aux_hist</category>
-    <group>MED_attributes</group>
-    <desc>turns on mediator history stream for annual sno to mediator.</desc>
-    <valid_values>none,all</valid_values>
-    <values>
-      <value>none</value>
     </values>
   </entry>
 
