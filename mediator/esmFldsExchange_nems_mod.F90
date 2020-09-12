@@ -180,6 +180,15 @@ contains
     end do
     deallocate(flds)
 
+    allocate(flds(2))
+    flds = (/'Faxa_rain', 'Faxa_snow'/)
+    do n = 1,size(flds)
+       fldname = trim(flds(n))
+       call addmrg(fldListTo(compocn)%flds, trim(fldname), &
+            mrg_from1=compatm, mrg_fld1=trim(fldname), mrg_type1='copy_with_weights', mrg_fracname1='ofrac')
+    end do
+    deallocate(flds)
+
     ! to ocn: merged sensible heat flux (custom merge in med_phases_prep_ocn)
     call addfld(fldListTo(compocn)%flds, 'Faxa_sen')
     call addfld(fldListFr(compatm)%flds, 'Faxa_sen')
