@@ -287,9 +287,9 @@ contains
        ! different filename is open, abort
        if (iam==0) then
           write(logunit,*) subname,' different  wfilename and filename currently open, aborting '
-          write(logunit,*)  'filename  = ',trim(filename)
-          write(logunit,*)  'wfilename = ',trim(wfilename(lfile_ind))
-          write(logunit,*)  'lfile_ind = ',lfile_ind
+          write(logunit,'(a)') 'filename  = ',trim(filename)
+          write(logunit,'(a)') 'wfilename = ',trim(wfilename(lfile_ind))
+          write(logunit,'(i6)')'lfile_ind = ',lfile_ind
        end if
        call ESMF_LogWrite(subname//'different file currently open, aborting '//trim(filename), ESMF_LOGMSG_INFO)
        rc = ESMF_FAILURE
