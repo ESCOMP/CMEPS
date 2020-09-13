@@ -632,10 +632,6 @@ contains
     lsize = size(ofrac)
     allocate(customwgt(lsize))
 
-    call med_merge_field(is_local%wrap%FBExp(compocn),      'Faxa_lwnet',  &
-         FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_lwnet', wgtA=ofrac, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
     customwgt(:) = -ofrac(:) / const_lhvap
     call med_merge_field(is_local%wrap%FBExp(compocn),      'Faxa_evap', &
          FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_lat' , wgtA=customwgt, rc=rc)
@@ -645,6 +641,7 @@ contains
     call med_merge_field(is_local%wrap%FBExp(compocn),      'Faxa_sen',  &
          FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_sen', wgtA=customwgt, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
     call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_taux',  &
          FBinA=is_local%wrap%FBImp(compice,compocn), fnameA='Fioi_taux' , wgtA=ifrac, &
          FBinB=is_local%wrap%FBImp(compatm,compocn), fnameB='Faxa_taux' , wgtB=customwgt, rc=rc)

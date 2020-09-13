@@ -167,11 +167,9 @@ contains
     ! - downward diffuse visible incident solar radiation
     ! - longwave net heat flux
     ! - longwave downward flux
-    ! - rain
-    ! - snow
-    allocate(flds(8))
+    allocate(flds(6))
     flds = (/'Faxa_swndr', 'Faxa_swndf', 'Faxa_swvdr', 'Faxa_swvdf',&
-             'Faxa_lwnet', 'Faxa_lwdn ', 'Faxa_rain ', 'Faxa_snow '/)
+             'Faxa_lwnet', 'Faxa_lwdn '/)
     do n = 1,size(flds)
        fldname = trim(flds(n))
        call addfld(fldListTo(compocn)%flds, trim(fldname))
@@ -180,24 +178,50 @@ contains
     end do
     deallocate(flds)
 
+    ! to ocn: rain and snow via auto merge
     allocate(flds(2))
     flds = (/'Faxa_rain', 'Faxa_snow'/)
     do n = 1,size(flds)
        fldname = trim(flds(n))
+       call addfld(fldListTo(compocn)%flds, trim(fldname))
+       call addfld(fldListFr(compatm)%flds, trim(fldname))
+       call addmap(fldListFr(compatm)%flds, trim(fldname), compocn, maptype, 'none', 'unset')
        call addmrg(fldListTo(compocn)%flds, trim(fldname), &
             mrg_from1=compatm, mrg_fld1=trim(fldname), mrg_type1='copy_with_weights', mrg_fracname1='ofrac')
     end do
     deallocate(flds)
 
-    ! to ocn: merged sensible heat flux (custom merge in med_phases_prep_ocn)
-    call addfld(fldListTo(compocn)%flds, 'Faxa_sen')
-    call addfld(fldListFr(compatm)%flds, 'Faxa_sen')
-    call addmap(fldListFr(compatm)%flds, 'Faxa_sen', compocn, maptype, 'none', 'unset')
+    if (trim(coupling_mode) == 'nems_orig' .or. trim(coupling_mode) == 'nems_orig_data') then
+       ! to ocn: long wave net via auto merge
+       call addmrg(fldListTo(compocn)%flds, 'Faxa_lwnet', &
+            mrg_from1=compatm, mrg_fld1='Faxa_lwnet', mrg_type1='copy_with_weights', mrg_fracname1='ofrac')
 
-    ! to ocn: surface latent heat flux and evaporation water flux (custom merge in med_phases_prep_ocn)
-    call addfld(fldListTo(compocn)%flds, 'Faxa_evap')
-    call addfld(fldListFr(compatm)%flds, 'Faxa_lat')
-    call addmap(fldListFr(compatm)%flds, 'Faxa_lat', compocn, maptype, 'none', 'unset')
+       ! to ocn: merged sensible heat flux (custom merge in med_phases_prep_ocn)
+       call addfld(fldListTo(compocn)%flds, 'Faxa_sen')
+       call addfld(fldListFr(compatm)%flds, 'Faxa_sen')
+       call addmap(fldListFr(compatm)%flds, 'Faxa_sen', compocn, maptype, 'none', 'unset')
+
+       ! to ocn: evaporation water flux (custom merge in med_phases_prep_ocn)
+       call addfld(fldListTo(compocn)%flds, 'Faxa_evap')
+       call addfld(fldListFr(compatm)%flds, 'Faxa_lat')
+       call addmap(fldListFr(compatm)%flds, 'Faxa_lat', compocn, maptype, 'none', 'unset')
+    else
+       ! to ocn: long wave net via auto merge 
+       call addfld(fldListTo(compocn)%flds, 'Foxx_lwnet')
+       call addmrg(fldListTo(compocn)%flds, 'Foxx_lwnet', &
+             mrg_from1=compmed, mrg_fld1='Faox_lwup', mrg_type1='merge', mrg_fracname1='ofrac', &
+             mrg_from2=compatm, mrg_fld2='Faxa_lwdn', mrg_type2='merge', mrg_fracname2='ofrac')
+
+       ! to ocn: sensible heat flux from mediator via auto merge
+       call addfld(fldListTo(compocn)%flds, 'Faox_sen')
+       call addmrg(fldListTo(compocn)%flds, 'Faox_sen', &
+          mrg_from1=compmed, mrg_fld1='Faox_sen', mrg_type1='copy_with_weights', mrg_fracname1='ofrac')
+
+       ! to ocn: evaporation water flux from mediator via auto merge
+       call addfld(fldListTo(compocn)%flds, 'Faox_evap')
+       call addmrg(fldListTo(compocn)%flds, 'Faox_evap', &
+          mrg_from1=compmed, mrg_fld1='Faox_evap', mrg_type1='copy_with_weights', mrg_fracname1='ofrac')
+    end if
 
     ! to ocn: merge zonal surface stress (custom merge calculation in med_phases_prep_ocn)
     call addfld(fldListTo(compocn)%flds, 'Foxx_taux')
