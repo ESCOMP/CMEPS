@@ -632,12 +632,6 @@ contains
     lsize = size(ofrac)
     allocate(customwgt(lsize))
 
-    !call med_merge_field(is_local%wrap%FBExp(compocn),      'Faxa_rain',  &
-    !     FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_rain' , wgtA=ofrac, rc=rc)
-    !if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    !call med_merge_field(is_local%wrap%FBExp(compocn),      'Faxa_snow',  &
-    !     FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_snow' , wgtA=ofrac, rc=rc)
-    !if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call med_merge_field(is_local%wrap%FBExp(compocn),      'Faxa_lwnet',  &
          FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_lwnet', wgtA=ofrac, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
