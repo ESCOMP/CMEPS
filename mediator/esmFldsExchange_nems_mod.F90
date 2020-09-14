@@ -46,6 +46,7 @@ contains
     character(len=CL)   :: cvalue
     character(len=CS)   :: fldname
     character(len=CS), allocatable :: flds(:)
+    character(len=CS), allocatable :: suffix(:)
     character(len=*) , parameter   :: subname='(esmFldsExchange_nems)'
     !--------------------------------------
 
@@ -167,9 +168,9 @@ contains
     ! - downward diffuse visible incident solar radiation
     ! - longwave net heat flux
     ! - longwave downward flux
-    allocate(flds(6))
+    allocate(flds(5))
     flds = (/'Faxa_swndr', 'Faxa_swndf', 'Faxa_swvdr', 'Faxa_swvdf',&
-             'Faxa_lwnet', 'Faxa_lwdn'/)
+             'Faxa_lwdn' /)
     do n = 1,size(flds)
        fldname = trim(flds(n))
        call addfld(fldListTo(compocn)%flds, trim(fldname))
@@ -191,8 +192,23 @@ contains
     end do
     deallocate(flds)
 
+    allocate(suffix(2))
+    suffix = (/'taux', 'tauy'/)
+
     if (trim(coupling_mode) == 'nems_orig' .or. trim(coupling_mode) == 'nems_frac') then
+       ! to ocn: merge surface stress (custom merge calculation in med_phases_prep_ocn)
+       do n = 1,size(suffix)
+          call addfld(fldListTo(compocn)%flds, 'Foxx_'//trim(suffix(n)))
+          call addfld(fldListFr(compice)%flds, 'Fioi_'//trim(suffix(n)))
+          call addfld(fldListFr(compatm)%flds, 'Faxa_'//trim(suffix(n)))
+          call addmap(fldListFr(compatm)%flds, 'Faxa_'//trim(suffix(n)), compocn, maptype, 'none', 'unset')
+          call addmap(fldListFr(compice)%flds, 'Fioi_'//trim(suffix(n)), compocn, mapfcopy, 'unset', 'unset')
+       end do
+
        ! to ocn: long wave net via auto merge
+       call addfld(fldListTo(compocn)%flds, 'Faxa_lwnet')
+       call addfld(fldListFr(compatm)%flds, 'Faxa_lwnet')
+       call addmap(fldListFr(compatm)%flds, 'Faxa_lwnet', compocn, maptype, 'none', 'unset')
        call addmrg(fldListTo(compocn)%flds, 'Faxa_lwnet', &
             mrg_from1=compatm, mrg_fld1='Faxa_lwnet', mrg_type1='copy_with_weights', mrg_fracname1='ofrac')
 
@@ -206,6 +222,16 @@ contains
        call addfld(fldListFr(compatm)%flds, 'Faxa_lat')
        call addmap(fldListFr(compatm)%flds, 'Faxa_lat', compocn, maptype, 'none', 'unset')
     else
+       ! to ocn: surface stress from mediator and ice stress via auto merge
+       do n = 1,size(suffix)
+          call addfld(fldListTo(compocn)%flds , 'Foxx_'//trim(suffix(n)))
+          call addfld(fldListFr(compice)%flds , 'Fioi_'//trim(suffix(n)))
+          call addmap(fldListFr(compice)%flds,  'Fioi_'//trim(suffix(n)), compocn, mapfcopy, 'unset', 'unset')
+          call addmrg(fldListTo(compocn)%flds, 'Foxx_'//trim(suffix(n)), &
+             mrg_from1=compmed, mrg_fld1='Faox_'//trim(suffix(n)), mrg_type1='merge', mrg_fracname1='ofrac', &
+             mrg_from2=compice, mrg_fld2='Fioi_'//trim(suffix(n)), mrg_type2='merge', mrg_fracname2='ifrac')
+       end do
+
        ! to ocn: long wave net via auto merge 
        call addfld(fldListTo(compocn)%flds, 'Foxx_lwnet')
        call addmrg(fldListTo(compocn)%flds, 'Foxx_lwnet', &
@@ -222,34 +248,17 @@ contains
        call addmrg(fldListTo(compocn)%flds, 'Faox_evap', &
           mrg_from1=compmed, mrg_fld1='Faox_evap', mrg_type1='copy_with_weights', mrg_fracname1='ofrac')
     end if
+    deallocate(suffix)
 
-    ! to ocn: merge zonal surface stress (custom merge calculation in med_phases_prep_ocn)
-    call addfld(fldListTo(compocn)%flds, 'Foxx_taux')
-    call addfld(fldListFr(compice)%flds, 'Fioi_taux')
-    call addfld(fldListFr(compatm)%flds, 'Faxa_taux')
-    call addmap(fldListFr(compatm)%flds, 'Faxa_taux', compocn, maptype, 'none', 'unset')
-    call addmap(fldListFr(compice)%flds, 'Fioi_taux', compocn, mapfcopy, 'unset', 'unset')
-
-    ! to ocn: meridional surface stress (custom merge calculation in med_phases_prep_ocn)
-    call addfld(fldListTo(compocn)%flds, 'Foxx_tauy')
-    call addfld(fldListFr(compice)%flds, 'Fioi_tauy')
-    call addfld(fldListFr(compatm)%flds, 'Faxa_tauy')
-    call addmap(fldListFr(compatm)%flds, 'Faxa_tauy', compocn, maptype, 'none', 'unset')
-    call addmap(fldListFr(compice)%flds, 'Fioi_tauy', compocn, mapfcopy, 'unset', 'unset')
-
-    ! to ocn: net shortwave radiation from med (custom merge in med_phases_prep_ocn)
-    call addfld(fldListTo(compocn)%flds, 'Foxx_swnet_vdr')
-    call addfld(fldListTo(compocn)%flds, 'Foxx_swnet_vdf')
-    call addfld(fldListTo(compocn)%flds, 'Foxx_swnet_idr')
-    call addfld(fldListTo(compocn)%flds, 'Foxx_swnet_idf')
-    call addfld(fldListFr(compice)%flds, 'Fioi_swpen_vdr')
-    call addfld(fldListFr(compice)%flds, 'Fioi_swpen_vdf')
-    call addfld(fldListFr(compice)%flds, 'Fioi_swpen_idr')
-    call addfld(fldListFr(compice)%flds, 'Fioi_swpen_idf')
-    call addmap(fldListFr(compice)%flds, 'Fioi_swpen_vdr' , compocn, mapfcopy, 'unset', 'unset')
-    call addmap(fldListFr(compice)%flds, 'Fioi_swpen_vdf' , compocn, mapfcopy, 'unset', 'unset')
-    call addmap(fldListFr(compice)%flds, 'Fioi_swpen_idr' , compocn, mapfcopy, 'unset', 'unset')
-    call addmap(fldListFr(compice)%flds, 'Fioi_swpen_idf' , compocn, mapfcopy, 'unset', 'unset')
+    allocate(suffix(4))
+    ! to ocn: net shortwave radiation (custom merge in med_phases_prep_ocn)
+    suffix = (/'vdr', 'vdf', 'idr', 'idf'/)
+    do n = 1,size(suffix)
+       call addfld(fldListTo(compocn)%flds, 'Foxx_swnet_'//trim(suffix(n)))
+       call addfld(fldListFr(compice)%flds, 'Fioi_swpen_'//trim(suffix(n)))
+       call addmap(fldListFr(compice)%flds, 'Fioi_swpen'//trim(suffix(n)), compocn, mapfcopy, 'unset', 'unset')
+    end do
+    deallocate(suffix)
 
     ! to ocn: water flux due to melting ice from ice
     ! to ocn: heat flux from melting ice from ice
