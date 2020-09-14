@@ -169,7 +169,7 @@ contains
     ! - longwave downward flux
     allocate(flds(6))
     flds = (/'Faxa_swndr', 'Faxa_swndf', 'Faxa_swvdr', 'Faxa_swvdf',&
-             'Faxa_lwnet', 'Faxa_lwdn '/)
+             'Faxa_lwnet', 'Faxa_lwdn'/)
     do n = 1,size(flds)
        fldname = trim(flds(n))
        call addfld(fldListTo(compocn)%flds, trim(fldname))
@@ -191,7 +191,7 @@ contains
     end do
     deallocate(flds)
 
-    if (trim(coupling_mode) == 'nems_orig' .or. trim(coupling_mode) == 'nems_orig_data') then
+    if (trim(coupling_mode) == 'nems_orig' .or. trim(coupling_mode) == 'nems_frac') then
        ! to ocn: long wave net via auto merge
        call addmrg(fldListTo(compocn)%flds, 'Faxa_lwnet', &
             mrg_from1=compatm, mrg_fld1='Faxa_lwnet', mrg_type1='copy_with_weights', mrg_fracname1='ofrac')
