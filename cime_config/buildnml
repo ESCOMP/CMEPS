@@ -3,7 +3,10 @@
 """
 import os, sys
 
-_CIMEROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..","..","..","..")
+_CIMEROOT = os.environ.get("CIMEROOT")
+if _CIMEROOT is None:
+    raise SystemExit("ERROR: must set CIMEROOT environment variable")
+
 sys.path.append(os.path.join(_CIMEROOT, "scripts", "Tools"))
 
 import shutil, glob, itertools
