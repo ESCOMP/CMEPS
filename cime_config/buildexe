@@ -6,7 +6,10 @@ build model executable
 
 import sys, os
 
-_CIMEROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..","..","..","..")
+_CIMEROOT = os.environ.get("CIMEROOT")
+if _CIMEROOT is None:
+    raise SystemExit("ERROR: must set CIMEROOT environment variable")
+
 sys.path.append(os.path.join(_CIMEROOT, "scripts", "Tools"))
 
 from standard_script_setup import *
@@ -80,10 +83,11 @@ def _main_func():
         os.makedirs(bld_root)
 
     with open(os.path.join(bld_root,'Filepath'), 'w') as out:
+        cmeps_dir = os.path.join(os.path.dirname(__file__), os.pardir)
         if not skip_mediator:
-            out.write(os.path.join(cimeroot, "src", "drivers", "nuopc", "mediator") + "\n")
+            out.write(os.path.join(cmeps_dir, "mediator") + "\n")
         out.write(os.path.join(caseroot, "SourceMods", "src.drv") + "\n")
-        out.write(os.path.join(cimeroot, "src", "drivers", "nuopc", "drivers", "cime") + "\n")
+        out.write(os.path.join(cmeps_dir, "drivers", "cime") + "\n")
 
     # build model executable
     makefile = os.path.join(casetools, "Makefile")
