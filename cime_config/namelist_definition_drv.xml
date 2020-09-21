@@ -2461,7 +2461,7 @@
     <group>MED_attributes</group>
     <desc>auxiliary file lnd2med sno fields averaged over a year</desc>
     <values>
-      <value>all</value>
+      <value>Sl_tsrf_elev:Sl_topo_elev:Flgl_qice_elev</value>
     </values>
   </entry>
   <entry id="histaux_lnd2med_file2_history_option">
