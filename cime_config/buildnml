@@ -393,7 +393,7 @@ def _create_runseq(case, coupling_times, valid_comps):
             comp_lnd = case.get_value("COMP_LND")
             comp_ocn = case.get_value("COMP_OCN")
 
-            sys.path.append(os.path.join(_CIMEROOT, "src", "drivers", "nuopc", "cime_config", "runseq"))
+            sys.path.append(os.path.join(os.path.dirname(__file__), "runseq"))
 
             if (comp_ice == "cice" and comp_atm == 'datm' and comp_ocn == "docn"):
                 from runseq_D import gen_runseq
@@ -566,7 +566,7 @@ def buildnml(case, caseroot, component):
 
     # copy fd_cesm.yaml to rundir
     cimeroot = case.get_value("CIMEROOT")
-    fd_dir = os.path.join(cimeroot, "src","drivers","nuopc","mediator")
+    fd_dir = os.path.join(os.path.dirname(__file__),os.pardir,"mediator")
     coupling_mode = case.get_value('COUPLING_MODE')
     if coupling_mode == 'cesm':
         filename = os.path.join(fd_dir,"fd_cesm.yaml")
