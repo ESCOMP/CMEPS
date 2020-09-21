@@ -117,6 +117,7 @@ def gen_runseq(case, coupling_times):
             runseq.add_action("MED med_phases_prep_ocn_merge"      , med_to_ocn)
             runseq.add_action("MED med_phases_prep_ocn_accum_fast" , med_to_ocn)
             runseq.add_action("MED med_phases_ocnalb_run"          , run_ocn and run_atm)
+        runseq.add_action("MED med_phases_diag_ocn"                , run_ocn and diag_mode and not ocn_outer_loop)
         runseq.add_action("LND -> MED :remapMethod=redist"         , run_lnd)
         runseq.add_action("MED med_phases_diag_lnd"                , run_lnd and diag_mode)
         runseq.add_action("MED med_phases_diag_rof"                , run_rof and diag_mode)
