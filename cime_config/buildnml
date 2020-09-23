@@ -572,7 +572,7 @@ def buildnml(case, caseroot, component):
         filename = os.path.join(fd_dir,"fd_cesm.yaml")
     elif coupling_mode == 'hafs':
         filename = os.path.join(fd_dir,"fd_hafs.yaml")
-    elif coupling_mode == 'nems':
+    elif 'nems' in coupling_mode:
         filename = os.path.join(fd_dir,"fd_nems.yaml")
     else:
         expect(False, "coupling mode currently only supports cesm, hafs and nems")
