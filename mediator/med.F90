@@ -705,6 +705,12 @@ contains
        if (trim(cvalue) /= 'sglc') glc_present = "true"
     end if
 
+    call NUOPC_CompAttributeGet(gcomp, name='mediator_present', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+       med_present = trim(cvalue)
+    end if
+
     call NUOPC_CompAttributeSet(gcomp, name="atm_present", value=atm_present, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call NUOPC_CompAttributeSet(gcomp, name="lnd_present", value=lnd_present, rc=rc)
@@ -2282,7 +2288,7 @@ contains
     use ESMF , only : ESMF_Mesh, ESMF_MeshGet, ESMF_MESHLOC_ELEMENT, ESMF_TYPEKIND_R8
     use ESMF , only : ESMF_SUCCESS, ESMF_FAILURE, ESMF_LogWrite, ESMF_LOGMSG_INFO
     use med_internalstate_mod , only : mesh_info_type
-
+    use shr_sys_mod, only : shr_sys_abort
     ! input/output variables
     type(ESMF_FieldBundle) , intent(in)    :: FB
     type(mesh_info_type)   , intent(inout) :: mesh_info
@@ -2298,7 +2304,7 @@ contains
     real(r8), allocatable :: ownedElemCoords(:)
     real(r8), pointer     :: dataptr(:)
     integer               :: n, dimcount, fieldcount
-    character(len=*),parameter :: subnaame='(module_MED:med_meshinfo_create)'
+    character(len=*),parameter :: subname='(module_MED:med_meshinfo_create)'
     !-------------------------------------------------------------------------------
 
     rc= ESMF_SUCCESS

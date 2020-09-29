@@ -220,7 +220,7 @@ module med_diag_mod
 
   character(len=*), parameter :: modName   = "(med_diag) "
   character(len=*), parameter :: u_FILE_u  = &
-       __FILE__
+      __FILE__
 
 !===============================================================================
 contains
@@ -455,7 +455,6 @@ contains
           endif
        enddo
     end if
-
   end subroutine med_diag_zero
 
   !===============================================================================
@@ -471,19 +470,15 @@ contains
     integer, intent(out) :: rc
 
     ! local variables
-    integer     :: ip
+    integer     :: ip, ic
     character(*), parameter :: subName = '(med_diag_accum) '
     ! ------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
-
     do ip = period_inst+1,size(budget_diags%periods)
        budget_local(:,:,ip) = budget_local(:,:,ip) + budget_local(:,:,period_inst)
     enddo
     budget_counter(:,:,:) = budget_counter(:,:,:) + 1.0_r8
-
-    write(logunit,*) 'DEBUG diag_accum',budget_counter(1,1,1)
-
   end subroutine med_phases_diag_accum
 
   !===============================================================================
@@ -518,18 +513,11 @@ contains
 
     count  = size(budget_global)
     budget_global_1d(:) = 0.0_r8
+
+
     call ESMF_VMReduce(vm, reshape(budget_local,(/count/)) , budget_global_1d, count, ESMF_REDUCE_SUM, 0, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    print *,__FILE__,__LINE__,budget_local(f_area,c_ocn_asend,period_inst)
-    print *,__FILE__,__LINE__,budget_local(f_area,c_ocn_asend,:)
-
     budget_global = reshape(budget_global_1d,(/f_size,c_size,p_size/))
-    if(mastertask) then
-       print *,__FILE__,__LINE__,budget_global(f_area,c_ocn_asend,:)
-    endif
-
-
     budget_local(:,:,:) = 0.0_r8
 
   end subroutine med_diag_sum_master
@@ -567,8 +555,6 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! Get fractions on atm mesh
-    call FB_getFldPtr(is_local%wrap%FBfrac(compatm), 'afrac', fldptr1=afrac, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call FB_getFldPtr(is_local%wrap%FBfrac(compatm), 'lfrac', fldptr1=lfrac, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call FB_getFldPtr(is_local%wrap%FBfrac(compatm), 'ifrac', fldptr1=ifrac, rc=rc)
@@ -578,7 +564,8 @@ contains
 
     areas => is_local%wrap%mesh_info(compatm)%areas
     lats  => is_local%wrap%mesh_info(compatm)%lats
-
+    allocate(afrac(size(areas)))
+    afrac = 1.0_R8
     !-------------------------------
     ! from atm to mediator
     !-------------------------------
@@ -621,7 +608,6 @@ contains
     call diag_atm_wiso(is_local%wrap%FBImp(compatm,compatm), 'Faxa_rainc_wiso', &
          f_watr_rain_16O, f_watr_rain_18O, f_watr_rain_HDO, areas, lats, afrac, lfrac, ofrac, ifrac, budget_local, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
     ! heat implied by snow flux
     budget_local(f_heat_latf,c_atm_recv ,ip) = -budget_local(f_watr_snow,c_atm_recv ,ip)*shr_const_latice
     budget_local(f_heat_latf,c_lnd_arecv,ip) = -budget_local(f_watr_snow,c_lnd_arecv,ip)*shr_const_latice
@@ -841,7 +827,6 @@ contains
     do n = 1,size(lfrac)
        budget_local(f_area,ic,ip) = budget_local(f_area,ic,ip) + areas(n)*lfrac(n)
     end do
-
     call diag_lnd(is_local%wrap%FBExp(complnd), 'Faxa_lwdn' , f_heat_lwdn, ic, areas, lfrac, budget_local, rc=rc)
     call diag_lnd(is_local%wrap%FBExp(complnd), 'Faxa_rainc', f_watr_rain, ic, areas, lfrac, budget_local, rc=rc)
     call diag_lnd(is_local%wrap%FBExp(complnd), 'Faxa_rainl', f_watr_rain, ic, areas, lfrac, budget_local, rc=rc)
@@ -860,8 +845,9 @@ contains
     call diag_lnd_wiso(is_local%wrap%FBExp(complnd), 'Flrl_flood_wiso', &
          f_watr_roff_16O, f_watr_roff_18O, f_watr_roff_HDO, ic, areas, lfrac, budget_local, minus=.true., rc=rc)
 
+    print *,__FILE__,__LINE__,budget_local(f_watr_ioff, c_lnd_recv, period_inst), budget_local(f_watr_ioff, c_lnd_send, period_inst)
+    budget_local(f_heat_ioff,ic,ip) = -budget_local(f_watr_ioff,ic,ip)*shr_const_latice
     budget_local(f_heat_latf,ic,ip) = -budget_local(f_watr_snow,ic,ip)*shr_const_latice
-
   !-----------
   contains
   !-----------
@@ -889,9 +875,9 @@ contains
          ip = period_inst
          do n = 1, size(data)
             if (present(minus)) then
-               budget(nf,ic,ip) = budget_local(nf,ic,ip) - areas(n)*lfrac(n)*data(n)
+               budget(nf,ic,ip) = budget(nf,ic,ip) - areas(n)*lfrac(n)*data(n)
             else
-               budget(nf,ic,ip) = budget_local(nf,ic,ip) + areas(n)*lfrac(n)*data(n)
+               budget(nf,ic,ip) = budget(nf,ic,ip) + areas(n)*lfrac(n)*data(n)
             end if
          end do
       end if
@@ -1006,7 +992,6 @@ contains
          f_watr_ioff_16O, f_watr_ioff_18O, f_watr_ioff_HDO, ic, areas, budget_local, rc=rc)
 
     budget_local(f_heat_ioff,ic,ip) = -budget_local(f_watr_ioff,ic,ip)*shr_const_latice
-
   !-----------
   contains
   !-----------
@@ -1034,9 +1019,9 @@ contains
          ip = period_inst
          do n = 1, size(data)
             if (present(minus)) then
-               budget(nf,ic,ip) = budget_local(nf,ic,ip) - areas(n)*data(n)
+               budget(nf,ic,ip) = budget(nf,ic,ip) - areas(n)*data(n)
             else
-               budget(nf,ic,ip) = budget_local(nf,ic,ip) + areas(n)*data(n)
+               budget(nf,ic,ip) = budget(nf,ic,ip) + areas(n)*data(n)
             end if
          end do
       end if
@@ -1148,9 +1133,9 @@ contains
          ip = period_inst
          do n = 1, size(data)
             if (present(minus)) then
-               budget(nf,ic,ip) = budget_local(nf,ic,ip) - areas(n)*data(n)
+               budget(nf,ic,ip) = budget(nf,ic,ip) - areas(n)*data(n)
             else
-               budget(nf,ic,ip) = budget_local(nf,ic,ip) + areas(n)*data(n)
+               budget(nf,ic,ip) = budget(nf,ic,ip) + areas(n)*data(n)
             end if
          end do
       end if
@@ -1269,7 +1254,6 @@ contains
 
     budget_local(f_heat_latf,ic,ip) = -budget_local(f_watr_snow,ic,ip)*shr_const_latice
     budget_local(f_heat_ioff,ic,ip) = -budget_local(f_watr_ioff,ic,ip)*shr_const_latice
-
   !-----------
   contains
   !-----------
@@ -1294,7 +1278,7 @@ contains
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
          ip = period_inst
          do n = 1, size(data)
-            budget(nf,ic,ip) = budget_local(nf,ic,ip) + areas(n)*frac(n)*data(n)
+            budget(nf,ic,ip) = budget(nf,ic,ip) + areas(n)*frac(n)*data(n)
          end do
       end if
     end subroutine diag_ocn
@@ -1404,7 +1388,6 @@ contains
          f_watr_melt_16O, f_watr_melt_18O, f_watr_melt_HDO, areas, lats, ifrac, budget_local, rc=rc)
     call diag_ice_wiso(is_local%wrap%FBImp(compice,compice), 'Faii_evap_wiso', &
          f_watr_evap_16O, f_watr_evap_18O, f_watr_evap_HDO, areas, lats, ifrac, budget_local, rc=rc)
-
   !-----------
   contains
   !-----------
@@ -1811,7 +1794,6 @@ contains
           deallocate(datagpr)
        endif ! output_level > 0 and mastertask
     end if ! if mastertask
-
     !-------------------------------------------------------------------------------
     ! Zero budget data
     !-------------------------------------------------------------------------------

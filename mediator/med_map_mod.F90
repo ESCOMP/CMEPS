@@ -105,6 +105,7 @@ contains
     use ESMF  , only : ESMF_REGRIDMETHOD_NEAREST_STOD
     use ESMF  , only : ESMF_NORMTYPE_DSTAREA, ESMF_REGRIDMETHOD_PATCH, ESMF_RouteHandlePrint
     use NUOPC , only : NUOPC_Write
+    use shr_sys_mod, only : shr_sys_abort
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -193,7 +194,6 @@ contains
           !---    given field bundle source and destination grids
 
           if (n1 /= n2) then
-
              ! Determine route handle names
              rhname = trim(compname(n1))//"2"//trim(compname(n2))
 
@@ -220,7 +220,6 @@ contains
                    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
                    if (.not. mapexists) then
-
                       mapname  = trim(mapnames(mapindex))
                       mapfile  = trim(fldListFr(n1)%flds(nf)%mapfile(n2))
                       string   = trim(rhname)//'_weights'

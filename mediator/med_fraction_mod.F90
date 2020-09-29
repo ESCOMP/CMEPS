@@ -108,6 +108,7 @@ module med_fraction_mod
   use med_methods_mod   , only : FB_fldChk      => med_methods_FB_fldChk
   use med_map_mod       , only : FB_FieldRegrid => med_map_FB_Field_Regrid
   use esmFlds           , only : ncomps
+  use ESMF              , only : ESMF_RouteHandle
 
   implicit none
   private
@@ -131,6 +132,8 @@ module med_fraction_mod
   character(*), parameter :: u_FILE_u =  &
        __FILE__
 
+  type(ESMF_RouteHandle) :: rh_ice2atm
+
 !-----------------------------------------------------------------------------
 contains
 !-----------------------------------------------------------------------------
@@ -152,6 +155,16 @@ contains
     use med_internalstate_mod , only : InternalState, logunit, mastertask
     use perf_mod              , only : t_startf, t_stopf
 
+    use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
+    use ESMF                  , only : ESMF_LOGMSG_ERROR, ESMF_FAILURE, ESMF_MAXSTR
+    use ESMF                  , only : ESMF_Field, ESMF_FieldRegrid
+    use ESMF                  , only : ESMF_FieldRegridStore, ESMF_FieldRegridRelease
+    use ESMF                  , only : ESMF_FieldRedistStore, ESMF_FieldRedistRelease
+    use ESMF                  , only : ESMF_TERMORDER_SRCSEQ, ESMF_Region_Flag, ESMF_REGION_TOTAL, ESMF_REGION_SELECT
+    use ESMF                  , only : ESMF_UNMAPPEDACTION_IGNORE, ESMF_REGRIDMETHOD_CONSERVE, ESMF_NORMTYPE_FRACAREA
+    use ESMF                  , only : ESMF_NORMTYPE_DSTAREA, ESMF_REGRIDMETHOD_PATCH, ESMF_RouteHandlePrint
+    use med_methods_mod       , only : FB_GetFieldByName => med_methods_FB_GetFieldByName
+
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc
@@ -170,6 +183,10 @@ contains
     real(R8), pointer          :: So_omask(:)
     integer                    :: i,j,n,n1
     integer                    :: maptype
+    type(ESMF_RouteHandle)     :: rh_ocn2atm
+    type(ESMF_RouteHandle)     :: rh_lnd2atm
+    type(ESMF_RouteHandle)     :: rh_atm2lnd
+    integer                    :: srcTermProcessing_Value = 0
     logical, save              :: first_call = .true.
     character(len=*),parameter :: subname='(med_fraction_init)'
     !---------------------------------------
@@ -327,7 +344,7 @@ contains
 
        ! Reset 'lfrac' in FBFrac(complnd) by mapping the Frac
        ! If lnd -> atm coupling is active - map 'lfrac' from FBFrac(compatm) to FBFrac(complnd)
-       
+
        if (med_map_RH_is_created(is_local%wrap%RH(compatm,complnd,:),mapfcopy, rc=rc)) then
           maptype = mapfcopy
        else
@@ -346,21 +363,15 @@ contains
             is_local%wrap%RH(compatm,complnd,:),maptype, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
-
     !---------------------------------------
     ! Set 'lfrac' in FBFrac(compatm) and correct 'ofrac' in FBFrac(compatm)
     ! ---------------------------------------
-
-    ! These should actually be mapo2a of ofrac and lfrac but we can't
-    ! map lfrac from o2a due to masked mapping weights.  So we have to
-    ! settle for a residual calculation that is truncated to zero to
-    ! try to preserve "all ocean" cells.
 
     if (is_local%wrap%comp_present(compatm)) then
 
        if (is_local%wrap%comp_present(compocn) .or. is_local%wrap%comp_present(compice)) then
 
-          ! Ocean is present 
+          ! Ocean is present
           call FB_getFldPtr(is_local%wrap%FBfrac(compatm), 'lfrac', lfrac, rc=rc)
           call FB_getFldPtr(is_local%wrap%FBfrac(compatm), 'ofrac', ofrac, rc=rc)
 
@@ -566,6 +577,7 @@ contains
     use med_internalstate_mod , only : InternalState
     use med_map_mod           , only : med_map_RH_is_created
     use perf_mod              , only : t_startf, t_stopf
+    use med_methods_mod       , only : FB_GetFieldByName => med_methods_FB_GetFieldByName
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -573,6 +585,8 @@ contains
 
     ! local variables
     type(InternalState)        :: is_local
+    type(ESMF_Field)           :: fldsrc
+    type(ESMF_Field)           :: flddst
     real(r8), pointer          :: lfrac(:)
     real(r8), pointer          :: ifrac(:)
     real(r8), pointer          :: ofrac(:)
