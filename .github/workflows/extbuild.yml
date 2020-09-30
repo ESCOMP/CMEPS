@@ -21,6 +21,8 @@ jobs:
       ESMF_VERSION: ESMF_8_1_0_beta_snapshot_31
       PNETCDF_VERSION: pnetcdf-1.12.1
       NETCDF_FORTRAN_VERSION: v4.5.2
+      # PIO version is awkward
+      PIO_VERSION_DIR: pio2_5_2
       PIO_VERSION: pio-2.5.2
     steps:
       - uses: actions/checkout@v2
@@ -93,7 +95,7 @@ jobs:
       - name: Build PIO
         if: steps.cache-PIO.outputs.cache-hit != 'true'
         run: |
-          wget https://github.com/NCAR/ParallelIO/releases/download/pio_2_5_1/${{ env.PIO_VERSION }}.tar.gz
+          wget https://github.com/NCAR/ParallelIO/releases/download/${{ env.PIO_VERSION_DIR}}/${{ env.PIO_VERSION }}.tar.gz
           tar -xzvf ${{ env.PIO_VERSION }}.tar.gz
           mkdir build-pio
           pushd build-pio
