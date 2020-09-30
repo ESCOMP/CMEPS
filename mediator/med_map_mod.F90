@@ -14,6 +14,7 @@ module med_map_mod
   use esmFlds               , only : fldListFr, fldListTo
   use esmFlds               , only : coupling_mode
   use med_internalstate_mod , only : InternalState
+  use med_internalstate_mod , only : logunit, mastertask
   use med_constants_mod     , only : ispval_mask       => med_constants_ispval_mask
   use med_constants_mod     , only : czero             => med_constants_czero
   use med_constants_mod     , only : dbug_flag         => med_constants_dbug_flag
@@ -36,7 +37,7 @@ module med_map_mod
   ! public routines
   public :: med_map_RouteHandles_init
   public :: med_map_RH_is_created
-  public :: med_map_Fractions_init
+  public :: med_map_fractions_init
   public :: med_map_MapNorm_init
   public :: med_map_FB_Regrid_Norm
   public :: med_map_FB_Field_Regrid
@@ -272,7 +273,6 @@ contains
                                  factorList=factorList, &
                                  ignoreDegenerate=.true., &
                                  unmappedaction=ESMF_UNMAPPEDACTION_IGNORE, &
-                                 !unmappedDstList=unmappedDstList, &
                                  rc=rc)
                          else if ((mapindex == mapconsd .or. mapindex == mapnstod_consd) .and. &
                               .not. med_map_RH_is_created(is_local%wrap%RH(n1,n2,:),mapconsd,rc)) then
@@ -286,7 +286,6 @@ contains
                                  factorList=factorList, &
                                  ignoreDegenerate=.true., &
                                  unmappedaction=ESMF_UNMAPPEDACTION_IGNORE, &
-                                 !unmappedDstList=unmappedDstList, &
                                  rc=rc)
                          else if (mapindex == mappatch) then
                             call ESMF_FieldRegridStore(fldsrc, flddst, &
@@ -417,19 +416,20 @@ contains
 
 !================================================================================                   
 
-  subroutine med_map_Fractions_init(gcomp, n1, n2, FBSrc, FBDst, RouteHandle, rc)
+  subroutine med_map_fractions_init(gcomp, n1, n2, FBSrc, FBDst, RouteHandle, rc)
 
     !---------------------------------------------
     ! Initialize initialize additional route handles
     ! for mapping fractions
     !---------------------------------------------
 
-    use ESMF  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_LogFlush
-    use ESMF  , only : ESMF_GridComp, ESMF_FieldBundle, ESMF_RouteHandle, ESMF_Field
-    use ESMF  , only : ESMF_FieldRedistStore, ESMF_FieldSMMStore, ESMF_FieldRegridStore
-    use ESMF  , only : ESMF_UNMAPPEDACTION_IGNORE, ESMF_REGRIDMETHOD_CONSERVE, ESMF_NORMTYPE_FRACAREA
-    use NUOPC , only : NUOPC_CompAttributeGet
+    use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_LogFlush
+    use ESMF , only : ESMF_GridComp, ESMF_FieldBundle, ESMF_RouteHandle, ESMF_Field
+    use ESMF , only : ESMF_FieldRegridStore
+    use ESMF , only : ESMF_UNMAPPEDACTION_IGNORE
+    use ESMF , only : ESMF_REGRIDMETHOD_CONSERVE, ESMF_NORMTYPE_DSTAREA
 
+    ! input/output variables
     type(ESMF_GridComp)                    :: gcomp
     integer                , intent(in)    :: n1
     integer                , intent(in)    :: n2
@@ -441,82 +441,50 @@ contains
     ! local variables
     type(ESMF_Field)   :: fldsrc
     type(ESMF_Field)   :: flddst
-    character(len=128) :: rhname
-    character(len=CS)  :: mapname
-    character(len=CX)  :: mapfile
     character(len=CS)  :: string
     integer            :: SrcMaskValue
     integer            :: DstMaskValue
-    real(R8), pointer  :: factorList(:)
     character(len=*), parameter :: subname=' (med_map_fractions_init: ) '
     !---------------------------------------------
-    call t_startf('MED:'//subname)
 
+    call t_startf('MED:'//subname)
+    rc = ESMF_SUCCESS
     if (dbug_flag > 1) then
        call ESMF_LogWrite("Initializing RHs not yet created and needed for mapping fractions", &
             ESMF_LOGMSG_INFO)
        call ESMF_LogFlush()
     endif
 
-    rc = ESMF_SUCCESS
-
-    call FB_getFieldN(FBsrc, 1, fldsrc, rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    call FB_getFieldN(FBDst, 1, flddst, rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    if (mastertask) then
+       string = trim(compname(n1))//"2"//trim(compname(n2))//'_weights'
+       write(logunit,'(a)') trim(subname) // trim(string) //' RH consd computed on the fly for fractions'
+    end if
 
     dstMaskValue = ispval_mask
     srcMaskValue = ispval_mask
     if (n1 == compocn .or. n1 == compice) srcMaskValue = 0
     if (n2 == compocn .or. n2 == compice) dstMaskValue = 0
 
-    rhname = trim(compname(n1))//"2"//trim(compname(n2))
-    string   = trim(rhname)//'_weights'
-    if ( (n1 == compocn .and. n2 == compice) .or. (n1 == compice .and. n2 == compocn)) then
-       mapfile = 'idmap'
-    else
-       call ESMF_LogWrite("Querying for attribute "//trim(rhname)//"_fmapname = ", ESMF_LOGMSG_INFO)
-       call NUOPC_CompAttributeGet(gcomp, name=trim(rhname)//"_fmapname", value=mapfile, rc=rc)
-       mapname = trim(mapnames(mapconsf))
-    end if
-
-    if (mapfile == 'idmap') then
-       call ESMF_LogWrite(trim(subname) // trim(string) //&
-            ' RH '//trim(mapname)// ' is redist', ESMF_LOGMSG_INFO)
-       call ESMF_FieldRedistStore(fldsrc, flddst, &
-            routehandle=RouteHandle, &
-            ignoreUnmatchedIndices = .true., rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-    else if (mapfile /= 'unset') then
-       call ESMF_LogWrite(subname // trim(string) //&
-            ' RH '//trim(mapname)//' via input file '//trim(mapfile), ESMF_LOGMSG_INFO)
-       call ESMF_FieldSMMStore(fldsrc, flddst, mapfile, &
-            routehandle=RouteHandle, &
-            ignoreUnmatchedIndices=.true., &
-            srcTermProcessing=srcTermProcessing_Value, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-    else
-       call ESMF_LogWrite(subname // trim(string) //&
-            ' RH '//trim(mapname)//' computed on the fly '//trim(mapfile), ESMF_LOGMSG_INFO)
-       call ESMF_FieldRegridStore(fldsrc, flddst, &
-            routehandle=RouteHandle, &
-            srcMaskValues=(/srcMaskValue/), &
-            dstMaskValues=(/dstMaskValue/), &
-            regridmethod=ESMF_REGRIDMETHOD_CONSERVE, &
-            normType=ESMF_NORMTYPE_FRACAREA, &
-            srcTermProcessing=srcTermProcessing_Value, &
-            factorList=factorList, &
-            ignoreDegenerate=.true., &
-            unmappedaction=ESMF_UNMAPPEDACTION_IGNORE, rc=rc)
-    end if
+    call FB_getFieldN(FBsrc, 1, fldsrc, rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call FB_getFieldN(FBDst, 1, flddst, rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldRegridStore(fldsrc, flddst, &
+         routehandle=RouteHandle, &
+         srcMaskValues=(/srcMaskValue/), &
+         dstMaskValues=(/dstMaskValue/), &
+         regridmethod=ESMF_REGRIDMETHOD_CONSERVE, &
+         normType=ESMF_NORMTYPE_DSTAREA, &
+         srcTermProcessing=srcTermProcessing_Value, &
+         ignoreDegenerate=.true., &
+         unmappedaction=ESMF_UNMAPPEDACTION_IGNORE, rc=rc)
 
     if (dbug_flag > 1) then
       call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
     endif
     call t_stopf('MED:'//subname)
 
-  end subroutine med_map_Fractions_init
+  end subroutine med_map_fractions_init
 
 !================================================================================
 

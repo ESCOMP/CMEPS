@@ -114,7 +114,6 @@ module med_fraction_mod
   use med_methods_mod   , only : FB_fldChk      => med_methods_FB_fldChk
   use med_map_mod       , only : FB_FieldRegrid => med_map_FB_Field_Regrid
   use esmFlds           , only : ncomps
-  use ESMF              , only : ESMF_RouteHandle
 
   implicit none
   private
@@ -138,8 +137,6 @@ module med_fraction_mod
   character(*), parameter :: u_FILE_u =  &
        __FILE__
 
-  type(ESMF_RouteHandle) :: rh_ice2atm
-
 !-----------------------------------------------------------------------------
 contains
 !-----------------------------------------------------------------------------
@@ -155,20 +152,10 @@ contains
     use esmFlds               , only : coupling_mode
     use esmFlds               , only : compatm, compocn, compice, complnd
     use esmFlds               , only : comprof, compglc, compwav, compname
-    use esmFlds               , only : mapconsf, mapfcopy, mapnstod_consf
-    use med_map_mod           , only : med_map_Fractions_init, med_map_RH_is_created
+    use esmFlds               , only : mapfcopy, mapconsd, mapnstod_consd
+    use med_map_mod           , only : med_map_fractions_init, med_map_rh_is_created
     use med_internalstate_mod , only : InternalState
     use perf_mod              , only : t_startf, t_stopf
-
-    use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
-    use ESMF                  , only : ESMF_LOGMSG_ERROR, ESMF_FAILURE, ESMF_MAXSTR
-    use ESMF                  , only : ESMF_Field, ESMF_FieldRegrid
-    use ESMF                  , only : ESMF_FieldRegridStore, ESMF_FieldRegridRelease
-    use ESMF                  , only : ESMF_FieldRedistStore, ESMF_FieldRedistRelease
-    use ESMF                  , only : ESMF_TERMORDER_SRCSEQ, ESMF_Region_Flag, ESMF_REGION_TOTAL, ESMF_REGION_SELECT
-    use ESMF                  , only : ESMF_UNMAPPEDACTION_IGNORE, ESMF_REGRIDMETHOD_CONSERVE, ESMF_NORMTYPE_FRACAREA
-    use ESMF                  , only : ESMF_NORMTYPE_DSTAREA, ESMF_REGRIDMETHOD_PATCH, ESMF_RouteHandlePrint
-    use med_methods_mod       , only : FB_GetFieldByName => med_methods_FB_GetFieldByName
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -176,8 +163,6 @@ contains
 
     ! local variables
     type(InternalState)        :: is_local
-    type(ESMF_Field)           :: fldsrc
-    type(ESMF_Field)           :: flddst
     type(ESMF_FieldBundle)     :: FBtemp
     real(R8), pointer          :: frac(:)
     real(R8), pointer          :: ofrac(:)
@@ -192,10 +177,6 @@ contains
     real(R8), pointer          :: So_omask(:)
     integer                    :: i,j,n,n1
     integer                    :: maptype
-    type(ESMF_RouteHandle)     :: rh_ocn2atm
-    type(ESMF_RouteHandle)     :: rh_lnd2atm
-    type(ESMF_RouteHandle)     :: rh_atm2lnd
-    integer                    :: srcTermProcessing_Value = 0
     logical, save              :: first_call = .true.
     character(len=*),parameter :: subname='(med_fraction_init)'
     !---------------------------------------
@@ -234,13 +215,12 @@ contains
        ! Note - must use import state here - since export state might not
        ! contain anything other than scalar data if the component is not prognostic
        do n1 = 1,ncomps
-          if (is_local%wrap%comp_present(n1) .and. ESMF_StateIsCreated(is_local%wrap%NStateImp(n1),rc=rc)) then
-
+          if ( is_local%wrap%comp_present(n1) .and. &
+               ESMF_StateIsCreated(is_local%wrap%NStateImp(n1),rc=rc)) then
+             ! create FBFrac and zero out FBfrac(n1)
              call FB_init(is_local%wrap%FBfrac(n1), is_local%wrap%flds_scalar_name, &
                   STgeom=is_local%wrap%NStateImp(n1), fieldNameList=fraclist(:,n1), &
                   name='FBfrac'//trim(compname(n1)), rc=rc)
-
-             ! zero out FBfracs
              call FB_reset(is_local%wrap%FBfrac(n1), value=czero, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
@@ -252,8 +232,6 @@ contains
     ! Set 'lfrin' for FBFrac(complnd) and FBFrac(compatm)
     !---------------------------------------
 
-    ! The following is just an initial "guess", updated later
-
     if (is_local%wrap%comp_present(complnd)) then
 
        ! Set 'lfrin' for FBFrac(complnd)
@@ -263,55 +241,45 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        lfrin(:) = Sl_lfrin(:)
 
-       ! Set 'lfrin for FBFrac(compatm)
+       ! Set 'lfrin for FBFrac(compatm) 
+       ! The following is just an initial "guess", updated later
        if (is_local%wrap%comp_present(compatm) .and. (is_local%wrap%med_coupling_active(compatm,complnd))) then
-          ! Note - need to do the following if compatm->complnd is active, even if complnd->compatm is not active
-
-          ! Create a temporary field bundle if one does not exists
-          if (.not. ESMF_FieldBundleIsCreated(is_local%wrap%FBImp(complnd,compatm))) then
-             call FB_init(FBout=FBtemp, &
-                  flds_scalar_name=is_local%wrap%flds_scalar_name, &
-                  FBgeom=is_local%wrap%FBImp(compatm,compatm), &
-                  fieldNameList=(/'Fldtemp'/), name='FBtemp', rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-          end if
-
           ! Determine map type
           if (med_map_RH_is_created(is_local%wrap%RH(compatm,complnd,:),mapfcopy, rc=rc)) then
              maptype = mapfcopy
           else
-             maptype = mapconsf
-          end if
-
-          ! Create route handle from lnd->atm if necessary
-          if (.not. med_map_RH_is_created(is_local%wrap%RH(complnd,compatm,:),maptype, rc=rc)) then
-             if (ESMF_FieldBundleIsCreated(is_local%wrap%FBImp(complnd,compatm))) then
-                call med_map_Fractions_init( gcomp, complnd, compatm, &
-                  FBSrc=is_local%wrap%FBImp(complnd,complnd), &
-                  FBDst=is_local%wrap%FBImp(complnd,compatm), &
-                  RouteHandle=is_local%wrap%RH(complnd,compatm,maptype), rc=rc)
-                if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             else
-                call med_map_Fractions_init( gcomp, complnd, compatm, &
-                     FBSrc=is_local%wrap%FBImp(complnd,complnd), &
-                     FBDst=FBtemp, &
-                     RouteHandle=is_local%wrap%RH(complnd,compatm,maptype), rc=rc)
-                if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             maptype = mapconsd
+             if (.not. med_map_RH_is_created(is_local%wrap%RH(complnd,compatm,:),maptype, rc=rc)) then
+                if (ESMF_FieldBundleIsCreated(is_local%wrap%FBImp(complnd,compatm))) then
+                   call med_map_Fractions_init( gcomp, complnd, compatm, &
+                        FBSrc=is_local%wrap%FBImp(complnd,complnd), &
+                        FBDst=is_local%wrap%FBImp(complnd,compatm), &
+                        RouteHandle=is_local%wrap%RH(complnd,compatm,maptype), rc=rc)
+                   if (ChkErr(rc,__LINE__,u_FILE_u)) return
+                else
+                   ! Note - need to do the following if
+                   ! compatm->complnd is active, even if complnd->compatm is not active
+                   call FB_init(FBout=FBtemp, &
+                        flds_scalar_name=is_local%wrap%flds_scalar_name, &
+                        FBgeom=is_local%wrap%FBImp(compatm,compatm), &
+                        fieldNameList=(/'Fldtemp'/), name='FBtemp', rc=rc)
+                   if (chkerr(rc,__LINE__,u_FILE_u)) return
+                   call med_map_Fractions_init( gcomp, complnd, compatm, &
+                        FBSrc=is_local%wrap%FBImp(complnd,complnd), &
+                        FBDst=FBtemp, &
+                        RouteHandle=is_local%wrap%RH(complnd,compatm,maptype), rc=rc)
+                   if (ChkErr(rc,__LINE__,u_FILE_u)) return
+                   call ESMF_FieldBundleDestroy(FBtemp, rc=rc)
+                   if (ChkErr(rc,__LINE__,u_FILE_u)) return
+                end if
              end if
           end if
-
           ! Regrid 'lfrin' from FBFrac(complnd) -> FBFrac(compatm)
           call FB_FieldRegrid(&
                is_local%wrap%FBfrac(complnd), 'lfrin', &
                is_local%wrap%FBfrac(compatm), 'lfrin', &
                is_local%wrap%RH(complnd,compatm,:),maptype, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-          ! Destroy temporary field bundle if created
-          if (ESMF_FieldBundleIsCreated(FBTemp)) then
-             call ESMF_FieldBundleDestroy(FBtemp, rc=rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          end if
        end if
     end if
 
@@ -328,30 +296,32 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        ifrac(:) = Si_imask(:)
 
-       ! Set 'ifrac' in  FBFrac(compatm)
+       ! Set 'ifrac' in  FBFrac(compatm) - at this point this is the ice mask mapped to the atm mesh
+       ! This maps the ice mask (which is the same as the ocean mask) to the atm mesh
        if (is_local%wrap%comp_present(compatm) .and. is_local%wrap%med_coupling_active(compice,compatm)) then
 
           if (med_map_RH_is_created(is_local%wrap%RH(compice,compatm,:),mapfcopy, rc=rc)) then
              ! If ice and atm are on the same mesh - a redist route handle has already been created
-             call FB_FieldRegrid(&
-                  is_local%wrap%FBfrac(compice), 'ifrac', &
-                  is_local%wrap%FBfrac(compatm), 'ifrac', &
-                  is_local%wrap%RH(compice,compatm,:), mapfcopy, rc=rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          else
-             ! generate a new route hande for ice->atm mapping with no masks
-             ! should not set srcMaskValue or dstMaskValue
-             call FB_GetFieldByName(is_local%wrap%FBfrac(compice), 'ifrac', fldsrc, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-             call FB_GetFieldByName(is_local%wrap%FBfrac(compatm), 'ifrac', flddst, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-             call ESMF_FieldRegridStore(fldsrc, flddst, routehandle=rh_ice2atm, &
-                  regridmethod=ESMF_REGRIDMETHOD_CONSERVE, &
-                  srcTermProcessing=srcTermProcessing_Value, ignoreDegenerate=.true., &
-                  unmappedaction=ESMF_UNMAPPEDACTION_IGNORE, rc=rc)
-             call ESMF_FieldRegrid(fldsrc, flddst, routehandle=rh_ice2atm, &
-                  termorderflag=ESMF_TERMORDER_SRCSEQ, zeroregion=ESMF_REGION_TOTAL, rc=rc)
+             maptype = mapfcopy
+          else 
+             if (trim(coupling_mode) == 'nems_orig' ) then
+                maptype = mapnstod_consd
+             else
+                maptype = mapconsd
+             end if
+             if (.not. med_map_RH_is_created(is_local%wrap%RH(compice,compatm,:),maptype, rc=rc)) then
+                call med_map_Fractions_init( gcomp, compice, compatm, &
+                     FBSrc=is_local%wrap%FBImp(compice,compice), &
+                     FBDst=is_local%wrap%FBImp(compice,compatm), &
+                     RouteHandle=is_local%wrap%RH(compice,compatm,maptype), rc=rc)
+                if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             end if
           end if
+          call FB_FieldRegrid(&
+               is_local%wrap%FBfrac(compice), 'ifrac', &
+               is_local%wrap%FBfrac(compatm), 'ifrac', &
+               is_local%wrap%RH(compice,compatm,:), maptype, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
     end if
 
@@ -368,33 +338,33 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        ofrac(:) = So_omask(:)
 
-       ! Set 'ofrac' in FBFrac(compatm)
-       ! This is mapping the ocean mask to the atm grid - so in effect it is the land fraction on the atm grid
+       ! Set 'ofrac' in FBFrac(compatm) - at this point this is the ocean mask mapped to the atm grid
+       ! This is mapping the ocean mask to the atm grid - so in effect it is (1-land fraction) on the atm grid
        if (is_local%wrap%comp_present(compatm) .and. is_local%wrap%med_coupling_active(compocn,compatm)) then
 
           if (med_map_RH_is_created(is_local%wrap%RH(compocn,compatm,:),mapfcopy, rc=rc)) then
              ! If ocn and atm are on the same mesh - a redist route handle has already been created
-             call FB_FieldRegrid(&
-                  is_local%wrap%FBfrac(compocn), 'ofrac', &
-                  is_local%wrap%FBfrac(compatm), 'ofrac', &
-                  is_local%wrap%RH(compocn,compatm,:),mapfcopy, rc=rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             maptype = mapfcopy
           else
-             ! generate a new route hande for ocn->atm mapping with no masks
-             ! should not set srcMaskValue or dstMaskValue
-             call FB_GetFieldByName(is_local%wrap%FBfrac(compocn), 'ofrac', fldsrc, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-             call FB_GetFieldByName(is_local%wrap%FBfrac(compatm), 'ofrac', flddst, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-             call ESMF_FieldRegridStore(fldsrc, flddst, routehandle=rh_ocn2atm, &
-                  regridmethod=ESMF_REGRIDMETHOD_CONSERVE, &
-                  srcTermProcessing=srcTermProcessing_Value, ignoreDegenerate=.true., &
-                  unmappedaction=ESMF_UNMAPPEDACTION_IGNORE, rc=rc)
-             call ESMF_FieldRegrid(fldsrc, flddst, routehandle=rh_ocn2atm, &
-                  termorderflag=ESMF_TERMORDER_SRCSEQ, zeroregion=ESMF_REGION_TOTAL, rc=rc)
-             call ESMF_FieldRegridRelease(rh_ocn2atm, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
+             if (trim(coupling_mode) == 'nems_orig' ) then
+                maptype = mapnstod_consd
+             else
+                maptype = mapconsd
+             end if
+             if (.not. med_map_RH_is_created(is_local%wrap%RH(compocn,compatm,:),maptype, rc=rc)) then
+                call med_map_Fractions_init( gcomp, compocn, compatm, &
+                     FBSrc=is_local%wrap%FBImp(compocn,compocn), &
+                     FBDst=is_local%wrap%FBImp(compocn,compatm), &
+                     RouteHandle=is_local%wrap%RH(compocn,compatm,maptype), rc=rc)
+                if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             end if
           end if
+          call FB_FieldRegrid(&
+               is_local%wrap%FBfrac(compocn), 'ofrac', &
+               is_local%wrap%FBfrac(compatm), 'ofrac', &
+               is_local%wrap%RH(compocn,compatm,:), maptype, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
        end if
     end if
 
@@ -403,41 +373,37 @@ contains
     ! ---------------------------------------
 
     if (is_local%wrap%comp_present(compatm)) then
-
-       if (is_local%wrap%comp_present(compocn) .or. is_local%wrap%comp_present(compice)) then
-
-          if (.not. is_local%wrap%comp_present(complnd)) then
-             call FB_getFldPtr(is_local%wrap%FBfrac(compatm), 'lfrac', lfrac, rc=rc)
-             lfrac(:) = 0.0_R8
-          else
+       if (is_local%wrap%comp_present(complnd)) then
+          ! land is present
+          call FB_getFldPtr(is_local%wrap%FBfrac(compatm), 'lfrin', lfrin, rc=rc)
+          call FB_getFldPtr(is_local%wrap%FBfrac(compatm), 'lfrac', lfrac, rc=rc)
+          call FB_getFldPtr(is_local%wrap%FBfrac(compatm), 'ofrac', ofrac, rc=rc)
+          if (is_local%wrap%comp_present(compocn) .or. is_local%wrap%comp_present(compice)) then
+             ! ocean is present
              ! These should actually be mapo2a of ofrac and lfrac but we can't
              ! map lfrac from o2a due to masked mapping weights.  So we have to
              ! settle for a residual calculation that is truncated to zero to
              ! try to preserve "all ocean" cells.
-             call FB_getFldPtr(is_local%wrap%FBfrac(compatm), 'lfrac', lfrac, rc=rc)
-             call FB_getFldPtr(is_local%wrap%FBfrac(compatm), 'ofrac', ofrac, rc=rc)
              do n = 1,size(lfrac)
                 lfrac(n) = 1.0_R8 - ofrac(n)
                 if (abs(lfrac(n)) < eps_fraclim) then
                    lfrac(n) = 0.0_R8
                 end if
              end do
+          else 
+             ! If the ocean or ice are absent, then simply set 'lfrac' to 'lfrin' for FBFrac(compatm)
+             do n = 1,size(lfrac)
+                lfrac(n) = lfrin(n)
+                ofrac(n) = 1.0_R8 - lfrac(n)
+                if (abs(ofrac(n)) < eps_fraclim) then
+                   ofrac(n) = 0.0_R8
+                end if
+             end do
           end if
-
-       else if (is_local%wrap%comp_present(complnd)) then
-
-          ! If the ocean or ice are absent, then simply set 'lfrac' to 'lfrin' for FBFrac(compatm)
-          call FB_getFldPtr(is_local%wrap%FBfrac(compatm), 'lfrin', lfrin, rc=rc)
+       else  
+          ! land is not present
           call FB_getFldPtr(is_local%wrap%FBfrac(compatm), 'lfrac', lfrac, rc=rc)
-          call FB_getFldPtr(is_local%wrap%FBfrac(compatm), 'ofrac', ofrac, rc=rc)
-          do n = 1,size(lfrac)
-             lfrac(n) = lfrin(n)
-             ofrac(n) = 1.0_R8 - lfrac(n)
-             if (abs(ofrac(n)) < eps_fraclim) then
-                ofrac(n) = 0.0_R8
-             end if
-          end do
-
+          lfrac(:) = 0.0_R8
        end if
     end if
 
@@ -451,17 +417,18 @@ contains
        if (is_local%wrap%comp_present(compatm)) then
           ! If atm -> lnd coupling is active - map 'lfrac' from FBFrac(compatm) to FBFrac(complnd)
           if (is_local%wrap%med_coupling_active(compatm,complnd)) then
-             if (.not. med_map_RH_is_created(is_local%wrap%RH(compatm,complnd,:),mapconsf, rc=rc)) then
+             maptype = mapconsd
+             if (.not. med_map_RH_is_created(is_local%wrap%RH(compatm,complnd,:),maptype, rc=rc)) then
                 call med_map_Fractions_init( gcomp, compatm, complnd, &
                      FBSrc=is_local%wrap%FBImp(compatm,compatm), &
                      FBDst=is_local%wrap%FBImp(compatm,complnd), &
-                     RouteHandle=is_local%wrap%RH(compatm,complnd,mapconsf), rc=rc)
+                     RouteHandle=is_local%wrap%RH(compatm,complnd,maptype), rc=rc)
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
              end if
              call FB_FieldRegrid(&
                   is_local%wrap%FBfrac(compatm), 'lfrac', &
                   is_local%wrap%FBfrac(complnd), 'lfrac', &
-                  is_local%wrap%RH(compatm,complnd,:),mapconsf, rc=rc)
+                  is_local%wrap%RH(compatm,complnd,:),maptype, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
        else
@@ -482,8 +449,8 @@ contains
     if (is_local%wrap%comp_present(comprof)) then
 
        ! Set 'rfrac' in FBFrac(comprof)
-       if ( FB_FldChk(is_local%wrap%FBfrac(comprof)        , 'rfrac', rc=rc) .and. &
-            FB_FldChk(is_local%wrap%FBImp(comprof, comprof), 'frac' , rc=rc)) then
+       if ( FB_FldChk(is_local%wrap%FBfrac(comprof)       , 'rfrac', rc=rc) .and. &
+            FB_FldChk(is_local%wrap%FBImp(comprof,comprof), 'frac' , rc=rc)) then
           call FB_getFldPtr(is_local%wrap%FBfrac(comprof)       , 'rfrac', rfrac, rc=rc)
           call FB_getFldPtr(is_local%wrap%FBImp(comprof,comprof), 'frac' , frac, rc=rc)
           rfrac(:) = frac(:)
@@ -496,17 +463,18 @@ contains
 
        ! Set 'lfrac' in FBFrac(comprof)
        if (is_local%wrap%comp_present(complnd)) then
-          if (.not. med_map_RH_is_created(is_local%wrap%RH(complnd,comprof,:),mapconsf, rc=rc)) then
+          maptype = mapconsd
+          if (.not. med_map_RH_is_created(is_local%wrap%RH(complnd,comprof,:),maptype, rc=rc)) then
              call med_map_Fractions_init( gcomp, complnd, comprof, &
                   FBSrc=is_local%wrap%FBImp(complnd,complnd), &
                   FBDst=is_local%wrap%FBImp(complnd,comprof), &
-                  RouteHandle=is_local%wrap%RH(complnd,comprof,mapconsf), rc=rc)
+                  RouteHandle=is_local%wrap%RH(complnd,comprof,maptype), rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
           call FB_FieldRegrid(&
                is_local%wrap%FBfrac(complnd), 'lfrac', &
                is_local%wrap%FBfrac(comprof), 'lfrac', &
-               is_local%wrap%RH(complnd,comprof,:),mapconsf, rc=rc)
+               is_local%wrap%RH(complnd,comprof,:),maptype, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        endif
     endif
@@ -531,17 +499,18 @@ contains
 
        ! Set 'lfrac' in FBFrac(compglc)
        if ( is_local%wrap%comp_present(complnd) .and. is_local%wrap%med_coupling_active(complnd,compglc)) then
-          if (.not. med_map_RH_is_created(is_local%wrap%RH(complnd,compglc,:),mapconsf, rc=rc)) then
+          maptype = mapconsd
+          if (.not. med_map_RH_is_created(is_local%wrap%RH(complnd,compglc,:),maptype, rc=rc)) then
              call med_map_Fractions_init( gcomp, complnd, compglc, &
                   FBSrc=is_local%wrap%FBImp(complnd,complnd), &
                   FBDst=is_local%wrap%FBImp(complnd,compglc), &
-                  RouteHandle=is_local%wrap%RH(complnd,compglc,mapconsf), rc=rc)
+                  RouteHandle=is_local%wrap%RH(complnd,compglc,maptype), rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
           call FB_FieldRegrid(&
                is_local%wrap%FBfrac(complnd), 'lfrac', &
                is_local%wrap%FBfrac(compglc), 'lfrac', &
-               is_local%wrap%RH(complnd,compglc,:),mapconsf, rc=rc)
+               is_local%wrap%RH(complnd,compglc,:),maptype, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        endif
     endif
@@ -621,18 +590,14 @@ contains
     ! Update time varying fractions
 
     use ESMF                  , only : ESMF_GridComp, ESMF_GridCompGet
-    use ESMF                  , only : ESMF_FieldBundleIsCreated
+    use ESMF                  , only : ESMF_Field, ESMF_FieldBundleIsCreated
     use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
-    use ESMF                  , only : ESMF_REGION_TOTAL, ESMF_REGION_SELECT
-    use ESMF                  , only : ESMF_TERMORDER_SRCSEQ, ESMF_Region_Flag
-    use ESMF                  , only : ESMF_Field, ESMF_FieldRegrid
     use esmFlds               , only : compatm, compocn, compice, compname
-    use esmFlds               , only : mapconsf, mapnstod, mapfcopy, mapnstod_consf
+    use esmFlds               , only : mapfcopy, mapconsd, mapnstod_consd
     use esmFlds               , only : coupling_mode
     use med_internalstate_mod , only : InternalState
     use med_map_mod           , only : med_map_Fractions_init, med_map_RH_is_created
     use perf_mod              , only : t_startf, t_stopf
-    use med_methods_mod       , only : FB_GetFieldByName => med_methods_FB_GetFieldByName
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -640,8 +605,6 @@ contains
 
     ! local variables
     type(InternalState)        :: is_local
-    type(ESMF_Field)           :: fldsrc
-    type(ESMF_Field)           :: flddst
     real(r8), pointer          :: lfrac(:)
     real(r8), pointer          :: ifrac(:)
     real(r8), pointer          :: ofrac(:)
@@ -651,12 +614,14 @@ contains
     integer                    :: maptype
     character(len=*),parameter :: subname='(med_fraction_set)'
     !---------------------------------------
+
+    rc = ESMF_SUCCESS
+
     call t_startf('MED:'//subname)
 
     if (dbug_flag > 20) then
        call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
     end if
-    rc = ESMF_SUCCESS
 
     ! Get the internal state from Component.
     nullify(is_local%wrap)
@@ -720,43 +685,35 @@ contains
 
        if (is_local%wrap%comp_present(compatm)) then
 
+          ! Determine maptype
           if (trim(coupling_mode) == 'nems_orig' ) then
-             ! Map 'ifrac' from FBfrac(compice) to FBfrac(compatm)
+             maptype = mapnstod_consd
+          else
+             if (med_map_RH_is_created(is_local%wrap%RH(compice,compatm,:),mapfcopy, rc=rc)) then
+                maptype = mapfcopy
+             else
+                maptype = mapconsd
+             end if
+          end if
+
+          ! Map 'ifrac' from FBfrac(compice) to FBfrac(compatm)
+          if (is_local%wrap%med_coupling_active(compice,compatm)) then
              if (is_local%wrap%med_coupling_active(compice,compatm)) then
                 call FB_FieldRegrid(&
                      is_local%wrap%FBfrac(compice), 'ifrac', &
                      is_local%wrap%FBfrac(compatm), 'ifrac', &
-                     is_local%wrap%RH(compice,compatm,:), mapnstod_consf, rc=rc)
+                     is_local%wrap%RH(compice,compatm,:), maptype, rc=rc)
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
              end if
-             ! Map 'ofrac' from FBfrac(compice) to FBfrac(compatm)
+          end if
+
+          ! Map 'ofrac' from FBfrac(compice) to FBfrac(compatm)
+          if (is_local%wrap%med_coupling_active(compocn,compatm)) then
              if (is_local%wrap%med_coupling_active(compocn,compatm)) then
                 call FB_FieldRegrid(&
-                     is_local%wrap%FBfrac(compice), 'ofrac', &
+                     is_local%wrap%FBfrac(compocn), 'ofrac', &
                      is_local%wrap%FBfrac(compatm), 'ofrac', &
-                     is_local%wrap%RH(compice,compatm,:), mapnstod_consf, rc=rc)
-                if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             end if
-          else
-             ! Map 'ifrac' from FBfrac(compice) to FBfrac(compatm)
-             if (is_local%wrap%med_coupling_active(compice,compatm)) then
-                Call FB_GetFieldByName(is_local%wrap%FBfrac(compice), 'ifrac', fldsrc, rc=rc)
-                if (chkerr(rc,__LINE__,u_FILE_u)) return
-                call FB_GetFieldByName(is_local%wrap%FBfrac(compatm), 'ifrac', flddst, rc=rc)
-                if (chkerr(rc,__LINE__,u_FILE_u)) return
-                call ESMF_FieldRegrid(fldsrc, flddst, routehandle=rh_ice2atm, &
-                     termorderflag=ESMF_TERMORDER_SRCSEQ, zeroregion=ESMF_REGION_TOTAL, rc=rc)
-                if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             end if
-
-             ! Map 'ofrac' from FBfrac(compice) to FBfrac(compatm)
-             if (is_local%wrap%med_coupling_active(compocn,compatm)) then
-                call FB_GetFieldByName(is_local%wrap%FBfrac(compice), 'ofrac', fldsrc, rc=rc)
-                if (chkerr(rc,__LINE__,u_FILE_u)) return
-                call FB_GetFieldByName(is_local%wrap%FBfrac(compatm), 'ofrac', flddst, rc=rc)
-                if (chkerr(rc,__LINE__,u_FILE_u)) return
-                call ESMF_FieldRegrid(fldsrc, flddst, routehandle=rh_ice2atm, &
-                     termorderflag=ESMF_TERMORDER_SRCSEQ, zeroregion=ESMF_REGION_TOTAL, rc=rc)
+                     is_local%wrap%RH(compocn,compatm,:), maptype, rc=rc)
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
              end if
           end if
