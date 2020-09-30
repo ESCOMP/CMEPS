@@ -845,7 +845,6 @@ contains
     call diag_lnd_wiso(is_local%wrap%FBExp(complnd), 'Flrl_flood_wiso', &
          f_watr_roff_16O, f_watr_roff_18O, f_watr_roff_HDO, ic, areas, lfrac, budget_local, minus=.true., rc=rc)
 
-    print *,__FILE__,__LINE__,budget_local(f_watr_ioff, c_lnd_recv, period_inst), budget_local(f_watr_ioff, c_lnd_send, period_inst)
     budget_local(f_heat_ioff,ic,ip) = -budget_local(f_watr_ioff,ic,ip)*shr_const_latice
     budget_local(f_heat_latf,ic,ip) = -budget_local(f_watr_snow,ic,ip)*shr_const_latice
   !-----------
