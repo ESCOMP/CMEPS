@@ -23,8 +23,8 @@ jobs:
       PNETCDF_VERSION: pnetcdf-1.12.1
       NETCDF_FORTRAN_VERSION: v4.5.2
       # PIO version is awkward
-      PIO_VERSION_DIR: pio2_5_1
-      PIO_VERSION: pio-2.5.1
+      PIO_VERSION_DIR: pio2_5_2
+      PIO_VERSION: pio-2.5.2
     steps:
       - uses: actions/checkout@v2
         # Build the ESMF library, if the cache contains a previous build
@@ -100,7 +100,7 @@ jobs:
           tar -xzvf ${{ env.PIO_VERSION }}.tar.gz
           mkdir build-pio
           pushd build-pio
-          cmake -Wno-dev -DNetCDF_C_LIBRARY=/usr/lib/x86_64-linux-gnu/libnetcdf.so -DNetCDF_C_INCLUDE_DIR=/usr/include -DCMAKE_PREFIX_PATH=/usr -DCMAKE_INSTALL_PREFIX=$HOME/pio -DPIO_HDF5_LOGGING=On -DPIO_USE_MALLOC=On -DPIO_ENABLE_LOGGING=On -DPIO_ENABLE_TIMING=Off -DNetCDF_Fortran_PATH=$HOME/netcdf-fortran -DPnetCDF_PATH=$HOME/pnetcdf ../${{ env.PIO_VERSION }}
+          cmake -Wno-dev -DNetCDF_C_LIBRARY=/usr/lib/x86_64-linux-gnu/libnetcdf.so -DNetCDF_C_INCLUDE_DIR=/usr/include -DCMAKE_PREFIX_PATH=/usr -DCMAKE_INSTALL_PREFIX=$HOME/pio -DPIO_HDF5_LOGGING=On -DPIO_USE_MALLOC=On -DPIO_ENABLE_LOGGING=On -DPIO_ENABLE_TIMING=Off -DPIO_ENABLE_TESTS=OFF -DNetCDF_Fortran_PATH=$HOME/netcdf-fortran -DPnetCDF_PATH=$HOME/pnetcdf ../${{ env.PIO_VERSION }}
           make VERBOSE=1
           make install
           popd
