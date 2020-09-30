@@ -28,10 +28,6 @@ all default: $(LIBRARY)
 $(LIBRARY): $(OBJ1)
 	$(AR) $(ARFLAGS) $@ $(OBJ1)
 
-%.o: %.F90.in
-	perl genf90.pl $< > $(@:.o=.F90)
-	$(ESMF_F90COMPILER) -c $(ESMF_F90COMPILEOPTS) $(ESMF_F90COMPILEPATHS) -I$(PIO_INCLUDE_DIR) -DFORTRANUNDERSCORE -DCPRINTEL $(@:.o=.F90)
-
 %.o: %.F90
 	$(ESMF_F90COMPILER) -c $(ESMF_F90COMPILEOPTS) $(ESMF_F90COMPILEPATHS) -I$(PIO_INCLUDE_DIR) -I. $*.F90
 
@@ -39,7 +35,7 @@ clean:
 	$(RM) -f $(LIBRARY) *.f90 *.i90 *.o *.mod
 	$(RM) -f med_constants_mod.*
 
-perf_mod.o: shr_kind_mod.o 
+perf_mod.o: shr_kind_mod.o
 shr_abort_mod.o: shr_kind_mod.o shr_mpi_mod.o shr_log_mod.o
 shr_const_mod.o: shr_kind_mod.o shr_const_mod.F90
 shr_flux_mod.o: shr_kind_mod.o shr_const_mod.o shr_sys_mod.o shr_log_mod.o
