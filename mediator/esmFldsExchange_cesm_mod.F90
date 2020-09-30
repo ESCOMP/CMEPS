@@ -528,7 +528,7 @@ contains
        else
           if ( fldchk(is_local%wrap%FBExp(complnd)         , trim(fldname), rc=rc) .and. &
                fldchk(is_local%wrap%FBImp(compglc, compglc), trim(fldname), rc=rc)) then
-             call addmap(fldListFr(compglc)%flds, trim(fldname), complnd,  mapconsf, 'one', glc2lnd_smap)
+             call addmap(fldListFr(compglc)%flds, trim(fldname), complnd,  mapconsd, 'one', glc2lnd_smap)
              call addmrg(fldListTo(complnd)%flds, trim(fldname), &
                   mrg_from1=compglc, mrg_fld1=trim(fldname), mrg_type1='copy')
           end if

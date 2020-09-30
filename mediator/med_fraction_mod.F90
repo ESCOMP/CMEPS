@@ -146,14 +146,15 @@ contains
     ! Initialize FBFrac(:) field bundles
 
     use ESMF                  , only : ESMF_GridComp, ESMF_Field
-    use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
+    use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_LOGMSG_ERROR
+    use ESMF                  , only : ESMF_SUCCESS, ESMF_FAILURE
     use ESMF                  , only : ESMF_GridCompGet, ESMF_StateIsCreated
     use ESMF                  , only : ESMF_FieldBundle, ESMF_FieldBundleIsCreated, ESMF_FieldBundleDestroy
     use esmFlds               , only : coupling_mode
     use esmFlds               , only : compatm, compocn, compice, complnd
     use esmFlds               , only : comprof, compglc, compwav, compname
     use esmFlds               , only : mapfcopy, mapconsd, mapnstod_consd
-    use med_map_mod           , only : med_map_fractions_init, med_map_rh_is_created
+    use med_map_mod           , only : med_map_routehandles_init, med_map_rh_is_created
     use med_internalstate_mod , only : InternalState
     use perf_mod              , only : t_startf, t_stopf
 
@@ -251,10 +252,10 @@ contains
              maptype = mapconsd
              if (.not. med_map_RH_is_created(is_local%wrap%RH(complnd,compatm,:),maptype, rc=rc)) then
                 if (ESMF_FieldBundleIsCreated(is_local%wrap%FBImp(complnd,compatm))) then
-                   call med_map_Fractions_init( gcomp, complnd, compatm, &
+                   call med_map_routehandles_init( complnd, compatm, &
                         FBSrc=is_local%wrap%FBImp(complnd,complnd), &
                         FBDst=is_local%wrap%FBImp(complnd,compatm), &
-                        RouteHandle=is_local%wrap%RH(complnd,compatm,maptype), rc=rc)
+                        mapindex=maptype, RouteHandle=is_local%wrap%RH, rc=rc)
                    if (ChkErr(rc,__LINE__,u_FILE_u)) return
                 else
                    ! Note - need to do the following if
@@ -264,10 +265,10 @@ contains
                         FBgeom=is_local%wrap%FBImp(compatm,compatm), &
                         fieldNameList=(/'Fldtemp'/), name='FBtemp', rc=rc)
                    if (chkerr(rc,__LINE__,u_FILE_u)) return
-                   call med_map_Fractions_init( gcomp, complnd, compatm, &
+                   call med_map_routehandles_init( complnd, compatm, &
                         FBSrc=is_local%wrap%FBImp(complnd,complnd), &
                         FBDst=FBtemp, &
-                        RouteHandle=is_local%wrap%RH(complnd,compatm,maptype), rc=rc)
+                        mapindex=maptype, RouteHandle=is_local%wrap%RH, rc=rc)
                    if (ChkErr(rc,__LINE__,u_FILE_u)) return
                    call ESMF_FieldBundleDestroy(FBtemp, rc=rc)
                    if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -310,10 +311,10 @@ contains
                 maptype = mapconsd
              end if
              if (.not. med_map_RH_is_created(is_local%wrap%RH(compice,compatm,:),maptype, rc=rc)) then
-                call med_map_Fractions_init( gcomp, compice, compatm, &
+                call med_map_routehandles_init( compice, compatm, &
                      FBSrc=is_local%wrap%FBImp(compice,compice), &
                      FBDst=is_local%wrap%FBImp(compice,compatm), &
-                     RouteHandle=is_local%wrap%RH(compice,compatm,maptype), rc=rc)
+                     mapindex=maptype, RouteHandle=is_local%wrap%RH, rc=rc)
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
              end if
           end if
@@ -352,10 +353,10 @@ contains
                 maptype = mapconsd
              end if
              if (.not. med_map_RH_is_created(is_local%wrap%RH(compocn,compatm,:),maptype, rc=rc)) then
-                call med_map_Fractions_init( gcomp, compocn, compatm, &
+                call med_map_routehandles_init( compocn, compatm, &
                      FBSrc=is_local%wrap%FBImp(compocn,compocn), &
                      FBDst=is_local%wrap%FBImp(compocn,compatm), &
-                     RouteHandle=is_local%wrap%RH(compocn,compatm,maptype), rc=rc)
+                     mapindex=maptype, RouteHandle=is_local%wrap%RH, rc=rc)
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
              end if
           end if
@@ -419,10 +420,10 @@ contains
           if (is_local%wrap%med_coupling_active(compatm,complnd)) then
              maptype = mapconsd
              if (.not. med_map_RH_is_created(is_local%wrap%RH(compatm,complnd,:),maptype, rc=rc)) then
-                call med_map_Fractions_init( gcomp, compatm, complnd, &
+                call med_map_routehandles_init( compatm, complnd, &
                      FBSrc=is_local%wrap%FBImp(compatm,compatm), &
                      FBDst=is_local%wrap%FBImp(compatm,complnd), &
-                     RouteHandle=is_local%wrap%RH(compatm,complnd,maptype), rc=rc)
+                     mapindex=maptype, RouteHandle=is_local%wrap%RH, rc=rc)
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
              end if
              call FB_FieldRegrid(&
@@ -465,10 +466,10 @@ contains
        if (is_local%wrap%comp_present(complnd)) then
           maptype = mapconsd
           if (.not. med_map_RH_is_created(is_local%wrap%RH(complnd,comprof,:),maptype, rc=rc)) then
-             call med_map_Fractions_init( gcomp, complnd, comprof, &
+             call med_map_routehandles_init( complnd, comprof, &
                   FBSrc=is_local%wrap%FBImp(complnd,complnd), &
                   FBDst=is_local%wrap%FBImp(complnd,comprof), &
-                  RouteHandle=is_local%wrap%RH(complnd,comprof,maptype), rc=rc)
+                  mapindex=maptype, RouteHandle=is_local%wrap%RH, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
           call FB_FieldRegrid(&
@@ -501,10 +502,10 @@ contains
        if ( is_local%wrap%comp_present(complnd) .and. is_local%wrap%med_coupling_active(complnd,compglc)) then
           maptype = mapconsd
           if (.not. med_map_RH_is_created(is_local%wrap%RH(complnd,compglc,:),maptype, rc=rc)) then
-             call med_map_Fractions_init( gcomp, complnd, compglc, &
+             call med_map_routehandles_init( complnd, compglc, &
                   FBSrc=is_local%wrap%FBImp(complnd,complnd), &
                   FBDst=is_local%wrap%FBImp(complnd,compglc), &
-                  RouteHandle=is_local%wrap%RH(complnd,compglc,maptype), rc=rc)
+                  mapindex=maptype, RouteHandle=is_local%wrap%RH, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
           call FB_FieldRegrid(&
@@ -539,10 +540,10 @@ contains
                   name='FBImp'//trim(compname(compice))//'_'//trim(compname(compocn)), rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
-          call med_map_Fractions_init( gcomp, compice, compocn, &
+          call med_map_routehandles_init(compice, compocn, &
                FBSrc=is_local%wrap%FBImp(compice,compice), &
                FBDst=is_local%wrap%FBImp(compice,compocn), &
-               RouteHandle=is_local%wrap%RH(compice,compocn,mapfcopy), rc=rc)
+               mapindex=mapfcopy, RouteHandle=is_local%wrap%RH, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
        if (.not. med_map_RH_is_created(is_local%wrap%RH(compocn,compice,:),mapfcopy, rc=rc)) then
@@ -553,10 +554,10 @@ contains
                   name='FBImp'//trim(compname(compocn))//'_'//trim(compname(compice)), rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
-          call med_map_Fractions_init( gcomp, compocn, compice, &
+          call med_map_routehandles_init( compocn, compice, &
                FBSrc=is_local%wrap%FBImp(compocn,compocn), &
                FBDst=is_local%wrap%FBImp(compocn,compice), &
-               RouteHandle=is_local%wrap%RH(compocn,compice,mapfcopy), rc=rc)
+               mapindex=mapfcopy, RouteHandle=is_local%wrap%RH, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
     end if
@@ -596,7 +597,7 @@ contains
     use esmFlds               , only : mapfcopy, mapconsd, mapnstod_consd
     use esmFlds               , only : coupling_mode
     use med_internalstate_mod , only : InternalState
-    use med_map_mod           , only : med_map_Fractions_init, med_map_RH_is_created
+    use med_map_mod           , only : med_map_RH_is_created
     use perf_mod              , only : t_startf, t_stopf
 
     ! input/output variables
