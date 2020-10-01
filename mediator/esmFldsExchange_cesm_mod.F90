@@ -1766,7 +1766,7 @@ contains
        else
           if ( fldchk(is_local%wrap%FBImp(complnd, complnd), trim(fldname), rc=rc) .and. &
                fldchk(is_local%wrap%FBExp(comprof)         , trim(fldname), rc=rc)) then
-             call addmap(fldListFr(complnd)%flds, trim(fldname), comprof, mapconsd, 'lfrac', lnd2rof_fmap)
+             call addmap(fldListFr(complnd)%flds, trim(fldname), comprof, mapconsf, 'lfrac', lnd2rof_fmap)
              call addmrg(fldListTo(comprof)%flds, trim(fldname), &
                   mrg_from1=complnd, mrg_fld1=trim(fldname), mrg_type1='copy_with_weights', mrg_fracname1='lfrac')
           end if
