@@ -58,9 +58,8 @@ module med_map_mod
 
   ! private module variables
 
-  character(len=CS)       :: flds_scalar_name
+  character(len=CL)       :: flds_scalar_name
   integer                 :: srcTermProcessing_Value = 0 ! should this be a module variable?
-  logical                 :: mastertask
   character(*), parameter :: u_FILE_u  = &
        __FILE__
 
@@ -354,13 +353,13 @@ contains
 
   end subroutine med_map_RouteHandles_init_esmflds
 
-!================================================================================                   
+!================================================================================
   subroutine med_map_routehandles_init_field(n1, n2, FBsrc, FBdst, mapindex, RouteHandle, rc)
 
     !---------------------------------------------
     ! Initialize initialize additional route handles
     ! for mapping fractions
-    ! 
+    !
     !---------------------------------------------
 
     use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_LogFlush
@@ -406,7 +405,7 @@ contains
        write(logunit,'(3A)') subname, trim(string),&
             ' RH regrid for '//trim(mapname)//' computed on the fly'
     end if
-    
+
     if (trim(coupling_mode) == 'cesm') then
        dstMaskValue = ispval_mask
        srcMaskValue = ispval_mask
@@ -529,7 +528,7 @@ contains
 
   end subroutine med_map_routehandles_init_field
 
-!================================================================================                   
+!================================================================================
   logical function med_map_RH_is_created_RH3d(RHs,n1,n2,mapindex,rc)
 
     use ESMF  , only : ESMF_RouteHandle
@@ -552,7 +551,7 @@ contains
 
   end function med_map_RH_is_created_RH3d
 
-!================================================================================                   
+!================================================================================
 
   logical function med_map_RH_is_created_RH1d(RHs,mapindex,rc)
 
@@ -737,7 +736,7 @@ contains
     type(ESMF_Field)      :: frac_field_dst
     real(R8), allocatable :: data_srctmp(:)
     real(R8), allocatable :: data_srctmp_1d(:)
-    real(R8), allocatable :: data_srctmp_2d(:,:)  
+    real(R8), allocatable :: data_srctmp_2d(:,:)
     real(R8), pointer     :: data_src_1d(:)
     real(R8), pointer     :: data_src_2d(:,:)
     real(R8), pointer     :: data_frac(:)
@@ -955,7 +954,7 @@ contains
              if (lrank == 1) then
                 data_src_1d(:) = data_srctmp_1d(:)
              elseif (lrank == 2) then
-                data_src_2d(:,:) = data_srctmp_2d(:,:) 
+                data_src_2d(:,:) = data_srctmp_2d(:,:)
              end if
 
              ! regrid fraction from source to dest
