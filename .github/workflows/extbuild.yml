@@ -35,7 +35,7 @@ jobs:
           path: ~/ESMF
           key: ${{ runner.os }}-${{ env.ESMF_VERSION }}-ESMF
       - id: load-env
-        run: sudo apt-get install gfortran wget openmpi-bin netcdf-bin libopenmpi-dev
+        run: sudo apt-get install gfortran wget openmpi-bin netcdf-bin libopenmpi-dev libnetcdf-dev
       - id: build-ESMF
         if: steps.cache-esmf.outputs.cache-hit != 'true'
         run: |
@@ -75,7 +75,6 @@ jobs:
       - name: netcdf fortran build
         if: steps.cache-netcdf-fortran.outputs.cache-hit != 'true'
         run: |
-          sudo apt-get install libnetcdf-dev
           wget https://github.com/Unidata/netcdf-fortran/archive/${{ env.NETCDF_FORTRAN_VERSION }}.tar.gz
           tar -xzvf ${{ env.NETCDF_FORTRAN_VERSION }}.tar.gz
           ls -l
