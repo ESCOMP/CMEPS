@@ -2,7 +2,7 @@ module med_phases_prep_rof_mod
 
   !-----------------------------------------------------------------------------
   ! Create rof export fields
-  ! - accumulate import lnd fields on the land grid that are sent to rof 
+  ! - accumulate import lnd fields on the land grid that are sent to rof
   !   this will be done in med_phases_prep_rof_accum
   ! - time avergage accumulated import lnd fields when necessary
   !   map the time averaged accumulated lnd fields to the rof grid
@@ -40,7 +40,7 @@ module med_phases_prep_rof_mod
   public  :: med_phases_prep_rof_accum
   public  :: med_phases_prep_rof_avg
 
-  private :: med_phases_prep_rof_irrig       
+  private :: med_phases_prep_rof_irrig
 
   type(ESMF_FieldBundle)      :: FBlndVolr          ! needed for lnd2rof irrigation
   type(ESMF_FieldBundle)      :: FBrofVolr          ! needed for lnd2rof irrigation
@@ -64,7 +64,7 @@ contains
 
     !------------------------------------
     ! Carry out fast accumulation for the river (rof) component
-    ! Accumulation and averaging is done on the land input on the land grid for the fields that will 
+    ! Accumulation and averaging is done on the land input on the land grid for the fields that will
     ! will be sent to the river component
     ! Mapping from the land to the rof grid is then done with the time averaged fields
     !------------------------------------
@@ -108,7 +108,7 @@ contains
        ncnt = 0
        call ESMF_LogWrite(trim(subname)//": FBImp(complnd,complnd) is not created", &
             ESMF_LOGMSG_INFO)
-    else 
+    else
        ! The scalar field has been removed from all mediator field bundles - so check if the fieldCount is
        ! 0 and not 1 here
        call ESMF_FieldBundleGet(is_local%wrap%FBImp(complnd,complnd), fieldCount=ncnt, rc=rc)
@@ -118,7 +118,7 @@ contains
     end if
 
     !---------------------------------------
-    ! Accumulate lnd input on lnd grid 
+    ! Accumulate lnd input on lnd grid
     !---------------------------------------
 
     ! Note that all import fields from the land are accumulated - but
@@ -155,7 +155,7 @@ contains
     !------------------------------------
 
     use NUOPC , only : NUOPC_IsConnected
-    use ESMF  , only : ESMF_GridComp, ESMF_GridCompGet 
+    use ESMF  , only : ESMF_GridComp, ESMF_GridCompGet
     use ESMF  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
     use ESMF  , only : ESMF_FieldBundleGet
 
@@ -330,7 +330,7 @@ contains
     use ESMF , only : ESMF_GridComp, ESMF_Field
     use ESMF , only : ESMF_FieldBundle, ESMF_FieldBundleGet, ESMF_FieldBundleIsCreated
     use ESMF , only : ESMF_SUCCESS, ESMF_FAILURE
-    use ESMF , only : ESMF_LOGMSG_INFO, ESMF_LogWrite
+    use ESMF , only : ESMF_LOGMSG_INFO, ESMF_LogWrite, ESMF_LOGMSG_ERROR
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -366,14 +366,14 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     if (.not. med_map_RH_is_created(is_local%wrap%RH(complnd,comprof,:),mapconsf, rc=rc)) then
-       call ESMF_LogWrite(trim(subname)//": ERROR conservativing route handle not created for lnd->rof mapping", &
-            ESMF_LOGMSG_INFO)
+       call ESMF_LogWrite(trim(subname)//": ERROR conservative route handle not created for lnd->rof mapping", &
+            ESMF_LOGMSG_ERROR)
        rc = ESMF_FAILURE
        return
     end if
     if (.not. med_map_RH_is_created(is_local%wrap%RH(comprof,complnd,:),mapconsf, rc=rc)) then
-       call ESMF_LogWrite(trim(subname)//": ERROR conservativing route handle not created for rof->lnd mapping", &
-            ESMF_LOGMSG_INFO)
+       call ESMF_LogWrite(trim(subname)//": ERROR conservative route handle not created for rof->lnd mapping", &
+            ESMF_LOGMSG_ERROR)
        rc = ESMF_FAILURE
        return
     end if

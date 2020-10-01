@@ -242,15 +242,13 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        lfrin(:) = Sl_lfrin(:)
 
-       ! Set 'lfrin for FBFrac(compatm) 
+       ! Set 'lfrin for FBFrac(compatm)
        ! The following is just an initial "guess", updated later
        if (is_local%wrap%comp_present(compatm) .and. (is_local%wrap%med_coupling_active(compatm,complnd))) then
           ! Determine map type
           if (med_map_RH_is_created(is_local%wrap%RH(compatm,complnd,:),mapfcopy, rc=rc)) then
              maptype = mapfcopy
-             write(6,*)'DEBUG: maptype is mapfcopy'
           else
-             write(6,*)'DEBUG: maptype is mapconsd'
              maptype = mapconsd
              if (.not. med_map_RH_is_created(is_local%wrap%RH(complnd,compatm,:),maptype, rc=rc)) then
                 if (ESMF_FieldBundleIsCreated(is_local%wrap%FBImp(complnd,compatm))) then
@@ -306,7 +304,7 @@ contains
           if (med_map_RH_is_created(is_local%wrap%RH(compice,compatm,:),mapfcopy, rc=rc)) then
              ! If ice and atm are on the same mesh - a redist route handle has already been created
              maptype = mapfcopy
-          else 
+          else
              if (trim(coupling_mode) == 'nems_orig' ) then
                 maptype = mapnstod_consd
              else
@@ -393,7 +391,7 @@ contains
                    lfrac(n) = 0.0_R8
                 end if
              end do
-          else 
+          else
              ! If the ocean or ice are absent, then simply set 'lfrac' to 'lfrin' for FBFrac(compatm)
              do n = 1,size(lfrac)
                 lfrac(n) = lfrin(n)
@@ -403,7 +401,7 @@ contains
                 end if
              end do
           end if
-       else  
+       else
           ! land is not present
           call FB_getFldPtr(is_local%wrap%FBfrac(compatm), 'lfrac', lfrac, rc=rc)
           lfrac(:) = 0.0_R8
@@ -439,7 +437,7 @@ contains
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
        else
-          ! If the atm ->lnd coupling is not active - simply set 'lfrac' to 'lfrin' 
+          ! If the atm ->lnd coupling is not active - simply set 'lfrac' to 'lfrin'
           call FB_getFldPtr(is_local%wrap%FBfrac(complnd), 'lfrin', lfrin, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           call FB_getFldPtr(is_local%wrap%FBfrac(complnd), 'lfrac', lfrac, rc=rc)
