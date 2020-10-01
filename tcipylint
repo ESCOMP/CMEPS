@@ -4,3 +4,4 @@ for file in cime_config/buildexe cime_config/buildnml cime_config/runseq/*
 do
     pylint $args $file
 done
+exit $?
