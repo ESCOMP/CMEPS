@@ -3,6 +3,6 @@ args="--disable=I,C,R,logging-not-lazy,wildcard-import,unused-wildcard-import,fi
 failed=0
 for file in cime_config/buildexe cime_config/buildnml cime_config/runseq/*
 do
-    pylint $args $file || failed=$failed+1
+    pylint $args $file || failed=$(( failed + 1 ))
 done
 exit $failed

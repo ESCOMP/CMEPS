@@ -565,7 +565,6 @@ def buildnml(case, caseroot, component):
         shutil.copy(filename, rundir)
 
     # copy fd_cesm.yaml to rundir
-    cimeroot = case.get_value("CIMEROOT")
     fd_dir = os.path.join(os.path.dirname(__file__),os.pardir,"mediator")
     coupling_mode = case.get_value('COUPLING_MODE')
     if coupling_mode == 'cesm':
