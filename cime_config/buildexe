@@ -30,63 +30,63 @@ def _main_func():
     logger.info("Building a single executable version of target coupled model")
 
     with Case(caseroot) as case:
-	casetools = case.get_value("CASETOOLS")
-	exeroot   = case.get_value("EXEROOT")
-	gmake     = case.get_value("GMAKE")
-	gmake_j   = case.get_value("GMAKE_J")
-	cime_model = case.get_value("MODEL")
-	num_esp   = case.get_value("NUM_COMP_INST_ESP")
-	ocn_model = case.get_value("COMP_OCN")
-	atm_model = case.get_value("COMP_ATM")
-	gmake_args = get_standard_makefile_args(case)
+        casetools = case.get_value("CASETOOLS")
+        exeroot   = case.get_value("EXEROOT")
+        gmake     = case.get_value("GMAKE")
+        gmake_j   = case.get_value("GMAKE_J")
+        cime_model = case.get_value("MODEL")
+        num_esp   = case.get_value("NUM_COMP_INST_ESP")
+        ocn_model = case.get_value("COMP_OCN")
+        atm_model = case.get_value("COMP_ATM")
+        gmake_args = get_standard_makefile_args(case)
 
     # Determine valid components
     valid_comps = []
     comp_classes = case.get_values("COMP_CLASSES")
     for item in comp_classes:
-	comp = case.get_value("COMP_" + item)
-	valid = True
-	if comp == 's' + item.lower():
-	    valid = False
-	if valid:
-	    valid_comps.append(item)
+        comp = case.get_value("COMP_" + item)
+        valid = True
+        if comp == 's' + item.lower():
+            valid = False
+        if valid:
+            valid_comps.append(item)
 
     datamodel_in_compset = False
     for comp in comp_classes:
-	dcompname = "d"+comp.lower()
-	if dcompname in case.get_value("COMP_{}".format(comp)):
-	    datamodel_in_compset = True
+        dcompname = "d"+comp.lower()
+        if dcompname in case.get_value("COMP_{}".format(comp)):
+            datamodel_in_compset = True
 
     if len(valid_comps) == 2 and not datamodel_in_compset:
-	skip_mediator = True
+        skip_mediator = True
     else:
-	skip_mediator = False
+        skip_mediator = False
 
     if ocn_model == 'mom' or atm_model == "ufsatm":
-	gmake_args += "USE_FMS=TRUE"
+        gmake_args += "USE_FMS=TRUE"
 
     comp_classes = case.get_values("COMP_CLASSES")
     for comp in comp_classes:
-	model = case.get_value("COMP_{}".format(comp))
-	stubcomp = "s{}".format(comp.lower())
-	if model == stubcomp:
-	    gmake_args += " {}_PRESENT=FALSE".format(comp)
+        model = case.get_value("COMP_{}".format(comp))
+        stubcomp = "s{}".format(comp.lower())
+        if model == stubcomp:
+            gmake_args += " {}_PRESENT=FALSE".format(comp)
     if skip_mediator:
-	gmake_args += " MED_PRESENT=FALSE"
+        gmake_args += " MED_PRESENT=FALSE"
 
     gmake_args += " IAC_PRESENT=FALSE"
     expect((num_esp is None) or (int(num_esp) == 1), "ESP component restricted to one instance")
 
     bld_root = os.path.join(exeroot,'cpl','obj')
     if not os.path.isdir(bld_root):
-	os.makedirs(bld_root)
+        os.makedirs(bld_root)
 
     with open(os.path.join(bld_root,'Filepath'), 'w') as out:
-	cmeps_dir = os.path.join(os.path.dirname(__file__), os.pardir)
-	if not skip_mediator:
-	    out.write(os.path.join(cmeps_dir, "mediator") + "\n")
-	out.write(os.path.join(caseroot, "SourceMods", "src.drv") + "\n")
-	out.write(os.path.join(cmeps_dir, "drivers", "cime") + "\n")
+        cmeps_dir = os.path.join(os.path.dirname(__file__), os.pardir)
+        if not skip_mediator:
+            out.write(os.path.join(cmeps_dir, "mediator") + "\n")
+        out.write(os.path.join(caseroot, "SourceMods", "src.drv") + "\n")
+        out.write(os.path.join(cmeps_dir, "drivers", "cime") + "\n")
 
     # build model executable
     makefile = os.path.join(casetools, "Makefile")
@@ -94,10 +94,10 @@ def _main_func():
 
     # always relink
     if os.path.isfile(exename):
-	os.remove(exename)
+        os.remove(exename)
 
     cmd = "{} exec_se -j {} EXEC_SE={} MODEL=driver {} -f {} "\
-	.format(gmake, gmake_j, exename, gmake_args, makefile)
+        .format(gmake, gmake_j, exename, gmake_args, makefile)
 
 
     rc, out, err = run_cmd(cmd,from_dir=bld_root)
