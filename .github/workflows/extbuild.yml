@@ -103,3 +103,4 @@ jobs:
 	  cmake -DCMAKE_BUILD_TYPE=DEBUG -DCMAKE_Fortran_FLAGS="-g -Wall -ffree-form -ffree-line-length-none" ../
 	  make VERBOSE=1
 	  popd
+
