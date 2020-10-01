@@ -87,6 +87,8 @@ jobs:
       - name: Build PIO
         if: steps.cache-PIO.outputs.cache-hit != 'true'
         run: |
+          git submodule init
+          git submodule update
           mkdir build-pio
           pushd build-pio
           cmake -Wno-dev -DNetCDF_C_LIBRARY=/usr/lib/x86_64-linux-gnu/libnetcdf.so -DNetCDF_C_INCLUDE_DIR=/usr/include -DCMAKE_PREFIX_PATH=/usr -DCMAKE_INSTALL_PREFIX=$HOME/pio -DPIO_HDF5_LOGGING=On -DPIO_USE_MALLOC=On -DPIO_ENABLE_LOGGING=On -DPIO_ENABLE_TIMING=Off -DPIO_ENABLE_TESTS=OFF -DNetCDF_Fortran_PATH=$HOME/netcdf-fortran -DPnetCDF_PATH=$HOME/pnetcdf ../nems/lib/ParallelIO
