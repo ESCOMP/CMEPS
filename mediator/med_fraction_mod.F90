@@ -248,7 +248,9 @@ contains
           ! Determine map type
           if (med_map_RH_is_created(is_local%wrap%RH(compatm,complnd,:),mapfcopy, rc=rc)) then
              maptype = mapfcopy
+             write(6,*)'DEBUG: maptype is mapfcopy'
           else
+             write(6,*)'DEBUG: maptype is mapconsd'
              maptype = mapconsd
              if (.not. med_map_RH_is_created(is_local%wrap%RH(complnd,compatm,:),maptype, rc=rc)) then
                 if (ESMF_FieldBundleIsCreated(is_local%wrap%FBImp(complnd,compatm))) then
@@ -418,13 +420,17 @@ contains
        if (is_local%wrap%comp_present(compatm)) then
           ! If atm -> lnd coupling is active - map 'lfrac' from FBFrac(compatm) to FBFrac(complnd)
           if (is_local%wrap%med_coupling_active(compatm,complnd)) then
-             maptype = mapconsd
-             if (.not. med_map_RH_is_created(is_local%wrap%RH(compatm,complnd,:),maptype, rc=rc)) then
-                call med_map_routehandles_init( compatm, complnd, &
-                     FBSrc=is_local%wrap%FBImp(compatm,compatm), &
-                     FBDst=is_local%wrap%FBImp(compatm,complnd), &
-                     mapindex=maptype, RouteHandle=is_local%wrap%RH, rc=rc)
-                if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             if (med_map_RH_is_created(is_local%wrap%RH(compatm,complnd,:),mapfcopy, rc=rc)) then
+                maptype = mapfcopy
+             else
+                maptype = mapconsd
+                if (.not. med_map_RH_is_created(is_local%wrap%RH(compatm,complnd,:),maptype, rc=rc)) then
+                   call med_map_routehandles_init( compatm, complnd, &
+                        FBSrc=is_local%wrap%FBImp(compatm,compatm), &
+                        FBDst=is_local%wrap%FBImp(compatm,complnd), &
+                        mapindex=maptype, RouteHandle=is_local%wrap%RH, rc=rc)
+                   if (ChkErr(rc,__LINE__,u_FILE_u)) return
+                end if
              end if
              call FB_FieldRegrid(&
                   is_local%wrap%FBfrac(compatm), 'lfrac', &

@@ -679,7 +679,7 @@ contains
           call addfld(fldListFr(compice)%flds, 'Faii_'//trim(suffix(n)))
           call addfld(fldListTo(compatm)%flds, 'Faxx_'//trim(suffix(n)))
        else
-          ! (non aqua-planet)
+          ! CESM (non aqua-planet)
           if ( fldchk(is_local%wrap%FBImp(complnd,complnd), 'Fall_'//trim(suffix(n)), rc=rc) .and. &
                fldchk(is_local%wrap%FBImp(compice,compice), 'Faii_'//trim(suffix(n)), rc=rc) .and. &
                fldchk(is_local%wrap%FBMed_aoflux_o        , 'Faox_'//trim(suffix(n)), rc=rc) .and. &
@@ -692,7 +692,6 @@ contains
                   mrg_from2=compice, mrg_fld2='Faii_'//trim(suffix(n)), mrg_type2='merge', mrg_fracname2='ifrac', &
                   mrg_from3=compmed, mrg_fld3='Faox_'//trim(suffix(n)), mrg_type3='merge', mrg_fracname3='ofrac')
 
-          ! (cam, aqua-planet)
           else if (fldchk(is_local%wrap%FBMed_aoflux_o, 'Faox_'//trim(suffix(n)), rc=rc) .and. &
                    fldchk(is_local%wrap%FBexp(compatm), 'Faxx_'//trim(suffix(n)), rc=rc)) then
              call addmap(fldListMed_aoflux%flds , 'Faox_'//trim(suffix(n)), compatm, mapconsf, 'ofrac', ocn2atm_fmap)
@@ -710,11 +709,10 @@ contains
        call addfld(fldListFr(complnd)%flds, 'Sl_t')
        call addfld(fldListFr(compice)%flds, 'Si_t')
        call addfld(fldListFr(compocn)%flds, 'So_t')
-
        call addfld(fldListTo(compatm)%flds, 'So_t')
        call addfld(fldListTo(compatm)%flds, 'Sx_t')
     else
-       ! merged ocn/ice/lnd temp and unmerged ocn temp
+       ! CESM - merged ocn/ice/lnd temp and unmerged ocn temp
        if (fldchk(is_local%wrap%FBexp(compatm)        , 'Sx_t', rc=rc) .and. &
            fldchk(is_local%wrap%FBImp(complnd,complnd), 'Sl_t', rc=rc) .and. &
            fldchk(is_local%wrap%FBImp(compice,compice), 'Si_t', rc=rc) .and. &
@@ -1798,11 +1796,11 @@ contains
        call addfld(fldListFr(complnd)%flds, 'Flgl_qice_elev') ! glacier ice flux               (1->glc_nec+1)
     else
        if ( fldchk(is_local%wrap%FBImp(complnd,complnd) , 'Flgl_qice_elev', rc=rc)) then
-          ! custom merging will be done here 
+          ! custom merging will be done here
           call addmap(FldListFr(complnd)%flds, 'Flgl_qice_elev', compglc, mapbilnr, 'lfrac', lnd2glc_smap)
        end if
        if ( fldchk(is_local%wrap%FBImp(complnd,complnd) , 'Sl_tsrf_elev'  , rc=rc)) then
-          ! custom merging will be done here 
+          ! custom merging will be done here
           call addmap(FldListFr(complnd)%flds, 'Sl_tsrf_elev', compglc, mapbilnr, 'lfrac', lnd2glc_smap)
        end if
        if ( fldchk(is_local%wrap%FBImp(complnd,complnd) , 'Sl_topo_elev'  , rc=rc)) then
@@ -1898,7 +1896,7 @@ contains
           call addfld(fldListFr(complnd)%flds, 'Fall_fco2_lnd')
           call addfld(fldListTo(compatm)%flds, 'Fall_fco2_lnd')
        else
-          call addmap(fldListFr(complnd)%flds, 'Fall_fco2_lnd', compatm, mapconsf, 'one', atm2lnd_smap)
+          call addmap(fldListFr(complnd)%flds, 'Fall_fco2_lnd', compatm, mapconsf, 'one', lnd2atm_fmap)
           call addmrg(fldListTo(compatm)%flds, 'Fall_fco2_lnd', &
                mrg_from1=complnd, mrg_fld1='Fall_fco2_lnd', mrg_type1='copy_with_weights', mrg_fracname1='lfrac')
        end if
@@ -1946,7 +1944,7 @@ contains
           call addfld(fldListFr(complnd)%flds, 'Fall_fco2_lnd')
           call addfld(fldListTo(compatm)%flds, 'Fall_fco2_lnd')
        else
-          call addmap(fldListFr(complnd)%flds, 'Fall_fco2_lnd', compatm, mapconsf, 'one', atm2lnd_smap)
+          call addmap(fldListFr(complnd)%flds, 'Fall_fco2_lnd', compatm, mapconsf, 'one', lnd2atm_fmap)
           call addmrg(fldListTo(compatm)%flds, 'Fall_fco2_lnd', &
                mrg_from1=complnd, mrg_fld1='Fall_fco2_lnd', mrg_type1='copy_with_weights', mrg_fracname1='lfrac')
        end if
@@ -1958,7 +1956,7 @@ contains
           call addfld(fldListFr(compocn)%flds, 'Faoo_fco2_ocn')
           call addfld(fldListTo(compatm)%flds, 'Faoo_fco2_ocn')
        else
-          call addmap(fldListFr(compocn)%flds, 'Faoo_fco2_ocn', compatm, mapconsf, 'one', atm2lnd_smap)
+          call addmap(fldListFr(compocn)%flds, 'Faoo_fco2_ocn', compatm, mapconsf, 'one', ocn2atm_fmap)
           ! custom merge in med_phases_prep_atm
        end if
     endif
