@@ -114,6 +114,7 @@ module med_fraction_mod
   use med_methods_mod   , only : FB_fldChk      => med_methods_FB_fldChk
   use med_map_mod       , only : FB_FieldRegrid => med_map_FB_Field_Regrid
   use esmFlds           , only : ncomps
+  use med_internalstate_mod, only : mastertask, logunit
 
   implicit none
   private
@@ -418,17 +419,13 @@ contains
        if (is_local%wrap%comp_present(compatm)) then
           ! If atm -> lnd coupling is active - map 'lfrac' from FBFrac(compatm) to FBFrac(complnd)
           if (is_local%wrap%med_coupling_active(compatm,complnd)) then
-             if (med_map_RH_is_created(is_local%wrap%RH(compatm,complnd,:),mapfcopy, rc=rc)) then
-                maptype = mapfcopy
-             else
-                maptype = mapconsd
-                if (.not. med_map_RH_is_created(is_local%wrap%RH(compatm,complnd,:),maptype, rc=rc)) then
-                   call med_map_routehandles_init( compatm, complnd, &
-                        FBSrc=is_local%wrap%FBImp(compatm,compatm), &
-                        FBDst=is_local%wrap%FBImp(compatm,complnd), &
-                        mapindex=maptype, RouteHandle=is_local%wrap%RH, rc=rc)
-                   if (ChkErr(rc,__LINE__,u_FILE_u)) return
-                end if
+             maptype = mapconsd
+             if (.not. med_map_RH_is_created(is_local%wrap%RH(compatm,complnd,:),maptype, rc=rc)) then
+                call med_map_routehandles_init( compatm, complnd, &
+                     FBSrc=is_local%wrap%FBImp(compatm,compatm), &
+                     FBDst=is_local%wrap%FBImp(compatm,complnd), &
+                     mapindex=maptype, RouteHandle=is_local%wrap%RH, rc=rc)
+                if (ChkErr(rc,__LINE__,u_FILE_u)) return
              end if
              call FB_FieldRegrid(&
                   is_local%wrap%FBfrac(compatm), 'lfrac', &
@@ -703,24 +700,20 @@ contains
 
           ! Map 'ifrac' from FBfrac(compice) to FBfrac(compatm)
           if (is_local%wrap%med_coupling_active(compice,compatm)) then
-             if (is_local%wrap%med_coupling_active(compice,compatm)) then
-                call FB_FieldRegrid(&
-                     is_local%wrap%FBfrac(compice), 'ifrac', &
-                     is_local%wrap%FBfrac(compatm), 'ifrac', &
-                     is_local%wrap%RH(compice,compatm,:), maptype, rc=rc)
-                if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             end if
+             call FB_FieldRegrid(&
+                  is_local%wrap%FBfrac(compice), 'ifrac', &
+                  is_local%wrap%FBfrac(compatm), 'ifrac', &
+                  is_local%wrap%RH(compice,compatm,:), maptype, rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
 
           ! Map 'ofrac' from FBfrac(compice) to FBfrac(compatm)
           if (is_local%wrap%med_coupling_active(compocn,compatm)) then
-             if (is_local%wrap%med_coupling_active(compocn,compatm)) then
-                call FB_FieldRegrid(&
-                     is_local%wrap%FBfrac(compocn), 'ofrac', &
-                     is_local%wrap%FBfrac(compatm), 'ofrac', &
-                     is_local%wrap%RH(compocn,compatm,:), maptype, rc=rc)
-                if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             end if
+             call FB_FieldRegrid(&
+                  is_local%wrap%FBfrac(compocn), 'ofrac', &
+                  is_local%wrap%FBfrac(compatm), 'ofrac', &
+                  is_local%wrap%RH(compocn,compatm,:), maptype, rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
        end if ! end of if present compatm
 
