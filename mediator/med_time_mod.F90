@@ -238,7 +238,7 @@ contains
     endif
 
     if (mastertask) then
-       write(logunit,'(a)') trim(subname) //' creating alarm '// trim(alarmname)
+       write(logunit,'(a)') trim(subname) //' creating alarm '// trim(lalarmname)
     end if
 
     alarm = ESMF_AlarmCreate( name=lalarmname, clock=clock, ringTime=NextAlarm, &

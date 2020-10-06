@@ -9,6 +9,7 @@ module med_phases_restart_mod
   use med_constants_mod     , only : SecPerDay => med_constants_SecPerDay
   use med_utils_mod         , only : chkerr    => med_utils_ChkErr
   use med_internalstate_mod , only : mastertask, logunit, InternalState
+  use med_phases_history_mod, only : num_auxfiles, auxfiles 
   use med_time_mod          , only : med_time_AlarmInit
   use esmFlds               , only : ncomps, compname, compocn
   use perf_mod              , only : t_startf, t_stopf
@@ -155,7 +156,7 @@ contains
     character(len=CS)          :: currtimestr
     character(len=CS)          :: nexttimestr
     type(InternalState)        :: is_local
-    integer                    :: i,j,m,n,n1,ncnt
+    integer                    :: m,n,nf,nc      ! counters
     integer                    :: curr_ymd       ! Current date YYYYMMDD
     integer                    :: curr_tod       ! Current time-of-day (s)
     integer                    :: start_ymd      ! Starting date YYYYMMDD
@@ -363,11 +364,13 @@ contains
              if (is_local%wrap%comp_present(n)) then
                 nx = is_local%wrap%nx(n)
                 ny = is_local%wrap%ny(n)
+                if (dbug_flag > 5) then
+                   write(tmpstr,*) subname,' nx,ny = ',trim(compname(n)),nx,ny
+                   call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
+                end if
 
                 ! Write import field bundles
                 if (ESMF_FieldBundleIsCreated(is_local%wrap%FBimp(n,n),rc=rc)) then
-                   !write(tmpstr,*) subname,' nx,ny = ',trim(compname(n)),nx,ny
-                   !call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
                    call med_io_write(restart_file, iam, is_local%wrap%FBimp(n,n), &
                        nx=nx, ny=ny, nt=1, whead=whead, wdata=wdata, pre=trim(compname(n))//'Imp', rc=rc)
                    if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -375,8 +378,10 @@ contains
 
                 ! Write export field bundles
                 if (ESMF_FieldBundleIsCreated(is_local%wrap%FBexp(n),rc=rc)) then
-                   !write(tmpstr,*) subname,' nx,ny = ',trim(compname(n)),nx,ny
-                   !call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
+                   if (dbug_flag > 5) then
+                      write(tmpstr,*) subname,' nx,ny = ',trim(compname(n)),nx,ny
+                      call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
+                   end if
                    call med_io_write(restart_file, iam, is_local%wrap%FBexp(n), &
                        nx=nx, ny=ny, nt=1, whead=whead, wdata=wdata, pre=trim(compname(n))//'Exp', rc=rc)
                    if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -384,8 +389,6 @@ contains
 
                 ! Write fraction field bundles
                 if (ESMF_FieldBundleIsCreated(is_local%wrap%FBfrac(n),rc=rc)) then
-                   !write(tmpstr,*) subname,' nx,ny = ',trim(compname(n)),nx,ny
-                   !call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
                    call med_io_write(restart_file, iam, is_local%wrap%FBfrac(n), &
                        nx=nx, ny=ny, nt=1, whead=whead, wdata=wdata, pre=trim(compname(n))//'Frac', rc=rc)
                    if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -394,8 +397,6 @@ contains
                 ! Write export field bundle accumulators
                 if (ESMF_FieldBundleIsCreated(is_local%wrap%FBExpAccum(n),rc=rc)) then
                    ! TODO: only write this out if actually have done accumulation
-                   !write(tmpstr,*) subname,' nx,ny = ',trim(compname(n)),nx,ny
-                   !call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
                    call med_io_write(restart_file, iam,  is_local%wrap%FBExpAccum(n), &
                        nx=nx, ny=ny, nt=1, whead=whead, wdata=wdata, pre=trim(compname(n))//'ExpAccum', rc=rc)
                    if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -404,8 +405,6 @@ contains
                 ! Write import field bundle accumulators
                 if (ESMF_FieldBundleIsCreated(is_local%wrap%FBImpAccum(n,n),rc=rc)) then
                    ! TODO: only write this out if actually have done accumulation
-                   !write(tmpstr,*) subname,' nx,ny = ',trim(compname(n)),nx,ny
-                   !call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
                    call med_io_write(restart_file, iam,  is_local%wrap%FBImpAccum(n,n), &
                        nx=nx, ny=ny, nt=1, whead=whead, wdata=wdata, pre=trim(compname(n))//'ImpAccum', rc=rc)
                    if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -416,12 +415,29 @@ contains
 
           ! Write ocn albedo field bundle (CESM only)
           if (ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_ocnalb_o,rc=rc)) then
-             nx = is_local%wrap%nx(compocn)
-             ny = is_local%wrap%ny(compocn)
              call med_io_write(restart_file, iam, is_local%wrap%FBMed_ocnalb_o, &
-                  nx=nx, ny=ny, nt=1, whead=whead, wdata=wdata, pre='MedOcnAlb_o', rc=rc)
+                  nx=is_local%wrap%nx(compocn), ny=is_local%wrap%ny(compocn), nt=1, &
+                  whead=whead, wdata=wdata, pre='MedOcnAlb_o', rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
+
+          ! Write auxiliary files accumulation - 
+          ! For now assume that any time averaged history file has only
+          ! one time sample - this will be generalized in the future
+          do nc = 2,ncomps
+             do nf = 1,num_auxfiles(nc)
+                if (auxfiles(nc,nf)%useavg .and. auxfiles(nc,nf)%accumcnt > 0) then
+                   call med_io_write(restart_file, iam, auxfiles(nc,nf)%accumcnt, &
+                        trim(compname(nc))//trim(auxfiles(nc,nf)%auxname)//'_accumcnt', &
+                        whead=whead, wdata=wdata, rc=rc)
+                   if (ChkErr(rc,__LINE__,u_FILE_u)) return
+                   call med_io_write(restart_file, iam,  auxfiles(nc,nf)%FBaccum, &
+                        nx=is_local%wrap%nx(nc), ny=is_local%wrap%ny(nc), nt=1, whead=whead, wdata=wdata, &
+                        pre=trim(compname(nc))//trim(auxfiles(nc,nf)%auxname), rc=rc)
+                   if (ChkErr(rc,__LINE__,u_FILE_u)) return
+                end if
+             end do
+          end do
 
        enddo
 

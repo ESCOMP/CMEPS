@@ -2031,7 +2031,7 @@
   <!-- ======================================= -->
   <!-- MED histaux atm2med file1 -->
   <!-- ======================================= -->
-  <entry id="histaux_atm2med_file1_flag">
+  <entry id="histaux_atm2med_file1_enabled">
     <type>char</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
@@ -2099,7 +2099,7 @@
   <!-- ======================================= -->
   <!-- MED histaux atm2med file2 -->
   <!-- ======================================= -->
-  <entry id="histaux_atm2med_file2_flag">
+  <entry id="histaux_atm2med_file2_enabled">
     <type>char</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
@@ -2167,7 +2167,7 @@
   <!-- ======================================= -->
   <!-- MED histaux atm2med file3 -->
   <!-- ======================================= -->
-  <entry id="histaux_atm2med_file3_flag">
+  <entry id="histaux_atm2med_file3_enabled">
     <type>char</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
@@ -2237,7 +2237,7 @@
   <!-- ======================================= -->
   <!-- MED histaux atm2med file4 -->
   <!-- ======================================= -->
-  <entry id="histaux_atm2med_file4_flag">
+  <entry id="histaux_atm2med_file4_enabled">
     <type>char</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
@@ -2309,7 +2309,7 @@
   <!-- ======================================= -->
   <!-- MED histaux atm2med file5 -->
   <!-- ======================================= -->
-  <entry id="histaux_atm2med_file5_flag">
+  <entry id="histaux_atm2med_file5_enabled">
     <type>char</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
@@ -2377,7 +2377,7 @@
   <!-- ======================================= -->
   <!-- MED histaux lnd2med file 1 -->
   <!-- ======================================= -->
-  <entry id="histaux_lnd2med_file1_flag">
+  <entry id="histaux_lnd2med_file1_enabled">
     <type>char</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
@@ -2445,7 +2445,7 @@
   <!-- ======================================= -->
   <!-- MED histaux lnd2med file 2 -->
   <!-- ======================================= -->
-  <entry id="histaux_lnd2med_file2_flag">
+  <entry id="histaux_lnd2med_file2_enabled">
     <type>char</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
@@ -2513,7 +2513,7 @@
   <!-- ======================================= -->
   <!-- MED histaux rof2med file 1 -->
   <!-- ======================================= -->
-  <entry id="histaux_rof2med_file1_flag">
+  <entry id="histaux_rof2med_file1_enabled">
     <type>char</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
