@@ -168,7 +168,7 @@ contains
     real(R8), pointer          :: Sl_lfrin(:)
     real(R8), pointer          :: Si_imask(:)
     real(R8), pointer          :: So_omask(:)
-    integer                    :: i,j,n,n1,n2
+    integer                    :: i,j,n,n1
     integer                    :: maptype
     logical, save              :: first_call = .true.
     character(len=*),parameter :: subname='(med_fraction_init)'
@@ -210,34 +210,23 @@ contains
        do n1 = 1,ncomps
           if ( is_local%wrap%comp_present(n1) .and. &
                ESMF_StateIsCreated(is_local%wrap%NStateImp(n1),rc=rc)) then
-             ! now determine if there will be any active coupling back - and if so create
-             ! field bundle
-             do n2 = 1,ncomps
-                if (n2 /= n1) then
-                   if (is_local%wrap%med_coupling_active(n2,n1)) then
-                      ! create FBFrac and zero out FBfrac(n1)
-                      call FB_init(is_local%wrap%FBfrac(n1), is_local%wrap%flds_scalar_name, &
-                           STgeom=is_local%wrap%NStateImp(n1), fieldNameList=fraclist(:,n1), &
-                           name='FBfrac'//trim(compname(n1)), rc=rc)
-                      call FB_reset(is_local%wrap%FBfrac(n1), value=czero, rc=rc)
-                      if (ChkErr(rc,__LINE__,u_FILE_u)) return
-                      if (mastertask) then
-                         write(logunit,'(a)') trim(subname)//' Created FBFrac('//trim(compname(n1))//') field bundle '
-                      end if
-                      exit
-                   end if
-                end if
-             end do
+             ! create FBFrac and zero out FBfrac(n1)
+             call FB_init(is_local%wrap%FBfrac(n1), is_local%wrap%flds_scalar_name, &
+                  STgeom=is_local%wrap%NStateImp(n1), fieldNameList=fraclist(:,n1), &
+                  name='FBfrac'//trim(compname(n1)), rc=rc)
+             call FB_reset(is_local%wrap%FBfrac(n1), value=czero, rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
        end do
        first_call = .false.
+
     endif
 
     !---------------------------------------
     ! Set 'lfrac' for FBFrac(complnd) - this might be overwritten later
     !---------------------------------------
 
-    if (ESMF_FieldBundleIsCreated(is_local%wrap%FBFrac(complnd))) then
+    if (is_local%wrap%comp_present(complnd)) then
        call FB_getFldPtr(is_local%wrap%FBImp(complnd,complnd) , 'Sl_lfrin' , Sl_lfrin, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call FB_getFldPtr(is_local%wrap%FBfrac(complnd), 'lfrac', lfrac, rc=rc)
@@ -331,17 +320,14 @@ contains
     end if
 
     !---------------------------------------
-    ! Finally, set 'lfrac' in FBFrac(complnd) by mapping FBFrac(compatm) if appropriate
+    ! Reset 'lfrac' in FBFrac(complnd) by mapping FBFrac(compatm) if appropriate
     !---------------------------------------
 
-    if ( ESMF_FieldBundleIsCreated(is_local%wrap%FBFrac(compatm)) .and. &
-         ESMF_FieldBundleIsCreated(is_local%wrap%FBFrac(complnd))) then
+    if (is_local%wrap%comp_present(complnd) .and. is_local%wrap%med_coupling_active(complnd,compatm)) then
 
-       ! This assumes that atm->lnd and lnd->atm coupling is occuring
-       ! based on the logic in the initialization of fractions
        ! Reset 'lfrac' in FBFrac(complnd) by mapping the Frac
        ! If lnd -> atm coupling is active - map 'lfrac' from FBFrac(compatm) to FBFrac(complnd)
-
+       
        if (med_map_RH_is_created(is_local%wrap%RH(compatm,complnd,:),mapfcopy, rc=rc)) then
           maptype = mapfcopy
        else
@@ -359,7 +345,7 @@ contains
             is_local%wrap%FBfrac(complnd), 'lfrac', &
             is_local%wrap%RH(compatm,complnd,:),maptype, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    endif
+    end if
 
     !---------------------------------------
     ! Set 'lfrac' in FBFrac(compatm) and correct 'ofrac' in FBFrac(compatm)
@@ -370,7 +356,7 @@ contains
     ! settle for a residual calculation that is truncated to zero to
     ! try to preserve "all ocean" cells.
 
-    if ( ESMF_FieldBundleIsCreated(is_local%wrap%FBFrac(compatm))) then
+    if (is_local%wrap%comp_present(compatm)) then
 
        if (is_local%wrap%comp_present(compocn) .or. is_local%wrap%comp_present(compice)) then
 
@@ -680,24 +666,20 @@ contains
 
           ! Map 'ifrac' from FBfrac(compice) to FBfrac(compatm)
           if (is_local%wrap%med_coupling_active(compice,compatm)) then
-             if (is_local%wrap%med_coupling_active(compice,compatm)) then
-                call FB_FieldRegrid(&
-                     is_local%wrap%FBfrac(compice), 'ifrac', &
-                     is_local%wrap%FBfrac(compatm), 'ifrac', &
-                     is_local%wrap%RH(compice,compatm,:), maptype, rc=rc)
-                if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             end if
+             call FB_FieldRegrid(&
+                  is_local%wrap%FBfrac(compice), 'ifrac', &
+                  is_local%wrap%FBfrac(compatm), 'ifrac', &
+                  is_local%wrap%RH(compice,compatm,:), maptype, rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
 
           ! Map 'ofrac' from FBfrac(compice) to FBfrac(compatm)
           if (is_local%wrap%med_coupling_active(compocn,compatm)) then
-             if (is_local%wrap%med_coupling_active(compocn,compatm)) then
-                call FB_FieldRegrid(&
-                     is_local%wrap%FBfrac(compocn), 'ofrac', &
-                     is_local%wrap%FBfrac(compatm), 'ofrac', &
-                     is_local%wrap%RH(compocn,compatm,:), maptype, rc=rc)
-                if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             end if
+             call FB_FieldRegrid(&
+                  is_local%wrap%FBfrac(compocn), 'ofrac', &
+                  is_local%wrap%FBfrac(compatm), 'ofrac', &
+                  is_local%wrap%RH(compocn,compatm,:), maptype, rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
        end if ! end of if present compatm
 
