@@ -3,6 +3,7 @@ $(error Environment variable ESMFMKFILE was not set.)
 endif
 
 include $(ESMFMKFILE)
+CPPDEFS += -DESMF_VERSION_MAJOR=$(ESMF_VERSION_MAJOR) -DESMF_VERSION_MINOR=$(ESMF_VERSION_MINOR)
 
 ifndef PIO_INCLUDE_DIR
 $(error PIO_INCLUDE_DIR not set)
