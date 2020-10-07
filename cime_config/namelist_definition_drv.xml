@@ -855,11 +855,11 @@
       'on': always do this renormalization
       'off': never do this renormalization (see WARNING below)
       'on_if_glc_coupled_fluxes': Determine at runtime whether to do this renormalization.
-         Does the renormalization if we're running a two-way-coupled glc that sends fluxes
-         to other components (which is the case where we need conservation).
-         Does NOT do the renormalization if we're running a one-way-coupled glc, or if
-         we're running a glc-only compset (T compsets).
-         (In these cases, conservation is not important.)
+	 Does the renormalization if we're running a two-way-coupled glc that sends fluxes
+	 to other components (which is the case where we need conservation).
+	 Does NOT do the renormalization if we're running a one-way-coupled glc, or if
+	 we're running a glc-only compset (T compsets).
+	 (In these cases, conservation is not important.)
 
       Only used if running with a prognostic GLC component.
 
@@ -1094,6 +1094,31 @@
       <value>$CPL_ALBAV</value>
     </values>
   </entry>
+  <entry id="aoflux_grid">
+    <type>char</type>
+    <category>mapping</category>
+    <group>MED_attributes</group>
+    <valid_values>ocn,atm,exch</valid_values>
+    <desc>
+      Grid for atm ocn flux calc (untested)
+      default: ocn
+    </desc>
+    <values>
+      <value>ocn</value>
+    </values>
+  </entry>
+
+  <entry id="gust_fac">
+    <type>real</type>
+    <category>control</category>
+    <group>MED_attributes</group>
+    <desc>
+      wind gustiness factor
+    </desc>
+    <values>
+      <value>0.0D0</value>
+    </values>
+  </entry>
 
   <entry id="do_budgets" modify_via_xml="BUDGETS">
     <type>logical</type>
@@ -1248,7 +1273,7 @@
   <!--     default: true -->
   <!--   </desc> -->
   <!--   <values> -->
-  <!-- 	<value>.true.</value> -->
+  <!--	<value>.true.</value> -->
   <!--   </values> -->
   <!-- </entry> -->
 
@@ -3301,9 +3326,9 @@
     <group>PELAYOUT_attributes</group>
     <desc>
       Determines what ESMF log files (if any) are generated when
-          USE_ESMF_LIB is TRUE.
+	  USE_ESMF_LIB is TRUE.
       ESMF_LOGKIND_SINGLE: Use a single log file, combining messages from
-          all of the PETs. Not supported on some platforms.
+	  all of the PETs. Not supported on some platforms.
       ESMF_LOGKIND_MULTI: Use multiple log files — one per PET.
       ESMF_LOGKIND_NONE: Do not issue messages to a log file.
       By default, no ESMF log files are generated.

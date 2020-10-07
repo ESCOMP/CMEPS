@@ -23,7 +23,6 @@ module med_diag_mod
   use ESMF                  , only : ESMF_GridCompGet, ESMF_ClockGet, ESMF_TimeGet
   use ESMF                  , only : ESMF_Alarm, ESMF_ClockGetAlarm, ESMF_AlarmIsRinging
   use ESMF                  , only : ESMF_FieldBundle, ESMF_AlarmRingerOff
-  use shr_sys_mod           , only : shr_sys_abort
   use shr_const_mod         , only : shr_const_rearth, shr_const_pi, shr_const_latice
   use shr_const_mod         , only : shr_const_ice_ref_sal, shr_const_ocn_ref_sal, shr_const_isspval
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
@@ -419,7 +418,11 @@ contains
           budget_global(:,:,:) = 0.0_r8
           budget_counter(:,:,:) = 0.0_r8
        else
-          call shr_sys_abort(subname//' ERROR in mode '//trim(mode))
+          call ESMF_LogWrite(trim(subname)//' mode '//trim(mode)//&
+               ' not recognized', &
+               ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
+          rc = ESMF_FAILURE
+          return
        endif
 
     else
@@ -1839,8 +1842,6 @@ contains
           ics = c_ish_asend  ! from ice-sh to atm
           ico = c_ocn_asend  ! from ocn    to atm
           str = "CPL_TO_ATM"
-       else
-          call shr_sys_abort(subname//' ERROR in ic index code 411')
        endif
 
        write(logunit,*) ' '
@@ -2001,8 +2002,6 @@ contains
           icxr = c_ish_recv
           icas = c_ish_asend
           str = "ICE_SH"
-       else
-          call shr_sys_abort(subname//' ERROR in ic index code 412')
        endif
 
        ! heat budgets atm<->lnd, atm<->ocn, atm<->ice_nh, atm<->ice_sh,

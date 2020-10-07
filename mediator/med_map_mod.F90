@@ -105,7 +105,6 @@ contains
     use ESMF  , only : ESMF_REGRIDMETHOD_NEAREST_STOD
     use ESMF  , only : ESMF_NORMTYPE_DSTAREA, ESMF_REGRIDMETHOD_PATCH, ESMF_RouteHandlePrint
     use NUOPC , only : NUOPC_Write
-    use shr_sys_mod, only : shr_sys_abort
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
