@@ -1764,7 +1764,7 @@ contains
             is_local%wrap%FBExpAccumCnt(n1) = 0
 
             ! Create mesh info data
-            call med_meshinfo_create(is_local%wrap%FBImpAccum(n1,n1), &
+            call med_meshinfo_create(is_local%wrap%FBImp(n1,n1), &
                  is_local%wrap%mesh_info(n1), rc=rc)
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
          endif

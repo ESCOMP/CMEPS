@@ -275,7 +275,7 @@ contains
           if (chkErr(rc,__LINE__,u_FILE_u)) return
           allocate(aream_l(lsize), dataptr1d(lsize))
           lArray = ESMF_ArrayCreate(ldistgrid, dataptr1d, rc=rc)
-          call ESMF_MeshGet(lmesh_lnd, elemAreaArray=lArray, rc=rc)
+          call ESMF_MeshGet(lmesh_lnd, elemMaskArray=lArray, rc=rc)
           if (chkErr(rc,__LINE__,u_FILE_u)) return
           aream_l(:) = dataptr1d(:)
           call ESMF_ArrayDestroy(larray, rc=rc)
@@ -287,7 +287,7 @@ contains
           if (chkErr(rc,__LINE__,u_FILE_u)) return
           allocate(aream_g(lsize), dataptr1d(lsize))
           lArray = ESMF_ArrayCreate(ldistgrid, dataptr1d, rc=rc)
-          call ESMF_MeshGet(lmesh_glc, elemAreaArray=lArray, rc=rc)
+          call ESMF_MeshGet(lmesh_glc, elemMaskArray=lArray, rc=rc)
           if (chkErr(rc,__LINE__,u_FILE_u)) return
           aream_g(:) = dataptr1d(:)
           call ESMF_ArrayDestroy(larray, rc=rc)
