@@ -30,6 +30,6 @@ endif()
 target_include_directories (cmeps PUBLIC ${ESMF_F90COMPILEPATHS})
 target_include_directories (cmeps PUBLIC "${CMAKE_BINARY_DIR}/nems/util")
 target_include_directories (cmeps PUBLIC ${PIO_Fortran_INCLUDE_DIR})
-target_include_directories (cmeps PUBLIC ${NetCDF_Fortran_INCLUDE_DIR})
+
 install(TARGETS cmeps
 	LIBRARY DESTINATION lib)
