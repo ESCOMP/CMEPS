@@ -28,7 +28,7 @@ list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 message("CMAKE_MODULE_PATH is ${CMAKE_MODULE_PATH}")
 
 find_package(ESMF REQUIRED)
-find_package(NETCDF REQUIRED COMPONENT Fortran)
+find_package(NetCDF REQUIRED COMPONENT Fortran)
 
 if (DEFINED PIO)
   set(PIO_PATH ${PIO})
