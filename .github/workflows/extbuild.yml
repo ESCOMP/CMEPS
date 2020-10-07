@@ -101,6 +101,11 @@ jobs:
           export PIO=$HOME/pio
           mkdir build-cmeps
           pushd build-cmeps
-          cmake -DNetCDF_Fortran_LIBRARY=$HOME/netcdf-fortran/lib/libnetcdff.a -DNetCDF_Fortran_INCLUDE_DIR=$HOME/netcdf-fortran/include -DCMAKE_BUILD_TYPE=DEBUG -DCMAKE_Fortran_FLAGS="-g -Wall -ffree-form -ffree-line-length-none" ../
+          cmake -DCMAKE_BUILD_TYPE=DEBUG -DCMAKE_Fortran_FLAGS="-g -Wall -ffree-form -ffree-line-length-none" \
+          -DNetCDF_Fortran_LIBRARY=$HOME/netcdf-fortran/lib/libnetcdff.a \
+          -DNetCDF_Fortran_INCLUDE_DIR=$HOME/netcdf-fortran/include \
+          -DNetCDF_C_LIBRARY=/usr/lib/x86_64-linux-gnu/libnetcdf.so \
+          -DNetCDF_C_INCLUDE_DIR=/usr/include \
+          ../
           make VERBOSE=1
           popd
