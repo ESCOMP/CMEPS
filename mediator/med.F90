@@ -27,7 +27,6 @@ module MED
   use med_methods_mod        , only : FB_getFieldN       => med_methods_FB_getFieldN
   use med_methods_mod        , only : clock_timeprint    => med_methods_clock_timeprint
   use med_time_mod           , only : alarmInit          => med_time_alarmInit
-  use med_time_mod           , only : set_stop_alarm     => med_time_set_component_stop_alarm
   use med_utils_mod          , only : memcheck           => med_memcheck
   use med_internalstate_mod  , only : InternalState
   use med_internalstate_mod  , only : med_coupling_allowed, logunit, mastertask
@@ -2255,10 +2254,6 @@ contains
          call ESMF_AlarmSet(glc_avg_alarm, clock=mediatorclock, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
       end if
-
-      call set_stop_alarm(gcomp, rc)
-      if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
       first_time = .false.
     end if
 
