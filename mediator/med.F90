@@ -99,17 +99,14 @@ contains
     use med_phases_prep_ocn_mod , only: med_phases_prep_ocn_accum_avg
     use med_phases_ocnalb_mod   , only: med_phases_ocnalb_run
     use med_phases_aofluxes_mod , only: med_phases_aofluxes_run
-    use med_diag_mod            , only: med_phases_diag_accum
-    use med_diag_mod            , only: med_phases_diag_print
+    use med_diag_mod            , only: med_phases_diag_accum, med_phases_diag_print
     use med_diag_mod            , only: med_phases_diag_atm
     use med_diag_mod            , only: med_phases_diag_lnd
     use med_diag_mod            , only: med_phases_diag_rof
     use med_diag_mod            , only: med_phases_diag_glc
     use med_diag_mod            , only: med_phases_diag_ocn
-    use med_diag_mod            , only: med_phases_diag_ice_ice2med
-    use med_diag_mod            , only: med_phases_diag_ice_med2ice
-    use med_fraction_mod        , only: med_fraction_init
-    use med_fraction_mod        , only: med_fraction_set
+    use med_diag_mod            , only: med_phases_diag_ice_ice2med, med_phases_diag_ice_med2ice
+    use med_fraction_mod        , only: med_fraction_init, med_fraction_set
     use med_phases_profile_mod  , only: med_phases_profile
 
     type(ESMF_GridComp)  :: gcomp
@@ -1767,6 +1764,10 @@ contains
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
             is_local%wrap%FBExpAccumCnt(n1) = 0
 
+            ! Create mesh info data
+            call med_meshinfo_create(is_local%wrap%FBImpAccum(n1,n1), &
+                 is_local%wrap%mesh_info(n1), rc=rc)
+            if (ChkErr(rc,__LINE__,u_FILE_u)) return
          endif
 
          ! The following are FBImp and FBImpAccum mapped to different grids.
@@ -2255,6 +2256,9 @@ contains
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
       end if
 
+      call set_stop_alarm(gcomp, rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
       first_time = .false.
     end if
 
@@ -2273,6 +2277,76 @@ contains
     endif
 
   end subroutine SetRunClock
+
+  !-----------------------------------------------------------------------------
+  !-----------------------------------------------------------------------------
+
+  subroutine med_meshinfo_create(FB, mesh_info, rc)
+
+    use ESMF , only : ESMF_Array, ESMF_ArrayCreate, ESMF_ArrayDestroy, ESMF_Field, ESMF_FieldGet
+    use ESMF , only : ESMF_DistGrid, ESMF_FieldBundle, ESMF_FieldRegridGetArea, ESMF_FieldBundleGet
+    use ESMF , only : ESMF_Mesh, ESMF_MeshGet, ESMF_MESHLOC_ELEMENT, ESMF_TYPEKIND_R8
+    use ESMF , only : ESMF_SUCCESS, ESMF_FAILURE, ESMF_LogWrite, ESMF_LOGMSG_INFO
+    use med_internalstate_mod , only : mesh_info_type
+
+    ! input/output variables
+    type(ESMF_FieldBundle) , intent(in)    :: FB
+    type(mesh_info_type)   , intent(inout) :: mesh_info
+    integer                , intent(out)   :: rc
+
+    ! local variables
+    type(ESMF_Field)      :: lfield
+    type(ESMF_Mesh)       :: lmesh
+    type(ESMF_Array)      :: lArray
+    type(ESMF_DistGrid)   :: lDistGrid
+    integer               :: numOwnedElements
+    integer               :: spatialDim
+    real(r8), allocatable :: ownedElemCoords(:)
+    real(r8), pointer     :: dataptr(:)
+    integer               :: n, dimcount, fieldcount
+    character(len=*),parameter :: subname='(module_MED:med_meshinfo_create)'
+    !-------------------------------------------------------------------------------
+
+    rc= ESMF_SUCCESS
+
+    call ESMF_FieldBundleGet(FB, fieldCount=fieldCount, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    ! Find the first field in FB with dimcount==1
+    do n=1,fieldCount
+       call FB_getFieldN(FB, fieldnum=n, field=lfield, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+       call ESMF_FieldGet(lfield, mesh=lmesh, dimcount=dimCount, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (dimCount==1) exit
+    enddo
+    call ESMF_FieldRegridGetArea(lfield, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    call ESMF_MeshGet(lmesh, spatialDim=spatialDim, numOwnedElements=numOwnedElements, &
+         elementDistGrid=lDistGrid, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    ! Allocate mesh_info data, we need a copy here because the FB may get reset later
+    allocate(mesh_info%areas(numOwnedElements))
+    call ESMF_FieldGet(lfield, farrayPtr=dataptr, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    mesh_info%areas = dataptr
+
+    allocate(mesh_info%lats(numOwnedElements))
+    allocate(mesh_info%lons(numOwnedElements))
+
+    ! Obtain mesh longitudes and latitudes
+    allocate(ownedElemCoords(spatialDim*numOwnedElements))
+    call ESMF_MeshGet(lmesh, ownedElemCoords=ownedElemCoords)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    do n = 1,numOwnedElements
+       mesh_info%lons(n) = ownedElemCoords(2*n-1)
+       mesh_info%lats(n) = ownedElemCoords(2*n)
+    end do
+    deallocate(ownedElemCoords)
+
+  end subroutine med_meshinfo_create
 
   !-----------------------------------------------------------------------------
 
