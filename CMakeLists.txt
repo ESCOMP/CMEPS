@@ -21,14 +21,13 @@ else()
   set(BLD_STANDALONE TRUE)
 endif()
 
-project(CMEPS LANGUAGES C Fortran VERSION 0.1)
+project(CMEPS LANGUAGES Fortran VERSION 0.1)
 
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
 message("CMAKE_MODULE_PATH is ${CMAKE_MODULE_PATH}")
 
 find_package(ESMF REQUIRED)
-
 if (DEFINED PIO)
   set(PIO_PATH ${PIO})
 else()

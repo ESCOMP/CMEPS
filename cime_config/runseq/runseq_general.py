@@ -135,7 +135,7 @@ def gen_runseq(case, coupling_times):
         runseq.add_action("MED med_phases_diag_lnd"                , run_lnd and diag_mode)
         runseq.add_action("MED med_phases_diag_rof"                , run_rof and diag_mode)
         runseq.add_action("MED med_phases_diag_ocn"                , run_ocn and diag_mode)
-        runseq.add_action("MED med_phases_diag_glc"        , run_glc and diag_mode)
+        runseq.add_action("MED med_phases_diag_glc"                , run_glc and diag_mode)
         runseq.add_action("MED med_phases_diag_accum"              , diag_mode)
         runseq.add_action("MED med_phases_diag_print"              , diag_mode)
         #------------------

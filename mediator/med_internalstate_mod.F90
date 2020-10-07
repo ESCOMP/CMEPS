@@ -40,14 +40,7 @@ module med_internalstate_mod
        .false., .true. , .false., .true. , .true. , .false., .false., .false., &  ! wav
        .false., .false., .true. , .false., .false., .false., .false., .false.  ], & ! glc
        shape(med_coupling_allowed))
-   !   med      atm      lnd      ocn      ice      rof      wav      glc
-
-  type, public ::  mesh_info_type
-     real(r8), pointer :: areas(:)
-     real(r8), pointer :: lats(:)
-     real(r8), pointer :: lons(:)
-  end type mesh_info_type
-
+  !   med      atm      lnd      ocn      ice      rof      wav      glc
 
   ! private internal state to keep instance data
   type InternalStateStruct
@@ -104,9 +97,6 @@ module med_internalstate_mod
     ! Accumulators for import field bundles
     type(ESMF_FieldBundle) :: FBImpAccum(ncomps,ncomps)          ! Accumulator for various components import
     integer                :: FBImpAccumCnt(ncomps)              ! Accumulator counter for each FBImpAccum
-
-    ! Component Mesh info
-    type(mesh_info_type)   :: mesh_info(ncomps)
 
  end type InternalStateStruct
 

@@ -855,11 +855,11 @@
       'on': always do this renormalization
       'off': never do this renormalization (see WARNING below)
       'on_if_glc_coupled_fluxes': Determine at runtime whether to do this renormalization.
-	 Does the renormalization if we're running a two-way-coupled glc that sends fluxes
-	 to other components (which is the case where we need conservation).
-	 Does NOT do the renormalization if we're running a one-way-coupled glc, or if
-	 we're running a glc-only compset (T compsets).
-	 (In these cases, conservation is not important.)
+         Does the renormalization if we're running a two-way-coupled glc that sends fluxes
+         to other components (which is the case where we need conservation).
+         Does NOT do the renormalization if we're running a one-way-coupled glc, or if
+         we're running a glc-only compset (T compsets).
+         (In these cases, conservation is not important.)
 
       Only used if running with a prognostic GLC component.
 
@@ -868,7 +868,7 @@
     </desc>
     <values>
       <value>on_if_glc_coupled_fluxes</value>
-      <value COMP_LND="xlnd">off</value>
+      <value COMP_LND="xlnd">off</value> 
     </values>
   </entry>
 
@@ -901,7 +901,7 @@
     <category>mapping</category>
     <group>ATM_attributes</group>
     <desc>
-      DOMAIN description of atm grid
+      DOMAIN description of atm grid 
     </desc>
     <values>
       <value>$ATM_DOMAIN_PATH/$ATM_DOMAIN_FILE</value>
@@ -925,7 +925,7 @@
     <category>mapping</category>
     <group>LND_attributes</group>
     <desc>
-      DOMAIN description of lnd grid
+      DOMAIN description of lnd grid 
     </desc>
     <values>
       <value>$LND_DOMAIN_PATH/$LND_DOMAIN_FILE</value>
@@ -1094,6 +1094,7 @@
       <value>$CPL_ALBAV</value>
     </values>
   </entry>
+
   <entry id="aoflux_grid">
     <type>char</type>
     <category>mapping</category>
@@ -1273,7 +1274,7 @@
   <!--     default: true -->
   <!--   </desc> -->
   <!--   <values> -->
-  <!--	<value>.true.</value> -->
+  <!-- 	<value>.true.</value> -->
   <!--   </values> -->
   <!-- </entry> -->
 
@@ -2173,9 +2174,6 @@
     </values>
   </entry>
 
-  <!-- =========================== -->
-  <!-- GLC Attributes            -->
-  <!-- =========================== -->
   <entry  id="cism_evolve" modify_via_xml="CISM_EVOLVE">
     <type>logical</type>
     <category>flds</category>
@@ -3326,9 +3324,9 @@
     <group>PELAYOUT_attributes</group>
     <desc>
       Determines what ESMF log files (if any) are generated when
-	  USE_ESMF_LIB is TRUE.
+          USE_ESMF_LIB is TRUE.
       ESMF_LOGKIND_SINGLE: Use a single log file, combining messages from
-	  all of the PETs. Not supported on some platforms.
+          all of the PETs. Not supported on some platforms.
       ESMF_LOGKIND_MULTI: Use multiple log files — one per PET.
       ESMF_LOGKIND_NONE: Do not issue messages to a log file.
       By default, no ESMF log files are generated.
