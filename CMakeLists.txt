@@ -21,7 +21,7 @@ else()
   set(BLD_STANDALONE TRUE)
 endif()
 
-project(CMEPS LANGUAGES Fortran VERSION 0.1)
+project(CMEPS LANGUAGES C Fortran VERSION 0.1)
 
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
