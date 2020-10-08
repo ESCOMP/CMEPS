@@ -2174,15 +2174,10 @@ contains
     type(ESMF_Time)         :: currTime
     type(ESMF_TimeInterval) :: timeStep
     character(len=CL)       :: cvalue
-    character(len=CL)       :: restart_option       ! Restart option units
-    integer                 :: restart_n            ! Number until restart interval
-    integer                 :: restart_ymd          ! Restart date (YYYYMMDD)
-    type(ESMF_ALARM)        :: restart_alarm
     type(ESMF_ALARM)        :: glc_avg_alarm
     logical                 :: glc_present
     character(len=CS)       :: glc_avg_period
     integer                 :: glc_cpl_dt
-    type(ESMF_ALARM)        :: alarm
     logical                 :: first_time = .true.
     character(len=*),parameter :: subname='(module_MED:SetRunClock)'
     !-----------------------------------------------------------
@@ -2222,6 +2217,7 @@ contains
     !--------------------------------
 
     if (first_time) then
+
        ! Set glc averaging alarm if appropriate
        call NUOPC_CompAttributeGet(gcomp, name="glc_present", value=cvalue, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return

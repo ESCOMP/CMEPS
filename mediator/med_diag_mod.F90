@@ -16,6 +16,7 @@ module med_diag_mod
   !----------------------------------------------------------------------------
 
   use NUOPC                 , only : NUOPC_CompAttributeGet
+  use NUOPC_Mediator        , only : NUOPC_MediatorGet
   use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
   use ESMF                  , only : ESMF_FAILURE,  ESMF_LOGMSG_ERROR
   use ESMF                  , only : ESMF_GridComp, ESMF_Clock, ESMF_Time
@@ -29,6 +30,7 @@ module med_diag_mod
   use med_internalstate_mod , only : InternalState, logunit, mastertask
   use med_methods_mod       , only : FB_FldChk    => med_methods_FB_FldChk
   use med_methods_mod       , only : FB_GetFldPtr => med_methods_FB_GetFldPtr
+  use med_time_mod          , only : alarmInit    => med_time_alarmInit
   use med_utils_mod         , only : chkerr       => med_utils_ChkErr
 
   implicit none
@@ -236,10 +238,15 @@ contains
     integer             , intent(out)   :: rc
 
     ! local variables
-    character(CS) :: cvalue
-    integer       :: c_size  ! number of component send/recvs
-    integer       :: f_size  ! number of fields
-    integer       :: p_size  ! number of period types
+    character(CS)     :: cvalue
+    integer           :: c_size   ! number of component send/recvs
+    integer           :: f_size   ! number of fields
+    integer           :: p_size   ! number of period types
+    type(ESMF_Clock)  :: mediatorClock
+    character(CS)     :: stop_option
+    integer           :: stop_n   ! Number until restart interval
+    integer           :: stop_ymd ! Restart date (YYYYMMDD)
+    type(ESMF_ALARM)  :: stop_alarm
     ! ------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -367,6 +374,21 @@ contains
     call NUOPC_CompAttributeGet(gcomp, name='budget_ltend', value=cvalue, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     read(cvalue,*) budget_print_ltend
+
+    ! Set stop alarm (needed for budgets)
+    call NUOPC_CompAttributeGet(gcomp, name="stop_option", value=stop_option, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompAttributeGet(gcomp, name="stop_n", value=cvalue, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    read(cvalue,*) stop_n
+    call NUOPC_CompAttributeGet(gcomp, name="stop_ymd", value=cvalue, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    read(cvalue,*) stop_ymd
+    call NUOPC_MediatorGet(gcomp, mediatorClock=mediatorClock, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call alarmInit(mediatorclock, stop_alarm, stop_option, opt_n=stop_n, opt_ymd=stop_ymd, &
+         alarmname='alarm_stop', rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
    end subroutine med_diag_init
 
@@ -1725,19 +1747,19 @@ contains
        output_level = 0
        if (ip == period_inst) then
           output_level = max(output_level, budget_print_inst)
-       endif
+       end if
        if (ip == period_day .and. curr_tod == 0) then
           output_level = max(output_level, budget_print_daily)
-       endif
+       end if
        if (ip == period_mon .and. curr_day == 1 .and. curr_tod == 0) then
           output_level = max(output_level, budget_print_month)
-       endif
+       end if
        if (ip == period_ann .and. curr_mon == 1 .and. curr_day == 1 .and. curr_tod == 0) then
           output_level = max(output_level, budget_print_ann)
-       endif
+       end if
        if (ip == period_inf .and. curr_mon == 1 .and. curr_day == 1 .and. curr_tod == 0) then
           output_level = max(output_level, budget_print_ltann)
-       endif
+       end if
        if (ip == period_inf) then
           call ESMF_ClockGetAlarm(clock, alarmname='alarm_stop', alarm=stop_alarm, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
