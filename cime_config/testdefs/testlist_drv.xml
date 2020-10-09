@@ -165,6 +165,14 @@
       <option name="wallclock"> 00:40:00 </option>
     </options>
   </test>
+  <test compset="B1850" grid="f19_g16" name="ERR_Vnuopc_Ld5" testmods="allactive/nuopc_cap_io">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="nuopc"/>
+    </machines>
+    <options>
+      <option name="wallclock"> 00:40:00 </option>
+    </options>
+  </test>
   <test compset="BMOM" grid="f19_g16" name="ERR_Vnuopc_Ld5" testmods="allactive/nuopc_cap_io">
     <machines>
       <machine name="cheyenne" compiler="intel" category="nuopc"/>
@@ -464,18 +472,18 @@
   <test name="SMS_D_Ly1_Vnuopc" grid="f09_g17_gl4" compset="T1850G">
     <machines>
       <machine name="cheyenne" compiler="intel" category="nuopc">
-        <options>
-          <option name="wallclock">0:20</option>
-        </options>
+	<options>
+	  <option name="wallclock">0:20</option>
+	</options>
       </machine>
     </machines>
   </test>
   <test name="ERS_Ly3_Vnuopc" grid="f09_g17_gl4" compset="T1850G">
     <machines>
       <machine name="cheyenne" compiler="intel" category="nuopc">
-        <options>
-          <option name="wallclock">0:20</option>
-        </options>
+	<options>
+	  <option name="wallclock">0:20</option>
+	</options>
       </machine>
     </machines>
   </test>

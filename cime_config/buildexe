@@ -83,9 +83,10 @@ def _main_func():
 
     with open(os.path.join(bld_root,'Filepath'), 'w') as out:
         cmeps_dir = os.path.join(os.path.dirname(__file__), os.pardir)
+        # SourceMods dir needs to be first listed
+        out.write(os.path.join(caseroot, "SourceMods", "src.drv") + "\n")
         if not skip_mediator:
             out.write(os.path.join(cmeps_dir, "mediator") + "\n")
-        out.write(os.path.join(caseroot, "SourceMods", "src.drv") + "\n")
         out.write(os.path.join(cmeps_dir, "drivers", "cime") + "\n")
 
     # build model executable
