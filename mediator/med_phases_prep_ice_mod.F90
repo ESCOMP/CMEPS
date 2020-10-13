@@ -121,9 +121,12 @@ contains
        !--- auto merges to create FBExp(compice)
        !---------------------------------------
 
-       call med_merge_auto(trim(compname(compice)), &
-            is_local%wrap%FBExp(compice), is_local%wrap%FBFrac(compice), &
-            is_local%wrap%FBImp(:,compice), fldListTo(compice), rc=rc)
+       call med_merge_auto(compice, &
+            is_local%wrap%med_coupling_active(:,compice), &
+            is_local%wrap%FBExp(compice), &
+            is_local%wrap%FBFrac(compice), &
+            is_local%wrap%FBImp(:,compice), &
+            fldListTo(compice), rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        !---------------------------------------

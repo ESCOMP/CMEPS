@@ -137,7 +137,8 @@ contains
 
        ! The following will merge all fields in fldsSrc
        ! (for glc these are Sg_icemask and Sg_icemask_coupled_fluxes)
-       call med_merge_auto(trim(compname(complnd)), &
+       call med_merge_auto(complnd, &
+            is_local%wrap%med_coupling_active(:,complnd), &
             is_local%wrap%FBExp(complnd), &
             is_local%wrap%FBFrac(complnd), &
             is_local%wrap%FBImp(:,complnd), &

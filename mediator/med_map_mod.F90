@@ -704,7 +704,7 @@ contains
     use ESMF     , only: ESMF_LOGMSG_ERROR, ESMF_FAILURE, ESMF_MAXSTR
     use ESMF     , only: ESMF_Mesh, ESMF_MeshGet, ESMF_MESHLOC_ELEMENT, ESMF_TYPEKIND_R8
     use ESMF     , only: ESMF_FieldBundle, ESMF_FieldBundleIsCreated, ESMF_FieldBundleGet
-    use ESMF     , only: ESMF_RouteHandle
+    use ESMF     , only: ESMF_RouteHandle, ESMF_FieldRegrid
     use ESMF     , only: ESMF_REGION_SELECT, ESMF_REGION_TOTAL
     use ESMF     , only: ESMF_Field, ESMF_FieldGet, ESMF_FieldIsCreated
     use ESMF     , only: ESMF_FieldDestroy, ESMF_FieldCreate
@@ -775,20 +775,22 @@ contains
     ! First - reset the field bundle on the destination grid to zero
     !---------------------------------------
 
-    call FB_reset(FBDst, value=czero, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    ! call FB_reset(FBDst, value=czero, rc=rc)
+    ! if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     !---------------------------------------
     ! Loop over all fields in the source field bundle and map them to
     ! the destination field bundle accordingly
     !---------------------------------------
 
-    call ESMF_LogWrite(trim(subname)//" *** mapping from "//trim(compname(srccomp))//" to "//&
-         trim(compname(destcomp))//" ***", ESMF_LOGMSG_INFO)
+    if (dbug_flag > 1) then
+       call ESMF_LogWrite(trim(subname)//" *** mapping from "//trim(compname(srccomp))//" to "//&
+            trim(compname(destcomp))//" ***", ESMF_LOGMSG_INFO)
+    end if
 
-    frac_field_created = .false.
     used_cart3d_for_uvmapping = .false.
     do n = 1,size(fldsSrc)
+
        ! Determine if field is a scalar - and if so go to next iternation
        fldname  = fldsSrc(n)%shortname
        if (fldname == flds_scalar_name) CYCLE
@@ -798,7 +800,7 @@ contains
        if (mapindex == 0) CYCLE
        mapnorm  = fldsSrc(n)%mapnorm(destcomp)
 
-       ! Determine if field is FBSrc or FBDst or connected - and if not go to next iteration
+       !Determine if field is FBSrc or FBDst or connected - and if not go to next iteration
        if (.not. FB_FldChk(FBSrc, trim(fldname), rc=rc)) then
           if (dbug_flag > 5) then
              call ESMF_LogWrite(trim(subname)//" field not found in FBSrc: "//trim(fldname), ESMF_LOGMSG_INFO)
@@ -815,16 +817,18 @@ contains
        ! Error checks
        ! -------------------
 
-       if (.not. FB_FldChk(FBSrc, fldname, rc=rc)) then
-          call ESMF_LogWrite(trim(subname)//" field not found in FBSrc: "//trim(fldname), ESMF_LOGMSG_INFO)
-       else if (.not. FB_FldChk(FBDst, fldname, rc=rc)) then
-          call ESMF_LogWrite(trim(subname)//" field not found in FBDst: "//trim(fldname), ESMF_LOGMSG_INFO)
-       else if (.not. med_map_RH_is_created(RouteHandles,mapindex,rc=rc)) then
-          call ESMF_LogWrite(trim(subname)//trim(lstring)//&
-               ": ERROR RH not available for "//mapnames(mapindex)//": fld="//trim(fldname), &
-               ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
-          rc = ESMF_FAILURE
-          return
+       if (dbug_flag > 2) then
+          if (.not. FB_FldChk(FBSrc, fldname, rc=rc)) then
+             call ESMF_LogWrite(trim(subname)//" field not found in FBSrc: "//trim(fldname), ESMF_LOGMSG_INFO)
+          else if (.not. FB_FldChk(FBDst, fldname, rc=rc)) then
+             call ESMF_LogWrite(trim(subname)//" field not found in FBDst: "//trim(fldname), ESMF_LOGMSG_INFO)
+          else if (.not. med_map_RH_is_created(RouteHandles,mapindex,rc=rc)) then
+             call ESMF_LogWrite(trim(subname)//trim(lstring)//&
+                  ": ERROR RH not available for "//mapnames(mapindex)//": fld="//trim(fldname), &
+                  ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
+             rc = ESMF_FAILURE
+             return
+          end if
        end if
 
        ! -------------------
@@ -861,31 +865,38 @@ contains
        ! Get the source and destination fields
        ! -------------------
 
-       call ESMF_LogWrite(trim(subname)//" --> remapping "//trim(fldname)//" with "//trim(mapnames(mapindex)), &
-            ESMF_LOGMSG_INFO)
-
-       call ESMF_FieldBundleGet(FBSrc, fieldName=trim(fldname), field=srcfield, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_FieldBundleGet(FBDst, fieldName=trim(fldname), field=dstfield, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (dbug_flag > 1) then
+          call ESMF_LogWrite(trim(subname)//" --> remapping "//trim(fldname)//" with "//trim(mapnames(mapindex)), &
+               ESMF_LOGMSG_INFO)
+       end if
 
        ! -------------------
        ! Do the mapping
        ! -------------------
 
+       call t_startf('MED:'//subname//'time1')
+       call ESMF_FieldBundleGet(FBSrc, fieldName=trim(fldname), field=srcfield, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_FieldBundleGet(FBDst, fieldName=trim(fldname), field=dstfield, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call t_stopf('MED:'//subname//'time1')
+
        if (mapindex == mapfcopy) then
-          call med_map_FB_Field_Regrid(FBSrc, fldname, FBDst, fldname, RouteHandles, mapindex, rc=rc)
+
+          call t_startf('MED:'//subname//'time2')
+          call ESMF_FieldRegrid(srcfield, dstfield, routehandle=RouteHandles(mapfcopy), &
+               termorderflag=ESMF_TERMORDER_SRCSEQ, checkflag=checkflag, zeroregion=ESMF_REGION_TOTAL, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call t_stopf('MED:'//subname//'time2')
 
        else
+
           ! Determine the normalization for the map
           mapnorm  = fldsSrc(n)%mapnorm(destcomp)
 
           if ( trim(mapnorm) /= 'unset' .and. trim(mapnorm) /= 'one' .and. trim(mapnorm) /= 'none') then
 
-             call FB_getFieldByName(FBSrc, fldname, lfield, rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-             call ESMF_FieldGet(lfield, rank=lrank, rc=rc)
+             call ESMF_FieldGet(srcfield, rank=lrank, rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
 
              ! get a pointer to source field data in FBSrc
@@ -966,9 +977,7 @@ contains
                 if (chkerr(rc,__LINE__,u_FILE_u)) return
 
                 ! create fraction field on destination mesh
-                call ESMF_FieldBundleGet(FBDst, fldname, field=lfield, rc=rc)
-                if (chkerr(rc,__LINE__,u_FILE_u)) return
-                call ESMF_FieldGet(lfield, mesh=lmesh, rc=rc)
+                call ESMF_FieldGet(dstfield, mesh=lmesh, rc=rc)
                 if (chkerr(rc,__LINE__,u_FILE_u)) return
                 frac_field_dst = ESMF_FieldCreate(lmesh, ESMF_TYPEKIND_R8, name=mapnorm, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
                 if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -1010,6 +1019,7 @@ contains
              end if ! mapnorm is 'one'
 
           end if ! mapnorm is 'one' or 'nne'
+
        end if ! mapindex is not mapfcopy and field exists
 
        if (dbug_flag > 1) then
@@ -1065,8 +1075,9 @@ contains
 
     lfldname=trim(fldin)//'->'//trim(fldout)
 
-    call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
-
+    if (dbug_flag > 1) then
+       call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
+    end if
     if (FB_FldChk(FBin , trim(fldin) , rc=rc) .and. &
         FB_FldChk(FBout, trim(fldout), rc=rc)) then
 

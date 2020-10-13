@@ -147,15 +147,21 @@ contains
        if (trim(coupling_mode) == 'cesm' .or. &
            trim(coupling_mode) == 'nems_orig_data' .or. &
            trim(coupling_mode) == 'hafs') then
-          call med_merge_auto(trim(compname(compocn)), &
-               is_local%wrap%FBExp(compocn), is_local%wrap%FBFrac(compocn), &
-               is_local%wrap%FBImp(:,compocn), fldListTo(compocn), &
+          call med_merge_auto(compocn, &
+               is_local%wrap%med_coupling_active(:,compocn), &
+               is_local%wrap%FBExp(compocn), &
+               is_local%wrap%FBFrac(compocn), &
+               is_local%wrap%FBImp(:,compocn), &
+               fldListTo(compocn), &
                FBMed1=is_local%wrap%FBMed_aoflux_o, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        else if (trim(coupling_mode) == 'nems_frac' .or. trim(coupling_mode) == 'nems_orig') then
-          call med_merge_auto(trim(compname(compocn)), &
-               is_local%wrap%FBExp(compocn), is_local%wrap%FBFrac(compocn), &
-               is_local%wrap%FBImp(:,compocn), fldListTo(compocn), rc=rc)
+          call med_merge_auto(compocn, &
+               is_local%wrap%med_coupling_active(:,compocn), &
+               is_local%wrap%FBExp(compocn), &
+               is_local%wrap%FBFrac(compocn), &
+               is_local%wrap%FBImp(:,compocn), &
+               fldListTo(compocn), rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
 
