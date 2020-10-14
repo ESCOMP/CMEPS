@@ -92,6 +92,7 @@ module med_internalstate_mod
     ! Mapping
     type(ESMF_RouteHandle) :: RH(ncomps,ncomps,nmappers)         ! Routehandles for pairs of components and different mappers
     type(ESMF_FieldBundle) :: FBNormOne(ncomps,ncomps,nmappers)  ! Unity static normalization
+    type(ESMF_FieldBundle) :: FBImp_packed(ncomps,ncomps,nmappers)
 
     ! Fractions
     type(ESMF_FieldBundle) :: FBfrac(ncomps)                     ! Fraction data for various components, on their grid

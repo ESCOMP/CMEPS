@@ -427,6 +427,15 @@ contains
              call med_io_write(hist_file, iam, is_local%wrap%FBMed_ocnalb_o, &
                   nx=nx, ny=ny, nt=1, whead=whead, wdata=wdata, pre='Med_alb_ocn', rc=rc)
           end if
+          if (ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_aoflux_o,rc=rc) .and. &
+              ESMF_FieldBundleIsCreated(is_local%wrap%FBImp(compatm,compocn))) then
+              ! This provides the atm input on the ocn mesh needed for that atm/ocn calculation
+              ! that currently is restricted to the ocn mesh
+             nx = is_local%wrap%nx(compocn)
+             ny = is_local%wrap%ny(compocn)
+             call med_io_write(hist_file, iam, is_local%wrap%FBImp(compatm,compocn), &
+                  nx=nx, ny=ny, nt=1, whead=whead, wdata=wdata, pre='AtmImp_ocn', rc=rc)
+          end if
           if (ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_aoflux_o,rc=rc)) then
              nx = is_local%wrap%nx(compocn)
              ny = is_local%wrap%ny(compocn)
