@@ -1735,11 +1735,16 @@ contains
     call ESMF_TimeGet( currTime, yy=curr_year, mm=curr_mon, dd=curr_day, s=curr_tod, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     cdate = curr_year*10000 + curr_mon*100 + curr_day
+#ifdef DEBUG
     if(mastertask) then
        write(currtimestr,'(i4.4,a,i2.2,a,i2.2,a,i5.5)') curr_year,'-',curr_mon,'-',curr_day,'-',curr_tod
        write(logunit,' (a)') trim(subname)//": currtime = "//trim(currtimestr)
     endif
-
+#endif
+    if(firstcall) then
+       firstcall = .false.
+       return
+    endif
     sumdone = .false.
     do ip = 1,size(budget_diags%periods)
 
