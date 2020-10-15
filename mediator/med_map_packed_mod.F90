@@ -8,6 +8,7 @@ module med_map_packed_mod
   use med_kind_mod      , only : cx=>shr_kind_cx, cs=>shr_kind_cs, cl=>shr_kind_cl, i8=>shr_kind_i8, r8=>shr_kind_r8
   use med_constants_mod , only : dbug_flag => med_constants_dbug_flag
   use med_utils_mod     , only : chkerr    => med_utils_ChkErr
+  use perf_mod          , only : t_startf, t_stopf
 
   implicit none
   private
@@ -15,7 +16,6 @@ module med_map_packed_mod
   public :: med_map_packed_fieldbundles_create
   public :: med_map_packed_fieldbundles
 
-  integer    , parameter :: number_strlen = 2
   character(*),parameter :: u_FILE_u = &
        __FILE__
 
@@ -23,33 +23,25 @@ module med_map_packed_mod
 contains  
 !===============================================================================
 
-  subroutine med_map_packed_fieldbundles_create(flds_scalar_name, fldsSrc, &
-       FBSrc, FBSrc_packed, FBDst_packed, FBDst, rc)
+  subroutine med_map_packed_fieldbundles_create(fldsSrc, FBSrc, FBDst, fieldsrc_packed, fielddst_packed, rc)
     
     use ESMF
-    use esmFlds         , only : mapfcopy, med_fldList_entry_type
-    use med_methods_mod , only : FB_getFieldN => med_methods_FB_getFieldN
+    use esmFlds, only : mapfcopy, med_fldList_entry_type
 
     ! input/output variables
-    character(len=*)             , intent(in)    :: flds_scalar_name
     type(med_fldList_entry_type) , pointer       :: fldsSrc(:)
     type(ESMF_FieldBundle)       , intent(in)    :: FBSrc
-    type(ESMF_FieldBundle)       , intent(inout) :: FBSrc_packed(:) ! array over mapping types
-    type(ESMF_FieldBundle)       , intent(inout) :: FBDst_packed(:) ! array over mapping types   
-    type(ESMF_FieldBundle)       , intent(in)    :: FBDst
+    type(ESMF_FieldBundle)       , intent(inout) :: FBDst
+    type(ESMF_Field)             , intent(inout) :: fieldsrc_packed(:) ! array over mapping types
+    type(ESMF_Field)             , intent(inout) :: fielddst_packed(:) ! array over mapping types   
     integer                      , intent(out)   :: rc
 
     ! local variables
-    integer                    :: n, n1, nf, nu
+    integer                    :: nf, nu
     integer                    :: npacked  
     integer                    :: fieldcount
-    integer                    :: lrank
     type(ESMF_Field)           :: lfield
-    character(CL)              :: fldname
     integer                    :: ungriddedUBound(1)     ! currently the size must equal 1 for rank 2 fields
-    integer                    :: gridToFieldMap(1)      ! currently the size must equal 1 for rank 2 fields
-    character(CL), allocatable :: lfieldnamelist(:)
-    character(CL), allocatable :: lfieldnamelist_packed(:)
     real(r8), pointer          :: ptrsrc_packed(:,:)
     real(r8), pointer          :: ptrdst_packed(:,:)
     integer                    :: lsize_src
@@ -57,7 +49,8 @@ contains
     type(ESMF_Mesh)            :: lmesh_src
     type(ESMF_Mesh)            :: lmesh_dst
     integer                    :: mapindex
-    character(len=number_strlen) :: cnumber
+    type(ESMF_Field), pointer  :: fieldlist_src(:)     
+    type(ESMF_Field), pointer  :: fieldlist_dst(:)     
     character(len=*), parameter  :: subname=' (med_packed_fieldbundles_create) '
     !-----------------------------------------------------------
 
@@ -66,96 +59,62 @@ contains
     ! TODO: Just for now assume redistribution, need to leverage fldssrc which is simply not being used
     mapindex = mapfcopy
     
-    ! determine field list in source field bundle
+    ! Get field count for both FBsrc and FBdst
     call ESMF_FieldBundleGet(FBsrc, fieldCount=fieldCount, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    allocate(lfieldnamelist(fieldcount))
-    call ESMF_FieldBundleGet(FBsrc, fieldNameList=lfieldnamelist, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    do n = 1, fieldCount
-       if (trim(lfieldnamelist(n)) == trim(flds_scalar_name) .or. trim(lfieldnamelist(n)) == '') then
-          do n1 = n, fieldCount-1
-             lfieldnamelist(n1) = lfieldnamelist(n1+1)
-          enddo
-          fieldCount = fieldCount - 1
-       endif
-    enddo  ! n
-
-    ! Reset fieldcount based on the fact that some fields have ungridded dimensions and
+    allocate(fieldlist_src(fieldcount))
+    allocate(fieldlist_dst(fieldcount))
+    call ESMF_FieldBundleGet(FBsrc, fieldlist=fieldlist_src, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldBundleGet(FBdst, fieldlist=fieldlist_dst, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    
+    ! Calculated size of packed field based on the fact that some fields have ungridded dimensions and
     ! need to unwrap them into separate fields for the purposes of packing
     npacked = 0
     do nf = 1, fieldCount
-       fldname = trim(lfieldnamelist(nf))
-       call ESMF_FieldBundleGet(FBSrc, fieldName=trim(fldname), field=lfield, rc=rc)
+       call ESMF_FieldGet(fieldlist_src(nf), ungriddedUBound=ungriddedUBound, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_FieldGet(lfield, rank=lrank, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (lrank == 2) then
-          call ESMF_FieldGet(lfield, ungriddedUBound=ungriddedUBound, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          npacked = npacked + ungriddedUBound(1)
-       else
-          npacked = npacked + 1
-       end if
-    end do
-
-    ! Get list of fields in including new field names for each ungridded dimension
-    npacked = 0
-    allocate(lfieldnamelist_packed(npacked))
-    do nf = 1, fieldCount
-       fldname = trim(lfieldnamelist(nf))
-       call ESMF_FieldBundleGet(FBSrc, fieldName=trim(fldname), field=lfield, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_FieldGet(lfield, rank=lrank, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (lrank == 2) then
-          call ESMF_FieldGet(lfield, ungriddedUBound=ungriddedUBound, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (ungriddedUBound(1) > 0) then
           do nu = 1,ungriddedUBound(1)
              npacked = npacked + 1
-             write(cnumber,'(i0)') nu
-             lfieldnamelist_packed(npacked) = trim(fldname)//trim(cnumber)
           end do
        else
           npacked = npacked + 1
-          lfieldnamelist_packed(npacked) = trim(fldname)
        end if
     end do
 
     ! Determine local size and mesh of source fields
     ! Allocate a source fortran pointer for the new packed field bundle
     ! Create the packed source field bundle
-    call FB_getFieldN(FBSrc, 1, lfield, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldGet(lfield, mesh=lmesh_src, rc=rc)
+    call ESMF_FieldGet(fieldlist_src(1), mesh=lmesh_src, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call ESMF_MeshGet(lmesh_src, numOwnedElements=lsize_src, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     allocate(ptrsrc_packed(npacked, lsize_src))
-    FBSrc_packed(mapindex) = ESMF_FieldBundleCreate(lfieldnamelist_packed, &
-         ptrsrc_packed, lmesh_src, lsize_src, gridToFieldMap=(/2/), meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+    fieldsrc_packed(mapindex) = ESMF_FieldCreate(lmesh_src, &
+         ptrsrc_packed, gridToFieldMap=(/2/),  meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
 
     ! Determine local size of destination fields
     ! Allocate a destination fortran pointer for the new packed field bundle
     ! Create the packed source field bundle
-    call FB_getFieldN(FBDst, 1, lfield, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldGet(lfield, mesh=lmesh_dst, rc=rc)
+    call ESMF_FieldGet(fieldlist_dst(1), mesh=lmesh_dst, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call ESMF_MeshGet(lmesh_dst, numOwnedElements=lsize_dst, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     allocate(ptrdst_packed(npacked, lsize_dst))
-    FBDst_packed(mapindex) = ESMF_FieldBundleCreate(lfieldnamelist_packed, &
-         ptrdst_packed, lmesh_dst, lsize_dst, gridToFieldMap=(/2/), meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+    fielddst_packed(mapindex) = ESMF_FieldCreate(lmesh_dst, &
+         ptrdst_packed, gridToFieldMap=(/2/),  meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    deallocate(lfieldnamelist)
-    deallocate(lfieldnamelist_packed)
+    deallocate(fieldlist_src)
+    deallocate(fieldlist_dst)
 
   end subroutine med_map_packed_fieldbundles_create
 
   !================================================================================
-  subroutine med_map_packed_fieldbundles(flds_scalar_name, FBSrc, FBSrc_packed, FBDst_packed, FBDst, &
-       RouteHandles, rc)
+  subroutine med_map_packed_fieldbundles(FBSrc, FBDst, fieldsrc_packed, fielddst_packed, &
+       routehandles, rc)
     
     ! -----------------------------------------------
     ! Do the redistribution on the packed field bundles
@@ -163,34 +122,28 @@ contains
 
     use ESMF
     use esmFlds         , only : mapfcopy
-    use med_methods_mod , only : FB_getFieldByName => med_methods_FB_getFieldByName
+    use med_methods_mod , only : FB_getFieldN => med_methods_FB_getFieldN
 
     ! input/output variables
-    character(len=*)       , intent(in)    :: flds_scalar_name
     type(ESMF_FieldBundle) , intent(in)    :: FBSrc
-    type(ESMF_FieldBundle) , intent(inout) :: FBSrc_packed(:) ! array over mapping types
-    type(ESMF_FieldBundle) , intent(inout) :: FBDst_packed(:) ! array over mapping types
     type(ESMF_FieldBundle) , intent(inout) :: FBDst
-    type(ESMF_RouteHandle) , intent(inout) :: RouteHandles(:)
+    type(ESMF_Field)       , intent(inout) :: fieldsrc_packed(:) ! array over mapping types
+    type(ESMF_Field)       , intent(inout) :: fielddst_packed(:) ! array over mapping types
+    type(ESMF_RouteHandle) , intent(inout) :: routehandles(:)
     integer                , intent(out)   :: rc
 
     ! local variables
-    integer                    :: n, n1, nf, nu
-    integer                    :: npacked  
-    integer                    :: fieldcount
-    character(CL), allocatable :: lfieldnamelist(:)
-    integer                    :: lrank
-    type(ESMF_Field)           :: lfield
-    type(ESMF_Field)           :: lfield_packed
-    character(CL)              :: fldname
-    integer                    :: ungriddedUBound(1)     ! currently the size must equal 1 for rank 2 fields
-    real(r8), pointer          :: dataptr1d(:)
-    real(r8), pointer          :: dataptr2d(:,:)
-    real(r8), pointer          :: dataptr1d_packed(:)
-    integer                    :: lsize_src
-    integer                    :: lsize_dst
-    integer                    :: mapindex
-    character(len=number_strlen) :: cnumber
+    integer                   :: nf, nu
+    integer                   :: npacked  
+    integer                   :: fieldcount
+    type(ESMF_Field)          :: lfield
+    integer                   :: ungriddedUBound(1) ! currently the size must equal 1 for rank 2 fields
+    real(r8), pointer         :: dataptr1d(:)
+    real(r8), pointer         :: dataptr2d(:,:)
+    real(r8), pointer         :: dataptr2d_packed(:,:)
+    integer                   :: mapindex
+    type(ESMF_Field), pointer :: fieldlist_src(:)     
+    type(ESMF_Field), pointer :: fieldlist_dst(:)     
     character(len=*), parameter  :: subname=' (med_map_packed_fieldbundles) '
     !-----------------------------------------------------------
 
@@ -199,95 +152,76 @@ contains
     ! TODO: Just for now assume redistribution, need to leverage fldssrc which is simply not being used
     mapindex = mapfcopy
 
-    ! determine field list in source field bundle
+    ! Get field count for both FBsrc and FBdst
     call ESMF_FieldBundleGet(FBsrc, fieldCount=fieldCount, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    allocate(lfieldnamelist(fieldcount))
-    call ESMF_FieldBundleGet(FBsrc, fieldNameList=lfieldnamelist, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    do n = 1, fieldCount
-       if (trim(lfieldnamelist(n)) == trim(flds_scalar_name) .or. trim(lfieldnamelist(n)) == '') then
-          do n1 = n, fieldCount-1
-             lfieldnamelist(n1) = lfieldnamelist(n1+1)
-          enddo
-          fieldCount = fieldCount - 1
-       endif
-    enddo  ! n
+    allocate(fieldlist_src(fieldcount))
+    allocate(fieldlist_dst(fieldcount))
+    call ESMF_FieldBundleGet(FBsrc, fieldlist=fieldlist_src, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldBundleGet(FBdst, fieldlist=fieldlist_dst, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    ! copy the src fields into the packed field bundle
-    do n = 1,fieldcount
-       fldname = lfieldnamelist(n)
-       call FB_getFieldByName(FBSrc, trim(fldname), lfield, rc)
+    ! Get the pointer for the packed source data
+    call ESMF_FieldGet(fieldsrc_packed(mapindex), farrayptr=dataptr2d_packed, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    ! Copy the src fields into the packed field bundle
+    call t_startf('MED:'//trim(subname)//' copy from src')
+    npacked = 0
+    do nf = 1,fieldcount
+       call ESMF_FieldGet(fieldlist_src(nf), ungriddedUBound=ungriddedUBound, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_FieldGet(lfield, rank=lrank, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (lrank == 2) then
-          call ESMF_FieldGet(lfield, ungriddedUBound=ungriddedUBound, rc=rc)
+       if (ungriddedUBound(1) > 0) then
+          call ESMF_FieldGet(fieldlist_src(nf), farrayptr=dataptr2d, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           do nu = 1,ungriddedUBound(1)
-             ! Name of packed field is same as name of src field with
-             ! the ungridded dimension appended
-             write(cnumber,'(i0)') nu
-             call FB_getFieldByName(FbSrc_packed(mapindex), trim(fldname)//trim(cnumber), lfield_packed, rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-             call ESMF_FieldGet(lfield_packed, farrayptr=dataptr1d_packed, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-             call ESMF_FieldGet(lfield, farrayptr=dataptr2d, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-             dataptr1d_packed(:) = dataptr2d(nu,:)
+             npacked = npacked + 1
+             dataptr2d_packed(npacked,:) = dataptr2d(nu,:)
           end do
        else
-          ! Name of packed field is same as name of src field
-          call FB_getFieldByName(FBSrc_packed(mapindex), trim(fldname), lfield_packed, rc)
+          call ESMF_FieldGet(fieldlist_src(nf), farrayptr=dataptr1d, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call ESMF_FieldGet(lfield_packed, farrayptr=dataptr1d_packed, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call ESMF_FieldGet(lfield, farrayptr=dataptr1d, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          dataptr1d_packed(:) = dataptr1d(:)
+          npacked = npacked + 1
+          dataptr2d_packed(npacked,:) = dataptr1d(:)
        end if
     end do
+    call t_stopf('MED:'//trim(subname)//' copy from src')
 
     ! Do the mapping
-    call ESMF_FieldBundleRedist(FBSrc_packed(mapindex), FBDst_packed(mapindex), Routehandles(mapindex), rc=rc)
+    call t_startf('MED:'//trim(subname)//' map')
+    call ESMF_FieldRedist(fieldsrc_packed(mapindex), fielddst_packed(mapindex), routehandles(mapindex), rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call t_stopf('MED:'//trim(subname)//' map')
+
+    ! Get the pointer for the packed destination data
+    call ESMF_FieldGet(fielddst_packed(mapindex), farrayptr=dataptr2d_packed, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! Copy the destination packed field bundle into the destination unpacked field bundle
-    do n = 1,fieldcount
-       fldname = lfieldnamelist(n)
-       call FB_getFieldByName(FBDst, trim(fldname), lfield, rc)
+    call t_startf('MED:'//trim(subname)//' copy to dest')
+    npacked = 0
+    do nf = 1,fieldcount
+       call ESMF_FieldGet(fieldlist_dst(nf), ungriddedUBound=ungriddedUBound, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_FieldGet(lfield, rank=lrank, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (lrank == 2) then
-          call ESMF_FieldGet(lfield, ungriddedUBound=ungriddedUBound, rc=rc)
+       if (ungriddedUBound(1) > 0) then
+          call ESMF_FieldGet(fieldlist_dst(nf), farrayptr=dataptr2d, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           do nu = 1,ungriddedUBound(1)
-             ! Name of packed field is same as name of field with
-             ! the ungridded dimension appended
-             write(cnumber,'(i0)') nu
-             call FB_getFieldByName(FBDst_packed(mapindex), &
-                  trim(fldname)//trim(cnumber), lfield_packed, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-             call ESMF_FieldGet(lfield_packed, farrayptr=dataPtr1d_packed, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-             call ESMF_FieldGet(lfield, farrayptr=dataPtr2d, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-             dataptr2d(nu,:) = dataptr1d_packed(:)
+             npacked = npacked + 1
+             dataptr2d(nu,:) = dataptr2d_packed(npacked,:)
           end do
        else
-          ! Name of packed field is same as name of src field
-          call FB_getFieldByName(FBDst_packed(mapindex), trim(fldname), lfield_packed, rc=rc)
+          call ESMF_FieldGet(fieldlist_dst(nf), farrayptr=dataptr1d, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call ESMF_FieldGet(lfield_packed, farrayptr=dataptr1d_packed, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call ESMF_FieldGet(lfield, farrayptr=dataptr1d, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          dataptr1d(:) = dataptr1d_packed(:)
+          npacked = npacked + 1
+          dataptr1d(:) = dataptr2d_packed(npacked,:)
        end if
     end do
+    call t_stopf('MED:'//trim(subname)//' copy to dest')
 
-    deallocate(lfieldnamelist)
+    deallocate(fieldlist_src)
+    deallocate(fieldlist_dst)
 
   end subroutine med_map_packed_fieldbundles
 

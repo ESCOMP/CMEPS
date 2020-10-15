@@ -4,7 +4,7 @@ module med_internalstate_mod
   ! Mediator Internal State Datatype.
   !-----------------------------------------------------------------------------
 
-  use ESMF         , only : ESMF_RouteHandle, ESMF_FieldBundle, ESMF_State
+  use ESMF         , only : ESMF_RouteHandle, ESMF_FieldBundle, ESMF_State, ESMF_Field
   use ESMF         , only : ESMF_VM
   use esmFlds      , only : ncomps, nmappers
   use med_kind_mod , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
@@ -92,7 +92,8 @@ module med_internalstate_mod
     ! Mapping
     type(ESMF_RouteHandle) :: RH(ncomps,ncomps,nmappers)         ! Routehandles for pairs of components and different mappers
     type(ESMF_FieldBundle) :: FBNormOne(ncomps,ncomps,nmappers)  ! Unity static normalization
-    type(ESMF_FieldBundle) :: FBImp_packed(ncomps,ncomps,nmappers)
+    type(ESMF_Field)       :: fieldsrc_packed(ncomps,ncomps,nmappers)
+    type(ESMF_Field)       :: fielddst_packed(ncomps,ncomps,nmappers)
 
     ! Fractions
     type(ESMF_FieldBundle) :: FBfrac(ncomps)                     ! Fraction data for various components, on their grid
