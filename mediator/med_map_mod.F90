@@ -193,7 +193,6 @@ contains
           !---    given field bundle source and destination grids
 
           if (n1 /= n2) then
-
              ! Determine route handle names
              rhname = trim(compname(n1))//"2"//trim(compname(n2))
 
@@ -220,7 +219,6 @@ contains
                    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
                    if (.not. mapexists) then
-
                       mapname  = trim(mapnames(mapindex))
                       mapfile  = trim(fldListFr(n1)%flds(nf)%mapfile(n2))
                       string   = trim(rhname)//'_weights'
@@ -264,6 +262,7 @@ contains
                                  factorList=factorList, &
                                  ignoreDegenerate=.true., &
                                  unmappedaction=ESMF_UNMAPPEDACTION_IGNORE, rc=rc)
+                            if (chkerr(rc,__LINE__,u_FILE_u)) return
                          else if ((mapindex == mapconsf .or. mapindex == mapnstod_consf) .and. &
                               .not. med_map_RH_is_created(is_local%wrap%RH(n1,n2,:),mapconsf,rc)) then
                             call ESMF_FieldRegridStore(fldsrc, flddst, &
@@ -277,6 +276,7 @@ contains
                                  ignoreDegenerate=.true., &
                                  unmappedaction=ESMF_UNMAPPEDACTION_IGNORE, &
                                  rc=rc)
+                            if (chkerr(rc,__LINE__,u_FILE_u)) return
                          else if ((mapindex == mapconsd .or. mapindex == mapnstod_consd) .and. &
                               .not. med_map_RH_is_created(is_local%wrap%RH(n1,n2,:),mapconsd,rc)) then
                             call ESMF_FieldRegridStore(fldsrc, flddst, &
@@ -290,6 +290,7 @@ contains
                                  ignoreDegenerate=.true., &
                                  unmappedaction=ESMF_UNMAPPEDACTION_IGNORE, &
                                  rc=rc)
+                            if (chkerr(rc,__LINE__,u_FILE_u)) return
                          else if (mapindex == mappatch) then
                             call ESMF_FieldRegridStore(fldsrc, flddst, &
                                  routehandle=is_local%wrap%RH(n1,n2,mapindex), &
@@ -301,6 +302,7 @@ contains
                                  factorList=factorList, &
                                  ignoreDegenerate=.true., &
                                  unmappedaction=ESMF_UNMAPPEDACTION_IGNORE, rc=rc)
+                            if (chkerr(rc,__LINE__,u_FILE_u)) return
                          end if
                          ! consd_nstod method requires a second routehandle
                          if ((mapindex == mapnstod .or. mapindex == mapnstod_consd .or. mapindex == mapnstod_consf) .and. &
@@ -315,8 +317,8 @@ contains
                                  ignoreDegenerate=.true., &
                                  unmappedaction=ESMF_UNMAPPEDACTION_IGNORE, &
                                  rc=rc)
+                            if (chkerr(rc,__LINE__,u_FILE_u)) return
                          end if
-                         if (chkerr(rc,__LINE__,u_FILE_u)) return
                          if (rhprint_flag .and. mapindex /= mapnstod_consd .and. mapindex /= mapnstod_consf) then
                             call NUOPC_Write(factorList, "array_med_"//trim(string)//"_consf.nc", rc)
                             if (chkerr(rc,__LINE__,u_FILE_u)) return

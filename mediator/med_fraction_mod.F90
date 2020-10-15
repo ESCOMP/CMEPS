@@ -327,7 +327,7 @@ contains
 
        ! Reset 'lfrac' in FBFrac(complnd) by mapping the Frac
        ! If lnd -> atm coupling is active - map 'lfrac' from FBFrac(compatm) to FBFrac(complnd)
-       
+
        if (med_map_RH_is_created(is_local%wrap%RH(compatm,complnd,:),mapfcopy, rc=rc)) then
           maptype = mapfcopy
        else
@@ -346,11 +346,9 @@ contains
             is_local%wrap%RH(compatm,complnd,:),maptype, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
-
     !---------------------------------------
     ! Set 'lfrac' in FBFrac(compatm) and correct 'ofrac' in FBFrac(compatm)
     ! ---------------------------------------
-
     ! These should actually be mapo2a of ofrac and lfrac but we can't
     ! map lfrac from o2a due to masked mapping weights.  So we have to
     ! settle for a residual calculation that is truncated to zero to
@@ -360,7 +358,7 @@ contains
 
        if (is_local%wrap%comp_present(compocn) .or. is_local%wrap%comp_present(compice)) then
 
-          ! Ocean is present 
+          ! Ocean is present
           call FB_getFldPtr(is_local%wrap%FBfrac(compatm), 'lfrac', lfrac, rc=rc)
           call FB_getFldPtr(is_local%wrap%FBfrac(compatm), 'ofrac', ofrac, rc=rc)
 

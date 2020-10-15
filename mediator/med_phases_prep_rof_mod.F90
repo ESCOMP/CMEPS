@@ -188,7 +188,6 @@ contains
     !---------------------------------------
     !--- Count the number of fields outside of scalar data, if zero, then return
     !---------------------------------------
-
     ! Note - the scalar field has been removed from all mediator field bundles - so this is why we check if the
     ! fieldCount is 0 and not 1 here
 
@@ -294,7 +293,6 @@ contains
        !---------------------------------------
 
     endif
-
     if (dbug_flag > 20) then
        call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
     end if

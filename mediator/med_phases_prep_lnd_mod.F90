@@ -116,7 +116,7 @@ contains
 
        do n1 = 1,ncomps
           if (is_local%wrap%med_coupling_active(n1,complnd)) then
-             ! The following will map all atm->lnd, rof->lnd, and 
+             ! The following will map all atm->lnd, rof->lnd, and
              ! glc->lnd only for Sg_icemask_field and Sg_icemask_coupled_fluxes
              call med_map_FB_Regrid_Norm( &
                   fldsSrc=fldListFr(n1)%flds, &
@@ -135,7 +135,7 @@ contains
        !--- auto merges to create FBExp(complnd)
        !---------------------------------------
 
-       ! The following will merge all fields in fldsSrc 
+       ! The following will merge all fields in fldsSrc
        ! (for glc these are Sg_icemask and Sg_icemask_coupled_fluxes)
        call med_merge_auto(trim(compname(complnd)), &
             is_local%wrap%FBExp(complnd), &
@@ -145,7 +145,7 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        !---------------------------------------
-       !--- custom calculations 
+       !--- custom calculations
        !---------------------------------------
 
        ! The following is only done if glc->lnd coupling is active
@@ -393,7 +393,7 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call FB_getFldPtr(is_local%wrap%FBImp(compglc,compglc), trim(Sg_frac), fldptr1=frac_g, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call FB_getFldPtr(FBglc_ec, 'field_ec', fldptr2=frac_g_ec, rc=rc) 
+    call FB_getFldPtr(FBglc_ec, 'field_ec', fldptr2=frac_g_ec, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     ! compute frac_g_ec
     call glc_get_fractional_icecov(ungriddedCount-1, topo_g, frac_g, frac_g_ec, logunit)

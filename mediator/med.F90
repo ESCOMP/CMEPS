@@ -24,6 +24,7 @@ module MED
   use med_methods_mod        , only : FB_Copy            => med_methods_FB_Copy
   use med_methods_mod        , only : FB_FldChk          => med_methods_FB_FldChk
   use med_methods_mod        , only : FB_diagnose        => med_methods_FB_diagnose
+  use med_methods_mod        , only : FB_getFieldN       => med_methods_FB_getFieldN
   use med_methods_mod        , only : clock_timeprint    => med_methods_clock_timeprint
   use med_time_mod           , only : alarmInit          => med_time_alarmInit
   use med_utils_mod          , only : memcheck           => med_memcheck
@@ -69,7 +70,8 @@ contains
 
   subroutine SetServices(gcomp, rc)
 
-    use ESMF                    , only: ESMF_SUCCESS, ESMF_GridCompSetEntryPoint, ESMF_METHOD_INITIALIZE, ESMF_METHOD_RUN
+    use ESMF                    , only: ESMF_SUCCESS, ESMF_GridCompSetEntryPoint
+    use ESMF                    , only: ESMF_METHOD_INITIALIZE, ESMF_METHOD_RUN
     use ESMF                    , only: ESMF_GridComp, ESMF_MethodRemove
     use NUOPC                   , only: NUOPC_CompDerive, NUOPC_CompSetEntryPoint, NUOPC_CompSpecialize, NUOPC_NOOP
     use NUOPC_Mediator          , only: mediator_routine_SS             => SetServices
@@ -96,6 +98,13 @@ contains
     use med_phases_prep_ocn_mod , only: med_phases_prep_ocn_accum_avg
     use med_phases_ocnalb_mod   , only: med_phases_ocnalb_run
     use med_phases_aofluxes_mod , only: med_phases_aofluxes_run
+    use med_diag_mod            , only: med_phases_diag_accum, med_phases_diag_print
+    use med_diag_mod            , only: med_phases_diag_atm
+    use med_diag_mod            , only: med_phases_diag_lnd
+    use med_diag_mod            , only: med_phases_diag_rof
+    use med_diag_mod            , only: med_phases_diag_glc
+    use med_diag_mod            , only: med_phases_diag_ocn
+    use med_diag_mod            , only: med_phases_diag_ice_ice2med, med_phases_diag_ice_med2ice
     use med_fraction_mod        , only: med_fraction_init, med_fraction_set
     use med_phases_profile_mod  , only: med_phases_profile
 
@@ -343,6 +352,64 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
          specPhaseLabel="med_fraction_set", specRoutine=med_fraction_set, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    !------------------
+    ! phase routines for budget diagnostics
+    !------------------
+
+    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
+         phaseLabelList=(/"med_phases_diag_atm"/), userRoutine=mediator_routine_Run, rc=rc)
+    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
+         specPhaselabel="med_phases_diag_atm", specRoutine=med_phases_diag_atm, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
+         phaseLabelList=(/"med_phases_diag_lnd"/), userRoutine=mediator_routine_Run, rc=rc)
+    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
+         specPhaselabel="med_phases_diag_lnd", specRoutine=med_phases_diag_lnd, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
+         phaseLabelList=(/"med_phases_diag_rof"/), userRoutine=mediator_routine_Run, rc=rc)
+    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
+         specPhaselabel="med_phases_diag_rof", specRoutine=med_phases_diag_rof, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
+         phaseLabelList=(/"med_phases_diag_ocn"/), userRoutine=mediator_routine_Run, rc=rc)
+    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
+         specPhaselabel="med_phases_diag_ocn", specRoutine=med_phases_diag_ocn, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
+         phaseLabelList=(/"med_phases_diag_glc"/), userRoutine=mediator_routine_Run, rc=rc)
+    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
+         specPhaselabel="med_phases_diag_glc", specRoutine=med_phases_diag_glc, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
+         phaseLabelList=(/"med_phases_diag_ice_ice2med"/), userRoutine=mediator_routine_Run, rc=rc)
+    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
+         specPhaselabel="med_phases_diag_ice_ice2med", specRoutine=med_phases_diag_ice_ice2med, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
+         phaseLabelList=(/"med_phases_diag_ice_med2ice"/), userRoutine=mediator_routine_Run, rc=rc)
+    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
+         specPhaselabel="med_phases_diag_ice_med2ice", specRoutine=med_phases_diag_ice_med2ice, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
+         phaseLabelList=(/"med_phases_diag_accum"/), userRoutine=mediator_routine_Run, rc=rc)
+    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
+         specPhaselabel="med_phases_diag_accum", specRoutine=med_phases_diag_accum, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
+         phaseLabelList=(/"med_phases_diag_print"/), userRoutine=mediator_routine_Run, rc=rc)
+    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
+         specPhaseLabel="med_phases_diag_print", specRoutine=med_phases_diag_print, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !------------------
@@ -635,6 +702,12 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (isPresent .and. isSet) then
        if (trim(cvalue) /= 'sglc') glc_present = "true"
+    end if
+
+    call NUOPC_CompAttributeGet(gcomp, name='mediator_present', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+       med_present = trim(cvalue)
     end if
 
     call NUOPC_CompAttributeSet(gcomp, name="atm_present", value=atm_present, rc=rc)
@@ -1503,6 +1576,7 @@ contains
     use med_phases_ocnalb_mod   , only : med_phases_ocnalb_run
     use med_phases_aofluxes_mod , only : med_phases_aofluxes_run
     use med_phases_profile_mod  , only : med_phases_profile
+    use med_diag_mod            , only : med_diag_zero, med_diag_init
     use med_map_mod             , only : med_map_MapNorm_init, med_map_RouteHandles_init
     use med_io_mod              , only : med_io_init
 
@@ -1689,6 +1763,10 @@ contains
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
             is_local%wrap%FBExpAccumCnt(n1) = 0
 
+            ! Create mesh info data
+            call med_meshinfo_create(is_local%wrap%FBImp(n1,n1), &
+                 is_local%wrap%mesh_info(n1), rc=rc)
+            if (ChkErr(rc,__LINE__,u_FILE_u)) return
          endif
 
          ! The following are FBImp and FBImpAccum mapped to different grids.
@@ -1813,7 +1891,6 @@ contains
       !---------------------------------------
       ! Initialize route handles and required normalization field bunds
       !---------------------------------------
-
       call med_map_RouteHandles_init(gcomp, logunit, rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
@@ -2037,9 +2114,18 @@ contains
 
        call med_io_init()
 
-      !---------------------------------------
-      ! read mediator restarts
-      !---------------------------------------
+       !---------------------------------------
+       ! Initialize mediator water/heat budget diags
+       !---------------------------------------
+
+       call med_diag_init(gcomp, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call med_diag_zero(gcomp, mode='all', rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       !---------------------------------------
+       ! read mediator restarts
+       !---------------------------------------
 
        call NUOPC_CompAttributeGet(gcomp, name="read_restart", value=cvalue, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -2056,12 +2142,10 @@ contains
     else ! Not all done
        call NUOPC_CompAttributeSet(gcomp, name="InitializeDataComplete", value="false", rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
        call ESMF_LogWrite("MED - Initialize-Data-Dependency allDone check Failed, another loop is required", &
             ESMF_LOGMSG_INFO)
 
     end if
-
     if (profile_memory) call ESMF_VMLogMemInfo("Leaving "//trim(subname))
     if (dbug_flag > 5) then
       call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
@@ -2090,15 +2174,10 @@ contains
     type(ESMF_Time)         :: currTime
     type(ESMF_TimeInterval) :: timeStep
     character(len=CL)       :: cvalue
-    character(len=CL)       :: restart_option       ! Restart option units
-    integer                 :: restart_n            ! Number until restart interval
-    integer                 :: restart_ymd          ! Restart date (YYYYMMDD)
-    type(ESMF_ALARM)        :: restart_alarm
     type(ESMF_ALARM)        :: glc_avg_alarm
     logical                 :: glc_present
     character(len=CS)       :: glc_avg_period
     integer                 :: glc_cpl_dt
-    type(ESMF_ALARM)        :: alarm
     logical                 :: first_time = .true.
     character(len=*),parameter :: subname='(module_MED:SetRunClock)'
     !-----------------------------------------------------------
@@ -2138,6 +2217,7 @@ contains
     !--------------------------------
 
     if (first_time) then
+
        ! Set glc averaging alarm if appropriate
        call NUOPC_CompAttributeGet(gcomp, name="glc_present", value=cvalue, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -2170,7 +2250,6 @@ contains
          call ESMF_AlarmSet(glc_avg_alarm, clock=mediatorclock, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
       end if
-
       first_time = .false.
     end if
 
@@ -2189,6 +2268,76 @@ contains
     endif
 
   end subroutine SetRunClock
+
+  !-----------------------------------------------------------------------------
+  !-----------------------------------------------------------------------------
+
+  subroutine med_meshinfo_create(FB, mesh_info, rc)
+
+    use ESMF , only : ESMF_Array, ESMF_ArrayCreate, ESMF_ArrayDestroy, ESMF_Field, ESMF_FieldGet
+    use ESMF , only : ESMF_DistGrid, ESMF_FieldBundle, ESMF_FieldRegridGetArea, ESMF_FieldBundleGet
+    use ESMF , only : ESMF_Mesh, ESMF_MeshGet, ESMF_MESHLOC_ELEMENT, ESMF_TYPEKIND_R8
+    use ESMF , only : ESMF_SUCCESS, ESMF_FAILURE, ESMF_LogWrite, ESMF_LOGMSG_INFO
+    use med_internalstate_mod , only : mesh_info_type
+
+    ! input/output variables
+    type(ESMF_FieldBundle) , intent(in)    :: FB
+    type(mesh_info_type)   , intent(inout) :: mesh_info
+    integer                , intent(out)   :: rc
+
+    ! local variables
+    type(ESMF_Field)      :: lfield
+    type(ESMF_Mesh)       :: lmesh
+    type(ESMF_Array)      :: lArray
+    type(ESMF_DistGrid)   :: lDistGrid
+    integer               :: numOwnedElements
+    integer               :: spatialDim
+    real(r8), allocatable :: ownedElemCoords(:)
+    real(r8), pointer     :: dataptr(:)
+    integer               :: n, dimcount, fieldcount
+    character(len=*),parameter :: subname='(module_MED:med_meshinfo_create)'
+    !-------------------------------------------------------------------------------
+
+    rc= ESMF_SUCCESS
+
+    call ESMF_FieldBundleGet(FB, fieldCount=fieldCount, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    ! Find the first field in FB with dimcount==1
+    do n=1,fieldCount
+       call FB_getFieldN(FB, fieldnum=n, field=lfield, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+       call ESMF_FieldGet(lfield, mesh=lmesh, dimcount=dimCount, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (dimCount==1) exit
+    enddo
+    call ESMF_FieldRegridGetArea(lfield, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    call ESMF_MeshGet(lmesh, spatialDim=spatialDim, numOwnedElements=numOwnedElements, &
+         elementDistGrid=lDistGrid, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    ! Allocate mesh_info data, we need a copy here because the FB may get reset later
+    allocate(mesh_info%areas(numOwnedElements))
+    call ESMF_FieldGet(lfield, farrayPtr=dataptr, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    mesh_info%areas = dataptr
+
+    allocate(mesh_info%lats(numOwnedElements))
+    allocate(mesh_info%lons(numOwnedElements))
+
+    ! Obtain mesh longitudes and latitudes
+    allocate(ownedElemCoords(spatialDim*numOwnedElements))
+    call ESMF_MeshGet(lmesh, ownedElemCoords=ownedElemCoords)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    do n = 1,numOwnedElements
+       mesh_info%lons(n) = ownedElemCoords(2*n-1)
+       mesh_info%lats(n) = ownedElemCoords(2*n)
+    end do
+    deallocate(ownedElemCoords)
+
+  end subroutine med_meshinfo_create
 
   !-----------------------------------------------------------------------------
 
@@ -2211,7 +2360,6 @@ contains
   !-----------------------------------------------------------------------------
 
   subroutine med_grid_write(grid, fileName, rc)
-
     use ESMF, only : ESMF_Grid, ESMF_Array, ESMF_ArrayBundle
     use ESMF, only : ESMF_ArrayBundleCreate, ESMF_GridGet
     use ESMF, only : ESMF_GridGetCoord, ESMF_ArraySet, ESMF_ArrayBundleAdd
