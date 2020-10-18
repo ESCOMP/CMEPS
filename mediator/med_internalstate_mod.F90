@@ -48,6 +48,14 @@ module med_internalstate_mod
      real(r8), pointer :: lons(:)
   end type mesh_info_type
 
+  type, public :: packed_data_type
+     integer, allocatable :: fldindex(:) ! size of number of packed fields 
+     character(len=CS)    :: mapnorm     ! normalization for packed field
+     type(ESMF_Field)     :: field_src    ! packed sourced field
+     type(ESMF_Field)     :: field_dst    ! packed destination field
+     type(ESMF_Field)     :: field_fracsrc
+     type(ESMF_Field)     :: field_fracdst
+  end type packed_data_type
 
   ! private internal state to keep instance data
   type InternalStateStruct
@@ -92,8 +100,7 @@ module med_internalstate_mod
     ! Mapping
     type(ESMF_RouteHandle) :: RH(ncomps,ncomps,nmappers)         ! Routehandles for pairs of components and different mappers
     type(ESMF_FieldBundle) :: FBNormOne(ncomps,ncomps,nmappers)  ! Unity static normalization
-    type(ESMF_Field)       :: fieldsrc_packed(ncomps,ncomps,nmappers)
-    type(ESMF_Field)       :: fielddst_packed(ncomps,ncomps,nmappers)
+    type(packed_data_type) :: packed_data(ncomps,ncomps,nmappers)
 
     ! Fractions
     type(ESMF_FieldBundle) :: FBfrac(ncomps)                     ! Fraction data for various components, on their grid
