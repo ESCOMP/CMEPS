@@ -9,13 +9,11 @@ module med_phases_prep_ice_mod
   use med_methods_mod       , only : fldchk            => med_methods_FB_FldChk
   use med_methods_mod       , only : FB_GetFldPtr      => med_methods_FB_GetFldPtr
   use med_methods_mod       , only : FB_diagnose       => med_methods_FB_diagnose
-  use med_methods_mod       , only : FB_getNumFlds     => med_methods_FB_getNumFlds
   use med_methods_mod       , only : State_GetScalar   => med_methods_State_GetScalar
   use med_methods_mod       , only : State_SetScalar   => med_methods_State_SetScalar
   use med_constants_mod     , only : dbug_flag => med_constants_dbug_flag
   use med_merge_mod         , only : med_merge_auto
-  use med_map_mod           , only : med_map_FB_Regrid_Norm, med_map_RH_is_created
-  use med_map_mod           , only : med_map_FB_Field_Regrid
+  use med_map_packed_mod    , only : med_map_packed_field_map
   use med_internalstate_mod , only : InternalState, logunit, mastertask
   use esmFlds               , only : compatm, compice, comprof, compglc, ncomps, compname
   use esmFlds               , only : fldListFr, fldListTo
@@ -68,6 +66,7 @@ contains
     character(len=64), allocatable :: fldnames(:)
     real(r8)                       :: nextsw_cday
     logical                        :: first_precip_fact_call = .true.
+    logical                        :: first_call = .true.
     character(len=*),parameter     :: subname='(med_phases_prep_ice)'
     !---------------------------------------
 
@@ -93,29 +92,24 @@ contains
     ! Note - the scalar field has been removed from all mediator field bundles - so this is why we check if the
     ! fieldCount is 0 and not 1 here
 
-    call FB_getNumFlds(is_local%wrap%FBExp(compice), trim(subname)//"FBexp(compice)", ncnt, rc)
+    call ESMF_FieldBundleGet(is_local%wrap%FBExp(compice), fieldCount=ncnt, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     if (ncnt > 0) then
 
-       !---------------------------------------
-       !--- map to create FBImp(:,compice)
-       !---------------------------------------
-
+       ! map all fields in FBImp that have active ice coupling
        do n1 = 1,ncomps
           if (is_local%wrap%med_coupling_active(n1,compice)) then
-             call med_map_FB_Regrid_Norm( &
-                  fldsSrc=fldListFr(n1)%flds, &
-                  srccomp=n1, destcomp=compice, &
+             call med_map_packed_field_map( &
                   FBSrc=is_local%wrap%FBImp(n1,n1), &
                   FBDst=is_local%wrap%FBImp(n1,compice), &
                   FBFracSrc=is_local%wrap%FBFrac(n1), &
                   FBNormOne=is_local%wrap%FBNormOne(n1,compice,:), &
-                  RouteHandles=is_local%wrap%RH(n1,compice,:), &
-                  string=trim(compname(n1))//'2'//trim(compname(compice)), rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
+                  packed_data=is_local%wrap%packed_data(n1,compice,:), &
+                  routehandles=is_local%wrap%RH(n1,compice,:), rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
-       enddo
+       end do
 
        !---------------------------------------
        !--- auto merges to create FBExp(compice)

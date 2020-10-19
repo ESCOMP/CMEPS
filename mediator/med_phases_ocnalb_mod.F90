@@ -24,7 +24,6 @@ module med_phases_ocnalb_mod
   !--------------------------------------------------------------------------
 
   public med_phases_ocnalb_run
-  public med_phases_ocnalb_mapo2a
 
   !--------------------------------------------------------------------------
   ! Private interfaces
@@ -429,55 +428,6 @@ contains
 #endif
 
   end subroutine med_phases_ocnalb_run
-
-  !===============================================================================
-
-  subroutine med_phases_ocnalb_mapo2a(gcomp, rc)
-
-    !----------------------------------------------------------
-    ! Map ocean albedos from ocn to atm grid
-    !----------------------------------------------------------
-
-    use ESMF        , only : ESMF_GridComp
-    use ESMF        , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
-    use med_map_mod , only : med_map_FB_Regrid_Norm
-    use esmFlds     , only : fldListMed_ocnalb
-    use esmFlds     , only : compatm, compocn
-
-    ! Arguments
-    type(ESMF_GridComp)    :: gcomp
-    integer, intent(out)   :: rc
-
-    ! Local variables
-    type(InternalState) :: is_local
-    character(*), parameter :: subName =   '(med_ocnalb_mapo2a) '
-    !-----------------------------------------------------------------------
-    call t_startf('MED:'//subname)
-
-    if (dbug_flag > 5) then
-      call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
-    endif
-    rc = ESMF_SUCCESS
-
-    ! Get the internal state from gcomp
-    nullify(is_local%wrap)
-    call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    ! Map the field bundle from the ocean to the atm grid
-    call med_map_FB_Regrid_Norm( &
-         fldsSrc=fldListMed_ocnalb%flds, &
-         srccomp=compocn, destcomp=compatm, &
-         FBSrc=is_local%wrap%FBMed_ocnalb_o, &
-         FBDst=is_local%wrap%FBMed_ocnalb_a, &
-         FBFracSrc=is_local%wrap%FBFrac(compocn), &
-         FBNormOne=is_local%wrap%FBNormOne(compocn,compatm,:), &
-         RouteHandles=is_local%wrap%RH(compocn,compatm,:), &
-         string='FBMed_ocnalb_o_To_FBMed_ocnalb_a', rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call t_stopf('MED:'//subname)
-
-  end subroutine med_phases_ocnalb_mapo2a
 
 !===============================================================================
 

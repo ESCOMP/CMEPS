@@ -21,7 +21,6 @@ module med_phases_prep_rof_mod
   use med_utils_mod         , only : chkerr          => med_utils_ChkErr
   use med_methods_mod       , only : FB_init         => med_methods_FB_init
   use med_methods_mod       , only : FB_diagnose     => med_methods_FB_diagnose
-  use med_methods_mod       , only : FB_getNumFlds   => med_methods_FB_getNumFlds
   use med_methods_mod       , only : FB_accum        => med_methods_FB_accum
   use med_methods_mod       , only : FB_getFldPtr    => med_methods_FB_getFldPtr
   use med_methods_mod       , only : FB_average      => med_methods_FB_average

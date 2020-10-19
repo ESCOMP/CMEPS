@@ -97,13 +97,11 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! Gather all fields that will be mapped with a target map index into a packed field
-    ! Calculated size of packed field based on the fact that
-    ! some fields have ungridded dimensions and need to unwrap
-    ! them into separate fields for the purposes of packing
-    ! Looper over each mapping type
+    ! Calculated size of packed field based on the fact that some fields have 
+    ! ungridded dimensions and need to unwrap them into separate fields for the 
+    ! purposes of packing
 
-    ! TODO: What happens if you have a field in FBSrc that is not going to be mapped
-
+    ! Allocate memory to keep tracked of packing index for each mapping type
     allocate(npacked(nmappers))
     npacked(:) = 0
 
@@ -216,19 +214,19 @@ contains
     integer                    :: fieldcount
     integer                    :: mapindex
     integer                    :: ungriddedUBound(1) ! currently the size must equal 1 for rank 2 fields
-    real(r8), pointer          :: dataptr1d(:)
-    real(r8), pointer          :: dataptr2d(:,:)
-    real(r8), pointer          :: dataptr2d_packed(:,:)
+    real(r8), pointer          :: dataptr1d(:) => null()
+    real(r8), pointer          :: dataptr2d(:,:) => null()
+    real(r8), pointer          :: dataptr2d_packed(:,:) => null()
     type(ESMF_Field)           :: lfield
     type(ESMF_Field)           :: frac_field_src
-    type(ESMF_Field), pointer  :: fieldlist_src(:)
-    type(ESMF_Field), pointer  :: fieldlist_dst(:)
+    type(ESMF_Field), pointer  :: fieldlist_src(:) => null()
+    type(ESMF_Field), pointer  :: fieldlist_dst(:) => null()
     character(CL), allocatable :: fieldNameList(:)
-    real(r8), pointer          :: data_src(:,:)
-    real(r8), pointer          :: data_srctmp(:,:)
-    real(r8), pointer          :: data_dst(:,:)
-    real(r8), pointer          :: data_fracsrc(:)
-    real(r8), pointer          :: data_fracdst(:)
+    real(r8), pointer          :: data_src(:,:) => null()
+    real(r8), pointer          :: data_srctmp(:,:) => null()
+    real(r8), pointer          :: data_dst(:,:) => null()
+    real(r8), pointer          :: data_fracsrc(:) => null()
+    real(r8), pointer          :: data_fracdst(:) => null()
     character(len=*), parameter  :: subname=' (med_map_packed_fieldbundles) '
     !-----------------------------------------------------------
 

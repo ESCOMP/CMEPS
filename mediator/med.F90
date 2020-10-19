@@ -1578,6 +1578,7 @@ contains
     use med_phases_profile_mod  , only : med_phases_profile
     use med_diag_mod            , only : med_diag_zero, med_diag_init
     use med_map_mod             , only : med_map_MapNorm_init, med_map_RouteHandles_init
+    use med_map_packed_mod      , only : med_map_packed_field_create
     use med_io_mod              , only : med_io_init
 
     ! input/output variables
@@ -1594,6 +1595,7 @@ contains
     type(ESMF_StateItem_Flag)          :: itemType
     logical                            :: atCorrectTime, connected
     integer                            :: n1,n2,n
+    integer                            :: nsrc,ndst
     integer                            :: cntn1, cntn2
     integer                            :: fieldCount
     character(ESMF_MAXSTR),allocatable :: fieldNameList(:)
@@ -1890,12 +1892,48 @@ contains
 
       !---------------------------------------
       ! Initialize route handles and required normalization field bunds
+      ! Initialized packed field data structures
       !---------------------------------------
+
       call med_map_RouteHandles_init(gcomp, logunit, rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-      call med_map_MapNorm_init(gcomp, logunit, rc)
+      call med_map_mapnorm_init(gcomp, logunit, rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+      do ndst = 1,ncomps
+         do nsrc = 1,ncomps
+            if (is_local%wrap%med_coupling_active(nsrc,ndst)) then
+                call med_map_packed_field_create(ndst, &
+                     is_local%wrap%flds_scalar_name, &
+                     fldsSrc=fldListFr(nsrc)%flds, &
+                     FBSrc=is_local%wrap%FBImp(nsrc,nsrc), &
+                     FBDst=is_local%wrap%FBImp(nsrc,ndst), &
+                     packed_data=is_local%wrap%packed_data(nsrc,ndst,:), rc=rc)
+                if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             end if
+          end do
+       end do
+       fieldCount = med_fldList_GetNumFlds(fldListMed_aoflux)
+       if (fieldCount > 0) then
+          call med_map_packed_field_create(compatm, &
+               is_local%wrap%flds_scalar_name, &
+               fldsSrc=fldListMed_aoflux%flds, &
+               FBSrc=is_local%wrap%FBMed_aoflux_o, &
+               FBDst=is_local%wrap%FBMed_aoflux_a, &
+               packed_data=is_local%wrap%packed_data_aoflux_o2a(:), rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       end if
+       fieldCount = med_fldList_GetNumFlds(fldListMed_ocnalb)
+       if (fieldCount > 0) then
+          call med_map_packed_field_create(compatm, &
+               is_local%wrap%flds_scalar_name, &
+               fldsSrc=fldListMed_ocnalb%flds, &
+               FBSrc=is_local%wrap%FBMed_ocnalb_o, &
+               FBDst=is_local%wrap%FBMed_ocnalb_a, &
+               packed_data=is_local%wrap%packed_data_ocnalb_o2a(:), rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       end if
 
       !---------------------------------------
       ! Set the data initialize flag to false
@@ -1974,7 +2012,7 @@ contains
           allocate(fieldNameList(fieldCount))
           call ESMF_StateGet(is_local%wrap%NStateImp(n1), itemNameList=fieldNameList, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          do n=1, fieldCount
+          do n = 1,fieldCount
              call ESMF_StateGet(is_local%wrap%NStateImp(n1), itemName=fieldNameList(n), field=field, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
              atCorrectTime = NUOPC_IsAtTime(field, time, rc=rc)

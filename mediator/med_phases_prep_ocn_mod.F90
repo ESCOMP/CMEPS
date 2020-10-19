@@ -9,11 +9,11 @@ module med_phases_prep_ocn_mod
   use med_constants_mod     , only : dbug_flag     => med_constants_dbug_flag
   use med_internalstate_mod , only : InternalState, mastertask, logunit
   use med_merge_mod         , only : med_merge_auto, med_merge_field
-  use med_map_mod           , only : med_map_FB_Regrid_Norm
+  use med_map_packed_mod    , only : med_map_packed_field_create
+  use med_map_packed_mod    , only : med_map_packed_field_map
   use med_utils_mod         , only : memcheck      => med_memcheck
   use med_utils_mod         , only : chkerr        => med_utils_ChkErr
   use med_methods_mod       , only : FB_diagnose   => med_methods_FB_diagnose
-  use med_methods_mod       , only : FB_getNumFlds => med_methods_FB_getNumFlds
   use med_methods_mod       , only : FB_fldchk     => med_methods_FB_FldChk
   use med_methods_mod       , only : FB_GetFldPtr  => med_methods_FB_GetFldPtr
   use med_methods_mod       , only : FB_accum      => med_methods_FB_accum
@@ -49,7 +49,7 @@ contains
     ! Map all fields in from relevant source components to the ocean grid
     !---------------------------------------
 
-    use ESMF , only : ESMF_GridComp, ESMF_GridCompGet
+    use ESMF , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_FieldBundleGet
     use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
 
     ! input/output variables
@@ -57,8 +57,9 @@ contains
     integer, intent(out) :: rc
 
     ! local variables
-    type(InternalState)         :: is_local
-    integer                     :: n1, ncnt
+    type(InternalState) :: is_local
+    integer             :: n1, ncnt
+    logical             :: first_call = .true.
     character(len=*), parameter :: subname='(med_phases_prep_ocn_map)'
     !-------------------------------------------------------------------------------
 
@@ -76,26 +77,37 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! Count the number of fields outside of scalar data, if zero, then return
-    call FB_getNumFlds(is_local%wrap%FBExp(compocn), trim(subname)//"FBexp(compocn)", ncnt, rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldBundleGet(is_local%wrap%FBExp(compocn), fieldCount=ncnt, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
+    ! map all fields in FBImp that have active ocean coupling
     if (ncnt > 0) then
-
-       ! map all fields in FBImp that have active ocean coupling to the ocean grid
+       if (first_call) then
+          do n1 = 1,ncomps
+             if (is_local%wrap%med_coupling_active(n1,compocn)) then
+                call med_map_packed_field_create(compocn, &
+                     is_local%wrap%flds_scalar_name, &
+                     fldsSrc=fldListFr(n1)%flds, &
+                     FBSrc=is_local%wrap%FBImp(n1,n1), &
+                     FBDst=is_local%wrap%FBImp(n1,compocn), &
+                     packed_data=is_local%wrap%packed_data(n1,compocn,:), rc=rc)
+                if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             end if
+          end do
+          first_call = .false.
+       end if
        do n1 = 1,ncomps
           if (is_local%wrap%med_coupling_active(n1,compocn)) then
-             call med_map_FB_Regrid_Norm( &
-                  fldsSrc=fldListFr(n1)%flds,&
-                  srccomp=n1, destcomp=compocn, &
+             call med_map_packed_field_map( &
                   FBSrc=is_local%wrap%FBImp(n1,n1), &
                   FBDst=is_local%wrap%FBImp(n1,compocn), &
                   FBFracSrc=is_local%wrap%FBFrac(n1), &
                   FBNormOne=is_local%wrap%FBNormOne(n1,compocn,:), &
-                  RouteHandles=is_local%wrap%RH(n1,compocn,:), &
-                  string=trim(compname(n1))//'2'//trim(compname(compocn)), rc=rc)
+                  packed_data=is_local%wrap%packed_data(n1,compocn,:), &
+                  routehandles=is_local%wrap%RH(n1,compocn,:), rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          endif
-       enddo
+          end if
+       end do
     endif
 
     call t_stopf('MED:'//subname)
@@ -108,7 +120,8 @@ contains
   !-----------------------------------------------------------------------------
   subroutine med_phases_prep_ocn_merge(gcomp, rc)
 
-    use ESMF , only : ESMF_GridComp, ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
+    use ESMF , only : ESMF_GridComp, ESMF_FieldBundleGet
+    use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
     use ESMF , only : ESMF_FAILURE,  ESMF_LOGMSG_ERROR
 
     ! input/output variables
@@ -134,8 +147,8 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! Count the number of fields outside of scalar data, if zero, then return
-    call FB_getNumFlds(is_local%wrap%FBExp(compocn), trim(subname)//"FBexp(compocn)", ncnt, rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldBundleGet(is_local%wrap%FBExp(compocn), fieldCount=ncnt, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     if (ncnt > 0) then
 
@@ -194,7 +207,8 @@ contains
 
     ! Carry out fast accumulation for the ocean
 
-    use ESMF , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_Clock, ESMF_Time
+    use ESMF , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_FieldBundleGet
+    use ESMF , only : ESMF_Clock, ESMF_Time
     use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
 
     ! input/output variables
@@ -222,8 +236,8 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! Count the number of fields outside of scalar data, if zero, then return
-    call FB_getNumFlds(is_local%wrap%FBExp(compocn), trim(subname)//"FBexp(compocn)", ncnt, rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldBundleGet(is_local%wrap%FBExp(compocn), fieldCount=ncnt, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     if (ncnt > 0) then
        ! ocean accumulator
@@ -252,6 +266,7 @@ contains
     ! Prepare the OCN import Fields.
 
     use ESMF , only : ESMF_GridComp, ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
+    use ESMF , only : ESMF_FieldBundleGet
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -276,8 +291,8 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! Count the number of fields outside of scalar data, if zero, then return
-    call FB_getNumFlds(is_local%wrap%FBExpAccum(compocn), trim(subname)//"FBExpAccum(compocn)", ncnt, rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldBundleGet(is_local%wrap%FBExpAccum(compocn), fieldCount=ncnt, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     if (ncnt > 0) then
 
