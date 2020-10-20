@@ -165,13 +165,8 @@ contains
     ! - downward diffuse near-infrared incident solar radiation
     ! - downward dirrect visible incident solar radiation
     ! - downward diffuse visible incident solar radiation
-    ! - longwave net heat flux
-    ! - longwave downward flux
-    ! - rain
-    ! - snow
-    allocate(flds(8))
-    flds = (/'Faxa_swndr', 'Faxa_swndf', 'Faxa_swvdr', 'Faxa_swvdf',&
-             'Faxa_lwnet', 'Faxa_lwdn ', 'Faxa_rain ', 'Faxa_snow '/)
+    allocate(flds(4))
+    flds = (/'Faxa_swndr', 'Faxa_swndf', 'Faxa_swvdr', 'Faxa_swvdf'/)
     do n = 1,size(flds)
        fldname = trim(flds(n))
        call addfld(fldListTo(compocn)%flds, trim(fldname))
@@ -180,43 +175,94 @@ contains
     end do
     deallocate(flds)
 
-    ! to ocn: merged sensible heat flux (custom merge in med_phases_prep_ocn)
-    call addfld(fldListTo(compocn)%flds, 'Faxa_sen')
-    call addfld(fldListFr(compatm)%flds, 'Faxa_sen')
-    call addmap(fldListFr(compatm)%flds, 'Faxa_sen', compocn, maptype, 'none', 'unset')
+    ! to ocn: from ice net shortwave radiation (custom merge in med_phases_prep_ocn)
+    ! - downward direct  near-infrared incident solar radiation
+    ! - downward diffuse near-infrared incident solar radiation
+    ! - downward dirrect visible incident solar radiation
+    ! - downward diffuse visible incident solar radiation
+    allocate(flds(4))
+    flds = (/'vdr', 'vdf', 'idr', 'idf'/)
+    do n = 1,size(flds)
+       call addfld(fldListTo(compocn)%flds, 'Foxx_swnet_'//trim(flds(n)))
+       call addfld(fldListFr(compice)%flds, 'Fioi_swpen_'//trim(flds(n)))
+       call addmap(fldListFr(compice)%flds, 'Fioi_swpen_'//trim(flds(n)), compocn, mapfcopy, 'unset', 'unset')
+    end do
+    deallocate(flds)
 
-    ! to ocn: surface latent heat flux and evaporation water flux (custom merge in med_phases_prep_ocn)
-    call addfld(fldListTo(compocn)%flds, 'Faxa_evap')
-    call addfld(fldListFr(compatm)%flds, 'Faxa_lat')
-    call addmap(fldListFr(compatm)%flds, 'Faxa_lat', compocn, maptype, 'none', 'unset')
+    ! to ocn: rain and snow via auto merge
+    allocate(flds(2))
+    flds = (/'Faxa_rain', 'Faxa_snow'/)
+    do n = 1,size(flds)
+       fldname = trim(flds(n))
+       call addfld(fldListTo(compocn)%flds, trim(fldname))
+       call addfld(fldListFr(compatm)%flds, trim(fldname))
+       call addmap(fldListFr(compatm)%flds, trim(fldname), compocn, maptype, 'none', 'unset')
+       call addmrg(fldListTo(compocn)%flds, trim(fldname), &
+            mrg_from1=compatm, mrg_fld1=trim(fldname), mrg_type1='copy_with_weights', mrg_fracname1='ofrac')
+    end do
+    deallocate(flds)
 
-    ! to ocn: merge zonal surface stress (custom merge calculation in med_phases_prep_ocn)
-    call addfld(fldListTo(compocn)%flds, 'Foxx_taux')
-    call addfld(fldListFr(compice)%flds, 'Fioi_taux')
-    call addfld(fldListFr(compatm)%flds, 'Faxa_taux')
-    call addmap(fldListFr(compatm)%flds, 'Faxa_taux', compocn, maptype, 'none', 'unset')
-    call addmap(fldListFr(compice)%flds, 'Fioi_taux', compocn, mapfcopy, 'unset', 'unset')
+    if (trim(coupling_mode) == 'nems_orig' .or. trim(coupling_mode) == 'nems_frac') then
+       ! to ocn: merge surface stress (custom merge calculation in med_phases_prep_ocn)
+       allocate(flds(2))
+       flds = (/'taux', 'tauy'/)
+       do n = 1,size(flds)
+          call addfld(fldListTo(compocn)%flds, 'Foxx_'//trim(flds(n)))
+          call addfld(fldListFr(compice)%flds, 'Fioi_'//trim(flds(n)))
+          call addfld(fldListFr(compatm)%flds, 'Faxa_'//trim(flds(n)))
+          call addmap(fldListFr(compatm)%flds, 'Faxa_'//trim(flds(n)), compocn, maptype, 'none', 'unset')
+          call addmap(fldListFr(compice)%flds, 'Fioi_'//trim(flds(n)), compocn, mapfcopy, 'unset', 'unset')
+       end do
+       deallocate(flds)
 
-    ! to ocn: meridional surface stress (custom merge calculation in med_phases_prep_ocn)
-    call addfld(fldListTo(compocn)%flds, 'Foxx_tauy')
-    call addfld(fldListFr(compice)%flds, 'Fioi_tauy')
-    call addfld(fldListFr(compatm)%flds, 'Faxa_tauy')
-    call addmap(fldListFr(compatm)%flds, 'Faxa_tauy', compocn, maptype, 'none', 'unset')
-    call addmap(fldListFr(compice)%flds, 'Fioi_tauy', compocn, mapfcopy, 'unset', 'unset')
+       ! to ocn: net long wave via auto merge
+       call addfld(fldListTo(compocn)%flds, 'Faxa_lwnet')
+       call addfld(fldListFr(compatm)%flds, 'Faxa_lwnet')
+       call addmap(fldListFr(compatm)%flds, 'Faxa_lwnet', compocn, maptype, 'none', 'unset')
+       call addmrg(fldListTo(compocn)%flds, 'Faxa_lwnet', &
+            mrg_from1=compatm, mrg_fld1='Faxa_lwnet', mrg_type1='copy_with_weights', mrg_fracname1='ofrac')
 
-    ! to ocn: net shortwave radiation from med (custom merge in med_phases_prep_ocn)
-    call addfld(fldListTo(compocn)%flds, 'Foxx_swnet_vdr')
-    call addfld(fldListTo(compocn)%flds, 'Foxx_swnet_vdf')
-    call addfld(fldListTo(compocn)%flds, 'Foxx_swnet_idr')
-    call addfld(fldListTo(compocn)%flds, 'Foxx_swnet_idf')
-    call addfld(fldListFr(compice)%flds, 'Fioi_swpen_vdr')
-    call addfld(fldListFr(compice)%flds, 'Fioi_swpen_vdf')
-    call addfld(fldListFr(compice)%flds, 'Fioi_swpen_idr')
-    call addfld(fldListFr(compice)%flds, 'Fioi_swpen_idf')
-    call addmap(fldListFr(compice)%flds, 'Fioi_swpen_vdr' , compocn, mapfcopy, 'unset', 'unset')
-    call addmap(fldListFr(compice)%flds, 'Fioi_swpen_vdf' , compocn, mapfcopy, 'unset', 'unset')
-    call addmap(fldListFr(compice)%flds, 'Fioi_swpen_idr' , compocn, mapfcopy, 'unset', 'unset')
-    call addmap(fldListFr(compice)%flds, 'Fioi_swpen_idf' , compocn, mapfcopy, 'unset', 'unset')
+       ! to ocn: merged sensible heat flux (custom merge in med_phases_prep_ocn)
+       call addfld(fldListTo(compocn)%flds, 'Faxa_sen')
+       call addfld(fldListFr(compatm)%flds, 'Faxa_sen')
+       call addmap(fldListFr(compatm)%flds, 'Faxa_sen', compocn, maptype, 'none', 'unset')
+
+       ! to ocn: evaporation water flux (custom merge in med_phases_prep_ocn)
+       call addfld(fldListTo(compocn)%flds, 'Faxa_evap')
+       call addfld(fldListFr(compatm)%flds, 'Faxa_lat')
+       call addmap(fldListFr(compatm)%flds, 'Faxa_lat', compocn, maptype, 'none', 'unset')
+    else
+       ! to ocn: surface stress from mediator and ice stress via auto merge
+       allocate(flds(2))
+       flds = (/'taux', 'tauy'/)
+       do n = 1,size(flds)
+          call addfld(fldListTo(compocn)%flds , 'Foxx_'//trim(flds(n)))
+          call addfld(fldListFr(compice)%flds , 'Fioi_'//trim(flds(n)))
+          call addmap(fldListFr(compice)%flds,  'Fioi_'//trim(flds(n)), compocn, mapfcopy, 'unset', 'unset')
+          call addmrg(fldListTo(compocn)%flds,  'Foxx_'//trim(flds(n)), &
+             mrg_from1=compmed, mrg_fld1='Faox_'//trim(flds(n)), mrg_type1='merge', mrg_fracname1='ofrac', &
+             mrg_from2=compice, mrg_fld2='Fioi_'//trim(flds(n)), mrg_type2='merge', mrg_fracname2='ifrac')
+       end do
+       deallocate(flds)
+
+       ! to ocn: long wave net via auto merge 
+       call addfld(fldListTo(compocn)%flds, 'Foxx_lwnet')
+       call addfld(fldListFr(compatm)%flds, 'Faxa_lwdn')
+       call addmap(fldListFr(compatm)%flds, 'Faxa_lwdn', compocn, maptype, 'none', 'unset')
+       call addmrg(fldListTo(compocn)%flds, 'Foxx_lwnet', &
+             mrg_from1=compmed, mrg_fld1='Faox_lwup', mrg_type1='merge', mrg_fracname1='ofrac', &
+             mrg_from2=compatm, mrg_fld2='Faxa_lwdn', mrg_type2='merge', mrg_fracname2='ofrac')
+
+       ! to ocn: sensible heat flux from mediator via auto merge
+       call addfld(fldListTo(compocn)%flds, 'Faox_sen')
+       call addmrg(fldListTo(compocn)%flds, 'Faox_sen', &
+          mrg_from1=compmed, mrg_fld1='Faox_sen', mrg_type1='copy_with_weights', mrg_fracname1='ofrac')
+
+       ! to ocn: evaporation water flux from mediator via auto merge
+       call addfld(fldListTo(compocn)%flds, 'Faox_evap')
+       call addmrg(fldListTo(compocn)%flds, 'Faox_evap', &
+          mrg_from1=compmed, mrg_fld1='Faox_evap', mrg_type1='copy_with_weights', mrg_fracname1='ofrac')
+    end if
 
     ! to ocn: water flux due to melting ice from ice
     ! to ocn: heat flux from melting ice from ice

@@ -185,7 +185,7 @@ contains
 
           if (mastertask) then
              write(logunit,*) ' NOTE: the current compset has no mediator - which provides the clock restart information'
-             write(logunit,*) '   In this case the restarts are handled solely by the component being used and' 
+             write(logunit,*) '   In this case the restarts are handled solely by the component being used and'
              write(logunit,*) '   and the driver clock will always be starting from the initial date on restart'
           end if
           curr_ymd = start_ymd
@@ -650,8 +650,7 @@ contains
    ! use netcdf here since it's serial
    status = nf90_open(restart_file, NF90_NOWRITE, ncid)
    if (status /= nf90_NoErr) then
-      print *,__FILE__,__LINE__,trim(restart_file)
-      call ESMF_LogWrite(trim(subname)//' ERROR: nf90_open', ESMF_LOGMSG_INFO)
+      call ESMF_LogWrite(trim(subname)//' ERROR: nf90_open: '//trim(restart_file), ESMF_LOGMSG_INFO)
       rc = ESMF_FAILURE
       return
    endif

@@ -35,7 +35,6 @@ module med_phases_prep_ocn_mod
 
   private :: med_phases_prep_ocn_custom_cesm
   private :: med_phases_prep_ocn_custom_nems
-  private :: med_phases_prep_ocn_custom_nemsdata
 
   character(*), parameter :: u_FILE_u  = &
        __FILE__
@@ -164,13 +163,10 @@ contains
        if (trim(coupling_mode) == 'cesm') then
           call med_phases_prep_ocn_custom_cesm(gcomp, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       else if (trim(coupling_mode) == 'nems_orig' .or. trim(coupling_mode) == 'nems_frac') then
+       else if (trim(coupling_mode(1:5)) == 'nems_') then
           call med_phases_prep_ocn_custom_nems(gcomp, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       else if (trim(coupling_mode) == 'nems_orig_data') then
-          call med_phases_prep_ocn_custom_nemsdata(gcomp, rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       end if  ! end of nems_orig_data custom
+       end if
 
        ! diagnose output
        if (dbug_flag > 1) then
@@ -289,7 +285,7 @@ contains
             is_local%wrap%FBExpAccumCnt(compocn), rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        if (dbug_flag > 1) then
-          call FB_diagnose(is_local%wrap%FBExp(compocn), &
+          call FB_diagnose(is_local%wrap%FBExpAccum(compocn), &
                string=trim(subname)//' FBExpAccum(compocn) after avg ', rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
@@ -632,33 +628,27 @@ contains
     lsize = size(ofrac)
     allocate(customwgt(lsize))
 
-    call med_merge_field(is_local%wrap%FBExp(compocn),      'Faxa_rain',  &
-         FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_rain' , wgtA=ofrac, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call med_merge_field(is_local%wrap%FBExp(compocn),      'Faxa_snow',  &
-         FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_snow' , wgtA=ofrac, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call med_merge_field(is_local%wrap%FBExp(compocn),      'Faxa_lwnet',  &
-         FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_lwnet', wgtA=ofrac, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (trim(coupling_mode) == 'nems_orig' .or. trim(coupling_mode) == 'nems_frac') then
+       customwgt(:) = -ofrac(:) / const_lhvap
+       call med_merge_field(is_local%wrap%FBExp(compocn),      'Faxa_evap', &
+            FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_lat' , wgtA=customwgt, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    customwgt(:) = -ofrac(:) / const_lhvap
-    call med_merge_field(is_local%wrap%FBExp(compocn),      'Faxa_evap', &
-         FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_lat' , wgtA=customwgt, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       customwgt(:) = -ofrac(:)
+       call med_merge_field(is_local%wrap%FBExp(compocn),      'Faxa_sen',  &
+            FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_sen', wgtA=customwgt, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    customwgt(:) = -ofrac(:)
-    call med_merge_field(is_local%wrap%FBExp(compocn),      'Faxa_sen',  &
-         FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_sen', wgtA=customwgt, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_taux',  &
-         FBinA=is_local%wrap%FBImp(compice,compocn), fnameA='Fioi_taux' , wgtA=ifrac, &
-         FBinB=is_local%wrap%FBImp(compatm,compocn), fnameB='Faxa_taux' , wgtB=customwgt, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_tauy',  &
-         FBinA=is_local%wrap%FBImp(compice,compocn), fnameA='Fioi_tauy' , wgtA=ifrac, &
-         FBinB=is_local%wrap%FBImp(compatm,compocn), fnameB='Faxa_tauy' , wgtB=customwgt, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       customwgt(:) = -ofrac(:)
+       call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_taux',  &
+            FBinA=is_local%wrap%FBImp(compice,compocn), fnameA='Fioi_taux' , wgtA=ifrac, &
+            FBinB=is_local%wrap%FBImp(compatm,compocn), fnameB='Faxa_taux' , wgtB=customwgt, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_tauy',  &
+            FBinA=is_local%wrap%FBImp(compice,compocn), fnameA='Fioi_tauy' , wgtA=ifrac, &
+            FBinB=is_local%wrap%FBImp(compatm,compocn), fnameB='Faxa_tauy' , wgtB=customwgt, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    end if
 
     ! netsw_for_ocn = [downsw_from_atm*(1-ice_fraction)*(1-ocn_albedo)] + [pensw_from_ice*(ice_fraction)]
     customwgt(:) = ofrac(:) * (1.0 - 0.06)
@@ -687,178 +677,5 @@ contains
     call t_stopf('MED:'//subname)
 
   end subroutine med_phases_prep_ocn_custom_nems
-
-  !-----------------------------------------------------------------------------
-  subroutine med_phases_prep_ocn_custom_nemsdata(gcomp, rc)
-
-    ! ----------------------------------------------
-    ! Custom calculation for nems_orig_data
-    ! ----------------------------------------------
-
-    use ESMF , only : ESMF_GridComp
-    use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
-    use ESMF , only : ESMF_FAILURE,  ESMF_LOGMSG_ERROR
-
-    ! input/output variables
-    type(ESMF_GridComp)  :: gcomp
-    integer, intent(out) :: rc
-
-    ! local variables
-    type(InternalState) :: is_local
-    real(R8), pointer   :: ocnwgt1(:)   ! NEMS_orig_data
-    real(R8), pointer   :: icewgt1(:)   ! NEMS_orig_data
-    real(R8), pointer   :: wgtp01(:)    ! NEMS_orig_data
-    real(R8), pointer   :: wgtm01(:)    ! NEMS_orig_data
-    real(R8), pointer   :: customwgt(:) ! NEMS_orig_data
-    real(R8), pointer   :: ifrac(:)
-    real(R8), pointer   :: ofrac(:)
-    integer             :: lsize
-    integer             :: n
-    real(R8)        , parameter    :: const_lhvap = 2.501e6_R8  ! latent heat of evaporation ~ J/kg
-    character(len=*), parameter    :: subname='(med_phases_prep_ocn_custom_nemsdata)'
-    !---------------------------------------
-
-    rc = ESMF_SUCCESS
-
-    call t_startf('MED:'//subname)
-    if (dbug_flag > 20) then
-       call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
-    end if
-    call memcheck(subname, 5, mastertask)
-
-    ! Get the internal state
-    nullify(is_local%wrap)
-    call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    ! get ice and open ocean fractions on the ocn mesh
-    call FB_GetFldPtr(is_local%wrap%FBfrac(compocn), 'ifrac' , ifrac, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call FB_GetFldPtr(is_local%wrap%FBfrac(compocn), 'ofrac' , ofrac, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    lsize = size(ofrac)
-    allocate(customwgt(lsize))
-
-    ! open ocean (i.e. atm)  and ice fraction
-    ! ocnwgt and icewgt are the "normal" fractions
-    ! ocnwgt1, icewgt1, and wgtp01 are the fractions that switch between atm and mediator fluxes
-    ! ocnwgt1+icewgt1+wgtp01 = 1.0 always
-    ! wgtp01 and wgtm01 are the same just one is +1 and the other is -1 to change sign depending on the ice fraction.
-    !   wgtp01 = 1 and wgtm01 = -1 when ice fraction = 0
-    !   wgtp01 = 0 and wgtm01 =  0 when ice fraction > 0
-
-    allocate(ocnwgt1(lsize))
-    allocate(icewgt1(lsize))
-    allocate(wgtp01(lsize))
-    allocate(wgtm01(lsize))
-    allocate(customwgt(lsize))
-
-    do n = 1,lsize
-       if (ifrac(n) <= 0._R8) then
-          ! ice fraction is 0
-          ocnwgt1(n) =  1.0_R8
-          icewgt1(n) =  0.0_R8
-          wgtp01(n)  =  0.0_R8
-          wgtm01(n)  =  0.0_R8
-       else
-          ! ice fraction is > 0
-          ocnwgt1(n) = ofrac(n)
-          icewgt1(n) = ifrac(n)
-          wgtp01(n)  = 0.0_R8
-          wgtm01(n)  = 0.0_R8
-       end if
-
-       ! check wgts do add to 1 as expected
-       ! TODO: check if this condition is still required
-       if(ofrac(n)+ifrac(n) /= 0._R8)then
-         if ( abs( ofrac(n) + ifrac(n) - 1.0_R8) > 1.0e-12 .or. &
-              abs( ocnwgt1(n) + icewgt1(n) + wgtp01(n) - 1.0_R8) > 1.0e-12 .or. &
-              abs( ocnwgt1(n) + icewgt1(n) - wgtm01(n) - 1.0_R8) > 1.0e-12) then
-
-           write(6,100)trim(subname)//'ERROR: n, ofrac, ifrac, sum',&
-                n,ofrac(n),ifrac(n),ofrac(n)+ifrac(n)
-           write(6,101)trim(subname)//'ERROR: n, ocnwgt1, icewgt1, wgtp01, sum ', &
-                n,ocnwgt1(n),icewgt1(n),wgtp01(n),ocnwgt1(n)+icewgt1(n)+wgtp01(n)
-           write(6,101)trim(subname)//'ERROR: n, ocnwgt1, icewgt1, -wgtm01, sum ', &
-                n,ocnwgt1(n),icewgt1(n),-wgtp01(n),ocnwgt1(n)+icewgt1(n)-wgtm01(n)
-100        format(a,i8,2x,3(d20.13,2x))
-101        format(a,i8,2x,4(d20.13,2x))
-
-           call ESMF_LogWrite(trim(subname)//": ERROR atm + ice fracs inconsistent", &
-                ESMF_LOGMSG_ERROR, line=__LINE__, file=__FILE__)
-           rc = ESMF_FAILURE
-           return
-         endif
-       endif
-    end do
-
-    customwgt(:) = wgtm01(:) / const_lhvap
-    call med_merge_field(is_local%wrap%FBExp(compocn),      'Faxa_evap', &
-         FBinA=is_local%wrap%FBMed_aoflux_o        , fnameA='Faox_evap', wgtA=ocnwgt1, &
-         FBinB=is_local%wrap%FBImp(compatm,compocn), fnameB='Faxa_lat' , wgtB=customwgt, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call med_merge_field(is_local%wrap%FBExp(compocn),      'Faxa_sen',    &
-         FBinA=is_local%wrap%FBMed_aoflux_o        , fnameA='Faox_sen ', wgtA=ocnwgt1, &
-         FBinB=is_local%wrap%FBImp(compatm,compocn), fnameB='Faxa_sen' , wgtB=wgtm01, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_taux',  &
-         FBinA=is_local%wrap%FBMed_aoflux_o        , fnameA='Faox_taux ', wgtA=ocnwgt1, &
-         FBinB=is_local%wrap%FBImp(compice,compocn), fnameB='Fioi_taux' , wgtB=icewgt1, &
-         FBinC=is_local%wrap%FBImp(compatm,compocn), fnameC='Faxa_taux' , wgtC=wgtm01, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_tauy',  &
-         FBinA=is_local%wrap%FBMed_aoflux_o        , fnameA='Faox_tauy ', wgtA=ocnwgt1, &
-         FBinB=is_local%wrap%FBImp(compice,compocn), fnameB='Fioi_tauy' , wgtB=icewgt1, &
-         FBinC=is_local%wrap%FBImp(compatm,compocn), fnameC='Faxa_tauy' , wgtC=wgtm01, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    ! If there is no ice on the ocn gridcell (ocnwgt1=0) - sum Faxa_lwdn and Faxa_lwup
-    ! If there is ice on the ocn gridcell -  merge Faox_lwup and Faxa_lwdn and ignore Faxa_lwup
-    call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_lwnet', &
-         FBinA=is_local%wrap%FBMed_aoflux_o        , fnameA='Faox_lwup ', wgtA=ocnwgt1, &
-         FBinB=is_local%wrap%FBImp(compatm,compocn), fnameB='Faxa_lwdn' , wgtB=ocnwgt1, &
-         FBinC=is_local%wrap%FBImp(compatm,compocn), fnameC='Faxa_lwnet', wgtC=wgtp01, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    call med_merge_field(is_local%wrap%FBExp(compocn),      'Faxa_rain' , &
-         FBInA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_rain' , wgtA=ofrac, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call med_merge_field(is_local%wrap%FBExp(compocn),      'Faxa_snow' , &
-         FBInA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_snow' , wgtA=ofrac, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    ! netsw_for_ocn = [downsw_from_atm*(1-ice_fraction)*(1-ocn_albedo)] + [pensw_from_ice*(ice_fraction)]
-    customwgt(:) = ofrac(:) * (1.0 - 0.06)
-    call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_swnet_vdr', &
-         FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_swvdr'    , wgtA=customwgt, &
-         FBinB=is_local%wrap%FBImp(compice,compocn), fnameB='Fioi_swpen_vdr', wgtB=ifrac, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_swnet_vdf', &
-         FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_swvdf'    , wgtA=customwgt, &
-         FBinB=is_local%wrap%FBImp(compice,compocn), fnameB='Fioi_swpen_vdf', wgtB=ifrac, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_swnet_idr', &
-         FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_swndr'    , wgtA=customwgt, &
-         FBinB=is_local%wrap%FBImp(compice,compocn), fnameB='Fioi_swpen_idr', wgtB=ifrac, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_swnet_idf', &
-         FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_swndf'    , wgtA=customwgt, &
-         FBinB=is_local%wrap%FBImp(compice,compocn), fnameB='Fioi_swpen_idf', wgtB=ifrac, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    deallocate(ocnwgt1)
-    deallocate(icewgt1)
-    deallocate(wgtp01)
-    deallocate(wgtm01)
-    deallocate(customwgt)
-
-    if (dbug_flag > 20) then
-       call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
-    end if
-    call t_stopf('MED:'//subname)
-
-  end subroutine med_phases_prep_ocn_custom_nemsdata
 
 end module med_phases_prep_ocn_mod

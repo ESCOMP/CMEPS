@@ -427,7 +427,6 @@ contains
              call med_io_write(hist_file, iam, is_local%wrap%FBMed_ocnalb_o, &
                   nx=nx, ny=ny, nt=1, whead=whead, wdata=wdata, pre='Med_alb_ocn', rc=rc)
           end if
-          !TODO: don't write aoflux_(oa) when they're not being used
           if (ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_aoflux_o,rc=rc)) then
              nx = is_local%wrap%nx(compocn)
              ny = is_local%wrap%ny(compocn)

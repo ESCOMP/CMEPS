@@ -198,7 +198,7 @@ contains
     !--- clean up
     !---------------------------------------
 
-    call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO, rc=rc)
+    call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
     call t_stopf('MED:'//subname)
 
   end subroutine med_phases_profile

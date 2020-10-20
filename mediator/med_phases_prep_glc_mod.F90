@@ -18,13 +18,13 @@ module med_phases_prep_glc_mod
   use ESMF                  , only : ESMF_DistGrid, ESMF_AttributeSet
   use ESMF                  , only : ESMF_Mesh, ESMF_MeshGet, ESMF_MESHLOC_ELEMENT
   use ESMF                  , only : ESMF_TYPEKIND_R8
-  use esmFlds               , only : compglc, complnd, mapbilnr, mapconsf, compname
+  use esmFlds               , only : compglc, complnd, mapbilnr, mapconsf, mapconsd, compname
   use esmFlds               , only : med_fldlist_type
   use med_internalstate_mod , only : InternalState, mastertask, logunit
   use med_constants_mod     , only : dbug_flag=>med_constants_dbug_flag
   use med_internalstate_mod , only : InternalState, mastertask, logunit
   use med_map_mod           , only : med_map_FB_Regrid_Norm, med_map_RH_is_created
-  use med_map_mod           , only : med_map_Fractions_Init
+  use med_map_mod           , only : med_map_routehandles_init
   use med_methods_mod       , only : FB_Init      => med_methods_FB_init
   use med_methods_mod       , only : FB_getFldPtr => med_methods_FB_getFldPtr
   use med_methods_mod       , only : FB_diagnose  => med_methods_FB_diagnose
@@ -220,11 +220,10 @@ contains
 
        ! Create route handle if it has not been created
        if (.not. med_map_RH_is_created(is_local%wrap%RH(complnd,compglc,:),mapbilnr,rc=rc)) then
-          call med_map_Fractions_init( gcomp, complnd, compglc, &
-               FBSrc=FBlndAccum_lnd, &
-               FBDst=FBlndAccum_glc, &
-               RouteHandle=is_local%wrap%RH(complnd,compglc,mapbilnr), rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_LogWrite(trim(subname)//" mapbilnr is not created ", &
+               ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
+          rc = ESMF_FAILURE
+          return
        end if
 
        ! Determine if renormalize smb
@@ -336,11 +335,11 @@ contains
           fldlist_glc2lnd_frac%flds(1)%mapnorm(complnd) = trim(Sg_icemask_field)  ! will use FBglc_icemask
 
           ! Create route handle if it has not been created
-          if (.not. med_map_RH_is_created(is_local%wrap%RH(compglc,complnd,:),mapconsf,rc=rc)) then
-             call med_map_Fractions_init( gcomp, compglc, complnd, &
+          if (.not. med_map_RH_is_created(is_local%wrap%RH(compglc,complnd,:),mapconsd,rc=rc)) then
+             call med_map_routehandles_init( compglc, complnd, &
                   FBSrc=FBlndAccum_glc, &
                   FBDst=FBlndAccum_lnd, &
-                  RouteHandle=is_local%wrap%RH(compglc,complnd,mapconsf), rc=rc)
+                  mapindex=mapconsd, RouteHandle=is_local%wrap%RH, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
        end if

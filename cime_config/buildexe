@@ -6,7 +6,10 @@ build model executable
 
 import sys, os
 
-_CIMEROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..","..","..","..")
+_CIMEROOT = os.environ.get("CIMEROOT")
+if _CIMEROOT is None:
+    raise SystemExit("ERROR: must set CIMEROOT environment variable")
+
 sys.path.append(os.path.join(_CIMEROOT, "scripts", "Tools"))
 
 from standard_script_setup import *
@@ -28,7 +31,6 @@ def _main_func():
 
     with Case(caseroot) as case:
         casetools = case.get_value("CASETOOLS")
-        cimeroot  = case.get_value("CIMEROOT")
         exeroot   = case.get_value("EXEROOT")
         gmake     = case.get_value("GMAKE")
         gmake_j   = case.get_value("GMAKE_J")
@@ -37,7 +39,6 @@ def _main_func():
         ocn_model = case.get_value("COMP_OCN")
         atm_model = case.get_value("COMP_ATM")
         gmake_args = get_standard_makefile_args(case)
-        blddir = os.path.join(case.get_value("EXEROOT"),"cpl","obj")
 
     # Determine valid components
     valid_comps = []
@@ -50,7 +51,7 @@ def _main_func():
         if valid:
             valid_comps.append(item)
 
-    datamodel_in_compset = False 
+    datamodel_in_compset = False
     for comp in comp_classes:
         dcompname = "d"+comp.lower()
         if dcompname in case.get_value("COMP_{}".format(comp)):
@@ -81,10 +82,12 @@ def _main_func():
         os.makedirs(bld_root)
 
     with open(os.path.join(bld_root,'Filepath'), 'w') as out:
-        if not skip_mediator:
-            out.write(os.path.join(cimeroot, "src", "drivers", "nuopc", "mediator") + "\n")
+        cmeps_dir = os.path.join(os.path.dirname(__file__), os.pardir)
+        # SourceMods dir needs to be first listed
         out.write(os.path.join(caseroot, "SourceMods", "src.drv") + "\n")
-        out.write(os.path.join(cimeroot, "src", "drivers", "nuopc", "drivers", "cime") + "\n")
+        if not skip_mediator:
+            out.write(os.path.join(cmeps_dir, "mediator") + "\n")
+        out.write(os.path.join(cmeps_dir, "drivers", "cime") + "\n")
 
     # build model executable
     makefile = os.path.join(casetools, "Makefile")

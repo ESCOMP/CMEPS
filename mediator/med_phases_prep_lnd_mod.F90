@@ -15,7 +15,7 @@ module med_phases_prep_lnd_mod
   use ESMF                  , only : ESMF_Mesh, ESMF_MeshLoc, ESMF_MESHLOC_ELEMENT
   use ESMF                  , only : ESMF_Field, ESMF_FieldGet, ESMF_FieldCreate
   use ESMF                  , only : ESMF_TYPEKIND_R8
-  use esmFlds               , only : complnd, compatm, compglc, ncomps, compname, mapconsf
+  use esmFlds               , only : complnd, compatm, compglc, ncomps, compname, mapconsd
   use esmFlds               , only : fldListFr, fldListTo
   use esmFlds               , only : med_fldlist_type
   use med_methods_mod       , only : FB_getFieldN    => med_methods_FB_getFieldN
@@ -30,7 +30,7 @@ module med_phases_prep_lnd_mod
   use med_constants_mod     , only : dbug_flag       => med_constants_dbug_flag
   use med_internalstate_mod , only : InternalState, logunit
   use med_map_mod           , only : med_map_FB_Regrid_Norm, med_map_RH_is_created
-  use med_map_mod           , only : med_map_Fractions_Init
+  use med_map_mod           , only : med_map_routehandles_init
   use med_merge_mod         , only : med_merge_auto
   use glc_elevclass_mod     , only : glc_get_num_elevation_classes
   use glc_elevclass_mod     , only : glc_mean_elevation_virtual
@@ -116,7 +116,7 @@ contains
 
        do n1 = 1,ncomps
           if (is_local%wrap%med_coupling_active(n1,complnd)) then
-             ! The following will map all atm->lnd, rof->lnd, and 
+             ! The following will map all atm->lnd, rof->lnd, and
              ! glc->lnd only for Sg_icemask_field and Sg_icemask_coupled_fluxes
              call med_map_FB_Regrid_Norm( &
                   fldsSrc=fldListFr(n1)%flds, &
@@ -135,7 +135,7 @@ contains
        !--- auto merges to create FBExp(complnd)
        !---------------------------------------
 
-       ! The following will merge all fields in fldsSrc 
+       ! The following will merge all fields in fldsSrc
        ! (for glc these are Sg_icemask and Sg_icemask_coupled_fluxes)
        call med_merge_auto(trim(compname(complnd)), &
             is_local%wrap%FBExp(complnd), &
@@ -145,7 +145,7 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        !---------------------------------------
-       !--- custom calculations 
+       !--- custom calculations
        !---------------------------------------
 
        ! The following is only done if glc->lnd coupling is active
@@ -309,10 +309,10 @@ contains
     ! Create route handle if it has not been created
     ! -------------------------------
 
-    if (.not. med_map_RH_is_created(is_local%wrap%RH(compglc,complnd,:),mapconsf,rc=rc)) then
-       call med_map_Fractions_init( gcomp, compglc, complnd, &
+    if (.not. med_map_RH_is_created(is_local%wrap%RH(compglc,complnd,:), mapconsd,rc=rc)) then
+       call med_map_routehandles_init( compglc, complnd, &
             FBSrc=FBglc_ec, FBDst=FBlnd_ec, &
-            RouteHandle=is_local%wrap%RH(compglc,complnd,mapconsf), rc=rc)
+            mapindex=mapconsd, RouteHandle=is_local%wrap%RH, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
@@ -393,7 +393,7 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call FB_getFldPtr(is_local%wrap%FBImp(compglc,compglc), trim(Sg_frac), fldptr1=frac_g, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call FB_getFldPtr(FBglc_ec, 'field_ec', fldptr2=frac_g_ec, rc=rc) 
+    call FB_getFldPtr(FBglc_ec, 'field_ec', fldptr2=frac_g_ec, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     ! compute frac_g_ec
     call glc_get_fractional_icecov(ungriddedCount-1, topo_g, frac_g, frac_g_ec, logunit)
@@ -419,7 +419,7 @@ contains
     end if
     allocate(fldlist%flds(1))
     fldlist%flds(1)%shortname = 'field_ec'
-    fldlist%flds(1)%mapindex(complnd) = mapconsf
+    fldlist%flds(1)%mapindex(complnd) = mapconsd
     fldlist%flds(1)%mapnorm(complnd) = trim(Sg_icemask)
     call med_map_FB_Regrid_Norm( &
          fldsSrc=fldList%flds, &
@@ -465,7 +465,7 @@ contains
     end if
     allocate(fldlist%flds(1))
     fldlist%flds(1)%shortname = 'field_ec'
-    fldlist%flds(1)%mapindex(complnd) = mapconsf
+    fldlist%flds(1)%mapindex(complnd) = mapconsd
     fldlist%flds(1)%mapnorm(complnd) = 'none'
     call med_map_FB_Regrid_Norm( &
          fldsSrc=fldlist%flds, &
@@ -488,7 +488,7 @@ contains
     end if
     allocate(fldlist%flds(1))
     fldlist%flds(1)%shortname = trim(Sg_frac_x_icemask)
-    fldlist%flds(1)%mapindex(complnd) = mapconsf
+    fldlist%flds(1)%mapindex(complnd) = mapconsd
     fldlist%flds(1)%mapnorm(complnd) = 'none'
     call med_map_FB_Regrid_Norm( &
          fldsSrc=fldList%flds, &

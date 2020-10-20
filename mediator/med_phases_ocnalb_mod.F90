@@ -101,14 +101,13 @@ contains
     type(InternalState)      :: is_local
     real(R8), pointer        :: ownedElemCoords(:)
     character(len=CL)        :: tempc1,tempc2
-    integer                  :: dbrc
     logical                  :: mastertask
     character(*), parameter  :: subname = '(med_phases_ocnalb_init) '
     !-----------------------------------------------------------------------
 
     call t_startf('MED:'//subname)
     if (dbug_flag > 5) then
-      call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO, rc=dbrc)
+      call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
     endif
     rc = ESMF_SUCCESS
 
@@ -154,7 +153,7 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     if (geomtype == ESMF_GEOMTYPE_MESH) then
-       call ESMF_LogWrite(trim(subname)//" : FBAtm is on a mesh ", ESMF_LOGMSG_INFO, rc=rc)
+       call ESMF_LogWrite(trim(subname)//" : FBAtm is on a mesh ", ESMF_LOGMSG_INFO)
        call ESMF_FieldGet(lfield, mesh=lmesh, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        call ESMF_MeshGet(lmesh, spatialDim=spatialDim, numOwnedElements=numOwnedElements, rc=rc)
@@ -164,7 +163,7 @@ contains
           write(tempc1,'(i10)') numOwnedElements
           write(tempc2,'(i10)') lsize
           call ESMF_LogWrite(trim(subname)//": ERROR numOwnedElements "// trim(tempc1) // &
-               " not equal to local size "// trim(tempc2), ESMF_LOGMSG_INFO, rc=rc)
+               " not equal to local size "// trim(tempc2), ESMF_LOGMSG_INFO)
           rc = ESMF_FAILURE
           return
        end if
@@ -178,7 +177,7 @@ contains
           ocnalb%lats(n) = ownedElemCoords(2*n)
        end do
     else
-      call ESMF_LogWrite(trim(subname)//": ERROR field bundle must be either on mesh", ESMF_LOGMSG_INFO, rc=rc)
+      call ESMF_LogWrite(trim(subname)//": ERROR field bundle must be either on mesh", ESMF_LOGMSG_INFO)
       rc = ESMF_FAILURE
       return
     end if
@@ -188,7 +187,7 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     if (dbug_flag > 5) then
-      call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO, rc=dbrc)
+      call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
     endif
     call t_stopf('MED:'//subname)
 
@@ -228,7 +227,6 @@ contains
     character(CL)           :: cvalue
     character(CS)           :: starttype        ! config start type
     character(CL)           :: runtype          ! initial, continue, hybrid, branch
-    character(CL)           :: aoflux_grid
     logical                 :: flux_albav       ! flux avg option
     real(R8)                :: nextsw_cday      ! calendar day of next atm shortwave
     real(R8), pointer       :: ofrac(:)
@@ -249,7 +247,6 @@ contains
     real(R8), parameter     :: albdif = 0.06_r8 ! 60 deg reference albedo, diffuse
     real(R8), parameter     :: albdir = 0.07_r8 ! 60 deg reference albedo, direct
     real(R8), parameter     :: const_deg2rad = shr_const_pi/180.0_R8  ! deg to rads
-    integer                 :: dbrc
     character(CL)           :: msg
     logical                 :: first_call = .true.
     character(len=*)  , parameter :: subname='(med_phases_ocnalb_run)'
@@ -294,7 +291,7 @@ contains
     ! - nextsw_cday is just what cam was setting it as the current calendar day
 
     if (dbug_flag > 5) then
-       call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO, rc=dbrc)
+       call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
     endif
 
     call t_startf('MED:'//subname)
@@ -453,13 +450,12 @@ contains
 
     ! Local variables
     type(InternalState) :: is_local
-    integer             :: dbrc
     character(*), parameter :: subName =   '(med_ocnalb_mapo2a) '
     !-----------------------------------------------------------------------
     call t_startf('MED:'//subname)
 
     if (dbug_flag > 5) then
-      call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO, rc=dbrc)
+      call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
     endif
     rc = ESMF_SUCCESS
 
