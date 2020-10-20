@@ -31,6 +31,7 @@ contains
 
     use ESMF
     use esmFlds               , only : med_fldList_entry_type, nmappers
+    use esmFlds               , only : ncomps, compatm, compice, compocn, compname, mapnames
     use med_internalstate_mod , only : packed_data_type
 
     ! input/output variables
@@ -154,6 +155,16 @@ contains
                    npacked(mapindex) = npacked(mapindex) + 1
                    packed_data(mapindex)%fldindex(nf) = npacked(mapindex)
                 end if
+
+                ! if (mastertask) then
+                !    write(logunit,*)'------------------------------'
+                !    write(logunit,*)'DEBUG: destcomp, mapping, mapnorm, = '// &
+                !         trim(compname(destcomp))//' '//&
+                !         trim(mapnames(mapindex))//' '//&
+                !         trim(fldsSrc(ns)%mapnorm(destcomp))
+                !    write(logunit,*)'DEBUG: fldname, index = ',trim(fieldnamelist(nf)),packed_data(mapindex)%fldindex(nf) 
+                ! end if
+
              end if! end if source field is mapped to destination field with mapindex
           end do ! end loop over FBSrc fields
        end do ! end loop over fldSrc elements
@@ -175,7 +186,6 @@ contains
           packed_data(mapindex)%field_fracdst = ESMF_FieldCreate(lmesh_dst, ESMF_TYPEKIND_R8, &
                meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
        end if
-
     end do ! end loop over mapindex
 
     deallocate(npacked) 
@@ -227,6 +237,7 @@ contains
     real(r8), pointer          :: data_dst(:,:) => null()
     real(r8), pointer          :: data_fracsrc(:) => null()
     real(r8), pointer          :: data_fracdst(:) => null()
+    real(r8), pointer          :: data_norm(:) => null()
     character(len=*), parameter  :: subname=' (med_map_packed_fieldbundles) '
     !-----------------------------------------------------------
 
@@ -289,68 +300,90 @@ contains
           call t_startf('MED:'//trim(subname)//' map')
           if (mapindex == mapfcopy) then
 
-             ! Redistributing mapfcopy
+             ! Mapping is redistribution
              call ESMF_FieldRedist(packed_data(mapindex)%field_src, packed_data(mapindex)%field_dst, &
                   routehandles(mapindex), rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-          else
-
+          else if ( trim(packed_data(mapindex)%mapnorm) /= 'unset' .and. &
+                    trim(packed_data(mapindex)%mapnorm) /= 'one'   .and. &
+                    trim(packed_data(mapindex)%mapnorm) /= 'none') then
+             
+             ! Mapping is not redistribution
              ! ASSUME that  each packed field has only one normalization type
-             ! TODO: set this in the initialization
-             if ( trim(packed_data(mapindex)%mapnorm) /= 'unset' .and. &
-                  trim(packed_data(mapindex)%mapnorm) /= 'one'   .and. &
-                  trim(packed_data(mapindex)%mapnorm) /= 'none') then
+             ! normalize packed source data 
+             ! - get a pointer (data_fracsrc) to the normalization array
+             ! - get a pointer (data_src) to source field data in FBSrc
+             ! - copy data_src to data_srctmp
+             ! - normalize data_src by data_fracsrc
+             call ESMF_FieldBundleGet(FBFracSrc, fieldName=packed_data(mapindex)%mapnorm, field=lfield, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+             call ESMF_FieldGet(lfield, farrayPtr=data_fracsrc, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+             call ESMF_FieldGet(packed_data(mapindex)%field_src, farrayPtr=data_src, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+             allocate(data_srctmp(size(data_src,dim=1), size(data_src,dim=2)))
+             data_srctmp(:,:) = data_src(:,:)
+             do n = 1,size(data_fracsrc)
+                data_src(:,n) = data_src(:,n) * data_fracsrc(n)
+             end do
 
-                ! get a pointer to the array of the normalization on the source grid
-                call ESMF_FieldBundleGet(FBFracSrc, fieldName=packed_data(mapindex)%mapnorm, &
-                     field=lfield, rc=rc)
+             ! regrid normalized packed source field
+             call med_map_field_regrid (packed_data(mapindex)%field_src, packed_data(mapindex)%field_dst, &
+                  routehandles, mapindex, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+             ! restore original value to packed source field
+             data_src(:,:) = data_srctmp(:,:)
+             deallocate(data_srctmp)
+
+             ! regrid fraction field from source to destination
+             call ESMF_FieldBundleGet(FBFracSrc, fieldname=trim(packed_data(mapindex)%mapnorm), &
+                  field=frac_field_src, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+             call med_map_field_regrid(frac_field_src, packed_data(mapindex)%field_fracdst, &
+                  routehandles, mapindex, rc=rc)
+
+             ! get pointer to mapped fraction and normalize
+             ! destination mapped values by the reciprocal of the mapped fraction
+             call ESMF_FieldGet(packed_data(mapindex)%field_fracdst, farrayPtr=data_fracdst, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+             call ESMF_FieldGet(packed_data(mapindex)%field_dst, farrayPtr=data_dst, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+             do n = 1,size(data_dst,dim=2)
+                if (data_fracdst(n) == 0.0_r8) then
+                   data_dst(:,n) = 0.0_r8
+                else
+                   data_dst(:,n) = data_dst(:,n)/data_fracdst(n)
+                end if
+             end do
+
+          else if ( trim(packed_data(mapindex)%mapnorm) == 'one' .or. trim(packed_data(mapindex)%mapnorm) == 'none') then
+
+             ! Mapping is not redistribution
+             call med_map_field_regrid (packed_data(mapindex)%field_src, packed_data(mapindex)%field_dst, &
+                  routehandles, mapindex, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+             ! obtain unity normalization factor and multiply
+             ! interpolated field by reciprocal of normalization factor
+             if (trim(packed_data(mapindex)%mapnorm) == 'one') then
+                call ESMF_FieldBundleGet(FBNormOne(mapindex), fieldName='one', field=lfield, rc=rc)
                 if (chkerr(rc,__LINE__,u_FILE_u)) return
-                call ESMF_FieldGet(lfield, farrayPtr=data_fracsrc, rc=rc)
+                call ESMF_FieldGet(lfield, farrayPtr=data_norm, rc=rc)
                 if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-                ! get a pointer to source field data in FBSrc
-                call ESMF_FieldGet(packed_data(mapindex)%field_src, farrayPtr=data_src, rc=rc)
+                call ESMF_FieldGet(packed_data(mapindex)%field_dst, farrayPtr=data_dst, rc=rc)
                 if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-                ! copy data_src to data_srctmp then multiply ungridded dimension in data_src by fraction
-                allocate(data_srctmp(size(data_src,dim=1), size(data_src,dim=2)))
-                data_srctmp(:,:) = data_src(:,:)
-                do n = 1,size(data_fracsrc)
-                   data_src(:,n) = data_src(:,n) * data_fracsrc(n)
-                end do
-
-                ! regrid normalized packed source field
-                call med_map_field_regrid (packed_data(mapindex)%field_src, packed_data(mapindex)%field_dst, &
-                     routehandles, mapindex, rc=rc)
-                if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-                ! get fraction fields on both source and destination mesh
-                call ESMF_FieldBundleGet(FBFracSrc, fieldname=trim(packed_data(mapindex)%mapnorm), &
-                     field=frac_field_src, rc=rc)
-                if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-                ! regrid fraction field from source to destination
-                call med_map_field_regrid(frac_field_src, packed_data(mapindex)%field_fracdst, &
-                     routehandles, mapindex, rc=rc)
-
-                ! get pointer to mapped fraction
-                call ESMF_FieldGet(packed_data(mapindex)%field_fracdst, farrayPtr=data_fracdst, rc=rc)
-                if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-                ! normalize destination mapped values by the reciprocal of the mapped fraction
-                call ESMF_FieldGet(packed_data(mapindex)%field_dst, farrayPtr=data_fracdst, rc=rc)
-                if (chkerr(rc,__LINE__,u_FILE_u)) return
-
                 do n = 1,size(data_dst,dim=2)
-                   if (data_fracdst(n) == 0.0_r8) then
+                   if (data_norm(n) == 0.0_r8) then
                       data_dst(:,n) = 0.0_r8
                    else
-                      data_dst(:,n) = data_dst(:,n)/data_fracdst(n)
+                      data_dst(:,n) = data_dst(:,n)/data_norm(n)
                    end if
                 end do
              end if
-          end if
+
+          end if 
           call t_stopf('MED:'//trim(subname)//' map')
 
           ! -----------------------------------

@@ -56,17 +56,11 @@ contains
     integer                        :: fldnum
     integer                        :: mapindex
     real(R8), pointer              :: dataptr(:)
-    real(R8), pointer              :: temperature(:)
-    real(R8), pointer              :: pressure(:)
-    real(R8), pointer              :: humidity(:)
-    real(R8), pointer              :: air_density(:)
-    real(R8), pointer              :: pot_temp(:)
     real(R8)                       :: precip_fact
     character(len=CS)              :: cvalue
     character(len=64), allocatable :: fldnames(:)
     real(r8)                       :: nextsw_cday
     logical                        :: first_precip_fact_call = .true.
-    logical                        :: first_call = .true.
     character(len=*),parameter     :: subname='(med_phases_prep_ice)'
     !---------------------------------------
 
