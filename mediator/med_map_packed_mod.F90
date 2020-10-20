@@ -106,6 +106,7 @@ contains
     allocate(npacked(nmappers))
     npacked(:) = 0
 
+    if (mastertask) write(logunit,*)
     ! Loop over mapping types
     do mapindex = 1,nmappers
 
@@ -156,14 +157,15 @@ contains
                    packed_data(mapindex)%fldindex(nf) = npacked(mapindex)
                 end if
 
-                ! if (mastertask) then
-                !    write(logunit,*)'------------------------------'
-                !    write(logunit,*)'DEBUG: destcomp, mapping, mapnorm, = '// &
-                !         trim(compname(destcomp))//' '//&
-                !         trim(mapnames(mapindex))//' '//&
-                !         trim(fldsSrc(ns)%mapnorm(destcomp))
-                !    write(logunit,*)'DEBUG: fldname, index = ',trim(fieldnamelist(nf)),packed_data(mapindex)%fldindex(nf) 
-                ! end if
+                if (mastertask) then
+                   write(logunit,'(5(a,2x),2x,i4)') trim(subname)//&
+                        'Packed field: destcomp,mapping,mapnorm,fldname,index: ', &
+                        trim(compname(destcomp)), &
+                        trim(mapnames(mapindex)), &
+                        trim(fldsSrc(ns)%mapnorm(destcomp)), &
+                        trim(fieldnamelist(nf)), &
+                        packed_data(mapindex)%fldindex(nf)
+                end if
 
              end if! end if source field is mapped to destination field with mapindex
           end do ! end loop over FBSrc fields
@@ -337,13 +339,16 @@ contains
              data_src(:,:) = data_srctmp(:,:)
              deallocate(data_srctmp)
 
+             call t_startf('MED:'//trim(subname)//' map_nofrac')
              ! regrid fraction field from source to destination
              call ESMF_FieldBundleGet(FBFracSrc, fieldname=trim(packed_data(mapindex)%mapnorm), &
                   field=frac_field_src, rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
              call med_map_field_regrid(frac_field_src, packed_data(mapindex)%field_fracdst, &
                   routehandles, mapindex, rc=rc)
+             call t_stopf('MED:'//trim(subname)//' map_nofrac')
 
+             call t_startf('MED:'//trim(subname)//' norm one')
              ! get pointer to mapped fraction and normalize
              ! destination mapped values by the reciprocal of the mapped fraction
              call ESMF_FieldGet(packed_data(mapindex)%field_fracdst, farrayPtr=data_fracdst, rc=rc)
@@ -357,6 +362,7 @@ contains
                    data_dst(:,n) = data_dst(:,n)/data_fracdst(n)
                 end if
              end do
+             call t_stopf('MED:'//trim(subname)//' norm one')
 
           else if ( trim(packed_data(mapindex)%mapnorm) == 'one' .or. trim(packed_data(mapindex)%mapnorm) == 'none') then
 

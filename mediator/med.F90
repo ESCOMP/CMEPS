@@ -450,7 +450,7 @@ contains
   subroutine InitializeP0(gcomp, importState, exportState, clock, rc)
 
     use ESMF  , only : ESMF_GridComp, ESMF_State, ESMF_Clock, ESMF_VM, ESMF_SUCCESS
-    use ESMF  , only : ESMF_GridCompGet, ESMF_VMGet, ESMF_AttributeGet
+    use ESMF  , only : ESMF_GridCompGet, ESMF_VMGet, ESMF_AttributeGet, ESMF_AttributeSet
     use ESMF  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_METHOD_INITIALIZE
     use NUOPC , only : NUOPC_CompFilterPhaseMap, NUOPC_CompAttributeGet
     use med_internalstate_mod, only : mastertask, logunit
@@ -503,7 +503,7 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call ESMF_LogWrite(trim(subname)//": Mediator verbosity is "//trim(cvalue), ESMF_LOGMSG_INFO)
 
-    call ESMF_AttributeGet(gcomp, name="Verbosity", value=cvalue, &
+    call ESMF_AttributeSet(gcomp, name="Verbosity", value='65535', &
          convention="NUOPC", purpose="Instance", rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call ESMF_LogWrite(trim(subname)//": Mediator verbosity is set to "//trim(cvalue), ESMF_LOGMSG_INFO)
@@ -1914,8 +1914,8 @@ contains
              end if
           end do
        end do
-       fieldCount = med_fldList_GetNumFlds(fldListMed_aoflux)
-       if (fieldCount > 0) then
+       if ( ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_aoflux_o) .and. &
+            ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_aoflux_a)) then
           call med_map_packed_field_create(compatm, &
                is_local%wrap%flds_scalar_name, &
                fldsSrc=fldListMed_aoflux%flds, &
@@ -1924,8 +1924,8 @@ contains
                packed_data=is_local%wrap%packed_data_aoflux_o2a(:), rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
-       fieldCount = med_fldList_GetNumFlds(fldListMed_ocnalb)
-       if (fieldCount > 0) then
+       if ( ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_ocnalb_o) .and. &
+            ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_ocnalb_a)) then
           call med_map_packed_field_create(compatm, &
                is_local%wrap%flds_scalar_name, &
                fldsSrc=fldListMed_ocnalb%flds, &

@@ -398,8 +398,8 @@ contains
        call addfld(fldListFr(compatm)%flds, 'Faxa_swnet')
     else
        if (fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_swnet', rc=rc)) then
-          call addmap(fldListFr(compatm)%flds, 'Faxa_swnet', compice, mapconsf, 'one'  , atm2ice_fmap)
-          call addmap(fldListFr(compatm)%flds, 'Faxa_swnet', compocn, mapconsf, 'one'  , atm2ocn_fmap)
+          call addmap(fldListFr(compatm)%flds, 'Faxa_swnet', compice, mapconsd, 'one'  , atm2ice_fmap)
+          call addmap(fldListFr(compatm)%flds, 'Faxa_swnet', compocn, mapconsd, 'one'  , atm2ocn_fmap)
        end if
        if (fldchk(is_local%wrap%FBImp(compice,compice), 'Faii_swnet', rc=rc)) then
           call addmap(fldListFr(compice)%flds, 'Faii_swnet', compocn, mapfcopy, 'unset', 'unset')
@@ -480,7 +480,7 @@ contains
        else
           if ( fldchk(is_local%wrap%FBexp(complnd)         , trim(fldname), rc=rc) .and. &
                fldchk(is_local%wrap%FBImp(compatm,compatm ), trim(fldname), rc=rc)) then
-             call addmap(fldListFr(compatm)%flds, trim(fldname), complnd, mapconsf, 'one', atm2lnd_fmap)
+             call addmap(fldListFr(compatm)%flds, trim(fldname), complnd, mapconsd, 'one', atm2lnd_fmap)
              call addmrg(fldListTo(complnd)%flds, trim(fldname), &
                   mrg_from1=compatm, mrg_fld1=trim(fldname), mrg_type1='copy')
           end if

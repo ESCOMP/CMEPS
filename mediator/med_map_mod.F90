@@ -1197,20 +1197,29 @@ contains
 
     ! local variables
     integer           :: i,n
-    integer           :: lrank
     real(R8), pointer :: data1d(:)
     real(R8), pointer :: data2d(:,:)
     integer           :: ungriddedUBound(1)     ! currently the size must equal 1 for rank 2 fields
-    integer           :: gridToFieldMap(1)      ! currently the size must equal 1 for rank 2 fields
-
     ! ------------------------------------------------
 
     rc = ESMF_SUCCESS
 
-    call ESMF_FieldGet(dstfield, rank=lrank, rc=rc)
+    call ESMF_FieldGet(dstfield, ungriddedUBound=ungriddedUbound, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    if (lrank == 1) then
+    if (ungriddedUBound(1) > 0) then
+       call ESMF_FieldGet(dstfield, farrayPtr=data2d, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       do n = 1,ungriddedUbound(1)
+          do i = 1,size(data2d,dim=2)
+             if (frac(i) == 0.0_r8) then
+                data2d(n,i) = 0.0_r8
+             else
+                data2d(n,i) = data2d(n,i)/frac(i)
+             end if
+          end do
+       end do
+    else
        call ESMF_FieldGet(dstfield, farrayPtr=data1d, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        do i= 1,size(data1d)
@@ -1219,30 +1228,6 @@ contains
           else
              data1d(i) = data1d(i)/frac(i)
           endif
-       enddo
-    else if (lrank == 2) then
-       call ESMF_FieldGet(dstfield, ungriddedUBound=ungriddedUBound, gridToFieldMap=gridToFieldMap, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_FieldGet(dstfield, farrayPtr=data2d, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       do n = 1,ungriddedUbound(1)
-          if (gridToFieldMap(1) == 1) then
-             do i = 1,size(data2d,dim=1)
-                if (frac(i) == 0.0_r8) then
-                   data2d(i,n) = 0.0_r8
-                else
-                   data2d(i,n) = data2d(i,n)/frac(i)
-                end if
-             end do
-          else if (gridToFieldMap(1) == 2) then
-             do i = 1,size(data2d,dim=2)
-                if (frac(i) == 0.0_r8) then
-                   data2d(n,i) = 0.0_r8
-                else
-                   data2d(n,i) = data2d(n,i)/frac(i)
-                end if
-             end do
-          end if
        end do
     end if
 
