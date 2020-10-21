@@ -9,7 +9,7 @@ module med_phases_prep_wav_mod
   use med_utils_mod         , only : chkerr        => med_utils_ChkErr
   use med_methods_mod       , only : FB_diagnose   => med_methods_FB_diagnose
   use med_merge_mod         , only : med_merge_auto
-  use med_map_mod           , only : med_map_FB_Regrid_Norm
+  use med_map_packed_mod    , only : med_map_packed_field_map
   use med_internalstate_mod , only : InternalState, mastertask
   use esmFlds               , only : compwav, ncomps, compname
   use esmFlds               , only : fldListFr, fldListTo
@@ -63,24 +63,21 @@ contains
     ! fieldCount is 0 and not 1 here
     call ESMF_FieldBundleGet(is_local%wrap%FBExp(compwav), fieldCount=ncnt, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-
     if (ncnt > 0) then
 
        ! map to create FBimp(:,compwav)
        do n1 = 1,ncomps
           if (is_local%wrap%med_coupling_active(n1,compwav)) then
-             call med_map_FB_Regrid_Norm( &
-                  fldsSrc=fldListFr(n1)%flds, &
-                  srccomp=n1, destcomp=compwav, &
+             call med_map_packed_field_map( &
                   FBSrc=is_local%wrap%FBImp(n1,n1), &
                   FBDst=is_local%wrap%FBImp(n1,compwav), &
                   FBFracSrc=is_local%wrap%FBFrac(n1), &
                   FBNormOne=is_local%wrap%FBNormOne(n1,compwav,:), &
-                  RouteHandles=is_local%wrap%RH(n1,compwav,:), &
-                  string=trim(compname(n1))//'2'//trim(compname(compwav)), rc=rc)
+                  packed_data=is_local%wrap%packed_data(n1,compwav,:), &
+                  routehandles=is_local%wrap%RH(n1,compwav,:), rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          endif
-       enddo
+          end if
+       end do
 
        ! auto merges to create FBExp(compwav)
        call med_merge_auto(compwav, &
