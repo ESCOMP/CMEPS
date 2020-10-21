@@ -412,11 +412,17 @@ contains
 
     ! local variables
     integer           :: n
-    real(r8), pointer :: data_src(:,:) => null()
-    real(r8), pointer :: data_dst(:,:) => null()
-    real(r8), pointer :: data_srctmp(:,:) => null()
-    real(r8), pointer :: data_normsrc(:) => null()
-    real(r8), pointer :: data_normdst(:) => null()
+    real(r8), pointer :: data_src2d(:,:)    => null()
+    real(r8), pointer :: data_dst2d(:,:)    => null()
+    real(r8), pointer :: data_srctmp2d(:,:) => null()
+    real(r8), pointer :: data_src1d(:)      => null()
+    real(r8), pointer :: data_dst1d(:)      => null()
+    real(r8), pointer :: data_srctmp1d(:)   => null()
+    real(r8), pointer :: data_normsrc(:)    => null()
+    real(r8), pointer :: data_normdst(:)    => null()
+    integer           :: ungriddedUBound(1)     ! currently the size must equal 1 for rank 2 fields
+    integer           :: lsize_src 
+    integer           :: lsize_dst
     character(len=*), parameter  :: subname=' (med_map_packed_fieldbundles) '
     !-----------------------------------------------------------
 
@@ -427,23 +433,43 @@ contains
     ! copy data_src to data_srctmp
 
     ! normalize data_src by data_fracsrc
+
     call ESMF_FieldGet(field_normsrc, farrayPtr=data_normsrc, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldGet(field_src, farrayPtr=data_src, rc=rc)
+    lsize_src = size(data_normsrc)
+
+    call ESMF_FieldGet(field_src, ungriddedUBound=ungriddedUBound, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    allocate(data_srctmp(size(data_src,dim=1), size(data_src,dim=2)))
-    data_srctmp(:,:) = data_src(:,:)
-    do n = 1,size(data_normsrc)
-       data_src(:,n) = data_src(:,n) * data_normsrc(n)
-    end do
+    if (ungriddedUbound(1) > 0) then
+       call ESMF_FieldGet(field_src, farrayPtr=data_src2d, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       allocate(data_srctmp2d(size(data_src2d,dim=1), lsize_src))
+       data_srctmp2d(:,:) = data_src2d(:,:)
+       do n = 1,lsize_src
+          data_src2d(:,n) = data_src2d(:,n) * data_normsrc(n)
+       end do
+    else
+       call ESMF_FieldGet(field_src, farrayPtr=data_src1d, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       allocate(data_srctmp1d(lsize_src))
+       data_srctmp1d(:) = data_src1d(:)
+       do n = 1,lsize_src
+          data_src1d(n) = data_src1d(n) * data_normsrc(n)
+       end do
+    end if
 
     ! regrid normalized packed source field
     call med_map_field_regrid (field_src, field_dst, routehandles, maptype, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! restore original value to packed source field
-    data_src(:,:) = data_srctmp(:,:)
-    deallocate(data_srctmp)
+    if (ungriddedUbound(1) > 0) then
+       data_src2d(:,:) = data_srctmp2d(:,:)
+       deallocate(data_srctmp2d)
+    else
+       data_src1d(:) = data_srctmp1d(:)
+       deallocate(data_srctmp1d)
+    end if
 
     ! regrid normalization field from source to destination
     call med_map_field_regrid(field_normsrc, field_normdst, routehandles, maptype, rc=rc)
@@ -452,16 +478,29 @@ contains
     ! destination mapped values by the reciprocal of the mapped fraction
     call ESMF_FieldGet(field_normdst, farrayPtr=data_normdst, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldGet(field_dst, farrayPtr=data_dst, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    do n = 1,size(data_dst,dim=2)
-       if (data_normdst(n) == 0.0_r8) then
-          data_dst(:,n) = 0.0_r8
-       else
-          data_dst(:,n) = data_dst(:,n)/data_normdst(n)
-       end if
-    end do
+    lsize_dst = size(data_normdst)
 
+    if (ungriddedUbound(1) > 0) then
+       call ESMF_FieldGet(field_dst, farrayPtr=data_dst2d, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       do n = 1,lsize_dst
+          if (data_normdst(n) == 0.0_r8) then
+             data_dst2d(:,n) = 0.0_r8
+          else
+             data_dst2d(:,n) = data_dst2d(:,n)/data_normdst(n)
+          end if
+       end do
+    else
+       call ESMF_FieldGet(field_dst, farrayPtr=data_dst1d, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       do n = 1,lsize_dst
+          if (data_normdst(n) == 0.0_r8) then
+             data_dst1d(n) = 0.0_r8
+          else
+             data_dst1d(n) = data_dst1d(n)/data_normdst(n)
+          end if
+       end do
+    end if
   end subroutine med_map_normalized_field
 
 end module med_map_packed_mod

@@ -1338,13 +1338,15 @@ contains
                    if (fldptr1tmp(l) == lfillvalue) fldptr1tmp(l) = 0.0_r8
                 enddo
              else
-                fldptr1tmp = 0.0_r8
+                fldptr1tmp(:) = 0.0_r8
              endif
              fldptr2(n,:) = fldptr1tmp(:)
           end do
           deallocate(fldptr1tmp)
        else
           ! No ungridded dimensions
+          call ESMF_FieldGet(fieldlist(k), farrayPtr=fldptr1, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
           name1 = trim(lpre)//'_'//trim(fieldnamelist(k))
           rcode = pio_inq_varid(pioid, trim(name1), varid)
           if (rcode == pio_noerr) then
@@ -1360,7 +1362,7 @@ contains
                 if (fldptr1(n) == lfillvalue) fldptr1(n) = 0.0_r8
              enddo
           else
-             fldptr1 = 0.0_r8
+             fldptr1(:) = 0.0_r8
           endif
        end if
 
