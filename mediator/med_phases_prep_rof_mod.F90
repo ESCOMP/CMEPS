@@ -149,7 +149,7 @@ contains
     use ESMF               , only : ESMF_FieldBundleGet, ESMF_FieldGet
     use ESMF               , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
     use esmFlds            , only : fldListTo
-    use med_map_packed_mod , only : med_map_field_packed
+    use med_map_mod        , only : med_map_field_packed
     use med_merge_mod      , only : med_merge_auto
 
     ! input/output variables
@@ -337,9 +337,7 @@ contains
     use ESMF               , only : ESMF_Mesh, ESMF_TYPEKIND_R8, ESMF_MESHLOC_ELEMENT
     use ESMF               , only : ESMF_SUCCESS, ESMF_FAILURE
     use ESMF               , only : ESMF_LOGMSG_INFO, ESMF_LogWrite, ESMF_LOGMSG_ERROR
-    use med_map_mod        , only : med_map_rh_is_created
-    use med_map_mod        , only : med_map_field_regrid
-    use med_map_packed_mod , only : med_map_field_normalized
+    use med_map_mod        , only : med_map_rh_is_created, med_map_field, med_map_field_normalized
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -473,11 +471,11 @@ contains
     end do
 
     ! Map volr_r to volr_l (rof->lnd) using conservative mapping without any fractional weighting
-    call med_map_field_regrid(&
-         srcfield=field_rofVolr, &
-         dstfield=field_lndVolr, &
+    call med_map_field( &
+         field_src=field_rofVolr, &
+         field_dst=field_lndVolr, &
          routehandles=is_local%wrap%RH(comprof,complnd,:), &
-         mapindex=mapconsf, rc=rc)
+         maptype=mapconsf, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! Get volr_l

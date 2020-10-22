@@ -13,7 +13,7 @@ module med_phases_prep_ice_mod
   use med_methods_mod       , only : State_SetScalar   => med_methods_State_SetScalar
   use med_constants_mod     , only : dbug_flag => med_constants_dbug_flag
   use med_merge_mod         , only : med_merge_auto
-  use med_map_packed_mod    , only : med_map_field_packed
+  use med_map_mod           , only : med_map_field_packed
   use med_internalstate_mod , only : InternalState, logunit, mastertask
   use esmFlds               , only : compatm, compice, comprof, compglc, ncomps, compname
   use esmFlds               , only : fldListFr, fldListTo

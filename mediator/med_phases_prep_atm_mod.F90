@@ -14,11 +14,10 @@ module med_phases_prep_atm_mod
   use med_methods_mod       , only : FB_diagnose => med_methods_FB_diagnose
   use med_methods_mod       , only : FB_fldchk   => med_methods_FB_FldChk
   use med_merge_mod         , only : med_merge_auto
-  use med_map_packed_mod    , only : med_map_field_packed
+  use med_map_mod           , only : med_map_field_packed
   use med_internalstate_mod , only : InternalState, mastertask
   use esmFlds               , only : compatm, compocn, compice, ncomps, compname
-  use esmFlds               , only : fldListFr, fldListTo, fldListMed_aoflux
-  use esmFlds               , only : coupling_mode
+  use esmFlds               , only : fldListTo, fldListMed_aoflux, coupling_mode
   use perf_mod              , only : t_startf, t_stopf
 
   implicit none
