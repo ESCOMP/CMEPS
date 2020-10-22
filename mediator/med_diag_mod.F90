@@ -15,7 +15,7 @@ module med_diag_mod
   !    salt  flux    ~ (kg/s)/m^2
   !----------------------------------------------------------------------------
 
-  use NUOPC                 , only : NUOPC_CompAttributeGet
+  use NUOPC                 , only : NUOPC_CompAttributeGet, NUOPC_CompAttributeSet
   use NUOPC_Mediator        , only : NUOPC_MediatorGet
   use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
   use ESMF                  , only : ESMF_FAILURE,  ESMF_LOGMSG_ERROR
@@ -247,6 +247,7 @@ contains
     integer           :: stop_n   ! Number until restart interval
     integer           :: stop_ymd ! Restart date (YYYYMMDD)
     type(ESMF_ALARM)  :: stop_alarm
+    character(CS)     :: cvalue
     ! ------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -351,12 +352,18 @@ contains
     ! Get config variables
     !-------------------------------------------------------------------------------
 
-    budget_print_inst = get_diag_attribute(gcomp, 'budget_inst')
-    budget_print_daily = get_diag_attribute(gcomp, 'budget_daily')
-    budget_print_month = get_diag_attribute(gcomp, 'budget_month')
-    budget_print_ann  = get_diag_attribute(gcomp, 'budget_ann')
-    budget_print_ltann  = get_diag_attribute(gcomp, 'budget_ltann')
-    budget_print_ltend  = get_diag_attribute(gcomp, 'budget_ltend')
+    budget_print_inst = get_diag_attribute(gcomp, 'budget_inst', rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    budget_print_daily = get_diag_attribute(gcomp, 'budget_daily', rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    budget_print_month = get_diag_attribute(gcomp, 'budget_month', rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    budget_print_ann  = get_diag_attribute(gcomp, 'budget_ann', rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    budget_print_ltann  = get_diag_attribute(gcomp, 'budget_ltann', rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    budget_print_ltend  = get_diag_attribute(gcomp, 'budget_ltend', rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! Set stop alarm (needed for budgets)
     call NUOPC_CompAttributeGet(gcomp, name="stop_option", value=stop_option, rc=rc)
@@ -379,6 +386,7 @@ contains
       integer, intent(out) :: rc
 
       character(CS)     :: cvalue
+      logical :: isPresent
 
       rc = ESMF_SUCCESS
       get_diag_attribute = 0
@@ -391,7 +399,6 @@ contains
       else
          call NUOPC_CompAttributeSet(gcomp, name=name, value='0', rc=rc)
       endif
-
     end function get_diag_attribute
 
    end subroutine med_diag_init
