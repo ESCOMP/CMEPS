@@ -13,7 +13,7 @@ module med_phases_prep_ice_mod
   use med_methods_mod       , only : State_SetScalar   => med_methods_State_SetScalar
   use med_constants_mod     , only : dbug_flag => med_constants_dbug_flag
   use med_merge_mod         , only : med_merge_auto
-  use med_map_packed_mod    , only : med_map_packed_field_map
+  use med_map_packed_mod    , only : med_map_field_packed
   use med_internalstate_mod , only : InternalState, logunit, mastertask
   use esmFlds               , only : compatm, compice, comprof, compglc, ncomps, compname
   use esmFlds               , only : fldListFr, fldListTo
@@ -94,7 +94,7 @@ contains
        ! map all fields in FBImp that have active ice coupling
        do n1 = 1,ncomps
           if (is_local%wrap%med_coupling_active(n1,compice)) then
-             call med_map_packed_field_map( &
+             call med_map_field_packed( &
                   FBSrc=is_local%wrap%FBImp(n1,n1), &
                   FBDst=is_local%wrap%FBImp(n1,compice), &
                   FBFracSrc=is_local%wrap%FBFrac(n1), &

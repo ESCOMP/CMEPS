@@ -9,8 +9,7 @@ module med_phases_prep_ocn_mod
   use med_constants_mod     , only : dbug_flag     => med_constants_dbug_flag
   use med_internalstate_mod , only : InternalState, mastertask, logunit
   use med_merge_mod         , only : med_merge_auto, med_merge_field
-  use med_map_packed_mod    , only : med_map_packed_field_create
-  use med_map_packed_mod    , only : med_map_packed_field_map
+  use med_map_packed_mod    , only : med_map_field_packed
   use med_utils_mod         , only : memcheck      => med_memcheck
   use med_utils_mod         , only : chkerr        => med_utils_ChkErr
   use med_methods_mod       , only : FB_diagnose   => med_methods_FB_diagnose
@@ -20,7 +19,7 @@ module med_phases_prep_ocn_mod
   use med_methods_mod       , only : FB_average    => med_methods_FB_average
   use med_methods_mod       , only : FB_copy       => med_methods_FB_copy
   use med_methods_mod       , only : FB_reset      => med_methods_FB_reset
-  use esmFlds               , only : fldListFr, fldListTo
+  use esmFlds               , only : fldListTo
   use esmFlds               , only : compocn, compatm, compice, ncomps, compname
   use esmFlds               , only : coupling_mode
   use perf_mod              , only : t_startf, t_stopf
@@ -82,23 +81,9 @@ contains
 
     ! map all fields in FBImp that have active ocean coupling
     if (ncnt > 0) then
-       if (first_call) then
-          do n1 = 1,ncomps
-             if (is_local%wrap%med_coupling_active(n1,compocn)) then
-                call med_map_packed_field_create(compocn, &
-                     is_local%wrap%flds_scalar_name, &
-                     fldsSrc=fldListFr(n1)%flds, &
-                     FBSrc=is_local%wrap%FBImp(n1,n1), &
-                     FBDst=is_local%wrap%FBImp(n1,compocn), &
-                     packed_data=is_local%wrap%packed_data(n1,compocn,:), rc=rc)
-                if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             end if
-          end do
-          first_call = .false.
-       end if
        do n1 = 1,ncomps
           if (is_local%wrap%med_coupling_active(n1,compocn)) then
-             call med_map_packed_field_map( &
+             call med_map_field_packed( &
                   FBSrc=is_local%wrap%FBImp(n1,n1), &
                   FBDst=is_local%wrap%FBImp(n1,compocn), &
                   FBFracSrc=is_local%wrap%FBFrac(n1), &

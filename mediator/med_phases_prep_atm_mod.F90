@@ -14,7 +14,7 @@ module med_phases_prep_atm_mod
   use med_methods_mod       , only : FB_diagnose => med_methods_FB_diagnose
   use med_methods_mod       , only : FB_fldchk   => med_methods_FB_FldChk
   use med_merge_mod         , only : med_merge_auto
-  use med_map_packed_mod    , only : med_map_packed_field_map
+  use med_map_packed_mod    , only : med_map_field_packed
   use med_internalstate_mod , only : InternalState, mastertask
   use esmFlds               , only : compatm, compocn, compice, ncomps, compname
   use esmFlds               , only : fldListFr, fldListTo, fldListMed_aoflux
@@ -83,7 +83,7 @@ contains
        !---------------------------------------
        do n1 = 1,ncomps
           if (is_local%wrap%med_coupling_active(n1,compatm)) then
-             call med_map_packed_field_map( &
+             call med_map_field_packed( &
                   FBSrc=is_local%wrap%FBImp(n1,n1), &
                   FBDst=is_local%wrap%FBImp(n1,compatm), &
                   FBFracSrc=is_local%wrap%FBFrac(n1), &
@@ -98,7 +98,7 @@ contains
        !--- map ocean albedos from ocn to atm grid if appropriate
        !---------------------------------------
        if (trim(coupling_mode) == 'cesm') then
-          call med_map_packed_field_map( &
+          call med_map_field_packed( &
                FBSrc=is_local%wrap%FBMed_ocnalb_o, &
                FBDst=is_local%wrap%FBMed_ocnalb_a, &
                FBFracSrc=is_local%wrap%FBFrac(compocn), &
@@ -113,7 +113,7 @@ contains
        !---------------------------------------
        if (trim(coupling_mode) == 'cesm' .or. trim(coupling_mode) == 'hafs') then
           ! Assumption here is that fluxes are computed on the ocean grid
-          call med_map_packed_field_map( &
+          call med_map_field_packed( &
                FBSrc=is_local%wrap%FBMed_aoflux_o, &
                FBDst=is_local%wrap%FBMed_aoflux_a, &
                FBFracSrc=is_local%wrap%FBFrac(compocn), &

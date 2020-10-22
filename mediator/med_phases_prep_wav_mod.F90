@@ -9,7 +9,7 @@ module med_phases_prep_wav_mod
   use med_utils_mod         , only : chkerr        => med_utils_ChkErr
   use med_methods_mod       , only : FB_diagnose   => med_methods_FB_diagnose
   use med_merge_mod         , only : med_merge_auto
-  use med_map_packed_mod    , only : med_map_packed_field_map
+  use med_map_packed_mod    , only : med_map_field_packed
   use med_internalstate_mod , only : InternalState, mastertask
   use esmFlds               , only : compwav, ncomps, compname
   use esmFlds               , only : fldListFr, fldListTo
@@ -68,7 +68,7 @@ contains
        ! map to create FBimp(:,compwav)
        do n1 = 1,ncomps
           if (is_local%wrap%med_coupling_active(n1,compwav)) then
-             call med_map_packed_field_map( &
+             call med_map_field_packed( &
                   FBSrc=is_local%wrap%FBImp(n1,n1), &
                   FBDst=is_local%wrap%FBImp(n1,compwav), &
                   FBFracSrc=is_local%wrap%FBFrac(n1), &

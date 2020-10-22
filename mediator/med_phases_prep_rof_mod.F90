@@ -149,7 +149,7 @@ contains
     use ESMF               , only : ESMF_FieldBundleGet, ESMF_FieldGet
     use ESMF               , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
     use esmFlds            , only : fldListTo
-    use med_map_packed_mod , only : med_map_packed_field_map
+    use med_map_packed_mod , only : med_map_field_packed
     use med_merge_mod      , only : med_merge_auto
 
     ! input/output variables
@@ -220,7 +220,7 @@ contains
        ! export fields for the river component and that ALL mappings are done with mapconsf
 
        if (is_local%wrap%med_coupling_active(complnd,comprof)) then
-          call med_map_packed_field_map( &
+          call med_map_field_packed( &
                FBSrc=is_local%wrap%FBImpAccum(complnd,complnd), &
                FBDst=is_local%wrap%FBImpAccum(complnd,comprof), &
                FBFracSrc=is_local%wrap%FBFrac(complnd), &
@@ -339,7 +339,7 @@ contains
     use ESMF               , only : ESMF_LOGMSG_INFO, ESMF_LogWrite, ESMF_LOGMSG_ERROR
     use med_map_mod        , only : med_map_rh_is_created
     use med_map_mod        , only : med_map_field_regrid
-    use med_map_packed_mod , only : med_map_normalized_field
+    use med_map_packed_mod , only : med_map_field_normalized
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -529,7 +529,7 @@ contains
 
     call ESMF_FieldBundleGet(is_local%wrap%FBFrac(complnd), 'lfrac', field=field_lfrac_lnd, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call med_map_normalized_field(  &
+    call med_map_field_normalized(  &
          field_src=field_lndIrrig, &
          field_dst=field_rofIrrig, &
          routehandles=is_local%wrap%RH(complnd,comprof,:), &
@@ -537,7 +537,7 @@ contains
          field_normsrc=field_lfrac_lnd, &
          field_normdst=field_lfrac_rof, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call med_map_normalized_field(  &
+    call med_map_field_normalized(  &
          field_src=field_lndIrrig0, &
          field_dst=field_rofIrrig0, &
          routehandles=is_local%wrap%RH(complnd,comprof,:), &

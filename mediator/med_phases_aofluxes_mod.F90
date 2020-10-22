@@ -10,7 +10,7 @@ module med_phases_aofluxes_mod
   use med_methods_mod       , only : FB_GetFldPtr => med_methods_FB_GetFldPtr
   use med_methods_mod       , only : FB_diagnose  => med_methods_FB_diagnose
   use med_methods_mod       , only : FB_init      => med_methods_FB_init
-  use med_map_packed_mod    , only : med_map_packed_field_map
+  use med_map_packed_mod    , only : med_map_field_packed
   use perf_mod              , only : t_startf, t_stopf
 
   implicit none
@@ -155,7 +155,7 @@ contains
 
     ! TODO(mvertens, 2019-01-12): ONLY regrid atm import fields that are needed for the atm/ocn flux calculation
     ! Regrid atm import field bundle from atm to ocn grid as input for ocn/atm flux calculation
-    call med_map_packed_field_map( &
+    call med_map_field_packed( &
          FBSrc=is_local%wrap%FBImp(compatm,compatm), &
          FBDst=is_local%wrap%FBImp(compatm,compocn), &
          FBFracSrc=is_local%wrap%FBFrac(compatm), &

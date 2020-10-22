@@ -17,8 +17,9 @@ module med_map_packed_mod
   private
 
   public :: med_map_packed_field_create
-  public :: med_map_packed_field_map
-  public :: med_map_normalized_field 
+  public :: med_map_field_packed
+  public :: med_map_field_normalized 
+  public :: med_map_field
 
   character(*),parameter :: u_FILE_u = &
        __FILE__
@@ -198,8 +199,7 @@ contains
   end subroutine med_map_packed_field_create
 
   !================================================================================
-  subroutine med_map_packed_field_map(FBSrc, FBDst, FBFracSrc, FBNormOne, &
-       packed_data, routehandles, rc)
+  subroutine med_map_field_packed(FBSrc, FBDst, FBFracSrc, FBNormOne, packed_data, routehandles, rc)
 
     ! -----------------------------------------------
     ! Do the redistribution on the packed field bundles
@@ -310,7 +310,7 @@ contains
              ! Normalized mapping - assume that  each packed field has only one normalization type
              call ESMF_FieldBundleGet(FBFracSrc, packed_data(mapindex)%mapnorm, field=field_fracsrc, rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
-             call med_map_normalized_field(&
+             call med_map_field_normalized(&
                   field_src=packed_data(mapindex)%field_src, &
                   field_dst=packed_data(mapindex)%field_dst, &
                   routehandles=routehandles, &
@@ -387,10 +387,10 @@ contains
     deallocate(fieldlist_src)
     deallocate(fieldlist_dst)
 
-  end subroutine med_map_packed_field_map
+  end subroutine med_map_field_packed
 
   !================================================================================
-  subroutine med_map_normalized_field(field_src, field_dst, routehandles, maptype, &
+  subroutine med_map_field_normalized(field_src, field_dst, routehandles, maptype, &
        field_normsrc, field_normdst, rc)
 
     ! -----------------------------------------------
@@ -501,6 +501,83 @@ contains
           end if
        end do
     end if
-  end subroutine med_map_normalized_field
+  end subroutine med_map_field_normalized
+
+  !================================================================================
+  subroutine med_map_field(field_src, field_dst, routehandles, maptype, fldname, rc)
+
+    !---------------------------------------------------
+    ! map the source field to the destination field
+    !---------------------------------------------------
+
+    use ESMF            , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
+    use ESMF            , only : ESMF_LOGMSG_ERROR, ESMF_FAILURE, ESMF_MAXSTR
+    use ESMF            , only : ESMF_Field, ESMF_FieldRegrid
+    use ESMF            , only : ESMF_TERMORDER_SRCSEQ, ESMF_Region_Flag, ESMF_REGION_TOTAL
+    use ESMF            , only : ESMF_REGION_SELECT
+    use ESMF            , only : ESMF_RouteHandle
+    use esmFlds         , only : mapnstod_consd, mapnstod_consf, mapnstod_consd, mapnstod
+    use esmFlds         , only : mapconsd, mapconsf
+    use med_methods_mod , only : Field_diagnose => med_methods_Field_diagnose
+
+    ! input/output variables
+    type(ESMF_Field)       , intent(in)           :: field_src
+    type(ESMF_Field)       , intent(inout)        :: field_dst
+    type(ESMF_RouteHandle) , intent(inout)        :: routehandles(:)
+    integer                , intent(in)           :: maptype
+    character(len=*)       , intent(in), optional :: fldname
+    integer                , intent(out)          :: rc
+
+    ! local variables
+    logical :: checkflag = .false.
+    character(len=CS) :: lfldname
+    character(len=*), parameter :: subname='(med_map_field) '
+    !---------------------------------------------------
+
+    rc = ESMF_SUCCESS
+
+#ifdef DEBUG
+    checkflag = .true.
+#endif
+    lfldname = 'unknown'
+    if (present(fldname)) lfldname = trim(fldname)
+
+    if (maptype == mapnstod_consd) then
+       call ESMF_FieldRegrid(field_src, field_dst, routehandle=RouteHandles(mapnstod), &
+            termorderflag=ESMF_TERMORDER_SRCSEQ, checkflag=checkflag, zeroregion=ESMF_REGION_TOTAL, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (dbug_flag > 1) then
+          call Field_diagnose(field_dst, lfldname, " --> after nstod: ", rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+       end if
+       call ESMF_FieldRegrid(field_src, field_dst, routehandle=RouteHandles(mapconsd), &
+            termorderflag=ESMF_TERMORDER_SRCSEQ, checkflag=checkflag, zeroregion=ESMF_REGION_SELECT, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (dbug_flag > 1) then
+          call Field_diagnose(field_dst, lfldname, " --> after consd: ", rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+       end if
+    else if (maptype == mapnstod_consf) then
+       call ESMF_FieldRegrid(field_src, field_dst, routehandle=RouteHandles(mapnstod), &
+            termorderflag=ESMF_TERMORDER_SRCSEQ, checkflag=checkflag, zeroregion=ESMF_REGION_TOTAL, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (dbug_flag > 1) then
+          call Field_diagnose(field_dst, lfldname, " --> after nstod: ", rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+       end if
+       call ESMF_FieldRegrid(field_src, field_dst, routehandle=RouteHandles(mapconsf), &
+            termorderflag=ESMF_TERMORDER_SRCSEQ, checkflag=checkflag, zeroregion=ESMF_REGION_SELECT, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (dbug_flag > 1) then
+          call Field_diagnose(field_dst, lfldname, " --> after consf: ", rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+       end if
+    else
+       call ESMF_FieldRegrid(field_src, field_dst, routehandle=RouteHandles(maptype), &
+            termorderflag=ESMF_TERMORDER_SRCSEQ, checkflag=checkflag, zeroregion=ESMF_REGION_TOTAL, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+    end if
+
+  end subroutine med_map_field
 
 end module med_map_packed_mod
