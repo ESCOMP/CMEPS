@@ -396,8 +396,10 @@ contains
          call NUOPC_CompAttributeGet(gcomp, name=name, value=cvalue, rc=rc)
          if (chkerr(rc,__LINE__,u_FILE_u)) return
          read(cvalue,*) get_diag_attribute
-      else
-         call NUOPC_CompAttributeSet(gcomp, name=name, value='0', rc=rc)
+       ! the following gave an error in esmf 8.1.0b: Operation not yet supported
+!      else
+!         call NUOPC_CompAttributeSet(gcomp, name=name, value='0', rc=rc)
+!         if (ChkErr(rc,__LINE__,u_FILE_u)) return
       endif
     end function get_diag_attribute
 
