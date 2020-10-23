@@ -15,7 +15,7 @@ module med_diag_mod
   !    salt  flux    ~ (kg/s)/m^2
   !----------------------------------------------------------------------------
 
-  use NUOPC                 , only : NUOPC_CompAttributeGet, NUOPC_CompAttributeSet
+  use NUOPC                 , only : NUOPC_CompAttributeGet, NUOPC_CompAttributeSet, NUOPC_CompAttributeAdd
   use NUOPC_Mediator        , only : NUOPC_MediatorGet
   use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
   use ESMF                  , only : ESMF_FAILURE,  ESMF_LOGMSG_ERROR
