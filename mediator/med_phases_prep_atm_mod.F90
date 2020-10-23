@@ -86,7 +86,7 @@ contains
                   FBSrc=is_local%wrap%FBImp(n1,n1), &
                   FBDst=is_local%wrap%FBImp(n1,compatm), &
                   FBFracSrc=is_local%wrap%FBFrac(n1), &
-                  FBNormOne=is_local%wrap%FBNormOne(n1,compatm,:), &
+                  field_NormOne=is_local%wrap%field_normOne(n1,compatm,:), &
                   packed_data=is_local%wrap%packed_data(n1,compatm,:), &
                   routehandles=is_local%wrap%RH(n1,compatm,:), rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -101,7 +101,7 @@ contains
                FBSrc=is_local%wrap%FBMed_ocnalb_o, &
                FBDst=is_local%wrap%FBMed_ocnalb_a, &
                FBFracSrc=is_local%wrap%FBFrac(compocn), &
-               FBNormOne=is_local%wrap%FBNormOne(compocn,compatm,:), &
+               field_normOne=is_local%wrap%field_normOne(compocn,compatm,:), &
                packed_data=is_local%wrap%packed_data_ocnalb_o2a(:), &
                routehandles=is_local%wrap%RH(compocn,compatm,:), rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -116,7 +116,7 @@ contains
                FBSrc=is_local%wrap%FBMed_aoflux_o, &
                FBDst=is_local%wrap%FBMed_aoflux_a, &
                FBFracSrc=is_local%wrap%FBFrac(compocn), &
-               FBNormOne=is_local%wrap%FBNormOne(compocn,compatm,:), &
+               field_normOne=is_local%wrap%field_normOne(compocn,compatm,:), &
                packed_data=is_local%wrap%packed_data_aoflux_o2a(:), &
                routehandles=is_local%wrap%RH(compocn,compatm,:), rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return

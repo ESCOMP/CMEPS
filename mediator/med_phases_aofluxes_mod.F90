@@ -159,7 +159,7 @@ contains
          FBSrc=is_local%wrap%FBImp(compatm,compatm), &
          FBDst=is_local%wrap%FBImp(compatm,compocn), &
          FBFracSrc=is_local%wrap%FBFrac(compatm), &
-         FBNormOne=is_local%wrap%FBNormOne(compatm,compocn,:), &
+         field_normOne=is_local%wrap%field_normOne(compatm,compocn,:), &
          packed_data=is_local%wrap%packed_data(compatm,compocn,:), &
          routehandles=is_local%wrap%RH(compatm,compocn,:), rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return

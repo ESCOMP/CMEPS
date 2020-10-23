@@ -224,7 +224,7 @@ contains
                FBSrc=is_local%wrap%FBImpAccum(complnd,complnd), &
                FBDst=is_local%wrap%FBImpAccum(complnd,comprof), &
                FBFracSrc=is_local%wrap%FBFrac(complnd), &
-               FBNormOne=is_local%wrap%FBNormOne(complnd,comprof,:), &
+               field_normOne=is_local%wrap%field_normOne(complnd,comprof,:), &
                packed_data=is_local%wrap%packed_data(complnd,comprof,:), &
                routehandles=is_local%wrap%RH(complnd,comprof,:), rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return

@@ -7,7 +7,6 @@ module med_phases_prep_ice_mod
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
   use med_utils_mod         , only : chkerr            => med_utils_ChkErr
   use med_methods_mod       , only : fldchk            => med_methods_FB_FldChk
-  use med_methods_mod       , only : FB_GetFldPtr      => med_methods_FB_GetFldPtr
   use med_methods_mod       , only : FB_diagnose       => med_methods_FB_diagnose
   use med_methods_mod       , only : State_GetScalar   => med_methods_State_GetScalar
   use med_methods_mod       , only : State_SetScalar   => med_methods_State_SetScalar
@@ -39,7 +38,7 @@ contains
     use ESMF  , only : operator(/=)
     use ESMF  , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_StateGet 
     use ESMF  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
-    use ESMF  , only : ESMF_FieldBundleGet
+    use ESMF  , only : ESMF_FieldBundleGet, ESMF_FieldGet, ESMF_Field
     use ESMF  , only : ESMF_LOGMSG_ERROR, ESMF_FAILURE
     use ESMF  , only : ESMF_StateItem_Flag, ESMF_STATEITEM_NOTFOUND
     use NUOPC , only : NUOPC_IsConnected
@@ -51,6 +50,7 @@ contains
     ! local variables
     type(ESMF_StateItem_Flag)      :: itemType
     type(InternalState)            :: is_local
+    type(ESMF_Field)               :: lfield
     integer                        :: i,n,n1,ncnt
     character(len=CS)              :: fldname
     integer                        :: fldnum
@@ -98,7 +98,7 @@ contains
                   FBSrc=is_local%wrap%FBImp(n1,n1), &
                   FBDst=is_local%wrap%FBImp(n1,compice), &
                   FBFracSrc=is_local%wrap%FBFrac(n1), &
-                  FBNormOne=is_local%wrap%FBNormOne(n1,compice,:), &
+                  field_normOne=is_local%wrap%field_normOne(n1,compice,:), &
                   packed_data=is_local%wrap%packed_data(n1,compice,:), &
                   routehandles=is_local%wrap%RH(n1,compice,:), rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -139,7 +139,10 @@ contains
              fldnames = (/'Faxa_rain', 'Faxa_snow', 'Fixx_rofi'/)
              do n = 1,size(fldnames)
                 if (fldchk(is_local%wrap%FBExp(compice), trim(fldnames(n)), rc=rc)) then
-                   call FB_GetFldPtr(is_local%wrap%FBExp(compice), trim(fldnames(n)) , dataptr, rc=rc)
+                   call ESMF_FieldBundleGet(is_local%wrap%FBExp(compice), fieldname=trim(fldnames(n)), &
+                        field=lfield, rc=rc)
+                   if (chkerr(rc,__LINE__,u_FILE_u)) return
+                   call ESMF_FieldGet(lfield, farrayptr=dataptr, rc=rc)
                    if (chkerr(rc,__LINE__,u_FILE_u)) return
                    dataptr(:) = dataptr(:) * precip_fact
                 end if

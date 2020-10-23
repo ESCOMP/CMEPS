@@ -100,9 +100,9 @@ module med_internalstate_mod
     type(packed_data_type) :: packed_data_aoflux_o2a(nmappers)   ! packed data for mapping ocn->atm
 
     ! Mapping
-    type(ESMF_RouteHandle) :: RH(ncomps,ncomps,nmappers)         ! Routehandles for pairs of components and different mappers
-    type(ESMF_FieldBundle) :: FBNormOne(ncomps,ncomps,nmappers)  ! Unity static normalization
-    type(packed_data_type) :: packed_data(ncomps,ncomps,nmappers)
+    type(ESMF_RouteHandle) :: RH(ncomps,ncomps,nmappers)            ! Routehandles for pairs of components and different mappers
+    type(ESMF_Field)       :: field_NormOne(ncomps,ncomps,nmappers) ! Unity static normalization
+    type(packed_data_type) :: packed_data(ncomps,ncomps,nmappers)   ! Packed data structure needed to efficiently map field bundles
 
     ! Fractions
     type(ESMF_FieldBundle) :: FBfrac(ncomps)                     ! Fraction data for various components, on their grid

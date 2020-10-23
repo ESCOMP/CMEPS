@@ -72,7 +72,7 @@ contains
                   FBSrc=is_local%wrap%FBImp(n1,n1), &
                   FBDst=is_local%wrap%FBImp(n1,compwav), &
                   FBFracSrc=is_local%wrap%FBFrac(n1), &
-                  FBNormOne=is_local%wrap%FBNormOne(n1,compwav,:), &
+                  field_normOne=is_local%wrap%field_normOne(n1,compwav,:), &
                   packed_data=is_local%wrap%packed_data(n1,compwav,:), &
                   routehandles=is_local%wrap%RH(n1,compwav,:), rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return

@@ -57,6 +57,8 @@ module MED
   private InitializeIPDv03p5 ! realize all Fields with transfer action "accept"
   private DataInitialize     ! finish initialization and resolve data dependencies
   private SetRunClock
+  private med_meshinfo_create
+  private med_grid_write
   private med_finalize
 
   character(len=*), parameter :: grid_arbopt = "grid_reg"   ! grid_reg or grid_arb
@@ -108,9 +110,13 @@ contains
     use med_fraction_mod        , only: med_fraction_init, med_fraction_set
     use med_phases_profile_mod  , only: med_phases_profile
 
+    ! input/output variables
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc
-    character(len=*),parameter :: subname='(module_MED:SetServices)'
+
+    ! local variables
+    character(len=*),parameter :: subname='(module_med:SetServices)'
+    !-----------------------------------------------------------
 
     rc = ESMF_SUCCESS
     if (profile_memory) call ESMF_VMLogMemInfo("Entering "//trim(subname))
@@ -468,7 +474,7 @@ contains
     character(len=CX) :: msgString
     character(len=CX) :: diro
     character(len=CX) :: logfile
-    character(len=*),parameter :: subname='(module_MED:InitializeP0)'
+    character(len=*),parameter :: subname=' (module_med:InitializeP0) '
     !-----------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -571,7 +577,7 @@ contains
     character(len=8)    :: glc_present, med_present
     character(len=8)    :: ocn_present, wav_present
     character(len=CS)   :: attrList(8)
-    character(len=*),parameter :: subname='(module_MED:InitializeIPDv03p1)'
+    character(len=*),parameter :: subname=' (module_med:InitializeIPDv03p1) '
     !-----------------------------------------------------------
 
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
@@ -837,7 +843,7 @@ contains
     type(InternalState)        :: is_local
     type(ESMF_VM)              :: vm
     integer                    :: n
-    character(len=*),parameter :: subname='(module_MED:InitializeIPDv03p3)'
+    character(len=*),parameter :: subname=' (module_med:InitializeIPDv03p3) '
     !-----------------------------------------------------------
 
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
@@ -902,7 +908,7 @@ contains
     ! local variables
     type(InternalState) :: is_local
     integer :: n1,n2
-    character(len=*),parameter :: subname='(module_MED:realizeConnectedGrid)'
+    character(len=*),parameter :: subname=' (module_med:InitalizeIPDv03p4) '
     !-----------------------------------------------------------
 
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
@@ -972,7 +978,7 @@ contains
       character(ESMF_MAXSTR),allocatable :: fieldNameList(:)
       type(ESMF_FieldStatus_Flag)   :: fieldStatus
       character(len=CX)             :: msgString
-      character(len=*),parameter :: subname='(module_MEDIATOR:realizeConnectedGrid)'
+      character(len=*),parameter :: subname=' (module_med:realizeConnectedGrid) '
       !-----------------------------------------------------------
 
       !NOTE: All of the Fields that set their TransferOfferGeomObject Attribute
@@ -1350,7 +1356,7 @@ contains
     ! local variables
     type(InternalState) :: is_local
     integer             :: n1,n2
-    character(len=*),parameter  :: subname='(module_MED:InitializeIPDv03p5)'
+    character(len=*),parameter  :: subname=' (module_med:InitializeIPDv03p5) '
     !-----------------------------------------------------------
 
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
@@ -1430,7 +1436,7 @@ contains
       integer, allocatable        :: ungriddedLBound(:), ungriddedUBound(:)
       logical                     :: isPresent
       logical                     :: meshcreated
-      character(len=*),parameter  :: subname='(module_MED:completeFieldInitialization)'
+      character(len=*),parameter  :: subname=' (module_med:completeFieldInitialization) '
       !-----------------------------------------------------------
 
       call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
@@ -1608,7 +1614,7 @@ contains
     logical,save                       :: first_call = .true.
     real(r8)                           :: real_nx, real_ny
     character(len=CX)                  :: msgString
-    character(len=*), parameter        :: subname='(module_MED:DataInitialize)'
+    character(len=*), parameter        :: subname=' (module_med:DataInitialize) '
     !-----------------------------------------------------------
 
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
@@ -1897,7 +1903,7 @@ contains
       call med_map_RouteHandles_init(gcomp, logunit, rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-      call med_map_mapnorm_init(gcomp, logunit, rc)
+      call med_map_mapnorm_init(gcomp, rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
       do ndst = 1,ncomps
@@ -2216,7 +2222,7 @@ contains
     character(len=CS)       :: glc_avg_period
     integer                 :: glc_cpl_dt
     logical                 :: first_time = .true.
-    character(len=*),parameter :: subname='(module_MED:SetRunClock)'
+    character(len=*),parameter :: subname=' (module_med:SetRunClock) '
     !-----------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -2307,7 +2313,6 @@ contains
   end subroutine SetRunClock
 
   !-----------------------------------------------------------------------------
-  !-----------------------------------------------------------------------------
 
   subroutine med_meshinfo_create(FB, mesh_info, rc)
 
@@ -2332,7 +2337,7 @@ contains
     real(r8), allocatable :: ownedElemCoords(:)
     real(r8), pointer     :: dataptr(:)
     integer               :: n, dimcount, fieldcount
-    character(len=*),parameter :: subname='(module_MED:med_meshinfo_create)'
+    character(len=*),parameter :: subname=' (module_med:med_meshinfo_create) '
     !-------------------------------------------------------------------------------
 
     rc= ESMF_SUCCESS
@@ -2377,26 +2382,8 @@ contains
   end subroutine med_meshinfo_create
 
   !-----------------------------------------------------------------------------
-
-  subroutine med_finalize(gcomp, rc)
-
-    use ESMF, only : ESMF_GridComp, ESMF_SUCCESS
-
-    type(ESMF_GridComp)  :: gcomp
-    integer, intent(out) :: rc
-
-    rc = ESMF_SUCCESS
-    call memcheck("med_finalize", 0, mastertask)
-    if (mastertask) then
-       write(logunit,*)' SUCCESSFUL TERMINATION OF CMEPS'
-       call med_phases_profile_finalize()
-    end if
-
-  end subroutine med_finalize
-
-  !-----------------------------------------------------------------------------
-
   subroutine med_grid_write(grid, fileName, rc)
+
     use ESMF, only : ESMF_Grid, ESMF_Array, ESMF_ArrayBundle
     use ESMF, only : ESMF_ArrayBundleCreate, ESMF_GridGet
     use ESMF, only : ESMF_GridGetCoord, ESMF_ArraySet, ESMF_ArrayBundleAdd
@@ -2414,7 +2401,7 @@ contains
     type(ESMF_ArrayBundle) :: arrayBundle
     integer :: tileCount
     logical :: isPresent
-    character(len=*), parameter :: subname='(module_MED_Map:med_grid_write)'
+    character(len=*), parameter :: subname=' (module_med_map:med_grid_write) '
     !-------------------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -2567,5 +2554,21 @@ contains
   end subroutine med_grid_write
 
   !-----------------------------------------------------------------------------
+
+  subroutine med_finalize(gcomp, rc)
+
+    use ESMF, only : ESMF_GridComp, ESMF_SUCCESS
+
+    type(ESMF_GridComp)  :: gcomp
+    integer, intent(out) :: rc
+
+    rc = ESMF_SUCCESS
+    call memcheck("med_finalize", 0, mastertask)
+    if (mastertask) then
+       write(logunit,*)' SUCCESSFUL TERMINATION OF CMEPS'
+       call med_phases_profile_finalize()
+    end if
+
+  end subroutine med_finalize
 
 end module MED

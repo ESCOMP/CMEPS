@@ -713,13 +713,15 @@ contains
        ! ------------------------------------------------------------------------
 
        ! Get a pointer to the land data in multiple elevation classes on the glc grid
-       call ESMF_FieldBundleGet(FBlndAccum_glc, fieldname=trim(fldnames_fr_lnd(nfld)), field=lfield, rc=rc)
+       call ESMF_FieldBundleGet(FBlndAccum_glc, fieldname=trim(fldnames_fr_lnd(nfld)), &
+            field=lfield, rc=rc)
        if (chkErr(rc,__LINE__,u_FILE_u)) return
        call ESMF_FieldGet(lfield, farrayptr=dataptr2d, rc=rc)
        if (chkErr(rc,__LINE__,u_FILE_u)) return
 
        ! Get a pointer to the data for the field that will be sent to glc (without elevation classes)
-       call ESMF_FieldBundleGet(is_local%wrap%FBExp(compglc), fieldname=trim(fldnames_to_glc(nfld)), field=lfield, rc=rc)
+       call ESMF_FieldBundleGet(is_local%wrap%FBExp(compglc), fieldname=trim(fldnames_to_glc(nfld)), &
+            field=lfield, rc=rc)
        if (chkErr(rc,__LINE__,u_FILE_u)) return
        call ESMF_FieldGet(lfield, farrayptr=dataexp_g, rc=rc)
        if (chkErr(rc,__LINE__,u_FILE_u)) return
