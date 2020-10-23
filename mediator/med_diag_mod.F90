@@ -364,21 +364,22 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     budget_print_ltend  = get_diag_attribute(gcomp, 'budget_ltend', rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    ! Set stop alarm (needed for budgets)
-    call NUOPC_CompAttributeGet(gcomp, name="stop_option", value=stop_option, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompAttributeGet(gcomp, name="stop_n", value=cvalue, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) stop_n
-    call NUOPC_CompAttributeGet(gcomp, name="stop_ymd", value=cvalue, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) stop_ymd
-    call NUOPC_MediatorGet(gcomp, mediatorClock=mediatorClock, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call alarmInit(mediatorclock, stop_alarm, stop_option, opt_n=stop_n, opt_ymd=stop_ymd, &
-         alarmname='alarm_stop', rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (budget_print_inst + budget_print_daily + budget_print_month + budget_print_ann + budget_print_ltann + budget_print_ltend > 0) then
+       ! Set stop alarm (needed for budgets)
+       call NUOPC_CompAttributeGet(gcomp, name="stop_option", value=stop_option, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call NUOPC_CompAttributeGet(gcomp, name="stop_n", value=cvalue, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       read(cvalue,*) stop_n
+       call NUOPC_CompAttributeGet(gcomp, name="stop_ymd", value=cvalue, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       read(cvalue,*) stop_ymd
+       call NUOPC_MediatorGet(gcomp, mediatorClock=mediatorClock, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call alarmInit(mediatorclock, stop_alarm, stop_option, opt_n=stop_n, opt_ymd=stop_ymd, &
+            alarmname='alarm_stop', rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    endif
   contains
     integer function get_diag_attribute(gcomp, name, rc)
       type(ESMF_GridComp) , intent(inout) :: gcomp
