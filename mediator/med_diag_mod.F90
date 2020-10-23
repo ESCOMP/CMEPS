@@ -15,7 +15,7 @@ module med_diag_mod
   !    salt  flux    ~ (kg/s)/m^2
   !----------------------------------------------------------------------------
 
-  use NUOPC                 , only : NUOPC_CompAttributeGet
+  use NUOPC                 , only : NUOPC_CompAttributeGet, NUOPC_CompAttributeSet, NUOPC_CompAttributeAdd
   use NUOPC_Mediator        , only : NUOPC_MediatorGet
   use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
   use ESMF                  , only : ESMF_FAILURE,  ESMF_LOGMSG_ERROR
@@ -238,7 +238,7 @@ contains
     integer             , intent(out)   :: rc
 
     ! local variables
-    character(CS)     :: cvalue
+
     integer           :: c_size   ! number of component send/recvs
     integer           :: f_size   ! number of fields
     integer           :: p_size   ! number of period types
@@ -247,6 +247,7 @@ contains
     integer           :: stop_n   ! Number until restart interval
     integer           :: stop_ymd ! Restart date (YYYYMMDD)
     type(ESMF_ALARM)  :: stop_alarm
+    character(CS)     :: cvalue
     ! ------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -351,44 +352,58 @@ contains
     ! Get config variables
     !-------------------------------------------------------------------------------
 
-    call NUOPC_CompAttributeGet(gcomp, name='budget_inst', value=cvalue, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) budget_print_inst
-
-    call NUOPC_CompAttributeGet(gcomp, name='budget_daily', value=cvalue, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) budget_print_daily
-
-    call NUOPC_CompAttributeGet(gcomp, name='budget_month', value=cvalue, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) budget_print_month
-
-    call NUOPC_CompAttributeGet(gcomp, name='budget_ann', value=cvalue, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) budget_print_ann
-
-    call NUOPC_CompAttributeGet(gcomp, name='budget_ltann', value=cvalue, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) budget_print_ltann
-
-    call NUOPC_CompAttributeGet(gcomp, name='budget_ltend', value=cvalue, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) budget_print_ltend
-
-    ! Set stop alarm (needed for budgets)
-    call NUOPC_CompAttributeGet(gcomp, name="stop_option", value=stop_option, rc=rc)
+    budget_print_inst = get_diag_attribute(gcomp, 'budget_inst', rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompAttributeGet(gcomp, name="stop_n", value=cvalue, rc=rc)
+    budget_print_daily = get_diag_attribute(gcomp, 'budget_daily', rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) stop_n
-    call NUOPC_CompAttributeGet(gcomp, name="stop_ymd", value=cvalue, rc=rc)
+    budget_print_month = get_diag_attribute(gcomp, 'budget_month', rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) stop_ymd
-    call NUOPC_MediatorGet(gcomp, mediatorClock=mediatorClock, rc=rc)
+    budget_print_ann  = get_diag_attribute(gcomp, 'budget_ann', rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call alarmInit(mediatorclock, stop_alarm, stop_option, opt_n=stop_n, opt_ymd=stop_ymd, &
-         alarmname='alarm_stop', rc=rc)
+    budget_print_ltann  = get_diag_attribute(gcomp, 'budget_ltann', rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    budget_print_ltend  = get_diag_attribute(gcomp, 'budget_ltend', rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (budget_print_inst + budget_print_daily + budget_print_month + budget_print_ann + budget_print_ltann + budget_print_ltend > 0) then
+       ! Set stop alarm (needed for budgets)
+       call NUOPC_CompAttributeGet(gcomp, name="stop_option", value=stop_option, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call NUOPC_CompAttributeGet(gcomp, name="stop_n", value=cvalue, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       read(cvalue,*) stop_n
+       call NUOPC_CompAttributeGet(gcomp, name="stop_ymd", value=cvalue, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       read(cvalue,*) stop_ymd
+       call NUOPC_MediatorGet(gcomp, mediatorClock=mediatorClock, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call alarmInit(mediatorclock, stop_alarm, stop_option, opt_n=stop_n, opt_ymd=stop_ymd, &
+            alarmname='alarm_stop', rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    endif
+  contains
+    integer function get_diag_attribute(gcomp, name, rc)
+      type(ESMF_GridComp) , intent(inout) :: gcomp
+      character(len=*), intent(in) :: name
+      integer, intent(out) :: rc
+
+      character(CS)     :: cvalue
+      logical :: isPresent
+
+      rc = ESMF_SUCCESS
+      get_diag_attribute = 0
+      call NUOPC_CompAttributeGet(gcomp, name=name, isPresent=isPresent, rc=rc)
+      if (chkerr(rc,__LINE__,u_FILE_u)) return
+      if (isPresent) then
+         call NUOPC_CompAttributeGet(gcomp, name=name, value=cvalue, rc=rc)
+         if (chkerr(rc,__LINE__,u_FILE_u)) return
+         read(cvalue,*) get_diag_attribute
+      else
+         call NUOPC_CompAttributeAdd(gcomp, (/name/), rc=rc)
+         if (ChkErr(rc,__LINE__,u_FILE_u)) return
+         call NUOPC_CompAttributeSet(gcomp, name=name, value='0', rc=rc)
+         if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      endif
+    end function get_diag_attribute
 
    end subroutine med_diag_init
 
