@@ -20,7 +20,7 @@ module med_phases_prep_ocn_mod
   use med_methods_mod       , only : FB_copy       => med_methods_FB_copy
   use med_methods_mod       , only : FB_reset      => med_methods_FB_reset
   use esmFlds               , only : fldListTo
-  use esmFlds               , only : compocn, compatm, compice, ncomps, compname
+  use esmFlds               , only : compocn, compatm, compice, ncomps, compname, comprof
   use esmFlds               , only : coupling_mode
   use perf_mod              , only : t_startf, t_stopf
 
@@ -81,6 +81,11 @@ contains
 
     ! map all fields in FBImp that have active ocean coupling
     if (ncnt > 0) then
+       !DEBUG
+       call FB_diagnose(is_local%wrap%FBImp(comprof,comprof), string=trim(subname)//' FBImp(comprof,comprof) ', rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       !DEBUG
+
        do n1 = 1,ncomps
           if (is_local%wrap%med_coupling_active(n1,compocn)) then
              call med_map_field_packed( &
@@ -93,6 +98,12 @@ contains
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
        end do
+
+       !DEBUG
+       call FB_diagnose(is_local%wrap%FBImp(comprof,compocn), string=trim(subname)//' FBImp(comprof,compocn) ', rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       !DEBUG
+
     endif
 
     call t_stopf('MED:'//subname)

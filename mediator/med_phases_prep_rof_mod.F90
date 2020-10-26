@@ -231,7 +231,7 @@ contains
 
           if (dbug_flag > 1) then
              call FB_diagnose(is_local%wrap%FBImpAccum(complnd,comprof), &
-                  string=trim(subname)//' FBImpAccum(complnd,comprof) after avg ', rc=rc)
+                  string=trim(subname)//' FBImpAccum(complnd,comprof) after map ', rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
           end if
 

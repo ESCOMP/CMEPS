@@ -20,7 +20,6 @@ module med_map_mod
   use med_methods_mod       , only : FB_init           => med_methods_FB_Init
   use med_methods_mod       , only : FB_reset          => med_methods_FB_Reset
   use med_methods_mod       , only : FB_Clean          => med_methods_FB_Clean
-  use med_methods_mod       , only : FB_GetFldPtr      => med_methods_FB_GetFldPtr
   use med_methods_mod       , only : FB_Field_diagnose => med_methods_FB_Field_diagnose
   use med_methods_mod       , only : FB_FldChk         => med_methods_FB_FldChk
   use med_methods_mod       , only : FB_GetFieldByName => med_methods_FB_GetFieldByName
@@ -692,7 +691,7 @@ contains
              end if ! end of if block for creating destination field
           end do ! end of loop over n2
 
-          ! Deallocate memory 
+          ! Deallocate memory
           deallocate(fieldlist)
           call ESMF_FieldDestroy(field_src, rc=rc, noGarbage=.true.)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -765,7 +764,6 @@ contains
 
     ! Determine local size and mesh of source fields
     ! Allocate a source fortran pointer for the new packed field bundle
-    ! Create the packed source field bundle
     call ESMF_FieldGet(fieldlist_src(1), mesh=lmesh_src, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call ESMF_MeshGet(lmesh_src, numOwnedElements=lsize_src, rc=rc)
@@ -773,7 +771,6 @@ contains
 
     ! Determine local size of destination fields
     ! Allocate a destination fortran pointer for the new packed field bundle
-    ! Create the packed source field bundle
     call ESMF_FieldGet(fieldlist_dst(1), mesh=lmesh_dst, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call ESMF_MeshGet(lmesh_dst, numOwnedElements=lsize_dst, rc=rc)
@@ -784,11 +781,31 @@ contains
     ! ungridded dimensions and need to unwrap them into separate fields for the
     ! purposes of packing
 
+    if (mastertask) write(logunit,*)
+
+    ! Determine the normalization type for each packed_data mapping element
+    ! Loop over mapping types
+    do mapindex = 1,nmappers
+       ! Loop over source field bundle
+       do nf = 1, fieldCount
+          ! Loop over the fldsSrc types
+          do ns = 1,size(fldsSrc)
+             ! Note that fieldnamelist is an array of names for the source fields
+             ! The assumption is that there is only one mapping normalization
+             ! for any given mapping type
+             if ( fldsSrc(ns)%mapindex(destcomp) == mapindex .and. &
+                  trim(fldsSrc(ns)%shortname) == trim(fieldnamelist(nf))) then
+                ! Set the normalization to the input 
+                packed_data(mapindex)%mapnorm = fldsSrc(ns)%mapnorm(destcomp)
+             end if
+          end do
+       end do
+    end do
+
     ! Allocate memory to keep tracked of packing index for each mapping type
     allocate(npacked(nmappers))
     npacked(:) = 0
 
-    if (mastertask) write(logunit,*)
     ! Loop over mapping types
     do mapindex = 1,nmappers
 
@@ -805,23 +822,7 @@ contains
           do ns = 1,size(fldsSrc)
 
              if ( fldsSrc(ns)%mapindex(destcomp) == mapindex .and. &
-                  fldsSrc(ns)%shortname /= flds_scalar_name  .and. &
                   trim(fldsSrc(ns)%shortname) == trim(fieldnamelist(nf))) then
-
-                ! Determine mapnorm - the assumption is that there is only one
-                ! mapnorm type for a source packed field bundle
-                if (npacked(mapindex) == 0) then
-                   packed_data(mapindex)%mapnorm = fldsSrc(ns)%mapnorm(destcomp)
-                else
-                   if (fldsSrc(ns)%mapnorm(destcomp) /= packed_data(mapindex)%mapnorm) then
-                      call ESMF_LogWrite(trim(subname)//&
-                           ": ERROR mapnorm "//trim(fldsSrc(ns)%mapnorm(destcomp))//" is not equal to "// &
-                           trim(packed_data(mapindex)%mapnorm)//" for packed field bundle ", &
-                           ESMF_LOGMSG_ERROR, rc=rc)
-                      rc = ESMF_FAILURE
-                      return
-                   end if
-                end if
 
                 ! Determine mapping of indices into packed field bundle
                 ! Get source field
@@ -844,22 +845,23 @@ contains
                         'Packed field: destcomp,mapping,mapnorm,fldname,index: ', &
                         trim(compname(destcomp)), &
                         trim(mapnames(mapindex)), &
-                        trim(fldsSrc(ns)%mapnorm(destcomp)), &
+                        trim(packed_data(mapindex)%mapnorm), &
                         trim(fieldnamelist(nf)), &
                         packed_data(mapindex)%fldindex(nf)
                 end if
 
              end if! end if source field is mapped to destination field with mapindex
           end do ! end loop over FBSrc fields
-       end do ! end loop over fldSrc elements
+       end do ! end loop over fldsSrc elements
 
-       ! Create the source and destination packed fields for mapindex
        if (npacked(mapindex) > 0) then
+          ! Create the packed source field bundle for mapindex
           allocate(ptrsrc_packed(npacked(mapindex), lsize_src))
           packed_data(mapindex)%field_src = ESMF_FieldCreate(lmesh_src, &
                ptrsrc_packed, gridToFieldMap=(/2/),  meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
 
+          ! Create the packed destination field bundle for mapindex
           allocate(ptrdst_packed(npacked(mapindex), lsize_dst))
           packed_data(mapindex)%field_dst = ESMF_FieldCreate(lmesh_dst, &
                ptrdst_packed, gridToFieldMap=(/2/),  meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
@@ -886,7 +888,7 @@ contains
     ! -----------------------------------------------
 
     use ESMF                  , only : ESMF_Field, ESMF_FieldGet, ESMF_FieldIsCreated
-    use ESMF                  , only : ESMF_FieldBundle, ESMF_FieldBundleGet 
+    use ESMF                  , only : ESMF_FieldBundle, ESMF_FieldBundleGet
     use ESMF                  , only : ESMF_FieldRedist, ESMF_RouteHandle
     use esmFlds               , only : nmappers, mapfcopy
     use med_internalstate_mod , only : packed_data_type
