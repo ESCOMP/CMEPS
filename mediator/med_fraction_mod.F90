@@ -676,7 +676,7 @@ contains
              call FB_FieldRegrid(&
                   is_local%wrap%FBfrac(compice), 'ofrac', &
                   is_local%wrap%FBfrac(compatm), 'ofrac', &
-                  is_local%wrap%RH(compocn,compatm,:), maptype, rc=rc)
+                  is_local%wrap%RH(compice,compatm,:), maptype, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
        end if ! end of if present compatm
