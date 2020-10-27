@@ -1354,7 +1354,6 @@ contains
              call addmap(fldListFr(comprof)%flds, 'Flrr_flood'//iso(n), compocn, mapconsd       , 'one' , rof2ocn_fmap)
              call addmap(fldListFr(compglc)%flds, 'Fogg_rofl'//iso(n) , compocn, map_glc2ocn_liq, 'one' , glc2ocn_liq_rmap)
              call addmrg(fldListTo(compocn)%flds, 'Foxx_rofl'//iso(n), &
-                 !mrg_from1=comprof, mrg_fld1='Forr_rofl'           , mrg_type1='sum', &
                   mrg_from1=comprof, mrg_fld1='Forr_rofl:Flrr_flood', mrg_type1='sum', &
                   mrg_from2=compglc, mrg_fld2='Fogg_rofl'//iso(n)   , mrg_type2='sum')
           ! liquid runoff from both rof and glc to ocn
