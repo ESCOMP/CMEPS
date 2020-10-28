@@ -13,7 +13,6 @@ module med_merge_mod
   use med_utils_mod         , only : ChkErr            => med_utils_ChkErr
   use med_methods_mod       , only : FB_FldChk         => med_methods_FB_FldChk
   use med_methods_mod       , only : FB_GetFldPtr      => med_methods_FB_GetFldPtr
-  use med_methods_mod       , only : FieldPtr_Compare  => med_methods_FieldPtr_Compare
   use esmFlds               , only : compmed, compname
   use esmFlds               , only : med_fldList_type
   use esmFlds               , only : med_fldList_GetNumFlds
@@ -27,8 +26,7 @@ module med_merge_mod
   public  :: med_merge_field
 
   interface med_merge_field ; module procedure &
-       med_merge_field_1D, &
-       med_merge_field_2D
+       med_merge_field_1D
   end interface
 
   private :: med_merge_auto_field
@@ -543,15 +541,14 @@ contains
        endif
 
        if (FBinfound) then
-          if (.not.FieldPtr_Compare(dataPtr, dataOut, subname, rc)) then
+          if (lbound(dataPtr,1) /= lbound(dataOut,1) .or. ubound(dataPtr,1) /= ubound(dataOut,1)) then
              call ESMF_LogWrite(trim(subname)//": ERROR FBin wrong size", &
                   ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u, rc=dbrc)
              rc = ESMF_FAILURE
              return
           endif
-
           if (wgtfound) then
-             if (.not.FieldPtr_Compare(dataPtr, wgt, subname, rc)) then
+             if (lbound(dataPtr,1) /= lbound(wgt,1) .or. ubound(dataPtr,1) /= ubound(wgt,1)) then
                 call ESMF_LogWrite(trim(subname)//": ERROR wgt wrong size", &
                      ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u, rc=dbrc)
                 rc = ESMF_FAILURE
@@ -574,190 +571,6 @@ contains
     endif
 
   end subroutine med_merge_field_1D
-
-  !===============================================================================
-  subroutine med_merge_field_2D(FBout, fnameout,     &
-                                FBinA, fnameA, wgtA, &
-                                FBinB, fnameB, wgtB, &
-                                FBinC, fnameC, wgtC, &
-                                FBinD, fnameD, wgtD, &
-                                FBinE, fnameE, wgtE, rc)
-
-    use ESMF , only : ESMF_FieldBundle, ESMF_LogWrite
-    use ESMF , only : ESMF_SUCCESS, ESMF_FAILURE, ESMF_LOGMSG_ERROR
-    use ESMF , only : ESMF_LOGMSG_WARNING, ESMF_LOGMSG_INFO
-
-    ! ----------------------------------------------
-    ! Supports up to a five way merge
-    ! ----------------------------------------------
-
-    ! input/output arguments
-    type(ESMF_FieldBundle) , intent(inout)                 :: FBout
-    character(len=*)       , intent(in)                    :: fnameout
-    type(ESMF_FieldBundle) , intent(in)                    :: FBinA
-    character(len=*)       , intent(in)                    :: fnameA
-    real(R8)               , intent(in), pointer           :: wgtA(:,:)
-    type(ESMF_FieldBundle) , intent(in), optional          :: FBinB
-    character(len=*)       , intent(in), optional          :: fnameB
-    real(R8)               , intent(in), optional, pointer :: wgtB(:,:)
-    type(ESMF_FieldBundle) , intent(in), optional          :: FBinC
-    character(len=*)       , intent(in), optional          :: fnameC
-    real(R8)               , intent(in), optional, pointer :: wgtC(:,:)
-    type(ESMF_FieldBundle) , intent(in), optional          :: FBinD
-    character(len=*)       , intent(in), optional          :: fnameD
-    real(R8)               , intent(in), optional, pointer :: wgtD(:,:)
-    type(ESMF_FieldBundle) , intent(in), optional          :: FBinE
-    character(len=*)       , intent(in), optional          :: fnameE
-    real(R8)               , intent(in), optional, pointer :: wgtE(:,:)
-    integer                , intent(out)                   :: rc
-
-    ! local variables
-    real(R8), pointer          :: dataOut(:,:)
-    real(R8), pointer          :: dataPtr(:,:)
-    real(R8), pointer          :: wgt(:,:)
-    integer                    :: lb1,ub1,lb2,ub2,i,j,n
-    logical                    :: wgtfound, FBinfound
-    integer                    :: dbrc
-    character(len=*),parameter :: subname='(med_merge_field_2d)'
-    ! ----------------------------------------------
-
-    if (dbug_flag > 10) then
-       call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
-    endif
-    rc=ESMF_SUCCESS
-
-    if (.not. FB_FldChk(FBout, trim(fnameout), rc=rc)) then
-       call ESMF_LogWrite(trim(subname)//": WARNING field not in FBout, skipping merge "//&
-            trim(fnameout), ESMF_LOGMSG_WARNING, line=__LINE__, file=u_FILE_u, rc=dbrc)
-       return
-    endif
-
-    call FB_GetFldPtr(FBout, trim(fnameout), fldptr2=dataOut, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    lb1 = lbound(dataOut,1)
-    ub1 = ubound(dataOut,1)
-    lb2 = lbound(dataOut,2)
-    ub2 = ubound(dataOut,2)
-
-    dataOut = czero
-
-    ! check each field has a fieldname passed in
-    if ((present(FBinB) .and. .not.present(fnameB)) .or. &
-        (present(FBinC) .and. .not.present(fnameC)) .or. &
-        (present(FBinD) .and. .not.present(fnameD)) .or. &
-        (present(FBinE) .and. .not.present(fnameE))) then
-       call ESMF_LogWrite(trim(subname)//": ERROR fname not present with FBin", &
-            ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u, rc=dbrc)
-       rc = ESMF_FAILURE
-       return
-    endif
-
-    ! check that each field passed in actually exists, if not DO NOT do any merge
-    FBinfound = .true.
-    if (present(FBinB)) then
-       if (.not. FB_FldChk(FBinB, trim(fnameB), rc=rc)) FBinfound = .false.
-    endif
-    if (present(FBinC)) then
-       if (.not. FB_FldChk(FBinC, trim(fnameC), rc=rc)) FBinfound = .false.
-    endif
-    if (present(FBinD)) then
-       if (.not. FB_FldChk(FBinD, trim(fnameD), rc=rc)) FBinfound = .false.
-    endif
-    if (present(FBinE)) then
-       if (.not. FB_FldChk(FBinE, trim(fnameE), rc=rc)) FBinfound = .false.
-    endif
-    if (.not. FBinfound) then
-       call ESMF_LogWrite(trim(subname)//": WARNING field not found in FBin, skipping merge "//trim(fnameout), &
-            ESMF_LOGMSG_WARNING, line=__LINE__, file=u_FILE_u, rc=dbrc)
-       return
-    endif
-
-    ! n=1,5 represents adding A to E inputs if they exist
-    do n = 1,5
-       FBinfound = .false.
-       wgtfound = .false.
-
-       if (n == 1) then
-          FBinfound = .true.
-          call FB_GetFldPtr(FBinA, trim(fnameA), fldptr2=dataPtr, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          wgtfound = .true.
-          wgt => wgtA
-
-       elseif (n == 2 .and. present(FBinB)) then
-          FBinfound = .true.
-          call FB_GetFldPtr(FBinB, trim(fnameB), fldptr2=dataPtr, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          if (present(wgtB)) then
-             wgtfound = .true.
-             wgt => wgtB
-          endif
-
-       elseif (n == 3 .and. present(FBinC)) then
-          FBinfound = .true.
-          call FB_GetFldPtr(FBinC, trim(fnameC), fldptr2=dataPtr, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          if (present(wgtC)) then
-             wgtfound = .true.
-             wgt => wgtC
-          endif
-
-       elseif (n == 4 .and. present(FBinD)) then
-          FBinfound = .true.
-          call FB_GetFldPtr(FBinD, trim(fnameD), fldptr2=dataPtr, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          if (present(wgtD)) then
-             wgtfound = .true.
-             wgt => wgtD
-          endif
-
-       elseif (n == 5 .and. present(FBinE)) then
-          FBinfound = .true.
-          call FB_GetFldPtr(FBinE, trim(fnameE), fldptr2=dataPtr, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          if (present(wgtE)) then
-             wgtfound = .true.
-             wgt => wgtE
-          endif
-
-       endif
-
-       if (FBinfound) then
-          if (.not.FieldPtr_Compare(dataPtr, dataOut, subname, rc)) then
-             call ESMF_LogWrite(trim(subname)//": ERROR FBin wrong size", &
-                  ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u, rc=dbrc)
-             rc = ESMF_FAILURE
-             return
-          endif
-
-          if (wgtfound) then
-             if (.not. FieldPtr_Compare(dataPtr, wgt, subname, rc)) then
-                call ESMF_LogWrite(trim(subname)//": ERROR wgt wrong size", &
-                     ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u, rc=dbrc)
-                rc = ESMF_FAILURE
-                return
-             endif
-             do j = lb2,ub2
-                do i = lb1,ub1
-                   dataOut(i,j) = dataOut(i,j) + dataPtr(i,j) * wgt(i,j)
-                enddo
-             enddo
-          else
-             do j = lb2,ub2
-                do i = lb1,ub1
-                   dataOut(i,j) = dataOut(i,j) + dataPtr(i,j)
-                enddo
-             enddo
-          endif  ! wgtfound
-
-       endif  ! FBin found
-    enddo  ! n
-
-    if (dbug_flag > 10) then
-       call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
-    endif
-
-  end subroutine med_merge_field_2D
 
   !===============================================================================
   integer function merge_listGetNum(str)

@@ -9,7 +9,6 @@ module med_phases_aofluxes_mod
   use med_methods_mod       , only : FB_fldchk    => med_methods_FB_FldChk
   use med_methods_mod       , only : FB_GetFldPtr => med_methods_FB_GetFldPtr
   use med_methods_mod       , only : FB_diagnose  => med_methods_FB_diagnose
-  use med_methods_mod       , only : FB_init      => med_methods_FB_init
   use med_map_mod           , only : med_map_field_packed
   use perf_mod              , only : t_startf, t_stopf
 

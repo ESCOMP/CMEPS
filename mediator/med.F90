@@ -14,14 +14,12 @@ module MED
   use med_utils_mod          , only : chkerr             => med_utils_ChkErr
   use med_methods_mod        , only : Field_GeomPrint    => med_methods_Field_GeomPrint
   use med_methods_mod        , only : State_GeomPrint    => med_methods_State_GeomPrint
-  use med_methods_mod        , only : State_GeomWrite    => med_methods_State_GeomWrite
   use med_methods_mod        , only : State_reset        => med_methods_State_reset
   use med_methods_mod        , only : State_getNumFields => med_methods_State_getNumFields
   use med_methods_mod        , only : State_GetScalar    => med_methods_State_GetScalar
   use med_methods_mod        , only : FB_Init            => med_methods_FB_init
   use med_methods_mod        , only : FB_Init_pointer    => med_methods_FB_Init_pointer
   use med_methods_mod        , only : FB_Reset           => med_methods_FB_Reset
-  use med_methods_mod        , only : FB_Copy            => med_methods_FB_Copy
   use med_methods_mod        , only : FB_FldChk          => med_methods_FB_FldChk
   use med_methods_mod        , only : FB_diagnose        => med_methods_FB_diagnose
   use med_methods_mod        , only : FB_getFieldN       => med_methods_FB_getFieldN
@@ -1395,9 +1393,6 @@ contains
 
         if (dbug_flag > 1) then
            call State_GeomPrint(is_local%wrap%NStateExp(n1),'gridExp'//trim(compname(n1)),rc=rc)
-           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-           call State_GeomWrite(is_local%wrap%NStateExp(n1), 'grid_med_'//trim(compname(n1)), rc=rc)
            if (ChkErr(rc,__LINE__,u_FILE_u)) return
         end if
       endif

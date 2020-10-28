@@ -17,12 +17,9 @@ module med_map_mod
   use med_utils_mod         , only : chkerr            => med_utils_ChkErr
   use med_utils_mod         , only : memcheck          => med_memcheck
   use med_methods_mod       , only : FB_getFieldN      => med_methods_FB_getFieldN
-  use med_methods_mod       , only : FB_init           => med_methods_FB_Init
   use med_methods_mod       , only : FB_reset          => med_methods_FB_Reset
-  use med_methods_mod       , only : FB_Clean          => med_methods_FB_Clean
   use med_methods_mod       , only : FB_Field_diagnose => med_methods_FB_Field_diagnose
   use med_methods_mod       , only : FB_FldChk         => med_methods_FB_FldChk
-  use med_methods_mod       , only : FB_GetFieldByName => med_methods_FB_GetFieldByName
   use med_methods_mod       , only : Field_diagnose    => med_methods_Field_diagnose
   use perf_mod              , only : t_startf, t_stopf
 
@@ -1268,7 +1265,7 @@ contains
     ! Regrid a field in a field bundle to another field in a field bundle
     ! ----------------------------------------------
 
-    use ESMF  , only : ESMF_FieldBundle, ESMF_RouteHandle, ESMF_Field
+    use ESMF     , only : ESMF_FieldBundle, ESMF_RouteHandle, ESMF_Field, ESMF_FieldBundleGet
     use perf_mod , only : t_startf, t_stopf
 
     type(ESMF_FieldBundle), intent(in)           :: FBin
@@ -1300,12 +1297,10 @@ contains
     end if
     if (FB_FldChk(FBin , trim(fldin) , rc=rc) .and. FB_FldChk(FBout, trim(fldout), rc=rc)) then
 
-       call FB_GetFieldByName(FBin, trim(fldin), field1, rc=rc)
+       call ESMF_FieldBundleGet(FBin, fieldName=trim(fldin), field=field1, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-       call FB_GetFieldByName(FBout, trim(fldout), field2, rc=rc)
+       call ESMF_FieldBundleGet(FBout, fieldName=trim(fldout), field=field2, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-
        call med_map_field(field_src=field1, field_dst=field2, routehandles=routehandles, maptype=mapindex, &
             fldname=trim(lfldname), rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
