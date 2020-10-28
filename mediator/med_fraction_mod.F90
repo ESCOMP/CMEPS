@@ -674,9 +674,9 @@ contains
           ! Map 'ofrac' from FBfrac(compice) to FBfrac(compatm)
           if (is_local%wrap%med_coupling_active(compocn,compatm)) then
              call FB_FieldRegrid(&
-                  is_local%wrap%FBfrac(compocn), 'ofrac', &
+                  is_local%wrap%FBfrac(compice), 'ofrac', &
                   is_local%wrap%FBfrac(compatm), 'ofrac', &
-                  is_local%wrap%RH(compocn,compatm,:), maptype, rc=rc)
+                  is_local%wrap%RH(compice,compatm,:), maptype, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
        end if ! end of if present compatm

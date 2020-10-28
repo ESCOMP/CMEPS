@@ -94,6 +94,7 @@ contains
     use NUOPC    , only : NUOPC_IsConnected, NUOPC_CompAttributeGet
     use esmFlds  , only : med_fldList_GetNumFlds, med_fldList_GetFldNames
     use esmFlds  , only : fldListFr, fldListMed_aoflux, compatm, compocn, compname
+    use NUOPC    , only : NUOPC_CompAttributeGet
 
     !-----------------------------------------------------------------------
     ! Compute atm/ocn fluxes
@@ -189,7 +190,7 @@ contains
     use ESMF     , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_VM
     use ESMF     , only : ESMF_Field, ESMF_FieldGet, ESMF_FieldBundle, ESMF_VMGet
     use NUOPC    , only : NUOPC_CompAttributeGet
-
+    use shr_flux_mod  , only :  shr_flux_adjust_constants
     !-----------------------------------------------------------------------
     ! Initialize pointers to the module variables
     !-----------------------------------------------------------------------
@@ -212,6 +213,10 @@ contains
     character(CL)            :: cvalue
     logical                  :: flds_wiso  ! use case
     character(len=CX)        :: tmpstr
+    real(R8)                :: flux_convergence        ! convergence criteria for imlicit flux computation
+    integer                 :: flux_max_iteration      ! maximum number of iterations for convergence
+    logical                 :: coldair_outbreak_mod    ! cold air outbreak adjustment  (Mahrt & Sun 1995,MWR)
+    logical                 :: isPresent, isSet
     character(*),parameter   :: subName =   '(med_aofluxes_init) '
     !-----------------------------------------------------------------------
 
@@ -381,6 +386,40 @@ contains
     ! call FB_getFldPtr(FBFrac , fldname='ifrac' , fldptr1=ifrac, rc=rc)
     ! if (chkerr(rc,__LINE__,u_FILE_u)) return
     ! where (ofrac(:) + ifrac(:) <= 0.0_R8) mask(:) = 0
+    !----------------------------------
+    ! Get config variables on first call
+    !----------------------------------
+
+    call NUOPC_CompAttributeGet(gcomp, name='coldair_outbreak_mod', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+       read(cvalue,*) coldair_outbreak_mod
+    else
+       coldair_outbreak_mod = .false.
+    end if
+
+    call NUOPC_CompAttributeGet(gcomp, name='flux_max_iteration', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+       read(cvalue,*) flux_max_iteration
+    else
+       flux_max_iteration = 1
+    end if
+
+    call NUOPC_CompAttributeGet(gcomp, name='flux_convergence', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+       read(cvalue,*) flux_convergence
+    else
+       flux_convergence = 0.0_r8
+    end if
+
+    call shr_flux_adjust_constants(&
+         flux_convergence_tolerance=flux_convergence, &
+         flux_convergence_max_iteration=flux_max_iteration, &
+         coldair_outbreak_mod=coldair_outbreak_mod)
+
+
 
     if (dbug_flag > 5) then
       call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
@@ -397,7 +436,7 @@ contains
     use ESMF          , only : ESMF_GridCompGet, ESMF_ClockGet, ESMF_TimeGet, ESMF_TimeIntervalGet
     use ESMF          , only : ESMF_LogWrite, ESMF_LogMsg_Info
     use NUOPC         , only : NUOPC_CompAttributeGet
-    use shr_flux_mod  , only : shr_flux_atmocn, shr_flux_adjust_constants
+    use shr_flux_mod  , only : shr_flux_atmocn
 
     !-----------------------------------------------------------------------
     ! Determine atm/ocn fluxes eother on atm or on ocean grid
@@ -414,53 +453,13 @@ contains
     character(CL)           :: cvalue
     integer                 :: n,i                     ! indices
     integer                 :: lsize                   ! local size
-    real(R8)                :: flux_convergence        ! convergence criteria for imlicit flux computation
-    integer                 :: flux_max_iteration      ! maximum number of iterations for convergence
-    logical                 :: coldair_outbreak_mod    ! cold air outbreak adjustment  (Mahrt & Sun 1995,MWR)
     character(len=CX)       :: tmpstr
     logical                 :: isPresent, isSet
-    logical,save            :: first_call = .true.
     character(*),parameter  :: subName = '(med_aofluxes_run) '
     !-----------------------------------------------------------------------
 
     call t_startf('MED:'//subname)
 
-    !----------------------------------
-    ! Get config variables on first call
-    !----------------------------------
-
-    if (first_call) then
-       call NUOPC_CompAttributeGet(gcomp, name='coldair_outbreak_mod', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (isPresent .and. isSet) then
-          read(cvalue,*) coldair_outbreak_mod
-       else
-          coldair_outbreak_mod = .false.
-       end if
-
-       call NUOPC_CompAttributeGet(gcomp, name='flux_max_iteration', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (isPresent .and. isSet) then
-          read(cvalue,*) flux_max_iteration
-       else
-          flux_max_iteration = 1
-       end if
-
-       call NUOPC_CompAttributeGet(gcomp, name='flux_convergence', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (isPresent .and. isSet) then
-          read(cvalue,*) flux_convergence
-       else
-          flux_convergence = 0.0_r8
-       end if
-
-       call shr_flux_adjust_constants(&
-            flux_convergence_tolerance=flux_convergence, &
-            flux_convergence_max_iteration=flux_max_iteration, &
-            coldair_outbreak_mod=coldair_outbreak_mod)
-
-       first_call = .false.
-    end if
 
     !----------------------------------
     ! Determine the compute mask
