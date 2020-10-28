@@ -34,6 +34,7 @@ contains
     use esmflds               , only : compice, comprof, compwav, compglc, ncomps
     use esmflds               , only : mapbilnr, mapconsf, mapconsd, mappatch
     use esmflds               , only : mapfcopy, mapnstod, mapnstod_consd, mapnstod_consf
+    use esmflds               , only : map_glc2ocn_ice, map_glc2ocn_liq, map_rof2ocn_ice, map_rof2ocn_liq
     use esmflds               , only : mapuv_with_cart3d
     use esmflds               , only : fldListTo, fldListFr, fldListMed_aoflux, fldListMed_ocnalb
     use esmFlds               , only : coupling_mode
@@ -1330,42 +1331,63 @@ contains
 
     if (phase == 'advertise') then
        do n = 1,size(iso)
+          ! Note that Flrr_flood below needs to be added to
+          ! fldlistFr(comprof) in order to be mapped correctly but the ocean
+          ! does not receive it so it is advertised but it will! not be connected
+
           call addfld(fldListFr(compglc)%flds, 'Fogg_rofl'//iso(n))
           call addfld(fldListFr(compglc)%flds, 'Fogg_rofi'//iso(n))
           call addfld(fldListFr(comprof)%flds, 'Forr_rofl'//iso(n))
           call addfld(fldListFr(comprof)%flds, 'Forr_rofi'//iso(n))
           call addfld(fldListTo(compocn)%flds, 'Foxx_rofl'//iso(n))
           call addfld(fldListTo(compocn)%flds, 'Foxx_rofi'//iso(n))
+          call addfld(fldListTo(compocn)%flds, 'Flrr_flood'//iso(n))
        end do
     else
        do n = 1,size(iso)
-          ! from both rof and glc to con
-          if ( fldchk(is_local%wrap%FBExp(compocn)         , 'Foxx_rofl'//iso(n), rc=rc) .and. &
-               fldchk(is_local%wrap%FBImp(comprof, comprof), 'Forr_rofl'//iso(n), rc=rc) .and. &
-               fldchk(is_local%wrap%FBImp(compglc, compglc), 'Fogg_rofl'//iso(n), rc=rc)) then
-             call addmap(fldListFr(comprof)%flds, 'Forr_rofl'//iso(n), compocn, mapconsf, 'none', rof2ocn_liq_rmap)
-             call addmap(fldListFr(compglc)%flds, 'Fogg_rofl'//iso(n), compocn, mapconsf, 'one' , glc2ocn_liq_rmap)
+          ! liquid runoff from rof, flood and glc to ocn
+          if ( fldchk(is_local%wrap%FBExp(compocn)         , 'Foxx_rofl'//iso(n) , rc=rc) .and. &
+               fldchk(is_local%wrap%FBImp(comprof, comprof), 'Forr_rofl'//iso(n) , rc=rc) .and. &
+               fldchk(is_local%wrap%FBImp(comprof, comprof), 'Flrr_flood'//iso(n), rc=rc) .and. &
+               fldchk(is_local%wrap%FBImp(compglc, compglc), 'Fogg_rofl'//iso(n) , rc=rc)) then
+             call addmap(fldListFr(comprof)%flds, 'Forr_rofl'//iso(n) , compocn, map_rof2ocn_liq, 'none', rof2ocn_liq_rmap)
+             call addmap(fldListFr(comprof)%flds, 'Flrr_flood'//iso(n), compocn, mapconsd       , 'one' , rof2ocn_fmap)
+             call addmap(fldListFr(compglc)%flds, 'Fogg_rofl'//iso(n) , compocn, map_glc2ocn_liq, 'one' , glc2ocn_liq_rmap)
              call addmrg(fldListTo(compocn)%flds, 'Foxx_rofl'//iso(n), &
                   mrg_from1=comprof, mrg_fld1='Forr_rofl:Flrr_flood', mrg_type1='sum', &
                   mrg_from2=compglc, mrg_fld2='Fogg_rofl'//iso(n)   , mrg_type2='sum')
-
+          ! liquid runoff from both rof and glc to ocn
+          else if ( fldchk(is_local%wrap%FBExp(compocn)         , 'Foxx_rofl'//iso(n) , rc=rc) .and. &
+                    fldchk(is_local%wrap%FBImp(comprof, comprof), 'Forr_rofl'//iso(n) , rc=rc) .and. .not. &
+                    fldchk(is_local%wrap%FBImp(comprof, comprof), 'Flrr_flood'//iso(n), rc=rc) .and. &
+                    fldchk(is_local%wrap%FBImp(compglc, compglc), 'Fogg_rofl'//iso(n) , rc=rc)) then
+             call addmap(fldListFr(comprof)%flds, 'Forr_rofl'//iso(n), compocn, map_rof2ocn_liq, 'none', rof2ocn_liq_rmap)
+             call addmap(fldListFr(compglc)%flds, 'Fogg_rofl'//iso(n), compocn, map_glc2ocn_liq, 'one' , glc2ocn_liq_rmap)
+             call addmrg(fldListTo(compocn)%flds, 'Foxx_rofl'//iso(n), &
+                  mrg_from1=comprof, mrg_fld1='Forr_rofl'        , mrg_type1='sum', &
+                  mrg_from2=compglc, mrg_fld2='Fogg_rofl'//iso(n), mrg_type2='sum')
           ! liquid runoff from rof and flood to ocn
-          else if ( fldchk(is_local%wrap%FBExp(compocn)         , 'Foxx_rofl' //iso(n), rc=rc) .and. &
-                    fldchk(is_local%wrap%FBImp(comprof, comprof), 'Forr_rofl' //iso(n), rc=rc) .and. &
-                    fldchk(is_local%wrap%FBImp(comprof, comprof), 'Flrr_flood'//iso(n), rc=rc)) then
-             call addmap(fldListFr(comprof)%flds, 'Flrr_flood'//iso(n), compocn, mapconsf, 'none', rof2ocn_fmap)
-             call addmap(fldListFr(comprof)%flds, 'Forr_rofl' //iso(n), compocn, mapconsf, 'none', rof2ocn_liq_rmap)
+          else if ( fldchk(is_local%wrap%FBExp(compocn)         , 'Foxx_rofl'//iso(n) , rc=rc) .and. &
+                    fldchk(is_local%wrap%FBImp(comprof, comprof), 'Forr_rofl'//iso(n) , rc=rc) .and. &
+                    fldchk(is_local%wrap%FBImp(comprof, comprof), 'Flrr_flood'//iso(n), rc=rc) .and. .not. &
+                    fldchk(is_local%wrap%FBImp(compglc, compglc), 'Fogg_rofl'//iso(n) , rc=rc)) then
+             call addmap(fldListFr(comprof)%flds, 'Flrr_flood'//iso(n), compocn, mapconsf       , 'one' , rof2ocn_fmap)
+             call addmap(fldListFr(comprof)%flds, 'Forr_rofl' //iso(n), compocn, map_rof2ocn_liq, 'none', rof2ocn_liq_rmap)
              call addmrg(fldListTo(compocn)%flds, 'Foxx_rofl' //iso(n), &
                   mrg_from1=comprof, mrg_fld1='Forr_rofl:Flrr_flood', mrg_type1='sum')
-
           ! liquid from just rof to ocn
-          else if ( fldchk(is_local%wrap%FBExp(compocn)         , 'Foxx_rofl'//iso(n), rc=rc) .and. &
-                    fldchk(is_local%wrap%FBImp(comprof, comprof), 'Forr_rofl'//iso(n), rc=rc)) then
+          else if ( fldchk(is_local%wrap%FBExp(compocn)         , 'Foxx_rofl'//iso(n) , rc=rc) .and. &
+                    fldchk(is_local%wrap%FBImp(comprof, comprof), 'Forr_rofl'//iso(n) , rc=rc) .and. .not. &
+                    fldchk(is_local%wrap%FBImp(comprof, comprof), 'Flrr_flood'//iso(n), rc=rc) .and. .not. &
+                    fldchk(is_local%wrap%FBImp(compglc, compglc), 'Fogg_rofl'//iso(n) , rc=rc)) then
              call addmap(fldListFr(comprof)%flds, 'Forr_rofl'//iso(n), compocn, mapconsf, 'none', rof2ocn_liq_rmap)
              call addmrg(fldListTo(compocn)%flds, 'Foxx_rofl'//iso(n), &
                   mrg_from1=comprof, mrg_fld1='Forr_rofl', mrg_type1='copy')
-
           ! liquid runoff from just glc to ocn
+          else if ( .not. fldchk(is_local%wrap%FBExp(compocn)         , 'Foxx_rofl'//iso(n) , rc=rc) .and. &
+                    .not. fldchk(is_local%wrap%FBImp(comprof, comprof), 'Forr_rofl'//iso(n) , rc=rc) .and. &
+                    .not. fldchk(is_local%wrap%FBImp(comprof, comprof), 'Flrr_flood'//iso(n), rc=rc) .and. &
+                          fldchk(is_local%wrap%FBImp(compglc, compglc), 'Fogg_rofl'//iso(n) , rc=rc)) then
           else if ( fldchk(is_local%wrap%FBExp(compocn)         , 'Foxx_rofl'//iso(n), rc=rc) .and. &
                     fldchk(is_local%wrap%FBImp(compglc, compglc), 'Fogg_rofl'//iso(n), rc=rc)) then
              call addmap(fldListFr(compglc)%flds, 'Fogg_rofl'//iso(n), compocn,  mapconsf, 'one', glc2ocn_liq_rmap)
@@ -1377,23 +1399,21 @@ contains
           if ( fldchk(is_local%wrap%FBExp(compocn)         , 'Foxx_rofi'//iso(n), rc=rc) .and. &
                fldchk(is_local%wrap%FBImp(comprof, comprof), 'Forr_rofi'//iso(n), rc=rc) .and. &
                fldchk(is_local%wrap%FBImp(compglc, compglc), 'Fogg_rofi'//iso(n), rc=rc)) then
-             call addmap(fldListFr(comprof)%flds, 'Forr_rofi'//iso(n), compocn, mapconsf, 'none', rof2ocn_ice_rmap)
-             call addmap(fldListFr(compglc)%flds, 'Fogg_rofi'//iso(n), compocn, mapconsf, 'one' , glc2ocn_ice_rmap)
+             call addmap(fldListFr(comprof)%flds, 'Forr_rofi'//iso(n), compocn, map_rof2ocn_ice, 'none', rof2ocn_ice_rmap)
+             call addmap(fldListFr(compglc)%flds, 'Fogg_rofi'//iso(n), compocn, map_glc2ocn_ice, 'one' , glc2ocn_ice_rmap)
              call addmrg(fldListTo(compocn)%flds, 'Foxx_rofi'//iso(n), &
                   mrg_from1=comprof, mrg_fld1='Forr_rofi'//iso(n), mrg_type1='sum', &
                   mrg_from2=compglc, mrg_fld2='Fogg_rofi'//iso(n), mrg_type2='sum')
-
           ! ice runoff from just rof to ocn
           else if ( fldchk(is_local%wrap%FBExp(compocn)         , 'Foxx_rofi'//iso(n), rc=rc) .and. &
                     fldchk(is_local%wrap%FBImp(comprof, comprof), 'Forr_rofi'//iso(n), rc=rc)) then
-             call addmap(fldListFr(comprof)%flds, 'Forr_rofi'//iso(n), compocn, mapconsf, 'none', rof2ocn_ice_rmap)
+             call addmap(fldListFr(comprof)%flds, 'Forr_rofi'//iso(n), compocn, map_rof2ocn_ice, 'none', rof2ocn_ice_rmap)
              call addmrg(fldListTo(compocn)%flds, 'Foxx_rofi'//iso(n), &
                   mrg_from1=comprof, mrg_fld1='Forr_rofi', mrg_type1='copy')
-
           ! ice runoff from just glc to ocn
           else if ( fldchk(is_local%wrap%FBExp(compocn)         , 'Foxx_rofi'//iso(n), rc=rc) .and. &
                     fldchk(is_local%wrap%FBImp(compglc, compglc), 'Fogg_rofi'//iso(n), rc=rc)) then
-             call addmap(fldListFr(compglc)%flds, 'Fogg_rofi'//iso(n), compocn,  mapconsf, 'one', glc2ocn_ice_rmap)
+             call addmap(fldListFr(compglc)%flds, 'Fogg_rofi'//iso(n), compocn, map_glc2ocn_ice, 'one', glc2ocn_ice_rmap)
              call addmrg(fldListTo(compocn)%flds, 'Foxx_rofi'//iso(n), &
                   mrg_from1=compglc, mrg_fld1='Fogg_rofi'//iso(n), mrg_type1='copy')
           end if
