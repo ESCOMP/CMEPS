@@ -226,9 +226,9 @@ contains
     integer           :: n
     type(ESMF_Field)  :: field_wgt
     type(ESMF_Field)  :: field_in
-    real(R8), pointer :: dp1 (:), dp2(:,:)         ! output pointers to 1d and 2d fields
-    real(R8), pointer :: dpf1(:), dpf2(:,:)        ! intput pointers to 1d and 2d fields
-    real(R8), pointer :: dpw1(:)                   ! weight pointer
+    real(R8), pointer :: dp1 (:), dp2(:,:) => null()  ! output pointers to 1d and 2d fields
+    real(R8), pointer :: dpf1(:), dpf2(:,:) => null() ! intput pointers to 1d and 2d fields
+    real(R8), pointer :: dpw1(:) => null()            ! weight pointer
     character(len=*),parameter :: subname=' (med_merge_mod: med_merge)'
     !---------------------------------------
 
@@ -431,9 +431,9 @@ contains
     integer                , intent(out)                   :: rc
 
     ! local variables
-    real(R8), pointer          :: dataOut(:)
-    real(R8), pointer          :: dataPtr(:)
-    real(R8), pointer          :: wgt(:)
+    real(R8), pointer          :: dataOut(:) => null()
+    real(R8), pointer          :: dataPtr(:) => null()
+    real(R8), pointer          :: wgt(:) => null()
     integer                    :: lb1,ub1,i,j,n
     logical                    :: wgtfound, FBinfound
     integer                    :: dbrc

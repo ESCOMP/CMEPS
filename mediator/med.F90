@@ -1418,7 +1418,7 @@ contains
       type(ESMF_Grid)             :: grid
       type(ESMF_Mesh)             :: mesh
       type(ESMF_Field)            :: meshField
-      type(ESMF_Field),pointer    :: fieldList(:)
+      type(ESMF_Field),pointer    :: fieldList(:) => null()
       type(ESMF_FieldStatus_Flag) :: fieldStatus
       type(ESMF_GeomType_Flag)    :: geomtype
       integer                     :: gridToFieldMapCount, ungriddedCount
@@ -1595,7 +1595,7 @@ contains
     integer                            :: fieldCount
     character(ESMF_MAXSTR),allocatable :: fieldNameList(:)
     character(CL)                      :: value
-    character(CL), pointer             :: fldnames(:)
+    character(CL), pointer             :: fldnames(:) => null()
     character(CL)                      :: cvalue
     character(CL)                      :: start_type
     logical                            :: read_restart
@@ -2325,7 +2325,7 @@ contains
     integer               :: numOwnedElements
     integer               :: spatialDim
     real(r8), allocatable :: ownedElemCoords(:)
-    real(r8), pointer     :: dataptr(:)
+    real(r8), pointer     :: dataptr(:) => null()
     integer               :: n, dimcount, fieldcount
     character(len=*),parameter :: subname=' (module_MED:med_meshinfo_create) '
     !-------------------------------------------------------------------------------

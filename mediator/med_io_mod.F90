@@ -81,7 +81,7 @@ module med_io_mod
   type(file_desc_t)              :: io_file(0:file_desc_t_cnt)
   integer                        :: pio_iotype
   integer                        :: pio_ioformat
-  type(iosystem_desc_t), pointer :: io_subsystem
+  type(iosystem_desc_t), pointer :: io_subsystem => null()
   character(*),parameter         :: u_FILE_u = &
        __FILE__
 
@@ -433,7 +433,7 @@ contains
     integer                       :: ndims, nelements
     integer    ,target            :: dimid2(2)
     integer    ,target            :: dimid3(3)
-    integer    ,pointer           :: dimid(:)
+    integer    ,pointer           :: dimid(:) => null()
     type(var_desc_t)              :: varid
     type(io_desc_t)               :: iodesc
     integer(kind=Pio_Offset_Kind) :: frame
@@ -446,13 +446,13 @@ contains
     logical                       :: luse_float
     integer                       :: lnx,lny
     real(r8)                      :: lfillvalue
-    integer, pointer              :: minIndexPTile(:,:)
-    integer, pointer              :: maxIndexPTile(:,:)
+    integer, pointer              :: minIndexPTile(:,:) => null()
+    integer, pointer              :: maxIndexPTile(:,:) => null()
     integer                       :: dimCount, tileCount
-    integer, pointer              :: Dof(:)
+    integer, pointer              :: Dof(:) => null()
     integer                       :: lfile_ind
-    real(r8), pointer             :: fldptr1(:)
-    real(r8), pointer             :: fldptr2(:,:)
+    real(r8), pointer             :: fldptr1(:) => null()
+    real(r8), pointer             :: fldptr2(:,:) => null()
     real(r8), allocatable         :: ownedElemCoords(:), ownedElemCoords_x(:), ownedElemCoords_y(:)
     character(len=number_strlen)  :: cnumber
     character(CL)                 :: tmpstr
@@ -1407,14 +1407,14 @@ contains
     integer             :: rcode
     integer             :: ns,ng
     integer             :: n,ndims
-    integer, pointer    :: dimid(:)
+    integer, pointer    :: dimid(:) => null()
     type(var_desc_t)    :: varid
     integer             :: lnx,lny
     integer             :: tmp(1)
-    integer, pointer    :: minIndexPTile(:,:)
-    integer, pointer    :: maxIndexPTile(:,:)
+    integer, pointer    :: minIndexPTile(:,:) => null()
+    integer, pointer    :: maxIndexPTile(:,:) => null()
     integer             :: dimCount, tileCount
-    integer, pointer    :: Dof(:)
+    integer, pointer    :: Dof(:) => null()
     character(CL)       :: tmpstr
     integer             :: fieldcount
     type(ESMF_Field), pointer  :: fieldlist(:) => null()

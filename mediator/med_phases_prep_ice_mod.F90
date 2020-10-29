@@ -55,7 +55,7 @@ contains
     character(len=CS)              :: fldname
     integer                        :: fldnum
     integer                        :: mapindex
-    real(R8), pointer              :: dataptr(:)
+    real(R8), pointer              :: dataptr(:) => null()
     real(R8)                       :: precip_fact
     character(len=CS)              :: cvalue
     character(len=64), allocatable :: fldnames(:)

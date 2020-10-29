@@ -8,7 +8,7 @@ module med_phases_ocnalb_mod
   use med_methods_mod       , only : State_GetScalar => med_methods_State_GetScalar
   use esmFlds               , only : mapconsf, mapnames, compatm, compocn
   use perf_mod              , only : t_startf, t_stopf
-#ifdef CESMCOUPLED 
+#ifdef CESMCOUPLED
   use shr_orb_mod           , only : shr_orb_cosz, shr_orb_decl
   use shr_orb_mod           , only : shr_orb_params, SHR_ORB_UNDEF_INT, SHR_ORB_UNDEF_REAL
 #endif
@@ -35,13 +35,13 @@ module med_phases_ocnalb_mod
   !--------------------------------------------------------------------------
 
   type ocnalb_type
-     real(r8) , pointer :: lats  (:) ! latitudes  (degrees)
-     real(r8) , pointer :: lons  (:) ! longitudes (degrees)
-     integer  , pointer :: mask  (:) ! ocn domain mask: 0 <=> inactive cell
-     real(r8) , pointer :: anidr (:) ! albedo: near infrared, direct
-     real(r8) , pointer :: avsdr (:) ! albedo: visible      , direct
-     real(r8) , pointer :: anidf (:) ! albedo: near infrared, diffuse
-     real(r8) , pointer :: avsdf (:) ! albedo: visible      , diffuse
+     real(r8) , pointer :: lats  (:) => null() ! latitudes  (degrees)
+     real(r8) , pointer :: lons  (:) => null() ! longitudes (degrees)
+     integer  , pointer :: mask  (:) => null() ! ocn domain mask: 0 <=> inactive cell
+     real(r8) , pointer :: anidr (:) => null() ! albedo: near infrared, direct
+     real(r8) , pointer :: avsdr (:) => null() ! albedo: visible      , direct
+     real(r8) , pointer :: anidf (:) => null() ! albedo: near infrared, diffuse
+     real(r8) , pointer :: avsdf (:) => null() ! albedo: visible      , diffuse
      logical            :: created   ! has memory been allocated here
   end type ocnalb_type
 
@@ -94,7 +94,7 @@ contains
     integer                  :: spatialDim
     integer                  :: numOwnedElements
     type(InternalState)      :: is_local
-    real(R8), pointer        :: ownedElemCoords(:)
+    real(R8), pointer        :: ownedElemCoords(:) => null()
     character(len=CL)        :: tempc1,tempc2
     logical                  :: mastertask
     integer                  :: fieldCount
@@ -205,7 +205,7 @@ contains
     use ESMF          , only : ESMF_Clock, ESMF_ClockGet, ESMF_Time, ESMF_TimeGet
     use ESMF          , only : ESMF_VM, ESMF_VMGet
     use ESMF          , only : ESMF_LogWrite, ESMF_LogFoundError
-    use ESMF          , only : ESMF_SUCCESS, ESMF_FAILURE, ESMF_LOGMSG_INFO 
+    use ESMF          , only : ESMF_SUCCESS, ESMF_FAILURE, ESMF_LOGMSG_INFO
     use ESMF          , only : ESMF_Field, ESMF_FieldGet
     use ESMF          , only : ESMF_FieldBundleGet, ESMF_FieldBundleIsCreated
     use ESMF          , only : operator(+)
@@ -232,10 +232,10 @@ contains
     character(CL)           :: runtype          ! initial, continue, hybrid, branch
     logical                 :: flux_albav       ! flux avg option
     real(R8)                :: nextsw_cday      ! calendar day of next atm shortwave
-    real(R8), pointer       :: ofrac(:)
-    real(R8), pointer       :: ofrad(:)
-    real(R8), pointer       :: ifrac(:)
-    real(R8), pointer       :: ifrad(:)
+    real(R8), pointer       :: ofrac(:) => null()
+    real(R8), pointer       :: ofrad(:) => null()
+    real(R8), pointer       :: ifrac(:) => null()
+    real(R8), pointer       :: ifrad(:) => null()
     integer                 :: lsize            ! local size
     integer                 :: n,i              ! indices
     real(R8)                :: rlat             ! gridcell latitude in radians
@@ -380,7 +380,7 @@ contains
        ! Solar declination
        ! Will only do albedo calculation if nextsw_cday is not -1.
        write(msg,*)trim(subname)//' nextsw_cday = ',nextsw_cday
-       call ESMF_LogWrite(trim(msg), ESMF_LOGMSG_INFO) 
+       call ESMF_LogWrite(trim(msg), ESMF_LOGMSG_INFO)
 
        if (nextsw_cday >= -0.5_r8) then
           call shr_orb_decl(nextsw_cday, eccen, mvelpp,lambm0, obliqr, delta, eccf)
@@ -449,15 +449,15 @@ contains
     ! Obtain orbital related values
     !----------------------------------------------------------
 
-    use ESMF  , only : ESMF_GridComp, ESMF_GridCompGet 
+    use ESMF  , only : ESMF_GridComp, ESMF_GridCompGet
     use ESMF  , only : ESMF_LogWrite, ESMF_LogFoundError, ESMF_LogSetError
-    use ESMF  , only : ESMf_SUCCESS, ESMF_FAILURE, ESMF_LOGMSG_INFO, ESMF_RC_NOT_VALID 
+    use ESMF  , only : ESMf_SUCCESS, ESMF_FAILURE, ESMF_LOGMSG_INFO, ESMF_RC_NOT_VALID
     use NUOPC , only : NUOPC_CompAttributeGet
 
     ! input/output variables
     type(ESMF_GridComp)                 :: gcomp
     integer             , intent(in)    :: logunit         ! output logunit
-    logical             , intent(in)    :: mastertask 
+    logical             , intent(in)    :: mastertask
     integer             , intent(out)   :: rc              ! output error
 
     ! local variables
@@ -468,7 +468,7 @@ contains
 
     rc = ESMF_SUCCESS
 
-#ifdef CESMCOUPLED 
+#ifdef CESMCOUPLED
     ! Determine orbital attributes from input
     call NUOPC_CompAttributeGet(gcomp, name="orb_mode", value=cvalue, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -547,7 +547,7 @@ contains
   subroutine med_phases_ocnalb_orbital_update(clock, logunit,  mastertask, eccen, obliqr, lambm0, mvelpp, rc)
 
     !----------------------------------------------------------
-    ! Update orbital settings 
+    ! Update orbital settings
     !----------------------------------------------------------
 
     use ESMF, only : ESMF_Clock, ESMF_ClockGet, ESMF_Time, ESMF_TimeGet
@@ -555,7 +555,7 @@ contains
 
     ! input/output variables
     type(ESMF_Clock) , intent(in)    :: clock
-    integer          , intent(in)    :: logunit 
+    integer          , intent(in)    :: logunit
     logical          , intent(in)    :: mastertask
     real(R8)         , intent(inout) :: eccen  ! orbital eccentricity
     real(R8)         , intent(inout) :: obliqr ! Earths obliquity in rad
@@ -565,7 +565,7 @@ contains
 
     ! local variables
     type(ESMF_Time)   :: CurrTime ! current time
-    integer           :: year     ! model year at current time 
+    integer           :: year     ! model year at current time
     integer           :: orb_year ! orbital year for current orbital computation
     character(len=CL) :: msgstr   ! temporary
     logical           :: lprint
@@ -573,7 +573,7 @@ contains
     character(len=*) , parameter :: subname = "(lnd_orbital_update)"
     !-------------------------------------------
 
-#ifdef CESMCOUPLED 
+#ifdef CESMCOUPLED
     rc = ESMF_SUCCESS
 
     if (trim(orb_mode) == trim(orb_variable_year)) then
@@ -584,7 +584,7 @@ contains
        orb_year = orb_iyear + (year - orb_iyear_align)
        lprint = mastertask
     else
-       orb_year = orb_iyear 
+       orb_year = orb_iyear
        if (first_time) then
           lprint = mastertask
           first_time = .false.

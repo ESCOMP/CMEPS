@@ -81,11 +81,6 @@ contains
 
     ! map all fields in FBImp that have active ocean coupling
     if (ncnt > 0) then
-       !DEBUG
-       call FB_diagnose(is_local%wrap%FBImp(comprof,comprof), string=trim(subname)//' FBImp(comprof,comprof) ', rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       !DEBUG
-
        do n1 = 1,ncomps
           if (is_local%wrap%med_coupling_active(n1,compocn)) then
              call med_map_field_packed( &
@@ -98,12 +93,6 @@ contains
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
        end do
-
-       !DEBUG
-       call FB_diagnose(is_local%wrap%FBImp(comprof,compocn), string=trim(subname)//' FBImp(comprof,compocn) ', rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       !DEBUG
-
     endif
 
     call t_stopf('MED:'//subname)
@@ -343,21 +332,21 @@ contains
 
     ! local variables
     type(InternalState) :: is_local
-    real(R8), pointer   :: ifrac(:), ofrac(:)
-    real(R8), pointer   :: ifracr(:), ofracr(:)
-    real(R8), pointer   :: avsdr(:), avsdf(:)
-    real(R8), pointer   :: anidr(:), anidf(:)
-    real(R8), pointer   :: Faxa_swvdf(:), Faxa_swndf(:)
-    real(R8), pointer   :: Faxa_swvdr(:), Faxa_swndr(:)
-    real(R8), pointer   :: Foxx_swnet(:)
-    real(R8), pointer   :: Foxx_swnet_afracr(:)
-    real(R8), pointer   :: Foxx_swnet_vdr(:), Foxx_swnet_vdf(:)
-    real(R8), pointer   :: Foxx_swnet_idr(:), Foxx_swnet_idf(:)
-    real(R8), pointer   :: Fioi_swpen_vdr(:), Fioi_swpen_vdf(:)
-    real(R8), pointer   :: Fioi_swpen_idr(:), Fioi_swpen_idf(:)
-    real(R8), pointer   :: Fioi_swpen(:)
-    real(R8), pointer   :: dataptr(:)
-    real(R8), pointer   :: dataptr_o(:)
+    real(R8), pointer   :: ifrac(:), ofrac(:) => null()
+    real(R8), pointer   :: ifracr(:), ofracr(:) => null()
+    real(R8), pointer   :: avsdr(:), avsdf(:) => null()
+    real(R8), pointer   :: anidr(:), anidf(:) => null()
+    real(R8), pointer   :: Faxa_swvdf(:), Faxa_swndf(:) => null()
+    real(R8), pointer   :: Faxa_swvdr(:), Faxa_swndr(:) => null()
+    real(R8), pointer   :: Foxx_swnet(:) => null()
+    real(R8), pointer   :: Foxx_swnet_afracr(:) => null()
+    real(R8), pointer   :: Foxx_swnet_vdr(:), Foxx_swnet_vdf(:) => null()
+    real(R8), pointer   :: Foxx_swnet_idr(:), Foxx_swnet_idf(:) => null()
+    real(R8), pointer   :: Fioi_swpen_vdr(:), Fioi_swpen_vdf(:) => null()
+    real(R8), pointer   :: Fioi_swpen_idr(:), Fioi_swpen_idf(:) => null()
+    real(R8), pointer   :: Fioi_swpen(:) => null()
+    real(R8), pointer   :: dataptr(:) => null()
+    real(R8), pointer   :: dataptr_o(:) => null()
     real(R8)            :: frac_sum
     real(R8)            :: ifrac_scaled, ofrac_scaled
     real(R8)            :: ifracr_scaled, ofracr_scaled
@@ -611,13 +600,13 @@ contains
 
     ! local variables
     type(InternalState) :: is_local
-    real(R8), pointer   :: ocnwgt1(:)
-    real(R8), pointer   :: icewgt1(:)
-    real(R8), pointer   :: wgtp01(:)
-    real(R8), pointer   :: wgtm01(:)
-    real(R8), pointer   :: customwgt(:)
-    real(R8), pointer   :: ifrac(:)
-    real(R8), pointer   :: ofrac(:)
+    real(R8), pointer   :: ocnwgt1(:) => null()
+    real(R8), pointer   :: icewgt1(:) => null()
+    real(R8), pointer   :: wgtp01(:) => null()
+    real(R8), pointer   :: wgtm01(:) => null()
+    real(R8), pointer   :: customwgt(:) => null()
+    real(R8), pointer   :: ifrac(:) => null()
+    real(R8), pointer   :: ofrac(:) => null()
     integer             :: lsize
     real(R8)        , parameter    :: const_lhvap = 2.501e6_R8  ! latent heat of evaporation ~ J/kg
     character(len=*), parameter    :: subname='(med_phases_prep_ocn_custom_nems)'

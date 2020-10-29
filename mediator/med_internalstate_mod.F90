@@ -43,9 +43,9 @@ module med_internalstate_mod
    !   med      atm      lnd      ocn      ice      rof      wav      glc
 
   type, public ::  mesh_info_type
-     real(r8), pointer :: areas(:)
-     real(r8), pointer :: lats(:)
-     real(r8), pointer :: lons(:)
+     real(r8), pointer :: areas(:) => null()
+     real(r8), pointer :: lats(:) => null()
+     real(r8), pointer :: lons(:) => null()
   end type mesh_info_type
 
   type, public :: packed_data_type

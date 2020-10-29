@@ -20,7 +20,7 @@ module med_phases_prep_glc_mod
   use esmFlds               , only : compglc, complnd, mapbilnr, mapconsd, mapconsf, compname
   use med_internalstate_mod , only : InternalState, mastertask, logunit
   use med_constants_mod     , only : dbug_flag=>med_constants_dbug_flag
-  use med_map_mod           , only : med_map_routehandles_init, med_map_rh_is_created  
+  use med_map_mod           , only : med_map_routehandles_init, med_map_rh_is_created
   use med_map_mod           , only : med_map_field_normalized, med_map_field
   use med_methods_mod       , only : FB_diagnose  => med_methods_FB_diagnose
   use med_methods_mod       , only : FB_reset     => med_methods_FB_reset
@@ -67,8 +67,9 @@ module med_phases_prep_glc_mod
   type(ESMF_Field)      :: field_lnd_icemask_l
   type(ESMF_Field)      :: field_lfrac_g
 
-  real(r8) , pointer          :: aream_l(:)         ! cell areas on land grid, for mapping
-  real(r8) , pointer          :: aream_g(:)         ! cell areas on glc grid, for mapping
+  real(r8) , pointer          :: aream_l(:) => null()  ! cell areas on land grid, for mapping
+  real(r8) , pointer          :: aream_g(:) => null()  ! cell areas on glc grid, for mapping
+
   character(len=*), parameter :: qice_fieldname   = 'Flgl_qice' ! Name of flux field giving surface mass balance
   character(len=*), parameter :: Sg_frac_fieldname    = 'Sg_ice_covered'
   character(len=*), parameter :: Sg_topo_fieldname    = 'Sg_topo'
@@ -97,23 +98,23 @@ contains
     integer, intent(out) :: rc
 
     ! local variables
-    type(InternalState) :: is_local
-    integer             :: i,n,ncnt
-    type(ESMF_Mesh)     :: lmesh_glc
-    type(ESMF_Mesh)     :: lmesh_lnd
-    type(ESMF_Field)    :: lfield
-    real(r8), pointer   :: data2d_in(:,:)
-    real(r8), pointer   :: data2d_out(:,:)
-    real(r8), pointer   :: dataptr1d(:)
-    character(len=CS)   :: glc_renormalize_smb
-    logical             :: glc_coupled_fluxes
-    type(ESMF_Array)    :: larray
-    type(ESMF_DistGrid) :: ldistgrid
-    integer             :: lsize
-    logical             :: isPresent
+    type(InternalState)       :: is_local
+    integer                   :: i,n,ncnt
+    type(ESMF_Mesh)           :: lmesh_glc
+    type(ESMF_Mesh)           :: lmesh_lnd
+    type(ESMF_Field)          :: lfield
+    real(r8), pointer         :: data2d_in(:,:) => null()
+    real(r8), pointer         :: data2d_out(:,:) => null()
+    real(r8), pointer         :: dataptr1d(:) => null()
+    character(len=CS)         :: glc_renormalize_smb
+    logical                   :: glc_coupled_fluxes
+    type(ESMF_Array)          :: larray
+    type(ESMF_DistGrid)       :: ldistgrid
+    integer                   :: lsize
+    logical                   :: isPresent
     integer                   :: fieldCount
     type(ESMF_Field), pointer :: fieldlist(:) => null()
-    integer             :: ungriddedUBound_output(1) ! currently the size must equal 1 for rank 2 fieldds
+    integer                   :: ungriddedUBound_output(1) ! currently the size must equal 1 for rank 2 fieldds
     character(len=*),parameter  :: subname='(med_phases_prep_glc_init)'
     !---------------------------------------
 
@@ -209,7 +210,7 @@ contains
        call FB_reset(FBlndAccum_glc, value=0.0_r8, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-       ! Create land fraction field on glc mesh (this is just needed for normalization mapping) 
+       ! Create land fraction field on glc mesh (this is just needed for normalization mapping)
        field_lfrac_g = ESMF_FieldCreate(lmesh_glc, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
@@ -304,7 +305,7 @@ contains
           ! Create route handle if it has not been created - this will be needed to map the fractions
           if (.not. med_map_RH_is_created(is_local%wrap%RH(compglc,complnd,:),mapconsf,rc=rc)) then
              call med_map_routehandles_init( compglc, complnd, &
-                  FBSrc=is_local%wrap%FBImp(compglc,compglc), & 
+                  FBSrc=is_local%wrap%FBImp(compglc,compglc), &
                   FBDst=is_local%wrap%FBImp(compglc,complnd), &
                   mapindex=mapconsf, &
                   RouteHandle=is_local%wrap%RH, rc=rc)
@@ -338,8 +339,8 @@ contains
     type(InternalState) :: is_local
     type(ESMF_Field)    :: lfield
     integer             :: i,n,ncnt
-    real(r8), pointer   :: data2d_in(:,:)
-    real(r8), pointer   :: data2d_out(:,:)
+    real(r8), pointer   :: data2d_in(:,:) => null()
+    real(r8), pointer   :: data2d_out(:,:) => null()
     character(len=*),parameter  :: subname='(med_phases_prep_glc_accum)'
     !---------------------------------------
 
@@ -429,8 +430,8 @@ contains
     type(ESMF_Alarm)       :: alarm
     type(ESMF_Field)       :: lfield
     integer                :: i, n, ncnt            ! counters
-    real(r8), pointer      :: data2d(:,:)
-    real(r8), pointer      :: data2d_import(:,:)
+    real(r8), pointer      :: data2d(:,:) => null()
+    real(r8), pointer      :: data2d_import(:,:) => null()
     character(len=*) , parameter   :: subname='(med_phases_prep_glc_avg)'
     !---------------------------------------
 
@@ -587,8 +588,8 @@ contains
     real(r8), pointer   :: dataptr_g(:) => null()          ! temporary data pointer for one elevation class
     real(r8), pointer   :: topoglc_g(:) => null()          ! ice topographic height on the glc grid extracted from glc import
     real(r8), pointer   :: data_ice_covered_g(:) => null() ! data for ice-covered regions on the GLC grid
-    real(r8), pointer   :: ice_covered_g(:) => null()    ! if points on the glc grid is ice-covered (1) or ice-free (0)
-    integer , pointer   :: elevclass_g(:) => null()      ! elevation classes glc grid
+    real(r8), pointer   :: ice_covered_g(:) => null()      ! if points on the glc grid is ice-covered (1) or ice-free (0)
+    integer , pointer   :: elevclass_g(:) => null()        ! elevation classes glc grid
     real(r8), pointer   :: dataexp_g(:) => null()          ! pointer into
     real(r8), pointer   :: dataptr2d(:,:) => null()
     real(r8), pointer   :: dataptr1d(:) => null()
@@ -850,18 +851,18 @@ contains
     type(InternalState) :: is_local
     type(ESMF_VM)       :: vm
     type(ESMF_Field)    :: lfield
-    real(r8) , pointer  :: qice_g(:)          ! SMB (Flgl_qice) on glc grid without elev classes
-    real(r8) , pointer  :: qice_l_ec(:,:)     ! SMB (Flgl_qice) on land grid with elev classes
-    real(r8) , pointer  :: glc_topo_g(:)      ! ice topographic height on the glc grid cell
-    real(r8) , pointer  :: glc_frac_g(:)      ! total ice fraction in each glc cell
-    real(r8) , pointer  :: glc_frac_g_ec(:,:) ! total ice fraction in each glc cell
-    real(r8) , pointer  :: glc_frac_l_ec(:,:) ! EC fractions (Sg_ice_covered) on land grid
-    real(r8) , pointer  :: Sg_icemask_g(:)    ! icemask on glc grid
-    real(r8) , pointer  :: Sg_icemask_l(:)    ! icemask on land grid
-    real(r8) , pointer  :: lfrac(:)           ! land fraction on land grid
-    real(r8) , pointer  :: dataptr1d(:)       ! temporary 1d pointer
-    real(r8) , pointer  :: dataptr2d(:,:)     ! temporary 2d pointer
-    integer             :: ec                 ! loop index over elevation classes
+    real(r8) , pointer  :: qice_g(:) => null()          ! SMB (Flgl_qice) on glc grid without elev classes
+    real(r8) , pointer  :: qice_l_ec(:,:) => null()     ! SMB (Flgl_qice) on land grid with elev classes
+    real(r8) , pointer  :: glc_topo_g(:) => null()      ! ice topographic height on the glc grid cell
+    real(r8) , pointer  :: glc_frac_g(:) => null()      ! total ice fraction in each glc cell
+    real(r8) , pointer  :: glc_frac_g_ec(:,:) => null() ! total ice fraction in each glc cell
+    real(r8) , pointer  :: glc_frac_l_ec(:,:) => null() ! EC fractions (Sg_ice_covered) on land grid
+    real(r8) , pointer  :: Sg_icemask_g(:) => null()    ! icemask on glc grid
+    real(r8) , pointer  :: Sg_icemask_l(:) => null()    ! icemask on land grid
+    real(r8) , pointer  :: lfrac(:) => null()           ! land fraction on land grid
+    real(r8) , pointer  :: dataptr1d(:) => null()       ! temporary 1d pointer
+    real(r8) , pointer  :: dataptr2d(:,:) => null()     ! temporary 2d pointer
+    integer             :: ec                           ! loop index over elevation classes
     integer             :: n
 
     ! local and global sums of accumulation and ablation; used to compute renormalization factors
@@ -909,6 +910,7 @@ contains
 
     ! map ice mask from glc to lnd with no normalization
     ! BUG(wjs, 2017-05-11, #1516) I think we actually want norm = .false. here, but this needs more thought
+    ! Below the implementation is without normalization - this should be checked moving forwards
     call med_map_field(  &
          field_src=field_glc_icemask_g, &
          field_dst=field_glc_icemask_l, &
@@ -941,7 +943,7 @@ contains
     ! note that nec = ungriddedCount - 1
     call glc_get_fractional_icecov(ungriddedCount-1, glc_topo_g, glc_frac_g, glc_frac_g_ec, logunit)
 
-    ! map fraction in each elevation class from the glc grid to the land grid and normalize by the icemask on the 
+    ! map fraction in each elevation class from the glc grid to the land grid and normalize by the icemask on the
     ! glc grid
     call med_map_field_normalized(  &
          field_src=field_glc_frac_g_ec, &

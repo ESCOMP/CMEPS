@@ -119,8 +119,8 @@ contains
     integer                 :: mapindex
     logical                 :: rhprint_flag = .false.
     logical                 :: mapexists = .false.
-    real(R8)      , pointer :: factorList(:)
-    character(CL) , pointer :: fldnames(:)
+    real(R8)      , pointer :: factorList(:) => null()
+    character(CL) , pointer :: fldnames(:) => null()
     !integer(ESMF_KIND_I4), pointer :: unmappedDstList(:)
     character(len=128)      :: logMsg
     type(ESMF_PoleMethod_Flag), parameter :: polemethod=ESMF_POLEMETHOD_ALLAVG
@@ -1343,14 +1343,14 @@ contains
     type(ESMF_Mesh)     :: lmesh_dst
     type(ESMF_Field)    :: field3d_src
     type(ESMF_Field)    :: field3d_dst
-    real(r8), pointer   :: data_u_src(:)
-    real(r8), pointer   :: data_u_dst(:)
-    real(r8), pointer   :: data_v_src(:)
-    real(r8), pointer   :: data_v_dst(:)
-    real(r8), pointer   :: data2d_src(:,:)
-    real(r8), pointer   :: data2d_dst(:,:)
-    real(r8), pointer   :: ownedElemCoords_src(:)
-    real(r8), pointer   :: ownedElemCoords_dst(:)
+    real(r8), pointer   :: data_u_src(:) => null()
+    real(r8), pointer   :: data_u_dst(:) => null()
+    real(r8), pointer   :: data_v_src(:) => null()
+    real(r8), pointer   :: data_v_dst(:) => null()
+    real(r8), pointer   :: data2d_src(:,:) => null()
+    real(r8), pointer   :: data2d_dst(:,:) => null()
+    real(r8), pointer   :: ownedElemCoords_src(:) => null()
+    real(r8), pointer   :: ownedElemCoords_dst(:) => null()
     integer             :: numOwnedElements
     integer             :: spatialDim
     logical             :: checkflag = .false.

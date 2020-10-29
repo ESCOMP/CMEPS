@@ -160,9 +160,9 @@ contains
     type(InternalState)       :: is_local
     integer                   :: i,j,n,n1,ncnt
     logical                   :: connected
-    real(r8), pointer         :: dataptr(:)
-    real(r8), pointer         :: dataptr1d(:)
-    real(r8), pointer         :: dataptr2d(:,:)
+    real(r8), pointer         :: dataptr(:) => null()
+    real(r8), pointer         :: dataptr1d(:) => null()
+    real(r8), pointer         :: dataptr2d(:,:) => null()
     type(ESMF_Field)          :: field_irrig_flux
     integer                   :: fieldcount
     type(ESMF_Field), pointer :: fieldlist(:) => null()
@@ -355,14 +355,14 @@ contains
     type(ESMF_Field), pointer :: fieldlist_rof(:) => null()
     type(ESMF_Mesh)           :: lmesh_lnd
     type(ESMF_Mesh)           :: lmesh_rof
-    real(r8), pointer         :: volr_l(:)
-    real(r8), pointer         :: volr_r(:), volr_r_import(:)
-    real(r8), pointer         :: irrig_normalized_l(:)
-    real(r8), pointer         :: irrig_normalized_r(:)
-    real(r8), pointer         :: irrig_volr0_l(:)
-    real(r8), pointer         :: irrig_volr0_r(:)
-    real(r8), pointer         :: irrig_flux_l(:)
-    real(r8), pointer         :: irrig_flux_r(:)
+    real(r8), pointer         :: volr_l(:) => null()
+    real(r8), pointer         :: volr_r(:), volr_r_import(:) => null()
+    real(r8), pointer         :: irrig_normalized_l(:) => null()
+    real(r8), pointer         :: irrig_normalized_r(:) => null()
+    real(r8), pointer         :: irrig_volr0_l(:) => null()
+    real(r8), pointer         :: irrig_volr0_r(:) => null()
+    real(r8), pointer         :: irrig_flux_l(:) => null()
+    real(r8), pointer         :: irrig_flux_r(:) => null()
     character(len=*), parameter :: subname='(med_phases_prep_rof_mod: med_phases_prep_rof_irrig)'
     !---------------------------------------------------------------
 

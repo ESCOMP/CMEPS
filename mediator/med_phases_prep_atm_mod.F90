@@ -42,7 +42,7 @@ contains
     type(ESMF_Field)           :: lfield
     character(len=64)          :: timestr
     type(InternalState)        :: is_local
-    real(R8), pointer          :: dataPtr1(:),dataPtr2(:)
+    real(R8), pointer          :: dataPtr1(:),dataPtr2(:) => null()
     integer                    :: i, j, n, n1, ncnt
     character(len=*),parameter :: subname='(med_phases_prep_atm)'
     !-------------------------------------------------------------------------------
