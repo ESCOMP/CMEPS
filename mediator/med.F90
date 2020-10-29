@@ -113,7 +113,7 @@ contains
     integer, intent(out) :: rc
 
     ! local variables
-    character(len=*),parameter :: subname='(module_med:SetServices)'
+    character(len=*),parameter :: subname='(module_MED:SetServices)'
     !-----------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -472,7 +472,7 @@ contains
     character(len=CX) :: msgString
     character(len=CX) :: diro
     character(len=CX) :: logfile
-    character(len=*),parameter :: subname=' (module_med:InitializeP0) '
+    character(len=*),parameter :: subname=' (module_MED:InitializeP0) '
     !-----------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -507,15 +507,10 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call ESMF_LogWrite(trim(subname)//": Mediator verbosity is "//trim(cvalue), ESMF_LOGMSG_INFO)
 
-    ! call ESMF_AttributeGet(gcomp, name="Profiling", value=cvalue, &
-    !      convention="NUOPC", purpose="Instance", rc=rc)
-    ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    ! call ESMF_LogWrite(trim(subname)//": Mediator profiling is set to "//trim(cvalue), ESMF_LOGMSG_INFO)
-
-    call ESMF_AttributeSet(gcomp, name="Profiling", value='65535', &
+    call ESMF_AttributeGet(gcomp, name="Profiling", value=cvalue, &
          convention="NUOPC", purpose="Instance", rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_LogWrite(trim(subname)//": Mediator profileing is set to "//trim(cvalue), ESMF_LOGMSG_INFO)
+    call ESMF_LogWrite(trim(subname)//": Mediator profiling is set to "//trim(cvalue), ESMF_LOGMSG_INFO)
 
     ! Obtain dbug_flag setting if present; otherwise use default value in med_constants
     call NUOPC_CompAttributeGet(gcomp, name='dbug_flag', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
@@ -575,7 +570,7 @@ contains
     character(len=8)    :: glc_present, med_present
     character(len=8)    :: ocn_present, wav_present
     character(len=CS)   :: attrList(8)
-    character(len=*),parameter :: subname=' (module_med:InitializeIPDv03p1) '
+    character(len=*),parameter :: subname=' (module_MED:InitializeIPDv03p1) '
     !-----------------------------------------------------------
 
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
@@ -841,7 +836,7 @@ contains
     type(InternalState)        :: is_local
     type(ESMF_VM)              :: vm
     integer                    :: n
-    character(len=*),parameter :: subname=' (module_med:InitializeIPDv03p3) '
+    character(len=*),parameter :: subname=' (module_MED:InitializeIPDv03p3) '
     !-----------------------------------------------------------
 
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
@@ -906,7 +901,7 @@ contains
     ! local variables
     type(InternalState) :: is_local
     integer :: n1,n2
-    character(len=*),parameter :: subname=' (module_med:InitalizeIPDv03p4) '
+    character(len=*),parameter :: subname=' (module_MED:InitalizeIPDv03p4) '
     !-----------------------------------------------------------
 
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
@@ -976,7 +971,7 @@ contains
       character(ESMF_MAXSTR),allocatable :: fieldNameList(:)
       type(ESMF_FieldStatus_Flag)   :: fieldStatus
       character(len=CX)             :: msgString
-      character(len=*),parameter :: subname=' (module_med:realizeConnectedGrid) '
+      character(len=*),parameter :: subname=' (module_MED:realizeConnectedGrid) '
       !-----------------------------------------------------------
 
       !NOTE: All of the Fields that set their TransferOfferGeomObject Attribute
@@ -1354,7 +1349,7 @@ contains
     ! local variables
     type(InternalState) :: is_local
     integer             :: n1,n2
-    character(len=*),parameter  :: subname=' (module_med:InitializeIPDv03p5) '
+    character(len=*),parameter  :: subname=' (module_MED:InitializeIPDv03p5) '
     !-----------------------------------------------------------
 
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
@@ -1431,7 +1426,7 @@ contains
       integer, allocatable        :: ungriddedLBound(:), ungriddedUBound(:)
       logical                     :: isPresent
       logical                     :: meshcreated
-      character(len=*),parameter  :: subname=' (module_med:completeFieldInitialization) '
+      character(len=*),parameter  :: subname=' (module_MED:completeFieldInitialization) '
       !-----------------------------------------------------------
 
       call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
@@ -1609,7 +1604,7 @@ contains
     logical,save                       :: first_call = .true.
     real(r8)                           :: real_nx, real_ny
     character(len=CX)                  :: msgString
-    character(len=*), parameter        :: subname=' (module_med:DataInitialize) '
+    character(len=*), parameter        :: subname=' (module_MED:DataInitialize) '
     !-----------------------------------------------------------
 
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
@@ -2217,7 +2212,7 @@ contains
     character(len=CS)       :: glc_avg_period
     integer                 :: glc_cpl_dt
     logical                 :: first_time = .true.
-    character(len=*),parameter :: subname=' (module_med:SetRunClock) '
+    character(len=*),parameter :: subname=' (module_MED:SetRunClock) '
     !-----------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -2332,7 +2327,7 @@ contains
     real(r8), allocatable :: ownedElemCoords(:)
     real(r8), pointer     :: dataptr(:)
     integer               :: n, dimcount, fieldcount
-    character(len=*),parameter :: subname=' (module_med:med_meshinfo_create) '
+    character(len=*),parameter :: subname=' (module_MED:med_meshinfo_create) '
     !-------------------------------------------------------------------------------
 
     rc= ESMF_SUCCESS
@@ -2396,7 +2391,7 @@ contains
     type(ESMF_ArrayBundle) :: arrayBundle
     integer :: tileCount
     logical :: isPresent
-    character(len=*), parameter :: subname=' (module_med_map:med_grid_write) '
+    character(len=*), parameter :: subname=' (module_MED_map:med_grid_write) '
     !-------------------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
