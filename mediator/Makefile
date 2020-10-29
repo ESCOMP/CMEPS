@@ -9,7 +9,7 @@ ifndef PIO_INCLUDE_DIR
 $(error PIO_INCLUDE_DIR not set)
 endif
 
-ifdef INTERNAL_PIO_INIT
+ifeq ($(INTERNAL_PIO_INIT),1)
 CPPDEFS += -DINTERNAL_PIO_INIT
 endif
 
