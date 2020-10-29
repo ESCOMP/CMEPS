@@ -113,7 +113,7 @@ contains
     integer, intent(out) :: rc
 
     ! local variables
-    character(len=*),parameter :: subname='(module_MED:SetServices)'
+    character(len=*),parameter :: subname=' (module_MED:SetServices) '
     !-----------------------------------------------------------
 
     rc = ESMF_SUCCESS

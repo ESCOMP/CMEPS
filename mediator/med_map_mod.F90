@@ -124,7 +124,7 @@ contains
     !integer(ESMF_KIND_I4), pointer :: unmappedDstList(:)
     character(len=128)      :: logMsg
     type(ESMF_PoleMethod_Flag), parameter :: polemethod=ESMF_POLEMETHOD_ALLAVG
-    character(len=*), parameter :: subname=' (RouteHandles_init) '
+    character(len=*), parameter :: subname=' (module_med_map: RouteHandles_init) '
     !-----------------------------------------------------------
     call t_startf('MED:'//subname)
 
@@ -380,7 +380,7 @@ contains
     integer            :: SrcMaskValue
     integer            :: DstMaskValue
     type(ESMF_PoleMethod_Flag), parameter :: polemethod=ESMF_POLEMETHOD_ALLAVG
-    character(len=*), parameter :: subname=' (med_map_routehandles_init) '
+    character(len=*), parameter :: subname=' (module_MED_map:med_map_routehandles_init_fields) '
     !---------------------------------------------
 
     call t_startf('MED:'//subname)
@@ -535,7 +535,7 @@ contains
     ! local variables
     integer :: rc1, rc2
     logical :: mapexists
-    character(len=*), parameter :: subname=' (med_map_RH_is_created) '
+    character(len=*), parameter :: subname=' (module_MED_map:med_map_RH_is_created) '
     !-----------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -558,7 +558,7 @@ contains
     ! local variables
     integer :: rc1, rc2
     logical :: mapexists
-    character(len=*), parameter :: subname=' (med_map_RH_is_created_RH1d) '
+    character(len=*), parameter :: subname=' (module_MED_map:med_map_RH_is_created_RH1d) '
     !-----------------------------------------------------------
 
     rc  = ESMF_SUCCESS
@@ -615,7 +615,7 @@ contains
     type(ESMF_Field)          :: field_src
     type(ESMF_Mesh)           :: mesh_src
     type(ESMF_Mesh)           :: mesh_dst
-    character(len=*),parameter :: subname=' (med_map_mapnorm_init) '
+    character(len=*),parameter :: subname=' (module_MED_MAP:MapNorm_init)'
     !-----------------------------------------------------------
     call t_startf('MED:'//subname)
 
@@ -737,7 +737,7 @@ contains
     type(ESMF_Field), pointer  :: fieldlist_src(:) => null()
     type(ESMF_Field), pointer  :: fieldlist_dst(:) => null()
     character(CL), allocatable :: fieldNameList(:)
-    character(len=*), parameter  :: subname=' (med_packed_fieldbundles_create) '
+    character(len=*), parameter :: subname=' (module_MED_map:med_packed_fieldbundles_create) '
     !-----------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -914,7 +914,7 @@ contains
     character(CL), allocatable :: fieldNameList(:)
     real(r8), pointer          :: data_norm(:) => null()
     real(r8), pointer          :: data_dst(:,:) => null()
-    character(len=*), parameter  :: subname=' (med_map_field_packed) '
+    character(len=*), parameter  :: subname=' (module_MED_map:med_map_field_packed) '
     !-----------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -1100,7 +1100,7 @@ contains
     integer           :: ungriddedUBound(1)     ! currently the size must equal 1 for rank 2 fields
     integer           :: lsize_src
     integer           :: lsize_dst
-    character(len=*), parameter  :: subname=' (med_map_field_normalized) '
+    character(len=*), parameter  :: subname=' (module_MED_map:med_map_field_normalized) '
     !-----------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -1209,7 +1209,7 @@ contains
     ! local variables
     logical :: checkflag = .false.
     character(len=CS) :: lfldname
-    character(len=*), parameter :: subname='(med_map_field) '
+    character(len=*), parameter :: subname='(module_MED_map:med_map_field) '
     !---------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -1280,14 +1280,14 @@ contains
     ! local
     type(ESMF_Field)       :: field1, field2
     character(CS)          :: lfldname
-    character(len=*),parameter :: subname='(med_map_fb_field_regrid)'
+    character(len=*),parameter :: subname='(module_MED_map:med_map_fb_field_regrid)'
     ! ----------------------------------------------
 
     if (dbug_flag > 10) then
        call ESMF_LogWrite(trim(subname)//": start", ESMF_LOGMSG_INFO)
     endif
 
-    call t_startf(subname)
+    call t_startf('MED:'//trim(subname))
     rc = ESMF_SUCCESS
 
     lfldname=trim(fldin)//'->'//trim(fldout)
@@ -1312,7 +1312,7 @@ contains
     if (dbug_flag > 10) then
        call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
     endif
-    call t_stopf(subname)
+    call t_stopf('MED:'//trim(subname))
 
   end subroutine med_map_fb_field_regrid
 
@@ -1355,7 +1355,7 @@ contains
     integer             :: spatialDim
     logical             :: checkflag = .false.
     real(r8), parameter :: deg2rad = shr_const_pi/180.0_R8  ! deg to rads
-    character(len=*), parameter :: subname=' med_map_uv_cart3d) '
+    character(len=*), parameter :: subname=' (module_MED_map:med_map_uv_cart3d) '
     !-------------------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
