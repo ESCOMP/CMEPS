@@ -576,21 +576,27 @@ contains
     if      (mapindex == mapnstod_consd .and. &
              ESMF_RouteHandleIsCreated(RHs(mapnstod), rc=rc1) .and. &
              ESMF_RouteHandleIsCreated(RHs(mapconsd), rc=rc2)) then
+       rc = rc1
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       rc = rc2
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
        mapexists = .true.
     else if (mapindex == mapnstod_consf .and. &
              ESMF_RouteHandleIsCreated(RHs(mapnstod), rc=rc1) .and. &
              ESMF_RouteHandleIsCreated(RHs(mapconsf), rc=rc2)) then
+       rc = rc1
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       rc = rc2
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
        mapexists = .true.
     else if (ESMF_RouteHandleIsCreated(RHs(mapindex), rc=rc1)) then
+       rc = rc1
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
        mapexists = .true.
     end if
 
     med_map_RH_is_created_RH1d = mapexists
 
-    rc = rc1
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    rc = rc2
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
   end function med_map_RH_is_created_RH1d
 
