@@ -93,7 +93,7 @@ module esmflds
   !    merge_type(comptm) = 'copy'  (could also have 'copy_with_weighting')
 
   type, public :: med_fldList_type
-     type (med_fldList_entry_type), pointer :: flds(:)
+     type (med_fldList_entry_type), pointer :: flds(:) => null()
   end type med_fldList_type
 
   interface med_fldList_GetFldInfo ; module procedure &
@@ -136,13 +136,13 @@ contains
     ! ----------------------------------------------
 
     type(med_fldList_entry_type) , pointer                :: flds(:)
-    character(len=*)                   , intent(in)             :: stdname
-    character(len=*)                   , intent(in)  , optional :: shortname
+    character(len=*)             , intent(in)             :: stdname
+    character(len=*)             , intent(in)  , optional :: shortname
 
     ! local variables
     integer :: n,oldsize,id
     logical :: found
-    type(med_fldList_entry_type), pointer :: newflds(:)
+    type(med_fldList_entry_type), pointer :: newflds(:) => null()
     character(len=*), parameter :: subname='(med_fldList_AddFld)'
     ! ----------------------------------------------
 
@@ -217,23 +217,23 @@ contains
 
     ! input/output variables
     type(med_fldList_entry_type) , pointer                :: flds(:)
-    character(len=*)                   , intent(in)             :: fldname
-    integer                            , intent(in)  , optional :: mrg_from1
-    character(len=*)                   , intent(in)  , optional :: mrg_fld1
-    character(len=*)                   , intent(in)  , optional :: mrg_type1
-    character(len=*)                   , intent(in)  , optional :: mrg_fracname1
-    integer                            , intent(in)  , optional :: mrg_from2
-    character(len=*)                   , intent(in)  , optional :: mrg_fld2
-    character(len=*)                   , intent(in)  , optional :: mrg_type2
-    character(len=*)                   , intent(in)  , optional :: mrg_fracname2
-    integer                            , intent(in)  , optional :: mrg_from3
-    character(len=*)                   , intent(in)  , optional :: mrg_fld3
-    character(len=*)                   , intent(in)  , optional :: mrg_type3
-    character(len=*)                   , intent(in)  , optional :: mrg_fracname3
-    integer                            , intent(in)  , optional :: mrg_from4
-    character(len=*)                   , intent(in)  , optional :: mrg_fld4
-    character(len=*)                   , intent(in)  , optional :: mrg_type4
-    character(len=*)                   , intent(in)  , optional :: mrg_fracname4
+    character(len=*)             , intent(in)             :: fldname
+    integer                      , intent(in)  , optional :: mrg_from1
+    character(len=*)             , intent(in)  , optional :: mrg_fld1
+    character(len=*)             , intent(in)  , optional :: mrg_type1
+    character(len=*)             , intent(in)  , optional :: mrg_fracname1
+    integer                      , intent(in)  , optional :: mrg_from2
+    character(len=*)             , intent(in)  , optional :: mrg_fld2
+    character(len=*)             , intent(in)  , optional :: mrg_type2
+    character(len=*)             , intent(in)  , optional :: mrg_fracname2
+    integer                      , intent(in)  , optional :: mrg_from3
+    character(len=*)             , intent(in)  , optional :: mrg_fld3
+    character(len=*)             , intent(in)  , optional :: mrg_type3
+    character(len=*)             , intent(in)  , optional :: mrg_fracname3
+    integer                      , intent(in)  , optional :: mrg_from4
+    character(len=*)             , intent(in)  , optional :: mrg_fld4
+    character(len=*)             , intent(in)  , optional :: mrg_type4
+    character(len=*)             , intent(in)  , optional :: mrg_fracname4
 
     ! local variables
     integer :: n, id
@@ -389,10 +389,10 @@ contains
     character(ESMF_MAXSTR)          :: transferActionAttr
 #endif
     character(ESMF_MAXSTR)          :: transferAction
-    character(ESMF_MAXSTR), pointer :: StandardNameList(:)
-    character(ESMF_MAXSTR), pointer :: ConnectedList(:)
-    character(ESMF_MAXSTR), pointer :: NameSpaceList(:)
-    character(ESMF_MAXSTR), pointer :: itemNameList(:)
+    character(ESMF_MAXSTR), pointer :: StandardNameList(:) => null()
+    character(ESMF_MAXSTR), pointer :: ConnectedList(:) => null()
+    character(ESMF_MAXSTR), pointer :: NameSpaceList(:) => null()
+    character(ESMF_MAXSTR), pointer :: itemNameList(:) => null()
     character(len=*),parameter  :: subname='(med_fldList_Realize)'
     ! ----------------------------------------------
 
@@ -685,8 +685,8 @@ contains
 
     ! input/output variables
     type(med_fldList_entry_type) , pointer     :: flds(:)
-    character(len=*)                   , pointer     :: fldnames(:)
-    integer, optional                  , intent(out) :: rc
+    character(len=*)             , pointer     :: fldnames(:)
+    integer, optional            , intent(out) :: rc
 
     !local variables
     integer :: n

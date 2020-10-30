@@ -9,8 +9,7 @@ module med_phases_aofluxes_mod
   use med_methods_mod       , only : FB_fldchk    => med_methods_FB_FldChk
   use med_methods_mod       , only : FB_GetFldPtr => med_methods_FB_GetFldPtr
   use med_methods_mod       , only : FB_diagnose  => med_methods_FB_diagnose
-  use med_methods_mod       , only : FB_init      => med_methods_FB_init
-  use med_map_mod           , only : med_map_FB_Regrid_Norm
+  use med_map_mod           , only : med_map_field_packed
   use perf_mod              , only : t_startf, t_stopf
 
   implicit none
@@ -34,44 +33,44 @@ module med_phases_aofluxes_mod
   !--------------------------------------------------------------------------
 
   type aoflux_type
-     integer  , pointer :: mask        (:) ! ocn domain mask: 0 <=> inactive cell
-     real(R8) , pointer :: rmask       (:) ! ocn domain mask: 0 <=> inactive cell
-     real(R8) , pointer :: lats        (:) ! latitudes  (degrees)
-     real(R8) , pointer :: lons        (:) ! longitudes (degrees)
-     real(R8) , pointer :: uocn        (:) ! ocn velocity, zonal
-     real(R8) , pointer :: vocn        (:) ! ocn velocity, meridional
-     real(R8) , pointer :: tocn        (:) ! ocean temperature
-     real(R8) , pointer :: zbot        (:) ! atm level height
-     real(R8) , pointer :: ubot        (:) ! atm velocity, zonal
-     real(R8) , pointer :: vbot        (:) ! atm velocity, meridional
-     real(R8) , pointer :: thbot       (:) ! atm potential T
-     real(R8) , pointer :: shum        (:) ! atm specific humidity
-     real(R8) , pointer :: shum_16O    (:) ! atm H2O tracer
-     real(R8) , pointer :: shum_HDO    (:) ! atm HDO tracer
-     real(R8) , pointer :: shum_18O    (:) ! atm H218O tracer
-     real(R8) , pointer :: roce_16O    (:) ! ocn H2O ratio
-     real(R8) , pointer :: roce_HDO    (:) ! ocn HDO ratio
-     real(R8) , pointer :: roce_18O    (:) ! ocn H218O ratio
-     real(R8) , pointer :: pbot        (:) ! atm bottom pressure
-     real(R8) , pointer :: dens        (:) ! atm bottom density
-     real(R8) , pointer :: tbot        (:) ! atm bottom surface T
-     real(R8) , pointer :: sen         (:) ! heat flux: sensible
-     real(R8) , pointer :: lat         (:) ! heat flux: latent
-     real(R8) , pointer :: lwup        (:) ! lwup over ocean
-     real(R8) , pointer :: evap        (:) ! water flux: evaporation
-     real(R8) , pointer :: evap_16O    (:) ! H2O flux: evaporation
-     real(R8) , pointer :: evap_HDO    (:) ! HDO flux: evaporation
-     real(R8) , pointer :: evap_18O    (:) ! H218O flux: evaporation
-     real(R8) , pointer :: taux        (:) ! wind stress, zonal
-     real(R8) , pointer :: tauy        (:) ! wind stress, meridional
-     real(R8) , pointer :: tref        (:) ! diagnostic:  2m ref T
-     real(R8) , pointer :: qref        (:) ! diagnostic:  2m ref Q
-     real(R8) , pointer :: u10         (:) ! diagnostic: 10m wind speed
-     real(R8) , pointer :: duu10n      (:) ! diagnostic: 10m wind speed squared
-     real(R8) , pointer :: lwdn        (:) ! long  wave, downward
-     real(R8) , pointer :: ustar       (:) ! saved ustar
-     real(R8) , pointer :: re          (:) ! saved re
-     real(R8) , pointer :: ssq         (:) ! saved sq
+     integer  , pointer :: mask        (:) => null() ! ocn domain mask: 0 <=> inactive cell
+     real(R8) , pointer :: rmask       (:) => null() ! ocn domain mask: 0 <=> inactive cell
+     real(R8) , pointer :: lats        (:) => null() ! latitudes  (degrees)
+     real(R8) , pointer :: lons        (:) => null() ! longitudes (degrees)
+     real(R8) , pointer :: uocn        (:) => null() ! ocn velocity, zonal
+     real(R8) , pointer :: vocn        (:) => null() ! ocn velocity, meridional
+     real(R8) , pointer :: tocn        (:) => null() ! ocean temperature
+     real(R8) , pointer :: zbot        (:) => null() ! atm level height
+     real(R8) , pointer :: ubot        (:) => null() ! atm velocity, zonal
+     real(R8) , pointer :: vbot        (:) => null() ! atm velocity, meridional
+     real(R8) , pointer :: thbot       (:) => null() ! atm potential T
+     real(R8) , pointer :: shum        (:) => null() ! atm specific humidity
+     real(R8) , pointer :: shum_16O    (:) => null() ! atm H2O tracer
+     real(R8) , pointer :: shum_HDO    (:) => null() ! atm HDO tracer
+     real(R8) , pointer :: shum_18O    (:) => null() ! atm H218O tracer
+     real(R8) , pointer :: roce_16O    (:) => null() ! ocn H2O ratio
+     real(R8) , pointer :: roce_HDO    (:) => null() ! ocn HDO ratio
+     real(R8) , pointer :: roce_18O    (:) => null() ! ocn H218O ratio
+     real(R8) , pointer :: pbot        (:) => null() ! atm bottom pressure
+     real(R8) , pointer :: dens        (:) => null() ! atm bottom density
+     real(R8) , pointer :: tbot        (:) => null() ! atm bottom surface T
+     real(R8) , pointer :: sen         (:) => null() ! heat flux: sensible
+     real(R8) , pointer :: lat         (:) => null() ! heat flux: latent
+     real(R8) , pointer :: lwup        (:) => null() ! lwup over ocean
+     real(R8) , pointer :: evap        (:) => null() ! water flux: evaporation
+     real(R8) , pointer :: evap_16O    (:) => null() ! H2O flux: evaporation
+     real(R8) , pointer :: evap_HDO    (:) => null() ! HDO flux: evaporation
+     real(R8) , pointer :: evap_18O    (:) => null() ! H218O flux: evaporation
+     real(R8) , pointer :: taux        (:) => null() ! wind stress, zonal
+     real(R8) , pointer :: tauy        (:) => null() ! wind stress, meridional
+     real(R8) , pointer :: tref        (:) => null() ! diagnostic:  2m ref T
+     real(R8) , pointer :: qref        (:) => null() ! diagnostic:  2m ref Q
+     real(R8) , pointer :: u10         (:) => null() ! diagnostic: 10m wind speed
+     real(R8) , pointer :: duu10n      (:) => null() ! diagnostic: 10m wind speed squared
+     real(R8) , pointer :: lwdn        (:) => null() ! long  wave, downward
+     real(R8) , pointer :: ustar       (:) => null() ! saved ustar
+     real(R8) , pointer :: re          (:) => null() ! saved re
+     real(R8) , pointer :: ssq         (:) => null() ! saved sq
      logical            :: created         ! has this data type been created
   end type aoflux_type
 
@@ -154,18 +153,15 @@ contains
     call memcheck(subname, 5, mastertask)
 
     ! TODO(mvertens, 2019-01-12): ONLY regrid atm import fields that are needed for the atm/ocn flux calculation
-
     ! Regrid atm import field bundle from atm to ocn grid as input for ocn/atm flux calculation
-    call med_map_FB_Regrid_Norm( &
-         fldsSrc=fldListFr(compatm)%flds, &
-         srccomp=compatm, destcomp=compocn, &
+    call med_map_field_packed( &
          FBSrc=is_local%wrap%FBImp(compatm,compatm), &
          FBDst=is_local%wrap%FBImp(compatm,compocn), &
          FBFracSrc=is_local%wrap%FBFrac(compatm), &
-         FBNormOne=is_local%wrap%FBNormOne(compatm,compocn,:), &
-         RouteHandles=is_local%wrap%RH(compatm,compocn,:), &
-         string=trim(compname(compatm))//'2'//trim(compname(compocn)), rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
+         field_normOne=is_local%wrap%field_normOne(compatm,compocn,:), &
+         packed_data=is_local%wrap%packed_data(compatm,compocn,:), &
+         routehandles=is_local%wrap%RH(compatm,compocn,:), rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! Calculate atm/ocn fluxes on the destination grid
     call med_aofluxes_run(gcomp, aoflux, rc)
@@ -208,8 +204,8 @@ contains
     integer                  :: iam
     integer                  :: n
     integer                  :: lsize
-    real(R8), pointer        :: ofrac(:)
-    real(R8), pointer        :: ifrac(:)
+    real(R8), pointer        :: ofrac(:) => null()
+    real(R8), pointer        :: ifrac(:) => null()
     character(CL)            :: cvalue
     logical                  :: flds_wiso  ! use case
     character(len=CX)        :: tmpstr
