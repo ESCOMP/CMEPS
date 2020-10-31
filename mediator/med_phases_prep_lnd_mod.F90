@@ -12,7 +12,7 @@ module med_phases_prep_lnd_mod
   use ESMF                  , only : ESMF_StateGet, ESMF_StateItem_Flag, ESMF_STATEITEM_NOTFOUND
   use ESMF                  , only : ESMF_Mesh, ESMF_MeshLoc, ESMF_MESHLOC_ELEMENT, ESMF_TYPEKIND_R8
   use ESMF                  , only : ESMF_Field, ESMF_FieldGet, ESMF_FieldCreate
-  use ESMF                  , only : ESMF_RouteHandle
+  use ESMF                  , only : ESMF_RouteHandle, ESMF_RouteHandleIsCreated
   use esmFlds               , only : complnd, compatm, compglc, ncomps, compname, mapconsd
   use esmFlds               , only : fldListTo
   use med_methods_mod       , only : FB_diagnose     => med_methods_FB_diagnose
@@ -22,7 +22,7 @@ module med_phases_prep_lnd_mod
   use med_utils_mod         , only : chkerr          => med_utils_ChkErr
   use med_constants_mod     , only : dbug_flag       => med_constants_dbug_flag
   use med_internalstate_mod , only : InternalState, mastertask, logunit
-  use med_map_mod           , only : med_map_rh_is_created
+  use med_map_mod           , only : med_map_rh_is_created, med_map_routehandles_init
   use med_map_mod           , only : med_map_field_packed, med_map_field_normalized, med_map_field
   use med_merge_mod         , only : med_merge_auto
   use glc_elevclass_mod     , only : glc_get_num_elevation_classes
@@ -279,12 +279,11 @@ contains
          ungriddedLbound=(/1/), ungriddedUbound=(/ungriddedCount/), gridToFieldMap=(/2/), rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    ! Verify that route handle has been created
-    if (.not. med_map_RH_is_created(is_local%wrap%RH(compglc,complnd,:), mapconsd,rc=rc)) then
-       call ESMF_LogWrite(trim(subname)//": ERROR conservative route handle not created for glc->lnd mapping", &
-            ESMF_LOGMSG_ERROR)
-       rc = ESMF_FAILURE
-       return
+    ! Create route handle if it has not been created
+    if (.not. ESMF_RouteHandleIsCreated(is_local%wrap%RH(compglc,complnd,mapconsd), rc=rc)) then
+       call med_map_routehandles_init( compglc, complnd, field_icemask_g, field_icemask_l, &
+            mapindex=mapconsd, routehandle=is_local%wrap%rh(compglc,complnd,mapconsd), rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
     ! Currently cannot map hflx in multiple elevation classes from glc to land
