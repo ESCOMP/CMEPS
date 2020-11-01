@@ -26,27 +26,36 @@ module esmflds
   ! Set mappers
   !-----------------------------------------------
 
-  integer , public, parameter :: mapunset        = 0
-  integer , public, parameter :: mapbilnr        = 1
-  integer , public, parameter :: mapconsf        = 2
-  integer , public, parameter :: mapconsd        = 3
-  integer , public, parameter :: mappatch        = 4
-  integer , public, parameter :: mapfcopy        = 5
-  integer , public, parameter :: mapnstod        = 6  ! nearest source to destination
-  integer , public, parameter :: mapnstod_consd  = 7  ! nearest source to destination followed by conservative dst
-  integer , public, parameter :: mapnstod_consf  = 8  ! nearest source to destination followed by conservative frac
-  integer , public, parameter :: map_glc2ocn_ice = 9  ! custom smoothing map to map ice from glc->ocn (cesm only)
-  integer , public, parameter :: map_glc2ocn_liq = 10 ! custom smoothing map to map liq from glc->ocn (cesm only)
-  integer , public, parameter :: map_rof2ocn_ice = 11 ! custom smoothing map to map ice from rof->ocn (cesm only)
-  integer , public, parameter :: map_rof2ocn_liq = 12 ! custom smoothing map to map liq from rof->ocn (cesm only)
-  integer , public, parameter :: nmappers        = 12
+  integer , public, parameter :: mapunset          = 0
+  integer , public, parameter :: mapbilnr          = 1
+  integer , public, parameter :: mapconsf          = 2
+  integer , public, parameter :: mapconsd          = 3
+  integer , public, parameter :: mappatch          = 4
+  integer , public, parameter :: mapfcopy          = 5
+  integer , public, parameter :: mapnstod          = 6  ! nearest source to destination
+  integer , public, parameter :: mapnstod_consd    = 7  ! nearest source to destination followed by conservative dst
+  integer , public, parameter :: mapnstod_consf    = 8  ! nearest source to destination followed by conservative frac
+  integer , public, parameter :: mappatch_uv3d     = 9  ! rotate u,v to 3d cartesian space, map from src->dest, then rotate back
+  integer , public, parameter :: map_glc2ocn_ice   = 10 ! custom smoothing map to map ice from glc->ocn (cesm only)
+  integer , public, parameter :: map_glc2ocn_liq   = 11 ! custom smoothing map to map liq from glc->ocn (cesm only)
+  integer , public, parameter :: map_rof2ocn_ice   = 12 ! custom smoothing map to map ice from rof->ocn (cesm only)
+  integer , public, parameter :: map_rof2ocn_liq   = 13 ! custom smoothing map to map liq from rof->ocn (cesm only)
+  integer , public, parameter :: nmappers          = 13
 
   character(len=*) , public, parameter :: mapnames(nmappers) = &
-       (/'bilnr      ','consf      ','consd      ','patch      ','fcopy      ',&
-         'nstod      ','nstod_consd','nstod_consf', &
-         'glc2ocn_ice','glc2ocn_liq','rof2ocn_ice','rof2ocn_liq'/)
-
-  logical, public :: mapuv_with_cart3d ! rotate u,v to 3d cartesian space, map from src->dest, then rotate back
+       (/'bilnr      ',&
+         'consf      ',&
+         'consd      ',&
+         'patch      ',&
+         'fcopy      ',&
+         'nstod      ',&
+         'nstod_consd',&
+         'nstod_consf',&
+         'patch_uv3d ',&
+         'glc2ocn_ice',&
+         'glc2ocn_liq',&
+         'rof2ocn_ice',&
+         'rof2ocn_liq'/)
 
   !-----------------------------------------------
   ! Set coupling mode

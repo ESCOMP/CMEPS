@@ -3,7 +3,7 @@ module med_map_mod
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
   use ESMF                  , only : ESMF_SUCCESS, ESMF_FAILURE
   use ESMF                  , only : ESMF_LOGMSG_ERROR, ESMF_LOGMSG_INFO, ESMF_LogWrite
-  use esmFlds               , only : mapuv_with_cart3d
+  use ESMF                  , only : ESMF_Field
   use med_internalstate_mod , only : InternalState, logunit, mastertask
   use med_constants_mod     , only : dbug_flag => med_constants_dbug_flag
   use med_utils_mod         , only : chkerr    => med_utils_ChkErr
@@ -31,6 +31,8 @@ module med_map_mod
      module procedure med_map_RH_is_created_RH3d
      module procedure med_map_RH_is_created_RH1d
   end interface
+
+  type(ESMF_Field) :: uv3d_src, uv3d_dst ! needed for 3d mapping of u,v vector pairs
 
   ! private module variables
 
@@ -74,7 +76,7 @@ contains
     use ESMF            , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_LogFlush
     use ESMF            , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_Field
     use esmFlds         , only : fldListFr, ncomps, mapunset, compname
-    use med_methods_mod , only : FB_getFieldN => med_methods_FB_getFieldN
+    use med_methods_mod , only : med_methods_FB_getFieldN
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -87,7 +89,6 @@ contains
     type(ESMF_Field)    :: flddst
     integer             :: n,n1,n2,m,nf
     character(len=CX)   :: mapfile
-    character(len=CS)   :: string
     integer             :: mapindex
     logical             :: mapexists = .false.
     character(len=*), parameter :: subname=' (module_med_map: RouteHandles_init) '
@@ -97,7 +98,7 @@ contains
     rc = ESMF_SUCCESS
 
     if (dbug_flag > 1) then
-       call ESMF_LogWrite("Starting to initialize RHs", ESMF_LOGMSG_INFO)
+       call ESMF_LogWrite(trim(subname)//": start", ESMF_LOGMSG_INFO)
     endif
 
     ! Get the internal state from Component.
@@ -113,9 +114,9 @@ contains
           if (n1 /= n2) then
              if (is_local%wrap%med_coupling_active(n1,n2)) then ! If coupling is active between n1 and n2
                 ! Get source and destination fields
-                call FB_GetFieldN(is_local%wrap%FBImp(n1,n1), 1, fldsrc, rc)
+                call med_methods_FB_getFieldN(is_local%wrap%FBImp(n1,n1), 1, fldsrc, rc)
                 if (chkerr(rc,__LINE__,u_FILE_u)) return
-                call FB_GetFieldN(is_local%wrap%FBImp(n1,n2), 1, flddst, rc)
+                call med_methods_FB_getFieldN(is_local%wrap%FBImp(n1,n2), 1, flddst, rc)
                 if (chkerr(rc,__LINE__,u_FILE_u)) return
 
                 ! Loop over fields
@@ -156,8 +157,8 @@ contains
   subroutine med_map_routehandles_initfrom_fieldbundle(n1, n2, FBsrc, FBdst, mapindex, RouteHandle, rc)
 
     use ESMF            , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_LogFlush
-    use ESMF            , only : ESMf_Field, ESMF_FieldBundle, ESMF_RouteHandle 
-    use med_methods_mod , only : FB_getFieldN => med_methods_FB_getFieldN
+    use ESMF            , only : ESMf_Field, ESMF_FieldBundle, ESMF_RouteHandle
+    use med_methods_mod , only : med_methods_FB_getFieldN
 
     !---------------------------------------------
     ! Initialize initialize additional route handles for mapping fractions
@@ -182,13 +183,12 @@ contains
     rc = ESMF_SUCCESS
 
     if (dbug_flag > 1) then
-       call ESMF_LogWrite("Initializing RHs not yet created and needed", ESMF_LOGMSG_INFO)
-       call ESMF_LogFlush()
+       call ESMF_LogWrite(trim(subname)//": start", ESMF_LOGMSG_INFO)
     endif
 
-    call FB_getFieldN(FBsrc, 1, fldsrc, rc)
+    call med_methods_FB_getFieldN(FBsrc, 1, fldsrc, rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call FB_getFieldN(FBDst, 1, flddst, rc)
+    call med_methods_FB_getFieldN(FBDst, 1, flddst, rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     call med_map_routehandles_initfrom_field(n1, n2, fldsrc, flddst, mapindex, routehandle(n1,n2,mapindex), rc=rc)
@@ -215,7 +215,7 @@ contains
     use esmFlds           , only : mapnstod, mapnstod_consd, mapnstod_consf, mapnstod_consd
     use esmFlds           , only : ncomps, compatm, compice, compocn, compname
     use esmFlds           , only : mapfcopy, mapconsd, mapconsf, mapnstod
-    use esmFlds           , only : coupling_mode
+    use esmFlds           , only : coupling_mode, compname
     use med_constants_mod , only : ispval_mask => med_constants_ispval_mask
 
     ! input/output variables
@@ -277,26 +277,29 @@ contains
        if (n2 == compocn .or. n2 == compice) dstMaskValue = 0
     end if
 
+    write(string,'(a)') trim(compname(n1))//' to '//trim(compname(n2))
+
     ! Create route handle
     if (mapindex == mapfcopy) then
        if (mastertask) then
-          write(logunit,'(3A)') subname,trim(string),' RH redist '
+          write(logunit,'(A)') trim(subname)//' creating RH redist for '//trim(string)
        end if
-       call ESMF_LogWrite(subname // trim(string) // ' RH redist ', ESMF_LOGMSG_INFO)
        call ESMF_FieldRedistStore(fldsrc, flddst, routehandle=routehandle, &
             ignoreUnmatchedIndices = .true., rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     else if (lmapfile /= 'unset') then
        if (mastertask) then
-          write(logunit,'(4A)') subname,trim(string),' RH '//trim(mapname)//' via input file ',trim(mapfile)
+          write(logunit,'(A)') trim(subname)//' creating RH '//trim(mapname)//&
+               ' via input file '//trim(mapfile)//' for '//trim(string)
        end if
-       call ESMF_LogWrite(subname // trim(string) //&
-            ' RH '//trim(mapname)//' via input file '//trim(mapfile), ESMF_LOGMSG_INFO)
        call ESMF_FieldSMMStore(fldsrc, flddst, mapfile, routehandle=routehandle, &
             ignoreUnmatchedIndices=.true., &
             srcTermProcessing=srcTermProcessing_Value, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     else if (mapindex == mapbilnr) then
+       if (mastertask) then
+          write(logunit,'(A)') trim(subname)//' creating RH '//trim(mapname)//' for '//trim(string)
+       end if
        call ESMF_FieldRegridStore(fldsrc, flddst, routehandle=routehandle, &
             srcMaskValues=(/srcMaskValue/), &
             dstMaskValues=(/dstMaskValue/), &
@@ -307,6 +310,9 @@ contains
             unmappedaction=ESMF_UNMAPPEDACTION_IGNORE, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     else if (mapindex == mapconsf .or. mapindex == mapnstod_consf) then
+       if (mastertask) then
+          write(logunit,'(A)') trim(subname)//' creating RH '//trim(mapname)//' for '//trim(string)
+       end if
        call ESMF_FieldRegridStore(fldsrc, flddst, routehandle=routehandle, &
             srcMaskValues=(/srcMaskValue/), &
             dstMaskValues=(/dstMaskValue/), &
@@ -318,6 +324,9 @@ contains
             rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     else if (mapindex == mapconsd .or. mapindex == mapnstod_consd) then
+       if (mastertask) then
+          write(logunit,'(A)') trim(subname)//' creating RH '//trim(mapname)//' for '//trim(string)
+       end if
        call ESMF_FieldRegridStore(fldsrc, flddst, routehandle=routehandle, &
             srcMaskValues=(/srcMaskValue/), &
             dstMaskValues=(/dstMaskValue/), &
@@ -329,6 +338,9 @@ contains
             rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     else if (mapindex == mappatch) then
+       if (mastertask) then
+          write(logunit,'(A)') trim(subname)//' creating RH '//trim(mapname)//' for '//trim(string)
+       end if
        call ESMF_FieldRegridStore(fldsrc, flddst, routehandle=routehandle, &
             srcMaskValues=(/srcMaskValue/), &
             dstMaskValues=(/dstMaskValue/), &
@@ -339,6 +351,9 @@ contains
             unmappedaction=ESMF_UNMAPPEDACTION_IGNORE, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     else
+       if (mastertask) then
+          write(logunit,'(A)') trim(subname)//' mapindex '//trim(mapname)//' not supported for '//trim(string)
+       end if
        call ESMF_LogWrite(trim(subname)//' mapindex '//trim(mapname)//' not supported ', &
             ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
        rc = ESMF_FAILURE
@@ -407,7 +422,7 @@ contains
 
     use ESMF    , only : ESMF_RouteHandle, ESMF_RouteHandleIsCreated
     use esmFlds , only : mapconsd, mapconsf, mapnstod
-    use esmFlds , only : mapnstod_consd, mapnstod_consf  
+    use esmFlds , only : mapnstod_consd, mapnstod_consf
 
     ! input/output varaibes
     type(ESMF_RouteHandle) , intent(in)    :: RHs(:)
@@ -657,7 +672,7 @@ contains
              ! for any given mapping type
              if ( fldsSrc(ns)%mapindex(destcomp) == mapindex .and. &
                   trim(fldsSrc(ns)%shortname) == trim(fieldnamelist(nf))) then
-                ! Set the normalization to the input 
+                ! Set the normalization to the input
                 packed_data(mapindex)%mapnorm = fldsSrc(ns)%mapnorm(destcomp)
              end if
           end do
@@ -752,7 +767,7 @@ contains
     use ESMF                  , only : ESMF_Field, ESMF_FieldGet, ESMF_FieldIsCreated
     use ESMF                  , only : ESMF_FieldBundle, ESMF_FieldBundleGet
     use ESMF                  , only : ESMF_FieldRedist, ESMF_RouteHandle
-    use esmFlds               , only : nmappers, mapfcopy
+    use esmFlds               , only : nmappers, mapfcopy, mappatch_uv3d
     use med_internalstate_mod , only : packed_data_type
 
     ! input/output variables
@@ -768,7 +783,7 @@ contains
     integer                    :: nf, nu, np, n
     integer                    :: fieldcount
     integer                    :: mapindex
-    integer                    :: ungriddedUBound(1) ! currently the size must equal 1 for rank 2 fields
+    integer                    :: ungriddedUBound(1)
     real(r8), pointer          :: dataptr1d(:) => null()
     real(r8), pointer          :: dataptr2d(:,:) => null()
     real(r8), pointer          :: dataptr2d_packed(:,:) => null()
@@ -776,12 +791,14 @@ contains
     type(ESMF_Field)           :: field_fracsrc
     type(ESMF_Field), pointer  :: fieldlist_src(:) => null()
     type(ESMF_Field), pointer  :: fieldlist_dst(:) => null()
-    character(CL), allocatable :: fieldNameList(:)
+    type(ESMF_Field)           :: usrc, vsrc ! only used for 3d mapping of u,v
+    type(ESMF_Field)           :: udst, vdst ! only used for 3d mapping of u,v
     real(r8), pointer          :: data_norm(:) => null()
     real(r8), pointer          :: data_dst(:,:) => null()
     character(len=*), parameter  :: subname=' (module_MED_map:med_map_field_packed) '
     !-----------------------------------------------------------
 
+    call t_startf('MED:'//subname)
     rc = ESMF_SUCCESS
 
     ! Get field count for both FBsrc and FBdst
@@ -839,7 +856,22 @@ contains
           ! -----------------------------------
 
           call t_startf('MED:'//trim(subname)//' map')
-          if (mapindex == mapfcopy) then
+
+          if (mapindex == mappatch_uv3d) then
+
+             ! for mappatch_uv3d do not use packed field bundles
+             call ESMF_FieldBundleGet(FBSrc, fieldName='Sa_u', field=usrc, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+             call ESMF_FieldBundleGet(FBSrc, fieldName='Sa_v', field=vsrc, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+             call ESMF_FieldBundleGet(FBDst, fieldName='Sa_u', field=udst, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+             call ESMF_FieldBundleGet(FBDst, fieldName='Sa_v', field=vdst, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+             call med_map_uv_cart3d(usrc, vsrc, udst, vdst, routehandles, mapindex, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+          else if (mapindex == mapfcopy) then
 
              ! Mapping is redistribution
              call ESMF_FieldRedist(&
@@ -929,6 +961,8 @@ contains
 
     deallocate(fieldlist_src)
     deallocate(fieldlist_dst)
+
+    call t_stopf('MED:'//subname)
 
   end subroutine med_map_field_packed
 
@@ -1124,7 +1158,7 @@ contains
   end subroutine med_map_field
 
   !================================================================================
-  subroutine med_map_uv_cart3d(usrc, vsrc, udst, vdst, RouteHandles, mapindex, rc)
+  subroutine med_map_uv_cart3d(usrc, vsrc, udst, vdst, routehandles, mapindex, rc)
 
     use ESMF          , only : ESMF_Mesh, ESMF_MeshGet, ESMF_MESHLOC_ELEMENT, ESMF_TYPEKIND_R8
     use ESMF          , only : ESMF_Field, ESMF_FieldGet
@@ -1137,7 +1171,7 @@ contains
     type(ESMF_Field)       , intent(in)    :: vsrc
     type(ESMF_Field)       , intent(inout) :: udst
     type(ESMF_Field)       , intent(inout) :: vdst
-    type(ESMF_RouteHandle) , intent(inout) :: RouteHandles(:)
+    type(ESMF_RouteHandle) , intent(inout) :: routehandles(:)
     integer                , intent(in)    :: mapindex
     integer                , intent(out)   :: rc
 
@@ -1149,8 +1183,6 @@ contains
     real(r8)            :: ux,uy,uz
     type(ESMF_Mesh)     :: lmesh_src
     type(ESMF_Mesh)     :: lmesh_dst
-    type(ESMF_Field)    :: field3d_src
-    type(ESMF_Field)    :: field3d_dst
     real(r8), pointer   :: data_u_src(:) => null()
     real(r8), pointer   :: data_u_dst(:) => null()
     real(r8), pointer   :: data_v_src(:) => null()
@@ -1161,15 +1193,12 @@ contains
     real(r8), pointer   :: ownedElemCoords_dst(:) => null()
     integer             :: numOwnedElements
     integer             :: spatialDim
-    logical             :: checkflag = .false.
     real(r8), parameter :: deg2rad = shr_const_pi/180.0_R8  ! deg to rads
+    logical             :: first_time = .true.
     character(len=*), parameter :: subname=' (module_MED_map:med_map_uv_cart3d) '
     !-------------------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
-
-    ! Create two field bundles vec_src3d and vec_dst3d that contain
-    ! all three fields with undistributed dimensions for each
 
     ! Get pointer to input u and v data source field data
     call ESMF_FieldGet(usrc, farrayPtr=data_u_src, rc=rc)
@@ -1184,7 +1213,7 @@ contains
     call ESMF_FieldGet(vdst, farrayPtr=data_v_dst, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    ! get source mesh and coordinates
+    ! Get source mesh and coordinates
     call ESMF_FieldGet(usrc, mesh=lmesh_src, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call ESMF_MeshGet(lmesh_src, spatialDim=spatialDim, numOwnedElements=numOwnedElements, rc=rc)
@@ -1193,7 +1222,7 @@ contains
     call ESMF_MeshGet(lmesh_src, ownedElemCoords=ownedElemCoords_src)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    ! get destination mesh and coordinates
+    ! Get destination mesh and coordinates
     call ESMF_FieldGet(udst, mesh=lmesh_dst, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call ESMF_MeshGet(lmesh_dst, spatialDim=spatialDim, numOwnedElements=numOwnedElements, rc=rc)
@@ -1202,20 +1231,24 @@ contains
     call ESMF_MeshGet(lmesh_dst, ownedElemCoords=ownedElemCoords_dst)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    ! create source field and destination fields
-    field3d_src = ESMF_FieldCreate(lmesh_src, ESMF_TYPEKIND_R8, name='src3d', &
-         ungriddedLbound=(/1/), ungriddedUbound=(/3/), gridToFieldMap=(/2/), &
-         meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    field3d_dst = ESMF_FieldCreate(lmesh_dst, ESMF_TYPEKIND_R8, name='dst3d', &
-         ungriddedLbound=(/1/), ungriddedUbound=(/3/), gridToFieldMap=(/2/), &
-         meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    if (first_time) then
+       ! Create two module fields -  vec_src3d and vec_dst3d -  that contain
+       ! all three fields with undistributed dimensions for each
+       uv3d_src = ESMF_FieldCreate(lmesh_src, ESMF_TYPEKIND_R8, name='src3d', &
+            ungriddedLbound=(/1/), ungriddedUbound=(/3/), gridToFieldMap=(/2/), &
+            meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       uv3d_dst = ESMF_FieldCreate(lmesh_dst, ESMF_TYPEKIND_R8, name='dst3d', &
+            ungriddedLbound=(/1/), ungriddedUbound=(/3/), gridToFieldMap=(/2/), &
+            meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       first_time = .false.
+    end if
 
     ! get pointers to source and destination data that will be filled in with rotation to cart3d
-    call ESMF_FieldGet(field3d_src, farrayPtr=data2d_src, rc=rc)
+    call ESMF_FieldGet(uv3d_src, farrayPtr=data2d_src, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldGet(field3d_dst, farrayPtr=data2d_dst, rc=rc)
+    call ESMF_FieldGet(uv3d_dst, farrayPtr=data2d_dst, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! Rotate Source data to cart3d
@@ -1232,11 +1265,8 @@ contains
     enddo
 
     ! Map all thee vector fields at once from source to destination grid
-    call med_map_field(&
-         field_src=field3d_src, &
-         field_dst=field3d_dst, &
-         routehandles=routehandles, &
-         maptype=mapindex, rc=rc)
+    call med_map_field(field_src=uv3d_src, field_dst=uv3d_dst, &
+         routehandles=routehandles, maptype=mapindex, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! Rotate destination data back from cart3d to original
@@ -1257,10 +1287,6 @@ contains
     ! Deallocate data
     deallocate(ownedElemCoords_src)
     deallocate(ownedElemCoords_dst)
-    call ESMF_FieldDestroy(field3d_src, noGarbage=.true., rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldDestroy(field3d_dst, noGarbage=.true., rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
   end subroutine med_map_uv_cart3d
 

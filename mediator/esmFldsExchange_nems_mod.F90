@@ -31,7 +31,7 @@ contains
     use esmflds               , only : compmed, compatm, compocn, compice, comprof, ncomps
     use esmflds               , only : mapbilnr, mapconsf, mapconsd, mappatch
     use esmflds               , only : mapfcopy, mapnstod, mapnstod_consd, mapnstod_consf
-    use esmflds               , only : coupling_mode, mapuv_with_cart3d, mapnames
+    use esmflds               , only : coupling_mode, mapnames
     use esmflds               , only : fldListTo, fldListFr, fldListMed_aoflux, fldListMed_ocnalb
     use med_internalstate_mod , only : mastertask, logunit
 
@@ -50,9 +50,6 @@ contains
     !--------------------------------------
 
     rc = ESMF_SUCCESS
-
-    ! Initialize if use 3d cartesian mapping for u,v
-    mapuv_with_cart3d = .false.
 
     ! Set maptype according to coupling_mode
     if (trim(coupling_mode) == 'nems_orig' .or. trim(coupling_mode) == 'nems_orig_data') then
