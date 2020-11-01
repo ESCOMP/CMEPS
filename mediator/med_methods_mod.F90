@@ -181,8 +181,6 @@ contains
              if (chkerr(rc,__LINE__,u_FILE_u)) return
 
              ! create new field with an ungridded dimension
-             call ESMF_LogWrite(trim(subname)// ": creating new field "// &
-                  trim(lfieldnamelist(n)) //" with ungridded dimension", ESMF_LOGMSG_INFO)
              newfield = ESMF_FieldCreate(lmesh, dataptr2d, ESMF_INDEX_DELOCAL, &
                   meshloc=meshloc, name=lfieldNameList(n), &
                   ungriddedLbound=ungriddedLbound, ungriddedUbound=ungriddedUbound, gridToFieldMap=gridtoFieldMap, rc=rc)
@@ -194,7 +192,7 @@ contains
              call ESMF_FieldGet(lfield, farrayptr=dataptr1d, rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-             ! create new field without an ungridded dimension 
+             ! create new field without an ungridded dimension
              newfield = ESMF_FieldCreate(lmesh, dataptr1d, ESMF_INDEX_DELOCAL, &
                   meshloc=meshloc, name=lfieldNameList(n), rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -464,11 +462,7 @@ contains
 
              ! Create the field on a lmesh
              if (ungriddedCount > 0) then
-
                 ! ungridded dimensions in field
-                call ESMF_LogWrite(trim(subname) // ": creating new field "// &
-                     trim(lfieldnamelist(n)) //" with ungridded dimension", ESMF_LOGMSG_INFO)
-
                 allocate(ungriddedLBound(ungriddedCount), ungriddedUBound(ungriddedCount))
                 call ESMF_AttributeGet(lfield, name="UngriddedLBound", convention="NUOPC", &
                      purpose="Instance", valueList=ungriddedLBound, rc=rc)
@@ -491,8 +485,6 @@ contains
                 deallocate( ungriddedLbound, ungriddedUbound, gridToFieldMap)
              else
                 ! No ungridded dimensions in field
-                call ESMF_LogWrite(trim(subname)// ": creating new field "// &
-                     trim(lfieldnamelist(n)) //" without ungridded dimension", ESMF_LOGMSG_INFO)
                 field = ESMF_FieldCreate(lmesh, ESMF_TYPEKIND_R8, meshloc=meshloc, name=lfieldNameList(n), rc=rc)
                 if (chkerr(rc,__LINE__,u_FILE_u)) return
              end if
@@ -500,16 +492,16 @@ contains
           else if (present(fieldNameList)) then
 
              ! Assume no ungridded dimensions if just the field name list is give
-             call ESMF_LogWrite(trim(subname)// ": creating new field "// &
-                  trim(lfieldnamelist(n)) //" without ungridded dimension", ESMF_LOGMSG_INFO)
              field = ESMF_FieldCreate(lmesh, ESMF_TYPEKIND_R8, meshloc=meshloc, name=lfieldNameList(n), rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
 
           end if
 
           ! Add the created field bundle FBout
-          call ESMF_LogWrite(trim(subname)//":"//trim(lname)//" adding field "//trim(lfieldNameList(n)), &
-               ESMF_LOGMSG_INFO)
+          if (dbug_flag > 1) then
+             call ESMF_LogWrite(trim(subname)//":"//trim(lname)//" adding field "//trim(lfieldNameList(n)), &
+                  ESMF_LOGMSG_INFO)
+          end if
           call ESMF_FieldBundleAdd(FBout, (/field/), rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
 
@@ -1444,7 +1436,6 @@ contains
     if (dbug_flag > 10) then
       call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
     endif
-
     rc = ESMF_SUCCESS
 
     ! If field bundle is not created then set return to .false.
@@ -1462,7 +1453,6 @@ contains
             ESMF_LOGMSG_ERROR)
        return
     endif
-
     if (isPresent) then
        med_methods_FB_FldChk = .true.
     endif
