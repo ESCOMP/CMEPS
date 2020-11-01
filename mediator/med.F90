@@ -82,6 +82,7 @@ contains
     use NUOPC_Mediator          , only: mediator_label_TimestampExport  => label_TimestampExport
     use NUOPC_Mediator          , only: mediator_label_SetRunClock      => label_SetRunClock
     use NUOPC_Mediator          , only: mediator_label_Finalize         => label_Finalize
+
     use med_phases_history_mod  , only: med_phases_history_write_inst_atm
     use med_phases_history_mod  , only: med_phases_history_write_inst_ice
     use med_phases_history_mod  , only: med_phases_history_write_inst_glc
@@ -130,7 +131,6 @@ contains
     use med_diag_mod            , only: med_phases_diag_glc
     use med_diag_mod            , only: med_phases_diag_ocn
     use med_diag_mod            , only: med_phases_diag_ice_ice2med, med_phases_diag_ice_med2ice
-    use med_phases_history_mod  , only: med_phases_history_alarms_init
     use med_fraction_mod        , only: med_fraction_init, med_fraction_set
     use med_phases_profile_mod  , only: med_phases_profile
 
@@ -207,7 +207,7 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !------------------
-    ! setup mediator history phases
+    ! setup mediator history phases for all output
     !------------------
 
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
@@ -216,6 +216,10 @@ contains
     call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
          specPhaseLabel="med_phases_history_write_inst_all", specRoutine=med_phases_history_write_inst_all, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    !------------------
+    ! setup mediator history phases for atm output
+    !------------------
 
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
          phaseLabelList=(/"med_phases_history_write_inst_atm"/), userRoutine=mediator_routine_Run, rc=rc)
@@ -236,6 +240,10 @@ contains
          specPhaseLabel="med_phases_history_write_aux_atm", specRoutine=med_phases_history_write_aux_atm, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+    !------------------
+    ! setup mediator history phases for ice output
+    !------------------
+
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
          phaseLabelList=(/"med_phases_history_write_inst_ice"/), userRoutine=mediator_routine_Run, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -254,6 +262,10 @@ contains
     call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
          specPhaseLabel="med_phases_history_write_aux_ice", specRoutine=med_phases_history_write_aux_ice, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    !------------------
+    ! setup mediator history phases for glc output
+    !------------------
 
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
          phaseLabelList=(/"med_phases_history_write_inst_glc"/), userRoutine=mediator_routine_Run, rc=rc)
@@ -274,6 +286,10 @@ contains
          specPhaseLabel="med_phases_history_write_aux_glc", specRoutine=med_phases_history_write_aux_glc, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+    !------------------
+    ! setup mediator history phases for lnd output
+    !------------------
+
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
          phaseLabelList=(/"med_phases_history_write_inst_lnd"/), userRoutine=mediator_routine_Run, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -292,6 +308,10 @@ contains
     call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
          specPhaseLabel="med_phases_history_write_aux_lnd", specRoutine=med_phases_history_write_aux_lnd, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    !------------------
+    ! setup mediator history phases for ocn output
+    !------------------
 
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
          phaseLabelList=(/"med_phases_history_write_inst_ocn"/), userRoutine=mediator_routine_Run, rc=rc)
@@ -312,6 +332,10 @@ contains
          specPhaseLabel="med_phases_history_write_aux_ocn", specRoutine=med_phases_history_write_aux_ocn, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+    !------------------
+    ! setup mediator history phases for rof output
+    !------------------
+
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
          phaseLabelList=(/"med_phases_history_write_inst_rof"/), userRoutine=mediator_routine_Run, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -331,6 +355,10 @@ contains
          specPhaseLabel="med_phases_history_write_aux_rof", specRoutine=med_phases_history_write_aux_rof, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+    !------------------
+    ! setup mediator history phases for wav output
+    !------------------
+
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
          phaseLabelList=(/"med_phases_history_write_inst_wav"/), userRoutine=mediator_routine_Run, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -349,6 +377,10 @@ contains
     call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
          specPhaseLabel="med_phases_history_write_aux_wav", specRoutine=med_phases_history_write_aux_wav, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    !------------------
+    ! setup mediator history phases for med output
+    !------------------
 
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
          phaseLabelList=(/"med_phases_history_write_inst_med"/), userRoutine=mediator_routine_Run, rc=rc)
