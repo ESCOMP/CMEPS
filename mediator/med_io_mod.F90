@@ -1,5 +1,4 @@
 module med_io_mod
-
   !------------------------------------------
   ! Create mediator history files
   !------------------------------------------
@@ -13,10 +12,9 @@ module med_io_mod
   use NUOPC                 , only : NUOPC_FieldDictionaryGetEntry
   use NUOPC                 , only : NUOPC_FieldDictionaryHasEntry
   use pio                   , only : file_desc_t, iosystem_desc_t
-  use med_internalstate_mod , only : logunit, med_id
+  use med_internalstate_mod , only : logunit
   use med_constants_mod     , only : dbug_flag => med_constants_dbug_flag
   use med_utils_mod         , only : chkerr    => med_utils_ChkErr
-  use perf_mod              , only : t_startf, t_stopf
 
   implicit none
   private
@@ -78,7 +76,7 @@ module med_io_mod
   type(file_desc_t)              :: io_file(0:file_desc_t_cnt)
   integer                        :: pio_iotype
   integer                        :: pio_ioformat
-  type(iosystem_desc_t), pointer :: io_subsystem => null()
+  type(iosystem_desc_t), pointer :: io_subsystem
   character(*),parameter         :: u_FILE_u = &
        __FILE__
 
@@ -120,7 +118,9 @@ contains
     ! initialize pio
     !---------------
 
-    use shr_pio_mod , only : shr_pio_getiosys, shr_pio_getiotype, shr_pio_getioformat
+    use shr_pio_mod           , only : shr_pio_getiosys, shr_pio_getiotype, shr_pio_getioformat
+    use med_internalstate_mod , only : med_id
+
 #ifdef INTERNAL_PIO_INIT
     ! if CMEPS is the only component using PIO, then it needs to initialize PIO
     use shr_pio_mod , only : shr_pio_init1, shr_pio_init2
@@ -1190,7 +1190,7 @@ contains
     use ESMF , only : ESMF_LOGMSG_ERROR, ESMF_FAILURE
     use ESMF , only : ESMF_FieldBundleIsCreated, ESMF_FieldBundleGet
     use ESMF , only : ESMF_FieldGet, ESMF_MeshGet, ESMF_DistGridGet
-    use pio  , only : file_desc_T, var_desc_t, io_desc_t, pio_nowrite, pio_openfile
+    use pio  , only : file_desc_t, var_desc_t, io_desc_t, pio_nowrite, pio_openfile
     use pio  , only : pio_noerr, PIO_BCAST_ERROR, PIO_INTERNAL_ERROR
     use pio  , only : pio_inq_varid
     use pio  , only : pio_double, pio_get_att, pio_seterrorhandling, pio_freedecomp, pio_closefile
@@ -1206,8 +1206,9 @@ contains
     integer                                 ,intent(out) :: rc
 
     ! local variables
+    type(ESMF_Field)              :: lfield
     integer                       :: rcode
-    integer                       :: nf
+    integer                       :: nf,ns,ng
     integer                       :: k,n,l
     type(file_desc_t)             :: pioid
     type(var_desc_t)              :: varid
@@ -1215,9 +1216,10 @@ contains
     character(CL)                 :: name1       ! var name
     character(CL)                 :: lpre        ! local prefix
     real(r8)                      :: lfillvalue
-    integer                       :: lsize
+    integer                       :: tmp(1)
+    integer                       :: rank, lsize
     real(r8), pointer             :: fldptr1(:) => null()
-    real(r8), pointer             :: fldptr1tmp(:) => null()
+    real(r8), pointer             :: fldptr1_tmp(:) => null()
     real(r8), pointer             :: fldptr2(:,:) => null()
     character(CL)                 :: tmpstr
     character(len=16)             :: cnumber
@@ -1225,7 +1227,7 @@ contains
     integer                       :: ungriddedUBound(1)
     character(CL)   , pointer     :: fieldnamelist(:) => null()
     type(ESMF_Field), pointer     :: fieldlist(:) => null()
-    character(*), parameter       :: subName = '(med_io_read_FB) '
+    character(*),parameter :: subName = '(med_io_read_FB) '
     !-------------------------------------------------------------------------------
     rc = ESMF_Success
 
@@ -1234,43 +1236,43 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     end if
 
+    lpre = ' '
+    if (present(pre)) then
+       lpre = trim(pre)
+    endif
+    if (present(frame)) then
+       lframe = frame
+    else
+       lframe = 1
+    endif
+
     if (.not. ESMF_FieldBundleIsCreated(FB,rc=rc)) then
        call ESMF_LogWrite(trim(subname)//" FB "//trim(lpre)//" not created", ESMF_LOGMSG_INFO)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (dbug_flag > 5) then
-          call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-       endif
+       call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
        return
     endif
 
-    lpre = ' '
-    if (present(pre)) lpre = trim(pre)
-    lframe = 1
-    if (present(frame)) lframe = frame
-
     call ESMF_FieldBundleGet(FB, fieldCount=nf, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
+    if (nf < 1) then
+       call ESMF_LogWrite(trim(subname)//" FB "//trim(lpre)//" empty", ESMF_LOGMSG_INFO)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       return
+    endif
+
     allocate(fieldnamelist(nf))
     allocate(fieldlist(nf))
     call ESMF_FieldBundleGet(FB, fieldnamelist=fieldnamelist, fieldlist=fieldlist, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
+    write(tmpstr,*) subname//' field count = '//trim(lpre),nf
+    call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    if (dbug_flag > 1) then
-       write(tmpstr,*) subname//' field count = '//trim(lpre),nf
-       call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (nf < 1) then
-          call ESMF_LogWrite(trim(subname)//" FB "//trim(lpre)//" empty", ESMF_LOGMSG_INFO)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          if (dbug_flag > 5) then
-             call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-          endif
-          return
-       end if
-    endif
-
+    ! Check if file exists
     if (med_io_file_exists(vm, iam, trim(filename))) then
        rcode = pio_openfile(io_subsystem, pioid, pio_iotype, trim(filename),pio_nowrite)
        call ESMF_LogWrite(trim(subname)//' open file '//trim(filename), ESMF_LOGMSG_INFO)
@@ -1283,6 +1285,7 @@ contains
     endif
 
     call pio_seterrorhandling(pioid, PIO_BCAST_ERROR)
+
     do k = 1,nf
        call ESMF_FieldGet(fieldlist(k), ungriddedUBound=ungriddedUbound, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -1307,7 +1310,7 @@ contains
           call ESMF_FieldGet(fieldlist(k), farrayPtr=fldptr2, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           lsize = size(fldptr2, dim=2)
-          allocate(fldptr1tmp(lsize))
+          allocate(fldptr1_tmp(lsize))
           do n = 1,ungriddedUBound(1)
              ! Creat a name for the 1d field on the mediator history or restart file based on the
              ! ungridded dimension index of the field bundle 2d fiedl
@@ -1318,20 +1321,20 @@ contains
                 call ESMF_LogWrite(trim(subname)//' read field '//trim(name1), ESMF_LOGMSG_INFO)
                 if (chkerr(rc,__LINE__,u_FILE_u)) return
                 call pio_setframe(pioid, varid, lframe)
-                call pio_read_darray(pioid, varid, iodesc, fldptr1tmp, rcode)
+                call pio_read_darray(pioid, varid, iodesc, fldptr1_tmp, rcode)
                 rcode = pio_get_att(pioid, varid, "_FillValue", lfillvalue)
                 if (rcode /= pio_noerr) then
                    lfillvalue = fillvalue
                 endif
-                do l = 1,size(fldptr1tmp)
-                   if (fldptr1tmp(l) == lfillvalue) fldptr1tmp(l) = 0.0_r8
+                do l = 1,size(fldptr1_tmp)
+                   if (fldptr1_tmp(l) == lfillvalue) fldptr1_tmp(l) = 0.0_r8
                 enddo
              else
-                fldptr1tmp(:) = 0.0_r8
+                fldptr1_tmp = 0.0_r8
              endif
-             fldptr2(n,:) = fldptr1tmp(:)
+             fldptr2(n,:) = fldptr1_tmp(:)
           end do
-          deallocate(fldptr1tmp)
+          deallocate(fldptr1_tmp)
        else
           ! No ungridded dimensions
           call ESMF_FieldGet(fieldlist(k), farrayPtr=fldptr1, rc=rc)
@@ -1357,12 +1360,8 @@ contains
 
     enddo ! end of loop over fields
     call pio_seterrorhandling(pioid,PIO_INTERNAL_ERROR)
-
     call pio_freedecomp(pioid, iodesc)
     call pio_closefile(pioid)
-
-    deallocate(fieldlist)
-    deallocate(fieldnamelist)
 
     if (dbug_flag > 5) then
        call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
@@ -1440,7 +1439,6 @@ contains
        allocate(fieldlist(fieldcount))
        call ESMF_FieldBundleGet(FB, fieldlist=fieldlist, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-
        call ESMF_FieldGet(fieldlist(1), mesh=mesh, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        call ESMF_MeshGet(mesh, elementDistgrid=distgrid, rc=rc)
@@ -1464,6 +1462,7 @@ contains
 
        call ESMF_DistGridGet(distgrid, localDE=0, elementCount=ns, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
+
        allocate(dof(ns))
        call ESMF_DistGridGet(distgrid, localDE=0, seqIndexList=dof, rc=rc)
        write(tmpstr,*) subname,' dof = ',ns,size(dof),dof(1),dof(ns)  !,minval(dof),maxval(dof)

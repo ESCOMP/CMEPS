@@ -295,7 +295,6 @@ contains
     use esmflds               , only : mapbilnr, mapconsf, mapconsd, mappatch
     use esmflds               , only : mapfcopy, mapnstod, mapnstod_consd
     use esmflds               , only : mapnstod_consf
-    use esmflds               , only : mapuv_with_cart3d
 
     ! input/output parameters:
     type(ESMF_GridComp)              :: gcomp
@@ -345,11 +344,6 @@ contains
 
     call esmFldsExchange_hafs_attr(gcomp, hafs_attr, rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    !----------------------------------------------------------
-    ! Initialize if use 3d cartesian mapping for u,v
-    !----------------------------------------------------------
-    mapuv_with_cart3d = .false.
 
     !=====================================================================
     ! FIELDS TO MEDIATOR component (for fractions and atm/ocn flux calculation)
