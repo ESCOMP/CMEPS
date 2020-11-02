@@ -4,12 +4,49 @@ module esmFldsExchange_cesm_mod
   ! This is a mediator specific routine that determines ALL possible
   ! fields exchanged between components and their associated routing,
   ! mapping and merging
-  !---------------------------------------------------------------------
+  !
+  ! Merging arguments:
+  ! mrg_fromN = source component index that for the field to be merged
+  ! mrg_fldN  = souce field name to be merged
+  ! mrg_typeN = merge type ('copy', 'copy_with_weights', 'sum', 'sum_with_weights', 'merge')
+  ! NOTE:
+  ! mrg_from(compmed) can either be for mediator computed fields for atm/ocn fluxes or for ocn albedos
+  !
+  ! NOTE:
+  ! FBMed_aoflux_o only refer to output fields to the atm/ocn that computed in the
+  ! atm/ocn flux calculations. Input fields required from either the atm or the ocn for
+  ! these computation will use the logical 'use_med_aoflux' below. This is used to determine
+  ! mappings between the atm and ocn needed for these computations.
+  !--------------------------------------
+
+  use med_kind_mod, only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
 
   implicit none
   public
 
   public :: esmFldsExchange_cesm
+
+  character(len=CX)   :: atm2ice_fmap='unset', atm2ice_smap='unset', atm2ice_vmap='unset'
+  character(len=CX)   :: atm2ocn_fmap='unset', atm2ocn_smap='unset', atm2ocn_vmap='unset'
+  character(len=CX)   :: atm2lnd_fmap='unset', atm2lnd_smap='unset'
+  character(len=CX)   :: glc2lnd_smap='unset', glc2lnd_fmap='unset'
+  character(len=CX)   :: glc2ice_rmap='unset'
+  character(len=CX)   :: glc2ocn_liq_rmap='unset'
+  character(len=CX)   :: glc2ocn_ice_rmap='unset'
+  character(len=CX)   :: ice2atm_fmap='unset', ice2atm_smap='unset'
+  character(len=CX)   :: ocn2atm_fmap='unset', ocn2atm_smap='unset'
+  character(len=CX)   :: lnd2atm_fmap='unset', lnd2atm_smap='unset'
+  character(len=CX)   :: lnd2glc_fmap='unset', lnd2glc_smap='unset'
+  character(len=CX)   :: lnd2rof_fmap='unset'
+  character(len=CX)   :: rof2lnd_fmap='unset'
+  character(len=CX)   :: rof2ocn_fmap='unset', rof2ocn_ice_rmap='unset', rof2ocn_liq_rmap='unset'
+  character(len=CX)   :: atm2wav_smap='unset', ice2wav_smap='unset', ocn2wav_smap='unset'
+  character(len=CX)   :: wav2ocn_smap='unset'
+  logical             :: mapuv_with_cart3d
+  logical             :: flds_i2o_per_cat
+  logical             :: flds_co2a  
+  logical             :: flds_co2b  
+  logical             :: flds_co2c  
 
   character(*), parameter :: u_FILE_u = &
        __FILE__
@@ -25,16 +62,15 @@ contains
     use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
     use med_utils_mod         , only : chkerr => med_utils_chkerr
     use med_methods_mod       , only : fldchk => med_methods_FB_FldChk
-    use med_internalstate_mod , only : InternalState
-    use esmFlds               , only : med_fldList_type
+    use med_internalstate_mod , only : InternalState, logunit, mastertask
     use esmFlds               , only : addfld => med_fldList_AddFld
     use esmFlds               , only : addmap => med_fldList_AddMap
     use esmFlds               , only : addmrg => med_fldList_AddMrg
     use esmflds               , only : compmed, compatm, complnd, compocn
     use esmflds               , only : compice, comprof, compwav, compglc, ncomps
-    use esmflds               , only : mapbilnr, mapconsf, mapconsd, mappatch
+    use esmflds               , only : mapbilnr, mapconsf, mapconsd, mappatch, mappatch_uv3d
     use esmflds               , only : mapfcopy, mapnstod, mapnstod_consd, mapnstod_consf
-    use esmflds               , only : mapuv_with_cart3d
+    use esmflds               , only : map_glc2ocn_ice, map_glc2ocn_liq, map_rof2ocn_ice, map_rof2ocn_liq
     use esmflds               , only : fldListTo, fldListFr, fldListMed_aoflux, fldListMed_ocnalb
     use esmFlds               , only : coupling_mode
 
@@ -45,42 +81,19 @@ contains
 
     ! local variables:
     type(InternalState) :: is_local
-    logical             :: flds_i2o_per_cat
-    integer             :: dbrc
-    integer             :: num, i, n
-    integer             :: n1, n2, n3, n4
-    logical             :: isPresent
+    integer             :: n
     character(len=5)    :: iso(2)
     character(len=CL)   :: cvalue
     character(len=CS)   :: name, fldname
-    character(len=CX)   :: atm2ice_fmap='unset', atm2ice_smap='unset', atm2ice_vmap='unset'
-    character(len=CX)   :: atm2ocn_fmap='unset', atm2ocn_smap='unset', atm2ocn_vmap='unset'
-    character(len=CX)   :: atm2lnd_fmap='unset', atm2lnd_smap='unset'
-    character(len=CX)   :: glc2lnd_smap='unset', glc2lnd_fmap='unset'
-    character(len=CX)   :: glc2ice_rmap='unset'
-    character(len=CX)   :: glc2ocn_liq_rmap='unset', glc2ocn_ice_rmap='unset'
-    character(len=CX)   :: ice2atm_fmap='unset', ice2atm_smap='unset'
-    character(len=CX)   :: ocn2atm_fmap='unset', ocn2atm_smap='unset'
-    character(len=CX)   :: lnd2atm_fmap='unset', lnd2atm_smap='unset'
-    character(len=CX)   :: lnd2glc_fmap='unset', lnd2glc_smap='unset'
-    character(len=CX)   :: lnd2rof_fmap='unset'
-    character(len=CX)   :: rof2lnd_fmap='unset'
-    character(len=CX)   :: rof2ocn_fmap='unset', rof2ocn_ice_rmap='unset', rof2ocn_liq_rmap='unset'
-    character(len=CX)   :: atm2wav_smap='unset', ice2wav_smap='unset', ocn2wav_smap='unset'
-    character(len=CX)   :: wav2ocn_smap='unset'
-    logical             :: flds_co2a  ! use case
-    logical             :: flds_co2b  ! use case
-    logical             :: flds_co2c  ! use case
     character(len=CS), allocatable :: flds(:)
     character(len=CS), allocatable :: suffix(:)
-    character(len=*) , parameter   :: subname='(esmFldsExchange_cesm)'
+    character(len=*) , parameter   :: subname=' (esmFldsExchange_cesm) '
     !--------------------------------------
 
     rc = ESMF_SUCCESS
 
-    iso(1) = ''
+    iso(1) = '     '
     iso(2) = '_wiso'
-
 
     !---------------------------------------
     ! Get the internal state
@@ -92,233 +105,137 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     end if
 
-    !--------------------------------------
-    ! Merging arguments:
-    ! mrg_fromN = source component index that for the field to be merged
-    ! mrg_fldN  = souce field name to be merged
-    ! mrg_typeN = merge type ('copy', 'copy_with_weights', 'sum', 'sum_with_weights', 'merge')
-    ! NOTE:
-    ! mrg_from(compmed) can either be for mediator computed fields for atm/ocn fluxes or for ocn albedos
-    !
-    ! NOTE:
-    ! FBMed_aoflux_o only refer to output fields to the atm/ocn that computed in the
-    ! atm/ocn flux calculations. Input fields required from either the atm or the ocn for
-    ! these computation will use the logical 'use_med_aoflux' below. This is used to determine
-    ! mappings between the atm and ocn needed for these computations.
-    !--------------------------------------
+    if (phase == 'advertise') then
 
-    call NUOPC_CompAttributeGet(gcomp, name='flds_i2o_per_cat', value=cvalue, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) flds_i2o_per_cat
-    call ESMF_LogWrite('flds_i2o_per_cat = '// trim(cvalue), ESMF_LOGMSG_INFO)
+       ! mapping to atm
+       call NUOPC_CompAttributeGet(gcomp, name='ice2atm_fmapname', value=ice2atm_fmap,  rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (mastertask) write(logunit, '(a)') trim(subname)//'ice2atm_fmapname = '// trim(ice2atm_fmap)
+       call NUOPC_CompAttributeGet(gcomp, name='ice2atm_smapname', value=ice2atm_smap,  rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (mastertask) write(logunit, '(a)') trim(subname)//'ice2atm_smapname = '// trim(ice2atm_smap)
+       call NUOPC_CompAttributeGet(gcomp, name='lnd2atm_fmapname', value=lnd2atm_fmap,  rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (mastertask) write(logunit, '(a)') trim(subname)//'lnd2atm_fmapname = '// trim(lnd2atm_fmap)
+       call NUOPC_CompAttributeGet(gcomp, name='ocn2atm_smapname', value=ocn2atm_smap,  rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (mastertask) write(logunit, '(a)') trim(subname)//'ocn2atm_smapname = '// trim(ocn2atm_smap)
+       call NUOPC_CompAttributeGet(gcomp, name='ocn2atm_fmapname', value=ocn2atm_fmap,  rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (mastertask) write(logunit, '(a)') trim(subname)//'ocn2atm_fmapname = '// trim(ocn2atm_fmap)
+       call NUOPC_CompAttributeGet(gcomp, name='lnd2atm_smapname', value=lnd2atm_smap,  rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (mastertask) write(logunit, '(a)') trim(subname)//'lnd2atm_smapname = '// trim(lnd2atm_smap)
 
-    !----------------------------------------------------------
-    ! Initialize mapping file names
-    !----------------------------------------------------------
+       ! mapping to lnd
+       call NUOPC_CompAttributeGet(gcomp, name='atm2lnd_fmapname', value=atm2lnd_fmap,  rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (mastertask) write(logunit, '(a)') trim(subname)//'atm2lnd_fmapname = '// trim(atm2lnd_fmap)
+       call NUOPC_CompAttributeGet(gcomp, name='atm2lnd_smapname', value=atm2lnd_smap,  rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (mastertask) write(logunit, '(a)') trim(subname)//'atm2lnd_smapname = '// trim(atm2lnd_smap)
+       call NUOPC_CompAttributeGet(gcomp, name='rof2lnd_fmapname', value=rof2lnd_fmap,  rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (mastertask) write(logunit, '(a)') trim(subname)//'rof2lnd_fmapname = '// trim(rof2lnd_fmap)
+       call NUOPC_CompAttributeGet(gcomp, name='glc2lnd_fmapname', value=glc2lnd_fmap,  rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (mastertask) write(logunit, '(a)') trim(subname)//'glc2lnd_smapname = '// trim(glc2lnd_fmap)
+       call NUOPC_CompAttributeGet(gcomp, name='glc2lnd_smapname', value=glc2lnd_smap,  rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (mastertask) write(logunit, '(a)') trim(subname)//'glc2lnd_smapname = '// trim(glc2lnd_smap)
 
-    ! to atm
+       ! mapping to ice
+       call NUOPC_CompAttributeGet(gcomp, name='atm2ice_fmapname', value=atm2ice_fmap,  rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (mastertask) write(logunit, '(a)') trim(subname)//'atm2ice_fmapname = '// trim(atm2ice_fmap)
+       call NUOPC_CompAttributeGet(gcomp, name='atm2ice_smapname', value=atm2ice_smap,  rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (mastertask) write(logunit, '(a)') trim(subname)//'atm2ice_smapname = '// trim(atm2ice_smap)
+       call NUOPC_CompAttributeGet(gcomp, name='atm2ice_vmapname', value=atm2ice_vmap,  rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (mastertask) write(logunit, '(a)') trim(subname)//'atm2ice_vmapname = '// trim(atm2ice_vmap)
+       call NUOPC_CompAttributeGet(gcomp, name='glc2ice_rmapname', value=glc2ice_rmap,  rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (mastertask) write(logunit, '(a)') trim(subname)//'glc2ice_rmapname = '// trim(glc2ice_rmap)
 
-    call NUOPC_CompAttributeGet(gcomp, name='ice2atm_fmapname', value=ice2atm_fmap, isPresent=isPresent, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       call ESMF_LogWrite('ice2atm_fmapname = '// trim(ice2atm_fmap), ESMF_LOGMSG_INFO)
-    end if
+       ! mapping to ocn
+       call NUOPC_CompAttributeGet(gcomp, name='atm2ocn_fmapname', value=atm2ocn_fmap,  rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (mastertask) write(logunit, '(a)') trim(subname)//'atm2ocn_fmapname = '// trim(atm2ocn_fmap)
+       call NUOPC_CompAttributeGet(gcomp, name='atm2ocn_smapname', value=atm2ocn_smap,  rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (mastertask) write(logunit, '(a)') trim(subname)//'atm2ocn_smapname = '// trim(atm2ocn_smap)
+       call NUOPC_CompAttributeGet(gcomp, name='atm2ocn_vmapname', value=atm2ocn_vmap,  rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (mastertask) write(logunit, '(a)') trim(subname)//'atm2ocn_vmapname = '// trim(atm2ocn_vmap)
+       call NUOPC_CompAttributeGet(gcomp, name='glc2ocn_liq_rmapname', value=glc2ocn_liq_rmap,  rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (mastertask) write(logunit, '(a)') trim(subname)//'glc2ocn_liq_rmapname = '// trim(glc2ocn_liq_rmap)
+       call NUOPC_CompAttributeGet(gcomp, name='glc2ocn_ice_rmapname', value=glc2ocn_ice_rmap,  rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (mastertask) write(logunit, '(a)') trim(subname)//'glc2ocn_ice_rmapname = '// trim(glc2ocn_ice_rmap)
+       call NUOPC_CompAttributeGet(gcomp, name='wav2ocn_smapname', value=wav2ocn_smap,  rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (mastertask) write(logunit, '(a)') trim(subname)//'wav2ocn_smapname = '// trim(wav2ocn_smap)
+       call NUOPC_CompAttributeGet(gcomp, name='rof2ocn_fmapname', value=rof2ocn_fmap,  rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (mastertask) write(logunit, '(a)') trim(subname)//'rof2ocn_fmapname = '// trim(rof2ocn_fmap)
+       call NUOPC_CompAttributeGet(gcomp, name='rof2ocn_liq_rmapname', value=rof2ocn_liq_rmap,  rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (mastertask) write(logunit, '(a)') trim(subname)//'rof2ocn_liq_rmapname = '// trim(rof2ocn_liq_rmap)
+       call NUOPC_CompAttributeGet(gcomp, name='rof2ocn_ice_rmapname', value=rof2ocn_ice_rmap,  rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (mastertask) write(logunit, '(a)') trim(subname)//'rof2ocn_ice_rmapname = '// trim(rof2ocn_ice_rmap)
 
-    call NUOPC_CompAttributeGet(gcomp, name='ice2atm_smapname', value=ice2atm_smap, isPresent=isPresent, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       call ESMF_LogWrite('ice2atm_smapname = '// trim(ice2atm_smap), ESMF_LOGMSG_INFO)
-    end if
+       ! mapping to rof
+       call NUOPC_CompAttributeGet(gcomp, name='lnd2rof_fmapname', value=lnd2rof_fmap,  rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (mastertask) write(logunit, '(a)') trim(subname)//'lnd2rof_fmapname = '// trim(lnd2rof_fmap)
 
-    call NUOPC_CompAttributeGet(gcomp, name='lnd2atm_fmapname', value=lnd2atm_fmap, isPresent=isPresent, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       call ESMF_LogWrite('lnd2atm_fmapname = '// trim(lnd2atm_fmap), ESMF_LOGMSG_INFO)
-    end if
+       ! mapping to glc
+       call NUOPC_CompAttributeGet(gcomp, name='lnd2glc_fmapname', value=lnd2glc_fmap,  rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (mastertask) write(logunit, '(a)') trim(subname)//'lnd2glc_fmapname = '// trim(lnd2glc_fmap)
+       call NUOPC_CompAttributeGet(gcomp, name='lnd2glc_smapname', value=lnd2glc_smap,  rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (mastertask) write(logunit, '(a)') trim(subname)//'lnd2glc_smapname = '// trim(lnd2glc_smap)
 
-    call NUOPC_CompAttributeGet(gcomp, name='ocn2atm_smapname', value=ocn2atm_smap, isPresent=isPresent, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       call ESMF_LogWrite('ocn2atm_smapname = '// trim(ocn2atm_smap), ESMF_LOGMSG_INFO)
-    end if
+       ! mapping to wav
+       call NUOPC_CompAttributeGet(gcomp, name='atm2wav_smapname', value=atm2wav_smap, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (mastertask) write(logunit,'(a)') trim(subname)//'atm2wav_smapname = '// trim(atm2wav_smap)
+       call NUOPC_CompAttributeGet(gcomp, name='ice2wav_smapname', value=ice2wav_smap,  rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (mastertask) write(logunit,'(a)') trim(subname)//'ice2wav_smapname = '// trim(ice2wav_smap)
+       call NUOPC_CompAttributeGet(gcomp, name='ocn2wav_smapname', value=ocn2wav_smap,  rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (mastertask) write(logunit,'(a)') trim(subname)//'ocn2wav_smapname = '// trim(ocn2wav_smap)
 
-    call NUOPC_CompAttributeGet(gcomp, name='ocn2atm_fmapname', value=ocn2atm_fmap, isPresent=isPresent, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       call ESMF_LogWrite('ocn2atm_fmapname = '// trim(ocn2atm_fmap), ESMF_LOGMSG_INFO)
-    end if
+       ! uv cart3d mapping
+       call NUOPC_CompAttributeGet(gcomp, name='mapuv_with_cart3d', value=cvalue,  rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (mastertask) write(logunit,'(a)') trim(subname)//'mapuv_with_cart3d = '// trim(cvalue)
+       read(cvalue,*) mapuv_with_cart3d
 
-    call NUOPC_CompAttributeGet(gcomp, name='lnd2atm_smapname', value=lnd2atm_smap, isPresent=isPresent, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       call ESMF_LogWrite('lnd2atm_smapname = '// trim(lnd2atm_smap), ESMF_LOGMSG_INFO)
-    end if
+       ! co2 transfer between componetns
+       call NUOPC_CompAttributeGet(gcomp, name='flds_co2a', value=cvalue, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       read(cvalue,*) flds_co2a
+       call NUOPC_CompAttributeGet(gcomp, name='flds_co2b', value=cvalue, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       read(cvalue,*) flds_co2b
+       call NUOPC_CompAttributeGet(gcomp, name='flds_co2c', value=cvalue, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       read(cvalue,*) flds_co2c
+       if (mastertask) write(logunit,'(a)') trim(subname)//' flds_co2a = '// trim(cvalue)
+       if (mastertask) write(logunit,'(a)') trim(subname)//' flds_co2b = '// trim(cvalue)
+       if (mastertask) write(logunit,'(a)') trim(subname)//' flds_co2c = '// trim(cvalue)
 
-    ! to lnd
+       call NUOPC_CompAttributeGet(gcomp, name='flds_i2o_per_cat', value=cvalue, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       read(cvalue,*) flds_i2o_per_cat
+       call ESMF_LogWrite('flds_i2o_per_cat = '// trim(cvalue), ESMF_LOGMSG_INFO)
 
-    call NUOPC_CompAttributeGet(gcomp, name='atm2lnd_fmapname', value=atm2lnd_fmap, isPresent=isPresent, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       call ESMF_LogWrite('atm2lnd_fmapname = '// trim(atm2lnd_fmap), ESMF_LOGMSG_INFO)
-    end if
-
-    call NUOPC_CompAttributeGet(gcomp, name='atm2lnd_smapname', value=atm2lnd_smap, isPresent=isPresent, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       call ESMF_LogWrite('atm2lnd_smapname = '// trim(atm2lnd_smap), ESMF_LOGMSG_INFO)
-    end if
-
-    call NUOPC_CompAttributeGet(gcomp, name='rof2lnd_fmapname', value=rof2lnd_fmap, isPresent=isPresent, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       call ESMF_LogWrite('rof2lnd_fmapname = '// trim(rof2lnd_fmap), ESMF_LOGMSG_INFO)
-    end if
-
-    call NUOPC_CompAttributeGet(gcomp, name='glc2lnd_fmapname', value=glc2lnd_fmap, isPresent=isPresent, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       call ESMF_LogWrite('glc2lnd_smapname = '// trim(glc2lnd_fmap), ESMF_LOGMSG_INFO)
-    end if
-
-    call NUOPC_CompAttributeGet(gcomp, name='glc2lnd_smapname', value=glc2lnd_smap, isPresent=isPresent, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       call ESMF_LogWrite('glc2lnd_smapname = '// trim(glc2lnd_smap), ESMF_LOGMSG_INFO)
-    end if
-
-    ! to ice
-
-    call NUOPC_CompAttributeGet(gcomp, name='atm2ice_fmapname', value=atm2ice_fmap, isPresent=isPresent, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       call ESMF_LogWrite('atm2ice_fmapname = '// trim(atm2ice_fmap), ESMF_LOGMSG_INFO)
-    end if
-
-    call NUOPC_CompAttributeGet(gcomp, name='atm2ice_smapname', value=atm2ice_smap, isPresent=isPresent, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       call ESMF_LogWrite('atm2ice_smapname = '// trim(atm2ice_smap), ESMF_LOGMSG_INFO)
-    end if
-
-    call NUOPC_CompAttributeGet(gcomp, name='atm2ice_vmapname', value=atm2ice_vmap, isPresent=isPresent, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       call ESMF_LogWrite('atm2ice_vmapname = '// trim(atm2ice_vmap), ESMF_LOGMSG_INFO)
-    end if
-
-    call NUOPC_CompAttributeGet(gcomp, name='glc2ice_rmapname', value=glc2ice_rmap, isPresent=isPresent, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       call ESMF_LogWrite('glc2ice_rmapname = '// trim(glc2ice_rmap), ESMF_LOGMSG_INFO)
-    end if
-
-    ! to ocn
-
-    call NUOPC_CompAttributeGet(gcomp, name='atm2ocn_fmapname', value=atm2ocn_fmap, isPresent=isPresent, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       call ESMF_LogWrite('atm2ocn_fmapname = '// trim(atm2ocn_fmap), ESMF_LOGMSG_INFO)
-    end if
-
-    call NUOPC_CompAttributeGet(gcomp, name='atm2ocn_smapname', value=atm2ocn_smap, isPresent=isPresent, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       call ESMF_LogWrite('atm2ocn_smapname = '// trim(atm2ocn_smap), ESMF_LOGMSG_INFO)
-    end if
-
-    call NUOPC_CompAttributeGet(gcomp, name='atm2ocn_vmapname', value=atm2ocn_vmap, isPresent=isPresent, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       call ESMF_LogWrite('atm2ocn_vmapname = '// trim(atm2ocn_vmap), ESMF_LOGMSG_INFO)
-    end if
-
-    call NUOPC_CompAttributeGet(gcomp, name='glc2ocn_liq_rmapname', value=glc2ocn_liq_rmap, isPresent=isPresent, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       call ESMF_LogWrite('glc2ocn_liq_rmapname = '// trim(glc2ocn_liq_rmap), ESMF_LOGMSG_INFO)
-    end if
-
-    call NUOPC_CompAttributeGet(gcomp, name='glc2ocn_ice_rmapname', value=glc2ocn_ice_rmap, isPresent=isPresent, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       call ESMF_LogWrite('glc2ocn_ice_rmapname = '// trim(glc2ocn_ice_rmap), ESMF_LOGMSG_INFO)
-    end if
-
-    call NUOPC_CompAttributeGet(gcomp, name='wav2ocn_smapname', value=wav2ocn_smap, isPresent=isPresent, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       call ESMF_LogWrite('wav2ocn_smapname = '// trim(wav2ocn_smap), ESMF_LOGMSG_INFO)
-    end if
-
-    call NUOPC_CompAttributeGet(gcomp, name='rof2ocn_fmapname', value=rof2ocn_fmap, isPresent=isPresent, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       call ESMF_LogWrite('rof2ocn_fmapname = '// trim(rof2ocn_fmap), ESMF_LOGMSG_INFO)
-    end if
-
-    call NUOPC_CompAttributeGet(gcomp, name='rof2ocn_liq_rmapname', value=rof2ocn_liq_rmap, isPresent=isPresent, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       call ESMF_LogWrite('rof2ocn_liq_rmapname = '// trim(rof2ocn_liq_rmap), ESMF_LOGMSG_INFO)
-    end if
-
-    call NUOPC_CompAttributeGet(gcomp, name='rof2ocn_ice_rmapname', value=rof2ocn_ice_rmap, isPresent=isPresent, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       call ESMF_LogWrite('rof2ocn_ice_rmapname = '// trim(rof2ocn_ice_rmap), ESMF_LOGMSG_INFO)
-    end if
-
-    ! to rof
-
-    call NUOPC_CompAttributeGet(gcomp, name='lnd2rof_fmapname', value=lnd2rof_fmap, isPresent=isPresent, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       call ESMF_LogWrite('lnd2rof_fmapname = '// trim(lnd2rof_fmap), ESMF_LOGMSG_INFO)
-    end if
-
-    ! to glc
-
-    call NUOPC_CompAttributeGet(gcomp, name='lnd2glc_fmapname', value=lnd2glc_fmap, isPresent=isPresent, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       call ESMF_LogWrite('lnd2glc_fmapname = '// trim(lnd2glc_fmap), ESMF_LOGMSG_INFO)
-    end if
-
-    call NUOPC_CompAttributeGet(gcomp, name='lnd2glc_smapname', value=lnd2glc_smap, isPresent=isPresent, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       call ESMF_LogWrite('lnd2glc_smapname = '// trim(lnd2glc_smap), ESMF_LOGMSG_INFO)
-    end if
-
-    ! to wav
-
-    call NUOPC_CompAttributeGet(gcomp, name='atm2wav_smapname', value=atm2wav_smap, isPresent=isPresent, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       call ESMF_LogWrite('atm2wav_smapname = '// trim(atm2wav_smap), ESMF_LOGMSG_INFO)
-    end if
-
-    call NUOPC_CompAttributeGet(gcomp, name='ice2wav_smapname', value=ice2wav_smap, isPresent=isPresent, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       call ESMF_LogWrite('ice2wav_smapname = '// trim(ice2wav_smap), ESMF_LOGMSG_INFO)
-    end if
-
-    call NUOPC_CompAttributeGet(gcomp, name='ocn2wav_smapname', value=ocn2wav_smap, isPresent=isPresent, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent) then
-       call ESMF_LogWrite('ocn2wav_smapname = '// trim(ocn2wav_smap), ESMF_LOGMSG_INFO)
-    end if
-
-    !----------------------------------------------------------
-    ! Initialize if use 3d cartesian mapping for u,v
-    !----------------------------------------------------------
-
-    call NUOPC_CompAttributeGet(gcomp, name='mapuv_with_cart3d', value=cvalue, isPresent=isPresent, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) mapuv_with_cart3d
-    if (isPresent) then
-       call ESMF_LogWrite('mapuv_with_cart3d = '// trim(cvalue), ESMF_LOGMSG_INFO)
     end if
 
     !=====================================================================
@@ -354,10 +271,14 @@ contains
     ! ---------------------------------------------------------------------
     if (phase /= 'advertise') then
        call addfld(fldListFr(compatm)%flds, 'Sa_u')
-       call addmap(fldListFr(compatm)%flds, 'Sa_u'   , compocn, mappatch, 'one', atm2ocn_vmap)
-
        call addfld(fldListFr(compatm)%flds, 'Sa_v')
-       call addmap(fldListFr(compatm)%flds, 'Sa_v'   , compocn, mappatch, 'one', atm2ocn_vmap)
+       if (mapuv_with_cart3d) then
+          call addmap(fldListFr(compatm)%flds, 'Sa_u' , compocn, mappatch_uv3d, 'one', atm2ocn_vmap)
+          call addmap(fldListFr(compatm)%flds, 'Sa_v' , compocn, mappatch_uv3d, 'one', atm2ocn_vmap)
+       else
+          call addmap(fldListFr(compatm)%flds, 'Sa_u' , compocn, mappatch, 'one', atm2ocn_vmap)
+          call addmap(fldListFr(compatm)%flds, 'Sa_v' , compocn, mappatch, 'one', atm2ocn_vmap)
+       end if
 
        call addfld(fldListFr(compatm)%flds, 'Sa_z')
        call addmap(fldListFr(compatm)%flds, 'Sa_z'   , compocn, mapbilnr, 'one', atm2ocn_smap)
@@ -371,19 +292,15 @@ contains
        call addfld(fldListFr(compatm)%flds, 'Sa_shum')
        call addmap(fldListFr(compatm)%flds, 'Sa_shum', compocn, mapbilnr, 'one', atm2ocn_smap)
 
+       call addfld(fldListFr(compatm)%flds, 'Sa_ptem')
+       call addmap(fldListFr(compatm)%flds, 'Sa_ptem', compocn, mapbilnr, 'one', atm2ocn_smap)
+
+       call addfld(fldListFr(compatm)%flds, 'Sa_dens')
+       call addmap(fldListFr(compatm)%flds, 'Sa_dens', compocn, mapbilnr, 'one', atm2ocn_smap)
+
        if (fldchk(is_local%wrap%FBImp(compatm,compatm), 'Sa_shum_wiso', rc=rc)) then
           call addfld(fldListFr(compatm)%flds, 'Sa_shum_wiso')
           call addmap(fldListFr(compatm)%flds, 'Sa_shum_wiso', compocn, mapbilnr, 'one', atm2ocn_smap)
-       end if
-
-       if (fldchk(is_local%wrap%FBImp(compatm,compatm), 'Sa_ptem', rc=rc)) then
-          call addfld(fldListFr(compatm)%flds, 'Sa_ptem')
-          call addmap(fldListFr(compatm)%flds, 'Sa_ptem', compocn, mapbilnr, 'one', atm2ocn_smap)
-       end if
-
-       if (fldchk(is_local%wrap%FBImp(compatm,compatm), 'Sa_dens', rc=rc)) then
-          call addfld(fldListFr(compatm)%flds, 'Sa_dens')
-          call addmap(fldListFr(compatm)%flds, 'Sa_dens', compocn, mapbilnr, 'one', atm2ocn_smap)
        end if
     end if
 
@@ -528,7 +445,7 @@ contains
        else
           if ( fldchk(is_local%wrap%FBExp(complnd)         , trim(fldname), rc=rc) .and. &
                fldchk(is_local%wrap%FBImp(compglc, compglc), trim(fldname), rc=rc)) then
-             call addmap(fldListFr(compglc)%flds, trim(fldname), complnd,  mapconsf, 'one', glc2lnd_smap)
+             call addmap(fldListFr(compglc)%flds, trim(fldname), complnd,  mapconsd, 'one', glc2lnd_smap)
              call addmrg(fldListTo(complnd)%flds, trim(fldname), &
                   mrg_from1=compglc, mrg_fld1=trim(fldname), mrg_type1='copy')
           end if
@@ -679,7 +596,7 @@ contains
           call addfld(fldListFr(compice)%flds, 'Faii_'//trim(suffix(n)))
           call addfld(fldListTo(compatm)%flds, 'Faxx_'//trim(suffix(n)))
        else
-          ! (non aqua-planet)
+          ! CESM (non aqua-planet)
           if ( fldchk(is_local%wrap%FBImp(complnd,complnd), 'Fall_'//trim(suffix(n)), rc=rc) .and. &
                fldchk(is_local%wrap%FBImp(compice,compice), 'Faii_'//trim(suffix(n)), rc=rc) .and. &
                fldchk(is_local%wrap%FBMed_aoflux_o        , 'Faox_'//trim(suffix(n)), rc=rc) .and. &
@@ -692,7 +609,6 @@ contains
                   mrg_from2=compice, mrg_fld2='Faii_'//trim(suffix(n)), mrg_type2='merge', mrg_fracname2='ifrac', &
                   mrg_from3=compmed, mrg_fld3='Faox_'//trim(suffix(n)), mrg_type3='merge', mrg_fracname3='ofrac')
 
-          ! (cam, aqua-planet)
           else if (fldchk(is_local%wrap%FBMed_aoflux_o, 'Faox_'//trim(suffix(n)), rc=rc) .and. &
                    fldchk(is_local%wrap%FBexp(compatm), 'Faxx_'//trim(suffix(n)), rc=rc)) then
              call addmap(fldListMed_aoflux%flds , 'Faox_'//trim(suffix(n)), compatm, mapconsf, 'ofrac', ocn2atm_fmap)
@@ -710,11 +626,10 @@ contains
        call addfld(fldListFr(complnd)%flds, 'Sl_t')
        call addfld(fldListFr(compice)%flds, 'Si_t')
        call addfld(fldListFr(compocn)%flds, 'So_t')
-
        call addfld(fldListTo(compatm)%flds, 'So_t')
        call addfld(fldListTo(compatm)%flds, 'Sx_t')
     else
-       ! merged ocn/ice/lnd temp and unmerged ocn temp
+       ! CESM - merged ocn/ice/lnd temp and unmerged ocn temp
        if (fldchk(is_local%wrap%FBexp(compatm)        , 'Sx_t', rc=rc) .and. &
            fldchk(is_local%wrap%FBImp(complnd,complnd), 'Sl_t', rc=rc) .and. &
            fldchk(is_local%wrap%FBImp(compice,compice), 'Si_t', rc=rc) .and. &
@@ -1332,42 +1247,63 @@ contains
 
     if (phase == 'advertise') then
        do n = 1,size(iso)
+          ! Note that Flrr_flood below needs to be added to
+          ! fldlistFr(comprof) in order to be mapped correctly but the ocean
+          ! does not receive it so it is advertised but it will! not be connected
+
           call addfld(fldListFr(compglc)%flds, 'Fogg_rofl'//iso(n))
           call addfld(fldListFr(compglc)%flds, 'Fogg_rofi'//iso(n))
           call addfld(fldListFr(comprof)%flds, 'Forr_rofl'//iso(n))
           call addfld(fldListFr(comprof)%flds, 'Forr_rofi'//iso(n))
           call addfld(fldListTo(compocn)%flds, 'Foxx_rofl'//iso(n))
           call addfld(fldListTo(compocn)%flds, 'Foxx_rofi'//iso(n))
+          call addfld(fldListTo(compocn)%flds, 'Flrr_flood'//iso(n))
        end do
     else
        do n = 1,size(iso)
-          ! from both rof and glc to con
-          if ( fldchk(is_local%wrap%FBExp(compocn)         , 'Foxx_rofl'//iso(n), rc=rc) .and. &
-               fldchk(is_local%wrap%FBImp(comprof, comprof), 'Forr_rofl'//iso(n), rc=rc) .and. &
-               fldchk(is_local%wrap%FBImp(compglc, compglc), 'Fogg_rofl'//iso(n), rc=rc)) then
-             call addmap(fldListFr(comprof)%flds, 'Forr_rofl'//iso(n), compocn, mapconsf, 'none', rof2ocn_liq_rmap)
-             call addmap(fldListFr(compglc)%flds, 'Fogg_rofl'//iso(n), compocn, mapconsf, 'one' , glc2ocn_liq_rmap)
+          ! liquid runoff from rof, flood and glc to ocn
+          if ( fldchk(is_local%wrap%FBExp(compocn)         , 'Foxx_rofl'//iso(n) , rc=rc) .and. &
+               fldchk(is_local%wrap%FBImp(comprof, comprof), 'Forr_rofl'//iso(n) , rc=rc) .and. &
+               fldchk(is_local%wrap%FBImp(comprof, comprof), 'Flrr_flood'//iso(n), rc=rc) .and. &
+               fldchk(is_local%wrap%FBImp(compglc, compglc), 'Fogg_rofl'//iso(n) , rc=rc)) then
+             call addmap(fldListFr(comprof)%flds, 'Forr_rofl'//iso(n) , compocn, map_rof2ocn_liq, 'none', rof2ocn_liq_rmap)
+             call addmap(fldListFr(comprof)%flds, 'Flrr_flood'//iso(n), compocn, mapconsd       , 'one' , rof2ocn_fmap)
+             call addmap(fldListFr(compglc)%flds, 'Fogg_rofl'//iso(n) , compocn, map_glc2ocn_liq, 'one' , glc2ocn_liq_rmap)
              call addmrg(fldListTo(compocn)%flds, 'Foxx_rofl'//iso(n), &
                   mrg_from1=comprof, mrg_fld1='Forr_rofl:Flrr_flood', mrg_type1='sum', &
                   mrg_from2=compglc, mrg_fld2='Fogg_rofl'//iso(n)   , mrg_type2='sum')
-
+          ! liquid runoff from both rof and glc to ocn
+          else if ( fldchk(is_local%wrap%FBExp(compocn)         , 'Foxx_rofl'//iso(n) , rc=rc) .and. &
+                    fldchk(is_local%wrap%FBImp(comprof, comprof), 'Forr_rofl'//iso(n) , rc=rc) .and. .not. &
+                    fldchk(is_local%wrap%FBImp(comprof, comprof), 'Flrr_flood'//iso(n), rc=rc) .and. &
+                    fldchk(is_local%wrap%FBImp(compglc, compglc), 'Fogg_rofl'//iso(n) , rc=rc)) then
+             call addmap(fldListFr(comprof)%flds, 'Forr_rofl'//iso(n), compocn, map_rof2ocn_liq, 'none', rof2ocn_liq_rmap)
+             call addmap(fldListFr(compglc)%flds, 'Fogg_rofl'//iso(n), compocn, map_glc2ocn_liq, 'one' , glc2ocn_liq_rmap)
+             call addmrg(fldListTo(compocn)%flds, 'Foxx_rofl'//iso(n), &
+                  mrg_from1=comprof, mrg_fld1='Forr_rofl'        , mrg_type1='sum', &
+                  mrg_from2=compglc, mrg_fld2='Fogg_rofl'//iso(n), mrg_type2='sum')
           ! liquid runoff from rof and flood to ocn
-          else if ( fldchk(is_local%wrap%FBExp(compocn)         , 'Foxx_rofl' //iso(n), rc=rc) .and. &
-                    fldchk(is_local%wrap%FBImp(comprof, comprof), 'Forr_rofl' //iso(n), rc=rc) .and. &
-                    fldchk(is_local%wrap%FBImp(comprof, comprof), 'Flrr_flood'//iso(n), rc=rc)) then
-             call addmap(fldListFr(comprof)%flds, 'Flrr_flood'//iso(n), compocn, mapconsf, 'none', rof2ocn_fmap)
-             call addmap(fldListFr(comprof)%flds, 'Forr_rofl' //iso(n), compocn, mapconsf, 'none', rof2ocn_liq_rmap)
+          else if ( fldchk(is_local%wrap%FBExp(compocn)         , 'Foxx_rofl'//iso(n) , rc=rc) .and. &
+                    fldchk(is_local%wrap%FBImp(comprof, comprof), 'Forr_rofl'//iso(n) , rc=rc) .and. &
+                    fldchk(is_local%wrap%FBImp(comprof, comprof), 'Flrr_flood'//iso(n), rc=rc) .and. .not. &
+                    fldchk(is_local%wrap%FBImp(compglc, compglc), 'Fogg_rofl'//iso(n) , rc=rc)) then
+             call addmap(fldListFr(comprof)%flds, 'Flrr_flood'//iso(n), compocn, mapconsf       , 'one' , rof2ocn_fmap)
+             call addmap(fldListFr(comprof)%flds, 'Forr_rofl' //iso(n), compocn, map_rof2ocn_liq, 'none', rof2ocn_liq_rmap)
              call addmrg(fldListTo(compocn)%flds, 'Foxx_rofl' //iso(n), &
                   mrg_from1=comprof, mrg_fld1='Forr_rofl:Flrr_flood', mrg_type1='sum')
-
           ! liquid from just rof to ocn
-          else if ( fldchk(is_local%wrap%FBExp(compocn)         , 'Foxx_rofl'//iso(n), rc=rc) .and. &
-                    fldchk(is_local%wrap%FBImp(comprof, comprof), 'Forr_rofl'//iso(n), rc=rc)) then
+          else if ( fldchk(is_local%wrap%FBExp(compocn)         , 'Foxx_rofl'//iso(n) , rc=rc) .and. &
+                    fldchk(is_local%wrap%FBImp(comprof, comprof), 'Forr_rofl'//iso(n) , rc=rc) .and. .not. &
+                    fldchk(is_local%wrap%FBImp(comprof, comprof), 'Flrr_flood'//iso(n), rc=rc) .and. .not. &
+                    fldchk(is_local%wrap%FBImp(compglc, compglc), 'Fogg_rofl'//iso(n) , rc=rc)) then
              call addmap(fldListFr(comprof)%flds, 'Forr_rofl'//iso(n), compocn, mapconsf, 'none', rof2ocn_liq_rmap)
              call addmrg(fldListTo(compocn)%flds, 'Foxx_rofl'//iso(n), &
                   mrg_from1=comprof, mrg_fld1='Forr_rofl', mrg_type1='copy')
-
           ! liquid runoff from just glc to ocn
+          else if ( .not. fldchk(is_local%wrap%FBExp(compocn)         , 'Foxx_rofl'//iso(n) , rc=rc) .and. &
+                    .not. fldchk(is_local%wrap%FBImp(comprof, comprof), 'Forr_rofl'//iso(n) , rc=rc) .and. &
+                    .not. fldchk(is_local%wrap%FBImp(comprof, comprof), 'Flrr_flood'//iso(n), rc=rc) .and. &
+                          fldchk(is_local%wrap%FBImp(compglc, compglc), 'Fogg_rofl'//iso(n) , rc=rc)) then
           else if ( fldchk(is_local%wrap%FBExp(compocn)         , 'Foxx_rofl'//iso(n), rc=rc) .and. &
                     fldchk(is_local%wrap%FBImp(compglc, compglc), 'Fogg_rofl'//iso(n), rc=rc)) then
              call addmap(fldListFr(compglc)%flds, 'Fogg_rofl'//iso(n), compocn,  mapconsf, 'one', glc2ocn_liq_rmap)
@@ -1379,23 +1315,21 @@ contains
           if ( fldchk(is_local%wrap%FBExp(compocn)         , 'Foxx_rofi'//iso(n), rc=rc) .and. &
                fldchk(is_local%wrap%FBImp(comprof, comprof), 'Forr_rofi'//iso(n), rc=rc) .and. &
                fldchk(is_local%wrap%FBImp(compglc, compglc), 'Fogg_rofi'//iso(n), rc=rc)) then
-             call addmap(fldListFr(comprof)%flds, 'Forr_rofi'//iso(n), compocn, mapconsf, 'none', rof2ocn_ice_rmap)
-             call addmap(fldListFr(compglc)%flds, 'Fogg_rofi'//iso(n), compocn, mapconsf, 'one' , glc2ocn_ice_rmap)
+             call addmap(fldListFr(comprof)%flds, 'Forr_rofi'//iso(n), compocn, map_rof2ocn_ice, 'none', rof2ocn_ice_rmap)
+             call addmap(fldListFr(compglc)%flds, 'Fogg_rofi'//iso(n), compocn, map_glc2ocn_ice, 'one' , glc2ocn_ice_rmap)
              call addmrg(fldListTo(compocn)%flds, 'Foxx_rofi'//iso(n), &
                   mrg_from1=comprof, mrg_fld1='Forr_rofi'//iso(n), mrg_type1='sum', &
                   mrg_from2=compglc, mrg_fld2='Fogg_rofi'//iso(n), mrg_type2='sum')
-
           ! ice runoff from just rof to ocn
           else if ( fldchk(is_local%wrap%FBExp(compocn)         , 'Foxx_rofi'//iso(n), rc=rc) .and. &
                     fldchk(is_local%wrap%FBImp(comprof, comprof), 'Forr_rofi'//iso(n), rc=rc)) then
-             call addmap(fldListFr(comprof)%flds, 'Forr_rofi'//iso(n), compocn, mapconsf, 'none', rof2ocn_ice_rmap)
+             call addmap(fldListFr(comprof)%flds, 'Forr_rofi'//iso(n), compocn, map_rof2ocn_ice, 'none', rof2ocn_ice_rmap)
              call addmrg(fldListTo(compocn)%flds, 'Foxx_rofi'//iso(n), &
                   mrg_from1=comprof, mrg_fld1='Forr_rofi', mrg_type1='copy')
-
           ! ice runoff from just glc to ocn
           else if ( fldchk(is_local%wrap%FBExp(compocn)         , 'Foxx_rofi'//iso(n), rc=rc) .and. &
                     fldchk(is_local%wrap%FBImp(compglc, compglc), 'Fogg_rofi'//iso(n), rc=rc)) then
-             call addmap(fldListFr(compglc)%flds, 'Fogg_rofi'//iso(n), compocn,  mapconsf, 'one', glc2ocn_ice_rmap)
+             call addmap(fldListFr(compglc)%flds, 'Fogg_rofi'//iso(n), compocn, map_glc2ocn_ice, 'one', glc2ocn_ice_rmap)
              call addmrg(fldListTo(compocn)%flds, 'Foxx_rofi'//iso(n), &
                   mrg_from1=compglc, mrg_fld1='Fogg_rofi'//iso(n), mrg_type1='copy')
           end if
@@ -1768,7 +1702,7 @@ contains
        else
           if ( fldchk(is_local%wrap%FBImp(complnd, complnd), trim(fldname), rc=rc) .and. &
                fldchk(is_local%wrap%FBExp(comprof)         , trim(fldname), rc=rc)) then
-             call addmap(fldListFr(complnd)%flds, trim(fldname), comprof, mapconsd, 'lfrac', lnd2rof_fmap)
+             call addmap(fldListFr(complnd)%flds, trim(fldname), comprof, mapconsf, 'lfrac', lnd2rof_fmap)
              call addmrg(fldListTo(comprof)%flds, trim(fldname), &
                   mrg_from1=complnd, mrg_fld1=trim(fldname), mrg_type1='copy_with_weights', mrg_fracname1='lfrac')
           end if
@@ -1798,11 +1732,11 @@ contains
        call addfld(fldListFr(complnd)%flds, 'Flgl_qice_elev') ! glacier ice flux               (1->glc_nec+1)
     else
        if ( fldchk(is_local%wrap%FBImp(complnd,complnd) , 'Flgl_qice_elev', rc=rc)) then
-          ! custom merging will be done here 
+          ! custom merging will be done here
           call addmap(FldListFr(complnd)%flds, 'Flgl_qice_elev', compglc, mapbilnr, 'lfrac', lnd2glc_smap)
        end if
        if ( fldchk(is_local%wrap%FBImp(complnd,complnd) , 'Sl_tsrf_elev'  , rc=rc)) then
-          ! custom merging will be done here 
+          ! custom merging will be done here
           call addmap(FldListFr(complnd)%flds, 'Sl_tsrf_elev', compglc, mapbilnr, 'lfrac', lnd2glc_smap)
        end if
        if ( fldchk(is_local%wrap%FBImp(complnd,complnd) , 'Sl_topo_elev'  , rc=rc)) then
@@ -1898,7 +1832,7 @@ contains
           call addfld(fldListFr(complnd)%flds, 'Fall_fco2_lnd')
           call addfld(fldListTo(compatm)%flds, 'Fall_fco2_lnd')
        else
-          call addmap(fldListFr(complnd)%flds, 'Fall_fco2_lnd', compatm, mapconsf, 'one', atm2lnd_smap)
+          call addmap(fldListFr(complnd)%flds, 'Fall_fco2_lnd', compatm, mapconsf, 'one', lnd2atm_fmap)
           call addmrg(fldListTo(compatm)%flds, 'Fall_fco2_lnd', &
                mrg_from1=complnd, mrg_fld1='Fall_fco2_lnd', mrg_type1='copy_with_weights', mrg_fracname1='lfrac')
        end if
@@ -1946,7 +1880,7 @@ contains
           call addfld(fldListFr(complnd)%flds, 'Fall_fco2_lnd')
           call addfld(fldListTo(compatm)%flds, 'Fall_fco2_lnd')
        else
-          call addmap(fldListFr(complnd)%flds, 'Fall_fco2_lnd', compatm, mapconsf, 'one', atm2lnd_smap)
+          call addmap(fldListFr(complnd)%flds, 'Fall_fco2_lnd', compatm, mapconsf, 'one', lnd2atm_fmap)
           call addmrg(fldListTo(compatm)%flds, 'Fall_fco2_lnd', &
                mrg_from1=complnd, mrg_fld1='Fall_fco2_lnd', mrg_type1='copy_with_weights', mrg_fracname1='lfrac')
        end if
@@ -1958,7 +1892,7 @@ contains
           call addfld(fldListFr(compocn)%flds, 'Faoo_fco2_ocn')
           call addfld(fldListTo(compatm)%flds, 'Faoo_fco2_ocn')
        else
-          call addmap(fldListFr(compocn)%flds, 'Faoo_fco2_ocn', compatm, mapconsf, 'one', atm2lnd_smap)
+          call addmap(fldListFr(compocn)%flds, 'Faoo_fco2_ocn', compatm, mapconsf, 'one', ocn2atm_fmap)
           ! custom merge in med_phases_prep_atm
        end if
     endif

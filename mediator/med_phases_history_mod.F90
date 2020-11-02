@@ -24,7 +24,6 @@ module med_phases_history_mod
   use med_utils_mod         , only : chkerr          => med_utils_ChkErr
   use med_methods_mod       , only : FB_reset        => med_methods_FB_reset
   use med_methods_mod       , only : FB_diagnose     => med_methods_FB_diagnose
-  use med_methods_mod       , only : FB_GetFldPtr    => med_methods_FB_GetFldPtr
   use med_methods_mod       , only : FB_accum        => med_methods_FB_accum
   use med_methods_mod       , only : State_GetScalar => med_methods_State_GetScalar
   use med_internalstate_mod , only : InternalState, mastertask, logunit
@@ -256,7 +255,6 @@ contains
 
     call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
     call ESMF_VMGet(vm, localPet=iam, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
@@ -267,7 +265,6 @@ contains
     nullify(is_local%wrap)
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
     call NUOPC_CompAttributeGet(gcomp, name='case_name', value=case_name, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
@@ -426,6 +423,15 @@ contains
              ny = is_local%wrap%ny(compocn)
              call med_io_write(hist_file, iam, is_local%wrap%FBMed_ocnalb_o, &
                   nx=nx, ny=ny, nt=1, whead=whead, wdata=wdata, pre='Med_alb_ocn', rc=rc)
+          end if
+          if (ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_aoflux_o,rc=rc) .and. &
+              ESMF_FieldBundleIsCreated(is_local%wrap%FBImp(compatm,compocn))) then
+              ! This provides the atm input on the ocn mesh needed for that atm/ocn calculation
+              ! that currently is restricted to the ocn mesh
+             nx = is_local%wrap%nx(compocn)
+             ny = is_local%wrap%ny(compocn)
+             call med_io_write(hist_file, iam, is_local%wrap%FBImp(compatm,compocn), &
+                  nx=nx, ny=ny, nt=1, whead=whead, wdata=wdata, pre='AtmImp_ocn', rc=rc)
           end if
           if (ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_aoflux_o,rc=rc)) then
              nx = is_local%wrap%nx(compocn)
