@@ -8,9 +8,8 @@ module med_phases_prep_wav_mod
   use med_constants_mod     , only : dbug_flag     => med_constants_dbug_flag
   use med_utils_mod         , only : chkerr        => med_utils_ChkErr
   use med_methods_mod       , only : FB_diagnose   => med_methods_FB_diagnose
-  use med_methods_mod       , only : FB_getNumFlds => med_methods_FB_getNumFlds
   use med_merge_mod         , only : med_merge_auto
-  use med_map_mod           , only : med_map_FB_Regrid_Norm
+  use med_map_mod           , only : med_map_field_packed
   use med_internalstate_mod , only : InternalState, mastertask
   use esmFlds               , only : compwav, ncomps, compname
   use esmFlds               , only : fldListFr, fldListTo
@@ -59,42 +58,30 @@ contains
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    !---------------------------------------
-    ! --- Count the number of fields outside of scalar data, if zero, then return
-    !---------------------------------------
-
+    ! Count the number of fields outside of scalar data, if zero, then return
     ! Note - the scalar field has been removed from all mediator field bundles - so this is why we check if the
     ! fieldCount is 0 and not 1 here
-
-    call FB_getNumFlds(is_local%wrap%FBExp(compwav), trim(subname)//"FBexp(compwav)", ncnt, rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
+    call ESMF_FieldBundleGet(is_local%wrap%FBExp(compwav), fieldCount=ncnt, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
     if (ncnt > 0) then
 
-       !---------------------------------------
-       !--- map to create FBimp(:,compwav)
-       !---------------------------------------
-
+       ! map to create FBimp(:,compwav)
        do n1 = 1,ncomps
           if (is_local%wrap%med_coupling_active(n1,compwav)) then
-             call med_map_FB_Regrid_Norm( &
-                  fldsSrc=fldListFr(n1)%flds, &
-                  srccomp=n1, destcomp=compwav, &
+             call med_map_field_packed( &
                   FBSrc=is_local%wrap%FBImp(n1,n1), &
                   FBDst=is_local%wrap%FBImp(n1,compwav), &
                   FBFracSrc=is_local%wrap%FBFrac(n1), &
-                  FBNormOne=is_local%wrap%FBNormOne(n1,compwav,:), &
-                  RouteHandles=is_local%wrap%RH(n1,compwav,:), &
-                  string=trim(compname(n1))//'2'//trim(compname(compwav)), rc=rc)
+                  field_normOne=is_local%wrap%field_normOne(n1,compwav,:), &
+                  packed_data=is_local%wrap%packed_data(n1,compwav,:), &
+                  routehandles=is_local%wrap%RH(n1,compwav,:), rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          endif
-       enddo
+          end if
+       end do
 
-       !---------------------------------------
-       !--- auto merges to create FBExp(compwav)
-       !---------------------------------------
-
-       call med_merge_auto(trim(compname(compwav)), &
+       ! auto merges to create FBExp(compwav)
+       call med_merge_auto(compwav, &
+            is_local%wrap%med_coupling_active(:,compwav), &
             is_local%wrap%FBExp(compwav), &
             is_local%wrap%FBFrac(compwav), &
             is_local%wrap%FBImp(:,compwav), &
