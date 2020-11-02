@@ -135,7 +135,7 @@ contains
                       if (.not. mapexists) then
                          mapfile = trim(fldListFr(n1)%flds(nf)%mapfile(n2))
                          call med_map_routehandles_initfrom_field(n1, n2, fldsrc, flddst, &
-                              mapindex, is_local%wrap%rh(n1,n2,mapindex), mapfile=trim(mapfile), rc=rc)
+                              mapindex, is_local%wrap%rh(n1,n2,:), mapfile=trim(mapfile), rc=rc)
                          if (chkerr(rc,__LINE__,u_FILE_u)) return
                       end if
 
@@ -191,7 +191,7 @@ contains
     call med_methods_FB_getFieldN(FBDst, 1, flddst, rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    call med_map_routehandles_initfrom_field(n1, n2, fldsrc, flddst, mapindex, routehandle(n1,n2,mapindex), rc=rc)
+    call med_map_routehandles_initfrom_field(n1, n2, fldsrc, flddst, mapindex, routehandle(n1,n2,:), rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     if (dbug_flag > 1) then
@@ -202,7 +202,7 @@ contains
   end subroutine med_map_routehandles_initfrom_fieldbundle
 
   !================================================================================
-  subroutine med_map_routehandles_initfrom_field(n1, n2, fldsrc, flddst, mapindex, routehandle, mapfile, rc)
+  subroutine med_map_routehandles_initfrom_field(n1, n2, fldsrc, flddst, mapindex, routehandles, mapfile, rc)
 
     use ESMF              , only : ESMF_RouteHandle, ESMF_RouteHandlePrint, ESMF_Field, ESMF_MAXSTR
     use ESMF              , only : ESMF_PoleMethod_Flag, ESMF_POLEMETHOD_ALLAVG
@@ -210,7 +210,7 @@ contains
     use ESMF              , only : ESMF_REGRIDMETHOD_BILINEAR, ESMF_REGRIDMETHOD_PATCH
     use ESMF              , only : ESMF_REGRIDMETHOD_CONSERVE, ESMF_NORMTYPE_DSTAREA, ESMF_NORMTYPE_FRACAREA
     use ESMF              , only : ESMF_UNMAPPEDACTION_IGNORE, ESMF_REGRIDMETHOD_NEAREST_STOD
-    use esmFlds           , only : mapbilnr, mapconsf, mapconsd, mappatch, mapfcopy
+    use esmFlds           , only : mapbilnr, mapconsf, mapconsd, mappatch, mappatch_uv3d, mapfcopy
     use esmFlds           , only : mapunset, mapnames, nmappers
     use esmFlds           , only : mapnstod, mapnstod_consd, mapnstod_consf, mapnstod_consd
     use esmFlds           , only : ncomps, compatm, compice, compocn, compname
@@ -224,7 +224,7 @@ contains
     type(ESMF_Field)           , intent(inout) :: fldsrc
     type(ESMF_Field)           , intent(inout) :: flddst
     integer                    , intent(in)    :: mapindex
-    type(ESMF_RouteHandle)     , intent(inout) :: RouteHandle
+    type(ESMF_RouteHandle)     , intent(inout) :: routehandles(:)
     character(len=*), optional , intent(in)    :: mapfile
     integer                    , intent(out)   :: rc
 
@@ -284,7 +284,7 @@ contains
        if (mastertask) then
           write(logunit,'(A)') trim(subname)//' creating RH redist for '//trim(string)
        end if
-       call ESMF_FieldRedistStore(fldsrc, flddst, routehandle=routehandle, &
+       call ESMF_FieldRedistStore(fldsrc, flddst, routehandle=routehandles(mapfcopy), &
             ignoreUnmatchedIndices = .true., rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     else if (lmapfile /= 'unset') then
@@ -292,7 +292,7 @@ contains
           write(logunit,'(A)') trim(subname)//' creating RH '//trim(mapname)//&
                ' via input file '//trim(mapfile)//' for '//trim(string)
        end if
-       call ESMF_FieldSMMStore(fldsrc, flddst, mapfile, routehandle=routehandle, &
+       call ESMF_FieldSMMStore(fldsrc, flddst, mapfile, routehandle=routehandles(mapindex), &
             ignoreUnmatchedIndices=.true., &
             srcTermProcessing=srcTermProcessing_Value, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -300,7 +300,7 @@ contains
        if (mastertask) then
           write(logunit,'(A)') trim(subname)//' creating RH '//trim(mapname)//' for '//trim(string)
        end if
-       call ESMF_FieldRegridStore(fldsrc, flddst, routehandle=routehandle, &
+       call ESMF_FieldRegridStore(fldsrc, flddst, routehandle=routehandles(mapbilnr), &
             srcMaskValues=(/srcMaskValue/), &
             dstMaskValues=(/dstMaskValue/), &
             regridmethod=ESMF_REGRIDMETHOD_BILINEAR, &
@@ -313,7 +313,7 @@ contains
        if (mastertask) then
           write(logunit,'(A)') trim(subname)//' creating RH '//trim(mapname)//' for '//trim(string)
        end if
-       call ESMF_FieldRegridStore(fldsrc, flddst, routehandle=routehandle, &
+       call ESMF_FieldRegridStore(fldsrc, flddst, routehandle=routehandles(mapconsf), &
             srcMaskValues=(/srcMaskValue/), &
             dstMaskValues=(/dstMaskValue/), &
             regridmethod=ESMF_REGRIDMETHOD_CONSERVE, &
@@ -327,7 +327,7 @@ contains
        if (mastertask) then
           write(logunit,'(A)') trim(subname)//' creating RH '//trim(mapname)//' for '//trim(string)
        end if
-       call ESMF_FieldRegridStore(fldsrc, flddst, routehandle=routehandle, &
+       call ESMF_FieldRegridStore(fldsrc, flddst, routehandle=routehandles(mapconsd), &
             srcMaskValues=(/srcMaskValue/), &
             dstMaskValues=(/dstMaskValue/), &
             regridmethod=ESMF_REGRIDMETHOD_CONSERVE, &
@@ -337,11 +337,11 @@ contains
             unmappedaction=ESMF_UNMAPPEDACTION_IGNORE, &
             rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-    else if (mapindex == mappatch) then
+    else if (mapindex == mappatch .or. mapindex == mappatch_uv3d) then
        if (mastertask) then
           write(logunit,'(A)') trim(subname)//' creating RH '//trim(mapname)//' for '//trim(string)
        end if
-       call ESMF_FieldRegridStore(fldsrc, flddst, routehandle=routehandle, &
+       call ESMF_FieldRegridStore(fldsrc, flddst, routehandle=routehandles(mappatch), &
             srcMaskValues=(/srcMaskValue/), &
             dstMaskValues=(/dstMaskValue/), &
             regridmethod=ESMF_REGRIDMETHOD_PATCH, &
@@ -362,8 +362,7 @@ contains
 
     ! consd_nstod method requires a second routehandle
     if (mapindex == mapnstod .or. mapindex == mapnstod_consd .or. mapindex == mapnstod_consf) then
-       call ESMF_FieldRegridStore(fldsrc, flddst, &
-            routehandle=routehandle, &
+       call ESMF_FieldRegridStore(fldsrc, flddst, routehandle=routehandles(mapnstod), &
             srcMaskValues=(/srcMaskValue/), &
             dstMaskValues=(/dstMaskValue/), &
             regridmethod=ESMF_REGRIDMETHOD_NEAREST_STOD, &
@@ -387,7 +386,7 @@ contains
        if (mastertask) then
           write(logunit,'(a)') trim(subname)//trim(string)//": printing  RH for "//trim(mapname)
        end if
-       call ESMF_RouteHandlePrint(routehandle, rc=rc)
+       call ESMF_RouteHandlePrint(routehandles(mapindex), rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     endif
 
@@ -767,7 +766,7 @@ contains
     use ESMF                  , only : ESMF_Field, ESMF_FieldGet, ESMF_FieldIsCreated
     use ESMF                  , only : ESMF_FieldBundle, ESMF_FieldBundleGet
     use ESMF                  , only : ESMF_FieldRedist, ESMF_RouteHandle
-    use esmFlds               , only : nmappers, mapfcopy, mappatch_uv3d
+    use esmFlds               , only : nmappers, mapfcopy, mappatch_uv3d, mappatch
     use med_internalstate_mod , only : packed_data_type
 
     ! input/output variables
@@ -868,7 +867,7 @@ contains
              if (chkerr(rc,__LINE__,u_FILE_u)) return
              call ESMF_FieldBundleGet(FBDst, fieldName='Sa_v', field=vdst, rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
-             call med_map_uv_cart3d(usrc, vsrc, udst, vdst, routehandles, mapindex, rc=rc)
+             call med_map_uv_cart3d(usrc, vsrc, udst, vdst, routehandles, mappatch, rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
 
           else if (mapindex == mapfcopy) then
