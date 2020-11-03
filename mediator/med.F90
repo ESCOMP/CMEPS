@@ -22,7 +22,6 @@ module MED
   use med_methods_mod        , only : FB_Reset           => med_methods_FB_Reset
   use med_methods_mod        , only : FB_FldChk          => med_methods_FB_FldChk
   use med_methods_mod        , only : FB_diagnose        => med_methods_FB_diagnose
-  use med_methods_mod        , only : FB_getFieldN       => med_methods_FB_getFieldN
   use med_methods_mod        , only : clock_timeprint    => med_methods_clock_timeprint
   use med_time_mod           , only : alarmInit          => med_time_alarmInit
   use med_utils_mod          , only : memcheck           => med_memcheck
@@ -2521,7 +2520,7 @@ contains
     integer                , intent(out)   :: rc
 
     ! local variables
-    type(ESMF_Field)      :: lfield
+    integer               :: nfield
     type(ESMF_Mesh)       :: lmesh
     type(ESMF_Array)      :: lArray
     type(ESMF_DistGrid)   :: lDistGrid
@@ -2529,33 +2528,37 @@ contains
     integer               :: spatialDim
     real(r8), allocatable :: ownedElemCoords(:)
     real(r8), pointer     :: dataptr(:) => null()
-    integer               :: n, dimcount, fieldcount
+    integer               :: n, dimcount
+    integer               :: fieldcount
+    type(ESMF_Field), pointer :: fieldlist(:) => null()
     character(len=*),parameter :: subname=' (module_MED:med_meshinfo_create) '
     !-------------------------------------------------------------------------------
 
     rc= ESMF_SUCCESS
 
+    ! Find the first field in FB with dimcount==1
     call ESMF_FieldBundleGet(FB, fieldCount=fieldCount, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    ! Find the first field in FB with dimcount==1
+    allocate(fieldlist(fieldcount))
+    call ESMF_FieldBundleGet(FB, fieldlist=fieldlist, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
     do n=1,fieldCount
-       call FB_getFieldN(FB, fieldnum=n, field=lfield, rc=rc)
+       call ESMF_FieldGet(fieldlist(n), mesh=lmesh, dimcount=dimCount, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-       call ESMF_FieldGet(lfield, mesh=lmesh, dimcount=dimCount, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (dimCount==1) exit
+       if (dimCount==1) then
+          nfield = n
+          exit
+       end if
     enddo
-    call ESMF_FieldRegridGetArea(lfield, rc=rc)
+    call ESMF_FieldRegridGetArea(fieldlist(nfield), rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-
     call ESMF_MeshGet(lmesh, spatialDim=spatialDim, numOwnedElements=numOwnedElements, &
          elementDistGrid=lDistGrid, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! Allocate mesh_info data, we need a copy here because the FB may get reset later
     allocate(mesh_info%areas(numOwnedElements))
-    call ESMF_FieldGet(lfield, farrayPtr=dataptr, rc=rc)
+    call ESMF_FieldGet(fieldlist(n), farrayPtr=dataptr, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     mesh_info%areas = dataptr
 
@@ -2570,7 +2573,10 @@ contains
        mesh_info%lons(n) = ownedElemCoords(2*n-1)
        mesh_info%lats(n) = ownedElemCoords(2*n)
     end do
+
+    ! Deallocate memory
     deallocate(ownedElemCoords)
+    deallocate(fieldlist)
 
   end subroutine med_meshinfo_create
 
