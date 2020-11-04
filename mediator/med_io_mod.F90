@@ -1,4 +1,5 @@
 module med_io_mod
+
   !------------------------------------------
   ! Create mediator history files
   !------------------------------------------
@@ -12,9 +13,12 @@ module med_io_mod
   use NUOPC                 , only : NUOPC_FieldDictionaryGetEntry
   use NUOPC                 , only : NUOPC_FieldDictionaryHasEntry
   use pio                   , only : file_desc_t, iosystem_desc_t
-  use med_internalstate_mod , only : logunit
-  use med_constants_mod     , only : dbug_flag => med_constants_dbug_flag
-  use med_utils_mod         , only : chkerr    => med_utils_ChkErr
+  use med_internalstate_mod , only : logunit, med_id
+  use med_constants_mod     , only : dbug_flag    => med_constants_dbug_flag
+  use med_methods_mod       , only : FB_getFieldN => med_methods_FB_getFieldN
+  use med_methods_mod       , only : FB_getFldPtr => med_methods_FB_getFldPtr
+  use med_methods_mod       , only : FB_getNameN  => med_methods_FB_getNameN
+  use med_utils_mod         , only : chkerr       => med_utils_ChkErr
 
   implicit none
   private
@@ -121,9 +125,7 @@ contains
     ! initialize pio
     !---------------
 
-    use shr_pio_mod           , only : shr_pio_getiosys, shr_pio_getiotype, shr_pio_getioformat
-    use med_internalstate_mod , only : med_id
-
+    use shr_pio_mod , only : shr_pio_getiosys, shr_pio_getiotype, shr_pio_getioformat
 #ifdef INTERNAL_PIO_INIT
     ! if CMEPS is the only component using PIO, then it needs to initialize PIO
     use shr_pio_mod , only : shr_pio_init1, shr_pio_init2
@@ -433,10 +435,11 @@ contains
     integer                       :: ndims, nelements
     integer    ,target            :: dimid2(2)
     integer    ,target            :: dimid3(3)
-    integer    ,pointer           :: dimid(:) => null()
+    integer    ,pointer           :: dimid(:)
     type(var_desc_t)              :: varid
     type(io_desc_t)               :: iodesc
     integer(kind=Pio_Offset_Kind) :: frame
+    character(CL)                 :: itemc       ! string converted to char
     character(CL)                 :: name1       ! var name
     character(CL)                 :: cunit       ! var units
     character(CL)                 :: lname       ! long name
@@ -446,13 +449,13 @@ contains
     logical                       :: luse_float
     integer                       :: lnx,lny
     real(r8)                      :: lfillvalue
-    integer, pointer              :: minIndexPTile(:,:) => null()
-    integer, pointer              :: maxIndexPTile(:,:) => null()
+    integer, pointer              :: minIndexPTile(:,:)
+    integer, pointer              :: maxIndexPTile(:,:)
     integer                       :: dimCount, tileCount
-    integer, pointer              :: Dof(:) => null()
+    integer, pointer              :: Dof(:)
     integer                       :: lfile_ind
-    real(r8), pointer             :: fldptr1(:) => null()
-    real(r8), pointer             :: fldptr2(:,:) => null()
+    real(r8), pointer             :: fldptr1(:)
+    real(r8), pointer             :: fldptr2(:,:)
     real(r8), allocatable         :: ownedElemCoords(:), ownedElemCoords_x(:), ownedElemCoords_y(:)
     character(len=number_strlen)  :: cnumber
     character(CL)                 :: tmpstr
@@ -461,8 +464,6 @@ contains
     integer                       :: ungriddedUBound(1) ! currently the size must equal 1 for rank 2 fields
     integer                       :: gridToFieldMap(1)  ! currently the size must equal 1 for rank 2 fields
     logical                       :: isPresent
-    character(CL)   , pointer  :: fieldnamelist(:) => null()
-    type(ESMF_Field), pointer  :: fieldlist(:) => null()
     character(*),parameter :: subName = '(med_io_write_FB) '
     !-------------------------------------------------------------------------------
 
@@ -505,16 +506,11 @@ contains
 
     luse_float = .false.
     if (present(use_float)) luse_float = use_float
+
     lfile_ind = 0
     if (present(file_ind)) lfile_ind=file_ind
 
     call ESMF_FieldBundleGet(FB, fieldCount=nf, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    allocate(fieldnamelist(nf))
-    allocate(fieldlist(nf))
-    call ESMF_FieldBundleGet(FB, fieldnamelist=fieldnamelist, fieldlist=fieldlist, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
     write(tmpstr,*) subname//' field count = '//trim(lpre),nf
     call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
     if (nf < 1) then
@@ -526,12 +522,18 @@ contains
        return
     endif
 
-    call ESMF_FieldGet(fieldlist(1), mesh=mesh, rc=rc)
+    call FB_getFieldN(FB, 1, field, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    call ESMF_FieldGet(field, mesh=mesh, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
     call ESMF_MeshGet(mesh, elementDistgrid=distgrid, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
+
     call ESMF_MeshGet(mesh, spatialDim=ndims, numOwnedElements=nelements, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
+
     write(tmpstr,*) subname, 'ndims, nelements = ', ndims, nelements
     call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
 
@@ -539,14 +541,17 @@ contains
        allocate(ownedElemCoords(ndims*nelements))
        allocate(ownedElemCoords_x(ndims*nelements/2))
        allocate(ownedElemCoords_y(ndims*nelements/2))
+
        call ESMF_MeshGet(mesh, ownedElemCoords=ownedElemCoords, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
+
        ownedElemCoords_x = ownedElemCoords(1::2)
        ownedElemCoords_y = ownedElemCoords(2::2)
     end if
 
     call ESMF_DistGridGet(distgrid, dimCount=dimCount, tileCount=tileCount, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
+
     allocate(minIndexPTile(dimCount, tileCount), maxIndexPTile(dimCount, tileCount))
     call ESMF_DistGridGet(distgrid, minIndexPTile=minIndexPTile, maxIndexPTile=maxIndexPTile, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -596,64 +601,72 @@ contains
        write(tmpstr,*) subname,' dimid = ',dimid
        call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
 
-       ! TODO (mvertens, 2019-03-13): below is a temporary mod to NOT write hgt
        do k = 1,nf
-          if (trim(fieldnamelist(k)) == "hgt") then
-             CYCLE
-          end if
-
-          call ESMF_FieldGet(fieldlist(k), ungriddedUBound=ungriddedUbound, rc=rc)
+          call FB_getNameN(FB, k, itemc, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
-          if (ungriddedUbound(1) > 0) then
-             ! Create a new output variable for each element of the undistributed dimension
-             write(cnumber,'(i0)') ungriddedUbound(1)
-             call ESMF_LogWrite(trim(subname)//':'//'field '//trim(fieldnamelist(k))// &
-                  ' has an griddedUBound of  '//trim(cnumber), ESMF_LOGMSG_INFO)
-             do n = 1,ungriddedUBound(1)
-                if (trim(fieldnamelist(k)) /= "hgt") then
-                   write(cnumber,'(i0)') n
-                   name1 = trim(lpre)//'_'//trim(fieldnamelist(k))//trim(cnumber)
-                   call ESMF_LogWrite(trim(subname)//': defining '//trim(name1), ESMF_LOGMSG_INFO)
-                   if (luse_float) then
-                      rcode = pio_def_var(io_file(lfile_ind), trim(name1), PIO_REAL, dimid, varid)
-                      rcode = pio_put_att(io_file(lfile_ind), varid,"_FillValue",real(lfillvalue,r4))
-                   else
-                      rcode = pio_def_var(io_file(lfile_ind), trim(name1), PIO_DOUBLE, dimid, varid)
-                      rcode = pio_put_att(io_file(lfile_ind),varid,"_FillValue",lfillvalue)
-                   end if
-                   if (NUOPC_FieldDictionaryHasEntry(trim(fieldnamelist(k)))) then
-                      call NUOPC_FieldDictionaryGetEntry(fieldnamelist(k), canonicalUnits=cunit, rc=rc)
-                      if (chkerr(rc,__LINE__,u_FILE_u)) return
-                      rcode = pio_put_att(io_file(lfile_ind), varid, "units"        , trim(cunit))
-                   end if
-                   rcode = pio_put_att(io_file(lfile_ind), varid, "standard_name", trim(name1))
-                   if (present(tavg)) then
-                      if (tavg) then
-                         rcode = pio_put_att(io_file(lfile_ind), varid, "cell_methods", "time: mean")
+
+          ! Determine rank of field with name itemc
+          call ESMF_FieldBundleGet(FB, itemc,  field=lfield, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_FieldGet(lfield, rank=rank, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+          ! TODO (mvertens, 2019-03-13): this is a temporary mod to NOT write hgt
+          if (trim(itemc) /= "hgt") then
+             if (rank == 2) then
+                call ESMF_FieldGet(lfield, ungriddedUBound=ungriddedUBound, rc=rc)
+                if (chkerr(rc,__LINE__,u_FILE_u)) return
+                write(cnumber,'(i0)') ungriddedUbound(1)
+                call ESMF_LogWrite(trim(subname)//':'//'field '//trim(itemc)// &
+                     ' has an griddedUBound of  '//trim(cnumber), ESMF_LOGMSG_INFO)
+
+                ! Create a new output variable for each element of the undistributed dimension
+                do n = 1,ungriddedUBound(1)
+                   if (trim(itemc) /= "hgt") then
+                      write(cnumber,'(i0)') n
+                      name1 = trim(lpre)//'_'//trim(itemc)//trim(cnumber)
+                      call ESMF_LogWrite(trim(subname)//': defining '//trim(name1), ESMF_LOGMSG_INFO)
+                      if (luse_float) then
+                         rcode = pio_def_var(io_file(lfile_ind), trim(name1), PIO_REAL, dimid, varid)
+                         rcode = pio_put_att(io_file(lfile_ind), varid,"_FillValue",real(lfillvalue,r4))
+                      else
+                         rcode = pio_def_var(io_file(lfile_ind), trim(name1), PIO_DOUBLE, dimid, varid)
+                         rcode = pio_put_att(io_file(lfile_ind),varid,"_FillValue",lfillvalue)
+                      end if
+                      if (NUOPC_FieldDictionaryHasEntry(trim(itemc))) then
+                         call NUOPC_FieldDictionaryGetEntry(itemc, canonicalUnits=cunit, rc=rc)
+                         if (chkerr(rc,__LINE__,u_FILE_u)) return
+                         rcode = pio_put_att(io_file(lfile_ind), varid, "units"        , trim(cunit))
+                      end if
+                      rcode = pio_put_att(io_file(lfile_ind), varid, "standard_name", trim(name1))
+                      if (present(tavg)) then
+                         if (tavg) then
+                            rcode = pio_put_att(io_file(lfile_ind), varid, "cell_methods", "time: mean")
+                         endif
                       endif
+                   end if
+                end do
+             else
+                name1 = trim(lpre)//'_'//trim(itemc)
+                call ESMF_LogWrite(trim(subname)//':'//trim(itemc)//':'//trim(name1),ESMF_LOGMSG_INFO)
+                if (luse_float) then
+                   rcode = pio_def_var(io_file(lfile_ind), trim(name1), PIO_REAL, dimid, varid)
+                   rcode = pio_put_att(io_file(lfile_ind), varid, "_FillValue", real(lfillvalue, r4))
+                else
+                   rcode = pio_def_var(io_file(lfile_ind), trim(name1), PIO_DOUBLE, dimid, varid)
+                   rcode = pio_put_att(io_file(lfile_ind), varid, "_FillValue", lfillvalue)
+                end if
+                if (NUOPC_FieldDictionaryHasEntry(trim(itemc))) then
+                   call NUOPC_FieldDictionaryGetEntry(itemc, canonicalUnits=cunit, rc=rc)
+                   if (chkerr(rc,__LINE__,u_FILE_u)) return
+                   rcode = pio_put_att(io_file(lfile_ind), varid, "units", trim(cunit))
+                end if
+                rcode = pio_put_att(io_file(lfile_ind), varid, "standard_name", trim(name1))
+                if (present(tavg)) then
+                   if (tavg) then
+                      rcode = pio_put_att(io_file(lfile_ind), varid, "cell_methods", "time: mean")
                    endif
                 end if
-             end do
-          else
-             name1 = trim(lpre)//'_'//trim(fieldnamelist(k))
-             call ESMF_LogWrite(trim(subname)//':'//trim(fieldnamelist(k))//':'//trim(name1),ESMF_LOGMSG_INFO)
-             if (luse_float) then
-                rcode = pio_def_var(io_file(lfile_ind), trim(name1), PIO_REAL, dimid, varid)
-                rcode = pio_put_att(io_file(lfile_ind), varid, "_FillValue", real(lfillvalue, r4))
-             else
-                rcode = pio_def_var(io_file(lfile_ind), trim(name1), PIO_DOUBLE, dimid, varid)
-                rcode = pio_put_att(io_file(lfile_ind), varid, "_FillValue", lfillvalue)
-             end if
-             if (NUOPC_FieldDictionaryHasEntry(trim(fieldnamelist(k)))) then
-                call NUOPC_FieldDictionaryGetEntry(fieldnamelist(k), canonicalUnits=cunit, rc=rc)
-                if (chkerr(rc,__LINE__,u_FILE_u)) return
-                rcode = pio_put_att(io_file(lfile_ind), varid, "units", trim(cunit))
-             end if
-             rcode = pio_put_att(io_file(lfile_ind), varid, "standard_name", trim(name1))
-             if (present(tavg)) then
-                if (tavg) then
-                   rcode = pio_put_att(io_file(lfile_ind), varid, "cell_methods", "time: mean")
-                endif
              end if
           end if
        end do
@@ -685,6 +698,7 @@ contains
     end if
 
     if (lwdata) then
+
        ! use distgrid extracted from field 1 above
        call ESMF_DistGridGet(distgrid, localDE=0, elementCount=ns, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -694,36 +708,51 @@ contains
        call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
 
        call pio_initdecomp(io_subsystem, pio_double, (/lnx,lny/), dof, iodesc)
+
        ! call pio_writedof(lpre, (/lnx,lny/), int(dof,kind=PIO_OFFSET_KIND), mpicom)
+
        deallocate(dof)
 
-       ! TODO (mvertens, 2019-03-13): below is a temporary mod to NOT write hgt
        do k = 1,nf
-          if (trim(fieldnamelist(k)) == "hgt") then
-             CYCLE
-          end if
-          call ESMF_FieldGet(fieldlist(k), ungriddedUBound=ungriddedUbound, rc=rc)
+          call FB_getNameN(FB, k, itemc, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
-          if (ungriddedUbound(1) > 0) then
-             ! Output for each ungriddedUbound index
-             call ESMF_FieldGet(fieldlist(k), farrayPtr=fldptr2, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-             do n = 1,ungriddedUBound(1)
-                write(cnumber,'(i0)') n
-                name1 = trim(lpre)//'_'//trim(fieldnamelist(k))//trim(cnumber)
+
+          call FB_getFldPtr(FB, itemc, &
+               fldptr1=fldptr1, fldptr2=fldptr2, rank=rank, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+          ! TODO (mvertens, 2019-03-13): this is a temporary mod to NOT write hgt
+          if (trim(itemc) /= "hgt") then
+             if (rank == 2) then
+
+                ! Determine the size of the ungridded dimension and the index where the undistributed dimension is located
+                call ESMF_FieldBundleGet(FB, itemc,  field=lfield, rc=rc)
+                if (chkerr(rc,__LINE__,u_FILE_u)) return
+                call ESMF_FieldGet(lfield, ungriddedUBound=ungriddedUBound, gridToFieldMap=gridToFieldMap, rc=rc)
+                if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+                ! Output for each ungriddedUbound index
+                do n = 1,ungriddedUBound(1)
+                   write(cnumber,'(i0)') n
+                   name1 = trim(lpre)//'_'//trim(itemc)//trim(cnumber)
+                   rcode = pio_inq_varid(io_file(lfile_ind), trim(name1), varid)
+                   call pio_setframe(io_file(lfile_ind),varid,frame)
+
+                   if (gridToFieldMap(1) == 1) then
+                      call pio_write_darray(io_file(lfile_ind), varid, iodesc, fldptr2(:,n), rcode, fillval=lfillvalue)
+                   else if (gridToFieldMap(1) == 2) then
+                      call pio_write_darray(io_file(lfile_ind), varid, iodesc, fldptr2(n,:), rcode, fillval=lfillvalue)
+                   end if
+                end do
+             else if (rank == 1) then
+                name1 = trim(lpre)//'_'//trim(itemc)
                 rcode = pio_inq_varid(io_file(lfile_ind), trim(name1), varid)
                 call pio_setframe(io_file(lfile_ind),varid,frame)
-                call pio_write_darray(io_file(lfile_ind), varid, iodesc, fldptr2(n,:), rcode, fillval=lfillvalue)
-             end do
-          else
-             call ESMF_FieldGet(fieldlist(k), farrayPtr=fldptr1, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-             name1 = trim(lpre)//'_'//trim(fieldnamelist(k))
-             rcode = pio_inq_varid(io_file(lfile_ind), trim(name1), varid)
-             call pio_setframe(io_file(lfile_ind),varid,frame)
-             call pio_write_darray(io_file(lfile_ind), varid, iodesc, fldptr1, rcode, fillval=lfillvalue)
-          end if  ! end of if over ungriddedUbound
-       end do  ! end loop over fields
+                call pio_write_darray(io_file(lfile_ind), varid, iodesc, fldptr1, rcode, fillval=lfillvalue)
+             end if  ! end if rank is 2 or 1
+
+          end if ! end if not "hgt"
+       end do  ! end loop over fields in FB
 
        ! Fill coordinate variables
        name1 = trim(lpre)//'_lon'
@@ -739,9 +768,6 @@ contains
        call pio_syncfile(io_file(lfile_ind))
        call pio_freedecomp(io_file(lfile_ind), iodesc)
     endif
-
-    deallocate(fieldlist)
-    deallocate(fieldnamelist)
 
     if (dbug_flag > 5) then
        call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
@@ -1201,7 +1227,7 @@ contains
     use ESMF , only : ESMF_LOGMSG_ERROR, ESMF_FAILURE
     use ESMF , only : ESMF_FieldBundleIsCreated, ESMF_FieldBundleGet
     use ESMF , only : ESMF_FieldGet, ESMF_MeshGet, ESMF_DistGridGet
-    use pio  , only : file_desc_t, var_desc_t, io_desc_t, pio_nowrite, pio_openfile
+    use pio  , only : file_desc_T, var_desc_t, io_desc_t, pio_nowrite, pio_openfile
     use pio  , only : pio_noerr, PIO_BCAST_ERROR, PIO_INTERNAL_ERROR
     use pio  , only : pio_inq_varid
     use pio  , only : pio_double, pio_get_att, pio_seterrorhandling, pio_freedecomp, pio_closefile
@@ -1224,28 +1250,24 @@ contains
     type(file_desc_t)             :: pioid
     type(var_desc_t)              :: varid
     type(io_desc_t)               :: iodesc
+    character(CL)                 :: itemc       ! string converted to char
     character(CL)                 :: name1       ! var name
     character(CL)                 :: lpre        ! local prefix
     real(r8)                      :: lfillvalue
     integer                       :: tmp(1)
     integer                       :: rank, lsize
-    real(r8), pointer             :: fldptr1(:) => null()
-    real(r8), pointer             :: fldptr1_tmp(:) => null()
-    real(r8), pointer             :: fldptr2(:,:) => null()
+    real(r8), pointer             :: fldptr1(:), fldptr1_tmp(:)
+    real(r8), pointer             :: fldptr2(:,:)
     character(CL)                 :: tmpstr
     character(len=16)             :: cnumber
     integer(kind=Pio_Offset_Kind) :: lframe
-    integer                       :: ungriddedUBound(1)
-    character(CL)   , pointer     :: fieldnamelist(:) => null()
-    type(ESMF_Field), pointer     :: fieldlist(:) => null()
+    integer                       :: ungriddedUBound(1) ! currently the size must equal 1 for rank 2 fieldds
+    integer                       :: gridToFieldMap(1)  ! currently the size must equal 1 for rank 2 fieldds
     character(*),parameter :: subName = '(med_io_read_FB) '
     !-------------------------------------------------------------------------------
     rc = ESMF_Success
-
-    if (dbug_flag > 5) then
-       call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-    end if
+    call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     lpre = ' '
     if (present(pre)) then
@@ -1256,34 +1278,31 @@ contains
     else
        lframe = 1
     endif
-
     if (.not. ESMF_FieldBundleIsCreated(FB,rc=rc)) then
        call ESMF_LogWrite(trim(subname)//" FB "//trim(lpre)//" not created", ESMF_LOGMSG_INFO)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (dbug_flag > 5) then
+          call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+       endif
        return
     endif
 
     call ESMF_FieldBundleGet(FB, fieldCount=nf, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (nf < 1) then
-       call ESMF_LogWrite(trim(subname)//" FB "//trim(lpre)//" empty", ESMF_LOGMSG_INFO)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       return
-    endif
-
-    allocate(fieldnamelist(nf))
-    allocate(fieldlist(nf))
-    call ESMF_FieldBundleGet(FB, fieldnamelist=fieldnamelist, fieldlist=fieldlist, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
     write(tmpstr,*) subname//' field count = '//trim(lpre),nf
     call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
+    if (nf < 1) then
+       call ESMF_LogWrite(trim(subname)//" FB "//trim(lpre)//" empty", ESMF_LOGMSG_INFO)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (dbug_flag > 5) then
+          call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+       endif
+       return
+    endif
 
-    ! Check if file exists
     if (med_io_file_exists(vm, iam, trim(filename))) then
        rcode = pio_openfile(io_subsystem, pioid, pio_iotype, trim(filename),pio_nowrite)
        call ESMF_LogWrite(trim(subname)//' open file '//trim(filename), ESMF_LOGMSG_INFO)
@@ -1298,35 +1317,57 @@ contains
     call pio_seterrorhandling(pioid, PIO_BCAST_ERROR)
 
     do k = 1,nf
-       call ESMF_FieldGet(fieldlist(k), ungriddedUBound=ungriddedUbound, rc=rc)
+       ! Get name of field
+       call FB_getNameN(FB, k, itemc, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        ! Get iodesc for all fields based on iodesc of first field (assumes that all fields have
        ! the same iodesc)
        if (k == 1) then
-          if (ungriddedUbound(1) > 0) then
-             name1 = trim(lpre)//'_'//trim(fieldnamelist(k))//'1'
-          else
-             name1 = trim(lpre)//'_'//trim(fieldnamelist(k))
+          call ESMF_FieldBundleGet(FB, itemc,  field=lfield, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_FieldGet(lfield, rank=rank, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          if (rank == 2) then
+             name1 = trim(lpre)//'_'//trim(itemc)//'1'
+          else if (rank == 1) then
+             name1 = trim(lpre)//'_'//trim(itemc)
           end if
           call med_io_read_init_iodesc(FB, name1, pioid, iodesc, rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
        end if
-       call ESMF_LogWrite(trim(subname)//' reading field '//trim(fieldnamelist(k)), ESMF_LOGMSG_INFO)
+
+       call ESMF_LogWrite(trim(subname)//' reading field '//trim(itemc), ESMF_LOGMSG_INFO)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        ! Get pointer to field bundle field
-       if (ungriddedUbound(1) > 0) then
-          ! Ungridded dimension is present in field
-          call ESMF_FieldGet(fieldlist(k), farrayPtr=fldptr2, rc=rc)
+       ! Field bundle might be 2d or 1d - but field on mediator history or restart file will always be 1d
+       call FB_getFldPtr(FB, itemc, &
+            fldptr1=fldptr1, fldptr2=fldptr2, rank=rank, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+       if (rank == 2) then
+
+          ! Determine the size of the ungridded dimension and the
+          ! index where the undistributed dimension is located
+          call ESMF_FieldBundleGet(FB, itemc,  field=lfield, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
-          lsize = size(fldptr2, dim=2)
+          call ESMF_FieldGet(lfield, ungriddedUBound=ungriddedUBound, gridToFieldMap=gridToFieldMap, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+          if (gridToFieldMap(1) == 1) then
+             lsize = size(fldptr2, dim=1)
+          else if (gridToFieldMap(1) == 2) then
+             lsize = size(fldptr2, dim=2)
+          end if
           allocate(fldptr1_tmp(lsize))
+
           do n = 1,ungriddedUBound(1)
              ! Creat a name for the 1d field on the mediator history or restart file based on the
              ! ungridded dimension index of the field bundle 2d fiedl
              write(cnumber,'(i0)') n
-             name1 = trim(lpre)//'_'//trim(fieldnamelist(k))//trim(cnumber)
+             name1 = trim(lpre)//'_'//trim(itemc)//trim(cnumber)
+
              rcode = pio_inq_varid(pioid, trim(name1), varid)
              if (rcode == pio_noerr) then
                 call ESMF_LogWrite(trim(subname)//' read field '//trim(name1), ESMF_LOGMSG_INFO)
@@ -1343,14 +1384,18 @@ contains
              else
                 fldptr1_tmp = 0.0_r8
              endif
-             fldptr2(n,:) = fldptr1_tmp(:)
+             if (gridToFieldMap(1) == 1) then
+                fldptr2(:,n) = fldptr1_tmp(:)
+             else if (gridToFieldMap(1) == 2) then
+                fldptr2(n,:) = fldptr1_tmp(:)
+             end if
           end do
+
           deallocate(fldptr1_tmp)
-       else
-          ! No ungridded dimensions
-          call ESMF_FieldGet(fieldlist(k), farrayPtr=fldptr1, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          name1 = trim(lpre)//'_'//trim(fieldnamelist(k))
+
+       else if (rank == 1) then
+          name1 = trim(lpre)//'_'//trim(itemc)
+
           rcode = pio_inq_varid(pioid, trim(name1), varid)
           if (rcode == pio_noerr) then
              call ESMF_LogWrite(trim(subname)//' read field '//trim(name1), ESMF_LOGMSG_INFO)
@@ -1365,12 +1410,13 @@ contains
                 if (fldptr1(n) == lfillvalue) fldptr1(n) = 0.0_r8
              enddo
           else
-             fldptr1(:) = 0.0_r8
+             fldptr1 = 0.0_r8
           endif
        end if
 
     enddo ! end of loop over fields
     call pio_seterrorhandling(pioid,PIO_INTERNAL_ERROR)
+
     call pio_freedecomp(pioid, iodesc)
     call pio_closefile(pioid)
 
@@ -1406,17 +1452,16 @@ contains
     integer             :: rcode
     integer             :: ns,ng
     integer             :: n,ndims
-    integer, pointer    :: dimid(:) => null()
+    integer, pointer    :: dimid(:)
     type(var_desc_t)    :: varid
     integer             :: lnx,lny
     integer             :: tmp(1)
-    integer, pointer    :: minIndexPTile(:,:) => null()
-    integer, pointer    :: maxIndexPTile(:,:) => null()
+    integer, pointer    :: minIndexPTile(:,:)
+    integer, pointer    :: maxIndexPTile(:,:)
     integer             :: dimCount, tileCount
-    integer, pointer    :: Dof(:) => null()
+    integer, pointer    :: Dof(:)
     character(CL)       :: tmpstr
-    integer             :: fieldcount
-    type(ESMF_Field), pointer  :: fieldlist(:) => null()
+    integer             :: rank
     character(*),parameter :: subName = '(med_io_read_init_iodesc) '
     !-------------------------------------------------------------------------------
 
@@ -1445,17 +1490,18 @@ contains
        call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
        ng = lnx * lny
 
-       call ESMF_FieldBundleGet(FB, fieldCount=fieldcount, rc=rc)
+       call FB_getFieldN(FB, 1, field, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       allocate(fieldlist(fieldcount))
-       call ESMF_FieldBundleGet(FB, fieldlist=fieldlist, rc=rc)
+
+       call ESMF_FieldGet(field, mesh=mesh, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_FieldGet(fieldlist(1), mesh=mesh, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
+
        call ESMF_MeshGet(mesh, elementDistgrid=distgrid, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
+
        call ESMF_DistGridGet(distgrid, dimCount=dimCount, tileCount=tileCount, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
+
        allocate(minIndexPTile(dimCount, tileCount), maxIndexPTile(dimCount, tileCount))
        call ESMF_DistGridGet(distgrid, minIndexPTile=minIndexPTile, &
             maxIndexPTile=maxIndexPTile, rc=rc)
@@ -1478,11 +1524,11 @@ contains
        call ESMF_DistGridGet(distgrid, localDE=0, seqIndexList=dof, rc=rc)
        write(tmpstr,*) subname,' dof = ',ns,size(dof),dof(1),dof(ns)  !,minval(dof),maxval(dof)
        call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
+
        call pio_initdecomp(io_subsystem, pio_double, (/lnx,lny/), dof, iodesc)
        deallocate(dof)
 
        deallocate(minIndexPTile, maxIndexPTile)
-       deallocate(fieldlist)
 
     end if ! end if rcode check
 
