@@ -52,7 +52,8 @@ module esmflds
   integer , public, parameter :: map_rof2ocn_liq   = 11 ! custom smoothing map to map liq from rof->ocn (cesm only)
   integer , public, parameter :: map_glc2ocn_liq   = 12 ! custom smoothing map to map liq from glc->ocn (cesm only)
   integer , public, parameter :: map_glc2ocn_ice   = 13 ! custom smoothing map to map ice from glc->ocn (cesm only)
-  integer , public, parameter :: nmappers          = 13
+  integer , public, parameter :: mapfillv_bilnr    = 14 ! fill value followed by bilinear
+  integer , public, parameter :: nmappers          = 14
 
   character(len=*) , public, parameter :: mapnames(nmappers) = &
        (/'bilnr      ',&
@@ -67,7 +68,8 @@ module esmflds
          'rof2ocn_ice',&
          'rof2ocn_liq',&
          'glc2ocn_ice',&
-         'glc2ocn_liq'/)
+         'glc2ocn_liq',&
+         'fillv_bilnr'/)
 
   !-----------------------------------------------
   ! Set coupling mode

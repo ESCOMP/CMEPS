@@ -213,6 +213,7 @@ contains
     use esmFlds           , only : mapbilnr, mapconsf, mapconsd, mappatch, mappatch_uv3d, mapfcopy
     use esmFlds           , only : mapunset, mapnames, nmappers
     use esmFlds           , only : mapnstod, mapnstod_consd, mapnstod_consf, mapnstod_consd
+    use esmFlds           , only : mapfillv_bilnr
     use esmFlds           , only : ncomps, compatm, compice, compocn, compname
     use esmFlds           , only : mapfcopy, mapconsd, mapconsf, mapnstod
     use esmFlds           , only : coupling_mode, compname
@@ -272,6 +273,13 @@ contains
        srcMaskValue = ispval_mask
        if (n1 == compocn .or. n1 == compice) srcMaskValue = 0
        if (n2 == compocn .or. n2 == compice) dstMaskValue = 0
+       if (n1 == compatm .and. n2 == compocn) then
+          srcMaskValue = 1
+          dstMaskValue = 0
+       elseif (n1 == compocn .and. n2 == compatm) then
+          srcMaskValue = 0
+          dstMaskValue = ispval_mask
+       endif
     end if
 
     write(string,'(a)') trim(compname(n1))//' to '//trim(compname(n2))
@@ -298,6 +306,19 @@ contains
           write(logunit,'(A)') trim(subname)//' creating RH '//trim(mapname)//' for '//trim(string)
        end if
        call ESMF_FieldRegridStore(fldsrc, flddst, routehandle=routehandles(mapbilnr), &
+            srcMaskValues=(/srcMaskValue/), &
+            dstMaskValues=(/dstMaskValue/), &
+            regridmethod=ESMF_REGRIDMETHOD_BILINEAR, &
+            polemethod=polemethod, &
+            srcTermProcessing=srcTermProcessing_Value, &
+            ignoreDegenerate=.true., &
+            unmappedaction=ESMF_UNMAPPEDACTION_IGNORE, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+    else if (mapindex == mapfillv_bilnr) then
+       if (mastertask) then
+          write(logunit,'(A)') trim(subname)//' creating RH '//trim(mapname)//' for '//trim(string)
+       end if
+       call ESMF_FieldRegridStore(fldsrc, flddst, routehandle=routehandles(mapfillv_bilnr), &
             srcMaskValues=(/srcMaskValue/), &
             dstMaskValues=(/dstMaskValue/), &
             regridmethod=ESMF_REGRIDMETHOD_BILINEAR, &
@@ -1085,12 +1106,15 @@ contains
 
     use ESMF            , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
     use ESMF            , only : ESMF_LOGMSG_ERROR, ESMF_FAILURE, ESMF_MAXSTR
+    use ESMF            , only : ESMF_KIND_R8
     use ESMF            , only : ESMF_Field, ESMF_FieldRegrid
+    use ESMF            , only : ESMF_FieldFill
     use ESMF            , only : ESMF_TERMORDER_SRCSEQ, ESMF_Region_Flag, ESMF_REGION_TOTAL
     use ESMF            , only : ESMF_REGION_SELECT
     use ESMF            , only : ESMF_RouteHandle
     use esmFlds         , only : mapnstod_consd, mapnstod_consf, mapnstod_consd, mapnstod
     use esmFlds         , only : mapconsd, mapconsf
+    use esmFlds         , only : mapfillv_bilnr
     use med_methods_mod , only : Field_diagnose => med_methods_Field_diagnose
 
     ! input/output variables
@@ -1104,6 +1128,7 @@ contains
     ! local variables
     logical :: checkflag = .false.
     character(len=CS) :: lfldname
+    real(ESMF_KIND_R8), parameter :: fillValue = 9.99e20_ESMF_KIND_R8
     character(len=*), parameter :: subname='(module_MED_map:med_map_field) '
     !---------------------------------------------------
 
@@ -1143,6 +1168,20 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        if (dbug_flag > 1) then
           call Field_diagnose(field_dst, lfldname, " --> after consf: ", rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+       end if
+    else if (mapindex == mapfillv_bilnr) then
+       call ESMF_FieldFill(field_dst, dataFillScheme="const", const1=fillValue, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (dbug_flag > 1) then
+          call Field_diagnose(field_dst, lfldname, " --> after fillv: ", rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+       end if
+       call ESMF_FieldRegrid(field_src, field_dst, routehandle=RouteHandles(mapfillv_bilnr), &
+            termorderflag=ESMF_TERMORDER_SRCSEQ, checkflag=checkflag, zeroregion=ESMF_REGION_SELECT, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (dbug_flag > 1) then
+          call Field_diagnose(field_dst, lfldname, " --> after bilnr: ", rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
        end if
     else
