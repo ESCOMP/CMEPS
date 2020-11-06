@@ -246,9 +246,6 @@ contains
     end if
 
     mapname = trim(mapnames(mapindex))
-    if (mastertask) then
-       write(6,*)'DEBUG: mapindex, mapname= ',mapindex,trim(mapname)
-    end if
 
     if (trim(coupling_mode) == 'cesm') then
        dstMaskValue = ispval_mask

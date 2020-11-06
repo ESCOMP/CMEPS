@@ -22,16 +22,16 @@ module med_diag_mod
   use ESMF                  , only : ESMF_GridComp, ESMF_Clock, ESMF_Time
   use ESMF                  , only : ESMF_VM, ESMF_VMReduce, ESMF_REDUCE_SUM
   use ESMF                  , only : ESMF_GridCompGet, ESMF_ClockGet, ESMF_TimeGet
-  use ESMF                  , only : ESMF_Alarm, ESMF_ClockGetAlarm, ESMF_AlarmIsRinging
-  use ESMF                  , only : ESMF_FieldBundle, ESMF_AlarmRingerOff
+  use ESMF                  , only : ESMF_Alarm, ESMF_ClockGetAlarm, ESMF_AlarmIsRinging, ESMF_AlarmRingerOff  
+  use ESMF                  , only : ESMF_FieldBundle, ESMF_FieldBundleGet, ESMF_Field, ESMF_FieldGet
   use shr_const_mod         , only : shr_const_rearth, shr_const_pi, shr_const_latice
   use shr_const_mod         , only : shr_const_ice_ref_sal, shr_const_ocn_ref_sal, shr_const_isspval
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
   use med_internalstate_mod , only : InternalState, logunit, mastertask
   use med_methods_mod       , only : FB_FldChk    => med_methods_FB_FldChk
-  use med_methods_mod       , only : FB_GetFldPtr => med_methods_FB_GetFldPtr
   use med_time_mod          , only : alarmInit    => med_time_alarmInit
   use med_utils_mod         , only : chkerr       => med_utils_ChkErr
+  use perf_mod              , only : t_startf, t_stopf
 
   implicit none
   private
@@ -380,6 +380,7 @@ contains
             alarmname='alarm_stop', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     endif
+
   contains
     integer function get_diag_attribute(gcomp, name, rc)
       type(ESMF_GridComp) , intent(inout) :: gcomp
@@ -408,7 +409,6 @@ contains
    end subroutine med_diag_init
 
   !===============================================================================
-
   subroutine med_diag_zero( gcomp, mode, rc)
 
     ! ------------------------------------------------------------------
@@ -428,6 +428,7 @@ contains
     character(*), parameter :: subName = '(med_diag_zero) '
     ! ------------------------------------------------------------------
 
+    call t_startf('MED:'//subname)
     if (present(mode)) then
 
        if (trim(mode) == 'inst') then
@@ -495,10 +496,10 @@ contains
           endif
        enddo
     end if
+    call t_stopf('MED:'//subname)
   end subroutine med_diag_zero
 
   !===============================================================================
-
   subroutine med_phases_diag_accum(gcomp, rc)
 
     ! ------------------------------------------------------------------
@@ -514,15 +515,16 @@ contains
     character(*), parameter :: subName = '(med_diag_accum) '
     ! ------------------------------------------------------------------
 
+    call t_startf('MED:'//subname)
     rc = ESMF_SUCCESS
     do ip = period_inst+1,size(budget_diags%periods)
        budget_local(:,:,ip) = budget_local(:,:,ip) + budget_local(:,:,period_inst)
     enddo
     budget_counter(:,:,:) = budget_counter(:,:,:) + 1.0_r8
+    call t_stopf('MED:'//subname)
   end subroutine med_phases_diag_accum
 
   !===============================================================================
-
   subroutine med_diag_sum_master(gcomp, rc)
 
     ! ------------------------------------------------------------------
@@ -542,6 +544,7 @@ contains
     character(*), parameter :: subName = '(med_diag_sum_master) '
     ! ------------------------------------------------------------------
 
+    call t_startf('MED:'//subname)
     rc = ESMF_SUCCESS
 
     call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
@@ -560,10 +563,11 @@ contains
     budget_global = reshape(budget_global_1d,(/f_size,c_size,p_size/))
     budget_local(:,:,:) = 0.0_r8
 
+    call t_stopf('MED:'//subname)
+
   end subroutine med_diag_sum_master
 
   !===============================================================================
-
   subroutine med_phases_diag_atm(gcomp, rc)
 
     ! ------------------------------------------------------------------
@@ -585,9 +589,11 @@ contains
     real(r8), pointer   :: ofrac(:) => null()
     real(r8), pointer   :: areas(:) => null()
     real(r8), pointer   :: lats(:) => null()
+    type(ESMF_Field)    :: lfield
     character(*), parameter :: subName = '(med_phases_diag_atm) '
     !-------------------------------------------------------------------------------
 
+    call t_startf('MED:'//subname)
     rc = ESMF_SUCCESS
 
     nullify(is_local%wrap)
@@ -595,11 +601,17 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! Get fractions on atm mesh
-    call FB_getFldPtr(is_local%wrap%FBfrac(compatm), 'lfrac', fldptr1=lfrac, rc=rc)
+    call ESMF_FieldBundleGet(is_local%wrap%FBfrac(compatm), 'lfrac', field=lfield, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call FB_getFldPtr(is_local%wrap%FBfrac(compatm), 'ifrac', fldptr1=ifrac, rc=rc)
+    call ESMF_FieldGet(lfield, farrayptr=lfrac, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call FB_getFldPtr(is_local%wrap%FBfrac(compatm), 'ofrac', fldptr1=ofrac, rc=rc)
+    call ESMF_FieldBundleGet(is_local%wrap%FBfrac(compatm), 'ifrac', field=lfield, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldGet(lfield, farrayptr=ifrac, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldBundleGet(is_local%wrap%FBfrac(compatm), 'ofrac', field=lfield, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldGet(lfield, farrayptr=ofrac, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     areas => is_local%wrap%mesh_info(compatm)%areas
@@ -690,10 +702,9 @@ contains
          f_watr_evap_16O, f_watr_evap_18O, f_watr_evap_HDO, &
          areas, lats, afrac, lfrac, ofrac, ifrac, budget_local, rc=rc)
 
-  !-----------
-  contains
-  !-----------
+    call t_stopf('MED:'//subname)
 
+  contains
     subroutine diag_atm(FB, fldname, nf, areas, lats, afrac, lfrac, ofrac, ifrac, budget, rc)
       ! input/output variables
       type(ESMF_FieldBundle) , intent(in)    :: FB
@@ -709,21 +720,26 @@ contains
       integer                , intent(out)   :: rc
       ! local variables
       integer           :: n, ip
+      type(ESMF_field)  :: lfield
       real(r8), pointer :: data(:) => null()
+      real(r8) :: term
       ! ------------------------------------------------------------------
       rc = ESMF_SUCCESS
       if ( FB_fldchk(FB, trim(fldname), rc=rc)) then
-         call FB_GetFldPtr(FB, trim(fldname), fldptr1=data , rc=rc)
+         call ESMF_FieldBundleGet(FB, trim(fldname), field=lfield, rc=rc)
+         if (ChkErr(rc,__LINE__,u_FILE_u)) return
+         call ESMF_FieldGet(lfield, farrayptr=data, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
          ip = period_inst
          do n = 1,size(data)
-            budget(nf,c_atm_send,ip) = budget(nf,c_atm_send,ip) - areas(n)*afrac(n)*data(n)
-            budget(nf,c_lnd_asend,ip) = budget(nf,c_lnd_asend,ip) + areas(n)*lfrac(n)*data(n)
-            budget(nf,c_ocn_asend,ip) = budget(nf,c_ocn_asend,ip) + areas(n)*ofrac(n)*data(n)
+            term = areas(n)*data(n)
+            budget(nf,c_atm_send,ip)  = budget(nf,c_atm_send,ip)  - term*afrac(n)
+            budget(nf,c_lnd_asend,ip) = budget(nf,c_lnd_asend,ip) + term*lfrac(n)
+            budget(nf,c_ocn_asend,ip) = budget(nf,c_ocn_asend,ip) + term*ofrac(n)
             if (lats(n) > 0.0_r8) then
-               budget(nf,c_inh_asend,ip) = budget(nf,c_inh_asend,ip) + areas(n)*ifrac(n)*data(n)
+               budget(nf,c_inh_asend,ip) = budget(nf,c_inh_asend,ip) + term*ifrac(n)
             else
-               budget(nf,c_ish_asend,ip) = budget(nf,c_ish_asend,ip) + areas(n)*ifrac(n)*data(n)
+               budget(nf,c_ish_asend,ip) = budget(nf,c_ish_asend,ip) + term*ifrac(n)
             end if
          end do
       end if
@@ -747,11 +763,14 @@ contains
       integer                , intent(out)   :: rc
       ! local variables
       integer           :: n, ip
+      type(ESMF_Field)  :: lfield 
       real(r8), pointer :: data(:,:) => null()
       ! ------------------------------------------------------------------
       rc = ESMF_SUCCESS
       if ( FB_fldchk(FB, trim(fldname), rc=rc)) then
-         call FB_GetFldPtr(FB, trim(fldname), fldptr2=data, rc=rc)
+         call ESMF_FieldBundleGet(FB, trim(fldname), field=lfield, rc=rc)
+         if (ChkErr(rc,__LINE__,u_FILE_u)) return
+         call ESMF_FieldGet(lfield, farrayptr=data, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
          ip = period_inst
          do n = 1,size(data, dim=2)
@@ -788,10 +807,9 @@ contains
   end subroutine med_phases_diag_atm
 
   !===============================================================================
-
   subroutine med_phases_diag_lnd( gcomp, rc)
 
-    ! ------------------------------------------------------------------
+   ! ------------------------------------------------------------------
     ! Compute global lnd input/output flux diagnostics
     ! ------------------------------------------------------------------
 
@@ -806,9 +824,11 @@ contains
     real(r8), pointer   :: lfrac(:) => null()
     integer             :: n,ip, ic
     real(r8), pointer   :: areas(:) => null()
+    type(ESMF_Field)    :: lfield
     character(*), parameter :: subName = '(med_phases_diag_lnd) '
     ! ------------------------------------------------------------------
 
+    call t_startf('MED:'//subname)
     rc = ESMF_SUCCESS
 
     nullify(is_local%wrap)
@@ -816,7 +836,9 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! get fractions on lnd mesh
-    call FB_getFldPtr(is_local%wrap%FBfrac(complnd), 'lfrac', lfrac, rc=rc)
+    call ESMF_FieldBundleGet(is_local%wrap%FBfrac(complnd), 'lfrac', field=lfield, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldGet(lfield, farrayptr=lfrac, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     areas => is_local%wrap%mesh_info(complnd)%areas
@@ -887,10 +909,10 @@ contains
 
     budget_local(f_heat_ioff,ic,ip) = -budget_local(f_watr_ioff,ic,ip)*shr_const_latice
     budget_local(f_heat_latf,ic,ip) = -budget_local(f_watr_snow,ic,ip)*shr_const_latice
-  !-----------
-  contains
-  !-----------
 
+    call t_stopf('MED:'//subname)
+
+  contains
     subroutine diag_lnd(FB, fldname, nf, ic, areas, lfrac, budget, minus, rc)
       ! input/output variables
       type(ESMF_FieldBundle) , intent(in)    :: FB
@@ -904,12 +926,15 @@ contains
       integer                , intent(out)   :: rc
       ! local variables
       integer           :: n, ip
+      type(ESMF_field)  :: lfield
       real(r8), pointer :: data(:) => null()
       ! ------------------------------------------------------------------
       rc = ESMF_SUCCESS
 
       if ( FB_fldchk(FB, trim(fldname), rc=rc)) then
-         call FB_GetFldPtr(FB, trim(fldname), fldptr1=data, rc=rc)
+         call ESMF_FieldBundleGet(FB, trim(fldname), field=lfield, rc=rc)
+         if (ChkErr(rc,__LINE__,u_FILE_u)) return
+         call ESMF_FieldGet(lfield, farrayptr=data, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
          ip = period_inst
          do n = 1, size(data)
@@ -937,12 +962,15 @@ contains
       integer                , intent(out)   :: rc
       ! local variables
       integer           :: n, ip
+      type(ESMF_field)  :: lfield
       real(r8), pointer :: data(:,:) => null()
       ! ------------------------------------------------------------------
       rc = ESMF_SUCCESS
 
       if ( FB_fldchk(FB, trim(fldname), rc=rc)) then
-         call FB_GetFldPtr(FB, trim(fldname), fldptr2=data, rc=rc)
+         call ESMF_FieldBundleGet(FB, trim(fldname), field=lfield, rc=rc)
+         if (ChkErr(rc,__LINE__,u_FILE_u)) return
+         call ESMF_FieldGet(lfield, farrayptr=data, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
          ip = period_inst
          do n = 1, size(data, dim=2)
@@ -962,7 +990,6 @@ contains
   end subroutine med_phases_diag_lnd
 
   !===============================================================================
-
   subroutine med_phases_diag_rof( gcomp, rc)
 
     ! ------------------------------------------------------------------
@@ -982,6 +1009,7 @@ contains
     character(*), parameter :: subName = '(med_phases_diag_rof) '
     ! ------------------------------------------------------------------
 
+    call t_startf('MED:'//subname)
     rc = ESMF_SUCCESS
 
     nullify(is_local%wrap)
@@ -1031,10 +1059,10 @@ contains
          f_watr_ioff_16O, f_watr_ioff_18O, f_watr_ioff_HDO, ic, areas, budget_local, rc=rc)
 
     budget_local(f_heat_ioff,ic,ip) = -budget_local(f_watr_ioff,ic,ip)*shr_const_latice
-  !-----------
-  contains
-  !-----------
 
+    call t_stopf('MED:'//subname)
+
+  contains
     subroutine diag_rof(FB, fldname, nf, ic, areas, budget, minus, rc)
       ! input/output variables
       type(ESMF_FieldBundle) , intent(in)    :: FB
@@ -1048,12 +1076,15 @@ contains
 
       ! local variables
       integer           :: n, ip
+      type(ESMF_field)  :: lfield
       real(r8), pointer :: data(:) => null()
       ! ------------------------------------------------------------------
       rc = ESMF_SUCCESS
 
       if ( FB_fldchk(FB, trim(fldname), rc=rc)) then
-         call FB_GetFldPtr(FB, trim(fldname), fldptr1=data, rc=rc)
+         call ESMF_FieldBundleGet(FB, trim(fldname), field=lfield, rc=rc)
+         if (ChkErr(rc,__LINE__,u_FILE_u)) return
+         call ESMF_FieldGet(lfield, farrayptr=data, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
          ip = period_inst
          do n = 1, size(data)
@@ -1081,12 +1112,15 @@ contains
 
       ! local variables
       integer           :: n, ip
+      type(ESMF_field)  :: lfield
       real(r8), pointer :: data(:,:) => null()
       ! ------------------------------------------------------------------
       rc = ESMF_SUCCESS
 
       if ( FB_fldchk(FB, trim(fldname), rc=rc)) then
-         call FB_GetFldPtr(FB, trim(fldname), fldptr2=data, rc=rc)
+         call ESMF_FieldBundleGet(FB, trim(fldname), field=lfield, rc=rc)
+         if (ChkErr(rc,__LINE__,u_FILE_u)) return
+         call ESMF_FieldGet(lfield, farrayptr=data, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
          ip = period_inst
          do n = 1, size(data, dim=2)
@@ -1106,7 +1140,6 @@ contains
   end subroutine med_phases_diag_rof
 
   !===============================================================================
-
   subroutine med_phases_diag_glc( gcomp, rc)
 
     ! ------------------------------------------------------------------
@@ -1126,6 +1159,7 @@ contains
     character(*), parameter :: subName = '(med_phases_diag_glc) '
     ! ------------------------------------------------------------------
 
+    call t_startf('MED:'//subname)
     rc = ESMF_SUCCESS
 
     nullify(is_local%wrap)
@@ -1147,10 +1181,9 @@ contains
 
     budget_local(f_heat_ioff,ic,ip) = -budget_local(f_watr_ioff,ic,ip)*shr_const_latice
 
-  !-----------
-  contains
-  !-----------
+    call t_stopf('MED:'//subname)
 
+  contains
     subroutine diag_glc(FB, fldname, nf, ic, areas, budget, minus, rc)
       ! input/output variables
       type(ESMF_FieldBundle) , intent(in)    :: FB
@@ -1163,11 +1196,14 @@ contains
       integer                , intent(out)   :: rc
       ! local variables
       integer           :: n, ip
+      type(ESMF_field)  :: lfield
       real(r8), pointer :: data(:) => null()
       ! ------------------------------------------------------------------
       rc = ESMF_SUCCESS
       if ( FB_fldchk(FB, trim(fldname), rc=rc)) then
-         call FB_GetFldPtr(FB, trim(fldname), fldptr1=data, rc=rc)
+         call ESMF_FieldBundleGet(FB, trim(fldname), field=lfield, rc=rc)
+         if (ChkErr(rc,__LINE__,u_FILE_u)) return
+         call ESMF_FieldGet(lfield, farrayptr=data, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
          ip = period_inst
          do n = 1, size(data)
@@ -1183,7 +1219,6 @@ contains
   end subroutine med_phases_diag_glc
 
   !===============================================================================
-
   subroutine med_phases_diag_ocn( gcomp, rc)
 
     ! ------------------------------------------------------------------
@@ -1205,18 +1240,24 @@ contains
     real(r8), pointer   :: sfrac(:) => null() ! sum of ifrac and ofrac
     real(r8), pointer   :: areas(:) => null()
     real(r8), pointer   :: data(:) => null()
+    type(ESMF_field)    :: lfield
     character(*), parameter :: subName = '(med_phases_diag_ocn) '
     ! ------------------------------------------------------------------
 
+    call t_startf('MED:'//subname)
     rc = ESMF_SUCCESS
 
     nullify(is_local%wrap)
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call FB_getFldPtr(is_local%wrap%FBfrac(compocn), 'ifrac', fldptr1=ifrac, rc=rc)
+    call ESMF_FieldBundleGet(is_local%wrap%FBfrac(compocn), 'ifrac', field=lfield, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call FB_getFldPtr(is_local%wrap%FBfrac(compocn), 'ofrac', fldptr1=ofrac, rc=rc)
+    call ESMF_FieldGet(lfield, farrayptr=ifrac, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldBundleGet(is_local%wrap%FBfrac(compocn), 'ofrac', field=lfield, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldGet(lfield, farrayptr=ofrac, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     allocate(sfrac(size(ofrac)))
     sfrac(:) = ifrac(:) + ofrac(:)
@@ -1234,7 +1275,9 @@ contains
     end do
 
     if ( FB_fldchk(is_local%wrap%FBImp(compocn,compocn), 'Fioo_q', rc=rc)) then
-       call FB_getFldPtr(is_local%wrap%FBImp(compocn,compocn), 'Fioo_q', fldptr1=data, rc=rc)
+       call ESMF_FieldBundleGet(is_local%wrap%FBImp(compocn,compocn), 'Fioo_q', field=lfield, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_FieldGet(lfield, farrayptr=data, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        do n = 1,size(ifrac)
           wgt_o = areas(n) * ofrac(n)
@@ -1293,10 +1336,10 @@ contains
 
     budget_local(f_heat_latf,ic,ip) = -budget_local(f_watr_snow,ic,ip)*shr_const_latice
     budget_local(f_heat_ioff,ic,ip) = -budget_local(f_watr_ioff,ic,ip)*shr_const_latice
-  !-----------
-  contains
-  !-----------
 
+    call t_stopf('MED:'//subname)
+
+  contains
     subroutine diag_ocn(FB, fldname, nf, ic, areas, frac, budget, rc)
       ! input/output variables
       type(ESMF_FieldBundle) , intent(in)    :: FB
@@ -1309,11 +1352,14 @@ contains
       integer                , intent(out)   :: rc
       ! local variables
       integer           :: n, ip
+      type(ESMF_field)  :: lfield
       real(r8), pointer :: data(:) => null()
       ! ------------------------------------------------------------------
       rc = ESMF_SUCCESS
       if ( FB_fldchk(FB, trim(fldname), rc=rc)) then
-         call FB_GetFldPtr(FB, trim(fldname), fldptr1=data, rc=rc)
+         call ESMF_FieldBundleGet(FB, trim(fldname), field=lfield, rc=rc)
+         if (ChkErr(rc,__LINE__,u_FILE_u)) return
+         call ESMF_FieldGet(lfield, farrayptr=data, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
          ip = period_inst
          do n = 1, size(data)
@@ -1337,12 +1383,14 @@ contains
 
       ! local variables
       integer           :: n, ip
+      type(ESMF_field)  :: lfield
       real(r8), pointer :: data(:,:) => null()
       ! ------------------------------------------------------------------
       rc = ESMF_SUCCESS
-
       if ( FB_fldchk(FB, trim(fldname), rc=rc)) then
-         call FB_GetFldPtr(FB, trim(fldname), fldptr2=data, rc=rc)
+         call ESMF_FieldBundleGet(FB, trim(fldname), field=lfield, rc=rc)
+         if (ChkErr(rc,__LINE__,u_FILE_u)) return
+         call ESMF_FieldGet(lfield, farrayptr=data, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
          ip = period_inst
          do n = 1, size(data, dim=2)
@@ -1356,7 +1404,6 @@ contains
   end subroutine med_phases_diag_ocn
 
   !===============================================================================
-
   subroutine med_phases_diag_ice_ice2med( gcomp, rc)
 
     ! ------------------------------------------------------------------
@@ -1376,18 +1423,24 @@ contains
     real(r8), pointer   :: ifrac(:) => null()
     real(r8), pointer   :: areas(:) => null()
     real(r8), pointer   :: lats(:) => null()
+    type(ESMF_field)    :: lfield
     character(*), parameter :: subName = '(med_phases_diag_ice_ice2med) '
     ! ------------------------------------------------------------------
 
+    call t_startf('MED:'//subname)
     rc = ESMF_SUCCESS
 
     nullify(is_local%wrap)
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call FB_getFldPtr(is_local%wrap%FBfrac(compice), 'ifrac', fldptr1=ifrac, rc=rc)
+    call ESMF_FieldBundleGet(is_local%wrap%FBFrac(compice), 'ifrac', field=lfield, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call FB_getFldPtr(is_local%wrap%FBfrac(compice), 'ofrac', fldptr1=ofrac, rc=rc)
+    call ESMF_FieldGet(lfield, farrayptr=ifrac, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldBundleGet(is_local%wrap%FBFrac(compice), 'ofrac', field=lfield, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldGet(lfield, farrayptr=ofrac, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     areas => is_local%wrap%mesh_info(compice)%areas
@@ -1427,10 +1480,10 @@ contains
          f_watr_melt_16O, f_watr_melt_18O, f_watr_melt_HDO, areas, lats, ifrac, budget_local, rc=rc)
     call diag_ice_wiso(is_local%wrap%FBImp(compice,compice), 'Faii_evap_wiso', &
          f_watr_evap_16O, f_watr_evap_18O, f_watr_evap_HDO, areas, lats, ifrac, budget_local, rc=rc)
-  !-----------
-  contains
-  !-----------
 
+    call t_stopf('MED:'//subname)
+
+  contains
     subroutine diag_ice(FB, fldname, nf, areas, lats, ifrac, budget, minus, scale, rc)
       ! input/output variables
       type(ESMF_FieldBundle) , intent(in)    :: FB
@@ -1445,11 +1498,14 @@ contains
       integer                , intent(out)   :: rc
       ! local variables
       integer           :: n, ip
+      type(ESMF_field)  :: lfield
       real(r8), pointer :: data(:) => null()
       ! ------------------------------------------------------------------
       rc = ESMF_SUCCESS
       if ( FB_fldchk(FB, trim(fldname), rc=rc)) then
-         call FB_GetFldPtr(FB, trim(fldname), fldptr1=data , rc=rc)
+         call ESMF_FieldBundleGet(FB, trim(fldname), field=lfield, rc=rc)
+         if (ChkErr(rc,__LINE__,u_FILE_u)) return
+         call ESMF_FieldGet(lfield, farrayptr=data, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
          ip = period_inst
          do n = 1,size(data)
@@ -1491,12 +1547,14 @@ contains
 
       ! local variables
       integer           :: n, ip
+      type(ESMF_field)  :: lfield
       real(r8), pointer :: data(:,:) => null()
       ! ------------------------------------------------------------------
       rc = ESMF_SUCCESS
-
       if ( FB_fldchk(FB, trim(fldname), rc=rc)) then
-         call FB_GetFldPtr(FB, trim(fldname), fldptr2=data, rc=rc)
+         call ESMF_FieldBundleGet(FB, trim(fldname), field=lfield, rc=rc)
+         if (ChkErr(rc,__LINE__,u_FILE_u)) return
+         call ESMF_FieldGet(lfield, farrayptr=data, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
          ip = period_inst
          do n = 1, size(data, dim=2)
@@ -1518,11 +1576,9 @@ contains
       end if
     end subroutine diag_ice_wiso
 
-
   end subroutine med_phases_diag_ice_ice2med
 
   !===============================================================================
-
   subroutine med_phases_diag_ice_med2ice( gcomp, rc)
 
     ! ------------------------------------------------------------------
@@ -1544,18 +1600,24 @@ contains
     real(r8), pointer   :: data(:) => null()
     real(r8), pointer   :: areas(:) => null()
     real(r8), pointer   :: lats(:) => null()
+    type(ESMF_Field)    :: lfield
     character(*), parameter :: subName = '(med_phases_diag_ice_med2ice) '
     ! ------------------------------------------------------------------
 
+    call t_startf('MED:'//subname)
     rc = ESMF_SUCCESS
 
     nullify(is_local%wrap)
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call FB_getFldPtr(is_local%wrap%FBfrac(compice), 'ifrac', fldptr1=ifrac, rc=rc)
+    call ESMF_FieldBundleGet(is_local%wrap%FBfrac(compice), 'ifrac', field=lfield, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call FB_getFldPtr(is_local%wrap%FBfrac(compice), 'ofrac', fldptr1=ofrac, rc=rc)
+    call ESMF_FieldGet(lfield, farrayptr=ifrac, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldBundleGet(is_local%wrap%FBfrac(compice), 'ofrac', field=lfield, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldGet(lfield, farrayptr=ofrac, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     areas => is_local%wrap%mesh_info(compice)%areas
@@ -1583,8 +1645,11 @@ contains
          f_watr_snow_16O, f_watr_snow_18O, f_watr_snow_HDO, areas, lats, ifrac, budget_local, rc=rc)
 
     if ( FB_fldchk(is_local%wrap%FBExp(compice), 'Fioo_q', rc=rc)) then
-       call FB_getFldPtr(is_local%wrap%FBExp(compice), 'Fioo_q', fldptr1=data, rc=rc)
+       call ESMF_FieldBundleGet(is_local%wrap%FBExp(compice), 'Fioo_q', field=lfield, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_FieldGet(lfield, farrayptr=data, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
        do n = 1,size(data)
           wgt_o = areas(n) * ofrac(n)
           wgt_i = areas(n) * ifrac(n)
@@ -1607,10 +1672,9 @@ contains
     budget_local(f_heat_ioff,ic,ip) = -budget_local(f_watr_ioff,ic,ip)*shr_const_latice
     budget_local(f_watr_frz ,ic,ip) =  budget_local(f_heat_frz ,ic,ip)*HFLXtoWFLX
 
-  !-----------
-  contains
-  !-----------
+    call t_stopf('MED:'//subname)
 
+  contains
     subroutine diag_ice(FB, fldname, nf, areas, lats, ifrac, budget, minus, scale, rc)
       ! input/output variables
       type(ESMF_FieldBundle) , intent(in)    :: FB
@@ -1625,11 +1689,14 @@ contains
       integer                , intent(out)   :: rc
       ! local variables
       integer           :: n, ip
+      type(ESMF_Field)  :: lfield 
       real(r8), pointer :: data(:) => null()
       ! ------------------------------------------------------------------
       rc = ESMF_SUCCESS
       if ( FB_fldchk(FB, trim(fldname), rc=rc)) then
-         call FB_GetFldPtr(FB, trim(fldname), fldptr1=data , rc=rc)
+         call ESMF_FieldBundleGet(FB, trim(fldname), field=lfield, rc=rc)
+         if (ChkErr(rc,__LINE__,u_FILE_u)) return
+         call ESMF_FieldGet(lfield, farrayptr=data, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
          ip = period_inst
          do n = 1,size(data)
@@ -1671,12 +1738,14 @@ contains
 
       ! local variables
       integer           :: n, ip
+      type(ESMF_Field)  :: lfield 
       real(r8), pointer :: data(:,:) => null()
       ! ------------------------------------------------------------------
       rc = ESMF_SUCCESS
-
       if ( FB_fldchk(FB, trim(fldname), rc=rc)) then
-         call FB_GetFldPtr(FB, trim(fldname), fldptr2=data, rc=rc)
+         call ESMF_FieldBundleGet(FB, trim(fldname), field=lfield, rc=rc)
+         if (ChkErr(rc,__LINE__,u_FILE_u)) return
+         call ESMF_FieldGet(lfield, farrayptr=data, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
          ip = period_inst
          do n = 1, size(data, dim=2)
@@ -1701,7 +1770,6 @@ contains
   end subroutine med_phases_diag_ice_med2ice
 
   !===============================================================================
-
   subroutine med_phases_diag_print(gcomp, rc)
 
     ! ------------------------------------------------------------------
@@ -1756,10 +1824,12 @@ contains
        write(logunit,' (a)') trim(subname)//": currtime = "//trim(currtimestr)
     endif
 #endif
+
     if(firstcall) then
        firstcall = .false.
        return
     endif
+
     sumdone = .false.
     do ip = 1,size(budget_diags%periods)
 
@@ -1848,7 +1918,6 @@ contains
   end subroutine med_phases_diag_print
 
   !===============================================================================
-
   subroutine med_diag_print_atm(data, ip, cdate, curr_tod)
 
     ! ---------------------------------------------------------
@@ -1997,7 +2066,6 @@ contains
   end subroutine med_diag_print_atm
 
   !===============================================================================
-
   subroutine med_diag_print_lnd_ice_ocn(data, ip, cdate, curr_tod)
 
     ! ---------------------------------------------------------
@@ -2160,7 +2228,6 @@ contains
   end subroutine med_diag_print_lnd_ice_ocn
 
   !===============================================================================
-
   subroutine med_diag_print_summary(data, ip, cdate, curr_tod)
 
     ! ---------------------------------------------------------
@@ -2198,6 +2265,7 @@ contains
     character(*), parameter:: subName = '(med_diag_print_summary) '
     ! ------------------------------------------------------------------
 
+    call t_startf('MED:'//subname)
     ! write out areas
 
     write(logunit,*) ' '
@@ -2352,10 +2420,10 @@ contains
        end do
     end if
 
+    call t_stopf('MED:'//subname)
   end subroutine med_diag_print_summary
 
   !===============================================================================
-
   subroutine add_to_budget_diag(entries, index, name)
 
     ! input/output variablesn
