@@ -39,6 +39,7 @@ module med_diag_mod
   public  :: med_diag_init
   public  :: med_diag_zero
   public  :: med_phases_diag_accum
+  public  :: med_phases_diag_print
   public  :: med_phases_diag_atm
   public  :: med_phases_diag_lnd
   public  :: med_phases_diag_rof
@@ -46,7 +47,6 @@ module med_diag_mod
   public  :: med_phases_diag_ocn
   public  :: med_phases_diag_ice_ice2med
   public  :: med_phases_diag_ice_med2ice
-  public  :: med_phases_diag_print
 
   private :: med_diag_sum_master
   private :: med_diag_print_atm
@@ -56,6 +56,7 @@ module med_diag_mod
   type, public :: budget_diag_type
      character(CS) :: name
   end type budget_diag_type
+
   type, public :: budget_diag_indices
      type(budget_diag_type), pointer :: comps(:) => null()
      type(budget_diag_type), pointer :: fields(:) => null()
@@ -92,8 +93,8 @@ module med_diag_mod
   ! C for component
   ! ---------------------------------
 
-  ! "r" is receive from the component to the mediator
-  ! "s" is send    from the mediator  to the component
+  ! "r" is receive by the mediator from the component
+  ! "s" is send from the mediator  to the component
 
   integer  :: c_atm_send  ! model index: atm
   integer  :: c_atm_recv  ! model index: atm
@@ -205,6 +206,8 @@ module med_diag_mod
   real(r8), parameter :: HFLXtoWFLX = & ! water flux implied by latent heat of fusion
        &  - (shr_const_ocn_ref_sal-shr_const_ice_ref_sal) / &
        &    (shr_const_ocn_ref_sal*shr_const_latice)
+
+  ! WFLX (kg/m^2s) = -SFLX (kg/m^2s) / ocn_ref_sal (psu) (34.7g/kg) / 1.e-3 kg/g
   real(r8), parameter :: SFLXtoWFLX = & ! water flux implied by salt flux (kg/m^2s)
        -1._r8/(shr_const_ocn_ref_sal*1.e-3_r8)
 
@@ -618,11 +621,13 @@ contains
     lats  => is_local%wrap%mesh_info(compatm)%lats
     allocate(afrac(size(areas)))
     afrac = 1.0_R8
+
     !-------------------------------
-    ! from atm to mediator
+    ! from atm to mediator (_recv suffix is what the mediator is receiving)
     !-------------------------------
 
     ip = period_inst
+
     do n = 1,size(afrac)
        nf = f_area
        budget_local(nf,c_atm_recv ,ip) = budget_local(nf,c_atm_recv ,ip) - areas(n)*afrac(n)
@@ -635,32 +640,35 @@ contains
        end if
     end do
 
-    call diag_atm(is_local%wrap%FBImp(compatm,compatm), 'Faxa_swnet', f_heat_swnet, &
+    call diag_atm_recv(is_local%wrap%FBImp(compatm,compatm), 'Faxa_swnet', f_heat_swnet, &
          areas, lats, afrac, lfrac, ofrac, ifrac, budget_local, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call diag_atm(is_local%wrap%FBImp(compatm,compatm), 'Faxa_lwdn', f_heat_lwdn, &
+    call diag_atm_recv(is_local%wrap%FBImp(compatm,compatm), 'Faxa_lwdn', f_heat_lwdn, &
          areas, lats, afrac, lfrac, ofrac, ifrac, budget_local, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call diag_atm(is_local%wrap%FBImp(compatm,compatm), 'Faxa_rainc', f_watr_rain, &
+    ! Note that passing f_watr_rain twice will just add up contributions from Faxa_rainc and Faxa_rainl
+    call diag_atm_recv(is_local%wrap%FBImp(compatm,compatm), 'Faxa_rainc', f_watr_rain, &
          areas, lats, afrac, lfrac, ofrac, ifrac, budget_local, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call diag_atm(is_local%wrap%FBImp(compatm,compatm), 'Faxa_rainl', f_watr_rain, &
+    call diag_atm_recv(is_local%wrap%FBImp(compatm,compatm), 'Faxa_rainl', f_watr_rain, &
          areas, lats, afrac, lfrac, ofrac, ifrac, budget_local, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call diag_atm(is_local%wrap%FBImp(compatm,compatm), 'Faxa_snowc', f_watr_snow, &
+    ! Note that passing f_watr_rain twice will just add up contributions from Faxa_snowc and Faxa_snowl
+    call diag_atm_recv(is_local%wrap%FBImp(compatm,compatm), 'Faxa_snowc', f_watr_snow, &
          areas, lats, afrac, lfrac, ofrac, ifrac, budget_local, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call diag_atm(is_local%wrap%FBImp(compatm,compatm), 'Faxa_snowl', f_watr_snow, &
+    call diag_atm_recv(is_local%wrap%FBImp(compatm,compatm), 'Faxa_snowl', f_watr_snow, &
          areas, lats, afrac, lfrac, ofrac, ifrac, budget_local, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call diag_atm_wiso(is_local%wrap%FBImp(compatm,compatm), 'Faxa_rainl_wiso', &
+    call diag_atm_wiso_recv(is_local%wrap%FBImp(compatm,compatm), 'Faxa_rainc_wiso', &
          f_watr_rain_16O, f_watr_rain_18O, f_watr_rain_HDO, areas, lats, afrac, lfrac, ofrac, ifrac, budget_local, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call diag_atm_wiso(is_local%wrap%FBImp(compatm,compatm), 'Faxa_rainc_wiso', &
+    call diag_atm_wiso_recv(is_local%wrap%FBImp(compatm,compatm), 'Faxa_rainl_wiso', &
          f_watr_rain_16O, f_watr_rain_18O, f_watr_rain_HDO, areas, lats, afrac, lfrac, ofrac, ifrac, budget_local, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    ! heat implied by snow flux
+
+    ! heat implied by snow flux from atm to mediator
     budget_local(f_heat_latf,c_atm_recv ,ip) = -budget_local(f_watr_snow,c_atm_recv ,ip)*shr_const_latice
     budget_local(f_heat_latf,c_lnd_arecv,ip) = -budget_local(f_watr_snow,c_lnd_arecv,ip)*shr_const_latice
     budget_local(f_heat_latf,c_ocn_arecv,ip) = -budget_local(f_watr_snow,c_ocn_arecv,ip)*shr_const_latice
@@ -684,28 +692,67 @@ contains
        end if
     end do
 
-    call diag_atm(is_local%wrap%FBExp(compatm), 'Faxx_lwup', f_heat_lwup, &
+    call diag_atm_send(is_local%wrap%FBExp(compatm), 'Faxx_lwup', f_heat_lwup, &
          areas, lats, afrac, lfrac, ofrac, ifrac, budget_local, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call diag_atm(is_local%wrap%FBExp(compatm), 'Faxx_lat', f_heat_latvap, &
+    call diag_atm_send(is_local%wrap%FBExp(compatm), 'Faxx_lat', f_heat_latvap, &
          areas, lats, afrac, lfrac, ofrac, ifrac, budget_local, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call diag_atm(is_local%wrap%FBExp(compatm), 'Faxx_sen', f_heat_sen, &
+    call diag_atm_send(is_local%wrap%FBExp(compatm), 'Faxx_sen', f_heat_sen, &
          areas, lats, afrac, lfrac, ofrac, ifrac, budget_local, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call diag_atm(is_local%wrap%FBExp(compatm), 'Faxx_evap', f_watr_evap, &
+    call diag_atm_send(is_local%wrap%FBExp(compatm), 'Faxx_evap', f_watr_evap, &
          areas, lats, afrac, lfrac, ofrac, ifrac, budget_local, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! water isotopes
-    call diag_atm_wiso(is_local%wrap%FBImp(compatm,compatm), 'Faxa_evap_wiso', &
+    call diag_atm_wiso_send(is_local%wrap%FBImp(compatm,compatm), 'Faxa_evap_wiso', &
          f_watr_evap_16O, f_watr_evap_18O, f_watr_evap_HDO, &
          areas, lats, afrac, lfrac, ofrac, ifrac, budget_local, rc=rc)
 
     call t_stopf('MED:'//subname)
 
   contains
-    subroutine diag_atm(FB, fldname, nf, areas, lats, afrac, lfrac, ofrac, ifrac, budget, rc)
+
+    subroutine diag_atm_recv(FB, fldname, nf, areas, lats, afrac, lfrac, ofrac, ifrac, budget, rc)
+      ! input/output variables
+      type(ESMF_FieldBundle) , intent(in)    :: FB
+      character(len=*)       , intent(in)    :: fldname
+      integer                , intent(in)    :: nf
+      real(r8)               , intent(in)    :: areas(:)
+      real(r8)               , intent(in)    :: lats(:)
+      real(r8)               , intent(in)    :: afrac(:)
+      real(r8)               , intent(in)    :: lfrac(:)
+      real(r8)               , intent(in)    :: ofrac(:)
+      real(r8)               , intent(in)    :: ifrac(:)
+      real(r8)               , intent(inout) :: budget(:,:,:)
+      integer                , intent(out)   :: rc
+      ! local variables
+      integer           :: n, ip
+      type(ESMF_field)  :: lfield
+      real(r8), pointer :: data(:) => null()
+      ! ------------------------------------------------------------------
+      rc = ESMF_SUCCESS
+      if ( FB_fldchk(FB, trim(fldname), rc=rc)) then
+         call ESMF_FieldBundleGet(FB, trim(fldname), field=lfield, rc=rc)
+         if (ChkErr(rc,__LINE__,u_FILE_u)) return
+         call ESMF_FieldGet(lfield, farrayptr=data, rc=rc)
+         if (ChkErr(rc,__LINE__,u_FILE_u)) return
+         ip = period_inst
+         do n = 1,size(data)
+            budget(nf,c_atm_recv,ip)  = budget(nf,c_atm_recv,ip)  - areas(n)*data(n)*afrac(n)
+            budget(nf,c_lnd_arecv,ip) = budget(nf,c_lnd_arecv,ip) + areas(n)*data(n)*lfrac(n)
+            budget(nf,c_ocn_arecv,ip) = budget(nf,c_ocn_arecv,ip) + areas(n)*data(n)*ofrac(n)
+            if (lats(n) > 0.0_r8) then
+               budget(nf,c_inh_arecv,ip) = budget(nf,c_inh_arecv,ip) + areas(n)*data(n)*ifrac(n)
+            else
+               budget(nf,c_ish_arecv,ip) = budget(nf,c_ish_arecv,ip) + areas(n)*data(n)*ifrac(n)
+            end if
+         end do
+      end if
+    end subroutine diag_atm_recv
+
+    subroutine diag_atm_send(FB, fldname, nf, areas, lats, afrac, lfrac, ofrac, ifrac, budget, rc)
       ! input/output variables
       type(ESMF_FieldBundle) , intent(in)    :: FB
       character(len=*)       , intent(in)    :: fldname
@@ -732,20 +779,19 @@ contains
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
          ip = period_inst
          do n = 1,size(data)
-            term = areas(n)*data(n)
-            budget(nf,c_atm_send,ip)  = budget(nf,c_atm_send,ip)  - term*afrac(n)
-            budget(nf,c_lnd_asend,ip) = budget(nf,c_lnd_asend,ip) + term*lfrac(n)
-            budget(nf,c_ocn_asend,ip) = budget(nf,c_ocn_asend,ip) + term*ofrac(n)
+            budget(nf,c_atm_send,ip)  = budget(nf,c_atm_send,ip)  - areas(n)*data(n)*afrac(n)
+            budget(nf,c_lnd_asend,ip) = budget(nf,c_lnd_asend,ip) + areas(n)*data(n)*lfrac(n)
+            budget(nf,c_ocn_asend,ip) = budget(nf,c_ocn_asend,ip) + areas(n)*data(n)*ofrac(n)
             if (lats(n) > 0.0_r8) then
-               budget(nf,c_inh_asend,ip) = budget(nf,c_inh_asend,ip) + term*ifrac(n)
+               budget(nf,c_inh_asend,ip) = budget(nf,c_inh_asend,ip) + areas(n)*data(n)*ifrac(n)
             else
-               budget(nf,c_ish_asend,ip) = budget(nf,c_ish_asend,ip) + term*ifrac(n)
+               budget(nf,c_ish_asend,ip) = budget(nf,c_ish_asend,ip) + areas(n)*data(n)*ifrac(n)
             end if
          end do
       end if
-    end subroutine diag_atm
+    end subroutine diag_atm_send
 
-    subroutine diag_atm_wiso(FB, fldname, nf_16O, nf_18O, nf_HDO, areas, lats, &
+    subroutine diag_atm_wiso_recv(FB, fldname, nf_16O, nf_18O, nf_HDO, areas, lats, &
          afrac, lfrac, ofrac, ifrac, budget, rc)
       ! input/output variables
       type(ESMF_FieldBundle) , intent(in)    :: FB
@@ -802,7 +848,66 @@ contains
             end if
          end do
       end if
-    end subroutine diag_atm_wiso
+    end subroutine diag_atm_wiso_recv
+
+    subroutine diag_atm_wiso_send(FB, fldname, nf_16O, nf_18O, nf_HDO, areas, lats, &
+         afrac, lfrac, ofrac, ifrac, budget, rc)
+      ! input/output variables
+      type(ESMF_FieldBundle) , intent(in)    :: FB
+      character(len=*)       , intent(in)    :: fldname
+      integer                , intent(in)    :: nf_16O
+      integer                , intent(in)    :: nf_18O
+      integer                , intent(in)    :: nf_HDO
+      real(r8)               , intent(in)    :: areas(:)
+      real(r8)               , intent(in)    :: lats(:)
+      real(r8)               , intent(in)    :: afrac(:)
+      real(r8)               , intent(in)    :: lfrac(:)
+      real(r8)               , intent(in)    :: ofrac(:)
+      real(r8)               , intent(in)    :: ifrac(:)
+      real(r8)               , intent(inout) :: budget(:,:,:)
+      integer                , intent(out)   :: rc
+      ! local variables
+      integer           :: n, ip
+      type(ESMF_Field)  :: lfield 
+      real(r8), pointer :: data(:,:) => null()
+      ! ------------------------------------------------------------------
+      rc = ESMF_SUCCESS
+      if ( FB_fldchk(FB, trim(fldname), rc=rc)) then
+         call ESMF_FieldBundleGet(FB, trim(fldname), field=lfield, rc=rc)
+         if (ChkErr(rc,__LINE__,u_FILE_u)) return
+         call ESMF_FieldGet(lfield, farrayptr=data, rc=rc)
+         if (ChkErr(rc,__LINE__,u_FILE_u)) return
+         ip = period_inst
+         do n = 1,size(data, dim=2)
+            budget(nf_16O,c_atm_send,ip) = budget(nf_16O,c_atm_send,ip) - areas(n)*afrac(n)*data(1,n)
+            budget(nf_16O,c_lnd_asend,ip) = budget(nf_16O,c_lnd_asend,ip) + areas(n)*lfrac(n)*data(1,n)
+            budget(nf_16O,c_ocn_asend,ip) = budget(nf_16O,c_ocn_asend,ip) + areas(n)*ofrac(n)*data(1,n)
+            if (lats(n) > 0.0_r8) then
+               budget(nf_16O,c_inh_asend,ip) = budget(nf_16O,c_inh_asend,ip) + areas(n)*ifrac(n)*data(1,n)
+            else
+               budget(nf_16O,c_ish_asend,ip) = budget(nf_16O,c_ish_asend,ip) + areas(n)*ifrac(n)*data(1,n)
+            end if
+
+            budget(nf_18O,c_atm_send,ip) = budget(nf_18O,c_atm_send,ip) - areas(n)*afrac(n)*data(2,n)
+            budget(nf_18O,c_lnd_asend,ip) = budget(nf_18O,c_lnd_asend,ip) + areas(n)*lfrac(n)*data(2,n)
+            budget(nf_18O,c_ocn_asend,ip) = budget(nf_18O,c_ocn_asend,ip) + areas(n)*ofrac(n)*data(2,n)
+            if (lats(n) > 0.0_r8) then
+               budget(nf_18O,c_inh_asend,ip) = budget(nf_18O,c_inh_asend,ip) + areas(n)*ifrac(n)*data(2,n)
+            else
+               budget(nf_18O,c_ish_asend,ip) = budget(nf_18O,c_ish_asend,ip) + areas(n)*ifrac(n)*data(2,n)
+            end if
+
+            budget(nf_HDO,c_atm_send,ip) = budget(nf_HDO,c_atm_send,ip) - areas(n)*afrac(n)*data(3,n)
+            budget(nf_HDO,c_lnd_asend,ip) = budget(nf_HDO,c_lnd_asend,ip) + areas(n)*lfrac(n)*data(3,n)
+            budget(nf_HDO,c_ocn_asend,ip) = budget(nf_HDO,c_ocn_asend,ip) + areas(n)*ofrac(n)*data(3,n)
+            if (lats(n) > 0.0_r8) then
+               budget(nf_HDO,c_inh_asend,ip) = budget(nf_HDO,c_inh_asend,ip) + areas(n)*ifrac(n)*data(3,n)
+            else
+               budget(nf_HDO,c_ish_asend,ip) = budget(nf_HDO,c_ish_asend,ip) + areas(n)*ifrac(n)*data(3,n)
+            end if
+         end do
+      end if
+    end subroutine diag_atm_wiso_send
 
   end subroutine med_phases_diag_atm
 
@@ -1315,7 +1420,8 @@ contains
     call diag_ocn(is_local%wrap%FBExp(compocn), 'Fioi_bergw', f_watr_melt   , ic, areas, sfrac, budget_local, rc=rc)
     call diag_ocn(is_local%wrap%FBExp(compocn), 'Fioi_melth', f_heat_melt   , ic, areas, sfrac, budget_local, rc=rc)
     call diag_ocn(is_local%wrap%FBExp(compocn), 'Fioi_bergh', f_heat_melt   , ic, areas, sfrac, budget_local, rc=rc)
-    call diag_ocn(is_local%wrap%FBExp(compocn), 'Fioi_salt' , f_watr_salt   , ic, areas, sfrac, budget_local, rc=rc)
+    call diag_ocn(is_local%wrap%FBExp(compocn), 'Fioi_salt' , f_watr_salt   , ic, areas, sfrac, budget_local, &
+         scale=SFLXtoWFLX, rc=rc)
     call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_swnet', f_heat_swnet  , ic, areas, sfrac, budget_local, rc=rc)
     call diag_ocn(is_local%wrap%FBExp(compocn), 'Faxa_lwdn' , f_heat_lwdn   , ic, areas, sfrac, budget_local, rc=rc)
     call diag_ocn(is_local%wrap%FBExp(compocn), 'Faxa_rain' , f_watr_rain   , ic, areas, sfrac, budget_local, rc=rc)
@@ -1340,7 +1446,8 @@ contains
     call t_stopf('MED:'//subname)
 
   contains
-    subroutine diag_ocn(FB, fldname, nf, ic, areas, frac, budget, rc)
+
+    subroutine diag_ocn(FB, fldname, nf, ic, areas, frac, budget, scale, rc)
       ! input/output variables
       type(ESMF_FieldBundle) , intent(in)    :: FB
       character(len=*)       , intent(in)    :: fldname
@@ -1349,6 +1456,7 @@ contains
       real(r8)               , intent(in)    :: areas(:)
       real(r8)               , intent(in)    :: frac(:)
       real(r8)               , intent(inout) :: budget(:,:,:)
+      real(r8), optional     , intent(in)    :: scale
       integer                , intent(out)   :: rc
       ! local variables
       integer           :: n, ip
@@ -1363,7 +1471,11 @@ contains
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
          ip = period_inst
          do n = 1, size(data)
-            budget(nf,ic,ip) = budget(nf,ic,ip) + areas(n)*frac(n)*data(n)
+            if (present(scale)) then
+               budget(nf,ic,ip) = budget(nf,ic,ip) + areas(n)*frac(n)*data(n)*scale
+            else
+               budget(nf,ic,ip) = budget(nf,ic,ip) + areas(n)*frac(n)*data(n)
+            end if
          end do
       end if
     end subroutine diag_ocn
@@ -1457,34 +1569,35 @@ contains
        budget_local(f_area ,ic,ip) = budget_local(f_area ,ic,ip) + areas(n)*ifrac(n)
     end do
 
-    call diag_ice(is_local%wrap%FBImp(compice,compice), 'Fioi_melth', f_heat_melt, &
+    call diag_ice_recv(is_local%wrap%FBImp(compice,compice), 'Fioi_melth', f_heat_melt, &
          areas, lats, ifrac, budget_local, minus=.true., rc=rc)
-    call diag_ice(is_local%wrap%FBImp(compice,compice), 'Fioi_meltw', f_watr_melt, &
+    call diag_ice_recv(is_local%wrap%FBImp(compice,compice), 'Fioi_meltw', f_watr_melt, &
          areas, lats, ifrac, budget_local, minus=.true., rc=rc)
-    call diag_ice(is_local%wrap%FBImp(compice,compice), 'Fioi_salt', f_watr_salt, &
+    call diag_ice_recv(is_local%wrap%FBImp(compice,compice), 'Fioi_salt', f_watr_salt, &
          areas, lats, ifrac, budget_local, minus=.true., scale=SFLXtoWFLX, rc=rc)
-    call diag_ice(is_local%wrap%FBImp(compice,compice), 'Fioi_swpen', f_heat_swnet, &
+    call diag_ice_recv(is_local%wrap%FBImp(compice,compice), 'Fioi_swpen', f_heat_swnet, &
          areas, lats, ifrac, budget_local, minus=.true., rc=rc)
-    call diag_ice(is_local%wrap%FBImp(compice,compice), 'Faii_swnet', f_heat_swnet, &
+    call diag_ice_recv(is_local%wrap%FBImp(compice,compice), 'Faii_swnet', f_heat_swnet, &
          areas, lats, ifrac, budget_local, rc=rc)
-    call diag_ice(is_local%wrap%FBImp(compice,compice), 'Faii_lwup', f_heat_lwup, &
+    call diag_ice_recv(is_local%wrap%FBImp(compice,compice), 'Faii_lwup', f_heat_lwup, &
          areas, lats, ifrac, budget_local, rc=rc)
-    call diag_ice(is_local%wrap%FBImp(compice,compice), 'Faii_lat', f_heat_latvap, &
+    call diag_ice_recv(is_local%wrap%FBImp(compice,compice), 'Faii_lat', f_heat_latvap, &
          areas, lats, ifrac, budget_local, rc=rc)
-    call diag_ice(is_local%wrap%FBImp(compice,compice), 'Faii_sen', f_heat_sen, &
+    call diag_ice_recv(is_local%wrap%FBImp(compice,compice), 'Faii_sen', f_heat_sen, &
          areas, lats, ifrac, budget_local, rc=rc)
-    call diag_ice(is_local%wrap%FBImp(compice,compice), 'Faii_evap', f_watr_evap, &
+    call diag_ice_recv(is_local%wrap%FBImp(compice,compice), 'Faii_evap', f_watr_evap, &
          areas, lats, ifrac, budget_local, rc=rc)
 
-    call diag_ice_wiso(is_local%wrap%FBImp(compice,compice), 'Fioi_meltw_wiso', &
+    call diag_ice_recv_wiso(is_local%wrap%FBImp(compice,compice), 'Fioi_meltw_wiso', &
          f_watr_melt_16O, f_watr_melt_18O, f_watr_melt_HDO, areas, lats, ifrac, budget_local, rc=rc)
-    call diag_ice_wiso(is_local%wrap%FBImp(compice,compice), 'Faii_evap_wiso', &
+    call diag_ice_recv_wiso(is_local%wrap%FBImp(compice,compice), 'Faii_evap_wiso', &
          f_watr_evap_16O, f_watr_evap_18O, f_watr_evap_HDO, areas, lats, ifrac, budget_local, rc=rc)
 
     call t_stopf('MED:'//subname)
 
   contains
-    subroutine diag_ice(FB, fldname, nf, areas, lats, ifrac, budget, minus, scale, rc)
+
+    subroutine diag_ice_recv(FB, fldname, nf, areas, lats, ifrac, budget, minus, scale, rc)
       ! input/output variables
       type(ESMF_FieldBundle) , intent(in)    :: FB
       character(len=*)       , intent(in)    :: fldname
@@ -1498,7 +1611,7 @@ contains
       integer                , intent(out)   :: rc
       ! local variables
       integer           :: n, ip
-      type(ESMF_field)  :: lfield
+      type(ESMF_Field)  :: lfield 
       real(r8), pointer :: data(:) => null()
       ! ------------------------------------------------------------------
       rc = ESMF_SUCCESS
@@ -1529,9 +1642,9 @@ contains
             end if
          end do
       end if
-    end subroutine diag_ice
+    end subroutine diag_ice_recv
 
-    subroutine diag_ice_wiso(FB, fldname, nf_16O, nf_18O, nf_HDO, areas, lats, ifrac, budget, minus, rc)
+    subroutine diag_ice_recv_wiso(FB, fldname, nf_16O, nf_18O, nf_HDO, areas, lats, ifrac, budget, minus, rc)
       ! input/output variables
       type(ESMF_FieldBundle) , intent(in)    :: FB
       character(len=*)       , intent(in)    :: fldname
@@ -1544,13 +1657,13 @@ contains
       real(r8)               , intent(inout) :: budget(:,:,:)
       logical, optional      , intent(in)    :: minus
       integer                , intent(out)   :: rc
-
       ! local variables
       integer           :: n, ip
-      type(ESMF_field)  :: lfield
+      type(ESMF_Field)  :: lfield 
       real(r8), pointer :: data(:,:) => null()
       ! ------------------------------------------------------------------
       rc = ESMF_SUCCESS
+
       if ( FB_fldchk(FB, trim(fldname), rc=rc)) then
          call ESMF_FieldBundleGet(FB, trim(fldname), field=lfield, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -1574,7 +1687,7 @@ contains
             end if
          end do
       end if
-    end subroutine diag_ice_wiso
+    end subroutine diag_ice_recv_wiso
 
   end subroutine med_phases_diag_ice_ice2med
 
@@ -1634,22 +1747,16 @@ contains
        budget_local(f_area ,ic,ip) = budget_local(f_area ,ic,ip) + areas(n)*ifrac(n)
     end do
 
-    call diag_ice(is_local%wrap%FBExp(compice), 'Faxa_lwdn', f_heat_lwdn, areas, lats, ifrac, budget_local, rc=rc)
-    call diag_ice(is_local%wrap%FBExp(compice), 'Faxa_rain', f_watr_rain, areas, lats, ifrac, budget_local, rc=rc)
-    call diag_ice(is_local%wrap%FBExp(compice), 'Faxa_snow', f_watr_snow, areas, lats, ifrac, budget_local, rc=rc)
-    call diag_ice(is_local%wrap%FBExp(compice), 'Fixx_rofi', f_watr_ioff, areas, lats, ifrac, budget_local, rc=rc)
-
-    call diag_ice_wiso(is_local%wrap%FBExp(compice), 'Faxa_rain_wiso', &
-         f_watr_rain_16O, f_watr_rain_18O, f_watr_rain_HDO, areas, lats, ifrac, budget_local, rc=rc)
-    call diag_ice_wiso(is_local%wrap%FBExp(compice), 'Faxa_snow_wiso', &
-         f_watr_snow_16O, f_watr_snow_18O, f_watr_snow_HDO, areas, lats, ifrac, budget_local, rc=rc)
+    call diag_ice_send(is_local%wrap%FBExp(compice), 'Faxa_lwdn', f_heat_lwdn, areas, lats, ifrac, budget_local, rc=rc)
+    call diag_ice_send(is_local%wrap%FBExp(compice), 'Faxa_rain', f_watr_rain, areas, lats, ifrac, budget_local, rc=rc)
+    call diag_ice_send(is_local%wrap%FBExp(compice), 'Faxa_snow', f_watr_snow, areas, lats, ifrac, budget_local, rc=rc)
+    call diag_ice_send(is_local%wrap%FBExp(compice), 'Fixx_rofi', f_watr_ioff, areas, lats, ifrac, budget_local, rc=rc)
 
     if ( FB_fldchk(is_local%wrap%FBExp(compice), 'Fioo_q', rc=rc)) then
        call ESMF_FieldBundleGet(is_local%wrap%FBExp(compice), 'Fioo_q', field=lfield, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call ESMF_FieldGet(lfield, farrayptr=data, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
        do n = 1,size(data)
           wgt_o = areas(n) * ofrac(n)
           wgt_i = areas(n) * ifrac(n)
@@ -1672,10 +1779,16 @@ contains
     budget_local(f_heat_ioff,ic,ip) = -budget_local(f_watr_ioff,ic,ip)*shr_const_latice
     budget_local(f_watr_frz ,ic,ip) =  budget_local(f_heat_frz ,ic,ip)*HFLXtoWFLX
 
+    call diag_ice_send_wiso(is_local%wrap%FBExp(compice), 'Faxa_rain_wiso', &
+         f_watr_rain_16O, f_watr_rain_18O, f_watr_rain_HDO, areas, lats, ifrac, budget_local, rc=rc)
+    call diag_ice_send_wiso(is_local%wrap%FBExp(compice), 'Faxa_snow_wiso', &
+         f_watr_snow_16O, f_watr_snow_18O, f_watr_snow_HDO, areas, lats, ifrac, budget_local, rc=rc)
+
     call t_stopf('MED:'//subname)
 
   contains
-    subroutine diag_ice(FB, fldname, nf, areas, lats, ifrac, budget, minus, scale, rc)
+
+    subroutine diag_ice_send(FB, fldname, nf, areas, lats, ifrac, budget, rc)
       ! input/output variables
       type(ESMF_FieldBundle) , intent(in)    :: FB
       character(len=*)       , intent(in)    :: fldname
@@ -1684,8 +1797,6 @@ contains
       real(r8)               , intent(in)    :: lats(:)
       real(r8)               , intent(in)    :: ifrac(:)
       real(r8)               , intent(inout) :: budget(:,:,:)
-      logical,  optional     , intent(in)    :: minus
-      real(r8), optional     , intent(in)    :: scale
       integer                , intent(out)   :: rc
       ! local variables
       integer           :: n, ip
@@ -1693,36 +1804,24 @@ contains
       real(r8), pointer :: data(:) => null()
       ! ------------------------------------------------------------------
       rc = ESMF_SUCCESS
+      ip = period_inst
       if ( FB_fldchk(FB, trim(fldname), rc=rc)) then
          call ESMF_FieldBundleGet(FB, trim(fldname), field=lfield, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
          call ESMF_FieldGet(lfield, farrayptr=data, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-         ip = period_inst
          do n = 1,size(data)
             if (lats(n) > 0.0_r8) then
-               ic = c_inh_recv
+               ic = c_inh_send
             else
-               ic = c_ish_recv
+               ic = c_ish_send
             endif
-            if (present(minus)) then
-               if (present(scale)) then
-                  budget(nf ,ic,ip) = budget(nf ,ic,ip) - areas(n)*ifrac(n)*data(n)*scale
-               else
-                  budget(nf ,ic,ip) = budget(nf ,ic,ip) - areas(n)*ifrac(n)*data(n)
-               end if
-            else
-               if (present(scale)) then
-                  budget(nf ,ic,ip) = budget(nf ,ic,ip) + areas(n)*ifrac(n)*data(n)*scale
-               else
-                  budget(nf ,ic,ip) = budget(nf ,ic,ip) + areas(n)*ifrac(n)*data(n)
-               end if
-            end if
+            budget(nf,ic,ip) = budget(nf,ic,ip) + areas(n)*ifrac(n)*data(n)
          end do
       end if
-    end subroutine diag_ice
+    end subroutine diag_ice_send
 
-    subroutine diag_ice_wiso(FB, fldname, nf_16O, nf_18O, nf_HDO, areas, lats, ifrac, budget, minus, rc)
+    subroutine diag_ice_send_wiso(FB, fldname, nf_16O, nf_18O, nf_HDO, areas, lats, ifrac, budget, rc)
       ! input/output variables
       type(ESMF_FieldBundle) , intent(in)    :: FB
       character(len=*)       , intent(in)    :: fldname
@@ -1733,7 +1832,6 @@ contains
       real(r8)               , intent(in)    :: lats(:)
       real(r8)               , intent(in)    :: ifrac(:)
       real(r8)               , intent(inout) :: budget(:,:,:)
-      logical, optional      , intent(in)    :: minus
       integer                , intent(out)   :: rc
 
       ! local variables
@@ -1750,22 +1848,16 @@ contains
          ip = period_inst
          do n = 1, size(data, dim=2)
             if (lats(n) > 0.0_r8) then
-               ic = c_inh_recv
+               ic = c_inh_send
             else
-               ic = c_ish_recv
+               ic = c_ish_send
             endif
-            if (present(minus)) then
-               budget(nf_16O,ic,ip) = budget(nf_16O,ic,ip) - areas(n)*ifrac(n)*data(1,n)
-               budget(nf_18O,ic,ip) = budget(nf_18O,ic,ip) - areas(n)*ifrac(n)*data(2,n)
-               budget(nf_HDO,ic,ip) = budget(nf_HDO,ic,ip) - areas(n)*ifrac(n)*data(3,n)
-            else
-               budget(nf_16O,ic,ip) = budget(nf_16O,ic,ip) + areas(n)*ifrac(n)*data(1,n)
-               budget(nf_18O,ic,ip) = budget(nf_18O,ic,ip) + areas(n)*ifrac(n)*data(2,n)
-               budget(nf_HDO,ic,ip) = budget(nf_HDO,ic,ip) + areas(n)*ifrac(n)*data(3,n)
-            end if
+            budget(nf_16O,ic,ip) = budget(nf_16O,ic,ip) + areas(n)*ifrac(n)*data(1,n)
+            budget(nf_18O,ic,ip) = budget(nf_18O,ic,ip) + areas(n)*ifrac(n)*data(2,n)
+            budget(nf_HDO,ic,ip) = budget(nf_HDO,ic,ip) + areas(n)*ifrac(n)*data(3,n)
          end do
       end if
-    end subroutine diag_ice_wiso
+    end subroutine diag_ice_send_wiso
 
   end subroutine med_phases_diag_ice_med2ice
 
@@ -1825,7 +1917,7 @@ contains
     endif
 #endif
 
-    if(firstcall) then
+    if (firstcall) then
        firstcall = .false.
        return
     endif
@@ -1908,6 +2000,7 @@ contains
           deallocate(datagpr)
        endif ! output_level > 0 and mastertask
     end if ! if mastertask
+
     !-------------------------------------------------------------------------------
     ! Zero budget data
     !-------------------------------------------------------------------------------
