@@ -5,6 +5,7 @@ module med_phases_prep_lnd_mod
   !-----------------------------------------------------------------------------
 
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
+  use NUOPC                 , only : NUOPC_CompAttributeGet
   use ESMF                  , only : operator(/=)
   use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_LOGMSG_ERROR, ESMF_SUCCESS, ESMF_FAILURE
   use ESMF                  , only : ESMF_FieldBundle, ESMF_FieldBundleGet
@@ -57,6 +58,8 @@ module med_phases_prep_lnd_mod
   ! the number of elevation classes (excluding bare land) = ungriddedCount - 1
   integer :: ungriddedCount ! this equals the number of elevation classes + 1 (for bare land)
 
+  logical :: cism_evolve = .false.
+
   character(*) , parameter :: u_FILE_u = &
        __FILE__
 
@@ -76,6 +79,8 @@ contains
     integer                   :: n1,ncnt
     real(r8)                  :: nextsw_cday
     logical                   :: first_call = .true.
+    logical                   :: isPresent
+    character(CL)             :: cvalue
     character(len=*), parameter :: subname='(med_phases_prep_lnd)'
     !---------------------------------------
 
@@ -91,6 +96,20 @@ contains
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+    ! determine if coupling to CISM is 2-way
+    if (first_call) then
+       call NUOPC_CompAttributeGet(gcomp, name="cism_evolve", isPresent=isPresent, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (isPresent) then
+          call NUOPC_CompAttributeGet(gcomp, name="cism_evolve", value=cvalue, isPresent=isPresent, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          read (cvalue,*) cism_evolve 
+          if (mastertask) then
+             write(logunit,'(a,l7)') trim(subname)//' cism_evolve = ',cism_evolve
+          end if
+       end if
+    end if
+
     ! Count the number of fields outside of scalar data, if zero, then return
     ! Note - the scalar field has been removed from all mediator field bundles - so this is why we check if the
     ! fieldCount is 0 and not 1 here
@@ -104,8 +123,10 @@ contains
        ! map to create FBimp(:,complnd)
        !---------------------------------------
 
+       call t_startf('MED:'//trim(subname)//' map')
        do n1 = 1,ncomps
-          if (is_local%wrap%med_coupling_active(n1,complnd)) then
+          ! Skip glc here and handle it below
+          if (is_local%wrap%med_coupling_active(n1,complnd) .and. n1 /= compglc) then
              call med_map_field_packed( &
                   FBSrc=is_local%wrap%FBImp(n1,n1), &
                   FBDst=is_local%wrap%FBImp(n1,complnd), &
@@ -116,6 +137,44 @@ contains
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
        end do
+       call t_stopf('MED:'//trim(subname)//' map')
+
+       ! The following is only done if glc->lnd coupling is active
+       if (is_local%wrap%comp_present(compglc) .and. (is_local%wrap%med_coupling_active(compglc,complnd))) then
+          call t_startf('MED:'//trim(subname)//' glc2lnd init')
+          if (first_call) then
+             call map_glc2lnd_init(gcomp, rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          end if
+          call t_stopf('MED:'//trim(subname)//' glc2lnd init')
+
+          ! The will following will map and merge Sg_frac and Sg_topo (and in the future Flgg_hflx)
+          if (cism_evolve) then
+             call t_startf('MED:'//trim(subname)//' glc2lnd ')
+             call med_map_field_packed( &
+                  FBSrc=is_local%wrap%FBImp(compglc,compglc), &
+                  FBDst=is_local%wrap%FBImp(compglc,complnd), &
+                  FBFracSrc=is_local%wrap%FBFrac(compglc), &
+                  field_normOne=is_local%wrap%field_normOne(compglc,complnd,:), &
+                  packed_data=is_local%wrap%packed_data(compglc,complnd,:), &
+                  routehandles=is_local%wrap%RH(compglc,complnd,:), rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             call map_glc2lnd(gcomp, rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             call t_stopf('MED:'//trim(subname)//' glc2lnd')
+          else if (first_call) then
+             call med_map_field_packed( &
+                  FBSrc=is_local%wrap%FBImp(compglc,compglc), &
+                  FBDst=is_local%wrap%FBImp(compglc,complnd), &
+                  FBFracSrc=is_local%wrap%FBFrac(compglc), &
+                  field_normOne=is_local%wrap%field_normOne(compglc,complnd,:), &
+                  packed_data=is_local%wrap%packed_data(compglc,complnd,:), &
+                  routehandles=is_local%wrap%RH(compglc,complnd,:), rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             call map_glc2lnd(gcomp, rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          end if
+       end if
 
        !---------------------------------------
        ! auto merges to create FBExp(complnd)
@@ -123,6 +182,7 @@ contains
 
        ! The following will merge all fields in fldsSrc
        ! (for glc these are Sg_icemask and Sg_icemask_coupled_fluxes)
+       call t_startf('MED:'//trim(subname)//' merge')
        call med_merge_auto(complnd, &
             is_local%wrap%med_coupling_active(:,complnd), &
             is_local%wrap%FBExp(complnd), &
@@ -130,21 +190,7 @@ contains
             is_local%wrap%FBImp(:,complnd), &
             fldListTo(complnd), rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-       !---------------------------------------
-       ! custom calculations
-       !---------------------------------------
-
-       ! The following is only done if glc->lnd coupling is active
-       if (is_local%wrap%comp_present(compglc) .and. (is_local%wrap%med_coupling_active(compglc,complnd))) then
-          if (first_call) then
-             call map_glc2lnd_init(gcomp, rc=rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          end if
-          ! The will following will map and merge Sg_frac and Sg_topo (and in the future Flgg_hflx)
-          call map_glc2lnd(gcomp, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       end if
+       call t_stopf('MED:'//trim(subname)//' merge')
 
        !---------------------------------------
        ! update scalar data
@@ -152,6 +198,7 @@ contains
        call ESMF_StateGet(is_local%wrap%NStateImp(compatm), trim(is_local%wrap%flds_scalar_name), itemType, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        if (itemType /= ESMF_STATEITEM_NOTFOUND) then
+          call t_startf('MED:'//trim(subname)//' nextsw_cday')
           ! send nextsw_cday to land - first obtain it from atm import
           call State_GetScalar(&
                scalar_value=nextsw_cday, &
@@ -167,6 +214,7 @@ contains
                flds_scalar_name=is_local%wrap%flds_scalar_name, &
                flds_scalar_num=is_local%wrap%flds_scalar_num, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call t_stopf('MED:'//trim(subname)//' nextsw_cday')
        end if
 
        ! diagnose
@@ -177,6 +225,7 @@ contains
        end if
     end if
 
+    ! Reset first call logical
     first_call = .false.
 
     if (dbug_flag > 5) then
