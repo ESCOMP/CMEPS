@@ -709,6 +709,7 @@ contains
     ! ----------------------------------------------
 
     use ESMF, only : ESMF_FieldBundle, ESMF_FieldBundleGet, ESMF_Field
+    use ESMF, only : ESMF_FieldBundleIsCreated
 
     ! intput/output variables
     type(ESMF_FieldBundle) , intent(inout)        :: FB
@@ -737,11 +738,16 @@ contains
       lvalue = value
     endif
 
-    call ESMF_FieldBundleGet(FB, fieldCount=fieldCount, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    allocate(lfieldnamelist(fieldCount))
-    call ESMF_FieldBundleGet(FB, fieldNameList=lfieldnamelist, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    if (ESMF_FieldBundleIsCreated(fieldbundle=FB)) then
+       call ESMF_FieldBundleGet(FB, fieldCount=fieldCount, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       allocate(lfieldnamelist(fieldCount))
+       call ESMF_FieldBundleGet(FB, fieldNameList=lfieldnamelist, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+    else
+       fieldCount=0
+       allocate(lfieldnamelist(fieldCount))
+    endif
     do n = 1, fieldCount
        call ESMF_FieldBundleGet(FB, fieldName=trim(lfieldnamelist(n)), field=lfield, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return

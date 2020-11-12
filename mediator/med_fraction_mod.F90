@@ -143,6 +143,7 @@ contains
 
     use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_LOGMSG_ERROR
     use ESMF                  , only : ESMF_SUCCESS, ESMF_FAILURE
+    use ESMF                  , only : ESMF_LogSetError, ESMF_RC_NOT_VALID
     use ESMF                  , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_StateIsCreated
     use ESMF                  , only : ESMF_FieldBundle, ESMF_FieldBundleIsCreated, ESMF_FieldBundleDestroy
     use ESMF                  , only : ESMF_FieldBundleGet
@@ -295,7 +296,24 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call fldbun_getdata1d(is_local%wrap%FBFrac(compocn), 'ofrac', ofrac, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       ofrac(:) = So_omask(:)
+
+       if (associated(So_omask)) then
+          if (associated(ofrac)) then
+             ofrac(:) = So_omask(:)
+          else
+             call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=trim(subname)// &
+                  ": FBfrac(compocn) ofrac hasn't been associated", &
+                  line=__LINE__, file=__FILE__, rcToReturn=rc)
+             return
+          endif
+       else
+          if (associated(ofrac)) then
+             call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=trim(subname)// &
+                  ": FBImp(compocn,compocn) So_omask hasn't been associated", &
+                  line=__LINE__, file=__FILE__, rcToReturn=rc)
+             return
+          endif
+       endif
 
        ! Set 'ofrac' in FBFrac(compatm) - at this point this is the ocean mask mapped to the atm grid
        ! This is mapping the ocean mask to the atm grid - so in effect it is (1-land fraction) on the atm grid
