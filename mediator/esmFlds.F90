@@ -9,18 +9,23 @@ module esmflds
   ! Set components
   !-----------------------------------------------
 
-  integer, public, parameter  :: ncomps  = 8
-  integer, public, parameter  :: compmed = 1
-  integer, public, parameter  :: compatm = 2
-  integer, public, parameter  :: complnd = 3
-  integer, public, parameter  :: compocn = 4
-  integer, public, parameter  :: compice = 5
-  integer, public, parameter  :: comprof = 6
-  integer, public, parameter  :: compwav = 7
-  integer, public, parameter  :: compglc = 8
+  integer, public, parameter  :: compmed  = 1
+  integer, public, parameter  :: compatm  = 2
+  integer, public, parameter  :: complnd  = 3
+  integer, public, parameter  :: compocn  = 4
+  integer, public, parameter  :: compice  = 5
+  integer, public, parameter  :: comprof  = 6
+  integer, public, parameter  :: compwav  = 7
+  integer, public, parameter  :: compglc1 = 8 ! greenland
+  integer, public, parameter  :: compglc2 = 9 ! antarctica
+  integer, public, parameter  :: ncomps   = 9
 
   character(len=*), public, parameter :: compname(ncomps) = &
-       (/'med','atm','lnd','ocn','ice','rof','wav','glc'/)
+       (/'med ','atm ','lnd ','ocn ','ice ','rof ','wav ','glc1','glc2'/)
+
+  integer, public :: num_icesheets = 1
+  integer, public, parameter :: max_icesheets = 2
+  integer, public :: compglc(max_icesheets) = (/compglc1,compglc2/)  
 
   !-----------------------------------------------
   ! Set mappers
@@ -36,11 +41,13 @@ module esmflds
   integer , public, parameter :: mapnstod_consd    = 7  ! nearest source to destination followed by conservative dst
   integer , public, parameter :: mapnstod_consf    = 8  ! nearest source to destination followed by conservative frac
   integer , public, parameter :: mappatch_uv3d     = 9  ! rotate u,v to 3d cartesian space, map from src->dest, then rotate back
-  integer , public, parameter :: map_glc2ocn_ice   = 10 ! custom smoothing map to map ice from glc->ocn (cesm only)
-  integer , public, parameter :: map_glc2ocn_liq   = 11 ! custom smoothing map to map liq from glc->ocn (cesm only)
-  integer , public, parameter :: map_rof2ocn_ice   = 12 ! custom smoothing map to map ice from rof->ocn (cesm only)
-  integer , public, parameter :: map_rof2ocn_liq   = 13 ! custom smoothing map to map liq from rof->ocn (cesm only)
-  integer , public, parameter :: nmappers          = 13
+  integer , public, parameter :: map_rof2ocn_ice   = 10 ! custom smoothing map to map ice from rof->ocn (cesm only)
+  integer , public, parameter :: map_rof2ocn_liq   = 11 ! custom smoothing map to map liq from rof->ocn (cesm only)
+  integer , public, parameter :: map_glc12ocn_liq  = 12 ! custom smoothing map to map liq from glc->ocn (cesm only)
+  integer , public, parameter :: map_glc22ocn_liq  = 13 ! custom smoothing map to map liq from glc->ocn (cesm only)
+  integer , public, parameter :: map_glc12ocn_ice  = 14 ! custom smoothing map to map ice from glc->ocn (cesm only)
+  integer , public, parameter :: map_glc22ocn_ice  = 15 ! custom smoothing map to map ice from glc->ocn (cesm only)
+  integer , public, parameter :: nmappers          = 15
 
   character(len=*) , public, parameter :: mapnames(nmappers) = &
        (/'bilnr      ',&

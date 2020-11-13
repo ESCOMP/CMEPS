@@ -196,7 +196,7 @@ contains
     use ESMF    , only : operator(==), operator(-)
     use ESMF    , only : ESMF_ALARMLIST_ALL, ESMF_ClockGetAlarmList
     use NUOPC   , only : NUOPC_CompAttributeGet
-    use esmFlds , only : compatm, complnd, compocn, compice, comprof, compglc, ncomps, compname
+    use esmFlds , only : compatm, compocn, ncomps, compname
     use esmFlds , only : fldListFr, fldListTo
     use NUOPC_Model, only : NUOPC_ModelGet
 

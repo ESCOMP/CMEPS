@@ -32,7 +32,7 @@ module MED
   use esmFlds                , only : ncomps, compname
   use esmFlds                , only : fldListFr, fldListTo, med_fldList_Realize
   use esmFlds                , only : ncomps, compname, ncomps, compmed, compatm, compocn
-  use esmFlds                , only : compice, complnd, comprof, compwav, compglc, compname
+  use esmFlds                , only : compice, complnd, comprof, compwav, compglc1, compglc2
   use esmFlds                , only : fldListMed_ocnalb, fldListMed_aoflux
   use esmFlds                , only : med_fldList_GetNumFlds
   use esmFlds                , only : med_fldList_GetFldNames
@@ -42,6 +42,10 @@ module MED
   use esmFldsExchange_nems_mod , only : esmFldsExchange_nems
   use esmFldsExchange_cesm_mod , only : esmFldsExchange_cesm
   use esmFldsExchange_hafs_mod , only : esmFldsExchange_hafs
+
+  ! TODO: how do you determine how many ice sheets are active and which ones they are???
+  ! in env_run.xml determine have entries for every possible ice sheet - and if the mesh is unset - that 
+  ! ice sheet is not present - for now limit the number of ice sheets to 2
 
   implicit none
   private
@@ -597,19 +601,19 @@ contains
     ! Mediator advertises its import and export Fields and sets the
     ! TransferOfferGeomObject Attribute.
 
-    use ESMF                  , only : ESMF_GridComp, ESMF_State, ESMF_Clock, ESMF_SUCCESS, ESMF_LogFoundAllocError
-    use ESMF                  , only : ESMF_LogMsg_Info, ESMF_LogWrite
-    use NUOPC                 , only : NUOPC_AddNamespace, NUOPC_Advertise
-    use NUOPC                 , only : NUOPC_CompAttributeGet, NUOPC_CompAttributeSet, NUOPC_CompAttributeAdd
-    use med_internalstate_mod , only : InternalState
-    use esmFlds               , only : ncomps, compmed, compatm, compocn
-    use esmFlds               , only : compice, complnd, comprof, compwav, compglc, compname
-    use esmFlds               , only : fldListFr, fldListTo
-    use esmFlds               , only : med_fldList_GetNumFlds
-    use esmFlds               , only : med_fldList_GetFldInfo
-    use esmFldsExchange_nems_mod, only : esmFldsExchange_nems
-    use esmFldsExchange_hafs_mod, only : esmFldsExchange_hafs
-    use med_internalstate_mod , only : mastertask
+    use ESMF                     , only : ESMF_GridComp, ESMF_State, ESMF_Clock, ESMF_SUCCESS, ESMF_LogFoundAllocError
+    use ESMF                     , only : ESMF_LogMsg_Info, ESMF_LogWrite
+    use NUOPC                    , only : NUOPC_AddNamespace, NUOPC_Advertise
+    use NUOPC                    , only : NUOPC_CompAttributeGet, NUOPC_CompAttributeSet, NUOPC_CompAttributeAdd
+    use med_internalstate_mod    , only : InternalState
+    use esmFlds                  , only : ncomps, compmed, compatm, compocn
+    use esmFlds                  , only : compice, complnd, comprof, compwav, compglc1, compglc2, compname
+    use esmFlds                  , only : fldListFr, fldListTo
+    use esmFlds                  , only : med_fldList_GetNumFlds
+    use esmFlds                  , only : med_fldList_GetFldInfo
+    use esmFldsExchange_nems_mod , only : esmFldsExchange_nems
+    use esmFldsExchange_hafs_mod , only : esmFldsExchange_hafs
+    use med_internalstate_mod    , only : mastertask
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -623,6 +627,7 @@ contains
     logical             :: isPresent, isSet
     character(len=CS)   :: transferOffer
     character(len=CS)   :: cvalue
+    character(len=8)    :: cnum
     type(InternalState) :: is_local
     integer             :: stat
     character(len=8)    :: atm_present, lnd_present
@@ -658,34 +663,44 @@ contains
     ! state. The nested state is returned as nestedState. nestedStateName will be used to name the
     ! newly created nested state.
 
-    call NUOPC_AddNamespace(importState, namespace="ATM", nestedStateName="NestedState-AtmImp", &
+    call NUOPC_AddNamespace(importState, namespace="ATM", nestedStateName="AtmImp", &
          nestedState=is_local%wrap%NStateImp(compatm), rc=rc)
-    call NUOPC_AddNamespace(importState, namespace="OCN", nestedStateName="NestedState-OcnImp", &
-         nestedState=is_local%wrap%NStateImp(compocn), rc=rc)
-    call NUOPC_AddNamespace(importState, namespace="ICE", nestedStateName="NestedState-IceImp", &
-         nestedState=is_local%wrap%NStateImp(compice), rc=rc)
-    call NUOPC_AddNamespace(importState, namespace="LND", nestedStateName="NestedState-LndImp", &
-         nestedState=is_local%wrap%NStateImp(complnd), rc=rc)
-    call NUOPC_AddNamespace(importState, namespace="ROF", nestedStateName="NestedState-RofImp", &
-         nestedState=is_local%wrap%NStateImp(comprof), rc=rc)
-    call NUOPC_AddNamespace(importState, namespace="WAV", nestedStateName="NestedState-WavImp", &
-         nestedState=is_local%wrap%NStateImp(compwav), rc=rc)
-    call NUOPC_AddNamespace(importState, namespace="GLC", nestedStateName="NestedState-GlcImp", &
-         nestedState=is_local%wrap%NStateImp(compglc), rc=rc)
-    call NUOPC_AddNamespace(exportState, namespace="ATM", nestedStateName="NestedState-AtmExp", &
+    call NUOPC_AddNamespace(exportState, namespace="ATM", nestedStateName="AtmExp", &
          nestedState=is_local%wrap%NStateExp(compatm), rc=rc)
-    call NUOPC_AddNamespace(exportState, namespace="OCN", nestedStateName="NestedState-OcnExp", &
+
+    call NUOPC_AddNamespace(importState, namespace="OCN", nestedStateName="OcnImp", &
+         nestedState=is_local%wrap%NStateImp(compocn), rc=rc)
+    call NUOPC_AddNamespace(exportState, namespace="OCN", nestedStateName="OcnExp", &
          nestedState=is_local%wrap%NStateExp(compocn), rc=rc)
-    call NUOPC_AddNamespace(exportState, namespace="ICE", nestedStateName="NestedState-IceExp", &
+
+    call NUOPC_AddNamespace(importState, namespace="ICE", nestedStateName="IceImp", &
+         nestedState=is_local%wrap%NStateImp(compice), rc=rc)
+    call NUOPC_AddNamespace(exportState, namespace="ICE", nestedStateName="IceExp", &
          nestedState=is_local%wrap%NStateExp(compice), rc=rc)
-    call NUOPC_AddNamespace(exportState, namespace="LND", nestedStateName="NestedState-LndExp", &
+
+    call NUOPC_AddNamespace(importState, namespace="LND", nestedStateName="LndImp", &
+         nestedState=is_local%wrap%NStateImp(complnd), rc=rc)
+    call NUOPC_AddNamespace(exportState, namespace="LND", nestedStateName="LndExp", &
          nestedState=is_local%wrap%NStateExp(complnd), rc=rc)
-    call NUOPC_AddNamespace(exportState, namespace="ROF", nestedStateName="NestedState-RofExp", &
+
+    call NUOPC_AddNamespace(importState, namespace="ROF", nestedStateName="RofImp", &
+         nestedState=is_local%wrap%NStateImp(comprof), rc=rc)
+    call NUOPC_AddNamespace(exportState, namespace="ROF", nestedStateName="RofExp", &
          nestedState=is_local%wrap%NStateExp(comprof), rc=rc)
-    call NUOPC_AddNamespace(exportState, namespace="WAV", nestedStateName="NestedState-WavExp", &
+
+    call NUOPC_AddNamespace(importState, namespace="WAV", nestedStateName="WavImp", &
+         nestedState=is_local%wrap%NStateImp(compwav), rc=rc)
+    call NUOPC_AddNamespace(exportState, namespace="WAV", nestedStateName="WavExp", &
          nestedState=is_local%wrap%NStateExp(compwav), rc=rc)
-    call NUOPC_AddNamespace(exportState, namespace="GLC", nestedStateName="NestedState-GlcExp", &
-         nestedState=is_local%wrap%NStateExp(compglc), rc=rc)
+
+    ! Only create nested states for active ice sheets
+    do n = 1,num_icesheets
+       write(cnum,'(i0)') n
+       call NUOPC_AddNamespace(importState, namespace="GLC"//trim(cnum), nestedStateName="GlcImp"//trim(cnum), &
+            nestedState=is_local%wrap%NStateImp(compglc1), rc=rc)
+       call NUOPC_AddNamespace(exportState, namespace="GLC"//trim(cnum), nestedStateName="GlcExp"//trim(cnum), &
+            nestedState=is_local%wrap%NStateExp(compglc1), rc=rc)
+    end do
 
     !------------------
     ! Initialize mediator flds (should be identical to the list in esmDict_Init)
@@ -727,6 +742,7 @@ contains
     wav_present = "false"
     glc_present = "false"
 
+    ! Note that the present flag is set to true if the component is not stub
     call NUOPC_CompAttributeGet(gcomp, name='ATM_model', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (isPresent .and. isSet) then
@@ -1649,14 +1665,14 @@ contains
     type(ESMF_Field)                   :: field
     type(ESMF_StateItem_Flag)          :: itemType
     logical                            :: atCorrectTime, connected
-    integer                            :: n1,n2,n
+    integer                            :: n1,n2,n,ns
     integer                            :: nsrc,ndst
     integer                            :: cntn1, cntn2
     integer                            :: fieldCount
     character(ESMF_MAXSTR),allocatable :: fieldNameList(:)
-    character(CL)                      :: value
     character(CL), pointer             :: fldnames(:) => null()
     character(CL)                      :: cvalue
+    character(CL)                      :: cname
     character(CL)                      :: start_type
     logical                            :: read_restart
     logical                            :: allDone = .false.
@@ -1693,23 +1709,38 @@ contains
 
     if (first_call) then
 
-      ! initialize the present flags in the mediator
-       call ESMF_LogWrite("Starting to initialize present flags", ESMF_LOGMSG_INFO)
-       call ESMF_LogFlush()
+      !----------------------------------------------------------
+      ! Initialize mediator present flags
+      !----------------------------------------------------------
 
-      !----------------------------------------------------------
-      !--- Check present flags
-      !----------------------------------------------------------
+       if (masterproc) then
+          write(logunit,'(a)') trim(subname) // "Initializing present flags"
+       end if
+
+       is_local%wrap%comp_present(:) = .false.
 
       do n1 = 1,ncomps
-        call ESMF_AttributeGet(gcomp, name=trim(compname(n1))//"_present", value=value, defaultValue="false", &
-             convention="NUOPC", purpose="Instance", rc=rc)
-        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-        is_local%wrap%comp_present(n1) = (value == "true")
-        write(msgString,'(A,L4)') trim(subname)//' comp_present(comp'//trim(compname(n1))//') = ',&
-             is_local%wrap%comp_present(n1)
-        call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
+        cname = trim(compname(n1))
+        if (cname(1:3) == 'glc') then
+           call ESMF_AttributeGet(gcomp, name="glc_present", value=cvalue, defaultValue="false", &
+                convention="NUOPC", purpose="Instance", rc=rc)
+           if (ChkErr(rc,__LINE__,u_FILE_u)) return
+           if (trim(cvalue == 'true')) then
+              do ns = 1,max_icesheets
+                 is_local%wrap%comp_present(ns) = .true.
+              end do
+           end if
+        else
+           call ESMF_AttributeGet(gcomp, name=trim(compname(n1))//"_present", value=value, defaultValue="false", &
+                convention="NUOPC", purpose="Instance", rc=rc)
+           if (ChkErr(rc,__LINE__,u_FILE_u)) return
+           is_local%wrap%comp_present(n1) = (trim(cvalue) == "true")
+        end if
+        if (masterproc) then
+           write(msgString,'(A,L4)') trim(subname)//' comp_present(comp'//trim(compname(n1))//') = ',&
+                is_local%wrap%comp_present(n1)
+           write(logunit,'(a)') trim(subname) // trim(msgString)
+        end if
       enddo
 
       !----------------------------------------------------------
@@ -1717,12 +1748,12 @@ contains
       !    must be allowed, bundles created, and both sides have some fields
       !----------------------------------------------------------
 
-      call ESMF_LogWrite("Starting to initialize active flags", ESMF_LOGMSG_INFO)
-      call ESMF_LogFlush()
+       if (masterproc) then
+          write(logunit,'(a)') trim(subname) // "Initializing active coupling flags"
+       end if
 
       ! initialize med_coupling_active
       is_local%wrap%med_coupling_active(:,:) = .false.
-
       do n1 = 1,ncomps
         if (is_local%wrap%comp_present(n1) .and. ESMF_StateIsCreated(is_local%wrap%NStateImp(n1),rc=rc)) then
           call State_GetNumFields(is_local%wrap%NStateImp(n1), cntn1, rc=rc) ! Import Field Count
@@ -1742,55 +1773,37 @@ contains
         endif
       enddo
 
-      ! create tables of output
+      ! create table of active coupling flags
       if (mastertask) then
-         if (dbug_flag > 5) then
-            write(logunit,*) ' '
-            write(logunit,'(A)') subname//' Allowed coupling flags'
-            write(logunit,'(2x,A10,20(A5))') '|from to->',(compname(n2),n2=1,ncomps)
-            do n1 = 1,ncomps
-               write(msgString,'(2x,a1,A,5x,20(L5))') '|',trim(compname(n1)),(med_coupling_allowed(n1,n2),n2=1,ncomps)
-               do n2 = 1,len_trim(msgString)
-                  if (msgString(n2:n2) == 'F') msgString(n2:n2)='-'
-               enddo
-               write(logunit,'(A)') trim(msgString)
+         write(logunit,*) ' '
+         write(logunit,'(A)') trim(subname)//' Allowed coupling flags'
+         write(logunit,'(2x,A10,20(A5))') '|from to->',(compname(n2),n2=1,ncomps)
+         do n1 = 1,ncomps
+            write(msgString,'(2x,a1,A,5x,20(L5))') '|',trim(compname(n1)),(med_coupling_allowed(n1,n2),n2=1,ncomps)
+            do n2 = 1,len_trim(msgString)
+               if (msgString(n2:n2) == 'F') msgString(n2:n2)='-'
             enddo
-            write(logunit,*) ' '
-         endif
-
-         if (dbug_flag >= 0) then
-            write(logunit,*) ' '
-            write(logunit,'(A)') subname//' Active coupling flags'
-            write(logunit,'(2x,A10,20(A5))') '|from to->',(compname(n2),n2=1,ncomps)
-            do n1 = 1,ncomps
-               write(msgString,'(2x,a1,A,5x,20(L5))') '|',trim(compname(n1)),&
-                    (is_local%wrap%med_coupling_active(n1,n2),n2=1,ncomps)
-               do n2 = 1,len_trim(msgString)
-                  if (msgString(n2:n2) == 'F') msgString(n2:n2)='-'
-               enddo
-               write(logunit,'(A)') trim(msgString)
-            enddo
-            write(logunit,*) ' '
-         endif
+            write(logunit,'(A)') trim(msgString)
+         enddo
+         write(logunit,*) ' '
       endif
-
-      !----------------------------------------------------------
-      ! Initialize connector count
-      !----------------------------------------------------------
-
-      call ESMF_LogWrite("Starting to Create FBs", ESMF_LOGMSG_INFO)
-      call ESMF_LogFlush()
 
       !----------------------------------------------------------
       ! Create field bundles FBImp, FBExp, FBImpAccum, FBExpAccum
       !----------------------------------------------------------
+
+      if (mastertask) then
+         write(logunit,'(a)') 'Creating mediator field bundles '
+      end if
 
       do n1 = 1,ncomps
          if (is_local%wrap%comp_present(n1) .and. &
               ESMF_StateIsCreated(is_local%wrap%NStateImp(n1),rc=rc) .and. &
               ESMF_StateIsCreated(is_local%wrap%NStateExp(n1),rc=rc)) then
 
-            if (mastertask) write(logunit,*) subname,' initializing FBs for '//trim(compname(n1))
+            if (mastertask) then
+               write(logunit,'(a)') trim(subname)//' initializing FBs for '//trim(compname(n1))
+            end if
 
             ! Create FBImp(:) with pointers directly into NStateImp(:)
             call FB_init_pointer(is_local%wrap%NStateImp(n1), is_local%wrap%FBImp(n1,n1), &
@@ -1835,8 +1848,10 @@ contains
                  ESMF_StateIsCreated(is_local%wrap%NStateImp(n1),rc=rc) .and. &
                  ESMF_StateIsCreated(is_local%wrap%NStateImp(n2),rc=rc)) then
 
-               if (mastertask) write(logunit,*) subname,' initializing FBs for '//&
-                    trim(compname(n1))//'_'//trim(compname(n2))
+               if (mastertask) then
+                  write(logunit,'(a)') trim(subname)//' initializing FBs for '//&
+                       trim(compname(n1))//'_'//trim(compname(n2))
+               end if
 
                call FB_init(is_local%wrap%FBImp(n1,n2), is_local%wrap%flds_scalar_name, &
                     STgeom=is_local%wrap%NStateImp(n2), &
@@ -1887,25 +1902,31 @@ contains
             call FB_init(is_local%wrap%FBMed_ocnalb_a, is_local%wrap%flds_scalar_name, &
                  STgeom=is_local%wrap%NStateImp(compatm), fieldnamelist=fldnames, name='FBMed_ocnalb_a', rc=rc)
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-            if (mastertask) write(logunit,*) subname,' initializing FB FBMed_ocnalb_a'
+            if (mastertask) then
+               write(logunit,'(a)') trim(subname)//' initializing FB FBMed_ocnalb_a'
 
             call FB_init(is_local%wrap%FBMed_ocnalb_o, is_local%wrap%flds_scalar_name, &
                  STgeom=is_local%wrap%NStateImp(compocn), fieldnamelist=fldnames, name='FBMed_ocnalb_o', rc=rc)
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-            if (mastertask) write(logunit,*) subname,' initializing FB FBMed_ocnalb_o'
+            if (mastertask) then
+               write(logunit,'(a')) trim(subname)//' initializing FB FBMed_ocnalb_o'
             deallocate(fldnames)
 
             ! The following assumes that the mediator atm/ocn flux calculation will be done on the ocean grid
             if (.not. ESMF_FieldBundleIsCreated(is_local%wrap%FBImp(compatm,compocn), rc=rc)) then
-               call ESMF_LogWrite(trim(subname)//' creating field bundle FBImp(compatm,compocn)', ESMF_LOGMSG_INFO)
+               if (mastertask) then
+                  write(logunit,'(a)') trim(subname)//' creating field bundle FBImp(compatm,compocn)'
+               end if
                call FB_init(is_local%wrap%FBImp(compatm,compocn), is_local%wrap%flds_scalar_name, &
                     STgeom=is_local%wrap%NStateImp(compocn), &
                     STflds=is_local%wrap%NStateImp(compatm), &
                     name='FBImp'//trim(compname(compatm))//'_'//trim(compname(compocn)), rc=rc)
                if (ChkErr(rc,__LINE__,u_FILE_u)) return
             end if
-            if (mastertask) write(logunit,*) subname,' initializing FBs for '// &
-                 trim(compname(compatm))//'_'//trim(compname(compocn))
+            if (mastertask) then
+               write(logunit,'(a)') trim(subname)//' initializing FBs for '// &
+                    trim(compname(compatm))//'_'//trim(compname(compocn))
+            end if
          end if
 
          ! Create field bundles for mediator ocean/atmosphere flux computation
@@ -1918,12 +1939,15 @@ contains
             call FB_init(is_local%wrap%FBMed_aoflux_a, is_local%wrap%flds_scalar_name, &
                  STgeom=is_local%wrap%NStateImp(compatm), fieldnamelist=fldnames, name='FBMed_aoflux_a', rc=rc)
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-            if (mastertask) write(logunit,*) subname,' initializing FB FBMed_aoflux_a'
+            if (mastertask) then
+               write(logunit,'(a)') trim(subname)//' initializing FB FBMed_aoflux_a'
 
             call FB_init(is_local%wrap%FBMed_aoflux_o, is_local%wrap%flds_scalar_name, &
                  STgeom=is_local%wrap%NStateImp(compocn), fieldnamelist=fldnames, name='FBMed_aoflux_o', rc=rc)
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-            if (mastertask) write(logunit,*) subname,' initializing FB FBMed_aoflux_o'
+            if (mastertask) then
+               write(logunit,'(a)') trim(subname)//' initializing FB FBMed_aoflux_o'
+            end if
             deallocate(fldnames)
          end if
       end if

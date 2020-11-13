@@ -67,7 +67,7 @@ contains
     use esmFlds               , only : addmap => med_fldList_AddMap
     use esmFlds               , only : addmrg => med_fldList_AddMrg
     use esmflds               , only : compmed, compatm, complnd, compocn
-    use esmflds               , only : compice, comprof, compwav, compglc, ncomps
+    use esmflds               , only : compice, comprof, compwav, compglc1, compglc2, ncomps
     use esmflds               , only : mapbilnr, mapconsf, mapconsd, mappatch, mappatch_uv3d
     use esmflds               , only : mapfcopy, mapnstod, mapnstod_consd, mapnstod_consf
     use esmflds               , only : map_glc2ocn_ice, map_glc2ocn_liq, map_rof2ocn_ice, map_rof2ocn_liq
@@ -82,6 +82,8 @@ contains
     ! local variables:
     type(InternalState) :: is_local
     integer             :: n
+    integer             :: compglc
+    logical             :: is_lnd, is_glc
     character(len=5)    :: iso(2)
     character(len=CL)   :: cvalue
     character(len=CS)   :: name, fldname
@@ -434,53 +436,27 @@ contains
     ! to lnd: ice sheet mask where we are potentially sending non-zero fluxes from glc
     ! to lnd: fields with multiple elevation classes from glc
     ! ---------------------------------------------------------------------
-    allocate(flds(2))
-    flds = (/'Sg_icemask               ', 'Sg_icemask_coupled_fluxes'/)
 
-    do n = 1,size(flds)
-       fldname = trim(flds(n))
-       if (phase == 'advertise') then
-          call addfld(fldListFr(compglc)%flds   , trim(fldname))
-          call addfld(fldListTo(complnd)%flds   , trim(fldname))
-       else
-          if ( fldchk(is_local%wrap%FBExp(complnd)         , trim(fldname), rc=rc) .and. &
-               fldchk(is_local%wrap%FBImp(compglc, compglc), trim(fldname), rc=rc)) then
-             call addmap(fldListFr(compglc)%flds, trim(fldname), complnd,  mapconsd, 'one', glc2lnd_smap)
-             call addmrg(fldListTo(complnd)%flds, trim(fldname), &
-                  mrg_from1=compglc, mrg_fld1=trim(fldname), mrg_type1='copy')
-          end if
-       end if
-    end do
-    deallocate(flds)
-
-    ! for glc fields with multiple elevation classes in glc->lnd
+    ! The suffix _elev on land fields designates fields with elevation classes
     ! fields from glc->med do NOT have elevation classes
     ! fields from med->lnd are BROKEN into multiple elevation classes
 
     if (phase == 'advertise') then
-       call addfld(fldListFr(compglc)%flds, 'Sg_ice_covered') ! fraction of glacier area
-       call addfld(fldListFr(compglc)%flds, 'Sg_topo')        ! surface height of glacer
-       call addfld(fldListFr(compglc)%flds, 'Flgg_hflx')      ! downward heat flux from glacier interior
-
+       do n = 1, num_icesheets
+          compglc = compglc1 + n - 1
+          call addfld(fldListFr(compglc)%flds, 'Sg_icemask') ! ice sheet grid coverage
+          call addfld(fldListFr(compglc)%flds, 'Sg_icemask_coupled_fluxes') 
+          call addfld(fldListFr(compglc)%flds, 'Sg_ice_covered') ! fraction of glacier area
+          call addfld(fldListFr(compglc)%flds, 'Sg_topo')        ! surface height of glacer
+          call addfld(fldListFr(compglc)%flds, 'Flgg_hflx')      ! downward heat flux from glacier interior
+       end do
+       call addfld(fldListTo(complnd)%flds, 'Sg_icemask')
+       call addfld(fldListTo(complnd)%flds, 'Sg_icemask_coupled_fluxes'
        call addfld(fldListTo(complnd)%flds, 'Sg_ice_covered_elev')
        call addfld(fldListTo(complnd)%flds, 'Sg_topo_elev')
        call addfld(fldListTo(complnd)%flds, 'Flgg_hflx_elev')
     else
-       if ( fldchk(is_local%wrap%FBExp(complnd)         , 'Sg_ice_covered_elev', rc=rc) .and. &
-            fldchk(is_local%wrap%FBExp(complnd)         , 'Sg_topo_elev'       , rc=rc) .and. &
-            fldchk(is_local%wrap%FBExp(complnd)         , 'Flgg_hflx_elev'     , rc=rc) .and. &
-
-            fldchk(is_local%wrap%FBImp(compglc,compglc) , 'Sg_ice_covered'     , rc=rc) .and. &
-            fldchk(is_local%wrap%FBImp(compglc,compglc) , 'Sg_topo'            , rc=rc) .and. &
-            fldchk(is_local%wrap%FBImp(compglc,compglc) , 'Flgg_hflx'          , rc=rc)) then
-
-          ! Custom merges will be done here
-          call addmap(FldListFr(compglc)%flds, 'Sg_ice_covered' , complnd, mapconsf, 'unset' , glc2lnd_fmap)
-          call addmap(FldListFr(compglc)%flds, 'Sg_topo'        , compglc, mapconsf, 'custom', glc2lnd_fmap)
-          call addmap(FldListFr(compglc)%flds, 'Flgg_hflx'      , compglc, mapconsf, 'custom', glc2lnd_fmap)
-
-          ! Custom merge in med_phases_prep_lnd
-       end if
+       ! custom map and merge in med_phases_prep_lnd
     end if
 
     !=====================================================================
@@ -1251,8 +1227,12 @@ contains
           ! fldlistFr(comprof) in order to be mapped correctly but the ocean
           ! does not receive it so it is advertised but it will! not be connected
 
-          call addfld(fldListFr(compglc)%flds, 'Fogg_rofl'//iso(n))
-          call addfld(fldListFr(compglc)%flds, 'Fogg_rofi'//iso(n))
+          ! TODO: multiple ice sheets to ocn - how to handle this
+          do n = 1, num_icesheets
+             compglc = compglc1 + n - 1
+             call addfld(fldListFr(compglc)%flds, 'Fogg_rofl'//iso(n))
+             call addfld(fldListFr(compglc)%flds, 'Fogg_rofi'//iso(n))
+          end do
           call addfld(fldListFr(comprof)%flds, 'Forr_rofl'//iso(n))
           call addfld(fldListFr(comprof)%flds, 'Forr_rofi'//iso(n))
           call addfld(fldListTo(compocn)%flds, 'Foxx_rofl'//iso(n))
@@ -1261,54 +1241,51 @@ contains
        end do
     else
        do n = 1,size(iso)
+
+          nflds = 0
+          fld_indices(9) = 0
+          fld_names(9) = ''
+
           ! liquid runoff from rof, flood and glc to ocn
-          if ( fldchk(is_local%wrap%FBExp(compocn)         , 'Foxx_rofl'//iso(n) , rc=rc) .and. &
-               fldchk(is_local%wrap%FBImp(comprof, comprof), 'Forr_rofl'//iso(n) , rc=rc) .and. &
-               fldchk(is_local%wrap%FBImp(comprof, comprof), 'Flrr_flood'//iso(n), rc=rc) .and. &
-               fldchk(is_local%wrap%FBImp(compglc, compglc), 'Fogg_rofl'//iso(n) , rc=rc)) then
-             call addmap(fldListFr(comprof)%flds, 'Forr_rofl'//iso(n) , compocn, map_rof2ocn_liq, 'none', rof2ocn_liq_rmap)
-             call addmap(fldListFr(comprof)%flds, 'Flrr_flood'//iso(n), compocn, mapconsd       , 'one' , rof2ocn_fmap)
-             call addmap(fldListFr(compglc)%flds, 'Fogg_rofl'//iso(n) , compocn, map_glc2ocn_liq, 'one' , glc2ocn_liq_rmap)
-             call addmrg(fldListTo(compocn)%flds, 'Foxx_rofl'//iso(n), &
-                  mrg_from1=comprof, mrg_fld1='Forr_rofl:Flrr_flood', mrg_type1='sum', &
-                  mrg_from2=compglc, mrg_fld2='Fogg_rofl'//iso(n)   , mrg_type2='sum')
-          ! liquid runoff from both rof and glc to ocn
-          else if ( fldchk(is_local%wrap%FBExp(compocn)         , 'Foxx_rofl'//iso(n) , rc=rc) .and. &
-                    fldchk(is_local%wrap%FBImp(comprof, comprof), 'Forr_rofl'//iso(n) , rc=rc) .and. .not. &
-                    fldchk(is_local%wrap%FBImp(comprof, comprof), 'Flrr_flood'//iso(n), rc=rc) .and. &
-                    fldchk(is_local%wrap%FBImp(compglc, compglc), 'Fogg_rofl'//iso(n) , rc=rc)) then
-             call addmap(fldListFr(comprof)%flds, 'Forr_rofl'//iso(n), compocn, map_rof2ocn_liq, 'none', rof2ocn_liq_rmap)
-             call addmap(fldListFr(compglc)%flds, 'Fogg_rofl'//iso(n), compocn, map_glc2ocn_liq, 'one' , glc2ocn_liq_rmap)
-             call addmrg(fldListTo(compocn)%flds, 'Foxx_rofl'//iso(n), &
-                  mrg_from1=comprof, mrg_fld1='Forr_rofl'        , mrg_type1='sum', &
-                  mrg_from2=compglc, mrg_fld2='Fogg_rofl'//iso(n), mrg_type2='sum')
-          ! liquid runoff from rof and flood to ocn
-          else if ( fldchk(is_local%wrap%FBExp(compocn)         , 'Foxx_rofl'//iso(n) , rc=rc) .and. &
-                    fldchk(is_local%wrap%FBImp(comprof, comprof), 'Forr_rofl'//iso(n) , rc=rc) .and. &
-                    fldchk(is_local%wrap%FBImp(comprof, comprof), 'Flrr_flood'//iso(n), rc=rc) .and. .not. &
-                    fldchk(is_local%wrap%FBImp(compglc, compglc), 'Fogg_rofl'//iso(n) , rc=rc)) then
-             call addmap(fldListFr(comprof)%flds, 'Flrr_flood'//iso(n), compocn, mapconsf       , 'one' , rof2ocn_fmap)
-             call addmap(fldListFr(comprof)%flds, 'Forr_rofl' //iso(n), compocn, map_rof2ocn_liq, 'none', rof2ocn_liq_rmap)
-             call addmrg(fldListTo(compocn)%flds, 'Foxx_rofl' //iso(n), &
-                  mrg_from1=comprof, mrg_fld1='Forr_rofl:Flrr_flood', mrg_type1='sum')
-          ! liquid from just rof to ocn
-          else if ( fldchk(is_local%wrap%FBExp(compocn)         , 'Foxx_rofl'//iso(n) , rc=rc) .and. &
-                    fldchk(is_local%wrap%FBImp(comprof, comprof), 'Forr_rofl'//iso(n) , rc=rc) .and. .not. &
-                    fldchk(is_local%wrap%FBImp(comprof, comprof), 'Flrr_flood'//iso(n), rc=rc) .and. .not. &
-                    fldchk(is_local%wrap%FBImp(compglc, compglc), 'Fogg_rofl'//iso(n) , rc=rc)) then
-             call addmap(fldListFr(comprof)%flds, 'Forr_rofl'//iso(n), compocn, mapconsf, 'none', rof2ocn_liq_rmap)
-             call addmrg(fldListTo(compocn)%flds, 'Foxx_rofl'//iso(n), &
-                  mrg_from1=comprof, mrg_fld1='Forr_rofl', mrg_type1='copy')
-          ! liquid runoff from just glc to ocn
-          else if ( .not. fldchk(is_local%wrap%FBExp(compocn)         , 'Foxx_rofl'//iso(n) , rc=rc) .and. &
-                    .not. fldchk(is_local%wrap%FBImp(comprof, comprof), 'Forr_rofl'//iso(n) , rc=rc) .and. &
-                    .not. fldchk(is_local%wrap%FBImp(comprof, comprof), 'Flrr_flood'//iso(n), rc=rc) .and. &
-                          fldchk(is_local%wrap%FBImp(compglc, compglc), 'Fogg_rofl'//iso(n) , rc=rc)) then
-          else if ( fldchk(is_local%wrap%FBExp(compocn)         , 'Foxx_rofl'//iso(n), rc=rc) .and. &
-                    fldchk(is_local%wrap%FBImp(compglc, compglc), 'Fogg_rofl'//iso(n), rc=rc)) then
-             call addmap(fldListFr(compglc)%flds, 'Fogg_rofl'//iso(n), compocn,  mapconsf, 'one', glc2ocn_liq_rmap)
-             call addmrg(fldListTo(compocn)%flds, 'Foxx_rofl'//iso(n), &
-                  mrg_from1=compglc, mrg_fld1='Fogg_rofl'//iso(n), mrg_type1='copy')
+          if ( fldchk(is_local%wrap%FBExp(compocn)         , 'Foxx_rofl'//iso(n) , rc=rc)) then
+             ! liquid runoff from rof
+             if (fldchk(is_local%wrap%FBImp(comprof, comprof), 'Forr_rofl'//iso(n) , rc=rc)) then
+                call addmap(fldListFr(comprof)%flds, 'Forr_rofl'//iso(n) , compocn, map_rof2ocn_liq, 'none', rof2ocn_liq_rmap)
+                nflds = nflds + 1
+                index_array(nflds) = comprof
+                fld_names(nflds) = 'Forr_rofl'//iso(n)
+             end if
+             ! liquid runoff from flood
+             if (fldchk(is_local%wrap%FBImp(comprof, comprof), 'Flrr_flood'//iso(n), rc=rc)) then
+                call addmap(fldListFr(comprof)%flds, 'Flrr_flood'//iso(n), compocn, mapconsd       , 'one' , rof2ocn_fmap)
+                nflds = nflds + 1
+                index_array(nflds) = comprof
+                fld_names(nflds) = 'Flrr_flood'//iso(n)
+             end if
+             ! liquid runoff from glc - do the merge over ice sheets explicitly
+             if (fldchk(is_local%wrap%FBImp(compglc, compglc), 'Fogg_rofl'//iso(n) , rc=rc)) then
+                do ns = 1, num_icesheets
+                   compglc = compglc1 + ns - 1
+                   ! TODO: this custom map needs to be different for every ice sheet - how will this be handled?
+                   call addmap(fldListFr(compglc)%flds, 'Fogg_rofl'//iso(n) , compocn, map_glc2ocn_liq, 'one' , glc2ocn_liq_rmap) 
+                end do
+             end if
+
+             ! Do the merge over ice sheets explicitly in prep_ocn_mod.F90 - but handle all the other merges here
+             ! So in prep_ocn_mod - Foxx_rofl would need to have the glc->ocn runoff added from each of the ice sheets
+             if (nflds == 1) then
+                call addmrg(fldListTo(compocn)%flds, 'Foxx_rofl'//iso(n), &
+                     mrg_from1=fld_indices(1), mrg_fld1=fld_names(1), mrg_type1='sum')
+             else if (nflds == 2) then
+                call addmrg(fldListTo(compocn)%flds, 'Foxx_rofl'//iso(n), &
+                     mrg_from1=fld_indices(1), mrg_fld1=fld_names(1), mrg_type1='sum', &
+                     mrg_from2=fld_indices(2), mrg_fld2=fld_names(2), mrg_type2='sum')
+             else if (nflds == 3) then
+                call addmrg(fldListTo(compocn)%flds, 'Foxx_rofl'//iso(n), &
+                     mrg_from1=fld_indices(1), mrg_fld1=fld_names(1), mrg_type1='sum', &
+                     mrg_from1=fld_indices(2), mrg_fld1=fld_names(2), mrg_type1='sum', & 
+                     mrg_from1=fld_indices(3), mrg_fld1=fld_names(3), mrg_type3='sum')
+             end if
           end if
 
           ! ice runoff from both rof and glc to ocn
@@ -1726,23 +1703,15 @@ contains
 
     if (phase == 'advertise') then
        call addfld(fldListFr(complnd)%flds, 'Sl_tsrf_elev')   ! surface temperature of glacier (1->glc_nec+1)
-       call addfld(fldListTo(compglc)%flds, 'Sl_tsrf')
        call addfld(fldListFr(complnd)%flds, 'Sl_topo_elev')   ! surface heights of glacier     (1->glc_nec+1)
-       call addfld(fldListTo(compglc)%flds, 'Flgl_qice')
        call addfld(fldListFr(complnd)%flds, 'Flgl_qice_elev') ! glacier ice flux               (1->glc_nec+1)
+       do n = 1,num_icesheets
+          compglc = compglc1 + n - 1
+          call addfld(fldListTo(compglc)%flds, 'Sl_tsrf')
+          call addfld(fldListTo(compglc)%flds, 'Flgl_qice')
+       end do
     else
-       if ( fldchk(is_local%wrap%FBImp(complnd,complnd) , 'Flgl_qice_elev', rc=rc)) then
-          ! custom merging will be done here
-          call addmap(FldListFr(complnd)%flds, 'Flgl_qice_elev', compglc, mapbilnr, 'lfrac', lnd2glc_smap)
-       end if
-       if ( fldchk(is_local%wrap%FBImp(complnd,complnd) , 'Sl_tsrf_elev'  , rc=rc)) then
-          ! custom merging will be done here
-          call addmap(FldListFr(complnd)%flds, 'Sl_tsrf_elev', compglc, mapbilnr, 'lfrac', lnd2glc_smap)
-       end if
-       if ( fldchk(is_local%wrap%FBImp(complnd,complnd) , 'Sl_topo_elev'  , rc=rc)) then
-          ! This is needed just for mappingn to glc - but is not sent as a field
-          call addmap(FldListFr(complnd)%flds, 'Sl_topo_elev', compglc, mapbilnr, 'lfrac', lnd2glc_smap)
-       end if
+       ! custom mapping and merging will be done in prep_glc_mod.F90
     end if
 
     !=====================================================================
