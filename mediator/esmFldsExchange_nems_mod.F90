@@ -237,8 +237,9 @@ contains
           call addfld(fldListFr(compice)%flds , 'Fioi_'//trim(flds(n)))
           call addmap(fldListFr(compice)%flds,  'Fioi_'//trim(flds(n)), compocn, mapfcopy, 'unset', 'unset')
           call addmrg(fldListTo(compocn)%flds,  'Foxx_'//trim(flds(n)), &
-             mrg_from1=compmed, mrg_fld1='Faox_'//trim(flds(n)), mrg_type1='merge', mrg_fracname1='ofrac', &
-             mrg_from2=compice, mrg_fld2='Fioi_'//trim(flds(n)), mrg_type2='merge', mrg_fracname2='ifrac')
+               mrg_from1=compmed, mrg_fld1='Faox_'//trim(flds(n)), mrg_type1='merge', mrg_fracname1='ofrac')
+          call addmrg(fldListTo(compocn)%flds,  'Foxx_'//trim(flds(n)), &
+               mrg_from1=compice, mrg_fld1='Fioi_'//trim(flds(n)), mrg_type1='merge', mrg_fracname1='ifrac')
        end do
        deallocate(flds)
 
@@ -247,8 +248,9 @@ contains
        call addfld(fldListFr(compatm)%flds, 'Faxa_lwdn')
        call addmap(fldListFr(compatm)%flds, 'Faxa_lwdn', compocn, maptype, 'none', 'unset')
        call addmrg(fldListTo(compocn)%flds, 'Foxx_lwnet', &
-             mrg_from1=compmed, mrg_fld1='Faox_lwup', mrg_type1='merge', mrg_fracname1='ofrac', &
-             mrg_from2=compatm, mrg_fld2='Faxa_lwdn', mrg_type2='merge', mrg_fracname2='ofrac')
+             mrg_from1=compmed, mrg_fld1='Faox_lwup', mrg_type1='merge', mrg_fracname1='ofrac')
+       call addmrg(fldListTo(compocn)%flds, 'Foxx_lwnet', &
+             mrg_from1=compatm, mrg_fld1='Faxa_lwdn', mrg_type1='merge', mrg_fracname1='ofrac')
 
        ! to ocn: sensible heat flux from mediator via auto merge
        call addfld(fldListTo(compocn)%flds, 'Faox_sen')

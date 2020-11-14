@@ -1251,7 +1251,7 @@ contains
     ! Compute global glc output
     ! ------------------------------------------------------------------
 
-    use esmFlds, only : compglc
+    use esmFlds, only : compglc, num_icesheets
 
     ! input/output variables
     type(ESMF_GridComp) :: gcomp
@@ -1259,7 +1259,7 @@ contains
 
     ! local variables
     type(InternalState) :: is_local
-    integer             :: ic, ip
+    integer             :: ic, ip, ns
     real(r8), pointer   :: areas(:) => null()
     character(*), parameter :: subName = '(med_phases_diag_glc) '
     ! ------------------------------------------------------------------
@@ -1271,18 +1271,21 @@ contains
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    areas => is_local%wrap%mesh_info(compglc)%areas
 
     !-------------------------------
     ! from glc to mediator
     !-------------------------------
 
+    ! TODO: this will not be correct if there is more than 1 ice sheet
     ic = c_glc_send
     ip = period_inst
 
-    call diag_glc(is_local%wrap%FBImp(compglc,compglc), 'Fogg_rofl', f_watr_roff, ic, areas, budget_local, minus=.true., rc=rc)
-    call diag_glc(is_local%wrap%FBImp(compglc,compglc), 'Fogg_rofi', f_watr_ioff, ic, areas, budget_local, minus=.true., rc=rc)
-    call diag_glc(is_local%wrap%FBImp(compglc,compglc), 'Figg_rofi', f_watr_ioff, ic, areas, budget_local, minus=.true., rc=rc)
+    do ns = 1,num_icesheets
+       areas => is_local%wrap%mesh_info(compglc(ns))%areas
+       call diag_glc(is_local%wrap%FBImp(compglc(ns),compglc(ns)), 'Fogg_rofl', f_watr_roff, ic, areas, budget_local, minus=.true., rc=rc)
+       call diag_glc(is_local%wrap%FBImp(compglc(ns),compglc(ns)), 'Fogg_rofi', f_watr_ioff, ic, areas, budget_local, minus=.true., rc=rc)
+       call diag_glc(is_local%wrap%FBImp(compglc(ns),compglc(ns)), 'Figg_rofi', f_watr_ioff, ic, areas, budget_local, minus=.true., rc=rc)
+    end do
 
     budget_local(f_heat_ioff,ic,ip) = -budget_local(f_watr_ioff,ic,ip)*shr_const_latice
 

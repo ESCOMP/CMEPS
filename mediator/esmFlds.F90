@@ -16,16 +16,15 @@ module esmflds
   integer, public, parameter  :: compice  = 5
   integer, public, parameter  :: comprof  = 6
   integer, public, parameter  :: compwav  = 7
-  integer, public, parameter  :: compglc1 = 8 ! greenland
-  integer, public, parameter  :: compglc2 = 9 ! antarctica
-  integer, public, parameter  :: ncomps   = 9
+  integer, public, parameter  :: compglc1 = 8 
+  integer, public, parameter  :: ncomps   = 8
 
   character(len=*), public, parameter :: compname(ncomps) = &
-       (/'med ','atm ','lnd ','ocn ','ice ','rof ','wav ','glc1','glc2'/)
+       (/'med ','atm ','lnd ','ocn ','ice ','rof ','wav ','glc'/)
 
+  integer, public, parameter :: max_icesheets = 1
+  integer, public :: compglc(max_icesheets) = (/compglc1/)
   integer, public :: num_icesheets = 1
-  integer, public, parameter :: max_icesheets = 2
-  integer, public :: compglc(max_icesheets) = (/compglc1,compglc2/)  
 
   !-----------------------------------------------
   ! Set mappers
@@ -43,11 +42,9 @@ module esmflds
   integer , public, parameter :: mappatch_uv3d     = 9  ! rotate u,v to 3d cartesian space, map from src->dest, then rotate back
   integer , public, parameter :: map_rof2ocn_ice   = 10 ! custom smoothing map to map ice from rof->ocn (cesm only)
   integer , public, parameter :: map_rof2ocn_liq   = 11 ! custom smoothing map to map liq from rof->ocn (cesm only)
-  integer , public, parameter :: map_glc12ocn_liq  = 12 ! custom smoothing map to map liq from glc->ocn (cesm only)
-  integer , public, parameter :: map_glc22ocn_liq  = 13 ! custom smoothing map to map liq from glc->ocn (cesm only)
-  integer , public, parameter :: map_glc12ocn_ice  = 14 ! custom smoothing map to map ice from glc->ocn (cesm only)
-  integer , public, parameter :: map_glc22ocn_ice  = 15 ! custom smoothing map to map ice from glc->ocn (cesm only)
-  integer , public, parameter :: nmappers          = 15
+  integer , public, parameter :: map_glc2ocn_liq   = 12 ! custom smoothing map to map liq from glc->ocn (cesm only)
+  integer , public, parameter :: map_glc2ocn_ice   = 13 ! custom smoothing map to map ice from glc->ocn (cesm only)
+  integer , public, parameter :: nmappers          = 13
 
   character(len=*) , public, parameter :: mapnames(nmappers) = &
        (/'bilnr      ',&
@@ -218,43 +215,25 @@ contains
 
   !================================================================================
 
-  subroutine med_fldList_AddMrg(flds, fldname, &
-       mrg_from1, mrg_fld1, mrg_type1, mrg_fracname1, &
-       mrg_from2, mrg_fld2, mrg_type2, mrg_fracname2, &
-       mrg_from3, mrg_fld3, mrg_type3, mrg_fracname3, &
-       mrg_from4, mrg_fld4, mrg_type4, mrg_fracname4)
+  subroutine med_fldList_AddMrg(flds, fldname, mrg_from1, mrg_fld1, mrg_type1, mrg_fracname1)
 
     ! ----------------------------------------------
     ! Determine mrg entry or entries in flds aray
     ! ----------------------------------------------
 
-    use ESMF, only : ESMF_FAILURE, ESMF_LogWrite
-    use ESMF, only : ESMF_LOGMSG_INFO, ESMF_LOGMSG_ERROR
+    use ESMF, only : ESMF_LogWrite, ESMF_END_ABORT, ESMF_LOGMSG_ERROR, ESMF_Finalize
 
     ! input/output variables
-    type(med_fldList_entry_type) , pointer                :: flds(:)
-    character(len=*)             , intent(in)             :: fldname
-    integer                      , intent(in)  , optional :: mrg_from1
-    character(len=*)             , intent(in)  , optional :: mrg_fld1
-    character(len=*)             , intent(in)  , optional :: mrg_type1
-    character(len=*)             , intent(in)  , optional :: mrg_fracname1
-    integer                      , intent(in)  , optional :: mrg_from2
-    character(len=*)             , intent(in)  , optional :: mrg_fld2
-    character(len=*)             , intent(in)  , optional :: mrg_type2
-    character(len=*)             , intent(in)  , optional :: mrg_fracname2
-    integer                      , intent(in)  , optional :: mrg_from3
-    character(len=*)             , intent(in)  , optional :: mrg_fld3
-    character(len=*)             , intent(in)  , optional :: mrg_type3
-    character(len=*)             , intent(in)  , optional :: mrg_fracname3
-    integer                      , intent(in)  , optional :: mrg_from4
-    character(len=*)             , intent(in)  , optional :: mrg_fld4
-    character(len=*)             , intent(in)  , optional :: mrg_type4
-    character(len=*)             , intent(in)  , optional :: mrg_fracname4
+    type(med_fldList_entry_type) , pointer              :: flds(:)
+    character(len=*)             , intent(in)           :: fldname
+    integer                      , intent(in)           :: mrg_from1
+    character(len=*)             , intent(in)           :: mrg_fld1
+    character(len=*)             , intent(in)           :: mrg_type1
+    character(len=*)             , intent(in), optional :: mrg_fracname1
 
     ! local variables
     integer :: n, id
-    integer :: rc
-    character(len=*), parameter :: subname='(med_fldList_MrgFld)'
+    character(len=*), parameter :: subname='(med_fldList_AddMrg)'
     ! ----------------------------------------------
 
     id = 0
@@ -268,42 +247,15 @@ contains
        do n = 1,size(flds)
           write(6,*) trim(subname)//' input flds entry is ',trim(flds(n)%stdname)
        end do
-       call ESMF_LogWrite(subname // 'ERROR: fldname '// trim(fldname) // ' not found in input flds', ESMF_LOGMSG_INFO)
-       rc = ESMF_FAILURE
-       return
+       call ESMF_LogWrite(subname // 'ERROR: fldname '// trim(fldname) // ' not found in input flds', ESMF_LOGMSG_ERROR)
+       call ESMF_Finalize(endflag=ESMF_END_ABORT)
     end if
 
-    if (present(mrg_from1) .and. present(mrg_fld1) .and. present(mrg_type1)) then
-       n = mrg_from1
-       flds(id)%merge_fields(n) = mrg_fld1
-       flds(id)%merge_types(n) = mrg_type1
-       if (present(mrg_fracname1)) then
-          flds(id)%merge_fracnames(n) = mrg_fracname1
-       end if
-    end if
-    if (present(mrg_from2) .and. present(mrg_fld2) .and. present(mrg_type2)) then
-       n = mrg_from2
-       flds(id)%merge_fields(n) = mrg_fld2
-       flds(id)%merge_types(n) = mrg_type2
-       if (present(mrg_fracname2)) then
-          flds(id)%merge_fracnames(n) = mrg_fracname2
-       end if
-    end if
-    if (present(mrg_from3) .and. present(mrg_fld3) .and. present(mrg_type3)) then
-       n = mrg_from3
-       flds(id)%merge_fields(n) = mrg_fld3
-       flds(id)%merge_types(n) = mrg_type3
-       if (present(mrg_fracname3)) then
-          flds(id)%merge_fracnames(n) = mrg_fracname3
-       end if
-    end if
-    if (present(mrg_from4) .and. present(mrg_fld4) .and. present(mrg_type4)) then
-       n = mrg_from4
-       flds(id)%merge_fields(n) = mrg_fld4
-       flds(id)%merge_types(n) = mrg_type4
-       if (present(mrg_fracname4)) then
-          flds(id)%merge_fracnames(n) = mrg_fracname4
-       end if
+    n = mrg_from1
+    flds(id)%merge_fields(n) = mrg_fld1
+    flds(id)%merge_types(n) = mrg_type1
+    if (present(mrg_fracname1)) then
+       flds(id)%merge_fracnames(n) = mrg_fracname1
     end if
 
   end subroutine med_fldList_AddMrg
