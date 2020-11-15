@@ -20,7 +20,14 @@ module esmflds
   integer, public, parameter  :: ncomps   = 8
 
   character(len=*), public, parameter :: compname(ncomps) = &
-       (/'med ','atm ','lnd ','ocn ','ice ','rof ','wav ','glc'/)
+       (/'med ',&
+         'atm ',&
+         'lnd ',&
+         'ocn ',&
+         'ice ',&
+         'rof ',&
+         'wav ',&
+         'glc '/)
 
   integer, public, parameter :: max_icesheets = 1
   integer, public :: compglc(max_icesheets) = (/compglc1/)
@@ -215,7 +222,7 @@ contains
 
   !================================================================================
 
-  subroutine med_fldList_AddMrg(flds, fldname, mrg_from1, mrg_fld1, mrg_type1, mrg_fracname1)
+  subroutine med_fldList_AddMrg(flds, fldname, mrg_from1, mrg_fld1, mrg_type1, mrg_fracname)
 
     ! ----------------------------------------------
     ! Determine mrg entry or entries in flds aray
@@ -226,10 +233,10 @@ contains
     ! input/output variables
     type(med_fldList_entry_type) , pointer              :: flds(:)
     character(len=*)             , intent(in)           :: fldname
-    integer                      , intent(in)           :: mrg_from1
-    character(len=*)             , intent(in)           :: mrg_fld1
-    character(len=*)             , intent(in)           :: mrg_type1
-    character(len=*)             , intent(in), optional :: mrg_fracname1
+    integer                      , intent(in)           :: mrg_from
+    character(len=*)             , intent(in)           :: mrg_fld
+    character(len=*)             , intent(in)           :: mrg_type
+    character(len=*)             , intent(in), optional :: mrg_fracname
 
     ! local variables
     integer :: n, id
@@ -251,11 +258,11 @@ contains
        call ESMF_Finalize(endflag=ESMF_END_ABORT)
     end if
 
-    n = mrg_from1
-    flds(id)%merge_fields(n) = mrg_fld1
-    flds(id)%merge_types(n) = mrg_type1
-    if (present(mrg_fracname1)) then
-       flds(id)%merge_fracnames(n) = mrg_fracname1
+    n = mrg_from
+    flds(id)%merge_fields(n) = mrg_fld
+    flds(id)%merge_types(n) = mrg_type
+    if (present(mrg_fracname)) then
+       flds(id)%merge_fracnames(n) = mrg_fracname
     end if
 
   end subroutine med_fldList_AddMrg
