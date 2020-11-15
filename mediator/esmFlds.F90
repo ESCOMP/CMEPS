@@ -222,7 +222,7 @@ contains
 
   !================================================================================
 
-  subroutine med_fldList_AddMrg(flds, fldname, mrg_from1, mrg_fld1, mrg_type1, mrg_fracname)
+  subroutine med_fldList_AddMrg(flds, fldname, mrg_from, mrg_fld, mrg_type, mrg_fracname)
 
     ! ----------------------------------------------
     ! Determine mrg entry or entries in flds aray
