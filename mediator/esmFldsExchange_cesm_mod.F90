@@ -468,7 +468,7 @@ contains
 
     if (phase == 'advertise') then
        do ns = 1, num_icesheets
-          call addfld(fldListFr(compglc(ns))%flds, 'Sg_icemask') ! ice sheet grid coverage
+          call addfld(fldListFr(compglc(ns))%flds, 'Sg_icemask')     ! ice sheet grid coverage
           call addfld(fldListFr(compglc(ns))%flds, 'Sg_icemask_coupled_fluxes')
           call addfld(fldListFr(compglc(ns))%flds, 'Sg_ice_covered') ! fraction of glacier area
           call addfld(fldListFr(compglc(ns))%flds, 'Sg_topo')        ! surface height of glacer
@@ -480,7 +480,22 @@ contains
        call addfld(fldListTo(complnd)%flds, 'Sg_topo_elev')
        call addfld(fldListTo(complnd)%flds, 'Flgg_hflx_elev')
     else
-       ! custom map and merge in med_phases_prep_lnd
+       if ( fldchk(is_local%wrap%FBExp(complnd), 'Sg_icemask', rc=rc)) then
+          do ns = 1, num_icesheets
+             if (fldchk(is_local%wrap%FBImp(compglc(ns), compglc(ns)), 'Sg_icemask', rc=rc)) then
+                call addmap(fldListFr(compglc(ns))%flds, 'Sg_icemask', complnd,  mapconsd, 'one', 'unset')
+             end if
+          end do
+       end if
+       if ( fldchk(is_local%wrap%FBExp(complnd), 'Sg_icemask_coupled_fluxes', rc=rc)) then
+          do ns = 1, num_icesheets
+             if (fldchk(is_local%wrap%FBImp(compglc(ns), compglc(ns)), 'Sg_icemask_coupled_fluxes', rc=rc)) then
+                call addmap(fldListFr(compglc(ns))%flds, 'Sg_icemask_coupled_fluxes', complnd, mapconsd, 'one', 'unset')
+             end if
+          end do
+       end if
+       ! custom merge in med_phases_prep_lnd for Sg_icemask and Sg_icemask_coupled_fluxes
+       ! custom map merge in med_phases_prep_lnd for Sg_ice_covered_elev, Sg_topo_elev and Flgg_hflx_elev
     end if
 
     !=====================================================================

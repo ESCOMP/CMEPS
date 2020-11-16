@@ -60,8 +60,7 @@ module med_phases_prep_lnd_mod
   end type ice_sheet_tolnd_type
   type(ice_sheet_tolnd_type) :: ice_sheet_tolnd(max_icesheets)
 
-  type(ESMF_Field) :: field_icemask_l                ! no elevation classes
-  type(ESMF_Field) :: field_icemask_coupled_fluxes_l ! no elevation classes
+  type(ESMF_field) :: field_icemask_l                ! no elevation classes
   type(ESMF_Field) :: field_frac_l_ec                ! elevation classes
   type(ESMF_Field) :: field_frac_x_icemask_l_ec      ! elevation classes
   type(ESMF_Field) :: field_topo_x_icemask_l_ec      ! elevation classes
@@ -192,17 +191,13 @@ contains
              call t_startf('MED:'//trim(subname)//' glc2lnd init')
              call map_glc2lnd_init(gcomp, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             call map_glc2lnd(gcomp, rc=rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
              call t_stopf('MED:'//trim(subname)//' glc2lnd init')
-          else
-             !if (cism_evolve) then
-                call t_startf('MED:'//trim(subname)//' glc2lnd ')
-                call map_glc2lnd(gcomp, rc=rc)
-                if (ChkErr(rc,__LINE__,u_FILE_u)) return
-                call t_stopf('MED:'//trim(subname)//' glc2lnd')
-             !end if
           end if
+          ! The will following will map and merge Sg_frac and Sg_topo (and in the future Flgg_hflx)
+          call t_startf('MED:'//trim(subname)//' glc2lnd')
+          call map_glc2lnd(gcomp, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call t_stopf('MED:'//trim(subname)//' glc2lnd')
        end if
 
        !---------------------------------------
@@ -259,7 +254,7 @@ contains
 
     ! local variables
     type(InternalState)       :: is_local
-    type(ESMF_Field)          :: lfield
+    type(ESMF_Field)          :: lfield_l
     type(ESMF_Mesh)           :: mesh_l
     integer                   :: ungriddedUBound_output(1)
     integer                   :: fieldCount
@@ -283,9 +278,9 @@ contains
     !---------------------------------------
 
     ! Determine number of elevation classes by querying a field that has elevation classes in it
-    call ESMF_FieldBundleGet(is_local%wrap%FBExp(complnd), fieldname='Sg_topo_elev', field=lfield, rc=rc)
+    call ESMF_FieldBundleGet(is_local%wrap%FBExp(complnd), fieldname='Sg_topo_elev', field=lfield_l, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldGet(lfield, ungriddedUBound=ungriddedUBound_output, rc=rc)
+    call ESMF_FieldGet(lfield_l, ungriddedUBound=ungriddedUBound_output, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     ungriddedCount = ungriddedUBound_output(1)
     ! TODO: check that ungriddedCount = glc_nec+1
@@ -304,9 +299,6 @@ contains
     deallocate(fieldlist)
 
     field_icemask_l = ESMF_FieldCreate(mesh_l, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    field_icemask_coupled_fluxes_l = ESMF_FieldCreate(mesh_l, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     field_frac_l_ec = ESMF_FieldCreate(mesh_l, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, &
@@ -361,8 +353,7 @@ contains
           ! Create route handle if it has not been created
           if (.not. ESMF_RouteHandleIsCreated(is_local%wrap%RH(compglc(ns),complnd,mapconsd), rc=rc)) then
              call med_map_routehandles_init( compglc(ns), complnd, &
-                  ice_sheet_tolnd(ns)%field_icemask_g, &
-                  field_icemask_l, &
+                  ice_sheet_tolnd(ns)%field_icemask_g, lfield_l, &
                   mapindex=mapconsd, &
                   routehandles=is_local%wrap%rh(compglc(ns),complnd,:), rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -396,7 +387,8 @@ contains
     ! local variables
     type(InternalState)   :: is_local
     type(ESMF_Field)      :: lfield
-    type(ESMF_Field)      :: field_src
+    type(ESMF_Field)      :: lfield_src
+    type(ESMF_Field)      :: lfield_dst
     integer               :: ec, l, g, ns, n
     real(r8)              :: topo_virtual
     real(r8), pointer     :: icemask_g(:) => null()             ! glc ice mask field on glc grid
@@ -413,8 +405,8 @@ contains
     real(r8), pointer     :: dataptr2d(:,:) => null()
     real(r8), pointer     :: frac_l_ec_sum(:,:) => null()
     real(r8), pointer     :: topo_l_ec_sum(:,:) => null()
-    real(r8), pointer     :: icemask_l_sum(:) => null()
-    real(r8), pointer     :: icemask_coupled_fluxes_l_sum(:) => null()
+    real(r8), pointer     :: dataptr1d_src(:) => null()
+    real(r8), pointer     :: dataptr1d_dst(:) => null()
     character(len=*), parameter :: subname = 'map_glc2lnd'
     !-----------------------------------------------------------------------
 
@@ -436,20 +428,6 @@ contains
     ! Get pointers into land export field bundle (this is summed over all ice sheets)
     !---------------------------------
 
-    call ESMF_FieldBundleGet(is_local%wrap%FBExp(complnd), fieldname=trim(Sg_icemask), &
-         field=lfield, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldGet(lfield, farrayptr=icemask_l_sum, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    icemask_l_sum(:) = 0._r8
-
-    call ESMF_FieldBundleGet(is_local%wrap%FBExp(complnd), fieldname=trim(Sg_icemask_coupled_fluxes), &
-         field=lfield, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldGet(lfield, farrayptr=icemask_coupled_fluxes_l_sum, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    icemask_coupled_fluxes_l_sum(:) = 0._r8
-
     call ESMF_FieldBundleGet(is_local%wrap%FBExp(complnd), fieldname=trim(Sg_frac)//'_elev', &
          field=lfield, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -468,37 +446,60 @@ contains
     ! Map fractional ice coverage to the land grid (multiple elevation classes)
     !---------------------------------
 
+    ! Map Sg_icemask and Sg_icemask_coupled_fluxes (no elevation classes)
     do ns = 1,num_icesheets
        if (is_local%wrap%med_coupling_active(compglc(ns),complnd)) then
+          call t_startf('MED:'//trim(subname)//' glc2lnd ')
+          call med_map_field_packed( &
+               FBSrc=is_local%wrap%FBImp(compglc(ns),compglc(ns)), &
+               FBDst=is_local%wrap%FBImp(compglc(ns),complnd), &
+               FBFracSrc=is_local%wrap%FBFrac(compglc(ns)), &
+               field_normOne=is_local%wrap%field_normOne(compglc(ns),complnd,:), &
+               packed_data=is_local%wrap%packed_data(compglc(ns),complnd,:), &
+               routehandles=is_local%wrap%RH(compglc(ns),complnd,:), rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call t_stopf('MED:'//trim(subname)//' glc2lnd')
+       end if
+    end do
 
-          ! Map Sg_icemask (no elevation classes)
-          call ESMF_FieldBundleGet(is_local%wrap%FBImp(compglc(ns),compglc(ns)), &
-               fieldname=trim(Sg_icemask), field=field_src, rc=rc)
+    ! Get Sg_icemask on land as sum of all ice sheets (no elevation classes)
+    call ESMF_FieldBundleGet(is_local%wrap%FBExp(complnd), Sg_icemask, &
+         field=lfield_dst, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldGet(lfield_dst, farrayPtr=dataptr1d_dst, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    dataptr1d_dst(:) = 0._r8
+    do ns = 1,num_icesheets
+       if (is_local%wrap%med_coupling_active(compglc(ns),complnd)) then
+          call ESMF_FieldBundleGet(is_local%wrap%FBImp(compglc(ns),complnd), Sg_icemask, &
+               field=lfield_src, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call med_map_field( &
-               field_src=field_src, &
-               field_dst=field_icemask_l, &
-               routehandles=is_local%wrap%RH(compglc(ns),complnd,:), &
-               maptype=mapconsd, rc=rc)
+          call ESMF_FieldGet(lfield_src, farrayPtr=dataptr1d_src, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call ESMF_fieldGet(field_icemask_l, farrayptr=dataptr1d, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          icemask_l_sum(:) = icemask_l_sum(:) + dataptr1d(:)
+          dataptr1d_dst(:) = dataptr1d_dst(:) + dataptr1d_src(:) 
+       end if
+    end do
 
-          ! Map Sg_icemask_coupled_fluxes (no elevation classes)
-          call ESMF_FieldBundleGet(is_local%wrap%FBImp(compglc(ns), compglc(ns)), &
-               fieldname=trim(Sg_icemask_coupled_fluxes), field=field_src, rc=rc)
+    ! Get Sg_icemask_coupled_fluxes on land as sum of all ice sheets (no elevation classes)
+    call ESMF_FieldBundleGet(is_local%wrap%FBExp(complnd), Sg_icemask_coupled_fluxes, &
+         field=lfield_dst, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldGet(lfield_dst, farrayPtr=dataptr1d_dst, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    dataptr1d_dst(:) = 0._r8
+    do ns = 1,num_icesheets
+       if (is_local%wrap%med_coupling_active(compglc(ns),complnd)) then
+          call ESMF_FieldBundleGet(is_local%wrap%FBImp(compglc(ns),complnd), Sg_icemask_coupled_fluxes, &
+               field=lfield_src, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call med_map_field( &
-               field_src=field_src, &
-               field_dst=field_icemask_coupled_fluxes_l, &
-               routehandles=is_local%wrap%RH(compglc(ns),complnd,:), &
-               maptype=mapconsd, rc=rc)
+          call ESMF_FieldGet(lfield_src, farrayPtr=dataptr1d_src, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call ESMF_fieldGet(field_icemask_l, farrayptr=dataptr1d, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          icemask_coupled_fluxes_l_sum(:) = icemask_coupled_fluxes_l_sum(:) + dataptr1d(:)
+          dataptr1d_dst(:) = dataptr1d_dst(:) + dataptr1d_src(:) 
+       end if
+    end do
 
+    do ns = 1,num_icesheets
+       if (is_local%wrap%med_coupling_active(compglc(ns),complnd)) then
           ! Set contents of FBglc_ec to contain frac_g_ec
           ! (fractional ice coverage for each elevation class on the glc grid)
 
