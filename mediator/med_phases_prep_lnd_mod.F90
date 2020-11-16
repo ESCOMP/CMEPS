@@ -149,31 +149,16 @@ contains
           call t_stopf('MED:'//trim(subname)//' glc2lnd init')
 
           ! The will following will map and merge Sg_frac and Sg_topo (and in the future Flgg_hflx)
-          if (cism_evolve) then
-             call t_startf('MED:'//trim(subname)//' glc2lnd ')
-             call med_map_field_packed( &
-                  FBSrc=is_local%wrap%FBImp(compglc,compglc), &
-                  FBDst=is_local%wrap%FBImp(compglc,complnd), &
-                  FBFracSrc=is_local%wrap%FBFrac(compglc), &
-                  field_normOne=is_local%wrap%field_normOne(compglc,complnd,:), &
-                  packed_data=is_local%wrap%packed_data(compglc,complnd,:), &
-                  routehandles=is_local%wrap%RH(compglc,complnd,:), rc=rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             call map_glc2lnd(gcomp, rc=rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             call t_stopf('MED:'//trim(subname)//' glc2lnd')
-          else if (first_call) then
-             call med_map_field_packed( &
-                  FBSrc=is_local%wrap%FBImp(compglc,compglc), &
-                  FBDst=is_local%wrap%FBImp(compglc,complnd), &
-                  FBFracSrc=is_local%wrap%FBFrac(compglc), &
-                  field_normOne=is_local%wrap%field_normOne(compglc,complnd,:), &
-                  packed_data=is_local%wrap%packed_data(compglc,complnd,:), &
-                  routehandles=is_local%wrap%RH(compglc,complnd,:), rc=rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             call map_glc2lnd(gcomp, rc=rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          end if
+          call t_startf('MED:'//trim(subname)//' glc2lnd ')
+          call med_map_field_packed( &
+               FBSrc=is_local%wrap%FBImp(compglc,compglc), &
+               FBDst=is_local%wrap%FBImp(compglc,complnd), &
+               FBFracSrc=is_local%wrap%FBFrac(compglc), &
+               field_normOne=is_local%wrap%field_normOne(compglc,complnd,:), &
+               packed_data=is_local%wrap%packed_data(compglc,complnd,:), &
+               routehandles=is_local%wrap%RH(compglc,complnd,:), rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call t_stopf('MED:'//trim(subname)//' glc2lnd')
        end if
 
        !---------------------------------------
@@ -191,6 +176,21 @@ contains
             fldListTo(complnd), rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call t_stopf('MED:'//trim(subname)//' merge')
+
+       !---------------------------------------
+       ! glc-lnd custom mapping and merging
+       !---------------------------------------
+
+       ! The following is only done if glc->lnd coupling is active
+       if (is_local%wrap%comp_present(compglc) .and. (is_local%wrap%med_coupling_active(compglc,complnd))) then
+          if (first_call) then
+             call map_glc2lnd_init(gcomp, rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          end if
+          ! The will following will map and merge Sg_frac and Sg_topo (and in the future Flgg_hflx)
+          call map_glc2lnd(gcomp, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       end if
 
        !---------------------------------------
        ! update scalar data
