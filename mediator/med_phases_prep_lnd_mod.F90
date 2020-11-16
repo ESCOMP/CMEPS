@@ -14,7 +14,7 @@ module med_phases_prep_lnd_mod
   use ESMF                  , only : ESMF_Mesh, ESMF_MeshLoc, ESMF_MESHLOC_ELEMENT, ESMF_TYPEKIND_R8
   use ESMF                  , only : ESMF_Field, ESMF_FieldGet, ESMF_FieldCreate
   use ESMF                  , only : ESMF_RouteHandle, ESMF_RouteHandleIsCreated
-  use esmFlds               , only : complnd, compatm, ncomps, compname
+  use esmFlds               , only : complnd, compatm, comprof, ncomps, compname
   use esmFlds               , only : max_icesheets, num_icesheets, compglc
   use esmFlds               , only : mapbilnr, mapconsd, mapconsf, compname
   use esmFlds               , only : fldListTo
@@ -132,7 +132,7 @@ contains
     if (ncnt > 0) then
 
        !---------------------------------------
-       ! map to create FBimp(:,complnd)
+       ! map to create FBimp(:,complnd) - other than glc->lnd
        !---------------------------------------
 
        call t_startf('MED:'//trim(subname)//' map')
@@ -140,7 +140,7 @@ contains
           ! Skip glc here and handle it below - only components that are allowed to couple to
           ! land are atm, rof and glc
           if (is_local%wrap%med_coupling_active(n1,complnd)) then
-             if (n1 == compatm .or. n1 == complnd) then
+             if (n1 == comprof .or. n1 == compatm) then
                 call med_map_field_packed( &
                      FBSrc=is_local%wrap%FBImp(n1,n1), &
                      FBDst=is_local%wrap%FBImp(n1,complnd), &
@@ -153,6 +153,28 @@ contains
           end if
        end do
        call t_stopf('MED:'//trim(subname)//' map')
+
+       !---------------------------------------
+       ! auto merges to create FBExp(complnd) - other than glc->lnd
+       !---------------------------------------
+
+       ! The following will merge all fields in fldsSrc
+       ! Note that there is no merge for glc Sg_icemask and Sg_icemask_coupled_fluxes)
+       ! these are mapped and set directly in map_glc2lnd
+
+       call t_startf('MED:'//trim(subname)//' merge')
+       call med_merge_auto(complnd, &
+            is_local%wrap%med_coupling_active(:,complnd), &
+            is_local%wrap%FBExp(complnd), &
+            is_local%wrap%FBFrac(complnd), &
+            is_local%wrap%FBImp(:,complnd), &
+            fldListTo(complnd), rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call t_stopf('MED:'//trim(subname)//' merge')
+
+       !---------------------------------------
+       ! mapping and merging for glc->lnd
+       !---------------------------------------
 
        ! determine if there will be any glc to lnd coupling
        if (first_call) then
@@ -174,32 +196,14 @@ contains
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
              call t_stopf('MED:'//trim(subname)//' glc2lnd init')
           else
-             if (cism_evolve) then
+             !if (cism_evolve) then
                 call t_startf('MED:'//trim(subname)//' glc2lnd ')
                 call map_glc2lnd(gcomp, rc=rc)
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
                 call t_stopf('MED:'//trim(subname)//' glc2lnd')
-             end if
+             !end if
           end if
        end if
-
-       !---------------------------------------
-       ! auto merges to create FBExp(complnd)
-       !---------------------------------------
-
-       ! The following will merge all fields in fldsSrc
-       ! Note that there is no merge for glc Sg_icemask and Sg_icemask_coupled_fluxes)
-       ! these are mapped and set directly in map_glc2lnd
-
-       call t_startf('MED:'//trim(subname)//' merge')
-       call med_merge_auto(complnd, &
-            is_local%wrap%med_coupling_active(:,complnd), &
-            is_local%wrap%FBExp(complnd), &
-            is_local%wrap%FBFrac(complnd), &
-            is_local%wrap%FBImp(:,complnd), &
-            fldListTo(complnd), rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call t_stopf('MED:'//trim(subname)//' merge')
 
        !---------------------------------------
        ! update scalar data
@@ -259,7 +263,7 @@ contains
     type(ESMF_Mesh)           :: mesh_l
     integer                   :: ungriddedUBound_output(1)
     integer                   :: fieldCount
-    integer                   :: ns
+    integer                   :: ns,n
     type(ESMF_Field), pointer :: fieldlist(:) => null()
     character(len=*) , parameter   :: subname='(map_glc2lnd_mod:map_glc2lnd_init)'
     !---------------------------------------
@@ -323,6 +327,7 @@ contains
 
     do ns = 1,max_icesheets
        if (is_local%wrap%med_coupling_active(compglc(ns),complnd)) then
+
           call ESMF_FieldBundleGet(is_local%wrap%FBImp(compglc(ns),compglc(ns)), &
                fieldCount=fieldCount, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -333,7 +338,6 @@ contains
           call ESMF_FieldGet(fieldlist(1), mesh=ice_sheet_tolnd(ns)%mesh_g, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           deallocate(fieldlist)
-
 
           ice_sheet_tolnd(ns)%field_icemask_g = ESMF_FieldCreate(ice_sheet_tolnd(ns)%mesh_g, &
                ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
@@ -393,7 +397,7 @@ contains
     type(InternalState)   :: is_local
     type(ESMF_Field)      :: lfield
     type(ESMF_Field)      :: field_src
-    integer               :: ec, l, g, ns
+    integer               :: ec, l, g, ns, n
     real(r8)              :: topo_virtual
     real(r8), pointer     :: icemask_g(:) => null()             ! glc ice mask field on glc grid
     real(r8), pointer     :: frac_g(:) => null()                ! total ice fraction in each glc cell
@@ -432,20 +436,6 @@ contains
     ! Get pointers into land export field bundle (this is summed over all ice sheets)
     !---------------------------------
 
-    call ESMF_FieldBundleGet(is_local%wrap%FBExp(complnd), fieldname=trim(Sg_frac)//'_elev', &
-         field=lfield, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_fieldGet(lfield, farrayptr=frac_l_ec_sum, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    frac_l_ec_sum(:,:) = 0._r8
-
-    call ESMF_FieldBundleGet(is_local%wrap%FBExp(complnd), fieldname=trim(Sg_topo)//'_elev', &
-         field=lfield, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldGet(lfield, farrayptr=topo_l_ec_sum, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    topo_l_ec_sum(:,:) = 0._r8
-
     call ESMF_FieldBundleGet(is_local%wrap%FBExp(complnd), fieldname=trim(Sg_icemask), &
          field=lfield, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -460,11 +450,25 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     icemask_coupled_fluxes_l_sum(:) = 0._r8
 
+    call ESMF_FieldBundleGet(is_local%wrap%FBExp(complnd), fieldname=trim(Sg_frac)//'_elev', &
+         field=lfield, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_fieldGet(lfield, farrayptr=frac_l_ec_sum, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    frac_l_ec_sum(:,:) = 0._r8
+
+    call ESMF_FieldBundleGet(is_local%wrap%FBExp(complnd), fieldname=trim(Sg_topo)//'_elev', &
+         field=lfield, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldGet(lfield, farrayptr=topo_l_ec_sum, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    topo_l_ec_sum(:,:) = 0._r8
+
     !---------------------------------
     ! Map fractional ice coverage to the land grid (multiple elevation classes)
     !---------------------------------
 
-    do ns = 1,max_icesheets
+    do ns = 1,num_icesheets
        if (is_local%wrap%med_coupling_active(compglc(ns),complnd)) then
 
           ! Map Sg_icemask (no elevation classes)

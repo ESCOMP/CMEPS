@@ -1291,7 +1291,7 @@ contains
     else
        do n = 1,size(iso)
           if ( fldchk(is_local%wrap%FBExp(compocn), 'Foxx_rofl'//iso(n) , rc=rc)) then
-             ! liquid from river and possibly flood from river
+             ! liquid from river and possibly flood from river to ocean
              if (fldchk(is_local%wrap%FBImp(comprof, comprof), 'Forr_rofl'//iso(n) , rc=rc)) then
                 call addmap(fldListFr(comprof)%flds, 'Forr_rofl'//iso(n), &
                      compocn, map_rof2ocn_liq, 'none', rof2ocn_liq_rmap)

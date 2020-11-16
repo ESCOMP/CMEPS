@@ -1779,6 +1779,7 @@ contains
 
       ! to ocean
       med_coupling_allowed(compatm,compocn) = .true.
+      med_coupling_allowed(compice,compocn) = .true.
       med_coupling_allowed(comprof,compocn) = .true.
       med_coupling_allowed(compwav,compocn) = .true.
       do ns = 1,num_icesheets
@@ -1789,6 +1790,10 @@ contains
       med_coupling_allowed(compatm,compice) = .true.
       med_coupling_allowed(compocn,compice) = .true.
       med_coupling_allowed(comprof,compice) = .true.
+      med_coupling_allowed(compwav,compice) = .true.
+      do ns = 1,num_icesheets
+         med_coupling_allowed(compglc(ns),compice) = .true.
+      end do
 
       ! to river
       med_coupling_allowed(complnd,comprof) = .true.
@@ -1824,7 +1829,7 @@ contains
         endif
       enddo
 
-      ! create table of active coupling flags
+      ! create tables of allowed and active coupling flags
       ! - the rows are the destination of coupling
       ! - the columns are the source of coupling
       ! - So, the second column indicates which models the atm is coupled to.
@@ -1834,7 +1839,20 @@ contains
          write(logunit,'(A)') trim(subname)//' Allowed coupling flags'
          write(logunit,'(2x,A10,20(A5))') '|from to->',(compname(n2),n2=1,ncomps)
          do n1 = 1,ncomps
-            write(msgString,'(2x,a1,A,5x,20(L5))') '|',trim(compname(n1)),(med_coupling_allowed(n1,n2),n2=1,ncomps)
+            write(msgString,'(2x,a1,A,5x,20(L5))') '|',trim(compname(n1)), &
+                 (med_coupling_allowed(n1,n2),n2=1,ncomps)
+            do n2 = 1,len_trim(msgString)
+               if (msgString(n2:n2) == 'F') msgString(n2:n2)='-'
+            enddo
+            write(logunit,'(A)') trim(msgString)
+         enddo
+
+         write(logunit,*) ' '
+         write(logunit,'(A)') subname//' Active coupling flags'
+         write(logunit,'(2x,A10,20(A5))') '|from to->',(compname(n2),n2=1,ncomps)
+         do n1 = 1,ncomps
+            write(msgString,'(2x,a1,A,5x,20(L5))') '|',trim(compname(n1)), &
+                 (is_local%wrap%med_coupling_active(n1,n2),n2=1,ncomps)
             do n2 = 1,len_trim(msgString)
                if (msgString(n2:n2) == 'F') msgString(n2:n2)='-'
             enddo
