@@ -18,7 +18,7 @@ module med_phases_prep_glc_mod
   use ESMF                  , only : ESMF_FieldBundleCreate, ESMF_FieldBundleIsCreated
   use ESMF                  , only : ESMF_Field, ESMF_FieldGet, ESMF_FieldCreate
   use ESMF                  , only : ESMF_Mesh, ESMF_MESHLOC_ELEMENT, ESMF_TYPEKIND_R8
-  use esmFlds               , only : compglc, complnd, mapbilnr, mapconsf, compname
+  use esmFlds               , only : compglc, complnd, mapbilnr, mapconsd, compname
   use med_internalstate_mod , only : InternalState, mastertask, logunit
   use med_constants_mod     , only : dbug_flag=>med_constants_dbug_flag
   use med_map_mod           , only : med_map_routehandles_init, med_map_rh_is_created
@@ -319,11 +319,11 @@ contains
           if (chkerr(rc,__LINE__,u_FILE_u)) return
 
           ! Create route handle if it has not been created - this will be needed to map the fractions
-          if (.not. med_map_RH_is_created(is_local%wrap%RH(compglc,complnd,:),mapconsf,rc=rc)) then
+          if (.not. med_map_RH_is_created(is_local%wrap%RH(compglc,complnd,:),mapconsd,rc=rc)) then
              call med_map_routehandles_init( compglc, complnd, &
                   FBSrc=is_local%wrap%FBImp(compglc,compglc), &
                   FBDst=is_local%wrap%FBImp(compglc,complnd), &
-                  mapindex=mapconsf, &
+                  mapindex=mapconsd, &
                   RouteHandle=is_local%wrap%RH, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
@@ -900,7 +900,7 @@ contains
          field_src=field_icemask_g, &
          field_dst=field_icemask_l, &
          routehandles=is_local%wrap%RH(compglc,complnd,:), &
-         maptype=mapconsf, rc=rc)
+         maptype=mapconsd, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! ------------------------------------------------------------------------
@@ -936,7 +936,7 @@ contains
          field_src=field_frac_g_ec, &
          field_dst=field_frac_l_ec, &
          routehandles=is_local%wrap%RH(compglc,complnd,:), &
-         maptype=mapconsf, &
+         maptype=mapconsd, &
          field_normsrc=field_icemask_g, &
          field_normdst=field_icemask_l, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -968,10 +968,9 @@ contains
     local_accum_lnd(1) = 0.0_r8
     local_ablat_lnd(1) = 0.0_r8
     do n = 1, size(lfrac)
-       if (is_local%wrap%mesh_info(complnd)%mask(n) /= 0) then
-          ! Calculate effective area for sum -  need the mapped icemask_l
-          effective_area = min(lfrac(n), icemask_l(n)) * is_local%wrap%mesh_info(complnd)%areas(n)
-
+       ! Calculate effective area for sum -  need the mapped icemask_l
+       effective_area = min(lfrac(n), icemask_l(n)) * is_local%wrap%mesh_info(complnd)%areas(n)
+       if (effective_area > 0.0_r8) then
           do ec = 1, ungriddedCount
              if (qice_l_ec(ec,n) >= 0.0_r8) then
                 local_accum_lnd(1) = local_accum_lnd(1) + effective_area * frac_l_ec(ec,n) * qice_l_ec(ec,n)
@@ -984,10 +983,16 @@ contains
 
     call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_VMAllreduce(vm, senddata=local_accum_lnd, recvdata=global_accum_lnd, count=1, reduceflag=ESMF_REDUCE_MAX, rc=rc)
+    call ESMF_VMAllreduce(vm, senddata=local_accum_lnd, recvdata=global_accum_lnd, count=1, &
+         reduceflag=ESMF_REDUCE_SUM, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_VMAllreduce(vm, senddata=local_ablat_lnd, recvdata=global_ablat_lnd, count=1, reduceflag=ESMF_REDUCE_SUM, rc=rc)
+    call ESMF_VMAllreduce(vm, senddata=local_ablat_lnd, recvdata=global_ablat_lnd, count=1, &
+         reduceflag=ESMF_REDUCE_SUM, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (mastertask) then
+       write(logunit,'(a,d13.5)') trim(subname)//'global_accum_lnd = ', global_accum_lnd
+       write(logunit,'(a,d13.5)') trim(subname)//'global_ablat_lnd = ', global_ablat_lnd
+    endif
 
     !---------------------------------------
     ! Sum qice_g over local glc grid cells.
@@ -1017,6 +1022,10 @@ contains
          reduceflag=ESMF_REDUCE_SUM, rc=rc)
     call ESMF_VMAllreduce(vm, senddata=local_ablat_glc, recvdata=global_ablat_glc, count=1, &
          reduceflag=ESMF_REDUCE_SUM, rc=rc)
+    if (mastertask) then
+       write(logunit,'(a,d13.5)') trim(subname)//'global_accum_glc = ', global_accum_glc
+       write(logunit,'(a,d13.5)') trim(subname)//'global_ablat_glc = ', global_ablat_glc
+    endif
 
     ! Renormalize
     if (global_accum_glc(1) > 0.0_r8) then
