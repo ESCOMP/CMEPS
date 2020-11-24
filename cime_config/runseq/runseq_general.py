@@ -61,11 +61,6 @@ def gen_runseq(case, coupling_times):
         runseq.enter_time_loop(glc_cpl_time, newtime=run_glc, active=med_to_glc)
         #------------------
 
-        runseq.add_action("MED med_phases_prep_glc_avg"    , med_to_glc)
-        runseq.add_action("MED -> GLC :remapMethod=redist" , med_to_glc)
-        runseq.add_action("GLC"                            , run_glc and med_to_glc)
-        runseq.add_action("GLC -> MED :remapMethod=redist" , run_glc)
-
         #------------------
         runseq.enter_time_loop(rof_cpl_time, newtime=rof_outer_loop)
         #------------------
@@ -165,5 +160,10 @@ def gen_runseq(case, coupling_times):
         #------------------
         runseq.leave_time_loop(rof_outer_loop)
         #------------------
+
+        runseq.add_action("MED med_phases_prep_glc_avg"    , med_to_glc)
+        runseq.add_action("MED -> GLC :remapMethod=redist" , med_to_glc)
+        runseq.add_action("GLC"                            , run_glc and med_to_glc)
+        runseq.add_action("GLC -> MED :remapMethod=redist" , run_glc)
 
     shutil.copy(os.path.join(caseroot, "CaseDocs", "nuopc.runseq"), rundir)

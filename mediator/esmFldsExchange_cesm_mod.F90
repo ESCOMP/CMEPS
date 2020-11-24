@@ -262,6 +262,7 @@ contains
        call addfld(fldListFr(complnd)%flds, 'Sl_lfrin')
        call addfld(fldListFr(compocn)%flds, 'So_omask')
        call addfld(fldListFr(compice)%flds, 'Si_imask')
+       call addfld(fldlistFr(compglc)%flds, 'Sg_area')
     else
        call addmap(fldListFr(compocn)%flds, 'So_omask', compice,  mapfcopy, 'unset', 'unset')
     end if
