@@ -540,13 +540,7 @@ contains
        endif
 
     else
-
        call ESMF_LogWrite(trim(subname)//": glc_avg alarm is not ringing - returning", ESMF_LOGMSG_INFO)
-       ! Reset export field bundle to zero
-       ! call FB_reset(is_local%wrap%FBExp(compglc), value=0.0_r8, rc=rc)
-       ! if (chkerr(rc,__LINE__,u_FILE_u)) return
-       ! turn on stop timer and return
-
     end if
 
     if (dbug_flag > 5) then
