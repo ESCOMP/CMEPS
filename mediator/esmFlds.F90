@@ -339,9 +339,11 @@ contains
     use ESMF              , only : ESMF_StateGet, ESMF_LogFoundError
     use ESMF              , only : ESMF_LogWrite, ESMF_LOGMSG_ERROR, ESMF_FAILURE, ESMF_LOGERR_PASSTHRU
     use ESMF              , only : ESMF_LOGMSG_INFO, ESMF_StateRemove, ESMF_SUCCESS
-#if ESMF_VERSION_MINOR > 0
+#if ESMF_VERSION_MAJOR >= 8
+#if ESMF_VERSION_MINOR >  0
     use ESMF              , only : ESMF_STATEINTENT_IMPORT, ESMF_STATEINTENT_EXPORT, ESMF_StateIntent_Flag
     use ESMF              , only : ESMF_RC_ARG_BAD, ESMF_LogSetError, operator(==)
+#endif
 #endif
     ! input/output variables
     type(ESMF_State)            , intent(inout)            :: state
@@ -359,9 +361,11 @@ contains
     type(ESMF_Field)                :: field
     character(CS)                   :: shortname
     character(CS)                   :: stdname
-#if ESMF_VERSION_MINOR > 0
-    type(ESMF_StateIntent_Flag)     :: stateIntent
     character(ESMF_MAXSTR)          :: transferActionAttr
+#if ESMF_VERSION_MAJOR >= 8
+#if ESMF_VERSION_MINOR >  0
+    type(ESMF_StateIntent_Flag)     :: stateIntent
+#endif
 #endif
     character(ESMF_MAXSTR)          :: transferAction
     character(ESMF_MAXSTR), pointer :: StandardNameList(:) => null()
@@ -426,7 +430,9 @@ contains
 #endif
 
     nflds = size(fldList%flds)
-#if ESMF_VERSION_MINOR > 0
+    transferActionAttr="TransferActionGeomObject"
+#if ESMF_VERSION_MAJOR >= 8
+#if ESMF_VERSION_MINOR >  0
     call ESMF_StateGet(state, stateIntent=stateIntent, rc=rc)
     if (stateIntent==ESMF_STATEINTENT_EXPORT) then
        transferActionAttr="ProducerTransferAction"
@@ -441,6 +447,7 @@ contains
        return  ! bail out
     endif
 #endif
+#endif
 
     do n = 1, nflds
        shortname = fldList%flds(n)%shortname
@@ -450,12 +457,8 @@ contains
 
           call ESMF_StateGet(state, field=field, itemName=trim(shortname), rc=rc)
           if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=u_FILE_u)) return
-#if ESMF_VERSION_MINOR > 0
-          call NUOPC_GetAttribute(field, name=TransferActionAttr, value=transferAction, rc=rc)
-#else
-          call NUOPC_GetAttribute(field, name="TransferActionGeomObject", value=transferAction, rc=rc)
-#endif
 
+          call NUOPC_GetAttribute(field, name=TransferActionAttr, value=transferAction, rc=rc)
           if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=u_FILE_u)) return
 
           if (trim(transferAction) == "accept") then  ! accept

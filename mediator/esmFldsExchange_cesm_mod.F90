@@ -264,6 +264,7 @@ contains
        call addfld(fldListFr(complnd)%flds, 'Sl_lfrin')
        call addfld(fldListFr(compocn)%flds, 'So_omask')
        call addfld(fldListFr(compice)%flds, 'Si_imask')
+       call addfld(fldlistFr(compglc)%flds, 'Sg_area')
     else
        call addmap(fldListFr(compocn)%flds, 'So_omask', compice,  mapfcopy, 'unset', 'unset')
     end if
@@ -480,6 +481,8 @@ contains
        call addfld(fldListTo(complnd)%flds, 'Sg_topo_elev')
        call addfld(fldListTo(complnd)%flds, 'Flgg_hflx_elev')
     else
+       ! custom merge in med_phases_prep_lnd for Sg_icemask and Sg_icemask_coupled_fluxes
+       ! custom map merge in med_phases_prep_lnd for Sg_ice_covered_elev, Sg_topo_elev and Flgg_hflx_elev
        if ( fldchk(is_local%wrap%FBExp(complnd), 'Sg_icemask', rc=rc)) then
           do ns = 1, num_icesheets
              if (fldchk(is_local%wrap%FBImp(compglc(ns), compglc(ns)), 'Sg_icemask', rc=rc)) then
@@ -494,8 +497,6 @@ contains
              end if
           end do
        end if
-       ! custom merge in med_phases_prep_lnd for Sg_icemask and Sg_icemask_coupled_fluxes
-       ! custom map merge in med_phases_prep_lnd for Sg_ice_covered_elev, Sg_topo_elev and Flgg_hflx_elev
     end if
 
     !=====================================================================

@@ -896,9 +896,11 @@ contains
     use ESMF , only : ESMF_GridComp, ESMF_State, ESMF_Clock, ESMF_VM, ESMF_SUCCESS
     use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_TimeInterval
     use ESMF , only : ESMF_VMGet, ESMF_StateIsCreated, ESMF_GridCompGet
-#if ESMF_VERSION_MINOR > 0
+#if ESMF_VERSION_MAJOR >= 8
+#if ESMF_VERSION_MINOR >  0
     use ESMF , only : ESMF_StateSet, ESMF_StateIntent_Import, ESMF_StateIntent_Export
     use ESMF , only : ESMF_StateIntent_Flag
+#endif
 #endif
     ! Input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -930,9 +932,11 @@ contains
     ! Realize States
     do n = 1,ncomps
       if (ESMF_StateIsCreated(is_local%wrap%NStateImp(n), rc=rc)) then
-#if ESMF_VERSION_MINOR > 0
+#if ESMF_VERSION_MAJOR >= 8
+#if ESMF_VERSION_MINOR >  0
          call ESMF_StateSet(is_local%wrap%NStateImp(n), stateIntent=ESMF_StateIntent_Import, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+#endif
 #endif
          call med_fldList_Realize(is_local%wrap%NStateImp(n), fldListFr(n), &
               is_local%wrap%flds_scalar_name, is_local%wrap%flds_scalar_num, &
@@ -940,9 +944,11 @@ contains
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
       endif
       if (ESMF_StateIsCreated(is_local%wrap%NStateExp(n), rc=rc)) then
-#if ESMF_VERSION_MINOR > 0
+#if ESMF_VERSION_MAJOR >= 8
+#if ESMF_VERSION_MINOR >  0
           call ESMF_StateSet(is_local%wrap%NStateExp(n), stateIntent=ESMF_StateIntent_Export, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
+#endif
 #endif
           call med_fldList_Realize(is_local%wrap%NStateExp(n), fldListTo(n), &
               is_local%wrap%flds_scalar_name, is_local%wrap%flds_scalar_num, &
@@ -2329,6 +2335,7 @@ contains
          call med_phases_restart_read(gcomp, rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
        endif
+
        call med_phases_profile(gcomp, rc)
 
     else ! Not all done
@@ -2366,10 +2373,6 @@ contains
     type(ESMF_Time)         :: currTime
     type(ESMF_TimeInterval) :: timeStep
     character(len=CL)       :: cvalue
-    type(ESMF_ALARM)        :: glc_avg_alarm
-    logical                 :: glc_present
-    character(len=CS)       :: glc_avg_period
-    integer                 :: glc_cpl_dt
     logical                 :: first_time = .true.
     character(len=*),parameter :: subname=' (module_MED:SetRunClock) '
     !-----------------------------------------------------------
@@ -2405,47 +2408,6 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !--------------------------------
-    ! set glc averaging alarm if appropriate
-    !--------------------------------
-
-    if (first_time) then
-
-       ! Set glc averaging alarm if appropriate
-       call NUOPC_CompAttributeGet(gcomp, name="glc_present", value=cvalue, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       glc_present = (cvalue == "true")
-
-       if (glc_present) then
-          call NUOPC_CompAttributeGet(gcomp, name="glc_avg_period", value=glc_avg_period, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          if (trim(glc_avg_period) == 'hour') then
-             call alarmInit(mediatorclock, glc_avg_alarm, 'nhours', opt_n=1, alarmname='alarm_glc_avg', rc=rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          else if (trim(glc_avg_period) == 'day') then
-             call alarmInit(mediatorclock, glc_avg_alarm, 'ndays' , opt_n=1, alarmname='alarm_glc_avg', rc=rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          else if (trim(glc_avg_period) == 'yearly') then
-             call alarmInit(mediatorclock, glc_avg_alarm, 'nyears', opt_n=1, alarmname='alarm_glc_avg', rc=rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          else if (trim(glc_avg_period) == 'glc_coupling_period') then
-             call NUOPC_CompAttributeGet(gcomp, name="glc_cpl_dt", value=cvalue, rc=rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             read(cvalue,*) glc_cpl_dt
-             call alarmInit(mediatorclock, glc_avg_alarm, 'nseconds', opt_n=glc_cpl_dt, alarmname='alarm_glc_avg', rc=rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          else
-            call ESMF_LogWrite(trim(subname)// ": ERROR glc_avg_period = "//trim(glc_avg_period)//" not supported", &
-                 ESMF_LOGMSG_INFO)
-            rc = ESMF_FAILURE
-            RETURN
-         end if
-         call ESMF_AlarmSet(glc_avg_alarm, clock=mediatorclock, rc=rc)
-         if (ChkErr(rc,__LINE__,u_FILE_u)) return
-      end if
-      first_time = .false.
-    end if
-
-    !--------------------------------
     ! Advance med clock to trigger alarms then reset model clock back to currtime
     !--------------------------------
 
@@ -2479,8 +2441,6 @@ contains
     ! local variables
     type(ESMF_Field)      :: lfield
     type(ESMF_Mesh)       :: lmesh
-    type(ESMF_Array)      :: lArray
-    type(ESMF_DistGrid)   :: lDistGrid
     integer               :: numOwnedElements
     integer               :: spatialDim
     real(r8), allocatable :: ownedElemCoords(:)
@@ -2491,34 +2451,32 @@ contains
 
     rc= ESMF_SUCCESS
 
+    ! Loop over number of fields and get mesh from the first field in FB with dimcount==1
     call ESMF_FieldBundleGet(FB, fieldCount=fieldCount, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    ! Find the first field in FB with dimcount==1
-    do n=1,fieldCount
+    do n = 1,fieldCount
        call FB_getFieldN(FB, fieldnum=n, field=lfield, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-
        call ESMF_FieldGet(lfield, mesh=lmesh, dimcount=dimCount, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        if (dimCount==1) exit
     enddo
+
+    ! Determine dimensions in mesh
+    call ESMF_MeshGet(lmesh, spatialDim=spatialDim, numOwnedElements=numOwnedElements, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    ! Obtain mesh info areas
     call ESMF_FieldRegridGetArea(lfield, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    call ESMF_MeshGet(lmesh, spatialDim=spatialDim, numOwnedElements=numOwnedElements, &
-         elementDistGrid=lDistGrid, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    ! Allocate mesh_info data, we need a copy here because the FB may get reset later
     allocate(mesh_info%areas(numOwnedElements))
     call ESMF_FieldGet(lfield, farrayPtr=dataptr, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    mesh_info%areas = dataptr
-
-    allocate(mesh_info%lats(numOwnedElements))
-    allocate(mesh_info%lons(numOwnedElements))
+    mesh_info%areas(:) = dataptr
 
     ! Obtain mesh longitudes and latitudes
+    allocate(mesh_info%lats(numOwnedElements))
+    allocate(mesh_info%lons(numOwnedElements))
     allocate(ownedElemCoords(spatialDim*numOwnedElements))
     call ESMF_MeshGet(lmesh, ownedElemCoords=ownedElemCoords)
     if (chkerr(rc,__LINE__,u_FILE_u)) return

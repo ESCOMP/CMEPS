@@ -496,6 +496,10 @@
        description: mediator land-ice export to lnd (elevation classes 1->glc_nec)
          Downward heat flux from glacier interior, from mediator, elev class 1->glc_nec
      #
+     - standard_name: Sg_area
+       canonical_units: area internal to the CISM grid in radians**2
+       description: land-ice export to mediator (no elevation classes)
+     #
      - standard_name: Sg_ice_covered
        canonical_units: 1
        description: land-ice export to mediator (no elevation classes)
