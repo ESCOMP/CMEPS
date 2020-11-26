@@ -36,7 +36,7 @@ module med_phases_prep_glc_mod
   use med_utils_mod         , only : chkerr           => med_utils_ChkErr
   use med_time_mod          , only : med_time_alarmInit
   use glc_elevclass_mod     , only : glc_get_num_elevation_classes
-  use glc_elevclass_mod     , only : glc_get_elevation_classes, glc_get_elevation_class
+  use glc_elevclass_mod     , only : glc_get_elevation_classes
   use glc_elevclass_mod     , only : glc_get_fractional_icecov
   use perf_mod              , only : t_startf, t_stopf
   use shr_const_mod         , only : shr_const_pi
@@ -891,6 +891,22 @@ contains
     ! coupling, because GLC isn't connected with the rest of the system in terms of energy
     ! and mass in these cases. So in these cases, it's okay that the LND integral computed
     ! here differs from the integral that LND itself would compute.)
+    !
+    ! A note on the areas used in the global sums, with this CMEPS implementation: For
+    ! glc, we use the internal model areas (sent from glc to the mediator), whereas for
+    ! lnd, we use the mesh areas (which are the same as the areas used in mapping). The
+    ! reason for this difference is that for lnd (as for most components), we plan to do
+    ! area correction (correcting for the discrepancy between internal areas and mesh
+    ! areas) in the cap, so that the fluxes received by the mediator are expressed
+    ! per-unit-area according to the mesh areas. However, we are currently *not* planning
+    ! to do this area correction for glc, because there are some fields that shouldn't be
+    ! area corrected. Thus, for fluxes sent to glc, they are specified per-unit-area
+    ! according to the internal areas, so we need to use glc's internal areas in the
+    ! global sums. (If we did the area correction for qice sent to glc, we would probably
+    ! want to make a preemptive adjustment to qice, multiplying by the inverse of the area
+    ! corrections, as we did in MCT / CPL7. This ends up giving the same answer at the
+    ! cost of additional complexity, and still requires sending glc's internal areas to
+    ! the mediator so that it can do this preemptive adjustment.)
     !
     ! Note: Sg_icemask defines where the ice sheet model can receive a
     ! nonzero SMB from the land model.
