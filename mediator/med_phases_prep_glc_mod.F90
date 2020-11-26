@@ -460,9 +460,9 @@ contains
 
     ! Accumulate fields
     do n = 1, size(fldnames_fr_lnd)
-       call fldbun_getdata2d(is_local%wrap%FBImp(complnd,complnd), fieldname=fldnames_fr_lnd(n), data2d_in, rc)
+       call fldbun_getdata2d(is_local%wrap%FBImp(complnd,complnd), fldnames_fr_lnd(n), data2d_in, rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call fldbun_getdata2d(FBlndAccum_l, fieldname=fldnames_fr_lnd(n), data2d_out, rc) 
+       call fldbun_getdata2d(FBlndAccum_l, fldnames_fr_lnd(n), data2d_out, rc) 
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        do i = 1,size(data2d_out, dim=2)
           data2d_out(:,i) = data2d_out(:,i) + data2d_in(:,i)
@@ -562,7 +562,7 @@ contains
           write(logunit,'(a)') trim(subname)//"glc_avg alarm is ringing - averaging input from lnd to glc"
        end if
        do n = 1, size(fldnames_fr_lnd)
-          call fldbun_getdata2d(FBlndAccum_l, fieldname=fldnames_fr_lnd(n), data2d, rc)
+          call fldbun_getdata2d(FBlndAccum_l, fldnames_fr_lnd(n), data2d, rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           if (FBlndAccumCnt > 0) then
              ! If accumulation count is greater than 0, do the averaging
@@ -570,7 +570,7 @@ contains
           else
              ! If accumulation count is 0, then simply set the averaged field bundle values from the land
              ! to the import field bundle values
-             call fldbun_getdata2d(is_local%wrap%FBImp(complnd,complnd), fieldname=fldnames_fr_lnd(n), data2d_import, rc)
+             call fldbun_getdata2d(is_local%wrap%FBImp(complnd,complnd), fldnames_fr_lnd(n), data2d_import, rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
              data2d(:,:) = data2d_import(:,:)
           end if
@@ -681,7 +681,7 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! get land fraction field on land mesh
-    call ESMF_FieldBundleGet(is_local%wrap%FBFrac(complnd), fieldname='lfrac', field=field_lfrac_l, rc=rc)
+    call ESMF_FieldBundleGet(is_local%wrap%FBFrac(complnd), 'lfrac', field=field_lfrac_l, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! TODO: is this needed?
@@ -957,7 +957,7 @@ contains
        !---------------------------------------
        
        ! determine icemask_g and set as contents of field_icemask_g
-       call fldbun_getdata1d(is_local%wrap%FBImp(compglc(ns),compglc(ns)), fieldname=Sg_icemask_fieldname, dataptr1d, rc)
+       call fldbun_getdata1d(is_local%wrap%FBImp(compglc(ns),compglc(ns)), Sg_icemask_fieldname, dataptr1d, rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        call field_getdata1d(ice_sheet_toglc(ns)%field_icemask_g, icemask_g, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -978,11 +978,11 @@ contains
        ! ------------------------------------------------------------------------
 
        ! get topo_g(:), the topographic height of each glc gridcell
-       call fldbun_getdata1d(is_local%wrap%FBImp(compglc(ns),compglc(ns)), fieldname=Sg_topo_fieldname, topo_g, rc)
+       call fldbun_getdata1d(is_local%wrap%FBImp(compglc(ns),compglc(ns)), Sg_topo_fieldname, topo_g, rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        ! get frac_g(:), the total ice fraction in each glc gridcell
-       call fldbun_getdata1d(is_local%wrap%FBImp(compglc(ns),compglc(ns)), fieldname=Sg_frac_fieldname, dataptr1d, rc)
+       call fldbun_getdata1d(is_local%wrap%FBImp(compglc(ns),compglc(ns)), Sg_frac_fieldname, dataptr1d, rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        call field_getdata1d(ice_sheet_toglc(ns)%field_lfrac_g, frac_g, rc) ! module field
        frac_g(:) = dataptr1d(:)
@@ -1013,7 +1013,7 @@ contains
        if (chkErr(rc,__LINE__,u_FILE_u)) return
 
        ! determine fraction on land grid, lfrac(:)
-       call fldbun_getdata1d(is_local%wrap%FBFrac(complnd), fieldname='lfrac', lfrac, rc)
+       call fldbun_getdata1d(is_local%wrap%FBFrac(complnd), 'lfrac', lfrac, rc)
        if (chkErr(rc,__LINE__,u_FILE_u)) return
 
        ! get icemask_l
@@ -1024,12 +1024,12 @@ contains
        call fldbun_getdata2d(FBlndAccum_l, trim(qice_fieldname)//'_elev', qice_l_ec, rc)
        if (chkErr(rc,__LINE__,u_FILE_u)) return
 
-       call ESMF_FieldBundleGet(is_local%wrap%FBImp(compglc(ns),compglc(ns)), fieldname=trim(Sg_topo_fieldname), &
+       call ESMF_FieldBundleGet(is_local%wrap%FBImp(compglc(ns),compglc(ns)), trim(Sg_topo_fieldname), &
             field=lfield, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        call ESMF_FieldGet(lfield, farrayptr=glc_topo_g, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_FieldBundleGet(is_local%wrap%FBImp(compglc(ns),compglc(ns)), fieldname=trim(Sg_frac_fieldname), &
+       call ESMF_FieldBundleGet(is_local%wrap%FBImp(compglc(ns),compglc(ns)), trim(Sg_frac_fieldname), &
             field=lfield, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        call ESMF_FieldGet(lfield, farrayptr=glc_frac_g, rc=rc)
@@ -1073,7 +1073,7 @@ contains
        !---------------------------------------
 
        ! determine qice_g
-       call fldbun_getdata1d(is_local%wrap%FBExp(compglc(ns)), fieldname=qice_fieldname, qice_g, rc)
+       call fldbun_getdata1d(is_local%wrap%FBExp(compglc(ns)), qice_fieldname, qice_g, rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        ! get areas internal to glc grid

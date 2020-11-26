@@ -296,7 +296,7 @@ contains
     !---------------------------------------
 
     ! Determine number of elevation classes by querying a field that has elevation classes in it
-    call ESMF_FieldBundleGet(is_local%wrap%FBExp(complnd), fieldname='Sg_topo_elev', field=lfield_l, rc=rc)
+    call ESMF_FieldBundleGet(is_local%wrap%FBExp(complnd), Sg_topo_elev, field=lfield_l, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call ESMF_FieldGet(lfield_l, ungriddedUBound=ungriddedUBound_output, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -432,7 +432,7 @@ contains
     ! Get pointers into land export field bundle (this is summed over all ice sheets)
     !---------------------------------
 
-    call fldbun_getdata2d(is_local%wrap%FBExp(complnd), fieldname=trim(Sg_frac)//'_elev', frac_l_ec_sum, rc)
+    call fldbun_getdata2d(is_local%wrap%FBExp(complnd), trim(Sg_frac)//'_elev', frac_l_ec_sum, rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     frac_l_ec_sum(:,:) = 0._r8
 

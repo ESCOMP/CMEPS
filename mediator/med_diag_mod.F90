@@ -23,14 +23,16 @@ module med_diag_mod
   use ESMF                  , only : ESMF_VM, ESMF_VMReduce, ESMF_REDUCE_SUM
   use ESMF                  , only : ESMF_GridCompGet, ESMF_ClockGet, ESMF_TimeGet
   use ESMF                  , only : ESMF_Alarm, ESMF_ClockGetAlarm, ESMF_AlarmIsRinging, ESMF_AlarmRingerOff  
-  use ESMF                  , only : ESMF_FieldBundle, ESMF_FieldBundleGet, ESMF_Field, ESMF_FieldGet
+  use ESMF                  , only : ESMF_FieldBundle, ESMF_Field, ESMF_FieldGet
   use shr_const_mod         , only : shr_const_rearth, shr_const_pi, shr_const_latice
   use shr_const_mod         , only : shr_const_ice_ref_sal, shr_const_ocn_ref_sal, shr_const_isspval
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
   use med_internalstate_mod , only : InternalState, logunit, mastertask
-  use med_methods_mod       , only : FB_FldChk    => med_methods_FB_FldChk
-  use med_time_mod          , only : alarmInit    => med_time_alarmInit
-  use med_utils_mod         , only : chkerr       => med_utils_ChkErr
+  use med_methods_mod       , only : fldbun_getdata2d => med_methods_FB_getdata2d
+  use med_methods_mod       , only : fldbun_getdata1d => med_methods_FB_getdata1d
+  use med_methods_mod       , only : fldbun_fldChk    => med_methods_FB_FldChk
+  use med_time_mod          , only : alarmInit        => med_time_alarmInit
+  use med_utils_mod         , only : chkerr           => med_utils_ChkErr
   use perf_mod              , only : t_startf, t_stopf
 
   implicit none
@@ -604,17 +606,11 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! Get fractions on atm mesh
-    call ESMF_FieldBundleGet(is_local%wrap%FBfrac(compatm), 'lfrac', field=lfield, rc=rc)
+    call fldbun_getdata1d(is_local%wrap%FBfrac(compatm), 'lfrac', lfrac, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldGet(lfield, farrayptr=lfrac, rc=rc)
+    call fldbun_getdata1d(is_local%wrap%FBfrac(compatm), 'ifrac', ifrac, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldBundleGet(is_local%wrap%FBfrac(compatm), 'ifrac', field=lfield, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldGet(lfield, farrayptr=ifrac, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldBundleGet(is_local%wrap%FBfrac(compatm), 'ofrac', field=lfield, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldGet(lfield, farrayptr=ofrac, rc=rc)
+    call fldbun_getdata1d(is_local%wrap%FBfrac(compatm), 'ofrac', ofrac, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     areas => is_local%wrap%mesh_info(compatm)%areas
@@ -733,10 +729,8 @@ contains
       real(r8), pointer :: data(:) => null()
       ! ------------------------------------------------------------------
       rc = ESMF_SUCCESS
-      if ( FB_fldchk(FB, trim(fldname), rc=rc)) then
-         call ESMF_FieldBundleGet(FB, trim(fldname), field=lfield, rc=rc)
-         if (ChkErr(rc,__LINE__,u_FILE_u)) return
-         call ESMF_FieldGet(lfield, farrayptr=data, rc=rc)
+      if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
+         call fldbun_getdata1d(FB, trim(fldname), data, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
          ip = period_inst
          do n = 1,size(data)
@@ -772,10 +766,8 @@ contains
       real(r8) :: term
       ! ------------------------------------------------------------------
       rc = ESMF_SUCCESS
-      if ( FB_fldchk(FB, trim(fldname), rc=rc)) then
-         call ESMF_FieldBundleGet(FB, trim(fldname), field=lfield, rc=rc)
-         if (ChkErr(rc,__LINE__,u_FILE_u)) return
-         call ESMF_FieldGet(lfield, farrayptr=data, rc=rc)
+      if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
+         call fldbun_getdata2d(FB, trim(fldname), data, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
          ip = period_inst
          do n = 1,size(data)
@@ -813,10 +805,8 @@ contains
       real(r8), pointer :: data(:,:) => null()
       ! ------------------------------------------------------------------
       rc = ESMF_SUCCESS
-      if ( FB_fldchk(FB, trim(fldname), rc=rc)) then
-         call ESMF_FieldBundleGet(FB, trim(fldname), field=lfield, rc=rc)
-         if (ChkErr(rc,__LINE__,u_FILE_u)) return
-         call ESMF_FieldGet(lfield, farrayptr=data, rc=rc)
+      if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
+         call fldbun_getdata2d(FB, trim(fldname), data, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
          ip = period_inst
          do n = 1,size(data, dim=2)
@@ -872,10 +862,8 @@ contains
       real(r8), pointer :: data(:,:) => null()
       ! ------------------------------------------------------------------
       rc = ESMF_SUCCESS
-      if ( FB_fldchk(FB, trim(fldname), rc=rc)) then
-         call ESMF_FieldBundleGet(FB, trim(fldname), field=lfield, rc=rc)
-         if (ChkErr(rc,__LINE__,u_FILE_u)) return
-         call ESMF_FieldGet(lfield, farrayptr=data, rc=rc)
+      if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
+         call fldbun_getdata2d(FB, trim(fldname), data, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
          ip = period_inst
          do n = 1,size(data, dim=2)
@@ -941,9 +929,7 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! get fractions on lnd mesh
-    call ESMF_FieldBundleGet(is_local%wrap%FBfrac(complnd), 'lfrac', field=lfield, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldGet(lfield, farrayptr=lfrac, rc=rc)
+    call fldbun_getdata1d(is_local%wrap%FBfrac(complnd), 'lfrac', lfrac, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     areas => is_local%wrap%mesh_info(complnd)%areas
@@ -1036,10 +1022,8 @@ contains
       ! ------------------------------------------------------------------
       rc = ESMF_SUCCESS
 
-      if ( FB_fldchk(FB, trim(fldname), rc=rc)) then
-         call ESMF_FieldBundleGet(FB, trim(fldname), field=lfield, rc=rc)
-         if (ChkErr(rc,__LINE__,u_FILE_u)) return
-         call ESMF_FieldGet(lfield, farrayptr=data, rc=rc)
+      if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
+         call fldbun_getdata1d(FB, trim(fldname), data, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
          ip = period_inst
          do n = 1, size(data)
@@ -1072,10 +1056,8 @@ contains
       ! ------------------------------------------------------------------
       rc = ESMF_SUCCESS
 
-      if ( FB_fldchk(FB, trim(fldname), rc=rc)) then
-         call ESMF_FieldBundleGet(FB, trim(fldname), field=lfield, rc=rc)
-         if (ChkErr(rc,__LINE__,u_FILE_u)) return
-         call ESMF_FieldGet(lfield, farrayptr=data, rc=rc)
+      if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
+         call fldbun_getdata2d(FB, trim(fldname), data, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
          ip = period_inst
          do n = 1, size(data, dim=2)
@@ -1186,10 +1168,8 @@ contains
       ! ------------------------------------------------------------------
       rc = ESMF_SUCCESS
 
-      if ( FB_fldchk(FB, trim(fldname), rc=rc)) then
-         call ESMF_FieldBundleGet(FB, trim(fldname), field=lfield, rc=rc)
-         if (ChkErr(rc,__LINE__,u_FILE_u)) return
-         call ESMF_FieldGet(lfield, farrayptr=data, rc=rc)
+      if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
+         call fldbun_getdata1d(FB, trim(fldname), data, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
          ip = period_inst
          do n = 1, size(data)
@@ -1222,10 +1202,8 @@ contains
       ! ------------------------------------------------------------------
       rc = ESMF_SUCCESS
 
-      if ( FB_fldchk(FB, trim(fldname), rc=rc)) then
-         call ESMF_FieldBundleGet(FB, trim(fldname), field=lfield, rc=rc)
-         if (ChkErr(rc,__LINE__,u_FILE_u)) return
-         call ESMF_FieldGet(lfield, farrayptr=data, rc=rc)
+      if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
+         call fldbun_getdata2d(FB, trim(fldname), data, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
          ip = period_inst
          do n = 1, size(data, dim=2)
@@ -1308,10 +1286,8 @@ contains
       real(r8), pointer :: data(:) => null()
       ! ------------------------------------------------------------------
       rc = ESMF_SUCCESS
-      if ( FB_fldchk(FB, trim(fldname), rc=rc)) then
-         call ESMF_FieldBundleGet(FB, trim(fldname), field=lfield, rc=rc)
-         if (ChkErr(rc,__LINE__,u_FILE_u)) return
-         call ESMF_FieldGet(lfield, farrayptr=data, rc=rc)
+      if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
+         call fldbun_getdata1d(FB, trim(fldname), data, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
          ip = period_inst
          do n = 1, size(data)
@@ -1359,13 +1335,9 @@ contains
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call ESMF_FieldBundleGet(is_local%wrap%FBfrac(compocn), 'ifrac', field=lfield, rc=rc)
+    call fldbun_getdata1d(is_local%wrap%FBfrac(compocn), 'ifrac', ifrac, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldGet(lfield, farrayptr=ifrac, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldBundleGet(is_local%wrap%FBfrac(compocn), 'ofrac', field=lfield, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldGet(lfield, farrayptr=ofrac, rc=rc)
+    call fldbun_getdata1d(is_local%wrap%FBfrac(compocn), 'ofrac', ofrac, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     allocate(sfrac(size(ofrac)))
     sfrac(:) = ifrac(:) + ofrac(:)
@@ -1382,10 +1354,8 @@ contains
        budget_local(f_area,ic,ip) = budget_local(f_area,ic,ip) + areas(n)*ofrac(n)
     end do
 
-    if ( FB_fldchk(is_local%wrap%FBImp(compocn,compocn), 'Fioo_q', rc=rc)) then
-       call ESMF_FieldBundleGet(is_local%wrap%FBImp(compocn,compocn), 'Fioo_q', field=lfield, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_FieldGet(lfield, farrayptr=data, rc=rc)
+    if ( fldbun_fldchk(is_local%wrap%FBImp(compocn,compocn), 'Fioo_q', rc=rc)) then
+       call fldbun_getdata1d(is_local%wrap%FBImp(compocn,compocn), 'Fioo_q', data, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        do n = 1,size(ifrac)
           wgt_o = areas(n) * ofrac(n)
@@ -1467,10 +1437,8 @@ contains
       real(r8), pointer :: data(:) => null()
       ! ------------------------------------------------------------------
       rc = ESMF_SUCCESS
-      if ( FB_fldchk(FB, trim(fldname), rc=rc)) then
-         call ESMF_FieldBundleGet(FB, trim(fldname), field=lfield, rc=rc)
-         if (ChkErr(rc,__LINE__,u_FILE_u)) return
-         call ESMF_FieldGet(lfield, farrayptr=data, rc=rc)
+      if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
+         call fldbun_getdata1d(FB, trim(fldname), data, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
          ip = period_inst
          do n = 1, size(data)
@@ -1502,10 +1470,8 @@ contains
       real(r8), pointer :: data(:,:) => null()
       ! ------------------------------------------------------------------
       rc = ESMF_SUCCESS
-      if ( FB_fldchk(FB, trim(fldname), rc=rc)) then
-         call ESMF_FieldBundleGet(FB, trim(fldname), field=lfield, rc=rc)
-         if (ChkErr(rc,__LINE__,u_FILE_u)) return
-         call ESMF_FieldGet(lfield, farrayptr=data, rc=rc)
+      if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
+         call fldbun_getdata2d(FB, trim(fldname), data, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
          ip = period_inst
          do n = 1, size(data, dim=2)
@@ -1549,13 +1515,9 @@ contains
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call ESMF_FieldBundleGet(is_local%wrap%FBFrac(compice), 'ifrac', field=lfield, rc=rc)
+    call fldbun_getdata1d(is_local%wrap%FBFrac(compice), 'ifrac', ifrac, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldGet(lfield, farrayptr=ifrac, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldBundleGet(is_local%wrap%FBFrac(compice), 'ofrac', field=lfield, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldGet(lfield, farrayptr=ofrac, rc=rc)
+    call fldbun_getdata1d(is_local%wrap%FBFrac(compice), 'ofrac', ofrac, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     areas => is_local%wrap%mesh_info(compice)%areas
@@ -1618,10 +1580,8 @@ contains
       real(r8), pointer :: data(:) => null()
       ! ------------------------------------------------------------------
       rc = ESMF_SUCCESS
-      if ( FB_fldchk(FB, trim(fldname), rc=rc)) then
-         call ESMF_FieldBundleGet(FB, trim(fldname), field=lfield, rc=rc)
-         if (ChkErr(rc,__LINE__,u_FILE_u)) return
-         call ESMF_FieldGet(lfield, farrayptr=data, rc=rc)
+      if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
+         call fldbun_getdata1d(FB, trim(fldname), data, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
          ip = period_inst
          do n = 1,size(data)
@@ -1667,10 +1627,8 @@ contains
       ! ------------------------------------------------------------------
       rc = ESMF_SUCCESS
 
-      if ( FB_fldchk(FB, trim(fldname), rc=rc)) then
-         call ESMF_FieldBundleGet(FB, trim(fldname), field=lfield, rc=rc)
-         if (ChkErr(rc,__LINE__,u_FILE_u)) return
-         call ESMF_FieldGet(lfield, farrayptr=data, rc=rc)
+      if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
+         call fldbun_getdata2d(FB, trim(fldname), data, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
          ip = period_inst
          do n = 1, size(data, dim=2)
@@ -1727,13 +1685,9 @@ contains
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call ESMF_FieldBundleGet(is_local%wrap%FBfrac(compice), 'ifrac', field=lfield, rc=rc)
+    call fldbun_getdata1d(is_local%wrap%FBfrac(compice), 'ifrac', ifrac, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldGet(lfield, farrayptr=ifrac, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldBundleGet(is_local%wrap%FBfrac(compice), 'ofrac', field=lfield, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldGet(lfield, farrayptr=ofrac, rc=rc)
+    call fldbun_getdata1d(is_local%wrap%FBfrac(compice), 'ofrac', ofrac, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     areas => is_local%wrap%mesh_info(compice)%areas
@@ -1755,10 +1709,8 @@ contains
     call diag_ice_send(is_local%wrap%FBExp(compice), 'Faxa_snow', f_watr_snow, areas, lats, ifrac, budget_local, rc=rc)
     call diag_ice_send(is_local%wrap%FBExp(compice), 'Fixx_rofi', f_watr_ioff, areas, lats, ifrac, budget_local, rc=rc)
 
-    if ( FB_fldchk(is_local%wrap%FBExp(compice), 'Fioo_q', rc=rc)) then
-       call ESMF_FieldBundleGet(is_local%wrap%FBExp(compice), 'Fioo_q', field=lfield, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_FieldGet(lfield, farrayptr=data, rc=rc)
+    if ( fldbun_fldchk(is_local%wrap%FBExp(compice), 'Fioo_q', rc=rc)) then
+       call fldbun_getdata1d(is_local%wrap%FBExp(compice), 'Fioo_q', data, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        do n = 1,size(data)
           wgt_o = areas(n) * ofrac(n)
@@ -1808,10 +1760,8 @@ contains
       ! ------------------------------------------------------------------
       rc = ESMF_SUCCESS
       ip = period_inst
-      if ( FB_fldchk(FB, trim(fldname), rc=rc)) then
-         call ESMF_FieldBundleGet(FB, trim(fldname), field=lfield, rc=rc)
-         if (ChkErr(rc,__LINE__,u_FILE_u)) return
-         call ESMF_FieldGet(lfield, farrayptr=data, rc=rc)
+      if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
+         call fldbun_getdata1d(FB, trim(fldname), data, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
          do n = 1,size(data)
             if (lats(n) > 0.0_r8) then
@@ -1843,10 +1793,8 @@ contains
       real(r8), pointer :: data(:,:) => null()
       ! ------------------------------------------------------------------
       rc = ESMF_SUCCESS
-      if ( FB_fldchk(FB, trim(fldname), rc=rc)) then
-         call ESMF_FieldBundleGet(FB, trim(fldname), field=lfield, rc=rc)
-         if (ChkErr(rc,__LINE__,u_FILE_u)) return
-         call ESMF_FieldGet(lfield, farrayptr=data, rc=rc)
+      if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
+         call fldbun_getdata2d(FB, trim(fldname), data, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
          ip = period_inst
          do n = 1, size(data, dim=2)

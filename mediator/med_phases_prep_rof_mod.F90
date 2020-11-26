@@ -14,12 +14,16 @@ module med_phases_prep_rof_mod
   use ESMF                  , only : ESMF_FieldBundle, ESMF_Field
   use esmFlds               , only : ncomps, complnd, comprof, compname, mapconsf, mapconsd
   use med_internalstate_mod , only : InternalState, mastertask
-  use med_constants_mod     , only : dbug_flag   => med_constants_dbug_flag
-  use med_constants_mod     , only : czero       => med_constants_czero
-  use med_utils_mod         , only : chkerr      => med_utils_chkerr
-  use med_methods_mod       , only : FB_diagnose => med_methods_FB_diagnose
-  use med_methods_mod       , only : FB_accum    => med_methods_FB_accum
-  use med_methods_mod       , only : FB_average  => med_methods_FB_average
+  use med_constants_mod     , only : dbug_flag        => med_constants_dbug_flag
+  use med_constants_mod     , only : czero            => med_constants_czero
+  use med_utils_mod         , only : chkerr           => med_utils_chkerr
+  use med_methods_mod       , only : fldbun_getmesh   => med_methods_FB_getmesh
+  use med_methods_mod       , only : fldbun_getdata2d => med_methods_FB_getdata2d
+  use med_methods_mod       , only : fldbun_getdata1d => med_methods_FB_getdata1d
+  use med_methods_mod       , only : fldbun_diagnose  => med_methods_FB_diagnose
+  use med_methods_mod       , only : fldbun_reset     => med_methods_FB_reset
+  use med_methods_mod       , only : fldbun_accum     => med_methods_FB_accum
+  use med_methods_mod       , only : fldbun_average   => med_methods_FB_average
   use perf_mod              , only : t_startf, t_stopf
 
   implicit none
@@ -116,15 +120,13 @@ contains
     ! only a few will actaully be sent to the river model
 
     if (ncnt > 0) then
-       call FB_accum(&
-            is_local%wrap%FBImpAccum(complnd,complnd), &
-            is_local%wrap%FBImp(complnd,complnd), rc=rc)
+       call fldbun_accum(is_local%wrap%FBImpAccum(complnd,complnd), is_local%wrap%FBImp(complnd,complnd), rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        is_local%wrap%FBImpAccumCnt(complnd) = is_local%wrap%FBImpAccumCnt(complnd) + 1
 
        if (dbug_flag > 1) then
-          call FB_diagnose(is_local%wrap%FBImpAccum(complnd,complnd), &
+          call fldbun_diagnose(is_local%wrap%FBImpAccum(complnd,complnd), &
                string=trim(subname)//' FBImpAccum(complnd,complnd) ', rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
        end if
@@ -144,13 +146,13 @@ contains
     ! Prepare the ROF export Fields from the mediator
     !------------------------------------
 
-    use NUOPC              , only : NUOPC_IsConnected
-    use ESMF               , only : ESMF_GridComp, ESMF_GridCompGet
-    use ESMF               , only : ESMF_FieldBundleGet, ESMF_FieldGet
-    use ESMF               , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
-    use esmFlds            , only : fldListTo
-    use med_map_mod        , only : med_map_field_packed
-    use med_merge_mod      , only : med_merge_auto
+    use NUOPC         , only : NUOPC_IsConnected
+    use ESMF          , only : ESMF_GridComp, ESMF_GridCompGet
+    use ESMF          , only : ESMF_FieldBundleGet, ESMF_FieldGet
+    use ESMF          , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
+    use esmFlds       , only : fldListTo
+    use med_map_mod   , only : med_map_field_packed
+    use med_merge_mod , only : med_merge_auto
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -203,11 +205,11 @@ contains
        ! average import from land accumuled FB
        !---------------------------------------
 
-       call FB_average(is_local%wrap%FBImpAccum(complnd,complnd), is_local%wrap%FBImpAccumCnt(complnd), rc=rc)
+       call fldbun_average(is_local%wrap%FBImpAccum(complnd,complnd), is_local%wrap%FBImpAccumCnt(complnd), rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        if (dbug_flag > 1) then
-          call FB_diagnose(is_local%wrap%FBImpAccum(complnd,complnd), &
+          call fldbun_diagnose(is_local%wrap%FBImpAccum(complnd,complnd), &
                string=trim(subname)//' FBImpAccum(complnd,complnd) after avg ', rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
        end if
@@ -230,7 +232,7 @@ contains
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
           if (dbug_flag > 1) then
-             call FB_diagnose(is_local%wrap%FBImpAccum(complnd,comprof), &
+             call fldbun_diagnose(is_local%wrap%FBImpAccum(complnd,comprof), &
                   string=trim(subname)//' FBImpAccum(complnd,comprof) after map ', rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
           end if
@@ -241,12 +243,8 @@ contains
              if (chkerr(rc,__LINE__,u_FILE_u)) return
           else
              ! This will ensure that no irrig is sent from the land
-             call ESMF_FieldBundleGet(is_local%wrap%FBImpAccum(complnd,comprof), fieldname=trim(irrig_flux_field), &
-                  field=field_irrig_flux, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-             call ESMF_FieldGet(field_irrig_flux, farrayptr=dataptr, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-             dataptr(:) = 0._r8
+             call fldbun_getdata1d(is_local%wrap%FBImpAccum(complnd,comprof), irrig_flux_field, dataptr, rc)
+             dataptr(:) = czero
           end if
        endif
 
@@ -255,7 +253,7 @@ contains
        !---------------------------------------
 
        if (dbug_flag > 1) then
-          call FB_diagnose(is_local%wrap%FBFrac(comprof), &
+          call fldbun_diagnose(is_local%wrap%FBFrac(comprof), &
                string=trim(subname)//' FBFrac(comprof) before merge ', rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
        end if
@@ -269,7 +267,7 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        if (dbug_flag > 1) then
-          call FB_diagnose(is_local%wrap%FBExp(comprof), &
+          call fldbun_diagnose(is_local%wrap%FBExp(comprof), &
                string=trim(subname)//' FBexp(comprof) ', rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
        end if
@@ -279,26 +277,8 @@ contains
        !---------------------------------------
 
        is_local%wrap%FBImpAccumCnt(complnd) = 0
-
-       call ESMF_FieldBundleGet(is_local%wrap%FBImpAccum(complnd,complnd), fieldCount=fieldCount, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       allocate(fieldlist(fieldcount))
-       call ESMF_FieldBundleGet(is_local%wrap%FBImpAccum(complnd,complnd), fieldlist=fieldlist, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       do n = 1, fieldCount
-          call ESMF_FieldGet(fieldlist(n), ungriddedUBound=ungriddedUBound, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          if (ungriddedUbound(1) > 0) then
-             call ESMF_FieldGet(fieldlist(n), farrayPtr=dataptr2d, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-             dataptr2d(:,:) = czero
-          else
-             call ESMF_FieldGet(fieldlist(n), farrayPtr=dataptr1d, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-             dataptr1d(:) = czero
-          end if
-       end do
-       deallocate(fieldlist)
+       call fldbun_reset(is_local%wrap%FBImpAccum(complnd,complnd), czero, rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     endif
     if (dbug_flag > 20) then
@@ -407,23 +387,10 @@ contains
         .not. ESMF_FieldIsCreated(field_lfrac_rof)) then
 
        ! get fields in source and destination field bundles
-       call ESMF_FieldBundleGet(is_local%wrap%FBImp(complnd,complnd), fieldCount=fieldCount, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       allocate(fieldlist_lnd(fieldcount))
-       call ESMF_FieldBundleGet(is_local%wrap%FBImp(complnd,complnd), fieldlist=fieldlist_lnd, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_FieldGet(fieldlist_lnd(1), mesh=lmesh_lnd, rc=rc)
+       call fldbun_getmesh(is_local%wrap%FBImp(complnd,complnd), lmesh_lnd, rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       deallocate(fieldlist_lnd)
-
-       call ESMF_FieldBundleGet(is_local%wrap%FBImp(comprof,comprof), fieldCount=fieldCount, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       allocate(fieldlist_rof(fieldcount))
-       call ESMF_FieldBundleGet(is_local%wrap%FBImp(comprof,comprof), fieldlist=fieldlist_rof, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_FieldGet(fieldlist_rof(1), mesh=lmesh_rof, rc=rc)
+       call fldbun_getmesh(is_local%wrap%FBImp(comprof,comprof), lmesh_rof, rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       deallocate(fieldlist_rof)
 
        field_lndVolr = ESMF_FieldCreate(lmesh_lnd, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -455,12 +422,9 @@ contains
     ! actually adds water to those cells).
 
     ! Create volr_r
-    call ESMF_FieldBundleGet(is_local%wrap%FBImp(comprof,comprof), fieldname=trim(volr_field), &
-         field=field_import_rof, rc=rc)
+    call fldbun_getdata1d(is_local%wrap%FBImp(comprof,comprof), trim(volr_field), volr_r_import, rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldGet(field_import_rof, farrayptr=volr_r_import, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldGet(field_rofVolr, farrayptr=volr_r, rc=rc)
+    call field_getdata1d(field_rofVolr, volr_r, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     do r = 1, size(volr_r)
        if (volr_r_import(r) < 0._r8) then
@@ -479,7 +443,7 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! Get volr_l
-    call ESMF_FieldGet(field_lndVolr, farrayptr=volr_l, rc=rc)
+    call field_getdata1d(field_lndVolr, volr_l, rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! ------------------------------------------------------------------------
@@ -498,16 +462,13 @@ contains
     ! flux on the rof grid.
 
     ! First extract accumulated irrigation flux from land
-    call ESMF_FieldBundleGet(is_local%wrap%FBImpAccum(complnd,complnd), fieldname=trim(irrig_flux_field), &
-         field=field_irrig_flux, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldGet(field_irrig_flux, farrayptr=irrig_flux_l, rc=rc)
+    call fldbun_getdata1d(is_local%wrap%FBImpAccum(complnd,complnd), trim(irrig_flux_field), irrig_flux_l, rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! Fill in values for irrig_normalized_l and irrig_volr0_l
-    call ESMF_FieldGet(field_lndIrrig, farrayptr=irrig_normalized_l, rc=rc)
+    call field_getdata1d(field_lndIrrig, irrig_normalized_l, rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldGet(field_lndIrrig0, farrayptr=irrig_volr0_l, rc=rc)
+    call field_getdata1d(field_lndIrrig0, irrig_volr0_l, rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     do l = 1, size(volr_l)
@@ -527,6 +488,7 @@ contains
 
     call ESMF_FieldBundleGet(is_local%wrap%FBFrac(complnd), 'lfrac', field=field_lfrac_lnd, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
+
     call med_map_field_normalized(  &
          field_src=field_lndIrrig, &
          field_dst=field_rofIrrig, &
@@ -535,6 +497,7 @@ contains
          field_normsrc=field_lfrac_lnd, &
          field_normdst=field_lfrac_rof, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
+
     call med_map_field_normalized(  &
          field_src=field_lndIrrig0, &
          field_dst=field_rofIrrig0, &
@@ -543,18 +506,15 @@ contains
          field_normsrc=field_lfrac_lnd, &
          field_normdst=field_lfrac_rof, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldGet(field_rofIrrig, farrayptr=irrig_normalized_r, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldGet(field_rofIrrig0, farrayptr=irrig_volr0_r, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! Convert to a total irrigation flux on the ROF grid, and put this in the pre-merge FBImpAccum(complnd,comprof)
-    call ESMF_FieldBundleGet(is_local%wrap%FBImpAccum(complnd,comprof), fieldname=trim(irrig_flux_field), &
-         field=field_import_rof, rc=rc)
+    call field_getdata1d(field_rofIrrig, irrig_normalized_r, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldGet(field_import_rof, farrayptr=irrig_flux_r, rc=rc)
+    call field_getdata1d(field_rofIrrig0, irrig_volr0_r, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldGet(field_rofIrrig0, farrayptr=irrig_volr0_r, rc=rc)
+    call fldbun_getdata1d(is_local%wrap%FBImpAccum(complnd,comprof), trim(irrig_flux_field), irrig_flux_r, rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call field_getdata1d(field_rofIrrig0, irrig_volr0_r, rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     do r = 1, size(irrig_flux_r)

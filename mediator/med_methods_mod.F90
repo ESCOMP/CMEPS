@@ -703,7 +703,7 @@ contains
     ! If value is not provided, reset to 0.0
     ! ----------------------------------------------
 
-    use ESMF, only : ESMF_FieldBundle, ESMF_FieldBundleGet, ESMF_Field
+    use ESMF, only : ESMF_FieldBundle, ESMF_FieldBundleGet, ESMF_Field, ESMF_FieldGet
 
     ! intput/output variables
     type(ESMF_FieldBundle) , intent(inout)        :: FB
@@ -711,52 +711,44 @@ contains
     integer                , intent(out)          :: rc
 
     ! local variables
-    integer                         :: i,j,n
-    integer                         :: fieldCount
-    character(ESMF_MAXSTR) ,pointer :: lfieldnamelist(:) => null()
-    real(R8)                        :: lvalue
-    type(ESMF_Field)                :: lfield
-    integer                         :: lrank
-    real(R8), pointer               :: fldptr1(:) => null()
-    real(R8), pointer               :: fldptr2(:,:) => null()
-    character(len=*),parameter      :: subname='(med_methods_FB_reset)'
+    integer                   :: n
+    real(R8)                  :: lvalue
+    real(r8), pointer         :: dataptr1d(:) => null()
+    real(r8), pointer         :: dataptr2d(:,:) => null()
+    type(ESMF_Field), pointer :: fieldlist(:) => null()
+    integer                   :: fieldcount
+    integer                   :: ungriddedUBound(1)     
+    character(len=*),parameter:: subname='(med_methods_FB_reset)'
     ! ----------------------------------------------
 
     if (dbug_flag > 10) then
       call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
     endif
+
     rc = ESMF_SUCCESS
 
     lvalue = czero
     if (present(value)) then
-      lvalue = value
+       lvalue = value
     endif
 
     call ESMF_FieldBundleGet(FB, fieldCount=fieldCount, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    allocate(lfieldnamelist(fieldCount))
-    call ESMF_FieldBundleGet(FB, fieldNameList=lfieldnamelist, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    allocate(fieldlist(fieldcount))
     do n = 1, fieldCount
-       call ESMF_FieldBundleGet(FB, fieldName=trim(lfieldnamelist(n)), field=lfield, rc=rc)
+       call ESMF_FieldGet(fieldlist(n), ungriddedUBound=ungriddedUBound, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call med_methods_Field_GetFldPtr(lfield, fldptr1=fldptr1, fldptr2=fldptr2, rank=lrank, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-       if (lrank == 0) then
-          ! no local data
-       elseif (lrank == 1) then
-          fldptr1 = lvalue
-       elseif (lrank == 2) then
-          fldptr2 = lvalue
+       if (ungriddedUbound(1) > 0) then
+          call ESMF_FieldGet(fieldlist(n), farrayPtr=dataptr2d, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          dataptr2d(:,:) = lvalue
        else
-          call ESMF_LogWrite(trim(subname)//": ERROR in rank "//trim(lfieldnamelist(n)), &
-               ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
-          rc = ESMF_FAILURE
-          return
-       endif
+          call ESMF_FieldGet(fieldlist(n), farrayPtr=dataptr1d, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          dataptr1d(:) = lvalue
+       end if
     enddo
-    deallocate(lfieldnamelist)
+    deallocate(fieldlist)
 
     if (dbug_flag > 10) then
       call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
