@@ -56,15 +56,21 @@ module med_methods_mod
   public med_methods_FB_GeomPrint
   public med_methods_FB_getdata2d
   public med_methods_FB_getdata1d
+  public med_methods_FB_getmesh
+
   public med_methods_State_reset
   public med_methods_State_diagnose
   public med_methods_State_GeomPrint
   public med_methods_State_SetScalar
   public med_methods_State_GetScalar
   public med_methods_State_GetNumFields
+
+  public med_methods_Field_getdata1d
+  public med_methods_Field_getdata2d
   public med_methods_Field_diagnose
   public med_methods_Field_GeomPrint
   public med_methods_FieldPtr_compare
+
   public med_methods_Clock_TimePrint
 
   private med_methods_Mesh_Print
@@ -696,14 +702,13 @@ contains
   end subroutine med_methods_State_getNumFields
 
   !-----------------------------------------------------------------------------
-
   subroutine med_methods_FB_reset(FB, value, rc)
     ! ----------------------------------------------
     ! Set all fields to value in FB
     ! If value is not provided, reset to 0.0
     ! ----------------------------------------------
 
-    use ESMF, only : ESMF_FieldBundle, ESMF_FieldBundleGet, ESMF_Field, ESMF_FieldGet
+    use ESMF, only : ESMF_FieldBundle, ESMF_FieldBundleGet, ESMF_Field
 
     ! intput/output variables
     type(ESMF_FieldBundle) , intent(inout)        :: FB
@@ -711,44 +716,52 @@ contains
     integer                , intent(out)          :: rc
 
     ! local variables
-    integer                   :: n
-    real(R8)                  :: lvalue
-    real(r8), pointer         :: dataptr1d(:) => null()
-    real(r8), pointer         :: dataptr2d(:,:) => null()
-    type(ESMF_Field), pointer :: fieldlist(:) => null()
-    integer                   :: fieldcount
-    integer                   :: ungriddedUBound(1)     
-    character(len=*),parameter:: subname='(med_methods_FB_reset)'
+    integer                         :: i,j,n
+    integer                         :: fieldCount
+    character(ESMF_MAXSTR) ,pointer :: lfieldnamelist(:) => null()
+    real(R8)                        :: lvalue
+    type(ESMF_Field)                :: lfield
+    integer                         :: lrank
+    real(R8), pointer               :: fldptr1(:) => null()
+    real(R8), pointer               :: fldptr2(:,:) => null()
+    character(len=*),parameter      :: subname='(med_methods_FB_reset)'
     ! ----------------------------------------------
 
     if (dbug_flag > 10) then
       call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
     endif
-
     rc = ESMF_SUCCESS
 
     lvalue = czero
     if (present(value)) then
-       lvalue = value
+      lvalue = value
     endif
 
     call ESMF_FieldBundleGet(FB, fieldCount=fieldCount, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    allocate(fieldlist(fieldcount))
+    allocate(lfieldnamelist(fieldCount))
+    call ESMF_FieldBundleGet(FB, fieldNameList=lfieldnamelist, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
     do n = 1, fieldCount
-       call ESMF_FieldGet(fieldlist(n), ungriddedUBound=ungriddedUBound, rc=rc)
+       call ESMF_FieldBundleGet(FB, fieldName=trim(lfieldnamelist(n)), field=lfield, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (ungriddedUbound(1) > 0) then
-          call ESMF_FieldGet(fieldlist(n), farrayPtr=dataptr2d, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          dataptr2d(:,:) = lvalue
+       call med_methods_Field_GetFldPtr(lfield, fldptr1=fldptr1, fldptr2=fldptr2, rank=lrank, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+       if (lrank == 0) then
+          ! no local data
+       elseif (lrank == 1) then
+          fldptr1 = lvalue
+       elseif (lrank == 2) then
+          fldptr2 = lvalue
        else
-          call ESMF_FieldGet(fieldlist(n), farrayPtr=dataptr1d, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          dataptr1d(:) = lvalue
-       end if
+          call ESMF_LogWrite(trim(subname)//": ERROR in rank "//trim(lfieldnamelist(n)), &
+               ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
+          rc = ESMF_FAILURE
+          return
+       endif
     enddo
-    deallocate(fieldlist)
+    deallocate(lfieldnamelist)
 
     if (dbug_flag > 10) then
       call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
@@ -2345,7 +2358,6 @@ contains
     integer                , intent(out)   :: nflds
     integer                , intent(inout) :: rc
     ! ----------------------------------------------
-
     rc = ESMF_SUCCESS
 
     if (.not. ESMF_FieldBundleIsCreated(FB)) then
@@ -2365,10 +2377,12 @@ contains
   end subroutine med_methods_FB_getNumFlds
 
   !-----------------------------------------------------------------------------
-  subroutine med_methods_FB_getdata2d(FldBun, dataptr2d, rc)
+  subroutine med_methods_FB_getdata2d(FB, fieldname, dataptr2d, rc)
+
+    use ESMF, only : ESMF_FieldBundle, ESMF_FieldBundleGet, ESMF_Field, ESMF_FieldGet
 
     ! input/output variables
-    type(ESMF_FieldBundle) , intent(in)    :: FldBun
+    type(ESMF_FieldBundle) , intent(in)    :: FB
     character(len=*)       , intent(in)    :: fieldname
     real(r8)               , pointer       :: dataptr2d(:,:)
     integer                , intent(inout) :: rc
@@ -2376,7 +2390,6 @@ contains
     ! local variables
     type(ESMF_Field) :: lfield
     ! ----------------------------------------------
-
     rc = ESMF_SUCCESS
 
     call ESMF_FieldBundleGet(FB, fieldname=trim(fieldname), field=lfield, rc=rc)
@@ -2387,10 +2400,12 @@ contains
   end subroutine med_methods_FB_getdata2d
 
   !-----------------------------------------------------------------------------
-  subroutine med_methods_FB_getdata1d(FldBun, dataptr1d, rc)
+  subroutine med_methods_FB_getdata1d(FB, fieldname, dataptr1d, rc)
+
+    use ESMF, only : ESMF_FieldBundle, ESMF_FieldBundleGet, ESMF_Field, ESMF_FieldGet
 
     ! input/output variables
-    type(ESMF_FieldBundle) , intent(in)    :: FldBun
+    type(ESMF_FieldBundle) , intent(in)    :: FB
     character(len=*)       , intent(in)    :: fieldname
     real(r8)               , pointer       :: dataptr1d(:)
     integer                , intent(inout) :: rc
@@ -2398,7 +2413,6 @@ contains
     ! local variables
     type(ESMF_Field) :: lfield
     ! ----------------------------------------------
-
     rc = ESMF_SUCCESS
 
     call ESMF_FieldBundleGet(FB, fieldname=trim(fieldname), field=lfield, rc=rc)
@@ -2411,12 +2425,13 @@ contains
   !-----------------------------------------------------------------------------
   subroutine med_methods_Field_getdata2d(field, dataptr2d, rc)
 
+    use ESMF, only : ESMF_Field, ESMF_FieldGet
+
     ! input/output variables
     type(ESMF_Field) , intent(in)    :: field
     real(r8)         , pointer       :: dataptr2d(:,:)
     integer          , intent(inout) :: rc
     ! ----------------------------------------------
-
     rc = ESMF_SUCCESS
 
     call ESMF_FieldGet(field, farrayptr=dataptr2d, rc=rc)
@@ -2427,12 +2442,13 @@ contains
   !-----------------------------------------------------------------------------
   subroutine med_methods_Field_getdata1d(field, dataptr1d, rc)
 
+    use ESMF, only : ESMF_Field, ESMF_FieldGet
+
     ! input/output variables
     type(ESMF_Field) , intent(in)    :: field
     real(r8)         , pointer       :: dataptr1d(:)
     integer          , intent(inout) :: rc
     ! ----------------------------------------------
-
     rc = ESMF_SUCCESS
 
     call ESMF_FieldGet(field, farrayptr=dataptr1d, rc=rc)
@@ -2443,27 +2459,28 @@ contains
   !-----------------------------------------------------------------------------
   subroutine med_methods_FB_getmesh(FB, mesh, rc)
 
+    use ESMF, only : ESMF_FieldBundle, ESMF_Field, ESMF_Mesh, ESMF_FieldBundleGet, ESMF_FieldGet
+
     ! input/output variables
-    type(ESMF_FieldBundle) , intent(in) :: FB
-    type(ESMF_Mesh), intent(out)        :: mesh
-    integer          , intent(inout)    :: rc
+    type(ESMF_FieldBundle) , intent(in)    :: FB
+    type(ESMF_Mesh)        , intent(out)   :: mesh
+    integer                , intent(inout) :: rc
 
     ! local variables
     integer                   :: fieldCount
     type(ESMF_Field), pointer :: fieldlist(:) => null()
     ! ----------------------------------------------
-
     rc = ESMF_SUCCESS
 
-    call ESMF_FieldBundleGet(is_local%wrap%FBExp(complnd), fieldCount=fieldCount, rc=rc)
+    call ESMF_FieldBundleGet(FB, fieldCount=fieldCount, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     allocate(fieldlist(fieldcount))
-    call ESMF_FieldBundleGet(is_local%wrap%FBExp(complnd), fieldlist=fieldlist, rc=rc)
+    call ESMF_FieldBundleGet(FB, fieldlist=fieldlist, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call ESMF_FieldGet(fieldlist(1), mesh=mesh, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     deallocate(fieldlist)
 
-  end subroutine med_methods_Field_getdata1d
+  end subroutine med_methods_FB_getmesh
 
 end module med_methods_mod

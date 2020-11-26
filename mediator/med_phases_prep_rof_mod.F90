@@ -24,6 +24,8 @@ module med_phases_prep_rof_mod
   use med_methods_mod       , only : fldbun_reset     => med_methods_FB_reset
   use med_methods_mod       , only : fldbun_accum     => med_methods_FB_accum
   use med_methods_mod       , only : fldbun_average   => med_methods_FB_average
+  use med_methods_mod       , only : field_getdata2d  => med_methods_Field_getdata2d
+  use med_methods_mod       , only : field_getdata1d  => med_methods_Field_getdata1d
   use perf_mod              , only : t_startf, t_stopf
 
   implicit none

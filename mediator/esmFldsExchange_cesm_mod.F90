@@ -264,7 +264,9 @@ contains
        call addfld(fldListFr(complnd)%flds, 'Sl_lfrin')
        call addfld(fldListFr(compocn)%flds, 'So_omask')
        call addfld(fldListFr(compice)%flds, 'Si_imask')
-       call addfld(fldlistFr(compglc)%flds, 'Sg_area')
+       do ns = 1,num_icesheets
+          call addfld(fldlistFr(compglc(ns))%flds, 'Sg_area')
+       end do
     else
        call addmap(fldListFr(compocn)%flds, 'So_omask', compice,  mapfcopy, 'unset', 'unset')
     end if
@@ -486,14 +488,16 @@ contains
        if ( fldchk(is_local%wrap%FBExp(complnd), 'Sg_icemask', rc=rc)) then
           do ns = 1, num_icesheets
              if (fldchk(is_local%wrap%FBImp(compglc(ns), compglc(ns)), 'Sg_icemask', rc=rc)) then
-                call addmap(fldListFr(compglc(ns))%flds, 'Sg_icemask', complnd,  mapconsd, 'one', 'unset')
+                call addmap(fldListFr(compglc(ns))%flds, 'Sg_icemask', &
+                     complnd,  mapconsd, 'one', 'unset')
              end if
           end do
        end if
        if ( fldchk(is_local%wrap%FBExp(complnd), 'Sg_icemask_coupled_fluxes', rc=rc)) then
           do ns = 1, num_icesheets
              if (fldchk(is_local%wrap%FBImp(compglc(ns), compglc(ns)), 'Sg_icemask_coupled_fluxes', rc=rc)) then
-                call addmap(fldListFr(compglc(ns))%flds, 'Sg_icemask_coupled_fluxes', complnd, mapconsd, 'one', 'unset')
+                call addmap(fldListFr(compglc(ns))%flds, 'Sg_icemask_coupled_fluxes', &
+                     complnd, mapconsd, 'one', 'unset')
              end if
           end do
        end if

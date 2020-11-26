@@ -103,7 +103,7 @@ module med_fraction_mod
   use med_utils_mod     , only : chkErr           => med_utils_ChkErr
   use med_methods_mod   , only : fldbun_diagnose  => med_methods_FB_diagnose
   use med_methods_mod   , only : fldbun_fldchk    => med_methods_FB_fldchk
-  use med_methods_mod   , only : fldbun_getmesh   => med_methods_FB_mesh
+  use med_methods_mod   , only : fldbun_getmesh   => med_methods_FB_getmesh
   use med_methods_mod   , only : fldbun_getdata2d => med_methods_FB_getdata2d
   use med_methods_mod   , only : fldbun_getdata1d => med_methods_FB_getdata1d
   use med_methods_mod   , only : fldbun_init      => med_methods_FB_init
@@ -291,10 +291,10 @@ contains
     if (is_local%wrap%comp_present(compocn)) then
 
        ! Set 'ofrac' in FBFrac(compocn)
-       call ESMF_FieldBundleGet(is_local%wrap%FBImp(compocn,compocn), 'So_omask',
+       call fldbun_getdata1d(is_local%wrap%FBImp(compocn,compocn), 'So_omask', So_omask, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_FieldBundleGet(is_local%wrap%FBFrac(compocn), fieldName='ofrac', field=lfield, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return ofrac, rc)
+       call fldbun_getdata1d(is_local%wrap%FBFrac(compocn), 'ofrac', ofrac, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
        ofrac(:) = So_omask(:)
 
        ! Set 'ofrac' in FBFrac(compatm) - at this point this is the ocean mask mapped to the atm grid
@@ -400,7 +400,7 @@ contains
                 end if
              end if
           end if
-          call fldbun_getdata1d(is_local%wrap%FBfrac(complnd), 'lfrac', field=field_src, rc=rc)
+          call ESMF_FieldBundleGet(is_local%wrap%FBfrac(complnd), 'lfrac', field=field_src, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           call ESMF_FieldBundleGet(is_local%wrap%FBfrac(compatm), 'lfrac', field=field_dst, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -428,8 +428,8 @@ contains
     if (is_local%wrap%comp_present(comprof)) then
 
        ! Set 'rfrac' in FBFrac(comprof)
-       if ( FB_FldChk(is_local%wrap%FBfrac(comprof)       , 'rfrac', rc=rc) .and. &
-            FB_FldChk(is_local%wrap%FBImp(comprof,comprof), 'frac' , rc=rc)) then
+       if ( fldbun_fldchk(is_local%wrap%FBfrac(comprof)       , 'rfrac', rc=rc) .and. &
+            fldbun_fldchk(is_local%wrap%FBImp(comprof,comprof), 'frac' , rc=rc)) then
           call fldbun_getdata1d(is_local%wrap%FBImp(comprof,comprof), 'frac', frac, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           call fldbun_getdata1d(is_local%wrap%FBfrac(comprof), 'rfrac', rfrac, rc)
@@ -468,8 +468,8 @@ contains
        if (is_local%wrap%comp_present(compglc(ns))) then
 
           ! Set 'gfrac' in FBFrac(compglc(ns))
-          if ( FB_FldChk(is_local%wrap%FBfrac(compglc(ns))            , 'gfrac', rc=rc) .and. &
-               FB_FldChk(is_local%wrap%FBImp(compglc(ns), compglc(ns)), 'frac' , rc=rc)) then
+          if ( fldbun_fldchk(is_local%wrap%FBfrac(compglc(ns))            , 'gfrac', rc=rc) .and. &
+               fldbun_fldchk(is_local%wrap%FBImp(compglc(ns), compglc(ns)), 'frac' , rc=rc)) then
              call fldbun_getdata1d(is_local%wrap%FBImp(compglc(ns),compglc(ns)), 'frac', frac, rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
              call fldbun_getdata1d(is_local%wrap%FBfrac(compglc(ns)), 'gfrac', gfrac, rc)
@@ -630,13 +630,13 @@ contains
        ! Si_imask is the ice domain mask which is constant over time
        ! Si_ifrac is the time evolving ice fraction on the ice grid
 
-       call fldbun_getdata1d(is_local%wrap%FBImp(compice,compice), fieldName='Si_ifrac', Si_ifrac, rc)
+       call fldbun_getdata1d(is_local%wrap%FBImp(compice,compice), 'Si_ifrac', Si_ifrac, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call fldbun_getdata1d(is_local%wrap%FBImp(compice,compice), fieldName='Si_imask', Si_imask, rc)
+       call fldbun_getdata1d(is_local%wrap%FBImp(compice,compice), 'Si_imask', Si_imask, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call fldbun_getdata1d(is_local%wrap%FBFrac(compice), fieldName='ifrac', ifrac, rc)
+       call fldbun_getdata1d(is_local%wrap%FBFrac(compice), 'ifrac', ifrac, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call fldbun_getdata1d(is_local%wrap%FBFrac(compice), fieldName='ofrac', ofrac, rc)
+       call fldbun_getdata1d(is_local%wrap%FBFrac(compice), 'ofrac', ofrac, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        ! set ifrac = Si_ifrac * Si_imask

@@ -763,11 +763,10 @@ contains
       integer           :: n, ip
       type(ESMF_field)  :: lfield
       real(r8), pointer :: data(:) => null()
-      real(r8) :: term
       ! ------------------------------------------------------------------
       rc = ESMF_SUCCESS
       if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
-         call fldbun_getdata2d(FB, trim(fldname), data, rc=rc)
+         call fldbun_getdata1d(FB, trim(fldname), data, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
          ip = period_inst
          do n = 1,size(data)

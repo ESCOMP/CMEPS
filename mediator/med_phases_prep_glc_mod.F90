@@ -21,12 +21,13 @@ module med_phases_prep_glc_mod
   use ESMF                  , only : ESMF_FieldBundleCreate, ESMF_FieldBundleIsCreated
   use ESMF                  , only : ESMF_Field, ESMF_FieldGet, ESMF_FieldCreate
   use ESMF                  , only : ESMF_Mesh, ESMF_MESHLOC_ELEMENT, ESMF_TYPEKIND_R8
-  use esmFlds               , only : compglc, complnd, mapbilnr, mapconsd, compname
+  use esmFlds               , only : complnd, mapbilnr, mapconsd, mapconsf, compname
+  use esmFlds               , only : max_icesheets, num_icesheets, compglc
   use med_internalstate_mod , only : InternalState, mastertask, logunit
   use med_constants_mod     , only : dbug_flag=>med_constants_dbug_flag
   use med_map_mod           , only : med_map_routehandles_init, med_map_rh_is_created
   use med_map_mod           , only : med_map_field_normalized, med_map_field
-  use med_methods_mod       , only : fldbun_getmesh   => med_methods_FB_mesh
+  use med_methods_mod       , only : fldbun_getmesh   => med_methods_FB_getmesh
   use med_methods_mod       , only : fldbun_getdata2d => med_methods_FB_getdata2d
   use med_methods_mod       , only : fldbun_getdata1d => med_methods_FB_getdata1d
   use med_methods_mod       , only : fldbun_diagnose  => med_methods_FB_diagnose
@@ -68,6 +69,7 @@ module med_phases_prep_glc_mod
   character(len=14)      :: fldnames_fr_lnd(3) = (/'Flgl_qice_elev','Sl_tsrf_elev  ','Sl_topo_elev  '/)
   character(len=14)      :: fldnames_to_glc(2) = (/'Flgl_qice     ','Sl_tsrf       '/)
 
+  
   type, public :: ice_sheet_toglc_type
      character(CS)          :: name
      logical                :: is_active
@@ -280,6 +282,7 @@ contains
           if (ice_sheet_toglc(ns)%is_active) then
              ! get mesh on glc grid
              call fldbun_getmesh(is_local%wrap%FBExp(compglc(ns)), ice_sheet_toglc(ns)%mesh_g, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
 
              ! create accumulation field bundle on glc grid
              ice_sheet_toglc(ns)%FBlndAccum_g = ESMF_FieldBundleCreate(rc=rc)
@@ -318,7 +321,7 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        ! TODO: talk to Bill Sacks to determine if this is the correct logic
-       glc_coupled_fluxes = is_local%wrap%med_coupling_active(compglc,complnd)
+       glc_coupled_fluxes = is_local%wrap%med_coupling_active(compglc(1),complnd)
        ! Note glc_coupled_fluxes should be false in the no_evolve cases
        ! Goes back to the zero-gcm fluxes variable - if zero-gcm fluxes is true than do not renormalize
        ! The user can set this to true in an evolve cases
@@ -503,7 +506,7 @@ contains
     integer             :: yr_prepglc, mon_prepglc, day_prepglc, sec_prepglc
     type(ESMF_Alarm)    :: alarm
     type(ESMF_Field)    :: lfield
-    integer             :: i, n, ncnt            ! counters
+    integer             :: i, n, ncnt, ns
     real(r8), pointer   :: data2d(:,:) => null()
     real(r8), pointer   :: data2d_import(:,:) => null()
     character(len=*) , parameter   :: subname=' (med_phases_prep_glc_avg) '
@@ -594,7 +597,7 @@ contains
 
        ! zero accumulator and accumulated field bundles on land grid
        FBlndAccumCnt = 0
-       call fldbun_reset(FBlndAccum_lnd, value=0.0_r8, rc=rc)
+       call fldbun_reset(FBlndAccum_l, value=0.0_r8, rc=rc)
        if (chkErr(rc,__LINE__,u_FILE_u)) return
 
        if (dbug_flag > 1) then
@@ -741,9 +744,9 @@ contains
           if (chkErr(rc,__LINE__,u_FILE_u)) return
        end if
 
-       call fldbun_getdata1d(is_local%wrap%FBImp(compglc,compglc), Sg_frac_fieldname, ice_covered_g, rc)
+       call fldbun_getdata1d(is_local%wrap%FBImp(compglc(ns),compglc(ns)), Sg_frac_fieldname, ice_covered_g, rc)
        if (chkErr(rc,__LINE__,u_FILE_u)) return
-       call fldbun_getdata1d(is_local%wrap%FBImp(compglc,compglc), Sg_topo_fieldname, topoglc_g, rc)
+       call fldbun_getdata1d(is_local%wrap%FBImp(compglc(ns),compglc(ns)), Sg_topo_fieldname, topoglc_g, rc)
        if (chkErr(rc,__LINE__,u_FILE_u)) return
 
        ! get elevation classes including bare land
@@ -775,7 +778,7 @@ contains
           if (chkErr(rc,__LINE__,u_FILE_u)) return
 
           ! Get a pointer to the data for the field that will be sent to glc (without elevation classes)
-          call fldbun_getdata2d(is_local%wrap%FBExp(compglc(ns)), fldnames_to_glc(nfld), farrayptr=dataexp_g, rc)
+          call fldbun_getdata1d(is_local%wrap%FBExp(compglc(ns)), fldnames_to_glc(nfld), dataexp_g, rc)
           if (chkErr(rc,__LINE__,u_FILE_u)) return
 
           ! First set data_ice_covered_g to bare land everywehre
@@ -1025,7 +1028,7 @@ contains
        !---------------------------------------
 
        ! get fractional ice coverage for each elevation class on the land grid, frac_l_ec(:,:)
-       call call field_getdata2d(field_frac_l_ec, frac_l_ec, rc)
+       call field_getdata2d(field_frac_l_ec, frac_l_ec, rc)
        if (chkErr(rc,__LINE__,u_FILE_u)) return
 
        ! determine fraction on land grid, lfrac(:)
@@ -1039,21 +1042,6 @@ contains
        ! get qice_l_ec
        call fldbun_getdata2d(FBlndAccum_l, trim(qice_fieldname)//'_elev', qice_l_ec, rc)
        if (chkErr(rc,__LINE__,u_FILE_u)) return
-
-       call ESMF_FieldBundleGet(is_local%wrap%FBImp(compglc(ns),compglc(ns)), trim(Sg_topo_fieldname), &
-            field=lfield, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_FieldGet(lfield, farrayptr=glc_topo_g, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_FieldBundleGet(is_local%wrap%FBImp(compglc(ns),compglc(ns)), trim(Sg_frac_fieldname), &
-            field=lfield, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_FieldGet(lfield, farrayptr=glc_frac_g, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_FieldGet(ice_sheet_toglc(ns)%field_frac_g, farrayptr=glc_frac_g, rc=rc) ! module field
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_FieldGet(ice_sheet_toglc(ns)%field_frac_g_ec, farrayptr=glc_frac_g_ec, rc=rc) ! module field
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        local_accum_lnd(1) = 0.0_r8
        local_ablat_lnd(1) = 0.0_r8
@@ -1093,7 +1081,7 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        ! get areas internal to glc grid
-       call fldbun_getdata1d(is_local%FBImp(compglc(ns),compglc(ns)), 'Sg_area', area_g, rc)
+       call fldbun_getdata1d(is_local%wrap%FBImp(compglc(ns),compglc(ns)), 'Sg_area', area_g, rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        local_accum_glc(1) = 0.0_r8

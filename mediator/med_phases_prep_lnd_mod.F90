@@ -20,11 +20,11 @@ module med_phases_prep_lnd_mod
   use esmFlds               , only : fldListTo
   use med_methods_mod       , only : fldbun_diagnose  => med_methods_FB_diagnose
   use med_methods_mod       , only : fldbun_fldchk    => med_methods_FB_fldchk
-  use med_methods_mod       , only : fldbun_getmesh   => med_methods_FB_mesh
-  use med_methods_mod       , only : fldbun_getdata2d => med_methods_FB_getdata2d
+  use med_methods_mod       , only : fldbun_getmesh   => med_methods_FB_getmesh
   use med_methods_mod       , only : fldbun_getdata1d => med_methods_FB_getdata1d
-  use med_methods_mod       , only : field_getdata2d  => med_methods_Field_getdata2d
+  use med_methods_mod       , only : fldbun_getdata2d => med_methods_FB_getdata2d
   use med_methods_mod       , only : field_getdata1d  => med_methods_Field_getdata1d
+  use med_methods_mod       , only : field_getdata2d  => med_methods_Field_getdata2d
   use med_methods_mod       , only : State_GetScalar  => med_methods_State_GetScalar
   use med_methods_mod       , only : State_SetScalar  => med_methods_State_SetScalar
   use med_utils_mod         , only : chkerr           => med_utils_ChkErr
@@ -107,6 +107,11 @@ contains
        call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
     end if
 
+    ! Get the internal state
+    nullify(is_local%wrap)
+    call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
     ! Count the number of fields outside of scalar data, if zero, then return
     ! Note - the scalar field has been removed from all mediator field bundles - so this is why we check if the
     ! fieldCount is 0 and not 1 here
@@ -115,11 +120,6 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if (ncnt > 0) then
-
-       ! Get the internal state
-       nullify(is_local%wrap)
-       call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        ! determine if coupling to CISM is 2-way
        if (first_call) then
@@ -296,7 +296,7 @@ contains
     !---------------------------------------
 
     ! Determine number of elevation classes by querying a field that has elevation classes in it
-    call ESMF_FieldBundleGet(is_local%wrap%FBExp(complnd), Sg_topo_elev, field=lfield_l, rc=rc)
+    call ESMF_FieldBundleGet(is_local%wrap%FBExp(complnd), 'Sg_topo_elev', field=lfield_l, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call ESMF_FieldGet(lfield_l, ungriddedUBound=ungriddedUBound_output, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -436,7 +436,7 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     frac_l_ec_sum(:,:) = 0._r8
 
-    call fldbun_getdata2d(is_local%wrap%FBExp(complnd), fieldname=trim(Sg_topo)//'_elev', topo_l_ec_sum, rc)
+    call fldbun_getdata2d(is_local%wrap%FBExp(complnd), trim(Sg_topo)//'_elev', topo_l_ec_sum, rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     topo_l_ec_sum(:,:) = 0._r8
 
@@ -477,7 +477,7 @@ contains
     dataptr1d_dst(:) = 0._r8
     do ns = 1,num_icesheets
        if (is_local%wrap%med_coupling_active(compglc(ns),complnd)) then
-          call fldbun_getdata1d(is_local%wrap%FBImp(compglc(ns),complnd), Sg_icemask_coupled_fluxes, data1d_src, rc)
+          call fldbun_getdata1d(is_local%wrap%FBImp(compglc(ns),complnd), Sg_icemask_coupled_fluxes, dataptr1d_src, rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           dataptr1d_dst(:) = dataptr1d_dst(:) + dataptr1d_src(:)
        end if
@@ -497,7 +497,7 @@ contains
           if (chkerr(rc,__LINE__,u_FILE_u)) return
 
           ! compute frac_g_ec(:,:) - the glc fractions on the glc grid for each elevation class (inner dimension)
-          call field_getdata2d(ice_sheet_tolnd(ns)%field_frac_g_ec, farrayptr=frac_g_ec, rc=rc)
+          call field_getdata2d(ice_sheet_tolnd(ns)%field_frac_g_ec, frac_g_ec, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           call glc_get_fractional_icecov(ungriddedCount-1, topo_g, frac_g, frac_g_ec, logunit)
 
@@ -531,7 +531,7 @@ contains
           if (chkerr(rc,__LINE__,u_FILE_u)) return
 
           ! now set values in land export state for Sg_frac_elev (this is summed over all ice sheets)
-          call med_methods_field_getdata2d(field_frac_l_ec, frac_l_ec, rc=rc)
+          call field_getdata2d(field_frac_l_ec, frac_l_ec, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           frac_l_ec_sum(:,:) = frac_l_ec_sum(:,:) + frac_l_ec(:,:)
 
