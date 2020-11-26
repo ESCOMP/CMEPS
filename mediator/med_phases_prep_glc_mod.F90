@@ -28,7 +28,7 @@ module med_phases_prep_glc_mod
   use med_utils_mod         , only : chkerr       => med_utils_ChkErr
   use med_time_mod          , only : med_time_alarmInit
   use glc_elevclass_mod     , only : glc_get_num_elevation_classes
-  use glc_elevclass_mod     , only : glc_get_elevation_classes, glc_get_elevation_class
+  use glc_elevclass_mod     , only : glc_get_elevation_classes
   use glc_elevclass_mod     , only : glc_get_fractional_icecov
   use perf_mod              , only : t_startf, t_stopf
   use shr_const_mod         , only : shr_const_pi
