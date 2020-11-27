@@ -16,7 +16,7 @@ module esmflds
   integer, public, parameter  :: compice  = 5
   integer, public, parameter  :: comprof  = 6
   integer, public, parameter  :: compwav  = 7
-  integer, public, parameter  :: compglc1 = 8 
+  integer, public, parameter  :: compglc1 = 8
   integer, public, parameter  :: ncomps   = 8
 
   character(len=*), public, parameter :: compname(ncomps) = &

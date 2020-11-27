@@ -19,7 +19,7 @@ module med_internalstate_mod
 
   ! Active coupling definitions (will be initialize in med.F90)
   logical, public :: med_coupling_allowed(ncomps, ncomps)
-  
+
   type, public ::  mesh_info_type
      real(r8), pointer :: areas(:) => null()
      real(r8), pointer :: lats(:) => null()
@@ -27,7 +27,7 @@ module med_internalstate_mod
   end type mesh_info_type
 
   type, public :: packed_data_type
-     integer, allocatable :: fldindex(:) ! size of number of packed fields 
+     integer, allocatable :: fldindex(:) ! size of number of packed fields
      character(len=CS)    :: mapnorm     ! normalization for packed field
      type(ESMF_Field)     :: field_src    ! packed sourced field
      type(ESMF_Field)     :: field_dst    ! packed destination field

@@ -6,7 +6,6 @@ module med_phases_prep_glc_mod
 
   ! TODO: determine the number of ice sheets that are present
 
-
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
   use NUOPC                 , only : NUOPC_CompAttributeGet
   use NUOPC_Model           , only : NUOPC_ModelGet
@@ -21,7 +20,7 @@ module med_phases_prep_glc_mod
   use ESMF                  , only : ESMF_FieldBundleCreate, ESMF_FieldBundleIsCreated
   use ESMF                  , only : ESMF_Field, ESMF_FieldGet, ESMF_FieldCreate
   use ESMF                  , only : ESMF_Mesh, ESMF_MESHLOC_ELEMENT, ESMF_TYPEKIND_R8
-  use esmFlds               , only : complnd, mapbilnr, mapconsd, mapconsf, compname
+  use esmFlds               , only : complnd, mapbilnr, mapconsd, compname
   use esmFlds               , only : max_icesheets, num_icesheets, compglc
   use med_internalstate_mod , only : InternalState, mastertask, logunit
   use med_constants_mod     , only : dbug_flag=>med_constants_dbug_flag
@@ -82,6 +81,7 @@ module med_phases_prep_glc_mod
   end type ice_sheet_toglc_type
   type(ice_sheet_toglc_type) :: ice_sheet_toglc(max_icesheets)
 
+  type(ESMF_Field)   :: field_normdst_l
   type(ESMF_Field)   :: field_icemask_l
   type(ESMF_Field)   :: field_frac_l
   type(ESMF_Field)   :: field_frac_l_ec
@@ -355,6 +355,9 @@ contains
        ! -------------------------------
        if (smb_renormalize) then
 
+          field_normdst_l = ESMF_FieldCreate(lmesh_l, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+
           ! ice mask without elevation classes on lnd
           field_icemask_l = ESMF_FieldCreate(lmesh_l, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -390,11 +393,11 @@ contains
                 if (chkerr(rc,__LINE__,u_FILE_u)) return
 
                 ! Create route handle if it has not been created - this will be needed to map the fractions
-                if (.not. med_map_RH_is_created(is_local%wrap%RH(compglc(ns),complnd,:),mapconsf,rc=rc)) then
+                if (.not. med_map_RH_is_created(is_local%wrap%RH(compglc(ns),complnd,:),mapconsd, rc=rc)) then
                    call med_map_routehandles_init( compglc(ns), complnd, &
                         FBSrc=is_local%wrap%FBImp(compglc(ns),compglc(ns)), &
                         FBDst=is_local%wrap%FBImp(compglc(ns),complnd), &
-                        mapindex=mapconsf, &
+                        mapindex=mapconsd, &
                         RouteHandle=is_local%wrap%RH, rc=rc)
                    if (ChkErr(rc,__LINE__,u_FILE_u)) return
                 end if
@@ -984,14 +987,16 @@ contains
        icemask_g(:) = dataptr1d(:)
 
        ! map ice mask from glc to lnd with no normalization
-       ! BUG(wjs, 2017-05-11, #1516) I think we actually want norm = .false. here, but this needs more thought
-       ! Below the implementation is without normalization - this should be checked moving forwards
        call med_map_field(  &
             field_src=ice_sheet_toglc(ns)%field_icemask_g, &
             field_dst=field_icemask_l, &
             routehandles=is_local%wrap%RH(compglc(ns),complnd,:), &
-            maptype=mapconsf, rc=rc)
+            maptype=mapconsd, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+       ! get icemask_l
+       call field_getdata1d(field_icemask_l, icemask_l, rc)
+       if (chkErr(rc,__LINE__,u_FILE_u)) return
 
        ! ------------------------------------------------------------------------
        ! Map frac_field on glc grid without elevation classes to frac_field on land grid with elevation classes
@@ -1019,9 +1024,9 @@ contains
             field_src=ice_sheet_toglc(ns)%field_frac_g_ec, &
             field_dst=field_frac_l_ec, &
             routehandles=is_local%wrap%RH(compglc(ns),complnd,:), &
-            maptype=mapconsf, &
+            maptype=mapconsd, &
             field_normsrc=ice_sheet_toglc(ns)%field_icemask_g, &
-            field_normdst=field_icemask_l, rc=rc)
+            field_normdst=field_normdst_l, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        !---------------------------------------
@@ -1034,10 +1039,6 @@ contains
 
        ! determine fraction on land grid, lfrac(:)
        call fldbun_getdata1d(is_local%wrap%FBFrac(complnd), 'lfrac', lfrac, rc)
-       if (chkErr(rc,__LINE__,u_FILE_u)) return
-
-       ! get icemask_l
-       call field_getdata1d(field_icemask_l, icemask_l, rc)
        if (chkErr(rc,__LINE__,u_FILE_u)) return
 
        ! get qice_l_ec
@@ -1069,8 +1070,8 @@ contains
             reduceflag=ESMF_REDUCE_SUM, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        if (mastertask) then
-          write(logunit,'(a,d13.5)') trim(subname)//'global_accum_lnd = ', global_accum_lnd
-          write(logunit,'(a,d13.5)') trim(subname)//'global_ablat_lnd = ', global_ablat_lnd
+          write(logunit,'(a,d21.10)') trim(subname)//'global_accum_lnd = ', global_accum_lnd
+          write(logunit,'(a,d21.10)') trim(subname)//'global_ablat_lnd = ', global_ablat_lnd
        endif
 
        !---------------------------------------
@@ -1099,8 +1100,8 @@ contains
        call ESMF_VMAllreduce(vm, senddata=local_ablat_glc, recvdata=global_ablat_glc, count=1, &
             reduceflag=ESMF_REDUCE_SUM, rc=rc)
        if (mastertask) then
-          write(logunit,'(a,d13.5)') trim(subname)//'global_accum_glc = ', global_accum_glc
-          write(logunit,'(a,d13.5)') trim(subname)//'global_ablat_glc = ', global_ablat_glc
+          write(logunit,'(a,d21.10)') trim(subname)//'global_accum_glc = ', global_accum_glc
+          write(logunit,'(a,d21.10)') trim(subname)//'global_ablat_glc = ', global_ablat_glc
        endif
 
        ! Renormalize
@@ -1115,8 +1116,8 @@ contains
           ablat_renorm_factor = 0.0_r8
        endif
        if (mastertask) then
-          write(logunit,'(a,d13.5)') trim(subname)//'accum_renorm_factor = ', accum_renorm_factor
-          write(logunit,'(a,d13.5)') trim(subname)//'ablat_renorm_factor = ', ablat_renorm_factor
+          write(logunit,'(a,d21.10)') trim(subname)//'accum_renorm_factor = ', accum_renorm_factor
+          write(logunit,'(a,d21.10)') trim(subname)//'ablat_renorm_factor = ', ablat_renorm_factor
        endif
 
        do n = 1, size(qice_g)
