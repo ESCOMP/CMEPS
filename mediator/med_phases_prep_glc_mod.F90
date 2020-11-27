@@ -364,7 +364,8 @@ contains
           if (chkerr(rc,__LINE__,u_FILE_u)) return
 
           ! ice fraction in multiple elevation classes on lnd - NOTE that this includes bare land
-          field_frac_l = ESMF_FieldCreate(lmesh_l, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+          field_frac_l_ec = ESMF_FieldCreate(lmesh_l, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, &
+               ungriddedLbound=(/1/), ungriddedUbound=(/ungriddedCount/), gridToFieldMap=(/2/), rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
 
           ! Loop over ice sheets
