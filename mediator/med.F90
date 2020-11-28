@@ -89,6 +89,7 @@ contains
     use med_phases_prep_wav_mod , only: med_phases_prep_wav
     use med_phases_prep_glc_mod , only: med_phases_prep_glc_accum
     use med_phases_prep_glc_mod , only: med_phases_prep_glc_avg
+    use med_phases_post_glc_mod , only: med_phases_post_glc
     use med_phases_prep_rof_mod , only: med_phases_prep_rof_accum
     use med_phases_prep_rof_mod , only: med_phases_prep_rof_avg
     use med_phases_prep_ocn_mod , only: med_phases_prep_ocn_map
@@ -346,6 +347,20 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_TimestampExport, &
          specPhaselabel="med_phases_prep_glc_accum", specRoutine=NUOPC_NoOp, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    !------------------
+    ! post routine for glc (mapping to lnd, ocn, ice)
+    !------------------
+
+    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
+         phaseLabelList=(/"med_phases_post_glc"/), userRoutine=mediator_routine_Run, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
+         specPhaseLabel="med_phases_post_glc", specRoutine=med_phases_post_glc, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_TimestampExport, &
+         specPhaselabel="med_phases_post_glc", specRoutine=NUOPC_NoOp, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !------------------
@@ -1648,6 +1663,7 @@ contains
     use med_fraction_mod        , only : med_fraction_init, med_fraction_set
     use med_phases_restart_mod  , only : med_phases_restart_read
     use med_phases_prep_glc_mod , only : med_phases_prep_glc_init
+    use med_phases_post_glc_mod , only : med_phases_post_glc
     use med_phases_prep_atm_mod , only : med_phases_prep_atm
     use med_phases_ocnalb_mod   , only : med_phases_ocnalb_run
     use med_phases_aofluxes_mod , only : med_phases_aofluxes_run
@@ -1716,7 +1732,7 @@ contains
       !----------------------------------------------------------
       ! Initialize mediator present flags
       !----------------------------------------------------------
-       
+
       if (mastertask) then
          write(logunit,'(a)') trim(subname) // "Initializing present flags"
       end if
@@ -1761,7 +1777,7 @@ contains
 
       ! This defines the med_coupling_allowed is a starting point for what is
       ! allowed in this coupled system.  It will be revised further after the system
-      ! starts, but any coupling set to false will never be allowed.  
+      ! starts, but any coupling set to false will never be allowed.
       ! are allowed, just update the table below.
 
       if (mastertask) then
@@ -1809,7 +1825,7 @@ contains
       med_coupling_allowed(compocn,compwav) = .true.
       med_coupling_allowed(compice,compwav) = .true.
 
-      ! to land-ice 
+      ! to land-ice
       do ns = 1,num_icesheets
          med_coupling_allowed(complnd,compglc(ns)) = .true.
       end do
@@ -2320,6 +2336,17 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call med_diag_zero(gcomp, mode='all', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       !---------------------------------------
+       ! If appropriate, Map initial glc->lnd before run phase of glc is called
+       !---------------------------------------
+       do ns = 1,num_icesheets
+          if (is_local%wrap%med_coupling_active(compglc(ns),complnd)) then
+             write(6,*)'DEBUG: calling med_phases_post_glc for ice sheet ',ns
+             call med_phases_post_glc(gcomp, rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          end if
+       end do
 
        !---------------------------------------
        ! read mediator restarts
