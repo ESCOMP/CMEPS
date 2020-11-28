@@ -150,7 +150,6 @@ def gen_runseq(case, coupling_times):
         else:
             runseq.add_action("OCN -> MED :remapMethod=redist"         , run_ocn and ocn_outer_loop)
 
-
         #------------------
         runseq.leave_time_loop(ocn_outer_loop)
         #------------------
@@ -165,5 +164,6 @@ def gen_runseq(case, coupling_times):
         runseq.add_action("MED -> GLC :remapMethod=redist" , med_to_glc)
         runseq.add_action("GLC"                            , run_glc and med_to_glc)
         runseq.add_action("GLC -> MED :remapMethod=redist" , run_glc)
+        runseq.add_action("MED med_phases_post_glc"        , run_glc)
 
     shutil.copy(os.path.join(caseroot, "CaseDocs", "nuopc.runseq"), rundir)
