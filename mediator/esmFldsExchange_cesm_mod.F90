@@ -262,6 +262,7 @@ contains
        call addfld(fldListFr(complnd)%flds, 'Sl_lfrin')
        call addfld(fldListFr(compocn)%flds, 'So_omask')
        call addfld(fldListFr(compice)%flds, 'Si_imask')
+       call addfld(fldlistFr(compglc)%flds, 'Sg_area')
     else
        call addmap(fldListFr(compocn)%flds, 'So_omask', compice,  mapfcopy, 'unset', 'unset')
     end if
@@ -475,9 +476,9 @@ contains
             fldchk(is_local%wrap%FBImp(compglc,compglc) , 'Flgg_hflx'          , rc=rc)) then
 
           ! Custom merges will be done here
-          call addmap(FldListFr(compglc)%flds, 'Sg_ice_covered' , complnd, mapconsf, 'unset' , glc2lnd_fmap)
-          call addmap(FldListFr(compglc)%flds, 'Sg_topo'        , compglc, mapconsf, 'custom', glc2lnd_fmap)
-          call addmap(FldListFr(compglc)%flds, 'Flgg_hflx'      , compglc, mapconsf, 'custom', glc2lnd_fmap)
+          call addmap(FldListFr(compglc)%flds, 'Sg_ice_covered' , complnd, mapconsd, 'unset' , glc2lnd_fmap)
+          call addmap(FldListFr(compglc)%flds, 'Sg_topo'        , compglc, mapconsd, 'custom', glc2lnd_fmap)
+          call addmap(FldListFr(compglc)%flds, 'Flgg_hflx'      , compglc, mapconsd, 'custom', glc2lnd_fmap)
 
           ! Custom merge in med_phases_prep_lnd
        end if

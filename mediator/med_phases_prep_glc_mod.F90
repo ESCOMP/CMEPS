@@ -6,18 +6,19 @@ module med_phases_prep_glc_mod
 
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
   use NUOPC                 , only : NUOPC_CompAttributeGet
+  use NUOPC_Model           , only : NUOPC_ModelGet
   use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_LOGMSG_ERROR, ESMF_SUCCESS, ESMF_FAILURE
-  use ESMF                  , only : ESMF_VM, ESMF_VMGet, ESMF_VMAllReduce, ESMF_REDUCE_SUM
-  use ESMF                  , only : ESMF_Clock,ESMF_ClockGetAlarm
-  use ESMF                  , only : ESMF_Alarm, ESMF_AlarmIsRinging, ESMF_AlarmRingerOff
+  use ESMF                  , only : ESMF_VM, ESMF_VMGet, ESMF_VMAllReduce, ESMF_REDUCE_SUM, ESMF_REDUCE_MAX
+  use ESMF                  , only : ESMF_Clock, ESMF_ClockCreate, ESMF_ClockGetAlarm, ESMF_ClockAdvance, ESMF_ClockGet
+  use ESMF                  , only : ESMF_Time, ESMF_TimeGet
+  use ESMF                  , only : ESMF_Alarm, ESMF_AlarmCreate, ESMF_AlarmSet, ESMF_AlarmGet
+  use ESMF                  , only : ESMF_AlarmIsRinging, ESMF_AlarmRingerOff
   use ESMF                  , only : ESMF_GridComp, ESMF_GridCompGet
   use ESMF                  , only : ESMF_FieldBundle, ESMF_FieldBundleGet, ESMF_FieldBundleAdd
   use ESMF                  , only : ESMF_FieldBundleCreate, ESMF_FieldBundleIsCreated
   use ESMF                  , only : ESMF_Field, ESMF_FieldGet, ESMF_FieldCreate
-  use ESMF                  , only : ESMF_Array, ESMF_ArrayGet, ESMF_ArrayCreate, ESMF_ArrayDestroy
-  use ESMF                  , only : ESMF_DistGrid, ESMF_AttributeSet
-  use ESMF                  , only : ESMF_Mesh, ESMF_MeshGet, ESMF_MESHLOC_ELEMENT, ESMF_TYPEKIND_R8
-  use esmFlds               , only : compglc, complnd, mapbilnr, mapconsd, mapconsf, compname
+  use ESMF                  , only : ESMF_Mesh, ESMF_MESHLOC_ELEMENT, ESMF_TYPEKIND_R8
+  use esmFlds               , only : compglc, complnd, mapbilnr, mapconsd, compname
   use med_internalstate_mod , only : InternalState, mastertask, logunit
   use med_constants_mod     , only : dbug_flag=>med_constants_dbug_flag
   use med_map_mod           , only : med_map_routehandles_init, med_map_rh_is_created
@@ -25,10 +26,13 @@ module med_phases_prep_glc_mod
   use med_methods_mod       , only : FB_diagnose  => med_methods_FB_diagnose
   use med_methods_mod       , only : FB_reset     => med_methods_FB_reset
   use med_utils_mod         , only : chkerr       => med_utils_ChkErr
+  use med_time_mod          , only : med_time_alarmInit
   use glc_elevclass_mod     , only : glc_get_num_elevation_classes
   use glc_elevclass_mod     , only : glc_get_elevation_classes
   use glc_elevclass_mod     , only : glc_get_fractional_icecov
   use perf_mod              , only : t_startf, t_stopf
+  use shr_const_mod         , only : shr_const_pi
+  use shr_mpi_mod           , only : shr_mpi_sum
 
   implicit none
   private
@@ -58,28 +62,22 @@ module med_phases_prep_glc_mod
   logical :: smb_renormalize
 
   ! Needed if renormalize SMB
-  type(ESMF_Field)      :: field_glc_icemask_g
-  type(ESMF_Field)      :: field_glc_icemask_l
-  type(ESMF_Field)      :: field_glc_frac_g
-  type(ESMF_Field)      :: field_glc_frac_l
-  type(ESMF_Field)      :: field_glc_frac_g_ec
-  type(ESMF_Field)      :: field_glc_frac_l_ec
-  type(ESMF_Field)      :: field_lnd_icemask_l
+  type(ESMF_Field)      :: field_icemask_g
+  type(ESMF_Field)      :: field_icemask_l
+  type(ESMF_Field)      :: field_frac_g
+  type(ESMF_Field)      :: field_frac_l
+  type(ESMF_Field)      :: field_frac_g_ec
+  type(ESMF_Field)      :: field_frac_l_ec
   type(ESMF_Field)      :: field_lfrac_g
 
-  real(r8) , pointer          :: aream_l(:) => null()  ! cell areas on land grid, for mapping
-  real(r8) , pointer          :: aream_g(:) => null()  ! cell areas on glc grid, for mapping
-
-  character(len=*), parameter :: qice_fieldname   = 'Flgl_qice' ! Name of flux field giving surface mass balance
+  character(len=*), parameter :: qice_fieldname       = 'Flgl_qice' ! Name of flux field giving surface mass balance
   character(len=*), parameter :: Sg_frac_fieldname    = 'Sg_ice_covered'
   character(len=*), parameter :: Sg_topo_fieldname    = 'Sg_topo'
   character(len=*), parameter :: Sg_icemask_fieldname = 'Sg_icemask'
 
-  ! Size of undistributed dimension from land
-  integer :: ungriddedCount ! this equals the number of elevation classes + 1 (for bare land)
-
-  logical :: init_prep_glc = .false.
-
+  integer          :: ungriddedCount ! this equals the number of elevation classes + 1 (for bare land)
+  logical          :: init_prep_glc = .false.
+  type(ESMF_Clock) :: prepglc_clock
   character(*), parameter :: u_FILE_u  = &
        __FILE__
 
@@ -108,14 +106,18 @@ contains
     real(r8), pointer         :: dataptr1d(:) => null()
     character(len=CS)         :: glc_renormalize_smb
     logical                   :: glc_coupled_fluxes
-    type(ESMF_Array)          :: larray
-    type(ESMF_DistGrid)       :: ldistgrid
     integer                   :: lsize
     logical                   :: isPresent
     integer                   :: fieldCount
     type(ESMF_Field), pointer :: fieldlist(:) => null()
     integer                   :: ungriddedUBound_output(1) ! currently the size must equal 1 for rank 2 fieldds
-    character(len=*),parameter  :: subname='(med_phases_prep_glc_init)'
+    type(ESMF_Clock)          :: med_clock
+    type(ESMF_ALARM)          :: glc_avg_alarm
+    logical                   :: glc_present
+    character(len=CS)         :: glc_avg_period
+    integer                   :: glc_cpl_dt
+    character(len=CS)         :: cvalue
+    character(len=*),parameter  :: subname=' (med_phases_prep_glc_init) '
     !---------------------------------------
 
     call t_startf('MED:'//subname)
@@ -124,6 +126,41 @@ contains
        call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
     endif
     rc = ESMF_SUCCESS
+
+    ! First prepglc_clock from mclock - THIS CALL DOES NOT COPY ALARMS
+    call NUOPC_ModelGet(gcomp, modelClock=med_clock,  rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    prepglc_clock = ESMF_ClockCreate(med_clock, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    ! Set alarm glc averaging interval
+    call NUOPC_CompAttributeGet(gcomp, name="glc_avg_period", value=glc_avg_period, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (trim(glc_avg_period) == 'yearly') then
+       call med_time_alarmInit(prepglc_clock, glc_avg_alarm, 'nyears', opt_n=1, alarmname='alarm_glc_avg', rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       if (mastertask) then
+          write(logunit,'(a,i10)') trim(subname)//&
+               ' created alarm with averaging period for export to glc is yearly'
+       end if
+    else if (trim(glc_avg_period) == 'glc_coupling_period') then
+       call NUOPC_CompAttributeGet(gcomp, name="glc_cpl_dt", value=cvalue, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       read(cvalue,*) glc_cpl_dt
+       call med_time_alarmInit(prepglc_clock, glc_avg_alarm, 'nseconds', opt_n=glc_cpl_dt, alarmname='alarm_glc_avg', rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       if (mastertask) then
+          write(logunit,'(a,i10)') trim(subname)//&
+               ' created alarm with averaging period for export to glc (in seconds) ',glc_cpl_dt
+       end if
+    else
+       call ESMF_LogWrite(trim(subname)// ": ERROR glc_avg_period = "//trim(glc_avg_period)//" not supported", &
+            ESMF_LOGMSG_INFO)
+       rc = ESMF_FAILURE
+       RETURN
+    end if
+    call ESMF_AlarmSet(glc_avg_alarm, clock=prepglc_clock, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !---------------------------------------
     ! Get the internal state
@@ -252,62 +289,41 @@ contains
           rc = ESMF_FAILURE
           return
        end select
+       if (mastertask) then
+          write(logunit,'(a,l4)') trim(subname)//' smb_renormalize is ',smb_renormalize
+       end if
 
        ! -------------------------------
        ! If smb will be renormalized then...
        ! -------------------------------
        if (smb_renormalize) then
 
-          ! determine areas on land mesh
-          call ESMF_MeshGet(lmesh_lnd, numOwnedElements=lsize, elementDistGrid=ldistgrid, rc=rc)
-          if (chkErr(rc,__LINE__,u_FILE_u)) return
-          allocate(aream_l(lsize), dataptr1d(lsize))
-          lArray = ESMF_ArrayCreate(ldistgrid, dataptr1d, rc=rc)
-          call ESMF_MeshGet(lmesh_lnd, elemMaskArray=lArray, rc=rc)
-          if (chkErr(rc,__LINE__,u_FILE_u)) return
-          aream_l(:) = dataptr1d(:)
-          call ESMF_ArrayDestroy(larray, rc=rc)
-          if (chkErr(rc,__LINE__,u_FILE_u)) return
-          deallocate(dataptr1d)
-
-          ! determine areas on glc mesh
-          call ESMF_MeshGet(lmesh_glc, numOwnedElements=lsize, elementDistGrid=ldistgrid, rc=rc)
-          if (chkErr(rc,__LINE__,u_FILE_u)) return
-          allocate(aream_g(lsize), dataptr1d(lsize))
-          lArray = ESMF_ArrayCreate(ldistgrid, dataptr1d, rc=rc)
-          call ESMF_MeshGet(lmesh_glc, elemMaskArray=lArray, rc=rc)
-          if (chkErr(rc,__LINE__,u_FILE_u)) return
-          aream_g(:) = dataptr1d(:)
-          call ESMF_ArrayDestroy(larray, rc=rc)
-          if (chkErr(rc,__LINE__,u_FILE_u)) return
-          deallocate(dataptr1d)
-
           ! ice mask without elevation classes on glc and lnd
-          field_glc_icemask_g = ESMF_FieldCreate(lmesh_glc, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+          field_icemask_g = ESMF_FieldCreate(lmesh_glc, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
-          field_glc_icemask_l = ESMF_FieldCreate(lmesh_lnd, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+          field_icemask_l = ESMF_FieldCreate(lmesh_lnd, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
 
           ! ice fraction without multiple elevation classes on glc and lnd
-          field_glc_frac_g = ESMF_FieldCreate(lmesh_glc, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+          field_frac_g = ESMF_FieldCreate(lmesh_glc, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
-          field_glc_frac_l = ESMF_FieldCreate(lmesh_lnd, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+          field_frac_l = ESMF_FieldCreate(lmesh_lnd, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
 
           ! ice fraction in multiple elevation classes on glc and lnd - NOTE that this includes bare land
-          field_glc_frac_g_ec = ESMF_FieldCreate(lmesh_glc, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, &
+          field_frac_g_ec = ESMF_FieldCreate(lmesh_glc, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, &
                ungriddedLbound=(/1/), ungriddedUbound=(/ungriddedCount/), gridToFieldMap=(/2/), rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
-          field_glc_frac_l_ec = ESMF_FieldCreate(lmesh_lnd, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, &
+          field_frac_l_ec = ESMF_FieldCreate(lmesh_lnd, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, &
                ungriddedLbound=(/1/), ungriddedUbound=(/ungriddedCount/), gridToFieldMap=(/2/), rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
 
           ! Create route handle if it has not been created - this will be needed to map the fractions
-          if (.not. med_map_RH_is_created(is_local%wrap%RH(compglc,complnd,:),mapconsf,rc=rc)) then
+          if (.not. med_map_RH_is_created(is_local%wrap%RH(compglc,complnd,:),mapconsd,rc=rc)) then
              call med_map_routehandles_init( compglc, complnd, &
                   FBSrc=is_local%wrap%FBImp(compglc,compglc), &
                   FBDst=is_local%wrap%FBImp(compglc,complnd), &
-                  mapindex=mapconsf, &
+                  mapindex=mapconsd, &
                   RouteHandle=is_local%wrap%RH, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
@@ -327,8 +343,9 @@ contains
 
     !---------------------------------------
     ! Carry out accumulation for the land-ice (glc) component
-    ! Accumulation and averaging is done on the land input to the river component on the land grid
-    ! Mapping from the land to the glc grid is then done with the time averaged fields
+    ! Accumulation and averaging is done on the land input field to glc on the land grid
+    ! Mapping from the land to the glc grid is then done after the accumulated fields have been
+    ! time averaged
     !---------------------------------------
 
     ! input/output variables
@@ -338,10 +355,11 @@ contains
     ! local variables
     type(InternalState) :: is_local
     type(ESMF_Field)    :: lfield
+    type(ESMF_Alarm)    :: alarm
     integer             :: i,n,ncnt
     real(r8), pointer   :: data2d_in(:,:) => null()
     real(r8), pointer   :: data2d_out(:,:) => null()
-    character(len=*),parameter  :: subname='(med_phases_prep_glc_accum)'
+    character(len=*),parameter  :: subname=' (med_phases_prep_glc_accum) '
     !---------------------------------------
 
     call t_startf('MED:'//subname)
@@ -351,59 +369,47 @@ contains
     endif
     rc = ESMF_SUCCESS
 
-    !---------------------------------------
-    ! Get the internal state
-    !---------------------------------------
+    if (.not. init_prep_glc) then
+       call med_phases_prep_glc_init(gcomp, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       init_prep_glc = .true.
+    end if
 
+    ! Get the internal state
     nullify(is_local%wrap)
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (chkErr(rc,__LINE__,u_FILE_u)) return
 
     !---------------------------------------
-    ! Count the number of fields outside of scalar data
-    !---------------------------------------
-
-    if (.not. ESMF_FieldBundleIsCreated(is_local%wrap%FBImp(complnd,complnd))) then
-       ncnt = 0
-       call ESMF_LogWrite(trim(subname)//": FBImp(complnd,complnd) is not created", ESMF_LOGMSG_INFO)
-    else
-       ! The scalar field has been removed from all mediator field bundles - so determine ncnt for below
-       call ESMF_FieldBundleGet(is_local%wrap%FBImp(complnd,complnd), fieldCount=ncnt, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-    end if
-
-    !---------------------------------------
     ! accumulator land input to glc on land grid
     !---------------------------------------
 
-    if (ncnt > 0) then
-       ! Initialize module variables needed to accumulate input to glc
-       if (.not. init_prep_glc) then
-          call med_phases_prep_glc_init(gcomp, rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          init_prep_glc = .true.
-       end if
+    ! Advance prepglc_clock - this will make the prepglc_clock in sync with the mediator clock
+    call ESMF_ClockAdvance(prepglc_clock, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-       do n = 1, size(fldnames_fr_lnd)
-          call ESMF_FieldBundleGet(is_local%wrap%FBImp(complnd,complnd), fieldname=trim(fldnames_fr_lnd(n)), field=lfield, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call ESMF_FieldGet(lfield, farrayptr=data2d_in, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call ESMF_FieldBundleGet(FBlndAccum_lnd, fieldname=fldnames_fr_lnd(n), field=lfield, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call ESMF_FieldGet(lfield, farrayptr=data2d_out, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          do i = 1,size(data2d_out, dim=2)
-             data2d_out(:,i) = data2d_out(:,i) + data2d_in(:,i)
-          end do
+    ! Accumulate fields
+    do n = 1, size(fldnames_fr_lnd)
+       call ESMF_FieldBundleGet(is_local%wrap%FBImp(complnd,complnd), fieldname=trim(fldnames_fr_lnd(n)), &
+            field=lfield, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_FieldGet(lfield, farrayptr=data2d_in, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_FieldBundleGet(FBlndAccum_lnd, fieldname=fldnames_fr_lnd(n), field=lfield, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_FieldGet(lfield, farrayptr=data2d_out, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       do i = 1,size(data2d_out, dim=2)
+          data2d_out(:,i) = data2d_out(:,i) + data2d_in(:,i)
        end do
+    end do
 
-       FBlndAccumCnt = FBlndAccumCnt + 1
+    ! Increment accumulation counter
+    FBlndAccumCnt = FBlndAccumCnt + 1
 
-       if (dbug_flag > 1) then
-          call FB_diagnose(FBlndAccum_lnd, string=trim(subname)// ' FBlndAccum_lnd ',  rc=rc)
-          if (chkErr(rc,__LINE__,u_FILE_u)) return
-       end if
+    if (dbug_flag > 1) then
+       call FB_diagnose(FBlndAccum_lnd, string=trim(subname)// ' FBlndAccum_lnd ',  rc=rc)
+       if (chkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
     if (dbug_flag > 5) then
@@ -425,14 +431,18 @@ contains
     integer, intent(out) :: rc
 
     ! local variables
-    type(InternalState)    :: is_local
-    type(ESMF_Clock)       :: clock
-    type(ESMF_Alarm)       :: alarm
-    type(ESMF_Field)       :: lfield
-    integer                :: i, n, ncnt            ! counters
-    real(r8), pointer      :: data2d(:,:) => null()
-    real(r8), pointer      :: data2d_import(:,:) => null()
-    character(len=*) , parameter   :: subname='(med_phases_prep_glc_avg)'
+    type(InternalState) :: is_local
+    type(ESMF_Clock)    :: med_clock
+    type(ESMF_Time)     :: med_currtime
+    type(ESMF_Time)     :: prepglc_currtime
+    integer             :: yr_med, mon_med, day_med, sec_med
+    integer             :: yr_prepglc, mon_prepglc, day_prepglc, sec_prepglc
+    type(ESMF_Alarm)    :: alarm
+    type(ESMF_Field)    :: lfield
+    integer             :: i, n, ncnt            ! counters
+    real(r8), pointer   :: data2d(:,:) => null()
+    real(r8), pointer   :: data2d_import(:,:) => null()
+    character(len=*) , parameter   :: subname=' (med_phases_prep_glc_avg) '
     !---------------------------------------
 
     call t_startf('MED:'//subname)
@@ -442,126 +452,96 @@ contains
     end if
     rc = ESMF_SUCCESS
 
-    !---------------------------------------
-    ! Get the internal state
-    !---------------------------------------
+    if (.not. init_prep_glc) then
+       call med_phases_prep_glc_init(gcomp, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       init_prep_glc = .true.
+    end if
 
+    ! Get the internal state
     nullify(is_local%wrap)
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (chkErr(rc,__LINE__,u_FILE_u)) return
 
     !---------------------------------------
-    ! Count the number of fields outside of scalar data, if zero, then return
-    !---------------------------------------
-
-    ! Note - the scalar field has been removed from all mediator field bundles - so this is why we check if the
-    ! fieldCount is 0 and not 1 here
-
-    call ESMF_FieldBundleGet(is_local%wrap%FBExp(compglc), fieldCount=ncnt, rc=rc)
-    if (chkErr(rc,__LINE__,u_FILE_u)) return
-
-    if (ncnt ==  0) then
-       call ESMF_LogWrite(trim(subname)//": only scalar data is present in FBExp(compglc), returning", &
-            ESMF_LOGMSG_INFO)
-       call t_stopf('MED:'//subname)
-       RETURN
-    end if
-
-    ! Initialize module variables needed to accumulate input to glc
-    if (.not. init_prep_glc) then
-       call  med_phases_prep_glc_init(gcomp, rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       init_prep_glc = .true.
-    end if
-
-    !---------------------------------------
     ! Determine if avg alarm is ringing - and if not ringing then return
     !---------------------------------------
 
-    call ESMF_GridCompGet(gcomp, clock=clock, rc=rc)
+    call NUOPC_ModelGet(gcomp, modelClock=med_clock, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_ClockGet(med_clock, currtime=med_currtime, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_TimeGet(med_currtime,yy=yr_med, mm=mon_med, dd=day_med, s=sec_med, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call ESMF_ClockGetAlarm(clock, alarmname='alarm_glc_avg', alarm=alarm, rc=rc)
+    call ESMF_ClockGet(prepglc_clock, currtime=prepglc_currtime, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_TimeGet(prepglc_currtime,yy=yr_prepglc, mm=mon_prepglc, dd=day_prepglc, s=sec_prepglc, rc=rc)
+
+    write(logunit,'(a,4(i8,2x))') trim(subname)//'med clock yr, mon, day, sec = ',&
+         yr_med,mon_med,day_med,sec_med
+    write(logunit,'(a,4(i8,2x))') trim(subname)//'prep glc clock yr, mon, day, sec = ',&
+         yr_prepglc,mon_prepglc,day_prepglc,sec_prepglc
 
     ! If the is ringing - turn it off and continue - otherwise reset field bundle to zero and return
+    call ESMF_ClockGetAlarm(prepglc_clock, alarmname='alarm_glc_avg', alarm=alarm, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (ESMF_AlarmIsRinging(alarm, rc=rc)) then
+       ! Turn off the alarm
        call ESMF_AlarmRingerOff( alarm, rc=rc )
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       ! Average import from accumulated land import FB
+       call ESMF_LogWrite(trim(subname)//": glc_avg alarm is ringing - averaging input from lnd to glc", ESMF_LOGMSG_INFO)
+       if (mastertask) then
+          write(logunit,'(a)') trim(subname)//"glc_avg alarm is ringing - averaging input from lnd to glc"
+       end if
+       do n = 1, size(fldnames_fr_lnd)
+          call ESMF_FieldBundleGet(FBlndAccum_lnd, fieldname=fldnames_fr_lnd(n), field=lfield, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_FieldGet(lfield, farrayptr=data2d, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          if (FBlndAccumCnt > 0) then
+             ! If accumulation count is greater than 0, do the averaging
+             data2d(:,:) = data2d(:,:) / real(FBlndAccumCnt)
+          else
+             ! If accumulation count is 0, then simply set the averaged field bundle values from the land
+             ! to the import field bundle values
+             call ESMF_FieldBundleGet(is_local%wrap%FBImp(complnd,complnd), fieldname=fldnames_fr_lnd(n), &
+                  field=lfield, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+             call ESMF_FieldGet(lfield, farrayptr=data2d_import, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+             data2d(:,:) = data2d_import(:,:)
+          end if
+       end do
+       if (dbug_flag > 1) then
+          call FB_diagnose(FBlndAccum_lnd, string=trim(subname)//' FBlndAccum for after avg for field bundle ', rc=rc)
+          if (chkErr(rc,__LINE__,u_FILE_u)) return
+       end if
+
+       ! Initialize accumulated field bundle on the glc grid to zero before doing the mapping
+       call FB_reset(FBlndAccum_glc, value=0.0_r8, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+       ! Map accumulated field bundle from land grid (with elevation
+       ! classes) to glc grid (without elevation classes) and set FBExp(compglc) data
+       call map_lnd2glc(gcomp, rc)
+       if (chkErr(rc,__LINE__,u_FILE_u)) return
+
+       ! zero accumulator and accumulated field bundles on both land grid
+       FBlndAccumCnt = 0
+       call FB_reset(FBlndAccum_lnd, value=0.0_r8, rc=rc)
+       if (chkErr(rc,__LINE__,u_FILE_u)) return
+
+       if (dbug_flag > 1) then
+          call FB_diagnose(is_local%wrap%FBExp(compglc), string=trim(subname)//' FBexp(compglc) ', rc=rc)
+          if (chkErr(rc,__LINE__,u_FILE_u)) return
+       endif
+
     else
        call ESMF_LogWrite(trim(subname)//": glc_avg alarm is not ringing - returning", ESMF_LOGMSG_INFO)
-       ! Reset export field bundle to zero
-       call FB_reset(is_local%wrap%FBExp(compglc), value=0.0_r8, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       ! turn on stop timer and return
-       call t_stopf('MED:'//subname)
-       ! return
-       RETURN
     end if
-
-    !---------------------------------------
-    ! Average import from accumulated land import FB
-    !---------------------------------------
-
-    call ESMF_LogWrite(trim(subname)//": glc_avg alarm is ringing - averaging input from lnd to glc", ESMF_LOGMSG_INFO)
-
-    do n = 1, size(fldnames_fr_lnd)
-       call ESMF_FieldBundleGet(FBlndAccum_lnd, fieldname=fldnames_fr_lnd(n), field=lfield, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_FieldGet(lfield, farrayptr=data2d, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (FBlndAccumCnt > 0) then
-          ! If accumulation count is greater than 0, do the averaging
-          data2d(:,:) = data2d(:,:) / real(FBlndAccumCnt)
-       else
-          ! If accumulation count is 0, then simply set the averaged field bundle values from the land
-          ! to the import field bundle values
-          call ESMF_FieldBundleGet(is_local%wrap%FBImp(complnd,complnd), fieldname=fldnames_fr_lnd(n), field=lfield, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call ESMF_FieldGet(lfield, farrayptr=data2d_import, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          data2d(:,:) = data2d_import(:,:)
-       end if
-    end do
-
-    if (dbug_flag > 1) then
-       call FB_diagnose(FBlndAccum_lnd, string=trim(subname)//' FBlndAccum for after avg for field bundle ', rc=rc)
-       if (chkErr(rc,__LINE__,u_FILE_u)) return
-    end if
-
-    !---------------------------------------
-    ! Map accumulated field bundle from land grid (with elevation classes) to glc grid (without elevation classes)
-    ! and set FBExp(compglc) data
-    !---------------------------------------
-
-    call FB_reset(FBlndAccum_glc, value=0.0_r8, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    call map_lnd2glc(gcomp, rc)
-    if (chkErr(rc,__LINE__,u_FILE_u)) return
-
-    if (dbug_flag > 1) then
-       call FB_diagnose(is_local%wrap%FBExp(compglc), string=trim(subname)//' FBexp(compglc) ', rc=rc)
-       if (chkErr(rc,__LINE__,u_FILE_u)) return
-    endif
-
-    !---------------------------------------
-    ! zero accumulator and accumulated field bundles
-    !---------------------------------------
-
-    FBlndAccumCnt = 0
-
-    call FB_reset(FBlndAccum_lnd, value=0.0_r8, rc=rc)
-    if (chkErr(rc,__LINE__,u_FILE_u)) return
-    call FB_reset(FBlndAccum_glc, value=0.0_r8, rc=rc)
-    if (chkErr(rc,__LINE__,u_FILE_u)) return
-
-    !---------------------------------------
-    ! update local scalar data - set valid input flag to .true.  TODO:
-    !---------------------------------------
-
-    !call med_infodata_set_valid_glc_input(.true., med_infodata, rc=rc) ! TODO: fix this
-    !if (chkErr(rc,__LINE__,u_FILE_u)) return
 
     if (dbug_flag > 5) then
        call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
@@ -603,7 +583,7 @@ contains
     type(ESMF_Field)    :: field_lfrac_l
     type(ESMF_Field), pointer :: fieldlist_lnd(:) => null()
     type(ESMF_Field), pointer :: fieldlist_glc(:) => null()
-    character(len=*) , parameter   :: subname='(med_phases_prep_glc_mod:med_phases_prep_glc_map_lnd2glc)'
+    character(len=*) , parameter   :: subname=' (map_lnd2glc) '
     !---------------------------------------
 
     !---------------------------------------
@@ -664,7 +644,7 @@ contains
     endif
 
     ! ------------------------------------------------------------------------
-    ! Determine elevation class of each glc point on glc grid (output is topoglc_g)
+    ! Determine elevation class of each glc grid gridcell (elevclass_g)
     ! ------------------------------------------------------------------------
 
     if (dbug_flag > 1) then
@@ -672,16 +652,18 @@ contains
             string=trim(subname)//' FBImp(compglc,compglc) ', rc=rc)
        if (chkErr(rc,__LINE__,u_FILE_u)) return
     end if
-    call ESMF_FieldBundleGet(is_local%wrap%FBImp(compglc,compglc), fieldname=trim(Sg_frac_fieldname), field=lfield, rc=rc)
+    call ESMF_FieldBundleGet(is_local%wrap%FBImp(compglc,compglc), fieldname=trim(Sg_frac_fieldname), &
+         field=lfield, rc=rc)
     if (chkErr(rc,__LINE__,u_FILE_u)) return
     call ESMF_FieldGet(lfield, farrayptr=ice_covered_g, rc=rc)
     if (chkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldBundleGet(is_local%wrap%FBImp(compglc,compglc), fieldname=trim(Sg_topo_fieldname), field=lfield, rc=rc)
+    call ESMF_FieldBundleGet(is_local%wrap%FBImp(compglc,compglc), fieldname=trim(Sg_topo_fieldname), &
+         field=lfield, rc=rc)
     if (chkErr(rc,__LINE__,u_FILE_u)) return
     call ESMF_FieldGet(lfield, farrayptr=topoglc_g, rc=rc)
     if (chkErr(rc,__LINE__,u_FILE_u)) return
 
-    ! get elevation classes with bare land
+    ! get elevation classes including bare land
     ! for grid cells that are ice-free, the elevation class is set to 0.
     lsize_g = size(ice_covered_g)
     allocate(elevclass_g(lsize_g))
@@ -780,22 +762,17 @@ contains
           end if
        end do  ! lsize_g
 
-       ! ------------------------------------------------------------------------
-       ! Renormalize surface mass balance (smb, here named dataexp_g) so that the global
-       ! integral on the glc grid is equal to the global integral on the land grid.
-       ! ------------------------------------------------------------------------
-
-       ! No longer need to make a preemptive adjustment to qice_g to account for area differences
-       ! between CISM and the coupler. In NUOPC, the area correction is done in! the cap not in the
-       ! mediator, so to preserve the bilinear mapping values, do not need to do any area correction
-       ! scaling in the CISM NUOPC cap
-
-       if (smb_renormalize) then
-          call med_phases_prep_glc_renormalize_smb(gcomp, rc)
-          if (chkErr(rc,__LINE__,u_FILE_u)) return
-       end if
-
     end do  ! end of loop over fields
+
+    ! ------------------------------------------------------------------------
+    ! Renormalize surface mass balance (smb, here named dataexp_g) so that the global
+    ! integral on the glc grid is equal to the global integral on the land grid.
+    ! ------------------------------------------------------------------------
+
+    if (smb_renormalize) then
+       call med_phases_prep_glc_renormalize_smb(gcomp, rc)
+       if (chkErr(rc,__LINE__,u_FILE_u)) return
+    end if
 
     ! clean up memory
     deallocate(elevclass_g)
@@ -838,6 +815,25 @@ contains
     ! and mass in these cases. So in these cases, it's okay that the LND integral computed
     ! here differs from the integral that LND itself would compute.)
     !
+    ! A note on the areas used in the global sums, with this CMEPS implementation: For
+    ! glc, we use the internal model areas (sent from glc to the mediator), whereas for
+    ! lnd, we use the mesh areas (which are the same as the areas used in mapping). The
+    ! reason for this difference is that for lnd (as for most components), we plan to do
+    ! area correction (correcting for the discrepancy between internal areas and mesh
+    ! areas) in the cap, so that the fluxes received by the mediator are expressed
+    ! per-unit-area according to the mesh areas. However, we are currently *not* planning
+    ! to do this area correction for glc, because there are some fields that shouldn't be
+    ! area corrected. Thus, for fluxes sent to glc, they are specified per-unit-area
+    ! according to the internal areas, so we need to use glc's internal areas in the
+    ! global sums. (If we did the area correction for qice sent to glc, we would probably
+    ! want to make a preemptive adjustment to qice, multiplying by the inverse of the area
+    ! corrections, as we did in MCT / CPL7. This ends up giving the same answer at the
+    ! cost of additional complexity, and still requires sending glc's internal areas to
+    ! the mediator so that it can do this preemptive adjustment.)
+    !
+    ! Note: Sg_icemask defines where the ice sheet model can receive a
+    ! nonzero SMB from the land model.
+    !
     ! For high-level design, see:
     ! https://docs.google.com/document/d/1H_SuK6SfCv1x6dK91q80dFInPbLYcOkUj_iAa6WRnqQ/edit
     !------------------
@@ -847,37 +843,35 @@ contains
     integer  , intent(out) :: rc          ! return error code
 
     ! local variables
-    ! Note: Sg_icemask defines where the ice sheet model can receive a nonzero SMB from the land model.
     type(InternalState) :: is_local
     type(ESMF_VM)       :: vm
     type(ESMF_Field)    :: lfield
-    real(r8) , pointer  :: qice_g(:) => null()          ! SMB (Flgl_qice) on glc grid without elev classes
-    real(r8) , pointer  :: qice_l_ec(:,:) => null()     ! SMB (Flgl_qice) on land grid with elev classes
-    real(r8) , pointer  :: glc_topo_g(:) => null()      ! ice topographic height on the glc grid cell
-    real(r8) , pointer  :: glc_frac_g(:) => null()      ! total ice fraction in each glc cell
-    real(r8) , pointer  :: glc_frac_g_ec(:,:) => null() ! total ice fraction in each glc cell
-    real(r8) , pointer  :: glc_frac_l_ec(:,:) => null() ! EC fractions (Sg_ice_covered) on land grid
-    real(r8) , pointer  :: Sg_icemask_g(:) => null()    ! icemask on glc grid
-    real(r8) , pointer  :: Sg_icemask_l(:) => null()    ! icemask on land grid
-    real(r8) , pointer  :: lfrac(:) => null()           ! land fraction on land grid
-    real(r8) , pointer  :: dataptr1d(:) => null()       ! temporary 1d pointer
-    real(r8) , pointer  :: dataptr2d(:,:) => null()     ! temporary 2d pointer
-    integer             :: ec                           ! loop index over elevation classes
+    real(r8) , pointer  :: qice_g(:) => null()      ! SMB (Flgl_qice) on glc grid without elev classes
+    real(r8) , pointer  :: qice_l_ec(:,:) => null() ! SMB (Flgl_qice) on land grid with elev classes
+    real(r8) , pointer  :: topo_g(:) => null()      ! ice topographic height on the glc grid cell
+    real(r8) , pointer  :: frac_g(:) => null()      ! total ice fraction in each glc cell
+    real(r8) , pointer  :: frac_g_ec(:,:) => null() ! total ice fraction in each glc cell
+    real(r8) , pointer  :: frac_l_ec(:,:) => null() ! EC fractions (Sg_ice_covered) on land grid
+    real(r8) , pointer  :: icemask_g(:) => null()   ! icemask on glc grid
+    real(r8) , pointer  :: icemask_l(:) => null()   ! icemask on land grid
+    real(r8) , pointer  :: lfrac(:) => null()       ! land fraction on land grid
+    real(r8) , pointer  :: dataptr1d(:) => null()   ! temporary 1d pointer
+    real(r8) , pointer  :: dataptr2d(:,:) => null() ! temporary 2d pointer
+    integer             :: ec                       ! loop index over elevation classes
     integer             :: n
 
     ! local and global sums of accumulation and ablation; used to compute renormalization factors
-    real(r8), target :: local_accum_lnd(1), global_accum_lnd(1)
-    real(r8), target :: local_accum_glc(1), global_accum_glc(1)
-    real(r8), target :: local_ablat_lnd(1), global_ablat_lnd(1)
-    real(r8), target :: local_ablat_glc(1), global_ablat_glc(1)
+    real(r8) :: local_accum_lnd(1), global_accum_lnd(1)
+    real(r8) :: local_accum_glc(1), global_accum_glc(1)
+    real(r8) :: local_ablat_lnd(1), global_ablat_lnd(1)
+    real(r8) :: local_ablat_glc(1), global_ablat_glc(1)
 
     ! renormalization factors (should be close to 1, e.g. in range 0.95 to 1.05)
     real(r8) :: accum_renorm_factor ! ratio between global accumulation on the two grids
     real(r8) :: ablat_renorm_factor ! ratio between global ablation on the two grids
-
-    real(r8) :: effective_area      ! grid cell area multiplied by min(lfrac,Sg_icemask_l).
-    ! This is the area that can contribute SMB to the ice sheet model.
-    character(len=*), parameter  :: subname='(med_phases_prep_glc_renormalize_smb)'
+    real(r8) :: effective_area      ! grid cell area multiplied by min(lfrac,icemask_l).
+    real(r8), pointer :: area_g(:)  ! areas on glc grid
+    character(len=*), parameter  :: subname=' (renormalize_smb) '
     !---------------------------------------------------------------
 
     call t_startf('MED:'//subname)
@@ -896,66 +890,73 @@ contains
     if (chkErr(rc,__LINE__,u_FILE_u)) return
 
     !---------------------------------------
-    ! Map Sg_icemask_g from the glc grid to the land grid.
+    ! Map icemask_g from the glc grid to the land grid.
     !---------------------------------------
 
-    ! determine Sg_icemask_g and set as contents of FBglc_icemask
-    call ESMF_FieldBundleGet(is_local%wrap%FBImp(compglc,compglc), fieldname=trim(Sg_icemask_fieldname), field=lfield, rc=rc)
+    ! determine icemask_g and set as contents of field_icemask_g
+    call ESMF_FieldBundleGet(is_local%wrap%FBImp(compglc,compglc), fieldname=trim(Sg_icemask_fieldname), &
+         field=lfield, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call ESMF_FieldGet(lfield, farrayptr=dataptr1d, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldGet(field_glc_icemask_g, farrayptr=Sg_icemask_g, rc=rc)
+    call ESMF_FieldGet(field_icemask_g, farrayptr=icemask_g, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    Sg_icemask_g(:) = dataptr1d(:)
+    icemask_g(:) = dataptr1d(:)
 
     ! map ice mask from glc to lnd with no normalization
     ! BUG(wjs, 2017-05-11, #1516) I think we actually want norm = .false. here, but this needs more thought
     ! Below the implementation is without normalization - this should be checked moving forwards
     call med_map_field(  &
-         field_src=field_glc_icemask_g, &
-         field_dst=field_glc_icemask_l, &
+         field_src=field_icemask_g, &
+         field_dst=field_icemask_l, &
          routehandles=is_local%wrap%RH(compglc,complnd,:), &
-         maptype=mapconsf, rc=rc)
+         maptype=mapconsd, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! ------------------------------------------------------------------------
     ! Map frac_field on glc grid without elevation classes to frac_field on land grid with elevation classes
     ! ------------------------------------------------------------------------
 
-    ! set FBglc_frac on the glc grid (fractional ice coverage per elevation class)
-    ! glc_topo_g(:) is the topographic height of each glc gridcell
-    ! glc_frac_g(:) is the total ice fraction in each glc gridcell
-    ! glc_frac_g_ec(:,:) are the glc fractions on the glc grid for each elevation class (inner dimension)
-    ! setting glc_frac_g_ec (in the call to glc_get_fractional_icecov) sets the contents of FBglc_frac
-    call ESMF_FieldBundleGet(is_local%wrap%FBImp(compglc,compglc), fieldname=trim(Sg_topo_fieldname), field=lfield, rc=rc)
+    ! get topo_g(:), the topographic height of each glc gridcell
+    call ESMF_FieldBundleGet(is_local%wrap%FBImp(compglc,compglc), fieldname=trim(Sg_topo_fieldname), &
+         field=lfield, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldGet(lfield, farrayptr=glc_topo_g, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldBundleGet(is_local%wrap%FBImp(compglc,compglc), fieldname=trim(Sg_frac_fieldname), field=lfield, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldGet(lfield, farrayptr=glc_frac_g, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldGet(field_glc_frac_g, farrayptr=glc_frac_g, rc=rc) ! module field
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldGet(field_glc_frac_g_ec, farrayptr=glc_frac_g_ec, rc=rc) ! module field
+    call ESMF_FieldGet(lfield, farrayptr=topo_g, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    ! note that nec = ungriddedCount - 1
-    call glc_get_fractional_icecov(ungriddedCount-1, glc_topo_g, glc_frac_g, glc_frac_g_ec, logunit)
+    ! get frac_g(:), the total ice fraction in each glc gridcell
+    call ESMF_FieldBundleGet(is_local%wrap%FBImp(compglc,compglc), fieldname=trim(Sg_frac_fieldname), &
+         field=lfield, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldGet(lfield, farrayptr=dataptr1d, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldGet(field_frac_g, farrayptr=frac_g, rc=rc) ! module field
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    frac_g(:) = dataptr1d(:)
 
-    ! map fraction in each elevation class from the glc grid to the land grid and normalize by the icemask on the
-    ! glc grid
+    ! get  frac_g_ec - the glc_elevclass gives the elevation class of each
+    ! glc grid cell, assuming that the grid cell is ice-covered, spans [1 -> ungriddedcount]
+    call ESMF_FieldGet(field_frac_g_ec, farrayptr=frac_g_ec, rc=rc) ! module field
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call glc_get_fractional_icecov(ungriddedCount-1, topo_g, frac_g, frac_g_ec, logunit)
+
+    ! map the fraction in each elevation class from the glc grid to
+    ! the land grid and normalize by the icemask on the glc grid
     call med_map_field_normalized(  &
-         field_src=field_glc_frac_g_ec, &
-         field_dst=field_glc_frac_l_ec, &
+         field_src=field_frac_g_ec, &
+         field_dst=field_frac_l_ec, &
          routehandles=is_local%wrap%RH(compglc,complnd,:), &
-         maptype=mapconsf, &
-         field_normsrc=field_glc_icemask_g, &
-         field_normdst=field_glc_icemask_l, rc=rc)
+         maptype=mapconsd, &
+         field_normsrc=field_icemask_g, &
+         field_normdst=field_icemask_l, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    ! get fractional ice coverage for each elevation class on the land grid, glc_frac_l_ec(:,:)
-    call ESMF_FieldGet(field_glc_frac_l_ec, farrayptr=glc_frac_l_ec, rc=rc)
+    !---------------------------------------
+    ! Sum qice_l_ec over all elevation classes for each local land grid cell then do a global sum
+    !---------------------------------------
+
+    ! get fractional ice coverage for each elevation class on the land grid, frac_l_ec(:,:)
+    call ESMF_FieldGet(field_frac_l_ec, farrayptr=frac_l_ec, rc=rc)
     if (chkErr(rc,__LINE__,u_FILE_u)) return
 
     ! determine fraction on land grid, lfrac(:)
@@ -964,52 +965,48 @@ contains
     call ESMF_FieldGet(lfield, farrayptr=lfrac, rc=rc)
     if (chkErr(rc,__LINE__,u_FILE_u)) return
 
-    ! get Sg_icemask_l(:)
-    call ESMF_FieldGet(field_glc_icemask_l, farrayptr=Sg_icemask_l, rc=rc)
+    ! get icemask_l
+    call ESMF_FieldGet(field_icemask_l, farrayptr=icemask_l, rc=rc)
     if (chkErr(rc,__LINE__,u_FILE_u)) return
 
-    ! determine qice_l_ec
+    ! get qice_l_ec
     call ESMF_FieldBundleGet(FBlndAccum_lnd, trim(qice_fieldname)//'_elev', field=lfield, rc=rc)
     if (chkErr(rc,__LINE__,u_FILE_u)) return
     call ESMF_FieldGet(lfield, farrayptr=qice_l_ec, rc=rc)
     if (chkErr(rc,__LINE__,u_FILE_u)) return
 
-    !---------------------------------------
-    ! Sum qice_l_ec over all elevation classes for each local land grid cell then do a global sum
-    !---------------------------------------
-
     local_accum_lnd(1) = 0.0_r8
     local_ablat_lnd(1) = 0.0_r8
     do n = 1, size(lfrac)
-       ! Calculate effective area for sum -  need the mapped Sg_icemask_l
-       effective_area = min(lfrac(n), Sg_icemask_l(n)) * aream_l(n)
-
-       do ec = 1, ungriddedCount
-          if (qice_l_ec(ec,n) >= 0.0_r8) then
-             local_accum_lnd(1) = local_accum_lnd(1) + effective_area * glc_frac_l_ec(ec,n) * qice_l_ec(ec,n)
-          else
-             local_ablat_lnd(1) = local_ablat_lnd(1) + effective_area * glc_frac_l_ec(ec,n) * qice_l_ec(ec,n)
-          endif
-       enddo  ! ec
+       ! Calculate effective area for sum -  need the mapped icemask_l
+       effective_area = min(lfrac(n), icemask_l(n)) * is_local%wrap%mesh_info(complnd)%areas(n)
+       if (effective_area > 0.0_r8) then
+          do ec = 1, ungriddedCount
+             if (qice_l_ec(ec,n) >= 0.0_r8) then
+                local_accum_lnd(1) = local_accum_lnd(1) + effective_area * frac_l_ec(ec,n) * qice_l_ec(ec,n)
+             else
+                local_ablat_lnd(1) = local_ablat_lnd(1) + effective_area * frac_l_ec(ec,n) * qice_l_ec(ec,n)
+             endif
+          end do ! ec
+       end if ! if landmaks > 0
     enddo  ! n
+
     call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_VMAllreduce(vm, senddata=local_accum_lnd, recvdata=global_accum_lnd, count=1, reduceflag=ESMF_REDUCE_SUM, rc=rc)
+    call ESMF_VMAllreduce(vm, senddata=local_accum_lnd, recvdata=global_accum_lnd, count=1, &
+         reduceflag=ESMF_REDUCE_SUM, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_VMAllreduce(vm, senddata=local_ablat_lnd, recvdata=global_ablat_lnd, count=1, reduceflag=ESMF_REDUCE_SUM, rc=rc)
+    call ESMF_VMAllreduce(vm, senddata=local_ablat_lnd, recvdata=global_ablat_lnd, count=1, &
+         reduceflag=ESMF_REDUCE_SUM, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (mastertask) then
+       write(logunit,'(a,d13.5)') trim(subname)//'global_accum_lnd = ', global_accum_lnd
+       write(logunit,'(a,d13.5)') trim(subname)//'global_ablat_lnd = ', global_ablat_lnd
+    endif
 
     !---------------------------------------
     ! Sum qice_g over local glc grid cells.
     !---------------------------------------
-
-    ! TODO: is the following a problem
-    ! Note: This sum uses the coupler areas (aream_g), which differ from the native CISM areas.
-    ! But since the original qice_g (from bilinear remapping) has been multiplied by
-    ! area_g/aream_g above, this calculation is equivalent to multiplying the original qice_g
-    ! by the native CISM areas (area_g).
-    ! If Flgl_qice were changed to a state (and not included in seq_flds_x2g_fluxes),
-    ! then it would be appropriate to use the native CISM areas in this sum.
 
     ! determine qice_g
     call ESMF_FieldBundleGet(is_local%wrap%FBExp(compglc), fieldname=trim(qice_fieldname), field=lfield, rc=rc)
@@ -1017,17 +1014,28 @@ contains
     call ESMF_FieldGet(lfield, farrayptr=qice_g, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
+    call ESMF_FieldBundleGet(is_local%wrap%FBImp(compglc,compglc), fieldname='Sg_area', field=lfield, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldGet(lfield, farrayptr=area_g, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
     local_accum_glc(1) = 0.0_r8
     local_ablat_glc(1) = 0.0_r8
     do n = 1, size(qice_g)
        if (qice_g(n) >= 0.0_r8) then
-          local_accum_glc(1) = local_accum_glc(1) + Sg_icemask_g(n) * aream_g(n) * qice_g(n)
+          local_accum_glc(1) = local_accum_glc(1) + icemask_g(n) * area_g(n) * qice_g(n)
        else
-          local_ablat_glc(1) = local_ablat_glc(1) + Sg_icemask_g(n) * aream_g(n) * qice_g(n)
+          local_ablat_glc(1) = local_ablat_glc(1) + icemask_g(n) * area_g(n) * qice_g(n)
        endif
     enddo  ! n
-    call ESMF_VMAllreduce(vm, senddata=local_accum_glc, recvdata=global_accum_glc, count=1, reduceflag=ESMF_REDUCE_SUM, rc=rc)
-    call ESMF_VMAllreduce(vm, senddata=local_ablat_glc, recvdata=global_ablat_glc, count=1, reduceflag=ESMF_REDUCE_SUM, rc=rc)
+    call ESMF_VMAllreduce(vm, senddata=local_accum_glc, recvdata=global_accum_glc, count=1, &
+         reduceflag=ESMF_REDUCE_SUM, rc=rc)
+    call ESMF_VMAllreduce(vm, senddata=local_ablat_glc, recvdata=global_ablat_glc, count=1, &
+         reduceflag=ESMF_REDUCE_SUM, rc=rc)
+    if (mastertask) then
+       write(logunit,'(a,d13.5)') trim(subname)//'global_accum_glc = ', global_accum_glc
+       write(logunit,'(a,d13.5)') trim(subname)//'global_ablat_glc = ', global_ablat_glc
+    endif
 
     ! Renormalize
     if (global_accum_glc(1) > 0.0_r8) then
@@ -1035,16 +1043,14 @@ contains
     else
        accum_renorm_factor = 0.0_r8
     endif
-
     if (global_ablat_glc(1) < 0.0_r8) then  ! negative by definition
        ablat_renorm_factor = global_ablat_lnd(1) / global_ablat_glc(1)
     else
        ablat_renorm_factor = 0.0_r8
     endif
-
     if (mastertask) then
-       write(logunit,*) 'accum_renorm_factor = ', accum_renorm_factor
-       write(logunit,*) 'ablat_renorm_factor = ', ablat_renorm_factor
+       write(logunit,'(a,d13.5)') trim(subname)//'accum_renorm_factor = ', accum_renorm_factor
+       write(logunit,'(a,d13.5)') trim(subname)//'ablat_renorm_factor = ', ablat_renorm_factor
     endif
 
     do n = 1, size(qice_g)
