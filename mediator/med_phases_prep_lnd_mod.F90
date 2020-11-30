@@ -357,7 +357,7 @@ contains
           ! Create route handle if it has not been created
           if (.not. ESMF_RouteHandleIsCreated(is_local%wrap%RH(compglc(ns),complnd,mapconsd), rc=rc)) then
              call med_map_routehandles_init( compglc(ns), complnd, &
-                  ice_sheet_tolnd(ns)%field_icemask_g, lfield_l, &
+                  ice_sheet_tolnd(ns)%field_icemask_g, field_icemask_l, &
                   mapindex=mapconsd, &
                   routehandles=is_local%wrap%rh(compglc(ns),complnd,:), rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
