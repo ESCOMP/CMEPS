@@ -48,8 +48,6 @@ contains
     integer                   :: n1,ncnt,ns
     real(r8)                  :: nextsw_cday
     logical                   :: first_call = .true.
-    logical                   :: isPresent
-    character(CL)             :: cvalue
     character(len=*), parameter :: subname='(med_phases_prep_lnd)'
     !---------------------------------------
 
@@ -75,26 +73,24 @@ contains
     if (ncnt > 0) then
 
        !---------------------------------------
-       ! map to create FBimp(:,complnd) - other than glc->lnd
+       ! map to atm2lnd 
        !---------------------------------------
 
-       call t_startf('MED:'//trim(subname)//' map')
-       do n1 = 1,ncomps
-          ! Skip glc here and handle it below
-          if (n1 == compatm .or. n1 == comprof) then
-             if (is_local%wrap%med_coupling_active(n1,complnd)) then
-                call med_map_field_packed( &
-                     FBSrc=is_local%wrap%FBImp(n1,n1), &
-                     FBDst=is_local%wrap%FBImp(n1,complnd), &
-                     FBFracSrc=is_local%wrap%FBFrac(n1), &
-                     field_normOne=is_local%wrap%field_normOne(n1,complnd,:), &
-                     packed_data=is_local%wrap%packed_data(n1,complnd,:), &
-                     routehandles=is_local%wrap%RH(n1,complnd,:), rc=rc)
-                if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             end if
-          end if
-       end do
-       call t_stopf('MED:'//trim(subname)//' map')
+       ! rof2lnd is done in med_phases_post_rof
+       ! glc2lnd is done in med_phases_post_glc
+
+       if (is_local%wrap%med_coupling_active(compatm,complnd)) then
+          call t_startf('MED:'//trim(subname)//' map_atm2lnd')
+          call med_map_field_packed( &
+               FBSrc=is_local%wrap%FBImp(compatm,compatm), &
+               FBDst=is_local%wrap%FBImp(compatm,complnd), &
+               FBFracSrc=is_local%wrap%FBFrac(compatm), &
+               field_normOne=is_local%wrap%field_normOne(compatm,complnd,:), &
+               packed_data=is_local%wrap%packed_data(compatm,complnd,:), &
+               routehandles=is_local%wrap%RH(compatm,complnd,:), rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call t_stopf('MED:'//trim(subname)//' map_atm2lnd')
+       end if
 
        !---------------------------------------
        ! auto merges to create FBExp(complnd) - other than glc->lnd

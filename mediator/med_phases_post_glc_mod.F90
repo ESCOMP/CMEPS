@@ -14,7 +14,7 @@ module med_phases_post_glc_mod
   use ESMF                  , only : ESMF_Mesh, ESMF_MeshLoc, ESMF_MESHLOC_ELEMENT, ESMF_TYPEKIND_R8
   use ESMF                  , only : ESMF_Field, ESMF_FieldGet, ESMF_FieldCreate
   use ESMF                  , only : ESMF_RouteHandle, ESMF_RouteHandleIsCreated
-  use esmFlds               , only : complnd, compatm, comprof, ncomps, compname
+  use esmFlds               , only : compatm, compice, complnd, comprof, compocn, ncomps, compname
   use esmFlds               , only : max_icesheets, num_icesheets, compglc
   use esmFlds               , only : mapbilnr, mapconsd, mapconsf, compname
   use esmFlds               , only : fldListTo
@@ -71,8 +71,10 @@ module med_phases_post_glc_mod
   ! the number of elevation classes (excluding bare land) = ungriddedCount - 1
   integer :: ungriddedCount ! this equals the number of elevation classes + 1 (for bare land)
 
-  logical :: glc2lnd_coupling = .false.
   logical :: cism_evolve = .false.
+  logical :: glc2lnd_coupling = .false.
+  logical :: glc2ocn_coupling = .false.
+  logical :: glc2ice_coupling = .false.
 
   character(*) , parameter :: u_FILE_u = &
        __FILE__
@@ -110,14 +112,28 @@ contains
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    ! Count the number of fields outside of scalar data, if zero, then return
-    ! Note - the scalar field has been removed from all mediator field bundles - so this is why we check if the
-    ! fieldCount is 0 and not 1 here
-
-    call ESMF_FieldBundleGet(is_local%wrap%FBExp(complnd), fieldCount=ncnt, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    if (ncnt > 0) then
+    if (first_call) then
+       ! determine if there will be any glc to lnd coupling
+       do ns = 1,num_icesheets
+          if (is_local%wrap%med_coupling_active(compglc(ns),complnd)) then
+             glc2lnd_coupling = .true.
+             exit
+          end if
+       end do
+       ! determine if there will be any glc to ocn coupling
+       do ns = 1,num_icesheets
+          if (is_local%wrap%med_coupling_active(compglc(ns),compocn)) then
+             glc2ocn_coupling = .true.
+             exit
+          end if
+       end do
+       ! determine if there will be any glc to ice coupling
+       do ns = 1,num_icesheets
+          if (is_local%wrap%med_coupling_active(compglc(ns),compice)) then
+             glc2ice_coupling = .true.
+             exit
+          end if
+       end do
 
        ! determine if coupling to CISM is 2-way
        if (first_call) then
@@ -132,28 +148,25 @@ contains
              end if
           end if
        end if
+    end if
+
+    ! Count the number of fields outside of scalar data, if zero, then return
+    ! Note - the scalar field has been removed from all mediator field bundles - so this is why we check if the
+    ! fieldCount is 0 and not 1 here
+
+    call ESMF_FieldBundleGet(is_local%wrap%FBExp(complnd), fieldCount=ncnt, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    if (ncnt > 0) then
 
        !---------------------------------------
        ! glc->lnd mapping and merging
        !---------------------------------------
-
-       ! determine if there will be any glc to lnd coupling
-       if (first_call) then
-          do ns = 1,num_icesheets
-             if (is_local%wrap%med_coupling_active(compglc(ns),complnd)) then
-                glc2lnd_coupling = .true.
-                exit
-             end if
-          end do
-       end if
-
        if (glc2lnd_coupling) then
           ! The will following will map and merge Sg_frac and Sg_topo (and in the future Flgg_hflx)
-          write(6,*)'DEBUG: num_icesheets = ',num_icesheets
           call t_startf('MED:'//trim(subname)//' glc2lnd ')
           do ns = 1,num_icesheets
              if (is_local%wrap%med_coupling_active(compglc(ns),complnd)) then
-                write(6,*)'DEBUG: calling med_map_field_packed for glc->lnd for ice sheet ',ns
                 call med_map_field_packed( &
                      FBSrc=is_local%wrap%FBImp(compglc(ns),compglc(ns)), &
                      FBDst=is_local%wrap%FBImp(compglc(ns),complnd), &
@@ -168,17 +181,28 @@ contains
 
           ! The following is only done if glc->lnd coupling is active
           if (first_call) then
-             write(6,*)'DEBUG: calling map_glc2lnd_init '
              call map_glc2lnd_init(gcomp, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
 
           ! The will following will map and merge Sg_frac and Sg_topo (and in the future Flgg_hflx)
-          write(6,*)'DEBUG: calling map_glc2lnd '
           call map_glc2lnd(gcomp, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
 
+       !---------------------------------------
+       ! glc->ocn mapping, not sure about merging? 
+       !---------------------------------------
+       if (glc2ocn_coupling) then
+          ! Fill this in
+       end if
+
+       !---------------------------------------
+       ! glc->ice mapping, not sure about merging? 
+       !---------------------------------------
+       if (glc2ice_coupling) then
+          ! Fill this in
+       end if
     end if
 
     ! Reset first call logical

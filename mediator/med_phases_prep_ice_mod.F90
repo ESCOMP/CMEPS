@@ -14,7 +14,7 @@ module med_phases_prep_ice_mod
   use med_merge_mod         , only : med_merge_auto
   use med_map_mod           , only : med_map_field_packed
   use med_internalstate_mod , only : InternalState, logunit, mastertask
-  use esmFlds               , only : compatm, compice, comprof, compglc, ncomps, compname
+  use esmFlds               , only : compatm, compice, compocn, comprof, compglc, ncomps, compname
   use esmFlds               , only : fldListFr, fldListTo
   use esmFlds               , only : mapnames
   use esmFlds               , only : coupling_mode
@@ -91,20 +91,35 @@ contains
 
     if (ncnt > 0) then
 
-       ! map all fields in FBImp that have active ice coupling
-       do n1 = 1,ncomps
-          if (is_local%wrap%med_coupling_active(n1,compice)) then
-             call med_map_field_packed( &
-                  FBSrc=is_local%wrap%FBImp(n1,n1), &
-                  FBDst=is_local%wrap%FBImp(n1,compice), &
-                  FBFracSrc=is_local%wrap%FBFrac(n1), &
-                  field_normOne=is_local%wrap%field_normOne(n1,compice,:), &
-                  packed_data=is_local%wrap%packed_data(n1,compice,:), &
-                  routehandles=is_local%wrap%RH(n1,compice,:), rc=rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          end if
-       end do
-
+       ! map atm->ice
+       if (is_local%wrap%med_coupling_active(compatm,compice)) then
+          call t_startf('MED:'//trim(subname)//' map_atm2ice')
+          call med_map_field_packed( &
+               FBSrc=is_local%wrap%FBImp(compatm,compatm), &
+               FBDst=is_local%wrap%FBImp(compatm,compice), &
+               FBFracSrc=is_local%wrap%FBFrac(compatm), &
+               field_normOne=is_local%wrap%field_normOne(compatm,compice,:), &
+               packed_data=is_local%wrap%packed_data(compatm,compice,:), &
+               routehandles=is_local%wrap%RH(compatm,compice,:), rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call t_stopf('MED:'//trim(subname)//' map_atm2ice')
+       end if
+       ! map ocn->ice
+       if (is_local%wrap%med_coupling_active(compocn,compice)) then
+          call t_startf('MED:'//trim(subname)//' map_ocn2ice')
+          call med_map_field_packed( &
+               FBSrc=is_local%wrap%FBImp(compocn,compocn), &
+               FBDst=is_local%wrap%FBImp(compocn,compice), &
+               FBFracSrc=is_local%wrap%FBFrac(compocn), &
+               field_normOne=is_local%wrap%field_normOne(compocn,compice,:), &
+               packed_data=is_local%wrap%packed_data(compocn,compice,:), &
+               routehandles=is_local%wrap%RH(compocn,compice,:), rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call t_stopf('MED:'//trim(subname)//' map_ocn2ice')
+       end if
+       ! rof->ice is mapped in med_phases_post_rof
+       ! glc->ice is mapped in med_phases_post_glc
+       
        !---------------------------------------
        !--- auto merges to create FBExp(compice)
        !---------------------------------------

@@ -92,6 +92,7 @@ contains
     use med_phases_post_glc_mod , only: med_phases_post_glc
     use med_phases_prep_rof_mod , only: med_phases_prep_rof_accum
     use med_phases_prep_rof_mod , only: med_phases_prep_rof_avg
+    use med_phases_post_rof_mod , only: med_phases_post_rof
     use med_phases_prep_ocn_mod , only: med_phases_prep_ocn_map
     use med_phases_prep_ocn_mod , only: med_phases_prep_ocn_merge
     use med_phases_prep_ocn_mod , only: med_phases_prep_ocn_accum_fast
@@ -315,6 +316,20 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_TimestampExport, &
          specPhaselabel="med_phases_prep_rof_accum", specRoutine=NUOPC_NoOp, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    !------------------
+    ! post routine for rof (mapping to lnd, ocn, ice)
+    !------------------
+
+    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
+         phaseLabelList=(/"med_phases_post_rof"/), userRoutine=mediator_routine_Run, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
+         specPhaseLabel="med_phases_post_rof", specRoutine=med_phases_post_rof, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_TimestampExport, &
+         specPhaselabel="med_phases_post_rof", specRoutine=NUOPC_NoOp, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !------------------
@@ -1664,6 +1679,7 @@ contains
     use med_phases_restart_mod  , only : med_phases_restart_read
     use med_phases_prep_glc_mod , only : med_phases_prep_glc_init
     use med_phases_post_glc_mod , only : med_phases_post_glc
+    use med_phases_post_rof_mod , only : med_phases_post_rof
     use med_phases_prep_atm_mod , only : med_phases_prep_atm
     use med_phases_ocnalb_mod   , only : med_phases_ocnalb_run
     use med_phases_aofluxes_mod , only : med_phases_aofluxes_run
@@ -2338,15 +2354,18 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        !---------------------------------------
-       ! If appropriate, Map initial glc->lnd before run phase of glc is called
+       ! If appropriate, map initial glc->lnd, glc->ocn and glc->ice
+       ! before run phase of glc is called
        !---------------------------------------
-       do ns = 1,num_icesheets
-          if (is_local%wrap%med_coupling_active(compglc(ns),complnd)) then
-             write(6,*)'DEBUG: calling med_phases_post_glc for ice sheet ',ns
-             call med_phases_post_glc(gcomp, rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          end if
-       end do
+       call med_phases_post_glc(gcomp, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       !---------------------------------------
+       ! If appropriate, map initial glc->lnd, glc->ocn and glc->ice
+       ! before run phase of glc is called
+       !---------------------------------------
+       call med_phases_post_rof(gcomp, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        !---------------------------------------
        ! read mediator restarts
