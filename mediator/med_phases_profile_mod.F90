@@ -9,7 +9,7 @@ module med_phases_profile_mod
   use med_utils_mod         , only : med_utils_chkerr, med_memcheck
   use med_internalstate_mod , only : mastertask, logunit
   use med_utils_mod         , only : chkerr    => med_utils_ChkErr
-  use med_time_mod          , only : alarmInit => med_time_alarmInit 
+  use med_time_mod          , only : alarmInit => med_time_alarmInit
   use perf_mod              , only : t_startf, t_stopf
   use shr_mem_mod           , only : shr_mem_getusage
 
@@ -38,7 +38,7 @@ contains
     use ESMF  , only : ESMF_TimeSyncToRealTime, ESMF_Time, ESMF_TimeSet
     use ESMF  , only : ESMF_TimeInterval, ESMF_AlarmGet, ESMF_TimeIntervalGet
     use ESMF  , only : ESMF_ClockGetNextTime, ESMF_TimeGet, ESMF_ClockGet
-    use ESMF  , only : ESMF_ClockAdvance, ESMF_ClockSet, ESMF_ClockIsStopTime 
+    use ESMF  , only : ESMF_ClockAdvance, ESMF_ClockSet, ESMF_ClockIsStopTime
     use ESMF  , only : operator(-)
     use NUOPC , only : NUOPC_CompAttributeGet
 
@@ -102,7 +102,7 @@ contains
        call ESMF_ClockSet(clock, currTime=currtime, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-       ! intialize 
+       ! intialize
        call ESMF_VMWtime(previous_time, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
@@ -150,21 +150,18 @@ contains
 
           wallclockelapsed = current_time - previous_time
           accumulated_time = accumulated_time + wallclockelapsed
-
+          ringdays = timestep_length
           if (alarmison) then
              call ESMF_AlarmGet( alarm, ringInterval=ringInterval, rc=rc)
              if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
              call ESMF_TimeIntervalGet(ringInterval, d_r8=ringdays, rc=rc)
              if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
-             avgdt = accumulated_time/(ringdays*real(iterations-1))
           else if (stopalarmison) then
              ! Here we need the interval since the last call to this function
              call ESMF_TimeIntervalGet(nexttime-prevtime, d_r8=ringdays, rc=rc)
              if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
-          else
-             avgdt = wallclockelapsed/timestep_length
-             ringdays = timestep_length
           endif
+          avgdt = accumulated_time/(timestep_length*real(iterations-1, kind=r8))
           prevtime = nexttime
           call ESMF_TimeGet(nexttime, timestring=nexttimestr, rc=rc)
           if (med_utils_ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -177,12 +174,11 @@ contains
           call ESMF_TimeGet(wallclocktime,timeString=walltimestr, rc=rc)
           if (med_utils_ChkErr(rc,__LINE__,u_FILE_u)) return
 
-
           ! 1 model day/ x seconds = 1/365 yrs/ (wallclockelapsed s/86400spd
           ypd = ringdays*86400.0_R8/(365.0_R8*wallclockelapsed)
 
           write(logunit,101) 'Model Date: ',trim(nexttimestr), ' wall clock = ',trim(walltimestr),' avg dt = ', &
-               avgdt, 's/day, dt = ',wallclockelapsed/ringdays,'s/day, rate = ',ypd,' ypd'
+               avgdt, ' s/day, dt = ',wallclockelapsed/ringdays,' s/day, rate = ',ypd,' ypd'
           call shr_mem_getusage(msize,mrss,.true.)
 
           write(logunit,105) ' memory_write: model date = ',trim(nexttimestr), &
