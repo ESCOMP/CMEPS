@@ -1336,13 +1336,11 @@ contains
                 end if
              end do
           end if
-       end do
-       do n = 1,size(iso)
           if ( fldchk(is_local%wrap%FBExp(compocn), 'Foxx_rofi'//iso(n) , rc=rc)) then
              ! ice from river to ocean
              if (fldchk(is_local%wrap%FBImp(comprof, comprof), 'Forr_rofi'//iso(n) , rc=rc)) then
-                call addmap(fldListFr(comprof)%flds, 'Forr_rofi'//iso(n) , &
-                     compocn, map_rof2ocn_liq, 'none', rof2ocn_ice_rmap)
+                call addmap(fldListFr(comprof)%flds, 'Forr_rofi'//iso(n), &
+                     compocn, map_rof2ocn_ice, 'none', rof2ocn_ice_rmap)
                 call addmrg(fldListTo(compocn)%flds, 'Foxx_rofi'//iso(n), &
                      mrg_from=comprof, mrg_fld='Forr_rofi', mrg_type='sum')
              end if
@@ -1351,7 +1349,7 @@ contains
                 if (fldchk(is_local%wrap%FBImp(compglc(ns), compglc(ns)), 'Fogg_rofi'//iso(n) , rc=rc)) then
                    ! TODO: this custom map needs to be different for every ice sheet - how will this be handled?
                    call addmap(fldListFr(compglc(ns))%flds, 'Fogg_rofi'//iso(n), &
-                        compocn, map_glc2ocn_liq, 'one' , glc2ocn_ice_rmap)
+                        compocn, map_glc2ocn_ice, 'one', glc2ocn_ice_rmap)
                    call addmrg(fldListTo(compocn)%flds, 'Foxx_rofi'//iso(n), &
                         mrg_from=compglc(ns), mrg_fld='Fogg_rofi'//iso(n), mrg_type='sum')
                 end if
