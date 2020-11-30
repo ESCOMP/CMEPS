@@ -466,8 +466,8 @@ contains
     ! ---------------------------------------------------------------------
 
     ! The suffix _elev on land fields designates fields with elevation classes
-    ! fields from glc->med do NOT have elevation classes
-    ! fields from med->lnd are BROKEN into multiple elevation classes
+    ! fields from glc->med do not have elevation classes whereas
+    ! fields from med->lnd are in multiple elevation classes
 
     if (phase == 'advertise') then
        do ns = 1, num_icesheets
@@ -537,6 +537,8 @@ contains
           call addfld(fldListTo(compatm)%flds, 'Sx_'//trim(suffix(n)))
        else
           if ( fldchk(is_local%wrap%FBexp(compatm), 'Sx_'//trim(suffix(n)), rc=rc)) then
+             ! Note that for aqua-plant there will be no import from complnd or compice - and the
+             ! current logic below takes care of this.
              if (fldchk(is_local%wrap%FBImp(complnd,complnd), 'Sl_'//trim(suffix(n)), rc=rc)) then
                 call addmap(fldListFr(complnd)%flds, 'Sl_'//trim(suffix(n)), &
                      compatm, mapconsf, 'lfrin', lnd2atm_smap)
