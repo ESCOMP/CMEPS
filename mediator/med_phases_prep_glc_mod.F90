@@ -67,7 +67,6 @@ module med_phases_prep_glc_mod
   integer                :: FBlndAccumCnt
   character(len=14)      :: fldnames_fr_lnd(3) = (/'Flgl_qice_elev','Sl_tsrf_elev  ','Sl_topo_elev  '/)
   character(len=14)      :: fldnames_to_glc(2) = (/'Flgl_qice     ','Sl_tsrf       '/)
-
   
   type, public :: ice_sheet_toglc_type
      character(CS)          :: name

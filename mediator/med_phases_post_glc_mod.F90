@@ -16,7 +16,7 @@ module med_phases_post_glc_mod
   use ESMF                  , only : ESMF_RouteHandle, ESMF_RouteHandleIsCreated
   use esmFlds               , only : compatm, compice, complnd, comprof, compocn, ncomps, compname
   use esmFlds               , only : max_icesheets, num_icesheets, compglc
-  use esmFlds               , only : mapbilnr, mapconsd, mapconsf, compname
+  use esmFlds               , only : mapbilnr, mapconsd, compname
   use esmFlds               , only : fldListTo
   use med_methods_mod       , only : fldbun_diagnose  => med_methods_FB_diagnose
   use med_methods_mod       , only : fldbun_fldchk    => med_methods_FB_fldchk
@@ -310,7 +310,7 @@ contains
           ! Create route handle if it has not been created
           if (.not. ESMF_RouteHandleIsCreated(is_local%wrap%RH(compglc(ns),complnd,mapconsd), rc=rc)) then
              call med_map_routehandles_init( compglc(ns), complnd, &
-                  ice_sheet_tolnd(ns)%field_icemask_g, lfield_l, &
+                  ice_sheet_tolnd(ns)%field_icemask_g, field_icemask_l, &
                   mapindex=mapconsd, &
                   routehandles=is_local%wrap%rh(compglc(ns),complnd,:), rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
