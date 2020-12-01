@@ -8,15 +8,13 @@ module med_phases_prep_lnd_mod
   use NUOPC                 , only : NUOPC_CompAttributeGet
   use ESMF                  , only : operator(/=)
   use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_LOGMSG_ERROR, ESMF_SUCCESS, ESMF_FAILURE
-  use ESMF                  , only : ESMF_FieldBundle, ESMF_FieldBundleGet
+  use ESMF                  , only : ESMF_FieldBundle, ESMF_FieldBundleGet, ESMF_Field, ESMF_FieldGet
   use ESMF                  , only : ESMF_GridComp, ESMF_GridCompGet
   use ESMF                  , only : ESMF_StateGet, ESMF_StateItem_Flag, ESMF_STATEITEM_NOTFOUND
+  use ESMF                  , only : ESMF_VMBroadCast
   use esmFlds               , only : complnd, compatm, comprof, ncomps, compname
   use esmFlds               , only : fldListTo
   use med_methods_mod       , only : fldbun_diagnose  => med_methods_FB_diagnose
-  use med_methods_mod       , only : fldbun_fldchk    => med_methods_FB_fldchk
-  use med_methods_mod       , only : State_GetScalar  => med_methods_State_GetScalar
-  use med_methods_mod       , only : State_SetScalar  => med_methods_State_SetScalar
   use med_utils_mod         , only : chkerr           => med_utils_ChkErr
   use med_constants_mod     , only : dbug_flag        => med_constants_dbug_flag
   use med_internalstate_mod , only : InternalState, mastertask, logunit
@@ -43,11 +41,15 @@ contains
     integer, intent(out) :: rc
 
     ! local variables
-    type(ESMF_StateItem_Flag) :: itemType
-    type(InternalState)       :: is_local
-    integer                   :: n1,ncnt,ns
-    real(r8)                  :: nextsw_cday
-    logical                   :: first_call = .true.
+    type(ESMF_StateItem_Flag)   :: itemType
+    type(InternalState)         :: is_local
+    type(ESMF_Field)            :: lfield
+    integer                     :: ncnt,ns
+    real(r8)                    :: nextsw_cday
+    integer                     :: scalar_id
+    real(r8)                    :: tmp(1)
+    real(r8), pointer           :: dataptr(:,:)
+    logical                     :: first_call = .true.
     character(len=*), parameter :: subname='(med_phases_prep_lnd)'
     !---------------------------------------
 
@@ -70,15 +72,13 @@ contains
     call ESMF_FieldBundleGet(is_local%wrap%FBExp(complnd), fieldCount=ncnt, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+
+
     if (ncnt > 0) then
 
-       !---------------------------------------
        ! map to atm2lnd 
-       !---------------------------------------
-
        ! rof2lnd is done in med_phases_post_rof
        ! glc2lnd is done in med_phases_post_glc
-
        if (is_local%wrap%med_coupling_active(compatm,complnd)) then
           call t_startf('MED:'//trim(subname)//' map_atm2lnd')
           call med_map_field_packed( &
@@ -92,12 +92,8 @@ contains
           call t_stopf('MED:'//trim(subname)//' map_atm2lnd')
        end if
 
-       !---------------------------------------
        ! auto merges to create FBExp(complnd) - other than glc->lnd
-       !---------------------------------------
-
        ! The following will merge all fields in fldsSrc
-
        call t_startf('MED:'//trim(subname)//' merge')
        call med_merge_auto(complnd, &
             is_local%wrap%med_coupling_active(:,complnd), &
@@ -108,29 +104,24 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call t_stopf('MED:'//trim(subname)//' merge')
 
-       !---------------------------------------
-       ! update scalar data
-       !---------------------------------------
-
-       call ESMF_StateGet(is_local%wrap%NStateImp(compatm), trim(is_local%wrap%flds_scalar_name), itemType, rc=rc)
+       ! obtain nextsw_cday from atm and send it to lnd
+       call ESMF_StateGet(is_local%wrap%NStateImp(compatm), &
+            trim(is_local%wrap%flds_scalar_name), itemtype, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        if (itemType /= ESMF_STATEITEM_NOTFOUND) then
           call t_startf('MED:'//trim(subname)//' nextsw_cday')
-          ! send nextsw_cday to land - first obtain it from atm import
-          call State_GetScalar(&
-               scalar_value=nextsw_cday, &
-               scalar_id=is_local%wrap%flds_scalar_index_nextsw_cday, &
-               state=is_local%wrap%NstateImp(compatm), &
-               flds_scalar_name=is_local%wrap%flds_scalar_name, &
-               flds_scalar_num=is_local%wrap%flds_scalar_num, rc=rc)
+          call ESMF_StateGet(is_local%wrap%NstateImp(compatm), & 
+               itemName=trim(is_local%wrap%flds_scalar_name), field=lfield, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call State_SetScalar(&
-               scalar_value=nextsw_cday, &
-               scalar_id=is_local%wrap%flds_scalar_index_nextsw_cday, &
-               state=is_local%wrap%NstateExp(complnd), &
-               flds_scalar_name=is_local%wrap%flds_scalar_name, &
-               flds_scalar_num=is_local%wrap%flds_scalar_num, rc=rc)
+          call ESMF_FieldGet(lfield, farrayPtr=dataptr, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
+          scalar_id=is_local%wrap%flds_scalar_index_nextsw_cday
+          if (mastertask) then
+             tmp(1) = dataptr(scalar_id,1)
+          end if
+          call ESMF_VMBroadCast(is_local%wrap%vm, tmp, 1, 0, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          dataptr(scalar_id,1) = tmp(1)
           call t_stopf('MED:'//trim(subname)//' nextsw_cday')
        end if
 
