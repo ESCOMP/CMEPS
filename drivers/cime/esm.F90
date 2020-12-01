@@ -802,8 +802,9 @@ contains
     use ESMF         , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_VM, ESMF_VMGet
     use ESMF         , only : ESMF_LogWrite, ESMF_SUCCESS, ESMF_LOGMSG_INFO, ESMF_Config
     use ESMF         , only : ESMF_ConfigGetLen, ESMF_LogFoundAllocError, ESMF_ConfigGetAttribute
-    use ESMF         , only : ESMF_RC_NOT_VALID, ESMF_LogSetError
+    use ESMF         , only : ESMF_RC_NOT_VALID, ESMF_LogSetError, ESMF_Info, ESMF_InfoSet
     use ESMF         , only : ESMF_GridCompIsPetLocal, ESMF_MethodAdd, ESMF_UtilStringLowerCase
+    use ESMF         , only : ESMF_InfoCreate, ESMF_InfoDestroy
     use NUOPC        , only : NUOPC_CompAttributeGet
     use NUOPC_Driver , only : NUOPC_DriverAddComp
     use mpi          , only : MPI_COMM_NULL
@@ -812,28 +813,28 @@ contains
 
 #ifdef MED_PRESENT
     use med_internalstate_mod , only : med_id
-    use med                   , only : MedSetServices => SetServices
+    use med                   , only : MedSetServices => SetServices, MEDSetVM => SetVM
 #endif
 #ifdef ATM_PRESENT
-    use atm_comp_nuopc        , only : ATMSetServices => SetServices
+    use atm_comp_nuopc        , only : ATMSetServices => SetServices, ATMSetVM => SetVM
 #endif
 #ifdef ICE_PRESENT
-    use ice_comp_nuopc        , only : ICESetServices => SetServices
+    use ice_comp_nuopc        , only : ICESetServices => SetServices, ICESetVM => SetVM
 #endif
 #ifdef LND_PRESENT
-    use lnd_comp_nuopc        , only : LNDSetServices => SetServices
+    use lnd_comp_nuopc        , only : LNDSetServices => SetServices, LNDSetVM => SetVM
 #endif
 #ifdef OCN_PRESENT
     use ocn_comp_nuopc        , only : OCNSetServices => SetServices
 #endif
 #ifdef WAV_PRESENT
-    use wav_comp_nuopc        , only : WAVSetServices => SetServices
+    use wav_comp_nuopc        , only : WAVSetServices => SetServices, WAVSetVM => SetVM
 #endif
 #ifdef ROF_PRESENT
-    use rof_comp_nuopc        , only : ROFSetServices => SetServices
+    use rof_comp_nuopc        , only : ROFSetServices => SetServices, ROFSetVM => SetVM
 #endif
 #ifdef GLC_PRESENT
-    use glc_comp_nuopc        , only : GLCSetServices => SetServices
+    use glc_comp_nuopc        , only : GLCSetServices => SetServices, GLCSetVM => SetVM
 #endif
 
     ! input/output variables
@@ -845,6 +846,7 @@ contains
     type(ESMF_GridComp)            :: child
     type(ESMF_VM)                  :: vm
     type(ESMF_Config)              :: config
+    type(ESMF_Info)                :: info
     integer                        :: componentcount
     integer                        :: PetCount
     integer                        :: LocalPet
@@ -928,6 +930,12 @@ contains
 
        if(nthrds > maxthreads) maxthreads = nthrds
 
+       info = ESMF_InfoCreate(rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+       call ESMF_InfoSet(info, key="/NUOPC/Instance/maxPeCountPerPet", value=nthrds, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+
        call NUOPC_CompAttributeGet(driver, name=trim(namestr)//'_rootpe', value=cvalue, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        read(cvalue,*) rootpe
@@ -958,29 +966,30 @@ contains
           endif
        endif
        if(.not. allocated(petlist)) then
-          allocate(petlist(ntasks))
+          allocate(petlist(ntasks*nthrds))
        endif
 
        cnt = 1
-       do ntask = rootpe, (rootpe+ntasks*stride)-1, stride
+       do ntask = rootpe, rootpe+nthrds*ntasks*stride-1, stride
           petlist(cnt) = ntask
           cnt = cnt + 1
        enddo
 
        comps(i+1) = i+1
-
        found_comp = .false.
 #ifdef MED_PRESENT
        if (trim(compLabels(i)) == 'MED') then
           med_id = i + 1
-          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), MEDSetServices, petList=petlist, comp=child, rc=rc)
+          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), MEDSetServices, MEDSetVM, &
+               petList=petlist, comp=child, info=info, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           found_comp = .true.
        end if
 #endif
 #ifdef ATM_PRESENT
        if (trim(compLabels(i)) .eq. 'ATM') then
-          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), ATMSetServices, petList=petlist, comp=child, rc=rc)
+          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), ATMSetServices, ATMSetVM, &
+               petList=petlist, comp=child, info=info, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           found_comp = .true.
        end if
@@ -1060,6 +1069,9 @@ contains
           comms(i+1) = MPI_COMM_NULL
           comp_iamin(i) = .false.
        endif
+       call ESMF_InfoDestroy(info, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+
     enddo
 
     ! Initialize MCT (this is needed for data models and cice prescribed capability)
