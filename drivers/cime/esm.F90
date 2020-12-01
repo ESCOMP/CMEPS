@@ -988,6 +988,7 @@ contains
           call ESMF_InfoSet(info, key="/NUOPC/Hint/PePerPet/OpenMpHandling", value='none', rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
        endif
+
        call NUOPC_CompAttributeGet(driver, name=trim(namestr)//'_rootpe', value=cvalue, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        read(cvalue,*) rootpe
@@ -1029,9 +1030,17 @@ contains
 #endif
        endif
 
+#ifdef ESMF_AWARE_THREADING
+       cnt = 1
+       do ntask = rootpe, rootpe+nthrds*ntasks*stride-1, stride
+          petlist(cnt) = ntask
+          cnt = cnt + 1
+       enddo
+#else
        do ntask = 1, size(petlist)
           petlist(ntask) = rootpe + (ntask-1)*stride
        enddo
+#endif
 
        comps(i+1) = i+1
        found_comp = .false.
