@@ -138,7 +138,8 @@ contains
     ! to ocn: req. fields to satisfy mediator (can be removed later)
     !----------------------------------------------------------
     allocate(flds(2))
-    flds = (/'Faxa_snowc', 'Faxa_snowl'/)
+    flds = (/'Faxa_snowc',&
+             'Faxa_snowl'/)
 
     do n = 1,size(flds)
        fldname = trim(flds(n))
@@ -148,7 +149,10 @@ contains
     deallocate(flds)
 
     allocate(flds(4))
-    flds = (/'Sa_topo', 'Sa_z   ', 'Sa_ptem', 'Sa_pbot'/)
+    flds = (/'Sa_topo',&
+             'Sa_z   ',&
+             'Sa_ptem',&
+             'Sa_pbot'/)
 
     do n = 1,size(flds)
        fldname = trim(flds(n))
@@ -171,7 +175,10 @@ contains
     ! to ocn: downward diffuse visible incident solar radiation from atm
     ! ---------------------------------------------------------------------
     allocate(flds(5))
-    flds = (/'Faxa_lwdn ', 'Faxa_swndr', 'Faxa_swndf', 'Faxa_swvdr', &
+    flds = (/'Faxa_lwdn ', &
+             'Faxa_swndr', &
+             'Faxa_swndf', &
+             'Faxa_swvdr', &
              'Faxa_swvdf'/)
 
     do n = 1,size(flds)
@@ -229,7 +236,12 @@ contains
     ! to ocn: specific humidity at the lowest model level from atm
     ! ---------------------------------------------------------------------
     allocate(flds(7))
-    flds = (/'Sa_pslv', 'Sa_u   ', 'Sa_v   ', 'Sa_wspd', 'Sa_tbot', 'Sa_tskn', &
+    flds = (/'Sa_pslv', &
+             'Sa_u   ', &
+             'Sa_v   ', &
+             'Sa_wspd', &
+             'Sa_tbot', &
+             'Sa_tskn', &
              'Sa_shum'/)
 
     do n = 1,size(flds)
@@ -430,7 +442,7 @@ contains
           call addmap(fldListFr(compatm)%flds, trim(fldname), compocn, &
                mapconsf, 'one', hafs_attr%atm2ocn_fmap)
           call addmrg(fldListTo(compocn)%flds, trim(fldname), &
-               mrg_from1=compatm, mrg_fld1=trim(fldname), mrg_type1='copy')
+               mrg_from=compatm, mrg_fld=trim(fldname), mrg_type='copy')
        end if
     end do
     deallocate(flds)
@@ -446,7 +458,7 @@ contains
           call addmap(fldListFr(compatm)%flds, trim(fldname), compocn, &
                mapbilnr, 'one', hafs_attr%atm2ocn_smap)
           call addmrg(fldListTo(compocn)%flds, trim(fldname), &
-               mrg_from1=compatm, mrg_fld1=trim(fldname), mrg_type1='copy')
+               mrg_from=compatm, mrg_fld=trim(fldname), mrg_type='copy')
        end if
     end do
     deallocate(flds)
@@ -457,7 +469,7 @@ contains
     call addmap(fldListFr(compice)%flds, 'Si_ifrac', compocn, &
          mapfcopy, 'unset', 'unset')
     call addmrg(fldListTo(compocn)%flds, 'Si_ifrac', &
-         mrg_from1=compice, mrg_fld1='Si_ifrac', mrg_type1='copy')
+         mrg_from=compice, mrg_fld='Si_ifrac', mrg_type='copy')
 
     ! ---------------------------------------------------------------------
     ! to ocn: downward longwave heat flux from atm
@@ -478,8 +490,8 @@ contains
           call addmap(fldListFr(compatm)%flds, trim(fldname), compocn, &
                mapconsf, 'one', hafs_attr%atm2ocn_fmap)
           call addmrg(fldListTo(compocn)%flds, trim(fldname), &
-               mrg_from1=compatm, mrg_fld1=trim(fldname), &
-               mrg_type1='copy_with_weights', mrg_fracname1='ofrac')
+               mrg_from=compatm, mrg_fld=trim(fldname), &
+               mrg_type='copy_with_weights', mrg_fracname='ofrac')
        end if
     end do
     deallocate(flds)
@@ -490,7 +502,7 @@ contains
     call addmap(fldListFr(compatm)%flds, 'Faxa_lwnet', compocn, &
          mapconsf, 'one', hafs_attr%atm2ocn_fmap)
     call addmrg(fldListTo(compocn)%flds, 'Foxx_lwnet', &
-         mrg_from1=compatm, mrg_fld1='Faxa_lwnet', mrg_type1='copy')
+         mrg_from=compatm, mrg_fld='Faxa_lwnet', mrg_type='copy')
 
     ! ---------------------------------------------------------------------
     ! to ocn: downward shortwave heat flux
@@ -501,7 +513,7 @@ contains
        call addmap(fldListFr(compatm)%flds, 'Faxa_swdn', compocn, &
             mapconsf, 'one', hafs_attr%atm2ocn_fmap)
        call addmrg(fldListTo(compocn)%flds, 'Faxa_swdn', &
-            mrg_from1=compatm, mrg_fld1='Faxa_swdn', mrg_type1='copy')
+            mrg_from=compatm, mrg_fld='Faxa_swdn', mrg_type='copy')
     end if
 
     ! ---------------------------------------------------------------------
@@ -510,7 +522,7 @@ contains
     call addmap(fldListFr(compatm)%flds, 'Faxa_swnet', compocn, &
          mapconsf, 'one', hafs_attr%atm2ocn_fmap)
     call addmrg(fldListTo(compocn)%flds, 'Foxx_swnet', &
-         mrg_from1=compatm, mrg_fld1='Faxa_swnet', mrg_type1='copy')
+         mrg_from=compatm, mrg_fld='Faxa_swnet', mrg_type='copy')
 
     ! ---------------------------------------------------------------------
     !  to ocn: precipitation rate from atm
@@ -524,15 +536,15 @@ contains
         call addmap(fldListFr(compatm)%flds, 'Faxa_rainc', compocn, &
              mapconsf, 'one', hafs_attr%atm2ocn_fmap)
         call addmrg(fldListTo(compocn)%flds, 'Faxa_rain', &
-             mrg_from1=compatm, mrg_fld1='Faxa_rainc:Faxa_rainl', &
-             mrg_type1='sum_with_weights', mrg_fracname1='ofrac')
+             mrg_from=compatm, mrg_fld='Faxa_rainc:Faxa_rainl', &
+             mrg_type='sum_with_weights', mrg_fracname='ofrac')
     else if (fldchk(is_local%wrap%FBExp(compocn),'Faxa_rain',rc=rc) .and. &
              fldchk(is_local%wrap%FBImp(compatm,compatm),'Faxa_rain',rc=rc) &
             ) then
         call addmap(fldListFr(compatm)%flds, 'Faxa_rain', compocn, &
              mapconsf, 'one', hafs_attr%atm2ocn_fmap)
         call addmrg(fldListTo(compocn)%flds, 'Faxa_rain', &
-             mrg_from1=compatm, mrg_fld1='Faxa_rain', mrg_type1='copy')
+             mrg_from=compatm, mrg_fld='Faxa_rain', mrg_type='copy')
     end if
 
     ! ---------------------------------------------------------------------
@@ -541,7 +553,7 @@ contains
     call addmap(fldListFr(compatm)%flds, 'Faxa_sen', compocn, &
          mapconsf, 'one', hafs_attr%atm2ocn_fmap)
     call addmrg(fldListTo(compocn)%flds, 'Foxx_sen', &
-         mrg_from1=compatm, mrg_fld1='Faxa_sen', mrg_type1='copy')
+         mrg_from=compatm, mrg_fld='Faxa_sen', mrg_type='copy')
 
     ! ---------------------------------------------------------------------
     ! to ocn: surface latent heat flux and evaporation water flux
@@ -549,7 +561,7 @@ contains
     call addmap(fldListFr(compatm)%flds, 'Faxa_lat', compocn, &
          mapconsf, 'one', hafs_attr%atm2ocn_fmap)
     call addmrg(fldListTo(compocn)%flds, 'Foxx_lat', &
-         mrg_from1=compatm, mrg_fld1='Faxa_lat', mrg_type1='copy')
+         mrg_from=compatm, mrg_fld='Faxa_lat', mrg_type='copy')
 
     ! ---------------------------------------------------------------------
     ! to ocn: sea level pressure from atm
@@ -572,7 +584,7 @@ contains
           call addmap(fldListFr(compatm)%flds, trim(fldname), compocn, &
                mapbilnr, 'one', hafs_attr%atm2ocn_smap)
           call addmrg(fldListTo(compocn)%flds, trim(fldname), &
-               mrg_from1=compatm, mrg_fld1=trim(fldname), mrg_type1='copy')
+               mrg_from=compatm, mrg_fld=trim(fldname), mrg_type='copy')
        end if
     end do
     deallocate(flds)
@@ -587,8 +599,8 @@ contains
        call addmap(fldListFr(compatm)%flds, 'Faxa_'//trim(suffix(n)), compocn, &
             mapconsf, 'one', hafs_attr%atm2ocn_fmap)
        call addmrg(fldListTo(compocn)%flds, 'Foxx_'//trim(suffix(n)), &
-            mrg_from1=compatm, mrg_fld1='Faxa_'//trim(suffix(n)), &
-            mrg_type1='copy')
+            mrg_from=compatm, mrg_fld='Faxa_'//trim(suffix(n)), &
+            mrg_type='copy')
     end do
     deallocate(suffix)
 
@@ -610,7 +622,7 @@ contains
           call addmap(fldListFr(compatm)%flds, trim(fldname), compice, &
                mapbilnr, 'one', hafs_attr%atm2ice_smap)
           call addmrg(fldListTo(compice)%flds, trim(fldname), &
-               mrg_from1=compatm, mrg_fld1=trim(fldname), mrg_type1='copy')
+               mrg_from=compatm, mrg_fld=trim(fldname), mrg_type='copy')
        end if
     end do
     deallocate(flds)
@@ -629,7 +641,7 @@ contains
           call addmap(fldListFr(compocn)%flds, trim(fldname), compice, &
                mapfcopy , 'unset', 'unset')
           call addmrg(fldListTo(compice)%flds, trim(fldname), &
-               mrg_from1=compocn, mrg_fld1=trim(fldname), mrg_type1='copy')
+               mrg_from=compocn, mrg_fld=trim(fldname), mrg_type='copy')
        end if
     end do
     deallocate(flds)
