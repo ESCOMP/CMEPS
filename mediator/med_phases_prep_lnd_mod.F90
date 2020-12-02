@@ -27,6 +27,9 @@ module med_phases_prep_lnd_mod
 
   public  :: med_phases_prep_lnd
 
+  real(r8), pointer :: dataptr_scalar_lnd(:,:)
+  real(r8), pointer :: dataptr_scalar_atm(:,:)
+
   character(*) , parameter :: u_FILE_u = &
        __FILE__
 
@@ -48,7 +51,7 @@ contains
     real(r8)                    :: nextsw_cday
     integer                     :: scalar_id
     real(r8)                    :: tmp(1)
-    real(r8), pointer           :: dataptr(:,:)
+    real(r8), pointer           :: dataptr2d(:,:)
     logical                     :: first_call = .true.
     character(len=*), parameter :: subname='(med_phases_prep_lnd)'
     !---------------------------------------
@@ -71,8 +74,6 @@ contains
 
     call ESMF_FieldBundleGet(is_local%wrap%FBExp(complnd), fieldCount=ncnt, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-
 
     if (ncnt > 0) then
 
@@ -110,18 +111,28 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        if (itemType /= ESMF_STATEITEM_NOTFOUND) then
           call t_startf('MED:'//trim(subname)//' nextsw_cday')
-          call ESMF_StateGet(is_local%wrap%NstateImp(compatm), & 
-               itemName=trim(is_local%wrap%flds_scalar_name), field=lfield, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call ESMF_FieldGet(lfield, farrayPtr=dataptr, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          if (first_call) then
+             ! Determine module pointer data for performance reasons
+             call ESMF_StateGet(is_local%wrap%NstateImp(compatm), & 
+                  itemName=trim(is_local%wrap%flds_scalar_name), field=lfield, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+             call ESMF_FieldGet(lfield, farrayPtr=dataptr_scalar_atm, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+             call ESMF_StateGet(is_local%wrap%NStateExp(complnd), &
+                  trim(is_local%wrap%flds_scalar_name), field=lfield, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+             call ESMF_FieldGet(lfield, farrayPtr=dataptr_scalar_lnd, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+          end if
+          ! obtain nextsw_cday from atm import on all tasks
           scalar_id=is_local%wrap%flds_scalar_index_nextsw_cday
           if (mastertask) then
-             tmp(1) = dataptr(scalar_id,1)
+             tmp(1) = dataptr_scalar_atm(scalar_id,1)
           end if
           call ESMF_VMBroadCast(is_local%wrap%vm, tmp, 1, 0, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
-          dataptr(scalar_id,1) = tmp(1)
+          ! set nextsw_cday on all lnd export tasks
+          dataptr_scalar_lnd(scalar_id,1) = tmp(1)
           call t_stopf('MED:'//trim(subname)//' nextsw_cday')
        end if
 

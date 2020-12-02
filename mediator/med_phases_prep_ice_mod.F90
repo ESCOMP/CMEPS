@@ -5,12 +5,10 @@ module med_phases_prep_ice_mod
   !-----------------------------------------------------------------------------
 
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
-  use med_utils_mod         , only : chkerr            => med_utils_ChkErr
-  use med_methods_mod       , only : fldchk            => med_methods_FB_FldChk
-  use med_methods_mod       , only : FB_diagnose       => med_methods_FB_diagnose
-  use med_methods_mod       , only : State_GetScalar   => med_methods_State_GetScalar
-  use med_methods_mod       , only : State_SetScalar   => med_methods_State_SetScalar
-  use med_constants_mod     , only : dbug_flag => med_constants_dbug_flag
+  use med_utils_mod         , only : chkerr      => med_utils_ChkErr
+  use med_methods_mod       , only : fldchk      => med_methods_FB_FldChk
+  use med_methods_mod       , only : FB_diagnose => med_methods_FB_diagnose
+  use med_constants_mod     , only : dbug_flag   => med_constants_dbug_flag
   use med_merge_mod         , only : med_merge_auto
   use med_map_mod           , only : med_map_field_packed
   use med_internalstate_mod , only : InternalState, logunit, mastertask
@@ -41,6 +39,7 @@ contains
     use ESMF  , only : ESMF_FieldBundleGet, ESMF_FieldGet, ESMF_Field
     use ESMF  , only : ESMF_LOGMSG_ERROR, ESMF_FAILURE
     use ESMF  , only : ESMF_StateItem_Flag, ESMF_STATEITEM_NOTFOUND
+    use ESMF  , only : ESMF_VMBroadCast
     use NUOPC , only : NUOPC_IsConnected
 
     ! input/output variables
@@ -51,15 +50,15 @@ contains
     type(ESMF_StateItem_Flag)      :: itemType
     type(InternalState)            :: is_local
     type(ESMF_Field)               :: lfield
-    integer                        :: i,n,n1,ncnt
-    character(len=CS)              :: fldname
-    integer                        :: fldnum
-    integer                        :: mapindex
-    real(R8), pointer              :: dataptr(:) => null()
+    integer                        :: i,n,ncnt
+    real(R8), pointer              :: dataptr1d(:) => null()
+    real(R8), pointer              :: dataptr2d(:,:) => null()
     real(R8)                       :: precip_fact
     character(len=CS)              :: cvalue
     character(len=64), allocatable :: fldnames(:)
     real(r8)                       :: nextsw_cday
+    integer                        :: scalar_id
+    real(r8)                       :: tmp(1)
     logical                        :: first_precip_fact_call = .true.
     character(len=*),parameter     :: subname='(med_phases_prep_ice)'
     !---------------------------------------
@@ -157,9 +156,9 @@ contains
                    call ESMF_FieldBundleGet(is_local%wrap%FBExp(compice), fieldname=trim(fldnames(n)), &
                         field=lfield, rc=rc)
                    if (chkerr(rc,__LINE__,u_FILE_u)) return
-                   call ESMF_FieldGet(lfield, farrayptr=dataptr, rc=rc)
+                   call ESMF_FieldGet(lfield, farrayptr=dataptr1d, rc=rc)
                    if (chkerr(rc,__LINE__,u_FILE_u)) return
-                   dataptr(:) = dataptr(:) * precip_fact
+                   dataptr1d(:) = dataptr1d(:) * precip_fact
                 end if
              end do
              deallocate(fldnames)
@@ -172,35 +171,37 @@ contains
        end if
 
        !---------------------------------------
-       !--- update scalar data
+       ! obtain nextsw_cday from atm and send it to ice
        !---------------------------------------
 
-       call ESMF_StateGet(is_local%wrap%NStateImp(compatm), trim(is_local%wrap%flds_scalar_name), itemType, rc=rc)
+       ! obtain nextsw_cday from atm and send it to lnd
+       call ESMF_StateGet(is_local%wrap%NStateImp(compatm), &
+            trim(is_local%wrap%flds_scalar_name), itemtype, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-
        if (itemType /= ESMF_STATEITEM_NOTFOUND) then
-          if (is_local%wrap%flds_scalar_index_nextsw_cday .ne. 0) then
-             ! send nextsw_cday to ice - first obtain it from atm import 
-             call State_GetScalar(&
-                  scalar_value=nextsw_cday, &
-                  scalar_id=is_local%wrap%flds_scalar_index_nextsw_cday, &
-                  state=is_local%wrap%NstateImp(compatm), &
-                  flds_scalar_name=is_local%wrap%flds_scalar_name, &
-                  flds_scalar_num=is_local%wrap%flds_scalar_num, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-             call State_SetScalar(&
-                  scalar_value=nextsw_cday, &
-                  scalar_id=is_local%wrap%flds_scalar_index_nextsw_cday, &
-                  state=is_local%wrap%NstateExp(compice), &
-                  flds_scalar_name=is_local%wrap%flds_scalar_name, &
-                  flds_scalar_num=is_local%wrap%flds_scalar_num, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call t_startf('MED:'//trim(subname)//' nextsw_cday')
+          ! obtain nextsw_cday from atm import on all tasks
+          call ESMF_StateGet(is_local%wrap%NstateImp(compatm), & 
+               itemName=trim(is_local%wrap%flds_scalar_name), field=lfield, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_FieldGet(lfield, farrayPtr=dataptr2d, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          scalar_id=is_local%wrap%flds_scalar_index_nextsw_cday
+          if (mastertask) then
+             tmp(1) = dataptr2d(scalar_id,1)
           end if
-       end if
+          call ESMF_VMBroadCast(is_local%wrap%vm, tmp, 1, 0, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-       !---------------------------------------
-       !--- clean up
-       !---------------------------------------
+          ! set nextsw_cday on all ice export tasks
+          call ESMF_StateGet(is_local%wrap%NStateExp(compice), &
+               trim(is_local%wrap%flds_scalar_name), field=lfield, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_FieldGet(lfield, farrayPtr=dataptr2d, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          dataptr2d(scalar_id,1) = tmp(1)
+          call t_stopf('MED:'//trim(subname)//' nextsw_cday')
+       end if
 
     end if
 
