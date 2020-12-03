@@ -65,10 +65,6 @@ def gen_runseq(case, coupling_times):
         runseq.enter_time_loop(rof_cpl_time, newtime=rof_outer_loop)
         #------------------
 
-        runseq.add_action("MED med_phases_prep_rof_avg"    , med_to_rof and rof_outer_loop)
-        runseq.add_action("MED -> ROF :remapMethod=redist" , med_to_rof and rof_outer_loop)
-        runseq.add_action("ROF"                            , rof_outer_loop)
-
         #------------------
         runseq.enter_time_loop(ocn_cpl_time, newtime=ocn_outer_loop)
         #------------------
@@ -107,9 +103,9 @@ def gen_runseq(case, coupling_times):
         runseq.add_action("OCN"                                    , run_ocn and not ocn_outer_loop)
 
         if coupling_mode == 'hafs':
-            runseq.add_action("OCN -> MED :remapMethod=redist:ignoreUnmatchedIndices=true"         , run_ocn and not ocn_outer_loop)
+            runseq.add_action("OCN -> MED :remapMethod=redist:ignoreUnmatchedIndices=true", run_ocn and not ocn_outer_loop)
         else:
-            runseq.add_action("OCN -> MED :remapMethod=redist"         , run_ocn and not ocn_outer_loop)
+            runseq.add_action("OCN -> MED :remapMethod=redist", run_ocn and not ocn_outer_loop)
 
         if (cpl_seq_option == 'TIGHT'):
             runseq.add_action("MED med_phases_prep_ocn_map"        , med_to_ocn)
@@ -133,28 +129,33 @@ def gen_runseq(case, coupling_times):
         runseq.add_action("ATM -> MED :remapMethod=redist"         , run_atm)
         runseq.add_action("WAV -> MED :remapMethod=redist"         , run_wav)
         runseq.add_action("ROF -> MED :remapMethod=redist"         , run_rof and not rof_outer_loop)
-        runseq.add_action("MED med_phases_diag_atm"                , run_atm and diag_mode)
-        runseq.add_action("MED med_phases_diag_lnd"                , run_lnd and diag_mode)
-        runseq.add_action("MED med_phases_diag_rof"                , run_rof and diag_mode)
-        runseq.add_action("MED med_phases_diag_glc"                , run_glc and diag_mode)
-        runseq.add_action("MED med_phases_diag_accum"              , diag_mode)
-        runseq.add_action("MED med_phases_diag_print"              , diag_mode)
+
+        runseq.add_action("MED med_phases_diag_atm"   , run_atm and diag_mode)
+        runseq.add_action("MED med_phases_diag_lnd"   , run_lnd and diag_mode)
+        runseq.add_action("MED med_phases_diag_rof"   , run_rof and diag_mode)
+        runseq.add_action("MED med_phases_diag_glc"   , run_glc and diag_mode)
+        runseq.add_action("MED med_phases_diag_accum" , diag_mode)
+        runseq.add_action("MED med_phases_diag_print" , diag_mode)
+
         #------------------
         runseq.leave_time_loop(inner_loop)
         #------------------
 
-        runseq.add_action("OCN"                                    , run_ocn and ocn_outer_loop)
-
+        runseq.add_action("OCN", run_ocn and ocn_outer_loop)
         if coupling_mode == 'hafs':
-            runseq.add_action("OCN -> MED :remapMethod=redist:ignoreUnmatchedIndices=true"         , run_ocn and ocn_outer_loop)
+            runseq.add_action("OCN -> MED :remapMethod=redist:ignoreUnmatchedIndices=true", run_ocn and ocn_outer_loop)
         else:
-            runseq.add_action("OCN -> MED :remapMethod=redist"         , run_ocn and ocn_outer_loop)
+            runseq.add_action("OCN -> MED :remapMethod=redist", run_ocn and ocn_outer_loop)
 
         #------------------
         runseq.leave_time_loop(ocn_outer_loop)
         #------------------
 
-        runseq.add_action("ROF -> MED :remapMethod=redist"         , run_rof and rof_outer_loop)
+        runseq.add_action("MED med_phases_prep_rof_avg"   , med_to_rof and rof_outer_loop)
+        runseq.add_action("MED -> ROF :remapMethod=redist", med_to_rof and rof_outer_loop)
+        runseq.add_action("ROF"                           , run_rof and rof_outer_loop)
+        runseq.add_action("ROF -> MED :remapMethod=redist", run_rof and rof_outer_loop)
+        runseq.add_action("MED med_phases_post_rof"       , run_rof and rof_outer_loop)
 
         #------------------
         runseq.leave_time_loop(rof_outer_loop)
