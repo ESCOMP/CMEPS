@@ -63,10 +63,10 @@ module esmflds
          'nstod_consd',&
          'nstod_consf',&
          'patch_uv3d ',&
-         'glc2ocn_ice',&
-         'glc2ocn_liq',&
          'rof2ocn_ice',&
-         'rof2ocn_liq'/)
+         'rof2ocn_liq',&
+         'glc2ocn_ice',&
+         'glc2ocn_liq')
 
   !-----------------------------------------------
   ! Set coupling mode

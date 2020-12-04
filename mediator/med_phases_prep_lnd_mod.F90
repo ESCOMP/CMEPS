@@ -105,7 +105,7 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call t_stopf('MED:'//trim(subname)//' merge')
 
-       ! obtain nextsw_cday from atm and send it to lnd
+       ! obtain nextsw_cday from atm if it is in the import state and send it to lnd
        call ESMF_StateGet(is_local%wrap%NStateImp(compatm), &
             trim(is_local%wrap%flds_scalar_name), itemtype, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return

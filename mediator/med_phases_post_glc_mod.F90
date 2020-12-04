@@ -160,7 +160,31 @@ contains
     if (ncnt > 0) then
 
        !---------------------------------------
-       ! glc->lnd mapping and merging
+       ! glc->ocn mapping - 
+       ! merging with rof->ocn fields is done in med_phases_prep_ocn
+       !---------------------------------------
+       if (glc2ocn_coupling) then
+          if (is_local%wrap%med_coupling_active(compglc(ns),compocn)) then
+             call med_map_field_packed( &
+                  FBSrc=is_local%wrap%FBImp(compglc(ns),compglc(ns)), &
+                  FBDst=is_local%wrap%FBImp(compglc(ns),compocn), &
+                  FBFracSrc=is_local%wrap%FBFrac(compglc(ns)), &
+                  field_normOne=is_local%wrap%field_normOne(compglc(ns),compocn,:), &
+                  packed_data=is_local%wrap%packed_data(compglc(ns),compocn,:), &
+                  routehandles=is_local%wrap%RH(compglc(ns),compocn,:), rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          end if
+       end if
+
+       !---------------------------------------
+       ! glc->ice mapping
+       !---------------------------------------
+       if (glc2ice_coupling) then
+          ! Fill this in
+       end if
+
+       !---------------------------------------
+       ! glc->lnd mapping and custom merging of all ice sheets onto land mesh
        !---------------------------------------
        if (glc2lnd_coupling) then
           ! The will following will map and merge Sg_frac and Sg_topo (and in the future Flgg_hflx)
@@ -190,19 +214,6 @@ contains
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
 
-       !---------------------------------------
-       ! glc->ocn mapping, not sure about merging? 
-       !---------------------------------------
-       if (glc2ocn_coupling) then
-          ! Fill this in
-       end if
-
-       !---------------------------------------
-       ! glc->ice mapping, not sure about merging? 
-       !---------------------------------------
-       if (glc2ice_coupling) then
-          ! Fill this in
-       end if
     end if
 
     ! Reset first call logical

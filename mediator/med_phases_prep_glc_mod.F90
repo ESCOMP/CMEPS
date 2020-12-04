@@ -105,7 +105,7 @@ contains
   subroutine med_phases_prep_glc_init(gcomp, rc)
 
     !---------------------------------------
-    ! Create land accumulation field bundles on and and glc grid and initialize accumulation count
+    ! Create land accumulation field bundles on lnd and and glc mesh and initialize accumulation count
     !---------------------------------------
 
     ! input/output variables
