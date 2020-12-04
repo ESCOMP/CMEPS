@@ -10,6 +10,8 @@ program esmApp
   use ESMF,            only : ESMF_GridCompDestroy, ESMF_LOGMSG_INFO, ESMF_GridComp, ESMF_GridCompRun
   use ESMF,            only : ESMF_GridCompFinalize, ESMF_GridCompCreate, ESMF_GridCompInitialize
   use ESMF,            only : ESMF_LOGKIND_MULTI_ON_ERROR, ESMF_LogKind_Flag
+  use ESMF,            only : ESMF_VMGet, ESMF_VM, ESMF_InitializePreMPI
+
 #ifdef USE_MPI2
   use mpi,             only : MPI_COMM_WORLD, MPI_COMM_NULL, MPI_Init, MPI_FINALIZE, MPI_BCAST, MPI_COMM_RANK
 #else
@@ -18,7 +20,7 @@ program esmApp
   use NUOPC,           only : NUOPC_FieldDictionarySetup
   use ensemble_driver, only : SetServices
   use shr_pio_mod,     only : shr_pio_init1
-  use shr_sys_mod,     only : shr_sys_abort     
+  use shr_sys_mod,     only : shr_sys_abort
 
   implicit none
 
@@ -30,14 +32,17 @@ program esmApp
   logical                 :: create_esmf_pet_files = .false.
   integer                 :: iam, ier
   integer                 :: fileunit
+  integer                 :: provided
+  type(ESMF_VM)           :: vm
 
-  namelist /debug_inparm / create_esmf_pet_files 
+  namelist /debug_inparm / create_esmf_pet_files
 
   !-----------------------------------------------------------------------------
   ! Initiallize MPI
   !-----------------------------------------------------------------------------
 
-  call MPI_init(rc)
+  call ESMF_InitializePreMPI()
+  call MPI_init_thread(MPI_THREAD_SERIALIZED, provided, rc)
   COMP_COMM = MPI_COMM_WORLD
 
   !-----------------------------------------------------------------------------
@@ -57,7 +62,6 @@ program esmApp
 
   ! by default, ESMF_LOGKIND_MULTI_ON_ERROR does not create files PET[N*].ESMF_LogFile unless there is an error
   ! if want those files, comment out the following line and uncomment the line logkindflag = ESMF_LOGKIND_MULTI
-
   call mpi_comm_rank(COMP_COMM, iam, ier)
   if (iam==0) then
      open(newunit=fileunit, status="old", file="drv_in")
@@ -74,9 +78,15 @@ program esmApp
   else
      logkindflag = ESMF_LOGKIND_MULTI_ON_ERROR
   end if
-
   call ESMF_Initialize(mpiCommunicator=COMP_COMM, logkindflag=logkindflag, logappendflag=.false., &
-       defaultCalkind=ESMF_CALKIND_GREGORIAN, ioUnitLBound=5001, ioUnitUBound=5101, rc=rc)
+       defaultCalkind=ESMF_CALKIND_GREGORIAN, ioUnitLBound=5001, ioUnitUBound=5101, vm=vm, rc=rc)
+
+  if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+       line=__LINE__, &
+       file=__FILE__)) &
+       call ESMF_Finalize(endflag=ESMF_END_ABORT)
+
+  call ESMF_VMGet(vm, mpiCommunicator=COMP_COMM, rc=rc)
   if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
        line=__LINE__, &
        file=__FILE__)) &
