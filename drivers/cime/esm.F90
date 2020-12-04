@@ -700,15 +700,6 @@ contains
     attribute = 'read_restart'
     call NUOPC_CompAttributeAdd(gcomp, (/trim(attribute)/), rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompAttributeGet(driver, name="mediator_read_restart", value=cvalue, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) lvalue
-    if (.not. lvalue) then
-       call NUOPC_CompAttributeGet(driver, name=trim(attribute), value=cvalue, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-    end if
-    call NUOPC_CompAttributeSet(gcomp, name=trim(attribute), value=trim(cvalue), rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     !------
     ! Add component specific attributes
