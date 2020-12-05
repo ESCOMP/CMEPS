@@ -115,6 +115,7 @@ def gen_runseq(case, coupling_times):
             runseq.add_action("OCN -> MED :remapMethod=redist:ignoreUnmatchedIndices=true", run_ocn and not ocn_outer_loop)
         else:
             runseq.add_action("OCN -> MED :remapMethod=redist", run_ocn and not ocn_outer_loop)
+        runseq.add_action("MED med_phases_post_ocn", run_ocn and not ocn_outer_loop)
 
         if (cpl_seq_option == 'TIGHT'):
             runseq.add_action("MED med_phases_prep_ocn_map"        , med_to_ocn)
@@ -136,6 +137,8 @@ def gen_runseq(case, coupling_times):
         runseq.add_action("MED -> ATM :remapMethod=redist"         , med_to_atm)
         runseq.add_action("ATM"                                    , run_atm)
         runseq.add_action("ATM -> MED :remapMethod=redist"         , run_atm)
+        runseq.add_action("MED med_phases_post_atm"                , run_atm and (med_to_ocn or med_to_atm))
+
         runseq.add_action("WAV -> MED :remapMethod=redist"         , run_wav)
         runseq.add_action("ROF -> MED :remapMethod=redist"         , run_rof and not rof_outer_loop)
 
@@ -155,6 +158,7 @@ def gen_runseq(case, coupling_times):
             runseq.add_action("OCN -> MED :remapMethod=redist:ignoreUnmatchedIndices=true", run_ocn and ocn_outer_loop)
         else:
             runseq.add_action("OCN -> MED :remapMethod=redist", run_ocn and ocn_outer_loop)
+        runseq.add_action("MED med_phases_post_ocn", run_ocn and ocn_outer_loop)
 
         #------------------
         runseq.leave_time_loop(ocn_outer_loop)

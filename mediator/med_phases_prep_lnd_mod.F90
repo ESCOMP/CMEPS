@@ -4,23 +4,7 @@ module med_phases_prep_lnd_mod
   ! Mediator phases for preparing land export from mediator
   !-----------------------------------------------------------------------------
 
-  use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
-  use NUOPC                 , only : NUOPC_CompAttributeGet
-  use ESMF                  , only : operator(/=)
-  use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_LOGMSG_ERROR, ESMF_SUCCESS, ESMF_FAILURE
-  use ESMF                  , only : ESMF_FieldBundle, ESMF_FieldBundleGet, ESMF_Field, ESMF_FieldGet
-  use ESMF                  , only : ESMF_GridComp, ESMF_GridCompGet
-  use ESMF                  , only : ESMF_StateGet, ESMF_StateItem_Flag, ESMF_STATEITEM_NOTFOUND
-  use ESMF                  , only : ESMF_VMBroadCast
-  use esmFlds               , only : complnd, compatm, comprof, ncomps, compname
-  use esmFlds               , only : fldListTo
-  use med_methods_mod       , only : fldbun_diagnose  => med_methods_FB_diagnose
-  use med_utils_mod         , only : chkerr           => med_utils_ChkErr
-  use med_constants_mod     , only : dbug_flag        => med_constants_dbug_flag
-  use med_internalstate_mod , only : InternalState, mastertask, logunit
-  use med_map_mod           , only : med_map_field_packed, med_map_field_normalized, med_map_field
-  use med_merge_mod         , only : med_merge_auto
-  use perf_mod              , only : t_startf, t_stopf
+  use med_kind_mod, only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
 
   implicit none
   private
@@ -38,6 +22,22 @@ contains
 !================================================================================================
 
   subroutine med_phases_prep_lnd(gcomp, rc)
+
+    use NUOPC                 , only : NUOPC_CompAttributeGet
+    use ESMF                  , only : operator(/=)
+    use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_LOGMSG_ERROR, ESMF_SUCCESS, ESMF_FAILURE
+    use ESMF                  , only : ESMF_FieldBundle, ESMF_FieldBundleGet, ESMF_Field, ESMF_FieldGet
+    use ESMF                  , only : ESMF_GridComp, ESMF_GridCompGet
+    use ESMF                  , only : ESMF_StateGet, ESMF_StateItem_Flag, ESMF_STATEITEM_NOTFOUND
+    use ESMF                  , only : ESMF_VMBroadCast
+    use esmFlds               , only : complnd, compatm, ncomps
+    use esmFlds               , only : fldListTo
+    use med_methods_mod       , only : fldbun_diagnose  => med_methods_FB_diagnose
+    use med_utils_mod         , only : chkerr           => med_utils_ChkErr
+    use med_constants_mod     , only : dbug_flag        => med_constants_dbug_flag
+    use med_internalstate_mod , only : InternalState, mastertask, logunit
+    use med_merge_mod         , only : med_merge_auto
+    use perf_mod              , only : t_startf, t_stopf
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -77,21 +77,9 @@ contains
 
     if (ncnt > 0) then
 
-       ! map to atm2lnd 
+       ! atm2lnd is done in med_phases_post_atm
        ! rof2lnd is done in med_phases_post_rof
        ! glc2lnd is done in med_phases_post_glc
-       if (is_local%wrap%med_coupling_active(compatm,complnd)) then
-          call t_startf('MED:'//trim(subname)//' map_atm2lnd')
-          call med_map_field_packed( &
-               FBSrc=is_local%wrap%FBImp(compatm,compatm), &
-               FBDst=is_local%wrap%FBImp(compatm,complnd), &
-               FBFracSrc=is_local%wrap%FBFrac(compatm), &
-               field_normOne=is_local%wrap%field_normOne(compatm,complnd,:), &
-               packed_data=is_local%wrap%packed_data(compatm,complnd,:), &
-               routehandles=is_local%wrap%RH(compatm,complnd,:), rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          call t_stopf('MED:'//trim(subname)//' map_atm2lnd')
-       end if
 
        ! auto merges to create FBExp(complnd) - other than glc->lnd
        ! The following will merge all fields in fldsSrc

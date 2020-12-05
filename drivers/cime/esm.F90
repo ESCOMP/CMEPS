@@ -644,7 +644,7 @@ contains
 
   !===============================================================================
 
-  subroutine AddAttributes(gcomp, driver, config, compid, compname, inst_suffix, nthreads, rc)
+  subroutine AddAttributes(gcomp, driver, config, compid, compname, inst_suffix, rc)
 
     ! Add specific set of attributes to components from driver attributes
 
@@ -659,7 +659,6 @@ contains
     integer             , intent(in)    :: compid
     character(len=*)    , intent(in)    :: compname
     character(len=*)    , intent(in)    :: inst_suffix
-    integer             , intent(in)    :: nthreads
     integer             , intent(inout) :: rc
 
     ! local variables
@@ -686,19 +685,19 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     !------
-    ! Add thread count to gcomp attributes
-    !------
-    write(cvalue,*) nthreads
-    call NUOPC_CompAttributeAdd(gcomp, attrList=(/'nthreads'/), rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompAttributeSet(gcomp, name='nthreads', value=trim(cvalue), rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    !------
     ! Add restart flag a to gcomp attributes
     !------
     attribute = 'read_restart'
     call NUOPC_CompAttributeAdd(gcomp, (/trim(attribute)/), rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompAttributeGet(driver, name="mediator_read_restart", value=cvalue, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    read(cvalue,*) lvalue
+    if (.not. lvalue) then         
+       call NUOPC_CompAttributeGet(driver, name=trim(attribute), value=cvalue, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+    end if
+    call NUOPC_CompAttributeSet(gcomp, name=trim(attribute), value=trim(cvalue), rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     !------
@@ -888,7 +887,7 @@ contains
     logical, allocatable           :: comp_iamin(:)
     character(len=5)               :: inst_suffix
     character(CL)                  :: cvalue
-    logical                        :: found_comp
+    logical                        :: found_comp 
     character(len=*), parameter    :: subname = "(esm_pelayout.F90:esm_init_pelayout)"
     !---------------------------------------
 
@@ -1063,7 +1062,7 @@ contains
           return
        endif
 
-       call AddAttributes(child, driver, config, i+1, trim(compLabels(i)), inst_suffix, nthrds, rc=rc)
+       call AddAttributes(child, driver, config, i+1, trim(compLabels(i)), inst_suffix, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        if (ESMF_GridCompIsPetLocal(child, rc=rc)) then
@@ -1073,7 +1072,7 @@ contains
           call ESMF_VMGet(vm, mpiCommunicator=comms(i+1), localPet=comp_comm_iam(i), rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-          call AddAttributes(child, driver, config, i+1, trim(compLabels(i)), inst_suffix, nthrds, rc=rc)
+          call AddAttributes(child, driver, config, i+1, trim(compLabels(i)), inst_suffix, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
 
           ! This code is not supported, we need an optional arg to NUOPC_DriverAddComp to include the

@@ -80,21 +80,10 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! map all fields in FBImp that have active ocean coupling other than compglc and comprof
+    ! compatm is mapped to compocn in med_phases_post_atm
     ! compglc is mapped to compocn in med_phases_post_glc
     ! comprof is mapped to compocn in med_phases_post_rof
     if (ncnt > 0) then
-       if (is_local%wrap%med_coupling_active(compatm,compocn)) then
-          call t_startf('MED:'//trim(subname)//' map_atm2ocn')
-          call med_map_field_packed( &
-               FBSrc=is_local%wrap%FBImp(compatm,compatm), &
-               FBDst=is_local%wrap%FBImp(compatm,compocn), &
-               FBFracSrc=is_local%wrap%FBFrac(compatm), &
-               field_normOne=is_local%wrap%field_normOne(compatm,compocn,:), &
-               packed_data=is_local%wrap%packed_data(compatm,compocn,:), &
-               routehandles=is_local%wrap%RH(compatm,compocn,:), rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          call t_stopf('MED:'//trim(subname)//' map_atm2ocn')
-       end if
        if (is_local%wrap%med_coupling_active(compice,compocn)) then
           call t_startf('MED:'//trim(subname)//' map_ice2ocn')
           call med_map_field_packed( &
@@ -219,7 +208,6 @@ contains
     ! Carry out fast accumulation for the ocean
 
     use ESMF , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_FieldBundleGet
-    use ESMF , only : ESMF_Clock, ESMF_Time
     use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
 
     ! input/output variables
@@ -227,8 +215,6 @@ contains
     integer, intent(out) :: rc
 
     ! local variables
-    type(ESMF_Clock)            :: clock
-    type(ESMF_Time)             :: time
     type(InternalState)         :: is_local
     integer                     :: i,j,n,ncnt
     character(len=*), parameter :: subname='(med_phases_accum_fast)'
@@ -246,24 +232,17 @@ contains
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    ! Count the number of fields outside of scalar data, if zero, then return
-    call ESMF_FieldBundleGet(is_local%wrap%FBExp(compocn), fieldCount=ncnt, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    ! ocean accumulator
+    call FB_accum(is_local%wrap%FBExpAccum(compocn), is_local%wrap%FBExp(compocn), rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    if (ncnt > 0) then
-       ! ocean accumulator
-       call FB_accum(is_local%wrap%FBExpAccum(compocn), is_local%wrap%FBExp(compocn), rc=rc)
+    is_local%wrap%FBExpAccumCnt(compocn) = is_local%wrap%FBExpAccumCnt(compocn) + 1
+
+    if (dbug_flag > 1) then
+       call FB_diagnose(is_local%wrap%FBExpAccum(compocn), &
+            string=trim(subname)//' FBExpAccum accumulation ', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-       is_local%wrap%FBExpAccumCnt(compocn) = is_local%wrap%FBExpAccumCnt(compocn) + 1
-
-       if (dbug_flag > 1) then
-          call FB_diagnose(is_local%wrap%FBExpAccum(compocn), &
-               string=trim(subname)//' FBExpAccum accumulation ', rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       end if
-    endif
-
+    end if
     if (dbug_flag > 20) then
        call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
     end if

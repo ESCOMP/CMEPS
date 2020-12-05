@@ -94,9 +94,11 @@ contains
     use med_phases_prep_wav_mod , only: med_phases_prep_wav
     use med_phases_prep_glc_mod , only: med_phases_prep_glc_accum
     use med_phases_prep_glc_mod , only: med_phases_prep_glc_avg
-    use med_phases_post_glc_mod , only: med_phases_post_glc
     use med_phases_prep_rof_mod , only: med_phases_prep_rof_accum
     use med_phases_prep_rof_mod , only: med_phases_prep_rof_avg
+    use med_phases_post_atm_mod , only: med_phases_post_atm
+    use med_phases_post_glc_mod , only: med_phases_post_glc
+    use med_phases_post_ocn_mod , only: med_phases_post_ocn
     use med_phases_post_rof_mod , only: med_phases_post_rof
     use med_phases_prep_ocn_mod , only: med_phases_prep_ocn_map
     use med_phases_prep_ocn_mod , only: med_phases_prep_ocn_merge
@@ -229,7 +231,7 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !------------------
-    ! prep routines for atm
+    ! prep and post routines for atm
     !------------------
 
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
@@ -239,8 +241,15 @@ contains
          specPhaseLabel="med_phases_prep_atm", specRoutine=med_phases_prep_atm, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
+         phaseLabelList=(/"med_phases_post_atm"/), userRoutine=mediator_routine_Run, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
+         specPhaseLabel="med_phases_post_atm", specRoutine=med_phases_post_atm, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
     !------------------
-    ! prep routines for ocn
+    ! prep and post routines for ocn
     !------------------
 
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
@@ -280,6 +289,16 @@ contains
          specPhaseLabel="med_phases_prep_ocn_accum_avg", specRoutine=med_phases_prep_ocn_accum_avg, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
+         phaseLabelList=(/"med_phases_post_ocn"/), userRoutine=mediator_routine_Run, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
+         specPhaseLabel="med_phases_post_ocn", specRoutine=med_phases_post_ocn, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_TimestampExport, &
+         specPhaselabel="med_phases_post_ocn", specRoutine=NUOPC_NoOp, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
     !------------------
     ! prep routines for ice
     !------------------
@@ -303,7 +322,7 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !------------------
-    ! prep routines for rof
+    ! prep and post routines for rof
     !------------------
 
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
@@ -323,10 +342,7 @@ contains
          specPhaselabel="med_phases_prep_rof_accum", specRoutine=NUOPC_NoOp, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    !------------------
     ! post routine for rof (mapping to lnd, ocn, ice)
-    !------------------
-
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
          phaseLabelList=(/"med_phases_post_rof"/), userRoutine=mediator_routine_Run, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -349,7 +365,7 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !------------------
-    ! prep routines for glc
+    ! prep and post routines for glc
     !------------------
 
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
@@ -369,10 +385,7 @@ contains
          specPhaselabel="med_phases_prep_glc_accum", specRoutine=NUOPC_NoOp, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    !------------------
     ! post routine for glc (mapping to lnd, ocn, ice)
-    !------------------
-
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
          phaseLabelList=(/"med_phases_post_glc"/), userRoutine=mediator_routine_Run, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -1684,10 +1697,12 @@ contains
     use NUOPC                   , only : NUOPC_CompAttributeGet
     use med_fraction_mod        , only : med_fraction_init, med_fraction_set
     use med_phases_restart_mod  , only : med_phases_restart_read
-    use med_phases_prep_glc_mod , only : med_phases_prep_glc_init
-    use med_phases_post_glc_mod , only : med_phases_post_glc
-    use med_phases_post_rof_mod , only : med_phases_post_rof
     use med_phases_prep_atm_mod , only : med_phases_prep_atm
+    use med_phases_prep_glc_mod , only : med_phases_prep_glc_init
+    use med_phases_post_atm_mod , only : med_phases_post_atm
+    use med_phases_post_glc_mod , only : med_phases_post_glc
+    use med_phases_post_ocn_mod , only : med_phases_post_ocn
+    use med_phases_post_rof_mod , only : med_phases_post_rof
     use med_phases_ocnalb_mod   , only : med_phases_ocnalb_run
     use med_phases_aofluxes_mod , only : med_phases_aofluxes_run
     use med_phases_profile_mod  , only : med_phases_profile
@@ -2299,9 +2314,11 @@ contains
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
              if (.not. atCorrectTime) then
                 allDone=.false.
-                if (mastertask) then
-                   write(logunit,'(A)') trim(subname)//" MED - Initialize-Data-Dependency check Failed for "//&
-                        trim(compname(n1))
+                if (dbug_flag > 0) then
+                   if (mastertask) then
+                      write(logunit,'(A)') trim(subname)//" MED - Initialize-Data-Dependency check Failed for "//&
+                           trim(compname(n1))
+                   end if
                 end if
              endif
           enddo
@@ -2321,7 +2338,10 @@ contains
     !---------------------------------------
 
     if (allDone) then
-       if (mastertask) write(logunit,*)
+       if (mastertask) then
+          write(logunit,*)
+          write(logunit,'(a)') trim(subname)//"Initialize-Data-Dependency allDone check Passed"
+       end if
        do n1 = 1,ncomps
           if (is_local%wrap%comp_present(n1) .and. ESMF_StateIsCreated(is_local%wrap%NStateImp(n1),rc=rc)) then
              call State_GetScalar(scalar_value=real_nx, &
@@ -2363,7 +2383,9 @@ contains
        !---------------------------------------
        call NUOPC_CompAttributeGet(gcomp, name="read_restart", value=cvalue, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_LogWrite(subname//' read_restart = '//trim(cvalue), ESMF_LOGMSG_INFO)
+       if (mastertask) then
+          write(logunit,'(a)') trim(subname)//' read_restart = '//trim(cvalue)
+       end if
        read(cvalue,*) read_restart
        if (read_restart) then
          call med_phases_restart_read(gcomp, rc)
@@ -2371,8 +2393,15 @@ contains
        endif
 
        !---------------------------------------
+       ! If appropriate, map initial atm->ocn, atm->ice, atm->lnd
+       !---------------------------------------
+       if (trim(atm_present) == 'true') then
+          call med_phases_post_atm(gcomp, rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       end if
+
+       !---------------------------------------
        ! If appropriate, map initial glc->lnd, glc->ocn and glc->ice
-       ! before run phase of glc is called
        !---------------------------------------
        if (trim(glc_present) == 'true') then
           call med_phases_post_glc(gcomp, rc)
@@ -2380,12 +2409,20 @@ contains
        end if
 
        !---------------------------------------
-       ! If appropriate, map initial glc->lnd, glc->ocn and glc->ice
-       ! before run phase of glc is called
+       ! If appropriate, map initial ocn->ice
+       !---------------------------------------
+       if (trim(ocn_present) == 'true') then
+          call med_phases_post_ocn(gcomp, rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       end if
+
+       !---------------------------------------
+       ! If appropriate, map initial rof->lnd, rof->ocn, rof->ice
        !---------------------------------------
        if (trim(rof_present) == 'true') then
           call med_phases_post_rof(gcomp, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          write(6,*)'DEBUG: here1'
        end if
 
        call med_phases_profile(gcomp, rc)

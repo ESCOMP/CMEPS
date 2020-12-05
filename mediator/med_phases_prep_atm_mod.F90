@@ -23,7 +23,7 @@ module med_phases_prep_atm_mod
   implicit none
   private
 
-  public  :: med_phases_prep_atm
+  public :: med_phases_prep_atm
 
   character(*), parameter :: u_FILE_u  = &
        __FILE__

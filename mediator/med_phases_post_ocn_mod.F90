@@ -1,0 +1,74 @@
+module med_phases_post_ocn_mod
+
+  !-----------------------------------------------------------------------------
+  ! Mediator post ocn phase - maps ocn->ice
+  !-----------------------------------------------------------------------------
+
+  use med_kind_mod, only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
+
+  implicit none
+  private
+
+  public  :: med_phases_post_ocn
+
+  character(*), parameter :: u_FILE_u  = &
+       __FILE__
+
+!-----------------------------------------------------------------------------
+contains
+!-----------------------------------------------------------------------------
+
+  subroutine med_phases_post_ocn(gcomp, rc)
+
+    use ESMF                  , only : ESMF_GridComp
+    use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
+    use med_utils_mod         , only : chkerr      => med_utils_ChkErr
+    use med_constants_mod     , only : dbug_flag   => med_constants_dbug_flag
+    use med_map_mod           , only : med_map_field_packed
+    use med_internalstate_mod , only : InternalState, logunit, mastertask
+    use esmFlds               , only : compice, compocn
+    use perf_mod              , only : t_startf, t_stopf
+
+    ! input/output variables
+    type(ESMF_GridComp)  :: gcomp
+    integer, intent(out) :: rc
+
+    ! local variables
+    type(InternalState)        :: is_local
+    character(len=*),parameter :: subname='(med_phases_prep_ice)'
+    !---------------------------------------
+
+    rc = ESMF_SUCCESS
+
+    call t_startf('MED:'//subname)
+    if (dbug_flag > 20) then
+       call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
+    end if
+
+    ! Get the internal state
+    nullify(is_local%wrap)
+    call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    ! map ocn->ice
+    if (is_local%wrap%med_coupling_active(compocn,compice)) then
+       call t_startf('MED:'//trim(subname)//' map_ocn2ice')
+       call med_map_field_packed( &
+            FBSrc=is_local%wrap%FBImp(compocn,compocn), &
+            FBDst=is_local%wrap%FBImp(compocn,compice), &
+            FBFracSrc=is_local%wrap%FBFrac(compocn), &
+            field_normOne=is_local%wrap%field_normOne(compocn,compice,:), &
+            packed_data=is_local%wrap%packed_data(compocn,compice,:), &
+            routehandles=is_local%wrap%RH(compocn,compice,:), rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call t_stopf('MED:'//trim(subname)//' map_ocn2ice')
+    end if
+
+    call t_stopf('MED:'//subname)
+    if (dbug_flag > 20) then
+       call ESMF_LogWrite(subname//' done', ESMF_LOGMSG_INFO)
+    end if
+
+  end subroutine med_phases_post_ocn
+
+end module med_phases_post_ocn_mod
