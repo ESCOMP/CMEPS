@@ -66,7 +66,7 @@ module esmflds
          'rof2ocn_ice',&
          'rof2ocn_liq',&
          'glc2ocn_ice',&
-         'glc2ocn_liq')
+         'glc2ocn_liq'/)
 
   !-----------------------------------------------
   ! Set coupling mode
