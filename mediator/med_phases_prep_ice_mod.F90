@@ -23,7 +23,7 @@ module med_phases_prep_ice_mod
 
   public  :: med_phases_prep_ice
 
-  real(r8), pointer :: dataptr_scalar_lnd(:,:)
+  real(r8), pointer :: dataptr_scalar_ice(:,:)
   real(r8), pointer :: dataptr_scalar_atm(:,:)
 
   character(*), parameter :: u_FILE_u  = &

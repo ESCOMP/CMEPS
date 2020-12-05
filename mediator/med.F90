@@ -63,6 +63,11 @@ module MED
        __FILE__
   logical :: profile_memory = .false.
 
+  character(len=8)    :: atm_present, lnd_present
+  character(len=8)    :: ice_present, rof_present
+  character(len=8)    :: glc_present, med_present
+  character(len=8)    :: ocn_present, wav_present
+
 !-----------------------------------------------------------------------------
 contains
 !-----------------------------------------------------------------------------
@@ -652,10 +657,6 @@ contains
     character(len=8)    :: cnum
     type(InternalState) :: is_local
     integer             :: stat
-    character(len=8)    :: atm_present, lnd_present
-    character(len=8)    :: ice_present, rof_present
-    character(len=8)    :: glc_present, med_present
-    character(len=8)    :: ocn_present, wav_present
     character(len=CS)   :: attrList(8)
     character(len=*),parameter :: subname=' (module_MED:InitializeIPDv03p1) '
     !-----------------------------------------------------------
@@ -2347,46 +2348,45 @@ contains
        !---------------------------------------
        ! Initialize mediator IO
        !---------------------------------------
-
        call med_io_init()
 
        !---------------------------------------
        ! Initialize mediator water/heat budget diags
        !---------------------------------------
-
        call med_diag_init(gcomp, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call med_diag_zero(gcomp, mode='all', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        !---------------------------------------
-       ! If appropriate, map initial glc->lnd, glc->ocn and glc->ice
-       ! before run phase of glc is called
-       !---------------------------------------
-       call med_phases_post_glc(gcomp, rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-       !---------------------------------------
-       ! If appropriate, map initial glc->lnd, glc->ocn and glc->ice
-       ! before run phase of glc is called
-       !---------------------------------------
-       call med_phases_post_rof(gcomp, rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-       !---------------------------------------
        ! read mediator restarts
        !---------------------------------------
-
        call NUOPC_CompAttributeGet(gcomp, name="read_restart", value=cvalue, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
        call ESMF_LogWrite(subname//' read_restart = '//trim(cvalue), ESMF_LOGMSG_INFO)
        read(cvalue,*) read_restart
-
        if (read_restart) then
          call med_phases_restart_read(gcomp, rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
        endif
+
+       !---------------------------------------
+       ! If appropriate, map initial glc->lnd, glc->ocn and glc->ice
+       ! before run phase of glc is called
+       !---------------------------------------
+       if (trim(glc_present) == 'true') then
+          call med_phases_post_glc(gcomp, rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       end if
+
+       !---------------------------------------
+       ! If appropriate, map initial glc->lnd, glc->ocn and glc->ice
+       ! before run phase of glc is called
+       !---------------------------------------
+       if (trim(rof_present) == 'true') then
+          call med_phases_post_rof(gcomp, rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       end if
 
        call med_phases_profile(gcomp, rc)
 

@@ -35,6 +35,15 @@ def gen_runseq(case, coupling_times):
     run_rof, med_to_rof, rof_cpl_time = driver_config['rof']
     run_wav, med_to_wav, wav_cpl_time = driver_config['wav']
 
+    comp_glc = case.get_value("COMP_GLC")
+    run_glc = False
+    post_glc = False
+    if (comp_glc == 'cism'):
+        run_glc = True
+        if case.get_value("CISM_EVOLVE"):
+            post_glc = True
+        else:
+            post_glc = False
 
     # Note: assume that atm_cpl_dt, lnd_cpl_dt, ice_cpl_dt and wav_cpl_dt are the same
 
@@ -165,6 +174,6 @@ def gen_runseq(case, coupling_times):
         runseq.add_action("MED -> GLC :remapMethod=redist" , med_to_glc)
         runseq.add_action("GLC"                            , run_glc and med_to_glc)
         runseq.add_action("GLC -> MED :remapMethod=redist" , run_glc)
-        runseq.add_action("MED med_phases_post_glc"        , run_glc)
+        runseq.add_action("MED med_phases_post_glc"        , run_glc and post_glc)
 
     shutil.copy(os.path.join(caseroot, "CaseDocs", "nuopc.runseq"), rundir)
