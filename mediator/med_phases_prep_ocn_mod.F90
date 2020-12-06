@@ -5,8 +5,8 @@ module med_phases_prep_ocn_mod
   !-----------------------------------------------------------------------------
 
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
-  use med_constants_mod     , only : czero=>med_constants_czero
-  use med_constants_mod     , only : dbug_flag     => med_constants_dbug_flag
+  use med_constants_mod     , only : czero     =>med_constants_czero
+  use med_constants_mod     , only : dbug_flag => med_constants_dbug_flag
   use med_internalstate_mod , only : InternalState, mastertask, logunit
   use med_merge_mod         , only : med_merge_auto, med_merge_field
   use med_map_mod           , only : med_map_field_packed
@@ -20,14 +20,13 @@ module med_phases_prep_ocn_mod
   use med_methods_mod       , only : FB_copy       => med_methods_FB_copy
   use med_methods_mod       , only : FB_reset      => med_methods_FB_reset
   use esmFlds               , only : fldListTo
-  use esmFlds               , only : compocn, compatm, compice, comprof, compglc, ncomps, compname
+  use esmFlds               , only : compocn, compatm, compice
   use esmFlds               , only : coupling_mode
   use perf_mod              , only : t_startf, t_stopf
 
   implicit none
   private
 
-  public :: med_phases_prep_ocn_map
   public :: med_phases_prep_ocn_merge
   public :: med_phases_prep_ocn_accum_fast
   public :: med_phases_prep_ocn_accum_avg
@@ -42,68 +41,6 @@ module med_phases_prep_ocn_mod
 contains
 !-----------------------------------------------------------------------------
 
-  subroutine med_phases_prep_ocn_map(gcomp, rc)
-
-    !---------------------------------------
-    ! Map all fields in from relevant source components to the ocean grid
-    !---------------------------------------
-
-    use ESMF , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_FieldBundleGet
-    use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
-
-    ! input/output variables
-    type(ESMF_GridComp)  :: gcomp
-    integer, intent(out) :: rc
-
-    ! local variables
-    type(InternalState) :: is_local
-    integer             :: n1, ncnt
-    logical             :: first_call = .true.
-    character(len=*), parameter :: subname='(med_phases_prep_ocn_map)'
-    !-------------------------------------------------------------------------------
-
-    rc = ESMF_SUCCESS
-
-    call t_startf('MED:'//subname)
-    if (dbug_flag > 20) then
-       call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
-    end if
-    call memcheck(subname, 5, mastertask)
-
-    ! Get the internal state
-    nullify(is_local%wrap)
-    call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    ! Count the number of fields outside of scalar data, if zero, then return
-    call ESMF_FieldBundleGet(is_local%wrap%FBExp(compocn), fieldCount=ncnt, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    ! map all fields in FBImp that have active ocean coupling other than compglc and comprof
-    ! compatm is mapped to compocn in med_phases_post_atm
-    ! compglc is mapped to compocn in med_phases_post_glc
-    ! comprof is mapped to compocn in med_phases_post_rof
-    if (is_local%wrap%med_coupling_active(compice,compocn)) then
-       call t_startf('MED:'//trim(subname)//' map_ice2ocn')
-       call med_map_field_packed( &
-            FBSrc=is_local%wrap%FBImp(compice,compice), &
-            FBDst=is_local%wrap%FBImp(compice,compocn), &
-            FBFracSrc=is_local%wrap%FBFrac(compice), &
-            field_normOne=is_local%wrap%field_normOne(compice,compocn,:), &
-            packed_data=is_local%wrap%packed_data(compice,compocn,:), &
-            routehandles=is_local%wrap%RH(compice,compocn,:), rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call t_stopf('MED:'//trim(subname)//' map_ice2ocn')
-    end if
-
-    call t_stopf('MED:'//subname)
-    if (dbug_flag > 20) then
-       call ESMF_LogWrite(subname//' done', ESMF_LOGMSG_INFO)
-    end if
-
-  end subroutine med_phases_prep_ocn_map
-
-  !-----------------------------------------------------------------------------
   subroutine med_phases_prep_ocn_merge(gcomp, rc)
 
     use ESMF , only : ESMF_GridComp, ESMF_FieldBundleGet

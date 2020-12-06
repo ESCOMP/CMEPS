@@ -49,7 +49,7 @@ contains
     type(ESMF_StateItem_Flag)      :: itemType
     type(InternalState)            :: is_local
     type(ESMF_Field)               :: lfield
-    integer                        :: i,n,ncnt
+    integer                        :: i,n
     real(R8), pointer              :: dataptr1d(:) => null()
     real(R8)                       :: precip_fact
     character(len=CS)              :: cvalue
@@ -70,99 +70,87 @@ contains
     rc = ESMF_SUCCESS
 
     ! Get the internal state
-
     nullify(is_local%wrap)
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    ! Count the number of fields outside of scalar data, if zero, then return
-    ! Note - the scalar field has been removed from all mediator field bundles - so this is why we check if the
-    ! fieldCount is 0 and not 1 here
-    call ESMF_FieldBundleGet(is_local%wrap%FBExp(compice), fieldCount=ncnt, rc=rc)
+    ! atm->ice is mapped in med_phases_post_atm
+    ! glc->ice is mapped in med_phases_post_glc
+    ! rof->ice is mapped in med_phases_post_rof
+    ! ocn->ice is mapped in med_phases_post_ocn
+
+    ! auto merges to create FBExp(compice)
+    call med_merge_auto(compice, &
+         is_local%wrap%med_coupling_active(:,compice), &
+         is_local%wrap%FBExp(compice), &
+         is_local%wrap%FBFrac(compice), &
+         is_local%wrap%FBImp(:,compice), &
+         fldListTo(compice), rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    if (ncnt > 0) then
-       ! atm->ice is mapped in med_phases_post_atm
-       ! glc->ice is mapped in med_phases_post_glc
-       ! rof->ice is mapped in med_phases_post_rof
-       ! ocn->ice is mapped in med_phases_post_ocn
-       
-       ! auto merges to create FBExp(compice)
-       call med_merge_auto(compice, &
-            is_local%wrap%med_coupling_active(:,compice), &
-            is_local%wrap%FBExp(compice), &
-            is_local%wrap%FBFrac(compice), &
-            is_local%wrap%FBImp(:,compice), &
-            fldListTo(compice), rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
+    ! apply precipitation factor from ocean
+    ! TODO (mvertens, 2019-03-18): precip_fact here is not valid if
+    ! the component does not send it - hardwire it to 1 until this is resolved
+    if (trim(coupling_mode) == 'cesm') then
+       precip_fact = 1.0_R8
+       if (precip_fact /= 1.0_R8) then
+          if (first_precip_fact_call .and. mastertask) then
+             write(logunit,'(a)')'(merge_to_ice): Scaling rain, snow, liquid and ice runoff by precip_fact '
+             first_precip_fact_call = .false.
+          end if
+          write(cvalue,*) precip_fact
+          call ESMF_LogWrite(trim(subname)//" precip_fact is "//trim(cvalue), ESMF_LOGMSG_INFO)
 
-       ! custom calculations
-       if (trim(coupling_mode) == 'cesm') then
-
-          ! application of precipitation factor from ocean
-          ! TODO (mvertens, 2019-03-18): precip_fact here is not valid if
-          ! the component does not send it - hardwire it to 1 until this is resolved
-          precip_fact = 1.0_R8
-          if (precip_fact /= 1.0_R8) then
-             if (first_precip_fact_call .and. mastertask) then
-                write(logunit,'(a)')'(merge_to_ice): Scaling rain, snow, liquid and ice runoff by precip_fact '
-                first_precip_fact_call = .false.
+          allocate(fldnames(3))
+          fldnames = (/'Faxa_rain', 'Faxa_snow', 'Fixx_rofi'/)
+          do n = 1,size(fldnames)
+             if (fldchk(is_local%wrap%FBExp(compice), trim(fldnames(n)), rc=rc)) then
+                call ESMF_FieldBundleGet(is_local%wrap%FBExp(compice), fieldname=trim(fldnames(n)), &
+                     field=lfield, rc=rc)
+                if (chkerr(rc,__LINE__,u_FILE_u)) return
+                call ESMF_FieldGet(lfield, farrayptr=dataptr1d, rc=rc)
+                if (chkerr(rc,__LINE__,u_FILE_u)) return
+                dataptr1d(:) = dataptr1d(:) * precip_fact
              end if
-             write(cvalue,*) precip_fact
-             call ESMF_LogWrite(trim(subname)//" precip_fact is "//trim(cvalue), ESMF_LOGMSG_INFO)
-
-             allocate(fldnames(3))
-             fldnames = (/'Faxa_rain', 'Faxa_snow', 'Fixx_rofi'/)
-             do n = 1,size(fldnames)
-                if (fldchk(is_local%wrap%FBExp(compice), trim(fldnames(n)), rc=rc)) then
-                   call ESMF_FieldBundleGet(is_local%wrap%FBExp(compice), fieldname=trim(fldnames(n)), &
-                        field=lfield, rc=rc)
-                   if (chkerr(rc,__LINE__,u_FILE_u)) return
-                   call ESMF_FieldGet(lfield, farrayptr=dataptr1d, rc=rc)
-                   if (chkerr(rc,__LINE__,u_FILE_u)) return
-                   dataptr1d(:) = dataptr1d(:) * precip_fact
-                end if
-             end do
-             deallocate(fldnames)
-          end if
+          end do
+          deallocate(fldnames)
        end if
+    end if
 
-       ! obtain nextsw_cday from atm if it is in the import state and send it to ice
-       call ESMF_StateGet(is_local%wrap%NStateImp(compatm), &
-            trim(is_local%wrap%flds_scalar_name), itemtype, rc=rc)
+    ! obtain nextsw_cday from atm if it is in the import state and send it to ice
+    call ESMF_StateGet(is_local%wrap%NStateImp(compatm), &
+         trim(is_local%wrap%flds_scalar_name), itemtype, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    if (itemType /= ESMF_STATEITEM_NOTFOUND) then
+       call t_startf('MED:'//trim(subname)//' nextsw_cday')
+       if (first_call) then
+          ! determine module pointer data for performance reasons
+          call ESMF_StateGet(is_local%wrap%NstateImp(compatm), & 
+               itemName=trim(is_local%wrap%flds_scalar_name), field=lfield, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_FieldGet(lfield, farrayPtr=dataptr_scalar_atm, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_StateGet(is_local%wrap%NStateExp(compice), &
+               trim(is_local%wrap%flds_scalar_name), field=lfield, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_FieldGet(lfield, farrayPtr=dataptr_scalar_ice, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+       end if
+       ! obtain nextsw_cday from atm import on all tasks
+       scalar_id=is_local%wrap%flds_scalar_index_nextsw_cday
+       if (mastertask) then
+          tmp(1) = dataptr_scalar_atm(scalar_id,1)
+       end if
+       call ESMF_VMBroadCast(is_local%wrap%vm, tmp, 1, 0, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (itemType /= ESMF_STATEITEM_NOTFOUND) then
-          call t_startf('MED:'//trim(subname)//' nextsw_cday')
-          if (first_call) then
-             ! determine module pointer data for performance reasons
-             call ESMF_StateGet(is_local%wrap%NstateImp(compatm), & 
-                  itemName=trim(is_local%wrap%flds_scalar_name), field=lfield, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-             call ESMF_FieldGet(lfield, farrayPtr=dataptr_scalar_atm, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-             call ESMF_StateGet(is_local%wrap%NStateExp(compice), &
-                  trim(is_local%wrap%flds_scalar_name), field=lfield, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-             call ESMF_FieldGet(lfield, farrayPtr=dataptr_scalar_ice, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-          end if
-          ! obtain nextsw_cday from atm import on all tasks
-          scalar_id=is_local%wrap%flds_scalar_index_nextsw_cday
-          if (mastertask) then
-             tmp(1) = dataptr_scalar_atm(scalar_id,1)
-          end if
-          call ESMF_VMBroadCast(is_local%wrap%vm, tmp, 1, 0, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          ! set nextsw_cday on all ice export tasks
-          dataptr_scalar_ice(scalar_id,1) = tmp(1)
-          call t_stopf('MED:'//trim(subname)//' nextsw_cday')
-       end if
+       ! set nextsw_cday on all ice export tasks
+       dataptr_scalar_ice(scalar_id,1) = tmp(1)
+       call t_stopf('MED:'//trim(subname)//' nextsw_cday')
+    end if
 
-       if (dbug_flag > 1) then
-          call FB_diagnose(is_local%wrap%FBExp(compice), string=trim(subname)//' FBexp(compice) ', rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-       end if
-
+    if (dbug_flag > 1) then
+       call FB_diagnose(is_local%wrap%FBExp(compice), string=trim(subname)//' FBexp(compice) ', rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
     end if
 
     ! Set first call logical to false

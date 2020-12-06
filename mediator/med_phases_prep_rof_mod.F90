@@ -30,8 +30,8 @@ module med_phases_prep_rof_mod
   implicit none
   private
 
-  public  :: med_phases_prep_rof_accum
-  public  :: med_phases_prep_rof_avg
+  public  :: med_phases_prep_rof        ! called by run sequence
+  public  :: med_phases_prep_rof_accum  ! called by med_phases_post_lnd
 
   private :: med_phases_prep_rof_irrig
 
@@ -157,7 +157,7 @@ contains
   end subroutine med_phases_prep_rof_accum
 
   !===============================================================================
-  subroutine med_phases_prep_rof_avg(gcomp, rc)
+  subroutine med_phases_prep_rof(gcomp, rc)
 
     !------------------------------------
     ! Prepare the ROF export Fields from the mediator
@@ -190,7 +190,7 @@ contains
     type(ESMF_Field), pointer :: fieldlist(:) => null()
     integer                   :: ungriddedUBound(1)
     character(CL), pointer    :: lfieldnamelist(:) => null()
-    character(len=*),parameter  :: subname='(med_phases_prep_rof_mod: med_phases_prep_rof_avg)'
+    character(len=*),parameter  :: subname='(med_phases_prep_rof_mod: med_phases_prep_rof)'
     !---------------------------------------
 
     call t_startf('MED:'//subname)
@@ -348,7 +348,7 @@ contains
     end if
     call t_stopf('MED:'//subname)
 
-  end subroutine med_phases_prep_rof_avg
+  end subroutine med_phases_prep_rof
 
   !===============================================================================
   subroutine med_phases_prep_rof_irrig(gcomp, rc)

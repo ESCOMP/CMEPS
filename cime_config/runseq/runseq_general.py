@@ -93,22 +93,27 @@ def gen_runseq(case, coupling_times):
             runseq.add_action("MED med_phases_ocnalb_run"          , (run_ocn and run_atm and (med_to_ocn or med_to_atm)) and not xcompset)
             runseq.add_action("MED med_phases_diag_ocn"            , run_ocn and diag_mode) 
 
-        runseq.add_action("MED med_phases_prep_lnd"                , med_to_lnd)
-        runseq.add_action("MED -> LND :remapMethod=redist"         , med_to_lnd)
-        runseq.add_action("MED med_phases_prep_ice"                , med_to_ice)
-        runseq.add_action("MED -> ICE :remapMethod=redist"         , med_to_ice)
-        runseq.add_action("MED med_phases_diag_ice_med2ice"        , run_ice and diag_mode)
-        runseq.add_action("MED med_phases_prep_wav"                , med_to_wav)
-        runseq.add_action("MED -> WAV :remapMethod=redist"         , med_to_wav)
-        runseq.add_action("MED med_phases_prep_rof_avg"            , med_to_rof and not rof_outer_loop)
-        runseq.add_action("MED -> ROF :remapMethod=redist"         , med_to_rof and not rof_outer_loop)
-        runseq.add_action("MED med_phases_prep_ocn_accum_avg"      , med_to_ocn and not ocn_outer_loop)
-        runseq.add_action("MED -> OCN :remapMethod=redist"         , med_to_ocn and not ocn_outer_loop)
-        runseq.add_action("ICE"                                    , run_ice)
-        runseq.add_action("LND"                                    , run_lnd)
-        runseq.add_action("ROF"                                    , run_rof and not rof_outer_loop)
-        runseq.add_action("WAV"                                    , run_wav)
-        runseq.add_action("OCN"                                    , run_ocn and not ocn_outer_loop)
+        runseq.add_action("MED med_phases_prep_lnd"        , med_to_lnd)
+        runseq.add_action("MED -> LND :remapMethod=redist" , med_to_lnd)
+
+        runseq.add_action("MED med_phases_prep_ice"         , med_to_ice)
+        runseq.add_action("MED -> ICE :remapMethod=redist"  , med_to_ice)
+        runseq.add_action("MED med_phases_diag_ice_med2ice" , run_ice and diag_mode)
+
+        runseq.add_action("MED med_phases_prep_wav"        , med_to_wav)
+        runseq.add_action("MED -> WAV :remapMethod=redist" , med_to_wav)
+
+        runseq.add_action("MED med_phases_prep_rof"        , med_to_rof and not rof_outer_loop)
+        runseq.add_action("MED -> ROF :remapMethod=redist" , med_to_rof and not rof_outer_loop)
+
+        runseq.add_action("MED med_phases_prep_ocn_accum_avg" , med_to_ocn and not ocn_outer_loop)
+        runseq.add_action("MED -> OCN :remapMethod=redist"    , med_to_ocn and not ocn_outer_loop)
+
+        runseq.add_action("ICE" , run_ice)
+        runseq.add_action("LND" , run_lnd)
+        runseq.add_action("ROF" , run_rof and not rof_outer_loop)
+        runseq.add_action("WAV" , run_wav)
+        runseq.add_action("OCN" , run_ocn and not ocn_outer_loop)
 
         if coupling_mode == 'hafs':
             runseq.add_action("OCN -> MED :remapMethod=redist:ignoreUnmatchedIndices=true", run_ocn and not ocn_outer_loop)
@@ -131,10 +136,7 @@ def gen_runseq(case, coupling_times):
         runseq.add_action("MED med_phases_diag_ice_ice2med" , run_ice and diag_mode)
         runseq.add_action("MED med_phases_post_ice"         , run_ice)
 
-        runseq.add_action("MED med_phases_prep_rof_accum"   , med_to_rof)
-        runseq.add_action("MED med_phases_prep_glc_accum"   , med_to_glc)
         runseq.add_action("MED med_phases_prep_atm"         , med_to_atm)
-
         runseq.add_action("MED -> ATM :remapMethod=redist"  , med_to_atm)
         runseq.add_action("ATM"                             , run_atm)
         runseq.add_action("ATM -> MED :remapMethod=redist"  , run_atm)
@@ -168,7 +170,7 @@ def gen_runseq(case, coupling_times):
         runseq.leave_time_loop(ocn_outer_loop)
         #------------------
 
-        runseq.add_action("MED med_phases_prep_rof_avg"   , med_to_rof and rof_outer_loop)
+        runseq.add_action("MED med_phases_prep_rof"       , med_to_rof and rof_outer_loop)
         runseq.add_action("MED -> ROF :remapMethod=redist", med_to_rof and rof_outer_loop)
         runseq.add_action("ROF"                           , run_rof and rof_outer_loop)
         runseq.add_action("ROF -> MED :remapMethod=redist", run_rof and rof_outer_loop)
@@ -178,7 +180,7 @@ def gen_runseq(case, coupling_times):
         runseq.leave_time_loop(rof_outer_loop)
         #------------------
 
-        runseq.add_action("MED med_phases_prep_glc_avg"    , med_to_glc)
+        runseq.add_action("MED med_phases_prep_glc"        , med_to_glc)
         runseq.add_action("MED -> GLC :remapMethod=redist" , med_to_glc)
         runseq.add_action("GLC"                            , run_glc and med_to_glc)
         runseq.add_action("GLC -> MED :remapMethod=redist" , run_glc)

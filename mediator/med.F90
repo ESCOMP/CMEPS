@@ -63,10 +63,10 @@ module MED
        __FILE__
   logical :: profile_memory = .false.
 
-  character(len=8)    :: atm_present, lnd_present
-  character(len=8)    :: ice_present, rof_present
-  character(len=8)    :: glc_present, med_present
-  character(len=8)    :: ocn_present, wav_present
+  character(len=8) :: atm_present, lnd_present
+  character(len=8) :: ice_present, rof_present
+  character(len=8) :: glc_present, med_present
+  character(len=8) :: ocn_present, wav_present
 
 !-----------------------------------------------------------------------------
 contains
@@ -92,20 +92,18 @@ contains
     use med_phases_prep_ice_mod , only: med_phases_prep_ice
     use med_phases_prep_lnd_mod , only: med_phases_prep_lnd
     use med_phases_prep_wav_mod , only: med_phases_prep_wav
-    use med_phases_prep_glc_mod , only: med_phases_prep_glc_accum
-    use med_phases_prep_glc_mod , only: med_phases_prep_glc_avg
-    use med_phases_prep_rof_mod , only: med_phases_prep_rof_accum
-    use med_phases_prep_rof_mod , only: med_phases_prep_rof_avg
+    use med_phases_prep_glc_mod , only: med_phases_prep_glc
+    use med_phases_prep_rof_mod , only: med_phases_prep_rof
+    use med_phases_prep_ocn_mod , only: med_phases_prep_ocn_merge
+    use med_phases_prep_ocn_mod , only: med_phases_prep_ocn_accum_fast
+    use med_phases_prep_ocn_mod , only: med_phases_prep_ocn_accum_avg
     use med_phases_post_atm_mod , only: med_phases_post_atm
+    use med_phases_post_ice_mod , only: med_phases_post_ice
     use med_phases_post_lnd_mod , only: med_phases_post_lnd
     use med_phases_post_glc_mod , only: med_phases_post_glc
     use med_phases_post_ocn_mod , only: med_phases_post_ocn
     use med_phases_post_rof_mod , only: med_phases_post_rof
     use med_phases_post_wav_mod , only: med_phases_post_wav
-    use med_phases_prep_ocn_mod , only: med_phases_prep_ocn_map
-    use med_phases_prep_ocn_mod , only: med_phases_prep_ocn_merge
-    use med_phases_prep_ocn_mod , only: med_phases_prep_ocn_accum_fast
-    use med_phases_prep_ocn_mod , only: med_phases_prep_ocn_accum_avg
     use med_phases_ocnalb_mod   , only: med_phases_ocnalb_run
     use med_phases_aofluxes_mod , only: med_phases_aofluxes_run
     use med_diag_mod            , only: med_phases_diag_accum, med_phases_diag_print
@@ -255,16 +253,6 @@ contains
     !------------------
 
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
-         phaseLabelList=(/"med_phases_prep_ocn_map"/), userRoutine=mediator_routine_Run, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
-         specPhaseLabel="med_phases_prep_ocn_map", specRoutine=med_phases_prep_ocn_map, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_TimestampExport, &
-         specPhaselabel="med_phases_prep_ocn_map", specRoutine=NUOPC_NoOp, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
          phaseLabelList=(/"med_phases_prep_ocn_merge"/), userRoutine=mediator_routine_Run, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
@@ -300,9 +288,9 @@ contains
     call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_TimestampExport, &
          specPhaselabel="med_phases_post_ocn", specRoutine=NUOPC_NoOp, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
+ 
     !------------------
-    ! prep routines for ice
+    ! prep and post routines for ice
     !------------------
 
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
@@ -310,6 +298,17 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
          specPhaseLabel="med_phases_prep_ice", specRoutine=med_phases_prep_ice, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    ! note that med_fraction_set is now called from post_ice
+    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
+         phaseLabelList=(/"med_phases_post_ice"/), userRoutine=mediator_routine_Run, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
+         specPhaseLabel="med_phases_post_ice", specRoutine=med_phases_post_ice, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_TimestampExport, &
+         specPhaselabel="med_phases_post_ice", specRoutine=NUOPC_NoOp, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !------------------
@@ -338,20 +337,10 @@ contains
     !------------------
 
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
-         phaseLabelList=(/"med_phases_prep_rof_avg"/), userRoutine=mediator_routine_Run, rc=rc)
+         phaseLabelList=(/"med_phases_prep_rof"/), userRoutine=mediator_routine_Run, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
-         specPhaseLabel="med_phases_prep_rof_avg", specRoutine=med_phases_prep_rof_avg, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
-         phaseLabelList=(/"med_phases_prep_rof_accum"/), userRoutine=mediator_routine_Run, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
-         specPhaseLabel="med_phases_prep_rof_accum", specRoutine=med_phases_prep_rof_accum, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_TimestampExport, &
-         specPhaselabel="med_phases_prep_rof_accum", specRoutine=NUOPC_NoOp, rc=rc)
+         specPhaseLabel="med_phases_prep_rof", specRoutine=med_phases_prep_rof, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! post routine for rof (mapping to lnd, ocn, ice)
@@ -391,20 +380,10 @@ contains
     !------------------
 
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
-         phaseLabelList=(/"med_phases_prep_glc_avg"/), userRoutine=mediator_routine_Run, rc=rc)
+         phaseLabelList=(/"med_phases_prep_glc"/), userRoutine=mediator_routine_Run, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
-         specPhaseLabel="med_phases_prep_glc_avg", specRoutine=med_phases_prep_glc_avg, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
-         phaseLabelList=(/"med_phases_prep_glc_accum"/), userRoutine=mediator_routine_Run, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
-         specPhaseLabel="med_phases_prep_glc_accum", specRoutine=med_phases_prep_glc_accum, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_TimestampExport, &
-         specPhaselabel="med_phases_prep_glc_accum", specRoutine=NUOPC_NoOp, rc=rc)
+         specPhaseLabel="med_phases_prep_glc", specRoutine=med_phases_prep_glc, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! post routine for glc (mapping to lnd, ocn, ice)
@@ -1720,9 +1699,9 @@ contains
     use med_fraction_mod        , only : med_fraction_init, med_fraction_set
     use med_phases_restart_mod  , only : med_phases_restart_read
     use med_phases_prep_atm_mod , only : med_phases_prep_atm
-    use med_phases_prep_glc_mod , only : med_phases_prep_glc_init
     use med_phases_post_atm_mod , only : med_phases_post_atm
-    use med_phases_post_lnd_mod , only : med_phases_post_lnd
+    use med_phases_post_ice_mod , only : med_phases_post_ice
+    use med_phases_post_lnd_mod , only : med_phases_post_lnd_init
     use med_phases_post_glc_mod , only : med_phases_post_glc
     use med_phases_post_ocn_mod , only : med_phases_post_ocn
     use med_phases_post_rof_mod , only : med_phases_post_rof
@@ -2297,7 +2276,7 @@ contains
           if (.not. compDone(compatm)) then  ! atmdone is not true
              if (trim(lnd_present) == 'true') then
                 ! map initial lnd->atm
-                call med_phases_post_lnd(gcomp, rc)
+                call med_phases_post_lnd_init(gcomp, rc)
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
              end if
              ! do the merge to the atmospheric component
@@ -2429,11 +2408,11 @@ contains
           call med_phases_post_atm(gcomp, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
-       ! if (trim(ice_present) == 'true') then
-       !    ! call set ice_frac and map ice->atm and ice->ocn
-       !    call med_phases_post_ice(gcomp, rc)
-       !    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       ! end if
+       if (trim(ice_present) == 'true') then
+          ! call set ice_frac and map ice->atm and ice->ocn
+          call med_phases_post_ice(gcomp, rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       end if
        if (trim(glc_present) == 'true') then
           ! map initial glc->lnd, glc->ocn and glc->ice
           call med_phases_post_glc(gcomp, rc)
@@ -2441,7 +2420,7 @@ contains
        end if
        if (trim(lnd_present) == 'true') then
           ! map initial lnd->atm
-          call med_phases_post_lnd(gcomp, rc)
+          call med_phases_post_lnd_init(gcomp, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
        if (trim(ocn_present) == 'true') then

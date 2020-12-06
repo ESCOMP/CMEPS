@@ -45,11 +45,11 @@ module med_phases_prep_glc_mod
   implicit none
   private
 
-  public  :: med_phases_prep_glc_init
-  public  :: med_phases_prep_glc_accum
-  public  :: med_phases_prep_glc_avg
+  public  :: med_phases_prep_glc_accum  ! called from med_phases_post_lnd
+  public  :: med_phases_prep_glc
 
-  private :: map_lnd2glc
+  private :: med_phases_prep_glc_init
+  private :: med_phases_prep_glc_map_lnd2glc
   private :: med_phases_prep_glc_renormalize_smb
 
   ! glc fields with multiple elevation classes: lnd->glc
@@ -490,7 +490,7 @@ contains
   end subroutine med_phases_prep_glc_accum
 
   !================================================================================================
-  subroutine med_phases_prep_glc_avg(gcomp, rc)
+  subroutine med_phases_prep_glc(gcomp, rc)
 
     !---------------------------------------
     ! Prepare the GLC export Fields from the mediator
@@ -595,7 +595,7 @@ contains
 
        ! Map accumulated field bundle from land grid (with elevation classes) to glc grid (without elevation classes)
        ! and set FBExp(compglc(ns)) data
-       call map_lnd2glc(gcomp, rc)
+       call med_phases_prep_glc_map_lnd2glc(gcomp, rc)
        if (chkErr(rc,__LINE__,u_FILE_u)) return
 
        ! zero accumulator and accumulated field bundles on land grid
@@ -621,11 +621,10 @@ contains
     endif
     call t_stopf('MED:'//subname)
 
-  end subroutine med_phases_prep_glc_avg
+  end subroutine med_phases_prep_glc
 
   !================================================================================================
-
-  subroutine map_lnd2glc(gcomp, rc)
+  subroutine med_phases_prep_glc_map_lnd2glc(gcomp, rc)
 
     !---------------------------------------
     ! map accumulated land fields from the land to the glc mesh
@@ -657,7 +656,7 @@ contains
     character(len=3)    :: cnum
     type(ESMF_Field), pointer :: fieldlist_lnd(:) => null()
     type(ESMF_Field), pointer :: fieldlist_glc(:) => null()
-    character(len=*) , parameter   :: subname=' (map_lnd2glc) '
+    character(len=*) , parameter   :: subname=' (med_phases_prep_glc_map_lnd2glc) '
     !---------------------------------------
 
     !---------------------------------------
@@ -861,10 +860,9 @@ contains
 
     end do ! end of loop over ice sheets
 
-  end subroutine map_lnd2glc
+  end subroutine med_phases_prep_glc_map_lnd2glc
 
   !================================================================================================
-
   subroutine med_phases_prep_glc_renormalize_smb(gcomp, rc)
 
     !------------------
