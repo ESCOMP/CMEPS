@@ -31,15 +31,14 @@ def gen_runseq(case, coupling_times):
 
         runseq.enter_time_loop(ocn_cpl_time, newtime=((ocn_cpl_time)))
 
-        runseq.add_action("MED med_phases_prep_ocn_accum_avg", med_to_ocn)
-        runseq.add_action("MED -> OCN :remapMethod=redist"   , med_to_ocn)
+        runseq.add_action("MED med_phases_prep_ocn"        , med_to_ocn)
+        runseq.add_action("MED -> OCN :remapMethod=redist" , med_to_ocn)
 
         runseq.enter_time_loop(atm_cpl_time, newtime=((atm_cpl_time < ocn_cpl_time)))
 
-        runseq.add_action ("MED med_phases_aofluxes_run"        , run_ocn and run_atm and (med_to_ocn or med_to_atm))
-        runseq.add_action ("MED med_phases_prep_ocn_merge"      , med_to_ocn)
-        runseq.add_action ("MED med_phases_prep_ocn_accum_fast" , med_to_ocn)
-        runseq.add_action ("MED med_phases_ocnalb_run"          , med_to_ocn)
+        runseq.add_action ("MED med_phases_aofluxes_run"   , run_ocn and run_atm and (med_to_ocn or med_to_atm))
+        runseq.add_action ("MED med_phases_prep_ocn_accum" , med_to_ocn)
+        runseq.add_action ("MED med_phases_ocnalb_run"     , med_to_ocn)
 
         runseq.add_action ("MED med_phases_prep_ice"        , med_to_ice)
         runseq.add_action ("MED -> ICE :remapMethod=redist" , med_to_ice)

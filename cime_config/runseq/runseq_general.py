@@ -78,8 +78,8 @@ def gen_runseq(case, coupling_times):
         runseq.enter_time_loop(ocn_cpl_time, newtime=ocn_outer_loop)
         #------------------
 
-        runseq.add_action("MED med_phases_prep_ocn_accum_avg"  , med_to_ocn and ocn_outer_loop)
-        runseq.add_action("MED -> OCN :remapMethod=redist"     , med_to_ocn and ocn_outer_loop)
+        runseq.add_action("MED med_phases_prep_ocn"        , med_to_ocn and ocn_outer_loop)
+        runseq.add_action("MED -> OCN :remapMethod=redist" , med_to_ocn and ocn_outer_loop)
 
         #------------------
         runseq.enter_time_loop(atm_cpl_time, newtime=inner_loop)
@@ -87,11 +87,10 @@ def gen_runseq(case, coupling_times):
 
         if (cpl_seq_option == 'RASM'):
             if cpl_add_aoflux:
-                runseq.add_action("MED med_phases_aofluxes_run"    , run_ocn and run_atm and (med_to_ocn or med_to_atm))
-            runseq.add_action("MED med_phases_prep_ocn_merge"      , med_to_ocn)
-            runseq.add_action("MED med_phases_prep_ocn_accum_fast" , med_to_ocn)
-            runseq.add_action("MED med_phases_ocnalb_run"          , (run_ocn and run_atm and (med_to_ocn or med_to_atm)) and not xcompset)
-            runseq.add_action("MED med_phases_diag_ocn"            , run_ocn and diag_mode) 
+                runseq.add_action("MED med_phases_aofluxes_run" , run_ocn and run_atm and (med_to_ocn or med_to_atm))
+            runseq.add_action("MED med_phases_prep_ocn_accum"   , med_to_ocn)
+            runseq.add_action("MED med_phases_ocnalb_run"       , (run_ocn and run_atm and (med_to_ocn or med_to_atm)) and not xcompset)
+            runseq.add_action("MED med_phases_diag_ocn"         , run_ocn and diag_mode) 
 
         runseq.add_action("MED med_phases_prep_lnd"        , med_to_lnd)
         runseq.add_action("MED -> LND :remapMethod=redist" , med_to_lnd)
@@ -106,8 +105,8 @@ def gen_runseq(case, coupling_times):
         runseq.add_action("MED med_phases_prep_rof"        , med_to_rof and not rof_outer_loop)
         runseq.add_action("MED -> ROF :remapMethod=redist" , med_to_rof and not rof_outer_loop)
 
-        runseq.add_action("MED med_phases_prep_ocn_accum_avg" , med_to_ocn and not ocn_outer_loop)
-        runseq.add_action("MED -> OCN :remapMethod=redist"    , med_to_ocn and not ocn_outer_loop)
+        runseq.add_action("MED med_phases_prep_ocn"        , med_to_ocn and not ocn_outer_loop)
+        runseq.add_action("MED -> OCN :remapMethod=redist" , med_to_ocn and not ocn_outer_loop)
 
         runseq.add_action("ICE" , run_ice)
         runseq.add_action("LND" , run_lnd)
@@ -123,11 +122,10 @@ def gen_runseq(case, coupling_times):
 
         if (cpl_seq_option == 'TIGHT'):
             if cpl_add_aoflux:
-                runseq.add_action("MED med_phases_aofluxes_run"    , run_ocn and run_atm)
-            runseq.add_action("MED med_phases_prep_ocn_merge"      , med_to_ocn)
-            runseq.add_action("MED med_phases_prep_ocn_accum_fast" , med_to_ocn)
-            runseq.add_action("MED med_phases_ocnalb_run"          , (run_ocn and run_atm) and not xcompset)
-            runseq.add_action("MED med_phases_diag_ocn"            , run_ocn and diag_mode)
+                runseq.add_action("MED med_phases_aofluxes_run" , run_ocn and run_atm)
+            runseq.add_action("MED med_phases_prep_ocn_accum"   , med_to_ocn)
+            runseq.add_action("MED med_phases_ocnalb_run"       , (run_ocn and run_atm) and not xcompset)
+            runseq.add_action("MED med_phases_diag_ocn"         , run_ocn and diag_mode)
 
         runseq.add_action("LND -> MED :remapMethod=redist"  , run_lnd)
         runseq.add_action("MED med_phases_post_lnd"         , run_lnd)

@@ -74,7 +74,7 @@ contains
     ! first determine if there will be any lnd to glc coupling
     if (first_call) then
        do ns = 1,num_icesheets
-          if (is_local%wrap%med_coupling_active(compglc(ns),complnd)) then
+          if (is_local%wrap%med_coupling_active(complnd,compglc(ns))) then
              lnd2glc_coupling = .true.
              exit
           end if

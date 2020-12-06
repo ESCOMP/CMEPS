@@ -94,9 +94,8 @@ contains
     use med_phases_prep_wav_mod , only: med_phases_prep_wav
     use med_phases_prep_glc_mod , only: med_phases_prep_glc
     use med_phases_prep_rof_mod , only: med_phases_prep_rof
-    use med_phases_prep_ocn_mod , only: med_phases_prep_ocn_merge
-    use med_phases_prep_ocn_mod , only: med_phases_prep_ocn_accum_fast
-    use med_phases_prep_ocn_mod , only: med_phases_prep_ocn_accum_avg
+    use med_phases_prep_ocn_mod , only: med_phases_prep_ocn_accum
+    use med_phases_prep_ocn_mod , only: med_phases_prep_ocn
     use med_phases_post_atm_mod , only: med_phases_post_atm
     use med_phases_post_ice_mod , only: med_phases_post_ice
     use med_phases_post_lnd_mod , only: med_phases_post_lnd
@@ -253,30 +252,20 @@ contains
     !------------------
 
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
-         phaseLabelList=(/"med_phases_prep_ocn_merge"/), userRoutine=mediator_routine_Run, rc=rc)
+         phaseLabelList=(/"med_phases_prep_ocn_accum"/), userRoutine=mediator_routine_Run, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
-         specPhaseLabel="med_phases_prep_ocn_merge", specRoutine=med_phases_prep_ocn_merge, rc=rc)
+         specPhaseLabel="med_phases_prep_ocn_accum", specRoutine=med_phases_prep_ocn_accum, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_TimestampExport, &
-         specPhaselabel="med_phases_prep_ocn_merge", specRoutine=NUOPC_NoOp, rc=rc)
+         specPhaselabel="med_phases_prep_ocn_accum", specRoutine=NUOPC_NoOp, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
-         phaseLabelList=(/"med_phases_prep_ocn_accum_fast"/), userRoutine=mediator_routine_Run, rc=rc)
+         phaseLabelList=(/"med_phases_prep_ocn"/), userRoutine=mediator_routine_Run, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
-         specPhaseLabel="med_phases_prep_ocn_accum_fast", specRoutine=med_phases_prep_ocn_accum_fast, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_TimestampExport, &
-         specPhaselabel="med_phases_prep_ocn_accum_fast", specRoutine=NUOPC_NoOp, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
-         phaseLabelList=(/"med_phases_prep_ocn_accum_avg"/), userRoutine=mediator_routine_Run, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
-         specPhaseLabel="med_phases_prep_ocn_accum_avg", specRoutine=med_phases_prep_ocn_accum_avg, rc=rc)
+         specPhaseLabel="med_phases_prep_ocn", specRoutine=med_phases_prep_ocn, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &

@@ -27,9 +27,8 @@ module med_phases_prep_ocn_mod
   implicit none
   private
 
-  public :: med_phases_prep_ocn_merge
-  public :: med_phases_prep_ocn_accum_fast
-  public :: med_phases_prep_ocn_accum_avg
+  public :: med_phases_prep_ocn_accum  ! merge and accumulate export fields to ocn
+  public :: med_phases_prep_ocn        ! average accumulated fields
 
   private :: med_phases_prep_ocn_custom_cesm
   private :: med_phases_prep_ocn_custom_nems
@@ -41,7 +40,7 @@ module med_phases_prep_ocn_mod
 contains
 !-----------------------------------------------------------------------------
 
-  subroutine med_phases_prep_ocn_merge(gcomp, rc)
+  subroutine med_phases_prep_ocn_accum(gcomp, rc)
 
     use ESMF , only : ESMF_GridComp, ESMF_FieldBundleGet
     use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
@@ -110,6 +109,11 @@ contains
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
 
+       ! accumulat ocean export fields
+       call FB_accum(is_local%wrap%FBExpAccum(compocn), is_local%wrap%FBExp(compocn), rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       is_local%wrap%FBExpAccumCnt(compocn) = is_local%wrap%FBExpAccumCnt(compocn) + 1
+
        ! diagnose output
        if (dbug_flag > 1) then
           call FB_diagnose(is_local%wrap%FBExp(compocn), string=trim(subname)//' FBexp(compocn) ', rc=rc)
@@ -123,58 +127,10 @@ contains
     end if
     call t_stopf('MED:'//subname)
 
-  end subroutine med_phases_prep_ocn_merge
+  end subroutine med_phases_prep_ocn_accum
 
   !-----------------------------------------------------------------------------
-  subroutine med_phases_prep_ocn_accum_fast(gcomp, rc)
-
-    ! Carry out fast accumulation for the ocean
-
-    use ESMF , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_FieldBundleGet
-    use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
-
-    ! input/output variables
-    type(ESMF_GridComp)  :: gcomp
-    integer, intent(out) :: rc
-
-    ! local variables
-    type(InternalState)         :: is_local
-    integer                     :: i,j,n,ncnt
-    character(len=*), parameter :: subname='(med_phases_accum_fast)'
-    !---------------------------------------
-
-    rc = ESMF_SUCCESS
-
-    call t_startf('MED:'//subname)
-    if (dbug_flag > 20) then
-       call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
-    endif
-
-    ! Get the internal state
-    nullify(is_local%wrap)
-    call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    ! ocean accumulator
-    call FB_accum(is_local%wrap%FBExpAccum(compocn), is_local%wrap%FBExp(compocn), rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    is_local%wrap%FBExpAccumCnt(compocn) = is_local%wrap%FBExpAccumCnt(compocn) + 1
-
-    if (dbug_flag > 1) then
-       call FB_diagnose(is_local%wrap%FBExpAccum(compocn), &
-            string=trim(subname)//' FBExpAccum accumulation ', rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    end if
-    if (dbug_flag > 20) then
-       call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
-    end if
-    call t_stopf('MED:'//subname)
-
-  end subroutine med_phases_prep_ocn_accum_fast
-
-  !-----------------------------------------------------------------------------
-  subroutine med_phases_prep_ocn_accum_avg(gcomp, rc)
+  subroutine med_phases_prep_ocn(gcomp, rc)
 
     ! Prepare the OCN import Fields.
 
@@ -188,7 +144,7 @@ contains
     ! local variables
     type(InternalState)        :: is_local
     integer                    :: ncnt
-    character(len=*),parameter :: subname='(med_phases_prep_ocn_accum_avg)'
+    character(len=*),parameter :: subname='(med_phases_prep_ocn)'
     !---------------------------------------
 
     rc = ESMF_SUCCESS
@@ -241,7 +197,7 @@ contains
     end if
     call t_stopf('MED:'//subname)
 
-  end subroutine med_phases_prep_ocn_accum_avg
+  end subroutine med_phases_prep_ocn
 
   !-----------------------------------------------------------------------------
   subroutine med_phases_prep_ocn_custom_cesm(gcomp, rc)
