@@ -97,6 +97,7 @@ contains
     use med_phases_prep_rof_mod , only: med_phases_prep_rof_accum
     use med_phases_prep_rof_mod , only: med_phases_prep_rof_avg
     use med_phases_post_atm_mod , only: med_phases_post_atm
+    use med_phases_post_lnd_mod , only: med_phases_post_lnd
     use med_phases_post_glc_mod , only: med_phases_post_glc
     use med_phases_post_ocn_mod , only: med_phases_post_ocn
     use med_phases_post_rof_mod , only: med_phases_post_rof
@@ -319,6 +320,16 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
          specPhaseLabel="med_phases_prep_lnd", specRoutine=med_phases_prep_lnd, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
+         phaseLabelList=(/"med_phases_post_lnd"/), userRoutine=mediator_routine_Run, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
+         specPhaseLabel="med_phases_post_lnd", specRoutine=med_phases_post_lnd, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_TimestampExport, &
+         specPhaselabel="med_phases_post_lnd", specRoutine=NUOPC_NoOp, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !------------------
@@ -1700,6 +1711,7 @@ contains
     use med_phases_prep_atm_mod , only : med_phases_prep_atm
     use med_phases_prep_glc_mod , only : med_phases_prep_glc_init
     use med_phases_post_atm_mod , only : med_phases_post_atm
+    use med_phases_post_lnd_mod , only : med_phases_post_lnd
     use med_phases_post_glc_mod , only : med_phases_post_glc
     use med_phases_post_ocn_mod , only : med_phases_post_ocn
     use med_phases_post_rof_mod , only : med_phases_post_rof
@@ -2271,6 +2283,11 @@ contains
           deallocate(fieldNameList)
 
           if (.not. compDone(compatm)) then  ! atmdone is not true
+             if (trim(lnd_present) == 'true') then
+                ! map initial lnd->atm
+                call med_phases_post_lnd(gcomp, rc)
+                if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             end if
              ! do the merge to the atmospheric component
              call med_phases_prep_atm(gcomp, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -2393,37 +2410,43 @@ contains
        endif
 
        !---------------------------------------
-       ! If appropriate, map initial atm->ocn, atm->ice, atm->lnd
+       ! Call post routines as part of initialization
        !---------------------------------------
        if (trim(atm_present) == 'true') then
+          ! map atm->ocn, atm->ice, atm->lnd
           call med_phases_post_atm(gcomp, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
-
-       !---------------------------------------
-       ! If appropriate, map initial glc->lnd, glc->ocn and glc->ice
-       !---------------------------------------
+       ! if (trim(ice_present) == 'true') then
+       !    ! call set ice_frac and map ice->atm and ice->ocn
+       !    call med_phases_post_ice(gcomp, rc)
+       !    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       ! end if
        if (trim(glc_present) == 'true') then
+          ! map initial glc->lnd, glc->ocn and glc->ice
           call med_phases_post_glc(gcomp, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
-
-       !---------------------------------------
-       ! If appropriate, map initial ocn->ice
-       !---------------------------------------
+       if (trim(lnd_present) == 'true') then
+          ! map initial lnd->atm
+          call med_phases_post_lnd(gcomp, rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       end if
        if (trim(ocn_present) == 'true') then
+          ! map initial ocn->ice
           call med_phases_post_ocn(gcomp, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
-
-       !---------------------------------------
-       ! If appropriate, map initial rof->lnd, rof->ocn, rof->ice
-       !---------------------------------------
        if (trim(rof_present) == 'true') then
+          ! map initial rof->lnd, rof->ocn and rof->ice
           call med_phases_post_rof(gcomp, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          write(6,*)'DEBUG: here1'
        end if
+       ! if (trim(wav_present) == 'true') then
+       !    ! map initial wav->ocn and wav->ice
+       !    call med_phases_post_wav(gcomp, rc)
+       !    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       ! end if
 
        call med_phases_profile(gcomp, rc)
 
