@@ -20,7 +20,7 @@ module med_phases_prep_ocn_mod
   use med_methods_mod       , only : FB_copy       => med_methods_FB_copy
   use med_methods_mod       , only : FB_reset      => med_methods_FB_reset
   use esmFlds               , only : fldListTo
-  use esmFlds               , only : compocn, compatm, compice, comprof, compglc, compwav, ncomps, compname
+  use esmFlds               , only : compocn, compatm, compice, comprof, compglc, ncomps, compname
   use esmFlds               , only : coupling_mode
   use perf_mod              , only : t_startf, t_stopf
 
@@ -83,32 +83,18 @@ contains
     ! compatm is mapped to compocn in med_phases_post_atm
     ! compglc is mapped to compocn in med_phases_post_glc
     ! comprof is mapped to compocn in med_phases_post_rof
-    if (ncnt > 0) then
-       if (is_local%wrap%med_coupling_active(compice,compocn)) then
-          call t_startf('MED:'//trim(subname)//' map_ice2ocn')
-          call med_map_field_packed( &
-               FBSrc=is_local%wrap%FBImp(compice,compice), &
-               FBDst=is_local%wrap%FBImp(compice,compocn), &
-               FBFracSrc=is_local%wrap%FBFrac(compice), &
-               field_normOne=is_local%wrap%field_normOne(compice,compocn,:), &
-               packed_data=is_local%wrap%packed_data(compice,compocn,:), &
-               routehandles=is_local%wrap%RH(compice,compocn,:), rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          call t_stopf('MED:'//trim(subname)//' map_ice2ocn')
-       end if
-       if (is_local%wrap%med_coupling_active(compwav,compocn)) then
-          call t_startf('MED:'//trim(subname)//' map_wav2ocn')
-          call med_map_field_packed( &
-               FBSrc=is_local%wrap%FBImp(compwav,compwav), &
-               FBDst=is_local%wrap%FBImp(compwav,compocn), &
-               FBFracSrc=is_local%wrap%FBFrac(compwav), &
-               field_normOne=is_local%wrap%field_normOne(compwav,compocn,:), &
-               packed_data=is_local%wrap%packed_data(compwav,compocn,:), &
-               routehandles=is_local%wrap%RH(compwav,compocn,:), rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          call t_stopf('MED:'//trim(subname)//' map_wav2ocn')
-       end if
-    endif
+    if (is_local%wrap%med_coupling_active(compice,compocn)) then
+       call t_startf('MED:'//trim(subname)//' map_ice2ocn')
+       call med_map_field_packed( &
+            FBSrc=is_local%wrap%FBImp(compice,compice), &
+            FBDst=is_local%wrap%FBImp(compice,compocn), &
+            FBFracSrc=is_local%wrap%FBFrac(compice), &
+            field_normOne=is_local%wrap%field_normOne(compice,compocn,:), &
+            packed_data=is_local%wrap%packed_data(compice,compocn,:), &
+            routehandles=is_local%wrap%RH(compice,compocn,:), rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call t_stopf('MED:'//trim(subname)//' map_ice2ocn')
+    end if
 
     call t_stopf('MED:'//subname)
     if (dbug_flag > 20) then

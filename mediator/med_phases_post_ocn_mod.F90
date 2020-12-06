@@ -4,8 +4,6 @@ module med_phases_post_ocn_mod
   ! Mediator post ocn phase - maps ocn->ice
   !-----------------------------------------------------------------------------
 
-  use med_kind_mod, only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
-
   implicit none
   private
 
@@ -20,6 +18,7 @@ contains
 
   subroutine med_phases_post_ocn(gcomp, rc)
 
+    use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
     use ESMF                  , only : ESMF_GridComp
     use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
     use med_utils_mod         , only : chkerr      => med_utils_ChkErr
@@ -64,10 +63,10 @@ contains
        call t_stopf('MED:'//trim(subname)//' map_ocn2ice')
     end if
 
-    call t_stopf('MED:'//subname)
     if (dbug_flag > 20) then
        call ESMF_LogWrite(subname//' done', ESMF_LOGMSG_INFO)
     end if
+    call t_stopf('MED:'//subname)
 
   end subroutine med_phases_post_ocn
 

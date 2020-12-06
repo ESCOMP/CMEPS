@@ -101,6 +101,7 @@ contains
     use med_phases_post_glc_mod , only: med_phases_post_glc
     use med_phases_post_ocn_mod , only: med_phases_post_ocn
     use med_phases_post_rof_mod , only: med_phases_post_rof
+    use med_phases_post_wav_mod , only: med_phases_post_wav
     use med_phases_prep_ocn_mod , only: med_phases_prep_ocn_map
     use med_phases_prep_ocn_mod , only: med_phases_prep_ocn_merge
     use med_phases_prep_ocn_mod , only: med_phases_prep_ocn_accum_fast
@@ -365,7 +366,7 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !------------------
-    ! prep routines for wav
+    ! prep and post routines for wav
     !------------------
 
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
@@ -373,6 +374,16 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
          specPhaseLabel="med_phases_prep_wav", specRoutine=med_phases_prep_wav, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
+         phaseLabelList=(/"med_phases_post_wav"/), userRoutine=mediator_routine_Run, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
+         specPhaseLabel="med_phases_post_wav", specRoutine=med_phases_post_wav, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_TimestampExport, &
+         specPhaselabel="med_phases_post_wav", specRoutine=NUOPC_NoOp, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !------------------
@@ -1715,6 +1726,7 @@ contains
     use med_phases_post_glc_mod , only : med_phases_post_glc
     use med_phases_post_ocn_mod , only : med_phases_post_ocn
     use med_phases_post_rof_mod , only : med_phases_post_rof
+    use med_phases_post_wav_mod , only : med_phases_post_wav
     use med_phases_ocnalb_mod   , only : med_phases_ocnalb_run
     use med_phases_aofluxes_mod , only : med_phases_aofluxes_run
     use med_phases_profile_mod  , only : med_phases_profile
@@ -2442,11 +2454,11 @@ contains
           call med_phases_post_rof(gcomp, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
-       ! if (trim(wav_present) == 'true') then
-       !    ! map initial wav->ocn and wav->ice
-       !    call med_phases_post_wav(gcomp, rc)
-       !    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       ! end if
+       if (trim(wav_present) == 'true') then
+          ! map initial wav->ocn and wav->ice
+          call med_phases_post_wav(gcomp, rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       end if
 
        call med_phases_profile(gcomp, rc)
 

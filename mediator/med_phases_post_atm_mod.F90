@@ -93,10 +93,10 @@ contains
        call t_stopf('MED:'//trim(subname)//' map_atm2lnd')
     end if
 
-    call t_stopf('MED:'//subname)
     if (dbug_flag > 20) then
        call ESMF_LogWrite(subname//' done', ESMF_LOGMSG_INFO)
     end if
+    call t_stopf('MED:'//subname)
 
   end subroutine med_phases_post_atm
 

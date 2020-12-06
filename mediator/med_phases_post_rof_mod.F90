@@ -38,7 +38,7 @@ contains
     rc = ESMF_SUCCESS
 
     call t_startf('MED:'//subname)
-    if (dbug_flag > 5) then
+    if (dbug_flag > 20) then
        call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
     end if
 
@@ -86,7 +86,7 @@ contains
        call t_stopf('MED:'//trim(subname)//' map_rof2ice')
     end if
 
-    if (dbug_flag > 5) then
+    if (dbug_flag > 20) then
        call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
     end if
     call t_stopf('MED:'//subname)
