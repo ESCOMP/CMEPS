@@ -44,6 +44,9 @@ def gen_runseq(case, coupling_times):
             post_glc = True
         else:
             post_glc = False
+    elif (comp_glc == 'xglc'):
+        run_glc = True
+        post_glc = True
 
     # Note: assume that atm_cpl_dt, lnd_cpl_dt, ice_cpl_dt and wav_cpl_dt are the same
 
@@ -78,7 +81,7 @@ def gen_runseq(case, coupling_times):
         runseq.enter_time_loop(ocn_cpl_time, newtime=ocn_outer_loop)
         #------------------
 
-        runseq.add_action("MED med_phases_prep_ocn"        , med_to_ocn and ocn_outer_loop)
+        runseq.add_action("MED med_phases_prep_ocn_avg"    , med_to_ocn and ocn_outer_loop)
         runseq.add_action("MED -> OCN :remapMethod=redist" , med_to_ocn and ocn_outer_loop)
 
         #------------------
@@ -105,7 +108,7 @@ def gen_runseq(case, coupling_times):
         runseq.add_action("MED med_phases_prep_rof"        , med_to_rof and not rof_outer_loop)
         runseq.add_action("MED -> ROF :remapMethod=redist" , med_to_rof and not rof_outer_loop)
 
-        runseq.add_action("MED med_phases_prep_ocn"        , med_to_ocn and not ocn_outer_loop)
+        runseq.add_action("MED med_phases_prep_ocn_avg"    , med_to_ocn and not ocn_outer_loop)
         runseq.add_action("MED -> OCN :remapMethod=redist" , med_to_ocn and not ocn_outer_loop)
 
         runseq.add_action("ICE" , run_ice)

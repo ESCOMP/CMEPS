@@ -134,36 +134,31 @@ contains
              exit
           end if
        end do
+       if (mastertask) then
+          write(logunit,'(a,l)') trim(subname) // 'glc2lnd_coupling is ',glc2lnd_coupling
+          write(logunit,'(a,l)') trim(subname) // 'glc2ocn_coupling is ',glc2ocn_coupling
+          write(logunit,'(a,l)') trim(subname) // 'glc2ice_coupling is ',glc2ice_coupling
+       end if
 
        ! determine if coupling to CISM is 2-way
-       if (first_call) then
-          call NUOPC_CompAttributeGet(gcomp, name="cism_evolve", isPresent=isPresent, rc=rc)
+       call NUOPC_CompAttributeGet(gcomp, name="cism_evolve", isPresent=isPresent, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (isPresent) then
+          call NUOPC_CompAttributeGet(gcomp, name="cism_evolve", value=cvalue, isPresent=isPresent, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
-          if (isPresent) then
-             call NUOPC_CompAttributeGet(gcomp, name="cism_evolve", value=cvalue, isPresent=isPresent, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-             read (cvalue,*) cism_evolve
-             if (mastertask) then
-                write(logunit,'(a,l7)') trim(subname)//' cism_evolve = ',cism_evolve
-             end if
+          read (cvalue,*) cism_evolve
+          if (mastertask) then
+             write(logunit,'(a,l7)') trim(subname)//' cism_evolve = ',cism_evolve
           end if
        end if
     end if
 
-    ! Count the number of fields outside of scalar data, if zero, then return
-    ! Note - the scalar field has been removed from all mediator field bundles - so this is why we check if the
-    ! fieldCount is 0 and not 1 here
-
-    call ESMF_FieldBundleGet(is_local%wrap%FBExp(complnd), fieldCount=ncnt, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    if (ncnt > 0) then
-
-       !---------------------------------------
-       ! glc->ocn mapping - 
-       ! merging with rof->ocn fields is done in med_phases_prep_ocn
-       !---------------------------------------
-       if (glc2ocn_coupling) then
+    !---------------------------------------
+    ! glc->ocn mapping - 
+    ! merging with rof->ocn fields is done in med_phases_prep_ocn
+    !---------------------------------------
+    if (glc2ocn_coupling) then
+       do ns = 1,num_icesheets
           if (is_local%wrap%med_coupling_active(compglc(ns),compocn)) then
              call med_map_field_packed( &
                   FBSrc=is_local%wrap%FBImp(compglc(ns),compglc(ns)), &
@@ -174,46 +169,45 @@ contains
                   routehandles=is_local%wrap%RH(compglc(ns),compocn,:), rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
-       end if
+       end do
+    end if
 
-       !---------------------------------------
-       ! glc->ice mapping
-       !---------------------------------------
-       if (glc2ice_coupling) then
-          ! Fill this in
-       end if
+    !---------------------------------------
+    ! glc->ice mapping
+    !---------------------------------------
+    if (glc2ice_coupling) then
+       ! Fill this in
+    end if
 
-       !---------------------------------------
-       ! glc->lnd mapping and custom merging of all ice sheets onto land mesh
-       !---------------------------------------
-       if (glc2lnd_coupling) then
-          ! The will following will map and merge Sg_frac and Sg_topo (and in the future Flgg_hflx)
-          call t_startf('MED:'//trim(subname)//' glc2lnd ')
-          do ns = 1,num_icesheets
-             if (is_local%wrap%med_coupling_active(compglc(ns),complnd)) then
-                call med_map_field_packed( &
-                     FBSrc=is_local%wrap%FBImp(compglc(ns),compglc(ns)), &
-                     FBDst=is_local%wrap%FBImp(compglc(ns),complnd), &
-                     FBFracSrc=is_local%wrap%FBFrac(compglc(ns)), &
-                     field_normOne=is_local%wrap%field_normOne(compglc(ns),complnd,:), &
-                     packed_data=is_local%wrap%packed_data(compglc(ns),complnd,:), &
-                     routehandles=is_local%wrap%RH(compglc(ns),complnd,:), rc=rc)
-                if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             end if
-          end do
-          call t_stopf('MED:'//trim(subname)//' glc2lnd')
-
-          ! The following is only done if glc->lnd coupling is active
-          if (first_call) then
-             call map_glc2lnd_init(gcomp, rc=rc)
+    !---------------------------------------
+    ! glc->lnd mapping and custom merging of all ice sheets onto land mesh
+    !---------------------------------------
+    if (glc2lnd_coupling) then
+       ! The will following will map and merge Sg_frac and Sg_topo (and in the future Flgg_hflx)
+       call t_startf('MED:'//trim(subname)//' glc2lnd ')
+       do ns = 1,num_icesheets
+          if (is_local%wrap%med_coupling_active(compglc(ns),complnd)) then
+             call med_map_field_packed( &
+                  FBSrc=is_local%wrap%FBImp(compglc(ns),compglc(ns)), &
+                  FBDst=is_local%wrap%FBImp(compglc(ns),complnd), &
+                  FBFracSrc=is_local%wrap%FBFrac(compglc(ns)), &
+                  field_normOne=is_local%wrap%field_normOne(compglc(ns),complnd,:), &
+                  packed_data=is_local%wrap%packed_data(compglc(ns),complnd,:), &
+                  routehandles=is_local%wrap%RH(compglc(ns),complnd,:), rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
+       end do
+       call t_stopf('MED:'//trim(subname)//' glc2lnd')
 
-          ! The will following will map and merge Sg_frac and Sg_topo (and in the future Flgg_hflx)
-          call map_glc2lnd(gcomp, rc=rc)
+       ! The following is only done if glc->lnd coupling is active
+       if (first_call) then
+          call map_glc2lnd_init(gcomp, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
 
+       ! The will following will map and merge Sg_frac and Sg_topo (and in the future Flgg_hflx)
+       call map_glc2lnd(gcomp, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
     ! Reset first call logical

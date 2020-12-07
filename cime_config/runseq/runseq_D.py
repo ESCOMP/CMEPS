@@ -31,7 +31,7 @@ def gen_runseq(case, coupling_times):
 
         runseq.enter_time_loop(ocn_cpl_time, newtime=((ocn_cpl_time)))
 
-        runseq.add_action("MED med_phases_prep_ocn"        , med_to_ocn)
+        runseq.add_action("MED med_phases_prep_ocn_avg"    , med_to_ocn)
         runseq.add_action("MED -> OCN :remapMethod=redist" , med_to_ocn)
 
         runseq.enter_time_loop(atm_cpl_time, newtime=((atm_cpl_time < ocn_cpl_time)))

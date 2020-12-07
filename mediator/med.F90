@@ -95,7 +95,7 @@ contains
     use med_phases_prep_glc_mod , only: med_phases_prep_glc
     use med_phases_prep_rof_mod , only: med_phases_prep_rof
     use med_phases_prep_ocn_mod , only: med_phases_prep_ocn_accum
-    use med_phases_prep_ocn_mod , only: med_phases_prep_ocn
+    use med_phases_prep_ocn_mod , only: med_phases_prep_ocn_avg
     use med_phases_post_atm_mod , only: med_phases_post_atm
     use med_phases_post_ice_mod , only: med_phases_post_ice
     use med_phases_post_lnd_mod , only: med_phases_post_lnd
@@ -262,10 +262,10 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
-         phaseLabelList=(/"med_phases_prep_ocn"/), userRoutine=mediator_routine_Run, rc=rc)
+         phaseLabelList=(/"med_phases_prep_ocn_avg"/), userRoutine=mediator_routine_Run, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
-         specPhaseLabel="med_phases_prep_ocn", specRoutine=med_phases_prep_ocn, rc=rc)
+         specPhaseLabel="med_phases_prep_ocn_avg", specRoutine=med_phases_prep_ocn_avg, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
@@ -2313,7 +2313,7 @@ contains
                 allDone=.false.
                 if (dbug_flag > 0) then
                    if (mastertask) then
-                      write(logunit,'(A)') trim(subname)//" MED - Initialize-Data-Dependency check Failed for "//&
+                      write(logunit,'(A)') trim(subname)//" MED - Initialize-Data-Dependency check not yet satisfied for "//&
                            trim(compname(n1))
                    end if
                 end if
@@ -2433,7 +2433,7 @@ contains
     else ! Not all done
        call NUOPC_CompAttributeSet(gcomp, name="InitializeDataComplete", value="false", rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_LogWrite("MED - Initialize-Data-Dependency allDone check Failed, another loop is required", &
+       call ESMF_LogWrite("MED - Initialize-Data-Dependency allDone check not yet satisfied, another loop is required", &
             ESMF_LOGMSG_INFO)
 
     end if

@@ -27,8 +27,8 @@ module med_phases_prep_ocn_mod
   implicit none
   private
 
-  public :: med_phases_prep_ocn_accum  ! merge and accumulate export fields to ocn
-  public :: med_phases_prep_ocn        ! average accumulated fields
+  public :: med_phases_prep_ocn_accum
+  public :: med_phases_prep_ocn_avg
 
   private :: med_phases_prep_ocn_custom_cesm
   private :: med_phases_prep_ocn_custom_nems
@@ -68,60 +68,47 @@ contains
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    ! Count the number of fields outside of scalar data, if zero, then return
-    call ESMF_FieldBundleGet(is_local%wrap%FBExp(compocn), fieldCount=ncnt, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    if (ncnt > 0) then
-
-       !---------------------------------------
-       ! merges to ocean
-       !---------------------------------------
-
-       ! auto merges to ocn
-       if (trim(coupling_mode) == 'cesm' .or. &
-           trim(coupling_mode) == 'nems_orig_data' .or. &
-           trim(coupling_mode) == 'hafs') then
-          call med_merge_auto(compocn, &
-               is_local%wrap%med_coupling_active(:,compocn), &
-               is_local%wrap%FBExp(compocn), &
-               is_local%wrap%FBFrac(compocn), &
-               is_local%wrap%FBImp(:,compocn), &
-               fldListTo(compocn), &
-               FBMed1=is_local%wrap%FBMed_aoflux_o, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       else if (trim(coupling_mode) == 'nems_frac' .or. trim(coupling_mode) == 'nems_orig') then
-          call med_merge_auto(compocn, &
-               is_local%wrap%med_coupling_active(:,compocn), &
-               is_local%wrap%FBExp(compocn), &
-               is_local%wrap%FBFrac(compocn), &
-               is_local%wrap%FBImp(:,compocn), &
-               fldListTo(compocn), rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       end if
-
-       ! custom merges to ocean
-       if (trim(coupling_mode) == 'cesm') then
-          call med_phases_prep_ocn_custom_cesm(gcomp, rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       else if (trim(coupling_mode(1:5)) == 'nems_') then
-          call med_phases_prep_ocn_custom_nems(gcomp, rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       end if
-
-       ! accumulat ocean export fields
-       call FB_accum(is_local%wrap%FBExpAccum(compocn), is_local%wrap%FBExp(compocn), rc=rc)
+    ! auto merges to ocn
+    if (trim(coupling_mode) == 'cesm' .or. &
+         trim(coupling_mode) == 'nems_orig_data' .or. &
+         trim(coupling_mode) == 'hafs') then
+       call med_merge_auto(compocn, &
+            is_local%wrap%med_coupling_active(:,compocn), &
+            is_local%wrap%FBExp(compocn), &
+            is_local%wrap%FBFrac(compocn), &
+            is_local%wrap%FBImp(:,compocn), &
+            fldListTo(compocn), &
+            FBMed1=is_local%wrap%FBMed_aoflux_o, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       is_local%wrap%FBExpAccumCnt(compocn) = is_local%wrap%FBExpAccumCnt(compocn) + 1
+    else if (trim(coupling_mode) == 'nems_frac' .or. trim(coupling_mode) == 'nems_orig') then
+       call med_merge_auto(compocn, &
+            is_local%wrap%med_coupling_active(:,compocn), &
+            is_local%wrap%FBExp(compocn), &
+            is_local%wrap%FBFrac(compocn), &
+            is_local%wrap%FBImp(:,compocn), &
+            fldListTo(compocn), rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    end if
 
-       ! diagnose output
-       if (dbug_flag > 1) then
-          call FB_diagnose(is_local%wrap%FBExp(compocn), string=trim(subname)//' FBexp(compocn) ', rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       end if
+    ! custom merges to ocean
+    if (trim(coupling_mode) == 'cesm') then
+       call med_phases_prep_ocn_custom_cesm(gcomp, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    else if (trim(coupling_mode(1:5)) == 'nems_') then
+       call med_phases_prep_ocn_custom_nems(gcomp, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    end if
 
-    endif
+    ! ocean accumulator
+    call FB_accum(is_local%wrap%FBExpAccum(compocn), is_local%wrap%FBExp(compocn), rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    is_local%wrap%FBExpAccumCnt(compocn) = is_local%wrap%FBExpAccumCnt(compocn) + 1
 
+    ! diagnose output
+    if (dbug_flag > 1) then
+       call FB_diagnose(is_local%wrap%FBExpAccum(compocn), string=trim(subname)//' FBExpAccum accumulation ', rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    end if
     if (dbug_flag > 20) then
        call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
     end if
@@ -130,7 +117,7 @@ contains
   end subroutine med_phases_prep_ocn_accum
 
   !-----------------------------------------------------------------------------
-  subroutine med_phases_prep_ocn(gcomp, rc)
+  subroutine med_phases_prep_ocn_avg(gcomp, rc)
 
     ! Prepare the OCN import Fields.
 
@@ -197,7 +184,7 @@ contains
     end if
     call t_stopf('MED:'//subname)
 
-  end subroutine med_phases_prep_ocn
+  end subroutine med_phases_prep_ocn_avg
 
   !-----------------------------------------------------------------------------
   subroutine med_phases_prep_ocn_custom_cesm(gcomp, rc)
