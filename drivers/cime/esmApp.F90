@@ -12,8 +12,9 @@ program esmApp
   use ESMF,            only : ESMF_LOGKIND_MULTI_ON_ERROR, ESMF_LogKind_Flag
   use ESMF,            only : ESMF_VMGet, ESMF_VM, ESMF_InitializePreMPI
 
-#ifdef USE_MPI2
-  use mpi,             only : MPI_COMM_WORLD, MPI_COMM_NULL, MPI_Init, MPI_FINALIZE, MPI_BCAST, MPI_COMM_RANK
+#ifndef NO_MPI2
+  use mpi,             only : MPI_COMM_WORLD, MPI_COMM_NULL, MPI_Init_thread, MPI_FINALIZE, MPI_BCAST
+  use mpi,             only : MPI_COMM_RANK, MPI_THREAD_SERIALIZED, MPI_LOGICAL
 #else
   use mpi
 #endif
@@ -40,9 +41,12 @@ program esmApp
   !-----------------------------------------------------------------------------
   ! Initiallize MPI
   !-----------------------------------------------------------------------------
-
+#ifndef NO_MPI2
   call ESMF_InitializePreMPI()
   call MPI_init_thread(MPI_THREAD_SERIALIZED, provided, rc)
+#else
+  call MPI_init(rc)
+#endif
   COMP_COMM = MPI_COMM_WORLD
 
   !-----------------------------------------------------------------------------

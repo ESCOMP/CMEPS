@@ -807,7 +807,9 @@ contains
     use ESMF         , only : ESMF_InfoCreate, ESMF_InfoDestroy
     use NUOPC        , only : NUOPC_CompAttributeGet
     use NUOPC_Driver , only : NUOPC_DriverAddComp
+#ifndef NO_MPI2
     use mpi          , only : MPI_COMM_NULL, mpi_comm_size
+#endif
     use mct_mod      , only : mct_world_init
     use shr_pio_mod  , only : shr_pio_init2
 
@@ -836,7 +838,9 @@ contains
 #ifdef GLC_PRESENT
     use glc_comp_nuopc        , only : GLCSetServices => SetServices, GLCSetVM => SetVM
 #endif
-
+#ifdef NO_MPI2
+    include 'mpif.h'
+#endif
     ! input/output variables
     type(ESMF_GridComp)            :: driver
     integer, intent(out)           :: maxthreads ! maximum number of threads any component
