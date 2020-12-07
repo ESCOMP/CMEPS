@@ -22,13 +22,13 @@ OBJ = $(patsubst %.F90, %.o, $(wildcard *.F90))
 all default: $(LIBRARY)
 
 $(LIBRARY): $(OBJ)
-	$(AR) $(ARFLAGS) $@ $?
+        $(AR) $(ARFLAGS) $@ $?
 
 %.o: %.F90
-	$(ESMF_F90COMPILER) -c $(ESMF_F90COMPILEOPTS) $(ESMF_F90COMPILEPATHS) $(CPPDEFS) -I${PIO_INCLUDE_DIR} -I../nems/util $*.F90
+        $(ESMF_F90COMPILER) -c $(ESMF_F90COMPILEOPTS) $(ESMF_F90COMPILEPATHS) $(CPPDEFS) -I${PIO_INCLUDE_DIR} -I../nems/util $*.F90
 
 clean:
-	$(RM) -f $(LIBRARY) *.i90 *.o *.mod
+        $(RM) -f $(LIBRARY) *.i90 *.o *.mod
 
 med_kind_mod.o :
 med_constants_mod.o : med_kind_mod.o
