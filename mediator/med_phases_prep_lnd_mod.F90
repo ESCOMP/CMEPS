@@ -11,8 +11,8 @@ module med_phases_prep_lnd_mod
 
   public  :: med_phases_prep_lnd
 
-  real(r8), pointer :: dataptr_scalar_lnd(:,:)
-  real(r8), pointer :: dataptr_scalar_atm(:,:)
+  real(r8), pointer :: dataptr_scalar_lnd(:,:) => null()
+  real(r8), pointer :: dataptr_scalar_atm(:,:) => null()
 
   character(*) , parameter :: u_FILE_u = &
        __FILE__
@@ -51,7 +51,7 @@ contains
     real(r8)                    :: nextsw_cday
     integer                     :: scalar_id
     real(r8)                    :: tmp(1)
-    real(r8), pointer           :: dataptr2d(:,:)
+    real(r8), pointer           :: dataptr2d(:,:) => null()
     logical                     :: first_call = .true.
     character(len=*), parameter :: subname='(med_phases_prep_lnd)'
     !---------------------------------------

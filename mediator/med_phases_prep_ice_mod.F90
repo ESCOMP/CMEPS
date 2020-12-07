@@ -11,8 +11,8 @@ module med_phases_prep_ice_mod
 
   public  :: med_phases_prep_ice
 
-  real(r8), pointer :: dataptr_scalar_ice(:,:)
-  real(r8), pointer :: dataptr_scalar_atm(:,:)
+  real(r8), pointer :: dataptr_scalar_ice(:,:) => null()
+  real(r8), pointer :: dataptr_scalar_atm(:,:) => null()
 
   character(*), parameter :: u_FILE_u  = &
        __FILE__
