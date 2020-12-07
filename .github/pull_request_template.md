@@ -34,12 +34,21 @@ Testing performed if application target is UFS-S2S:
    - description:
    - details (e.g. failed tests):
 
+Testing performed if application target is UFS-HAFS:
+- [ ] (recommended) UFS-HAFS testing
+   - description:
+   - details (e.g. failed tests):
+
 Hashes used for testing:
 - [ ] CESM:
   - repository to check out: https://github.com/ESCOMP/CESM.git
   - branch: nuopc_dev
   - hash:
 - [ ] UFS-S2S, then umbrella repostiory to check out and associated hash:
+  - repository to check out:
+  - branch:
+  - hash:
+- [ ] UFS-HAFS, then umbrella repostiory to check out and associated hash:
   - repository to check out:
   - branch:
   - hash:
