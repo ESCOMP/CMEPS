@@ -80,6 +80,8 @@ contains
     real(r8), pointer          :: dataptr1d(:) => null()
     real(r8), pointer          :: dataptr2d(:,:) => null()
     character(CL)              :: msg
+    logical                    :: zero_output
+    character(CL)              :: fldname
     character(len=*),parameter :: subname=' (module_med_merge_mod: med_merge_auto)'
     !---------------------------------------
 
@@ -110,19 +112,7 @@ contains
 
     ! Loop over all fields in field bundle FBOut
     do nfld_out = 1,fieldcount
-
-       ! Initialize initial output field data to zero
-       call ESMF_FieldGet(fieldlist(nfld_out), ungriddedUBound=ungriddedUbound_out, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (ungriddedUBound_out(1) > 0) then
-          call ESMF_FieldGet(fieldlist(nfld_out), farrayPtr=dataptr2d, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          dataptr2d(:,:) = czero
-       else
-          call ESMF_FieldGet(fieldlist(nfld_out), farrayPtr=dataptr1d, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          dataptr1d(:) = czero
-       end if
+       zero_output = .true.
 
        ! Loop over the field in fldListTo
        do nfld_in = 1,med_fldList_GetNumFlds(fldListTo)
@@ -167,6 +157,22 @@ contains
                               FBMed1=FBMed1, FBMed2=FBMed2, rc=rc)
                          if (ChkErr(rc,__LINE__,u_FILE_u)) return
                       end if ! end of error check
+
+                      ! Initialize initial output field data to zero before doing merge
+                      if (zero_output) then
+                         call ESMF_FieldGet(fieldlist(nfld_out), ungriddedUBound=ungriddedUbound_out, rc=rc)
+                         if (chkerr(rc,__LINE__,u_FILE_u)) return
+                         if (ungriddedUBound_out(1) > 0) then
+                            call ESMF_FieldGet(fieldlist(nfld_out), farrayPtr=dataptr2d, rc=rc)
+                            if (chkerr(rc,__LINE__,u_FILE_u)) return
+                            dataptr2d(:,:) = czero
+                         else
+                            call ESMF_FieldGet(fieldlist(nfld_out), farrayPtr=dataptr1d, rc=rc)
+                            if (chkerr(rc,__LINE__,u_FILE_u)) return
+                            dataptr1d(:) = czero
+                         end if
+                         zero_output = .false.
+                      end if
 
                       ! Perform merge
                       if ((present(FBMed1) .or. present(FBMed2)) .and. compsrc == compmed) then

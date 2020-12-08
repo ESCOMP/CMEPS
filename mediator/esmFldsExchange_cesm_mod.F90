@@ -150,12 +150,15 @@ contains
        call NUOPC_CompAttributeGet(gcomp, name='atm2ice_fmapname', value=atm2ice_fmap,  rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        if (mastertask) write(logunit, '(a)') trim(subname)//'atm2ice_fmapname = '// trim(atm2ice_fmap)
+
        call NUOPC_CompAttributeGet(gcomp, name='atm2ice_smapname', value=atm2ice_smap,  rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        if (mastertask) write(logunit, '(a)') trim(subname)//'atm2ice_smapname = '// trim(atm2ice_smap)
+
        call NUOPC_CompAttributeGet(gcomp, name='atm2ice_vmapname', value=atm2ice_vmap,  rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        if (mastertask) write(logunit, '(a)') trim(subname)//'atm2ice_vmapname = '// trim(atm2ice_vmap)
+
        call NUOPC_CompAttributeGet(gcomp, name='glc2ice_rmapname', value=glc2ice_rmap,  rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        if (mastertask) write(logunit, '(a)') trim(subname)//'glc2ice_rmapname = '// trim(glc2ice_rmap)
@@ -164,27 +167,35 @@ contains
        call NUOPC_CompAttributeGet(gcomp, name='atm2ocn_fmapname', value=atm2ocn_fmap,  rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        if (mastertask) write(logunit, '(a)') trim(subname)//'atm2ocn_fmapname = '// trim(atm2ocn_fmap)
+
        call NUOPC_CompAttributeGet(gcomp, name='atm2ocn_smapname', value=atm2ocn_smap,  rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        if (mastertask) write(logunit, '(a)') trim(subname)//'atm2ocn_smapname = '// trim(atm2ocn_smap)
+
        call NUOPC_CompAttributeGet(gcomp, name='atm2ocn_vmapname', value=atm2ocn_vmap,  rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        if (mastertask) write(logunit, '(a)') trim(subname)//'atm2ocn_vmapname = '// trim(atm2ocn_vmap)
+
        call NUOPC_CompAttributeGet(gcomp, name='glc2ocn_liq_rmapname', value=glc2ocn_liq_rmap,  rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        if (mastertask) write(logunit, '(a)') trim(subname)//'glc2ocn_liq_rmapname = '// trim(glc2ocn_liq_rmap)
+
        call NUOPC_CompAttributeGet(gcomp, name='glc2ocn_ice_rmapname', value=glc2ocn_ice_rmap,  rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        if (mastertask) write(logunit, '(a)') trim(subname)//'glc2ocn_ice_rmapname = '// trim(glc2ocn_ice_rmap)
+
        call NUOPC_CompAttributeGet(gcomp, name='wav2ocn_smapname', value=wav2ocn_smap,  rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        if (mastertask) write(logunit, '(a)') trim(subname)//'wav2ocn_smapname = '// trim(wav2ocn_smap)
+
        call NUOPC_CompAttributeGet(gcomp, name='rof2ocn_fmapname', value=rof2ocn_fmap,  rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        if (mastertask) write(logunit, '(a)') trim(subname)//'rof2ocn_fmapname = '// trim(rof2ocn_fmap)
+
        call NUOPC_CompAttributeGet(gcomp, name='rof2ocn_liq_rmapname', value=rof2ocn_liq_rmap,  rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        if (mastertask) write(logunit, '(a)') trim(subname)//'rof2ocn_liq_rmapname = '// trim(rof2ocn_liq_rmap)
+
        call NUOPC_CompAttributeGet(gcomp, name='rof2ocn_ice_rmapname', value=rof2ocn_ice_rmap,  rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        if (mastertask) write(logunit, '(a)') trim(subname)//'rof2ocn_ice_rmapname = '// trim(rof2ocn_ice_rmap)

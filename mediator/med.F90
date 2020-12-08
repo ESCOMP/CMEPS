@@ -63,6 +63,11 @@ module MED
        __FILE__
   logical :: profile_memory = .false.
 
+  character(len=8) :: atm_present, lnd_present
+  character(len=8) :: ice_present, rof_present
+  character(len=8) :: glc_present, med_present
+  character(len=8) :: ocn_present, wav_present
+
 !-----------------------------------------------------------------------------
 contains
 !-----------------------------------------------------------------------------
@@ -87,14 +92,17 @@ contains
     use med_phases_prep_ice_mod , only: med_phases_prep_ice
     use med_phases_prep_lnd_mod , only: med_phases_prep_lnd
     use med_phases_prep_wav_mod , only: med_phases_prep_wav
-    use med_phases_prep_glc_mod , only: med_phases_prep_glc_accum
-    use med_phases_prep_glc_mod , only: med_phases_prep_glc_avg
-    use med_phases_prep_rof_mod , only: med_phases_prep_rof_accum
-    use med_phases_prep_rof_mod , only: med_phases_prep_rof_avg
-    use med_phases_prep_ocn_mod , only: med_phases_prep_ocn_map
-    use med_phases_prep_ocn_mod , only: med_phases_prep_ocn_merge
-    use med_phases_prep_ocn_mod , only: med_phases_prep_ocn_accum_fast
-    use med_phases_prep_ocn_mod , only: med_phases_prep_ocn_accum_avg
+    use med_phases_prep_glc_mod , only: med_phases_prep_glc
+    use med_phases_prep_rof_mod , only: med_phases_prep_rof
+    use med_phases_prep_ocn_mod , only: med_phases_prep_ocn_accum
+    use med_phases_prep_ocn_mod , only: med_phases_prep_ocn_avg
+    use med_phases_post_atm_mod , only: med_phases_post_atm
+    use med_phases_post_ice_mod , only: med_phases_post_ice
+    use med_phases_post_lnd_mod , only: med_phases_post_lnd
+    use med_phases_post_glc_mod , only: med_phases_post_glc
+    use med_phases_post_ocn_mod , only: med_phases_post_ocn
+    use med_phases_post_rof_mod , only: med_phases_post_rof
+    use med_phases_post_wav_mod , only: med_phases_post_wav
     use med_phases_ocnalb_mod   , only: med_phases_ocnalb_run
     use med_phases_aofluxes_mod , only: med_phases_aofluxes_run
     use med_diag_mod            , only: med_phases_diag_accum, med_phases_diag_print
@@ -222,7 +230,7 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !------------------
-    ! prep routines for atm
+    ! prep and post routines for atm
     !------------------
 
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
@@ -232,49 +240,46 @@ contains
          specPhaseLabel="med_phases_prep_atm", specRoutine=med_phases_prep_atm, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    !------------------
-    ! prep routines for ocn
-    !------------------
-
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
-         phaseLabelList=(/"med_phases_prep_ocn_map"/), userRoutine=mediator_routine_Run, rc=rc)
+         phaseLabelList=(/"med_phases_post_atm"/), userRoutine=mediator_routine_Run, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
-         specPhaseLabel="med_phases_prep_ocn_map", specRoutine=med_phases_prep_ocn_map, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_TimestampExport, &
-         specPhaselabel="med_phases_prep_ocn_map", specRoutine=NUOPC_NoOp, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
-         phaseLabelList=(/"med_phases_prep_ocn_merge"/), userRoutine=mediator_routine_Run, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
-         specPhaseLabel="med_phases_prep_ocn_merge", specRoutine=med_phases_prep_ocn_merge, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_TimestampExport, &
-         specPhaselabel="med_phases_prep_ocn_merge", specRoutine=NUOPC_NoOp, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
-         phaseLabelList=(/"med_phases_prep_ocn_accum_fast"/), userRoutine=mediator_routine_Run, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
-         specPhaseLabel="med_phases_prep_ocn_accum_fast", specRoutine=med_phases_prep_ocn_accum_fast, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_TimestampExport, &
-         specPhaselabel="med_phases_prep_ocn_accum_fast", specRoutine=NUOPC_NoOp, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
-         phaseLabelList=(/"med_phases_prep_ocn_accum_avg"/), userRoutine=mediator_routine_Run, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
-         specPhaseLabel="med_phases_prep_ocn_accum_avg", specRoutine=med_phases_prep_ocn_accum_avg, rc=rc)
+         specPhaseLabel="med_phases_post_atm", specRoutine=med_phases_post_atm, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !------------------
-    ! prep routines for ice
+    ! prep and post routines for ocn
+    !------------------
+
+    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
+         phaseLabelList=(/"med_phases_prep_ocn_accum"/), userRoutine=mediator_routine_Run, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
+         specPhaseLabel="med_phases_prep_ocn_accum", specRoutine=med_phases_prep_ocn_accum, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_TimestampExport, &
+         specPhaselabel="med_phases_prep_ocn_accum", specRoutine=NUOPC_NoOp, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
+         phaseLabelList=(/"med_phases_prep_ocn_avg"/), userRoutine=mediator_routine_Run, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
+         specPhaseLabel="med_phases_prep_ocn_avg", specRoutine=med_phases_prep_ocn_avg, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
+         phaseLabelList=(/"med_phases_post_ocn"/), userRoutine=mediator_routine_Run, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
+         specPhaseLabel="med_phases_post_ocn", specRoutine=med_phases_post_ocn, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_TimestampExport, &
+         specPhaselabel="med_phases_post_ocn", specRoutine=NUOPC_NoOp, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+ 
+    !------------------
+    ! prep and post routines for ice
     !------------------
 
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
@@ -282,6 +287,17 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
          specPhaseLabel="med_phases_prep_ice", specRoutine=med_phases_prep_ice, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    ! note that med_fraction_set is now called from post_ice
+    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
+         phaseLabelList=(/"med_phases_post_ice"/), userRoutine=mediator_routine_Run, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
+         specPhaseLabel="med_phases_post_ice", specRoutine=med_phases_post_ice, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_TimestampExport, &
+         specPhaselabel="med_phases_post_ice", specRoutine=NUOPC_NoOp, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !------------------
@@ -295,29 +311,40 @@ contains
          specPhaseLabel="med_phases_prep_lnd", specRoutine=med_phases_prep_lnd, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    !------------------
-    ! prep routines for rof
-    !------------------
-
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
-         phaseLabelList=(/"med_phases_prep_rof_avg"/), userRoutine=mediator_routine_Run, rc=rc)
+         phaseLabelList=(/"med_phases_post_lnd"/), userRoutine=mediator_routine_Run, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
-         specPhaseLabel="med_phases_prep_rof_avg", specRoutine=med_phases_prep_rof_avg, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
-         phaseLabelList=(/"med_phases_prep_rof_accum"/), userRoutine=mediator_routine_Run, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
-         specPhaseLabel="med_phases_prep_rof_accum", specRoutine=med_phases_prep_rof_accum, rc=rc)
+         specPhaseLabel="med_phases_post_lnd", specRoutine=med_phases_post_lnd, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_TimestampExport, &
-         specPhaselabel="med_phases_prep_rof_accum", specRoutine=NUOPC_NoOp, rc=rc)
+         specPhaselabel="med_phases_post_lnd", specRoutine=NUOPC_NoOp, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !------------------
-    ! prep routines for wav
+    ! prep and post routines for rof
+    !------------------
+
+    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
+         phaseLabelList=(/"med_phases_prep_rof"/), userRoutine=mediator_routine_Run, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
+         specPhaseLabel="med_phases_prep_rof", specRoutine=med_phases_prep_rof, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    ! post routine for rof (mapping to lnd, ocn, ice)
+    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
+         phaseLabelList=(/"med_phases_post_rof"/), userRoutine=mediator_routine_Run, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
+         specPhaseLabel="med_phases_post_rof", specRoutine=med_phases_post_rof, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_TimestampExport, &
+         specPhaselabel="med_phases_post_rof", specRoutine=NUOPC_NoOp, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    !------------------
+    ! prep and post routines for wav
     !------------------
 
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
@@ -327,25 +354,36 @@ contains
          specPhaseLabel="med_phases_prep_wav", specRoutine=med_phases_prep_wav, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    !------------------
-    ! prep routines for glc
-    !------------------
-
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
-         phaseLabelList=(/"med_phases_prep_glc_avg"/), userRoutine=mediator_routine_Run, rc=rc)
+         phaseLabelList=(/"med_phases_post_wav"/), userRoutine=mediator_routine_Run, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
-         specPhaseLabel="med_phases_prep_glc_avg", specRoutine=med_phases_prep_glc_avg, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
-         phaseLabelList=(/"med_phases_prep_glc_accum"/), userRoutine=mediator_routine_Run, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
-         specPhaseLabel="med_phases_prep_glc_accum", specRoutine=med_phases_prep_glc_accum, rc=rc)
+         specPhaseLabel="med_phases_post_wav", specRoutine=med_phases_post_wav, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_TimestampExport, &
-         specPhaselabel="med_phases_prep_glc_accum", specRoutine=NUOPC_NoOp, rc=rc)
+         specPhaselabel="med_phases_post_wav", specRoutine=NUOPC_NoOp, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    !------------------
+    ! prep and post routines for glc
+    !------------------
+
+    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
+         phaseLabelList=(/"med_phases_prep_glc"/), userRoutine=mediator_routine_Run, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
+         specPhaseLabel="med_phases_prep_glc", specRoutine=med_phases_prep_glc, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    ! post routine for glc (mapping to lnd, ocn, ice)
+    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
+         phaseLabelList=(/"med_phases_post_glc"/), userRoutine=mediator_routine_Run, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
+         specPhaseLabel="med_phases_post_glc", specRoutine=med_phases_post_glc, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_TimestampExport, &
+         specPhaselabel="med_phases_post_glc", specRoutine=NUOPC_NoOp, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !------------------
@@ -560,16 +598,22 @@ contains
        logUnit = 6
     endif
 
-    ! Obtain Verbosity
+    ! Obtain verbosity level
     call ESMF_AttributeGet(gcomp, name="Verbosity", value=cvalue, defaultValue="max", &
          convention="NUOPC", purpose="Instance", rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_LogWrite(trim(subname)//": Mediator verbosity is "//trim(cvalue), ESMF_LOGMSG_INFO)
+    if (mastertask) then
+       write(logunit,'(a)')trim(subname)//": Mediator verbosity is set to "//trim(cvalue)
+    end if
 
-    call ESMF_AttributeGet(gcomp, name="Profiling", value=cvalue, &
-         convention="NUOPC", purpose="Instance", rc=rc)
+    ! Obtain profiling level
+    call NUOPC_CompAttributeGet(gcomp, name="Profiling", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_LogWrite(trim(subname)//": Mediator profiling is set to "//trim(cvalue), ESMF_LOGMSG_INFO)
+    if (isPresent .and. isSet) then
+       if (mastertask) then
+          write(logunit,'(a)') trim(subname)//": Mediator profiling is set to "//trim(cvalue)
+       end if
+    end if
 
     ! Obtain dbug_flag setting if present; otherwise use default value in med_constants
     call NUOPC_CompAttributeGet(gcomp, name='dbug_flag', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
@@ -616,10 +660,6 @@ contains
     character(len=8)    :: cnum
     type(InternalState) :: is_local
     integer             :: stat
-    character(len=8)    :: atm_present, lnd_present
-    character(len=8)    :: ice_present, rof_present
-    character(len=8)    :: glc_present, med_present
-    character(len=8)    :: ocn_present, wav_present
     character(len=CS)   :: attrList(8)
     character(len=*),parameter :: subname=' (module_MED:InitializeIPDv03p1) '
     !-----------------------------------------------------------
@@ -1647,8 +1687,14 @@ contains
     use NUOPC                   , only : NUOPC_CompAttributeGet
     use med_fraction_mod        , only : med_fraction_init, med_fraction_set
     use med_phases_restart_mod  , only : med_phases_restart_read
-    use med_phases_prep_glc_mod , only : med_phases_prep_glc_init
     use med_phases_prep_atm_mod , only : med_phases_prep_atm
+    use med_phases_post_atm_mod , only : med_phases_post_atm
+    use med_phases_post_ice_mod , only : med_phases_post_ice
+    use med_phases_post_lnd_mod , only : med_phases_post_lnd_init
+    use med_phases_post_glc_mod , only : med_phases_post_glc
+    use med_phases_post_ocn_mod , only : med_phases_post_ocn
+    use med_phases_post_rof_mod , only : med_phases_post_rof
+    use med_phases_post_wav_mod , only : med_phases_post_wav
     use med_phases_ocnalb_mod   , only : med_phases_ocnalb_run
     use med_phases_aofluxes_mod , only : med_phases_aofluxes_run
     use med_phases_profile_mod  , only : med_phases_profile
@@ -1716,7 +1762,7 @@ contains
       !----------------------------------------------------------
       ! Initialize mediator present flags
       !----------------------------------------------------------
-       
+
       if (mastertask) then
          write(logunit,'(a)') trim(subname) // "Initializing present flags"
       end if
@@ -1761,7 +1807,7 @@ contains
 
       ! This defines the med_coupling_allowed is a starting point for what is
       ! allowed in this coupled system.  It will be revised further after the system
-      ! starts, but any coupling set to false will never be allowed.  
+      ! starts, but any coupling set to false will never be allowed.
       ! are allowed, just update the table below.
 
       if (mastertask) then
@@ -1809,7 +1855,7 @@ contains
       med_coupling_allowed(compocn,compwav) = .true.
       med_coupling_allowed(compice,compwav) = .true.
 
-      ! to land-ice 
+      ! to land-ice
       do ns = 1,num_icesheets
          med_coupling_allowed(complnd,compglc(ns)) = .true.
       end do
@@ -2217,6 +2263,11 @@ contains
           deallocate(fieldNameList)
 
           if (.not. compDone(compatm)) then  ! atmdone is not true
+             if (trim(lnd_present) == 'true') then
+                ! map initial lnd->atm
+                call med_phases_post_lnd_init(gcomp, rc)
+                if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             end if
              ! do the merge to the atmospheric component
              call med_phases_prep_atm(gcomp, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -2260,9 +2311,11 @@ contains
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
              if (.not. atCorrectTime) then
                 allDone=.false.
-                if (mastertask) then
-                   write(logunit,'(A)') trim(subname)//" MED - Initialize-Data-Dependency check Failed for "//&
-                        trim(compname(n1))
+                if (dbug_flag > 0) then
+                   if (mastertask) then
+                      write(logunit,'(A)') trim(subname)//" MED - Initialize-Data-Dependency check not yet satisfied for "//&
+                           trim(compname(n1))
+                   end if
                 end if
              endif
           enddo
@@ -2282,7 +2335,10 @@ contains
     !---------------------------------------
 
     if (allDone) then
-       if (mastertask) write(logunit,*)
+       if (mastertask) then
+          write(logunit,*)
+          write(logunit,'(a)') trim(subname)//"Initialize-Data-Dependency allDone check Passed"
+       end if
        do n1 = 1,ncomps
           if (is_local%wrap%comp_present(n1) .and. ESMF_StateIsCreated(is_local%wrap%NStateImp(n1),rc=rc)) then
              call State_GetScalar(scalar_value=real_nx, &
@@ -2309,13 +2365,11 @@ contains
        !---------------------------------------
        ! Initialize mediator IO
        !---------------------------------------
-
        call med_io_init()
 
        !---------------------------------------
        ! Initialize mediator water/heat budget diags
        !---------------------------------------
-
        call med_diag_init(gcomp, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call med_diag_zero(gcomp, mode='all', rc=rc)
@@ -2324,24 +2378,62 @@ contains
        !---------------------------------------
        ! read mediator restarts
        !---------------------------------------
-
        call NUOPC_CompAttributeGet(gcomp, name="read_restart", value=cvalue, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-       call ESMF_LogWrite(subname//' read_restart = '//trim(cvalue), ESMF_LOGMSG_INFO)
+       if (mastertask) then
+          write(logunit,'(a)') trim(subname)//' read_restart = '//trim(cvalue)
+       end if
        read(cvalue,*) read_restart
-
        if (read_restart) then
          call med_phases_restart_read(gcomp, rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
        endif
+
+       !---------------------------------------
+       ! Call post routines as part of initialization
+       !---------------------------------------
+       if (trim(atm_present) == 'true') then
+          ! map atm->ocn, atm->ice, atm->lnd
+          call med_phases_post_atm(gcomp, rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       end if
+       if (trim(ice_present) == 'true') then
+          ! call set ice_frac and map ice->atm and ice->ocn
+          call med_phases_post_ice(gcomp, rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       end if
+       if (trim(glc_present) == 'true') then
+          ! map initial glc->lnd, glc->ocn and glc->ice
+          call med_phases_post_glc(gcomp, rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       end if
+       if (trim(lnd_present) == 'true') then
+          ! map initial lnd->atm
+          call med_phases_post_lnd_init(gcomp, rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       end if
+       if (trim(ocn_present) == 'true') then
+          ! map initial ocn->ice
+          call med_phases_post_ocn(gcomp, rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       end if
+       if (trim(rof_present) == 'true') then
+          ! map initial rof->lnd, rof->ocn and rof->ice
+          call med_phases_post_rof(gcomp, rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       end if
+       if (trim(wav_present) == 'true') then
+          ! map initial wav->ocn and wav->ice
+          call med_phases_post_wav(gcomp, rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       end if
 
        call med_phases_profile(gcomp, rc)
 
     else ! Not all done
        call NUOPC_CompAttributeSet(gcomp, name="InitializeDataComplete", value="false", rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_LogWrite("MED - Initialize-Data-Dependency allDone check Failed, another loop is required", &
+       call ESMF_LogWrite("MED - Initialize-Data-Dependency allDone check not yet satisfied, another loop is required", &
             ESMF_LOGMSG_INFO)
 
     end if
