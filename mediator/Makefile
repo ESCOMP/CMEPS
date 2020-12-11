@@ -7,8 +7,8 @@ ESMF_VERSION_MAJOR ?= 0
 ESMF_VERSION_MINOR ?= 0
 CPPDEFS += -DESMF_VERSION_MAJOR=$(ESMF_VERSION_MAJOR) -DESMF_VERSION_MINOR=$(ESMF_VERSION_MINOR)
 
-ifndef PIO_INCLUDE_DIR
-$(error PIO_INCLUDE_DIR not set)
+ifndef PIO_INC
+$(error PIO_INC should point to PIO include directory.)
 endif
 
 ifeq ($(INTERNAL_PIO_INIT),1)
@@ -25,7 +25,7 @@ $(LIBRARY): $(OBJ)
         $(AR) $(ARFLAGS) $@ $?
 
 %.o: %.F90
-	$(ESMF_F90COMPILER) -c $(ESMF_F90COMPILEOPTS) $(ESMF_F90COMPILEPATHS) $(CPPDEFS) -I$(PIO_ROOT)/include -I../nems/util $*.F90
+	$(ESMF_F90COMPILER) -c $(ESMF_F90COMPILEOPTS) $(ESMF_F90COMPILEPATHS) $(CPPDEFS) -I${PIO_INC} -I../nems/util $*.F90
 
 clean:
         $(RM) -f $(LIBRARY) *.i90 *.o *.mod
