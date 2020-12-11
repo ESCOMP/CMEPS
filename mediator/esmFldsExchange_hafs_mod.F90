@@ -186,6 +186,12 @@ contains
     call addfld(fldListTo(compatm)%flds, 'Si_ifrac')
     call addfld(fldListTo(compatm)%flds, 'So_ofrac')
 
+    !----------------------------------------------------------
+    ! to atm: surface temperatures from ocn 
+    !----------------------------------------------------------
+    call addfld(fldListFr(compocn)%flds, 'So_t')
+    call addfld(fldListTo(compatm)%flds, 'So_t')
+
     !=====================================================================
     ! FIELDS TO OCEAN (compocn)
     !=====================================================================
@@ -591,6 +597,24 @@ contains
     !=====================================================================
     ! FIELDS TO ATMOSPHERE
     !=====================================================================
+
+    !----------------------------------------------------------
+    ! to atm: sea surface temperature
+    !----------------------------------------------------------
+    allocate(flds(1))
+    flds = (/'So_t'/) ! sea_surface_temperature
+    do n = 1,size(flds)
+       fldname = trim(flds(n))
+       if (fldchk(is_local%wrap%FBExp(compatm),trim(fldname),rc=rc) .and. &
+           fldchk(is_local%wrap%FBImp(compocn,compocn),trim(fldname),rc=rc) &
+          ) then
+          call addmap(fldListFr(compocn)%flds, trim(fldname), compatm, &
+               mapfillv_bilnr, hafs_attr%mapnorm, hafs_attr%ocn2atm_smap)
+          call addmrg(fldListTo(compatm)%flds, trim(fldname), &
+               mrg_from1=compocn, mrg_fld1=trim(fldname), mrg_type1='copy')
+       end if
+    end do
+    deallocate(flds)
 
     !=====================================================================
     ! FIELDS TO OCEAN (compocn)
