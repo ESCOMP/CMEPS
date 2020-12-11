@@ -78,6 +78,19 @@ module esmflds
   character(len=CS), public :: coupling_mode ! valid values are [cesm,nems_orig,nems_frac,nems_orig_data,hafs]
 
   !-----------------------------------------------
+  ! Name of model components
+  !-----------------------------------------------
+
+  character(len=CS), public :: med_name = ''
+  character(len=CS), public :: atm_name = ''
+  character(len=CS), public :: lnd_name = ''
+  character(len=CS), public :: ocn_name = ''
+  character(len=CS), public :: ice_name = ''
+  character(len=CS), public :: rof_name = ''
+  character(len=CS), public :: wav_name = ''
+  character(len=CS), public :: glc_name = ''
+
+  !-----------------------------------------------
   ! PUblic methods
   !-----------------------------------------------
 
