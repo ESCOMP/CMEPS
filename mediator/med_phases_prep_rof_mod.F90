@@ -166,7 +166,7 @@ contains
     type(ESMF_Field)          :: field_irrig_flux
     integer                   :: fieldcount
     type(ESMF_Field), pointer :: fieldlist(:) => null()
-    integer                   :: ungriddedUBound(1)     
+    integer                   :: ungriddedUBound(1)
     character(len=*),parameter  :: subname='(med_phases_prep_rof_mod: med_phases_prep_rof_avg)'
     !---------------------------------------
 
@@ -356,7 +356,8 @@ contains
     type(ESMF_Mesh)           :: lmesh_lnd
     type(ESMF_Mesh)           :: lmesh_rof
     real(r8), pointer         :: volr_l(:) => null()
-    real(r8), pointer         :: volr_r(:), volr_r_import(:) => null()
+    real(r8), pointer         :: volr_r(:) => null()
+    real(r8), pointer         :: volr_r_import(:) => null()
     real(r8), pointer         :: irrig_normalized_l(:) => null()
     real(r8), pointer         :: irrig_normalized_r(:) => null()
     real(r8), pointer         :: irrig_volr0_l(:) => null()

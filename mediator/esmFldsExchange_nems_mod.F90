@@ -82,8 +82,9 @@ contains
 
     if ( trim(coupling_mode) == 'nems_orig_data') then
       ! atm and ocn fields required for atm/ocn flux calculation'
-      allocate(flds(6))
-      flds = (/'Sa_u   ','Sa_v   ', 'Sa_z   ', 'Sa_tbot', 'Sa_pbot', 'Sa_shum'/)
+      allocate(flds(10))
+      flds = (/'Sa_u   ','Sa_v   ', 'Sa_z   ', 'Sa_tbot', 'Sa_pbot', 'Sa_shum', &
+               'Sa_u10m','Sa_v10m', 'Sa_t2m ', 'Sa_q2m'/)
       do n = 1,size(flds)
          fldname = trim(flds(n))
          call addfld(fldListFr(compatm)%flds, trim(fldname))
@@ -121,9 +122,9 @@ contains
 
     ! to atm: unmerged from ice
     ! - zonal surface stress, meridional surface stress
-    ! - surface latent heat flux, 
+    ! - surface latent heat flux,
     ! - surface sensible heat flux
-    ! - surface upward longwave heat flux 
+    ! - surface upward longwave heat flux
     ! - evaporation water flux from water
     ! - mean ice volume per unit area
     ! - mean snow volume per unit area
@@ -242,7 +243,7 @@ contains
        end do
        deallocate(flds)
 
-       ! to ocn: long wave net via auto merge 
+       ! to ocn: long wave net via auto merge
        call addfld(fldListTo(compocn)%flds, 'Foxx_lwnet')
        call addfld(fldListFr(compatm)%flds, 'Faxa_lwdn')
        call addmap(fldListFr(compatm)%flds, 'Faxa_lwdn', compocn, maptype, 'none', 'unset')

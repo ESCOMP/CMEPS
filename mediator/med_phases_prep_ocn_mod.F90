@@ -332,18 +332,28 @@ contains
 
     ! local variables
     type(InternalState) :: is_local
-    real(R8), pointer   :: ifrac(:), ofrac(:) => null()
-    real(R8), pointer   :: ifracr(:), ofracr(:) => null()
-    real(R8), pointer   :: avsdr(:), avsdf(:) => null()
-    real(R8), pointer   :: anidr(:), anidf(:) => null()
-    real(R8), pointer   :: Faxa_swvdf(:), Faxa_swndf(:) => null()
-    real(R8), pointer   :: Faxa_swvdr(:), Faxa_swndr(:) => null()
+    real(R8), pointer   :: ifrac(:) => null()
+    real(R8), pointer   :: ofrac(:) => null()
+    real(R8), pointer   :: ifracr(:) => null()
+    real(R8), pointer   :: ofracr(:) => null()
+    real(R8), pointer   :: avsdr(:) => null()
+    real(R8), pointer   :: avsdf(:) => null()
+    real(R8), pointer   :: anidr(:) => null()
+    real(R8), pointer   :: anidf(:) => null()
+    real(R8), pointer   :: Faxa_swvdf(:) => null()
+    real(R8), pointer   :: Faxa_swndf(:) => null()
+    real(R8), pointer   :: Faxa_swvdr(:) => null()
+    real(R8), pointer   :: Faxa_swndr(:) => null()
     real(R8), pointer   :: Foxx_swnet(:) => null()
     real(R8), pointer   :: Foxx_swnet_afracr(:) => null()
-    real(R8), pointer   :: Foxx_swnet_vdr(:), Foxx_swnet_vdf(:) => null()
-    real(R8), pointer   :: Foxx_swnet_idr(:), Foxx_swnet_idf(:) => null()
-    real(R8), pointer   :: Fioi_swpen_vdr(:), Fioi_swpen_vdf(:) => null()
-    real(R8), pointer   :: Fioi_swpen_idr(:), Fioi_swpen_idf(:) => null()
+    real(R8), pointer   :: Foxx_swnet_vdr(:) => null()
+    real(R8), pointer   :: Foxx_swnet_vdf(:) => null()
+    real(R8), pointer   :: Foxx_swnet_idr(:) => null()
+    real(R8), pointer   :: Foxx_swnet_idf(:) => null()
+    real(R8), pointer   :: Fioi_swpen_vdr(:) => null()
+    real(R8), pointer   :: Fioi_swpen_vdf(:) => null()
+    real(R8), pointer   :: Fioi_swpen_idr(:) => null()
+    real(R8), pointer   :: Fioi_swpen_idf(:) => null()
     real(R8), pointer   :: Fioi_swpen(:) => null()
     real(R8), pointer   :: dataptr(:) => null()
     real(R8), pointer   :: dataptr_o(:) => null()
@@ -657,7 +667,7 @@ contains
     end if
 
     ! netsw_for_ocn = [downsw_from_atm*(1-ice_fraction)*(1-ocn_albedo)] + [pensw_from_ice*(ice_fraction)]
-    customwgt(:) = ofrac(:) * (1.0 - 0.06)
+    customwgt(:) = ofrac(:) * (1.0_R8 - 0.06_R8)
     call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_swnet_vdr', &
          FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_swvdr'    , wgtA=customwgt, &
          FBinB=is_local%wrap%FBImp(compice,compocn), fnameB='Fioi_swpen_vdr', wgtB=ifrac, rc=rc)
