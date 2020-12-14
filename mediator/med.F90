@@ -1858,6 +1858,7 @@ contains
       ! to land-ice
       do ns = 1,num_icesheets
          med_coupling_allowed(complnd,compglc(ns)) = .true.
+         med_coupling_allowed(compocn,compglc(ns)) = .true.
       end do
 
       ! initialize med_coupling_active table

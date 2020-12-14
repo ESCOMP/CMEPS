@@ -768,6 +768,31 @@
     </values>
   </entry>
 
+  <entry id="ocn2glc_coupling">
+    <type>logical</type>
+    <category>flds</category>
+    <group>ALLCOMP_attributes</group>
+    <desc>
+      .true. if ocean is sends fields at multiple ocean levels to the land-ice component
+    </desc>
+    <values>
+      <value>.false.</value>
+    </values>
+  </entry>
+
+  <entry id="ocn2glc_levels">
+    <type>char</type>
+    <category>flds</category>
+    <group>ALLCOMP_attributes</group>
+    <desc>
+      if ocean is sends fields at multiple ocean levels to the
+      land-ice component, these are the colon deliminted level indices
+    </desc>
+    <values>
+      <value>1:10:19:26:30:33:35</value>
+    </values>
+  </entry>
+
   <entry id="tfreeze_option" modify_via_xml="TFREEZE_SALTWATER_OPTION">
     <type>char</type>
     <category>control</category>
