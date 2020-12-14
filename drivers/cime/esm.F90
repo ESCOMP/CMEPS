@@ -993,7 +993,7 @@ contains
 #ifdef MED_PRESENT
        if (trim(compLabels(i)) == 'MED') then
           med_id = i + 1
-          if(nthrds > 1) then
+          if(maxthreads > 1) then
              call NUOPC_DriverAddComp(driver, trim(compLabels(i)), MEDSetServices, MEDSetVM, &
                   petList=petlist, comp=child, info=info, rc=rc)
           else
@@ -1006,7 +1006,7 @@ contains
 #endif
 #ifdef ATM_PRESENT
        if (trim(compLabels(i)) .eq. 'ATM') then
-          if(nthrds > 1) then
+          if(maxthreads > 1) then
              call NUOPC_DriverAddComp(driver, trim(compLabels(i)), ATMSetServices, ATMSetVM, &
                   petList=petlist, comp=child, info=info, rc=rc)
           else
@@ -1019,7 +1019,7 @@ contains
 #endif
 #ifdef LND_PRESENT
        if (trim(compLabels(i)) .eq. 'LND') then
-          if(nthrds > 1) then
+          if(maxthreads > 1) then
              call NUOPC_DriverAddComp(driver, trim(compLabels(i)), LNDSetServices, LNDSetVM, &
                   PetList=petlist, comp=child, info=info, rc=rc)
           else
@@ -1032,7 +1032,7 @@ contains
 #endif
 #ifdef OCN_PRESENT
        if (trim(compLabels(i)) .eq. 'OCN') then
-          if(nthrds > 1) then
+          if(maxthreads > 1) then
              call NUOPC_DriverAddComp(driver, trim(compLabels(i)), OCNSetServices, OCNSetVM, &
                   PetList=petlist, comp=child, info=info, rc=rc)
           else
@@ -1045,7 +1045,7 @@ contains
 #endif
 #ifdef ICE_PRESENT
        if (trim(compLabels(i)) .eq. 'ICE') then
-          if(nthrds > 1) then
+          if(maxthreads > 1) then
              call NUOPC_DriverAddComp(driver, trim(compLabels(i)), ICESetServices, ICESetVM, &
                   PetList=petlist, comp=child, info=info, rc=rc)
           else
@@ -1058,7 +1058,7 @@ contains
 #endif
 #ifdef GLC_PRESENT
        if (trim(compLabels(i)) .eq. 'GLC') then
-          if(nthrds > 1) then
+          if(maxthreads > 1) then
              call NUOPC_DriverAddComp(driver, trim(compLabels(i)), GLCSetServices, GLCSetVM, &
                   PetList=petlist, comp=child, info=info, rc=rc)
           else
@@ -1071,7 +1071,7 @@ contains
 #endif
 #ifdef ROF_PRESENT
        if (trim(compLabels(i)) .eq. 'ROF') then
-          if(nthrds > 1) then
+          if(maxthreads > 1) then
              call NUOPC_DriverAddComp(driver, trim(compLabels(i)), ROFSetServices, ROFSetVM, &
                   PetList=petlist, comp=child, info=info, rc=rc)
           else
@@ -1084,7 +1084,7 @@ contains
 #endif
 #ifdef WAV_PRESENT
        if (trim(compLabels(i)) .eq. 'WAV') then
-          if(nthrds > 1) then
+          if(maxthreads > 1) then
              call NUOPC_DriverAddComp(driver, trim(compLabels(i)), WAVSetServices, WAVSetVM, &
                   PetList=petlist, comp=child, info=info, rc=rc)
           else
