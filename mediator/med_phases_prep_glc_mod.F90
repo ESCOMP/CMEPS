@@ -111,7 +111,7 @@ module med_phases_prep_glc_mod
   logical                :: ocn_sends_depths = .false.
 
   logical          :: lnd2glc_coupling = .false.
-  logical          :: ocn2glc_coupling = .true.
+  logical          :: ocn2glc_coupling = .false.
   logical          :: init_prep_glc = .false.
   type(ESMF_Clock) :: prepglc_clock
   character(*), parameter :: u_FILE_u  = &
@@ -407,7 +407,6 @@ contains
        end if
     end do
     if (ocn2glc_coupling) then
-
        ! Get ocean mesh
        call fldbun_getmesh(is_local%wrap%FBImp(compocn,compocn), mesh_o, rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -693,52 +692,56 @@ contains
           end if
        end do
 
-       ! Average import from accumulated ocn import data
-       do n = 1, size(fldnames_fr_ocn)
-          call fldbun_getdata2d(FBocnAccum_o, fldnames_fr_ocn(n), data2d, rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          if (FBocnAccumCnt > 0) then
-             ! If accumulation count is greater than 0, do the averaging
-             data2d(:,:) = data2d(:,:) / real(FBocnAccumCnt)
-          else
-             ! If accumulation count is 0, then simply set the averaged field bundle values from the ocn
-             ! to the import field bundle values
-             call fldbun_getdata2d(is_local%wrap%FBImp(compocn,compocn), fldnames_fr_ocn(n), data2d_import, rc)
+       if (ocn2glc_coupling) then
+          ! Average import from accumulated ocn import data
+          do n = 1, size(fldnames_fr_ocn)
+             call fldbun_getdata2d(FBocnAccum_o, fldnames_fr_ocn(n), data2d, rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
-             data2d(:,:) = data2d_import(:,:)
+             if (FBocnAccumCnt > 0) then
+                ! If accumulation count is greater than 0, do the averaging
+                data2d(:,:) = data2d(:,:) / real(FBocnAccumCnt)
+             else
+                ! If accumulation count is 0, then simply set the averaged field bundle values from the ocn
+                ! to the import field bundle values
+                call fldbun_getdata2d(is_local%wrap%FBImp(compocn,compocn), fldnames_fr_ocn(n), data2d_import, rc)
+                if (chkerr(rc,__LINE__,u_FILE_u)) return
+                data2d(:,:) = data2d_import(:,:)
+             end if
+          end do
+          if (dbug_flag > 1) then
+             call fldbun_diagnose(FBocnAccum_o, string=trim(subname)//' FBocnAccum for after avg for field bundle ', rc=rc)
+             if (chkErr(rc,__LINE__,u_FILE_u)) return
           end if
-       end do
-       if (dbug_flag > 1) then
-          call fldbun_diagnose(FBocnAccum_o, string=trim(subname)//' FBocnAccum for after avg for field bundle ', rc=rc)
+
+          ! Map accumulated ocean field from ocean mesh to land mesh and set FBExp(compglc(ns)) data
+          ! Zero land accumulator and accumulated field bundles on ocean grid
+          do n = 1,size(fldnames_fr_ocn)
+             call ESMF_FieldBundleGet(FBocnAccum_o, fldnames_fr_ocn(n), field=lfield_src, rc=rc)
+             if (chkErr(rc,__LINE__,u_FILE_u)) return
+             do ns = 1,num_icesheets
+                call ESMF_FieldBundleGet(is_local%wrap%FBExp(compglc(ns)), fldnames_fr_ocn(n), field=lfield_dst, rc=rc)
+                if (chkErr(rc,__LINE__,u_FILE_u)) return
+                ! Do mapping of ocn to glc with dynamic masking
+                call ESMF_FieldRegrid(lfield_src, lfield_dst, &
+                     routehandle=is_local%wrap%RH(compocn,compglc(ns),mapbilnr), dynamicMask=dynamicOcnMask, rc=rc)
+                if (chkErr(rc,__LINE__,u_FILE_u)) return
+             end do
+          end do
+          FBocnAccumCnt = 0
+          call fldbun_reset(FBocnAccum_o, value=czero, rc=rc)
           if (chkErr(rc,__LINE__,u_FILE_u)) return
        end if
 
-       ! Map accumulated field bundle from land grid (with elevation classes) to glc grid (without elevation classes)
-       ! and set FBExp(compglc(ns)) data
-       ! Zero land accumulator and accumulated field bundles on land grid
-       call med_phases_prep_glc_map_lnd2glc(gcomp, rc)
-       if (chkErr(rc,__LINE__,u_FILE_u)) return
-       FBlndAccumCnt = 0
-       call fldbun_reset(FBlndAccum_l, value=czero, rc=rc)
-       if (chkErr(rc,__LINE__,u_FILE_u)) return
-
-       ! Map accumulated ocean field from ocean mesh to land mesh and set FBExp(compglc(ns)) data
-       ! Zero land accumulator and accumulated field bundles on ocean grid
-       do n = 1,size(fldnames_fr_ocn)
-          call ESMF_FieldBundleGet(FBocnAccum_o, fldnames_fr_ocn(n), field=lfield_src, rc=rc)
+       if (lnd2glc_coupling) then
+          ! Map accumulated field bundle from land grid (with elevation classes) to glc grid (without elevation classes)
+          ! and set FBExp(compglc(ns)) data
+          ! Zero land accumulator and accumulated field bundles on land grid
+          call med_phases_prep_glc_map_lnd2glc(gcomp, rc)
           if (chkErr(rc,__LINE__,u_FILE_u)) return
-          do ns = 1,num_icesheets
-             call ESMF_FieldBundleGet(is_local%wrap%FBExp(compglc(ns)), fldnames_fr_ocn(n), field=lfield_dst, rc=rc)
-             if (chkErr(rc,__LINE__,u_FILE_u)) return
-             ! Do mapping of ocn to glc with dynamic masking
-             call ESMF_FieldRegrid(lfield_src, lfield_dst, &
-                  routehandle=is_local%wrap%RH(compocn,compglc(ns),mapbilnr), dynamicMask=dynamicOcnMask, rc=rc)
-             if (chkErr(rc,__LINE__,u_FILE_u)) return
-          end do
-       end do
-       FBocnAccumCnt = 0
-       call fldbun_reset(FBocnAccum_o, value=czero, rc=rc)
-       if (chkErr(rc,__LINE__,u_FILE_u)) return
+          FBlndAccumCnt = 0
+          call fldbun_reset(FBlndAccum_l, value=czero, rc=rc)
+          if (chkErr(rc,__LINE__,u_FILE_u)) return
+       end if
 
        if (dbug_flag > 1) then
           do ns = 1,num_icesheets
