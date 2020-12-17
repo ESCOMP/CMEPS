@@ -138,15 +138,17 @@ contains
        end if
 
        ! obtain nextsw_cday from atm import on all tasks
-       scalar_id=is_local%wrap%flds_scalar_index_nextsw_cday
-       if (mastertask) then
-          tmp(1) = dataptr_scalar_atm(scalar_id,1)
+       if(is_local%wrap%flds_scalar_index_nextsw_cday .ne. 0) then
+          scalar_id=is_local%wrap%flds_scalar_index_nextsw_cday
+          if (mastertask) then
+             tmp(1) = dataptr_scalar_atm(scalar_id,1)
+          end if
+          call ESMF_VMBroadCast(is_local%wrap%vm, tmp, 1, 0, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          ! set nextsw_cday on all ice export tasks
+          dataptr_scalar_ice(scalar_id,1) = tmp(1)
+          call t_stopf('MED:'//trim(subname)//' nextsw_cday')
        end if
-       call ESMF_VMBroadCast(is_local%wrap%vm, tmp, 1, 0, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       ! set nextsw_cday on all ice export tasks
-       dataptr_scalar_ice(scalar_id,1) = tmp(1)
-       call t_stopf('MED:'//trim(subname)//' nextsw_cday')
     end if
 
     if (dbug_flag > 1) then
