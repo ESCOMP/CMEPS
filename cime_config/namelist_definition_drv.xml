@@ -18,15 +18,6 @@
     </values>
   </entry>
 
-  <entry id="Profiling@driver_attributes" modify_via_xml="ESMF_PROFILING_LEVEL">
-    <type>char</type>
-    <category>nuopc</category>
-    <group>DRIVER_attributes</group>
-    <values>
-      <value>$ESMF_PROFILING_LEVEL</value>
-    </values>
-  </entry>
-
   <entry id="Verbosity@med_attributes" modify_via_xml="ESMF_VERBOSITY_LEVEL">
     <type>char</type>
     <category>nuopc</category>
@@ -392,6 +383,15 @@
   <!-- =========================================== -->
   <!-- All components orbital attributes           -->
   <!-- =========================================== -->
+
+  <entry id="Profiling" modify_via_xml="ESMF_PROFILING_LEVEL">
+    <type>char</type>
+    <category>nuopc</category>
+    <group>ALLCOMP_attributes</group>
+    <values>
+      <value>$ESMF_PROFILING_LEVEL</value>
+    </values>
+  </entry>
 
   <entry id="orb_mode">
     <type>char</type>

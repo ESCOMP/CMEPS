@@ -17,30 +17,8 @@ module med_internalstate_mod
   logical, public :: mastertask=.false. ! is this the mastertask
   integer, public :: med_id             ! needed currently in med_io_mod and set in esm.F90
 
-  ! Active coupling definitions
-  ! This defines the med_mapping_allowed is a starting point for what is
-  ! allowed in this coupled system.  It will be revised further after the system
-  ! starts, but any coupling set to false will never be allowed.  As new connections
-  ! are allowed, just update the table below.
-  ! - the rows are the destination of coupling
-  ! - the columns are the source of coupling
-  ! - So, the second column indicates which models the atm is coupled to.
-  ! - And the second row indicates which models are coupled to the atm.
-  ! The mediator is not connected to any components because the mediator
-  ! doesn't have it's own grid and only acts as a hub.
-
-  ! tcraig, turned off glc2ocn and glc2ice for time being
-  logical, public, parameter :: med_coupling_allowed(ncomps,ncomps) = &
-       reshape([ .false., .false., .false., .false., .false., .false., .false., .false., &  ! med
-       .false., .false., .true. , .true. , .true. , .false., .false., .false., &  ! atm
-       .false., .true. , .false., .false., .false., .true. , .false., .true. , &  ! lnd
-       .false., .true. , .false., .false., .true. , .true. , .true. , .false., &  ! ocn
-       .false., .true. , .false., .true. , .false., .true. , .false., .false., &  ! ice
-       .false., .false., .true. , .false., .false., .false., .false., .false., &  ! rof
-       .false., .true. , .false., .true. , .true. , .false., .false., .false., &  ! wav
-       .false., .false., .true. , .false., .false., .false., .false., .false.  ], & ! glc
-       shape(med_coupling_allowed))
-   !   med      atm      lnd      ocn      ice      rof      wav      glc
+  ! Active coupling definitions (will be initialize in med.F90)
+  logical, public :: med_coupling_allowed(ncomps, ncomps)
 
   type, public ::  mesh_info_type
      real(r8), pointer :: areas(:) => null()
@@ -121,10 +99,8 @@ module med_internalstate_mod
 
  end type InternalStateStruct
 
-  type, public :: InternalState
+ type, public :: InternalState
     type(InternalStateStruct), pointer :: wrap
  end type InternalState
-
-  !-----------------------------------------------------------------------------
 
 end module med_internalstate_mod

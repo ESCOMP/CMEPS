@@ -138,7 +138,7 @@ contains
        call addfld(fldListFr(compice)%flds, trim(fldname))
        call addfld(fldListTo(compatm)%flds, trim(fldname))
        call addmap(fldListFr(compice)%flds, trim(fldname), compatm, maptype, 'ifrac', 'unset')
-       call addmrg(fldListTo(compatm)%flds, trim(fldname), mrg_from1=compice, mrg_fld1=trim(fldname), mrg_type1='copy')
+       call addmrg(fldListTo(compatm)%flds, trim(fldname), mrg_from=compice, mrg_fld=trim(fldname), mrg_type='copy')
     end do
     deallocate(flds)
 
@@ -146,7 +146,7 @@ contains
     call addfld(fldListFr(compocn)%flds, 'So_t')
     call addfld(fldListTo(compatm)%flds, 'So_t')
     call addmap(fldListFr(compocn)%flds, 'So_t', compatm, maptype, 'ofrac', 'unset')
-    call addmrg(fldListTo(compatm)%flds, 'So_t', mrg_from1=compocn, mrg_fld1='So_t', mrg_type1='copy')
+    call addmrg(fldListTo(compatm)%flds, 'So_t', mrg_from=compocn, mrg_fld='So_t', mrg_type='copy')
 
     !=====================================================================
     ! FIELDS TO OCEAN (compocn)
@@ -156,7 +156,7 @@ contains
     call addfld(fldListTo(compocn)%flds, 'Sa_pslv')
     call addfld(fldListFr(compatm)%flds, 'Sa_pslv')
     call addmap(fldListFr(compatm)%flds, 'Sa_pslv', compocn, maptype, 'none', 'unset')
-    call addmrg(fldListTo(compocn)%flds, 'Sa_pslv', mrg_from1=compatm, mrg_fld1='Sa_pslv', mrg_type1='copy')
+    call addmrg(fldListTo(compocn)%flds, 'Sa_pslv', mrg_from=compatm, mrg_fld='Sa_pslv', mrg_type='copy')
 
     ! to ocn: from atm (custom merge in med_phases_prep_ocn)
     ! - downward direct  near-infrared incident solar radiation
@@ -196,7 +196,7 @@ contains
        call addfld(fldListFr(compatm)%flds, trim(fldname))
        call addmap(fldListFr(compatm)%flds, trim(fldname), compocn, maptype, 'none', 'unset')
        call addmrg(fldListTo(compocn)%flds, trim(fldname), &
-            mrg_from1=compatm, mrg_fld1=trim(fldname), mrg_type1='copy_with_weights', mrg_fracname1='ofrac')
+            mrg_from=compatm, mrg_fld=trim(fldname), mrg_type='copy_with_weights', mrg_fracname='ofrac')
     end do
     deallocate(flds)
 
@@ -218,7 +218,7 @@ contains
        call addfld(fldListFr(compatm)%flds, 'Faxa_lwnet')
        call addmap(fldListFr(compatm)%flds, 'Faxa_lwnet', compocn, maptype, 'none', 'unset')
        call addmrg(fldListTo(compocn)%flds, 'Faxa_lwnet', &
-            mrg_from1=compatm, mrg_fld1='Faxa_lwnet', mrg_type1='copy_with_weights', mrg_fracname1='ofrac')
+            mrg_from=compatm, mrg_fld='Faxa_lwnet', mrg_type='copy_with_weights', mrg_fracname='ofrac')
 
        ! to ocn: merged sensible heat flux (custom merge in med_phases_prep_ocn)
        call addfld(fldListTo(compocn)%flds, 'Faxa_sen')
@@ -238,8 +238,9 @@ contains
           call addfld(fldListFr(compice)%flds , 'Fioi_'//trim(flds(n)))
           call addmap(fldListFr(compice)%flds,  'Fioi_'//trim(flds(n)), compocn, mapfcopy, 'unset', 'unset')
           call addmrg(fldListTo(compocn)%flds,  'Foxx_'//trim(flds(n)), &
-             mrg_from1=compmed, mrg_fld1='Faox_'//trim(flds(n)), mrg_type1='merge', mrg_fracname1='ofrac', &
-             mrg_from2=compice, mrg_fld2='Fioi_'//trim(flds(n)), mrg_type2='merge', mrg_fracname2='ifrac')
+               mrg_from=compmed, mrg_fld='Faox_'//trim(flds(n)), mrg_type='merge', mrg_fracname='ofrac')
+          call addmrg(fldListTo(compocn)%flds,  'Foxx_'//trim(flds(n)), &
+               mrg_from=compice, mrg_fld='Fioi_'//trim(flds(n)), mrg_type='merge', mrg_fracname='ifrac')
        end do
        deallocate(flds)
 
@@ -248,18 +249,19 @@ contains
        call addfld(fldListFr(compatm)%flds, 'Faxa_lwdn')
        call addmap(fldListFr(compatm)%flds, 'Faxa_lwdn', compocn, maptype, 'none', 'unset')
        call addmrg(fldListTo(compocn)%flds, 'Foxx_lwnet', &
-             mrg_from1=compmed, mrg_fld1='Faox_lwup', mrg_type1='merge', mrg_fracname1='ofrac', &
-             mrg_from2=compatm, mrg_fld2='Faxa_lwdn', mrg_type2='merge', mrg_fracname2='ofrac')
+             mrg_from=compmed, mrg_fld='Faox_lwup', mrg_type='merge', mrg_fracname='ofrac')
+       call addmrg(fldListTo(compocn)%flds, 'Foxx_lwnet', &
+             mrg_from=compatm, mrg_fld='Faxa_lwdn', mrg_type='merge', mrg_fracname='ofrac')
 
        ! to ocn: sensible heat flux from mediator via auto merge
        call addfld(fldListTo(compocn)%flds, 'Faox_sen')
        call addmrg(fldListTo(compocn)%flds, 'Faox_sen', &
-          mrg_from1=compmed, mrg_fld1='Faox_sen', mrg_type1='copy_with_weights', mrg_fracname1='ofrac')
+          mrg_from=compmed, mrg_fld='Faox_sen', mrg_type='copy_with_weights', mrg_fracname='ofrac')
 
        ! to ocn: evaporation water flux from mediator via auto merge
        call addfld(fldListTo(compocn)%flds, 'Faox_evap')
        call addmrg(fldListTo(compocn)%flds, 'Faox_evap', &
-          mrg_from1=compmed, mrg_fld1='Faox_evap', mrg_type1='copy_with_weights', mrg_fracname1='ofrac')
+          mrg_from=compmed, mrg_fld='Faox_evap', mrg_type='copy_with_weights', mrg_fracname='ofrac')
     end if
 
     ! to ocn: water flux due to melting ice from ice
@@ -273,7 +275,7 @@ contains
        call addfld(fldListTo(compocn)%flds, trim(fldname))
        call addmap(fldListFr(compice)%flds, trim(fldname), compocn,  mapfcopy, 'unset', 'unset')
        call addmrg(fldListTo(compocn)%flds, trim(fldname), &
-            mrg_from1=compice, mrg_fld1=trim(fldname), mrg_type1='copy_with_weights', mrg_fracname1='ifrac')
+            mrg_from=compice, mrg_fld=trim(fldname), mrg_type='copy_with_weights', mrg_fracname='ifrac')
     end do
     deallocate(flds)
 
@@ -298,7 +300,7 @@ contains
        call addfld(fldListFr(compatm)%flds, trim(fldname))
        call addfld(fldListTo(compice)%flds, trim(fldname))
        call addmap(fldListFr(compatm)%flds, trim(fldname), compice, maptype, 'none', 'unset')
-       call addmrg(fldListTo(compice)%flds, trim(fldname), mrg_from1=compatm, mrg_fld1=trim(fldname), mrg_type1='copy')
+       call addmrg(fldListTo(compice)%flds, trim(fldname), mrg_from=compatm, mrg_fld=trim(fldname), mrg_type='copy')
     end do
     deallocate(flds)
 
@@ -316,7 +318,7 @@ contains
        call addfld(fldListTo(compice)%flds, trim(fldname))
        call addfld(fldListFr(compatm)%flds, trim(fldname))
        call addmap(fldListFr(compatm)%flds, trim(fldname), compice, maptype, 'none', 'unset')
-       call addmrg(fldListTo(compice)%flds, trim(fldname), mrg_from1=compatm, mrg_fld1=trim(fldname), mrg_type1='copy')
+       call addmrg(fldListTo(compice)%flds, trim(fldname), mrg_from=compatm, mrg_fld=trim(fldname), mrg_type='copy')
     end do
     deallocate(flds)
 
@@ -335,7 +337,7 @@ contains
        call addfld(fldListTo(compice)%flds, trim(fldname))
        call addfld(fldListFr(compocn)%flds, trim(fldname))
        call addmap(fldListFr(compocn)%flds, trim(fldname), compice, mapfcopy , 'unset', 'unset')
-       call addmrg(fldListTo(compice)%flds, trim(fldname), mrg_from1=compocn, mrg_fld1=trim(fldname), mrg_type1='copy')
+       call addmrg(fldListTo(compice)%flds, trim(fldname), mrg_from=compocn, mrg_fld=trim(fldname), mrg_type='copy')
     end do
     deallocate(flds)
 

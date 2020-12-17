@@ -31,32 +31,38 @@ def gen_runseq(case, coupling_times):
 
         runseq.enter_time_loop(ocn_cpl_time, newtime=((ocn_cpl_time)))
 
-        runseq.add_action("MED med_phases_prep_ocn_accum_avg", med_to_ocn)
-        runseq.add_action("MED -> OCN :remapMethod=redist"   , med_to_ocn)
+        runseq.add_action("MED med_phases_prep_ocn_avg"    , med_to_ocn)
+        runseq.add_action("MED -> OCN :remapMethod=redist" , med_to_ocn)
 
         runseq.enter_time_loop(atm_cpl_time, newtime=((atm_cpl_time < ocn_cpl_time)))
 
-        runseq.add_action ("MED med_phases_prep_ocn_map"        , med_to_ocn)
-        runseq.add_action ("MED med_phases_aofluxes_run"        , run_ocn and run_atm and (med_to_ocn or med_to_atm))
-        runseq.add_action ("MED med_phases_prep_ocn_merge"      , med_to_ocn)
-        runseq.add_action ("MED med_phases_prep_ocn_accum_fast" , med_to_ocn)
-        runseq.add_action ("MED med_phases_ocnalb_run"          , med_to_ocn)
-        runseq.add_action ("MED med_phases_prep_ice"            , med_to_ice)
-        runseq.add_action ("MED -> ICE :remapMethod=redist"     , med_to_ice)
-        runseq.add_action ("ICE"                                , run_ice)
-        runseq.add_action ("ROF"                                , run_rof)
-        runseq.add_action ("ATM"                                , run_atm)
-        runseq.add_action ("ICE -> MED :remapMethod=redist"     , run_ice)
-        runseq.add_action ("MED med_fraction_set"               , run_ice)
-        runseq.add_action ("ROF -> MED :remapMethod=redist"     , run_rof)
-        runseq.add_action ("ATM -> MED :remapMethod=redist"     , run_atm)
-        runseq.add_action ("MED med_phases_history_write"       , atm_cpl_time == ocn_cpl_time)
+        runseq.add_action ("MED med_phases_aofluxes_run"   , run_ocn and run_atm and (med_to_ocn or med_to_atm))
+        runseq.add_action ("MED med_phases_prep_ocn_accum" , med_to_ocn)
+        runseq.add_action ("MED med_phases_ocnalb_run"     , med_to_ocn)
+
+        runseq.add_action ("MED med_phases_prep_ice"        , med_to_ice)
+        runseq.add_action ("MED -> ICE :remapMethod=redist" , med_to_ice)
+
+        runseq.add_action ("ICE" , run_ice)
+        runseq.add_action ("ROF" , run_rof)
+        runseq.add_action ("ATM" , run_atm)
+
+        runseq.add_action ("ICE -> MED :remapMethod=redist" , run_ice)
+        runseq.add_action("MED med_phases_post_ice"         , run_ice)
+
+        runseq.add_action ("ROF -> MED :remapMethod=redist" , run_rof)
+        runseq.add_action("MED med_phases_post_rof"         , run_rof)
+
+        runseq.add_action ("ATM -> MED :remapMethod=redist" , run_atm)
+        runseq.add_action ("MED med_phases_history_write"   , atm_cpl_time == ocn_cpl_time)
+        runseq.add_action ("MED med_phases_post_atm"        , run_atm)
 
         runseq.leave_time_loop(run_rof and (atm_cpl_time < ocn_cpl_time))
 
-        runseq.add_action ("OCN", run_ocn)
-        runseq.add_action ("OCN -> MED :remapMethod=redist"     , run_ocn)
-        runseq.add_action ("MED med_phases_history_write"       , atm_cpl_time < ocn_cpl_time)
+        runseq.add_action ("OCN"                            , run_ocn)
+        runseq.add_action ("OCN -> MED :remapMethod=redist" , run_ocn)
+        runseq.add_action ("MED med_phases_history_write"   , atm_cpl_time < ocn_cpl_time)
+        runseq.add_action ("MED med_phases_post_ocn"        , run_ocn)
 
         runseq.leave_time_loop(True)
 

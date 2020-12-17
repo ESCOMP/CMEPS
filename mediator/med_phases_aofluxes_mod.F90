@@ -154,17 +154,6 @@ contains
 
     call memcheck(subname, 5, mastertask)
 
-    ! TODO(mvertens, 2019-01-12): ONLY regrid atm import fields that are needed for the atm/ocn flux calculation
-    ! Regrid atm import field bundle from atm to ocn grid as input for ocn/atm flux calculation
-    call med_map_field_packed( &
-         FBSrc=is_local%wrap%FBImp(compatm,compatm), &
-         FBDst=is_local%wrap%FBImp(compatm,compocn), &
-         FBFracSrc=is_local%wrap%FBFrac(compatm), &
-         field_normOne=is_local%wrap%field_normOne(compatm,compocn,:), &
-         packed_data=is_local%wrap%packed_data(compatm,compocn,:), &
-         routehandles=is_local%wrap%RH(compatm,compocn,:), rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
     ! Calculate atm/ocn fluxes on the destination grid
     call med_aofluxes_run(gcomp, aoflux, rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
