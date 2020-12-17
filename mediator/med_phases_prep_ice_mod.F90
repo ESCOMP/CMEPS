@@ -36,7 +36,7 @@ contains
   subroutine med_phases_prep_ice(gcomp, rc)
 
     use ESMF  , only : operator(/=)
-    use ESMF  , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_StateGet 
+    use ESMF  , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_StateGet
     use ESMF  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
     use ESMF  , only : ESMF_FieldBundleGet, ESMF_FieldGet, ESMF_Field
     use ESMF  , only : ESMF_LOGMSG_ERROR, ESMF_FAILURE
@@ -165,7 +165,7 @@ contains
 
        if (itemType /= ESMF_STATEITEM_NOTFOUND) then
           if (is_local%wrap%flds_scalar_index_nextsw_cday .ne. 0) then
-             ! send nextsw_cday to ice - first obtain it from atm import 
+             ! send nextsw_cday to ice - first obtain it from atm import
              call State_GetScalar(&
                   scalar_value=nextsw_cday, &
                   scalar_id=is_local%wrap%flds_scalar_index_nextsw_cday, &

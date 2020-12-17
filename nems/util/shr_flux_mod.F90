@@ -86,7 +86,7 @@ contains
   end subroutine shr_flux_adjust_constants
 
   !===============================================================================
-  subroutine shr_flux_atmOcn(nMax  ,zbot  ,ubot  ,vbot  ,thbot ,   & 
+  subroutine shr_flux_atmOcn(nMax  ,zbot  ,ubot  ,vbot  ,thbot ,   &
        &               qbot  ,s16O  ,sHDO  ,s18O  ,rbot  ,   &
        &               tbot  ,us    ,vs    ,   &
        &               ts    ,mask  ,seq_flux_atmocn_minwind, &
@@ -103,22 +103,22 @@ contains
     !--- input arguments --------------------------------
     integer(IN),intent(in) ::       nMax  ! data vector length
     integer(IN),intent(in) :: mask (nMax) ! ocn domain mask       0 <=> out of domain
-    real(R8)   ,intent(in) :: zbot (nMax) ! atm level height      (m)
-    real(R8)   ,intent(in) :: ubot (nMax) ! atm u wind            (m/s)
-    real(R8)   ,intent(in) :: vbot (nMax) ! atm v wind            (m/s)
-    real(R8)   ,intent(in) :: thbot(nMax) ! atm potential T       (K)
-    real(R8)   ,intent(in) :: qbot (nMax) ! atm specific humidity (kg/kg)
-    real(R8)   ,intent(in) :: s16O (nMax) ! atm H216O tracer conc. (kg/kg)
-    real(R8)   ,intent(in) :: sHDO (nMax) ! atm HDO tracer conc.  (kg/kg)
-    real(R8)   ,intent(in) :: s18O (nMax) ! atm H218O tracer conc. (kg/kg)
+    real(R8)   ,intent(in) :: zbot (nMax) ! atm level height                     (m)
+    real(R8)   ,intent(in) :: ubot (nMax) ! atm u wind (bottom or 10m)           (m/s)
+    real(R8)   ,intent(in) :: vbot (nMax) ! atm v wind (bottom or 10m)           (m/s)
+    real(R8)   ,intent(in) :: thbot(nMax) ! atm potential T                      (K)
+    real(R8)   ,intent(in) :: qbot (nMax) ! atm specific humidity (bottom or 2m) (kg/kg)
+    real(R8)   ,intent(in) :: s16O (nMax) ! atm H216O tracer conc.               (kg/kg)
+    real(R8)   ,intent(in) :: sHDO (nMax) ! atm HDO tracer conc.                 (kg/kg)
+    real(R8)   ,intent(in) :: s18O (nMax) ! atm H218O tracer conc.               (kg/kg)
     real(R8)   ,intent(in) :: r16O (nMax) ! ocn H216O tracer ratio/Rstd
     real(R8)   ,intent(in) :: rHDO (nMax) ! ocn HDO tracer ratio/Rstd
     real(R8)   ,intent(in) :: r18O (nMax) ! ocn H218O tracer ratio/Rstd
-    real(R8)   ,intent(in) :: rbot (nMax) ! atm air density       (kg/m^3)
-    real(R8)   ,intent(in) :: tbot (nMax) ! atm T                 (K)
-    real(R8)   ,intent(in) :: us   (nMax) ! ocn u-velocity        (m/s)
-    real(R8)   ,intent(in) :: vs   (nMax) ! ocn v-velocity        (m/s)
-    real(R8)   ,intent(in) :: ts   (nMax) ! ocn temperature       (K)
+    real(R8)   ,intent(in) :: rbot (nMax) ! atm air density                      (kg/m^3)
+    real(R8)   ,intent(in) :: tbot (nMax) ! atm T (bottom or 2m)                 (K)
+    real(R8)   ,intent(in) :: us   (nMax) ! ocn u-velocity                       (m/s)
+    real(R8)   ,intent(in) :: vs   (nMax) ! ocn v-velocity                       (m/s)
+    real(R8)   ,intent(in) :: ts   (nMax) ! ocn temperature                      (K)
     integer(IN),intent(in), optional :: ocn_surface_flux_scheme
     real(R8)   ,intent(in), optional :: seq_flux_atmocn_minwind ! minimum wind speed for atmocn (m/s)
 
@@ -149,7 +149,7 @@ contains
     real(R8),parameter :: zref  = 10.0_R8 ! reference height           (m)
     real(R8),parameter :: ztref =  2.0_R8 ! reference height for air T (m)
     !!++ Large only
-    !real(R8),parameter :: cexcd  = 0.0346_R8 ! ratio Ch(water)/CD 
+    !real(R8),parameter :: cexcd  = 0.0346_R8 ! ratio Ch(water)/CD
     !real(R8),parameter :: chxcds = 0.018_R8  ! ratio Ch(heat)/CD for stable case
     !real(R8),parameter :: chxcdu = 0.0327_R8 ! ratio Ch(heat)/CD for unstable case
     !!++ COARE only
@@ -176,7 +176,7 @@ contains
     real(R8)    :: hol    ! H (at zbot) over L
     real(R8)    :: xsq    ! ?
     real(R8)    :: xqq    ! ?
-    !!++ Large only  
+    !!++ Large only
     real(R8)    :: psimh  ! stability function at zbot (momentum)
     real(R8)    :: psixh  ! stability function at zbot (heat and water)
     real(R8)    :: psix2  ! stability function at ztref reference height
@@ -192,7 +192,6 @@ contains
     real(R8)    :: hsb,hlb         ! sens & lat heat flxs at zbot
     real(R8) :: trf,qrf,urf,vrf ! reference-height quantities
 
-
     !--- local functions --------------------------------
     real(R8)    :: qsat   ! function: the saturation humididty of air (kg/m^3)
     !!++ Large only (formula v*=[c4/U10+c5+c6*U10]*U10 in Large et al. 1994)
@@ -206,7 +205,6 @@ contains
     !--- for cold air outbreak calc --------------------------------
     real(R8)    :: tdiff(nMax)               ! tbot - ts
     real(R8)    :: vscl
-
 
     qsat(Tk)   = 640380.0_R8 / exp(5107.4_R8/Tk)
     cdn(Umps)  =   0.0027_R8 / Umps + 0.000142_R8 + 0.0000764_R8 * Umps
@@ -251,8 +249,6 @@ contains
     !--- for cold air outbreak calc --------------------------------
     tdiff= tbot - ts
 
-    ! Assume that ocn_surface_flux_scheme = 0 for NEMS
-    ! Default flux scheme.
     al2 = log(zref/ztref)
     DO n=1,nMax
        if (mask(n) /= 0) then
@@ -281,7 +277,7 @@ contains
           !--- neutral coefficients, z/L = 0.0 ---
           stable = 0.5_R8 + sign(0.5_R8 , delt)
           rdn    = sqrt(cdn(vmag))
-          rhn    = (1.0_R8-stable) * 0.0327_R8 + stable * 0.018_R8 
+          rhn    = (1.0_R8-stable) * 0.0327_R8 + stable * 0.018_R8
           !(1.0_R8-stable) * chxcdu + stable * chxcds
           ren    = 0.0346_R8 !cexcd
 
@@ -306,7 +302,11 @@ contains
 
              !--- shift wind speed using old coefficient ---
              rd   = rdn / (1.0_R8 + rdn/loc_karman*(alz-psimh))
-             u10n = vmag * rd / rdn
+             if (ocn_surface_flux_scheme == -1)then
+                u10n = vmag
+             else
+                u10n = vmag * rd / rdn
+             end if
 
              !--- update transfer coeffs at 10m and neutral stability ---
              rdn = sqrt(cdn(u10n))
@@ -315,7 +315,11 @@ contains
              !(1.0_R8-stable) * chxcdu + stable * chxcds
 
              !--- shift all coeffs to measurement height and stability ---
-             rd = rdn / (1.0_R8 + rdn/loc_karman*(alz-psimh))
+             if (ocn_surface_flux_scheme == -1)then
+               rd = rdn
+             else
+               rd = rdn / (1.0_R8 + rdn/loc_karman*(alz-psimh))
+             end if
              rh = rhn / (1.0_R8 + rhn/loc_karman*(alz-psixh))
              re = ren / (1.0_R8 + ren/loc_karman*(alz-psixh))
 

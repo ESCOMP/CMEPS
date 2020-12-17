@@ -226,8 +226,10 @@ contains
     integer           :: n
     type(ESMF_Field)  :: field_wgt
     type(ESMF_Field)  :: field_in
-    real(R8), pointer :: dp1 (:), dp2(:,:) => null()  ! output pointers to 1d and 2d fields
-    real(R8), pointer :: dpf1(:), dpf2(:,:) => null() ! intput pointers to 1d and 2d fields
+    real(R8), pointer :: dp1 (:) => null()
+    real(R8), pointer :: dp2(:,:) => null()  ! output pointers to 1d and 2d fields
+    real(R8), pointer :: dpf1(:) => null()
+    real(R8), pointer :: dpf2(:,:) => null() ! intput pointers to 1d and 2d fields
     real(R8), pointer :: dpw1(:) => null()            ! weight pointer
     character(len=*),parameter :: subname=' (med_merge_mod: med_merge)'
     !---------------------------------------

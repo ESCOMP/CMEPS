@@ -157,6 +157,26 @@
        canonical_units: W m-2
        description: atmosphere import - merged ocn/ice flux
      #
+     - standard_name: Sa_u10m
+       alias: inst_zonal_wind_height10m
+       canonical_units: m s-1
+       description: atmosphere export - zonal wind height 10m
+     #
+     - standard_name: Sa_v10m
+       alias: inst_merid_wind_height10m
+       canonical_units: m s-1
+       description: atmosphere export - meridional wind height 10m
+     #
+     - standard_name: Sa_t2m
+       alias: inst_temp_height2m
+       canonical_units: K
+       description: atmosphere export - temperature height 2m
+     #
+     - standard_name: Sa_q2m
+       alias: inst_spec_humid_height2m
+       canonical_units: kg kg -1
+       description: atmosphere export - specifc humidity height 2m
+     #
      #-----------------------------------
      # section: sea-ice export
      #-----------------------------------
@@ -306,7 +326,7 @@
        description: sea-ice export
      #
      - standard_name: Si_u10
-       canonical_units: m
+       canonical_units: m/s
        description: sea-ice export
      #
      - standard_name: Si_vice
@@ -521,10 +541,6 @@
      # section: atmosphere fields that need to be defined but are not used
      #-----------------------------------
      #
-     - standard_name: inst_temp_height2m
-       canonical_units: K
-     - standard_name: inst_spec_humid_height2m
-       canonical_units: K
      - standard_name: inst_down_lw_flx
        canonical_units: W m-2
      - standard_name: inst_net_lw_flx
@@ -551,10 +567,6 @@
        canonical_units: W m-2
      - standard_name: inst_surface_height
        canonical_units: m
-     - standard_name: inst_zonal_wind_height10m
-       canonical_units: m s-1
-     - standard_name: inst_merid_wind_height10m
-       canonical_units: m s-1
      - standard_name: inst_zonal_moment_flx
        canonical_units: N m-2
      - standard_name: inst_merid_moment_flx
