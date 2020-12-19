@@ -399,8 +399,6 @@ def _create_runseq(case, coupling_times, valid_comps):
                 from runseq_D import gen_runseq
             elif (comp_lnd == 'dlnd' and comp_glc == "cism"):
                 from runseq_TG import gen_runseq
-            elif (comp_atm == 'ufsatm' and comp_ocn == "mom" and comp_ice == 'cice'):
-                from runseq_NEMS import gen_runseq
             else:
                 from runseq_general import gen_runseq
 
@@ -571,10 +569,8 @@ def buildnml(case, caseroot, component):
         filename = os.path.join(fd_dir,"fd_cesm.yaml")
     elif coupling_mode == 'hafs':
         filename = os.path.join(fd_dir,"fd_hafs.yaml")
-    elif 'nems' in coupling_mode:
-        filename = os.path.join(fd_dir,"fd_nems.yaml")
     else:
-        expect(False, "coupling mode currently only supports cesm, hafs and nems")
+        expect(False, "coupling mode currently only supports cesm")
     shutil.copy(filename, os.path.join(rundir, "fd.yaml"))
 
 ###############################################################################
