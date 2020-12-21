@@ -851,6 +851,161 @@
   <!-- MED general attributes                      -->
   <!-- =========================================== -->
 
+  <entry id="atm_nx" modify_via_xml="ATM_NX">
+    <type>integer</type>
+    <category>control</category>
+    <group>MED_attributes</group>
+    <desc>
+      number of atm cells in i direction
+    </desc>
+    <values>
+      <value>$ATM_NX</value>
+    </values>
+  </entry>
+  <entry id="atm_ny" modify_via_xml="ATM_NY">
+    <type>integer</type>
+    <category>control</category>
+    <group>MED_attributes</group>
+    <desc>
+      number of atm cells in j direction
+    </desc>
+    <values>
+      <value>$ATM_NY</value>
+    </values>
+  </entry>
+  <entry id="ice_nx" modify_via_xml="ICE_NX">
+    <type>integer</type>
+    <category>control</category>
+    <group>MED_attributes</group>
+    <desc>
+      number of ice cells in i direction
+    </desc>
+    <values>
+      <value>$ICE_NX</value>
+    </values>
+  </entry>
+  <entry id="ice_ny" modify_via_xml="ICE_NY">
+    <type>integer</type>
+    <category>control</category>
+    <group>MED_attributes</group>
+    <desc>
+      number of ice cells in j direction
+    </desc>
+    <values>
+      <value>$ICE_NY</value>
+    </values>
+  </entry>
+  <entry id="glc_nx" modify_via_xml="GLC_NX">
+    <type>integer</type>
+    <category>control</category>
+    <group>MED_attributes</group>
+    <desc>
+      number of glc cells in i direction
+    </desc>
+    <values>
+      <value>$GLC_NX</value>
+    </values>
+  </entry>
+  <entry id="glc_ny" modify_via_xml="GLC_NY">
+    <type>integer</type>
+    <category>control</category>
+    <group>MED_attributes</group>
+    <desc>
+      number of glc cells in j direction
+    </desc>
+    <values>
+      <value>$GLC_NY</value>
+    </values>
+  </entry>
+  <entry id="lnd_nx" modify_via_xml="LND_NX">
+    <type>integer</type>
+    <category>control</category>
+    <group>MED_attributes</group>
+    <desc>
+      number of lnd cells in i direction
+    </desc>
+    <values>
+      <value>$LND_NX</value>
+    </values>
+  </entry>
+  <entry id="lnd_ny" modify_via_xml="LND_NY">
+    <type>integer</type>
+    <category>control</category>
+    <group>MED_attributes</group>
+    <desc>
+      number of lnd cells in j direction
+    </desc>
+    <values>
+      <value>$LND_NY</value>
+    </values>
+  </entry>
+  <entry id="ocn_nx" modify_via_xml="OCN_NX">
+    <type>integer</type>
+    <category>control</category>
+    <group>MED_attributes</group>
+    <desc>
+      number of ocn cells in i direction
+    </desc>
+    <values>
+      <value>$OCN_NX</value>
+    </values>
+  </entry>
+  <entry id="ocn_ny" modify_via_xml="OCN_NY">
+    <type>integer</type>
+    <category>control</category>
+    <group>MED_attributes</group>
+    <desc>
+      number of ocn cells in j direction
+    </desc>
+    <values>
+      <value>$OCN_NY</value>
+    </values>
+  </entry>
+  <entry id="rof_nx" modify_via_xml="ROF_NX">
+    <type>integer</type>
+    <category>control</category>
+    <group>MED_attributes</group>
+    <desc>
+      number of rof cells in i direction
+    </desc>
+    <values>
+      <value>$ROF_NX</value>
+    </values>
+  </entry>
+  <entry id="rof_ny" modify_via_xml="ROF_NY">
+    <type>integer</type>
+    <category>control</category>
+    <group>MED_attributes</group>
+    <desc>
+      number of rof cells in j direction
+    </desc>
+    <values>
+      <value>$ROF_NY</value>
+    </values>
+  </entry>
+  <entry id="wav_nx" modify_via_xml="WAV_NX">
+    <type>integer</type>
+    <category>control</category>
+    <group>MED_attributes</group>
+    <desc>
+      number of wav cells in i direction
+    </desc>
+    <values>
+      <value>$WAV_NX</value>
+    </values>
+  </entry>
+  <entry id="wav_ny" modify_via_xml="WAV_NY">
+    <type>integer</type>
+    <category>control</category>
+    <group>MED_attributes</group>
+    <desc>
+      number of wav cells in j direction
+    </desc>
+    <values>
+      <value>$WAV_NY</value>
+    </values>
+  </entry>
+
   <entry id="coupling_mode" modify_via_xml="COUPLING_MODE">
     <type>char</type>
     <category>control</category>

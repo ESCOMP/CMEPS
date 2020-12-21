@@ -23,7 +23,7 @@ module med_phases_prep_glc_mod
   use ESMF                  , only : ESMF_DYNAMICMASK, ESMF_DynamicMaskSetR8R8R8, ESMF_DYNAMICMASKELEMENTR8R8R8 
   use ESMF                  , only : ESMF_FieldRegrid
   use esmFlds               , only : complnd, compocn,  mapbilnr, mapconsd, compname
-  use esmFlds               , only : max_icesheets, num_icesheets, compglc
+  use esmFlds               , only : max_icesheets, num_icesheets, compglc, ocn2glc_coupling
   use med_internalstate_mod , only : InternalState, mastertask, logunit
   use med_map_mod           , only : med_map_routehandles_init, med_map_rh_is_created
   use med_map_mod           , only : med_map_field_normalized, med_map_field
@@ -111,7 +111,6 @@ module med_phases_prep_glc_mod
   logical                :: ocn_sends_depths = .false.
 
   logical          :: lnd2glc_coupling = .false.
-  logical          :: ocn2glc_coupling = .false.
   logical          :: init_prep_glc = .false.
   type(ESMF_Clock) :: prepglc_clock
   character(*), parameter :: u_FILE_u  = &
@@ -400,12 +399,6 @@ contains
     ! If ocn->glc couplng is active
     ! -------------------------------
 
-    do ns = 1,num_icesheets
-       if (is_local%wrap%med_coupling_active(compocn,compglc(ns))) then
-          ocn2glc_coupling = .true.
-          exit
-       end if
-    end do
     if (ocn2glc_coupling) then
        ! Get ocean mesh
        call fldbun_getmesh(is_local%wrap%FBImp(compocn,compocn), mesh_o, rc)

@@ -44,7 +44,6 @@ module esmFldsExchange_cesm_mod
   character(len=CX)   :: atm2wav_smap='unset', ice2wav_smap='unset', ocn2wav_smap='unset'
   character(len=CX)   :: wav2ocn_smap='unset'
   logical             :: mapuv_with_cart3d
-  logical             :: ocn2glc_coupling
   logical             :: flds_i2o_per_cat
   logical             :: flds_co2a
   logical             :: flds_co2b
@@ -70,7 +69,7 @@ contains
     use esmFlds               , only : addmrg => med_fldList_AddMrg
     use esmflds               , only : compmed, compatm, complnd, compocn
     use esmflds               , only : compice, comprof, compwav, ncomps
-    use esmflds               , only : compglc, num_icesheets ! compglc is an array of integers
+    use esmflds               , only : compglc, num_icesheets, ocn2glc_coupling ! compglc is an array of integers
     use esmflds               , only : mapbilnr, mapconsf, mapconsd, mappatch, mappatch_uv3d
     use esmflds               , only : mapfcopy, mapnstod, mapnstod_consd, mapnstod_consf
     use esmflds               , only : map_glc2ocn_ice, map_glc2ocn_liq, map_rof2ocn_ice, map_rof2ocn_liq

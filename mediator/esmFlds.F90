@@ -32,6 +32,7 @@ module esmflds
   integer, public, parameter :: max_icesheets = 1
   integer, public :: compglc(max_icesheets) = (/compglc1/)
   integer, public :: num_icesheets = 1
+  logical, public :: ocn2glc_coupling  ! obtained from attribute
 
   !-----------------------------------------------
   ! Set mappers
