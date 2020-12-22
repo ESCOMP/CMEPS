@@ -785,7 +785,7 @@
     <category>flds</category>
     <group>ALLCOMP_attributes</group>
     <desc>
-      if ocean is sends fields at multiple ocean levels to the
+      if the ocean component sends fields at multiple ocean levels to the
       land-ice component, these are the colon deliminted level indices
     </desc>
     <values>
