@@ -33,7 +33,7 @@ module MED
   use esmFlds                  , only : fldListFr, fldListTo, med_fldList_Realize
   use esmFlds                  , only : ncomps, compname, ncomps
   use esmFlds                  , only : compmed, compatm, compocn, compice, complnd, comprof, compwav ! not arrays
-  use esmFlds                  , only : num_icesheets, max_icesheets, compglc ! compglc is an array
+  use esmFlds                  , only : num_icesheets, max_icesheets, compglc, ocn2glc_coupling ! compglc is an array
   use esmFlds                  , only : fldListMed_ocnalb, fldListMed_aoflux
   use esmFlds                  , only : med_fldList_GetNumFlds, med_fldList_GetFldNames, med_fldList_GetFldInfo
   use esmFlds                  , only : med_fldList_Document_Mapping, med_fldList_Document_Merging
@@ -1858,6 +1858,7 @@ contains
       ! to land-ice
       do ns = 1,num_icesheets
          med_coupling_allowed(complnd,compglc(ns)) = .true.
+         med_coupling_allowed(compocn,compglc(ns)) = .true.
       end do
 
       ! initialize med_coupling_active table
@@ -1880,6 +1881,13 @@ contains
           end if
         endif
       enddo
+
+      ! Reset ocn2glc coupling based in input attribute
+      if (.not. ocn2glc_coupling) then
+         do ns = 1,num_icesheets
+            is_local%wrap%med_coupling_active(compocn,compglc(ns)) = .false.
+         end do
+      end if
 
       ! create tables of allowed and active coupling flags
       ! - the rows are the destination of coupling

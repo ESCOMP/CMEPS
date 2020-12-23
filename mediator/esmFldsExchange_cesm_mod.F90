@@ -19,7 +19,8 @@ module esmFldsExchange_cesm_mod
   ! mappings between the atm and ocn needed for these computations.
   !--------------------------------------
 
-  use med_kind_mod, only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
+  use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
+  use med_internalstate_mod , only : logunit, mastertask
 
   implicit none
   public
@@ -68,7 +69,7 @@ contains
     use esmFlds               , only : addmrg => med_fldList_AddMrg
     use esmflds               , only : compmed, compatm, complnd, compocn
     use esmflds               , only : compice, comprof, compwav, ncomps
-    use esmflds               , only : compglc, num_icesheets ! compglc is an array of integers
+    use esmflds               , only : compglc, num_icesheets, ocn2glc_coupling ! compglc is an array of integers
     use esmflds               , only : mapbilnr, mapconsf, mapconsd, mappatch, mappatch_uv3d
     use esmflds               , only : mapfcopy, mapnstod, mapnstod_consd, mapnstod_consf
     use esmflds               , only : map_glc2ocn_ice, map_glc2ocn_liq, map_rof2ocn_ice, map_rof2ocn_liq
@@ -240,14 +241,25 @@ contains
        call NUOPC_CompAttributeGet(gcomp, name='flds_co2c', value=cvalue, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        read(cvalue,*) flds_co2c
-       if (mastertask) write(logunit,'(a)') trim(subname)//' flds_co2a = '// trim(cvalue)
-       if (mastertask) write(logunit,'(a)') trim(subname)//' flds_co2b = '// trim(cvalue)
-       if (mastertask) write(logunit,'(a)') trim(subname)//' flds_co2c = '// trim(cvalue)
 
+       ! are multiple ice categories being sent from the ice and ocn?
        call NUOPC_CompAttributeGet(gcomp, name='flds_i2o_per_cat', value=cvalue, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        read(cvalue,*) flds_i2o_per_cat
-       call ESMF_LogWrite('flds_i2o_per_cat = '// trim(cvalue), ESMF_LOGMSG_INFO)
+
+       ! are multiple ocean depths for temperature and salinity sent from the ocn to glc?
+       call NUOPC_CompAttributeGet(gcomp, name='ocn2glc_coupling', value=cvalue, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       read(cvalue,*) ocn2glc_coupling
+
+       ! write diagnostic output
+       if (mastertask) then
+          write(logunit,'(a)') trim(subname)//' flds_co2a = '// trim(cvalue)
+          write(logunit,'(a)') trim(subname)//' flds_co2b = '// trim(cvalue)
+          write(logunit,'(a)') trim(subname)//' flds_co2c = '// trim(cvalue)
+          write(logunit,'(a)') trim(subname)//' flds_i2o_per_cat = '// trim(cvalue)
+          write(logunit,'(a)') trim(subname)//' ocn2glc_coupling = '// trim(cvalue)
+       end if
 
     end if
 
@@ -1776,7 +1788,7 @@ contains
           call addfld(fldListTo(compglc(ns))%flds, 'Flgl_qice')
        end do
     else
-       ! custom mapping and merging will be done in prep_glc_mod.F90
+       ! custom mapping, accumulation and merging will be done in prep_glc_mod.F90
        do ns = 1,num_icesheets
           if ( fldchk(is_local%wrap%FBImp(complnd,complnd) , 'Flgl_qice_elev', rc=rc)) then
              call addmap(FldListFr(complnd)%flds, 'Flgl_qice_elev', compglc(ns), mapbilnr, 'lfrac', 'unset')
@@ -1789,6 +1801,31 @@ contains
              call addmap(FldListFr(complnd)%flds, 'Sl_topo_elev', compglc(ns), mapbilnr, 'lfrac', 'unset')
           end if
        end do
+    end if
+
+    !-----------------------------
+    ! to glc: from ocn
+    !-----------------------------
+    if (ocn2glc_coupling) then
+       if (phase == 'advertise') then
+          call addfld(fldListFr(compocn)%flds, 'So_t_depth')
+          call addfld(fldListFr(compocn)%flds, 'So_s_depth')
+          do ns = 1,num_icesheets
+             call addfld(fldListTo(compglc(ns))%flds, 'So_t_depth')
+             call addfld(fldListTo(compglc(ns))%flds, 'So_s_depth')
+          end do
+       else
+          ! custom mapping, accumulation and merging will be done in prep_glc_mod.F90
+          ! the following is used to create the route handle
+          do ns = 1,num_icesheets
+             if ( fldchk(is_local%wrap%FBImp(compocn,compocn) , 'So_t_depth', rc=rc)) then
+                call addmap(FldListFr(compocn)%flds, 'So_t_depth', compglc(ns), mapbilnr, 'none', 'unset')
+             end if
+             if ( fldchk(is_local%wrap%FBImp(compocn,compocn) , 'So_s_depth', rc=rc)) then
+                call addmap(FldListFr(compocn)%flds, 'So_s_depth', compglc(ns), mapbilnr, 'none', 'unset')
+             end if
+          end do
+       end if
     end if
 
     !=====================================================================

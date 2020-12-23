@@ -815,6 +815,11 @@
        canonical_units: g kg-1
        description: ocean export
      #
+     - standard_name: So_s_depth
+       alias: s_surf_depths
+       canonical_units: g kg-1
+       description: ocean salinity at multiple depths
+     #
      - standard_name: So_ssq
        canonical_units: kg kg-1
        description: ocean export
@@ -823,6 +828,11 @@
        alias: sea_surface_temperature
        canonical_units: K
        description: ocean export
+     #
+     - standard_name: So_t_depth
+       alias: sea_surface_temperature_depths
+       canonical_units: K
+       description: ocean temperatures at multiple depths
      #
      - standard_name: So_tref
        canonical_units: K
