@@ -53,7 +53,7 @@ contains
     ! local variables
     type(InternalState) :: is_local
     integer             :: n, ncnt
-    character(len=*), parameter    :: subname='(med_phases_prep_ocn_merge)'
+    character(len=*), parameter    :: subname='(med_phases_prep_ocn_accum)'
     !---------------------------------------
 
     call t_startf('MED:'//subname)
@@ -131,7 +131,7 @@ contains
     ! local variables
     type(InternalState)        :: is_local
     integer                    :: ncnt
-    character(len=*),parameter :: subname='(med_phases_prep_ocn)'
+    character(len=*),parameter :: subname='(med_phases_prep_ocn_avg)'
     !---------------------------------------
 
     rc = ESMF_SUCCESS

@@ -154,7 +154,7 @@ contains
     end if
 
     !---------------------------------------
-    ! glc->ocn mapping - 
+    ! glc->ocn mapping -
     ! merging with rof->ocn fields is done in med_phases_prep_ocn
     !---------------------------------------
     if (glc2ocn_coupling) then
@@ -423,7 +423,7 @@ contains
     dataptr1d_dst(:) = 0._r8
     do ns = 1,num_icesheets
        if (is_local%wrap%med_coupling_active(compglc(ns),complnd)) then
-          call fldbun_getdata1d(is_local%wrap%FBImp(compglc(ns),complnd), Sg_icemask, dataptr1d_src, rc) 
+          call fldbun_getdata1d(is_local%wrap%FBImp(compglc(ns),complnd), Sg_icemask, dataptr1d_src, rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           dataptr1d_dst(:) = dataptr1d_dst(:) + dataptr1d_src(:)
        end if

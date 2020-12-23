@@ -109,7 +109,7 @@ contains
     type(InternalState)     :: is_local
     type(aoflux_type), save :: aoflux
     logical, save           :: first_call = .true.
-    character(len=*),parameter :: subname='(med_phases_aofluxes)'
+    character(len=*),parameter :: subname='(med_phases_aofluxes_run)'
     !---------------------------------------
 
     rc = ESMF_SUCCESS
@@ -205,7 +205,7 @@ contains
     integer                 :: flux_max_iteration      ! maximum number of iterations for convergence
     logical                 :: coldair_outbreak_mod    ! cold air outbreak adjustment  (Mahrt & Sun 1995,MWR)
     logical                 :: isPresent, isSet
-    character(*),parameter  :: subName =   '(med_aofluxes_init) '
+    character(*),parameter  :: subName = '(med_aofluxes_init) '
     !-----------------------------------------------------------------------
 
     if (dbug_flag > 5) then
