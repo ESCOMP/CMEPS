@@ -611,7 +611,7 @@ contains
           call addmap(fldListFr(compocn)%flds, trim(fldname), compatm, &
                mapfillv_bilnr, hafs_attr%mapnorm, hafs_attr%ocn2atm_smap)
           call addmrg(fldListTo(compatm)%flds, trim(fldname), &
-               mrg_from1=compocn, mrg_fld1=trim(fldname), mrg_type1='copy')
+               mrg_from=compocn, mrg_fld=trim(fldname), mrg_type='copy')
        end if
     end do
     deallocate(flds)
@@ -861,7 +861,7 @@ contains
              call addmap(fldListFr(compatm)%flds, trim(fldname), compocn, &
                   mapfillv_bilnr, hafs_attr%mapnorm, hafs_attr%atm2ocn_smap)
              call addmrg(fldListTo(compocn)%flds, trim(fldname), &
-                  mrg_from1=compatm, mrg_fld1=trim(fldname), mrg_type1='copy')
+                  mrg_from=compatm, mrg_fld=trim(fldname), mrg_type='copy')
           end if
        end do
        deallocate(S_flds)
@@ -881,7 +881,7 @@ contains
              call addmap(fldListFr(compatm)%flds, trim(fldname1), compocn, &
                   mapfillv_bilnr, hafs_attr%mapnorm, hafs_attr%atm2ocn_smap)
              call addmrg(fldListTo(compocn)%flds, trim(fldname2), &
-                  mrg_from1=compatm, mrg_fld1=trim(fldname1), mrg_type1='copy')
+                  mrg_from=compatm, mrg_fld=trim(fldname1), mrg_type='copy')
           end if
        end do
        deallocate(F_flds)
@@ -899,7 +899,7 @@ contains
              call addmap(fldListFr(compocn)%flds, trim(fldname), compatm, &
                   mapfillv_bilnr, hafs_attr%mapnorm, hafs_attr%ocn2atm_smap)
              call addmrg(fldListTo(compatm)%flds, trim(fldname), &
-                  mrg_from1=compocn, mrg_fld1=trim(fldname), mrg_type1='copy')
+                  mrg_from=compocn, mrg_fld=trim(fldname), mrg_type='copy')
           end if
        end do
        deallocate(S_flds)

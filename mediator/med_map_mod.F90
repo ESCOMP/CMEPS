@@ -1170,7 +1170,7 @@ contains
           call Field_diagnose(field_dst, lfldname, " --> after consf: ", rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
        end if
-    else if (mapindex == mapfillv_bilnr) then
+    else if (maptype == mapfillv_bilnr) then
        call ESMF_FieldFill(field_dst, dataFillScheme="const", const1=fillValue, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        if (dbug_flag > 1) then
