@@ -783,6 +783,7 @@ contains
 
     use ESMF                  , only : ESMF_Field, ESMF_FieldGet, ESMF_FieldIsCreated
     use ESMF                  , only : ESMF_FieldBundle, ESMF_FieldBundleGet
+    use ESMF                  , only : ESMF_FieldBundleIsCreated
     use ESMF                  , only : ESMF_FieldRedist, ESMF_RouteHandle
     use esmFlds               , only : nmappers, mapfcopy, mappatch_uv3d, mappatch
     use med_internalstate_mod , only : packed_data_type
@@ -819,16 +820,23 @@ contains
     rc = ESMF_SUCCESS
 
     ! Get field count for both FBsrc and FBdst
-    call ESMF_FieldBundleGet(FBsrc, fieldCount=fieldCount, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (ESMF_FieldBundleIsCreated(FBsrc)) then
+       call ESMF_FieldBundleGet(FBsrc, fieldCount=fieldCount, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    allocate(fieldlist_src(fieldcount))
-    call ESMF_FieldBundleGet(FBsrc, fieldlist=fieldlist_src, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       allocate(fieldlist_src(fieldcount))
+       call ESMF_FieldBundleGet(FBsrc, fieldlist=fieldlist_src, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    allocate(fieldlist_dst(fieldcount))
-    call ESMF_FieldBundleGet(FBdst, fieldlist=fieldlist_dst, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       allocate(fieldlist_dst(fieldcount))
+       call ESMF_FieldBundleGet(FBdst, fieldlist=fieldlist_dst, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    else
+       fieldcount=0
+       allocate(fieldlist_src(fieldcount))
+       allocate(fieldlist_dst(fieldcount))
+    endif
+
 
     ! Loop over mapping types
     do mapindex = 1,nmappers
