@@ -26,7 +26,7 @@ contains
     use med_map_mod             , only : med_map_field_packed
     use med_internalstate_mod   , only : InternalState, mastertask
     use med_phases_prep_rof_mod , only : med_phases_prep_rof_accum
-    use med_phases_prep_glc_mod , only : med_phases_prep_glc_accum
+    use med_phases_prep_glc_mod , only : med_phases_prep_glc_accum_lnd
     use esmFlds                 , only : complnd, compatm, comprof, compglc, num_icesheets
     use perf_mod                , only : t_startf, t_stopf
 
@@ -84,7 +84,7 @@ contains
 
     ! accumulate lnd input for glc
     if (lnd2glc_coupling) then
-       call med_phases_prep_glc_accum(gcomp, rc)
+       call med_phases_prep_glc_accum_lnd(gcomp, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
