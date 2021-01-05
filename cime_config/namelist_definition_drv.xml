@@ -1048,7 +1048,7 @@
     </desc>
     <values>
       <value>on_if_glc_coupled_fluxes</value>
-      <value COMP_LND="xlnd">off</value> 
+      <value COMP_LND="xlnd">off</value>
     </values>
   </entry>
 
@@ -1064,7 +1064,7 @@
     </values>
   </entry>
 
-  <entry id="mesh_atm" modify_via_xml="ATM_DOMAIN_MESH">
+ <entry id="mesh_atm" modify_via_xml="ATM_DOMAIN_MESH">
     <type>char</type>
     <category>mapping</category>
     <group>ATM_attributes</group>
@@ -1081,7 +1081,7 @@
     <category>mapping</category>
     <group>ATM_attributes</group>
     <desc>
-      DOMAIN description of atm grid 
+      DOMAIN description of atm grid
     </desc>
     <values>
       <value>$ATM_DOMAIN_PATH/$ATM_DOMAIN_FILE</value>
@@ -1100,28 +1100,12 @@
     </values>
   </entry>
 
-  <entry id="mesh_lndmask">
-    <type>char</type>
-    <category>mapping</category>
-    <group>LND_attributes</group>
-    <desc>
-      MESH for lnd mask (used to create ice fraction at run time if different from mesh_lnd)
-    </desc>
-    <values>
-      <value>null</value> 
-      <value mask_grid="gx3v7">$DIN_LOC_ROOT/share/meshes/gx1v6_090205_ESMFmesh.nc</value>
-      <value mask_grid="gx1v7">$DIN_LOC_ROOT/share/meshes/gx1v7_151008_ESMFmesh.nc</value>
-      <value mask_grid="tx0.66v1">$DIN_LOC_ROOT/share/meshes/tx0.66v1_190314_ESMFmesh.nc</value>
-      <value mask_grid="tx0.1v2">$DIN_LOC_ROOT/share/meshes/tx0.25v1_190204_ESMFmesh.nc</value>
-    </values>
-  </entry>
-
   <entry id="domain_lnd" modify_via_xml="LND_DOMAIN_FILE">
     <type>char</type>
     <category>mapping</category>
     <group>LND_attributes</group>
     <desc>
-      DOMAIN description of lnd grid 
+      DOMAIN description of lnd grid
     </desc>
     <values>
       <value>$LND_DOMAIN_PATH/$LND_DOMAIN_FILE</value>
@@ -1164,19 +1148,15 @@
     </values>
   </entry>
 
-  <entry id="mesh_ocnmask">
+  <entry id="mask_mesh" modify_via_xml="MASK_MESH">
     <type>char</type>
     <category>mapping</category>
-    <group>OCN_attributes</group>
+    <group>ALL_attributes</group>
     <desc>
       MESH for ocn mask (used to create ice fraction at run time if different from mesh_ocn)
     </desc>
     <values>
-      <value>null</value> 
-      <value mask_grid="gx3v7">$DIN_LOC_ROOT/share/meshes/gx1v6_090205_ESMFmesh.nc</value>
-      <value mask_grid="gx1v7">$DIN_LOC_ROOT/share/meshes/gx1v7_151008_ESMFmesh.nc</value>
-      <value mask_grid="tx0.66v1">$DIN_LOC_ROOT/share/meshes/tx0.66v1_190314_ESMFmesh.nc</value>
-      <value mask_grid="tx0.1v2">$DIN_LOC_ROOT/share/meshes/tx0.25v1_190204_ESMFmesh.nc</value>
+      <value>$MASK_MESH</value>
     </values>
   </entry>
 
@@ -1189,22 +1169,6 @@
     </desc>
     <values>
       <value>$ICE_DOMAIN_MESH</value>
-    </values>
-  </entry>
-
-  <entry id="mesh_icemask">
-    <type>char</type>
-    <category>mapping</category>
-    <group>ICE_attributes</group>
-    <desc>
-      MESH for ice mask (used to create ice fraction at run time if different from mesh_ice)
-    </desc>
-    <values>
-      <value>null</value> 
-      <value mask_grid="gx3v7">$DIN_LOC_ROOT/share/meshes/gx1v6_090205_ESMFmesh.nc</value>
-      <value mask_grid="gx1v7">$DIN_LOC_ROOT/share/meshes/gx1v7_151008_ESMFmesh.nc</value>
-      <value mask_grid="tx0.66v1">$DIN_LOC_ROOT/share/meshes/tx0.66v1_190314_ESMFmesh.nc</value>
-      <value mask_grid="tx0.1v2">$DIN_LOC_ROOT/share/meshes/tx0.25v1_190204_ESMFmesh.nc</value>
     </values>
   </entry>
 
@@ -1526,7 +1490,7 @@
   <!--     default: true -->
   <!--   </desc> -->
   <!--   <values> -->
-  <!-- 	<value>.true.</value> -->
+  <!--  <value>.true.</value> -->
   <!--   </values> -->
   <!-- </entry> -->
 
