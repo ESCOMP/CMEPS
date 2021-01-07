@@ -24,7 +24,7 @@ contains
   subroutine med_phases_prep_ice(gcomp, rc)
 
     use ESMF                  , only : operator(/=)
-    use ESMF                  , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_StateGet
+    use ESMF                  , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_StateGet 
     use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
     use ESMF                  , only : ESMF_FieldBundleGet, ESMF_FieldGet, ESMF_Field
     use ESMF                  , only : ESMF_LOGMSG_ERROR, ESMF_FAILURE
@@ -118,37 +118,19 @@ contains
     end if
 
     ! obtain nextsw_cday from atm if it is in the import state and send it to ice
-    call ESMF_StateGet(is_local%wrap%NStateImp(compatm), &
-         trim(is_local%wrap%flds_scalar_name), itemtype, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (itemType /= ESMF_STATEITEM_NOTFOUND) then
-       call t_startf('MED:'//trim(subname)//' nextsw_cday')
-       if (first_call) then
-          ! determine module pointer data for performance reasons
-          call ESMF_StateGet(is_local%wrap%NstateImp(compatm), &
-               itemName=trim(is_local%wrap%flds_scalar_name), field=lfield, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call ESMF_FieldGet(lfield, farrayPtr=dataptr_scalar_atm, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call ESMF_StateGet(is_local%wrap%NStateExp(compice), &
-               trim(is_local%wrap%flds_scalar_name), field=lfield, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call ESMF_FieldGet(lfield, farrayPtr=dataptr_scalar_ice, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-       end if
-
-       ! obtain nextsw_cday from atm import on all tasks
-       if(is_local%wrap%flds_scalar_index_nextsw_cday .ne. 0) then
-          scalar_id=is_local%wrap%flds_scalar_index_nextsw_cday
-          if (mastertask) then
-             tmp(1) = dataptr_scalar_atm(scalar_id,1)
-          end if
-          call ESMF_VMBroadCast(is_local%wrap%vm, tmp, 1, 0, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          ! set nextsw_cday on all ice export tasks
-          dataptr_scalar_ice(scalar_id,1) = tmp(1)
-          call t_stopf('MED:'//trim(subname)//' nextsw_cday')
-       end if
+    scalar_id=is_local%wrap%flds_scalar_index_nextsw_cday
+    if (scalar_id > 0 .and. mastertask) then
+       call ESMF_StateGet(is_local%wrap%NstateImp(compatm), & 
+            itemName=trim(is_local%wrap%flds_scalar_name), field=lfield, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_FieldGet(lfield, farrayPtr=dataptr_scalar_atm, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_StateGet(is_local%wrap%NStateExp(compice), &
+            trim(is_local%wrap%flds_scalar_name), field=lfield, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_FieldGet(lfield, farrayPtr=dataptr_scalar_ice, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       dataptr_scalar_ice(scalar_id,1) = dataptr_scalar_atm(scalar_id,1)
     end if
 
     if (dbug_flag > 1) then
