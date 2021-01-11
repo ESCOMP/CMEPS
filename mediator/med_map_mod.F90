@@ -217,6 +217,7 @@ contains
     use esmFlds           , only : ncomps, compatm, compice, compocn, compname
     use esmFlds           , only : mapfcopy, mapconsd, mapconsf, mapnstod
     use esmFlds           , only : coupling_mode, compname
+    use esmFlds           , only : atm_name
     use med_constants_mod , only : ispval_mask => med_constants_ispval_mask
 
     ! input/output variables
@@ -274,7 +275,11 @@ contains
        if (n1 == compocn .or. n1 == compice) srcMaskValue = 0
        if (n2 == compocn .or. n2 == compice) dstMaskValue = 0
        if (n1 == compatm .and. n2 == compocn) then
-          srcMaskValue = 1
+          if (trim(atm_name).eq.'datm') then
+             srcMaskValue = ispval_mask
+          else
+             srcMaskValue = 1
+          endif
           dstMaskValue = 0
        elseif (n1 == compocn .and. n2 == compatm) then
           srcMaskValue = 0
