@@ -999,7 +999,7 @@
   <entry id="ESMF_VERBOSITY_LEVEL">
     <type>char</type>
     <valid_values>off,low,high,max</valid_values>
-    <default_value>low</default_value>
+    <default_value>off</default_value>
     <group>run_flags</group>
     <file>env_run.xml</file>
     <desc>
@@ -1008,7 +1008,7 @@
       "low": some verbosity
       "high": more verbosity
       "max": all lower 16 bits
-      By default, the verbosity level is set to "low"
+      By default, the verbosity level is set to "off"
     </desc>
   </entry>
 
