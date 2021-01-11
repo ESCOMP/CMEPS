@@ -72,14 +72,6 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     elif case.get_value('RUN_TYPE') == 'branch':
         config['run_type'] = 'branch'
 
-    # TODO: this is being hardwired since the nuopc lnd mesh is different
-    # than the nuopc atm mesh
-    lnd_domain_mesh = case.get_value('LND_DOMAIN_MESH')
-    if '10x15_' in lnd_domain_mesh:
-        newmesh = '$DIN_LOC_ROOT/share/meshes/10x15_USGS_c20201224_ESMFmesh_cdf5.nc'
-        case.set_value('LND_DOMAIN_MESH', newmesh)
-        print ("WARNING: resetting LND_DOMAIN_MESH to {}".format(newmesh))
-
     #----------------------------------------------------
     # Initialize namelist defaults
     #----------------------------------------------------
