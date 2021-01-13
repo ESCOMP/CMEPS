@@ -176,7 +176,7 @@ contains
     ! local variables
     type(ESMF_Field)   :: fldsrc
     type(ESMF_Field)   :: flddst
-    character(len=*), parameter :: subname=' (module_MED_map:med_map_routehandles_init_fields) '
+    character(len=*), parameter :: subname=' (module_MED_map:med_map_routehandles_initfrom_fieldbundle) '
     !---------------------------------------------
 
     call t_startf('MED:'//subname)
@@ -403,7 +403,7 @@ contains
 
     ! local variables
     integer :: rc1, rc2
-    character(len=*), parameter :: subname=' (module_MED_map:med_map_RH_is_created) '
+    character(len=*), parameter :: subname=' (module_MED_map:med_map_RH_is_created_RH3d) '
     !-----------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -613,7 +613,7 @@ contains
     type(ESMF_Field), pointer  :: fieldlist_src(:) => null()
     type(ESMF_Field), pointer  :: fieldlist_dst(:) => null()
     character(CL), allocatable :: fieldNameList(:)
-    character(len=*), parameter :: subname=' (module_MED_map:med_packed_fieldbundles_create) '
+    character(len=*), parameter :: subname=' (module_MED_map:med_packed_field_create) '
     !-----------------------------------------------------------
 
     rc = ESMF_SUCCESS

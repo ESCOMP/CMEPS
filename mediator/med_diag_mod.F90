@@ -1978,7 +1978,7 @@ contains
     integer           :: ica,icl
     integer           :: icn,ics,ico
     character(len=40) :: str         ! string
-    character(*), parameter:: subName = '(med_phases_diag_print_level3) '
+    character(*), parameter:: subName = '(med_phases_diag_print_atm) '
     ! ------------------------------------------------------------------
 
     do ic = 1,2
@@ -2126,7 +2126,7 @@ contains
     integer           :: icar,icas
     integer           :: icxs,icxr
     character(len=40) :: str      ! string
-    character(*), parameter :: subName = '(med_diag_print_lnd_ocn_ice) '
+    character(*), parameter :: subName = '(med_diag_print_lnd_ice_ocn) '
     ! ------------------------------------------------------------------
 
     do ic = 1,4

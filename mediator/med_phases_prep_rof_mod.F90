@@ -401,7 +401,8 @@ contains
     type(ESMF_Mesh)           :: lmesh_lnd
     type(ESMF_Mesh)           :: lmesh_rof
     real(r8), pointer         :: volr_l(:) => null()
-    real(r8), pointer         :: volr_r(:), volr_r_import(:) => null()
+    real(r8), pointer         :: volr_r(:) => null()
+    real(r8), pointer         :: volr_r_import(:) => null()
     real(r8), pointer         :: irrig_normalized_l(:) => null()
     real(r8), pointer         :: irrig_normalized_r(:) => null()
     real(r8), pointer         :: irrig_volr0_l(:) => null()

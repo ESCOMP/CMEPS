@@ -1155,7 +1155,7 @@ contains
     real(R8), pointer :: dataPtr2d(:,:) => null()
     type(ESMF_Field)  :: lfield
     integer           :: ungriddedUBound(1)     ! currently the size must equal 1 for rank 2 fields
-    character(len=*),parameter :: subname='(med_methods_FB_FieldDiagnose)'
+    character(len=*),parameter :: subname='(med_methods_FB_Field_diagnose)'
     ! ----------------------------------------------
 
     if (dbug_flag > 10) then
@@ -1220,7 +1220,7 @@ contains
     character(len=CS)          :: lstring
     real(R8), pointer          :: dataPtr1d(:) => null()
     real(R8), pointer          :: dataPtr2d(:,:) => null()
-    character(len=*),parameter :: subname='(med_methods_FB_FieldDiagnose)'
+    character(len=*),parameter :: subname='(med_methods_Field_diagnose)'
     ! ----------------------------------------------
 
     if (dbug_flag > 10) then
