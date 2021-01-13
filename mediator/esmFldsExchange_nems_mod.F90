@@ -84,7 +84,7 @@ contains
       ! atm and ocn fields required for atm/ocn flux calculation'
       allocate(flds(10))
       flds = (/'Sa_u   ','Sa_v   ', 'Sa_z   ', 'Sa_tbot', 'Sa_pbot', 'Sa_shum', &
-               'Sa_u10m','Sa_v10m', 'Sa_t2m ', 'Sa_q2m'/)
+               'Sa_u10m','Sa_v10m', 'Sa_t2m ', 'Sa_q2m '/)
       do n = 1,size(flds)
          fldname = trim(flds(n))
          call addfld(fldListFr(compatm)%flds, trim(fldname))
