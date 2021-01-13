@@ -118,34 +118,19 @@ contains
     end if
 
     ! obtain nextsw_cday from atm if it is in the import state and send it to ice
-    call ESMF_StateGet(is_local%wrap%NStateImp(compatm), &
-         trim(is_local%wrap%flds_scalar_name), itemtype, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (itemType /= ESMF_STATEITEM_NOTFOUND) then
-       call t_startf('MED:'//trim(subname)//' nextsw_cday')
-       if (first_call) then
-          ! determine module pointer data for performance reasons
-          call ESMF_StateGet(is_local%wrap%NstateImp(compatm), & 
-               itemName=trim(is_local%wrap%flds_scalar_name), field=lfield, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call ESMF_FieldGet(lfield, farrayPtr=dataptr_scalar_atm, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call ESMF_StateGet(is_local%wrap%NStateExp(compice), &
-               trim(is_local%wrap%flds_scalar_name), field=lfield, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call ESMF_FieldGet(lfield, farrayPtr=dataptr_scalar_ice, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-       end if
-       ! obtain nextsw_cday from atm import on all tasks
-       scalar_id=is_local%wrap%flds_scalar_index_nextsw_cday
-       if (mastertask) then
-          tmp(1) = dataptr_scalar_atm(scalar_id,1)
-       end if
-       call ESMF_VMBroadCast(is_local%wrap%vm, tmp, 1, 0, rc=rc)
+    scalar_id=is_local%wrap%flds_scalar_index_nextsw_cday
+    if (scalar_id > 0 .and. mastertask) then
+       call ESMF_StateGet(is_local%wrap%NstateImp(compatm), & 
+            itemName=trim(is_local%wrap%flds_scalar_name), field=lfield, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       ! set nextsw_cday on all ice export tasks
-       dataptr_scalar_ice(scalar_id,1) = tmp(1)
-       call t_stopf('MED:'//trim(subname)//' nextsw_cday')
+       call ESMF_FieldGet(lfield, farrayPtr=dataptr_scalar_atm, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_StateGet(is_local%wrap%NStateExp(compice), &
+            trim(is_local%wrap%flds_scalar_name), field=lfield, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_FieldGet(lfield, farrayPtr=dataptr_scalar_ice, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       dataptr_scalar_ice(scalar_id,1) = dataptr_scalar_atm(scalar_id,1)
     end if
 
     if (dbug_flag > 1) then

@@ -232,10 +232,12 @@ contains
     integer           :: n
     type(ESMF_Field)  :: field_wgt
     type(ESMF_Field)  :: field_in
-    real(R8), pointer :: dp1 (:), dp2(:,:) => null()  ! output pointers to 1d and 2d fields
-    real(R8), pointer :: dpf1(:), dpf2(:,:) => null() ! intput pointers to 1d and 2d fields
+    real(R8), pointer :: dp1 (:) => null()
+    real(R8), pointer :: dp2(:,:) => null()  ! output pointers to 1d and 2d fields
+    real(R8), pointer :: dpf1(:) => null()
+    real(R8), pointer :: dpf2(:,:) => null() ! intput pointers to 1d and 2d fields
     real(R8), pointer :: dpw1(:) => null()            ! weight pointer
-    character(len=*),parameter :: subname=' (med_merge_mod: med_merge)'
+    character(len=*),parameter :: subname=' (med_merge_mod: med_merge_auto_field)'
     !---------------------------------------
 
     rc = ESMF_SUCCESS
@@ -443,7 +445,7 @@ contains
     integer                    :: lb1,ub1,i,j,n
     logical                    :: wgtfound, FBinfound
     integer                    :: dbrc
-    character(len=*),parameter :: subname='(med_merge_fieldo_1d)'
+    character(len=*),parameter :: subname='(med_merge_field_1D)'
     ! ----------------------------------------------
 
     if (dbug_flag > 10) then

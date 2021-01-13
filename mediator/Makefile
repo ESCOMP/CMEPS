@@ -25,7 +25,7 @@ $(LIBRARY): $(OBJ)
         $(AR) $(ARFLAGS) $@ $?
 
 %.o: %.F90
-        $(ESMF_F90COMPILER) -c $(ESMF_F90COMPILEOPTS) $(ESMF_F90COMPILEPATHS) $(CPPDEFS) -I${PIO_INCLUDE_DIR} -I../nems/util $*.F90
+	$(ESMF_F90COMPILER) -c $(ESMF_F90COMPILEOPTS) $(ESMF_F90COMPILEPATHS) $(CPPDEFS) -I$(PIO_ROOT)/include -I../nems/util $*.F90
 
 clean:
         $(RM) -f $(LIBRARY) *.i90 *.o *.mod

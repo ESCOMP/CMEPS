@@ -570,7 +570,7 @@ contains
     character(len=CL) :: msgstr   ! temporary
     logical           :: lprint
     logical           :: first_time = .true.
-    character(len=*) , parameter :: subname = "(lnd_orbital_update)"
+    character(len=*) , parameter :: subname = "(med_phases_ocnalb_orbital_update)"
     !-------------------------------------------
 
 #ifdef CESMCOUPLED
