@@ -613,7 +613,7 @@ contains
 
   !===============================================================================
 
-  subroutine AddAttributes(gcomp, driver, config, compid, compname, inst_suffix, rc)
+  subroutine AddAttributes(gcomp, driver, config, compid, compname, inst_suffix, nthrds, rc)
 
     ! Add specific set of attributes to components from driver attributes
 
@@ -628,6 +628,7 @@ contains
     integer             , intent(in)    :: compid
     character(len=*)    , intent(in)    :: compname
     character(len=*)    , intent(in)    :: inst_suffix
+    integer             , intent(in)    :: nthrds
     integer             , intent(inout) :: rc
 
     ! local variables
@@ -712,6 +713,12 @@ contains
        call NUOPC_CompAttributeSet(gcomp, name='inst_suffix', value=inst_suffix, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     end if
+    ! Add the nthreads attribute
+    call NUOPC_CompAttributeAdd(gcomp, attrList=(/'nthreads'/), rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    write(cvalue, *) nthrds
+    call NUOPC_CompAttributeSet(gcomp, name='nthreads', value=cvalue, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     !------
     ! Add single column and single point attributes
@@ -947,9 +954,13 @@ contains
        info = ESMF_InfoCreate(rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-       call ESMF_InfoSet(info, key="/NUOPC/Instance/maxPeCountPerPet", value=nthrds, rc=rc)
+       call ESMF_InfoSet(info, key="/NUOPC/Hint/PePerPet/MaxCount", value=nthrds, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
+       if (nthrds == 1) then
+          call ESMF_InfoSet(info, key="/NUOPC/Hint/PePerPet/OpenMpHandling", value='none', rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+       endif
        call NUOPC_CompAttributeGet(driver, name=trim(namestr)//'_rootpe', value=cvalue, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        read(cvalue,*) rootpe
@@ -1108,6 +1119,9 @@ contains
           return
        endif
        comp_iamin(i) = .false.
+
+       call AddAttributes(child, driver, config, i+1, trim(compLabels(i)), inst_suffix, nthrds, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        if (ESMF_GridCompIsPetLocal(child, rc=rc)) then
 
@@ -1465,7 +1479,7 @@ contains
     call t_prf(trim(timing_dir)//'/model_timing'//trim(inst_suffix), mpicom=mpicomm)
 
     call t_finalizef()
-
+    print *,__FILE__,__LINE__
   end subroutine esm_finalize
 
 

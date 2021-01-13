@@ -169,12 +169,13 @@ program esmApp
   ! Call Finalize for the ensemble driver
   ! Destroy the ensemble driver
   !-----------------------------------------------------------------------------
-
+  print *,__FILE__,__LINE__
   call ESMF_GridCompFinalize(ensemble_driver_comp, userRc=urc, rc=rc)
   if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
        line=__LINE__, &
        file=__FILE__)) &
        call ESMF_Finalize(endflag=ESMF_END_ABORT)
+  print *,__FILE__,__LINE__
   if (ESMF_LogFoundError(rcToCheck=urc, msg=ESMF_LOGERR_PASSTHRU, &
        line=__LINE__, &
        file=__FILE__)) &
@@ -199,7 +200,7 @@ program esmApp
        line=__LINE__, &
        file=__FILE__)) &
        call ESMF_Finalize(endflag=ESMF_END_ABORT)
-
+  print *,__FILE__,__LINE__
   call ESMF_Finalize()
 
 end program
