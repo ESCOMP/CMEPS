@@ -289,7 +289,7 @@
   <!-- D compsets -->
   <!-- ======================================= -->
 
-  <test compset="DTEST" grid="T62_g37" name="ERS_Vnuopc_Ld5" testmods="cice/nuopc_cap">
+  <test compset="DTEST" grid="T62_g37" name="ERS_Vnuopc_Ld5">
     <machines>
       <machine name="cheyenne" compiler="intel" category="nuopc"/>
       <machine name="theia" compiler="intel" category="nuopc"/>
@@ -299,7 +299,7 @@
       <option name="wallclock"> 00:10:00 </option>
     </options>
   </test>
-  <test compset="DTEST" grid="T62_g37" name="ERS_Vmct_Ld5" testmods="cice/nuopc_cap">
+  <test compset="DTEST" grid="T62_g37" name="ERS_Vmct_Ld5">
     <machines>
       <machine name="cheyenne" compiler="intel" category="mctcheck"/>
       <machine name="theia" compiler="intel" category="mctcheck"/>
