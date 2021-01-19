@@ -1048,7 +1048,7 @@
     </desc>
     <values>
       <value>on_if_glc_coupled_fluxes</value>
-      <value COMP_LND="xlnd">off</value> 
+      <value COMP_LND="xlnd">off</value>
     </values>
   </entry>
 
@@ -1064,7 +1064,19 @@
     </values>
   </entry>
 
-  <entry id="mesh_atm" modify_via_xml="ATM_DOMAIN_MESH">
+  <entry id="mesh_mask" modify_via_xml="MASK_MESH">
+    <type>char</type>
+    <category>mapping</category>
+    <group>ALLCOMP_attributes</group>
+    <desc>
+      MESH for model mask (used to create masks and fractions at run time if different than model mesh)
+    </desc>
+    <values>
+      <value>$MASK_MESH</value>
+    </values>
+  </entry>
+
+ <entry id="mesh_atm" modify_via_xml="ATM_DOMAIN_MESH">
     <type>char</type>
     <category>mapping</category>
     <group>ATM_attributes</group>
@@ -1073,18 +1085,6 @@
     </desc>
     <values>
       <value>$ATM_DOMAIN_MESH</value>
-    </values>
-  </entry>
-
-  <entry id="domain_atm" modify_via_xml="ATM_DOMAIN_FILE">
-    <type>char</type>
-    <category>mapping</category>
-    <group>ATM_attributes</group>
-    <desc>
-      DOMAIN description of atm grid 
-    </desc>
-    <values>
-      <value>$ATM_DOMAIN_PATH/$ATM_DOMAIN_FILE</value>
     </values>
   </entry>
 
@@ -1169,97 +1169,6 @@
     </desc>
     <values>
       <value>$WAV_DOMAIN_MESH</value>
-    </values>
-  </entry>
-
-  <entry id="eps_frac" modify_via_xml="EPS_FRAC">
-    <type>real</type>
-    <category>domain_check</category>
-    <group>MED_attributes</group>
-    <desc>
-      Error tolerance for differences in fractions in domain checking
-      default: 1.0e-02
-    </desc>
-    <values>
-      <value>$EPS_FRAC</value>
-    </values>
-  </entry>
-
-  <entry id="eps_amask" modify_via_xml="EPS_AMASK">
-    <type>real</type>
-    <category>domain_check</category>
-    <group>MED_attributes</group>
-    <desc>
-      Error tolerance for differences in atm/land masks in domain checking
-      default: 1.0e-13
-    </desc>
-    <values>
-      <value>$EPS_AMASK</value>
-    </values>
-  </entry>
-
-  <entry id="eps_agrid" modify_via_xml="EPS_AGRID">
-    <type>real</type>
-    <category>domain_check</category>
-    <group>MED_attributes</group>
-    <desc>
-      Error tolerance for differences in atm/land lat/lon in domain checking
-      default: 1.0e-12
-    </desc>
-    <values>
-      <value>$EPS_AGRID</value>
-    </values>
-  </entry>
-
-  <entry id="eps_aarea" modify_via_xml="EPS_AAREA">
-    <type>real</type>
-    <category>domain_check</category>
-    <group>MED_attributes</group>
-    <desc>
-      Error tolerance for differences in atm/land areas in domain checking
-      default: 1.0e-07
-    </desc>
-    <values>
-      <value>$EPS_AAREA</value>
-    </values>
-  </entry>
-
-  <entry id="eps_omask" modify_via_xml="EPS_OMASK">
-    <type>real</type>
-    <category>domain_check</category>
-    <group>MED_attributes</group>
-    <desc>
-      Error tolerance for differences in ocean/ice masks in domain checking
-      default: 1.0e-06
-    </desc>
-    <values>
-      <value>$EPS_OMASK</value>
-    </values>
-  </entry>
-
-  <entry id="eps_ogrid" modify_via_xml="EPS_OGRID">
-    <type>real</type>
-    <category>domain_check</category>
-    <group>MED_attributes</group>
-    <desc>
-      Error tolerance for differences in ocean/ice lon/lat in domain checking
-      default: 1.0e-2
-    </desc>
-    <values>
-      <value>$EPS_OGRID</value>
-    </values>
-  </entry>
-
-  <entry id="eps_oarea" modify_via_xml="EPS_OAREA">
-    <type>real</type>
-    <category>domain_check</category>
-    <group>MED_attributes</group>
-    <desc>
-      Error tolerance for differences in ocean/ice lon/lat in domain checking
-      default: 1.0e-1
-    </desc>
-    <values>
-      <value>$EPS_OAREA</value>
     </values>
   </entry>
 
@@ -1454,7 +1363,7 @@
   <!--     default: true -->
   <!--   </desc> -->
   <!--   <values> -->
-  <!-- 	<value>.true.</value> -->
+  <!--  <value>.true.</value> -->
   <!--   </values> -->
   <!-- </entry> -->
 

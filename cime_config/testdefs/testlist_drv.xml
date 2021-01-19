@@ -145,27 +145,7 @@
   <!-- B compsets -->
   <!-- ======================================= -->
 
-  <test compset="BMOM" grid="f19_g16" name="SMS_Vnuopc_Ld5" testmods="allactive/nuopc_cap_io">
-    <machines>
-      <machine name="cheyenne" compiler="intel" category="nuopc"/>
-      <machine name="theia" compiler="intel" category="nuopc"/>
-      <machine name="izumi" compiler="intel" category="nuopc"/>
-    </machines>
-    <options>
-      <option name="wallclock"> 00:40:00 </option>
-    </options>
-  </test>
-  <test compset="BMOM" grid="f19_g16" name="SMS_Vmct_Ld5" testmods="allactive/nuopc_cap_io">
-    <machines>
-      <machine name="cheyenne" compiler="intel" category="mctcheck"/>
-      <machine name="theia" compiler="intel" category="mctcheck"/>
-      <machine name="izumi" compiler="intel" category="mctcheck"/>
-    </machines>
-    <options>
-      <option name="wallclock"> 00:40:00 </option>
-    </options>
-  </test>
-  <test compset="B1850" grid="f19_g16" name="ERR_Vnuopc_Ld5" testmods="allactive/nuopc_cap_io">
+  <test compset="B1850" grid="f19_g17" name="ERR_Vnuopc_Ld5" testmods="allactive/nuopc_cap_io">
     <machines>
       <machine name="cheyenne" compiler="intel" category="nuopc"/>
     </machines>
@@ -309,7 +289,7 @@
   <!-- D compsets -->
   <!-- ======================================= -->
 
-  <test compset="DTEST" grid="T62_g37" name="ERS_Vnuopc_Ld5" testmods="cice/nuopc_cap">
+  <test compset="DTEST" grid="T62_g37" name="ERS_Vnuopc_Ld5">
     <machines>
       <machine name="cheyenne" compiler="intel" category="nuopc"/>
       <machine name="theia" compiler="intel" category="nuopc"/>
@@ -319,7 +299,7 @@
       <option name="wallclock"> 00:10:00 </option>
     </options>
   </test>
-  <test compset="DTEST" grid="T62_g37" name="ERS_Vmct_Ld5" testmods="cice/nuopc_cap">
+  <test compset="DTEST" grid="T62_g37" name="ERS_Vmct_Ld5">
     <machines>
       <machine name="cheyenne" compiler="intel" category="mctcheck"/>
       <machine name="theia" compiler="intel" category="mctcheck"/>

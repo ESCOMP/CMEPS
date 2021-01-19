@@ -12,7 +12,7 @@ module med_phases_prep_rof_mod
 
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
   use ESMF                  , only : ESMF_FieldBundle, ESMF_Field
-  use esmFlds               , only : ncomps, complnd, comprof, compname, mapconsf, mapconsd
+  use esmFlds               , only : ncomps, complnd, comprof, compname, mapconsf, mapconsd, mapfcopy
   use med_internalstate_mod , only : InternalState, mastertask, logunit
   use med_constants_mod     , only : dbug_flag        => med_constants_dbug_flag
   use med_constants_mod     , only : czero            => med_constants_czero
@@ -52,6 +52,9 @@ module med_phases_prep_rof_mod
   ! the following are the fields that will be accumulated from the land
   character(CS) :: lnd2rof_flds(6) = (/'Flrl_rofsur','Flrl_rofgwl','Flrl_rofsub', &
                                        'Flrl_rofdto','Flrl_rofi  ','Flrl_irrig '/)
+
+  integer :: maptype_lnd2rof
+  integer :: maptype_rof2lnd
 
   character(*)    , parameter :: u_FILE_u = &
        __FILE__
@@ -424,14 +427,25 @@ contains
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    if (.not. med_map_RH_is_created(is_local%wrap%RH(complnd,comprof,:),mapconsf, rc=rc)) then
-       call ESMF_LogWrite(trim(subname)//": ERROR conservative route handle not created for lnd->rof mapping", &
+    if (med_map_RH_is_created(is_local%wrap%RH(complnd,comprof,:),mapconsf, rc=rc)) then
+       maptype_lnd2rof = mapconsf
+    else if ( med_map_RH_is_created(is_local%wrap%RH(complnd,comprof,:),mapfcopy, rc=rc)) then
+       maptype_lnd2rof = mapfcopy
+    else
+       call ESMF_LogWrite(trim(subname)//&
+            ": ERROR conservative or redist route handles not created for lnd->rof mapping", &
             ESMF_LOGMSG_ERROR)
        rc = ESMF_FAILURE
        return
     end if
-    if (.not. med_map_RH_is_created(is_local%wrap%RH(comprof,complnd,:),mapconsf, rc=rc)) then
-       call ESMF_LogWrite(trim(subname)//": ERROR conservative route handle not created for rof->lnd mapping", &
+
+    if (med_map_RH_is_created(is_local%wrap%RH(comprof,complnd,:),mapconsf, rc=rc)) then
+       maptype_rof2lnd = mapconsf
+    else if ( med_map_RH_is_created(is_local%wrap%RH(comprof,complnd,:),mapfcopy, rc=rc)) then
+       maptype_rof2lnd = mapfcopy
+    else
+       call ESMF_LogWrite(trim(subname)//&
+            ": ERROR conservative or redist route handles not created for rof->lnd mapping", &
             ESMF_LOGMSG_ERROR)
        rc = ESMF_FAILURE
        return
@@ -502,7 +516,7 @@ contains
          field_src=field_rofVolr, &
          field_dst=field_lndVolr, &
          routehandles=is_local%wrap%RH(comprof,complnd,:), &
-         maptype=mapconsf, rc=rc)
+         maptype=maptype_rof2lnd, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! Get volr_l
@@ -556,7 +570,7 @@ contains
          field_src=field_lndIrrig, &
          field_dst=field_rofIrrig, &
          routehandles=is_local%wrap%RH(complnd,comprof,:), &
-         maptype=mapconsf, &
+         maptype=maptype_lnd2rof, &
          field_normsrc=field_lfrac_lnd, &
          field_normdst=field_lfrac_rof, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -565,7 +579,7 @@ contains
          field_src=field_lndIrrig0, &
          field_dst=field_rofIrrig0, &
          routehandles=is_local%wrap%RH(complnd,comprof,:), &
-         maptype=mapconsf, &
+         maptype=maptype_lnd2rof, &
          field_normsrc=field_lfrac_lnd, &
          field_normdst=field_lfrac_rof, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
