@@ -457,7 +457,7 @@ contains
     real(r8), pointer             :: fldptr1(:)
     real(r8), pointer             :: fldptr2(:,:)
     real(r8), allocatable         :: ownedElemCoords(:), ownedElemCoords_x(:), ownedElemCoords_y(:)
-    character(len=number_strlen)  :: cnumber
+    character(16)                 :: cnumber
     character(CL)                 :: tmpstr
     type(ESMF_Field)              :: lfield
     integer                       :: rank
@@ -617,6 +617,7 @@ contains
                 call ESMF_FieldGet(lfield, ungriddedUBound=ungriddedUBound, rc=rc)
                 if (chkerr(rc,__LINE__,u_FILE_u)) return
                 write(cnumber,'(i0)') ungriddedUbound(1)
+                write(6,'(a,i8,a)')'DEBUG: itemc,ungriddedUbound,cnumber= '//trim(itemc),ungriddedUbound(1),cnumber
                 call ESMF_LogWrite(trim(subname)//':'//'field '//trim(itemc)// &
                      ' has an griddedUBound of  '//trim(cnumber), ESMF_LOGMSG_INFO)
 

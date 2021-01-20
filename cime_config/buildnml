@@ -258,13 +258,13 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
         # skip the mediator if there is a prognostic component and all other components are stub
         valid_comps.remove("CPL")
         nmlgen.set_value('mediator_present', value='.false.')
-        nmlgen.set_value("drv_restart_pointer", value="none")
         nmlgen.set_value("component_list", value=" ".join(valid_comps))
     else:
         # do not skip mediator if there is a data component but all other components are stub
-        nmlgen.set_value("drv_restart_pointer", value="rpointer.cpl")
         valid_comps_string = " ".join(valid_comps)
         nmlgen.set_value("component_list", value=valid_comps_string.replace("CPL","MED"))
+    # the driver restart pointer will look like a mediator is present even if it is not
+    nmlgen.set_value("drv_restart_pointer", value="rpointer.cpl")
 
     logger.info("Writing nuopc_runseq for components {}".format(valid_comps))
     nuopc_config_file = os.path.join(confdir, "nuopc.runconfig")
