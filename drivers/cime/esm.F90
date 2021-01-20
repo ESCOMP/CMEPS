@@ -978,6 +978,9 @@ contains
        info = ESMF_InfoCreate(rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
+!       call ESMF_InfoSet(info, key="/NUOPC/Hint/PePerPet/MinStackSize",value=400000000, rc=rc)
+!       if (chkerr(rc,__LINE__,u_FILE_u)) return
+
        call ESMF_InfoSet(info, key="/NUOPC/Hint/PePerPet/MaxCount", value=nthrds, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
@@ -1044,7 +1047,6 @@ contains
 
        comps(i+1) = i+1
        found_comp = .false.
-! If maxthreads == 1 then no threading is used and we do not need the SetVM in calls to NUOPC_DriverAddComp
 #ifdef MED_PRESENT
        if (trim(compLabels(i)) == 'MED') then
           med_id = i + 1
