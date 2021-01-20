@@ -954,6 +954,9 @@ contains
        info = ESMF_InfoCreate(rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
+!       call ESMF_InfoSet(info, key="/NUOPC/Hint/PePerPet/MinStackSize",value=400000000, rc=rc)
+!       if (chkerr(rc,__LINE__,u_FILE_u)) return
+
        call ESMF_InfoSet(info, key="/NUOPC/Hint/PePerPet/MaxCount", value=nthrds, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
@@ -978,9 +981,9 @@ contains
        call NUOPC_CompAttributeGet(driver, name=trim(namestr)//'_pestride', value=cvalue, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        read(cvalue,*) stride
-       if (stride < 1 .or. rootpe+ntasks*stride > PetCount) then
+       if (stride < 1 .or. rootpe+(ntasks-1)*stride > PetCount) then
           write (msgstr, *) "Invalid pestride value specified for component: ",namestr,&
-               ' rootpe: ',rootpe, ' pestride: ', stride
+               ' rootpe: ',rootpe, ' pestride: ', stride, ' ntasks: ',ntasks, ' PetCount: ', PetCount
           call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
           return
        endif
@@ -1000,108 +1003,67 @@ contains
 
        comps(i+1) = i+1
        found_comp = .false.
-! If maxthreads == 1 then no threading is used and we do not need the SetVM in calls to NUOPC_DriverAddComp
 #ifdef MED_PRESENT
        if (trim(compLabels(i)) == 'MED') then
           med_id = i + 1
-          if(maxthreads > 1) then
-             call NUOPC_DriverAddComp(driver, trim(compLabels(i)), MEDSetServices, MEDSetVM, &
-                  petList=petlist, comp=child, info=info, rc=rc)
-          else
-             call NUOPC_DriverAddComp(driver, trim(compLabels(i)), MEDSetServices, &
-                  petList=petlist, comp=child, rc=rc)
-          endif
+          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), MEDSetServices, MEDSetVM, &
+               petList=petlist, comp=child, info=info, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           found_comp = .true.
        end if
 #endif
 #ifdef ATM_PRESENT
        if (trim(compLabels(i)) .eq. 'ATM') then
-          if(maxthreads > 1) then
-             call NUOPC_DriverAddComp(driver, trim(compLabels(i)), ATMSetServices, ATMSetVM, &
-                  petList=petlist, comp=child, info=info, rc=rc)
-          else
-             call NUOPC_DriverAddComp(driver, trim(compLabels(i)), ATMSetServices, &
-                  petList=petlist, comp=child, rc=rc)
-          endif
+          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), ATMSetServices, ATMSetVM, &
+               petList=petlist, comp=child, info=info, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           found_comp = .true.
        end if
 #endif
 #ifdef LND_PRESENT
        if (trim(compLabels(i)) .eq. 'LND') then
-          if(maxthreads > 1) then
-             call NUOPC_DriverAddComp(driver, trim(compLabels(i)), LNDSetServices, LNDSetVM, &
-                  PetList=petlist, comp=child, info=info, rc=rc)
-          else
-             call NUOPC_DriverAddComp(driver, trim(compLabels(i)), LNDSetServices,  &
-                  PetList=petlist, comp=child, rc=rc)
-          endif
+          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), LNDSetServices, LNDSetVM, &
+               PetList=petlist, comp=child, info=info, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           found_comp = .true.
        end if
 #endif
 #ifdef OCN_PRESENT
        if (trim(compLabels(i)) .eq. 'OCN') then
-          if(maxthreads > 1) then
-             call NUOPC_DriverAddComp(driver, trim(compLabels(i)), OCNSetServices, OCNSetVM, &
-                  PetList=petlist, comp=child, info=info, rc=rc)
-          else
-             call NUOPC_DriverAddComp(driver, trim(compLabels(i)), OCNSetServices, &
-                  PetList=petlist, comp=child, rc=rc)
-          endif
+          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), OCNSetServices, OCNSetVM, &
+               PetList=petlist, comp=child, info=info, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           found_comp = .true.
        end if
 #endif
 #ifdef ICE_PRESENT
        if (trim(compLabels(i)) .eq. 'ICE') then
-          if(maxthreads > 1) then
-             call NUOPC_DriverAddComp(driver, trim(compLabels(i)), ICESetServices, ICESetVM, &
-                  PetList=petlist, comp=child, info=info, rc=rc)
-          else
-             call NUOPC_DriverAddComp(driver, trim(compLabels(i)), ICESetServices,  &
-                  PetList=petlist, comp=child, rc=rc)
-          endif
+          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), ICESetServices, ICESetVM, &
+               PetList=petlist, comp=child, info=info, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           found_comp = .true.
        end if
 #endif
 #ifdef GLC_PRESENT
        if (trim(compLabels(i)) .eq. 'GLC') then
-          if(maxthreads > 1) then
-             call NUOPC_DriverAddComp(driver, trim(compLabels(i)), GLCSetServices, GLCSetVM, &
-                  PetList=petlist, comp=child, info=info, rc=rc)
-          else
-             call NUOPC_DriverAddComp(driver, trim(compLabels(i)), GLCSetServices, &
-                  PetList=petlist, comp=child, rc=rc)
-          endif
+          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), GLCSetServices, GLCSetVM, &
+               PetList=petlist, comp=child, info=info, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           found_comp = .true.
        end if
 #endif
 #ifdef ROF_PRESENT
        if (trim(compLabels(i)) .eq. 'ROF') then
-          if(maxthreads > 1) then
-             call NUOPC_DriverAddComp(driver, trim(compLabels(i)), ROFSetServices, ROFSetVM, &
-                  PetList=petlist, comp=child, info=info, rc=rc)
-          else
-             call NUOPC_DriverAddComp(driver, trim(compLabels(i)), ROFSetServices, &
-                  PetList=petlist, comp=child, rc=rc)
-          endif
+          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), ROFSetServices, ROFSetVM, &
+               PetList=petlist, comp=child, info=info, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           found_comp = .true.
        end if
 #endif
 #ifdef WAV_PRESENT
        if (trim(compLabels(i)) .eq. 'WAV') then
-          if(maxthreads > 1) then
-             call NUOPC_DriverAddComp(driver, trim(compLabels(i)), WAVSetServices, WAVSetVM, &
-                  PetList=petlist, comp=child, info=info, rc=rc)
-          else
-             call NUOPC_DriverAddComp(driver, trim(compLabels(i)), WAVSetServices,  &
-                  PetList=petlist, comp=child, rc=rc)
-          endif
+          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), WAVSetServices, WAVSetVM, &
+               PetList=petlist, comp=child, info=info, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           found_comp = .true.
        end if
