@@ -29,7 +29,6 @@ contains
     use ESMF                  , only : ESMF_FieldBundleGet, ESMF_FieldGet, ESMF_Field
     use ESMF                  , only : ESMF_LOGMSG_ERROR, ESMF_FAILURE
     use ESMF                  , only : ESMF_StateItem_Flag, ESMF_STATEITEM_NOTFOUND
-    use ESMF                  , only : ESMF_VMBroadCast
     use med_utils_mod         , only : chkerr      => med_utils_ChkErr
     use med_methods_mod       , only : fldchk      => med_methods_FB_FldChk
     use med_methods_mod       , only : FB_diagnose => med_methods_FB_diagnose
