@@ -19,8 +19,8 @@ jobs:
       CXX: mpicxx
       CPPFLAGS: "-I/usr/include -I/usr/local/include"
       # Versions of all dependencies can be updated here
-      ESMF_VERSION: ESMF_8_1_0_beta_snapshot_31
-      PNETCDF_VERSION: pnetcdf-1.12.1
+      ESMF_VERSION: ESMF_8_1_0_beta_snapshot_41
+      PNETCDF_VERSION: pnetcdf-1.12.2
       NETCDF_FORTRAN_VERSION: v4.5.2
       # PIO version is awkward
       PIO_VERSION_DIR: pio2_5_2
