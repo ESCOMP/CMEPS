@@ -937,17 +937,17 @@ contains
 #else
     call ESMF_GridCompGet(gcomp, name=cname, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_AttributeGet(gcomp, name="Verbosity", value=value, &
+    call ESMF_AttributeGet(gcomp, name="Verbosity", value=cvalue, &
       defaultValue="0", convention="NUOPC", purpose="Instance", rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    verbosity = ESMF_UtilString2Int(value, &
+    verbosity = ESMF_UtilString2Int(cvalue, &
       specialStringList=(/"off","low","high","max"/), &
       specialValueList=(/0,9985,32513,131071/), rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_AttributeGet(gcomp, name="Diagnostic", value=value, &
+    call ESMF_AttributeGet(gcomp, name="Diagnostic", value=cvalue, &
       defaultValue="0", convention="NUOPC", purpose="Instance", rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    diagnostic = ESMF_UtilString2Int(value, &
+    diagnostic = ESMF_UtilString2Int(cvalue, &
       specialStringList=(/"off","max"/), &
       specialValueList=(/0,131071/), rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
