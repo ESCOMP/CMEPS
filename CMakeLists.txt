@@ -40,9 +40,9 @@ if (NOT DEFINED MPILIB OR NOT ${MPILIB} STREQUAL "mpi-serial")
 endif()
 
 if(BLD_STANDALONE)
-  add_subdirectory(nems/util)
+  add_subdirectory(util)
   list(APPEND EXTRA_LIBS cmeps_share)
-  list(APPEND EXTRA_INCLUDES "${CMAKE_BINARY_DIR}/nems/util")
+  list(APPEND EXTRA_INCLUDES "${CMAKE_BINARY_DIR}/util")
 endif()
 
 add_subdirectory(mediator)
