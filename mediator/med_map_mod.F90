@@ -275,9 +275,7 @@ contains
        if (n1 == compocn .or. n1 == compice) srcMaskValue = 0
        if (n2 == compocn .or. n2 == compice) dstMaskValue = 0
        if (n1 == compatm .and. n2 == compocn) then
-          if (trim(atm_name).eq.'datm') then
-             srcMaskValue = ispval_mask
-          else
+          if (trim(atm_name).ne.'datm') then
              srcMaskValue = 1
           endif
           dstMaskValue = 0
