@@ -836,8 +836,6 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     else
        fieldcount=0
-       allocate(fieldlist_src(fieldcount))
-       allocate(fieldlist_dst(fieldcount))
     endif
 
 
@@ -987,8 +985,10 @@ contains
        end if
     end do ! end of loop over mapindex
 
-    deallocate(fieldlist_src)
-    deallocate(fieldlist_dst)
+    if (ESMF_FieldBundleIsCreated(FBsrc)) then
+      deallocate(fieldlist_src)
+      deallocate(fieldlist_dst)
+    end if
 
     call t_stopf('MED:'//subname)
 

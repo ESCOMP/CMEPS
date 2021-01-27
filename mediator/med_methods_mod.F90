@@ -744,27 +744,32 @@ contains
        allocate(lfieldnamelist(fieldCount))
        call ESMF_FieldBundleGet(FB, fieldNameList=lfieldnamelist, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
+    else
+       fieldCount=0
+    endif
 
-       do n = 1, fieldCount
-          call ESMF_FieldBundleGet(FB, fieldName=trim(lfieldnamelist(n)), field=lfield, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call med_methods_Field_GetFldPtr(lfield, fldptr1=fldptr1, fldptr2=fldptr2, rank=lrank, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
+    do n = 1, fieldCount
+       call ESMF_FieldBundleGet(FB, fieldName=trim(lfieldnamelist(n)), field=lfield, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call med_methods_Field_GetFldPtr(lfield, fldptr1=fldptr1, fldptr2=fldptr2, rank=lrank, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-          if (lrank == 0) then
-             ! no local data
-          elseif (lrank == 1) then
-             fldptr1 = lvalue
-          elseif (lrank == 2) then
-             fldptr2 = lvalue
-          else
-             call ESMF_LogWrite(trim(subname)//": ERROR in rank "//trim(lfieldnamelist(n)), &
-                  ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
-             rc = ESMF_FAILURE
-             return
-          endif
-       enddo
-       deallocate(lfieldnamelist)
+       if (lrank == 0) then
+          ! no local data
+       elseif (lrank == 1) then
+          fldptr1 = lvalue
+       elseif (lrank == 2) then
+          fldptr2 = lvalue
+       else
+          call ESMF_LogWrite(trim(subname)//": ERROR in rank "//trim(lfieldnamelist(n)), &
+               ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
+          rc = ESMF_FAILURE
+          return
+       endif
+    enddo
+
+    if (ESMF_FieldBundleIsCreated(fieldbundle=FB)) then
+      deallocate(lfieldnamelist)
     endif
 
     if (dbug_flag > 10) then
