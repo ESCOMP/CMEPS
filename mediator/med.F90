@@ -851,46 +851,14 @@ contains
 
     if (mastertask) then
        write(logunit,*)
-       if (trim(atm_present).eq."true") then
-          write(logunit,*) "atm_present="//trim(atm_present)//" - atm_name="//trim(atm_name)
-       else
-          write(logunit,*) "atm_present="//trim(atm_present)
-       endif
-       if (trim(lnd_present).eq."true") then
-          write(logunit,*) "lnd_present="//trim(lnd_present)//" - lnd_name="//trim(lnd_name)
-       else
-          write(logunit,*) "lnd_present="//trim(lnd_present)
-       endif
-       if (trim(ocn_present).eq."true") then
-          write(logunit,*) "ocn_present="//trim(ocn_present)//" - ocn_name="//trim(ocn_name)
-       else
-          write(logunit,*) "ocn_present="//trim(ocn_present)
-       endif
-       if (trim(ice_present).eq."true") then
-          write(logunit,*) "ice_present="//trim(ice_present)//" - ice_name="//trim(ice_name)
-       else
-          write(logunit,*) "ice_present="//trim(ice_present)
-       endif
-       if (trim(rof_present).eq."true") then
-          write(logunit,*) "rof_present="//trim(rof_present)//" - rof_name="//trim(rof_name)
-       else
-          write(logunit,*) "rof_present="//trim(rof_present)
-       endif
-       if (trim(wav_present).eq."true") then
-          write(logunit,*) "wav_present="//trim(wav_present)//" - wav_name="//trim(wav_name)
-       else
-          write(logunit,*) "wav_present="//trim(wav_present)
-       endif
-       if (trim(glc_present).eq."true") then
-          write(logunit,*) "glc_present="//trim(glc_present)//" - glc_name="//trim(glc_name)
-       else
-          write(logunit,*) "glc_present="//trim(glc_present)
-       endif
-       if (trim(med_present).eq."true") then
-          write(logunit,*) "med_present="//trim(med_present)//" - med_name="//trim(med_name)
-       else
-          write(logunit,*) "med_present="//trim(med_present)
-       endif
+       if (trim(atm_present).eq."true") write(logunit,*) "atm_name="//trim(atm_name)
+       if (trim(lnd_present).eq."true") write(logunit,*) "lnd_name="//trim(lnd_name)
+       if (trim(ocn_present).eq."true") write(logunit,*) "ocn_name="//trim(ocn_name)
+       if (trim(ice_present).eq."true") write(logunit,*) "ice_name="//trim(ice_name)
+       if (trim(rof_present).eq."true") write(logunit,*) "rof_name="//trim(rof_name)
+       if (trim(wav_present).eq."true") write(logunit,*) "wav_name="//trim(wav_name)
+       if (trim(glc_present).eq."true") write(logunit,*) "glc_name="//trim(glc_name)
+       if (trim(med_present).eq."true") write(logunit,*) "med_name="//trim(med_name)
        write(logunit,*)
     end if
 
