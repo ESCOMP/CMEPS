@@ -22,13 +22,11 @@ contains
     integer, intent(in) :: level
     logical, intent(in) :: mastertask
     integer :: ierr
-#ifndef INTERNAL_PIO_INIT
 #ifdef CESMCOUPLED
     integer, external :: GPTLprint_memusage
     if((mastertask .and. memdebug_level > level) .or. memdebug_level > level+1) then
        ierr = GPTLprint_memusage(string)
     endif
-#endif
 #endif
   end subroutine med_memcheck
 

@@ -38,6 +38,8 @@ module MED
   use esmFlds                  , only : med_fldList_GetNumFlds, med_fldList_GetFldNames, med_fldList_GetFldInfo
   use esmFlds                  , only : med_fldList_Document_Mapping, med_fldList_Document_Merging
   use esmFlds                  , only : coupling_mode
+  use esmFlds                  , only : med_name, atm_name, lnd_name, ocn_name
+  use esmFlds                  , only : ice_name, rof_name, wav_name, glc_name
   use esmFldsExchange_nems_mod , only : esmFldsExchange_nems
   use esmFldsExchange_cesm_mod , only : esmFldsExchange_cesm
   use esmFldsExchange_hafs_mod , only : esmFldsExchange_hafs
@@ -778,42 +780,56 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (isPresent .and. isSet) then
        if (trim(cvalue) /= 'satm') atm_present = "true"
+       atm_name = trim(cvalue)
     end if
+
     call NUOPC_CompAttributeGet(gcomp, name='LND_model', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (isPresent .and. isSet) then
        if (trim(cvalue) /= 'slnd') lnd_present = "true"
+       lnd_name = trim(cvalue)
     end if
+
     call NUOPC_CompAttributeGet(gcomp, name='OCN_model', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (isPresent .and. isSet) then
        if (trim(cvalue) /= 'socn') ocn_present = "true"
+       ocn_name = trim(cvalue)
     end if
+
     call NUOPC_CompAttributeGet(gcomp, name='ICE_model', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (isPresent .and. isSet) then
        if (trim(cvalue) /= 'sice') ice_present = "true"
+       ice_name = trim(cvalue)
     end if
+
     call NUOPC_CompAttributeGet(gcomp, name='ROF_model', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (isPresent .and. isSet) then
        if (trim(cvalue) /= 'srof') rof_present = "true"
+       rof_name = trim(cvalue)
     end if
+
     call NUOPC_CompAttributeGet(gcomp, name='WAV_model', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (isPresent .and. isSet) then
        if (trim(cvalue) /= 'swav') wav_present = "true"
+       wav_name = trim(cvalue)
     end if
+
     call NUOPC_CompAttributeGet(gcomp, name='GLC_model', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (isPresent .and. isSet) then
        if (trim(cvalue) /= 'sglc') glc_present = "true"
+       glc_name = trim(cvalue)
     end if
 
     call NUOPC_CompAttributeGet(gcomp, name='mediator_present', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (isPresent .and. isSet) then
        med_present = trim(cvalue)
+       med_name = trim(cvalue)
     end if
 
     call NUOPC_CompAttributeSet(gcomp, name="atm_present", value=atm_present, rc=rc)
@@ -835,14 +851,14 @@ contains
 
     if (mastertask) then
        write(logunit,*)
-       write(logunit,*) "atm_present="//trim(atm_present)
-       write(logunit,*) "lnd_present="//trim(lnd_present)
-       write(logunit,*) "ocn_present="//trim(ocn_present)
-       write(logunit,*) "ice_present="//trim(ice_present)
-       write(logunit,*) "rof_present="//trim(rof_present)
-       write(logunit,*) "wav_present="//trim(wav_present)
-       write(logunit,*) "glc_present="//trim(glc_present)
-       write(logunit,*) "med_present="//trim(med_present)
+       if (trim(atm_present).eq."true") write(logunit,*) "atm_name="//trim(atm_name)
+       if (trim(lnd_present).eq."true") write(logunit,*) "lnd_name="//trim(lnd_name)
+       if (trim(ocn_present).eq."true") write(logunit,*) "ocn_name="//trim(ocn_name)
+       if (trim(ice_present).eq."true") write(logunit,*) "ice_name="//trim(ice_name)
+       if (trim(rof_present).eq."true") write(logunit,*) "rof_name="//trim(rof_name)
+       if (trim(wav_present).eq."true") write(logunit,*) "wav_name="//trim(wav_name)
+       if (trim(glc_present).eq."true") write(logunit,*) "glc_name="//trim(glc_name)
+       if (trim(med_present).eq."true") write(logunit,*) "med_name="//trim(med_name)
        write(logunit,*)
     end if
 

@@ -64,8 +64,24 @@
        canonical_units: kg m-2 s-1
        description: atmosphere export
      #
+     - standard_name: Faxa_rainc
+       canonical_units: kg m-2 s-1
+       description: atmosphere export
+     #
+     - standard_name: Faxa_rainl
+       canonical_units: kg m-2 s-1
+       description: atmosphere export
+     #
      - standard_name: Faxa_snow
        alias: mean_fprec_rate
+       canonical_units: kg m-2 s-1
+       description: atmosphere export
+     #
+     - standard_name: Faxa_snowc
+       canonical_units: kg m-2 s-1
+       description: atmosphere export
+     #
+     - standard_name: Faxa_snowl
        canonical_units: kg m-2 s-1
        description: atmosphere export
      #
@@ -122,6 +138,11 @@
        canonical_units: K
        description: atmosphere export - bottom layer temperature
      #
+     - standard_name: Sa_tskn
+       alias: inst_temp_skin_temperature
+       canonical_units: K
+       description: atmosphere export - sea surface skin temperature
+     #
      - standard_name: Sa_u
        alias: inst_zonal_wind_height_lowest
        canonical_units: m s-1
@@ -132,10 +153,20 @@
        canonical_units: m s-1
        description: atmosphere export - bottom layer meridional wind
      #
+     - standard_name: Sa_wspd
+       alias: inst_wind_speed_height_lowest
+       canonical_units: m s-1
+       description: atmosphere export - bottom layer wind speed
+     #
      - standard_name: Sa_z
        alias: inst_height_lowest
        canonical_units: m
        description: atmosphere export - bottom layer height
+     #
+     - standard_name: Sa_topo
+       alias: inst_surface_height
+       canonical_units: m
+       description: atmosphere export - topographic height
      #
      - standard_name: Faxa_taux
        alias: mean_zonal_moment_flx_atm
@@ -482,6 +513,15 @@
        alias: mean_net_sw_ir_dif_flx
        canonical_units: W m-2
        description: ocean import - net shortwave ir diffuse radiation to ocean
+     #
+     - standard_name: Foxx_sen
+       alias: mean_sensi_heat_flx
+       canonical_units: W m-2
+       description: ocean import - sensible heat flux into ocean
+     #
+     - standard_name: Foxx_lat
+       canonical_units: W m-2
+       description: ocean import - latent heat flux into ocean
      #
      - standard_name: Foxx_taux
        alias: mean_zonal_moment_flx

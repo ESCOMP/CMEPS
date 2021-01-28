@@ -143,6 +143,7 @@ contains
 
     use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_LOGMSG_ERROR
     use ESMF                  , only : ESMF_SUCCESS, ESMF_FAILURE
+    use ESMF                  , only : ESMF_LogSetError, ESMF_RC_NOT_VALID
     use ESMF                  , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_StateIsCreated
     use ESMF                  , only : ESMF_FieldBundle, ESMF_FieldBundleIsCreated, ESMF_FieldBundleDestroy
     use ESMF                  , only : ESMF_FieldBundleGet
@@ -238,7 +239,9 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call fldbun_getdata1d(is_local%wrap%FBFrac(complnd) , 'lfrac', lfrac, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       lfrac(:) = Sl_lfrin(:)
+       if (associated(lfrac)) then
+          lfrac(:) = Sl_lfrin(:)
+       end if
     end if
 
     !---------------------------------------
@@ -251,7 +254,9 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call fldbun_getdata1d(is_local%wrap%FBFrac(compice), 'ifrac', ifrac, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       ifrac(:) = Si_imask(:)
+       if (associated(ifrac)) then
+          ifrac(:) = Si_imask(:)
+       end if
     end if
 
     !---------------------------------------
@@ -299,7 +304,9 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call fldbun_getdata1d(is_local%wrap%FBFrac(compocn), 'ofrac', ofrac, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       ofrac(:) = So_omask(:)
+       if (associated(ofrac)) then
+          ofrac(:) = So_omask(:)
+       end if
     end if
 
     !---------------------------------------
@@ -356,15 +363,17 @@ contains
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           call fldbun_getdata1d(is_local%wrap%FBfrac(compatm), 'ofrac', ofrac, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          if (is_local%wrap%comp_present(complnd)) then
-             do n = 1,size(lfrac)
-                lfrac(n) = 1.0_R8 - ofrac(n)
-                if (abs(lfrac(n)) < eps_fraclim) then
-                   lfrac(n) = 0.0_R8
-                end if
-             end do
-          else
-             lfrac(:) = 0.0_R8
+          if (associated(lfrac)) then
+             if (is_local%wrap%comp_present(complnd)) then
+                do n = 1,size(lfrac)
+                   lfrac(n) = 1.0_R8 - ofrac(n)
+                   if (abs(lfrac(n)) < eps_fraclim) then
+                      lfrac(n) = 0.0_R8
+                   end if
+                end do
+             else
+                lfrac(:) = 0.0_R8
+             end if
           end if
 
        else if (is_local%wrap%comp_present(complnd) .and. is_local%wrap%med_coupling_active(complnd,compatm)) then
@@ -395,12 +404,14 @@ contains
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           call fldbun_getdata1d(is_local%wrap%FBfrac(compatm), 'ofrac', ofrac, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          do n = 1,size(lfrac)
-             ofrac(n) = 1.0_R8 - lfrac(n)
-             if (abs(ofrac(n)) < eps_fraclim) then
-                ofrac(n) = 0.0_R8
-             end if
-          end do
+          if (associated(ofrac)) then
+             do n = 1,size(lfrac)
+                ofrac(n) = 1.0_R8 - lfrac(n)
+                if (abs(ofrac(n)) < eps_fraclim) then
+                   ofrac(n) = 0.0_R8
+                end if
+             end do
+          end if
 
        end if
     end if
@@ -448,12 +459,16 @@ contains
           call fldbun_getdata1d(is_local%wrap%FBImp(comprof,comprof), 'frac', frac, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           call fldbun_getdata1d(is_local%wrap%FBfrac(comprof), 'rfrac', rfrac, rc)
-          rfrac(:) = frac(:)
+          if (associated(rfrac)) then
+             rfrac(:) = frac(:)
+          endif
        else
           ! Set 'rfrac' in FBfrac(comprof) to 1.
           call fldbun_getdata1d(is_local%wrap%FBfrac(comprof), 'rfrac', rfrac, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          rfrac(:) = 1.0_R8
+          if (associated(rfrac)) then
+             rfrac(:) = 1.0_R8
+          endif
        endif
 
        ! Set 'lfrac' in FBFrac(comprof)
@@ -489,12 +504,16 @@ contains
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
              call fldbun_getdata1d(is_local%wrap%FBfrac(compglc(ns)), 'gfrac', gfrac, rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             gfrac(:) = frac(:)
+             if (associated(gfrac)) then
+                gfrac(:) = frac(:)
+             endif
           else
              ! Set 'gfrac' in FBfrac(compglc(ns)) to 1.
              call fldbun_getdata1d(is_local%wrap%FBfrac(compglc(ns)), 'gfrac', gfrac, rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             gfrac(:) = 1.0_R8
+             if (associated(gfrac)) then
+                gfrac(:) = 1.0_R8
+             endif
           endif
 
           ! Set 'lfrac' in FBFrac(compglc(ns))
@@ -525,7 +544,9 @@ contains
        ! Set 'wfrac' in FBfrac(compwav) to 1.
        call fldbun_getdata1d(is_local%wrap%FBfrac(compwav), 'wfrac', wfrac, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       wfrac(:) = 1.0_R8
+       if (associated(wfrac)) then
+          wfrac(:) = 1.0_R8
+       endif
     endif
 
     !---------------------------------------
@@ -661,10 +682,14 @@ contains
        ! So in it is (1-land fraction) on the atm grid
 
        ! set ifrac 
-       ifrac(:) = Si_ifrac(:) * Si_imask(:)
+       if (associated(ifrac)) then
+          ifrac(:) = Si_ifrac(:) * Si_imask(:)
+       endif
 
        ! set ofrac = Si_imask - ifrac
-       ofrac(:) = Si_imask(:) - ifrac(:)
+       if (associated(ofrac)) then
+          ofrac(:) = Si_imask(:) - ifrac(:)
+       endif
 
        ! -------------------------------------------
        ! Set FBfrac(compocn)
