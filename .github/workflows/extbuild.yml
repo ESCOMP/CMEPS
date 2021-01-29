@@ -1,4 +1,4 @@
-# This is a workflow to compile the cdeps source without cime
+# This is a workflow to compile the cmeps source without cime
 name: extbuild
 
 # Controls when the action will run. Triggers the workflow on push or pull request
@@ -19,8 +19,8 @@ jobs:
       CXX: mpicxx
       CPPFLAGS: "-I/usr/include -I/usr/local/include"
       # Versions of all dependencies can be updated here
-      ESMF_VERSION: ESMF_8_1_0_beta_snapshot_31
-      PNETCDF_VERSION: pnetcdf-1.12.1
+      ESMF_VERSION: ESMF_8_1_0_beta_snapshot_41
+      PNETCDF_VERSION: pnetcdf-1.12.2
       NETCDF_FORTRAN_VERSION: v4.5.2
       # PIO version is awkward
       PIO_VERSION_DIR: pio2_5_2
@@ -83,14 +83,24 @@ jobs:
           make
           make install
 
+      - name: Cache PIO
+        id: cache-PIO
+        uses: actions/cache@v2
+        with:
+          path: ~/pio
+          key: ${{ runner.os }}-${{ env.PIO_VERSION }}.pio
+          restore-keys: |
+            ${{ runner.os }}-${{ env.NETCDF_FORTRAN_VERSION }}-netcdf-fortran
+            ${{ runner.os }}-${{ env.PNETCDF_VERSION }}-pnetcdf
+
       - name: Build PIO
         if: steps.cache-PIO.outputs.cache-hit != 'true'
         run: |
-          git submodule init
-          git submodule update
+          wget https://github.com/NCAR/ParallelIO/releases/download/${{ env.PIO_VERSION_DIR }}/${{ env.PIO_VERSION }}.tar.gz
+          tar -xzvf ${{ env.PIO_VERSION }}.tar.gz
           mkdir build-pio
           pushd build-pio
-          cmake -Wno-dev -DNetCDF_C_LIBRARY=/usr/lib/x86_64-linux-gnu/libnetcdf.so -DNetCDF_C_INCLUDE_DIR=/usr/include -DCMAKE_PREFIX_PATH=/usr -DCMAKE_INSTALL_PREFIX=$HOME/pio -DPIO_HDF5_LOGGING=On -DPIO_USE_MALLOC=On -DPIO_ENABLE_LOGGING=On -DPIO_ENABLE_TIMING=Off -DPIO_ENABLE_TESTS=OFF -DNetCDF_Fortran_PATH=$HOME/netcdf-fortran -DPnetCDF_PATH=$HOME/pnetcdf ../nems/lib/ParallelIO
+          cmake -Wno-dev -DNetCDF_C_LIBRARY=/usr/lib/x86_64-linux-gnu/libnetcdf.so -DNetCDF_C_INCLUDE_DIR=/usr/include -DCMAKE_PREFIX_PATH=/usr -DCMAKE_INSTALL_PREFIX=$HOME/pio -DPIO_HDF5_LOGGING=On -DPIO_USE_MALLOC=On -DPIO_ENABLE_TESTS=Off -DPIO_ENABLE_LOGGING=On -DPIO_ENABLE_EXAMPLES=Off -DPIO_ENABLE_TIMING=Off -DNetCDF_Fortran_PATH=$HOME/netcdf-fortran -DPnetCDF_PATH=$HOME/pnetcdf ../${{ env.PIO_VERSION }}
           make VERBOSE=1
           make install
           popd

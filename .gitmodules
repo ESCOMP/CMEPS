@@ -1,4 +1,0 @@
-[submodule "nems/lib/genf90"]
-	path = nems/lib/genf90
-	url = https://github.com/PARALLELIO/genf90
-	branch = master

@@ -17,7 +17,6 @@ field dictionaries are supported::
 
   fd_cesm.yaml
   fd_nems.yaml
-  fd_hafs.yaml
 
 The CMEPS field name convention in these YAML files is independent of the model components.
 The convention differentiates between variables that are state fields versus flux fields.
