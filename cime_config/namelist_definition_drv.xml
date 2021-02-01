@@ -1743,9 +1743,10 @@
     <type>logical</type>
     <category>mapping</category>
     <group>MED_attributes</group>
-    <desc>used for atm->ocn and atm-ice mapping of u and v; rotate u,v to 3d cartesian space, map from src->dest, then rotate back</desc>
+    <desc>used for atm->ocn and atm-ice mapping of u and v; rotate u,v
+    to 3d cartesian space, map from src->dest, then rotate back</desc>
     <values>
-      <value>.false.</value>
+      <value>.true.</value>
     </values>
   </entry>
 
