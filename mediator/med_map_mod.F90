@@ -214,9 +214,11 @@ contains
     use esmFlds           , only : mapbilnr, mapconsf, mapconsd, mappatch, mappatch_uv3d, mapfcopy
     use esmFlds           , only : mapunset, mapnames, nmappers
     use esmFlds           , only : mapnstod, mapnstod_consd, mapnstod_consf, mapnstod_consd
+    use esmFlds           , only : mapfillv_bilnr
     use esmFlds           , only : ncomps, compatm, compice, compocn, compname
     use esmFlds           , only : mapfcopy, mapconsd, mapconsf, mapnstod
     use esmFlds           , only : coupling_mode, compname
+    use esmFlds           , only : atm_name
     use med_constants_mod , only : ispval_mask => med_constants_ispval_mask
 
     ! input/output variables
@@ -273,6 +275,15 @@ contains
        srcMaskValue = ispval_mask
        if (n1 == compocn .or. n1 == compice) srcMaskValue = 0
        if (n2 == compocn .or. n2 == compice) dstMaskValue = 0
+       if (n1 == compatm .and. n2 == compocn) then
+          if (trim(atm_name).ne.'datm') then
+             srcMaskValue = 1
+          endif
+          dstMaskValue = 0
+       elseif (n1 == compocn .and. n2 == compatm) then
+          srcMaskValue = 0
+          dstMaskValue = ispval_mask
+       endif
     end if
 
     write(string,'(a)') trim(compname(n1))//' to '//trim(compname(n2))
@@ -299,6 +310,19 @@ contains
           write(logunit,'(A)') trim(subname)//' creating RH '//trim(mapname)//' for '//trim(string)
        end if
        call ESMF_FieldRegridStore(fldsrc, flddst, routehandle=routehandles(mapbilnr), &
+            srcMaskValues=(/srcMaskValue/), &
+            dstMaskValues=(/dstMaskValue/), &
+            regridmethod=ESMF_REGRIDMETHOD_BILINEAR, &
+            polemethod=polemethod, &
+            srcTermProcessing=srcTermProcessing_Value, &
+            ignoreDegenerate=.true., &
+            unmappedaction=ESMF_UNMAPPEDACTION_IGNORE, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+    else if (mapindex == mapfillv_bilnr) then
+       if (mastertask) then
+          write(logunit,'(A)') trim(subname)//' creating RH '//trim(mapname)//' for '//trim(string)
+       end if
+       call ESMF_FieldRegridStore(fldsrc, flddst, routehandle=routehandles(mapfillv_bilnr), &
             srcMaskValues=(/srcMaskValue/), &
             dstMaskValues=(/dstMaskValue/), &
             regridmethod=ESMF_REGRIDMETHOD_BILINEAR, &
@@ -769,6 +793,7 @@ contains
 
     use ESMF                  , only : ESMF_Field, ESMF_FieldGet, ESMF_FieldIsCreated
     use ESMF                  , only : ESMF_FieldBundle, ESMF_FieldBundleGet
+    use ESMF                  , only : ESMF_FieldBundleIsCreated
     use ESMF                  , only : ESMF_FieldRedist, ESMF_RouteHandle
     use esmFlds               , only : nmappers, mapfcopy, mappatch_uv3d, mappatch
     use med_internalstate_mod , only : packed_data_type
@@ -805,16 +830,21 @@ contains
     rc = ESMF_SUCCESS
 
     ! Get field count for both FBsrc and FBdst
-    call ESMF_FieldBundleGet(FBsrc, fieldCount=fieldCount, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (ESMF_FieldBundleIsCreated(FBsrc)) then
+       call ESMF_FieldBundleGet(FBsrc, fieldCount=fieldCount, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    allocate(fieldlist_src(fieldcount))
-    call ESMF_FieldBundleGet(FBsrc, fieldlist=fieldlist_src, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       allocate(fieldlist_src(fieldcount))
+       call ESMF_FieldBundleGet(FBsrc, fieldlist=fieldlist_src, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    allocate(fieldlist_dst(fieldcount))
-    call ESMF_FieldBundleGet(FBdst, fieldlist=fieldlist_dst, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       allocate(fieldlist_dst(fieldcount))
+       call ESMF_FieldBundleGet(FBdst, fieldlist=fieldlist_dst, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    else
+       fieldcount=0
+    endif
+
 
     ! Loop over mapping types
     do mapindex = 1,nmappers
@@ -956,8 +986,10 @@ contains
        end if
     end do ! end of loop over mapindex
 
-    deallocate(fieldlist_src)
-    deallocate(fieldlist_dst)
+    if (ESMF_FieldBundleIsCreated(FBsrc)) then
+      deallocate(fieldlist_src)
+      deallocate(fieldlist_dst)
+    end if
 
     call t_stopf('MED:'//subname)
 
@@ -1086,12 +1118,15 @@ contains
 
     use ESMF            , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
     use ESMF            , only : ESMF_LOGMSG_ERROR, ESMF_FAILURE, ESMF_MAXSTR
+    use ESMF            , only : ESMF_KIND_R8
     use ESMF            , only : ESMF_Field, ESMF_FieldRegrid
+    use ESMF            , only : ESMF_FieldFill
     use ESMF            , only : ESMF_TERMORDER_SRCSEQ, ESMF_Region_Flag, ESMF_REGION_TOTAL
     use ESMF            , only : ESMF_REGION_SELECT
     use ESMF            , only : ESMF_RouteHandle
     use esmFlds         , only : mapnstod_consd, mapnstod_consf, mapnstod_consd, mapnstod
     use esmFlds         , only : mapconsd, mapconsf
+    use esmFlds         , only : mapfillv_bilnr
     use med_methods_mod , only : Field_diagnose => med_methods_Field_diagnose
 
     ! input/output variables
@@ -1105,6 +1140,7 @@ contains
     ! local variables
     logical :: checkflag = .false.
     character(len=CS) :: lfldname
+    real(ESMF_KIND_R8), parameter :: fillValue = 9.99e20_ESMF_KIND_R8
     character(len=*), parameter :: subname='(module_MED_map:med_map_field) '
     !---------------------------------------------------
 
@@ -1144,6 +1180,20 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        if (dbug_flag > 1) then
           call Field_diagnose(field_dst, lfldname, " --> after consf: ", rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+       end if
+    else if (maptype == mapfillv_bilnr) then
+       call ESMF_FieldFill(field_dst, dataFillScheme="const", const1=fillValue, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (dbug_flag > 1) then
+          call Field_diagnose(field_dst, lfldname, " --> after fillv: ", rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+       end if
+       call ESMF_FieldRegrid(field_src, field_dst, routehandle=RouteHandles(mapfillv_bilnr), &
+            termorderflag=ESMF_TERMORDER_SRCSEQ, checkflag=checkflag, zeroregion=ESMF_REGION_SELECT, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (dbug_flag > 1) then
+          call Field_diagnose(field_dst, lfldname, " --> after bilnr: ", rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
        end if
     else

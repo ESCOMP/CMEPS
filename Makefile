@@ -19,6 +19,14 @@ ifndef CXX
 $(error CXX not defined)
 endif
 
+ifndef PIO_LIBDIR
+$(error PIO_LIBDIR should point to PIO library directory.)
+endif
+
+ifndef PIO_INC
+$(error PIO_INC should point to PIO include directory.)
+endif
+
 ifndef INTERNAL_PIO_INIT
 INTERNAL_PIO_INIT := 1
 endif
@@ -26,7 +34,7 @@ $(info INTERNAL_PIO_INIT is set to $(INTERNAL_PIO_INIT))
 
 MEDIATOR_DIR := $(BASE_DIR)/mediator
 LIBRARY_MEDIATOR := $(MEDIATOR_DIR)/libcmeps.a
-LIBRARY_UTIL := $(BASE_DIR)/nems/util/libcmeps_util.a
+LIBRARY_UTIL := $(BASE_DIR)/util/libcmeps_util.a
 
 all default: install
 
@@ -41,28 +49,29 @@ else
 	@echo "ESMF_DEP_FRONT     = MED" >> cmeps.mk.install
 	@echo "ESMF_DEP_INCPATH   = $(INSTALLDIR)/include" >> cmeps.mk.install
 	@echo "ESMF_DEP_CMPL_OBJS = " >> cmeps.mk.install
-	@echo "ESMF_DEP_LINK_OBJS = $(INSTALLDIR)/libcmeps.a $(INSTALLDIR)/libcmeps_util.a $(PIO_ROOT)/lib/libpiof.a $(PIO_ROOT)/lib/libpioc.a $(PNETCDF_LD_OPTS)" >> cmeps.mk.install
+	@echo "ESMF_DEP_LINK_OBJS = $(INSTALLDIR)/libcmeps.a $(INSTALLDIR)/libcmeps_util.a $(PIO_LIBDIR)/libpiof.a $(PIO_LIBDIR)/libpioc.a $(PNETCDF_LD_OPTS)" >> cmeps.mk.install
 	mkdir -p $(INSTALLDIR)
 	mkdir -p $(INSTALLDIR)/include
 	cp -f $(LIBRARY_UTIL) $(INSTALLDIR)
 	cp -f $(LIBRARY_MEDIATOR) $(INSTALLDIR)
 	cp -f mediator/*.mod $(INSTALLDIR)/include
-	cp -f nems/util/*.mod $(INSTALLDIR)/include
+	cp -f util/*.mod $(INSTALLDIR)/include
 	cp -f cmeps.mk.install $(INSTALLDIR)/cmeps.mk
 endif
 
 $(LIBRARY_MEDIATOR): $(LIBRARY_UTIL) .FORCE
 	cd mediator ;\
-	exec $(MAKE) PIO_INCLUDE_DIR=$(PIO_INCLUDE_DIR) INTERNAL_PIO_INIT=$(INTERNAL_PIO_INIT)
+	exec $(MAKE) PIO_INC=$(PIO_INC) INTERNAL_PIO_INIT=$(INTERNAL_PIO_INIT)
 
 $(LIBRARY_UTIL): .FORCE
-	cd nems/util ;\
-	exec $(MAKE)
+	cd util ;\
+	exec $(MAKE) PIO_INC=$(PIO_INC)
 
 .FORCE:
 
 clean:
 	cd mediator; \
 	exec $(MAKE) clean
-	cd nems/util; \
+	cd util; \
 	exec $(MAKE) clean
+
