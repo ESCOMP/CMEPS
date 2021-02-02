@@ -357,10 +357,6 @@ contains
             srcTermProcessing=srcTermProcessing_Value, &
             ignoreDegenerate=.true., &
             unmappedaction=ESMF_UNMAPPEDACTION_IGNORE, &
-            !DEBUG
-            ! TODO: CREATE flddst_debug to do this
-            ! dststatusfield=flddst_debug, &
-            !DEBUG
             rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     else if (mapindex == mappatch .or. mapindex == mappatch_uv3d) then
