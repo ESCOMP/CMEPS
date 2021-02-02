@@ -457,7 +457,7 @@ contains
     real(r8), pointer             :: fldptr1(:)
     real(r8), pointer             :: fldptr2(:,:)
     real(r8), allocatable         :: ownedElemCoords(:), ownedElemCoords_x(:), ownedElemCoords_y(:)
-    character(16)                 :: cnumber
+    character(CS)                 :: cnumber
     character(CL)                 :: tmpstr
     type(ESMF_Field)              :: lfield
     integer                       :: rank
