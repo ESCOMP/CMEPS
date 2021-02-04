@@ -179,9 +179,9 @@ contains
     character(len=*), parameter :: subname=' (module_MED_map:med_map_routehandles_initfrom_fieldbundle) '
     !---------------------------------------------
 
-    call t_startf('MED:'//subname)
     rc = ESMF_SUCCESS
 
+    call t_startf('MED:'//subname)
     if (dbug_flag > 1) then
        call ESMF_LogWrite(trim(subname)//": start", ESMF_LOGMSG_INFO)
     endif
@@ -207,6 +207,7 @@ contains
     use ESMF              , only : ESMF_RouteHandle, ESMF_RouteHandlePrint, ESMF_Field, ESMF_MAXSTR
     use ESMF              , only : ESMF_PoleMethod_Flag, ESMF_POLEMETHOD_ALLAVG
     use ESMF              , only : ESMF_FieldSMMStore, ESMF_FieldRedistStore, ESMF_FieldRegridStore
+    use ESMF              , only : ESMF_RouteHandleIsCreated   
     use ESMF              , only : ESMF_REGRIDMETHOD_BILINEAR, ESMF_REGRIDMETHOD_PATCH
     use ESMF              , only : ESMF_REGRIDMETHOD_CONSERVE, ESMF_NORMTYPE_DSTAREA, ESMF_NORMTYPE_FRACAREA
     use ESMF              , only : ESMF_UNMAPPEDACTION_IGNORE, ESMF_REGRIDMETHOD_NEAREST_STOD
@@ -359,18 +360,20 @@ contains
             rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     else if (mapindex == mappatch .or. mapindex == mappatch_uv3d) then
-       if (mastertask) then
-          write(logunit,'(A)') trim(subname)//' creating RH '//trim(mapname)//' for '//trim(string)
+       if (.not. ESMF_RouteHandleIsCreated(routehandles(mappatch))) then
+          if (mastertask) then
+             write(logunit,'(A)') trim(subname)//' creating RH '//trim(mapname)//' for '//trim(string)
+          end if
+          call ESMF_FieldRegridStore(fldsrc, flddst, routehandle=routehandles(mappatch), &
+               srcMaskValues=(/srcMaskValue/), &
+               dstMaskValues=(/dstMaskValue/), &
+               regridmethod=ESMF_REGRIDMETHOD_PATCH, &
+               polemethod=polemethod, &
+               srcTermProcessing=srcTermProcessing_Value, &
+               ignoreDegenerate=.true., &
+               unmappedaction=ESMF_UNMAPPEDACTION_IGNORE, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
        end if
-       call ESMF_FieldRegridStore(fldsrc, flddst, routehandle=routehandles(mappatch), &
-            srcMaskValues=(/srcMaskValue/), &
-            dstMaskValues=(/dstMaskValue/), &
-            regridmethod=ESMF_REGRIDMETHOD_PATCH, &
-            polemethod=polemethod, &
-            srcTermProcessing=srcTermProcessing_Value, &
-            ignoreDegenerate=.true., &
-            unmappedaction=ESMF_UNMAPPEDACTION_IGNORE, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
     else
        if (mastertask) then
           write(logunit,'(A)') trim(subname)//' mapindex '//trim(mapname)//' not supported for '//trim(string)
@@ -842,146 +845,140 @@ contains
     ! Loop over mapping types
     do mapindex = 1,nmappers
 
-       ! If packed field is created
        if (ESMF_FieldIsCreated(packed_data(mapindex)%field_src)) then
-
-          ! -----------------------------------
-          ! Copy the src fields into the packed field bundle
-          ! -----------------------------------
-
-          call t_startf('MED:'//trim(subname)//' copy from src')
-
-          ! First get the pointer for the packed source data
-          call ESMF_FieldGet(packed_data(mapindex)%field_src, farrayptr=dataptr2d_packed, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-          ! Now do the copy
-          do nf = 1,fieldcount
-             ! Get the indices into the packed data structure
-             np = packed_data(mapindex)%fldindex(nf)
-             if (np > 0) then
-                call ESMF_FieldGet(fieldlist_src(nf), ungriddedUBound=ungriddedUBound, rc=rc)
-                if (chkerr(rc,__LINE__,u_FILE_u)) return
-                if (ungriddedUBound(1) > 0) then
-                   call ESMF_FieldGet(fieldlist_src(nf), farrayptr=dataptr2d, rc=rc)
-                   if (chkerr(rc,__LINE__,u_FILE_u)) return
-                   do nu = 1,ungriddedUBound(1)
-                      dataptr2d_packed(np+nu-1,:) = dataptr2d(nu,:)
-                   end do
-                else
-                   call ESMF_FieldGet(fieldlist_src(nf), farrayptr=dataptr1d, rc=rc)
-                   if (chkerr(rc,__LINE__,u_FILE_u)) return
-                   dataptr2d_packed(np,:) = dataptr1d(:)
-                end if
-             end if
-          end do
-          call t_stopf('MED:'//trim(subname)//' copy from src')
-
-          ! -----------------------------------
-          ! Do the mapping
-          ! -----------------------------------
-
-          call t_startf('MED:'//trim(subname)//' map')
 
           if (mapindex == mappatch_uv3d) then
 
-             ! for mappatch_uv3d do not use packed field bundles
-             call ESMF_FieldBundleGet(FBSrc, fieldName='Sa_u', field=usrc, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-             call ESMF_FieldBundleGet(FBSrc, fieldName='Sa_v', field=vsrc, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-             call ESMF_FieldBundleGet(FBDst, fieldName='Sa_u', field=udst, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-             call ESMF_FieldBundleGet(FBDst, fieldName='Sa_v', field=vdst, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-             call med_map_uv_cart3d(usrc, vsrc, udst, vdst, routehandles, mappatch, rc=rc)
+             ! For mappatch_uv3d do not use packed field bundles
+             call med_map_uv_cart3d(FBsrc, FBdst, routehandles, mappatch, rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-          else if (mapindex == mapfcopy) then
+          else
 
-             ! Mapping is redistribution
-             call ESMF_FieldRedist(&
-                  packed_data(mapindex)%field_src, &
-                  packed_data(mapindex)%field_dst, &
-                  routehandles(mapindex), rc=rc)
+             ! -----------------------------------
+             ! Copy the src fields into the packed field bundle
+             ! -----------------------------------
+             
+             call t_startf('MED:'//trim(subname)//' copy from src')
+
+             ! First get the pointer for the packed source data
+             call ESMF_FieldGet(packed_data(mapindex)%field_src, farrayptr=dataptr2d_packed, rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-          else if ( trim(packed_data(mapindex)%mapnorm) /= 'unset' .and. &
-                    trim(packed_data(mapindex)%mapnorm) /= 'one'   .and. &
-                    trim(packed_data(mapindex)%mapnorm) /= 'none') then
-
-             ! Normalized mapping - assume that  each packed field has only one normalization type
-             call ESMF_FieldBundleGet(FBFracSrc, packed_data(mapindex)%mapnorm, field=field_fracsrc, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-             call med_map_field_normalized(&
-                  field_src=packed_data(mapindex)%field_src, &
-                  field_dst=packed_data(mapindex)%field_dst, &
-                  routehandles=routehandles, &
-                  maptype=mapindex, &
-                  field_normsrc=field_fracsrc, &
-                  field_normdst=packed_data(mapindex)%field_fracdst, rc=rc)
-
-          else if ( trim(packed_data(mapindex)%mapnorm) == 'one' .or. trim(packed_data(mapindex)%mapnorm) == 'none') then
-
-             ! Mapping with no normalization that is not redistribution
-             call med_map_field (&
-                  field_src=packed_data(mapindex)%field_src, &
-                  field_dst=packed_data(mapindex)%field_dst, &
-                  routehandles=routehandles, &
-                  maptype=mapindex, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-             ! Obtain unity normalization factor and multiply
-             ! interpolated field by reciprocal of normalization factor
-             if (trim(packed_data(mapindex)%mapnorm) == 'one') then
-                call ESMF_FieldGet(field_normOne(mapindex), farrayPtr=data_norm, rc=rc)
-                if (chkerr(rc,__LINE__,u_FILE_u)) return
-                call ESMF_FieldGet(packed_data(mapindex)%field_dst, farrayPtr=data_dst, rc=rc)
-                if (chkerr(rc,__LINE__,u_FILE_u)) return
-                do n = 1,size(data_dst,dim=2)
-                   if (data_norm(n) == 0.0_r8) then
-                      data_dst(:,n) = 0.0_r8
+             ! Now do the copy
+             do nf = 1,fieldcount
+                ! Get the indices into the packed data structure
+                np = packed_data(mapindex)%fldindex(nf)
+                if (np > 0) then
+                   call ESMF_FieldGet(fieldlist_src(nf), ungriddedUBound=ungriddedUBound, rc=rc)
+                   if (chkerr(rc,__LINE__,u_FILE_u)) return
+                   if (ungriddedUBound(1) > 0) then
+                      call ESMF_FieldGet(fieldlist_src(nf), farrayptr=dataptr2d, rc=rc)
+                      if (chkerr(rc,__LINE__,u_FILE_u)) return
+                      do nu = 1,ungriddedUBound(1)
+                         dataptr2d_packed(np+nu-1,:) = dataptr2d(nu,:)
+                      end do
                    else
-                      data_dst(:,n) = data_dst(:,n)/data_norm(n)
+                      call ESMF_FieldGet(fieldlist_src(nf), farrayptr=dataptr1d, rc=rc)
+                      if (chkerr(rc,__LINE__,u_FILE_u)) return
+                      dataptr2d_packed(np,:) = dataptr1d(:)
                    end if
-                end do
+                end if
+             end do
+             call t_stopf('MED:'//trim(subname)//' copy from src')
+
+             ! -----------------------------------
+             ! Do the mapping
+             ! -----------------------------------
+
+             call t_startf('MED:'//trim(subname)//' map')
+
+             if (mapindex == mapfcopy) then
+
+                ! Mapping is redistribution
+                call ESMF_FieldRedist(&
+                     packed_data(mapindex)%field_src, &
+                     packed_data(mapindex)%field_dst, &
+                     routehandles(mapindex), rc=rc)
+                if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+             else if ( trim(packed_data(mapindex)%mapnorm) /= 'unset' .and. &
+                  trim(packed_data(mapindex)%mapnorm) /= 'one'   .and. &
+                  trim(packed_data(mapindex)%mapnorm) /= 'none') then
+
+                ! Normalized mapping - assume that  each packed field has only one normalization type
+                call ESMF_FieldBundleGet(FBFracSrc, packed_data(mapindex)%mapnorm, field=field_fracsrc, rc=rc)
+                if (chkerr(rc,__LINE__,u_FILE_u)) return
+                call med_map_field_normalized(&
+                     field_src=packed_data(mapindex)%field_src, &
+                     field_dst=packed_data(mapindex)%field_dst, &
+                     routehandles=routehandles, &
+                     maptype=mapindex, &
+                     field_normsrc=field_fracsrc, &
+                     field_normdst=packed_data(mapindex)%field_fracdst, rc=rc)
+
+             else if ( trim(packed_data(mapindex)%mapnorm) == 'one' .or. trim(packed_data(mapindex)%mapnorm) == 'none') then
+
+                ! Mapping with no normalization that is not redistribution
+                call med_map_field (&
+                     field_src=packed_data(mapindex)%field_src, &
+                     field_dst=packed_data(mapindex)%field_dst, &
+                     routehandles=routehandles, &
+                     maptype=mapindex, rc=rc)
+                if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+                ! Obtain unity normalization factor and multiply
+                ! interpolated field by reciprocal of normalization factor
+                if (trim(packed_data(mapindex)%mapnorm) == 'one') then
+                   call ESMF_FieldGet(field_normOne(mapindex), farrayPtr=data_norm, rc=rc)
+                   if (chkerr(rc,__LINE__,u_FILE_u)) return
+                   call ESMF_FieldGet(packed_data(mapindex)%field_dst, farrayPtr=data_dst, rc=rc)
+                   if (chkerr(rc,__LINE__,u_FILE_u)) return
+                   do n = 1,size(data_dst,dim=2)
+                      if (data_norm(n) == 0.0_r8) then
+                         data_dst(:,n) = 0.0_r8
+                      else
+                         data_dst(:,n) = data_dst(:,n)/data_norm(n)
+                      end if
+                   end do
+                end if
+
              end if
+             call t_stopf('MED:'//trim(subname)//' map')
+
+             ! -----------------------------------
+             ! Copy the destination packed field bundle into the destination unpacked field bundle
+             ! -----------------------------------
+
+             call t_startf('MED:'//trim(subname)//' copy to dest')
+
+             ! First get the pointer for the packed destination data
+             call ESMF_FieldGet(packed_data(mapindex)%field_dst, farrayptr=dataptr2d_packed, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+             ! Now do the copy back to FBDst
+             do nf = 1,fieldcount
+                ! Get the indices into the packed data structure
+                np = packed_data(mapindex)%fldindex(nf)
+                if (np > 0) then
+                   call ESMF_FieldGet(fieldlist_dst(nf), ungriddedUBound=ungriddedUBound, rc=rc)
+                   if (chkerr(rc,__LINE__,u_FILE_u)) return
+                   if (ungriddedUBound(1) > 0) then
+                      call ESMF_FieldGet(fieldlist_dst(nf), farrayptr=dataptr2d, rc=rc)
+                      if (chkerr(rc,__LINE__,u_FILE_u)) return
+                      do nu = 1,ungriddedUBound(1)
+                         dataptr2d(nu,:) = dataptr2d_packed(np+nu-1,:)
+                      end do
+                   else
+                      call ESMF_FieldGet(fieldlist_dst(nf), farrayptr=dataptr1d, rc=rc)
+                      if (chkerr(rc,__LINE__,u_FILE_u)) return
+                      dataptr1d(:) = dataptr2d_packed(np,:)
+                   end if
+                end if
+             end do
+             call t_stopf('MED:'//trim(subname)//' copy to dest')
 
           end if
-          call t_stopf('MED:'//trim(subname)//' map')
-
-          ! -----------------------------------
-          ! Copy the destination packed field bundle into the destination unpacked field bundle
-          ! -----------------------------------
-
-          call t_startf('MED:'//trim(subname)//' copy to dest')
-
-          ! First get the pointer for the packed destination data
-          call ESMF_FieldGet(packed_data(mapindex)%field_dst, farrayptr=dataptr2d_packed, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-          ! Now do the copy back to FBDst
-          do nf = 1,fieldcount
-             ! Get the indices into the packed data structure
-             np = packed_data(mapindex)%fldindex(nf)
-             if (np > 0) then
-                call ESMF_FieldGet(fieldlist_dst(nf), ungriddedUBound=ungriddedUBound, rc=rc)
-                if (chkerr(rc,__LINE__,u_FILE_u)) return
-                if (ungriddedUBound(1) > 0) then
-                   call ESMF_FieldGet(fieldlist_dst(nf), farrayptr=dataptr2d, rc=rc)
-                   if (chkerr(rc,__LINE__,u_FILE_u)) return
-                   do nu = 1,ungriddedUBound(1)
-                      dataptr2d(nu,:) = dataptr2d_packed(np+nu-1,:)
-                   end do
-                else
-                   call ESMF_FieldGet(fieldlist_dst(nf), farrayptr=dataptr1d, rc=rc)
-                   if (chkerr(rc,__LINE__,u_FILE_u)) return
-                   dataptr1d(:) = dataptr2d_packed(np,:)
-                end if
-             end if
-          end do
-          call t_stopf('MED:'//trim(subname)//' copy to dest')
-
        end if
     end do ! end of loop over mapindex
 
@@ -1204,24 +1201,26 @@ contains
   end subroutine med_map_field
 
   !================================================================================
-  subroutine med_map_uv_cart3d(usrc, vsrc, udst, vdst, routehandles, mapindex, rc)
+  subroutine med_map_uv_cart3d(FBsrc, FBdst, routehandles, mapindex, rc)
 
     use ESMF          , only : ESMF_Mesh, ESMF_MeshGet, ESMF_MESHLOC_ELEMENT, ESMF_TYPEKIND_R8
-    use ESMF          , only : ESMF_Field, ESMF_FieldGet
-    use ESMF          , only : ESMF_FieldCreate, ESMF_FieldDestroy, ESMF_FieldRegrid
-    use ESMF          , only : ESMF_RouteHandle, ESMF_TERMORDER_SRCSEQ, ESMF_REGION_TOTAL
+    use ESMF          , only : ESMF_Field, ESMF_FieldCreate, ESMF_FieldGet
+    use ESMF          , only : ESMF_FieldBundle, ESMF_FieldBundleGet
+    use ESMF          , only : ESMF_RouteHandle
     use shr_const_mod , only : shr_const_pi
 
     ! input/output variables
-    type(ESMF_Field)       , intent(in)    :: usrc
-    type(ESMF_Field)       , intent(in)    :: vsrc
-    type(ESMF_Field)       , intent(inout) :: udst
-    type(ESMF_Field)       , intent(inout) :: vdst
+    type(ESMF_FieldBundle) , intent(in)    :: FBsrc
+    type(ESMF_FieldBundle) , intent(inout) :: FBdst
     type(ESMF_RouteHandle) , intent(inout) :: routehandles(:)
     integer                , intent(in)    :: mapindex
     integer                , intent(out)   :: rc
 
     ! local variables
+    type(ESMF_Field)    :: usrc
+    type(ESMF_Field)    :: vsrc
+    type(ESMF_Field)    :: udst
+    type(ESMF_Field)    :: vdst
     integer             :: n
     real(r8)            :: lon,lat
     real(r8)            :: coslon,coslat
@@ -1246,7 +1245,17 @@ contains
 
     rc = ESMF_SUCCESS
 
-    ! Get pointer to input u and v data source field data
+    ! Get fields for atm u,v velocities
+    call ESMF_FieldBundleGet(FBSrc, fieldName='Sa_u', field=usrc, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldBundleGet(FBDst, fieldName='Sa_u', field=udst, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldBundleGet(FBSrc, fieldName='Sa_v', field=vsrc, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldBundleGet(FBDst, fieldName='Sa_v', field=vdst, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    ! GET pointer to input u and v data source field data
     call ESMF_FieldGet(usrc, farrayPtr=data_u_src, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call ESMF_FieldGet(vsrc, farrayPtr=data_v_src, rc=rc)
