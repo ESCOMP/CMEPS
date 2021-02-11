@@ -166,6 +166,17 @@
     </options>
   </test>
 
+  <test compset="B1850" grid="f19_g17" name="ERS_Vnuopc_Ld5" testmods="allactive/nuopc_cap_io">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="nuopc"/>
+      <machine name="theia" compiler="intel" category="nuopc"/>
+      <machine name="izumi" compiler="intel" category="nuopc"/>
+    </machines>
+    <options>
+      <option name="wallclock"> 00:40:00 </option>
+    </options>
+  </test>
+
   <!-- ======================================= -->
   <!-- C compsets -->
   <!-- ======================================= -->

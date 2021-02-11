@@ -1441,7 +1441,6 @@ contains
     call t_prf(trim(timing_dir)//'/model_timing'//trim(inst_suffix), mpicom=mpicomm)
 
     call t_finalizef()
-    print *,__FILE__,__LINE__
   end subroutine esm_finalize
 
 
