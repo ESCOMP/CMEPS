@@ -2389,7 +2389,7 @@ contains
        !---------------------------------------
        ! Initialize mediator IO
        !---------------------------------------
-       call med_io_init()
+       call med_io_init(gcomp)
 
        !---------------------------------------
        ! Initialize mediator water/heat budget diags
