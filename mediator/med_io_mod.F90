@@ -131,6 +131,7 @@ contains
     use pio  , only : pio_init, pio_set_rearr_opts
     use pio  , only : PIO_64BIT_OFFSET, PIO_64BIT_DATA
     use pio  , only : PIO_IOTYPE_NETCDF, PIO_IOTYPE_PNETCDF, PIO_IOTYPE_NETCDF4C, PIO_IOTYPE_NETCDF4P
+    use pio  , only : PIO_REARR_BOX, PIO_REARR_SUBSET
     use pio  , only : PIO_REARR_COMM_P2P, PIO_REARR_COMM_COLL
     use pio  , only : PIO_REARR_COMM_FC_2D_ENABLE, PIO_REARR_COMM_FC_2D_DISABLE
     use pio  , only : PIO_REARR_COMM_FC_1D_COMP2IO, PIO_REARR_COMM_FC_1D_IO2COMP
@@ -234,6 +235,8 @@ contains
           pio_root = 1
        endif
        pio_root = min(pio_root, petCount-1)
+    else
+       pio_root = -99
     end if
 
     ! pio_stride
@@ -241,6 +244,8 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (isPresent .and. isSet) then
        read(cvalue,*) pio_stride
+    else
+       pio_stride = -99
     end if
 
     ! pio_numiotasks
@@ -248,6 +253,8 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (isPresent .and. isSet) then
        read(cvalue,*) pio_numiotasks
+    else
+       pio_numiotasks = -99
     end if
 
     ! check for parallel IO, it requires at least two io pes
@@ -296,14 +303,26 @@ contains
     call NUOPC_CompAttributeGet(gcomp, name='pio_rearranger', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (isPresent .and. isSet) then
-       read(cvalue,*) pio_rearranger
+       cvalue = ESMF_UtilStringUpperCase(cvalue)
+       if (trim(cvalue) .eq. 'BOX') then
+         pio_rearranger = PIO_REARR_BOX
+       else if (trim(cvalue) .eq. 'SUBSET') then
+         pio_rearranger = PIO_REARR_SUBSET
+       else
+         call ESMF_LogWrite(trim(subname)//': need to provide valid option for pio_rearranger (BOX|SUBSET)', ESMF_LOGMSG_INFO)
+         rc = ESMF_FAILURE
+         return
+       end if
+    else
+       cvalue = 'SUBSET'
+       pio_rearranger = PIO_REARR_SUBSET
     end if
+    if (localPet == 0) write(logunit,*) trim(subname), ' : pio_rearranger = ', trim(cvalue), pio_rearranger
 
-    ! print out PIO parameters
+    ! print out PIO init parameters
     if (localPet == 0) then
        write(logunit,*) trim(subname), ' : pio_numiotasks = ', pio_numiotasks
        write(logunit,*) trim(subname), ' : pio_stride = ', pio_stride
-       write(logunit,*) trim(subname), ' : pio_rearranger = ', pio_rearranger
        write(logunit,*) trim(subname), ' : pio_root = ', pio_root
     end if
 
@@ -329,8 +348,10 @@ contains
          return
        end if
     else
+       cvalue = 'P2P'
        pio_rearr_comm_type = PIO_REARR_COMM_P2P
     end if
+    if (localPet == 0) write(logunit,*) trim(subname), ' : pio_rearr_comm_type = ', trim(cvalue), pio_rearr_comm_type 
 
     ! pio_rearr_comm_fcd
     call NUOPC_CompAttributeGet(gcomp, name='pio_rearr_comm_fcd', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
@@ -352,8 +373,10 @@ contains
          return
        end if
     else
+       cvalue = '2DENABLE'
        pio_rearr_comm_fcd = PIO_REARR_COMM_FC_2D_ENABLE
-    end if    
+    end if
+    if (localPet == 0) write(logunit,*) trim(subname), ' : pio_rearr_comm_fcd = ', trim(cvalue), pio_rearr_comm_fcd
 
     ! pio_rearr_comm_enable_hs_comp2io
     call NUOPC_CompAttributeGet(gcomp, name='pio_rearr_comm_enable_hs_comp2io', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
@@ -412,7 +435,17 @@ contains
     if (isPresent .and. isSet) then
        read(cvalue,*) pio_rearr_comm_max_pend_req_io2comp
     else
-       pio_rearr_comm_max_pend_req_io2comp = 0
+       pio_rearr_comm_max_pend_req_io2comp = 64
+    end if
+
+    ! print out PIO rearranger parameters
+    if (localPet == 0) then
+       write(logunit,*) trim(subname), ' : pio_rearr_comm_enable_hs_comp2io = ', pio_rearr_comm_enable_hs_comp2io
+       write(logunit,*) trim(subname), ' : pio_rearr_comm_enable_isend_comp2io = ', pio_rearr_comm_enable_isend_comp2io
+       write(logunit,*) trim(subname), ' : pio_rearr_comm_max_pend_req_comp2io = ', pio_rearr_comm_max_pend_req_comp2io
+       write(logunit,*) trim(subname), ' : pio_rearr_comm_enable_hs_io2comp = ', pio_rearr_comm_enable_hs_io2comp
+       write(logunit,*) trim(subname), ' : pio_rearr_comm_enable_isend_io2comp = ', pio_rearr_comm_enable_isend_io2comp
+       write(logunit,*) trim(subname), ' : pio_rearr_comm_max_pend_req_io2comp = ', pio_rearr_comm_max_pend_req_io2comp
     end if
 
     ! set PIO rearranger options
