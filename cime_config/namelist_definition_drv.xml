@@ -1666,7 +1666,7 @@
       total number of scalars in the scalar coupling field
     </desc>
     <values>
-      <value>5</value>
+      <value>4</value>
     </values>
   </entry>
 
@@ -1714,8 +1714,8 @@
       index of scalar containing epbal precipitation factor from ocn (only for POP)
     </desc>
     <values>
-      <value flux_epbal='off'>0</value>
-      <value flux_epbal="ocn">5</value>
+      <value COMP_OCN="pop">4</value>
+      <value>0</value>
     </values>
   </entry>
 

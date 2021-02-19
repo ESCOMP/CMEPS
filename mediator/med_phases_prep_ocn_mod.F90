@@ -69,7 +69,7 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! auto merges to ocn
-    if (trim(coupling_mode) == 'cesm' .or. &
+    if ( trim(coupling_mode) == 'cesm' .or. &
          trim(coupling_mode) == 'nems_orig_data' .or. &
          trim(coupling_mode) == 'hafs') then
        call med_merge_auto(compocn, &
@@ -193,7 +193,8 @@ contains
     ! custom calculations for cesm
     !---------------------------------------
 
-    use ESMF , only : ESMF_GridComp
+    use ESMF , only : ESMF_GridComp, ESMF_StateGet, ESMF_Field, ESMF_FieldGet
+    use ESMF , only : ESMF_VMBroadCast
     use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
     use ESMF , only : ESMF_FAILURE,  ESMF_LOGMSG_ERROR
 
@@ -203,6 +204,7 @@ contains
 
     ! local variables
     type(InternalState) :: is_local
+    type(ESMF_Field)    :: lfield
     real(R8), pointer   :: ifrac(:) => null()
     real(R8), pointer   :: ofrac(:) => null()
     real(R8), pointer   :: ifracr(:) => null()
@@ -227,20 +229,21 @@ contains
     real(R8), pointer   :: Fioi_swpen_idf(:) => null()
     real(R8), pointer   :: Fioi_swpen(:) => null()
     real(R8), pointer   :: dataptr(:) => null()
-    real(R8), pointer   :: dataptr_o(:) => null()
+    real(R8), pointer   :: dataptr_scalar_ocn(:,:) => null()
     real(R8)            :: frac_sum
     real(R8)            :: ifrac_scaled, ofrac_scaled
     real(R8)            :: ifracr_scaled, ofracr_scaled
     logical             :: export_swnet_by_bands
     logical             :: import_swpen_by_bands
     logical             :: export_swnet_afracr
-    logical             :: first_precip_fact_call = .true.
-    real(R8)            :: precip_fact
+    real(R8)            :: precip_fact(1)
     character(CS)       :: cvalue
     real(R8)            :: fswabsv, fswabsi
+    integer             :: scalar_id
     integer             :: n
     integer             :: lsize
     real(R8)            :: c1,c2,c3,c4
+    logical             :: first_call = .true.
     character(len=64), allocatable :: fldnames(:)
     character(len=*), parameter    :: subname='(med_phases_prep_ocn_custom_cesm)'
     !---------------------------------------
@@ -359,8 +362,8 @@ contains
           import_swpen_by_bands = .false.
        end if
 
-       ! Swnet without swpen from sea-ice
        if ( FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_swnet_afracr',rc=rc)) then
+          ! Swnet without swpen from sea-ice
           call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Foxx_swnet_afracr', Foxx_swnet_afracr, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           export_swnet_afracr = .true.
@@ -416,14 +419,14 @@ contains
 
        ! Output to ocean per ice thickness fraction and sw penetrating into ocean
        if ( FB_fldchk(is_local%wrap%FBExp(compocn), 'Sf_afrac', rc=rc)) then
-          call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Sf_afrac', fldptr1=dataptr_o, rc=rc)
+          call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Sf_afrac', fldptr1=dataptr, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          dataptr_o(:) = ofrac(:)
+          dataptr(:) = ofrac(:)
        end if
        if ( FB_fldchk(is_local%wrap%FBExp(compocn), 'Sf_afracr', rc=rc)) then
-          call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Sf_afracr', fldptr1=dataptr_o, rc=rc)
+          call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Sf_afracr', fldptr1=dataptr, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          dataptr_o(:) = ofracr(:)
+          dataptr(:) = ofracr(:)
        end if
 
     end if  ! if sea-ice is present
@@ -436,22 +439,36 @@ contains
     !---------------------------------------
     ! application of precipitation factor from ocean
     !---------------------------------------
-    precip_fact = 1.0_R8
-    if (precip_fact /= 1.0_R8) then
-       if (first_precip_fact_call .and. mastertask) then
-          write(logunit,'(a)')'(merge_to_ocn): Scaling rain, snow, liquid and ice runoff by precip_fact '
-          first_precip_fact_call = .false.
+    if (is_local%wrap%flds_scalar_index_precip_factor /= 0) then
+       if (mastertask) then
+          call ESMF_StateGet(is_local%wrap%NstateImp(compocn), & 
+               itemName=trim(is_local%wrap%flds_scalar_name), field=lfield, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_FieldGet(lfield, farrayPtr=dataptr_scalar_ocn, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          scalar_id=is_local%wrap%flds_scalar_index_precip_factor
+          precip_fact(1) = dataptr_scalar_ocn(scalar_id,1)
+          if (first_call) then
+             write(logunit,'(a)')'(merge_to_ocn): Scaling rain, snow, liquid and ice runoff by precip_fact '
+             first_call = .false.
+          end if
+          write(logunit,'(a,f13.5)')'(merge_to_ocn): Scaling rain, snow, liquid and ice runoff by precip_fact ',&
+               precip_fact(1)
        end if
-       write(cvalue,*) precip_fact
-       call ESMF_LogWrite(trim(subname)//" precip_fact is "//trim(cvalue), ESMF_LOGMSG_INFO)
-
+       call ESMF_VMBroadCast(is_local%wrap%vm, precip_fact, 1, 0, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       is_local%wrap%flds_scalar_precip_factor = precip_fact(1)      
+       if (dbug_flag > 5) then
+          write(cvalue,*) precip_fact(1)
+          call ESMF_LogWrite(trim(subname)//" precip_fact is "//trim(cvalue), ESMF_LOGMSG_INFO)
+       end if
        allocate(fldnames(4))
-       fldnames = (/'Faxa_rain','Faxa_snow', 'Foxx_rofl', 'Foxx_rofi'/)
+       fldnames = (/'Faxa_rain', 'Faxa_snow', 'Foxx_rofl', 'Foxx_rofi'/)
        do n = 1,size(fldnames)
           if (FB_fldchk(is_local%wrap%FBExp(compocn), trim(fldnames(n)), rc=rc)) then
              call FB_GetFldPtr(is_local%wrap%FBExp(compocn), trim(fldnames(n)) , dataptr, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             dataptr(:) = dataptr(:) * precip_fact
+             dataptr(:) = dataptr(:) * is_local%wrap%flds_scalar_precip_factor
           end if
        end do
        deallocate(fldnames)
