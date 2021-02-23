@@ -2389,7 +2389,8 @@ contains
        !---------------------------------------
        ! Initialize mediator IO
        !---------------------------------------
-       call med_io_init(gcomp)
+       call med_io_init(gcomp, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        !---------------------------------------
        ! Initialize mediator water/heat budget diags
