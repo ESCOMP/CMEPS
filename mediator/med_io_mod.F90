@@ -236,7 +236,7 @@ contains
        endif
        pio_root = min(pio_root, petCount-1)
     else
-       pio_root = -99
+       pio_root = 1
     end if
     if (localPet == 0) write(logunit,*) trim(subname), ' : pio_root = ', pio_root
 
