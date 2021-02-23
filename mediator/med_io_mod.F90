@@ -329,13 +329,6 @@ contains
     end if
     if (localPet == 0) write(logunit,*) trim(subname), ' : pio_rearranger = ', trim(cvalue), pio_rearranger
 
-    ! print out PIO init parameters
-    if (localPet == 0) then
-       write(logunit,*) trim(subname), ' : pio_numiotasks = ', pio_numiotasks
-       write(logunit,*) trim(subname), ' : pio_stride = ', pio_stride
-       write(logunit,*) trim(subname), ' : pio_root = ', pio_root
-    end if
-
     ! init PIO
     allocate(io_subsystem)
     if (localPet == 0) write(logunit,*) trim(subname),' calling pio init'
