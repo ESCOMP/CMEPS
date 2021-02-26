@@ -720,11 +720,10 @@
     <group>ALLCOMP_attributes</group>
     <desc>
       grid point latitude associated with single column mode.
-      if set to -999, ignore this value
+      used for single column and single point grids
     </desc>
     <values>
-      <value>-999.</value>
-      <value single_column="true">$PTS_LAT</value>
+      <value>$PTS_LAT</value>
     </values>
   </entry>
 
@@ -737,8 +736,7 @@
       set by PTS_LON in env_run.xml.
     </desc>
     <values>
-      <value>-999.</value>
-      <value single_column="true">$PTS_LON</value>
+      <value>$PTS_LON</value>
     </values>
   </entry>
 
@@ -1095,7 +1093,7 @@
     <category>mapping</category>
     <group>LND_attributes</group>
     <desc>
-      DOMAIN description of lnd grid - this will be depracated 
+      DOMAIN description of lnd grid - this will be depracated
       only here for backwards compatibility
     </desc>
     <values>
