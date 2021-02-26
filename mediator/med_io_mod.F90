@@ -107,6 +107,7 @@ contains
     integer :: rc
     !-------------------------------------------------------------------------------
 
+    tmp(1) = 0
     med_io_file_exists = .false.
     if (iam==0) inquire(file=trim(filename),exist=med_io_file_exists)
     if (med_io_file_exists) tmp(1) = 1
@@ -128,7 +129,7 @@ contains
 #ifdef CESMCOUPLED
     use shr_pio_mod , only : shr_pio_getiosys, shr_pio_getiotype, shr_pio_getioformat
 #else
-    use pio  , only : pio_init, pio_set_rearr_opts
+    use pio  , only : pio_init, pio_setdebuglevel, pio_set_rearr_opts
     use pio  , only : PIO_64BIT_OFFSET, PIO_64BIT_DATA
     use pio  , only : PIO_IOTYPE_NETCDF, PIO_IOTYPE_PNETCDF, PIO_IOTYPE_NETCDF4C, PIO_IOTYPE_NETCDF4P
     use pio  , only : PIO_REARR_BOX, PIO_REARR_SUBSET
@@ -153,6 +154,7 @@ contains
     integer                 :: pio_stride
     integer                 :: pio_rearranger
     integer                 :: pio_root
+    integer                 :: pio_debug_level
     integer                 :: pio_rearr_comm_type
     integer                 :: pio_rearr_comm_fcd
     logical                 :: pio_rearr_comm_enable_hs_comp2io
@@ -183,6 +185,7 @@ contains
     ! pio_netcdf_format
     call NUOPC_CompAttributeGet(gcomp, name='pio_netcdf_format', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
     if (isPresent .and. isSet) then
        cvalue = ESMF_UtilStringUpperCase(cvalue)
        if (trim(cvalue) .eq. 'CLASSIC') then
@@ -205,6 +208,7 @@ contains
     ! pio_typename
     call NUOPC_CompAttributeGet(gcomp, name='pio_typename', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
     if (isPresent .and. isSet) then
        cvalue = ESMF_UtilStringUpperCase(cvalue)
        if (trim(cvalue) .eq. 'NETCDF') then
@@ -229,6 +233,7 @@ contains
     ! pio_root
     call NUOPC_CompAttributeGet(gcomp, name='pio_root', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
     if (isPresent .and. isSet) then
        read(cvalue,*) pio_root
        if (pio_root < 0) then
@@ -243,6 +248,7 @@ contains
     ! pio_stride
     call NUOPC_CompAttributeGet(gcomp, name='pio_stride', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
     if (isPresent .and. isSet) then
        read(cvalue,*) pio_stride
     else
@@ -253,6 +259,7 @@ contains
     ! pio_numiotasks
     call NUOPC_CompAttributeGet(gcomp, name='pio_numiotasks', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
     if (isPresent .and. isSet) then
        read(cvalue,*) pio_numiotasks
     else
@@ -316,6 +323,7 @@ contains
     ! pio_rearranger
     call NUOPC_CompAttributeGet(gcomp, name='pio_rearranger', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
     if (isPresent .and. isSet) then
        cvalue = ESMF_UtilStringUpperCase(cvalue)
        if (trim(cvalue) .eq. 'BOX') then
@@ -337,6 +345,26 @@ contains
     allocate(io_subsystem)
     if (localPet == 0) write(logunit,*) trim(subname),' calling pio init'
     call pio_init(localPet, comm, pio_numiotasks, 0, pio_stride, pio_rearranger, io_subsystem, base=pio_root)
+
+    ! PIO debug related options
+    ! pio_debug_level
+    call NUOPC_CompAttributeGet(gcomp, name='pio_debug_level', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    if (isPresent .and. isSet) then
+       read(cvalue,*) pio_debug_level
+       if (pio_debug_level < 0 .or. pio_debug_level > 6) then
+         call ESMF_LogWrite(trim(subname)//': need to provide valid option for pio_debug_level (0-6)', ESMF_LOGMSG_INFO)
+         rc = ESMF_FAILURE
+         return
+       end if
+    else
+       pio_debug_level = 0
+    end if
+    if (localPet == 0) write(logunit,*) trim(subname), ' : pio_debug_level = ', pio_debug_level
+
+    ! set PIO debug level
+    call pio_setdebuglevel(pio_debug_level)
 
     ! query shared PIO rearranger attributes 
     ! pio_rearr_comm_type 
