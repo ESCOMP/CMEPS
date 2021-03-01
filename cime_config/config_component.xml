@@ -1233,21 +1233,13 @@
     <desc>grid mask - DO NOT EDIT (for experts only)</desc>
   </entry>
 
-  <entry id="PTS_MODE">
-    <type>logical</type>
-    <valid_values>TRUE,FALSE</valid_values>
-    <default_value>FALSE</default_value>
-    <group>run_domain</group>
-    <file>env_run.xml</file>
-    <desc>Operate on only a single point of the global grid  - DO NOT EDIT (for experts only)</desc>
-  </entry>
-
   <entry id="PTS_LAT">
     <type>real</type>
     <default_value>-999.99</default_value>
     <group>run_domain</group>
     <file>env_run.xml</file>
-    <desc>Latitude to find nearest points for points mode (only used if PTS_MODE is TRUE)</desc>
+    <desc>Latitude of grid location, in single column mode interpolate datasets to this location
+          in single point mode assume all datasets are at this location</desc>
   </entry>
 
   <entry id="PTS_LON">
@@ -1255,7 +1247,8 @@
     <default_value>-999.99</default_value>
     <group>run_domain</group>
     <file>env_run.xml</file>
-    <desc>Longitude to find nearest points for points mode (only used if PTS_MODE is TRUE)</desc>
+    <desc>Longitude of grid location, in single column mode interpolate datasets to this location
+          in single point mode assume all datasets are at this location</desc>
   </entry>
 
   <!-- ======================================================================= -->

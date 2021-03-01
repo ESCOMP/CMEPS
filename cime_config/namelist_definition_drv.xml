@@ -701,12 +701,12 @@
     </values>
   </entry>
 
-  <entry id="single_column" modify_via_xml="PTS_MODE">
+  <entry id="single_column">
     <type>logical</type>
     <category>single_column</category>
     <group>ALLCOMP_attributes</group>
     <desc>
-      turns on single column mode. set by PTS_MODE in env_case.xml, default: false
+      Turns on single column mode.
     </desc>
     <values>
       <value>.false.</value>
@@ -719,8 +719,8 @@
     <category>single_column</category>
     <group>ALLCOMP_attributes</group>
     <desc>
-      grid point latitude associated with single column mode.
-      used for single column and single point grids
+      Latitude in degrees corresponding to the grid location
+      in single column and single point modes.
     </desc>
     <values>
       <value>$PTS_LAT</value>
@@ -732,8 +732,8 @@
     <category>single_column</category>
     <group>ALLCOMP_attributes</group>
     <desc>
-      grid point longitude associated with single column mode.
-      set by PTS_LON in env_run.xml.
+      Longitude in degrees corresponding to the grid location
+      in single column and single point modes.
     </desc>
     <values>
       <value>$PTS_LON</value>
