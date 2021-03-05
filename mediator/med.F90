@@ -2036,13 +2036,13 @@ contains
 
       if ( is_local%wrap%med_coupling_active(compocn,compatm) .or. is_local%wrap%med_coupling_active(compatm,compocn)) then
 
-         if (.not. is_local%wrap%med_coupling_active(compatm,compocn)) then
-            is_local%wrap%med_coupling_active(compatm,compocn) = .true.
-         end if
-
          ! Create field bundles for mediator ocean albedo computation
          fieldCount = med_fldList_GetNumFlds(fldListMed_ocnalb)
          if (fieldCount > 0) then
+            if (.not. is_local%wrap%med_coupling_active(compatm,compocn)) then
+               is_local%wrap%med_coupling_active(compatm,compocn) = .true.
+            end if
+
             allocate(fldnames(fieldCount))
             call med_fldList_getfldnames(fldListMed_ocnalb%flds, fldnames, rc=rc)
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -2389,7 +2389,8 @@ contains
        !---------------------------------------
        ! Initialize mediator IO
        !---------------------------------------
-       call med_io_init()
+       call med_io_init(gcomp, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        !---------------------------------------
        ! Initialize mediator water/heat budget diags
