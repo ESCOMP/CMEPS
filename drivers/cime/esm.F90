@@ -429,9 +429,6 @@ contains
     character(LEN=CS)            :: tfreeze_option        ! Freezing point calculation
     real(R8)                     :: wall_time_limit       ! wall time limit in hours
     integer                      :: glc_nec               ! number of elevation classes in the land component for lnd->glc
-    logical                      :: single_column         ! scm mode logical
-    real(R8)                     :: scmlon                ! single column lon
-    real(R8)                     :: scmlat                ! single column lat
     character(LEN=CS)            :: wv_sat_scheme
     real(R8)                     :: wv_sat_transition_start
     logical                      :: wv_sat_use_tables
@@ -483,7 +480,6 @@ contains
 
     call shr_frz_freezetemp_init(tfreeze_option, mastertask)
 
-
     call NUOPC_CompAttributeGet(driver, name='cpl_rootpe', value=cvalue, rc=rc)
     read(cvalue, *) rootpe_med
     if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -495,11 +491,9 @@ contains
     !----------------------------------------------------------
 
     ! This must be called on all processors of the driver
-
     call NUOPC_CompAttributeGet(driver, name='glc_nec', value=cvalue, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     read(cvalue,*) glc_nec
-
     call glc_elevclass_init(glc_nec, logunit=logunit)
 
     !----------------------------------------------------------
@@ -560,33 +554,6 @@ contains
        mixed_spec  = ShrWVSatTableSpec(ceiling(250._R8/wv_sat_table_spacing), 125._R8, wv_sat_table_spacing)
        call shr_wv_sat_make_tables(liquid_spec, ice_spec, mixed_spec)
     end if
-
-    !----------------------------------------------------------
-    ! Set single_column flags
-    ! If in single column mode, overwrite flags according to focndomain file
-    ! in ocn_in namelist. SCAM can reset the "present" flags for lnd,
-    ! ocn, ice, rof, and flood.
-    !----------------------------------------------------------
-
-    call NUOPC_CompAttributeGet(driver, name="single_column", value=cvalue, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) single_column
-
-    ! NOTE: cam stand-alone aqua-planet model will no longer be supported here - only the data model aqua-planet
-    ! will be supported
-    if (single_column) then
-
-       call NUOPC_CompAttributeGet(driver, name="scmlon", value=cvalue, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       read(cvalue,*) scmlon
-
-       call NUOPC_CompAttributeGet(driver, name="scmlat", value=cvalue, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       read(cvalue,*) scmlat
-
-       ! TODO(mvertens, 2019-01-30): need to add single column functionality
-
-    endif
 
   end subroutine InitAttributes
 

@@ -1251,24 +1251,30 @@
           in single point mode assume all datasets are at this location</desc>
   </entry>
 
-  <!-- ======================================================================= -->
-  <!--  DOMAIN FILES (drv)                                          -->
-  <!-- ======================================================================= -->
-
-  <entry id="ATM_DOMAIN_FILE">
+  <entry id="PTS_DOMAINFILE">
     <type>char</type>
     <default_value>UNSET</default_value>
     <group>run_domain</group>
     <file>env_run.xml</file>
-    <desc>atm domain file</desc>
+    <desc>used only if if PTS_LAT and PTS_LON are greater than or
+          equal to 0.  If this is the case then if PTS_DOMAINFILE is not
+          equal to UNSET a nearest neighbor search of PTS_DOMAINFILE using
+          PTS_LAT and PTS_LON will be done and the component mesh will have
+          this nearest neighbor value. </desc>
   </entry>
-  <entry id="ATM_DOMAIN_PATH">
-    <type>char</type>
-    <default_value>$DIN_LOC_ROOT/share/domains</default_value>
-    <group>run_domain</group>
-    <file>env_run.xml</file>
-    <desc>path of atm domain file</desc>
-  </entry>
+
+  <!-- ======================================================================= -->
+  <!--  DOMAIN FILES (drv)                                          -->
+  <!-- ======================================================================= -->
+
+  <!-- <entry id="ATM_DOMAIN_FILE"> -->
+  <!--   <type>char</type> -->
+  <!--   <default_value>UNSET</default_value> -->
+  <!--   <group>run_domain</group> -->
+  <!--   <file>env_run.xml</file> -->
+  <!--   <desc>atm domain file</desc> -->
+  <!-- </entry> -->
+
   <entry id="ATM_DOMAIN_MESH">
     <type>char</type>
     <default_value>UNSET</default_value>
@@ -1291,6 +1297,7 @@
     <file>env_run.xml</file>
     <desc>path of lnd domain file</desc>
   </entry>
+
   <entry id="LND_DOMAIN_MESH">
     <type>char</type>
     <default_value>UNSET</default_value>
@@ -1299,20 +1306,20 @@
     <desc>lnd mesh file (full pathname)</desc>
   </entry>
 
-  <entry id="ROF_DOMAIN_FILE">
-    <type>char</type>
-    <default_value>UNSET</default_value>
-    <group>run_domain</group>
-    <file>env_run.xml</file>
-    <desc>rof domain file</desc>
-  </entry>
-  <entry id="ROF_DOMAIN_PATH">
-    <type>char</type>
-    <default_value>$DIN_LOC_ROOT/share/domains</default_value>
-    <group>run_domain</group>
-    <file>env_run.xml</file>
-    <desc>path of rof domain file</desc>
-  </entry>
+  <!-- <entry id="ROF_DOMAIN_FILE"> -->
+  <!--   <type>char</type> -->
+  <!--   <default_value>UNSET</default_value> -->
+  <!--   <group>run_domain</group> -->
+  <!--   <file>env_run.xml</file> -->
+  <!--   <desc>rof domain file</desc> -->
+  <!-- </entry> -->
+  <!-- <entry id="ROF_DOMAIN_PATH"> -->
+  <!--   <type>char</type> -->
+  <!--   <default_value>$DIN_LOC_ROOT/share/domains</default_value> -->
+  <!--   <group>run_domain</group> -->
+  <!--   <file>env_run.xml</file> -->
+  <!--   <desc>path of rof domain file</desc> -->
+  <!-- </entry> -->
   <entry id="ROF_DOMAIN_MESH">
     <type>char</type>
     <default_value>UNSET</default_value>
@@ -1321,20 +1328,20 @@
     <desc>rof mesh file (full pathname)</desc>
   </entry>
 
-  <entry id="WAV_DOMAIN_FILE">
-    <type>char</type>
-    <default_value>UNSET</default_value>
-    <group>run_domain</group>
-    <file>env_run.xml</file>
-    <desc>wav domain file</desc>
-  </entry>
-  <entry id="WAV_DOMAIN_PATH">
-    <type>char</type>
-    <default_value>$DIN_LOC_ROOT/share/domains</default_value>
-    <group>run_domain</group>
-    <file>env_run.xml</file>
-    <desc>path of wav domain file</desc>
-  </entry>
+  <!-- <entry id="WAV_DOMAIN_FILE"> -->
+  <!--   <type>char</type> -->
+  <!--   <default_value>UNSET</default_value> -->
+  <!--   <group>run_domain</group> -->
+  <!--   <file>env_run.xml</file> -->
+  <!--   <desc>wav domain file</desc> -->
+  <!-- </entry> -->
+  <!-- <entry id="WAV_DOMAIN_PATH"> -->
+  <!--   <type>char</type> -->
+  <!--   <default_value>$DIN_LOC_ROOT/share/domains</default_value> -->
+  <!--   <group>run_domain</group> -->
+  <!--   <file>env_run.xml</file> -->
+  <!--   <desc>path of wav domain file</desc> -->
+  <!-- </entry> -->
   <entry id="WAV_DOMAIN_MESH">
     <type>char</type>
     <default_value>UNSET</default_value>
@@ -1343,20 +1350,20 @@
     <desc>wav mesh file (full pathname)</desc>
   </entry>
 
-  <entry id="ICE_DOMAIN_FILE">
-    <type>char</type>
-    <default_value>UNSET</default_value>
-    <group>run_domain</group>
-    <file>env_run.xml</file>
-    <desc>ice domain file</desc>
-  </entry>
-  <entry id="ICE_DOMAIN_PATH">
-    <type>char</type>
-    <default_value>$DIN_LOC_ROOT/share/domains</default_value>
-    <group>run_domain</group>
-    <file>env_run.xml</file>
-    <desc>path of ice domain file</desc>
-  </entry>
+  <!-- <entry id="ICE_DOMAIN_FILE"> -->
+  <!--   <type>char</type> -->
+  <!--   <default_value>UNSET</default_value> -->
+  <!--   <group>run_domain</group> -->
+  <!--   <file>env_run.xml</file> -->
+  <!--   <desc>ice domain file</desc> -->
+  <!-- </entry> -->
+  <!-- <entry id="ICE_DOMAIN_PATH"> -->
+  <!--   <type>char</type> -->
+  <!--   <default_value>$DIN_LOC_ROOT/share/domains</default_value> -->
+  <!--   <group>run_domain</group> -->
+  <!--   <file>env_run.xml</file> -->
+  <!--   <desc>path of ice domain file</desc> -->
+  <!-- </entry> -->
   <entry id="ICE_DOMAIN_MESH">
     <type>char</type>
     <default_value>UNSET</default_value>
@@ -1365,20 +1372,20 @@
     <desc>ice mesh file (full pahtname)</desc>
   </entry>
 
-  <entry id="OCN_DOMAIN_FILE">
-    <type>char</type>
-    <default_value>UNSET</default_value>
-    <group>run_domain</group>
-    <file>env_run.xml</file>
-    <desc>ocn domain file</desc>
-  </entry>
-  <entry id="OCN_DOMAIN_PATH">
-    <type>char</type>
-    <default_value>$DIN_LOC_ROOT/share/domains</default_value>
-    <group>run_domain</group>
-    <file>env_run.xml</file>
-    <desc>path of ocn domain file</desc>
-  </entry>
+  <!-- <entry id="OCN_DOMAIN_FILE"> -->
+  <!--   <type>char</type> -->
+  <!--   <default_value>UNSET</default_value> -->
+  <!--   <group>run_domain</group> -->
+  <!--   <file>env_run.xml</file> -->
+  <!--   <desc>ocn domain file</desc> -->
+  <!-- </entry> -->
+  <!-- <entry id="OCN_DOMAIN_PATH"> -->
+  <!--   <type>char</type> -->
+  <!--   <default_value>$DIN_LOC_ROOT/share/domains</default_value> -->
+  <!--   <group>run_domain</group> -->
+  <!--   <file>env_run.xml</file> -->
+  <!--   <desc>path of ocn domain file</desc> -->
+  <!-- </entry> -->
   <entry id="OCN_DOMAIN_MESH">
     <type>char</type>
     <default_value>UNSET</default_value>
@@ -1387,20 +1394,20 @@
     <desc>ocn mesh file (full pathname)</desc>
   </entry>
 
-  <entry id="GLC_DOMAIN_FILE">
-    <type>char</type>
-    <default_value>UNSET</default_value>
-    <group>run_domain</group>
-    <file>env_run.xml</file>
-    <desc>glc domain file</desc>
-  </entry>
-  <entry id="GLC_DOMAIN_PATH">
-    <type>char</type>
-    <default_value>$DIN_LOC_ROOT/share/domains</default_value>
-    <group>run_domain</group>
-    <file>env_run.xml</file>
-    <desc>path of glc domain file</desc>
-  </entry>
+  <!-- <entry id="GLC_DOMAIN_FILE"> -->
+  <!--   <type>char</type> -->
+  <!--   <default_value>UNSET</default_value> -->
+  <!--   <group>run_domain</group> -->
+  <!--   <file>env_run.xml</file> -->
+  <!--   <desc>glc domain file</desc> -->
+  <!-- </entry> -->
+  <!-- <entry id="GLC_DOMAIN_PATH"> -->
+  <!--   <type>char</type> -->
+  <!--   <default_value>$DIN_LOC_ROOT/share/domains</default_value> -->
+  <!--   <group>run_domain</group> -->
+  <!--   <file>env_run.xml</file> -->
+  <!--   <desc>path of glc domain file</desc> -->
+  <!-- </entry> -->
   <entry id="GLC_DOMAIN_MESH">
     <type>char</type>
     <default_value>UNSET</default_value>
