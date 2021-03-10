@@ -681,7 +681,7 @@
   <entry id="perpetual">
     <type>logical</type>
     <category>expdef</category>
-    <group>ALLCOMP_attributes</group>
+    <group>ATM_attributes</group>
     <desc>
       Perpetual flag
     </desc>
@@ -689,11 +689,10 @@
       <value>.false.</value>
     </values>
   </entry>
-
   <entry id="perpetual_ymd">
     <type>integer</type>
     <category>expdef</category>
-    <group>ALLCOMP_attributes</group>
+    <group>ATM_attributes</group>
     <desc>
       Perpetual date
     </desc>
@@ -746,7 +745,7 @@
   <entry id="aqua_planet" modify_via_xml="DOCN_MODE">
     <type>logical</type>
     <category>expdef</category>
-    <group>ALLCOMP_attributes</group>
+    <group>ATM_attributes</group>
     <desc>
       true => turn on aquaplanet mode in cam
     </desc>
@@ -1076,6 +1075,34 @@
     </values>
   </entry>
 
+  <entry id="single_column_domainfile" modify_via_xml="ATM_DOMAIN_FILE">
+    <type>char</type>
+    <category>mapping</category>
+    <group>ALLCOMP_attributes</group>
+    <desc>
+      DOMAIN file needed for single column model
+      A nearest neighbor search is done to match the PTS_LAT and PTS_LON
+      to the closest point in the domain file. This file is ONLY used in
+      single column mode.
+    </desc>
+    <values>
+      <value>$ATM_DOMAIN_PATH/$ATM_DOMAIN_FILE</value>
+    </values>
+  </entry>
+
+  <entry id="domain_lnd" modify_via_xml="LND_DOMAIN_FILE">
+    <type>char</type>
+    <category>mapping</category>
+    <group>LND_attributes</group>
+    <desc>
+      DOMAIN description of lnd grid - this will be depracated 
+      only here for backwards compatibility
+    </desc>
+    <values>
+      <value>$LND_DOMAIN_PATH/$LND_DOMAIN_FILE</value>
+    </values>
+  </entry>
+
  <entry id="mesh_atm" modify_via_xml="ATM_DOMAIN_MESH">
     <type>char</type>
     <category>mapping</category>
@@ -1097,18 +1124,6 @@
     </desc>
     <values>
       <value>$LND_DOMAIN_MESH</value>
-    </values>
-  </entry>
-
-  <entry id="domain_lnd" modify_via_xml="LND_DOMAIN_FILE">
-    <type>char</type>
-    <category>mapping</category>
-    <group>LND_attributes</group>
-    <desc>
-      DOMAIN description of lnd grid 
-    </desc>
-    <values>
-      <value>$LND_DOMAIN_PATH/$LND_DOMAIN_FILE</value>
     </values>
   </entry>
 
@@ -1728,9 +1743,10 @@
     <type>logical</type>
     <category>mapping</category>
     <group>MED_attributes</group>
-    <desc>used for atm->ocn and atm-ice mapping of u and v; rotate u,v to 3d cartesian space, map from src->dest, then rotate back</desc>
+    <desc>used for atm->ocn and atm-ice mapping of u and v; rotate u,v
+    to 3d cartesian space, map from src->dest, then rotate back</desc>
     <values>
-      <value>.false.</value>
+      <value>.true.</value>
     </values>
   </entry>
 
