@@ -643,6 +643,7 @@ contains
    !----------------------------------------------------------------
 
    ! use netcdf here since it's serial
+   rc = ESMF_SUCCESS
    status = nf90_open(restart_file, NF90_NOWRITE, ncid)
    if (status /= nf90_NoErr) then
       call ESMF_LogWrite(trim(subname)//' ERROR: nf90_open: '//trim(restart_file), ESMF_LOGMSG_INFO)
