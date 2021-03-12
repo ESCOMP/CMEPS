@@ -727,7 +727,7 @@
     </values>
   </entry>
 
-  <entry id="single_column_domainfile" modify_via_xml="PTS_DOMAINFILE">
+  <entry id="single_column_lnd_domainfile" modify_via_xml="PTS_DOMAINFILE">
     <type>char</type>
     <category>single_column</category>
     <group>ALLCOMP_attributes</group>
