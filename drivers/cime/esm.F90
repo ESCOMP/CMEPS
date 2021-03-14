@@ -952,8 +952,10 @@ contains
           return
        endif
 
-       if (allocated(petlist) .and. size(petlist) .ne. ntasks) then
-          deallocate(petlist)
+       if (allocated(petlist)) then
+          if(size(petlist) .ne. ntasks) then
+             deallocate(petlist)
+          endif
        endif
        if(.not. allocated(petlist)) then
           allocate(petlist(ntasks))
