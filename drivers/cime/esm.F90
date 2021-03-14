@@ -1137,12 +1137,18 @@ contains
        call shr_sys_abort(subname//' ERROR: '//trim(compname)//' both scol_lon and scol_lat must be greater than -999 ')
     end if
 
-    if (scol_lon > -999. .and.  scol_lat > -999.) then
+    ! Set the special value for single column - if pts_lat or pts_lon are equal to the special value
+    ! in the component cap - then single column is not activated
+    write(cvalue,*) scol_spval
+    call NUOPC_CompAttributeSet(gcomp, name='scol_spval', value=trim(cvalue), rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    if (scol_lon > scol_spval .and.  scol_lat > scol_spval) then
 
        ! NOTE: currently assume that single column capability is restricted to
-       ! ATM, OCN and ICE components only
-       ! verify that ROF, WAV and LND are not trying to use single column mode
-       if (trim(compname) == 'ROF' .or. trim(compname) == 'WAV') then
+       ! ATM, LND, OCN and ICE components only
+       ! verify that WAV and LND are not trying to use single column mode
+       if (trim(compname) == 'WAV' .or. trim(compname) == 'ROF' .or. trim(compname) == 'GLC') then
           call shr_sys_abort(subname//' ERROR: '//trim(compname)//' does not support single column mode ')
        end if
 
@@ -1155,8 +1161,8 @@ contains
           call shr_sys_abort(subname//' ERROR: single column mode must be run on 1 pe')
        endif
 
-       write(logunit,'(a,2(f10.5,2x))')trim(subname)//' single column point for '//trim(compname)//' has lon and lat = ',&
-            scol_lon,scol_lat
+       write(logunit,'(a,2(f10.5,2x))')trim(subname)//' single column point for '//trim(compname)//&
+            ' has lon and lat = ',scol_lon,scol_lat
 
        ! This is either a single column or a single point so add attributes
        call NUOPC_CompAttributeAdd(gcomp, &
@@ -1166,10 +1172,11 @@ contains
                        'scol_lndmask', &
                        'scol_lndfrac', &
                        'scol_ocnmask', &
-                       'scol_ocnfrac'/), rc=rc)
+                       'scol_ocnfrac', &
+                       'scol_spval  '/), rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-       if (trim(single_column_lnd_domainfile) /= 'null') then
+       if (trim(single_column_lnd_domainfile) /= 'UNSET') then
 
           ! In this case the domain file is not a single point file - but normally a
           ! global domain file where a nearest neighbor search will be done to find
