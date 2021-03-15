@@ -54,15 +54,17 @@ contains
 
     med_utils_ChkErr = .false.
     lrc = rc
-    if (present(mpierr) .and. mpierr) then
-       if (rc == MPI_SUCCESS) return
+    if (present(mpierr)) then
+       if(mpierr) then
+          if (rc == MPI_SUCCESS) return
 #ifdef USE_MPI2
-       call MPI_ERROR_STRING(rc, lstring, len, ierr)
+          call MPI_ERROR_STRING(rc, lstring, len, ierr)
 #else
-       write(lstring,*) "ERROR in mct mpi-serial library rc=",rc
+          write(lstring,*) "ERROR in mct mpi-serial library rc=",rc
 #endif
-       call ESMF_LogWrite("ERROR: "//trim(lstring), ESMF_LOGMSG_INFO, line=line, file=file)
-       lrc = ESMF_FAILURE
+          call ESMF_LogWrite("ERROR: "//trim(lstring), ESMF_LOGMSG_INFO, line=line, file=file)
+          lrc = ESMF_FAILURE
+       endif
     endif
 
     if (ESMF_LogFoundError(rcToCheck=lrc, msg=ESMF_LOGERR_PASSTHRU, line=line, file=file)) then

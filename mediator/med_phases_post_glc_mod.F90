@@ -135,9 +135,9 @@ contains
           end if
        end do
        if (mastertask) then
-          write(logunit,'(a,l)') trim(subname) // 'glc2lnd_coupling is ',glc2lnd_coupling
-          write(logunit,'(a,l)') trim(subname) // 'glc2ocn_coupling is ',glc2ocn_coupling
-          write(logunit,'(a,l)') trim(subname) // 'glc2ice_coupling is ',glc2ice_coupling
+          write(logunit,'(a,L1)') trim(subname) // 'glc2lnd_coupling is ',glc2lnd_coupling
+          write(logunit,'(a,L1)') trim(subname) // 'glc2ocn_coupling is ',glc2ocn_coupling
+          write(logunit,'(a,L1)') trim(subname) // 'glc2ice_coupling is ',glc2ice_coupling
        end if
 
        ! determine if coupling to CISM is 2-way
