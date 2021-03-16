@@ -1078,7 +1078,8 @@ contains
 
     ! Generate a mesh for single column
 
-    use netcdf
+    use netcdf, only : nf90_open, nf90_close, nf90_noerr
+    use netcdf, only : nf90_inq_dimid, inf90_inquire_dimension, nf90_inq_varid, nf90_getvar
     use NUOPC , only : NUOPC_CompAttributeGet, NUOPC_CompAttributeSet, NUOPC_CompAttributeAdd
     use ESMF  , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_VM, ESMF_VMGet, ESMF_SUCCESS
 
@@ -1185,22 +1186,16 @@ contains
           ! the closest point in the domin file to scol_lon and scol_lat
 
           status = nf90_open(single_column_lnd_domainfile, NF90_NOWRITE, ncid)
-          if (status /= nf90_noerr) then
-             call shr_sys_abort (trim(subname) //': Cannot open '//trim(single_column_lnd_domainfile))
-          endif
+          if (status /= nf90_noerr) call shr_sys_abort (trim(subname) //': opening '//&
+               trim(single_column_lnd_domainfile))
           status = nf90_inq_dimid (ncid, 'ni', dimid)
+          if (status /= nf90_noerr) call shr_sys_abort (trim(subname) //': inq_dimid ni')
           status = nf90_inquire_dimension(ncid, dimid, len=ni)
+          if (status /= nf90_noerr) call shr_sys_abort (trim(subname) //': inquire_dimension ni')
           status = nf90_inq_dimid (ncid, 'nj', dimid)
+          if (status /= nf90_noerr) call shr_sys_abort (trim(subname) //': inq_dimid nj')
           status = nf90_inquire_dimension(ncid, dimid, len=nj)
-
-          status = nf90_open(single_column_lnd_domainfile, NF90_NOWRITE, ncid)
-          if (status /= nf90_noerr) then
-             call shr_sys_abort (trim(subname) //': Cannot open '//trim(single_column_lnd_domainfile))
-          endif
-          status = nf90_inq_dimid (ncid, 'ni', dimid)
-          status = nf90_inquire_dimension(ncid, dimid, len=ni)
-          status = nf90_inq_dimid (ncid, 'nj', dimid)
-          status = nf90_inquire_dimension(ncid, dimid, len=nj)
+          if (status /= nf90_noerr) call shr_sys_abort (trim(subname) //': inquire_dimension nj')
 
           status = nf90_inq_varid(ncid, 'xc' , varid_xc)
           if (status /= nf90_noerr) call shr_sys_abort (subname//' inq_varid xc')
@@ -1288,6 +1283,8 @@ contains
           if (chkerr(rc,__LINE__,u_FILE_u)) return
 
           status = nf90_close(ncid)
+          if (status /= nf90_noerr) call shr_sys_abort (trim(subname) //': closing '//&
+               trim(single_column_lnd_domainfile))
 
           write(logunit,'(a,2(f13.5,2x))')trim(subname)//' nearest neighbor scol_lon and scol_lat in '&
                //trim(single_column_lnd_domainfile)//' are ',scol_lon,scol_lat
