@@ -19,12 +19,12 @@ jobs:
       CXX: mpicxx
       CPPFLAGS: "-I/usr/include -I/usr/local/include"
       # Versions of all dependencies can be updated here
-      ESMF_VERSION: ESMF_8_1_0_beta_snapshot_41
+      ESMF_VERSION: ESMF_8_1_0_beta_snapshot_47
       PNETCDF_VERSION: pnetcdf-1.12.2
       NETCDF_FORTRAN_VERSION: v4.5.2
       # PIO version is awkward
-      PIO_VERSION_DIR: pio2_5_2
-      PIO_VERSION: pio-2.5.2
+      PIO_VERSION_DIR: pio2_5_3
+      PIO_VERSION: pio-2.5.3
     steps:
       - uses: actions/checkout@v2
         # Build the ESMF library, if the cache contains a previous build
