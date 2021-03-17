@@ -17,4 +17,4 @@ jobs:
           WITH_V: true
           DEFAULT_BUMP: minor
           RELEASE_BRANCHES: master
-          DRY_RUN: True
+          DRY_RUN: False
