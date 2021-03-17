@@ -1078,8 +1078,8 @@ contains
 
     ! Generate a mesh for single column
 
-    use netcdf, only : nf90_open, nf90_close, nf90_noerr
-    use netcdf, only : nf90_inq_dimid, inf90_inquire_dimension, nf90_inq_varid, nf90_getvar
+    use netcdf, only : nf90_open, nf90_close, nf90_noerr, nf90_nowrite
+    use netcdf, only : nf90_inq_dimid, nf90_inquire_dimension, nf90_inq_varid, nf90_get_var
     use NUOPC , only : NUOPC_CompAttributeGet, NUOPC_CompAttributeSet, NUOPC_CompAttributeAdd
     use ESMF  , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_VM, ESMF_VMGet, ESMF_SUCCESS
 
