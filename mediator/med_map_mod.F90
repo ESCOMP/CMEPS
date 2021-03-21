@@ -211,7 +211,7 @@ contains
     use ESMF              , only : ESMF_REGRIDMETHOD_BILINEAR, ESMF_REGRIDMETHOD_PATCH
     use ESMF              , only : ESMF_REGRIDMETHOD_CONSERVE, ESMF_NORMTYPE_DSTAREA, ESMF_NORMTYPE_FRACAREA
     use ESMF              , only : ESMF_UNMAPPEDACTION_IGNORE, ESMF_REGRIDMETHOD_NEAREST_STOD
-    use esmFlds           , only : mapbilnr, mapconsf, mapconsd, mappatch, mappatch_uv3d, mapfcopy
+    use esmFlds           , only : mapbilnr, mapconsf, mapconsd, mappatch, mappatch_uv3d, mapbilnr_uv3d, mapfcopy
     use esmFlds           , only : mapunset, mapnames, nmappers
     use esmFlds           , only : mapnstod, mapnstod_consd, mapnstod_consf, mapnstod_consd
     use esmFlds           , only : mapfillv_bilnr
@@ -305,19 +305,21 @@ contains
             ignoreUnmatchedIndices=.true., &
             srcTermProcessing=srcTermProcessing_Value, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-    else if (mapindex == mapbilnr) then
-       if (mastertask) then
-          write(logunit,'(A)') trim(subname)//' creating RH '//trim(mapname)//' for '//trim(string)
+    else if (mapindex == mapbilnr .or. mapindex == mapbilnr_uv3d) then
+       if (.not. ESMF_RouteHandleIsCreated(routehandles(mapbilnr))) then
+          if (mastertask) then
+             write(logunit,'(A)') trim(subname)//' creating RH '//trim(mapname)//' for '//trim(string)
+          end if
+          call ESMF_FieldRegridStore(fldsrc, flddst, routehandle=routehandles(mapbilnr), &
+               srcMaskValues=(/srcMaskValue/), &
+               dstMaskValues=(/dstMaskValue/), &
+               regridmethod=ESMF_REGRIDMETHOD_BILINEAR, &
+               polemethod=polemethod, &
+               srcTermProcessing=srcTermProcessing_Value, &
+               ignoreDegenerate=.true., &
+               unmappedaction=ESMF_UNMAPPEDACTION_IGNORE, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
        end if
-       call ESMF_FieldRegridStore(fldsrc, flddst, routehandle=routehandles(mapbilnr), &
-            srcMaskValues=(/srcMaskValue/), &
-            dstMaskValues=(/dstMaskValue/), &
-            regridmethod=ESMF_REGRIDMETHOD_BILINEAR, &
-            polemethod=polemethod, &
-            srcTermProcessing=srcTermProcessing_Value, &
-            ignoreDegenerate=.true., &
-            unmappedaction=ESMF_UNMAPPEDACTION_IGNORE, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
     else if (mapindex == mapfillv_bilnr) then
        if (mastertask) then
           write(logunit,'(A)') trim(subname)//' creating RH '//trim(mapname)//' for '//trim(string)
@@ -566,7 +568,7 @@ contains
                 call ESMF_FieldGet(fieldlist(1), mesh=mesh_dst, rc=rc)
                 if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-                ! Createis_local%wrap%field_NormOne(n1,n2,m)
+                ! Create is_local%wrap%field_NormOne(n1,n2,m)
                 do m = 1,nmappers
                    if (med_map_RH_is_created(is_local%wrap%RH,n1,n2,m,rc=rc)) then
                       is_local%wrap%field_NormOne(n1,n2,m) = ESMF_FieldCreate(mesh_dst, &
@@ -791,7 +793,8 @@ contains
     use ESMF                  , only : ESMF_FieldBundle, ESMF_FieldBundleGet
     use ESMF                  , only : ESMF_FieldBundleIsCreated
     use ESMF                  , only : ESMF_FieldRedist, ESMF_RouteHandle
-    use esmFlds               , only : nmappers, mapfcopy, mappatch_uv3d, mappatch
+    use esmFlds               , only : nmappers, mapfcopy
+    use esmFlds               , only : mappatch_uv3d, mappatch, mapbilnr_uv3d, mapbilnr
     use med_internalstate_mod , only : packed_data_type
 
     ! input/output variables
@@ -851,6 +854,12 @@ contains
 
              ! For mappatch_uv3d do not use packed field bundles
              call med_map_uv_cart3d(FBsrc, FBdst, routehandles, mappatch, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+          else if (mapindex == mapbilnr_uv3d) then
+
+             ! For mapbilnr_uv3d do not use packed field bundles
+             call med_map_uv_cart3d(FBsrc, FBdst, routehandles, mapbilnr, rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
 
           else
@@ -918,6 +927,8 @@ contains
                      field_normdst=packed_data(mapindex)%field_fracdst, rc=rc)
 
              else if ( trim(packed_data(mapindex)%mapnorm) == 'one' .or. trim(packed_data(mapindex)%mapnorm) == 'none') then
+
+                write(6,*)'DEBUG: maptype = ',mapindex
 
                 ! Mapping with no normalization that is not redistribution
                 call med_map_field (&
