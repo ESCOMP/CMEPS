@@ -928,8 +928,6 @@ contains
 
              else if ( trim(packed_data(mapindex)%mapnorm) == 'one' .or. trim(packed_data(mapindex)%mapnorm) == 'none') then
 
-                write(6,*)'DEBUG: maptype = ',mapindex
-
                 ! Mapping with no normalization that is not redistribution
                 call med_map_field (&
                      field_src=packed_data(mapindex)%field_src, &
