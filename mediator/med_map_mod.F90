@@ -259,7 +259,7 @@ contains
        if (n1 == compatm .and. (n2 == compocn .or. n2 == compice)) then
           srcMaskValue = 1
           dstMaskValue = 0
-             if (atm_name(1:9) == 'datm_cfsr' .or. atm_name(1:9) == 'datm_gefs' ) then
+             if (trim(atm_name) == 'datm') then
                 srcMaskValue = 0
              endif
        else if (n2 == compatm .and. (n1 == compocn .or. n1 == compice)) then
