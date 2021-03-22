@@ -48,12 +48,13 @@ module esmflds
   integer , public, parameter :: mapnstod_consd    = 7  ! nearest source to destination followed by conservative dst
   integer , public, parameter :: mapnstod_consf    = 8  ! nearest source to destination followed by conservative frac
   integer , public, parameter :: mappatch_uv3d     = 9  ! rotate u,v to 3d cartesian space, map from src->dest, then rotate back
-  integer , public, parameter :: map_rof2ocn_ice   = 10 ! custom smoothing map to map ice from rof->ocn (cesm only)
-  integer , public, parameter :: map_rof2ocn_liq   = 11 ! custom smoothing map to map liq from rof->ocn (cesm only)
-  integer , public, parameter :: map_glc2ocn_liq   = 12 ! custom smoothing map to map liq from glc->ocn (cesm only)
-  integer , public, parameter :: map_glc2ocn_ice   = 13 ! custom smoothing map to map ice from glc->ocn (cesm only)
-  integer , public, parameter :: mapfillv_bilnr    = 14 ! fill value followed by bilinear
-  integer , public, parameter :: nmappers          = 14
+  integer , public, parameter :: mapbilnr_uv3d     = 10 ! rotate u,v to 3d cartesian space, map from src->dest, then rotate back
+  integer , public, parameter :: map_rof2ocn_ice   = 11 ! custom smoothing map to map ice from rof->ocn (cesm only)
+  integer , public, parameter :: map_rof2ocn_liq   = 12 ! custom smoothing map to map liq from rof->ocn (cesm only)
+  integer , public, parameter :: map_glc2ocn_liq   = 13 ! custom smoothing map to map liq from glc->ocn (cesm only)
+  integer , public, parameter :: map_glc2ocn_ice   = 14 ! custom smoothing map to map ice from glc->ocn (cesm only)
+  integer , public, parameter :: mapfillv_bilnr    = 15 ! fill value followed by bilinear
+  integer , public, parameter :: nmappers          = 15
 
   character(len=*) , public, parameter :: mapnames(nmappers) = &
        (/'bilnr      ',&
@@ -65,6 +66,7 @@ module esmflds
          'nstod_consd',&
          'nstod_consf',&
          'patch_uv3d ',&
+         'bilnr_uv3d ',&
          'rof2ocn_ice',&
          'rof2ocn_liq',&
          'glc2ocn_ice',&
