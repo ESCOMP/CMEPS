@@ -557,7 +557,8 @@ contains
     use ESMF  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_METHOD_INITIALIZE
     use NUOPC , only : NUOPC_CompFilterPhaseMap, NUOPC_CompAttributeGet
     use med_internalstate_mod, only : mastertask, logunit
-
+    use esmFlds, only : dststatus_print
+ 
     type(ESMF_GridComp)   :: gcomp
     type(ESMF_State)      :: importState, exportState
     type(ESMF_Clock)      :: clock
@@ -624,6 +625,13 @@ contains
      read(cvalue,*) dbug_flag
     end if
     write(msgString,'(A,i6)') trim(subname)//': Mediator dbug_flag is ',dbug_flag
+    call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
+
+    ! Obtain dststatus_print setting if present; otherwise use default value in med_constants
+    call NUOPC_CompAttributeGet(gcomp, name='dststatus_print', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) dststatus_print=(trim(cvalue)=="true")
+    write(msgString,*) trim(subname)//': Mediator dststatus_print is ',dststatus_print
     call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
 
     ! Switch to IPDv03 by filtering all other phaseMap entries

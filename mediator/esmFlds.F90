@@ -34,6 +34,8 @@ module esmflds
   integer, public :: num_icesheets = 1
   logical, public :: ocn2glc_coupling  ! obtained from attribute
 
+  logical, public :: dststatus_print = .false.
+
   !-----------------------------------------------
   ! Set mappers
   !-----------------------------------------------
