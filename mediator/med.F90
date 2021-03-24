@@ -627,7 +627,7 @@ contains
     write(msgString,'(A,i6)') trim(subname)//': Mediator dbug_flag is ',dbug_flag
     call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
 
-    ! Obtain dststatus_print setting if present; otherwise use default value in med_constants
+    ! Obtain dststatus_print setting if present
     call NUOPC_CompAttributeGet(gcomp, name='dststatus_print', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (isPresent .and. isSet) dststatus_print=(trim(cvalue)=="true")
