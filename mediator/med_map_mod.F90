@@ -1,6 +1,7 @@
 module med_map_mod
 
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
+  use med_kind_mod          , only : I4=>SHR_KIND_I4
   use ESMF                  , only : ESMF_SUCCESS, ESMF_FAILURE
   use ESMF                  , only : ESMF_LOGMSG_ERROR, ESMF_LOGMSG_INFO, ESMF_LogWrite
   use ESMF                  , only : ESMF_Field
@@ -207,17 +208,21 @@ contains
     use ESMF              , only : ESMF_RouteHandle, ESMF_RouteHandlePrint, ESMF_Field, ESMF_MAXSTR
     use ESMF              , only : ESMF_PoleMethod_Flag, ESMF_POLEMETHOD_ALLAVG
     use ESMF              , only : ESMF_FieldSMMStore, ESMF_FieldRedistStore, ESMF_FieldRegridStore
-    use ESMF              , only : ESMF_RouteHandleIsCreated   
+    use ESMF              , only : ESMF_RouteHandleIsCreated
     use ESMF              , only : ESMF_REGRIDMETHOD_BILINEAR, ESMF_REGRIDMETHOD_PATCH
     use ESMF              , only : ESMF_REGRIDMETHOD_CONSERVE, ESMF_NORMTYPE_DSTAREA, ESMF_NORMTYPE_FRACAREA
     use ESMF              , only : ESMF_UNMAPPEDACTION_IGNORE, ESMF_REGRIDMETHOD_NEAREST_STOD
+    use ESMF              , only : ESMF_EXTRAPMETHOD_NEAREST_STOD
+    use ESMF              , only : ESMF_Mesh, ESMF_MeshLoc, ESMF_MESHLOC_ELEMENT, ESMF_TYPEKIND_I4
+    use ESMF              , only : ESMF_MeshGet, ESMF_DistGridGet, ESMF_DistGrid, ESMF_TYPEKIND_R8
+    use ESMF              , only : ESMF_FieldGet, ESMF_FieldCreate, ESMF_FieldWrite, ESMF_FieldDestroy
     use esmFlds           , only : mapbilnr, mapconsf, mapconsd, mappatch, mappatch_uv3d, mapbilnr_uv3d, mapfcopy
     use esmFlds           , only : mapunset, mapnames, nmappers
     use esmFlds           , only : mapnstod, mapnstod_consd, mapnstod_consf, mapnstod_consd
-    use esmFlds           , only : mapfillv_bilnr
+    use esmFlds           , only : mapfillv_bilnr, mapbilnr_nstod
     use esmFlds           , only : ncomps, compatm, compice, compocn, compname
     use esmFlds           , only : mapfcopy, mapconsd, mapconsf, mapnstod
-    use esmFlds           , only : coupling_mode, compname
+    use esmFlds           , only : coupling_mode
     use esmFlds           , only : atm_name
     use med_constants_mod , only : ispval_mask => med_constants_ispval_mask
 
@@ -232,12 +237,19 @@ contains
     integer                    , intent(out)   :: rc
 
     ! local variables
+    type(ESMF_Mesh)            :: dstmesh
+    type(ESMF_Field)           :: dststatusfield, doffield
+    type(ESMF_DistGrid)        :: distgrid
     character(len=CS)          :: string
     character(len=CS)          :: mapname
+    character(len=CL)          :: fname
     integer                    :: srcMaskValue
     integer                    :: dstMaskValue
     character(len=ESMF_MAXSTR) :: lmapfile
     logical                    :: rhprint = .false.
+    logical                    :: dststatus_print = .false.
+    integer                    :: ns
+    integer(I4), pointer       :: dof(:) => null()
     integer                    :: srcTermProcessing_Value = 0
     type(ESMF_PoleMethod_Flag), parameter :: polemethod=ESMF_POLEMETHOD_ALLAVG
     character(len=*), parameter :: subname=' (module_med_map: med_map_routehandles_initfrom_field) '
@@ -249,6 +261,13 @@ contains
     end if
 
     mapname = trim(mapnames(mapindex))
+    call ESMF_LogWrite(trim(subname)//": mapname "//trim(mapname), ESMF_LOGMSG_INFO)
+
+    ! create a field to retrieve the dststatus field
+    call ESMF_FieldGet(flddst, mesh=dstmesh, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    dststatusfield = ESMF_FieldCreate(dstmesh, ESMF_TYPEKIND_I4, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     if (trim(coupling_mode) == 'cesm') then
        dstMaskValue = ispval_mask
@@ -317,6 +336,7 @@ contains
                polemethod=polemethod, &
                srcTermProcessing=srcTermProcessing_Value, &
                ignoreDegenerate=.true., &
+               dstStatusField=dststatusfield, &
                unmappedaction=ESMF_UNMAPPEDACTION_IGNORE, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
        end if
@@ -331,6 +351,22 @@ contains
             polemethod=polemethod, &
             srcTermProcessing=srcTermProcessing_Value, &
             ignoreDegenerate=.true., &
+            dstStatusField=dststatusfield, &
+            unmappedaction=ESMF_UNMAPPEDACTION_IGNORE, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+    else if (mapindex == mapbilnr_nstod) then
+       if (mastertask) then
+          write(logunit,'(A)') trim(subname)//' creating RH '//trim(mapname)//' for '//trim(string)
+       end if
+       call ESMF_FieldRegridStore(fldsrc, flddst, routehandle=routehandles(mapbilnr_nstod), &
+            srcMaskValues=(/srcMaskValue/), &
+            dstMaskValues=(/dstMaskValue/), &
+            regridmethod=ESMF_REGRIDMETHOD_BILINEAR, &
+            extrapMethod=ESMF_EXTRAPMETHOD_NEAREST_STOD, &
+            polemethod=polemethod, &
+            srcTermProcessing=srcTermProcessing_Value, &
+            ignoreDegenerate=.true., &
+            dstStatusField=dststatusfield, &
             unmappedaction=ESMF_UNMAPPEDACTION_IGNORE, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     else if (mapindex == mapconsf .or. mapindex == mapnstod_consf) then
@@ -344,6 +380,7 @@ contains
             normType=ESMF_NORMTYPE_FRACAREA, &
             srcTermProcessing=srcTermProcessing_Value, &
             ignoreDegenerate=.true., &
+            dstStatusField=dststatusfield, &
             unmappedaction=ESMF_UNMAPPEDACTION_IGNORE, &
             rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -358,6 +395,7 @@ contains
             normType=ESMF_NORMTYPE_DSTAREA, &
             srcTermProcessing=srcTermProcessing_Value, &
             ignoreDegenerate=.true., &
+            dstStatusField=dststatusfield, &
             unmappedaction=ESMF_UNMAPPEDACTION_IGNORE, &
             rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -386,6 +424,33 @@ contains
        return
     end if
 
+    ! Output destination status field to file if requested
+    if (dststatus_print) then
+       if (mapindex /= mapfcopy .or. lmapfile /= 'unset') then
+         fname = 'dststatus.'//trim(compname(n1))//'.'//trim(compname(n2))//'.'//trim(mapname)//'.nc'
+         call ESMF_LogWrite(trim(subname)//": writing dstStatusField to "//trim(fname), ESMF_LOGMSG_INFO)
+
+         call ESMF_FieldWrite(dststatusfield, filename=trim(fname), variableName='dststatus', &
+              overwrite=.true., rc=rc)
+         if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+         ! the sequence index in order to sort the dststatus field
+         call ESMF_MeshGet(dstmesh, elementDistgrid=distgrid, rc=rc)
+         if (chkerr(rc,__LINE__,u_FILE_u)) return
+         call ESMF_DistGridGet(distgrid, localDE=0, elementCount=ns, rc=rc)
+         if (chkerr(rc,__LINE__,u_FILE_u)) return
+         allocate(dof(ns))
+         call ESMF_DistGridGet(distgrid, localDE=0, seqIndexList=dof, rc=rc)
+         if (chkerr(rc,__LINE__,u_FILE_u)) return
+         doffield = ESMF_FieldCreate(dstmesh, dof, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+         if (chkerr(rc,__LINE__,u_FILE_u)) return
+         call ESMF_FieldWrite(doffield, fileName='dof.'//trim(compname(n2))//'.nc', variableName='dof', &
+              overwrite=.true., rc=rc)
+         deallocate(dof)
+         call ESMF_FieldDestroy(doffield, rc=rc, noGarbage=.true.)
+       end if
+    end if
+
     ! consd_nstod method requires a second routehandle
     if (mapindex == mapnstod .or. mapindex == mapnstod_consd .or. mapindex == mapnstod_consf) then
        call ESMF_FieldRegridStore(fldsrc, flddst, routehandle=routehandles(mapnstod), &
@@ -394,9 +459,19 @@ contains
             regridmethod=ESMF_REGRIDMETHOD_NEAREST_STOD, &
             srcTermProcessing=srcTermProcessing_Value, &
             ignoreDegenerate=.true., &
+            dstStatusField=dststatusfield, &
             unmappedaction=ESMF_UNMAPPEDACTION_IGNORE, &
             rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+       ! Output destination status field to file if requested
+       if (dststatus_print) then
+          fname = 'dststatus.'//trim(compname(n1))//'.'//trim(compname(n2))//'.'//trim(mapname)//'_2.nc'
+          call ESMF_LogWrite(trim(subname)//": writing dstStatusField to "//trim(fname), ESMF_LOGMSG_INFO)
+
+          call ESMF_FieldWrite(dststatusfield, filename=trim(fname), variableName='dststatus', overwrite=.true., rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+       end if
     end if
 
     ! Check that a valid route handle has been created
@@ -415,6 +490,8 @@ contains
        call ESMF_RouteHandlePrint(routehandles(mapindex), rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     endif
+
+    call ESMF_FieldDestroy(dststatusfield, rc=rc, noGarbage=.true.)
 
   end subroutine med_map_routehandles_initfrom_field
 

@@ -22,7 +22,7 @@ module med_diag_mod
   use ESMF                  , only : ESMF_GridComp, ESMF_Clock, ESMF_Time
   use ESMF                  , only : ESMF_VM, ESMF_VMReduce, ESMF_REDUCE_SUM
   use ESMF                  , only : ESMF_GridCompGet, ESMF_ClockGet, ESMF_TimeGet
-  use ESMF                  , only : ESMF_Alarm, ESMF_ClockGetAlarm, ESMF_AlarmIsRinging, ESMF_AlarmRingerOff  
+  use ESMF                  , only : ESMF_Alarm, ESMF_ClockGetAlarm, ESMF_AlarmIsRinging, ESMF_AlarmRingerOff
   use ESMF                  , only : ESMF_FieldBundle, ESMF_Field, ESMF_FieldGet
   use shr_const_mod         , only : shr_const_rearth, shr_const_pi, shr_const_latice
   use shr_const_mod         , only : shr_const_ice_ref_sal, shr_const_ocn_ref_sal, shr_const_isspval
@@ -800,7 +800,7 @@ contains
       integer                , intent(out)   :: rc
       ! local variables
       integer           :: n, ip
-      type(ESMF_Field)  :: lfield 
+      type(ESMF_Field)  :: lfield
       real(r8), pointer :: data(:,:) => null()
       ! ------------------------------------------------------------------
       rc = ESMF_SUCCESS
@@ -857,7 +857,7 @@ contains
       integer                , intent(out)   :: rc
       ! local variables
       integer           :: n, ip
-      type(ESMF_Field)  :: lfield 
+      type(ESMF_Field)  :: lfield
       real(r8), pointer :: data(:,:) => null()
       ! ------------------------------------------------------------------
       rc = ESMF_SUCCESS
@@ -1575,7 +1575,7 @@ contains
       integer                , intent(out)   :: rc
       ! local variables
       integer           :: n, ip
-      type(ESMF_Field)  :: lfield 
+      type(ESMF_Field)  :: lfield
       real(r8), pointer :: data(:) => null()
       ! ------------------------------------------------------------------
       rc = ESMF_SUCCESS
@@ -1621,7 +1621,7 @@ contains
       integer                , intent(out)   :: rc
       ! local variables
       integer           :: n, ip
-      type(ESMF_Field)  :: lfield 
+      type(ESMF_Field)  :: lfield
       real(r8), pointer :: data(:,:) => null()
       ! ------------------------------------------------------------------
       rc = ESMF_SUCCESS
@@ -1754,7 +1754,7 @@ contains
       integer                , intent(out)   :: rc
       ! local variables
       integer           :: n, ip
-      type(ESMF_Field)  :: lfield 
+      type(ESMF_Field)  :: lfield
       real(r8), pointer :: data(:) => null()
       ! ------------------------------------------------------------------
       rc = ESMF_SUCCESS
@@ -1788,7 +1788,7 @@ contains
 
       ! local variables
       integer           :: n, ip
-      type(ESMF_Field)  :: lfield 
+      type(ESMF_Field)  :: lfield
       real(r8), pointer :: data(:,:) => null()
       ! ------------------------------------------------------------------
       rc = ESMF_SUCCESS
