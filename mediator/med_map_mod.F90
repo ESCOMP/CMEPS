@@ -411,6 +411,7 @@ contains
                polemethod=polemethod, &
                srcTermProcessing=srcTermProcessing_Value, &
                ignoreDegenerate=.true., &
+               dstStatusField=dststatusfield, &
                unmappedaction=ESMF_UNMAPPEDACTION_IGNORE, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
        end if
