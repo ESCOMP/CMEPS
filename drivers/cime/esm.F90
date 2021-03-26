@@ -978,9 +978,6 @@ contains
        info = ESMF_InfoCreate(rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-!       call ESMF_InfoSet(info, key="/NUOPC/Hint/PePerPet/MinStackSize",value=400000000, rc=rc)
-!       if (chkerr(rc,__LINE__,u_FILE_u)) return
-
        call ESMF_InfoSet(info, key="/NUOPC/Hint/PePerPet/MaxCount", value=nthrds, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
