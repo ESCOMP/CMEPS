@@ -798,6 +798,15 @@
     <desc>TRUE implies that at least one of the components is built threaded (DO NOT EDIT)</desc>
   </entry>
 
+  <entry id="ESMF_AWARE_THREADING">
+    <type>logical</type>
+    <valid_values>TRUE,FALSE</valid_values>
+    <default_value>FALSE</default_value>
+    <group>mach_pes</group>
+    <file>env_mach_pes.xml</file>
+    <desc>TRUE indicates that the ESMF Aware threading method is used</desc>
+  </entry>
+
   <entry id="USE_PETSC">
     <type>logical</type>
     <valid_values>TRUE,FALSE</valid_values>
