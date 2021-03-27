@@ -842,9 +842,9 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call NUOPC_CompAttributeSet(gcomp, name="rof_present", value=rof_present, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompAttributeSet(gcomp, name="wav_present", value=wav_present, rc=rc)
+    call NUOPC_CompAttributeSet(gcomp, name="wav_present", value=trim(wav_present), rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompAttributeSet(gcomp, name="glc_present", value=glc_present, rc=rc)
+    call NUOPC_CompAttributeSet(gcomp, name="glc_present", value=trim(glc_present), rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call NUOPC_CompAttributeSet(gcomp, name="med_present", value=med_present, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -1790,15 +1790,15 @@ contains
             call ESMF_AttributeGet(gcomp, name="glc_present", value=cvalue, &
                  convention="NUOPC", purpose="Instance", rc=rc)
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-            if (trim(cvalue) == 'true') then
-               do ns = 1,max_icesheets
-                  if (ns <= num_icesheets) then
+            do ns = 1,max_icesheets
+               if (ns <= num_icesheets) then
+                  if (trim(cvalue) == 'true') then
                      is_local%wrap%comp_present(compglc(ns)) = .true.
                   else
                      is_local%wrap%comp_present(compglc(ns)) = .false.
                   end if
-               end do
-            end if
+               end if
+            end do
          else
             call ESMF_AttributeGet(gcomp, name=trim(compname(n1))//"_present", value=cvalue, &
                  convention="NUOPC", purpose="Instance", rc=rc)
