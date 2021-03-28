@@ -20,7 +20,7 @@ module med_phases_prep_glc_mod
   use ESMF                  , only : ESMF_FieldBundleCreate, ESMF_FieldBundleIsCreated
   use ESMF                  , only : ESMF_Field, ESMF_FieldGet, ESMF_FieldCreate
   use ESMF                  , only : ESMF_Mesh, ESMF_MESHLOC_ELEMENT, ESMF_TYPEKIND_R8, ESMF_KIND_R8
-  use ESMF                  , only : ESMF_DYNAMICMASK, ESMF_DynamicMaskSetR8R8R8, ESMF_DYNAMICMASKELEMENTR8R8R8 
+  use ESMF                  , only : ESMF_DYNAMICMASK, ESMF_DynamicMaskSetR8R8R8, ESMF_DYNAMICMASKELEMENTR8R8R8
   use ESMF                  , only : ESMF_FieldRegrid
   use esmFlds               , only : complnd, compocn,  mapbilnr, mapconsd, compname
   use esmFlds               , only : max_icesheets, num_icesheets, compglc, ocn2glc_coupling
@@ -106,7 +106,7 @@ module med_phases_prep_glc_mod
   type(ESMF_FieldBundle) :: FBocnAccum_o
   integer                :: FBocnAccumCnt
   character(len=14)      :: fldnames_fr_ocn(2) = (/'So_t_depth','So_s_depth'/)  ! TODO: what else needs to be added here
-  type(ESMF_DynamicMask) :: dynamicOcnMask 
+  type(ESMF_DynamicMask) :: dynamicOcnMask
   integer, parameter     :: num_ocndepths = 7
   logical                :: ocn_sends_depths = .false.
 
@@ -429,7 +429,7 @@ contains
           end if
        end do
 
-       ! Create a dynamic mask object 
+       ! Create a dynamic mask object
        ! The dynamic mask object further holds a pointer to the routine that will be called in order to
        ! handle dynamically masked elements - in this case its DynOcnMaskProc (see below)
        call ESMF_DynamicMaskSetR8R8R8(dynamicOcnMask, dynamicSrcMaskValue=czero, &
@@ -450,10 +450,10 @@ contains
 
     !---------------------------------------
     ! Carry out accumulation for the lnd->glc and ocn->glc
-    ! Accumulation and averaging is done on 
+    ! Accumulation and averaging is done on
     !  - on the land mesh for land input
     !  - on the ocean mesh for ocean input
-    ! Mapping from the land to the glc grid and from the ocean to the glc grid 
+    ! Mapping from the land to the glc grid and from the ocean to the glc grid
     ! is then done after the accumulated fields have been time averaged
     !---------------------------------------
 
@@ -497,7 +497,7 @@ contains
     do n = 1, size(fldnames_fr_lnd)
        call fldbun_getdata2d(is_local%wrap%FBImp(complnd,complnd), fldnames_fr_lnd(n), data2d_in, rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call fldbun_getdata2d(FBlndAccum_l, fldnames_fr_lnd(n), data2d_out, rc) 
+       call fldbun_getdata2d(FBlndAccum_l, fldnames_fr_lnd(n), data2d_out, rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        do i = 1,size(data2d_out, dim=2)
           data2d_out(:,i) = data2d_out(:,i) + data2d_in(:,i)
@@ -520,7 +520,7 @@ contains
 
     !---------------------------------------
     ! Carry out accumulation for ocn->glc
-    ! Accumulation and averaging is done on 
+    ! Accumulation and averaging is done on
     !  - on the ocean mesh for ocean input
     ! Mapping from from the ocean to the glc grid is then done after
     ! the accumulated fields have been time averaged
@@ -567,7 +567,7 @@ contains
     do n = 1, size(fldnames_fr_ocn)
        call fldbun_getdata2d(is_local%wrap%FBImp(compocn,compocn), fldnames_fr_ocn(n), data2d_in, rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call fldbun_getdata2d(FBocnAccum_o, fldnames_fr_ocn(n), data2d_out, rc) 
+       call fldbun_getdata2d(FBocnAccum_o, fldnames_fr_ocn(n), data2d_out, rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        do i = 1,size(data2d_out, dim=2)
           data2d_out(:,i) = data2d_out(:,i) + data2d_in(:,i)
@@ -887,7 +887,7 @@ contains
        if (chkErr(rc,__LINE__,u_FILE_u)) return
 
        ! ------------------------------------------------------------------------
-       ! Loop over fields in export field bundle to glc for ice sheet ns and 
+       ! Loop over fields in export field bundle to glc for ice sheet ns and
        ! perform vertical interpolation of data onto ice sheet topography
        ! This maps all of the input elevation classes into an export to glc without elevation classes
        ! ------------------------------------------------------------------------
@@ -1076,7 +1076,7 @@ contains
     real(r8) :: accum_renorm_factor ! ratio between global accumulation on the two grids
     real(r8) :: ablat_renorm_factor ! ratio between global ablation on the two grids
     real(r8) :: effective_area      ! grid cell area multiplied by min(lfrac,icemask_l).
-    real(r8), pointer :: area_g(:) ! areas on glc grid 
+    real(r8), pointer :: area_g(:) ! areas on glc grid
     character(len=*), parameter  :: subname=' (renormalize_smb) '
     !---------------------------------------------------------------
 
@@ -1257,7 +1257,7 @@ contains
   end subroutine med_phases_prep_glc_renormalize_smb
 
   !================================================================================================
-  subroutine dynOcnMaskProc(dynamicMaskList, dynamicSrcMaskValue, dynamicDstMaskValue, rc) 
+  subroutine dynOcnMaskProc(dynamicMaskList, dynamicSrcMaskValue, dynamicDstMaskValue, rc)
 
     use ESMF, only : ESMF_RC_ARG_BAD
 

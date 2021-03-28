@@ -43,13 +43,20 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     config['MPILIB'] = case.get_value('MPILIB')
     config['OS'] = case.get_value('OS')
     config['glc_nec'] = 0 if case.get_value('GLC_NEC') == 0 else case.get_value('GLC_NEC')
-    config['single_column'] = 'true' if case.get_value('PTS_MODE') else 'false'
     config['timer_level'] = 'pos' if case.get_value('TIMER_LEVEL') >= 1 else 'neg'
     config['bfbflag'] = 'on' if case.get_value('BFBFLAG') else 'off'
     config['continue_run'] = '.true.' if case.get_value('CONTINUE_RUN') else '.false.'
     config['flux_epbal'] = 'ocn' if case.get_value('CPL_EPBAL')  == 'ocn' else 'off'
     config['atm_grid'] = case.get_value('ATM_GRID')
     config['mask_grid'] = case.get_value('MASK_GRID')
+
+    # determine if need to set atm_domainfile
+    scol_lon = float(case.get_value('PTS_LON'))
+    scol_lat = float(case.get_value('PTS_LAT'))
+    if scol_lon > -999. and scol_lat > -999. and case.get_value("ATM_DOMAIN_FILE") != "UNSET":
+        config['single_column'] = 'true'
+    else:
+        config['single_column'] = 'false'
 
     # needed for determining the run sequence as well as glc_renormalize_smb
     config['COMP_ATM'] = case.get_value("COMP_ATM")

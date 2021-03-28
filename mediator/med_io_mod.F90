@@ -181,7 +181,7 @@ contains
     call ESMF_VMGet(vm, mpiCommunicator=comm, localPet=localPet, petCount=petCount, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    ! query component specific PIO attributes 
+    ! query component specific PIO attributes
     ! pio_netcdf_format
     call NUOPC_CompAttributeGet(gcomp, name='pio_netcdf_format', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -212,9 +212,9 @@ contains
     if (isPresent .and. isSet) then
        cvalue = ESMF_UtilStringUpperCase(cvalue)
        if (trim(cvalue) .eq. 'NETCDF') then
-         pio_iotype = PIO_IOTYPE_NETCDF 
+         pio_iotype = PIO_IOTYPE_NETCDF
        else if (trim(cvalue) .eq. 'PNETCDF') then
-         pio_iotype = PIO_IOTYPE_PNETCDF 
+         pio_iotype = PIO_IOTYPE_PNETCDF
        else if (trim(cvalue) .eq. 'NETCDF4C') then
          pio_iotype = PIO_IOTYPE_NETCDF4C
        else if (trim(cvalue) .eq. 'NETCDF4P') then
@@ -276,7 +276,7 @@ contains
           write(logunit,*) ' parallel io requires at least two io pes - following parameters are updated:'
           write(logunit,*) trim(subname), ' : pio_stride = ', pio_stride
           write(logunit,*) trim(subname), ' : pio_numiotasks = ', pio_numiotasks
-       end if       
+       end if
     endif
 
     ! check/set/correct io pio parameters
@@ -294,7 +294,7 @@ contains
     end if
     if (pio_stride == 1) then
        pio_root = 0
-    endif    
+    endif
 
     if (pio_root + (pio_stride)*(pio_numiotasks-1) >= petCount .or. &
        pio_stride <= 0 .or. pio_numiotasks <= 0 .or. pio_root < 0 .or. pio_root > petCount-1) then
@@ -366,8 +366,8 @@ contains
     ! set PIO debug level
     call pio_setdebuglevel(pio_debug_level)
 
-    ! query shared PIO rearranger attributes 
-    ! pio_rearr_comm_type 
+    ! query shared PIO rearranger attributes
+    ! pio_rearr_comm_type
     call NUOPC_CompAttributeGet(gcomp, name='pio_rearr_comm_type', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
@@ -386,7 +386,7 @@ contains
        cvalue = 'P2P'
        pio_rearr_comm_type = PIO_REARR_COMM_P2P
     end if
-    if (localPet == 0) write(logunit,*) trim(subname), ' : pio_rearr_comm_type = ', trim(cvalue), pio_rearr_comm_type 
+    if (localPet == 0) write(logunit,*) trim(subname), ' : pio_rearr_comm_type = ', trim(cvalue), pio_rearr_comm_type
 
     ! pio_rearr_comm_fcd
     call NUOPC_CompAttributeGet(gcomp, name='pio_rearr_comm_fcd', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
