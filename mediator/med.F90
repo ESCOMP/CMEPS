@@ -557,7 +557,8 @@ contains
     use ESMF  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_METHOD_INITIALIZE
     use NUOPC , only : NUOPC_CompFilterPhaseMap, NUOPC_CompAttributeGet
     use med_internalstate_mod, only : mastertask, logunit
-
+    use esmFlds, only : dststatus_print
+ 
     type(ESMF_GridComp)   :: gcomp
     type(ESMF_State)      :: importState, exportState
     type(ESMF_Clock)      :: clock
@@ -626,6 +627,13 @@ contains
     write(msgString,'(A,i6)') trim(subname)//': Mediator dbug_flag is ',dbug_flag
     call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
 
+    ! Obtain dststatus_print setting if present
+    call NUOPC_CompAttributeGet(gcomp, name='dststatus_print', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) dststatus_print=(trim(cvalue)=="true")
+    write(msgString,*) trim(subname)//': Mediator dststatus_print is ',dststatus_print
+    call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
+
     ! Switch to IPDv03 by filtering all other phaseMap entries
     call NUOPC_CompFilterPhaseMap(gcomp, ESMF_METHOD_INITIALIZE, acceptStringList=(/"IPDv03p"/), rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -644,6 +652,7 @@ contains
 
     use ESMF  , only : ESMF_GridComp, ESMF_State, ESMF_Clock, ESMF_SUCCESS, ESMF_LogFoundAllocError
     use ESMF  , only : ESMF_LogMsg_Info, ESMF_LogWrite
+    use ESMF  , only : ESMF_END_ABORT, ESMF_Finalize
     use NUOPC , only : NUOPC_AddNamespace, NUOPC_Advertise, NUOPC_AddNestedState
     use NUOPC , only : NUOPC_CompAttributeGet, NUOPC_CompAttributeSet, NUOPC_CompAttributeAdd
 
@@ -749,12 +758,16 @@ contains
     if (trim(coupling_mode) == 'cesm') then
        call esmFldsExchange_cesm(gcomp, phase='advertise', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    else if (trim(coupling_mode(1:4)) == 'nems') then
+    else if (trim(coupling_mode) == 'nems_orig' .or. trim(coupling_mode) == 'nems_frac' &
+       .or. trim(coupling_mode) == 'nems_orig_data') then
        call esmFldsExchange_nems(gcomp, phase='advertise', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     else if (trim(coupling_mode(1:4)) == 'hafs') then
        call esmFldsExchange_hafs(gcomp, phase='advertise', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    else
+        call ESMF_LogWrite(trim(coupling_mode)//' is not a valid coupling_mode', ESMF_LOGMSG_INFO)
+        call ESMF_Finalize(endflag=ESMF_END_ABORT)
     end if
 
     !------------------
@@ -842,9 +855,9 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call NUOPC_CompAttributeSet(gcomp, name="rof_present", value=rof_present, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompAttributeSet(gcomp, name="wav_present", value=wav_present, rc=rc)
+    call NUOPC_CompAttributeSet(gcomp, name="wav_present", value=trim(wav_present), rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompAttributeSet(gcomp, name="glc_present", value=glc_present, rc=rc)
+    call NUOPC_CompAttributeSet(gcomp, name="glc_present", value=trim(glc_present), rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call NUOPC_CompAttributeSet(gcomp, name="med_present", value=med_present, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -1790,15 +1803,15 @@ contains
             call ESMF_AttributeGet(gcomp, name="glc_present", value=cvalue, &
                  convention="NUOPC", purpose="Instance", rc=rc)
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-            if (trim(cvalue) == 'true') then
-               do ns = 1,max_icesheets
-                  if (ns <= num_icesheets) then
+            do ns = 1,max_icesheets
+               if (ns <= num_icesheets) then
+                  if (trim(cvalue) == 'true') then
                      is_local%wrap%comp_present(compglc(ns)) = .true.
                   else
                      is_local%wrap%comp_present(compglc(ns)) = .false.
                   end if
-               end do
-            end if
+               end if
+            end do
          else
             call ESMF_AttributeGet(gcomp, name=trim(compname(n1))//"_present", value=cvalue, &
                  convention="NUOPC", purpose="Instance", rc=rc)

@@ -187,7 +187,7 @@ contains
     call addfld(fldListTo(compatm)%flds, 'So_ofrac')
 
     !----------------------------------------------------------
-    ! to atm: surface temperatures from ocn 
+    ! to atm: surface temperatures from ocn
     !----------------------------------------------------------
     call addfld(fldListFr(compocn)%flds, 'So_t')
     call addfld(fldListTo(compatm)%flds, 'So_t')

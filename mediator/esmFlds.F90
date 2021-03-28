@@ -34,6 +34,8 @@ module esmflds
   integer, public :: num_icesheets = 1
   logical, public :: ocn2glc_coupling  ! obtained from attribute
 
+  logical, public :: dststatus_print = .false.
+
   !-----------------------------------------------
   ! Set mappers
   !-----------------------------------------------
@@ -54,7 +56,8 @@ module esmflds
   integer , public, parameter :: map_glc2ocn_liq   = 13 ! custom smoothing map to map liq from glc->ocn (cesm only)
   integer , public, parameter :: map_glc2ocn_ice   = 14 ! custom smoothing map to map ice from glc->ocn (cesm only)
   integer , public, parameter :: mapfillv_bilnr    = 15 ! fill value followed by bilinear
-  integer , public, parameter :: nmappers          = 15
+  integer , public, parameter :: mapbilnr_nstod    = 16 ! bilinear with nstod extrapolation
+  integer , public, parameter :: nmappers          = 16
 
   character(len=*) , public, parameter :: mapnames(nmappers) = &
        (/'bilnr      ',&
@@ -71,7 +74,8 @@ module esmflds
          'rof2ocn_liq',&
          'glc2ocn_ice',&
          'glc2ocn_liq',&
-         'fillv_bilnr'/)
+         'fillv_bilnr',&
+         'bilnr_nstod'/)
 
   !-----------------------------------------------
   ! Set coupling mode
