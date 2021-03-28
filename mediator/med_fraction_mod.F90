@@ -295,7 +295,7 @@ contains
     end if
 
     !---------------------------------------
-    ! Set 'ofrac' in FBFrac(compocn) 
+    ! Set 'ofrac' in FBFrac(compocn)
     !---------------------------------------
 
     if (is_local%wrap%comp_present(compocn)) then
@@ -681,7 +681,7 @@ contains
        ! The model mask is normally assumed to be an selected ocean mask from a fully coupled run
        ! So in it is (1-land fraction) on the atm grid
 
-       ! set ifrac 
+       ! set ifrac
        if (associated(ifrac)) then
           ifrac(:) = Si_ifrac(:) * Si_imask(:)
        endif

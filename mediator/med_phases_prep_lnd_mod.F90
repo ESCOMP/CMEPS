@@ -94,7 +94,7 @@ contains
        ! obtain nextsw_cday from atm if it is in the import state and send it to lnd
        scalar_id=is_local%wrap%flds_scalar_index_nextsw_cday
        if (scalar_id > 0 .and. mastertask) then
-          call ESMF_StateGet(is_local%wrap%NstateImp(compatm), & 
+          call ESMF_StateGet(is_local%wrap%NstateImp(compatm), &
                itemName=trim(is_local%wrap%flds_scalar_name), field=lfield, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           call ESMF_FieldGet(lfield, farrayPtr=dataptr_scalar_atm, rc=rc)
