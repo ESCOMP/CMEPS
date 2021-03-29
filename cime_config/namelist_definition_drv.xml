@@ -1076,35 +1076,6 @@
     </values>
   </entry>
 
-  <entry id="single_column_domainfile" modify_via_xml="ATM_DOMAIN_FILE">
-    <type>char</type>
-    <category>mapping</category>
-    <group>ALLCOMP_attributes</group>
-    <desc>
-      DOMAIN file needed for single column model
-      A nearest neighbor search is done to match the PTS_LAT and PTS_LON
-      to the closest point in the domain file. This file is ONLY used in
-      single column mode. The mask in this file is the land mask that will be used.
-      The ocean mask is just 1 minus the land mask.
-    </desc>
-    <values>
-      <value>$ATM_DOMAIN_PATH/$ATM_DOMAIN_FILE</value>
-    </values>
-  </entry>
-
-  <entry id="domain_lnd" modify_via_xml="LND_DOMAIN_FILE">
-    <type>char</type>
-    <category>mapping</category>
-    <group>LND_attributes</group>
-    <desc>
-      DOMAIN description of lnd grid - this will be depracated 
-      only here for backwards compatibility
-    </desc>
-    <values>
-      <value>$LND_DOMAIN_PATH/$LND_DOMAIN_FILE</value>
-    </values>
-  </entry>
-
   <entry id="mesh_atm" modify_via_xml="ATM_DOMAIN_MESH">
     <type>char</type>
     <category>mapping</category>
