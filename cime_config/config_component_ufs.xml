@@ -35,16 +35,6 @@
     <desc>run DOI</desc>
   </entry>
 
-  <entry id="DRV_THREADING">
-    <type>logical</type>
-    <valid_values>TRUE,FALSE</valid_values>
-    <default_value>FALSE</default_value>
-    <group>run_flags</group>
-    <file>env_run.xml</file>
-    <desc>Turns on component varying thread control in the driver.
-    Used to set the driver namelist variable "drv_threading".</desc>
-  </entry>
-
   <entry id="SAVE_TIMING">
     <type>logical</type>
     <valid_values>TRUE,FALSE</valid_values>
