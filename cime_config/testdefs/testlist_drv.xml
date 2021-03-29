@@ -376,7 +376,7 @@
       <option name="wallclock"> 00:20:00 </option>
     </options>
   </test>
-  <test compset="I1850Clm50SpG" grid="T31_g37_gl20" name="ERS_Vnuopc_Ld5" testmods="cism-test_coupling">
+  <test compset="I1850Clm50SpG" grid="f10_f10_mg37" name="ERS_Vnuopc_Lm13">
     <machines>
       <machine name="cheyenne" compiler="intel" category="nuopc"/>
       <machine name="theia" compiler="intel" category="nuopc"/>
@@ -391,7 +391,7 @@
   <!-- TG compsets -->
   <!-- ======================================= -->
 
-  <test name="SMS_D_Ly1_Vnuopc" grid="f09_g17_gl4" compset="T1850G">
+  <test name="SMS_D_Ly1_Vnuopc" grid="f09_g17_gl4" compset="T1850Gg">
     <machines>
       <machine name="cheyenne" compiler="intel" category="nuopc">
         <options>
@@ -400,7 +400,7 @@
       </machine>
     </machines>
   </test>
-  <test name="ERS_Ly3_Vnuopc" grid="f09_g17_gl4" compset="T1850G">
+  <test name="ERS_Ly3_Vnuopc" grid="f09_g17_gl4" compset="T1850Gg">
     <machines>
       <machine name="cheyenne" compiler="intel" category="nuopc">
         <options>
