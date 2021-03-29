@@ -905,7 +905,7 @@ contains
     if (isPresent .and. isSet) then
        read(cvalue,*) is_local%wrap%flds_scalar_index_precip_factor
     else
-       is_local%wrap%flds_scalar_index_precip_factor = spval
+       is_local%wrap%flds_scalar_index_precip_factor = 0
     end if
 
     !------------------

@@ -440,6 +440,10 @@ contains
     ! application of precipitation factor from ocean
     !---------------------------------------
     if (is_local%wrap%flds_scalar_index_precip_factor /= 0) then
+       ! Note that in med_internal_mod.F90 all is_local%wrap%flds_scalar_index_precip_factor 
+       ! is initialized to 0.
+       ! In addition, in med.F90, if this attribute is not present as a mediator component attribute, 
+       ! it is set to 0. 
        if (mastertask) then
           call ESMF_StateGet(is_local%wrap%NstateImp(compocn), & 
                itemName=trim(is_local%wrap%flds_scalar_name), field=lfield, rc=rc)
@@ -462,6 +466,8 @@ contains
           write(cvalue,*) precip_fact(1)
           call ESMF_LogWrite(trim(subname)//" precip_fact is "//trim(cvalue), ESMF_LOGMSG_INFO)
        end if
+
+       ! Scale rain and snow from atm by the precipitation factor received from the ocean
        allocate(fldnames(4))
        fldnames = (/'Faxa_rain', 'Faxa_snow', 'Foxx_rofl', 'Foxx_rofi'/)
        do n = 1,size(fldnames)
