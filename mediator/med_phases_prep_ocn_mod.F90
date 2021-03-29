@@ -436,10 +436,9 @@ contains
        deallocate(Foxx_swnet)
     end if
 
-    !---------------------------------------
-    ! application of precipitation factor from ocean
-    !---------------------------------------
-    if (is_local%wrap%flds_scalar_index_precip_factor /= 0) then
+    ! Apply precipitation factor from ocean (that scales atm rain and snow back to ocn ) if appropriate
+    if (trim(coupling_mode) == 'cesm' .and. is_local%wrap%flds_scalar_index_precip_factor /= 0) then
+
        ! Note that in med_internal_mod.F90 all is_local%wrap%flds_scalar_index_precip_factor 
        ! is initialized to 0.
        ! In addition, in med.F90, if this attribute is not present as a mediator component attribute, 
@@ -453,11 +452,14 @@ contains
           scalar_id=is_local%wrap%flds_scalar_index_precip_factor
           precip_fact(1) = dataptr_scalar_ocn(scalar_id,1)
           if (first_call) then
-             write(logunit,'(a)')'(merge_to_ocn): Scaling rain, snow, liquid and ice runoff by precip_fact '
+             write(logunit,'(a)')'(merge_to_ocn): Scaling rain, snow, liquid and ice runoff by precip_fact from ocn'
              first_call = .false.
           end if
-          write(logunit,'(a,f13.5)')'(merge_to_ocn): Scaling rain, snow, liquid and ice runoff by precip_fact ',&
-               precip_fact(1)
+          if (precip_fact(1) /= 1._r8) then
+             write(logunit,'(a,f21.13)')&
+                  '(merge_to_ocn): Scaling rain, snow, liquid and ice runoff by non-unity precip_fact ',&
+                  precip_fact(1)
+          end if
        end if
        call ESMF_VMBroadCast(is_local%wrap%vm, precip_fact, 1, 0, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -467,7 +469,7 @@ contains
           call ESMF_LogWrite(trim(subname)//" precip_fact is "//trim(cvalue), ESMF_LOGMSG_INFO)
        end if
 
-       ! Scale rain and snow from atm by the precipitation factor received from the ocean
+       ! Scale rain and snow to ocn from atm by the precipitation factor received from the ocean
        allocate(fldnames(4))
        fldnames = (/'Faxa_rain', 'Faxa_snow', 'Foxx_rofl', 'Foxx_rofi'/)
        do n = 1,size(fldnames)

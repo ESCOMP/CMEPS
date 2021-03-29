@@ -29,6 +29,7 @@ contains
     use ESMF                  , only : ESMF_FieldBundleGet, ESMF_FieldGet, ESMF_Field
     use ESMF                  , only : ESMF_LOGMSG_ERROR, ESMF_FAILURE
     use ESMF                  , only : ESMF_StateItem_Flag, ESMF_STATEITEM_NOTFOUND
+    use ESMF                  , only : ESMF_VMBroadCast 
     use med_utils_mod         , only : chkerr       => med_utils_ChkErr
     use med_methods_mod       , only : FB_fldchk    => med_methods_FB_FldChk
     use med_methods_mod       , only : FB_diagnose  => med_methods_FB_diagnose
@@ -46,12 +47,12 @@ contains
     integer, intent(out) :: rc
 
     ! local variables
-    type(ESMF_StateItem_Flag)      :: itemType
     type(InternalState)            :: is_local
     type(ESMF_Field)               :: lfield
     integer                        :: i,n
-    real(R8), pointer              :: dataptr1d(:) => null()
-    real(R8)                       :: precip_fact
+    real(R8), pointer              :: dataptr(:) => null()
+    real(R8), pointer              :: dataptr_scalar_ocn(:,:) => null()
+    real(R8)                       :: precip_fact(1)
     character(len=CS)              :: cvalue
     character(len=64), allocatable :: fldnames(:)
     real(r8)                       :: nextsw_cday
@@ -88,14 +89,47 @@ contains
          fldListTo(compice), rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    ! apply precipitation factor from ocean if appropriate
+    ! Apply precipitation factor from ocean (that scales atm rain and snow to ice) if appropriate
     if (trim(coupling_mode) == 'cesm' .and. is_local%wrap%flds_scalar_index_precip_factor /= 0) then
+
+       ! Note that in med_internal_mod.F90 all is_local%wrap%flds_scalar_index_precip_factor 
+       ! is initialized to 0.
+       ! In addition, in med.F90, if this attribute is not present as a mediator component attribute, 
+       ! it is set to 0. 
+       if (mastertask) then
+          call ESMF_StateGet(is_local%wrap%NstateImp(compocn), & 
+               itemName=trim(is_local%wrap%flds_scalar_name), field=lfield, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_FieldGet(lfield, farrayPtr=dataptr_scalar_ocn, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          scalar_id=is_local%wrap%flds_scalar_index_precip_factor
+          precip_fact(1) = dataptr_scalar_ocn(scalar_id,1)
+          if (first_call) then
+             write(logunit,'(a)')'(merge_to_ice): Scaling rain, snow, liquid and ice runoff by precip_fact from ocn'
+             first_call = .false.
+          end if
+          if (precip_fact(1) /= 1._r8) then
+             write(logunit,'(a,f21.13)')&
+                  '(merge_to_ice): Scaling rain, snow, liquid and ice runoff by non-unity precip_fact ',&
+                  precip_fact(1)
+          end if
+       end if
+       call ESMF_VMBroadCast(is_local%wrap%vm, precip_fact, 1, 0, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       is_local%wrap%flds_scalar_precip_factor = precip_fact(1)      
+       if (dbug_flag > 5) then
+          write(cvalue,*) precip_fact(1)
+          call ESMF_LogWrite(trim(subname)//" precip_fact is "//trim(cvalue), ESMF_LOGMSG_INFO)
+       end if
+
+       ! Scale rain and snow to ice from atm by the precipitation factor received from the ocean
+       allocate(fldnames(3))
        fldnames = (/'Faxa_rain', 'Faxa_snow', 'Fixx_rofi'/)
        do n = 1,size(fldnames)
           if (FB_fldchk(is_local%wrap%FBExp(compice), trim(fldnames(n)), rc=rc)) then
-             call FB_GetFldPtr(is_local%wrap%FBExp(compocn), trim(fldnames(n)), dataptr1d, rc=rc)
+             call FB_GetFldPtr(is_local%wrap%FBExp(compice), trim(fldnames(n)), dataptr, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             dataptr1d(:) = dataptr1d(:) * is_local%wrap%flds_scalar_precip_factor
+             dataptr(:) = dataptr(:) * is_local%wrap%flds_scalar_precip_factor
           end if
        end do
        deallocate(fldnames)
