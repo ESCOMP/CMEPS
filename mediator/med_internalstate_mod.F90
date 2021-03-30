@@ -62,6 +62,7 @@ module med_internalstate_mod
     integer                :: flds_scalar_index_ny = 0
     integer                :: flds_scalar_index_nextsw_cday = 0
     integer                :: flds_scalar_index_precip_factor = 0
+    real(r8)               :: flds_scalar_precip_factor = 1._r8  ! actual value of precip factor from ocn
 
     ! Import/export States and field bundles (the field bundles have the scalar fields removed)
     type(ESMF_State)       :: NStateImp(ncomps)                  ! Import data from various component, on their grid
