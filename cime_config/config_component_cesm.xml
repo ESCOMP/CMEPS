@@ -35,16 +35,6 @@
     <desc>run DOI</desc>
   </entry>
 
-  <entry id="DRV_THREADING">
-    <type>logical</type>
-    <valid_values>TRUE,FALSE</valid_values>
-    <default_value>FALSE</default_value>
-    <group>run_flags</group>
-    <file>env_run.xml</file>
-    <desc>Turns on component varying thread control in the driver.
-    Used to set the driver namelist variable "drv_threading".</desc>
-  </entry>
-
   <entry id="SAVE_TIMING">
     <type>logical</type>
     <valid_values>TRUE,FALSE</valid_values>
@@ -541,7 +531,7 @@
     <values match="last">
       <value compset="_CLM.+CISM\d">TRUE</value>
       <!-- Turn on two-way coupling for TG compsets - even though there are no
-	   feedbacks for a TG compset, this will give us additional diagnostics -->
+           feedbacks for a TG compset, this will give us additional diagnostics -->
       <value compset="_DLND.+CISM\d">TRUE</value>
     </values>
     <group>run_glc</group>

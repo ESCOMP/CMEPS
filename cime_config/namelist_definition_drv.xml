@@ -178,31 +178,6 @@
     </values>
   </entry>
 
-  <!-- <entry id="cpl_cdf64"> -->
-  <!--   <type>logical</type> -->
-  <!--   <category>expdef</category> -->
-  <!--   <group>DRIVER_attributes</group> -->
-  <!--   <desc> -->
-  <!--     default: true -->
-  <!--   </desc> -->
-  <!--   <values> -->
-  <!--     <value>.true.</value> -->
-  <!--   </values> -->
-  <!-- </entry> -->
-
-  <entry id="drv_threading" modify_via_xml="DRV_THREADING">
-    <type>logical</type>
-    <category>performance</category>
-    <group>DRIVER_attributes</group>
-    <desc>
-      turn on run time control of threading per pe per component by the driver
-      default: false
-    </desc>
-    <values>
-      <value>$DRV_THREADING</value>
-    </values>
-  </entry>
-
   <entry id="run_barriers" modify_via_xml="COMP_RUN_BARRIERS">
     <type>logical</type>
     <category>performance</category>
@@ -732,7 +707,7 @@
     <category>single_column</category>
     <group>ALLCOMP_attributes</group>
     <desc>
-      DOMAIN file needed for single column model IF and only if 
+      DOMAIN file needed for single column model IF and only if
       a nearest neighbor search is done to match the PTS_LAT and PTS_LON
       to the closest point in the domain file. This file is ONLY used in
       single column mode.
@@ -1072,7 +1047,7 @@
     </desc>
     <values>
       <value>$MASK_MESH</value>
-      <value single_column='true'>null</value> 
+      <value single_column='true'>null</value>
     </values>
   </entry>
 
@@ -1085,7 +1060,7 @@
     </desc>
     <values>
       <value>$ATM_DOMAIN_MESH</value>
-      <value single_column='true'>null</value> 
+      <value single_column='true'>null</value>
     </values>
   </entry>
 
@@ -1098,7 +1073,7 @@
     </desc>
     <values>
       <value>$LND_DOMAIN_MESH</value>
-      <value single_column='true'>null</value> 
+      <value single_column='true'>null</value>
     </values>
   </entry>
 
@@ -1111,7 +1086,7 @@
     </desc>
     <values>
       <value>$OCN_DOMAIN_MESH</value>
-      <value single_column='true'>null</value> 
+      <value single_column='true'>null</value>
     </values>
   </entry>
 
@@ -1124,7 +1099,7 @@
     </desc>
     <values>
       <value>$ICE_DOMAIN_MESH</value>
-      <value single_column='true'>null</value> 
+      <value single_column='true'>null</value>
     </values>
   </entry>
 
@@ -1137,7 +1112,7 @@
     </desc>
     <values>
       <value>$ROF_DOMAIN_MESH</value>
-      <value single_column='true'>null</value> 
+      <value single_column='true'>null</value>
     </values>
   </entry>
 
@@ -1150,7 +1125,7 @@
     </desc>
     <values>
       <value>$GLC_DOMAIN_MESH</value>
-      <value single_column='true'>null</value> 
+      <value single_column='true'>null</value>
     </values>
   </entry>
 
@@ -1163,7 +1138,7 @@
     </desc>
     <values>
       <value>$WAV_DOMAIN_MESH</value>
-      <value single_column='true'>null</value> 
+      <value single_column='true'>null</value>
     </values>
   </entry>
 
