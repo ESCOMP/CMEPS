@@ -23,7 +23,7 @@ module med_phases_prep_atm_mod
   implicit none
   private
 
-  public  :: med_phases_prep_atm
+  public :: med_phases_prep_atm
 
   character(*), parameter :: u_FILE_u  = &
        __FILE__
@@ -42,7 +42,8 @@ contains
     type(ESMF_Field)           :: lfield
     character(len=64)          :: timestr
     type(InternalState)        :: is_local
-    real(R8), pointer          :: dataPtr1(:),dataPtr2(:) => null()
+    real(R8), pointer          :: dataPtr1(:) => null()
+    real(R8), pointer          :: dataPtr2(:) => null()
     integer                    :: i, j, n, n1, ncnt
     character(len=*),parameter :: subname='(med_phases_prep_atm)'
     !-------------------------------------------------------------------------------
@@ -64,146 +65,130 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !---------------------------------------
-    !--- Count the number of fields outside of scalar data, if zero, then return
+    ! --- map ocn and ice to atm
+    !---------------------------------------
+    if (is_local%wrap%med_coupling_active(compocn,compatm)) then
+       call med_map_field_packed( &
+            FBSrc=is_local%wrap%FBImp(compocn,compocn), &
+            FBDst=is_local%wrap%FBImp(compocn,compatm), &
+            FBFracSrc=is_local%wrap%FBFrac(compocn), &
+            field_NormOne=is_local%wrap%field_normOne(compocn,compatm,:), &
+            packed_data=is_local%wrap%packed_data(compocn,compatm,:), &
+            routehandles=is_local%wrap%RH(compocn,compatm,:), rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    end if
+    if (is_local%wrap%med_coupling_active(compice,compatm)) then
+       call med_map_field_packed( &
+            FBSrc=is_local%wrap%FBImp(compice,compice), &
+            FBDst=is_local%wrap%FBImp(compice,compatm), &
+            FBFracSrc=is_local%wrap%FBFrac(compice), &
+            field_NormOne=is_local%wrap%field_normOne(compice,compatm,:), &
+            packed_data=is_local%wrap%packed_data(compice,compatm,:), &
+            routehandles=is_local%wrap%RH(compice,compatm,:), rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    end if
+
+    !---------------------------------------
+    !--- map ocean albedos from ocn to atm grid if appropriate
+    !---------------------------------------
+    if (trim(coupling_mode) == 'cesm') then
+       call med_map_field_packed( &
+            FBSrc=is_local%wrap%FBMed_ocnalb_o, &
+            FBDst=is_local%wrap%FBMed_ocnalb_a, &
+            FBFracSrc=is_local%wrap%FBFrac(compocn), &
+            field_normOne=is_local%wrap%field_normOne(compocn,compatm,:), &
+            packed_data=is_local%wrap%packed_data_ocnalb_o2a(:), &
+            routehandles=is_local%wrap%RH(compocn,compatm,:), rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    end if
+
+    !---------------------------------------
+    !--- map atm/ocn fluxes from ocn to atm grid if appropriate
+    !---------------------------------------
+    if (trim(coupling_mode) == 'cesm' .or. trim(coupling_mode) == 'hafs') then
+       ! Assumption here is that fluxes are computed on the ocean grid
+       call med_map_field_packed( &
+            FBSrc=is_local%wrap%FBMed_aoflux_o, &
+            FBDst=is_local%wrap%FBMed_aoflux_a, &
+            FBFracSrc=is_local%wrap%FBFrac(compocn), &
+            field_normOne=is_local%wrap%field_normOne(compocn,compatm,:), &
+            packed_data=is_local%wrap%packed_data_aoflux_o2a(:), &
+            routehandles=is_local%wrap%RH(compocn,compatm,:), rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    endif
+
+    !---------------------------------------
+    !--- merge all fields to atm
+    !---------------------------------------
+    if (trim(coupling_mode) == 'cesm' .or. trim(coupling_mode) == 'hafs') then
+       call med_merge_auto(compatm, &
+            is_local%wrap%med_coupling_active(:,compatm), &
+            is_local%wrap%FBExp(compatm), &
+            is_local%wrap%FBFrac(compatm), &
+            is_local%wrap%FBImp(:,compatm), &
+            fldListTo(compatm), &
+            FBMed1=is_local%wrap%FBMed_ocnalb_a, &
+            FBMed2=is_local%wrap%FBMed_aoflux_a, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    else if (trim(coupling_mode) == 'nems_frac' .or. trim(coupling_mode) == 'nems_orig') then
+       call med_merge_auto(compatm, &
+            is_local%wrap%med_coupling_active(:,compatm), &
+            is_local%wrap%FBExp(compatm), &
+            is_local%wrap%FBFrac(compatm), &
+            is_local%wrap%FBImp(:,compatm), &
+            fldListTo(compatm), rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    end if
+
+    if (dbug_flag > 1) then
+       call FB_diagnose(is_local%wrap%FBExp(compatm),string=trim(subname)//' FBexp(compatm) ', rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    end if
+
+    !---------------------------------------
+    !--- custom calculations
     !---------------------------------------
 
-    ! Note - the scalar field has been removed from all mediator field bundles - so this is why we check if the
-    ! fieldCount is 0 and not 1 here
-
-    call ESMF_FieldBundleGet(is_local%wrap%FBExp(compatm), fieldCount=ncnt, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (ncnt == 0) then
-       call ESMF_LogWrite(trim(subname)//": only scalar data is present in FBexp(compatm), returning", &
-            ESMF_LOGMSG_INFO)
-    else
-
-       !---------------------------------------
-       !--- map import field bundles from n1 grid to atm grid - FBimp(:,compatm)
-       !---------------------------------------
-       do n1 = 1,ncomps
-          if (is_local%wrap%med_coupling_active(n1,compatm)) then
-             call med_map_field_packed( &
-                  FBSrc=is_local%wrap%FBImp(n1,n1), &
-                  FBDst=is_local%wrap%FBImp(n1,compatm), &
-                  FBFracSrc=is_local%wrap%FBFrac(n1), &
-                  field_NormOne=is_local%wrap%field_normOne(n1,compatm,:), &
-                  packed_data=is_local%wrap%packed_data(n1,compatm,:), &
-                  routehandles=is_local%wrap%RH(n1,compatm,:), rc=rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          end if
+    ! set fractions to send back to atm
+    if (FB_FldChk(is_local%wrap%FBExp(compatm), 'So_ofrac', rc=rc)) then
+       call ESMF_FieldBundleGet(is_local%wrap%FBExp(compatm), fieldName='So_ofrac', field=lfield, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_FieldGet(lfield, farrayPtr=dataptr1, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_FieldBundleGet(is_local%wrap%FBFrac(compatm), fieldName='ofrac', field=lfield, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_FieldGet(lfield, farrayPtr=dataptr2, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       do n = 1,size(dataptr1)
+          dataptr1(n) = dataptr2(n)
        end do
-
-       !---------------------------------------
-       !--- map ocean albedos from ocn to atm grid if appropriate
-       !---------------------------------------
-       if (trim(coupling_mode) == 'cesm') then
-          call med_map_field_packed( &
-               FBSrc=is_local%wrap%FBMed_ocnalb_o, &
-               FBDst=is_local%wrap%FBMed_ocnalb_a, &
-               FBFracSrc=is_local%wrap%FBFrac(compocn), &
-               field_normOne=is_local%wrap%field_normOne(compocn,compatm,:), &
-               packed_data=is_local%wrap%packed_data_ocnalb_o2a(:), &
-               routehandles=is_local%wrap%RH(compocn,compatm,:), rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       end if
-
-       !---------------------------------------
-       !--- map atm/ocn fluxes from ocn to atm grid if appropriate
-       !---------------------------------------
-       if (trim(coupling_mode) == 'cesm' .or. trim(coupling_mode) == 'hafs') then
-          ! Assumption here is that fluxes are computed on the ocean grid
-          call med_map_field_packed( &
-               FBSrc=is_local%wrap%FBMed_aoflux_o, &
-               FBDst=is_local%wrap%FBMed_aoflux_a, &
-               FBFracSrc=is_local%wrap%FBFrac(compocn), &
-               field_normOne=is_local%wrap%field_normOne(compocn,compatm,:), &
-               packed_data=is_local%wrap%packed_data_aoflux_o2a(:), &
-               routehandles=is_local%wrap%RH(compocn,compatm,:), rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       endif
-
-       !---------------------------------------
-       !--- merge all fields to atm
-       !---------------------------------------
-       if (trim(coupling_mode) == 'cesm' .or. trim(coupling_mode) == 'hafs') then
-          call med_merge_auto(compatm, &
-               is_local%wrap%med_coupling_active(:,compatm), &
-               is_local%wrap%FBExp(compatm), &
-               is_local%wrap%FBFrac(compatm), &
-               is_local%wrap%FBImp(:,compatm), &
-               fldListTo(compatm), &
-               FBMed1=is_local%wrap%FBMed_ocnalb_a, &
-               FBMed2=is_local%wrap%FBMed_aoflux_a, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       else if (trim(coupling_mode) == 'nems_frac' .or. trim(coupling_mode) == 'nems_orig') then
-          call med_merge_auto(compatm, &
-               is_local%wrap%med_coupling_active(:,compatm), &
-               is_local%wrap%FBExp(compatm), &
-               is_local%wrap%FBFrac(compatm), &
-               is_local%wrap%FBImp(:,compatm), &
-               fldListTo(compatm), rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       end if
-
-       if (dbug_flag > 1) then
-          call FB_diagnose(is_local%wrap%FBExp(compatm),string=trim(subname)//' FBexp(compatm) ', rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       end if
-
-       !---------------------------------------
-       !--- custom calculations
-       !---------------------------------------
-
-       ! set fractions to send back to atm
-       if (FB_FldChk(is_local%wrap%FBExp(compatm), 'So_ofrac', rc=rc)) then
-          call ESMF_FieldBundleGet(is_local%wrap%FBExp(compatm), fieldName='So_ofrac', field=lfield, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call ESMF_FieldGet(lfield, farrayPtr=dataptr1, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call ESMF_FieldBundleGet(is_local%wrap%FBFrac(compatm), fieldName='ofrac', field=lfield, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call ESMF_FieldGet(lfield, farrayPtr=dataptr2, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          do n = 1,size(dataptr1)
-             dataptr1(n) = dataptr2(n)
-          end do
-       end if
-       if (FB_FldChk(is_local%wrap%FBExp(compatm), 'Si_ifrac', rc=rc)) then
-          call ESMF_FieldBundleGet(is_local%wrap%FBExp(compatm), fieldName='Si_ifrac', field=lfield, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call ESMF_FieldGet(lfield, farrayPtr=dataptr1, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call ESMF_FieldBundleGet(is_local%wrap%FBFrac(compatm), fieldName='ifrac', field=lfield, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call ESMF_FieldGet(lfield, farrayPtr=dataptr2, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          do n = 1,size(dataptr1)
-             dataptr1(n) = dataptr2(n)
-          end do
-       end if
-       if (FB_FldChk(is_local%wrap%FBExp(compatm), 'Sl_lfrac', rc=rc)) then
-          call ESMF_FieldBundleGet(is_local%wrap%FBExp(compatm), fieldName='Sl_lfrac', field=lfield, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call ESMF_FieldGet(lfield, farrayPtr=dataptr1, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call ESMF_FieldBundleGet(is_local%wrap%FBFrac(compatm), fieldName='lfrac', field=lfield, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call ESMF_FieldGet(lfield, farrayPtr=dataptr2, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          do n = 1,size(dataptr1)
-             dataptr1(n) = dataptr2(n)
-          end do
-       end if
-
-       !---------------------------------------
-       !--- update local scalar data
-       !---------------------------------------
-
-       !---------------------------------------
-       !--- clean up
-       !---------------------------------------
-
-    endif
+    end if
+    if (FB_FldChk(is_local%wrap%FBExp(compatm), 'Si_ifrac', rc=rc)) then
+       call ESMF_FieldBundleGet(is_local%wrap%FBExp(compatm), fieldName='Si_ifrac', field=lfield, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_FieldGet(lfield, farrayPtr=dataptr1, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_FieldBundleGet(is_local%wrap%FBFrac(compatm), fieldName='ifrac', field=lfield, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_FieldGet(lfield, farrayPtr=dataptr2, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       do n = 1,size(dataptr1)
+          dataptr1(n) = dataptr2(n)
+       end do
+    end if
+    if (FB_FldChk(is_local%wrap%FBExp(compatm), 'Sl_lfrac', rc=rc)) then
+       call ESMF_FieldBundleGet(is_local%wrap%FBExp(compatm), fieldName='Sl_lfrac', field=lfield, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_FieldGet(lfield, farrayPtr=dataptr1, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_FieldBundleGet(is_local%wrap%FBFrac(compatm), fieldName='lfrac', field=lfield, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_FieldGet(lfield, farrayPtr=dataptr2, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       do n = 1,size(dataptr1)
+          dataptr1(n) = dataptr2(n)
+       end do
+    end if
 
     if (dbug_flag > 5) then
        call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)

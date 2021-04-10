@@ -31,9 +31,8 @@ def gen_runseq(case, coupling_times):
 
         runseq.add_action ("LND"                            , run_lnd)
         runseq.add_action ("LND -> MED :remapMethod=redist" , run_lnd)
-        runseq.add_action ("MED med_fraction_set"           , run_lnd)
-        runseq.add_action ("MED med_phases_prep_glc_accum"  , med_to_glc)
-        runseq.add_action ("MED med_phases_prep_glc_avg"    , med_to_glc)
+        runseq.add_action ("MED med_phases_post_lnd"        , run_lnd)
+        runseq.add_action ("MED med_phases_prep_glc"        , med_to_glc)
         runseq.add_action ("MED -> GLC :remapMethod=redist" , med_to_glc)
         runseq.add_action ("GLC"                            , run_glc)
         runseq.add_action ("GLC -> MED :remapMethod=redist" , run_glc)

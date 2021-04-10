@@ -4,27 +4,15 @@ module med_phases_prep_ice_mod
   ! Mediator phases for preparing ice export from mediator
   !-----------------------------------------------------------------------------
 
-  use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
-  use med_utils_mod         , only : chkerr            => med_utils_ChkErr
-  use med_methods_mod       , only : fldchk            => med_methods_FB_FldChk
-  use med_methods_mod       , only : FB_diagnose       => med_methods_FB_diagnose
-  use med_methods_mod       , only : State_GetScalar   => med_methods_State_GetScalar
-  use med_methods_mod       , only : State_SetScalar   => med_methods_State_SetScalar
-  use med_constants_mod     , only : dbug_flag => med_constants_dbug_flag
-  use med_merge_mod         , only : med_merge_auto
-  use med_map_mod           , only : med_map_field_packed
-  use med_internalstate_mod , only : InternalState, logunit, mastertask
-  use esmFlds               , only : compatm, compice, comprof, compglc, ncomps, compname
-  use esmFlds               , only : fldListFr, fldListTo
-  use esmFlds               , only : mapnames
-  use esmFlds               , only : coupling_mode
-  use esmFlds               , only : med_fldList_GetFldInfo
-  use perf_mod              , only : t_startf, t_stopf
+  use med_kind_mod, only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
 
   implicit none
   private
 
   public  :: med_phases_prep_ice
+
+  real(r8), pointer :: dataptr_scalar_ice(:,:) => null()
+  real(r8), pointer :: dataptr_scalar_atm(:,:) => null()
 
   character(*), parameter :: u_FILE_u  = &
        __FILE__
@@ -35,31 +23,42 @@ contains
 
   subroutine med_phases_prep_ice(gcomp, rc)
 
-    use ESMF  , only : operator(/=)
-    use ESMF  , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_StateGet 
-    use ESMF  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
-    use ESMF  , only : ESMF_FieldBundleGet, ESMF_FieldGet, ESMF_Field
-    use ESMF  , only : ESMF_LOGMSG_ERROR, ESMF_FAILURE
-    use ESMF  , only : ESMF_StateItem_Flag, ESMF_STATEITEM_NOTFOUND
-    use NUOPC , only : NUOPC_IsConnected
+    use ESMF                  , only : operator(/=)
+    use ESMF                  , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_StateGet
+    use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
+    use ESMF                  , only : ESMF_FieldBundleGet, ESMF_FieldGet, ESMF_Field
+    use ESMF                  , only : ESMF_LOGMSG_ERROR, ESMF_FAILURE
+    use ESMF                  , only : ESMF_StateItem_Flag, ESMF_STATEITEM_NOTFOUND
+    use ESMF                  , only : ESMF_VMBroadCast 
+    use med_utils_mod         , only : chkerr       => med_utils_ChkErr
+    use med_methods_mod       , only : FB_fldchk    => med_methods_FB_FldChk
+    use med_methods_mod       , only : FB_diagnose  => med_methods_FB_diagnose
+    use med_methods_mod       , only : FB_GetFldPtr => med_methods_FB_GetFldPtr
+    use med_constants_mod     , only : dbug_flag    => med_constants_dbug_flag
+    use med_merge_mod         , only : med_merge_auto
+    use med_internalstate_mod , only : InternalState, logunit, mastertask
+    use esmFlds               , only : compatm, compice, compocn, comprof, compglc, ncomps, compname
+    use esmFlds               , only : fldListTo
+    use esmFlds               , only : coupling_mode
+    use perf_mod              , only : t_startf, t_stopf
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc
 
     ! local variables
-    type(ESMF_StateItem_Flag)      :: itemType
     type(InternalState)            :: is_local
     type(ESMF_Field)               :: lfield
-    integer                        :: i,n,n1,ncnt
-    character(len=CS)              :: fldname
-    integer                        :: fldnum
-    integer                        :: mapindex
+    integer                        :: i,n
     real(R8), pointer              :: dataptr(:) => null()
-    real(R8)                       :: precip_fact
+    real(R8), pointer              :: dataptr_scalar_ocn(:,:) => null()
+    real(R8)                       :: precip_fact(1)
     character(len=CS)              :: cvalue
     character(len=64), allocatable :: fldnames(:)
     real(r8)                       :: nextsw_cday
+    integer                        :: scalar_id
+    real(r8)                       :: tmp(1)
+    logical                        :: first_call = .true.
     logical                        :: first_precip_fact_call = .true.
     character(len=*),parameter     :: subname='(med_phases_prep_ice)'
     !---------------------------------------
@@ -71,123 +70,94 @@ contains
     endif
     rc = ESMF_SUCCESS
 
-    !---------------------------------------
-    ! --- Get the internal state
-    !---------------------------------------
-
+    ! Get the internal state
     nullify(is_local%wrap)
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    !---------------------------------------
-    !--- Count the number of fields outside of scalar data, if zero, then return
-    !---------------------------------------
+    ! atm->ice is mapped in med_phases_post_atm
+    ! glc->ice is mapped in med_phases_post_glc
+    ! rof->ice is mapped in med_phases_post_rof
+    ! ocn->ice is mapped in med_phases_post_ocn
 
-    ! Note - the scalar field has been removed from all mediator field bundles - so this is why we check if the
-    ! fieldCount is 0 and not 1 here
-
-    call ESMF_FieldBundleGet(is_local%wrap%FBExp(compice), fieldCount=ncnt, rc=rc)
+    ! auto merges to create FBExp(compice)
+    call med_merge_auto(compice, &
+         is_local%wrap%med_coupling_active(:,compice), &
+         is_local%wrap%FBExp(compice), &
+         is_local%wrap%FBFrac(compice), &
+         is_local%wrap%FBImp(:,compice), &
+         fldListTo(compice), rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    if (ncnt > 0) then
+    ! Apply precipitation factor from ocean (that scales atm rain and snow to ice) if appropriate
+    if (trim(coupling_mode) == 'cesm' .and. is_local%wrap%flds_scalar_index_precip_factor /= 0) then
 
-       ! map all fields in FBImp that have active ice coupling
-       do n1 = 1,ncomps
-          if (is_local%wrap%med_coupling_active(n1,compice)) then
-             call med_map_field_packed( &
-                  FBSrc=is_local%wrap%FBImp(n1,n1), &
-                  FBDst=is_local%wrap%FBImp(n1,compice), &
-                  FBFracSrc=is_local%wrap%FBFrac(n1), &
-                  field_normOne=is_local%wrap%field_normOne(n1,compice,:), &
-                  packed_data=is_local%wrap%packed_data(n1,compice,:), &
-                  routehandles=is_local%wrap%RH(n1,compice,:), rc=rc)
+       ! Note that in med_internal_mod.F90 all is_local%wrap%flds_scalar_index_precip_factor 
+       ! is initialized to 0.
+       ! In addition, in med.F90, if this attribute is not present as a mediator component attribute, 
+       ! it is set to 0. 
+       if (mastertask) then
+          call ESMF_StateGet(is_local%wrap%NstateImp(compocn), & 
+               itemName=trim(is_local%wrap%flds_scalar_name), field=lfield, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_FieldGet(lfield, farrayPtr=dataptr_scalar_ocn, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          scalar_id=is_local%wrap%flds_scalar_index_precip_factor
+          precip_fact(1) = dataptr_scalar_ocn(scalar_id,1)
+          if (first_call) then
+             write(logunit,'(a)')'(merge_to_ice): Scaling rain, snow, liquid and ice runoff by precip_fact from ocn'
+             first_call = .false.
+          end if
+          if (precip_fact(1) /= 1._r8) then
+             write(logunit,'(a,f21.13)')&
+                  '(merge_to_ice): Scaling rain, snow, liquid and ice runoff by non-unity precip_fact ',&
+                  precip_fact(1)
+          end if
+       end if
+       call ESMF_VMBroadCast(is_local%wrap%vm, precip_fact, 1, 0, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       is_local%wrap%flds_scalar_precip_factor = precip_fact(1)      
+       if (dbug_flag > 5) then
+          write(cvalue,*) precip_fact(1)
+          call ESMF_LogWrite(trim(subname)//" precip_fact is "//trim(cvalue), ESMF_LOGMSG_INFO)
+       end if
+
+       ! Scale rain and snow to ice from atm by the precipitation factor received from the ocean
+       allocate(fldnames(3))
+       fldnames = (/'Faxa_rain', 'Faxa_snow', 'Fixx_rofi'/)
+       do n = 1,size(fldnames)
+          if (FB_fldchk(is_local%wrap%FBExp(compice), trim(fldnames(n)), rc=rc)) then
+             call FB_GetFldPtr(is_local%wrap%FBExp(compice), trim(fldnames(n)), dataptr, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             dataptr(:) = dataptr(:) * is_local%wrap%flds_scalar_precip_factor
           end if
        end do
-
-       !---------------------------------------
-       !--- auto merges to create FBExp(compice)
-       !---------------------------------------
-
-       call med_merge_auto(compice, &
-            is_local%wrap%med_coupling_active(:,compice), &
-            is_local%wrap%FBExp(compice), &
-            is_local%wrap%FBFrac(compice), &
-            is_local%wrap%FBImp(:,compice), &
-            fldListTo(compice), rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-       !---------------------------------------
-       !--- custom calculations
-       !---------------------------------------
-
-       if (trim(coupling_mode) == 'cesm') then
-
-          ! application of precipitation factor from ocean
-          ! TODO (mvertens, 2019-03-18): precip_fact here is not valid if
-          ! the component does not send it - hardwire it to 1 until this is resolved
-          precip_fact = 1.0_R8
-          if (precip_fact /= 1.0_R8) then
-             if (first_precip_fact_call .and. mastertask) then
-                write(logunit,'(a)')'(merge_to_ice): Scaling rain, snow, liquid and ice runoff by precip_fact '
-                first_precip_fact_call = .false.
-             end if
-             write(cvalue,*) precip_fact
-             call ESMF_LogWrite(trim(subname)//" precip_fact is "//trim(cvalue), ESMF_LOGMSG_INFO)
-
-             allocate(fldnames(3))
-             fldnames = (/'Faxa_rain', 'Faxa_snow', 'Fixx_rofi'/)
-             do n = 1,size(fldnames)
-                if (fldchk(is_local%wrap%FBExp(compice), trim(fldnames(n)), rc=rc)) then
-                   call ESMF_FieldBundleGet(is_local%wrap%FBExp(compice), fieldname=trim(fldnames(n)), &
-                        field=lfield, rc=rc)
-                   if (chkerr(rc,__LINE__,u_FILE_u)) return
-                   call ESMF_FieldGet(lfield, farrayptr=dataptr, rc=rc)
-                   if (chkerr(rc,__LINE__,u_FILE_u)) return
-                   dataptr(:) = dataptr(:) * precip_fact
-                end if
-             end do
-             deallocate(fldnames)
-          end if
-       end if
-
-       if (dbug_flag > 1) then
-          call FB_diagnose(is_local%wrap%FBExp(compice), string=trim(subname)//' FBexp(compice) ', rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-       end if
-
-       !---------------------------------------
-       !--- update scalar data
-       !---------------------------------------
-
-       call ESMF_StateGet(is_local%wrap%NStateImp(compatm), trim(is_local%wrap%flds_scalar_name), itemType, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-       if (itemType /= ESMF_STATEITEM_NOTFOUND) then
-          if (is_local%wrap%flds_scalar_index_nextsw_cday .ne. 0) then
-             ! send nextsw_cday to ice - first obtain it from atm import 
-             call State_GetScalar(&
-                  scalar_value=nextsw_cday, &
-                  scalar_id=is_local%wrap%flds_scalar_index_nextsw_cday, &
-                  state=is_local%wrap%NstateImp(compatm), &
-                  flds_scalar_name=is_local%wrap%flds_scalar_name, &
-                  flds_scalar_num=is_local%wrap%flds_scalar_num, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-             call State_SetScalar(&
-                  scalar_value=nextsw_cday, &
-                  scalar_id=is_local%wrap%flds_scalar_index_nextsw_cday, &
-                  state=is_local%wrap%NstateExp(compice), &
-                  flds_scalar_name=is_local%wrap%flds_scalar_name, &
-                  flds_scalar_num=is_local%wrap%flds_scalar_num, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-          end if
-       end if
-
-       !---------------------------------------
-       !--- clean up
-       !---------------------------------------
-
+       deallocate(fldnames)
     end if
+
+    ! obtain nextsw_cday from atm if it is in the import state and send it to ice
+    scalar_id=is_local%wrap%flds_scalar_index_nextsw_cday
+    if (scalar_id > 0 .and. mastertask) then
+       call ESMF_StateGet(is_local%wrap%NstateImp(compatm), &
+            itemName=trim(is_local%wrap%flds_scalar_name), field=lfield, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_FieldGet(lfield, farrayPtr=dataptr_scalar_atm, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_StateGet(is_local%wrap%NStateExp(compice), &
+            trim(is_local%wrap%flds_scalar_name), field=lfield, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_FieldGet(lfield, farrayPtr=dataptr_scalar_ice, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       dataptr_scalar_ice(scalar_id,1) = dataptr_scalar_atm(scalar_id,1)
+    end if
+
+    if (dbug_flag > 1) then
+       call FB_diagnose(is_local%wrap%FBExp(compice), string=trim(subname)//' FBexp(compice) ', rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+    end if
+
+    ! Set first call logical to false
+    first_call = .false.
 
     if (dbug_flag > 5) then
        call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)

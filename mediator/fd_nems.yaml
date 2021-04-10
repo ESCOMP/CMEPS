@@ -64,8 +64,24 @@
        canonical_units: kg m-2 s-1
        description: atmosphere export
      #
+     - standard_name: Faxa_rainc
+       canonical_units: kg m-2 s-1
+       description: atmosphere export
+     #
+     - standard_name: Faxa_rainl
+       canonical_units: kg m-2 s-1
+       description: atmosphere export
+     #
      - standard_name: Faxa_snow
        alias: mean_fprec_rate
+       canonical_units: kg m-2 s-1
+       description: atmosphere export
+     #
+     - standard_name: Faxa_snowc
+       canonical_units: kg m-2 s-1
+       description: atmosphere export
+     #
+     - standard_name: Faxa_snowl
        canonical_units: kg m-2 s-1
        description: atmosphere export
      #
@@ -122,6 +138,11 @@
        canonical_units: K
        description: atmosphere export - bottom layer temperature
      #
+     - standard_name: Sa_tskn
+       alias: inst_temp_skin_temperature
+       canonical_units: K
+       description: atmosphere export - sea surface skin temperature
+     #
      - standard_name: Sa_u
        alias: inst_zonal_wind_height_lowest
        canonical_units: m s-1
@@ -132,10 +153,20 @@
        canonical_units: m s-1
        description: atmosphere export - bottom layer meridional wind
      #
+     - standard_name: Sa_wspd
+       alias: inst_wind_speed_height_lowest
+       canonical_units: m s-1
+       description: atmosphere export - bottom layer wind speed
+     #
      - standard_name: Sa_z
        alias: inst_height_lowest
        canonical_units: m
        description: atmosphere export - bottom layer height
+     #
+     - standard_name: Sa_topo
+       alias: inst_surface_height
+       canonical_units: m
+       description: atmosphere export - topographic height
      #
      - standard_name: Faxa_taux
        alias: mean_zonal_moment_flx_atm
@@ -156,6 +187,26 @@
        alias: mean_up_lw_flx
        canonical_units: W m-2
        description: atmosphere import - merged ocn/ice flux
+     #
+     - standard_name: Sa_u10m
+       alias: inst_zonal_wind_height10m
+       canonical_units: m s-1
+       description: atmosphere export - zonal wind height 10m
+     #
+     - standard_name: Sa_v10m
+       alias: inst_merid_wind_height10m
+       canonical_units: m s-1
+       description: atmosphere export - meridional wind height 10m
+     #
+     - standard_name: Sa_t2m
+       alias: inst_temp_height2m
+       canonical_units: K
+       description: atmosphere export - temperature height 2m
+     #
+     - standard_name: Sa_q2m
+       alias: inst_spec_humid_height2m
+       canonical_units: kg kg -1
+       description: atmosphere export - specifc humidity height 2m
      #
      #-----------------------------------
      # section: sea-ice export
@@ -306,7 +357,7 @@
        description: sea-ice export
      #
      - standard_name: Si_u10
-       canonical_units: m
+       canonical_units: m/s
        description: sea-ice export
      #
      - standard_name: Si_vice
@@ -463,6 +514,15 @@
        canonical_units: W m-2
        description: ocean import - net shortwave ir diffuse radiation to ocean
      #
+     - standard_name: Foxx_sen
+       alias: mean_sensi_heat_flx
+       canonical_units: W m-2
+       description: ocean import - sensible heat flux into ocean
+     #
+     - standard_name: Foxx_lat
+       canonical_units: W m-2
+       description: ocean import - latent heat flux into ocean
+     #
      - standard_name: Foxx_taux
        alias: mean_zonal_moment_flx
        canonical_units: N m-2
@@ -515,16 +575,12 @@
        description:   atmosphere export - latent heat flux conversion
      - alias: Faox_evap
        standard_name : mean_evap_rate
-       description: mediator calculation - atm/ocn specific humidity flux 
+       description: mediator calculation - atm/ocn specific humidity flux
      #
      #-----------------------------------
      # section: atmosphere fields that need to be defined but are not used
      #-----------------------------------
      #
-     - standard_name: inst_temp_height2m
-       canonical_units: K
-     - standard_name: inst_spec_humid_height2m
-       canonical_units: K
      - standard_name: inst_down_lw_flx
        canonical_units: W m-2
      - standard_name: inst_net_lw_flx
@@ -551,10 +607,6 @@
        canonical_units: W m-2
      - standard_name: inst_surface_height
        canonical_units: m
-     - standard_name: inst_zonal_wind_height10m
-       canonical_units: m s-1
-     - standard_name: inst_merid_wind_height10m
-       canonical_units: m s-1
      - standard_name: inst_zonal_moment_flx
        canonical_units: N m-2
      - standard_name: inst_merid_moment_flx
@@ -642,8 +694,8 @@
      #-----------------------------------
      #
      - standard_name: sea_surface_height_above_sea_level
-       canonical_units: m 
-       description: ww3 import 
+       canonical_units: m
+       description: ww3 import
      #
      - standard_name: sea_surface_salinity
        alias: s_surf
@@ -653,22 +705,22 @@
      - standard_name: surface_eastward_sea_water_velocity
        alias: ocn_current_zonal
        canonical_units: m s-1
-       description: ww3 import 
+       description: ww3 import
      #
      - standard_name: surface_northward_sea_water_velocity
        alias: ocn_current_merid
        canonical_units: m s-1
-       description: ww3 import 
+       description: ww3 import
      #
      - standard_name: eastward_wind_at_10m_height
        alias: inst_zonal_wind_height10m
        canonical_units: m s-1
-       description: ww3 import 
+       description: ww3 import
      #
      - standard_name: northward_wind_at_10m_height
        alias: inst_merid_wind_height10m
        canonical_units: m s-1
-       description: ww3 import 
+       description: ww3 import
      #
      - standard_name: sea_ice_concentration
        alias: ice_fraction
@@ -680,77 +732,77 @@
      #
      - standard_name: wave_induced_charnock_parameter
        canonical_units: 1
-       description: ww3 export 
+       description: ww3 export
      #
      - standard_name: wave_z0_roughness_length
        canonical_units: 1
-       description: ww3 export 
+       description: ww3 export
      #
      - standard_name: northward_stokes_drift_current
        canonical_units: m s-1
-       description: ww3 export 
+       description: ww3 export
      #
      - standard_name: eastward_stokes_drift_current
        canonical_units: m s-1
-       description: ww3 export 
+       description: ww3 export
      #
      - standard_name: eastward_partitioned_stokes_drift_1
        canonical_units: m s-1
-       description: ww3 export 
+       description: ww3 export
      #
      - standard_name: eastward_partitioned_stokes_drift_2
        canonical_units: m s-1
-       description: ww3 export 
+       description: ww3 export
      #
      - standard_name: eastward_partitioned_stokes_drift_3
        canonical_units: m s-1
-       description: ww3 export 
+       description: ww3 export
      #
      - standard_name: northward_partitioned_stokes_drift_1
        canonical_units: m s-1
-       description: ww3 export 
+       description: ww3 export
      #
      - standard_name: northward_partitioned_stokes_drift_2
        canonical_units: m s-1
-       description: ww3 export 
+       description: ww3 export
      #
      - standard_name: northward_partitioned_stokes_drift_3
        canonical_units: m s-1
-       description: ww3 export 
+       description: ww3 export
      #
      - standard_name: eastward_wave_bottom_current
        canonical_units: m s-1
-       description: ww3 export 
+       description: ww3 export
      #
      - standard_name: northward_wave_bottom_current
        canonical_units: m s-1
-       description: ww3 export 
+       description: ww3 export
      #
      - standard_name: wave_bottom_current_radian_frequency
        canonical_units: rad s-1
-       description: ww3 export 
+       description: ww3 export
      #
      - standard_name: eastward_wave_radiation_stress_gradient
        canonical_units: Pa
-       description: ww3 export 
+       description: ww3 export
      #
      - standard_name: northward_wave_radiation_stress_gradient
        canonical_units: Pa
-       description: ww3 export 
+       description: ww3 export
      #
      - standard_name: eastward_wave_radiation_stress
        canonical_units: N m-1
-       description: ww3 export 
+       description: ww3 export
      #
      - standard_name: eastward_northward_wave_radiation_stress
        canonical_units: N m-1
-       description: ww3 export 
+       description: ww3 export
      #
      - standard_name: wave_bottom_current_period
        canonical_units: s
-       description: ww3 export 
+       description: ww3 export
      #
      - standard_name: northward_wave_radiation_stress
        canonical_units: Pa
-       description: ww3 export 
+       description: ww3 export
      #

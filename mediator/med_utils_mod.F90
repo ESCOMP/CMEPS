@@ -22,20 +22,18 @@ contains
     integer, intent(in) :: level
     logical, intent(in) :: mastertask
     integer :: ierr
-#ifndef INTERNAL_PIO_INIT
 #ifdef CESMCOUPLED
     integer, external :: GPTLprint_memusage
     if((mastertask .and. memdebug_level > level) .or. memdebug_level > level+1) then
        ierr = GPTLprint_memusage(string)
     endif
 #endif
-#endif
   end subroutine med_memcheck
 
 !===============================================================================
 
   logical function med_utils_ChkErr(rc, line, file, mpierr)
-#ifdef USE_MPI2
+#ifndef NO_MPI2
     use mpi , only : MPI_ERROR_STRING, MPI_MAX_ERROR_STRING, MPI_SUCCESS
 #else
     use mpi, only : MPI_SUCCESS
@@ -48,7 +46,7 @@ contains
 
     character(len=*), intent(in) :: file
     logical, optional, intent(in) :: mpierr
-#ifndef USE_MPI2
+#ifdef NO_MPI2
     integer, parameter :: MPI_MAX_ERROR_STRING=80
 #endif
     character(MPI_MAX_ERROR_STRING) :: lstring
@@ -56,15 +54,17 @@ contains
 
     med_utils_ChkErr = .false.
     lrc = rc
-    if (present(mpierr) .and. mpierr) then
-       if (rc == MPI_SUCCESS) return
+    if (present(mpierr)) then
+       if(mpierr) then
+          if (rc == MPI_SUCCESS) return
 #ifdef USE_MPI2
-       call MPI_ERROR_STRING(rc, lstring, len, ierr)
+          call MPI_ERROR_STRING(rc, lstring, len, ierr)
 #else
-       write(lstring,*) "ERROR in mct mpi-serial library rc=",rc
+          write(lstring,*) "ERROR in mct mpi-serial library rc=",rc
 #endif
-       call ESMF_LogWrite("ERROR: "//trim(lstring), ESMF_LOGMSG_INFO, line=line, file=file)
-       lrc = ESMF_FAILURE
+          call ESMF_LogWrite("ERROR: "//trim(lstring), ESMF_LOGMSG_INFO, line=line, file=file)
+          lrc = ESMF_FAILURE
+       endif
     endif
 
     if (ESMF_LogFoundError(rcToCheck=lrc, msg=ESMF_LOGERR_PASSTHRU, line=line, file=file)) then

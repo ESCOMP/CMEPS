@@ -496,6 +496,10 @@
        description: mediator land-ice export to lnd (elevation classes 1->glc_nec)
          Downward heat flux from glacier interior, from mediator, elev class 1->glc_nec
      #
+     - standard_name: Sg_area
+       canonical_units: area internal to the CISM grid in radians**2
+       description: land-ice export to mediator (no elevation classes)
+     #
      - standard_name: Sg_ice_covered
        canonical_units: 1
        description: land-ice export to mediator (no elevation classes)
@@ -811,6 +815,11 @@
        canonical_units: g kg-1
        description: ocean export
      #
+     - standard_name: So_s_depth
+       alias: s_surf_depths
+       canonical_units: g kg-1
+       description: ocean salinity at multiple depths
+     #
      - standard_name: So_ssq
        canonical_units: kg kg-1
        description: ocean export
@@ -819,6 +828,11 @@
        alias: sea_surface_temperature
        canonical_units: K
        description: ocean export
+     #
+     - standard_name: So_t_depth
+       alias: sea_surface_temperature_depths
+       canonical_units: K
+       description: ocean temperatures at multiple depths
      #
      - standard_name: So_tref
        canonical_units: K

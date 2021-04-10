@@ -4,8 +4,8 @@ endif
 
 include $(ESMFMKFILE)
 
-ifndef PIO_INCLUDE_DIR
-$(error PIO_INCLUDE_DIR should point to PIO include directory.)
+ifndef PIO_INC
+$(error PIO_INC should point to PIO include directory.)
 endif
 
 LIBRARY  = libcmeps_util.a
@@ -30,10 +30,9 @@ $(LIBRARY): $(OBJ1)
 
 %.o: %.F90.in
 	perl genf90.pl $< > $(@:.o=.F90)
-	$(ESMF_F90COMPILER) -c $(ESMF_F90COMPILEOPTS) $(ESMF_F90COMPILEPATHS) -I$(PIO_INCLUDE_DIR) -DFORTRANUNDERSCORE -DCPRINTEL $(@:.o=.F90)
-
+	$(ESMF_F90COMPILER) -c $(ESMF_F90COMPILEOPTS) $(ESMF_F90COMPILEPATHS) -I$(PIO_INC) -DFORTRANUNDERSCORE -DCPRINTEL $(@:.o=.F90)
 %.o: %.F90
-	$(ESMF_F90COMPILER) -c $(ESMF_F90COMPILEOPTS) $(ESMF_F90COMPILEPATHS) -I$(PIO_INCLUDE_DIR) -I. $*.F90
+	$(ESMF_F90COMPILER) -c $(ESMF_F90COMPILEOPTS) $(ESMF_F90COMPILEPATHS) -I$(PIO_INC) -I. $*.F90
 
 clean:
 	$(RM) -f $(LIBRARY) *.f90 *.i90 *.o *.mod

@@ -33,6 +33,7 @@ module med_phases_aofluxes_mod
   !--------------------------------------------------------------------------
 
   type aoflux_type
+     ! input
      integer  , pointer :: mask        (:) => null() ! ocn domain mask: 0 <=> inactive cell
      real(R8) , pointer :: rmask       (:) => null() ! ocn domain mask: 0 <=> inactive cell
      real(R8) , pointer :: lats        (:) => null() ! latitudes  (degrees)
@@ -54,6 +55,7 @@ module med_phases_aofluxes_mod
      real(R8) , pointer :: pbot        (:) => null() ! atm bottom pressure
      real(R8) , pointer :: dens        (:) => null() ! atm bottom density
      real(R8) , pointer :: tbot        (:) => null() ! atm bottom surface T
+     ! output
      real(R8) , pointer :: sen         (:) => null() ! heat flux: sensible
      real(R8) , pointer :: lat         (:) => null() ! heat flux: latent
      real(R8) , pointer :: lwup        (:) => null() ! lwup over ocean
@@ -67,7 +69,6 @@ module med_phases_aofluxes_mod
      real(R8) , pointer :: qref        (:) => null() ! diagnostic:  2m ref Q
      real(R8) , pointer :: u10         (:) => null() ! diagnostic: 10m wind speed
      real(R8) , pointer :: duu10n      (:) => null() ! diagnostic: 10m wind speed squared
-     real(R8) , pointer :: lwdn        (:) => null() ! long  wave, downward
      real(R8) , pointer :: ustar       (:) => null() ! saved ustar
      real(R8) , pointer :: re          (:) => null() ! saved re
      real(R8) , pointer :: ssq         (:) => null() ! saved sq
@@ -78,6 +79,7 @@ module med_phases_aofluxes_mod
   logical       :: flds_wiso  ! use case
   logical       :: compute_atm_dens
   logical       :: compute_atm_thbot
+  integer       :: ocn_surface_flux_scheme ! use case
   character(*), parameter :: u_FILE_u = &
        __FILE__
 
@@ -107,7 +109,7 @@ contains
     type(InternalState)     :: is_local
     type(aoflux_type), save :: aoflux
     logical, save           :: first_call = .true.
-    character(len=*),parameter :: subname='(med_phases_aofluxes)'
+    character(len=*),parameter :: subname='(med_phases_aofluxes_run)'
     !---------------------------------------
 
     rc = ESMF_SUCCESS
@@ -152,17 +154,6 @@ contains
 
     call memcheck(subname, 5, mastertask)
 
-    ! TODO(mvertens, 2019-01-12): ONLY regrid atm import fields that are needed for the atm/ocn flux calculation
-    ! Regrid atm import field bundle from atm to ocn grid as input for ocn/atm flux calculation
-    call med_map_field_packed( &
-         FBSrc=is_local%wrap%FBImp(compatm,compatm), &
-         FBDst=is_local%wrap%FBImp(compatm,compocn), &
-         FBFracSrc=is_local%wrap%FBFrac(compatm), &
-         field_normOne=is_local%wrap%field_normOne(compatm,compocn,:), &
-         packed_data=is_local%wrap%packed_data(compatm,compocn,:), &
-         routehandles=is_local%wrap%RH(compatm,compocn,:), rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
     ! Calculate atm/ocn fluxes on the destination grid
     call med_aofluxes_run(gcomp, aoflux, rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -187,6 +178,7 @@ contains
     use ESMF     , only : ESMF_Field, ESMF_FieldGet, ESMF_FieldBundle, ESMF_VMGet
     use NUOPC    , only : NUOPC_CompAttributeGet
     use shr_flux_mod  , only :  shr_flux_adjust_constants
+    use esmFlds  , only : coupling_mode
     !-----------------------------------------------------------------------
     ! Initialize pointers to the module variables
     !-----------------------------------------------------------------------
@@ -201,19 +193,19 @@ contains
     integer                , intent(out)   :: rc
 
     ! local variables
-    integer                  :: iam
-    integer                  :: n
-    integer                  :: lsize
-    real(R8), pointer        :: ofrac(:) => null()
-    real(R8), pointer        :: ifrac(:) => null()
-    character(CL)            :: cvalue
-    logical                  :: flds_wiso  ! use case
-    character(len=CX)        :: tmpstr
-    real(R8)                :: flux_convergence        ! convergence criteria for imlicit flux computation
+    integer                 :: iam
+    integer                 :: n
+    integer                 :: lsize
+    real(R8), pointer       :: ofrac(:) => null()
+    real(R8), pointer       :: ifrac(:) => null()
+    character(CL)           :: cvalue
+    logical                 :: flds_wiso  ! use case
+    character(len=CX)       :: tmpstr
+    real(R8)                :: flux_convergence        ! convergence criteria for implicit flux computation
     integer                 :: flux_max_iteration      ! maximum number of iterations for convergence
     logical                 :: coldair_outbreak_mod    ! cold air outbreak adjustment  (Mahrt & Sun 1995,MWR)
     logical                 :: isPresent, isSet
-    character(*),parameter   :: subName =   '(med_aofluxes_init) '
+    character(*),parameter  :: subName = '(med_aofluxes_init) '
     !-----------------------------------------------------------------------
 
     if (dbug_flag > 5) then
@@ -228,9 +220,50 @@ contains
     ! get attributes that are set as module variables
     !----------------------------------
 
-    call NUOPC_CompAttributeGet(gcomp, name='flds_wiso', value=cvalue, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=__FILE__)) return
-    read(cvalue,*) flds_wiso
+    call NUOPC_CompAttributeGet(gcomp, name='flds_wiso', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+       read(cvalue,*) flds_wiso
+    else
+       flds_wiso = .false.
+    end if
+
+    call NUOPC_CompAttributeGet(gcomp, name='coldair_outbreak_mod', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+       read(cvalue,*) coldair_outbreak_mod
+    else
+       coldair_outbreak_mod = .false.
+    end if
+
+    call NUOPC_CompAttributeGet(gcomp, name='flux_max_iteration', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+       read(cvalue,*) flux_max_iteration
+    else
+       flux_max_iteration = 1
+    end if
+
+    call NUOPC_CompAttributeGet(gcomp, name='flux_convergence', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+       read(cvalue,*) flux_convergence
+    else
+       flux_convergence = 0.0_r8
+    end if
+
+    call NUOPC_CompAttributeGet(gcomp, name='ocn_surface_flux_scheme', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+       read(cvalue,*) ocn_surface_flux_scheme
+    else
+       ocn_surface_flux_scheme = 0
+    end if
+
+    call shr_flux_adjust_constants(&
+         flux_convergence_tolerance=flux_convergence, &
+         flux_convergence_max_iteration=flux_max_iteration, &
+         coldair_outbreak_mod=coldair_outbreak_mod)
 
     !----------------------------------
     ! atm/ocn fields
@@ -310,12 +343,27 @@ contains
 
     call FB_GetFldPtr(FBAtm, fldname='Sa_z', fldptr1=aoflux%zbot, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call FB_GetFldPtr(FBAtm, fldname='Sa_u', fldptr1=aoflux%ubot, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call FB_GetFldPtr(FBAtm, fldname='Sa_v', fldptr1=aoflux%vbot, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call FB_GetFldPtr(FBAtm, fldname='Sa_tbot', fldptr1=aoflux%tbot, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    ! bulk formula quantities for nems_orig_data
+    if (trim(coupling_mode) == 'nems_orig_data' .and. ocn_surface_flux_scheme == -1) then
+       call FB_GetFldPtr(FBAtm, fldname='Sa_u10m', fldptr1=aoflux%ubot, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call FB_GetFldPtr(FBAtm, fldname='Sa_v10m', fldptr1=aoflux%vbot, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call FB_GetFldPtr(FBAtm, fldname='Sa_t2m', fldptr1=aoflux%tbot, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call FB_GetFldPtr(FBAtm, fldname='Sa_q2m', fldptr1=aoflux%shum, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+    else
+       call FB_GetFldPtr(FBAtm, fldname='Sa_u', fldptr1=aoflux%ubot, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call FB_GetFldPtr(FBAtm, fldname='Sa_v', fldptr1=aoflux%vbot, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call FB_GetFldPtr(FBAtm, fldname='Sa_tbot', fldptr1=aoflux%tbot, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call FB_GetFldPtr(FBAtm, fldname='Sa_shum', fldptr1=aoflux%shum, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+    end if
 
     ! bottom level potential temperature will need to be computed if not received from the atm
     if (FB_fldchk(FBAtm, 'Sa_ptem', rc=rc)) then
@@ -343,8 +391,6 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     end if
 
-    call FB_GetFldPtr(FBAtm, fldname='Sa_shum', fldptr1=aoflux%shum, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
     if (flds_wiso) then
        call FB_GetFldPtr(FBAtm, fldname='Sa_shum_16O', fldptr1=aoflux%shum_16O, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -430,7 +476,7 @@ contains
 
     use ESMF          , only : ESMF_GridComp, ESMF_Clock, ESMF_Time, ESMF_TimeInterval
     use ESMF          , only : ESMF_GridCompGet, ESMF_ClockGet, ESMF_TimeGet, ESMF_TimeIntervalGet
-    use ESMF          , only : ESMF_LogWrite, ESMF_LogMsg_Info
+    use ESMF          , only : ESMF_LogWrite, ESMF_LogMsg_Info, ESMF_SUCCESS
     use NUOPC         , only : NUOPC_CompAttributeGet
     use shr_flux_mod  , only : shr_flux_atmocn
 
@@ -454,8 +500,8 @@ contains
     character(*),parameter  :: subName = '(med_aofluxes_run) '
     !-----------------------------------------------------------------------
 
+    rc = ESMF_SUCCESS
     call t_startf('MED:'//subname)
-
 
     !----------------------------------
     ! Determine the compute mask
@@ -504,7 +550,6 @@ contains
        end do
     end if
 
-    ! TODO(mvertens, 2019-10-30): remove the hard-wiring of minwind and replace it with namelist input
     call shr_flux_atmocn (&
          nMax=lsize, zbot=aoflux%zbot, ubot=aoflux%ubot, vbot=aoflux%vbot, thbot=aoflux%thbot, &
          qbot=aoflux%shum, s16O=aoflux%shum_16O, sHDO=aoflux%shum_HDO, s18O=aoflux%shum_18O, rbot=aoflux%dens, &
@@ -514,7 +559,7 @@ contains
          r16O=aoflux%roce_16O, rhdo=aoflux%roce_HDO, r18O=aoflux%roce_18O, &
          evap=aoflux%evap, evap_16O=aoflux%evap_16O, evap_HDO=aoflux%evap_HDO, evap_18O=aoflux%evap_18O, &
          taux=aoflux%taux, tauy=aoflux%tauy, tref=aoflux%tref, qref=aoflux%qref, &
-         ocn_surface_flux_scheme=0, &
+         ocn_surface_flux_scheme=ocn_surface_flux_scheme, &
          duu10n=aoflux%duu10n, ustar_sv=aoflux%ustar, re_sv=aoflux%re, ssq_sv=aoflux%ssq, &
          missval = 0.0_r8)
 

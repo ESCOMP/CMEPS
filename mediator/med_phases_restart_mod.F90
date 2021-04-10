@@ -172,6 +172,7 @@ contains
     character(ESMF_MAXSTR)     :: restart_file   ! Local path to restart filename
     character(ESMF_MAXSTR)     :: restart_pfile  ! Local path to restart pointer filename
     character(ESMF_MAXSTR)     :: cpl_inst_tag   ! instance tag
+    character(ESMF_MAXSTR)     :: restart_dir    ! Optional restart directory name
     character(ESMF_MAXSTR)     :: cvalue         ! attribute string
     character(ESMF_MAXSTR)     :: freq_option    ! freq_option setting (ndays, nsteps, etc)
     integer                    :: freq_n         ! freq_n setting relative to freq_option
@@ -215,6 +216,15 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     else
        cpl_inst_tag = ""
+    endif
+
+    call NUOPC_CompAttributeGet(gcomp, name='restart_dir', isPresent=isPresent, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if(isPresent) then
+       call NUOPC_CompAttributeGet(gcomp, name='restart_dir', value=restart_dir, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    else
+       restart_dir = ""
     endif
 
     if (first_time) then
@@ -301,7 +311,8 @@ contains
        ! the timestep and is preferred for restart file names
        !---------------------------------------
 
-       write(restart_file,"(6a)") trim(case_name),'.cpl',trim(cpl_inst_tag),'.r.',trim(nexttimestr),'.nc'
+       write(restart_file,"(6a)") trim(restart_dir)//trim(case_name),'.cpl', &
+         trim(cpl_inst_tag),'.r.',trim(nexttimestr),'.nc'
 
        if (iam == 0) then
           restart_pfile = "rpointer.cpl"//cpl_inst_tag
@@ -341,7 +352,7 @@ contains
           endif
 
           ! Write out next ymd/tod in place of curr ymd/tod because the
-          ! restart represents the time at end of the current timestep 
+          ! restart represents the time at end of the current timestep
           ! and that is where we want to start the next run.
 
           call med_io_write(restart_file, iam, start_ymd, 'start_ymd', whead=whead, wdata=wdata, rc=rc)

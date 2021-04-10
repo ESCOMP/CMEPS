@@ -39,16 +39,6 @@
     <desc>run DOI</desc>
   </entry>
 
-  <entry id="DRV_THREADING">
-    <type>logical</type>
-    <valid_values>TRUE,FALSE</valid_values>
-    <default_value>FALSE</default_value>
-    <group>run_flags</group>
-    <file>env_run.xml</file>
-    <desc>Turns on component varying thread control in the driver.
-    Used to set the driver namelist variable "drv_threading".</desc>
-  </entry>
-
   <entry id="SAVE_TIMING">
     <type>logical</type>
     <valid_values>TRUE,FALSE</valid_values>
@@ -208,13 +198,13 @@
       <!-- =================================================== -->
       <!-- I compsets -->
       <!-- =================================================== -->
-      <value compset="_DATM.*_CLM">48</value>
-      <value compset=".+" grid="1x1">48</value>
+      <value compset="_DATM.*_CLM"         >48</value>
+      <value compset=".+" grid="1x1"       >48</value>
       <value compset=".+" grid="1x1_urbanc">48</value>
       <value compset=".+" grid="1x1_mexico">24</value>
       <value compset=".+" grid="1x1_vancou">24</value>
       <!-- TODO: in CDEPS there is no copyall mode - so what is this? -->
-      <value compset="_DATM%COPYALL_NPS">72</value>
+      <value compset="_DATM%COPYALL_NPS"   >72</value>
       <!-- =================================================== -->
       <!-- C compsets -->
       <!-- =================================================== -->
@@ -238,28 +228,28 @@
       <!-- =================================================== -->
       <!-- atm dependent resolutions (primarily CAM) -->
       <!-- =================================================== -->
-      <value compset=".+" grid="a%0.23x0.31">96</value>
-      <value compset=".+" grid="a%ne60np4">96</value>
-      <value compset=".+" grid="a%ne60np4.pg3">96</value>
-      <value compset=".+" grid="a%ne60np4.pg4">96</value>
-      <value compset=".+" grid="a%ne120np4">192</value>
-      <value compset=".+" grid="a%ne120np4.pg2">192</value>
-      <value compset=".+" grid="a%ne120np4.pg3">192</value>
-      <value compset=".+" grid="a%ne120np4.pg4">192</value>
-      <value compset=".+" grid="a%ne240np4">384</value>
-      <value compset=".+" grid="a%ne240np4.pg2">384</value>
-      <value compset=".+" grid="a%ne240np4.pg3">384</value>
-      <value compset=".+" grid="a%ne0np4CONUS.ne30x8">384</value>
-      <value compset=".+" grid="a%ne0np4.ARCTIC.ne30x4">192</value>
-      <value compset=".+" grid="a%ne0np4.ARCTICGRIS.ne30x8">384</value>
-      <value compset=".+" grid="a%C24">48</value>
-      <value compset=".+" grid="a%C48">48</value>
-      <value compset=".+" grid="a%C96">48</value>
-      <value compset=".+" grid="a%C192">96</value>
-      <value compset=".+" grid="a%C384">192</value>
-      <value compset=".+" grid="a%T42">72</value>
-      <value compset=".+" grid="a%T85">144</value>
-      <value compset=".+" grid="a%T341">288</value>
+      <value compset=".+" grid="a%0.23x0.31"                >96</value>
+      <value compset=".+" grid="a%ne60np4"                  >96</value>
+      <value compset=".+" grid="a%ne60np4.pg3"              >96</value>
+      <value compset=".+" grid="a%ne60np4.pg4"              >96</value>
+      <value compset=".+" grid="a%ne120np4"                 >192</value>
+      <value compset=".+" grid="a%ne120np4.pg2"             >192</value>
+      <value compset=".+" grid="a%ne120np4.pg3"             >192</value>
+      <value compset=".+" grid="a%ne120np4.pg4"             >192</value>
+      <value compset=".+" grid="a%ne240np4"                 >384</value>
+      <value compset=".+" grid="a%ne240np4.pg2"             >384</value>
+      <value compset=".+" grid="a%ne240np4.pg3"             >384</value>
+      <value compset=".+" grid="a%ne0np4CONUS.ne30x8"       >384</value>
+      <value compset=".+" grid="a%ne0np4.ARCTIC.ne30x4"     >192</value>
+      <value compset=".+" grid="a%ne0np4.ARCTICGRIS.ne30x8" >384</value>
+      <value compset=".+" grid="a%C24"                      >48</value>
+      <value compset=".+" grid="a%C48"                      >48</value>
+      <value compset=".+" grid="a%C96"                      >48</value>
+      <value compset=".+" grid="a%C192"                     >96</value>
+      <value compset=".+" grid="a%C384"                     >192</value>
+      <value compset=".+" grid="a%T42"                      >72</value>
+      <value compset=".+" grid="a%T85"                      >144</value>
+      <value compset=".+" grid="a%T341"                     >288</value>
       <!-- =================================================== -->
       <!-- TG compsets -->
       <!-- =================================================== -->
@@ -557,7 +547,7 @@
     <values match="last">
       <value compset="_CLM.+CISM\d">TRUE</value>
       <!-- Turn on two-way coupling for TG compsets - even though there are no
-	   feedbacks for a TG compset, this will give us additional diagnostics -->
+           feedbacks for a TG compset, this will give us additional diagnostics -->
       <value compset="_DLND.+CISM\d">TRUE</value>
     </values>
     <group>run_glc</group>

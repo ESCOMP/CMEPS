@@ -30,6 +30,8 @@ module ESM
   private :: esm_finalize
   private :: pretty_print_nuopc_freeformat
 
+  real(r8) :: scol_spval = -999._r8
+
   character(*), parameter :: u_FILE_u = &
        __FILE__
 
@@ -429,9 +431,6 @@ contains
     character(LEN=CS)            :: tfreeze_option        ! Freezing point calculation
     real(R8)                     :: wall_time_limit       ! wall time limit in hours
     integer                      :: glc_nec               ! number of elevation classes in the land component for lnd->glc
-    logical                      :: single_column         ! scm mode logical
-    real(R8)                     :: scmlon                ! single column lon
-    real(R8)                     :: scmlat                ! single column lat
     character(LEN=CS)            :: wv_sat_scheme
     real(R8)                     :: wv_sat_transition_start
     logical                      :: wv_sat_use_tables
@@ -483,7 +482,6 @@ contains
 
     call shr_frz_freezetemp_init(tfreeze_option, mastertask)
 
-
     call NUOPC_CompAttributeGet(driver, name='cpl_rootpe', value=cvalue, rc=rc)
     read(cvalue, *) rootpe_med
     if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -495,11 +493,9 @@ contains
     !----------------------------------------------------------
 
     ! This must be called on all processors of the driver
-
     call NUOPC_CompAttributeGet(driver, name='glc_nec', value=cvalue, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     read(cvalue,*) glc_nec
-
     call glc_elevclass_init(glc_nec, logunit=logunit)
 
     !----------------------------------------------------------
@@ -561,33 +557,6 @@ contains
        call shr_wv_sat_make_tables(liquid_spec, ice_spec, mixed_spec)
     end if
 
-    !----------------------------------------------------------
-    ! Set single_column flags
-    ! If in single column mode, overwrite flags according to focndomain file
-    ! in ocn_in namelist. SCAM can reset the "present" flags for lnd,
-    ! ocn, ice, rof, and flood.
-    !----------------------------------------------------------
-
-    call NUOPC_CompAttributeGet(driver, name="single_column", value=cvalue, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) single_column
-
-    ! NOTE: cam stand-alone aqua-planet model will no longer be supported here - only the data model aqua-planet
-    ! will be supported
-    if (single_column) then
-
-       call NUOPC_CompAttributeGet(driver, name="scmlon", value=cvalue, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       read(cvalue,*) scmlon
-
-       call NUOPC_CompAttributeGet(driver, name="scmlat", value=cvalue, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       read(cvalue,*) scmlat
-
-       ! TODO(mvertens, 2019-01-30): need to add single column functionality
-
-    endif
-
   end subroutine InitAttributes
 
   !================================================================================
@@ -644,7 +613,7 @@ contains
 
   !===============================================================================
 
-  subroutine AddAttributes(gcomp, driver, config, compid, compname, inst_suffix, rc)
+  subroutine AddAttributes(gcomp, driver, config, compid, compname, inst_suffix, nthrds, rc)
 
     ! Add specific set of attributes to components from driver attributes
 
@@ -659,6 +628,7 @@ contains
     integer             , intent(in)    :: compid
     character(len=*)    , intent(in)    :: compname
     character(len=*)    , intent(in)    :: inst_suffix
+    integer             , intent(in)    :: nthrds
     integer             , intent(inout) :: rc
 
     ! local variables
@@ -693,7 +663,7 @@ contains
     call NUOPC_CompAttributeGet(driver, name="mediator_read_restart", value=cvalue, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     read(cvalue,*) lvalue
-    if (.not. lvalue) then         
+    if (.not. lvalue) then
        call NUOPC_CompAttributeGet(driver, name=trim(attribute), value=cvalue, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     end if
@@ -743,6 +713,19 @@ contains
        call NUOPC_CompAttributeSet(gcomp, name='inst_suffix', value=inst_suffix, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     end if
+    ! Add the nthreads attribute
+    call NUOPC_CompAttributeAdd(gcomp, attrList=(/'nthreads'/), rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    write(cvalue, *) nthrds
+    call NUOPC_CompAttributeSet(gcomp, name='nthreads', value=cvalue, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    !------
+    ! Add single column and single point attributes
+    !------
+
+    call esm_set_single_column_attributes(compname, gcomp, rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
   end subroutine AddAttributes
 
@@ -826,40 +809,69 @@ contains
     use ESMF         , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_VM, ESMF_VMGet
     use ESMF         , only : ESMF_LogWrite, ESMF_SUCCESS, ESMF_LOGMSG_INFO, ESMF_Config
     use ESMF         , only : ESMF_ConfigGetLen, ESMF_LogFoundAllocError, ESMF_ConfigGetAttribute
-    use ESMF         , only : ESMF_RC_NOT_VALID, ESMF_LogSetError
+    use ESMF         , only : ESMF_RC_NOT_VALID, ESMF_LogSetError, ESMF_Info, ESMF_InfoSet
     use ESMF         , only : ESMF_GridCompIsPetLocal, ESMF_MethodAdd, ESMF_UtilStringLowerCase
+    use ESMF         , only : ESMF_InfoCreate, ESMF_InfoDestroy
     use NUOPC        , only : NUOPC_CompAttributeGet
     use NUOPC_Driver , only : NUOPC_DriverAddComp
-    use mpi          , only : MPI_COMM_NULL
+#ifndef NO_MPI2
+    use mpi          , only : MPI_COMM_NULL, mpi_comm_size
+#endif
     use mct_mod      , only : mct_world_init
     use shr_pio_mod  , only : shr_pio_init2
 
 #ifdef MED_PRESENT
     use med_internalstate_mod , only : med_id
     use med                   , only : MedSetServices => SetServices
+#ifdef ESMF_AWARE_THREADING
+    use med                   , only : MEDSetVM => SetVM
+#endif
 #endif
 #ifdef ATM_PRESENT
     use atm_comp_nuopc        , only : ATMSetServices => SetServices
+#ifdef ESMF_AWARE_THREADING
+    use atm_comp_nuopc        , only : ATMSetVM => SetVM
+#endif
 #endif
 #ifdef ICE_PRESENT
     use ice_comp_nuopc        , only : ICESetServices => SetServices
+#ifdef ESMF_AWARE_THREADING
+    use ice_comp_nuopc        , only : ICESetVM => SetVM
+#endif
 #endif
 #ifdef LND_PRESENT
     use lnd_comp_nuopc        , only : LNDSetServices => SetServices
+#ifdef ESMF_AWARE_THREADING
+    use lnd_comp_nuopc        , only : LNDSetVM => SetVM
+#endif
 #endif
 #ifdef OCN_PRESENT
     use ocn_comp_nuopc        , only : OCNSetServices => SetServices
+#ifdef ESMF_AWARE_THREADING
+    use ocn_comp_nuopc        , only : OCNSetVM => SetVM
+#endif
 #endif
 #ifdef WAV_PRESENT
     use wav_comp_nuopc        , only : WAVSetServices => SetServices
+#ifdef ESMF_AWARE_THREADING
+    use wav_comp_nuopc        , only : WAVSetVM => SetVM
+#endif
 #endif
 #ifdef ROF_PRESENT
     use rof_comp_nuopc        , only : ROFSetServices => SetServices
+#ifdef ESMF_AWARE_THREADING
+    use rof_comp_nuopc        , only : ROFSetVM => SetVM
+#endif
 #endif
 #ifdef GLC_PRESENT
     use glc_comp_nuopc        , only : GLCSetServices => SetServices
+#ifdef ESMF_AWARE_THREADING
+    use glc_comp_nuopc        , only : GLCSetVM => SetVM
 #endif
-
+#endif
+#ifdef NO_MPI2
+    include 'mpif.h'
+#endif
     ! input/output variables
     type(ESMF_GridComp)            :: driver
     integer, intent(out)           :: maxthreads ! maximum number of threads any component
@@ -869,6 +881,7 @@ contains
     type(ESMF_GridComp)            :: child
     type(ESMF_VM)                  :: vm
     type(ESMF_Config)              :: config
+    type(ESMF_Info)                :: info
     integer                        :: componentcount
     integer                        :: PetCount
     integer                        :: LocalPet
@@ -887,14 +900,14 @@ contains
     logical, allocatable           :: comp_iamin(:)
     character(len=5)               :: inst_suffix
     character(CL)                  :: cvalue
-    logical                        :: found_comp 
+    logical                        :: found_comp
+    integer :: rank, nprocs, ierr
     character(len=*), parameter    :: subname = "(esm_pelayout.F90:esm_init_pelayout)"
     !---------------------------------------
 
     rc = ESMF_SUCCESS
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
 
-    maxthreads = 1
     call ESMF_GridCompGet(driver, vm=vm, config=config, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
@@ -931,9 +944,21 @@ contains
 
     allocate(comms(componentCount+1), comps(componentCount+1))
     comps(1) = 1
+    comms = MPI_COMM_NULL
     comms(1) = Global_Comm
-    do i=1,componentCount
 
+    maxthreads = 1
+    do i=1,componentCount
+       namestr = ESMF_UtilStringLowerCase(compLabels(i))
+       if (namestr == 'med') namestr = 'cpl'
+       call NUOPC_CompAttributeGet(driver, name=trim(namestr)//'_nthreads', value=cvalue, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       read(cvalue,*) nthrds
+
+       if(nthrds > maxthreads) maxthreads = nthrds
+    enddo
+
+    do i=1,componentCount
        namestr = ESMF_UtilStringLowerCase(compLabels(i))
        if (namestr == 'med') namestr = 'cpl'
        call NUOPC_CompAttributeGet(driver, name=trim(namestr)//'_ntasks', value=cvalue, rc=rc)
@@ -950,7 +975,19 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        read(cvalue,*) nthrds
 
-       if(nthrds > maxthreads) maxthreads = nthrds
+       info = ESMF_InfoCreate(rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+       call ESMF_InfoSet(info, key="/NUOPC/Hint/PePerPet/MaxCount", value=nthrds, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+!       call ESMF_InfoSet(info, key="/NUOPC/Hint/PePerPet/MinStackSize", value='40MiB', rc=rc)
+!       if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+       if (nthrds == 1) then
+          call ESMF_InfoSet(info, key="/NUOPC/Hint/PePerPet/OpenMpHandling", value='none', rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+       endif
 
        call NUOPC_CompAttributeGet(driver, name=trim(namestr)//'_rootpe', value=cvalue, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -969,82 +1006,145 @@ contains
        call NUOPC_CompAttributeGet(driver, name=trim(namestr)//'_pestride', value=cvalue, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        read(cvalue,*) stride
-       if (stride < 1 .or. rootpe+ntasks*stride > PetCount) then
+       if (stride < 1 .or. rootpe+(ntasks-1)*stride > PetCount) then
           write (msgstr, *) "Invalid pestride value specified for component: ",namestr,&
-               ' rootpe: ',rootpe, ' pestride: ', stride
+               ' rootpe: ',rootpe, ' pestride: ', stride, ' ntasks: ',ntasks, ' PetCount: ', PetCount
           call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
           return
        endif
 
-       if (allocated(petlist) .and. size(petlist) .ne. ntasks) then
-          deallocate(petlist)
+       if (allocated(petlist)) then
+#ifdef ESMF_AWARE_THREADING
+          if(size(petlist) .ne. ntasks*nthrds) then
+#else
+          if(size(petlist) .ne. ntasks) then
+#endif
+             deallocate(petlist)
+          endif
        endif
        if(.not. allocated(petlist)) then
+#ifdef ESMF_AWARE_THREADING
+          allocate(petlist(ntasks*nthrds))
+#else
           allocate(petlist(ntasks))
+#endif
        endif
 
+#ifdef ESMF_AWARE_THREADING
        cnt = 1
-       do ntask = rootpe, (rootpe+ntasks*stride)-1, stride
+       do ntask = rootpe, rootpe+nthrds*ntasks*stride-1, stride
           petlist(cnt) = ntask
           cnt = cnt + 1
        enddo
+#else
+       do ntask = 1, size(petlist)
+          petlist(ntask) = rootpe + (ntask-1)*stride
+       enddo
+#endif
 
        comps(i+1) = i+1
-
        found_comp = .false.
 #ifdef MED_PRESENT
        if (trim(compLabels(i)) == 'MED') then
           med_id = i + 1
-          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), MEDSetServices, petList=petlist, comp=child, rc=rc)
+#ifdef ESMF_AWARE_THREADING
+          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), MEDSetServices, MEDSetVM, &
+               petList=petlist, comp=child, info=info, rc=rc)
+#else
+          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), MEDSetServices,  &
+               petList=petlist, comp=child, rc=rc)
+#endif
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           found_comp = .true.
        end if
 #endif
 #ifdef ATM_PRESENT
        if (trim(compLabels(i)) .eq. 'ATM') then
-          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), ATMSetServices, petList=petlist, comp=child, rc=rc)
+#ifdef ESMF_AWARE_THREADING
+          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), ATMSetServices, ATMSetVM, &
+               petList=petlist, comp=child, info=info, rc=rc)
+#else
+          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), ATMSetServices,  &
+               petList=petlist, comp=child, rc=rc)
+#endif
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           found_comp = .true.
        end if
 #endif
 #ifdef LND_PRESENT
        if (trim(compLabels(i)) .eq. 'LND') then
-          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), LNDSetServices, PetList=petlist, comp=child, rc=rc)
+#ifdef ESMF_AWARE_THREADING
+          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), LNDSetServices, LNDSetVM, &
+               PetList=petlist, comp=child, info=info, rc=rc)
+#else
+          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), LNDSetServices, &
+               PetList=petlist, comp=child, rc=rc)
+#endif
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           found_comp = .true.
        end if
 #endif
 #ifdef OCN_PRESENT
        if (trim(compLabels(i)) .eq. 'OCN') then
-          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), OCNSetServices, PetList=petlist, comp=child, rc=rc)
+#ifdef ESMF_AWARE_THREADING
+          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), OCNSetServices, OCNSetVM, &
+               PetList=petlist, comp=child, info=info, rc=rc)
+#else
+          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), OCNSetServices, &
+               PetList=petlist, comp=child, rc=rc)
+#endif
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           found_comp = .true.
        end if
 #endif
 #ifdef ICE_PRESENT
        if (trim(compLabels(i)) .eq. 'ICE') then
-          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), ICESetServices, PetList=petlist, comp=child, rc=rc)
+#ifdef ESMF_AWARE_THREADING
+          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), ICESetServices, ICESetVM, &
+               PetList=petlist, comp=child, info=info, rc=rc)
+#else
+          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), ICESetServices, &
+               PetList=petlist, comp=child, rc=rc)
+#endif
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           found_comp = .true.
        end if
 #endif
 #ifdef GLC_PRESENT
        if (trim(compLabels(i)) .eq. 'GLC') then
-          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), GLCSetServices, PetList=petlist, comp=child, rc=rc)
+#ifdef ESMF_AWARE_THREADING
+          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), GLCSetServices, GLCSetVM, &
+               PetList=petlist, comp=child, info=info, rc=rc)
+#else
+          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), GLCSetServices, &
+               PetList=petlist, comp=child, rc=rc)
+#endif
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           found_comp = .true.
        end if
 #endif
 #ifdef ROF_PRESENT
        if (trim(compLabels(i)) .eq. 'ROF') then
-          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), ROFSetServices, PetList=petlist, comp=child, rc=rc)
+#ifdef ESMF_AWARE_THREADING
+          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), ROFSetServices, ROFSetVM, &
+               PetList=petlist, comp=child, info=info, rc=rc)
+#else
+          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), ROFSetServices,  &
+               PetList=petlist, comp=child, rc=rc)
+#endif
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           found_comp = .true.
        end if
 #endif
 #ifdef WAV_PRESENT
        if (trim(compLabels(i)) .eq. 'WAV') then
-          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), WAVSetServices, PetList=petlist, comp=child, rc=rc)
+#ifdef ESMF_AWARE_THREADING
+          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), WAVSetServices, WAVSetVM, &
+               PetList=petlist, comp=child, info=info, rc=rc)
+#else
+          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), WAVSetServices,  &
+               PetList=petlist, comp=child, rc=rc)
+#endif
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           found_comp = .true.
        end if
@@ -1061,30 +1161,37 @@ contains
           call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
           return
        endif
+       comp_iamin(i) = .false.
 
-       call AddAttributes(child, driver, config, i+1, trim(compLabels(i)), inst_suffix, rc=rc)
+       call AddAttributes(child, driver, config, i+1, trim(compLabels(i)), inst_suffix, nthrds, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        if (ESMF_GridCompIsPetLocal(child, rc=rc)) then
+
           call ESMF_GridCompGet(child, vm=vm, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-          call ESMF_VMGet(vm, mpiCommunicator=comms(i+1), localPet=comp_comm_iam(i), rc=rc)
+          call ESMF_VMGet(vm, mpiCommunicator=comms(i+1), rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-          call AddAttributes(child, driver, config, i+1, trim(compLabels(i)), inst_suffix, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          if (comms(i+1) .ne. MPI_COMM_NULL) then
+             call ESMF_VMGet(vm, localPet=comp_comm_iam(i), rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-          ! This code is not supported, we need an optional arg to NUOPC_DriverAddComp to include the
-          ! per component thread count.  #3614572 in esmf_support
-          ! call ESMF_GridCompSetVMMaxPEs(child, maxPeCountPerPet=nthrds, rc=rc)
-          ! if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-          comp_iamin(i) = .true.
-       else
-          comms(i+1) = MPI_COMM_NULL
-          comp_iamin(i) = .false.
+             comp_iamin(i) = .true.
+             call MPI_Comm_size(comms(i+1), nprocs, ierr)
+             call MPI_Comm_rank(comms(i+1), rank, ierr)
+             if(nprocs /= ntasks) then
+                write(msgstr,*) 'Component ',trim(compLabels(i)),' has mpi task mismatch, do threads align with nodes?'
+                call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
+                return
+             endif
+          endif
        endif
+
+       call ESMF_InfoDestroy(info, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+
     enddo
 
     ! Initialize MCT (this is needed for data models and cice prescribed capability)
@@ -1099,6 +1206,278 @@ contains
 
   !================================================================================
 
+  subroutine esm_set_single_column_attributes(compname, gcomp, rc)
+
+    ! Generate a mesh for single column
+
+    use netcdf, only : nf90_open, nf90_close, nf90_noerr, nf90_nowrite
+    use netcdf, only : nf90_inq_dimid, nf90_inquire_dimension, nf90_inq_varid, nf90_get_var
+    use NUOPC , only : NUOPC_CompAttributeGet, NUOPC_CompAttributeSet, NUOPC_CompAttributeAdd
+    use ESMF  , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_VM, ESMF_VMGet, ESMF_SUCCESS
+
+    ! input/output variables
+    character(len=*)    , intent(in)    :: compname
+    type(ESMF_GridComp) , intent(inout) :: gcomp
+    integer             , intent(out)   :: rc
+
+    ! local variables
+    type(ESMF_VM)          :: vm
+    character(len=CL)      :: single_column_lnd_domainfile
+    real(r8)               :: scol_lon
+    real(r8)               :: scol_lat
+    real(r8)               :: scol_area
+    integer                :: scol_lndmask
+    real(r8)               :: scol_lndfrac
+    integer                :: scol_ocnmask
+    real(r8)               :: scol_ocnfrac
+    integer                :: i,j,ni,nj
+    integer                :: ncid
+    integer                :: dimid
+    integer                :: varid_xc
+    integer                :: varid_yc
+    integer                :: varid_area
+    integer                :: varid_mask
+    integer                :: varid_frac
+    integer                :: start(2)       ! Start index to read in
+    integer                :: start3(3)      ! Start index to read in
+    integer                :: count3(3)      ! Number of points to read in
+    integer                :: status         ! status flag
+    real (r8), allocatable :: lats(:)        ! temporary
+    real (r8), allocatable :: lons(:)        ! temporary
+    real (r8), allocatable :: pos_lons(:)    ! temporary
+    real (r8), allocatable :: glob_grid(:,:) ! temporary
+    real (r8)              :: pos_scol_lon   ! temporary
+    real (r8)              :: scol_data(1)
+    integer                :: iscol_data(1)
+    integer                :: petcount
+    character(len=CL)      :: cvalue
+    character(len=*), parameter :: subname= ' (esm_get_single_column_attributes) '
+    !-------------------------------------------------------------------------------
+
+
+    rc = ESMF_SUCCESS
+
+    ! obtain the single column lon and lat
+    call NUOPC_CompAttributeGet(gcomp, name='scol_lon', value=cvalue, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    read(cvalue,*) scol_lon
+    call NUOPC_CompAttributeGet(gcomp, name='scol_lat', value=cvalue, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    read(cvalue,*) scol_lat
+    call NUOPC_CompAttributeGet(gcomp, name='single_column_lnd_domainfile', value=single_column_lnd_domainfile, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    if ( (scol_lon < scol_spval .and. scol_lat > scol_spval) .or. &
+         (scol_lon > scol_spval .and. scol_lat < scol_spval)) then
+       call shr_sys_abort(subname//' ERROR: '//trim(compname)//' both scol_lon and scol_lat must be greater than -999 ')
+    end if
+
+    ! Set the special value for single column - if pts_lat or pts_lon are equal to the special value
+    ! in the component cap - then single column is not activated
+    write(cvalue,*) scol_spval
+    call NUOPC_CompAttributeSet(gcomp, name='scol_spval', value=trim(cvalue), rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    if (scol_lon > scol_spval .and.  scol_lat > scol_spval) then
+
+       ! NOTE: currently assume that single column capability is restricted to
+       ! ATM, LND, OCN and ICE components only
+       ! verify that WAV and LND are not trying to use single column mode
+       if (trim(compname) == 'WAV' .or. trim(compname) == 'ROF' .or. trim(compname) == 'GLC') then
+          call shr_sys_abort(subname//' ERROR: '//trim(compname)//' does not support single column mode ')
+       end if
+
+       ! ensure that single column mode is only run on 1 pet
+       call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_VMGet(vm, petcount=petcount, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       if (petcount > 1) then
+          call shr_sys_abort(subname//' ERROR: single column mode must be run on 1 pe')
+       endif
+
+       write(logunit,'(a,2(f10.5,2x))')trim(subname)//' single column point for '//trim(compname)//&
+            ' has lon and lat = ',scol_lon,scol_lat
+
+       ! This is either a single column or a single point so add attributes
+       call NUOPC_CompAttributeAdd(gcomp, &
+            attrList=(/'scol_area   ', &
+                       'scol_ni     ', &
+                       'scol_nj     ', &
+                       'scol_lndmask', &
+                       'scol_lndfrac', &
+                       'scol_ocnmask', &
+                       'scol_ocnfrac', &
+                       'scol_spval  '/), rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+       if (trim(single_column_lnd_domainfile) /= 'UNSET') then
+
+          ! In this case the domain file is not a single point file - but normally a
+          ! global domain file where a nearest neighbor search will be done to find
+          ! the closest point in the domin file to scol_lon and scol_lat
+
+          status = nf90_open(single_column_lnd_domainfile, NF90_NOWRITE, ncid)
+          if (status /= nf90_noerr) call shr_sys_abort (trim(subname) //': opening '//&
+               trim(single_column_lnd_domainfile))
+          status = nf90_inq_dimid (ncid, 'ni', dimid)
+          if (status /= nf90_noerr) call shr_sys_abort (trim(subname) //': inq_dimid ni')
+          status = nf90_inquire_dimension(ncid, dimid, len=ni)
+          if (status /= nf90_noerr) call shr_sys_abort (trim(subname) //': inquire_dimension ni')
+          status = nf90_inq_dimid (ncid, 'nj', dimid)
+          if (status /= nf90_noerr) call shr_sys_abort (trim(subname) //': inq_dimid nj')
+          status = nf90_inquire_dimension(ncid, dimid, len=nj)
+          if (status /= nf90_noerr) call shr_sys_abort (trim(subname) //': inquire_dimension nj')
+
+          status = nf90_inq_varid(ncid, 'xc' , varid_xc)
+          if (status /= nf90_noerr) call shr_sys_abort (subname//' inq_varid xc')
+          status = nf90_inq_varid(ncid, 'yc' , varid_yc)
+          if (status /= nf90_noerr) call shr_sys_abort (subname//' inq_varid yc')
+          status = nf90_inq_varid(ncid, 'area' , varid_area)
+          if (status /= nf90_noerr) call shr_sys_abort (subname//' inq_varid area')
+          status = nf90_inq_varid(ncid, 'mask' , varid_mask)
+          if (status /= nf90_noerr) call shr_sys_abort (subname//' inq_varid mask')
+          status = nf90_inq_varid(ncid, 'frac' , varid_frac)
+          if (status /= nf90_noerr) call shr_sys_abort (subname//' inq_varid frac')
+
+          ! Read in domain file for single column
+          allocate(lats(nj))
+          allocate(lons(ni))
+          allocate(pos_lons(ni))
+          allocate(glob_grid(ni,nj))
+
+          ! The follow assumes that xc and yc are 2 dimensional values
+          start3=(/1,1,1/)
+          count3=(/ni,nj,1/)
+          status = nf90_get_var(ncid, varid_xc, glob_grid, start3, count3)
+          if (status /= nf90_noerr) call shr_sys_abort (subname//' get_var xc')
+          do i = 1,ni
+             lons(i) = glob_grid(i,1)
+          end do
+          status = nf90_get_var(ncid, varid_yc, glob_grid, start3, count3)
+          if (status /= nf90_noerr) call shr_sys_abort (subname//' get_var yc')
+          do j = 1,nj
+             lats(j) = glob_grid(1,j)
+          end do
+          ! find nearest neighbor indices of scol_lon and scol_lat in single_column_lnd_domain file
+          ! convert lons array and scol_lon to 0,360 and find index of value closest to 0
+          ! and obtain single-column longitude/latitude indices to retrieve
+          pos_lons(:)  = mod(lons(:)  + 360._r8, 360._r8)
+          pos_scol_lon = mod(scol_lon + 360._r8, 360._r8)
+          start(1) = (MINLOC(abs(pos_lons - pos_scol_lon), dim=1))
+          start(2) = (MINLOC(abs(lats      -scol_lat    ), dim=1))
+
+          deallocate(lats)
+          deallocate(lons)
+          deallocate(pos_lons)
+          deallocate(glob_grid)
+
+          ! read in value of nearest neighbor lon and RESET scol_lon and scol_lat
+          ! also get area of gridcell, mask and frac
+          status = nf90_get_var(ncid, varid_xc, scol_lon, start)
+          if (status /= nf90_noerr) call shr_sys_abort (subname//' get_var xc')
+
+          status = nf90_get_var(ncid, varid_yc, scol_lat, start)
+          if (status /= nf90_noerr) call shr_sys_abort (subname//' get_var yc')
+
+          status = nf90_get_var(ncid, varid_area, scol_area, start)
+          if (status /= nf90_noerr) call shr_sys_abort (subname//' get_var area')
+
+          status = nf90_get_var(ncid, varid_mask, iscol_data, start)
+          if (status /= nf90_noerr) call shr_sys_abort (subname//' get_var mask')
+          scol_lndmask = iscol_data(1)
+          scol_ocnmask = 1 - scol_lndmask
+
+          status = nf90_get_var(ncid, varid_frac, scol_data, start)
+          if (status /= nf90_noerr) call shr_sys_abort (subname//' get_var frac')
+          scol_lndfrac = scol_data(1)
+          scol_ocnfrac = 1._r8 - scol_lndfrac
+
+          if (scol_ocnmask == 0 .and. scol_lndmask == 0) then
+             call shr_sys_abort(trim(subname)//' in single column mode '&
+                  //' ocean and land mask cannot both be zero')
+          end if
+
+          write(cvalue,*) scol_lon
+          call NUOPC_CompAttributeSet(gcomp, name='scol_lon', value=trim(cvalue), rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+          write(cvalue,*) scol_lat
+          call NUOPC_CompAttributeSet(gcomp, name='scol_lat', value=trim(cvalue), rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+          write(cvalue,*) ni
+          call NUOPC_CompAttributeSet(gcomp, name='scol_ni', value=trim(cvalue), rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+          write(cvalue,*) nj
+          call NUOPC_CompAttributeSet(gcomp, name='scol_nj', value=trim(cvalue), rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+          status = nf90_close(ncid)
+          if (status /= nf90_noerr) call shr_sys_abort (trim(subname) //': closing '//&
+               trim(single_column_lnd_domainfile))
+
+          write(logunit,'(a,2(f13.5,2x))')trim(subname)//' nearest neighbor scol_lon and scol_lat in '&
+               //trim(single_column_lnd_domainfile)//' are ',scol_lon,scol_lat
+          if (trim(compname) == 'LND') then
+             write(logunit,'(a,i4,f13.5)')trim(subname)//' scol_lndmask, scol_lndfrac are ',&
+                  scol_lndmask, scol_lndfrac
+          else if (trim(compname) == 'OCN') then
+             write(logunit,'(a,i4,f13.5)')trim(subname)//' scol_ocnmask, scol_ocnfrac are ',&
+                  scol_ocnmask, scol_ocnfrac
+          else
+             write(logunit,'(a)')trim(subname)//' atm point has unit mask and unit fraction '
+          end if
+
+       else
+
+          ! for single point mode - its assumed that this point is always
+          ! either over all ocean or all land and the point is always valid
+
+          scol_lndmask = 1
+          scol_lndfrac = 1._r8
+          scol_ocnmask = 1
+          scol_ocnfrac = 1._r8
+          scol_area = 1.e30
+
+          call NUOPC_CompAttributeSet(gcomp, name='scol_ni', value=trim(cvalue), rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          write(cvalue,*) 1
+          call NUOPC_CompAttributeSet(gcomp, name='scol_nj', value=trim(cvalue), rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          write(cvalue,*) 1
+
+          write(logunit,'(a)')' single point mode is active'
+          write(logunit,'(a,f13.5,a,f13.5,a)')' scol_lon is ',scol_lon,' and scol_lat is '
+
+       end if
+
+       write(cvalue,*) scol_area
+       call NUOPC_CompAttributeSet(gcomp, name='scol_area', value=trim(cvalue), rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+       write(cvalue,*) scol_lndmask
+       call NUOPC_CompAttributeSet(gcomp, name='scol_lndmask', value=trim(cvalue), rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+       write(cvalue,*) scol_lndfrac
+       call NUOPC_CompAttributeSet(gcomp, name='scol_lndfrac', value=trim(cvalue), rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+       write(cvalue,*) scol_ocnmask
+       call NUOPC_CompAttributeSet(gcomp, name='scol_ocnmask', value=trim(cvalue), rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+       write(cvalue,*) scol_ocnfrac
+       call NUOPC_CompAttributeSet(gcomp, name='scol_ocnfrac', value=trim(cvalue), rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    end if
+
+  end subroutine esm_set_single_column_attributes
+
+  !================================================================================
   subroutine esm_finalize(driver, rc)
 
     use ESMF     , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_VM, ESMF_VMGet
@@ -1143,7 +1522,7 @@ contains
     call t_prf(trim(timing_dir)//'/model_timing'//trim(inst_suffix), mpicom=mpicomm)
 
     call t_finalizef()
-
   end subroutine esm_finalize
+
 
 end module ESM
