@@ -90,6 +90,7 @@ contains
     use NUOPC_Mediator          , only: mediator_label_SetRunClock      => label_SetRunClock
     use NUOPC_Mediator          , only: mediator_label_Finalize         => label_Finalize
 
+    use med_phases_history_mod  , only: med_phases_history_write
     use med_phases_history_mod  , only: med_phases_history_write_inst_atm
     use med_phases_history_mod  , only: med_phases_history_write_inst_ice
     use med_phases_history_mod  , only: med_phases_history_write_inst_glc
@@ -98,7 +99,6 @@ contains
     use med_phases_history_mod  , only: med_phases_history_write_inst_rof
     use med_phases_history_mod  , only: med_phases_history_write_inst_wav
     use med_phases_history_mod  , only: med_phases_history_write_inst_med
-    use med_phases_history_mod  , only: med_phases_history_write_inst_all
 
     use med_phases_history_mod  , only: med_phases_history_write_avg_atm
     use med_phases_history_mod  , only: med_phases_history_write_avg_ice
@@ -221,10 +221,10 @@ contains
     !------------------
 
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
-         phaseLabelList=(/"med_phases_history_write_inst_all"/), userRoutine=mediator_routine_Run, rc=rc)
+         phaseLabelList=(/"med_phases_history_write"/), userRoutine=mediator_routine_Run, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
-         specPhaseLabel="med_phases_history_write_inst_all", specRoutine=med_phases_history_write_inst_all, rc=rc)
+         specPhaseLabel="med_phases_history_write", specRoutine=med_phases_history_write, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !------------------
@@ -2772,15 +2772,13 @@ contains
     integer                , intent(out)   :: rc
 
     ! local variables
-    integer               :: nfield
+    type(ESMF_Field)      :: lfield
     type(ESMF_Mesh)       :: lmesh
     integer               :: numOwnedElements
     integer               :: spatialDim
     real(r8), allocatable :: ownedElemCoords(:)
     real(r8), pointer     :: dataptr(:) => null()
-    integer               :: n, dimcount
-    integer               :: fieldcount
-    type(ESMF_Field), pointer :: fieldlist(:) => null()
+    integer               :: n, dimcount, fieldcount
     character(len=*),parameter :: subname=' (module_MED:med_meshinfo_create) '
     !-------------------------------------------------------------------------------
 
@@ -2794,10 +2792,7 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        call ESMF_FieldGet(lfield, mesh=lmesh, dimcount=dimCount, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (dimCount==1) then
-          nfield = n
-          exit
-       end if
+       if (dimCount==1) exit
     enddo
 
     ! Determine dimensions in mesh
@@ -2808,7 +2803,7 @@ contains
     call ESMF_FieldRegridGetArea(lfield, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     allocate(mesh_info%areas(numOwnedElements))
-    call ESMF_FieldGet(fieldlist(n), farrayPtr=dataptr, rc=rc)
+    call ESMF_FieldGet(lfield, farrayPtr=dataptr, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     mesh_info%areas(:) = dataptr
 
@@ -2822,10 +2817,7 @@ contains
        mesh_info%lons(n) = ownedElemCoords(2*n-1)
        mesh_info%lats(n) = ownedElemCoords(2*n)
     end do
-
-    ! Deallocate memory
     deallocate(ownedElemCoords)
-    deallocate(fieldlist)
 
   end subroutine med_meshinfo_create
 

@@ -133,9 +133,10 @@ contains
     use pio  , only : PIO_REARR_COMM_P2P, PIO_REARR_COMM_COLL
     use pio  , only : PIO_REARR_COMM_FC_2D_ENABLE, PIO_REARR_COMM_FC_2D_DISABLE
     use pio  , only : PIO_REARR_COMM_FC_1D_COMP2IO, PIO_REARR_COMM_FC_1D_IO2COMP
-    use ESMF , only : ESMF_GridComp, ESMF_UtilStringUpperCase
+    use ESMF , only : ESMF_UtilStringUpperCase
     use NUOPC, only : NUOPC_CompAttributeGet
 #endif
+    use ESMF , only : ESMF_GridComp
 
     ! input/output arguments
     type(ESMF_GridComp), intent(in)  :: gcomp
@@ -167,10 +168,13 @@ contains
 #endif
 
 #ifdef CESMCOUPLED
+
     io_subsystem => shr_pio_getiosys(med_id)
     pio_iotype   =  shr_pio_getiotype(med_id)
     pio_ioformat =  shr_pio_getioformat(med_id)
+
 #else
+
     ! query VM
     call ESMF_VMGetCurrent(vm=vm, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
