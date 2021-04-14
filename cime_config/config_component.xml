@@ -2311,38 +2311,6 @@
     <desc>determine if per ice thickness category fields are passed from ice to ocean - DO NOT EDIT (set by POP build-namelist)</desc>
   </entry>
 
-  <!-- ===================================================================== -->
-  <!-- history frequencies -->
-  <!-- ===================================================================== -->
-
-  <entry id="HIST_OPTION">
-    <type>char</type>
-    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
-    <default_value>never</default_value>
-    <group>run_drv_history</group>
-    <file>env_run.xml</file>
-    <desc>Sets driver snapshot history file frequency (like REST_OPTION)</desc>
-  </entry>
-
-  <entry id="HIST_N">
-    <type>integer</type>
-    <valid_values></valid_values>
-    <default_value>-999</default_value>
-    <group>run_drv_history</group>
-    <file>env_run.xml</file>
-    <desc>Sets driver snapshot history file frequency (like REST_N)
-    </desc>
-  </entry>
-
-  <entry id="HIST_DATE">
-    <type>integer</type>
-    <valid_values></valid_values>
-    <default_value>-999</default_value>
-    <group>run_drv_history</group>
-    <file>env_run.xml</file>
-    <desc>yyyymmdd format, sets coupler snapshot history date (like REST_DATE)</desc>
-  </entry>
-
   <entry id="INFO_DBUG">
     <type>integer</type>
     <valid_values>0,1,2,3,4,5,6,7,8,9</valid_values>
@@ -2366,7 +2334,6 @@
       is set to TRUE. Note that is only available on a limited set of
       machines/compilers.</desc>
   </entry>
-
 
   <!-- Prerun/postrun custom script options -->
 

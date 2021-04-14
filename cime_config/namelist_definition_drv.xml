@@ -1356,53 +1356,71 @@
     </values>
   </entry>
 
+  <entry id="history_ymd" modify_via_xml="HIST_YMD">
+    <type>integer</type>
+    <category>time</category>
+    <group>CLOCK_attributes</group>
+    <desc>
+      date associated with history_option date.  yyyymmdd format.
+      set by HIST_DATE in env_run.xml.
+    </desc>
+    <values>
+      <value>$HIST_DATE</value>
+    </values>
+  </entry>
+
   <!-- ======================================= -->
-  <!-- MED time averaged history output -->
+  <!-- MED atm history files -->
   <!-- ======================================= -->
 
-  <entry id="history_avg_n" modify_via_xml="HISTAVG_N">
+  <entry id="history_inst_option_atm" modify_via_xml="HIST_OPTION_ATM">
+    <type>char</type>
+    <category>time</category>
+    <group>MED_attributes</group>
+    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,monthly,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <desc>
+      mediator history for atm import/export/fields snapshot option (used with history_n and history_ymd)
+    </desc>
+    <values>
+      <value>$HIST_OPTION_ATM</value>
+    </values>
+  </entry>
+  <entry id="history_inst_n_atm" modify_via_xml="HIST_N_ATM">
     <type>integer</type>
     <category>time</category>
     <group>MED_attributes</group>
     <desc>
-      Sets mediator time-average history file frequency (like restart_option)
-      set by AVGHIST_N in env_run.xml.
+      sets mediator snapshot history file frequency for atm import/export fields (like restart_n)
     </desc>
     <values>
-      <value>$AVGHIST_N</value>
+      <value>$HIST_N_ATM</value>
     </values>
   </entry>
-
-  <entry id="history_avg_option" modify_via_xml="HISTAVG_OPTION">
+  <entry id="history_avg_option_atm" modify_via_xml="AVGHIST_OPTION_ATM">
     <type>char</type>
     <category>time</category>
     <group>MED_attributes</group>
     <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,monthly,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
     <desc>
       mediator time average history option (used with histavg_n and histavg_ymd)
-      set by AVGHIST_OPTION in env_run.xml.
-      histavg_option alarms are:
-      [none/never], turns option off
-      [nstep/s]   , history snapshot every histavg_n nsteps  , relative to current run start time
-      [nsecond/s] , history snapshot every histavg_n nseconds, relative to current run start time
-      [nminute/s] , history snapshot every histavg_n nminutes, relative to current run start time
-      [nhour/s]   , history snapshot every histavg_n nhours  , relative to current run start time
-      [nday/s]    , history snapshot every histavg_n ndays   , relative to current run start time
-      [monthly/s] , history snapshot every           month   , relative to current run start time
-      [nmonth/s]  , history snapshot every histavg_n nmonths , relative to current run start time
-      [nyear/s]   , history snapshot every histavg_n nyears  , relative to current run start time
-      [date]      , history snapshot at histavg_ymd value
-      [ifdays0]   , history snapshot at histavg_n calendar day value and seconds equal 0
-      [end]       , history snapshot at end
     </desc>
     <values>
-      <value>$AVGHIST_OPTION</value>
+      <value>$AVGHIST_OPTION_ATM</value>
+    </values>
+  </entry>
+  <entry id="history_avg_n_atm" modify_via_xml="AVGHIST_N_ATM">
+    <type>integer</type>
+    <category>time</category>
+    <group>MED_attributes</group>
+    <desc>
+      Sets mediator time-average history file frequency (like restart_option)
+    </desc>
+    <values>
+      <value>$AVGHIST_N_ATM</value>
     </values>
   </entry>
 
-  <!-- ======================================= -->
   <!-- MED histaux atm2med file1 -->
-  <!-- ======================================= -->
   <entry id="histaux_atm2med_file1_enabled">
     <type>char</type>
     <category>aux_hist</category>
@@ -1468,9 +1486,7 @@
     </values>
   </entry>
 
-  <!-- ======================================= -->
   <!-- MED histaux atm2med file2 -->
-  <!-- ======================================= -->
   <entry id="histaux_atm2med_file2_enabled">
     <type>char</type>
     <category>aux_hist</category>
@@ -1536,9 +1552,7 @@
     </values>
   </entry>
 
-  <!-- ======================================= -->
   <!-- MED histaux atm2med file3 -->
-  <!-- ======================================= -->
   <entry id="histaux_atm2med_file3_enabled">
     <type>char</type>
     <category>aux_hist</category>
@@ -1606,9 +1620,7 @@
     </values>
   </entry>
 
-  <!-- ======================================= -->
   <!-- MED histaux atm2med file4 -->
-  <!-- ======================================= -->
   <entry id="histaux_atm2med_file4_enabled">
     <type>char</type>
     <category>aux_hist</category>
@@ -1678,9 +1690,7 @@
     </values>
   </entry>
 
-  <!-- ======================================= -->
   <!-- MED histaux atm2med file5 -->
-  <!-- ======================================= -->
   <entry id="histaux_atm2med_file5_enabled">
     <type>char</type>
     <category>aux_hist</category>
@@ -1747,8 +1757,159 @@
   </entry>
 
   <!-- ======================================= -->
-  <!-- MED histaux lnd2med file 1 -->
+  <!-- MED ice history files -->
   <!-- ======================================= -->
+
+  <entry id="history_inst_option_ice" modify_via_xml="HIST_OPTION_ICE">
+    <type>char</type>
+    <category>time</category>
+    <group>MED_attributes</group>
+    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,monthly,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <desc>
+      mediator history for ice import/export/fields snapshot option (used with history_n and history_ymd)
+    </desc>
+    <values>
+      <value>$HIST_OPTION_ICE</value>
+    </values>
+  </entry>
+  <entry id="history_inst_n_ice" modify_via_xml="HIST_N_ICE">
+    <type>integer</type>
+    <category>time</category>
+    <group>MED_attributes</group>
+    <desc>
+      sets mediator snapshot history file frequency for ice import/export fields (like restart_n)
+    </desc>
+    <values>
+      <value>$HIST_N_ICE</value>
+    </values>
+  </entry>
+  <entry id="history_avg_option_ice" modify_via_xml="AVGHIST_OPTION_ICE">
+    <type>char</type>
+    <category>time</category>
+    <group>MED_attributes</group>
+    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,monthly,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <desc>
+      mediator time average history option (used with histavg_n and histavg_ymd)
+    </desc>
+    <values>
+      <value>$AVGHIST_OPTION_ICE</value>
+    </values>
+  </entry>
+  <entry id="history_avg_n_ice" modify_via_xml="AVGHIST_N_ICE">
+    <type>integer</type>
+    <category>time</category>
+    <group>MED_attributes</group>
+    <desc>
+      Sets mediator time-average history file frequency (like restart_option)
+    </desc>
+    <values>
+      <value>$AVGHIST_N_ICE</value>
+    </values>
+  </entry>
+
+  <!-- ======================================= -->
+  <!-- MED glc history files -->
+  <!-- ======================================= -->
+
+  <entry id="history_inst_option_glc" modify_via_xml="HIST_OPTION_GLC">
+    <type>char</type>
+    <category>time</category>
+    <group>MED_attributes</group>
+    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,monthly,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <desc>
+      mediator history for glc import/export/fields snapshot option (used with history_n and history_ymd)
+    </desc>
+    <values>
+      <value>$HIST_OPTION_GLC</value>
+    </values>
+  </entry>
+  <entry id="history_inst_n_glc" modify_via_xml="HIST_N_GLC">
+    <type>integer</type>
+    <category>time</category>
+    <group>MED_attributes</group>
+    <desc>
+      sets mediator snapshot history file frequency for glc import/export fields (like restart_n)
+    </desc>
+    <values>
+      <value>$HIST_N_GLC</value>
+    </values>
+  </entry>
+  <entry id="history_avg_option_glc" modify_via_xml="AVGHIST_OPTION_GLC">
+    <type>char</type>
+    <category>time</category>
+    <group>MED_attributes</group>
+    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,monthly,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <desc>
+      mediator time average history option (used with histavg_n and histavg_ymd)
+    </desc>
+    <values>
+      <value>$AVGHIST_OPTION_GLC</value>
+    </values>
+  </entry>
+  <entry id="history_avg_n_glc" modify_via_xml="AVGHIST_N_GLC">
+    <type>integer</type>
+    <category>time</category>
+    <group>MED_attributes</group>
+    <desc>
+      Sets mediator time-average history file frequency (like restart_option)
+    </desc>
+    <values>
+      <value>$AVGHIST_N_GLC</value>
+    </values>
+  </entry>
+
+  <!-- ======================================= -->
+  <!-- MED lnd history files -->
+  <!-- ======================================= -->
+
+  <entry id="history_inst_option_lnd" modify_via_xml="HIST_OPTION_LND">
+    <type>char</type>
+    <category>time</category>
+    <group>MED_attributes</group>
+    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,monthly,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <desc>
+      mediator history for lnd import/export/fields snapshot option (used with history_n and history_ymd)
+    </desc>
+    <values>
+      <value>$HIST_OPTION_LND</value>
+    </values>
+  </entry>
+  <entry id="history_inst_n_lnd" modify_via_xml="HIST_N_LND">
+    <type>integer</type>
+    <category>time</category>
+    <group>MED_attributes</group>
+    <desc>
+      sets mediator snapshot history file frequency for lnd import/export fields (like restart_n)
+    </desc>
+    <values>
+      <value>$HIST_N_LND</value>
+    </values>
+  </entry>
+  <entry id="history_avg_option_lnd" modify_via_xml="AVGHIST_OPTION_LND">
+    <type>char</type>
+    <category>time</category>
+    <group>MED_attributes</group>
+    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,monthly,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <desc>
+      mediator time average history option (used with histavg_n and histavg_ymd)
+    </desc>
+    <values>
+      <value>$AVGHIST_OPTION_LND</value>
+    </values>
+  </entry>
+  <entry id="history_avg_n_lnd" modify_via_xml="AVGHIST_N_LND">
+    <type>integer</type>
+    <category>time</category>
+    <group>MED_attributes</group>
+    <desc>
+      Sets mediator time-average history file frequency (like restart_option)
+    </desc>
+    <values>
+      <value>$AVGHIST_N_LND</value>
+    </values>
+  </entry>
+
+  <!-- MED histaux lnd2med file 1 -->
   <entry id="histaux_lnd2med_file1_enabled">
     <type>char</type>
     <category>aux_hist</category>
@@ -1814,9 +1975,7 @@
     </values>
   </entry>
 
-  <!-- ======================================= -->
   <!-- MED histaux lnd2med file 2 -->
-  <!-- ======================================= -->
   <entry id="histaux_lnd2med_file2_enabled">
     <type>char</type>
     <category>aux_hist</category>
@@ -1883,8 +2042,108 @@
   </entry>
 
   <!-- ======================================= -->
-  <!-- MED histaux rof2med file 1 -->
+  <!-- MED ocn history files -->
   <!-- ======================================= -->
+
+  <entry id="history_inst_option_ocn" modify_via_xml="HIST_OPTION_OCN">
+    <type>char</type>
+    <category>time</category>
+    <group>MED_attributes</group>
+    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,monthly,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <desc>
+      mediator history for ocn import/export/fields snapshot option (used with history_n and history_ymd)
+    </desc>
+    <values>
+      <value>$HIST_OPTION_OCN</value>
+    </values>
+  </entry>
+  <entry id="history_inst_n_ocn" modify_via_xml="HIST_N_OCN">
+    <type>integer</type>
+    <category>time</category>
+    <group>MED_attributes</group>
+    <desc>
+      sets mediator snapshot history file frequency for ocn import/export fields (like restart_n)
+    </desc>
+    <values>
+      <value>$HIST_N_OCN</value>
+    </values>
+  </entry>
+  <entry id="history_avg_option_ocn" modify_via_xml="AVGHIST_OPTION_OCN">
+    <type>char</type>
+    <category>time</category>
+    <group>MED_attributes</group>
+    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,monthly,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <desc>
+      mediator time average history option (used with histavg_n and histavg_ymd)
+    </desc>
+    <values>
+      <value>$AVGHIST_OPTION_OCN</value>
+    </values>
+  </entry>
+  <entry id="history_avg_n_ocn" modify_via_xml="AVGHIST_N_OCN">
+    <type>integer</type>
+    <category>time</category>
+    <group>MED_attributes</group>
+    <desc>
+      Sets mediator time-average history file frequency (like restart_option)
+    </desc>
+    <values>
+      <value>$AVGHIST_N_OCN</value>
+    </values>
+  </entry>
+
+  <!-- ======================================= -->
+  <!-- MED rof history files -->
+  <!-- ======================================= -->
+
+  <entry id="history_inst_option_rof" modify_via_xml="HIST_OPTION_ROF">
+    <type>char</type>
+    <category>time</category>
+    <group>MED_attributes</group>
+    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,monthly,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <desc>
+      mediator history for rof import/export/fields snapshot option (used with history_n and history_ymd)
+    </desc>
+    <values>
+      <value>$HIST_OPTION_ROF</value>
+    </values>
+  </entry>
+  <entry id="history_inst_n_rof" modify_via_xml="HIST_N_ROF">
+    <type>integer</type>
+    <category>time</category>
+    <group>MED_attributes</group>
+    <desc>
+      sets mediator snapshot history file frequency for rof import/export fields (like restart_n)
+    </desc>
+    <values>
+      <value>$HIST_N_ROF</value>
+    </values>
+  </entry>
+  <entry id="history_avg_option_rof" modify_via_xml="AVGHIST_OPTION_ROF">
+    <type>char</type>
+    <category>time</category>
+    <group>MED_attributes</group>
+    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,monthly,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <desc>
+      mediator time average history option (used with histavg_n and histavg_ymd)
+    </desc>
+    <values>
+      <value>$AVGHIST_OPTION_ROF</value>
+    </values>
+  </entry>
+  <entry id="history_avg_n_rof" modify_via_xml="AVGHIST_N_ROF">
+    <type>integer</type>
+    <category>time</category>
+    <group>MED_attributes</group>
+    <desc>
+      Sets mediator time-average history file frequency (like restart_option)
+    </desc>
+    <values>
+      <value>$AVGHIST_N_ROF</value>
+    </values>
+  </entry>
+
+  <!-- MED histaux rof2med file 1 -->
   <entry id="histaux_rof2med_file1_enabled">
     <type>char</type>
     <category>aux_hist</category>
@@ -1950,6 +2209,57 @@
     </values>
   </entry>
 
+  <!-- ======================================= -->
+  <!-- MED wav history files -->
+  <!-- ======================================= -->
+
+  <entry id="history_inst_option_wav" modify_via_xml="HIST_OPTION_WAV">
+    <type>char</type>
+    <category>time</category>
+    <group>MED_attributes</group>
+    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,monthly,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <desc>
+      mediator history for wav import/export/fields snapshot option (used with history_n and history_ymd)
+    </desc>
+    <values>
+      <value>$HIST_OPTION_WAV</value>
+    </values>
+  </entry>
+  <entry id="history_inst_n_wav" modify_via_xml="HIST_N_WAV">
+    <type>integer</type>
+    <category>time</category>
+    <group>MED_attributes</group>
+    <desc>
+      sets mediator snapshot history file frequency for wav import/export fields (like restart_n)
+    </desc>
+    <values>
+      <value>$HIST_N_WAV</value>
+    </values>
+  </entry>
+  <entry id="history_avg_option_wav" modify_via_xml="AVGHIST_OPTION_WAV">
+    <type>char</type>
+    <category>time</category>
+    <group>MED_attributes</group>
+    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,monthly,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <desc>
+      mediator time average history option (used with histavg_n and histavg_ymd)
+    </desc>
+    <values>
+      <value>$AVGHIST_OPTION_WAV</value>
+    </values>
+  </entry>
+  <entry id="history_avg_n_wav" modify_via_xml="AVGHIST_N_WAV">
+    <type>integer</type>
+    <category>time</category>
+    <group>MED_attributes</group>
+    <desc>
+      Sets mediator time-average history file frequency (like restart_option)
+    </desc>
+    <values>
+      <value>$AVGHIST_N_WAV</value>
+    </values>
+  </entry>
+
   <!-- =========================== -->
   <!-- MED mapping attributes      -->
   <!-- =========================== -->
@@ -1964,7 +2274,6 @@
       <value>.true.</value>
     </values>
   </entry>
-
   <entry id="atm2ocn_fmapname" modify_via_xml="ATM2OCN_FMAPNAME">
     <type>char</type>
     <category>mapping</category>
@@ -1975,7 +2284,6 @@
       <value>$ATM2OCN_FMAPNAME</value>
     </values>
   </entry>
-
   <entry id="atm2ocn_smapname" modify_via_xml="ATM2OCN_SMAPNAME">
     <type>char</type>
     <category>mapping</category>
@@ -1988,7 +2296,6 @@
       <value>$ATM2OCN_SMAPNAME</value>
     </values>
   </entry>
-
   <entry id="atm2ocn_vmapname"    modify_via_xml="ATM2OCN_VMAPNAME">
     <type>char</type>
     <category>mapping</category>
@@ -2001,7 +2308,6 @@
       <value>$ATM2OCN_VMAPNAME</value>
     </values>
   </entry>
-
   <entry id="ocn2atm_fmapname"    modify_via_xml="OCN2ATM_FMAPNAME">
     <type>char</type>
     <category>mapping</category>
@@ -2014,7 +2320,6 @@
       <value>$OCN2ATM_FMAPNAME</value>
     </values>
   </entry>
-
   <entry id="ocn2atm_smapname"    modify_via_xml="OCN2ATM_SMAPNAME">
     <type>char</type>
     <category>mapping</category>
@@ -2027,7 +2332,6 @@
       <value>$OCN2ATM_SMAPNAME</value>
     </values>
   </entry>
-
   <entry id="atm2ice_fmapname"    modify_via_xml="ATM2ICE_FMAPNAME">
     <type>char</type>
     <category>mapping</category>
@@ -2040,7 +2344,6 @@
       <value>$ATM2OCN_FMAPNAME</value>
     </values>
   </entry>
-
   <entry id="atm2ice_smapname"    modify_via_xml="ATM2ICE_SMAPNAME">
     <type>char</type>
     <category>mapping</category>
@@ -2053,7 +2356,6 @@
       <value>$ATM2OCN_SMAPNAME</value>
     </values>
   </entry>
-
   <entry id="atm2ice_vmapname"    modify_via_xml="ATM2ICE_VMAPNAME">
     <type>char</type>
     <category>mapping</category>
@@ -2066,7 +2368,6 @@
       <value>$ATM2OCN_VMAPNAME</value>
     </values>
   </entry>
-
   <entry id="ice2atm_fmapname"    modify_via_xml="ICE2ATM_FMAPNAME">
     <type>char</type>
     <category>mapping</category>
@@ -2105,7 +2406,6 @@
       <value>$ATM2LND_FMAPNAME</value>
     </values>
   </entry>
-
   <entry id="atm2lnd_smapname"    modify_via_xml="ATM2LND_SMAPNAME">
     <type>char</type>
     <category>mapping</category>
@@ -2118,7 +2418,6 @@
       <value>$ATM2LND_SMAPNAME</value>
     </values>
   </entry>
-
   <entry id="atm2lnd_vmapname"    modify_via_xml="ATM2LND_SMAPNAME">
     <type>char</type>
     <category>mapping</category>
@@ -2131,7 +2430,6 @@
       <value>$ATM2LND_SMAPNAME</value>
     </values>
   </entry>
-
   <entry id="lnd2atm_fmapname"    modify_via_xml="LND2ATM_FMAPNAME">
     <type>char</type>
     <category>mapping</category>
@@ -2144,7 +2442,6 @@
       <value>$LND2ATM_FMAPNAME</value>
     </values>
   </entry>
-
   <entry id="lnd2atm_smapname"    modify_via_xml="LND2ATM_SMAPNAME">
     <type>char</type>
     <category>mapping</category>
@@ -2157,7 +2454,6 @@
       <value>$LND2ATM_SMAPNAME</value>
     </values>
   </entry>
-
   <entry id="lnd2rof_fmapname"    modify_via_xml="LND2ROF_FMAPNAME">
     <type>char</type>
     <category>mapping</category>
@@ -2170,7 +2466,6 @@
       <value>$LND2ROF_FMAPNAME</value>
     </values>
   </entry>
-
   <entry id="rof2lnd_smapname"    modify_via_xml="ROF2LND_FMAPNAME">
     <type>char</type>
     <category>mapping</category>
@@ -2183,7 +2478,6 @@
       <value>$ROF2LND_FMAPNAME</value>
     </values>
   </entry>
-
   <entry id="rof2lnd_fmapname"    modify_via_xml="ROF2LND_FMAPNAME">
     <type>char</type>
     <category>mapping</category>
@@ -2196,7 +2490,6 @@
       <value>$ROF2LND_FMAPNAME</value>
     </values>
   </entry>
-
   <entry id="rof2ocn_fmapname"    modify_via_xml="ROF2OCN_FMAPNAME">
     <type>char</type>
     <category>mapping</category>
@@ -2209,7 +2502,6 @@
       <value>$ROF2OCN_FMAPNAME</value>
     </values>
   </entry>
-
   <entry id="glc2ocn_liq_rmapname"    modify_via_xml="GLC2OCN_LIQ_RMAPNAME">
     <type>char</type>
     <category>mapping</category>
@@ -2222,7 +2514,6 @@
       <value>$GLC2OCN_LIQ_RMAPNAME</value>
     </values>
   </entry>
-
   <entry id="glc2ice_rmapname"    modify_via_xml="GLC2ICE_RMAPNAME">
     <type>char</type>
     <category>mapping</category>
@@ -2248,7 +2539,6 @@
       <value>$GLC2OCN_ICE_RMAPNAME</value>
     </values>
   </entry>
-
   <entry id="rof2ocn_liq_rmapname"    modify_via_xml="ROF2OCN_LIQ_RMAPNAME">
     <type>char</type>
     <category>mapping</category>
@@ -2261,7 +2551,6 @@
       <value>$ROF2OCN_LIQ_RMAPNAME</value>
     </values>
   </entry>
-
   <entry id="rof2ocn_ice_rmapname"    modify_via_xml="ROF2OCN_ICE_RMAPNAME">
     <type>char</type>
     <category>mapping</category>
@@ -2274,7 +2563,6 @@
       <value>$ROF2OCN_ICE_RMAPNAME</value>
     </values>
   </entry>
-
   <entry id="lnd2glc_fmapname"    modify_via_xml="LND2GLC_FMAPNAME">
     <type>char</type>
     <category>mapping</category>
@@ -2287,7 +2575,6 @@
       <value>$LND2GLC_FMAPNAME</value>
     </values>
   </entry>
-
   <entry id="lnd2glc_smapname"    modify_via_xml="LND2GLC_SMAPNAME">
     <type>char</type>
     <category>mapping</category>
@@ -2300,7 +2587,6 @@
       <value>$LND2GLC_SMAPNAME</value>
     </values>
   </entry>
-
   <entry id="glc2lnd_fmapname"    modify_via_xml="GLC2LND_FMAPNAME">
     <type>char</type>
     <category>mapping</category>
@@ -2313,7 +2599,6 @@
       <value>$GLC2LND_FMAPNAME</value>
     </values>
   </entry>
-
   <entry id="glc2lnd_smapname"    modify_via_xml="GLC2LND_SMAPNAME">
     <type>char</type>
     <category>mapping</category>
@@ -2326,7 +2611,6 @@
       <value>$GLC2LND_SMAPNAME</value>
     </values>
   </entry>
-
   <entry id="atm2wav_smapname"    modify_via_xml="ATM2WAV_SMAPNAME">
     <type>char</type>
     <category>mapping</category>
@@ -2339,7 +2623,6 @@
       <value>$ATM2WAV_SMAPNAME</value>
     </values>
   </entry>
-
   <entry id="atm2wav_vmapname"    modify_via_xml="ATM2WAV_SMAPNAME">
     <type>char</type>
     <category>mapping</category>
@@ -2352,7 +2635,6 @@
       <value>$ATM2WAV_SMAPNAME</value>
     </values>
   </entry>
-
   <entry id="ocn2wav_smapname"    modify_via_xml="OCN2WAV_SMAPNAME">
     <type>char</type>
     <category>mapping</category>
@@ -2365,7 +2647,6 @@
       <value>$OCN2WAV_SMAPNAME</value>
     </values>
   </entry>
-
   <entry id="ice2wav_smapname"    modify_via_xml="ICE2WAV_SMAPNAME">
     <type>char</type>
     <category>mapping</category>
@@ -2378,7 +2659,6 @@
       <value>$ICE2WAV_SMAPNAME</value>
     </values>
   </entry>
-
   <entry id="wav2ocn_smapname"    modify_via_xml="WAV2OCN_SMAPNAME">
     <type>char</type>
     <category>mapping</category>
@@ -2886,112 +3166,6 @@
     </values>
   </entry>
 
-  <entry id="history_option" modify_via_xml="HIST_OPTION">
-    <type>char</type>
-    <category>time</category>
-    <group>CLOCK_attributes</group>
-    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,monthly,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
-    <desc>
-      coupler history snapshot option (used with history_n and history_ymd)
-      set by HIST_OPTION in env_run.xml.
-      history_option alarms are:
-      [none/never], turns option off
-      [nstep/s]   , history snapshot every history_n nsteps  , relative to current run start time
-      [nsecond/s] , history snapshot every history_n nseconds, relative to current run start time
-      [nminute/s] , history snapshot every history_n nminutes, relative to current run start time
-      [nhour/s]   , history snapshot every history_n nhours  , relative to current run start time
-      [nday/s]    , history snapshot every history_n ndays   , relative to current run start time
-      [monthly/s] , history snapshot every           month   , relative to current run start time
-      [nmonth/s]  , history snapshot every history_n nmonths , relative to current run start time
-      [nyear/s]   , history snapshot every history_n nyears  , relative to current run start time
-      [date]      , history snapshot at history_ymd value
-      [ifdays0]   , history snapshot at history_n calendar day value and seconds equal 0
-      [end]       , history snapshot at end
-    </desc>
-    <values>
-      <value>$HIST_OPTION</value>
-    </values>
-  </entry>
-
-  <entry id="history_n" modify_via_xml="HIST_N">
-    <type>integer</type>
-    <category>time</category>
-    <group>CLOCK_attributes</group>
-    <desc>
-      sets coupler snapshot history file frequency (like restart_n)
-      set by HIST_N in env_run.xml.
-    </desc>
-    <values>
-      <value>$HIST_N</value>
-    </values>
-  </entry>
-
-  <entry id="history_ymd" modify_via_xml="HIST_YMD">
-    <type>integer</type>
-    <category>time</category>
-    <group>CLOCK_attributes</group>
-    <desc>
-      date associated with history_option date.  yyyymmdd format.
-      set by HIST_DATE in env_run.xml.
-    </desc>
-    <values>
-      <value>$HIST_DATE</value>
-    </values>
-  </entry>
-
-  <!-- <entry id="histavg_option" modify_via_xml="HISTAVG_OPTION"> -->
-  <!--   <type>char</type> -->
-  <!--   <category>time</category> -->
-  <!--   <group>CLOCK_attributes</group> -->
-  <!--   <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,monthly,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values> -->
-  <!--   <desc> -->
-  <!--     coupler time average history option (used with histavg_n and histavg_ymd) -->
-  <!--     set by AVGHIST_OPTION in env_run.xml. -->
-  <!--     histavg_option alarms are: -->
-  <!--     [none/never], turns option off -->
-  <!--     [nstep/s]   , history snapshot every histavg_n nsteps  , relative to current run start time -->
-  <!--     [nsecond/s] , history snapshot every histavg_n nseconds, relative to current run start time -->
-  <!--     [nminute/s] , history snapshot every histavg_n nminutes, relative to current run start time -->
-  <!--     [nhour/s]   , history snapshot every histavg_n nhours  , relative to current run start time -->
-  <!--     [nday/s]    , history snapshot every histavg_n ndays   , relative to current run start time -->
-  <!--     [monthly/s] , history snapshot every           month   , relative to current run start time -->
-  <!--     [nmonth/s]  , history snapshot every histavg_n nmonths , relative to current run start time -->
-  <!--     [nyear/s]   , history snapshot every histavg_n nyears  , relative to current run start time -->
-  <!--     [date]      , history snapshot at histavg_ymd value -->
-  <!--     [ifdays0]   , history snapshot at histavg_n calendar day value and seconds equal 0 -->
-  <!--     [end]       , history snapshot at end -->
-  <!--   </desc> -->
-  <!--   <values> -->
-  <!--     <value>$AVGHIST_OPTION</value> -->
-  <!--   </values> -->
-  <!-- </entry> -->
-
-  <!-- <entry id="histavg_n" modify_via_xml="HISTAVG_N"> -->
-  <!--   <type>integer</type> -->
-  <!--   <category>time</category> -->
-  <!--   <group>CLOCK_attributes</group> -->
-  <!--   <desc> -->
-  <!--     Sets coupler time-average history file frequency (like restart_option) -->
-  <!--     set by AVGHIST_N in env_run.xml. -->
-  <!--   </desc> -->
-  <!--   <values> -->
-  <!--     <value>$AVGHIST_N</value> -->
-  <!--   </values> -->
-  <!-- </entry> -->
-
-  <!-- <entry id="histavg_ymd" modify_via_xml="HISTAVG_YMD"> -->
-  <!--   <type>integer</type> -->
-  <!--   <category>time</category> -->
-  <!--   <group>CLOCK_attributes</group> -->
-  <!--   <desc> -->
-  <!--     date associated with histavg_option date.  yyyymmdd format. -->
-  <!--     set by AVGHIST_DATE in env_run.xml. -->
-  <!--   </desc> -->
-  <!--   <values> -->
-  <!--     <value>$AVGHIST_DATE</value> -->
-  <!--   </values> -->
-  <!-- </entry> -->
-
   <entry id="barrier_option" modify_via_xml="BARRIER_OPTION">
     <type>char</type>
     <category>time</category>
@@ -3006,7 +3180,6 @@
       <value>$BARRIER_OPTION</value>
     </values>
   </entry>
-
   <entry id="barrier_n" modify_via_xml="BARRIER_N">
     <type>integer</type>
     <category>time</category>
@@ -3019,7 +3192,6 @@
       <value>$BARRIER_N</value>
     </values>
   </entry>
-
   <entry id="barrier_ymd" modify_via_xml="BARRIER_DATE">
     <type>integer</type>
     <category>time</category>
@@ -3031,7 +3203,6 @@
       <value>$BARRIER_DATE</value>
     </values>
   </entry>
-
   <entry id="tprof_option">
     <type>char</type>
     <category>time</category>
@@ -3057,7 +3228,6 @@
       <value>never</value>
     </values>
   </entry>
-
   <entry id="tprof_n">
     <type>integer</type>
     <category>time</category>
@@ -3069,7 +3239,6 @@
       <value>-999</value>
     </values>
   </entry>
-
   <entry id="tprof_ymd">
     <type>integer</type>
     <category>time</category>

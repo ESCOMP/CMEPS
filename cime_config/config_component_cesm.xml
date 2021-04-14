@@ -452,6 +452,153 @@
     </desc>
   </entry>
 
+  <!-- ===================================================================== -->
+  <!-- instantaneous history frequencies -->
+  <!-- ===================================================================== -->
+
+  <entry id="HIST_OPTION">
+    <type>char</type>
+    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <default_value>never</default_value>
+    <group>med_history</group>
+    <file>env_run.xml</file>
+    <desc>Sets driver snapshot history file frequency (like REST_OPTION)</desc>
+  </entry>
+  <entry id="HIST_N">
+    <type>integer</type>
+    <valid_values></valid_values>
+    <default_value>-999</default_value>
+    <group>med_history</group>
+    <file>env_run.xml</file>
+    <desc>Sets driver snapshot history file frequency (like REST_N)
+    </desc>
+  </entry>
+  <entry id="HIST_DATE">
+    <type>integer</type>
+    <valid_values></valid_values>
+    <default_value>-999</default_value>
+    <group>med_history</group>
+    <file>env_run.xml</file>
+    <desc>yyyymmdd format, sets coupler snapshot history date (like REST_DATE)</desc>
+  </entry>
+
+  <entry id="HIST_OPTION_ATM">
+    <type>char</type>
+    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <default_value>never</default_value>
+    <group>med_history</group>
+    <file>env_run.xml</file>
+    <desc>Sets mediator average history file frequency (like REST_OPTION)</desc>
+  </entry>
+  <entry id="HIST_N_ATM">
+    <type>char</type>
+    <valid_values></valid_values>
+    <default_value>-999</default_value>
+    <group>med_history</group>
+    <file>env_run.xml</file>
+    <desc>Sets mediator average history file frequency (like REST_N)</desc>
+  </entry>
+  <entry id="HIST_OPTION_ICE">
+    <type>char</type>
+    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <default_value>never</default_value>
+    <group>med_history</group>
+    <file>env_run.xml</file>
+    <desc>Sets mediator average history file frequency (like REST_OPTION)</desc>
+  </entry>
+  <entry id="HIST_N_ICE">
+    <type>char</type>
+    <valid_values></valid_values>
+    <default_value>-999</default_value>
+    <group>med_history</group>
+    <file>env_run.xml</file>
+    <desc>Sets mediator average history file frequency (like REST_N)</desc>
+  </entry>
+  <entry id="HIST_OPTION_GLC">
+    <type>char</type>
+    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <default_value>never</default_value>
+    <group>med_history</group>
+    <file>env_run.xml</file>
+    <desc>Sets mediator average history file frequency (like REST_OPTION)</desc>
+  </entry>
+  <entry id="HIST_N_GLC">
+    <type>char</type>
+    <valid_values></valid_values>
+    <default_value>-999</default_value>
+    <group>med_history</group>
+    <file>env_run.xml</file>
+    <desc>Sets mediator average history file frequency (like REST_N)</desc>
+  </entry>
+  <entry id="HIST_OPTION_LND">
+    <type>char</type>
+    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <default_value>never</default_value>
+    <group>med_history</group>
+    <file>env_run.xml</file>
+    <desc>Sets mediator average history file frequency (like REST_OPTION)</desc>
+  </entry>
+  <entry id="HIST_N_LND">
+    <type>char</type>
+    <valid_values></valid_values>
+    <default_value>-999</default_value>
+    <group>med_history</group>
+    <file>env_run.xml</file>
+    <desc>Sets mediator average history file frequency (like REST_N)</desc>
+  </entry>
+  <entry id="HIST_OPTION_OCN">
+    <type>char</type>
+    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <default_value>never</default_value>
+    <group>med_history</group>
+    <file>env_run.xml</file>
+    <desc>Sets mediator average history file frequency (like REST_OPTION)</desc>
+  </entry>
+  <entry id="HIST_N_OCN">
+    <type>char</type>
+    <valid_values></valid_values>
+    <default_value>-999</default_value>
+    <group>med_history</group>
+    <file>env_run.xml</file>
+    <desc>Sets mediator average history file frequency (like REST_N)</desc>
+  </entry>
+  <entry id="HIST_OPTION_ROF">
+    <type>char</type>
+    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <default_value>never</default_value>
+    <group>med_history</group>
+    <file>env_run.xml</file>
+    <desc>Sets mediator average history file frequency (like REST_OPTION)</desc>
+  </entry>
+  <entry id="HIST_N_ROF">
+    <type>char</type>
+    <valid_values></valid_values>
+    <default_value>-999</default_value>
+    <group>med_history</group>
+    <file>env_run.xml</file>
+    <desc>Sets mediator average history file frequency (like REST_N)</desc>
+  </entry>
+  <entry id="HIST_OPTION_WAV">
+    <type>char</type>
+    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <default_value>never</default_value>
+    <group>med_history</group>
+    <file>env_run.xml</file>
+    <desc>Sets mediator average history file frequency (like REST_OPTION)</desc>
+  </entry>
+  <entry id="HIST_N_WAV">
+    <type>char</type>
+    <valid_values></valid_values>
+    <default_value>-999</default_value>
+    <group>med_history</group>
+    <file>env_run.xml</file>
+    <desc>Sets mediator average history file frequency (like REST_N)</desc>
+  </entry>
+
+  <!-- ===================================================================== -->
+  <!-- averaged history frequencies -->
+  <!-- ===================================================================== -->
+
   <entry id="AVGHIST_OPTION">
     <type>char</type>
     <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
@@ -459,11 +606,10 @@
     <values match="last">
       <value compset="_DOCN%IAF">nmonths</value>
     </values>
-    <group>run_drv_history</group>
+    <group>med_history</group>
     <file>env_run.xml</file>
-    <desc>Sets driver average history file frequency (like REST_OPTION)</desc>
+    <desc>Sets mediator average history file frequency (like REST_OPTION)</desc>
   </entry>
-
   <entry id="AVGHIST_N">
     <type>char</type>
     <valid_values></valid_values>
@@ -471,18 +617,130 @@
     <values match="last">
       <value compset="_DOCN%IAF">1</value>
     </values>
-    <group>run_drv_history</group>
+    <group>med_history</group>
     <file>env_run.xml</file>
-    <desc>Sets driver average history file frequency (like REST_N)</desc>
+    <desc>Sets mediator average history file frequency (like REST_N)</desc>
   </entry>
-
   <entry id="AVGHIST_DATE">
     <type>integer</type>
     <valid_values></valid_values>
     <default_value>-999</default_value>
-    <group>run_drv_history</group>
+    <group>med_history</group>
     <file>env_run.xml</file>
-    <desc>yyyymmdd format, sets driver average history date (like REST_DATE)</desc>
+    <desc>yyyymmdd format, sets mediator average history date (like REST_DATE)</desc>
+  </entry>
+
+  <entry id="AVGHIST_OPTION_ATM">
+    <type>char</type>
+    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <default_value>never</default_value>
+    <group>med_history</group>
+    <file>env_run.xml</file>
+    <desc>Sets mediator average history file frequency (like REST_OPTION)</desc>
+  </entry>
+  <entry id="AVGHIST_N_ATM">
+    <type>char</type>
+    <valid_values></valid_values>
+    <default_value>-999</default_value>
+    <group>med_history</group>
+    <file>env_run.xml</file>
+    <desc>Sets mediator average history file frequency (like REST_N)</desc>
+  </entry>
+  <entry id="AVGHIST_OPTION_ICE">
+    <type>char</type>
+    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <default_value>never</default_value>
+    <group>med_history</group>
+    <file>env_run.xml</file>
+    <desc>Sets mediator average history file frequency (like REST_OPTION)</desc>
+  </entry>
+  <entry id="AVGHIST_N_ICE">
+    <type>char</type>
+    <valid_values></valid_values>
+    <default_value>-999</default_value>
+    <group>med_history</group>
+    <file>env_run.xml</file>
+    <desc>Sets mediator average history file frequency (like REST_N)</desc>
+  </entry>
+  <entry id="AVGHIST_OPTION_GLC">
+    <type>char</type>
+    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <default_value>never</default_value>
+    <group>med_history</group>
+    <file>env_run.xml</file>
+    <desc>Sets mediator average history file frequency (like REST_OPTION)</desc>
+  </entry>
+  <entry id="AVGHIST_N_GLC">
+    <type>char</type>
+    <valid_values></valid_values>
+    <default_value>-999</default_value>
+    <group>med_history</group>
+    <file>env_run.xml</file>
+    <desc>Sets mediator average history file frequency (like REST_N)</desc>
+  </entry>
+  <entry id="AVGHIST_OPTION_LND">
+    <type>char</type>
+    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <default_value>never</default_value>
+    <group>med_history</group>
+    <file>env_run.xml</file>
+    <desc>Sets mediator average history file frequency (like REST_OPTION)</desc>
+  </entry>
+  <entry id="AVGHIST_N_LND">
+    <type>char</type>
+    <valid_values></valid_values>
+    <default_value>-999</default_value>
+    <group>med_history</group>
+    <file>env_run.xml</file>
+    <desc>Sets mediator average history file frequency (like REST_N)</desc>
+  </entry>
+  <entry id="AVGHIST_OPTION_OCN">
+    <type>char</type>
+    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <default_value>never</default_value>
+    <group>med_history</group>
+    <file>env_run.xml</file>
+    <desc>Sets mediator average history file frequency (like REST_OPTION)</desc>
+  </entry>
+  <entry id="AVGHIST_N_OCN">
+    <type>char</type>
+    <valid_values></valid_values>
+    <default_value>-999</default_value>
+    <group>med_history</group>
+    <file>env_run.xml</file>
+    <desc>Sets mediator average history file frequency (like REST_N)</desc>
+  </entry>
+  <entry id="AVGHIST_OPTION_ROF">
+    <type>char</type>
+    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <default_value>never</default_value>
+    <group>med_history</group>
+    <file>env_run.xml</file>
+    <desc>Sets mediator average history file frequency (like REST_OPTION)</desc>
+  </entry>
+  <entry id="AVGHIST_N_ROF">
+    <type>char</type>
+    <valid_values></valid_values>
+    <default_value>-999</default_value>
+    <group>med_history</group>
+    <file>env_run.xml</file>
+    <desc>Sets mediator average history file frequency (like REST_N)</desc>
+  </entry>
+  <entry id="AVGHIST_OPTION_WAV">
+    <type>char</type>
+    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <default_value>never</default_value>
+    <group>med_history</group>
+    <file>env_run.xml</file>
+    <desc>Sets mediator average history file frequency (like REST_OPTION)</desc>
+  </entry>
+  <entry id="AVGHIST_N_WAV">
+    <type>char</type>
+    <valid_values></valid_values>
+    <default_value>-999</default_value>
+    <group>med_history</group>
+    <file>env_run.xml</file>
+    <desc>Sets mediator average history file frequency (like REST_N)</desc>
   </entry>
 
   <entry id="BUDGETS">

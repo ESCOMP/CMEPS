@@ -91,30 +91,14 @@ contains
     use NUOPC_Mediator          , only: mediator_label_Finalize         => label_Finalize
 
     use med_phases_history_mod  , only: med_phases_history_write
-    use med_phases_history_mod  , only: med_phases_history_write_inst_atm
-    use med_phases_history_mod  , only: med_phases_history_write_inst_ice
-    use med_phases_history_mod  , only: med_phases_history_write_inst_glc
-    use med_phases_history_mod  , only: med_phases_history_write_inst_lnd
-    use med_phases_history_mod  , only: med_phases_history_write_inst_ocn
-    use med_phases_history_mod  , only: med_phases_history_write_inst_rof
-    use med_phases_history_mod  , only: med_phases_history_write_inst_wav
-    use med_phases_history_mod  , only: med_phases_history_write_inst_med
-
-    use med_phases_history_mod  , only: med_phases_history_write_avg_atm
-    use med_phases_history_mod  , only: med_phases_history_write_avg_ice
-    use med_phases_history_mod  , only: med_phases_history_write_avg_glc
-    use med_phases_history_mod  , only: med_phases_history_write_avg_lnd
-    use med_phases_history_mod  , only: med_phases_history_write_avg_ocn
-    use med_phases_history_mod  , only: med_phases_history_write_avg_rof
-    use med_phases_history_mod  , only: med_phases_history_write_avg_wav
-
-    use med_phases_history_mod  , only: med_phases_history_write_aux_atm
-    use med_phases_history_mod  , only: med_phases_history_write_aux_ice
-    use med_phases_history_mod  , only: med_phases_history_write_aux_glc
-    use med_phases_history_mod  , only: med_phases_history_write_aux_lnd
-    use med_phases_history_mod  , only: med_phases_history_write_aux_ocn
-    use med_phases_history_mod  , only: med_phases_history_write_aux_rof
-    use med_phases_history_mod  , only: med_phases_history_write_aux_wav
+    use med_phases_history_mod  , only: med_phases_history_write_atm
+    use med_phases_history_mod  , only: med_phases_history_write_ice
+    use med_phases_history_mod  , only: med_phases_history_write_glc
+    use med_phases_history_mod  , only: med_phases_history_write_lnd
+    use med_phases_history_mod  , only: med_phases_history_write_ocn
+    use med_phases_history_mod  , only: med_phases_history_write_rof
+    use med_phases_history_mod  , only: med_phases_history_write_wav
+    use med_phases_history_mod  , only: med_phases_history_write_med
 
     use med_phases_restart_mod  , only: med_phases_restart_write
     use med_phases_prep_atm_mod , only: med_phases_prep_atm
@@ -232,22 +216,10 @@ contains
     !------------------
 
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
-         phaseLabelList=(/"med_phases_history_write_inst_atm"/), userRoutine=mediator_routine_Run, rc=rc)
+         phaseLabelList=(/"med_phases_history_write_atm"/), userRoutine=mediator_routine_Run, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
-         specPhaseLabel="med_phases_history_write_inst_atm", specRoutine=med_phases_history_write_inst_atm, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
-         phaseLabelList=(/"med_phases_history_write_avg_atm"/), userRoutine=mediator_routine_Run, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
-         specPhaseLabel="med_phases_history_write_avg_atm", specRoutine=med_phases_history_write_avg_atm, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
-         phaseLabelList=(/"med_phases_history_write_aux_atm"/), userRoutine=mediator_routine_Run, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
-         specPhaseLabel="med_phases_history_write_aux_atm", specRoutine=med_phases_history_write_aux_atm, rc=rc)
+         specPhaseLabel="med_phases_history_write_atm", specRoutine=med_phases_history_write_atm, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !------------------
@@ -255,22 +227,10 @@ contains
     !------------------
 
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
-         phaseLabelList=(/"med_phases_history_write_inst_ice"/), userRoutine=mediator_routine_Run, rc=rc)
+         phaseLabelList=(/"med_phases_history_write_ice"/), userRoutine=mediator_routine_Run, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
-         specPhaseLabel="med_phases_history_write_inst_ice", specRoutine=med_phases_history_write_inst_ice, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
-         phaseLabelList=(/"med_phases_history_write_avg_ice"/), userRoutine=mediator_routine_Run, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
-         specPhaseLabel="med_phases_history_write_avg_ice", specRoutine=med_phases_history_write_avg_ice, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
-         phaseLabelList=(/"med_phases_history_write_aux_ice"/), userRoutine=mediator_routine_Run, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
-         specPhaseLabel="med_phases_history_write_aux_ice", specRoutine=med_phases_history_write_aux_ice, rc=rc)
+         specPhaseLabel="med_phases_history_write_ice", specRoutine=med_phases_history_write_ice, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !------------------
@@ -278,22 +238,10 @@ contains
     !------------------
 
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
-         phaseLabelList=(/"med_phases_history_write_inst_glc"/), userRoutine=mediator_routine_Run, rc=rc)
+         phaseLabelList=(/"med_phases_history_write_glc"/), userRoutine=mediator_routine_Run, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
-         specPhaseLabel="med_phases_history_write_inst_glc", specRoutine=med_phases_history_write_inst_glc, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
-         phaseLabelList=(/"med_phases_history_write_avg_glc"/), userRoutine=mediator_routine_Run, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
-         specPhaseLabel="med_phases_history_write_avg_glc", specRoutine=med_phases_history_write_avg_glc, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
-         phaseLabelList=(/"med_phases_history_write_aux_glc"/), userRoutine=mediator_routine_Run, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
-         specPhaseLabel="med_phases_history_write_aux_glc", specRoutine=med_phases_history_write_aux_glc, rc=rc)
+         specPhaseLabel="med_phases_history_write_glc", specRoutine=med_phases_history_write_glc, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !------------------
@@ -301,22 +249,10 @@ contains
     !------------------
 
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
-         phaseLabelList=(/"med_phases_history_write_inst_lnd"/), userRoutine=mediator_routine_Run, rc=rc)
+         phaseLabelList=(/"med_phases_history_write_lnd"/), userRoutine=mediator_routine_Run, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
-         specPhaseLabel="med_phases_history_write_inst_lnd", specRoutine=med_phases_history_write_inst_lnd, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
-         phaseLabelList=(/"med_phases_history_write_avg_lnd"/), userRoutine=mediator_routine_Run, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
-         specPhaseLabel="med_phases_history_write_avg_lnd", specRoutine=med_phases_history_write_avg_lnd, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
-         phaseLabelList=(/"med_phases_history_write_aux_lnd"/), userRoutine=mediator_routine_Run, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
-         specPhaseLabel="med_phases_history_write_aux_lnd", specRoutine=med_phases_history_write_aux_lnd, rc=rc)
+         specPhaseLabel="med_phases_history_write_lnd", specRoutine=med_phases_history_write_lnd, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !------------------
@@ -324,22 +260,10 @@ contains
     !------------------
 
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
-         phaseLabelList=(/"med_phases_history_write_inst_ocn"/), userRoutine=mediator_routine_Run, rc=rc)
+         phaseLabelList=(/"med_phases_history_write_ocn"/), userRoutine=mediator_routine_Run, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
-         specPhaseLabel="med_phases_history_write_inst_ocn", specRoutine=med_phases_history_write_inst_ocn, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
-         phaseLabelList=(/"med_phases_history_write_avg_ocn"/), userRoutine=mediator_routine_Run, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
-         specPhaseLabel="med_phases_history_write_avg_ocn", specRoutine=med_phases_history_write_avg_ocn, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
-         phaseLabelList=(/"med_phases_history_write_aux_ocn"/), userRoutine=mediator_routine_Run, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
-         specPhaseLabel="med_phases_history_write_aux_ocn", specRoutine=med_phases_history_write_aux_ocn, rc=rc)
+         specPhaseLabel="med_phases_history_write_ocn", specRoutine=med_phases_history_write_ocn, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !------------------
@@ -347,22 +271,10 @@ contains
     !------------------
 
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
-         phaseLabelList=(/"med_phases_history_write_inst_rof"/), userRoutine=mediator_routine_Run, rc=rc)
+         phaseLabelList=(/"med_phases_history_write_rof"/), userRoutine=mediator_routine_Run, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
-         specPhaseLabel="med_phases_history_write_inst_rof", specRoutine=med_phases_history_write_inst_rof, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
-         phaseLabelList=(/"med_phases_history_write_avg_rof"/), userRoutine=mediator_routine_Run, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
-         specPhaseLabel="med_phases_history_write_avg_rof", specRoutine=med_phases_history_write_avg_rof, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
-         phaseLabelList=(/"med_phases_history_write_aux_rof"/), userRoutine=mediator_routine_Run, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
-         specPhaseLabel="med_phases_history_write_aux_rof", specRoutine=med_phases_history_write_aux_rof, rc=rc)
+         specPhaseLabel="med_phases_history_write_rof", specRoutine=med_phases_history_write_rof, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !------------------
@@ -370,22 +282,10 @@ contains
     !------------------
 
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
-         phaseLabelList=(/"med_phases_history_write_inst_wav"/), userRoutine=mediator_routine_Run, rc=rc)
+         phaseLabelList=(/"med_phases_history_write_wav"/), userRoutine=mediator_routine_Run, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
-         specPhaseLabel="med_phases_history_write_inst_wav", specRoutine=med_phases_history_write_inst_wav, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
-         phaseLabelList=(/"med_phases_history_write_avg_wav"/), userRoutine=mediator_routine_Run, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
-         specPhaseLabel="med_phases_history_write_avg_wav", specRoutine=med_phases_history_write_avg_wav, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
-         phaseLabelList=(/"med_phases_history_write_aux_wav"/), userRoutine=mediator_routine_Run, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
-         specPhaseLabel="med_phases_history_write_aux_wav", specRoutine=med_phases_history_write_aux_wav, rc=rc)
+         specPhaseLabel="med_phases_history_write_wav", specRoutine=med_phases_history_write_wav, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !------------------
@@ -393,10 +293,10 @@ contains
     !------------------
 
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
-         phaseLabelList=(/"med_phases_history_write_inst_med"/), userRoutine=mediator_routine_Run, rc=rc)
+         phaseLabelList=(/"med_phases_history_write_med"/), userRoutine=mediator_routine_Run, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
-         specPhaseLabel="med_phases_history_write_inst_med", specRoutine=med_phases_history_write_inst_med, rc=rc)
+         specPhaseLabel="med_phases_history_write_med", specRoutine=med_phases_history_write_med, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_TimestampExport, &
          specPhaselabel="med_phases_history_write", specRoutine=NUOPC_NoOp, rc=rc)

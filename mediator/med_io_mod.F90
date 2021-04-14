@@ -810,6 +810,7 @@ contains
     integer                       :: ungriddedUBound(1) ! currently the size must equal 1 for rank 2 fields
     integer                       :: gridToFieldMap(1)  ! currently the size must equal 1 for rank 2 fields
     logical                       :: isPresent
+    character(CL), allocatable    :: fieldNameList(:)
     character(*),parameter :: subName = '(med_io_write_FB) '
     !-------------------------------------------------------------------------------
 
@@ -836,17 +837,9 @@ contains
        return
     endif
 
-    luse_float = .false.
-    if (present(use_float)) luse_float = use_float
-
-    lfile_ind = 0
-    if (present(file_ind)) lfile_ind=file_ind
-
-    call ESMF_FieldBundleGet(FB, fieldCount=nf, rc=rc)
-    write(tmpstr,*) subname//' field count = '//trim(lpre),nf
-    call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
-    if (nf < 1) then
-       call ESMF_LogWrite(trim(subname)//" FB "//trim(lpre)//" empty", ESMF_LOGMSG_INFO)
+    ! Error check
+    if (.not. ESMF_FieldBundleIsCreated(FB, rc=rc)) then
+       call ESMF_LogWrite(trim(subname)//" FB "//trim(lpre)//" not created", ESMF_LOGMSG_INFO)
        if (dbug_flag > 5) then
           call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
        endif
@@ -854,18 +847,37 @@ contains
        return
     endif
 
+    ! Get number of fields
+    if (present(flds)) then
+       nf = size(flds)
+    else
+       call ESMF_FieldBundleGet(FB, fieldCount=nf, rc=rc)
+       write(tmpstr,*) subname//' field count = '//trim(lpre), nf
+       call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
+       if (nf < 1) then
+          call ESMF_LogWrite(trim(subname)//" FB "//trim(lpre)//" empty", ESMF_LOGMSG_INFO)
+          if (dbug_flag > 5) then
+             call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
+          endif
+          rc = ESMF_Success
+          return
+       endif
+       allocate(fieldNameList(nf))
+       call ESMF_FieldBundleGet(FB, fieldNameList=fieldNameList, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+    end if
+
+    ! Get field bundle mesh from first field
     call FB_getFieldN(FB, 1, field, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-
     call ESMF_FieldGet(field, mesh=mesh, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
+    ! Get mesh distgrid and number of elements
     call ESMF_MeshGet(mesh, elementDistgrid=distgrid, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-
     call ESMF_MeshGet(mesh, spatialDim=ndims, numOwnedElements=nelements, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-
     write(tmpstr,*) subname, 'ndims, nelements = ', ndims, nelements
     call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
 
@@ -874,10 +886,8 @@ contains
        allocate(ownedElemCoords(ndims*nelements))
        allocate(ownedElemCoords_x(ndims*nelements/2))
        allocate(ownedElemCoords_y(ndims*nelements/2))
-
        call ESMF_MeshGet(mesh, ownedElemCoords=ownedElemCoords, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-
        ownedElemCoords_x = ownedElemCoords(1::2)
        ownedElemCoords_y = ownedElemCoords(2::2)
     end if
@@ -885,7 +895,6 @@ contains
     ! Get tile info
     call ESMF_DistGridGet(distgrid, dimCount=dimCount, tileCount=tileCount, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-
     allocate(minIndexPTile(dimCount, tileCount), maxIndexPTile(dimCount, tileCount))
     call ESMF_DistGridGet(distgrid, minIndexPTile=minIndexPTile, maxIndexPTile=maxIndexPTile, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -934,8 +943,13 @@ contains
        call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
 
        do k = 1,nf
-          call FB_getNameN(FB, k, itemc, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+          ! Determine field name
+          if (present(flds)) then
+             itemc = trim(flds(k))
+          else
+             itemc = trim(fieldNameList(k))
+          end if
 
           ! Determine rank of field with name itemc
           call ESMF_FieldBundleGet(FB, itemc,  field=lfield, rc=rc)
@@ -1038,14 +1052,16 @@ contains
        write(tmpstr,*) subname,' dof = ',ns,size(dof),dof(1),dof(ns)  !,minval(dof),maxval(dof)
        call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
        call pio_initdecomp(io_subsystem, pio_double, (/lnx,lny/), dof, iodesc)
-
        ! call pio_writedof(lpre, (/lnx,lny/), int(dof,kind=PIO_OFFSET_KIND), mpicom)
-
        deallocate(dof)
 
        do k = 1,nf
-          call FB_getNameN(FB, k, itemc, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          ! Determine field name
+          if (present(flds)) then
+             itemc = trim(flds(k))
+          else
+             itemc = trim(fieldNameList(k))
+          end if
  
           call FB_getFldPtr(FB, itemc, &
                fldptr1=fldptr1, fldptr2=fldptr2, rank=rank, rc=rc)
