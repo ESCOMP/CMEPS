@@ -96,15 +96,6 @@
     We will not document this further in this guide.</desc>
   </entry>
 
-  <entry id="BFBFLAG">
-    <type>logical</type>
-    <valid_values>TRUE,FALSE</valid_values>
-    <default_value>FALSE</default_value>
-    <group>run_flags</group>
-    <file>env_run.xml</file>
-    <desc>turns on coupler bit-for-bit reproducibility with varying pe counts</desc>
-  </entry>
-
   <entry id="BARRIER_OPTION">
     <type>char</type>
     <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>

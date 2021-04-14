@@ -5,7 +5,7 @@
 <entry_id version="2.0">
 
   <!-- ======================================== -->
-  <!--  DRIVER attributes                       -->
+  <!--  Component attributes                    -->
   <!-- ======================================== -->
 
   <entry id="Verbosity@driver_attributes" modify_via_xml="ESMF_VERBOSITY_LEVEL">
@@ -126,58 +126,6 @@
     </values>
   </entry>
 
-  <entry id="tchkpt_dir">
-    <type>char</type>
-    <category>expdef</category>
-    <group>DRIVER_attributes</group>
-    <desc>
-      location of timing checkpoint output.
-    </desc>
-    <values>
-      <value>./timing/checkpoints</value>
-    </values>
-  </entry>
-
-  <!-- <entry id="bfbflag" modify_via_xml="BFBFLAG"> -->
-  <!--   <type>logical</type> -->
-  <!--   <category>expdef</category> -->
-  <!--   <group>DRIVER_attributes</group> -->
-  <!--   <desc> -->
-  <!--     turns on bfb option in coupler which produce bfb results in the -->
-  <!--     coupler on different processor counts.  (default: .false.) -->
-  <!--   </desc> -->
-  <!--   <values> -->
-  <!--     <value>$BFBFLAG</value> -->
-  <!--   </values> -->
-  <!-- </entry> -->
-
-  <entry id="wall_time_limit">
-    <type>real</type>
-    <category>control</category>
-    <group>DRIVER_attributes</group>
-    <desc>
-      Wall time limit for run
-      default: -1.0
-    </desc>
-    <values>
-      <value>-1.0</value>
-    </values>
-  </entry>
-
-  <entry id="force_stop_at">
-    <type>char</type>
-    <category>control</category>
-    <group>DRIVER_attributes</group>
-    <valid_values>day,month,year</valid_values>
-    <desc>
-      Force stop at the next month, day, etc when wall_time_limit is hit
-      default: month
-    </desc>
-    <values>
-      <value>month</value>
-    </values>
-  </entry>
-
   <entry id="run_barriers" modify_via_xml="COMP_RUN_BARRIERS">
     <type>logical</type>
     <category>performance</category>
@@ -250,18 +198,6 @@
     </desc>
     <values>
       <value>./</value>
-    </values>
-  </entry>
-
-  <entry id="max_cplstep_time">
-    <type>real</type>
-    <category>expdef</category>
-    <group>DRIVER_attributes</group>
-    <desc>
-      Abort if cplstep time exceeds this value
-    </desc>
-    <values>
-      <value>0.</value>
     </values>
   </entry>
 
@@ -569,15 +505,6 @@
       <value run_type="hybrid"  continue_run=".true.">continue</value>
       <value run_type="branch"  continue_run=".true.">continue</value>
     </values>
-  </entry>
-
-  <entry id="mediator_read_restart" modify_via_xml="MEDIATOR_READ_RESTART">
-    <type>logical</type>
-    <category>expdef</category>
-    <group>DRIVER_attributes</group>
-    <desc>
-      only have the mediator reads the restart file regardless of start type
-    </desc>
   </entry>
 
   <entry id="case_name" modify_via_xml="CASE">
@@ -1422,13 +1349,12 @@
 
   <!-- MED histaux atm2med file1 -->
   <entry id="histaux_atm2med_file1_enabled">
-    <type>char</type>
+    <type>logical</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
     <desc>Auxiliary mediator atm2med instantaneous history output every hour.</desc>
-    <valid_values>off,on</valid_values>
     <values>
-      <value>off</value>
+      <value>.false.</value>
     </values>
   </entry>
   <entry id="histaux_atm2med_file1_flds">
@@ -1488,13 +1414,12 @@
 
   <!-- MED histaux atm2med file2 -->
   <entry id="histaux_atm2med_file2_enabled">
-    <type>char</type>
+    <type>logical</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
     <desc>Auxiliary atm2med history output averaged over 1 hour.</desc>
-    <valid_values>off,on</valid_values>
     <values>
-      <value>off</value>
+      <value>.false.</value>
     </values>
   </entry>
   <entry id="histaux_atm2med_file2_flds">
@@ -1554,15 +1479,14 @@
 
   <!-- MED histaux atm2med file3 -->
   <entry id="histaux_atm2med_file3_enabled">
-    <type>char</type>
+    <type>logical</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
     <desc>
       Auxiliary mediator atm2med precipitation history output every 3 hours
     </desc>
-    <valid_values>off,on</valid_values>
     <values>
-      <value>off</value>
+      <value>.false.</value>
     </values>
   </entry>
   <entry id="histaux_atm2med_file3_flds">
@@ -1622,15 +1546,14 @@
 
   <!-- MED histaux atm2med file4 -->
   <entry id="histaux_atm2med_file4_enabled">
-    <type>char</type>
+    <type>logical</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
     <desc>
       Auxiliary mediator a2x precipitation history output every 3 hours
     </desc>
-    <valid_values>off,on</valid_values>
     <values>
-      <value>off</value>
+      <value>.false.</value>
     </values>
   </entry>
   <entry id="histaux_atm2med_file4_flds">
@@ -1692,13 +1615,12 @@
 
   <!-- MED histaux atm2med file5 -->
   <entry id="histaux_atm2med_file5_enabled">
-    <type>char</type>
+    <type>logical</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
     <desc>Auxiliary mediator a2x precipitation history output every 3 hours</desc>
-    <valid_values>off,on</valid_values>
     <values>
-      <value>off</value>
+      <value>.false.</value>
     </values>
   </entry>
   <entry id="histaux_atm2med_file5_flds">
@@ -1911,13 +1833,12 @@
 
   <!-- MED histaux lnd2med file 1 -->
   <entry id="histaux_lnd2med_file1_enabled">
-    <type>char</type>
+    <type>logical</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
     <desc>Auxiliary mediator l2x fields every lnd coupling interval</desc>
-    <valid_values>off,on</valid_values>
     <values>
-      <value>off</value>
+      <value>.false.</value>
     </values>
   </entry>
   <entry id="histaux_lnd2med_file1_flds">
@@ -1977,13 +1898,12 @@
 
   <!-- MED histaux lnd2med file 2 -->
   <entry id="histaux_lnd2med_file2_enabled">
-    <type>char</type>
+    <type>logical</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
     <desc>Auxiliary mediator lnd2med fields every year</desc>
-    <valid_values>off,on</valid_values>
     <values>
-      <value>off</value>
+      <value>.false.</value>
     </values>
   </entry>
   <entry id="histaux_lnd2med_file2_flds">
@@ -2145,13 +2065,12 @@
 
   <!-- MED histaux rof2med file 1 -->
   <entry id="histaux_rof2med_file1_enabled">
-    <type>char</type>
+    <type>logical</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
     <desc>Auxiliary mediator rof2med precipitation history output every 3 hours</desc>
-    <valid_values>off,on</valid_values>
     <values>
-      <value>off</value>
+      <value>.false.</value>
     </values>
   </entry>
   <entry id="histaux_rof2med_file1_flds">

@@ -78,8 +78,8 @@ module med_phases_history_mod
   private :: med_phases_history_output_alarminfo
   private :: med_phases_history_ymds2rday_offset
 
-  character(CL) :: case_name  ! case name
-  character(CS) :: inst_tag   ! instance tag
+  character(CL) :: case_name = 'unset'  ! case name
+  character(CS) :: inst_tag = 'unset'   ! instance tag
 
   ! Time averaging history files
   type, public :: avgfile_type
@@ -556,7 +556,7 @@ contains
           call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-          if (compid /= compmed) then
+          if (compid /= compmed) then ! component is not mediator
              ! create accumulated import fields
              if (ESMF_FieldBundleIsCreated(is_local%wrap%FBimp(compid,compid),rc=rc)) then
                 if (.not. ESMF_FieldBundleIsCreated(avgfiles_import(compid)%FBaccum)) then
@@ -579,7 +579,7 @@ contains
                    avgfiles_export(compid)%accumcnt = 0
                 end if
              end if
-          else ! compid is compmed
+          else ! component is mediator
              ! accumulated atm/ocn flux on ocn mesh
              if (ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_aoflux_o, rc=rc)) then
                 if (.not. ESMF_FieldBundleIsCreated(avgfiles_aoflux_ocn%FBaccum)) then
@@ -639,7 +639,6 @@ contains
             trim(alarmname), .false., rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
-
     call t_stopf('MED:'//subname)
 
   end subroutine med_phases_history_write_avg_comp
@@ -682,7 +681,7 @@ contains
     character(CL)           :: auxflds
     integer                 :: fieldCount
     logical                 :: found
-    character(CS)           :: enable_auxfile
+    logical                 :: enable_auxfile
     character(CS), allocatable  :: fieldNameList(:)
     !---------------------------------------
     rc = ESMF_SUCCESS
@@ -702,16 +701,19 @@ contains
           ! Determine attribute prefix
           write(prefix,'(a,i0)') 'histaux_'//trim(compname(compid))//'2med_file',nfile
           
-          ! Determine if on/off flag is enabled for this file
+          ! Determine if will write the file
           call NUOPC_CompAttributeGet(gcomp, name=trim(prefix)//'_enabled', isPresent=isPresent, isSet=isSet, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           if (isPresent .and. isSet) then
-             call NUOPC_CompAttributeGet(gcomp, name=trim(prefix)//'_enabled', value=enable_auxfile, rc=rc)
+             call NUOPC_CompAttributeGet(gcomp, name=trim(prefix)//'_enabled', value=cvalue, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             read(cvalue,'(l)') enable_auxfile
+          else
+             enable_auxfile = .false.
           end if
 
-          ! If enabled is on - then initialize auxfiles(nfcnt,compid)
-          if (isPresent .and. isSet .and. (trim(enable_auxfile) == 'on')) then
+          ! If file will be written - then initialize auxfiles(nfcnt,compid)
+          if (enable_auxfile) then
 
              ! Increment nfcnt
              nfcnt = nfcnt + 1
@@ -748,6 +750,9 @@ contains
                 ! Translate the colon deliminted string (auxflds) into a character array (fieldnamelist)
                 ! Note that the following call allocates the memory for fieldnamelist
                 call med_phases_history_get_auxflds(auxflds, fieldnamelist, rc)
+
+                ! TODO: print warning statement if remove field
+                ! TODO: if request field that is NOT in the field definition file - then quit
                 ! Remove all fields from fieldnamelist that are not in FBImp(compid,compid)
                 fieldCount = size(fieldnamelist)
                 do n = 1,fieldcount
@@ -839,10 +844,12 @@ contains
 
              ! Set alarm for auxiliary history output
              ! Advance history clock to trigger alarms then reset history clock back to mcurrtime
-             call NUOPC_CompAttributeGet(gcomp, name=trim(prefix)//'_auxname', value=auxfiles(nfcnt,compid)%auxname, rc=rc)
+             call NUOPC_CompAttributeGet(gcomp, name=trim(prefix)//'_auxname', &
+                  value=auxfiles(nfcnt,compid)%auxname, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
              write(auxfiles(nfcnt,compid)%alarmname,'(a,i0)') 'alarm_'//trim(prefix)
-             call ESMF_ClockGet(auxfiles(nfcnt,compid)%hclock, startTime=starttime,  currTime=currtime, timeStep=timestep, rc=rc)
+             call ESMF_ClockGet(auxfiles(nfcnt,compid)%hclock, &
+                  startTime=starttime,  currTime=currtime, timeStep=timestep, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
              call med_time_alarmInit(auxfiles(nfcnt,compid)%hclock, alarm, option=hist_option, opt_n=hist_n, &
                   reftime=starttime, alarmname=trim(auxfiles(nfcnt,compid)%alarmname), rc=rc)
@@ -863,28 +870,13 @@ contains
        ! Set number of aux files for this component
        num_auxfiles(compid) = nfcnt
 
-       ! Get file name variables
-       ! TODO: these are general settings that should be set outside of this system
-       ! These should be moved outside of this modeul
-       call NUOPC_CompAttributeGet(gcomp, name='case_name', value=case_name, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call NUOPC_CompAttributeGet(gcomp, name='inst_suffix', isPresent=isPresent, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       if(isPresent) then
-          call NUOPC_CompAttributeGet(gcomp, name='inst_suffix', value=inst_tag, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       else
-          inst_tag = ""
-       endif
-       if (mastertask) write(logunit,*)
-
     end if ! end of initialization (first time) block
 
     ! Write auxiliary history files for component compid
     do n = 1,num_auxfiles(compid)
        call ESMF_ClockAdvance(auxfiles(n,compid)%hclock, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call med_phases_history_write_hfileaux(gcomp, case_name, inst_tag, n, compid, auxfiles(n,compid), rc=rc)
+       call med_phases_history_write_hfileaux(gcomp, n, compid, auxfiles(n,compid), rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end do
     call t_stopf('MED:'//subname)
@@ -1122,13 +1114,10 @@ contains
   end subroutine med_phases_history_write_hfile
 
   !===============================================================================
-  subroutine med_phases_history_write_hfileaux(gcomp, case_name, inst_tag, &
-       nfile_index, comp_index, auxfile, rc)
+  subroutine med_phases_history_write_hfileaux(gcomp, nfile_index, comp_index, auxfile, rc)
 
     ! input/output variables
     type(ESMF_GridComp) , intent(inout) :: gcomp
-    character(len=*)    , intent(in)    :: case_name
-    character(len=*)    , intent(in)    :: inst_tag
     integer             , intent(in)    :: nfile_index
     integer             , intent(in)    :: comp_index
     type(auxfile_type)  , intent(inout) :: auxfile
@@ -1251,6 +1240,10 @@ contains
           call ESMF_TimeGet(currtime,yy=yr, mm=mon, dd=day, s=sec, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           write(timestr,'(i4.4,a,i2.2,a,i2.2,a,i5.5)') yr,'-',mon,'-',day,'-',sec
+          if (trim(case_name) == 'unset') then
+             call med_phases_history_set_casename(gcomp, rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          end if
           write(auxfile%histfile, "(8a)") &
                trim(case_name),'.cpl',trim(inst_tag),'.hx.', trim(auxfile%auxname),'.',trim(timestr), '.nc'
 
@@ -1335,25 +1328,11 @@ contains
     integer                 :: start_ymd      ! Starting date YYYYMMDD
     integer                 :: yr,mon,day,sec ! time units
     logical                 :: isPresent
-    character(CL)           :: case_name      ! case name
-    character(CS)           :: inst_tag   ! instance tag
-    character(len=CS)        :: histstr
-    character(len=*), parameter :: subname='(med_phases_history_get_timeunits)'
+    character(len=CS)       :: histstr
+    character(len=*), parameter :: subname='(med_phases_history_get_filename)'
     !---------------------------------------
 
     rc = ESMF_SUCCESS
-
-    ! Get case_name and inst_tag
-    call NUOPC_CompAttributeGet(gcomp, name='case_name', value=case_name, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompAttributeGet(gcomp, name='inst_suffix', isPresent=isPresent, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if(isPresent) then
-       call NUOPC_CompAttributeGet(gcomp, name='inst_suffix', value=inst_tag, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    else
-       inst_tag = ""
-    endif
 
     ! Get time unit attribute value for variables
     call NUOPC_ModelGet(gcomp, modelClock=mclock, rc=rc)
@@ -1389,12 +1368,15 @@ contains
     if (trim(comptype) /= 'all') then
        histstr = trim(histstr) // trim(comptype) // '.'
     end if
+    if (trim(case_name) == 'unset') then
+       call med_phases_history_set_casename(gcomp, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    end if
     write(hist_file,"(6a)") trim(case_name),'.cpl.',trim(inst_tag),trim(histstr),trim(nexttimestr),'.nc'
     if (mastertask) then
        write(logunit,*)
-       write(logunit,' (a)') trim(subname)//": writing mediator history file "//trim(hist_file)
-       write(logunit,' (a)') trim(subname)//": currtime = "//trim(currtimestr)
-       write(logunit,' (a)') trim(subname)//": nexttime = "//trim(nexttimestr)
+       write(logunit,' (a)') "  writing mediator history file "//trim(hist_file)
+       write(logunit,' (a)') "  currtime = "//trim(currtimestr)//" nexttime = "//trim(nexttimestr)
     end if
 
   end subroutine med_phases_history_get_filename
@@ -1551,5 +1533,33 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
   end subroutine med_phases_history_ymds2rday_offset
+
+  !===============================================================================
+  subroutine med_phases_history_set_casename(gcomp, rc)
+
+    ! Set module variables case_name and inst_tag
+
+    ! input/output variables
+    type(ESMF_GridComp)  :: gcomp
+    integer, intent(out) :: rc
+
+    ! local variables
+    logical                     :: isPresent
+    logical                     :: isSet
+    !---------------------------------------
+    rc = ESMF_SUCCESS
+
+    call NUOPC_CompAttributeGet(gcomp, name='case_name', value=case_name, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompAttributeGet(gcomp, name='inst_suffix', isPresent=isPresent, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if(isPresent) then
+       call NUOPC_CompAttributeGet(gcomp, name='inst_suffix', value=inst_tag, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    else
+       inst_tag = ""
+    endif
+
+  end subroutine med_phases_history_set_casename
 
 end module med_phases_history_mod
