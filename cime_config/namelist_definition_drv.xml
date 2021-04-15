@@ -2668,6 +2668,18 @@
     </values>
   </entry>
 
+  <entry id="num_icesheets">
+    <type>integer</type>
+    <category>expdef</category>
+    <group>ALLCOMP_attributes</group>
+    <desc>
+      number of glc ice sheets
+    </desc>
+    <values>
+      <value>1</value>
+    </values>
+  </entry>
+
   <entry id="flds_co2a">
     <type>logical</type>
     <category>flds</category>

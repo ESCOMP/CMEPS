@@ -17,7 +17,8 @@ module esmflds
   integer, public, parameter  :: comprof  = 6
   integer, public, parameter  :: compwav  = 7
   integer, public, parameter  :: compglc1 = 8
-  integer, public, parameter  :: ncomps   = 8
+  integer, public, parameter  :: compglc2 = 9
+  integer, public, parameter  :: ncomps   = 9
 
   character(len=*), public, parameter :: compname(ncomps) = &
        (/'med ',&
@@ -27,11 +28,12 @@ module esmflds
          'ice ',&
          'rof ',&
          'wav ',&
-         'glc '/)
+         'glc1',&
+         'glc2'/)
 
-  integer, public, parameter :: max_icesheets = 1
-  integer, public :: compglc(max_icesheets) = (/compglc1/)
-  integer, public :: num_icesheets = 1
+  integer, public, parameter :: max_icesheets = 2
+  integer, public :: compglc(max_icesheets) = (/compglc1,compglc2/)
+  integer, public :: num_icesheets     ! obtained from attribute
   logical, public :: ocn2glc_coupling  ! obtained from attribute
 
   logical, public :: dststatus_print = .false.
