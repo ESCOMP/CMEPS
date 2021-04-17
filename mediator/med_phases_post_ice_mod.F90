@@ -25,7 +25,7 @@ contains
     use med_utils_mod         , only : chkerr      => med_utils_ChkErr
     use med_methods_mod       , only : FB_diagnose => med_methods_FB_diagnose
     use med_map_mod           , only : med_map_field_packed
-    use med_fraction_mod      , only : med_fraction_set 
+    use med_fraction_mod      , only : med_fraction_set
     use med_internalstate_mod , only : InternalState, mastertask
     use esmFlds               , only : compice, compatm, compocn, compwav
     use perf_mod              , only : t_startf, t_stopf

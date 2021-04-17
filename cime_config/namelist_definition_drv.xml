@@ -681,7 +681,7 @@
   <entry id="perpetual">
     <type>logical</type>
     <category>expdef</category>
-    <group>ALLCOMP_attributes</group>
+    <group>ATM_attributes</group>
     <desc>
       Perpetual flag
     </desc>
@@ -689,11 +689,10 @@
       <value>.false.</value>
     </values>
   </entry>
-
   <entry id="perpetual_ymd">
     <type>integer</type>
     <category>expdef</category>
-    <group>ALLCOMP_attributes</group>
+    <group>ATM_attributes</group>
     <desc>
       Perpetual date
     </desc>
@@ -702,51 +701,51 @@
     </values>
   </entry>
 
-  <entry id="single_column" modify_via_xml="PTS_MODE">
-    <type>logical</type>
-    <category>single_column</category>
-    <group>ALLCOMP_attributes</group>
-    <desc>
-      turns on single column mode. set by PTS_MODE in env_case.xml, default: false
-    </desc>
-    <values>
-      <value>.false.</value>
-      <value single_column="true">.true.</value>
-    </values>
-  </entry>
-
-  <entry id="scmlat" modify_via_xml="PTS_LAT">
+  <entry id="scol_lat" modify_via_xml="PTS_LAT">
     <type>real</type>
     <category>single_column</category>
     <group>ALLCOMP_attributes</group>
     <desc>
-      grid point latitude associated with single column mode.
-      if set to -999, ignore this value
+      Latitude in degrees corresponding to the grid location
+      in single column and single point modes.
     </desc>
     <values>
-      <value>-999.</value>
-      <value single_column="true">$PTS_LAT</value>
+      <value>$PTS_LAT</value>
     </values>
   </entry>
 
-  <entry id="scmlon" modify_via_xml="PTS_LON">
+  <entry id="scol_lon" modify_via_xml="PTS_LON">
     <type>real</type>
     <category>single_column</category>
     <group>ALLCOMP_attributes</group>
     <desc>
-      grid point longitude associated with single column mode.
-      set by PTS_LON in env_run.xml.
+      Longitude in degrees corresponding to the grid location
+      in single column and single point modes.
     </desc>
     <values>
-      <value>-999.</value>
-      <value single_column="true">$PTS_LON</value>
+      <value>$PTS_LON</value>
+    </values>
+  </entry>
+
+  <entry id="single_column_lnd_domainfile" modify_via_xml="PTS_DOMAINFILE">
+    <type>char</type>
+    <category>single_column</category>
+    <group>ALLCOMP_attributes</group>
+    <desc>
+      DOMAIN file needed for single column model IF and only if 
+      a nearest neighbor search is done to match the PTS_LAT and PTS_LON
+      to the closest point in the domain file. This file is ONLY used in
+      single column mode.
+    </desc>
+    <values>
+      <value>$PTS_DOMAINFILE</value>
     </values>
   </entry>
 
   <entry id="aqua_planet" modify_via_xml="DOCN_MODE">
     <type>logical</type>
     <category>expdef</category>
-    <group>ALLCOMP_attributes</group>
+    <group>ATM_attributes</group>
     <desc>
       true => turn on aquaplanet mode in cam
     </desc>
@@ -1073,10 +1072,11 @@
     </desc>
     <values>
       <value>$MASK_MESH</value>
+      <value single_column='true'>null</value> 
     </values>
   </entry>
 
- <entry id="mesh_atm" modify_via_xml="ATM_DOMAIN_MESH">
+  <entry id="mesh_atm" modify_via_xml="ATM_DOMAIN_MESH">
     <type>char</type>
     <category>mapping</category>
     <group>ATM_attributes</group>
@@ -1085,6 +1085,7 @@
     </desc>
     <values>
       <value>$ATM_DOMAIN_MESH</value>
+      <value single_column='true'>null</value> 
     </values>
   </entry>
 
@@ -1097,18 +1098,7 @@
     </desc>
     <values>
       <value>$LND_DOMAIN_MESH</value>
-    </values>
-  </entry>
-
-  <entry id="domain_lnd" modify_via_xml="LND_DOMAIN_FILE">
-    <type>char</type>
-    <category>mapping</category>
-    <group>LND_attributes</group>
-    <desc>
-      DOMAIN description of lnd grid 
-    </desc>
-    <values>
-      <value>$LND_DOMAIN_PATH/$LND_DOMAIN_FILE</value>
+      <value single_column='true'>null</value> 
     </values>
   </entry>
 
@@ -1121,6 +1111,7 @@
     </desc>
     <values>
       <value>$OCN_DOMAIN_MESH</value>
+      <value single_column='true'>null</value> 
     </values>
   </entry>
 
@@ -1133,6 +1124,7 @@
     </desc>
     <values>
       <value>$ICE_DOMAIN_MESH</value>
+      <value single_column='true'>null</value> 
     </values>
   </entry>
 
@@ -1145,6 +1137,7 @@
     </desc>
     <values>
       <value>$ROF_DOMAIN_MESH</value>
+      <value single_column='true'>null</value> 
     </values>
   </entry>
 
@@ -1157,6 +1150,7 @@
     </desc>
     <values>
       <value>$GLC_DOMAIN_MESH</value>
+      <value single_column='true'>null</value> 
     </values>
   </entry>
 
@@ -1169,6 +1163,7 @@
     </desc>
     <values>
       <value>$WAV_DOMAIN_MESH</value>
+      <value single_column='true'>null</value> 
     </values>
   </entry>
 
@@ -1728,9 +1723,10 @@
     <type>logical</type>
     <category>mapping</category>
     <group>MED_attributes</group>
-    <desc>used for atm->ocn and atm-ice mapping of u and v; rotate u,v to 3d cartesian space, map from src->dest, then rotate back</desc>
+    <desc>used for atm->ocn and atm-ice mapping of u and v; rotate u,v
+    to 3d cartesian space, map from src->dest, then rotate back</desc>
     <values>
-      <value>.false.</value>
+      <value>.true.</value>
     </values>
   </entry>
 
