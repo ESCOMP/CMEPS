@@ -58,8 +58,8 @@ def buildlib(bldroot, installpath, case):
                 os.path.join(srcroot,"share","RandNum","src","dsfmt_f03"),
                 os.path.join(srcroot,"share","RandNum","src","kissvec"),
                 os.path.join(srcroot,"share","RandNum","src","mt19937"),
-                os.path.join(srcroot,"cpl7","mct_shr"),
-                os.path.join(srcroot,"cpl7","components","data_comps_mct","streams")]
+                os.path.join(srcroot,"components","cpl7","mct_shr"),
+                os.path.join(srcroot,"components","cpl7","components","data_comps_mct","streams")]
 
 
     # Append path for driver - currently only values of 'mct' and 'nuopc' are accepted
