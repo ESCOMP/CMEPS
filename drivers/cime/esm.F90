@@ -1266,6 +1266,8 @@ contains
     read(cvalue,*) scol_lat
     call NUOPC_CompAttributeGet(gcomp, name='single_column_lnd_domainfile', value=single_column_lnd_domainfile, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompAttributeAdd(gcomp, attrList=(/'scol_spval'/), rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     if ( (scol_lon < scol_spval .and. scol_lat > scol_spval) .or. &
          (scol_lon > scol_spval .and. scol_lat < scol_spval)) then
@@ -1307,8 +1309,7 @@ contains
                        'scol_lndmask', &
                        'scol_lndfrac', &
                        'scol_ocnmask', &
-                       'scol_ocnfrac', &
-                       'scol_spval  '/), rc=rc)
+                       'scol_ocnfrac'/), rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        if (trim(single_column_lnd_domainfile) /= 'UNSET') then
