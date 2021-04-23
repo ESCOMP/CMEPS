@@ -64,13 +64,10 @@ def buildlib(bldroot, installpath, case):
 
     # Append path for driver - currently only values of 'mct' and 'nuopc' are accepted
 
-    if comp_interface == "mct":
-        filepath.append(os.path.join(cimeroot,"src","drivers","mct","shr"))
-    elif comp_interface == "nuopc":
-        filepath.append(os.path.join(cimeroot,"src","share","nuopc"))
-        filepath.append(os.path.join(cimeroot,"src","share","streams_nuopc"))
-        filepath.append(os.path.join(cimeroot,"src","drivers","nuopc", "nuopc_cap_share"))
-    else:
+    if comp_interface == "nuopc":
+        filepath.append(os.path.join(srcroot,"share","cmeps"))
+        filepath.append(os.path.join(srcroot,"components","cmeps", "nuopc_cap_share"))
+    elif comp_interface != "mct":
         expect(False, "driver value of {} not supported".format(comp_interface))
 
     if case.get_value("USE_ESMF_LIB"):
