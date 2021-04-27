@@ -59,10 +59,9 @@ jobs:
           key: ${{ runner.os }}-${{ env.MCT_VERSION}}-mct-redo
 
       - name: mct install
-#        if: steps.cache-mct.outputs.cache-hit != 'true'
+        if: steps.cache-mct.outputs.cache-hit != 'true'
         run: |
-          rm -rf libraries
-          git clone -b {{ env.MCT_VERSION  }} https://github.com/MCSclimate/MCT libraries/mct
+          git clone -b ${{ env.MCT_VERSION  }} https://github.com/MCSclimate/MCT libraries/mct
           ls -l libraries/mct
 
       - name: cache pnetcdf
