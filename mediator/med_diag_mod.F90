@@ -356,9 +356,9 @@ contains
 
     ! period types
     call add_to_budget_diag(budget_diags%periods, period_inst,'    inst')
-    if(budget_print_daily) call add_to_budget_diag(budget_diags%periods, period_day ,'   daily')
-    if(budget_print_month) call add_to_budget_diag(budget_diags%periods, period_mon ,' monthly')
-    if(budget_print_ann) call add_to_budget_diag(budget_diags%periods, period_ann ,'  annual')
+    if(budget_print_daily > 0) call add_to_budget_diag(budget_diags%periods, period_day ,'   daily')
+    if(budget_print_month > 0) call add_to_budget_diag(budget_diags%periods, period_mon ,' monthly')
+    if(budget_print_ann > 0) call add_to_budget_diag(budget_diags%periods, period_ann ,'  annual')
     call add_to_budget_diag(budget_diags%periods, period_inf ,'all_time')
 
     ! allocate module budget arrays
