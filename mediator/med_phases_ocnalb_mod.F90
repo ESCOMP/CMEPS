@@ -573,9 +573,9 @@ contains
     character(len=*) , parameter :: subname = "(med_phases_ocnalb_orbital_update)"
     !-------------------------------------------
 
-#ifdef CESMCOUPLED
     rc = ESMF_SUCCESS
 
+#ifdef CESMCOUPLED
     if (trim(orb_mode) == trim(orb_variable_year)) then
        call ESMF_ClockGet(clock, CurrTime=CurrTime, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return

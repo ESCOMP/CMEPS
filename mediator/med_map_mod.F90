@@ -221,7 +221,6 @@ contains
     use esmFlds           , only : mapnstod, mapnstod_consd, mapnstod_consf, mapnstod_consd
     use esmFlds           , only : mapfillv_bilnr, mapbilnr_nstod
     use esmFlds           , only : ncomps, compatm, compice, compocn, compname
-    use esmFlds           , only : mapfcopy, mapconsd, mapconsf, mapnstod
     use esmFlds           , only : coupling_mode, dststatus_print
     use esmFlds           , only : atm_name
     use med_constants_mod , only : ispval_mask => med_constants_ispval_mask
@@ -590,7 +589,6 @@ contains
     ! local variables
     type(InternalState)       :: is_local
     integer                   :: n1, n2, m
-    character(len=1)          :: cn1,cn2,cm
     real(R8), pointer         :: dataptr(:) => null()
     integer                   :: fieldCount
     type(ESMF_Field), pointer :: fieldlist(:) => null()
@@ -661,7 +659,6 @@ contains
                            maptype=m, rc=rc)
                       if (chkerr(rc,__LINE__,u_FILE_u)) return
                       if (mastertask) then
-                         write(cn1,'(i1)') n1; write(cn2,'(i1)') n2; write(cm ,'(i1)') m
                          write(logunit,'(a)') trim(subname)//' created field_NormOne for '&
                               //compname(n1)//'->'//compname(n2)//' with mapping '//mapnames(m)
                       endif
@@ -719,6 +716,8 @@ contains
     type(ESMF_Field), pointer  :: fieldlist_src(:) => null()
     type(ESMF_Field), pointer  :: fieldlist_dst(:) => null()
     character(CL), allocatable :: fieldNameList(:)
+    character(CS)              :: mapnorm_mapindex
+    character(len=CX)          :: tmpstr
     character(len=*), parameter :: subname=' (module_MED_map:med_packed_field_create) '
     !-----------------------------------------------------------
 
@@ -765,6 +764,7 @@ contains
     ! Determine the normalization type for each packed_data mapping element
     ! Loop over mapping types
     do mapindex = 1,nmappers
+       mapnorm_mapindex = 'not_set'
        ! Loop over source field bundle
        do nf = 1, fieldCount
           ! Loop over the fldsSrc types
@@ -776,6 +776,24 @@ contains
                   trim(fldsSrc(ns)%shortname) == trim(fieldnamelist(nf))) then
                 ! Set the normalization to the input
                 packed_data(mapindex)%mapnorm = fldsSrc(ns)%mapnorm(destcomp)
+                if (mapnorm_mapindex == 'not_set') then
+                   mapnorm_mapindex = packed_data(mapindex)%mapnorm
+                   write(tmpstr,*)'Map type '//trim(mapnames(mapindex)) &
+                      //', destcomp '//trim(compname(destcomp)) &
+                      //',  mapnorm '//trim(mapnorm_mapindex) &
+                      //'  '//trim(fieldnamelist(nf))
+                   call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
+                else
+                   if (mapnorm_mapindex /= packed_data(mapindex)%mapnorm) then
+                     write(tmpstr,*)'Map type '//trim(mapnames(mapindex)) &
+                        //', destcomp '//trim(compname(destcomp)) &
+                        //',  mapnorm '//trim(mapnorm_mapindex) &
+                        //' set; cannot set mapnorm to '//trim(packed_data(mapindex)%mapnorm) &
+                        //'  '//trim(fieldnamelist(nf))
+                     call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
+                     call ESMF_Finalize(endflag=ESMF_END_ABORT)
+                   end if
+                end if
              end if
           end do
        end do
