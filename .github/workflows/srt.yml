@@ -64,6 +64,19 @@ jobs:
           git clone -b ${{ env.MCT_VERSION  }} https://github.com/MCSclimate/MCT libraries/mct
           ls -l libraries/mct
 
+      - name: cache parallelio
+        id: cache-parallelio
+        uses: actions/cache@v2
+        with:
+          path: $HOME/work/CESM_share/CESM_share/libraries/parallelio
+          key: ${{ runner.os }}-${{ env.PARALLELIO_VERSION}}-parallelio-redo
+
+      - name: parallelio install
+        if: steps.cache-parallelio.outputs.cache-hit != 'true'
+        run: |
+          git clone -b ${{ env.PARALLELIO_VERSION  }} https://github.com/NCAR/ParallelIO libraries/parallelio
+          ls -l libraries/parallelio
+
       - name: cache pnetcdf
         id: cache-pnetcdf
         uses: actions/cache@v2
@@ -129,8 +142,6 @@ jobs:
           mkdir -p $HOME/cesm/inputdata
           git clone https://github.com/ESCOMP/CESM_share share
           git clone https://github.com/ESCOMP/CESM_CPL7andDataComps components/cpl7
-          git clone -b pio2_5_4 https://github.com/NCAR/ParallelIO libraries/parallelio
-          git clone -b MCT_2.11.0 https://github.com/MCSclimate/MCT
           cd $HOME/work/CESM_share/CESM_share/scripts/tests
           export NETCDF=$HOME/netcdf-fortran
           export PATH=$NETCDF/bin:$PATH
