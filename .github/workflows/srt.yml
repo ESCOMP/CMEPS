@@ -37,7 +37,7 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
         with:
-          repository: ESMCI/cime
+          repository: fischer-ncar/cime
 
       - id: load-env
         run: |
@@ -115,9 +115,12 @@ jobs:
           pwd
           ls 
           git clone https://github.com/ESCOMP/CESM_share share
+          git clone https://github.com/ESCOMP/CESM_CPL7andDataComps components/cpl7
+          git clone -b pio2_5_4 https://github.com/NCAR/ParallelIO libraries/parallelio
+          git clone -b MCT_2.11.0 https://github.com/MCSclimate/MCT
           pwd
           ls 
-          cd $HOME/work/cime/cime/scripts/tests
+          cd $HOME/work/CESM_share/CESM_share/scripts/tests
           export NETCDF=$HOME/netcdf-fortran
           export PATH=$NETCDF/bin:$PATH
           export LD_LIBRARY_PATH=$NETCDF/lib:$HOME/pnetcdf/lib:$LD_LIBRARY_PATH
