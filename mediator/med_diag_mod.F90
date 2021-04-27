@@ -195,11 +195,11 @@ module med_diag_mod
   ! P for period
   ! ---------------------------------
 
-  integer :: period_inst
-  integer :: period_day
-  integer :: period_mon
-  integer :: period_ann
-  integer :: period_inf
+  integer :: period_inst=0
+  integer :: period_day=0
+  integer :: period_mon=0
+  integer :: period_ann=0
+  integer :: period_inf=0
 
   ! ---------------------------------
   ! local constants
@@ -337,22 +337,6 @@ contains
     isof(:)    = (/ f_16O_end, f_18O_end, f_hdO_end /)
     isoname(:) = (/ 'H216O',   'H218O',   '  HDO'   /)
 
-    ! period types
-    call add_to_budget_diag(budget_diags%periods, period_inst,'    inst')
-    call add_to_budget_diag(budget_diags%periods, period_day ,'   daily')
-    call add_to_budget_diag(budget_diags%periods, period_mon ,' monthly')
-    call add_to_budget_diag(budget_diags%periods, period_ann ,'  annual')
-    call add_to_budget_diag(budget_diags%periods, period_inf ,'all_time')
-
-    ! allocate module budget arrays
-    c_size = size(budget_diags%comps)
-    f_size = size(budget_diags%fields)
-    p_size = size(budget_diags%periods)
-
-    allocate(budget_local    (f_size , c_size , p_size)) ! local sum, valid on all pes
-    allocate(budget_global   (f_size , c_size , p_size)) ! global sum, valid only on root pe
-    allocate(budget_counter  (f_size , c_size , p_size)) ! counter, valid only on root pe
-    allocate(budget_global_1d(f_size * c_size * p_size)) ! needed for ESMF_VMReduce call
     !-------------------------------------------------------------------------------
     ! Get config variables
     !-------------------------------------------------------------------------------
@@ -369,6 +353,24 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     budget_print_ltend  = get_diag_attribute(gcomp, 'budget_ltend', rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    ! period types
+    call add_to_budget_diag(budget_diags%periods, period_inst,'    inst')
+    if(budget_print_daily) call add_to_budget_diag(budget_diags%periods, period_day ,'   daily')
+    if(budget_print_month) call add_to_budget_diag(budget_diags%periods, period_mon ,' monthly')
+    if(budget_print_ann) call add_to_budget_diag(budget_diags%periods, period_ann ,'  annual')
+    call add_to_budget_diag(budget_diags%periods, period_inf ,'all_time')
+
+    ! allocate module budget arrays
+    c_size = size(budget_diags%comps)
+    f_size = size(budget_diags%fields)
+    p_size = size(budget_diags%periods)
+
+    allocate(budget_local    (f_size , c_size , p_size)) ! local sum, valid on all pes
+    allocate(budget_global   (f_size , c_size , p_size)) ! global sum, valid only on root pe
+    allocate(budget_counter  (f_size , c_size , p_size)) ! counter, valid only on root pe
+    allocate(budget_global_1d(f_size * c_size * p_size)) ! needed for ESMF_VMReduce call
+
     if (budget_print_inst + budget_print_daily + budget_print_month + budget_print_ann + budget_print_ltann + budget_print_ltend > 0) then
        ! Set stop alarm (needed for budgets)
        call NUOPC_CompAttributeGet(gcomp, name="stop_option", value=stop_option, rc=rc)
@@ -526,6 +528,7 @@ contains
        budget_local(:,:,ip) = budget_local(:,:,ip) + budget_local(:,:,period_inst)
     enddo
     budget_counter(:,:,:) = budget_counter(:,:,:) + 1.0_r8
+
     call t_stopf('MED:'//subname)
   end subroutine med_phases_diag_accum
 
@@ -562,11 +565,11 @@ contains
     count  = size(budget_global)
     budget_global_1d(:) = 0.0_r8
 
-
     call ESMF_VMReduce(vm, reshape(budget_local,(/count/)) , budget_global_1d, count, ESMF_REDUCE_SUM, 0, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     budget_global = reshape(budget_global_1d,(/f_size,c_size,p_size/))
-    budget_local(:,:,:) = 0.0_r8
+
+    budget_local(:,:,period_inst) = 0.0_r8
 
     call t_stopf('MED:'//subname)
 
@@ -1901,62 +1904,60 @@ contains
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           endif
        endif
-       if (output_level > 0) exit
-    enddo  ! ip = 1, period_types
+
 
     ! Currently output_level is limited to levels of 0,1,2, 3
     ! (see comment for print options at top)
 
-    if (output_level > 0) then
-       if (.not. sumdone) then
-          ! Some budgets will be printed for this period type
-          ! Determine sums if not already done
-          call med_diag_sum_master(gcomp, rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       if (output_level > 0) then
+          if (.not. sumdone) then
+             ! Some budgets will be printed for this period type
+             ! Determine sums if not already done
+             call med_diag_sum_master(gcomp, rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-          sumdone = .true.
-       end if
-
-       if (mastertask) then
-          c_size = size(budget_diags%comps)
-          f_size = size(budget_diags%fields)
-          p_size = size(budget_diags%periods)
-          allocate(datagpr(f_size, c_size, p_size))
-          datagpr(:,:,:) = budget_global(:,:,:)
-
-          ! budget normalizations (global area and 1e6 for water)
-          datagpr = datagpr/(4.0_r8*shr_const_pi)
-          datagpr(f_watr_beg:f_watr_end,:,:) = datagpr(f_watr_beg:f_watr_end,:,:) * 1.0e6_r8
-          if ( flds_wiso ) then
-             datagpr(iso0(1):isof(nisotopes),:,:) = datagpr(iso0(1):isof(nisotopes),:,:) * 1.0e6_r8
+             sumdone = .true.
           end if
-          datagpr(:,:,:) = datagpr(:,:,:)/budget_counter(:,:,:)
 
-          ! Write diagnostic tables to logunit (mastertask only)
-          if (output_level >= 3) then
-             ! detail atm budgets and breakdown into components ---
-             call med_diag_print_atm(datagpr, ip, cdate, curr_tod)
-          end if
-          if (output_level >= 2) then
-             ! detail lnd/ocn/ice component budgets ----
-             call med_diag_print_lnd_ice_ocn(datagpr, ip, cdate, curr_tod)
-          end if
-          if (output_level >= 1) then
-             ! net summary budgets
-             call med_diag_print_summary(datagpr, ip, cdate, curr_tod)
-          endif
-          write(logunit,*) ' '
+          if (mastertask) then
+             c_size = size(budget_diags%comps)
+             f_size = size(budget_diags%fields)
+             p_size = size(budget_diags%periods)
+             allocate(datagpr(f_size, c_size, p_size))
+             datagpr(:,:,:) = budget_global(:,:,:)
 
-          deallocate(datagpr)
-       endif ! output_level > 0 and mastertask
-    end if ! if mastertask
+             ! budget normalizations (global area and 1e6 for water)
+             datagpr = datagpr/(4.0_r8*shr_const_pi)
+             datagpr(f_watr_beg:f_watr_end,:,:) = datagpr(f_watr_beg:f_watr_end,:,:) * 1.0e6_r8
+             if ( flds_wiso ) then
+                datagpr(iso0(1):isof(nisotopes),:,:) = datagpr(iso0(1):isof(nisotopes),:,:) * 1.0e6_r8
+             end if
+             datagpr(:,:,:) = datagpr(:,:,:)/budget_counter(:,:,:)
 
+             ! Write diagnostic tables to logunit (mastertask only)
+             if (output_level >= 3) then
+                ! detail atm budgets and breakdown into components ---
+                call med_diag_print_atm(datagpr, ip, cdate, curr_tod)
+             end if
+             if (output_level >= 2) then
+                ! detail lnd/ocn/ice component budgets ----
+                call med_diag_print_lnd_ice_ocn(datagpr, ip, cdate, curr_tod)
+             end if
+             if (output_level >= 1) then
+                ! net summary budgets
+                call med_diag_print_summary(datagpr, ip, cdate, curr_tod)
+             endif
+             write(logunit,*) ' '
+
+             deallocate(datagpr)
+          endif ! output_level > 0 and mastertask
+       end if ! if mastertask
+    enddo  ! ip = 1, period_types
     !-------------------------------------------------------------------------------
     ! Zero budget data
     !-------------------------------------------------------------------------------
 
-    call med_diag_zero(gcomp, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call med_diag_zero(gcomp,  rc=rc)
 
   end subroutine med_phases_diag_print
 
@@ -2500,7 +2501,7 @@ contains
     ! create new entry if fldname is not in original list
 
     if (.not. found) then
-
+       if(mastertask) write(logunit,*) ' Add ',trim(name),' to budgets with index ',index
        ! 1) allocate newfld to be size (one element larger than input flds)
        allocate(new_entries(index))
 
