@@ -112,7 +112,11 @@ jobs:
         run: |
           mkdir -p $HOME/cesm/scratch
           mkdir -p $HOME/cesm/inputdata
-          ls -R
+          pwd
+          ls 
+          git clone https://github.com/ESCOMP/CESM_share share
+          pwd
+          ls 
           cd $HOME/work/cime/cime/scripts/tests
           export NETCDF=$HOME/netcdf-fortran
           export PATH=$NETCDF/bin:$PATH
