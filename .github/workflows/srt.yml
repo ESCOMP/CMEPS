@@ -40,7 +40,18 @@ jobs:
 
       - uses: actions/checkout@v2
         with:
+          path: share
+
+      - name: cime checkout
+        uses: actions/checkout@v2
+        with:
           repository: fischer-ncar/cime
+
+      - name: cpl7 checkout
+        uses: actions/checkout@v2
+        with:
+          repository: ESCOMP/CESM_CPL7andDataComps
+          path: components/cpl7
 
       - id: load-env
         run: |
@@ -141,8 +152,6 @@ jobs:
         run: |
           mkdir -p $HOME/cesm/scratch
           mkdir -p $HOME/cesm/inputdata
-          git clone https://github.com/ESCOMP/CESM_share share
-          git clone https://github.com/ESCOMP/CESM_CPL7andDataComps components/cpl7
           cd $HOME/work/CESM_share/CESM_share/scripts/tests
           export NETCDF=$HOME/netcdf-fortran
           export PATH=$NETCDF/bin:$PATH
