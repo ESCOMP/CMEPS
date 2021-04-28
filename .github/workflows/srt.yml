@@ -67,31 +67,27 @@ jobs:
         id: cache-mct
         uses: actions/cache@v2
         with:
-          path: ~/libraries/mct
+          path: $HOME/work/CESM_share/CESM_share/libraries/mct
           key: ${{ runner.os }}-${{ env.MCT_VERSION}}-mct-redo
 
       - name: mct install
         if: steps.cache-mct.outputs.cache-hit != 'true'
-        uses: actions/checkout@v2
-        with:
-          repository: MCSclimate/MCT
-          ref: ${{ env.MCT_VERSION  }}
-          path: ~/libraries/mct
+        run: |
+          git clone -b ${{ env.MCT_VERSION  }} https://github.com/MCSclimate/MCT libraries/mct
+          ls -l libraries/mct
 
       - name: cache parallelio
         id: cache-parallelio
         uses: actions/cache@v2
         with:
-          path: ~/libraries/parallelio
+          path: $HOME/work/CESM_share/CESM_share/libraries/parallelio
           key: ${{ runner.os }}-${{ env.PARALLELIO_VERSION}}-parallelio-redo
 
       - name: parallelio install
         if: steps.cache-parallelio.outputs.cache-hit != 'true'
-        uses: actions/checkout@v2
-        with:
-          repository: NCAR/ParallelIO
-          ref: ${{ env.PARALLELIO_VERSION  }}
-          path: ~/libraries/parallelio
+        run: |
+          git clone -b ${{ env.PARALLELIO_VERSION  }} https://github.com/NCAR/ParallelIO libraries/parallelio
+          ls -l libraries/parallelio
 
       - name: cache pnetcdf
         id: cache-pnetcdf
@@ -157,8 +153,6 @@ jobs:
           pwd
           mkdir -p $HOME/cesm/scratch
           mkdir -p $HOME/cesm/inputdata
-          cp -rp ~/libraries/mct $HOME/work/CESM_share/CESM_share/libraries/mct
-          cp -rp ~/libraries/paralleliot $HOME/work/CESM_share/CESM_share/libraries/parallelio
           ls components
           echo "----"
           ls libraries
