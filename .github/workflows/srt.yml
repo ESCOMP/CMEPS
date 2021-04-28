@@ -54,8 +54,6 @@ jobs:
           repository: CESM_CPL7andDataComps
           path: components/cpl7
 
-          git clone https://github.com/ESCOMP/CESM_share share
-
       - id: load-env
         run: |
           sudo apt-get update
