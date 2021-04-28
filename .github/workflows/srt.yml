@@ -71,7 +71,7 @@ jobs:
           key: ${{ runner.os }}-${{ env.MCT_VERSION}}-mct-redo
 
       - name: mct install
-#        if: steps.cache-mct.outputs.cache-hit != 'true'
+        if: steps.cache-mct.outputs.cache-hit != 'true'
         uses: actions/checkout@v2
         with:
           repository: MCSclimate/MCT
@@ -86,7 +86,7 @@ jobs:
           key: ${{ runner.os }}-${{ env.PARALLELIO_VERSION}}-parallelio-redo
 
       - name: parallelio install
-#        if: steps.cache-parallelio.outputs.cache-hit != 'true'
+        if: steps.cache-parallelio.outputs.cache-hit != 'true'
         uses: actions/checkout@v2
         with:
           repository: NCAR/ParallelIO
