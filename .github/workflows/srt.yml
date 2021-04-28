@@ -38,9 +38,23 @@ jobs:
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
 
-      - uses: actions/checkout@v2
+      - name: share checkout
+        uses: actions/checkout@v2
+        with:
+          path: share
+
+      - name: cime checkout
+        uses: actions/checkout@v2
         with:
           repository: fischer-ncar/cime
+
+      - name: cpl7 checkout
+        uses: actions/checkout@v2
+        with:
+          repository: CESM_CPL7andDataComps
+          path: components/cpl7
+
+          git clone https://github.com/ESCOMP/CESM_share share
 
       - id: load-env
         run: |
@@ -75,17 +89,12 @@ jobs:
           key: ${{ runner.os }}-${{ env.PARALLELIO_VERSION}}-parallelio-redo
 
       - name: parallelio install
+        if: steps.cache-parallelio.outputs.cache-hit != 'true'
         uses: actions/checkout@v2
         with:
           repository: NCAR/ParallelIO
           ref: ${{ env.PARALLELIO_VERSION  }}
           path: libraries/parallelio
-
-#      - name: parallelio install
-#        if: steps.cache-parallelio.outputs.cache-hit != 'true'
-#        run: |
-#          git clone -b ${{ env.PARALLELIO_VERSION  }} https://github.com/NCAR/ParallelIO libraries/parallelio
-#          ls -l libraries/parallelio
 
       - name: cache pnetcdf
         id: cache-pnetcdf
@@ -153,8 +162,8 @@ jobs:
           cat libraries/mct/README
           mkdir -p $HOME/cesm/scratch
           mkdir -p $HOME/cesm/inputdata
-          git clone https://github.com/ESCOMP/CESM_share share
-          git clone https://github.com/ESCOMP/CESM_CPL7andDataComps components/cpl7
+#          git clone https://github.com/ESCOMP/CESM_share share
+#          git clone https://github.com/ESCOMP/CESM_CPL7andDataComps components/cpl7
           cd $HOME/work/CESM_share/CESM_share/scripts/tests
           export NETCDF=$HOME/netcdf-fortran
           export PATH=$NETCDF/bin:$PATH
