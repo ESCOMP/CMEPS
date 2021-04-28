@@ -60,10 +60,20 @@ jobs:
           key: ${{ runner.os }}-${{ env.MCT_VERSION}}-mct-redo
 
       - name: mct install
-        if: steps.cache-mct.outputs.cache-hit != 'true'
+        uses: actions/checkout@v2
+        with:
+          repository: MCSclimate/MCT
+          token: ${{ env.MCT_VERSION  }}
+          path: libraries/mct
         run: |
-          git clone -b ${{ env.MCT_VERSION  }} https://github.com/MCSclimate/MCT libraries/mct
           ls -l libraries/mct
+          cat README
+
+#      - name: mct install
+#        if: steps.cache-mct.outputs.cache-hit != 'true'
+#        run: |
+#          git clone -b ${{ env.MCT_VERSION  }} https://github.com/MCSclimate/MCT libraries/mct
+#          ls -l libraries/mct
 
       - name: cache parallelio
         id: cache-parallelio
@@ -139,6 +149,8 @@ jobs:
 
       - name: scripts regression tests
         run: |
+          pwd
+          ls
           mkdir -p $HOME/cesm/scratch
           mkdir -p $HOME/cesm/inputdata
           git clone https://github.com/ESCOMP/CESM_share share
