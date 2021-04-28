@@ -51,7 +51,7 @@ jobs:
       - name: cpl7 checkout
         uses: actions/checkout@v2
         with:
-          repository: CESM_CPL7andDataComps
+          repository: ESCOMP/CESM_CPL7andDataComps
           path: components/cpl7
 
       - id: load-env
