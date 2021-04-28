@@ -65,9 +65,6 @@ jobs:
           repository: MCSclimate/MCT
           token: ${{ env.MCT_VERSION  }}
           path: libraries/mct
-        run: |
-          ls -l libraries/mct
-          cat README
 
 #      - name: mct install
 #        if: steps.cache-mct.outputs.cache-hit != 'true'
@@ -151,6 +148,7 @@ jobs:
         run: |
           pwd
           ls
+          cat libraries/mct/README
           mkdir -p $HOME/cesm/scratch
           mkdir -p $HOME/cesm/inputdata
           git clone https://github.com/ESCOMP/CESM_share share
