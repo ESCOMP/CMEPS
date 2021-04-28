@@ -60,17 +60,12 @@ jobs:
           key: ${{ runner.os }}-${{ env.MCT_VERSION}}-mct-redo
 
       - name: mct install
+        if: steps.cache-mct.outputs.cache-hit != 'true'
         uses: actions/checkout@v2
         with:
           repository: MCSclimate/MCT
           ref: ${{ env.MCT_VERSION  }}
           path: libraries/mct
-
-#      - name: mct install
-#        if: steps.cache-mct.outputs.cache-hit != 'true'
-#        run: |
-#          git clone -b ${{ env.MCT_VERSION  }} https://github.com/MCSclimate/MCT libraries/mct
-#          ls -l libraries/mct
 
       - name: cache parallelio
         id: cache-parallelio
@@ -80,10 +75,17 @@ jobs:
           key: ${{ runner.os }}-${{ env.PARALLELIO_VERSION}}-parallelio-redo
 
       - name: parallelio install
-        if: steps.cache-parallelio.outputs.cache-hit != 'true'
-        run: |
-          git clone -b ${{ env.PARALLELIO_VERSION  }} https://github.com/NCAR/ParallelIO libraries/parallelio
-          ls -l libraries/parallelio
+        uses: actions/checkout@v2
+        with:
+          repository: NCAR/ParallelIO
+          ref: ${{ env.PARALLELIO_VERSION  }}
+          path: libraries/parallelio
+
+#      - name: parallelio install
+#        if: steps.cache-parallelio.outputs.cache-hit != 'true'
+#        run: |
+#          git clone -b ${{ env.PARALLELIO_VERSION  }} https://github.com/NCAR/ParallelIO libraries/parallelio
+#          ls -l libraries/parallelio
 
       - name: cache pnetcdf
         id: cache-pnetcdf
@@ -157,7 +159,7 @@ jobs:
           export NETCDF=$HOME/netcdf-fortran
           export PATH=$NETCDF/bin:$PATH
           export LD_LIBRARY_PATH=$NETCDF/lib:$HOME/pnetcdf/lib:$LD_LIBRARY_PATH
-          ./scripts_regression_tests.py --no-fortran-run --compiler gnu --mpilib openmpi --machine ubuntu-latest
+#          ./scripts_regression_tests.py --no-fortran-run --compiler gnu --mpilib openmpi --machine ubuntu-latest
 
 #     the following can be used by developers to login to the github server in case of errors
 #     see https://github.com/marketplace/actions/debugging-with-tmate for further details
