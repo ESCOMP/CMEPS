@@ -869,28 +869,6 @@
       <value>$ICE_NY</value>
     </values>
   </entry>
-  <entry id="glc_nx" modify_via_xml="GLC_NX">
-    <type>integer</type>
-    <category>control</category>
-    <group>MED_attributes</group>
-    <desc>
-      number of glc cells in i direction
-    </desc>
-    <values>
-      <value>$GLC_NX</value>
-    </values>
-  </entry>
-  <entry id="glc_ny" modify_via_xml="GLC_NY">
-    <type>integer</type>
-    <category>control</category>
-    <group>MED_attributes</group>
-    <desc>
-      number of glc cells in j direction
-    </desc>
-    <values>
-      <value>$GLC_NY</value>
-    </values>
-  </entry>
   <entry id="lnd_nx" modify_via_xml="LND_NX">
     <type>integer</type>
     <category>control</category>
