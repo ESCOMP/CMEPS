@@ -25,7 +25,7 @@ jobs:
       CXX: mpicxx
       CPPFLAGS: "-I/usr/include -I/usr/local/include"
       # Versions of all dependencies can be updated here
-      PNETCDF_VERSION: pnetcdf-1.12.1
+      PNETCDF_VERSION: pnetcdf-1.12.2
       NETCDF_FORTRAN_VERSION: v4.5.2
       MCT_VERSION: MCT_2.11.0
       PARALLELIO_VERSION: pio2_5_4
