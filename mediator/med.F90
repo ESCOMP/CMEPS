@@ -2377,17 +2377,24 @@ contains
           write(logunit,'(a)') trim(subname)//"Initialize-Data-Dependency allDone check Passed"
        end if
        do n1 = 1,ncomps
+          if (mastertask) then
+          write(logunit,*)
+          write(logunit,'(a)') trim(subname)//" "//trim(compname(n1))
+          write(logunit,*) is_local%wrap%comp_present(n1), ESMF_StateIsCreated(is_local%wrap%NStateImp(n1),rc=rc)
+          end if
           if (is_local%wrap%comp_present(n1) .and. ESMF_StateIsCreated(is_local%wrap%NStateImp(n1),rc=rc)) then
              call State_GetScalar(scalar_value=real_nx, &
                   scalar_id=is_local%wrap%flds_scalar_index_nx, &
                   state=is_local%wrap%NstateImp(n1), &
                   flds_scalar_name=is_local%wrap%flds_scalar_name, &
                   flds_scalar_num=is_local%wrap%flds_scalar_num, rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
              call State_GetScalar(scalar_value=real_ny, &
                   scalar_id=is_local%wrap%flds_scalar_index_ny, &
                   state=is_local%wrap%NstateImp(n1), &
                   flds_scalar_name=is_local%wrap%flds_scalar_name, &
                   flds_scalar_num=is_local%wrap%flds_scalar_num, rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
              is_local%wrap%nx(n1) = nint(real_nx)
              is_local%wrap%ny(n1) = nint(real_ny)
              write(msgString,'(2i8,2l4)') is_local%wrap%nx(n1), is_local%wrap%ny(n1)
