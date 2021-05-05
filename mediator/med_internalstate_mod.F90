@@ -13,6 +13,7 @@ module med_internalstate_mod
   private
 
   integer, public :: logunit            ! logunit for mediator log output
+  integer, public :: diagunit           ! diagunit for budget output (med master only)
   integer, public :: loglevel           ! loglevel for mediator log output
   logical, public :: mastertask=.false. ! is this the mastertask
   integer, public :: med_id             ! needed currently in med_io_mod and set in esm.F90

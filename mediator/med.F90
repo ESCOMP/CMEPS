@@ -556,9 +556,9 @@ contains
     use ESMF  , only : ESMF_GridCompGet, ESMF_VMGet, ESMF_AttributeGet, ESMF_AttributeSet
     use ESMF  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_METHOD_INITIALIZE
     use NUOPC , only : NUOPC_CompFilterPhaseMap, NUOPC_CompAttributeGet
-    use med_internalstate_mod, only : mastertask, logunit
+    use med_internalstate_mod, only : mastertask, logunit, diagunit
     use esmFlds, only : dststatus_print
- 
+
     type(ESMF_GridComp)   :: gcomp
     type(ESMF_State)      :: importState, exportState
     type(ESMF_Clock)      :: clock
@@ -568,10 +568,13 @@ contains
     type(ESMF_VM)     :: vm
     character(len=CL) :: cvalue
     integer           :: localPet
+    integer           :: i
     logical           :: isPresent, isSet
     character(len=CX) :: msgString
     character(len=CX) :: diro
     character(len=CX) :: logfile
+    character(len=CX) :: diagfile
+    character(len=CX) :: do_budgets
     character(len=*),parameter :: subname=' (module_MED:InitializeP0) '
     !-----------------------------------------------------------
 
@@ -597,6 +600,16 @@ contains
           logfile = 'mediator.log'
        end if
        open(newunit=logunit, file=trim(diro)//"/"//trim(logfile))
+
+       call NUOPC_CompAttributeGet(gcomp, name="do_budgets", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (isPresent .and. isSet) then
+          if (trim(cvalue) .eq. '.true.') then
+             i = index(logfile, '.log')
+             diagfile = "diags"//logfile(i:)
+             open(newunit=diagunit, file=trim(diro)//"/"//trim(diagfile))
+          endif
+       end if
     else
        logUnit = 6
     endif

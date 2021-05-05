@@ -27,7 +27,7 @@ module med_diag_mod
   use shr_const_mod         , only : shr_const_rearth, shr_const_pi, shr_const_latice
   use shr_const_mod         , only : shr_const_ice_ref_sal, shr_const_ocn_ref_sal, shr_const_isspval
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
-  use med_internalstate_mod , only : InternalState, logunit, mastertask
+  use med_internalstate_mod , only : InternalState, logunit, mastertask, diagunit
   use med_methods_mod       , only : fldbun_getdata2d => med_methods_FB_getdata2d
   use med_methods_mod       , only : fldbun_getdata1d => med_methods_FB_getdata1d
   use med_methods_mod       , only : fldbun_fldChk    => med_methods_FB_FldChk
@@ -1947,7 +1947,7 @@ contains
                 ! net summary budgets
                 call med_diag_print_summary(datagpr, ip, cdate, curr_tod)
              endif
-             write(logunit,*) ' '
+             write(diagunit,*) ' '
 
              deallocate(datagpr)
           endif ! output_level > 0 and mastertask
@@ -1999,16 +1999,16 @@ contains
           str = "CPL_TO_ATM"
        endif
 
-       write(logunit,*) ' '
-       write(logunit,FAH) subname,trim(str)//' AREA BUDGET (m2/m2): period = ', &
+       write(diagunit,*) ' '
+       write(diagunit,FAH) subname,trim(str)//' AREA BUDGET (m2/m2): period = ', &
             trim(budget_diags%periods(ip)%name), ': date = ', cdate, curr_tod
-       write(logunit,FA0) &
+       write(diagunit,FA0) &
             budget_diags%comps(ica)%name,&
             budget_diags%comps(icl)%name,&
             budget_diags%comps(icn)%name,&
             budget_diags%comps(ics)%name,&
             budget_diags%comps(ico)%name,' *SUM*  '
-       write(logunit,FA1) budget_diags%fields(f_area)%name,&
+       write(diagunit,FA1) budget_diags%fields(f_area)%name,&
             data(f_area,ica,ip), &
             data(f_area,icl,ip), &
             data(f_area,icn,ip), &
@@ -2017,17 +2017,17 @@ contains
             data(f_area,ica,ip) + data(f_area,icl,ip) + &
             data(f_area,icn,ip) + data(f_area,ics,ip) + data(f_area,ico,ip)
 
-       write(logunit,*) ' '
-       write(logunit,FAH) subname,trim(str)//' HEAT BUDGET (W/m2): period = ',&
+       write(diagunit,*) ' '
+       write(diagunit,FAH) subname,trim(str)//' HEAT BUDGET (W/m2): period = ',&
             trim(budget_diags%periods(ip)%name),': date = ',cdate,curr_tod
-       write(logunit,FA0) &
+       write(diagunit,FA0) &
             budget_diags%comps(ica)%name,&
             budget_diags%comps(icl)%name,&
             budget_diags%comps(icn)%name,&
             budget_diags%comps(ics)%name,&
             budget_diags%comps(ico)%name,' *SUM*  '
        do nf = f_heat_beg, f_heat_end
-          write(logunit,FA1) budget_diags%fields(nf)%name,&
+          write(diagunit,FA1) budget_diags%fields(nf)%name,&
                data(nf,ica,ip), &
                data(nf,icl,ip), &
                data(nf,icn,ip), &
@@ -2035,7 +2035,7 @@ contains
                data(nf,ico,ip), &
                data(nf,ica,ip) + data(nf,icl,ip) + data(nf,icn,ip) + data(nf,ics,ip) + data(nf,ico,ip)
        enddo
-       write(logunit,FA1)    '   *SUM*'   ,&
+       write(diagunit,FA1)    '   *SUM*'   ,&
             sum(data(f_heat_beg:f_heat_end,ica,ip)), &
             sum(data(f_heat_beg:f_heat_end,icl,ip)), &
             sum(data(f_heat_beg:f_heat_end,icn,ip)), &
@@ -2045,17 +2045,17 @@ contains
             sum(data(f_heat_beg:f_heat_end,icn,ip)) + sum(data(f_heat_beg:f_heat_end,ics,ip)) + &
             sum(data(f_heat_beg:f_heat_end,ico,ip))
 
-       write(logunit,*) ' '
-       write(logunit,FAH) subname,trim(str)//' WATER BUDGET (kg/m2s*1e6): period = ',&
+       write(diagunit,*) ' '
+       write(diagunit,FAH) subname,trim(str)//' WATER BUDGET (kg/m2s*1e6): period = ',&
             trim(budget_diags%periods(ip)%name),': date = ',cdate,curr_tod
-       write(logunit,FA0) &
+       write(diagunit,FA0) &
             budget_diags%comps(ica)%name,&
             budget_diags%comps(icl)%name,&
             budget_diags%comps(icn)%name,&
             budget_diags%comps(ics)%name,&
             budget_diags%comps(ico)%name,' *SUM*  '
        do nf = f_watr_beg, f_watr_end
-          write(logunit,FA1) budget_diags%fields(nf)%name,&
+          write(diagunit,FA1) budget_diags%fields(nf)%name,&
                data(nf,ica,ip), &
                data(nf,icl,ip), &
                data(nf,icn,ip), &
@@ -2063,7 +2063,7 @@ contains
                data(nf,ico,ip), &
                data(nf,ica,ip) + data(nf,icl,ip) + data(nf,icn,ip) + data(nf,ics,ip) + data(nf,ico,ip)
        enddo
-       write(logunit,FA1)    '   *SUM*'   ,&
+       write(diagunit,FA1)    '   *SUM*'   ,&
             sum(data(f_watr_beg:f_watr_end,ica,ip)), &
             sum(data(f_watr_beg:f_watr_end,icl,ip)), &
             sum(data(f_watr_beg:f_watr_end,icn,ip)), &
@@ -2075,17 +2075,17 @@ contains
 
        if ( flds_wiso ) then
           do is = 1, nisotopes
-             write(logunit,*) ' '
-             write(logunit,FAH) subname,trim(str)//' '//isoname(is)//' WATER BUDGET (kg/m2s*1e6): period = ', &
+             write(diagunit,*) ' '
+             write(diagunit,FAH) subname,trim(str)//' '//isoname(is)//' WATER BUDGET (kg/m2s*1e6): period = ', &
                   trim(budget_diags%periods(ip)%name),': date = ',cdate,curr_tod
-             write(logunit,FA0) &
+             write(diagunit,FA0) &
                   budget_diags%comps(ica)%name,&
                   budget_diags%comps(icl)%name,&
                   budget_diags%comps(icn)%name,&
                   budget_diags%comps(ics)%name,&
                   budget_diags%comps(ico)%name,' *SUM*  '
              do nf = iso0(is), isof(is)
-                write(logunit,FA1) budget_diags%fields(nf)%name,&
+                write(diagunit,FA1) budget_diags%fields(nf)%name,&
                      data(nf,ica,ip), &
                      data(nf,icl,ip), &
                      data(nf,icn,ip), &
@@ -2093,7 +2093,7 @@ contains
                      data(nf,ico,ip), &
                      data(nf,ica,ip) + data(nf,icl,ip) + data(nf,icn,ip) + data(nf,ics,ip) + data(nf,ico,ip)
              enddo
-             write(logunit,FA1)    '   *SUM*', &
+             write(diagunit,FA1)    '   *SUM*', &
                   sum(data(iso0(is):isof(is),ica,ip)), &
                   sum(data(iso0(is):isof(is),icl,ip)), &
                   sum(data(iso0(is):isof(is),icn,ip)), &
@@ -2160,22 +2160,22 @@ contains
 
        ! heat budgets atm<->lnd, atm<->ocn, atm<->ice_nh, atm<->ice_sh,
 
-       write(logunit,*) ' '
-       write(logunit,FAH) subname,trim(str)//' HEAT BUDGET (W/m2): period = ',&
+       write(diagunit,*) ' '
+       write(diagunit,FAH) subname,trim(str)//' HEAT BUDGET (W/m2): period = ',&
             trim(budget_diags%periods(ip)%name),': date = ',cdate,curr_tod
-       write(logunit,FA0) budget_diags%comps(icar)%name,&
+       write(diagunit,FA0) budget_diags%comps(icar)%name,&
             budget_diags%comps(icxs)%name,&
             budget_diags%comps(icxr)%name,&
             budget_diags%comps(icas)%name,' *SUM*  '
        do nf = f_heat_beg, f_heat_end
-          write(logunit,FA1) budget_diags%fields(nf)%name,&
+          write(diagunit,FA1) budget_diags%fields(nf)%name,&
                -data(nf,icar,ip), &
                 data(nf,icxs,ip), &
                 data(nf,icxr,ip), &
                -data(nf,icas,ip), &
                -data(nf,icar,ip) + data(nf,icxs,ip) + data(nf,icxr,ip) - data(nf,icas,ip)
        enddo
-       write(logunit,FA1)'   *SUM*',&
+       write(diagunit,FA1)'   *SUM*',&
             -sum(data(f_heat_beg:f_heat_end,icar,ip)), &
              sum(data(f_heat_beg:f_heat_end,icxs,ip)), &
              sum(data(f_heat_beg:f_heat_end,icxr,ip)), &
@@ -2185,23 +2185,23 @@ contains
 
        ! water budgets atm<->lnd, atm<->ocn, atm<->ice_nh, atm<->ice_sh,
 
-       write(logunit,*) ' '
-       write(logunit,FAH) subname,trim(str)//' WATER BUDGET (kg/m2s*1e6): period = ',&
+       write(diagunit,*) ' '
+       write(diagunit,FAH) subname,trim(str)//' WATER BUDGET (kg/m2s*1e6): period = ',&
             trim(budget_diags%periods(ip)%name),': date = ',cdate,curr_tod
-       write(logunit,FA0) &
+       write(diagunit,FA0) &
             budget_diags%comps(icar)%name,&
             budget_diags%comps(icxs)%name,&
             budget_diags%comps(icxr)%name,&
             budget_diags%comps(icas)%name,' *SUM*  '
        do nf = f_watr_beg, f_watr_end
-          write(logunit,FA1) budget_diags%fields(nf)%name,&
+          write(diagunit,FA1) budget_diags%fields(nf)%name,&
                -data(nf,icar,ip),&
                 data(nf,icxs,ip), &
                 data(nf,icxr,ip),&
                -data(nf,icas,ip), &
                -data(nf,icar,ip) + data(nf,icxs,ip) + data(nf,icxr,ip) - data(nf,icas,ip)
        enddo
-       write(logunit,FA1)    '   *SUM*',&
+       write(diagunit,FA1)    '   *SUM*',&
             -sum(data(f_watr_beg:f_watr_end,icar,ip)), &
              sum(data(f_watr_beg:f_watr_end,icxs,ip)), &
              sum(data(f_watr_beg:f_watr_end,icxr,ip)), &
@@ -2214,24 +2214,24 @@ contains
 
             ! heat budgets atm<->lnd, atm<->ocn, atm<->ice_nh, atm<->ice_sh for water isotopes
 
-             write(logunit,*) ' '
-             write(logunit,FAH) subname,trim(str)//isoname(is)//' WATER BUDGET (kg/m2s*1e6): period = ',&
+             write(diagunit,*) ' '
+             write(diagunit,FAH) subname,trim(str)//isoname(is)//' WATER BUDGET (kg/m2s*1e6): period = ',&
                   trim(budget_diags%periods(ip)%name), &
                   ': date = ',cdate,curr_tod
-             write(logunit,FA0) &
+             write(diagunit,FA0) &
                   budget_diags%comps(icar)%name,&
                   budget_diags%comps(icxs)%name,&
                   budget_diags%comps(icxr)%name,&
                   budget_diags%comps(icas)%name,' *SUM*  '
              do nf = iso0(is), isof(is)
-                write(logunit,FA1) budget_diags%fields(nf)%name,&
+                write(diagunit,FA1) budget_diags%fields(nf)%name,&
                      -data(nf,icar,ip), &
                       data(nf,icxs,ip), &
                       data(nf,icxr,ip), &
                      -data(nf,icas,ip), &
                      -data(nf,icar,ip) + data(nf,icxs,ip) + data(nf,icxr,ip) - data(nf,icas,ip)
              enddo
-             write(logunit,FA1)    '   *SUM*',&
+             write(diagunit,FA1)    '   *SUM*',&
                   -sum(data(iso0(is):isof(is),icar,ip)),&
                    sum(data(iso0(is):isof(is),icxs,ip)), &
                    sum(data(iso0(is):isof(is),icxr,ip)), &
@@ -2241,24 +2241,24 @@ contains
 
              ! water budgets atm<->lnd, atm<->ocn, atm<->ice_nh, atm<->ice_sh for water isotopes
 
-             write(logunit,*) ' '
-             write(logunit,FAH) subname,trim(str)//isoname(is)//' WATER BUDGET (kg/m2s*1e6): period = ',&
+             write(diagunit,*) ' '
+             write(diagunit,FAH) subname,trim(str)//isoname(is)//' WATER BUDGET (kg/m2s*1e6): period = ',&
                   trim(budget_diags%periods(ip)%name),&
                   ': date = ',cdate,curr_tod
-             write(logunit,FA0) &
+             write(diagunit,FA0) &
                   budget_diags%comps(icar)%name,&
                   budget_diags%comps(icxs)%name,&
                   budget_diags%comps(icxr)%name,&
                   budget_diags%comps(icas)%name,' *SUM*  '
              do nf = iso0(is), isof(is)
-                write(logunit,FA1) budget_diags%fields(nf)%name,&
+                write(diagunit,FA1) budget_diags%fields(nf)%name,&
                      -data(nf,icar,ip), &
                       data(nf,icxs,ip), &
                       data(nf,icxr,ip), &
                      -data(nf,icas,ip), &
                      -data(nf,icar,ip) + data(nf,icxs,ip) + data(nf,icxr,ip) - data(nf,icas,ip)
              enddo
-             write(logunit,FA1)    '   *SUM*',                &
+             write(diagunit,FA1)    '   *SUM*',                &
                   -sum(data(iso0(is):isof(is), icar, ip)), &
                    sum(data(iso0(is):isof(is), icxs, ip)), &
                    sum(data(iso0(is):isof(is), icxr, ip)), &
@@ -2312,25 +2312,25 @@ contains
     call t_startf('MED:'//subname)
     ! write out areas
 
-    write(logunit,*) ' '
-    write(logunit,FAH) subname,'NET AREA BUDGET (m2/m2): period = ',&
+    write(diagunit,*) ' '
+    write(diagunit,FAH) subname,'NET AREA BUDGET (m2/m2): period = ',&
          trim(budget_diags%periods(ip)%name),&
          ': date = ',cdate,curr_tod
-    write(logunit,FA0) '     atm','     lnd','     ocn','  ice nh','  ice sh',' *SUM*  '
+    write(diagunit,FA0) '     atm','     lnd','     ocn','  ice nh','  ice sh',' *SUM*  '
     atm_area    = data(f_area,c_atm_recv,ip)
     lnd_area    = data(f_area,c_lnd_recv,ip)
     ocn_area    = data(f_area,c_ocn_recv,ip)
     ice_area_nh = data(f_area,c_inh_recv,ip)
     ice_area_sh = data(f_area,c_ish_recv,ip)
     sum_area    = atm_area + lnd_area + ocn_area + ice_area_nh + ice_area_sh
-    write(logunit,FA1) budget_diags%fields(f_area)%name, atm_area, lnd_area, ocn_area, ice_area_nh, ice_area_sh, sum_area
+    write(diagunit,FA1) budget_diags%fields(f_area)%name, atm_area, lnd_area, ocn_area, ice_area_nh, ice_area_sh, sum_area
 
     ! write out net heat budgets
 
-    write(logunit,*) ' '
-    write(logunit,FAH) subname,'NET HEAT BUDGET (W/m2): period = ',&
+    write(diagunit,*) ' '
+    write(diagunit,FAH) subname,'NET HEAT BUDGET (W/m2): period = ',&
          trim(budget_diags%periods(ip)%name), ': date = ',cdate,curr_tod
-    write(logunit,FA0r) '     atm','     lnd','     rof','     ocn','  ice nh','  ice sh','     glc',' *SUM*  '
+    write(diagunit,FA0r) '     atm','     lnd','     rof','     ocn','  ice nh','  ice sh','     glc',' *SUM*  '
     do nf = f_heat_beg, f_heat_end
        net_heat_atm    = data(nf, c_atm_recv, ip) + data(nf, c_atm_send, ip)
        net_heat_lnd    = data(nf, c_lnd_recv, ip) + data(nf, c_lnd_send, ip)
@@ -2342,7 +2342,7 @@ contains
        net_heat_tot    = net_heat_atm + net_heat_lnd + net_heat_rof + net_heat_ocn + &
                          net_heat_ice_nh + net_heat_ice_sh + net_heat_glc
 
-       write(logunit,FA1r) budget_diags%fields(nf)%name,&
+       write(diagunit,FA1r) budget_diags%fields(nf)%name,&
             net_heat_atm, net_heat_lnd, net_heat_rof, net_heat_ocn, &
             net_heat_ice_nh, net_heat_ice_sh, net_heat_glc, net_heat_tot
     end do
@@ -2366,16 +2366,16 @@ contains
     sum_net_heat_tot    = sum_net_heat_atm + sum_net_heat_lnd + sum_net_heat_rof + sum_net_heat_ocn + &
                           sum_net_heat_ice_nh + sum_net_heat_ice_sh + sum_net_heat_glc
 
-    write(logunit,FA1r)'   *SUM*',&
+    write(diagunit,FA1r)'   *SUM*',&
          sum_net_heat_atm, sum_net_heat_lnd, sum_net_heat_rof, sum_net_heat_ocn, &
          sum_net_heat_ice_nh, sum_net_heat_ice_sh, sum_net_heat_glc, sum_net_heat_tot
 
     ! write out net water budgets
 
-    write(logunit,*) ' '
-    write(logunit,FAH) subname,'NET WATER BUDGET (kg/m2s*1e6): period = ',&
+    write(diagunit,*) ' '
+    write(diagunit,FAH) subname,'NET WATER BUDGET (kg/m2s*1e6): period = ',&
          trim(budget_diags%periods(ip)%name), ': date = ',cdate,curr_tod
-    write(logunit,FA0r) '     atm','     lnd','     rof','     ocn','  ice nh','  ice sh','     glc',' *SUM*  '
+    write(diagunit,FA0r) '     atm','     lnd','     rof','     ocn','  ice nh','  ice sh','     glc',' *SUM*  '
     do nf = f_watr_beg, f_watr_end
        net_water_atm    = data(nf, c_atm_recv, ip) + data(nf, c_atm_send, ip)
        net_water_lnd    = data(nf, c_lnd_recv, ip) + data(nf, c_lnd_send, ip)
@@ -2387,7 +2387,7 @@ contains
        net_water_tot    = net_water_atm + net_water_lnd + net_water_rof + net_water_ocn + &
                           net_water_ice_nh + net_water_ice_sh + net_water_glc
 
-       write(logunit,FA1r) budget_diags%fields(nf)%name,&
+       write(diagunit,FA1r) budget_diags%fields(nf)%name,&
             net_water_atm, net_water_lnd, net_water_rof, net_water_ocn, &
             net_water_ice_nh, net_water_ice_sh, net_water_glc, net_water_tot
     enddo
@@ -2411,7 +2411,7 @@ contains
     sum_net_water_tot    = sum_net_water_atm + sum_net_water_lnd + sum_net_water_rof + sum_net_water_ocn + &
                            sum_net_water_ice_nh + sum_net_water_ice_sh + sum_net_water_glc
 
-    write(logunit,FA1r)'   *SUM*',&
+    write(diagunit,FA1r)'   *SUM*',&
          sum_net_water_atm, sum_net_water_lnd, sum_net_water_rof, sum_net_water_ocn, &
          sum_net_water_ice_nh, sum_net_water_ice_sh, sum_net_water_glc, sum_net_water_tot
 
@@ -2420,10 +2420,10 @@ contains
     if ( flds_wiso ) then
 
        do is = 1, nisotopes
-          write(logunit,*) ' '
-          write(logunit,FAH) subname,'NET '//isoname(is)//' WATER BUDGET (kg/m2s*1e6): period = ', &
+          write(diagunit,*) ' '
+          write(diagunit,FAH) subname,'NET '//isoname(is)//' WATER BUDGET (kg/m2s*1e6): period = ', &
                trim(budget_diags%periods(ip)%name),': date = ',cdate,curr_tod
-          write(logunit,FA0r) '     atm','     lnd','     rof','     ocn','  ice nh','  ice sh','     glc',' *SUM*  '
+          write(diagunit,FA0r) '     atm','     lnd','     rof','     ocn','  ice nh','  ice sh','     glc',' *SUM*  '
           do nf = iso0(is), isof(is)
              net_water_atm    = data(nf, c_atm_recv, ip) + data(nf, c_atm_send, ip)
              net_water_lnd    = data(nf, c_lnd_recv, ip) + data(nf, c_lnd_send, ip)
@@ -2435,7 +2435,7 @@ contains
              net_water_tot    = net_water_atm + net_water_lnd + net_water_rof + net_water_ocn + &
                                 net_water_ice_nh + net_water_ice_sh + net_water_glc
 
-             write(logunit,FA1r) budget_diags%fields(nf)%name,&
+             write(diagunit,FA1r) budget_diags%fields(nf)%name,&
                   net_water_atm, net_water_lnd, net_water_rof, net_water_ocn, &
                   net_water_ice_nh, net_water_ice_sh, net_water_glc, net_water_tot
           enddo
@@ -2458,7 +2458,7 @@ contains
                                  sum_net_water_ocn + sum_net_water_ice_nh + sum_net_water_ice_sh + &
                                  sum_net_water_glc
 
-          write(logunit,FA1r)'   *SUM*',&
+          write(diagunit,FA1r)'   *SUM*',&
                sum_net_water_atm, sum_net_water_lnd, sum_net_water_rof, sum_net_water_ocn, &
                sum_net_water_ice_nh, sum_net_water_ice_sh, sum_net_water_glc, sum_net_water_tot
        end do
