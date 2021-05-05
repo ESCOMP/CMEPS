@@ -281,6 +281,8 @@ contains
     call add_to_budget_diag(budget_diags%comps, c_ocn_arecv, 'a2c_ocn' ) ! comp index: ocn, on atm grid
 
     call add_to_budget_diag(budget_diags%fields, f_area          ,'area'        ) ! field  area (wrt to unit sphere)
+
+    ! Note that this order is important here to determine f_heat_beg and f_heat_end
     call add_to_budget_diag(budget_diags%fields, f_heat_frz      ,'hfreeze'     ) ! field  heat : latent, freezing
     call add_to_budget_diag(budget_diags%fields, f_heat_melt     ,'hmelt'       ) ! field  heat : latent, melting
     call add_to_budget_diag(budget_diags%fields, f_heat_swnet    ,'hnetsw'      ) ! field  heat : short wave, net
@@ -290,6 +292,8 @@ contains
     call add_to_budget_diag(budget_diags%fields, f_heat_latf     ,'hlatfus'     ) ! field  heat : latent, fusion, snow
     call add_to_budget_diag(budget_diags%fields, f_heat_ioff     ,'hiroff'      ) ! field  heat : latent, fusion, frozen runoff
     call add_to_budget_diag(budget_diags%fields, f_heat_sen      ,'hsen'        ) ! field  heat : sensible
+
+    ! Note that this order is important here to determine f_watr_beg and f_watr_end
     call add_to_budget_diag(budget_diags%fields, f_watr_frz      ,'wfreeze'     ) ! field  water: freezing
     call add_to_budget_diag(budget_diags%fields, f_watr_melt     ,'wmelt'       ) ! field  water: melting
     call add_to_budget_diag(budget_diags%fields, f_watr_rain     ,'wrain'       ) ! field  water: precip, liquid
@@ -298,6 +302,7 @@ contains
     call add_to_budget_diag(budget_diags%fields, f_watr_salt     ,'weqsaltf'    ) ! field  water: water equivalent of salt flux
     call add_to_budget_diag(budget_diags%fields, f_watr_roff     ,'wrunoff'     ) ! field  water: runoff/flood
     call add_to_budget_diag(budget_diags%fields, f_watr_ioff     ,'wfrzrof'     ) ! field  water: frozen runoff
+
     call add_to_budget_diag(budget_diags%fields, f_watr_frz_16O  ,'wfreeze_16O' ) ! field  water isotope: freezing
     call add_to_budget_diag(budget_diags%fields, f_watr_melt_16O ,'wmelt_16O'   ) ! field  water isotope: melting
     call add_to_budget_diag(budget_diags%fields, f_watr_rain_16O ,'wrain_16O'   ) ! field  water isotope: precip, liquid
@@ -949,7 +954,7 @@ contains
     call diag_lnd(is_local%wrap%FBImp(complnd,complnd), 'Fall_sen'  , f_heat_sen    , ic, areas, lfrac, budget_local, rc=rc)
     call diag_lnd(is_local%wrap%FBImp(complnd,complnd), 'Fall_evap' , f_watr_evap   , ic, areas, lfrac, budget_local, rc=rc)
 
-    call diag_lnd(is_local%wrap%FBImp(complnd,complnd), 'Flrl_rofsur', f_watr_roff, ic, &
+    call diag_lnd(is_local%wrap%FBImp(complnd,complnd), 'Flrl_rofsur', f_watr_roff, ic,&
          areas, lfrac, budget_local, minus=.true., rc=rc)
     call diag_lnd(is_local%wrap%FBImp(complnd,complnd), 'Flrl_rofgwl', f_watr_roff, ic,&
          areas, lfrac, budget_local, minus=.true., rc=rc)
@@ -968,6 +973,8 @@ contains
          f_watr_roff_16O, f_watr_roff_18O, f_watr_roff_HDO, ic, areas, lfrac, budget_local, rc=rc)
     call diag_lnd_wiso(is_local%wrap%FBImp(complnd,complnd), 'Flrl_rofi_wiso', &
          f_watr_ioff_16O, f_watr_ioff_18O, f_watr_ioff_HDO, ic, areas, lfrac, budget_local, rc=rc)
+
+    budget_local(f_heat_ioff,ic,ip) = -budget_local(f_watr_ioff,ic,ip)*shr_const_latice
 
     !-------------------------------
     ! to land from mediator
@@ -997,7 +1004,6 @@ contains
     call diag_lnd_wiso(is_local%wrap%FBExp(complnd), 'Flrl_flood_wiso', &
          f_watr_roff_16O, f_watr_roff_18O, f_watr_roff_HDO, ic, areas, lfrac, budget_local, minus=.true., rc=rc)
 
-    budget_local(f_heat_ioff,ic,ip) = -budget_local(f_watr_ioff,ic,ip)*shr_const_latice
     budget_local(f_heat_latf,ic,ip) = -budget_local(f_watr_snow,ic,ip)*shr_const_latice
 
     call t_stopf('MED:'//subname)
@@ -1108,7 +1114,7 @@ contains
     ! from river to mediator
     !-------------------------------
 
-    ic = c_rof_send
+    ic = c_rof_recv
     ip = period_inst
 
     call diag_rof(is_local%wrap%FBImp(comprof,comprof), 'Flrr_flood', f_watr_roff, ic, areas, budget_local, rc=rc)
@@ -1129,7 +1135,7 @@ contains
     ! to river from mediator
     !-------------------------------
 
-    ic = c_rof_recv
+    ic = c_rof_send
     ip = period_inst
 
     call diag_rof(is_local%wrap%FBExp(comprof), 'Flrl_rofsur', f_watr_roff, ic, areas, budget_local, rc=rc)
@@ -1254,7 +1260,7 @@ contains
     !-------------------------------
 
     ! TODO: this will not be correct if there is more than 1 ice sheet
-    ic = c_glc_send
+    ic = c_glc_recv
     ip = period_inst
 
     do ns = 1,num_icesheets

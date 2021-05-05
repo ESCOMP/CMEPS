@@ -58,7 +58,6 @@ contains
     real(r8)                       :: nextsw_cday
     integer                        :: scalar_id
     real(r8)                       :: tmp(1)
-    logical                        :: first_call = .true.
     logical                        :: first_precip_fact_call = .true.
     character(len=*),parameter     :: subname='(med_phases_prep_ice)'
     !---------------------------------------
@@ -104,10 +103,6 @@ contains
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           scalar_id=is_local%wrap%flds_scalar_index_precip_factor
           precip_fact(1) = dataptr_scalar_ocn(scalar_id,1)
-          if (first_call) then
-             write(logunit,'(a)')'(merge_to_ice): Scaling rain, snow, liquid and ice runoff by precip_fact from ocn'
-             first_call = .false.
-          end if
           if (precip_fact(1) /= 1._r8) then
              write(logunit,'(a,f21.13)')&
                   '(merge_to_ice): Scaling rain, snow, liquid and ice runoff by non-unity precip_fact ',&
@@ -155,9 +150,6 @@ contains
        call FB_diagnose(is_local%wrap%FBExp(compice), string=trim(subname)//' FBexp(compice) ', rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     end if
-
-    ! Set first call logical to false
-    first_call = .false.
 
     if (dbug_flag > 5) then
        call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
