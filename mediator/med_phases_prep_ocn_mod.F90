@@ -243,7 +243,6 @@ contains
     integer             :: n
     integer             :: lsize
     real(R8)            :: c1,c2,c3,c4
-    logical             :: first_call = .true.
     character(len=64), allocatable :: fldnames(:)
     character(len=*), parameter    :: subname='(med_phases_prep_ocn_custom_cesm)'
     !---------------------------------------
@@ -451,10 +450,6 @@ contains
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           scalar_id=is_local%wrap%flds_scalar_index_precip_factor
           precip_fact(1) = dataptr_scalar_ocn(scalar_id,1)
-          if (first_call) then
-             write(logunit,'(a)')'(merge_to_ocn): Scaling rain, snow, liquid and ice runoff by precip_fact from ocn'
-             first_call = .false.
-          end if
           if (precip_fact(1) /= 1._r8) then
              write(logunit,'(a,f21.13)')&
                   '(merge_to_ocn): Scaling rain, snow, liquid and ice runoff by non-unity precip_fact ',&
