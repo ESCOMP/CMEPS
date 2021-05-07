@@ -1694,6 +1694,18 @@
     </values>
   </entry>
 
+  <entry id="num_icesheets">
+    <type>integer</type>
+    <category>expdef</category>
+    <group>ALLCOMP_attributes</group>
+    <desc>
+      number of glc ice sheets
+    </desc>
+    <values>
+      <value>1</value>
+    </values>
+  </entry>
+
   <entry id="mapuv_with_cart3d">
     <type>logical</type>
     <category>mapping</category>
