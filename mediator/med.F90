@@ -2435,7 +2435,7 @@ contains
        !---------------------------------------
        call med_diag_init(gcomp, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call med_diag_zero(gcomp, mode='all', rc=rc)
+       call med_diag_zero('all', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        !---------------------------------------
