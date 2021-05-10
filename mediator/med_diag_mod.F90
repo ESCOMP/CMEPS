@@ -426,7 +426,7 @@ contains
    end subroutine med_diag_init
 
   !===============================================================================
-  subroutine med_diag_zero_mode(mode, rc )
+  subroutine med_diag_zero_mode(mode, rc)
 
     ! ------------------------------------------------------------------
     ! Zero out global budget diagnostic data.
