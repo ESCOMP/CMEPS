@@ -86,6 +86,7 @@
        description: atmosphere export
      #
      - standard_name: Faxa_swnet
+       alias: mean_net_sw_flx
        canonical_units: W m-2
        description: atmosphere export
      #
@@ -138,6 +139,8 @@
        canonical_units: K
        description: atmosphere export - bottom layer temperature
      #
+     - standard_name: Sa_tskn
+       alias: inst_temp_height_surface
      - standard_name: Sa_tskn
        alias: inst_temp_skin_temperature
        canonical_units: K
