@@ -465,7 +465,8 @@ contains
     elseif (trim(mode) == 'all') then
        budget_local(:,:,:) = 0.0_r8
        budget_global(:,:,:) = 0.0_r8
-       budget_counter(:,:,:) = 0.0_r8
+       budget_counter(:,:,period_inst) = 0.0_r8
+       budget_counter(:,:,period_inst+1:) = 1.0_r8
     else
        call ESMF_LogWrite(trim(subname)//' mode '//trim(mode)//&
             ' not recognized', &
@@ -2341,6 +2342,7 @@ contains
     ice_area_sh = data(f_area,c_ish_recv,ip)
     sum_area    = atm_area + lnd_area + ocn_area + ice_area_nh + ice_area_sh
     write(diagunit,FA1) budget_diags%fields(f_area)%name, atm_area, lnd_area, ocn_area, ice_area_nh, ice_area_sh, sum_area
+    write(diagUnit,*) 'counter: ',budget_counter(f_area, c_atm_recv, ip)
 
     ! write out net heat budgets
 

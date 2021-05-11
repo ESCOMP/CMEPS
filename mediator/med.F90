@@ -664,7 +664,7 @@ contains
     ! TransferOfferGeomObject Attribute.
 
     use ESMF  , only : ESMF_GridComp, ESMF_State, ESMF_Clock, ESMF_SUCCESS, ESMF_LogFoundAllocError
-    use ESMF  , only : ESMF_StateIsCreated 
+    use ESMF  , only : ESMF_StateIsCreated
     use ESMF  , only : ESMF_LogMsg_Info, ESMF_LogWrite
     use ESMF  , only : ESMF_END_ABORT, ESMF_Finalize
     use NUOPC , only : NUOPC_AddNamespace, NUOPC_Advertise, NUOPC_AddNestedState
@@ -2435,7 +2435,8 @@ contains
        !---------------------------------------
        call med_diag_init(gcomp, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call med_diag_zero('all', rc=rc)
+       call med_diag_zero(mode='all', rc=rc)
+
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        !---------------------------------------
@@ -2492,7 +2493,7 @@ contains
        end if
 
        call med_phases_profile(gcomp, rc)
-
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
     else ! Not all done
        call NUOPC_CompAttributeSet(gcomp, name="InitializeDataComplete", value="false", rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
