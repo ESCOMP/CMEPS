@@ -847,12 +847,12 @@ contains
        ! ---------------------------------------------------------------------
        ! state fields
        allocate(S_flds(6))
-       S_flds = (/'Sa_u   ', & ! inst_zonal_wind_height10m
-                'Sa_v   ', & ! inst_merid_wind_height10m
-                'Sa_tbot', & ! inst_temp_height2m
-                'Sa_shum', & ! inst_spec_humid_height2m
-                'Sa_pslv', & ! inst_pres_height_surface
-                'Sa_tskn' /) ! inst_temp_height_surface
+       S_flds = (/'Sa_u10m', & ! inst_zonal_wind_height10m
+                  'Sa_v10m', & ! inst_merid_wind_height10m
+                  'Sa_t2m ', & ! inst_temp_height2m
+                  'Sa_q2m ', & ! inst_spec_humid_height2m
+                  'Sa_pslv', & ! inst_pres_height_surface
+                  'Sa_tskn' /) ! inst_temp_height_surface
        do n = 1,size(S_flds)
           fldname = trim(S_flds(n))
           if (fldchk(is_local%wrap%FBExp(compocn),trim(fldname),rc=rc) .and. &
