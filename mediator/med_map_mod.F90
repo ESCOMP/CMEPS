@@ -44,7 +44,7 @@ module med_map_mod
 contains
 !================================================================================
 
-  subroutine med_map_RouteHandles_initfrom_esmflds(gcomp, llogunit, rc)
+  subroutine med_map_RouteHandles_initfrom_esmflds(gcomp, flds_scalar_name, llogunit, rc)
 
     !---------------------------------------------
     ! Initialize route handles in the mediator
@@ -77,21 +77,23 @@ contains
     use ESMF            , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_LogFlush
     use ESMF            , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_Field
     use esmFlds         , only : fldListFr, ncomps, mapunset, compname
-    use med_methods_mod , only : med_methods_FB_getFieldN
+    use med_methods_mod , only : med_methods_FB_getFieldN, med_methods_FB_getNameN
 
     ! input/output variables
-    type(ESMF_GridComp)  :: gcomp
-    integer, intent(in)  :: llogunit
-    integer, intent(out) :: rc
+    type(ESMF_GridComp)          :: gcomp
+    character(len=*), intent(in) :: flds_scalar_name
+    integer, intent(in)          :: llogunit
+    integer, intent(out)         :: rc
 
     ! local variables
-    type(InternalState) :: is_local
-    type(ESMF_Field)    :: fldsrc
-    type(ESMF_Field)    :: flddst
-    integer             :: n,n1,n2,m,nf
-    character(len=CX)   :: mapfile
-    integer             :: mapindex
-    logical             :: mapexists = .false.
+    type(InternalState)         :: is_local
+    type(ESMF_Field)            :: fldsrc
+    type(ESMF_Field)            :: flddst
+    integer                     :: n,n1,n2,m,nf,id
+    character(len=CX)           :: mapfile
+    integer                     :: mapindex
+    logical                     :: mapexists = .false.
+    character(len=CX)           :: fieldname
     character(len=*), parameter :: subname=' (module_med_map: RouteHandles_init) '
     !-----------------------------------------------------------
 
@@ -114,10 +116,15 @@ contains
        do n2 = 1, ncomps
           if (n1 /= n2) then
              if (is_local%wrap%med_coupling_active(n1,n2)) then ! If coupling is active between n1 and n2
+                ! Check name of first field. If it is ScalarFieldName and try with next field in the FB
+                id = 1
+                call med_methods_FB_getNameN(is_local%wrap%FBImp(n1,n1), id, fieldname, rc)
+                if (trim(fieldname) == trim(flds_scalar_name)) id = id+1
+
                 ! Get source and destination fields
-                call med_methods_FB_getFieldN(is_local%wrap%FBImp(n1,n1), 1, fldsrc, rc)
+                call med_methods_FB_getFieldN(is_local%wrap%FBImp(n1,n1), id, fldsrc, rc)
                 if (chkerr(rc,__LINE__,u_FILE_u)) return
-                call med_methods_FB_getFieldN(is_local%wrap%FBImp(n1,n2), 1, flddst, rc)
+                call med_methods_FB_getFieldN(is_local%wrap%FBImp(n1,n2), id, flddst, rc)
                 if (chkerr(rc,__LINE__,u_FILE_u)) return
 
                 ! Loop over fields
@@ -220,7 +227,7 @@ contains
     use esmFlds           , only : mapunset, mapnames, nmappers
     use esmFlds           , only : mapnstod, mapnstod_consd, mapnstod_consf, mapnstod_consd
     use esmFlds           , only : mapfillv_bilnr, mapbilnr_nstod
-    use esmFlds           , only : ncomps, compatm, compice, compocn, compname
+    use esmFlds           , only : ncomps, compatm, compice, compocn, compwav, compname
     use esmFlds           , only : coupling_mode, dststatus_print
     use esmFlds           , only : atm_name
     use med_constants_mod , only : ispval_mask => med_constants_ispval_mask
@@ -302,6 +309,11 @@ contains
           dstMaskValue = 0
        elseif (n1 == compocn .and. n2 == compatm) then
           srcMaskValue = 0
+          dstMaskValue = ispval_mask
+       elseif (n1 == compatm .and. n2 == compwav) then
+          dstMaskValue = 1
+       elseif (n1 == compwav .and. n2 == compatm) then
+          srcMaskValue = 1
           dstMaskValue = ispval_mask
        endif
     end if

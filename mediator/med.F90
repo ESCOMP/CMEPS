@@ -1850,6 +1850,7 @@ contains
       med_coupling_allowed(complnd,compatm) = .true.
       med_coupling_allowed(compice,compatm) = .true.
       med_coupling_allowed(compocn,compatm) = .true.
+      med_coupling_allowed(compwav,compatm) = .true.
 
       ! to land
       med_coupling_allowed(compatm,complnd) = .true.
@@ -2138,11 +2139,15 @@ contains
       ! Initialized packed field data structures
       !---------------------------------------
 
-      call med_map_RouteHandles_init(gcomp, logunit, rc)
+      call ESMF_LogWrite("before med_map_RouteHandles_init", ESMF_LOGMSG_INFO)
+      call med_map_RouteHandles_init(gcomp, is_local%wrap%flds_scalar_name, logunit, rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      call ESMF_LogWrite("after  med_map_RouteHandles_init", ESMF_LOGMSG_INFO)
 
+      call ESMF_LogWrite("before med_map_mapnorm_init", ESMF_LOGMSG_INFO)
       call med_map_mapnorm_init(gcomp, rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      call ESMF_LogWrite("after  med_map_mapnorm_init", ESMF_LOGMSG_INFO)
 
       do ndst = 1,ncomps
          do nsrc = 1,ncomps
@@ -2380,7 +2385,6 @@ contains
           if (mastertask) then
           write(logunit,*)
           write(logunit,'(a)') trim(subname)//" "//trim(compname(n1))
-          write(logunit,*) is_local%wrap%comp_present(n1), ESMF_StateIsCreated(is_local%wrap%NStateImp(n1),rc=rc)
           end if
           if (is_local%wrap%comp_present(n1) .and. ESMF_StateIsCreated(is_local%wrap%NStateImp(n1),rc=rc)) then
              call State_GetScalar(scalar_value=real_nx, &

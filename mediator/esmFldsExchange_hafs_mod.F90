@@ -57,6 +57,7 @@ module esmFldsExchange_hafs_mod
     character(len=CX)   :: ocn2atm_smap='unset'
     character(len=CX)   :: ocn2wav_smap='unset'
     character(len=CX)   :: wav2ocn_smap='unset'
+    character(len=CX)   :: wav2atm_smap='unset'
     character(len=CS)   :: mapnorm     ='one'
     type(systemType)    :: hafs_sysType=SYS_CDP
   end type
@@ -418,10 +419,22 @@ contains
        end do
        deallocate(S_flds)
        ! ---------------------------------------------------------------------
+       ! from wav to atm
+       ! ---------------------------------------------------------------------
+       ! state fields
+       allocate(S_flds(1))
+       S_flds = (/'Sw_zo'/) ! wave_z0_roughness_length
+       do n = 1,size(S_flds)
+          fldname = trim(S_flds(n))
+          call addfld(fldListFr(compwav)%flds, trim(fldname))
+          call addfld(fldListTo(compatm)%flds, trim(fldname))
+       end do
+       deallocate(S_flds)
+       ! ---------------------------------------------------------------------
        ! from atm to wav
        ! ---------------------------------------------------------------------
-       allocate(S_flds(3))
-       S_flds = (/'Sa_u   ', 'Sa_v   ', 'Sa_tbot'/)
+       allocate(S_flds(2))
+       S_flds = (/'Sa_u10m', 'Sa_v10m'/)
        do n = 1,size(S_flds)
           fldname = trim(S_flds(n))
           call addfld(fldListFr(compatm)%flds, trim(fldname))
@@ -906,6 +919,24 @@ contains
        end do
        deallocate(F_flds)
        ! ---------------------------------------------------------------------
+       ! from wav to atm
+       ! ---------------------------------------------------------------------
+       ! state fields
+       allocate(S_flds(1))
+       S_flds = (/'Sw_zo'/) ! wave_z0_roughness_length
+       do n = 1,size(S_flds)
+          fldname = trim(S_flds(n))
+          if (fldchk(is_local%wrap%FBExp(compatm),trim(fldname),rc=rc) .and. &
+              fldchk(is_local%wrap%FBImp(compwav,compwav),trim(fldname),rc=rc) &
+             ) then
+             call addmap(fldListFr(compwav)%flds, trim(fldname), compatm, &
+                  mapfillv_bilnr, hafs_attr%mapnorm, hafs_attr%wav2atm_smap)
+             call addmrg(fldListTo(compatm)%flds, trim(fldname), &
+                  mrg_from=compwav, mrg_fld=trim(fldname), mrg_type='copy')
+          end if
+       end do
+       deallocate(S_flds)
+       ! ---------------------------------------------------------------------
        ! from ocn to atm
        ! ---------------------------------------------------------------------
        ! state fields
@@ -927,15 +958,15 @@ contains
        ! from atm to wav
        ! ---------------------------------------------------------------------
        ! state fields
-       allocate(S_flds(3))
-       S_flds = (/'Sa_u   ', 'Sa_v   ', 'Sa_tbot'/)
+       allocate(S_flds(2))
+       S_flds = (/'Sa_u10m', 'Sa_v10m'/)
        do n = 1,size(S_flds)
          fldname = trim(S_flds(n))
          if (fldchk(is_local%wrap%FBexp(compwav),trim(fldname),rc=rc) .and. &
              fldchk(is_local%wrap%FBImp(compatm,compatm), trim(fldname),rc=rc) &
             ) then
             call addmap(fldListFr(compatm)%flds, trim(fldname), compwav, &
-                 mapbilnr, 'one', hafs_attr%atm2wav_smap)
+                 mapfillv_bilnr, hafs_attr%mapnorm, hafs_attr%atm2wav_smap)
             call addmrg(fldListTo(compwav)%flds, trim(fldname), &
                  mrg_from=compatm, mrg_fld=trim(fldname), mrg_type='copy')
          end if
@@ -1135,6 +1166,14 @@ contains
     end if
 
     ! from wav
+    call NUOPC_CompAttributeGet(gcomp, name='wav2atm_smapname', &
+       isPresent=isPresent, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent) then
+       call NUOPC_CompAttributeGet(gcomp, name='wav2atm_smapname', &
+          value=hafs_attr%wav2atm_smap, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+    end if
     call NUOPC_CompAttributeGet(gcomp, name='wav2ocn_smapname', &
        isPresent=isPresent, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
