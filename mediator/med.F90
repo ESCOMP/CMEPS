@@ -1711,7 +1711,7 @@ contains
     use ESMF                    , only : ESMF_State, ESMF_Time, ESMF_Field, ESMF_StateItem_Flag, ESMF_MAXSTR
     use ESMF                    , only : ESMF_GridCompGet, ESMF_AttributeGet, ESMF_ClockGet, ESMF_Success
     use ESMF                    , only : ESMF_StateIsCreated, ESMF_StateGet, ESMF_FieldBundleIsCreated, ESMF_LogFlush
-    use ESMF                    , only : ESMF_VM
+    use ESMF                    , only : ESMF_FieldBundleGet, ESMF_VM
     use NUOPC                   , only : NUOPC_CompAttributeSet, NUOPC_IsAtTime, NUOPC_SetAttribute
     use NUOPC                   , only : NUOPC_CompAttributeGet
     use med_fraction_mod        , only : med_fraction_init, med_fraction_set
@@ -1997,8 +1997,23 @@ contains
             is_local%wrap%FBExpAccumCnt(n1) = 0
 
             ! Create mesh info data
-            call med_meshinfo_create(is_local%wrap%FBImp(n1,n1), &
-                 is_local%wrap%mesh_info(n1), rc=rc)
+            call ESMF_FieldBundleGet(is_local%wrap%FBImp(n1,n1), fieldCount=fieldCount, rc=rc) 
+            if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+            if (fieldCount == 0) then           
+              if (mastertask) then
+                write(logunit,*) trim(subname)//' '//trim(compname(n1))//' import FB field count is = ', fieldCount
+                write(logunit,*) trim(subname)//' '//trim(compname(n1))//' trying to use export FB'
+                call ESMF_FieldBundleGet(is_local%wrap%FBExp(n1), fieldCount=fieldCount, rc=rc)
+                if (ChkErr(rc,__LINE__,u_FILE_u)) return
+                write(logunit,*) trim(subname)//' '//trim(compname(n1))//' export FB field count is = ', fieldCount
+              end if
+              call med_meshinfo_create(is_local%wrap%FBExp(n1), &
+                   is_local%wrap%mesh_info(n1), rc=rc)
+            else
+              call med_meshinfo_create(is_local%wrap%FBImp(n1,n1), &
+                   is_local%wrap%mesh_info(n1), rc=rc)
+            end if
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
          end if
 
@@ -2016,10 +2031,21 @@ contains
                        trim(compname(n1))//'_'//trim(compname(n2))
                end if
 
-               call FB_init(is_local%wrap%FBImp(n1,n2), is_local%wrap%flds_scalar_name, &
-                    STgeom=is_local%wrap%NStateImp(n2), &
-                    STflds=is_local%wrap%NStateImp(n1), &
-                    name='FBImp'//trim(compname(n1))//'_'//trim(compname(n2)), rc=rc)
+               ! Check import FB, if there is no field in it then use export FB
+               ! to provide mesh information
+               call State_GetNumFields(is_local%wrap%NStateImp(n2), fieldCount, rc=rc)
+               if (ChkErr(rc,__LINE__,u_FILE_u)) return
+               if (fieldCount == 0) then 
+                 call FB_init(is_local%wrap%FBImp(n1,n2), is_local%wrap%flds_scalar_name, &
+                      STgeom=is_local%wrap%NStateExp(n2), &
+                      STflds=is_local%wrap%NStateImp(n1), &
+                      name='FBImp'//trim(compname(n1))//'_'//trim(compname(n2)), rc=rc)
+               else
+                 call FB_init(is_local%wrap%FBImp(n1,n2), is_local%wrap%flds_scalar_name, &
+                      STgeom=is_local%wrap%NStateImp(n2), &
+                      STflds=is_local%wrap%NStateImp(n1), &
+                      name='FBImp'//trim(compname(n1))//'_'//trim(compname(n2)), rc=rc)
+               end if
                if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
                call FB_init(is_local%wrap%FBImpAccum(n1,n2), is_local%wrap%flds_scalar_name, &
