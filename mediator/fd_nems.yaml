@@ -742,7 +742,8 @@
        canonical_units: 1
        description: ww3 export
      #
-     - standard_name: wave_z0_roughness_length
+     - standard_name: Sw_zo 
+       alias: wave_z0_roughness_length
        canonical_units: 1
        description: ww3 export
      #
