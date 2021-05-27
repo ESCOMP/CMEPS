@@ -775,7 +775,7 @@ contains
     ! ocn-> atm mappings for atm/ocn fluxes computed in mediator on the ocn grid
     nsrc = compocn
     ndst = compatm
-    if (med_coupling_active(nsrc,ndst)) then
+    if (med_coupling_active(nsrc,ndst) .and. associated(fldListMed_aoflux%flds)) then
        do n = 1,size(fldListMed_aoflux%flds)
           mapindex = fldlistMed_aoflux%flds(n)%mapindex(ndst)
           if ( mapindex /= mapunset) then
