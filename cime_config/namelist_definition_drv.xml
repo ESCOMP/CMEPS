@@ -2005,58 +2005,6 @@
     </values>
   </entry>
 
-  <entry id="lnd2glc_fmapname"    modify_via_xml="LND2GLC_FMAPNAME">
-    <type>char</type>
-    <category>mapping</category>
-    <input_pathname>abs</input_pathname>
-    <group>MED_attributes</group>
-    <desc>
-      land to glc mapping file for fluxes
-    </desc>
-    <values>
-      <value>$LND2GLC_FMAPNAME</value>
-    </values>
-  </entry>
-
-  <entry id="lnd2glc_smapname"    modify_via_xml="LND2GLC_SMAPNAME">
-    <type>char</type>
-    <category>mapping</category>
-    <input_pathname>abs</input_pathname>
-    <group>MED_attributes</group>
-    <desc>
-      land to glc mapping file for states
-    </desc>
-    <values>
-      <value>$LND2GLC_SMAPNAME</value>
-    </values>
-  </entry>
-
-  <entry id="glc2lnd_fmapname"    modify_via_xml="GLC2LND_FMAPNAME">
-    <type>char</type>
-    <category>mapping</category>
-    <input_pathname>abs</input_pathname>
-    <group>MED_attributes</group>
-    <desc>
-      glc to land mapping file for fluxes
-    </desc>
-    <values>
-      <value>$GLC2LND_FMAPNAME</value>
-    </values>
-  </entry>
-
-  <entry id="glc2lnd_smapname"    modify_via_xml="GLC2LND_SMAPNAME">
-    <type>char</type>
-    <category>mapping</category>
-    <input_pathname>abs</input_pathname>
-    <group>MED_attributes</group>
-    <desc>
-      glc to land mapping file for states
-    </desc>
-    <values>
-      <value>$GLC2LND_SMAPNAME</value>
-    </values>
-  </entry>
-
   <entry id="atm2wav_smapname"    modify_via_xml="ATM2WAV_SMAPNAME">
     <type>char</type>
     <category>mapping</category>
