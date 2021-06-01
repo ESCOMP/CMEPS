@@ -21,13 +21,13 @@ module med_diag_mod
   use ESMF                  , only : ESMF_FAILURE,  ESMF_LOGMSG_ERROR
   use ESMF                  , only : ESMF_GridComp, ESMF_Clock, ESMF_Time
   use ESMF                  , only : ESMF_VM, ESMF_VMReduce, ESMF_REDUCE_SUM
-  use ESMF                  , only : ESMF_GridCompGet, ESMF_ClockGet, ESMF_TimeGet
+  use ESMF                  , only : ESMF_GridCompGet, ESMF_ClockGet, ESMF_TimeGet, ESMF_ClockGetNextTime
   use ESMF                  , only : ESMF_Alarm, ESMF_ClockGetAlarm, ESMF_AlarmIsRinging, ESMF_AlarmRingerOff
   use ESMF                  , only : ESMF_FieldBundle, ESMF_Field, ESMF_FieldGet
   use shr_const_mod         , only : shr_const_rearth, shr_const_pi, shr_const_latice
   use shr_const_mod         , only : shr_const_ice_ref_sal, shr_const_ocn_ref_sal, shr_const_isspval
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
-  use med_internalstate_mod , only : InternalState, logunit, mastertask
+  use med_internalstate_mod , only : InternalState, logunit, mastertask, diagunit
   use med_methods_mod       , only : fldbun_getdata2d => med_methods_FB_getdata2d
   use med_methods_mod       , only : fldbun_getdata1d => med_methods_FB_getdata1d
   use med_methods_mod       , only : fldbun_fldChk    => med_methods_FB_FldChk
@@ -65,6 +65,11 @@ module med_diag_mod
      type(budget_diag_type), pointer :: periods(:) => null()
   end type budget_diag_indices
   type(budget_diag_indices) :: budget_diags
+
+  interface med_diag_zero
+     module procedure med_diag_zero_mode
+     module procedure med_diag_zero_select
+  end interface
 
   ! ---------------------------------
   ! print options (obtained from mediator config input)
@@ -195,11 +200,11 @@ module med_diag_mod
   ! P for period
   ! ---------------------------------
 
-  integer :: period_inst
-  integer :: period_day
-  integer :: period_mon
-  integer :: period_ann
-  integer :: period_inf
+  integer :: period_inst=0
+  integer :: period_day=0
+  integer :: period_mon=0
+  integer :: period_ann=0
+  integer :: period_inf=0
 
   ! ---------------------------------
   ! local constants
@@ -281,6 +286,8 @@ contains
     call add_to_budget_diag(budget_diags%comps, c_ocn_arecv, 'a2c_ocn' ) ! comp index: ocn, on atm grid
 
     call add_to_budget_diag(budget_diags%fields, f_area          ,'area'        ) ! field  area (wrt to unit sphere)
+
+    ! Note that this order is important here to determine f_heat_beg and f_heat_end
     call add_to_budget_diag(budget_diags%fields, f_heat_frz      ,'hfreeze'     ) ! field  heat : latent, freezing
     call add_to_budget_diag(budget_diags%fields, f_heat_melt     ,'hmelt'       ) ! field  heat : latent, melting
     call add_to_budget_diag(budget_diags%fields, f_heat_swnet    ,'hnetsw'      ) ! field  heat : short wave, net
@@ -290,6 +297,8 @@ contains
     call add_to_budget_diag(budget_diags%fields, f_heat_latf     ,'hlatfus'     ) ! field  heat : latent, fusion, snow
     call add_to_budget_diag(budget_diags%fields, f_heat_ioff     ,'hiroff'      ) ! field  heat : latent, fusion, frozen runoff
     call add_to_budget_diag(budget_diags%fields, f_heat_sen      ,'hsen'        ) ! field  heat : sensible
+
+    ! Note that this order is important here to determine f_watr_beg and f_watr_end
     call add_to_budget_diag(budget_diags%fields, f_watr_frz      ,'wfreeze'     ) ! field  water: freezing
     call add_to_budget_diag(budget_diags%fields, f_watr_melt     ,'wmelt'       ) ! field  water: melting
     call add_to_budget_diag(budget_diags%fields, f_watr_rain     ,'wrain'       ) ! field  water: precip, liquid
@@ -298,6 +307,7 @@ contains
     call add_to_budget_diag(budget_diags%fields, f_watr_salt     ,'weqsaltf'    ) ! field  water: water equivalent of salt flux
     call add_to_budget_diag(budget_diags%fields, f_watr_roff     ,'wrunoff'     ) ! field  water: runoff/flood
     call add_to_budget_diag(budget_diags%fields, f_watr_ioff     ,'wfrzrof'     ) ! field  water: frozen runoff
+
     call add_to_budget_diag(budget_diags%fields, f_watr_frz_16O  ,'wfreeze_16O' ) ! field  water isotope: freezing
     call add_to_budget_diag(budget_diags%fields, f_watr_melt_16O ,'wmelt_16O'   ) ! field  water isotope: melting
     call add_to_budget_diag(budget_diags%fields, f_watr_rain_16O ,'wrain_16O'   ) ! field  water isotope: precip, liquid
@@ -337,22 +347,6 @@ contains
     isof(:)    = (/ f_16O_end, f_18O_end, f_hdO_end /)
     isoname(:) = (/ 'H216O',   'H218O',   '  HDO'   /)
 
-    ! period types
-    call add_to_budget_diag(budget_diags%periods, period_inst,'    inst')
-    call add_to_budget_diag(budget_diags%periods, period_day ,'   daily')
-    call add_to_budget_diag(budget_diags%periods, period_mon ,' monthly')
-    call add_to_budget_diag(budget_diags%periods, period_ann ,'  annual')
-    call add_to_budget_diag(budget_diags%periods, period_inf ,'all_time')
-
-    ! allocate module budget arrays
-    c_size = size(budget_diags%comps)
-    f_size = size(budget_diags%fields)
-    p_size = size(budget_diags%periods)
-
-    allocate(budget_local    (f_size , c_size , p_size)) ! local sum, valid on all pes
-    allocate(budget_global   (f_size , c_size , p_size)) ! global sum, valid only on root pe
-    allocate(budget_counter  (f_size , c_size , p_size)) ! counter, valid only on root pe
-    allocate(budget_global_1d(f_size * c_size * p_size)) ! needed for ESMF_VMReduce call
     !-------------------------------------------------------------------------------
     ! Get config variables
     !-------------------------------------------------------------------------------
@@ -369,6 +363,24 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     budget_print_ltend  = get_diag_attribute(gcomp, 'budget_ltend', rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    ! period types
+    call add_to_budget_diag(budget_diags%periods, period_inst,'    inst')
+    if(budget_print_daily > 0) call add_to_budget_diag(budget_diags%periods, period_day ,'   daily')
+    if(budget_print_month > 0) call add_to_budget_diag(budget_diags%periods, period_mon ,' monthly')
+    if(budget_print_ann > 0) call add_to_budget_diag(budget_diags%periods, period_ann ,'  annual')
+    call add_to_budget_diag(budget_diags%periods, period_inf ,'all_time')
+
+    ! allocate module budget arrays
+    c_size = size(budget_diags%comps)
+    f_size = size(budget_diags%fields)
+    p_size = size(budget_diags%periods)
+
+    allocate(budget_local    (f_size , c_size , p_size)) ! local sum, valid on all pes
+    allocate(budget_global   (f_size , c_size , p_size)) ! global sum, valid only on root pe
+    allocate(budget_counter  (f_size , c_size , p_size)) ! counter, valid only on root pe
+    allocate(budget_global_1d(f_size * c_size * p_size)) ! needed for ESMF_VMReduce call
+
     if (budget_print_inst + budget_print_daily + budget_print_month + budget_print_ann + budget_print_ltann + budget_print_ltend > 0) then
        ! Set stop alarm (needed for budgets)
        call NUOPC_CompAttributeGet(gcomp, name="stop_option", value=stop_option, rc=rc)
@@ -414,95 +426,96 @@ contains
    end subroutine med_diag_init
 
   !===============================================================================
-  subroutine med_diag_zero( gcomp, mode, rc)
+  subroutine med_diag_zero_mode(mode, rc)
 
     ! ------------------------------------------------------------------
     ! Zero out global budget diagnostic data.
     ! ------------------------------------------------------------------
 
     ! input/output variables
-    type(ESMF_GridComp)                   :: gcomp
-    character(len=*), intent(in),optional :: mode
-    integer, intent(out)                  :: rc
+    character(len=*) , intent(in)  :: mode
+    integer          , intent(out) :: rc
 
     ! local variables
-    type(ESMF_Clock) :: clock
-    type(ESMF_Time)  :: currTime
-    integer          :: ip
-    integer          :: curr_year, curr_mon, curr_day, curr_tod
     character(*), parameter :: subName = '(med_diag_zero) '
     ! ------------------------------------------------------------------
 
-    call t_startf('MED:'//subname)
-    if (present(mode)) then
+    rc = ESMF_SUCCESS
 
-       if (trim(mode) == 'inst') then
-          budget_local(:,:,period_inst) = 0.0_r8
-          budget_global(:,:,period_inst) = 0.0_r8
-          budget_counter(:,:,period_inst) = 0.0_r8
-       elseif (trim(mode) == 'day') then
-          budget_local(:,:,period_day) = 0.0_r8
-          budget_global(:,:,period_day) = 0.0_r8
-          budget_counter(:,:,period_day) = 0.0_r8
-       elseif (trim(mode) == 'mon') then
-          budget_local(:,:,period_mon) = 0.0_r8
-          budget_global(:,:,period_mon) = 0.0_r8
-          budget_counter(:,:,period_mon) = 0.0_r8
-       elseif (trim(mode) == 'ann') then
-          budget_local(:,:,period_ann) = 0.0_r8
-          budget_global(:,:,period_ann) = 0.0_r8
-          budget_counter(:,:,period_ann) = 0.0_r8
-       elseif (trim(mode) == 'inf') then
-          budget_local(:,:,period_inf) = 0.0_r8
-          budget_global(:,:,period_inf) = 0.0_r8
-          budget_counter(:,:,period_inf) = 0.0_r8
-       elseif (trim(mode) == 'all') then
-          budget_local(:,:,:) = 0.0_r8
-          budget_global(:,:,:) = 0.0_r8
-          budget_counter(:,:,:) = 0.0_r8
-       else
-          call ESMF_LogWrite(trim(subname)//' mode '//trim(mode)//&
-               ' not recognized', &
-               ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
-          rc = ESMF_FAILURE
-          return
-       endif
-
+    if (trim(mode) == 'inst') then
+       budget_local(:,:,period_inst) = 0.0_r8
+       budget_global(:,:,period_inst) = 0.0_r8
+       budget_counter(:,:,period_inst) = 0.0_r8
+    elseif (trim(mode) == 'day') then
+       budget_local(:,:,period_day) = 0.0_r8
+       budget_global(:,:,period_day) = 0.0_r8
+       budget_counter(:,:,period_day) = 0.0_r8
+    elseif (trim(mode) == 'mon') then
+       budget_local(:,:,period_mon) = 0.0_r8
+       budget_global(:,:,period_mon) = 0.0_r8
+       budget_counter(:,:,period_mon) = 0.0_r8
+    elseif (trim(mode) == 'ann') then
+       budget_local(:,:,period_ann) = 0.0_r8
+       budget_global(:,:,period_ann) = 0.0_r8
+       budget_counter(:,:,period_ann) = 0.0_r8
+    elseif (trim(mode) == 'inf') then
+       budget_local(:,:,period_inf) = 0.0_r8
+       budget_global(:,:,period_inf) = 0.0_r8
+       budget_counter(:,:,period_inf) = 0.0_r8
+    elseif (trim(mode) == 'all') then
+       budget_local(:,:,:) = 0.0_r8
+       budget_global(:,:,:) = 0.0_r8
+       budget_counter(:,:,:) = 0.0_r8
     else
-       call ESMF_GridCompGet(gcomp, clock=clock, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_LogWrite(trim(subname)//' mode '//trim(mode)//&
+            ' not recognized', &
+            ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
+       rc = ESMF_FAILURE
+       return
+    endif
+  end subroutine med_diag_zero_mode
 
-       call ESMF_ClockGet( clock, currTime=currTime, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+  !===============================================================================
+  subroutine med_diag_zero_select(year, mon, day, tod)
 
-       call ESMF_TimeGet( currTime, yy=curr_year, mm=curr_mon, dd=curr_day, s=curr_tod, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    ! ------------------------------------------------------------------
+    ! Zero out global budget diagnostic data.
+    ! ------------------------------------------------------------------
 
-       do ip = 1,size(budget_diags%periods)
-          if (ip == period_inst) then
-             budget_local(:,:,ip) = 0.0_r8
-             budget_global(:,:,ip) = 0.0_r8
-             budget_counter(:,:,ip) = 0.0_r8
-          endif
-          if (ip==period_day .and. curr_tod==0) then
-             budget_local(:,:,ip) = 0.0_r8
-             budget_global(:,:,ip) = 0.0_r8
-             budget_counter(:,:,ip) = 0.0_r8
-          endif
-          if (ip==period_mon .and. curr_day==1 .and. curr_tod==0) then
-             budget_local(:,:,ip) = 0.0_r8
-             budget_global(:,:,ip) = 0.0_r8
-             budget_counter(:,:,ip) = 0.0_r8
-          endif
-          if (ip==period_ann .and. curr_mon==1 .and. curr_day==1 .and. curr_tod==0) then
-             budget_local(:,:,ip) = 0.0_r8
-             budget_global(:,:,ip) = 0.0_r8
-             budget_counter(:,:,ip) = 0.0_r8
-          endif
-       enddo
-    end if
-    call t_stopf('MED:'//subname)
-  end subroutine med_diag_zero
+    ! input/output variables
+    integer, intent(in)  :: year
+    integer, intent(in)  :: mon
+    integer, intent(in)  :: day
+    integer, intent(in)  :: tod
+
+    ! local variables
+    integer :: ip
+    character(*), parameter :: subName = '(med_diag_zero_select) '
+    ! ------------------------------------------------------------------
+
+    do ip = 1,size(budget_diags%periods)
+       if (ip == period_inst) then
+          budget_local(:,:,ip) = 0.0_r8
+          budget_global(:,:,ip) = 0.0_r8
+          budget_counter(:,:,ip) = 0.0_r8
+       endif
+       if (ip==period_day .and. tod==0) then
+          budget_local(:,:,ip) = 0.0_r8
+          budget_global(:,:,ip) = 0.0_r8
+          budget_counter(:,:,ip) = 0.0_r8
+       endif
+       if (ip==period_mon .and. day==1 .and. tod==0) then
+          budget_local(:,:,ip) = 0.0_r8
+          budget_global(:,:,ip) = 0.0_r8
+          budget_counter(:,:,ip) = 0.0_r8
+       endif
+       if (ip==period_ann .and. mon==1 .and. day==1 .and. tod==0) then
+          budget_local(:,:,ip) = 0.0_r8
+          budget_global(:,:,ip) = 0.0_r8
+          budget_counter(:,:,ip) = 0.0_r8
+       endif
+    enddo
+  end subroutine med_diag_zero_select
 
   !===============================================================================
   subroutine med_phases_diag_accum(gcomp, rc)
@@ -526,6 +539,7 @@ contains
        budget_local(:,:,ip) = budget_local(:,:,ip) + budget_local(:,:,period_inst)
     enddo
     budget_counter(:,:,:) = budget_counter(:,:,:) + 1.0_r8
+
     call t_stopf('MED:'//subname)
   end subroutine med_phases_diag_accum
 
@@ -562,11 +576,11 @@ contains
     count  = size(budget_global)
     budget_global_1d(:) = 0.0_r8
 
-
     call ESMF_VMReduce(vm, reshape(budget_local,(/count/)) , budget_global_1d, count, ESMF_REDUCE_SUM, 0, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     budget_global = reshape(budget_global_1d,(/f_size,c_size,p_size/))
-    budget_local(:,:,:) = 0.0_r8
+
+    budget_local(:,:,period_inst) = 0.0_r8
 
     call t_stopf('MED:'//subname)
 
@@ -949,7 +963,7 @@ contains
     call diag_lnd(is_local%wrap%FBImp(complnd,complnd), 'Fall_sen'  , f_heat_sen    , ic, areas, lfrac, budget_local, rc=rc)
     call diag_lnd(is_local%wrap%FBImp(complnd,complnd), 'Fall_evap' , f_watr_evap   , ic, areas, lfrac, budget_local, rc=rc)
 
-    call diag_lnd(is_local%wrap%FBImp(complnd,complnd), 'Flrl_rofsur', f_watr_roff, ic, &
+    call diag_lnd(is_local%wrap%FBImp(complnd,complnd), 'Flrl_rofsur', f_watr_roff, ic,&
          areas, lfrac, budget_local, minus=.true., rc=rc)
     call diag_lnd(is_local%wrap%FBImp(complnd,complnd), 'Flrl_rofgwl', f_watr_roff, ic,&
          areas, lfrac, budget_local, minus=.true., rc=rc)
@@ -968,6 +982,8 @@ contains
          f_watr_roff_16O, f_watr_roff_18O, f_watr_roff_HDO, ic, areas, lfrac, budget_local, rc=rc)
     call diag_lnd_wiso(is_local%wrap%FBImp(complnd,complnd), 'Flrl_rofi_wiso', &
          f_watr_ioff_16O, f_watr_ioff_18O, f_watr_ioff_HDO, ic, areas, lfrac, budget_local, rc=rc)
+
+    budget_local(f_heat_ioff,ic,ip) = -budget_local(f_watr_ioff,ic,ip)*shr_const_latice
 
     !-------------------------------
     ! to land from mediator
@@ -997,7 +1013,6 @@ contains
     call diag_lnd_wiso(is_local%wrap%FBExp(complnd), 'Flrl_flood_wiso', &
          f_watr_roff_16O, f_watr_roff_18O, f_watr_roff_HDO, ic, areas, lfrac, budget_local, minus=.true., rc=rc)
 
-    budget_local(f_heat_ioff,ic,ip) = -budget_local(f_watr_ioff,ic,ip)*shr_const_latice
     budget_local(f_heat_latf,ic,ip) = -budget_local(f_watr_snow,ic,ip)*shr_const_latice
 
     call t_stopf('MED:'//subname)
@@ -1108,7 +1123,7 @@ contains
     ! from river to mediator
     !-------------------------------
 
-    ic = c_rof_send
+    ic = c_rof_recv
     ip = period_inst
 
     call diag_rof(is_local%wrap%FBImp(comprof,comprof), 'Flrr_flood', f_watr_roff, ic, areas, budget_local, rc=rc)
@@ -1129,7 +1144,7 @@ contains
     ! to river from mediator
     !-------------------------------
 
-    ic = c_rof_recv
+    ic = c_rof_send
     ip = period_inst
 
     call diag_rof(is_local%wrap%FBExp(comprof), 'Flrl_rofsur', f_watr_roff, ic, areas, budget_local, rc=rc)
@@ -1254,7 +1269,7 @@ contains
     !-------------------------------
 
     ! TODO: this will not be correct if there is more than 1 ice sheet
-    ic = c_glc_send
+    ic = c_glc_recv
     ip = period_inst
 
     do ns = 1,num_icesheets
@@ -1825,12 +1840,12 @@ contains
     ! local variables
     type(ESMF_Clock)      :: clock
     type(ESMF_Alarm)      :: stop_alarm
-    type(ESMF_Time)       :: currTime
-    integer               :: cdate        ! coded date, seconds
-    integer               :: curr_year
-    integer               :: curr_mon
-    integer               :: curr_day
-    integer               :: curr_tod
+    type(ESMF_Time)       :: nextTime
+    integer               :: date        ! coded date, seconds
+    integer               :: year
+    integer               :: mon
+    integer               :: day
+    integer               :: tod
     integer               :: output_level ! print level
     logical               :: sumdone      ! has a sum been computed yet
     character(CS)         :: cvalue
@@ -1839,10 +1854,8 @@ contains
     integer               :: f_size       ! number of fields
     integer               :: p_size       ! number of period types
     real(r8), allocatable :: datagpr(:,:,:)
-    character(len=20)     :: name
+    character(len=64)     :: timestr
     logical, save         :: firstcall = .true.
-    integer                 :: yr,mon,day,sec ! time units
-    character(len=64)       :: currtimestr
     character(*), parameter :: subName = '(med_phases_diag_print) '
     ! ------------------------------------------------------------------
 
@@ -1853,17 +1866,23 @@ contains
     !-------------------------------------------------------------------------------
 
     ! Get clock and alarm info
-    call ESMF_GridCompGet(gcomp, clock=clock, name=name, rc=rc)
+    call ESMF_GridCompGet(gcomp, clock=clock, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_ClockGet( clock, currTime=currTime, rc=rc)
+
+    ! NOTE - we are using the next time to ensure that budgets are
+    ! written at the end of the run correctly This duplicates the
+    ! behavior in the restart and history file output in that the time
+    ! stamp is the next time and not the actual current time
+    call ESMF_ClockGetNextTime(clock, nextTime=nexttime, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_TimeGet( currTime, yy=curr_year, mm=curr_mon, dd=curr_day, s=curr_tod, rc=rc)
+    call ESMF_TimeGet( nextTime, yy=year, mm=mon, dd=day, s=tod, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    cdate = curr_year*10000 + curr_mon*100 + curr_day
+    date = year*10000 + mon*100 + day
+
 #ifdef DEBUG
     if(mastertask) then
-       write(currtimestr,'(i4.4,a,i2.2,a,i2.2,a,i5.5)') curr_year,'-',curr_mon,'-',curr_day,'-',curr_tod
-       write(logunit,' (a)') trim(subname)//": currtime = "//trim(currtimestr)
+       write(timestr,'(i4.4,a,i2.2,a,i2.2,a,i5.5)') year,'-',mon,'-',day,'-',tod
+       write(logunit,' (a)') trim(subname)//": time = "//trim(timestr)
     endif
 #endif
 
@@ -1880,16 +1899,16 @@ contains
        if (ip == period_inst) then
           output_level = max(output_level, budget_print_inst)
        end if
-       if (ip == period_day .and. curr_tod == 0) then
+       if (ip == period_day .and. tod == 0) then
           output_level = max(output_level, budget_print_daily)
        end if
-       if (ip == period_mon .and. curr_day == 1 .and. curr_tod == 0) then
+       if (ip == period_mon .and. day == 1 .and. tod == 0) then
           output_level = max(output_level, budget_print_month)
        end if
-       if (ip == period_ann .and. curr_mon == 1 .and. curr_day == 1 .and. curr_tod == 0) then
+       if (ip == period_ann .and. mon == 1 .and. day == 1 .and. tod == 0) then
           output_level = max(output_level, budget_print_ann)
        end if
-       if (ip == period_inf .and. curr_mon == 1 .and. curr_day == 1 .and. curr_tod == 0) then
+       if (ip == period_inf .and. mon == 1 .and. day == 1 .and. tod == 0) then
           output_level = max(output_level, budget_print_ltann)
        end if
        if (ip == period_inf) then
@@ -1901,67 +1920,66 @@ contains
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           endif
        endif
-       if (output_level > 0) exit
+
+       ! Currently output_level is limited to levels of 0,1,2, 3
+       ! (see comment for print options at top)
+
+       if (output_level > 0) then
+          if (.not. sumdone) then
+             ! Some budgets will be printed for this period type
+             ! Determine sums if not already done
+             call med_diag_sum_master(gcomp, rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+             sumdone = .true.
+          end if
+
+          if (mastertask) then
+             c_size = size(budget_diags%comps)
+             f_size = size(budget_diags%fields)
+             p_size = size(budget_diags%periods)
+             allocate(datagpr(f_size, c_size, p_size))
+             datagpr(:,:,:) = budget_global(:,:,:)
+
+             ! budget normalizations (global area and 1e6 for water)
+             datagpr = datagpr/(4.0_r8*shr_const_pi)
+             datagpr(f_watr_beg:f_watr_end,:,:) = datagpr(f_watr_beg:f_watr_end,:,:) * 1.0e6_r8
+             if ( flds_wiso ) then
+                datagpr(iso0(1):isof(nisotopes),:,:) = datagpr(iso0(1):isof(nisotopes),:,:) * 1.0e6_r8
+             end if
+             datagpr(:,:,:) = datagpr(:,:,:)/budget_counter(:,:,:)
+
+             ! Write diagnostic tables to logunit (mastertask only)
+             if (output_level >= 3) then
+                ! detail atm budgets and breakdown into components ---
+                call med_diag_print_atm(datagpr, ip, date, tod)
+             end if
+             if (output_level >= 2) then
+                ! detail lnd/ocn/ice component budgets ----
+                call med_diag_print_lnd_ice_ocn(datagpr, ip, date, tod)
+             end if
+             if (output_level >= 1) then
+                ! net summary budgets
+                call med_diag_print_summary(datagpr, ip, date, tod)
+             endif
+             write(diagunit,*) ' '
+
+             deallocate(datagpr)
+
+          endif ! output_level > 0 and mastertask
+       end if ! if mastertask
     enddo  ! ip = 1, period_types
-
-    ! Currently output_level is limited to levels of 0,1,2, 3
-    ! (see comment for print options at top)
-
-    if (output_level > 0) then
-       if (.not. sumdone) then
-          ! Some budgets will be printed for this period type
-          ! Determine sums if not already done
-          call med_diag_sum_master(gcomp, rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-          sumdone = .true.
-       end if
-
-       if (mastertask) then
-          c_size = size(budget_diags%comps)
-          f_size = size(budget_diags%fields)
-          p_size = size(budget_diags%periods)
-          allocate(datagpr(f_size, c_size, p_size))
-          datagpr(:,:,:) = budget_global(:,:,:)
-
-          ! budget normalizations (global area and 1e6 for water)
-          datagpr = datagpr/(4.0_r8*shr_const_pi)
-          datagpr(f_watr_beg:f_watr_end,:,:) = datagpr(f_watr_beg:f_watr_end,:,:) * 1.0e6_r8
-          if ( flds_wiso ) then
-             datagpr(iso0(1):isof(nisotopes),:,:) = datagpr(iso0(1):isof(nisotopes),:,:) * 1.0e6_r8
-          end if
-          datagpr(:,:,:) = datagpr(:,:,:)/budget_counter(:,:,:)
-
-          ! Write diagnostic tables to logunit (mastertask only)
-          if (output_level >= 3) then
-             ! detail atm budgets and breakdown into components ---
-             call med_diag_print_atm(datagpr, ip, cdate, curr_tod)
-          end if
-          if (output_level >= 2) then
-             ! detail lnd/ocn/ice component budgets ----
-             call med_diag_print_lnd_ice_ocn(datagpr, ip, cdate, curr_tod)
-          end if
-          if (output_level >= 1) then
-             ! net summary budgets
-             call med_diag_print_summary(datagpr, ip, cdate, curr_tod)
-          endif
-          write(logunit,*) ' '
-
-          deallocate(datagpr)
-       endif ! output_level > 0 and mastertask
-    end if ! if mastertask
 
     !-------------------------------------------------------------------------------
     ! Zero budget data
     !-------------------------------------------------------------------------------
 
-    call med_diag_zero(gcomp, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call med_diag_zero(year, mon, day, tod)
 
   end subroutine med_phases_diag_print
 
   !===============================================================================
-  subroutine med_diag_print_atm(data, ip, cdate, curr_tod)
+  subroutine med_diag_print_atm(data, ip, date, tod)
 
     ! ---------------------------------------------------------
     ! detail atm budgets and breakdown into components
@@ -1970,8 +1988,8 @@ contains
     ! intput/output variables
     real(r8), intent(in) :: data(:,:,:) ! values to print, scaled and such
     integer , intent(in) :: ip          ! period index
-    integer , intent(in) :: cdate
-    integer , intent(in) :: curr_tod
+    integer , intent(in) :: date
+    integer , intent(in) :: tod
 
     ! local variables
     integer           :: ic,nf,is ! data array indicies
@@ -1998,16 +2016,16 @@ contains
           str = "CPL_TO_ATM"
        endif
 
-       write(logunit,*) ' '
-       write(logunit,FAH) subname,trim(str)//' AREA BUDGET (m2/m2): period = ', &
-            trim(budget_diags%periods(ip)%name), ': date = ', cdate, curr_tod
-       write(logunit,FA0) &
+       write(diagunit,*) ' '
+       write(diagunit,FAH) subname,trim(str)//' AREA BUDGET (m2/m2): period = ', &
+            trim(budget_diags%periods(ip)%name), ': date = ', date, tod
+       write(diagunit,FA0) &
             budget_diags%comps(ica)%name,&
             budget_diags%comps(icl)%name,&
             budget_diags%comps(icn)%name,&
             budget_diags%comps(ics)%name,&
             budget_diags%comps(ico)%name,' *SUM*  '
-       write(logunit,FA1) budget_diags%fields(f_area)%name,&
+       write(diagunit,FA1) budget_diags%fields(f_area)%name,&
             data(f_area,ica,ip), &
             data(f_area,icl,ip), &
             data(f_area,icn,ip), &
@@ -2016,17 +2034,17 @@ contains
             data(f_area,ica,ip) + data(f_area,icl,ip) + &
             data(f_area,icn,ip) + data(f_area,ics,ip) + data(f_area,ico,ip)
 
-       write(logunit,*) ' '
-       write(logunit,FAH) subname,trim(str)//' HEAT BUDGET (W/m2): period = ',&
-            trim(budget_diags%periods(ip)%name),': date = ',cdate,curr_tod
-       write(logunit,FA0) &
+       write(diagunit,*) ' '
+       write(diagunit,FAH) subname,trim(str)//' HEAT BUDGET (W/m2): period = ',&
+            trim(budget_diags%periods(ip)%name),': date = ',date,tod
+       write(diagunit,FA0) &
             budget_diags%comps(ica)%name,&
             budget_diags%comps(icl)%name,&
             budget_diags%comps(icn)%name,&
             budget_diags%comps(ics)%name,&
             budget_diags%comps(ico)%name,' *SUM*  '
        do nf = f_heat_beg, f_heat_end
-          write(logunit,FA1) budget_diags%fields(nf)%name,&
+          write(diagunit,FA1) budget_diags%fields(nf)%name,&
                data(nf,ica,ip), &
                data(nf,icl,ip), &
                data(nf,icn,ip), &
@@ -2034,7 +2052,7 @@ contains
                data(nf,ico,ip), &
                data(nf,ica,ip) + data(nf,icl,ip) + data(nf,icn,ip) + data(nf,ics,ip) + data(nf,ico,ip)
        enddo
-       write(logunit,FA1)    '   *SUM*'   ,&
+       write(diagunit,FA1)    '   *SUM*'   ,&
             sum(data(f_heat_beg:f_heat_end,ica,ip)), &
             sum(data(f_heat_beg:f_heat_end,icl,ip)), &
             sum(data(f_heat_beg:f_heat_end,icn,ip)), &
@@ -2044,17 +2062,17 @@ contains
             sum(data(f_heat_beg:f_heat_end,icn,ip)) + sum(data(f_heat_beg:f_heat_end,ics,ip)) + &
             sum(data(f_heat_beg:f_heat_end,ico,ip))
 
-       write(logunit,*) ' '
-       write(logunit,FAH) subname,trim(str)//' WATER BUDGET (kg/m2s*1e6): period = ',&
-            trim(budget_diags%periods(ip)%name),': date = ',cdate,curr_tod
-       write(logunit,FA0) &
+       write(diagunit,*) ' '
+       write(diagunit,FAH) subname,trim(str)//' WATER BUDGET (kg/m2s*1e6): period = ',&
+            trim(budget_diags%periods(ip)%name),': date = ',date,tod
+       write(diagunit,FA0) &
             budget_diags%comps(ica)%name,&
             budget_diags%comps(icl)%name,&
             budget_diags%comps(icn)%name,&
             budget_diags%comps(ics)%name,&
             budget_diags%comps(ico)%name,' *SUM*  '
        do nf = f_watr_beg, f_watr_end
-          write(logunit,FA1) budget_diags%fields(nf)%name,&
+          write(diagunit,FA1) budget_diags%fields(nf)%name,&
                data(nf,ica,ip), &
                data(nf,icl,ip), &
                data(nf,icn,ip), &
@@ -2062,7 +2080,7 @@ contains
                data(nf,ico,ip), &
                data(nf,ica,ip) + data(nf,icl,ip) + data(nf,icn,ip) + data(nf,ics,ip) + data(nf,ico,ip)
        enddo
-       write(logunit,FA1)    '   *SUM*'   ,&
+       write(diagunit,FA1)    '   *SUM*'   ,&
             sum(data(f_watr_beg:f_watr_end,ica,ip)), &
             sum(data(f_watr_beg:f_watr_end,icl,ip)), &
             sum(data(f_watr_beg:f_watr_end,icn,ip)), &
@@ -2074,17 +2092,17 @@ contains
 
        if ( flds_wiso ) then
           do is = 1, nisotopes
-             write(logunit,*) ' '
-             write(logunit,FAH) subname,trim(str)//' '//isoname(is)//' WATER BUDGET (kg/m2s*1e6): period = ', &
-                  trim(budget_diags%periods(ip)%name),': date = ',cdate,curr_tod
-             write(logunit,FA0) &
+             write(diagunit,*) ' '
+             write(diagunit,FAH) subname,trim(str)//' '//isoname(is)//' WATER BUDGET (kg/m2s*1e6): period = ', &
+                  trim(budget_diags%periods(ip)%name),': date = ',date,tod
+             write(diagunit,FA0) &
                   budget_diags%comps(ica)%name,&
                   budget_diags%comps(icl)%name,&
                   budget_diags%comps(icn)%name,&
                   budget_diags%comps(ics)%name,&
                   budget_diags%comps(ico)%name,' *SUM*  '
              do nf = iso0(is), isof(is)
-                write(logunit,FA1) budget_diags%fields(nf)%name,&
+                write(diagunit,FA1) budget_diags%fields(nf)%name,&
                      data(nf,ica,ip), &
                      data(nf,icl,ip), &
                      data(nf,icn,ip), &
@@ -2092,7 +2110,7 @@ contains
                      data(nf,ico,ip), &
                      data(nf,ica,ip) + data(nf,icl,ip) + data(nf,icn,ip) + data(nf,ics,ip) + data(nf,ico,ip)
              enddo
-             write(logunit,FA1)    '   *SUM*', &
+             write(diagunit,FA1)    '   *SUM*', &
                   sum(data(iso0(is):isof(is),ica,ip)), &
                   sum(data(iso0(is):isof(is),icl,ip)), &
                   sum(data(iso0(is):isof(is),icn,ip)), &
@@ -2109,7 +2127,7 @@ contains
   end subroutine med_diag_print_atm
 
   !===============================================================================
-  subroutine med_diag_print_lnd_ice_ocn(data, ip, cdate, curr_tod)
+  subroutine med_diag_print_lnd_ice_ocn(data, ip, date, tod)
 
     ! ---------------------------------------------------------
     ! detail lnd/ocn/ice component budgets
@@ -2118,8 +2136,8 @@ contains
     ! intput/output variables
     real(r8), intent(in) :: data(:,:,:) ! values to print, scaled and such
     integer , intent(in) :: ip
-    integer , intent(in) :: cdate
-    integer , intent(in) :: curr_tod
+    integer , intent(in) :: date
+    integer , intent(in) :: tod
 
     ! local variables
     integer           :: ic,nf,is ! data array indicies
@@ -2159,22 +2177,22 @@ contains
 
        ! heat budgets atm<->lnd, atm<->ocn, atm<->ice_nh, atm<->ice_sh,
 
-       write(logunit,*) ' '
-       write(logunit,FAH) subname,trim(str)//' HEAT BUDGET (W/m2): period = ',&
-            trim(budget_diags%periods(ip)%name),': date = ',cdate,curr_tod
-       write(logunit,FA0) budget_diags%comps(icar)%name,&
+       write(diagunit,*) ' '
+       write(diagunit,FAH) subname,trim(str)//' HEAT BUDGET (W/m2): period = ',&
+            trim(budget_diags%periods(ip)%name),': date = ',date,tod
+       write(diagunit,FA0) budget_diags%comps(icar)%name,&
             budget_diags%comps(icxs)%name,&
             budget_diags%comps(icxr)%name,&
             budget_diags%comps(icas)%name,' *SUM*  '
        do nf = f_heat_beg, f_heat_end
-          write(logunit,FA1) budget_diags%fields(nf)%name,&
+          write(diagunit,FA1) budget_diags%fields(nf)%name,&
                -data(nf,icar,ip), &
                 data(nf,icxs,ip), &
                 data(nf,icxr,ip), &
                -data(nf,icas,ip), &
                -data(nf,icar,ip) + data(nf,icxs,ip) + data(nf,icxr,ip) - data(nf,icas,ip)
        enddo
-       write(logunit,FA1)'   *SUM*',&
+       write(diagunit,FA1)'   *SUM*',&
             -sum(data(f_heat_beg:f_heat_end,icar,ip)), &
              sum(data(f_heat_beg:f_heat_end,icxs,ip)), &
              sum(data(f_heat_beg:f_heat_end,icxr,ip)), &
@@ -2184,23 +2202,23 @@ contains
 
        ! water budgets atm<->lnd, atm<->ocn, atm<->ice_nh, atm<->ice_sh,
 
-       write(logunit,*) ' '
-       write(logunit,FAH) subname,trim(str)//' WATER BUDGET (kg/m2s*1e6): period = ',&
-            trim(budget_diags%periods(ip)%name),': date = ',cdate,curr_tod
-       write(logunit,FA0) &
+       write(diagunit,*) ' '
+       write(diagunit,FAH) subname,trim(str)//' WATER BUDGET (kg/m2s*1e6): period = ',&
+            trim(budget_diags%periods(ip)%name),': date = ',date,tod
+       write(diagunit,FA0) &
             budget_diags%comps(icar)%name,&
             budget_diags%comps(icxs)%name,&
             budget_diags%comps(icxr)%name,&
             budget_diags%comps(icas)%name,' *SUM*  '
        do nf = f_watr_beg, f_watr_end
-          write(logunit,FA1) budget_diags%fields(nf)%name,&
+          write(diagunit,FA1) budget_diags%fields(nf)%name,&
                -data(nf,icar,ip),&
                 data(nf,icxs,ip), &
                 data(nf,icxr,ip),&
                -data(nf,icas,ip), &
                -data(nf,icar,ip) + data(nf,icxs,ip) + data(nf,icxr,ip) - data(nf,icas,ip)
        enddo
-       write(logunit,FA1)    '   *SUM*',&
+       write(diagunit,FA1)    '   *SUM*',&
             -sum(data(f_watr_beg:f_watr_end,icar,ip)), &
              sum(data(f_watr_beg:f_watr_end,icxs,ip)), &
              sum(data(f_watr_beg:f_watr_end,icxr,ip)), &
@@ -2213,24 +2231,24 @@ contains
 
             ! heat budgets atm<->lnd, atm<->ocn, atm<->ice_nh, atm<->ice_sh for water isotopes
 
-             write(logunit,*) ' '
-             write(logunit,FAH) subname,trim(str)//isoname(is)//' WATER BUDGET (kg/m2s*1e6): period = ',&
+             write(diagunit,*) ' '
+             write(diagunit,FAH) subname,trim(str)//isoname(is)//' WATER BUDGET (kg/m2s*1e6): period = ',&
                   trim(budget_diags%periods(ip)%name), &
-                  ': date = ',cdate,curr_tod
-             write(logunit,FA0) &
+                  ': date = ',date,tod
+             write(diagunit,FA0) &
                   budget_diags%comps(icar)%name,&
                   budget_diags%comps(icxs)%name,&
                   budget_diags%comps(icxr)%name,&
                   budget_diags%comps(icas)%name,' *SUM*  '
              do nf = iso0(is), isof(is)
-                write(logunit,FA1) budget_diags%fields(nf)%name,&
+                write(diagunit,FA1) budget_diags%fields(nf)%name,&
                      -data(nf,icar,ip), &
                       data(nf,icxs,ip), &
                       data(nf,icxr,ip), &
                      -data(nf,icas,ip), &
                      -data(nf,icar,ip) + data(nf,icxs,ip) + data(nf,icxr,ip) - data(nf,icas,ip)
              enddo
-             write(logunit,FA1)    '   *SUM*',&
+             write(diagunit,FA1)    '   *SUM*',&
                   -sum(data(iso0(is):isof(is),icar,ip)),&
                    sum(data(iso0(is):isof(is),icxs,ip)), &
                    sum(data(iso0(is):isof(is),icxr,ip)), &
@@ -2240,24 +2258,24 @@ contains
 
              ! water budgets atm<->lnd, atm<->ocn, atm<->ice_nh, atm<->ice_sh for water isotopes
 
-             write(logunit,*) ' '
-             write(logunit,FAH) subname,trim(str)//isoname(is)//' WATER BUDGET (kg/m2s*1e6): period = ',&
+             write(diagunit,*) ' '
+             write(diagunit,FAH) subname,trim(str)//isoname(is)//' WATER BUDGET (kg/m2s*1e6): period = ',&
                   trim(budget_diags%periods(ip)%name),&
-                  ': date = ',cdate,curr_tod
-             write(logunit,FA0) &
+                  ': date = ',date,tod
+             write(diagunit,FA0) &
                   budget_diags%comps(icar)%name,&
                   budget_diags%comps(icxs)%name,&
                   budget_diags%comps(icxr)%name,&
                   budget_diags%comps(icas)%name,' *SUM*  '
              do nf = iso0(is), isof(is)
-                write(logunit,FA1) budget_diags%fields(nf)%name,&
+                write(diagunit,FA1) budget_diags%fields(nf)%name,&
                      -data(nf,icar,ip), &
                       data(nf,icxs,ip), &
                       data(nf,icxr,ip), &
                      -data(nf,icas,ip), &
                      -data(nf,icar,ip) + data(nf,icxs,ip) + data(nf,icxr,ip) - data(nf,icas,ip)
              enddo
-             write(logunit,FA1)    '   *SUM*',                &
+             write(diagunit,FA1)    '   *SUM*',                &
                   -sum(data(iso0(is):isof(is), icar, ip)), &
                    sum(data(iso0(is):isof(is), icxs, ip)), &
                    sum(data(iso0(is):isof(is), icxr, ip)), &
@@ -2271,7 +2289,7 @@ contains
   end subroutine med_diag_print_lnd_ice_ocn
 
   !===============================================================================
-  subroutine med_diag_print_summary(data, ip, cdate, curr_tod)
+  subroutine med_diag_print_summary(data, ip, date, tod)
 
     ! ---------------------------------------------------------
     ! net summary budgets
@@ -2280,8 +2298,8 @@ contains
     ! intput/output variables
     real(r8), intent(in) :: data(:,:,:) ! values to print, scaled and such
     integer , intent(in) :: ip
-    integer , intent(in) :: cdate
-    integer , intent(in) :: curr_tod
+    integer , intent(in) :: date
+    integer , intent(in) :: tod
 
     ! local variables
     integer  :: ic,nf,is ! data array indicies
@@ -2311,25 +2329,25 @@ contains
     call t_startf('MED:'//subname)
     ! write out areas
 
-    write(logunit,*) ' '
-    write(logunit,FAH) subname,'NET AREA BUDGET (m2/m2): period = ',&
+    write(diagunit,*) ' '
+    write(diagunit,FAH) subname,'NET AREA BUDGET (m2/m2): period = ',&
          trim(budget_diags%periods(ip)%name),&
-         ': date = ',cdate,curr_tod
-    write(logunit,FA0) '     atm','     lnd','     ocn','  ice nh','  ice sh',' *SUM*  '
+         ': date = ',date,tod
+    write(diagunit,FA0) '     atm','     lnd','     ocn','  ice nh','  ice sh',' *SUM*  '
     atm_area    = data(f_area,c_atm_recv,ip)
     lnd_area    = data(f_area,c_lnd_recv,ip)
     ocn_area    = data(f_area,c_ocn_recv,ip)
     ice_area_nh = data(f_area,c_inh_recv,ip)
     ice_area_sh = data(f_area,c_ish_recv,ip)
     sum_area    = atm_area + lnd_area + ocn_area + ice_area_nh + ice_area_sh
-    write(logunit,FA1) budget_diags%fields(f_area)%name, atm_area, lnd_area, ocn_area, ice_area_nh, ice_area_sh, sum_area
+    write(diagunit,FA1) budget_diags%fields(f_area)%name, atm_area, lnd_area, ocn_area, ice_area_nh, ice_area_sh, sum_area
 
     ! write out net heat budgets
 
-    write(logunit,*) ' '
-    write(logunit,FAH) subname,'NET HEAT BUDGET (W/m2): period = ',&
-         trim(budget_diags%periods(ip)%name), ': date = ',cdate,curr_tod
-    write(logunit,FA0r) '     atm','     lnd','     rof','     ocn','  ice nh','  ice sh','     glc',' *SUM*  '
+    write(diagunit,*) ' '
+    write(diagunit,FAH) subname,'NET HEAT BUDGET (W/m2): period = ',&
+         trim(budget_diags%periods(ip)%name), ': date = ',date,tod
+    write(diagunit,FA0r) '     atm','     lnd','     rof','     ocn','  ice nh','  ice sh','     glc',' *SUM*  '
     do nf = f_heat_beg, f_heat_end
        net_heat_atm    = data(nf, c_atm_recv, ip) + data(nf, c_atm_send, ip)
        net_heat_lnd    = data(nf, c_lnd_recv, ip) + data(nf, c_lnd_send, ip)
@@ -2341,7 +2359,7 @@ contains
        net_heat_tot    = net_heat_atm + net_heat_lnd + net_heat_rof + net_heat_ocn + &
                          net_heat_ice_nh + net_heat_ice_sh + net_heat_glc
 
-       write(logunit,FA1r) budget_diags%fields(nf)%name,&
+       write(diagunit,FA1r) budget_diags%fields(nf)%name,&
             net_heat_atm, net_heat_lnd, net_heat_rof, net_heat_ocn, &
             net_heat_ice_nh, net_heat_ice_sh, net_heat_glc, net_heat_tot
     end do
@@ -2365,16 +2383,16 @@ contains
     sum_net_heat_tot    = sum_net_heat_atm + sum_net_heat_lnd + sum_net_heat_rof + sum_net_heat_ocn + &
                           sum_net_heat_ice_nh + sum_net_heat_ice_sh + sum_net_heat_glc
 
-    write(logunit,FA1r)'   *SUM*',&
+    write(diagunit,FA1r)'   *SUM*',&
          sum_net_heat_atm, sum_net_heat_lnd, sum_net_heat_rof, sum_net_heat_ocn, &
          sum_net_heat_ice_nh, sum_net_heat_ice_sh, sum_net_heat_glc, sum_net_heat_tot
 
     ! write out net water budgets
 
-    write(logunit,*) ' '
-    write(logunit,FAH) subname,'NET WATER BUDGET (kg/m2s*1e6): period = ',&
-         trim(budget_diags%periods(ip)%name), ': date = ',cdate,curr_tod
-    write(logunit,FA0r) '     atm','     lnd','     rof','     ocn','  ice nh','  ice sh','     glc',' *SUM*  '
+    write(diagunit,*) ' '
+    write(diagunit,FAH) subname,'NET WATER BUDGET (kg/m2s*1e6): period = ',&
+         trim(budget_diags%periods(ip)%name), ': date = ',date,tod
+    write(diagunit,FA0r) '     atm','     lnd','     rof','     ocn','  ice nh','  ice sh','     glc',' *SUM*  '
     do nf = f_watr_beg, f_watr_end
        net_water_atm    = data(nf, c_atm_recv, ip) + data(nf, c_atm_send, ip)
        net_water_lnd    = data(nf, c_lnd_recv, ip) + data(nf, c_lnd_send, ip)
@@ -2386,7 +2404,7 @@ contains
        net_water_tot    = net_water_atm + net_water_lnd + net_water_rof + net_water_ocn + &
                           net_water_ice_nh + net_water_ice_sh + net_water_glc
 
-       write(logunit,FA1r) budget_diags%fields(nf)%name,&
+       write(diagunit,FA1r) budget_diags%fields(nf)%name,&
             net_water_atm, net_water_lnd, net_water_rof, net_water_ocn, &
             net_water_ice_nh, net_water_ice_sh, net_water_glc, net_water_tot
     enddo
@@ -2410,7 +2428,7 @@ contains
     sum_net_water_tot    = sum_net_water_atm + sum_net_water_lnd + sum_net_water_rof + sum_net_water_ocn + &
                            sum_net_water_ice_nh + sum_net_water_ice_sh + sum_net_water_glc
 
-    write(logunit,FA1r)'   *SUM*',&
+    write(diagunit,FA1r)'   *SUM*',&
          sum_net_water_atm, sum_net_water_lnd, sum_net_water_rof, sum_net_water_ocn, &
          sum_net_water_ice_nh, sum_net_water_ice_sh, sum_net_water_glc, sum_net_water_tot
 
@@ -2419,10 +2437,10 @@ contains
     if ( flds_wiso ) then
 
        do is = 1, nisotopes
-          write(logunit,*) ' '
-          write(logunit,FAH) subname,'NET '//isoname(is)//' WATER BUDGET (kg/m2s*1e6): period = ', &
-               trim(budget_diags%periods(ip)%name),': date = ',cdate,curr_tod
-          write(logunit,FA0r) '     atm','     lnd','     rof','     ocn','  ice nh','  ice sh','     glc',' *SUM*  '
+          write(diagunit,*) ' '
+          write(diagunit,FAH) subname,'NET '//isoname(is)//' WATER BUDGET (kg/m2s*1e6): period = ', &
+               trim(budget_diags%periods(ip)%name),': date = ',date,tod
+          write(diagunit,FA0r) '     atm','     lnd','     rof','     ocn','  ice nh','  ice sh','     glc',' *SUM*  '
           do nf = iso0(is), isof(is)
              net_water_atm    = data(nf, c_atm_recv, ip) + data(nf, c_atm_send, ip)
              net_water_lnd    = data(nf, c_lnd_recv, ip) + data(nf, c_lnd_send, ip)
@@ -2434,7 +2452,7 @@ contains
              net_water_tot    = net_water_atm + net_water_lnd + net_water_rof + net_water_ocn + &
                                 net_water_ice_nh + net_water_ice_sh + net_water_glc
 
-             write(logunit,FA1r) budget_diags%fields(nf)%name,&
+             write(diagunit,FA1r) budget_diags%fields(nf)%name,&
                   net_water_atm, net_water_lnd, net_water_rof, net_water_ocn, &
                   net_water_ice_nh, net_water_ice_sh, net_water_glc, net_water_tot
           enddo
@@ -2457,7 +2475,7 @@ contains
                                  sum_net_water_ocn + sum_net_water_ice_nh + sum_net_water_ice_sh + &
                                  sum_net_water_glc
 
-          write(logunit,FA1r)'   *SUM*',&
+          write(diagunit,FA1r)'   *SUM*',&
                sum_net_water_atm, sum_net_water_lnd, sum_net_water_rof, sum_net_water_ocn, &
                sum_net_water_ice_nh, sum_net_water_ice_sh, sum_net_water_glc, sum_net_water_tot
        end do
@@ -2500,7 +2518,7 @@ contains
     ! create new entry if fldname is not in original list
 
     if (.not. found) then
-
+       if(mastertask) write(logunit,*) ' Add ',trim(name),' to budgets with index ',index
        ! 1) allocate newfld to be size (one element larger than input flds)
        allocate(new_entries(index))
 
