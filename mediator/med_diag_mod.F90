@@ -2325,8 +2325,6 @@ contains
     ice_area_sh = data(f_area,c_ish_recv,ip)
     sum_area    = atm_area + lnd_area + ocn_area + ice_area_nh + ice_area_sh
     write(diagunit,FA1) budget_diags%fields(f_area)%name, atm_area, lnd_area, ocn_area, ice_area_nh, ice_area_sh, sum_area
-    write(diagUnit,*) 'counter: ',budget_counter(f_area, c_atm_recv, ip)
-
     ! write out net heat budgets
 
     write(diagunit,*) ' '
