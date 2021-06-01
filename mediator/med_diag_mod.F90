@@ -397,33 +397,31 @@ contains
             alarmname='alarm_stop', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     endif
+  end subroutine med_diag_init
 
-  contains
-    integer function get_diag_attribute(gcomp, name, rc)
-      type(ESMF_GridComp) , intent(inout) :: gcomp
-      character(len=*), intent(in) :: name
-      integer, intent(out) :: rc
+  integer function get_diag_attribute(gcomp, name, rc)
+    type(ESMF_GridComp) , intent(inout) :: gcomp
+    character(len=*), intent(in) :: name
+    integer, intent(out) :: rc
 
-      character(CS)     :: cvalue
-      logical :: isPresent
+    character(CS)     :: cvalue
+    logical :: isPresent
 
-      rc = ESMF_SUCCESS
-      get_diag_attribute = 0
-      call NUOPC_CompAttributeGet(gcomp, name=name, isPresent=isPresent, rc=rc)
-      if (chkerr(rc,__LINE__,u_FILE_u)) return
-      if (isPresent) then
-         call NUOPC_CompAttributeGet(gcomp, name=name, value=cvalue, rc=rc)
-         if (chkerr(rc,__LINE__,u_FILE_u)) return
-         read(cvalue,*) get_diag_attribute
-      else
-         call NUOPC_CompAttributeAdd(gcomp, (/name/), rc=rc)
-         if (ChkErr(rc,__LINE__,u_FILE_u)) return
-         call NUOPC_CompAttributeSet(gcomp, name=name, value='0', rc=rc)
-         if (ChkErr(rc,__LINE__,u_FILE_u)) return
-      endif
-    end function get_diag_attribute
-
-   end subroutine med_diag_init
+    rc = ESMF_SUCCESS
+    get_diag_attribute = 0
+    call NUOPC_CompAttributeGet(gcomp, name=name, isPresent=isPresent, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent) then
+       call NUOPC_CompAttributeGet(gcomp, name=name, value=cvalue, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       read(cvalue,*) get_diag_attribute
+    else
+       call NUOPC_CompAttributeAdd(gcomp, (/name/), rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call NUOPC_CompAttributeSet(gcomp, name=name, value='0', rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    endif
+  end function get_diag_attribute
 
   !===============================================================================
   subroutine med_diag_zero_mode(mode, rc)
@@ -721,197 +719,195 @@ contains
          f_watr_evap_16O, f_watr_evap_18O, f_watr_evap_HDO, &
          areas, lats, afrac, lfrac, ofrac, ifrac, budget_local, rc=rc)
 
+    deallocate(afrac)
     call t_stopf('MED:'//subname)
-
-  contains
-
-    subroutine diag_atm_recv(FB, fldname, nf, areas, lats, afrac, lfrac, ofrac, ifrac, budget, rc)
-      ! input/output variables
-      type(ESMF_FieldBundle) , intent(in)    :: FB
-      character(len=*)       , intent(in)    :: fldname
-      integer                , intent(in)    :: nf
-      real(r8)               , intent(in)    :: areas(:)
-      real(r8)               , intent(in)    :: lats(:)
-      real(r8)               , intent(in)    :: afrac(:)
-      real(r8)               , intent(in)    :: lfrac(:)
-      real(r8)               , intent(in)    :: ofrac(:)
-      real(r8)               , intent(in)    :: ifrac(:)
-      real(r8)               , intent(inout) :: budget(:,:,:)
-      integer                , intent(out)   :: rc
-      ! local variables
-      integer           :: n, ip
-      type(ESMF_field)  :: lfield
-      real(r8), pointer :: data(:) => null()
-      ! ------------------------------------------------------------------
-      rc = ESMF_SUCCESS
-      if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
-         call fldbun_getdata1d(FB, trim(fldname), data, rc=rc)
-         if (ChkErr(rc,__LINE__,u_FILE_u)) return
-         ip = period_inst
-         do n = 1,size(data)
-            budget(nf,c_atm_recv,ip)  = budget(nf,c_atm_recv,ip)  - areas(n)*data(n)*afrac(n)
-            budget(nf,c_lnd_arecv,ip) = budget(nf,c_lnd_arecv,ip) + areas(n)*data(n)*lfrac(n)
-            budget(nf,c_ocn_arecv,ip) = budget(nf,c_ocn_arecv,ip) + areas(n)*data(n)*ofrac(n)
-            if (lats(n) > 0.0_r8) then
-               budget(nf,c_inh_arecv,ip) = budget(nf,c_inh_arecv,ip) + areas(n)*data(n)*ifrac(n)
-            else
-               budget(nf,c_ish_arecv,ip) = budget(nf,c_ish_arecv,ip) + areas(n)*data(n)*ifrac(n)
-            end if
-         end do
-      end if
-    end subroutine diag_atm_recv
-
-    subroutine diag_atm_send(FB, fldname, nf, areas, lats, afrac, lfrac, ofrac, ifrac, budget, rc)
-      ! input/output variables
-      type(ESMF_FieldBundle) , intent(in)    :: FB
-      character(len=*)       , intent(in)    :: fldname
-      integer                , intent(in)    :: nf
-      real(r8)               , intent(in)    :: areas(:)
-      real(r8)               , intent(in)    :: lats(:)
-      real(r8)               , intent(in)    :: afrac(:)
-      real(r8)               , intent(in)    :: lfrac(:)
-      real(r8)               , intent(in)    :: ofrac(:)
-      real(r8)               , intent(in)    :: ifrac(:)
-      real(r8)               , intent(inout) :: budget(:,:,:)
-      integer                , intent(out)   :: rc
-      ! local variables
-      integer           :: n, ip
-      type(ESMF_field)  :: lfield
-      real(r8), pointer :: data(:) => null()
-      ! ------------------------------------------------------------------
-      rc = ESMF_SUCCESS
-      if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
-         call fldbun_getdata1d(FB, trim(fldname), data, rc=rc)
-         if (ChkErr(rc,__LINE__,u_FILE_u)) return
-         ip = period_inst
-         do n = 1,size(data)
-            budget(nf,c_atm_send,ip)  = budget(nf,c_atm_send,ip)  - areas(n)*data(n)*afrac(n)
-            budget(nf,c_lnd_asend,ip) = budget(nf,c_lnd_asend,ip) + areas(n)*data(n)*lfrac(n)
-            budget(nf,c_ocn_asend,ip) = budget(nf,c_ocn_asend,ip) + areas(n)*data(n)*ofrac(n)
-            if (lats(n) > 0.0_r8) then
-               budget(nf,c_inh_asend,ip) = budget(nf,c_inh_asend,ip) + areas(n)*data(n)*ifrac(n)
-            else
-               budget(nf,c_ish_asend,ip) = budget(nf,c_ish_asend,ip) + areas(n)*data(n)*ifrac(n)
-            end if
-         end do
-      end if
-    end subroutine diag_atm_send
-
-    subroutine diag_atm_wiso_recv(FB, fldname, nf_16O, nf_18O, nf_HDO, areas, lats, &
-         afrac, lfrac, ofrac, ifrac, budget, rc)
-      ! input/output variables
-      type(ESMF_FieldBundle) , intent(in)    :: FB
-      character(len=*)       , intent(in)    :: fldname
-      integer                , intent(in)    :: nf_16O
-      integer                , intent(in)    :: nf_18O
-      integer                , intent(in)    :: nf_HDO
-      real(r8)               , intent(in)    :: areas(:)
-      real(r8)               , intent(in)    :: lats(:)
-      real(r8)               , intent(in)    :: afrac(:)
-      real(r8)               , intent(in)    :: lfrac(:)
-      real(r8)               , intent(in)    :: ofrac(:)
-      real(r8)               , intent(in)    :: ifrac(:)
-      real(r8)               , intent(inout) :: budget(:,:,:)
-      integer                , intent(out)   :: rc
-      ! local variables
-      integer           :: n, ip
-      type(ESMF_Field)  :: lfield
-      real(r8), pointer :: data(:,:) => null()
-      ! ------------------------------------------------------------------
-      rc = ESMF_SUCCESS
-      if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
-         call fldbun_getdata2d(FB, trim(fldname), data, rc=rc)
-         if (ChkErr(rc,__LINE__,u_FILE_u)) return
-         ip = period_inst
-         do n = 1,size(data, dim=2)
-            budget(nf_16O,c_atm_recv,ip) = budget(nf_16O,c_atm_recv,ip) - areas(n)*afrac(n)*data(1,n)
-            budget(nf_16O,c_lnd_arecv,ip) = budget(nf_16O,c_lnd_arecv,ip) + areas(n)*lfrac(n)*data(1,n)
-            budget(nf_16O,c_ocn_arecv,ip) = budget(nf_16O,c_ocn_arecv,ip) + areas(n)*ofrac(n)*data(1,n)
-            if (lats(n) > 0.0_r8) then
-               budget(nf_16O,c_inh_arecv,ip) = budget(nf_16O,c_inh_arecv,ip) + areas(n)*ifrac(n)*data(1,n)
-            else
-               budget(nf_16O,c_ish_arecv,ip) = budget(nf_16O,c_ish_arecv,ip) + areas(n)*ifrac(n)*data(1,n)
-            end if
-
-            budget(nf_18O,c_atm_recv,ip) = budget(nf_18O,c_atm_recv,ip) - areas(n)*afrac(n)*data(2,n)
-            budget(nf_18O,c_lnd_arecv,ip) = budget(nf_18O,c_lnd_arecv,ip) + areas(n)*lfrac(n)*data(2,n)
-            budget(nf_18O,c_ocn_arecv,ip) = budget(nf_18O,c_ocn_arecv,ip) + areas(n)*ofrac(n)*data(2,n)
-            if (lats(n) > 0.0_r8) then
-               budget(nf_18O,c_inh_arecv,ip) = budget(nf_18O,c_inh_arecv,ip) + areas(n)*ifrac(n)*data(2,n)
-            else
-               budget(nf_18O,c_ish_arecv,ip) = budget(nf_18O,c_ish_arecv,ip) + areas(n)*ifrac(n)*data(2,n)
-            end if
-
-            budget(nf_HDO,c_atm_recv,ip) = budget(nf_HDO,c_atm_recv,ip) - areas(n)*afrac(n)*data(3,n)
-            budget(nf_HDO,c_lnd_arecv,ip) = budget(nf_HDO,c_lnd_arecv,ip) + areas(n)*lfrac(n)*data(3,n)
-            budget(nf_HDO,c_ocn_arecv,ip) = budget(nf_HDO,c_ocn_arecv,ip) + areas(n)*ofrac(n)*data(3,n)
-            if (lats(n) > 0.0_r8) then
-               budget(nf_HDO,c_inh_arecv,ip) = budget(nf_HDO,c_inh_arecv,ip) + areas(n)*ifrac(n)*data(3,n)
-            else
-               budget(nf_HDO,c_ish_arecv,ip) = budget(nf_HDO,c_ish_arecv,ip) + areas(n)*ifrac(n)*data(3,n)
-            end if
-         end do
-      end if
-    end subroutine diag_atm_wiso_recv
-
-    subroutine diag_atm_wiso_send(FB, fldname, nf_16O, nf_18O, nf_HDO, areas, lats, &
-         afrac, lfrac, ofrac, ifrac, budget, rc)
-      ! input/output variables
-      type(ESMF_FieldBundle) , intent(in)    :: FB
-      character(len=*)       , intent(in)    :: fldname
-      integer                , intent(in)    :: nf_16O
-      integer                , intent(in)    :: nf_18O
-      integer                , intent(in)    :: nf_HDO
-      real(r8)               , intent(in)    :: areas(:)
-      real(r8)               , intent(in)    :: lats(:)
-      real(r8)               , intent(in)    :: afrac(:)
-      real(r8)               , intent(in)    :: lfrac(:)
-      real(r8)               , intent(in)    :: ofrac(:)
-      real(r8)               , intent(in)    :: ifrac(:)
-      real(r8)               , intent(inout) :: budget(:,:,:)
-      integer                , intent(out)   :: rc
-      ! local variables
-      integer           :: n, ip
-      type(ESMF_Field)  :: lfield
-      real(r8), pointer :: data(:,:) => null()
-      ! ------------------------------------------------------------------
-      rc = ESMF_SUCCESS
-      if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
-         call fldbun_getdata2d(FB, trim(fldname), data, rc=rc)
-         if (ChkErr(rc,__LINE__,u_FILE_u)) return
-         ip = period_inst
-         do n = 1,size(data, dim=2)
-            budget(nf_16O,c_atm_send,ip) = budget(nf_16O,c_atm_send,ip) - areas(n)*afrac(n)*data(1,n)
-            budget(nf_16O,c_lnd_asend,ip) = budget(nf_16O,c_lnd_asend,ip) + areas(n)*lfrac(n)*data(1,n)
-            budget(nf_16O,c_ocn_asend,ip) = budget(nf_16O,c_ocn_asend,ip) + areas(n)*ofrac(n)*data(1,n)
-            if (lats(n) > 0.0_r8) then
-               budget(nf_16O,c_inh_asend,ip) = budget(nf_16O,c_inh_asend,ip) + areas(n)*ifrac(n)*data(1,n)
-            else
-               budget(nf_16O,c_ish_asend,ip) = budget(nf_16O,c_ish_asend,ip) + areas(n)*ifrac(n)*data(1,n)
-            end if
-
-            budget(nf_18O,c_atm_send,ip) = budget(nf_18O,c_atm_send,ip) - areas(n)*afrac(n)*data(2,n)
-            budget(nf_18O,c_lnd_asend,ip) = budget(nf_18O,c_lnd_asend,ip) + areas(n)*lfrac(n)*data(2,n)
-            budget(nf_18O,c_ocn_asend,ip) = budget(nf_18O,c_ocn_asend,ip) + areas(n)*ofrac(n)*data(2,n)
-            if (lats(n) > 0.0_r8) then
-               budget(nf_18O,c_inh_asend,ip) = budget(nf_18O,c_inh_asend,ip) + areas(n)*ifrac(n)*data(2,n)
-            else
-               budget(nf_18O,c_ish_asend,ip) = budget(nf_18O,c_ish_asend,ip) + areas(n)*ifrac(n)*data(2,n)
-            end if
-
-            budget(nf_HDO,c_atm_send,ip) = budget(nf_HDO,c_atm_send,ip) - areas(n)*afrac(n)*data(3,n)
-            budget(nf_HDO,c_lnd_asend,ip) = budget(nf_HDO,c_lnd_asend,ip) + areas(n)*lfrac(n)*data(3,n)
-            budget(nf_HDO,c_ocn_asend,ip) = budget(nf_HDO,c_ocn_asend,ip) + areas(n)*ofrac(n)*data(3,n)
-            if (lats(n) > 0.0_r8) then
-               budget(nf_HDO,c_inh_asend,ip) = budget(nf_HDO,c_inh_asend,ip) + areas(n)*ifrac(n)*data(3,n)
-            else
-               budget(nf_HDO,c_ish_asend,ip) = budget(nf_HDO,c_ish_asend,ip) + areas(n)*ifrac(n)*data(3,n)
-            end if
-         end do
-      end if
-    end subroutine diag_atm_wiso_send
-
   end subroutine med_phases_diag_atm
+
+  subroutine diag_atm_recv(FB, fldname, nf, areas, lats, afrac, lfrac, ofrac, ifrac, budget, rc)
+    ! input/output variables
+    type(ESMF_FieldBundle) , intent(in)    :: FB
+    character(len=*)       , intent(in)    :: fldname
+    integer                , intent(in)    :: nf
+    real(r8)               , intent(in)    :: areas(:)
+    real(r8)               , intent(in)    :: lats(:)
+    real(r8)               , intent(in)    :: afrac(:)
+    real(r8)               , intent(in)    :: lfrac(:)
+    real(r8)               , intent(in)    :: ofrac(:)
+    real(r8)               , intent(in)    :: ifrac(:)
+    real(r8)               , intent(inout) :: budget(:,:,:)
+    integer                , intent(out)   :: rc
+    ! local variables
+    integer           :: n, ip
+    type(ESMF_field)  :: lfield
+    real(r8), pointer :: data(:) => null()
+    ! ------------------------------------------------------------------
+    rc = ESMF_SUCCESS
+    if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
+       call fldbun_getdata1d(FB, trim(fldname), data, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       ip = period_inst
+       do n = 1,size(data)
+          budget(nf,c_atm_recv,ip)  = budget(nf,c_atm_recv,ip)  - areas(n)*data(n)*afrac(n)
+          budget(nf,c_lnd_arecv,ip) = budget(nf,c_lnd_arecv,ip) + areas(n)*data(n)*lfrac(n)
+          budget(nf,c_ocn_arecv,ip) = budget(nf,c_ocn_arecv,ip) + areas(n)*data(n)*ofrac(n)
+          if (lats(n) > 0.0_r8) then
+             budget(nf,c_inh_arecv,ip) = budget(nf,c_inh_arecv,ip) + areas(n)*data(n)*ifrac(n)
+          else
+             budget(nf,c_ish_arecv,ip) = budget(nf,c_ish_arecv,ip) + areas(n)*data(n)*ifrac(n)
+          end if
+       end do
+    end if
+  end subroutine diag_atm_recv
+
+  subroutine diag_atm_send(FB, fldname, nf, areas, lats, afrac, lfrac, ofrac, ifrac, budget, rc)
+    ! input/output variables
+    type(ESMF_FieldBundle) , intent(in)    :: FB
+    character(len=*)       , intent(in)    :: fldname
+    integer                , intent(in)    :: nf
+    real(r8)               , intent(in)    :: areas(:)
+    real(r8)               , intent(in)    :: lats(:)
+    real(r8)               , intent(in)    :: afrac(:)
+    real(r8)               , intent(in)    :: lfrac(:)
+    real(r8)               , intent(in)    :: ofrac(:)
+    real(r8)               , intent(in)    :: ifrac(:)
+    real(r8)               , intent(inout) :: budget(:,:,:)
+    integer                , intent(out)   :: rc
+    ! local variables
+    integer           :: n, ip
+    type(ESMF_field)  :: lfield
+    real(r8), pointer :: data(:) => null()
+    ! ------------------------------------------------------------------
+    rc = ESMF_SUCCESS
+    if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
+       call fldbun_getdata1d(FB, trim(fldname), data, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       ip = period_inst
+       do n = 1,size(data)
+          budget(nf,c_atm_send,ip)  = budget(nf,c_atm_send,ip)  - areas(n)*data(n)*afrac(n)
+          budget(nf,c_lnd_asend,ip) = budget(nf,c_lnd_asend,ip) + areas(n)*data(n)*lfrac(n)
+          budget(nf,c_ocn_asend,ip) = budget(nf,c_ocn_asend,ip) + areas(n)*data(n)*ofrac(n)
+          if (lats(n) > 0.0_r8) then
+             budget(nf,c_inh_asend,ip) = budget(nf,c_inh_asend,ip) + areas(n)*data(n)*ifrac(n)
+          else
+             budget(nf,c_ish_asend,ip) = budget(nf,c_ish_asend,ip) + areas(n)*data(n)*ifrac(n)
+          end if
+       end do
+    end if
+  end subroutine diag_atm_send
+
+  subroutine diag_atm_wiso_recv(FB, fldname, nf_16O, nf_18O, nf_HDO, areas, lats, &
+       afrac, lfrac, ofrac, ifrac, budget, rc)
+    ! input/output variables
+    type(ESMF_FieldBundle) , intent(in)    :: FB
+    character(len=*)       , intent(in)    :: fldname
+    integer                , intent(in)    :: nf_16O
+    integer                , intent(in)    :: nf_18O
+    integer                , intent(in)    :: nf_HDO
+    real(r8)               , intent(in)    :: areas(:)
+    real(r8)               , intent(in)    :: lats(:)
+    real(r8)               , intent(in)    :: afrac(:)
+    real(r8)               , intent(in)    :: lfrac(:)
+    real(r8)               , intent(in)    :: ofrac(:)
+    real(r8)               , intent(in)    :: ifrac(:)
+    real(r8)               , intent(inout) :: budget(:,:,:)
+    integer                , intent(out)   :: rc
+    ! local variables
+    integer           :: n, ip
+    type(ESMF_Field)  :: lfield
+    real(r8), pointer :: data(:,:) => null()
+    ! ------------------------------------------------------------------
+    rc = ESMF_SUCCESS
+    if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
+       call fldbun_getdata2d(FB, trim(fldname), data, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       ip = period_inst
+       do n = 1,size(data, dim=2)
+          budget(nf_16O,c_atm_recv,ip) = budget(nf_16O,c_atm_recv,ip) - areas(n)*afrac(n)*data(1,n)
+          budget(nf_16O,c_lnd_arecv,ip) = budget(nf_16O,c_lnd_arecv,ip) + areas(n)*lfrac(n)*data(1,n)
+          budget(nf_16O,c_ocn_arecv,ip) = budget(nf_16O,c_ocn_arecv,ip) + areas(n)*ofrac(n)*data(1,n)
+          if (lats(n) > 0.0_r8) then
+             budget(nf_16O,c_inh_arecv,ip) = budget(nf_16O,c_inh_arecv,ip) + areas(n)*ifrac(n)*data(1,n)
+          else
+             budget(nf_16O,c_ish_arecv,ip) = budget(nf_16O,c_ish_arecv,ip) + areas(n)*ifrac(n)*data(1,n)
+          end if
+
+          budget(nf_18O,c_atm_recv,ip) = budget(nf_18O,c_atm_recv,ip) - areas(n)*afrac(n)*data(2,n)
+          budget(nf_18O,c_lnd_arecv,ip) = budget(nf_18O,c_lnd_arecv,ip) + areas(n)*lfrac(n)*data(2,n)
+          budget(nf_18O,c_ocn_arecv,ip) = budget(nf_18O,c_ocn_arecv,ip) + areas(n)*ofrac(n)*data(2,n)
+          if (lats(n) > 0.0_r8) then
+             budget(nf_18O,c_inh_arecv,ip) = budget(nf_18O,c_inh_arecv,ip) + areas(n)*ifrac(n)*data(2,n)
+          else
+             budget(nf_18O,c_ish_arecv,ip) = budget(nf_18O,c_ish_arecv,ip) + areas(n)*ifrac(n)*data(2,n)
+          end if
+
+          budget(nf_HDO,c_atm_recv,ip) = budget(nf_HDO,c_atm_recv,ip) - areas(n)*afrac(n)*data(3,n)
+          budget(nf_HDO,c_lnd_arecv,ip) = budget(nf_HDO,c_lnd_arecv,ip) + areas(n)*lfrac(n)*data(3,n)
+          budget(nf_HDO,c_ocn_arecv,ip) = budget(nf_HDO,c_ocn_arecv,ip) + areas(n)*ofrac(n)*data(3,n)
+          if (lats(n) > 0.0_r8) then
+             budget(nf_HDO,c_inh_arecv,ip) = budget(nf_HDO,c_inh_arecv,ip) + areas(n)*ifrac(n)*data(3,n)
+          else
+             budget(nf_HDO,c_ish_arecv,ip) = budget(nf_HDO,c_ish_arecv,ip) + areas(n)*ifrac(n)*data(3,n)
+          end if
+       end do
+    end if
+  end subroutine diag_atm_wiso_recv
+
+  subroutine diag_atm_wiso_send(FB, fldname, nf_16O, nf_18O, nf_HDO, areas, lats, &
+       afrac, lfrac, ofrac, ifrac, budget, rc)
+    ! input/output variables
+    type(ESMF_FieldBundle) , intent(in)    :: FB
+    character(len=*)       , intent(in)    :: fldname
+    integer                , intent(in)    :: nf_16O
+    integer                , intent(in)    :: nf_18O
+    integer                , intent(in)    :: nf_HDO
+    real(r8)               , intent(in)    :: areas(:)
+    real(r8)               , intent(in)    :: lats(:)
+    real(r8)               , intent(in)    :: afrac(:)
+    real(r8)               , intent(in)    :: lfrac(:)
+    real(r8)               , intent(in)    :: ofrac(:)
+    real(r8)               , intent(in)    :: ifrac(:)
+    real(r8)               , intent(inout) :: budget(:,:,:)
+    integer                , intent(out)   :: rc
+    ! local variables
+    integer           :: n, ip
+    type(ESMF_Field)  :: lfield
+    real(r8), pointer :: data(:,:) => null()
+    ! ------------------------------------------------------------------
+    rc = ESMF_SUCCESS
+    if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
+       call fldbun_getdata2d(FB, trim(fldname), data, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       ip = period_inst
+       do n = 1,size(data, dim=2)
+          budget(nf_16O,c_atm_send,ip) = budget(nf_16O,c_atm_send,ip) - areas(n)*afrac(n)*data(1,n)
+          budget(nf_16O,c_lnd_asend,ip) = budget(nf_16O,c_lnd_asend,ip) + areas(n)*lfrac(n)*data(1,n)
+          budget(nf_16O,c_ocn_asend,ip) = budget(nf_16O,c_ocn_asend,ip) + areas(n)*ofrac(n)*data(1,n)
+          if (lats(n) > 0.0_r8) then
+             budget(nf_16O,c_inh_asend,ip) = budget(nf_16O,c_inh_asend,ip) + areas(n)*ifrac(n)*data(1,n)
+          else
+             budget(nf_16O,c_ish_asend,ip) = budget(nf_16O,c_ish_asend,ip) + areas(n)*ifrac(n)*data(1,n)
+          end if
+
+          budget(nf_18O,c_atm_send,ip) = budget(nf_18O,c_atm_send,ip) - areas(n)*afrac(n)*data(2,n)
+          budget(nf_18O,c_lnd_asend,ip) = budget(nf_18O,c_lnd_asend,ip) + areas(n)*lfrac(n)*data(2,n)
+          budget(nf_18O,c_ocn_asend,ip) = budget(nf_18O,c_ocn_asend,ip) + areas(n)*ofrac(n)*data(2,n)
+          if (lats(n) > 0.0_r8) then
+             budget(nf_18O,c_inh_asend,ip) = budget(nf_18O,c_inh_asend,ip) + areas(n)*ifrac(n)*data(2,n)
+          else
+             budget(nf_18O,c_ish_asend,ip) = budget(nf_18O,c_ish_asend,ip) + areas(n)*ifrac(n)*data(2,n)
+          end if
+
+          budget(nf_HDO,c_atm_send,ip) = budget(nf_HDO,c_atm_send,ip) - areas(n)*afrac(n)*data(3,n)
+          budget(nf_HDO,c_lnd_asend,ip) = budget(nf_HDO,c_lnd_asend,ip) + areas(n)*lfrac(n)*data(3,n)
+          budget(nf_HDO,c_ocn_asend,ip) = budget(nf_HDO,c_ocn_asend,ip) + areas(n)*ofrac(n)*data(3,n)
+          if (lats(n) > 0.0_r8) then
+             budget(nf_HDO,c_inh_asend,ip) = budget(nf_HDO,c_inh_asend,ip) + areas(n)*ifrac(n)*data(3,n)
+          else
+             budget(nf_HDO,c_ish_asend,ip) = budget(nf_HDO,c_ish_asend,ip) + areas(n)*ifrac(n)*data(3,n)
+          end if
+       end do
+    end if
+  end subroutine diag_atm_wiso_send
 
   !===============================================================================
   subroutine med_phases_diag_lnd( gcomp, rc)
@@ -1017,79 +1013,77 @@ contains
     budget_local(f_heat_latf,ic,ip) = -budget_local(f_watr_snow,ic,ip)*shr_const_latice
 
     call t_stopf('MED:'//subname)
-
-  contains
-    subroutine diag_lnd(FB, fldname, nf, ic, areas, lfrac, budget, minus, rc)
-      ! input/output variables
-      type(ESMF_FieldBundle) , intent(in)    :: FB
-      character(len=*)       , intent(in)    :: fldname
-      integer                , intent(in)    :: nf
-      integer                , intent(in)    :: ic
-      real(r8)               , intent(in)    :: areas(:)
-      real(r8)               , intent(in)    :: lfrac(:)
-      real(r8)               , intent(inout) :: budget(:,:,:)
-      logical, optional      , intent(in)    :: minus
-      integer                , intent(out)   :: rc
-      ! local variables
-      integer           :: n, ip
-      type(ESMF_field)  :: lfield
-      real(r8), pointer :: data(:) => null()
-      ! ------------------------------------------------------------------
-      rc = ESMF_SUCCESS
-
-      if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
-         call fldbun_getdata1d(FB, trim(fldname), data, rc=rc)
-         if (ChkErr(rc,__LINE__,u_FILE_u)) return
-         ip = period_inst
-         do n = 1, size(data)
-            if (present(minus)) then
-               budget(nf,ic,ip) = budget(nf,ic,ip) - areas(n)*lfrac(n)*data(n)
-            else
-               budget(nf,ic,ip) = budget(nf,ic,ip) + areas(n)*lfrac(n)*data(n)
-            end if
-         end do
-      end if
-    end subroutine diag_lnd
-
-    subroutine diag_lnd_wiso(FB, fldname, nf_16O, nf_18O, nf_HDO, ic, areas, lfrac, budget, minus, rc)
-      ! input/output variables
-      type(ESMF_FieldBundle) , intent(in)    :: FB
-      character(len=*)       , intent(in)    :: fldname
-      integer                , intent(in)    :: nf_16O
-      integer                , intent(in)    :: nf_18O
-      integer                , intent(in)    :: nf_HDO
-      integer                , intent(in)    :: ic
-      real(r8)               , intent(in)    :: areas(:)
-      real(r8)               , intent(in)    :: lfrac(:)
-      real(r8)               , intent(inout) :: budget(:,:,:)
-      logical, optional      , intent(in)    :: minus
-      integer                , intent(out)   :: rc
-      ! local variables
-      integer           :: n, ip
-      type(ESMF_field)  :: lfield
-      real(r8), pointer :: data(:,:) => null()
-      ! ------------------------------------------------------------------
-      rc = ESMF_SUCCESS
-
-      if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
-         call fldbun_getdata2d(FB, trim(fldname), data, rc=rc)
-         if (ChkErr(rc,__LINE__,u_FILE_u)) return
-         ip = period_inst
-         do n = 1, size(data, dim=2)
-            if (present(minus)) then
-               budget(nf_16O,ic,ip) = budget(nf_16O,ic,ip) - areas(n)*lfrac(n)*data(1,n)
-               budget(nf_18O,ic,ip) = budget(nf_18O,ic,ip) - areas(n)*lfrac(n)*data(2,n)
-               budget(nf_HDO,ic,ip) = budget(nf_HDO,ic,ip) - areas(n)*lfrac(n)*data(3,n)
-            else
-               budget(nf_16O,ic,ip) = budget(nf_16O,ic,ip) + areas(n)*lfrac(n)*data(1,n)
-               budget(nf_18O,ic,ip) = budget(nf_18O,ic,ip) + areas(n)*lfrac(n)*data(2,n)
-               budget(nf_HDO,ic,ip) = budget(nf_HDO,ic,ip) + areas(n)*lfrac(n)*data(3,n)
-            end if
-         end do
-      end if
-    end subroutine diag_lnd_wiso
-
   end subroutine med_phases_diag_lnd
+
+  subroutine diag_lnd(FB, fldname, nf, ic, areas, lfrac, budget, minus, rc)
+    ! input/output variables
+    type(ESMF_FieldBundle) , intent(in)    :: FB
+    character(len=*)       , intent(in)    :: fldname
+    integer                , intent(in)    :: nf
+    integer                , intent(in)    :: ic
+    real(r8)               , intent(in)    :: areas(:)
+    real(r8)               , intent(in)    :: lfrac(:)
+    real(r8)               , intent(inout) :: budget(:,:,:)
+    logical, optional      , intent(in)    :: minus
+    integer                , intent(out)   :: rc
+    ! local variables
+    integer           :: n, ip
+    type(ESMF_field)  :: lfield
+    real(r8), pointer :: data(:) => null()
+    ! ------------------------------------------------------------------
+    rc = ESMF_SUCCESS
+
+    if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
+       call fldbun_getdata1d(FB, trim(fldname), data, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       ip = period_inst
+       do n = 1, size(data)
+          if (present(minus)) then
+             budget(nf,ic,ip) = budget(nf,ic,ip) - areas(n)*lfrac(n)*data(n)
+          else
+             budget(nf,ic,ip) = budget(nf,ic,ip) + areas(n)*lfrac(n)*data(n)
+          end if
+       end do
+    end if
+  end subroutine diag_lnd
+
+  subroutine diag_lnd_wiso(FB, fldname, nf_16O, nf_18O, nf_HDO, ic, areas, lfrac, budget, minus, rc)
+    ! input/output variables
+    type(ESMF_FieldBundle) , intent(in)    :: FB
+    character(len=*)       , intent(in)    :: fldname
+    integer                , intent(in)    :: nf_16O
+    integer                , intent(in)    :: nf_18O
+    integer                , intent(in)    :: nf_HDO
+    integer                , intent(in)    :: ic
+    real(r8)               , intent(in)    :: areas(:)
+    real(r8)               , intent(in)    :: lfrac(:)
+    real(r8)               , intent(inout) :: budget(:,:,:)
+    logical, optional      , intent(in)    :: minus
+    integer                , intent(out)   :: rc
+    ! local variables
+    integer           :: n, ip
+    type(ESMF_field)  :: lfield
+    real(r8), pointer :: data(:,:) => null()
+    ! ------------------------------------------------------------------
+    rc = ESMF_SUCCESS
+
+    if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
+       call fldbun_getdata2d(FB, trim(fldname), data, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       ip = period_inst
+       do n = 1, size(data, dim=2)
+          if (present(minus)) then
+             budget(nf_16O,ic,ip) = budget(nf_16O,ic,ip) - areas(n)*lfrac(n)*data(1,n)
+             budget(nf_18O,ic,ip) = budget(nf_18O,ic,ip) - areas(n)*lfrac(n)*data(2,n)
+             budget(nf_HDO,ic,ip) = budget(nf_HDO,ic,ip) - areas(n)*lfrac(n)*data(3,n)
+          else
+             budget(nf_16O,ic,ip) = budget(nf_16O,ic,ip) + areas(n)*lfrac(n)*data(1,n)
+             budget(nf_18O,ic,ip) = budget(nf_18O,ic,ip) + areas(n)*lfrac(n)*data(2,n)
+             budget(nf_HDO,ic,ip) = budget(nf_HDO,ic,ip) + areas(n)*lfrac(n)*data(3,n)
+          end if
+       end do
+    end if
+  end subroutine diag_lnd_wiso
 
   !===============================================================================
   subroutine med_phases_diag_rof( gcomp, rc)
@@ -1163,79 +1157,77 @@ contains
     budget_local(f_heat_ioff,ic,ip) = -budget_local(f_watr_ioff,ic,ip)*shr_const_latice
 
     call t_stopf('MED:'//subname)
-
-  contains
-    subroutine diag_rof(FB, fldname, nf, ic, areas, budget, minus, rc)
-      ! input/output variables
-      type(ESMF_FieldBundle) , intent(in)    :: FB
-      character(len=*)       , intent(in)    :: fldname
-      integer                , intent(in)    :: nf
-      integer                , intent(in)    :: ic
-      real(r8)               , intent(in)    :: areas(:)
-      real(r8)               , intent(inout) :: budget(:,:,:)
-      logical, optional      , intent(in)    :: minus
-      integer                , intent(out)   :: rc
-
-      ! local variables
-      integer           :: n, ip
-      type(ESMF_field)  :: lfield
-      real(r8), pointer :: data(:) => null()
-      ! ------------------------------------------------------------------
-      rc = ESMF_SUCCESS
-
-      if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
-         call fldbun_getdata1d(FB, trim(fldname), data, rc=rc)
-         if (ChkErr(rc,__LINE__,u_FILE_u)) return
-         ip = period_inst
-         do n = 1, size(data)
-            if (present(minus)) then
-               budget(nf,ic,ip) = budget(nf,ic,ip) - areas(n)*data(n)
-            else
-               budget(nf,ic,ip) = budget(nf,ic,ip) + areas(n)*data(n)
-            end if
-         end do
-      end if
-    end subroutine diag_rof
-
-    subroutine diag_rof_wiso(FB, fldname, nf_16O, nf_18O, nf_HDO, ic, areas, budget, minus, rc)
-      ! input/output variables
-      type(ESMF_FieldBundle) , intent(in)    :: FB
-      character(len=*)       , intent(in)    :: fldname
-      integer                , intent(in)    :: nf_16O
-      integer                , intent(in)    :: nf_18O
-      integer                , intent(in)    :: nf_HDO
-      integer                , intent(in)    :: ic
-      real(r8)               , intent(in)    :: areas(:)
-      real(r8)               , intent(inout) :: budget(:,:,:)
-      logical, optional      , intent(in)    :: minus
-      integer                , intent(out)   :: rc
-
-      ! local variables
-      integer           :: n, ip
-      type(ESMF_field)  :: lfield
-      real(r8), pointer :: data(:,:) => null()
-      ! ------------------------------------------------------------------
-      rc = ESMF_SUCCESS
-
-      if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
-         call fldbun_getdata2d(FB, trim(fldname), data, rc=rc)
-         if (ChkErr(rc,__LINE__,u_FILE_u)) return
-         ip = period_inst
-         do n = 1, size(data, dim=2)
-            if (present(minus)) then
-               budget(nf_16O,ic,ip) = budget(nf_16O,ic,ip) - areas(n)*data(1,n)
-               budget(nf_18O,ic,ip) = budget(nf_18O,ic,ip) - areas(n)*data(2,n)
-               budget(nf_HDO,ic,ip) = budget(nf_HDO,ic,ip) - areas(n)*data(3,n)
-            else
-               budget(nf_16O,ic,ip) = budget(nf_16O,ic,ip) + areas(n)*data(1,n)
-               budget(nf_18O,ic,ip) = budget(nf_18O,ic,ip) + areas(n)*data(2,n)
-               budget(nf_HDO,ic,ip) = budget(nf_HDO,ic,ip) + areas(n)*data(3,n)
-            end if
-         end do
-      end if
-    end subroutine diag_rof_wiso
-
   end subroutine med_phases_diag_rof
+
+  subroutine diag_rof(FB, fldname, nf, ic, areas, budget, minus, rc)
+    ! input/output variables
+    type(ESMF_FieldBundle) , intent(in)    :: FB
+    character(len=*)       , intent(in)    :: fldname
+    integer                , intent(in)    :: nf
+    integer                , intent(in)    :: ic
+    real(r8)               , intent(in)    :: areas(:)
+    real(r8)               , intent(inout) :: budget(:,:,:)
+    logical, optional      , intent(in)    :: minus
+    integer                , intent(out)   :: rc
+
+    ! local variables
+    integer           :: n, ip
+    type(ESMF_field)  :: lfield
+    real(r8), pointer :: data(:) => null()
+    ! ------------------------------------------------------------------
+    rc = ESMF_SUCCESS
+
+    if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
+       call fldbun_getdata1d(FB, trim(fldname), data, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       ip = period_inst
+       do n = 1, size(data)
+          if (present(minus)) then
+             budget(nf,ic,ip) = budget(nf,ic,ip) - areas(n)*data(n)
+          else
+             budget(nf,ic,ip) = budget(nf,ic,ip) + areas(n)*data(n)
+          end if
+       end do
+    end if
+  end subroutine diag_rof
+
+  subroutine diag_rof_wiso(FB, fldname, nf_16O, nf_18O, nf_HDO, ic, areas, budget, minus, rc)
+    ! input/output variables
+    type(ESMF_FieldBundle) , intent(in)    :: FB
+    character(len=*)       , intent(in)    :: fldname
+    integer                , intent(in)    :: nf_16O
+    integer                , intent(in)    :: nf_18O
+    integer                , intent(in)    :: nf_HDO
+    integer                , intent(in)    :: ic
+    real(r8)               , intent(in)    :: areas(:)
+    real(r8)               , intent(inout) :: budget(:,:,:)
+    logical, optional      , intent(in)    :: minus
+    integer                , intent(out)   :: rc
+
+    ! local variables
+    integer           :: n, ip
+    type(ESMF_field)  :: lfield
+    real(r8), pointer :: data(:,:) => null()
+    ! ------------------------------------------------------------------
+    rc = ESMF_SUCCESS
+
+    if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
+       call fldbun_getdata2d(FB, trim(fldname), data, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       ip = period_inst
+       do n = 1, size(data, dim=2)
+          if (present(minus)) then
+             budget(nf_16O,ic,ip) = budget(nf_16O,ic,ip) - areas(n)*data(1,n)
+             budget(nf_18O,ic,ip) = budget(nf_18O,ic,ip) - areas(n)*data(2,n)
+             budget(nf_HDO,ic,ip) = budget(nf_HDO,ic,ip) - areas(n)*data(3,n)
+          else
+             budget(nf_16O,ic,ip) = budget(nf_16O,ic,ip) + areas(n)*data(1,n)
+             budget(nf_18O,ic,ip) = budget(nf_18O,ic,ip) + areas(n)*data(2,n)
+             budget(nf_HDO,ic,ip) = budget(nf_HDO,ic,ip) + areas(n)*data(3,n)
+          end if
+       end do
+    end if
+  end subroutine diag_rof_wiso
 
   !===============================================================================
   subroutine med_phases_diag_glc( gcomp, rc)
@@ -1283,39 +1275,37 @@ contains
     budget_local(f_heat_ioff,ic,ip) = -budget_local(f_watr_ioff,ic,ip)*shr_const_latice
 
     call t_stopf('MED:'//subname)
-
-  contains
-    subroutine diag_glc(FB, fldname, nf, ic, areas, budget, minus, rc)
-      ! input/output variables
-      type(ESMF_FieldBundle) , intent(in)    :: FB
-      character(len=*)       , intent(in)    :: fldname
-      integer                , intent(in)    :: nf
-      integer                , intent(in)    :: ic
-      real(r8)               , intent(in)    :: areas(:)
-      real(r8)               , intent(inout) :: budget(:,:,:)
-      logical, optional      , intent(in)    :: minus
-      integer                , intent(out)   :: rc
-      ! local variables
-      integer           :: n, ip
-      type(ESMF_field)  :: lfield
-      real(r8), pointer :: data(:) => null()
-      ! ------------------------------------------------------------------
-      rc = ESMF_SUCCESS
-      if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
-         call fldbun_getdata1d(FB, trim(fldname), data, rc=rc)
-         if (ChkErr(rc,__LINE__,u_FILE_u)) return
-         ip = period_inst
-         do n = 1, size(data)
-            if (present(minus)) then
-               budget(nf,ic,ip) = budget(nf,ic,ip) - areas(n)*data(n)
-            else
-               budget(nf,ic,ip) = budget(nf,ic,ip) + areas(n)*data(n)
-            end if
-         end do
-      end if
-    end subroutine diag_glc
-
   end subroutine med_phases_diag_glc
+
+  subroutine diag_glc(FB, fldname, nf, ic, areas, budget, minus, rc)
+    ! input/output variables
+    type(ESMF_FieldBundle) , intent(in)    :: FB
+    character(len=*)       , intent(in)    :: fldname
+    integer                , intent(in)    :: nf
+    integer                , intent(in)    :: ic
+    real(r8)               , intent(in)    :: areas(:)
+    real(r8)               , intent(inout) :: budget(:,:,:)
+    logical, optional      , intent(in)    :: minus
+    integer                , intent(out)   :: rc
+    ! local variables
+    integer           :: n, ip
+    type(ESMF_field)  :: lfield
+    real(r8), pointer :: data(:) => null()
+    ! ------------------------------------------------------------------
+    rc = ESMF_SUCCESS
+    if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
+       call fldbun_getdata1d(FB, trim(fldname), data, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       ip = period_inst
+       do n = 1, size(data)
+          if (present(minus)) then
+             budget(nf,ic,ip) = budget(nf,ic,ip) - areas(n)*data(n)
+          else
+             budget(nf,ic,ip) = budget(nf,ic,ip) + areas(n)*data(n)
+          end if
+       end do
+    end if
+  end subroutine diag_glc
 
   !===============================================================================
   subroutine med_phases_diag_ocn( gcomp, rc)
@@ -1431,73 +1421,72 @@ contains
     budget_local(f_heat_latf,ic,ip) = -budget_local(f_watr_snow,ic,ip)*shr_const_latice
     budget_local(f_heat_ioff,ic,ip) = -budget_local(f_watr_ioff,ic,ip)*shr_const_latice
 
+    deallocate(sfrac)
     call t_stopf('MED:'//subname)
 
-  contains
-
-    subroutine diag_ocn(FB, fldname, nf, ic, areas, frac, budget, scale, rc)
-      ! input/output variables
-      type(ESMF_FieldBundle) , intent(in)    :: FB
-      character(len=*)       , intent(in)    :: fldname
-      integer                , intent(in)    :: nf
-      integer                , intent(in)    :: ic
-      real(r8)               , intent(in)    :: areas(:)
-      real(r8)               , intent(in)    :: frac(:)
-      real(r8)               , intent(inout) :: budget(:,:,:)
-      real(r8), optional     , intent(in)    :: scale
-      integer                , intent(out)   :: rc
-      ! local variables
-      integer           :: n, ip
-      type(ESMF_field)  :: lfield
-      real(r8), pointer :: data(:) => null()
-      ! ------------------------------------------------------------------
-      rc = ESMF_SUCCESS
-      if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
-         call fldbun_getdata1d(FB, trim(fldname), data, rc=rc)
-         if (ChkErr(rc,__LINE__,u_FILE_u)) return
-         ip = period_inst
-         do n = 1, size(data)
-            if (present(scale)) then
-               budget(nf,ic,ip) = budget(nf,ic,ip) + areas(n)*frac(n)*data(n)*scale
-            else
-               budget(nf,ic,ip) = budget(nf,ic,ip) + areas(n)*frac(n)*data(n)
-            end if
-         end do
-      end if
-    end subroutine diag_ocn
-
-    subroutine diag_ocn_wiso(FB, fldname, nf_16O, nf_18O, nf_HDO, ic, areas, frac, budget, rc)
-      ! input/output variables
-      type(ESMF_FieldBundle) , intent(in)    :: FB
-      character(len=*)       , intent(in)    :: fldname
-      integer                , intent(in)    :: nf_16O
-      integer                , intent(in)    :: nf_18O
-      integer                , intent(in)    :: nf_HDO
-      integer                , intent(in)    :: ic
-      real(r8)               , intent(in)    :: areas(:)
-      real(r8)               , intent(in)    :: frac(:)
-      real(r8)               , intent(inout) :: budget(:,:,:)
-      integer                , intent(out)   :: rc
-
-      ! local variables
-      integer           :: n, ip
-      type(ESMF_field)  :: lfield
-      real(r8), pointer :: data(:,:) => null()
-      ! ------------------------------------------------------------------
-      rc = ESMF_SUCCESS
-      if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
-         call fldbun_getdata2d(FB, trim(fldname), data, rc=rc)
-         if (ChkErr(rc,__LINE__,u_FILE_u)) return
-         ip = period_inst
-         do n = 1, size(data, dim=2)
-            budget(nf_16O,ic,ip) = budget(nf_16O,ic,ip) + areas(n)*frac(n)*data(1,n)
-            budget(nf_18O,ic,ip) = budget(nf_18O,ic,ip) + areas(n)*frac(n)*data(2,n)
-            budget(nf_HDO,ic,ip) = budget(nf_HDO,ic,ip) + areas(n)*frac(n)*data(3,n)
-         end do
-      end if
-    end subroutine diag_ocn_wiso
-
   end subroutine med_phases_diag_ocn
+
+  subroutine diag_ocn(FB, fldname, nf, ic, areas, frac, budget, scale, rc)
+    ! input/output variables
+    type(ESMF_FieldBundle) , intent(in)    :: FB
+    character(len=*)       , intent(in)    :: fldname
+    integer                , intent(in)    :: nf
+    integer                , intent(in)    :: ic
+    real(r8)               , intent(in)    :: areas(:)
+    real(r8)               , intent(in)    :: frac(:)
+    real(r8)               , intent(inout) :: budget(:,:,:)
+    real(r8), optional     , intent(in)    :: scale
+    integer                , intent(out)   :: rc
+    ! local variables
+    integer           :: n, ip
+    type(ESMF_field)  :: lfield
+    real(r8), pointer :: data(:) => null()
+    ! ------------------------------------------------------------------
+    rc = ESMF_SUCCESS
+    if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
+       call fldbun_getdata1d(FB, trim(fldname), data, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       ip = period_inst
+       do n = 1, size(data)
+          if (present(scale)) then
+             budget(nf,ic,ip) = budget(nf,ic,ip) + areas(n)*frac(n)*data(n)*scale
+          else
+             budget(nf,ic,ip) = budget(nf,ic,ip) + areas(n)*frac(n)*data(n)
+          end if
+       end do
+    end if
+  end subroutine diag_ocn
+
+  subroutine diag_ocn_wiso(FB, fldname, nf_16O, nf_18O, nf_HDO, ic, areas, frac, budget, rc)
+    ! input/output variables
+    type(ESMF_FieldBundle) , intent(in)    :: FB
+    character(len=*)       , intent(in)    :: fldname
+    integer                , intent(in)    :: nf_16O
+    integer                , intent(in)    :: nf_18O
+    integer                , intent(in)    :: nf_HDO
+    integer                , intent(in)    :: ic
+    real(r8)               , intent(in)    :: areas(:)
+    real(r8)               , intent(in)    :: frac(:)
+    real(r8)               , intent(inout) :: budget(:,:,:)
+    integer                , intent(out)   :: rc
+
+    ! local variables
+    integer           :: n, ip
+    type(ESMF_field)  :: lfield
+    real(r8), pointer :: data(:,:) => null()
+    ! ------------------------------------------------------------------
+    rc = ESMF_SUCCESS
+    if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
+       call fldbun_getdata2d(FB, trim(fldname), data, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       ip = period_inst
+       do n = 1, size(data, dim=2)
+          budget(nf_16O,ic,ip) = budget(nf_16O,ic,ip) + areas(n)*frac(n)*data(1,n)
+          budget(nf_18O,ic,ip) = budget(nf_18O,ic,ip) + areas(n)*frac(n)*data(2,n)
+          budget(nf_HDO,ic,ip) = budget(nf_HDO,ic,ip) + areas(n)*frac(n)*data(3,n)
+       end do
+    end if
+  end subroutine diag_ocn_wiso
 
   !===============================================================================
   subroutine med_phases_diag_ice_ice2med( gcomp, rc)
@@ -1574,98 +1563,95 @@ contains
          f_watr_evap_16O, f_watr_evap_18O, f_watr_evap_HDO, areas, lats, ifrac, budget_local, rc=rc)
 
     call t_stopf('MED:'//subname)
-
-  contains
-
-    subroutine diag_ice_recv(FB, fldname, nf, areas, lats, ifrac, budget, minus, scale, rc)
-      ! input/output variables
-      type(ESMF_FieldBundle) , intent(in)    :: FB
-      character(len=*)       , intent(in)    :: fldname
-      integer                , intent(in)    :: nf
-      real(r8)               , intent(in)    :: areas(:)
-      real(r8)               , intent(in)    :: lats(:)
-      real(r8)               , intent(in)    :: ifrac(:)
-      real(r8)               , intent(inout) :: budget(:,:,:)
-      logical,  optional     , intent(in)    :: minus
-      real(r8), optional     , intent(in)    :: scale
-      integer                , intent(out)   :: rc
-      ! local variables
-      integer           :: n, ip
-      type(ESMF_Field)  :: lfield
-      real(r8), pointer :: data(:) => null()
-      ! ------------------------------------------------------------------
-      rc = ESMF_SUCCESS
-      if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
-         call fldbun_getdata1d(FB, trim(fldname), data, rc=rc)
-         if (ChkErr(rc,__LINE__,u_FILE_u)) return
-         ip = period_inst
-         do n = 1,size(data)
-            if (lats(n) > 0.0_r8) then
-               ic = c_inh_recv
-            else
-               ic = c_ish_recv
-            endif
-            if (present(minus)) then
-               if (present(scale)) then
-                  budget(nf ,ic,ip) = budget(nf ,ic,ip) - areas(n)*ifrac(n)*data(n)*scale
-               else
-                  budget(nf ,ic,ip) = budget(nf ,ic,ip) - areas(n)*ifrac(n)*data(n)
-               end if
-            else
-               if (present(scale)) then
-                  budget(nf ,ic,ip) = budget(nf ,ic,ip) + areas(n)*ifrac(n)*data(n)*scale
-               else
-                  budget(nf ,ic,ip) = budget(nf ,ic,ip) + areas(n)*ifrac(n)*data(n)
-               end if
-            end if
-         end do
-      end if
-    end subroutine diag_ice_recv
-
-    subroutine diag_ice_recv_wiso(FB, fldname, nf_16O, nf_18O, nf_HDO, areas, lats, ifrac, budget, minus, rc)
-      ! input/output variables
-      type(ESMF_FieldBundle) , intent(in)    :: FB
-      character(len=*)       , intent(in)    :: fldname
-      integer                , intent(in)    :: nf_16O
-      integer                , intent(in)    :: nf_18O
-      integer                , intent(in)    :: nf_HDO
-      real(r8)               , intent(in)    :: areas(:)
-      real(r8)               , intent(in)    :: lats(:)
-      real(r8)               , intent(in)    :: ifrac(:)
-      real(r8)               , intent(inout) :: budget(:,:,:)
-      logical, optional      , intent(in)    :: minus
-      integer                , intent(out)   :: rc
-      ! local variables
-      integer           :: n, ip
-      type(ESMF_Field)  :: lfield
-      real(r8), pointer :: data(:,:) => null()
-      ! ------------------------------------------------------------------
-      rc = ESMF_SUCCESS
-
-      if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
-         call fldbun_getdata2d(FB, trim(fldname), data, rc=rc)
-         if (ChkErr(rc,__LINE__,u_FILE_u)) return
-         ip = period_inst
-         do n = 1, size(data, dim=2)
-            if (lats(n) > 0.0_r8) then
-               ic = c_inh_recv
-            else
-               ic = c_ish_recv
-            endif
-            if (present(minus)) then
-               budget(nf_16O,ic,ip) = budget(nf_16O,ic,ip) - areas(n)*ifrac(n)*data(1,n)
-               budget(nf_18O,ic,ip) = budget(nf_18O,ic,ip) - areas(n)*ifrac(n)*data(2,n)
-               budget(nf_HDO,ic,ip) = budget(nf_HDO,ic,ip) - areas(n)*ifrac(n)*data(3,n)
-            else
-               budget(nf_16O,ic,ip) = budget(nf_16O,ic,ip) + areas(n)*ifrac(n)*data(1,n)
-               budget(nf_18O,ic,ip) = budget(nf_18O,ic,ip) + areas(n)*ifrac(n)*data(2,n)
-               budget(nf_HDO,ic,ip) = budget(nf_HDO,ic,ip) + areas(n)*ifrac(n)*data(3,n)
-            end if
-         end do
-      end if
-    end subroutine diag_ice_recv_wiso
-
   end subroutine med_phases_diag_ice_ice2med
+
+  subroutine diag_ice_recv(FB, fldname, nf, areas, lats, ifrac, budget, minus, scale, rc)
+    ! input/output variables
+    type(ESMF_FieldBundle) , intent(in)    :: FB
+    character(len=*)       , intent(in)    :: fldname
+    integer                , intent(in)    :: nf
+    real(r8)               , intent(in)    :: areas(:)
+    real(r8)               , intent(in)    :: lats(:)
+    real(r8)               , intent(in)    :: ifrac(:)
+    real(r8)               , intent(inout) :: budget(:,:,:)
+    logical,  optional     , intent(in)    :: minus
+    real(r8), optional     , intent(in)    :: scale
+    integer                , intent(out)   :: rc
+    ! local variables
+    integer           :: n, ic, ip
+    type(ESMF_Field)  :: lfield
+    real(r8), pointer :: data(:) => null()
+    ! ------------------------------------------------------------------
+    rc = ESMF_SUCCESS
+    if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
+       call fldbun_getdata1d(FB, trim(fldname), data, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       ip = period_inst
+       do n = 1,size(data)
+          if (lats(n) > 0.0_r8) then
+             ic = c_inh_recv
+          else
+             ic = c_ish_recv
+          endif
+          if (present(minus)) then
+             if (present(scale)) then
+                budget(nf ,ic,ip) = budget(nf ,ic,ip) - areas(n)*ifrac(n)*data(n)*scale
+             else
+                budget(nf ,ic,ip) = budget(nf ,ic,ip) - areas(n)*ifrac(n)*data(n)
+             end if
+          else
+             if (present(scale)) then
+                budget(nf ,ic,ip) = budget(nf ,ic,ip) + areas(n)*ifrac(n)*data(n)*scale
+             else
+                budget(nf ,ic,ip) = budget(nf ,ic,ip) + areas(n)*ifrac(n)*data(n)
+             end if
+          end if
+       end do
+    end if
+  end subroutine diag_ice_recv
+
+  subroutine diag_ice_recv_wiso(FB, fldname, nf_16O, nf_18O, nf_HDO, areas, lats, ifrac, budget, minus, rc)
+    ! input/output variables
+    type(ESMF_FieldBundle) , intent(in)    :: FB
+    character(len=*)       , intent(in)    :: fldname
+    integer                , intent(in)    :: nf_16O
+    integer                , intent(in)    :: nf_18O
+    integer                , intent(in)    :: nf_HDO
+    real(r8)               , intent(in)    :: areas(:)
+    real(r8)               , intent(in)    :: lats(:)
+    real(r8)               , intent(in)    :: ifrac(:)
+    real(r8)               , intent(inout) :: budget(:,:,:)
+    logical, optional      , intent(in)    :: minus
+    integer                , intent(out)   :: rc
+    ! local variables
+    integer           :: n, ic, ip
+    type(ESMF_Field)  :: lfield
+    real(r8), pointer :: data(:,:) => null()
+    ! ------------------------------------------------------------------
+    rc = ESMF_SUCCESS
+
+    if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
+       call fldbun_getdata2d(FB, trim(fldname), data, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       ip = period_inst
+       do n = 1, size(data, dim=2)
+          if (lats(n) > 0.0_r8) then
+             ic = c_inh_recv
+          else
+             ic = c_ish_recv
+          endif
+          if (present(minus)) then
+             budget(nf_16O,ic,ip) = budget(nf_16O,ic,ip) - areas(n)*ifrac(n)*data(1,n)
+             budget(nf_18O,ic,ip) = budget(nf_18O,ic,ip) - areas(n)*ifrac(n)*data(2,n)
+             budget(nf_HDO,ic,ip) = budget(nf_HDO,ic,ip) - areas(n)*ifrac(n)*data(3,n)
+          else
+             budget(nf_16O,ic,ip) = budget(nf_16O,ic,ip) + areas(n)*ifrac(n)*data(1,n)
+             budget(nf_18O,ic,ip) = budget(nf_18O,ic,ip) + areas(n)*ifrac(n)*data(2,n)
+             budget(nf_HDO,ic,ip) = budget(nf_HDO,ic,ip) + areas(n)*ifrac(n)*data(3,n)
+          end if
+       end do
+    end if
+  end subroutine diag_ice_recv_wiso
 
   !===============================================================================
   subroutine med_phases_diag_ice_med2ice( gcomp, rc)
@@ -1755,77 +1741,74 @@ contains
          f_watr_snow_16O, f_watr_snow_18O, f_watr_snow_HDO, areas, lats, ifrac, budget_local, rc=rc)
 
     call t_stopf('MED:'//subname)
-
-  contains
-
-    subroutine diag_ice_send(FB, fldname, nf, areas, lats, ifrac, budget, rc)
-      ! input/output variables
-      type(ESMF_FieldBundle) , intent(in)    :: FB
-      character(len=*)       , intent(in)    :: fldname
-      integer                , intent(in)    :: nf
-      real(r8)               , intent(in)    :: areas(:)
-      real(r8)               , intent(in)    :: lats(:)
-      real(r8)               , intent(in)    :: ifrac(:)
-      real(r8)               , intent(inout) :: budget(:,:,:)
-      integer                , intent(out)   :: rc
-      ! local variables
-      integer           :: n, ip
-      type(ESMF_Field)  :: lfield
-      real(r8), pointer :: data(:) => null()
-      ! ------------------------------------------------------------------
-      rc = ESMF_SUCCESS
-      ip = period_inst
-      if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
-         call fldbun_getdata1d(FB, trim(fldname), data, rc=rc)
-         if (ChkErr(rc,__LINE__,u_FILE_u)) return
-         do n = 1,size(data)
-            if (lats(n) > 0.0_r8) then
-               ic = c_inh_send
-            else
-               ic = c_ish_send
-            endif
-            budget(nf,ic,ip) = budget(nf,ic,ip) + areas(n)*ifrac(n)*data(n)
-         end do
-      end if
-    end subroutine diag_ice_send
-
-    subroutine diag_ice_send_wiso(FB, fldname, nf_16O, nf_18O, nf_HDO, areas, lats, ifrac, budget, rc)
-      ! input/output variables
-      type(ESMF_FieldBundle) , intent(in)    :: FB
-      character(len=*)       , intent(in)    :: fldname
-      integer                , intent(in)    :: nf_16O
-      integer                , intent(in)    :: nf_18O
-      integer                , intent(in)    :: nf_HDO
-      real(r8)               , intent(in)    :: areas(:)
-      real(r8)               , intent(in)    :: lats(:)
-      real(r8)               , intent(in)    :: ifrac(:)
-      real(r8)               , intent(inout) :: budget(:,:,:)
-      integer                , intent(out)   :: rc
-
-      ! local variables
-      integer           :: n, ip
-      type(ESMF_Field)  :: lfield
-      real(r8), pointer :: data(:,:) => null()
-      ! ------------------------------------------------------------------
-      rc = ESMF_SUCCESS
-      if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
-         call fldbun_getdata2d(FB, trim(fldname), data, rc=rc)
-         if (ChkErr(rc,__LINE__,u_FILE_u)) return
-         ip = period_inst
-         do n = 1, size(data, dim=2)
-            if (lats(n) > 0.0_r8) then
-               ic = c_inh_send
-            else
-               ic = c_ish_send
-            endif
-            budget(nf_16O,ic,ip) = budget(nf_16O,ic,ip) + areas(n)*ifrac(n)*data(1,n)
-            budget(nf_18O,ic,ip) = budget(nf_18O,ic,ip) + areas(n)*ifrac(n)*data(2,n)
-            budget(nf_HDO,ic,ip) = budget(nf_HDO,ic,ip) + areas(n)*ifrac(n)*data(3,n)
-         end do
-      end if
-    end subroutine diag_ice_send_wiso
-
   end subroutine med_phases_diag_ice_med2ice
+
+  subroutine diag_ice_send(FB, fldname, nf, areas, lats, ifrac, budget, rc)
+    ! input/output variables
+    type(ESMF_FieldBundle) , intent(in)    :: FB
+    character(len=*)       , intent(in)    :: fldname
+    integer                , intent(in)    :: nf
+    real(r8)               , intent(in)    :: areas(:)
+    real(r8)               , intent(in)    :: lats(:)
+    real(r8)               , intent(in)    :: ifrac(:)
+    real(r8)               , intent(inout) :: budget(:,:,:)
+    integer                , intent(out)   :: rc
+    ! local variables
+    integer           :: n, ic, ip
+    type(ESMF_Field)  :: lfield
+    real(r8), pointer :: data(:) => null()
+    ! ------------------------------------------------------------------
+    rc = ESMF_SUCCESS
+    ip = period_inst
+    if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
+       call fldbun_getdata1d(FB, trim(fldname), data, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       do n = 1,size(data)
+          if (lats(n) > 0.0_r8) then
+             ic = c_inh_send
+          else
+             ic = c_ish_send
+          endif
+          budget(nf,ic,ip) = budget(nf,ic,ip) + areas(n)*ifrac(n)*data(n)
+       end do
+    end if
+  end subroutine diag_ice_send
+
+  subroutine diag_ice_send_wiso(FB, fldname, nf_16O, nf_18O, nf_HDO, areas, lats, ifrac, budget, rc)
+    ! input/output variables
+    type(ESMF_FieldBundle) , intent(in)    :: FB
+    character(len=*)       , intent(in)    :: fldname
+    integer                , intent(in)    :: nf_16O
+    integer                , intent(in)    :: nf_18O
+    integer                , intent(in)    :: nf_HDO
+    real(r8)               , intent(in)    :: areas(:)
+    real(r8)               , intent(in)    :: lats(:)
+    real(r8)               , intent(in)    :: ifrac(:)
+    real(r8)               , intent(inout) :: budget(:,:,:)
+    integer                , intent(out)   :: rc
+
+    ! local variables
+    integer           :: n, ic, ip
+    type(ESMF_Field)  :: lfield
+    real(r8), pointer :: data(:,:) => null()
+    ! ------------------------------------------------------------------
+    rc = ESMF_SUCCESS
+    if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
+       call fldbun_getdata2d(FB, trim(fldname), data, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       ip = period_inst
+       do n = 1, size(data, dim=2)
+          if (lats(n) > 0.0_r8) then
+             ic = c_inh_send
+          else
+             ic = c_ish_send
+          endif
+          budget(nf_16O,ic,ip) = budget(nf_16O,ic,ip) + areas(n)*ifrac(n)*data(1,n)
+          budget(nf_18O,ic,ip) = budget(nf_18O,ic,ip) + areas(n)*ifrac(n)*data(2,n)
+          budget(nf_HDO,ic,ip) = budget(nf_HDO,ic,ip) + areas(n)*ifrac(n)*data(3,n)
+       end do
+    end if
+  end subroutine diag_ice_send_wiso
 
   !===============================================================================
   subroutine med_phases_diag_print(gcomp, rc)
