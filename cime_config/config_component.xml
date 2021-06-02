@@ -186,6 +186,13 @@
     <desc>username of user who created case</desc>
   </entry>
 
+  <entry id="CASE_HASH">
+    <type>char</type>
+    <group>case_desc</group>
+    <file>env_case.xml</file>
+    <desc>Unique identifier for case</desc>
+  </entry>
+
   <!-- ===================================================================== -->
   <!-- definitions runtimes -->
   <!-- ===================================================================== -->
