@@ -363,12 +363,8 @@ contains
     use ESMF              , only : ESMF_StateGet, ESMF_LogFoundError
     use ESMF              , only : ESMF_LogWrite, ESMF_LOGMSG_ERROR, ESMF_FAILURE, ESMF_LOGERR_PASSTHRU
     use ESMF              , only : ESMF_LOGMSG_INFO, ESMF_StateRemove, ESMF_SUCCESS
-#if ESMF_VERSION_MAJOR >= 8
-#if ESMF_VERSION_MINOR >  0
     use ESMF              , only : ESMF_STATEINTENT_IMPORT, ESMF_STATEINTENT_EXPORT, ESMF_StateIntent_Flag
     use ESMF              , only : ESMF_RC_ARG_BAD, ESMF_LogSetError, operator(==)
-#endif
-#endif
     ! input/output variables
     type(ESMF_State)            , intent(inout)            :: state
     type(med_fldlist_type), intent(in)               :: fldList
@@ -386,11 +382,7 @@ contains
     character(CS)                   :: shortname
     character(CS)                   :: stdname
     character(ESMF_MAXSTR)          :: transferActionAttr
-#if ESMF_VERSION_MAJOR >= 8
-#if ESMF_VERSION_MINOR >  0
     type(ESMF_StateIntent_Flag)     :: stateIntent
-#endif
-#endif
     character(ESMF_MAXSTR)          :: transferAction
     character(ESMF_MAXSTR), pointer :: StandardNameList(:) => null()
     character(ESMF_MAXSTR), pointer :: ConnectedList(:) => null()
@@ -454,9 +446,6 @@ contains
 #endif
 
     nflds = size(fldList%flds)
-    transferActionAttr="TransferActionGeomObject"
-#if ESMF_VERSION_MAJOR >= 8
-#if ESMF_VERSION_MINOR >  0
     call ESMF_StateGet(state, stateIntent=stateIntent, rc=rc)
     if (stateIntent==ESMF_STATEINTENT_EXPORT) then
        transferActionAttr="ProducerTransferAction"
@@ -470,8 +459,6 @@ contains
             rcToReturn=rc)
        return  ! bail out
     endif
-#endif
-#endif
 
     do n = 1, nflds
        shortname = fldList%flds(n)%shortname
