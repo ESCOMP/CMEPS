@@ -1199,6 +1199,9 @@
     <desc>glacier (glc) grid - DO NOT EDIT (for experts only)</desc>
   </entry>
 
+  <!-- GLC_NX and GLC_NY are only needed by xglc. These variables do not
+       accommodate multiple ice sheet grids, but that's okay for now,
+       since xglc currently only runs on a single ice sheet grid.-->
   <entry id="GLC_NX">
     <type>integer</type>
     <default_value>0</default_value>
@@ -1206,7 +1209,6 @@
     <file>env_build.xml</file>
     <desc>number of glc cells in i direction - DO NOT EDIT (for experts only)</desc>
   </entry>
-
   <entry id="GLC_NY">
     <type>integer</type>
     <default_value>0</default_value>
@@ -1214,7 +1216,6 @@
     <file>env_build.xml</file>
     <desc>number of glc cells in j direction - DO NOT EDIT (for experts only)</desc>
   </entry>
-
 
   <entry id="WAV_GRID">
     <type>char</type>
@@ -1439,22 +1440,6 @@
     <desc>lnd2atm state mapping file</desc>
   </entry>
 
-  <entry id="LND2GLC_FMAPNAME">
-    <type>char</type>
-    <default_value>idmap</default_value>
-    <group>run_domain</group>
-    <file>env_run.xml</file>
-    <desc>lnd2glc flux mapping file</desc>
-  </entry>
-
-  <entry id="LND2GLC_SMAPNAME">
-    <type>char</type>
-    <default_value>idmap</default_value>
-    <group>run_domain</group>
-    <file>env_run.xml</file>
-    <desc>lnd2glc state mapping file</desc>
-  </entry>
-
   <entry id="LND2ROF_FMAPNAME">
     <type>char</type>
     <default_value>idmap</default_value>
@@ -1493,22 +1478,6 @@
     <group>run_domain</group>
     <file>env_run.xml</file>
     <desc>rof2ocn runoff mapping file</desc>
-  </entry>
-
-  <entry id="GLC2LND_FMAPNAME">
-    <type>char</type>
-    <default_value>idmap</default_value>
-    <group>run_domain</group>
-    <file>env_run.xml</file>
-    <desc>glc2lnd flux mapping file</desc>
-  </entry>
-
-  <entry id="GLC2LND_SMAPNAME">
-    <type>char</type>
-    <default_value>idmap</default_value>
-    <group>run_domain</group>
-    <file>env_run.xml</file>
-    <desc>glc2lnd state mapping file</desc>
   </entry>
 
   <entry id="GLC2ICE_RMAPNAME">

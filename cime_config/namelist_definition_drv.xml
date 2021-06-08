@@ -869,28 +869,6 @@
       <value>$ICE_NY</value>
     </values>
   </entry>
-  <entry id="glc_nx" modify_via_xml="GLC_NX">
-    <type>integer</type>
-    <category>control</category>
-    <group>MED_attributes</group>
-    <desc>
-      number of glc cells in i direction
-    </desc>
-    <values>
-      <value>$GLC_NX</value>
-    </values>
-  </entry>
-  <entry id="glc_ny" modify_via_xml="GLC_NY">
-    <type>integer</type>
-    <category>control</category>
-    <group>MED_attributes</group>
-    <desc>
-      number of glc cells in j direction
-    </desc>
-    <values>
-      <value>$GLC_NY</value>
-    </values>
-  </entry>
   <entry id="lnd_nx" modify_via_xml="LND_NX">
     <type>integer</type>
     <category>control</category>
@@ -2024,58 +2002,6 @@
     </desc>
     <values>
       <value>$ROF2OCN_ICE_RMAPNAME</value>
-    </values>
-  </entry>
-
-  <entry id="lnd2glc_fmapname"    modify_via_xml="LND2GLC_FMAPNAME">
-    <type>char</type>
-    <category>mapping</category>
-    <input_pathname>abs</input_pathname>
-    <group>MED_attributes</group>
-    <desc>
-      land to glc mapping file for fluxes
-    </desc>
-    <values>
-      <value>$LND2GLC_FMAPNAME</value>
-    </values>
-  </entry>
-
-  <entry id="lnd2glc_smapname"    modify_via_xml="LND2GLC_SMAPNAME">
-    <type>char</type>
-    <category>mapping</category>
-    <input_pathname>abs</input_pathname>
-    <group>MED_attributes</group>
-    <desc>
-      land to glc mapping file for states
-    </desc>
-    <values>
-      <value>$LND2GLC_SMAPNAME</value>
-    </values>
-  </entry>
-
-  <entry id="glc2lnd_fmapname"    modify_via_xml="GLC2LND_FMAPNAME">
-    <type>char</type>
-    <category>mapping</category>
-    <input_pathname>abs</input_pathname>
-    <group>MED_attributes</group>
-    <desc>
-      glc to land mapping file for fluxes
-    </desc>
-    <values>
-      <value>$GLC2LND_FMAPNAME</value>
-    </values>
-  </entry>
-
-  <entry id="glc2lnd_smapname"    modify_via_xml="GLC2LND_SMAPNAME">
-    <type>char</type>
-    <category>mapping</category>
-    <input_pathname>abs</input_pathname>
-    <group>MED_attributes</group>
-    <desc>
-      glc to land mapping file for states
-    </desc>
-    <values>
-      <value>$GLC2LND_SMAPNAME</value>
     </values>
   </entry>
 
