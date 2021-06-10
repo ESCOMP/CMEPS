@@ -1998,7 +1998,6 @@ contains
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
             call FB_reset(is_local%wrap%FBImpAccum(n1,n1), value=czero, rc=rc)
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-            is_local%wrap%FBImpAccumCnt(n1) = 0
 
             ! Create export accumulation field bundles
             call FB_init(is_local%wrap%FBExpAccum(n1), is_local%wrap%flds_scalar_name, &
@@ -2007,7 +2006,6 @@ contains
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
             call FB_reset(is_local%wrap%FBExpAccum(n1), value=czero, rc=rc)
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-            is_local%wrap%FBExpAccumCnt(n1) = 0
 
             ! Create mesh info data
             call med_meshinfo_create(is_local%wrap%FBImp(n1,n1), &
