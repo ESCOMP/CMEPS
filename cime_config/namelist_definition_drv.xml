@@ -571,7 +571,7 @@
     </values>
   </entry>
 
-  <entry id="mediator_read_restart" modify_via_xml="MEDIATOR_READ_RESTART">
+  <entry id="mediator_read_restart" skip_default_entry="true" modify_via_xml="MEDIATOR_READ_RESTART">
     <type>logical</type>
     <category>expdef</category>
     <group>DRIVER_attributes</group>
