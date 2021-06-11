@@ -98,6 +98,7 @@ module med_internalstate_mod
 
     ! Component Mesh info
     type(mesh_info_type)   :: mesh_info(ncomps)
+    type(ESMF_FieldBundle) :: FBArea(ncomps)                     ! needed for mediator history writes
 
  end type InternalStateStruct
 

@@ -43,6 +43,10 @@
        canonical_units: N m-2
        description: mediator export
      #
+     - standard_name: area
+       canonical_units: radians**2
+       description: mediator area for component
+     #
      #-----------------------------------
      # section: land export
      #-----------------------------------

@@ -409,6 +409,7 @@ contains
                        nx=nx, ny=ny, nt=1, whead=whead, wdata=wdata, pre=trim(compname(n))//'Exp', rc=rc)
                    if (ChkErr(rc,__LINE__,u_FILE_u)) return
                 endif
+                ! write component mediator fractions
                 if (ESMF_FieldBundleIsCreated(is_local%wrap%FBFrac(n),rc=rc)) then
                    nx = is_local%wrap%nx(n)
                    ny = is_local%wrap%ny(n)
@@ -416,7 +417,12 @@ contains
                        nx=nx, ny=ny, nt=1, whead=whead, wdata=wdata, pre='Med_frac_'//trim(compname(n)), rc=rc)
                    if (ChkErr(rc,__LINE__,u_FILE_u)) return
                 end if
-             endif
+                ! write component mediator areas
+                nx = is_local%wrap%nx(n)
+                ny = is_local%wrap%ny(n)
+                call med_io_write(hist_file, iam, is_local%wrap%FBArea(n), &
+                     nx=nx, ny=ny, nt=1, whead=whead, wdata=wdata, pre='MED_'//trim(compname(n)), rc=rc)
+             end if
           enddo
           if (ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_ocnalb_o,rc=rc)) then
              nx = is_local%wrap%nx(compocn)
@@ -452,6 +458,10 @@ contains
                   nx=nx, ny=ny, nt=1, whead=whead, wdata=wdata, pre='Med_aoflux_atm', rc=rc)
           end if
        enddo
+
+       ! Write out areas to history file
+       do n = 1,ncomps
+       end do
 
        call med_io_close(hist_file, iam, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return

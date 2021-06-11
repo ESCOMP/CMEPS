@@ -664,7 +664,7 @@ contains
     ! TransferOfferGeomObject Attribute.
 
     use ESMF  , only : ESMF_GridComp, ESMF_State, ESMF_Clock, ESMF_SUCCESS, ESMF_LogFoundAllocError
-    use ESMF  , only : ESMF_StateIsCreated 
+    use ESMF  , only : ESMF_StateIsCreated
     use ESMF  , only : ESMF_LogMsg_Info, ESMF_LogWrite
     use ESMF  , only : ESMF_END_ABORT, ESMF_Finalize
     use NUOPC , only : NUOPC_AddNamespace, NUOPC_Advertise, NUOPC_AddNestedState
@@ -2022,7 +2022,7 @@ contains
 
             ! Create mesh info data
             call med_meshinfo_create(is_local%wrap%FBImp(n1,n1), &
-                 is_local%wrap%mesh_info(n1), rc=rc)
+                 is_local%wrap%mesh_info(n1), is_local%wrap%FBArea(n1), rc=rc)
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
          end if
 
@@ -2580,17 +2580,19 @@ contains
 
   !-----------------------------------------------------------------------------
 
-  subroutine med_meshinfo_create(FB, mesh_info, rc)
+  subroutine med_meshinfo_create(FB, mesh_info, FBArea, rc)
 
     use ESMF , only : ESMF_Array, ESMF_ArrayCreate, ESMF_ArrayDestroy, ESMF_Field, ESMF_FieldGet
     use ESMF , only : ESMF_DistGrid, ESMF_FieldBundle, ESMF_FieldRegridGetArea, ESMF_FieldBundleGet
     use ESMF , only : ESMF_Mesh, ESMF_MeshGet, ESMF_MESHLOC_ELEMENT, ESMF_TYPEKIND_R8
     use ESMF , only : ESMF_SUCCESS, ESMF_FAILURE, ESMF_LogWrite, ESMF_LOGMSG_INFO
+    use ESMF , only : ESMF_FieldCreate, ESMF_FieldBundleCreate, ESMF_FieldBundleAdd
     use med_internalstate_mod , only : mesh_info_type
 
     ! input/output variables
     type(ESMF_FieldBundle) , intent(in)    :: FB
     type(mesh_info_type)   , intent(inout) :: mesh_info
+    type(ESMF_FieldBundle) , intent(inout) :: FBArea
     integer                , intent(out)   :: rc
 
     ! local variables
@@ -2640,6 +2642,17 @@ contains
        mesh_info%lats(n) = ownedElemCoords(2*n)
     end do
     deallocate(ownedElemCoords)
+
+    ! Create field bundle with areas so that this can be output to mediator history file
+    lfield = ESMF_FieldCreate(lmesh, ESMF_TYPEKIND_r8, name='area', meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    FBArea = ESMF_FieldBundleCreate(rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldBundleAdd(FBArea, (/lfield/), rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldGet(lfield, farrayPtr=dataptr, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    dataptr(:) = mesh_info%areas(:)
 
   end subroutine med_meshinfo_create
 
