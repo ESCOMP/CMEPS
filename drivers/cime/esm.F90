@@ -613,7 +613,7 @@ contains
 
   !===============================================================================
 
-  subroutine AddAttributes(gcomp, driver, config, compid, compname, inst_suffix, rc)
+  subroutine AddAttributes(gcomp, driver, config, compid, compname, inst_suffix, nthrds, rc)
 
     ! Add specific set of attributes to components from driver attributes
 
@@ -628,6 +628,7 @@ contains
     integer             , intent(in)    :: compid
     character(len=*)    , intent(in)    :: compname
     character(len=*)    , intent(in)    :: inst_suffix
+    integer             , intent(in)    :: nthrds
     integer             , intent(inout) :: rc
 
     ! local variables
@@ -712,6 +713,12 @@ contains
        call NUOPC_CompAttributeSet(gcomp, name='inst_suffix', value=inst_suffix, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     end if
+    ! Add the nthreads attribute
+    call NUOPC_CompAttributeAdd(gcomp, attrList=(/'nthreads'/), rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    write(cvalue, *) nthrds
+    call NUOPC_CompAttributeSet(gcomp, name='nthreads', value=cvalue, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     !------
     ! Add single column and single point attributes
@@ -802,40 +809,69 @@ contains
     use ESMF         , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_VM, ESMF_VMGet
     use ESMF         , only : ESMF_LogWrite, ESMF_SUCCESS, ESMF_LOGMSG_INFO, ESMF_Config
     use ESMF         , only : ESMF_ConfigGetLen, ESMF_LogFoundAllocError, ESMF_ConfigGetAttribute
-    use ESMF         , only : ESMF_RC_NOT_VALID, ESMF_LogSetError
+    use ESMF         , only : ESMF_RC_NOT_VALID, ESMF_LogSetError, ESMF_Info, ESMF_InfoSet
     use ESMF         , only : ESMF_GridCompIsPetLocal, ESMF_MethodAdd, ESMF_UtilStringLowerCase
+    use ESMF         , only : ESMF_InfoCreate, ESMF_InfoDestroy
     use NUOPC        , only : NUOPC_CompAttributeGet
     use NUOPC_Driver , only : NUOPC_DriverAddComp
-    use mpi          , only : MPI_COMM_NULL
+#ifndef NO_MPI2
+    use mpi          , only : MPI_COMM_NULL, mpi_comm_size
+#endif
     use mct_mod      , only : mct_world_init
     use shr_pio_mod  , only : shr_pio_init2
 
 #ifdef MED_PRESENT
     use med_internalstate_mod , only : med_id
     use med                   , only : MedSetServices => SetServices
+#ifdef ESMF_AWARE_THREADING
+    use med                   , only : MEDSetVM => SetVM
+#endif
 #endif
 #ifdef ATM_PRESENT
     use atm_comp_nuopc        , only : ATMSetServices => SetServices
+#ifdef ESMF_AWARE_THREADING
+    use atm_comp_nuopc        , only : ATMSetVM => SetVM
+#endif
 #endif
 #ifdef ICE_PRESENT
     use ice_comp_nuopc        , only : ICESetServices => SetServices
+#ifdef ESMF_AWARE_THREADING
+    use ice_comp_nuopc        , only : ICESetVM => SetVM
+#endif
 #endif
 #ifdef LND_PRESENT
     use lnd_comp_nuopc        , only : LNDSetServices => SetServices
+#ifdef ESMF_AWARE_THREADING
+    use lnd_comp_nuopc        , only : LNDSetVM => SetVM
+#endif
 #endif
 #ifdef OCN_PRESENT
     use ocn_comp_nuopc        , only : OCNSetServices => SetServices
+#ifdef ESMF_AWARE_THREADING
+    use ocn_comp_nuopc        , only : OCNSetVM => SetVM
+#endif
 #endif
 #ifdef WAV_PRESENT
     use wav_comp_nuopc        , only : WAVSetServices => SetServices
+#ifdef ESMF_AWARE_THREADING
+    use wav_comp_nuopc        , only : WAVSetVM => SetVM
+#endif
 #endif
 #ifdef ROF_PRESENT
     use rof_comp_nuopc        , only : ROFSetServices => SetServices
+#ifdef ESMF_AWARE_THREADING
+    use rof_comp_nuopc        , only : ROFSetVM => SetVM
+#endif
 #endif
 #ifdef GLC_PRESENT
     use glc_comp_nuopc        , only : GLCSetServices => SetServices
+#ifdef ESMF_AWARE_THREADING
+    use glc_comp_nuopc        , only : GLCSetVM => SetVM
 #endif
-
+#endif
+#ifdef NO_MPI2
+    include 'mpif.h'
+#endif
     ! input/output variables
     type(ESMF_GridComp)            :: driver
     integer, intent(out)           :: maxthreads ! maximum number of threads any component
@@ -845,6 +881,7 @@ contains
     type(ESMF_GridComp)            :: child
     type(ESMF_VM)                  :: vm
     type(ESMF_Config)              :: config
+    type(ESMF_Info)                :: info
     integer                        :: componentcount
     integer                        :: PetCount
     integer                        :: LocalPet
@@ -864,13 +901,13 @@ contains
     character(len=5)               :: inst_suffix
     character(CL)                  :: cvalue
     logical                        :: found_comp
+    integer :: rank, nprocs, ierr
     character(len=*), parameter    :: subname = "(esm_pelayout.F90:esm_init_pelayout)"
     !---------------------------------------
 
     rc = ESMF_SUCCESS
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
 
-    maxthreads = 1
     call ESMF_GridCompGet(driver, vm=vm, config=config, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
@@ -907,9 +944,21 @@ contains
 
     allocate(comms(componentCount+1), comps(componentCount+1))
     comps(1) = 1
+    comms = MPI_COMM_NULL
     comms(1) = Global_Comm
-    do i=1,componentCount
 
+    maxthreads = 1
+    do i=1,componentCount
+       namestr = ESMF_UtilStringLowerCase(compLabels(i))
+       if (namestr == 'med') namestr = 'cpl'
+       call NUOPC_CompAttributeGet(driver, name=trim(namestr)//'_nthreads', value=cvalue, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       read(cvalue,*) nthrds
+
+       if(nthrds > maxthreads) maxthreads = nthrds
+    enddo
+
+    do i=1,componentCount
        namestr = ESMF_UtilStringLowerCase(compLabels(i))
        if (namestr == 'med') namestr = 'cpl'
        call NUOPC_CompAttributeGet(driver, name=trim(namestr)//'_ntasks', value=cvalue, rc=rc)
@@ -926,7 +975,19 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        read(cvalue,*) nthrds
 
-       if(nthrds > maxthreads) maxthreads = nthrds
+       info = ESMF_InfoCreate(rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+       call ESMF_InfoSet(info, key="/NUOPC/Hint/PePerPet/MaxCount", value=nthrds, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+!       call ESMF_InfoSet(info, key="/NUOPC/Hint/PePerPet/MinStackSize", value='40MiB', rc=rc)
+!       if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+       if (nthrds == 1) then
+          call ESMF_InfoSet(info, key="/NUOPC/Hint/PePerPet/OpenMpHandling", value='none', rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+       endif
 
        call NUOPC_CompAttributeGet(driver, name=trim(namestr)//'_rootpe', value=cvalue, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -945,84 +1006,145 @@ contains
        call NUOPC_CompAttributeGet(driver, name=trim(namestr)//'_pestride', value=cvalue, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        read(cvalue,*) stride
-       if (stride < 1 .or. rootpe+ntasks*stride > PetCount) then
+       if (stride < 1 .or. rootpe+(ntasks-1)*stride > PetCount) then
           write (msgstr, *) "Invalid pestride value specified for component: ",namestr,&
-               ' rootpe: ',rootpe, ' pestride: ', stride
+               ' rootpe: ',rootpe, ' pestride: ', stride, ' ntasks: ',ntasks, ' PetCount: ', PetCount
           call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
           return
        endif
 
        if (allocated(petlist)) then
+#ifdef ESMF_AWARE_THREADING
+          if(size(petlist) .ne. ntasks*nthrds) then
+#else
           if(size(petlist) .ne. ntasks) then
+#endif
              deallocate(petlist)
           endif
        endif
        if(.not. allocated(petlist)) then
+#ifdef ESMF_AWARE_THREADING
+          allocate(petlist(ntasks*nthrds))
+#else
           allocate(petlist(ntasks))
+#endif
        endif
 
+#ifdef ESMF_AWARE_THREADING
        cnt = 1
-       do ntask = rootpe, (rootpe+ntasks*stride)-1, stride
+       do ntask = rootpe, rootpe+nthrds*ntasks*stride-1, stride
           petlist(cnt) = ntask
           cnt = cnt + 1
        enddo
+#else
+       do ntask = 1, size(petlist)
+          petlist(ntask) = rootpe + (ntask-1)*stride
+       enddo
+#endif
 
        comps(i+1) = i+1
-
        found_comp = .false.
 #ifdef MED_PRESENT
        if (trim(compLabels(i)) == 'MED') then
           med_id = i + 1
-          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), MEDSetServices, petList=petlist, comp=child, rc=rc)
+#ifdef ESMF_AWARE_THREADING
+          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), MEDSetServices, MEDSetVM, &
+               petList=petlist, comp=child, info=info, rc=rc)
+#else
+          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), MEDSetServices,  &
+               petList=petlist, comp=child, rc=rc)
+#endif
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           found_comp = .true.
        end if
 #endif
 #ifdef ATM_PRESENT
        if (trim(compLabels(i)) .eq. 'ATM') then
-          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), ATMSetServices, petList=petlist, comp=child, rc=rc)
+#ifdef ESMF_AWARE_THREADING
+          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), ATMSetServices, ATMSetVM, &
+               petList=petlist, comp=child, info=info, rc=rc)
+#else
+          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), ATMSetServices,  &
+               petList=petlist, comp=child, rc=rc)
+#endif
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           found_comp = .true.
        end if
 #endif
 #ifdef LND_PRESENT
        if (trim(compLabels(i)) .eq. 'LND') then
-          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), LNDSetServices, PetList=petlist, comp=child, rc=rc)
+#ifdef ESMF_AWARE_THREADING
+          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), LNDSetServices, LNDSetVM, &
+               PetList=petlist, comp=child, info=info, rc=rc)
+#else
+          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), LNDSetServices, &
+               PetList=petlist, comp=child, rc=rc)
+#endif
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           found_comp = .true.
        end if
 #endif
 #ifdef OCN_PRESENT
        if (trim(compLabels(i)) .eq. 'OCN') then
-          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), OCNSetServices, PetList=petlist, comp=child, rc=rc)
+#ifdef ESMF_AWARE_THREADING
+          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), OCNSetServices, OCNSetVM, &
+               PetList=petlist, comp=child, info=info, rc=rc)
+#else
+          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), OCNSetServices, &
+               PetList=petlist, comp=child, rc=rc)
+#endif
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           found_comp = .true.
        end if
 #endif
 #ifdef ICE_PRESENT
        if (trim(compLabels(i)) .eq. 'ICE') then
-          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), ICESetServices, PetList=petlist, comp=child, rc=rc)
+#ifdef ESMF_AWARE_THREADING
+          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), ICESetServices, ICESetVM, &
+               PetList=petlist, comp=child, info=info, rc=rc)
+#else
+          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), ICESetServices, &
+               PetList=petlist, comp=child, rc=rc)
+#endif
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           found_comp = .true.
        end if
 #endif
 #ifdef GLC_PRESENT
        if (trim(compLabels(i)) .eq. 'GLC') then
-          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), GLCSetServices, PetList=petlist, comp=child, rc=rc)
+#ifdef ESMF_AWARE_THREADING
+          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), GLCSetServices, GLCSetVM, &
+               PetList=petlist, comp=child, info=info, rc=rc)
+#else
+          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), GLCSetServices, &
+               PetList=petlist, comp=child, rc=rc)
+#endif
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           found_comp = .true.
        end if
 #endif
 #ifdef ROF_PRESENT
        if (trim(compLabels(i)) .eq. 'ROF') then
-          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), ROFSetServices, PetList=petlist, comp=child, rc=rc)
+#ifdef ESMF_AWARE_THREADING
+          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), ROFSetServices, ROFSetVM, &
+               PetList=petlist, comp=child, info=info, rc=rc)
+#else
+          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), ROFSetServices,  &
+               PetList=petlist, comp=child, rc=rc)
+#endif
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           found_comp = .true.
        end if
 #endif
 #ifdef WAV_PRESENT
        if (trim(compLabels(i)) .eq. 'WAV') then
-          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), WAVSetServices, PetList=petlist, comp=child, rc=rc)
+#ifdef ESMF_AWARE_THREADING
+          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), WAVSetServices, WAVSetVM, &
+               PetList=petlist, comp=child, info=info, rc=rc)
+#else
+          call NUOPC_DriverAddComp(driver, trim(compLabels(i)), WAVSetServices,  &
+               PetList=petlist, comp=child, rc=rc)
+#endif
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           found_comp = .true.
        end if
@@ -1039,27 +1161,37 @@ contains
           call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
           return
        endif
+       comp_iamin(i) = .false.
+
+       call AddAttributes(child, driver, config, i+1, trim(compLabels(i)), inst_suffix, nthrds, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        if (ESMF_GridCompIsPetLocal(child, rc=rc)) then
+
           call ESMF_GridCompGet(child, vm=vm, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-          call ESMF_VMGet(vm, mpiCommunicator=comms(i+1), localPet=comp_comm_iam(i), rc=rc)
+          call ESMF_VMGet(vm, mpiCommunicator=comms(i+1), rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-          call AddAttributes(child, driver, config, i+1, trim(compLabels(i)), inst_suffix, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          if (comms(i+1) .ne. MPI_COMM_NULL) then
+             call ESMF_VMGet(vm, localPet=comp_comm_iam(i), rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-          ! This code is not supported, we need an optional arg to NUOPC_DriverAddComp to include the
-          ! per component thread count.  #3614572 in esmf_support
-          ! call ESMF_GridCompSetVMMaxPEs(child, maxPeCountPerPet=nthrds, rc=rc)
-          ! if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-          comp_iamin(i) = .true.
-       else
-          comms(i+1) = MPI_COMM_NULL
-          comp_iamin(i) = .false.
+             comp_iamin(i) = .true.
+             call MPI_Comm_size(comms(i+1), nprocs, ierr)
+             call MPI_Comm_rank(comms(i+1), rank, ierr)
+             if(nprocs /= ntasks) then
+                write(msgstr,*) 'Component ',trim(compLabels(i)),' has mpi task mismatch, do threads align with nodes?'
+                call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
+                return
+             endif
+          endif
        endif
+
+       call ESMF_InfoDestroy(info, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+
     enddo
 
     ! Initialize MCT (this is needed for data models and cice prescribed capability)
@@ -1134,6 +1266,8 @@ contains
     read(cvalue,*) scol_lat
     call NUOPC_CompAttributeGet(gcomp, name='single_column_lnd_domainfile', value=single_column_lnd_domainfile, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompAttributeAdd(gcomp, attrList=(/'scol_spval'/), rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     if ( (scol_lon < scol_spval .and. scol_lat > scol_spval) .or. &
          (scol_lon > scol_spval .and. scol_lat < scol_spval)) then
@@ -1175,8 +1309,7 @@ contains
                        'scol_lndmask', &
                        'scol_lndfrac', &
                        'scol_ocnmask', &
-                       'scol_ocnfrac', &
-                       'scol_spval  '/), rc=rc)
+                       'scol_ocnfrac'/), rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        if (trim(single_column_lnd_domainfile) /= 'UNSET') then
@@ -1390,7 +1523,6 @@ contains
     call t_prf(trim(timing_dir)//'/model_timing'//trim(inst_suffix), mpicom=mpicomm)
 
     call t_finalizef()
-
   end subroutine esm_finalize
 
 
