@@ -89,12 +89,12 @@ module med_internalstate_mod
 
     ! Accumulators for export field bundles
     type(ESMF_FieldBundle) :: FBExpAccum(ncomps)                 ! Accumulator for various components export on their grid
-    integer                :: FBExpAccumCnt(ncomps)              ! Accumulator counter for each FBExpAccum
+    integer                :: FBExpAccumCnt(ncomps) = 0          ! Accumulator counter for each FBExpAccum
     logical                :: FBExpAccumFlag(ncomps) = .false.   ! Accumulator flag, if true accumulation was done
 
     ! Accumulators for import field bundles
     type(ESMF_FieldBundle) :: FBImpAccum(ncomps,ncomps)          ! Accumulator for various components import
-    integer                :: FBImpAccumCnt(ncomps)              ! Accumulator counter for each FBImpAccum
+    integer                :: FBImpAccumCnt(ncomps) = 0          ! Accumulator counter for each FBImpAccum
 
     ! Component Mesh info
     type(mesh_info_type)   :: mesh_info(ncomps)

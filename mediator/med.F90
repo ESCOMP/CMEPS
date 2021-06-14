@@ -990,12 +990,9 @@ contains
     use ESMF , only : ESMF_GridComp, ESMF_State, ESMF_Clock, ESMF_VM, ESMF_SUCCESS
     use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_TimeInterval
     use ESMF , only : ESMF_VMGet, ESMF_StateIsCreated, ESMF_GridCompGet
-#if ESMF_VERSION_MAJOR >= 8
-#if ESMF_VERSION_MINOR >  0
     use ESMF , only : ESMF_StateSet, ESMF_StateIntent_Import, ESMF_StateIntent_Export
     use ESMF , only : ESMF_StateIntent_Flag
-#endif
-#endif
+
     ! Input/output variables
     type(ESMF_GridComp)  :: gcomp
     type(ESMF_State)     :: importState, exportState
@@ -1026,24 +1023,16 @@ contains
     ! Realize States
     do n = 1,ncomps
       if (ESMF_StateIsCreated(is_local%wrap%NStateImp(n), rc=rc)) then
-#if ESMF_VERSION_MAJOR >= 8
-#if ESMF_VERSION_MINOR >  0
          call ESMF_StateSet(is_local%wrap%NStateImp(n), stateIntent=ESMF_StateIntent_Import, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-#endif
-#endif
          call med_fldList_Realize(is_local%wrap%NStateImp(n), fldListFr(n), &
               is_local%wrap%flds_scalar_name, is_local%wrap%flds_scalar_num, &
               tag=subname//':Fr_'//trim(compname(n)), rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
       endif
       if (ESMF_StateIsCreated(is_local%wrap%NStateExp(n), rc=rc)) then
-#if ESMF_VERSION_MAJOR >= 8
-#if ESMF_VERSION_MINOR >  0
           call ESMF_StateSet(is_local%wrap%NStateExp(n), stateIntent=ESMF_StateIntent_Export, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-#endif
-#endif
           call med_fldList_Realize(is_local%wrap%NStateExp(n), fldListTo(n), &
               is_local%wrap%flds_scalar_name, is_local%wrap%flds_scalar_num, &
               tag=subname//':To_'//trim(compname(n)), rc=rc)
@@ -2009,7 +1998,6 @@ contains
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
             call FB_reset(is_local%wrap%FBImpAccum(n1,n1), value=czero, rc=rc)
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-            is_local%wrap%FBImpAccumCnt(n1) = 0
 
             ! Create export accumulation field bundles
             call FB_init(is_local%wrap%FBExpAccum(n1), is_local%wrap%flds_scalar_name, &
@@ -2018,7 +2006,6 @@ contains
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
             call FB_reset(is_local%wrap%FBExpAccum(n1), value=czero, rc=rc)
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-            is_local%wrap%FBExpAccumCnt(n1) = 0
 
             ! Create mesh info data
             call med_meshinfo_create(is_local%wrap%FBImp(n1,n1), &
@@ -2435,7 +2422,8 @@ contains
        !---------------------------------------
        call med_diag_init(gcomp, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call med_diag_zero(gcomp, mode='all', rc=rc)
+       call med_diag_zero(mode='all', rc=rc)
+
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        !---------------------------------------
@@ -2492,7 +2480,7 @@ contains
        end if
 
        call med_phases_profile(gcomp, rc)
-
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
     else ! Not all done
        call NUOPC_CompAttributeSet(gcomp, name="InitializeDataComplete", value="false", rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return

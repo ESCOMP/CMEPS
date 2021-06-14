@@ -208,7 +208,7 @@ contains
     use ESMF              , only : ESMF_RouteHandle, ESMF_RouteHandlePrint, ESMF_Field, ESMF_MAXSTR
     use ESMF              , only : ESMF_PoleMethod_Flag, ESMF_POLEMETHOD_ALLAVG
     use ESMF              , only : ESMF_FieldSMMStore, ESMF_FieldRedistStore, ESMF_FieldRegridStore
-    use ESMF              , only : ESMF_RouteHandleIsCreated
+    use ESMF              , only : ESMF_RouteHandleIsCreated, ESMF_RouteHandleCreate
     use ESMF              , only : ESMF_REGRIDMETHOD_BILINEAR, ESMF_REGRIDMETHOD_PATCH
     use ESMF              , only : ESMF_REGRIDMETHOD_CONSERVE, ESMF_NORMTYPE_DSTAREA, ESMF_NORMTYPE_FRACAREA
     use ESMF              , only : ESMF_UNMAPPEDACTION_IGNORE, ESMF_REGRIDMETHOD_NEAREST_STOD
@@ -219,9 +219,8 @@ contains
     use esmFlds           , only : mapbilnr, mapconsf, mapconsd, mappatch, mappatch_uv3d, mapbilnr_uv3d, mapfcopy
     use esmFlds           , only : mapunset, mapnames, nmappers
     use esmFlds           , only : mapnstod, mapnstod_consd, mapnstod_consf, mapnstod_consd
-    use esmFlds           , only : mapfillv_bilnr, mapbilnr_nstod
+    use esmFlds           , only : mapfillv_bilnr, mapbilnr_nstod, mapconsf_aofrac
     use esmFlds           , only : ncomps, compatm, compice, compocn, compname
-    use esmFlds           , only : mapfcopy, mapconsd, mapconsf, mapnstod
     use esmFlds           , only : coupling_mode, dststatus_print
     use esmFlds           , only : atm_name
     use med_constants_mod , only : ispval_mask => med_constants_ispval_mask
@@ -277,6 +276,9 @@ contains
        if (n1 == compatm .and. (n2 == compocn .or. n2 == compice)) then
           srcMaskValue = 1
           dstMaskValue = 0
+          if (atm_name(1:4).eq.'datm') then
+          srcMaskValue = 0
+          endif
        else if (n2 == compatm .and. (n1 == compocn .or. n1 == compice)) then
           srcMaskValue = 0
           dstMaskValue = 1
@@ -383,6 +385,30 @@ contains
             unmappedaction=ESMF_UNMAPPEDACTION_IGNORE, &
             rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
+    else if (mapindex == mapconsf_aofrac) then
+       if (.not. ESMF_RouteHandleIsCreated(routehandles(mapconsf))) then
+          if (mastertask) then
+             write(logunit,'(A)') trim(subname)//' creating RH '//trim(mapname)//' for '//trim(string)
+          end if
+          call ESMF_FieldRegridStore(fldsrc, flddst, routehandle=routehandles(mapconsf_aofrac), &
+               srcMaskValues=(/srcMaskValue/), &
+               dstMaskValues=(/dstMaskValue/), &
+               regridmethod=ESMF_REGRIDMETHOD_CONSERVE, &
+               normType=ESMF_NORMTYPE_FRACAREA, &
+               srcTermProcessing=srcTermProcessing_Value, &
+               ignoreDegenerate=.true., &
+               dstStatusField=dststatusfield, &
+               unmappedaction=ESMF_UNMAPPEDACTION_IGNORE, &
+               rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+       else
+          ! Copy existing consf RH
+          if (mastertask) then
+             write(logunit,'(A)') trim(subname)//' copying RH(mapconsf) to '//trim(mapname)//' for '//trim(string)
+          end if
+          routehandles(mapconsf_aofrac) = ESMF_RouteHandleCreate(routehandles(mapconsf), rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+       end if
     else if (mapindex == mapconsd .or. mapindex == mapnstod_consd) then
        if (mastertask) then
           write(logunit,'(A)') trim(subname)//' creating RH '//trim(mapname)//' for '//trim(string)
@@ -590,7 +616,6 @@ contains
     ! local variables
     type(InternalState)       :: is_local
     integer                   :: n1, n2, m
-    character(len=1)          :: cn1,cn2,cm
     real(R8), pointer         :: dataptr(:) => null()
     integer                   :: fieldCount
     type(ESMF_Field), pointer :: fieldlist(:) => null()
@@ -661,9 +686,8 @@ contains
                            maptype=m, rc=rc)
                       if (chkerr(rc,__LINE__,u_FILE_u)) return
                       if (mastertask) then
-                         write(cn1,'(i1)') n1; write(cn2,'(i1)') n2; write(cm ,'(i1)') m
                          write(logunit,'(a)') trim(subname)//' created field_NormOne for '&
-                              //compname(n1)//'->'//compname(n2)//' with mapping '//mapnames(m)
+                              //compname(n1)//'->'//compname(n2)//' with mapping '//trim(mapnames(m))
                       endif
                    end if
                 end do ! end of loop over m mappers
@@ -719,6 +743,8 @@ contains
     type(ESMF_Field), pointer  :: fieldlist_src(:) => null()
     type(ESMF_Field), pointer  :: fieldlist_dst(:) => null()
     character(CL), allocatable :: fieldNameList(:)
+    character(CS)              :: mapnorm_mapindex
+    character(len=CX)          :: tmpstr
     character(len=*), parameter :: subname=' (module_MED_map:med_packed_field_create) '
     !-----------------------------------------------------------
 
@@ -765,6 +791,7 @@ contains
     ! Determine the normalization type for each packed_data mapping element
     ! Loop over mapping types
     do mapindex = 1,nmappers
+       mapnorm_mapindex = 'not_set'
        ! Loop over source field bundle
        do nf = 1, fieldCount
           ! Loop over the fldsSrc types
@@ -776,6 +803,24 @@ contains
                   trim(fldsSrc(ns)%shortname) == trim(fieldnamelist(nf))) then
                 ! Set the normalization to the input
                 packed_data(mapindex)%mapnorm = fldsSrc(ns)%mapnorm(destcomp)
+                if (mapnorm_mapindex == 'not_set') then
+                   mapnorm_mapindex = packed_data(mapindex)%mapnorm
+                   write(tmpstr,*)'Map type '//trim(mapnames(mapindex)) &
+                      //', destcomp '//trim(compname(destcomp)) &
+                      //',  mapnorm '//trim(mapnorm_mapindex) &
+                      //'  '//trim(fieldnamelist(nf))
+                   call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
+                else
+                   if (mapnorm_mapindex /= packed_data(mapindex)%mapnorm) then
+                     write(tmpstr,*)'Map type '//trim(mapnames(mapindex)) &
+                        //', destcomp '//trim(compname(destcomp)) &
+                        //',  mapnorm '//trim(mapnorm_mapindex) &
+                        //' set; cannot set mapnorm to '//trim(packed_data(mapindex)%mapnorm) &
+                        //'  '//trim(fieldnamelist(nf))
+                     call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
+                     call ESMF_Finalize(endflag=ESMF_END_ABORT)
+                   end if
+                end if
              end if
           end do
        end do

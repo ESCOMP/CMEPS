@@ -30,14 +30,12 @@ module esmFldsExchange_cesm_mod
   character(len=CX)   :: atm2ice_fmap='unset', atm2ice_smap='unset', atm2ice_vmap='unset'
   character(len=CX)   :: atm2ocn_fmap='unset', atm2ocn_smap='unset', atm2ocn_vmap='unset'
   character(len=CX)   :: atm2lnd_fmap='unset', atm2lnd_smap='unset'
-  character(len=CX)   :: glc2lnd_smap='unset', glc2lnd_fmap='unset'
   character(len=CX)   :: glc2ice_rmap='unset'
   character(len=CX)   :: glc2ocn_liq_rmap='unset'
   character(len=CX)   :: glc2ocn_ice_rmap='unset'
   character(len=CX)   :: ice2atm_fmap='unset', ice2atm_smap='unset'
   character(len=CX)   :: ocn2atm_fmap='unset', ocn2atm_smap='unset'
   character(len=CX)   :: lnd2atm_fmap='unset', lnd2atm_smap='unset'
-  character(len=CX)   :: lnd2glc_fmap='unset', lnd2glc_smap='unset'
   character(len=CX)   :: lnd2rof_fmap='unset'
   character(len=CX)   :: rof2lnd_fmap='unset'
   character(len=CX)   :: rof2ocn_fmap='unset', rof2ocn_ice_rmap='unset', rof2ocn_liq_rmap='unset'
@@ -140,12 +138,6 @@ contains
        call NUOPC_CompAttributeGet(gcomp, name='rof2lnd_fmapname', value=rof2lnd_fmap,  rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        if (mastertask) write(logunit, '(a)') trim(subname)//'rof2lnd_fmapname = '// trim(rof2lnd_fmap)
-       call NUOPC_CompAttributeGet(gcomp, name='glc2lnd_fmapname', value=glc2lnd_fmap,  rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (mastertask) write(logunit, '(a)') trim(subname)//'glc2lnd_smapname = '// trim(glc2lnd_fmap)
-       call NUOPC_CompAttributeGet(gcomp, name='glc2lnd_smapname', value=glc2lnd_smap,  rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (mastertask) write(logunit, '(a)') trim(subname)//'glc2lnd_smapname = '// trim(glc2lnd_smap)
 
        ! mapping to ice
        call NUOPC_CompAttributeGet(gcomp, name='atm2ice_fmapname', value=atm2ice_fmap,  rc=rc)
@@ -205,14 +197,6 @@ contains
        call NUOPC_CompAttributeGet(gcomp, name='lnd2rof_fmapname', value=lnd2rof_fmap,  rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        if (mastertask) write(logunit, '(a)') trim(subname)//'lnd2rof_fmapname = '// trim(lnd2rof_fmap)
-
-       ! mapping to glc
-       call NUOPC_CompAttributeGet(gcomp, name='lnd2glc_fmapname', value=lnd2glc_fmap,  rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (mastertask) write(logunit, '(a)') trim(subname)//'lnd2glc_fmapname = '// trim(lnd2glc_fmap)
-       call NUOPC_CompAttributeGet(gcomp, name='lnd2glc_smapname', value=lnd2glc_smap,  rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (mastertask) write(logunit, '(a)') trim(subname)//'lnd2glc_smapname = '// trim(lnd2glc_smap)
 
        ! mapping to wav
        call NUOPC_CompAttributeGet(gcomp, name='atm2wav_smapname', value=atm2wav_smap, rc=rc)
