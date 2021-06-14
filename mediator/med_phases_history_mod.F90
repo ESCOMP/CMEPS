@@ -459,10 +459,6 @@ contains
           end if
        enddo
 
-       ! Write out areas to history file
-       do n = 1,ncomps
-       end do
-
        call med_io_close(hist_file, iam, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
