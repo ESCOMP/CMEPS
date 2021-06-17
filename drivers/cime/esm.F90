@@ -981,14 +981,6 @@ contains
        call ESMF_InfoSet(info, key="/NUOPC/Hint/PePerPet/MaxCount", value=nthrds, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-!       call ESMF_InfoSet(info, key="/NUOPC/Hint/PePerPet/MinStackSize", value='40MiB', rc=rc)
-!       if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-       if (nthrds == 1) then
-          call ESMF_InfoSet(info, key="/NUOPC/Hint/PePerPet/OpenMpHandling", value='none', rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-       endif
-
        call NUOPC_CompAttributeGet(driver, name=trim(namestr)//'_rootpe', value=cvalue, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        read(cvalue,*) rootpe
