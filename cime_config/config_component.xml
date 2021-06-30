@@ -331,7 +331,7 @@
 
   <entry id="STOP_OPTION">
     <type>char</type>
-    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,nmonths,nmonth,nyears,nyear,date,end</valid_values>
     <default_value>ndays</default_value>
     <group>run_begin_stop_restart</group>
     <file>env_run.xml</file>
@@ -363,7 +363,7 @@
 
   <entry id="REST_OPTION">
     <type>char</type>
-    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,nmonths,nmonth,nyears,nyear,date,end</valid_values>
     <default_value>$STOP_OPTION</default_value>
     <group>run_begin_stop_restart</group>
     <file>env_run.xml</file>
@@ -2313,7 +2313,7 @@
 
   <entry id="HIST_OPTION">
     <type>char</type>
-    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,nmonths,nmonth,nyears,nyear,end</valid_values>
     <default_value>never</default_value>
     <group>run_drv_history</group>
     <file>env_run.xml</file>
