@@ -358,6 +358,7 @@ contains
              'Sa_tbot     ',&
              'Sa_ptem     ',&
              'Sa_pbot     ',&
+             'Sa_o3       ',&
              'Sa_shum     ',&
              'Sa_shum_wiso'/)
 

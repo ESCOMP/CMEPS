@@ -318,6 +318,10 @@
        canonical_units: 1e-6 mol/mol
        description: atmosphere export - prognostic CO2 at the lowest model level
      #
+     - standard_name: Sa_o3
+       canonical_units: 1e-9 mol/mol
+       description: atmosphere export - prognostic CO2 at the lowest model level
+     #
      - standard_name: Sa_topo
        alias: inst_surface_height
        canonical_units: m
