@@ -71,6 +71,10 @@ def buildlib(bldroot, installpath, case):
     if comp_interface == "nuopc":
         filepath.append(os.path.join(srcroot,"share","cmeps"))
         filepath.append(os.path.join(srcroot,"components","cmeps", "nuopc_cap_share"))
+        smartredis_home = os.getenv("SMARTREDIS_HOME")
+        if smartredis_home:
+            filepath.append(os.path.join(smartredis_home,"src","fortran"))
+            os.environ["USER_INCLDIR"] = "-I"+os.path.join(smartredis_home,"install","include")
     elif comp_interface != "mct":
         expect(False, "driver value of {} not supported".format(comp_interface))
 
