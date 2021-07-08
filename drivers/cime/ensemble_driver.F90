@@ -134,7 +134,7 @@ contains
     call ReadAttributes(ensemble_driver, config, "CLOCK_attributes::", rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    call NUOPC_CompAttributeGet(ensemble_driver, 'calendar', calendar, rc=rc) 
+    call NUOPC_CompAttributeGet(ensemble_driver, 'calendar', calendar, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     if (calendar == 'NO_LEAP') then
        call ESMF_CalendarSetDefault(ESMF_CALKIND_NOLEAP, rc=rc)
@@ -247,7 +247,7 @@ contains
           call ReadAttributes(driver, config, "DRV_modelio"//trim(inst_suffix)//"::", rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-          ! Set the driver log to the driver task 0 
+          ! Set the driver log to the driver task 0
           if (mod(localPet, ntasks_per_member) == 0) then
              call NUOPC_CompAttributeGet(driver, name="diro", value=diro, rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return

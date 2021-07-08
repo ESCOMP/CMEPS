@@ -17,6 +17,9 @@ program esmApp
   use ensemble_driver, only : SetServices
   use shr_pio_mod,     only : shr_pio_init1
   use shr_sys_mod,     only : shr_sys_abort
+#ifdef SMARTREDIS
+  use esm_utils_mod , only : sr_client
+#endif
 
   implicit none
 
@@ -43,7 +46,9 @@ program esmApp
   call MPI_init(rc)
 #endif
   COMP_COMM = MPI_COMM_WORLD
-
+#ifdef SMARTREDIS
+  call sr_client%initialize(.true.)
+#endif
   !-----------------------------------------------------------------------------
   ! Initialize PIO
   !-----------------------------------------------------------------------------

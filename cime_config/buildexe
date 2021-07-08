@@ -40,6 +40,7 @@ def _main_func():
         atm_model = case.get_value("COMP_ATM")
         gmake_args = get_standard_makefile_args(case)
         esmf_aware_threading = case.get_value("ESMF_AWARE_THREADING")
+        use_smartsim = case.get_value("USE_SMARTSIM")
 
     # Determine valid components
     valid_comps = []
@@ -77,6 +78,10 @@ def _main_func():
     if esmf_aware_threading:
         gmake_args += " USER_CPPDEFS=-DESMF_AWARE_THREADING"
 
+    if use_smartsim:
+        gmake_args += " USE_SMARTSIM=TRUE"
+
+
     gmake_args += " IAC_PRESENT=FALSE"
     expect((num_esp is None) or (int(num_esp) == 1), "ESP component restricted to one instance")
 
@@ -109,7 +114,7 @@ def _main_func():
         .format(gmake, gmake_j, exename, gmake_args, makefile)
 
 
-    rc, out, err = run_cmd(cmd,from_dir=bld_root)
+    rc, out, err = run_cmd(cmd,from_dir=bld_root, verbose=True)
     expect(rc==0,"Command {} failed rc={}\nout={}\nerr={}".format(cmd,rc,out,err))
     logger.info(out)
 
