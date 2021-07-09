@@ -208,7 +208,7 @@ contains
     use ESMF              , only : ESMF_RouteHandle, ESMF_RouteHandlePrint, ESMF_Field, ESMF_MAXSTR
     use ESMF              , only : ESMF_PoleMethod_Flag, ESMF_POLEMETHOD_ALLAVG
     use ESMF              , only : ESMF_FieldSMMStore, ESMF_FieldRedistStore, ESMF_FieldRegridStore
-    use ESMF              , only : ESMF_RouteHandleIsCreated
+    use ESMF              , only : ESMF_RouteHandleIsCreated, ESMF_RouteHandleCreate
     use ESMF              , only : ESMF_REGRIDMETHOD_BILINEAR, ESMF_REGRIDMETHOD_PATCH
     use ESMF              , only : ESMF_REGRIDMETHOD_CONSERVE, ESMF_NORMTYPE_DSTAREA, ESMF_NORMTYPE_FRACAREA
     use ESMF              , only : ESMF_UNMAPPEDACTION_IGNORE, ESMF_REGRIDMETHOD_NEAREST_STOD
@@ -219,7 +219,7 @@ contains
     use esmFlds           , only : mapbilnr, mapconsf, mapconsd, mappatch, mappatch_uv3d, mapbilnr_uv3d, mapfcopy
     use esmFlds           , only : mapunset, mapnames, nmappers
     use esmFlds           , only : mapnstod, mapnstod_consd, mapnstod_consf, mapnstod_consd
-    use esmFlds           , only : mapfillv_bilnr, mapbilnr_nstod
+    use esmFlds           , only : mapfillv_bilnr, mapbilnr_nstod, mapconsf_aofrac
     use esmFlds           , only : ncomps, compatm, compice, compocn, compname
     use esmFlds           , only : coupling_mode, dststatus_print
     use esmFlds           , only : atm_name
@@ -385,6 +385,30 @@ contains
             unmappedaction=ESMF_UNMAPPEDACTION_IGNORE, &
             rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
+    else if (mapindex == mapconsf_aofrac) then
+       if (.not. ESMF_RouteHandleIsCreated(routehandles(mapconsf))) then
+          if (mastertask) then
+             write(logunit,'(A)') trim(subname)//' creating RH '//trim(mapname)//' for '//trim(string)
+          end if
+          call ESMF_FieldRegridStore(fldsrc, flddst, routehandle=routehandles(mapconsf_aofrac), &
+               srcMaskValues=(/srcMaskValue/), &
+               dstMaskValues=(/dstMaskValue/), &
+               regridmethod=ESMF_REGRIDMETHOD_CONSERVE, &
+               normType=ESMF_NORMTYPE_FRACAREA, &
+               srcTermProcessing=srcTermProcessing_Value, &
+               ignoreDegenerate=.true., &
+               dstStatusField=dststatusfield, &
+               unmappedaction=ESMF_UNMAPPEDACTION_IGNORE, &
+               rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+       else
+          ! Copy existing consf RH
+          if (mastertask) then
+             write(logunit,'(A)') trim(subname)//' copying RH(mapconsf) to '//trim(mapname)//' for '//trim(string)
+          end if
+          routehandles(mapconsf_aofrac) = ESMF_RouteHandleCreate(routehandles(mapconsf), rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+       end if
     else if (mapindex == mapconsd .or. mapindex == mapnstod_consd) then
        if (mastertask) then
           write(logunit,'(A)') trim(subname)//' creating RH '//trim(mapname)//' for '//trim(string)
@@ -663,7 +687,7 @@ contains
                       if (chkerr(rc,__LINE__,u_FILE_u)) return
                       if (mastertask) then
                          write(logunit,'(a)') trim(subname)//' created field_NormOne for '&
-                              //compname(n1)//'->'//compname(n2)//' with mapping '//mapnames(m)
+                              //compname(n1)//'->'//compname(n2)//' with mapping '//trim(mapnames(m))
                       endif
                    end if
                 end do ! end of loop over m mappers

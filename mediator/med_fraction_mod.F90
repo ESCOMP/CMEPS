@@ -17,7 +17,7 @@ module med_fraction_mod
   !
   !  the fractions fields are defined for each grid in the fraction bundles as
   !    needed as follows.
-  !    character(*),parameter :: fraclist_a = 'ifrac:ofrac:lfrac
+  !    character(*),parameter :: fraclist_a = 'ifrac:ofrac:lfrac:aofrac
   !    character(*),parameter :: fraclist_o = 'ifrac:ofrac:ifrad:ofrad'
   !    character(*),parameter :: fraclist_i = 'ifrac:ofrac'
   !    character(*),parameter :: fraclist_l = 'lfrac'
@@ -119,14 +119,14 @@ module med_fraction_mod
   public med_fraction_set
 
   integer, parameter                      :: nfracs = 5
-  character(len=5)                        :: fraclist(nfracs,ncomps)
-  character(len=5),parameter,dimension(3) :: fraclist_a = (/'ifrac','ofrac','lfrac'/)
-  character(len=5),parameter,dimension(4) :: fraclist_o = (/'ifrac','ofrac','ifrad','ofrad'/)
-  character(len=5),parameter,dimension(2) :: fraclist_i = (/'ifrac','ofrac'/)
-  character(len=5),parameter,dimension(1) :: fraclist_l = (/'lfrac'/)
-  character(len=5),parameter,dimension(2) :: fraclist_g = (/'gfrac','lfrac'/)
-  character(len=5),parameter,dimension(2) :: fraclist_r = (/'rfrac','lfrac'/)
-  character(len=5),parameter,dimension(1) :: fraclist_w = (/'wfrac'/)
+  character(len=6)                        :: fraclist(nfracs,ncomps)
+  character(len=6),parameter,dimension(4) :: fraclist_a = (/'ifrac ','ofrac ','lfrac ','aofrac'/)
+  character(len=6),parameter,dimension(4) :: fraclist_o = (/'ifrac ','ofrac ','ifrad ','ofrad '/)
+  character(len=6),parameter,dimension(2) :: fraclist_i = (/'ifrac ','ofrac '/)
+  character(len=6),parameter,dimension(1) :: fraclist_l = (/'lfrac '/)
+  character(len=6),parameter,dimension(2) :: fraclist_g = (/'gfrac ','lfrac '/)
+  character(len=6),parameter,dimension(2) :: fraclist_r = (/'rfrac ','lfrac '/)
+  character(len=6),parameter,dimension(1) :: fraclist_w = (/'wfrac '/)
 
   !--- standard ---
   real(R8)    , parameter :: eps_fraclim = 1.0e-03      ! truncation limit in fractions_a(lfrac)
@@ -167,6 +167,7 @@ contains
     type(ESMF_Field)    :: lfield
     real(R8), pointer   :: frac(:) => null()
     real(R8), pointer   :: ofrac(:) => null()
+    real(R8), pointer   :: aofrac(:) => null()
     real(R8), pointer   :: lfrac(:) => null()
     real(R8), pointer   :: ifrac(:) => null()
     real(R8), pointer   :: gfrac(:) => null()
@@ -175,6 +176,7 @@ contains
     real(R8), pointer   :: Sl_lfrin(:) => null()
     real(R8), pointer   :: Si_imask(:) => null()
     real(R8), pointer   :: So_omask(:) => null()
+    real(R8), pointer   :: Sa_ofrac(:) => null()
     integer             :: i,j,n,n1,ns
     integer             :: maptype
     logical, save       :: first_call = .true.
@@ -344,6 +346,17 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call med_map_field(field_src, field_dst, is_local%wrap%RH(compocn,compatm,:), maptype, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+      ! Set 'aofrac' in FBfrac(compatm)
+       if (trim(coupling_mode) == 'nems_orig' .or. trim(coupling_mode) == 'nems_frac') then
+          call fldbun_getdata1d(is_local%wrap%FBImp(compatm,compatm), 'Sa_ofrac', Sa_ofrac, rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call fldbun_getdata1d(is_local%wrap%FBFrac(compatm), 'aofrac', aofrac, rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          if (associated(ofrac)) then
+             aofrac(:) = Sa_ofrac(:)
+          end if
+       end if
     end if
 
     !---------------------------------------
@@ -630,8 +643,10 @@ contains
     real(r8), pointer          :: lfrac(:) => null()
     real(r8), pointer          :: ifrac(:) => null()
     real(r8), pointer          :: ofrac(:) => null()
+    real(r8), pointer          :: aofrac(:) => null()
     real(r8), pointer          :: Si_ifrac(:) => null()
     real(r8), pointer          :: Si_imask(:) => null()
+    real(r8), pointer          :: Sa_ofrac(:) => null()
     type(ESMF_Field)           :: lfield
     type(ESMF_Field)           :: field_src
     type(ESMF_Field)           :: field_dst
@@ -753,6 +768,14 @@ contains
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
              call med_map_field(field_src, field_dst, is_local%wrap%RH(compice,compatm,:), maptype, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          end if
+          ! Set 'aofrac' from FBImp(compatm) to FBfrac(compatm)
+          if (trim(coupling_mode) == 'nems_orig' .or. trim(coupling_mode) == 'nems_frac') then
+             call fldbun_getdata1d(is_local%wrap%FBImp(compatm,compatm), 'Sa_ofrac', Sa_ofrac, rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             call fldbun_getdata1d(is_local%wrap%FBFrac(compatm), 'aofrac', aofrac, rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             aofrac(:) = Sa_ofrac(:)
           end if
        end if ! end of if present compatm
        call t_stopf('MED:'//trim(subname)//' fbfrac(compatm)')
