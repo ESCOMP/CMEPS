@@ -43,6 +43,18 @@
        canonical_units: N m-2
        description: mediator export
      #
+     - standard_name: Faox_hrain
+       canonical_units: W m-2
+       description: enthalpy from rain to ocn/atm 
+     #
+     - standard_name: Faox_hsnow
+       canonical_units: W m-2
+       description: enthalpy from snow to ocn/atm 
+     #
+     - standard_name: Faox_hevap
+       canonical_units: W m-2
+       description: enthalpy from evap to ocn/atm 
+     #
      #-----------------------------------
      # section: land export
      #-----------------------------------
@@ -402,54 +414,66 @@
      # section: atmosphere import
      #-----------------------------------
      #
+     - standard_name: Faxx_hrain
+       canonical_units: W m-2
+       description: to atm merged enthalpy of rain
+     #
+     - standard_name: Faxx_hsnow
+       canonical_units: W m-2
+       description: to atm merged enthalpy of snow
+     #
+     - standard_name: Faxx_hevap
+       canonical_units: W m-2
+       description: to atm merged enthalpy of evaporation
+     #
      - standard_name: Faxx_evap
        canonical_units: kg m-2 s-1
-       description: atmosphere import
+       description: to atm merged water evaporation flux
      #
      - standard_name: Faxx_evap_wiso
        canonical_units: kg m-2 s-1
-       description: atmosphere import
+       description: to atm merged water evaporation flux for 16O, 18O and HDO
      #
      - standard_name: Faxx_lat
        alias: mean_laten_heat_flx
        canonical_units: W m-2
-       description: atmosphere import
+       description: to to atm merged latent heat flux
      #
      - standard_name: Faxx_lwup
        canonical_units: W m-2
-       description: atmosphere import
+       description: to atm merged outgoing longwave radiation
      #
      - standard_name: Faxx_sen
        alias: mean_sensi_heat_flx
        canonical_units: W m-2
-       description: atmosphere import
+       description: to atm merged sensible heat flux
      #
      - standard_name: Faxx_taux
        alias: mean_zonal_moment_flx
        canonical_units: N m-2
-       description: atmosphere import
-         zonal component of momentum flux
+       description: to atm merged zonal surface stress
      #
      - standard_name: Faxx_tauy
        alias: mean_merid_moment_flx
        canonical_units: N m-2
-       description: atmosphere import - meridional component of momentum flux
+       description: to atm merged meridional surface stress
      #
      - standard_name: Sx_anidf
        canonical_units: 1
        description: atmosphere import
+       description: to atm merged surface diffuse albedo (near-infrared radiation)
      #
      - standard_name: Sx_anidr
        canonical_units: 1
-       description: atmosphere import
+       description: to atm merged direct surface albedo (near-infrared radiation)
      #
      - standard_name: Sx_avsdf
        canonical_units: 1
-       description: atmosphere import
+       description: to atm merged surface diffuse albedo (visible radation)
      #
      - standard_name: Sx_avsdr
        canonical_units: 1
-       description: atmosphere import
+       description: to atm merged direct surface albedo (visible radiation)
      #
      - standard_name: Sx_qref
        canonical_units: kg kg-1
@@ -963,6 +987,21 @@
      #-----------------------------------
      # section: ocean import
      #-----------------------------------
+     #
+     - standard_name: Foxx_hrain
+       alias: heat_content_lprec
+       canonical_units: W m-2
+       description: to ocn heat content of rain
+     #
+     - standard_name: Foxx_hsnow
+       alias: heat_content_fprec
+       canonical_units: W m-2
+       description: to ocn heat content of snow
+     #
+     - standard_name: Foxx_hevap
+       alias: heat_content_cond
+       canonical_units: W m-2
+       description: to ocn heat content of condensation
      #
      - standard_name: Foxx_evap
        alias: mean_evap_rate

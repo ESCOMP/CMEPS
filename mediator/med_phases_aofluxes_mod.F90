@@ -55,6 +55,11 @@ module med_phases_aofluxes_mod
      real(R8) , pointer :: pbot        (:) => null() ! atm bottom pressure
      real(R8) , pointer :: dens        (:) => null() ! atm bottom density
      real(R8) , pointer :: tbot        (:) => null() ! atm bottom surface T
+     real(R8) , pointer :: rainc       (:) => null() ! atm bottom surface rainc
+     real(R8) , pointer :: rainl       (:) => null() ! atm bottom surface rainl
+     real(R8) , pointer :: snowc       (:) => null() ! atm bottom surface snowc
+     real(R8) , pointer :: snowl       (:) => null() ! atm bottom surface snowl
+
      ! output
      real(R8) , pointer :: sen         (:) => null() ! heat flux: sensible
      real(R8) , pointer :: lat         (:) => null() ! heat flux: latent
@@ -72,7 +77,10 @@ module med_phases_aofluxes_mod
      real(R8) , pointer :: ustar       (:) => null() ! saved ustar
      real(R8) , pointer :: re          (:) => null() ! saved re
      real(R8) , pointer :: ssq         (:) => null() ! saved sq
-     logical            :: created         ! has this data type been created
+     real(R8) , pointer :: hrain       (:) => null() ! enthalpy flux from rain
+     real(R8) , pointer :: hsnow       (:) => null() ! enthalpy flux from snow
+     real(R8) , pointer :: hevap       (:) => null() ! enthalpy flux from evaporation
+     logical            :: created                   ! has this data type been created
   end type aoflux_type
 
   ! The following three variables are obtained as attributes from gcomp
@@ -295,6 +303,13 @@ contains
     call FB_GetFldPtr(FBMed_aoflux, fldname='Faox_evap', fldptr1=aoflux%evap, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
+    call FB_GetFldPtr(FBMed_aoflux, fldname='Faox_hrain', fldptr1=aoflux%hrain, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call FB_GetFldPtr(FBMed_aoflux, fldname='Faox_hsnow', fldptr1=aoflux%hsnow, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call FB_GetFldPtr(FBMed_aoflux, fldname='Faox_hevap', fldptr1=aoflux%hevap, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
     lsize = size(aoflux%evap)
     if (flds_wiso) then
        call FB_GetFldPtr(FBMed_aoflux, fldname='Faox_evap_16O', fldptr1=aoflux%evap_16O, rc=rc)
@@ -362,6 +377,14 @@ contains
        call FB_GetFldPtr(FBAtm, fldname='Sa_tbot', fldptr1=aoflux%tbot, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        call FB_GetFldPtr(FBAtm, fldname='Sa_shum', fldptr1=aoflux%shum, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call FB_GetFldPtr(FBAtm, fldname='Faxa_rainc', fldptr1=aoflux%rainc, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call FB_GetFldPtr(FBAtm, fldname='Faxa_rainl', fldptr1=aoflux%rainl, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call FB_GetFldPtr(FBAtm, fldname='Faxa_snowc', fldptr1=aoflux%snowc, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call FB_GetFldPtr(FBAtm, fldname='Faxa_snowl', fldptr1=aoflux%snowl, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     end if
 
@@ -479,6 +502,7 @@ contains
     use ESMF          , only : ESMF_LogWrite, ESMF_LogMsg_Info, ESMF_SUCCESS
     use NUOPC         , only : NUOPC_CompAttributeGet
     use shr_flux_mod  , only : shr_flux_atmocn
+    use shr_const_mod , only : shr_const_cpsw
 
     !-----------------------------------------------------------------------
     ! Determine atm/ocn fluxes eother on atm or on ocean grid
@@ -568,6 +592,17 @@ contains
           aoflux%u10(n) = sqrt(aoflux%duu10n(n))
        end if
     enddo
+
+    ! Add components to aoflux that contains the enthalpy contributions
+    ! compute enthalpy change from precipitation to ocean
+    do n = 1,lsize
+       ! aoflux%hrain(n) = max((aoflux%tocn(n) - 272.15_r8), 0._r8) * (aoflux%rainc(n) + aoflux%rainl(n)) * shr_const_cpsw
+       ! aoflux%hsnow(n) = min((aoflux%tocn(n) - 272.15_r8), 0._r8) * (aoflux%snowc(n) + aoflux%snowl(n)) * shr_const_cpsw
+       aoflux%hrain(n) = (aoflux%tocn(n) - 272.15_r8) * (aoflux%rainc(n) + aoflux%rainl(n)) * shr_const_cpsw
+       aoflux%hsnow(n) = (aoflux%tocn(n) - 272.15_r8) * (aoflux%snowc(n) + aoflux%snowl(n)) * shr_const_cpsw
+       aoflux%hevap(n) = (aoflux%tocn(n) - 272.15_r8) * (aoflux%evap(n)) * shr_const_cpsw
+    end do
+
     call t_stopf('MED:'//subname)
 
   end subroutine med_aofluxes_run

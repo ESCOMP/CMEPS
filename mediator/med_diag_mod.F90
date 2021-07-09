@@ -142,6 +142,9 @@ module med_diag_mod
   integer :: f_heat_latf     ! heat : latent, fusion, snow
   integer :: f_heat_ioff     ! heat : latent, fusion, frozen runoff
   integer :: f_heat_sen      ! heat : sensible
+  integer :: f_heat_rain     ! heat : heat content of rain
+  integer :: f_heat_snow     ! heat : heat content of snow
+  integer :: f_heat_evap     ! heat : heat content of evaporation
   integer :: f_watr_frz      ! water: freezing
   integer :: f_watr_melt     ! water: melting
   integer :: f_watr_rain     ! water: precip, liquid
@@ -262,6 +265,9 @@ contains
 
     rc = ESMF_SUCCESS
 
+    if(mastertask) then
+       write(logunit,'(a)') ' Creating budget_diags%comps '
+    end if
     call add_to_budget_diag(budget_diags%comps, c_atm_send , 'c2a_atm' ) ! comp index: atm
     call add_to_budget_diag(budget_diags%comps, c_atm_recv , 'a2c_atm' ) ! comp index: atm
     call add_to_budget_diag(budget_diags%comps, c_inh_send , 'c2i_inh' ) ! comp index: ice, northern
@@ -285,7 +291,11 @@ contains
     call add_to_budget_diag(budget_diags%comps, c_ocn_asend, 'c2a_ocn' ) ! comp index: ocn, on atm grid
     call add_to_budget_diag(budget_diags%comps, c_ocn_arecv, 'a2c_ocn' ) ! comp index: ocn, on atm grid
 
-    call add_to_budget_diag(budget_diags%fields, f_area          ,'area'        ) ! field  area (wrt to unit sphere)
+    if(mastertask) then
+       write(logunit,*)
+       write(logunit,'(a)') ' Creating budget_diags%fields '
+    end if
+    call add_to_budget_diag(budget_diags%fields, f_area    ,'area'     ) ! field  area (wrt to unit sphere)
 
     ! Note that this order is important here to determine f_heat_beg and f_heat_end
     call add_to_budget_diag(budget_diags%fields, f_heat_frz      ,'hfreeze'     ) ! field  heat : latent, freezing
@@ -296,6 +306,9 @@ contains
     call add_to_budget_diag(budget_diags%fields, f_heat_latvap   ,'hlatvap'     ) ! field  heat : latent, vaporization
     call add_to_budget_diag(budget_diags%fields, f_heat_latf     ,'hlatfus'     ) ! field  heat : latent, fusion, snow
     call add_to_budget_diag(budget_diags%fields, f_heat_ioff     ,'hiroff'      ) ! field  heat : latent, fusion, frozen runoff
+    call add_to_budget_diag(budget_diags%fields, f_heat_rain     ,'hrain'       ) ! field  heat : enthalpy of rain
+    call add_to_budget_diag(budget_diags%fields, f_heat_snow     ,'hsnow'       ) ! field  heat : enthalpy of snow
+    call add_to_budget_diag(budget_diags%fields, f_heat_evap     ,'hevap'       ) ! field  heat : enthalpy of evaporation
     call add_to_budget_diag(budget_diags%fields, f_heat_sen      ,'hsen'        ) ! field  heat : sensible
 
     ! Note that this order is important here to determine f_watr_beg and f_watr_end
@@ -329,6 +342,10 @@ contains
     call add_to_budget_diag(budget_diags%fields, f_watr_evap_HDO ,'wevap_HDO'   ) ! field  water isotope: evaporation
     call add_to_budget_diag(budget_diags%fields, f_watr_roff_HDO ,'wrunoff_HDO' ) ! field  water isotope: runoff/flood
     call add_to_budget_diag(budget_diags%fields, f_watr_ioff_HDO ,'wfrzrof_HDO' ) ! field  water isotope: frozen runoff
+
+    if(mastertask) then
+       write(logunit,*)
+    end if
 
     f_heat_beg = f_heat_frz      ! field  first index for heat
     f_heat_end = f_heat_sen      ! field  last  index for heat
@@ -607,6 +624,7 @@ contains
     real(r8), pointer   :: ofrac(:) => null()
     real(r8), pointer   :: areas(:) => null()
     real(r8), pointer   :: lats(:) => null()
+    real(r8), pointer   :: data(:) => null()
     type(ESMF_Field)    :: lfield
     character(*), parameter :: subName = '(med_phases_diag_atm) '
     !-------------------------------------------------------------------------------
@@ -713,6 +731,37 @@ contains
     call diag_atm_send(is_local%wrap%FBExp(compatm), 'Faxx_evap', f_watr_evap, &
          areas, lats, afrac, lfrac, ofrac, ifrac, budget_local, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    if ( fldbun_fldchk(is_local%wrap%FBExp(compatm), 'Faxx_hrain', rc=rc)) then
+       call fldbun_getdata1d(is_local%wrap%FBExp(compatm), 'Faxx_hrain', data, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       ip = period_inst
+       nf = f_heat_rain
+       do n = 1,size(data)
+          budget_local(nf,c_atm_send,ip)  = budget_local(nf,c_atm_send,ip)  - areas(n)*data(n)*afrac(n)
+          budget_local(nf,c_ocn_arecv,ip) = budget_local(nf,c_ocn_arecv,ip) + areas(n)*data(n)*ofrac(n)
+       end do
+    end if
+    if ( fldbun_fldchk(is_local%wrap%FBExp(compatm), 'Faxx_hsnow', rc=rc)) then
+       call fldbun_getdata1d(is_local%wrap%FBExp(compatm), 'Faxx_hsnow', data, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       ip = period_inst
+       nf = f_heat_snow
+       do n = 1,size(data)
+          budget_local(nf,c_atm_send,ip)  = budget_local(nf,c_atm_send,ip)  - areas(n)*data(n)*afrac(n)
+          budget_local(nf,c_ocn_arecv,ip) = budget_local(nf,c_ocn_arecv,ip) + areas(n)*data(n)*ofrac(n)
+       end do
+    end if
+    if ( fldbun_fldchk(is_local%wrap%FBExp(compatm), 'Faxx_hevap', rc=rc)) then
+       call fldbun_getdata1d(is_local%wrap%FBExp(compatm), 'Faxx_hevap', data, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       ip = period_inst
+       nf = f_heat_evap
+       do n = 1,size(data)
+          budget_local(nf,c_atm_send,ip)  = budget_local(nf,c_atm_send,ip)  - areas(n)*data(n)*afrac(n)
+          budget_local(nf,c_ocn_arecv,ip) = budget_local(nf,c_ocn_arecv,ip) + areas(n)*data(n)*ofrac(n)
+       end do
+    end if
 
     ! water isotopes
     call diag_atm_wiso_send(is_local%wrap%FBImp(compatm,compatm), 'Faxa_evap_wiso', &
@@ -1394,6 +1443,9 @@ contains
     call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_lat'  , f_heat_latvap , ic, areas, sfrac, budget_local, rc=rc)
     call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_sen'  , f_heat_sen    , ic, areas, sfrac, budget_local, rc=rc)
     call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_evap' , f_watr_evap   , ic, areas, sfrac, budget_local, rc=rc)
+    call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_hrain', f_heat_rain   , ic, areas, sfrac, budget_local, rc=rc)
+    call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_hsnow', f_heat_snow   , ic, areas, sfrac, budget_local, rc=rc)
+    call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_hevap', f_heat_evap   , ic, areas, sfrac, budget_local, rc=rc)
     call diag_ocn(is_local%wrap%FBExp(compocn), 'Fioi_meltw', f_watr_melt   , ic, areas, sfrac, budget_local, rc=rc)
     call diag_ocn(is_local%wrap%FBExp(compocn), 'Fioi_bergw', f_watr_melt   , ic, areas, sfrac, budget_local, rc=rc)
     call diag_ocn(is_local%wrap%FBExp(compocn), 'Fioi_melth', f_heat_melt   , ic, areas, sfrac, budget_local, rc=rc)
@@ -2501,7 +2553,7 @@ contains
     ! create new entry if fldname is not in original list
 
     if (.not. found) then
-       if(mastertask) write(logunit,*) ' Add ',trim(name),' to budgets with index ',index
+       if(mastertask) write(logunit,'(a,a16,a,i8)') ' Adding ',trim(name),' to budgets with index ',index
        ! 1) allocate newfld to be size (one element larger than input flds)
        allocate(new_entries(index))
 

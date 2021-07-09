@@ -634,6 +634,7 @@ contains
     ! to atm: merged surface upward longwave heat flux
     ! to atm: evaporation water flux from water
     ! to atm: evaporation water flux from water isotopes
+    ! to atm: enthalpy of prec, snow and evap
     ! ---------------------------------------------------------------------
     allocate(suffix(7))
     suffix = (/'taux     ',&
@@ -671,6 +672,44 @@ contains
        end if
     end do
     deallocate(suffix)
+
+    ! ---------------------------------------------------------------------
+    ! to atm: enthalpy from rain, snow, evap
+    ! ---------------------------------------------------------------------
+
+    if (phase == 'advertise') then
+       call addfld(fldListTo(compatm)%flds, 'Faxx_hrain')
+       call addfld(fldListMed_aoflux%flds , 'Faox_hsnow')
+    else
+       if ( fldchk(is_local%wrap%FBexp(compatm), 'Faxx_hrain', rc=rc) .and. &
+            fldchk(is_local%wrap%FBMed_aoflux_o, 'Faox_hrain', rc=rc)) then
+          call addmap(fldListMed_aoflux%flds , 'Faox_hrain', compatm, mapconsf, 'ofrac', ocn2atm_fmap)
+          call addmrg(fldListTo(compatm)%flds, 'Faxx_hrain', &
+               mrg_from=compmed, mrg_fld='Faox_hrain', mrg_type='merge', mrg_fracname='ofrac')
+       end if
+    end if
+    if (phase == 'advertise') then
+       call addfld(fldListTo(compatm)%flds, 'Faxx_hsnow')
+       call addfld(fldListMed_aoflux%flds , 'Faox_hsnow')
+    else
+       if ( fldchk(is_local%wrap%FBexp(compatm), 'Faxx_hsnow', rc=rc) .and. &
+            fldchk(is_local%wrap%FBMed_aoflux_o, 'Faox_hsnow', rc=rc)) then
+          call addmap(fldListMed_aoflux%flds , 'Faox_hsnow', compatm, mapconsf, 'ofrac', ocn2atm_fmap)
+          call addmrg(fldListTo(compatm)%flds, 'Faxx_hsnow', &
+               mrg_from=compmed, mrg_fld='Faox_hsnow', mrg_type='merge', mrg_fracname='ofrac')
+       end if
+    end if
+    if (phase == 'advertise') then
+       call addfld(fldListTo(compatm)%flds, 'Faxx_hevap')
+       call addfld(fldListMed_aoflux%flds , 'Faox_hevap')
+    else
+       if ( fldchk(is_local%wrap%FBexp(compatm), 'Faxx_hevap', rc=rc) .and. &
+            fldchk(is_local%wrap%FBMed_aoflux_o, 'Faox_hevap', rc=rc)) then
+          call addmap(fldListMed_aoflux%flds , 'Faox_hevap', compatm, mapconsf, 'ofrac', ocn2atm_fmap)
+          call addmrg(fldListTo(compatm)%flds, 'Faxx_hevap', &
+               mrg_from=compmed, mrg_fld='Faox_hevap', mrg_type='merge', mrg_fracname='ofrac')
+       end if
+    end if
 
     ! ---------------------------------------------------------------------
     ! to atm: merged surface temperature and unmerged temperatures from ice and ocn
@@ -1119,6 +1158,9 @@ contains
        end do
     end if
 
+
+
+
     ! ---------------------------------------------------------------------
     ! to ocn: merged sensible heat flux
     ! ---------------------------------------------------------------------
@@ -1234,6 +1276,40 @@ contains
        end if
     end do
     deallocate(flds)
+
+    ! ---------------------------------------------------------------------
+    ! to ocn: enthalpy from rain, snow, evap
+    ! ---------------------------------------------------------------------
+    if (phase == 'advertise') then
+       call addfld(fldListMed_aoflux%flds  , 'Faox_hrain')
+       call addfld(fldListTo(compocn)%flds , 'Foxx_hrain')
+    else
+       if ( fldchk(is_local%wrap%FBexp(compocn), 'Foxx_hrain', rc=rc) .and. &
+            fldchk(is_local%wrap%FBMed_aoflux_o, 'Faox_hrain', rc=rc)) then
+          call addmrg(fldListTo(compocn)%flds, 'Foxx_hrain', &
+               mrg_from=compmed, mrg_fld='Faox_hrain', mrg_type='merge', mrg_fracname='ofrac')
+       end if
+    end if
+    if (phase == 'advertise') then
+       call addfld(fldListMed_aoflux%flds  , 'Faox_hsnow')
+       call addfld(fldListTo(compocn)%flds , 'Foxx_hsnow')
+    else
+       if ( fldchk(is_local%wrap%FBexp(compocn), 'Foxx_hsnow', rc=rc) .and. &
+            fldchk(is_local%wrap%FBMed_aoflux_o, 'Faox_hsnow', rc=rc)) then
+          call addmrg(fldListTo(compocn)%flds, 'Foxx_hsnow', &
+               mrg_from=compmed, mrg_fld='Faox_hsnow', mrg_type='merge', mrg_fracname='ofrac')
+       end if
+    end if
+    if (phase == 'advertise') then
+       call addfld(fldListMed_aoflux%flds  , 'Faox_hevap')
+       call addfld(fldListTo(compocn)%flds , 'Foxx_hevap')
+    else
+       if ( fldchk(is_local%wrap%FBexp(compocn), 'Foxx_hevap', rc=rc) .and. &
+            fldchk(is_local%wrap%FBMed_aoflux_o, 'Faox_hevap', rc=rc)) then
+          call addmrg(fldListTo(compocn)%flds, 'Foxx_hevap', &
+               mrg_from=compmed, mrg_fld='Faox_hevap', mrg_type='merge', mrg_fracname='ofrac')
+       end if
+    end if
 
     ! ---------------------------------------------------------------------
     ! to ocn: merge zonal surface stress from ice and (atm or med)
