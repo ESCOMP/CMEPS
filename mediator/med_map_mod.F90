@@ -817,7 +817,7 @@ contains
                         //',  mapnorm '//trim(mapnorm_mapindex) &
                         //' set; cannot set mapnorm to '//trim(packed_data(mapindex)%mapnorm) &
                         //'  '//trim(fieldnamelist(nf))
-                     call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
+                     call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_ERROR)
                      call ESMF_Finalize(endflag=ESMF_END_ABORT)
                    end if
                 end if
@@ -989,7 +989,7 @@ contains
              ! -----------------------------------
              ! Copy the src fields into the packed field bundle
              ! -----------------------------------
-             
+
              call t_startf('MED:'//trim(subname)//' copy from src')
 
              ! First get the pointer for the packed source data
