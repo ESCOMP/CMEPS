@@ -153,7 +153,6 @@
     <type>char</type>
     <category>ozone_coupling</category>
     <group>ozone_coupling_nl</group>
-    <valid_values>instantaneous,monthly_interpolated</valid_values>
     <desc>
       Frequency of surface ozone field passed from CAM to surface components.
       Surface ozone is passed every coupling interval, but this namelist flag
