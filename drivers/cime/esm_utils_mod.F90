@@ -15,7 +15,7 @@ contains
 !===============================================================================
 
   logical function ChkErr(rc, line, file, mpierr)
-#ifdef USE_MPI2
+#ifndef NO_MPI2
     use mpi, only : MPI_ERROR_STRING, MPI_MAX_ERROR_STRING, MPI_SUCCESS
 #else
     use mpi, only : MPI_SUCCESS
@@ -28,7 +28,7 @@ contains
 
     character(len=*), intent(in) :: file
     logical, optional, intent(in) :: mpierr
-#ifndef USE_MPI2
+#ifdef NO_MPI2
     integer, parameter :: MPI_MAX_ERROR_STRING=80
 #endif
     character(MPI_MAX_ERROR_STRING) :: lstring
