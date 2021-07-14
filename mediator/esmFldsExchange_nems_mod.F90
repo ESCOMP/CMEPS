@@ -31,6 +31,7 @@ contains
     use esmflds               , only : compmed, compatm, compocn, compice, comprof, ncomps
     use esmflds               , only : mapbilnr, mapconsf, mapconsd, mappatch
     use esmflds               , only : mapfcopy, mapnstod, mapnstod_consd, mapnstod_consf
+    use esmflds               , only : mapconsf_aofrac
     use esmflds               , only : coupling_mode, mapnames
     use esmflds               , only : fldListTo, fldListFr, fldListMed_aoflux, fldListMed_ocnalb
     use med_internalstate_mod , only : mastertask, logunit
@@ -119,6 +120,8 @@ contains
     ! to atm: fractions (computed in med_phases_prep_atm)
     call addfld(fldListFr(compice)%flds, 'Si_ifrac')
     call addfld(fldListTo(compatm)%flds, 'Si_ifrac')
+    ! ofrac used by atm
+    call addfld(fldListFr(compatm)%flds, 'Sa_ofrac')
 
     ! to atm: unmerged from ice
     ! - zonal surface stress, meridional surface stress
@@ -208,7 +211,7 @@ contains
           call addfld(fldListTo(compocn)%flds, 'Foxx_'//trim(flds(n)))
           call addfld(fldListFr(compice)%flds, 'Fioi_'//trim(flds(n)))
           call addfld(fldListFr(compatm)%flds, 'Faxa_'//trim(flds(n)))
-          call addmap(fldListFr(compatm)%flds, 'Faxa_'//trim(flds(n)), compocn, maptype, 'one', 'unset')
+          call addmap(fldListFr(compatm)%flds, 'Faxa_'//trim(flds(n)), compocn, mapconsf_aofrac, 'aofrac', 'unset')
           call addmap(fldListFr(compice)%flds, 'Fioi_'//trim(flds(n)), compocn, mapfcopy, 'unset', 'unset')
        end do
        deallocate(flds)
@@ -216,19 +219,19 @@ contains
        ! to ocn: net long wave via auto merge
        call addfld(fldListTo(compocn)%flds, 'Faxa_lwnet')
        call addfld(fldListFr(compatm)%flds, 'Faxa_lwnet')
-       call addmap(fldListFr(compatm)%flds, 'Faxa_lwnet', compocn, maptype, 'one', 'unset')
+       call addmap(fldListFr(compatm)%flds, 'Faxa_lwnet', compocn, mapconsf_aofrac, 'aofrac', 'unset')
        call addmrg(fldListTo(compocn)%flds, 'Faxa_lwnet', &
             mrg_from=compatm, mrg_fld='Faxa_lwnet', mrg_type='copy_with_weights', mrg_fracname='ofrac')
 
        ! to ocn: merged sensible heat flux (custom merge in med_phases_prep_ocn)
        call addfld(fldListTo(compocn)%flds, 'Faxa_sen')
        call addfld(fldListFr(compatm)%flds, 'Faxa_sen')
-       call addmap(fldListFr(compatm)%flds, 'Faxa_sen', compocn, maptype, 'one', 'unset')
+       call addmap(fldListFr(compatm)%flds, 'Faxa_sen', compocn, mapconsf_aofrac, 'aofrac', 'unset')
 
        ! to ocn: evaporation water flux (custom merge in med_phases_prep_ocn)
        call addfld(fldListTo(compocn)%flds, 'Faxa_evap')
        call addfld(fldListFr(compatm)%flds, 'Faxa_lat')
-       call addmap(fldListFr(compatm)%flds, 'Faxa_lat', compocn, maptype, 'one', 'unset')
+       call addmap(fldListFr(compatm)%flds, 'Faxa_lat', compocn, mapconsf_aofrac, 'aofrac', 'unset')
     else
        ! nems_orig_data
        ! to ocn: surface stress from mediator and ice stress via auto merge

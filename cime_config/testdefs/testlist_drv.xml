@@ -166,6 +166,17 @@
     </options>
   </test>
 
+  <test compset="B1850" grid="f19_g17" name="ERS_Vnuopc_Ld5" testmods="allactive/nuopc_cap_io">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="nuopc"/>
+      <machine name="theia" compiler="intel" category="nuopc"/>
+      <machine name="izumi" compiler="intel" category="nuopc"/>
+    </machines>
+    <options>
+      <option name="wallclock"> 00:40:00 </option>
+    </options>
+  </test>
+
   <!-- ======================================= -->
   <!-- C compsets -->
   <!-- ======================================= -->
@@ -376,11 +387,20 @@
       <option name="wallclock"> 00:20:00 </option>
     </options>
   </test>
-  <test compset="I1850Clm50SpG" grid="T31_g37_gl20" name="ERS_Vnuopc_Ld5" testmods="cism-test_coupling">
+  <test compset="I1850Clm50SpG" grid="f10_f10_mg37" name="ERS_Vnuopc_Lm13">
     <machines>
       <machine name="cheyenne" compiler="intel" category="nuopc"/>
       <machine name="theia" compiler="intel" category="nuopc"/>
       <machine name="izumi" compiler="intel" category="nuopc"/>
+    </machines>
+    <options>
+      <option name="wallclock"> 00:20:00 </option>
+    </options>
+  </test>
+  <test compset="I2000Clm50BgcCropRtm" grid="f10_f10_mg37" name="SMS_D_Ld5_Vnuopc" testmods="rtm/default">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="nuopc"/>
+      <machine name="izumi" compiler="nag" category="nuopc"/>
     </machines>
     <options>
       <option name="wallclock"> 00:20:00 </option>
@@ -391,7 +411,7 @@
   <!-- TG compsets -->
   <!-- ======================================= -->
 
-  <test name="SMS_D_Ly1_Vnuopc" grid="f09_g17_gl4" compset="T1850G">
+  <test name="SMS_D_Ly1_Vnuopc" grid="f09_g17_gl4" compset="T1850Gg">
     <machines>
       <machine name="cheyenne" compiler="intel" category="nuopc">
         <options>
@@ -400,7 +420,7 @@
       </machine>
     </machines>
   </test>
-  <test name="ERS_Ly3_Vnuopc" grid="f09_g17_gl4" compset="T1850G">
+  <test name="ERS_Ly3_Vnuopc" grid="f09_g17_gl4" compset="T1850Gg">
     <machines>
       <machine name="cheyenne" compiler="intel" category="nuopc">
         <options>
