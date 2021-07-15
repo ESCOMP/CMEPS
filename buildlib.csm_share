@@ -71,10 +71,12 @@ def buildlib(bldroot, installpath, case):
     if comp_interface == "nuopc":
         filepath.append(os.path.join(srcroot,"share","cmeps"))
         filepath.append(os.path.join(srcroot,"components","cmeps", "nuopc_cap_share"))
-        smartredis_home = os.getenv("SMARTREDIS_HOME")
-        if smartredis_home:
+        if case.get_value("USE_SMARTSIM"):
+            smartredis_home = os.getenv("REDIS_HOME")
+            expect(smartredis_home," Expect path to SMARTREDIS in env variable REDIS_HOME")
             filepath.append(os.path.join(smartredis_home,"src","fortran"))
             os.environ["USER_INCLDIR"] = "-I"+os.path.join(smartredis_home,"install","include")
+            gmake_args += " USE_SMARTSIM=TRUE "
     elif comp_interface != "mct":
         expect(False, "driver value of {} not supported".format(comp_interface))
 
