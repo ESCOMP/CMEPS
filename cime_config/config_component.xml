@@ -331,7 +331,7 @@
 
   <entry id="STOP_OPTION">
     <type>char</type>
-    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,nmonths,nmonth,nyears,nyear,date,end</valid_values>
     <default_value>ndays</default_value>
     <group>run_begin_stop_restart</group>
     <file>env_run.xml</file>
@@ -363,7 +363,7 @@
 
   <entry id="REST_OPTION">
     <type>char</type>
-    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,nmonths,nmonth,nyears,nyear,date,end</valid_values>
     <default_value>$STOP_OPTION</default_value>
     <group>run_begin_stop_restart</group>
     <file>env_run.xml</file>
@@ -1860,6 +1860,26 @@
     <group>mach_pes_last</group>
     <file>env_mach_pes.xml</file>
     <desc>pes or cores per node for accounting purposes </desc>
+  </entry>
+
+  <entry id="NGPUS_PER_NODE">
+    <type>integer</type>
+    <default_value>0</default_value>
+    <values>
+      <value compiler="pgi-gpu">1</value>
+      <value compiler="nvhpc-gpu">1</value>
+    </values>
+    <group>mach_pes</group>
+    <file>env_mach_pes.xml</file>
+    <desc> Number of GPUs per node used for simulation </desc>
+  </entry>
+
+  <entry id="MAX_GPUS_PER_NODE">
+    <type>integer</type>
+    <default_value>0</default_value>
+    <group>mach_pes_last</group>
+    <file>env_mach_pes.xml</file>
+    <desc>maximum number of GPUs allowed per node </desc>
   </entry>
 
   <entry id="COSTPES_PER_NODE">

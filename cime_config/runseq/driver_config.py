@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Inherit from the dictionary class
 class DriverConfig(dict):
