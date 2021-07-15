@@ -7,9 +7,9 @@ module med_io_mod
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, I8=>SHR_KIND_I8, R8=>SHR_KIND_R8
   use med_kind_mod          , only : R4=>SHR_KIND_R4
   use shr_const_mod         , only : fillvalue => SHR_CONST_SPVAL
-  use ESMF                  , only : ESMF_VM, ESMF_LogWrite, ESMF_LOGMSG_INFO
-  use ESMF                  , only : ESMF_SUCCESS, ESMF_FAILURE
-  use ESMF                  , only : ESMF_VMGetCurrent, ESMF_VMGet, ESMF_VMBroadCast, ESMF_GridComp
+  use ESMF                  , only : ESMF_VM, ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_LogFoundError
+  use ESMF                  , only : ESMF_SUCCESS, ESMF_FAILURE, ESMF_END_ABORT, ESMF_LOGERR_PASSTHRU
+  use ESMF                  , only : ESMF_VMGetCurrent, ESMF_VMGet, ESMF_VMBroadCast, ESMF_Finalize
   use NUOPC                 , only : NUOPC_FieldDictionaryGetEntry
   use NUOPC                 , only : NUOPC_FieldDictionaryHasEntry
   use pio                   , only : file_desc_t, iosystem_desc_t
@@ -70,16 +70,13 @@ module med_io_mod
      module procedure med_io_ymd2date_long
   end interface med_io_ymd2date
 
-  !-------------------------------------------------------------------------------
   ! module data
-  !-------------------------------------------------------------------------------
-
   character(*),parameter         :: prefix    = "med_io_"
   character(*),parameter         :: modName   = "(med_io_mod) "
   character(*),parameter         :: version   = "cmeps0"
+  integer    , parameter         :: number_strlen = 8
   integer    , parameter         :: file_desc_t_cnt = 20 ! Note - this is hard-wired for now
-  integer    , parameter         :: number_strlen = 2
-  character(CL)                  :: wfilename = ''
+  character(CL)                  :: wfilename(0:file_desc_t_cnt) = ''
   type(file_desc_t)              :: io_file(0:file_desc_t_cnt)
   integer                        :: pio_iotype
   integer                        :: pio_ioformat
@@ -539,7 +536,7 @@ contains
     if (.not. pio_file_is_open(io_file(lfile_ind))) then
 
        ! filename not open
-       wfilename = filename
+       wfilename(lfile_ind) = trim(filename)
 
        if (med_io_file_exists(vm, iam, filename)) then
           if (lclobber) then
@@ -549,14 +546,12 @@ contains
                 nmode = ior(nmode,pio_ioformat)
              endif
              rcode = pio_createfile(io_subsystem, io_file(lfile_ind), pio_iotype, trim(filename), nmode)
-             if(iam==0) write(logunit,*) subname,' create file ',trim(filename)
+             if(iam==0) write(logunit,'(a)') trim(subname)//' creating file '//trim(filename)
              rcode = pio_put_att(io_file(lfile_ind),pio_global,"file_version",version)
              rcode = pio_put_att(io_file(lfile_ind),pio_global,"model_doi_url",lmodel_doi_url)
           else
              rcode = pio_openfile(io_subsystem, io_file(lfile_ind), pio_iotype, trim(filename), pio_write)
-             if (iam==0) then
-                write(logunit,*) subname,' open file ',trim(filename)
-             end if
+             if (iam==0) write(logunit,'(a)') trim(subname)//' opening file '//trim(filename)
              call pio_seterrorhandling(io_file(lfile_ind),PIO_BCAST_ERROR)
              rcode = pio_get_att(io_file(lfile_ind),pio_global,"file_version",lversion)
              call pio_seterrorhandling(io_file(lfile_ind),PIO_INTERNAL_ERROR)
@@ -573,19 +568,21 @@ contains
              nmode = ior(nmode,pio_ioformat)
           endif
           rcode = pio_createfile(io_subsystem, io_file(lfile_ind), pio_iotype, trim(filename), nmode)
-          if (iam==0) then
-             write(logunit,*) subname,' create file ',trim(filename)
-          end if
+          if (iam==0) write(logunit,'(a)') trim(subname) //' creating file '// trim(filename)
           rcode = pio_put_att(io_file(lfile_ind),pio_global,"file_version",version)
           rcode = pio_put_att(io_file(lfile_ind),pio_global,"model_doi_url",lmodel_doi_url)
        endif
-    elseif (trim(wfilename) /= trim(filename)) then
+
+    elseif (trim(wfilename(lfile_ind)) /= trim(filename)) then
        ! filename is open, better match open filename
-       if(iam==0) write(logunit,*) subname,' different  filename currently open ',trim(filename)
-       if(iam==0) write(logunit,*) subname,' different wfilename currently open ',trim(wfilename)
-       call ESMF_LogWrite(subname//'different file currently open '//trim(filename), ESMF_LOGMSG_INFO)
+       if (iam==0) then
+          write(logunit,'(a)') trim(subname)//' different  filename currently open '//trim(filename)
+          write(logunit,'(a)') trim(subname)//' different wfilename currently open '//trim(wfilename(lfile_ind))
+       end if
+       call ESMF_LogWrite(trim(subname)//'different file currently open '//trim(filename), ESMF_LOGMSG_INFO)
        rc = ESMF_FAILURE
        return
+
     else
        ! filename is already open, just return
     endif
@@ -619,18 +616,25 @@ contains
 
     if (.not. pio_file_is_open(io_file(lfile_ind))) then
        ! filename not open, just return
-    elseif (trim(wfilename) == trim(filename)) then
+    elseif (trim(wfilename(lfile_ind)) == trim(filename)) then
        ! filename matches, close it
        call pio_closefile(io_file(lfile_ind))
+       !wfilename(lfile_ind) = ''
     else
        ! different filename is open, abort
-       if (iam==0) write(logunit,*) subname,' different  filename currently open, aborting ',trim(filename)
-       if (iam==0) write(logunit,*) subname,' different wfilename currently open, aborting ',trim(wfilename)
+       if (iam==0) then
+          write(logunit,*) subname,' different  wfilename and filename currently open, aborting '
+          write(logunit,'(a)') 'filename  = ',trim(filename)
+          write(logunit,'(a)') 'wfilename = ',trim(wfilename(lfile_ind))
+          write(logunit,'(i6)')'lfile_ind = ',lfile_ind
+       end if
        call ESMF_LogWrite(subname//'different file currently open, aborting '//trim(filename), ESMF_LOGMSG_INFO)
        rc = ESMF_FAILURE
-       return
+       if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=u_FILE_u)) then
+          call ESMF_Finalize(endflag=ESMF_END_ABORT)
+       end if
     endif
-    wfilename = ''
+
   end subroutine med_io_close
 
   !===============================================================================
@@ -729,7 +733,7 @@ contains
 
   !===============================================================================
   subroutine med_io_write_FB(filename, iam, FB, whead, wdata, nx, ny, nt, &
-       fillval, pre, tavg, use_float, file_ind, rc)
+       fillval, pre, flds, tavg, use_float, file_ind, rc)
 
     !---------------
     ! Write FB to netcdf file
@@ -755,6 +759,7 @@ contains
     integer    ,      optional, intent(in) :: nt        ! time sample
     real(r8),         optional, intent(in) :: fillval   ! fill value
     character(len=*), optional, intent(in) :: pre       ! prefix to variable name
+    character(len=*), optional, intent(in) :: flds(:)   ! specific fields to write out
     logical,          optional, intent(in) :: tavg      ! is this a tavg
     logical,          optional, intent(in) :: use_float ! write output as float rather than double
     integer,          optional, intent(in) :: file_ind
@@ -801,37 +806,24 @@ contains
     integer                       :: ungriddedUBound(1) ! currently the size must equal 1 for rank 2 fields
     integer                       :: gridToFieldMap(1)  ! currently the size must equal 1 for rank 2 fields
     logical                       :: isPresent
+    character(CL), allocatable    :: fieldNameList(:)
     character(*),parameter :: subName = '(med_io_write_FB) '
     !-------------------------------------------------------------------------------
 
-    if (dbug_flag > 5) then
-       call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
-    endif
     rc = ESMF_Success
 
     lfillvalue = fillvalue
-    if (present(fillval)) then
-       lfillvalue = fillval
-    endif
-
+    if (present(fillval)) lfillvalue = fillval
     lpre = ' '
-    if (present(pre)) then
-       lpre = trim(pre)
-    endif
-
-    if (.not. ESMF_FieldBundleIsCreated(FB, rc=rc)) then
-       call ESMF_LogWrite(trim(subname)//" FB "//trim(lpre)//" not created", ESMF_LOGMSG_INFO)
-       if (dbug_flag > 5) then
-          call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
-       endif
-       rc = ESMF_Success
-       return
-    endif
-
+    if (present(pre)) lpre = trim(pre)
     lwhead = .true.
-    lwdata = .true.
     if (present(whead)) lwhead = whead
+    lwdata = .true.
     if (present(wdata)) lwdata = wdata
+    luse_float = .false.
+    if (present(use_float)) luse_float = use_float
+    lfile_ind = 0
+    if (present(file_ind)) lfile_ind=file_ind
 
     if (.not.lwhead .and. .not.lwdata) then
        ! should we write a warning?
@@ -841,17 +833,9 @@ contains
        return
     endif
 
-    luse_float = .false.
-    if (present(use_float)) luse_float = use_float
-
-    lfile_ind = 0
-    if (present(file_ind)) lfile_ind=file_ind
-
-    call ESMF_FieldBundleGet(FB, fieldCount=nf, rc=rc)
-    write(tmpstr,*) subname//' field count = '//trim(lpre),nf
-    call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
-    if (nf < 1) then
-       call ESMF_LogWrite(trim(subname)//" FB "//trim(lpre)//" empty", ESMF_LOGMSG_INFO)
+    ! Error check
+    if (.not. ESMF_FieldBundleIsCreated(FB, rc=rc)) then
+       call ESMF_LogWrite(trim(subname)//" FB "//trim(lpre)//" not created", ESMF_LOGMSG_INFO)
        if (dbug_flag > 5) then
           call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
        endif
@@ -859,43 +843,60 @@ contains
        return
     endif
 
+    ! Get number of fields
+    if (present(flds)) then
+       nf = size(flds)
+    else
+       call ESMF_FieldBundleGet(FB, fieldCount=nf, rc=rc)
+       write(tmpstr,*) subname//' field count = '//trim(lpre), nf
+       call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
+       if (nf < 1) then
+          call ESMF_LogWrite(trim(subname)//" FB "//trim(lpre)//" empty", ESMF_LOGMSG_INFO)
+          if (dbug_flag > 5) then
+             call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
+          endif
+          rc = ESMF_Success
+          return
+       endif
+       allocate(fieldNameList(nf))
+       call ESMF_FieldBundleGet(FB, fieldNameList=fieldNameList, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+    end if
+
+    ! Get field bundle mesh from first field
     call FB_getFieldN(FB, 1, field, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-
     call ESMF_FieldGet(field, mesh=mesh, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
+    ! Get mesh distgrid and number of elements
     call ESMF_MeshGet(mesh, elementDistgrid=distgrid, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-
     call ESMF_MeshGet(mesh, spatialDim=ndims, numOwnedElements=nelements, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-
     write(tmpstr,*) subname, 'ndims, nelements = ', ndims, nelements
     call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
 
+    ! Set element coordinates
     if (.not. allocated(ownedElemCoords) .and. ndims > 0 .and. nelements > 0) then
        allocate(ownedElemCoords(ndims*nelements))
        allocate(ownedElemCoords_x(ndims*nelements/2))
        allocate(ownedElemCoords_y(ndims*nelements/2))
-
        call ESMF_MeshGet(mesh, ownedElemCoords=ownedElemCoords, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-
        ownedElemCoords_x = ownedElemCoords(1::2)
        ownedElemCoords_y = ownedElemCoords(2::2)
     end if
 
+    ! Get tile info
     call ESMF_DistGridGet(distgrid, dimCount=dimCount, tileCount=tileCount, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-
     allocate(minIndexPTile(dimCount, tileCount), maxIndexPTile(dimCount, tileCount))
     call ESMF_DistGridGet(distgrid, minIndexPTile=minIndexPTile, maxIndexPTile=maxIndexPTile, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! write(tmpstr,*) subname,' counts = ',dimcount,tilecount,minindexptile,maxindexptile
     ! call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
-
     ! TODO: this is not getting the global size correct for a FB coming in that does not have
     ! all the global grid values in the distgrid - e.g. CTSM
 
@@ -923,24 +924,28 @@ contains
        !return
     endif
 
+    ! Write header
     if (lwhead) then
-       rcode = pio_def_dim(io_file(lfile_ind),trim(lpre)//'_nx',lnx,dimid2(1))
-       rcode = pio_def_dim(io_file(lfile_ind),trim(lpre)//'_ny',lny,dimid2(2))
-
+       rcode = pio_def_dim(io_file(lfile_ind), trim(lpre)//'_nx', lnx, dimid2(1))
+       rcode = pio_def_dim(io_file(lfile_ind), trim(lpre)//'_ny', lny, dimid2(2))
        if (present(nt)) then
           dimid3(1:2) = dimid2
-          rcode = pio_inq_dimid(io_file(lfile_ind),'time',dimid3(3))
+          rcode = pio_inq_dimid(io_file(lfile_ind), 'time', dimid3(3))
           dimid => dimid3
        else
           dimid => dimid2
        endif
-
        write(tmpstr,*) subname,' dimid = ',dimid
        call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
 
        do k = 1,nf
-          call FB_getNameN(FB, k, itemc, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+          ! Determine field name
+          if (present(flds)) then
+             itemc = trim(flds(k))
+          else
+             itemc = trim(fieldNameList(k))
+          end if
 
           ! Determine rank of field with name itemc
           call ESMF_FieldBundleGet(FB, itemc,  field=lfield, rc=rc)
@@ -1031,7 +1036,6 @@ contains
 
        ! Finish define mode
        if (lwdata) call med_io_enddef(filename, file_ind=lfile_ind)
-
     end if
 
     if (lwdata) then
@@ -1043,16 +1047,17 @@ contains
        call ESMF_DistGridGet(distgrid, localDE=0, seqIndexList=dof, rc=rc)
        write(tmpstr,*) subname,' dof = ',ns,size(dof),dof(1),dof(ns)  !,minval(dof),maxval(dof)
        call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
-
        call pio_initdecomp(io_subsystem, pio_double, (/lnx,lny/), dof, iodesc)
-
        ! call pio_writedof(lpre, (/lnx,lny/), int(dof,kind=PIO_OFFSET_KIND), mpicom)
-
        deallocate(dof)
 
        do k = 1,nf
-          call FB_getNameN(FB, k, itemc, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          ! Determine field name
+          if (present(flds)) then
+             itemc = trim(flds(k))
+          else
+             itemc = trim(fieldNameList(k))
+          end if
  
           call FB_getFldPtr(FB, itemc, &
                fldptr1=fldptr1, fldptr2=fldptr2, rank=rank, rc=rc)
@@ -1091,7 +1096,7 @@ contains
           end if ! end if not "hgt"
        end do  ! end loop over fields in FB
 
-       ! Fill coordinate variables
+       ! Fill coordinate variables - why is this being done each time?
        name1 = trim(lpre)//'_lon'
        rcode = pio_inq_varid(io_file(lfile_ind), trim(name1), varid)
        call pio_setframe(io_file(lfile_ind),varid,frame)
@@ -1169,7 +1174,6 @@ contains
     if (lwdata) then
        rcode = pio_inq_varid(io_file(lfile_ind),trim(dname),varid)
        rcode = pio_put_var(io_file(lfile_ind),varid,idata)
-       !      write(logunit,*) subname,' wrote AV ',trim(dname),lwhead,lwdata
     endif
 
   end subroutine med_io_write_int
@@ -1234,14 +1238,10 @@ contains
        rcode = pio_def_var(io_file(lfile_ind),trim(dname),PIO_INT,dimid,varid)
        rcode = pio_put_att(io_file(lfile_ind),varid,"standard_name",trim(dname))
        if (lwdata) call med_io_enddef(filename, file_ind=lfile_ind)
-    endif
-
-    if (lwdata) then
+    else if (lwdata) then
        rcode = pio_inq_varid(io_file(lfile_ind),trim(dname),varid)
        rcode = pio_put_var(io_file(lfile_ind),varid,idata)
     endif
-
-    !      write(logunit,*) subname,' wrote AV ',trim(dname),lwhead,lwdata
 
   end subroutine med_io_write_int1d
 
@@ -1299,9 +1299,7 @@ contains
           rcode = pio_put_att(io_file(lfile_ind),varid,"standard_name",trim(dname))
           if (lwdata) call med_io_enddef(filename, file_ind=lfile_ind)
        end if
-    endif
-
-    if (lwdata) then
+    else if (lwdata) then
        rcode = pio_inq_varid(io_file(lfile_ind),trim(dname),varid)
        rcode = pio_put_var(io_file(lfile_ind),varid,rdata)
     endif
@@ -1415,6 +1413,7 @@ contains
     if (present(wdata)) lwdata = wdata
     lfile_ind = 0
     if (present(file_ind)) lfile_ind=file_ind
+
     if (.not.lwhead .and. .not.lwdata) then
        ! should we write a warning?
        return
@@ -1430,8 +1429,7 @@ contains
        end if
        rcode = pio_put_att(io_file(lfile_ind),varid,"standard_name",trim(dname))
        if (lwdata) call med_io_enddef(filename, file_ind=lfile_ind)
-    endif
-    if (lwdata) then
+    else if (lwdata) then
        charvar = ''
        charvar = trim(rdata)
        rcode = pio_inq_varid(io_file(lfile_ind),trim(dname),varid)
@@ -1491,17 +1489,18 @@ contains
     if (present(wdata)) lwdata = wdata
     lfile_ind = 0
     if (present(file_ind)) lfile_ind=file_ind
+
     if (.not.lwhead .and. .not.lwdata) then
        ! should we write a warning?
        return
     endif
 
-    ! Write out header
-    if (lwhead) then
+    if (lwhead) then ! Write out header
+
+       ! define time
        rcode = pio_def_dim(io_file(lfile_ind),'time',PIO_UNLIMITED,dimid(1))
        rcode = pio_def_var(io_file(lfile_ind),'time',PIO_DOUBLE,dimid,varid)
        rcode = pio_put_att(io_file(lfile_ind),varid,'units',trim(time_units))
-
        if (calendar == ESMF_CALKIND_360DAY) then
           calname = '360_day'
        else if (calendar == ESMF_CALKIND_GREGORIAN) then
@@ -1519,6 +1518,7 @@ contains
        end if
        rcode = pio_put_att(io_file(lfile_ind),varid,'calendar',trim(calname))
 
+       ! define time bounds
        if (present(tbnds)) then
           dimid2(2) = dimid(1)
           rcode = pio_put_att(io_file(lfile_ind),varid,'bounds','time_bnds')
@@ -1526,28 +1526,33 @@ contains
           rcode = pio_def_var(io_file(lfile_ind),'time_bnds',PIO_DOUBLE,dimid2,varid)
        endif
        if (lwdata) call med_io_enddef(filename, file_ind=lfile_ind)
-    endif
 
-    ! Write out data
-    if (lwdata) then
+    else if (lwdata) then ! Write out data
+
+       ! write time
        start = 1
        count = 1
        if (present(nt)) then
           start(1) = nt
        endif
        time_val_1d(1) = time_val
-       rcode = pio_inq_varid(io_file(lfile_ind),'time',varid)
-       rcode = pio_put_var(io_file(lfile_ind),varid,start,count,time_val_1d)
+       rcode = pio_inq_varid(io_file(lfile_ind), 'time', varid)
+       rcode = pio_put_var(io_file(lfile_ind), varid, start(1:1), count(1:1), time_val_1d)
+
+       ! write time bounds
        if (present(tbnds)) then
-          rcode = pio_inq_varid(io_file(lfile_ind),'time_bnds',varid)
-          start = 1
-          count = 1
+          rcode = pio_inq_varid(io_file(lfile_ind), 'time_bnds', varid)
+          count(1) = 2
+          count(2) = 1
+          start(1) = 1
           if (present(nt)) then
              start(2) = nt
+          else
+             start(2) = 1
           endif
-          count(1) = 2
-          rcode = pio_put_var(io_file(lfile_ind),varid,start,count,tbnds)
+          rcode = pio_put_var(io_file(lfile_ind), varid, start(1:2), count(1:2), tbnds)
        endif
+
     endif
 
   end subroutine med_io_write_time

@@ -167,7 +167,7 @@ contains
     ! Initialize prepglc_clock
     ! -------------------------------
 
-    ! Initialize prepglc_clock from mclock - THIS CALL DOES NOT COPY ALARMS
+    ! Initialize mediator prepglc_clock from mclock - THIS CALL DOES NOT COPY ALARMS
     call NUOPC_ModelGet(gcomp, modelClock=med_clock,  rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     prepglc_clock = ESMF_ClockCreate(med_clock, rc=rc)
@@ -605,9 +605,6 @@ contains
     type(ESMF_Clock)    :: med_clock
     type(ESMF_Time)     :: med_currtime
     type(ESMF_Time)     :: prepglc_currtime
-    type(ESMF_ALARM)    :: glc_avg_alarm
-    character(len=CS)   :: glc_avg_period
-    integer             :: glc_cpl_dt
     integer             :: yr_med, mon_med, day_med, sec_med
     integer             :: yr_prepglc, mon_prepglc, day_prepglc, sec_prepglc
     type(ESMF_Alarm)    :: alarm
