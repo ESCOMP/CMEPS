@@ -162,7 +162,7 @@ contains
              end if
              close(unitn)
              call ESMF_LogWrite(trim(subname)//" read driver restart from file = "//trim(restart_file), &
-                  ESMF_LOGMSG_ERROR)
+                  ESMF_LOGMSG_INFO)
 
              call esm_time_read_restart(restart_file, start_ymd, start_tod, curr_ymd, curr_tod, rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return

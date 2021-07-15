@@ -2547,7 +2547,7 @@ contains
     endif
 
     ! check and set the component clock against the driver clock
-    call NUOPC_CompCheckSetClock(gcomp, driverClock, rc=rc)
+    call NUOPC_CompCheckSetClock(gcomp, driverClock, checkTimeStep=.false., rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !--------------------------------
