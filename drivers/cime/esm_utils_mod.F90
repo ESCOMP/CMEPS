@@ -1,16 +1,10 @@
 module esm_utils_mod
-#ifdef SMARTREDIS
-    use smartredis_client, only : client_type
-#endif
   implicit none
   public
 
   logical :: mastertask
   integer :: logunit
   integer :: dbug_flag = 0
-#ifdef SMARTREDIS
-  type(client_type) :: sr_client
-#endif
   character(*), parameter :: u_FILE_u = &
        __FILE__
 

@@ -1,5 +1,7 @@
 module nuopc_shr_methods
-
+#ifdef SMARTREDIS
+    use smartredis_client, only : client_type
+#endif
   use ESMF         , only : operator(<), operator(/=), operator(+)
   use ESMF         , only : operator(-), operator(*) , operator(>=)
   use ESMF         , only : operator(<=), operator(>), operator(==)
@@ -68,6 +70,9 @@ module nuopc_shr_methods
   character(len=1024)                   :: msgString
   character(len=*), parameter :: u_FILE_u = &
        __FILE__
+#ifdef SMARTREDIS
+  type(client_type), public :: sr_client
+#endif
 
 !===============================================================================
 contains
@@ -222,7 +227,6 @@ contains
 
     call ESMF_VMGet(vm, localPet=mytask, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-
     call ESMF_StateGet(State, itemName=trim(flds_scalar_name), field=field, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
