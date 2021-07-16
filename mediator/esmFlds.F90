@@ -17,7 +17,8 @@ module esmflds
   integer, public, parameter  :: comprof  = 6
   integer, public, parameter  :: compwav  = 7
   integer, public, parameter  :: compglc1 = 8
-  integer, public, parameter  :: ncomps   = 8
+  integer, public, parameter  :: compglc2 = 9
+  integer, public, parameter  :: ncomps   = 9
 
   character(len=*), public, parameter :: compname(ncomps) = &
        (/'med ',&
@@ -27,11 +28,12 @@ module esmflds
          'ice ',&
          'rof ',&
          'wav ',&
-         'glc '/)
+         'glc1',&
+         'glc2'/)
 
-  integer, public, parameter :: max_icesheets = 1
-  integer, public :: compglc(max_icesheets) = (/compglc1/)
-  integer, public :: num_icesheets = 1
+  integer, public, parameter :: max_icesheets = 2
+  integer, public :: compglc(max_icesheets) = (/compglc1,compglc2/)
+  integer, public :: num_icesheets     ! obtained from attribute
   logical, public :: ocn2glc_coupling  ! obtained from attribute
 
   logical, public :: dststatus_print = .false.
@@ -57,25 +59,27 @@ module esmflds
   integer , public, parameter :: map_glc2ocn_ice   = 14 ! custom smoothing map to map ice from glc->ocn (cesm only)
   integer , public, parameter :: mapfillv_bilnr    = 15 ! fill value followed by bilinear
   integer , public, parameter :: mapbilnr_nstod    = 16 ! bilinear with nstod extrapolation
-  integer , public, parameter :: nmappers          = 16
+  integer , public, parameter :: mapconsf_aofrac   = 17 ! conservative with aofrac normalization (ufs only)
+  integer , public, parameter :: nmappers          = 17
 
   character(len=*) , public, parameter :: mapnames(nmappers) = &
-       (/'bilnr      ',&
-         'consf      ',&
-         'consd      ',&
-         'patch      ',&
-         'fcopy      ',&
-         'nstod      ',&
-         'nstod_consd',&
-         'nstod_consf',&
-         'patch_uv3d ',&
-         'bilnr_uv3d ',&
-         'rof2ocn_ice',&
-         'rof2ocn_liq',&
-         'glc2ocn_ice',&
-         'glc2ocn_liq',&
-         'fillv_bilnr',&
-         'bilnr_nstod'/)
+       (/'bilnr       ',&
+         'consf       ',&
+         'consd       ',&
+         'patch       ',&
+         'fcopy       ',&
+         'nstod       ',&
+         'nstod_consd ',&
+         'nstod_consf ',&
+         'patch_uv3d  ',&
+         'bilnr_uv3d  ',&
+         'rof2ocn_ice ',&
+         'rof2ocn_liq ',&
+         'glc2ocn_ice ',&
+         'glc2ocn_liq ',&
+         'fillv_bilnr ',&
+         'bilnr_nstod ',&
+         'consf_aofrac'/)
 
   !-----------------------------------------------
   ! Set coupling mode
@@ -361,12 +365,8 @@ contains
     use ESMF              , only : ESMF_StateGet, ESMF_LogFoundError
     use ESMF              , only : ESMF_LogWrite, ESMF_LOGMSG_ERROR, ESMF_FAILURE, ESMF_LOGERR_PASSTHRU
     use ESMF              , only : ESMF_LOGMSG_INFO, ESMF_StateRemove, ESMF_SUCCESS
-#if ESMF_VERSION_MAJOR >= 8
-#if ESMF_VERSION_MINOR >  0
     use ESMF              , only : ESMF_STATEINTENT_IMPORT, ESMF_STATEINTENT_EXPORT, ESMF_StateIntent_Flag
     use ESMF              , only : ESMF_RC_ARG_BAD, ESMF_LogSetError, operator(==)
-#endif
-#endif
     ! input/output variables
     type(ESMF_State)            , intent(inout)            :: state
     type(med_fldlist_type), intent(in)               :: fldList
@@ -384,11 +384,7 @@ contains
     character(CS)                   :: shortname
     character(CS)                   :: stdname
     character(ESMF_MAXSTR)          :: transferActionAttr
-#if ESMF_VERSION_MAJOR >= 8
-#if ESMF_VERSION_MINOR >  0
     type(ESMF_StateIntent_Flag)     :: stateIntent
-#endif
-#endif
     character(ESMF_MAXSTR)          :: transferAction
     character(ESMF_MAXSTR), pointer :: StandardNameList(:) => null()
     character(ESMF_MAXSTR), pointer :: ConnectedList(:) => null()
@@ -452,9 +448,6 @@ contains
 #endif
 
     nflds = size(fldList%flds)
-    transferActionAttr="TransferActionGeomObject"
-#if ESMF_VERSION_MAJOR >= 8
-#if ESMF_VERSION_MINOR >  0
     call ESMF_StateGet(state, stateIntent=stateIntent, rc=rc)
     if (stateIntent==ESMF_STATEINTENT_EXPORT) then
        transferActionAttr="ProducerTransferAction"
@@ -468,8 +461,6 @@ contains
             rcToReturn=rc)
        return  ! bail out
     endif
-#endif
-#endif
 
     do n = 1, nflds
        shortname = fldList%flds(n)%shortname
@@ -773,7 +764,7 @@ contains
     ! ocn-> atm mappings for atm/ocn fluxes computed in mediator on the ocn grid
     nsrc = compocn
     ndst = compatm
-    if (med_coupling_active(nsrc,ndst)) then
+    if (med_coupling_active(nsrc,ndst) .and. associated(fldListMed_aoflux%flds)) then
        do n = 1,size(fldListMed_aoflux%flds)
           mapindex = fldlistMed_aoflux%flds(n)%mapindex(ndst)
           if ( mapindex /= mapunset) then

@@ -1053,7 +1053,7 @@ contains
        do k = 1,nf
           call FB_getNameN(FB, k, itemc, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
-
+ 
           call FB_getFldPtr(FB, itemc, &
                fldptr1=fldptr1, fldptr2=fldptr2, rank=rank, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return

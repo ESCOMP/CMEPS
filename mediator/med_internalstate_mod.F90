@@ -13,6 +13,7 @@ module med_internalstate_mod
   private
 
   integer, public :: logunit            ! logunit for mediator log output
+  integer, public :: diagunit           ! diagunit for budget output (med master only)
   integer, public :: loglevel           ! loglevel for mediator log output
   logical, public :: mastertask=.false. ! is this the mastertask
   integer, public :: med_id             ! needed currently in med_io_mod and set in esm.F90
@@ -62,6 +63,7 @@ module med_internalstate_mod
     integer                :: flds_scalar_index_ny = 0
     integer                :: flds_scalar_index_nextsw_cday = 0
     integer                :: flds_scalar_index_precip_factor = 0
+    real(r8)               :: flds_scalar_precip_factor = 1._r8  ! actual value of precip factor from ocn
 
     ! Import/export States and field bundles (the field bundles have the scalar fields removed)
     type(ESMF_State)       :: NStateImp(ncomps)                  ! Import data from various component, on their grid
@@ -87,15 +89,16 @@ module med_internalstate_mod
 
     ! Accumulators for export field bundles
     type(ESMF_FieldBundle) :: FBExpAccum(ncomps)                 ! Accumulator for various components export on their grid
-    integer                :: FBExpAccumCnt(ncomps)              ! Accumulator counter for each FBExpAccum
+    integer                :: FBExpAccumCnt(ncomps) = 0          ! Accumulator counter for each FBExpAccum
     logical                :: FBExpAccumFlag(ncomps) = .false.   ! Accumulator flag, if true accumulation was done
 
     ! Accumulators for import field bundles
     type(ESMF_FieldBundle) :: FBImpAccum(ncomps,ncomps)          ! Accumulator for various components import
-    integer                :: FBImpAccumCnt(ncomps)              ! Accumulator counter for each FBImpAccum
+    integer                :: FBImpAccumCnt(ncomps) = 0          ! Accumulator counter for each FBImpAccum
 
     ! Component Mesh info
     type(mesh_info_type)   :: mesh_info(ncomps)
+    type(ESMF_FieldBundle) :: FBArea(ncomps)                     ! needed for mediator history writes
 
  end type InternalStateStruct
 

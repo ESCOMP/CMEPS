@@ -999,28 +999,9 @@ contains
     rc = ESMF_SUCCESS
 
     ! Query component for name, verbosity, and diagnostic values
-#if ESMF_VERSION_MAJOR >= 8
     call NUOPC_CompGet(gcomp, name=cname, verbosity=verbosity, &
       diagnostic=diagnostic, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-#else
-    call ESMF_GridCompGet(gcomp, name=cname, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_AttributeGet(gcomp, name="Verbosity", value=cvalue, &
-      defaultValue="0", convention="NUOPC", purpose="Instance", rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    verbosity = ESMF_UtilString2Int(cvalue, &
-      specialStringList=(/"off ","low ","high","max "/), &
-      specialValueList=(/0,9985,32513,131071/), rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_AttributeGet(gcomp, name="Diagnostic", value=cvalue, &
-      defaultValue="0", convention="NUOPC", purpose="Instance", rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    diagnostic = ESMF_UtilString2Int(cvalue, &
-      specialStringList=(/"off ","max "/), &
-      specialValueList=(/0,131071/), rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-#endif
 
     !----------------------------------------------------------
     ! Initialize system type

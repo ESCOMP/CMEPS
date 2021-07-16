@@ -39,6 +39,7 @@ def _main_func():
         ocn_model = case.get_value("COMP_OCN")
         atm_model = case.get_value("COMP_ATM")
         gmake_args = get_standard_makefile_args(case)
+        esmf_aware_threading = case.get_value("ESMF_AWARE_THREADING")
 
     # Determine valid components
     valid_comps = []
@@ -73,6 +74,8 @@ def _main_func():
             gmake_args += " {}_PRESENT=FALSE".format(comp)
     if skip_mediator:
         gmake_args += " MED_PRESENT=FALSE"
+    if esmf_aware_threading:
+        gmake_args += " USER_CPPDEFS=-DESMF_AWARE_THREADING"
 
     gmake_args += " IAC_PRESENT=FALSE"
     expect((num_esp is None) or (int(num_esp) == 1), "ESP component restricted to one instance")
@@ -92,6 +95,11 @@ def _main_func():
     # build model executable
     makefile = os.path.join(casetools, "Makefile")
     exename = os.path.join(exeroot, cime_model + ".exe")
+
+    # always rebuild file esm.F90 this is because cpp macros in that file may have changed
+    esm = os.path.join(bld_root,"esm.o")
+    if os.path.isfile(esm):
+        os.remove(esm)
 
     # always relink
     if os.path.isfile(exename):

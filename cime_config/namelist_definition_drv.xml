@@ -178,31 +178,6 @@
     </values>
   </entry>
 
-  <!-- <entry id="cpl_cdf64"> -->
-  <!--   <type>logical</type> -->
-  <!--   <category>expdef</category> -->
-  <!--   <group>DRIVER_attributes</group> -->
-  <!--   <desc> -->
-  <!--     default: true -->
-  <!--   </desc> -->
-  <!--   <values> -->
-  <!--     <value>.true.</value> -->
-  <!--   </values> -->
-  <!-- </entry> -->
-
-  <entry id="drv_threading" modify_via_xml="DRV_THREADING">
-    <type>logical</type>
-    <category>performance</category>
-    <group>DRIVER_attributes</group>
-    <desc>
-      turn on run time control of threading per pe per component by the driver
-      default: false
-    </desc>
-    <values>
-      <value>$DRV_THREADING</value>
-    </values>
-  </entry>
-
   <entry id="run_barriers" modify_via_xml="COMP_RUN_BARRIERS">
     <type>logical</type>
     <category>performance</category>
@@ -596,7 +571,7 @@
     </values>
   </entry>
 
-  <entry id="mediator_read_restart" modify_via_xml="MEDIATOR_READ_RESTART">
+  <entry id="mediator_read_restart" skip_default_entry="true" modify_via_xml="MEDIATOR_READ_RESTART">
     <type>logical</type>
     <category>expdef</category>
     <group>DRIVER_attributes</group>
@@ -732,7 +707,7 @@
     <category>single_column</category>
     <group>ALLCOMP_attributes</group>
     <desc>
-      DOMAIN file needed for single column model IF and only if 
+      DOMAIN file needed for single column model IF and only if
       a nearest neighbor search is done to match the PTS_LAT and PTS_LON
       to the closest point in the domain file. This file is ONLY used in
       single column mode.
@@ -894,28 +869,6 @@
       <value>$ICE_NY</value>
     </values>
   </entry>
-  <entry id="glc_nx" modify_via_xml="GLC_NX">
-    <type>integer</type>
-    <category>control</category>
-    <group>MED_attributes</group>
-    <desc>
-      number of glc cells in i direction
-    </desc>
-    <values>
-      <value>$GLC_NX</value>
-    </values>
-  </entry>
-  <entry id="glc_ny" modify_via_xml="GLC_NY">
-    <type>integer</type>
-    <category>control</category>
-    <group>MED_attributes</group>
-    <desc>
-      number of glc cells in j direction
-    </desc>
-    <values>
-      <value>$GLC_NY</value>
-    </values>
-  </entry>
   <entry id="lnd_nx" modify_via_xml="LND_NX">
     <type>integer</type>
     <category>control</category>
@@ -1072,7 +1025,7 @@
     </desc>
     <values>
       <value>$MASK_MESH</value>
-      <value single_column='true'>null</value> 
+      <value single_column='true'>null</value>
     </values>
   </entry>
 
@@ -1085,7 +1038,7 @@
     </desc>
     <values>
       <value>$ATM_DOMAIN_MESH</value>
-      <value single_column='true'>null</value> 
+      <value single_column='true'>null</value>
     </values>
   </entry>
 
@@ -1098,7 +1051,7 @@
     </desc>
     <values>
       <value>$LND_DOMAIN_MESH</value>
-      <value single_column='true'>null</value> 
+      <value single_column='true'>null</value>
     </values>
   </entry>
 
@@ -1111,7 +1064,7 @@
     </desc>
     <values>
       <value>$OCN_DOMAIN_MESH</value>
-      <value single_column='true'>null</value> 
+      <value single_column='true'>null</value>
     </values>
   </entry>
 
@@ -1124,7 +1077,7 @@
     </desc>
     <values>
       <value>$ICE_DOMAIN_MESH</value>
-      <value single_column='true'>null</value> 
+      <value single_column='true'>null</value>
     </values>
   </entry>
 
@@ -1137,7 +1090,7 @@
     </desc>
     <values>
       <value>$ROF_DOMAIN_MESH</value>
-      <value single_column='true'>null</value> 
+      <value single_column='true'>null</value>
     </values>
   </entry>
 
@@ -1150,7 +1103,7 @@
     </desc>
     <values>
       <value>$GLC_DOMAIN_MESH</value>
-      <value single_column='true'>null</value> 
+      <value single_column='true'>null</value>
     </values>
   </entry>
 
@@ -1163,7 +1116,7 @@
     </desc>
     <values>
       <value>$WAV_DOMAIN_MESH</value>
-      <value single_column='true'>null</value> 
+      <value single_column='true'>null</value>
     </values>
   </entry>
 
@@ -1643,7 +1596,7 @@
   <!-- </entry> -->
 
   <!-- =========================== -->
-  <!-- MED attributes              -->
+  <!-- ALLCOMP attributes          -->
   <!-- =========================== -->
 
   <entry id="ScalarFieldName">
@@ -1666,7 +1619,7 @@
       total number of scalars in the scalar coupling field
     </desc>
     <values>
-      <value>5</value>
+      <value>4</value>
     </values>
   </entry>
 
@@ -1714,8 +1667,20 @@
       index of scalar containing epbal precipitation factor from ocn (only for POP)
     </desc>
     <values>
-      <value flux_epbal='off'>0</value>
-      <value flux_epbal="ocn">5</value>
+      <value COMP_OCN="pop">4</value>
+      <value>0</value>
+    </values>
+  </entry>
+
+  <entry id="num_icesheets">
+    <type>integer</type>
+    <category>expdef</category>
+    <group>ALLCOMP_attributes</group>
+    <desc>
+      number of glc ice sheets
+    </desc>
+    <values>
+      <value>1</value>
     </values>
   </entry>
 
@@ -2037,58 +2002,6 @@
     </desc>
     <values>
       <value>$ROF2OCN_ICE_RMAPNAME</value>
-    </values>
-  </entry>
-
-  <entry id="lnd2glc_fmapname"    modify_via_xml="LND2GLC_FMAPNAME">
-    <type>char</type>
-    <category>mapping</category>
-    <input_pathname>abs</input_pathname>
-    <group>MED_attributes</group>
-    <desc>
-      land to glc mapping file for fluxes
-    </desc>
-    <values>
-      <value>$LND2GLC_FMAPNAME</value>
-    </values>
-  </entry>
-
-  <entry id="lnd2glc_smapname"    modify_via_xml="LND2GLC_SMAPNAME">
-    <type>char</type>
-    <category>mapping</category>
-    <input_pathname>abs</input_pathname>
-    <group>MED_attributes</group>
-    <desc>
-      land to glc mapping file for states
-    </desc>
-    <values>
-      <value>$LND2GLC_SMAPNAME</value>
-    </values>
-  </entry>
-
-  <entry id="glc2lnd_fmapname"    modify_via_xml="GLC2LND_FMAPNAME">
-    <type>char</type>
-    <category>mapping</category>
-    <input_pathname>abs</input_pathname>
-    <group>MED_attributes</group>
-    <desc>
-      glc to land mapping file for fluxes
-    </desc>
-    <values>
-      <value>$GLC2LND_FMAPNAME</value>
-    </values>
-  </entry>
-
-  <entry id="glc2lnd_smapname"    modify_via_xml="GLC2LND_SMAPNAME">
-    <type>char</type>
-    <category>mapping</category>
-    <input_pathname>abs</input_pathname>
-    <group>MED_attributes</group>
-    <desc>
-      glc to land mapping file for states
-    </desc>
-    <values>
-      <value>$GLC2LND_SMAPNAME</value>
     </values>
   </entry>
 
