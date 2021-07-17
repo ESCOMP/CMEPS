@@ -763,6 +763,15 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end do
 
+    ! Determine aoflux grid
+    call NUOPC_CompAttributeGet(gcomp, name='aoflux_grid', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    if (.not. isPresent .and. .not. isSet) then
+       cvalue = 'ogrid'
+    end if
+    is_local%wrap%aoflux_grid = trim(cvalue)
+    write(6,*)'DEBUG: aoflux_grid = ',is_local%wrap%aoflux_grid
+
     !------------------
     ! Initialize mediator flds
     !------------------
