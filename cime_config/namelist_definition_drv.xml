@@ -1136,7 +1136,7 @@
     <type>char</type>
     <category>mapping</category>
     <group>MED_attributes</group>
-    <valid_values>ogrid,agrrid,xgrid</valid_values>
+    <valid_values>ogrid,agrid,xgrid</valid_values>
     <desc>
       Grid for atm ocn flux calc (untested)
       default: ocn

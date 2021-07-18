@@ -267,11 +267,9 @@ contains
     !----------------------------------
 
     if (trim(coupling_mode) == 'nems_orig_data' .and. ocn_surface_flux_scheme == -1) then
-       ! TODO: fix this
-       allocate(fldnames_atm_in(8))
-       ! fldnames_atm_in = (/'Sa_z    ','Sa_u10m ','Sa_v10m ','Sa_t2m  ',&
-       !                    'Sa_q2m  ','Sa_pbot ','Sa_dens ','Sa_ptem'/)
-       ! fldnames_atm_in = (/'Sa_u10m','Sa_v10m','Sa_t2m ','Sa_q2m '/)
+       allocate(fldnames_atm_in(10))
+       fldnames_atm_in = (/'Sa_u   ','Sa_v   ','Sa_z  ','Sa_tbot','Sa_pbot','Sa_shum', &
+                           'Sa_u10m','Sa_v10m','Sa_t2m','Sa_q2m '/)
     else if (flds_wiso) then
        allocate(fldnames_atm_in(9))
        fldnames_atm_in = (/'Sa_z        ','Sa_u        ','Sa_v        ','Sa_tbot     ',&
@@ -1127,7 +1125,7 @@ contains
     use ESMF          , only : ESMF_GridComp
     use ESMF          , only : ESMF_LogWrite, ESMF_LogMsg_Info, ESMF_SUCCESS
     use ESMF          , only : ESMF_TERMORDER_SRCSEQ, ESMF_REGION_TOTAL
-    use esmFlds       , only : mapconsd
+    use esmFlds       , only : mapconsd, mapconsf
     use med_map_mod   , only : med_map_field_packed
     use shr_flux_mod  , only : shr_flux_atmocn
 
@@ -1173,23 +1171,25 @@ contains
           call ESMF_FieldBundleGet(FBocn_a, fldnames_ocn_in(nf), field=field_dst, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
 
+          write(6,*)'DEBUG: mapping to atm nf ',nf,trim(fldnames_ocn_in(nf))
           ! Map ocn->atm conservatively without fractions
           call ESMF_FieldRegrid(field_src, field_dst, &
                routehandle=is_local%wrap%RH(compocn,compatm,mapconsd), &
                termorderflag=ESMF_TERMORDER_SRCSEQ, zeroregion=ESMF_REGION_TOTAL, rc=rc)
+          write(6,*)'DEBUG: finished mapping to atm'
 
           ! One normalization
-          call ESMF_FieldGet(is_local%wrap%field_normOne(compatm,compatm,mapconsd), farrayPtr=data_normdst, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call ESMF_FieldGet(field_dst, farrayptr=data_dst, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          do n = 1,size(data_dst)
-             if (data_normdst(n) == 0.0_r8) then
-                data_dst(n) = 0.0_r8
-             else
-                data_dst(n) = data_dst(n)/data_normdst(n)
-             end if
-          end do
+          ! call ESMF_FieldGet(is_local%wrap%field_normOne(compocn,compatm,mapconsd), farrayPtr=data_normdst, rc=rc)
+          ! if (chkerr(rc,__LINE__,u_FILE_u)) return
+          ! call ESMF_FieldGet(field_dst, farrayptr=data_dst, rc=rc)
+          ! if (chkerr(rc,__LINE__,u_FILE_u)) return
+          ! do n = 1,size(data_dst)
+          !    if (data_normdst(n) == 0.0_r8) then
+          !       data_dst(n) = 0.0_r8
+          !    else
+          !       data_dst(n) = data_dst(n)/data_normdst(n)
+          !    end if
+          ! end do
        end do
 
 
@@ -1265,7 +1265,6 @@ contains
           aoflux%u10(n) = sqrt(aoflux%duu10n(n))
        end if
     enddo
-    call t_stopf('MED:'//subname)
 
     !----------------------------------
     ! map aoflux to output to relevant atm/ocn grid(s)
@@ -1287,23 +1286,26 @@ contains
           call ESMF_FieldBundleGet(is_local%wrap%FBMed_aoflux_o, fldnames_aoflux_out(nf), field=field_dst, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
 
+          write(6,*)'DEBUG: mapping to ocn nf ',nf,trim(fldnames_aoflux_out(nf))
           ! Map atm->ocn conservatively WITHOUT fractions
           call ESMF_FieldRegrid(field_src, field_dst, &
-               routehandle=is_local%wrap%RH(compatm, compocn, mapconsd), &
+              !routehandle=is_local%wrap%RH(compatm, compocn, mapconsd), &
+               routehandle=is_local%wrap%RH(compatm, compocn, mapconsf), &
                termorderflag=ESMF_TERMORDER_SRCSEQ, zeroregion=ESMF_REGION_TOTAL, rc=rc)
+          write(6,*)'DEBUG: finished mapping to ocn '
 
           ! One normalization
-          call ESMF_FieldGet(is_local%wrap%field_normOne(compatm,compocn,mapconsd), farrayPtr=data_normdst, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call ESMF_FieldGet(field_dst, farrayptr=data_dst, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          do n = 1,size(data_dst)
-             if (data_normdst(n) == 0.0_r8) then
-                data_dst(n) = 0.0_r8
-             else
-                data_dst(n) = data_dst(n)/data_normdst(n)
-             end if
-          end do
+          ! call ESMF_FieldGet(is_local%wrap%field_normOne(compatm,compocn,mapconsd), farrayPtr=data_normdst, rc=rc)
+          ! if (chkerr(rc,__LINE__,u_FILE_u)) return
+          ! call ESMF_FieldGet(field_dst, farrayptr=data_dst, rc=rc)
+          ! if (chkerr(rc,__LINE__,u_FILE_u)) return
+          ! do n = 1,size(data_dst)
+          !    if (data_normdst(n) == 0.0_r8) then
+          !       data_dst(n) = 0.0_r8
+          !    else
+          !       data_dst(n) = data_dst(n)/data_normdst(n)
+          !    end if
+          ! end do
        end do
 
     else if (is_local%wrap%aoflux_grid == 'xgrid') then
@@ -1330,6 +1332,8 @@ contains
        end do
 
     end if
+
+    call t_stopf('MED:'//subname)
 
   end subroutine med_aofluxes_update
 

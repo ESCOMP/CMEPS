@@ -321,34 +321,96 @@ contains
     ! to lnd: Pressure at the lowest model level from atm
     ! to lnd: specific humidity at the lowest model level from atm
     ! ---------------------------------------------------------------------
-
-    allocate(flds(9))
-    flds = (/'Sa_z        ',&
-             'Sa_topo     ',&
-             'Sa_u        ',&
-             'Sa_v        ',&
-             'Sa_tbot     ',&
-             'Sa_ptem     ',&
-             'Sa_pbot     ',&
-             'Sa_shum     ',&
-             'Sa_shum_wiso'/)
-
-    do n = 1,size(flds)
-       fldname = trim(flds(n))
-       if (phase == 'advertise') then
-          call addfld(fldListFr(compatm)%flds, trim(fldname))
-          call addfld(fldListTo(complnd)%flds, trim(fldname))
-       else
-          if ( fldchk(is_local%wrap%FBexp(complnd)         , trim(fldname), rc=rc) .and. &
-               fldchk(is_local%wrap%FBImp(compatm,compatm ), trim(fldname), rc=rc)) then
-             call addmap(fldListFr(compatm)%flds, trim(fldname), &
-                  complnd, mapbilnr, 'one', atm2lnd_map)
-             call addmrg(fldListTo(complnd)%flds, trim(fldname), &
-                  mrg_from=compatm, mrg_fld=trim(fldname), mrg_type='copy')
-          end if
+    if (phase == 'advertise') then
+       call addfld(fldListFr(compatm)%flds, 'Sa_z')
+       call addfld(fldListTo(complnd)%flds, 'Sa_z')
+    else
+       if ( fldchk(is_local%wrap%FBexp(complnd)         , 'Sa_z', rc=rc) .and. &
+            fldchk(is_local%wrap%FBImp(compatm,compatm ), 'Sa_z', rc=rc)) then
+          call addmap(fldListFr(compatm)%flds, 'Sa_z', complnd, mapbilnr, 'one', atm2lnd_map)
+          call addmrg(fldListTo(complnd)%flds, 'Sa_z', mrg_from=compatm, mrg_fld='Sa_z', mrg_type='copy')
        end if
-    end do
-    deallocate(flds)
+    end if
+    if (phase == 'advertise') then
+       call addfld(fldListFr(compatm)%flds, 'Sa_topo')
+       call addfld(fldListTo(complnd)%flds, 'Sa_topo')
+    else
+       if ( fldchk(is_local%wrap%FBexp(complnd)         , 'Sa_topo', rc=rc) .and. &
+            fldchk(is_local%wrap%FBImp(compatm,compatm ), 'Sa_topo', rc=rc)) then
+          call addmap(fldListFr(compatm)%flds, 'Sa_topo', complnd, mapbilnr, 'one', atm2lnd_map)
+          call addmrg(fldListTo(complnd)%flds, 'Sa_topo', mrg_from=compatm, mrg_fld='Sa_topo', mrg_type='copy')
+       end if
+    end if
+    if (phase == 'advertise') then
+       call addfld(fldListFr(compatm)%flds, 'Sa_u')
+       call addfld(fldListTo(complnd)%flds, 'Sa_u')
+    else
+       if ( fldchk(is_local%wrap%FBexp(complnd)         , 'Sa_u', rc=rc) .and. &
+            fldchk(is_local%wrap%FBImp(compatm,compatm ), 'Sa_u', rc=rc)) then
+          call addmap(fldListFr(compatm)%flds, 'Sa_u', complnd, mapbilnr, 'one', atm2lnd_map)
+          call addmrg(fldListTo(complnd)%flds, 'Sa_u', mrg_from=compatm, mrg_fld='Sa_u', mrg_type='copy')
+       end if
+    end if
+    if (phase == 'advertise') then
+       call addfld(fldListFr(compatm)%flds, 'Sa_v')
+       call addfld(fldListTo(complnd)%flds, 'Sa_v')
+    else
+       if ( fldchk(is_local%wrap%FBexp(complnd)         , 'Sa_v', rc=rc) .and. &
+            fldchk(is_local%wrap%FBImp(compatm,compatm ), 'Sa_v', rc=rc)) then
+          call addmap(fldListFr(compatm)%flds, 'Sa_v', complnd, mapbilnr, 'one', atm2lnd_map)
+          call addmrg(fldListTo(complnd)%flds, 'Sa_v', mrg_from=compatm, mrg_fld='Sa_v', mrg_type='copy')
+       end if
+    end if
+    if (phase == 'advertise') then
+       call addfld(fldListFr(compatm)%flds, 'Sa_pbot')
+       call addfld(fldListTo(complnd)%flds, 'Sa_pbot')
+    else
+       if ( fldchk(is_local%wrap%FBexp(complnd)         , 'Sa_pbot', rc=rc) .and. &
+            fldchk(is_local%wrap%FBImp(compatm,compatm ), 'Sa_pbot', rc=rc)) then
+          call addmap(fldListFr(compatm)%flds, 'Sa_pbot', complnd, mapbilnr, 'one', atm2lnd_map)
+          call addmrg(fldListTo(complnd)%flds, 'Sa_pbot', mrg_from=compatm, mrg_fld='Sa_pbot', mrg_type='copy')
+       end if
+    end if
+    if (phase == 'advertise') then
+       call addfld(fldListFr(compatm)%flds, 'Sa_tbot')
+       call addfld(fldListTo(complnd)%flds, 'Sa_tbot')
+    else
+       if ( fldchk(is_local%wrap%FBexp(complnd)         , 'Sa_tbot', rc=rc) .and. &
+            fldchk(is_local%wrap%FBImp(compatm,compatm ), 'Sa_tbot', rc=rc)) then
+          call addmap(fldListFr(compatm)%flds, 'Sa_tbot', complnd, mapbilnr, 'one', atm2lnd_map)
+          call addmrg(fldListTo(complnd)%flds, 'Sa_tbot', mrg_from=compatm, mrg_fld='Sa_tbot', mrg_type='copy')
+       end if
+    end if
+    if (phase == 'advertise') then
+       call addfld(fldListFr(compatm)%flds, 'Sa_ptem')
+       call addfld(fldListTo(complnd)%flds, 'Sa_ptem')
+    else
+       if ( fldchk(is_local%wrap%FBexp(complnd)         , 'Sa_ptem', rc=rc) .and. &
+            fldchk(is_local%wrap%FBImp(compatm,compatm ), 'Sa_ptem', rc=rc)) then
+          call addmap(fldListFr(compatm)%flds, 'Sa_ptem', complnd, mapbilnr, 'one', atm2lnd_map)
+          call addmrg(fldListTo(complnd)%flds, 'Sa_ptem', mrg_from=compatm, mrg_fld='Sa_ptem', mrg_type='copy')
+       end if
+    end if
+    if (phase == 'advertise') then
+       call addfld(fldListFr(compatm)%flds, 'Sa_shum')
+       call addfld(fldListTo(complnd)%flds, 'Sa_shum')
+    else
+       if ( fldchk(is_local%wrap%FBexp(complnd)         , 'Sa_shum', rc=rc) .and. &
+            fldchk(is_local%wrap%FBImp(compatm,compatm ), 'Sa_shum', rc=rc)) then
+          call addmap(fldListFr(compatm)%flds, 'Sa_shum', complnd, mapbilnr, 'one', atm2lnd_map)
+          call addmrg(fldListTo(complnd)%flds, 'Sa_shum', mrg_from=compatm, mrg_fld='Sa_shum', mrg_type='copy')
+       end if
+    end if
+    if (phase == 'advertise') then
+       call addfld(fldListFr(compatm)%flds, 'Sa_shum_wiso')
+       call addfld(fldListTo(complnd)%flds, 'Sa_shum_wiso')
+    else
+       if ( fldchk(is_local%wrap%FBexp(complnd)         , 'Sa_shum_wiso', rc=rc) .and. &
+            fldchk(is_local%wrap%FBImp(compatm,compatm ), 'Sa_shum_wiso', rc=rc)) then
+          call addmap(fldListFr(compatm)%flds, 'Sa_shum_wiso', complnd, mapbilnr, 'one', atm2lnd_map)
+          call addmrg(fldListTo(complnd)%flds, 'Sa_shum_wiso', mrg_from=compatm, mrg_fld='Sa_shum_wiso', mrg_type='copy')
+       end if
+    end if
 
     ! ---------------------------------------------------------------------
     ! to lnd: convective and large scale precipitation rate water equivalent from atm
