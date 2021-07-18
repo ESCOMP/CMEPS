@@ -237,6 +237,11 @@ contains
 
     call t_startf('MED:'//subname)
 
+    ! Get the internal state from the mediator Component.
+    nullify(is_local%wrap)
+    call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
     call NUOPC_CompAttributeGet(gcomp, name='flds_wiso', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     if (isPresent .and. isSet) then
@@ -360,6 +365,11 @@ contains
     !-----------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
+
+    ! Get the internal state from the mediator Component.
+    nullify(is_local%wrap)
+    call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! ------------------------
     ! input fields from ocn
@@ -788,6 +798,11 @@ contains
     !-----------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
+
+    ! Get the internal state from the mediator Component.
+    nullify(is_local%wrap)
+    call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! ------------------------
     ! Create exchange grid
