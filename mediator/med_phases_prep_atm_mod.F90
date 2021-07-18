@@ -104,7 +104,20 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
-    ! Note that is_local%wrap%FBMed_aoflux_a is computed in med_aofluxes_run 
+    !---------------------------------------
+    !--- map atm/ocn fluxes from ocn to atm grid if appropriate
+    !---------------------------------------
+    if (trim(coupling_mode) == 'cesm' .or. trim(coupling_mode) == 'hafs') then
+       ! Assumption here is that fluxes are computed on the ocean grid
+       call med_map_field_packed( &
+            FBSrc=is_local%wrap%FBMed_aoflux_o, &
+            FBDst=is_local%wrap%FBMed_aoflux_a, &
+            FBFracSrc=is_local%wrap%FBFrac(compocn), &
+            field_normOne=is_local%wrap%field_normOne(compocn,compatm,:), &
+            packed_data=is_local%wrap%packed_data_aoflux_o2a(:), &
+            routehandles=is_local%wrap%RH(compocn,compatm,:), rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    endif
 
     !---------------------------------------
     !--- merge all fields to atm

@@ -1273,16 +1273,8 @@ contains
 
     if (is_local%wrap%aoflux_grid == 'ogrid') then
 
-       ! map aoflux from ogrid to agrid
-       ! fluxes are computed on the ocean grid - this is set up from the data in esmFldsExchange_xxx
-       call med_map_field_packed( &
-            FBSrc=is_local%wrap%FBMed_aoflux_o, &
-            FBDst=is_local%wrap%FBMed_aoflux_a, &
-            FBFracSrc=is_local%wrap%FBFrac(compocn), &
-            field_normOne=is_local%wrap%field_normOne(compocn,compatm,:), &
-            packed_data=is_local%wrap%packed_data_aoflux_o2a(:), &
-            routehandles=is_local%wrap%RH(compocn,compatm,:), rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       ! mapping aoflux from ogrid to agrid is done in med_phases_prep_atm using updated ocean fractions
+       ! on the atm grid
 
     else if (is_local%wrap%aoflux_grid == 'agrid') then
 
