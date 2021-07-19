@@ -74,12 +74,16 @@ def buildlib(bldroot, installpath, case):
             smartredis_home = os.getenv("REDIS_HOME")
             expect(smartredis_home," Expect path to SMARTREDIS in env variable REDIS_HOME")
             fortran_src_path = os.path.join(smartredis_home,"src","fortran")
-            expect(os.path.isdir(fortran_src_path), "Could not find or read directory {}".format(fortran_src_path))
-            filepath.append(fortran_src_path)
             redis_include_path = os.path.join(smartredis_home,"install","include")
             expect(os.path.isdir(redis_include_path), "Could not find or read directory {}".format(redis_include_path))
             os.environ["USER_INCLDIR"] = "-I" + redis_include_path
             gmake_args += " USE_SMARTSIM=TRUE "
+        else:
+            fortran_src_path = os.path.join(srcroot,"share","src","stubs","smartredis")
+
+        expect(os.path.isdir(fortran_src_path), "Could not find or read directory {}".format(fortran_src_path))
+        filepath.append(fortran_src_path)
+
     elif comp_interface != "mct":
         expect(False, "driver value of {} not supported".format(comp_interface))
 
