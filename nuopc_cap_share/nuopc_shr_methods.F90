@@ -1,7 +1,5 @@
 module nuopc_shr_methods
-#ifdef SMARTREDIS
-    use smartredis_client, only : client_type
-#endif
+  use smartredis_client, only : client_type
   use ESMF         , only : operator(<), operator(/=), operator(+)
   use ESMF         , only : operator(-), operator(*) , operator(>=)
   use ESMF         , only : operator(<=), operator(>), operator(==)
@@ -38,10 +36,14 @@ module nuopc_shr_methods
   public  :: state_diagnose
   public  :: alarmInit
   public  :: chkerr
-
   private :: timeInit
   private :: field_getfldptr
 
+#ifdef SMARTREDIS
+  logical, public  :: use_smartredis = .true.
+#else
+  logical, public  :: use_smartredis = .false.
+#endif
   ! Clock and alarm options
   character(len=*), private, parameter :: &
        optNONE           = "none"      , &
@@ -70,9 +72,9 @@ module nuopc_shr_methods
   character(len=1024)                   :: msgString
   character(len=*), parameter :: u_FILE_u = &
        __FILE__
-#ifdef SMARTREDIS
+
   type(client_type), public :: sr_client
-#endif
+
 
 !===============================================================================
 contains
