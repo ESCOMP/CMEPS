@@ -71,10 +71,11 @@ def buildlib(bldroot, installpath, case):
         filepath.append(os.path.join(srcroot,"share","cmeps"))
         filepath.append(os.path.join(srcroot,"components","cmeps", "nuopc_cap_share"))
         if case.get_value("USE_SMARTSIM"):
-            smartredis_home = os.getenv("REDIS_HOME")
-            expect(smartredis_home," Expect path to SMARTREDIS in env variable REDIS_HOME")
-            fortran_src_path = os.path.join(smartredis_home,"src","fortran")
-            redis_include_path = os.path.join(smartredis_home,"install","include")
+            smartredis_lib = os.getenv("SMARTREDIS_LIB")
+            expect(smartredis_lib," Expect path to SMARTREDIS in env variable SMARTREDIS_LIB - is the module loaded?")
+            fortran_src_path = os.getenv("SMARTREDIS_FSRC")
+            expect(fortran_src_path," Expect path to SMARTREDIS fortran source code in env variable SMARTREDIS_FSRC - is the module loaded?")
+            redis_include_path = os.getenv("SMARTREDIS_INCLUDE")
             expect(os.path.isdir(redis_include_path), "Could not find or read directory {}".format(redis_include_path))
             os.environ["USER_INCLDIR"] = "-I" + redis_include_path
             gmake_args += " USE_SMARTSIM=TRUE "
