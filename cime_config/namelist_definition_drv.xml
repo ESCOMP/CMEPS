@@ -1351,7 +1351,7 @@
   <!-- MED atm history files -->
   <!-- ======================================= -->
 
-  <entry id="history_inst_option_atm" modify_via_xml="HIST_OPTION_ATM">
+  <entry id="history_option_atm_inst" modify_via_xml="HIST_OPTION_ATM">
     <type>char</type>
     <category>time</category>
     <group>MED_attributes</group>
@@ -1363,7 +1363,7 @@
       <value>$HIST_OPTION_ATM</value>
     </values>
   </entry>
-  <entry id="history_inst_n_atm" modify_via_xml="HIST_N_ATM">
+  <entry id="history_n_atm_inst" modify_via_xml="HIST_N_ATM">
     <type>integer</type>
     <category>time</category>
     <group>MED_attributes</group>
@@ -1374,7 +1374,7 @@
       <value>$HIST_N_ATM</value>
     </values>
   </entry>
-  <entry id="history_avg_option_atm" modify_via_xml="AVGHIST_OPTION_ATM">
+  <entry id="history_option_atm_avg" modify_via_xml="AVGHIST_OPTION_ATM">
     <type>char</type>
     <category>time</category>
     <group>MED_attributes</group>
@@ -1386,7 +1386,7 @@
       <value>$AVGHIST_OPTION_ATM</value>
     </values>
   </entry>
-  <entry id="history_avg_n_atm" modify_via_xml="AVGHIST_N_ATM">
+  <entry id="history_n_atm_avg" modify_via_xml="AVGHIST_N_ATM">
     <type>integer</type>
     <category>time</category>
     <group>MED_attributes</group>
@@ -1733,7 +1733,7 @@
   <!-- MED ice history files -->
   <!-- ======================================= -->
 
-  <entry id="history_inst_option_ice" modify_via_xml="HIST_OPTION_ICE">
+  <entry id="history_option_ice_inst" modify_via_xml="HIST_OPTION_ICE">
     <type>char</type>
     <category>time</category>
     <group>MED_attributes</group>
@@ -1745,7 +1745,7 @@
       <value>$HIST_OPTION_ICE</value>
     </values>
   </entry>
-  <entry id="history_inst_n_ice" modify_via_xml="HIST_N_ICE">
+  <entry id="history_n_ice_inst" modify_via_xml="HIST_N_ICE">
     <type>integer</type>
     <category>time</category>
     <group>MED_attributes</group>
@@ -1756,7 +1756,7 @@
       <value>$HIST_N_ICE</value>
     </values>
   </entry>
-  <entry id="history_avg_option_ice" modify_via_xml="AVGHIST_OPTION_ICE">
+  <entry id="history_option_ice_avg" modify_via_xml="AVGHIST_OPTION_ICE">
     <type>char</type>
     <category>time</category>
     <group>MED_attributes</group>
@@ -1768,7 +1768,7 @@
       <value>$AVGHIST_OPTION_ICE</value>
     </values>
   </entry>
-  <entry id="history_avg_n_ice" modify_via_xml="AVGHIST_N_ICE">
+  <entry id="history_n_ice_avg" modify_via_xml="AVGHIST_N_ICE">
     <type>integer</type>
     <category>time</category>
     <group>MED_attributes</group>
@@ -1784,7 +1784,7 @@
   <!-- MED glc history files -->
   <!-- ======================================= -->
 
-  <entry id="history_inst_option_glc" modify_via_xml="HIST_OPTION_GLC">
+  <entry id="history_option_glc_inst" modify_via_xml="HIST_OPTION_GLC">
     <type>char</type>
     <category>time</category>
     <group>MED_attributes</group>
@@ -1796,7 +1796,7 @@
       <value>$HIST_OPTION_GLC</value>
     </values>
   </entry>
-  <entry id="history_inst_n_glc" modify_via_xml="HIST_N_GLC">
+  <entry id="history_n_glc_inst" modify_via_xml="HIST_N_GLC">
     <type>integer</type>
     <category>time</category>
     <group>MED_attributes</group>
@@ -1807,7 +1807,7 @@
       <value>$HIST_N_GLC</value>
     </values>
   </entry>
-  <entry id="history_avg_option_glc" modify_via_xml="AVGHIST_OPTION_GLC">
+  <entry id="history_option_glc_avg" modify_via_xml="AVGHIST_OPTION_GLC">
     <type>char</type>
     <category>time</category>
     <group>MED_attributes</group>
@@ -1819,7 +1819,7 @@
       <value>$AVGHIST_OPTION_GLC</value>
     </values>
   </entry>
-  <entry id="history_avg_n_glc" modify_via_xml="AVGHIST_N_GLC">
+  <entry id="history_n_glc_avg" modify_via_xml="AVGHIST_N_GLC">
     <type>integer</type>
     <category>time</category>
     <group>MED_attributes</group>
@@ -1835,7 +1835,7 @@
   <!-- MED lnd history files -->
   <!-- ======================================= -->
 
-  <entry id="history_inst_option_lnd" modify_via_xml="HIST_OPTION_LND">
+  <entry id="history_option_lnd_inst" modify_via_xml="HIST_OPTION_LND">
     <type>char</type>
     <category>time</category>
     <group>MED_attributes</group>
@@ -1847,7 +1847,7 @@
       <value>$HIST_OPTION_LND</value>
     </values>
   </entry>
-  <entry id="history_inst_n_lnd" modify_via_xml="HIST_N_LND">
+  <entry id="history_n_lnd_inst" modify_via_xml="HIST_N_LND">
     <type>integer</type>
     <category>time</category>
     <group>MED_attributes</group>
@@ -1858,7 +1858,7 @@
       <value>$HIST_N_LND</value>
     </values>
   </entry>
-  <entry id="history_avg_option_lnd" modify_via_xml="AVGHIST_OPTION_LND">
+  <entry id="history_option_lnd_avg" modify_via_xml="AVGHIST_OPTION_LND">
     <type>char</type>
     <category>time</category>
     <group>MED_attributes</group>
@@ -1870,7 +1870,7 @@
       <value>$AVGHIST_OPTION_LND</value>
     </values>
   </entry>
-  <entry id="history_avg_n_lnd" modify_via_xml="AVGHIST_N_LND">
+  <entry id="history_n_lnd_avg" modify_via_xml="AVGHIST_N_LND">
     <type>integer</type>
     <category>time</category>
     <group>MED_attributes</group>
@@ -2016,7 +2016,7 @@
   <!-- MED ocn history files -->
   <!-- ======================================= -->
 
-  <entry id="history_inst_option_ocn" modify_via_xml="HIST_OPTION_OCN">
+  <entry id="history_option_ocn_inst" modify_via_xml="HIST_OPTION_OCN">
     <type>char</type>
     <category>time</category>
     <group>MED_attributes</group>
@@ -2028,7 +2028,7 @@
       <value>$HIST_OPTION_OCN</value>
     </values>
   </entry>
-  <entry id="history_inst_n_ocn" modify_via_xml="HIST_N_OCN">
+  <entry id="history_n_ocn_inst" modify_via_xml="HIST_N_OCN">
     <type>integer</type>
     <category>time</category>
     <group>MED_attributes</group>
@@ -2039,7 +2039,7 @@
       <value>$HIST_N_OCN</value>
     </values>
   </entry>
-  <entry id="history_avg_option_ocn" modify_via_xml="AVGHIST_OPTION_OCN">
+  <entry id="history_option_ocn_avg" modify_via_xml="AVGHIST_OPTION_OCN">
     <type>char</type>
     <category>time</category>
     <group>MED_attributes</group>
@@ -2051,7 +2051,7 @@
       <value>$AVGHIST_OPTION_OCN</value>
     </values>
   </entry>
-  <entry id="history_avg_n_ocn" modify_via_xml="AVGHIST_N_OCN">
+  <entry id="history_n_ocn_avg" modify_via_xml="AVGHIST_N_OCN">
     <type>integer</type>
     <category>time</category>
     <group>MED_attributes</group>
@@ -2067,7 +2067,7 @@
   <!-- MED rof history files -->
   <!-- ======================================= -->
 
-  <entry id="history_inst_option_rof" modify_via_xml="HIST_OPTION_ROF">
+  <entry id="history_option_rof_inst" modify_via_xml="HIST_OPTION_ROF">
     <type>char</type>
     <category>time</category>
     <group>MED_attributes</group>
@@ -2079,7 +2079,7 @@
       <value>$HIST_OPTION_ROF</value>
     </values>
   </entry>
-  <entry id="history_inst_n_rof" modify_via_xml="HIST_N_ROF">
+  <entry id="history_n_rof_inst" modify_via_xml="HIST_N_ROF">
     <type>integer</type>
     <category>time</category>
     <group>MED_attributes</group>
@@ -2090,7 +2090,7 @@
       <value>$HIST_N_ROF</value>
     </values>
   </entry>
-  <entry id="history_avg_option_rof" modify_via_xml="AVGHIST_OPTION_ROF">
+  <entry id="history_option_rof_avg" modify_via_xml="AVGHIST_OPTION_ROF">
     <type>char</type>
     <category>time</category>
     <group>MED_attributes</group>
@@ -2102,7 +2102,7 @@
       <value>$AVGHIST_OPTION_ROF</value>
     </values>
   </entry>
-  <entry id="history_avg_n_rof" modify_via_xml="AVGHIST_N_ROF">
+  <entry id="history_n_rof_avg" modify_via_xml="AVGHIST_N_ROF">
     <type>integer</type>
     <category>time</category>
     <group>MED_attributes</group>
@@ -2183,7 +2183,7 @@
   <!-- MED wav history files -->
   <!-- ======================================= -->
 
-  <entry id="history_inst_option_wav" modify_via_xml="HIST_OPTION_WAV">
+  <entry id="history_option_wav_inst" modify_via_xml="HIST_OPTION_WAV">
     <type>char</type>
     <category>time</category>
     <group>MED_attributes</group>
@@ -2195,7 +2195,7 @@
       <value>$HIST_OPTION_WAV</value>
     </values>
   </entry>
-  <entry id="history_inst_n_wav" modify_via_xml="HIST_N_WAV">
+  <entry id="history_n_wav_inst" modify_via_xml="HIST_N_WAV">
     <type>integer</type>
     <category>time</category>
     <group>MED_attributes</group>
@@ -2206,7 +2206,7 @@
       <value>$HIST_N_WAV</value>
     </values>
   </entry>
-  <entry id="history_avg_option_wav" modify_via_xml="AVGHIST_OPTION_WAV">
+  <entry id="history_option_wav_avg" modify_via_xml="AVGHIST_OPTION_WAV">
     <type>char</type>
     <category>time</category>
     <group>MED_attributes</group>
@@ -2218,7 +2218,7 @@
       <value>$AVGHIST_OPTION_WAV</value>
     </values>
   </entry>
-  <entry id="history_avg_n_wav" modify_via_xml="AVGHIST_N_WAV">
+  <entry id="history_n_wav_avg" modify_via_xml="AVGHIST_N_WAV">
     <type>integer</type>
     <category>time</category>
     <group>MED_attributes</group>
