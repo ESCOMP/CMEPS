@@ -193,7 +193,7 @@ contains
     end if
 
     ! Note - the following needs a custom merge since Faoo_fco2_ocn is scaled by (ifrac+ofrac)
-    ! in the merge to the atm 
+    ! in the merge to the atm
     if ( FB_FldChk(is_local%wrap%FBExp(compatm)        , 'Faoo_fco2_ocn', rc=rc) .and. &
          FB_FldChk(is_local%wrap%FBImp(compocn,compocn), 'Faoo_fco2_ocn', rc=rc)) then
        call ESMF_FieldGet(lfield, farrayPtr=dataptr1, rc=rc)

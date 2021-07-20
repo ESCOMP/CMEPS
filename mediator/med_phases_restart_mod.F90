@@ -9,7 +9,7 @@ module med_phases_restart_mod
   use med_constants_mod     , only : SecPerDay => med_constants_SecPerDay
   use med_utils_mod         , only : chkerr    => med_utils_ChkErr
   use med_internalstate_mod , only : mastertask, logunit, InternalState
-  use med_phases_history_mod, only : num_auxfiles, auxfiles 
+  use med_phases_history_mod, only : num_auxfiles, auxfiles
   use med_time_mod          , only : med_time_AlarmInit
   use esmFlds               , only : ncomps, compname, compocn
   use perf_mod              , only : t_startf, t_stopf
@@ -432,7 +432,7 @@ contains
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
 
-          ! Write auxiliary files accumulation - 
+          ! Write auxiliary files accumulation -
           ! For now assume that any time averaged history file has only
           ! one time sample - this will be generalized in the future
           do nc = 2,ncomps
