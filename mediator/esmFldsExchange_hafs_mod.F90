@@ -162,6 +162,18 @@ contains
     end do
     deallocate(S_flds)
 
+    ! ---------------------------------------------------------------------
+    ! to atm: surface roughness length
+    ! ---------------------------------------------------------------------
+    allocate(S_flds(1))
+    S_flds = (/'Sw_zo'/) ! wave_z0_roughness_length
+    do n = 1,size(S_flds)
+       fldname = trim(S_flds(n))
+       call addfld(fldListFr(compwav)%flds, trim(fldname))
+       call addfld(fldListTo(compatm)%flds, trim(fldname))
+    end do
+    deallocate(S_flds)
+
     !=====================================================================
     ! FIELDS TO OCEAN (compocn)
     !=====================================================================
@@ -202,8 +214,12 @@ contains
     end do
     deallocate(F_flds)
 
+    !=====================================================================
+    ! FIELDS TO WAVE (compwav)
+    !=====================================================================
+
     ! ---------------------------------------------------------------------
-    ! from atm to wav
+    ! to wav: 10-m wind components 
     ! ---------------------------------------------------------------------
     allocate(S_flds(2))
     S_flds = (/'Sa_u10m', 'Sa_v10m'/)
