@@ -17,9 +17,7 @@ program esmApp
   use ensemble_driver, only : SetServices
   use shr_pio_mod,     only : shr_pio_init1
   use shr_sys_mod,     only : shr_sys_abort
-#ifdef SMARTREDIS
   use nuopc_shr_methods, only : sr_client
-#endif
 
   implicit none
 
@@ -33,9 +31,10 @@ program esmApp
   integer                 :: fileunit
   integer                 :: provided
   type(ESMF_VM)           :: vm
+  logical                 :: create_smartsim_cluster = .false.
 
   namelist /debug_inparm / create_esmf_pet_files
-
+  namelist /smartsim_inparm/ create_smartsim_cluster
   !-----------------------------------------------------------------------------
   ! Initiallize MPI
   !-----------------------------------------------------------------------------
@@ -46,9 +45,7 @@ program esmApp
   call MPI_init(rc)
 #endif
   COMP_COMM = MPI_COMM_WORLD
-#ifdef SMARTREDIS
-  call sr_client%initialize(.false.)
-#endif
+
   !-----------------------------------------------------------------------------
   ! Initialize PIO
   !-----------------------------------------------------------------------------
@@ -71,7 +68,7 @@ program esmApp
      open(newunit=fileunit, status="old", file="drv_in")
      read(fileunit, debug_inparm, iostat=ier)
      if (ier > 0) then
-        call shr_sys_abort('esmApp: error reading in debug_inparm namelist from drv_in')
+	call shr_sys_abort('esmApp: error reading in debug_inparm namelist from drv_in')
      end if
      close(fileunit)
   end if
@@ -89,6 +86,18 @@ program esmApp
        line=__LINE__, &
        file=__FILE__)) &
        call ESMF_Finalize(endflag=ESMF_END_ABORT)
+
+  ! Initialize the CrayLabs SmartRedis client
+  if (iam==0) then
+     open(newunit=fileunit, status="old", file="drv_in")
+     read(fileunit, smartsim_inparm, iostat=ier)
+     if (ier > 0) then
+	call shr_sys_abort('esmApp: error reading in smartsim_inparm namelist from drv_in')
+     end if
+     close(fileunit)
+  end if
+  call mpi_bcast (create_smartsim_cluster, 1, MPI_LOGICAL, 0, COMP_COMM, ier)
+  call sr_client%initialize(create_smartsim_cluster)
 
   call ESMF_VMGet(vm, mpiCommunicator=COMP_COMM, rc=rc)
   if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
