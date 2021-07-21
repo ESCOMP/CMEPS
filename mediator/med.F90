@@ -97,7 +97,6 @@ contains
     use med_phases_history_mod  , only: med_phases_history_write_rof
     use med_phases_history_mod  , only: med_phases_history_write_wav
     use med_phases_history_mod  , only: med_phases_history_write_med
-
     use med_phases_restart_mod  , only: med_phases_restart_write
     use med_phases_prep_atm_mod , only: med_phases_prep_atm
     use med_phases_prep_ice_mod , only: med_phases_prep_ice
@@ -764,7 +763,6 @@ contains
     use ESMF  , only : ESMF_StateIsCreated
     use ESMF  , only : ESMF_LogMsg_Info, ESMF_LogWrite
     use ESMF  , only : ESMF_END_ABORT, ESMF_Finalize
-    use ESMF  , only : ESMF_StateIsCreated
     use NUOPC , only : NUOPC_AddNamespace, NUOPC_Advertise, NUOPC_AddNestedState
     use NUOPC , only : NUOPC_CompAttributeGet, NUOPC_CompAttributeSet, NUOPC_CompAttributeAdd
 
