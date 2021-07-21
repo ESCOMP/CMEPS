@@ -289,18 +289,6 @@
     </values>
   </entry>
 
-  <entry id="use_smartredis" modify_via_xml="USE_SMARTSIM">
-    <type>logical</type>
-    <category>external_interface</category>
-    <group>nuopc_var</group>
-    <desc>
-      Link in the CrayLabs SmartRedis code https://github.com/CrayLabs/SmartRedis for use with SmartSim https://github.com/CrayLabs/SmartSim
-    </desc>
-    <values>
-      <value>$USE_SMARTSIM</value>
-    </values>
-  </entry>
-
   <!-- =========================================== -->
   <!-- DRIVER saturation vapor attributes          -->
   <!-- =========================================== -->
@@ -3359,6 +3347,18 @@
     </desc>
     <values>
       <value>$CREATE_ESMF_PET_FILES</value>
+    </values>
+  </entry>
+
+  <entry id="use_smartredis" modify_via_xml="USE_SMARTSIM">
+    <type>logical</type>
+    <category>smartsim</category>
+    <group>smartsim_inparm</group>
+    <desc>
+      Link in the CrayLabs SmartRedis code https://github.com/CrayLabs/SmartRedis for use with SmartSim https://github.com/CrayLabs/SmartSim
+    </desc>
+    <values>
+      <value>$USE_SMARTSIM</value>
     </values>
   </entry>
 

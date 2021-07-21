@@ -17,7 +17,7 @@ program esmApp
   use ensemble_driver, only : SetServices
   use shr_pio_mod,     only : shr_pio_init1
   use shr_sys_mod,     only : shr_sys_abort
-  use nuopc_shr_methods, only : sr_client
+  use nuopc_shr_methods, only : sr_client, use_smartredis
 
   implicit none
 
@@ -34,7 +34,7 @@ program esmApp
   logical                 :: create_smartsim_cluster = .false.
 
   namelist /debug_inparm / create_esmf_pet_files
-  namelist /smartsim_inparm/ create_smartsim_cluster
+  namelist /smartsim_inparm/ use_smartredis, create_smartsim_cluster
   !-----------------------------------------------------------------------------
   ! Initiallize MPI
   !-----------------------------------------------------------------------------
@@ -87,18 +87,6 @@ program esmApp
        file=__FILE__)) &
        call ESMF_Finalize(endflag=ESMF_END_ABORT)
 
-  ! Initialize the CrayLabs SmartRedis client
-  if (iam==0) then
-     open(newunit=fileunit, status="old", file="drv_in")
-     read(fileunit, smartsim_inparm, iostat=ier)
-     if (ier > 0) then
-	call shr_sys_abort('esmApp: error reading in smartsim_inparm namelist from drv_in')
-     end if
-     close(fileunit)
-  end if
-  call mpi_bcast (create_smartsim_cluster, 1, MPI_LOGICAL, 0, COMP_COMM, ier)
-  call sr_client%initialize(create_smartsim_cluster)
-
   call ESMF_VMGet(vm, mpiCommunicator=COMP_COMM, rc=rc)
   if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
        line=__LINE__, &
@@ -112,6 +100,25 @@ program esmApp
        line=__LINE__, &
        file=__FILE__)) &
        call ESMF_Finalize(endflag=ESMF_END_ABORT)
+
+  !-----------------------------------------------------------------------------
+  ! Initialize the CrayLabs SmartRedis client
+  !-----------------------------------------------------------------------------
+
+  if (iam==0) then
+     open(newunit=fileunit, status="old", file="drv_in")
+     read(fileunit, smartsim_inparm, iostat=ier)
+     if (ier > 0) then
+	call shr_sys_abort('esmApp: error reading in smartsim_inparm namelist from drv_in')
+     end if
+     close(fileunit)
+  end if
+  call mpi_bcast (use_smartredis, 1, MPI_LOGICAL, 0, COMP_COMM, ier)
+  call mpi_bcast (create_smartsim_cluster, 1, MPI_LOGICAL, 0, COMP_COMM, ier)
+  if (use_smartredis) then
+     call ESMF_Logwrite("Using SmartSim interface", ESMF_LOGMSG_INFO, rc=rc)
+     call sr_client%initialize(create_smartsim_cluster)
+  endif
 
   !-----------------------------------------------------------------------------
   ! Operate on the NUOPC Field dictionary

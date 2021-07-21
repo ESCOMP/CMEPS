@@ -39,11 +39,8 @@ module nuopc_shr_methods
   private :: timeInit
   private :: field_getfldptr
 
-#ifdef SMARTREDIS
-  logical, public  :: use_smartredis = .true.
-#else
   logical, public  :: use_smartredis = .false.
-#endif
+
   ! Clock and alarm options
   character(len=*), private, parameter :: &
        optNONE           = "none"      , &

@@ -2532,7 +2532,7 @@
    <type>logical</type>
    <valid_values>TRUE,FALSE</valid_values>
    <default_value>FALSE</default_value>
-   <group>run_debug</group>
+   <group>smartsim</group>
    <file>env_build.xml</file>
    <desc>if true, link with the HPE SmartRedis library  </desc>
  </entry>
@@ -2541,8 +2541,8 @@
    <type>logical</type>
    <valid_values>TRUE,FALSE</valid_values>
    <default_value>FALSE</default_value>
-   <group>run_debug</group>
-   <file>env_build.xml</file>
+   <group>smartsim</group>
+   <file>env_run.xml</file>
    <desc>Set to true if SmartSim database spans multiple nodes  </desc>
  </entry>
 
