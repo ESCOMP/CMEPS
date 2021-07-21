@@ -1047,7 +1047,8 @@ contains
                 else
                    transferOffer = 'cannot provide'
                 end if
-                call NUOPC_Advertise(is_local%wrap%NStateImp(ncomp), standardName=stdname, shortname=shortname, name=shortname, &
+                call NUOPC_Advertise(is_local%wrap%NStateImp(ncomp), &
+                     standardName=stdname, shortname=shortname, name=shortname, &
                      TransferOfferGeomObject=transferOffer, rc=rc)
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
                 call ESMF_LogWrite(subname//':Fr_'//trim(compname(ncomp))//': '//trim(shortname), ESMF_LOGMSG_INFO)
@@ -1065,7 +1066,8 @@ contains
                 else
                    transferOffer = 'cannot provide'
                 end if
-                call NUOPC_Advertise(is_local%wrap%NStateExp(ncomp), standardName=stdname, shortname=shortname, name=shortname, &
+                call NUOPC_Advertise(is_local%wrap%NStateExp(ncomp), &
+                     standardName=stdname, shortname=shortname, name=shortname, &
                      TransferOfferGeomObject=transferOffer, rc=rc)
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
                 call ESMF_LogWrite(subname//':To_'//trim(compname(ncomp))//': '//trim(shortname), ESMF_LOGMSG_INFO)
