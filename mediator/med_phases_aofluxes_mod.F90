@@ -5,9 +5,11 @@ module med_phases_aofluxes_mod
   use ESMF                  , only : ESMF_FieldBundle, ESMF_FieldBundleGet
   use ESMF                  , only : ESMF_FieldBundleCreate, ESMF_FieldBundleAdd
   use ESMF                  , only : ESMF_RouteHandle, ESMF_FieldRegrid, ESMF_FieldRegridStore
-  use ESMF                  , only : ESMF_TERMORDER_SRCSEQ, ESMF_REGION_TOTAL, ESMF_MESHLOC_ELEMENT
+  use ESMF                  , only : ESMF_TERMORDER_SRCSEQ, ESMF_REGION_TOTAL, ESMF_MESHLOC_ELEMENT, ESMF_MAXSTR
+  use ESMF                  , only : ESMF_XGRIDSIDE_B, ESMF_XGRIDSIDE_A, ESMF_END_ABORT, ESMF_LOGERR_PASSTHRU
   use ESMF                  , only : ESMF_Mesh, ESMF_MeshGet, ESMF_XGrid, ESMF_XGridCreate, ESMF_TYPEKIND_R8
   use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
+  use ESMF                  , only : ESMF_Finalize, ESMF_LogFoundError
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
   use med_internalstate_mod , only : InternalState
   use med_internalstate_mod , only : mastertask, logunit
@@ -52,19 +54,21 @@ module med_phases_aofluxes_mod
 
   character(len=CS), allocatable :: fldnames_ocn_in(:)
   character(len=CS), allocatable :: fldnames_atm_in(:)
-  character(len=CS), allocatable :: fldnames_aoflux_out(:)
+  character(len=CS), allocatable :: fldnames_aof_out(:)
 
   ! following is needed for atm/ocn fluxes on atm grid
   type(ESMF_FieldBundle) :: FBocn_a ! ocean fields need for aoflux calc on atm grid
 
   ! following is needed for atm/ocn fluxes on the exchange grid
-  type(ESMF_FieldBundle) :: FBocn_x        ! input ocn fields on exchange grid
-  type(ESMF_FieldBundle) :: FBatm_x        ! input atm fields on exchange grid
-  type(ESMF_FieldBundle) :: FBaoflux_x     ! output atm/ocn fluxes on exchange grid
+  type(ESMF_FieldBundle) :: FBocn_x        ! input ocn fields
+  type(ESMF_FieldBundle) :: FBatm_x        ! input atm fields
+  type(ESMF_FieldBundle) :: FBaof_x        ! output aoflux fields
   type(ESMF_RouteHandle) :: rh_ogrid2xgrid ! ocn->xgrid mapping
   type(ESMF_RouteHandle) :: rh_xgrid2ogrid ! xgrid->ocn mapping
   type(ESMF_RouteHandle) :: rh_agrid2xgrid ! atm->xgrid mapping
   type(ESMF_RouteHandle) :: rh_xgrid2agrid ! xgrid->atm mapping
+  type(ESMF_Field)       :: field_ogrid2xgrid_normone
+  type(ESMF_Field)       :: field_xgrid2agrid_normone
 
   type aoflux_type
      ! input: ocn
@@ -88,14 +92,12 @@ module med_phases_aofluxes_mod
      real(R8) , pointer :: shum_HDO    (:) => null() ! atm HDO tracer
      real(R8) , pointer :: shum_18O    (:) => null() ! atm H218O tracer
 
-     ! input: mask on aoflux grid
-     integer  , pointer :: mask        (:) => null() ! ocn domain mask: 0 <=> inactive cell
-     real(R8) , pointer :: rmask       (:) => null() ! ocn domain mask: 0 <=> inactive cell
-
      ! output: on aoflux grid
      ! if aoflux grid is ocn - then need to map these to the atm
      ! if aoflux grid is atm - then need to map these to the ocn
      ! if aoflux grid is exchange - will map back to both the atm and ocn
+     integer  , pointer :: mask        (:) => null() ! integer ocn domain mask: 0 <=> inactive cell
+     real(R8) , pointer :: rmask       (:) => null() ! real    ocn domain mask: 0 <=> inactive cell
      real(R8) , pointer :: sen         (:) => null() ! heat flux: sensible
      real(R8) , pointer :: lat         (:) => null() ! heat flux: latent
      real(R8) , pointer :: lwup        (:) => null() ! lwup over ocean
@@ -224,7 +226,6 @@ contains
     ! local variables
     type(InternalState) :: is_local
     integer             :: n
-    integer             :: fieldcount
     character(CL)       :: cvalue
     character(len=CX)   :: tmpstr
     real(R8)            :: flux_convergence        ! convergence criteria for implicit flux computation
@@ -256,44 +257,8 @@ contains
     end if
 
     !----------------------------------
-    ! Determine input ocn field names in aoflux
-    !----------------------------------
-
-    if (flds_wiso) then
-       allocate(fldnames_ocn_in(5))
-       fldnames_ocn_in = (/'So_omask   ','So_t       ','So_u       ','So_v       ','So_roce_wiso' /)
-    else
-       allocate(fldnames_ocn_in(4))
-       fldnames_ocn_in = (/'So_omask   ' ,'So_t       ','So_u       ','So_v       '/)
-    end if
-
-    !----------------------------------
-    ! Determine input atm field names in aoflux
-    !----------------------------------
-
-    if (trim(coupling_mode) == 'nems_orig_data' .and. ocn_surface_flux_scheme == -1) then
-       allocate(fldnames_atm_in(10))
-       fldnames_atm_in = (/'Sa_u   ','Sa_v   ','Sa_z  ','Sa_tbot','Sa_pbot','Sa_shum', &
-                           'Sa_u10m','Sa_v10m','Sa_t2m','Sa_q2m '/)
-    else if (flds_wiso) then
-       allocate(fldnames_atm_in(9))
-       fldnames_atm_in = (/'Sa_z        ','Sa_u        ','Sa_v        ','Sa_tbot     ',&
-                           'Sa_shum     ','Sa_pbot     ','Sa_dens     ','Sa_ptem     ','Sa_shum_wiso'/)
-    else
-       allocate(fldnames_atm_in(8))
-       fldnames_atm_in = (/'Sa_z   ','Sa_u   ','Sa_v   ','Sa_tbot',&
-                           'Sa_shum','Sa_pbot','Sa_dens','Sa_ptem'/)
-    end if
-
-    !----------------------------------
     ! Determine aoflux output field names (same for ocn and atm grid)
     !----------------------------------
-
-    call ESMF_FieldBundleGet(is_local%wrap%FBMed_aoflux_o, fieldCount=fieldCount, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    allocate(fldnames_aoflux_out(fieldcount))
-    call ESMF_FieldBundleGet(is_local%wrap%FBMed_aoflux_o, fieldNameList=fldnames_aoflux_out, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     !----------------------------------
     ! Initialize aoflux
@@ -364,6 +329,7 @@ contains
     type(InternalState) :: is_local
     character(len=CX)   :: tmpstr
     integer             :: lsize
+    integer             :: fieldcount
     character(len=*),parameter :: subname='(med_aofluxes_init_ocngrid)'
     !-----------------------------------------------------------------------
 
@@ -372,6 +338,12 @@ contains
     ! Get the internal state from the mediator Component.
     nullify(is_local%wrap)
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    call ESMF_FieldBundleGet(is_local%wrap%FBMed_aoflux_o, fieldCount=fieldCount, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    allocate(fldnames_aof_out(fieldcount))
+    call ESMF_FieldBundleGet(is_local%wrap%FBMed_aoflux_o, fieldNameList=fldnames_aof_out, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! ------------------------
@@ -549,6 +521,7 @@ contains
     ! Local variables
     type(InternalState) :: is_local
     integer             :: lsize,n
+    integer             :: fieldcount
     type(ESMF_Field)    :: field_src
     type(ESMF_Field)    :: field_dst
     real(r8), pointer   :: dataptr1d(:)
@@ -563,14 +536,27 @@ contains
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    ! create field bundles FBocn_a for the above fieldlist
-    call FB_init(FBocn_a, is_local%wrap%flds_scalar_name, &
-         FBgeom=is_local%wrap%FBImp(compatm,compatm), fieldnamelist=fldnames_ocn_in, name='FBocn_a', rc=rc)
+    call ESMF_FieldBundleGet(is_local%wrap%FBMed_aoflux_a, fieldCount=fieldCount, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    allocate(fldnames_aof_out(fieldcount))
+    call ESMF_FieldBundleGet(is_local%wrap%FBMed_aoflux_a, fieldNameList=fldnames_aof_out, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! ------------------------
     ! input ocn fields on atm grid
     ! ------------------------
+
+    ! create field bundles FBocn_a for the above fieldlist
+    if (flds_wiso) then
+       allocate(fldnames_ocn_in(5))
+       fldnames_ocn_in = (/'So_omask   ','So_t       ','So_u       ','So_v       ','So_roce_wiso' /)
+    else
+       allocate(fldnames_ocn_in(4))
+       fldnames_ocn_in = (/'So_omask   ','So_t       ','So_u       ','So_v       '/)
+    end if
+    call FB_init(FBocn_a, is_local%wrap%flds_scalar_name, &
+         FBgeom=is_local%wrap%FBImp(compatm,compatm), fieldnamelist=fldnames_ocn_in, name='FBocn_a', rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! point directly into FBocn_a for ocean fields on the atm grid
     call FB_GetFldPtr(FBocn_a, fldname='So_t', fldptr1=aoflux%tocn, rc=rc)
@@ -814,7 +800,6 @@ contains
     integer              :: n
     integer              :: lsize
     type(InternalState)  :: is_local
-    character(len=CX)    :: tmpstr
     type(ESMF_Field)     :: lfield_a
     type(ESMF_Field)     :: lfield_o
     type(ESMF_Field)     :: lfield_x
@@ -823,7 +808,14 @@ contains
     type(ESMF_Mesh)      :: ocn_mesh
     type(ESMF_Mesh)      :: atm_mesh
     integer, allocatable :: ocn_mask(:)
-    type(ESMF_XGrid)     :: aoflux_xgrid
+    type(ESMF_XGrid)     :: xgrid
+    type(ESMF_Field)     :: field_src  ! needed for normalization 
+    type(ESMF_Field)     :: field_dst  ! needed for normalization 
+    type(ESMF_Mesh)      :: mesh_src   ! needed for normalization 
+    type(ESMF_Mesh)      :: mesh_dst   ! needed for normalization 
+    real(r8), pointer    :: dataptr1d(:) 
+    integer              :: fieldcount
+    character(ESMF_MAXSTR),allocatable :: fieldNameList(:)
     character(len=*),parameter :: subname='(med_aofluxes_init_xgrid)'
     !-----------------------------------------------------------------------
 
@@ -838,63 +830,44 @@ contains
     ! Create exchange grid
     ! ------------------------
 
-    ! determine atm mesh - assume that atm mask is always 1!
-    call ESMF_FieldBundleGet(is_local%wrap%FBImp(compatm,compatm), fieldname=fldnames_atm_in(1), field=lfield, rc=rc)
+    ! determine atm mesh
+    call ESMF_FieldBundleGet(is_local%wrap%FBImp(compatm,compatm), fieldname='Sa_z', field=lfield, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call ESMF_FieldGet(lfield, mesh=atm_mesh, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    ! determine ocn mesh and ocn mask
-    call ESMF_FieldBundleGet(is_local%wrap%FBImp(compocn,compocn), fieldname=fldnames_ocn_in(1), field=lfield, rc=rc)
+    ! determine ocn mesh
+    call ESMF_FieldBundleGet(is_local%wrap%FBImp(compocn,compocn), fieldname='So_t', field=lfield, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call ESMF_FieldGet(lfield, mesh=ocn_mesh, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_MeshGet(ocn_mesh, elementCount=elementCount, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    allocate(ocn_mask(elementCount))
-    call ESMF_MeshGet(ocn_mesh, elementMask=ocn_mask, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    ! create the exchange grid -
-    ! first reset ocean mask to be 1 minus ocn mask - to determine what points to mask out for xgrid creation
-    do n = 1,size(ocn_mask)
-       ocn_mask(n) = 1 - ocn_mask(n)
-    end do
-    aoflux_xgrid = ESMF_XGridCreate(sideAMesh=(/ocn_mesh/), sideBMesh=(/atm_mesh/), sideAMaskValues=ocn_mask, rc=rc)
+    ! create exchange grid - assume that atm mask is always 1
+    xgrid = ESMF_XGridCreate(sideBMesh=(/ocn_mesh/), sideAMesh=(/atm_mesh/), sideBMaskValues=(/0/), rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! ------------------------
     ! input fields from ocn on xgrid
     ! ------------------------
 
-    ! Create the FBocn_x
+    ! Create FBocn_x (module variable)
     FBocn_x = ESMF_FieldBundleCreate(rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    do n = 1,size(fldnames_ocn_in)
-       lfield_x = ESMF_FieldCreate(aoflux_xgrid, typekind=ESMF_TYPEKIND_R8, name=trim(fldnames_ocn_in(n)), rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_FieldBundleAdd(FBocn_x, (/lfield_x/), rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-    end do
 
-    call FB_GetFldPtr(FBocn_x, fldname='So_omask', fldptr1=aoflux%rmask, rc=rc)
+    call add_fld_to_xfldbun(xgrid, FBocn_x, 'So_t', aoflux%tocn, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    lsize = size(aoflux%rmask)
+    call add_fld_to_xfldbun(xgrid, FBocn_x, 'So_u', aoflux%uocn, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call add_fld_to_xfldbun(xgrid, FBocn_x, 'So_v', aoflux%vocn, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    lsize = size(aoflux%tocn)
     aoflux%lsize = lsize
-
-    call FB_GetFldPtr(FBocn_x, fldname='So_t', fldptr1=aoflux%tocn, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call FB_GetFldPtr(FBocn_x, fldname='So_u', fldptr1=aoflux%uocn, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call FB_GetFldPtr(FBocn_x, fldname='So_v', fldptr1=aoflux%vocn, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
     if (flds_wiso) then
-       call FB_GetFldPtr(FBocn_x, fldname='So_roce_16O', fldptr1=aoflux%roce_16O, rc=rc)
+       call add_fld_to_xfldbun(xgrid, FBocn_x, 'So_roce_16O', aoflux%roce_16O, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call FB_GetFldPtr(FBocn_x, fldname='So_roce_18O', fldptr1=aoflux%roce_18O, rc=rc)
+       call add_fld_to_xfldbun(xgrid, FBocn_x, 'So_roce_18O', aoflux%roce_18O, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call FB_GetFldPtr(FBocn_x, fldname='So_roce_HDO', fldptr1=aoflux%roce_HDO, rc=rc)
+       call add_fld_to_xfldbun(xgrid, FBocn_x, 'So_roce_HDO', aoflux%roce_HDO, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     else
        allocate(aoflux%roce_16O(lsize)); aoflux%roce_16O(:) = 0._R8
@@ -902,49 +875,45 @@ contains
        allocate(aoflux%roce_HDO(lsize)); aoflux%roce_HDO(:) = 0._R8
     end if
 
+    call ESMF_FieldBundleGet(FBocn_x, fieldCount=fieldCount, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    allocate(fldnames_ocn_in(fieldcount))
+    call ESMF_FieldBundleGet(FBocn_x, fieldnamelist=fldnames_ocn_in, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
     ! ------------------------
     ! input fields from atm on xgrid
     ! ------------------------
 
-    ! Note - the mapping from FBImp(compatm,compatm) to FBatm_x is done in med_phase
-    ! med_phases_postatm
-
-    ! create FBatm_x
     FBatm_x = ESMF_FieldBundleCreate(rc=rc)
-    do n = 1,size(fldnames_atm_in)
-       lfield_x = ESMF_FieldCreate(aoflux_xgrid, typekind=ESMF_TYPEKIND_R8, name=trim(fldnames_atm_in(n)), rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_FieldBundleAdd(FBatm_x, (/lfield_x/), rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-    end do
-
-    call FB_GetFldPtr(FBatm_x, fldname='Sa_z', fldptr1=aoflux%zbot, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    ! bulk formula quantities for nems_orig_data
+    call add_fld_to_xfldbun(xgrid, FBatm_x, 'Sa_z', aoflux%zbot, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
     if (trim(coupling_mode) == 'nems_orig_data' .and. ocn_surface_flux_scheme == -1) then
-       call FB_GetFldPtr(FBatm_x, fldname='Sa_u10m', fldptr1=aoflux%ubot, rc=rc)
+       ! bulk formula quantities for nems_orig_data
+       call add_fld_to_xfldbun(xgrid, FBatm_x, 'Sa_u10m', aoflux%ubot, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call FB_GetFldPtr(FBatm_x, fldname='Sa_v10m', fldptr1=aoflux%vbot, rc=rc)
+       call add_fld_to_xfldbun(xgrid, FBatm_x, 'Sa_v10m', aoflux%vbot, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call FB_GetFldPtr(FBatm_x, fldname='Sa_t2m', fldptr1=aoflux%tbot, rc=rc)
+       call add_fld_to_xfldbun(xgrid, FBatm_x, 'Sa_t2m' , aoflux%tbot, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call FB_GetFldPtr(FBatm_x, fldname='Sa_q2m', fldptr1=aoflux%shum, rc=rc)
+       call add_fld_to_xfldbun(xgrid, FBatm_x, 'Sa_q2m' , aoflux%shum, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     else
-       call FB_GetFldPtr(FBatm_x, fldname='Sa_u', fldptr1=aoflux%ubot, rc=rc)
+       call add_fld_to_xfldbun(xgrid, FBatm_x, 'Sa_u'   , aoflux%ubot, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call FB_GetFldPtr(FBatm_x, fldname='Sa_v', fldptr1=aoflux%vbot, rc=rc)
+       call add_fld_to_xfldbun(xgrid, FBatm_x, 'Sa_v'   , aoflux%vbot, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call FB_GetFldPtr(FBatm_x, fldname='Sa_tbot', fldptr1=aoflux%tbot, rc=rc)
+       call add_fld_to_xfldbun(xgrid, FBatm_x, 'Sa_tbot', aoflux%tbot, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call FB_GetFldPtr(FBatm_x, fldname='Sa_shum', fldptr1=aoflux%shum, rc=rc)
+       call add_fld_to_xfldbun(xgrid, FBatm_x, 'Sa_shum', aoflux%shum, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     end if
 
     ! bottom level potential temperature will need to be computed if not received from the atm
     if (FB_fldchk(is_local%wrap%FBImp(compatm,compatm), 'Sa_ptem', rc=rc)) then
-       call FB_GetFldPtr(FBatm_x, fldname='Sa_ptem', fldptr1=aoflux%thbot, rc=rc)
+       call add_fld_to_xfldbun(xgrid, FBatm_x, 'Sa_ptem', aoflux%thbot, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        compute_atm_thbot = .false.
     else
@@ -954,7 +923,7 @@ contains
 
     ! bottom level density will need to be computed if not received from the atm
     if (FB_fldchk(is_local%wrap%FBImp(compatm,compatm), 'Sa_dens', rc=rc)) then
-       call FB_GetFldPtr(FBatm_x, fldname='Sa_dens', fldptr1=aoflux%dens, rc=rc)
+       call add_fld_to_xfldbun(xgrid, FBatm_x, 'Sa_dens', aoflux%dens, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        compute_atm_dens = .false.
     else
@@ -964,16 +933,15 @@ contains
 
     ! if either density or potential temperature are computed, will need bottom level pressure
     if (compute_atm_dens .or. compute_atm_thbot) then
-       call FB_GetFldPtr(FBatm_x, fldname='Sa_pbot', fldptr1=aoflux%pbot, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call add_fld_to_xfldbun(xgrid, FBatm_x, 'Sa_pbot', aoflux%pbot, rc=rc)
     end if
 
     if (flds_wiso) then
-       call FB_GetFldPtr(FBatm_x, fldname='Sa_shum_16O', fldptr1=aoflux%shum_16O, rc=rc)
+       call add_fld_to_xfldbun(xgrid, FBatm_x, 'Sa_shum_16O', aoflux%shum_16O, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call FB_GetFldPtr(FBatm_x, fldname='Sa_shum_18O', fldptr1=aoflux%shum_18O, rc=rc)
+       call add_fld_to_xfldbun(xgrid, FBatm_x, 'Sa_shum_18O', aoflux%shum_18O, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call FB_GetFldPtr(FBatm_x, fldname='Sa_shum_HDO', fldptr1=aoflux%shum_HDO, rc=rc)
+       call add_fld_to_xfldbun(xgrid, FBatm_x, 'Sa_shum_HDO', aoflux%shum_HDO, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     else
        allocate(aoflux%shum_16O(lsize)); aoflux%shum_16O(:) = 0._R8
@@ -981,138 +949,61 @@ contains
        allocate(aoflux%shum_HDO(lsize)); aoflux%shum_HDO(:) = 0._R8
     end if
 
+    call ESMF_FieldBundleGet(FBatm_x, fieldCount=fieldCount, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    allocate(fldnames_atm_in(fieldcount))
+    call ESMF_FieldBundleGet(FBatm_x, fieldnamelist=fldnames_atm_in, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
     ! ------------------------
     ! output fields from aoflux calculation on exchange grid
     ! ------------------------
 
-    ! create FBaoflux_x and then set pointers into each field added
-
-    FBaoflux_x = ESMF_FieldBundleCreate(rc=rc)
+    FBaof_x = ESMF_FieldBundleCreate(rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    lfield_x = ESMF_FieldCreate(aoflux_xgrid, typekind=ESMF_TYPEKIND_R8, name='So_tref', rc=rc)
+    call add_fld_to_xfldbun(xgrid, FBaof_x, 'So_tref'  , aoflux%tref   , rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldBundleAdd(FBaoflux_x, (/lfield_x/), rc=rc)
+    call add_fld_to_xfldbun(xgrid, FBaof_x, 'So_qref'  , aoflux%qref   , rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call FB_GetFldPtr(FBaoflux_x, fldname='So_tref', fldptr1=aoflux%tref, rc=rc)
+    call add_fld_to_xfldbun(xgrid, FBaof_x, 'So_ustar' , aoflux%ustar  , rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    lfield_x = ESMF_FieldCreate(aoflux_xgrid, typekind=ESMF_TYPEKIND_R8, name='So_qref', rc=rc)
+    call add_fld_to_xfldbun(xgrid, FBaof_x, 'So_re'    , aoflux%re     , rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldBundleAdd(FBaoflux_x, (/lfield_x/), rc=rc)
+    call add_fld_to_xfldbun(xgrid, FBaof_x, 'So_ssq'   , aoflux%ssq    , rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call FB_GetFldPtr(FBaoflux_x, fldname='So_qref', fldptr1=aoflux%qref, rc=rc)
+    call add_fld_to_xfldbun(xgrid, FBaof_x, 'So_u10'   , aoflux%u10    , rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    lfield_x = ESMF_FieldCreate(aoflux_xgrid, typekind=ESMF_TYPEKIND_R8, name='So_ustar', rc=rc)
+    call add_fld_to_xfldbun(xgrid, FBaof_x, 'So_duu10n', aoflux%duu10n , rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldBundleAdd(FBaoflux_x, (/lfield_x/), rc=rc)
+    call add_fld_to_xfldbun(xgrid, FBaof_x, 'Faox_taux', aoflux%taux   , rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call FB_GetFldPtr(FBaoflux_x, fldname='So_ustar', fldptr1=aoflux%ustar, rc=rc)
+    call add_fld_to_xfldbun(xgrid, FBaof_x, 'Faox_tauy', aoflux%tauy   , rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    lfield_x = ESMF_FieldCreate(aoflux_xgrid, typekind=ESMF_TYPEKIND_R8, name='So_re', rc=rc)
+    call add_fld_to_xfldbun(xgrid, FBaof_x, 'Faox_lat' , aoflux%lat    , rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldBundleAdd(FBaoflux_x, (/lfield_x/), rc=rc)
+    call add_fld_to_xfldbun(xgrid, FBaof_x, 'Faox_sen' , aoflux%sen    , rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call FB_GetFldPtr(FBaoflux_x, fldname='So_re', fldptr1=aoflux%re, rc=rc)
+    call add_fld_to_xfldbun(xgrid, FBaof_x, 'Faox_evap', aoflux%evap   , rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    lfield_x = ESMF_FieldCreate(aoflux_xgrid, typekind=ESMF_TYPEKIND_R8, name='So_ssq', rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldBundleAdd(FBaoflux_x, (/lfield_x/), rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call FB_GetFldPtr(FBaoflux_x, fldname='So_ssq', fldptr1=aoflux%ssq, rc=rc)
+    call add_fld_to_xfldbun(xgrid, FBaof_x, 'Faox_lwup', aoflux%lwup   , rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    lfield_x = ESMF_FieldCreate(aoflux_xgrid, typekind=ESMF_TYPEKIND_R8, name='So_u10', rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldBundleAdd(FBaoflux_x, (/lfield_x/), rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call FB_GetFldPtr(FBaoflux_x, fldname='So_u10', fldptr1=aoflux%u10, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    lfield_x = ESMF_FieldCreate(aoflux_xgrid, typekind=ESMF_TYPEKIND_R8, name='So_duu10n', rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldBundleAdd(FBaoflux_x, (/lfield_x/), rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call FB_GetFldPtr(FBaoflux_x, fldname='So_duu10n', fldptr1=aoflux%duu10n, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    lfield_x = ESMF_FieldCreate(aoflux_xgrid, typekind=ESMF_TYPEKIND_R8, name='Faox_taux', rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldBundleAdd(FBaoflux_x, (/lfield_x/), rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call FB_GetFldPtr(FBaoflux_x, fldname='Faox_taux', fldptr1=aoflux%taux, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    lfield_x = ESMF_FieldCreate(aoflux_xgrid, typekind=ESMF_TYPEKIND_R8, name='Faox_tauy', rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldBundleAdd(FBaoflux_x, (/lfield_x/), rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call FB_GetFldPtr(FBaoflux_x, fldname='Faox_tauy', fldptr1=aoflux%tauy, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    lfield_x = ESMF_FieldCreate(aoflux_xgrid, typekind=ESMF_TYPEKIND_R8, name='Faox_lat', rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldBundleAdd(FBaoflux_x, (/lfield_x/), rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call FB_GetFldPtr(FBaoflux_x, fldname='Faox_lat', fldptr1=aoflux%lat, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    lfield_x = ESMF_FieldCreate(aoflux_xgrid, typekind=ESMF_TYPEKIND_R8, name='Faox_sen', rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldBundleAdd(FBaoflux_x, (/lfield_x/), rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call FB_GetFldPtr(FBaoflux_x, fldname='Faox_sen', fldptr1=aoflux%sen, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    lfield_x = ESMF_FieldCreate(aoflux_xgrid, typekind=ESMF_TYPEKIND_R8, name='Faox_evap', rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldBundleAdd(FBaoflux_x, (/lfield_x/), rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call FB_GetFldPtr(FBaoflux_x, fldname='Faox_evap', fldptr1=aoflux%evap, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
     if (flds_wiso) then
-       lfield_x = ESMF_FieldCreate(aoflux_xgrid, typekind=ESMF_TYPEKIND_R8, name='Faox_evap_16O', rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_FieldBundleAdd(FBaoflux_x, (/lfield_x/), rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call FB_GetFldPtr(FBaoflux_x, fldname='Faox_evap_16O', fldptr1=aoflux%evap_16O, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-       lfield_x = ESMF_FieldCreate(aoflux_xgrid, typekind=ESMF_TYPEKIND_R8, name='Faox_evap_18O', rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_FieldBundleAdd(FBaoflux_x, (/lfield_x/), rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call FB_GetFldPtr(FBaoflux_x, fldname='Faox_evap_18O', fldptr1=aoflux%evap_18O, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-       lfield_x = ESMF_FieldCreate(aoflux_xgrid, typekind=ESMF_TYPEKIND_R8, name='Faox_evap_HDO', rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_FieldBundleAdd(FBaoflux_x, (/lfield_x/), rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call FB_GetFldPtr(FBaoflux_x, fldname='Faox_evap_HDO', fldptr1=aoflux%evap_HDO, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call add_fld_to_xfldbun(xgrid, FBaof_x, 'Faox_evap_16O', aoflux%evap_16O, rc=rc)
+       call add_fld_to_xfldbun(xgrid, FBaof_x, 'Faox_evap_18O', aoflux%evap_18O, rc=rc)
+       call add_fld_to_xfldbun(xgrid, FBaof_x, 'Faox_evap_HDO', aoflux%evap_HDO, rc=rc)
     else
        allocate(aoflux%evap_16O(lsize)); aoflux%evap_16O(:) = 0._R8
        allocate(aoflux%evap_18O(lsize)); aoflux%evap_18O(:) = 0._R8
        allocate(aoflux%evap_HDO(lsize)); aoflux%evap_HDO(:) = 0._R8
     end if
 
-    lfield_x = ESMF_FieldCreate(aoflux_xgrid, typekind=ESMF_TYPEKIND_R8, name='Faox_lwup', rc=rc)
+    call ESMF_FieldBundleGet(FBaof_x, fieldCount=fieldCount, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldBundleAdd(FBaoflux_x, (/lfield_x/), rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call FB_GetFldPtr(FBaoflux_x, fldname='Faox_lwup', fldptr1=aoflux%lwup, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    ! ------------------------
-    ! setup the compute mask - default compute everywhere for exchange grid
-    ! ------------------------
-
-    allocate(aoflux%mask(lsize))
-    aoflux%mask(:) = 1
+    allocate(fldnames_aof_out(fieldcount))
+    call ESMF_FieldBundleGet(FBaof_x, fieldnamelist=fldnames_aof_out, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! ------------------------
     ! create the routehandles atm->xgrid and xgrid->atm
@@ -1122,9 +1013,9 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call ESMF_FieldBundleGet(FBatm_x, trim(fldnames_atm_in(1)), field=lfield_x, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldRegridStore(aoflux_xgrid, lfield_a, lfield_x, routehandle=rh_agrid2xgrid, rc=rc)
+    call ESMF_FieldRegridStore(xgrid, lfield_a, lfield_x, routehandle=rh_agrid2xgrid, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldRegridStore(aoflux_xgrid, lfield_x, lfield_a, routehandle=rh_xgrid2agrid, rc=rc)
+    call ESMF_FieldRegridStore(xgrid, lfield_x, lfield_a, routehandle=rh_xgrid2agrid, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! ------------------------
@@ -1135,9 +1026,89 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call ESMF_FieldBundleGet(FBocn_x, trim(fldnames_ocn_in(1)), field=lfield_x, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldRegridStore(aoflux_xgrid, lfield_o, lfield_x, routehandle=rh_ogrid2xgrid, rc=rc)
+    call ESMF_FieldRegridStore(xgrid, lfield_o, lfield_x, routehandle=rh_ogrid2xgrid, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldRegridStore(aoflux_xgrid, lfield_x, lfield_o, routehandle=rh_xgrid2ogrid, rc=rc)
+    call ESMF_FieldRegridStore(xgrid, lfield_x, lfield_o, routehandle=rh_xgrid2ogrid, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    ! ------------------------
+    ! setup the compute mask - default compute everywhere for exchange grid
+    ! ------------------------
+
+    ! Compute mask is the ocean mask mapped to exchange grid (conservatively without fractions)
+    ! This computes So_omask in FBocn_a - but the assumption is that it already is there
+    ! call ESMF_FieldBundleGet(is_local%wrap%FBImp(compocn,compocn), 'So_omask', field=field_src, rc=rc)
+    ! if (chkerr(rc,__LINE__,u_FILE_u)) return
+    ! call ESMF_FieldBundleGet(FBocn_x, 'So_t', field=field_dst, rc=rc)
+    ! if (chkerr(rc,__LINE__,u_FILE_u)) return
+    ! call ESMF_FieldRegrid(field_src, field_dst, routehandle=rh_ogrid2xgrid, &
+    !      termorderflag=ESMF_TERMORDER_SRCSEQ, zeroregion=ESMF_REGION_TOTAL, rc=rc)
+    ! if (chkerr(rc,__LINE__,u_FILE_u)) return
+    ! call ESMF_FieldGet(field_dst, farrayptr=dataptr1d, rc=rc)
+    ! if (chkerr(rc,__LINE__,u_FILE_u)) return
+    ! lsize = size(dataptr1d)
+    ! allocate(aoflux%mask(lsize))
+    ! do n = 1,lsize
+    !    if (dataptr1d(n) == 0._r8) then
+    !       aoflux%mask(n) = 0
+    !       write(6,*)'DEBUG: setting mask to zero for n = ',n
+    !    else
+    !       aoflux%mask(n) = 1
+    !    end if
+    ! enddo
+
+    allocate(aoflux%mask(lsize))
+    aoflux%mask(:) = 1
+
+    ! ------------------------
+    ! Determine one normalization field for ocn->xgrid
+    ! ------------------------
+
+    ! Create temporary source field on ocn mesh and set its value to 1.
+    call ESMF_FieldBundleGet(is_local%wrap%FBImp(compocn,compocn), 'So_t', field=lfield_o, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldGet(lfield_o, mesh=ocn_mesh, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    lfield_o = ESMF_FieldCreate(ocn_mesh, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldGet(lfield_o, farrayptr=dataPtr1d, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    dataptr1d(:) = 1.0_R8
+
+    ! Create field_ogrid2xgrid_normone (module variable)
+    field_ogrid2xgrid_normone = ESMF_FieldCreate(xgrid, ESMF_TYPEKIND_R8, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldRegrid(lfield_o, field_ogrid2xgrid_normone, routehandle=rh_ogrid2xgrid, &
+         termorderflag=ESMF_TERMORDER_SRCSEQ, zeroregion=ESMF_REGION_TOTAL, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    ! Destroy temporary field
+    call ESMF_FieldDestroy(lfield_o, rc=rc, noGarbage=.true.)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    ! ------------------------
+    ! Determine one normalization field for xgrid->atm
+    ! ------------------------
+    ! Create temporary field on xgrid and set its value to 1.
+    lfield_x = ESMF_FieldCreate(xgrid, typekind=ESMF_TYPEKIND_R8, name='Sa_z', rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldGet(lfield_x, farrayptr=dataPtr1d, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    dataptr1d(:) = 1.0_R8
+
+    ! Create field_xgrid2agrid_normone (module variable) - on the atm mesh
+    call ESMF_FieldBundleGet(is_local%wrap%FBImp(compatm,compatm), 'Sa_z', field=lfield_a, rc=rc)    
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldGet(lfield_a, mesh=atm_mesh, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    field_xgrid2agrid_normone = ESMF_FieldCreate(atm_mesh, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldRegrid(lfield_x, field_xgrid2agrid_normone, routehandle=rh_xgrid2agrid, &
+         termorderflag=ESMF_TERMORDER_SRCSEQ, zeroregion=ESMF_REGION_TOTAL, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    ! Destroy temporary field on xgrid
+    call ESMF_FieldDestroy(lfield_x, rc=rc, noGarbage=.true.)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
   end subroutine med_aofluxes_init_xgrid
@@ -1307,12 +1278,12 @@ contains
 
        if (is_local%wrap%med_coupling_active(compatm,compocn)) then
           ! map aoflux from agrid to ogrid
-          do nf = 1,size(fldnames_aoflux_out)
+          do nf = 1,size(fldnames_aof_out)
              ! Create source field
-             call ESMF_FieldBundleGet(is_local%wrap%FBMed_aoflux_a, fldnames_aoflux_out(nf), field=field_src, rc=rc)
+             call ESMF_FieldBundleGet(is_local%wrap%FBMed_aoflux_a, fldnames_aof_out(nf), field=field_src, rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
              ! Create destination field
-             call ESMF_FieldBundleGet(is_local%wrap%FBMed_aoflux_o, fldnames_aoflux_out(nf), field=field_dst, rc=rc)
+             call ESMF_FieldBundleGet(is_local%wrap%FBMed_aoflux_o, fldnames_aof_out(nf), field=field_dst, rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
 
              ! Map atm->ocn conservatively WITHOUT fractions
@@ -1339,20 +1310,32 @@ contains
     else if (is_local%wrap%aoflux_grid == 'xgrid') then
 
        ! map aoflux from xgrid to agrid and ogrid
-       do nf = 1,size(fldnames_aoflux_out)
+       do nf = 1,size(fldnames_aof_out)
           ! Get the source field
-          call ESMF_FieldBundleGet(FBaoflux_x, fldnames_aoflux_out(nf), field=field_src, rc=rc)
+          call ESMF_FieldBundleGet(FBaof_x, fldnames_aof_out(nf), field=field_src, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
 
           ! Get the destination field
-          call ESMF_FieldBundleGet(is_local%wrap%FBMed_aoflux_a, fldnames_aoflux_out(nf), field=field_dst, rc=rc)
+          call ESMF_FieldBundleGet(is_local%wrap%FBMed_aoflux_a, fldnames_aof_out(nf), field=field_dst, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           ! Map xgrid->agrid conservatively
           call ESMF_FieldRegrid(field_src, field_dst, routehandle=rh_xgrid2agrid, &
                termorderflag=ESMF_TERMORDER_SRCSEQ, zeroregion=ESMF_REGION_TOTAL, rc=rc)
+          ! One normalization
+          call ESMF_FieldGet(field_xgrid2agrid_normone, farrayPtr=data_normdst, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_FieldGet(field_dst, farrayptr=data_dst, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          do n = 1,size(data_dst)
+             if (data_normdst(n) == 0.0_r8) then
+                data_dst(n) = 0.0_r8
+             else
+                data_dst(n) = data_dst(n)/data_normdst(n)
+             end if
+          end do
 
           ! Get the destination field
-          call ESMF_FieldBundleGet(is_local%wrap%FBMed_aoflux_o, fldnames_aoflux_out(nf), field=field_dst, rc=rc)
+          call ESMF_FieldBundleGet(is_local%wrap%FBMed_aoflux_o, fldnames_aof_out(nf), field=field_dst, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           ! Map xgrid->ogrid conservatively
           call ESMF_FieldRegrid(field_src, field_dst, routehandle=rh_xgrid2agrid, &
@@ -1364,5 +1347,50 @@ contains
     call t_stopf('MED:'//subname)
 
   end subroutine med_aofluxes_update
+
+  !================================================================================
+  subroutine add_fld_to_xfldbun(xgrid, fldbun, fldname, aoflux_dataptr, rc)
+
+    ! input/output variables
+    type(ESMF_Xgrid)       , intent(in)    :: xgrid
+    type(ESMF_FieldBundle) , intent(inout) :: fldbun
+    character(len=*)       , intent(in)    :: fldname
+    real(r8)               , pointer       :: aoflux_dataptr(:)
+    integer                , intent(out)   :: rc
+
+    ! local variables
+    type(ESMF_Field) :: lfield
+    !-----------------------------------------------------------------------
+    rc = ESMF_SUCCESS
+
+    lfield = ESMF_FieldCreate(xgrid, typekind=ESMF_TYPEKIND_R8, name=trim(fldname), rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldBundleAdd(fldbun, (/lfield/), rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldGet(lfield, farrayPtr=aoflux_dataptr, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+  end subroutine add_fld_to_xfldbun
+
+  !================================================================================
+  subroutine fldbun_getfldptr(fldbun, fldname, fldptr, rc)
+
+    ! input/output variables
+    type(ESMF_FieldBundle) , intent(in)  :: fldbun
+    character(len=*)       , intent(in)  :: fldname
+    real(r8)               , pointer     :: fldptr(:)
+    integer                , intent(out) :: rc 
+
+    ! local variables
+    type(ESMF_Field) :: lfield
+    !-----------------------------------------------------------------------
+    rc = ESMF_SUCCESS
+
+    call ESMF_FieldBundleGet(fldbun, trim(fldname), field=lfield, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldGet(lfield, farrayPtr=fldptr, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+  end subroutine fldbun_getfldptr
 
 end module med_phases_aofluxes_mod

@@ -770,7 +770,6 @@ contains
        cvalue = 'ogrid'
     end if
     is_local%wrap%aoflux_grid = trim(cvalue)
-    write(6,*)'DEBUG: aoflux_grid = ',is_local%wrap%aoflux_grid
 
     !------------------
     ! Initialize mediator flds
