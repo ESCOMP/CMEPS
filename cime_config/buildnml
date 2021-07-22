@@ -55,6 +55,7 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     ocn_grid = case.get_value('OCN_GRID')
     rof_grid = case.get_value('ROF_GRID')
     wav_grid = case.get_value('WAV_GRID')
+    #pylint: disable=unused-variable
     glc_grid = case.get_value('GLC_GRID')
 
     config['atm_grid'] = atm_grid
