@@ -1,5 +1,4 @@
 module nuopc_shr_methods
-  use smartredis_client, only : client_type
   use ESMF         , only : operator(<), operator(/=), operator(+)
   use ESMF         , only : operator(-), operator(*) , operator(>=)
   use ESMF         , only : operator(<=), operator(>), operator(==)
@@ -23,6 +22,11 @@ module nuopc_shr_methods
   use shr_kind_mod , only : r8 => shr_kind_r8, cl=>shr_kind_cl, cs=>shr_kind_cs
   use shr_sys_mod  , only : shr_sys_abort
   use shr_file_mod , only : shr_file_setlogunit, shr_file_getLogUnit
+  !
+  ! The CrayLabs SmartSim interface is provided in directory share  https://github.com/ESCOMP/CESM_share
+  ! Please see file cime/tools/smartsim/README.md for a complete explanation of the CESM interface to smartsim
+  !
+  use smartredis_client, only : client_type
 
   implicit none
   private
@@ -39,7 +43,6 @@ module nuopc_shr_methods
   private :: timeInit
   private :: field_getfldptr
 
-  logical, public  :: use_smartredis = .false.
 
   ! Clock and alarm options
   character(len=*), private, parameter :: &
@@ -69,7 +72,12 @@ module nuopc_shr_methods
   character(len=1024)                   :: msgString
   character(len=*), parameter :: u_FILE_u = &
        __FILE__
-
+  !
+  ! The CrayLabs SmartSim interface is provided in directory share  https://github.com/ESCOMP/CESM_share
+  ! Please see file cime/tools/smartsim/README.md for a complete explanation of the CESM interface to smartsim
+  ! The use_smartredis variable is set in file drv_in and if true the variable sr_client is initialized in esmApp.F90
+  !
+  logical, public  :: use_smartredis = .false.
   type(client_type), public :: sr_client
 
 

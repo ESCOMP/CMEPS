@@ -17,6 +17,12 @@ program esmApp
   use ensemble_driver, only : SetServices
   use shr_pio_mod,     only : shr_pio_init1
   use shr_sys_mod,     only : shr_sys_abort
+  !
+  ! The CrayLabs SmartSim interface is provided in directory share  https://github.com/ESCOMP/CESM_share
+  ! Please see file cime/tools/smartsim/README.md for a complete explanation of the CESM interface to smartsim
+  ! create_smartsim_cluster is set to true if the database is using 3 or more nodes, false if its using 1 and 
+  ! (in the pbs interface at least) 2 is not allowed.
+  !
   use nuopc_shr_methods, only : sr_client, use_smartredis
 
   implicit none
@@ -34,6 +40,11 @@ program esmApp
   logical                 :: create_smartsim_cluster = .false.
 
   namelist /debug_inparm / create_esmf_pet_files
+  !
+  ! The CrayLabs SmartSim interface is provided in directory share  https://github.com/ESCOMP/CESM_share
+  ! Please see file cime/tools/smartsim/README.md for a complete explanation of the CESM interface to smartsim
+  ! The use_smartredis variable is set in file drv_in and if true the variable sr_client is initialized in esmApp.F90
+  !
   namelist /smartsim_inparm/ use_smartredis, create_smartsim_cluster
   !-----------------------------------------------------------------------------
   ! Initiallize MPI
@@ -102,7 +113,8 @@ program esmApp
        call ESMF_Finalize(endflag=ESMF_END_ABORT)
 
   !-----------------------------------------------------------------------------
-  ! Initialize the CrayLabs SmartRedis client
+  ! Initialize the CrayLabs SmartRedis client, a stub is provided in share if 
+  ! smartsim is not used.  This client shall be used by all component models.
   !-----------------------------------------------------------------------------
 
   if (iam==0) then
