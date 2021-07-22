@@ -70,6 +70,10 @@ def buildlib(bldroot, installpath, case):
     if comp_interface == "nuopc":
         filepath.append(os.path.join(srcroot,"share","cmeps"))
         filepath.append(os.path.join(srcroot,"components","cmeps", "nuopc_cap_share"))
+        #
+        # Provide an interface to the CrayLabs SmartSim tools, if the tools are not used
+        # then build a stub interface.  See cime/tools/smartsim/README.md for details
+        #
         if case.get_value("USE_SMARTSIM"):
             smartredis_lib = os.getenv("SMARTREDIS_LIB")
             expect(smartredis_lib," Expect path to SMARTREDIS in env variable SMARTREDIS_LIB - is the module loaded?")
