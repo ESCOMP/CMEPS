@@ -1859,6 +1859,7 @@ contains
     type(ESMF_Field)                   :: field
     type(ESMF_StateItem_Flag)          :: itemType
     logical                            :: atCorrectTime, connected
+    logical                            :: isPresent, isSet
     integer                            :: n1,n2,n,ns
     integer                            :: nsrc,ndst
     integer                            :: cntn1, cntn2
@@ -2521,11 +2522,17 @@ contains
        !---------------------------------------
        ! Initialize mediator water/heat budget diags
        !---------------------------------------
-       call med_diag_init(gcomp, rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call med_diag_zero(mode='all', rc=rc)
-
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call NUOPC_CompAttributeGet(gcomp, name="do_budgets", value=cvalue, &
+         isPresent=isPresent, isSet=isSet, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (isPresent .and. isSet) then
+          if (trim(cvalue) .eq. '.true.') then
+            call med_diag_init(gcomp, rc)
+            if (ChkErr(rc,__LINE__,u_FILE_u)) return
+            call med_diag_zero(mode='all', rc=rc)
+            if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          end if
+       end if
 
        !---------------------------------------
        ! read mediator restarts
