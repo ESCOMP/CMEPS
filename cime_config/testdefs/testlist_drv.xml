@@ -110,19 +110,6 @@
       <option name="wallclock"> 00:20:00 </option>
     </options>
   </test>
-
-  <test compset="X" grid="f19_g17" name="SMS_Vnuopc" testmods="drv/smartsim">
-    <!-- currently the smartsim test only works on casper -->
-    <machines>
-      <machine name="casper" compiler="intel" category="nuopc"/>
-      <machine name="casper" compiler="gnu" category="nuopc"/>
-    </machines>
-    <options>
-      <option name="wallclock"> 00:20:00 </option>
-    </options>
-  </test>
-
-
   <test compset="X" grid="f19_g17" name="SMS_Vmct">
     <machines>
       <machine name="cheyenne" compiler="intel" category="nuopc"/>
