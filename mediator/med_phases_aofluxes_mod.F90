@@ -549,10 +549,10 @@ contains
     ! create field bundles FBocn_a for the above fieldlist
     if (flds_wiso) then
        allocate(fldnames_ocn_in(5))
-       fldnames_ocn_in = (/'So_omask   ','So_t       ','So_u       ','So_v       ','So_roce_wiso' /)
+       fldnames_ocn_in = (/'So_omask    ','So_t        ','So_u        ','So_v        ','So_roce_wiso' /)
     else
        allocate(fldnames_ocn_in(4))
-       fldnames_ocn_in = (/'So_omask   ','So_t       ','So_u       ','So_v       '/)
+       fldnames_ocn_in = (/'So_omask','So_t    ','So_u    ','So_v    '/)
     end if
     call FB_init(FBocn_a, is_local%wrap%flds_scalar_name, &
          FBgeom=is_local%wrap%FBImp(compatm,compatm), fieldnamelist=fldnames_ocn_in, name='FBocn_a', rc=rc)
