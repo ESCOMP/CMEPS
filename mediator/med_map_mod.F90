@@ -44,7 +44,7 @@ module med_map_mod
 contains
 !================================================================================
 
-  subroutine med_map_RouteHandles_initfrom_esmflds(gcomp, llogunit, rc)
+  subroutine med_map_RouteHandles_initfrom_esmflds(gcomp, flds_scalar_name, llogunit, rc)
 
     !---------------------------------------------
     ! Initialize route handles in the mediator
@@ -76,22 +76,26 @@ contains
 
     use ESMF            , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_LogFlush
     use ESMF            , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_Field
+    use ESMF            , only : ESMF_FieldBundleGet
     use esmFlds         , only : fldListFr, ncomps, mapunset, compname
-    use med_methods_mod , only : med_methods_FB_getFieldN
+    use med_methods_mod , only : med_methods_FB_getFieldN, med_methods_FB_getNameN
 
     ! input/output variables
-    type(ESMF_GridComp)  :: gcomp
-    integer, intent(in)  :: llogunit
-    integer, intent(out) :: rc
+    type(ESMF_GridComp)          :: gcomp
+    character(len=*), intent(in) :: flds_scalar_name
+    integer, intent(in)          :: llogunit
+    integer, intent(out)         :: rc
 
     ! local variables
-    type(InternalState) :: is_local
-    type(ESMF_Field)    :: fldsrc
-    type(ESMF_Field)    :: flddst
-    integer             :: n,n1,n2,m,nf
-    character(len=CX)   :: mapfile
-    integer             :: mapindex
-    logical             :: mapexists = .false.
+    type(InternalState)         :: is_local
+    type(ESMF_Field)            :: fldsrc
+    type(ESMF_Field)            :: flddst
+    integer                     :: n,n1,n2,m,nf,id,nflds
+    integer                     :: fieldCount
+    character(len=CX)           :: mapfile
+    integer                     :: mapindex
+    logical                     :: mapexists = .false.
+    character(len=CX)           :: fieldname
     character(len=*), parameter :: subname=' (module_med_map: RouteHandles_init) '
     !-----------------------------------------------------------
 
@@ -114,10 +118,18 @@ contains
        do n2 = 1, ncomps
           if (n1 /= n2) then
              if (is_local%wrap%med_coupling_active(n1,n2)) then ! If coupling is active between n1 and n2
-                ! Get source and destination fields
+                ! Get source field
                 call med_methods_FB_getFieldN(is_local%wrap%FBImp(n1,n1), 1, fldsrc, rc)
                 if (chkerr(rc,__LINE__,u_FILE_u)) return
-                call med_methods_FB_getFieldN(is_local%wrap%FBImp(n1,n2), 1, flddst, rc)
+
+                ! Check number of fields in FB and get destination field
+                call ESMF_FieldBundleGet(is_local%wrap%FBImp(n1,n2), fieldCount=fieldCount, rc=rc)
+                if (chkerr(rc,__LINE__,u_FILE_u)) return
+                if (fieldCount == 0) then
+                  call med_methods_FB_getFieldN(is_local%wrap%FBExp(n2), 1, flddst, rc)
+                else
+                  call med_methods_FB_getFieldN(is_local%wrap%FBImp(n1,n2), 1, flddst, rc)
+                end if
                 if (chkerr(rc,__LINE__,u_FILE_u)) return
 
                 ! Loop over fields
@@ -220,7 +232,7 @@ contains
     use esmFlds           , only : mapunset, mapnames, nmappers
     use esmFlds           , only : mapnstod, mapnstod_consd, mapnstod_consf, mapnstod_consd
     use esmFlds           , only : mapfillv_bilnr, mapbilnr_nstod, mapconsf_aofrac
-    use esmFlds           , only : ncomps, compatm, compice, compocn, compname
+    use esmFlds           , only : ncomps, compatm, compice, compocn, compwav, compname
     use esmFlds           , only : coupling_mode, dststatus_print
     use esmFlds           , only : atm_name
     use med_constants_mod , only : ispval_mask => med_constants_ispval_mask
@@ -302,6 +314,11 @@ contains
           dstMaskValue = 0
        elseif (n1 == compocn .and. n2 == compatm) then
           srcMaskValue = 0
+          dstMaskValue = ispval_mask
+       elseif (n1 == compatm .and. n2 == compwav) then
+          dstMaskValue = 1
+       elseif (n1 == compwav .and. n2 == compatm) then
+          srcMaskValue = 1
           dstMaskValue = ispval_mask
        endif
     end if
@@ -644,13 +661,31 @@ contains
     ! Create the destination normalization field
     do n1 = 1,ncomps
 
-       if (ESMF_FieldBundleIsCreated(is_local%wrap%FBImp(n1,n1))) then
+       ! Since coupling could be uni-directional, the import FB could be
+       ! available but number of fields could be zero, so it is better to
+       ! check export FB if this is the case
+       if (ESMF_FieldBundleIsCreated(is_local%wrap%FBImp(n1,n1)) .or. &
+           ESMF_FieldBundleIsCreated(is_local%wrap%FBExp(n1))) then
           ! Get source mesh
           call ESMF_FieldBundleGet(is_local%wrap%FBImp(n1,n1), fieldCount=fieldCount, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          allocate(fieldlist(fieldcount))
-          call ESMF_FieldBundleGet(is_local%wrap%FBImp(n1,n1), fieldlist=fieldlist, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+          if (fieldCount == 0) then
+            if (mastertask) then
+              write(logunit,*) trim(subname)//' '//trim(compname(n1))//' import FB field count is = ', fieldCount
+              write(logunit,*) trim(subname)//' '//trim(compname(n1))//' trying to use export FB'
+            end if
+            call ESMF_FieldBundleGet(is_local%wrap%FBExp(n1), fieldCount=fieldCount, rc=rc)
+            if (ChkErr(rc,__LINE__,u_FILE_u)) return
+            allocate(fieldlist(fieldcount))
+            call ESMF_FieldBundleGet(is_local%wrap%FBExp(n1), fieldlist=fieldlist, rc=rc)
+            if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          else    
+            allocate(fieldlist(fieldcount))
+            call ESMF_FieldBundleGet(is_local%wrap%FBImp(n1,n1), fieldlist=fieldlist, rc=rc)
+            if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          end if
+
           call ESMF_FieldGet(fieldlist(1), mesh=mesh_src, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           field_src = ESMF_FieldCreate(mesh_src, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)

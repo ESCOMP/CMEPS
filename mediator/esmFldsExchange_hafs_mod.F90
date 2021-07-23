@@ -10,6 +10,7 @@ module esmFldsExchange_hafs_mod
   use esmflds,       only : compmed
   use esmflds,       only : compatm
   use esmflds,       only : compocn
+  use esmflds,       only : compwav
   use esmflds,       only : ncomps
   use esmflds,       only : fldListTo
   use esmflds,       only : fldListFr
@@ -30,12 +31,19 @@ module esmFldsExchange_hafs_mod
        __FILE__
 
   type gcomp_attr
-    character(len=CX)   :: atm2ocn_fmap='unset'
-    character(len=CX)   :: atm2ocn_smap='unset'
-    character(len=CX)   :: atm2ocn_vmap='unset'
-    character(len=CX)   :: ocn2atm_fmap='unset'
-    character(len=CX)   :: ocn2atm_smap='unset'
-    character(len=CS)   :: mapnorm     ='one'
+    character(len=CX) :: atm2ocn_fmap = 'unset'
+    character(len=CX) :: atm2ocn_smap = 'unset'
+    character(len=CX) :: atm2ocn_vmap = 'unset'
+    character(len=CX) :: atm2wav_smap = 'unset'
+    character(len=CX) :: ocn2atm_fmap = 'unset'
+    character(len=CX) :: ocn2atm_smap = 'unset'
+    character(len=CX) :: ocn2wav_smap = 'unset'
+    character(len=CX) :: wav2ocn_smap = 'unset'
+    character(len=CX) :: wav2atm_smap = 'unset'
+    character(len=CS) :: mapnorm      = 'one'
+    logical           :: atm_present  = .false.
+    logical           :: ocn_present  = .false.
+    logical           :: wav_present  = .false.
   end type
 
 !===============================================================================
@@ -148,14 +156,30 @@ contains
     ! ---------------------------------------------------------------------
     ! to atm: surface temperatures from ocn
     ! ---------------------------------------------------------------------
-    allocate(S_flds(1))
-    S_flds = (/'So_t'/) ! sea_surface_temperature
-    do n = 1,size(S_flds)
-       fldname = trim(S_flds(n))
-       call addfld(fldListFr(compocn)%flds, trim(fldname))
-       call addfld(fldListTo(compatm)%flds, trim(fldname))
-    end do
-    deallocate(S_flds)
+    if (hafs_attr%atm_present .and. hafs_attr%ocn_present) then
+      allocate(S_flds(1))
+      S_flds = (/'So_t'/) ! sea_surface_temperature
+      do n = 1,size(S_flds)
+         fldname = trim(S_flds(n))
+         call addfld(fldListFr(compocn)%flds, trim(fldname))
+         call addfld(fldListTo(compatm)%flds, trim(fldname))
+      end do
+      deallocate(S_flds)
+    end if
+
+    ! ---------------------------------------------------------------------
+    ! to atm: surface roughness length
+    ! ---------------------------------------------------------------------
+    if (hafs_attr%atm_present .and. hafs_attr%wav_present) then
+      allocate(S_flds(1))
+      S_flds = (/'Sw_zo'/) ! wave_z0_roughness_length
+      do n = 1,size(S_flds)
+         fldname = trim(S_flds(n))
+         call addfld(fldListFr(compwav)%flds, trim(fldname))
+         call addfld(fldListTo(compatm)%flds, trim(fldname))
+      end do
+      deallocate(S_flds)
+    end if
 
     !=====================================================================
     ! FIELDS TO OCEAN (compocn)
@@ -164,38 +188,60 @@ contains
     ! ---------------------------------------------------------------------
     ! to ocn: state fields
     ! ---------------------------------------------------------------------
-    allocate(S_flds(6))
-    S_flds = (/'Sa_u10m', & ! inst_zonal_wind_height10m
-               'Sa_v10m', & ! inst_merid_wind_height10m
-               'Sa_t2m ', & ! inst_temp_height2m
-               'Sa_q2m ', & ! inst_spec_humid_height2m
-               'Sa_pslv', & ! inst_pres_height_surface
-               'Sa_tskn' /) ! inst_temp_height_surface
-    do n = 1,size(S_flds)
-       fldname = trim(S_flds(n))
-       call addfld(fldListFr(compatm)%flds, trim(fldname))
-       call addfld(fldListTo(compocn)%flds, trim(fldname))
-    end do
-    deallocate(S_flds)
+    if (hafs_attr%atm_present .and. hafs_attr%ocn_present) then
+      allocate(S_flds(6))
+      S_flds = (/'Sa_u10m', & ! inst_zonal_wind_height10m
+                 'Sa_v10m', & ! inst_merid_wind_height10m
+                 'Sa_t2m ', & ! inst_temp_height2m
+                 'Sa_q2m ', & ! inst_spec_humid_height2m
+                 'Sa_pslv', & ! inst_pres_height_surface
+                 'Sa_tskn' /) ! inst_temp_height_surface
+      do n = 1,size(S_flds)
+         fldname = trim(S_flds(n))
+         call addfld(fldListFr(compatm)%flds, trim(fldname))
+         call addfld(fldListTo(compocn)%flds, trim(fldname))
+      end do
+      deallocate(S_flds)
+    end if
 
     ! ---------------------------------------------------------------------
     ! to ocn: flux fields
     ! ---------------------------------------------------------------------
-    allocate(F_flds(7,2))
-    F_flds(1,:) = (/'Faxa_taux ','Faxa_taux '/) ! mean_zonal_moment_flx_atm
-    F_flds(2,:) = (/'Faxa_tauy ','Faxa_tauy '/) ! mean_merid_moment_flx_atm
-    F_flds(3,:) = (/'Faxa_rain ','Faxa_rain '/) ! mean_prec_rate
-    F_flds(4,:) = (/'Faxa_swnet','Faxa_swnet'/) ! mean_net_sw_flx
-    F_flds(5,:) = (/'Faxa_lwnet','Faxa_lwnet'/) ! mean_net_lw_flx
-    F_flds(6,:) = (/'Faxa_sen  ','Faxa_sen  '/) ! mean_sensi_heat_flx
-    F_flds(7,:) = (/'Faxa_lat  ','Faxa_lat  '/) ! mean_laten_heat_flx
-    do n = 1,size(F_flds,1)
-       fldname1 = trim(F_flds(n,1))
-       fldname2 = trim(F_flds(n,2))
-       call addfld(fldListFr(compatm)%flds, trim(fldname1))
-       call addfld(fldListTo(compocn)%flds, trim(fldname2))
-    end do
-    deallocate(F_flds)
+    if (hafs_attr%atm_present .and. hafs_attr%ocn_present) then
+      allocate(F_flds(7,2))
+      F_flds(1,:) = (/'Faxa_taux ','Faxa_taux '/) ! mean_zonal_moment_flx_atm
+      F_flds(2,:) = (/'Faxa_tauy ','Faxa_tauy '/) ! mean_merid_moment_flx_atm
+      F_flds(3,:) = (/'Faxa_rain ','Faxa_rain '/) ! mean_prec_rate
+      F_flds(4,:) = (/'Faxa_swnet','Faxa_swnet'/) ! mean_net_sw_flx
+      F_flds(5,:) = (/'Faxa_lwnet','Faxa_lwnet'/) ! mean_net_lw_flx
+      F_flds(6,:) = (/'Faxa_sen  ','Faxa_sen  '/) ! mean_sensi_heat_flx
+      F_flds(7,:) = (/'Faxa_lat  ','Faxa_lat  '/) ! mean_laten_heat_flx
+      do n = 1,size(F_flds,1)
+         fldname1 = trim(F_flds(n,1))
+         fldname2 = trim(F_flds(n,2))
+         call addfld(fldListFr(compatm)%flds, trim(fldname1))
+         call addfld(fldListTo(compocn)%flds, trim(fldname2))
+      end do
+      deallocate(F_flds)
+    end if
+
+    !=====================================================================
+    ! FIELDS TO WAVE (compwav)
+    !=====================================================================
+
+    ! ---------------------------------------------------------------------
+    ! to wav: 10-m wind components 
+    ! ---------------------------------------------------------------------
+    if (hafs_attr%atm_present .and. hafs_attr%wav_present) then
+      allocate(S_flds(2))
+      S_flds = (/'Sa_u10m', 'Sa_v10m'/)
+      do n = 1,size(S_flds)
+         fldname = trim(S_flds(n))
+         call addfld(fldListFr(compatm)%flds, trim(fldname))
+         call addfld(fldListTo(compwav)%flds, trim(fldname))
+      end do
+      deallocate(S_flds)
+    end if
 
     call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
 
@@ -317,20 +363,42 @@ contains
     ! ---------------------------------------------------------------------
     ! to atm: sea surface temperature
     ! ---------------------------------------------------------------------
-    allocate(S_flds(1))
-    S_flds = (/'So_t'/) ! sea_surface_temperature
-    do n = 1,size(S_flds)
-       fldname = trim(S_flds(n))
-       if (fldchk(is_local%wrap%FBExp(compatm),trim(fldname),rc=rc) .and. &
-           fldchk(is_local%wrap%FBImp(compocn,compocn),trim(fldname),rc=rc) &
-          ) then
-          call addmap(fldListFr(compocn)%flds, trim(fldname), compatm, &
-               mapfillv_bilnr, hafs_attr%mapnorm, hafs_attr%ocn2atm_smap)
-          call addmrg(fldListTo(compatm)%flds, trim(fldname), &
-               mrg_from=compocn, mrg_fld=trim(fldname), mrg_type='copy')
-       end if
-    end do
-    deallocate(S_flds)
+    if (hafs_attr%atm_present .and. hafs_attr%ocn_present) then
+      allocate(S_flds(1))
+      S_flds = (/'So_t'/) ! sea_surface_temperature
+      do n = 1,size(S_flds)
+         fldname = trim(S_flds(n))
+         if (fldchk(is_local%wrap%FBExp(compatm),trim(fldname),rc=rc) .and. &
+             fldchk(is_local%wrap%FBImp(compocn,compocn),trim(fldname),rc=rc) &
+            ) then
+            call addmap(fldListFr(compocn)%flds, trim(fldname), compatm, &
+                 mapfillv_bilnr, hafs_attr%mapnorm, hafs_attr%ocn2atm_smap)
+            call addmrg(fldListTo(compatm)%flds, trim(fldname), &
+                 mrg_from=compocn, mrg_fld=trim(fldname), mrg_type='copy')
+         end if
+      end do
+      deallocate(S_flds)
+    end if
+
+    ! ---------------------------------------------------------------------
+    ! to atm: surface roughness length
+    ! ---------------------------------------------------------------------
+    if (hafs_attr%atm_present .and. hafs_attr%wav_present) then
+      allocate(S_flds(1))
+      S_flds = (/'Sw_zo'/) ! wave_z0_roughness_length
+      do n = 1,size(S_flds)
+         fldname = trim(S_flds(n))
+         if (fldchk(is_local%wrap%FBExp(compatm),trim(fldname),rc=rc) .and. &
+             fldchk(is_local%wrap%FBImp(compwav,compwav),trim(fldname),rc=rc) &
+            ) then
+            call addmap(fldListFr(compwav)%flds, trim(fldname), compatm, &
+                 mapfillv_bilnr, hafs_attr%mapnorm, hafs_attr%wav2atm_smap)
+            call addmrg(fldListTo(compatm)%flds, trim(fldname), &
+                 mrg_from=compwav, mrg_fld=trim(fldname), mrg_type='copy')
+         end if
+      end do
+      deallocate(S_flds)
+    end if
 
     !=====================================================================
     ! FIELDS TO OCEAN (compocn)
@@ -339,50 +407,78 @@ contains
     ! ---------------------------------------------------------------------
     ! to ocn: state fields
     ! ---------------------------------------------------------------------
-    allocate(S_flds(6))
-    S_flds = (/'Sa_u10m', & ! inst_zonal_wind_height10m
-               'Sa_v10m', & ! inst_merid_wind_height10m
-               'Sa_t2m ', & ! inst_temp_height2m
-               'Sa_q2m ', & ! inst_spec_humid_height2m
-               'Sa_pslv', & ! inst_pres_height_surface
-               'Sa_tskn' /) ! inst_temp_height_surface
-    do n = 1,size(S_flds)
-       fldname = trim(S_flds(n))
-       if (fldchk(is_local%wrap%FBExp(compocn),trim(fldname),rc=rc) .and. &
-           fldchk(is_local%wrap%FBImp(compatm,compatm),trim(fldname),rc=rc) &
-          ) then
-          call addmap(fldListFr(compatm)%flds, trim(fldname), compocn, &
-               mapfillv_bilnr, hafs_attr%mapnorm, hafs_attr%atm2ocn_smap)
-          call addmrg(fldListTo(compocn)%flds, trim(fldname), &
-               mrg_from=compatm, mrg_fld=trim(fldname), mrg_type='copy')
-       end if
-    end do
-    deallocate(S_flds)
+    if (hafs_attr%atm_present .and. hafs_attr%ocn_present) then
+      allocate(S_flds(6))
+      S_flds = (/'Sa_u10m', & ! inst_zonal_wind_height10m
+                 'Sa_v10m', & ! inst_merid_wind_height10m
+                 'Sa_t2m ', & ! inst_temp_height2m
+                 'Sa_q2m ', & ! inst_spec_humid_height2m
+                 'Sa_pslv', & ! inst_pres_height_surface
+                 'Sa_tskn' /) ! inst_temp_height_surface
+      do n = 1,size(S_flds)
+         fldname = trim(S_flds(n))
+         if (fldchk(is_local%wrap%FBExp(compocn),trim(fldname),rc=rc) .and. &
+             fldchk(is_local%wrap%FBImp(compatm,compatm),trim(fldname),rc=rc) &
+            ) then
+            call addmap(fldListFr(compatm)%flds, trim(fldname), compocn, &
+                 mapfillv_bilnr, hafs_attr%mapnorm, hafs_attr%atm2ocn_smap)
+            call addmrg(fldListTo(compocn)%flds, trim(fldname), &
+                 mrg_from=compatm, mrg_fld=trim(fldname), mrg_type='copy')
+         end if
+      end do
+      deallocate(S_flds)
+    end if
 
     ! ---------------------------------------------------------------------
     ! to ocn: flux fields
     ! ---------------------------------------------------------------------
-    allocate(F_flds(7,2))
-    F_flds(1,:) = (/'Faxa_taux ','Faxa_taux '/) ! mean_zonal_moment_flx_atm
-    F_flds(2,:) = (/'Faxa_tauy ','Faxa_tauy '/) ! mean_merid_moment_flx_atm
-    F_flds(3,:) = (/'Faxa_rain ','Faxa_rain '/) ! mean_prec_rate
-    F_flds(4,:) = (/'Faxa_swnet','Faxa_swnet'/) ! mean_net_sw_flx
-    F_flds(5,:) = (/'Faxa_lwnet','Faxa_lwnet'/) ! mean_net_lw_flx
-    F_flds(6,:) = (/'Faxa_sen  ','Faxa_sen  '/) ! mean_sensi_heat_flx
-    F_flds(7,:) = (/'Faxa_lat  ','Faxa_lat  '/) ! mean_laten_heat_flx
-    do n = 1,size(F_flds,1)
-       fldname1 = trim(F_flds(n,1))
-       fldname2 = trim(F_flds(n,2))
-       if (fldchk(is_local%wrap%FBExp(compocn),trim(fldname2),rc=rc) .and. &
-           fldchk(is_local%wrap%FBImp(compatm,compatm),trim(fldname1),rc=rc) &
-         ) then
-          call addmap(fldListFr(compatm)%flds, trim(fldname1), compocn, &
-               mapfillv_bilnr, hafs_attr%mapnorm, hafs_attr%atm2ocn_smap)
-          call addmrg(fldListTo(compocn)%flds, trim(fldname2), &
-               mrg_from=compatm, mrg_fld=trim(fldname1), mrg_type='copy')
-       end if
-    end do
-    deallocate(F_flds)
+    if (hafs_attr%atm_present .and. hafs_attr%ocn_present) then
+      allocate(F_flds(7,2))
+      F_flds(1,:) = (/'Faxa_taux ','Faxa_taux '/) ! mean_zonal_moment_flx_atm
+      F_flds(2,:) = (/'Faxa_tauy ','Faxa_tauy '/) ! mean_merid_moment_flx_atm
+      F_flds(3,:) = (/'Faxa_rain ','Faxa_rain '/) ! mean_prec_rate
+      F_flds(4,:) = (/'Faxa_swnet','Faxa_swnet'/) ! mean_net_sw_flx
+      F_flds(5,:) = (/'Faxa_lwnet','Faxa_lwnet'/) ! mean_net_lw_flx
+      F_flds(6,:) = (/'Faxa_sen  ','Faxa_sen  '/) ! mean_sensi_heat_flx
+      F_flds(7,:) = (/'Faxa_lat  ','Faxa_lat  '/) ! mean_laten_heat_flx
+      do n = 1,size(F_flds,1)
+         fldname1 = trim(F_flds(n,1))
+         fldname2 = trim(F_flds(n,2))
+         if (fldchk(is_local%wrap%FBExp(compocn),trim(fldname2),rc=rc) .and. &
+             fldchk(is_local%wrap%FBImp(compatm,compatm),trim(fldname1),rc=rc) &
+           ) then
+            call addmap(fldListFr(compatm)%flds, trim(fldname1), compocn, &
+                 mapfillv_bilnr, hafs_attr%mapnorm, hafs_attr%atm2ocn_smap)
+            call addmrg(fldListTo(compocn)%flds, trim(fldname2), &
+                 mrg_from=compatm, mrg_fld=trim(fldname1), mrg_type='copy')
+         end if
+      end do
+      deallocate(F_flds)
+    end if
+
+    !=====================================================================
+    ! FIELDS TO WAVE (compwav)
+    !=====================================================================
+
+    ! ---------------------------------------------------------------------
+    ! to wav: 10-m wind components
+    ! ---------------------------------------------------------------------
+    if (hafs_attr%atm_present .and. hafs_attr%wav_present) then
+      allocate(S_flds(2))
+      S_flds = (/'Sa_u10m', 'Sa_v10m'/)
+      do n = 1,size(S_flds)
+        fldname = trim(S_flds(n))
+        if (fldchk(is_local%wrap%FBexp(compwav),trim(fldname),rc=rc) .and. &
+            fldchk(is_local%wrap%FBImp(compatm,compatm), trim(fldname),rc=rc) &
+           ) then
+           call addmap(fldListFr(compatm)%flds, trim(fldname), compwav, &
+                mapfillv_bilnr, hafs_attr%mapnorm, hafs_attr%atm2wav_smap)
+           call addmrg(fldListTo(compwav)%flds, trim(fldname), &
+                mrg_from=compatm, mrg_fld=trim(fldname), mrg_type='copy')
+        end if
+      end do
+      deallocate(S_flds)
+    end if
 
     call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
 
@@ -401,7 +497,7 @@ contains
     character(32)       :: cname
     integer             :: verbosity, diagnostic
     character(len=CL)   :: cvalue
-    logical             :: isPresent
+    logical             :: isPresent, isSet
     character(len=*) , parameter   :: subname='(esmFldsExchange_hafs_attr)'
     !--------------------------------------
 
@@ -412,6 +508,31 @@ contains
     call NUOPC_CompGet(gcomp, name=cname, verbosity=verbosity, &
       diagnostic=diagnostic, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    !----------------------------------------------------------
+    ! Component active or not? 
+    !----------------------------------------------------------
+
+    call NUOPC_CompAttributeGet(gcomp, name='ATM_model', &
+       value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+       if (trim(cvalue) /= 'satm') hafs_attr%atm_present = .true.
+    end if
+
+    call NUOPC_CompAttributeGet(gcomp, name='OCN_model', &
+       value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+       if (trim(cvalue) /= 'socn') hafs_attr%ocn_present = .true.
+    end if
+
+    call NUOPC_CompAttributeGet(gcomp, name='WAV_model', &
+       value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+       if (trim(cvalue) /= 'swav') hafs_attr%wav_present = .true.
+    end if
 
     !----------------------------------------------------------
     ! Normalization type
@@ -471,6 +592,42 @@ contains
     if (isPresent) then
        call NUOPC_CompAttributeGet(gcomp, name='atm2ocn_vmapname', &
           value=hafs_attr%atm2ocn_vmap, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+    end if
+
+    ! to wav
+    call NUOPC_CompAttributeGet(gcomp, name='atm2wav_smapname', &
+       isPresent=isPresent, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent) then
+       call NUOPC_CompAttributeGet(gcomp, name='atm2wav_smapname', &
+          value=hafs_attr%atm2wav_smap, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+    end if
+    call NUOPC_CompAttributeGet(gcomp, name='ocn2wav_smapname', &
+       isPresent=isPresent, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent) then
+       call NUOPC_CompAttributeGet(gcomp, name='ocn2wav_smapname', &
+          value=hafs_attr%ocn2wav_smap, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+    end if
+
+    ! from wav
+    call NUOPC_CompAttributeGet(gcomp, name='wav2atm_smapname', &
+       isPresent=isPresent, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent) then
+       call NUOPC_CompAttributeGet(gcomp, name='wav2atm_smapname', &
+          value=hafs_attr%wav2atm_smap, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+    end if
+    call NUOPC_CompAttributeGet(gcomp, name='wav2ocn_smapname', &
+       isPresent=isPresent, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent) then
+       call NUOPC_CompAttributeGet(gcomp, name='wav2ocn_smapname', &
+          value=hafs_attr%wav2ocn_smap, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     end if
 
