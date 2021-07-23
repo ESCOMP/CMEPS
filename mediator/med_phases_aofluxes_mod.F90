@@ -248,6 +248,10 @@ contains
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
+    !----------------------------------
+    ! Initialize aoflux
+    !----------------------------------
+
     call NUOPC_CompAttributeGet(gcomp, name='flds_wiso', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     if (isPresent .and. isSet) then
@@ -255,14 +259,13 @@ contains
     else
        flds_wiso = .false.
     end if
-
-    !----------------------------------
-    ! Determine aoflux output field names (same for ocn and atm grid)
-    !----------------------------------
-
-    !----------------------------------
-    ! Initialize aoflux
-    !----------------------------------
+    call NUOPC_CompAttributeGet(gcomp, name='ocn_surface_flux_scheme', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+       read(cvalue,*) ocn_surface_flux_scheme
+    else
+       ocn_surface_flux_scheme = 0
+    end if
 
     if (is_local%wrap%aoflux_grid == 'ogrid') then  ! aoflux_grid is ocn
        call med_aofluxes_init_ogrid(gcomp, aoflux, rc=rc)
@@ -1034,28 +1037,6 @@ contains
     ! ------------------------
     ! setup the compute mask - default compute everywhere for exchange grid
     ! ------------------------
-
-    ! Compute mask is the ocean mask mapped to exchange grid (conservatively without fractions)
-    ! This computes So_omask in FBocn_a - but the assumption is that it already is there
-    ! call ESMF_FieldBundleGet(is_local%wrap%FBImp(compocn,compocn), 'So_omask', field=field_src, rc=rc)
-    ! if (chkerr(rc,__LINE__,u_FILE_u)) return
-    ! call ESMF_FieldBundleGet(FBocn_x, 'So_t', field=field_dst, rc=rc)
-    ! if (chkerr(rc,__LINE__,u_FILE_u)) return
-    ! call ESMF_FieldRegrid(field_src, field_dst, routehandle=rh_ogrid2xgrid, &
-    !      termorderflag=ESMF_TERMORDER_SRCSEQ, zeroregion=ESMF_REGION_TOTAL, rc=rc)
-    ! if (chkerr(rc,__LINE__,u_FILE_u)) return
-    ! call ESMF_FieldGet(field_dst, farrayptr=dataptr1d, rc=rc)
-    ! if (chkerr(rc,__LINE__,u_FILE_u)) return
-    ! lsize = size(dataptr1d)
-    ! allocate(aoflux%mask(lsize))
-    ! do n = 1,lsize
-    !    if (dataptr1d(n) == 0._r8) then
-    !       aoflux%mask(n) = 0
-    !       write(6,*)'DEBUG: setting mask to zero for n = ',n
-    !    else
-    !       aoflux%mask(n) = 1
-    !    end if
-    ! enddo
 
     allocate(aoflux%mask(lsize))
     aoflux%mask(:) = 1
