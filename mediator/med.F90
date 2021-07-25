@@ -2113,6 +2113,7 @@ contains
          end if
 
          ! Create field bundles for mediator ocean/atmosphere flux computation
+         ! This is needed regardless of the grid on which the atm/ocn flux computation is done on
          fieldCount = med_fldList_GetNumFlds(fldListMed_aoflux)
          if (fieldCount > 0) then
             allocate(fldnames(fieldCount))
@@ -2177,15 +2178,18 @@ contains
              end if
           end do
        end do
-       if ( ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_aoflux_o) .and. &
-            ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_aoflux_a)) then
-          call med_map_packed_field_create(compatm, &
-               is_local%wrap%flds_scalar_name, &
-               fldsSrc=fldListMed_aoflux%flds, &
-               FBSrc=is_local%wrap%FBMed_aoflux_o, &
-               FBDst=is_local%wrap%FBMed_aoflux_a, &
-               packed_data=is_local%wrap%packed_data_aoflux_o2a(:), rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       if (is_local%wrap%aoflux_grid == 'ogrid') then  
+          if ( ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_aoflux_o) .and. &
+               ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_aoflux_a)) then
+             ! Create packed mapping from atm->ocn if aoflux_grid is ocn
+             call med_map_packed_field_create(compatm, &
+                  is_local%wrap%flds_scalar_name, &
+                  fldsSrc=fldListMed_aoflux%flds, &
+                  FBSrc=is_local%wrap%FBMed_aoflux_o, &
+                  FBDst=is_local%wrap%FBMed_aoflux_a, &
+                  packed_data=is_local%wrap%packed_data_aoflux_o2a(:), rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          end if
        end if
        if ( ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_ocnalb_o) .and. &
             ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_ocnalb_a)) then
