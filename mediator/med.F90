@@ -1747,7 +1747,7 @@ contains
     use med_phases_post_rof_mod , only : med_phases_post_rof
     use med_phases_post_wav_mod , only : med_phases_post_wav
     use med_phases_ocnalb_mod   , only : med_phases_ocnalb_run
-    use med_phases_aofluxes_mod , only : med_phases_aofluxes_run
+    use med_phases_aofluxes_mod , only : med_phases_aofluxes_run, med_phases_aofluxes_init_fldbuns
     use med_phases_profile_mod  , only : med_phases_profile
     use med_diag_mod            , only : med_diag_zero, med_diag_init
     use med_map_mod             , only : med_map_mapnorm_init, med_map_routehandles_init, med_map_packed_field_create
@@ -2094,47 +2094,12 @@ contains
                write(logunit,'(a)') trim(subname)//' initializing FB FBMed_ocnalb_o'
             end if
             deallocate(fldnames)
-
-            ! The following assumes that the mediator atm/ocn flux calculation will be done on the ocean grid
-            if (.not. ESMF_FieldBundleIsCreated(is_local%wrap%FBImp(compatm,compocn), rc=rc)) then
-               if (mastertask) then
-                  write(logunit,'(a)') trim(subname)//' creating field bundle FBImp(compatm,compocn)'
-               end if
-               call FB_init(is_local%wrap%FBImp(compatm,compocn), is_local%wrap%flds_scalar_name, &
-                    STgeom=is_local%wrap%NStateImp(compocn), &
-                    STflds=is_local%wrap%NStateImp(compatm), &
-                    name='FBImp'//trim(compname(compatm))//'_'//trim(compname(compocn)), rc=rc)
-               if (ChkErr(rc,__LINE__,u_FILE_u)) return
-            end if
-            if (mastertask) then
-               write(logunit,'(a)') trim(subname)//' initializing FBs for '// &
-                    trim(compname(compatm))//'_'//trim(compname(compocn))
-            end if
          end if
 
-         ! Create field bundles for mediator ocean/atmosphere flux computation
-         ! This is needed regardless of the grid on which the atm/ocn flux computation is done on
-         fieldCount = med_fldList_GetNumFlds(fldListMed_aoflux)
-         if (fieldCount > 0) then
-            allocate(fldnames(fieldCount))
-            call med_fldList_getfldnames(fldListMed_aoflux%flds, fldnames, rc=rc)
-            if (ChkErr(rc,__LINE__,u_FILE_u)) return
+         ! Create field bundles for mediator atm/ocn flux computation
+         call med_phases_aofluxes_init_fldbuns(gcomp, rc=rc)
+         if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-            call FB_init(is_local%wrap%FBMed_aoflux_a, is_local%wrap%flds_scalar_name, &
-                 STgeom=is_local%wrap%NStateImp(compatm), fieldnamelist=fldnames, name='FBMed_aoflux_a', rc=rc)
-            if (ChkErr(rc,__LINE__,u_FILE_u)) return
-            if (mastertask) then
-               write(logunit,'(a)') trim(subname)//' initializing FB FBMed_aoflux_a'
-            end if
-
-            call FB_init(is_local%wrap%FBMed_aoflux_o, is_local%wrap%flds_scalar_name, &
-                 STgeom=is_local%wrap%NStateImp(compocn), fieldnamelist=fldnames, name='FBMed_aoflux_o', rc=rc)
-            if (ChkErr(rc,__LINE__,u_FILE_u)) return
-            if (mastertask) then
-               write(logunit,'(a)') trim(subname)//' initializing FB FBMed_aoflux_o'
-            end if
-            deallocate(fldnames)
-         end if
       end if
 
       !---------------------------------------
@@ -2178,7 +2143,7 @@ contains
              end if
           end do
        end do
-       if (is_local%wrap%aoflux_grid == 'ogrid') then  
+       if (is_local%wrap%aoflux_grid == 'ogrid') then
           if ( ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_aoflux_o) .and. &
                ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_aoflux_a)) then
              ! Create packed mapping from atm->ocn if aoflux_grid is ocn

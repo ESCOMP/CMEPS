@@ -54,6 +54,7 @@ module esmFldsExchange_cesm_mod
   logical             :: flds_co2a
   logical             :: flds_co2b
   logical             :: flds_co2c
+  logical             :: flds_wiso
 
   character(*), parameter :: u_FILE_u = &
        __FILE__
@@ -188,10 +189,9 @@ contains
        ! uv cart3d mapping
        call NUOPC_CompAttributeGet(gcomp, name='mapuv_with_cart3d', value=cvalue,  rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (mastertask) write(logunit,'(a)') trim(subname)//'mapuv_with_cart3d = '// trim(cvalue)
        read(cvalue,*) mapuv_with_cart3d
 
-       ! co2 transfer between componetns
+       ! is co2 transfer between components enabled?
        call NUOPC_CompAttributeGet(gcomp, name='flds_co2a', value=cvalue, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        read(cvalue,*) flds_co2a
@@ -212,13 +212,21 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        read(cvalue,*) ocn2glc_coupling
 
+       ! are water isotope exchanges enabled?
+       call NUOPC_CompAttributeGet(gcomp, name='flds_wiso', value=cvalue, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       read(cvalue,*) flds_wiso
+
        ! write diagnostic output
        if (mastertask) then
-          write(logunit,'(a)') trim(subname)//' flds_co2a = '// trim(cvalue)
-          write(logunit,'(a)') trim(subname)//' flds_co2b = '// trim(cvalue)
-          write(logunit,'(a)') trim(subname)//' flds_co2c = '// trim(cvalue)
-          write(logunit,'(a)') trim(subname)//' flds_i2o_per_cat = '// trim(cvalue)
-          write(logunit,'(a)') trim(subname)//' ocn2glc_coupling = '// trim(cvalue)
+          write(logunit,'(a,l)') trim(subname)//' flds_co2a         = ',flds_co2a
+          write(logunit,'(a,l)') trim(subname)//' flds_co2b         = ',flds_co2b
+          write(logunit,'(a,l)') trim(subname)//' flds_co2c         = ',flds_co2b
+          write(logunit,'(a,l)') trim(subname)//' flds_wiso         = ',flds_wiso
+          write(logunit,'(a,l)') trim(subname)//' flds_i2o_per_cat  = ',flds_i2o_per_cat
+          write(logunit,'(a,l)') trim(subname)//' ocn2glc_coupling  = ',ocn2glc_coupling
+          write(logunit,'(a,l)') trim(subname)//' mapuv_with_cart3d = ',mapuv_with_cart3d
+          
        end if
 
     end if
@@ -266,7 +274,9 @@ contains
        call addfld(fldListFr(compatm)%flds, 'Sa_shum')
        call addfld(fldListFr(compatm)%flds, 'Sa_ptem')
        call addfld(fldListFr(compatm)%flds, 'Sa_dens')
-       call addfld(fldListFr(compatm)%flds, 'Sa_shum_wiso')
+       if (flds_wiso) then
+          call addfld(fldListFr(compatm)%flds, 'Sa_shum_wiso')
+       end if
     else
        if (is_local%wrap%aoflux_grid == 'ogrid') then
           if (mapuv_with_cart3d) then
@@ -401,14 +411,16 @@ contains
           call addmrg(fldListTo(complnd)%flds, 'Sa_shum', mrg_from=compatm, mrg_fld='Sa_shum', mrg_type='copy')
        end if
     end if
-    if (phase == 'advertise') then
-       call addfld(fldListFr(compatm)%flds, 'Sa_shum_wiso')
-       call addfld(fldListTo(complnd)%flds, 'Sa_shum_wiso')
-    else
-       if ( fldchk(is_local%wrap%FBexp(complnd)         , 'Sa_shum_wiso', rc=rc) .and. &
-            fldchk(is_local%wrap%FBImp(compatm,compatm ), 'Sa_shum_wiso', rc=rc)) then
-          call addmap(fldListFr(compatm)%flds, 'Sa_shum_wiso', complnd, mapbilnr, 'one', atm2lnd_map)
-          call addmrg(fldListTo(complnd)%flds, 'Sa_shum_wiso', mrg_from=compatm, mrg_fld='Sa_shum_wiso', mrg_type='copy')
+    if (flds_wiso) then
+       if (phase == 'advertise') then
+          call addfld(fldListFr(compatm)%flds, 'Sa_shum_wiso')
+          call addfld(fldListTo(complnd)%flds, 'Sa_shum_wiso')
+       else
+          if ( fldchk(is_local%wrap%FBexp(complnd)         , 'Sa_shum_wiso', rc=rc) .and. &
+               fldchk(is_local%wrap%FBImp(compatm,compatm ), 'Sa_shum_wiso', rc=rc)) then
+             call addmap(fldListFr(compatm)%flds, 'Sa_shum_wiso', complnd, mapbilnr, 'one', atm2lnd_map)
+             call addmrg(fldListTo(complnd)%flds, 'Sa_shum_wiso', mrg_from=compatm, mrg_fld='Sa_shum_wiso', mrg_type='copy')
+          end if
        end if
     end if
 
@@ -580,30 +592,75 @@ contains
     ! to lnd: river channel main channel water volume from rof
     ! to lnd: river water flux back to land due to flooding
     ! ---------------------------------------------------------------------
-    allocate(flds(6))
-    flds = (/'Flrr_volr        ',&
-             'Flrr_volr_wiso   ',&
-             'Flrr_volrmch     ',&
-             'Flrr_volrmch_wiso',&
-             'Flrr_flood       ',&
-             'Flrr_flood_wiso  '/)
+    if (phase == 'advertise') then
+       call addfld(fldListFr(comprof)%flds, 'Flrr_volr')
+       call addfld(fldListTo(complnd)%flds, 'Flrr_volr')
+    else
+       if ( fldchk(is_local%wrap%FBExp(complnd)         , 'Flrr_volr', rc=rc) .and. &
+            fldchk(is_local%wrap%FBImp(comprof, comprof), 'Flrr_volr', rc=rc)) then
+          call addmap(fldListFr(comprof)%flds, 'Flrr_volr', complnd, mapconsf, 'one', rof2lnd_map)
+          call addmrg(fldListTo(complnd)%flds, 'Flrr_volr', &
+               mrg_from=comprof, mrg_fld='Flrr_volr', mrg_type='copy')
+       end if
+    end if
+    if (phase == 'advertise') then
+       call addfld(fldListFr(comprof)%flds, 'Flrr_volrmch')
+       call addfld(fldListTo(complnd)%flds, 'Flrr_volrmch')
+    else
+       if ( fldchk(is_local%wrap%FBExp(complnd)         , 'Flrr_volrmch', rc=rc) .and. &
+            fldchk(is_local%wrap%FBImp(comprof, comprof), 'Flrr_volrmch', rc=rc)) then
+          call addmap(fldListFr(comprof)%flds, 'Flrr_volrmch', complnd, mapconsf, 'one', rof2lnd_map)
+          call addmrg(fldListTo(complnd)%flds, 'Flrr_volrmch', &
+               mrg_from=comprof, mrg_fld='Flrr_volrmch', mrg_type='copy')
+       end if
+    end if
+    if (phase == 'advertise') then
+       call addfld(fldListFr(comprof)%flds, 'Flrr_flood')
+       call addfld(fldListTo(complnd)%flds, 'Flrr_flood')
+    else
+       if ( fldchk(is_local%wrap%FBExp(complnd)         , 'Flrr_flood', rc=rc) .and. &
+            fldchk(is_local%wrap%FBImp(comprof, comprof), 'Flrr_flood', rc=rc)) then
+          call addmap(fldListFr(comprof)%flds, 'Flrr_flood', complnd, mapconsf, 'one', rof2lnd_map)
+          call addmrg(fldListTo(complnd)%flds, 'Flrr_flood', &
+               mrg_from=comprof, mrg_fld='Flrr_flood', mrg_type='copy')
+       end if
+    end if
 
-    do n = 1,size(flds)
-       fldname = trim(flds(n))
+    if (flds_wiso) then
        if (phase == 'advertise') then
-          call addfld(fldListFr(comprof)%flds, trim(fldname))
-          call addfld(fldListTo(complnd)%flds, trim(fldname))
+          call addfld(fldListFr(comprof)%flds, 'Flrr_volr_wiso')
+          call addfld(fldListTo(complnd)%flds, 'Flrr_volr_wiso')
        else
-          if ( fldchk(is_local%wrap%FBExp(complnd)         , trim(fldname), rc=rc) .and. &
-               fldchk(is_local%wrap%FBImp(comprof, comprof), trim(fldname), rc=rc)) then
-             call addmap(fldListFr(comprof)%flds, trim(fldname), &
-                  complnd, mapconsf, 'one', rof2lnd_map)
-             call addmrg(fldListTo(complnd)%flds, trim(fldname), &
-                  mrg_from=comprof, mrg_fld=trim(fldname), mrg_type='copy')
+          if ( fldchk(is_local%wrap%FBExp(complnd)         , 'Flrr_volr_wiso', rc=rc) .and. &
+               fldchk(is_local%wrap%FBImp(comprof, comprof), 'Flrr_volr_wiso', rc=rc)) then
+             call addmap(fldListFr(comprof)%flds, 'Flrr_volr_wiso', complnd, mapconsf, 'one', rof2lnd_map)
+             call addmrg(fldListTo(complnd)%flds, 'Flrr_volr_wiso', &
+                  mrg_from=comprof, mrg_fld='Flrr_volr_wiso', mrg_type='copy')
           end if
        end if
-    end do
-    deallocate(flds)
+       if (phase == 'advertise') then
+          call addfld(fldListFr(comprof)%flds, 'Flrr_volrmch_wiso')
+          call addfld(fldListTo(complnd)%flds, 'Flrr_volrmch_wiso')
+       else
+          if ( fldchk(is_local%wrap%FBExp(complnd)         , 'Flrr_volrmch_wiso', rc=rc) .and. &
+               fldchk(is_local%wrap%FBImp(comprof, comprof), 'Flrr_volrmch_wiso', rc=rc)) then
+             call addmap(fldListFr(comprof)%flds, 'Flrr_volrmch_wiso', complnd, mapconsf, 'one', rof2lnd_map)
+             call addmrg(fldListTo(complnd)%flds, 'Flrr_volrmch_wiso', &
+                  mrg_from=comprof, mrg_fld='Flrr_volrmch_wiso', mrg_type='copy')
+          end if
+       end if
+       if (phase == 'advertise') then
+          call addfld(fldListFr(comprof)%flds, 'Flrr_flood_wiso')
+          call addfld(fldListTo(complnd)%flds, 'Flrr_flood_wiso')
+       else
+          if ( fldchk(is_local%wrap%FBExp(complnd)         , 'Flrr_flood_wiso', rc=rc) .and. &
+               fldchk(is_local%wrap%FBImp(comprof, comprof), 'Flrr_flood_wiso', rc=rc)) then
+             call addmap(fldListFr(comprof)%flds, 'Flrr_flood_wiso', complnd, mapconsf, 'one', rof2lnd_map)
+             call addmrg(fldListTo(complnd)%flds, 'Flrr_flood_wiso', &
+                  mrg_from=comprof, mrg_fld='Flrr_flood_wiso', mrg_type='copy')
+          end if
+       end if
+    end if
 
     ! ---------------------------------------------------------------------
     ! to lnd: ice sheet grid coverage on global grid from glc
@@ -865,29 +922,31 @@ contains
        end if
     end if
 
-    if (phase == 'advertise') then
-       call addfld(fldListFr(complnd)%flds , 'Sl_qref_wiso')
-       call addfld(fldListFr(compice)%flds , 'Si_qref_wiso')
-       call addfld(fldListMed_aoflux%flds  , 'So_qref_wiso')
-       call addfld(fldListTo(compatm)%flds , 'Sx_qref_wiso')
-    else
-       if ( fldchk(is_local%wrap%FBexp(compatm), 'Sx_qref_wiso', rc=rc)) then
-          if (fldchk(is_local%wrap%FBImp(complnd,complnd ), 'Sl_qref_wiso', rc=rc)) then
-             call addmap(fldListFr(complnd)%flds , 'Sl_qref_wiso', compatm, mapconsf, 'lfrin', lnd2atm_map)
-             call addmrg(fldListTo(compatm)%flds , 'Sx_qref_wiso', &
-                  mrg_from=complnd, mrg_fld='Sl_qref_wiso', mrg_type='merge', mrg_fracname='lfrac')
-          end if
-          if (fldchk(is_local%wrap%FBImp(compice,compice ), 'Si_qref_wiso', rc=rc)) then
-             call addmap(fldListFr(compice)%flds , 'Si_qref_wiso', compatm, mapconsf, 'ifrac', ice2atm_map)
-             call addmrg(fldListTo(compatm)%flds , 'Sx_qref_wiso', &
-                  mrg_from=compice, mrg_fld='Si_qref_wiso', mrg_type='merge', mrg_fracname='ifrac')
-          end if
-          if (fldchk(is_local%wrap%FBMed_aoflux_o, 'So_qref_wiso', rc=rc)) then
-             if (trim(is_local%wrap%aoflux_grid) == 'ogrid') then
-                call addmap(fldListMed_aoflux%flds  , 'So_qref_wiso', compatm, mapconsf, 'ofrac', ocn2atm_map) ! map ocn->atm
+    if (flds_wiso) then
+       if (phase == 'advertise') then
+          call addfld(fldListFr(complnd)%flds , 'Sl_qref_wiso')
+          call addfld(fldListFr(compice)%flds , 'Si_qref_wiso')
+          call addfld(fldListMed_aoflux%flds  , 'So_qref_wiso')
+          call addfld(fldListTo(compatm)%flds , 'Sx_qref_wiso')
+       else
+          if ( fldchk(is_local%wrap%FBexp(compatm), 'Sx_qref_wiso', rc=rc)) then
+             if (fldchk(is_local%wrap%FBImp(complnd,complnd ), 'Sl_qref_wiso', rc=rc)) then
+                call addmap(fldListFr(complnd)%flds , 'Sl_qref_wiso', compatm, mapconsf, 'lfrin', lnd2atm_map)
+                call addmrg(fldListTo(compatm)%flds , 'Sx_qref_wiso', &
+                     mrg_from=complnd, mrg_fld='Sl_qref_wiso', mrg_type='merge', mrg_fracname='lfrac')
              end if
-             call addmrg(fldListTo(compatm)%flds , 'Sx_qref_wiso', &
-                  mrg_from=compmed, mrg_fld='So_qref_wiso', mrg_type='merge', mrg_fracname='ofrac')
+             if (fldchk(is_local%wrap%FBImp(compice,compice ), 'Si_qref_wiso', rc=rc)) then
+                call addmap(fldListFr(compice)%flds , 'Si_qref_wiso', compatm, mapconsf, 'ifrac', ice2atm_map)
+                call addmrg(fldListTo(compatm)%flds , 'Sx_qref_wiso', &
+                     mrg_from=compice, mrg_fld='Si_qref_wiso', mrg_type='merge', mrg_fracname='ifrac')
+             end if
+             if (fldchk(is_local%wrap%FBMed_aoflux_o, 'So_qref_wiso', rc=rc)) then
+                if (trim(is_local%wrap%aoflux_grid) == 'ogrid') then
+                   call addmap(fldListMed_aoflux%flds  , 'So_qref_wiso', compatm, mapconsf, 'ofrac', ocn2atm_map) ! map ocn->atm
+                end if
+                call addmrg(fldListTo(compatm)%flds , 'Sx_qref_wiso', &
+                     mrg_from=compmed, mrg_fld='So_qref_wiso', mrg_type='merge', mrg_fracname='ofrac')
+             end if
           end if
        end if
     end if
@@ -979,33 +1038,34 @@ contains
        end if
     end if
 
-    if (phase == 'advertise') then
-       call addfld(fldListFr(complnd)%flds , 'Sl_qref_wiso')
-       call addfld(fldListFr(compice)%flds , 'Si_qref_wiso')
-       call addfld(fldListMed_aoflux%flds  , 'So_qref_wiso')
-       call addfld(fldListTo(compatm)%flds , 'Sx_qref_wiso')
-    else
-       if ( fldchk(is_local%wrap%FBexp(compatm), 'Sx_qref_wiso', rc=rc)) then
-          if (fldchk(is_local%wrap%FBImp(complnd,complnd ), 'Sl_qref_wiso', rc=rc)) then
-             call addmap(fldListFr(complnd)%flds , 'Sl_qref_wiso', compatm, mapconsf, 'lfrin', lnd2atm_map)
-             call addmrg(fldListTo(compatm)%flds , 'Sx_qref_wiso', &
-                  mrg_from=complnd, mrg_fld='Sl_qref_wiso', mrg_type='merge', mrg_fracname='lfrac')
-          end if
-          if (fldchk(is_local%wrap%FBImp(compice,compice ), 'Si_qref_wiso', rc=rc)) then
-             call addmap(fldListFr(compice)%flds , 'Si_qref_wiso', compatm, mapconsf, 'ifrac', ice2atm_map)
-             call addmrg(fldListTo(compatm)%flds , 'Sx_qref_wiso', &
-                  mrg_from=compice, mrg_fld='Si_qref_wiso', mrg_type='merge', mrg_fracname='ifrac')
-          end if
-          if (fldchk(is_local%wrap%FBMed_aoflux_o, 'So_qref_wiso', rc=rc)) then
-             if (trim(is_local%wrap%aoflux_grid) == 'ogrid') then
-                call addmap(fldListMed_aoflux%flds, 'So_qref_wiso', compatm, mapconsf, 'ofrac', ocn2atm_map)
+    if (flds_wiso) then
+       if (phase == 'advertise') then
+          call addfld(fldListFr(complnd)%flds , 'Sl_qref_wiso')
+          call addfld(fldListFr(compice)%flds , 'Si_qref_wiso')
+          call addfld(fldListMed_aoflux%flds  , 'So_qref_wiso')
+          call addfld(fldListTo(compatm)%flds , 'Sx_qref_wiso')
+       else
+          if ( fldchk(is_local%wrap%FBexp(compatm), 'Sx_qref_wiso', rc=rc)) then
+             if (fldchk(is_local%wrap%FBImp(complnd,complnd ), 'Sl_qref_wiso', rc=rc)) then
+                call addmap(fldListFr(complnd)%flds , 'Sl_qref_wiso', compatm, mapconsf, 'lfrin', lnd2atm_map)
+                call addmrg(fldListTo(compatm)%flds , 'Sx_qref_wiso', &
+                     mrg_from=complnd, mrg_fld='Sl_qref_wiso', mrg_type='merge', mrg_fracname='lfrac')
              end if
-             call addmrg(fldListTo(compatm)%flds , 'Sx_qref_wiso', &
-                  mrg_from=compmed, mrg_fld='So_qref_wiso', mrg_type='merge', mrg_fracname='ofrac')
+             if (fldchk(is_local%wrap%FBImp(compice,compice ), 'Si_qref_wiso', rc=rc)) then
+                call addmap(fldListFr(compice)%flds , 'Si_qref_wiso', compatm, mapconsf, 'ifrac', ice2atm_map)
+                call addmrg(fldListTo(compatm)%flds , 'Sx_qref_wiso', &
+                     mrg_from=compice, mrg_fld='Si_qref_wiso', mrg_type='merge', mrg_fracname='ifrac')
+             end if
+             if (fldchk(is_local%wrap%FBMed_aoflux_o, 'So_qref_wiso', rc=rc)) then
+                if (trim(is_local%wrap%aoflux_grid) == 'ogrid') then
+                   call addmap(fldListMed_aoflux%flds, 'So_qref_wiso', compatm, mapconsf, 'ofrac', ocn2atm_map)
+                end if
+                call addmrg(fldListTo(compatm)%flds , 'Sx_qref_wiso', &
+                     mrg_from=compmed, mrg_fld='So_qref_wiso', mrg_type='merge', mrg_fracname='ofrac')
+             end if
           end if
        end if
     end if
-
     ! ---------------------------------------------------------------------
     ! to atm: merged zonal surface stress
     ! to atm: merged meridional surface stress
@@ -1177,33 +1237,34 @@ contains
        end if
     end if
 
-    if (phase == 'advertise') then
-       call addfld(fldListTo(compatm)%flds, 'Faxx_evap_wiso')
-       call addfld(fldListFr(complnd)%flds, 'Fall_evap_wiso')
-       call addfld(fldListFr(compice)%flds, 'Faii_evap_wiso')
-       call addfld(fldListMed_aoflux%flds , 'Faox_evap_wiso')
-    else
-       if (fldchk(is_local%wrap%FBexp(compatm), 'Faxx_evap_wiso', rc=rc)) then
-          if ( fldchk(is_local%wrap%FBImp(complnd,complnd), 'Fall_evap_wiso', rc=rc)) then
-             call addmap(fldListFr(complnd)%flds , 'Fall_evap_wiso', compatm, mapconsf, 'lfrin', lnd2atm_map)
-             call addmrg(fldListTo(compatm)%flds , 'Faxx_evap_wiso', &
-                  mrg_from=complnd, mrg_fld='Fall_evap_wiso', mrg_type='merge', mrg_fracname='lfrac')
-          end if
-          if (fldchk(is_local%wrap%FBImp(compice,compice), 'Faii_evap_wiso', rc=rc)) then
-             call addmap(fldListFr(compice)%flds , 'Faii_evap_wiso', compatm, mapconsf, 'ifrac', ice2atm_map)
-             call addmrg(fldListTo(compatm)%flds , 'Faxx_evap_wiso', &
-                  mrg_from=compice, mrg_fld='Faii_evap_wiso', mrg_type='merge', mrg_fracname='ifrac')
-          end if
-          if (fldchk(is_local%wrap%FBMed_aoflux_o, 'Faox_evap_wiso', rc=rc)) then
-             if (trim(is_local%wrap%aoflux_grid) == 'ogrid') then
-                call addmap(fldListMed_aoflux%flds, 'Faox_evap_wiso', compatm, mapconsf, 'ofrac', ocn2atm_map)
+    if (flds_wiso) then
+       if (phase == 'advertise') then
+          call addfld(fldListTo(compatm)%flds, 'Faxx_evap_wiso')
+          call addfld(fldListFr(complnd)%flds, 'Fall_evap_wiso')
+          call addfld(fldListFr(compice)%flds, 'Faii_evap_wiso')
+          call addfld(fldListMed_aoflux%flds , 'Faox_evap_wiso')
+       else
+          if (fldchk(is_local%wrap%FBexp(compatm), 'Faxx_evap_wiso', rc=rc)) then
+             if ( fldchk(is_local%wrap%FBImp(complnd,complnd), 'Fall_evap_wiso', rc=rc)) then
+                call addmap(fldListFr(complnd)%flds , 'Fall_evap_wiso', compatm, mapconsf, 'lfrin', lnd2atm_map)
+                call addmrg(fldListTo(compatm)%flds , 'Faxx_evap_wiso', &
+                     mrg_from=complnd, mrg_fld='Fall_evap_wiso', mrg_type='merge', mrg_fracname='lfrac')
              end if
-             call addmrg(fldListTo(compatm)%flds , 'Faxx_evap_wiso', &
-                  mrg_from=compmed, mrg_fld='Faox_evap_wiso', mrg_type='merge', mrg_fracname='ofrac')
+             if (fldchk(is_local%wrap%FBImp(compice,compice), 'Faii_evap_wiso', rc=rc)) then
+                call addmap(fldListFr(compice)%flds , 'Faii_evap_wiso', compatm, mapconsf, 'ifrac', ice2atm_map)
+                call addmrg(fldListTo(compatm)%flds , 'Faxx_evap_wiso', &
+                     mrg_from=compice, mrg_fld='Faii_evap_wiso', mrg_type='merge', mrg_fracname='ifrac')
+             end if
+             if (fldchk(is_local%wrap%FBMed_aoflux_o, 'Faox_evap_wiso', rc=rc)) then
+                if (trim(is_local%wrap%aoflux_grid) == 'ogrid') then
+                   call addmap(fldListMed_aoflux%flds, 'Faox_evap_wiso', compatm, mapconsf, 'ofrac', ocn2atm_map)
+                end if
+                call addmrg(fldListTo(compatm)%flds , 'Faxx_evap_wiso', &
+                     mrg_from=compmed, mrg_fld='Faox_evap_wiso', mrg_type='merge', mrg_fracname='ofrac')
+             end if
           end if
        end if
     end if
-
     ! ---------------------------------------------------------------------
     ! to atm: merged surface temperature and unmerged temperatures from ice and ocn
     ! ---------------------------------------------------------------------
@@ -1612,66 +1673,81 @@ contains
        call addfld(fldListFr(compatm)%flds, 'Faxa_rainl')
        call addfld(fldListFr(compatm)%flds, 'Faxa_rain' )
        call addfld(fldListTo(compocn)%flds, 'Faxa_rain' )
-
-       call addfld(fldListFr(compatm)%flds, 'Faxa_rainc_wiso')
-       call addfld(fldListFr(compatm)%flds, 'Faxa_rainl_wiso')
-       call addfld(fldListFr(compatm)%flds, 'Faxa_rain_wiso' )
-       call addfld(fldListTo(compocn)%flds, 'Faxa_rain_wiso' )
-
        call addfld(fldListFr(compatm)%flds, 'Faxa_snowc')
        call addfld(fldListFr(compatm)%flds, 'Faxa_snowl')
        call addfld(fldListFr(compatm)%flds, 'Faxa_snow' )
        call addfld(fldListTo(compocn)%flds, 'Faxa_snow' )
-
-       call addfld(fldListFr(compatm)%flds, 'Faxa_snowc_wiso')
-       call addfld(fldListFr(compatm)%flds, 'Faxa_snowl_wiso')
-       call addfld(fldListFr(compatm)%flds, 'Faxa_snow_wiso' )
-       call addfld(fldListTo(compocn)%flds, 'Faxa_snow_wiso' )
     else
-       do n = 1,2
+       ! Note that the mediator atm/ocn flux calculation needs Faxa_rainc for the gustiness parameterization
+       ! which by default is not actually used
+       if ( fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_rainl', rc=rc) .and. &
+            fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_rainc', rc=rc) .and. &
+            fldchk(is_local%wrap%FBExp(compocn)        , 'Faxa_rain' , rc=rc)) then
+          call addmap(fldListFr(compatm)%flds, 'Faxa_rainl', compocn, mapconsf, 'one', atm2ocn_map)
+          call addmap(fldListFr(compatm)%flds, 'Faxa_rainc', compocn, mapconsf, 'one', atm2ocn_map)
+          call addmrg(fldListTo(compocn)%flds, 'Faxa_rain' , mrg_from=compatm, mrg_fld='Faxa_rainc:Faxa_rainl', &
+               mrg_type='sum_with_weights', mrg_fracname='ofrac')
+       else if ( fldchk(is_local%wrap%FBExp(compocn)        , 'Faxa_rain', rc=rc) .and. &
+                 fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_rain', rc=rc)) then
+          call addmap(fldListFr(compatm)%flds, 'Faxa_rain', compocn, mapconsf, 'one', atm2ocn_map)
+          call addmrg(fldListTo(compocn)%flds, 'Faxa_rain', mrg_from=compatm, mrg_fld='Faxa_rain', mrg_type='copy')
+       end if
+       if ( fldchk(is_local%wrap%FBExp(compocn)        , 'Faxa_snow' , rc=rc) .and. &
+            fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_snowl', rc=rc) .and. &
+            fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_snowc', rc=rc)) then
+          call addmap(fldListFr(compatm)%flds, 'Faxa_snowl', compocn, mapconsf, 'one', atm2ocn_map)
+          call addmap(fldListFr(compatm)%flds, 'Faxa_snowc', compocn, mapconsf, 'one', atm2ocn_map)
+          call addmrg(fldListTo(compocn)%flds, 'Faxa_snow'  , &
+               mrg_from=compatm, mrg_fld='Faxa_snowc:Faxa_snowl', mrg_type='sum_with_weights', mrg_fracname='ofrac')
+       else if ( fldchk(is_local%wrap%FBExp(compocn)        , 'Faxa_snow', rc=rc) .and. &
+                 fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_snow', rc=rc)) then
+          call addmap(fldListFr(compatm)%flds, 'Faxa_snow', compocn, mapconsf, 'one', atm2ocn_map)
+          call addmrg(fldListTo(compocn)%flds, 'Faxa_snow', mrg_from=compatm, mrg_fld='Faxa_snow', mrg_type='copy')
+       end if
+    end if
+
+    if (flds_wiso) then
+       if (phase == 'advertise') then
+          call addfld(fldListFr(compatm)%flds, 'Faxa_rainc_wiso')
+          call addfld(fldListFr(compatm)%flds, 'Faxa_rainl_wiso')
+          call addfld(fldListFr(compatm)%flds, 'Faxa_rain_wiso' )
+          call addfld(fldListTo(compocn)%flds, 'Faxa_rain_wiso' )
+          call addfld(fldListFr(compatm)%flds, 'Faxa_snowc_wiso')
+          call addfld(fldListFr(compatm)%flds, 'Faxa_snowl_wiso')
+          call addfld(fldListFr(compatm)%flds, 'Faxa_snow_wiso' )
+          call addfld(fldListTo(compocn)%flds, 'Faxa_snow_wiso' )
+       else
           ! Note that the mediator atm/ocn flux calculation needs Faxa_rainc for the gustiness parameterization
           ! which by default is not actually used
-          if ( fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_rainl'//iso(n), rc=rc) .and. &
-               fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_rainc'//iso(n), rc=rc) .and. &
-               fldchk(is_local%wrap%FBExp(compocn)        , 'Faxa_rain' //iso(n), rc=rc)) then
-             call addmap(fldListFr(compatm)%flds, 'Faxa_rainl'//iso(n), compocn, mapconsf, 'one', atm2ocn_map)
-             call addmap(fldListFr(compatm)%flds, 'Faxa_rainc'//iso(n), compocn, mapconsf, 'one', atm2ocn_map)
-             if (iso(n) == ' ') then
-                call addmrg(fldListTo(compocn)%flds, 'Faxa_rain'//iso(n) , &
-                     mrg_from=compatm, mrg_fld='Faxa_rainc:Faxa_rainl', &
-                     mrg_type='sum_with_weights', mrg_fracname='ofrac')
-             else
-                call addmrg(fldListTo(compocn)%flds, 'Faxa_rain'//iso(n) , &
-                     mrg_from=compatm, mrg_fld=trim('Faxa_rainc'//iso(n))//':'//trim('Faxa_rainl'//iso(n)), &
-                     mrg_type='sum_with_weights', mrg_fracname='ofrac')
-             end if
-          else if ( fldchk(is_local%wrap%FBExp(compocn)        , 'Faxa_rain'//iso(n), rc=rc) .and. &
-                    fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_rain'//iso(n), rc=rc)) then
-             call addmap(fldListFr(compatm)%flds, 'Faxa_rain'//iso(n), compocn, mapconsf, 'one', atm2ocn_map)
-             call addmrg(fldListTo(compocn)%flds, 'Faxa_rain'//iso(n), &
-                  mrg_from=compatm, mrg_fld='Faxa_rain'//iso(n), mrg_type='copy')
+          if ( fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_rainl_wiso', rc=rc) .and. &
+               fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_rainc_wiso', rc=rc) .and. &
+               fldchk(is_local%wrap%FBExp(compocn)        , 'Faxa_rain_wiso' , rc=rc)) then
+             call addmap(fldListFr(compatm)%flds, 'Faxa_rainl_wiso', compocn, mapconsf, 'one', atm2ocn_map)
+             call addmap(fldListFr(compatm)%flds, 'Faxa_rainc_wiso', compocn, mapconsf, 'one', atm2ocn_map)
+             call addmrg(fldListTo(compocn)%flds, 'Faxa_rain_wiso' , &
+                  mrg_from=compatm, mrg_fld=trim('Faxa_rainc_wiso')//':'//trim('Faxa_rainl_wiso'), &
+                  mrg_type='sum_with_weights', mrg_fracname='ofrac')
+          else if ( fldchk(is_local%wrap%FBExp(compocn)   , 'Faxa_rain_wiso', rc=rc) .and. &
+               fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_rain_wiso', rc=rc)) then
+             call addmap(fldListFr(compatm)%flds, 'Faxa_rain_wiso', compocn, mapconsf, 'one', atm2ocn_map)
+             call addmrg(fldListTo(compocn)%flds, 'Faxa_rain_wiso', &
+                  mrg_from=compatm, mrg_fld='Faxa_rain_wiso', mrg_type='copy')
           end if
-          if ( fldchk(is_local%wrap%FBExp(compocn)        , 'Faxa_snow' //iso(n), rc=rc) .and. &
-               fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_snowl'//iso(n), rc=rc) .and. &
-               fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_snowc'//iso(n), rc=rc)) then
-             call addmap(fldListFr(compatm)%flds, 'Faxa_snowl'//iso(n), compocn, mapconsf, 'one', atm2ocn_map)
-             call addmap(fldListFr(compatm)%flds, 'Faxa_snowc'//iso(n), compocn, mapconsf, 'one', atm2ocn_map)
-             if (iso(n) == ' ') then
-                call addmrg(fldListTo(compocn)%flds, 'Faxa_snow' //iso(n) , &
-                     mrg_from=compatm, mrg_fld='Faxa_snowc:Faxa_snowl', &
-                     mrg_type='sum_with_weights', mrg_fracname='ofrac')
-             else
-                call addmrg(fldListTo(compocn)%flds, 'Faxa_snow' //iso(n) , &
-                     mrg_from=compatm, mrg_fld=trim('Faxa_snowc'//iso(n))//':'//trim('Faxa_snowl'//iso(n)), &
-                     mrg_type='sum_with_weights', mrg_fracname='ofrac')
-             end if
-          else if ( fldchk(is_local%wrap%FBExp(compocn)        , 'Faxa_snow'//iso(n), rc=rc) .and. &
-                    fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_snow'//iso(n), rc=rc)) then
-             call addmap(fldListFr(compatm)%flds, 'Faxa_snow'//iso(n), compocn, mapconsf, 'one', atm2ocn_map)
-             call addmrg(fldListTo(compocn)%flds, 'Faxa_snow'//iso(n), &
-                  mrg_from=compatm, mrg_fld='Faxa_snow'//iso(n), mrg_type='copy')
+          if ( fldchk(is_local%wrap%FBExp(compocn)        , 'Faxa_snow_wiso', rc=rc) .and. &
+               fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_snowl_wiso', rc=rc) .and. &
+               fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_snowc_wiso', rc=rc)) then
+             call addmap(fldListFr(compatm)%flds, 'Faxa_snowl_wiso', compocn, mapconsf, 'one', atm2ocn_map)
+             call addmap(fldListFr(compatm)%flds, 'Faxa_snowc_wiso', compocn, mapconsf, 'one', atm2ocn_map)
+             call addmrg(fldListTo(compocn)%flds, 'Faxa_snow_wiso', &
+                  mrg_from=compatm, mrg_fld=trim('Faxa_snowc_wiso')//':'//trim('Faxa_snowl_wiso'), &
+                  mrg_type='sum_with_weights', mrg_fracname='ofrac')
+          else if ( fldchk(is_local%wrap%FBExp(compocn)   , 'Faxa_snow_wiso', rc=rc) .and. &
+               fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_snow_wiso', rc=rc)) then
+             call addmap(fldListFr(compatm)%flds, 'Faxa_snow_wiso', compocn, mapconsf, 'one', atm2ocn_map)
+             call addmrg(fldListTo(compocn)%flds, 'Faxa_snow_wiso', &
+                  mrg_from=compatm, mrg_fld='Faxa_snow_wiso', mrg_type='copy')
           end if
-       end do
+       end if
     end if
 
     ! ---------------------------------------------------------------------
@@ -1710,13 +1786,15 @@ contains
        end if
     end if
 
-    if (phase == 'advertise') then
-       call addfld(fldListMed_aoflux%flds , 'Faox_lat_wiso' )
-       call addfld(fldListTo(compocn)%flds, 'Foxx_lat_wiso' )
-    else
-       if ( fldchk(is_local%wrap%FBexp(compocn), 'Foxx_lat_wiso', rc=rc)) then
-          call addmrg(fldListTo(compocn)%flds, 'Foxx_lat_wiso', &
-               mrg_from=compmed, mrg_fld='Faox_lat_wiso', mrg_type='merge', mrg_fracname='ofrac')
+    if (flds_wiso) then
+       if (phase == 'advertise') then
+          call addfld(fldListMed_aoflux%flds , 'Faox_lat_wiso' )
+          call addfld(fldListTo(compocn)%flds, 'Foxx_lat_wiso' )
+       else
+          if ( fldchk(is_local%wrap%FBexp(compocn), 'Foxx_lat_wiso', rc=rc)) then
+             call addmrg(fldListTo(compocn)%flds, 'Foxx_lat_wiso', &
+                  mrg_from=compmed, mrg_fld='Faox_lat_wiso', mrg_type='merge', mrg_fracname='ofrac')
+          end if
        end if
     end if
 
@@ -1846,19 +1924,32 @@ contains
     ! ---------------------------------------------------------------------
     ! to ocn: water flux due to melting ice from ice
     ! ---------------------------------------------------------------------
-    do n = 1,size(iso)
+    
+    if (phase == 'advertise') then
+       call addfld(fldListFr(compice)%flds , 'Fioi_meltw')
+       call addfld(fldListTo(compocn)%flds , 'Fioi_meltw')
+    else
+       if ( fldchk(is_local%wrap%FBexp(compocn)         , 'Fioi_meltw', rc=rc) .and. &
+            fldchk(is_local%wrap%FBImp(compice, compice), 'Fioi_meltw', rc=rc)) then
+          call addmap(fldListFr(compice)%flds, 'Fioi_meltw',    compocn,  mapfcopy, 'unset', 'unset')
+          call addmrg(fldListTo(compocn)%flds, 'Fioi_meltw', &
+               mrg_from=compice, mrg_fld='Fioi_meltw', mrg_type='copy_with_weights', mrg_fracname='ifrac')
+       end if
+    end if
+
+    if (flds_wiso) then
        if (phase == 'advertise') then
-          call addfld(fldListFr(compice)%flds , 'Fioi_meltw'//iso(n))
-          call addfld(fldListTo(compocn)%flds , 'Fioi_meltw'//iso(n))
+          call addfld(fldListFr(compice)%flds , 'Fioi_meltw_wiso')
+          call addfld(fldListTo(compocn)%flds , 'Fioi_meltw_wiso')
        else
-          if ( fldchk(is_local%wrap%FBexp(compocn)         , 'Fioi_meltw'//iso(n), rc=rc) .and. &
-               fldchk(is_local%wrap%FBImp(compice, compice), 'Fioi_meltw'//iso(n), rc=rc)) then
-             call addmap(fldListFr(compice)%flds, 'Fioi_meltw'//iso(n),    compocn,  mapfcopy, 'unset', 'unset')
-             call addmrg(fldListTo(compocn)%flds, 'Fioi_meltw'//iso(n), &
-                  mrg_from=compice, mrg_fld='Fioi_meltw'//iso(n), mrg_type='copy_with_weights', mrg_fracname='ifrac')
+          if ( fldchk(is_local%wrap%FBexp(compocn)         , 'Fioi_meltw_wiso', rc=rc) .and. &
+               fldchk(is_local%wrap%FBImp(compice, compice), 'Fioi_meltw_wiso', rc=rc)) then
+             call addmap(fldListFr(compice)%flds, 'Fioi_meltw_wiso',    compocn,  mapfcopy, 'unset', 'unset')
+             call addmrg(fldListTo(compocn)%flds, 'Fioi_meltw_wiso', &
+                  mrg_from=compice, mrg_fld='Fioi_meltw_wiso', mrg_type='copy_with_weights', mrg_fracname='ifrac')
           end if
        end if
-    end do
+    end if
 
     ! ---------------------------------------------------------------------
     ! to ocn: heat flux from melting ice from ice
@@ -2059,50 +2150,24 @@ contains
        call addfld(fldListFr(compatm)%flds, 'Faxa_rainl')
        call addfld(fldListFr(compatm)%flds, 'Faxa_rain' )
        call addfld(fldListTo(compice)%flds, 'Faxa_rain' )
-
-       call addfld(fldListFr(compatm)%flds, 'Faxa_rainc_wiso')
-       call addfld(fldListFr(compatm)%flds, 'Faxa_rainl_wiso')
-       call addfld(fldListFr(compatm)%flds, 'Faxa_rain_wiso' )
-       call addfld(fldListTo(compice)%flds, 'Faxa_rain_wiso' )
     else
        if ( fldchk(is_local%wrap%FBexp(compice)        , 'Faxa_rain' , rc=rc) .and. &
             fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_rainl', rc=rc) .and. &
             fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_rainc', rc=rc)) then
           call addmap(fldListFr(compatm)%flds, 'Faxa_rainc', compice, mapconsf, 'one', atm2ice_map)
           call addmap(fldListFr(compatm)%flds, 'Faxa_rainl', compice, mapconsf, 'one', atm2ice_map)
-          call addmrg(fldListTo(compice)%flds, 'Faxa_rain' , &
-               mrg_from=compatm, mrg_fld='Faxa_rainc:Faxa_rainl', mrg_type='sum')
+          call addmrg(fldListTo(compice)%flds, 'Faxa_rain' , mrg_from=compatm, mrg_fld='Faxa_rainc:Faxa_rainl', mrg_type='sum')
        else if ( fldchk(is_local%wrap%FBexp(compice)        , 'Faxa_rain', rc=rc) .and. &
                  fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_rain', rc=rc)) then
           call addmap(fldListFr(compatm)%flds, 'Faxa_rain', compice, mapconsf, 'one', atm2ice_map)
-          call addmrg(fldListTo(compice)%flds, 'Faxa_rain', &
-               mrg_from=compatm, mrg_fld='Faxa_rain', mrg_type='copy')
-       end if
-       if ( fldchk(is_local%wrap%FBexp(compice)        , 'Faxa_rain_wiso' , rc=rc) .and. &
-            fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_rainl_wiso', rc=rc) .and. &
-            fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_rainc_wiso', rc=rc)) then
-          call addmap(fldListFr(compatm)%flds, 'Faxa_rainc_wiso', compice, mapconsf, 'one', atm2ice_map)
-          call addmap(fldListFr(compatm)%flds, 'Faxa_rainl_wiso', compice, mapconsf, 'one', atm2ice_map)
-          call addmrg(fldListTo(compice)%flds, 'Faxa_rain_wiso' , &
-               mrg_from=compatm, mrg_fld='Faxa_rainc_wiso:Faxa_rainl_wiso', mrg_type='sum')
-       else if ( fldchk(is_local%wrap%FBexp(compice)        , 'Faxa_rain_wiso', rc=rc) .and. &
-                 fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_rain_wiso', rc=rc)) then
-          call addmap(fldListFr(compatm)%flds, 'Faxa_rain_wiso', compice, mapconsf, 'one', atm2ice_map)
-          call addmrg(fldListTo(compice)%flds, 'Faxa_rain_wiso', &
-               mrg_from=compatm, mrg_fld='Faxa_rain_wiso', mrg_type='copy')
+          call addmrg(fldListTo(compice)%flds, 'Faxa_rain', mrg_from=compatm, mrg_fld='Faxa_rain', mrg_type='copy')
        end if
     end if
-
     if (phase == 'advertise') then
        call addfld(fldListFr(compatm)%flds, 'Faxa_snowc')
        call addfld(fldListFr(compatm)%flds, 'Faxa_snowl')
        call addfld(fldListFr(compatm)%flds, 'Faxa_snow' )
        call addfld(fldListTo(compice)%flds, 'Faxa_snow' )
-
-       call addfld(fldListFr(compatm)%flds, 'Faxa_snowc_wiso')
-       call addfld(fldListFr(compatm)%flds, 'Faxa_snowl_wiso')
-       call addfld(fldListFr(compatm)%flds, 'Faxa_snow_wiso' )
-       call addfld(fldListTo(compice)%flds, 'Faxa_snow_wiso' )
     else
        if ( fldchk(is_local%wrap%FBexp(compice)        , 'Faxa_snow' , rc=rc) .and. &
             fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_snowl', rc=rc) .and. &
@@ -2117,18 +2182,48 @@ contains
           call addmrg(fldListTo(compice)%flds, 'Faxa_snow', &
                mrg_from=compatm, mrg_fld='Faxa_snow', mrg_type='copy')
        end if
-       if ( fldchk(is_local%wrap%FBexp(compice)        , 'Faxa_snow_wiso', rc=rc) .and. &
-            fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_snowl_wiso', rc=rc) .and. &
-            fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_snowc_wiso', rc=rc)) then
-          call addmap(fldListFr(compatm)%flds, 'Faxa_snowc_wiso', compice, mapconsf, 'one', atm2ice_map)
-          call addmap(fldListFr(compatm)%flds, 'Faxa_snowl_wiso', compice, mapconsf, 'one', atm2ice_map)
-          call addmrg(fldListTo(compice)%flds, 'Faxa_snow_wiso' , &
-               mrg_from=compatm, mrg_fld='Faxa_snowc_wiso:Faxa_snowl_wiso', mrg_type='sum')
-       else if ( fldchk(is_local%wrap%FBexp(compice)        , 'Faxa_snow_wiso', rc=rc) .and. &
-                 fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_snow_wiso', rc=rc)) then
-          call addmap(fldListFr(compatm)%flds, 'Faxa_snow_wiso', compice, mapconsf, 'one', atm2ice_map)
-          call addmrg(fldListTo(compice)%flds, 'Faxa_snow_wiso', &
-               mrg_from=compatm, mrg_fld='Faxa_snow_wiso', mrg_type='copy')
+    end if
+
+    if (flds_wiso) then
+       if (phase == 'advertise') then
+          call addfld(fldListFr(compatm)%flds, 'Faxa_rainc_wiso')
+          call addfld(fldListFr(compatm)%flds, 'Faxa_rainl_wiso')
+          call addfld(fldListFr(compatm)%flds, 'Faxa_rain_wiso' )
+          call addfld(fldListTo(compice)%flds, 'Faxa_rain_wiso' )
+       else
+          if ( fldchk(is_local%wrap%FBexp(compice)        , 'Faxa_rain_wiso' , rc=rc) .and. &
+               fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_rainl_wiso', rc=rc) .and. &
+               fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_rainc_wiso', rc=rc)) then
+             call addmap(fldListFr(compatm)%flds, 'Faxa_rainc_wiso', compice, mapconsf, 'one', atm2ice_map)
+             call addmap(fldListFr(compatm)%flds, 'Faxa_rainl_wiso', compice, mapconsf, 'one', atm2ice_map)
+             call addmrg(fldListTo(compice)%flds, 'Faxa_rain_wiso' , &
+                  mrg_from=compatm, mrg_fld='Faxa_rainc_wiso:Faxa_rainl_wiso', mrg_type='sum')
+          else if ( fldchk(is_local%wrap%FBexp(compice)        , 'Faxa_rain_wiso', rc=rc) .and. &
+                    fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_rain_wiso', rc=rc)) then
+             call addmap(fldListFr(compatm)%flds, 'Faxa_rain_wiso', compice, mapconsf, 'one', atm2ice_map)
+             call addmrg(fldListTo(compice)%flds, 'Faxa_rain_wiso', &
+                  mrg_from=compatm, mrg_fld='Faxa_rain_wiso', mrg_type='copy')
+          end if
+       end if
+
+       if (phase == 'advertise') then
+          call addfld(fldListFr(compatm)%flds, 'Faxa_snowc_wiso')
+          call addfld(fldListFr(compatm)%flds, 'Faxa_snowl_wiso')
+          call addfld(fldListFr(compatm)%flds, 'Faxa_snow_wiso' )
+          call addfld(fldListTo(compice)%flds, 'Faxa_snow_wiso' )
+       else
+          if ( fldchk(is_local%wrap%FBexp(compice)        , 'Faxa_snow_wiso', rc=rc) .and. &
+               fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_snowl_wiso', rc=rc) .and. &
+               fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_snowc_wiso', rc=rc)) then
+             call addmap(fldListFr(compatm)%flds, 'Faxa_snowc_wiso', compice, mapconsf, 'one', atm2ice_map)
+             call addmap(fldListFr(compatm)%flds, 'Faxa_snowl_wiso', compice, mapconsf, 'one', atm2ice_map)
+             call addmrg(fldListTo(compice)%flds, 'Faxa_snow_wiso' , &
+                  mrg_from=compatm, mrg_fld='Faxa_snowc_wiso:Faxa_snowl_wiso', mrg_type='sum')
+          else if ( fldchk(is_local%wrap%FBexp(compice)        , 'Faxa_snow_wiso', rc=rc) .and. &
+                    fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_snow_wiso', rc=rc)) then
+             call addmap(fldListFr(compatm)%flds, 'Faxa_snow_wiso', compice, mapconsf, 'one', atm2ice_map)
+             call addmrg(fldListTo(compice)%flds, 'Faxa_snow_wiso', mrg_from=compatm, mrg_fld='Faxa_snow_wiso', mrg_type='copy')
+          end if
        end if
     end if
 
@@ -2143,10 +2238,9 @@ contains
     ! to ice: specific humidity at the lowest model level from atm
     ! to ice: specific humidity for water isotopes at the lowest model level from atm
     ! ---------------------------------------------------------------------
-    allocate(flds(9))
-    flds = (/'Sa_z        ', 'Sa_pbot     ', 'Sa_tbot     ', 'Sa_ptem     ', &
-             'Sa_dens     ', 'Sa_u        ', 'Sa_v        ', 'Sa_shum     ', 'Sa_shum_wiso'/)
 
+    allocate(flds(6))
+    flds = (/'Sa_z   ','Sa_pbot', 'Sa_tbot', 'Sa_ptem','Sa_dens', 'Sa_shum'/)
     do n = 1,size(flds)
        fldname = trim(flds(n))
        if (phase == 'advertise') then
@@ -2155,21 +2249,53 @@ contains
        else
           if ( fldchk(is_local%wrap%FBexp(compice)         , trim(fldname), rc=rc) .and. &
                fldchk(is_local%wrap%FBImp(compatm,compatm ), trim(fldname), rc=rc)) then
-             if (trim(fldname) == 'Sa_u' .or. trim(fldname) == 'Sa_v') then
-                if (mapuv_with_cart3d) then
-                   call addmap(fldListFr(compatm)%flds, trim(fldname), compice, mappatch_uv3d, 'one', atm2ice_map)
-                else
-                   call addmap(fldListFr(compatm)%flds, trim(fldname), compice, mappatch, 'one', atm2ice_map)
-                end if
-             else
-                call addmap(fldListFr(compatm)%flds, trim(fldname), compice, mapbilnr, 'one', atm2ice_map)
-             end if
-             call addmrg(fldListTo(compice)%flds, trim(fldname), &
-                  mrg_from=compatm, mrg_fld=trim(fldname), mrg_type='copy')
+             call addmap(fldListFr(compatm)%flds, trim(fldname), compice, mapbilnr, 'one', atm2ice_map)
+             call addmrg(fldListTo(compice)%flds, trim(fldname), mrg_from=compatm, mrg_fld=trim(fldname), mrg_type='copy')
           end if
        end if
     end do
     deallocate(flds)
+
+    if (phase == 'advertise') then
+       call addfld(fldListFr(compatm)%flds, 'Sa_u')
+       call addfld(fldListTo(compice)%flds, 'Sa_u')
+    else
+       if ( fldchk(is_local%wrap%FBexp(compice)         , 'Sa_u', rc=rc) .and. &
+            fldchk(is_local%wrap%FBImp(compatm,compatm ), 'Sa_u', rc=rc)) then
+          if (mapuv_with_cart3d) then
+             call addmap(fldListFr(compatm)%flds, 'Sa_u', compice, mappatch_uv3d, 'one', atm2ice_map)
+          else
+             call addmap(fldListFr(compatm)%flds, 'Sa_u', compice, mappatch, 'one', atm2ice_map)
+          end if
+          call addmrg(fldListTo(compice)%flds, 'Sa_u', mrg_from=compatm, mrg_fld='Sa_u', mrg_type='copy')
+       end if
+    end if
+    if (phase == 'advertise') then
+       call addfld(fldListFr(compatm)%flds, 'Sa_v')
+       call addfld(fldListTo(compice)%flds, 'Sa_v')
+    else
+       if ( fldchk(is_local%wrap%FBexp(compice)         , 'Sa_v', rc=rc) .and. &
+            fldchk(is_local%wrap%FBImp(compatm,compatm ), 'Sa_v', rc=rc)) then
+          if (mapuv_with_cart3d) then
+             call addmap(fldListFr(compatm)%flds, 'Sa_v', compice, mappatch_uv3d, 'one', atm2ice_map)
+          else
+             call addmap(fldListFr(compatm)%flds, 'Sa_v', compice, mappatch, 'one', atm2ice_map)
+          end if
+          call addmrg(fldListTo(compice)%flds, 'Sa_v', mrg_from=compatm, mrg_fld='Sa_v', mrg_type='copy')
+       end if
+    end if
+    if (flds_wiso) then
+       if (phase == 'advertise') then
+          call addfld(fldListFr(compatm)%flds, 'Sa_shum_wiso')
+          call addfld(fldListTo(compice)%flds, 'Sa_shum_wiso')
+       else
+          if ( fldchk(is_local%wrap%FBexp(compice)         , 'Sa_shum_wiso', rc=rc) .and. &
+               fldchk(is_local%wrap%FBImp(compatm,compatm ), 'Sa_shum_wiso', rc=rc)) then
+             call addmap(fldListFr(compatm)%flds, 'Sa_shum_wiso', compice, mapbilnr, 'one', atm2ice_map)
+             call addmrg(fldListTo(compice)%flds, 'Sa_shum_wiso', mrg_from=compatm, mrg_fld='Sa_shum_wiso', mrg_type='copy')
+          end if
+       end if
+    end if
 
     ! ---------------------------------------------------------------------
     ! to ice: sea surface temperature from ocn
@@ -2208,55 +2334,74 @@ contains
        if ( fldchk(is_local%wrap%FBImp(compocn, compocn), 'Fioo_q', rc=rc) .and. &
             fldchk(is_local%wrap%FBExp(compice)         , 'Fioo_q', rc=rc)) then
           call addmap(fldListFr(compocn)%flds, 'Fioo_q', compice,  mapfcopy, 'unset', 'unset')
-          call addmrg(fldListTo(compice)%flds, 'Fioo_q', &
-               mrg_from=compocn, mrg_fld='Fioo_q', mrg_type='copy')
+          call addmrg(fldListTo(compice)%flds, 'Fioo_q', mrg_from=compocn, mrg_fld='Fioo_q', mrg_type='copy')
        end if
     end if
 
     !-----------------------------
     ! to ice: Ratio of ocean surface level abund. H2_16O/H2O/Rstd from ocean
     !-----------------------------
-    if (phase == 'advertise') then
-       call addfld(fldListFr(compocn)%flds, 'So_roce_wiso')
-       call addfld(fldListTo(compice)%flds, 'So_roce_wiso')
-    else
-       if ( fldchk(is_local%wrap%FBImp(compocn, compocn), 'So_roce_wiso', rc=rc) .and. &
-            fldchk(is_local%wrap%FBExp(compice)         , 'So_roce_wiso', rc=rc)) then
-          call addmap(fldListFr(compocn)%flds, 'So_roce_wiso', compice,  mapfcopy, 'unset', 'unset')
-          call addmrg(fldListTo(compice)%flds, 'So_roce_wiso', &
-               mrg_from=compocn, mrg_fld='So_roce_wiso', mrg_type='copy')
+    if (flds_wiso) then
+       if (phase == 'advertise') then
+          call addfld(fldListFr(compocn)%flds, 'So_roce_wiso')
+          call addfld(fldListTo(compice)%flds, 'So_roce_wiso')
+       else
+          if ( fldchk(is_local%wrap%FBImp(compocn, compocn), 'So_roce_wiso', rc=rc) .and. &
+               fldchk(is_local%wrap%FBExp(compice)         , 'So_roce_wiso', rc=rc)) then
+             call addmap(fldListFr(compocn)%flds, 'So_roce_wiso', compice,  mapfcopy, 'unset', 'unset')
+             call addmrg(fldListTo(compice)%flds, 'So_roce_wiso', mrg_from=compocn, mrg_fld='So_roce_wiso', mrg_type='copy')
+          end if
        end if
     end if
 
     ! ---------------------------------------------------------------------
     ! to ice: frozen runoff from rof and glc
     ! ---------------------------------------------------------------------
-    do n = 1,size(iso)
-       if (phase == 'advertise') then
-          call addfld(fldListFr(comprof)%flds, 'Firr_rofi'//iso(n)) ! water flux into sea ice due to runoff (frozen)
+    if (phase == 'advertise') then
+       call addfld(fldListFr(comprof)%flds, 'Firr_rofi') ! water flux into sea ice due to runoff (frozen)
+       do ns = 1, num_icesheets
+          call addfld(fldListFr(compglc(ns))%flds, 'Figg_rofi') ! glc frozen runoff_iceberg flux to ice
+       end do
+       call addfld(fldListTo(compice)%flds, 'Fixx_rofi') ! total frozen water flux into sea ice
+    else
+       if ( fldchk(is_local%wrap%FBExp(compice), 'Fixx_rofi', rc=rc)) then
+          if (fldchk(is_local%wrap%FBImp(comprof, comprof), 'Forr_rofi', rc=rc)) then
+             call addmap(fldListFr(comprof)%flds, 'Forr_rofi', compice, mapconsf, 'none', rof2ocn_ice_rmap)
+             call addmrg(fldListTo(compice)%flds, 'Fixx_rofi', mrg_from=comprof, mrg_fld='Firr_rofi', mrg_type='sum')
+          end if
           do ns = 1, num_icesheets
-             call addfld(fldListFr(compglc(ns))%flds, 'Figg_rofi'//iso(n)) ! glc frozen runoff_iceberg flux to ice
+             if (fldchk(is_local%wrap%FBImp(compglc(ns), compglc(ns)), 'Figg_rofi', rc=rc)) then
+                call addmap(fldListFr(compglc(ns))%flds, 'Figg_rofi', compice, mapconsf, 'one' , glc2ice_rmap)
+                call addmrg(fldListTo(compice)%flds, 'Fixx_rofi', mrg_from=compglc(ns), mrg_fld='Figg_rofi', mrg_type='sum')
+             end if
           end do
-          call addfld(fldListTo(compice)%flds, 'Fixx_rofi'//iso(n)) ! total frozen water flux into sea ice
+       end if
+    end if
+
+    if (flds_wiso) then
+       if (phase == 'advertise') then
+          call addfld(fldListFr(comprof)%flds, 'Firr_rofi_wiso') ! water flux into sea ice due to runoff (frozen)
+          do ns = 1, num_icesheets
+             call addfld(fldListFr(compglc(ns))%flds, 'Figg_rofi_wiso') ! glc frozen runoff_iceberg flux to ice
+          end do
+          call addfld(fldListTo(compice)%flds, 'Fixx_rofi_wiso') ! total frozen water flux into sea ice
        else
-          if ( fldchk(is_local%wrap%FBExp(compice), 'Fixx_rofi'//iso(n), rc=rc)) then
-             if (fldchk(is_local%wrap%FBImp(comprof, comprof), 'Forr_rofi'//iso(n), rc=rc)) then
-                call addmap(fldListFr(comprof)%flds, 'Forr_rofi'//iso(n), &
-                     compice, mapconsf, 'none', rof2ocn_ice_rmap)
-                call addmrg(fldListTo(compice)%flds, 'Fixx_rofi'//iso(n), &
-                     mrg_from=comprof, mrg_fld='Firr_rofi'//iso(n), mrg_type='sum')
+          if ( fldchk(is_local%wrap%FBExp(compice), 'Fixx_rofi_wiso', rc=rc)) then
+             if (fldchk(is_local%wrap%FBImp(comprof, comprof), 'Forr_rofi_wiso', rc=rc)) then
+                call addmap(fldListFr(comprof)%flds, 'Forr_rofi_wiso', compice, mapconsf, 'none', rof2ocn_ice_rmap)
+                call addmrg(fldListTo(compice)%flds, 'Fixx_rofi_wiso', &
+                     mrg_from=comprof, mrg_fld='Firr_rofi_wiso', mrg_type='sum')
              end if
              do ns = 1, num_icesheets
-                if (fldchk(is_local%wrap%FBImp(compglc(ns), compglc(ns)), 'Figg_rofi'//iso(n), rc=rc)) then
-                   call addmap(fldListFr(compglc(ns))%flds, 'Figg_rofi'//iso(n), &
-                        compice, mapconsf, 'one' , glc2ice_rmap)
-                   call addmrg(fldListTo(compice)%flds, 'Fixx_rofi'//iso(n), &
-                        mrg_from=compglc(ns), mrg_fld='Figg_rofi'//iso(n), mrg_type='sum')
+                if (fldchk(is_local%wrap%FBImp(compglc(ns), compglc(ns)), 'Figg_rofi_wiso', rc=rc)) then
+                   call addmap(fldListFr(compglc(ns))%flds, 'Figg_rofi_wiso', compice, mapconsf, 'one' , glc2ice_rmap)
+                   call addmrg(fldListTo(compice)%flds, 'Fixx_rofi_wiso', &
+                        mrg_from=compglc(ns), mrg_fld='Figg_rofi_wiso', mrg_type='sum')
                 end if
              end do
           end if
        end if
-    end do
+    end if
 
     !=====================================================================
     ! FIELDS TO WAVE (compwav)

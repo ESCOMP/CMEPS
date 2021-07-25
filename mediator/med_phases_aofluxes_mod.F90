@@ -40,6 +40,7 @@ module med_phases_aofluxes_mod
   ! Public routines
   !--------------------------------------------------------------------------
 
+  public :: med_phases_aofluxes_init_fldbuns
   public :: med_phases_aofluxes_run
 
   !--------------------------------------------------------------------------
@@ -64,9 +65,9 @@ module med_phases_aofluxes_mod
   logical :: compute_atm_thbot
   integer :: ocn_surface_flux_scheme ! use case
 
-  character(len=CS), allocatable :: fldnames_ocn_in(:)
-  character(len=CS), allocatable :: fldnames_atm_in(:)
-  character(len=CS), allocatable :: fldnames_aof_out(:)
+  character(len=CS), pointer :: fldnames_ocn_in(:)
+  character(len=CS), pointer :: fldnames_atm_in(:)
+  character(len=CS), pointer :: fldnames_aof_out(:)
 
   ! following is needed for atm/ocn fluxes on atm grid
   type(ESMF_FieldBundle) :: FBocn_a ! ocean fields need for aoflux calc on atm grid
@@ -136,6 +137,81 @@ module med_phases_aofluxes_mod
 contains
 !================================================================================
 
+  subroutine med_phases_aofluxes_init_fldbuns(gcomp, rc)
+
+    use ESMF            , only : ESMF_FieldBundleIsCreated
+    use esmFlds         , only : med_fldList_GetNumFlds, med_fldList_GetFldNames, compname
+    use esmFlds         , only : fldListMed_aoflux
+    use med_methods_mod , only : FB_init => med_methods_FB_init
+
+    ! input/output variables
+    type(ESMF_GridComp)  :: gcomp
+    integer, intent(out) :: rc
+
+    ! local variables
+    integer                :: n
+    type(InternalState)    :: is_local
+    integer                :: fieldcount
+    character(len=*),parameter :: subname=' (med_phases_aofluxes_init_fldbuns) '
+    !---------------------------------------
+
+    ! Create field bundles for mediator ocean/atmosphere flux computation
+    ! This is needed regardless of the grid on which the atm/ocn flux computation is done on
+    fieldCount = med_fldList_GetNumFlds(fldListMed_aoflux)
+    if (fieldCount > 0) then
+
+       ! Get the internal state from the mediator Component.
+       nullify(is_local%wrap)
+       call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+       ! Set module variable fldnames_aof_out
+       allocate(fldnames_aof_out(fieldCount))
+       call med_fldList_getfldnames(fldListMed_aoflux%flds, fldnames_aof_out, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       ! Initialize FBMed_aoflux_a
+       call FB_init(is_local%wrap%FBMed_aoflux_a, is_local%wrap%flds_scalar_name, &
+            STgeom=is_local%wrap%NStateImp(compatm), fieldnamelist=fldnames_aof_out, name='FBMed_aoflux_a', rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       if (mastertask) then
+          write(logunit,*)
+          write(logunit,'(a)') trim(subname)//' initializing FB FBMed_aoflux_a'
+       end if
+
+       ! Initialize FBMed_aoflux_o
+       call FB_init(is_local%wrap%FBMed_aoflux_o, is_local%wrap%flds_scalar_name, &
+            STgeom=is_local%wrap%NStateImp(compocn), fieldnamelist=fldnames_aof_out, name='FBMed_aoflux_o', rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       if (mastertask) then
+          write(logunit,'(a)') trim(subname)//' initializing FB FBMed_aoflux_o'
+          write(logunit,'(a)') trim(subname)//' following are the fields in FBMed_aoflux_o and FBMed_aoflux_a'
+          do n = 1,fieldcount
+             write(logunit,'(a)')'   FBmed_aoflux fieldname = '//trim(fldnames_aof_out(n))
+          end do
+       end if
+
+       ! The following assumes that the mediator atm/ocn flux calculation will be done on the ocean grid
+       if (is_local%wrap%aoflux_grid == 'ogrid') then  ! aoflux_grid is ocn
+          if (.not. ESMF_FieldBundleIsCreated(is_local%wrap%FBImp(compatm,compocn), rc=rc)) then
+             if (mastertask) then
+                write(logunit,'(a)') trim(subname)//' creating field bundle FBImp(compatm,compocn)'
+             end if
+             call FB_init(is_local%wrap%FBImp(compatm,compocn), is_local%wrap%flds_scalar_name, &
+                  STgeom=is_local%wrap%NStateImp(compocn), STflds=is_local%wrap%NStateImp(compatm), &
+                  name='FBImp'//trim(compname(compatm))//'_'//trim(compname(compocn)), rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          end if
+          if (mastertask) then
+             write(logunit,'(a)') trim(subname)//' initializing FBs for '// &
+                  trim(compname(compatm))//'_'//trim(compname(compocn))
+          end if
+       end if
+    end if ! end if fieldcount > 0
+
+  end subroutine med_phases_aofluxes_init_fldbuns
+
+  !================================================================================
   subroutine med_phases_aofluxes_run(gcomp, rc)
 
     !-----------------------------------------------------------------------
@@ -156,7 +232,7 @@ contains
     type(aoflux_out_type) , save :: aoflux_out
     logical               , save :: aoflux_created    
     logical               , save :: first_call = .true.
-    character(len=*),parameter :: subname='(med_phases_aofluxes_run)'
+    character(len=*),parameter :: subname=' (med_phases_aofluxes_run) '
     !---------------------------------------
 
     rc = ESMF_SUCCESS
@@ -348,7 +424,7 @@ contains
     character(len=CX)   :: tmpstr
     integer             :: lsize
     integer             :: fieldcount
-    character(len=*),parameter :: subname='(med_aofluxes_init_ocngrid)'
+    character(len=*),parameter :: subname=' (med_aofluxes_init_ocngrid) '
     !-----------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -371,12 +447,6 @@ contains
     ! ------------------------
 
     call set_aoflux_out_pointers(is_local%wrap%FBMed_aoflux_o, lsize, aoflux_out, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    call ESMF_FieldBundleGet(is_local%wrap%FBMed_aoflux_o, fieldCount=fieldCount, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    allocate(fldnames_aof_out(fieldcount))
-    call ESMF_FieldBundleGet(is_local%wrap%FBMed_aoflux_o, fieldNameList=fldnames_aof_out, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! ------------------------
@@ -425,7 +495,7 @@ contains
     real(r8), pointer   :: dataptr1d(:)
     type(ESMF_Mesh)     :: mesh_src
     type(ESMF_Mesh)     :: mesh_dst
-    character(len=*),parameter :: subname='(med_aofluxes_init_atmgrid)'
+    character(len=*),parameter :: subname=' (med_aofluxes_init_atmgrid) '
     !-----------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -457,12 +527,6 @@ contains
     ! ------------------------
 
     call set_aoflux_out_pointers(is_local%wrap%FBMed_aoflux_a, lsize, aoflux_out, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    call ESMF_FieldBundleGet(is_local%wrap%FBMed_aoflux_a, fieldCount=fieldCount, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    allocate(fldnames_aof_out(fieldcount))
-    call ESMF_FieldBundleGet(is_local%wrap%FBMed_aoflux_a, fieldNameList=fldnames_aof_out, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! ------------------------
@@ -556,7 +620,7 @@ contains
     real(r8), pointer    :: dataptr1d(:)
     integer              :: fieldcount
     character(ESMF_MAXSTR),allocatable :: fieldNameList(:)
-    character(len=*),parameter :: subname='(med_aofluxes_init_xgrid)'
+    character(len=*),parameter :: subname=' (med_aofluxes_init_xgrid) '
     !-----------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -618,12 +682,6 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call set_aoflux_out_pointers(FBaof_x, lsize, aoflux_out, xgrid=xgrid, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    call ESMF_FieldBundleGet(FBaof_x, fieldCount=fieldCount, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    allocate(fldnames_aof_out(fieldcount))
-    call ESMF_FieldBundleGet(FBaof_x, fieldnamelist=fldnames_aof_out, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! ------------------------
     ! create the routehandles atm->xgrid and xgrid->atm
