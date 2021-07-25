@@ -413,6 +413,10 @@ contains
     ! for computations on ocn grid
     ! --------------------------------------------
 
+    use ESMF        , only : ESMF_FieldBundleIsCreated
+    use esmFlds     , only : fldListMed_aoflux
+    use med_map_mod , only : med_map_packed_field_create
+
     ! Arguments
     type(ESMF_GridComp)   , intent(inout) :: gcomp
     type(aoflux_in_type)  , intent(inout) :: aoflux_in
@@ -437,7 +441,6 @@ contains
     ! ------------------------
     ! input fields from atm and ocn on aofluxgrid
     ! ------------------------
-
     call set_aoflux_in_pointers(is_local%wrap%FBImp(compatm,compocn), is_local%wrap%FBImp(compocn,compocn), &
          aoflux_in, lsize, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -445,14 +448,12 @@ contains
     ! ------------------------
     ! output fields from aoflux calculation
     ! ------------------------
-
     call set_aoflux_out_pointers(is_local%wrap%FBMed_aoflux_o, lsize, aoflux_out, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! ------------------------
     ! set aoflux computational mask on ocn grid
     ! ------------------------
-
     ! default compute everywhere, then "turn off" gridcells
     allocate(aoflux_in%mask(lsize))
     aoflux_in%mask(:) = 1
@@ -461,6 +462,24 @@ contains
     where (aoflux_in%rmask(:) == 0._R8) aoflux_in%mask(:) = 0   ! like nint
     write(tmpstr,'(i12,g22.12,i12)') lsize,sum(aoflux_in%rmask),sum(aoflux_in%mask)
     call ESMF_LogWrite(trim(subname)//" : maskB= "//trim(tmpstr), ESMF_LOGMSG_INFO)
+
+    ! ------------------------
+    ! create packed mapping from ocn->atm if aoflux_grid is ocn
+    ! ------------------------
+    if (is_local%wrap%aoflux_grid == 'ogrid') then
+       if ( ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_aoflux_o) .and. &
+            ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_aoflux_a)) then
+
+          call med_map_packed_field_create(destcomp=compatm, &
+               flds_scalar_name=is_local%wrap%flds_scalar_name, &
+               fldsSrc=fldListMed_aoflux%flds, &
+               FBSrc=is_local%wrap%FBMed_aoflux_o, &
+               FBDst=is_local%wrap%FBMed_aoflux_a, &
+               packed_data=is_local%wrap%packed_data_aoflux_o2a(:), rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       end if
+    end if
 
   end subroutine med_aofluxes_init_ogrid
 

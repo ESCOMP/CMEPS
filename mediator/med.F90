@@ -34,7 +34,7 @@ module MED
   use esmFlds                  , only : ncomps, compname, ncomps
   use esmFlds                  , only : compmed, compatm, compocn, compice, complnd, comprof, compwav ! not arrays
   use esmFlds                  , only : num_icesheets, max_icesheets, compglc, ocn2glc_coupling ! compglc is an array
-  use esmFlds                  , only : fldListMed_ocnalb, fldListMed_aoflux
+  use esmFlds                  , only : fldListMed_ocnalb
   use esmFlds                  , only : med_fldList_GetNumFlds, med_fldList_GetFldNames, med_fldList_GetFldInfo
   use esmFlds                  , only : med_fldList_Document_Mapping, med_fldList_Document_Merging
   use esmFlds                  , only : coupling_mode
@@ -2143,19 +2143,6 @@ contains
              end if
           end do
        end do
-       if (is_local%wrap%aoflux_grid == 'ogrid') then
-          if ( ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_aoflux_o) .and. &
-               ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_aoflux_a)) then
-             ! Create packed mapping from atm->ocn if aoflux_grid is ocn
-             call med_map_packed_field_create(compatm, &
-                  is_local%wrap%flds_scalar_name, &
-                  fldsSrc=fldListMed_aoflux%flds, &
-                  FBSrc=is_local%wrap%FBMed_aoflux_o, &
-                  FBDst=is_local%wrap%FBMed_aoflux_a, &
-                  packed_data=is_local%wrap%packed_data_aoflux_o2a(:), rc=rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          end if
-       end if
        if ( ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_ocnalb_o) .and. &
             ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_ocnalb_a)) then
           call med_map_packed_field_create(compatm, &
