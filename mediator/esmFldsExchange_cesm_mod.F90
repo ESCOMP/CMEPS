@@ -275,20 +275,20 @@ contains
     else
        if (is_local%wrap%aoflux_grid == 'ogrid') then
           if (mapuv_with_cart3d) then
-             call addmap(fldListFr(compatm)%flds, 'Sa_u' , compocn, mappatch_uv3d, 'one', 'unset')
-             call addmap(fldListFr(compatm)%flds, 'Sa_v' , compocn, mappatch_uv3d, 'one', 'unset')
+             call addmap(fldListFr(compatm)%flds, 'Sa_u' , compocn, mappatch_uv3d, 'one', atm2ocn_map)
+             call addmap(fldListFr(compatm)%flds, 'Sa_v' , compocn, mappatch_uv3d, 'one', atm2ocn_map)
           else
-             call addmap(fldListFr(compatm)%flds, 'Sa_u' , compocn, mappatch, 'one', 'unset')
-             call addmap(fldListFr(compatm)%flds, 'Sa_v' , compocn, mappatch, 'one', 'unset')
+             call addmap(fldListFr(compatm)%flds, 'Sa_u' , compocn, mappatch, 'one', atm2ocn_map)
+             call addmap(fldListFr(compatm)%flds, 'Sa_v' , compocn, mappatch, 'one', atm2ocn_map)
           end if
-          call addmap(fldListFr(compatm)%flds, 'Sa_z'   , compocn, mapbilnr, 'one', 'unset')
-          call addmap(fldListFr(compatm)%flds, 'Sa_tbot', compocn, mapbilnr, 'one', 'unset')
-          call addmap(fldListFr(compatm)%flds, 'Sa_pbot', compocn, mapbilnr, 'one', 'unset')
-          call addmap(fldListFr(compatm)%flds, 'Sa_shum', compocn, mapbilnr, 'one', 'unset')
-          call addmap(fldListFr(compatm)%flds, 'Sa_ptem', compocn, mapbilnr, 'one', 'unset')
-          call addmap(fldListFr(compatm)%flds, 'Sa_dens', compocn, mapbilnr, 'one', 'unset')
+          call addmap(fldListFr(compatm)%flds, 'Sa_z'   , compocn, mapbilnr, 'one', atm2ocn_map)
+          call addmap(fldListFr(compatm)%flds, 'Sa_tbot', compocn, mapbilnr, 'one', atm2ocn_map)
+          call addmap(fldListFr(compatm)%flds, 'Sa_pbot', compocn, mapbilnr, 'one', atm2ocn_map)
+          call addmap(fldListFr(compatm)%flds, 'Sa_shum', compocn, mapbilnr, 'one', atm2ocn_map)
+          call addmap(fldListFr(compatm)%flds, 'Sa_ptem', compocn, mapbilnr, 'one', atm2ocn_map)
+          call addmap(fldListFr(compatm)%flds, 'Sa_dens', compocn, mapbilnr, 'one', atm2ocn_map)
           if (fldchk(is_local%wrap%FBImp(compatm,compatm), 'Sa_shum_wiso', rc=rc)) then
-             call addmap(fldListFr(compatm)%flds, 'Sa_shum_wiso', compocn, mapbilnr, 'one', 'unset')
+             call addmap(fldListFr(compatm)%flds, 'Sa_shum_wiso', compocn, mapbilnr, 'one', atm2ocn_map)
           end if
        end if
     end if

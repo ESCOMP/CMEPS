@@ -350,8 +350,16 @@ contains
 
     ! bottom level potential temperature and/or botom level density
     ! will need to be computed if not received from the atm
-    compute_atm_thbot = (FB_fldchk(is_local%Wrap%FBImp(Compatm,Compatm), 'Sa_ptem', rc=rc) == .false.)
-    compute_atm_dens  = (FB_fldchk(is_local%Wrap%FBImp(Compatm,Compatm), 'Sa_dens', rc=rc) == .false.)
+    if (FB_fldchk(is_local%Wrap%FBImp(Compatm,Compatm), 'Sa_ptem', rc=rc)) then
+       compute_atm_thbot = .false.
+    else
+       compute_atm_thbot = .true.
+    end if
+    if (FB_fldchk(is_local%Wrap%FBImp(Compatm,Compatm), 'Sa_dens', rc=rc)) then
+       compute_atm_dens = .false.
+    else
+       compute_atm_dens = .true.
+    end if
 
     !----------------------------------
     ! Initialize aoflux

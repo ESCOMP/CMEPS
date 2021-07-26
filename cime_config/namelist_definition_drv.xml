@@ -1692,6 +1692,7 @@
     to 3d cartesian space, map from src->dest, then rotate back</desc>
     <values>
       <value>.true.</value>
+      <value samegrid_atm_ocn='true'>.false.</value>
     </values>
   </entry>
 
