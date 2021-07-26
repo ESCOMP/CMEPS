@@ -673,7 +673,7 @@ contains
     ! input fields from atm and ocn on xgrid
     ! ------------------------
 
-    ! Create FBocn_x (module variable)
+    ! Create FBatm_x and FBocn_x (module variables)
     FBatm_x = ESMF_FieldBundleCreate(rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     FBocn_x = ESMF_FieldBundleCreate(rc=rc)
@@ -971,7 +971,6 @@ contains
        do nf = 1,size(fldnames_aof_out)
 
           ! Get the source field
-          write(6,*)'DEBUG trying to get '//trim(fldnames_aof_out(nf))//' from FBaof_x'
           call ESMF_FieldBundleGet(FBaof_x, fldnames_aof_out(nf), field=field_src, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
 
@@ -1193,7 +1192,6 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        call ESMF_FieldGet(lfield, farrayPtr=fldptr, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       write(6,*)'DEBUG: adding '//trim(fldname)//' to xgrid field bundle'
     else
        call ESMF_FieldBundleGet(fldbun, trim(fldname), field=lfield, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
