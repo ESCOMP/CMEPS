@@ -319,7 +319,7 @@
        description: atmosphere export - prognostic CO2 at the lowest model level
      #
      - standard_name: Sa_o3
-       canonical_units: 1e-9 mol/mol
+       canonical_units: mol/mol
        description: atmosphere export - O3 in the lowest model layer (prognosed or prescribed)
      #
      - standard_name: Sa_topo
