@@ -33,7 +33,7 @@ module MED
   use esmFlds                  , only : fldListFr, fldListTo, med_fldList_Realize
   use esmFlds                  , only : ncomps, compname, ncomps
   use esmFlds                  , only : compmed, compatm, compocn, compice, complnd, comprof, compwav ! not arrays
-  use esmFlds                  , only : num_icesheets, max_icesheets, compglc, ocn2glc_coupling ! compglc is an array
+  use esmFlds                  , only : num_icesheets, max_icesheets, compglc, ocn2glc_coupling, lnd2glc_coupling ! compglc is an array
   use esmFlds                  , only : fldListMed_ocnalb
   use esmFlds                  , only : med_fldList_GetNumFlds, med_fldList_GetFldNames, med_fldList_GetFldInfo
   use esmFlds                  , only : med_fldList_Document_Mapping, med_fldList_Document_Merging
@@ -1738,6 +1738,7 @@ contains
     use NUOPC                   , only : NUOPC_CompAttributeGet
     use med_fraction_mod        , only : med_fraction_init, med_fraction_set
     use med_phases_restart_mod  , only : med_phases_restart_read
+    use med_phases_prep_glc_mod , only : med_phases_prep_glc_init
     use med_phases_prep_atm_mod , only : med_phases_prep_atm
     use med_phases_post_atm_mod , only : med_phases_post_atm
     use med_phases_post_ice_mod , only : med_phases_post_ice
@@ -2153,6 +2154,21 @@ contains
                packed_data=is_local%wrap%packed_data_ocnalb_o2a(:), rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
+
+      !---------------------------------------
+      ! Initialize glc module field bundles here if appropriate
+      !---------------------------------------
+      do ns = 1,num_icesheets
+         if (is_local%wrap%med_coupling_active(complnd,compglc(ns))) then
+            lnd2glc_coupling = .true.
+            exit
+         end if
+      end do
+      if (lnd2glc_coupling .or. ocn2glc_coupling) then
+         write(6,*)'Calling med_phases_prep_glc_init'
+         call med_phases_prep_glc_init(gcomp, rc=rc)
+         if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      end if
 
       !---------------------------------------
       ! Set the data initialize flag to false

@@ -35,6 +35,7 @@ module esmflds
   integer, public :: compglc(max_icesheets) = (/compglc1,compglc2/)
   integer, public :: num_icesheets     ! obtained from attribute
   logical, public :: ocn2glc_coupling  ! obtained from attribute
+  logical, public :: lnd2glc_coupling  ! obtained in med.F90
 
   logical, public :: dststatus_print = .false.
 

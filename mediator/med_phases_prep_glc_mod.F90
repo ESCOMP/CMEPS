@@ -11,7 +11,8 @@ module med_phases_prep_glc_mod
   use NUOPC_Model           , only : NUOPC_ModelGet
   use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_LOGMSG_ERROR, ESMF_SUCCESS, ESMF_FAILURE
   use ESMF                  , only : ESMF_VM, ESMF_VMGet, ESMF_VMAllReduce, ESMF_REDUCE_SUM, ESMF_REDUCE_MAX
-  use ESMF                  , only : ESMF_Clock, ESMF_ClockCreate, ESMF_ClockGetAlarm, ESMF_ClockAdvance, ESMF_ClockGet
+  use ESMF                  , only : ESMF_Clock, ESMF_ClockCreate, ESMF_ClockIsCreated
+  use ESMF                  , only : ESMF_ClockGetAlarm, ESMF_ClockAdvance, ESMF_ClockGet
   use ESMF                  , only : ESMF_Time, ESMF_TimeGet
   use ESMF                  , only : ESMF_Alarm, ESMF_AlarmCreate, ESMF_AlarmSet, ESMF_AlarmGet
   use ESMF                  , only : ESMF_AlarmIsRinging, ESMF_AlarmRingerOff
@@ -23,7 +24,7 @@ module med_phases_prep_glc_mod
   use ESMF                  , only : ESMF_DYNAMICMASK, ESMF_DynamicMaskSetR8R8R8, ESMF_DYNAMICMASKELEMENTR8R8R8
   use ESMF                  , only : ESMF_FieldRegrid
   use esmFlds               , only : complnd, compocn,  mapbilnr, mapconsd, compname
-  use esmFlds               , only : max_icesheets, num_icesheets, compglc, ocn2glc_coupling
+  use esmFlds               , only : max_icesheets, num_icesheets, compglc, ocn2glc_coupling, lnd2glc_coupling
   use med_internalstate_mod , only : InternalState, mastertask, logunit
   use med_map_mod           , only : med_map_routehandles_init, med_map_rh_is_created
   use med_map_mod           , only : med_map_field_normalized, med_map_field
@@ -48,11 +49,11 @@ module med_phases_prep_glc_mod
   implicit none
   private
 
+  public  :: med_phases_prep_glc_init       ! called from med.F90
   public  :: med_phases_prep_glc            ! called from nuopc run sequence
-  public  :: med_phases_prep_glc_accum_lnd  ! called from med_phases_post_lnd
-  public  :: med_phases_prep_glc_accum_ocn  ! called from med_phases_post_ocn
+  public  :: med_phases_prep_glc_accum_lnd  ! called from med_phases_post_lnd_mod.F90
+  public  :: med_phases_prep_glc_accum_ocn  ! called from med_phases_post_ocn_mod.F90
 
-  private :: med_phases_prep_glc_init
   private :: med_phases_prep_glc_map_lnd2glc
   private :: med_phases_prep_glc_renormalize_smb
 
@@ -70,11 +71,12 @@ module med_phases_prep_glc_mod
   ! Does not need to be true for 1-way coupling.
   logical :: smb_renormalize
 
-  type(ESMF_FieldBundle) :: FBlndAccum_l
-  integer                :: FBlndAccumCnt
+  type(ESMF_FieldBundle), public :: FBlndAccum_l
+  integer               , public :: FBlndAccumCnt
+
   character(len=14)      :: fldnames_fr_lnd(3) = (/'Flgl_qice_elev','Sl_tsrf_elev  ','Sl_topo_elev  '/)
   character(len=14)      :: fldnames_to_glc(2) = (/'Flgl_qice     ','Sl_tsrf       '/)
-  
+
   type, public :: toglc_frlnd_type
      character(CS)          :: name
      type(ESMF_FieldBundle) :: FBlndAccum_g
@@ -110,9 +112,7 @@ module med_phases_prep_glc_mod
   integer, parameter     :: num_ocndepths = 7
   logical                :: ocn_sends_depths = .false.
 
-  logical          :: lnd2glc_coupling = .false.
-  logical          :: init_prep_glc = .false.
-  type(ESMF_Clock) :: prepglc_clock
+  type(ESMF_Clock)        :: prepglc_clock
   character(*), parameter :: u_FILE_u  = &
        __FILE__
 
@@ -142,12 +142,6 @@ contains
     character(len=CS)         :: glc_renormalize_smb
     logical                   :: glc_coupled_fluxes
     integer                   :: ungriddedUBound_output(1) ! currently the size must equal 1 for rank 2 fieldds
-    type(ESMF_Clock)          :: med_clock
-    type(ESMF_ALARM)          :: glc_avg_alarm
-    logical                   :: glc_present
-    character(len=CS)         :: glc_avg_period
-    integer                   :: glc_cpl_dt
-    character(len=CS)         :: cvalue
     character(len=*),parameter  :: subname=' (med_phases_prep_glc_init) '
     !---------------------------------------
 
@@ -162,56 +156,11 @@ contains
     nullify(is_local%wrap)
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (chkErr(rc,__LINE__,u_FILE_u)) return
- 
-    ! -------------------------------
-    ! Initialize prepglc_clock
-    ! -------------------------------
-
-    ! Initialize prepglc_clock from mclock - THIS CALL DOES NOT COPY ALARMS
-    call NUOPC_ModelGet(gcomp, modelClock=med_clock,  rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    prepglc_clock = ESMF_ClockCreate(med_clock, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    ! Set alarm glc averaging interval
-    call NUOPC_CompAttributeGet(gcomp, name="glc_avg_period", value=glc_avg_period, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (trim(glc_avg_period) == 'yearly') then
-       call med_time_alarmInit(prepglc_clock, glc_avg_alarm, 'nyears', opt_n=1, alarmname='alarm_glc_avg', rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       if (mastertask) then
-          write(logunit,'(a,i10)') trim(subname)//&
-               ' created alarm with averaging period for export to glc is yearly'
-       end if
-    else if (trim(glc_avg_period) == 'glc_coupling_period') then
-       call NUOPC_CompAttributeGet(gcomp, name="glc_cpl_dt", value=cvalue, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       read(cvalue,*) glc_cpl_dt
-       call med_time_alarmInit(prepglc_clock, glc_avg_alarm, 'nseconds', opt_n=glc_cpl_dt, alarmname='alarm_glc_avg', rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       if (mastertask) then
-          write(logunit,'(a,i10)') trim(subname)//&
-               ' created alarm with averaging period for export to glc (in seconds) ',glc_cpl_dt
-       end if
-    else
-       call ESMF_LogWrite(trim(subname)// ": ERROR glc_avg_period = "//trim(glc_avg_period)//" not supported", &
-            ESMF_LOGMSG_INFO)
-       rc = ESMF_FAILURE
-       RETURN
-    end if
-    call ESMF_AlarmSet(glc_avg_alarm, clock=prepglc_clock, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! -------------------------------
     ! If lnd->glc couplng is active
     ! -------------------------------
 
-    do ns = 1,num_icesheets
-       if (is_local%wrap%med_coupling_active(complnd,compglc(ns))) then
-          lnd2glc_coupling = .true.
-          exit
-       end if
-    end do
     if (lnd2glc_coupling) then
 
        ! Determine if renormalize smb
@@ -467,7 +416,12 @@ contains
     integer             :: i,n
     real(r8), pointer   :: data2d_in(:,:) => null()
     real(r8), pointer   :: data2d_out(:,:) => null()
-    character(len=*),parameter  :: subname=' (med_phases_prep_glc_accum) '
+    type(ESMF_Clock)    :: med_clock
+    type(ESMF_ALARM)    :: glc_avg_alarm
+    character(len=CS)   :: glc_avg_period
+    integer             :: glc_cpl_dt
+    character(len=CS)   :: cvalue
+    character(len=*),parameter :: subname=' (med_phases_prep_glc_accum) '
     !---------------------------------------
 
     call t_startf('MED:'//subname)
@@ -477,10 +431,42 @@ contains
 
     rc = ESMF_SUCCESS
 
-    if (.not. init_prep_glc) then
-       call med_phases_prep_glc_init(gcomp, rc)
+    if (.not. ESMF_ClockIsCreated(prepglc_clock)) then
+
+       ! Initialize prepglc_clock from mclock - THIS CALL DOES NOT COPY ALARMS
+       call NUOPC_ModelGet(gcomp, modelClock=med_clock,  rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       init_prep_glc = .true.
+       prepglc_clock = ESMF_ClockCreate(med_clock, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       ! Set alarm glc averaging interval
+       call NUOPC_CompAttributeGet(gcomp, name="glc_avg_period", value=glc_avg_period, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       if (trim(glc_avg_period) == 'yearly') then
+          call med_time_alarmInit(prepglc_clock, glc_avg_alarm, 'yearly', alarmname='alarm_glc_avg', rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          if (mastertask) then
+             write(logunit,'(a,i10)') trim(subname)//&
+                  ' created alarm with averaging period for export to glc is yearly'
+          end if
+       else if (trim(glc_avg_period) == 'glc_coupling_period') then
+          call NUOPC_CompAttributeGet(gcomp, name="glc_cpl_dt", value=cvalue, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          read(cvalue,*) glc_cpl_dt
+          call med_time_alarmInit(prepglc_clock, glc_avg_alarm, 'nseconds', opt_n=glc_cpl_dt, alarmname='alarm_glc_avg', rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          if (mastertask) then
+             write(logunit,'(a,i10)') trim(subname)//&
+                  ' created alarm with averaging period for export to glc (in seconds) ',glc_cpl_dt
+          end if
+       else
+          call ESMF_LogWrite(trim(subname)// ": ERROR glc_avg_period = "//trim(glc_avg_period)//" not supported", &
+               ESMF_LOGMSG_INFO)
+          rc = ESMF_FAILURE
+          RETURN
+       end if
+       call ESMF_AlarmSet(glc_avg_alarm, clock=prepglc_clock, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
     ! Advance prepglc_clock - this will make the prepglc_clock in sync with the mediator clock
@@ -546,12 +532,6 @@ contains
     endif
 
     rc = ESMF_SUCCESS
-
-    if (.not. init_prep_glc) then
-       call med_phases_prep_glc_init(gcomp, rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       init_prep_glc = .true.
-    end if
 
     ! Get the internal state
     nullify(is_local%wrap)
@@ -623,12 +603,6 @@ contains
        call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
     end if
     rc = ESMF_SUCCESS
-
-    if (.not. init_prep_glc) then
-       call med_phases_prep_glc_init(gcomp, rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       init_prep_glc = .true.
-    end if
 
     ! Get the internal state
     nullify(is_local%wrap)
@@ -968,12 +942,12 @@ contains
        ! Renormalize surface mass balance (smb, here named dataexp_g) so that the global
        ! integral on the glc grid is equal to the global integral on the land grid.
        ! ------------------------------------------------------------------------
-       
+
        ! No longer need to make a preemptive adjustment to qice_g to account for area differences
        ! between CISM and the coupler. In NUOPC, the area correction is done in! the cap not in the
        ! mediator, so to preserve the bilinear mapping values, do not need to do any area correction
        ! scaling in the CISM NUOPC cap
-       
+
        if (smb_renormalize) then
           call med_phases_prep_glc_renormalize_smb(gcomp, rc)
           if (chkErr(rc,__LINE__,u_FILE_u)) return
@@ -1100,7 +1074,7 @@ contains
        !---------------------------------------
        ! Map icemask_g from the glc grid to the land grid.
        !---------------------------------------
-       
+
        ! determine icemask_g and set as contents of field_icemask_g
        call fldbun_getdata1d(is_local%wrap%FBImp(compglc(ns),compglc(ns)), Sg_icemask_fieldname, dataptr1d, rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -1302,4 +1276,3 @@ contains
   end subroutine DynOcnMaskProc
 
 end module med_phases_prep_glc_mod
-
