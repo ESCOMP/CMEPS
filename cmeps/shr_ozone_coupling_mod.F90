@@ -20,8 +20,8 @@ module shr_ozone_coupling_mod
   ! !PUBLIC DATA MEMBERS
   ! atm_ozone_frequency can be one of the following values
   integer, parameter, public :: atm_ozone_frequency_unset = 0
-  integer, parameter, public :: atm_ozone_frequency_instantaneous = 1
-  integer, parameter, public :: atm_ozone_frequency_monthly_interpolated = 2
+  integer, parameter, public :: atm_ozone_frequency_subdaily = 1
+  integer, parameter, public :: atm_ozone_frequency_multiday_average = 2
 
   character(len=*), parameter :: &
        u_FILE_u=__FILE__
@@ -104,10 +104,10 @@ CONTAINS
        select case(atm_ozone_frequency)
        case(atm_ozone_frequency_not_present)
           atm_ozone_frequency_val = atm_ozone_frequency_unset
-       case("instantaneous")
-          atm_ozone_frequency_val = atm_ozone_frequency_instantaneous
-       case("monthly_interpolated")
-          atm_ozone_frequency_val = atm_ozone_frequency_monthly_interpolated
+       case("subdaily")
+          atm_ozone_frequency_val = atm_ozone_frequency_subdaily
+       case("multiday_average")
+          atm_ozone_frequency_val = atm_ozone_frequency_multiday_average
        case default
           call shr_sys_abort(trim(subname)//'unknown value for atm_ozone_frequency: '// &
                trim(atm_ozone_frequency))
