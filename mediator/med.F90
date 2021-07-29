@@ -2531,8 +2531,8 @@ contains
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
             call med_diag_zero(mode='all', rc=rc)
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          end if
-       end if
+          endif
+       endif
 
        !---------------------------------------
        ! read mediator restarts
