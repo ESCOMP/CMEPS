@@ -78,13 +78,11 @@ module med_phases_aofluxes_mod
   type(ESMF_FieldBundle) :: FBatm_x               ! input atm fields
   type(ESMF_FieldBundle) :: FBaof_x               ! output aoflux fields
   type(ESMF_RouteHandle) :: rh_ogrid2xgrid        ! ocn->xgrid mapping
-  type(ESMF_RouteHandle) :: rh_ogrid2xgrid_2ndord ! ocn->xgrid mapping 2nd order conservative
   type(ESMF_RouteHandle) :: rh_agrid2xgrid        ! atm->xgrid mapping
-  type(ESMF_RouteHandle) :: rh_agrid2xgrid_2ndord ! atm->xgrid mapping 2nd order conservative
   type(ESMF_RouteHandle) :: rh_xgrid2ogrid        ! xgrid->ocn mapping
-  type(ESMF_RouteHandle) :: rh_xgrid2agrid_2ndord ! xgrid->atm mapping 2nd order conservative
   type(ESMF_RouteHandle) :: rh_xgrid2agrid        ! xgrid->atm mapping
-  type(ESMF_RouteHandle) :: rh_xgrid2ogrid_2ndord ! xgrid->ocn mapping 2nd order conservative
+  type(ESMF_RouteHandle) :: rh_ogrid2xgrid_2ndord ! ocn->xgrid mapping 2nd order conservative
+  type(ESMF_RouteHandle) :: rh_agrid2xgrid_2ndord ! atm->xgrid mapping 2nd order conservative
   type(ESMF_Field)       :: field_ogrid2xgrid_normone
   type(ESMF_Field)       :: field_xgrid2agrid_normone
 
@@ -720,8 +718,6 @@ contains
     ! create the routehandles atm->xgrid and xgrid->atm
     ! ------------------------
 
-    ! TODO: the second order conservative route handle below errors out in the creation
-
     call ESMF_FieldBundleGet(is_local%wrap%FBImp(compatm,compatm), trim(fldnames_atm_in(1)), field=lfield_a, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call ESMF_FieldBundleGet(FBatm_x, trim(fldnames_atm_in(1)), field=lfield_x, rc=rc)
@@ -733,15 +729,12 @@ contains
     call ESMF_FieldRegridStore(xgrid, lfield_a, lfield_x, routehandle=rh_agrid2xgrid_2ndord, &
          regridmethod=ESMF_REGRIDMETHOD_CONSERVE_2ND, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    ! call ESMF_FieldRegridStore(xgrid, lfield_x, lfield_a, routehandle=rh_xgrid2agrid_2ndord, &
-    !      regridmethod=ESMF_REGRIDMETHOD_CONSERVE_2ND, rc=rc)
-    ! if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! ------------------------
     ! create the routehandles ocn->xgrid and xgrid->ocn
     ! ------------------------
 
-    ! TODO: the second order conservative route handles below error out in their creation
+    ! TODO: the second order conservative route handle below error out in its creation
 
     call ESMF_FieldBundleGet(is_local%wrap%FBImp(compocn,compocn), trim(fldnames_ocn_in(1)), field=lfield_o, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -752,9 +745,6 @@ contains
     call ESMF_FieldRegridStore(xgrid, lfield_x, lfield_o, routehandle=rh_xgrid2ogrid, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     ! call ESMF_FieldRegridStore(xgrid, lfield_o, lfield_x, routehandle=rh_ogrid2xgrid_2ndord, &
-    !      regridmethod=ESMF_REGRIDMETHOD_CONSERVE_2ND, rc=rc)
-    ! if (chkerr(rc,__LINE__,u_FILE_u)) return
-    ! call ESMF_FieldRegridStore(xgrid, lfield_x, lfield_o, routehandle=rh_xgrid2ogrid_2ndord, &
     !      regridmethod=ESMF_REGRIDMETHOD_CONSERVE_2ND, rc=rc)
     ! if (chkerr(rc,__LINE__,u_FILE_u)) return
 
