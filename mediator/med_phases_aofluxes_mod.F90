@@ -1003,7 +1003,7 @@ contains
           ! map aoflx from xgrid->ogrid conservatively
           call ESMF_FieldBundleGet(is_local%wrap%FBMed_aoflux_o, fldnames_aof_out(nf), field=field_dst, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call ESMF_FieldRegrid(field_src, field_dst, routehandle=rh_xgrid2agrid, &
+          call ESMF_FieldRegrid(field_src, field_dst, routehandle=rh_xgrid2ogrid, &
                termorderflag=ESMF_TERMORDER_SRCSEQ, zeroregion=ESMF_REGION_TOTAL, rc=rc)
        end do
 
