@@ -2,11 +2,11 @@ module med_phases_aofluxes_mod
 
   ! --------------------------------------------------------------------------
   ! Determine atm/ocn flux calculation in mediator - for one of 3 cases:
-  ! if aoflux grid is ocn 
+  ! if aoflux grid is ocn
   !  - map atm attributes of aoflux_in to ocn and map aoflux_out back to atm
-  ! if aoflux grid is atm 
+  ! if aoflux grid is atm
   !  - map ocn attributes of oaflux_in to atm and map aoflux_out back to ocn
-  ! if aoflux grid is exchange 
+  ! if aoflux grid is exchange
   !  - map both atm and ocn attributes of aoflux_in to xgrid and then
   !    map aoflux_out from xgrid to both atm and ocn grid
   ! --------------------------------------------------------------------------
@@ -16,6 +16,7 @@ module med_phases_aofluxes_mod
   use ESMF                  , only : ESMF_FieldBundle, ESMF_FieldBundleGet
   use ESMF                  , only : ESMF_FieldBundleCreate, ESMF_FieldBundleAdd
   use ESMF                  , only : ESMF_RouteHandle, ESMF_FieldRegrid, ESMF_FieldRegridStore
+  use ESMF                  , only : ESMF_REGRIDMETHOD_CONSERVE_2ND
   use ESMF                  , only : ESMF_TERMORDER_SRCSEQ, ESMF_REGION_TOTAL, ESMF_MESHLOC_ELEMENT, ESMF_MAXSTR
   use ESMF                  , only : ESMF_XGRIDSIDE_B, ESMF_XGRIDSIDE_A, ESMF_END_ABORT, ESMF_LOGERR_PASSTHRU
   use ESMF                  , only : ESMF_Mesh, ESMF_MeshGet, ESMF_XGrid, ESMF_XGridCreate, ESMF_TYPEKIND_R8
@@ -73,13 +74,17 @@ module med_phases_aofluxes_mod
   type(ESMF_FieldBundle) :: FBocn_a ! ocean fields need for aoflux calc on atm grid
 
   ! following is needed for atm/ocn fluxes on the exchange grid
-  type(ESMF_FieldBundle) :: FBocn_x        ! input ocn fields
-  type(ESMF_FieldBundle) :: FBatm_x        ! input atm fields
-  type(ESMF_FieldBundle) :: FBaof_x        ! output aoflux fields
-  type(ESMF_RouteHandle) :: rh_ogrid2xgrid ! ocn->xgrid mapping
-  type(ESMF_RouteHandle) :: rh_xgrid2ogrid ! xgrid->ocn mapping
-  type(ESMF_RouteHandle) :: rh_agrid2xgrid ! atm->xgrid mapping
-  type(ESMF_RouteHandle) :: rh_xgrid2agrid ! xgrid->atm mapping
+  type(ESMF_FieldBundle) :: FBocn_x               ! input ocn fields
+  type(ESMF_FieldBundle) :: FBatm_x               ! input atm fields
+  type(ESMF_FieldBundle) :: FBaof_x               ! output aoflux fields
+  type(ESMF_RouteHandle) :: rh_ogrid2xgrid        ! ocn->xgrid mapping
+  type(ESMF_RouteHandle) :: rh_ogrid2xgrid_2ndord ! ocn->xgrid mapping 2nd order conservative
+  type(ESMF_RouteHandle) :: rh_agrid2xgrid        ! atm->xgrid mapping
+  type(ESMF_RouteHandle) :: rh_agrid2xgrid_2ndord ! atm->xgrid mapping 2nd order conservative
+  type(ESMF_RouteHandle) :: rh_xgrid2ogrid        ! xgrid->ocn mapping
+  type(ESMF_RouteHandle) :: rh_xgrid2agrid_2ndord ! xgrid->atm mapping 2nd order conservative
+  type(ESMF_RouteHandle) :: rh_xgrid2agrid        ! xgrid->atm mapping
+  type(ESMF_RouteHandle) :: rh_xgrid2ogrid_2ndord ! xgrid->ocn mapping 2nd order conservative
   type(ESMF_Field)       :: field_ogrid2xgrid_normone
   type(ESMF_Field)       :: field_xgrid2agrid_normone
 
@@ -230,7 +235,7 @@ contains
     type(InternalState)          :: is_local
     type(aoflux_in_type)  , save :: aoflux_in
     type(aoflux_out_type) , save :: aoflux_out
-    logical               , save :: aoflux_created    
+    logical               , save :: aoflux_created
     logical               , save :: first_call = .true.
     character(len=*),parameter :: subname=' (med_phases_aofluxes_run) '
     !---------------------------------------
@@ -674,7 +679,8 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! create exchange grid - assume that atm mask is always 1
-    xgrid = ESMF_XGridCreate(sideBMesh=(/ocn_mesh/), sideAMesh=(/atm_mesh/), sideBMaskValues=(/0/), rc=rc)
+    xgrid = ESMF_XGridCreate(sideBMesh=(/ocn_mesh/), sideAMesh=(/atm_mesh/), sideBMaskValues=(/0/), &
+         storeOverlay=.true., rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! ------------------------
@@ -714,6 +720,8 @@ contains
     ! create the routehandles atm->xgrid and xgrid->atm
     ! ------------------------
 
+    ! TODO: the second order conservative route handle below errors out in the creation
+
     call ESMF_FieldBundleGet(is_local%wrap%FBImp(compatm,compatm), trim(fldnames_atm_in(1)), field=lfield_a, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call ESMF_FieldBundleGet(FBatm_x, trim(fldnames_atm_in(1)), field=lfield_x, rc=rc)
@@ -722,10 +730,18 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call ESMF_FieldRegridStore(xgrid, lfield_x, lfield_a, routehandle=rh_xgrid2agrid, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldRegridStore(xgrid, lfield_a, lfield_x, routehandle=rh_agrid2xgrid_2ndord, &
+         regridmethod=ESMF_REGRIDMETHOD_CONSERVE_2ND, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    ! call ESMF_FieldRegridStore(xgrid, lfield_x, lfield_a, routehandle=rh_xgrid2agrid_2ndord, &
+    !      regridmethod=ESMF_REGRIDMETHOD_CONSERVE_2ND, rc=rc)
+    ! if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! ------------------------
     ! create the routehandles ocn->xgrid and xgrid->ocn
     ! ------------------------
+
+    ! TODO: the second order conservative route handles below error out in their creation
 
     call ESMF_FieldBundleGet(is_local%wrap%FBImp(compocn,compocn), trim(fldnames_ocn_in(1)), field=lfield_o, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -735,6 +751,12 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call ESMF_FieldRegridStore(xgrid, lfield_x, lfield_o, routehandle=rh_xgrid2ogrid, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
+    ! call ESMF_FieldRegridStore(xgrid, lfield_o, lfield_x, routehandle=rh_ogrid2xgrid_2ndord, &
+    !      regridmethod=ESMF_REGRIDMETHOD_CONSERVE_2ND, rc=rc)
+    ! if (chkerr(rc,__LINE__,u_FILE_u)) return
+    ! call ESMF_FieldRegridStore(xgrid, lfield_x, lfield_o, routehandle=rh_xgrid2ogrid_2ndord, &
+    !      regridmethod=ESMF_REGRIDMETHOD_CONSERVE_2ND, rc=rc)
+    ! if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! ------------------------
     ! setup the compute mask - default compute everywhere for exchange grid
@@ -885,8 +907,13 @@ contains
           call ESMF_FieldBundleGet(FBatm_x, fldnames_atm_in(nf), field=field_dst, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           ! Map atm->xgrid conservatively
-          call ESMF_FieldRegrid(field_src, field_dst, routehandle=rh_agrid2xgrid, &
-               termorderflag=ESMF_TERMORDER_SRCSEQ, zeroregion=ESMF_REGION_TOTAL, rc=rc)
+          if (trim(fldnames_atm_in(nf)) == 'Sa_u' .or. (trim(fldnames_atm_in(nf)) == 'Sa_v')) then
+             call ESMF_FieldRegrid(field_src, field_dst, routehandle=rh_agrid2xgrid_2ndord, &
+                  termorderflag=ESMF_TERMORDER_SRCSEQ, zeroregion=ESMF_REGION_TOTAL, rc=rc)
+          else
+             call ESMF_FieldRegrid(field_src, field_dst, routehandle=rh_agrid2xgrid, &
+                  termorderflag=ESMF_TERMORDER_SRCSEQ, zeroregion=ESMF_REGION_TOTAL, rc=rc)
+          end if
        end do
 
        ! map input ocn to xgrid
@@ -898,8 +925,13 @@ contains
           call ESMF_FieldBundleGet(FBocn_x, fldnames_ocn_in(nf), field=field_dst, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           ! Map ocn->xgrid conservatively without fractions
-          call ESMF_FieldRegrid(field_src, field_dst, routehandle=rh_ogrid2xgrid, &
-               termorderflag=ESMF_TERMORDER_SRCSEQ, zeroregion=ESMF_REGION_TOTAL, rc=rc)
+          if (trim(fldnames_atm_in(nf)) == 'So_u' .or. (trim(fldnames_atm_in(nf)) == 'So_v')) then
+             call ESMF_FieldRegrid(field_src, field_dst, routehandle=rh_ogrid2xgrid, &
+                  termorderflag=ESMF_TERMORDER_SRCSEQ, zeroregion=ESMF_REGION_TOTAL, rc=rc)
+          else
+             call ESMF_FieldRegrid(field_src, field_dst, routehandle=rh_ogrid2xgrid, &
+                  termorderflag=ESMF_TERMORDER_SRCSEQ, zeroregion=ESMF_REGION_TOTAL, rc=rc)
+          end if
        end do
     end if
 
@@ -1012,7 +1044,7 @@ contains
     call t_stopf('MED:'//subname)
 
   end subroutine med_aofluxes_update
-  
+
 !================================================================================
   subroutine set_aoflux_in_pointers(fldbun_a, fldbun_o, aoflux_in, lsize, xgrid, rc)
 
@@ -1129,7 +1161,7 @@ contains
 
     ! input/output variables
     type(ESMF_FieldBundle)     , intent(inout) :: fldbun
-    integer                    , intent(in)    :: lsize 
+    integer                    , intent(in)    :: lsize
     type(aoflux_out_type)      , intent(inout) :: aoflux_out
     type(ESMF_Xgrid), optional , intent(inout) :: xgrid
     integer                    , intent(out)   :: rc
