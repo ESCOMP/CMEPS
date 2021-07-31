@@ -2165,7 +2165,6 @@ contains
          end if
       end do
       if (lnd2glc_coupling .or. ocn2glc_coupling) then
-         write(6,*)'Calling med_phases_prep_glc_init'
          call med_phases_prep_glc_init(gcomp, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
       end if

@@ -71,46 +71,45 @@ module med_phases_prep_glc_mod
   ! Does not need to be true for 1-way coupling.
   logical :: smb_renormalize
 
-  type(ESMF_FieldBundle), public :: FBlndAccum_l
-  integer               , public :: FBlndAccumCnt
-
-  character(len=14)      :: fldnames_fr_lnd(3) = (/'Flgl_qice_elev','Sl_tsrf_elev  ','Sl_topo_elev  '/)
-  character(len=14)      :: fldnames_to_glc(2) = (/'Flgl_qice     ','Sl_tsrf       '/)
+  type(ESMF_FieldBundle), public :: FBlndAccum2glc_l
+  integer               , public :: lndAccum2glc_cnt
+  character(len=14)              :: fldnames_fr_lnd(3) = (/'Flgl_qice_elev','Sl_tsrf_elev  ','Sl_topo_elev  '/)
+  character(len=14)              :: fldnames_to_glc(2) = (/'Flgl_qice     ','Sl_tsrf       '/)
 
   type, public :: toglc_frlnd_type
      character(CS)          :: name
-     type(ESMF_FieldBundle) :: FBlndAccum_g
+     type(ESMF_FieldBundle) :: FBlndAccum2glc_g
      type(ESMF_Field)       :: field_icemask_g
      type(ESMF_Field)       :: field_frac_g
      type(ESMF_Field)       :: field_frac_g_ec
      type(ESMF_Field)       :: field_lfrac_g
      type(ESMF_Mesh)        :: mesh_g
   end type toglc_frlnd_type
-  type(toglc_frlnd_type) :: toglc_frlnd(max_icesheets)  ! TODO: make this allocatable for number of actual ice sheets
+  type(toglc_frlnd_type)         :: toglc_frlnd(max_icesheets)  ! TODO: make this allocatable for number of actual ice sheets
 
-  type(ESMF_Field)   :: field_normdst_l
-  type(ESMF_Field)   :: field_icemask_l
-  type(ESMF_Field)   :: field_frac_l
-  type(ESMF_Field)   :: field_frac_l_ec
-  type(ESMF_Field)   :: field_lnd_icemask_l
-  real(r8) , pointer :: aream_l(:) => null()  ! cell areas on land grid, for mapping
+  type(ESMF_Field)               :: field_normdst_l
+  type(ESMF_Field)               :: field_icemask_l
+  type(ESMF_Field)               :: field_frac_l
+  type(ESMF_Field)               :: field_frac_l_ec
+  type(ESMF_Field)               :: field_lnd_icemask_l
+  real(r8) , pointer             :: aream_l(:) => null()  ! cell areas on land grid, for mapping
 
-  character(len=*), parameter :: qice_fieldname       = 'Flgl_qice' ! Name of flux field giving surface mass balance
-  character(len=*), parameter :: Sg_frac_fieldname    = 'Sg_ice_covered'
-  character(len=*), parameter :: Sg_topo_fieldname    = 'Sg_topo'
-  character(len=*), parameter :: Sg_icemask_fieldname = 'Sg_icemask'
-  integer                     :: ungriddedCount ! this equals the number of elevation classes + 1 (for bare land)
+  character(len=*), parameter    :: qice_fieldname       = 'Flgl_qice' ! Name of flux field giving surface mass balance
+  character(len=*), parameter    :: Sg_frac_fieldname    = 'Sg_ice_covered'
+  character(len=*), parameter    :: Sg_topo_fieldname    = 'Sg_topo'
+  character(len=*), parameter    :: Sg_icemask_fieldname = 'Sg_icemask'
+  integer                        :: ungriddedCount ! this equals the number of elevation classes + 1 (for bare land)
 
   ! -----------------
   ! ocn -> glc
   ! -----------------
 
-  type(ESMF_FieldBundle) :: FBocnAccum_o
-  integer                :: FBocnAccumCnt
-  character(len=14)      :: fldnames_fr_ocn(2) = (/'So_t_depth','So_s_depth'/)  ! TODO: what else needs to be added here
-  type(ESMF_DynamicMask) :: dynamicOcnMask
-  integer, parameter     :: num_ocndepths = 7
-  logical                :: ocn_sends_depths = .false.
+  type(ESMF_FieldBundle), public :: FBocnAccum2glc_o
+  integer               , public :: ocnAccum2glc_cnt
+  character(len=14)              :: fldnames_fr_ocn(2) = (/'So_t_depth','So_s_depth'/)  ! TODO: what else needs to be added here
+  type(ESMF_DynamicMask)         :: dynamicOcnMask
+  integer, parameter             :: num_ocndepths = 7
+  logical                        :: ocn_sends_depths = .false.
 
   type(ESMF_Clock)        :: prepglc_clock
   character(*), parameter :: u_FILE_u  = &
@@ -208,41 +207,41 @@ contains
        call fldbun_getmesh(is_local%wrap%FBImp(complnd,complnd), mesh_l, rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-       FBlndAccum_l = ESMF_FieldBundleCreate(name='FBlndAccum_l', rc=rc)
+       FBlndAccum2glc_l = ESMF_FieldBundleCreate(name='FBlndAccum2glc_l', rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        do n = 1,size(fldnames_fr_lnd)
           lfield = ESMF_FieldCreate(mesh_l, ESMF_TYPEKIND_R8, name=fldnames_fr_lnd(n), &
                meshloc=ESMF_MESHLOC_ELEMENT, &
                ungriddedLbound=(/1/), ungriddedUbound=(/ungriddedCount/), gridToFieldMap=(/2/), rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call ESMF_FieldBundleAdd(FBlndAccum_l, (/lfield/), rc=rc)
+          call ESMF_FieldBundleAdd(FBlndAccum2glc_l, (/lfield/), rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           call ESMF_LogWrite(trim(subname)//' adding field '//trim(fldnames_fr_lnd(n))//' to FBLndAccum_l', &
                ESMF_LOGMSG_INFO)
        end do
-       call fldbun_reset(FBlndAccum_l, value=0.0_r8, rc=rc)
+       call fldbun_reset(FBlndAccum2glc_l, value=0.0_r8, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        ! Create accumulation field bundles from land on each glc ice sheet mesh
        ! Determine glc mesh from the mesh from the first export field to glc
-       ! However FBlndAccum_g has the fields fldnames_fr_lnd BUT ON the glc grid
+       ! However FBlndAccum2glc_g has the fields fldnames_fr_lnd BUT ON the glc grid
        do ns = 1,num_icesheets
           ! get mesh on glc grid
           call fldbun_getmesh(is_local%wrap%FBExp(compglc(ns)), toglc_frlnd(ns)%mesh_g, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
 
           ! create accumulation field bundle on glc grid
-          toglc_frlnd(ns)%FBlndAccum_g = ESMF_FieldBundleCreate(rc=rc)
+          toglc_frlnd(ns)%FBlndAccum2glc_g = ESMF_FieldBundleCreate(rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           do nf = 1,size(fldnames_fr_lnd)
              lfield = ESMF_FieldCreate(toglc_frlnd(ns)%mesh_g, ESMF_TYPEKIND_R8, name=fldnames_fr_lnd(nf), &
                   meshloc=ESMF_MESHLOC_ELEMENT, &
                   ungriddedLbound=(/1/), ungriddedUbound=(/ungriddedCount/), gridToFieldMap=(/2/), rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
-             call ESMF_FieldBundleAdd(toglc_frlnd(ns)%FBlndAccum_g, (/lfield/), rc=rc)
+             call ESMF_FieldBundleAdd(toglc_frlnd(ns)%FBlndAccum2glc_g, (/lfield/), rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
           end do
-          call fldbun_reset(toglc_frlnd(ns)%FBlndAccum_g, value=0.0_r8, rc=rc)
+          call fldbun_reset(toglc_frlnd(ns)%FBlndAccum2glc_g, value=0.0_r8, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
 
           ! create land fraction field on glc mesh (this is just needed for normalization mapping)
@@ -353,19 +352,19 @@ contains
        call fldbun_getmesh(is_local%wrap%FBImp(compocn,compocn), mesh_o, rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-       FBocnAccum_o = ESMF_FieldBundleCreate(name='FBocnAccum_o', rc=rc)
+       FBocnAccum2glc_o = ESMF_FieldBundleCreate(name='FBocnAccum2glc_o', rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        do n = 1,size(fldnames_fr_ocn)
           lfield = ESMF_FieldCreate(mesh_o, ESMF_TYPEKIND_R8, name=fldnames_fr_ocn(n), &
                meshloc=ESMF_MESHLOC_ELEMENT, &
                ungriddedLbound=(/1/), ungriddedUbound=(/num_ocndepths/), gridToFieldMap=(/2/), rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call ESMF_FieldBundleAdd(FBocnAccum_o, (/lfield/), rc=rc)
+          call ESMF_FieldBundleAdd(FBocnAccum2glc_o, (/lfield/), rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call ESMF_LogWrite(trim(subname)//' adding field '//trim(fldnames_fr_ocn(n))//' to FBOcnAccum_o', &
+          call ESMF_LogWrite(trim(subname)//' adding field '//trim(fldnames_fr_ocn(n))//' to FBOcnAccum2glc_o', &
                ESMF_LOGMSG_INFO)
        end do
-       call fldbun_reset(FBocnAccum_o, value=czero, rc=rc)
+       call fldbun_reset(FBocnAccum2glc_o, value=czero, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        ! create route handle if it has not been created
@@ -483,15 +482,15 @@ contains
     do n = 1, size(fldnames_fr_lnd)
        call fldbun_getdata2d(is_local%wrap%FBImp(complnd,complnd), fldnames_fr_lnd(n), data2d_in, rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call fldbun_getdata2d(FBlndAccum_l, fldnames_fr_lnd(n), data2d_out, rc)
+       call fldbun_getdata2d(FBlndAccum2glc_l, fldnames_fr_lnd(n), data2d_out, rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        do i = 1,size(data2d_out, dim=2)
           data2d_out(:,i) = data2d_out(:,i) + data2d_in(:,i)
        end do
     end do
-    FBlndAccumCnt = FBlndAccumCnt + 1
+    lndAccum2glc_cnt = lndAccum2glc_cnt + 1
     if (dbug_flag > 1) then
-       call fldbun_diagnose(FBlndAccum_l, string=trim(subname)// ' FBlndAccum_l ',  rc=rc)
+       call fldbun_diagnose(FBlndAccum2glc_l, string=trim(subname)// ' FBlndAccum2glc_l ',  rc=rc)
        if (chkErr(rc,__LINE__,u_FILE_u)) return
     end if
     if (dbug_flag > 5) then
@@ -547,15 +546,15 @@ contains
     do n = 1, size(fldnames_fr_ocn)
        call fldbun_getdata2d(is_local%wrap%FBImp(compocn,compocn), fldnames_fr_ocn(n), data2d_in, rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call fldbun_getdata2d(FBocnAccum_o, fldnames_fr_ocn(n), data2d_out, rc)
+       call fldbun_getdata2d(FBocnAccum2glc_o, fldnames_fr_ocn(n), data2d_out, rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        do i = 1,size(data2d_out, dim=2)
           data2d_out(:,i) = data2d_out(:,i) + data2d_in(:,i)
        end do
     end do
-    FBocnAccumCnt = FBocnAccumCnt + 1
+    ocnAccum2glc_cnt = ocnAccum2glc_cnt + 1
     if (dbug_flag > 1) then
-       call fldbun_diagnose(FBocnAccum_o, string=trim(subname)// ' FBocnAccum_o ',  rc=rc)
+       call fldbun_diagnose(FBocnAccum2glc_o, string=trim(subname)// ' FBocnAccum2glc_o ',  rc=rc)
        if (chkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
@@ -645,11 +644,11 @@ contains
 
        ! Average import from accumulated land import data
        do n = 1, size(fldnames_fr_lnd)
-          call fldbun_getdata2d(FBlndAccum_l, fldnames_fr_lnd(n), data2d, rc)
+          call fldbun_getdata2d(FBlndAccum2glc_l, fldnames_fr_lnd(n), data2d, rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
-          if (FBlndAccumCnt > 0) then
+          if (lndAccum2glc_cnt > 0) then
              ! If accumulation count is greater than 0, do the averaging
-             data2d(:,:) = data2d(:,:) / real(FBlndAccumCnt)
+             data2d(:,:) = data2d(:,:) / real(lndAccum2glc_cnt)
           else
              ! If accumulation count is 0, then simply set the averaged field bundle values from the land
              ! to the import field bundle values
@@ -662,11 +661,11 @@ contains
        if (ocn2glc_coupling) then
           ! Average import from accumulated ocn import data
           do n = 1, size(fldnames_fr_ocn)
-             call fldbun_getdata2d(FBocnAccum_o, fldnames_fr_ocn(n), data2d, rc)
+             call fldbun_getdata2d(FBocnAccum2glc_o, fldnames_fr_ocn(n), data2d, rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
-             if (FBocnAccumCnt > 0) then
+             if (ocnAccum2glc_cnt > 0) then
                 ! If accumulation count is greater than 0, do the averaging
-                data2d(:,:) = data2d(:,:) / real(FBocnAccumCnt)
+                data2d(:,:) = data2d(:,:) / real(ocnAccum2glc_cnt)
              else
                 ! If accumulation count is 0, then simply set the averaged field bundle values from the ocn
                 ! to the import field bundle values
@@ -676,14 +675,14 @@ contains
              end if
           end do
           if (dbug_flag > 1) then
-             call fldbun_diagnose(FBocnAccum_o, string=trim(subname)//' FBocnAccum for after avg for field bundle ', rc=rc)
+             call fldbun_diagnose(FBocnAccum2glc_o, string=trim(subname)//' FBocnAccum for after avg for field bundle ', rc=rc)
              if (chkErr(rc,__LINE__,u_FILE_u)) return
           end if
 
           ! Map accumulated ocean field from ocean mesh to land mesh and set FBExp(compglc(ns)) data
           ! Zero land accumulator and accumulated field bundles on ocean grid
           do n = 1,size(fldnames_fr_ocn)
-             call ESMF_FieldBundleGet(FBocnAccum_o, fldnames_fr_ocn(n), field=lfield_src, rc=rc)
+             call ESMF_FieldBundleGet(FBocnAccum2glc_o, fldnames_fr_ocn(n), field=lfield_src, rc=rc)
              if (chkErr(rc,__LINE__,u_FILE_u)) return
              do ns = 1,num_icesheets
                 call ESMF_FieldBundleGet(is_local%wrap%FBExp(compglc(ns)), fldnames_fr_ocn(n), field=lfield_dst, rc=rc)
@@ -694,8 +693,8 @@ contains
                 if (chkErr(rc,__LINE__,u_FILE_u)) return
              end do
           end do
-          FBocnAccumCnt = 0
-          call fldbun_reset(FBocnAccum_o, value=czero, rc=rc)
+          ocnAccum2glc_cnt = 0
+          call fldbun_reset(FBocnAccum2glc_o, value=czero, rc=rc)
           if (chkErr(rc,__LINE__,u_FILE_u)) return
        end if
 
@@ -705,8 +704,8 @@ contains
           ! Zero land accumulator and accumulated field bundles on land grid
           call med_phases_prep_glc_map_lnd2glc(gcomp, rc)
           if (chkErr(rc,__LINE__,u_FILE_u)) return
-          FBlndAccumCnt = 0
-          call fldbun_reset(FBlndAccum_l, value=czero, rc=rc)
+          lndAccum2glc_cnt = 0
+          call fldbun_reset(FBlndAccum2glc_l, value=czero, rc=rc)
           if (chkErr(rc,__LINE__,u_FILE_u)) return
        end if
 
@@ -773,7 +772,7 @@ contains
 
     ! Initialize accumulated field bundle on the glc grid to zero before doing the mapping
     do ns = 1,num_icesheets
-       call fldbun_reset(toglc_frlnd(ns)%FBlndAccum_g, value=0.0_r8, rc=rc)
+       call fldbun_reset(toglc_frlnd(ns)%FBlndAccum2glc_g, value=0.0_r8, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     end do
 
@@ -783,12 +782,12 @@ contains
     ! notes that this could lead to a loss of conservation). Figure out how to handle
     ! this case.
 
-    ! get fieldlist from FBlndAccum_l
-    call ESMF_FieldBundleGet(FBlndAccum_l, fieldCount=fieldCount, rc=rc)
+    ! get fieldlist from FBlndAccum2glc_l
+    call ESMF_FieldBundleGet(FBlndAccum2glc_l, fieldCount=fieldCount, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     allocate(fieldlist_lnd(fieldcount))
     allocate(fieldlist_glc(fieldcount))
-    call ESMF_FieldBundleGet(FBlndAccum_l, fieldlist=fieldlist_lnd, rc=rc)
+    call ESMF_FieldBundleGet(FBlndAccum2glc_l, fieldlist=fieldlist_lnd, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! get land fraction field on land mesh
@@ -797,13 +796,13 @@ contains
 
     ! TODO: is this needed?
     do ns = 1,num_icesheets
-       call fldbun_reset(toglc_frlnd(ns)%FBlndAccum_g, value=0.0_r8, rc=rc)
+       call fldbun_reset(toglc_frlnd(ns)%FBlndAccum2glc_g, value=0.0_r8, rc=rc)
        if (chkErr(rc,__LINE__,u_FILE_u)) return
     end do
 
     ! map accumlated land fields to each ice sheet (normalize by the land fraction in the mapping)
     do ns = 1,num_icesheets
-       call ESMF_FieldBundleGet(toglc_frlnd(ns)%FBlndAccum_g, fieldlist=fieldlist_glc, rc=rc)
+       call ESMF_FieldBundleGet(toglc_frlnd(ns)%FBlndAccum2glc_g, fieldlist=fieldlist_glc, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        do nfld = 1,fieldcount
           call med_map_field_normalized(  &
@@ -821,13 +820,13 @@ contains
     deallocate(fieldlist_glc)
 
     if (dbug_flag > 1) then
-       call fldbun_diagnose(FBlndAccum_l, string=trim(subname)//' FBlndAccum_l ', rc=rc)
+       call fldbun_diagnose(FBlndAccum2glc_l, string=trim(subname)//' FBlndAccum2glc_l ', rc=rc)
        if (chkErr(rc,__LINE__,u_FILE_u)) return
        call fldbun_diagnose(is_local%wrap%FBfrac(complnd), string=trim(subname)//' FBFrac ', rc=rc)
        if (chkErr(rc,__LINE__,u_FILE_u)) return
        do ns = 1,num_icesheets
-          call fldbun_diagnose(toglc_frlnd(ns)%FBlndAccum_g, string=trim(subname)//&
-               ' FBlndAccum_glc '//compname(compglc(ns)), rc=rc)
+          call fldbun_diagnose(toglc_frlnd(ns)%FBlndAccum2glc_g, string=trim(subname)//&
+               ' FBlndAccum2glc_glc '//compname(compglc(ns)), rc=rc)
           if (chkErr(rc,__LINE__,u_FILE_u)) return
        end do
     endif
@@ -857,7 +856,7 @@ contains
        call glc_get_elevation_classes(ice_covered_g, topoglc_g, elevclass_g, logunit)
 
        ! Determine topo field in multiple elevation classes on the glc grid
-       call fldbun_getdata2d(toglc_frlnd(ns)%FBlndAccum_g, 'Sl_topo_elev', topolnd_g_ec, rc=rc)
+       call fldbun_getdata2d(toglc_frlnd(ns)%FBlndAccum2glc_g, 'Sl_topo_elev', topolnd_g_ec, rc=rc)
        if (chkErr(rc,__LINE__,u_FILE_u)) return
 
        ! ------------------------------------------------------------------------
@@ -875,7 +874,7 @@ contains
        do nfld = 1, size(fldnames_to_glc)
 
           ! Get a pointer to the land data in multiple elevation classes on the glc grid
-          call fldbun_getdata2d(toglc_frlnd(ns)%FBlndAccum_g, fldnames_fr_lnd(nfld), dataptr2d, rc)
+          call fldbun_getdata2d(toglc_frlnd(ns)%FBlndAccum2glc_g, fldnames_fr_lnd(nfld), dataptr2d, rc)
           if (chkErr(rc,__LINE__,u_FILE_u)) return
 
           ! Get a pointer to the data for the field that will be sent to glc (without elevation classes)
@@ -1138,7 +1137,7 @@ contains
        if (chkErr(rc,__LINE__,u_FILE_u)) return
 
        ! get qice_l_ec
-       call fldbun_getdata2d(FBlndAccum_l, trim(qice_fieldname)//'_elev', qice_l_ec, rc)
+       call fldbun_getdata2d(FBlndAccum2glc_l, trim(qice_fieldname)//'_elev', qice_l_ec, rc)
        if (chkErr(rc,__LINE__,u_FILE_u)) return
 
        local_accum_lnd(1) = 0.0_r8
