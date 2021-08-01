@@ -9,7 +9,7 @@
       # section: mediator export for atm/ocn flux calculation
       #-----------------------------------
       #
-     - standard_name: Faox_evap
+    - standard_name: Faox_evap
        alias: mean_evap_rate_atm_into_ocn
        canonical_units: kg m-2 s-1
        description: mediator export - atm/ocn evaporation water flux
@@ -901,10 +901,6 @@
      #-----------------------------------
      #
      - standard_name: Flrl_irrig
-       canonical_units: kg m-2 s-1
-       description: land export to river
-     #
-     - standard_name: Flrl_rofdto
        canonical_units: kg m-2 s-1
        description: land export to river
      #

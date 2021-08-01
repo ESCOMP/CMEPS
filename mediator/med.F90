@@ -1743,6 +1743,7 @@ contains
     use med_fraction_mod        , only : med_fraction_init, med_fraction_set
     use med_phases_restart_mod  , only : med_phases_restart_read
     use med_phases_prep_glc_mod , only : med_phases_prep_glc_init
+    use med_phases_prep_rof_mod , only : med_phases_prep_rof_init
     use med_phases_prep_atm_mod , only : med_phases_prep_atm
     use med_phases_post_atm_mod , only : med_phases_post_atm
     use med_phases_post_ice_mod , only : med_phases_post_ice
@@ -2007,12 +2008,12 @@ contains
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
             ! Create import accumulation field bundles
-            call FB_init(is_local%wrap%FBImpAccum(n1,n1), is_local%wrap%flds_scalar_name, &
-                 STgeom=is_local%wrap%NStateImp(n1), STflds=is_local%wrap%NStateImp(n1), &
-                 name='FBImpAccum'//trim(compname(n1)), rc=rc)
-            if (ChkErr(rc,__LINE__,u_FILE_u)) return
-            call FB_reset(is_local%wrap%FBImpAccum(n1,n1), value=czero, rc=rc)
-            if (ChkErr(rc,__LINE__,u_FILE_u)) return
+            ! call FB_init(is_local%wrap%FBImpAccum(n1,n1), is_local%wrap%flds_scalar_name, &
+            !      STgeom=is_local%wrap%NStateImp(n1), STflds=is_local%wrap%NStateImp(n1), &
+            !      name='FBImpAccum'//trim(compname(n1)), rc=rc)
+            ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
+            ! call FB_reset(is_local%wrap%FBImpAccum(n1,n1), value=czero, rc=rc)
+            ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
             ! Create export accumulation field bundles
             call FB_init(is_local%wrap%FBExpAccum(n1), is_local%wrap%flds_scalar_name, &
@@ -2073,14 +2074,14 @@ contains
                end if
                if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-               call FB_init(is_local%wrap%FBImpAccum(n1,n2), is_local%wrap%flds_scalar_name, &
-                    STgeom=is_local%wrap%NStateImp(n2), &
-                    STflds=is_local%wrap%NStateImp(n1), &
-                    name='FBImpAccum'//trim(compname(n1))//'_'//trim(compname(n2)), rc=rc)
-               if (ChkErr(rc,__LINE__,u_FILE_u)) return
+               ! call FB_init(is_local%wrap%FBImpAccum(n1,n2), is_local%wrap%flds_scalar_name, &
+               !      STgeom=is_local%wrap%NStateImp(n2), &
+               !      STflds=is_local%wrap%NStateImp(n1), &
+               !      name='FBImpAccum'//trim(compname(n1))//'_'//trim(compname(n2)), rc=rc)
+               ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-               call FB_reset(is_local%wrap%FBImpAccum(n1,n2), value=czero, rc=rc)
-               if (ChkErr(rc,__LINE__,u_FILE_u)) return
+               ! call FB_reset(is_local%wrap%FBImpAccum(n1,n2), value=czero, rc=rc)
+               ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
             endif
          enddo ! loop over n2
@@ -2183,13 +2184,15 @@ contains
       do ndst = 1,ncomps
          do nsrc = 1,ncomps
             if (is_local%wrap%med_coupling_active(nsrc,ndst)) then
-                call med_map_packed_field_create(ndst, &
-                     is_local%wrap%flds_scalar_name, &
-                     fldsSrc=fldListFr(nsrc)%flds, &
-                     FBSrc=is_local%wrap%FBImp(nsrc,nsrc), &
-                     FBDst=is_local%wrap%FBImp(nsrc,ndst), &
-                     packed_data=is_local%wrap%packed_data(nsrc,ndst,:), rc=rc)
-                if (ChkErr(rc,__LINE__,u_FILE_u)) return
+               if (nsrc /= complnd .and. ndst /= comprof) then
+                  call med_map_packed_field_create(ndst, &
+                       is_local%wrap%flds_scalar_name, &
+                       fldsSrc=fldListFr(nsrc)%flds, &
+                       FBSrc=is_local%wrap%FBImp(nsrc,nsrc), &
+                       FBDst=is_local%wrap%FBImp(nsrc,ndst), &
+                       packed_data=is_local%wrap%packed_data(nsrc,ndst,:), rc=rc)
+                  if (ChkErr(rc,__LINE__,u_FILE_u)) return
+               end if
              end if
           end do
        end do
@@ -2215,6 +2218,11 @@ contains
       end do
       if (lnd2glc_coupling .or. ocn2glc_coupling) then
          call med_phases_prep_glc_init(gcomp, rc=rc)
+         if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      end if
+
+      if (is_local%wrap%med_coupling_active(comprof,complnd)) then
+         call med_phases_prep_rof_init(gcomp, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
       end if
 
