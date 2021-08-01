@@ -2609,7 +2609,7 @@ contains
        if ( fldchk(is_local%wrap%FBexp(compice)        , 'So_u', rc=rc) .and. &
             fldchk(is_local%wrap%FBImp(compocn,compocn), 'So_u', rc=rc)) then
           call addmap(fldListFr(compocn)%flds, 'So_u', compice, mapfcopy , 'unset', 'unset')
-          call addmrg(fldListTo(compice)%flds, 'So_u', mrg_from=compocn, mrg_fld='So_s', mrg_type='copy')
+          call addmrg(fldListTo(compice)%flds, 'So_u', mrg_from=compocn, mrg_fld='So_u', mrg_type='copy')
        end if
     end if
     if (phase == 'advertise') then
