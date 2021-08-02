@@ -1322,8 +1322,13 @@ contains
           if ( fldchk(is_local%wrap%FBExp(compocn), 'Foxx_rofl'//iso(n) , rc=rc)) then
              ! liquid from river and possibly flood from river to ocean
              if (fldchk(is_local%wrap%FBImp(comprof, comprof), 'Forr_rofl'//iso(n) , rc=rc)) then
-                call addmap(fldListFr(comprof)%flds, 'Forr_rofl'//iso(n), &
-                     compocn, map_rof2ocn_liq, 'none', rof2ocn_liq_rmap)
+                if (trim(rof2ocn_liq_rmap) == 'unset') then
+                   call addmap(fldListFr(comprof)%flds, 'Forr_rofl'//iso(n), &
+                        compocn, mapconsd, 'none', 'unset')
+                else
+                   call addmap(fldListFr(comprof)%flds, 'Forr_rofl'//iso(n), &
+                        compocn, map_rof2ocn_liq, 'none', rof2ocn_liq_rmap)
+                end if
                 if (fldchk(is_local%wrap%FBImp(comprof, comprof), 'Flrr_flood'//iso(n), rc=rc)) then
                    call addmap(fldListFr(comprof)%flds, 'Flrr_flood'//iso(n), &
                         compocn, mapconsd, 'one', rof2ocn_fmap)
@@ -1348,8 +1353,13 @@ contains
           if ( fldchk(is_local%wrap%FBExp(compocn), 'Foxx_rofi'//iso(n) , rc=rc)) then
              ! ice from river to ocean
              if (fldchk(is_local%wrap%FBImp(comprof, comprof), 'Forr_rofi'//iso(n) , rc=rc)) then
-                call addmap(fldListFr(comprof)%flds, 'Forr_rofi'//iso(n), &
-                     compocn, map_rof2ocn_ice, 'none', rof2ocn_ice_rmap)
+                if (trim(rof2ocn_ice_rmap) == 'unset') then
+                   call addmap(fldListFr(comprof)%flds, 'Forr_rofi'//iso(n), &
+                        compocn, mapconsd, 'none', 'unset')
+                else
+                   call addmap(fldListFr(comprof)%flds, 'Forr_rofi'//iso(n), &
+                        compocn, map_rof2ocn_ice, 'none', rof2ocn_ice_rmap)
+                end if
                 call addmrg(fldListTo(compocn)%flds, 'Foxx_rofi'//iso(n), &
                      mrg_from=comprof, mrg_fld='Forr_rofi', mrg_type='sum')
              end if
