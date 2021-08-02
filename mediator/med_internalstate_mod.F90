@@ -75,9 +75,10 @@ module med_internalstate_mod
     type(ESMF_FieldBundle) :: FBMed_ocnalb_o                     ! Ocn albedo on ocn grid
     type(ESMF_FieldBundle) :: FBMed_ocnalb_a                     ! Ocn albedo on atm grid
     type(packed_data_type) :: packed_data_ocnalb_o2a(nmappers)   ! packed data for mapping ocn->atm
-    type(ESMF_FieldBundle) :: FBMed_aoflux_o                     ! Ocn/Atm flux fields on ocn grid
-    type(ESMF_FieldBundle) :: FBMed_aoflux_a                     ! Ocn/Atm flux fields on atm grid
+    type(ESMF_FieldBundle) :: FBMed_aoflux_a                     ! Ocn/Atm flux output fields on atm grid
+    type(ESMF_FieldBundle) :: FBMed_aoflux_o                     ! Ocn/Atm flux output fields on ocn grid
     type(packed_data_type) :: packed_data_aoflux_o2a(nmappers)   ! packed data for mapping ocn->atm
+    character(len=CS)      :: aoflux_grid                        ! 'ogrid', 'agrid' or 'xgrid'
 
     ! Mapping
     type(ESMF_RouteHandle) :: RH(ncomps,ncomps,nmappers)            ! Routehandles for pairs of components and different mappers
