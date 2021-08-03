@@ -418,7 +418,7 @@
     <default_value>TIGHT</default_value>
     <values match="last">
       <value compset="_DATM.*_DOCN%SOM"			>OPTION2</value>
-      <value compset="_POP2"				>OPTION2M</value>
+      <value compset="_POP2"				>OPTION2</value>
       <value compset="_MOM6"				>OPTION1</value>
       <value compset="_POP2" grid="oi%gx1v6"		>OPTION1</value>
       <value compset="_POP2" grid="oi%gx1v7"		>OPTION1</value>
@@ -430,13 +430,13 @@
     <file>env_run.xml</file>
     <desc>
       OPTION1 (like RASM_OPTION1 in CPL7) runs prep_ocn_avg, 
-      AFTER the aoflux and ocnalb calculations, thereby reducing
+      BEFORE the aoflux and ocnalb calculations, thereby reducing
       most of the lags and field inconsistency but still allowing the
       ocean to run concurrently with the ice and atmosphere.
       OPTION2 (like CESM1_MOD in CPL7) runs prep_ocn_avg, 
-      BEFORE the aoflux and ocnalb calculations, thereby permitting maximum
+      AFTER the aoflux and ocnalb calculations, thereby permitting maximum
       concurrency
-      TIGHT (like CESM1_MOD_TIGHT), tight coupling
+      TIGHT (like CESM1_MOD_TIGHT), is a tight coupling run sequence
     </desc>
   </entry>
 
