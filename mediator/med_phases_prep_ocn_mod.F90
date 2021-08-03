@@ -72,7 +72,7 @@ contains
     if ( trim(coupling_mode) == 'cesm' .or. &
          trim(coupling_mode) == 'nems_orig_data' .or. &
          trim(coupling_mode) == 'hafs') then
-       call med_merge_auto(compocn, &
+       call med_merge_auto(&
             is_local%wrap%med_coupling_active(:,compocn), &
             is_local%wrap%FBExp(compocn), &
             is_local%wrap%FBFrac(compocn), &
@@ -81,7 +81,7 @@ contains
             FBMed1=is_local%wrap%FBMed_aoflux_o, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     else if (trim(coupling_mode) == 'nems_frac' .or. trim(coupling_mode) == 'nems_orig') then
-       call med_merge_auto(compocn, &
+       call med_merge_auto(&
             is_local%wrap%med_coupling_active(:,compocn), &
             is_local%wrap%FBExp(compocn), &
             is_local%wrap%FBFrac(compocn), &

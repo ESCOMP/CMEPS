@@ -80,7 +80,7 @@ contains
     ! ocn->ice is mapped in med_phases_post_ocn
 
     ! auto merges to create FBExp(compice)
-    call med_merge_auto(compice, &
+    call med_merge_auto(&
          is_local%wrap%med_coupling_active(:,compice), &
          is_local%wrap%FBExp(compice), &
          is_local%wrap%FBFrac(compice), &

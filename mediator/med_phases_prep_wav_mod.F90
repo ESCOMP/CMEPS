@@ -80,7 +80,7 @@ contains
        end do
 
        ! auto merges to create FBExp(compwav)
-       call med_merge_auto(compwav, &
+       call med_merge_auto(&
             is_local%wrap%med_coupling_active(:,compwav), &
             is_local%wrap%FBExp(compwav), &
             is_local%wrap%FBFrac(compwav), &
