@@ -246,7 +246,7 @@ contains
     use ESMF              , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
     use esmFlds           , only : fldListTo
     use med_map_mod       , only : med_map_field_packed
-    use med_merge_mod     , only : med_merge_auto
+    use med_merge_mod     , only : med_merge_auto_single_fldbun
     use med_constants_mod , only : czero => med_constants_czero
 
     ! input/output variables
@@ -359,7 +359,7 @@ contains
     end if
 
     !---------------------------------------
-    ! auto merges to create FBExp(comprof)
+    ! auto merges to create FBExp(comprof) - assumes that all data is coming from FBlndAccum2rof_r
     !---------------------------------------
 
     if (dbug_flag > 1) then
@@ -368,12 +368,8 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     end if
 
-    call med_merge_auto(comprof, &
-         (/is_local%wrap%med_coupling_active(complnd,comprof)/), &
-         is_local%wrap%FBExp(comprof), &
-         is_local%wrap%FBFrac(comprof), &
-         (/FBlndAccum2rof_r/), &
-         fldListTo(comprof), rc=rc)
+    call med_merge_auto_single_fldbun(compsrc=complnd, FBout=is_local%wrap%FBExp(comprof), &
+         FBfrac=is_local%wrap%FBFrac(comprof), FBin=FBlndAccum2rof_r, fldListTo=fldListTo(comprof), rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     if (dbug_flag > 1) then
