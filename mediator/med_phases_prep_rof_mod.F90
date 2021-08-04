@@ -48,8 +48,8 @@ module med_phases_prep_rof_mod
   character(len=*), parameter :: irrig_normalized_field = 'Flrl_irrig_normalized'
   character(len=*), parameter :: irrig_volr0_field      = 'Flrl_irrig_volr0     '
 
-  ! the following are the fields that will be accumulated from the land
-  character(CS) :: lnd2rof_flds(5) = (/'Flrl_rofsur','Flrl_rofgwl','Flrl_rofsub','Flrl_rofi  ','Flrl_irrig '/)
+  ! the following are the fields that will be accumulated from the land and are derived from fldlistTo(comprof)
+  character(CS), allocatable :: lnd2rof_flds(:)
 
   integer :: maptype_lnd2rof
   integer :: maptype_rof2lnd
@@ -78,7 +78,7 @@ contains
     use ESMF        , only : ESMF_FieldBundle, ESMF_FieldBundleCreate, ESMF_FieldBundleGet, ESMF_FieldBundleAdd
     use ESMF        , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
     use ESMF        , only : ESMF_TYPEKIND_R8
-    use esmFlds     , only : fldListFr
+    use esmFlds     , only : fldListFr, fldlistTo, med_fldlist_GetNumFlds, med_fldlist_getFldInfo
     use med_map_mod , only : med_map_packed_field_create
 
     ! input/output variables
@@ -87,10 +87,11 @@ contains
 
     ! local variables
     type(InternalState) :: is_local
-    integer             :: n
+    integer             :: n, n1, nflds
     type(ESMF_Mesh)     :: mesh_l
     type(ESMF_Mesh)     :: mesh_r
     type(ESMF_Field)    :: lfield
+    character(len=CS), allocatable  :: fldnames_temp(:)
     character(len=*),parameter  :: subname=' (med_phases_prep_rof_init) '
     !---------------------------------------
 
@@ -101,33 +102,46 @@ contains
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (chkErr(rc,__LINE__,u_FILE_u)) return
 
-    ! Get lnd mesh
+    ! Determine lnd2rof_flds (module variable) - note that fldListTo is set in esmFldsExchange_cesm.F90
+    ! Remove scalar field from lnd2rof_flds
+    nflds = med_fldlist_getnumflds(fldlistTo(comprof))
+    allocate(fldnames_temp(nflds))
+    do n = 1,nflds
+       call med_fldList_GetFldInfo(fldListTo(comprof), n, fldnames_temp(n))
+    end do
+    do n = 1,nflds
+       if (trim(fldnames_temp(n)) == trim(is_local%wrap%flds_scalar_name)) then
+          do n1 = n, nflds-1
+             fldnames_temp(n1) = fldnames_temp(n1+1)
+          enddo
+          nflds = nflds - 1
+       endif
+    enddo
+    allocate(lnd2rof_flds(nflds))
+    do n = 1,nflds
+       lnd2rof_flds(n) = trim(fldnames_temp(n))
+    end do
+    deallocate(fldnames_temp)
+
+    ! Get lnd and rof meshes
     call fldbun_getmesh(is_local%wrap%FBImp(complnd,complnd), mesh_l, rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call fldbun_getmesh(is_local%wrap%FBImp(complnd,comprof), mesh_r, rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    ! Create module field bundle FBlndAccum2rof_l on land mesh
+    ! Create module field bundle FBlndAccum2rof_l on land mesh and  FBlndAccum2rof_r on rof mesh
     FBlndAccum2rof_l = ESMF_FieldBundleCreate(name='FBlndAccum2rof_l', rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
+    FBlndAccum2rof_r = ESMF_FieldBundleCreate(name='FBlndAccum2rof_r', rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
     do n = 1,size(lnd2rof_flds)
-       lfield = ESMF_FieldCreate(mesh_l, ESMF_TYPEKIND_R8, name=lnd2rof_flds(n), &
-            meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+       lfield = ESMF_FieldCreate(mesh_l, ESMF_TYPEKIND_R8, name=lnd2rof_flds(n), meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        call ESMF_FieldBundleAdd(FBlndAccum2rof_l, (/lfield/), rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        call ESMF_LogWrite(trim(subname)//' adding field '//trim(lnd2rof_flds(n))//' to FBLndAccum2rof_l', &
             ESMF_LOGMSG_INFO)
-    end do
-
-    ! Get rof mesh
-    call fldbun_getmesh(is_local%wrap%FBImp(complnd,comprof), mesh_r, rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    ! Create module field bundle FBlndAccum2rof_l on land mesh
-    FBlndAccum2rof_r = ESMF_FieldBundleCreate(name='FBlndAccum2rof_r', rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    do n = 1,size(lnd2rof_flds)
-       lfield = ESMF_FieldCreate(mesh_r, ESMF_TYPEKIND_R8, name=lnd2rof_flds(n), &
-            meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+       lfield = ESMF_FieldCreate(mesh_r, ESMF_TYPEKIND_R8, name=lnd2rof_flds(n), meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        call ESMF_FieldBundleAdd(FBlndAccum2rof_r, (/lfield/), rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -142,12 +156,12 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     lndAccum2rof_cnt = 0
 
-    ! create packed mapping from rof->lnd
+    ! Create packed mapping from rof->lnd
     call med_map_packed_field_create(destcomp=comprof, &
          flds_scalar_name=is_local%wrap%flds_scalar_name, &
          fldsSrc=fldListFr(complnd)%flds, &
          FBSrc=FBLndAccum2rof_l, FBDst=FBLndAccum2rof_r, &
-         packed_data=is_local%wrap%packed_data(complnd,comprof,:), rc=rc) 
+         packed_data=is_local%wrap%packed_data(complnd,comprof,:), rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
   end subroutine med_phases_prep_rof_init
@@ -170,7 +184,6 @@ contains
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
-
     integer, intent(out) :: rc
 
     ! local variables
