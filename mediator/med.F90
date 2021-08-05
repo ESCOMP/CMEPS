@@ -2089,7 +2089,7 @@ contains
       enddo ! loop over n1
 
       !---------------------------------------
-      ! Initialize field bundles needed for ocn albedo and ocn/atm flux calculations
+      ! Initialize field bundles needed for ocn albedo calculation
       !---------------------------------------
 
       ! NOTE: the NStateImp(compocn) or NStateImp(compatm) used below
@@ -2101,14 +2101,9 @@ contains
       ! Create field bundles for mediator ocean albedo computation
 
       if ( is_local%wrap%med_coupling_active(compocn,compatm) .or. is_local%wrap%med_coupling_active(compatm,compocn)) then
-
          ! Create field bundles for mediator ocean albedo computation
          fieldCount = med_fldList_GetNumFlds(fldListMed_ocnalb)
          if (fieldCount > 0) then
-            if (.not. is_local%wrap%med_coupling_active(compatm,compocn)) then
-               is_local%wrap%med_coupling_active(compatm,compocn) = .true.
-            end if
-
             allocate(fldnames(fieldCount))
             call med_fldList_getfldnames(fldListMed_ocnalb%flds, fldnames, rc=rc)
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -2156,6 +2151,13 @@ contains
       ! Initialize route handles and required normalization field bunds
       ! Initialized packed field data structures
       !---------------------------------------
+
+      ! Force the coupling to be active between atm->ocn to map atm fields to the ocn grid for
+      ! the atm/ocn flux computation
+      if (  is_local%wrap%aoflux_grid == 'ogrid' .and. .not. &
+            is_local%wrap%med_coupling_active(compatm,compocn)) then
+         is_local%wrap%med_coupling_active(compatm,compocn) = .true.
+      end if
 
       call ESMF_LogWrite("before med_map_RouteHandles_init", ESMF_LOGMSG_INFO)
       call med_map_RouteHandles_init(gcomp, is_local%wrap%flds_scalar_name, logunit, rc)
