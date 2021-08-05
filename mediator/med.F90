@@ -860,11 +860,16 @@ contains
        glc_name = trim(cvalue)
     end if
 
+    call NUOPC_CompAttributeGet(gcomp, name='MED_model', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+       med_name = trim(cvalue)
+    end if
+
     call NUOPC_CompAttributeGet(gcomp, name='mediator_present', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (isPresent .and. isSet) then
        med_present = trim(cvalue)
-       med_name = trim(cvalue)
     end if
 
     call NUOPC_CompAttributeSet(gcomp, name="atm_present", value=atm_present, rc=rc)
@@ -1725,7 +1730,7 @@ contains
     use ESMF                    , only : ESMF_State, ESMF_Time, ESMF_Field, ESMF_StateItem_Flag, ESMF_MAXSTR
     use ESMF                    , only : ESMF_GridCompGet, ESMF_AttributeGet, ESMF_ClockGet, ESMF_Success
     use ESMF                    , only : ESMF_StateIsCreated, ESMF_StateGet, ESMF_FieldBundleIsCreated, ESMF_LogFlush
-    use ESMF                    , only : ESMF_VM
+    use ESMF                    , only : ESMF_FieldBundleGet, ESMF_VM
     use NUOPC                   , only : NUOPC_CompAttributeSet, NUOPC_IsAtTime, NUOPC_SetAttribute
     use NUOPC                   , only : NUOPC_CompAttributeGet
     use med_fraction_mod        , only : med_fraction_init, med_fraction_set
@@ -1865,6 +1870,7 @@ contains
       med_coupling_allowed(complnd,compatm) = .true.
       med_coupling_allowed(compice,compatm) = .true.
       med_coupling_allowed(compocn,compatm) = .true.
+      med_coupling_allowed(compwav,compatm) = .true.
 
       ! to land
       med_coupling_allowed(compatm,complnd) = .true.
@@ -2009,8 +2015,23 @@ contains
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
             ! Create mesh info data
-            call med_meshinfo_create(is_local%wrap%FBImp(n1,n1), &
-                 is_local%wrap%mesh_info(n1), is_local%wrap%FBArea(n1), rc=rc)
+            call ESMF_FieldBundleGet(is_local%wrap%FBImp(n1,n1), fieldCount=fieldCount, rc=rc) 
+            if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+            if (fieldCount == 0) then           
+              if (mastertask) then
+                write(logunit,*) trim(subname)//' '//trim(compname(n1))//' import FB field count is = ', fieldCount
+                write(logunit,*) trim(subname)//' '//trim(compname(n1))//' trying to use export FB'
+                call ESMF_FieldBundleGet(is_local%wrap%FBExp(n1), fieldCount=fieldCount, rc=rc)
+                if (ChkErr(rc,__LINE__,u_FILE_u)) return
+                write(logunit,*) trim(subname)//' '//trim(compname(n1))//' export FB field count is = ', fieldCount
+              end if
+              call med_meshinfo_create(is_local%wrap%FBExp(n1), &
+                   is_local%wrap%mesh_info(n1), is_local%wrap%FBArea(n1), rc=rc)
+            else
+              call med_meshinfo_create(is_local%wrap%FBImp(n1,n1), &
+                   is_local%wrap%mesh_info(n1), is_local%wrap%FBArea(n1), rc=rc)
+            end if
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
          end if
 
@@ -2028,10 +2049,21 @@ contains
                        trim(compname(n1))//'_'//trim(compname(n2))
                end if
 
-               call FB_init(is_local%wrap%FBImp(n1,n2), is_local%wrap%flds_scalar_name, &
-                    STgeom=is_local%wrap%NStateImp(n2), &
-                    STflds=is_local%wrap%NStateImp(n1), &
-                    name='FBImp'//trim(compname(n1))//'_'//trim(compname(n2)), rc=rc)
+               ! Check import FB, if there is no field in it then use export FB
+               ! to provide mesh information
+               call State_GetNumFields(is_local%wrap%NStateImp(n2), fieldCount, rc=rc)
+               if (ChkErr(rc,__LINE__,u_FILE_u)) return
+               if (fieldCount == 0) then 
+                 call FB_init(is_local%wrap%FBImp(n1,n2), is_local%wrap%flds_scalar_name, &
+                      STgeom=is_local%wrap%NStateExp(n2), &
+                      STflds=is_local%wrap%NStateImp(n1), &
+                      name='FBImp'//trim(compname(n1))//'_'//trim(compname(n2)), rc=rc)
+               else
+                 call FB_init(is_local%wrap%FBImp(n1,n2), is_local%wrap%flds_scalar_name, &
+                      STgeom=is_local%wrap%NStateImp(n2), &
+                      STflds=is_local%wrap%NStateImp(n1), &
+                      name='FBImp'//trim(compname(n1))//'_'//trim(compname(n2)), rc=rc)
+               end if
                if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
                call FB_init(is_local%wrap%FBImpAccum(n1,n2), is_local%wrap%flds_scalar_name, &
@@ -2151,11 +2183,15 @@ contains
       ! Initialized packed field data structures
       !---------------------------------------
 
-      call med_map_RouteHandles_init(gcomp, logunit, rc)
+      call ESMF_LogWrite("before med_map_RouteHandles_init", ESMF_LOGMSG_INFO)
+      call med_map_RouteHandles_init(gcomp, is_local%wrap%flds_scalar_name, logunit, rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      call ESMF_LogWrite("after  med_map_RouteHandles_init", ESMF_LOGMSG_INFO)
 
+      call ESMF_LogWrite("before med_map_mapnorm_init", ESMF_LOGMSG_INFO)
       call med_map_mapnorm_init(gcomp, rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      call ESMF_LogWrite("after  med_map_mapnorm_init", ESMF_LOGMSG_INFO)
 
       do ndst = 1,ncomps
          do nsrc = 1,ncomps
@@ -2390,17 +2426,23 @@ contains
           write(logunit,'(a)') trim(subname)//"Initialize-Data-Dependency allDone check Passed"
        end if
        do n1 = 1,ncomps
+          if (mastertask) then
+          write(logunit,*)
+          write(logunit,'(a)') trim(subname)//" "//trim(compname(n1))
+          end if
           if (is_local%wrap%comp_present(n1) .and. ESMF_StateIsCreated(is_local%wrap%NStateImp(n1),rc=rc)) then
              call State_GetScalar(scalar_value=real_nx, &
                   scalar_id=is_local%wrap%flds_scalar_index_nx, &
                   state=is_local%wrap%NstateImp(n1), &
                   flds_scalar_name=is_local%wrap%flds_scalar_name, &
                   flds_scalar_num=is_local%wrap%flds_scalar_num, rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
              call State_GetScalar(scalar_value=real_ny, &
                   scalar_id=is_local%wrap%flds_scalar_index_ny, &
                   state=is_local%wrap%NstateImp(n1), &
                   flds_scalar_name=is_local%wrap%flds_scalar_name, &
                   flds_scalar_num=is_local%wrap%flds_scalar_num, rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
              is_local%wrap%nx(n1) = nint(real_nx)
              is_local%wrap%ny(n1) = nint(real_ny)
              write(msgString,'(2i8,2l4)') is_local%wrap%nx(n1), is_local%wrap%ny(n1)

@@ -153,6 +153,7 @@ contains
     use esmFlds               , only : comprof, compglc, compwav, compname
     use esmFlds               , only : mapfcopy, mapconsd, mapnstod_consd
     use med_map_mod           , only : med_map_routehandles_init, med_map_rh_is_created
+    use med_methods_mod       , only : State_getNumFields => med_methods_State_getNumFields
     use med_internalstate_mod , only : InternalState, logunit, mastertask
     use perf_mod              , only : t_startf, t_stopf
 
@@ -179,6 +180,7 @@ contains
     real(R8), pointer   :: Sa_ofrac(:) => null()
     integer             :: i,j,n,n1,ns
     integer             :: maptype
+    integer             :: fieldCount
     logical, save       :: first_call = .true.
     character(len=*),parameter :: subname=' (med_fraction_init)'
     !---------------------------------------
@@ -219,11 +221,25 @@ contains
        ! contain anything other than scalar data if the component is not prognostic
        do n1 = 1,ncomps
           if ( is_local%wrap%comp_present(n1) .and. &
-               ESMF_StateIsCreated(is_local%wrap%NStateImp(n1),rc=rc)) then
-             ! create FBFrac and zero out FBfrac(n1)
-             call fldbun_init(is_local%wrap%FBfrac(n1), is_local%wrap%flds_scalar_name, &
-                  STgeom=is_local%wrap%NStateImp(n1), fieldNameList=fraclist(:,n1), &
-                  name='FBfrac'//trim(compname(n1)), rc=rc)
+              (ESMF_StateIsCreated(is_local%wrap%NStateImp(n1),rc=rc) .or. &
+               ESMF_StateIsCreated(is_local%wrap%NStateExp(n1),rc=rc))) then
+             ! Check number of fields in the state
+             call State_GetNumFields(is_local%wrap%NStateImp(n1), fieldCount, rc=rc) 
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+             ! create FBFrac
+             if (fieldCount == 0) then
+               call fldbun_init(is_local%wrap%FBfrac(n1), is_local%wrap%flds_scalar_name, &
+                    STgeom=is_local%wrap%NStateExp(n1), fieldNameList=fraclist(:,n1), &
+                    name='FBfrac'//trim(compname(n1)), rc=rc)
+             else
+               call fldbun_init(is_local%wrap%FBfrac(n1), is_local%wrap%flds_scalar_name, &
+                    STgeom=is_local%wrap%NStateImp(n1), fieldNameList=fraclist(:,n1), &
+                    name='FBfrac'//trim(compname(n1)), rc=rc)
+             end if
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+             ! zero out FBfrac(n1)
              call fldbun_reset(is_local%wrap%FBfrac(n1), value=czero, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
