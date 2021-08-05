@@ -212,13 +212,13 @@ contains
 
        ! write diagnostic output
        if (mastertask) then
-          write(logunit,'(a,l)') trim(subname)//' flds_co2a         = ',flds_co2a
-          write(logunit,'(a,l)') trim(subname)//' flds_co2b         = ',flds_co2b
-          write(logunit,'(a,l)') trim(subname)//' flds_co2c         = ',flds_co2b
-          write(logunit,'(a,l)') trim(subname)//' flds_wiso         = ',flds_wiso
-          write(logunit,'(a,l)') trim(subname)//' flds_i2o_per_cat  = ',flds_i2o_per_cat
-          write(logunit,'(a,l)') trim(subname)//' ocn2glc_coupling  = ',ocn2glc_coupling
-          write(logunit,'(a,l)') trim(subname)//' mapuv_with_cart3d = ',mapuv_with_cart3d
+          write(logunit,'(a,l7)') trim(subname)//' flds_co2a         = ',flds_co2a
+          write(logunit,'(a,l7)') trim(subname)//' flds_co2b         = ',flds_co2b
+          write(logunit,'(a,l7)') trim(subname)//' flds_co2c         = ',flds_co2b
+          write(logunit,'(a,l7)') trim(subname)//' flds_wiso         = ',flds_wiso
+          write(logunit,'(a,l7)') trim(subname)//' flds_i2o_per_cat  = ',flds_i2o_per_cat
+          write(logunit,'(a,l7)') trim(subname)//' ocn2glc_coupling  = ',ocn2glc_coupling
+          write(logunit,'(a,l7)') trim(subname)//' mapuv_with_cart3d = ',mapuv_with_cart3d
        end if
 
     end if
