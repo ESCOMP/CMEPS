@@ -2579,7 +2579,6 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if (.not. stopalarmcreated) then
-       print *,__FILE__,__LINE__, 'Create stop alarm'
        call NUOPC_CompAttributeGet(gcomp, name="stop_option", value=stop_option, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call NUOPC_CompAttributeGet(gcomp, name="stop_n", value=cvalue, rc=rc)
