@@ -381,22 +381,6 @@ contains
     allocate(budget_counter  (f_size , c_size , p_size)) ! counter, valid only on root pe
     allocate(budget_global_1d(f_size * c_size * p_size)) ! needed for ESMF_VMReduce call
 
-    if (budget_print_inst + budget_print_daily + budget_print_month + budget_print_ann + budget_print_ltann + budget_print_ltend > 0) then
-       ! Set stop alarm (needed for budgets)
-       call NUOPC_CompAttributeGet(gcomp, name="stop_option", value=stop_option, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call NUOPC_CompAttributeGet(gcomp, name="stop_n", value=cvalue, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       read(cvalue,*) stop_n
-       call NUOPC_CompAttributeGet(gcomp, name="stop_ymd", value=cvalue, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       read(cvalue,*) stop_ymd
-       call NUOPC_MediatorGet(gcomp, mediatorClock=mediatorClock, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call alarmInit(mediatorclock, stop_alarm, stop_option, opt_n=stop_n, opt_ymd=stop_ymd, &
-            alarmname='alarm_stop', rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    endif
   end subroutine med_diag_init
 
   integer function get_diag_attribute(gcomp, name, rc)

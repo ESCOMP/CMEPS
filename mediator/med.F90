@@ -2525,6 +2525,7 @@ contains
     use ESMF                  , only : ESMF_Success, ESMF_Failure
     use ESMF                  , only : ESMF_Alarm, ESMF_ALARMLIST_ALL, ESMF_ClockGetAlarmList
     use ESMF                  , only : ESMF_AlarmCreate, ESMF_AlarmSet, ESMF_ClockAdvance
+    use ESMF                  , only : ESMF_ClockGetAlarmList
     use NUOPC                 , only : NUOPC_CompCheckSetClock, NUOPC_CompAttributeGet
     use NUOPC_Mediator        , only : NUOPC_MediatorGet
 
@@ -2536,8 +2537,14 @@ contains
     type(ESMF_Clock)        :: mediatorClock, driverClock
     type(ESMF_Time)         :: currTime
     type(ESMF_TimeInterval) :: timeStep
+    type(ESMF_Alarm)        :: stop_alarm 
     character(len=CL)       :: cvalue
+    character(len=CL)       :: name, stop_option
+    integer                 :: stop_n, stop_ymd
     logical                 :: first_time = .true.
+    logical, save           :: stopalarmcreated=.false.
+    integer                 :: alarmcount
+    
     character(len=*),parameter :: subname=' (module_MED:SetRunClock) '
     !-----------------------------------------------------------
 
@@ -2570,6 +2577,22 @@ contains
     ! check and set the component clock against the driver clock
     call NUOPC_CompCheckSetClock(gcomp, driverClock, checkTimeStep=.false., rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    if (.not. stopalarmcreated) then
+       print *,__FILE__,__LINE__, 'Create stop alarm'
+       call NUOPC_CompAttributeGet(gcomp, name="stop_option", value=stop_option, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call NUOPC_CompAttributeGet(gcomp, name="stop_n", value=cvalue, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       read(cvalue,*) stop_n
+       call NUOPC_CompAttributeGet(gcomp, name="stop_ymd", value=cvalue, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       read(cvalue,*) stop_ymd
+       call alarmInit(mediatorclock, stop_alarm, stop_option, opt_n=stop_n, opt_ymd=stop_ymd, &
+            alarmname='alarm_stop', rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       stopalarmcreated = .true.
+    end if
 
     !--------------------------------
     ! Advance med clock to trigger alarms then reset model clock back to currtime
