@@ -7,9 +7,8 @@
 
   <test compset="A" grid="f19_g17_rx1" name="SMS_Vnuopc_Ld1_N3">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="nuopc"/>
-      <machine name="theia" compiler="intel" category="nuopc"/>
-      <machine name="izumi" compiler="intel" category="nuopc"/>
+      <machine name="cheyenne" compiler="intel" category="aux_cmeps"/>
+      <machine name="izumi" compiler="intel" category="aux_cmeps"/>
     </machines>
     <options>
       <option name="wallclock"> 00:10:00 </option>
@@ -17,19 +16,8 @@
   </test>
   <test compset="A" grid="f19_g17_rx1" name="SMS_Vnuopc_Ln11_D">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="nuopc"/>
-      <machine name="theia" compiler="intel" category="nuopc"/>
-      <machine name="izumi" compiler="intel" category="nuopc"/>
-    </machines>
-    <options>
-      <option name="wallclock"> 00:10:00 </option>
-    </options>
-  </test>
-  <test compset="A" grid="f19_g17_rx1" name="SMS_Vmct_Ld1">
-    <machines>
-      <machine name="cheyenne" compiler="intel" category="nuopc"/>
-      <machine name="theia" compiler="intel" category="nuopc"/>
-      <machine name="izumi" compiler="intel" category="nuopc"/>
+      <machine name="cheyenne" compiler="intel" category="aux_cmeps"/>
+      <machine name="izumi" compiler="intel" category="aux_cmeps"/>
     </machines>
     <options>
       <option name="wallclock"> 00:10:00 </option>
@@ -37,19 +25,8 @@
   </test>
   <test compset="A" grid="f19_g17_rx1" name="ERS_Vnuopc_Ln9_N3">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="nuopc"/>
-      <machine name="theia" compiler="intel" category="nuopc"/>
-      <machine name="izumi" compiler="intel" category="nuopc"/>
-    </machines>
-    <options>
-      <option name="wallclock"> 00:10:00 </option>
-    </options>
-  </test>
-  <test compset="A" grid="f19_g17_rx1" name="ERS_Vmct_Ln9">
-    <machines>
-      <machine name="cheyenne" compiler="intel" category="mctcheck"/>
-      <machine name="theia" compiler="intel" category="mctcheck"/>
-      <machine name="izumi" compiler="intel" category="mctcheck"/>
+      <machine name="cheyenne" compiler="intel" category="aux_cmeps"/>
+      <machine name="izumi" compiler="intel" category="aux_cmeps"/>
     </machines>
     <options>
       <option name="wallclock"> 00:10:00 </option>
@@ -57,19 +34,8 @@
   </test>
   <test compset="ADWAV" grid="ww3a" name="SMS_Vnuopc_Ld2">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="nuopc"/>
-      <machine name="theia" compiler="intel" category="nuopc"/>
-      <machine name="izumi" compiler="intel" category="nuopc"/>
-    </machines>
-    <options>
-      <option name="wallclock"> 00:10:00 </option>
-    </options>
-  </test>
-  <test compset="ADWAV" grid="ww3a" name="SMS_Vmct_Ld2">
-    <machines>
-      <machine name="cheyenne" compiler="intel" category="mctcheck"/>
-      <machine name="theia" compiler="intel" category="mctcheck"/>
-      <machine name="izumi" compiler="intel" category="mctcheck"/>
+      <machine name="cheyenne" compiler="intel" category="aux_cmeps"/>
+      <machine name="izumi" compiler="intel" category="aux_cmeps"/>
     </machines>
     <options>
       <option name="wallclock"> 00:10:00 </option>
@@ -77,19 +43,8 @@
   </test>
   <test compset="A1850DLND" grid="f09_f09_mg17" name="SMS_Vnuopc_Ld3">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="nuopc"/>
-      <machine name="theia" compiler="intel" category="nuopc"/>
-      <machine name="izumi" compiler="intel" category="nuopc"/>
-    </machines>
-    <options>
-      <option name="wallclock"> 00:10:00 </option>
-    </options>
-  </test>
-  <test compset="A1850DLND" grid="f09_f09_mg17" name="SMS_Vmct_Ld3">
-    <machines>
-      <machine name="cheyenne" compiler="intel" category="mctcheck"/>
-      <machine name="theia" compiler="intel" category="mctcheck"/>
-      <machine name="izumi" compiler="intel" category="mctcheck"/>
+      <machine name="cheyenne" compiler="intel" category="aux_cmeps"/>
+      <machine name="izumi" compiler="intel" category="aux_cmeps"/>
     </machines>
     <options>
       <option name="wallclock"> 00:10:00 </option>
@@ -102,19 +57,8 @@
 
   <test compset="X" grid="f19_g17" name="SMS_Vnuopc">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="nuopc"/>
-      <machine name="theia" compiler="intel" category="nuopc"/>
-      <machine name="izumi" compiler="intel" category="nuopc"/>
-    </machines>
-    <options>
-      <option name="wallclock"> 00:20:00 </option>
-    </options>
-  </test>
-  <test compset="X" grid="f19_g17" name="SMS_Vmct">
-    <machines>
-      <machine name="cheyenne" compiler="intel" category="nuopc"/>
-      <machine name="theia" compiler="intel" category="nuopc"/>
-      <machine name="izumi" compiler="intel" category="nuopc"/>
+      <machine name="cheyenne" compiler="intel" category="aux_cmeps"/>
+      <machine name="izumi" compiler="intel" category="aux_cmeps"/>
     </machines>
     <options>
       <option name="wallclock"> 00:20:00 </option>
@@ -122,22 +66,11 @@
   </test>
   <test compset="X" grid="f19_g17" name="ERS_Vnuopc_Ln9">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="nuopc"/>
-      <machine name="theia" compiler="intel" category="nuopc"/>
-      <machine name="izumi" compiler="intel" category="nuopc"/>
+      <machine name="cheyenne" compiler="intel" category="aux_cmeps"/>
+      <machine name="izumi" compiler="intel" category="aux_cmeps"/>
     </machines>
     <options>
       <option name="wallclock"> 00:40:00 </option>
-    </options>
-  </test>
-  <test compset="X" grid="f19_g17" name="ERS_Vmct_Ln9">
-    <machines>
-      <machine name="cheyenne" compiler="intel" category="mctcheck"/>
-      <machine name="theia" compiler="intel" category="mctcheck"/>
-      <machine name="izumi" compiler="intel" category="mctcheck"/>
-    </machines>
-    <options>
-      <option name="wallclock"> 00:20:00 </option>
     </options>
   </test>
 
@@ -147,30 +80,17 @@
 
   <test compset="B1850MOM" grid="f09_t061" name="ERR_Vnuopc_Ld5" testmods="allactive/nuopc_cap_io">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="nuopc"/>
-      <machine name="theia" compiler="intel" category="nuopc"/>
-      <machine name="izumi" compiler="intel" category="nuopc"/>
+      <machine name="cheyenne" compiler="intel" category="aux_cmeps"/>
+      <machine name="izumi" compiler="intel" category="aux_cmeps"/>
     </machines>
     <options>
       <option name="wallclock"> 00:40:00 </option>
     </options>
   </test>
-  <test compset="B1850" grid="f09_g17" name="ERR_Vmct_Ld5" testmods="allactive/nuopc_cap_io">
-    <machines>
-      <machine name="cheyenne" compiler="intel" category="mctcheck"/>
-      <machine name="theia" compiler="intel" category="mctcheck"/>
-      <machine name="izumi" compiler="intel" category="mctcheck"/>
-    </machines>
-    <options>
-      <option name="wallclock"> 00:40:00 </option>
-    </options>
-  </test>
-
   <test compset="B1850" grid="f19_g17" name="ERS_Vnuopc_Ld5" testmods="allactive/nuopc_cap_io">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="nuopc"/>
-      <machine name="theia" compiler="intel" category="nuopc"/>
-      <machine name="izumi" compiler="intel" category="nuopc"/>
+      <machine name="cheyenne" compiler="intel" category="aux_cmeps"/>
+      <machine name="izumi" compiler="intel" category="aux_cmeps"/>
     </machines>
     <options>
       <option name="wallclock"> 00:40:00 </option>
@@ -183,9 +103,8 @@
 
   <test compset="C" grid="T62_g17" name="ERS_Vnuopc_Ld5">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="nuopc"/>
-      <machine name="theia" compiler="intel" category="nuopc"/>
-      <machine name="izumi" compiler="intel" category="nuopc"/>
+      <machine name="cheyenne" compiler="intel" category="aux_cmeps"/>
+      <machine name="izumi" compiler="intel" category="aux_cmeps"/>
     </machines>
     <options>
       <option name="wallclock"> 00:40:00 </option>
@@ -193,9 +112,8 @@
   </test>
   <test compset="CMOM" grid="T62_t061" name="SMS_Vnuopc_Ld5">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="nuopc"/>
-      <machine name="theia" compiler="intel" category="nuopc"/>
-      <machine name="izumi" compiler="intel" category="nuopc"/>
+      <machine name="cheyenne" compiler="intel" category="aux_cmeps"/>
+      <machine name="izumi" compiler="intel" category="aux_cmeps"/>
     </machines>
     <options>
       <option name="wallclock"> 00:40:00 </option>
@@ -203,32 +121,11 @@
   </test>
   <test compset="CMOM" grid="T62_t061" name="ERS_Vnuopc_Ld5">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="nuopc"/>
-      <machine name="theia" compiler="intel" category="nuopc"/>
-      <machine name="izumi" compiler="intel" category="nuopc"/>
+      <machine name="cheyenne" compiler="intel" category="aux_cmeps"/>
+      <machine name="izumi" compiler="intel" category="aux_cmeps"/>
     </machines>
     <options>
       <option name="wallclock"> 00:40:00 </option>
-    </options>
-  </test>
-  <test compset="CMOM" grid="T62_t061" name="SMS_Vmct_Ld5">
-    <machines>
-      <machine name="cheyenne" compiler="intel" category="mctcheck"/>
-      <machine name="theia" compiler="intel" category="mctcheck"/>
-      <machine name="izumi" compiler="intel" category="mctcheck"/>
-    </machines>
-    <options>
-      <option name="wallclock"> 00:10:00 </option>
-    </options>
-  </test>
-  <test compset="CMOM" grid="T62_t061" name="ERS_Vmct_Ld5">
-    <machines>
-      <machine name="cheyenne" compiler="intel" category="mctcheck"/>
-      <machine name="theia" compiler="intel" category="mctcheck"/>
-      <machine name="izumi" compiler="intel" category="mctcheck"/>
-    </machines>
-    <options>
-      <option name="wallclock"> 00:10:00 </option>
     </options>
   </test>
 
@@ -238,9 +135,8 @@
 
   <test compset="G" grid="T62_g17" name="ERS_Vnuopc_Ld5">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="nuopc"/>
-      <machine name="theia" compiler="intel" category="nuopc"/>
-      <machine name="izumi" compiler="intel" category="nuopc"/>
+      <machine name="cheyenne" compiler="intel" category="aux_cmeps"/>
+      <machine name="izumi" compiler="intel" category="aux_cmeps"/>
     </machines>
     <options>
       <option name="wallclock"> 00:10:00 </option>
@@ -248,19 +144,8 @@
   </test>
   <test compset="GMOM" grid="T62_t061" name="SMS_Vnuopc_Ld5">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="nuopc"/>
-      <machine name="theia" compiler="intel" category="nuopc"/>
-      <machine name="izumi" compiler="intel" category="nuopc"/>
-    </machines>
-    <options>
-      <option name="wallclock"> 00:10:00 </option>
-    </options>
-  </test>
-  <test compset="GMOM" grid="T62_t061" name="SMS_Vmct_Ld5">
-    <machines>
-      <machine name="cheyenne" compiler="intel" category="mctcheck"/>
-      <machine name="theia" compiler="intel" category="mctcheck"/>
-      <machine name="izumi" compiler="intel" category="mctcheck"/>
+      <machine name="cheyenne" compiler="intel" category="aux_cmeps"/>
+      <machine name="izumi" compiler="intel" category="aux_cmeps"/>
     </machines>
     <options>
       <option name="wallclock"> 00:10:00 </option>
@@ -268,23 +153,11 @@
   </test>
   <test compset="GMOM" grid="T62_t061" name="ERS_Vnuopc_Ld5">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="nuopc"/>
-      <machine name="theia" compiler="intel" category="nuopc"/>
-      <machine name="izumi" compiler="intel" category="nuopc"/>
+      <machine name="cheyenne" compiler="intel" category="aux_cmeps"/>
+      <machine name="izumi" compiler="intel" category="aux_cmeps"/>
     </machines>
     <options>
       <option name="wallclock"> 00:20:00 </option>
-    </options>
-  </test>
-
-  <test compset="GMOM" grid="T62_t061" name="ERS_Vmct_Ld5">
-    <machines>
-      <machine name="cheyenne" compiler="intel" category="mctcheck"/>
-      <machine name="theia" compiler="intel" category="mctcheck"/>
-      <machine name="izumi" compiler="intel" category="mctcheck"/>
-    </machines>
-    <options>
-      <option name="wallclock"> 00:10:00 </option>
     </options>
   </test>
 
@@ -294,19 +167,8 @@
 
   <test compset="DTEST" grid="T62_g37" name="ERS_Vnuopc_Ld5">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="nuopc"/>
-      <machine name="theia" compiler="intel" category="nuopc"/>
-      <machine name="izumi" compiler="intel" category="nuopc"/>
-    </machines>
-    <options>
-      <option name="wallclock"> 00:10:00 </option>
-    </options>
-  </test>
-  <test compset="DTEST" grid="T62_g37" name="ERS_Vmct_Ld5">
-    <machines>
-      <machine name="cheyenne" compiler="intel" category="mctcheck"/>
-      <machine name="theia" compiler="intel" category="mctcheck"/>
-      <machine name="izumi" compiler="intel" category="mctcheck"/>
+      <machine name="cheyenne" compiler="intel" category="aux_cmeps"/>
+      <machine name="izumi" compiler="intel" category="aux_cmeps"/>
     </machines>
     <options>
       <option name="wallclock"> 00:10:00 </option>
@@ -319,19 +181,8 @@
 
   <test compset="F2000Nuopc" grid="f19_f19_mg17" name="ERS_Vnuopc_Ln5" testmods="cam/nuopc_cap">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="nuopc"/>
-      <machine name="theia" compiler="intel" category="nuopc"/>
-      <machine name="izumi" compiler="intel" category="nuopc"/>
-    </machines>
-    <options>
-      <option name="wallclock"> 00:10:00 </option>
-    </options>
-  </test>
-  <test compset="F2000Nuopc" grid="f19_f19_mg17" name="ERS_Vmct_Ln5" testmods="cam/nuopc_cap">
-    <machines>
-      <machine name="cheyenne" compiler="intel" category="mctcheck"/>
-      <machine name="theia" compiler="intel" category="mctcheck"/>
-      <machine name="izumi" compiler="intel" category="mctcheck"/>
+      <machine name="cheyenne" compiler="intel" category="aux_cmeps"/>
+      <machine name="izumi" compiler="intel" category="aux_cmeps"/>
     </machines>
     <options>
       <option name="wallclock"> 00:10:00 </option>
@@ -344,19 +195,8 @@
 
   <test compset="QPC4" grid="ne16_ne16_mg17" name="ERS_Vnuopc_Ln5" testmods="cam/nuopc_cap">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="nuopc"/>
-      <machine name="theia" compiler="intel" category="nuopc"/>
-      <machine name="izumi" compiler="intel" category="nuopc"/>
-    </machines>
-    <options>
-      <option name="wallclock"> 00:10:00 </option>
-    </options>
-  </test>
-  <test compset="QPC4" grid="ne16_ne16_mg17" name="ERS_Vmct_Ln5" testmods="cam/nuopc_cap">
-    <machines>
-      <machine name="cheyenne" compiler="intel" category="mctcheck"/>
-      <machine name="theia" compiler="intel" category="mctcheck"/>
-      <machine name="izumi" compiler="intel" category="mctcheck"/>
+      <machine name="cheyenne" compiler="intel" category="aux_cmeps"/>
+      <machine name="izumi" compiler="intel" category="aux_cmeps"/>
     </machines>
     <options>
       <option name="wallclock"> 00:10:00 </option>
@@ -369,9 +209,8 @@
 
   <test compset="I2000Clm51Bgc" grid="f19_g17" name="ERS_Vnuopc_Ld5" testmods="clm/default">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="nuopc"/>
-      <machine name="theia" compiler="intel" category="nuopc"/>
-      <machine name="izumi" compiler="intel" category="nuopc"/>
+      <machine name="cheyenne" compiler="intel" category="aux_cmeps"/>
+      <machine name="izumi" compiler="intel" category="aux_cmeps"/>
     </machines>
     <options>
       <option name="wallclock"> 00:20:00 </option>
@@ -379,9 +218,8 @@
   </test>
   <test compset="I1850Clm50Sp" grid="f09_g17" name="ERS_Vnuopc_Ld5" testmods="clm/default">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="nuopc"/>
-      <machine name="theia" compiler="intel" category="nuopc"/>
-      <machine name="izumi" compiler="intel" category="nuopc"/>
+      <machine name="cheyenne" compiler="intel" category="aux_cmeps"/>
+      <machine name="izumi" compiler="intel" category="aux_cmeps"/>
     </machines>
     <options>
       <option name="wallclock"> 00:20:00 </option>
@@ -389,9 +227,8 @@
   </test>
   <test compset="I1850Clm50SpG" grid="f10_f10_mg37" name="ERS_Vnuopc_Lm13">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="nuopc"/>
-      <machine name="theia" compiler="intel" category="nuopc"/>
-      <machine name="izumi" compiler="intel" category="nuopc"/>
+      <machine name="cheyenne" compiler="intel" category="aux_cmeps"/>
+      <machine name="izumi" compiler="intel" category="aux_cmeps"/>
     </machines>
     <options>
       <option name="wallclock"> 00:20:00 </option>
@@ -399,8 +236,8 @@
   </test>
   <test compset="I2000Clm50BgcCropRtm" grid="f10_f10_mg37" name="SMS_D_Ld5_Vnuopc" testmods="rtm/default">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="nuopc"/>
-      <machine name="izumi" compiler="nag" category="nuopc"/>
+      <machine name="cheyenne" compiler="intel" category="aux_cmeps"/>
+      <machine name="izumi" compiler="nag" category="aux_cmeps"/>
     </machines>
     <options>
       <option name="wallclock"> 00:20:00 </option>
@@ -413,7 +250,7 @@
 
   <test name="SMS_D_Ly1_Vnuopc" grid="f09_g17_gl4" compset="T1850Gg">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="nuopc">
+      <machine name="cheyenne" compiler="intel" category="aux_cmeps">
         <options>
           <option name="wallclock">0:20</option>
         </options>
@@ -422,7 +259,7 @@
   </test>
   <test name="ERS_Ly3_Vnuopc" grid="f09_g17_gl4" compset="T1850Gg">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="nuopc">
+      <machine name="cheyenne" compiler="intel" category="aux_cmeps">
         <options>
           <option name="wallclock">0:20</option>
         </options>
