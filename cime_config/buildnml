@@ -48,6 +48,7 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     config['continue_run'] = '.true.' if case.get_value('CONTINUE_RUN') else '.false.'
     config['flux_epbal'] = 'ocn' if case.get_value('CPL_EPBAL')  == 'ocn' else 'off'
     config['mask_grid'] = case.get_value('MASK_GRID')
+    config['rest_option'] = case.get_value('REST_OPTION')
 
     atm_grid = case.get_value('ATM_GRID')
     lnd_grid = case.get_value('LND_GRID')

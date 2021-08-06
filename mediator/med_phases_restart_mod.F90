@@ -22,7 +22,8 @@ module med_phases_restart_mod
   public  :: med_phases_restart_write
 
   private :: med_phases_restart_alarm_init
-
+  logical :: write_restart_at_endofrun = .false.
+  
   character(*), parameter :: u_FILE_u  = &
        __FILE__
 
@@ -62,6 +63,8 @@ contains
     character(CL)           :: cvalue          ! attribute string
     character(CL)           :: restart_option  ! freq_option setting (ndays, nsteps, etc)
     integer                 :: restart_n       ! freq_n setting relative to freq_option
+    logical                 :: isPresent
+    logical                 :: isSet
     character(len=*), parameter :: subname='(med_phases_restart_alarm_init)'
     !---------------------------------------
 
@@ -107,6 +110,15 @@ contains
     call ESMF_ClockSet(mclock, currTime=mcurrtime, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+    !--------------------------------
+    ! Handle end of run restart
+    !--------------------------------
+    call NUOPC_CompAttributeGet(gcomp, name="write_restart_at_endofrun", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+       if (trim(cvalue) .eq. '.true.') write_restart_at_endofrun = .true.
+    end if
+
     ! -----------------------------
     ! Write mediator diagnostic output
     ! -----------------------------
@@ -116,6 +128,7 @@ contains
        write(logunit,100) trim(subname)//" restart clock timestep = ",timestep_length
        write(logunit,100) trim(subname)//" set restart alarm with option "//&
             trim(restart_option)//" and frequency ",restart_n
+       write(logunit,*) "write_restart_at_endofrun : ", write_restart_at_endofrun
 100    format(a,2x,i8)
        write(logunit,*)
     end if
@@ -151,6 +164,7 @@ contains
     type(ESMF_Time)            :: starttime
     type(ESMF_Time)            :: currtime
     type(ESMF_Time)            :: nexttime
+    type(ESMF_Time), save      :: lasttimewritten
     type(ESMF_TimeInterval)    :: timediff       ! Used to calculate curr_time
     type(ESMF_Alarm)           :: alarm
     type(ESMF_Calendar)        :: calendar
@@ -253,9 +267,18 @@ contains
        call ESMF_AlarmRingerOff( alarm, rc=rc )
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     else
-       AlarmIsOn = .false.
+       !---------------------------------------
+       ! --- Stop Alarm
+       !---------------------------------------
+       
+       call ESMF_ClockGetAlarm(clock, alarmname='alarm_stop', alarm=alarm, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       if (ESMF_AlarmIsRinging(alarm, rc=rc).and.write_restart_at_endofrun) then    
+          AlarmIsOn = .true.
+       else
+          AlarmIsOn = .false.
+       endif
     endif
-
     if (alarmIsOn) then
        call ESMF_ClockGet(clock, currtime=currtime, starttime=starttime, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -459,7 +482,7 @@ contains
     !---------------------------------------
     !--- clean up
     !---------------------------------------
-
+    lasttimewritten = currtime
     if (dbug_flag > 5) then
        call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
     endif
