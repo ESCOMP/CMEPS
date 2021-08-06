@@ -60,8 +60,10 @@ module nuopc_shr_methods
        optNYear          = "nyear"     , &
        optMonthly        = "monthly"   , &
        optYearly         = "yearly"    , &
+       optEnd            = "end"       , &
        optDate           = "date"
 
+  
   ! Module data
   integer, parameter :: SecPerDay = 86400 ! Seconds per day
   integer, parameter :: memdebug_level=1
@@ -558,6 +560,13 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        update_nextalarm  = .false.
 
+    case (optEnd)
+       call ESMF_TimeIntervalSet(AlarmInterval, yy=9999, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_TimeSet( NextAlarm, yy=9999, mm=12, dd=1, s=0, calendar=cal, rc=rc )
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       update_nextalarm  = .false.
+
     case (optDate)
        if (.not. present(opt_ymd)) then
           call shr_sys_abort(subname//trim(option)//' requires opt_ymd')
@@ -747,7 +756,7 @@ contains
        call ESMF_TimeSet( NextAlarm, yy=cyy, mm=1, dd=1, s=0, calendar=cal, rc=rc )
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        update_nextalarm  = .true.
-
+       
     case default
        call shr_sys_abort(subname//'unknown option '//trim(option))
 
@@ -766,7 +775,6 @@ contains
           NextAlarm = NextAlarm + AlarmInterval
        enddo
     endif
-
     alarm = ESMF_AlarmCreate( name=lalarmname, clock=clock, ringTime=NextAlarm, &
          ringInterval=AlarmInterval, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
