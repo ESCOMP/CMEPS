@@ -1979,6 +1979,21 @@ contains
          write(logunit,*) ' '
       endif
 
+      ! Reset the active coupling to permit atm/ocn flux computation on ogrid if needed
+      if ( ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_aoflux_a) .and. &
+           ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_aoflux_o)) then
+         if (  is_local%wrap%aoflux_grid == 'ogrid') then
+            if ( is_local%wrap%med_coupling_active(compocn,compatm) .and. .not. &
+                 is_local%wrap%med_coupling_active(compatm,compocn)) then
+               is_local%wrap%med_coupling_active(compatm,compocn) = .true.
+            end if
+            if ( is_local%wrap%med_coupling_active(compatm,compocn) .and. .not. &
+                 is_local%wrap%med_coupling_active(compocn,compatm)) then
+               is_local%wrap%med_coupling_active(compocn,compatm) = .true.
+            end if
+         end if
+      end if
+
       !----------------------------------------------------------
       ! Create field bundles FBImp, FBExp, FBImpAccum, FBExpAccum
       !----------------------------------------------------------
@@ -2045,7 +2060,6 @@ contains
 
          ! The following are FBImp and FBImpAccum mapped to different grids.
          ! FBImp(n1,n1) and FBImpAccum(n1,n1) are handled above
-
          do n2 = 1,ncomps
             if (n1 /= n2 .and. &
                  is_local%wrap%med_coupling_active(n1,n2) .and. &
@@ -2151,19 +2165,6 @@ contains
       ! Initialize route handles and required normalization field bunds
       ! Initialized packed field data structures
       !---------------------------------------
-
-      ! Force the coupling to be active between atm->ocn to map atm fields to the ocn grid for
-      ! the atm/ocn flux computation
-      if (  is_local%wrap%aoflux_grid == 'ogrid') then
-         if ( is_local%wrap%med_coupling_active(compocn,compatm) .and. .not. &
-              is_local%wrap%med_coupling_active(compatm,compocn)) then
-            is_local%wrap%med_coupling_active(compatm,compocn) = .true.
-         end if
-         if ( is_local%wrap%med_coupling_active(compatm,compocn) .and. .not. &
-              is_local%wrap%med_coupling_active(compocn,compatm)) then
-            is_local%wrap%med_coupling_active(compocn,compatm) = .true.
-         end if
-      end if
 
       call ESMF_LogWrite("before med_map_RouteHandles_init", ESMF_LOGMSG_INFO)
       call med_map_RouteHandles_init(gcomp, is_local%wrap%flds_scalar_name, logunit, rc)
@@ -2545,14 +2546,14 @@ contains
     type(ESMF_Clock)        :: mediatorClock, driverClock
     type(ESMF_Time)         :: currTime
     type(ESMF_TimeInterval) :: timeStep
-    type(ESMF_Alarm)        :: stop_alarm 
+    type(ESMF_Alarm)        :: stop_alarm
     character(len=CL)       :: cvalue
     character(len=CL)       :: name, stop_option
     integer                 :: stop_n, stop_ymd
     logical                 :: first_time = .true.
     logical, save           :: stopalarmcreated=.false.
     integer                 :: alarmcount
-    
+
     character(len=*),parameter :: subname=' (module_MED:SetRunClock) '
     !-----------------------------------------------------------
 
