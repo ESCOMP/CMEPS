@@ -366,7 +366,7 @@
     <values>
       <value>.false.</value>
       <value rest_option="end">.true.</value>
-      </values>
+    </values>
   </entry>
 
   <entry id="Profiling" modify_via_xml="ESMF_PROFILING_LEVEL">
