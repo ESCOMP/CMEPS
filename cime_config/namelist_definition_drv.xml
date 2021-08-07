@@ -364,9 +364,9 @@
     <category>nuopc</category>
     <group>ALLCOMP_attributes</group>
     <values>
-      <value>.true.</value>
-      <value rest_option="none">.false.</value>
-      <value rest_option="never">.false.</value>
+      <value>.false.</value>
+      <!-- <value rest_option="none">.false.</value> -->
+      <!-- <value rest_option="never">.false.</value> -->
     </values>
   </entry>
 

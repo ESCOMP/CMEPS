@@ -2154,9 +2154,15 @@ contains
 
       ! Force the coupling to be active between atm->ocn to map atm fields to the ocn grid for
       ! the atm/ocn flux computation
-      if (  is_local%wrap%aoflux_grid == 'ogrid' .and. .not. &
-            is_local%wrap%med_coupling_active(compatm,compocn)) then
-         is_local%wrap%med_coupling_active(compatm,compocn) = .true.
+      if (  is_local%wrap%aoflux_grid == 'ogrid') then
+         if ( is_local%wrap%med_coupling_active(compocn,compatm) .and. .not. &
+              is_local%wrap%med_coupling_active(compatm,compocn)) then
+            is_local%wrap%med_coupling_active(compatm,compocn) = .true.
+         end if
+         if ( is_local%wrap%med_coupling_active(compatm,compocn) .and. .not. &
+              is_local%wrap%med_coupling_active(compocn,compatm)) then
+            is_local%wrap%med_coupling_active(compocn,compatm) = .true.
+         end if
       end if
 
       call ESMF_LogWrite("before med_map_RouteHandles_init", ESMF_LOGMSG_INFO)
