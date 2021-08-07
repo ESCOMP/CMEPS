@@ -122,9 +122,13 @@ contains
                 call med_methods_FB_getFieldN(is_local%wrap%FBImp(n1,n1), 1, fldsrc, rc)
                 if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-                ! Check number of fields in FB and get destination field
+                ! Check number of fields in source FB on destination mesh and get destination field
                 call ESMF_FieldBundleGet(is_local%wrap%FBImp(n1,n2), fieldCount=fieldCount, rc=rc)
-                if (chkerr(rc,__LINE__,u_FILE_u)) return
+                if (chkerr(rc,__LINE__,u_FILE_u)) then
+                   call ESMF_LogWrite(trim(subname)//'FBImp('//trim(compname(n1),trim(compname(n2)//&
+                        ') has not been created', ESMF_LOGMSG_ERROR)
+                   return
+                end if
                 if (fieldCount == 0) then
                   call med_methods_FB_getFieldN(is_local%wrap%FBExp(n2), 1, flddst, rc)
                 else

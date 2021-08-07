@@ -360,14 +360,13 @@
   <!-- =========================================== -->
 
   <entry id="write_restart_at_endofrun">
-    <type>char</type>
+    <type>logical</type>
     <category>nuopc</category>
     <group>ALLCOMP_attributes</group>
     <values>
       <value>.false.</value>
-      <!-- <value rest_option="none">.false.</value> -->
-      <!-- <value rest_option="never">.false.</value> -->
-    </values>
+      <value rest_option="end">.true.</value>
+      </values>
   </entry>
 
   <entry id="Profiling" modify_via_xml="ESMF_PROFILING_LEVEL">
