@@ -360,13 +360,12 @@
   <!-- =========================================== -->
 
   <entry id="write_restart_at_endofrun">
-    <type>char</type>
+    <type>logical</type>
     <category>nuopc</category>
     <group>ALLCOMP_attributes</group>
     <values>
-      <value>.true.</value>
-      <value rest_option="none">.false.</value>
-      <value rest_option="never">.false.</value>
+      <value>.false.</value>
+      <value rest_option="end">.true.</value>
     </values>
   </entry>
 
