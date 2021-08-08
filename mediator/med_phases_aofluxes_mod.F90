@@ -20,7 +20,7 @@ module med_phases_aofluxes_mod
   use ESMF                  , only : ESMF_TERMORDER_SRCSEQ, ESMF_REGION_TOTAL, ESMF_MESHLOC_ELEMENT, ESMF_MAXSTR
   use ESMF                  , only : ESMF_XGRIDSIDE_B, ESMF_XGRIDSIDE_A, ESMF_END_ABORT, ESMF_LOGERR_PASSTHRU
   use ESMF                  , only : ESMF_Mesh, ESMF_MeshGet, ESMF_XGrid, ESMF_XGridCreate, ESMF_TYPEKIND_R8
-  use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_LOGMSG_ERROR, ESMF_FAILURE
+  use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
   use ESMF                  , only : ESMF_Finalize, ESMF_LogFoundError
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
   use med_internalstate_mod , only : InternalState
@@ -31,7 +31,7 @@ module med_phases_aofluxes_mod
   use med_methods_mod       , only : FB_GetFldPtr => med_methods_FB_GetFldPtr
   use med_utils_mod         , only : chkerr       => med_utils_chkerr
   use med_map_mod           , only : med_map_field
-  use esmFlds               , only : compatm, compocn, coupling_mode, mapconsd, mapconsf, mapfcopy
+  use esmFlds               , only : compatm, compocn, coupling_mode, mapconsd, mapconsf
   use perf_mod              , only : t_startf, t_stopf
 
   implicit none
@@ -152,65 +152,75 @@ contains
     integer, intent(out) :: rc
 
     ! local variables
-    integer                :: n
-    type(InternalState)    :: is_local
-    integer                :: fieldcount
+    integer             :: n
+    integer             :: fieldcount
+    type(InternalState) :: is_local
     character(len=*),parameter :: subname=' (med_phases_aofluxes_init_fldbuns) '
     !---------------------------------------
 
     ! Create field bundles for mediator ocean/atmosphere flux computation
     ! This is needed regardless of the grid on which the atm/ocn flux computation is done on
+
+    ! Get the internal state from the mediator Component.
+    nullify(is_local%wrap)
+    call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    ! Set module variable fldnames_aof_out
     fieldCount = med_fldList_GetNumFlds(fldListMed_aoflux)
-    if (fieldCount > 0) then
+    allocate(fldnames_aof_out(fieldCount))
+    call med_fldList_getfldnames(fldListMed_aoflux%flds, fldnames_aof_out, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-       ! Get the internal state from the mediator Component.
-       nullify(is_local%wrap)
-       call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
+    ! Initialize FBMed_aoflux_a
+    call FB_init(is_local%wrap%FBMed_aoflux_a, is_local%wrap%flds_scalar_name, &
+         STgeom=is_local%wrap%NStateImp(compatm), fieldnamelist=fldnames_aof_out, name='FBMed_aoflux_a', rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (mastertask) then
+       write(logunit,*)
+       write(logunit,'(a)') trim(subname)//' initialized FB FBMed_aoflux_a'
+    end if
 
-       ! Set module variable fldnames_aof_out
-       allocate(fldnames_aof_out(fieldCount))
-       call med_fldList_getfldnames(fldListMed_aoflux%flds, fldnames_aof_out, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    ! Initialize FBMed_aoflux_o
+    call FB_init(is_local%wrap%FBMed_aoflux_o, is_local%wrap%flds_scalar_name, &
+         STgeom=is_local%wrap%NStateImp(compocn), fieldnamelist=fldnames_aof_out, name='FBMed_aoflux_o', rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (mastertask) then
+       write(logunit,'(a)') trim(subname)//' initialized FB FBMed_aoflux_o'
+       write(logunit,'(a)') trim(subname)//' following are the fields in FBMed_aoflux_o and FBMed_aoflux_a'
+       do n = 1,fieldcount
+          write(logunit,'(a)')'   FBmed_aoflux fieldname = '//trim(fldnames_aof_out(n))
+       end do
+    end if
 
-       ! Initialize FBMed_aoflux_a
-       call FB_init(is_local%wrap%FBMed_aoflux_a, is_local%wrap%flds_scalar_name, &
-            STgeom=is_local%wrap%NStateImp(compatm), fieldnamelist=fldnames_aof_out, name='FBMed_aoflux_a', rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       if (mastertask) then
-          write(logunit,*)
-          write(logunit,'(a)') trim(subname)//' initializing FB FBMed_aoflux_a'
-       end if
-
-       ! Initialize FBMed_aoflux_o
-       call FB_init(is_local%wrap%FBMed_aoflux_o, is_local%wrap%flds_scalar_name, &
-            STgeom=is_local%wrap%NStateImp(compocn), fieldnamelist=fldnames_aof_out, name='FBMed_aoflux_o', rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       if (mastertask) then
-          write(logunit,'(a)') trim(subname)//' initializing FB FBMed_aoflux_o'
-          write(logunit,'(a)') trim(subname)//' following are the fields in FBMed_aoflux_o and FBMed_aoflux_a'
-          do n = 1,fieldcount
-             write(logunit,'(a)')'   FBmed_aoflux fieldname = '//trim(fldnames_aof_out(n))
-          end do
-       end if
-
-       ! The following assumes that the mediator atm/ocn flux calculation will be done on the ocean grid
-       if (is_local%wrap%aoflux_grid == 'ogrid') then  ! aoflux_grid is ocn
-          if (.not. ESMF_FieldBundleIsCreated(is_local%wrap%FBImp(compatm,compocn), rc=rc)) then
-             if (mastertask) then
-                write(logunit,'(a)') trim(subname)//' creating field bundle FBImp(compatm,compocn)'
-             end if
-             call FB_init(is_local%wrap%FBImp(compatm,compocn), is_local%wrap%flds_scalar_name, &
-                  STgeom=is_local%wrap%NStateImp(compocn), STflds=is_local%wrap%NStateImp(compatm), &
-                  name='FBImp'//trim(compname(compatm))//'_'//trim(compname(compocn)), rc=rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          end if
+    ! If aoflux_grid is ocn...
+    if (is_local%wrap%aoflux_grid == 'ogrid') then
+       
+       ! Create the field bundle is_local%wrap%FBImp(compatm,compocn) if needed
+       if (.not. ESMF_FieldBundleIsCreated(is_local%wrap%FBImp(compatm,compocn), rc=rc)) then
           if (mastertask) then
-             write(logunit,'(a)') trim(subname)//' initializing FBs for '// &
-                  trim(compname(compatm))//'_'//trim(compname(compocn))
+             write(logunit,'(a)') trim(subname)//' creating field bundle FBImp(compatm,compocn)'
           end if
+          call FB_init(is_local%wrap%FBImp(compatm,compocn), is_local%wrap%flds_scalar_name, &
+               STgeom=is_local%wrap%NStateImp(compocn), STflds=is_local%wrap%NStateImp(compatm), &
+               name='FBImp'//trim(compname(compatm))//'_'//trim(compname(compocn)), rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
-    end if ! end if fieldcount > 0
+       if (mastertask) then
+          write(logunit,'(a)') trim(subname)//' initializing FBs for '// &
+               trim(compname(compatm))//'_'//trim(compname(compocn))
+       end if
+
+       ! RESET the active coupling to permit atm/ocn flux computation on ogrid if needed
+       if ( is_local%wrap%med_coupling_active(compocn,compatm) .and. .not. &
+            is_local%wrap%med_coupling_active(compatm,compocn)) then
+          is_local%wrap%med_coupling_active(compatm,compocn) = .true.
+       end if
+       if ( is_local%wrap%med_coupling_active(compatm,compocn) .and. .not. &
+            is_local%wrap%med_coupling_active(compocn,compatm)) then
+          is_local%wrap%med_coupling_active(compocn,compatm) = .true.
+       end if
+    end if
 
   end subroutine med_phases_aofluxes_init_fldbuns
 
@@ -508,8 +518,7 @@ contains
     ! - output aoflux attributes are on the atm mesh
     ! --------------------------------------------
 
-    use med_methods_mod , only : FB_init => med_methods_FB_init
-    use med_map_mod     , only : med_map_rh_is_created
+    use med_methods_mod, only : FB_init => med_methods_FB_init
 
     ! Arguments
     type(ESMF_GridComp)   , intent(inout) :: gcomp
@@ -526,7 +535,6 @@ contains
     real(r8), pointer   :: dataptr1d(:)
     type(ESMF_Mesh)     :: mesh_src
     type(ESMF_Mesh)     :: mesh_dst
-    integer             :: maptype
     character(len=*),parameter :: subname=' (med_aofluxes_init_atmgrid) '
     !-----------------------------------------------------------------------
 
@@ -562,22 +570,6 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! ------------------------
-    ! Determine maptype for ocn->atm mapping
-    ! ------------------------
-
-    if (med_map_RH_is_created(is_local%wrap%RH(compocn,compatm,:), mapfcopy, rc=rc)) then
-       maptype = mapfcopy
-    else if (med_map_RH_is_created(is_local%wrap%RH(compocn,compatm,:), mapconsd, rc=rc)) then
-       maptype = mapconsd
-    else
-       call ESMF_LogWrite(trim(subname)//&
-            ": maptype for atm->ocn mapping of So_mask must be either mapfcopy or mapconsd", &
-            ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
-       rc = ESMF_FAILURE
-       return
-    end if
-
-    ! ------------------------
     ! set aoflux computational mask on atm grid
     ! ------------------------
 
@@ -588,7 +580,7 @@ contains
     call ESMF_FieldBundleGet(FBocn_a, 'So_omask', field=field_dst, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call med_map_field( field_src=field_src, field_dst=field_dst, &
-         routehandles=is_local%wrap%RH(compocn,compatm,:), maptype=maptype, rc=rc)
+         routehandles=is_local%wrap%RH(compocn,compatm,:), maptype=mapconsd, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call ESMF_FieldGet(field_dst, farrayptr=dataptr1d, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -605,7 +597,7 @@ contains
     ! set one normalization for ocn-atm mapping if needed
     ! ------------------------
 
-    if (.not. ESMF_FieldIsCreated(is_local%wrap%field_NormOne(compocn,compatm,maptype))) then
+    if (.not. ESMF_FieldIsCreated(is_local%wrap%field_NormOne(compocn,compatm,mapconsd))) then
        ! Get source mesh
        call ESMF_FieldBundleGet(is_local%wrap%FBImp(compocn,compocn), 'So_omask', field=field_src, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -617,15 +609,15 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        dataptr1d(:) = 1.0_R8
 
-       ! Create field is_local%wrap%field_NormOne(compocn,compatm,maptype) and fill in its values
+       ! Create field is_local%wrap%field_NormOne(compocn,compatm,mapconsd) and fill in its values
        call ESMF_FieldBundleGet(is_local%wrap%FBImp(compocn,compatm), 'So_omask', field=field_dst, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call ESMF_FieldGet(field_dst, mesh=mesh_dst, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       is_local%wrap%field_NormOne(compocn,compatm,maptype) = ESMF_FieldCreate(mesh_dst, &
+       is_local%wrap%field_NormOne(compocn,compatm,mapconsd) = ESMF_FieldCreate(mesh_dst, &
             ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
-       call med_map_field( field_src=field_src, field_dst=is_local%wrap%field_NormOne(compocn,compatm,maptype), &
-            routehandles=is_local%wrap%RH(compocn,compatm,:), maptype=maptype, rc=rc)
+       call med_map_field( field_src=field_src, field_dst=is_local%wrap%field_NormOne(compocn,compatm,mapconsd), &
+            routehandles=is_local%wrap%RH(compocn,compatm,:), maptype=mapconsd, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        call ESMF_FieldDestroy(field_src, rc=rc, noGarbage=.true.)
@@ -841,7 +833,7 @@ contains
 
     use ESMF          , only : ESMF_GridComp
     use ESMF          , only : ESMF_LogWrite, ESMF_LogMsg_Info, ESMF_SUCCESS
-    use med_map_mod   , only : med_map_field_packed, med_map_rh_is_created
+    use med_map_mod   , only : med_map_field_packed
     use shr_flux_mod  , only : shr_flux_atmocn
 
     ! Arguments
@@ -857,7 +849,6 @@ contains
     integer             :: n,i,nf                     ! indices
     real(r8), pointer   :: data_normdst(:)
     real(r8), pointer   :: data_dst(:)
-    integer             :: maptype
     character(*),parameter  :: subName = '(med_aofluxes_update) '
     !-----------------------------------------------------------------------
 
@@ -887,39 +878,22 @@ contains
           ! Create destination field
           call ESMF_FieldBundleGet(FBocn_a, fldnames_ocn_in(nf), field=field_dst, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-          ! Determine maptype from ocn->atm
-          if (med_map_RH_is_created(is_local%wrap%RH(compocn,compatm,:), mapfcopy, rc=rc)) then
-             maptype = mapfcopy
-          else if (med_map_RH_is_created(is_local%wrap%RH(compocn,compatm,:), mapconsd, rc=rc)) then
-             maptype = mapconsd
-          else
-             call ESMF_LogWrite(trim(subname)//&
-                  ": maptype for atm->ocn mapping of aofluxes from atm->ocn either mapfcopy or mapconsd", &
-                  ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
-             rc = ESMF_FAILURE
-             return
-          end if
-
           ! Map ocn->atm conservatively without fractions and then do a normalization by 'one'
           call ESMF_FieldRegrid(field_src, field_dst, &
-               routehandle=is_local%wrap%RH(compocn,compatm, maptype), &
+               routehandle=is_local%wrap%RH(compocn,compatm, mapconsd), &
                termorderflag=ESMF_TERMORDER_SRCSEQ, zeroregion=ESMF_REGION_TOTAL, rc=rc)
-
-          ! Normalization of map by 'one' if maptype is not mapfcopy
-          if (maptype /= mapfcopy) then
-             call ESMF_FieldGet(is_local%wrap%field_normOne(compocn,compatm,maptype), farrayPtr=data_normdst, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-             call ESMF_FieldGet(field_dst, farrayptr=data_dst, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-             do n = 1,size(data_dst)
-                if (data_normdst(n) == 0.0_r8) then
-                   data_dst(n) = 0.0_r8
-                else
-                   data_dst(n) = data_dst(n)/data_normdst(n)
-                end if
-             end do
-          end if
+          ! Normalization of map by 'one'
+          call ESMF_FieldGet(is_local%wrap%field_normOne(compocn,compatm,mapconsd), farrayPtr=data_normdst, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_FieldGet(field_dst, farrayptr=data_dst, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          do n = 1,size(data_dst)
+             if (data_normdst(n) == 0.0_r8) then
+                data_dst(n) = 0.0_r8
+             else
+                data_dst(n) = data_dst(n)/data_normdst(n)
+             end if
+          end do
        end do
 
     else if (is_local%wrap%aoflux_grid == 'xgrid') then
@@ -1025,22 +999,9 @@ contains
              ! Create destination field
              call ESMF_FieldBundleGet(is_local%wrap%FBMed_aoflux_o, fldnames_aof_out(nf), field=field_dst, rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-             if (med_map_RH_is_created(is_local%wrap%RH(compocn,compatm,:), mapfcopy, rc=rc)) then
-                maptype = mapfcopy
-             else if (med_map_RH_is_created(is_local%wrap%RH(compocn,compatm,:), mapconsf, rc=rc)) then
-                maptype = mapconsf
-             else
-                call ESMF_LogWrite(trim(subname)//&
-                     ": maptype for atm->ocn mapping of aofluxes from atm->ocn either mapfcopy or mapconsf", &
-                     ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
-                rc = ESMF_FAILURE
-                return
-             end if
-
              ! Map atm->ocn conservatively WITHOUT fractions
              call ESMF_FieldRegrid(field_src, field_dst, &
-                  routehandle=is_local%wrap%RH(compatm, compocn, maptype), &
+                  routehandle=is_local%wrap%RH(compatm, compocn, mapconsf), &
                   termorderflag=ESMF_TERMORDER_SRCSEQ, zeroregion=ESMF_REGION_TOTAL, rc=rc)
           end do
        end if
