@@ -76,7 +76,7 @@ contains
 
     use ESMF            , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_LogFlush
     use ESMF            , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_Field
-    use ESMF            , only : ESMF_FieldBundleGet, ESMF_FieldBundleIsCreated
+    use ESMF            , only : ESMF_FieldBundleGet
     use esmFlds         , only : fldListFr, ncomps, mapunset, compname
     use med_methods_mod , only : med_methods_FB_getFieldN, med_methods_FB_getNameN
 
@@ -121,22 +121,23 @@ contains
                 ! Get source field
                 call med_methods_FB_getFieldN(is_local%wrap%FBImp(n1,n1), 1, fldsrc, rc)
                 if (chkerr(rc,__LINE__,u_FILE_u)) return
-                if (.not. ESMF_FieldBundleIsCreated(is_local%wrap%FBImp(n1,n2))) then
-                   call ESMF_LogWrite(trim(subname)//'FBImp('//trim(compname(n1))//','//trim(compname(n2))//&
-                        ') has not been created', ESMF_LOGMSG_ERROR)
+
+                ! Check number of fields in source FB on destination mesh and get destination field
+                if (.not. ESMF_FieldBundleIsCreated(is_local%wrap%FBImp(n1,n2))) then  
+                   call ESMF_LogWrite(trim(subname)//'FBImp('//trim(compname(n1))//','//trim(compname(n2))//')'// &
+                        ' has not been created', ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
                    rc = ESMF_FAILURE
                    return
                 end if
-
-                ! Check number of fields in source FB on destination mesh and get destination field
                 call ESMF_FieldBundleGet(is_local%wrap%FBImp(n1,n2), fieldCount=fieldCount, rc=rc)
-                if (chkerr(rc,__LINE__,u_FILE_u)) return
+                if (chkerr(rc,__LINE__,u_FILE_u)) then
                 if (fieldCount == 0) then
                   call med_methods_FB_getFieldN(is_local%wrap%FBExp(n2), 1, flddst, rc)
+                  if (chkerr(rc,__LINE__,u_FILE_u)) return
                 else
                   call med_methods_FB_getFieldN(is_local%wrap%FBImp(n1,n2), 1, flddst, rc)
+                  if (chkerr(rc,__LINE__,u_FILE_u)) return
                 end if
-                if (chkerr(rc,__LINE__,u_FILE_u)) return
 
                 ! Loop over fields
                 do nf = 1,size(fldListFr(n1)%flds)
@@ -686,7 +687,7 @@ contains
             allocate(fieldlist(fieldcount))
             call ESMF_FieldBundleGet(is_local%wrap%FBExp(n1), fieldlist=fieldlist, rc=rc)
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          else
+          else    
             allocate(fieldlist(fieldcount))
             call ESMF_FieldBundleGet(is_local%wrap%FBImp(n1,n1), fieldlist=fieldlist, rc=rc)
             if (ChkErr(rc,__LINE__,u_FILE_u)) return

@@ -23,14 +23,10 @@ module med_phases_aofluxes_mod
   use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
   use ESMF                  , only : ESMF_Finalize, ESMF_LogFoundError
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
-  use med_internalstate_mod , only : InternalState
-  use med_internalstate_mod , only : mastertask, logunit
+  use med_internalstate_mod , only : InternalState, mastertask, logunit
   use med_constants_mod     , only : dbug_flag    => med_constants_dbug_flag
   use med_utils_mod         , only : memcheck     => med_memcheck
-  use med_methods_mod       , only : FB_fldchk    => med_methods_FB_FldChk
-  use med_methods_mod       , only : FB_GetFldPtr => med_methods_FB_GetFldPtr
   use med_utils_mod         , only : chkerr       => med_utils_chkerr
-  use med_map_mod           , only : med_map_field
   use esmFlds               , only : compatm, compocn, coupling_mode, mapconsd, mapconsf
   use perf_mod              , only : t_startf, t_stopf
 
@@ -519,6 +515,7 @@ contains
     ! --------------------------------------------
 
     use med_methods_mod, only : FB_init => med_methods_FB_init
+    use med_map_mod    , only : med_map_field
 
     ! Arguments
     type(ESMF_GridComp)   , intent(inout) :: gcomp
