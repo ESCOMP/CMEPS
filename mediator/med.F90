@@ -33,8 +33,8 @@ module MED
   use esmFlds                  , only : fldListFr, fldListTo, med_fldList_Realize
   use esmFlds                  , only : ncomps, compname, ncomps
   use esmFlds                  , only : compmed, compatm, compocn, compice, complnd, comprof, compwav ! not arrays
-  use esmFlds                  , only : num_icesheets, max_icesheets, compglc, ocn2glc_coupling ! compglc is an array
-  use esmFlds                  , only : fldListMed_ocnalb, fldListMed_aoflux
+  use esmFlds                  , only : num_icesheets, max_icesheets, compglc, ocn2glc_coupling, lnd2glc_coupling ! compglc is an array
+  use esmFlds                  , only : fldListMed_ocnalb
   use esmFlds                  , only : med_fldList_GetNumFlds, med_fldList_GetFldNames, med_fldList_GetFldInfo
   use esmFlds                  , only : med_fldList_Document_Mapping, med_fldList_Document_Merging
   use esmFlds                  , only : coupling_mode
@@ -763,6 +763,14 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end do
 
+    ! Determine aoflux grid
+    call NUOPC_CompAttributeGet(gcomp, name='aoflux_grid', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    if (.not. isPresent .and. .not. isSet) then
+       cvalue = 'ogrid'
+    end if
+    is_local%wrap%aoflux_grid = trim(cvalue)
+
     !------------------
     ! Initialize mediator flds
     !------------------
@@ -860,11 +868,16 @@ contains
        glc_name = trim(cvalue)
     end if
 
+    call NUOPC_CompAttributeGet(gcomp, name='MED_model', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+       med_name = trim(cvalue)
+    end if
+
     call NUOPC_CompAttributeGet(gcomp, name='mediator_present', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (isPresent .and. isSet) then
        med_present = trim(cvalue)
-       med_name = trim(cvalue)
     end if
 
     call NUOPC_CompAttributeSet(gcomp, name="atm_present", value=atm_present, rc=rc)
@@ -1725,11 +1738,12 @@ contains
     use ESMF                    , only : ESMF_State, ESMF_Time, ESMF_Field, ESMF_StateItem_Flag, ESMF_MAXSTR
     use ESMF                    , only : ESMF_GridCompGet, ESMF_AttributeGet, ESMF_ClockGet, ESMF_Success
     use ESMF                    , only : ESMF_StateIsCreated, ESMF_StateGet, ESMF_FieldBundleIsCreated, ESMF_LogFlush
-    use ESMF                    , only : ESMF_VM
+    use ESMF                    , only : ESMF_FieldBundleGet, ESMF_VM
     use NUOPC                   , only : NUOPC_CompAttributeSet, NUOPC_IsAtTime, NUOPC_SetAttribute
     use NUOPC                   , only : NUOPC_CompAttributeGet
     use med_fraction_mod        , only : med_fraction_init, med_fraction_set
     use med_phases_restart_mod  , only : med_phases_restart_read
+    use med_phases_prep_glc_mod , only : med_phases_prep_glc_init
     use med_phases_prep_atm_mod , only : med_phases_prep_atm
     use med_phases_post_atm_mod , only : med_phases_post_atm
     use med_phases_post_ice_mod , only : med_phases_post_ice
@@ -1739,7 +1753,7 @@ contains
     use med_phases_post_rof_mod , only : med_phases_post_rof
     use med_phases_post_wav_mod , only : med_phases_post_wav
     use med_phases_ocnalb_mod   , only : med_phases_ocnalb_run
-    use med_phases_aofluxes_mod , only : med_phases_aofluxes_run
+    use med_phases_aofluxes_mod , only : med_phases_aofluxes_run, med_phases_aofluxes_init_fldbuns
     use med_phases_profile_mod  , only : med_phases_profile
     use med_diag_mod            , only : med_diag_zero, med_diag_init
     use med_map_mod             , only : med_map_mapnorm_init, med_map_routehandles_init, med_map_packed_field_create
@@ -1864,6 +1878,7 @@ contains
       med_coupling_allowed(complnd,compatm) = .true.
       med_coupling_allowed(compice,compatm) = .true.
       med_coupling_allowed(compocn,compatm) = .true.
+      med_coupling_allowed(compwav,compatm) = .true.
 
       ! to land
       med_coupling_allowed(compatm,complnd) = .true.
@@ -2008,8 +2023,23 @@ contains
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
             ! Create mesh info data
-            call med_meshinfo_create(is_local%wrap%FBImp(n1,n1), &
-                 is_local%wrap%mesh_info(n1), is_local%wrap%FBArea(n1), rc=rc)
+            call ESMF_FieldBundleGet(is_local%wrap%FBImp(n1,n1), fieldCount=fieldCount, rc=rc)
+            if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+            if (fieldCount == 0) then
+              if (mastertask) then
+                write(logunit,*) trim(subname)//' '//trim(compname(n1))//' import FB field count is = ', fieldCount
+                write(logunit,*) trim(subname)//' '//trim(compname(n1))//' trying to use export FB'
+                call ESMF_FieldBundleGet(is_local%wrap%FBExp(n1), fieldCount=fieldCount, rc=rc)
+                if (ChkErr(rc,__LINE__,u_FILE_u)) return
+                write(logunit,*) trim(subname)//' '//trim(compname(n1))//' export FB field count is = ', fieldCount
+              end if
+              call med_meshinfo_create(is_local%wrap%FBExp(n1), &
+                   is_local%wrap%mesh_info(n1), is_local%wrap%FBArea(n1), rc=rc)
+            else
+              call med_meshinfo_create(is_local%wrap%FBImp(n1,n1), &
+                   is_local%wrap%mesh_info(n1), is_local%wrap%FBArea(n1), rc=rc)
+            end if
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
          end if
 
@@ -2027,10 +2057,21 @@ contains
                        trim(compname(n1))//'_'//trim(compname(n2))
                end if
 
-               call FB_init(is_local%wrap%FBImp(n1,n2), is_local%wrap%flds_scalar_name, &
-                    STgeom=is_local%wrap%NStateImp(n2), &
-                    STflds=is_local%wrap%NStateImp(n1), &
-                    name='FBImp'//trim(compname(n1))//'_'//trim(compname(n2)), rc=rc)
+               ! Check import FB, if there is no field in it then use export FB
+               ! to provide mesh information
+               call State_GetNumFields(is_local%wrap%NStateImp(n2), fieldCount, rc=rc)
+               if (ChkErr(rc,__LINE__,u_FILE_u)) return
+               if (fieldCount == 0) then
+                 call FB_init(is_local%wrap%FBImp(n1,n2), is_local%wrap%flds_scalar_name, &
+                      STgeom=is_local%wrap%NStateExp(n2), &
+                      STflds=is_local%wrap%NStateImp(n1), &
+                      name='FBImp'//trim(compname(n1))//'_'//trim(compname(n2)), rc=rc)
+               else
+                 call FB_init(is_local%wrap%FBImp(n1,n2), is_local%wrap%flds_scalar_name, &
+                      STgeom=is_local%wrap%NStateImp(n2), &
+                      STflds=is_local%wrap%NStateImp(n1), &
+                      name='FBImp'//trim(compname(n1))//'_'//trim(compname(n2)), rc=rc)
+               end if
                if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
                call FB_init(is_local%wrap%FBImpAccum(n1,n2), is_local%wrap%flds_scalar_name, &
@@ -2086,46 +2127,12 @@ contains
                write(logunit,'(a)') trim(subname)//' initializing FB FBMed_ocnalb_o'
             end if
             deallocate(fldnames)
-
-            ! The following assumes that the mediator atm/ocn flux calculation will be done on the ocean grid
-            if (.not. ESMF_FieldBundleIsCreated(is_local%wrap%FBImp(compatm,compocn), rc=rc)) then
-               if (mastertask) then
-                  write(logunit,'(a)') trim(subname)//' creating field bundle FBImp(compatm,compocn)'
-               end if
-               call FB_init(is_local%wrap%FBImp(compatm,compocn), is_local%wrap%flds_scalar_name, &
-                    STgeom=is_local%wrap%NStateImp(compocn), &
-                    STflds=is_local%wrap%NStateImp(compatm), &
-                    name='FBImp'//trim(compname(compatm))//'_'//trim(compname(compocn)), rc=rc)
-               if (ChkErr(rc,__LINE__,u_FILE_u)) return
-            end if
-            if (mastertask) then
-               write(logunit,'(a)') trim(subname)//' initializing FBs for '// &
-                    trim(compname(compatm))//'_'//trim(compname(compocn))
-            end if
          end if
 
-         ! Create field bundles for mediator ocean/atmosphere flux computation
-         fieldCount = med_fldList_GetNumFlds(fldListMed_aoflux)
-         if (fieldCount > 0) then
-            allocate(fldnames(fieldCount))
-            call med_fldList_getfldnames(fldListMed_aoflux%flds, fldnames, rc=rc)
-            if (ChkErr(rc,__LINE__,u_FILE_u)) return
+         ! Create field bundles for mediator atm/ocn flux computation
+         call med_phases_aofluxes_init_fldbuns(gcomp, rc=rc)
+         if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-            call FB_init(is_local%wrap%FBMed_aoflux_a, is_local%wrap%flds_scalar_name, &
-                 STgeom=is_local%wrap%NStateImp(compatm), fieldnamelist=fldnames, name='FBMed_aoflux_a', rc=rc)
-            if (ChkErr(rc,__LINE__,u_FILE_u)) return
-            if (mastertask) then
-               write(logunit,'(a)') trim(subname)//' initializing FB FBMed_aoflux_a'
-            end if
-
-            call FB_init(is_local%wrap%FBMed_aoflux_o, is_local%wrap%flds_scalar_name, &
-                 STgeom=is_local%wrap%NStateImp(compocn), fieldnamelist=fldnames, name='FBMed_aoflux_o', rc=rc)
-            if (ChkErr(rc,__LINE__,u_FILE_u)) return
-            if (mastertask) then
-               write(logunit,'(a)') trim(subname)//' initializing FB FBMed_aoflux_o'
-            end if
-            deallocate(fldnames)
-         end if
       end if
 
       !---------------------------------------
@@ -2150,11 +2157,15 @@ contains
       ! Initialized packed field data structures
       !---------------------------------------
 
-      call med_map_RouteHandles_init(gcomp, logunit, rc)
+      call ESMF_LogWrite("before med_map_RouteHandles_init", ESMF_LOGMSG_INFO)
+      call med_map_RouteHandles_init(gcomp, is_local%wrap%flds_scalar_name, logunit, rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      call ESMF_LogWrite("after  med_map_RouteHandles_init", ESMF_LOGMSG_INFO)
 
+      call ESMF_LogWrite("before med_map_mapnorm_init", ESMF_LOGMSG_INFO)
       call med_map_mapnorm_init(gcomp, rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      call ESMF_LogWrite("after  med_map_mapnorm_init", ESMF_LOGMSG_INFO)
 
       do ndst = 1,ncomps
          do nsrc = 1,ncomps
@@ -2169,16 +2180,6 @@ contains
              end if
           end do
        end do
-       if ( ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_aoflux_o) .and. &
-            ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_aoflux_a)) then
-          call med_map_packed_field_create(compatm, &
-               is_local%wrap%flds_scalar_name, &
-               fldsSrc=fldListMed_aoflux%flds, &
-               FBSrc=is_local%wrap%FBMed_aoflux_o, &
-               FBDst=is_local%wrap%FBMed_aoflux_a, &
-               packed_data=is_local%wrap%packed_data_aoflux_o2a(:), rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       end if
        if ( ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_ocnalb_o) .and. &
             ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_ocnalb_a)) then
           call med_map_packed_field_create(compatm, &
@@ -2189,6 +2190,20 @@ contains
                packed_data=is_local%wrap%packed_data_ocnalb_o2a(:), rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
+
+      !---------------------------------------
+      ! Initialize glc module field bundles here if appropriate
+      !---------------------------------------
+      do ns = 1,num_icesheets
+         if (is_local%wrap%med_coupling_active(complnd,compglc(ns))) then
+            lnd2glc_coupling = .true.
+            exit
+         end if
+      end do
+      if (lnd2glc_coupling .or. ocn2glc_coupling) then
+         call med_phases_prep_glc_init(gcomp, rc=rc)
+         if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      end if
 
       !---------------------------------------
       ! Set the data initialize flag to false
@@ -2389,17 +2404,23 @@ contains
           write(logunit,'(a)') trim(subname)//"Initialize-Data-Dependency allDone check Passed"
        end if
        do n1 = 1,ncomps
+          if (mastertask) then
+          write(logunit,*)
+          write(logunit,'(a)') trim(subname)//" "//trim(compname(n1))
+          end if
           if (is_local%wrap%comp_present(n1) .and. ESMF_StateIsCreated(is_local%wrap%NStateImp(n1),rc=rc)) then
              call State_GetScalar(scalar_value=real_nx, &
                   scalar_id=is_local%wrap%flds_scalar_index_nx, &
                   state=is_local%wrap%NstateImp(n1), &
                   flds_scalar_name=is_local%wrap%flds_scalar_name, &
                   flds_scalar_num=is_local%wrap%flds_scalar_num, rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
              call State_GetScalar(scalar_value=real_ny, &
                   scalar_id=is_local%wrap%flds_scalar_index_ny, &
                   state=is_local%wrap%NstateImp(n1), &
                   flds_scalar_name=is_local%wrap%flds_scalar_name, &
                   flds_scalar_num=is_local%wrap%flds_scalar_num, rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
              is_local%wrap%nx(n1) = nint(real_nx)
              is_local%wrap%ny(n1) = nint(real_ny)
              write(msgString,'(2i8,2l4)') is_local%wrap%nx(n1), is_local%wrap%ny(n1)
@@ -2504,6 +2525,7 @@ contains
     use ESMF                  , only : ESMF_Success, ESMF_Failure
     use ESMF                  , only : ESMF_Alarm, ESMF_ALARMLIST_ALL, ESMF_ClockGetAlarmList
     use ESMF                  , only : ESMF_AlarmCreate, ESMF_AlarmSet, ESMF_ClockAdvance
+    use ESMF                  , only : ESMF_ClockGetAlarmList
     use NUOPC                 , only : NUOPC_CompCheckSetClock, NUOPC_CompAttributeGet
     use NUOPC_Mediator        , only : NUOPC_MediatorGet
 
@@ -2515,8 +2537,14 @@ contains
     type(ESMF_Clock)        :: mediatorClock, driverClock
     type(ESMF_Time)         :: currTime
     type(ESMF_TimeInterval) :: timeStep
+    type(ESMF_Alarm)        :: stop_alarm 
     character(len=CL)       :: cvalue
+    character(len=CL)       :: name, stop_option
+    integer                 :: stop_n, stop_ymd
     logical                 :: first_time = .true.
+    logical, save           :: stopalarmcreated=.false.
+    integer                 :: alarmcount
+    
     character(len=*),parameter :: subname=' (module_MED:SetRunClock) '
     !-----------------------------------------------------------
 
@@ -2547,8 +2575,23 @@ contains
     endif
 
     ! check and set the component clock against the driver clock
-    call NUOPC_CompCheckSetClock(gcomp, driverClock, rc=rc)
+    call NUOPC_CompCheckSetClock(gcomp, driverClock, checkTimeStep=.false., rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    if (.not. stopalarmcreated) then
+       call NUOPC_CompAttributeGet(gcomp, name="stop_option", value=stop_option, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call NUOPC_CompAttributeGet(gcomp, name="stop_n", value=cvalue, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       read(cvalue,*) stop_n
+       call NUOPC_CompAttributeGet(gcomp, name="stop_ymd", value=cvalue, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       read(cvalue,*) stop_ymd
+       call alarmInit(mediatorclock, stop_alarm, stop_option, opt_n=stop_n, opt_ymd=stop_ymd, &
+            alarmname='alarm_stop', rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       stopalarmcreated = .true.
+    end if
 
     !--------------------------------
     ! Advance med clock to trigger alarms then reset model clock back to currtime

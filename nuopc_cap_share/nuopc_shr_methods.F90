@@ -60,9 +60,10 @@ module nuopc_shr_methods
        optNYear          = "nyear"     , &
        optMonthly        = "monthly"   , &
        optYearly         = "yearly"    , &
-       optDate           = "date"      , &
-       optIfdays0        = "ifdays0"
+       optEnd            = "end"       , &
+       optDate           = "date"
 
+  
   ! Module data
   integer, parameter :: SecPerDay = 86400 ! Seconds per day
   integer, parameter :: memdebug_level=1
@@ -559,6 +560,13 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        update_nextalarm  = .false.
 
+    case (optEnd)
+       call ESMF_TimeIntervalSet(AlarmInterval, yy=9999, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_TimeSet( NextAlarm, yy=9999, mm=12, dd=1, s=0, calendar=cal, rc=rc )
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       update_nextalarm  = .false.
+
     case (optDate)
        if (.not. present(opt_ymd)) then
           call shr_sys_abort(subname//trim(option)//' requires opt_ymd')
@@ -571,22 +579,6 @@ contains
        call timeInit(NextAlarm, lymd, cal, ltod, rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        update_nextalarm  = .false.
-
-    case (optIfdays0)
-       if (.not. present(opt_ymd)) then
-          call shr_sys_abort(subname//trim(option)//' requires opt_ymd')
-       end if
-       if (.not.present(opt_n)) then
-          call shr_sys_abort(subname//trim(option)//' requires opt_n')
-       end if
-       if (opt_n <= 0)  then
-          call shr_sys_abort(subname//trim(option)//' invalid opt_n')
-       end if
-       call ESMF_TimeIntervalSet(AlarmInterval, mm=1, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_TimeSet( NextAlarm, yy=cyy, mm=cmm, dd=opt_n, s=0, calendar=cal, rc=rc )
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       update_nextalarm  = .true.
 
     case (optNSteps)
        if (.not.present(opt_n)) then
@@ -764,7 +756,7 @@ contains
        call ESMF_TimeSet( NextAlarm, yy=cyy, mm=1, dd=1, s=0, calendar=cal, rc=rc )
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        update_nextalarm  = .true.
-
+       
     case default
        call shr_sys_abort(subname//'unknown option '//trim(option))
 
@@ -783,7 +775,6 @@ contains
           NextAlarm = NextAlarm + AlarmInterval
        enddo
     endif
-
     alarm = ESMF_AlarmCreate( name=lalarmname, clock=clock, ringTime=NextAlarm, &
          ringInterval=AlarmInterval, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -808,7 +799,6 @@ contains
     ! local variables
     integer :: year, mon, day ! year, month, day as integers
     integer :: tdate          ! temporary date
-    integer :: date           ! coded-date (yyyymmdd)
     character(len=*), parameter :: subname='(timeInit)'
     !-------------------------------------------------------------------------------
 
@@ -818,9 +808,9 @@ contains
        call shr_sys_abort( subname//'ERROR yymmdd is a negative number or time-of-day out of bounds' )
     end if
 
-    tdate = abs(date)
+    tdate = abs(ymd)
     year = int(tdate/10000)
-    if (date < 0) year = -year
+    if (ymd < 0) year = -year
     mon = int( mod(tdate,10000)/  100)
     day = mod(tdate,  100)
 

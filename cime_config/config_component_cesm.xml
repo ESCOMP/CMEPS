@@ -414,25 +414,29 @@
 
   <entry id="CPL_SEQ_OPTION">
     <type>char</type>
-    <valid_values>TIGHT,RASM</valid_values>
+    <valid_values>TIGHT,OPTION1,OPTION2</valid_values>
     <default_value>TIGHT</default_value>
     <values match="last">
-      <value compset="_DATM.*_DOCN%SOM"			>RASM</value>
-      <value compset="_POP2"				>RASM</value>
-      <value compset="_MOM6"				>RASM</value>
-      <value compset="_POP2" grid="oi%gx1v6"		>RASM</value>
-      <value compset="_POP2" grid="oi%gx1v7"		>RASM</value>
-      <value compset="_DATM%NYF.*_SLND.*_DICE.*_DOCN"	>RASM</value>
-      <value compset="_XATM.*_XLND.*_XICE.*_XOCN"	>RASM</value>
-      <value compset="_SOCN"				>RASM</value>
+      <value compset="_DATM.*_DOCN%SOM"			>OPTION2</value>
+      <value compset="_POP2"				>OPTION2</value>
+      <value compset="_MOM6"				>OPTION1</value>
+      <value compset="_POP2" grid="oi%gx1v6"		>OPTION1</value>
+      <value compset="_POP2" grid="oi%gx1v7"		>OPTION1</value>
+      <value compset="_DATM%NYF.*_SLND.*_DICE.*_DOCN"	>OPTION2</value>
+      <value compset="_XATM.*_XLND.*_XICE.*_XOCN"	>OPTION2</value>
+      <value compset="_SOCN"				>OPTION2</value>
     </values>
     <group>run_coupling</group>
     <file>env_run.xml</file>
     <desc>
-      RASM runs prep ocean before the ocean coupling reducing
-      most of the lags and field inconsistency but still allowing the ocean to run
-      concurrently with the ice and atmosphere.
-      TIGHT are consistent with the old variables ocean_tight_coupling = true in the driver.
+      OPTION1 (like RASM_OPTION1 in CPL7) runs prep_ocn_avg, 
+      BEFORE the aoflux and ocnalb calculations, thereby reducing
+      most of the lags and field inconsistency but still allowing the
+      ocean to run concurrently with the ice and atmosphere.
+      OPTION2 (like CESM1_MOD in CPL7) runs prep_ocn_avg, 
+      AFTER the aoflux and ocnalb calculations, thereby permitting maximum
+      concurrency
+      TIGHT (like CESM1_MOD_TIGHT), is a tight coupling run sequence
     </desc>
   </entry>
 
