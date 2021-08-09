@@ -189,7 +189,7 @@ contains
        end do
     end if
 
-    ! Create required field bundles and active coupling flags
+    ! Create required field bundles 
     if (is_local%wrap%aoflux_grid == 'ogrid' .or. is_local%wrap%aoflux_grid == 'agrid') then
 
        ! Create the field bundle is_local%wrap%FBImp(compatm,compocn) if needed
@@ -222,9 +222,6 @@ contains
                trim(compname(compocn))//'_'//trim(compname(compatm))
        end if
 
-       ! Force med_coupling_active flag to be true for atm<->ocn
-       is_local%wrap%med_coupling_active(compatm,compocn) = .true.
-       is_local%wrap%med_coupling_active(compocn,compatm) = .true.
     end if
 
   end subroutine med_phases_aofluxes_init_fldbuns

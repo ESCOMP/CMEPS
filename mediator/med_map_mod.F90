@@ -23,7 +23,7 @@ module med_map_mod
   public :: med_map_field
 
   interface med_map_routehandles_init
-     module procedure med_map_routehandles_initfrom_esmflds
+     module procedure med_map_routehandles_initfrom_esmflds  ! called from med.F90
      module procedure med_map_routehandles_initfrom_fieldbundle
      module procedure med_map_routehandles_initfrom_field
   end interface
@@ -54,8 +54,7 @@ contains
     !   -  ALL fields in the bundle are on identical grids
     !   -  MULTIPLE route handles are going to be generated for
     !      given field bundle source and destination grids
-    !    - Route handles will ONLY be created if coupling is active
-    !      between n1 and n2
+    !    - Route handles will ONLY be created if coupling_active is true between n1 and n2
     ! Algorithm
     !     n1=source component index
     !     n2=destination component index
@@ -77,7 +76,7 @@ contains
     use ESMF            , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_LogFlush
     use ESMF            , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_Field
     use ESMF            , only : ESMF_FieldBundleGet, ESMF_FieldBundleIsCreated
-    use esmFlds         , only : fldListFr, ncomps, mapunset, compname
+    use esmFlds         , only : fldListFr, ncomps, mapunset, compname, compocn, compatm
     use med_methods_mod , only : med_methods_FB_getFieldN, med_methods_FB_getNameN
 
     ! input/output variables
@@ -161,7 +160,7 @@ contains
 
                    end if ! end if mapindex is mapunset
                 end do ! loop over fields
-             end if ! if coupling is active between n1 and n2
+             end if ! if coupling active
           end if ! if n1 not equal to n2
        end do ! loop over n2
     end do ! loop over n1
@@ -524,14 +523,6 @@ contains
        end if
     end if
 
-    ! Check that a valid route handle has been created
-    ! TODO: should this be implemented as an error check or ignored?
-    ! if (.not. med_map_RH_is_created(routehandle ,rc=rc)) then
-    !    string = trim(compname(n1))//"2"//trim(compname(n2))//'_weights'
-    !    call ESMF_LogWrite(trim(subname)//trim(string)//": failed   RH "//trim(mapnames(mapindex)), &
-    !         ESMF_LOGMSG_INFO)
-    ! endif
-
     ! Output route handle to file if requested
     if (rhprint) then
        if (mastertask) then
@@ -630,7 +621,7 @@ contains
     use ESMF              , only: ESMF_FieldBundle, ESMF_FieldBundleGet, ESMF_FieldBundleCreate
     use ESMF              , only: ESMF_FieldBundleIsCreated
     use ESMF              , only: ESMF_Field, ESMF_FieldGet, ESMF_FieldCreate, ESMF_FieldDestroy
-    use esmFlds           , only: ncomps, nmappers, compname, mapnames
+    use esmFlds           , only: ncomps, nmappers, compname, mapnames, mapfcopy
     use med_constants_mod , only: czero => med_constants_czero
 
     ! input/output variables
@@ -639,7 +630,7 @@ contains
 
     ! local variables
     type(InternalState)       :: is_local
-    integer                   :: n1, n2, m
+    integer                   :: n1, n2, map_index
     real(R8), pointer         :: dataptr(:) => null()
     integer                   :: fieldCount
     type(ESMF_Field), pointer :: fieldlist(:) => null()
@@ -673,10 +664,10 @@ contains
        ! check export FB if this is the case
        if (ESMF_FieldBundleIsCreated(is_local%wrap%FBImp(n1,n1)) .or. &
            ESMF_FieldBundleIsCreated(is_local%wrap%FBExp(n1))) then
+
           ! Get source mesh
           call ESMF_FieldBundleGet(is_local%wrap%FBImp(n1,n1), fieldCount=fieldCount, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
           if (fieldCount == 0) then
             if (mastertask) then
               write(logunit,*) trim(subname)//' '//trim(compname(n1))//' import FB field count is = ', fieldCount
@@ -692,7 +683,6 @@ contains
             call ESMF_FieldBundleGet(is_local%wrap%FBImp(n1,n1), fieldlist=fieldlist, rc=rc)
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
-
           call ESMF_FieldGet(fieldlist(1), mesh=mesh_src, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           field_src = ESMF_FieldCreate(mesh_src, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
@@ -701,10 +691,10 @@ contains
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           dataptr(:) = 1.0_R8
 
+          ! Loop over destination components
           do n2 = 1,ncomps
-             if ( n1 /= n2 .and. &
-                  ESMF_FieldBundleIsCreated(is_local%wrap%FBImp(n1,n2)) .and. &
-                  is_local%wrap%med_coupling_active(n1,n2) ) then
+             if ( n1 /= n2 .and. ESMF_FieldBundleIsCreated(is_local%wrap%FBImp(n1,n2)) .and. &
+                  is_local%wrap%med_coupling_active(n1,n2)) then
 
                 ! Get destination mesh
                 call ESMF_FieldBundleGet(is_local%wrap%FBImp(n1,n2), fieldlist=fieldlist, rc=rc)
@@ -712,27 +702,24 @@ contains
                 call ESMF_FieldGet(fieldlist(1), mesh=mesh_dst, rc=rc)
                 if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-                ! Create is_local%wrap%field_NormOne(n1,n2,m)
-                do m = 1,nmappers
-                   if (med_map_RH_is_created(is_local%wrap%RH,n1,n2,m,rc=rc)) then
-                      is_local%wrap%field_NormOne(n1,n2,m) = ESMF_FieldCreate(mesh_dst, &
+                ! Create is_local%wrap%field_NormOne(n1,n2,map_index) if appropriate (don't create if mapping is redist)
+                do map_index = 1,nmappers
+                   if (map_index /= mapfcopy .and. med_map_RH_is_created(is_local%wrap%RH,n1,n2,map_index,rc=rc)) then
+                      is_local%wrap%field_NormOne(n1,n2,map_index) = ESMF_FieldCreate(mesh_dst, &
                            ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
                       if (chkerr(rc,__LINE__,u_FILE_u)) return
-                      call ESMF_FieldGet(is_local%wrap%field_NormOne(n1,n2,m), farrayptr=dataptr, rc=rc)
+                      call ESMF_FieldGet(is_local%wrap%field_NormOne(n1,n2,map_index), farrayptr=dataptr, rc=rc)
                       if (chkerr(rc,__LINE__,u_FILE_u)) return
                       dataptr(:) = czero
-                      call med_map_field( &
-                           field_src=field_src, &
-                           field_dst=is_local%wrap%field_NormOne(n1,n2,m), &
-                           routehandles=is_local%wrap%RH(n1,n2,:), &
-                           maptype=m, rc=rc)
+                      call med_map_field(field_src=field_src, field_dst=is_local%wrap%field_NormOne(n1,n2,map_index), &
+                           routehandles=is_local%wrap%RH(n1,n2,:), maptype=map_index, rc=rc)
                       if (chkerr(rc,__LINE__,u_FILE_u)) return
                       if (mastertask) then
                          write(logunit,'(a)') trim(subname)//' created field_NormOne for '&
-                              //compname(n1)//'->'//compname(n2)//' with mapping '//trim(mapnames(m))
-                      endif
+                              //compname(n1)//'->'//compname(n2)//' with mapping '//trim(mapnames(map_index))
+                      end if
                    end if
-                end do ! end of loop over m mappers
+                end do ! end of loop over map_indiex mappers
              end if ! end of if block for creating destination field
           end do ! end of loop over n2
 

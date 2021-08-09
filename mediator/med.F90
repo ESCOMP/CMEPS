@@ -2131,13 +2131,25 @@ contains
       ! NOTE: this section must be done BEFORE the second call to esmFldsExchange
       ! Create field bundles for mediator ocean albedo computation
 
-      if ( is_local%wrap%med_coupling_active(compocn,compatm) .or. &
+      fieldCount = med_fldList_GetNumFlds(fldListMed_aoflux)
+      if ( fieldCount > 0 .and. &
+           is_local%wrap%med_coupling_active(compocn,compatm) .or. &
            is_local%wrap%med_coupling_active(compatm,compocn)) then
-         fieldCount = med_fldList_GetNumFlds(fldListMed_aoflux)
-         if (fieldCount > 0) then
-            call med_phases_aofluxes_init_fldbuns(gcomp, rc=rc)
-            if (ChkErr(rc,__LINE__,u_FILE_u)) return
+         is_local%wrap%do_med_aoflux = .true.
+      else
+         is_local%wrap%do_med_aoflux = .false.
+      end if
+      if (is_local%wrap%do_med_aoflux) then
+         if ( is_local%wrap%aoflux_grid == 'ogrid' .and. .not. &
+            is_local%wrap%med_coupling_active(compatm,compocn)) then
+            is_local%wrap%med_coupling_active(compatm,compocn) = .true.
          end if
+         if ( is_local%wrap%aoflux_grid == 'agrid' .and. .not. &
+            is_local%wrap%med_coupling_active(compocn,compatm)) then
+            is_local%wrap%med_coupling_active(compocn,compatm) = .true.
+         end if
+         call med_phases_aofluxes_init_fldbuns(gcomp, rc=rc)
+         if (ChkErr(rc,__LINE__,u_FILE_u)) return
       end if
 
       !---------------------------------------
