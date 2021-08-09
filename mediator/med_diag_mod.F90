@@ -1454,7 +1454,6 @@ contains
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
     if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
-       if (trim(fldname) == 'Foxx_lat') write(6,*)'DEBUG: i am here'
        call fldbun_getdata1d(FB, trim(fldname), data, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        ip = period_inst

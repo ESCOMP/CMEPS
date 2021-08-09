@@ -76,7 +76,7 @@ contains
 
     use ESMF            , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_LogFlush
     use ESMF            , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_Field
-    use ESMF            , only : ESMF_FieldBundleGet
+    use ESMF            , only : ESMF_FieldBundleGet, ESMF_FieldBundleIsCreated
     use esmFlds         , only : fldListFr, ncomps, mapunset, compname
     use med_methods_mod , only : med_methods_FB_getFieldN, med_methods_FB_getNameN
 
@@ -130,7 +130,7 @@ contains
                    return
                 end if
                 call ESMF_FieldBundleGet(is_local%wrap%FBImp(n1,n2), fieldCount=fieldCount, rc=rc)
-                if (chkerr(rc,__LINE__,u_FILE_u)) then
+                if (chkerr(rc,__LINE__,u_FILE_u)) return
                 if (fieldCount == 0) then
                   call med_methods_FB_getFieldN(is_local%wrap%FBExp(n2), 1, flddst, rc)
                   if (chkerr(rc,__LINE__,u_FILE_u)) return
