@@ -1719,8 +1719,7 @@ contains
     !   -- Create mediator specific field bundles (not part of import/export states)
     !   -- Initialize FBExpAccums (to zero), and FBImp (from NStateImp)
     !   -- Read mediator restarts
-    !   -- Initialize route handles
-    !   -- Initialize field bundles for normalization
+    !   -- Initialize route handles field bundles for normalization
     !   -- return!
     ! For second loop:
     !   -- Copy import fields to local FBs
@@ -1756,7 +1755,7 @@ contains
     use med_phases_aofluxes_mod , only : med_phases_aofluxes_run, med_phases_aofluxes_init_fldbuns
     use med_phases_profile_mod  , only : med_phases_profile
     use med_diag_mod            , only : med_diag_zero, med_diag_init
-    use med_map_mod             , only : med_map_mapnorm_init, med_map_routehandles_init, med_map_packed_field_create
+    use med_map_mod             , only : med_map_routehandles_init, med_map_packed_field_create
     use med_io_mod              , only : med_io_init
     use esmFlds                 , only : fldListMed_aoflux
 
@@ -2172,19 +2171,15 @@ contains
 
       !---------------------------------------
       ! Initialize route handles and required normalization field bunds
-      ! Initialized packed field data structures
       !---------------------------------------
-
       call ESMF_LogWrite("before med_map_RouteHandles_init", ESMF_LOGMSG_INFO)
       call med_map_RouteHandles_init(gcomp, is_local%wrap%flds_scalar_name, logunit, rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
       call ESMF_LogWrite("after  med_map_RouteHandles_init", ESMF_LOGMSG_INFO)
 
-      call ESMF_LogWrite("before med_map_mapnorm_init", ESMF_LOGMSG_INFO)
-      call med_map_mapnorm_init(gcomp, rc)
-      if (ChkErr(rc,__LINE__,u_FILE_u)) return
-      call ESMF_LogWrite("after  med_map_mapnorm_init", ESMF_LOGMSG_INFO)
-
+      !---------------------------------------
+      ! Initialized packed field data structures
+      !---------------------------------------
       do ndst = 1,ncomps
          do nsrc = 1,ncomps
             if (is_local%wrap%med_coupling_active(nsrc,ndst)) then

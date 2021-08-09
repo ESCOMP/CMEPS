@@ -16,7 +16,6 @@ module med_map_mod
   ! public routines
   public :: med_map_routehandles_init
   public :: med_map_rh_is_created
-  public :: med_map_mapnorm_init
   public :: med_map_packed_field_create
   public :: med_map_field_packed
   public :: med_map_field_normalized
@@ -47,7 +46,10 @@ contains
   subroutine med_map_RouteHandles_initfrom_esmflds(gcomp, flds_scalar_name, llogunit, rc)
 
     !---------------------------------------------
-    ! Initialize route handles in the mediator
+    ! Initialize route handles in the mediator and also 
+    ! nitialize unity normalization fields and do the mapping for
+    ! unity normalization up front
+    ! 
     ! Assumptions:
     !   -  Route handles are created per target field bundles NOT
     !      per individual fields in the bundle
@@ -73,11 +75,16 @@ contains
     !        for the field
     !---------------------------------------------
 
-    use ESMF            , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_LogFlush
-    use ESMF            , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_Field
-    use ESMF            , only : ESMF_FieldBundleGet, ESMF_FieldBundleIsCreated
-    use esmFlds         , only : fldListFr, ncomps, mapunset, compname, compocn, compatm
-    use med_methods_mod , only : med_methods_FB_getFieldN, med_methods_FB_getNameN
+    use ESMF              , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_LogFlush
+    use ESMF              , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_Field
+    use ESMF              , only : ESMF_FieldBundle, ESMF_FieldBundleGet, ESMF_FieldBundleCreate
+    use ESMF              , only : ESMF_FieldBundleIsCreated
+    use ESMF              , only : ESMF_Field, ESMF_FieldGet, ESMF_FieldCreate, ESMF_FieldDestroy
+    use ESMF              , only : ESMF_Mesh, ESMF_TYPEKIND_R8, ESMF_MESHLOC_ELEMENT
+    use med_methods_mod   , only : med_methods_FB_getFieldN, med_methods_FB_getNameN
+    use med_constants_mod , only : czero => med_constants_czero
+    use esmFlds           , only : fldListFr, ncomps, mapunset, compname, compocn, compatm
+    use esmFlds           , only : ncomps, nmappers, compname, mapnames, mapfcopy
 
     ! input/output variables
     type(ESMF_GridComp)          :: gcomp
@@ -86,15 +93,21 @@ contains
     integer, intent(out)         :: rc
 
     ! local variables
-    type(InternalState)         :: is_local
-    type(ESMF_Field)            :: fldsrc
-    type(ESMF_Field)            :: flddst
-    integer                     :: n,n1,n2,m,nf,id,nflds
-    integer                     :: fieldCount
-    character(len=CX)           :: mapfile
-    integer                     :: mapindex
-    logical                     :: mapexists = .false.
-    character(len=CX)           :: fieldname
+    type(InternalState)       :: is_local
+    type(ESMF_Field)          :: fldsrc
+    type(ESMF_Field)          :: flddst
+    integer                   :: n1,n2
+    integer                   :: n,m,nf,id,nflds
+    integer                   :: fieldCount
+    character(len=CL)         :: fieldname
+    type(ESMF_Field), pointer :: fieldlist(:) => null()
+    type(ESMF_Field)          :: field_src
+    character(len=CX)         :: mapfile
+    integer                   :: mapindex
+    logical                   :: mapexists = .false.
+    real(R8), pointer         :: dataptr(:) => null()
+    type(ESMF_Mesh)           :: mesh_src
+    type(ESMF_Mesh)           :: mesh_dst
     character(len=*), parameter :: subname=' (module_med_map: RouteHandles_init) '
     !-----------------------------------------------------------
 
@@ -110,7 +123,10 @@ contains
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
+    ! --------------------------------------------------------------
     ! Create the necessary route handles
+    ! --------------------------------------------------------------
+
     ! First loop over source and destination components components
     if (mastertask) write(logunit,*) ' '
     do n1 = 1, ncomps
@@ -164,6 +180,91 @@ contains
           end if ! if n1 not equal to n2
        end do ! loop over n2
     end do ! loop over n1
+
+    ! --------------------------------------------------------------
+    ! Initialize unity normalization fields and do the mapping for
+    ! unity normalization up front
+    ! --------------------------------------------------------------
+
+    if (mastertask) then
+       write(logunit,*)
+       write(logunit,'(a)') trim(subname)//"Initializing unity map normalizations"
+    endif
+
+    ! Create the destination normalization field
+    do n1 = 1,ncomps
+
+       ! Since coupling could be uni-directional, the import FB could be
+       ! available but number of fields could be zero, so it is better to
+       ! check export FB if this is the case
+       if (ESMF_FieldBundleIsCreated(is_local%wrap%FBImp(n1,n1)) .or. &
+           ESMF_FieldBundleIsCreated(is_local%wrap%FBExp(n1))) then
+
+          ! Get source mesh
+          call ESMF_FieldBundleGet(is_local%wrap%FBImp(n1,n1), fieldCount=fieldCount, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          if (fieldCount == 0) then
+            if (mastertask) then
+              write(logunit,*) trim(subname)//' '//trim(compname(n1))//' import FB field count is = ', fieldCount
+              write(logunit,*) trim(subname)//' '//trim(compname(n1))//' trying to use export FB'
+            end if
+            call ESMF_FieldBundleGet(is_local%wrap%FBExp(n1), fieldCount=fieldCount, rc=rc)
+            if (ChkErr(rc,__LINE__,u_FILE_u)) return
+            allocate(fieldlist(fieldcount))
+            call ESMF_FieldBundleGet(is_local%wrap%FBExp(n1), fieldlist=fieldlist, rc=rc)
+            if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          else    
+            allocate(fieldlist(fieldcount))
+            call ESMF_FieldBundleGet(is_local%wrap%FBImp(n1,n1), fieldlist=fieldlist, rc=rc)
+            if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          end if
+          call ESMF_FieldGet(fieldlist(1), mesh=mesh_src, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          field_src = ESMF_FieldCreate(mesh_src, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_FieldGet(field_src, farrayptr=dataPtr, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          dataptr(:) = 1.0_R8
+
+          ! Loop over destination components
+          do n2 = 1,ncomps
+             if ( n1 /= n2 .and. ESMF_FieldBundleIsCreated(is_local%wrap%FBImp(n1,n2)) .and. &
+                  is_local%wrap%med_coupling_active(n1,n2)) then
+
+                ! Get destination mesh
+                call ESMF_FieldBundleGet(is_local%wrap%FBImp(n1,n2), fieldlist=fieldlist, rc=rc)
+                if (ChkErr(rc,__LINE__,u_FILE_u)) return
+                call ESMF_FieldGet(fieldlist(1), mesh=mesh_dst, rc=rc)
+                if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+                ! Create is_local%wrap%field_NormOne(n1,n2,mapindex) if appropriate (don't create if mapping is redist)
+                do mapindex = 1,nmappers
+                   if (mapindex /= mapfcopy .and. med_map_RH_is_created(is_local%wrap%RH,n1,n2,mapindex,rc=rc)) then
+                      is_local%wrap%field_NormOne(n1,n2,mapindex) = ESMF_FieldCreate(mesh_dst, &
+                           ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+                      if (chkerr(rc,__LINE__,u_FILE_u)) return
+                      call ESMF_FieldGet(is_local%wrap%field_NormOne(n1,n2,mapindex), farrayptr=dataptr, rc=rc)
+                      if (chkerr(rc,__LINE__,u_FILE_u)) return
+                      dataptr(:) = czero
+                      call med_map_field(field_src=field_src, field_dst=is_local%wrap%field_NormOne(n1,n2,mapindex), &
+                           routehandles=is_local%wrap%RH(n1,n2,:), maptype=mapindex, rc=rc)
+                      if (chkerr(rc,__LINE__,u_FILE_u)) return
+                      if (mastertask) then
+                         write(logunit,'(a)') trim(subname)//' created field_NormOne for '&
+                              //compname(n1)//'->'//compname(n2)//' with mapping '//trim(mapnames(mapindex))
+                      end if
+                   end if
+                end do ! end of loop over map_indiex mappers
+             end if ! end of if block for creating destination field
+          end do ! end of loop over n2
+
+          ! Deallocate memory
+          deallocate(fieldlist)
+          call ESMF_FieldDestroy(field_src, rc=rc, noGarbage=.true.)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+       end if ! end of if-block for existence of field bundle
+    end do ! end of loop over n1
 
     if (dbug_flag > 1) then
       call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
@@ -607,136 +708,6 @@ contains
     med_map_RH_is_created_RH1d = mapexists
 
   end function med_map_RH_is_created_RH1d
-
-  !================================================================================
-  subroutine med_map_mapnorm_init(gcomp, rc)
-
-    !---------------------------------------
-    ! Initialize unity normalization fields and do the mapping for unity normalization up front
-    !---------------------------------------
-
-    use ESMF              , only: ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_LogFlush
-    use ESMF              , only: ESMF_GridComp
-    use ESMF              , only: ESMF_Mesh, ESMF_TYPEKIND_R8, ESMF_MESHLOC_ELEMENT
-    use ESMF              , only: ESMF_FieldBundle, ESMF_FieldBundleGet, ESMF_FieldBundleCreate
-    use ESMF              , only: ESMF_FieldBundleIsCreated
-    use ESMF              , only: ESMF_Field, ESMF_FieldGet, ESMF_FieldCreate, ESMF_FieldDestroy
-    use esmFlds           , only: ncomps, nmappers, compname, mapnames, mapfcopy
-    use med_constants_mod , only: czero => med_constants_czero
-
-    ! input/output variables
-    type(ESMF_GridComp)  :: gcomp
-    integer, intent(out) :: rc
-
-    ! local variables
-    type(InternalState)       :: is_local
-    integer                   :: n1, n2, map_index
-    real(R8), pointer         :: dataptr(:) => null()
-    integer                   :: fieldCount
-    type(ESMF_Field), pointer :: fieldlist(:) => null()
-    type(ESMF_Field)          :: field_src
-    type(ESMF_Mesh)           :: mesh_src
-    type(ESMF_Mesh)           :: mesh_dst
-    character(len=*),parameter :: subname=' (module_MED_MAP:MapNorm_init)'
-    !-----------------------------------------------------------
-
-    call t_startf('MED:'//subname)
-    rc = ESMF_SUCCESS
-
-    if (dbug_flag > 1) then
-      call ESMF_LogWrite(trim(subname)//": start", ESMF_LOGMSG_INFO)
-    endif
-    if (mastertask) then
-       write(logunit,*)
-       write(logunit,'(a)') trim(subname)//"Initializing unity map normalizations"
-    endif
-
-    ! Get the internal state from Component.
-    nullify(is_local%wrap)
-    call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    ! Create the destination normalization field
-    do n1 = 1,ncomps
-
-       ! Since coupling could be uni-directional, the import FB could be
-       ! available but number of fields could be zero, so it is better to
-       ! check export FB if this is the case
-       if (ESMF_FieldBundleIsCreated(is_local%wrap%FBImp(n1,n1)) .or. &
-           ESMF_FieldBundleIsCreated(is_local%wrap%FBExp(n1))) then
-
-          ! Get source mesh
-          call ESMF_FieldBundleGet(is_local%wrap%FBImp(n1,n1), fieldCount=fieldCount, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          if (fieldCount == 0) then
-            if (mastertask) then
-              write(logunit,*) trim(subname)//' '//trim(compname(n1))//' import FB field count is = ', fieldCount
-              write(logunit,*) trim(subname)//' '//trim(compname(n1))//' trying to use export FB'
-            end if
-            call ESMF_FieldBundleGet(is_local%wrap%FBExp(n1), fieldCount=fieldCount, rc=rc)
-            if (ChkErr(rc,__LINE__,u_FILE_u)) return
-            allocate(fieldlist(fieldcount))
-            call ESMF_FieldBundleGet(is_local%wrap%FBExp(n1), fieldlist=fieldlist, rc=rc)
-            if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          else    
-            allocate(fieldlist(fieldcount))
-            call ESMF_FieldBundleGet(is_local%wrap%FBImp(n1,n1), fieldlist=fieldlist, rc=rc)
-            if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          end if
-          call ESMF_FieldGet(fieldlist(1), mesh=mesh_src, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          field_src = ESMF_FieldCreate(mesh_src, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call ESMF_FieldGet(field_src, farrayptr=dataPtr, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          dataptr(:) = 1.0_R8
-
-          ! Loop over destination components
-          do n2 = 1,ncomps
-             if ( n1 /= n2 .and. ESMF_FieldBundleIsCreated(is_local%wrap%FBImp(n1,n2)) .and. &
-                  is_local%wrap%med_coupling_active(n1,n2)) then
-
-                ! Get destination mesh
-                call ESMF_FieldBundleGet(is_local%wrap%FBImp(n1,n2), fieldlist=fieldlist, rc=rc)
-                if (ChkErr(rc,__LINE__,u_FILE_u)) return
-                call ESMF_FieldGet(fieldlist(1), mesh=mesh_dst, rc=rc)
-                if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-                ! Create is_local%wrap%field_NormOne(n1,n2,map_index) if appropriate (don't create if mapping is redist)
-                do map_index = 1,nmappers
-                   if (map_index /= mapfcopy .and. med_map_RH_is_created(is_local%wrap%RH,n1,n2,map_index,rc=rc)) then
-                      is_local%wrap%field_NormOne(n1,n2,map_index) = ESMF_FieldCreate(mesh_dst, &
-                           ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
-                      if (chkerr(rc,__LINE__,u_FILE_u)) return
-                      call ESMF_FieldGet(is_local%wrap%field_NormOne(n1,n2,map_index), farrayptr=dataptr, rc=rc)
-                      if (chkerr(rc,__LINE__,u_FILE_u)) return
-                      dataptr(:) = czero
-                      call med_map_field(field_src=field_src, field_dst=is_local%wrap%field_NormOne(n1,n2,map_index), &
-                           routehandles=is_local%wrap%RH(n1,n2,:), maptype=map_index, rc=rc)
-                      if (chkerr(rc,__LINE__,u_FILE_u)) return
-                      if (mastertask) then
-                         write(logunit,'(a)') trim(subname)//' created field_NormOne for '&
-                              //compname(n1)//'->'//compname(n2)//' with mapping '//trim(mapnames(map_index))
-                      end if
-                   end if
-                end do ! end of loop over map_indiex mappers
-             end if ! end of if block for creating destination field
-          end do ! end of loop over n2
-
-          ! Deallocate memory
-          deallocate(fieldlist)
-          call ESMF_FieldDestroy(field_src, rc=rc, noGarbage=.true.)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-       end if ! end of if-block for existence of field bundle
-    end do ! end of loop over n1
-
-    if (dbug_flag > 1) then
-      call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
-    endif
-    call t_stopf('MED:'//subname)
-
-  end subroutine med_map_mapnorm_init
 
   !================================================================================
   subroutine med_map_packed_field_create(destcomp, flds_scalar_name, &
