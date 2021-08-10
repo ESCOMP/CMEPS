@@ -27,7 +27,7 @@ module esmFldsExchange_cesm_mod
 
   public :: esmFldsExchange_cesm
 
-  ! currently required mapping files 
+  ! currently required mapping files
   character(len=CX)   :: glc2ice_rmap     ='unset'
   character(len=CX)   :: glc2ocn_liq_rmap ='unset'
   character(len=CX)   :: glc2ocn_ice_rmap ='unset'
@@ -372,6 +372,19 @@ contains
             fldchk(is_local%wrap%FBImp(compatm,compatm ), 'Sa_pbot', rc=rc)) then
           call addmap(fldListFr(compatm)%flds, 'Sa_pbot', complnd, mapbilnr, 'one', atm2lnd_map)
           call addmrg(fldListTo(complnd)%flds, 'Sa_pbot', mrg_from=compatm, mrg_fld='Sa_pbot', mrg_type='copy')
+       end if
+    end if
+    ! ---------------------------------------------------------------------
+    ! to lnd: o3 at the lowest model level from atm
+    ! ---------------------------------------------------------------------
+    if (phase == 'advertise') then
+       call addfld(fldListFr(compatm)%flds, 'Sa_o3')
+       call addfld(fldListTo(complnd)%flds, 'Sa_o3')
+    else
+       if ( fldchk(is_local%wrap%FBexp(complnd)         , 'Sa_o3', rc=rc) .and. &
+            fldchk(is_local%wrap%FBImp(compatm,compatm ), 'Sa_o3', rc=rc)) then
+          call addmap(fldListFr(compatm)%flds, 'Sa_o3', complnd, mapbilnr, 'one', atm2lnd_map)
+          call addmrg(fldListTo(complnd)%flds, 'Sa_o3', mrg_from=compatm, mrg_fld='Sa_o3', mrg_type='copy')
        end if
     end if
     ! ---------------------------------------------------------------------
@@ -1838,7 +1851,7 @@ contains
     ! ---------------------------------------------------------------------
     ! Note that this is a field output by the atm/ocn flux computation
     ! If the aoflux grid is ogrid - then nothing needs to be done to send to the ocean
-    ! All other mappings are set in med_phases_aoflux_mod.F90 
+    ! All other mappings are set in med_phases_aoflux_mod.F90
     if (phase == 'advertise') then
        call addfld(fldListMed_aoflux%flds , 'So_duu10n')
        call addfld(fldListTo(compocn)%flds, 'So_duu10n')
