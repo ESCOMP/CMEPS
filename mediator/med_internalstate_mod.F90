@@ -81,7 +81,6 @@ module med_internalstate_mod
     type(ESMF_FieldBundle) :: FBMed_aoflux_o                     ! Ocn/Atm flux output fields on ocn grid
     type(packed_data_type) :: packed_data_aoflux_o2a(nmappers)   ! packed data for mapping ocn->atm
     character(len=CS)      :: aoflux_grid                        ! 'ogrid', 'agrid' or 'xgrid'
-    logical                :: do_med_aoflux                      ! true => do med_aoflux
 
     ! Mapping
     type(ESMF_RouteHandle) :: RH(ncomps,ncomps,nmappers)            ! Routehandles for pairs of components and different mappers

@@ -2144,11 +2144,7 @@ contains
                is_local%wrap%med_coupling_active(compocn,compatm) = .true.
             end if
             call med_phases_aofluxes_init_fldbuns(gcomp, rc=rc)
-            if (ChkErr(rc,__LINE__,u_FILE_u)) return
-            is_local%wrap%do_med_aoflux = .false.
          end if
-      end if
-      if (is_local%wrap%do_med_aoflux) then
       end if
 
       !---------------------------------------
