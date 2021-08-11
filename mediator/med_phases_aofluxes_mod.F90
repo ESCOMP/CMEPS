@@ -1037,9 +1037,9 @@ contains
              call ESMF_FieldBundleGet(is_local%wrap%FBMed_aoflux_o, fldnames_aof_out(nf), field=field_dst, rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
              ! Map atm->ocn conservatively WITHOUT fractions
-             if (med_map_RH_is_created(is_local%wrap%RH(compocn,compatm,:), mapfcopy, rc=rc)) then
+             if (med_map_RH_is_created(is_local%wrap%RH(compatm,compocn,:), mapfcopy, rc=rc)) then
                 maptype = mapfcopy
-             else if (med_map_RH_is_created(is_local%wrap%RH(compocn,compatm,:), mapconsf, rc=rc)) then
+             else if (med_map_RH_is_created(is_local%wrap%RH(compatm,compocn,:), mapconsf, rc=rc)) then
                 maptype = mapconsf
              else
                 call ESMF_LogWrite(trim(subname)//&
