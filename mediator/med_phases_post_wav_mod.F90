@@ -22,7 +22,7 @@ contains
     use med_methods_mod       , only : FB_diagnose => med_methods_FB_diagnose
     use med_map_mod           , only : med_map_field_packed
     use med_internalstate_mod , only : InternalState, mastertask
-    use esmFlds               , only : compwav, compocn, compice
+    use esmFlds               , only : compwav, compatm, compocn, compice
     use perf_mod              , only : t_startf, t_stopf
 
     ! input/output variables
@@ -46,6 +46,17 @@ contains
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+    ! map wav to atm
+    if (is_local%wrap%med_coupling_active(compwav,compatm)) then
+       call med_map_field_packed( &
+            FBSrc=is_local%wrap%FBImp(compwav,compwav), &
+            FBDst=is_local%wrap%FBImp(compwav,compatm), &
+            FBFracSrc=is_local%wrap%FBFrac(compwav), &
+            field_NormOne=is_local%wrap%field_normOne(compwav,compatm,:), &
+            packed_data=is_local%wrap%packed_data(compwav,compatm,:), &
+            routehandles=is_local%wrap%RH(compwav,compatm,:), rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    end if
     ! map wav to ocn
     if (is_local%wrap%med_coupling_active(compwav,compocn)) then
        call med_map_field_packed( &
