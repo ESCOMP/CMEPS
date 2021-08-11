@@ -2134,7 +2134,6 @@ contains
       if ( fieldCount > 0 ) then
          if ( is_local%wrap%med_coupling_active(compocn,compatm) .or. &
               is_local%wrap%med_coupling_active(compatm,compocn)) then
-            is_local%wrap%do_med_aoflux = .true.
             if ( is_local%wrap%aoflux_grid == 'ogrid' .and. .not. &
                  is_local%wrap%med_coupling_active(compatm,compocn)) then
                is_local%wrap%med_coupling_active(compatm,compocn) = .true.
