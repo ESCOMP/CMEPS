@@ -50,12 +50,12 @@ module MED
   public  SetServices
   public  SetVM
   private InitializeP0
-  private InitializeIPDv03p1 ! advertise fields
-  private InitializeIPDv03p3 ! realize connected Fields with transfer action "provide"
-  private InitializeIPDv03p4 ! optionally modify the decomp/distr of transferred Grid/Mesh
-  private InitializeIPDv03p5 ! realize all Fields with transfer action "accept"
+  private InitializeIPDv03p1 ! advertise fields  (label_Advertise)
+  private InitializeIPDv03p3 ! realize connected Fields with transfer action "provide" (label_RealizeProvided)
+  private InitializeIPDv03p4 ! optionally modify the decomp/distr of transferred Grid/Mesh (label_AcceptTransfer)
+  private InitializeIPDv03p5 ! realize all Fields with transfer action "accept" (label_RealizeAccepted)
+  private SetRunClock        ! adjust the mediator clock
   private DataInitialize     ! finish initialization and resolve data dependencies
-  private SetRunClock
   private med_meshinfo_create
   private med_grid_write
   private med_finalize
