@@ -1981,7 +1981,7 @@ contains
       endif
 
       !----------------------------------------------------------
-      ! Create field bundles FBImp, FBExp, FBImpAccum, FBExpAccum
+      ! Create field bundles FBImp, FBExp, FBExpAccum
       !----------------------------------------------------------
 
       if (mastertask) then
@@ -2006,14 +2006,6 @@ contains
             call FB_init_pointer(is_local%wrap%NStateExp(n1), is_local%wrap%FBExp(n1), &
                  is_local%wrap%flds_scalar_name, name='FBExp'//trim(compname(n1)), rc=rc)
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-            ! Create import accumulation field bundles
-            ! call FB_init(is_local%wrap%FBImpAccum(n1,n1), is_local%wrap%flds_scalar_name, &
-            !      STgeom=is_local%wrap%NStateImp(n1), STflds=is_local%wrap%NStateImp(n1), &
-            !      name='FBImpAccum'//trim(compname(n1)), rc=rc)
-            ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
-            ! call FB_reset(is_local%wrap%FBImpAccum(n1,n1), value=czero, rc=rc)
-            ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
             ! Create export accumulation field bundles
             call FB_init(is_local%wrap%FBExpAccum(n1), is_local%wrap%flds_scalar_name, &
@@ -2044,8 +2036,8 @@ contains
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
          end if
 
-         ! The following are FBImp and FBImpAccum mapped to different grids.
-         ! FBImp(n1,n1) and FBImpAccum(n1,n1) are handled above
+         ! The following are FBImp mapped to different grids.
+         ! FBImp(n1,n1) is handled above
          do n2 = 1,ncomps
             if (n1 /= n2 .and. &
                  is_local%wrap%med_coupling_active(n1,n2) .and. &
@@ -2073,15 +2065,6 @@ contains
                       name='FBImp'//trim(compname(n1))//'_'//trim(compname(n2)), rc=rc)
                end if
                if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-               ! call FB_init(is_local%wrap%FBImpAccum(n1,n2), is_local%wrap%flds_scalar_name, &
-               !      STgeom=is_local%wrap%NStateImp(n2), &
-               !      STflds=is_local%wrap%NStateImp(n1), &
-               !      name='FBImpAccum'//trim(compname(n1))//'_'//trim(compname(n2)), rc=rc)
-               ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-               ! call FB_reset(is_local%wrap%FBImpAccum(n1,n2), value=czero, rc=rc)
-               ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
             endif
          enddo ! loop over n2

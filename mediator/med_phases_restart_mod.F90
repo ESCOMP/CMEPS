@@ -391,9 +391,6 @@ contains
           call med_io_write(restart_file, iam, is_local%wrap%FBExpAccumCnt, 'ExpAccumCnt', &
                whead=whead, wdata=wdata, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          call med_io_write(restart_file, iam, is_local%wrap%FBImpAccumCnt, 'ImpAccumCnt', &
-               whead=whead, wdata=wdata, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
           do n = 1,ncomps
              if (is_local%wrap%comp_present(n)) then
@@ -426,14 +423,6 @@ contains
                 if (ESMF_FieldBundleIsCreated(is_local%wrap%FBExpAccum(n),rc=rc)) then
                    call med_io_write(restart_file, iam,  is_local%wrap%FBExpAccum(n), &
                        nx=nx, ny=ny, nt=1, whead=whead, wdata=wdata, pre=trim(compname(n))//'ExpAccum', rc=rc)
-                   if (ChkErr(rc,__LINE__,u_FILE_u)) return
-                endif
-
-                ! Write import field bundle accumulators
-                ! TODO: only write this out if actually have done accumulation
-                if (ESMF_FieldBundleIsCreated(is_local%wrap%FBImpAccum(n,n),rc=rc)) then
-                   call med_io_write(restart_file, iam,  is_local%wrap%FBImpAccum(n,n), &
-                       nx=nx, ny=ny, nt=1, whead=whead, wdata=wdata, pre=trim(compname(n))//'ImpAccum', rc=rc)
                    if (ChkErr(rc,__LINE__,u_FILE_u)) return
                 endif
              endif
@@ -605,11 +594,6 @@ contains
 
     ! Now read in the restart file
 
-    call med_io_read(restart_file, vm, iam, is_local%wrap%FBExpAccumCnt, 'ExpAccumCnt', rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call med_io_read(restart_file, vm, iam, is_local%wrap%FBImpAccumCnt, 'ImpAccumCnt', rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
     do n = 1,ncomps
        if (is_local%wrap%comp_present(n)) then
           ! Read import field bundle
@@ -633,12 +617,6 @@ contains
           ! Read export field bundle accumulator
           if (ESMF_FieldBundleIsCreated(is_local%wrap%FBExpAccum(n),rc=rc)) then
              call med_io_read(restart_file, vm, iam, is_local%wrap%FBExpAccum(n), pre=trim(compname(n))//'ExpAccum', rc=rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          endif
-
-          ! Read import field bundle accumulator
-          if (ESMF_FieldBundleIsCreated(is_local%wrap%FBImpAccum(n,n),rc=rc)) then
-             call med_io_read(restart_file, vm, iam, is_local%wrap%FBImpAccum(n,n), pre=trim(compname(n))//'ImpAccum', rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           endif
        endif
