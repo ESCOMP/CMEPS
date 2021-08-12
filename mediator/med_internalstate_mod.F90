@@ -71,10 +71,12 @@ module med_internalstate_mod
     type(ESMF_FieldBundle) :: FBImp(ncomps,ncomps)               ! Import data from various components interpolated to various grids
     type(ESMF_FieldBundle) :: FBExp(ncomps)                      ! Export data for various components, on their grid
 
-    ! Mediator field bundles
+    ! Mediator field bundles for ocean albedo 
     type(ESMF_FieldBundle) :: FBMed_ocnalb_o                     ! Ocn albedo on ocn grid
     type(ESMF_FieldBundle) :: FBMed_ocnalb_a                     ! Ocn albedo on atm grid
     type(packed_data_type) :: packed_data_ocnalb_o2a(nmappers)   ! packed data for mapping ocn->atm
+
+    ! Mediator field bundles and other info for atm/ocn flux computation
     type(ESMF_FieldBundle) :: FBMed_aoflux_a                     ! Ocn/Atm flux output fields on atm grid
     type(ESMF_FieldBundle) :: FBMed_aoflux_o                     ! Ocn/Atm flux output fields on ocn grid
     type(packed_data_type) :: packed_data_aoflux_o2a(nmappers)   ! packed data for mapping ocn->atm

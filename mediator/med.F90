@@ -1719,8 +1719,7 @@ contains
     !   -- Create mediator specific field bundles (not part of import/export states)
     !   -- Initialize FBExpAccums (to zero), and FBImp (from NStateImp)
     !   -- Read mediator restarts
-    !   -- Initialize route handles
-    !   -- Initialize field bundles for normalization
+    !   -- Initialize route handles field bundles for normalization
     !   -- return!
     ! For second loop:
     !   -- Copy import fields to local FBs
@@ -1756,8 +1755,9 @@ contains
     use med_phases_aofluxes_mod , only : med_phases_aofluxes_run, med_phases_aofluxes_init_fldbuns
     use med_phases_profile_mod  , only : med_phases_profile
     use med_diag_mod            , only : med_diag_zero, med_diag_init
-    use med_map_mod             , only : med_map_mapnorm_init, med_map_routehandles_init, med_map_packed_field_create
+    use med_map_mod             , only : med_map_routehandles_init, med_map_packed_field_create
     use med_io_mod              , only : med_io_init
+    use esmFlds                 , only : fldListMed_aoflux
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -1940,7 +1940,7 @@ contains
         endif
       enddo
 
-      ! Reset ocn2glc coupling based in input attribute
+      ! Reset ocn2glc active coupling based in input attribute
       if (.not. ocn2glc_coupling) then
          do ns = 1,num_icesheets
             is_local%wrap%med_coupling_active(compocn,compglc(ns)) = .false.
@@ -2045,7 +2045,6 @@ contains
 
          ! The following are FBImp and FBImpAccum mapped to different grids.
          ! FBImp(n1,n1) and FBImpAccum(n1,n1) are handled above
-
          do n2 = 1,ncomps
             if (n1 /= n2 .and. &
                  is_local%wrap%med_coupling_active(n1,n2) .and. &
@@ -2089,7 +2088,7 @@ contains
       enddo ! loop over n1
 
       !---------------------------------------
-      ! Initialize field bundles needed for ocn albedo and ocn/atm flux calculations
+      ! Initialize field bundles needed for ocn albedo calculation
       !---------------------------------------
 
       ! NOTE: the NStateImp(compocn) or NStateImp(compatm) used below
@@ -2097,29 +2096,22 @@ contains
       ! contain control data and no grid information if if the target
       ! component (n2) is not prognostic only receives control data back
 
-      ! NOTE: this section must be done BEFORE the call to esmFldsExchange
+      ! NOTE: this section must be done BEFORE the second call to esmFldsExchange
       ! Create field bundles for mediator ocean albedo computation
 
       if ( is_local%wrap%med_coupling_active(compocn,compatm) .or. is_local%wrap%med_coupling_active(compatm,compocn)) then
-
          ! Create field bundles for mediator ocean albedo computation
          fieldCount = med_fldList_GetNumFlds(fldListMed_ocnalb)
          if (fieldCount > 0) then
-            if (.not. is_local%wrap%med_coupling_active(compatm,compocn)) then
-               is_local%wrap%med_coupling_active(compatm,compocn) = .true.
-            end if
-
             allocate(fldnames(fieldCount))
             call med_fldList_getfldnames(fldListMed_ocnalb%flds, fldnames, rc=rc)
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
             call FB_init(is_local%wrap%FBMed_ocnalb_a, is_local%wrap%flds_scalar_name, &
                  STgeom=is_local%wrap%NStateImp(compatm), fieldnamelist=fldnames, name='FBMed_ocnalb_a', rc=rc)
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
             if (mastertask) then
                write(logunit,'(a)') trim(subname)//' initializing FB FBMed_ocnalb_a'
             end if
-
             call FB_init(is_local%wrap%FBMed_ocnalb_o, is_local%wrap%flds_scalar_name, &
                  STgeom=is_local%wrap%NStateImp(compocn), fieldnamelist=fldnames, name='FBMed_ocnalb_o', rc=rc)
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -2128,14 +2120,34 @@ contains
             end if
             deallocate(fldnames)
          end if
-
-         ! Create field bundles for mediator atm/ocn flux computation
-         call med_phases_aofluxes_init_fldbuns(gcomp, rc=rc)
-         if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
       end if
 
       !---------------------------------------
+      ! Initialize field bundles needed for atm/ocn flux computation:
+      ! is_local%wrap%FBMed_aoflux_a and is_local%wrap%FBMed_aoflux_o
+      !---------------------------------------
+
+      ! NOTE: this section must be done BEFORE the second call to esmFldsExchange
+      ! Create field bundles for mediator ocean albedo computation
+
+      fieldCount = med_fldList_GetNumFlds(fldListMed_aoflux)
+      if ( fieldCount > 0 ) then
+         if ( is_local%wrap%med_coupling_active(compocn,compatm) .or. &
+              is_local%wrap%med_coupling_active(compatm,compocn)) then
+            if ( is_local%wrap%aoflux_grid == 'ogrid' .and. .not. &
+                 is_local%wrap%med_coupling_active(compatm,compocn)) then
+               is_local%wrap%med_coupling_active(compatm,compocn) = .true.
+            end if
+            if ( is_local%wrap%aoflux_grid == 'agrid' .and. .not. &
+                 is_local%wrap%med_coupling_active(compocn,compatm)) then
+               is_local%wrap%med_coupling_active(compocn,compatm) = .true.
+            end if
+            call med_phases_aofluxes_init_fldbuns(gcomp, rc=rc)
+         end if
+      end if
+
+      !---------------------------------------
+      ! Second call to esmFldsExchange_xxx
       ! Determine mapping and merging info for field exchanges in mediator
       !---------------------------------------
 
@@ -2154,19 +2166,15 @@ contains
 
       !---------------------------------------
       ! Initialize route handles and required normalization field bunds
-      ! Initialized packed field data structures
       !---------------------------------------
-
       call ESMF_LogWrite("before med_map_RouteHandles_init", ESMF_LOGMSG_INFO)
       call med_map_RouteHandles_init(gcomp, is_local%wrap%flds_scalar_name, logunit, rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
       call ESMF_LogWrite("after  med_map_RouteHandles_init", ESMF_LOGMSG_INFO)
 
-      call ESMF_LogWrite("before med_map_mapnorm_init", ESMF_LOGMSG_INFO)
-      call med_map_mapnorm_init(gcomp, rc)
-      if (ChkErr(rc,__LINE__,u_FILE_u)) return
-      call ESMF_LogWrite("after  med_map_mapnorm_init", ESMF_LOGMSG_INFO)
-
+      !---------------------------------------
+      ! Initialized packed field data structures
+      !---------------------------------------
       do ndst = 1,ncomps
          do nsrc = 1,ncomps
             if (is_local%wrap%med_coupling_active(nsrc,ndst)) then
@@ -2537,14 +2545,14 @@ contains
     type(ESMF_Clock)        :: mediatorClock, driverClock
     type(ESMF_Time)         :: currTime
     type(ESMF_TimeInterval) :: timeStep
-    type(ESMF_Alarm)        :: stop_alarm 
+    type(ESMF_Alarm)        :: stop_alarm
     character(len=CL)       :: cvalue
     character(len=CL)       :: name, stop_option
     integer                 :: stop_n, stop_ymd
     logical                 :: first_time = .true.
     logical, save           :: stopalarmcreated=.false.
     integer                 :: alarmcount
-    
+
     character(len=*),parameter :: subname=' (module_MED:SetRunClock) '
     !-----------------------------------------------------------
 
