@@ -67,7 +67,7 @@ module med_phases_history_mod
   public :: med_phases_history_write_rof ! inst, avg, aux
   public :: med_phases_history_write_wav ! inst, avg, aux
 
-  ! Private routines 
+  ! Private routines
   private :: med_phases_history_write_inst_comp ! write instantaneous file for a given component
   private :: med_phases_history_write_avg_comp  ! write averaged file for a given component
   private :: med_phases_history_write_aux_comp  ! write auxiliary file for a given component
@@ -228,7 +228,7 @@ contains
     call med_phases_history_write_inst_comp(gcomp, compmed, &
          first_time, 'med_phases_history_write_inst_med', rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (first_time) first_time = .false.  
+    if (first_time) first_time = .false.
   end subroutine med_phases_history_write_med
 
   !===============================================================================
@@ -248,7 +248,7 @@ contains
     call med_phases_history_write_aux_comp(gcomp, compatm, &
          first_time, 'med_phases_history_write_aux_atm', rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (first_time) first_time = .false.  
+    if (first_time) first_time = .false.
   end subroutine med_phases_history_write_atm
 
   !===============================================================================
@@ -321,7 +321,7 @@ contains
   subroutine med_phases_history_write_ocn(gcomp, rc)
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc
-    logical              :: first_time = .true.  
+    logical              :: first_time = .true.
     !---------------------------------------
     rc = ESMF_SUCCESS
     call med_phases_history_write_inst_comp(gcomp, compocn, &
@@ -341,7 +341,7 @@ contains
   subroutine med_phases_history_write_rof(gcomp, rc)
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc
-    logical              :: first_time = .true.  
+    logical              :: first_time = .true.
     !---------------------------------------
     rc = ESMF_SUCCESS
     call med_phases_history_write_inst_comp(gcomp, comprof, &
@@ -361,7 +361,7 @@ contains
   subroutine med_phases_history_write_wav(gcomp, rc)
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc
-    logical              :: first_time = .true.  
+    logical              :: first_time = .true.
     !---------------------------------------
     rc = ESMF_SUCCESS
     call med_phases_history_write_inst_comp(gcomp, compwav, &
@@ -382,8 +382,8 @@ contains
 
     ! input/output variables
     type(ESMF_GridComp) , intent(inout) :: gcomp
-    integer             , intent(in)    :: compid 
-    logical             , intent(in)    :: first_time 
+    integer             , intent(in)    :: compid
+    logical             , intent(in)    :: first_time
     character(len=*)    , intent(in)    :: subname
     integer             , intent(out)   :: rc
 
@@ -411,8 +411,8 @@ contains
     if (first_time) then
 
        ! Determine attribute prefix
-       write(hist_option_in,'(a)') 'history_inst_option_'//trim(compname(compid))
-       write(hist_n_in,'(a)') 'history_inst_n_'//trim(compname(compid))
+       write(hist_option_in,'(a)') 'history_option_'//trim(compname(compid))//'_inst'
+       write(hist_n_in,'(a)') 'history_n_'//trim(compname(compid))//'_inst'
 
        ! Determine instantaneous mediator output frequency and type
        call NUOPC_CompAttributeGet(gcomp, name=trim(hist_option_in), isPresent=isPresent, isSet=isSet, rc=rc)
@@ -513,8 +513,8 @@ contains
     if (first_time) then
 
        ! Determine attribute prefix
-       write(hist_option_in,'(a)') 'history_avg_option_'//trim(compname(compid))
-       write(hist_n_in,'(a)') 'history_avg_n_'//trim(compname(compid))
+       write(hist_option_in,'(a)') 'history_option_'//trim(compname(compid))//'_avg'
+       write(hist_n_in,'(a)') 'history_n_'//trim(compname(compid))//'_avg'
 
        ! Determine time average mediator output frequency and type
        call NUOPC_CompAttributeGet(gcomp, name=trim(hist_option_in), isPresent=isPresent, isSet=isSet, rc=rc)
@@ -657,7 +657,7 @@ contains
     ! input/output variables
     type(ESMF_GridComp) , intent(inout) :: gcomp
     integer             , intent(in)    :: compid
-    logical             , intent(in)    :: first_time 
+    logical             , intent(in)    :: first_time
     character(len=*)    , intent(in)    :: subname
     integer             , intent(out)   :: rc
 
@@ -774,7 +774,7 @@ contains
                 ! Deallocate memory from fieldnamelist
                 deallocate(fieldnamelist) ! this was allocated in med_phases_history_get_auxflds
 
-             end if ! end of if auxflds is set to 'all' 
+             end if ! end of if auxflds is set to 'all'
 
              if (mastertask) then
                 write(logunit,*)

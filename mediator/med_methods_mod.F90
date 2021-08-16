@@ -2067,6 +2067,7 @@ contains
     use ESMF, only : ESMF_Grid, ESMF_DistGrid, ESMF_StaggerLoc
     use ESMF, only : ESMF_GridGet, ESMF_DistGridGet, ESMF_GridGetCoord
     use ESMF, only : ESMF_STAGGERLOC_CENTER, ESMF_STAGGERLOC_CORNER
+    use ESMF, only : ESMF_TypeKind_Flag, ESMF_TYPEKIND_R4, ESMF_TYPEKIND_R8
 
     ! input/output variabes
     type(ESMF_Grid) , intent(in)  :: grid
@@ -2080,10 +2081,13 @@ contains
     integer                    :: dimCount, tileCount
     integer                    :: staggerlocCount, arbdimCount, rank
     type(ESMF_StaggerLoc)      :: staggerloc
+    type(ESMF_TypeKind_Flag)   :: coordTypeKind
     character(len=32)          :: staggerstr
     integer, allocatable       :: minIndexPTile(:,:), maxIndexPTile(:,:)
-    real(R8), pointer          :: fldptr1(:) => null()
-    real(R8), pointer          :: fldptr2(:,:) => null()
+    real, pointer              :: fldptrR41D(:) => null()
+    real, pointer              :: fldptrR42D(:,:) => null()
+    real(R8), pointer          :: fldptrR81D(:) => null()
+    real(R8), pointer          :: fldptrR82D(:,:) => null()
     integer                    :: n1,n2,n3
     character(len=*),parameter :: subname='(med_methods_Grid_Print)'
     ! ----------------------------------------------
@@ -2092,6 +2096,10 @@ contains
       call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
     endif
     rc = ESMF_SUCCESS
+
+    ! access grid coordinate type
+    call ESMF_GridGet(grid, coordTypeKind=coordTypeKind, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! access localDeCount to show this is a real Grid
     call ESMF_GridGet(grid, localDeCount=localDeCount, distgrid=distgrid, rc=rc)
@@ -2150,16 +2158,35 @@ contains
         do n3 = 0,localDECount-1
         do n2 = 1,dimCount
           if (rank == 1) then
-            call ESMF_GridGetCoord(grid,coordDim=n2,localDE=n3,staggerloc=staggerloc,farrayPtr=fldptr1,rc=rc)
-            if (chkerr(rc,__LINE__,u_FILE_u)) return
-            write (msgString,'(a,2i4,2f16.8)') trim(subname)//":"//trim(staggerstr)//" coord=",&
-                 n2,n3,minval(fldptr1),maxval(fldptr1)
+            if (coordTypeKind == ESMF_TYPEKIND_R4) then
+              call ESMF_GridGetCoord(grid,coordDim=n2,localDE=n3,staggerloc=staggerloc,farrayPtr=fldptrR41D,rc=rc)
+              if (chkerr(rc,__LINE__,u_FILE_u)) return
+              write (msgString,'(a,2i4,2f16.8)') trim(subname)//":"//trim(staggerstr)//" coord=",&
+                   n2,n3,minval(fldptrR41D),maxval(fldptrR41D)
+            else if (coordTypeKind == ESMF_TYPEKIND_R8) then
+              call ESMF_GridGetCoord(grid,coordDim=n2,localDE=n3,staggerloc=staggerloc,farrayPtr=fldptrR81D,rc=rc)
+              if (chkerr(rc,__LINE__,u_FILE_u)) return
+              write (msgString,'(a,2i4,2f16.8)') trim(subname)//":"//trim(staggerstr)//" coord=",&
+                   n2,n3,minval(fldptrR81D),maxval(fldptrR81D)
+            else
+              write(msgString,*) trim(subname)//":"//" only R4 and R8 types are supported for grid coordinates (1D)!"
+            end if
           endif
           if (rank == 2) then
-            call ESMF_GridGetCoord(grid,coordDim=n2,localDE=n3,staggerloc=staggerloc,farrayPtr=fldptr2,rc=rc)
-            if (chkerr(rc,__LINE__,u_FILE_u)) return
-            write (msgString,'(a,2i4,2f16.8)') trim(subname)//":"//trim(staggerstr)//" coord=",&
-                 n2,n3,minval(fldptr2),maxval(fldptr2)
+            if (coordTypeKind == ESMF_TYPEKIND_R4) then
+              call ESMF_GridGetCoord(grid,coordDim=n2,localDE=n3,staggerloc=staggerloc,farrayPtr=fldptrR42D,rc=rc)
+              if (chkerr(rc,__LINE__,u_FILE_u)) return
+              write (msgString,'(a,2i4,2f16.8)') trim(subname)//":"//trim(staggerstr)//" coord=",&
+                   n2,n3,minval(fldptrR42D),maxval(fldptrR42D)
+            else if (coordTypeKind == ESMF_TYPEKIND_R8) then
+              call ESMF_GridGetCoord(grid,coordDim=n2,localDE=n3,staggerloc=staggerloc,farrayPtr=fldptrR82D,rc=rc)
+              if (chkerr(rc,__LINE__,u_FILE_u)) return
+              write (msgString,'(a,2i4,2f16.8)') trim(subname)//":"//trim(staggerstr)//" coord=",&
+                   n2,n3,minval(fldptrR82D),maxval(fldptrR82D)
+            else
+              write(msgString,*) trim(subname)//":"//" only R4 and R8 types are supported for grid coordinates (2D)!"
+            end if
+
           endif
           call ESMF_LogWrite(msgString, ESMF_LOGMSG_INFO)
         enddo

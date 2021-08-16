@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import os, shutil, sys
 from CIME.utils import expect
@@ -105,7 +105,6 @@ def gen_runseq(case, coupling_times):
 
         runseq.add_action("MED med_phases_prep_ice"         , med_to_ice)
         runseq.add_action("MED -> ICE :remapMethod=redist"  , med_to_ice)
-        runseq.add_action("MED med_phases_diag_ice_med2ice" , run_ice and diag_mode)
 
         runseq.add_action("MED med_phases_prep_wav"        , med_to_wav)
         runseq.add_action("MED -> WAV :remapMethod=redist" , med_to_wav)
@@ -137,9 +136,12 @@ def gen_runseq(case, coupling_times):
 
         runseq.add_action("LND -> MED :remapMethod=redist"  , run_lnd)
         runseq.add_action("MED med_phases_post_lnd"         , run_lnd)
+        runseq.add_action("MED med_phases_diag_lnd"         , run_lnd and diag_mode)
+        runseq.add_action("MED med_phases_diag_rof"         , run_rof and diag_mode)
+        runseq.add_action("MED med_phases_diag_ice_ice2med" , run_ice and diag_mode)
+        runseq.add_action("MED med_phases_diag_glc"         , run_glc and diag_mode)
 
         runseq.add_action("ICE -> MED :remapMethod=redist"  , run_ice)
-        runseq.add_action("MED med_phases_diag_ice_ice2med" , run_ice and diag_mode)
         runseq.add_action("MED med_phases_post_ice"         , run_ice)
 
         runseq.add_action("MED med_phases_prep_atm"         , med_to_atm)
@@ -147,6 +149,8 @@ def gen_runseq(case, coupling_times):
         runseq.add_action("ATM"                             , run_atm)
         runseq.add_action("ATM -> MED :remapMethod=redist"  , run_atm)
         runseq.add_action("MED med_phases_post_atm"         , run_atm)
+        runseq.add_action("MED med_phases_diag_atm"         , run_atm and diag_mode)
+        runseq.add_action("MED med_phases_diag_ice_med2ice" , run_ice and diag_mode)
 
         runseq.add_action("WAV -> MED :remapMethod=redist", run_wav)
         runseq.add_action("MED med_phases_post_wav"       , run_wav)
@@ -154,10 +158,6 @@ def gen_runseq(case, coupling_times):
         runseq.add_action("ROF -> MED :remapMethod=redist", run_rof and not rof_outer_loop)
         runseq.add_action("MED med_phases_post_rof"       , run_rof and not rof_outer_loop)
 
-        runseq.add_action("MED med_phases_diag_atm"   , run_atm and diag_mode)
-        runseq.add_action("MED med_phases_diag_lnd"   , run_lnd and diag_mode)
-        runseq.add_action("MED med_phases_diag_rof"   , run_rof and diag_mode)
-        runseq.add_action("MED med_phases_diag_glc"   , run_glc and diag_mode)
         runseq.add_action("MED med_phases_diag_accum" , diag_mode)
         runseq.add_action("MED med_phases_diag_print" , diag_mode)
 

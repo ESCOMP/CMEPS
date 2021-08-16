@@ -9,9 +9,9 @@ module med_time_mod
   use ESMF                , only : ESMF_CALKIND_NOLEAP, ESMF_CALKIND_GREGORIAN
   use ESMF                , only : ESMF_Time, ESMF_TimeGet, ESMF_TimeSet
   use ESMF                , only : ESMF_TimeInterval, ESMF_TimeIntervalSet, ESMF_TimeIntervalGet
-  use ESMF                , only : ESMF_SUCCESS, ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_FAILURE
+  use ESMF                , only : ESMF_SUCCESS, ESMF_LogWrite, ESMF_FAILURE
   use ESMF                , only : ESMF_VM, ESMF_VMGet, ESMF_VMBroadcast
-  use ESMF                , only : ESMF_LOGMSG_INFO, ESMF_FAILURE
+  use ESMF                , only : ESMF_LOGMSG_INFO, ESMF_FAILURE, ESMF_LOGMSG_ERROR
   use ESMF                , only : operator(<), operator(/=), operator(+)
   use ESMF                , only : operator(-), operator(*) , operator(>=)
   use ESMF                , only : operator(<=), operator(>), operator(==)
@@ -85,7 +85,7 @@ contains
     type(ESMF_Time)         :: NextAlarm        ! Next restart alarm time
     type(ESMF_TimeInterval) :: AlarmInterval    ! Alarm interval
     integer                 :: sec
-    character(len=*), parameter :: subname = ' (med_time_alarmInit): '
+    character(len=*), parameter :: subname = '(med_time_alarmInit): '
     !-------------------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -116,12 +116,12 @@ contains
     ! Error checks
     if (trim(option) == optdate) then
        if (.not. present(opt_ymd)) then
-          call ESMF_LogWrite(trim(subname)//trim(option)//' requires opt_ymd', ESMF_LOGMSG_INFO)
+          call ESMF_LogWrite(trim(subname)//trim(option)//' requires opt_ymd', ESMF_LOGMSG_ERROR)
           rc = ESMF_FAILURE
           return
        end if
        if (lymd < 0 .or. ltod < 0) then
-          call ESMF_LogWrite(subname//trim(option)//'opt_ymd, opt_tod invalid', ESMF_LOGMSG_INFO)
+          call ESMF_LogWrite(subname//trim(option)//'opt_ymd, opt_tod invalid', ESMF_LOGMSG_ERROR)
           rc = ESMF_FAILURE
           return
        end if
@@ -133,12 +133,12 @@ contains
              trim(option) == optNMonths  .or. &
              trim(option) == optNYears) then
        if (.not.present(opt_n)) then
-          call ESMF_LogWrite(subname//trim(option)//' requires opt_n', ESMF_LOGMSG_INFO)
+          call ESMF_LogWrite(subname//trim(option)//' requires opt_n', ESMF_LOGMSG_ERROR)
           rc = ESMF_FAILURE
           return
        end if
        if (opt_n <= 0) then
-          call ESMF_LogWrite(subname//trim(option)//' invalid opt_n', ESMF_LOGMSG_INFO)
+          call ESMF_LogWrite(subname//trim(option)//' invalid opt_n', ESMF_LOGMSG_ERROR)
           rc = ESMF_FAILURE
           return
        end if
@@ -153,6 +153,15 @@ contains
        call ESMF_TimeSet( NextAlarm, yy=9999, mm=12, dd=1, s=0, calendar=cal, rc=rc )
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        update_nextalarm  = .false.
+
+   case (optDate)
+      call ESMF_TimeIntervalSet(AlarmInterval, yy=9999, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      call med_time_date2ymd(opt_ymd, cyy, cmm, cdd)
+
+      call ESMF_TimeSet( NextAlarm, yy=cyy, mm=cmm, dd=cdd, s=ltod, calendar=cal, rc=rc )
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      update_nextalarm  = .false.
 
     case (optNever)
        call ESMF_TimeIntervalSet(AlarmInterval, yy=9999, rc=rc)
@@ -217,7 +226,7 @@ contains
        update_nextalarm  = .true.
 
     case default
-       call ESMF_LogWrite(subname//'unknown option '//trim(option), ESMF_LOGMSG_INFO)
+       call ESMF_LogWrite(subname//'unknown option '//trim(option), ESMF_LOGMSG_ERROR)
        rc = ESMF_FAILURE
        return
 
@@ -247,4 +256,26 @@ contains
 
   end subroutine med_time_alarmInit
 
+  subroutine med_time_date2ymd (date, year, month, day)
+
+   ! input/output variables
+   integer, intent(in)  :: date             ! coded-date (yyyymmdd)
+   integer, intent(out) :: year,month,day   ! calendar year,month,day
+
+   ! local variables
+   integer :: tdate   ! temporary date
+   character(*),parameter :: subName = "(med_time_date2ymd)"
+   !-------------------------------------------------------------------------------
+
+   tdate = abs(date)
+   year = int(tdate/10000)
+   if (date < 0) then
+      year = -year
+   end if
+   month = int( mod(tdate,10000)/  100)
+   day = mod(tdate,  100)
+
+ end subroutine med_time_date2ymd
+
+ !===============================================================================
 end module med_time_mod

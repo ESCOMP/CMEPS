@@ -166,6 +166,7 @@
     <value component="rof">$ROF_PIO_NETCDF_FORMAT</value>
     <value component="glc">$GLC_PIO_NETCDF_FORMAT</value>
     <value component="wav">$WAV_PIO_NETCDF_FORMAT</value>
+    <value component="esp">$ESP_PIO_NETCDF_FORMAT</value>
     </values>
   </entry>
 

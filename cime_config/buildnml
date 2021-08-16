@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """Namelist creator for CIME's driver.
 """
 import os, sys
@@ -510,6 +510,24 @@ def buildnml(case, caseroot, component):
 ###############################################################################
     if component != "drv":
         raise AttributeError
+
+#   Do a check here of ESMF VERSION, requires 8.1.0 or newer (8.2.0 or newer for esmf_aware_threading)
+    esmf_aware_threading = case.get_value("ESMF_AWARE_THREADING")
+    esmfmkfile = os.getenv("ESMFMKFILE")
+    expect(esmfmkfile and os.path.isfile(esmfmkfile),"ESMFMKFILE not found {}".format(esmfmkfile))
+    with open(esmfmkfile, 'r') as f:
+        major = None
+        minor = None
+        for line in f.readlines():
+            if 'ESMF_VERSION' in line:
+                major = line[-2] if 'MAJOR' in line else major
+                minor = line[-2] if 'MINOR' in line else minor
+        logger.debug("ESMF version major {} minor {}".format(major,minor))
+        expect(int(major) >=8,"ESMF version should be 8.1 or newer")
+        if esmf_aware_threading:
+            expect(int(minor) >= 2, "ESMF version should be 8.2.0 or newer when using ESMF_AWARE_THREADING")
+        else:
+            expect(int(minor) >= 1, "ESMF version should be 8.1.0 or newer")
 
     confdir = os.path.join(case.get_value("CASEBUILD"), "cplconf")
     if not os.path.isdir(confdir):
