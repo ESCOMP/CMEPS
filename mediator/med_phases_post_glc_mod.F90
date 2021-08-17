@@ -30,7 +30,6 @@ module med_phases_post_glc_mod
   use med_internalstate_mod , only : InternalState, mastertask, logunit
   use med_map_mod           , only : med_map_rh_is_created, med_map_routehandles_init
   use med_map_mod           , only : med_map_field_packed, med_map_field_normalized, med_map_field
-  use med_merge_mod         , only : med_merge_auto
   use glc_elevclass_mod     , only : glc_get_num_elevation_classes
   use glc_elevclass_mod     , only : glc_mean_elevation_virtual
   use glc_elevclass_mod     , only : glc_get_fractional_icecov

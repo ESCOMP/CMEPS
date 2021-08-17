@@ -302,7 +302,7 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     end if
 
-    call med_merge_auto(comprof, &
+    call med_merge_auto(&
          is_local%wrap%med_coupling_active(:,comprof), &
          is_local%wrap%FBExp(comprof), &
          is_local%wrap%FBFrac(comprof), &
