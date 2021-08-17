@@ -24,7 +24,6 @@ module med_phases_history_mod
   use med_utils_mod         , only : chkerr          => med_utils_ChkErr
   use med_methods_mod       , only : FB_reset        => med_methods_FB_reset
   use med_methods_mod       , only : FB_diagnose     => med_methods_FB_diagnose
-  use med_methods_mod       , only : FB_accum        => med_methods_FB_accum
   use med_methods_mod       , only : State_GetScalar => med_methods_State_GetScalar
   use med_internalstate_mod , only : InternalState, mastertask, logunit
   use med_time_mod          , only : med_time_alarmInit

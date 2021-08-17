@@ -19,14 +19,6 @@ module med_methods_mod
   implicit none
   private
 
-  interface med_methods_FB_accum ; module procedure &
-    med_methods_FB_accumFB2FB
-  end interface
-
-  interface med_methods_FB_copy ; module procedure &
-    med_methods_FB_copyFB2FB
-  end interface
-
   interface med_methods_FieldPtr_compare ; module procedure &
     med_methods_FieldPtr_compare1, &
     med_methods_FieldPtr_compare2
@@ -76,8 +68,6 @@ module med_methods_mod
   private med_methods_Mesh_Print
   private med_methods_Grid_Print
   private med_methods_Field_GetFldPtr
-  private med_methods_FB_copyFB2FB
-  private med_methods_FB_accumFB2FB
   private med_methods_Array_diagnose
 
 !-----------------------------------------------------------------------------
@@ -1280,7 +1270,7 @@ contains
 
   !-----------------------------------------------------------------------------
 
-  subroutine med_methods_FB_copyFB2FB(FBout, FBin, rc)
+  subroutine med_methods_FB_copy(FBout, FBin, rc)
 
     ! ----------------------------------------------
     ! Copy common field names from FBin to FBout
@@ -1291,7 +1281,7 @@ contains
     type(ESMF_FieldBundle), intent(inout) :: FBout
     type(ESMF_FieldBundle), intent(in)    :: FBin
     integer               , intent(out)   :: rc
-    character(len=*), parameter :: subname='(med_methods_FB_copyFB2FB)'
+    character(len=*), parameter :: subname='(med_methods_FB_copy)'
     ! ----------------------------------------------
 
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
@@ -1304,11 +1294,11 @@ contains
       call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
     endif
 
-  end subroutine med_methods_FB_copyFB2FB
+  end subroutine med_methods_FB_copy
 
   !-----------------------------------------------------------------------------
 
-  subroutine med_methods_FB_accumFB2FB(FBout, FBin, copy, rc)
+  subroutine med_methods_FB_accum(FBout, FBin, copy, rc)
 
     ! ----------------------------------------------
     ! Accumulate common field names from FBin to FBout
@@ -1334,7 +1324,7 @@ contains
     real(R8), pointer               :: dataPtri2(:,:) => null()
     real(R8), pointer               :: dataPtro2(:,:) => null()
     type(ESMF_Field)                :: lfield
-    character(len=*), parameter     :: subname='(med_methods_FB_accumFB2FB)'
+    character(len=*), parameter     :: subname='(med_methods_FB_accum)'
     ! ----------------------------------------------
 
     if (dbug_flag > 10) then
@@ -1427,7 +1417,7 @@ contains
       call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
     endif
 
-  end subroutine med_methods_FB_accumFB2FB
+  end subroutine med_methods_FB_accum
 
   !-----------------------------------------------------------------------------
 
