@@ -1742,6 +1742,7 @@ contains
     use NUOPC                   , only : NUOPC_CompAttributeGet
     use med_fraction_mod        , only : med_fraction_init, med_fraction_set
     use med_phases_restart_mod  , only : med_phases_restart_read
+    use med_phases_prep_rof_mod , only : med_phases_prep_rof_init
     use med_phases_prep_glc_mod , only : med_phases_prep_glc_init
     use med_phases_prep_atm_mod , only : med_phases_prep_atm
     use med_phases_post_atm_mod , only : med_phases_post_atm
@@ -2210,6 +2211,14 @@ contains
       end do
       if (lnd2glc_coupling .or. ocn2glc_coupling) then
          call med_phases_prep_glc_init(gcomp, rc=rc)
+         if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      end if
+
+      !---------------------------------------
+      ! Initialize rof module field bundles here if appropriate
+      !---------------------------------------
+      if (is_local%wrap%med_coupling_active(comprof,complnd)) then
+         call med_phases_prep_rof_init(gcomp, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
       end if
 
