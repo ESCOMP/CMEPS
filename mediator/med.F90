@@ -1715,9 +1715,8 @@ contains
     !   Do not assume any import fields are connected, just allocate space and such
     !   -- Check present flags
     !   -- Check for active coupling interactions
-    !   -- Create FBs: FBImp, FBExp, FBExpAccum
+    !   -- Create FBs: FBImp, FBExp
     !   -- Create mediator specific field bundles (not part of import/export states)
-    !   -- Initialize FBExpAccums (to zero), and FBImp (from NStateImp)
     !   -- Read mediator restarts
     !   -- Initialize route handles field bundles for normalization
     !   -- return!
@@ -1742,6 +1741,7 @@ contains
     use NUOPC                   , only : NUOPC_CompAttributeGet
     use med_fraction_mod        , only : med_fraction_init, med_fraction_set
     use med_phases_restart_mod  , only : med_phases_restart_read
+    use med_phases_prep_ocn_mod , only : med_phases_prep_ocn_init
     use med_phases_prep_rof_mod , only : med_phases_prep_rof_init
     use med_phases_prep_glc_mod , only : med_phases_prep_glc_init
     use med_phases_prep_atm_mod , only : med_phases_prep_atm
@@ -1981,7 +1981,7 @@ contains
       endif
 
       !----------------------------------------------------------
-      ! Create field bundles FBImp, FBExp, FBExpAccum
+      ! Create field bundles FBImp, FBExp
       !----------------------------------------------------------
 
       if (mastertask) then
@@ -2005,14 +2005,6 @@ contains
             ! Create FBExp(:) with pointers directly into NStateExp(:)
             call FB_init_pointer(is_local%wrap%NStateExp(n1), is_local%wrap%FBExp(n1), &
                  is_local%wrap%flds_scalar_name, name='FBExp'//trim(compname(n1)), rc=rc)
-            if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-            ! Create export accumulation field bundles
-            call FB_init(is_local%wrap%FBExpAccum(n1), is_local%wrap%flds_scalar_name, &
-                 STgeom=is_local%wrap%NStateExp(n1), STflds=is_local%wrap%NStateExp(n1), &
-                 name='FBExpAccum'//trim(compname(n1)), rc=rc)
-            if (ChkErr(rc,__LINE__,u_FILE_u)) return
-            call FB_reset(is_local%wrap%FBExpAccum(n1), value=czero, rc=rc)
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
             ! Create mesh info data
@@ -2179,6 +2171,16 @@ contains
                packed_data=is_local%wrap%packed_data_ocnalb_o2a(:), rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
+
+      !---------------------------------------
+      ! Initialize ocn export accumulation field bundle
+      !---------------------------------------
+      if ( is_local%wrap%comp_present(compocn) .and. &
+           ESMF_StateIsCreated(is_local%wrap%NStateImp(compocn),rc=rc) .and. &
+           ESMF_StateIsCreated(is_local%wrap%NStateExp(compocn),rc=rc)) then
+         call med_phases_prep_ocn_init(gcomp, rc)
+         if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      end if
 
       !---------------------------------------
       ! Initialize glc module field bundles here if appropriate
