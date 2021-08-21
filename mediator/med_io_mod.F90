@@ -1230,7 +1230,7 @@ contains
           rcode = pio_put_att(io_file(lfile_ind),varid,"units",trim(cunit))
        end if
        lnx = size(idata)
-       rcode = pio_def_dim(io_file(lfile_ind),trim(dname)//'_nx',lnx,dimid(1))
+       rcode = pio_def_dim(io_file(lfile_ind),trim(dname),lnx,dimid(1))
        rcode = pio_def_var(io_file(lfile_ind),trim(dname),PIO_INT,dimid,varid)
        rcode = pio_put_att(io_file(lfile_ind),varid,"standard_name",trim(dname))
        if (lwdata) call med_io_enddef(filename, file_ind=lfile_ind)

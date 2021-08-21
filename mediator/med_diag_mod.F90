@@ -381,22 +381,6 @@ contains
     allocate(budget_counter  (f_size , c_size , p_size)) ! counter, valid only on root pe
     allocate(budget_global_1d(f_size * c_size * p_size)) ! needed for ESMF_VMReduce call
 
-    if (budget_print_inst + budget_print_daily + budget_print_month + budget_print_ann + budget_print_ltann + budget_print_ltend > 0) then
-       ! Set stop alarm (needed for budgets)
-       call NUOPC_CompAttributeGet(gcomp, name="stop_option", value=stop_option, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call NUOPC_CompAttributeGet(gcomp, name="stop_n", value=cvalue, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       read(cvalue,*) stop_n
-       call NUOPC_CompAttributeGet(gcomp, name="stop_ymd", value=cvalue, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       read(cvalue,*) stop_ymd
-       call NUOPC_MediatorGet(gcomp, mediatorClock=mediatorClock, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call alarmInit(mediatorclock, stop_alarm, stop_option, opt_n=stop_n, opt_ymd=stop_ymd, &
-            alarmname='alarm_stop', rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    endif
   end subroutine med_diag_init
 
   integer function get_diag_attribute(gcomp, name, rc)
@@ -1314,7 +1298,7 @@ contains
     ! Compute global ocn input from mediator
     ! ------------------------------------------------------------------
 
-    use esmFlds, only : compocn
+    use esmFlds, only : compocn, compatm
 
     ! input/output variables
     type(ESMF_GridComp) :: gcomp
@@ -1327,6 +1311,7 @@ contains
     real(r8), pointer   :: ifrac(:) => null() ! ice fraction in ocean grid cell
     real(r8), pointer   :: ofrac(:) => null() ! non-ice fraction nin ocean grid cell
     real(r8), pointer   :: sfrac(:) => null() ! sum of ifrac and ofrac
+    real(r8), pointer   :: sfrac_x_ofrac(:) => null()
     real(r8), pointer   :: areas(:) => null()
     real(r8), pointer   :: data(:) => null()
     type(ESMF_field)    :: lfield
@@ -1346,6 +1331,8 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     allocate(sfrac(size(ofrac)))
     sfrac(:) = ifrac(:) + ofrac(:)
+    allocate(sfrac_x_ofrac(size(ofrac)))
+    sfrac_x_ofrac(:) = sfrac(:) * ofrac(:)
 
     areas => is_local%wrap%mesh_info(compocn)%areas
 
@@ -1390,8 +1377,20 @@ contains
        budget_local(f_area,ic,ip) = budget_local(f_area,ic,ip) + areas(n)*ofrac(n)
     end do
 
-    call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_lwup' , f_heat_lwup   , ic, areas, sfrac, budget_local, rc=rc)
-    call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_lat'  , f_heat_latvap , ic, areas, sfrac, budget_local, rc=rc)
+    if (fldbun_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_lwnet', rc=rc)) then
+       call diag_ocn(is_local%wrap%FBMed_aoflux_o        , 'Faox_lwup', f_heat_lwup, ic, areas, sfrac_x_ofrac, budget_local, rc=rc)
+       call diag_ocn(is_local%wrap%FBImp(compatm,compocn), 'Faxa_lwdn', f_heat_lwdn, ic, areas, sfrac_x_ofrac, budget_local, rc=rc)
+    else
+       call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_lwup' , f_heat_lwup   , ic, areas, sfrac, budget_local, rc=rc)
+       call diag_ocn(is_local%wrap%FBExp(compocn), 'Faxa_lwdn' , f_heat_lwdn   , ic, areas, sfrac, budget_local, rc=rc)
+    end if
+
+    if (fldbun_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_lat', rc=rc)) then
+       call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_lat'  , f_heat_latvap , ic, areas, sfrac, budget_local, rc=rc)
+    else
+       call diag_ocn(is_local%wrap%FBMed_aoflux_o, 'Faox_lat'  , f_heat_latvap , ic, areas, sfrac_x_ofrac, budget_local, rc=rc)
+    end if
+
     call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_sen'  , f_heat_sen    , ic, areas, sfrac, budget_local, rc=rc)
     call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_evap' , f_watr_evap   , ic, areas, sfrac, budget_local, rc=rc)
     call diag_ocn(is_local%wrap%FBExp(compocn), 'Fioi_meltw', f_watr_melt   , ic, areas, sfrac, budget_local, rc=rc)
@@ -1400,8 +1399,19 @@ contains
     call diag_ocn(is_local%wrap%FBExp(compocn), 'Fioi_bergh', f_heat_melt   , ic, areas, sfrac, budget_local, rc=rc)
     call diag_ocn(is_local%wrap%FBExp(compocn), 'Fioi_salt' , f_watr_salt   , ic, areas, sfrac, budget_local, &
          scale=SFLXtoWFLX, rc=rc)
-    call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_swnet', f_heat_swnet  , ic, areas, sfrac, budget_local, rc=rc)
-    call diag_ocn(is_local%wrap%FBExp(compocn), 'Faxa_lwdn' , f_heat_lwdn   , ic, areas, sfrac, budget_local, rc=rc)
+
+    if (fldbun_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_swnet', rc=rc)) then
+       call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_swnet', f_heat_swnet  , ic, areas, sfrac, budget_local, rc=rc)
+    else if (fldbun_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_swnet_vdr', rc=rc) .and. &
+             fldbun_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_swnet_vdf', rc=rc) .and. &
+             fldbun_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_swnet_idr', rc=rc) .and. &
+             fldbun_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_swnet_idf', rc=rc)) then
+       call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_swnet_vdr', f_heat_swnet  , ic, areas, sfrac, budget_local, rc=rc)
+       call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_swnet_vdf', f_heat_swnet  , ic, areas, sfrac, budget_local, rc=rc)
+       call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_swnet_idr', f_heat_swnet  , ic, areas, sfrac, budget_local, rc=rc)
+       call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_swnet_idf', f_heat_swnet  , ic, areas, sfrac, budget_local, rc=rc)
+    end if
+
     call diag_ocn(is_local%wrap%FBExp(compocn), 'Faxa_rain' , f_watr_rain   , ic, areas, sfrac, budget_local, rc=rc)
     call diag_ocn(is_local%wrap%FBExp(compocn), 'Faxa_snow' , f_watr_snow   , ic, areas, sfrac, budget_local, rc=rc)
     call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_rofl' , f_watr_roff   , ic, areas, sfrac, budget_local, rc=rc)
@@ -1544,10 +1554,26 @@ contains
          areas, lats, ifrac, budget_local, minus=.true., rc=rc)
     call diag_ice_recv(is_local%wrap%FBImp(compice,compice), 'Fioi_salt', f_watr_salt, &
          areas, lats, ifrac, budget_local, minus=.true., scale=SFLXtoWFLX, rc=rc)
-    call diag_ice_recv(is_local%wrap%FBImp(compice,compice), 'Fioi_swpen', f_heat_swnet, &
-         areas, lats, ifrac, budget_local, minus=.true., rc=rc)
+
+    if ( fldbun_fldchk(is_local%wrap%FBImp(compice,compice), 'Fioi_swpen_vdr', rc=rc) .and. &
+         fldbun_fldchk(is_local%wrap%FBImp(compice,compice), 'Fioi_swpen_vdf', rc=rc) .and. &
+         fldbun_fldchk(is_local%wrap%FBImp(compice,compice), 'Fioi_swpen_idr', rc=rc) .and. &
+         fldbun_fldchk(is_local%wrap%FBImp(compice,compice), 'Fioi_swpen_idf', rc=rc)) then
+       call diag_ice_recv(is_local%wrap%FBImp(compice,compice), 'Fioi_swpen_vdr', f_heat_swnet, &
+            areas, lats, ifrac, budget_local, minus=.true., rc=rc)
+       call diag_ice_recv(is_local%wrap%FBImp(compice,compice), 'Fioi_swpen_vdf', f_heat_swnet, &
+            areas, lats, ifrac, budget_local, minus=.true., rc=rc)
+       call diag_ice_recv(is_local%wrap%FBImp(compice,compice), 'Fioi_swpen_idr', f_heat_swnet, &
+            areas, lats, ifrac, budget_local, minus=.true., rc=rc)
+       call diag_ice_recv(is_local%wrap%FBImp(compice,compice), 'Fioi_swpen_idf', f_heat_swnet, &
+            areas, lats, ifrac, budget_local, minus=.true., rc=rc)
+    else
+       call diag_ice_recv(is_local%wrap%FBImp(compice,compice), 'Fioi_swpen', f_heat_swnet, &
+            areas, lats, ifrac, budget_local, minus=.true., rc=rc)
+    end if
     call diag_ice_recv(is_local%wrap%FBImp(compice,compice), 'Faii_swnet', f_heat_swnet, &
          areas, lats, ifrac, budget_local, rc=rc)
+
     call diag_ice_recv(is_local%wrap%FBImp(compice,compice), 'Faii_lwup', f_heat_lwup, &
          areas, lats, ifrac, budget_local, rc=rc)
     call diag_ice_recv(is_local%wrap%FBImp(compice,compice), 'Faii_lat', f_heat_latvap, &
