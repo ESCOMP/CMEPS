@@ -1060,13 +1060,9 @@ contains
 
   !-----------------------------------------------------------------------------
 
-  !-----------------------------------------------------------------------------
-
   subroutine InitializeIPDv03p4(gcomp, importState, exportState, clock, rc)
 
-    ! Optionally modify the decomp/distr of transferred Grid/Mesh.
-    ! The coordinates are not transferred until AFTER the 
-    ! InitializeIPDv03p4() routine in InitializeIPDv03p5.
+    ! Optionally modify the decomp/distr of transferred Grid/Mesh
 
     use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
     use ESMF , only : ESMF_GRIDCOMP, ESMF_CLOCK, ESMF_STATE
@@ -1093,7 +1089,10 @@ contains
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    ! Receive and Optionally modify the decomp/distr of transferred Grid/Mesh.
+    !------------------
+    ! Recieve Grids
+    !------------------
+
     do n1 = 1,ncomps
        call ESMF_LogWrite(trim(subname)//": calling for component "//trim(compname(n1)), ESMF_LOGMSG_INFO)
        if (ESMF_StateIsCreated(is_local%wrap%NStateImp(n1),rc=rc)) then
@@ -1113,7 +1112,7 @@ contains
 
     subroutine realizeConnectedGrid(State,string,rc)
 
-      use ESMF , only : operator(==), operator(/=)
+      use ESMF , only : operator(==)
       use ESMF , only : ESMF_STATE, ESMF_Field, ESMF_Grid, ESMF_DistGrid, ESMF_DistGridConnection
       use ESMF , only : ESMF_MAXSTR, ESMF_FieldStatus_Flag, ESMF_GeomType_Flag, ESMF_StateGet
       use ESMF , only : ESMF_FieldGet, ESMF_DistGridGet, ESMF_GridCompGet
@@ -1128,22 +1127,25 @@ contains
       integer            , intent(out)   :: rc
 
       ! local variables
-      type(ESMF_GeomType_Flag)    :: geomtype
-      type(ESMF_FieldStatus_Flag) :: fieldStatus
-      type(ESMF_Field)            :: field
-      type(ESMF_Grid)             :: grid
-      type(ESMF_Mesh)             :: mesh, newmesh
-      type(ESMF_DistGrid)         :: distgrid, newdistgrid
-      type(ESMF_DistGrid)         :: elemdistgrid, newelemdistgrid
-      integer                     :: arbDimCount
-      integer                     :: dimCount, tileCount
-      integer, allocatable        :: minIndexPTile(:,:), maxIndexPTile(:,:)
-      integer                     :: i, j, n, n1, i1, i2
-      character(len=CX)           :: msgString
-      integer                     :: fieldCount
-      integer                     :: connectionCount
-      character(ESMF_MAXSTR)        , allocatable :: fieldNameList(:)
-      type(ESMF_DistGridConnection) , allocatable :: connectionList(:)
+      type(ESMF_Field)              :: field
+      type(ESMF_Grid)               :: grid
+      type(ESMF_Mesh)               :: mesh, newmesh
+      integer                       :: localDeCount
+
+      type(ESMF_DistGrid)           :: distgrid
+      type(ESMF_DistGrid)           :: nodaldistgrid, newnodaldistgrid
+      type(ESMF_DistGrid)           :: elemdistgrid, newelemdistgrid
+      type(ESMF_DistGridConnection), allocatable :: connectionList(:)
+      integer                       :: arbDimCount
+      integer                       :: dimCount, tileCount
+      integer                       :: connectionCount
+      integer, allocatable          :: minIndexPTile(:,:), maxIndexPTile(:,:)
+      integer, allocatable          :: regDecompPTile(:,:)
+      integer                       :: i, j, n, n1, fieldCount, nxg, i1, i2
+      type(ESMF_GeomType_Flag)      :: geomtype
+      character(ESMF_MAXSTR),allocatable :: fieldNameList(:)
+      type(ESMF_FieldStatus_Flag)   :: fieldStatus
+      character(len=CX)             :: msgString
       character(len=*),parameter :: subname=' (module_MED:realizeConnectedGrid) '
       !-----------------------------------------------------------
 
@@ -1165,46 +1167,27 @@ contains
       call ESMF_StateGet(State, itemNameList=fieldNameList, rc=rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-      ! do not loop here, assuming that all fields in the component state share the
-      ! same grid/mesh - if a component state has fields on multiple grids/meshes, this
-      ! will need to be revisited
-
+      ! do not loop here, assuming that all fields share the
+      ! same grid/mesh and because it is more efficient - if
+      ! a component has fields on multiple grids/meshes, this
+      ! would need to be revisited
       do n=1, min(fieldCount, 1)
 
          call ESMF_StateGet(State, field=field, itemName=fieldNameList(n), rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
          call ESMF_FieldGet(field, status=fieldStatus, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-         if ( fieldStatus /= ESMF_FIELDSTATUS_EMPTY    .and. &
-              fieldStatus /= ESMF_FIELDSTATUS_COMPLETE .and. &
-              fieldStatus /= ESMF_FIELDSTATUS_GRIDSET) then
-            call ESMF_LogWrite(trim(subname)//": ERROR fieldStatus not supported ", ESMF_LOGMSG_INFO)
-            rc=ESMF_FAILURE
-            return
-         endif   ! fieldStatus
 
-         if (fieldStatus==ESMF_FIELDSTATUS_EMPTY) then
-            call ESMF_LogWrite(trim(subname)//trim(string)//": provide grid for "//trim(fieldNameList(n)), &
-                 ESMF_LOGMSG_INFO)
-         else if (fieldStatus==ESMF_FIELDSTATUS_COMPLETE) then
-            call ESMF_LogWrite(trim(subname)//trim(string)//": no grid provided for "//trim(fieldNameList(n)), &
-                 ESMF_LOGMSG_INFO)
-         else if (fieldStatus==ESMF_FIELDSTATUS_GRIDSET) then
-            ! The Mediator is accepting a Grid/Mesh passed to it through the Connector
+         if (fieldStatus==ESMF_FIELDSTATUS_GRIDSET) then
+
+            ! The Mediator is accepting a Grid/Mesh passed to it
+            ! through the Connector
             ! While this is still an empty field, it does now hold a Grid/Mesh with DistGrid
             call ESMF_FieldGet(field, geomtype=geomtype, rc=rc)
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-            if (geomtype /= ESMF_GEOMTYPE_MESH .and. geomtype /= ESMF_GEOMTYPE_GRID) then
-               call ESMF_LogWrite(trim(subname)//": ERROR geomtype not supported ", ESMF_LOGMSG_INFO)
-               rc=ESMF_FAILURE
-               return
-            end if
 
-            ! --------------------------------------------
             if (geomtype == ESMF_GEOMTYPE_GRID) then
-            ! --------------------------------------------
 
-               ! make decision on whether the incoming Grid is arbDistr or not
                call ESMF_AttributeGet(field, name="ArbDimCount", value=arbDimCount, &
                     convention="NUOPC", purpose="Instance", rc=rc)
                if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -1213,6 +1196,7 @@ contains
                write(msgString,'(A,i8)') trim(subname)//':arbdimcount =',arbdimcount
                call ESMF_LogWrite(msgString, ESMF_LOGMSG_INFO)
 
+               ! make decision on whether the incoming Grid is arbDistr or not
                if (arbDimCount>0) then
 
                   ! The provider defined an arbDistr grid
@@ -1224,16 +1208,20 @@ contains
                        ESMF_LOGMSG_INFO)
                   allocate(minIndexPTile(arbDimCount,1),maxIndexPTile(arbDimCount,1))
                   call ESMF_AttributeGet(field, name="MinIndex", &
-                       valueList=minIndexPTile(:,1), convention="NUOPC", purpose="Instance", rc=rc)
+                       valueList=minIndexPTile(:,1), &
+                       convention="NUOPC", purpose="Instance", rc=rc)
                   if (ChkErr(rc,__LINE__,u_FILE_u)) return
                   call ESMF_AttributeGet(field, name="MaxIndex", &
                        valueList=maxIndexPTile(:,1), convention="NUOPC", purpose="Instance", rc=rc)
                   if (ChkErr(rc,__LINE__,u_FILE_u)) return
-                  newdistgrid = ESMF_DistGridCreate(minIndexPTile=minIndexPTile, maxIndexPTile=maxIndexPTile, rc=rc)
+                  distgrid = ESMF_DistGridCreate(minIndexPTile=minIndexPTile, maxIndexPTile=maxIndexPTile, rc=rc)
                   if (ChkErr(rc,__LINE__,u_FILE_u)) return
-                  grid = ESMF_GridCreate(newdistgrid, rc=rc)
+                  grid = ESMF_GridCreate(distgrid, rc=rc)
                   if (ChkErr(rc,__LINE__,u_FILE_u)) return
-                  deallocate(minIndexPTile,maxIndexPTile)
+                  do i1 = 1,arbDimCount
+                     write(msgString,'(A,3i8)') trim(subname)//':PTile =',i1,minIndexPTile(i1,1),maxIndexPTile(i1,1)
+                     call ESMF_LogWrite(msgString, ESMF_LOGMSG_INFO)
+                  enddo
 
                else   ! arbdimcount <= 0
 
@@ -1245,7 +1233,7 @@ contains
                   ! - get minIndex and maxIndex arrays and connectionList
                   ! - create the new DistGrid with the same minIndexPTile and maxIndexPTile
                   ! - create a new Grid on the new DistGrid
-                  
+
                   call ESMF_LogWrite(trim(subname)//trim(string)//": accept reg2reg grid for "//&
                        trim(fieldNameList(n)), ESMF_LOGMSG_INFO)
                   call ESMF_FieldGet(field, grid=grid, rc=rc)
@@ -1256,78 +1244,74 @@ contains
                   if (ChkErr(rc,__LINE__,u_FILE_u)) return
                   allocate(minIndexPTile(dimCount, tileCount))
                   allocate(maxIndexPTile(dimCount, tileCount))
-                  call ESMF_DistGridGet(distgrid, minIndexPTile=minIndexPTile, maxIndexPTile=maxIndexPTile, rc=rc)
+                  call ESMF_DistGridGet(distgrid, minIndexPTile=minIndexPTile, &
+                       maxIndexPTile=maxIndexPTile, rc=rc)
                   if (ChkErr(rc,__LINE__,u_FILE_u)) return
-                  if (mastertask) then
-                     do i2 = 1,tileCount
-                        do i1 = 1,dimCount
-                           write(logunit,'(A,4i8)') trim(subname)//':PTile =',i2,i1,&
-                                minIndexPTile(i1,i2), maxIndexPTile(i1,i2)
-                        end do
-                     end do
-                  end if
+                  do i2 = 1,tileCount
+                     do i1 = 1,dimCount
+                        write(msgString,'(A,4i8)') trim(subname)//':PTile =',i2,i1,minIndexPTile(i1,i2),&
+                             maxIndexPTile(i1,i2)
+                        call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
+                     enddo
+                  enddo
                   if (dimcount == 2) then
-                     ! propagate connections
                      call ESMF_DistGridGet(distgrid, connectionCount=connectionCount, rc=rc)
                      allocate(connectionList(connectionCount))
                      call ESMF_DistGridGet(distgrid, connectionList=connectionList, rc=rc)
                      if (ChkErr(rc,__LINE__,u_FILE_u)) return
-                     newdistgrid = ESMF_DistGridCreate(minIndexPTile=minIndexPTile, &
+                     distgrid = ESMF_DistGridCreate(minIndexPTile=minIndexPTile, &
                           maxIndexPTile=maxIndexPTile, connectionList=connectionList, rc=rc)
                      if (ChkErr(rc,__LINE__,u_FILE_u)) return
-                     if (mastertask) then
-                        write(logunit,'(a)')trim(subname)//trim(string)//': distgrid with dimcount=2'
-                     end if
+                     call ESMF_LogWrite(trim(subname)//trim(string)//': distgrid with dimcount=2', ESMF_LOGMSG_INFO)
                      grid = ESMF_GridCreate(distgrid, gridEdgeLWidth=(/0,0/), gridEdgeUWidth=(/0,1/), rc=rc)
                      if (ChkErr(rc,__LINE__,u_FILE_u)) return
                      deallocate(connectionList)
                   else
-                     newdistgrid = ESMF_DistGridCreate(minIndexPTile=minIndexPTile, maxIndexPTile=maxIndexPTile, rc=rc)
+                     distgrid = ESMF_DistGridCreate(minIndexPTile=minIndexPTile, &
+                          maxIndexPTile=maxIndexPTile, rc=rc)
                      if (ChkErr(rc,__LINE__,u_FILE_u)) return
-                     if (mastertask) then
-                        write(logunit,'(a)')trim(subname)//trim(string)//': distgrid with dimcount=1'
-                     end if
-                     grid = ESMF_GridCreate(newdistgrid, gridEdgeLWidth=(/0/), gridEdgeUWidth=(/0/), rc=rc)
+                     call ESMF_LogWrite(trim(subname)//trim(string)//': distgrid with dimcount=1', ESMF_LOGMSG_INFO)
+                     grid = ESMF_GridCreate(distgrid, gridEdgeLWidth=(/0/), gridEdgeUWidth=(/0/), rc=rc)
                      if (ChkErr(rc,__LINE__,u_FILE_u)) return
                   endif
+
+                  ! local clean-up
                   deallocate(minIndexPTile, maxIndexPTile)
 
                endif  ! arbdimCount
 
                ! Swap all the Grids in the State
-               do n1 = 1,fieldCount
+               do n1=1, fieldCount
                   ! access a field in the State and set the Grid
                   call ESMF_StateGet(State, field=field, itemName=fieldNameList(n1), rc=rc)
                   if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
                   call ESMF_FieldGet(field, status=fieldStatus, rc=rc)
                   if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
                   if (fieldStatus==ESMF_FIELDSTATUS_EMPTY .or. fieldStatus==ESMF_FIELDSTATUS_GRIDSET) then
                      call ESMF_FieldEmptySet(field, grid=grid, rc=rc)
                      if (ChkErr(rc,__LINE__,u_FILE_u)) return
-                     if (mastertask) then
-                        write(logunit,'(a)') trim(subname)//trim(string)//": attach grid for "//trim(fieldNameList(n1))
-                     end if
+
                      call ESMF_LogWrite(trim(subname)//trim(string)//": attach grid for "//trim(fieldNameList(n1)), &
                           ESMF_LOGMSG_INFO)
+
                      if (dbug_flag > 1) then
                         call Field_GeomPrint(field,trim(fieldNameList(n1))//'_new',rc)
                         if (ChkErr(rc,__LINE__,u_FILE_u)) return
                      end if
                   else
-                     if (mastertask) then
-                        write(logunit,'(a)') trim(subname)//trim(string)//": NOT replaing grid for "//trim(fieldNameList(n1))
-                     end if
                      call ESMF_LogWrite(trim(subname)//trim(string)//": NOT replacing grid for field: "//&
                           trim(fieldNameList(n1)), ESMF_LOGMSG_WARNING)
                   endif
                enddo
 
-            ! --------------------------------------------
-            else if (geomtype == ESMF_GEOMTYPE_MESH) then
-            ! --------------------------------------------
+
+            elseif (geomtype == ESMF_GEOMTYPE_MESH) then
 
                call ESMF_LogWrite(trim(subname)//": geomtype is ESMF_GEOMTYPE_MESH for "//trim(fieldnameList(n)), &
                     ESMF_LOGMSG_INFO)
+
                if (dbug_flag > 1) then
                   call Field_GeomPrint(field,trim(fieldNameList(n))//'_orig',rc)
                   if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -1335,10 +1319,23 @@ contains
 
                call ESMF_FieldGet(field, mesh=mesh, rc=rc)
                if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
                call ESMF_MeshGet(mesh, elementDistGrid=elemDistGrid, rc=rc)
                if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
                newelemDistGrid = ESMF_DistGridCreate(elemDistGrid, balanceflag=.true., rc=rc)
                if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+               ! call ESMF_MeshGet(mesh, nodalDistGrid=nodalDistGrid, rc=rc)
+               ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+               ! newnodalDistGrid = ESMF_DistGridCreate(nodalDistGrid, balanceflag=.true., rc=rc)
+               ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+               ! Create a new Grid on the new DistGrid and swap it in the Field
+               ! newmesh = ESMF_MeshEmptyCreate(elementDistGrid=newelemDistGrid, nodalDistGrid=newnodalDistGrid, rc=rc)
+               ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
                newmesh = ESMF_MeshEmptyCreate(elementDistGrid=newelemDistGrid, rc=rc)
                if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
@@ -1347,13 +1344,17 @@ contains
                   ! access a field in the State and set the Mesh
                   call ESMF_StateGet(State, field=field, itemName=fieldNameList(n1), rc=rc)
                   if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
                   call ESMF_FieldGet(field, status=fieldStatus, rc=rc)
                   if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
                   if (fieldStatus==ESMF_FIELDSTATUS_EMPTY .or. fieldStatus==ESMF_FIELDSTATUS_GRIDSET) then
                      call ESMF_FieldEmptySet(field, mesh=newmesh, rc=rc)
                      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
                      call ESMF_LogWrite(trim(subname)//trim(string)//": attach mesh for "//&
                           trim(fieldNameList(n1)), ESMF_LOGMSG_INFO)
+
                      if (dbug_flag > 1) then
                         call Field_GeomPrint(field,trim(fieldNameList(n1))//'_new',rc)
                         if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -1364,9 +1365,33 @@ contains
                   endif
                enddo
 
-            endif ! end geomtype
-         end if ! end fieldstatus
-      enddo   ! end nflds
+            else  ! geomtype
+
+               call ESMF_LogWrite(trim(subname)//": ERROR geomtype not supported ", ESMF_LOGMSG_INFO)
+               rc=ESMF_FAILURE
+               return
+
+            endif ! geomtype
+
+         elseif (fieldStatus==ESMF_FIELDSTATUS_EMPTY) then
+
+            call ESMF_LogWrite(trim(subname)//trim(string)//": provide grid for "//trim(fieldNameList(n)), &
+                 ESMF_LOGMSG_INFO)
+
+         elseif (fieldStatus==ESMF_FIELDSTATUS_COMPLETE) then
+
+            call ESMF_LogWrite(trim(subname)//trim(string)//": no grid provided for "//trim(fieldNameList(n)), &
+                 ESMF_LOGMSG_INFO)
+
+         else
+
+            call ESMF_LogWrite(trim(subname)//": ERROR fieldStatus not supported ", ESMF_LOGMSG_INFO)
+            rc=ESMF_FAILURE
+            return
+
+         endif   ! fieldStatus
+
+      enddo   ! nflds
 
       deallocate(fieldNameList)
 
