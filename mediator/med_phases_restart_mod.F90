@@ -11,8 +11,10 @@ module med_phases_restart_mod
   use med_internalstate_mod , only : mastertask, logunit, InternalState
   use med_phases_history_mod, only : num_auxfiles, auxfiles
   use med_time_mod          , only : med_time_AlarmInit
-  use esmFlds               , only : ncomps, compname, compocn
+  use esmFlds               , only : ncomps, compname, compocn, complnd
   use perf_mod              , only : t_startf, t_stopf
+  use med_phases_prep_glc_mod, only : FBlndAccum2glc_l, lndAccum2glc_cnt
+  use med_phases_prep_glc_mod, only : FBocnAccum2glc_o, ocnAccum2glc_cnt
 
   implicit none
   private
@@ -21,7 +23,8 @@ module med_phases_restart_mod
   public  :: med_phases_restart_write
 
   private :: med_phases_restart_alarm_init
-
+  logical :: write_restart_at_endofrun = .false.
+  
   character(*), parameter :: u_FILE_u  = &
        __FILE__
 
@@ -61,6 +64,8 @@ contains
     character(CL)           :: cvalue          ! attribute string
     character(CL)           :: restart_option  ! freq_option setting (ndays, nsteps, etc)
     integer                 :: restart_n       ! freq_n setting relative to freq_option
+    logical                 :: isPresent
+    logical                 :: isSet
     character(len=*), parameter :: subname='(med_phases_restart_alarm_init)'
     !---------------------------------------
 
@@ -106,6 +111,15 @@ contains
     call ESMF_ClockSet(mclock, currTime=mcurrtime, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+    !--------------------------------
+    ! Handle end of run restart
+    !--------------------------------
+    call NUOPC_CompAttributeGet(gcomp, name="write_restart_at_endofrun", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+       if (trim(cvalue) .eq. '.true.') write_restart_at_endofrun = .true.
+    end if
+
     ! -----------------------------
     ! Write mediator diagnostic output
     ! -----------------------------
@@ -115,6 +129,7 @@ contains
        write(logunit,100) trim(subname)//" restart clock timestep = ",timestep_length
        write(logunit,100) trim(subname)//" set restart alarm with option "//&
             trim(restart_option)//" and frequency ",restart_n
+       write(logunit,*) "write_restart_at_endofrun : ", write_restart_at_endofrun
 100    format(a,2x,i8)
        write(logunit,*)
     end if
@@ -150,6 +165,7 @@ contains
     type(ESMF_Time)            :: starttime
     type(ESMF_Time)            :: currtime
     type(ESMF_Time)            :: nexttime
+    type(ESMF_Time), save      :: lasttimewritten
     type(ESMF_TimeInterval)    :: timediff       ! Used to calculate curr_time
     type(ESMF_Alarm)           :: alarm
     type(ESMF_Calendar)        :: calendar
@@ -252,9 +268,18 @@ contains
        call ESMF_AlarmRingerOff( alarm, rc=rc )
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     else
-       AlarmIsOn = .false.
+       !---------------------------------------
+       ! --- Stop Alarm
+       !---------------------------------------
+       
+       call ESMF_ClockGetAlarm(clock, alarmname='alarm_stop', alarm=alarm, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       if (ESMF_AlarmIsRinging(alarm, rc=rc).and.write_restart_at_endofrun) then    
+          AlarmIsOn = .true.
+       else
+          AlarmIsOn = .false.
+       endif
     endif
-
     if (alarmIsOn) then
        call ESMF_ClockGet(clock, currtime=currtime, starttime=starttime, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -364,10 +389,10 @@ contains
           call med_io_write(restart_file, iam, next_tod , 'curr_tod' , whead=whead, wdata=wdata, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-          call med_io_write(restart_file, iam, is_local%wrap%FBExpAccumCnt, dname='ExpAccumCnt', &
+          call med_io_write(restart_file, iam, is_local%wrap%FBExpAccumCnt, 'ExpAccumCnt', &
                whead=whead, wdata=wdata, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          call med_io_write(restart_file, iam, is_local%wrap%FBImpAccumCnt, dname='ImpAccumCnt', &
+          call med_io_write(restart_file, iam, is_local%wrap%FBImpAccumCnt, 'ImpAccumCnt', &
                whead=whead, wdata=wdata, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
@@ -389,10 +414,6 @@ contains
 
                 ! Write export field bundles
                 if (ESMF_FieldBundleIsCreated(is_local%wrap%FBexp(n),rc=rc)) then
-                   if (dbug_flag > 5) then
-                      write(tmpstr,*) subname,' nx,ny = ',trim(compname(n)),nx,ny
-                      call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
-                   end if
                    call med_io_write(restart_file, iam, is_local%wrap%FBexp(n), &
                        nx=nx, ny=ny, nt=1, whead=whead, wdata=wdata, pre=trim(compname(n))//'Exp', rc=rc)
                    if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -406,23 +427,46 @@ contains
                 endif
 
                 ! Write export field bundle accumulators
+                ! TODO: only write this out if actually have done accumulation
                 if (ESMF_FieldBundleIsCreated(is_local%wrap%FBExpAccum(n),rc=rc)) then
-                   ! TODO: only write this out if actually have done accumulation
                    call med_io_write(restart_file, iam,  is_local%wrap%FBExpAccum(n), &
                        nx=nx, ny=ny, nt=1, whead=whead, wdata=wdata, pre=trim(compname(n))//'ExpAccum', rc=rc)
                    if (ChkErr(rc,__LINE__,u_FILE_u)) return
                 endif
 
                 ! Write import field bundle accumulators
+                ! TODO: only write this out if actually have done accumulation
                 if (ESMF_FieldBundleIsCreated(is_local%wrap%FBImpAccum(n,n),rc=rc)) then
-                   ! TODO: only write this out if actually have done accumulation
                    call med_io_write(restart_file, iam,  is_local%wrap%FBImpAccum(n,n), &
                        nx=nx, ny=ny, nt=1, whead=whead, wdata=wdata, pre=trim(compname(n))//'ImpAccum', rc=rc)
                    if (ChkErr(rc,__LINE__,u_FILE_u)) return
                 endif
-
              endif
           enddo
+
+          ! Write write accumulation from lnd to glc if lnd->glc coupling is on
+          if (ESMF_FieldBundleIsCreated(FBlndAccum2glc_l)) then
+             nx = is_local%wrap%nx(complnd)
+             ny = is_local%wrap%ny(complnd)
+             call med_io_write(restart_file, iam, FBlndAccum2glc_l, &
+                  nx=nx, ny=ny, nt=1, whead=whead, wdata=wdata, pre='lndImpAccum2glc', rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             call med_io_write(restart_file, iam, lndAccum2glc_cnt, 'lndImpAccum2glc_cnt', &
+                  whead=whead, wdata=wdata, rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          end if
+
+          ! Write write accumulation from ocn to glc if ocn->glc coupling is on
+          if (ESMF_FieldBundleIsCreated(FBocnAccum2glc_o)) then
+             nx = is_local%wrap%nx(compocn)
+             ny = is_local%wrap%ny(compocn)
+             call med_io_write(restart_file, iam, FBocnAccum2glc_o, &
+                  nx=nx, ny=ny, nt=1, whead=whead, wdata=wdata, pre='ocnImpAccum2glc_o', rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             call med_io_write(restart_file, iam, ocnAccum2glc_cnt, 'ocnImpAccum2glc_cnt', &
+                  whead=whead, wdata=wdata, rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          end if
 
           ! Write ocn albedo field bundle (CESM only)
           if (ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_ocnalb_o,rc=rc)) then
@@ -450,7 +494,7 @@ contains
              end do
           end do
 
-       enddo
+       enddo ! end of whead/wdata loop
 
        ! Close file
        call med_io_close(restart_file, iam, rc=rc)
@@ -460,7 +504,7 @@ contains
     !---------------------------------------
     !--- clean up
     !---------------------------------------
-
+    lasttimewritten = currtime
     if (dbug_flag > 5) then
        call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
     endif
@@ -468,8 +512,7 @@ contains
 
   end subroutine med_phases_restart_write
 
-  !===============================================================================
-
+  !=============================================================================== 
   subroutine med_phases_restart_read(gcomp, rc)
 
     ! Read mediator restart
@@ -584,9 +627,9 @@ contains
 
     ! Now read in the restart file
 
-    call med_io_read(restart_file, vm, iam, is_local%wrap%FBExpAccumCnt, dname='ExpAccumCnt', rc=rc)
+    call med_io_read(restart_file, vm, iam, is_local%wrap%FBExpAccumCnt, 'ExpAccumCnt', rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call med_io_read(restart_file, vm, iam, is_local%wrap%FBImpAccumCnt, dname='ImpAccumCnt', rc=rc)
+    call med_io_read(restart_file, vm, iam, is_local%wrap%FBImpAccumCnt, 'ImpAccumCnt', rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     do n = 1,ncomps
@@ -622,6 +665,22 @@ contains
           endif
        endif
     enddo
+
+    ! If lnd->glc, read accumulation from lnd to glc (CESM only)
+    if (ESMF_FieldBundleIsCreated(FBlndAccum2glc_l)) then
+       call med_io_read(restart_file, vm, iam, FBlndAccum2glc_l, pre='lndImpAccum2glc', rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call med_io_read(restart_file, vm, iam, lndAccum2glc_cnt, 'lndImpAccum2glc_cnt', rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    end if
+
+    ! If ocn->glc, read accumulation from ocn to glc (CESM only)
+    if (ESMF_FieldBundleIsCreated(FBocnAccum2glc_o)) then
+       call med_io_read(restart_file, vm, iam, FBocnAccum2glc_o, pre='ocnImpAccum2glc', rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call med_io_read(restart_file, vm, iam, ocnAccum2glc_cnt, 'ocnImpAccum2glc_cnt', rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    end if
 
     ! Read ocn albedo field bundle (CESM only)
     if (ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_ocnalb_o,rc=rc)) then

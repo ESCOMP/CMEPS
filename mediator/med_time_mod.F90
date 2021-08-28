@@ -38,6 +38,7 @@ module med_time_mod
        optMonthly        = "monthly"   , &
        optYearly         = "yearly"    , &
        optDate           = "date"      , &
+       optEnd            = "end"       , &
        optGLCCouplingPeriod = "glc_coupling_period"
 
   ! Module data
@@ -154,6 +155,20 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        update_nextalarm  = .false.
 
+    case (optNever)
+       call ESMF_TimeIntervalSet(AlarmInterval, yy=9999, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_TimeSet( NextAlarm, yy=9999, mm=12, dd=1, s=0, calendar=cal, rc=rc )
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       update_nextalarm  = .false.
+
+    case (optEnd)
+       call ESMF_TimeIntervalSet(AlarmInterval, yy=9999, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_TimeSet( NextAlarm, yy=9999, mm=12, dd=1, s=0, calendar=cal, rc=rc )
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       update_nextalarm  = .false.
+
    case (optDate)
       call ESMF_TimeIntervalSet(AlarmInterval, yy=9999, rc=rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -162,13 +177,6 @@ contains
       call ESMF_TimeSet( NextAlarm, yy=cyy, mm=cmm, dd=cdd, s=ltod, calendar=cal, rc=rc )
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
       update_nextalarm  = .false.
-
-    case (optNever)
-       call ESMF_TimeIntervalSet(AlarmInterval, yy=9999, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_TimeSet( NextAlarm, yy=9999, mm=12, dd=1, s=0, calendar=cal, rc=rc )
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       update_nextalarm  = .false.
 
     case (optNSteps)
        call ESMF_ClockGet(clock, TimeStep=AlarmInterval, rc=rc)
@@ -224,7 +232,6 @@ contains
        call ESMF_TimeSet( NextAlarm, yy=cyy, mm=1, dd=1, s=0, calendar=cal, rc=rc )
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        update_nextalarm  = .true.
-
     case default
        call ESMF_LogWrite(subname//'unknown option '//trim(option), ESMF_LOGMSG_ERROR)
        rc = ESMF_FAILURE

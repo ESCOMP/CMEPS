@@ -359,6 +359,16 @@
   <!-- All components orbital attributes           -->
   <!-- =========================================== -->
 
+  <entry id="write_restart_at_endofrun">
+    <type>logical</type>
+    <category>nuopc</category>
+    <group>ALLCOMP_attributes</group>
+    <values>
+      <value>.false.</value>
+      <value rest_option="end">.true.</value>
+    </values>
+  </entry>
+
   <entry id="Profiling" modify_via_xml="ESMF_PROFILING_LEVEL">
     <type>char</type>
     <category>nuopc</category>
@@ -1136,13 +1146,13 @@
     <type>char</type>
     <category>mapping</category>
     <group>MED_attributes</group>
-    <valid_values>ocn,atm,exch</valid_values>
+    <valid_values>ogrid,agrid,xgrid</valid_values>
     <desc>
       Grid for atm ocn flux calc (untested)
       default: ocn
     </desc>
     <values>
-      <value>ocn</value>
+      <value>ogrid</value>
     </values>
   </entry>
 
@@ -2242,251 +2252,100 @@
     to 3d cartesian space, map from src->dest, then rotate back</desc>
     <values>
       <value>.true.</value>
+      <value samegrid_atm_ocn='true'>.false.</value>
     </values>
   </entry>
 
-  <entry id="atm2ocn_fmapname" modify_via_xml="ATM2OCN_FMAPNAME">
+  <entry id="atm2ocn_map">
+    <type>char</type>
+    <category>mapping</category>
+    <group>MED_attributes</group>
+    <desc>atm to ocn mapping, 'unset' or 'idmap' are normal possible values</desc>
+    <values>
+      <value>unset</value> 
+      <value samegrid_atm_ocn='true'>idmap</value>
+    </values>
+  </entry>
+  <entry id="atm2ice_map">
+    <type>char</type>
+    <category>mapping</category>
+    <group>MED_attributes</group>
+    <desc>atm to ocn mapping, 'unset' or 'idmap' are normal possible values</desc>
+    <values>
+      <value>unset</value> 
+      <value samegrid_atm_ice='true'>idmap</value>
+    </values>
+  </entry>
+  <entry id="atm2lnd_map">
+    <type>char</type>
+    <category>mapping</category>
+    <group>MED_attributes</group>
+    <desc>atm to lnd mapping, 'unset' or 'idmap' are normal possible values</desc>
+    <values>
+      <value>unset</value> 
+      <value samegrid_atm_lnd='true'>idmap</value>
+    </values>
+  </entry>
+  <entry id="ocn2atm_map">
+    <type>char</type>
+    <category>mapping</category>
+    <group>MED_attributes</group>
+    <desc>ocn to atm mapping, 'unset' or 'idmap' are normal possible values</desc>
+    <values>
+      <value>unset</value> 
+      <value samegrid_atm_ocn='true'>idmap</value>
+    </values>
+  </entry>
+  <entry id="ice2atm_map">
+    <type>char</type>
+    <category>mapping</category>
+    <group>MED_attributes</group>
+    <desc>ice to atm mapping, 'unset' or 'idmap' are normal possible values</desc>
+    <values>
+      <value>unset</value> 
+      <value samegrid_atm_ice='true'>idmap</value>
+    </values>
+  </entry>
+  <entry id="lnd2atm_map">
+    <type>char</type>
+    <category>mapping</category>
+    <group>MED_attributes</group>
+    <desc>lnd to atm mapping, 'unset' or 'idmap' are normal possible values</desc>
+    <values>
+      <value>unset</value> 
+      <value samegrid_atm_lnd='true'>idmap</value>
+    </values>
+  </entry>
+  <entry id="lnd2rof_map">
     <type>char</type>
     <category>mapping</category>
     <input_pathname>abs</input_pathname>
     <group>MED_attributes</group>
-    <desc>atm to ocn flux mapping file for fluxes</desc>
+    <desc>lnd to rof mapping, 'unset' or 'idmap' are normal possible values</desc>
     <values>
-      <value>$ATM2OCN_FMAPNAME</value>
+      <value>unset</value> 
+      <value samegrid_lnd_rof='true'>idmap</value>
     </values>
   </entry>
-
-  <entry id="atm2ocn_smapname" modify_via_xml="ATM2OCN_SMAPNAME">
+  <entry id="rof2lnd_map">
     <type>char</type>
     <category>mapping</category>
     <input_pathname>abs</input_pathname>
     <group>MED_attributes</group>
-    <desc>
-      atm to ocn state mapping file for states
-    </desc>
+    <desc>rof to lnd mapping, 'unset' or 'idmap' are normal possible values</desc>
     <values>
-      <value>$ATM2OCN_SMAPNAME</value>
+      <value>unset</value> 
+      <value samegrid_lnd_rof='true'>idmap</value>
     </values>
   </entry>
-
-  <entry id="atm2ocn_vmapname"    modify_via_xml="ATM2OCN_VMAPNAME">
+  <entry id="atm2wav_map">
     <type>char</type>
     <category>mapping</category>
-    <input_pathname>abs</input_pathname>
     <group>MED_attributes</group>
-    <desc>
-      atm to ocn state mapping file for velocity
-    </desc>
+    <desc>atm to wav mapping, 'unset' or 'idmap' are normal possible values</desc>
     <values>
-      <value>$ATM2OCN_VMAPNAME</value>
-    </values>
-  </entry>
-
-  <entry id="ocn2atm_fmapname"    modify_via_xml="OCN2ATM_FMAPNAME">
-    <type>char</type>
-    <category>mapping</category>
-    <input_pathname>abs</input_pathname>
-    <group>MED_attributes</group>
-    <desc>
-      ocn to atm mapping file for fluxes
-    </desc>
-    <values>
-      <value>$OCN2ATM_FMAPNAME</value>
-    </values>
-  </entry>
-
-  <entry id="ocn2atm_smapname"    modify_via_xml="OCN2ATM_SMAPNAME">
-    <type>char</type>
-    <category>mapping</category>
-    <input_pathname>abs</input_pathname>
-    <group>MED_attributes</group>
-    <desc>
-      ocn to atm mapping file for states
-    </desc>
-    <values>
-      <value>$OCN2ATM_SMAPNAME</value>
-    </values>
-  </entry>
-
-  <entry id="atm2ice_fmapname"    modify_via_xml="ATM2ICE_FMAPNAME">
-    <type>char</type>
-    <category>mapping</category>
-    <input_pathname>abs</input_pathname>
-    <group>MED_attributes</group>
-    <desc>
-      atm to ice flux mapping file for fluxes
-    </desc>
-    <values>
-      <value>$ATM2OCN_FMAPNAME</value>
-    </values>
-  </entry>
-
-  <entry id="atm2ice_smapname"    modify_via_xml="ATM2ICE_SMAPNAME">
-    <type>char</type>
-    <category>mapping</category>
-    <input_pathname>abs</input_pathname>
-    <group>MED_attributes</group>
-    <desc>
-      atm to ice state mapping file for states
-    </desc>
-    <values>
-      <value>$ATM2OCN_SMAPNAME</value>
-    </values>
-  </entry>
-
-  <entry id="atm2ice_vmapname"    modify_via_xml="ATM2ICE_VMAPNAME">
-    <type>char</type>
-    <category>mapping</category>
-    <input_pathname>abs</input_pathname>
-    <group>MED_attributes</group>
-    <desc>
-      atm to ice state mapping file for velocity
-    </desc>
-    <values>
-      <value>$ATM2OCN_VMAPNAME</value>
-    </values>
-  </entry>
-
-  <entry id="ice2atm_fmapname"    modify_via_xml="ICE2ATM_FMAPNAME">
-    <type>char</type>
-    <category>mapping</category>
-    <input_pathname>abs</input_pathname>
-    <group>MED_attributes</group>
-    <desc>
-      ice to atm mapping file for fluxes
-    </desc>
-    <values>
-      <value>$OCN2ATM_FMAPNAME</value>
-    </values>
-  </entry>
-
-  <entry id="ice2atm_smapname"    modify_via_xml="ICE2ATM_FMAPNAME">
-    <type>char</type>
-    <category>mapping</category>
-    <input_pathname>abs</input_pathname>
-    <group>MED_attributes</group>
-    <desc>
-      ice to atm mapping file for states
-    </desc>
-    <values>
-      <value>$OCN2ATM_SMAPNAME</value>
-    </values>
-  </entry>
-
-  <entry id="atm2lnd_fmapname"    modify_via_xml="ATM2LND_FMAPNAME">
-    <type>char</type>
-    <category>mapping</category>
-    <input_pathname>abs</input_pathname>
-    <group>MED_attributes</group>
-    <desc>
-      atm to land mapping file for fluxes
-    </desc>
-    <values>
-      <value>$ATM2LND_FMAPNAME</value>
-    </values>
-  </entry>
-
-  <entry id="atm2lnd_smapname"    modify_via_xml="ATM2LND_SMAPNAME">
-    <type>char</type>
-    <category>mapping</category>
-    <input_pathname>abs</input_pathname>
-    <group>MED_attributes</group>
-    <desc>
-      atm to land mapping file for states
-    </desc>
-    <values>
-      <value>$ATM2LND_SMAPNAME</value>
-    </values>
-  </entry>
-
-  <entry id="atm2lnd_vmapname"    modify_via_xml="ATM2LND_SMAPNAME">
-    <type>char</type>
-    <category>mapping</category>
-    <input_pathname>abs</input_pathname>
-    <group>MED_attributes</group>
-    <desc>
-      atm to land mapping file for states
-    </desc>
-    <values>
-      <value>$ATM2LND_SMAPNAME</value>
-    </values>
-  </entry>
-
-  <entry id="lnd2atm_fmapname"    modify_via_xml="LND2ATM_FMAPNAME">
-    <type>char</type>
-    <category>mapping</category>
-    <input_pathname>abs</input_pathname>
-    <group>MED_attributes</group>
-    <desc>
-      land to atm mapping file for fluxes
-    </desc>
-    <values>
-      <value>$LND2ATM_FMAPNAME</value>
-    </values>
-  </entry>
-
-  <entry id="lnd2atm_smapname"    modify_via_xml="LND2ATM_SMAPNAME">
-    <type>char</type>
-    <category>mapping</category>
-    <input_pathname>abs</input_pathname>
-    <group>MED_attributes</group>
-    <desc>
-      land to atm mapping file for states
-    </desc>
-    <values>
-      <value>$LND2ATM_SMAPNAME</value>
-    </values>
-  </entry>
-
-  <entry id="lnd2rof_fmapname"    modify_via_xml="LND2ROF_FMAPNAME">
-    <type>char</type>
-    <category>mapping</category>
-    <input_pathname>abs</input_pathname>
-    <group>MED_attributes</group>
-    <desc>
-      lnd to runoff conservative mapping file
-    </desc>
-    <values>
-      <value>$LND2ROF_FMAPNAME</value>
-    </values>
-  </entry>
-
-  <entry id="rof2lnd_smapname"    modify_via_xml="ROF2LND_FMAPNAME">
-    <type>char</type>
-    <category>mapping</category>
-    <input_pathname>abs</input_pathname>
-    <group>MED_attributes</group>
-    <desc>
-      runoff to lnd conservative mapping file
-    </desc>
-    <values>
-      <value>$ROF2LND_FMAPNAME</value>
-    </values>
-  </entry>
-
-  <entry id="rof2lnd_fmapname"    modify_via_xml="ROF2LND_FMAPNAME">
-    <type>char</type>
-    <category>mapping</category>
-    <input_pathname>abs</input_pathname>
-    <group>MED_attributes</group>
-    <desc>
-      runoff to lnd conservative mapping file
-    </desc>
-    <values>
-      <value>$ROF2LND_FMAPNAME</value>
-    </values>
-  </entry>
-
-  <entry id="rof2ocn_fmapname"    modify_via_xml="ROF2OCN_FMAPNAME">
-    <type>char</type>
-    <category>mapping</category>
-    <input_pathname>abs</input_pathname>
-    <group>MED_attributes</group>
-    <desc>
-      runoff to ocn area overlap conservative mapping file
-    </desc>
-    <values>
-      <value>$ROF2OCN_FMAPNAME</value>
+      <value>unset</value> 
+      <value samegrid_atm_wav='true'>idmap</value>
     </values>
   </entry>
 
@@ -2502,7 +2361,6 @@
       <value>$GLC2OCN_LIQ_RMAPNAME</value>
     </values>
   </entry>
-
   <entry id="glc2ice_rmapname"    modify_via_xml="GLC2ICE_RMAPNAME">
     <type>char</type>
     <category>mapping</category>
@@ -2515,7 +2373,6 @@
       <value>$GLC2ICE_RMAPNAME</value>
     </values>
   </entry>
-
   <entry id="glc2ocn_ice_rmapname"    modify_via_xml="GLC2OCN_ICE_RMAPNAME">
     <type>char</type>
     <category>mapping</category>
@@ -2528,7 +2385,18 @@
       <value>$GLC2OCN_ICE_RMAPNAME</value>
     </values>
   </entry>
-
+  <entry id="rof2ocn_fmapname"    modify_via_xml="ROF2OCN_FMAPNAME">
+    <type>char</type>
+    <category>mapping</category>
+    <input_pathname>abs</input_pathname>
+    <group>MED_attributes</group>
+    <desc>
+      runoff to ocn area overlap conservative mapping file
+    </desc>
+    <values>
+      <value>$ROF2OCN_FMAPNAME</value>
+    </values>
+  </entry>
   <entry id="rof2ocn_liq_rmapname"    modify_via_xml="ROF2OCN_LIQ_RMAPNAME">
     <type>char</type>
     <category>mapping</category>
@@ -2541,7 +2409,6 @@
       <value>$ROF2OCN_LIQ_RMAPNAME</value>
     </values>
   </entry>
-
   <entry id="rof2ocn_ice_rmapname"    modify_via_xml="ROF2OCN_ICE_RMAPNAME">
     <type>char</type>
     <category>mapping</category>
@@ -2554,82 +2421,6 @@
       <value>$ROF2OCN_ICE_RMAPNAME</value>
     </values>
   </entry>
-
-  <entry id="lnd2glc_fmapname"    modify_via_xml="LND2GLC_FMAPNAME">
-    <type>char</type>
-    <category>mapping</category>
-    <input_pathname>abs</input_pathname>
-    <group>MED_attributes</group>
-    <desc>
-      land to glc mapping file for fluxes
-    </desc>
-    <values>
-      <value>$LND2GLC_FMAPNAME</value>
-    </values>
-  </entry>
-  <entry id="lnd2glc_smapname"    modify_via_xml="LND2GLC_SMAPNAME">
-    <type>char</type>
-    <category>mapping</category>
-    <input_pathname>abs</input_pathname>
-    <group>MED_attributes</group>
-    <desc>
-      land to glc mapping file for states
-    </desc>
-    <values>
-      <value>$LND2GLC_SMAPNAME</value>
-    </values>
-  </entry>
-  <entry id="glc2lnd_fmapname"    modify_via_xml="GLC2LND_FMAPNAME">
-    <type>char</type>
-    <category>mapping</category>
-    <input_pathname>abs</input_pathname>
-    <group>MED_attributes</group>
-    <desc>
-      glc to land mapping file for fluxes
-    </desc>
-    <values>
-      <value>$GLC2LND_FMAPNAME</value>
-    </values>
-  </entry>
-  <entry id="glc2lnd_smapname"    modify_via_xml="GLC2LND_SMAPNAME">
-    <type>char</type>
-    <category>mapping</category>
-    <input_pathname>abs</input_pathname>
-    <group>MED_attributes</group>
-    <desc>
-      glc to land mapping file for states
-    </desc>
-    <values>
-      <value>$GLC2LND_SMAPNAME</value>
-    </values>
-  </entry>
-
-  <entry id="atm2wav_smapname"    modify_via_xml="ATM2WAV_SMAPNAME">
-    <type>char</type>
-    <category>mapping</category>
-    <input_pathname>abs</input_pathname>
-    <group>MED_attributes</group>
-    <desc>
-      atm to wav state mapping file for states
-    </desc>
-    <values>
-      <value>$ATM2WAV_SMAPNAME</value>
-    </values>
-  </entry>
-
-  <entry id="atm2wav_vmapname"    modify_via_xml="ATM2WAV_SMAPNAME">
-    <type>char</type>
-    <category>mapping</category>
-    <input_pathname>abs</input_pathname>
-    <group>MED_attributes</group>
-    <desc>
-      atm to wav state mapping file for states
-    </desc>
-    <values>
-      <value>$ATM2WAV_SMAPNAME</value>
-    </values>
-  </entry>
-
   <entry id="ocn2wav_smapname"    modify_via_xml="OCN2WAV_SMAPNAME">
     <type>char</type>
     <category>mapping</category>
@@ -2642,7 +2433,6 @@
       <value>$OCN2WAV_SMAPNAME</value>
     </values>
   </entry>
-
   <entry id="ice2wav_smapname"    modify_via_xml="ICE2WAV_SMAPNAME">
     <type>char</type>
     <category>mapping</category>
@@ -2655,7 +2445,6 @@
       <value>$ICE2WAV_SMAPNAME</value>
     </values>
   </entry>
-
   <entry id="wav2ocn_smapname"    modify_via_xml="WAV2OCN_SMAPNAME">
     <type>char</type>
     <category>mapping</category>
