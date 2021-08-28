@@ -584,6 +584,9 @@ contains
     type(ESMF_Clock)    :: med_clock
     type(ESMF_Time)     :: med_currtime
     type(ESMF_Time)     :: prepglc_currtime
+    type(ESMF_ALARM)    :: glc_avg_alarm
+    character(len=CS)   :: glc_avg_period
+    integer             :: glc_cpl_dt
     integer             :: yr_med, mon_med, day_med, sec_med
     integer             :: yr_prepglc, mon_prepglc, day_prepglc, sec_prepglc
     type(ESMF_Alarm)    :: alarm
