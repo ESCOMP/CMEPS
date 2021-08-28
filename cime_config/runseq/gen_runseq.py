@@ -49,12 +49,6 @@ class RunSeq:
         if leave_time and self.__time_loop:
             _, active_depth = self.__time_loop.pop()
             if if_write_hist_rest or active_depth == 0:
-<<<<<<< HEAD
-                self.__outfile.write ("  MED med_phases_history_write \n" )
-                self.__outfile.write ("  MED med_phases_restart_write \n" )
-                self.__outfile.write ("  MED med_phases_profile       \n" )
-            self.__outfile.write ("@ \n" )
-=======
                 self.__outfile.write ("  MED med_phases_history_write        \n" )
                 self.__outfile.write ("  MED med_phases_restart_write        \n" )
                 self.__outfile.write ("  MED med_phases_profile              \n" )
@@ -62,7 +56,6 @@ class RunSeq:
                 self.__outfile.write ("@@ \n" )
             else:
                 self.__outfile.write ("@ \n" )
->>>>>>> master
 
     def __exit_sequence(self):
         while self.__time_loop:
