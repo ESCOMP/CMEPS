@@ -49,18 +49,13 @@ def gen_runseq(case, coupling_times):
         post_glc = True
 
     # Note: assume that atm_cpl_dt, lnd_cpl_dt, ice_cpl_dt and wav_cpl_dt are the same
+
     if lnd_cpl_time != atm_cpl_time:
         expect(False, "assume that lnd_cpl_time is equal to atm_cpl_time")
     if ice_cpl_time != atm_cpl_time:
         expect(False, "assume that ice_cpl_time is equal to atm_cpl_time")
     if wav_cpl_time != atm_cpl_time:
         expect(False, "assume that wav_cpl_time is equal to atm_cpl_time")
-
-    # assume that atm coupling time is always less than or equal to ocean coupling time
-    if atm_cpl_time > ocn_cpl_time:
-        expect(False, "assume that atm_cpl_time is always less or equal to ocn_cpl_time")
-
-    # assume that rof coupling time is always greater than or equal to ocean coupling time
     if rof_cpl_time < ocn_cpl_time:
         expect(False, "assume that rof_cpl_time is always greater than or equal to ocn_cpl_time")
 
