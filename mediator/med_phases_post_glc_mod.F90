@@ -85,6 +85,8 @@ contains
 
   subroutine med_phases_post_glc(gcomp, rc)
 
+    use med_phases_history_mod, only : med_phases_history_write_glc
+
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc
@@ -212,6 +214,10 @@ contains
 
     ! Reset first call logical
     first_call = .false.
+
+    ! Write glc inst, avg or aux if requested in mediator attributes
+    call med_phases_history_write_glc(gcomp, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if (dbug_flag > 20) then
        call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)

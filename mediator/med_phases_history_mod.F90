@@ -81,7 +81,9 @@ module med_phases_history_mod
   character(CL) :: case_name = 'unset'  ! case name
   character(CS) :: inst_tag = 'unset'   ! instance tag
 
+  ! ----------------------------
   ! Time averaging history files
+  ! ----------------------------
   type, public :: avgfile_type
      type(ESMF_FieldBundle) :: FBaccum    ! field bundle for time averaging
      integer                :: accumcnt   ! field bundle accumulation counter
@@ -94,7 +96,9 @@ module med_phases_history_mod
   type(avgfile_type) :: avgfiles_ocnalb_atm
   type(ESMF_Clock)   :: hclock_avg_comp(ncomps)
 
+  ! ----------------------------
   ! Auxiliary history files
+  ! ----------------------------
   integer, parameter :: max_auxfiles = 10
   type, public :: auxfile_type
      character(CS), allocatable :: flds(:)       ! array of aux field names
@@ -111,7 +115,9 @@ module med_phases_history_mod
   integer            , public :: num_auxfiles(ncomps) = 0
   type(auxfile_type) , public :: auxfiles(max_auxfiles,ncomps)
 
+  ! ----------------------------
   ! Instantaneous history files
+  ! ----------------------------
   type(ESMF_Clock) :: hclock_inst_all
   type(ESMF_Clock) :: hclock_inst_comp(ncomps)
 

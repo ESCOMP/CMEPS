@@ -27,6 +27,7 @@ contains
     use med_map_mod           , only : med_map_field_packed
     use med_fraction_mod      , only : med_fraction_set
     use med_internalstate_mod , only : InternalState, mastertask
+    use med_phases_history_mod, only : med_phases_history_write_ice
     use esmFlds               , only : compice, compatm, compocn, compwav
     use perf_mod              , only : t_startf, t_stopf
 
@@ -93,6 +94,10 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call t_stopf('MED:'//trim(subname)//' map_ice2wav')
     end if
+
+    ! Write ice inst, avg or aux if requested in mediator attributes
+    call med_phases_history_write_ice(gcomp, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     call t_stopf('MED:'//subname)
     if (dbug_flag > 20) then

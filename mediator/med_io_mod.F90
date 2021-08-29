@@ -123,6 +123,7 @@ contains
     ! initialize pio
     !---------------
 
+    use ESMF , only : ESMF_GridComp, ESMF_UtilStringUpperCase
 #ifdef CESMCOUPLED
     use shr_pio_mod , only : shr_pio_getiosys, shr_pio_getiotype, shr_pio_getioformat
 #else
@@ -133,13 +134,12 @@ contains
     use pio  , only : PIO_REARR_COMM_P2P, PIO_REARR_COMM_COLL
     use pio  , only : PIO_REARR_COMM_FC_2D_ENABLE, PIO_REARR_COMM_FC_2D_DISABLE
     use pio  , only : PIO_REARR_COMM_FC_1D_COMP2IO, PIO_REARR_COMM_FC_1D_IO2COMP
-    use ESMF , only : ESMF_GridComp, ESMF_UtilStringUpperCase
     use NUOPC, only : NUOPC_CompAttributeGet
 #endif
 
     ! input/output arguments
-    type(ESMF_GridComp), intent(in)  :: gcomp
-    integer            , intent(out) :: rc
+    type(ESMF_GridComp), intent(inout) :: gcomp
+    integer            , intent(out)   :: rc
 
 #ifndef CESMCOUPLED
     ! local variables

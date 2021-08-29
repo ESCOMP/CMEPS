@@ -89,13 +89,6 @@ contains
     use NUOPC_Mediator          , only: mediator_label_SetRunClock      => label_SetRunClock
     use NUOPC_Mediator          , only: mediator_label_Finalize         => label_Finalize
     use med_phases_history_mod  , only: med_phases_history_write
-    use med_phases_history_mod  , only: med_phases_history_write_atm
-    use med_phases_history_mod  , only: med_phases_history_write_ice
-    use med_phases_history_mod  , only: med_phases_history_write_glc
-    use med_phases_history_mod  , only: med_phases_history_write_lnd
-    use med_phases_history_mod  , only: med_phases_history_write_ocn
-    use med_phases_history_mod  , only: med_phases_history_write_rof
-    use med_phases_history_mod  , only: med_phases_history_write_wav
     use med_phases_history_mod  , only: med_phases_history_write_med
     use med_phases_restart_mod  , only: med_phases_restart_write
     use med_phases_prep_atm_mod , only: med_phases_prep_atm
@@ -206,83 +199,6 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
          specPhaseLabel="med_phases_history_write", specRoutine=med_phases_history_write, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    !------------------
-    ! setup mediator history phases for atm output
-    !------------------
-
-    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
-         phaseLabelList=(/"med_phases_history_write_atm"/), userRoutine=mediator_routine_Run, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
-         specPhaseLabel="med_phases_history_write_atm", specRoutine=med_phases_history_write_atm, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    !------------------
-    ! setup mediator history phases for ice output
-    !------------------
-
-    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
-         phaseLabelList=(/"med_phases_history_write_ice"/), userRoutine=mediator_routine_Run, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
-         specPhaseLabel="med_phases_history_write_ice", specRoutine=med_phases_history_write_ice, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    !------------------
-    ! setup mediator history phases for glc output
-    !------------------
-
-    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
-         phaseLabelList=(/"med_phases_history_write_glc"/), userRoutine=mediator_routine_Run, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
-         specPhaseLabel="med_phases_history_write_glc", specRoutine=med_phases_history_write_glc, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    !------------------
-    ! setup mediator history phases for lnd output
-    !------------------
-
-    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
-         phaseLabelList=(/"med_phases_history_write_lnd"/), userRoutine=mediator_routine_Run, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
-         specPhaseLabel="med_phases_history_write_lnd", specRoutine=med_phases_history_write_lnd, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    !------------------
-    ! setup mediator history phases for ocn output
-    !------------------
-
-    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
-         phaseLabelList=(/"med_phases_history_write_ocn"/), userRoutine=mediator_routine_Run, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
-         specPhaseLabel="med_phases_history_write_ocn", specRoutine=med_phases_history_write_ocn, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    !------------------
-    ! setup mediator history phases for rof output
-    !------------------
-
-    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
-         phaseLabelList=(/"med_phases_history_write_rof"/), userRoutine=mediator_routine_Run, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
-         specPhaseLabel="med_phases_history_write_rof", specRoutine=med_phases_history_write_rof, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    !------------------
-    ! setup mediator history phases for wav output
-    !------------------
-
-    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
-         phaseLabelList=(/"med_phases_history_write_wav"/), userRoutine=mediator_routine_Run, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
-         specPhaseLabel="med_phases_history_write_wav", specRoutine=med_phases_history_write_wav, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !------------------
@@ -905,7 +821,7 @@ contains
                     'rof_present','wav_present','glc_present','med_present'/), rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    med_present = "true"
+    med_present = "false"
     atm_present = "false"
     lnd_present = "false"
     ocn_present = "false"
@@ -990,9 +906,7 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call NUOPC_CompAttributeSet(gcomp, name="glc_present", value=trim(glc_present), rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    ! Mediator is always present inside the mediator
-    call NUOPC_CompAttributeSet(gcomp, name="med_present", value="true", rc=rc)
+    call NUOPC_CompAttributeSet(gcomp, name="med_present", value=med_present, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if (mastertask) then
@@ -1873,7 +1787,6 @@ contains
     type(ESMF_Field)                   :: field
     type(ESMF_StateItem_Flag)          :: itemType
     logical                            :: atCorrectTime, connected
-    logical                            :: isPresent, isSet
     integer                            :: n1,n2,n,ns
     integer                            :: nsrc,ndst
     integer                            :: cntn1, cntn2
@@ -2515,8 +2428,8 @@ contains
        end if
        do n1 = 1,ncomps
           if (mastertask) then
-          write(logunit,*)
-          write(logunit,'(a)') trim(subname)//" "//trim(compname(n1))
+             write(logunit,*)
+             write(logunit,'(a)') trim(subname)//" "//trim(compname(n1))
           end if
           if (is_local%wrap%comp_present(n1) .and. ESMF_StateIsCreated(is_local%wrap%NStateImp(n1),rc=rc)) then
              call State_GetScalar(scalar_value=real_nx, &
@@ -2551,17 +2464,10 @@ contains
        !---------------------------------------
        ! Initialize mediator water/heat budget diags
        !---------------------------------------
-       call NUOPC_CompAttributeGet(gcomp, name="do_budgets", value=cvalue, &
-         isPresent=isPresent, isSet=isSet, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (isPresent .and. isSet) then
-          if (trim(cvalue) .eq. '.true.') then
-            call med_diag_init(gcomp, rc)
-            if (ChkErr(rc,__LINE__,u_FILE_u)) return
-            call med_diag_zero(mode='all', rc=rc)
-            if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          endif
-       endif
+       call med_diag_init(gcomp, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call med_diag_zero(mode='all', rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        !---------------------------------------
        ! read mediator restarts
@@ -2842,43 +2748,33 @@ contains
       call ESMF_GridGetCoord(grid, staggerLoc=ESMF_STAGGERLOC_CENTER, &
             isPresent=isPresent, rc=rc)
       if (chkerr(rc,__LINE__,u_FILE_u)) return
-
       if (isPresent) then
         call ESMF_GridGetCoord(grid, coordDim=1, &
              staggerLoc=ESMF_STAGGERLOC_CENTER, array=array, rc=rc)
         if (chkerr(rc,__LINE__,u_FILE_u)) return
-
         call ESMF_ArraySet(array, name="lon_center", rc=rc)
         if (chkerr(rc,__LINE__,u_FILE_u)) return
-
         call ESMF_ArrayBundleAdd(arrayBundle, (/array/), rc=rc)
         if (chkerr(rc,__LINE__,u_FILE_u)) return
-
         call ESMF_GridGetCoord(grid, coordDim=2, &
              staggerLoc=ESMF_STAGGERLOC_CENTER, array=array, rc=rc)
         if (chkerr(rc,__LINE__,u_FILE_u)) return
-
         call ESMF_ArraySet(array, name="lat_center", rc=rc)
         if (chkerr(rc,__LINE__,u_FILE_u)) return
-
         call ESMF_ArrayBundleAdd(arrayBundle, (/array/), rc=rc)
         if (chkerr(rc,__LINE__,u_FILE_u)) return
       endif
-
 
       ! Mask
       call ESMF_GridGetItem(grid, itemflag=ESMF_GRIDITEM_MASK, &
            staggerLoc=ESMF_STAGGERLOC_CENTER, isPresent=isPresent, rc=rc)
       if (chkerr(rc,__LINE__,u_FILE_u)) return
-
       if (isPresent) then
         call ESMF_GridGetItem(grid, staggerLoc=ESMF_STAGGERLOC_CENTER, &
              itemflag=ESMF_GRIDITEM_MASK, array=array, rc=rc)
         if (chkerr(rc,__LINE__,u_FILE_u)) return
-
         call ESMF_ArraySet(array, name="mask_center", rc=rc)
         if (chkerr(rc,__LINE__,u_FILE_u)) return
-
         call ESMF_ArrayBundleAdd(arrayBundle, (/array/), rc=rc)
         if (chkerr(rc,__LINE__,u_FILE_u)) return
       endif
@@ -2887,15 +2783,12 @@ contains
       call ESMF_GridGetItem(grid, itemflag=ESMF_GRIDITEM_AREA, &
            staggerLoc=ESMF_STAGGERLOC_CENTER, isPresent=isPresent, rc=rc)
       if (chkerr(rc,__LINE__,u_FILE_u)) return
-
       if (isPresent) then
         call ESMF_GridGetItem(grid, staggerLoc=ESMF_STAGGERLOC_CENTER, &
              itemflag=ESMF_GRIDITEM_AREA, array=array, rc=rc)
         if (chkerr(rc,__LINE__,u_FILE_u)) return
-
         call ESMF_ArraySet(array, name="area_center", rc=rc)
         if (chkerr(rc,__LINE__,u_FILE_u)) return
-
         call ESMF_ArrayBundleAdd(arrayBundle, (/array/), rc=rc)
         if (chkerr(rc,__LINE__,u_FILE_u)) return
       endif
@@ -2910,20 +2803,15 @@ contains
         call ESMF_GridGetCoord(grid, coordDim=1, &
              staggerLoc=ESMF_STAGGERLOC_CORNER, array=array, rc=rc)
         if (chkerr(rc,__LINE__,u_FILE_u)) return
-
         call ESMF_ArraySet(array, name="lon_corner", rc=rc)
         if (chkerr(rc,__LINE__,u_FILE_u)) return
-
         call ESMF_ArrayBundleAdd(arrayBundle, (/array/), rc=rc)
         if (chkerr(rc,__LINE__,u_FILE_u)) return
-
         call ESMF_GridGetCoord(grid, coordDim=2, &
              staggerLoc=ESMF_STAGGERLOC_CORNER, array=array, rc=rc)
         if (chkerr(rc,__LINE__,u_FILE_u)) return
-
         call ESMF_ArraySet(array, name="lat_corner", rc=rc)
         if (chkerr(rc,__LINE__,u_FILE_u)) return
-
         call ESMF_ArrayBundleAdd(arrayBundle, (/array/), rc=rc)
         if (chkerr(rc,__LINE__,u_FILE_u)) return
       endif
@@ -2932,15 +2820,12 @@ contains
       call ESMF_GridGetItem(grid, itemflag=ESMF_GRIDITEM_MASK, &
            staggerLoc=ESMF_STAGGERLOC_CORNER, isPresent=isPresent, rc=rc)
       if (chkerr(rc,__LINE__,u_FILE_u)) return
-
       if (isPresent) then
         call ESMF_GridGetItem(grid, staggerLoc=ESMF_STAGGERLOC_CORNER, &
              itemflag=ESMF_GRIDITEM_MASK, array=array, rc=rc)
         if (chkerr(rc,__LINE__,u_FILE_u)) return
-
         call ESMF_ArraySet(array, name="mask_corner", rc=rc)
         if (chkerr(rc,__LINE__,u_FILE_u)) return
-
         call ESMF_ArrayBundleAdd(arrayBundle, (/array/), rc=rc)
         if (chkerr(rc,__LINE__,u_FILE_u)) return
       endif
@@ -2949,15 +2834,12 @@ contains
       call ESMF_GridGetItem(grid, itemflag=ESMF_GRIDITEM_AREA, &
            staggerLoc=ESMF_STAGGERLOC_CORNER, isPresent=isPresent, rc=rc)
       if (chkerr(rc,__LINE__,u_FILE_u)) return
-
       if (isPresent) then
         call ESMF_GridGetItem(grid, staggerLoc=ESMF_STAGGERLOC_CORNER, &
              itemflag=ESMF_GRIDITEM_AREA, array=array, rc=rc)
         if (chkerr(rc,__LINE__,u_FILE_u)) return
-
         call ESMF_ArraySet(array, name="area_corner", rc=rc)
         if (chkerr(rc,__LINE__,u_FILE_u)) return
-
         call ESMF_ArrayBundleAdd(arrayBundle, (/array/), rc=rc)
         if (chkerr(rc,__LINE__,u_FILE_u)) return
       endif
