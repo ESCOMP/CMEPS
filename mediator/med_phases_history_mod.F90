@@ -203,9 +203,11 @@ contains
     end if
 
     if (ESMF_ClockIsCreated(hclock_inst_all)) then
-       ! Advance the clock
-       call ESMF_ClockAdvance(hclock_inst_all, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       if (.not. first_time) then
+          ! Advance the clock
+          call ESMF_ClockAdvance(hclock_inst_all, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       end if
 
        ! Write the instantaneous history file for all relevant components
        call med_phases_history_write_hfile(gcomp, 'all', hclock_inst_all, 'alarm_history_inst_all', .false., rc)
@@ -837,6 +839,9 @@ contains
   !===============================================================================
   subroutine med_phases_history_write_hfile(gcomp, comptype, hclock, alarmname, doavg, rc)
 
+    use med_methods_mod   , only : med_methods_FB_reset
+    use med_constants_mod , only : czero => med_constants_czero
+
     ! input/output variables
     type(ESMF_GridComp) , intent(inout) :: gcomp
     character(len=*)    , intent(in)    :: comptype
@@ -885,16 +890,13 @@ contains
 
     if (ESMF_AlarmIsRinging(alarm, rc=rc)) then
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       if (mastertask) then
-          write(logunit,*)'DEBUG: alarm ',trim(alarmname),' is ringing'
-       end if
        ! Set write_now flag
        write_now = .true.
        ! Turn ringer off
        call ESMF_AlarmRingerOff(alarm, rc=rc )
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       ! Write diagnostic output
        if (debug_alarms) then
+          ! Write diagnostic output
           call med_phases_history_output_alarminfo(hclock, alarm, alarmname, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
@@ -906,9 +908,6 @@ contains
     if (doavg) then
        do n = 1,ncomps
           if (comptype == 'all' .or. comptype == trim(compname(n))) then
-             if (mastertask) then
-                write(logunit,*)'DEBUG: write_now ',write_now,' for comp ' ,trim(compname(n))
-             end if
              if (ESMF_FieldBundleIsCreated(avgfiles_import(n)%FBaccum)) then
                 call med_phases_history_fldbun_accum(is_local%wrap%FBImp(n,n), avgfiles_import(n)%FBaccum, &
                      avgfiles_import(n)%accumcnt,  rc=rc)
@@ -933,12 +932,8 @@ contains
        end do
     end if
 
-    ! Check if history alarm is ringing - and if so write the mediator history file
+    ! Write the mediator history file if apropriate
     if (write_now) then
-
-       ! Determine history file name and time units
-       call med_phases_history_get_filename(gcomp, doavg, comptype, hist_file, time_units, days_since, rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        ! Set tbnds and avg_time if doing averaging
        if (doavg) then
@@ -956,6 +951,10 @@ contains
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           avg_time = 0.5_r8 * (tbnds(1) + tbnds(2))
        end if
+
+       ! Determine history file name and time units
+       call med_phases_history_get_filename(gcomp, doavg, comptype, hist_file, time_units, days_since, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        ! Create history file
        call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
@@ -995,26 +994,30 @@ contains
                    if (ESMF_FieldBundleIsCreated(is_local%wrap%FBimp(n,n),rc=rc)) then
                       if (doavg) then
                          call med_io_write(hist_file, iam, avgfiles_import(n)%FBaccum, &
-                              nx=nx, ny=ny, nt=1, whead=whead, wdata=wdata, &
-                              pre=trim(compname(n))//'Imp', rc=rc)
+                              nx=nx, ny=ny, nt=1, whead=whead, wdata=wdata, pre=trim(compname(n))//'Imp', rc=rc)
                          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+                         if (wdata == .true.) then
+                            call med_methods_FB_reset(avgfiles_import(n)%FBAccum, czero, rc=rc)
+                            if (chkerr(rc,__LINE__,u_FILE_u)) return
+                         end if
                       else
                          call med_io_write(hist_file, iam, is_local%wrap%FBimp(n,n), &
-                              nx=nx, ny=ny, nt=1, whead=whead, wdata=wdata, &
-                              pre=trim(compname(n))//'Imp', rc=rc)
+                              nx=nx, ny=ny, nt=1, whead=whead, wdata=wdata, pre=trim(compname(n))//'Imp', rc=rc)
                          if (ChkErr(rc,__LINE__,u_FILE_u)) return
                       end if
                    endif
                    if (ESMF_FieldBundleIsCreated(is_local%wrap%FBexp(n),rc=rc)) then
                       if (doavg) then
                          call med_io_write(hist_file, iam, avgfiles_export(n)%FBaccum, &
-                              nx=nx, ny=ny, nt=1, whead=whead, wdata=wdata, &
-                              pre=trim(compname(n))//'Exp', rc=rc)
+                              nx=nx, ny=ny, nt=1, whead=whead, wdata=wdata, pre=trim(compname(n))//'Exp', rc=rc)
                          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+                         if (wdata == .true.) then
+                            call med_methods_FB_reset(avgfiles_export(n)%FBAccum, czero, rc=rc)
+                            if (chkerr(rc,__LINE__,u_FILE_u)) return
+                         end if
                       else
                          call med_io_write(hist_file, iam, is_local%wrap%FBexp(n), &
-                              nx=nx, ny=ny, nt=1, whead=whead, wdata=wdata, &
-                              pre=trim(compname(n))//'Exp', rc=rc)
+                              nx=nx, ny=ny, nt=1, whead=whead, wdata=wdata, pre=trim(compname(n))//'Exp', rc=rc)
                          if (ChkErr(rc,__LINE__,u_FILE_u)) return
                       end if
                    endif
@@ -1064,7 +1067,6 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     end if ! end of if-alarm is ringingblock
-
   end subroutine med_phases_history_write_hfile
 
   !===============================================================================
@@ -1588,7 +1590,7 @@ contains
     integer                , intent(out)   :: rc
 
     ! local variables
-    integer                :: n
+    integer                :: n,i
     type(ESMF_Field)       :: lfield_accum
     integer                :: fieldCount
     character(CL), pointer :: fieldnames(:) => null()
