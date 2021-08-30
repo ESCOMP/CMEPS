@@ -80,7 +80,6 @@ contains
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
-
     integer, intent(out) :: rc
 
     ! local variables
@@ -95,8 +94,6 @@ contains
     real(r8), pointer         :: dataptr2d_accum(:,:) => null()
     type(ESMF_Field)          :: lfield
     type(ESMF_Field)          :: lfield_accum
-    type(ESMF_Field), pointer :: fieldlist(:) => null()
-    type(ESMF_Field), pointer :: fieldlist_accum(:) => null()
     character(CL), pointer    :: lfieldnamelist(:) => null()
     character(len=*), parameter :: subname='(med_phases_prep_rof_mod: med_phases_prep_rof_accum)'
     !---------------------------------------
@@ -190,7 +187,6 @@ contains
     type(ESMF_Field)          :: field_irrig_flux
     integer                   :: fieldcount
     type(ESMF_Field)          :: lfield
-    type(ESMF_Field), pointer :: fieldlist(:) => null()
     integer                   :: ungriddedUBound(1)
     character(CL), pointer    :: lfieldnamelist(:) => null()
     character(len=*),parameter  :: subname='(med_phases_prep_rof_mod: med_phases_prep_rof)'

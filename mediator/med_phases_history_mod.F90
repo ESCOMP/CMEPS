@@ -39,13 +39,9 @@ module med_phases_history_mod
   use esmFlds               , only : ncomps, compname, num_icesheets
   use esmFlds               , only : fldListFr, fldListTo
   use med_constants_mod     , only : SecPerDay => med_constants_SecPerDay
-  use med_constants_mod     , only : czero     => med_constants_czero
   use med_utils_mod         , only : chkerr    => med_utils_ChkErr
   use med_methods_mod       , only : med_methods_FB_reset
-  use med_methods_mod       , only : med_methods_FB_accum
-  use med_methods_mod       , only : med_methods_FB_average
   use med_methods_mod       , only : med_methods_FB_fldchk
-  use med_methods_mod       , only : med_methods_FB_init
   use med_internalstate_mod , only : InternalState, mastertask, logunit
   use med_time_mod          , only : med_time_alarmInit
   use med_io_mod            , only : med_io_write, med_io_wopen, med_io_enddef
@@ -486,6 +482,8 @@ contains
 
     ! Write mediator average history file variables for component compid
 
+    use med_constants_mod, only : czero => med_constants_czero
+
     ! input/output variables
     type(ESMF_GridComp) , intent(inout) :: gcomp
     integer             , intent(in)    :: compid
@@ -514,7 +512,12 @@ contains
     rc = ESMF_SUCCESS
     call t_startf('MED:'//subname)
 
+    ! Set alarm name
     alarmname =  'alarm_history_avg_'//trim(compname(compid))
+
+    nullify(is_local%wrap)
+    call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if (first_time) then
 
@@ -535,7 +538,6 @@ contains
           hist_option = 'none'
           hist_n = -999
        end if
-
        ! Create time average field bundles (module variables)
        if (hist_option /= 'never' .and. hist_option /= 'none') then
 
@@ -558,78 +560,22 @@ contains
           call ESMF_ClockSet(hclock_avg_comp(compid), currTime=currtime)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-          nullify(is_local%wrap)
-          call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
           if (compid /= compmed) then ! component is not mediator
-             ! create accumulated import fields
-             if (ESMF_FieldBundleIsCreated(is_local%wrap%FBimp(compid,compid),rc=rc)) then
-                if (.not. ESMF_FieldBundleIsCreated(avgfiles_import(compid)%FBaccum)) then
-                   call med_methods_fb_init(avgfiles_import(compid)%FBaccum, is_local%wrap%flds_scalar_name, &
-                        FBgeom=is_local%wrap%FBImp(compid,compid), STflds=is_local%wrap%NStateImp(compid), rc=rc)
-                   if (chkerr(rc,__LINE__,u_FILE_u)) return
-                   call med_methods_FB_reset(avgfiles_import(compid)%FBaccum, czero, rc)
-                   if (chkerr(rc,__LINE__,u_FILE_u)) return
-                   avgfiles_import(compid)%accumcnt = 0
-                end if
-             end if
-             ! accumulated export fields
-             if (ESMF_FieldBundleIsCreated(is_local%wrap%FBexp(compid), rc=rc)) then
-                if (.not. ESMF_FieldBundleIsCreated(avgfiles_export(compid)%FBaccum)) then
-                   call med_methods_fb_init(avgfiles_export(compid)%FBaccum, is_local%wrap%flds_scalar_name, &
-                        FBgeom=is_local%wrap%FBExp(compid), STflds=is_local%wrap%NstateExp(compid), rc=rc)
-                   if (chkerr(rc,__LINE__,u_FILE_u)) return
-                   call med_methods_FB_reset(avgfiles_export(compid)%FBaccum, czero, rc)
-                   if (chkerr(rc,__LINE__,u_FILE_u)) return
-                   avgfiles_export(compid)%accumcnt = 0
-                end if
-             end if
+             ! create accumulated import and export field bundles
+             call med_phases_history_init_fldbun_accum(is_local%wrap%FBimp(compid,compid), &
+                  is_local%wrap%flds_scalar_name, avgfiles_import(compid)%FBaccum, avgfiles_import(compid)%accumcnt, rc=rc)
+             call med_phases_history_init_fldbun_accum(is_local%wrap%FBExp(compid), &
+                  is_local%wrap%flds_scalar_name, avgfiles_export(compid)%FBaccum, avgfiles_export(compid)%accumcnt, rc=rc)
           else ! component is mediator
-             ! accumulated atm/ocn flux on ocn mesh
-             if (ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_aoflux_o, rc=rc)) then
-                if (.not. ESMF_FieldBundleIsCreated(avgfiles_aoflux_ocn%FBaccum)) then
-                   call med_methods_fb_init(avgfiles_aoflux_ocn%FBaccum, is_local%wrap%flds_scalar_name, &
-                        FBgeom=is_local%wrap%FBMed_aoflux_o, FBflds=is_local%wrap%FBMed_aoflux_o, rc=rc)
-                   if (chkerr(rc,__LINE__,u_FILE_u)) return
-                   call med_methods_FB_reset(avgfiles_aoflux_ocn%FBaccum, czero, rc)
-                   if (chkerr(rc,__LINE__,u_FILE_u)) return
-                   avgfiles_aoflux_ocn%accumcnt = 0
-                end if
-             end if
-             ! accumulated atm/ocn flux on atm mesh
-             if (ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_aoflux_a, rc=rc)) then
-                if (.not. ESMF_FieldBundleIsCreated(avgfiles_aoflux_atm%FBaccum)) then
-                   call med_methods_fb_init(avgfiles_aoflux_atm%FBaccum, is_local%wrap%flds_scalar_name, &
-                        FBgeom=is_local%wrap%FBMed_aoflux_a, FBflds=is_local%wrap%FBMed_aoflux_a, rc=rc)
-                   if (chkerr(rc,__LINE__,u_FILE_u)) return
-                   call med_methods_FB_reset(avgfiles_aoflux_atm%FBaccum, czero, rc)
-                   if (chkerr(rc,__LINE__,u_FILE_u)) return
-                   avgfiles_aoflux_atm%accumcnt = 0
-                end if
-             end if
-             ! accumulated ocean albedo on ocn mesh
-             if (ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_ocnalb_o, rc=rc)) then
-                if (.not. ESMF_FieldBundleIsCreated(avgfiles_ocnalb_ocn%FBaccum)) then
-                   call med_methods_fb_init(avgfiles_ocnalb_ocn%FBaccum, is_local%wrap%flds_scalar_name, &
-                        FBgeom=is_local%wrap%FBMed_ocnalb_o, FBflds=is_local%wrap%FBMed_ocnalb_o, rc=rc)
-                   if (chkerr(rc,__LINE__,u_FILE_u)) return
-                   call med_methods_FB_reset(avgfiles_ocnalb_ocn%FBaccum, czero, rc)
-                   if (chkerr(rc,__LINE__,u_FILE_u)) return
-                   avgfiles_ocnalb_ocn%accumcnt = 0
-                end if
-             end if
-             ! accumulated ocean albedo on atm mesh
-             if (ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_ocnalb_a, rc=rc)) then
-                if (.not. ESMF_FieldBundleIsCreated(avgfiles_ocnalb_atm%FBaccum)) then
-                   call med_methods_fb_init(avgfiles_ocnalb_atm%FBaccum, is_local%wrap%flds_scalar_name, &
-                        FBgeom=is_local%wrap%FBMed_ocnalb_a, FBflds=is_local%wrap%FBMed_ocnalb_a, rc=rc)
-                   if (chkerr(rc,__LINE__,u_FILE_u)) return
-                   call med_methods_FB_reset(avgfiles_ocnalb_atm%FBaccum, czero, rc)
-                   if (chkerr(rc,__LINE__,u_FILE_u)) return
-                   avgfiles_ocnalb_atm%accumcnt = 0
-                end if
-             end if
+             ! create accumulated atm/ocn and ocnalb field bundles
+             call med_phases_history_init_fldbun_accum(is_local%wrap%FBMed_aoflux_o, &
+                  is_local%wrap%flds_scalar_name, avgfiles_aoflux_ocn%FBaccum, avgfiles_aoflux_ocn%accumcnt, rc=rc)
+             call med_phases_history_init_fldbun_accum(is_local%wrap%FBMed_aoflux_a, &
+                  is_local%wrap%flds_scalar_name, avgfiles_aoflux_atm%FBaccum, avgfiles_aoflux_atm%accumcnt, rc=rc)
+             call med_phases_history_init_fldbun_accum(is_local%wrap%FBMed_ocnalb_o, &
+                  is_local%wrap%flds_scalar_name, avgfiles_ocnalb_ocn%FBaccum, avgfiles_ocnalb_ocn%accumcnt, rc=rc)
+             call med_phases_history_init_fldbun_accum(is_local%wrap%FBMed_ocnalb_a, &
+                  is_local%wrap%flds_scalar_name, avgfiles_ocnalb_atm%FBaccum, avgfiles_ocnalb_atm%accumcnt, rc=rc)
           end if
        end if
 
@@ -642,7 +588,7 @@ contains
 
        ! Write history file
        call med_phases_history_write_hfile(gcomp, trim(compname(compid)), hclock_avg_comp(compid), &
-            trim(alarmname), .false., rc)
+            trim(alarmname), .true., rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
     call t_stopf('MED:'//subname)
@@ -706,7 +652,7 @@ contains
 
           ! Determine attribute prefix
           write(prefix,'(a,i0)') 'histaux_'//trim(compname(compid))//'2med_file',nfile
-          
+
           ! Determine if will write the file
           call NUOPC_CompAttributeGet(gcomp, name=trim(prefix)//'_enabled', isPresent=isPresent, isSet=isSet, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -776,7 +722,6 @@ contains
                    auxfiles(nfcnt,compid)%flds(n) = trim(fieldnamelist(n))
                 end do
 
-
                 ! Deallocate memory from fieldnamelist
                 deallocate(fieldnamelist) ! this was allocated in med_phases_history_get_auxflds
 
@@ -795,9 +740,9 @@ contains
              if (auxfiles(nfcnt,compid)%useavg) then
 
                 ! First duplicate all fields in FBImp(compid,compid)
-                call ESMF_LogWrite(trim(subname)// ": calling med_methods_fb_init for FBaccum(compid)", ESMF_LOGMSG_INFO)
-                call med_methods_fb_init(auxfiles(nfcnt,compid)%FBaccum, is_local%wrap%flds_scalar_name, &
-                     FBgeom=is_local%wrap%FBImp(compid,compid), STflds=is_local%wrap%NStateImp(compid), rc=rc)
+                call ESMF_LogWrite(trim(subname)// ": initializing FBaccum(compid)", ESMF_LOGMSG_INFO)
+                call  med_phases_history_init_fldbun_accum(is_local%wrap%FBImp(compid,compid), &
+                     is_local%wrap%flds_scalar_name, auxfiles(nfcnt,compid)%FBaccum, auxfiles(nfcnt,compid)%accumcnt, rc=rc)
                 if (chkerr(rc,__LINE__,u_FILE_u)) return
 
                 ! Now remove all fields from FBAccum that are not in the input flds list
@@ -940,6 +885,9 @@ contains
 
     if (ESMF_AlarmIsRinging(alarm, rc=rc)) then
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       if (mastertask) then
+          write(logunit,*)'DEBUG: alarm ',trim(alarmname),' is ringing'
+       end if
        ! Set write_now flag
        write_now = .true.
        ! Turn ringer off
@@ -954,31 +902,31 @@ contains
        write_now = .false.
     end if
 
-    ! Accumulate if alarm is not on - other wise average
+    ! Accumulate if alarm is not on and then average if write_now flag is true
     if (doavg) then
        do n = 1,ncomps
           if (comptype == 'all' .or. comptype == trim(compname(n))) then
-             ! accumulate
+             if (mastertask) then
+                write(logunit,*)'DEBUG: write_now ',write_now,' for comp ' ,trim(compname(n))
+             end if
              if (ESMF_FieldBundleIsCreated(avgfiles_import(n)%FBaccum)) then
-                call med_methods_FB_accum(avgfiles_import(n)%FBaccum, is_local%wrap%FBImp(n,n), rc=rc)
+                call med_phases_history_fldbun_accum(is_local%wrap%FBImp(n,n), avgfiles_import(n)%FBaccum, &
+                     avgfiles_import(n)%accumcnt,  rc=rc)
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
-                avgfiles_import(n)%accumcnt = avgfiles_import(n)%accumcnt + 1
+                if (write_now) then
+                   call med_phases_history_fldbun_average(avgfiles_import(n)%FBaccum, &
+                        avgfiles_import(n)%accumcnt, rc=rc)
+                   if (ChkErr(rc,__LINE__,u_FILE_u)) return
+                end if
              end if
              if (ESMF_FieldBundleIsCreated(avgfiles_export(n)%FBaccum)) then
-                call med_methods_FB_accum(avgfiles_export(n)%FBaccum, is_local%wrap%FBExp(n), rc=rc)
+                call med_phases_history_fldbun_accum(is_local%wrap%FBExp(n), avgfiles_export(n)%FBaccum, &
+                     avgfiles_export(n)%accumcnt,  rc=rc)
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
-                avgfiles_export(n)%accumcnt = avgfiles_export(n)%accumcnt + 1
-             end if
-             if (write_now) then
-                if (ESMF_FieldBundleIsCreated(avgfiles_import(n)%FBaccum)) then
-                   call med_methods_FB_average(avgfiles_import(n)%FBaccum, avgfiles_import(n)%accumcnt, rc=rc)
+                if (write_now) then
+                   call med_phases_history_fldbun_average(avgfiles_export(n)%FBaccum, &
+                        avgfiles_export(n)%accumcnt, rc=rc)
                    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-                   avgfiles_import(n)%accumcnt = 0
-                end if
-                if (ESMF_FieldBundleIsCreated(avgfiles_export(n)%FBaccum)) then
-                   call med_methods_FB_average(avgfiles_export(n)%FBaccum, avgfiles_export(n)%accumcnt, rc=rc)
-                   if (ChkErr(rc,__LINE__,u_FILE_u)) return
-                   avgfiles_export(n)%accumcnt = 0
                 end if
              end if
           end if
@@ -1122,6 +1070,8 @@ contains
   !===============================================================================
   subroutine med_phases_history_write_hfileaux(gcomp, nfile_index, comp_index, auxfile, rc)
 
+    use med_constants_mod, only : czero => med_constants_czero
+
     ! input/output variables
     type(ESMF_GridComp) , intent(inout) :: gcomp
     integer             , intent(in)    :: nfile_index
@@ -1216,14 +1166,12 @@ contains
 
     ! Do accumulation and average if required
     if (auxfile%useavg) then
-       call med_methods_FB_accum(auxfile%FBaccum, is_local%wrap%FBImp(comp_index,comp_index), rc=rc)
+       call med_phases_history_fldbun_accum(is_local%wrap%FBImp(comp_index,comp_index), auxfile%FBaccum, &
+            auxfile%accumcnt, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       auxfile%accumcnt = auxfile%accumcnt + 1
-
        if (write_now) then
-          call med_methods_FB_average(auxfile%FBaccum, auxfile%accumcnt, rc=rc)
+          call med_phases_history_fldbun_average(auxfile%FBaccum, auxfile%accumcnt, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          auxfile%accumcnt = 0
        endif
     end if
 
@@ -1381,8 +1329,8 @@ contains
     write(hist_file,"(6a)") trim(case_name),'.cpl.',trim(inst_tag),trim(histstr),trim(nexttimestr),'.nc'
     if (mastertask) then
        write(logunit,*)
-       write(logunit,' (a)') "  writing mediator history file "//trim(hist_file)
-       write(logunit,' (a)') "  currtime = "//trim(currtimestr)//" nexttime = "//trim(nexttimestr)
+       write(logunit,' (a)') "writing mediator history file "//trim(hist_file)
+       write(logunit,' (a)') "currtime = "//trim(currtimestr)//" nexttime = "//trim(nexttimestr)
     end if
 
   end subroutine med_phases_history_get_filename
@@ -1550,8 +1498,8 @@ contains
     integer, intent(out) :: rc
 
     ! local variables
-    logical                     :: isPresent
-    logical                     :: isSet
+    logical :: isPresent
+    logical :: isSet
     !---------------------------------------
     rc = ESMF_SUCCESS
 
@@ -1567,5 +1515,151 @@ contains
     endif
 
   end subroutine med_phases_history_set_casename
+
+  !===============================================================================
+  subroutine med_phases_history_fldbun_accum(fldbun, fldbun_accum, count, rc)
+
+    use ESMF, only : ESMF_Field, ESMF_FieldGet
+
+    ! input/output variables
+    type(ESMF_FieldBundle) , intent(in)    :: fldbun
+    type(ESMF_FieldBundle) , intent(inout) :: fldbun_accum
+    integer                , intent(out)   :: count
+    integer                , intent(out)   :: rc
+
+    ! local variables
+    integer                :: n
+    type(ESMF_Field)       :: lfield
+    type(ESMF_Field)       :: lfield_accum
+    integer                :: fieldCount
+    character(CL), pointer :: fieldnames(:) => null()
+    real(r8), pointer      :: dataptr1d(:) => null()
+    real(r8), pointer      :: dataptr2d(:,:) => null()
+    real(r8), pointer      :: dataptr1d_accum(:) => null()
+    real(r8), pointer      :: dataptr2d_accum(:,:) => null()
+    integer                :: ungriddedUBound(1)
+    !---------------------------------------
+
+    rc = ESMF_SUCCESS
+
+    ! Accumulate field
+    call ESMF_FieldBundleGet(fldbun_accum, fieldCount=fieldCount, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    allocate(fieldnames(fieldCount))
+    call ESMF_FieldBundleGet(fldbun_accum, fieldNameList=fieldnames, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    do n = 1, fieldcount
+       call ESMF_FieldBundleGet(fldbun, fieldName=trim(fieldnames(n)), field=lfield, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_FieldBundleGet(fldbun_accum, fieldName=trim(fieldnames(n)), field=lfield_accum, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_FieldGet(lfield, ungriddedUBound=ungriddedUBound, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (ungriddedUBound(1) > 0) then
+          call ESMF_FieldGet(lfield, farrayptr=dataptr2d, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_FieldGet(lfield_accum, farrayptr=dataptr2d_accum, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          dataptr2d_accum(:,:) = dataptr2d_accum(:,:) + dataptr2d(:,:)
+       else
+          call ESMF_FieldGet(lfield, farrayptr=dataptr1d, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_FieldGet(lfield_accum, farrayptr=dataptr1d_accum, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          dataptr1d_accum(:) = dataptr1d_accum(:) + dataptr1d(:)
+       end if
+    end do
+    deallocate(fieldnames)
+
+    ! Accumulate counter
+    count = count + 1
+
+  end subroutine med_phases_history_fldbun_accum
+
+  !===============================================================================
+  subroutine med_phases_history_fldbun_average(fldbun_accum, count, rc)
+
+    use ESMF              , only : ESMF_Field, ESMF_FieldGet
+    use med_constants_mod , only : czero => med_constants_czero
+
+    ! input/output variables
+    type(ESMF_FieldBundle) , intent(inout) :: fldbun_accum
+    integer                , intent(inout) :: count
+    integer                , intent(out)   :: rc
+
+    ! local variables
+    integer                :: n
+    type(ESMF_Field)       :: lfield_accum
+    integer                :: fieldCount
+    character(CL), pointer :: fieldnames(:) => null()
+    real(r8), pointer      :: dataptr1d_accum(:) => null()
+    real(r8), pointer      :: dataptr2d_accum(:,:) => null()
+    integer                :: ungriddedUBound(1)
+    !---------------------------------------
+
+    rc = ESMF_SUCCESS
+
+    call ESMF_FieldBundleGet(fldbun_accum, fieldCount=fieldCount, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    allocate(fieldnames(fieldCount))
+    call ESMF_FieldBundleGet(fldbun_accum, fieldNameList=fieldnames, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    do n = 1, fieldcount
+       call ESMF_FieldBundleGet(fldbun_accum, fieldName=trim(fieldnames(n)), field=lfield_accum, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_FieldGet(lfield_accum, ungriddedUBound=ungriddedUBound, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (ungriddedUBound(1) > 0) then
+          call ESMF_FieldGet(lfield_accum, farrayptr=dataptr2d_accum, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          if (count == 0) then
+             dataptr2d_accum(:,:) = czero
+          else
+             dataptr2d_accum(:,:) = dataptr2d_accum(:,:) / real(count, r8)
+          end if
+       else
+          call ESMF_FieldGet(lfield_accum, farrayptr=dataptr1d_accum, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          if (count == 0) then
+             dataptr1d_accum(:) = czero
+          else
+             dataptr1d_accum(:) = dataptr1d_accum(:) / real(count, r8)
+          end if
+       end if
+    end do
+    deallocate(fieldnames)
+
+    ! Reset counter
+    count = 0
+
+  end subroutine med_phases_history_fldbun_average
+
+  !===============================================================================
+  subroutine med_phases_history_init_fldbun_accum(fldbun, scalar_name, fldbun_accum, count, rc)
+
+    use ESMF              , only : ESMF_FieldBundleIsCreated
+    use med_constants_mod , only : czero => med_constants_czero
+    use med_methods_mod   , only : med_methods_FB_init
+    use med_methods_mod   , only : med_methods_FB_reset
+
+    ! input/output variables
+    type(ESMF_FieldBundle) , intent(in)    :: fldbun
+    character(len=*)       , intent(in)    :: scalar_name
+    type(ESMF_FieldBundle) , intent(inout) :: fldbun_accum
+    integer                , intent(out)   :: count
+    integer                , intent(out)   :: rc
+    !---------------------------------------
+
+    rc = ESMF_SUCCESS
+
+    if (ESMF_FieldBundleIsCreated(fldbun) .and. .not. ESMF_FieldBundleIsCreated(fldbun_accum)) then
+       call med_methods_FB_init(fldbun_accum, scalar_name, FBgeom=fldbun, FBflds=fldbun, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call med_methods_FB_reset(fldbun_accum, czero, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       count = 0
+    end if
+
+  end subroutine med_phases_history_init_fldbun_accum
 
 end module med_phases_history_mod
