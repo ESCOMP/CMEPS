@@ -397,8 +397,6 @@ contains
     type(ESMF_Alarm)            :: alarm
     type(ESMF_Time)             :: CurrTime
     type(ESMF_Time)             :: StartTime
-    type(ESMF_TimeInterval)     :: timestep
-    integer                     :: timestep_length
     character(CL)               :: hist_option   ! freq_option setting (ndays, nsteps, etc)
     integer                     :: hist_n        ! freq_n setting relative to freq_option
     character(CL)               :: hist_option_in
@@ -411,6 +409,9 @@ contains
     call t_startf('MED:'//subname)
 
     alarmname =  'alarm_history_inst_'//trim(compname(compid))
+
+    call NUOPC_ModelGet(gcomp, modelClock=mclock,  rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if (first_time) then
 
@@ -435,14 +436,12 @@ contains
 
        if (hist_option /= 'none' .and. hist_option /= 'never') then
           ! First create hclock from mclock - THIS CALL DOES NOT COPY ALARMS
-          call NUOPC_ModelGet(gcomp, modelClock=mclock,  rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
           hclock_inst_comp(compid) = ESMF_ClockCreate(mclock, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
           ! Set alarm for instantaneous history output
           ! Advance history clock to trigger alarms then reset history clock back to mcurrtime
-          call ESMF_ClockGet(hclock_inst_comp(compid), startTime=StartTime,  currTime=CurrTime, timeStep=timestep, rc=rc)
+          call ESMF_ClockGet(hclock_inst_comp(compid), startTime=StartTime,  currTime=CurrTime, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           call med_time_alarmInit(hclock_inst_comp(compid), alarm, option=hist_option, opt_n=hist_n, &
                reftime=StartTime, alarmname=trim(alarmname), rc=rc)
@@ -455,18 +454,20 @@ contains
 
           ! Write diagnostic info
           if (mastertask) then
-             call ESMF_TimeIntervalGet(timestep, s=timestep_length, rc=rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             write(logunit,'(a,2x,i8)') "    initialized instantaneous history alarm "//&
+             write(logunit,'(a,2x,i8)') trim(subname)//" initialized instantaneous history alarm "//&
                   trim(alarmname)//"  with option "//trim(hist_option)//" and frequency ",hist_n
-             write(logunit,'(a,2x,i8)') "    history clock timestep = ",timestep_length
           end if
        end if
     end if
 
     if (ESMF_ClockIsCreated(hclock_inst_comp(compid))) then
-       ! Advance the clock
-       call ESMF_ClockAdvance(hclock_inst_comp(compid), rc=rc)
+       call ESMF_ClockGet(mclock, currTime=CurrTime, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_ClockSet(hclock_inst_comp(compid), currTime=currtime)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_ClockAdvance(hclock_inst_comp(compid),rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_ClockSet(hclock_inst_comp(compid), currTime=currtime)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        ! Write the instantaneous history file
@@ -500,8 +501,6 @@ contains
     type(ESMF_Alarm)        :: alarm
     type(ESMF_Time)         :: CurrTime
     type(ESMF_Time)         :: StartTime
-    type(ESMF_TimeInterval) :: timestep
-    integer                 :: timestep_length
     character(CL)           :: cvalue        ! attribute string
     character(CL)           :: hist_option   ! freq_option setting (ndays, nsteps, etc)
     integer                 :: hist_n        ! freq_n setting relative to freq_option
@@ -519,6 +518,10 @@ contains
 
     nullify(is_local%wrap)
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    ! First create hclock from mclock - THIS CALL DOES NOT COPY ALARMS
+    call NUOPC_ModelGet(gcomp, modelClock=mclock,  rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if (first_time) then
@@ -543,15 +546,12 @@ contains
        ! Create time average field bundles (module variables)
        if (hist_option /= 'never' .and. hist_option /= 'none') then
 
-          ! First create hclock from mclock - THIS CALL DOES NOT COPY ALARMS
-          call NUOPC_ModelGet(gcomp, modelClock=mclock,  rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
           hclock_avg_comp(compid) = ESMF_ClockCreate(mclock, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
           ! Set alarm for time averaged history output
           ! Advance history clock to trigger alarms then reset history clock back to mcurrtime
-          call ESMF_ClockGet(hclock_avg_comp(compid), startTime=StartTime,  currTime=CurrTime, timeStep=timestep, rc=rc)
+          call ESMF_ClockGet(hclock_avg_comp(compid), startTime=StartTime,  currTime=CurrTime, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           call med_time_alarmInit(hclock_avg_comp(compid), alarm, option=hist_option, opt_n=hist_n, &
                reftime=StartTime, alarmname=trim(alarmname), rc=rc)
@@ -561,6 +561,12 @@ contains
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           call ESMF_ClockSet(hclock_avg_comp(compid), currTime=currtime)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+          ! Write diagnostic info
+          if (mastertask) then
+             write(logunit,'(a,2x,i8)') trim(subname)//" initialized time averaged history alarm "//&
+                  trim(alarmname)//"  with option "//trim(hist_option)//" and frequency ",hist_n
+          end if
 
           if (compid /= compmed) then ! component is not mediator
              ! create accumulated import and export field bundles
@@ -585,7 +591,13 @@ contains
 
     if (ESMF_ClockIsCreated(hclock_avg_comp(compid))) then
        ! Update clock
-       call ESMF_ClockAdvance(hclock_avg_comp(compid), rc=rc)
+       call ESMF_ClockGet(mclock, currTime=CurrTime, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_ClockSet(hclock_avg_comp(compid), currTime=currtime)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_ClockAdvance(hclock_avg_comp(compid),rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_ClockSet(hclock_avg_comp(compid), currTime=currtime)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        ! Write history file
@@ -646,6 +658,9 @@ contains
        ! Get the internal state
        nullify(is_local%wrap)
        call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       call NUOPC_ModelGet(gcomp, modelClock=mclock,  rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        ! Initialize number of aux files for this component to zero
@@ -790,8 +805,6 @@ contains
              read(cvalue,*) hist_n
 
              ! First create hclock from mclock - THIS CALL DOES NOT COPY ALARMS
-             call NUOPC_ModelGet(gcomp, modelClock=mclock,  rc=rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
              auxfiles(nfcnt,compid)%hclock = ESMF_ClockCreate(mclock, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
@@ -827,8 +840,16 @@ contains
 
     ! Write auxiliary history files for component compid
     do n = 1,num_auxfiles(compid)
+       ! Update clock to trigger alarm
+       call ESMF_ClockGet(mclock, currTime=CurrTime, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_ClockSet(auxfiles(n,compid)%hclock, currTime=currtime)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call ESMF_ClockAdvance(auxfiles(n,compid)%hclock, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_ClockSet(auxfiles(n,compid)%hclock, currTime=currtime)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
        call med_phases_history_write_hfileaux(gcomp, n, compid, auxfiles(n,compid), rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end do
