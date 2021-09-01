@@ -2869,6 +2869,21 @@ contains
     end if
 
     ! ---------------------------------------------------------------------
+    ! to rof: water flux from land (ice surface)
+    ! ---------------------------------------------------------------------
+    if (phase == 'advertise') then
+       call addfld(fldListFr(complnd)%flds, 'Flrl_rofi')
+       call addfld(fldListTo(comprof)%flds, 'Flrl_rofi')
+    else
+       if ( fldchk(is_local%wrap%FBImp(complnd, complnd), 'Flrl_rofi', rc=rc) .and. &
+            fldchk(is_local%wrap%FBExp(comprof)         , 'Flrl_rofi', rc=rc)) then
+          call addmap(fldListFr(complnd)%flds, 'Flrl_rofi', comprof, mapconsf, 'lfrac', lnd2rof_map)
+          call addmrg(fldListTo(comprof)%flds, 'Flrl_rofi', &
+               mrg_from=complnd, mrg_fld='Flrl_rofi', mrg_type='copy_with_weights', mrg_fracname='lfrac')
+       end if
+    end if
+
+    ! ---------------------------------------------------------------------
     ! to rof: water flux from land (liquid glacier, wetland, and lake)
     ! ---------------------------------------------------------------------
     if (phase == 'advertise') then
@@ -2895,32 +2910,6 @@ contains
           call addmap(fldListFr(complnd)%flds, 'Flrl_rofsub', comprof, mapconsf, 'lfrac', lnd2rof_map)
           call addmrg(fldListTo(comprof)%flds, 'Flrl_rofsub', &
                mrg_from=complnd, mrg_fld='Flrl_rofsub', mrg_type='copy_with_weights', mrg_fracname='lfrac')
-       end if
-    end if
-    if (phase == 'advertise') then
-       call addfld(fldListFr(complnd)%flds, 'Flrl_rofdto')
-       call addfld(fldListTo(comprof)%flds, 'Flrl_rofdto')
-    else
-       if ( fldchk(is_local%wrap%FBImp(complnd, complnd), 'Flrl_rofdto', rc=rc) .and. &
-            fldchk(is_local%wrap%FBExp(comprof)         , 'Flrl_rofdto', rc=rc)) then
-          call addmap(fldListFr(complnd)%flds, 'Flrl_rofdto', comprof, mapconsf, 'lfrac', lnd2rof_map)
-          call addmrg(fldListTo(comprof)%flds, 'Flrl_rofdto', &
-               mrg_from=complnd, mrg_fld='Flrl_rofdto', mrg_type='copy_with_weights', mrg_fracname='lfrac')
-       end if
-    end if
-
-    ! ---------------------------------------------------------------------
-    ! to rof: water flux from land direct to ocean
-    ! ---------------------------------------------------------------------
-    if (phase == 'advertise') then
-       call addfld(fldListFr(complnd)%flds, 'Flrl_rofi')
-       call addfld(fldListTo(comprof)%flds, 'Flrl_rofi')
-    else
-       if ( fldchk(is_local%wrap%FBImp(complnd, complnd), 'Flrl_rofi', rc=rc) .and. &
-            fldchk(is_local%wrap%FBExp(comprof)         , 'Flrl_rofi', rc=rc)) then
-          call addmap(fldListFr(complnd)%flds, 'Flrl_rofi', comprof, mapconsf, 'lfrac', lnd2rof_map)
-          call addmrg(fldListTo(comprof)%flds, 'Flrl_rofi', &
-               mrg_from=complnd, mrg_fld='Flrl_rofi', mrg_type='copy_with_weights', mrg_fracname='lfrac')
        end if
     end if
 

@@ -950,8 +950,6 @@ contains
          areas, lfrac, budget_local, minus=.true., rc=rc)
     call diag_lnd(is_local%wrap%FBImp(complnd,complnd), 'Flrl_rofsub', f_watr_roff, ic,&
          areas, lfrac, budget_local, minus=.true., rc=rc)
-    call diag_lnd(is_local%wrap%FBImp(complnd,complnd), 'Flrl_rofdto', f_watr_roff, ic,&
-         areas, lfrac, budget_local, minus=.true., rc=rc)
     call diag_lnd(is_local%wrap%FBImp(complnd,complnd), 'Flrl_irrig' , f_watr_roff, ic,&
          areas, lfrac, budget_local, minus=.true., rc=rc)
     call diag_lnd(is_local%wrap%FBImp(complnd,complnd), 'Flrl_rofi'  , f_watr_ioff, ic,&
@@ -1129,7 +1127,6 @@ contains
     call diag_rof(is_local%wrap%FBExp(comprof), 'Flrl_rofsur', f_watr_roff, ic, areas, budget_local, rc=rc)
     call diag_rof(is_local%wrap%FBExp(comprof), 'Flrl_rofgwl', f_watr_roff, ic, areas, budget_local, rc=rc)
     call diag_rof(is_local%wrap%FBExp(comprof), 'Flrl_rofsub', f_watr_roff, ic, areas, budget_local, rc=rc)
-    call diag_rof(is_local%wrap%FBExp(comprof), 'Flrl_rofdto', f_watr_roff, ic, areas, budget_local, rc=rc)
     call diag_rof(is_local%wrap%FBExp(comprof), 'Flrl_irrig' , f_watr_roff, ic, areas, budget_local, rc=rc)
     call diag_rof(is_local%wrap%FBExp(comprof), 'Flrl_rofi'  , f_watr_ioff, ic, areas, budget_local, rc=rc)
 

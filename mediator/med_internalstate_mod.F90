@@ -88,20 +88,15 @@ module med_internalstate_mod
     type(packed_data_type) :: packed_data(ncomps,ncomps,nmappers)   ! Packed data structure needed to efficiently map field bundles
 
     ! Fractions
-    type(ESMF_FieldBundle) :: FBfrac(ncomps)                     ! Fraction data for various components, on their grid
+    type(ESMF_FieldBundle) :: FBfrac(ncomps)     ! Fraction data for various components, on their grid
 
     ! Accumulators for export field bundles
-    type(ESMF_FieldBundle) :: FBExpAccum(ncomps)                 ! Accumulator for various components export on their grid
-    integer                :: FBExpAccumCnt(ncomps) = 0          ! Accumulator counter for each FBExpAccum
-    logical                :: FBExpAccumFlag(ncomps) = .false.   ! Accumulator flag, if true accumulation was done
-
-    ! Accumulators for import field bundles
-    type(ESMF_FieldBundle) :: FBImpAccum(ncomps,ncomps)          ! Accumulator for various components import
-    integer                :: FBImpAccumCnt(ncomps) = 0          ! Accumulator counter for each FBImpAccum
+    type(ESMF_FieldBundle) :: FBExpAccumOcn      ! Accumulator for various components export on their grid
+    integer                :: ExpAccumOcnCnt = 0 ! Accumulator counter for each FBExpAccum
 
     ! Component Mesh info
     type(mesh_info_type)   :: mesh_info(ncomps)
-    type(ESMF_FieldBundle) :: FBArea(ncomps)                     ! needed for mediator history writes
+    type(ESMF_FieldBundle) :: FBArea(ncomps)     ! needed for mediator history writes
 
  end type InternalStateStruct
 

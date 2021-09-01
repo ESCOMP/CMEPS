@@ -34,8 +34,6 @@ contains
 
     ! local variables
     type(InternalState) :: is_local
-    integer             :: ns
-    logical             :: first_call = .true.
     character(len=*),parameter :: subname='(med_phases_post_lnd)'
     !-------------------------------------------------------------------------------
 
