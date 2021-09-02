@@ -30,6 +30,8 @@ module med_io_mod
   public :: med_io_enddef
   public :: med_io_sec2hms
   public :: med_io_read
+  public :: med_io_define_time
+  public :: med_io_write_time
   public :: med_io_write
   public :: med_io_init
   public :: med_io_date2yyyymmdd
@@ -55,7 +57,7 @@ module med_io_mod
      module procedure med_io_write_r8
      module procedure med_io_write_r81d
      module procedure med_io_write_char
-     module procedure med_io_write_time
+     module procedure med_io_write_and_define_time
   end interface med_io_write
   interface med_io_date2ymd
      module procedure med_io_date2ymd_int
@@ -1439,7 +1441,111 @@ contains
   end subroutine med_io_write_char
 
   !===============================================================================
-  subroutine med_io_write_time(filename, iam, time_units, calendar, time_val, nt,&
+  subroutine med_io_define_time(time_units, calendar, file_ind, rc)
+
+    use ESMF, only : operator(==), operator(/=) 
+    use ESMF, only : ESMF_Calendar
+    use ESMF, only : ESMF_CALKIND_360DAY, ESMF_CALKIND_GREGORIAN
+    use ESMF, only : ESMF_CALKIND_JULIAN, ESMF_CALKIND_JULIANDAY, ESMF_CALKIND_MODJULIANDAY
+    use ESMF, only : ESMF_CALKIND_NOCALENDAR, ESMF_CALKIND_NOLEAP
+    use pio , only : var_desc_t, PIO_UNLIMITED
+    use pio , only : pio_double, pio_def_dim, pio_def_var, pio_put_att
+    use pio , only : pio_inq_varid, pio_put_var
+
+    ! input/output variables
+    character(len=*)    , intent(in) :: time_units ! units of time
+    type(ESMF_Calendar) , intent(in) :: calendar   ! calendar
+    integer, optional   , intent(in) :: file_ind
+    integer             , intent(out):: rc
+
+    ! local variables
+    integer          :: rcode
+    integer          :: dimid(1)
+    integer          :: dimid2(2)
+    type(var_desc_t) :: varid
+    integer          :: lfile_ind
+    character(CL)    :: calname        ! calendar name
+    character(*),parameter :: subName = '(med_io_write_time) '
+    !-------------------------------------------------------------------------------
+
+    rc = ESMF_SUCCESS
+
+    lfile_ind = 0
+    if (present(file_ind)) lfile_ind=file_ind
+
+    ! define time
+    rcode = pio_def_dim(io_file(lfile_ind), 'time', PIO_UNLIMITED, dimid(1))
+    rcode = pio_def_var(io_file(lfile_ind), 'time', PIO_DOUBLE, dimid, varid)
+    rcode = pio_put_att(io_file(lfile_ind), varid, 'units', trim(time_units))
+    if (calendar == ESMF_CALKIND_360DAY) then
+       calname = '360_day'
+    else if (calendar == ESMF_CALKIND_GREGORIAN) then
+       calname = 'gregorian'
+    else if (calendar == ESMF_CALKIND_JULIAN) then
+       calname = 'julian'
+    else if (calendar == ESMF_CALKIND_JULIANDAY) then
+       calname = 'ESMF_CALKIND_JULIANDAY'
+    else if (calendar == ESMF_CALKIND_MODJULIANDAY) then
+       calname = 'ESMF_CALKIND_MODJULIANDAY'
+    else if (calendar == ESMF_CALKIND_NOCALENDAR) then
+       calname = 'none'
+    else if (calendar == ESMF_CALKIND_NOLEAP) then
+       calname = 'noleap'
+    end if
+    rcode = pio_put_att(io_file(lfile_ind), varid, 'calendar', trim(calname))
+
+    ! define time bounds
+    dimid2(2) = dimid(1)
+    rcode = pio_def_dim(io_file(lfile_ind), 'ntb', 2, dimid2(1))
+    rcode = pio_def_var(io_file(lfile_ind), 'time_bnds', PIO_DOUBLE, dimid2, varid)
+    rcode = pio_put_att(io_file(lfile_ind), varid, 'bounds', 'time_bnds')
+
+  end subroutine med_io_define_time
+
+  !===============================================================================
+  subroutine med_io_write_time(time_val, tbnds, nt, file_ind, rc)
+
+    !---------------
+    ! Write time variable to netcdf file
+    !---------------
+
+    use pio, only : pio_put_att, pio_inq_varid, pio_put_var
+
+    ! input/output variables
+    real(r8) ,           intent(in) :: time_val   ! data to be written
+    real(r8) ,           intent(in) :: tbnds(2)   ! time bounds
+    integer  ,           intent(in) :: nt
+    integer  , optional, intent(in) :: file_ind
+    integer  ,           intent(out):: rc
+
+    ! local variables
+    integer :: rcode
+    integer :: lfile_ind
+    integer :: varid
+    integer :: start(2),count(2)
+    character(*),parameter :: subName = '(med_io_write_time) '
+    !-------------------------------------------------------------------------------
+
+    rc = ESMF_SUCCESS
+
+    lfile_ind = 0
+    if (present(file_ind)) lfile_ind=file_ind
+
+    ! write time
+    count = 1; start = nt
+    rcode = pio_inq_varid(io_file(lfile_ind), 'time', varid)
+    rcode = pio_put_var(io_file(lfile_ind), varid, start(1:1), count(1:1), (/time_val/))
+
+    ! write time bounds
+    rcode = pio_inq_varid(io_file(lfile_ind), 'time_bnds', varid)
+    start(1) = 1; start(2) = nt
+    count(1) = 2; count(2) = 1
+    rcode = pio_put_var(io_file(lfile_ind), varid, start(1:2), count(1:2), tbnds)
+
+  end subroutine med_io_write_time
+
+  !===============================================================================
+  subroutine med_io_write_and_define_time(filename, iam, time_units, calendar, time_val, nt,&
        whead, wdata, tbnds, file_ind, rc)
 
     !---------------
@@ -1451,9 +1557,8 @@ contains
     use ESMF, only : ESMF_CALKIND_360DAY, ESMF_CALKIND_GREGORIAN
     use ESMF, only : ESMF_CALKIND_JULIAN, ESMF_CALKIND_JULIANDAY, ESMF_CALKIND_MODJULIANDAY
     use ESMF, only : ESMF_CALKIND_NOCALENDAR, ESMF_CALKIND_NOLEAP
-    use pio , only : var_desc_t, PIO_UNLIMITED
-    use pio , only : pio_double, pio_def_dim, pio_def_var, pio_put_att
-    use pio , only : pio_inq_varid, pio_put_var
+    use pio , only : var_desc_t, PIO_UNLIMITED, PIO_DOUBLE, PIO_DEF_VAR
+    use pio , only : pio_put_att, pio_inq_varid, pio_put_var, pio_def_dim, pio_def_var
 
     ! input/output variables
     character(len=*)    ,           intent(in) :: filename   ! file
@@ -1554,8 +1659,7 @@ contains
        endif
 
     endif
-
-  end subroutine med_io_write_time
+  end subroutine med_io_write_and_define_time
 
   !===============================================================================
   subroutine med_io_read_FB(filename, vm, iam, FB, pre, frame, rc)

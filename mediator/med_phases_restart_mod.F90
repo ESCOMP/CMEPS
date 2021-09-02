@@ -481,7 +481,7 @@ contains
           ! one time sample - this will be generalized in the future
           do nc = 2,ncomps
              do nf = 1,num_auxfiles(nc)
-                if (auxfiles(nc,nf)%useavg .and. auxfiles(nc,nf)%accumcnt > 0) then
+                if (auxfiles(nc,nf)%doavg .and. auxfiles(nc,nf)%accumcnt > 0) then
                    call med_io_write(restart_file, iam, auxfiles(nc,nf)%accumcnt, &
                         trim(compname(nc))//trim(auxfiles(nc,nf)%auxname)//'_accumcnt', &
                         whead=whead, wdata=wdata, rc=rc)
