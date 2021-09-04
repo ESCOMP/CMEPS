@@ -152,6 +152,7 @@ contains
     use ESMF       , only : ESMF_Calendar
     use NUOPC      , only : NUOPC_CompAttributeGet
     use NUOPC_Model, only : NUOPC_ModelGet
+    use med_io_mod , only : med_io_define_time, med_io_write_time
     use med_io_mod , only : med_io_write, med_io_wopen, med_io_enddef
     use med_io_mod , only : med_io_close, med_io_date2yyyymmdd, med_io_sec2hms
 
@@ -181,7 +182,7 @@ contains
     integer                    :: next_tod       ! Starting time-of-day (s)
     integer                    :: nx,ny          ! global grid size
     integer                    :: yr,mon,day,sec ! time units
-    real(R8)                   :: dayssince      ! Time interval since start time
+    real(R8)                   :: days_since      ! Time interval since start time
     integer                    :: unitn          ! unit number
     character(ESMF_MAXSTR)     :: time_units     ! units of time variable
     character(ESMF_MAXSTR)     :: case_name      ! case name
@@ -215,16 +216,12 @@ contains
     nullify(is_local%wrap)
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
     call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
     call ESMF_VMGet(vm, localPet=iam, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
     call NUOPC_CompAttributeGet(gcomp, name='case_name', value=case_name, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
     call NUOPC_CompAttributeGet(gcomp, name='inst_suffix', isPresent=isPresent, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if(isPresent) then
@@ -233,7 +230,6 @@ contains
     else
        cpl_inst_tag = ""
     endif
-
     call NUOPC_CompAttributeGet(gcomp, name='restart_dir', isPresent=isPresent, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if(isPresent) then
@@ -311,7 +307,7 @@ contains
        endif
        timediff = nexttime - starttime
        call ESMF_TimeIntervalGet(timediff, d=day, s=sec, rc=rc)
-       dayssince = day + sec/real(SecPerDay,R8)
+       days_since = day + sec/real(SecPerDay,R8)
 
        call ESMF_TimeGet(starttime, yy=yr, mm=mon, dd=day, s=sec, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -348,52 +344,46 @@ contains
        endif
 
        call ESMF_LogWrite(trim(subname)//": write "//trim(restart_file), ESMF_LOGMSG_INFO)
-       call med_io_wopen(restart_file, vm, iam, clobber=.true.)
+       call med_io_wopen(restart_file, vm, clobber=.true.)
 
        do m = 1,2
           if (m == 1) then
              whead = .true.
              wdata = .false.
           else if (m == 2) then
+             call med_io_enddef(restart_file)
              whead = .false.
              wdata = .true.
           endif
-          if (wdata) then
-             call med_io_enddef(restart_file)
-          end if
 
-          tbnds = dayssince
+          tbnds = days_since
           call ESMF_LogWrite(trim(subname)//": time "//trim(time_units), ESMF_LOGMSG_INFO)
-          if (tbnds(1) >= tbnds(2)) then
-             call med_io_write(restart_file, iam=iam, &
-                  time_units=time_units, calendar=calendar, time_val=dayssince, &
-                  whead=whead, wdata=wdata, rc=rc)
+          if (whead) then
+             call ESMF_ClockGet(clock, calendar=calendar, rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             call med_io_define_time(time_units, calendar, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           else
-             call med_io_write(restart_file, iam=iam, &
-                  time_units=time_units, calendar=calendar, time_val=dayssince, &
-                  whead=whead, wdata=wdata, tbnds=tbnds, rc=rc)
+             call med_io_write_time(days_since, tbnds=(/days_since,days_since/), nt=1, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          endif
+          end if
 
           ! Write out next ymd/tod in place of curr ymd/tod because the
           ! restart represents the time at end of the current timestep
           ! and that is where we want to start the next run.
 
-          call med_io_write(restart_file, iam, start_ymd, 'start_ymd', whead=whead, wdata=wdata, rc=rc)
+          call med_io_write(restart_file, start_ymd, 'start_ymd', whead, wdata, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          call med_io_write(restart_file, iam, start_tod, 'start_tod', whead=whead, wdata=wdata, rc=rc)
+          call med_io_write(restart_file, start_tod, 'start_tod', whead, wdata, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          call med_io_write(restart_file, iam, next_ymd , 'curr_ymd' , whead=whead, wdata=wdata, rc=rc)
+          call med_io_write(restart_file, next_ymd , 'curr_ymd' , whead, wdata, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          call med_io_write(restart_file, iam, next_tod , 'curr_tod' , whead=whead, wdata=wdata, rc=rc)
+          call med_io_write(restart_file, next_tod , 'curr_tod' , whead, wdata, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-          call med_io_write(restart_file, iam, is_local%wrap%FBExpAccumCnt, 'ExpAccumCnt', &
-               whead=whead, wdata=wdata, rc=rc)
+          call med_io_write(restart_file, is_local%wrap%FBExpAccumCnt, 'ExpAccumCnt', whead, wdata, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          call med_io_write(restart_file, iam, is_local%wrap%FBImpAccumCnt, 'ImpAccumCnt', &
-               whead=whead, wdata=wdata, rc=rc)
+          call med_io_write(restart_file, is_local%wrap%FBImpAccumCnt, 'ImpAccumCnt', whead, wdata, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
           do n = 1,ncomps
@@ -407,29 +397,29 @@ contains
 
                 ! Write import field bundles
                 if (ESMF_FieldBundleIsCreated(is_local%wrap%FBimp(n,n),rc=rc)) then
-                   call med_io_write(restart_file, iam, is_local%wrap%FBimp(n,n), &
-                       nx=nx, ny=ny, nt=1, whead=whead, wdata=wdata, pre=trim(compname(n))//'Imp', rc=rc)
+                   call med_io_write(restart_file, is_local%wrap%FBimp(n,n), whead, wdata, nx, ny, &
+                        nt=1, pre=trim(compname(n))//'Imp', rc=rc)
                    if (ChkErr(rc,__LINE__,u_FILE_u)) return
                 endif
 
                 ! Write export field bundles
                 if (ESMF_FieldBundleIsCreated(is_local%wrap%FBexp(n),rc=rc)) then
-                   call med_io_write(restart_file, iam, is_local%wrap%FBexp(n), &
-                       nx=nx, ny=ny, nt=1, whead=whead, wdata=wdata, pre=trim(compname(n))//'Exp', rc=rc)
+                   call med_io_write(restart_file, is_local%wrap%FBexp(n), whead, wdata, nx, ny, &
+                        nt=1, pre=trim(compname(n))//'Exp', rc=rc)
                    if (ChkErr(rc,__LINE__,u_FILE_u)) return
                 endif
 
                 ! Write fraction field bundles
                 if (ESMF_FieldBundleIsCreated(is_local%wrap%FBfrac(n),rc=rc)) then
-                   call med_io_write(restart_file, iam, is_local%wrap%FBfrac(n), &
-                       nx=nx, ny=ny, nt=1, whead=whead, wdata=wdata, pre=trim(compname(n))//'Frac', rc=rc)
+                   call med_io_write(restart_file, is_local%wrap%FBfrac(n), whead, wdata, nx, ny, &
+                        nt=1, pre=trim(compname(n))//'Frac', rc=rc)
                    if (ChkErr(rc,__LINE__,u_FILE_u)) return
                 endif
 
                 ! Write export field bundle accumulators
                 ! TODO: only write this out if actually have done accumulation
                 if (ESMF_FieldBundleIsCreated(is_local%wrap%FBExpAccum(n),rc=rc)) then
-                   call med_io_write(restart_file, iam,  is_local%wrap%FBExpAccum(n), &
+                   call med_io_write(restart_file, is_local%wrap%FBExpAccum(n), &
                        nx=nx, ny=ny, nt=1, whead=whead, wdata=wdata, pre=trim(compname(n))//'ExpAccum', rc=rc)
                    if (ChkErr(rc,__LINE__,u_FILE_u)) return
                 endif
@@ -437,8 +427,8 @@ contains
                 ! Write import field bundle accumulators
                 ! TODO: only write this out if actually have done accumulation
                 if (ESMF_FieldBundleIsCreated(is_local%wrap%FBImpAccum(n,n),rc=rc)) then
-                   call med_io_write(restart_file, iam,  is_local%wrap%FBImpAccum(n,n), &
-                       nx=nx, ny=ny, nt=1, whead=whead, wdata=wdata, pre=trim(compname(n))//'ImpAccum', rc=rc)
+                   call med_io_write(restart_file, is_local%wrap%FBImpAccum(n,n), whead, wdata, nx, ny, &
+                        nt=1, pre=trim(compname(n))//'ImpAccum', rc=rc)
                    if (ChkErr(rc,__LINE__,u_FILE_u)) return
                 endif
              endif
@@ -448,11 +438,10 @@ contains
           if (ESMF_FieldBundleIsCreated(FBlndAccum2glc_l)) then
              nx = is_local%wrap%nx(complnd)
              ny = is_local%wrap%ny(complnd)
-             call med_io_write(restart_file, iam, FBlndAccum2glc_l, &
-                  nx=nx, ny=ny, nt=1, whead=whead, wdata=wdata, pre='lndImpAccum2glc', rc=rc)
+             call med_io_write(restart_file, FBlndAccum2glc_l, whead, wdata, nx, ny, &
+                  nt=1, pre='lndImpAccum2glc', rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             call med_io_write(restart_file, iam, lndAccum2glc_cnt, 'lndImpAccum2glc_cnt', &
-                  whead=whead, wdata=wdata, rc=rc)
+             call med_io_write(restart_file, lndAccum2glc_cnt, 'lndImpAccum2glc_cnt', whead, wdata, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
 
@@ -460,19 +449,19 @@ contains
           if (ESMF_FieldBundleIsCreated(FBocnAccum2glc_o)) then
              nx = is_local%wrap%nx(compocn)
              ny = is_local%wrap%ny(compocn)
-             call med_io_write(restart_file, iam, FBocnAccum2glc_o, &
-                  nx=nx, ny=ny, nt=1, whead=whead, wdata=wdata, pre='ocnImpAccum2glc_o', rc=rc)
+             call med_io_write(restart_file, FBocnAccum2glc_o, whead, wdata, nx, ny, &
+                  nt=1, pre='ocnImpAccum2glc_o', rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             call med_io_write(restart_file, iam, ocnAccum2glc_cnt, 'ocnImpAccum2glc_cnt', &
-                  whead=whead, wdata=wdata, rc=rc)
+             call med_io_write(restart_file, ocnAccum2glc_cnt, 'ocnImpAccum2glc_cnt', whead, wdata, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
 
           ! Write ocn albedo field bundle (CESM only)
           if (ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_ocnalb_o,rc=rc)) then
-             call med_io_write(restart_file, iam, is_local%wrap%FBMed_ocnalb_o, &
-                  nx=is_local%wrap%nx(compocn), ny=is_local%wrap%ny(compocn), nt=1, &
-                  whead=whead, wdata=wdata, pre='MedOcnAlb_o', rc=rc)
+             nx = is_local%wrap%nx(compocn)
+             ny = is_local%wrap%ny(compocn)
+             call med_io_write(restart_file, is_local%wrap%FBMed_ocnalb_o, whead, wdata, nx, ny, &
+                  nt=1, pre='MedOcnAlb_o', rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
 
@@ -482,13 +471,13 @@ contains
           do nc = 2,ncomps
              do nf = 1,num_auxfiles(nc)
                 if (auxfiles(nc,nf)%doavg .and. auxfiles(nc,nf)%accumcnt > 0) then
-                   call med_io_write(restart_file, iam, auxfiles(nc,nf)%accumcnt, &
-                        trim(compname(nc))//trim(auxfiles(nc,nf)%auxname)//'_accumcnt', &
-                        whead=whead, wdata=wdata, rc=rc)
+                   nx = is_local%wrap%nx(nc)
+                   ny = is_local%wrap%ny(nc)
+                   call med_io_write(restart_file, auxfiles(nc,nf)%FBaccum, whead, wdata, nx, ny, &
+                        nt=1, pre=trim(compname(nc))//trim(auxfiles(nc,nf)%auxname), rc=rc)
                    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-                   call med_io_write(restart_file, iam,  auxfiles(nc,nf)%FBaccum, &
-                        nx=is_local%wrap%nx(nc), ny=is_local%wrap%ny(nc), nt=1, whead=whead, wdata=wdata, &
-                        pre=trim(compname(nc))//trim(auxfiles(nc,nf)%auxname), rc=rc)
+                   call med_io_write(restart_file, auxfiles(nc,nf)%accumcnt, &
+                        trim(compname(nc))//trim(auxfiles(nc,nf)%auxname)//'_accumcnt', whead, wdata, rc=rc)
                    if (ChkErr(rc,__LINE__,u_FILE_u)) return
                 end if
              end do
@@ -497,7 +486,7 @@ contains
        enddo ! end of whead/wdata loop
 
        ! Close file
-       call med_io_close(restart_file, iam, rc=rc)
+       call med_io_close(restart_file, vm, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     endif
 
@@ -627,40 +616,40 @@ contains
 
     ! Now read in the restart file
 
-    call med_io_read(restart_file, vm, iam, is_local%wrap%FBExpAccumCnt, 'ExpAccumCnt', rc=rc)
+    call med_io_read(restart_file, vm, is_local%wrap%FBExpAccumCnt, 'ExpAccumCnt', rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call med_io_read(restart_file, vm, iam, is_local%wrap%FBImpAccumCnt, 'ImpAccumCnt', rc=rc)
+    call med_io_read(restart_file, vm, is_local%wrap%FBImpAccumCnt, 'ImpAccumCnt', rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     do n = 1,ncomps
        if (is_local%wrap%comp_present(n)) then
           ! Read import field bundle
           if (ESMF_FieldBundleIsCreated(is_local%wrap%FBimp(n,n),rc=rc)) then
-             call med_io_read(restart_file, vm, iam, is_local%wrap%FBimp(n,n), pre=trim(compname(n))//'Imp', rc=rc)
+             call med_io_read(restart_file, vm,  is_local%wrap%FBimp(n,n), pre=trim(compname(n))//'Imp', rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           endif
 
           ! Read export field bundle
           if (ESMF_FieldBundleIsCreated(is_local%wrap%FBExp(n),rc=rc)) then
-             call med_io_read(restart_file, vm, iam, is_local%wrap%FBexp(n), pre=trim(compname(n))//'Exp', rc=rc)
+             call med_io_read(restart_file, vm,  is_local%wrap%FBexp(n), pre=trim(compname(n))//'Exp', rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           endif
 
           ! Read fraction field bundles
           if (ESMF_FieldBundleIsCreated(is_local%wrap%FBfrac(n),rc=rc)) then
-             call med_io_read(restart_file, vm, iam, is_local%wrap%FBfrac(n), pre=trim(compname(n))//'Frac', rc=rc)
+             call med_io_read(restart_file, vm,  is_local%wrap%FBfrac(n), pre=trim(compname(n))//'Frac', rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           endif
 
           ! Read export field bundle accumulator
           if (ESMF_FieldBundleIsCreated(is_local%wrap%FBExpAccum(n),rc=rc)) then
-             call med_io_read(restart_file, vm, iam, is_local%wrap%FBExpAccum(n), pre=trim(compname(n))//'ExpAccum', rc=rc)
+             call med_io_read(restart_file, vm,  is_local%wrap%FBExpAccum(n), pre=trim(compname(n))//'ExpAccum', rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           endif
 
           ! Read import field bundle accumulator
           if (ESMF_FieldBundleIsCreated(is_local%wrap%FBImpAccum(n,n),rc=rc)) then
-             call med_io_read(restart_file, vm, iam, is_local%wrap%FBImpAccum(n,n), pre=trim(compname(n))//'ImpAccum', rc=rc)
+             call med_io_read(restart_file, vm,  is_local%wrap%FBImpAccum(n,n), pre=trim(compname(n))//'ImpAccum', rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           endif
        endif
@@ -668,23 +657,23 @@ contains
 
     ! If lnd->glc, read accumulation from lnd to glc (CESM only)
     if (ESMF_FieldBundleIsCreated(FBlndAccum2glc_l)) then
-       call med_io_read(restart_file, vm, iam, FBlndAccum2glc_l, pre='lndImpAccum2glc', rc=rc)
+       call med_io_read(restart_file, vm,  FBlndAccum2glc_l, pre='lndImpAccum2glc', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call med_io_read(restart_file, vm, iam, lndAccum2glc_cnt, 'lndImpAccum2glc_cnt', rc=rc)
+       call med_io_read(restart_file, vm,  lndAccum2glc_cnt, 'lndImpAccum2glc_cnt', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
     ! If ocn->glc, read accumulation from ocn to glc (CESM only)
     if (ESMF_FieldBundleIsCreated(FBocnAccum2glc_o)) then
-       call med_io_read(restart_file, vm, iam, FBocnAccum2glc_o, pre='ocnImpAccum2glc', rc=rc)
+       call med_io_read(restart_file, vm,  FBocnAccum2glc_o, pre='ocnImpAccum2glc', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call med_io_read(restart_file, vm, iam, ocnAccum2glc_cnt, 'ocnImpAccum2glc_cnt', rc=rc)
+       call med_io_read(restart_file, vm,  ocnAccum2glc_cnt, 'ocnImpAccum2glc_cnt', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
     ! Read ocn albedo field bundle (CESM only)
     if (ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_ocnalb_o,rc=rc)) then
-       call med_io_read(restart_file, vm, iam, is_local%wrap%FBMed_ocnalb_o, pre='MedOcnAlb_o', rc=rc)
+       call med_io_read(restart_file, vm,  is_local%wrap%FBMed_ocnalb_o, pre='MedOcnAlb_o', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
