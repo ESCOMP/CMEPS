@@ -1256,6 +1256,7 @@ contains
                   enddo
                   if (dimcount == 2) then
                      call ESMF_DistGridGet(distgrid, connectionCount=connectionCount, rc=rc)
+                     if (ChkErr(rc,__LINE__,u_FILE_u)) return
                      allocate(connectionList(connectionCount))
                      call ESMF_DistGridGet(distgrid, connectionList=connectionList, rc=rc)
                      if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -1576,12 +1577,15 @@ contains
             if (ungriddedCount > 0) then
                call ESMF_AttributeGet(fieldList(n), name="UngriddedLBound", convention="NUOPC", &
                     purpose="Instance", valueList=ungriddedLBound, rc=rc)
+               if (ChkErr(rc,__LINE__,u_FILE_u)) return
                call ESMF_AttributeGet(fieldList(n), name="UngriddedUBound", convention="NUOPC", &
                     purpose="Instance", valueList=ungriddedUBound, rc=rc)
+               if (ChkErr(rc,__LINE__,u_FILE_u)) return
             endif
 
             call ESMF_FieldEmptyComplete(fieldList(n), typekind=ESMF_TYPEKIND_R8, gridToFieldMap=gridToFieldMap, &
                  ungriddedLbound=ungriddedLbound, ungriddedUbound=ungriddedUbound, rc=rc)
+            if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
             deallocate(gridToFieldMap, ungriddedLbound, ungriddedUbound)
           endif   ! fieldStatus
@@ -1918,11 +1922,12 @@ contains
               end if
               call med_meshinfo_create(is_local%wrap%FBExp(n1), &
                    is_local%wrap%mesh_info(n1), is_local%wrap%FBArea(n1), rc=rc)
+              if (ChkErr(rc,__LINE__,u_FILE_u)) return
             else
               call med_meshinfo_create(is_local%wrap%FBImp(n1,n1), &
                    is_local%wrap%mesh_info(n1), is_local%wrap%FBArea(n1), rc=rc)
+              if (ChkErr(rc,__LINE__,u_FILE_u)) return
             end if
-            if (ChkErr(rc,__LINE__,u_FILE_u)) return
          end if
 
          ! The following is FBImp mapped to different grids. FBImp(n1,n1) is handled above
@@ -2013,6 +2018,7 @@ contains
                is_local%wrap%med_coupling_active(compocn,compatm) = .true.
             end if
             call med_phases_aofluxes_init_fldbuns(gcomp, rc=rc)
+            if (ChkErr(rc,__LINE__,u_FILE_u)) return
          end if
       end if
 

@@ -168,8 +168,10 @@ contains
              ! set ungridded dimensions and GridToFieldMap for field
              call ESMF_AttributeGet(lfield, name="UngriddedLBound", convention="NUOPC", &
                   purpose="Instance", valueList=ungriddedLBound, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
              call ESMF_AttributeGet(lfield, name="UngriddedUBound", convention="NUOPC", &
                   purpose="Instance", valueList=ungriddedUBound, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
              call ESMF_AttributeGet(lfield, name="GridToFieldMap", convention="NUOPC", &
                   purpose="Instance", valueList=gridToFieldMap, rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -464,8 +466,10 @@ contains
                 allocate(ungriddedLBound(ungriddedCount), ungriddedUBound(ungriddedCount))
                 call ESMF_AttributeGet(lfield, name="UngriddedLBound", convention="NUOPC", &
                      purpose="Instance", valueList=ungriddedLBound, rc=rc)
+                if (chkerr(rc,__LINE__,u_FILE_u)) return
                 call ESMF_AttributeGet(lfield, name="UngriddedUBound", convention="NUOPC", &
                      purpose="Instance", valueList=ungriddedUBound, rc=rc)
+                if (chkerr(rc,__LINE__,u_FILE_u)) return
 
                 call ESMF_AttributeGet(lfield, name="GridToFieldMap", convention="NUOPC", &
                      purpose="Instance", itemCount=gridToFieldMapCount, rc=rc)
