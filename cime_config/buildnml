@@ -405,7 +405,7 @@ def _create_runseq(case, coupling_times, valid_comps):
         if len(valid_comps) == 1:
 
             # Create run sequence with no mediator
-            outfile = open(os.path.join(caseroot, "CaseDocs", "nuopc.runseq"), "w")
+            outfile = open(os.path.join(caseroot, "CaseDocs", "nuopc.runseq"), "w", encoding="utf-8")
             dtime = coupling_times[valid_comps[0].lower() + '_cpl_dt']
             outfile.write ("runSeq:: \n")
             outfile.write ("@" + str(dtime) + " \n")
