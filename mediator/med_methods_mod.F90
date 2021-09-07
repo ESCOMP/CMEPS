@@ -671,7 +671,6 @@ contains
     ! local variables
     integer                            :: n,itemCount
     type(ESMF_Field), pointer          :: fieldList(:) => null()
-    type(ESMF_StateItem_Flag), pointer :: itemTypeList(:) => null()
     character(len=*),parameter         :: subname='(med_methods_State_getNumFields)'
     ! ----------------------------------------------
 
