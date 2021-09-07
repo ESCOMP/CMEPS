@@ -273,7 +273,7 @@ contains
        
        call ESMF_ClockGetAlarm(clock, alarmname='alarm_stop', alarm=alarm, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       if (ESMF_AlarmIsRinging(alarm, rc=rc).and.write_restart_at_endofrun) then    
+       if (ESMF_AlarmIsRinging(alarm, rc=rc).and.write_restart_at_endofrun) then
           AlarmIsOn = .true.
        else
           AlarmIsOn = .false.
@@ -480,7 +480,7 @@ contains
 
   end subroutine med_phases_restart_write
 
-  !=============================================================================== 
+  !===============================================================================
   subroutine med_phases_restart_read(gcomp, rc)
 
     ! Read mediator restart
