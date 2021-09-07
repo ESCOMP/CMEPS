@@ -1567,8 +1567,10 @@ contains
                   if (ungriddedCount > 0) then
                      call ESMF_AttributeGet(fieldList(n), name="UngriddedLBound", convention="NUOPC", &
                           purpose="Instance", valueList=ungriddedLBound, rc=rc)
+                     if (ChkErr(rc,__LINE__,u_FILE_u)) return
                      call ESMF_AttributeGet(fieldList(n), name="UngriddedUBound", convention="NUOPC", &
                           purpose="Instance", valueList=ungriddedUBound, rc=rc)
+                     if (ChkErr(rc,__LINE__,u_FILE_u)) return
                   endif
                   call ESMF_FieldEmptyComplete(fieldList(n), typekind=ESMF_TYPEKIND_R8, gridToFieldMap=gridToFieldMap, &
                        ungriddedLbound=ungriddedLbound, ungriddedUbound=ungriddedUbound, rc=rc)
