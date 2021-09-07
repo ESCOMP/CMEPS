@@ -1463,7 +1463,7 @@ contains
       use ESMF  , only : ESMF_SUCCESS, ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_FieldGet, ESMF_FieldEmptyComplete
       use ESMF  , only : ESMF_GeomType_Flag, ESMF_FieldCreate, ESMF_MeshCreate, ESMF_GEOMTYPE_GRID
       use ESMF  , only : ESMF_MeshLoc_Element, ESMF_TYPEKIND_R8, ESMF_FIELDSTATUS_GRIDSET
-      use ESMF  , only : ESMF_AttributeGet, ESMF_MeshWrite, ESMF_FIELDSTATUS_COMPLETE
+      use ESMF  , only : ESMF_AttributeGet, ESMF_MeshWrite, ESMF_FIELDSTATUS_COMPLETE, ESMF_FAILURE
       use NUOPC , only : NUOPC_getStateMemberLists, NUOPC_Realize
 
       ! input/output variables
@@ -1541,10 +1541,12 @@ contains
                if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
                call ESMF_FieldGet(meshField, status=fieldStatus, rc=rc)
-               if (fieldStatus /= ESMF_FIELDSTATUS_COMPLETE) then
+               if (ChkErr(rc,__LINE__,u_FILE_u)) return
+               if (fieldStatus == ESMF_FIELDSTATUS_GRIDSET ) then
                  call ESMF_LogWrite(trim(subname)//": ERROR fieldStatus not complete ", ESMF_LOGMSG_INFO)
                  rc = ESMF_FAILURE
-               return
+                 return
+               end if
                call Field_GeomPrint(meshField, trim(subname)//':'//trim(fieldName), rc=rc)
                if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
