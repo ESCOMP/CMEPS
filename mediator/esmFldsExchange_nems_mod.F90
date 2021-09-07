@@ -106,10 +106,6 @@ contains
     end if
 
     ! unused fields from ice - but that are needed to be realized by the cice cap
-    call addfld(fldListFr(compice)%flds, 'Si_avsdf')
-    call addfld(fldListFr(compice)%flds, 'Si_avsdr')
-    call addfld(fldListFr(compice)%flds, 'Si_anidf')
-    call addfld(fldListFr(compice)%flds, 'Si_anidr')
     call addfld(fldListFr(compice)%flds, 'Faii_evap')
     call addfld(fldListFr(compice)%flds, 'mean_sw_pen_to_ocn')
 
@@ -138,6 +134,18 @@ contains
              'Si_vice  ', 'Si_vsno  ', 'Si_t     '/)
     do n = 1,size(flds)
        fldname = trim(flds(n))
+       call addfld(fldListFr(compice)%flds, trim(fldname))
+       call addfld(fldListTo(compatm)%flds, trim(fldname))
+       call addmap(fldListFr(compice)%flds, trim(fldname), compatm, maptype, 'ifrac', 'unset')
+       call addmrg(fldListTo(compatm)%flds, trim(fldname), mrg_from=compice, mrg_fld=trim(fldname), mrg_type='copy')
+    end do
+    deallocate(flds)
+
+    allocate(flds(4))
+    flds = (/'avsdr    ', 'avsdf    ', &
+             'anidr    ', 'anidf    '/)
+    do n = 1,size(flds)
+       fldname = 'Si_'//trim(flds(n))
        call addfld(fldListFr(compice)%flds, trim(fldname))
        call addfld(fldListTo(compatm)%flds, trim(fldname))
        call addmap(fldListFr(compice)%flds, trim(fldname), compatm, maptype, 'ifrac', 'unset')

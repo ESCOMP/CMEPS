@@ -189,7 +189,7 @@ contains
        end do
     end if
 
-    ! Create required field bundles 
+    ! Create required field bundles
     if (is_local%wrap%aoflux_grid == 'ogrid' .or. is_local%wrap%aoflux_grid == 'agrid') then
 
        ! Create the field bundle is_local%wrap%FBImp(compatm,compocn) if needed

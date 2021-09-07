@@ -472,12 +472,12 @@ contains
     ! Apply precipitation factor from ocean (that scales atm rain and snow back to ocn ) if appropriate
     if (trim(coupling_mode) == 'cesm' .and. is_local%wrap%flds_scalar_index_precip_factor /= 0) then
 
-       ! Note that in med_internal_mod.F90 all is_local%wrap%flds_scalar_index_precip_factor 
+       ! Note that in med_internal_mod.F90 all is_local%wrap%flds_scalar_index_precip_factor
        ! is initialized to 0.
-       ! In addition, in med.F90, if this attribute is not present as a mediator component attribute, 
-       ! it is set to 0. 
+       ! In addition, in med.F90, if this attribute is not present as a mediator component attribute,
+       ! it is set to 0.
        if (mastertask) then
-          call ESMF_StateGet(is_local%wrap%NstateImp(compocn), & 
+          call ESMF_StateGet(is_local%wrap%NstateImp(compocn), &
                itemName=trim(is_local%wrap%flds_scalar_name), field=lfield, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           call ESMF_FieldGet(lfield, farrayPtr=dataptr_scalar_ocn, rc=rc)
@@ -492,7 +492,7 @@ contains
        end if
        call ESMF_VMBroadCast(is_local%wrap%vm, precip_fact, 1, 0, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       is_local%wrap%flds_scalar_precip_factor = precip_fact(1)      
+       is_local%wrap%flds_scalar_precip_factor = precip_fact(1)
        if (dbug_flag > 5) then
           write(cvalue,*) precip_fact(1)
           call ESMF_LogWrite(trim(subname)//" precip_fact is "//trim(cvalue), ESMF_LOGMSG_INFO)

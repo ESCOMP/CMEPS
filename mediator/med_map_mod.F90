@@ -46,10 +46,10 @@ contains
   subroutine med_map_RouteHandles_initfrom_esmflds(gcomp, flds_scalar_name, llogunit, rc)
 
     !---------------------------------------------
-    ! Initialize route handles in the mediator and also 
+    ! Initialize route handles in the mediator and also
     ! nitialize unity normalization fields and do the mapping for
     ! unity normalization up front
-    ! 
+    !
     ! Assumptions:
     !   -  Route handles are created per target field bundles NOT
     !      per individual fields in the bundle
@@ -138,7 +138,7 @@ contains
                 if (chkerr(rc,__LINE__,u_FILE_u)) return
 
                 ! Check number of fields in source FB on destination mesh and get destination field
-                if (.not. ESMF_FieldBundleIsCreated(is_local%wrap%FBImp(n1,n2))) then  
+                if (.not. ESMF_FieldBundleIsCreated(is_local%wrap%FBImp(n1,n2))) then
                    call ESMF_LogWrite(trim(subname)//'FBImp('//trim(compname(n1))//','//trim(compname(n2))//')'// &
                         ' has not been created', ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
                    rc = ESMF_FAILURE
@@ -213,7 +213,7 @@ contains
             allocate(fieldlist(fieldcount))
             call ESMF_FieldBundleGet(is_local%wrap%FBExp(n1), fieldlist=fieldlist, rc=rc)
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          else    
+          else
             allocate(fieldlist(fieldcount))
             call ESMF_FieldBundleGet(is_local%wrap%FBImp(n1,n1), fieldlist=fieldlist, rc=rc)
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -893,8 +893,10 @@ contains
 
           packed_data(mapindex)%field_fracsrc = ESMF_FieldCreate(lmesh_src, ESMF_TYPEKIND_R8, &
                meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
           packed_data(mapindex)%field_fracdst = ESMF_FieldCreate(lmesh_dst, ESMF_TYPEKIND_R8, &
                meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
        end if
     end do ! end loop over mapindex
 
@@ -1047,6 +1049,7 @@ contains
                      maptype=mapindex, &
                      field_normsrc=field_fracsrc, &
                      field_normdst=packed_data(mapindex)%field_fracdst, rc=rc)
+                if (chkerr(rc,__LINE__,u_FILE_u)) return
 
              else if ( trim(packed_data(mapindex)%mapnorm) == 'one' .or. trim(packed_data(mapindex)%mapnorm) == 'none') then
 
