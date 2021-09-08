@@ -1,8 +1,23 @@
 module MED
 
   !-----------------------------------------------------------------------------
-  ! Mediator Component.
+  ! Mediator Initialization
+  !
+  ! Note on time management:
+  ! Each time loop has its own associated clock object. NUOPC manages
+  ! these clock objects, i.e. their creation and destruction, as well as
+  ! startTime, endTime, timeStep adjustments during the execution. The
+  ! outer most time loop of the run sequence is a special case. It uses
+  ! the driver clock itself. If a single outer most loop is defined in
+  ! the run sequence provided by freeFormat, this loop becomes the driver
+  ! loop level directly. Therefore, setting the timeStep or runDuration
+  ! for the outer most time loop results in modifying the driver clock
+  ! itself. However, for cases with cocnatenated loops on the upper level
+  ! of the run sequence in freeFormat, a single outer loop is added
+  ! automatically during ingestion, and the driver clock is used for this
+  ! loop instead.
   !-----------------------------------------------------------------------------
+
   use ESMF                     , only : ESMF_VMLogMemInfo
   use NUOPC_Model              , only : SetVM
   use med_kind_mod             , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8

@@ -2,19 +2,6 @@ module med_phases_history_mod
 
   !-----------------------------------------------------------------------------
   ! Mediator History control
-  !
-  ! Each time loop has its own associated clock object. NUOPC manages
-  ! these clock objects, i.e. their creation and destruction, as well as
-  ! startTime, endTime, timeStep adjustments during the execution. The
-  ! outer most time loop of the run sequence is a special case. It uses
-  ! the driver clock itself. If a single outer most loop is defined in
-  ! the run sequence provided by freeFormat, this loop becomes the driver
-  ! loop level directly. Therefore, setting the timeStep or runDuration
-  ! for the outer most time loop results modifiying the driver clock
-  ! itself. However, for cases with cocnatenated loops on the upper level
-  ! of the run sequence in freeFormat, a single outer loop is added
-  ! automatically during ingestion, and the driver clock is used for this
-  ! loop instead.
   !-----------------------------------------------------------------------------
 
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
@@ -69,10 +56,10 @@ module med_phases_history_mod
   private :: med_phases_history_write_avg_comp   ! write averaged file for a given component
   private :: med_phases_history_write_aux_comp   ! write auxiliary file for a given component
   private :: med_phases_history_query_ifwrite
-  private :: med_phases_history_set_timeinfo
-  private :: med_phases_history_output_alarminfo
   private :: med_phases_history_fldbun_accum 
   private :: med_phases_history_fldbun_average
+  private :: med_phases_history_set_timeinfo
+  private :: med_phases_history_init_histclock
 
   ! ----------------------------
   ! Instantaneous history files datatypes/variables
@@ -125,6 +112,13 @@ module med_phases_history_mod
   integer            , public :: num_auxfiles(ncomps) = 0
   type(auxfile_type) , public :: auxfiles(max_auxfiles,ncomps)
 
+  ! ----------------------------
+  ! Other private module variables
+  ! ----------------------------
+
+  logical :: whead(2) = (/.true. , .false./)
+  logical :: wdata(2) = (/.false., .true. /)
+
   character(CL) :: case_name = 'unset'  ! case name
   character(CS) :: inst_tag = 'unset'   ! instance tag
   logical       :: debug_alarms = .true.
@@ -149,9 +143,6 @@ contains
 
     ! local variables
     type(InternalState)     :: is_local
-    type(ESMF_Clock)        :: mclock
-    type(ESMF_Time)         :: CurrTime
-    type(ESMF_Time)         :: StartTime
     type(ESMF_TimeInterval) :: timestep
     integer                 :: timestep_length
     character(CL)           :: hist_option  ! freq_option setting (ndays, nsteps, etc)
@@ -167,7 +158,6 @@ contains
     character(CL)           :: hist_file    ! history file name
     real(r8)                :: time_val     ! time coordinate output
     real(r8)                :: time_bnds(2) ! time bounds output
-    logical                 :: whead,wdata  ! for writing restart/history cdf files
     logical                 :: write_now    ! true => write to history type
     real(r8)                :: tbnds(2)     ! CF1.0 time bounds
     logical                 :: first_time = .true.
@@ -197,53 +187,21 @@ contains
           hist_n = -999
        end if
 
+       ! Set alarm name and initialize clock and alarm for instantaneous history output
        if (hist_option /= 'none' .and. hist_option /= 'never') then
-
-          ! Create instfile_all%clock from mclock - THIS CALL DOES NOT COPY ALARMS
-          call NUOPC_ModelGet(gcomp, modelClock=mclock,  rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          instfile_all%clock = ESMF_ClockCreate(mclock, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-          ! Set alarm name
           instfile_all%alarmname =  'alarm_history_inst_all'
-
-          ! Set alarm for instantaneous history output
-          ! Advance history clock to trigger alarms then reset history clock back to mcurrtime
-          call ESMF_ClockGet(instfile_all%clock, startTime=StartTime,  currTime=CurrTime, timeStep=timestep, rc=rc)
+          call med_phases_history_init_histclock(gcomp, instfile_all%clock, &
+               instfile_all%alarm, instfile_all%alarmname, hist_option, hist_n, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          call med_time_alarmInit(instfile_all%clock, instfile_all%alarm, option=hist_option, opt_n=hist_n, &
-               reftime=StartTime, alarmname=trim(instfile_all%alarmname), rc=rc)
-          call ESMF_AlarmSet(instfile_all%alarm, clock=instfile_all%clock, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          call ESMF_ClockAdvance(instfile_all%clock,rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          call ESMF_ClockSet(instfile_all%clock, currTime=currtime)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-          ! Write diagnostic info
-          if (mastertask) then
-             call ESMF_TimeIntervalGet(timestep, s=timestep_length, rc=rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             write(logunit,'(a,2x,i8)') "  initialized instantaneous history alarm "//&
-                  trim(instfile_all%alarmname)//"  with option "//trim(hist_option)//" and frequency ",hist_n
-             write(logunit,'(a,2x,i8)') "  history clock timestep = ",timestep_length
-          end if
        end if
-
        first_time = .false.
     end if
 
     if (ESMF_ClockIsCreated(instfile_all%clock)) then
 
-       if (.not. first_time) then
-          ! Advance the clock
-          call ESMF_ClockAdvance(instfile_all%clock, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       end if
-
-       ! Write the instantaneous history file for all relevant components
        ! Determine if will write to history file
+       call ESMF_ClockAdvance(instfile_all%clock, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call med_phases_history_query_ifwrite(instfile_all%clock, instfile_all%alarmname, write_now, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
@@ -258,20 +216,14 @@ contains
           ! Create history file
           call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
           call med_io_wopen(hist_file, vm, clobber=.true.)
           do m = 1,2
-             if (m == 1) then
-                whead = .true.
-                wdata = .false.
-             else if (m == 2) then
+             if (m == 2) then
                 call med_io_enddef(hist_file)
-                whead = .false.
-                wdata = .true.
              end if
 
              ! Write time values
-             if (whead) then
+             if (whead(m)) then
                 call ESMF_ClockGet(instfile_all%clock, calendar=calendar, rc=rc)
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
                 call med_io_define_time(time_units, calendar, rc=rc)
@@ -287,38 +239,39 @@ contains
                    nx = is_local%wrap%nx(n)
                    ny = is_local%wrap%ny(n)
                    if (ESMF_FieldBundleIsCreated(is_local%wrap%FBimp(n,n),rc=rc)) then
-                      call med_io_write(hist_file, is_local%wrap%FBimp(n,n), whead, wdata, nx, ny, &
+                      call med_io_write(hist_file, is_local%wrap%FBimp(n,n), whead(m), wdata(m), nx, ny, &
                            nt=1, pre=trim(compname(n))//'Imp', rc=rc)
                       if (ChkErr(rc,__LINE__,u_FILE_u)) return
                    endif
                    if (ESMF_FieldBundleIsCreated(is_local%wrap%FBexp(n),rc=rc)) then
-                      call med_io_write(hist_file, is_local%wrap%FBexp(n), whead, wdata, nx, ny, &
+                      call med_io_write(hist_file, is_local%wrap%FBexp(n), whead(m), wdata(m), nx, ny, &
                            nt=1, pre=trim(compname(n))//'Exp', rc=rc)
                       if (ChkErr(rc,__LINE__,u_FILE_u)) return
                    endif
                 end if
                 ! Write mediator fractions
                 if (ESMF_FieldBundleIsCreated(is_local%wrap%FBFrac(n),rc=rc)) then
-                   call med_io_write(hist_file, is_local%wrap%FBFrac(n), whead, wdata, &
+                   call med_io_write(hist_file, is_local%wrap%FBFrac(n), whead(m), wdata(m), &
                         is_local%wrap%nx(n), is_local%wrap%ny(n), nt=1, pre='Med_frac_'//trim(compname(n)), rc=rc)
                    if (ChkErr(rc,__LINE__,u_FILE_u)) return
                 end if
              end do
+
              ! Write atm/ocn fluxes and ocean albedoes if field bundles are created
              if (ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_ocnalb_o,rc=rc)) then
-                call med_io_write(hist_file, is_local%wrap%FBMed_ocnalb_o, whead, wdata, &
+                call med_io_write(hist_file, is_local%wrap%FBMed_ocnalb_o, whead(m), wdata(m), &
                      is_local%wrap%nx(compocn), is_local%wrap%ny(compocn), nt=1, pre='Med_alb_ocn', rc=rc)
              end if
              if (ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_aoflux_o,rc=rc)) then
-                call med_io_write(hist_file, is_local%wrap%FBMed_aoflux_o, whead, wdata, &
+                call med_io_write(hist_file, is_local%wrap%FBMed_aoflux_o, whead(m), wdata(m), &
                      is_local%wrap%nx(compocn), is_local%wrap%ny(compocn), nt=1, pre='Med_aoflux_ocn', rc=rc)
              end if
              if (ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_ocnalb_a,rc=rc)) then
-                call med_io_write(hist_file, is_local%wrap%FBMed_ocnalb_a, whead, wdata, &
+                call med_io_write(hist_file, is_local%wrap%FBMed_ocnalb_a, whead(m), wdata(m), &
                      is_local%wrap%nx(compatm), is_local%wrap%ny(compatm), nt=1, pre='Med_alb_atm', rc=rc)
              end if
              if (ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_aoflux_a,rc=rc)) then
-                call med_io_write(hist_file, is_local%wrap%FBMed_aoflux_a, whead, wdata, &
+                call med_io_write(hist_file, is_local%wrap%FBMed_aoflux_a, whead(m), wdata(m), &
                      is_local%wrap%nx(compatm), is_local%wrap%ny(compatm), nt=1, pre='Med_aoflux_atm', rc=rc)
              end if
 
@@ -337,6 +290,7 @@ contains
 
   !===============================================================================
   subroutine med_phases_history_write_med(gcomp, rc)
+
     ! Write mediator history file for med variables - only instantaneous files are written
     ! This writes out ocean albedoes and atm/ocean fluxes computed by the mediator
     ! along with the fractions computed by the mediator
@@ -357,12 +311,8 @@ contains
     character(CL)       :: hist_file    ! history file name
     real(r8)            :: time_val     ! time coordinate output
     real(r8)            :: time_bnds(2) ! time bounds output
-    logical             :: whead,wdata  ! for writing restart/history cdf files
     logical             :: write_now    ! true => write to history type
     real(r8)            :: tbnds(2)     ! CF1.0 time bounds
-    type(ESMF_Clock)    :: mclock
-    type(ESMF_Time)     :: CurrTime
-    type(ESMF_Time)     :: StartTime
     character(CL)       :: cvalue       ! attribute string
     character(CL)       :: hist_option  ! freq_option setting (ndays, nsteps, etc)
     integer             :: hist_n       ! freq_n setting relative to freq_option
@@ -381,7 +331,6 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if (first_time) then
-
        ! Determine attribute prefix
        write(hist_option_in,'(a)') 'history_option_med_inst'
        write(hist_n_in,'(a)') 'history_n_med_inst'
@@ -401,45 +350,21 @@ contains
           hist_n = -999
        end if
 
+       ! Set alarm name and initialize clock and alarm for instantaneous history output
        if (hist_option /= 'none' .and. hist_option /= 'never') then
-
-          ! Set alarm name
           instfiles(compmed)%alarmname =  'alarm_history_inst_med'
-
-          ! Set alarm for instantaneous history output
-          ! Advance history clock to trigger alarms then reset history clock back to mcurrtime
-          call ESMF_ClockGet(instfiles(compmed)%clock, startTime=StartTime,  currTime=CurrTime, rc=rc)
+          call med_phases_history_init_histclock(gcomp, instfiles(compmed)%clock, &
+               instfiles(compmed)%alarm, instfiles(compmed)%alarmname, hist_option, hist_n, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          call med_time_alarmInit(instfiles(compmed)%clock, instfiles(compmed)%alarm, option=hist_option, opt_n=hist_n, &
-               reftime=StartTime, alarmname=instfiles(compmed)%alarmname, rc=rc)
-          call ESMF_AlarmSet(instfiles(compmed)%alarm, clock=instfiles(compmed)%clock, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          call ESMF_ClockAdvance(instfiles(compmed)%clock, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          call ESMF_ClockSet(instfiles(compmed)%clock, currTime=currtime)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-          ! Write diagnostic info
-          if (mastertask) then
-             write(logunit,'(a,2x,i8)') trim(subname)//" initialized instantaneous history alarm "//&
-                  trim(instfiles(compmed)%alarmname)//"  with option "//trim(hist_option)//" and frequency ",hist_n
-          end if
-
        end if
+       first_time = .false.
     end if
 
     if (ESMF_ClockIsCreated(instfiles(compmed)%clock)) then
 
-       call ESMF_ClockGet(mclock, currTime=CurrTime, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_ClockSet(instfiles(compmed)%clock, currTime=currtime)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_ClockAdvance(instfiles(compmed)%clock, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_ClockSet(instfiles(compmed)%clock, currTime=currtime)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
        ! Determine if will write to history file
+       call med_phases_history_update_hclock(gcomp, instfiles(compmed)%clock, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call med_phases_history_query_ifwrite(instfiles(compmed)%clock, instfiles(compmed)%alarmname, write_now, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
@@ -456,41 +381,33 @@ contains
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           call med_io_wopen(hist_file, vm, clobber=.true.)
           do m = 1,2
-             if (m == 1) then
-                whead = .true.
-                wdata = .false.
-             else if (m == 2) then
-                call med_io_enddef(hist_file)
-                whead = .false.
-                wdata = .true.
-             end if
-
              ! Write time values
-             if (whead) then
+             if (whead(m)) then
                 call ESMF_ClockGet(instfiles(compmed)%clock, calendar=calendar, rc=rc)
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
                 call med_io_define_time(time_units, calendar, rc=rc)
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
              else
+                call med_io_enddef(hist_file)
                 call med_io_write_time(time_val, time_bnds, nt=1, rc=rc)
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
              end if
 
              ! Write fields computed in mediator
              if (ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_ocnalb_o,rc=rc)) then
-                call med_io_write(hist_file, is_local%wrap%FBMed_ocnalb_o, whead, wdata, &
+                call med_io_write(hist_file, is_local%wrap%FBMed_ocnalb_o, whead(m), wdata(m), &
                      is_local%wrap%nx(compocn), is_local%wrap%ny(compocn), nt=1, pre='Med_alb_ocn', rc=rc)
              end if
              if (ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_aoflux_o,rc=rc)) then
-                call med_io_write(hist_file, is_local%wrap%FBMed_aoflux_o, whead, wdata, &
+                call med_io_write(hist_file, is_local%wrap%FBMed_aoflux_o, whead(m), wdata(m), &
                      is_local%wrap%nx(compocn), is_local%wrap%ny(compocn), nt=1, pre='Med_aoflux_ocn', rc=rc)
              end if
              if (ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_ocnalb_a,rc=rc)) then
-                call med_io_write(hist_file, is_local%wrap%FBMed_ocnalb_a, whead, wdata, &
+                call med_io_write(hist_file, is_local%wrap%FBMed_ocnalb_a, whead(m), wdata(m), &
                      is_local%wrap%nx(compatm), is_local%wrap%ny(compatm), nt=1, pre='Med_alb_atm', rc=rc)
              end if
              if (ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_aoflux_a,rc=rc)) then
-                call med_io_write(hist_file, is_local%wrap%FBMed_aoflux_a, whead, wdata, &
+                call med_io_write(hist_file, is_local%wrap%FBMed_aoflux_a, whead(m), wdata(m), &
                      is_local%wrap%nx(compatm), is_local%wrap%ny(compatm), nt=1, pre='Med_aoflux_atm', rc=rc)
              end if
           end do ! end of loop over m
@@ -506,7 +423,9 @@ contains
 
   !===============================================================================
   subroutine med_phases_history_write_atm(gcomp, rc)
+
     ! Write mediator history file for atm variables
+
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc
     logical              :: first_time = .true.
@@ -525,8 +444,10 @@ contains
   end subroutine med_phases_history_write_atm
 
   !===============================================================================
-  ! Write mediator history file for ice variables
   subroutine med_phases_history_write_ice(gcomp, rc)
+
+    ! Write mediator history file for ice variables
+
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc
     logical              :: first_time = .true.
@@ -545,8 +466,10 @@ contains
   end subroutine med_phases_history_write_ice
 
   !===============================================================================
-  ! Write mediator history file for glc variables
   subroutine med_phases_history_write_glc(gcomp, rc)
+
+    ! Write mediator history file for glc variables
+
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc
     integer              :: ns
@@ -570,8 +493,10 @@ contains
   end subroutine med_phases_history_write_glc
 
   !===============================================================================
-  ! Write mediator history file for lnd variables
   subroutine med_phases_history_write_lnd(gcomp, rc)
+
+    ! Write mediator history file for lnd variables
+
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc
     logical              :: first_time = .true.
@@ -590,8 +515,10 @@ contains
   end subroutine med_phases_history_write_lnd
 
   !===============================================================================
-  ! Write mediator history file for ocn variables
   subroutine med_phases_history_write_ocn(gcomp, rc)
+
+    ! Write mediator history file for ocn variables
+
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc
     logical              :: first_time = .true.
@@ -610,8 +537,10 @@ contains
   end subroutine med_phases_history_write_ocn
 
   !===============================================================================
-  ! Write mediator history file for rof variables
   subroutine med_phases_history_write_rof(gcomp, rc)
+
+    ! Write mediator history file for rof variables
+
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc
     logical              :: first_time = .true.
@@ -630,8 +559,10 @@ contains
   end subroutine med_phases_history_write_rof
 
   !===============================================================================
-  ! Write mediator history file for wav variables
   subroutine med_phases_history_write_wav(gcomp, rc)
+
+    ! Write mediator history file for wav variables
+
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc
     logical              :: first_time = .true.
@@ -666,9 +597,6 @@ contains
 
     ! local variables
     type(InternalState) :: is_local
-    type(ESMF_Clock)    :: mclock
-    type(ESMF_Time)     :: CurrTime
-    type(ESMF_Time)     :: StartTime
     character(CL)       :: cvalue       ! attribute string
     character(CL)       :: hist_option  ! freq_option setting (ndays, nsteps, etc)
     integer             :: hist_n       ! freq_n setting relative to freq_option
@@ -684,7 +612,6 @@ contains
     character(CL)       :: hist_file    ! history file name
     real(r8)            :: time_val     ! time coordinate output
     real(r8)            :: time_bnds(2) ! time bounds output
-    logical             :: whead,wdata  ! for writing restart/history cdf files
     logical             :: write_now    ! true => write to history type
     real(r8)            :: tbnds(2)     ! CF1.0 time bounds
     !---------------------------------------
@@ -692,15 +619,11 @@ contains
     rc = ESMF_SUCCESS
     call t_startf('MED:'//subname)
 
-    call NUOPC_ModelGet(gcomp, modelClock=mclock,  rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
     nullify(is_local%wrap)
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if (first_time) then
-
        ! Determine attribute prefix
        write(hist_option_in,'(a)') 'history_option_'//trim(compname(compid))//'_inst'
        write(hist_n_in,'(a)') 'history_n_'//trim(compname(compid))//'_inst'
@@ -721,49 +644,20 @@ contains
           hist_n = -999
        end if
 
+       ! Set alarm name and initialize clock and alarm for instantaneous history output
        if (hist_option /= 'none' .and. hist_option /= 'never') then
-
-          ! Set alarm name
           instfile%alarmname =  'alarm_history_inst_'//trim(compname(compid))
-
-          ! First create instfile%clock from mclock - THIS CALL DOES NOT COPY ALARMS
-          instfile%clock = ESMF_ClockCreate(mclock, rc=rc)
+          call med_phases_history_init_histclock(gcomp, instfile%clock, &
+               instfile%alarm, instfile%alarmname, hist_option, hist_n, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-          ! Set alarm for instantaneous history output
-          ! Advance history clock to trigger alarms then reset history clock back to mcurrtime
-          call ESMF_ClockGet(instfile%clock, startTime=StartTime,  currTime=CurrTime, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          call med_time_alarmInit(instfile%clock, instfile%alarm, option=hist_option, opt_n=hist_n, &
-               reftime=StartTime, alarmname=trim(instfile%alarmname), rc=rc)
-          call ESMF_AlarmSet(instfile%alarm, clock=instfile%clock, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          call ESMF_ClockAdvance(instfile%clock, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          call ESMF_ClockSet(instfile%clock, currTime=currtime)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-          ! Write diagnostic info
-          if (mastertask) then
-             write(logunit,'(a,2x,i8)') trim(subname)//" initialized instantaneous history alarm "//&
-                  trim(instfile%alarmname)//"  with option "//trim(hist_option)//" and frequency ",hist_n
-          end if
        end if
     end if ! end of first_time if-block
 
     if (ESMF_ClockIsCreated(instfile%clock)) then
 
-       ! Update clock to trigger alarm
-       call ESMF_ClockGet(mclock, currTime=CurrTime, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_ClockSet(instfile%clock, currTime=currtime)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_ClockAdvance(instfile%clock, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_ClockSet(instfile%clock, currTime=currtime)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
        ! Determine if should write to history file
+       call med_phases_history_update_hclock(gcomp, instfile%clock, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call med_phases_history_query_ifwrite(instfile%clock, instfile%alarmname, write_now, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
@@ -779,22 +673,14 @@ contains
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           call med_io_wopen(hist_file, vm, clobber=.true.)
           do m = 1,2
-             if (m == 1) then
-                whead = .true.
-                wdata = .false.
-             else if (m == 2) then
-                call med_io_enddef(hist_file)
-                whead = .false.
-                wdata = .true.
-             end if
-
              ! Write time values
-             if (whead) then
+             if (whead(m)) then
                 call ESMF_ClockGet(instfile%clock, calendar=calendar, rc=rc)
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
                 call med_io_define_time(time_units, calendar, rc=rc)
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
              else
+                call med_io_enddef(hist_file)
                 call med_io_write_time(time_val, time_bnds, nt=1, rc=rc)
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
              end if
@@ -803,19 +689,19 @@ contains
              ny = is_local%wrap%ny(compid)
              ! Define/write import field bundle
              if (ESMF_FieldBundleIsCreated(is_local%wrap%FBimp(compid,compid),rc=rc)) then
-                call med_io_write(hist_file, is_local%wrap%FBimp(compid,compid), whead, wdata, nx, ny, &
+                call med_io_write(hist_file, is_local%wrap%FBimp(compid,compid), whead(m), wdata(m), nx, ny, &
                      nt=1, pre=trim(compname(compid))//'Imp', rc=rc)
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
              endif
              ! Define/write import export bundle
              if (ESMF_FieldBundleIsCreated(is_local%wrap%FBexp(compid),rc=rc)) then
-                call med_io_write(hist_file, is_local%wrap%FBexp(compid), whead, wdata, nx, ny, &
+                call med_io_write(hist_file, is_local%wrap%FBexp(compid), whead(m), wdata(m), nx, ny, &
                      nt=1, pre=trim(compname(compid))//'Exp', rc=rc)
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
              endif
              ! Define/Write mediator fractions
              if (ESMF_FieldBundleIsCreated(is_local%wrap%FBFrac(compid),rc=rc)) then
-                call med_io_write(hist_file, is_local%wrap%FBFrac(compid), whead, wdata, nx, ny, &
+                call med_io_write(hist_file, is_local%wrap%FBFrac(compid), whead(m), wdata(m), nx, ny, &
                      nt=1, pre='Med_frac_'//trim(compname(compid)), rc=rc)
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
              end if
@@ -853,9 +739,6 @@ contains
 
     ! local variables
     type(InternalState)     :: is_local
-    type(ESMF_Clock)        :: mclock
-    type(ESMF_Time)         :: CurrTime
-    type(ESMF_Time)         :: StartTime
     character(CL)           :: cvalue        ! attribute string
     character(CL)           :: hist_option   ! freq_option setting (ndays, nsteps, etc)
     integer                 :: hist_n        ! freq_n setting relative to freq_option
@@ -871,7 +754,6 @@ contains
     character(CL)           :: hist_file         ! history file name
     real(r8)                :: time_val          ! time coordinate output
     real(r8)                :: time_bnds(2)      ! time bounds output
-    logical                 :: whead,wdata       ! for writing restart/history cdf files
     logical                 :: write_now         ! true => write to history type
     real(r8)                :: tbnds(2)          ! CF1.0 time bounds
     character(CS)           :: scalar_name
@@ -883,10 +765,6 @@ contains
 
     nullify(is_local%wrap)
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    ! Obtain model clock
-    call NUOPC_ModelGet(gcomp, modelClock=mclock,  rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if (first_time) then
@@ -908,35 +786,13 @@ contains
           hist_option = 'none'
           hist_n = -999
        end if
-
-       ! Create time average field bundles (module variables)
        if (hist_option /= 'never' .and. hist_option /= 'none') then
 
-          ! Determine alarm name
+          ! Set alarm name, initialize clock and alarm for average history output and 
           avgfile%alarmname =  'alarm_history_avg_'//trim(compname(compid))
-
-          ! Create clock from mclock - THIS CALL DOES NOT COPY ALARMS
-          avgfile%clock = ESMF_ClockCreate(mclock, rc=rc)
+          call med_phases_history_init_histclock(gcomp, avgfile%clock, &
+               avgfile%alarm, avgfile%alarmname, hist_option, hist_n, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-          ! Set alarm for time averaged history output
-          ! Advance history clock to trigger alarms then reset history clock back to mcurrtime
-          call ESMF_ClockGet(avgfile%clock, startTime=StartTime,  currTime=CurrTime, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          call med_time_alarmInit(avgfile%clock, avgfile%alarm, option=hist_option, opt_n=hist_n, &
-               reftime=StartTime, alarmname=trim(avgfile%alarmname), rc=rc)
-          call ESMF_AlarmSet(avgfile%alarm, clock=avgfile%clock, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          call ESMF_ClockAdvance(avgfile%clock,rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          call ESMF_ClockSet(avgfile%clock, currTime=currtime)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-          ! Write diagnostic info
-          if (mastertask) then
-             write(logunit,'(a,2x,i8)') trim(subname)//" initialized time averaged history alarm "//&
-                  trim(avgfile%alarmname)//"  with option "//trim(hist_option)//" and frequency ",hist_n
-          end if
 
           ! Initialize accumulation import/export field bundles
           scalar_name = trim(is_local%wrap%flds_scalar_name)
@@ -964,17 +820,9 @@ contains
 
     if (ESMF_ClockIsCreated(avgfile%clock)) then
 
-       ! Update clock to trigger alarm
-       call ESMF_ClockGet(mclock, currTime=CurrTime, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_ClockSet(avgfile%clock, currTime=currtime)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_ClockAdvance(avgfile%clock,rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_ClockSet(avgfile%clock, currTime=currtime)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
        ! Determine if will write to history file
+       call med_phases_history_update_hclock(gcomp, avgfile%clock, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call med_phases_history_query_ifwrite(avgfile%clock, avgfile%alarmname, write_now, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
@@ -1011,22 +859,14 @@ contains
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           call med_io_wopen(hist_file, vm, clobber=.true.)
           do m = 1,2
-             if (m == 1) then
-                whead = .true.
-                wdata = .false.
-             else if (m == 2) then
-                call med_io_enddef(hist_file)
-                whead = .false.
-                wdata = .true.
-             end if
-
              ! Write time values
-             if (whead) then
+             if (whead(m)) then
                 call ESMF_ClockGet(avgfile%clock, calendar=calendar, rc=rc)
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
                 call med_io_define_time(time_units, calendar, rc=rc)
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
              else
+                call med_io_enddef(hist_file)
                 call med_io_write_time(time_val, time_bnds, nt=1, rc=rc)
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
              end if
@@ -1036,19 +876,19 @@ contains
                 nx = is_local%wrap%nx(compid)
                 ny = is_local%wrap%ny(compid)
                 if (ESMF_FieldBundleIsCreated(is_local%wrap%FBimp(compid,compid),rc=rc)) then
-                   call med_io_write(hist_file, avgfile%FBaccum_import, whead, wdata, nx, ny, &
+                   call med_io_write(hist_file, avgfile%FBaccum_import, whead(m), wdata(m), nx, ny, &
                         nt=1, pre=trim(compname(compid))//'Imp', rc=rc)
                    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-                   if (wdata) then
+                   if (wdata(m)) then
                       call med_methods_FB_reset(avgfile%FBAccum_import, czero, rc=rc)
                       if (chkerr(rc,__LINE__,u_FILE_u)) return
                    end if
                 endif
                 if (ESMF_FieldBundleIsCreated(is_local%wrap%FBexp(compid),rc=rc)) then
-                   call med_io_write(hist_file, avgfile%FBaccum_export, whead, wdata, nx, ny, &
+                   call med_io_write(hist_file, avgfile%FBaccum_export, whead(m), wdata(m), nx, ny, &
                         nt=1, pre=trim(compname(compid))//'Exp', rc=rc)
                    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-                   if (wdata) then
+                   if (wdata(m)) then
                       call med_methods_FB_reset(avgfile%FBAccum_export, czero, rc=rc)
                       if (chkerr(rc,__LINE__,u_FILE_u)) return
                    end if
@@ -1080,6 +920,7 @@ contains
 
     use med_constants_mod, only : czero => med_constants_czero
     use med_io_mod       , only : med_io_write_time, med_io_define_time
+    use med_methods_mod  , only : med_methods_FB_init, med_methods_FB_reset
 
     ! input/output variables
     type(ESMF_GridComp) , intent(inout) :: gcomp
@@ -1092,10 +933,7 @@ contains
     ! local variables
     type(InternalState)     :: is_local
     type(ESMF_VM)           :: vm
-    type(ESMF_Clock)        :: mclock      ! mediator clock
-    type(ESMF_Time)         :: starttime
-    type(ESMF_Time)         :: currtime
-    type(ESMF_Calendar)     :: calendar          ! calendar type
+    type(ESMF_Calendar)     :: calendar    ! calendar type
     logical                 :: isPresent   ! is attribute present
     logical                 :: isSet       ! is attribute set
     character(CL)           :: hist_option ! freq_option setting (ndays, nsteps, etc)
@@ -1113,22 +951,19 @@ contains
     character(CS)           :: timestr           ! yr-mon-day-sec string
     character(CL)           :: time_units        ! units of time variable
     integer                 :: nx,ny             ! global grid size
-    logical                 :: whead,wdata       ! for writing restart/history cdf files
     logical                 :: write_now         ! if true, write time sample to file
     integer                 :: yr,mon,day,sec    ! time units
     real(r8)                :: time_val          ! time coordinate output
     real(r8)                :: time_bnds(2)      ! time bounds output
     character(CS), allocatable  :: fieldNameList(:)
     !---------------------------------------
+
     rc = ESMF_SUCCESS
     call t_startf('MED:'//subname)
 
     ! Get the internal state
     nullify(is_local%wrap)
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    call NUOPC_ModelGet(gcomp, modelClock=mclock,  rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if (first_time) then
@@ -1212,7 +1047,7 @@ contains
 
              if (mastertask) then
                 write(logunit,*)
-                write(logunit,'(a,i4,a)') '   Writing the following fields to auxfile ',nfcnt,&
+                write(logunit,'(a,i4,a)') trim(subname) // '   Writing the following fields to auxfile ',nfcnt,&
                      ' for component '//trim(compname(compid))
                 do nfld = 1,size(auxfile(nfcnt)%flds)
                    write(logunit,'(8x,a)') trim(auxfile(nfcnt)%flds(nfld))
@@ -1224,9 +1059,15 @@ contains
 
                 ! First duplicate all fields in FBImp(compid,compid)
                 call ESMF_LogWrite(trim(subname)// ": initializing FBaccum(compid)", ESMF_LOGMSG_INFO)
-                call  med_phases_history_init_fldbun_accum(is_local%wrap%FBImp(compid,compid), &
-                     is_local%wrap%flds_scalar_name, auxfile(nfcnt)%FBaccum, auxfile(nfcnt)%accumcnt, rc=rc)
-                if (chkerr(rc,__LINE__,u_FILE_u)) return
+                if ( ESMF_FieldBundleIsCreated(is_local%wrap%FBImp(compid,compid)) .and. .not. &
+                     ESMF_FieldBundleIsCreated(auxfile(nfcnt)%FBaccum)) then
+                   call med_methods_FB_init(auxfile(nfcnt)%FBaccum, is_local%wrap%flds_scalar_name, &
+                        FBgeom=is_local%wrap%FBImp(compid,compid), FBflds=is_local%wrap%FBImp(compid,compid), rc=rc)
+                   if (chkerr(rc,__LINE__,u_FILE_u)) return
+                   call med_methods_FB_reset(auxfile(nfcnt)%FBaccum, czero, rc=rc)
+                   if (chkerr(rc,__LINE__,u_FILE_u)) return
+                   auxfile(nfcnt)%accumcnt = 0
+                end if
 
                 ! Now remove all fields from FBAccum that are not in the input flds list
                 call ESMF_FieldBundleGet(is_local%wrap%FBImp(compid,compid), fieldCount=fieldCount, rc=rc)
@@ -1270,32 +1111,16 @@ contains
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
              read(cvalue,*) hist_n
 
-             ! Create auxfile(nfcnt)%clock from mclock - THIS CALL DOES NOT COPY ALARMS
-             auxfile(nfcnt)%clock = ESMF_ClockCreate(mclock, rc=rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
              ! Determine auxfile%alarmname
              call NUOPC_CompAttributeGet(gcomp, name=trim(prefix)//'_auxname', value=auxfile(nfcnt)%auxname, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
              write(auxfile(nfcnt)%alarmname,'(a,i0)') 'alarm_'//trim(prefix)
 
-             ! Set alarm for auxiliary history output
-             ! Advance history clock to trigger alarms then reset history clock back to mcurrtime
-             call ESMF_ClockGet(auxfile(nfcnt)%clock, startTime=starttime,  currTime=currtime, rc=rc)
+             ! Initialize clock and alarm for instantaneous history output
+             call med_phases_history_init_histclock(gcomp, auxfile(nfcnt)%clock, &
+                  auxfile(nfcnt)%alarm, auxfile(nfcnt)%alarmname, hist_option, hist_n, rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             call med_time_alarmInit(auxfile(nfcnt)%clock, auxfile(nfcnt)%alarm, option=hist_option, opt_n=hist_n, &
-                  reftime=starttime, alarmname=trim(auxfile(nfcnt)%alarmname), rc=rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             call ESMF_AlarmSet(auxfile(nfcnt)%alarm, clock=auxfile(nfcnt)%clock, rc=rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             call ESMF_ClockAdvance(auxfile(nfcnt)%clock, rc=rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             call ESMF_ClockSet(auxfile(nfcnt)%clock, currtime=currtime)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             if (mastertask) then
-                write(logunit,'(a,2x,i8)') "    created auxiliary history alarm "//&
-                     trim(auxfile(nfcnt)%alarmname)//"  with option "//trim(hist_option)//" and frequency ",hist_n
-             end if
+
           end if ! end of isPresent and isSet and  if flag is on for file n
        end do ! end of loop over nfile
 
@@ -1307,18 +1132,9 @@ contains
     ! Write auxiliary history files for component compid
     do nf = 1,num_auxfiles(compid)
 
-       ! Update clock to trigger alarm
-       call ESMF_ClockGet(mclock, currTime=CurrTime, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_ClockSet(auxfile(nf)%clock, currTime=currtime)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_ClockAdvance(auxfile(nf)%clock, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_ClockSet(auxfile(nf)%clock, currTime=currtime)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-       ! Write auxiliary file(s)
        ! Determine if will write to history file
+       call med_phases_history_update_hclock(gcomp, auxfile(nf)%clock, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call med_phases_history_query_ifwrite(auxfile(nf)%clock, auxfile(nf)%alarmname, write_now, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
@@ -1363,8 +1179,7 @@ contains
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
              ! define data variables with a time dimension (include the nt argument below)
-             whead = .true.; wdata = .false.
-             call med_io_write(auxfile(nf)%histfile, is_local%wrap%FBimp(compid,compid), whead, wdata, nx, ny, &
+             call med_io_write(auxfile(nf)%histfile, is_local%wrap%FBimp(compid,compid), whead(1), wdata(1), nx, ny, &
                   nt=auxfile(nf)%nt, pre=trim(compname(compid))//'Imp', flds=auxfile(nf)%flds, &
                   file_ind=nf, use_float=.true., rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -1378,15 +1193,14 @@ contains
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
           ! Write data variables for time nt
-          whead = .false.; wdata = .true.
           if (auxfile(nf)%doavg) then
-             call med_io_write(auxfile(nf)%histfile, auxfile(nf)%FBaccum, whead, wdata, nx, ny, &
+             call med_io_write(auxfile(nf)%histfile, auxfile(nf)%FBaccum, whead(2), wdata(2), nx, ny, &
                   nt=auxfile(nf)%nt, pre=trim(compname(compid))//'Imp', flds=auxfile(nf)%flds, file_ind=nf, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
              call med_methods_FB_reset(auxfile(nf)%FBaccum, value=czero, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           else
-             call med_io_write(auxfile(nf)%histfile, is_local%wrap%FBimp(compid,compid), whead, wdata, nx, ny, &
+             call med_io_write(auxfile(nf)%histfile, is_local%wrap%FBimp(compid,compid), whead(2), wdata(2), nx, ny, &
                   nt=auxfile(nf)%nt, pre=trim(compname(compid))//'Imp', flds=auxfile(nf)%flds, file_ind=nf, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
@@ -1590,32 +1404,31 @@ contains
   end subroutine med_phases_history_fldbun_average
 
   !===============================================================================
-  subroutine med_phases_history_init_fldbun_accum(fldbun, scalar_name, fldbun_accum, count, rc)
+  subroutine med_phases_history_update_hclock(gcomp, clock, rc)
 
-    use ESMF              , only : ESMF_FieldBundleIsCreated
-    use med_constants_mod , only : czero => med_constants_czero
-    use med_methods_mod   , only : med_methods_FB_init
-    use med_methods_mod   , only : med_methods_FB_reset
+    type(ESMF_GridComp) , intent(in)    :: gcomp
+    type(ESMF_Clock)    , intent(inout) :: clock
+    integer             , intent(out)   :: rc
 
-    ! input/output variables
-    type(ESMF_FieldBundle) , intent(in)    :: fldbun
-    character(len=*)       , intent(in)    :: scalar_name
-    type(ESMF_FieldBundle) , intent(inout) :: fldbun_accum
-    integer                , intent(out)   :: count
-    integer                , intent(out)   :: rc
+    ! local variables
+    type(ESMF_CLock) :: mclock
+    type(ESMF_Time)  :: currtime
     !---------------------------------------
-
     rc = ESMF_SUCCESS
 
-    if (ESMF_FieldBundleIsCreated(fldbun) .and. .not. ESMF_FieldBundleIsCreated(fldbun_accum)) then
-       call med_methods_FB_init(fldbun_accum, scalar_name, FBgeom=fldbun, FBflds=fldbun, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call med_methods_FB_reset(fldbun_accum, czero, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       count = 0
-    end if
+    ! Update clock to trigger alarm
+    call NUOPC_ModelGet(gcomp, modelClock=mclock,  rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_ClockGet(mclock, currTime=CurrTime, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_ClockSet(clock, currTime=currtime)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_ClockAdvance(clock, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_ClockSet(clock, currTime=currtime)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-  end subroutine med_phases_history_init_fldbun_accum
+  end subroutine med_phases_history_update_hclock
 
   !===============================================================================
   subroutine med_phases_history_query_ifwrite(clock, alarmname, write_now, rc)
@@ -1627,11 +1440,16 @@ contains
     integer          , intent(out)   :: rc
 
     ! local variables
-    type(ESMF_Alarm) :: alarm
-    type(ESMF_Time)  :: starttime
-    type(ESMF_Time)  :: currtime
-    type(ESMF_Time)  :: nexttime
-    integer          :: yr,mon,day,sec    ! time units
+    type(ESMF_Alarm)        :: alarm
+    type(ESMF_Time)         :: starttime
+    type(ESMF_Time)         :: currtime
+    type(ESMF_Time)         :: nexttime
+    character(len=CS)       :: currtimestr
+    character(len=CS)       :: nexttimestr
+    integer                 :: yr,mon,day,sec    ! time units
+    type(ESMF_TimeInterval) :: ringInterval
+    integer                 :: ringInterval_length
+    character(len=*), parameter :: subname='(med_phases_history_query_ifwrite) '
     !---------------------------------------
 
     rc = ESMF_SUCCESS
@@ -1653,74 +1471,112 @@ contains
     ! Write diagnostic output
     if (write_now) then
        if (mastertask .and. debug_alarms) then
-          call med_phases_history_output_alarminfo(clock, alarm, alarmname, rc)
+
+          ! output alarm info
+          call ESMF_AlarmGet(alarm, ringInterval=ringInterval, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          write(logunit,'(a)')' alarmname = '//trim(alarmname)//' is ringing'
+          call ESMF_TimeIntervalGet(ringInterval, s=ringinterval_length, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_ClockGet(clock, currtime=currtime, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_TimeGet(currtime,yy=yr, mm=mon, dd=day, s=sec, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          write(currtimestr,'(i4.4,a,i2.2,a,i2.2,a,i5.5)') yr,'-',mon,'-',day,'-',sec
+          call ESMF_ClockGetNextTime(clock, nextTime=nexttime, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_TimeGet(nexttime, yy=yr, mm=mon, dd=day, s=sec, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          if (mastertask) then
+             write(nexttimestr,'(i4.4,a,i2.2,a,i2.2,a,i5.5)') yr,'-',mon,'-',day,'-',sec
+             write(logunit,*)
+             write(logunit,'(a,i8)') trim(subname)//" : history alarmname "//trim(alarmname)//&
+                  ' is ringing, interval length is ', ringInterval_length
+             write(logunit,'(a)') trim(subname)//" : currtime = "//trim(currtimestr)//" nexttime = "//trim(nexttimestr)
+          end if
+
+          ! output starttime, currtime and nexttime
           call ESMF_ClockGet(clock, startTime=StartTime,  currTime=CurrTime, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           call ESMF_ClockGetNextTime(clock, nextTime=nexttime, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           call ESMF_TimeGet(nexttime, yy=yr, mm=mon, dd=day, s=sec, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          write(logunit,'(a,4(i6,2x))')' nexttime is ',yr,mon,day,sec
+          write(logunit,'(a,4(i6,2x))') trim(subname) //' nexttime is ',yr,mon,day,sec
           call ESMF_TimeGet(currtime, yy=yr, mm=mon, dd=day, s=sec, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          write(logunit,'(a,4(i6,2x))')' currtime is ',yr,mon,day,sec
+          write(logunit,'(a,4(i6,2x))') trim(subname) //' currtime is ',yr,mon,day,sec
           call ESMF_TimeGet(starttime, yy=yr, mm=mon, dd=day, s=sec, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          write(logunit,'(a,4(i6,2x))')' starttime is ',yr,mon,day,sec
+          write(logunit,'(a,4(i6,2x))') trim(subname) // ' starttime is ',yr,mon,day,sec
        end if
+
     end if
   end subroutine med_phases_history_query_ifwrite
 
   !===============================================================================
-  subroutine med_phases_history_output_alarminfo(mclock, alarm, alarmname, rc)
+  subroutine med_phases_history_init_histclock(gcomp, hclock, alarm, alarmname, hist_option, hist_n, rc)
+
+    use ESMF         , only : ESMF_ClockCreate, ESMF_ClockGet, ESMF_ClockSet, ESMF_ClockAdvance
+    use ESMF         , only : ESMF_AlarmSet
+    use med_time_mod , only : med_time_alarmInit
 
     ! input/output variables
-    type(ESMF_Clock), intent(in)  :: mclock
-    type(ESMF_Alarm), intent(in)  :: alarm
-    character(len=*), intent(in)  :: alarmname
-    integer         , intent(out) :: rc
+    type(ESMF_GridComp) , intent(in)    :: gcomp
+    type(ESMF_Clock)    , intent(inout) :: hclock
+    type(ESMF_Alarm)    , intent(inout) :: alarm
+    character(len=*)    , intent(in)    :: alarmname
+    character(len=*)    , intent(in)    :: hist_option  ! freq_option setting (ndays, nsteps, etc)
+    integer             , intent(in)    :: hist_n       ! freq_n setting relative to freq_option
+    integer             , intent(out)   :: rc
 
     ! local variables
-    type(ESMF_TimeInterval) :: ringInterval
-    integer                 :: ringInterval_length
-    type(ESMF_Time)         :: currtime
-    type(ESMF_Time)         :: nexttime
-    character(len=CS)       :: currtimestr
-    character(len=CS)       :: nexttimestr
-    integer                 :: yr,mon,day,sec ! time units
-    character(len=*), parameter :: subname='(med_phases_history_output_alarminfo)'
+    type(ESMF_Clock):: mclock
+    type(ESMF_Time) :: StartTime
+    type(ESMF_Time) :: CurrTime
+    character(len=*), parameter :: subname='(med_phases_history_init_histclock) '
     !---------------------------------------
 
     rc = ESMF_SUCCESS
 
-    call ESMF_AlarmGet(alarm, ringInterval=ringInterval, rc=rc)
+    ! Create history from  model clock - THIS CALL DOES NOT COPY ALARMS
+    call NUOPC_ModelGet(gcomp, modelClock=mclock,  rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_TimeIntervalGet(ringInterval, s=ringinterval_length, rc=rc)
+    hclock = ESMF_ClockCreate(mclock, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_ClockGet(mclock, currtime=currtime, rc=rc)
+
+    ! Initialize history alarm
+    call ESMF_ClockGet(hclock, startTime=StartTime,  currTime=CurrTime, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_TimeGet(currtime,yy=yr, mm=mon, dd=day, s=sec, rc=rc)
+    call med_time_alarmInit(hclock, alarm, option=hist_option, opt_n=hist_n, &
+         reftime=StartTime, alarmname=trim(alarmname), rc=rc)
+
+    ! Advance history clock to trigger alarms then reset history clock back to mcurrtime
+    call ESMF_AlarmSet(alarm, clock=hclock, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    write(currtimestr,'(i4.4,a,i2.2,a,i2.2,a,i5.5)') yr,'-',mon,'-',day,'-',sec
-    call ESMF_ClockGetNextTime(mclock, nextTime=nexttime, rc=rc)
+    call ESMF_ClockAdvance(hclock,rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_TimeGet(nexttime, yy=yr, mm=mon, dd=day, s=sec, rc=rc)
+    call ESMF_ClockSet(hclock, currTime=currtime)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    ! Write diagnostic info
     if (mastertask) then
-       write(nexttimestr,'(i4.4,a,i2.2,a,i2.2,a,i5.5)') yr,'-',mon,'-',day,'-',sec
-       write(logunit,*)
-       write(logunit,'(a,i8)') trim(subname)//": history alarmname "//trim(alarmname)//&
-            ' is ringing, interval length is ', ringInterval_length
-       write(logunit,'(a)') trim(subname)//": currtime = "//trim(currtimestr)//" nexttime = "//trim(nexttimestr)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       write(logunit,'(a,2x,i8)') trim(subname) // "  initialized history alarm "//&
+            trim(alarmname)//"  with option "//trim(hist_option)//" and frequency ",hist_n
     end if
 
-  end subroutine med_phases_history_output_alarminfo
+  end subroutine med_phases_history_init_histclock
 
   !===============================================================================
   subroutine med_phases_history_set_timeinfo(gcomp, clock, alarmname, &
        time_val, time_bnds, time_units, histfile, doavg, auxname, compname, rc)
+
+    use ESMF              , only : ESMF_GridComp, ESMF_Clock, ESMF_Alarm, ESMF_Time, ESMF_TimeInterval
+    use ESMF              , only : ESMF_ClockGet, ESMF_ClockGetNextTime, ESMF_ClockGetAlarm 
+    use ESMF              , only : ESMF_AlarmGet, ESMF_TimeIntervalGet, ESMF_TimeGet
+    use med_io_mod        , only : med_io_ymd2date
+    use med_constants_mod , only : SecPerDay => med_constants_SecPerDay
+    use med_io_mod        , only : med_io_date2yyyymmdd, med_io_sec2hms
 
     ! input/output variables
     type(ESMF_GridComp)         , intent(in)  :: gcomp
@@ -1749,6 +1605,7 @@ contains
     integer                 :: start_ymd      ! Starting date YYYYMMDD
     logical                 :: isPresent
     logical                 :: isSet
+    character(len=*), parameter :: subname='(med_phases_history_set_timeinfo) '
     !---------------------------------------
 
     rc = ESMF_SUCCESS
@@ -1830,8 +1687,8 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        write(currtime_str,'(i4.4,a,i2.2,a,i2.2,a,i5.5)') yr,'-',mon,'-',day,'-',sec
        write(logunit,*)
-       write(logunit,' (a)') "writing mediator history file "//trim(histfile)
-       write(logunit,' (a)') "currtime = "//trim(currtime_str)//" nexttime = "//trim(nexttime_str)
+       write(logunit,' (a)') trim(subname) // " writing mediator history file "//trim(histfile)
+       write(logunit,' (a)') trim(subname) // "   currtime = "//trim(currtime_str)//" nexttime = "//trim(nexttime_str)
     end if
 
   end subroutine med_phases_history_set_timeinfo
