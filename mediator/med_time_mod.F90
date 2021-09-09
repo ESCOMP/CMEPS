@@ -254,6 +254,7 @@ contains
     endif
 
     if (mastertask) then
+       write(logunit,*)
        write(logunit,'(a)') trim(subname) //' creating alarm '// trim(lalarmname)
     end if
 
