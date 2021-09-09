@@ -84,7 +84,7 @@ def _main_func():
     if not os.path.isdir(bld_root):
         os.makedirs(bld_root)
 
-    with open(os.path.join(bld_root,'Filepath'), 'w') as out:
+    with open(os.path.join(bld_root,'Filepath'), 'w', encoding="utf-8") as out:
         cmeps_dir = os.path.join(os.path.dirname(__file__), os.pardir)
         # SourceMods dir needs to be first listed
         out.write(os.path.join(caseroot, "SourceMods", "src.drv") + "\n")
