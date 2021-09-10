@@ -301,7 +301,7 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     #--------------------------------
 
     # Read nuopc.runconfig
-    with open(nuopc_config_file, 'r') as f:
+    with open(nuopc_config_file, 'r', encoding="utf-8") as f:
         lines_cpl = f.readlines()
 
     # Look for only active components except CPL
@@ -313,7 +313,7 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
             comp_config_file = os.path.join(caseroot,"Buildconf","{}conf".format(case.get_value("COMP_{}".format(comp))),
                                             "{}.configure".format(case.get_value("COMP_{}".format(comp))))
             if os.path.isfile(comp_config_file):
-                with open(comp_config_file, 'r') as f:
+                with open(comp_config_file, 'r', encoding="utf-8") as f:
                     lines_comp = f.readlines()
 
             if lines_comp:
@@ -331,7 +331,7 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
                             lines_cpl_new.append(line_comp)
 
                 # Write to a file
-                with open(nuopc_config_file, 'w') as f:
+                with open(nuopc_config_file, 'w', encoding="utf-8") as f:
                     for line in lines_cpl_new:
                         f.write(line)
 
@@ -363,7 +363,7 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
         dicts = {}
         for infile in infiles:
             dict_ = {}
-            with open(infile) as myfile:
+            with open(infile, "r", encoding="utf-8") as myfile:
                 for line in myfile:
                     if "=" in line and '!' not in line:
                         name, var = line.partition("=")[::2]
@@ -405,7 +405,7 @@ def _create_runseq(case, coupling_times, valid_comps):
         if len(valid_comps) == 1:
 
             # Create run sequence with no mediator
-            outfile = open(os.path.join(caseroot, "CaseDocs", "nuopc.runseq"), "w")
+            outfile = open(os.path.join(caseroot, "CaseDocs", "nuopc.runseq"), "w", encoding="utf-8")
             dtime = coupling_times[valid_comps[0].lower() + '_cpl_dt']
             outfile.write ("runSeq:: \n")
             outfile.write ("@" + str(dtime) + " \n")
@@ -488,11 +488,12 @@ def _create_component_modelio_namelists(confdir, case, files):
                 for entry in entries:
                     nmlgen.add_default(entry)
 
-                if model == "cpl":
-                    modelio_file = "med_modelio.nml" + inst_string
-                else:
-                    modelio_file = model + "_modelio.nml" + inst_string
-                nmlgen.write_nuopc_modelio_file(os.path.join(confdir, modelio_file))
+                if inst_index == 1:
+                    if model == "cpl":      
+                        modelio_file = "med_modelio.nml"
+                    else:
+                        modelio_file = model + "_modelio.nml"
+                    nmlgen.write_nuopc_modelio_file(os.path.join(confdir, modelio_file))
 
                 # Output the following to nuopc.runconfig
                 moddiro = case.get_value('RUNDIR')
@@ -501,7 +502,7 @@ def _create_component_modelio_namelists(confdir, case, files):
                 else:
                     logfile = model + inst_string + ".log." + str(lid)
 
-                with open(nuopc_config_file, 'a') as outfile:
+                with open(nuopc_config_file, 'a', encoding="utf-8") as outfile:
                     if model == 'cpl':
                         name = "MED"
                     else:
@@ -539,7 +540,7 @@ def buildnml(case, caseroot, component):
     esmf_aware_threading = case.get_value("ESMF_AWARE_THREADING")
     esmfmkfile = os.getenv("ESMFMKFILE")
     expect(esmfmkfile and os.path.isfile(esmfmkfile),"ESMFMKFILE not found {}".format(esmfmkfile))
-    with open(esmfmkfile, 'r') as f:
+    with open(esmfmkfile, 'r', encoding="utf-8") as f:
         major = None
         minor = None
         for line in f.readlines():
