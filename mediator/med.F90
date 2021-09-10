@@ -104,7 +104,6 @@ contains
     use NUOPC_Mediator          , only: mediator_label_SetRunClock      => label_SetRunClock
     use NUOPC_Mediator          , only: mediator_label_Finalize         => label_Finalize
     use med_phases_history_mod  , only: med_phases_history_write
-    use med_phases_history_mod  , only: med_phases_history_write_med
     use med_phases_restart_mod  , only: med_phases_restart_write
     use med_phases_prep_atm_mod , only: med_phases_prep_atm
     use med_phases_prep_ice_mod , only: med_phases_prep_ice
@@ -206,7 +205,7 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !------------------
-    ! setup mediator history phases for all output
+    ! setup mediator history phases for all output variables
     !------------------
 
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
@@ -214,20 +213,6 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
          specPhaseLabel="med_phases_history_write", specRoutine=med_phases_history_write, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    !------------------
-    ! setup mediator history phases for med output
-    !------------------
-
-    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
-         phaseLabelList=(/"med_phases_history_write_med"/), userRoutine=mediator_routine_Run, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
-         specPhaseLabel="med_phases_history_write_med", specRoutine=med_phases_history_write_med, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_TimestampExport, &
-         specPhaselabel="med_phases_history_write", specRoutine=NUOPC_NoOp, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !------------------
@@ -330,7 +315,7 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !------------------
-    ! prep routines for lnd
+    ! prep/post routines for lnd
     !------------------
 
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
@@ -351,7 +336,7 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !------------------
-    ! prep and post routines for rof
+    ! prep/post routines for rof
     !------------------
 
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
@@ -373,7 +358,7 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !------------------
-    ! prep and post routines for wav
+    ! prep/post routines for wav
     !------------------
 
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
@@ -394,7 +379,7 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !------------------
-    ! prep and post routines for glc
+    ! prep/post routines for glc
     !------------------
 
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &

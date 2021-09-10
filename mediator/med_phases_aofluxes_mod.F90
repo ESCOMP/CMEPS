@@ -236,6 +236,7 @@ contains
     use NUOPC           , only : NUOPC_CompAttributeGet
     use ESMF            , only : ESMF_FieldBundleIsCreated
     use med_methods_mod , only : FB_diagnose  => med_methods_FB_diagnose
+    use med_phases_history_mod, only : med_phases_history_write_atm
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -286,6 +287,10 @@ contains
        ! Calculate atm/ocn fluxes on the destination grid
        call med_aofluxes_update(gcomp, aoflux_in, aoflux_out, rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+       ! Write mediator aofluxes 
+       call med_phases_history_write_med(gcomp, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        if (dbug_flag > 1) then
           call FB_diagnose(is_local%wrap%FBMed_aoflux_o, &

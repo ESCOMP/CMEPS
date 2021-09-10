@@ -460,22 +460,24 @@ contains
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
              end if
 
-             ! Write fields computed in mediator
-             if (ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_ocnalb_o,rc=rc)) then
-                call med_io_write(hist_file, is_local%wrap%FBMed_ocnalb_o, whead(m), wdata(m), &
-                     is_local%wrap%nx(compocn), is_local%wrap%ny(compocn), nt=1, pre='Med_alb_ocn', rc=rc)
-             end if
+             ! Write aoflux fields computed in mediator
              if (ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_aoflux_o,rc=rc)) then
                 call med_io_write(hist_file, is_local%wrap%FBMed_aoflux_o, whead(m), wdata(m), &
                      is_local%wrap%nx(compocn), is_local%wrap%ny(compocn), nt=1, pre='Med_aoflux_ocn', rc=rc)
              end if
-             if (ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_ocnalb_a,rc=rc)) then
-                call med_io_write(hist_file, is_local%wrap%FBMed_ocnalb_a, whead(m), wdata(m), &
-                     is_local%wrap%nx(compatm), is_local%wrap%ny(compatm), nt=1, pre='Med_alb_atm', rc=rc)
-             end if
              if (ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_aoflux_a,rc=rc)) then
                 call med_io_write(hist_file, is_local%wrap%FBMed_aoflux_a, whead(m), wdata(m), &
                      is_local%wrap%nx(compatm), is_local%wrap%ny(compatm), nt=1, pre='Med_aoflux_atm', rc=rc)
+             end if
+
+             ! If appropriate - write ocn albedos computed in mediator
+             if (ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_ocnalb_o,rc=rc)) then
+                call med_io_write(hist_file, is_local%wrap%FBMed_ocnalb_o, whead(m), wdata(m), &
+                     is_local%wrap%nx(compocn), is_local%wrap%ny(compocn), nt=1, pre='Med_alb_ocn', rc=rc)
+             end if
+             if (ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_ocnalb_a,rc=rc)) then
+                call med_io_write(hist_file, is_local%wrap%FBMed_ocnalb_a, whead(m), wdata(m), &
+                     is_local%wrap%nx(compatm), is_local%wrap%ny(compatm), nt=1, pre='Med_alb_atm', rc=rc)
              end if
           end do ! end of loop over m
 
