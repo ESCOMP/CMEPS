@@ -189,7 +189,7 @@ contains
        end do
     end if
 
-    ! Create required field bundles 
+    ! Create required field bundles
     if (is_local%wrap%aoflux_grid == 'ogrid' .or. is_local%wrap%aoflux_grid == 'agrid') then
 
        ! Create the field bundle is_local%wrap%FBImp(compatm,compocn) if needed
@@ -236,7 +236,7 @@ contains
     use NUOPC           , only : NUOPC_CompAttributeGet
     use ESMF            , only : ESMF_FieldBundleIsCreated
     use med_methods_mod , only : FB_diagnose  => med_methods_FB_diagnose
-    use med_phases_history_mod, only : med_phases_history_write_atm
+    use med_phases_history_mod, only : med_phases_history_write_med
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -288,7 +288,7 @@ contains
        call med_aofluxes_update(gcomp, aoflux_in, aoflux_out, rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-       ! Write mediator aofluxes 
+       ! Write mediator aofluxes
        call med_phases_history_write_med(gcomp, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 

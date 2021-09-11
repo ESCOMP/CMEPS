@@ -451,8 +451,7 @@
     <default_value>-999</default_value>
     <group>med_history</group>
     <file>env_run.xml</file>
-    <desc>Sets driver snapshot history file frequency (like REST_N)
-    </desc>
+    <desc>Sets driver snapshot history file frequency (like REST_N)</desc>
   </entry>
   <entry id="HIST_DATE">
     <type>integer</type>

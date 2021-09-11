@@ -7,7 +7,7 @@ class RunSeq:
         self.__outfile = None
 
     def __enter__(self):
-        self.__outfile = open(self.__outfile_name, "w")
+        self.__outfile = open(self.__outfile_name, "w", encoding="utf-8")
         self.__outfile.write("runSeq:: \n")
         return self
 

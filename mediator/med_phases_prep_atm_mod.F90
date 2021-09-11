@@ -128,7 +128,7 @@ contains
     !--- merge all fields to atm
     !---------------------------------------
     if (trim(coupling_mode) == 'cesm' .or. trim(coupling_mode) == 'hafs') then
-       call med_merge_auto(compatm, &
+       call med_merge_auto(&
             is_local%wrap%med_coupling_active(:,compatm), &
             is_local%wrap%FBExp(compatm), &
             is_local%wrap%FBFrac(compatm), &
@@ -138,7 +138,7 @@ contains
             FBMed2=is_local%wrap%FBMed_aoflux_a, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     else if (trim(coupling_mode) == 'nems_frac' .or. trim(coupling_mode) == 'nems_orig') then
-       call med_merge_auto(compatm, &
+       call med_merge_auto(&
             is_local%wrap%med_coupling_active(:,compatm), &
             is_local%wrap%FBExp(compatm), &
             is_local%wrap%FBFrac(compatm), &
@@ -198,7 +198,7 @@ contains
     end if
 
     ! Note - the following needs a custom merge since Faoo_fco2_ocn is scaled by (ifrac+ofrac)
-    ! in the merge to the atm 
+    ! in the merge to the atm
     if ( FB_FldChk(is_local%wrap%FBExp(compatm)        , 'Faoo_fco2_ocn', rc=rc) .and. &
          FB_FldChk(is_local%wrap%FBImp(compocn,compocn), 'Faoo_fco2_ocn', rc=rc)) then
        call ESMF_FieldGet(lfield, farrayPtr=dataptr1, rc=rc)
