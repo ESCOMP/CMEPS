@@ -82,7 +82,7 @@ contains
        ! auto merges to create FBExp(complnd) - other than glc->lnd
        ! The following will merge all fields in fldsSrc
        call t_startf('MED:'//trim(subname)//' merge')
-       call med_merge_auto(complnd, &
+       call med_merge_auto(&
             is_local%wrap%med_coupling_active(:,complnd), &
             is_local%wrap%FBExp(complnd), &
             is_local%wrap%FBFrac(complnd), &

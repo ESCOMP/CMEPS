@@ -536,7 +536,7 @@ def buildnml(case, caseroot, component):
     if component != "drv":
         raise AttributeError
 
-#   Do a check here of ESMF VERSION, requires 8.1.0 or newer (8.2.0 or newer for esmf_aware_threading)
+    #   Do a check here of ESMF VERSION, requires 8.1.0 or newer (8.2.0 or newer for esmf_aware_threading)
     esmf_aware_threading = case.get_value("ESMF_AWARE_THREADING")
     esmfmkfile = os.getenv("ESMFMKFILE")
     expect(esmfmkfile and os.path.isfile(esmfmkfile),"ESMFMKFILE not found {}".format(esmfmkfile))

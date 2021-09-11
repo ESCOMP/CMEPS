@@ -230,7 +230,7 @@ contains
     !=====================================================================
 
     ! ---------------------------------------------------------------------
-    ! to wav: 10-m wind components 
+    ! to wav: 10-m wind components
     ! ---------------------------------------------------------------------
     if (hafs_attr%atm_present .and. hafs_attr%wav_present) then
       allocate(S_flds(2))
@@ -510,7 +510,7 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     !----------------------------------------------------------
-    ! Component active or not? 
+    ! Component active or not?
     !----------------------------------------------------------
 
     call NUOPC_CompAttributeGet(gcomp, name='ATM_model', &
