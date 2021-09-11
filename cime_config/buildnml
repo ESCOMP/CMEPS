@@ -502,7 +502,7 @@ def _create_component_modelio_namelists(confdir, case, files):
                 else:
                     logfile = model + inst_string + ".log." + str(lid)
 
-                with open(nuopc_config_file, 'a', encoding='utf-8') as outfile:
+                with open(nuopc_config_file, 'a', encoding="utf-8") as outfile:
                     if model == 'cpl':
                         name = "MED"
                     else:
