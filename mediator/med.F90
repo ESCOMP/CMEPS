@@ -122,7 +122,7 @@ contains
     integer, intent(out) :: rc
 
     ! local variables
-    character(len=*),parameter :: subname=' (module_MED:SetServices) '
+    character(len=*),parameter :: subname=' (SetServices) '
     !-----------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -575,7 +575,7 @@ contains
     character(len=CX) :: logfile
     character(len=CX) :: diagfile
     character(len=CX) :: do_budgets
-    character(len=*),parameter :: subname=' (module_MED:InitializeP0) '
+    character(len=*),parameter :: subname=' (InitializeP0) '
     !-----------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -686,7 +686,7 @@ contains
     type(InternalState) :: is_local
     integer             :: stat
     character(len=CS)   :: attrList(8)
-    character(len=*),parameter :: subname=' (module_MED:InitializeIPDv03p1) '
+    character(len=*),parameter :: subname=' (InitializeIPDv03p1) '
     !-----------------------------------------------------------
 
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
@@ -1016,7 +1016,7 @@ contains
     type(InternalState)        :: is_local
     type(ESMF_VM)              :: vm
     integer                    :: n
-    character(len=*),parameter :: subname=' (module_MED:InitializeIPDv03p3) '
+    character(len=*),parameter :: subname=' (InitializeIPDv03p3) '
     !-----------------------------------------------------------
 
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
@@ -1077,7 +1077,7 @@ contains
     ! local variables
     type(InternalState) :: is_local
     integer :: n1,n2
-    character(len=*),parameter :: subname=' (module_MED:InitalizeIPDv03p4) '
+    character(len=*),parameter :: subname=' (InitalizeIPDv03p4) '
     !-----------------------------------------------------------
 
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
@@ -1122,6 +1122,7 @@ contains
       use ESMF , only : ESMF_FieldStatus_Empty, ESMF_FieldStatus_Complete, ESMF_FieldStatus_GridSet
       use ESMF , only : ESMF_GeomType_Mesh, ESMF_MeshGet, ESMF_Mesh, ESMF_MeshEmptyCreate
 
+      ! input/output variables
       type(ESMF_State)   , intent(inout) :: State
       character(len=*)   , intent(in)    :: string
       integer            , intent(out)   :: rc
@@ -1130,23 +1131,20 @@ contains
       type(ESMF_Field)              :: field
       type(ESMF_Grid)               :: grid, newgrid
       type(ESMF_Mesh)               :: mesh, newmesh
-      integer                       :: localDeCount
-
       type(ESMF_DistGrid)           :: distgrid
-      type(ESMF_DistGrid)           :: nodaldistgrid, newnodaldistgrid
       type(ESMF_DistGrid)           :: elemdistgrid, newelemdistgrid
-      type(ESMF_DistGridConnection), allocatable :: connectionList(:)
       integer                       :: arbDimCount
       integer                       :: dimCount, tileCount
       integer                       :: connectionCount
-      integer, allocatable          :: minIndexPTile(:,:), maxIndexPTile(:,:)
-      integer, allocatable          :: regDecompPTile(:,:)
-      integer                       :: i, j, n, n1, fieldCount, nxg, i1, i2
+      integer                       :: fieldCount
+      integer                       :: i, j, n, n1, i1, i2
       type(ESMF_GeomType_Flag)      :: geomtype
-      character(ESMF_MAXSTR),allocatable :: fieldNameList(:)
       type(ESMF_FieldStatus_Flag)   :: fieldStatus
       character(len=CX)             :: msgString
-      character(len=*),parameter :: subname=' (module_MED:realizeConnectedGrid) '
+      integer                       , allocatable :: minIndexPTile(:,:), maxIndexPTile(:,:)
+      character(ESMF_MAXSTR)        , allocatable :: fieldNameList(:)
+      type(ESMF_DistGridConnection) , allocatable :: connectionList(:)
+      character(len=*),parameter :: subname=' (realizeConnectedGrid) '
       !-----------------------------------------------------------
 
       ! All of the Fields that set their TransferOfferGeomObject Attribute
@@ -1155,9 +1153,6 @@ contains
       ! modify the decomposition and distribution of the Grid to match the Mediator PETs.
       ! On exit from this phase, the connector will transfer the full Grid/Mesh/LocStream
       ! objects (with coordinates) for Field pairs that have a provider and an acceptor side.
-
-      ! TODO: quick implementation, do it for each field one by one
-      ! TODO: commented out below are application to other fields
 
       call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
       rc = ESMF_Success
@@ -1175,7 +1170,7 @@ contains
       ! a component has fields on multiple grids/meshes, this
       ! would need to be revisited
       do n=1, min(fieldCount, 1)
-       
+
          call ESMF_StateGet(State, field=field, itemName=fieldNameList(n), rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
          call ESMF_FieldGet(field, status=fieldStatus, rc=rc)
@@ -1392,6 +1387,14 @@ contains
 
     !----------------------------------------------------------
     ! realize all Fields with transfer action "accept"
+    ! Finish initializing the State Fields
+    ! - Fields are partially created when this routine is called. 
+    ! - Fields contain a geombase object internally created and the geombase object 
+    !   associates with either a ESMF_Grid, or a ESMF_Mesh, or an or an ESMF_XGrid, 
+    !   or a ESMF_LocStream. 
+    ! - Fields containing grids will be transferred! to a Mesh and Realized; 
+    ! - Fields containg meshes are completed with space allocated internally 
+    !   for an ESMF_Array based on arrayspec
     !----------------------------------------------------------
 
     type(ESMF_GridComp)  :: gcomp
@@ -1415,35 +1418,25 @@ contains
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    !--- Finish initializing the State Fields
-    !--- Fields are partially created. Fields contain a geombase object internally created
-    !    and the geombase object associates with either a ESMF_Grid, or a ESMF_Mesh, or an
-    !    or an ESMF_XGrid, or a ESMF_LocStream. Fields containing grids will be transferred
-    !    to a Mesh and Realized; Fields containg meshes are completed with space allocated
-    !    internally for an ESMF_Array based on arrayspec
-    !--- Write out grid information
-
     do n1 = 1,ncomps
-
+      ! Finish initializing import states and reset state data to spval_init
       if (ESMF_StateIsCreated(is_local%wrap%NStateImp(n1),rc=rc)) then
          call ESMF_LogWrite(trim(subname)//": calling completeFieldInitialize import states from "//trim(compname(n1)), &
               ESMF_LOGMSG_INFO)
         call completeFieldInitialization(is_local%wrap%NStateImp(n1), rc=rc)
         if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
         call State_reset(is_local%wrap%NStateImp(n1), value=spval_init, rc=rc)
         if (ChkErr(rc,__LINE__,u_FILE_u)) return
       endif
- 
+
+      ! Finish initializing mediator export states and reset state data to spval_init
       if (ESMF_StateIsCreated(is_local%wrap%NStateExp(n1),rc=rc)) then
          call ESMF_LogWrite(trim(subname)//": calling completeFieldInitialize export states to "//trim(compname(n1)), &
               ESMF_LOGMSG_INFO)
         call completeFieldInitialization(is_local%wrap%NStateExp(n1), rc=rc)
         if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
         call State_reset(is_local%wrap%NStateExp(n1), value=spval_init, rc=rc)
         if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
         if (dbug_flag > 1) then
            call State_GeomPrint(is_local%wrap%NStateExp(n1),'gridExp'//trim(compname(n1)),rc=rc)
            if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -1460,10 +1453,10 @@ contains
 
       use ESMF  , only : operator(==)
       use ESMF  , only : ESMF_State, ESMF_MAXSTR, ESMF_Grid, ESMF_Mesh, ESMF_Field, ESMF_FieldStatus_Flag
-      use ESMF  , only : ESMF_SUCCESS, ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_FieldGet, ESMF_FieldEmptyComplete
+      use ESMF  , only : ESMF_SUCCESS, ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_FieldGet
       use ESMF  , only : ESMF_GeomType_Flag, ESMF_FieldCreate, ESMF_MeshCreate, ESMF_GEOMTYPE_GRID
       use ESMF  , only : ESMF_MeshLoc_Element, ESMF_TYPEKIND_R8, ESMF_FIELDSTATUS_GRIDSET
-      use ESMF  , only : ESMF_AttributeGet, ESMF_MeshWrite, ESMF_FIELDSTATUS_COMPLETE, ESMF_FAILURE
+      use ESMF  , only : ESMF_AttributeGet, ESMF_MeshWrite, ESMF_FAILURE
       use NUOPC , only : NUOPC_getStateMemberLists, NUOPC_Realize
 
       ! input/output variables
@@ -1550,9 +1543,9 @@ contains
                call Field_GeomPrint(meshField, trim(subname)//':'//trim(fieldName), rc=rc)
                if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-            ! Input fields contain mesh
             else
 
+               ! Input fields contain mesh
                if (fieldStatus==ESMF_FIELDSTATUS_GRIDSET) then
                   call ESMF_AttributeGet(fieldList(n), name="GridToFieldMap", convention="NUOPC", &
                        purpose="Instance", itemCount=gridToFieldMapCount, rc=rc)
@@ -1574,15 +1567,14 @@ contains
                           purpose="Instance", valueList=ungriddedUBound, rc=rc)
                      if (ChkErr(rc,__LINE__,u_FILE_u)) return
                   endif
-                  call ESMF_FieldEmptyComplete(fieldList(n), typekind=ESMF_TYPEKIND_R8, gridToFieldMap=gridToFieldMap, &
+                  call NUOPC_Realize(State, fieldName, typekind=ESMF_TYPEKIND_R8, gridToFieldMap=gridToFieldMap, &
                        ungriddedLbound=ungriddedLbound, ungriddedUbound=ungriddedUbound, rc=rc)
                   if (ChkErr(rc,__LINE__,u_FILE_u)) return
                   deallocate(gridToFieldMap, ungriddedLbound, ungriddedUbound)
                end if ! fieldStatus
-
-               ! Print field info
                call Field_GeomPrint(fieldlist(n), trim(subname)//':'//trim(fieldName), rc=rc)
                if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
             end if
 
          enddo ! end of loop over fields
@@ -1681,7 +1673,7 @@ contains
     logical,save                       :: first_call = .true.
     real(r8)                           :: real_nx, real_ny
     character(len=CX)                  :: msgString
-    character(len=*), parameter        :: subname=' (module_MED:DataInitialize) '
+    character(len=*), parameter        :: subname=' (DataInitialize) '
     !-----------------------------------------------------------
 
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
@@ -2345,6 +2337,7 @@ contains
        call NUOPC_CompAttributeGet(gcomp, name="read_restart", value=cvalue, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        if (mastertask) then
+          write(logunit,*)
           write(logunit,'(a)') trim(subname)//' read_restart = '//trim(cvalue)
        end if
        read(cvalue,*) read_restart
