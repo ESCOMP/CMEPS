@@ -35,7 +35,7 @@ contains
   subroutine med_phases_restart_alarm_init(gcomp, rc)
 
     ! --------------------------------------
-    ! Initialize mediator restart file alarms (module variables)
+    ! Initialize mediator restart file alarm on mediator clock
     ! --------------------------------------
 
     use ESMF         , only : ESMF_GridComp, ESMF_GridCompGet
@@ -45,7 +45,7 @@ contains
     use ESMF         , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_LOGMSG_ERROR
     use ESMF         , only : ESMF_SUCCESS, ESMF_FAILURE
     use ESMF         , only : operator(==), operator(-)
-    use ESMF         , only : ESMF_ALARMLIST_ALL, ESMF_Alarm, ESMF_AlarmSet
+    use ESMF         , only : ESMF_Alarm, ESMF_AlarmSet
     use NUOPC        , only : NUOPC_CompAttributeGet
     use NUOPC_Model  , only : NUOPC_ModelGet
     use med_time_mod , only : med_time_AlarmInit
@@ -72,61 +72,44 @@ contains
 
     rc = ESMF_SUCCESS
 
-    ! -----------------------------
-    ! Get model clock
-    ! -----------------------------
-
-    call NUOPC_ModelGet(gcomp, modelClock=mclock,  rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    ! get current time
-    call ESMF_ClockGet(mclock, currTime=mCurrTime,  rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    ! -----------------------------
-    ! Set alarm for instantaneous mediator restart output
-    ! -----------------------------
-
+    ! Determine restart option
     call NUOPC_CompAttributeGet(gcomp, name='restart_option', value=restart_option, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call NUOPC_CompAttributeGet(gcomp, name='restart_n', value=cvalue, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     read(cvalue,*) restart_n
 
+    ! Set alarm on model clock for instantaneous mediator restart output
+    call NUOPC_ModelGet(gcomp, modelClock=mclock, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call med_time_alarmInit(mclock, alarm, option=restart_option, opt_n=restart_n, &
          reftime=mcurrTime, alarmname='alarm_restart', rc=rc)
 
+    ! Advance model clock to trigger alarm then reset model clock back to currtime
     call ESMF_AlarmSet(alarm, clock=mclock, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    !--------------------------------
-    ! Advance model clock to trigger alarms then reset model clock back to currtime
-    !--------------------------------
-
-    call ESMF_ClockGet(mclock, currTime=mCurrTime, timeStep=mtimestep, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_TimeIntervalGet(mtimestep, s=timestep_length, rc=rc)
+    call ESMF_ClockGet(mclock, currTime=mCurrTime, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call ESMF_ClockAdvance(mclock,rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call ESMF_ClockSet(mclock, currTime=mcurrtime, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    !--------------------------------
     ! Handle end of run restart
-    !--------------------------------
-    call NUOPC_CompAttributeGet(gcomp, name="write_restart_at_endofrun", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    call NUOPC_CompAttributeGet(gcomp, name="write_restart_at_endofrun", value=cvalue, &
+         isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (isPresent .and. isSet) then
        if (trim(cvalue) .eq. '.true.') write_restart_at_endofrun = .true.
     end if
 
-    ! -----------------------------
-    ! Write mediator diagnostic output
-    ! -----------------------------
-
+    ! Write diagnostic output
     if (mastertask) then
        write(logunit,*)
+       call ESMF_ClockGet(mclock, timeStep=mtimestep, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_TimeIntervalGet(mtimestep, s=timestep_length, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
        write(logunit,100) trim(subname)//" restart clock timestep = ",timestep_length
        write(logunit,100) trim(subname)//" set restart alarm with option "//&
             trim(restart_option)//" and frequency ",restart_n
@@ -138,7 +121,6 @@ contains
   end subroutine med_phases_restart_alarm_init
 
   !===============================================================================
-
   subroutine med_phases_restart_write(gcomp, rc)
 
     ! Write mediator restart
@@ -324,8 +306,8 @@ contains
        ! the timestep and is preferred for restart file names
        !---------------------------------------
 
-       write(restart_file,"(6a)") trim(restart_dir)//trim(case_name),'.cpl', &
-         trim(cpl_inst_tag),'.r.',trim(nexttimestr),'.nc'
+       write(restart_file,"(6a)") trim(restart_dir)//trim(case_name),'.cpl', trim(cpl_inst_tag),'.r.',&
+            trim(nexttimestr),'.nc'
 
        if (iam == 0) then
           restart_pfile = "rpointer.cpl"//cpl_inst_tag
@@ -340,7 +322,7 @@ contains
 
        do m = 1,2
           if (m == 2) then
-             call med_io_enddef(hist_file)
+             call med_io_enddef(restart_file)
           end if
 
           tbnds = days_since
@@ -358,7 +340,6 @@ contains
           ! Write out next ymd/tod in place of curr ymd/tod because the
           ! restart represents the time at end of the current timestep
           ! and that is where we want to start the next run.
-
           call med_io_write(restart_file, start_ymd, 'start_ymd', whead(m), wdata(m), rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           call med_io_write(restart_file, start_tod, 'start_tod', whead(m), wdata(m), rc=rc)
@@ -397,10 +378,10 @@ contains
           if (ESMF_FieldBundleIsCreated(is_local%wrap%FBExpAccumOcn)) then
              nx = is_local%wrap%nx(compocn)
              ny = is_local%wrap%ny(compocn)
-             call med_io_write(restart_file, iam,  is_local%wrap%FBExpAccumOcn, whead(m), wdata(m)(m), nx, ny, &
+             call med_io_write(restart_file, is_local%wrap%FBExpAccumOcn, whead(m), wdata(m), nx, ny, &
                   nt=1, pre='ocnExpAccum', rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             call med_io_write(restart_file, is_local%wrap%ExpAccumOcnCnt, 'ocnExpAccum_cnt', whead(m), wdata(m), rc)
+             call med_io_write(restart_file, is_local%wrap%ExpAccumOcnCnt, 'ocnExpAccum_cnt', whead(m), wdata(m), rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           endif
 
@@ -408,10 +389,10 @@ contains
           if (ESMF_FieldBundleIsCreated(FBlndAccum2glc_l)) then
              nx = is_local%wrap%nx(complnd)
              ny = is_local%wrap%ny(complnd)
-             call med_io_write(restart_file, iam, FBlndAccum2glc_l, whead(m), wdata(m), nx, ny, &
+             call med_io_write(restart_file, FBlndAccum2glc_l, whead(m), wdata(m), nx, ny, &
                   nt=1, pre='lndImpAccum2glc', rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             call med_io_write(restart_file, lndAccum2glc_cnt, 'lndImpAccum2glc_cnt', whead(m), wdata(m), rc)
+             call med_io_write(restart_file, lndAccum2glc_cnt, 'lndImpAccum2glc_cnt', whead(m), wdata(m), rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
 
@@ -422,7 +403,7 @@ contains
              call med_io_write(restart_file, FBocnAccum2glc_o, whead(m), wdata(m), nx, ny, &
                   nt=1, pre='ocnImpAccum2glc_o', rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             call med_io_write(restart_file, iam, ocnAccum2glc_cnt, 'ocnImpAccum2glc_cnt', whead(m), wdata(m), rc)
+             call med_io_write(restart_file, ocnAccum2glc_cnt, 'ocnImpAccum2glc_cnt', whead(m), wdata(m), rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
 
@@ -485,8 +466,8 @@ contains
     use med_io_mod , only : med_io_read
 
     ! Input/output variables
-    type(ESMF_GridComp)              :: gcomp
-    integer, intent(out)             :: rc
+    type(ESMF_GridComp)  :: gcomp
+    integer, intent(out) :: rc
 
     ! Local variables
     type(ESMF_VM)          :: vm
@@ -503,65 +484,46 @@ contains
     character(ESMF_MAXSTR) :: restart_pfile  ! Local path to restart pointer filename
     character(ESMF_MAXSTR) :: cpl_inst_tag   ! instance tag
     logical                :: isPresent
-    character(len=*), parameter :: sp_str = 'str_undefined'
     character(len=*), parameter :: subname='(med_phases_restart_read)'
     !---------------------------------------
     call t_startf('MED:'//subname)
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
     rc = ESMF_SUCCESS
 
-    !---------------------------------------
-    ! --- Get the internal state
-    !---------------------------------------
-
+    ! Get the internal state
     nullify(is_local%wrap)
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_VMGet(vm, localPet=iam, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
+    ! Get case name and inst suffix
     call NUOPC_CompAttributeGet(gcomp, name='case_name', value=case_name, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
     call NUOPC_CompAttributeGet(gcomp, name='inst_suffix', isPresent=isPresent, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if(isPresent) then
+    if (isPresent) then
        call NUOPC_CompAttributeGet(gcomp, name='inst_suffix', value=cpl_inst_tag, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     else
        cpl_inst_tag = ""
     endif
 
-    !---------------------------------------
-    ! --- Get the clock info
-    !---------------------------------------
-
+    ! Get the clock info
     call ESMF_GridCompGet(gcomp, clock=clock)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
     call ESMF_ClockGet(clock, currtime=currtime, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
     call ESMF_TimeGet(currtime,yy=yr, mm=mon, dd=day, s=sec, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     write(currtimestr,'(i4.4,a,i2.2,a,i2.2,a,i5.5)') yr,'-',mon,'-',day,'-',sec
     if (dbug_flag > 1) then
        call ESMF_LogWrite(trim(subname)//": currtime = "//trim(currtimestr), ESMF_LOGMSG_INFO)
     endif
-    if (iam==0) then
+    if (iam == 0) then
        call ESMF_ClockPrint(clock, options="currTime", preString="-------->"//trim(subname)//" mediating for: ", rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     endif
 
-    !---------------------------------------
-    ! --- Restart File
-    !---------------------------------------
-
     ! Get the restart file name from the pointer file
-
     restart_pfile = "rpointer.cpl"//cpl_inst_tag
     if (iam == 0) then
        call ESMF_LogWrite(trim(subname)//" read rpointer file = "//trim(restart_pfile), ESMF_LOGMSG_INFO)
@@ -580,70 +542,59 @@ contains
        close(unitn)
        call ESMF_LogWrite(trim(subname)//' restart file from rpointer = '//trim(restart_file), ESMF_LOGMSG_INFO)
     endif
+    call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_VMGet(vm, localPet=iam, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call ESMF_VMBroadCast(vm, restart_file, len(restart_file), 0, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call ESMF_LogWrite(trim(subname)//": read "//trim(restart_file), ESMF_LOGMSG_INFO)
 
     ! Now read in the restart file
-
-    call med_io_read(restart_file, vm, is_local%wrap%FBExpAccumCnt, 'ExpAccumCnt', rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call med_io_read(restart_file, vm, is_local%wrap%FBImpAccumCnt, 'ImpAccumCnt', rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
     do n = 1,ncomps
        if (is_local%wrap%comp_present(n)) then
           ! Read import field bundle
           if (ESMF_FieldBundleIsCreated(is_local%wrap%FBimp(n,n),rc=rc)) then
-             call med_io_read(restart_file, vm,  is_local%wrap%FBimp(n,n), pre=trim(compname(n))//'Imp', rc=rc)
+             call med_io_read(restart_file, vm, is_local%wrap%FBimp(n,n), pre=trim(compname(n))//'Imp', rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           endif
-
           ! Read export field bundle
           if (ESMF_FieldBundleIsCreated(is_local%wrap%FBExp(n),rc=rc)) then
-             call med_io_read(restart_file, vm,  is_local%wrap%FBexp(n), pre=trim(compname(n))//'Exp', rc=rc)
+             call med_io_read(restart_file, vm, is_local%wrap%FBexp(n), pre=trim(compname(n))//'Exp', rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           endif
-
           ! Read fraction field bundles
           if (ESMF_FieldBundleIsCreated(is_local%wrap%FBfrac(n),rc=rc)) then
-             call med_io_read(restart_file, vm,  is_local%wrap%FBfrac(n), pre=trim(compname(n))//'Frac', rc=rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          endif
-
-          ! Read export field bundle accumulator
-          if (ESMF_FieldBundleIsCreated(is_local%wrap%FBExpAccum(n),rc=rc)) then
-             call med_io_read(restart_file, vm,  is_local%wrap%FBExpAccum(n), pre=trim(compname(n))//'ExpAccum', rc=rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          endif
-
-          ! Read import field bundle accumulator
-          if (ESMF_FieldBundleIsCreated(is_local%wrap%FBImpAccum(n,n),rc=rc)) then
-             call med_io_read(restart_file, vm,  is_local%wrap%FBImpAccum(n,n), pre=trim(compname(n))//'ImpAccum', rc=rc)
+             call med_io_read(restart_file, vm, is_local%wrap%FBfrac(n), pre=trim(compname(n))//'Frac', rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           endif
        endif
     enddo
 
+    ! Read export field bundle accumulator
+    if (ESMF_FieldBundleIsCreated(is_local%wrap%FBExpAccumOcn,rc=rc)) then
+       call med_io_read(restart_file, vm, is_local%wrap%FBExpAccumOcn, pre='ocnExpAccum', rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call med_io_read(restart_file, vm, is_local%wrap%ExpAccumOcnCnt, 'ocnExpAccum_cnt', rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    endif
     ! If lnd->glc, read accumulation from lnd to glc (CESM only)
     if (ESMF_FieldBundleIsCreated(FBlndAccum2glc_l)) then
-       call med_io_read(restart_file, vm,  FBlndAccum2glc_l, pre='lndImpAccum2glc', rc=rc)
+       call med_io_read(restart_file, vm, FBlndAccum2glc_l, pre='lndImpAccum2glc', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call med_io_read(restart_file, vm,  lndAccum2glc_cnt, 'lndImpAccum2glc_cnt', rc=rc)
+       call med_io_read(restart_file, vm, lndAccum2glc_cnt, 'lndImpAccum2glc_cnt', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
-
     ! If ocn->glc, read accumulation from ocn to glc (CESM only)
     if (ESMF_FieldBundleIsCreated(FBocnAccum2glc_o)) then
-       call med_io_read(restart_file, vm,  FBocnAccum2glc_o, pre='ocnImpAccum2glc', rc=rc)
+       call med_io_read(restart_file, vm, FBocnAccum2glc_o, pre='ocnImpAccum2glc', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call med_io_read(restart_file, vm,  ocnAccum2glc_cnt, 'ocnImpAccum2glc_cnt', rc=rc)
+       call med_io_read(restart_file, vm, ocnAccum2glc_cnt, 'ocnImpAccum2glc_cnt', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
-
     ! Read ocn albedo field bundle (CESM only)
     if (ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_ocnalb_o,rc=rc)) then
-       call med_io_read(restart_file, vm,  is_local%wrap%FBMed_ocnalb_o, pre='MedOcnAlb_o', rc=rc)
+       call med_io_read(restart_file, vm, is_local%wrap%FBMed_ocnalb_o, pre='MedOcnAlb_o', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
@@ -657,7 +608,6 @@ contains
   end subroutine med_phases_restart_read
 
   !===============================================================================
-
   subroutine ymd2date(year,month,day,date)
     ! Converts  year, month, day to coded-date
     ! NOTE: this calendar has a year zero (but no day or month zero)

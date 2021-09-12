@@ -39,8 +39,8 @@ module MED
   use med_methods_mod          , only : FB_diagnose        => med_methods_FB_diagnose
   use med_methods_mod          , only : FB_getFieldN       => med_methods_FB_getFieldN
   use med_methods_mod          , only : clock_timeprint    => med_methods_clock_timeprint
-  use med_time_mod             , only : alarmInit          => med_time_alarmInit
   use med_utils_mod            , only : memcheck           => med_memcheck
+  use med_time_mod             , only : med_time_alarmInit
   use med_internalstate_mod    , only : InternalState
   use med_internalstate_mod    , only : med_coupling_allowed, logunit, mastertask
   use med_phases_profile_mod   , only : med_phases_profile_finalize
@@ -2431,7 +2431,8 @@ contains
     integer, intent(out) :: rc
 
     ! local variables
-    type(ESMF_Clock)        :: mediatorClock, driverClock
+    type(ESMF_Clock)        :: mClock  ! mediator clock
+    type(ESMF_CLock)        :: dClock  ! driver clock
     type(ESMF_Time)         :: currTime
     type(ESMF_TimeInterval) :: timeStep
     type(ESMF_Alarm)        :: stop_alarm
@@ -2452,27 +2453,27 @@ contains
     endif
 
     ! query the Mediator for clocks
-    call NUOPC_MediatorGet(gcomp, mediatorClock=mediatorClock, driverClock=driverClock, rc=rc)
+    call NUOPC_MediatorGet(gcomp, mediatorClock=mClock, driverClock=dClock, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if (dbug_flag > 1) then
-       call Clock_TimePrint(driverClock  ,trim(subname)//'driver clock1',rc)
-       call Clock_TimePrint(mediatorClock,trim(subname)//'mediat clock1',rc)
+       call Clock_TimePrint(dClock, trim(subname)//'driver clock1',rc)
+       call Clock_TimePrint(mClock, trim(subname)//'mediat clock1',rc)
     endif
 
     ! set the mediatorClock to have the current start time as the driverClock
-    call ESMF_ClockGet(driverClock, currTime=currTime, timeStep=timeStep, rc=rc)
+    call ESMF_ClockGet(dClock, currTime=currTime, timeStep=timeStep, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_ClockSet(mediatorClock, currTime=currTime, timeStep=timeStep, rc=rc)
+    call ESMF_ClockSet(mClock, currTime=currTime, timeStep=timeStep, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if (dbug_flag > 1) then
-       call Clock_TimePrint(driverClock  ,trim(subname)//'driver clock2',rc)
-       call Clock_TimePrint(mediatorClock,trim(subname)//'mediat clock2',rc)
+       call Clock_TimePrint(dClock, trim(subname)//'driver clock2',rc)
+       call Clock_TimePrint(mClock, trim(subname)//'mediat clock2',rc)
     endif
 
     ! check and set the component clock against the driver clock
-    call NUOPC_CompCheckSetClock(gcomp, driverClock, checkTimeStep=.false., rc=rc)
+    call NUOPC_CompCheckSetClock(gcomp, dClock, checkTimeStep=.false., rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if (.not. stopalarmcreated) then
@@ -2484,20 +2485,16 @@ contains
        call NUOPC_CompAttributeGet(gcomp, name="stop_ymd", value=cvalue, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        read(cvalue,*) stop_ymd
-       call alarmInit(mediatorclock, stop_alarm, stop_option, opt_n=stop_n, opt_ymd=stop_ymd, &
+       call med_time_alarmInit(mclock, stop_alarm, stop_option, opt_n=stop_n, opt_ymd=stop_ymd, &
             alarmname='alarm_stop', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        stopalarmcreated = .true.
     end if
 
-    !--------------------------------
     ! Advance med clock to trigger alarms then reset model clock back to currtime
-    !--------------------------------
-
-    call ESMF_ClockAdvance(mediatorClock,rc=rc)
+    call ESMF_ClockAdvance(mClock,rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    call ESMF_ClockSet(mediatorClock, currTime=currtime, timeStep=timestep, rc=rc)
+    call ESMF_ClockSet(mClock, currTime=currtime, timeStep=timestep, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if (dbug_flag > 5) then
