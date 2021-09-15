@@ -1377,7 +1377,8 @@ contains
     flds = (/'Sw_lamult ',&
              'Sw_ustokes',&
              'Sw_vstokes',&
-             'Sw_hstokes'/)
+             'Sw_hstokes',&
+             'Sw_pstokes'/)
 
     do n = 1,size(flds)
        fldname = trim(flds(n))
