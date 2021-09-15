@@ -35,17 +35,15 @@ contains
   subroutine med_phases_restart_alarm_init(gcomp, rc)
 
     ! --------------------------------------
-    ! Initialize mediator restart file alarm on mediator clock
+    ! Initialize mediator restart file alarms (module variables)
     ! --------------------------------------
 
     use ESMF         , only : ESMF_GridComp, ESMF_GridCompGet
     use ESMF         , only : ESMF_Clock, ESMF_ClockGet, ESMF_ClockAdvance, ESMF_ClockSet
-    use ESMF         , only : ESMF_Time
-    use ESMF         , only : ESMF_TimeInterval, ESMF_TimeIntervalGet
+    use ESMF         , only : ESMF_Time, ESMF_TimeInterval, ESMF_TimeIntervalGet
+    use ESMF         , only : ESMF_Alarm, ESMF_AlarmSet
     use ESMF         , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_LOGMSG_ERROR
     use ESMF         , only : ESMF_SUCCESS, ESMF_FAILURE
-    use ESMF         , only : operator(==), operator(-)
-    use ESMF         , only : ESMF_Alarm, ESMF_AlarmSet
     use NUOPC        , only : NUOPC_CompAttributeGet
     use NUOPC_Model  , only : NUOPC_ModelGet
     use med_time_mod , only : med_time_AlarmInit
@@ -72,23 +70,29 @@ contains
 
     rc = ESMF_SUCCESS
 
-    ! Determine restart option
+    ! Get model clock
+    call NUOPC_ModelGet(gcomp, modelClock=mclock,  rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    ! Determine restart frequency
     call NUOPC_CompAttributeGet(gcomp, name='restart_option', value=restart_option, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call NUOPC_CompAttributeGet(gcomp, name='restart_n', value=cvalue, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     read(cvalue,*) restart_n
 
-    ! Set alarm on model clock for instantaneous mediator restart output
-    call NUOPC_ModelGet(gcomp, modelClock=mclock, rc=rc)
+    ! Set alarm for instantaneous mediator restart output
+    call ESMF_ClockGet(mclock, currTime=mCurrTime,  rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call med_time_alarmInit(mclock, alarm, option=restart_option, opt_n=restart_n, &
          reftime=mcurrTime, alarmname='alarm_restart', rc=rc)
-
-    ! Advance model clock to trigger alarm then reset model clock back to currtime
     call ESMF_AlarmSet(alarm, clock=mclock, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_ClockGet(mclock, currTime=mCurrTime, rc=rc)
+
+    ! Advance model clock to trigger alarm then reset model clock back to currtime
+    call ESMF_ClockGet(mclock, currTime=mCurrTime, timeStep=mtimestep, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_TimeIntervalGet(mtimestep, s=timestep_length, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call ESMF_ClockAdvance(mclock,rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -96,25 +100,19 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! Handle end of run restart
-    call NUOPC_CompAttributeGet(gcomp, name="write_restart_at_endofrun", value=cvalue, &
-         isPresent=isPresent, isSet=isSet, rc=rc)
+    call NUOPC_CompAttributeGet(gcomp, name="write_restart_at_endofrun", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (isPresent .and. isSet) then
        if (trim(cvalue) .eq. '.true.') write_restart_at_endofrun = .true.
     end if
 
-    ! Write diagnostic output
+    ! Write mediator diagnostic output
     if (mastertask) then
        write(logunit,*)
-       call ESMF_ClockGet(mclock, timeStep=mtimestep, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_TimeIntervalGet(mtimestep, s=timestep_length, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       write(logunit,100) trim(subname)//" restart clock timestep = ",timestep_length
-       write(logunit,100) trim(subname)//" set restart alarm with option "//&
+       write(logunit,'(a,2x,i8)') trim(subname)//" restart clock timestep = ",timestep_length
+       write(logunit,'(a,2x,i8)') trim(subname)//" set restart alarm with option "//&
             trim(restart_option)//" and frequency ",restart_n
-       write(logunit,*) "write_restart_at_endofrun : ", write_restart_at_endofrun
-100    format(a,2x,i8)
+       write(logunit,'(a)') trim(subname)//" write_restart_at_endofrun : ", write_restart_at_endofrun
        write(logunit,*)
     end if
 
@@ -129,7 +127,7 @@ contains
     use ESMF       , only : ESMF_TimeInterval, ESMF_CalKind_Flag, ESMF_MAXSTR
     use ESMF       , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_FAILURE
     use ESMF       , only : ESMF_LOGMSG_ERROR, operator(==), operator(-)
-    use ESMF       , only : ESMF_GridCompGet, ESMF_VMGet, ESMF_ClockGet, ESMF_ClockGetNextTime
+    use ESMF       , only : ESMF_GridCompGet, ESMF_ClockGet, ESMF_ClockGetNextTime
     use ESMF       , only : ESMF_TimeGet, ESMF_ClockGetAlarm, ESMF_ClockPrint, ESMF_TimeIntervalGet
     use ESMF       , only : ESMF_AlarmIsRinging, ESMF_AlarmRingerOff, ESMF_FieldBundleIsCreated
     use ESMF       , only : ESMF_Calendar
@@ -180,7 +178,6 @@ contains
     integer                    :: freq_n         ! freq_n setting relative to freq_option
     logical                    :: alarmIsOn      ! generic alarm flag
     real(R8)                   :: tbnds(2)       ! CF1.0 time bounds
-    integer                    :: iam            ! vm stuff
     character(ESMF_MAXSTR)     :: tmpstr
     logical                    :: isPresent
     logical                    :: first_time = .true.
@@ -199,10 +196,6 @@ contains
 
     nullify(is_local%wrap)
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_VMGet(vm, localPet=iam, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call NUOPC_CompAttributeGet(gcomp, name='case_name', value=case_name, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -247,7 +240,7 @@ contains
        ! Stop Alarm
        call ESMF_ClockGetAlarm(clock, alarmname='alarm_stop', alarm=alarm, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       if (ESMF_AlarmIsRinging(alarm, rc=rc).and.write_restart_at_endofrun) then    
+       if (ESMF_AlarmIsRinging(alarm, rc=rc) .and. write_restart_at_endofrun) then
           AlarmIsOn = .true.
        else
           AlarmIsOn = .false.
@@ -301,7 +294,7 @@ contains
        curr_tod = sec
 
        !---------------------------------------
-       ! --- Restart File
+       ! Restart File
        ! Use nexttimestr rather than currtimestr here since that is the time at the end of
        ! the timestep and is preferred for restart file names
        !---------------------------------------
@@ -309,7 +302,7 @@ contains
        write(restart_file,"(6a)") trim(restart_dir)//trim(case_name),'.cpl', trim(cpl_inst_tag),'.r.',&
             trim(nexttimestr),'.nc'
 
-       if (iam == 0) then
+       if (mastertask) then
           restart_pfile = "rpointer.cpl"//cpl_inst_tag
           call ESMF_LogWrite(trim(subname)//" write rpointer file = "//trim(restart_pfile), ESMF_LOGMSG_INFO)
           open(newunit=unitn, file=restart_pfile, form='FORMATTED')
@@ -318,6 +311,8 @@ contains
        endif
 
        call ESMF_LogWrite(trim(subname)//": write "//trim(restart_file), ESMF_LOGMSG_INFO)
+       call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call med_io_wopen(restart_file, vm, clobber=.true.)
 
        do m = 1,2
@@ -452,7 +447,7 @@ contains
 
   end subroutine med_phases_restart_write
 
-  !=============================================================================== 
+  !===============================================================================
   subroutine med_phases_restart_read(gcomp, rc)
 
     ! Read mediator restart
@@ -460,7 +455,7 @@ contains
     use ESMF       , only : ESMF_GridComp, ESMF_VM, ESMF_Clock, ESMF_Time, ESMF_MAXSTR
     use ESMF       , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_FAILURE
     use ESMF       , only : ESMF_LOGMSG_ERROR, ESMF_VMBroadCast
-    use ESMF       , only : ESMF_GridCompGet, ESMF_VMGet, ESMF_ClockGet, ESMF_ClockPrint
+    use ESMF       , only : ESMF_GridCompGet, ESMF_ClockGet, ESMF_ClockPrint
     use ESMF       , only : ESMF_FieldBundleIsCreated, ESMF_TimeGet
     use NUOPC      , only : NUOPC_CompAttributeGet
     use med_io_mod , only : med_io_read
@@ -478,7 +473,6 @@ contains
     integer                :: i,j,m,n
     integer                :: ierr, unitn
     integer                :: yr,mon,day,sec ! time units
-    integer                :: iam            ! vm stuff
     character(ESMF_MAXSTR) :: case_name      ! case name
     character(ESMF_MAXSTR) :: restart_file   ! Local path to restart filename
     character(ESMF_MAXSTR) :: restart_pfile  ! Local path to restart pointer filename
@@ -518,14 +512,14 @@ contains
     if (dbug_flag > 1) then
        call ESMF_LogWrite(trim(subname)//": currtime = "//trim(currtimestr), ESMF_LOGMSG_INFO)
     endif
-    if (iam == 0) then
+    if (mastertask) then
        call ESMF_ClockPrint(clock, options="currTime", preString="-------->"//trim(subname)//" mediating for: ", rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     endif
 
     ! Get the restart file name from the pointer file
     restart_pfile = "rpointer.cpl"//cpl_inst_tag
-    if (iam == 0) then
+    if (mastertask) then
        call ESMF_LogWrite(trim(subname)//" read rpointer file = "//trim(restart_pfile), ESMF_LOGMSG_INFO)
        open(newunit=unitn, file=restart_pfile, form='FORMATTED', status='old', iostat=ierr)
        if (ierr < 0) then
@@ -543,8 +537,6 @@ contains
        call ESMF_LogWrite(trim(subname)//' restart file from rpointer = '//trim(restart_file), ESMF_LOGMSG_INFO)
     endif
     call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_VMGet(vm, localPet=iam, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call ESMF_VMBroadCast(vm, restart_file, len(restart_file), 0, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return

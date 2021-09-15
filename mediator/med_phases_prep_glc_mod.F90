@@ -415,11 +415,6 @@ contains
     integer             :: i,n
     real(r8), pointer   :: data2d_in(:,:) => null()
     real(r8), pointer   :: data2d_out(:,:) => null()
-    type(ESMF_Clock)    :: med_clock
-    type(ESMF_ALARM)    :: glc_avg_alarm
-    character(len=CS)   :: glc_avg_period
-    integer             :: glc_cpl_dt
-    character(len=CS)   :: cvalue
     character(len=*),parameter :: subname=' (med_phases_prep_glc_accum) '
     !---------------------------------------
 
@@ -429,49 +424,6 @@ contains
     endif
 
     rc = ESMF_SUCCESS
-
-    if (.not. ESMF_ClockIsCreated(prepglc_clock)) then
-
-       ! Initialize prepglc_clock from mclock - THIS CALL DOES NOT COPY ALARMS
-       call NUOPC_ModelGet(gcomp, modelClock=med_clock,  rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       prepglc_clock = ESMF_ClockCreate(med_clock, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-       ! Set alarm glc averaging interval
-       call NUOPC_CompAttributeGet(gcomp, name="glc_avg_period", value=glc_avg_period, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       if (trim(glc_avg_period) == 'yearly') then
-          call med_time_alarmInit(prepglc_clock, glc_avg_alarm, 'yearly', alarmname='alarm_glc_avg', rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          if (mastertask) then
-             write(logunit,'(a,i10)') trim(subname)//&
-                  ' created alarm with averaging period for export to glc is yearly'
-          end if
-       else if (trim(glc_avg_period) == 'glc_coupling_period') then
-          call NUOPC_CompAttributeGet(gcomp, name="glc_cpl_dt", value=cvalue, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          read(cvalue,*) glc_cpl_dt
-          call med_time_alarmInit(prepglc_clock, glc_avg_alarm, 'nseconds', opt_n=glc_cpl_dt, alarmname='alarm_glc_avg', rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          if (mastertask) then
-             write(logunit,'(a,i10)') trim(subname)//&
-                  ' created alarm with averaging period for export to glc (in seconds) ',glc_cpl_dt
-          end if
-       else
-          call ESMF_LogWrite(trim(subname)// ": ERROR glc_avg_period = "//trim(glc_avg_period)//" not supported", &
-               ESMF_LOGMSG_INFO)
-          rc = ESMF_FAILURE
-          RETURN
-       end if
-       call ESMF_AlarmSet(glc_avg_alarm, clock=prepglc_clock, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    end if
-
-    ! Advance prepglc_clock - this will make the prepglc_clock in sync with the mediator clock
-    ! TODO: this assumes that the land is in the fast time loop
-    call ESMF_ClockAdvance(prepglc_clock, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! Get the internal state
     nullify(is_local%wrap)
@@ -593,6 +545,7 @@ contains
     integer             :: i, n, ns
     real(r8), pointer   :: data2d(:,:) => null()
     real(r8), pointer   :: data2d_import(:,:) => null()
+    character(len=CS)   :: cvalue
     character(len=*) , parameter   :: subname=' (med_phases_prep_glc) '
     !---------------------------------------
 
@@ -607,6 +560,48 @@ contains
     nullify(is_local%wrap)
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (chkErr(rc,__LINE__,u_FILE_u)) return
+
+    if (.not. ESMF_ClockIsCreated(prepglc_clock)) then
+
+       ! Initialize prepglc_clock from mclock - THIS CALL DOES NOT COPY ALARMS
+       call NUOPC_ModelGet(gcomp, modelClock=med_clock,  rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       prepglc_clock = ESMF_ClockCreate(med_clock, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       ! Set alarm glc averaging interval
+       call NUOPC_CompAttributeGet(gcomp, name="glc_avg_period", value=glc_avg_period, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       if (trim(glc_avg_period) == 'yearly') then
+          call med_time_alarmInit(prepglc_clock, glc_avg_alarm, 'yearly', alarmname='alarm_glc_avg', rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          if (mastertask) then
+             write(logunit,'(a,i10)') trim(subname)//&
+                  ' created alarm with averaging period for export to glc is yearly'
+          end if
+       else if (trim(glc_avg_period) == 'glc_coupling_period') then
+          call NUOPC_CompAttributeGet(gcomp, name="glc_cpl_dt", value=cvalue, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          read(cvalue,*) glc_cpl_dt
+          call med_time_alarmInit(prepglc_clock, glc_avg_alarm, 'nseconds', opt_n=glc_cpl_dt, alarmname='alarm_glc_avg', rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          if (mastertask) then
+             write(logunit,'(a,i10)') trim(subname)//&
+                  ' created alarm with averaging period for export to glc (in seconds) ',glc_cpl_dt
+          end if
+       else
+          call ESMF_LogWrite(trim(subname)// ": ERROR glc_avg_period = "//trim(glc_avg_period)//" not supported", &
+               ESMF_LOGMSG_INFO)
+          rc = ESMF_FAILURE
+          RETURN
+       end if
+       call ESMF_AlarmSet(glc_avg_alarm, clock=prepglc_clock, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    end if
+
+    ! Advance prepglc_clock - this will make the prepglc_clock in sync with the mediator clock
+    call ESMF_ClockAdvance(prepglc_clock, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! Check time
     call NUOPC_ModelGet(gcomp, modelClock=med_clock, rc=rc)
