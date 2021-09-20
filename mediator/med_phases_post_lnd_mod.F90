@@ -24,8 +24,9 @@ contains
     use med_map_mod             , only : med_map_field_packed
     use med_internalstate_mod   , only : InternalState, mastertask
     use med_phases_prep_rof_mod , only : med_phases_prep_rof_accum
-    use med_phases_prep_glc_mod , only : med_phases_prep_glc_accum_lnd
-    use esmFlds                 , only : complnd, compatm, comprof, compglc, num_icesheets, lnd2glc_coupling
+    use med_phases_prep_glc_mod , only : med_phases_prep_glc_accum_lnd, med_phases_prep_glc_avg
+    use esmFlds                 , only : complnd, compatm, comprof, compglc, num_icesheets
+    use esmFlds                 , only : lnd2glc_coupling, accum_lnd2glc
     use perf_mod                , only : t_startf, t_stopf
 
     ! input/output variables
@@ -67,9 +68,16 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
-    ! accumulate lnd input for glc (note that lnd2glc_coupling is determined in med.F90)
+    ! accumulate lnd input for glc (note that lnd2glc_coupling and accum_lnd2glc is determined in med.F90)
     if (lnd2glc_coupling) then
        call med_phases_prep_glc_accum_lnd(gcomp, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       ! Note that in this case med_phases_prep_glc_avg is called 
+       ! from med_phases_prep_glc in the run sequence
+    else if (accum_lnd2glc) then
+       call med_phases_prep_glc_accum_lnd(gcomp, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call med_phases_prep_glc_avg(gcomp, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
@@ -99,7 +107,7 @@ contains
     integer, intent(out) :: rc
 
     ! local variables
-    type(InternalState)        :: is_local
+    type(InternalState) :: is_local
     character(len=*),parameter :: subname='(med_phases_post_lnd)'
     !-------------------------------------------------------------------------------
 

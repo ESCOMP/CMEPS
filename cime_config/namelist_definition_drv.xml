@@ -1631,7 +1631,7 @@
     </values>
   </entry>
 
-  <!-- MED histaux lnd2med file 1 -->
+  <!-- MED histaux lnd2med file 1 - all fields from land with instantaneous output-->
   <entry id="histaux_lnd2med_file1_enabled">
     <type>logical</type>
     <category>aux_hist</category>
@@ -1696,68 +1696,16 @@
     </values>
   </entry>
 
-  <!-- MED histaux lnd2med file 2 -->
-  <entry id="histaux_lnd2med_file2_enabled">
+  <!-- MED histaux lnd2med accumulated fields from land needed as glc input specially treated-->
+  <!-- note that the following is ALLCOMP attributes since CTSM needs access to this variable to determine -->
+  <!-- if it needs to send lnd->glc data to the mediator even if there is no glc -->
+  <entry id="histaux_l2x1yrg">
     <type>logical</type>
     <category>aux_hist</category>
-    <group>MED_attributes</group>
+    <group>ALLCOMP_attributes</group>
     <desc>Auxiliary mediator lnd2med fields every year</desc>
     <values>
       <value>.false.</value>
-    </values>
-  </entry>
-  <entry id="histaux_lnd2med_file2_flds">
-    <type>char</type>
-    <category>aux_hist</category>
-    <group>MED_attributes</group>
-    <desc>auxiliary file lnd2med sno fields averaged over a year</desc>
-    <values>
-      <value>Sl_tsrf_elev:Sl_topo_elev:Flgl_qice_elev</value>
-    </values>
-  </entry>
-  <entry id="histaux_lnd2med_file2_history_option">
-    <type>char</type>
-    <category>aux_hist</category>
-    <group>MED_attributes</group>
-    <desc>history option type</desc>
-    <values>
-      <value>nyears</value>
-    </values>
-  </entry>
-  <entry id="histaux_lnd2med_file2_history_n">
-    <type>char</type>
-    <category>aux_hist</category>
-    <group>MED_attributes</group>
-    <desc>history option type</desc>
-    <values>
-      <value>1</value>
-    </values>
-  </entry>
-  <entry id="histaux_lnd2med_file2_doavg">
-    <type>logical</type>
-    <category>aux_hist</category>
-    <group>MED_attributes</group>
-    <desc>If true, use time average for aux file output.</desc>
-    <values>
-      <value>.true.</value>
-    </values>
-  </entry>
-  <entry id="histaux_lnd2med_file2_ntperfile">
-    <type>char</type>
-    <category>aux_hist</category>
-    <group>MED_attributes</group>
-    <desc>Number of time sames per file.</desc>
-    <values>
-      <value>1</value>
-    </values>
-  </entry>
-  <entry id="histaux_lnd2med_file2_auxname">
-    <type>char</type>
-    <category>aux_hist</category>
-    <group>MED_attributes</group>
-    <desc>Auxiliary name identifier in history name</desc>
-    <values>
-      <value>lnd.1yr.avrg</value>
     </values>
   </entry>
 

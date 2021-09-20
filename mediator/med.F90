@@ -48,7 +48,8 @@ module MED
   use esmFlds                  , only : fldListFr, fldListTo, med_fldList_Realize
   use esmFlds                  , only : ncomps, compname, ncomps
   use esmFlds                  , only : compmed, compatm, compocn, compice, complnd, comprof, compwav ! not arrays
-  use esmFlds                  , only : num_icesheets, max_icesheets, compglc, ocn2glc_coupling, lnd2glc_coupling ! compglc is an array
+  use esmFlds                  , only : num_icesheets, max_icesheets, compglc  ! compglc is an array
+  use esmFlds                  , only : ocn2glc_coupling, lnd2glc_coupling, accum_lnd2glc
   use esmFlds                  , only : fldListMed_ocnalb
   use esmFlds                  , only : med_fldList_GetNumFlds, med_fldList_GetFldNames, med_fldList_GetFldInfo
   use esmFlds                  , only : med_fldList_Document_Mapping, med_fldList_Document_Merging
@@ -1682,6 +1683,7 @@ contains
     character(CL)                      :: cname
     character(CL)                      :: start_type
     logical                            :: read_restart
+    logical                            :: isPresent, isSet
     logical                            :: allDone = .false.
     logical,save                       :: compDone(ncomps)
     logical,save                       :: first_call = .true.
@@ -2090,7 +2092,21 @@ contains
             exit
          end if
       end do
-      if (lnd2glc_coupling .or. ocn2glc_coupling) then
+      if (lnd2glc_coupling) then
+         accum_lnd2glc = .true. 
+      else
+         ! Determine if will create auxiliary history file that contains
+         ! lnd2glc data averaged over the year
+         call NUOPC_CompAttributeGet(gcomp, name="histaux_l2x1yrg", value=cvalue, &
+              isPresent=isPresent, isSet=isSet, rc=rc)
+         if (ChkErr(rc,__LINE__,u_FILE_u)) return
+         if (isPresent .and. isSet) then
+            read(cvalue,*) accum_lnd2glc
+         else
+            accum_lnd2glc = .false.
+         end if
+      end if
+      if (lnd2glc_coupling .or. ocn2glc_coupling .or. accum_lnd2glc) then
          call med_phases_prep_glc_init(gcomp, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
       end if

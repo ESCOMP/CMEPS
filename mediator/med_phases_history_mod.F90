@@ -29,17 +29,18 @@ module med_phases_history_mod
   private
 
   ! Public routine called from the run sequence
-  public :: med_phases_history_write     ! inst only - for all variables
+  public :: med_phases_history_write         ! inst only - for all variables
 
   ! Public routines called from post phases
-  public :: med_phases_history_write_atm ! inst, avg, aux for atm
-  public :: med_phases_history_write_ice ! inst, avg, aux for ice
-  public :: med_phases_history_write_glc ! inst, avg, aux for glc
-  public :: med_phases_history_write_lnd ! inst, avg, aux for lnd
-  public :: med_phases_history_write_ocn ! inst, avg, aux for ocn
-  public :: med_phases_history_write_rof ! inst, avg, aux for rof
-  public :: med_phases_history_write_wav ! inst, avg, aux for wav
-  public :: med_phases_history_write_med ! inst only for med aoflux and ocn albedoes
+  public :: med_phases_history_write_atm     ! inst, avg, aux for atm
+  public :: med_phases_history_write_ice     ! inst, avg, aux for ice
+  public :: med_phases_history_write_glc     ! inst, avg, aux for glc
+  public :: med_phases_history_write_lnd     ! inst, avg, aux for lnd
+  public :: med_phases_history_write_ocn     ! inst, avg, aux for ocn
+  public :: med_phases_history_write_rof     ! inst, avg, aux for rof
+  public :: med_phases_history_write_wav     ! inst, avg, aux for wav
+  public :: med_phases_history_write_med     ! inst only, med aoflux and ocn albedoes
+  public :: med_phases_history_write_lnd2glc ! inst only, yearly average of lnd->glc data on lnd grid
 
   ! Private routines
   private :: med_phases_history_write_inst_comp  ! write instantaneous file for a given component
@@ -486,6 +487,121 @@ contains
   end subroutine med_phases_history_write_med
 
   !===============================================================================
+  subroutine med_phases_history_write_lnd2glc(gcomp, fldbun, rc)
+
+    ! Write yearly average of lnd -> glc fields
+
+    use esmFlds           , only : complnd
+    use med_constants_mod , only : SecPerDay => med_constants_SecPerDay
+    use med_io_mod        , only : med_io_write_time, med_io_define_time
+    use med_io_mod        , only : med_io_date2yyyymmdd, med_io_sec2hms, med_io_ymd2date
+
+    ! input/output variables
+    type(ESMF_GridComp)    , intent(in)  :: gcomp
+    type(ESMF_FieldBundle) , intent(in)  :: fldbun
+    integer                , intent(out) :: rc
+
+    ! local variables
+    type(InternalState)     :: is_local
+    type(ESMF_VM)           :: vm
+    type(ESMF_Clock)        :: clock
+    type(ESMF_Time)         :: starttime
+    type(ESMF_Time)         :: currtime
+    type(ESMF_Time)         :: nexttime
+    type(ESMF_Calendar)     :: calendar     ! calendar type
+    type(ESMF_TimeInterval) :: timediff(2)  ! time bounds upper and lower relative to start
+    character(len=CS)       :: nexttime_str
+    integer                 :: yr,mon,day,sec
+    integer                 :: start_ymd    ! starting date YYYYMMDD
+    character(CL)           :: time_units   ! units of time variable
+    real(r8)                :: time_val     ! time coordinate output
+    real(r8)                :: time_bnds(2) ! time bounds output
+    character(len=CL)       :: hist_str
+    character(len=CL)       :: hist_file
+    integer                 :: m
+    logical                 :: isPresent, isSet
+    character(len=*), parameter :: subname='(med_phases_history_write_lnd2glc)'
+    !---------------------------------------
+
+    rc = ESMF_SUCCESS
+
+    ! Get the internal state
+    nullify(is_local%wrap)
+    call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    ! Get the model clock
+    call NUOPC_ModelGet(gcomp, modelClock=clock, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    ! Determine starttime, currtime and nexttime
+    call ESMF_ClockGet(clock, currtime=currtime, starttime=starttime, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_ClockGetNextTime(clock, nextTime=nexttime, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    ! Determine time units
+    call ESMF_TimeGet(starttime, yy=yr, mm=mon, dd=day, s=sec, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call med_io_ymd2date(yr,mon,day,start_ymd)
+    time_units = 'days since ' // trim(med_io_date2yyyymmdd(start_ymd)) // ' ' // med_io_sec2hms(sec, rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    ! Set time bounds and time coord
+    timediff(1) = nexttime - starttime
+    call ESMF_TimeIntervalGet(timediff(1), d=day, s=sec, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    time_val = day + sec/real(SecPerDay,R8)
+    time_bnds(1) = time_val
+    time_bnds(2) = time_val
+
+    ! Determine history file name
+    if (trim(case_name) == 'unset') then
+       call NUOPC_CompAttributeGet(gcomp, name='case_name', value=case_name, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call NUOPC_CompAttributeGet(gcomp, name='inst_suffix', isPresent=isPresent, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       if(isPresent) then
+          call NUOPC_CompAttributeGet(gcomp, name='inst_suffix', value=inst_tag, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       else
+          inst_tag = ""
+       endif
+    end if
+    call ESMF_TimeGet(nexttime, yy=yr, mm=mon, dd=day, s=sec, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    write(nexttime_str,'(i4.4,a,i2.2,a,i2.2,a,i5.5)') yr,'-',mon,'-',day,'-',sec
+    write(hist_file, "(6a)") trim(case_name),'.cpl',trim(inst_tag),'.hx.1yr2glc.',trim(nexttime_str),'.nc'
+
+    ! Create history file
+    call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call med_io_wopen(hist_file, vm, clobber=.true.)
+
+    ! Write data to history file
+    do m = 1,2
+       if (whead(m)) then
+          call ESMF_ClockGet(clock, calendar=calendar, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call med_io_define_time(time_units, calendar, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       else
+          call med_io_enddef(hist_file)
+          call med_io_write_time(time_val, time_bnds, nt=1, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       end if
+       call med_io_write(hist_file, fldbun, whead(m), wdata(m), is_local%wrap%nx(complnd), is_local%wrap%ny(complnd), &
+            nt=1, pre=trim(compname(complnd))//'Imp', rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    end do ! end of loop over m
+
+    ! Close history file
+    call med_io_close(hist_file, vm, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+  end subroutine med_phases_history_write_lnd2glc
+
+  !===============================================================================
   subroutine med_phases_history_write_atm(gcomp, rc)
 
     ! Write mediator history file for atm variables
@@ -707,7 +823,6 @@ contains
        write(hist_option_in,'(a)') 'history_option_'//trim(compname(compid))//'_inst'
        write(hist_n_in,'(a)') 'history_n_'//trim(compname(compid))//'_inst'
 
-       ! Determine instantaneous mediator output frequency and type
        ! Determine instantaneous mediator output frequency and type
        call NUOPC_CompAttributeGet(gcomp, name=trim(hist_option_in), isPresent=isPresent, isSet=isSet, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -1608,9 +1723,8 @@ contains
     use ESMF              , only : ESMF_GridComp, ESMF_Clock, ESMF_Alarm, ESMF_Time, ESMF_TimeInterval
     use ESMF              , only : ESMF_ClockGet, ESMF_ClockGetNextTime, ESMF_ClockGetAlarm
     use ESMF              , only : ESMF_AlarmGet, ESMF_TimeIntervalGet, ESMF_TimeGet
-    use med_io_mod        , only : med_io_ymd2date
     use med_constants_mod , only : SecPerDay => med_constants_SecPerDay
-    use med_io_mod        , only : med_io_date2yyyymmdd, med_io_sec2hms
+    use med_io_mod        , only : med_io_ymd2date, med_io_date2yyyymmdd, med_io_sec2hms
 
     ! input/output variables
     type(ESMF_GridComp)         , intent(in)  :: gcomp
