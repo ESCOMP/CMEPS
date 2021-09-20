@@ -469,11 +469,6 @@ contains
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (chkErr(rc,__LINE__,u_FILE_u)) return
 
-    ! Advance prepglc_clock - this will make the prepglc_clock in sync with the mediator clock
-    ! TODO: do we need 2 clocks? one for the lnd and one for the ocean?
-    ! call ESMF_ClockAdvance(prepglc_clock, rc=rc)
-    ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
     ! Accumulate fields from ocean on ocean mesh that will be sent to glc
     do n = 1, size(fldnames_fr_ocn)
        call fldbun_getdata2d(is_local%wrap%FBImp(compocn,compocn), fldnames_fr_ocn(n), data2d_in, rc)
@@ -528,6 +523,7 @@ contains
     real(r8), pointer   :: data2d(:,:) => null()
     real(r8), pointer   :: data2d_import(:,:) => null()
     character(len=CS)   :: cvalue
+    logical             :: do_avg
     logical             :: isPresent, isSet
     logical             :: write_histaux_l2x1yrg
     character(len=*) , parameter   :: subname=' (med_phases_prep_glc) '
@@ -546,7 +542,6 @@ contains
     if (chkErr(rc,__LINE__,u_FILE_u)) return
 
     if (.not. ESMF_ClockIsCreated(prepglc_clock)) then
-
        ! Initialize prepglc_clock from mclock - THIS CALL DOES NOT COPY ALARMS
        call NUOPC_ModelGet(gcomp, modelClock=med_clock,  rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -611,21 +606,24 @@ contains
     ! Determine if the alarm is ringing
     call ESMF_ClockGetAlarm(prepglc_clock, alarmname='alarm_glc_avg', alarm=alarm, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (.not. ESMF_AlarmIsRinging(alarm, rc=rc)) then
-       ! Do nothing if the alarm is not ringing
-       call ESMF_LogWrite(trim(subname)//": glc_avg alarm is not ringing - returning", ESMF_LOGMSG_INFO)
-    else
-       call ESMF_LogWrite(trim(subname)//": glc_avg alarm is ringing - averaging input from lnd and ocn to glc", &
+    if (ESMF_AlarmIsRinging(alarm, rc=rc)) then
+       do_avg = .true.
+       call ESMF_LogWrite(trim(subname)//": glc_avg alarm is ringing - average input from lnd and ocn to glc", &
             ESMF_LOGMSG_INFO)
        if (mastertask) then
           write(logunit,'(a)') trim(subname)//"glc_avg alarm is ringing - averaging input from lnd and ocn to glc"
        end if
-
        ! Turn off the alarm
        call ESMF_AlarmRingerOff( alarm, rc=rc )
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    else
+       do_avg = .false.
+       call ESMF_LogWrite(trim(subname)//": glc_avg alarm is not ringing - returning", ESMF_LOGMSG_INFO)
+    end if
 
-       ! Average import from accumulated land import data
+    ! Average and map data from land (and possibly ocean) 
+    if (do_avg) then
+       ! Always average import from accumulated land import data
        do n = 1, size(fldnames_fr_lnd)
           call fldbun_getdata2d(FBlndAccum2glc_l, fldnames_fr_lnd(n), data2d, rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -805,13 +803,11 @@ contains
     call ESMF_FieldBundleGet(is_local%wrap%FBFrac(complnd), 'lfrac', field=field_lfrac_l, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    ! TODO: is this needed?
+    ! map accumlated land fields to each ice sheet (normalize by the land fraction in the mapping)
     do ns = 1,num_icesheets
        call fldbun_reset(toglc_frlnd(ns)%FBlndAccum2glc_g, value=0.0_r8, rc=rc)
        if (chkErr(rc,__LINE__,u_FILE_u)) return
     end do
-
-    ! map accumlated land fields to each ice sheet (normalize by the land fraction in the mapping)
     do ns = 1,num_icesheets
        call ESMF_FieldBundleGet(toglc_frlnd(ns)%FBlndAccum2glc_g, fieldlist=fieldlist_glc, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
