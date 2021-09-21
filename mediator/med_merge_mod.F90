@@ -7,8 +7,6 @@ module med_merge_mod
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
   use med_internalstate_mod , only : logunit
   use med_constants_mod     , only : dbug_flag         => med_constants_dbug_flag
-  use med_constants_mod     , only : spval_init        => med_constants_spval_init
-  use med_constants_mod     , only : spval             => med_constants_spval
   use med_constants_mod     , only : czero             => med_constants_czero
   use med_utils_mod         , only : ChkErr            => med_utils_ChkErr
   use med_methods_mod       , only : FB_FldChk         => med_methods_FB_FldChk
@@ -25,6 +23,11 @@ module med_merge_mod
   public  :: med_merge_auto
   public  :: med_merge_field
 
+  interface med_merge_auto ; module procedure &
+       med_merge_auto_single_fldbun, &
+       med_merge_auto_multi_fldbuns
+  end interface
+
   interface med_merge_field ; module procedure &
        med_merge_field_1D
   end interface
@@ -38,25 +41,22 @@ module med_merge_mod
 contains
 !===============================================================================
 
-  subroutine med_merge_auto(compout, coupling_active, FBOut, FBfrac, FBImp, fldListTo, &
-       FBMed1, FBMed2, rc)
+  subroutine med_merge_auto_multi_fldbuns(coupling_active, FBOut, FBfrac, FBImp, fldListTo, FBMed1, FBMed2, rc)
 
     use ESMF , only : ESMF_FieldBundle, ESMF_FieldBundleIsCreated, ESMF_FieldBundleGet
     use ESMF , only : ESMF_Field, ESMF_FieldGet
     use ESMF , only : ESMF_SUCCESS, ESMF_FAILURE
-    use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_LOGMSG_ERROR
-    use ESMF , only : ESMF_LogSetError, ESMF_RC_OBJ_NOT_CREATED
+    use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_LOGMSG_ERROR, ESMF_LogSetError
 
     ! ----------------------------------------------
     ! Auto merge based on fldListTo info
     ! ----------------------------------------------
 
     ! input/output variables
-    integer                , intent(in)            :: compout            ! component index for FBOut
     logical                , intent(in)            :: coupling_active(:) ! true => coupling is active
     type(ESMF_FieldBundle) , intent(inout)         :: FBOut              ! Merged output field bundle
     type(ESMF_FieldBundle) , intent(inout)         :: FBfrac             ! Fraction data for FBOut
-    type(ESMF_FieldBundle) , intent(in)            :: FBImp(:)           ! Array of field bundles each mapping to the FBOut mesh
+    type(ESMF_FieldBundle) , intent(in)            :: FBImp(:)          ! Array of field bundles each mapping to the FBOut mesh
     type(med_fldList_type) , intent(in)            :: fldListTo          ! Information for merging
     type(ESMF_FieldBundle) , intent(in) , optional :: FBMed1             ! mediator field bundle
     type(ESMF_FieldBundle) , intent(in) , optional :: FBMed2             ! mediator field bundle
@@ -79,9 +79,7 @@ contains
     type(ESMF_Field), pointer  :: fieldlist(:) => null()
     real(r8), pointer          :: dataptr1d(:) => null()
     real(r8), pointer          :: dataptr2d(:,:) => null()
-    character(CL)              :: msg
     logical                    :: zero_output
-    character(CL)              :: fldname
     character(len=*),parameter :: subname=' (module_med_merge_mod: med_merge_auto)'
     !---------------------------------------
 
@@ -136,12 +134,10 @@ contains
                 call med_fldList_GetFldInfo(fldListTo, nfld_in, compsrc, merge_fields, merge_type, merge_fracname)
 
                 if (merge_type /= 'unset' .and. merge_field /= 'unset') then
-
                    ! If merge_field is a colon delimited string then cycle through every field - otherwise by default nm
                    ! will only equal 1
                    num_merge_colon_fields = merge_listGetNum(merge_fields)
                    do nm = 1,num_merge_colon_fields
-
                       ! Determine merge field name from source field
                       if (num_merge_fields == 1) then
                          merge_field = trim(merge_fields)
@@ -207,7 +203,139 @@ contains
 
     call t_stopf('MED:'//subname)
 
-  end subroutine med_merge_auto
+  end subroutine med_merge_auto_multi_fldbuns
+
+  !===============================================================================
+  subroutine med_merge_auto_single_fldbun(compsrc, FBOut, FBfrac, FBIn, fldListTo, rc)
+
+    ! ----------------------------------------------
+    ! Auto merge from one import field bundle based on fldListTo info.
+    ! Want to loop over all of the fields in FBout here - and find the
+    ! corresponding index in fldListTo for that field name - then call
+    ! the corresponding merge routine below appropriately.
+    ! ----------------------------------------------
+
+    use ESMF , only : ESMF_FieldBundle, ESMF_FieldBundleIsCreated, ESMF_FieldBundleGet
+    use ESMF , only : ESMF_Field, ESMF_FieldGet
+    use ESMF , only : ESMF_SUCCESS, ESMF_FAILURE
+    use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_LOGMSG_ERROR
+    use ESMF , only : ESMF_LogSetError
+
+    ! input/output variables
+    integer                , intent(in)    :: compsrc
+    type(ESMF_FieldBundle) , intent(inout) :: FBOut     ! Merged output field bundle
+    type(ESMF_FieldBundle) , intent(inout) :: FBfrac    ! Fraction data for FBOut
+    type(ESMF_FieldBundle) , intent(in)    :: FBIn      ! Single field bundle to merge to the FBOut mesh
+    type(med_fldList_type) , intent(in)    :: fldListTo ! Information for merging
+    integer                , intent(out)   :: rc
+
+    ! local variables
+    integer                    :: nfld_out,nfld_in,nm
+    integer                    :: num_merge_fields
+    integer                    :: num_merge_colon_fields
+    character(CL)              :: merge_fields
+    character(CL)              :: merge_field
+    character(CS)              :: merge_type
+    character(CS)              :: merge_fracname
+    character(CS), allocatable :: merge_field_names(:)
+    integer                    :: ungriddedUBound_out(1) ! size of ungridded dimension
+    integer                    :: fieldcount
+    character(CL)   , pointer  :: fieldnamelist(:) => null()
+    type(ESMF_Field), pointer  :: fieldlist(:) => null()
+    real(r8), pointer          :: dataptr1d(:) => null()
+    real(r8), pointer          :: dataptr2d(:,:) => null()
+    logical                    :: zero_output
+    character(len=*),parameter :: subname=' (module_med_merge_mod: med_merge_auto)'
+    !---------------------------------------
+
+    call t_startf('MED:'//subname)
+
+    rc = ESMF_SUCCESS
+
+    if (dbug_flag > 1) then
+       call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
+       rc = ESMF_SUCCESS
+    end if
+
+    call ESMF_FieldBundleGet(FBOut, fieldCount=fieldcount, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    allocate(fieldnamelist(fieldcount))
+    allocate(fieldlist(fieldcount))
+    call ESMF_FieldBundleGet(FBOut, fieldnamelist=fieldnamelist, fieldlist=fieldlist, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    num_merge_fields = med_fldList_GetNumFlds(fldListTo)
+    allocate(merge_field_names(num_merge_fields))
+    do nfld_in = 1,num_merge_fields
+       call med_fldList_GetFldInfo(fldListTo, nfld_in, merge_field_names(nfld_in))
+    end do
+
+    ! Loop over all fields in output field bundle FBOut
+    do nfld_out = 1,fieldcount
+       zero_output = .true.
+
+       ! Loop over the field in fldListTo to get fieldname and merging type
+       do nfld_in = 1,med_fldList_GetNumFlds(fldListTo)
+
+          if (trim(merge_field_names(nfld_in)) == trim(fieldnamelist(nfld_out))) then
+
+             ! Loop over all possible source components in the merging arrays returned from the above call
+             ! If the merge field name from the source components is not set, then simply go to the next component
+
+             ! Determine the merge information for the import field
+             call med_fldList_GetFldInfo(fldListTo, nfld_in, compsrc, merge_fields, merge_type, merge_fracname)
+
+             if (merge_type /= 'unset' .and. merge_field /= 'unset') then
+
+                ! If merge_field is a colon delimited string then cycle through every field - otherwise by default nm
+                ! will only equal 1
+                num_merge_colon_fields = merge_listGetNum(merge_fields)
+                do nm = 1,num_merge_colon_fields
+                   ! Determine merge field name from source field
+                   if (num_merge_fields == 1) then
+                      merge_field = trim(merge_fields)
+                   else
+                      call merge_listGetName(merge_fields, nm, merge_field, rc)
+                      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+                   end if
+
+                   ! Initialize initial output field data to zero before doing merge
+                   if (zero_output) then
+                      call ESMF_FieldGet(fieldlist(nfld_out), ungriddedUBound=ungriddedUbound_out, rc=rc)
+                      if (chkerr(rc,__LINE__,u_FILE_u)) return
+                      if (ungriddedUBound_out(1) > 0) then
+                         call ESMF_FieldGet(fieldlist(nfld_out), farrayPtr=dataptr2d, rc=rc)
+                         if (chkerr(rc,__LINE__,u_FILE_u)) return
+                         dataptr2d(:,:) = czero
+                      else
+                         call ESMF_FieldGet(fieldlist(nfld_out), farrayPtr=dataptr1d, rc=rc)
+                         if (chkerr(rc,__LINE__,u_FILE_u)) return
+                         dataptr1d(:) = czero
+                      end if
+                      zero_output = .false.
+                   end if
+
+                   ! Perform merge
+                   call med_merge_auto_field(trim(merge_type), fieldlist(nfld_out), ungriddedUBound_out, &
+                        FB=FBIn, FBFld=merge_field, FBw=FBfrac, fldw=trim(merge_fracname), rc=rc)
+                   if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+                end do ! end of nm loop
+             end if ! end of check of merge_type and merge_field not unset
+          end if ! end of check if stdname and fldname are the same
+       end do ! end of loop over fldsListTo
+    end do ! end of loop over fields in FBOut
+
+    deallocate(fieldnamelist)
+    deallocate(fieldlist)
+
+    if (dbug_flag > 1) then
+       call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
+    end if
+
+    call t_stopf('MED:'//subname)
+
+  end subroutine med_merge_auto_single_fldbun
 
   !===============================================================================
   subroutine med_merge_auto_field(merge_type, field_out, ungriddedUBound_out,  &

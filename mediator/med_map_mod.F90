@@ -901,8 +901,10 @@ contains
 
           packed_data(mapindex)%field_fracsrc = ESMF_FieldCreate(lmesh_src, ESMF_TYPEKIND_R8, &
                meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
           packed_data(mapindex)%field_fracdst = ESMF_FieldCreate(lmesh_dst, ESMF_TYPEKIND_R8, &
                meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
        end if
     end do ! end loop over mapindex
 
@@ -1055,6 +1057,7 @@ contains
                      maptype=mapindex, &
                      field_normsrc=field_fracsrc, &
                      field_normdst=packed_data(mapindex)%field_fracdst, rc=rc)
+                if (chkerr(rc,__LINE__,u_FILE_u)) return
 
              else if ( trim(packed_data(mapindex)%mapnorm) == 'one' .or. trim(packed_data(mapindex)%mapnorm) == 'none') then
 
