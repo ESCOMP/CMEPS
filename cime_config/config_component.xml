@@ -669,7 +669,7 @@
     <group>build_def</group>
     <file>env_build.xml</file>
     <desc>Output root directory for each machine.
-                Base directory for build and run directories.
+		Base directory for build and run directories.
     </desc>
   </entry>
 
@@ -1003,9 +1003,9 @@
     <file>env_run.xml</file>
     <desc>
       Determines what ESMF log files (if any) are generated when
-          USE_ESMF_LIB is TRUE.
+	  USE_ESMF_LIB is TRUE.
       ESMF_LOGKIND_SINGLE: Use a single log file, combining messages from
-          all of the PETs. Not supported on some platforms.
+	  all of the PETs. Not supported on some platforms.
       ESMF_LOGKIND_MULTI: Use multiple log files -- one per PET.
       ESMF_LOGKIND_NONE: Do not issue messages to a log file.
       By default, no ESMF log files are generated.
@@ -1046,8 +1046,8 @@
     <group>run_flags</group>
     <file>env_run.xml</file>
     <desc>Turns on component barriers for component timing.
-          This variable is for testing and debugging only and should never
-          be set for a production run.
+	  This variable is for testing and debugging only and should never
+	  be set for a production run.
     </desc>
   </entry>
 
@@ -1255,7 +1255,7 @@
     <group>run_domain</group>
     <file>env_run.xml</file>
     <desc>Latitude of grid location, in single column mode interpolate datasets to this location
-          in single point mode assume all datasets are at this location</desc>
+	  in single point mode assume all datasets are at this location</desc>
   </entry>
 
   <entry id="PTS_LON">
@@ -1264,7 +1264,7 @@
     <group>run_domain</group>
     <file>env_run.xml</file>
     <desc>Longitude of grid location, in single column mode interpolate datasets to this location
-          in single point mode assume all datasets are at this location</desc>
+	  in single point mode assume all datasets are at this location</desc>
   </entry>
 
   <entry id="PTS_DOMAINFILE">
@@ -1273,10 +1273,10 @@
     <group>run_domain</group>
     <file>env_run.xml</file>
     <desc>used only if if PTS_LAT and PTS_LON are greater than or
-          equal to 0.  If this is the case then if PTS_DOMAINFILE is not
-          equal to UNSET a nearest neighbor search of PTS_DOMAINFILE using
-          PTS_LAT and PTS_LON will be done and the component mesh will have
-          this nearest neighbor value. </desc>
+	  equal to 0.  If this is the case then if PTS_DOMAINFILE is not
+	  equal to UNSET a nearest neighbor search of PTS_DOMAINFILE using
+	  PTS_LAT and PTS_LON will be done and the component mesh will have
+	  this nearest neighbor value. </desc>
   </entry>
 
   <!-- ======================================================================= -->
@@ -1947,7 +1947,7 @@
     <desc>pio rearranger communication max pending requests (io2comp) :
        -2 implies that CIME internally calculates the value ( = 64),
        -1 implies no bound on max pending requests
-        0 implies that MPI_ALLTOALL will be used
+	0 implies that MPI_ALLTOALL will be used
     </desc>
   </entry>
 
@@ -2526,6 +2526,24 @@
    <group>run_debug</group>
    <file>env_run.xml</file>
    <desc>if true, create ESMF PET log files even if there is no error encountered </desc>
+ </entry>
+
+ <entry id="USE_SMARTSIM">
+   <type>logical</type>
+   <valid_values>TRUE,FALSE</valid_values>
+   <default_value>FALSE</default_value>
+   <group>smartsim</group>
+   <file>env_build.xml</file>
+   <desc>if true, link with the HPE SmartRedis library  </desc>
+ </entry>
+
+ <entry id="CREATE_SMARTSIM_CLUSTER">
+   <type>logical</type>
+   <valid_values>TRUE,FALSE</valid_values>
+   <default_value>FALSE</default_value>
+   <group>smartsim</group>
+   <file>env_run.xml</file>
+   <desc>Set to true if SmartSim database spans multiple nodes  </desc>
  </entry>
 
   <!-- ===================================================================== -->

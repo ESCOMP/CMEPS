@@ -5,7 +5,6 @@ module ESM
   !-----------------------------------------------------------------------------
 
   use shr_kind_mod , only : r8=>shr_kind_r8, cl=>shr_kind_cl, cs=>shr_kind_cs
-  use shr_log_mod  , only : shrlogunit=> shr_log_unit
   use shr_sys_mod  , only : shr_sys_abort
   use shr_mpi_mod  , only : shr_mpi_bcast
   use shr_mem_mod  , only : shr_mem_init
@@ -118,6 +117,7 @@ contains
     use NUOPC        , only : NUOPC_CompSetInternalEntryPoint, NUOPC_CompAttributeGet
     use NUOPC        , only : NUOPC_CompAttributeAdd, NUOPC_CompAttributeSet
     use NUOPC_Driver , only : NUOPC_DriverAddComp, NUOPC_DriverGetComp
+    use nuopc_shr_methods, only : use_smartredis
 
     ! input/output variables
     type(ESMF_GridComp)    :: driver
@@ -216,6 +216,10 @@ contains
        call shr_mem_init(strbuf=meminitstr)
        write(logunit,*) trim(meminitstr)
     end if
+
+    if (mastertask .and. use_smartredis) then
+       write(logunit,*) "Using CrayLabs SmartRedis interface"
+    endif
 
     !-------------------------------------------
     ! Timer initialization (has to be after pelayouts are determined)

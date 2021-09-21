@@ -997,11 +997,11 @@
       'on': always do this renormalization
       'off': never do this renormalization (see WARNING below)
       'on_if_glc_coupled_fluxes': Determine at runtime whether to do this renormalization.
-         Does the renormalization if we're running a two-way-coupled glc that sends fluxes
-         to other components (which is the case where we need conservation).
-         Does NOT do the renormalization if we're running a one-way-coupled glc, or if
-         we're running a glc-only compset (T compsets).
-         (In these cases, conservation is not important.)
+	 Does the renormalization if we're running a two-way-coupled glc that sends fluxes
+	 to other components (which is the case where we need conservation).
+	 Does NOT do the renormalization if we're running a one-way-coupled glc, or if
+	 we're running a glc-only compset (T compsets).
+	 (In these cases, conservation is not important.)
 
       Only used if running with a prognostic GLC component.
 
@@ -3160,9 +3160,9 @@
     <group>PELAYOUT_attributes</group>
     <desc>
       Determines what ESMF log files (if any) are generated when
-          USE_ESMF_LIB is TRUE.
+	  USE_ESMF_LIB is TRUE.
       ESMF_LOGKIND_SINGLE: Use a single log file, combining messages from
-          all of the PETs. Not supported on some platforms.
+	  all of the PETs. Not supported on some platforms.
       ESMF_LOGKIND_MULTI: Use multiple log files — one per PET.
       ESMF_LOGKIND_NONE: Do not issue messages to a log file.
       By default, no ESMF log files are generated.
@@ -3185,6 +3185,30 @@
     </desc>
     <values>
       <value>$CREATE_ESMF_PET_FILES</value>
+    </values>
+  </entry>
+
+  <entry id="use_smartredis" modify_via_xml="USE_SMARTSIM">
+    <type>logical</type>
+    <category>smartsim</category>
+    <group>smartsim_inparm</group>
+    <desc>
+      Link in the CrayLabs SmartRedis code https://github.com/CrayLabs/SmartRedis for use with SmartSim https://github.com/CrayLabs/SmartSim
+    </desc>
+    <values>
+      <value>$USE_SMARTSIM</value>
+    </values>
+  </entry>
+
+  <entry id="create_smartsim_cluster" modify_via_xml="CREATE_SMARTSIM_CLUSTER">
+    <type>logical</type>
+    <category>smartsim</category>
+    <group>smartsim_inparm</group>
+    <desc>
+      If the SmartSim Database spans more than one node set this true.
+    </desc>
+    <values>
+      <value>$CREATE_SMARTSIM_CLUSTER</value>
     </values>
   </entry>
 

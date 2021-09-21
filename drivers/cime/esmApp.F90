@@ -17,6 +17,13 @@ program esmApp
   use ensemble_driver, only : SetServices
   use shr_pio_mod,     only : shr_pio_init1
   use shr_sys_mod,     only : shr_sys_abort
+  !
+  ! The CrayLabs SmartSim interface is provided in directory share  https://github.com/ESCOMP/CESM_share
+  ! Please see file cime/tools/smartsim/README.md for a complete explanation of the CESM interface to smartsim
+  ! create_smartsim_cluster is set to true if the database is using 3 or more nodes, false if its using 1 and 
+  ! (in the pbs interface at least) 2 is not allowed.
+  !
+  use nuopc_shr_methods, only : sr_client, use_smartredis
 
   implicit none
 
@@ -30,9 +37,15 @@ program esmApp
   integer                 :: fileunit
   integer                 :: provided
   type(ESMF_VM)           :: vm
+  logical                 :: create_smartsim_cluster = .false.
 
   namelist /debug_inparm / create_esmf_pet_files
-
+  !
+  ! The CrayLabs SmartSim interface is provided in directory share  https://github.com/ESCOMP/CESM_share
+  ! Please see file cime/tools/smartsim/README.md for a complete explanation of the CESM interface to smartsim
+  ! The use_smartredis variable is set in file drv_in and if true the variable sr_client is initialized in esmApp.F90
+  !
+  namelist /smartsim_inparm/ use_smartredis, create_smartsim_cluster
   !-----------------------------------------------------------------------------
   ! Initiallize MPI
   !-----------------------------------------------------------------------------
@@ -66,7 +79,7 @@ program esmApp
      open(newunit=fileunit, status="old", file="drv_in")
      read(fileunit, debug_inparm, iostat=ier)
      if (ier > 0) then
-        call shr_sys_abort('esmApp: error reading in debug_inparm namelist from drv_in')
+	call shr_sys_abort('esmApp: error reading in debug_inparm namelist from drv_in')
      end if
      close(fileunit)
   end if
@@ -98,6 +111,26 @@ program esmApp
        line=__LINE__, &
        file=__FILE__)) &
        call ESMF_Finalize(endflag=ESMF_END_ABORT)
+
+  !-----------------------------------------------------------------------------
+  ! Initialize the CrayLabs SmartRedis client, a stub is provided in share if 
+  ! smartsim is not used.  This client shall be used by all component models.
+  !-----------------------------------------------------------------------------
+
+  if (iam==0) then
+     open(newunit=fileunit, status="old", file="drv_in")
+     read(fileunit, smartsim_inparm, iostat=ier)
+     if (ier > 0) then
+	call shr_sys_abort('esmApp: error reading in smartsim_inparm namelist from drv_in')
+     end if
+     close(fileunit)
+  end if
+  call mpi_bcast (use_smartredis, 1, MPI_LOGICAL, 0, COMP_COMM, ier)
+  call mpi_bcast (create_smartsim_cluster, 1, MPI_LOGICAL, 0, COMP_COMM, ier)
+  if (use_smartredis) then
+     call ESMF_Logwrite("Using SmartSim interface", ESMF_LOGMSG_INFO, rc=rc)
+     call sr_client%initialize(create_smartsim_cluster)
+  endif
 
   !-----------------------------------------------------------------------------
   ! Operate on the NUOPC Field dictionary

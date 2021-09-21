@@ -1,12 +1,10 @@
 module esm_utils_mod
-
   implicit none
   public
 
   logical :: mastertask
   integer :: logunit
   integer :: dbug_flag = 0
-
   character(*), parameter :: u_FILE_u = &
        __FILE__
 
