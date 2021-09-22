@@ -33,19 +33,22 @@ jobs:
       NETCDF_FORTRAN_PATH: ${HOME}/netcdf-fortran
       PNETCDF_PATH: ${HOME}/pnetcdf
       CIME_MODEL: cesm
+      CIME_DRIVER: mct
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
 
-      - uses: actions/checkout@v2
-        with:
-          path: share
-
       - name: cime checkout
         uses: actions/checkout@v2
         with:
-          repository: fischer-ncar/cime
+          repository: ESMCI/cime
+
+      - name: share checkout
+        uses: actions/checkout@v2
+        with:
+          repository: ESCOMP/CESM_share
+          path: share
 
       - name: cpl7 checkout
         uses: actions/checkout@v2
@@ -63,28 +66,12 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: cache mct
-        id: cache-mct
-        uses: actions/cache@v2
-        with:
-          path: $HOME/work/CESM_share/CESM_share/libraries/mct
-          key: ${{ runner.os }}-${{ env.MCT_VERSION}}-mct-redo
-
       - name: mct install
-        if: steps.cache-mct.outputs.cache-hit != 'true'
         run: |
           git clone -b ${{ env.MCT_VERSION  }} https://github.com/MCSclimate/MCT libraries/mct
           ls -l libraries/mct
 
-      - name: cache parallelio
-        id: cache-parallelio
-        uses: actions/cache@v2
-        with:
-          path: $HOME/work/CESM_share/CESM_share/libraries/parallelio
-          key: ${{ runner.os }}-${{ env.PARALLELIO_VERSION}}-parallelio-redo
-
       - name: parallelio install
-        if: steps.cache-parallelio.outputs.cache-hit != 'true'
         run: |
           git clone -b ${{ env.PARALLELIO_VERSION  }} https://github.com/NCAR/ParallelIO libraries/parallelio
           ls -l libraries/parallelio
@@ -153,10 +140,11 @@ jobs:
           mkdir -p $HOME/cesm/scratch
           mkdir -p $HOME/cesm/inputdata
           cd $HOME/work/CESM_share/CESM_share/scripts/tests
+          ls -l $HOME/work/CESM_share/CESM_share
           export NETCDF=$HOME/netcdf-fortran
           export PATH=$NETCDF/bin:$PATH
           export LD_LIBRARY_PATH=$NETCDF/lib:$HOME/pnetcdf/lib:$LD_LIBRARY_PATH
-          ./scripts_regression_tests.py --no-fortran-run --compiler gnu --mpilib openmpi --machine ubuntu-latest
+          ./scripts_regression_tests.py  --no-fortran-run --compiler gnu --mpilib openmpi --machine ubuntu-latest
 
 #     the following can be used by developers to login to the github server in case of errors
 #     see https://github.com/marketplace/actions/debugging-with-tmate for further details
