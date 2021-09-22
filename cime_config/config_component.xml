@@ -820,6 +820,21 @@
     machines.</desc>
   </entry>
 
+  <entry id="CLM_USE_PETSC">
+    <type>logical</type>
+    <valid_values>TRUE,FALSE</valid_values>
+    <default_value>FALSE</default_value>
+    <group>build_component_clm</group>
+    <file>env_build.xml</file>
+    <desc>TRUE implies CLM is built with support for the PETSc
+      library. The Variably Saturated Flow Model (VSFM) solver in CLM
+      uses the PETSc library. In order to use the VSFM solver, CLM
+      must be built with PETSc support and linking to PETSc must occur
+      when building the ACME executable. This occurs if this variable
+      is set to TRUE. Note that is only available on a limited set of
+      machines/compilers.</desc>
+  </entry>
+
   <entry id="USE_MOAB">
     <type>logical</type>
     <valid_values>TRUE,FALSE</valid_values>
