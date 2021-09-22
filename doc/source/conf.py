@@ -39,7 +39,6 @@ extensions = [
     'sphinx.ext.autosummary',
     'sphinx.ext.viewcode',
     'sphinx.ext.todo',
-    'sphinxcontrib.programoutput'
 ]
 todo_include_todos=True
 
