@@ -4,14 +4,15 @@ module med_phases_restart_mod
   ! Write/Read mediator restart files
   !-----------------------------------------------------------------------------
 
-  use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
-  use med_constants_mod     , only : dbug_flag => med_constants_dbug_flag
-  use med_utils_mod         , only : chkerr    => med_utils_ChkErr
-  use med_internalstate_mod , only : mastertask, logunit, InternalState
-  use esmFlds               , only : ncomps, compname, compocn, complnd
-  use perf_mod              , only : t_startf, t_stopf
-  use med_phases_prep_glc_mod, only : FBlndAccum2glc_l, lndAccum2glc_cnt
-  use med_phases_prep_glc_mod, only : FBocnAccum2glc_o, ocnAccum2glc_cnt
+  use med_kind_mod            , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
+  use med_constants_mod       , only : dbug_flag => med_constants_dbug_flag
+  use med_utils_mod           , only : chkerr    => med_utils_ChkErr
+  use med_internalstate_mod   , only : mastertask, logunit, InternalState
+  use esmFlds                 , only : ncomps, compname, compocn, complnd
+  use perf_mod                , only : t_startf, t_stopf
+  use med_phases_prep_glc_mod , only : FBlndAccum2glc_l, lndAccum2glc_cnt
+  use med_phases_prep_glc_mod , only : FBocnAccum2glc_o, ocnAccum2glc_cnt
+  use med_phases_prep_rof_mod , only : FBlndAccum2rof_l, lndAccum2rof_cnt
 
   implicit none
   private
@@ -380,6 +381,18 @@ contains
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           endif
 
+          ! Write accumulation from lnd to rof if lnd->rof coupling is on
+          if (ESMF_FieldBundleIsCreated(FBlndAccum2rof_l)) then
+             nx = is_local%wrap%nx(complnd)
+             ny = is_local%wrap%ny(complnd)
+             call med_io_write(restart_file, FBlndAccum2rof_l, whead(m), wdata(m), nx, ny, &
+                  nt=1, pre='lndImpAccum2rof', rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             call med_io_write(restart_file, lndAccum2rof_cnt, 'lndImpAccum2rof_cnt', whead(m), wdata(m), rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          end if
+
+
           ! Write accumulation from lnd to glc if lnd->glc coupling is on
           if (ESMF_FieldBundleIsCreated(FBlndAccum2glc_l)) then
              nx = is_local%wrap%nx(complnd)
@@ -570,6 +583,13 @@ contains
        call med_io_read(restart_file, vm, is_local%wrap%ExpAccumOcnCnt, 'ocnExpAccum_cnt', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     endif
+    ! If lnd->rof, read accumulation from lnd to rof (CESM only)
+    if (ESMF_FieldBundleIsCreated(FBlndAccum2rof_l)) then
+       call med_io_read(restart_file, vm, FBlndAccum2rof_l, pre='lndImpAccum2rof', rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call med_io_read(restart_file, vm, lndAccum2rof_cnt, 'lndImpAccum2rof_cnt', rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    end if
     ! If lnd->glc, read accumulation from lnd to glc (CESM only)
     if (ESMF_FieldBundleIsCreated(FBlndAccum2glc_l)) then
        call med_io_read(restart_file, vm, FBlndAccum2glc_l, pre='lndImpAccum2glc', rc=rc)
