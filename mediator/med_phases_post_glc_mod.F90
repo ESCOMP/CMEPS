@@ -82,8 +82,6 @@ contains
 
   subroutine med_phases_post_glc(gcomp, rc)
 
-    use med_phases_history_mod, only : med_phases_history_write_glc
-
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc
@@ -211,10 +209,6 @@ contains
 
     ! Reset first call logical
     first_call = .false.
-
-    ! Write glc inst, avg or aux if requested in mediator attributes
-    call med_phases_history_write_glc(gcomp, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if (dbug_flag > 20) then
        call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
@@ -555,6 +549,12 @@ contains
              do l = 1,size(frac_x_icemask_l_ec, dim=2)
                 if (icemask_l(l) > 0._r8) then
                    if (frac_l_ec_sum(ec,l) <= 0._r8) then
+                      ! This is formulated as an addition for consistency with other
+                      ! additions to the *_sum variables, but in practice only one ice
+                      ! sheet will contribute to any land point, given the assumption of
+                      ! non-overlapping ice sheet domains. (If more than one ice sheet
+                      ! contributed to a given land point, the following line would do the
+                      ! wrong thing, since it would add topo_virtual multiple times.)
                       topo_l_ec_sum(ec,l) = topo_l_ec_sum(ec,l) + topo_virtual
                    else
                       if (frac_x_icemask_l_ec(ec,l) /= 0.0_r8) then
