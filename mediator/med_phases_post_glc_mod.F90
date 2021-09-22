@@ -2,16 +2,16 @@ module med_phases_post_glc_mod
 
   !-----------------------------------------------------------------------------
   ! Mediator phase for mapping glc->lnd and glc->ocn after the receive of glc
+  ! ASSUMES that multiple ice sheets do not overlap
   !-----------------------------------------------------------------------------
 
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
   use NUOPC                 , only : NUOPC_CompAttributeGet
-  use ESMF                  , only : operator(/=)
   use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_LOGMSG_ERROR, ESMF_SUCCESS, ESMF_FAILURE
   use ESMF                  , only : ESMF_FieldBundle, ESMF_FieldBundleGet
   use ESMF                  , only : ESMF_GridComp, ESMF_GridCompGet
-  use ESMF                  , only : ESMF_StateGet, ESMF_StateItem_Flag, ESMF_STATEITEM_NOTFOUND
-  use ESMF                  , only : ESMF_Mesh, ESMF_MeshLoc, ESMF_MESHLOC_ELEMENT, ESMF_TYPEKIND_R8
+  use ESMF                  , only : ESMF_StateGet, ESMF_StateItem_Flag
+  use ESMF                  , only : ESMF_Mesh, ESMF_MESHLOC_ELEMENT, ESMF_TYPEKIND_R8
   use ESMF                  , only : ESMF_Field, ESMF_FieldGet, ESMF_FieldCreate
   use ESMF                  , only : ESMF_RouteHandle, ESMF_RouteHandleIsCreated
   use esmFlds               , only : compatm, compice, complnd, comprof, compocn, ncomps, compname
@@ -30,10 +30,7 @@ module med_phases_post_glc_mod
   use med_internalstate_mod , only : InternalState, mastertask, logunit
   use med_map_mod           , only : med_map_rh_is_created, med_map_routehandles_init
   use med_map_mod           , only : med_map_field_packed, med_map_field_normalized, med_map_field
-  use med_merge_mod         , only : med_merge_auto
-  use glc_elevclass_mod     , only : glc_get_num_elevation_classes
-  use glc_elevclass_mod     , only : glc_mean_elevation_virtual
-  use glc_elevclass_mod     , only : glc_get_fractional_icecov
+  use glc_elevclass_mod     , only : glc_mean_elevation_virtual, glc_get_fractional_icecov
   use perf_mod              , only : t_startf, t_stopf
 
   implicit none
@@ -84,6 +81,8 @@ contains
 !================================================================================================
 
   subroutine med_phases_post_glc(gcomp, rc)
+
+    use med_phases_history_mod, only : med_phases_history_write_glc
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -154,7 +153,7 @@ contains
     end if
 
     !---------------------------------------
-    ! glc->ocn mapping -
+    ! glc->ocn mapping
     ! merging with rof->ocn fields is done in med_phases_prep_ocn
     !---------------------------------------
     if (glc2ocn_coupling) then
@@ -213,6 +212,10 @@ contains
     ! Reset first call logical
     first_call = .false.
 
+    ! Write glc inst, avg or aux if requested in mediator attributes
+    call med_phases_history_write_glc(gcomp, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
     if (dbug_flag > 20) then
        call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
     end if
@@ -221,7 +224,6 @@ contains
   end subroutine med_phases_post_glc
 
   !================================================================================================
-
   subroutine map_glc2lnd_init(gcomp, rc)
 
     ! input/output variables
@@ -369,6 +371,7 @@ contains
     real(r8), pointer     :: topo_l_ec_sum(:,:) => null()
     real(r8), pointer     :: dataptr1d_src(:) => null()
     real(r8), pointer     :: dataptr1d_dst(:) => null()
+    real(r8), pointer     :: icemask_l(:)
     character(len=*), parameter :: subname = 'map_glc2lnd'
     !-----------------------------------------------------------------------
 
@@ -538,25 +541,31 @@ contains
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           call field_getdata2d(field_frac_x_icemask_l_ec, frac_x_icemask_l_ec, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call field_getdata1d(field_icemask_l, icemask_l, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
 
           ! set Sg_topo values in export state to land (in multiple elevation classes)
           ! also set the topo field for virtual columns, in a given elevation class.
           ! This is needed because virtual columns (i.e., elevation classes that have no
           ! contributing glc grid cells) won't have any topographic information mapped onto
           ! them, so would otherwise end up with an elevation of 0.
+          ! ASSUME that multiple ice sheets do not overlap
           do ec = 1,ungriddedCount
              topo_virtual = glc_mean_elevation_virtual(ec-1) ! glc_mean_elevation_virtual uses 0:glc_nec
              do l = 1,size(frac_x_icemask_l_ec, dim=2)
-                if (frac_l_ec_sum(ec,l) <= 0._r8) then
-                   topo_l_ec_sum(ec,l) = topo_l_ec_sum(ec,l) + topo_virtual
-                else
-                   if (frac_x_icemask_l_ec(ec,l) /= 0.0_r8) then
-                      topo_l_ec_sum(ec,l) = topo_l_ec_sum(ec,l) + topo_l_ec(ec,l) / frac_x_icemask_l_ec(ec,l)
+                if (icemask_l(l) > 0._r8) then
+                   if (frac_l_ec_sum(ec,l) <= 0._r8) then
+                      topo_l_ec_sum(ec,l) = topo_l_ec_sum(ec,l) + topo_virtual
+                   else
+                      if (frac_x_icemask_l_ec(ec,l) /= 0.0_r8) then
+                         topo_l_ec_sum(ec,l) = topo_l_ec_sum(ec,l) + topo_l_ec(ec,l) / frac_x_icemask_l_ec(ec,l)
+                      end if
                    end if
                 end if
              end do
           end do
        end if
+
     end do
 
     if (dbug_flag > 5) then
