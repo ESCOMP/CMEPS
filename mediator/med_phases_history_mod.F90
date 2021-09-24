@@ -1597,8 +1597,9 @@ contains
   !===============================================================================
   subroutine med_phases_history_init_histclock(gcomp, hclock, alarm, alarmname, hist_option, hist_n, rc)
 
-    use ESMF         , only : ESMF_ClockCreate, ESMF_ClockGet, ESMF_ClockSet
-    use med_time_mod , only : med_time_alarmInit
+    use NUOPC_Mediator, only : NUOPC_MediatorGet
+    use ESMF          , only : ESMF_ClockCreate, ESMF_ClockGet, ESMF_ClockSet
+    use med_time_mod  , only : med_time_alarmInit
 
     ! input/output variables
     type(ESMF_GridComp) , intent(in)    :: gcomp
@@ -1610,23 +1611,46 @@ contains
     integer             , intent(out)   :: rc
 
     ! local variables
-    type(ESMF_Clock):: mclock
-    type(ESMF_Time) :: StartTime
+    type(ESMF_Clock)        :: mclock, dclock
+    type(ESMF_Time)         :: StartTime
+    type(ESMF_TimeInterval) :: htimestep
+    type(ESMF_TimeInterval) :: mtimestep, dtimestep
+    integer                 :: msec, dsec
     character(len=*), parameter :: subname='(med_phases_history_init_histclock) '
     !---------------------------------------
 
     rc = ESMF_SUCCESS
 
-    ! Create history clock from  model clock - THIS CALL DOES NOT COPY ALARMS
-    call NUOPC_ModelGet(gcomp, modelClock=mclock,  rc=rc)
+    call NUOPC_MediatorGet(gcomp, mediatorClock=mClock, driverClock=dClock, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call ESMF_ClockGet(mclock, timeStep=mtimestep, starttime=starttime, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_TimeIntervalGet(mtimestep, s=msec, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call ESMF_ClockGet(dclock, timeStep=dtimestep, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_TimeIntervalGet(dtimestep, s=dsec, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    if (mastertask) then
+       write(logunit,'(a,2x,i8,2x,i8)') trim(subname) // "  mediator, driver timesteps for " &
+            //trim(alarmname),msec,dsec 
+    end if
+
+    ! Create history clock from mediator clock - THIS CALL DOES NOT COPY ALARMS
     hclock = ESMF_ClockCreate(mclock, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    ! call ESMF_ClockSet(hclock, currtime=starttime, rc=rc)
+    ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    ! call ESMF_TimeIntervalSet(htimestep, s=msec, rc=rc)
+    ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    ! call ESMF_ClockSet(hclock, timeStep=htimestep, rc=rc)
+    ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! Initialize history alarm and advance history clock to trigger
     ! alarms then reset history clock back to mcurrtime
-    call ESMF_ClockGet(hclock, startTime=StartTime, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call med_time_alarmInit(hclock, alarm, option=hist_option, opt_n=hist_n, &
          reftime=StartTime, alarmname=trim(alarmname), advance_clock=.true., rc=rc)
 
@@ -1641,6 +1665,8 @@ contains
   !===============================================================================
   subroutine med_phases_history_query_ifwrite(gcomp, wclock, alarmname, write_now, rc)
 
+    use NUOPC_Mediator, only : NUOPC_MediatorGet
+
     ! input/output variables
     type(ESMF_GridComp) , intent(in)    :: gcomp
     type(ESMF_Clock)    , intent(inout) :: wclock    ! write clock
@@ -1652,8 +1678,8 @@ contains
     type(ESMF_Clock)        :: mclock         ! mediator clock
     type(ESMF_Alarm)        :: alarm          ! write alarm
     type(ESMF_Time)         :: currtime       ! current time
-    type(ESMF_Time)         :: nexttime       ! next time
     character(len=CS)       :: currtimestr    ! current time string
+    type(ESMF_Time)         :: nexttime       ! next time
     character(len=CS)       :: nexttimestr    ! next time string
     integer                 :: yr,mon,day,sec ! time units
     type(ESMF_TimeInterval) :: ringInterval
@@ -1664,15 +1690,7 @@ contains
     rc = ESMF_SUCCESS
 
     ! Update wclock to trigger alarm
-    call NUOPC_ModelGet(gcomp, modelClock=mclock,  rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_ClockGet(mclock, currTime=currtime, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_ClockSet(wclock, currTime=currtime)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call ESMF_ClockAdvance(wclock, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_ClockSet(wclock, currTime=currtime)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! Get the history file alarm and determine if alarm is ringing
@@ -1697,6 +1715,8 @@ contains
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           call ESMF_TimeIntervalGet(ringInterval, s=ringinterval_length, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_ClockGet(wclock, currtime=currtime, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
           call ESMF_TimeGet(currtime,yy=yr, mm=mon, dd=day, s=sec, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           write(currtimestr,'(i4.4,a,i2.2,a,i2.2,a,i5.5)') yr,'-',mon,'-',day,'-',sec
@@ -1717,9 +1737,10 @@ contains
   end subroutine med_phases_history_query_ifwrite
 
   !===============================================================================
-  subroutine med_phases_history_set_timeinfo(gcomp, clock, alarmname, &
+  subroutine med_phases_history_set_timeinfo(gcomp, hclock, alarmname, &
        time_val, time_bnds, time_units, histfile, doavg, auxname, compname, rc)
 
+    use NUOPC_Mediator    , only : NUOPC_MediatorGet
     use ESMF              , only : ESMF_GridComp, ESMF_Clock, ESMF_Alarm, ESMF_Time, ESMF_TimeInterval
     use ESMF              , only : ESMF_ClockGet, ESMF_ClockGetNextTime, ESMF_ClockGetAlarm
     use ESMF              , only : ESMF_AlarmGet, ESMF_TimeIntervalGet, ESMF_TimeGet
@@ -1728,7 +1749,7 @@ contains
 
     ! input/output variables
     type(ESMF_GridComp)         , intent(in)  :: gcomp
-    type(ESMF_Clock)            , intent(in)  :: clock
+    type(ESMF_Clock)            , intent(in)  :: hclock
     character(len=*)            , intent(in)  :: alarmname
     real(r8)                    , intent(out) :: time_val
     real(r8)                    , intent(out) :: time_bnds(2)
@@ -1740,6 +1761,7 @@ contains
     integer                     , intent(out) :: rc
 
     ! local variables
+    type(ESMF_Clock)        :: mclock
     type(ESMF_Alarm)        :: alarm
     type(ESMF_Time)         :: starttime
     type(ESMF_Time)         :: currtime
@@ -1758,10 +1780,12 @@ contains
 
     rc = ESMF_SUCCESS
 
-    ! Determine starttime, currtime and nexttime
-    call ESMF_ClockGet(clock, currtime=currtime, starttime=starttime, rc=rc)
+    ! Determine starttime, currtime and nexttime from the mediator clock rather than the input history clock
+    call NUOPC_MediatorGet(gcomp, mediatorClock=mClock, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_ClockGetNextTime(clock, nextTime=nexttime, rc=rc)
+    call ESMF_ClockGet(mclock, currtime=currtime, starttime=starttime, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_ClockGetNextTime(mclock, nextTime=nexttime, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! Determine time units
@@ -1773,7 +1797,7 @@ contains
 
     ! Set time bounds and time coord
     if (doavg) then
-       call ESMF_ClockGetAlarm(clock, alarmname=trim(alarmname), alarm=alarm, rc=rc)
+       call ESMF_ClockGetAlarm(hclock, alarmname=trim(alarmname), alarm=alarm, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call ESMF_AlarmGet(alarm, ringInterval=ringInterval, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
