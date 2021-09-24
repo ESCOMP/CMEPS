@@ -14,6 +14,7 @@ module med_phases_restart_mod
   use perf_mod                , only : t_startf, t_stopf
   use med_phases_prep_glc_mod , only : FBlndAccum2glc_l, lndAccum2glc_cnt
   use med_phases_prep_glc_mod , only : FBocnAccum2glc_o, ocnAccum2glc_cnt
+  use med_phases_prep_rof_mod , only : FBlndAccum2rof_l, lndAccum2rof_cnt
 
   implicit none
   private
@@ -429,6 +430,18 @@ contains
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           endif
 
+          ! Write accumulation from lnd to rof if lnd->rof coupling is on
+          if (ESMF_FieldBundleIsCreated(FBlndAccum2rof_l)) then
+             nx = is_local%wrap%nx(complnd)
+             ny = is_local%wrap%ny(complnd)
+             call med_io_write(restart_file, iam, FBlndAccum2rof_l, &
+                  nx=nx, ny=ny, nt=1, whead=whead, wdata=wdata, pre='lndImpAccum2rof', rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             call med_io_write(restart_file, iam, lndAccum2rof_cnt, 'lndImpAccum2rof_cnt', &
+                  whead=whead, wdata=wdata, rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          end if
+
           ! Write accumulation from lnd to glc if lnd->glc coupling is on
           if (ESMF_FieldBundleIsCreated(FBlndAccum2glc_l)) then
              nx = is_local%wrap%nx(complnd)
@@ -625,6 +638,14 @@ contains
        call med_io_read(restart_file, vm, iam, is_local%wrap%ExpAccumOcnCnt, 'ocnExpAccum_cnt', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     endif
+
+    ! If lnd->glc, read accumulation from lnd to rof (CESM only)
+    if (ESMF_FieldBundleIsCreated(FBlndAccum2glc_r)) then
+       call med_io_read(restart_file, vm, iam, FBlndAccum2rof_l, pre='lndImpAccum2rof', rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call med_io_read(restart_file, vm, iam, lndAccum2rof_cnt, 'lndImpAccum2rof_cnt', rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    end if
 
     ! If lnd->glc, read accumulation from lnd to glc (CESM only)
     if (ESMF_FieldBundleIsCreated(FBlndAccum2glc_l)) then
