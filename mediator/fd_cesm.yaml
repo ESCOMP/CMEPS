@@ -952,6 +952,14 @@
        canonical_units: m
        description: river export to land - river channel main channel water volume from 16O, 18O, HDO
      #
+     - standard_name: Sr_tdepth
+       canonical_units: m
+       description: river export to land - tributary channel water depth
+     #
+     - standard_name: Sr_tdepth_max
+       canonical_units: m
+       description: river export to land - tributary channel bankfull depth
+     #
      - standard_name: Forr_rofi
        canonical_units: kg m-2 s-1
        description: river export to ocean - water flux due to runoff (frozen)
