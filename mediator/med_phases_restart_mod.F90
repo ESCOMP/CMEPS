@@ -640,7 +640,7 @@ contains
     endif
 
     ! If lnd->glc, read accumulation from lnd to rof (CESM only)
-    if (ESMF_FieldBundleIsCreated(FBlndAccum2glc_r)) then
+    if (ESMF_FieldBundleIsCreated(FBlndAccum2rof_l)) then
        call med_io_read(restart_file, vm, iam, FBlndAccum2rof_l, pre='lndImpAccum2rof', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call med_io_read(restart_file, vm, iam, lndAccum2rof_cnt, 'lndImpAccum2rof_cnt', rc=rc)
