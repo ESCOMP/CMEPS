@@ -29,7 +29,7 @@ contains
     use med_map_mod           , only : med_map_field_packed
     use med_fraction_mod      , only : med_fraction_set
     use med_internalstate_mod , only : InternalState, mastertask
-    use med_phases_history_mod, only : med_phases_history_write_ice
+    use med_phases_history_mod, only : med_phases_history_write_comp
     use esmFlds               , only : compice, compatm, compocn, compwav
     use perf_mod              , only : t_startf, t_stopf
 
@@ -102,7 +102,7 @@ contains
     call NUOPC_MediatorGet(gcomp, driverClock=dClock, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (ESMF_ClockIsCreated(dclock)) then
-       call med_phases_history_write_ice(gcomp, rc=rc)
+       call med_phases_history_write_comp(gcomp, compice, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 

@@ -87,7 +87,7 @@ contains
 
     use NUOPC_Mediator        , only : NUOPC_MediatorGet
     use ESMF                  , only : ESMF_Clock, ESMF_ClockIsCreated
-    use med_phases_history_mod, only : med_phases_history_write_glc
+    use med_phases_history_mod, only : med_phases_history_write_comp
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -222,8 +222,10 @@ contains
     call NUOPC_MediatorGet(gcomp, driverClock=dClock, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (ESMF_ClockIsCreated(dclock)) then
-       call med_phases_history_write_glc(gcomp, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       do ns = 1,num_icesheets
+          call med_phases_history_write_comp(gcomp, compglc(ns), rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       end do
     end if
 
     if (dbug_flag > 20) then

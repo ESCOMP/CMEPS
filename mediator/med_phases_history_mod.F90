@@ -32,20 +32,14 @@ module med_phases_history_mod
   public :: med_phases_history_write         ! inst only - for all variables
 
   ! Public routines called from post phases
-  public :: med_phases_history_write_atm     ! inst, avg, aux for atm
-  public :: med_phases_history_write_ice     ! inst, avg, aux for ice
-  public :: med_phases_history_write_glc     ! inst, avg, aux for glc
-  public :: med_phases_history_write_lnd     ! inst, avg, aux for lnd
-  public :: med_phases_history_write_ocn     ! inst, avg, aux for ocn
-  public :: med_phases_history_write_rof     ! inst, avg, aux for rof
-  public :: med_phases_history_write_wav     ! inst, avg, aux for wav
+  public :: med_phases_history_write_comp    ! inst, avg, aux for component
   public :: med_phases_history_write_med     ! inst only, med aoflux and ocn albedoes
   public :: med_phases_history_write_lnd2glc ! inst only, yearly average of lnd->glc data on lnd grid
 
   ! Private routines
-  private :: med_phases_history_write_inst_comp  ! write instantaneous file for a given component
-  private :: med_phases_history_write_avg_comp   ! write averaged file for a given component
-  private :: med_phases_history_write_aux_comp   ! write auxiliary file for a given component
+  private :: med_phases_history_write_comp_inst  ! write instantaneous file for a given component
+  private :: med_phases_history_write_comp_avg   ! write averaged file for a given component
+  private :: med_phases_history_write_comp_aux   ! write auxiliary file for a given component
   private :: med_phases_history_init_histclock
   private :: med_phases_history_query_ifwrite
   private :: med_phases_history_set_timeinfo
@@ -62,6 +56,8 @@ module med_phases_history_mod
      type(ESMF_Clock) :: clock
      type(ESMF_Alarm) :: alarm
      character(CS)    :: alarmname
+     logical          :: is_clockset = .false.
+     logical          :: is_active = .false.
   end type instfile_type
   type(instfile_type) , public :: instfiles(ncomps)
 
@@ -602,180 +598,33 @@ contains
   end subroutine med_phases_history_write_lnd2glc
 
   !===============================================================================
-  subroutine med_phases_history_write_atm(gcomp, rc)
+  subroutine med_phases_history_write_comp(gcomp, compid, rc)
 
     ! Write mediator history file for atm variables
 
-    use esmFlds, only : compatm
-
-    type(ESMF_GridComp)  :: gcomp
-    integer, intent(out) :: rc
+    type(ESMF_GridComp), intent(inout) :: gcomp
+    integer            , intent(in)    :: compid
+    integer            , intent(out)   :: rc
+    ! loal variables
     logical              :: first_time = .true.
     !---------------------------------------
     rc = ESMF_SUCCESS
-    call med_phases_history_write_inst_comp(gcomp, compatm, instfiles(compatm), &
-         first_time, 'med_phases_history_write_inst_atm', rc)
+
+    call med_phases_history_write_comp_inst(gcomp, compid, instfiles(compid), rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call med_phases_history_write_avg_comp(gcomp, compatm, avgfiles(compatm), &
-         first_time, 'med_phases_history_write_avg_atm', rc)
+
+    call med_phases_history_write_comp_avg(gcomp, compid, avgfiles(compid), first_time, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call med_phases_history_write_aux_comp(gcomp, compatm, auxfiles(:,compatm), &
-         first_time, 'med_phases_history_write_aux_atm', rc)
+
+    call med_phases_history_write_comp_aux(gcomp, compid, auxfiles(:,compid), first_time, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
     if (first_time) first_time = .false.
-  end subroutine med_phases_history_write_atm
+
+  end subroutine med_phases_history_write_comp
 
   !===============================================================================
-  subroutine med_phases_history_write_ice(gcomp, rc)
-
-    ! Write mediator history file for ice variables
-
-    use esmFlds, only : compice
-
-    type(ESMF_GridComp)  :: gcomp
-    integer, intent(out) :: rc
-    logical              :: first_time = .true.
-    !---------------------------------------
-    rc = ESMF_SUCCESS
-    call med_phases_history_write_inst_comp(gcomp, compice, instfiles(compice), &
-         first_time, 'med_phases_history_write_inst_ice', rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call med_phases_history_write_avg_comp(gcomp, compice, avgfiles(compice), &
-         first_time, 'med_phases_history_write_avg_ice', rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call med_phases_history_write_aux_comp(gcomp, compice, auxfiles(:,compice), &
-         first_time, 'med_phases_history_write_aux_ice', rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (first_time) first_time = .false.
-  end subroutine med_phases_history_write_ice
-
-  !===============================================================================
-  subroutine med_phases_history_write_glc(gcomp, rc)
-
-    ! Write mediator history file for glc variables
-
-    use esmFlds, only : compglc, num_icesheets
-
-    type(ESMF_GridComp)  :: gcomp
-    integer, intent(out) :: rc
-    integer              :: ns
-    character(len=CS)    :: cns
-    logical              :: first_time = .true.
-    !---------------------------------------
-    rc = ESMF_SUCCESS
-    do ns = 1,num_icesheets
-       write(cns,*) ns
-       call med_phases_history_write_inst_comp(gcomp, compglc(ns), instfiles(compglc(ns)), &
-            first_time, 'med_phases_history_write_inst_glc'//trim(cns), rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call med_phases_history_write_avg_comp(gcomp, compglc(ns), avgfiles(compglc(ns)), &
-            first_time, 'med_phases_history_write_avg_glc'//trim(cns), rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call med_phases_history_write_aux_comp(gcomp, compglc(ns), auxfiles(:,compglc(ns)), &
-            first_time, 'med_phases_history_write_aux_glc'//trim(cns), rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    end do
-    if (first_time) first_time = .false.
-  end subroutine med_phases_history_write_glc
-
-  !===============================================================================
-  subroutine med_phases_history_write_lnd(gcomp, rc)
-
-    ! Write mediator history file for lnd variables
-
-    use esmFlds, only : complnd
-
-    type(ESMF_GridComp)  :: gcomp
-    integer, intent(out) :: rc
-    logical              :: first_time = .true.
-    !---------------------------------------
-    rc = ESMF_SUCCESS
-    call med_phases_history_write_inst_comp(gcomp, complnd, instfiles(complnd), &
-         first_time, 'med_phases_history_write_inst_lnd', rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call med_phases_history_write_avg_comp(gcomp, complnd, avgfiles(complnd), &
-         first_time, 'med_phases_history_write_avg_lnd', rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call med_phases_history_write_aux_comp(gcomp, complnd, auxfiles(:,complnd), &
-         first_time, 'med_phases_history_write_aux_lnd', rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (first_time) first_time = .false.
-  end subroutine med_phases_history_write_lnd
-
-  !===============================================================================
-  subroutine med_phases_history_write_ocn(gcomp, rc)
-
-    ! Write mediator history file for ocn variables
-
-    use esmFlds, only : compocn
-
-    type(ESMF_GridComp)  :: gcomp
-    integer, intent(out) :: rc
-    logical              :: first_time = .true.
-    !---------------------------------------
-    rc = ESMF_SUCCESS
-    call med_phases_history_write_inst_comp(gcomp, compocn, instfiles(compocn), &
-         first_time, 'med_phases_history_write_inst_ocn', rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call med_phases_history_write_avg_comp(gcomp, compocn, avgfiles(compocn), &
-         first_time, 'med_phases_history_write_avg_ocn', rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call med_phases_history_write_aux_comp(gcomp, compocn, auxfiles(:,compocn), &
-         first_time, 'med_phases_history_write_aux_ocn', rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (first_time) first_time = .false.
-  end subroutine med_phases_history_write_ocn
-
-  !===============================================================================
-  subroutine med_phases_history_write_rof(gcomp, rc)
-
-    ! Write mediator history file for rof variables
-
-    use esmFlds, only : comprof
-
-    type(ESMF_GridComp)  :: gcomp
-    integer, intent(out) :: rc
-    logical              :: first_time = .true.
-    !---------------------------------------
-    rc = ESMF_SUCCESS
-    call med_phases_history_write_inst_comp(gcomp, comprof, instfiles(comprof), &
-         first_time, 'med_phases_history_write_inst_rof', rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call med_phases_history_write_avg_comp(gcomp, comprof, avgfiles(comprof), &
-         first_time, 'med_phases_history_write_avg_rof', rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call med_phases_history_write_aux_comp(gcomp, comprof, auxfiles(:,comprof), &
-         first_time, 'med_phases_history_write_aux_rof', rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (first_time) first_time = .false.
-  end subroutine med_phases_history_write_rof
-
-  !===============================================================================
-  subroutine med_phases_history_write_wav(gcomp, rc)
-
-    ! Write mediator history file for wav variables
-
-    use esmFlds, only : compwav
-
-    type(ESMF_GridComp)  :: gcomp
-    integer, intent(out) :: rc
-    logical              :: first_time = .true.
-    !---------------------------------------
-    rc = ESMF_SUCCESS
-    call med_phases_history_write_inst_comp(gcomp, compwav, instfiles(compwav), &
-         first_time, 'med_phases_history_write_inst_wav', rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call med_phases_history_write_avg_comp(gcomp, compwav, avgfiles(compwav), &
-         first_time, 'med_phases_history_write_avg_wav', rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call med_phases_history_write_aux_comp(gcomp, compwav, auxfiles(:,compwav), &
-         first_time, 'med_phases_history_write_aux_wav', rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (first_time) first_time = .false.
-  end subroutine med_phases_history_write_wav
-
-  !===============================================================================
-  subroutine med_phases_history_write_inst_comp(gcomp, compid, instfile, first_time, subname, rc)
+  subroutine med_phases_history_write_comp_inst(gcomp, compid, instfile, rc)
 
     ! Write instantaneous mediator history file for component compid
 
@@ -785,9 +634,7 @@ contains
     ! input/output variables
     type(ESMF_GridComp) , intent(inout) :: gcomp
     integer             , intent(in)    :: compid
-    logical             , intent(in)    :: first_time
     type(instfile_type) , intent(inout) :: instfile
-    character(len=*)    , intent(in)    :: subname
     integer             , intent(out)   :: rc
 
     ! local variables
@@ -809,6 +656,7 @@ contains
     real(r8)            :: time_bnds(2) ! time bounds output
     logical             :: write_now    ! true => write to history type
     real(r8)            :: tbnds(2)     ! CF1.0 time bounds
+    character(len=*), parameter :: subname='(med_phases_history_write_inst_comp)'
     !---------------------------------------
 
     rc = ESMF_SUCCESS
@@ -818,7 +666,9 @@ contains
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    if (first_time) then
+    ! alarm is not set determine hist_option and hist_n
+    if (.not. instfile%is_clockset) then
+
        ! Determine attribute prefix
        write(hist_option_in,'(a)') 'history_option_'//trim(compname(compid))//'_inst'
        write(hist_n_in,'(a)') 'history_n_'//trim(compname(compid))//'_inst'
@@ -844,10 +694,22 @@ contains
           call med_phases_history_init_histclock(gcomp, instfile%clock, &
                instfile%alarm, instfile%alarmname, hist_option, hist_n, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          instfile%is_active = .true.
+          instfile%is_clockset = .true.
+       else
+          instfile%is_active = .false.
+          ! this is set to true here even if history file is not active
+          instfile%is_clockset = .true. 
        end if
-    end if ! end of first_time if-block
+    end if ! end of if-clock set if block
 
-    if (ESMF_ClockIsCreated(instfile%clock)) then
+    ! if history file is not active then return
+    if (.not. instfile%is_active) then
+       RETURN
+    end if
+
+    ! if history file is active and history clock is initialized - process history file
+    if (instfile%is_active .and. instfile%is_clockset) then
 
        ! Determine if should write to history file
        call med_phases_history_query_ifwrite(gcomp, instfile%clock, instfile%alarmname, write_now, rc)
@@ -909,10 +771,10 @@ contains
 
     call t_stopf('MED:'//subname)
 
-  end subroutine med_phases_history_write_inst_comp
+  end subroutine med_phases_history_write_comp_inst
 
   !===============================================================================
-  subroutine med_phases_history_write_avg_comp(gcomp, compid, avgfile, first_time, subname, rc)
+  subroutine med_phases_history_write_comp_avg(gcomp, compid, avgfile, first_time, rc)
 
     ! Write mediator average history file variables for component compid
 
@@ -926,7 +788,6 @@ contains
     integer             , intent(in)    :: compid
     type(avgfile_type)  , intent(inout) :: avgfile
     logical             , intent(in)    :: first_time
-    character(len=*)    , intent(in)    :: subname
     integer             , intent(out)   :: rc
 
     ! local variables
@@ -949,6 +810,7 @@ contains
     logical                 :: write_now         ! true => write to history type
     real(r8)                :: tbnds(2)          ! CF1.0 time bounds
     character(CS)           :: scalar_name
+    character(len=*), parameter :: subname='(med_phases_history_write_comp_avg)'
     !---------------------------------------
 
     rc = ESMF_SUCCESS
@@ -1095,10 +957,10 @@ contains
 
     call t_stopf('MED:'//subname)
 
-  end subroutine med_phases_history_write_avg_comp
+  end subroutine med_phases_history_write_comp_avg
 
   !===============================================================================
-  subroutine med_phases_history_write_aux_comp(gcomp, compid, auxfile, first_time, subname, rc)
+  subroutine med_phases_history_write_comp_aux(gcomp, compid, auxfile, first_time, rc)
 
     ! -----------------------------
     ! Write mediator auxiliary history file for component compid
@@ -1120,7 +982,6 @@ contains
     integer             , intent(in)    :: compid
     type(auxfile_type)  , intent(inout) :: auxfile(:)
     logical             , intent(in)    :: first_time
-    character(len=*)    , intent(in)    :: subname
     integer             , intent(out)   :: rc
 
     ! local variables
@@ -1149,6 +1010,7 @@ contains
     real(r8)                :: time_val          ! time coordinate output
     real(r8)                :: time_bnds(2)      ! time bounds output
     character(CS), allocatable  :: fieldNameList(:)
+    character(len=*), parameter :: subname='(med_phases_history_write_comp_aux)'
     !---------------------------------------
 
     rc = ESMF_SUCCESS
@@ -1474,7 +1336,7 @@ contains
       end do
     end subroutine get_auxflds
 
-  end subroutine med_phases_history_write_aux_comp
+  end subroutine med_phases_history_write_comp_aux
 
   !===============================================================================
   subroutine med_phases_history_fldbun_accum(fldbun, fldbun_accum, count, rc)

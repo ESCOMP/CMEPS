@@ -25,7 +25,7 @@ contains
     use med_utils_mod         , only : chkerr    => med_utils_ChkErr
     use med_constants_mod     , only : dbug_flag => med_constants_dbug_flag
     use med_internalstate_mod , only : InternalState, mastertask, logunit
-    use med_phases_history_mod, only : med_phases_history_write_rof
+    use med_phases_history_mod, only : med_phases_history_write_comp
     use med_map_mod           , only : med_map_field_packed
     use perf_mod              , only : t_startf, t_stopf
 
@@ -94,7 +94,7 @@ contains
     call NUOPC_MediatorGet(gcomp, driverClock=dClock, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (ESMF_ClockIsCreated(dclock)) then
-       call med_phases_history_write_rof(gcomp, rc=rc)
+       call med_phases_history_write_comp(gcomp, comprof, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 

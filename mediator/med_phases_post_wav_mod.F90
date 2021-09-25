@@ -24,7 +24,7 @@ contains
     use med_methods_mod       , only : FB_diagnose => med_methods_FB_diagnose
     use med_map_mod           , only : med_map_field_packed
     use med_internalstate_mod , only : InternalState, mastertask
-    use med_phases_history_mod, only : med_phases_history_write_wav
+    use med_phases_history_mod, only : med_phases_history_write_comp
     use esmFlds               , only : compwav, compatm, compocn, compice
     use perf_mod              , only : t_startf, t_stopf
 
@@ -88,7 +88,7 @@ contains
     call NUOPC_MediatorGet(gcomp, driverClock=dClock, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (ESMF_ClockIsCreated(dclock)) then
-       call med_phases_history_write_wav(gcomp, rc=rc)
+       call med_phases_history_write_comp(gcomp, compwav, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 

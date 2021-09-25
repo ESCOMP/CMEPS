@@ -28,7 +28,7 @@ contains
     use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
     use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
     use med_internalstate_mod , only : InternalState, mastertask, logunit
-    use med_phases_history_mod, only : med_phases_history_write_atm
+    use med_phases_history_mod, only : med_phases_history_write_comp
     use med_map_mod           , only : med_map_field_packed
     use med_constants_mod     , only : dbug_flag => med_constants_dbug_flag
     use med_utils_mod         , only : chkerr    => med_utils_ChkErr
@@ -101,7 +101,7 @@ contains
     call NUOPC_MediatorGet(gcomp, driverClock=dClock, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (ESMF_ClockIsCreated(dclock)) then
-       call med_phases_history_write_atm(gcomp, rc=rc)
+       call med_phases_history_write_comp(gcomp, compatm, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 

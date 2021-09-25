@@ -26,7 +26,7 @@ contains
     use med_internalstate_mod   , only : InternalState, mastertask
     use med_phases_prep_rof_mod , only : med_phases_prep_rof_accum
     use med_phases_prep_glc_mod , only : med_phases_prep_glc_accum_lnd, med_phases_prep_glc_avg
-    use med_phases_history_mod  , only : med_phases_history_write_lnd
+    use med_phases_history_mod  , only : med_phases_history_write_comp
     use esmFlds                 , only : complnd, compatm, comprof, compglc, num_icesheets
     use esmFlds                 , only : lnd2glc_coupling, accum_lnd2glc
     use perf_mod                , only : t_startf, t_stopf
@@ -91,7 +91,7 @@ contains
        end if
 
        ! Write lnd inst, avg or aux if requested in mediator attributes
-       call med_phases_history_write_lnd(gcomp, rc=rc)
+       call med_phases_history_write_comp(gcomp, complnd, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     else
