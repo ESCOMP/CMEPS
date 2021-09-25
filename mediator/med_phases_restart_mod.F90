@@ -137,7 +137,7 @@ contains
     use med_io_mod , only : med_io_define_time, med_io_write_time
     use med_io_mod , only : med_io_write, med_io_wopen, med_io_enddef
     use med_io_mod , only : med_io_close, med_io_date2yyyymmdd, med_io_sec2hms
-    use med_phases_history_mod, only : num_auxfiles, auxfiles
+    use med_phases_history_mod, only : auxcomp
     use med_constants_mod     , only : SecPerDay => med_constants_SecPerDay
 
     ! Input/output variables
@@ -428,15 +428,17 @@ contains
           ! For now assume that any time averaged history file has only
           ! one time sample - this will be generalized in the future
           do nc = 2,ncomps
-             do nf = 1,num_auxfiles(nc)
-                if (auxfiles(nc,nf)%doavg .and. auxfiles(nc,nf)%accumcnt > 0) then
+             do nf = 1,auxcomp(nc)%num_auxfiles
+                if (auxcomp(nc)%files(nf)%doavg .and. auxcomp(nc)%files(nf)%accumcnt > 0) then
                    nx = is_local%wrap%nx(nc)
                    ny = is_local%wrap%ny(nc)
-                   call med_io_write(restart_file, auxfiles(nc,nf)%FBaccum, whead(m), wdata(m), nx, ny, &
-                        nt=1, pre=trim(compname(nc))//trim(auxfiles(nc,nf)%auxname), rc=rc)
+                   call med_io_write(restart_file, auxcomp(nc)%files(nf)%FBaccum, &
+                        whead(m), wdata(m), nx, ny, &
+                        nt=1, pre=trim(compname(nc))//trim(auxcomp(nc)%files(nf)%auxname), rc=rc)
                    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-                   call med_io_write(restart_file, auxfiles(nc,nf)%accumcnt, &
-                        trim(compname(nc))//trim(auxfiles(nc,nf)%auxname)//'_accumcnt', whead(m), wdata(m), rc=rc)
+                   call med_io_write(restart_file, auxcomp(nc)%files(nf)%accumcnt, &
+                        trim(compname(nc))//trim(auxcomp(nc)%files(nf)%auxname)//'_accumcnt', &
+                        whead(m), wdata(m), rc=rc)
                    if (ChkErr(rc,__LINE__,u_FILE_u)) return
                 end if
              end do

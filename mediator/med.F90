@@ -1630,7 +1630,7 @@ contains
     use med_phases_post_rof_mod , only : med_phases_post_rof
     use med_phases_post_wav_mod , only : med_phases_post_wav
     use med_phases_ocnalb_mod   , only : med_phases_ocnalb_run
-    use med_phases_aofluxes_mod , only : med_phases_aofluxes_run, med_phases_aofluxes_init_fldbuns
+    use med_phases_aofluxes_mod , only : med_phases_aofluxes_init_fldbuns
     use med_phases_profile_mod  , only : med_phases_profile
     use med_diag_mod            , only : med_diag_zero, med_diag_init
     use med_map_mod             , only : med_map_routehandles_init, med_map_packed_field_create

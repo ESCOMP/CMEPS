@@ -75,13 +75,14 @@ module med_phases_history_mod
      type(ESMF_Clock)       :: clock
      type(ESMF_Alarm)       :: alarm
      character(CS)          :: alarmname
+     logical                :: is_clockset = .false.
+     logical                :: is_active = .false.
   end type avgfile_type
   type(avgfile_type) :: avgfiles(ncomps)
 
   ! ----------------------------
   ! Auxiliary history files
   ! ----------------------------
-  integer, parameter :: max_auxfiles = 10
   type, public :: auxfile_type
      character(CS), allocatable :: flds(:)       ! array of aux field names
      character(CS)              :: auxname       ! name for history file creation
@@ -95,8 +96,16 @@ module med_phases_history_mod
      type(ESMF_Alarm)           :: alarm         ! auxfile alarm
      character(CS)              :: alarmname     ! name of write alarm
   end type auxfile_type
-  integer            , public :: num_auxfiles(ncomps) = 0
-  type(auxfile_type) , public :: auxfiles(max_auxfiles,ncomps)
+
+  integer, parameter :: max_auxfiles = 10
+  type, public :: auxcomp_type
+     type(auxfile_type) :: files(max_auxfiles)
+     integer            :: num_auxfiles  = 0       ! actual number of auxiliary files
+     logical            :: init_auxfiles = .false. ! if auxfile initial has occured
+  end type auxcomp_type
+  type(auxcomp_type) , public :: auxcomp(ncomps)
+
+  !logical :: init_auxfiles(ncomps) = .false.   ! if true, auxfiles has been initialized for the component
 
   ! ----------------------------
   ! Other private module variables
@@ -372,7 +381,6 @@ contains
     real(r8)            :: time_val     ! time coordinate output
     real(r8)            :: time_bnds(2) ! time bounds output
     logical             :: write_now    ! true => write to history type
-    real(r8)            :: tbnds(2)     ! CF1.0 time bounds
     character(CL)       :: cvalue       ! attribute string
     character(CL)       :: hist_option  ! freq_option setting (ndays, nsteps, etc)
     integer             :: hist_n       ! freq_n setting relative to freq_option
@@ -380,7 +388,6 @@ contains
     character(CL)       :: hist_n_in
     logical             :: isPresent
     logical             :: isSet
-    logical             :: first_time = .true.
     character(len=*), parameter :: subname='(med_phases_history_write_med)'
     !---------------------------------------
     rc = ESMF_SUCCESS
@@ -390,7 +397,8 @@ contains
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    if (first_time) then
+    ! alarm is not set determine hist_option and hist_n
+    if (.not. instfiles(compmed)%is_clockset) then
        ! Determine attribute prefix
        write(hist_option_in,'(a)') 'history_option_med_inst'
        write(hist_n_in,'(a)') 'history_n_med_inst'
@@ -416,11 +424,17 @@ contains
           call med_phases_history_init_histclock(gcomp, instfiles(compmed)%clock, &
                instfiles(compmed)%alarm, instfiles(compmed)%alarmname, hist_option, hist_n, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          instfiles(compmed)%is_active = .true.
+          instfiles(compmed)%is_clockset = .true.
+       else
+          instfiles(compmed)%is_active = .false.
+          ! this is set to true here even if history file is not active
+          instfiles(compmed)%is_clockset = .true.
        end if
-       first_time = .false.
     end if
 
-    if (ESMF_ClockIsCreated(instfiles(compmed)%clock)) then
+    ! if history file is active and history clock is initialized - process history file
+    if (instfiles(compmed)%is_active .and. instfiles(compmed)%is_clockset) then
 
        ! Determine if will write to history file
        call med_phases_history_query_ifwrite(gcomp, instfiles(compmed)%clock, instfiles(compmed)%alarmname, &
@@ -477,8 +491,8 @@ contains
           call med_io_close(hist_file, vm, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-       end if ! end of write_now if-block
-    end if  ! end of clockiscreated if-block
+       end if ! end of if-write_now block
+    end if  ! end of if-active block
 
   end subroutine med_phases_history_write_med
 
@@ -602,24 +616,19 @@ contains
 
     ! Write mediator history file for atm variables
 
+    ! input/output variables
     type(ESMF_GridComp), intent(inout) :: gcomp
     integer            , intent(in)    :: compid
     integer            , intent(out)   :: rc
-    ! loal variables
-    logical              :: first_time = .true.
     !---------------------------------------
     rc = ESMF_SUCCESS
 
     call med_phases_history_write_comp_inst(gcomp, compid, instfiles(compid), rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    call med_phases_history_write_comp_avg(gcomp, compid, avgfiles(compid), first_time, rc=rc)
+    call med_phases_history_write_comp_avg(gcomp, compid, avgfiles(compid), rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    call med_phases_history_write_comp_aux(gcomp, compid, auxfiles(:,compid), first_time, rc=rc)
+    call med_phases_history_write_comp_aux(gcomp, compid, auxcomp(compid), rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    if (first_time) first_time = .false.
 
   end subroutine med_phases_history_write_comp
 
@@ -703,11 +712,6 @@ contains
        end if
     end if ! end of if-clock set if block
 
-    ! if history file is not active then return
-    if (.not. instfile%is_active) then
-       RETURN
-    end if
-
     ! if history file is active and history clock is initialized - process history file
     if (instfile%is_active .and. instfile%is_clockset) then
 
@@ -774,7 +778,7 @@ contains
   end subroutine med_phases_history_write_comp_inst
 
   !===============================================================================
-  subroutine med_phases_history_write_comp_avg(gcomp, compid, avgfile, first_time, rc)
+  subroutine med_phases_history_write_comp_avg(gcomp, compid, avgfile, rc)
 
     ! Write mediator average history file variables for component compid
 
@@ -787,7 +791,6 @@ contains
     type(ESMF_GridComp) , intent(inout) :: gcomp
     integer             , intent(in)    :: compid
     type(avgfile_type)  , intent(inout) :: avgfile
-    logical             , intent(in)    :: first_time
     integer             , intent(out)   :: rc
 
     ! local variables
@@ -821,7 +824,8 @@ contains
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    if (first_time) then
+    ! alarm is not set determine hist_option and hist_n
+    if (.not. avgfile%is_clockset) then
 
        ! Determine attribute prefix
        write(hist_option_in,'(a)') 'history_option_'//trim(compname(compid))//'_avg'
@@ -848,6 +852,9 @@ contains
                avgfile%alarm, avgfile%alarmname, hist_option, hist_n, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+          avgfile%is_active = .true.
+          avgfile%is_clockset = .true.
+
           ! Initialize accumulation import/export field bundles
           scalar_name = trim(is_local%wrap%flds_scalar_name)
           if ( ESMF_FieldBundleIsCreated(is_local%wrap%FBimp(compid,compid)) .and. .not. &
@@ -868,11 +875,18 @@ contains
              if (chkerr(rc,__LINE__,u_FILE_u)) return
              avgfile%accumcnt_export = 0
           end if
+
+       else
+
+          avgfile%is_active = .false.
+          ! this is set to true here even if history file is not active
+          avgfile%is_clockset = .true.
+
        end if
+    end if ! end of if-clock set if block
 
-    end if ! end of initialization (first_time) if block
-
-    if (ESMF_ClockIsCreated(avgfile%clock)) then
+    ! if history file is active and history clock is initialized - process history file
+    if (avgfile%is_active .and. avgfile%is_clockset) then
 
        ! Determine if will write to history file
        call med_phases_history_query_ifwrite(gcomp, avgfile%clock, avgfile%alarmname, write_now, rc)
@@ -960,10 +974,10 @@ contains
   end subroutine med_phases_history_write_comp_avg
 
   !===============================================================================
-  subroutine med_phases_history_write_comp_aux(gcomp, compid, auxfile, first_time, rc)
+  subroutine med_phases_history_write_comp_aux(gcomp, compid, auxcomp, rc)
 
     ! -----------------------------
-    ! Write mediator auxiliary history file for component compid
+    ! Write mediator auxiliary history file for auxcomp component
     ! Initialize auxiliary history file
     ! Each time this routine is called the routine SetRunClock in med.F90 is called
     ! at the beginning and the mediator clock current time and time step is set to the
@@ -980,8 +994,7 @@ contains
     ! input/output variables
     type(ESMF_GridComp) , intent(inout) :: gcomp
     integer             , intent(in)    :: compid
-    type(auxfile_type)  , intent(inout) :: auxfile(:)
-    logical             , intent(in)    :: first_time
+    type(auxcomp_type)  , intent(inout) :: auxcomp
     integer             , intent(out)   :: rc
 
     ! local variables
@@ -1021,7 +1034,7 @@ contains
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    if (first_time) then
+    if (.not. auxcomp%init_auxfiles) then
 
        ! Initialize number of aux files for this component to zero
        nfcnt = 0
@@ -1040,7 +1053,7 @@ contains
              enable_auxfile = .false.
           end if
 
-          ! If file will be written - then initialize auxfiles(nfcnt)
+          ! If file will be written - then initialize auxcomp%files(nfcnt)
           if (enable_auxfile) then
              ! Increment nfcnt
              nfcnt = nfcnt + 1
@@ -1048,13 +1061,13 @@ contains
              ! Determine number of time samples per file
              call NUOPC_CompAttributeGet(gcomp, name=trim(prefix)//'_ntperfile', value=cvalue, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             read(cvalue,*) auxfile(nfcnt)%ntperfile
+             read(cvalue,*) auxcomp%files(nfcnt)%ntperfile
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
              ! Determine if will do time average for aux file
              call NUOPC_CompAttributeGet(gcomp, name=trim(prefix)//'_doavg', value=cvalue, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             read(cvalue,*) auxfile(nfcnt)%doavg
+             read(cvalue,*) auxcomp%files(nfcnt)%doavg
 
              ! Determine the colon delimited field names for this file
              call NUOPC_CompAttributeGet(gcomp, name=trim(prefix)//'_flds', value=auxflds, rc=rc)
@@ -1066,8 +1079,8 @@ contains
                 ! Output all fields sent to the mediator from ncomp to the auxhist files
                 call ESMF_FieldBundleGet(is_local%wrap%FBImp(compid,compid), fieldCount=fieldCount, rc=rc)
                 if (chkerr(rc,__LINE__,u_FILE_u)) return
-                allocate(auxfile(nfcnt)%flds(fieldcount))
-                call ESMF_FieldBundleGet(is_local%wrap%FBImp(compid,compid), fieldNameList=auxfile(nfcnt)%flds, rc=rc)
+                allocate(auxcomp%files(nfcnt)%flds(fieldcount))
+                call ESMF_FieldBundleGet(is_local%wrap%FBImp(compid,compid), fieldNameList=auxcomp%files(nfcnt)%flds, rc=rc)
                 if (chkerr(rc,__LINE__,u_FILE_u)) return
 
              else
@@ -1089,10 +1102,10 @@ contains
                    end if
                 end do
 
-                ! Create auxfile(nfcnt)%flds array
-                allocate(auxfile(nfcnt)%flds(fieldcount))
+                ! Create auxcomp%files(nfcnt)%flds array
+                allocate(auxcomp%files(nfcnt)%flds(fieldcount))
                 do n = 1,fieldcount
-                   auxfile(nfcnt)%flds(n) = trim(fieldnamelist(n))
+                   auxcomp%files(nfcnt)%flds(n) = trim(fieldnamelist(n))
                 end do
 
                 ! Deallocate memory from fieldnamelist
@@ -1104,24 +1117,24 @@ contains
                 write(logunit,*)
                 write(logunit,'(a,i4,a)') trim(subname) // '   Writing the following fields to auxfile ',nfcnt,&
                      ' for component '//trim(compname(compid))
-                do nfld = 1,size(auxfile(nfcnt)%flds)
-                   write(logunit,'(8x,a)') trim(auxfile(nfcnt)%flds(nfld))
+                do nfld = 1,size(auxcomp%files(nfcnt)%flds)
+                   write(logunit,'(8x,a)') trim(auxcomp%files(nfcnt)%flds(nfld))
                 end do
              end if
 
              ! Create FBaccum if averaging is on
-             if (auxfile(nfcnt)%doavg) then
+             if (auxcomp%files(nfcnt)%doavg) then
 
                 ! First duplicate all fields in FBImp(compid,compid)
                 call ESMF_LogWrite(trim(subname)// ": initializing FBaccum(compid)", ESMF_LOGMSG_INFO)
                 if ( ESMF_FieldBundleIsCreated(is_local%wrap%FBImp(compid,compid)) .and. .not. &
-                     ESMF_FieldBundleIsCreated(auxfile(nfcnt)%FBaccum)) then
-                   call med_methods_FB_init(auxfile(nfcnt)%FBaccum, is_local%wrap%flds_scalar_name, &
+                     ESMF_FieldBundleIsCreated(auxcomp%files(nfcnt)%FBaccum)) then
+                   call med_methods_FB_init(auxcomp%files(nfcnt)%FBaccum, is_local%wrap%flds_scalar_name, &
                         FBgeom=is_local%wrap%FBImp(compid,compid), FBflds=is_local%wrap%FBImp(compid,compid), rc=rc)
                    if (chkerr(rc,__LINE__,u_FILE_u)) return
-                   call med_methods_FB_reset(auxfile(nfcnt)%FBaccum, czero, rc=rc)
+                   call med_methods_FB_reset(auxcomp%files(nfcnt)%FBaccum, czero, rc=rc)
                    if (chkerr(rc,__LINE__,u_FILE_u)) return
-                   auxfile(nfcnt)%accumcnt = 0
+                   auxcomp%files(nfcnt)%accumcnt = 0
                 end if
 
                 ! Now remove all fields from FBAccum that are not in the input flds list
@@ -1132,24 +1145,24 @@ contains
                 if (chkerr(rc,__LINE__,u_FILE_u)) return
                 do n = 1,size(fieldnamelist)
                    found = .false.
-                   do n1 = 1,size(auxfile(nfcnt)%flds)
-                      if (trim(fieldnamelist(n)) == trim(auxfile(nfcnt)%flds(n1))) then
+                   do n1 = 1,size(auxcomp%files(nfcnt)%flds)
+                      if (trim(fieldnamelist(n)) == trim(auxcomp%files(nfcnt)%flds(n1))) then
                          found = .true.
                          exit
                       end if
                    end do
                    if (.not. found) then
-                      call ESMF_FieldBundleRemove(auxfile(nfcnt)%FBaccum, fieldnamelist(n:n), rc=rc)
+                      call ESMF_FieldBundleRemove(auxcomp%files(nfcnt)%FBaccum, fieldnamelist(n:n), rc=rc)
                       if (chkerr(rc,__LINE__,u_FILE_u)) return
                    end if
                 end do
                 deallocate(fieldnameList)
 
                 ! Check that FBAccum has at least one field left - if not exit
-                call ESMF_FieldBundleGet(auxfile(nfcnt)%FBAccum, fieldCount=nfld, rc=rc)
+                call ESMF_FieldBundleGet(auxcomp%files(nfcnt)%FBAccum, fieldCount=nfld, rc=rc)
                 if (chkerr(rc,__LINE__,u_FILE_u)) return
                 if (nfld == 0) then
-                   call ESMF_LogWrite(subname//'FBAccum is zero for '//trim(auxfile(nfcnt)%auxname), &
+                   call ESMF_LogWrite(subname//'FBAccum is zero for '//trim(auxcomp%files(nfcnt)%auxname), &
                         ESMF_LOGMSG_ERROR)
                    rc = ESMF_FAILURE
                    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=u_FILE_u)) then
@@ -1166,38 +1179,41 @@ contains
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
              read(cvalue,*) hist_n
 
-             ! Determine auxfile%alarmname
-             call NUOPC_CompAttributeGet(gcomp, name=trim(prefix)//'_auxname', value=auxfile(nfcnt)%auxname, rc=rc)
+             ! Determine alarmname
+             call NUOPC_CompAttributeGet(gcomp, name=trim(prefix)//'_auxname', value=auxcomp%files(nfcnt)%auxname, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             write(auxfile(nfcnt)%alarmname,'(a,i0)') 'alarm_'//trim(prefix)
+             write(auxcomp%files(nfcnt)%alarmname,'(a,i0)') 'alarm_'//trim(prefix)
 
              ! Initialize clock and alarm for instantaneous history output
-             call med_phases_history_init_histclock(gcomp, auxfile(nfcnt)%clock, &
-                  auxfile(nfcnt)%alarm, auxfile(nfcnt)%alarmname, hist_option, hist_n, rc)
+             call med_phases_history_init_histclock(gcomp, auxcomp%files(nfcnt)%clock, &
+                  auxcomp%files(nfcnt)%alarm, auxcomp%files(nfcnt)%alarmname, hist_option, hist_n, rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
           end if ! end of isPresent and isSet and  if flag is on for file n
        end do ! end of loop over nfile
 
        ! Set number of aux files for this component - this is a module variable
-       num_auxfiles(compid) = nfcnt
+       auxcomp%num_auxfiles = nfcnt
 
-    end if ! end of initialization (first time) block
+       ! Set initialization flags to .true.
+       auxcomp%init_auxfiles = .true.
+
+    end if ! end of initialization if-block
 
     ! Write auxiliary history files for component compid
-    do nf = 1,num_auxfiles(compid)
+    do nf = 1,auxcomp%num_auxfiles
 
        ! Determine if will write to history file
-       call med_phases_history_query_ifwrite(gcomp, auxfile(nf)%clock, auxfile(nf)%alarmname, write_now, rc)
+       call med_phases_history_query_ifwrite(gcomp, auxcomp%files(nf)%clock, auxcomp%files(nf)%alarmname, write_now, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        ! Do accumulation and average if required
-       if (auxfile(nf)%doavg) then
+       if (auxcomp%files(nf)%doavg) then
           call med_phases_history_fldbun_accum(is_local%wrap%FBImp(compid,compid), &
-               auxfile(nf)%FBaccum, auxfile(nf)%accumcnt, rc=rc)
+               auxcomp%files(nf)%FBaccum, auxcomp%files(nf)%accumcnt, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           if (write_now) then
-             call med_phases_history_fldbun_average(auxfile(nf)%FBaccum, auxfile(nf)%accumcnt, rc=rc)
+             call med_phases_history_fldbun_average(auxcomp%files(nf)%FBaccum, auxcomp%files(nf)%accumcnt, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           endif
        end if
@@ -1206,9 +1222,9 @@ contains
        if ( write_now ) then
 
           ! Determine time_val and tbnds data for history as well as history file name
-          call med_phases_history_set_timeinfo(gcomp, auxfile(nf)%clock, auxfile(nf)%alarmname, &
-               time_val, time_bnds, time_units, auxfile(nf)%histfile, auxfile(nf)%doavg, &
-               auxname=auxfile(nf)%auxname, rc=rc)
+          call med_phases_history_set_timeinfo(gcomp, auxcomp%files(nf)%clock, auxcomp%files(nf)%alarmname, &
+               time_val, time_bnds, time_units, auxcomp%files(nf)%histfile, auxcomp%files(nf)%doavg, &
+               auxname=auxcomp%files(nf)%auxname, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
           ! Set shorthand variables
@@ -1216,53 +1232,54 @@ contains
           ny = is_local%wrap%ny(compid)
 
           ! Increment number of time samples on file
-          auxfile(nf)%nt = auxfile(nf)%nt + 1
+          auxcomp%files(nf)%nt = auxcomp%files(nf)%nt + 1
 
           ! Write  header
-          if (auxfile(nf)%nt == 1) then
+          if (auxcomp%files(nf)%nt == 1) then
              ! open file
              call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             call med_io_wopen(auxfile(nf)%histfile, vm, file_ind=nf, clobber=.true.)
+             call med_io_wopen(auxcomp%files(nf)%histfile, vm, file_ind=nf, clobber=.true.)
 
              ! define time variables
-             call ESMF_ClockGet(auxfile(nf)%clock, calendar=calendar, rc=rc)
+             call ESMF_ClockGet(auxcomp%files(nf)%clock, calendar=calendar, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
              call med_io_define_time(time_units, calendar, file_ind=nf, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
              ! define data variables with a time dimension (include the nt argument below)
-             call med_io_write(auxfile(nf)%histfile, is_local%wrap%FBimp(compid,compid), whead(1), wdata(1), nx, ny, &
-                  nt=auxfile(nf)%nt, pre=trim(compname(compid))//'Imp', flds=auxfile(nf)%flds, &
+             call med_io_write(auxcomp%files(nf)%histfile, is_local%wrap%FBimp(compid,compid), &
+                  whead(1), wdata(1), nx, ny, nt=auxcomp%files(nf)%nt, &
+                  pre=trim(compname(compid))//'Imp', flds=auxcomp%files(nf)%flds, &
                   file_ind=nf, use_float=.true., rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
              ! end definition phase
-             call med_io_enddef(auxfile(nf)%histfile, file_ind=nf)
+             call med_io_enddef(auxcomp%files(nf)%histfile, file_ind=nf)
           end if
 
           ! Write time variables for time nt
-          call med_io_write_time(time_val, time_bnds, nt=auxfile(nf)%nt, file_ind=nf, rc=rc)
+          call med_io_write_time(time_val, time_bnds, nt=auxcomp%files(nf)%nt, file_ind=nf, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
           ! Write data variables for time nt
-          if (auxfile(nf)%doavg) then
-             call med_io_write(auxfile(nf)%histfile, auxfile(nf)%FBaccum, whead(2), wdata(2), nx, ny, &
-                  nt=auxfile(nf)%nt, pre=trim(compname(compid))//'Imp', flds=auxfile(nf)%flds, file_ind=nf, rc=rc)
+          if (auxcomp%files(nf)%doavg) then
+             call med_io_write(auxcomp%files(nf)%histfile, auxcomp%files(nf)%FBaccum, whead(2), wdata(2), nx, ny, &
+                  nt=auxcomp%files(nf)%nt, pre=trim(compname(compid))//'Imp', flds=auxcomp%files(nf)%flds, file_ind=nf, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             call med_methods_FB_reset(auxfile(nf)%FBaccum, value=czero, rc=rc)
+             call med_methods_FB_reset(auxcomp%files(nf)%FBaccum, value=czero, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           else
-             call med_io_write(auxfile(nf)%histfile, is_local%wrap%FBimp(compid,compid), whead(2), wdata(2), nx, ny, &
-                  nt=auxfile(nf)%nt, pre=trim(compname(compid))//'Imp', flds=auxfile(nf)%flds, file_ind=nf, rc=rc)
+             call med_io_write(auxcomp%files(nf)%histfile, is_local%wrap%FBimp(compid,compid), whead(2), wdata(2), nx, ny, &
+                  nt=auxcomp%files(nf)%nt, pre=trim(compname(compid))//'Imp', flds=auxcomp%files(nf)%flds, file_ind=nf, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
 
           ! Close file
-          if (auxfile(nf)%nt == auxfile(nf)%ntperfile) then
-             call med_io_close(auxfile(nf)%histfile, vm, file_ind=nf,  rc=rc)
+          if (auxcomp%files(nf)%nt == auxcomp%files(nf)%ntperfile) then
+             call med_io_close(auxcomp%files(nf)%histfile, vm, file_ind=nf,  rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             auxfile(nf)%nt = 0
+             auxcomp%files(nf)%nt = 0
           end if
 
        end if ! end of write_now if-block

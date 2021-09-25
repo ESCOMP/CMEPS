@@ -1097,6 +1097,34 @@
   </entry>
 
   <!-- ======================================= -->
+  <!-- MED mediator history files -->
+  <!-- ======================================= -->
+
+  <entry id="history_option_med_inst">
+    <type>char</type>
+    <category>time</category>
+    <group>MED_attributes</group>
+    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,monthly,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <desc>
+      mediator history for mediator aoflux and oceean albedoes (used with history_n and history_ymd)
+    </desc>
+    <values>
+      <value>never</value>
+    </values>
+  </entry>
+  <entry id="history_n_med_inst">
+    <type>integer</type>
+    <category>time</category>
+    <group>MED_attributes</group>
+    <desc>
+      sets mediator aoflux and ocean albedoes snapshot history file frequency for atm import/export fields (like restart_n)
+    </desc>
+    <values>
+      <value>-999</value>
+    </values>
+  </entry>
+
+  <!-- ======================================= -->
   <!-- MED atm history files -->
   <!-- ======================================= -->
 
