@@ -264,7 +264,8 @@ contains
                 write(logunit,*)
                 write(logunit,'(a,i8)') trim(subname)//" : history alarmname "//trim(alarmname)//&
                      ' is ringing, interval length is ', ringInterval_length
-                write(logunit,'(a)') trim(subname)//" : currtime = "//trim(currtimestr)//" nexttime = "//trim(nexttimestr)
+                write(logunit,'(a)') trim(subname)//" : mclock currtime = "//trim(currtimestr)//&
+                     " mclock nexttime = "//trim(nexttimestr)
              end if
           end if
        end if
@@ -1521,12 +1522,6 @@ contains
     ! Create history clock from mediator clock - THIS CALL DOES NOT COPY ALARMS
     hclock = ESMF_ClockCreate(mclock, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    ! call ESMF_ClockSet(hclock, currtime=starttime, rc=rc)
-    ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    ! call ESMF_TimeIntervalSet(htimestep, s=msec, rc=rc)
-    ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    ! call ESMF_ClockSet(hclock, timeStep=htimestep, rc=rc)
-    ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! Initialize history alarm and advance history clock to trigger
     ! alarms then reset history clock back to mcurrtime
@@ -1542,13 +1537,13 @@ contains
   end subroutine med_phases_history_init_histclock
 
   !===============================================================================
-  subroutine med_phases_history_query_ifwrite(gcomp, wclock, alarmname, write_now, rc)
+  subroutine med_phases_history_query_ifwrite(gcomp, hclock, alarmname, write_now, rc)
 
     use NUOPC_Mediator, only : NUOPC_MediatorGet
 
     ! input/output variables
     type(ESMF_GridComp) , intent(in)    :: gcomp
-    type(ESMF_Clock)    , intent(inout) :: wclock    ! write clock
+    type(ESMF_Clock)    , intent(inout) :: hclock    ! write clock
     character(len=*)    , intent(in)    :: alarmname ! write alarmname
     logical             , intent(out)   :: write_now ! if true => write now
     integer             , intent(out)   :: rc        ! error code
@@ -1568,12 +1563,12 @@ contains
 
     rc = ESMF_SUCCESS
 
-    ! Update wclock to trigger alarm
-    call ESMF_ClockAdvance(wclock, rc=rc)
+    ! Update hclock to trigger alarm
+    call ESMF_ClockAdvance(hclock, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! Get the history file alarm and determine if alarm is ringing
-    call ESMF_ClockGetAlarm(wclock, alarmname=trim(alarmname), alarm=alarm, rc=rc)
+    call ESMF_ClockGetAlarm(hclock, alarmname=trim(alarmname), alarm=alarm, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! Set write_now flag and turn ringer off if appropriate
@@ -1594,22 +1589,45 @@ contains
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           call ESMF_TimeIntervalGet(ringInterval, s=ringinterval_length, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          call ESMF_ClockGet(wclock, currtime=currtime, rc=rc)
+
+          call ESMF_ClockGet(hclock, currtime=currtime, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           call ESMF_TimeGet(currtime,yy=yr, mm=mon, dd=day, s=sec, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           write(currtimestr,'(i4.4,a,i2.2,a,i2.2,a,i5.5)') yr,'-',mon,'-',day,'-',sec
-          call ESMF_ClockGetNextTime(wclock, nextTime=nexttime, rc=rc)
+          call ESMF_ClockGetNextTime(hclock, nextTime=nexttime, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           call ESMF_TimeGet(nexttime, yy=yr, mm=mon, dd=day, s=sec, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          write(nexttimestr,'(i4.4,a,i2.2,a,i2.2,a,i5.5)') yr,'-',mon,'-',day,'-',sec
+
           if (mastertask) then
-             write(nexttimestr,'(i4.4,a,i2.2,a,i2.2,a,i5.5)') yr,'-',mon,'-',day,'-',sec
              write(logunit,*)
              write(logunit,'(a,i8)') trim(subname)//" : history alarmname "//trim(alarmname)//&
                   ' is ringing, interval length is ', ringInterval_length
-             write(logunit,'(a)') trim(subname)//" : currtime = "//trim(currtimestr)//" nexttime = "//trim(nexttimestr)
+             write(logunit,'(a)') trim(subname)//" : hclock currtime = "//trim(currtimestr)//&
+                  " hclock nexttime = "//trim(nexttimestr)
           end if
+
+          call NUOPC_MediatorGet(gcomp, mediatorClock=mClock, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_ClockGet(mclock, currtime=currtime, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_TimeGet(currtime,yy=yr, mm=mon, dd=day, s=sec, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          write(currtimestr,'(i4.4,a,i2.2,a,i2.2,a,i5.5)') yr,'-',mon,'-',day,'-',sec
+
+          call ESMF_ClockGetNextTime(mclock, nextTime=nexttime, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_TimeGet(nexttime, yy=yr, mm=mon, dd=day, s=sec, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          write(nexttimestr,'(i4.4,a,i2.2,a,i2.2,a,i5.5)') yr,'-',mon,'-',day,'-',sec
+
+          if (mastertask) then
+             write(logunit,'(a)') trim(subname)//" : mclock currtime = "//trim(currtimestr)//&
+                  " mclock nexttime = "//trim(nexttimestr)
+          end if
+
        end if
     end if
 
