@@ -392,7 +392,6 @@ contains
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
 
-
           ! Write accumulation from lnd to glc if lnd->glc coupling is on
           if (ESMF_FieldBundleIsCreated(FBlndAccum2glc_l)) then
              nx = is_local%wrap%nx(complnd)
