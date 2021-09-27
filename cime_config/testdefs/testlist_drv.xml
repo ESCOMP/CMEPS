@@ -1,19 +1,10 @@
-0;95;0c<?xml version="1.0"?>
+<?xml version="1.0"?>
 <testlist version="2.0">
 
   <!-- ======================================= -->
   <!-- A compsets -->
   <!-- ======================================= -->
 
-  <test compset="A" grid="f19_g17_rx1" name="SMS_Vnuopc_Ld1_N3">
-    <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_cmeps"/>
-      <machine name="izumi" compiler="intel" category="aux_cmeps"/>
-    </machines>
-    <options>
-      <option name="wallclock"> 00:10:00 </option>
-    </options>
-  </test>
   <test compset="A" grid="f19_g17_rx1" name="SMS_Vnuopc_Ln11_D">
     <machines>
       <machine name="cheyenne" compiler="intel" category="aux_cmeps"/>
@@ -23,7 +14,7 @@
       <option name="wallclock"> 00:10:00 </option>
     </options>
   </test>
-  <test compset="A" grid="f19_g17_rx1" name="ERS_Vnuopc_Ln9_N3">
+  <test compset="A" grid="f19_g17_rx1" name="ERS_Vnuopc_Ln9_C3">
     <machines>
       <machine name="cheyenne" compiler="intel" category="aux_cmeps"/>
       <machine name="izumi" compiler="intel" category="aux_cmeps"/>
