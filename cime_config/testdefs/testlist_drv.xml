@@ -1,4 +1,4 @@
-<?xml version="1.0"?>
+0;95;0c<?xml version="1.0"?>
 <testlist version="2.0">
 
   <!-- ======================================= -->
@@ -179,7 +179,7 @@
   <!-- F/Q compsets -->
   <!-- ======================================= -->
 
-  <test compset="F2000climo" grid="f09_f09_mg17" name="ERP_Ln9" testmods="cam/outfrq9s">
+  <test compset="F2000climo" grid="f09_f09_mg17" name="ERP_Vnuopc_Ln9" testmods="cam/outfrq9s">
     <machines>
       <machine name="cheyenne" compiler="intel" category="aux_cmeps"/>
     </machines>
