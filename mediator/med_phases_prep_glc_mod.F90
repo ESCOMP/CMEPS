@@ -948,7 +948,7 @@ contains
        ! scaling in the CISM NUOPC cap
 
        if (smb_renormalize) then
-          call med_phases_prep_glc_renormalize_smb(gcomp, rc)
+          call med_phases_prep_glc_renormalize_smb(gcomp, ns, rc)
           if (chkErr(rc,__LINE__,u_FILE_u)) return
        end if
 
@@ -961,7 +961,7 @@ contains
   end subroutine med_phases_prep_glc_map_lnd2glc
 
   !================================================================================================
-  subroutine med_phases_prep_glc_renormalize_smb(gcomp, rc)
+  subroutine med_phases_prep_glc_renormalize_smb(gcomp, ns, rc)
 
     !------------------
     ! Renormalizes surface mass balance (smb, here named qice_g) so that the global
@@ -1019,6 +1019,7 @@ contains
 
     ! input/output variables
     type(ESMF_GridComp)   :: gcomp
+    integer , intent(in)  :: ns          ! icesheet instance index
     integer , intent(out) :: rc          ! return error code
 
     ! local variables
@@ -1037,7 +1038,7 @@ contains
     real(r8) , pointer  :: dataptr1d(:) => null()   ! temporary 1d pointer
     real(r8) , pointer  :: dataptr2d(:,:) => null() ! temporary 2d pointer
     integer             :: ec                       ! loop index over elevation classes
-    integer             :: n, ns
+    integer             :: n
 
     ! local and global sums of accumulation and ablation; used to compute renormalization factors
     real(r8) :: local_accum_lnd(1), global_accum_lnd(1)
@@ -1068,162 +1069,158 @@ contains
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (chkErr(rc,__LINE__,u_FILE_u)) return
 
-    do ns = 1,num_icesheets
+    !---------------------------------------
+    ! Map icemask_g from the glc grid to the land grid.
+    !---------------------------------------
 
-       !---------------------------------------
-       ! Map icemask_g from the glc grid to the land grid.
-       !---------------------------------------
+    ! determine icemask_g and set as contents of field_icemask_g
+    call fldbun_getdata1d(is_local%wrap%FBImp(compglc(ns),compglc(ns)), Sg_icemask_fieldname, dataptr1d, rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call field_getdata1d(toglc_frlnd(ns)%field_icemask_g, icemask_g, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    icemask_g(:) = dataptr1d(:)
 
-       ! determine icemask_g and set as contents of field_icemask_g
-       call fldbun_getdata1d(is_local%wrap%FBImp(compglc(ns),compglc(ns)), Sg_icemask_fieldname, dataptr1d, rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call field_getdata1d(toglc_frlnd(ns)%field_icemask_g, icemask_g, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       icemask_g(:) = dataptr1d(:)
+    ! map ice mask from glc to lnd with no normalization
+    call med_map_field(  &
+         field_src=toglc_frlnd(ns)%field_icemask_g, &
+         field_dst=field_icemask_l, &
+         routehandles=is_local%wrap%RH(compglc(ns),complnd,:), &
+         maptype=mapconsd, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-       ! map ice mask from glc to lnd with no normalization
-       call med_map_field(  &
-            field_src=toglc_frlnd(ns)%field_icemask_g, &
-            field_dst=field_icemask_l, &
-            routehandles=is_local%wrap%RH(compglc(ns),complnd,:), &
-            maptype=mapconsd, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
+    ! get icemask_l
+    call field_getdata1d(field_icemask_l, icemask_l, rc)
+    if (chkErr(rc,__LINE__,u_FILE_u)) return
 
-       ! get icemask_l
-       call field_getdata1d(field_icemask_l, icemask_l, rc)
-       if (chkErr(rc,__LINE__,u_FILE_u)) return
+    ! ------------------------------------------------------------------------
+    ! Map frac_field on glc grid without elevation classes to frac_field on land grid with elevation classes
+    ! ------------------------------------------------------------------------
 
-       ! ------------------------------------------------------------------------
-       ! Map frac_field on glc grid without elevation classes to frac_field on land grid with elevation classes
-       ! ------------------------------------------------------------------------
+    ! get topo_g(:), the topographic height of each glc gridcell
+    call fldbun_getdata1d(is_local%wrap%FBImp(compglc(ns),compglc(ns)), Sg_topo_fieldname, topo_g, rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-       ! get topo_g(:), the topographic height of each glc gridcell
-       call fldbun_getdata1d(is_local%wrap%FBImp(compglc(ns),compglc(ns)), Sg_topo_fieldname, topo_g, rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
+    ! get frac_g(:), the total ice fraction in each glc gridcell
+    call fldbun_getdata1d(is_local%wrap%FBImp(compglc(ns),compglc(ns)), Sg_frac_fieldname, dataptr1d, rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call field_getdata1d(toglc_frlnd(ns)%field_lfrac_g, frac_g, rc) ! module field
+    frac_g(:) = dataptr1d(:)
 
-       ! get frac_g(:), the total ice fraction in each glc gridcell
-       call fldbun_getdata1d(is_local%wrap%FBImp(compglc(ns),compglc(ns)), Sg_frac_fieldname, dataptr1d, rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call field_getdata1d(toglc_frlnd(ns)%field_lfrac_g, frac_g, rc) ! module field
-       frac_g(:) = dataptr1d(:)
+    ! get  frac_g_ec - the glc_elevclass gives the elevation class of each
+    ! glc grid cell, assuming that the grid cell is ice-covered, spans [1 -> ungriddedcount]
+    call field_getdata2d(toglc_frlnd(ns)%field_frac_g_ec, frac_g_ec, rc=rc) ! module field
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call glc_get_fractional_icecov(ungriddedCount-1, topo_g, frac_g, frac_g_ec, logunit)
 
-       ! get  frac_g_ec - the glc_elevclass gives the elevation class of each
-       ! glc grid cell, assuming that the grid cell is ice-covered, spans [1 -> ungriddedcount]
-       call field_getdata2d(toglc_frlnd(ns)%field_frac_g_ec, frac_g_ec, rc=rc) ! module field
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call glc_get_fractional_icecov(ungriddedCount-1, topo_g, frac_g, frac_g_ec, logunit)
+    ! map fraction in each elevation class from the glc grid to the land grid and normalize by the icemask on the
+    ! glc grid
+    call med_map_field_normalized(  &
+         field_src=toglc_frlnd(ns)%field_frac_g_ec, &
+         field_dst=field_frac_l_ec, &
+         routehandles=is_local%wrap%RH(compglc(ns),complnd,:), &
+         maptype=mapconsd, &
+         field_normsrc=toglc_frlnd(ns)%field_icemask_g, &
+         field_normdst=field_normdst_l, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-       ! map fraction in each elevation class from the glc grid to the land grid and normalize by the icemask on the
-       ! glc grid
-       call med_map_field_normalized(  &
-            field_src=toglc_frlnd(ns)%field_frac_g_ec, &
-            field_dst=field_frac_l_ec, &
-            routehandles=is_local%wrap%RH(compglc(ns),complnd,:), &
-            maptype=mapconsd, &
-            field_normsrc=toglc_frlnd(ns)%field_icemask_g, &
-            field_normdst=field_normdst_l, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
+    !---------------------------------------
+    ! Sum qice_l_ec over all elevation classes for each local land grid cell then do a global sum
+    !---------------------------------------
 
-       !---------------------------------------
-       ! Sum qice_l_ec over all elevation classes for each local land grid cell then do a global sum
-       !---------------------------------------
+    ! get fractional ice coverage for each elevation class on the land grid, frac_l_ec(:,:)
+    call field_getdata2d(field_frac_l_ec, frac_l_ec, rc)
+    if (chkErr(rc,__LINE__,u_FILE_u)) return
 
-       ! get fractional ice coverage for each elevation class on the land grid, frac_l_ec(:,:)
-       call field_getdata2d(field_frac_l_ec, frac_l_ec, rc)
-       if (chkErr(rc,__LINE__,u_FILE_u)) return
+    ! determine fraction on land grid, lfrac(:)
+    call fldbun_getdata1d(is_local%wrap%FBFrac(complnd), 'lfrac', lfrac, rc)
+    if (chkErr(rc,__LINE__,u_FILE_u)) return
 
-       ! determine fraction on land grid, lfrac(:)
-       call fldbun_getdata1d(is_local%wrap%FBFrac(complnd), 'lfrac', lfrac, rc)
-       if (chkErr(rc,__LINE__,u_FILE_u)) return
+    ! get qice_l_ec
+    call fldbun_getdata2d(FBlndAccum2glc_l, trim(qice_fieldname)//'_elev', qice_l_ec, rc)
+    if (chkErr(rc,__LINE__,u_FILE_u)) return
 
-       ! get qice_l_ec
-       call fldbun_getdata2d(FBlndAccum2glc_l, trim(qice_fieldname)//'_elev', qice_l_ec, rc)
-       if (chkErr(rc,__LINE__,u_FILE_u)) return
+    local_accum_lnd(1) = 0.0_r8
+    local_ablat_lnd(1) = 0.0_r8
+    do n = 1, size(lfrac)
+       ! Calculate effective area for sum -  need the mapped icemask_l
+       effective_area = min(lfrac(n), icemask_l(n)) * is_local%wrap%mesh_info(complnd)%areas(n)
+       if (effective_area > 0.0_r8) then
+          do ec = 1, ungriddedCount
+             if (qice_l_ec(ec,n) >= 0.0_r8) then
+                local_accum_lnd(1) = local_accum_lnd(1) + effective_area * frac_l_ec(ec,n) * qice_l_ec(ec,n)
+             else
+                local_ablat_lnd(1) = local_ablat_lnd(1) + effective_area * frac_l_ec(ec,n) * qice_l_ec(ec,n)
+             endif
+          end do ! ec
+       end if ! if landmaks > 0
+    enddo  ! n
 
-       local_accum_lnd(1) = 0.0_r8
-       local_ablat_lnd(1) = 0.0_r8
-       do n = 1, size(lfrac)
-          ! Calculate effective area for sum -  need the mapped icemask_l
-          effective_area = min(lfrac(n), icemask_l(n)) * is_local%wrap%mesh_info(complnd)%areas(n)
-          if (effective_area > 0.0_r8) then
-             do ec = 1, ungriddedCount
-                if (qice_l_ec(ec,n) >= 0.0_r8) then
-                   local_accum_lnd(1) = local_accum_lnd(1) + effective_area * frac_l_ec(ec,n) * qice_l_ec(ec,n)
-                else
-                   local_ablat_lnd(1) = local_ablat_lnd(1) + effective_area * frac_l_ec(ec,n) * qice_l_ec(ec,n)
-                endif
-             end do ! ec
-          end if ! if landmaks > 0
-       enddo  ! n
+    call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_VMAllreduce(vm, senddata=local_accum_lnd, recvdata=global_accum_lnd, count=1, &
+         reduceflag=ESMF_REDUCE_SUM, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_VMAllreduce(vm, senddata=local_ablat_lnd, recvdata=global_ablat_lnd, count=1, &
+         reduceflag=ESMF_REDUCE_SUM, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (mastertask) then
+       write(logunit,'(a,d21.10)') trim(subname)//'global_accum_lnd = ', global_accum_lnd
+       write(logunit,'(a,d21.10)') trim(subname)//'global_ablat_lnd = ', global_ablat_lnd
+    endif
 
-       call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_VMAllreduce(vm, senddata=local_accum_lnd, recvdata=global_accum_lnd, count=1, &
-            reduceflag=ESMF_REDUCE_SUM, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_VMAllreduce(vm, senddata=local_ablat_lnd, recvdata=global_ablat_lnd, count=1, &
-            reduceflag=ESMF_REDUCE_SUM, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       if (mastertask) then
-          write(logunit,'(a,d21.10)') trim(subname)//'global_accum_lnd = ', global_accum_lnd
-          write(logunit,'(a,d21.10)') trim(subname)//'global_ablat_lnd = ', global_ablat_lnd
-       endif
+    !---------------------------------------
+    ! Sum qice_g over local glc grid cells.
+    !---------------------------------------
 
-       !---------------------------------------
-       ! Sum qice_g over local glc grid cells.
-       !---------------------------------------
+    ! determine qice_g
+    call fldbun_getdata1d(is_local%wrap%FBExp(compglc(ns)), qice_fieldname, qice_g, rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-       ! determine qice_g
-       call fldbun_getdata1d(is_local%wrap%FBExp(compglc(ns)), qice_fieldname, qice_g, rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
+    ! get areas internal to glc grid
+    call fldbun_getdata1d(is_local%wrap%FBImp(compglc(ns),compglc(ns)), 'Sg_area', area_g, rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-       ! get areas internal to glc grid
-       call fldbun_getdata1d(is_local%wrap%FBImp(compglc(ns),compglc(ns)), 'Sg_area', area_g, rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-       local_accum_glc(1) = 0.0_r8
-       local_ablat_glc(1) = 0.0_r8
-       do n = 1, size(qice_g)
-          if (qice_g(n) >= 0.0_r8) then
-             local_accum_glc(1) = local_accum_glc(1) + icemask_g(n) * area_g(n) * qice_g(n)
-          else
-             local_ablat_glc(1) = local_ablat_glc(1) + icemask_g(n) * area_g(n) * qice_g(n)
-          endif
-       enddo  ! n
-       call ESMF_VMAllreduce(vm, senddata=local_accum_glc, recvdata=global_accum_glc, count=1, &
-            reduceflag=ESMF_REDUCE_SUM, rc=rc)
-       call ESMF_VMAllreduce(vm, senddata=local_ablat_glc, recvdata=global_ablat_glc, count=1, &
-            reduceflag=ESMF_REDUCE_SUM, rc=rc)
-       if (mastertask) then
-          write(logunit,'(a,d21.10)') trim(subname)//'global_accum_glc = ', global_accum_glc
-          write(logunit,'(a,d21.10)') trim(subname)//'global_ablat_glc = ', global_ablat_glc
-       endif
-
-       ! Renormalize
-       if (global_accum_glc(1) > 0.0_r8) then
-          accum_renorm_factor = global_accum_lnd(1) / global_accum_glc(1)
+    local_accum_glc(1) = 0.0_r8
+    local_ablat_glc(1) = 0.0_r8
+    do n = 1, size(qice_g)
+       if (qice_g(n) >= 0.0_r8) then
+          local_accum_glc(1) = local_accum_glc(1) + icemask_g(n) * area_g(n) * qice_g(n)
        else
-          accum_renorm_factor = 0.0_r8
+          local_ablat_glc(1) = local_ablat_glc(1) + icemask_g(n) * area_g(n) * qice_g(n)
        endif
-       if (global_ablat_glc(1) < 0.0_r8) then  ! negative by definition
-          ablat_renorm_factor = global_ablat_lnd(1) / global_ablat_glc(1)
+    enddo  ! n
+    call ESMF_VMAllreduce(vm, senddata=local_accum_glc, recvdata=global_accum_glc, count=1, &
+         reduceflag=ESMF_REDUCE_SUM, rc=rc)
+    call ESMF_VMAllreduce(vm, senddata=local_ablat_glc, recvdata=global_ablat_glc, count=1, &
+         reduceflag=ESMF_REDUCE_SUM, rc=rc)
+    if (mastertask) then
+       write(logunit,'(a,d21.10)') trim(subname)//'global_accum_glc = ', global_accum_glc
+       write(logunit,'(a,d21.10)') trim(subname)//'global_ablat_glc = ', global_ablat_glc
+    endif
+
+    ! Renormalize
+    if (global_accum_glc(1) > 0.0_r8) then
+       accum_renorm_factor = global_accum_lnd(1) / global_accum_glc(1)
+    else
+       accum_renorm_factor = 0.0_r8
+    endif
+    if (global_ablat_glc(1) < 0.0_r8) then  ! negative by definition
+       ablat_renorm_factor = global_ablat_lnd(1) / global_ablat_glc(1)
+    else
+       ablat_renorm_factor = 0.0_r8
+    endif
+    if (mastertask) then
+       write(logunit,'(a,d21.10)') trim(subname)//'accum_renorm_factor = ', accum_renorm_factor
+       write(logunit,'(a,d21.10)') trim(subname)//'ablat_renorm_factor = ', ablat_renorm_factor
+    endif
+
+    do n = 1, size(qice_g)
+       if (qice_g(n) >= 0.0_r8) then
+          qice_g(n) = qice_g(n) * accum_renorm_factor
        else
-          ablat_renorm_factor = 0.0_r8
+          qice_g(n) = qice_g(n) * ablat_renorm_factor
        endif
-       if (mastertask) then
-          write(logunit,'(a,d21.10)') trim(subname)//'accum_renorm_factor = ', accum_renorm_factor
-          write(logunit,'(a,d21.10)') trim(subname)//'ablat_renorm_factor = ', ablat_renorm_factor
-       endif
-
-       do n = 1, size(qice_g)
-          if (qice_g(n) >= 0.0_r8) then
-             qice_g(n) = qice_g(n) * accum_renorm_factor
-          else
-             qice_g(n) = qice_g(n) * ablat_renorm_factor
-          endif
-       enddo
-
-    end do ! end of loop over ice sheets
+    enddo
 
     call t_stopf('MED:'//subname)
 
