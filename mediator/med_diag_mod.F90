@@ -31,7 +31,6 @@ module med_diag_mod
   use med_methods_mod       , only : fldbun_getdata2d => med_methods_FB_getdata2d
   use med_methods_mod       , only : fldbun_getdata1d => med_methods_FB_getdata1d
   use med_methods_mod       , only : fldbun_fldChk    => med_methods_FB_FldChk
-  use med_time_mod          , only : alarmInit        => med_time_alarmInit
   use med_utils_mod         , only : chkerr           => med_utils_ChkErr
   use perf_mod              , only : t_startf, t_stopf
 

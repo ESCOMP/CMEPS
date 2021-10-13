@@ -615,6 +615,8 @@ contains
     ! to lnd: river channel total water volume from rof
     ! to lnd: river channel main channel water volume from rof
     ! to lnd: river water flux back to land due to flooding
+    ! to lnd: tributary water depth
+    ! to lnd: tributary channel depth
     ! ---------------------------------------------------------------------
     if (phase == 'advertise') then
        call addfld(fldListFr(comprof)%flds, 'Flrr_volr')
@@ -644,6 +646,26 @@ contains
             fldchk(is_local%wrap%FBImp(comprof, comprof), 'Flrr_flood', rc=rc)) then
           call addmap(fldListFr(comprof)%flds, 'Flrr_flood', complnd, mapconsf, 'one', rof2lnd_map)
           call addmrg(fldListTo(complnd)%flds, 'Flrr_flood', mrg_from=comprof, mrg_fld='Flrr_flood', mrg_type='copy')
+       end if
+    end if
+    if (phase == 'advertise') then
+       call addfld(fldListFr(comprof)%flds, 'Sr_tdepth')
+       call addfld(fldListTo(complnd)%flds, 'Sr_tdepth')
+    else
+       if ( fldchk(is_local%wrap%FBExp(complnd)         , 'Sr_tdepth', rc=rc) .and. &
+            fldchk(is_local%wrap%FBImp(comprof, comprof), 'Sr_tdepth', rc=rc)) then
+          call addmap(fldListFr(comprof)%flds, 'Sr_tdepth', complnd, mapconsf, 'one', rof2lnd_map)
+          call addmrg(fldListTo(complnd)%flds, 'Sr_tdepth', mrg_from=comprof, mrg_fld='Sr_tdepth', mrg_type='copy')
+       end if
+    end if
+    if (phase == 'advertise') then
+       call addfld(fldListFr(comprof)%flds, 'Sr_tdepth_max')
+       call addfld(fldListTo(complnd)%flds, 'Sr_tdepth_max')
+    else
+       if ( fldchk(is_local%wrap%FBExp(complnd)         , 'Sr_tdepth_max', rc=rc) .and. &
+            fldchk(is_local%wrap%FBImp(comprof, comprof), 'Sr_tdepth_max', rc=rc)) then
+          call addmap(fldListFr(comprof)%flds, 'Sr_tdepth_max', complnd, mapconsf, 'one', rof2lnd_map)
+          call addmrg(fldListTo(complnd)%flds, 'Sr_tdepth_max', mrg_from=comprof, mrg_fld='Sr_tdepth_max', mrg_type='copy')
        end if
     end if
 
