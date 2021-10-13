@@ -144,7 +144,7 @@ contains
 #endif
 
     ! input/output arguments
-    type(ESMF_GridComp), intent(inout) :: gcomp
+    type(ESMF_GridComp), intent(in)    :: gcomp
     integer            , intent(out)   :: rc
 
 #ifndef CESMCOUPLED
