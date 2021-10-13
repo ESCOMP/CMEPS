@@ -16,13 +16,16 @@ contains
 
   subroutine med_phases_post_rof(gcomp, rc)
 
-    use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
+    use NUOPC_Mediator        , only : NUOPC_MediatorGet
+    use ESMF                  , only : ESMF_Clock, ESMF_ClockIsCreated
     use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_LOGMSG_ERROR, ESMF_SUCCESS, ESMF_FAILURE
     use ESMF                  , only : ESMF_GridComp, ESMF_GridCompGet
+    use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
     use esmFlds               , only : complnd, compocn, compice, compatm, comprof, ncomps, compname
     use med_utils_mod         , only : chkerr    => med_utils_ChkErr
     use med_constants_mod     , only : dbug_flag => med_constants_dbug_flag
     use med_internalstate_mod , only : InternalState, mastertask, logunit
+    use med_phases_history_mod, only : med_phases_history_write_comp
     use med_map_mod           , only : med_map_field_packed
     use perf_mod              , only : t_startf, t_stopf
 
@@ -32,6 +35,7 @@ contains
 
     ! local variables
     type(InternalState) :: is_local
+    type(ESMF_Clock)    :: dClock
     character(len=*), parameter :: subname='(med_phases_post_rof)'
     !---------------------------------------
 
@@ -84,6 +88,14 @@ contains
             routehandles=is_local%wrap%RH(comprof,compice,:), rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call t_stopf('MED:'//trim(subname)//' map_rof2ice')
+    end if
+
+    ! Write rof inst, avg or aux if requested in mediator attributes
+    call NUOPC_MediatorGet(gcomp, driverClock=dClock, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (ESMF_ClockIsCreated(dclock)) then
+       call med_phases_history_write_comp(gcomp, comprof, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
     if (dbug_flag > 20) then

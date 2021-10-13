@@ -46,10 +46,8 @@ class DriverConfig(dict):
     ###############################################
 
         # In the mediator the glc_avg_period will be set as an alarm
-        # on the mediator clock - when this alarm rings - the
-        # averaging will be done AND an attribute will be set on set
-        # on the glc export state from the mediator saying that the
-        # data coming to glc is valid
+        # on the on the prep_glc_clock. When this alarm rings - the
+        # averaging will be done.
 
         comp_glc = case.get_value("COMP_GLC")
 
@@ -71,7 +69,9 @@ class DriverConfig(dict):
             if not case.get_value("CISM_EVOLVE"):
                 stop_option = case.get_value('STOP_OPTION')
                 stop_n = case.get_value('STOP_N')
-                if stop_option == 'nsteps':
+                if stop_option == 'nyears':
+                    glc_coupling_time = coupling_times["glc_cpl_dt"]
+                elif stop_option == 'nsteps':
                     glc_coupling_time = stop_n * coupling_times["glc_cpl_dt"]
                 elif stop_option == 'ndays':
                     glc_coupling_time = stop_n * 86400

@@ -47,7 +47,7 @@ contains
 
     !---------------------------------------------
     ! Initialize route handles in the mediator and also
-    ! nitialize unity normalization fields and do the mapping for
+    ! initialize unity normalization fields and do the mapping for
     ! unity normalization up front
     !
     ! Assumptions:

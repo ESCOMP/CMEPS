@@ -18,15 +18,18 @@ contains
 
   subroutine med_phases_post_ice(gcomp, rc)
 
-    use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
+    use NUOPC_Mediator        , only : NUOPC_MediatorGet
+    use ESMF                  , only : ESMF_Clock, ESMF_ClockIsCreated
     use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
     use ESMF                  , only : ESMF_GridComp
+    use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
     use med_constants_mod     , only : dbug_flag   => med_constants_dbug_flag
     use med_utils_mod         , only : chkerr      => med_utils_ChkErr
     use med_methods_mod       , only : FB_diagnose => med_methods_FB_diagnose
     use med_map_mod           , only : med_map_field_packed
     use med_fraction_mod      , only : med_fraction_set
     use med_internalstate_mod , only : InternalState, mastertask
+    use med_phases_history_mod, only : med_phases_history_write_comp
     use esmFlds               , only : compice, compatm, compocn, compwav
     use perf_mod              , only : t_startf, t_stopf
 
@@ -35,7 +38,8 @@ contains
     integer, intent(out) :: rc
 
     ! local variables
-    type(InternalState)        :: is_local
+    type(InternalState) :: is_local
+    type(ESMF_Clock)    :: dClock
     character(len=*),parameter :: subname='(med_phases_post_ice)'
     !-------------------------------------------------------------------------------
 
@@ -92,6 +96,14 @@ contains
             routehandles=is_local%wrap%RH(compice,compwav,:), rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call t_stopf('MED:'//trim(subname)//' map_ice2wav')
+    end if
+
+    ! Write ice inst, avg or aux if requested in mediator attributes
+    call NUOPC_MediatorGet(gcomp, driverClock=dClock, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (ESMF_ClockIsCreated(dclock)) then
+       call med_phases_history_write_comp(gcomp, compice, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
     call t_stopf('MED:'//subname)

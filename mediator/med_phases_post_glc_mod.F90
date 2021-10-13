@@ -85,11 +85,16 @@ contains
 
   subroutine med_phases_post_glc(gcomp, rc)
 
+    use NUOPC_Mediator        , only : NUOPC_MediatorGet
+    use ESMF                  , only : ESMF_Clock, ESMF_ClockIsCreated
+    use med_phases_history_mod, only : med_phases_history_write_comp
+
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc
 
     ! local variables
+    type(ESMF_Clock)          :: dClock
     type(ESMF_StateItem_Flag) :: itemType
     type(InternalState)       :: is_local
     integer                   :: n1,ncnt,ns
@@ -212,6 +217,16 @@ contains
 
     ! Reset first call logical
     first_call = .false.
+
+    ! Write glc inst, avg or aux if requested in mediator attributes
+    call NUOPC_MediatorGet(gcomp, driverClock=dClock, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (ESMF_ClockIsCreated(dclock)) then
+       do ns = 1,num_icesheets
+          call med_phases_history_write_comp(gcomp, compglc(ns), rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       end do
+    end if
 
     if (dbug_flag > 20) then
        call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)

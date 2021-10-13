@@ -36,6 +36,7 @@ module esmflds
   integer, public :: num_icesheets     ! obtained from attribute
   logical, public :: ocn2glc_coupling  ! obtained from attribute
   logical, public :: lnd2glc_coupling  ! obtained in med.F90
+  logical, public :: accum_lnd2glc     ! obtained in med.F90 (this can be true even if lnd2glc_coupling is false)
 
   logical, public :: dststatus_print = .false.
 
