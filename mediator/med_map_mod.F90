@@ -100,12 +100,12 @@ contains
     integer                   :: n,m,nf,id,nflds
     integer                   :: fieldCount
     character(len=CL)         :: fieldname
-    type(ESMF_Field), pointer :: fieldlist(:) => null()
+    type(ESMF_Field), pointer :: fieldlist(:)
     type(ESMF_Field)          :: field_src
     character(len=CX)         :: mapfile
     integer                   :: mapindex
     logical                   :: mapexists = .false.
-    real(R8), pointer         :: dataptr(:) => null()
+    real(R8), pointer         :: dataptr(:)
     type(ESMF_Mesh)           :: mesh_src
     type(ESMF_Mesh)           :: mesh_dst
     character(len=*), parameter :: subname=' (module_med_map: RouteHandles_init) '
@@ -366,7 +366,7 @@ contains
     character(len=ESMF_MAXSTR) :: lmapfile
     logical                    :: rhprint = .false.
     integer                    :: ns
-    integer(I4), pointer       :: dof(:) => null()
+    integer(I4), pointer       :: dof(:)
     integer                    :: srcTermProcessing_Value = 0
     type(ESMF_PoleMethod_Flag), parameter :: polemethod=ESMF_POLEMETHOD_ALLAVG
     character(len=*), parameter :: subname=' (module_med_map: med_map_routehandles_initfrom_field) '
@@ -733,15 +733,15 @@ contains
     integer                    :: fieldcount
     type(ESMF_Field)           :: lfield
     integer                    :: ungriddedUBound(1)     ! currently the size must equal 1 for rank 2 fields
-    real(r8), pointer          :: ptrsrc_packed(:,:) => null()
-    real(r8), pointer          :: ptrdst_packed(:,:) => null()
+    real(r8), pointer          :: ptrsrc_packed(:,:)
+    real(r8), pointer          :: ptrdst_packed(:,:)
     integer                    :: lsize_src
     integer                    :: lsize_dst
     type(ESMF_Mesh)            :: lmesh_src
     type(ESMF_Mesh)            :: lmesh_dst
     integer                    :: mapindex
-    type(ESMF_Field), pointer  :: fieldlist_src(:) => null()
-    type(ESMF_Field), pointer  :: fieldlist_dst(:) => null()
+    type(ESMF_Field), pointer  :: fieldlist_src(:)
+    type(ESMF_Field), pointer  :: fieldlist_dst(:)
     character(CL), allocatable :: fieldNameList(:)
     character(CS)              :: mapnorm_mapindex
     character(len=CX)          :: tmpstr
@@ -935,17 +935,17 @@ contains
     integer                    :: fieldcount
     integer                    :: mapindex
     integer                    :: ungriddedUBound(1)
-    real(r8), pointer          :: dataptr1d(:) => null()
-    real(r8), pointer          :: dataptr2d(:,:) => null()
-    real(r8), pointer          :: dataptr2d_packed(:,:) => null()
+    real(r8), pointer          :: dataptr1d(:)
+    real(r8), pointer          :: dataptr2d(:,:)
+    real(r8), pointer          :: dataptr2d_packed(:,:)
     type(ESMF_Field)           :: lfield
     type(ESMF_Field)           :: field_fracsrc
-    type(ESMF_Field), pointer  :: fieldlist_src(:) => null()
-    type(ESMF_Field), pointer  :: fieldlist_dst(:) => null()
+    type(ESMF_Field), pointer  :: fieldlist_src(:)
+    type(ESMF_Field), pointer  :: fieldlist_dst(:)
     type(ESMF_Field)           :: usrc, vsrc ! only used for 3d mapping of u,v
     type(ESMF_Field)           :: udst, vdst ! only used for 3d mapping of u,v
-    real(r8), pointer          :: data_norm(:) => null()
-    real(r8), pointer          :: data_dst(:,:) => null()
+    real(r8), pointer          :: data_norm(:)
+    real(r8), pointer          :: data_dst(:,:)
     character(len=*), parameter  :: subname=' (module_MED_map:med_map_field_packed) '
     !-----------------------------------------------------------
 
@@ -1147,14 +1147,14 @@ contains
 
     ! local variables
     integer           :: n
-    real(r8), pointer :: data_src2d(:,:)    => null()
-    real(r8), pointer :: data_dst2d(:,:)    => null()
-    real(r8), pointer :: data_srctmp2d(:,:) => null()
-    real(r8), pointer :: data_src1d(:)      => null()
-    real(r8), pointer :: data_dst1d(:)      => null()
-    real(r8), pointer :: data_srctmp1d(:)   => null()
-    real(r8), pointer :: data_normsrc(:)    => null()
-    real(r8), pointer :: data_normdst(:)    => null()
+    real(r8), pointer :: data_src2d(:,:)
+    real(r8), pointer :: data_dst2d(:,:)
+    real(r8), pointer :: data_srctmp2d(:,:)
+    real(r8), pointer :: data_src1d(:)
+    real(r8), pointer :: data_dst1d(:)
+    real(r8), pointer :: data_srctmp1d(:)
+    real(r8), pointer :: data_normsrc(:)
+    real(r8), pointer :: data_normdst(:)
     integer           :: ungriddedUBound(1)     ! currently the size must equal 1 for rank 2 fields
     integer           :: lsize_src
     integer           :: lsize_dst
@@ -1362,14 +1362,14 @@ contains
     real(r8)            :: ux,uy,uz
     type(ESMF_Mesh)     :: lmesh_src
     type(ESMF_Mesh)     :: lmesh_dst
-    real(r8), pointer   :: data_u_src(:) => null()
-    real(r8), pointer   :: data_u_dst(:) => null()
-    real(r8), pointer   :: data_v_src(:) => null()
-    real(r8), pointer   :: data_v_dst(:) => null()
-    real(r8), pointer   :: data2d_src(:,:) => null()
-    real(r8), pointer   :: data2d_dst(:,:) => null()
-    real(r8), pointer   :: ownedElemCoords_src(:) => null()
-    real(r8), pointer   :: ownedElemCoords_dst(:) => null()
+    real(r8), pointer   :: data_u_src(:)
+    real(r8), pointer   :: data_u_dst(:)
+    real(r8), pointer   :: data_v_src(:)
+    real(r8), pointer   :: data_v_dst(:)
+    real(r8), pointer   :: data2d_src(:,:)
+    real(r8), pointer   :: data2d_dst(:,:)
+    real(r8), pointer   :: ownedElemCoords_src(:)
+    real(r8), pointer   :: ownedElemCoords_dst(:)
     integer             :: numOwnedElements
     integer             :: spatialDim
     real(r8), parameter :: deg2rad = shr_const_pi/180.0_R8  ! deg to rads
