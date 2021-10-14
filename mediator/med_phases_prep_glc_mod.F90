@@ -36,6 +36,7 @@ module med_phases_prep_glc_mod
   use med_methods_mod       , only : fldbun_getdata1d => med_methods_FB_getdata1d
   use med_methods_mod       , only : fldbun_diagnose  => med_methods_FB_diagnose
   use med_methods_mod       , only : fldbun_reset     => med_methods_FB_reset
+  use med_methods_mod       , only : fldbun_init      => med_methods_FB_init
   use med_methods_mod       , only : field_getdata2d  => med_methods_Field_getdata2d
   use med_methods_mod       , only : field_getdata1d  => med_methods_Field_getdata1d
   use med_utils_mod         , only : chkerr           => med_utils_ChkErr
@@ -312,6 +313,12 @@ contains
 
              ! Create route handle if it has not been created - this will be needed to map the fractions
              if (.not. med_map_RH_is_created(is_local%wrap%RH(compglc(ns),complnd,:),mapconsd, rc=rc)) then
+                if (.not. ESMF_FieldBundleIsCreated(is_local%wrap%FBImp(compglc(ns),complnd))) then
+                 call fldbun_init(is_local%wrap%FBImp(compglc(ns),complnd), is_local%wrap%flds_scalar_name, &
+                      STgeom=is_local%wrap%NStateImp(complnd), &
+                      STflds=is_local%wrap%NStateImp(compglc(ns)), &
+                      name='FBImp'//trim(compname(compglc(ns)))//'_'//trim(compname(complnd)), rc=rc)
+                end if
                 call med_map_routehandles_init( compglc(ns), complnd, &
                      FBSrc=is_local%wrap%FBImp(compglc(ns),compglc(ns)), &
                      FBDst=is_local%wrap%FBImp(compglc(ns),complnd), &
