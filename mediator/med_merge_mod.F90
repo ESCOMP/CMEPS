@@ -75,10 +75,10 @@ contains
     logical                    :: error_check = .false.  ! TODO: make this an input argument
     integer                    :: ungriddedUBound_out(1) ! size of ungridded dimension
     integer                    :: fieldcount
-    character(CL)   , pointer  :: fieldnamelist(:) => null()
-    type(ESMF_Field), pointer  :: fieldlist(:) => null()
-    real(r8), pointer          :: dataptr1d(:) => null()
-    real(r8), pointer          :: dataptr2d(:,:) => null()
+    character(CL)   , pointer  :: fieldnamelist(:)
+    type(ESMF_Field), pointer  :: fieldlist(:)
+    real(r8), pointer          :: dataptr1d(:)
+    real(r8), pointer          :: dataptr2d(:,:)
     logical                    :: zero_output
     character(len=*),parameter :: subname=' (module_med_merge_mod: med_merge_auto)'
     !---------------------------------------
@@ -240,10 +240,10 @@ contains
     character(CS), allocatable :: merge_field_names(:)
     integer                    :: ungriddedUBound_out(1) ! size of ungridded dimension
     integer                    :: fieldcount
-    character(CL)   , pointer  :: fieldnamelist(:) => null()
-    type(ESMF_Field), pointer  :: fieldlist(:) => null()
-    real(r8), pointer          :: dataptr1d(:) => null()
-    real(r8), pointer          :: dataptr2d(:,:) => null()
+    character(CL)   , pointer  :: fieldnamelist(:)
+    type(ESMF_Field), pointer  :: fieldlist(:)
+    real(r8), pointer          :: dataptr1d(:)
+    real(r8), pointer          :: dataptr2d(:,:)
     logical                    :: zero_output
     character(len=*),parameter :: subname=' (module_med_merge_mod: med_merge_auto)'
     !---------------------------------------
@@ -360,11 +360,11 @@ contains
     integer           :: n
     type(ESMF_Field)  :: field_wgt
     type(ESMF_Field)  :: field_in
-    real(R8), pointer :: dp1 (:) => null()
-    real(R8), pointer :: dp2(:,:) => null()  ! output pointers to 1d and 2d fields
-    real(R8), pointer :: dpf1(:) => null()
-    real(R8), pointer :: dpf2(:,:) => null() ! intput pointers to 1d and 2d fields
-    real(R8), pointer :: dpw1(:) => null()            ! weight pointer
+    real(R8), pointer :: dp1 (:)
+    real(R8), pointer :: dp2(:,:)   ! output pointers to 1d and 2d fields
+    real(R8), pointer :: dpf1(:)
+    real(R8), pointer :: dpf2(:,:)  ! intput pointers to 1d and 2d fields
+    real(R8), pointer :: dpw1(:)    ! weight pointer
     character(len=*),parameter :: subname=' (med_merge_mod: med_merge_auto_field)'
     !---------------------------------------
 
@@ -567,9 +567,9 @@ contains
     integer                , intent(out)                   :: rc
 
     ! local variables
-    real(R8), pointer          :: dataOut(:) => null()
-    real(R8), pointer          :: dataPtr(:) => null()
-    real(R8), pointer          :: wgt(:) => null()
+    real(R8), pointer          :: dataOut(:)
+    real(R8), pointer          :: dataPtr(:)
+    real(R8), pointer          :: wgt(:)
     integer                    :: lb1,ub1,i,j,n
     logical                    :: wgtfound, FBinfound
     integer                    :: dbrc

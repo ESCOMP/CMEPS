@@ -584,12 +584,12 @@ contains
     ! local variables
     type(InternalState) :: is_local
     integer             :: n,nf,ic,ip
-    real(r8), pointer   :: afrac(:) => null()
-    real(r8), pointer   :: lfrac(:) => null()
-    real(r8), pointer   :: ifrac(:) => null()
-    real(r8), pointer   :: ofrac(:) => null()
-    real(r8), pointer   :: areas(:) => null()
-    real(r8), pointer   :: lats(:) => null()
+    real(r8), pointer   :: afrac(:)
+    real(r8), pointer   :: lfrac(:)
+    real(r8), pointer   :: ifrac(:)
+    real(r8), pointer   :: ofrac(:)
+    real(r8), pointer   :: areas(:)
+    real(r8), pointer   :: lats(:)
     type(ESMF_Field)    :: lfield
     character(*), parameter :: subName = '(med_phases_diag_atm) '
     !-------------------------------------------------------------------------------
@@ -722,7 +722,7 @@ contains
     ! local variables
     integer           :: n, ip
     type(ESMF_field)  :: lfield
-    real(r8), pointer :: data(:) => null()
+    real(r8), pointer :: data(:)
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
     if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
@@ -758,7 +758,7 @@ contains
     ! local variables
     integer           :: n, ip
     type(ESMF_field)  :: lfield
-    real(r8), pointer :: data(:) => null()
+    real(r8), pointer :: data(:)
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
     if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
@@ -797,7 +797,7 @@ contains
     ! local variables
     integer           :: n, ip
     type(ESMF_Field)  :: lfield
-    real(r8), pointer :: data(:,:) => null()
+    real(r8), pointer :: data(:,:)
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
     if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
@@ -854,7 +854,7 @@ contains
     ! local variables
     integer           :: n, ip
     type(ESMF_Field)  :: lfield
-    real(r8), pointer :: data(:,:) => null()
+    real(r8), pointer :: data(:,:)
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
     if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
@@ -907,9 +907,9 @@ contains
 
     ! local variables
     type(InternalState) :: is_local
-    real(r8), pointer   :: lfrac(:) => null()
+    real(r8), pointer   :: lfrac(:)
     integer             :: n,ip, ic
-    real(r8), pointer   :: areas(:) => null()
+    real(r8), pointer   :: areas(:)
     type(ESMF_Field)    :: lfield
     character(*), parameter :: subName = '(med_phases_diag_lnd) '
     ! ------------------------------------------------------------------
@@ -1010,7 +1010,7 @@ contains
     ! local variables
     integer           :: n, ip
     type(ESMF_field)  :: lfield
-    real(r8), pointer :: data(:) => null()
+    real(r8), pointer :: data(:)
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
 
@@ -1044,7 +1044,7 @@ contains
     ! local variables
     integer           :: n, ip
     type(ESMF_field)  :: lfield
-    real(r8), pointer :: data(:,:) => null()
+    real(r8), pointer :: data(:,:)
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
 
@@ -1082,7 +1082,7 @@ contains
     ! local variables
     type(InternalState) :: is_local
     integer             :: ic, ip, n
-    real(r8), pointer   :: areas(:) => null()
+    real(r8), pointer   :: areas(:)
     character(*), parameter :: subName = '(med_phases_diag_rof) '
     ! ------------------------------------------------------------------
 
@@ -1153,7 +1153,7 @@ contains
     ! local variables
     integer           :: n, ip
     type(ESMF_field)  :: lfield
-    real(r8), pointer :: data(:) => null()
+    real(r8), pointer :: data(:)
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
 
@@ -1187,7 +1187,7 @@ contains
     ! local variables
     integer           :: n, ip
     type(ESMF_field)  :: lfield
-    real(r8), pointer :: data(:,:) => null()
+    real(r8), pointer :: data(:,:)
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
 
@@ -1225,7 +1225,7 @@ contains
     ! local variables
     type(InternalState) :: is_local
     integer             :: ic, ip, ns
-    real(r8), pointer   :: areas(:) => null()
+    real(r8), pointer   :: areas(:)
     character(*), parameter :: subName = '(med_phases_diag_glc) '
     ! ------------------------------------------------------------------
 
@@ -1270,7 +1270,7 @@ contains
     ! local variables
     integer           :: n, ip
     type(ESMF_field)  :: lfield
-    real(r8), pointer :: data(:) => null()
+    real(r8), pointer :: data(:)
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
     if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
@@ -1304,12 +1304,12 @@ contains
     type(InternalState) :: is_local
     integer             :: n,ic,ip
     real(r8)            :: wgt_i,wgt_o
-    real(r8), pointer   :: ifrac(:) => null() ! ice fraction in ocean grid cell
-    real(r8), pointer   :: ofrac(:) => null() ! non-ice fraction nin ocean grid cell
-    real(r8), pointer   :: sfrac(:) => null() ! sum of ifrac and ofrac
-    real(r8), pointer   :: sfrac_x_ofrac(:) => null()
-    real(r8), pointer   :: areas(:) => null()
-    real(r8), pointer   :: data(:) => null()
+    real(r8), pointer   :: ifrac(:)  ! ice fraction in ocean grid cell
+    real(r8), pointer   :: ofrac(:)  ! non-ice fraction nin ocean grid cell
+    real(r8), pointer   :: sfrac(:)  ! sum of ifrac and ofrac
+    real(r8), pointer   :: sfrac_x_ofrac(:)
+    real(r8), pointer   :: areas(:)
+    real(r8), pointer   :: data(:)
     type(ESMF_field)    :: lfield
     character(*), parameter :: subName = '(med_phases_diag_ocn) '
     ! ------------------------------------------------------------------
@@ -1446,7 +1446,7 @@ contains
     ! local variables
     integer           :: n, ip
     type(ESMF_field)  :: lfield
-    real(r8), pointer :: data(:) => null()
+    real(r8), pointer :: data(:)
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
     if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
@@ -1479,7 +1479,7 @@ contains
     ! local variables
     integer           :: n, ip
     type(ESMF_field)  :: lfield
-    real(r8), pointer :: data(:,:) => null()
+    real(r8), pointer :: data(:,:)
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
     if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
@@ -1510,10 +1510,10 @@ contains
     ! local variables
     type(InternalState) :: is_local
     integer             :: n,ic,ip
-    real(r8), pointer   :: ofrac(:) => null()
-    real(r8), pointer   :: ifrac(:) => null()
-    real(r8), pointer   :: areas(:) => null()
-    real(r8), pointer   :: lats(:) => null()
+    real(r8), pointer   :: ofrac(:)
+    real(r8), pointer   :: ifrac(:)
+    real(r8), pointer   :: areas(:)
+    real(r8), pointer   :: lats(:)
     type(ESMF_field)    :: lfield
     character(*), parameter :: subName = '(med_phases_diag_ice_ice2med) '
     ! ------------------------------------------------------------------
@@ -1602,7 +1602,7 @@ contains
     ! local variables
     integer           :: n, ic, ip
     type(ESMF_Field)  :: lfield
-    real(r8), pointer :: data(:) => null()
+    real(r8), pointer :: data(:)
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
     if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
@@ -1648,7 +1648,7 @@ contains
     ! local variables
     integer           :: n, ic, ip
     type(ESMF_Field)  :: lfield
-    real(r8), pointer :: data(:,:) => null()
+    real(r8), pointer :: data(:,:)
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
 
@@ -1692,11 +1692,11 @@ contains
     type(InternalState) :: is_local
     integer             :: n,ic,ip
     real(r8)            :: wgt_i, wgt_o
-    real(r8), pointer   :: ofrac(:) => null()
-    real(r8), pointer   :: ifrac(:) => null()
-    real(r8), pointer   :: data(:) => null()
-    real(r8), pointer   :: areas(:) => null()
-    real(r8), pointer   :: lats(:) => null()
+    real(r8), pointer   :: ofrac(:)
+    real(r8), pointer   :: ifrac(:)
+    real(r8), pointer   :: data(:)
+    real(r8), pointer   :: areas(:)
+    real(r8), pointer   :: lats(:)
     type(ESMF_Field)    :: lfield
     character(*), parameter :: subName = '(med_phases_diag_ice_med2ice) '
     ! ------------------------------------------------------------------
@@ -1778,7 +1778,7 @@ contains
     ! local variables
     integer           :: n, ic, ip
     type(ESMF_Field)  :: lfield
-    real(r8), pointer :: data(:) => null()
+    real(r8), pointer :: data(:)
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
     ip = period_inst
@@ -1812,7 +1812,7 @@ contains
     ! local variables
     integer           :: n, ic, ip
     type(ESMF_Field)  :: lfield
-    real(r8), pointer :: data(:,:) => null()
+    real(r8), pointer :: data(:,:)
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
     if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
@@ -2501,7 +2501,7 @@ contains
     integer :: n
     integer :: oldsize
     logical :: found
-    type(budget_diag_type), pointer :: new_entries(:) => null()
+    type(budget_diag_type), pointer :: new_entries(:)
     character(len=*), parameter :: subname='(add_to_budget_diag)'
     !----------------------------------------------------------------------
 

@@ -1380,12 +1380,12 @@ contains
     !----------------------------------------------------------
     ! realize all Fields with transfer action "accept"
     ! Finish initializing the State Fields
-    ! - Fields are partially created when this routine is called. 
-    ! - Fields contain a geombase object internally created and the geombase object 
-    !   associates with either a ESMF_Grid, or a ESMF_Mesh, or an or an ESMF_XGrid, 
-    !   or a ESMF_LocStream. 
-    ! - Fields containing grids will be transferred! to a Mesh and Realized; 
-    ! - Fields containg meshes are completed with space allocated internally 
+    ! - Fields are partially created when this routine is called.
+    ! - Fields contain a geombase object internally created and the geombase object
+    !   associates with either a ESMF_Grid, or a ESMF_Mesh, or an or an ESMF_XGrid,
+    !   or a ESMF_LocStream.
+    ! - Fields containing grids will be transferred! to a Mesh and Realized;
+    ! - Fields containg meshes are completed with space allocated internally
     !   for an ESMF_Array based on arrayspec
     !----------------------------------------------------------
 
@@ -1461,7 +1461,7 @@ contains
       type(ESMF_Grid)             :: grid
       type(ESMF_Mesh)             :: mesh
       type(ESMF_Field)            :: meshField
-      type(ESMF_Field),pointer    :: fieldList(:) => null()
+      type(ESMF_Field),pointer    :: fieldList(:)
       type(ESMF_FieldStatus_Flag) :: fieldStatus
       type(ESMF_GeomType_Flag)    :: geomtype
       integer                     :: gridToFieldMapCount, ungriddedCount
@@ -1655,7 +1655,7 @@ contains
     integer                            :: cntn1, cntn2
     integer                            :: fieldCount
     character(ESMF_MAXSTR),allocatable :: fieldNameList(:)
-    character(CL), pointer             :: fldnames(:) => null()
+    character(CL), pointer             :: fldnames(:)
     character(CL)                      :: cvalue
     character(CL)                      :: cname
     character(CL)                      :: start_type
@@ -2070,7 +2070,7 @@ contains
          end if
       end do
       if (lnd2glc_coupling) then
-         accum_lnd2glc = .true. 
+         accum_lnd2glc = .true.
       else
          ! Determine if will create auxiliary history file that contains
          ! lnd2glc data averaged over the year
@@ -2519,7 +2519,7 @@ contains
     integer               :: numOwnedElements
     integer               :: spatialDim
     real(r8), allocatable :: ownedElemCoords(:)
-    real(r8), pointer     :: dataptr(:) => null()
+    real(r8), pointer     :: dataptr(:)
     integer               :: n, dimcount, fieldcount
     character(len=*),parameter :: subname=' (module_MED:med_meshinfo_create) '
     !-------------------------------------------------------------------------------
