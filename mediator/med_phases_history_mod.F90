@@ -709,7 +709,7 @@ contains
        else
           instfile%is_active = .false.
           ! this is set to true here even if history file is not active
-          instfile%is_clockset = .true. 
+          instfile%is_clockset = .true.
        end if
     end if ! end of if-clock set if block
 
@@ -1372,11 +1372,11 @@ contains
     type(ESMF_Field)       :: lfield
     type(ESMF_Field)       :: lfield_accum
     integer                :: fieldCount
-    character(CL), pointer :: fieldnames(:) => null()
-    real(r8), pointer      :: dataptr1d(:) => null()
-    real(r8), pointer      :: dataptr2d(:,:) => null()
-    real(r8), pointer      :: dataptr1d_accum(:) => null()
-    real(r8), pointer      :: dataptr2d_accum(:,:) => null()
+    character(CL), pointer :: fieldnames(:)
+    real(r8), pointer      :: dataptr1d(:)
+    real(r8), pointer      :: dataptr2d(:,:)
+    real(r8), pointer      :: dataptr1d_accum(:)
+    real(r8), pointer      :: dataptr2d_accum(:,:)
     integer                :: ungriddedUBound(1)
     !---------------------------------------
 
@@ -1431,9 +1431,9 @@ contains
     integer                :: n,i
     type(ESMF_Field)       :: lfield_accum
     integer                :: fieldCount
-    character(CL), pointer :: fieldnames(:) => null()
-    real(r8), pointer      :: dataptr1d_accum(:) => null()
-    real(r8), pointer      :: dataptr2d_accum(:,:) => null()
+    character(CL), pointer :: fieldnames(:)
+    real(r8), pointer      :: dataptr1d_accum(:)
+    real(r8), pointer      :: dataptr2d_accum(:,:)
     integer                :: ungriddedUBound(1)
     !---------------------------------------
 
@@ -1516,7 +1516,7 @@ contains
 
     if (mastertask) then
        write(logunit,'(a,2x,i8,2x,i8)') trim(subname) // "  mediator, driver timesteps for " &
-            //trim(alarmname),msec,dsec 
+            //trim(alarmname),msec,dsec
     end if
 
     ! Create history clock from mediator clock - THIS CALL DOES NOT COPY ALARMS

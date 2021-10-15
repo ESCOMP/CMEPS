@@ -50,8 +50,8 @@ contains
     type(InternalState)            :: is_local
     type(ESMF_Field)               :: lfield
     integer                        :: i,n
-    real(R8), pointer              :: dataptr(:) => null()
-    real(R8), pointer              :: dataptr_scalar_ocn(:,:) => null()
+    real(R8), pointer              :: dataptr(:)
+    real(R8), pointer              :: dataptr_scalar_ocn(:,:)
     real(R8)                       :: precip_fact(1)
     character(len=CS)              :: cvalue
     character(len=64), allocatable :: fldnames(:)

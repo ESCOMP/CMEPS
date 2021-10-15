@@ -190,7 +190,7 @@ contains
     ! local variables
     integer :: n,oldsize,id
     logical :: found
-    type(med_fldList_entry_type), pointer :: newflds(:) => null()
+    type(med_fldList_entry_type), pointer :: newflds(:)
     character(len=*), parameter :: subname='(med_fldList_AddFld)'
     ! ----------------------------------------------
 
@@ -388,10 +388,10 @@ contains
     character(ESMF_MAXSTR)          :: transferActionAttr
     type(ESMF_StateIntent_Flag)     :: stateIntent
     character(ESMF_MAXSTR)          :: transferAction
-    character(ESMF_MAXSTR), pointer :: StandardNameList(:) => null()
-    character(ESMF_MAXSTR), pointer :: ConnectedList(:) => null()
-    character(ESMF_MAXSTR), pointer :: NameSpaceList(:) => null()
-    character(ESMF_MAXSTR), pointer :: itemNameList(:) => null()
+    character(ESMF_MAXSTR), pointer :: StandardNameList(:)
+    character(ESMF_MAXSTR), pointer :: ConnectedList(:)
+    character(ESMF_MAXSTR), pointer :: NameSpaceList(:)
+    character(ESMF_MAXSTR), pointer :: itemNameList(:)
     character(len=*),parameter  :: subname='(med_fldList_Realize)'
     ! ----------------------------------------------
 
