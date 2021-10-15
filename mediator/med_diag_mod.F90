@@ -24,13 +24,14 @@ module med_diag_mod
   use ESMF                  , only : ESMF_GridCompGet, ESMF_ClockGet, ESMF_TimeGet, ESMF_ClockGetNextTime
   use ESMF                  , only : ESMF_Alarm, ESMF_ClockGetAlarm, ESMF_AlarmIsRinging, ESMF_AlarmRingerOff
   use ESMF                  , only : ESMF_FieldBundle, ESMF_Field, ESMF_FieldGet
-  use shr_const_mod         , only : shr_const_rearth, shr_const_pi, shr_const_latice
+  use shr_const_mod         , only : shr_const_rearth, shr_const_pi, shr_const_latice, shr_const_latvap
   use shr_const_mod         , only : shr_const_ice_ref_sal, shr_const_ocn_ref_sal, shr_const_isspval
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
   use med_internalstate_mod , only : InternalState, logunit, mastertask, diagunit
   use med_methods_mod       , only : fldbun_getdata2d => med_methods_FB_getdata2d
   use med_methods_mod       , only : fldbun_getdata1d => med_methods_FB_getdata1d
   use med_methods_mod       , only : fldbun_fldChk    => med_methods_FB_FldChk
+  use med_time_mod          , only : alarmInit        => med_time_alarmInit
   use med_utils_mod         , only : chkerr           => med_utils_ChkErr
   use perf_mod              , only : t_startf, t_stopf
 
@@ -1326,11 +1327,11 @@ contains
     call fldbun_getdata1d(is_local%wrap%FBfrac(compocn), 'ofrac', ofrac, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     allocate(sfrac(size(ofrac)))
-    sfrac(:) = ifrac(:) + ofrac(:)
-    allocate(sfrac_x_ofrac(size(ofrac)))
-    sfrac_x_ofrac(:) = sfrac(:) * ofrac(:)
+    sfrac(:) = 1._r8
 
-    areas => is_local%wrap%mesh_info(compocn)%areas
+    !areas => is_local%wrap%mesh_info(compocn)%areas
+    call fldbun_getdata1d(is_local%wrap%FBarea(compocn), 'area', areas, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !-------------------------------
     ! from ocn to mediator
@@ -1352,14 +1353,6 @@ contains
        end do
     end if
 
-    call diag_ocn(is_local%wrap%FBImp(compocn,compocn), 'Faox_lwup', f_heat_lwup   , ic, areas, ofrac, budget_local, rc=rc)
-    call diag_ocn(is_local%wrap%FBImp(compocn,compocn), 'Faox_lat' , f_heat_latvap , ic, areas, ofrac, budget_local, rc=rc)
-    call diag_ocn(is_local%wrap%FBImp(compocn,compocn), 'Faox_sen' , f_heat_sen    , ic, areas, ofrac, budget_local, rc=rc)
-    call diag_ocn(is_local%wrap%FBImp(compocn,compocn), 'Faox_evap', f_watr_evap   , ic, areas, ofrac, budget_local, rc=rc)
-
-    call diag_ocn_wiso(is_local%wrap%FBImp(compocn,compocn), 'Faox_evap_wiso', &
-         f_watr_evap_16O, f_watr_evap_18O, f_watr_evap_HDO, ic, areas, ofrac, budget_local, rc=rc)
-
     budget_local(f_watr_frz,ic,ip) = budget_local(f_heat_frz,ic,ip) * HFLXtoWFLX
 
     !-------------------------------
@@ -1373,22 +1366,26 @@ contains
        budget_local(f_area,ic,ip) = budget_local(f_area,ic,ip) + areas(n)*ofrac(n)
     end do
 
-    if (fldbun_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_lwnet', rc=rc)) then
-       call diag_ocn(is_local%wrap%FBMed_aoflux_o        , 'Faox_lwup', f_heat_lwup, ic, areas, sfrac_x_ofrac, budget_local, rc=rc)
-       call diag_ocn(is_local%wrap%FBImp(compatm,compocn), 'Faxa_lwdn', f_heat_lwdn, ic, areas, sfrac_x_ofrac, budget_local, rc=rc)
-    else
-       call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_lwup' , f_heat_lwup   , ic, areas, sfrac, budget_local, rc=rc)
+    if (fldbun_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_lwnet', rc=rc)) then ! MOM6
+       call diag_ocn(is_local%wrap%FBMed_aoflux_o        , 'Faox_lwup', f_heat_lwup, ic, areas, ofrac, budget_local, rc=rc)
+       call diag_ocn(is_local%wrap%FBImp(compatm,compocn), 'Faxa_lwdn', f_heat_lwdn, ic, areas, ofrac, budget_local, rc=rc)
+    else ! POP
+       call diag_ocn(is_local%wrap%FBMed_aoflux_o, 'Faox_lwup' , f_heat_lwup   , ic, areas, ofrac, budget_local, rc=rc)
        call diag_ocn(is_local%wrap%FBExp(compocn), 'Faxa_lwdn' , f_heat_lwdn   , ic, areas, sfrac, budget_local, rc=rc)
     end if
 
-    if (fldbun_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_lat', rc=rc)) then
-       call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_lat'  , f_heat_latvap , ic, areas, sfrac, budget_local, rc=rc)
-    else
-       call diag_ocn(is_local%wrap%FBMed_aoflux_o, 'Faox_lat'  , f_heat_latvap , ic, areas, sfrac_x_ofrac, budget_local, rc=rc)
+    call diag_ocn(is_local%wrap%FBMed_aoflux_o, 'Faox_sen' , f_heat_sen    , ic, areas, ofrac, budget_local, rc=rc)
+    call diag_ocn(is_local%wrap%FBMed_aoflux_o, 'Faox_evap', f_watr_evap   , ic, areas, ofrac, budget_local, rc=rc)
+
+    if (fldbun_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_lat', rc=rc)) then ! POP
+       call diag_ocn(is_local%wrap%FBMed_aoflux_o, 'Faox_lat'  , f_heat_latvap , ic, areas, ofrac, budget_local, rc=rc) 
+    else ! MOM6
+       call diag_ocn(is_local%wrap%FBMed_aoflux_o, 'Faox_evap' , f_heat_latvap , ic, areas, ofrac, budget_local, & 
+            scale=shr_const_latvap, rc=rc) 
+       ! budget_local(f_heat_latvap,ic,ip) = budget_local(f_watr_evap,ic,ip)*shr_const_latvap
     end if
 
-    call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_sen'  , f_heat_sen    , ic, areas, sfrac, budget_local, rc=rc)
-    call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_evap' , f_watr_evap   , ic, areas, sfrac, budget_local, rc=rc)
+
     call diag_ocn(is_local%wrap%FBExp(compocn), 'Fioi_meltw', f_watr_melt   , ic, areas, sfrac, budget_local, rc=rc)
     call diag_ocn(is_local%wrap%FBExp(compocn), 'Fioi_bergw', f_watr_melt   , ic, areas, sfrac, budget_local, rc=rc)
     call diag_ocn(is_local%wrap%FBExp(compocn), 'Fioi_melth', f_heat_melt   , ic, areas, sfrac, budget_local, rc=rc)
@@ -1413,6 +1410,8 @@ contains
     call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_rofl' , f_watr_roff   , ic, areas, sfrac, budget_local, rc=rc)
     call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_rofi' , f_watr_ioff   , ic, areas, sfrac, budget_local, rc=rc)
 
+    call diag_ocn_wiso(is_local%wrap%FBMed_aoflux_o, 'Faox_evap_wiso', &
+         f_watr_evap_16O, f_watr_evap_18O, f_watr_evap_HDO, ic, areas, ofrac, budget_local, rc=rc)
     call diag_ocn_wiso(is_local%wrap%FBExp(compocn), 'Fioi_meltw_wiso', &
          f_watr_melt_16O, f_watr_melt_HDO, f_watr_melt_HDO, ic, areas, sfrac, budget_local, rc=rc)
     call diag_ocn_wiso(is_local%wrap%FBExp(compocn), 'Fioi_rain_wiso' , &
