@@ -325,7 +325,7 @@ contains
   subroutine med_map_routehandles_initfrom_field(n1, n2, fldsrc, flddst, mapindex, routehandles, mapfile, rc)
 
     use ESMF              , only : ESMF_RouteHandle, ESMF_RouteHandlePrint, ESMF_Field, ESMF_MAXSTR
-    use ESMF              , only : ESMF_PoleMethod_Flag, ESMF_POLEMETHOD_ALLAVG
+    use ESMF              , only : ESMF_PoleMethod_Flag, ESMF_POLEMETHOD_ALLAVG, ESMF_POLEMETHOD_NONE
     use ESMF              , only : ESMF_FieldSMMStore, ESMF_FieldRedistStore, ESMF_FieldRegridStore
     use ESMF              , only : ESMF_RouteHandleIsCreated, ESMF_RouteHandleCreate
     use ESMF              , only : ESMF_REGRIDMETHOD_BILINEAR, ESMF_REGRIDMETHOD_PATCH
@@ -368,7 +368,7 @@ contains
     integer                    :: ns
     integer(I4), pointer       :: dof(:) => null()
     integer                    :: srcTermProcessing_Value = 0
-    type(ESMF_PoleMethod_Flag), parameter :: polemethod=ESMF_POLEMETHOD_ALLAVG
+    type(ESMF_PoleMethod_Flag) :: polemethod
     character(len=*), parameter :: subname=' (module_med_map: med_map_routehandles_initfrom_field) '
     !---------------------------------------------
 
@@ -386,11 +386,19 @@ contains
     dststatusfield = ESMF_FieldCreate(dstmesh, ESMF_TYPEKIND_I4, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
+    polemethod=ESMF_POLEMETHOD_ALLAVG
     if (trim(coupling_mode) == 'cesm') then
        dstMaskValue = ispval_mask
        srcMaskValue = ispval_mask
        if (n1 == compocn .or. n1 == compice) srcMaskValue = 0
        if (n2 == compocn .or. n2 == compice) dstMaskValue = 0
+       if (n1 == compwav .and. n2 == compocn) then
+         srcMaskValue = 0
+         dstMaskValue = ispval_mask
+      endif
+      if (n1 == compwav .or. n2 == compwav) then
+        polemethod = ESMF_POLEMETHOD_NONE ! todo: remove this when ESMF tripolar mapping fix is in place.
+      endif
     else if (coupling_mode(1:4) == 'nems') then
        if (n1 == compatm .and. (n2 == compocn .or. n2 == compice)) then
           srcMaskValue = 1
