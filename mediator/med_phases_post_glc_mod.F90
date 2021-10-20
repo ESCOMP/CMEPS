@@ -549,8 +549,21 @@ contains
              do l = 1,size(frac_x_icemask_l_ec, dim=2)
                 if (icemask_l(l) > 0._r8) then
                    ! We only do this where icemask_l > 0 to avoid adding topo_virtual
-                   ! multiple times. If icemask_l == 0, then lnd should ignore the topo
-                   ! values from glc, so it's safe to leave them unset.
+                   ! multiple times. If icemask_l == 0 for all ice sheets, then lnd should
+                   ! ignore the topo values from glc, so it's safe to leave them unset; if
+                   ! icemask_l is 0 for this ice sheet but > 0 for some other ice sheet,
+                   ! then we'll get the appropriate topo setting from that other ice
+                   ! sheet.
+                   !
+                   ! Note that frac_l_ec_sum is the sum over ice sheets we have handled so
+                   ! far in the outer loop over ice sheets. At first glance, that could
+                   ! seem wrong (because what if a later ice sheet causes this sum to
+                   ! become greater than 0?), and it may be that we should rework this for
+                   ! clarity. However, since icemask_l > 0 (which is the ice mask for this
+                   ! ice sheet) and we assume that multiple ice sheets do not overlap, we
+                   ! can be confident that no other ice sheet will contribute to
+                   ! frac_l_ec_sum for this land point, so if it is <= 0 at this point,
+                   ! it should remain <= 0.
                    if (frac_l_ec_sum(ec,l) <= 0._r8) then
                       ! This is formulated as an addition for consistency with other
                       ! additions to the *_sum variables, but in practice only one ice
