@@ -548,6 +548,9 @@ contains
              topo_virtual = glc_mean_elevation_virtual(ec-1) ! glc_mean_elevation_virtual uses 0:glc_nec
              do l = 1,size(frac_x_icemask_l_ec, dim=2)
                 if (icemask_l(l) > 0._r8) then
+                   ! We only do this where icemask_l > 0 to avoid adding topo_virtual
+                   ! multiple times. If icemask_l == 0, then lnd should ignore the topo
+                   ! values from glc, so it's safe to leave them unset.
                    if (frac_l_ec_sum(ec,l) <= 0._r8) then
                       ! This is formulated as an addition for consistency with other
                       ! additions to the *_sum variables, but in practice only one ice
