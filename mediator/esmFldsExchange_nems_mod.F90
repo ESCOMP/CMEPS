@@ -28,7 +28,7 @@ contains
     use esmFlds               , only : addfld => med_fldList_AddFld
     use esmFlds               , only : addmap => med_fldList_AddMap
     use esmFlds               , only : addmrg => med_fldList_AddMrg
-    use esmflds               , only : compmed, compatm, compocn, compice, comprof, ncomps
+    use esmflds               , only : compmed, compatm, compocn, compice, compwav, ncomps
     use esmflds               , only : mapbilnr, mapconsf, mapconsd, mappatch
     use esmflds               , only : mapfcopy, mapnstod, mapnstod_consd, mapnstod_consf
     use esmflds               , only : mapconsf_aofrac
@@ -350,6 +350,23 @@ contains
        call addfld(fldListFr(compocn)%flds, trim(fldname))
        call addmap(fldListFr(compocn)%flds, trim(fldname), compice, mapfcopy , 'unset', 'unset')
        call addmrg(fldListTo(compice)%flds, trim(fldname), mrg_from=compocn, mrg_fld=trim(fldname), mrg_type='copy')
+    end do
+    deallocate(flds)
+
+    !=====================================================================
+    ! FIELDS TO WAV (compwav)
+    !=====================================================================
+
+    ! to wav - 10m winds from atm
+    allocate(flds(2))
+    flds = (/'Sa_u10m', 'Sa_v10m'/)
+
+   do n = 1,size(flds)
+       fldname = trim(flds(n))
+       call addfld(fldListFr(compatm)%flds, trim(fldname))
+       call addfld(fldListTo(compwav)%flds, trim(fldname))
+       call addmap(fldListFr(compatm)%flds, trim(fldname), compwav, maptype, 'one', 'unset')
+       call addmrg(fldListTo(compwav)%flds, trim(fldname), mrg_from=compatm, mrg_fld=trim(fldname), mrg_type='copy')
     end do
     deallocate(flds)
 
