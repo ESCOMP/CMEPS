@@ -1117,6 +1117,13 @@
        canonical_units: m/s
        description: ocean import - Stokes drift v component
      #
+     - standard_name: Sw_pstokes_x
+       canonical_units: m/s
+       description: Eastward partitioned stokes drift components
+     #
+     - standard_name: Sw_pstokes_y
+       canonical_units: m/s
+       description: Northward partitioned stokes drift components
      #-----------------------------------
      # mediator fields
      #-----------------------------------

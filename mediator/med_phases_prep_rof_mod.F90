@@ -194,8 +194,8 @@ contains
     integer                   :: fieldCount
     integer                   :: ungriddedUBound(1)
     logical                   :: exists
-    real(r8), pointer         :: dataptr1d(:) => null()
-    real(r8), pointer         :: dataptr1d_accum(:) => null()
+    real(r8), pointer         :: dataptr1d(:)
+    real(r8), pointer         :: dataptr1d_accum(:)
     type(ESMF_Field)          :: lfield
     type(ESMF_Field)          :: lfield_accum
     character(len=*), parameter :: subname='(med_phases_prep_rof_mod: med_phases_prep_rof_accum)'
@@ -273,14 +273,14 @@ contains
     integer                   :: i,j,n,n1,ncnt
     integer                   :: count
     logical                   :: exists
-    real(r8), pointer         :: dataptr(:) => null()
-    real(r8), pointer         :: dataptr1d(:) => null()
+    real(r8), pointer         :: dataptr(:)
+    real(r8), pointer         :: dataptr1d(:)
     type(ESMF_Field)          :: field_irrig_flux
     type(ESMF_Field)          :: lfield
     type(ESMF_Field)          :: lfield_src
     type(ESMF_Field)          :: lfield_dst
     type(ESMF_Field)          :: field_lfrac_lnd
-    character(CL), pointer    :: lfieldnamelist(:) => null()
+    character(CL), pointer    :: lfieldnamelist(:)
     character(len=*),parameter  :: subname='(med_phases_prep_rof_mod: med_phases_prep_rof)'
     !---------------------------------------
 
@@ -453,15 +453,15 @@ contains
     type(ESMF_Field)          :: field_lfrac_lnd
     type(ESMF_Mesh)           :: lmesh_lnd
     type(ESMF_Mesh)           :: lmesh_rof
-    real(r8), pointer         :: volr_l(:) => null()
-    real(r8), pointer         :: volr_r(:) => null()
-    real(r8), pointer         :: volr_r_import(:) => null()
-    real(r8), pointer         :: irrig_normalized_l(:) => null()
-    real(r8), pointer         :: irrig_normalized_r(:) => null()
-    real(r8), pointer         :: irrig_volr0_l(:) => null()
-    real(r8), pointer         :: irrig_volr0_r(:) => null()
-    real(r8), pointer         :: irrig_flux_l(:) => null()
-    real(r8), pointer         :: irrig_flux_r(:) => null()
+    real(r8), pointer         :: volr_l(:)
+    real(r8), pointer         :: volr_r(:)
+    real(r8), pointer         :: volr_r_import(:)
+    real(r8), pointer         :: irrig_normalized_l(:)
+    real(r8), pointer         :: irrig_normalized_r(:)
+    real(r8), pointer         :: irrig_volr0_l(:)
+    real(r8), pointer         :: irrig_volr0_r(:)
+    real(r8), pointer         :: irrig_flux_l(:)
+    real(r8), pointer         :: irrig_flux_r(:)
     character(len=*), parameter :: subname='(med_phases_prep_rof_mod: med_phases_prep_rof_irrig)'
     !---------------------------------------------------------------
 

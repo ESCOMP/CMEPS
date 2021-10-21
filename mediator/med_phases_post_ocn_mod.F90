@@ -20,13 +20,16 @@ contains
 
   subroutine med_phases_post_ocn(gcomp, rc)
 
-    use med_kind_mod            , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
+    use NUOPC_Mediator          , only : NUOPC_MediatorGet
+    use ESMF                    , only : ESMF_Clock, ESMF_ClockIsCreated
     use ESMF                    , only : ESMF_GridComp
     use ESMF                    , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
+    use med_kind_mod            , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
     use med_utils_mod           , only : chkerr      => med_utils_ChkErr
     use med_constants_mod       , only : dbug_flag   => med_constants_dbug_flag
     use med_map_mod             , only : med_map_field_packed
     use med_internalstate_mod   , only : InternalState, logunit, mastertask
+    use med_phases_history_mod  , only : med_phases_history_write_comp
     use med_phases_prep_glc_mod , only : med_phases_prep_glc_accum_ocn
     use esmFlds                 , only : compice, compglc, compocn, num_icesheets
     use perf_mod                , only : t_startf, t_stopf
@@ -38,6 +41,7 @@ contains
     ! local variables
     type(InternalState) :: is_local
     integer             :: ns
+    type(ESMF_Clock)    :: dClock
     logical             :: first_call = .true.
     character(len=*),parameter :: subname='(med_phases_post_ocn)'
     !---------------------------------------
@@ -80,6 +84,14 @@ contains
     end if
     if (ocn2glc_coupling) then
        call med_phases_prep_glc_accum_ocn(gcomp, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    end if
+
+    ! Write ocn inst, avg or aux if requested in mediator attributes
+    call NUOPC_MediatorGet(gcomp, driverClock=dClock, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (ESMF_ClockIsCreated(dclock)) then
+       call med_phases_history_write_comp(gcomp, compocn, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 

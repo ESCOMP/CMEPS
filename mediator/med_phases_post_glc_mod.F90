@@ -82,11 +82,16 @@ contains
 
   subroutine med_phases_post_glc(gcomp, rc)
 
+    use NUOPC_Mediator        , only : NUOPC_MediatorGet
+    use ESMF                  , only : ESMF_Clock, ESMF_ClockIsCreated
+    use med_phases_history_mod, only : med_phases_history_write_comp
+
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc
 
     ! local variables
+    type(ESMF_Clock)          :: dClock
     type(ESMF_StateItem_Flag) :: itemType
     type(InternalState)       :: is_local
     integer                   :: n1,ncnt,ns
@@ -210,6 +215,16 @@ contains
     ! Reset first call logical
     first_call = .false.
 
+    ! Write glc inst, avg or aux if requested in mediator attributes
+    call NUOPC_MediatorGet(gcomp, driverClock=dClock, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (ESMF_ClockIsCreated(dclock)) then
+       do ns = 1,num_icesheets
+          call med_phases_history_write_comp(gcomp, compglc(ns), rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       end do
+    end if
+
     if (dbug_flag > 20) then
        call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
     end if
@@ -231,7 +246,7 @@ contains
     integer                   :: ungriddedUBound_output(1)
     integer                   :: fieldCount
     integer                   :: ns,n
-    type(ESMF_Field), pointer :: fieldlist(:) => null()
+    type(ESMF_Field), pointer :: fieldlist(:)
     character(len=*) , parameter   :: subname='(map_glc2lnd_init)'
     !---------------------------------------
 
@@ -349,22 +364,22 @@ contains
     type(ESMF_Field)      :: lfield_dst
     integer               :: ec, l, g, ns, n
     real(r8)              :: topo_virtual
-    real(r8), pointer     :: icemask_g(:) => null()             ! glc ice mask field on glc grid
-    real(r8), pointer     :: frac_g(:) => null()                ! total ice fraction in each glc cell
-    real(r8), pointer     :: frac_g_ec(:,:) => null()           ! glc fractions on the glc grid
-    real(r8), pointer     :: frac_l_ec(:,:) => null()           ! glc fractions on the land grid
-    real(r8), pointer     :: topo_g(:) => null()                ! topo height of each glc cell (no elev classes)
-    real(r8), pointer     :: topo_l_ec(:,:) => null()           ! topo height in each land gridcell for each elev class
-    real(r8), pointer     :: frac_x_icemask_g_ec(:,:) => null() ! (glc fraction) x (icemask), on the glc grid
-    real(r8), pointer     :: frac_x_icemask_l_ec(:,:) => null()
-    real(r8), pointer     :: topo_x_icemask_g_ec(:,:) => null()
-    real(r8), pointer     :: topo_x_icemask_l_ec(:,:) => null()
-    real(r8), pointer     :: dataptr1d(:) => null()
-    real(r8), pointer     :: dataptr2d(:,:) => null()
-    real(r8), pointer     :: frac_l_ec_sum(:,:) => null()
-    real(r8), pointer     :: topo_l_ec_sum(:,:) => null()
-    real(r8), pointer     :: dataptr1d_src(:) => null()
-    real(r8), pointer     :: dataptr1d_dst(:) => null()
+    real(r8), pointer     :: icemask_g(:)              ! glc ice mask field on glc grid
+    real(r8), pointer     :: frac_g(:)                 ! total ice fraction in each glc cell
+    real(r8), pointer     :: frac_g_ec(:,:)            ! glc fractions on the glc grid
+    real(r8), pointer     :: frac_l_ec(:,:)            ! glc fractions on the land grid
+    real(r8), pointer     :: topo_g(:)                 ! topo height of each glc cell (no elev classes)
+    real(r8), pointer     :: topo_l_ec(:,:)            ! topo height in each land gridcell for each elev class
+    real(r8), pointer     :: frac_x_icemask_g_ec(:,:)  ! (glc fraction) x (icemask), on the glc grid
+    real(r8), pointer     :: frac_x_icemask_l_ec(:,:)
+    real(r8), pointer     :: topo_x_icemask_g_ec(:,:)
+    real(r8), pointer     :: topo_x_icemask_l_ec(:,:)
+    real(r8), pointer     :: dataptr1d(:)
+    real(r8), pointer     :: dataptr2d(:,:)
+    real(r8), pointer     :: frac_l_ec_sum(:,:)
+    real(r8), pointer     :: topo_l_ec_sum(:,:)
+    real(r8), pointer     :: dataptr1d_src(:)
+    real(r8), pointer     :: dataptr1d_dst(:)
     real(r8), pointer     :: icemask_l(:)
     character(len=*), parameter :: subname = 'map_glc2lnd'
     !-----------------------------------------------------------------------

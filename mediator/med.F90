@@ -1,8 +1,23 @@
 module MED
 
   !-----------------------------------------------------------------------------
-  ! Mediator Component.
+  ! Mediator Initialization
+  !
+  ! Note on time management:
+  ! Each time loop has its own associated clock object. NUOPC manages
+  ! these clock objects, i.e. their creation and destruction, as well as
+  ! startTime, endTime, timeStep adjustments during the execution. The
+  ! outer most time loop of the run sequence is a special case. It uses
+  ! the driver clock itself. If a single outer most loop is defined in
+  ! the run sequence provided by freeFormat, this loop becomes the driver
+  ! loop level directly. Therefore, setting the timeStep or runDuration
+  ! for the outer most time loop results in modifying the driver clock
+  ! itself. However, for cases with cocnatenated loops on the upper level
+  ! of the run sequence in freeFormat, a single outer loop is added
+  ! automatically during ingestion, and the driver clock is used for this
+  ! loop instead.
   !-----------------------------------------------------------------------------
+
   use ESMF                     , only : ESMF_VMLogMemInfo
   use NUOPC_Model              , only : SetVM
   use med_kind_mod             , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
@@ -24,8 +39,8 @@ module MED
   use med_methods_mod          , only : FB_diagnose        => med_methods_FB_diagnose
   use med_methods_mod          , only : FB_getFieldN       => med_methods_FB_getFieldN
   use med_methods_mod          , only : clock_timeprint    => med_methods_clock_timeprint
-  use med_time_mod             , only : alarmInit          => med_time_alarmInit
   use med_utils_mod            , only : memcheck           => med_memcheck
+  use med_time_mod             , only : med_time_alarmInit
   use med_internalstate_mod    , only : InternalState
   use med_internalstate_mod    , only : med_coupling_allowed, logunit, mastertask
   use med_phases_profile_mod   , only : med_phases_profile_finalize
@@ -33,7 +48,8 @@ module MED
   use esmFlds                  , only : fldListFr, fldListTo, med_fldList_Realize
   use esmFlds                  , only : ncomps, compname, ncomps
   use esmFlds                  , only : compmed, compatm, compocn, compice, complnd, comprof, compwav ! not arrays
-  use esmFlds                  , only : num_icesheets, max_icesheets, compglc, ocn2glc_coupling, lnd2glc_coupling ! compglc is an array
+  use esmFlds                  , only : num_icesheets, max_icesheets, compglc  ! compglc is an array
+  use esmFlds                  , only : ocn2glc_coupling, lnd2glc_coupling, accum_lnd2glc
   use esmFlds                  , only : fldListMed_ocnalb
   use esmFlds                  , only : med_fldList_GetNumFlds, med_fldList_GetFldNames, med_fldList_GetFldInfo
   use esmFlds                  , only : med_fldList_Document_Mapping, med_fldList_Document_Merging
@@ -190,7 +206,7 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !------------------
-    ! setup mediator history phase
+    ! setup mediator history phases for all output variables
     !------------------
 
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
@@ -198,9 +214,6 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
          specPhaseLabel="med_phases_history_write", specRoutine=med_phases_history_write, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_TimestampExport, &
-         specPhaselabel="med_phases_history_write", specRoutine=NUOPC_NoOp, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !------------------
@@ -276,9 +289,6 @@ contains
     call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
          specPhaseLabel="med_phases_post_ocn", specRoutine=med_phases_post_ocn, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_TimestampExport, &
-         specPhaselabel="med_phases_post_ocn", specRoutine=NUOPC_NoOp, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !------------------
     ! prep and post routines for ice
@@ -298,12 +308,9 @@ contains
     call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
          specPhaseLabel="med_phases_post_ice", specRoutine=med_phases_post_ice, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_TimestampExport, &
-         specPhaselabel="med_phases_post_ice", specRoutine=NUOPC_NoOp, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !------------------
-    ! prep routines for lnd
+    ! prep/post routines for lnd
     !------------------
 
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
@@ -319,12 +326,9 @@ contains
     call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
          specPhaseLabel="med_phases_post_lnd", specRoutine=med_phases_post_lnd, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_TimestampExport, &
-         specPhaselabel="med_phases_post_lnd", specRoutine=NUOPC_NoOp, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !------------------
-    ! prep and post routines for rof
+    ! prep/post routines for rof
     !------------------
 
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
@@ -341,12 +345,9 @@ contains
     call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
          specPhaseLabel="med_phases_post_rof", specRoutine=med_phases_post_rof, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_TimestampExport, &
-         specPhaselabel="med_phases_post_rof", specRoutine=NUOPC_NoOp, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !------------------
-    ! prep and post routines for wav
+    ! prep/post routines for wav
     !------------------
 
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
@@ -362,12 +363,9 @@ contains
     call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
          specPhaseLabel="med_phases_post_wav", specRoutine=med_phases_post_wav, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_TimestampExport, &
-         specPhaselabel="med_phases_post_wav", specRoutine=NUOPC_NoOp, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !------------------
-    ! prep and post routines for glc
+    ! prep/post routines for glc
     !------------------
 
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
@@ -384,9 +382,6 @@ contains
     call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
          specPhaseLabel="med_phases_post_glc", specRoutine=med_phases_post_glc, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_TimestampExport, &
-         specPhaselabel="med_phases_post_glc", specRoutine=NUOPC_NoOp, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !------------------
     ! phase routine for ocean albedo computation
@@ -398,9 +393,6 @@ contains
     call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
          specPhaseLabel="med_phases_ocnalb_run", specRoutine=med_phases_ocnalb_run, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_TimestampExport, &
-         specPhaselabel="med_phases_ocnalb_run", specRoutine=NUOPC_NoOp, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !------------------
     ! phase routine for ocn/atm flux computation
@@ -411,9 +403,6 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
          specPhaseLabel="med_phases_aofluxes_run", specRoutine=med_phases_aofluxes_run, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_TimestampExport, &
-         specPhaselabel="med_phases_aofluxes_run", specRoutine=NUOPC_NoOp, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !------------------
@@ -529,6 +518,7 @@ contains
     ! attach specializing method(s)
     ! -> NUOPC specializes by default --->>> first need to remove the default
     !------------------
+    ! This is called every time you enter a mediator phase
 
     call ESMF_MethodRemove(gcomp, mediator_label_SetRunClock, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -970,7 +960,8 @@ contains
                 else
                    transferOffer = 'cannot provide'
                 end if
-                call NUOPC_Advertise(is_local%wrap%NStateImp(ncomp), standardName=stdname, shortname=shortname, name=shortname, &
+                call NUOPC_Advertise(is_local%wrap%NStateImp(ncomp), &
+                     standardName=stdname, shortname=shortname, name=shortname, &
                      TransferOfferGeomObject=transferOffer, rc=rc)
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
                 call ESMF_LogWrite(subname//':Fr_'//trim(compname(ncomp))//': '//trim(shortname), ESMF_LOGMSG_INFO)
@@ -988,7 +979,8 @@ contains
                 else
                    transferOffer = 'cannot provide'
                 end if
-                call NUOPC_Advertise(is_local%wrap%NStateExp(ncomp), standardName=stdname, shortname=shortname, name=shortname, &
+                call NUOPC_Advertise(is_local%wrap%NStateExp(ncomp), &
+                     standardName=stdname, shortname=shortname, name=shortname, &
                      TransferOfferGeomObject=transferOffer, rc=rc)
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
                 call ESMF_LogWrite(subname//':To_'//trim(compname(ncomp))//': '//trim(shortname), ESMF_LOGMSG_INFO)
@@ -1396,12 +1388,12 @@ contains
     !----------------------------------------------------------
     ! realize all Fields with transfer action "accept"
     ! Finish initializing the State Fields
-    ! - Fields are partially created when this routine is called. 
-    ! - Fields contain a geombase object internally created and the geombase object 
-    !   associates with either a ESMF_Grid, or a ESMF_Mesh, or an or an ESMF_XGrid, 
-    !   or a ESMF_LocStream. 
-    ! - Fields containing grids will be transferred! to a Mesh and Realized; 
-    ! - Fields containg meshes are completed with space allocated internally 
+    ! - Fields are partially created when this routine is called.
+    ! - Fields contain a geombase object internally created and the geombase object
+    !   associates with either a ESMF_Grid, or a ESMF_Mesh, or an or an ESMF_XGrid,
+    !   or a ESMF_LocStream.
+    ! - Fields containing grids will be transferred! to a Mesh and Realized;
+    ! - Fields containg meshes are completed with space allocated internally
     !   for an ESMF_Array based on arrayspec
     !----------------------------------------------------------
 
@@ -1477,7 +1469,7 @@ contains
       type(ESMF_Grid)             :: grid
       type(ESMF_Mesh)             :: mesh
       type(ESMF_Field)            :: meshField
-      type(ESMF_Field),pointer    :: fieldList(:) => null()
+      type(ESMF_Field),pointer    :: fieldList(:)
       type(ESMF_FieldStatus_Flag) :: fieldStatus
       type(ESMF_GeomType_Flag)    :: geomtype
       integer                     :: gridToFieldMapCount, ungriddedCount
@@ -1640,13 +1632,13 @@ contains
     use med_phases_prep_atm_mod , only : med_phases_prep_atm
     use med_phases_post_atm_mod , only : med_phases_post_atm
     use med_phases_post_ice_mod , only : med_phases_post_ice
-    use med_phases_post_lnd_mod , only : med_phases_post_lnd_init
+    use med_phases_post_lnd_mod , only : med_phases_post_lnd
     use med_phases_post_glc_mod , only : med_phases_post_glc
     use med_phases_post_ocn_mod , only : med_phases_post_ocn
     use med_phases_post_rof_mod , only : med_phases_post_rof
     use med_phases_post_wav_mod , only : med_phases_post_wav
     use med_phases_ocnalb_mod   , only : med_phases_ocnalb_run
-    use med_phases_aofluxes_mod , only : med_phases_aofluxes_run, med_phases_aofluxes_init_fldbuns
+    use med_phases_aofluxes_mod , only : med_phases_aofluxes_init_fldbuns
     use med_phases_profile_mod  , only : med_phases_profile
     use med_diag_mod            , only : med_diag_zero, med_diag_init
     use med_map_mod             , only : med_map_routehandles_init, med_map_packed_field_create
@@ -1671,11 +1663,12 @@ contains
     integer                            :: cntn1, cntn2
     integer                            :: fieldCount
     character(ESMF_MAXSTR),allocatable :: fieldNameList(:)
-    character(CL), pointer             :: fldnames(:) => null()
+    character(CL), pointer             :: fldnames(:)
     character(CL)                      :: cvalue
     character(CL)                      :: cname
     character(CL)                      :: start_type
     logical                            :: read_restart
+    logical                            :: isPresent, isSet
     logical                            :: allDone = .false.
     logical,save                       :: compDone(ncomps)
     logical,save                       :: first_call = .true.
@@ -2084,7 +2077,21 @@ contains
             exit
          end if
       end do
-      if (lnd2glc_coupling .or. ocn2glc_coupling) then
+      if (lnd2glc_coupling) then
+         accum_lnd2glc = .true.
+      else
+         ! Determine if will create auxiliary history file that contains
+         ! lnd2glc data averaged over the year
+         call NUOPC_CompAttributeGet(gcomp, name="histaux_l2x1yrg", value=cvalue, &
+              isPresent=isPresent, isSet=isSet, rc=rc)
+         if (ChkErr(rc,__LINE__,u_FILE_u)) return
+         if (isPresent .and. isSet) then
+            read(cvalue,*) accum_lnd2glc
+         else
+            accum_lnd2glc = .false.
+         end if
+      end if
+      if (lnd2glc_coupling .or. ocn2glc_coupling .or. accum_lnd2glc) then
          call med_phases_prep_glc_init(gcomp, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
       end if
@@ -2221,7 +2228,7 @@ contains
           if (.not. compDone(compatm)) then  ! atmdone is not true
              if (trim(lnd_present) == 'true') then
                 ! map initial lnd->atm
-                call med_phases_post_lnd_init(gcomp, rc)
+                call med_phases_post_lnd(gcomp, rc)
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
              end if
              ! do the merge to the atmospheric component
@@ -2297,8 +2304,8 @@ contains
        end if
        do n1 = 1,ncomps
           if (mastertask) then
-          write(logunit,*)
-          write(logunit,'(a)') trim(subname)//" "//trim(compname(n1))
+             write(logunit,*)
+             write(logunit,'(a)') trim(subname)//" "//trim(compname(n1))
           end if
           if (is_local%wrap%comp_present(n1) .and. ESMF_StateIsCreated(is_local%wrap%NStateImp(n1),rc=rc)) then
              call State_GetScalar(scalar_value=real_nx, &
@@ -2317,7 +2324,7 @@ contains
              is_local%wrap%ny(n1) = nint(real_ny)
              write(msgString,'(2i8,2l4)') is_local%wrap%nx(n1), is_local%wrap%ny(n1)
              if (mastertask) then
-                write(logunit,*) 'global nx,ny sizes for '//trim(compname(n1))//":"//trim(msgString)
+                write(logunit,'(a)') 'global nx,ny sizes for '//trim(compname(n1))//":"//trim(msgString)
              end if
              call ESMF_LogWrite(trim(subname)//":"//trim(compname(n1))//":"//trim(msgString), ESMF_LOGMSG_INFO)
           end if
@@ -2336,7 +2343,6 @@ contains
        call med_diag_init(gcomp, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call med_diag_zero(mode='all', rc=rc)
-
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        !---------------------------------------
@@ -2374,7 +2380,7 @@ contains
        end if
        if (trim(lnd_present) == 'true') then
           ! map initial lnd->atm
-          call med_phases_post_lnd_init(gcomp, rc)
+          call med_phases_post_lnd(gcomp, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
        if (trim(ocn_present) == 'true') then
@@ -2410,7 +2416,6 @@ contains
   end subroutine DataInitialize
 
   !-----------------------------------------------------------------------------
-
   subroutine SetRunClock(gcomp, rc)
 
     use ESMF                  , only : ESMF_GridComp, ESMF_CLOCK, ESMF_Time, ESMF_TimeInterval
@@ -2427,7 +2432,8 @@ contains
     integer, intent(out) :: rc
 
     ! local variables
-    type(ESMF_Clock)        :: mediatorClock, driverClock
+    type(ESMF_Clock)        :: mClock  ! mediator clock
+    type(ESMF_CLock)        :: dClock  ! driver clock
     type(ESMF_Time)         :: currTime
     type(ESMF_TimeInterval) :: timeStep
     type(ESMF_Alarm)        :: stop_alarm
@@ -2448,27 +2454,27 @@ contains
     endif
 
     ! query the Mediator for clocks
-    call NUOPC_MediatorGet(gcomp, mediatorClock=mediatorClock, driverClock=driverClock, rc=rc)
+    call NUOPC_MediatorGet(gcomp, mediatorClock=mClock, driverClock=dClock, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if (dbug_flag > 1) then
-       call Clock_TimePrint(driverClock  ,trim(subname)//'driver clock1',rc)
-       call Clock_TimePrint(mediatorClock,trim(subname)//'mediat clock1',rc)
+       call Clock_TimePrint(dClock, trim(subname)//'driver clock1',rc)
+       call Clock_TimePrint(mClock, trim(subname)//'mediat clock1',rc)
     endif
 
     ! set the mediatorClock to have the current start time as the driverClock
-    call ESMF_ClockGet(driverClock, currTime=currTime, timeStep=timeStep, rc=rc)
+    call ESMF_ClockGet(dClock, currTime=currTime, timeStep=timeStep, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_ClockSet(mediatorClock, currTime=currTime, timeStep=timeStep, rc=rc)
+    call ESMF_ClockSet(mClock, currTime=currTime, timeStep=timeStep, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if (dbug_flag > 1) then
-       call Clock_TimePrint(driverClock  ,trim(subname)//'driver clock2',rc)
-       call Clock_TimePrint(mediatorClock,trim(subname)//'mediat clock2',rc)
+       call Clock_TimePrint(dClock, trim(subname)//'driver clock2',rc)
+       call Clock_TimePrint(mClock, trim(subname)//'mediat clock2',rc)
     endif
 
     ! check and set the component clock against the driver clock
-    call NUOPC_CompCheckSetClock(gcomp, driverClock, checkTimeStep=.false., rc=rc)
+    call NUOPC_CompCheckSetClock(gcomp, dClock, checkTimeStep=.false., rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if (.not. stopalarmcreated) then
@@ -2480,20 +2486,16 @@ contains
        call NUOPC_CompAttributeGet(gcomp, name="stop_ymd", value=cvalue, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        read(cvalue,*) stop_ymd
-       call alarmInit(mediatorclock, stop_alarm, stop_option, opt_n=stop_n, opt_ymd=stop_ymd, &
+       call med_time_alarmInit(mclock, stop_alarm, stop_option, opt_n=stop_n, opt_ymd=stop_ymd, &
             alarmname='alarm_stop', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        stopalarmcreated = .true.
     end if
 
-    !--------------------------------
     ! Advance med clock to trigger alarms then reset model clock back to currtime
-    !--------------------------------
-
-    call ESMF_ClockAdvance(mediatorClock,rc=rc)
+    call ESMF_ClockAdvance(mClock,rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    call ESMF_ClockSet(mediatorClock, currTime=currtime, timeStep=timestep, rc=rc)
+    call ESMF_ClockSet(mClock, currTime=currtime, timeStep=timestep, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if (dbug_flag > 5) then
@@ -2525,7 +2527,7 @@ contains
     integer               :: numOwnedElements
     integer               :: spatialDim
     real(r8), allocatable :: ownedElemCoords(:)
-    real(r8), pointer     :: dataptr(:) => null()
+    real(r8), pointer     :: dataptr(:)
     integer               :: n, dimcount, fieldcount
     character(len=*),parameter :: subname=' (module_MED:med_meshinfo_create) '
     !-------------------------------------------------------------------------------
@@ -2620,43 +2622,33 @@ contains
       call ESMF_GridGetCoord(grid, staggerLoc=ESMF_STAGGERLOC_CENTER, &
             isPresent=isPresent, rc=rc)
       if (chkerr(rc,__LINE__,u_FILE_u)) return
-
       if (isPresent) then
         call ESMF_GridGetCoord(grid, coordDim=1, &
              staggerLoc=ESMF_STAGGERLOC_CENTER, array=array, rc=rc)
         if (chkerr(rc,__LINE__,u_FILE_u)) return
-
         call ESMF_ArraySet(array, name="lon_center", rc=rc)
         if (chkerr(rc,__LINE__,u_FILE_u)) return
-
         call ESMF_ArrayBundleAdd(arrayBundle, (/array/), rc=rc)
         if (chkerr(rc,__LINE__,u_FILE_u)) return
-
         call ESMF_GridGetCoord(grid, coordDim=2, &
              staggerLoc=ESMF_STAGGERLOC_CENTER, array=array, rc=rc)
         if (chkerr(rc,__LINE__,u_FILE_u)) return
-
         call ESMF_ArraySet(array, name="lat_center", rc=rc)
         if (chkerr(rc,__LINE__,u_FILE_u)) return
-
         call ESMF_ArrayBundleAdd(arrayBundle, (/array/), rc=rc)
         if (chkerr(rc,__LINE__,u_FILE_u)) return
       endif
-
 
       ! Mask
       call ESMF_GridGetItem(grid, itemflag=ESMF_GRIDITEM_MASK, &
            staggerLoc=ESMF_STAGGERLOC_CENTER, isPresent=isPresent, rc=rc)
       if (chkerr(rc,__LINE__,u_FILE_u)) return
-
       if (isPresent) then
         call ESMF_GridGetItem(grid, staggerLoc=ESMF_STAGGERLOC_CENTER, &
              itemflag=ESMF_GRIDITEM_MASK, array=array, rc=rc)
         if (chkerr(rc,__LINE__,u_FILE_u)) return
-
         call ESMF_ArraySet(array, name="mask_center", rc=rc)
         if (chkerr(rc,__LINE__,u_FILE_u)) return
-
         call ESMF_ArrayBundleAdd(arrayBundle, (/array/), rc=rc)
         if (chkerr(rc,__LINE__,u_FILE_u)) return
       endif
@@ -2665,15 +2657,12 @@ contains
       call ESMF_GridGetItem(grid, itemflag=ESMF_GRIDITEM_AREA, &
            staggerLoc=ESMF_STAGGERLOC_CENTER, isPresent=isPresent, rc=rc)
       if (chkerr(rc,__LINE__,u_FILE_u)) return
-
       if (isPresent) then
         call ESMF_GridGetItem(grid, staggerLoc=ESMF_STAGGERLOC_CENTER, &
              itemflag=ESMF_GRIDITEM_AREA, array=array, rc=rc)
         if (chkerr(rc,__LINE__,u_FILE_u)) return
-
         call ESMF_ArraySet(array, name="area_center", rc=rc)
         if (chkerr(rc,__LINE__,u_FILE_u)) return
-
         call ESMF_ArrayBundleAdd(arrayBundle, (/array/), rc=rc)
         if (chkerr(rc,__LINE__,u_FILE_u)) return
       endif
@@ -2688,20 +2677,15 @@ contains
         call ESMF_GridGetCoord(grid, coordDim=1, &
              staggerLoc=ESMF_STAGGERLOC_CORNER, array=array, rc=rc)
         if (chkerr(rc,__LINE__,u_FILE_u)) return
-
         call ESMF_ArraySet(array, name="lon_corner", rc=rc)
         if (chkerr(rc,__LINE__,u_FILE_u)) return
-
         call ESMF_ArrayBundleAdd(arrayBundle, (/array/), rc=rc)
         if (chkerr(rc,__LINE__,u_FILE_u)) return
-
         call ESMF_GridGetCoord(grid, coordDim=2, &
              staggerLoc=ESMF_STAGGERLOC_CORNER, array=array, rc=rc)
         if (chkerr(rc,__LINE__,u_FILE_u)) return
-
         call ESMF_ArraySet(array, name="lat_corner", rc=rc)
         if (chkerr(rc,__LINE__,u_FILE_u)) return
-
         call ESMF_ArrayBundleAdd(arrayBundle, (/array/), rc=rc)
         if (chkerr(rc,__LINE__,u_FILE_u)) return
       endif
@@ -2710,15 +2694,12 @@ contains
       call ESMF_GridGetItem(grid, itemflag=ESMF_GRIDITEM_MASK, &
            staggerLoc=ESMF_STAGGERLOC_CORNER, isPresent=isPresent, rc=rc)
       if (chkerr(rc,__LINE__,u_FILE_u)) return
-
       if (isPresent) then
         call ESMF_GridGetItem(grid, staggerLoc=ESMF_STAGGERLOC_CORNER, &
              itemflag=ESMF_GRIDITEM_MASK, array=array, rc=rc)
         if (chkerr(rc,__LINE__,u_FILE_u)) return
-
         call ESMF_ArraySet(array, name="mask_corner", rc=rc)
         if (chkerr(rc,__LINE__,u_FILE_u)) return
-
         call ESMF_ArrayBundleAdd(arrayBundle, (/array/), rc=rc)
         if (chkerr(rc,__LINE__,u_FILE_u)) return
       endif
@@ -2727,15 +2708,12 @@ contains
       call ESMF_GridGetItem(grid, itemflag=ESMF_GRIDITEM_AREA, &
            staggerLoc=ESMF_STAGGERLOC_CORNER, isPresent=isPresent, rc=rc)
       if (chkerr(rc,__LINE__,u_FILE_u)) return
-
       if (isPresent) then
         call ESMF_GridGetItem(grid, staggerLoc=ESMF_STAGGERLOC_CORNER, &
              itemflag=ESMF_GRIDITEM_AREA, array=array, rc=rc)
         if (chkerr(rc,__LINE__,u_FILE_u)) return
-
         call ESMF_ArraySet(array, name="area_corner", rc=rc)
         if (chkerr(rc,__LINE__,u_FILE_u)) return
-
         call ESMF_ArrayBundleAdd(arrayBundle, (/array/), rc=rc)
         if (chkerr(rc,__LINE__,u_FILE_u)) return
       endif
