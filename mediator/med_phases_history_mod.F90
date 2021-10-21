@@ -1049,7 +1049,7 @@ contains
           if (isPresent .and. isSet) then
              call NUOPC_CompAttributeGet(gcomp, name=trim(prefix)//'_enabled', value=cvalue, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             read(cvalue,'(l)') enable_auxfile
+             read(cvalue,'(l7)') enable_auxfile
           else
              enable_auxfile = .false.
           end if
