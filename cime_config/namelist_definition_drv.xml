@@ -2250,18 +2250,6 @@
     </values>
   </entry>
 
-  <entry id="num_icesheets">
-    <type>integer</type>
-    <category>expdef</category>
-    <group>ALLCOMP_attributes</group>
-    <desc>
-      number of glc ice sheets
-    </desc>
-    <values>
-      <value>1</value>
-    </values>
-  </entry>
-
   <entry id="flds_co2a">
     <type>logical</type>
     <category>flds</category>
@@ -3895,7 +3883,7 @@
   <entry id="mesh_glc" modify_via_xml="GLC_DOMAIN_MESH">
     <type>char</type>
     <category>mapping</category>
-    <group>GLC_attributes</group>
+    <group>ALLCOMP_attributes</group>
     <desc>
       MESH description of glc grid
     </desc>

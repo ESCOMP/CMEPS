@@ -2,16 +2,16 @@ module med_phases_post_glc_mod
 
   !-----------------------------------------------------------------------------
   ! Mediator phase for mapping glc->lnd and glc->ocn after the receive of glc
+  ! ASSUMES that multiple ice sheets do not overlap
   !-----------------------------------------------------------------------------
 
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
   use NUOPC                 , only : NUOPC_CompAttributeGet
-  use ESMF                  , only : operator(/=)
   use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_LOGMSG_ERROR, ESMF_SUCCESS, ESMF_FAILURE
   use ESMF                  , only : ESMF_FieldBundle, ESMF_FieldBundleGet
   use ESMF                  , only : ESMF_GridComp, ESMF_GridCompGet
-  use ESMF                  , only : ESMF_StateGet, ESMF_StateItem_Flag, ESMF_STATEITEM_NOTFOUND
-  use ESMF                  , only : ESMF_Mesh, ESMF_MeshLoc, ESMF_MESHLOC_ELEMENT, ESMF_TYPEKIND_R8
+  use ESMF                  , only : ESMF_StateGet, ESMF_StateItem_Flag
+  use ESMF                  , only : ESMF_Mesh, ESMF_MESHLOC_ELEMENT, ESMF_TYPEKIND_R8
   use ESMF                  , only : ESMF_Field, ESMF_FieldGet, ESMF_FieldCreate
   use ESMF                  , only : ESMF_RouteHandle, ESMF_RouteHandleIsCreated
   use esmFlds               , only : compatm, compice, complnd, comprof, compocn, ncomps, compname
@@ -30,10 +30,7 @@ module med_phases_post_glc_mod
   use med_internalstate_mod , only : InternalState, mastertask, logunit
   use med_map_mod           , only : med_map_rh_is_created, med_map_routehandles_init
   use med_map_mod           , only : med_map_field_packed, med_map_field_normalized, med_map_field
-  use med_merge_mod         , only : med_merge_auto
-  use glc_elevclass_mod     , only : glc_get_num_elevation_classes
-  use glc_elevclass_mod     , only : glc_mean_elevation_virtual
-  use glc_elevclass_mod     , only : glc_get_fractional_icecov
+  use glc_elevclass_mod     , only : glc_mean_elevation_virtual, glc_get_fractional_icecov
   use perf_mod              , only : t_startf, t_stopf
 
   implicit none
@@ -159,7 +156,7 @@ contains
     end if
 
     !---------------------------------------
-    ! glc->ocn mapping -
+    ! glc->ocn mapping
     ! merging with rof->ocn fields is done in med_phases_prep_ocn
     !---------------------------------------
     if (glc2ocn_coupling) then
@@ -236,7 +233,6 @@ contains
   end subroutine med_phases_post_glc
 
   !================================================================================================
-
   subroutine map_glc2lnd_init(gcomp, rc)
 
     ! input/output variables
@@ -384,6 +380,7 @@ contains
     real(r8), pointer     :: topo_l_ec_sum(:,:)
     real(r8), pointer     :: dataptr1d_src(:)
     real(r8), pointer     :: dataptr1d_dst(:)
+    real(r8), pointer     :: icemask_l(:)
     character(len=*), parameter :: subname = 'map_glc2lnd'
     !-----------------------------------------------------------------------
 
@@ -553,25 +550,53 @@ contains
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           call field_getdata2d(field_frac_x_icemask_l_ec, frac_x_icemask_l_ec, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call field_getdata1d(field_icemask_l, icemask_l, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
 
           ! set Sg_topo values in export state to land (in multiple elevation classes)
           ! also set the topo field for virtual columns, in a given elevation class.
           ! This is needed because virtual columns (i.e., elevation classes that have no
           ! contributing glc grid cells) won't have any topographic information mapped onto
           ! them, so would otherwise end up with an elevation of 0.
+          ! ASSUME that multiple ice sheets do not overlap
           do ec = 1,ungriddedCount
              topo_virtual = glc_mean_elevation_virtual(ec-1) ! glc_mean_elevation_virtual uses 0:glc_nec
              do l = 1,size(frac_x_icemask_l_ec, dim=2)
-                if (frac_l_ec_sum(ec,l) <= 0._r8) then
-                   topo_l_ec_sum(ec,l) = topo_l_ec_sum(ec,l) + topo_virtual
-                else
-                   if (frac_x_icemask_l_ec(ec,l) /= 0.0_r8) then
-                      topo_l_ec_sum(ec,l) = topo_l_ec_sum(ec,l) + topo_l_ec(ec,l) / frac_x_icemask_l_ec(ec,l)
+                if (icemask_l(l) > 0._r8) then
+                   ! We only do this where icemask_l > 0 to avoid adding topo_virtual
+                   ! multiple times. If icemask_l == 0 for all ice sheets, then lnd should
+                   ! ignore the topo values from glc, so it's safe to leave them unset; if
+                   ! icemask_l is 0 for this ice sheet but > 0 for some other ice sheet,
+                   ! then we'll get the appropriate topo setting from that other ice
+                   ! sheet.
+                   !
+                   ! Note that frac_l_ec_sum is the sum over ice sheets we have handled so
+                   ! far in the outer loop over ice sheets. At first glance, that could
+                   ! seem wrong (because what if a later ice sheet causes this sum to
+                   ! become greater than 0?), and it may be that we should rework this for
+                   ! clarity. However, since icemask_l > 0 (which is the ice mask for this
+                   ! ice sheet) and we assume that multiple ice sheets do not overlap, we
+                   ! can be confident that no other ice sheet will contribute to
+                   ! frac_l_ec_sum for this land point, so if it is <= 0 at this point,
+                   ! it should remain <= 0.
+                   if (frac_l_ec_sum(ec,l) <= 0._r8) then
+                      ! This is formulated as an addition for consistency with other
+                      ! additions to the *_sum variables, but in practice only one ice
+                      ! sheet will contribute to any land point, given the assumption of
+                      ! non-overlapping ice sheet domains. (If more than one ice sheet
+                      ! contributed to a given land point, the following line would do the
+                      ! wrong thing, since it would add topo_virtual multiple times.)
+                      topo_l_ec_sum(ec,l) = topo_l_ec_sum(ec,l) + topo_virtual
+                   else
+                      if (frac_x_icemask_l_ec(ec,l) /= 0.0_r8) then
+                         topo_l_ec_sum(ec,l) = topo_l_ec_sum(ec,l) + topo_l_ec(ec,l) / frac_x_icemask_l_ec(ec,l)
+                      end if
                    end if
                 end if
              end do
           end do
        end if
+
     end do
 
     if (dbug_flag > 5) then
