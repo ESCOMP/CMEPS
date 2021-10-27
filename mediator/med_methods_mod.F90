@@ -1863,7 +1863,7 @@ contains
     elseif (geomtype == ESMF_GEOMTYPE_MESH) then
       call ESMF_FieldGet(field, mesh=lmesh, rc=rc)
       if (chkerr(rc,__LINE__,u_FILE_u)) return
-      call med_methods_Mesh_Print(lmesh, string, rc)
+      !call med_methods_Mesh_Print(lmesh, string, rc)
       if (chkerr(rc,__LINE__,u_FILE_u)) return
     endif
 

@@ -159,6 +159,11 @@ contains
     call addmap(fldListFr(compocn)%flds, 'So_t', compatm, maptype, 'ofrac', 'unset')
     call addmrg(fldListTo(compatm)%flds, 'So_t', mrg_from=compocn, mrg_fld='So_t', mrg_type='copy')
 
+    ! to atm: surface roughness length from wav
+    call addfld(fldListFr(compwav)%flds, 'Sw_z0')
+    call addfld(fldListTo(compatm)%flds, 'Sw_z0')
+    call addmap(fldListFr(compwav)%flds, 'Sw_z0', compatm, maptype, 'wfrac', 'unset')
+    call addmrg(fldListTo(compatm)%flds, 'Sw_z0', mrg_from=compwav, mrg_fld='Sw_z0', mrg_type='copy')
     !=====================================================================
     ! FIELDS TO OCEAN (compocn)
     !=====================================================================
