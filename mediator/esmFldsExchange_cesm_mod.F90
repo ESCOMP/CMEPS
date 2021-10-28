@@ -55,6 +55,7 @@ module esmFldsExchange_cesm_mod
   logical             :: flds_co2b
   logical             :: flds_co2c
   logical             :: flds_wiso
+  logical             :: flds_r2l_stream_channel_depths   ! Pass channel depths from ROF to LND
 
   character(*), parameter :: u_FILE_u = &
        __FILE__
@@ -209,16 +210,21 @@ contains
        call NUOPC_CompAttributeGet(gcomp, name='flds_wiso', value=cvalue, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        read(cvalue,*) flds_wiso
+       ! are water isotope exchanges enabled?
+       call NUOPC_CompAttributeGet(gcomp, name='flds_r2l_stream_channel_depths', value=cvalue, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       read(cvalue,*) flds_r2l_stream_channel_depths
 
        ! write diagnostic output
        if (mastertask) then
-          write(logunit,'(a,l7)') trim(subname)//' flds_co2a         = ',flds_co2a
-          write(logunit,'(a,l7)') trim(subname)//' flds_co2b         = ',flds_co2b
-          write(logunit,'(a,l7)') trim(subname)//' flds_co2c         = ',flds_co2b
-          write(logunit,'(a,l7)') trim(subname)//' flds_wiso         = ',flds_wiso
-          write(logunit,'(a,l7)') trim(subname)//' flds_i2o_per_cat  = ',flds_i2o_per_cat
-          write(logunit,'(a,l7)') trim(subname)//' ocn2glc_coupling  = ',ocn2glc_coupling
-          write(logunit,'(a,l7)') trim(subname)//' mapuv_with_cart3d = ',mapuv_with_cart3d
+          write(logunit,'(a,l7)') trim(subname)//' flds_co2a                       = ',flds_co2a
+          write(logunit,'(a,l7)') trim(subname)//' flds_co2b                       = ',flds_co2b
+          write(logunit,'(a,l7)') trim(subname)//' flds_co2c                       = ',flds_co2b
+          write(logunit,'(a,l7)') trim(subname)//' flds_wiso                       = ',flds_wiso
+          write(logunit,'(a,l7)') trim(subname)//' flds_i2o_per_cat                = ',flds_i2o_per_cat
+          write(logunit,'(a,l7)') trim(subname)//' flds_r2l_stream_channel_depths  = ',flds_r2l_stream_channel_depths
+          write(logunit,'(a,l7)') trim(subname)//' ocn2glc_coupling                = ',ocn2glc_coupling
+          write(logunit,'(a,l7)') trim(subname)//' mapuv_with_cart3d               = ',mapuv_with_cart3d
        end if
 
     end if

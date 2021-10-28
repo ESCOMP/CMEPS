@@ -2328,6 +2328,19 @@
     </values>
   </entry>
 
+  <entry id="flds_r2l_stream_channel_depths">
+    <type>logical</type>
+    <category>flds</category>
+    <group>ALLCOMP_attributes</group>
+    <desc>
+      Pass channel depths from river component to land component. This is needed for the hillslope
+      model in CTSM.
+    </desc>
+    <values>
+      <value>.false.</value>
+    </values>
+  </entry>
+
   <entry  id="glc_nec" modify_via_xml="GLC_NEC">
     <type>integer</type>
     <category>flds</category>
