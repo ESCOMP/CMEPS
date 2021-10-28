@@ -49,13 +49,13 @@ module esmFldsExchange_cesm_mod
   character(len=CX)   :: rof2lnd_map='unset'
   character(len=CX)   :: atm2wav_map='unset'
 
-  logical             :: mapuv_with_cart3d
-  logical             :: flds_i2o_per_cat
-  logical             :: flds_co2a
-  logical             :: flds_co2b
-  logical             :: flds_co2c
-  logical             :: flds_wiso
-  logical             :: flds_r2l_stream_channel_depths   ! Pass channel depths from ROF to LND
+  logical             :: mapuv_with_cart3d              ! Map U/V vector wind fields from ATM to OCN/ICE by rotating in Cartesian 3D space and then back
+  logical             :: flds_i2o_per_cat               ! Ice thickness category fields passed to OCN
+  logical             :: flds_co2a                      ! Pass CO2 from ATM to surface components
+  logical             :: flds_co2b                      ! Pass CO2 from ATM to LND and back from LND to ATM
+  logical             :: flds_co2c                      ! Pass CO2 from ATM to surface (OCN/LND) and back from them to ATM
+  logical             :: flds_wiso                      ! Pass water isotop fields
+  logical             :: flds_r2l_stream_channel_depths ! Pass channel depths from ROF to LND
 
   character(*), parameter :: u_FILE_u = &
        __FILE__
