@@ -176,6 +176,8 @@ module med_diag_mod
   integer :: f_heat_end      = unset_index ! Last index for heat
   integer :: f_watr_beg      = unset_index ! 1st index  for water
   integer :: f_watr_end      = unset_index ! Last index for water
+  integer :: f_salt_beg      = unset_index ! 1st index  for salt
+  integer :: f_salt_end      = unset_index ! Last index for salt
 
   integer :: f_16O_beg       = unset_index ! 1st index  for 16O water isotope
   integer :: f_16O_end       = unset_index ! Last index for 16O water isotope
@@ -257,6 +259,7 @@ contains
     type(ESMF_Clock)  :: mediatorClock
     character(CS)     :: cvalue
     logical           :: isPresent, isSet
+    character(*), parameter :: subName = '(med_phases_diag_init) '
     ! ------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -267,6 +270,9 @@ contains
        read(cvalue,*) budget_table_version
     else
        budget_table_version = 'v1'
+    end if
+    if (mastertask) then
+       write(logunit,'(a)') trim(subname) //' budget table version is '//trim(budget_table_version)  
     end if
 
     call add_to_budget_diag(budget_diags%comps, c_atm_send , 'c2a_atm' ) ! comp index: atm
@@ -294,6 +300,10 @@ contains
 
     call add_to_budget_diag(budget_diags%fields, f_area          ,'area'        ) ! field  area (wrt to unit sphere)
 
+    ! -----------------------------------------
+    ! Heat fluxes budget terms
+    ! -----------------------------------------
+
     ! Note that this order is important here to determine f_heat_beg and f_heat_end
     call add_to_budget_diag(budget_diags%fields, f_heat_frz      ,'hfreeze'     ) ! field  heat : latent, freezing
     call add_to_budget_diag(budget_diags%fields, f_heat_melt     ,'hmelt'       ) ! field  heat : latent, melting
@@ -306,6 +316,10 @@ contains
     call add_to_budget_diag(budget_diags%fields, f_heat_sen      ,'hsen'        ) ! field  heat : sensible
     f_heat_beg = f_heat_frz      ! field  first index for heat
     f_heat_end = f_heat_sen      ! field  last  index for heat
+
+    ! -----------------------------------------
+    ! Water fluxes budget terms
+    ! -----------------------------------------
 
     ! Note that this order is important here to determine f_watr_beg and f_watr_end
     if (trim(budget_table_version) == 'v0') then
@@ -363,6 +377,16 @@ contains
        isof(:)    = (/ f_16O_end, f_18O_end, f_hdO_end /)
        isoname(:) = (/ 'H216O',   'H218O',   '  HDO'   /)
     end if
+
+    ! -----------------------------------------
+    ! Salt fluxes budget terms (for v1 only)
+    ! -----------------------------------------
+
+    if (trim(budget_table_version) == 'v1') then
+       call add_to_budget_diag(budget_diags%fields, f_watr_salt  ,'saltf') ! field  water: salt flux
+       f_salt_beg = f_watr_salt
+       f_salt_end = f_watr_salt
+    endif
 
     !-------------------------------------------------------------------------------
     ! Get config variables
@@ -1422,10 +1446,8 @@ contains
     call diag_ocn(is_local%wrap%FBExp(compocn), 'Fioi_melth', f_heat_melt   , ic, areas, sfrac, budget_local, rc=rc)
     call diag_ocn(is_local%wrap%FBExp(compocn), 'Fioi_bergh', f_heat_melt   , ic, areas, sfrac, budget_local, rc=rc)
 
-    if (f_watr_salt /= unset_index) then
-       call diag_ocn(is_local%wrap%FBExp(compocn), 'Fioi_salt' , f_watr_salt   , ic, areas, sfrac, budget_local, &
-            scale=SFLXtoWFLX, rc=rc)
-    end if
+    call diag_ocn(is_local%wrap%FBExp(compocn), 'Fioi_salt' , f_watr_salt   , ic, areas, sfrac, budget_local, &
+         scale=SFLXtoWFLX, rc=rc)
 
     if (fldbun_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_swnet', rc=rc)) then
        call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_swnet', f_heat_swnet  , ic, areas, sfrac, budget_local, rc=rc)
@@ -2136,12 +2158,6 @@ contains
             sum(data(f_watr_beg:f_watr_end,icn,ip)) + sum(data(f_watr_beg:f_watr_end,ics,ip)) + &
             sum(data(f_watr_beg:f_watr_end,ico,ip))
 
-       if (trim(budget_table_version) == 'v1') then
-          write(diagunit,*) ' '
-          write(diagunit,FAH) subname,trim(str)//' SALT BUDGET (kg m-2 s-1): period = ',&
-               trim(budget_diags%periods(ip)%name),': date = ',date,tod
-       end if
-
        if ( flds_wiso ) then
           do is = 1, nisotopes
              write(diagunit,*) ' '
@@ -2374,13 +2390,21 @@ contains
     real(r8) :: net_heat_ice_nh  , sum_net_heat_ice_nh
     real(r8) :: net_heat_ice_sh  , sum_net_heat_ice_sh
     real(r8) :: net_heat_tot     , sum_net_heat_tot
+    real(r8) :: net_salt_atm     , sum_net_salt_atm
+    real(r8) :: net_salt_lnd     , sum_net_salt_lnd
+    real(r8) :: net_salt_rof     , sum_net_salt_rof
+    real(r8) :: net_salt_ocn     , sum_net_salt_ocn
+    real(r8) :: net_salt_glc     , sum_net_salt_glc
+    real(r8) :: net_salt_ice_nh  , sum_net_salt_ice_nh
+    real(r8) :: net_salt_ice_sh  , sum_net_salt_ice_sh
+    real(r8) :: net_salt_tot     , sum_net_salt_tot
     character(len=40) :: str
     character(*), parameter:: subName = '(med_diag_print_summary) '
     ! ------------------------------------------------------------------
 
     call t_startf('MED:'//subname)
-    ! write out areas
 
+    ! write out areas
     write(diagunit,*) ' '
     write(diagunit,FAH) subname,'NET AREA BUDGET (m2/m2): period = ',&
          trim(budget_diags%periods(ip)%name),&
@@ -2393,7 +2417,10 @@ contains
     ice_area_sh = data(f_area,c_ish_recv,ip)
     sum_area    = atm_area + lnd_area + ocn_area + ice_area_nh + ice_area_sh
     write(diagunit,FA1) budget_diags%fields(f_area)%name, atm_area, lnd_area, ocn_area, ice_area_nh, ice_area_sh, sum_area
+
+    ! -----------------------------
     ! write out net heat budgets
+    ! -----------------------------
 
     write(diagunit,*) ' '
     write(diagunit,FAH) subname,'NET HEAT BUDGET (W/m2): period = ',&
@@ -2416,7 +2443,6 @@ contains
     end do
 
     ! Write out sum over all net heat budgets (sum over f_heat_beg -> f_heat_end)
-
     sum_net_heat_atm    = sum(data(f_heat_beg:f_heat_end, c_atm_recv, ip)) + &
                           sum(data(f_heat_beg:f_heat_end, c_atm_send, ip))
     sum_net_heat_lnd    = sum(data(f_heat_beg:f_heat_end, c_lnd_recv, ip)) + &
@@ -2438,7 +2464,9 @@ contains
          sum_net_heat_atm, sum_net_heat_lnd, sum_net_heat_rof, sum_net_heat_ocn, &
          sum_net_heat_ice_nh, sum_net_heat_ice_sh, sum_net_heat_glc, sum_net_heat_tot
 
+    ! -----------------------------
     ! write out net water budgets
+    ! -----------------------------
 
     write(diagunit,*) ' '
     write(diagunit,FAH) subname,'NET WATER BUDGET (kg/m2s*1e6): period = ',&
@@ -2460,8 +2488,7 @@ contains
             net_water_ice_nh, net_water_ice_sh, net_water_glc, net_water_tot
     enddo
 
-    ! Write out sum over all net heat budgets (sum over f_watr_beg -> f_watr_end)
-
+    ! Write out sum over all net water budgets (sum over f_watr_beg -> f_watr_end)
     sum_net_water_atm    = sum(data(f_watr_beg:f_watr_end, c_atm_recv, ip)) + &
                            sum(data(f_watr_beg:f_watr_end, c_atm_send, ip))
     sum_net_water_lnd    = sum(data(f_watr_beg:f_watr_end, c_lnd_recv, ip)) + &
@@ -2530,6 +2557,54 @@ contains
                sum_net_water_atm, sum_net_water_lnd, sum_net_water_rof, sum_net_water_ocn, &
                sum_net_water_ice_nh, sum_net_water_ice_sh, sum_net_water_glc, sum_net_water_tot
        end do
+    end if
+
+    ! -----------------------------
+    ! write out net salt budgets
+    ! -----------------------------
+
+    if (trim(budget_table_version) == 'v1') then
+       write(diagunit,*) ' '
+       write(diagunit,FAH) subname,'NET SALT BUDGET (kg/m2s): period = ',&
+            trim(budget_diags%periods(ip)%name), ': date = ',date,tod
+       write(diagunit,FA0r) '     atm','     lnd','     rof','     ocn','  ice nh','  ice sh','     glc',' *SUM*  '
+       do nf = f_salt_beg, f_salt_end
+          net_salt_atm    = data(nf, c_atm_recv, ip) + data(nf, c_atm_send, ip)
+          net_salt_lnd    = data(nf, c_lnd_recv, ip) + data(nf, c_lnd_send, ip)
+          net_salt_rof    = data(nf, c_rof_recv, ip) + data(nf, c_rof_send, ip)
+          net_salt_ocn    = data(nf, c_ocn_recv, ip) + data(nf, c_ocn_send, ip)
+          net_salt_ice_nh = data(nf, c_inh_recv, ip) + data(nf, c_inh_send, ip)
+          net_salt_ice_sh = data(nf, c_ish_recv, ip) + data(nf, c_ish_send, ip)
+          net_salt_glc    = data(nf, c_glc_recv, ip) + data(nf, c_glc_send, ip)
+          net_salt_tot    = net_salt_atm + net_salt_lnd + net_salt_rof + net_salt_ocn + &
+               net_salt_ice_nh + net_salt_ice_sh + net_salt_glc
+
+          write(diagunit,FA1r) budget_diags%fields(nf)%name,&
+               net_salt_atm, net_salt_lnd, net_salt_rof, net_salt_ocn, &
+               net_salt_ice_nh, net_salt_ice_sh, net_salt_glc, net_salt_tot
+       enddo
+
+       ! Write out sum over all net heat budgets (sum over f_salt_beg -> f_salt_end)
+       sum_net_salt_atm    = sum(data(f_salt_beg:f_salt_end, c_atm_recv, ip)) + &
+            sum(data(f_salt_beg:f_salt_end, c_atm_send, ip))
+       sum_net_salt_lnd    = sum(data(f_salt_beg:f_salt_end, c_lnd_recv, ip)) + &
+            sum(data(f_salt_beg:f_salt_end, c_lnd_send, ip))
+       sum_net_salt_rof    = sum(data(f_salt_beg:f_salt_end, c_rof_recv, ip)) + &
+            sum(data(f_salt_beg:f_salt_end, c_rof_send, ip))
+       sum_net_salt_ocn    = sum(data(f_salt_beg:f_salt_end, c_ocn_recv, ip)) + &
+            sum(data(f_salt_beg:f_salt_end, c_ocn_send, ip))
+       sum_net_salt_ice_nh = sum(data(f_salt_beg:f_salt_end, c_inh_recv, ip)) + &
+            sum(data(f_salt_beg:f_salt_end, c_inh_send, ip))
+       sum_net_salt_ice_sh = sum(data(f_salt_beg:f_salt_end, c_ish_recv, ip)) + &
+            sum(data(f_salt_beg:f_salt_end, c_ish_send, ip))
+       sum_net_salt_glc    = sum(data(f_salt_beg:f_salt_end, c_glc_recv, ip)) + &
+            sum(data(f_salt_beg:f_salt_end, c_glc_send, ip))
+       sum_net_salt_tot    = sum_net_salt_atm + sum_net_salt_lnd + sum_net_salt_rof + sum_net_salt_ocn + &
+            sum_net_salt_ice_nh + sum_net_salt_ice_sh + sum_net_salt_glc
+
+       write(diagunit,FA1r)'   *SUM*',&
+            sum_net_salt_atm, sum_net_salt_lnd, sum_net_salt_rof, sum_net_salt_ocn, &
+            sum_net_salt_ice_nh, sum_net_salt_ice_sh, sum_net_salt_glc, sum_net_salt_tot
     end if
 
     call t_stopf('MED:'//subname)
