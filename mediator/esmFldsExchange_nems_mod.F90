@@ -363,15 +363,43 @@ contains
     !=====================================================================
 
     ! to wav - 10m winds from atm
-    allocate(flds(2))
-    flds = (/'Sa_u10m', 'Sa_v10m'/)
+    allocate(flds(3))
+    flds = (/'Sa_u10m', 'Sa_v10m', 'Sa_tbot'/)
 
    do n = 1,size(flds)
        fldname = trim(flds(n))
        call addfld(fldListFr(compatm)%flds, trim(fldname))
        call addfld(fldListTo(compwav)%flds, trim(fldname))
-       call addmap(fldListFr(compatm)%flds, trim(fldname), compwav, maptype, 'one', 'unset')
+       !call addmap(fldListFr(compatm)%flds, trim(fldname), compwav, maptype, 'one', 'unset')
+       call addmap(fldListFr(compatm)%flds, trim(fldname), compwav, mapnstod_consf, 'one', 'unset')
        call addmrg(fldListTo(compwav)%flds, trim(fldname), mrg_from=compatm, mrg_fld=trim(fldname), mrg_type='copy')
+    end do
+    deallocate(flds)
+
+    ! to wav: sea ice fraction
+    allocate(flds(1))
+    flds = (/'Si_ifrac'/)
+    do n = 1,size(flds)
+       fldname = trim(flds(n))
+       call addfld(fldListTo(compwav)%flds, trim(fldname))
+       call addfld(fldListFr(compice)%flds, trim(fldname))
+       !call addmap(fldListFr(compice)%flds, trim(fldname), compice, maptype , 'unset', 'unset')
+       call addmap(fldListFr(compice)%flds, trim(fldname), compwav, mapnstod_consf , 'unset', 'unset')
+       call addmrg(fldListTo(compwav)%flds, trim(fldname), mrg_from=compice, mrg_fld=trim(fldname), mrg_type='copy')
+    end do
+    deallocate(flds)
+
+    ! to wav: zonal sea water velocity from ocn
+    ! to wav: meridional sea water velocity from ocn
+    allocate(flds(3))
+    flds = (/'So_u', 'So_v', 'So_t'/)
+    do n = 1,size(flds)
+       fldname = trim(flds(n))
+       call addfld(fldListTo(compwav)%flds, trim(fldname))
+       call addfld(fldListFr(compocn)%flds, trim(fldname))
+       !call addmap(fldListFr(compocn)%flds, trim(fldname), compwav, maptype , 'unset', 'unset')
+       call addmap(fldListFr(compocn)%flds, trim(fldname), compwav, mapnstod_consf , 'unset', 'unset')
+       call addmrg(fldListTo(compwav)%flds, trim(fldname), mrg_from=compocn, mrg_fld=trim(fldname), mrg_type='copy')
     end do
     deallocate(flds)
 

@@ -325,7 +325,7 @@ contains
   subroutine med_map_routehandles_initfrom_field(n1, n2, fldsrc, flddst, mapindex, routehandles, mapfile, rc)
 
     use ESMF              , only : ESMF_RouteHandle, ESMF_RouteHandlePrint, ESMF_Field, ESMF_MAXSTR
-    use ESMF              , only : ESMF_PoleMethod_Flag, ESMF_POLEMETHOD_ALLAVG
+    use ESMF              , only : ESMF_PoleMethod_Flag, ESMF_POLEMETHOD_ALLAVG, ESMF_POLEMETHOD_NONE
     use ESMF              , only : ESMF_FieldSMMStore, ESMF_FieldRedistStore, ESMF_FieldRegridStore
     use ESMF              , only : ESMF_RouteHandleIsCreated, ESMF_RouteHandleCreate
     use ESMF              , only : ESMF_REGRIDMETHOD_BILINEAR, ESMF_REGRIDMETHOD_PATCH
@@ -368,7 +368,7 @@ contains
     integer                    :: ns
     integer(I4), pointer       :: dof(:)
     integer                    :: srcTermProcessing_Value = 0
-    type(ESMF_PoleMethod_Flag), parameter :: polemethod=ESMF_POLEMETHOD_ALLAVG
+    type(ESMF_PoleMethod_Flag) :: polemethod
     character(len=*), parameter :: subname=' (module_med_map: med_map_routehandles_initfrom_field) '
     !---------------------------------------------
 
@@ -388,22 +388,36 @@ contains
     ! set local flag to false
     ldstprint = .false.
 
+    polemethod=ESMF_POLEMETHOD_ALLAVG
     if (trim(coupling_mode) == 'cesm') then
        dstMaskValue = ispval_mask
        srcMaskValue = ispval_mask
        if (n1 == compocn .or. n1 == compice) srcMaskValue = 0
        if (n2 == compocn .or. n2 == compice) dstMaskValue = 0
+       if (n1 == compwav .and. n2 == compocn) then
+         srcMaskValue = 0
+         dstMaskValue = ispval_mask
+      endif
+      if (n1 == compwav .or. n2 == compwav) then
+        polemethod = ESMF_POLEMETHOD_NONE ! todo: remove this when ESMF tripolar mapping fix is in place.
+      endif
     else if (coupling_mode(1:4) == 'nems') then
-       if (n1 == compatm .and. (n2 == compocn .or. n2 == compice)) then
+       if (n1 == compatm .and. (n2 == compocn .or. n2 == compice .or. n2 == compwav)) then
           srcMaskValue = 1
           dstMaskValue = 0
           if (atm_name(1:4).eq.'datm') then
           srcMaskValue = 0
           endif
-       else if (n2 == compatm .and. (n1 == compocn .or. n1 == compice)) then
+       else if (n2 == compatm .and. (n1 == compocn .or. n1 == compice .or. n1 == compwav)) then
           srcMaskValue = 0
           dstMaskValue = 1
        else if ((n1 == compocn .and. n2 == compice) .or. (n1 == compice .and. n2 == compocn)) then
+          srcMaskValue = 0
+          dstMaskValue = 0
+       else if ((n1 == compocn .and. n2 == compwav) .or. (n1 == compice .and. n2 == compwav)) then
+          srcMaskValue = 0
+          dstMaskValue = 0
+       else if ((n1 == compwav .and. n2 == compocn) .or. (n1 == compwav .and. n2 == compice)) then
           srcMaskValue = 0
           dstMaskValue = 0
        else
@@ -432,7 +446,9 @@ contains
        endif
     end if
 
-    write(string,'(a)') trim(compname(n1))//' to '//trim(compname(n2))
+    write(string,'(a,i4,a,i4)') trim(compname(n1))//' to '//trim(compname(n2))//' srcMask = ', &
+               srcMaskValue,' dstMask = ',dstMaskValue
+    call ESMF_LogWrite(trim(string), ESMF_LOGMSG_INFO)
 
     ! Create route handle
     if (mapindex == mapfcopy) then
