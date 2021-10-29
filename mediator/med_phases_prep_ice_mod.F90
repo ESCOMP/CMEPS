@@ -29,7 +29,7 @@ contains
     use ESMF                  , only : ESMF_FieldBundleGet, ESMF_FieldGet, ESMF_Field
     use ESMF                  , only : ESMF_LOGMSG_ERROR, ESMF_FAILURE
     use ESMF                  , only : ESMF_StateItem_Flag, ESMF_STATEITEM_NOTFOUND
-    use ESMF                  , only : ESMF_VMBroadCast 
+    use ESMF                  , only : ESMF_VMBroadCast
     use med_utils_mod         , only : chkerr       => med_utils_ChkErr
     use med_methods_mod       , only : FB_fldchk    => med_methods_FB_FldChk
     use med_methods_mod       , only : FB_diagnose  => med_methods_FB_diagnose
@@ -50,8 +50,8 @@ contains
     type(InternalState)            :: is_local
     type(ESMF_Field)               :: lfield
     integer                        :: i,n
-    real(R8), pointer              :: dataptr(:) => null()
-    real(R8), pointer              :: dataptr_scalar_ocn(:,:) => null()
+    real(R8), pointer              :: dataptr(:)
+    real(R8), pointer              :: dataptr_scalar_ocn(:,:)
     real(R8)                       :: precip_fact(1)
     character(len=CS)              :: cvalue
     character(len=64), allocatable :: fldnames(:)
@@ -80,7 +80,7 @@ contains
     ! ocn->ice is mapped in med_phases_post_ocn
 
     ! auto merges to create FBExp(compice)
-    call med_merge_auto(compice, &
+    call med_merge_auto(&
          is_local%wrap%med_coupling_active(:,compice), &
          is_local%wrap%FBExp(compice), &
          is_local%wrap%FBFrac(compice), &
@@ -91,12 +91,12 @@ contains
     ! Apply precipitation factor from ocean (that scales atm rain and snow to ice) if appropriate
     if (trim(coupling_mode) == 'cesm' .and. is_local%wrap%flds_scalar_index_precip_factor /= 0) then
 
-       ! Note that in med_internal_mod.F90 all is_local%wrap%flds_scalar_index_precip_factor 
+       ! Note that in med_internal_mod.F90 all is_local%wrap%flds_scalar_index_precip_factor
        ! is initialized to 0.
-       ! In addition, in med.F90, if this attribute is not present as a mediator component attribute, 
-       ! it is set to 0. 
+       ! In addition, in med.F90, if this attribute is not present as a mediator component attribute,
+       ! it is set to 0.
        if (mastertask) then
-          call ESMF_StateGet(is_local%wrap%NstateImp(compocn), & 
+          call ESMF_StateGet(is_local%wrap%NstateImp(compocn), &
                itemName=trim(is_local%wrap%flds_scalar_name), field=lfield, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           call ESMF_FieldGet(lfield, farrayPtr=dataptr_scalar_ocn, rc=rc)
@@ -111,7 +111,7 @@ contains
        end if
        call ESMF_VMBroadCast(is_local%wrap%vm, precip_fact, 1, 0, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       is_local%wrap%flds_scalar_precip_factor = precip_fact(1)      
+       is_local%wrap%flds_scalar_precip_factor = precip_fact(1)
        if (dbug_flag > 5) then
           write(cvalue,*) precip_fact(1)
           call ESMF_LogWrite(trim(subname)//" precip_fact is "//trim(cvalue), ESMF_LOGMSG_INFO)

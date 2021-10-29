@@ -42,10 +42,10 @@ contains
     type(ESMF_Field)           :: lfield
     character(len=64)          :: timestr
     type(InternalState)        :: is_local
-    real(R8), pointer          :: dataPtr1(:) => null()
-    real(R8), pointer          :: dataPtr2(:) => null()
-    real(R8), pointer          :: ifrac(:) => null()
-    real(R8), pointer          :: ofrac(:) => null()
+    real(R8), pointer          :: dataPtr1(:)
+    real(R8), pointer          :: dataPtr2(:)
+    real(R8), pointer          :: ifrac(:)
+    real(R8), pointer          :: ofrac(:)
     integer                    :: i, j, n, n1, ncnt
     character(len=*),parameter :: subname='(med_phases_prep_atm)'
     !-------------------------------------------------------------------------------
@@ -108,22 +108,27 @@ contains
     !--- map atm/ocn fluxes from ocn to atm grid if appropriate
     !---------------------------------------
     if (trim(coupling_mode) == 'cesm' .or. trim(coupling_mode) == 'hafs') then
-       ! Assumption here is that fluxes are computed on the ocean grid
-       call med_map_field_packed( &
-            FBSrc=is_local%wrap%FBMed_aoflux_o, &
-            FBDst=is_local%wrap%FBMed_aoflux_a, &
-            FBFracSrc=is_local%wrap%FBFrac(compocn), &
-            field_normOne=is_local%wrap%field_normOne(compocn,compatm,:), &
-            packed_data=is_local%wrap%packed_data_aoflux_o2a(:), &
-            routehandles=is_local%wrap%RH(compocn,compatm,:), rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       if (is_local%wrap%aoflux_grid == 'ogrid') then
+          call med_map_field_packed( &
+               FBSrc=is_local%wrap%FBMed_aoflux_o, &
+               FBDst=is_local%wrap%FBMed_aoflux_a, &
+               FBFracSrc=is_local%wrap%FBFrac(compocn), &
+               field_normOne=is_local%wrap%field_normOne(compocn,compatm,:), &
+               packed_data=is_local%wrap%packed_data_aoflux_o2a(:), &
+               routehandles=is_local%wrap%RH(compocn,compatm,:), rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       else if (is_local%wrap%aoflux_grid == 'agrid') then
+          ! do nothing - is_local%wrap%FBMed_aoflux_a has been computed in med_aofluxes_init_agrid
+       else if (is_local%wrap%aoflux_grid == 'xgrid') then
+          ! do nothing - is_local%wrap%FBMed_aoflux_a has been computed in med_aofluxes_init_agrid
+       end if
     endif
 
     !---------------------------------------
     !--- merge all fields to atm
     !---------------------------------------
     if (trim(coupling_mode) == 'cesm' .or. trim(coupling_mode) == 'hafs') then
-       call med_merge_auto(compatm, &
+       call med_merge_auto(&
             is_local%wrap%med_coupling_active(:,compatm), &
             is_local%wrap%FBExp(compatm), &
             is_local%wrap%FBFrac(compatm), &
@@ -133,7 +138,7 @@ contains
             FBMed2=is_local%wrap%FBMed_aoflux_a, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     else if (trim(coupling_mode) == 'nems_frac' .or. trim(coupling_mode) == 'nems_orig') then
-       call med_merge_auto(compatm, &
+       call med_merge_auto(&
             is_local%wrap%med_coupling_active(:,compatm), &
             is_local%wrap%FBExp(compatm), &
             is_local%wrap%FBFrac(compatm), &
@@ -193,7 +198,7 @@ contains
     end if
 
     ! Note - the following needs a custom merge since Faoo_fco2_ocn is scaled by (ifrac+ofrac)
-    ! in the merge to the atm 
+    ! in the merge to the atm
     if ( FB_FldChk(is_local%wrap%FBExp(compatm)        , 'Faoo_fco2_ocn', rc=rc) .and. &
          FB_FldChk(is_local%wrap%FBImp(compocn,compocn), 'Faoo_fco2_ocn', rc=rc)) then
        call ESMF_FieldGet(lfield, farrayPtr=dataptr1, rc=rc)

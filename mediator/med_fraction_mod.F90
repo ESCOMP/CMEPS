@@ -166,18 +166,18 @@ contains
     type(ESMF_Field)    :: field_src
     type(ESMF_Field)    :: field_dst
     type(ESMF_Field)    :: lfield
-    real(R8), pointer   :: frac(:) => null()
-    real(R8), pointer   :: ofrac(:) => null()
-    real(R8), pointer   :: aofrac(:) => null()
-    real(R8), pointer   :: lfrac(:) => null()
-    real(R8), pointer   :: ifrac(:) => null()
-    real(R8), pointer   :: gfrac(:) => null()
-    real(R8), pointer   :: rfrac(:) => null()
-    real(R8), pointer   :: wfrac(:) => null()
-    real(R8), pointer   :: Sl_lfrin(:) => null()
-    real(R8), pointer   :: Si_imask(:) => null()
-    real(R8), pointer   :: So_omask(:) => null()
-    real(R8), pointer   :: Sa_ofrac(:) => null()
+    real(R8), pointer   :: frac(:)
+    real(R8), pointer   :: ofrac(:)
+    real(R8), pointer   :: aofrac(:)
+    real(R8), pointer   :: lfrac(:)
+    real(R8), pointer   :: ifrac(:)
+    real(R8), pointer   :: gfrac(:)
+    real(R8), pointer   :: rfrac(:)
+    real(R8), pointer   :: wfrac(:)
+    real(R8), pointer   :: Sl_lfrin(:)
+    real(R8), pointer   :: Si_imask(:)
+    real(R8), pointer   :: So_omask(:)
+    real(R8), pointer   :: Sa_ofrac(:)
     integer             :: i,j,n,n1,ns
     integer             :: maptype
     integer             :: fieldCount
@@ -224,7 +224,7 @@ contains
               (ESMF_StateIsCreated(is_local%wrap%NStateImp(n1),rc=rc) .or. &
                ESMF_StateIsCreated(is_local%wrap%NStateExp(n1),rc=rc))) then
              ! Check number of fields in the state
-             call State_GetNumFields(is_local%wrap%NStateImp(n1), fieldCount, rc=rc) 
+             call State_GetNumFields(is_local%wrap%NStateImp(n1), fieldCount, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
              ! create FBFrac
@@ -656,13 +656,13 @@ contains
 
     ! local variables
     type(InternalState)        :: is_local
-    real(r8), pointer          :: lfrac(:) => null()
-    real(r8), pointer          :: ifrac(:) => null()
-    real(r8), pointer          :: ofrac(:) => null()
-    real(r8), pointer          :: aofrac(:) => null()
-    real(r8), pointer          :: Si_ifrac(:) => null()
-    real(r8), pointer          :: Si_imask(:) => null()
-    real(r8), pointer          :: Sa_ofrac(:) => null()
+    real(r8), pointer          :: lfrac(:)
+    real(r8), pointer          :: ifrac(:)
+    real(r8), pointer          :: ofrac(:)
+    real(r8), pointer          :: aofrac(:)
+    real(r8), pointer          :: Si_ifrac(:)
+    real(r8), pointer          :: Si_imask(:)
+    real(r8), pointer          :: Sa_ofrac(:)
     type(ESMF_Field)           :: lfield
     type(ESMF_Field)           :: field_src
     type(ESMF_Field)           :: field_dst

@@ -47,10 +47,10 @@ contains
     real(r8)                    :: nextsw_cday
     integer                     :: scalar_id
     real(r8)                    :: tmp(1)
-    real(r8), pointer           :: dataptr2d(:,:) => null()
+    real(r8), pointer           :: dataptr2d(:,:)
     logical                     :: first_call = .true.
-    real(r8), pointer           :: dataptr_scalar_lnd(:,:) => null()
-    real(r8), pointer           :: dataptr_scalar_atm(:,:) => null()
+    real(r8), pointer           :: dataptr_scalar_lnd(:,:)
+    real(r8), pointer           :: dataptr_scalar_atm(:,:)
     character(len=*), parameter :: subname='(med_phases_prep_lnd)'
     !---------------------------------------
 
@@ -82,7 +82,7 @@ contains
        ! auto merges to create FBExp(complnd) - other than glc->lnd
        ! The following will merge all fields in fldsSrc
        call t_startf('MED:'//trim(subname)//' merge')
-       call med_merge_auto(complnd, &
+       call med_merge_auto(&
             is_local%wrap%med_coupling_active(:,complnd), &
             is_local%wrap%FBExp(complnd), &
             is_local%wrap%FBFrac(complnd), &

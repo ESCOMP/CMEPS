@@ -71,13 +71,16 @@ module med_internalstate_mod
     type(ESMF_FieldBundle) :: FBImp(ncomps,ncomps)               ! Import data from various components interpolated to various grids
     type(ESMF_FieldBundle) :: FBExp(ncomps)                      ! Export data for various components, on their grid
 
-    ! Mediator field bundles
+    ! Mediator field bundles for ocean albedo
     type(ESMF_FieldBundle) :: FBMed_ocnalb_o                     ! Ocn albedo on ocn grid
     type(ESMF_FieldBundle) :: FBMed_ocnalb_a                     ! Ocn albedo on atm grid
     type(packed_data_type) :: packed_data_ocnalb_o2a(nmappers)   ! packed data for mapping ocn->atm
-    type(ESMF_FieldBundle) :: FBMed_aoflux_o                     ! Ocn/Atm flux fields on ocn grid
-    type(ESMF_FieldBundle) :: FBMed_aoflux_a                     ! Ocn/Atm flux fields on atm grid
+
+    ! Mediator field bundles and other info for atm/ocn flux computation
+    type(ESMF_FieldBundle) :: FBMed_aoflux_a                     ! Ocn/Atm flux output fields on atm grid
+    type(ESMF_FieldBundle) :: FBMed_aoflux_o                     ! Ocn/Atm flux output fields on ocn grid
     type(packed_data_type) :: packed_data_aoflux_o2a(nmappers)   ! packed data for mapping ocn->atm
+    character(len=CS)      :: aoflux_grid                        ! 'ogrid', 'agrid' or 'xgrid'
 
     ! Mapping
     type(ESMF_RouteHandle) :: RH(ncomps,ncomps,nmappers)            ! Routehandles for pairs of components and different mappers
@@ -85,20 +88,15 @@ module med_internalstate_mod
     type(packed_data_type) :: packed_data(ncomps,ncomps,nmappers)   ! Packed data structure needed to efficiently map field bundles
 
     ! Fractions
-    type(ESMF_FieldBundle) :: FBfrac(ncomps)                     ! Fraction data for various components, on their grid
+    type(ESMF_FieldBundle) :: FBfrac(ncomps)     ! Fraction data for various components, on their grid
 
     ! Accumulators for export field bundles
-    type(ESMF_FieldBundle) :: FBExpAccum(ncomps)                 ! Accumulator for various components export on their grid
-    integer                :: FBExpAccumCnt(ncomps) = 0          ! Accumulator counter for each FBExpAccum
-    logical                :: FBExpAccumFlag(ncomps) = .false.   ! Accumulator flag, if true accumulation was done
-
-    ! Accumulators for import field bundles
-    type(ESMF_FieldBundle) :: FBImpAccum(ncomps,ncomps)          ! Accumulator for various components import
-    integer                :: FBImpAccumCnt(ncomps) = 0          ! Accumulator counter for each FBImpAccum
+    type(ESMF_FieldBundle) :: FBExpAccumOcn      ! Accumulator for various components export on their grid
+    integer                :: ExpAccumOcnCnt = 0 ! Accumulator counter for each FBExpAccum
 
     ! Component Mesh info
     type(mesh_info_type)   :: mesh_info(ncomps)
-    type(ESMF_FieldBundle) :: FBArea(ncomps)                     ! needed for mediator history writes
+    type(ESMF_FieldBundle) :: FBArea(ncomps)     ! needed for mediator history writes
 
  end type InternalStateStruct
 
