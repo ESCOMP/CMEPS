@@ -163,7 +163,7 @@ contains
     call addfld(fldListFr(compwav)%flds, 'Sw_z0')
     call addfld(fldListTo(compatm)%flds, 'Sw_z0')
     !call addmap(fldListFr(compwav)%flds, 'Sw_z0', compatm, maptype, 'wfrac', 'unset')
-    call addmap(fldListFr(compwav)%flds, 'Sw_z0', compatm, mapnstod_consf, 'wfrac', 'unset')
+    call addmap(fldListFr(compwav)%flds, 'Sw_z0', compatm, mapnstod_consf, 'one', 'unset')
     call addmrg(fldListTo(compatm)%flds, 'Sw_z0', mrg_from=compwav, mrg_fld='Sw_z0', mrg_type='copy')
     !=====================================================================
     ! FIELDS TO OCEAN (compocn)
@@ -385,7 +385,7 @@ contains
        call addfld(fldListTo(compwav)%flds, trim(fldname))
        call addfld(fldListFr(compice)%flds, trim(fldname))
        !call addmap(fldListFr(compice)%flds, trim(fldname), compice, maptype , 'unset', 'unset')
-       call addmap(fldListFr(compice)%flds, trim(fldname), compwav, mapnstod_consf , 'unset', 'unset')
+       call addmap(fldListFr(compice)%flds, trim(fldname), compwav, mapnstod_consf , 'one', 'unset')
        call addmrg(fldListTo(compwav)%flds, trim(fldname), mrg_from=compice, mrg_fld=trim(fldname), mrg_type='copy')
     end do
     deallocate(flds)
@@ -399,7 +399,7 @@ contains
        call addfld(fldListTo(compwav)%flds, trim(fldname))
        call addfld(fldListFr(compocn)%flds, trim(fldname))
        !call addmap(fldListFr(compocn)%flds, trim(fldname), compwav, maptype , 'unset', 'unset')
-       call addmap(fldListFr(compocn)%flds, trim(fldname), compwav, mapnstod_consf , 'unset', 'unset')
+       call addmap(fldListFr(compocn)%flds, trim(fldname), compwav, mapnstod_consf , 'one', 'unset')
        call addmrg(fldListTo(compwav)%flds, trim(fldname), mrg_from=compocn, mrg_fld=trim(fldname), mrg_type='copy')
     end do
     deallocate(flds)
