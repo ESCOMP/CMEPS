@@ -32,7 +32,7 @@ contains
     use med_map_mod           , only : med_map_field_packed
     use med_constants_mod     , only : dbug_flag => med_constants_dbug_flag
     use med_utils_mod         , only : chkerr    => med_utils_ChkErr
-    use esmFlds               , only : compocn, compatm, compice, complnd
+    use esmFlds               , only : compocn, compatm, compice, complnd, compwav
     use perf_mod              , only : t_startf, t_stopf
 
     ! input/output variables
@@ -95,6 +95,19 @@ contains
             routehandles=is_local%wrap%RH(compatm,complnd,:), rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call t_stopf('MED:'//trim(subname)//' map_atm2lnd')
+    end if
+    ! map atm->wav
+    if (is_local%wrap%med_coupling_active(compatm,compwav)) then
+       call t_startf('MED:'//trim(subname)//' map_atm2wav')
+       call med_map_field_packed( &
+            FBSrc=is_local%wrap%FBImp(compatm,compatm), &
+            FBDst=is_local%wrap%FBImp(compatm,compwav), &
+            FBFracSrc=is_local%wrap%FBFrac(compatm), &
+            field_normOne=is_local%wrap%field_normOne(compatm,compwav,:), &
+            packed_data=is_local%wrap%packed_data(compatm,compwav,:), &
+            routehandles=is_local%wrap%RH(compatm,compwav,:), rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call t_stopf('MED:'//trim(subname)//' map_atm2wav')
     end if
 
     ! Write atm inst, avg or aux if requested in mediator attributes
