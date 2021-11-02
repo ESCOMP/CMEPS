@@ -47,7 +47,13 @@ module med_phases_history_mod
   private :: med_phases_history_fldbun_average
 
   ! ----------------------------
-  ! Instantaneous history files datatypes/variables
+  ! Instantaneous history files all components
+  ! ----------------------------
+  character(CL)  :: hist_option_all_inst  ! freq_option setting (ndays, nsteps, etc)
+  integer        :: hist_n_all_inst       ! freq_n setting relative to freq_option
+
+  ! ----------------------------
+  ! Instantaneous history files datatypes/variables per component
   ! ----------------------------
   type, public :: instfile_type
      logical          :: write_inst
@@ -144,8 +150,6 @@ contains
     type(ESMF_Clock)        :: mclock
     type(ESMF_Alarm)        :: alarm
     character(CS)           :: alarmname
-    character(CL)           :: hist_option  ! freq_option setting (ndays, nsteps, etc)
-    integer                 :: hist_n       ! freq_n setting relative to freq_option
     character(CL)           :: cvalue       ! attribute string
     logical                 :: isPresent
     logical                 :: isSet
@@ -185,27 +189,27 @@ contains
        call NUOPC_CompAttributeGet(gcomp, name='history_option', isPresent=isPresent, isSet=isSet, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        if (isPresent .and. isSet) then
-          call NUOPC_CompAttributeGet(gcomp, name='history_option', value=hist_option, rc=rc)
+          call NUOPC_CompAttributeGet(gcomp, name='history_option', value=hist_option_all_inst, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           call NUOPC_CompAttributeGet(gcomp, name='history_n', value=cvalue, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          read(cvalue,*) hist_n
+          read(cvalue,*) hist_n_all_inst
        else
           ! If attribute is not present - don't write history output
-          hist_option = 'none'
-          hist_n = -999
+          hist_option_all_inst = 'none'
+          hist_n_all_inst = -999
        end if
 
        ! Set alarm name and initialize clock and alarm for instantaneous history output
        ! The alarm for the full history write is set on the mediator clock not as a separate alarm
-       if (hist_option /= 'none' .and. hist_option /= 'never') then
+       if (hist_option_all_inst /= 'none' .and. hist_option_all_inst /= 'never') then
 
           ! Initialize alarm on mediator clock for instantaneous mediator history output for all variables
           call NUOPC_ModelGet(gcomp, modelClock=mclock,  rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           call ESMF_ClockGet(mclock, startTime=starttime,  rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          call med_time_alarmInit(mclock, alarm, option=hist_option, opt_n=hist_n, &
+          call med_time_alarmInit(mclock, alarm, option=hist_option_all_inst, opt_n=hist_n_all_inst, &
                reftime=starttime, alarmname=alarmname, rc=rc)
           call ESMF_AlarmSet(alarm, clock=mclock, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -221,14 +225,14 @@ contains
           ! Write diagnostic info
           if (mastertask) then
              write(logunit,'(a,2x,i8)') trim(subname) // "  initialized history alarm "//&
-                  trim(alarmname)//"  with option "//trim(hist_option)//" and frequency ",hist_n
+                  trim(alarmname)//"  with option "//trim(hist_option_all_inst)//" and frequency ",hist_n_all_inst
           end if
        end if
        first_time = .false.
     end if
 
     write_now = .false.
-    if (hist_option /= 'none' .and. hist_option /= 'never') then
+    if (hist_option_all_inst /= 'none' .and. hist_option_all_inst /= 'never') then
        call NUOPC_ModelGet(gcomp, modelClock=mclock,  rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call ESMF_ClockGetAlarm(mclock, alarmname=trim(alarmname), alarm=alarm, rc=rc)
