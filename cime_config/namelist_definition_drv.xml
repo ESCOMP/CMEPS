@@ -919,6 +919,20 @@
     </values>
   </entry>
 
+  <entry id="budget_table_version">
+    <type>char</type>
+    <category>budget</category>
+    <group>MED_attributes</group>
+    <valid_values>v0,v1</valid_values>
+    <desc>
+      currently v0 refers to budgets using POP and v1 refers to budgets using MOM6
+    </desc>
+    <values>
+      <value comp_ocn="mom">v1</value>
+      <value comp_ocn="pop">v0</value>
+    </values>
+  </entry>
+
   <entry id="budget_inst">
     <type>integer</type>
     <category>budget</category>
@@ -2307,7 +2321,7 @@
     <group>ALLCOMP_attributes</group>
     <desc>
       If set to .true. BGC fields will be passed back and forth between the ocean and seaice
-      via the coupler.
+      via the mediator.
     </desc>
     <values>
       <value>.false.</value>
