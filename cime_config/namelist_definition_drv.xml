@@ -928,6 +928,7 @@
       currently v0 refers to budgets using POP and v1 refers to budgets using MOM6
     </desc>
     <values>
+      <value>v0</value>
       <value comp_ocn="mom">v1</value>
       <value comp_ocn="pop">v0</value>
     </values>
