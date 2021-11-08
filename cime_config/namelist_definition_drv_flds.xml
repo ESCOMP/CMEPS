@@ -145,4 +145,20 @@
     </desc>
   </entry>
 
+  <!-- ========================================================================================  -->
+  <!-- Ozone control                                                                              -->
+  <!-- ========================================================================================  -->
+
+  <entry id="atm_ozone_frequency">
+    <type>char</type>
+    <category>ozone_coupling</category>
+    <group>ozone_coupling_nl</group>
+    <desc>
+      Frequency of surface ozone field passed from CAM to surface components.
+      Surface ozone is passed every coupling interval, but this namelist flag
+      indicates whether the timestep-level values are interpolated from a
+      coarser temporal resolution.
+    </desc>
+  </entry>
+
 </entry_id>

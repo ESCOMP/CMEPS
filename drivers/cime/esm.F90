@@ -429,7 +429,6 @@ contains
     real(R8)                     :: reprosum_diffmax      ! setup reprosum, set rel_diff_max
     logical                      :: reprosum_recompute    ! setup reprosum, recompute if tolerance exceeded
     character(LEN=CS)            :: tfreeze_option        ! Freezing point calculation
-    real(R8)                     :: wall_time_limit       ! wall time limit in hours
     integer                      :: glc_nec               ! number of elevation classes in the land component for lnd->glc
     character(LEN=CS)            :: wv_sat_scheme
     real(R8)                     :: wv_sat_transition_start
@@ -639,7 +638,6 @@ contains
     character(len=CS)              :: attribute
     integer                        :: componentCount
     character(len=*), parameter    :: subname = "(esm.F90:AddAttributes)"
-    logical                        :: lvalue = .false.
     !-------------------------------------------
 
     rc = ESMF_Success
@@ -655,18 +653,13 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     !------
-    ! Add restart flag a to gcomp attributes
+    ! Add driver restart flag a to gcomp attributes
     !------
     attribute = 'read_restart'
+    call NUOPC_CompAttributeGet(driver, name=trim(attribute), value=cvalue, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
     call NUOPC_CompAttributeAdd(gcomp, (/trim(attribute)/), rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompAttributeGet(driver, name="mediator_read_restart", value=cvalue, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) lvalue
-    if (.not. lvalue) then
-       call NUOPC_CompAttributeGet(driver, name=trim(attribute), value=cvalue, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-    end if
     call NUOPC_CompAttributeSet(gcomp, name=trim(attribute), value=trim(cvalue), rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
@@ -675,13 +668,10 @@ contains
     !------
     call ReadAttributes(gcomp, config, trim(compname)//"_attributes::", rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-
     call ReadAttributes(gcomp, config, "ALLCOMP_attributes::", rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-
     call ReadAttributes(gcomp, config, trim(compname)//"_modelio"//trim(inst_suffix)//"::", rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-
     call ReadAttributes(gcomp, config, "CLOCK_attributes::", rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
@@ -723,7 +713,6 @@ contains
     !------
     ! Add single column and single point attributes
     !------
-
     call esm_set_single_column_attributes(compname, gcomp, rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
@@ -980,14 +969,6 @@ contains
 
        call ESMF_InfoSet(info, key="/NUOPC/Hint/PePerPet/MaxCount", value=nthrds, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-!       call ESMF_InfoSet(info, key="/NUOPC/Hint/PePerPet/MinStackSize", value='40MiB', rc=rc)
-!       if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-       if (nthrds == 1) then
-          call ESMF_InfoSet(info, key="/NUOPC/Hint/PePerPet/OpenMpHandling", value='none', rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-       endif
 
        call NUOPC_CompAttributeGet(driver, name=trim(namestr)//'_rootpe', value=cvalue, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return

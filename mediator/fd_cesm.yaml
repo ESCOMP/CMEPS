@@ -45,15 +45,19 @@
      #
      - standard_name: Faox_hrain
        canonical_units: W m-2
-       description: enthalpy from rain to ocn/atm 
+       description: enthalpy from rain to ocn/atm
      #
      - standard_name: Faox_hsnow
        canonical_units: W m-2
-       description: enthalpy from snow to ocn/atm 
+       description: enthalpy from snow to ocn/atm
      #
      - standard_name: Faox_hevap
        canonical_units: W m-2
-       description: enthalpy from evap to ocn/atm 
+       description: enthalpy from evap to ocn/atm
+     #
+     - standard_name: area
+       canonical_units: radians**2
+       description: mediator area for component
      #
      #-----------------------------------
      # section: land export
@@ -325,6 +329,10 @@
      - standard_name: Sa_co2prog
        canonical_units: 1e-6 mol/mol
        description: atmosphere export - prognostic CO2 at the lowest model level
+     #
+     - standard_name: Sa_o3
+       canonical_units: mol/mol
+       description: atmosphere export - O3 in the lowest model layer (prognosed or prescribed)
      #
      - standard_name: Sa_topo
        alias: inst_surface_height
@@ -968,6 +976,14 @@
        canonical_units: m
        description: river export to land - river channel main channel water volume from 16O, 18O, HDO
      #
+     - standard_name: Sr_tdepth
+       canonical_units: m
+       description: river export to land - tributary channel water depth
+     #
+     - standard_name: Sr_tdepth_max
+       canonical_units: m
+       description: river export to land - tributary channel bankfull depth
+     #
      - standard_name: Forr_rofi
        canonical_units: kg m-2 s-1
        description: river export to ocean - water flux due to runoff (frozen)
@@ -1140,6 +1156,13 @@
        canonical_units: m/s
        description: ocean import - Stokes drift v component
      #
+     - standard_name: Sw_pstokes_x
+       canonical_units: m/s
+       description: Eastward partitioned stokes drift components
+     #
+     - standard_name: Sw_pstokes_y
+       canonical_units: m/s
+       description: Northward partitioned stokes drift components
      #-----------------------------------
      # mediator fields
      #-----------------------------------

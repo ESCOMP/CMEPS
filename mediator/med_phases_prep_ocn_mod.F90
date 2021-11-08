@@ -27,8 +27,9 @@ module med_phases_prep_ocn_mod
   implicit none
   private
 
-  public :: med_phases_prep_ocn_accum
-  public :: med_phases_prep_ocn_avg
+  public :: med_phases_prep_ocn_init   ! called from med.F90
+  public :: med_phases_prep_ocn_accum  ! called from run sequence
+  public :: med_phases_prep_ocn_avg    ! called from run sequence
 
   private :: med_phases_prep_ocn_custom_cesm
   private :: med_phases_prep_ocn_custom_nems
@@ -40,6 +41,41 @@ module med_phases_prep_ocn_mod
 contains
 !-----------------------------------------------------------------------------
 
+  subroutine med_phases_prep_ocn_init(gcomp, rc)
+
+    use ESMF            , only : ESMF_GridComp, ESMF_SUCCESS
+    use med_methods_mod , only : FB_Init  => med_methods_FB_init
+    use med_methods_mod , only : FB_Reset => med_methods_FB_Reset
+
+    ! input/output variables
+    type(ESMF_GridComp)  :: gcomp
+    integer, intent(out) :: rc
+
+    ! local variables
+    type(InternalState) :: is_local
+    character(len=*),parameter  :: subname=' (med_phases_prep_ocn_init) '
+    !---------------------------------------
+
+    rc = ESMF_SUCCESS
+
+    ! Get the internal state
+    nullify(is_local%wrap)
+    call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
+    if (chkErr(rc,__LINE__,u_FILE_u)) return
+
+    if (mastertask) then
+       write(logunit,'(a)') trim(subname)//' initializing ocean export accumulation FB for '
+    end if
+    call FB_init(is_local%wrap%FBExpAccumOcn, is_local%wrap%flds_scalar_name, &
+         STgeom=is_local%wrap%NStateExp(compocn), STflds=is_local%wrap%NStateExp(compocn), &
+         name='FBExpAccumOcn', rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call FB_reset(is_local%wrap%FBExpAccumOcn, value=czero, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+  end subroutine med_phases_prep_ocn_init
+
+  !-----------------------------------------------------------------------------
   subroutine med_phases_prep_ocn_accum(gcomp, rc)
 
     use ESMF , only : ESMF_GridComp, ESMF_FieldBundleGet
@@ -72,7 +108,7 @@ contains
     if ( trim(coupling_mode) == 'cesm' .or. &
          trim(coupling_mode) == 'nems_orig_data' .or. &
          trim(coupling_mode) == 'hafs') then
-       call med_merge_auto(compocn, &
+       call med_merge_auto(&
             is_local%wrap%med_coupling_active(:,compocn), &
             is_local%wrap%FBExp(compocn), &
             is_local%wrap%FBFrac(compocn), &
@@ -81,7 +117,7 @@ contains
             FBMed1=is_local%wrap%FBMed_aoflux_o, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     else if (trim(coupling_mode) == 'nems_frac' .or. trim(coupling_mode) == 'nems_orig') then
-       call med_merge_auto(compocn, &
+       call med_merge_auto(&
             is_local%wrap%med_coupling_active(:,compocn), &
             is_local%wrap%FBExp(compocn), &
             is_local%wrap%FBFrac(compocn), &
@@ -100,13 +136,13 @@ contains
     end if
 
     ! ocean accumulator
-    call FB_accum(is_local%wrap%FBExpAccum(compocn), is_local%wrap%FBExp(compocn), rc=rc)
+    call FB_accum(is_local%wrap%FBExpAccumOcn, is_local%wrap%FBExp(compocn), rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    is_local%wrap%FBExpAccumCnt(compocn) = is_local%wrap%FBExpAccumCnt(compocn) + 1
+    is_local%wrap%ExpAccumOcnCnt = is_local%wrap%ExpAccumOcnCnt + 1
 
     ! diagnose output
     if (dbug_flag > 1) then
-       call FB_diagnose(is_local%wrap%FBExpAccum(compocn), string=trim(subname)//' FBExpAccum accumulation ', rc=rc)
+       call FB_diagnose(is_local%wrap%FBExpAccumOcn, string=trim(subname)//' FBExpAccumOcn accumulation ', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
     if (dbug_flag > 20) then
@@ -147,34 +183,32 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! Count the number of fields outside of scalar data, if zero, then return
-    call ESMF_FieldBundleGet(is_local%wrap%FBExpAccum(compocn), fieldCount=ncnt, rc=rc)
+    call ESMF_FieldBundleGet(is_local%wrap%FBExpAccumOcn, fieldCount=ncnt, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     if (ncnt > 0) then
 
        ! average ocn accumulator
        if (dbug_flag > 1) then
-          call FB_diagnose(is_local%wrap%FBExpAccum(compocn), &
-               string=trim(subname)//' FBExpAccum(compocn) before avg ', rc=rc)
+          call FB_diagnose(is_local%wrap%FBExpAccumOcn, &
+               string=trim(subname)//' FBExpAccumOcn before avg ', rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
-       call FB_average(is_local%wrap%FBExpAccum(compocn), &
-            is_local%wrap%FBExpAccumCnt(compocn), rc=rc)
+       call FB_average(is_local%wrap%FBExpAccumOcn, is_local%wrap%ExpAccumOcnCnt, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        if (dbug_flag > 1) then
-          call FB_diagnose(is_local%wrap%FBExpAccum(compocn), &
-               string=trim(subname)//' FBExpAccum(compocn) after avg ', rc=rc)
+          call FB_diagnose(is_local%wrap%FBExpAccumOcn, &
+               string=trim(subname)//' FBExpAccumOcn after avg ', rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
 
        ! copy to FBExp(compocn)
-       call FB_copy(is_local%wrap%FBExp(compocn), is_local%wrap%FBExpAccum(compocn), rc=rc)
+       call FB_copy(is_local%wrap%FBExp(compocn), is_local%wrap%FBExpAccumOcn, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        ! zero accumulator
-       is_local%wrap%FBExpAccumFlag(compocn) = .true.
-       is_local%wrap%FBExpAccumCnt(compocn) = 0
-       call FB_reset(is_local%wrap%FBExpAccum(compocn), value=czero, rc=rc)
+       is_local%wrap%ExpAccumOcnCnt = 0
+       call FB_reset(is_local%wrap%FBExpAccumOcn, value=czero, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     end if
@@ -205,31 +239,31 @@ contains
     ! local variables
     type(InternalState) :: is_local
     type(ESMF_Field)    :: lfield
-    real(R8), pointer   :: ifrac(:) => null()
-    real(R8), pointer   :: ofrac(:) => null()
-    real(R8), pointer   :: ifracr(:) => null()
-    real(R8), pointer   :: ofracr(:) => null()
-    real(R8), pointer   :: avsdr(:) => null()
-    real(R8), pointer   :: avsdf(:) => null()
-    real(R8), pointer   :: anidr(:) => null()
-    real(R8), pointer   :: anidf(:) => null()
-    real(R8), pointer   :: Faxa_swvdf(:) => null()
-    real(R8), pointer   :: Faxa_swndf(:) => null()
-    real(R8), pointer   :: Faxa_swvdr(:) => null()
-    real(R8), pointer   :: Faxa_swndr(:) => null()
-    real(R8), pointer   :: Foxx_swnet(:) => null()
-    real(R8), pointer   :: Foxx_swnet_afracr(:) => null()
-    real(R8), pointer   :: Foxx_swnet_vdr(:) => null()
-    real(R8), pointer   :: Foxx_swnet_vdf(:) => null()
-    real(R8), pointer   :: Foxx_swnet_idr(:) => null()
-    real(R8), pointer   :: Foxx_swnet_idf(:) => null()
-    real(R8), pointer   :: Fioi_swpen_vdr(:) => null()
-    real(R8), pointer   :: Fioi_swpen_vdf(:) => null()
-    real(R8), pointer   :: Fioi_swpen_idr(:) => null()
-    real(R8), pointer   :: Fioi_swpen_idf(:) => null()
-    real(R8), pointer   :: Fioi_swpen(:) => null()
-    real(R8), pointer   :: dataptr(:) => null()
-    real(R8), pointer   :: dataptr_scalar_ocn(:,:) => null()
+    real(R8), pointer   :: ifrac(:)
+    real(R8), pointer   :: ofrac(:)
+    real(R8), pointer   :: ifracr(:)
+    real(R8), pointer   :: ofracr(:)
+    real(R8), pointer   :: avsdr(:)
+    real(R8), pointer   :: avsdf(:)
+    real(R8), pointer   :: anidr(:)
+    real(R8), pointer   :: anidf(:)
+    real(R8), pointer   :: Faxa_swvdf(:)
+    real(R8), pointer   :: Faxa_swndf(:)
+    real(R8), pointer   :: Faxa_swvdr(:)
+    real(R8), pointer   :: Faxa_swndr(:)
+    real(R8), pointer   :: Foxx_swnet(:)
+    real(R8), pointer   :: Foxx_swnet_afracr(:)
+    real(R8), pointer   :: Foxx_swnet_vdr(:)
+    real(R8), pointer   :: Foxx_swnet_vdf(:)
+    real(R8), pointer   :: Foxx_swnet_idr(:)
+    real(R8), pointer   :: Foxx_swnet_idf(:)
+    real(R8), pointer   :: Fioi_swpen_vdr(:)
+    real(R8), pointer   :: Fioi_swpen_vdf(:)
+    real(R8), pointer   :: Fioi_swpen_idr(:)
+    real(R8), pointer   :: Fioi_swpen_idf(:)
+    real(R8), pointer   :: Fioi_swpen(:)
+    real(R8), pointer   :: dataptr(:)
+    real(R8), pointer   :: dataptr_scalar_ocn(:,:)
     real(R8)            :: frac_sum
     real(R8)            :: ifrac_scaled, ofrac_scaled
     real(R8)            :: ifracr_scaled, ofracr_scaled
@@ -438,12 +472,12 @@ contains
     ! Apply precipitation factor from ocean (that scales atm rain and snow back to ocn ) if appropriate
     if (trim(coupling_mode) == 'cesm' .and. is_local%wrap%flds_scalar_index_precip_factor /= 0) then
 
-       ! Note that in med_internal_mod.F90 all is_local%wrap%flds_scalar_index_precip_factor 
+       ! Note that in med_internal_mod.F90 all is_local%wrap%flds_scalar_index_precip_factor
        ! is initialized to 0.
-       ! In addition, in med.F90, if this attribute is not present as a mediator component attribute, 
-       ! it is set to 0. 
+       ! In addition, in med.F90, if this attribute is not present as a mediator component attribute,
+       ! it is set to 0.
        if (mastertask) then
-          call ESMF_StateGet(is_local%wrap%NstateImp(compocn), & 
+          call ESMF_StateGet(is_local%wrap%NstateImp(compocn), &
                itemName=trim(is_local%wrap%flds_scalar_name), field=lfield, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           call ESMF_FieldGet(lfield, farrayPtr=dataptr_scalar_ocn, rc=rc)
@@ -458,7 +492,7 @@ contains
        end if
        call ESMF_VMBroadCast(is_local%wrap%vm, precip_fact, 1, 0, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       is_local%wrap%flds_scalar_precip_factor = precip_fact(1)      
+       is_local%wrap%flds_scalar_precip_factor = precip_fact(1)
        if (dbug_flag > 5) then
           write(cvalue,*) precip_fact(1)
           call ESMF_LogWrite(trim(subname)//" precip_fact is "//trim(cvalue), ESMF_LOGMSG_INFO)
@@ -501,13 +535,13 @@ contains
 
     ! local variables
     type(InternalState) :: is_local
-    real(R8), pointer   :: ocnwgt1(:) => null()
-    real(R8), pointer   :: icewgt1(:) => null()
-    real(R8), pointer   :: wgtp01(:) => null()
-    real(R8), pointer   :: wgtm01(:) => null()
-    real(R8), pointer   :: customwgt(:) => null()
-    real(R8), pointer   :: ifrac(:) => null()
-    real(R8), pointer   :: ofrac(:) => null()
+    real(R8), pointer   :: ocnwgt1(:)
+    real(R8), pointer   :: icewgt1(:)
+    real(R8), pointer   :: wgtp01(:)
+    real(R8), pointer   :: wgtm01(:)
+    real(R8), pointer   :: customwgt(:)
+    real(R8), pointer   :: ifrac(:)
+    real(R8), pointer   :: ofrac(:)
     integer             :: lsize
     real(R8)        , parameter    :: const_lhvap = 2.501e6_R8  ! latent heat of evaporation ~ J/kg
     character(len=*), parameter    :: subname='(med_phases_prep_ocn_custom_nems)'

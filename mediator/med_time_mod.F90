@@ -4,20 +4,20 @@ module med_time_mod
   use ESMF                , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_GridCompSet
   use ESMF                , only : ESMF_Clock, ESMF_ClockCreate, ESMF_ClockGet, ESMF_ClockSet
   use ESMF                , only : ESMF_ClockAdvance
-  use ESMF                , only : ESMF_Alarm, ESMF_AlarmCreate, ESMF_AlarmGet
+  use ESMF                , only : ESMF_Alarm, ESMF_AlarmCreate, ESMF_AlarmGet, ESMF_AlarmSet
   use ESMF                , only : ESMF_Calendar, ESMF_CalKind_Flag, ESMF_CalendarCreate
   use ESMF                , only : ESMF_CALKIND_NOLEAP, ESMF_CALKIND_GREGORIAN
   use ESMF                , only : ESMF_Time, ESMF_TimeGet, ESMF_TimeSet
   use ESMF                , only : ESMF_TimeInterval, ESMF_TimeIntervalSet, ESMF_TimeIntervalGet
-  use ESMF                , only : ESMF_SUCCESS, ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_FAILURE
+  use ESMF                , only : ESMF_SUCCESS, ESMF_LogWrite, ESMF_FAILURE
   use ESMF                , only : ESMF_VM, ESMF_VMGet, ESMF_VMBroadcast
-  use ESMF                , only : ESMF_LOGMSG_INFO, ESMF_FAILURE
+  use ESMF                , only : ESMF_LOGMSG_INFO, ESMF_FAILURE, ESMF_LOGMSG_ERROR
   use ESMF                , only : operator(<), operator(/=), operator(+)
   use ESMF                , only : operator(-), operator(*) , operator(>=)
   use ESMF                , only : operator(<=), operator(>), operator(==)
-  use NUOPC               , only : NUOPC_CompAttributeGet
   use med_constants_mod   , only : dbug_flag => med_constants_dbug_flag
   use med_utils_mod       , only : chkerr => med_utils_ChkErr
+  use med_internalstate_mod, only : mastertask, logunit
 
   implicit none
   private    ! default private
@@ -38,6 +38,7 @@ module med_time_mod
        optMonthly        = "monthly"   , &
        optYearly         = "yearly"    , &
        optDate           = "date"      , &
+       optEnd            = "end"       , &
        optGLCCouplingPeriod = "glc_coupling_period"
 
   ! Module data
@@ -50,7 +51,7 @@ contains
 !===============================================================================
 
   subroutine med_time_alarmInit( clock, alarm, option, &
-       opt_n, opt_ymd, opt_tod, RefTime, alarmname, rc)
+       opt_n, opt_ymd, opt_tod, reftime, alarmname, advance_clock, rc)
 
     ! Setup an alarm in a clock
     ! Notes: The ringtime sent to AlarmCreate MUST be the next alarm
@@ -64,15 +65,16 @@ contains
     ! advance it properly based on the ring interval.
 
     ! input/output variables
-    type(ESMF_Clock)            , intent(inout) :: clock     ! clock
-    type(ESMF_Alarm)            , intent(inout) :: alarm     ! alarm
-    character(len=*)            , intent(in)    :: option    ! alarm option
-    integer          , optional , intent(in)    :: opt_n     ! alarm freq
-    integer          , optional , intent(in)    :: opt_ymd   ! alarm ymd
-    integer          , optional , intent(in)    :: opt_tod   ! alarm tod (sec)
-    type(ESMF_Time)  , optional , intent(in)    :: RefTime   ! ref time
-    character(len=*) , optional , intent(in)    :: alarmname ! alarm name
-    integer                     , intent(inout) :: rc        ! Return code
+    type(ESMF_Clock)            , intent(inout) :: clock         ! clock
+    type(ESMF_Alarm)            , intent(inout) :: alarm         ! alarm
+    character(len=*)            , intent(in)    :: option        ! alarm option
+    integer          , optional , intent(in)    :: opt_n         ! alarm freq
+    integer          , optional , intent(in)    :: opt_ymd       ! alarm ymd
+    integer          , optional , intent(in)    :: opt_tod       ! alarm tod (sec)
+    type(ESMF_Time)  , optional , intent(in)    :: reftime       ! reference time
+    character(len=*) , optional , intent(in)    :: alarmname     ! alarm name
+    logical          , optional , intent(in)    :: advance_clock ! advance clock to trigger alarm 
+    integer                     , intent(out)   :: rc            ! Return code
 
     ! local variables
     type(ESMF_Calendar)     :: cal              ! calendar
@@ -82,7 +84,7 @@ contains
     character(len=64)       :: lalarmname       ! local alarm name
     logical                 :: update_nextalarm ! update next alarm
     type(ESMF_Time)         :: CurrTime         ! Current Time
-    type(ESMF_Time)         :: NextAlarm        ! Next restart alarm time
+    type(ESMF_Time)         :: NextAlarm        ! Next alarm time
     type(ESMF_TimeInterval) :: AlarmInterval    ! Alarm interval
     integer                 :: sec
     character(len=*), parameter :: subname = '(med_time_alarmInit): '
@@ -116,12 +118,12 @@ contains
     ! Error checks
     if (trim(option) == optdate) then
        if (.not. present(opt_ymd)) then
-          call ESMF_LogWrite(trim(subname)//trim(option)//' requires opt_ymd', ESMF_LOGMSG_INFO)
+          call ESMF_LogWrite(trim(subname)//trim(option)//' requires opt_ymd', ESMF_LOGMSG_ERROR)
           rc = ESMF_FAILURE
           return
        end if
        if (lymd < 0 .or. ltod < 0) then
-          call ESMF_LogWrite(subname//trim(option)//'opt_ymd, opt_tod invalid', ESMF_LOGMSG_INFO)
+          call ESMF_LogWrite(subname//trim(option)//'opt_ymd, opt_tod invalid', ESMF_LOGMSG_ERROR)
           rc = ESMF_FAILURE
           return
        end if
@@ -133,12 +135,12 @@ contains
              trim(option) == optNMonths  .or. &
              trim(option) == optNYears) then
        if (.not.present(opt_n)) then
-          call ESMF_LogWrite(subname//trim(option)//' requires opt_n', ESMF_LOGMSG_INFO)
+          call ESMF_LogWrite(subname//trim(option)//' requires opt_n', ESMF_LOGMSG_ERROR)
           rc = ESMF_FAILURE
           return
        end if
        if (opt_n <= 0) then
-          call ESMF_LogWrite(subname//trim(option)//' invalid opt_n', ESMF_LOGMSG_INFO)
+          call ESMF_LogWrite(subname//trim(option)//' invalid opt_n', ESMF_LOGMSG_ERROR)
           rc = ESMF_FAILURE
           return
        end if
@@ -160,6 +162,22 @@ contains
        call ESMF_TimeSet( NextAlarm, yy=9999, mm=12, dd=1, s=0, calendar=cal, rc=rc )
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        update_nextalarm  = .false.
+
+    case (optEnd)
+       call ESMF_TimeIntervalSet(AlarmInterval, yy=9999, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_TimeSet( NextAlarm, yy=9999, mm=12, dd=1, s=0, calendar=cal, rc=rc )
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       update_nextalarm  = .false.
+
+   case (optDate)
+      call ESMF_TimeIntervalSet(AlarmInterval, yy=9999, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      call med_time_date2ymd(opt_ymd, cyy, cmm, cdd)
+
+      call ESMF_TimeSet( NextAlarm, yy=cyy, mm=cmm, dd=cdd, s=ltod, calendar=cal, rc=rc )
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      update_nextalarm  = .false.
 
     case (optNSteps)
        call ESMF_ClockGet(clock, TimeStep=AlarmInterval, rc=rc)
@@ -215,9 +233,8 @@ contains
        call ESMF_TimeSet( NextAlarm, yy=cyy, mm=1, dd=1, s=0, calendar=cal, rc=rc )
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        update_nextalarm  = .true.
-
     case default
-       call ESMF_LogWrite(subname//'unknown option '//trim(option), ESMF_LOGMSG_INFO)
+       call ESMF_LogWrite(subname//'unknown option '//trim(option), ESMF_LOGMSG_ERROR)
        rc = ESMF_FAILURE
        return
 
@@ -237,10 +254,49 @@ contains
        enddo
     endif
 
+    if (mastertask) then
+       write(logunit,*)
+       write(logunit,'(a)') trim(subname) //' creating alarm '// trim(lalarmname)
+    end if
+
     alarm = ESMF_AlarmCreate( name=lalarmname, clock=clock, ringTime=NextAlarm, &
          ringInterval=AlarmInterval, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+    ! Advance model clock to trigger alarm then reset model clock back to currtime
+    if (present(advance_clock)) then 
+       if (advance_clock) then
+          call ESMF_AlarmSet(alarm, clock=clock, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_ClockGet(clock, currTime=CurrTime, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_ClockAdvance(clock,rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_ClockSet(clock, currTime=currtime, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       end if
+    end if
+
   end subroutine med_time_alarmInit
+
+ !===============================================================================
+  subroutine med_time_date2ymd (date, year, month, day)
+
+   ! input/output variables
+   integer, intent(in)  :: date             ! coded-date (yyyymmdd)
+   integer, intent(out) :: year,month,day   ! calendar year,month,day
+
+   ! local variables
+   integer :: tdate   ! temporary date
+   character(*),parameter :: subName = "(med_time_date2ymd)"
+   !-------------------------------------------------------------------------------
+   tdate = abs(date)
+   year = int(tdate/10000)
+   if (date < 0) then
+      year = -year
+   end if
+   month = int( mod(tdate,10000)/  100)
+   day = mod(tdate,  100)
+ end subroutine med_time_date2ymd
 
 end module med_time_mod

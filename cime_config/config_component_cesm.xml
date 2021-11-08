@@ -18,10 +18,14 @@
     <desc forcing="HIST">Historic transient </desc>
     <desc forcing="20TR">Twentieth century transient</desc>
     <desc forcing="4804"></desc>
-    <desc forcing="RCP2">CMIP5 rcp 2.6 forcing</desc>
-    <desc forcing="RCP4">CMIP5 rcp 4.5 forcing</desc>
-    <desc forcing="RCP6">CMIP5 rcp 6.0 forcing</desc>
-    <desc forcing="RCP8">CMIP5 rcp 8.5 forcing</desc>
+    <desc forcing="SSP119">CMIP6 SSP1-1.9 forcing</desc>
+    <desc forcing="SSP126">CMIP6 SSP1-2.6 forcing</desc>
+    <desc forcing="SSP245">CMIP6 SSP2-4.5 forcing</desc>
+    <desc forcing="SSP370">CMIP6 SSP3-7.0 forcing</desc>
+    <desc forcing="SSP434">CMIP6 SSP4-3.4 forcing</desc>
+    <desc forcing="SSP460">CMIP6 SSP4-6.0 forcing</desc>
+    <desc forcing="SSP534">CMIP6 SSP5-3.4 forcing</desc>
+    <desc forcing="SSP585">CMIP6 SSP5-8.5 forcing</desc>
     <desc cpl="BGC[%BDRD][%BPRP]">Biogeochemistry intercomponent </desc>
     <desc option="BDRD"> with diagnostic CO2</desc>
     <desc option="BPRP"> with prognostic CO2 </desc>
@@ -96,29 +100,6 @@
     We will not document this further in this guide.</desc>
   </entry>
 
-  <entry id="BFBFLAG">
-    <type>logical</type>
-    <valid_values>TRUE,FALSE</valid_values>
-    <default_value>FALSE</default_value>
-    <group>run_flags</group>
-    <file>env_run.xml</file>
-    <desc>turns on coupler bit-for-bit reproducibility with varying pe counts</desc>
-  </entry>
-
-  <entry id="BARRIER_OPTION">
-    <type>char</type>
-    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
-    <default_value>never</default_value>
-    <values match="last">
-      <value compset="_DATM.+_CLM">ndays</value>
-    </values>
-    <group>run_begin_stop_restart</group>
-    <file>env_run.xml</file>
-    <desc>
-      sets frequency of full model barrier (same options as STOP_OPTION) for synchronization with BARRIER_N and BARRIER_DATE
-    </desc>
-  </entry>
-
   <entry id="CCSM_BGC">
     <type>char</type>
     <valid_values>none,CO2A,CO2B,CO2C</valid_values>
@@ -191,23 +172,39 @@
       <value compset="_CAM\d+%WCBC">144</value>
       <value compset="_CAM\d+%WCMX">288</value>
       <value compset="_CAM\d+%WCXI">288</value>
-      <value compset="_DATM%COPYALL_NPS">72</value>
-      <value compset="_DATM.*_CLM">48</value>
-      <!-- NOTE: if the following is changed from 24 -> 4 - then a new run sequence is needed since the -->
-      <!-- ocn coupling interval for this case is 24 - but the atm is longer -->
-      <value compset="_DATM.*_SLND.*_DICE.*_POP2"           >24</value>
-      <value compset="_DATM.*_SLND.*_DICE.*_MOM6"           >24</value>
-      <value compset="_DATM.*_SLND.*_CICE.*_POP2"           >24</value>
-      <value compset="_DATM.*_SLND.*_CICE.*_MOM6"           >24</value>
-      <!-- <value compset="_DATM.*_DICE.*_POP2.*_WW3"       >4</value> -->
-      <!-- <value compset="_DATM.*_DICE.*_MOM6.*_WW3"       >4</value> -->
-      <!-- <value compset="_DATM.*_DICE.*_POP2.*_DWAV"      >4</value> -->
-      <!-- <value compset="_DATM.*_DICE.*_MOM6.*_DWAV"      >4</value> -->
-      <value compset="_DATM.*_CICE.*_DOCN"                  >24</value>
-      <value compset="_DATM.*_DOCN%US20"                    >24</value>
-      <value compset="_DATM%CPLHIST.+POP\d"                 >48</value>
-      <value compset="_DATM%CPLHIST.+MOM\d"                 >48</value>
-      <value compset="_MPAS"                                >1</value>
+      <!-- =================================================== -->
+      <!-- I compsets -->
+      <!-- =================================================== -->
+      <value compset="_DATM.*_CLM"         >48</value>
+      <value compset=".+" grid="1x1"       >48</value>
+      <value compset=".+" grid="1x1_urbanc">48</value>
+      <value compset=".+" grid="1x1_mexico">24</value>
+      <value compset=".+" grid="1x1_vancou">24</value>
+      <!-- TODO: in CDEPS there is no copyall mode - so what is this? -->
+      <value compset="_DATM%COPYALL_NPS"   >72</value>
+      <!-- =================================================== -->
+      <!-- C compsets -->
+      <!-- =================================================== -->
+      <value compset="_DATM.*_DICE.*_POP2">24</value>
+      <value compset="_DATM.*_DICE.*_MOM6">24</value>
+      <!-- TODO: currently a NUOPC runseqence cannot be generated with the ATM_NCPL < OCN_NCPL - as is the case -->
+      <!-- with the POP2 C compset run sequence - for now will set these to be the same as MOM6 -->
+      <!-- =================================================== -->
+      <!-- G compsets -->
+      <!-- =================================================== -->
+      <value compset="_DATM.*_SLND.*_CICE.*_POP2">24</value>
+      <value compset="_DATM.*_SLND.*_CICE.*_POP2" grid="oi%tx0.1v3">144</value>
+      <value compset="_DATM.*_SLND.*_CICE.*_MOM6">24</value>
+      <value compset="_DATM.*_CICE.*_DOCN">24</value>
+      <!-- =================================================== -->
+      <!-- C/G compsets -->
+      <!-- =================================================== -->
+      <value compset="_DATM.*_DOCN%US20">24</value>
+      <value compset="_DATM%CPLHIST.+POP\d">48</value>
+      <value compset="_DATM%CPLHIST.+MOM\d">48</value>
+      <!-- =================================================== -->
+      <!-- atm dependent resolutions (primarily CAM) -->
+      <!-- =================================================== -->
       <value compset=".+" grid="a%0.23x0.31"                >96</value>
       <value compset=".+" grid="a%ne60np4"                  >96</value>
       <value compset=".+" grid="a%ne60np4.pg3"              >96</value>
@@ -230,13 +227,11 @@
       <value compset=".+" grid="a%T42"                      >72</value>
       <value compset=".+" grid="a%T85"                      >144</value>
       <value compset=".+" grid="a%T341"                     >288</value>
-      <value compset=".+" grid="1x1"                        >48</value>
-      <value compset=".+" grid="1x1_urbanc"                 >48</value>
-      <value compset=".+" grid="1x1_mexico"                 >24</value>
-      <value compset=".+" grid="1x1_vancou"                 >24</value>
-      <value compset="_DLND.*_CISM\d"                       >1</value>
-      <!-- <value compset="_DATM.*_DICE.*_POP2.*_WW3">4</value> -->
-      <!-- <value compset="_DATM.*_DICE.*_POP2.*_DWAV">4</value> -->
+      <!-- =================================================== -->
+      <!-- TG compsets -->
+      <!-- =================================================== -->
+      <!-- TODO: why is this here? -->
+      <value compset="_DLND.*_CISM\d">1</value>
     </values>
     <group>run_coupling</group>
     <file>env_run.xml</file>
@@ -275,16 +270,14 @@
     <type>integer</type>
     <default_value>$ATM_NCPL</default_value>
     <values match="last">
-      <value compset="_POP2">24</value>
       <value compset="_MOM6">24</value>
-      <value compset="_POP2" grid="oi%tx0.1v2">4</value>
+      <value compset="_POP2" grid="oi%gx3v7">1</value>
       <value compset="_POP2" grid="oi%gx1v6">24</value>
       <value compset="_POP2" grid="oi%gx1v7">24</value>
-      <!-- <value compset="_DATM%NYF.*_SLND.*_DICE.*_DOCN.*_SWAV">1</value> -->
-      <!-- <value compset="_DATM%NYF.*_DLND.*_DICE.*_DOCN.*_DWAV">1</value> -->
-      <!-- <value compset="_XATM.*_XLND.*_XICE.*_XOCN">1</value> -->
-      <!-- <value compset="_SATM.*_SLND.*_SICE.*_SOCN">1</value> -->
+      <value compset="_POP2" grid="oi%tx0.1v2">48</value>
+      <value compset="_POP2" grid="oi%tx0.1v3">48</value>
       <value compset="_DLND.*_CISM\d">1</value>
+      <value compset="_NEMO">24</value>
     </values>
     <group>run_coupling</group>
     <file>env_run.xml</file>
@@ -332,16 +325,16 @@
     <type>integer</type>
     <default_value>8</default_value>
     <values match="last">
-      <value compset="_DATM.*_POP2.*_DROF">$ATM_NCPL</value>
-      <value compset="_DATM.*_MOM6.*_DROF">$ATM_NCPL</value>
-      <value compset="_DATM.*_DOCN%SOM">$ATM_NCPL</value>
-      <value compset="_DATM.*_SLND.*_DICE.*_DOCN">$ATM_NCPL</value>
-      <value compset="_MIZUROUTE_">1</value>
-      <value compset="_DATM%CPLHIST.+POP\d">8</value>
-      <value compset="_DATM%CPLHIST.+MOM\d">8</value>
-      <value compset="_XATM.*_XLND.*_XICE.*_XOCN">$ATM_NCPL</value>
-      <value compset="_DLND.*_CISM\d">1</value>
-      <value compset="_XROF">$ATM_NCPL</value>
+      <value compset="_DATM.*_POP2.*_DROF" grid="oi%gx3v7">1</value>
+      <value compset="_DATM.*_MOM6.*_DROF"        >$ATM_NCPL</value>
+      <value compset="_DATM.*_DOCN%SOM"           >$ATM_NCPL</value>
+      <value compset="_DATM.*_SLND.*_DICE.*_DOCN" >$ATM_NCPL</value>
+      <value compset="_MIZUROUTE_"                >1</value>
+      <value compset="_DATM%CPLHIST.+POP\d"       >8</value>
+      <value compset="_DATM%CPLHIST.+MOM\d"       >8</value>
+      <value compset="_XATM.*_XLND.*_XICE.*_XOCN" >$ATM_NCPL</value>
+      <value compset="_DLND.*_CISM\d"             >1</value>
+      <value compset="_XROF"                      >$ATM_NCPL</value>
     </values>
     <group>run_coupling</group>
     <file>env_run.xml</file>
@@ -414,27 +407,64 @@
 
   <entry id="CPL_SEQ_OPTION">
     <type>char</type>
-    <valid_values>TIGHT,RASM</valid_values>
+    <valid_values>TIGHT,OPTION1,OPTION2</valid_values>
     <default_value>TIGHT</default_value>
     <values match="last">
-      <value compset="_DATM.*_DOCN%SOM"			>RASM</value>
-      <value compset="_POP2"				>RASM</value>
-      <value compset="_MOM6"				>RASM</value>
-      <value compset="_POP2" grid="oi%gx1v6"		>RASM</value>
-      <value compset="_POP2" grid="oi%gx1v7"		>RASM</value>
-      <value compset="_DATM%NYF.*_SLND.*_DICE.*_DOCN"	>RASM</value>
-      <value compset="_XATM.*_XLND.*_XICE.*_XOCN"	>RASM</value>
-      <value compset="_SOCN"				>RASM</value>
+      <value compset="_DATM.*_DOCN%SOM"			>OPTION2</value>
+      <value compset="_POP2"				>OPTION2</value>
+      <value compset="_MOM6"				>OPTION1</value>
+      <value compset="_POP2" grid="oi%gx1v6"		>OPTION1</value>
+      <value compset="_POP2" grid="oi%gx1v7"		>OPTION1</value>
+      <value compset="_DATM%NYF.*_SLND.*_DICE.*_DOCN"	>OPTION2</value>
+      <value compset="_XATM.*_XLND.*_XICE.*_XOCN"	>OPTION2</value>
+      <value compset="_SOCN"				>OPTION2</value>
     </values>
     <group>run_coupling</group>
     <file>env_run.xml</file>
     <desc>
-      RASM runs prep ocean before the ocean coupling reducing
-      most of the lags and field inconsistency but still allowing the ocean to run
-      concurrently with the ice and atmosphere.
-      TIGHT are consistent with the old variables ocean_tight_coupling = true in the driver.
+      OPTION1 (like RASM_OPTION1 in CPL7) runs prep_ocn_avg, 
+      BEFORE the aoflux and ocnalb calculations, thereby reducing
+      most of the lags and field inconsistency but still allowing the
+      ocean to run concurrently with the ice and atmosphere.
+      OPTION2 (like CESM1_MOD in CPL7) runs prep_ocn_avg, 
+      AFTER the aoflux and ocnalb calculations, thereby permitting maximum
+      concurrency
+      TIGHT (like CESM1_MOD_TIGHT), is a tight coupling run sequence
     </desc>
   </entry>
+
+  <!-- ===================================================================== -->
+  <!-- instantaneous history frequencies -->
+  <!-- ===================================================================== -->
+
+  <entry id="HIST_OPTION">
+    <type>char</type>
+    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <default_value>never</default_value>
+    <group>med_history</group>
+    <file>env_run.xml</file>
+    <desc>Sets driver snapshot history file frequency (like REST_OPTION)</desc>
+  </entry>
+  <entry id="HIST_N">
+    <type>integer</type>
+    <valid_values></valid_values>
+    <default_value>-999</default_value>
+    <group>med_history</group>
+    <file>env_run.xml</file>
+    <desc>Sets driver snapshot history file frequency (like REST_N)</desc>
+  </entry>
+  <entry id="HIST_DATE">
+    <type>integer</type>
+    <valid_values></valid_values>
+    <default_value>-999</default_value>
+    <group>med_history</group>
+    <file>env_run.xml</file>
+    <desc>yyyymmdd format, sets coupler snapshot history date (like REST_DATE)</desc>
+  </entry>
+
+  <!-- ===================================================================== -->
+  <!-- averaged history frequencies -->
+  <!-- ===================================================================== -->
 
   <entry id="AVGHIST_OPTION">
     <type>char</type>
@@ -443,11 +473,10 @@
     <values match="last">
       <value compset="_DOCN%IAF">nmonths</value>
     </values>
-    <group>run_drv_history</group>
+    <group>med_history</group>
     <file>env_run.xml</file>
-    <desc>Sets driver average history file frequency (like REST_OPTION)</desc>
+    <desc>Sets mediator average history file frequency (like REST_OPTION)</desc>
   </entry>
-
   <entry id="AVGHIST_N">
     <type>char</type>
     <valid_values></valid_values>
@@ -455,18 +484,17 @@
     <values match="last">
       <value compset="_DOCN%IAF">1</value>
     </values>
-    <group>run_drv_history</group>
+    <group>med_history</group>
     <file>env_run.xml</file>
-    <desc>Sets driver average history file frequency (like REST_N)</desc>
+    <desc>Sets mediator average history file frequency (like REST_N)</desc>
   </entry>
-
   <entry id="AVGHIST_DATE">
     <type>integer</type>
     <valid_values></valid_values>
     <default_value>-999</default_value>
-    <group>run_drv_history</group>
+    <group>med_history</group>
     <file>env_run.xml</file>
-    <desc>yyyymmdd format, sets driver average history date (like REST_DATE)</desc>
+    <desc>yyyymmdd format, sets mediator average history date (like REST_DATE)</desc>
   </entry>
 
   <entry id="BUDGETS">

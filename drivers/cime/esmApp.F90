@@ -12,12 +12,7 @@ program esmApp
   use ESMF,            only : ESMF_LOGKIND_MULTI_ON_ERROR, ESMF_LogKind_Flag
   use ESMF,            only : ESMF_VMGet, ESMF_VM, ESMF_InitializePreMPI
 
-#ifndef NO_MPI2
-  use mpi,             only : MPI_COMM_WORLD, MPI_COMM_NULL, MPI_Init_thread, MPI_FINALIZE, MPI_BCAST
-  use mpi,             only : MPI_COMM_RANK, MPI_THREAD_SERIALIZED, MPI_LOGICAL
-#else
   use mpi
-#endif
   use NUOPC,           only : NUOPC_FieldDictionarySetup
   use ensemble_driver, only : SetServices
   use shr_pio_mod,     only : shr_pio_init1

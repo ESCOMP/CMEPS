@@ -186,6 +186,13 @@
     <desc>username of user who created case</desc>
   </entry>
 
+  <entry id="CASE_HASH">
+    <type>char</type>
+    <group>case_desc</group>
+    <file>env_case.xml</file>
+    <desc>Unique identifier for case</desc>
+  </entry>
+
   <!-- ===================================================================== -->
   <!-- definitions runtimes -->
   <!-- ===================================================================== -->
@@ -324,7 +331,7 @@
 
   <entry id="STOP_OPTION">
     <type>char</type>
-    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,nmonths,nmonth,nyears,nyear,date,end</valid_values>
     <default_value>ndays</default_value>
     <group>run_begin_stop_restart</group>
     <file>env_run.xml</file>
@@ -356,7 +363,7 @@
 
   <entry id="REST_OPTION">
     <type>char</type>
-    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,nmonths,nmonth,nyears,nyear,date,end</valid_values>
     <default_value>$STOP_OPTION</default_value>
     <group>run_begin_stop_restart</group>
     <file>env_run.xml</file>
@@ -426,27 +433,6 @@
       <value compclass="ROF">FALSE</value>
       <value compclass="LND">FALSE</value>
     </values>
-  </entry>
-
-  <entry id="BARRIER_N">
-    <type>char</type>
-    <default_value>1</default_value>
-    <group>run_begin_stop_restart</group>
-    <file>env_run.xml</file>
-    <desc>
-      Sets periodic model barriers with BARRIER_OPTION and BARRIER_DATE for synchronization
-    </desc>
-  </entry>
-
-  <entry id="BARRIER_DATE">
-    <type>char</type>
-    <default_value>-999</default_value>
-    <group>run_begin_stop_restart</group>
-    <file>env_run.xml</file>
-    <desc>
-      Alternative date in yyyymmdd format
-      sets periodic model barriers with BARRIER_OPTION and BARRIER_N for synchronization
-    </desc>
   </entry>
 
   <entry id="ESP_RUN_ON_PAUSE">
@@ -834,6 +820,21 @@
     machines.</desc>
   </entry>
 
+  <entry id="CLM_USE_PETSC">
+    <type>logical</type>
+    <valid_values>TRUE,FALSE</valid_values>
+    <default_value>FALSE</default_value>
+    <group>build_component_clm</group>
+    <file>env_build.xml</file>
+    <desc>TRUE implies CLM is built with support for the PETSc
+      library. The Variably Saturated Flow Model (VSFM) solver in CLM
+      uses the PETSc library. In order to use the VSFM solver, CLM
+      must be built with PETSc support and linking to PETSc must occur
+      when building the ACME executable. This occurs if this variable
+      is set to TRUE. Note that is only available on a limited set of
+      machines/compilers.</desc>
+  </entry>
+
   <entry id="USE_MOAB">
     <type>logical</type>
     <valid_values>TRUE,FALSE</valid_values>
@@ -1192,6 +1193,9 @@
     <desc>glacier (glc) grid - DO NOT EDIT (for experts only)</desc>
   </entry>
 
+  <!-- GLC_NX and GLC_NY are only needed by xglc. These variables do not
+       accommodate multiple ice sheet grids, but that's okay for now,
+       since xglc currently only runs on a single ice sheet grid.-->
   <entry id="GLC_NX">
     <type>integer</type>
     <default_value>0</default_value>
@@ -1199,7 +1203,6 @@
     <file>env_build.xml</file>
     <desc>number of glc cells in i direction - DO NOT EDIT (for experts only)</desc>
   </entry>
-
   <entry id="GLC_NY">
     <type>integer</type>
     <default_value>0</default_value>
@@ -1207,7 +1210,6 @@
     <file>env_build.xml</file>
     <desc>number of glc cells in j direction - DO NOT EDIT (for experts only)</desc>
   </entry>
-
 
   <entry id="WAV_GRID">
     <type>char</type>
@@ -1432,22 +1434,6 @@
     <desc>lnd2atm state mapping file</desc>
   </entry>
 
-  <entry id="LND2GLC_FMAPNAME">
-    <type>char</type>
-    <default_value>idmap</default_value>
-    <group>run_domain</group>
-    <file>env_run.xml</file>
-    <desc>lnd2glc flux mapping file</desc>
-  </entry>
-
-  <entry id="LND2GLC_SMAPNAME">
-    <type>char</type>
-    <default_value>idmap</default_value>
-    <group>run_domain</group>
-    <file>env_run.xml</file>
-    <desc>lnd2glc state mapping file</desc>
-  </entry>
-
   <entry id="LND2ROF_FMAPNAME">
     <type>char</type>
     <default_value>idmap</default_value>
@@ -1486,22 +1472,6 @@
     <group>run_domain</group>
     <file>env_run.xml</file>
     <desc>rof2ocn runoff mapping file</desc>
-  </entry>
-
-  <entry id="GLC2LND_FMAPNAME">
-    <type>char</type>
-    <default_value>idmap</default_value>
-    <group>run_domain</group>
-    <file>env_run.xml</file>
-    <desc>glc2lnd flux mapping file</desc>
-  </entry>
-
-  <entry id="GLC2LND_SMAPNAME">
-    <type>char</type>
-    <default_value>idmap</default_value>
-    <group>run_domain</group>
-    <file>env_run.xml</file>
-    <desc>glc2lnd state mapping file</desc>
   </entry>
 
   <entry id="GLC2ICE_RMAPNAME">
@@ -1884,6 +1854,26 @@
     <group>mach_pes_last</group>
     <file>env_mach_pes.xml</file>
     <desc>pes or cores per node for accounting purposes </desc>
+  </entry>
+
+  <entry id="NGPUS_PER_NODE">
+    <type>integer</type>
+    <default_value>0</default_value>
+    <values>
+      <value compiler="pgi-gpu">1</value>
+      <value compiler="nvhpc-gpu">1</value>
+    </values>
+    <group>mach_pes</group>
+    <file>env_mach_pes.xml</file>
+    <desc> Number of GPUs per node used for simulation </desc>
+  </entry>
+
+  <entry id="MAX_GPUS_PER_NODE">
+    <type>integer</type>
+    <default_value>0</default_value>
+    <group>mach_pes_last</group>
+    <file>env_mach_pes.xml</file>
+    <desc>maximum number of GPUs allowed per node </desc>
   </entry>
 
   <entry id="COSTPES_PER_NODE">
@@ -2298,10 +2288,6 @@
     <desc>standard full pathname of the cprnc executable</desc>
   </entry>
 
-  <!-- ===================================================================== -->
-  <!-- component coupling options and frequencies -->
-  <!-- ===================================================================== -->
-
   <entry id="CPL_I2O_PER_CAT">
     <type>logical</type>
     <valid_values>TRUE,FALSE</valid_values>
@@ -2309,38 +2295,6 @@
     <group>run_coupling</group>
     <file>env_run.xml</file>
     <desc>determine if per ice thickness category fields are passed from ice to ocean - DO NOT EDIT (set by POP build-namelist)</desc>
-  </entry>
-
-  <!-- ===================================================================== -->
-  <!-- history frequencies -->
-  <!-- ===================================================================== -->
-
-  <entry id="HIST_OPTION">
-    <type>char</type>
-    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
-    <default_value>never</default_value>
-    <group>run_drv_history</group>
-    <file>env_run.xml</file>
-    <desc>Sets driver snapshot history file frequency (like REST_OPTION)</desc>
-  </entry>
-
-  <entry id="HIST_N">
-    <type>integer</type>
-    <valid_values></valid_values>
-    <default_value>-999</default_value>
-    <group>run_drv_history</group>
-    <file>env_run.xml</file>
-    <desc>Sets driver snapshot history file frequency (like REST_N)
-    </desc>
-  </entry>
-
-  <entry id="HIST_DATE">
-    <type>integer</type>
-    <valid_values></valid_values>
-    <default_value>-999</default_value>
-    <group>run_drv_history</group>
-    <file>env_run.xml</file>
-    <desc>yyyymmdd format, sets coupler snapshot history date (like REST_DATE)</desc>
   </entry>
 
   <entry id="INFO_DBUG">
@@ -2351,22 +2305,6 @@
     <file>env_run.xml</file>
     <desc>level of debug output, 0=minimum, 1=normal, 2=more, 3=too much</desc>
   </entry>
-
-  <entry id="CLM_USE_PETSC">
-    <type>logical</type>
-    <valid_values>TRUE,FALSE</valid_values>
-    <default_value>FALSE</default_value>
-    <group>build_component_clm</group>
-    <file>env_build.xml</file>
-    <desc>TRUE implies CLM is built with support for the PETSc
-      library. The Variably Saturated Flow Model (VSFM) solver in CLM
-      uses the PETSc library. In order to use the VSFM solver, CLM
-      must be built with PETSc support and linking to PETSc must occur
-      when building the ACME executable. This occurs if this variable
-      is set to TRUE. Note that is only available on a limited set of
-      machines/compilers.</desc>
-  </entry>
-
 
   <!-- Prerun/postrun custom script options -->
 
@@ -2544,6 +2482,21 @@
    <file>env_run.xml</file>
    <desc>add aoflux calculation to runseq</desc>
  </entry>
+
+  <!-- ===================================================================== -->
+  <!-- TODO: the following should be deleted. They are still used by  -->
+  <!-- the component testing but are not doing anything in cmeps -->
+  <!-- ===================================================================== -->
+
+  <entry id="BFBFLAG">
+    <type>logical</type>
+    <valid_values>TRUE,FALSE</valid_values>
+    <default_value>FALSE</default_value>
+    <group>run_flags</group>
+    <file>env_run.xml</file>
+    <desc>turns on coupler bit-for-bit reproducibility with varying pe counts</desc>
+  </entry>
+
 
  <help>
     =========================================

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 class RunSeq:
     def __init__(self, outfile):
@@ -7,7 +7,7 @@ class RunSeq:
         self.__outfile = None
 
     def __enter__(self):
-        self.__outfile = open(self.__outfile_name, "w")
+        self.__outfile = open(self.__outfile_name, "w", encoding="utf-8")
         self.__outfile.write("runSeq:: \n")
         return self
 
@@ -30,9 +30,12 @@ class RunSeq:
         else:
             return -1
 
-    def enter_time_loop(self, coupling_time, active=True, newtime=True):
+    def enter_time_loop(self, coupling_time, active=True, newtime=True, addextra_atsign=False):
         if newtime:
-            self.__outfile.write ("@" + str(coupling_time) + " \n" )
+            if addextra_atsign:
+                self.__outfile.write ("@@" + str(coupling_time) + " \n" )
+            else:
+                self.__outfile.write ("@" + str(coupling_time) + " \n" )
             if active:
                 self.__time_loop.append((self.time_loop+1, self.active_depth+1))
             else:
@@ -42,14 +45,17 @@ class RunSeq:
         if if_add:
             self.__outfile.write ("  {}\n".format(action))
 
-    def leave_time_loop(self, leave_time, if_write_hist_rest=False ):
+    def leave_time_loop(self, leave_time, if_write_hist_rest=False, addextra_atsign=False ):
         if leave_time and self.__time_loop:
             _, active_depth = self.__time_loop.pop()
             if if_write_hist_rest or active_depth == 0:
                 self.__outfile.write ("  MED med_phases_history_write        \n" )
                 self.__outfile.write ("  MED med_phases_restart_write        \n" )
                 self.__outfile.write ("  MED med_phases_profile              \n" )
-            self.__outfile.write ("@ \n" )
+            if addextra_atsign: 
+                self.__outfile.write ("@@ \n" )
+            else:
+                self.__outfile.write ("@ \n" )
 
     def __exit_sequence(self):
         while self.__time_loop:

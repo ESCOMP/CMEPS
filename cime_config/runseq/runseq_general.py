@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import os, shutil, sys
 from CIME.utils import expect
@@ -81,19 +81,28 @@ def gen_runseq(case, coupling_times):
         runseq.enter_time_loop(ocn_cpl_time, newtime=ocn_outer_loop)
         #------------------
 
-        runseq.add_action("MED med_phases_prep_ocn_avg"    , med_to_ocn and ocn_outer_loop)
-        runseq.add_action("MED -> OCN :remapMethod=redist" , med_to_ocn and ocn_outer_loop)
+        if (cpl_seq_option == 'OPTION2'):
+            runseq.add_action("MED med_phases_prep_ocn_avg"    , med_to_ocn and ocn_outer_loop)
+            runseq.add_action("MED -> OCN :remapMethod=redist" , med_to_ocn and ocn_outer_loop)
 
         #------------------
         runseq.enter_time_loop(atm_cpl_time, newtime=inner_loop)
         #------------------
 
-        if (cpl_seq_option == 'RASM'):
+        if (cpl_seq_option == 'OPTION1' or cpl_seq_option == 'OPTION2'):
             if cpl_add_aoflux:
                 runseq.add_action("MED med_phases_aofluxes_run" , run_ocn and run_atm and (med_to_ocn or med_to_atm))
             runseq.add_action("MED med_phases_prep_ocn_accum"   , med_to_ocn)
             runseq.add_action("MED med_phases_ocnalb_run"       , (run_ocn and run_atm and (med_to_ocn or med_to_atm)) and not xcompset)
             runseq.add_action("MED med_phases_diag_ocn"         , run_ocn and diag_mode) 
+
+        if (cpl_seq_option == 'OPTION1'):
+            if ocn_cpl_time != atm_cpl_time:
+                runseq.enter_time_loop(ocn_cpl_time, newtime=inner_loop, addextra_atsign=True)
+            runseq.add_action("MED med_phases_prep_ocn_avg"    , med_to_ocn and ocn_outer_loop)
+            runseq.add_action("MED -> OCN :remapMethod=redist" , med_to_ocn and ocn_outer_loop)
+            if ocn_cpl_time != atm_cpl_time:
+                runseq.leave_time_loop(inner_loop, addextra_atsign=True)
 
         runseq.add_action("MED med_phases_prep_lnd"        , med_to_lnd)
         runseq.add_action("MED -> LND :remapMethod=redist" , med_to_lnd)

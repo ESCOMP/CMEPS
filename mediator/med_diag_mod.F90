@@ -31,7 +31,6 @@ module med_diag_mod
   use med_methods_mod       , only : fldbun_getdata2d => med_methods_FB_getdata2d
   use med_methods_mod       , only : fldbun_getdata1d => med_methods_FB_getdata1d
   use med_methods_mod       , only : fldbun_fldChk    => med_methods_FB_FldChk
-  use med_time_mod          , only : alarmInit        => med_time_alarmInit
   use med_utils_mod         , only : chkerr           => med_utils_ChkErr
   use perf_mod              , only : t_startf, t_stopf
 
@@ -291,11 +290,7 @@ contains
     call add_to_budget_diag(budget_diags%comps, c_ocn_asend, 'c2a_ocn' ) ! comp index: ocn, on atm grid
     call add_to_budget_diag(budget_diags%comps, c_ocn_arecv, 'a2c_ocn' ) ! comp index: ocn, on atm grid
 
-    if(mastertask) then
-       write(logunit,*)
-       write(logunit,'(a)') ' Creating budget_diags%fields '
-    end if
-    call add_to_budget_diag(budget_diags%fields, f_area    ,'area'     ) ! field  area (wrt to unit sphere)
+    call add_to_budget_diag(budget_diags%fields, f_area          ,'area'        ) ! field  area (wrt to unit sphere)
 
     ! Note that this order is important here to determine f_heat_beg and f_heat_end
     call add_to_budget_diag(budget_diags%fields, f_heat_frz      ,'hfreeze'     ) ! field  heat : latent, freezing
@@ -342,10 +337,6 @@ contains
     call add_to_budget_diag(budget_diags%fields, f_watr_evap_HDO ,'wevap_HDO'   ) ! field  water isotope: evaporation
     call add_to_budget_diag(budget_diags%fields, f_watr_roff_HDO ,'wrunoff_HDO' ) ! field  water isotope: runoff/flood
     call add_to_budget_diag(budget_diags%fields, f_watr_ioff_HDO ,'wfrzrof_HDO' ) ! field  water isotope: frozen runoff
-
-    if(mastertask) then
-       write(logunit,*)
-    end if
 
     f_heat_beg = f_heat_frz      ! field  first index for heat
     f_heat_end = f_heat_sen      ! field  last  index for heat
@@ -398,22 +389,6 @@ contains
     allocate(budget_counter  (f_size , c_size , p_size)) ! counter, valid only on root pe
     allocate(budget_global_1d(f_size * c_size * p_size)) ! needed for ESMF_VMReduce call
 
-    if (budget_print_inst + budget_print_daily + budget_print_month + budget_print_ann + budget_print_ltann + budget_print_ltend > 0) then
-       ! Set stop alarm (needed for budgets)
-       call NUOPC_CompAttributeGet(gcomp, name="stop_option", value=stop_option, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call NUOPC_CompAttributeGet(gcomp, name="stop_n", value=cvalue, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       read(cvalue,*) stop_n
-       call NUOPC_CompAttributeGet(gcomp, name="stop_ymd", value=cvalue, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       read(cvalue,*) stop_ymd
-       call NUOPC_MediatorGet(gcomp, mediatorClock=mediatorClock, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call alarmInit(mediatorclock, stop_alarm, stop_option, opt_n=stop_n, opt_ymd=stop_ymd, &
-            alarmname='alarm_stop', rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    endif
   end subroutine med_diag_init
 
   integer function get_diag_attribute(gcomp, name, rc)
@@ -618,13 +593,12 @@ contains
     ! local variables
     type(InternalState) :: is_local
     integer             :: n,nf,ic,ip
-    real(r8), pointer   :: afrac(:) => null()
-    real(r8), pointer   :: lfrac(:) => null()
-    real(r8), pointer   :: ifrac(:) => null()
-    real(r8), pointer   :: ofrac(:) => null()
-    real(r8), pointer   :: areas(:) => null()
-    real(r8), pointer   :: lats(:) => null()
-    real(r8), pointer   :: data(:) => null()
+    real(r8), pointer   :: afrac(:)
+    real(r8), pointer   :: lfrac(:)
+    real(r8), pointer   :: ifrac(:)
+    real(r8), pointer   :: ofrac(:)
+    real(r8), pointer   :: areas(:)
+    real(r8), pointer   :: lats(:)
     type(ESMF_Field)    :: lfield
     character(*), parameter :: subName = '(med_phases_diag_atm) '
     !-------------------------------------------------------------------------------
@@ -732,37 +706,6 @@ contains
          areas, lats, afrac, lfrac, ofrac, ifrac, budget_local, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    if ( fldbun_fldchk(is_local%wrap%FBExp(compatm), 'Faxx_hrain', rc=rc)) then
-       call fldbun_getdata1d(is_local%wrap%FBExp(compatm), 'Faxx_hrain', data, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       ip = period_inst
-       nf = f_heat_rain
-       do n = 1,size(data)
-          budget_local(nf,c_atm_send,ip)  = budget_local(nf,c_atm_send,ip)  - areas(n)*data(n)*afrac(n)
-          budget_local(nf,c_ocn_arecv,ip) = budget_local(nf,c_ocn_arecv,ip) + areas(n)*data(n)*ofrac(n)
-       end do
-    end if
-    if ( fldbun_fldchk(is_local%wrap%FBExp(compatm), 'Faxx_hsnow', rc=rc)) then
-       call fldbun_getdata1d(is_local%wrap%FBExp(compatm), 'Faxx_hsnow', data, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       ip = period_inst
-       nf = f_heat_snow
-       do n = 1,size(data)
-          budget_local(nf,c_atm_send,ip)  = budget_local(nf,c_atm_send,ip)  - areas(n)*data(n)*afrac(n)
-          budget_local(nf,c_ocn_arecv,ip) = budget_local(nf,c_ocn_arecv,ip) + areas(n)*data(n)*ofrac(n)
-       end do
-    end if
-    if ( fldbun_fldchk(is_local%wrap%FBExp(compatm), 'Faxx_hevap', rc=rc)) then
-       call fldbun_getdata1d(is_local%wrap%FBExp(compatm), 'Faxx_hevap', data, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       ip = period_inst
-       nf = f_heat_evap
-       do n = 1,size(data)
-          budget_local(nf,c_atm_send,ip)  = budget_local(nf,c_atm_send,ip)  - areas(n)*data(n)*afrac(n)
-          budget_local(nf,c_ocn_arecv,ip) = budget_local(nf,c_ocn_arecv,ip) + areas(n)*data(n)*ofrac(n)
-       end do
-    end if
-
     ! water isotopes
     call diag_atm_wiso_send(is_local%wrap%FBImp(compatm,compatm), 'Faxa_evap_wiso', &
          f_watr_evap_16O, f_watr_evap_18O, f_watr_evap_HDO, &
@@ -788,7 +731,7 @@ contains
     ! local variables
     integer           :: n, ip
     type(ESMF_field)  :: lfield
-    real(r8), pointer :: data(:) => null()
+    real(r8), pointer :: data(:)
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
     if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
@@ -824,7 +767,7 @@ contains
     ! local variables
     integer           :: n, ip
     type(ESMF_field)  :: lfield
-    real(r8), pointer :: data(:) => null()
+    real(r8), pointer :: data(:)
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
     if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
@@ -863,7 +806,7 @@ contains
     ! local variables
     integer           :: n, ip
     type(ESMF_Field)  :: lfield
-    real(r8), pointer :: data(:,:) => null()
+    real(r8), pointer :: data(:,:)
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
     if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
@@ -920,7 +863,7 @@ contains
     ! local variables
     integer           :: n, ip
     type(ESMF_Field)  :: lfield
-    real(r8), pointer :: data(:,:) => null()
+    real(r8), pointer :: data(:,:)
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
     if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
@@ -973,9 +916,9 @@ contains
 
     ! local variables
     type(InternalState) :: is_local
-    real(r8), pointer   :: lfrac(:) => null()
+    real(r8), pointer   :: lfrac(:)
     integer             :: n,ip, ic
-    real(r8), pointer   :: areas(:) => null()
+    real(r8), pointer   :: areas(:)
     type(ESMF_Field)    :: lfield
     character(*), parameter :: subName = '(med_phases_diag_lnd) '
     ! ------------------------------------------------------------------
@@ -1014,8 +957,6 @@ contains
     call diag_lnd(is_local%wrap%FBImp(complnd,complnd), 'Flrl_rofgwl', f_watr_roff, ic,&
          areas, lfrac, budget_local, minus=.true., rc=rc)
     call diag_lnd(is_local%wrap%FBImp(complnd,complnd), 'Flrl_rofsub', f_watr_roff, ic,&
-         areas, lfrac, budget_local, minus=.true., rc=rc)
-    call diag_lnd(is_local%wrap%FBImp(complnd,complnd), 'Flrl_rofdto', f_watr_roff, ic,&
          areas, lfrac, budget_local, minus=.true., rc=rc)
     call diag_lnd(is_local%wrap%FBImp(complnd,complnd), 'Flrl_irrig' , f_watr_roff, ic,&
          areas, lfrac, budget_local, minus=.true., rc=rc)
@@ -1078,7 +1019,7 @@ contains
     ! local variables
     integer           :: n, ip
     type(ESMF_field)  :: lfield
-    real(r8), pointer :: data(:) => null()
+    real(r8), pointer :: data(:)
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
 
@@ -1112,7 +1053,7 @@ contains
     ! local variables
     integer           :: n, ip
     type(ESMF_field)  :: lfield
-    real(r8), pointer :: data(:,:) => null()
+    real(r8), pointer :: data(:,:)
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
 
@@ -1150,7 +1091,7 @@ contains
     ! local variables
     type(InternalState) :: is_local
     integer             :: ic, ip, n
-    real(r8), pointer   :: areas(:) => null()
+    real(r8), pointer   :: areas(:)
     character(*), parameter :: subName = '(med_phases_diag_rof) '
     ! ------------------------------------------------------------------
 
@@ -1194,7 +1135,6 @@ contains
     call diag_rof(is_local%wrap%FBExp(comprof), 'Flrl_rofsur', f_watr_roff, ic, areas, budget_local, rc=rc)
     call diag_rof(is_local%wrap%FBExp(comprof), 'Flrl_rofgwl', f_watr_roff, ic, areas, budget_local, rc=rc)
     call diag_rof(is_local%wrap%FBExp(comprof), 'Flrl_rofsub', f_watr_roff, ic, areas, budget_local, rc=rc)
-    call diag_rof(is_local%wrap%FBExp(comprof), 'Flrl_rofdto', f_watr_roff, ic, areas, budget_local, rc=rc)
     call diag_rof(is_local%wrap%FBExp(comprof), 'Flrl_irrig' , f_watr_roff, ic, areas, budget_local, rc=rc)
     call diag_rof(is_local%wrap%FBExp(comprof), 'Flrl_rofi'  , f_watr_ioff, ic, areas, budget_local, rc=rc)
 
@@ -1222,7 +1162,7 @@ contains
     ! local variables
     integer           :: n, ip
     type(ESMF_field)  :: lfield
-    real(r8), pointer :: data(:) => null()
+    real(r8), pointer :: data(:)
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
 
@@ -1256,7 +1196,7 @@ contains
     ! local variables
     integer           :: n, ip
     type(ESMF_field)  :: lfield
-    real(r8), pointer :: data(:,:) => null()
+    real(r8), pointer :: data(:,:)
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
 
@@ -1294,7 +1234,7 @@ contains
     ! local variables
     type(InternalState) :: is_local
     integer             :: ic, ip, ns
-    real(r8), pointer   :: areas(:) => null()
+    real(r8), pointer   :: areas(:)
     character(*), parameter :: subName = '(med_phases_diag_glc) '
     ! ------------------------------------------------------------------
 
@@ -1339,7 +1279,7 @@ contains
     ! local variables
     integer           :: n, ip
     type(ESMF_field)  :: lfield
-    real(r8), pointer :: data(:) => null()
+    real(r8), pointer :: data(:)
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
     if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
@@ -1363,7 +1303,7 @@ contains
     ! Compute global ocn input from mediator
     ! ------------------------------------------------------------------
 
-    use esmFlds, only : compocn
+    use esmFlds, only : compocn, compatm
 
     ! input/output variables
     type(ESMF_GridComp) :: gcomp
@@ -1373,11 +1313,12 @@ contains
     type(InternalState) :: is_local
     integer             :: n,ic,ip
     real(r8)            :: wgt_i,wgt_o
-    real(r8), pointer   :: ifrac(:) => null() ! ice fraction in ocean grid cell
-    real(r8), pointer   :: ofrac(:) => null() ! non-ice fraction nin ocean grid cell
-    real(r8), pointer   :: sfrac(:) => null() ! sum of ifrac and ofrac
-    real(r8), pointer   :: areas(:) => null()
-    real(r8), pointer   :: data(:) => null()
+    real(r8), pointer   :: ifrac(:)  ! ice fraction in ocean grid cell
+    real(r8), pointer   :: ofrac(:)  ! non-ice fraction nin ocean grid cell
+    real(r8), pointer   :: sfrac(:)  ! sum of ifrac and ofrac
+    real(r8), pointer   :: sfrac_x_ofrac(:)
+    real(r8), pointer   :: areas(:)
+    real(r8), pointer   :: data(:)
     type(ESMF_field)    :: lfield
     character(*), parameter :: subName = '(med_phases_diag_ocn) '
     ! ------------------------------------------------------------------
@@ -1395,6 +1336,8 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     allocate(sfrac(size(ofrac)))
     sfrac(:) = ifrac(:) + ofrac(:)
+    allocate(sfrac_x_ofrac(size(ofrac)))
+    sfrac_x_ofrac(:) = sfrac(:) * ofrac(:)
 
     areas => is_local%wrap%mesh_info(compocn)%areas
 
@@ -1439,8 +1382,20 @@ contains
        budget_local(f_area,ic,ip) = budget_local(f_area,ic,ip) + areas(n)*ofrac(n)
     end do
 
-    call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_lwup' , f_heat_lwup   , ic, areas, sfrac, budget_local, rc=rc)
-    call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_lat'  , f_heat_latvap , ic, areas, sfrac, budget_local, rc=rc)
+    if (fldbun_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_lwnet', rc=rc)) then
+       call diag_ocn(is_local%wrap%FBMed_aoflux_o        , 'Faox_lwup', f_heat_lwup, ic, areas, sfrac_x_ofrac, budget_local, rc=rc)
+       call diag_ocn(is_local%wrap%FBImp(compatm,compocn), 'Faxa_lwdn', f_heat_lwdn, ic, areas, sfrac_x_ofrac, budget_local, rc=rc)
+    else
+       call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_lwup' , f_heat_lwup   , ic, areas, sfrac, budget_local, rc=rc)
+       call diag_ocn(is_local%wrap%FBExp(compocn), 'Faxa_lwdn' , f_heat_lwdn   , ic, areas, sfrac, budget_local, rc=rc)
+    end if
+
+    if (fldbun_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_lat', rc=rc)) then
+       call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_lat'  , f_heat_latvap , ic, areas, sfrac, budget_local, rc=rc)
+    else
+       call diag_ocn(is_local%wrap%FBMed_aoflux_o, 'Faox_lat'  , f_heat_latvap , ic, areas, sfrac_x_ofrac, budget_local, rc=rc)
+    end if
+
     call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_sen'  , f_heat_sen    , ic, areas, sfrac, budget_local, rc=rc)
     call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_evap' , f_watr_evap   , ic, areas, sfrac, budget_local, rc=rc)
     call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_hrain', f_heat_rain   , ic, areas, sfrac, budget_local, rc=rc)
@@ -1452,8 +1407,19 @@ contains
     call diag_ocn(is_local%wrap%FBExp(compocn), 'Fioi_bergh', f_heat_melt   , ic, areas, sfrac, budget_local, rc=rc)
     call diag_ocn(is_local%wrap%FBExp(compocn), 'Fioi_salt' , f_watr_salt   , ic, areas, sfrac, budget_local, &
          scale=SFLXtoWFLX, rc=rc)
-    call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_swnet', f_heat_swnet  , ic, areas, sfrac, budget_local, rc=rc)
-    call diag_ocn(is_local%wrap%FBExp(compocn), 'Faxa_lwdn' , f_heat_lwdn   , ic, areas, sfrac, budget_local, rc=rc)
+
+    if (fldbun_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_swnet', rc=rc)) then
+       call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_swnet', f_heat_swnet  , ic, areas, sfrac, budget_local, rc=rc)
+    else if (fldbun_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_swnet_vdr', rc=rc) .and. &
+             fldbun_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_swnet_vdf', rc=rc) .and. &
+             fldbun_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_swnet_idr', rc=rc) .and. &
+             fldbun_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_swnet_idf', rc=rc)) then
+       call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_swnet_vdr', f_heat_swnet  , ic, areas, sfrac, budget_local, rc=rc)
+       call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_swnet_vdf', f_heat_swnet  , ic, areas, sfrac, budget_local, rc=rc)
+       call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_swnet_idr', f_heat_swnet  , ic, areas, sfrac, budget_local, rc=rc)
+       call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_swnet_idf', f_heat_swnet  , ic, areas, sfrac, budget_local, rc=rc)
+    end if
+
     call diag_ocn(is_local%wrap%FBExp(compocn), 'Faxa_rain' , f_watr_rain   , ic, areas, sfrac, budget_local, rc=rc)
     call diag_ocn(is_local%wrap%FBExp(compocn), 'Faxa_snow' , f_watr_snow   , ic, areas, sfrac, budget_local, rc=rc)
     call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_rofl' , f_watr_roff   , ic, areas, sfrac, budget_local, rc=rc)
@@ -1492,7 +1458,7 @@ contains
     ! local variables
     integer           :: n, ip
     type(ESMF_field)  :: lfield
-    real(r8), pointer :: data(:) => null()
+    real(r8), pointer :: data(:)
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
     if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
@@ -1525,7 +1491,7 @@ contains
     ! local variables
     integer           :: n, ip
     type(ESMF_field)  :: lfield
-    real(r8), pointer :: data(:,:) => null()
+    real(r8), pointer :: data(:,:)
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
     if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
@@ -1556,10 +1522,10 @@ contains
     ! local variables
     type(InternalState) :: is_local
     integer             :: n,ic,ip
-    real(r8), pointer   :: ofrac(:) => null()
-    real(r8), pointer   :: ifrac(:) => null()
-    real(r8), pointer   :: areas(:) => null()
-    real(r8), pointer   :: lats(:) => null()
+    real(r8), pointer   :: ofrac(:)
+    real(r8), pointer   :: ifrac(:)
+    real(r8), pointer   :: areas(:)
+    real(r8), pointer   :: lats(:)
     type(ESMF_field)    :: lfield
     character(*), parameter :: subName = '(med_phases_diag_ice_ice2med) '
     ! ------------------------------------------------------------------
@@ -1596,10 +1562,26 @@ contains
          areas, lats, ifrac, budget_local, minus=.true., rc=rc)
     call diag_ice_recv(is_local%wrap%FBImp(compice,compice), 'Fioi_salt', f_watr_salt, &
          areas, lats, ifrac, budget_local, minus=.true., scale=SFLXtoWFLX, rc=rc)
-    call diag_ice_recv(is_local%wrap%FBImp(compice,compice), 'Fioi_swpen', f_heat_swnet, &
-         areas, lats, ifrac, budget_local, minus=.true., rc=rc)
+
+    if ( fldbun_fldchk(is_local%wrap%FBImp(compice,compice), 'Fioi_swpen_vdr', rc=rc) .and. &
+         fldbun_fldchk(is_local%wrap%FBImp(compice,compice), 'Fioi_swpen_vdf', rc=rc) .and. &
+         fldbun_fldchk(is_local%wrap%FBImp(compice,compice), 'Fioi_swpen_idr', rc=rc) .and. &
+         fldbun_fldchk(is_local%wrap%FBImp(compice,compice), 'Fioi_swpen_idf', rc=rc)) then
+       call diag_ice_recv(is_local%wrap%FBImp(compice,compice), 'Fioi_swpen_vdr', f_heat_swnet, &
+            areas, lats, ifrac, budget_local, minus=.true., rc=rc)
+       call diag_ice_recv(is_local%wrap%FBImp(compice,compice), 'Fioi_swpen_vdf', f_heat_swnet, &
+            areas, lats, ifrac, budget_local, minus=.true., rc=rc)
+       call diag_ice_recv(is_local%wrap%FBImp(compice,compice), 'Fioi_swpen_idr', f_heat_swnet, &
+            areas, lats, ifrac, budget_local, minus=.true., rc=rc)
+       call diag_ice_recv(is_local%wrap%FBImp(compice,compice), 'Fioi_swpen_idf', f_heat_swnet, &
+            areas, lats, ifrac, budget_local, minus=.true., rc=rc)
+    else
+       call diag_ice_recv(is_local%wrap%FBImp(compice,compice), 'Fioi_swpen', f_heat_swnet, &
+            areas, lats, ifrac, budget_local, minus=.true., rc=rc)
+    end if
     call diag_ice_recv(is_local%wrap%FBImp(compice,compice), 'Faii_swnet', f_heat_swnet, &
          areas, lats, ifrac, budget_local, rc=rc)
+
     call diag_ice_recv(is_local%wrap%FBImp(compice,compice), 'Faii_lwup', f_heat_lwup, &
          areas, lats, ifrac, budget_local, rc=rc)
     call diag_ice_recv(is_local%wrap%FBImp(compice,compice), 'Faii_lat', f_heat_latvap, &
@@ -1632,7 +1614,7 @@ contains
     ! local variables
     integer           :: n, ic, ip
     type(ESMF_Field)  :: lfield
-    real(r8), pointer :: data(:) => null()
+    real(r8), pointer :: data(:)
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
     if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
@@ -1678,7 +1660,7 @@ contains
     ! local variables
     integer           :: n, ic, ip
     type(ESMF_Field)  :: lfield
-    real(r8), pointer :: data(:,:) => null()
+    real(r8), pointer :: data(:,:)
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
 
@@ -1722,11 +1704,11 @@ contains
     type(InternalState) :: is_local
     integer             :: n,ic,ip
     real(r8)            :: wgt_i, wgt_o
-    real(r8), pointer   :: ofrac(:) => null()
-    real(r8), pointer   :: ifrac(:) => null()
-    real(r8), pointer   :: data(:) => null()
-    real(r8), pointer   :: areas(:) => null()
-    real(r8), pointer   :: lats(:) => null()
+    real(r8), pointer   :: ofrac(:)
+    real(r8), pointer   :: ifrac(:)
+    real(r8), pointer   :: data(:)
+    real(r8), pointer   :: areas(:)
+    real(r8), pointer   :: lats(:)
     type(ESMF_Field)    :: lfield
     character(*), parameter :: subName = '(med_phases_diag_ice_med2ice) '
     ! ------------------------------------------------------------------
@@ -1808,7 +1790,7 @@ contains
     ! local variables
     integer           :: n, ic, ip
     type(ESMF_Field)  :: lfield
-    real(r8), pointer :: data(:) => null()
+    real(r8), pointer :: data(:)
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
     ip = period_inst
@@ -1842,7 +1824,7 @@ contains
     ! local variables
     integer           :: n, ic, ip
     type(ESMF_Field)  :: lfield
-    real(r8), pointer :: data(:,:) => null()
+    real(r8), pointer :: data(:,:)
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
     if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
@@ -2531,7 +2513,7 @@ contains
     integer :: n
     integer :: oldsize
     logical :: found
-    type(budget_diag_type), pointer :: new_entries(:) => null()
+    type(budget_diag_type), pointer :: new_entries(:)
     character(len=*), parameter :: subname='(add_to_budget_diag)'
     !----------------------------------------------------------------------
 
@@ -2553,7 +2535,7 @@ contains
     ! create new entry if fldname is not in original list
 
     if (.not. found) then
-       if(mastertask) write(logunit,'(a,a16,a,i8)') ' Adding ',trim(name),' to budgets with index ',index
+       if(mastertask) write(logunit,*) ' Add ',trim(name),' to budgets with index ',index
        ! 1) allocate newfld to be size (one element larger than input flds)
        allocate(new_entries(index))
 

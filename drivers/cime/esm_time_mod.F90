@@ -9,7 +9,7 @@ module esm_time_mod
   use ESMF                , only : ESMF_CALKIND_NOLEAP, ESMF_CALKIND_GREGORIAN
   use ESMF                , only : ESMF_Time, ESMF_TimeGet, ESMF_TimeSet
   use ESMF                , only : ESMF_TimeInterval, ESMF_TimeIntervalSet, ESMF_TimeIntervalGet
-  use ESMF                , only : ESMF_SUCCESS, ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_FAILURE
+  use ESMF                , only : ESMF_SUCCESS, ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_FAILURE, ESMF_LOGMSG_ERROR
   use ESMF                , only : ESMF_VM, ESMF_VMGet, ESMF_VMBroadcast
   use ESMF                , only : ESMF_LOGMSG_INFO, ESMF_FAILURE
   use ESMF                , only : operator(<), operator(/=), operator(+)
@@ -150,7 +150,7 @@ contains
              if (ierr < 0) then
                 rc = ESMF_FAILURE
                 call ESMF_LogWrite(trim(subname)//' ERROR rpointer file open returns error', &
-                     ESMF_LOGMSG_INFO, line=__LINE__, file=__FILE__)
+                     ESMF_LOGMSG_ERROR, line=__LINE__, file=__FILE__)
                 return
              end if
              read(unitn,'(a)', iostat=ierr) restart_file
@@ -161,9 +161,9 @@ contains
                 return
              end if
              close(unitn)
-             call ESMF_LogWrite(trim(subname)//" read driver restart from file = "//trim(restart_file), &
-                  ESMF_LOGMSG_INFO)
-
+             if (mastertask) then
+                write(logunit,'(a)') trim(subname)//" reading driver restart from file = "//trim(restart_file)
+             end if
              call esm_time_read_restart(restart_file, start_ymd, start_tod, curr_ymd, curr_tod, rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
@@ -419,17 +419,18 @@ contains
    endif
 
    ! Get calendar from clock
-   call ESMF_ClockGet(clock, calendar=cal)
+   call ESMF_ClockGet(clock, calendar=cal, rc=rc)
+   if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
    ! Error checks
    if (trim(option) == optdate) then
       if (.not. present(opt_ymd)) then
-         call ESMF_LogWrite(trim(subname)//trim(option)//' requires opt_ymd', ESMF_LOGMSG_INFO)
+         call ESMF_LogWrite(trim(subname)//trim(option)//' requires opt_ymd', ESMF_LOGMSG_ERROR)
          rc = ESMF_FAILURE
          return
       end if
       if (lymd < 0 .or. ltod < 0) then
-         call ESMF_LogWrite(subname//trim(option)//'opt_ymd, opt_tod invalid', ESMF_LOGMSG_INFO)
+         call ESMF_LogWrite(subname//trim(option)//'opt_ymd, opt_tod invalid', ESMF_LOGMSG_ERROR)
          rc = ESMF_FAILURE
          return
       end if
@@ -441,12 +442,12 @@ contains
         trim(option) == optNMonths  .or. &
         trim(option) == optNYears) then
       if (.not.present(opt_n)) then
-         call ESMF_LogWrite(subname//trim(option)//' requires opt_n', ESMF_LOGMSG_INFO)
+         call ESMF_LogWrite(subname//trim(option)//' requires opt_n', ESMF_LOGMSG_ERROR)
          rc = ESMF_FAILURE
          return
       end if
       if (opt_n <= 0) then
-         call ESMF_LogWrite(subname//trim(option)//' invalid opt_n', ESMF_LOGMSG_INFO)
+         call ESMF_LogWrite(subname//trim(option)//' invalid opt_n', ESMF_LOGMSG_ERROR)
          rc = ESMF_FAILURE
          return
       end if
@@ -459,6 +460,15 @@ contains
       call ESMF_TimeIntervalSet(AlarmInterval, yy=9999, rc=rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
       call ESMF_TimeSet( NextAlarm, yy=9999, mm=12, dd=1, s=0, calendar=cal, rc=rc )
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      update_nextalarm  = .false.
+
+   case (optDate)
+      call ESMF_TimeIntervalSet(AlarmInterval, yy=9999, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      call esm_time_date2ymd(opt_ymd, cyy, cmm, cdd)
+
+      call ESMF_TimeSet( NextAlarm, yy=cyy, mm=cmm, dd=cdd, s=ltod, calendar=cal, rc=rc )
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
       update_nextalarm  = .false.
 
@@ -525,7 +535,7 @@ contains
       update_nextalarm  = .true.
 
    case default
-      call ESMF_LogWrite(subname//'unknown option '//trim(option), ESMF_LOGMSG_INFO)
+      call ESMF_LogWrite(subname//'unknown option '//trim(option), ESMF_LOGMSG_ERROR)
       rc = ESMF_FAILURE
       return
 
@@ -585,7 +595,7 @@ contains
          write(logunit,*) subname//': ERROR yymmdd is a negative number or '// &
               'time-of-day out of bounds', ymd, ltod
       end if
-      call ESMF_LogWrite( subname//'ERROR: Bad input' , ESMF_LOGMSG_INFO)
+      call ESMF_LogWrite( subname//'ERROR: Bad input' , ESMF_LOGMSG_ERROR)
       rc = ESMF_FAILURE
       return
    end if
@@ -646,66 +656,66 @@ contains
    rc = ESMF_SUCCESS
    status = nf90_open(restart_file, NF90_NOWRITE, ncid)
    if (status /= nf90_NoErr) then
-      call ESMF_LogWrite(trim(subname)//' ERROR: nf90_open: '//trim(restart_file), ESMF_LOGMSG_INFO)
+      call ESMF_LogWrite(trim(subname)//' ERROR: nf90_open: '//trim(restart_file), ESMF_LOGMSG_ERROR)
       rc = ESMF_FAILURE
       return
    endif
 
    status = nf90_inq_varid(ncid, 'start_ymd', varid)
    if (status /= nf90_NoErr) then
-      call ESMF_LogWrite(trim(subname)//' ERROR: nf90_inq_varid start_ymd', ESMF_LOGMSG_INFO)
+      call ESMF_LogWrite(trim(subname)//' ERROR: nf90_inq_varid start_ymd', ESMF_LOGMSG_ERROR)
       rc = ESMF_FAILURE
       return
    end if
    status = nf90_get_var(ncid, varid, start_ymd)
    if (status /= nf90_NoErr) then
-      call ESMF_LogWrite(trim(subname)//' ERROR: nf90_get_var start_ymd', ESMF_LOGMSG_INFO)
+      call ESMF_LogWrite(trim(subname)//' ERROR: nf90_get_var start_ymd', ESMF_LOGMSG_ERROR)
       rc = ESMF_FAILURE
       return
    end if
 
    status = nf90_inq_varid(ncid, 'start_tod', varid)
    if (status /= nf90_NoErr) then
-      call ESMF_LogWrite(trim(subname)//' ERROR: nf90_inq_varid start_tod', ESMF_LOGMSG_INFO)
+      call ESMF_LogWrite(trim(subname)//' ERROR: nf90_inq_varid start_tod', ESMF_LOGMSG_ERROR)
       rc = ESMF_FAILURE
       return
    end if
    status = nf90_get_var(ncid, varid, start_tod)
    if (status /= nf90_NoErr) then
-      call ESMF_LogWrite(trim(subname)//' ERROR: nf90_get_var start_tod', ESMF_LOGMSG_INFO)
+      call ESMF_LogWrite(trim(subname)//' ERROR: nf90_get_var start_tod', ESMF_LOGMSG_ERROR)
       rc = ESMF_FAILURE
       return
    end if
 
    status = nf90_inq_varid(ncid, 'curr_ymd', varid)
    if (status /= nf90_NoErr) then
-      call ESMF_LogWrite(trim(subname)//' ERROR: nf90_inq_varid curr_ymd', ESMF_LOGMSG_INFO)
+      call ESMF_LogWrite(trim(subname)//' ERROR: nf90_inq_varid curr_ymd', ESMF_LOGMSG_ERROR)
       rc = ESMF_FAILURE
       return
    end if
    status = nf90_get_var(ncid, varid, curr_ymd)
    if (status /= nf90_NoErr) then
-      call ESMF_LogWrite(trim(subname)//' ERROR: nf90_get_var curr_ymd', ESMF_LOGMSG_INFO)
+      call ESMF_LogWrite(trim(subname)//' ERROR: nf90_get_var curr_ymd', ESMF_LOGMSG_ERROR)
       rc = ESMF_FAILURE
       return
    end if
 
    status = nf90_inq_varid(ncid, 'curr_tod', varid)
    if (status /= nf90_NoErr) then
-      call ESMF_LogWrite(trim(subname)//' ERROR: nf90_inq_varid curr_tod', ESMF_LOGMSG_INFO)
+      call ESMF_LogWrite(trim(subname)//' ERROR: nf90_inq_varid curr_tod', ESMF_LOGMSG_ERROR)
       rc = ESMF_FAILURE
       return
    end if
    status = nf90_get_var(ncid, varid, curr_tod)
    if (status /= nf90_NoErr) then
-      call ESMF_LogWrite(trim(subname)//' ERROR: nf90_get_var curr_tod', ESMF_LOGMSG_INFO)
+      call ESMF_LogWrite(trim(subname)//' ERROR: nf90_get_var curr_tod', ESMF_LOGMSG_ERROR)
       rc = ESMF_FAILURE
       return
    end if
 
    status = nf90_close(ncid)
    if (status /= nf90_NoErr) then
-      call ESMF_LogWrite(trim(subname)//' ERROR: nf90_close', ESMF_LOGMSG_INFO)
+      call ESMF_LogWrite(trim(subname)//' ERROR: nf90_close', ESMF_LOGMSG_ERROR)
       rc = ESMF_FAILURE
       return
    end if

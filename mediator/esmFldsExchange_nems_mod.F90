@@ -31,6 +31,7 @@ contains
     use esmflds               , only : compmed, compatm, compocn, compice, comprof, ncomps
     use esmflds               , only : mapbilnr, mapconsf, mapconsd, mappatch
     use esmflds               , only : mapfcopy, mapnstod, mapnstod_consd, mapnstod_consf
+    use esmflds               , only : mapconsf_aofrac
     use esmflds               , only : coupling_mode, mapnames
     use esmflds               , only : fldListTo, fldListFr, fldListMed_aoflux, fldListMed_ocnalb
     use med_internalstate_mod , only : mastertask, logunit
@@ -88,7 +89,7 @@ contains
       do n = 1,size(flds)
          fldname = trim(flds(n))
          call addfld(fldListFr(compatm)%flds, trim(fldname))
-         call addmap(fldListFr(compatm)%flds, trim(fldname), compocn, maptype, 'none', 'unset')
+         call addmap(fldListFr(compatm)%flds, trim(fldname), compocn, maptype, 'one', 'unset')
       end do
       deallocate(flds)
 
@@ -105,10 +106,6 @@ contains
     end if
 
     ! unused fields from ice - but that are needed to be realized by the cice cap
-    call addfld(fldListFr(compice)%flds, 'Si_avsdf')
-    call addfld(fldListFr(compice)%flds, 'Si_avsdr')
-    call addfld(fldListFr(compice)%flds, 'Si_anidf')
-    call addfld(fldListFr(compice)%flds, 'Si_anidr')
     call addfld(fldListFr(compice)%flds, 'Faii_evap')
     call addfld(fldListFr(compice)%flds, 'mean_sw_pen_to_ocn')
 
@@ -119,6 +116,8 @@ contains
     ! to atm: fractions (computed in med_phases_prep_atm)
     call addfld(fldListFr(compice)%flds, 'Si_ifrac')
     call addfld(fldListTo(compatm)%flds, 'Si_ifrac')
+    ! ofrac used by atm
+    call addfld(fldListFr(compatm)%flds, 'Sa_ofrac')
 
     ! to atm: unmerged from ice
     ! - zonal surface stress, meridional surface stress
@@ -142,6 +141,18 @@ contains
     end do
     deallocate(flds)
 
+    allocate(flds(4))
+    flds = (/'avsdr    ', 'avsdf    ', &
+             'anidr    ', 'anidf    '/)
+    do n = 1,size(flds)
+       fldname = 'Si_'//trim(flds(n))
+       call addfld(fldListFr(compice)%flds, trim(fldname))
+       call addfld(fldListTo(compatm)%flds, trim(fldname))
+       call addmap(fldListFr(compice)%flds, trim(fldname), compatm, maptype, 'ifrac', 'unset')
+       call addmrg(fldListTo(compatm)%flds, trim(fldname), mrg_from=compice, mrg_fld=trim(fldname), mrg_type='copy')
+    end do
+    deallocate(flds)
+
     ! to atm: unmerged surface temperatures from ocn
     call addfld(fldListFr(compocn)%flds, 'So_t')
     call addfld(fldListTo(compatm)%flds, 'So_t')
@@ -155,7 +166,7 @@ contains
     ! to ocn: sea level pressure from atm
     call addfld(fldListTo(compocn)%flds, 'Sa_pslv')
     call addfld(fldListFr(compatm)%flds, 'Sa_pslv')
-    call addmap(fldListFr(compatm)%flds, 'Sa_pslv', compocn, maptype, 'none', 'unset')
+    call addmap(fldListFr(compatm)%flds, 'Sa_pslv', compocn, maptype, 'one', 'unset')
     call addmrg(fldListTo(compocn)%flds, 'Sa_pslv', mrg_from=compatm, mrg_fld='Sa_pslv', mrg_type='copy')
 
     ! to ocn: from atm (custom merge in med_phases_prep_ocn)
@@ -169,7 +180,7 @@ contains
        fldname = trim(flds(n))
        call addfld(fldListTo(compocn)%flds, trim(fldname))
        call addfld(fldListFr(compatm)%flds, trim(fldname))
-       call addmap(fldListFr(compatm)%flds, trim(fldname), compocn, maptype, 'none', 'unset')
+       call addmap(fldListFr(compatm)%flds, trim(fldname), compocn, maptype, 'one', 'unset')
     end do
     deallocate(flds)
 
@@ -194,7 +205,7 @@ contains
        fldname = trim(flds(n))
        call addfld(fldListTo(compocn)%flds, trim(fldname))
        call addfld(fldListFr(compatm)%flds, trim(fldname))
-       call addmap(fldListFr(compatm)%flds, trim(fldname), compocn, maptype, 'none', 'unset')
+       call addmap(fldListFr(compatm)%flds, trim(fldname), compocn, maptype, 'one', 'unset')
        call addmrg(fldListTo(compocn)%flds, trim(fldname), &
             mrg_from=compatm, mrg_fld=trim(fldname), mrg_type='copy_with_weights', mrg_fracname='ofrac')
     end do
@@ -208,7 +219,7 @@ contains
           call addfld(fldListTo(compocn)%flds, 'Foxx_'//trim(flds(n)))
           call addfld(fldListFr(compice)%flds, 'Fioi_'//trim(flds(n)))
           call addfld(fldListFr(compatm)%flds, 'Faxa_'//trim(flds(n)))
-          call addmap(fldListFr(compatm)%flds, 'Faxa_'//trim(flds(n)), compocn, maptype, 'none', 'unset')
+          call addmap(fldListFr(compatm)%flds, 'Faxa_'//trim(flds(n)), compocn, mapconsf_aofrac, 'aofrac', 'unset')
           call addmap(fldListFr(compice)%flds, 'Fioi_'//trim(flds(n)), compocn, mapfcopy, 'unset', 'unset')
        end do
        deallocate(flds)
@@ -216,20 +227,21 @@ contains
        ! to ocn: net long wave via auto merge
        call addfld(fldListTo(compocn)%flds, 'Faxa_lwnet')
        call addfld(fldListFr(compatm)%flds, 'Faxa_lwnet')
-       call addmap(fldListFr(compatm)%flds, 'Faxa_lwnet', compocn, maptype, 'none', 'unset')
+       call addmap(fldListFr(compatm)%flds, 'Faxa_lwnet', compocn, mapconsf_aofrac, 'aofrac', 'unset')
        call addmrg(fldListTo(compocn)%flds, 'Faxa_lwnet', &
             mrg_from=compatm, mrg_fld='Faxa_lwnet', mrg_type='copy_with_weights', mrg_fracname='ofrac')
 
        ! to ocn: merged sensible heat flux (custom merge in med_phases_prep_ocn)
        call addfld(fldListTo(compocn)%flds, 'Faxa_sen')
        call addfld(fldListFr(compatm)%flds, 'Faxa_sen')
-       call addmap(fldListFr(compatm)%flds, 'Faxa_sen', compocn, maptype, 'none', 'unset')
+       call addmap(fldListFr(compatm)%flds, 'Faxa_sen', compocn, mapconsf_aofrac, 'aofrac', 'unset')
 
        ! to ocn: evaporation water flux (custom merge in med_phases_prep_ocn)
        call addfld(fldListTo(compocn)%flds, 'Faxa_evap')
        call addfld(fldListFr(compatm)%flds, 'Faxa_lat')
-       call addmap(fldListFr(compatm)%flds, 'Faxa_lat', compocn, maptype, 'none', 'unset')
+       call addmap(fldListFr(compatm)%flds, 'Faxa_lat', compocn, mapconsf_aofrac, 'aofrac', 'unset')
     else
+       ! nems_orig_data
        ! to ocn: surface stress from mediator and ice stress via auto merge
        allocate(flds(2))
        flds = (/'taux', 'tauy'/)
@@ -247,7 +259,7 @@ contains
        ! to ocn: long wave net via auto merge
        call addfld(fldListTo(compocn)%flds, 'Foxx_lwnet')
        call addfld(fldListFr(compatm)%flds, 'Faxa_lwdn')
-       call addmap(fldListFr(compatm)%flds, 'Faxa_lwdn', compocn, maptype, 'none', 'unset')
+       call addmap(fldListFr(compatm)%flds, 'Faxa_lwdn', compocn, maptype, 'one', 'unset')
        call addmrg(fldListTo(compocn)%flds, 'Foxx_lwnet', &
              mrg_from=compmed, mrg_fld='Faox_lwup', mrg_type='merge', mrg_fracname='ofrac')
        call addmrg(fldListTo(compocn)%flds, 'Foxx_lwnet', &
@@ -299,7 +311,7 @@ contains
        fldname = trim(flds(n))
        call addfld(fldListFr(compatm)%flds, trim(fldname))
        call addfld(fldListTo(compice)%flds, trim(fldname))
-       call addmap(fldListFr(compatm)%flds, trim(fldname), compice, maptype, 'none', 'unset')
+       call addmap(fldListFr(compatm)%flds, trim(fldname), compice, maptype, 'one', 'unset')
        call addmrg(fldListTo(compice)%flds, trim(fldname), mrg_from=compatm, mrg_fld=trim(fldname), mrg_type='copy')
     end do
     deallocate(flds)
@@ -317,7 +329,7 @@ contains
        fldname = trim(flds(n))
        call addfld(fldListTo(compice)%flds, trim(fldname))
        call addfld(fldListFr(compatm)%flds, trim(fldname))
-       call addmap(fldListFr(compatm)%flds, trim(fldname), compice, maptype, 'none', 'unset')
+       call addmap(fldListFr(compatm)%flds, trim(fldname), compice, maptype, 'one', 'unset')
        call addmrg(fldListTo(compice)%flds, trim(fldname), mrg_from=compatm, mrg_fld=trim(fldname), mrg_type='copy')
     end do
     deallocate(flds)
