@@ -866,6 +866,7 @@ contains
     use ESMF          , only : ESMF_LogWrite, ESMF_LogMsg_Info, ESMF_SUCCESS
     use med_map_mod   , only : med_map_field_packed, med_map_rh_is_created
     use shr_flux_mod  , only : shr_flux_atmocn
+    use shr_const_mod , only : shr_const_cpsw
 
     ! Arguments
     type(ESMF_GridComp)                   :: gcomp
@@ -1035,7 +1036,7 @@ contains
      ! aoflux_out%hsnow(n) = min((aoflux_in%tocn(n) - 272.15_r8), 0._r8) * (aoflux_in%snowc(n) + aoflux_in%snowl(n)) * shr_const_cpsw
        aoflux_out%hrain(n) = (aoflux_in%tocn(n) - 272.15_r8) * (aoflux_in%rainc(n) + aoflux_in%rainl(n)) * shr_const_cpsw
        aoflux_out%hsnow(n) = (aoflux_in%tocn(n) - 272.15_r8) * (aoflux_in%snowc(n) + aoflux_in%snowl(n)) * shr_const_cpsw
-       aoflux_out%hevap(n) = (aoflux_in%tocn(n) - 272.15_r8) * (aoflux_in%evap(n)) * shr_const_cpsw
+       aoflux_out%hevap(n) = (aoflux_in%tocn(n) - 272.15_r8) * (aoflux_out%evap(n)) * shr_const_cpsw
     end do
 
     !----------------------------------
@@ -1163,13 +1164,13 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     end if
 
-    call fldbun_getfldptr(fldbun_a, 'Faxa_rainc', aoflux%rainc, xgrid=xgrid, rc=rc)
+    call fldbun_getfldptr(fldbun_a, 'Faxa_rainc', aoflux_in%rainc, xgrid=xgrid, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call fldbun_getfldptr(fldbun_a, 'Faxa_rainl', aoflux%rainl, xgrid=xgrid, rc=rc)
+    call fldbun_getfldptr(fldbun_a, 'Faxa_rainl', aoflux_in%rainl, xgrid=xgrid, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call fldbun_getfldptr(fldbun_a, 'Faxa_snowc', aoflux%snowc, xgrid=xgrid, rc=rc)
+    call fldbun_getfldptr(fldbun_a, 'Faxa_snowc', aoflux_in%snowc, xgrid=xgrid, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call fldbun_getfldptr(fldbun_a, 'Faxa_snowl', aoflux%snowl, xgrid=xgrid, rc=rc)
+    call fldbun_getfldptr(fldbun_a, 'Faxa_snowl', aoflux_in%snowl, xgrid=xgrid, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! bottom level potential temperature will need to be computed if not received from the atm
@@ -1276,15 +1277,15 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call fldbun_getfldptr(fldbun, 'Faox_lwup', aoflux_out%lwup, xgrid=xgrid, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (fldbun_fldchk(fldbun, 'Faox_hrain')) then
+    if (fldbun_fldchk(fldbun, 'Faox_hrain', rc=rc)) then
        call fldbun_getfldptr(fldbun, 'Faox_hrain', aoflux_out%hrain, xgrid=xgrid, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     end if
-    if (fldbun_fldchk(fldbun, 'Faox_hsnow')) then
+    if (fldbun_fldchk(fldbun, 'Faox_hsnow', rc=rc)) then
        call fldbun_getfldptr(fldbun, 'Faox_hsnow', aoflux_out%hsnow, xgrid=xgrid, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     end if
-    if (fldbun_fldchk(fldbun, 'Faox_hevap')) then
+    if (fldbun_fldchk(fldbun, 'Faox_hevap', rc=rc)) then
        call fldbun_getfldptr(fldbun, 'Faox_hevap', aoflux_out%hevap, xgrid=xgrid, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     end if
