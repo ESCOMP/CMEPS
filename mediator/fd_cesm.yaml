@@ -1019,6 +1019,11 @@
        canonical_units: W m-2
        description: to ocn heat content of condensation
      #
+     - standard_name: Foxx_hrofl
+       alias: heat_content_rofl
+       canonical_units: W m-2
+       description: to ocn heat content of liquid runoff
+     #
      - standard_name: Foxx_evap
        alias: mean_evap_rate
        canonical_units: kg m-2 s-1
