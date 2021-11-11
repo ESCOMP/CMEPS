@@ -1,9 +1,9 @@
-module shr_flux_mod
+module flux_atmocn_mod
 
   use shr_kind_mod    ! shared kinds
-  use shr_const_mod   ! shared constants
-  use shr_sys_mod     ! shared system routines
-  use shr_log_mod, only: s_logunit => shr_log_Unit
+  use ufs_const_mod   ! shared constants
+  use med_internal_state , only : logunit
+  use ESMF               , only : ESMF_FINALIZE, ESMF_ABORT
 
   implicit none
 
@@ -11,8 +11,8 @@ module shr_flux_mod
 
   ! !PUBLIC MEMBER FUNCTIONS:
 
-  public :: shr_flux_atmOcn           ! computes atm/ocn fluxes
-  public :: shr_flux_adjust_constants ! adjust constant values used in flux calculations.
+  public :: flux_atmOcn           ! computes atm/ocn fluxes
+  public :: flux_adjust_constants ! adjust constant values used in flux calculations.
 
   !--- rename kinds for local readability only ---
   integer,parameter :: R8 = SHR_KIND_R8  ! 8 byte real
@@ -22,7 +22,7 @@ module shr_flux_mod
   ! adjusted to support aquaplanet and potentially other simple model modes.
   ! The shr_flux_adjust_constants subroutine is called to set the desired
   ! values.  The default values are from shr_const_mod.  Currently they are
-  ! only used by the shr_flux_atmocn and shr_flux_atmice routines.
+  ! only used by the flux_atmocn routine.
   real(R8) :: loc_zvir   = shr_const_zvir
   real(R8) :: loc_cpdair = shr_const_cpdair
   real(R8) :: loc_cpvir  = shr_const_cpvir
@@ -51,7 +51,7 @@ module shr_flux_mod
 contains
 !===============================================================================
 
-  subroutine shr_flux_adjust_constants( &
+  subroutine flux_adjust_constants( &
        zvir, cpair, cpvir, karman, gravit, &
        latvap, latice, stebol, flux_convergence_tolerance, &
        flux_convergence_max_iteration, &
@@ -83,10 +83,11 @@ contains
     if (present(flux_convergence_tolerance)) flux_con_tol = flux_convergence_tolerance
     if (present(flux_convergence_max_iteration)) flux_con_max_iter = flux_convergence_max_iteration
     if(present(coldair_outbreak_mod)) use_coldair_outbreak_mod = coldair_outbreak_mod
-  end subroutine shr_flux_adjust_constants
+
+  end subroutine flux_adjust_constants
 
   !===============================================================================
-  subroutine shr_flux_atmOcn(nMax  ,zbot  ,ubot  ,vbot  ,thbot ,   &
+  subroutine flux_atmOcn(nMax  ,zbot  ,ubot  ,vbot  ,thbot ,   &
        &               qbot  ,s16O  ,sHDO  ,s18O  ,rbot  ,   &
        &               tbot  ,us    ,vs    ,   &
        &               ts    ,mask  ,seq_flux_atmocn_minwind, &
@@ -329,9 +330,10 @@ contains
              qstar = re * delq
           enddo
           if (iter < 1) then
-             write(s_logunit,*) ustar,ustar_prev,flux_con_tol,flux_con_max_iter
-             call shr_sys_abort('shr_flux_mod: No iterations performed ')
+             write(logunit,*) ustar,ustar_prev,flux_con_tol,flux_con_max_iter
+             ESMF_Finalize(endflag=ESMF_END_ABORT)
           end if
+
           !------------------------------------------------------------
           ! compute the fluxes
           !------------------------------------------------------------
@@ -395,6 +397,6 @@ contains
        endif
     end DO
 
-  end subroutine shr_flux_atmOcn
+  end subroutine flux_atmOcn
 
-end module shr_flux_mod
+end module flux_atmocn_mod
