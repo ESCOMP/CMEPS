@@ -14,7 +14,6 @@ OBJ1= \
 perf_mod.o \
 ufs_const_mod.o \
 flux_atmocn_mod.o \
-shr_kind_mod.o \
 glc_elevclass_mod.o
 
 all default: $(LIBRARY)
@@ -32,7 +31,4 @@ clean:
 	$(RM) -f $(LIBRARY) *.f90 *.i90 *.o *.mod
 	$(RM) -f med_constants_mod.*
 
-perf_mod.o: shr_kind_mod.o
-ufs_const_mod.o: shr_kind_mod.o ufs_const_mod.F90
-flux_atmocn_mod.o: shr_kind_mod.o ufs_const_mod.o shr_sys_mod.o
-glc_elevclass_mod.o: shr_kind_mod.o
+flux_atmocn_mod.o: ufs_const_mod.o

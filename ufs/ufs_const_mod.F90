@@ -1,11 +1,6 @@
-!===============================================================================
-! SVN $Id: shr_const_mod.F90 61510 2014-06-26 21:58:56Z tcraig $
-! SVN $URL: https://svn-ccsm-models.cgd.ucar.edu/csm_share/trunk_tags/share3_150116/shr/shr_const_mod.F90 $
-!===============================================================================
-
 MODULE shr_const_mod
 
-   use shr_kind_mod, only : R8 => shr_kind_r8
+   use med_kind_mod, only : R8 => shr_kind_r8
 
    !----------------------------------------------------------------------------
    ! physical constants (all data public)

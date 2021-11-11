@@ -1,6 +1,6 @@
 module flux_atmocn_mod
 
-  use shr_kind_mod    ! shared kinds
+  use med_kind_mod    ! shared kinds
   use ufs_const_mod   ! shared constants
   use med_internal_state , only : logunit
   use ESMF               , only : ESMF_FINALIZE, ESMF_ABORT
