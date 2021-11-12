@@ -371,7 +371,6 @@ contains
        fldname = trim(flds(n))
        call addfld(fldListFr(compatm)%flds, trim(fldname))
        call addfld(fldListTo(compwav)%flds, trim(fldname))
-       !call addmap(fldListFr(compatm)%flds, trim(fldname), compwav, maptype, 'one', 'unset')
        call addmap(fldListFr(compatm)%flds, trim(fldname), compwav, mapnstod_consf, 'one', 'unset')
        call addmrg(fldListTo(compwav)%flds, trim(fldname), mrg_from=compatm, mrg_fld=trim(fldname), mrg_type='copy')
     end do
@@ -384,7 +383,6 @@ contains
        fldname = trim(flds(n))
        call addfld(fldListTo(compwav)%flds, trim(fldname))
        call addfld(fldListFr(compice)%flds, trim(fldname))
-       !call addmap(fldListFr(compice)%flds, trim(fldname), compice, maptype , 'unset', 'unset')
        call addmap(fldListFr(compice)%flds, trim(fldname), compwav, mapnstod_consf , 'one', 'unset')
        call addmrg(fldListTo(compwav)%flds, trim(fldname), mrg_from=compice, mrg_fld=trim(fldname), mrg_type='copy')
     end do
@@ -398,7 +396,6 @@ contains
        fldname = trim(flds(n))
        call addfld(fldListTo(compwav)%flds, trim(fldname))
        call addfld(fldListFr(compocn)%flds, trim(fldname))
-       !call addmap(fldListFr(compocn)%flds, trim(fldname), compwav, maptype , 'unset', 'unset')
        call addmap(fldListFr(compocn)%flds, trim(fldname), compwav, mapnstod_consf , 'one', 'unset')
        call addmrg(fldListTo(compwav)%flds, trim(fldname), mrg_from=compocn, mrg_fld=trim(fldname), mrg_type='copy')
     end do

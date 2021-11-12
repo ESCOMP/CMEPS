@@ -68,6 +68,7 @@ contains
        ! map to create FBimp(:,compwav)
        do n1 = 1,ncomps
           if (is_local%wrap%med_coupling_active(n1,compwav)) then
+       call ESMF_LogWrite(trim(subname)//": "//compname(n1)//" to "//compname(compwav), ESMF_LOGMSG_INFO)
              call med_map_field_packed( &
                   FBSrc=is_local%wrap%FBImp(n1,n1), &
                   FBDst=is_local%wrap%FBImp(n1,compwav), &

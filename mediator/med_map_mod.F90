@@ -83,7 +83,7 @@ contains
     use ESMF              , only : ESMF_Mesh, ESMF_TYPEKIND_R8, ESMF_MESHLOC_ELEMENT
     use med_methods_mod   , only : med_methods_FB_getFieldN, med_methods_FB_getNameN
     use med_constants_mod , only : czero => med_constants_czero
-    use esmFlds           , only : fldListFr, ncomps, mapunset, compname, compocn, compatm
+    use esmFlds           , only : fldListFr, ncomps, mapunset, compocn, compatm
     use esmFlds           , only : ncomps, nmappers, compname, mapnames, mapfcopy
 
     ! input/output variables
