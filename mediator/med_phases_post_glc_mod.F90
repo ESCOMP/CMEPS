@@ -14,9 +14,10 @@ module med_phases_post_glc_mod
   use ESMF                  , only : ESMF_Mesh, ESMF_MESHLOC_ELEMENT, ESMF_TYPEKIND_R8
   use ESMF                  , only : ESMF_Field, ESMF_FieldGet, ESMF_FieldCreate
   use ESMF                  , only : ESMF_RouteHandle, ESMF_RouteHandleIsCreated
-  use esmFlds               , only : compatm, compice, complnd, comprof, compocn, ncomps, compname
-  use esmFlds               , only : max_icesheets, num_icesheets, compglc
-  use esmFlds               , only : mapbilnr, mapconsd, compname
+  use med_internalstate_mod , only : compatm, compice, complnd, comprof, compocn, compname
+  use med_internalstate_mod , only : num_icesheets, compglc
+  use med_internalstate_mod , only : mapbilnr, mapconsd, compname
+  use med_internalstate_mod , only : InternalState, mastertask, logunit
   use esmFlds               , only : fldListTo
   use med_methods_mod       , only : fldbun_diagnose  => med_methods_FB_diagnose
   use med_methods_mod       , only : fldbun_fldchk    => med_methods_FB_fldchk
@@ -27,7 +28,6 @@ module med_phases_post_glc_mod
   use med_methods_mod       , only : field_getdata2d  => med_methods_Field_getdata2d
   use med_utils_mod         , only : chkerr           => med_utils_ChkErr
   use med_constants_mod     , only : dbug_flag        => med_constants_dbug_flag
-  use med_internalstate_mod , only : InternalState, mastertask, logunit
   use med_map_mod           , only : med_map_rh_is_created, med_map_routehandles_init
   use med_map_mod           , only : med_map_field_packed, med_map_field_normalized, med_map_field
   use glc_elevclass_mod     , only : glc_mean_elevation_virtual, glc_get_fractional_icecov
@@ -58,7 +58,7 @@ module med_phases_post_glc_mod
      type(ESMF_Field) :: field_topo_x_icemask_g_ec ! elevation classes
      type(ESMF_Mesh)  :: mesh_g
   end type ice_sheet_tolnd_type
-  type(ice_sheet_tolnd_type) :: ice_sheet_tolnd(max_icesheets)
+  type(ice_sheet_tolnd_type), allocatable :: ice_sheet_tolnd(:)
 
   type(ESMF_field) :: field_icemask_l                ! no elevation classes
   type(ESMF_Field) :: field_frac_l_ec                ! elevation classes
@@ -298,7 +298,8 @@ contains
     ! create module fields on glc mesh
     !---------------------------------------
 
-    do ns = 1,max_icesheets
+    allocate(ice_sheet_to_lnd(num_icesheets))
+    do ns = 1,num_icesheets
        if (is_local%wrap%med_coupling_active(compglc(ns),complnd)) then
 
           call fldbun_getmesh(is_local%wrap%FBImp(compglc(ns),compglc(ns)), ice_sheet_tolnd(ns)%mesh_g, rc)

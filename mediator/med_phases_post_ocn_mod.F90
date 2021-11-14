@@ -29,9 +29,9 @@ contains
     use med_constants_mod       , only : dbug_flag   => med_constants_dbug_flag
     use med_map_mod             , only : med_map_field_packed
     use med_internalstate_mod   , only : InternalState, logunit, mastertask
+    use med_internalstate_mod   , only : compice, compglc, compocn, num_icesheets
     use med_phases_history_mod  , only : med_phases_history_write_comp
     use med_phases_prep_glc_mod , only : med_phases_prep_glc_accum_ocn
-    use esmFlds                 , only : compice, compglc, compocn, num_icesheets
     use perf_mod                , only : t_startf, t_stopf
 
     ! input/output variables

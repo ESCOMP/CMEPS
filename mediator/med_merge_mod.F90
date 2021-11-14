@@ -11,7 +11,7 @@ module med_merge_mod
   use med_utils_mod         , only : ChkErr            => med_utils_ChkErr
   use med_methods_mod       , only : FB_FldChk         => med_methods_FB_FldChk
   use med_methods_mod       , only : FB_GetFldPtr      => med_methods_FB_GetFldPtr
-  use esmFlds               , only : compmed, compname
+  use med_internalstate_mod , only : compmed, compname
   use esmFlds               , only : med_fldList_type
   use esmFlds               , only : med_fldList_GetNumFlds
   use esmFlds               , only : med_fldList_GetFldInfo

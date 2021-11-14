@@ -75,16 +75,17 @@ contains
     !        for the field
     !---------------------------------------------
 
-    use ESMF              , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_LogFlush
-    use ESMF              , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_Field
-    use ESMF              , only : ESMF_FieldBundle, ESMF_FieldBundleGet, ESMF_FieldBundleCreate
-    use ESMF              , only : ESMF_FieldBundleIsCreated
-    use ESMF              , only : ESMF_Field, ESMF_FieldGet, ESMF_FieldCreate, ESMF_FieldDestroy
-    use ESMF              , only : ESMF_Mesh, ESMF_TYPEKIND_R8, ESMF_MESHLOC_ELEMENT
-    use med_methods_mod   , only : med_methods_FB_getFieldN, med_methods_FB_getNameN
-    use med_constants_mod , only : czero => med_constants_czero
-    use esmFlds           , only : fldListFr, ncomps, mapunset, compname, compocn, compatm
-    use esmFlds           , only : ncomps, nmappers, compname, mapnames, mapfcopy
+    use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_LogFlush
+    use ESMF                  , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_Field
+    use ESMF                  , only : ESMF_FieldBundle, ESMF_FieldBundleGet, ESMF_FieldBundleCreate
+    use ESMF                  , only : ESMF_FieldBundleIsCreated
+    use ESMF                  , only : ESMF_Field, ESMF_FieldGet, ESMF_FieldCreate, ESMF_FieldDestroy
+    use ESMF                  , only : ESMF_Mesh, ESMF_TYPEKIND_R8, ESMF_MESHLOC_ELEMENT
+    use med_methods_mod       , only : med_methods_FB_getFieldN, med_methods_FB_getNameN
+    use med_constants_mod     , only : czero => med_constants_czero
+    use esmFlds               , only : fldListFr
+    use med_internalstate_mod , only : mapunset, compname, compocn, compatm
+    use med_internalstate_mod , only : ncomps, nmappers, compname, mapnames, mapfcopy
 
     ! input/output variables
     type(ESMF_GridComp)          :: gcomp
@@ -324,25 +325,25 @@ contains
   !================================================================================
   subroutine med_map_routehandles_initfrom_field(n1, n2, fldsrc, flddst, mapindex, routehandles, mapfile, rc)
 
-    use ESMF              , only : ESMF_RouteHandle, ESMF_RouteHandlePrint, ESMF_Field, ESMF_MAXSTR
-    use ESMF              , only : ESMF_PoleMethod_Flag, ESMF_POLEMETHOD_ALLAVG, ESMF_POLEMETHOD_NONE
-    use ESMF              , only : ESMF_FieldSMMStore, ESMF_FieldRedistStore, ESMF_FieldRegridStore
-    use ESMF              , only : ESMF_RouteHandleIsCreated, ESMF_RouteHandleCreate
-    use ESMF              , only : ESMF_REGRIDMETHOD_BILINEAR, ESMF_REGRIDMETHOD_PATCH
-    use ESMF              , only : ESMF_REGRIDMETHOD_CONSERVE, ESMF_NORMTYPE_DSTAREA, ESMF_NORMTYPE_FRACAREA
-    use ESMF              , only : ESMF_UNMAPPEDACTION_IGNORE, ESMF_REGRIDMETHOD_NEAREST_STOD
-    use ESMF              , only : ESMF_EXTRAPMETHOD_NEAREST_STOD
-    use ESMF              , only : ESMF_Mesh, ESMF_MeshLoc, ESMF_MESHLOC_ELEMENT, ESMF_TYPEKIND_I4
-    use ESMF              , only : ESMF_MeshGet, ESMF_DistGridGet, ESMF_DistGrid, ESMF_TYPEKIND_R8
-    use ESMF              , only : ESMF_FieldGet, ESMF_FieldCreate, ESMF_FieldWrite, ESMF_FieldDestroy
-    use esmFlds           , only : mapbilnr, mapconsf, mapconsd, mappatch, mappatch_uv3d, mapbilnr_uv3d, mapfcopy
-    use esmFlds           , only : mapunset, mapnames, nmappers
-    use esmFlds           , only : mapnstod, mapnstod_consd, mapnstod_consf, mapnstod_consd
-    use esmFlds           , only : mapfillv_bilnr, mapbilnr_nstod, mapconsf_aofrac
-    use esmFlds           , only : ncomps, compatm, compice, compocn, compwav, compname
-    use esmFlds           , only : coupling_mode, dststatus_print
-    use esmFlds           , only : atm_name
-    use med_constants_mod , only : ispval_mask => med_constants_ispval_mask
+    use ESMF                  , only : ESMF_RouteHandle, ESMF_RouteHandlePrint, ESMF_Field, ESMF_MAXSTR
+    use ESMF                  , only : ESMF_PoleMethod_Flag, ESMF_POLEMETHOD_ALLAVG, ESMF_POLEMETHOD_NONE
+    use ESMF                  , only : ESMF_FieldSMMStore, ESMF_FieldRedistStore, ESMF_FieldRegridStore
+    use ESMF                  , only : ESMF_RouteHandleIsCreated, ESMF_RouteHandleCreate
+    use ESMF                  , only : ESMF_REGRIDMETHOD_BILINEAR, ESMF_REGRIDMETHOD_PATCH
+    use ESMF                  , only : ESMF_REGRIDMETHOD_CONSERVE, ESMF_NORMTYPE_DSTAREA, ESMF_NORMTYPE_FRACAREA
+    use ESMF                  , only : ESMF_UNMAPPEDACTION_IGNORE, ESMF_REGRIDMETHOD_NEAREST_STOD
+    use ESMF                  , only : ESMF_EXTRAPMETHOD_NEAREST_STOD
+    use ESMF                  , only : ESMF_Mesh, ESMF_MeshLoc, ESMF_MESHLOC_ELEMENT, ESMF_TYPEKIND_I4
+    use ESMF                  , only : ESMF_MeshGet, ESMF_DistGridGet, ESMF_DistGrid, ESMF_TYPEKIND_R8
+    use ESMF                  , only : ESMF_FieldGet, ESMF_FieldCreate, ESMF_FieldWrite, ESMF_FieldDestroy
+    use med_internalstate_mod , only : mapbilnr, mapconsf, mapconsd, mappatch, mappatch_uv3d, mapbilnr_uv3d, mapfcopy
+    use med_internalstate_mod , only : mapunset, mapnames, nmappers
+    use med_internalstate_mod , only : mapnstod, mapnstod_consd, mapnstod_consf, mapnstod_consd
+    use med_internalstate_mod , only : mapfillv_bilnr, mapbilnr_nstod, mapconsf_aofrac
+    use med_internalstate_mod , only : ncomps, compatm, compice, compocn, compwav, compname
+    use med_internalstate_mod , only : coupling_mode, dststatus_print
+    use med_internalstate_mod , only : atm_name
+    use med_constants_mod     , only : ispval_mask => med_constants_ispval_mask
 
     ! input/output variables
     integer                    , intent(in)    :: n1
@@ -672,9 +673,9 @@ contains
 
   logical function med_map_RH_is_created_RH1d(RHs,mapindex,rc)
 
-    use ESMF    , only : ESMF_RouteHandle, ESMF_RouteHandleIsCreated
-    use esmFlds , only : mapconsd, mapconsf, mapnstod
-    use esmFlds , only : mapnstod_consd, mapnstod_consf
+    use ESMF                  , only : ESMF_RouteHandle, ESMF_RouteHandleIsCreated
+    use med_internalstate_mod , only : mapconsd, mapconsf, mapnstod
+    use med_internalstate_mod , only : mapnstod_consd, mapnstod_consf
 
     ! input/output varaibes
     type(ESMF_RouteHandle) , intent(in)    :: RHs(:)
@@ -722,8 +723,9 @@ contains
        fldsSrc, FBSrc, FBDst, packed_data, rc)
 
     use ESMF
-    use esmFlds               , only : med_fldList_entry_type, nmappers
-    use esmFlds               , only : ncomps, compatm, compice, compocn, compname, mapnames
+    use esmFlds               , only : med_fldList_entry_type
+    use med_internalstate_mod , only : nmappers
+    use med_internalstate_mod , only : ncomps, compatm, compice, compocn, compname, mapnames
     use med_internalstate_mod , only : packed_data_type
 
     ! input/output variables
@@ -925,8 +927,8 @@ contains
     use ESMF                  , only : ESMF_FieldBundle, ESMF_FieldBundleGet
     use ESMF                  , only : ESMF_FieldBundleIsCreated
     use ESMF                  , only : ESMF_FieldRedist, ESMF_RouteHandle
-    use esmFlds               , only : nmappers, mapfcopy
-    use esmFlds               , only : mappatch_uv3d, mappatch, mapbilnr_uv3d, mapbilnr
+    use med_internalstate_mod , only : nmappers, mapfcopy
+    use med_internalstate_mod , only : mappatch_uv3d, mappatch, mapbilnr_uv3d, mapbilnr
     use med_internalstate_mod , only : packed_data_type
 
     ! input/output variables
@@ -1254,18 +1256,18 @@ contains
     ! map the source field to the destination field
     !---------------------------------------------------
 
-    use ESMF            , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
-    use ESMF            , only : ESMF_LOGMSG_ERROR, ESMF_FAILURE, ESMF_MAXSTR
-    use ESMF            , only : ESMF_KIND_R8
-    use ESMF            , only : ESMF_Field, ESMF_FieldRegrid
-    use ESMF            , only : ESMF_FieldFill
-    use ESMF            , only : ESMF_TERMORDER_SRCSEQ, ESMF_Region_Flag, ESMF_REGION_TOTAL
-    use ESMF            , only : ESMF_REGION_SELECT
-    use ESMF            , only : ESMF_RouteHandle
-    use esmFlds         , only : mapnstod_consd, mapnstod_consf, mapnstod_consd, mapnstod
-    use esmFlds         , only : mapconsd, mapconsf
-    use esmFlds         , only : mapfillv_bilnr
-    use med_methods_mod , only : Field_diagnose => med_methods_Field_diagnose
+    use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
+    use ESMF                  , only : ESMF_LOGMSG_ERROR, ESMF_FAILURE, ESMF_MAXSTR
+    use ESMF                  , only : ESMF_KIND_R8
+    use ESMF                  , only : ESMF_Field, ESMF_FieldRegrid
+    use ESMF                  , only : ESMF_FieldFill
+    use ESMF                  , only : ESMF_TERMORDER_SRCSEQ, ESMF_Region_Flag, ESMF_REGION_TOTAL
+    use ESMF                  , only : ESMF_REGION_SELECT
+    use ESMF                  , only : ESMF_RouteHandle
+    use med_internalstate_mod , only : mapnstod_consd, mapnstod_consf, mapnstod_consd, mapnstod
+    use med_internalstate_mod , only : mapconsd, mapconsf
+    use med_internalstate_mod , only : mapfillv_bilnr
+    use med_methods_mod       , only : Field_diagnose => med_methods_Field_diagnose
 
     ! input/output variables
     type(ESMF_Field)       , intent(in)           :: field_src

@@ -617,7 +617,7 @@ contains
     ! Compute global atm input/output flux diagnostics
     ! ------------------------------------------------------------------
 
-    use esmFlds, only : compatm
+    use med_internalstate_mod, only : compatm
 
     ! input/output variables
     type(ESMF_GridComp) :: gcomp
@@ -946,7 +946,7 @@ contains
     ! Compute global lnd input/output flux diagnostics
     ! ------------------------------------------------------------------
 
-    use esmFlds, only : complnd
+    use med_internalstate_mod, only : complnd
 
     ! intput/output variables
     type(ESMF_GridComp) :: gcomp
@@ -1147,7 +1147,7 @@ contains
     ! Compute global river input/output
     ! ------------------------------------------------------------------
 
-    use esmFlds, only : comprof
+    use med_internalstate_mod, only : comprof
 
     ! input/output variables
     type(ESMF_GridComp) :: gcomp
@@ -1308,7 +1308,7 @@ contains
     ! Compute global glc output
     ! ------------------------------------------------------------------
 
-    use esmFlds, only : compglc, num_icesheets
+    use med_internalstate_mod, only : compglc, num_icesheets
 
     ! input/output variables
     type(ESMF_GridComp) :: gcomp
@@ -1389,7 +1389,7 @@ contains
     ! Compute global ocn input from mediator
     ! ------------------------------------------------------------------
 
-    use esmFlds, only : compocn, compatm
+    use med_internalstate_mod, only : compocn, compatm
 
     ! input/output variables
     type(ESMF_GridComp) :: gcomp
@@ -1627,7 +1627,7 @@ contains
     ! Compute global ice input/output flux diagnostics
     ! ------------------------------------------------------------------
 
-    use esmFlds, only : compice
+    use med_internalstate_mod, only : compice
 
     ! input/output variables
     type(ESMF_GridComp) :: gcomp
@@ -1825,7 +1825,7 @@ contains
     ! Compute global ice input/output flux diagnostics
     ! ------------------------------------------------------------------
 
-    use esmFlds, only : compice
+    use med_internalstate_mod, only : compice
 
     ! input/output variables
     type(ESMF_GridComp) :: gcomp

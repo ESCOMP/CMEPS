@@ -4,8 +4,6 @@ module med_phases_prep_glc_mod
   ! Mediator phases for preparing glc export from mediator
   !-----------------------------------------------------------------------------
 
-  ! TODO: determine the number of ice sheets that are present
-
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
   use NUOPC                 , only : NUOPC_CompAttributeGet
   use NUOPC_Model           , only : NUOPC_ModelGet
@@ -23,9 +21,9 @@ module med_phases_prep_glc_mod
   use ESMF                  , only : ESMF_Mesh, ESMF_MESHLOC_ELEMENT, ESMF_TYPEKIND_R8, ESMF_KIND_R8
   use ESMF                  , only : ESMF_DYNAMICMASK, ESMF_DynamicMaskSetR8R8R8, ESMF_DYNAMICMASKELEMENTR8R8R8
   use ESMF                  , only : ESMF_FieldRegrid
-  use esmFlds               , only : complnd, compocn,  mapbilnr, mapconsd, compname
-  use esmFlds               , only : max_icesheets, num_icesheets, compglc
-  use esmFlds               , only : ocn2glc_coupling, lnd2glc_coupling, accum_lnd2glc
+  use med_internalstate_mod , only : complnd, compocn,  mapbilnr, mapconsd, compname
+  use med_internalstate_mod , only : num_icesheets, compglc
+  use med_internalstate_mod , only : ocn2glc_coupling, lnd2glc_coupling, accum_lnd2glc
   use med_internalstate_mod , only : InternalState, mastertask, logunit
   use med_map_mod           , only : med_map_routehandles_init, med_map_rh_is_created
   use med_map_mod           , only : med_map_field_normalized, med_map_field
@@ -89,7 +87,7 @@ module med_phases_prep_glc_mod
      type(ESMF_Field)       :: field_lfrac_g
      type(ESMF_Mesh)        :: mesh_g
   end type toglc_frlnd_type
-  type(toglc_frlnd_type)         :: toglc_frlnd(max_icesheets)  ! TODO: make this allocatable for number of actual ice sheets
+  type(toglc_frlnd_type), allocatable :: toglc_frlnd(:)
 
   type(ESMF_Field)               :: field_normdst_l
   type(ESMF_Field)               :: field_icemask_l
@@ -165,6 +163,9 @@ contains
     nullify(is_local%wrap)
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (chkErr(rc,__LINE__,u_FILE_u)) return
+
+    ! allocate module variables
+    allocate(toglc_frlnd(num_icesheets)
 
     ! -------------------------------
     ! If will accumulate lnd2glc input on land grid

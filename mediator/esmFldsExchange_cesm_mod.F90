@@ -71,17 +71,17 @@ contains
     use med_utils_mod         , only : chkerr => med_utils_chkerr
     use med_methods_mod       , only : fldchk => med_methods_FB_FldChk
     use med_internalstate_mod , only : InternalState, logunit, mastertask
+    use med_internalstate_mod , only : compmed, compatm, complnd, compocn
+    use med_internalstate_mod , only : compice, comprof, compwav, ncomps
+    use med_internalstate_mod , only : compglc, num_icesheets, ocn2glc_coupling ! compglc is an array of integers
+    use med_internalstate_mod , only : mapbilnr, mapconsf, mapconsd, mappatch, mappatch_uv3d, mapbilnr_nstod
+    use med_internalstate_mod , only : mapfcopy, mapnstod, mapnstod_consd, mapnstod_consf
+    use med_internalstate_mod , only : coupling_mode
+    use med_internalstate_mod , only : map_glc2ocn_ice, map_glc2ocn_liq, map_rof2ocn_ice, map_rof2ocn_liq
     use esmFlds               , only : addfld => med_fldList_AddFld
     use esmFlds               , only : addmap => med_fldList_AddMap
     use esmFlds               , only : addmrg => med_fldList_AddMrg
-    use esmflds               , only : compmed, compatm, complnd, compocn
-    use esmflds               , only : compice, comprof, compwav, ncomps
-    use esmflds               , only : compglc, num_icesheets, ocn2glc_coupling ! compglc is an array of integers
-    use esmflds               , only : mapbilnr, mapconsf, mapconsd, mappatch, mappatch_uv3d, mapbilnr_nstod
-    use esmflds               , only : mapfcopy, mapnstod, mapnstod_consd, mapnstod_consf
-    use esmflds               , only : map_glc2ocn_ice, map_glc2ocn_liq, map_rof2ocn_ice, map_rof2ocn_liq
     use esmflds               , only : fldListTo, fldListFr, fldListMed_aoflux, fldListMed_ocnalb
-    use esmFlds               , only : coupling_mode
 
     ! input/output parameters:
     type(ESMF_GridComp)              :: gcomp
