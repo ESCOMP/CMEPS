@@ -1,4 +1,4 @@
-MODULE shr_const_mod
+MODULE ufs_const_mod
 
    use med_kind_mod, only : R8 => shr_kind_r8
 
@@ -97,4 +97,4 @@ contains
 
 !-----------------------------------------------------------------------------
 
-END MODULE shr_const_mod
+END MODULE ufs_const_mod

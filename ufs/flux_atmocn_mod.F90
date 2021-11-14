@@ -2,8 +2,8 @@ module flux_atmocn_mod
 
   use med_kind_mod    ! shared kinds
   use ufs_const_mod   ! shared constants
-  use med_internal_state , only : logunit
-  use ESMF               , only : ESMF_FINALIZE, ESMF_ABORT
+  use med_internalstate_mod , only : logunit
+  use ESMF                  , only : ESMF_FINALIZE, ESMF_END_ABORT
 
   implicit none
 
@@ -310,7 +310,7 @@ contains
           enddo
           if (iter < 1) then
              write(logunit,*) ustar,ustar_prev,flux_con_tol,flux_con_max_iter
-             ESMF_Finalize(endflag=ESMF_END_ABORT)
+             call ESMF_Finalize(endflag=ESMF_END_ABORT)
           end if
 
           !------------------------------------------------------------
@@ -346,13 +346,6 @@ contains
 
           duu10n(n) = u10n*u10n ! 10m wind speed squared
 
-          !------------------------------------------------------------
-          ! optional diagnostics, needed for water tracer fluxes (dcn)
-          !------------------------------------------------------------
-          if (present(ustar_sv)) ustar_sv(n) = ustar
-          if (present(re_sv   )) re_sv(n)    = re
-          if (present(ssq_sv  )) ssq_sv(n)   = ssq
-
        else
           !------------------------------------------------------------
           ! no valid data here -- out of domain
@@ -367,9 +360,6 @@ contains
           qref  (n) = spval  !  2m reference height humidity (kg/kg)
           duu10n(n) = spval  ! 10m wind speed squared (m/s)^2
 
-          if (present(ustar_sv)) ustar_sv(n) = spval
-          if (present(re_sv   )) re_sv   (n) = spval
-          if (present(ssq_sv  )) ssq_sv  (n) = spval
        endif
     end DO
 
