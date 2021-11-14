@@ -165,6 +165,7 @@ contains
     !call addmap(fldListFr(compwav)%flds, 'Sw_z0', compatm, maptype, 'wfrac', 'unset')
     call addmap(fldListFr(compwav)%flds, 'Sw_z0', compatm, mapnstod_consf, 'one', 'unset')
     call addmrg(fldListTo(compatm)%flds, 'Sw_z0', mrg_from=compwav, mrg_fld='Sw_z0', mrg_type='copy')
+
     !=====================================================================
     ! FIELDS TO OCEAN (compocn)
     !=====================================================================
@@ -297,6 +298,19 @@ contains
     end do
     deallocate(flds)
 
+    ! to ocn: partitioned stokes drift from wav
+    allocate(flds(6))
+    flds = (/'Sw_ustokes1', 'Sw_ustokes2', 'Sw_ustokes3', &
+             'Sw_vstokes1', 'Sw_vstokes2', 'Sw_vstokes3'/)
+    do n = 1,size(flds)
+       fldname = trim(flds(n))
+       call addfld(fldListTo(compocn)%flds, trim(fldname))
+       call addfld(fldListFr(compwav)%flds, trim(fldname))
+       call addmap(fldListFr(compwav)%flds, trim(fldname), compocn, mapfcopy, 'unset', 'unset')
+       call addmrg(fldListTo(compocn)%flds, trim(fldname), mrg_from=compwav, mrg_fld=trim(fldname), mrg_type='copy')
+    end do
+    deallocate(flds)
+
     !=====================================================================
     ! FIELDS TO ICE (compice)
     !=====================================================================
@@ -383,7 +397,7 @@ contains
        fldname = trim(flds(n))
        call addfld(fldListTo(compwav)%flds, trim(fldname))
        call addfld(fldListFr(compice)%flds, trim(fldname))
-       call addmap(fldListFr(compice)%flds, trim(fldname), compwav, mapnstod_consf , 'one', 'unset')
+       call addmap(fldListFr(compice)%flds, trim(fldname), compwav, mapfcopy , 'unset', 'unset')
        call addmrg(fldListTo(compwav)%flds, trim(fldname), mrg_from=compice, mrg_fld=trim(fldname), mrg_type='copy')
     end do
     deallocate(flds)
@@ -396,7 +410,7 @@ contains
        fldname = trim(flds(n))
        call addfld(fldListTo(compwav)%flds, trim(fldname))
        call addfld(fldListFr(compocn)%flds, trim(fldname))
-       call addmap(fldListFr(compocn)%flds, trim(fldname), compwav, mapnstod_consf , 'one', 'unset')
+       call addmap(fldListFr(compocn)%flds, trim(fldname), compwav, mapfcopy , 'unset', 'unset')
        call addmrg(fldListTo(compwav)%flds, trim(fldname), mrg_from=compocn, mrg_fld=trim(fldname), mrg_type='copy')
     end do
     deallocate(flds)
