@@ -1001,6 +1001,7 @@ contains
     ! Update atmosphere/ocean surface fluxes
     !----------------------------------
 
+#ifdef CESMCOUPLED
     call flux_atmocn (&
          nMax=aoflux_in%lsize, &
          zbot=aoflux_in%zbot, ubot=aoflux_in%ubot, vbot=aoflux_in%vbot, thbot=aoflux_in%thbot, qbot=aoflux_in%shum, &
@@ -1014,6 +1015,19 @@ contains
          ocn_surface_flux_scheme=ocn_surface_flux_scheme, &
          duu10n=aoflux_out%duu10n, ustar_sv=aoflux_out%ustar, re_sv=aoflux_out%re, ssq_sv=aoflux_out%ssq, &
          missval = 0.0_r8)
+
+#else    
+
+    call flux_atmocn (&
+         nMax=aoflux_in%lsize, mask=aoflux_in%mask, &
+         zbot=aoflux_in%zbot, ubot=aoflux_in%ubot, vbot=aoflux_in%vbot, thbot=aoflux_in%thbot, qbot=aoflux_in%shum, &
+         rbot=aoflux_in%dens, tbot=aoflux_in%tbot, us=aoflux_in%uocn, vs=aoflux_in%vocn, ts=aoflux_in%tocn, &
+         ocn_surface_flux_scheme=ocn_surface_flux_scheme, 
+         sen=aoflux_out%sen, lat=aoflux_out%lat, lwup=aoflux_out%lwup, evap=aoflux_out%evap, 
+         taux=aoflux_out%taux, tauy=aoflux_out%tauy, tref=aoflux_out%tref, qref=aoflux_out%qref, &
+         duu10n=aoflux_out%duu10n, missval = 0.0_r8)
+
+#endif
 
     do n = 1,aoflux_in%lsize
        if (aoflux_in%mask(n) /= 0) then

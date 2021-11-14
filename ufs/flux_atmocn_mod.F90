@@ -87,17 +87,11 @@ contains
   end subroutine flux_adjust_constants
 
   !===============================================================================
-  subroutine flux_atmOcn(nMax  ,zbot  ,ubot  ,vbot  ,thbot ,   &
-       &               qbot  ,s16O  ,sHDO  ,s18O  ,rbot  ,   &
-       &               tbot  ,us    ,vs    ,   &
-       &               ts    ,mask  ,seq_flux_atmocn_minwind, &
-       &               sen   ,lat   ,lwup  ,   &
-       &               r16O, rhdo, r18O, &
-       &               evap  ,evap_16O, evap_HDO, evap_18O, &
-       &               taux  ,tauy  ,tref  ,qref  ,   &
-       &               ocn_surface_flux_scheme, &
-       &               duu10n,  ustar_sv   ,re_sv ,ssq_sv,   &
-       &               missval    )
+  subroutine flux_atmOcn(nMax,zbot   ,ubot  ,vbot  ,thbot ,   &
+       &               qbot  , rbot  ,tbot  ,us    ,vs    ,   &
+       &               ts    , mask  ,sen   ,lat   ,lwup  ,   &
+       &               evap  , taux  ,tauy  ,tref  ,qref  ,   &
+       &               ocn_surface_flux_scheme, duu10n,  missval    )
 
     implicit none
 
@@ -109,38 +103,23 @@ contains
     real(R8)   ,intent(in) :: vbot (nMax) ! atm v wind (bottom or 10m)           (m/s)
     real(R8)   ,intent(in) :: thbot(nMax) ! atm potential T                      (K)
     real(R8)   ,intent(in) :: qbot (nMax) ! atm specific humidity (bottom or 2m) (kg/kg)
-    real(R8)   ,intent(in) :: s16O (nMax) ! atm H216O tracer conc.               (kg/kg)
-    real(R8)   ,intent(in) :: sHDO (nMax) ! atm HDO tracer conc.                 (kg/kg)
-    real(R8)   ,intent(in) :: s18O (nMax) ! atm H218O tracer conc.               (kg/kg)
-    real(R8)   ,intent(in) :: r16O (nMax) ! ocn H216O tracer ratio/Rstd
-    real(R8)   ,intent(in) :: rHDO (nMax) ! ocn HDO tracer ratio/Rstd
-    real(R8)   ,intent(in) :: r18O (nMax) ! ocn H218O tracer ratio/Rstd
     real(R8)   ,intent(in) :: rbot (nMax) ! atm air density                      (kg/m^3)
     real(R8)   ,intent(in) :: tbot (nMax) ! atm T (bottom or 2m)                 (K)
     real(R8)   ,intent(in) :: us   (nMax) ! ocn u-velocity                       (m/s)
     real(R8)   ,intent(in) :: vs   (nMax) ! ocn v-velocity                       (m/s)
     real(R8)   ,intent(in) :: ts   (nMax) ! ocn temperature                      (K)
     integer(IN),intent(in), optional :: ocn_surface_flux_scheme
-    real(R8)   ,intent(in), optional :: seq_flux_atmocn_minwind ! minimum wind speed for atmocn (m/s)
 
     !--- output arguments -------------------------------
     real(R8),intent(out)  ::  sen  (nMax) ! heat flux: sensible    (W/m^2)
     real(R8),intent(out)  ::  lat  (nMax) ! heat flux: latent      (W/m^2)
     real(R8),intent(out)  ::  lwup (nMax) ! heat flux: lw upward   (W/m^2)
     real(R8),intent(out)  ::  evap (nMax) ! water flux: evap  ((kg/s)/m^2)
-    real(R8),intent(out)  ::  evap_16O (nMax) ! water flux: evap ((kg/s/m^2)
-    real(R8),intent(out)  ::  evap_HDO (nMax) ! water flux: evap ((kg/s)/m^2)
-    real(R8),intent(out)  ::  evap_18O (nMax) ! water flux: evap ((kg/s/m^2)
     real(R8),intent(out)  ::  taux (nMax) ! surface stress, zonal      (N)
     real(R8),intent(out)  ::  tauy (nMax) ! surface stress, maridional (N)
     real(R8),intent(out)  ::  tref (nMax) ! diag:  2m ref height T     (K)
     real(R8),intent(out)  ::  qref (nMax) ! diag:  2m ref humidity (kg/kg)
     real(R8),intent(out)  :: duu10n(nMax) ! diag: 10m wind speed squared (m/s)^2
-
-    real(R8),intent(out),optional :: ustar_sv(nMax) ! diag: ustar
-    real(R8),intent(out),optional :: re_sv   (nMax) ! diag: sqrt of exchange coefficient (water)
-    real(R8),intent(out),optional :: ssq_sv  (nMax) ! diag: sea surface humidity  (kg/kg)
-
     real(R8),intent(in) ,optional :: missval        ! masked value
 
     ! !EOP
@@ -171,7 +150,7 @@ contains
     real(R8)    :: rh     ! sqrt of exchange coefficient (heat)
     real(R8)    :: re     ! sqrt of exchange coefficient (water)
     real(R8)    :: ustar  ! ustar
-    real(r8)     :: ustar_prev
+    real(r8)    :: ustar_prev
     real(R8)    :: qstar  ! qstar
     real(R8)    :: tstar  ! tstar
     real(R8)    :: hol    ! H (at zbot) over L
@@ -382,9 +361,6 @@ contains
           lat   (n) = spval  ! latent           heat flux  (W/m^2)
           lwup  (n) = spval  ! long-wave upward heat flux  (W/m^2)
           evap  (n) = spval  ! evaporative water flux ((kg/s)/m^2)
-          evap_16O (n) = spval !water tracer flux (kg/s)/m^2)
-          evap_HDO (n) = spval !HDO tracer flux  (kg/s)/m^2)
-          evap_18O (n) = spval !H218O tracer flux (kg/s)/m^2)
           taux  (n) = spval  ! x surface stress (N)
           tauy  (n) = spval  ! y surface stress (N)
           tref  (n) = spval  !  2m reference height temperature (K)
