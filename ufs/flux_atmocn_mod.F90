@@ -2,8 +2,7 @@ module flux_atmocn_mod
 
   use med_kind_mod    ! shared kinds
   use ufs_const_mod   ! shared constants
-  use med_internalstate_mod , only : logunit
-  use ESMF                  , only : ESMF_FINALIZE, ESMF_END_ABORT
+  use ESMF, only : ESMF_FINALIZE, ESMF_END_ABORT
 
   implicit none
 
@@ -18,11 +17,8 @@ module flux_atmocn_mod
   integer,parameter :: R8 = SHR_KIND_R8  ! 8 byte real
   integer,parameter :: IN = SHR_KIND_IN  ! native/default integer
 
-  ! The follow variables are not declared as parameters so that they can be
-  ! adjusted to support aquaplanet and potentially other simple model modes.
-  ! The shr_flux_adjust_constants subroutine is called to set the desired
-  ! values.  The default values are from shr_const_mod.  Currently they are
-  ! only used by the flux_atmocn routine.
+  ! The follow variables are not declared as parameters so that they can be adjusted.
+  ! The default values are from ufs_const_mod.
   real(R8) :: loc_zvir   = shr_const_zvir
   real(R8) :: loc_cpdair = shr_const_cpdair
   real(R8) :: loc_cpvir  = shr_const_cpvir
@@ -51,43 +47,23 @@ module flux_atmocn_mod
 contains
 !===============================================================================
 
-  subroutine flux_adjust_constants( &
-       zvir, cpair, cpvir, karman, gravit, &
-       latvap, latice, stebol, flux_convergence_tolerance, &
-       flux_convergence_max_iteration, &
-       coldair_outbreak_mod)
+  subroutine flux_adjust_constants( flux_convergence_tolerance, &
+       flux_convergence_max_iteration, coldair_outbreak_mod)
 
     ! Adjust local constants.  Used to support simple models.
-
-    real(R8), optional, intent(in) :: zvir
-    real(R8), optional, intent(in) :: cpair
-    real(R8), optional, intent(in) :: cpvir
-    real(R8), optional, intent(in) :: karman
-    real(R8), optional, intent(in) :: gravit
-    real(R8), optional, intent(in) :: latvap
-    real(R8), optional, intent(in) :: latice
-    real(R8), optional, intent(in) :: stebol
-    real(r8), optional, intent(in)  :: flux_convergence_tolerance
-    integer(in), optional, intent(in) :: flux_convergence_max_iteration
-    logical, optional, intent(in) :: coldair_outbreak_mod
+    real(r8)    , optional, intent(in) :: flux_convergence_tolerance
+    integer(in) , optional, intent(in) :: flux_convergence_max_iteration
+    logical     , optional, intent(in) :: coldair_outbreak_mod
     !----------------------------------------------------------------------------
 
-    if (present(zvir))   loc_zvir   = zvir
-    if (present(cpair))  loc_cpdair = cpair
-    if (present(cpvir))  loc_cpvir  = cpvir
-    if (present(karman)) loc_karman = karman
-    if (present(gravit)) loc_g      = gravit
-    if (present(latvap)) loc_latvap = latvap
-    if (present(latice)) loc_latice = latice
-    if (present(stebol)) loc_stebol = stebol
     if (present(flux_convergence_tolerance)) flux_con_tol = flux_convergence_tolerance
     if (present(flux_convergence_max_iteration)) flux_con_max_iter = flux_convergence_max_iteration
-    if(present(coldair_outbreak_mod)) use_coldair_outbreak_mod = coldair_outbreak_mod
+    if (present(coldair_outbreak_mod)) use_coldair_outbreak_mod = coldair_outbreak_mod
 
   end subroutine flux_adjust_constants
 
   !===============================================================================
-  subroutine flux_atmOcn(nMax,zbot   ,ubot  ,vbot  ,thbot ,   &
+  subroutine flux_atmOcn(logunit, nMax,zbot   ,ubot  ,vbot  ,thbot ,   &
        &               qbot  , rbot  ,tbot  ,us    ,vs    ,   &
        &               ts    , mask  ,sen   ,lat   ,lwup  ,   &
        &               evap  , taux  ,tauy  ,tref  ,qref  ,   &
@@ -96,6 +72,7 @@ contains
     implicit none
 
     !--- input arguments --------------------------------
+    integer    ,intent(in) :: logunit
     integer(IN),intent(in) ::       nMax  ! data vector length
     integer(IN),intent(in) :: mask (nMax) ! ocn domain mask       0 <=> out of domain
     real(R8)   ,intent(in) :: zbot (nMax) ! atm level height                     (m)

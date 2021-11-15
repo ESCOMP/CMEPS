@@ -1,11 +1,10 @@
-module flux_atmocn_mod
+module shr_flux_mod
 
   ! atm/ocn/flux calculations
 
   ! !USES:
 
-  use shr_kind_mod          , only : R8=>SHR_KIND_R8, IN=>SHR_KIND_IN ! shared kinds
-  use med_internalstate_mod , only : logunit
+  use shr_kind_mod, only : R8=>SHR_KIND_R8, IN=>SHR_KIND_IN ! shared kinds
   use shr_const_mod ! shared constants
   use shr_sys_mod   ! shared system routines
 
@@ -23,10 +22,10 @@ module flux_atmocn_mod
   public :: flux_atmOcn_diurnal   ! computes atm/ocn fluxes with diurnal cycle
   public :: flux_atmOcn_UA        ! computes atm/ocn fluxes using University of Ariz algorithm (Zeng et al., 1998)
   public :: flux_MOstability      ! boundary layer stability scales/functions
-  public :: flux_adjust_constants ! adjust constant values used in flux calculations.
+  public :: shr_flux_adjust_constants ! adjust constant values used in flux calculations. (used by CAM as well)
 
   ! !PRIVATE MEMBER FUNCTIONS:
-  private :: psi_ua 
+  private :: psi_ua
   private :: qsat_ua
   private :: rough_ua
   private :: cuberoot
@@ -78,7 +77,7 @@ module flux_atmocn_mod
 contains
 !===============================================================================
 
-  subroutine flux_adjust_constants( &
+  subroutine shr_flux_adjust_constants( &
        zvir, cpair, cpvir, karman, gravit, &
        latvap, latice, stebol, flux_convergence_tolerance, &
        flux_convergence_max_iteration, &
@@ -111,7 +110,7 @@ contains
     if (present(flux_convergence_max_iteration)) flux_con_max_iter = flux_convergence_max_iteration
     if (present(coldair_outbreak_mod)) use_coldair_outbreak_mod = coldair_outbreak_mod
 
-  end subroutine flux_adjust_constants
+  end subroutine shr_flux_adjust_constants
 
   !===============================================================================
   ! !IROUTINE: flux_atmOcn -- internal atm/ocn flux calculation
@@ -133,7 +132,7 @@ contains
   !                   (ocn_surface_flux_scheme .eq. 1) based on code from
   !                   Thomas Toniazzo (Bjerknes Centre, Bergen) ”
   !===============================================================================
-  SUBROUTINE flux_atmOcn(nMax  ,zbot  ,ubot  ,vbot  ,thbot ,   &
+  SUBROUTINE flux_atmOcn(logunit, nMax  ,zbot  ,ubot  ,vbot  ,thbot ,   &
        &               qbot  ,s16O  ,sHDO  ,s18O  ,rbot  ,   &
        &               tbot  ,us    ,vs    ,   &
        &               ts    ,mask  , seq_flux_atmocn_minwind, &
@@ -142,8 +141,8 @@ contains
        &               evap  ,evap_16O, evap_HDO, evap_18O, &
        &               taux  ,tauy  ,tref  ,qref  ,   &
        &               ocn_surface_flux_scheme, &
-       &               duu10n,  ustar_sv   ,re_sv ,ssq_sv,   &
-       &               missval    )
+       &               duu10n,  ustar_sv ,re_sv ,ssq_sv,   &
+       &               missval)
 
     ! !USES:
     use water_isotopes, only: wiso_flxoce !subroutine used to calculate water isotope fluxes.
@@ -153,7 +152,8 @@ contains
     ! !INPUT/OUTPUT PARAMETERS:
 
     !--- input arguments --------------------------------
-    integer(IN),intent(in) ::       nMax  ! data vector length
+    integer    ,intent(in) :: logunit
+    integer(IN),intent(in) :: nMax        ! data vector length
     integer(IN),intent(in) :: mask (nMax) ! ocn domain mask       0 <=> out of domain
     integer(IN),intent(in) :: ocn_surface_flux_scheme
     real(R8)   ,intent(in) :: zbot (nMax) ! atm level height      (m)
@@ -192,7 +192,7 @@ contains
     real(R8),intent(out),optional :: re_sv   (nMax) ! diag: sqrt of exchange coefficient (water)
     real(R8),intent(out),optional :: ssq_sv  (nMax) ! diag: sea surface humidity  (kg/kg)
 
-    real(R8),intent(in) ,optional :: missval        ! masked value
+    real(R8),intent(in) ,optional :: missval ! masked value
 
     !--- local constants --------------------------------
     real(R8),parameter :: zref  = 10.0_R8 ! reference height           (m)
@@ -584,7 +584,7 @@ contains
   !     2019-May-08 - J. Reeves Eyre - remove convective gustiness
   !                   and add cold air outbreak modification.
   !===============================================================================
-  SUBROUTINE flux_atmOcn_UA(   &
+  SUBROUTINE flux_atmOcn_UA(logunit,  &
        &               nMax  ,zbot  ,ubot  ,vbot  ,thbot ,  &
        &               qbot  ,s16O  ,sHDO  ,s18O  ,rbot  ,   &
        &               tbot  , pslv ,us    , vs   ,   &
@@ -593,7 +593,7 @@ contains
        &               evap  ,evap_16O, evap_HDO, evap_18O, &
        &               taux  ,tauy  ,tref  ,qref  ,   &
        &               duu10n,  ustar_sv   ,re_sv ,ssq_sv,   &
-       &               missval    )
+       &               missval)
 
 
     ! !USES:
@@ -604,8 +604,9 @@ contains
     ! !INPUT/OUTPUT PARAMETERS:
 
     !--- input arguments --------------------------------
-    integer(IN),intent(in) ::       nMax  ! data vector length
-    integer(IN),intent(in) :: mask (nMax) ! ocn domain mask       0 <=> out of domain
+    integer    ,intent(in) :: logunit
+    integer    ,intent(in) :: nMax        ! data vector length
+    integer    ,intent(in) :: mask (nMax) ! ocn domain mask       0 <=> out of domain
     real(R8)   ,intent(in) :: zbot (nMax) ! atm level height      (m)
     real(R8)   ,intent(in) :: ubot (nMax) ! atm u wind            (m/s)
     real(R8)   ,intent(in) :: vbot (nMax) ! atm v wind            (m/s)
@@ -1128,7 +1129,7 @@ contains
   !     2006-Nov-07 - B. Kauffman - code migrated from cpl6 to share
   !===============================================================================
   SUBROUTINE flux_atmOcn_diurnal &
-       (nMax  ,zbot  ,ubot  ,vbot  ,thbot ,             &
+       (logunit, nMax  ,zbot  ,ubot  ,vbot  ,thbot ,   &
        qbot  ,s16O  ,sHDO  ,s18O  ,rbot  ,             &
        tbot  ,us    ,vs    ,                           &
        ts    ,mask  , seq_flux_atmocn_minwind,         &
@@ -1155,7 +1156,8 @@ contains
     ! !INPUT/OUTPUT PARAMETERS:
 
     !--- input arguments --------------------------------
-    integer(IN),intent(in) ::       nMax  ! data vector length
+    integer    ,intent(in) :: logunit
+    integer(IN),intent(in) :: nMax        ! data vector length
     integer(IN),intent(in) :: mask (nMax) ! ocn domain mask       0 <=> out of domain
     real(R8)   ,intent(in) :: zbot (nMax) ! atm level height      (m)
     real(R8)   ,intent(in) :: ubot (nMax) ! atm u wind            (m/s)
@@ -1891,15 +1893,15 @@ contains
   ! !REVISION HISTORY:
   !    2007-Sep-19 - B. Kauffman, Bill Large - first version
   !===============================================================================
-  subroutine flux_MOstability(option,arg1,arg2,arg3,arg4,arg5)
+  subroutine flux_MOstability(logunit,option,arg1,arg2,arg3,arg4,arg5)
 
     ! !USES:
 
     implicit none
 
     ! !INPUT/OUTPUT PARAMETERS:
-
-    integer(IN),intent(in)           :: option ! shr_flux_MOwScales or MOfunctions
+    integer    ,intent(in)           :: logunit
+    integer    ,intent(in)           :: option ! shr_flux_MOwScales or MOfunctions
     real(R8)   ,intent(in)           :: arg1   ! scales: uStar (in)  funct: zeta (in)
     real(R8)   ,intent(inout)        :: arg2   ! scales: zkB   (in)  funct: phim (out)
     real(R8)   ,intent(out)          :: arg3   ! scales: phim  (out) funct: phis (out)
@@ -2294,4 +2296,4 @@ contains
     endif
   end FUNCTION psit_30
 
-end module flux_atmocn_mod
+end module shr_flux_mod
