@@ -29,6 +29,6 @@ $(LIBRARY): $(OBJ1)
 
 clean:
 	$(RM) -f $(LIBRARY) *.f90 *.i90 *.o *.mod
-	$(RM) -f med_constants_mod.*
+	$(RM) -f ufs_const_mod.*
 
 flux_atmocn_mod.o: ufs_const_mod.o
