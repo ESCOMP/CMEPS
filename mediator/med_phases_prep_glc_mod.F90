@@ -165,7 +165,7 @@ contains
     if (chkErr(rc,__LINE__,u_FILE_u)) return
 
     ! allocate module variables
-    allocate(toglc_frlnd(num_icesheets)
+    allocate(toglc_frlnd(num_icesheets))
 
     ! -------------------------------
     ! If will accumulate lnd2glc input on land grid

@@ -298,7 +298,9 @@ contains
     ! create module fields on glc mesh
     !---------------------------------------
 
-    allocate(ice_sheet_to_lnd(num_icesheets))
+    ! allocate module variable
+    allocate(ice_sheet_tolnd(num_icesheets))
+
     do ns = 1,num_icesheets
        if (is_local%wrap%med_coupling_active(compglc(ns),complnd)) then
 

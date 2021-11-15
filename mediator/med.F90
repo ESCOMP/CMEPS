@@ -41,7 +41,7 @@ module MED
   use med_methods_mod          , only : clock_timeprint    => med_methods_clock_timeprint
   use med_utils_mod            , only : memcheck           => med_memcheck
   use med_time_mod             , only : med_time_alarmInit
-  use med_internalstate_mod    , only : InternalState
+  use med_internalstate_mod    , only : InternalState, med_internalstate_init
   use med_internalstate_mod    , only : med_coupling_allowed, logunit, mastertask
   use med_internalstate_mod    , only : ncomps, compname
   use med_internalstate_mod    , only : compmed, compatm, compocn, compice, complnd, comprof, compwav ! not arrays
@@ -82,6 +82,8 @@ module MED
   character(len=8) :: ice_present, rof_present
   character(len=8) :: glc_present, med_present
   character(len=8) :: ocn_present, wav_present
+
+  logical, allocatable :: compDone(:) ! component done flat
 
 !-----------------------------------------------------------------------------
 contains
@@ -656,6 +658,8 @@ contains
     use ESMF  , only : ESMF_END_ABORT, ESMF_Finalize, ESMF_MAXSTR
     use NUOPC , only : NUOPC_AddNamespace, NUOPC_Advertise, NUOPC_AddNestedState
     use NUOPC , only : NUOPC_CompAttributeGet, NUOPC_CompAttributeSet, NUOPC_CompAttributeAdd
+    use esmFlds, only : med_fldlist_init1
+    use med_phases_history_mod, only : med_phases_history_init
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -672,8 +676,6 @@ contains
     character(len=8)    :: cnum
     type(InternalState) :: is_local
     integer             :: stat
-    character(len=CS)   :: attrList(8)
-    character(len=ESMF_MAXSTR) :: mesh_glc
     character(len=*),parameter :: subname=' (InitializeIPDv03p1) '
     !-----------------------------------------------------------
 
@@ -682,7 +684,7 @@ contains
     if (profile_memory) call ESMF_VMLogMemInfo("Entering "//trim(subname))
 
     !------------------
-    ! Allocate memory for the internal state and set it in the Component.
+    ! Allocate memory for the internal state
     !------------------
 
     allocate(is_local%wrap, stat=stat)
@@ -698,11 +700,10 @@ contains
          ocn_present, ice_present, rof_present, wav_present, glc_present, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+    !------------------
     ! Allocate memory for history module variables
+    !------------------
     call med_phases_history_init()
-
-    ! Allocat memory for esmFlds module variables
-    call med_fldlist_init()
 
     !------------------
     ! add a namespace (i.e. nested state)  for each import and export component state in the mediator's InternalState
@@ -775,6 +776,10 @@ contains
        write(logunit,*)
     end if
 
+    ! Initialize memory for fldlistTo and fldlistFr - this is need for the calls below for the
+    ! advertise phase
+    call med_fldlist_init1()
+
     if (trim(coupling_mode) == 'cesm') then
        call esmFldsExchange_cesm(gcomp, phase='advertise', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -834,7 +839,8 @@ contains
     do ncomp = 1,ncomps
        if (ncomp /= compmed) then
           if (mastertask) write(logunit,*)
-          if (ESMF_StateIsCreated(is_local%wrap%NStateImp(ncomp))) then
+          write(6,*)'DEBUG: ncomp = ',ncomp,trim(compname(ncomp))
+          !if (ESMF_StateIsCreated(is_local%wrap%NStateImp(ncomp))) then
              nflds = med_fldList_GetNumFlds(fldListFr(ncomp))
              do n = 1,nflds
                 call med_fldList_GetFldInfo(fldListFr(ncomp), n, stdname, shortname)
@@ -852,8 +858,8 @@ contains
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
                 call ESMF_LogWrite(subname//':Fr_'//trim(compname(ncomp))//': '//trim(shortname), ESMF_LOGMSG_INFO)
              end do
-          end if
-          if (ESMF_StateIsCreated(is_local%wrap%NStateExp(ncomp))) then
+          !end if
+          !if (ESMF_StateIsCreated(is_local%wrap%NStateExp(ncomp))) then
              nflds = med_fldList_GetNumFlds(fldListTo(ncomp))
              do n = 1,nflds
                 call med_fldList_GetFldInfo(fldListTo(ncomp), n, stdname, shortname)
@@ -871,7 +877,7 @@ contains
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
                 call ESMF_LogWrite(subname//':To_'//trim(compname(ncomp))//': '//trim(shortname), ESMF_LOGMSG_INFO)
              end do
-          end if
+          !end if
        end if
     end do ! end of ncomps loop
 
@@ -1556,7 +1562,6 @@ contains
     logical                            :: read_restart
     logical                            :: isPresent, isSet
     logical                            :: allDone = .false.
-    logical,save                       :: compDone(ncomps)
     logical,save                       :: first_call = .true.
     real(r8)                           :: real_nx, real_ny
     character(len=CX)                  :: msgString
@@ -1588,6 +1593,9 @@ contains
     !---------------------------------------
 
     if (first_call) then
+
+       ! Allocate module variable
+       allocate(compDone(ncomps))
 
       !----------------------------------------------------------
       ! Initialize mediator present flags
@@ -1889,6 +1897,9 @@ contains
       ! Second call to esmFldsExchange_xxx
       ! Determine mapping and merging info for field exchanges in mediator
       !---------------------------------------
+
+      ! Initialize memory for fldlistFr(:)%flds(:) and fldlistTo(:)%flds(:) - this is needed for
+      ! call below for the initialize phase
 
       if (trim(coupling_mode) == 'cesm') then
          call esmFldsExchange_cesm(gcomp, phase='initialize', rc=rc)

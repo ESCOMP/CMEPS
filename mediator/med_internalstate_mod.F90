@@ -5,10 +5,13 @@ module med_internalstate_mod
   !-----------------------------------------------------------------------------
 
   use ESMF         , only : ESMF_RouteHandle, ESMF_FieldBundle, ESMF_State, ESMF_Field, ESMF_VM
+  use ESMF         , only : ESMF_GridComp, ESMF_MAXSTR
   use med_kind_mod , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
 
   implicit none
   private
+
+  public :: med_internalstate_init
 
   integer, public :: logunit            ! logunit for mediator log output
   integer, public :: diagunit           ! diagunit for budget output (med master only)
@@ -16,27 +19,17 @@ module med_internalstate_mod
   logical, public :: mastertask=.false. ! is this the mastertask
   integer, public :: med_id             ! needed currently in med_io_mod and set in esm.F90
 
-  integer , public :: ncomps  = 0
-  integer , public :: compmed = 0
-  integer , public :: compatm = 0
-  integer , public :: complnd = 0
-  integer , public :: compocn = 0
-  integer , public :: compice = 0
-  integer , public :: comprof = 0
-  integer , public :: compwav = 0
-  integer         , public, allocatable :: compglc(:)
-  character(len=*), public, allocatable :: compname(:)
+  integer, public :: ncomps  = 0
+  integer, public :: compmed = 0
+  integer, public :: compatm = 0
+  integer, public :: complnd = 0
+  integer, public :: compocn = 0
+  integer, public :: compice = 0
+  integer, public :: comprof = 0
+  integer, public :: compwav = 0
+  integer, public, allocatable :: compglc(:)
 
-  integer, public :: num_icesheets     ! obtained from attribute
-  logical, public :: ocn2glc_coupling  ! obtained from attribute
-  logical, public :: lnd2glc_coupling  ! obtained in med.F90
-  logical, public :: accum_lnd2glc     ! obtained in med.F90 (this can be true even if lnd2glc_coupling is false)
-  logical, public :: dststatus_print = .false.
-
-  ! Active coupling definitions (will be initialize in med.F90)
-  logical, public, allocatable :: med_coupling_allowed(:, :)
-
-  ! Name of model components
+  character(len=CS), public, allocatable :: compname(:)
   character(len=CS), public :: med_name = ''
   character(len=CS), public :: atm_name = ''
   character(len=CS), public :: lnd_name = ''
@@ -45,6 +38,18 @@ module med_internalstate_mod
   character(len=CS), public :: rof_name = ''
   character(len=CS), public :: wav_name = ''
   character(len=CS), public :: glc_name = ''
+
+  integer, public :: num_icesheets     ! obtained from attribute
+  logical, public :: ocn2glc_coupling  ! obtained from attribute
+  logical, public :: lnd2glc_coupling  ! obtained in med.F90
+  logical, public :: accum_lnd2glc     ! obtained in med.F90 (this can be true even if lnd2glc_coupling is false)
+  logical, public :: dststatus_print = .false.
+
+  ! Coupling mode
+  character(len=CS), public :: coupling_mode ! valid values are [cesm,nems_orig,nems_frac,nems_orig_data,hafs]
+
+  ! Active coupling definitions (will be initialize in med.F90)
+  logical, public, allocatable :: med_coupling_allowed(:, :)
 
   ! Set mappers
   integer , public, parameter :: mapunset          = 0
@@ -112,14 +117,14 @@ module med_internalstate_mod
     ! RH(n,k,m) is a RH from grid n to grid k, map type m
 
     ! Present/Active logical flags
-    logical                :: comp_present(:)          ! comp present flag
-    logical                :: med_coupling_active(:,:) ! computes the active coupling
+    logical, pointer   :: comp_present(:)          ! comp present flag
+    logical, pointer   :: med_coupling_active(:,:) ! computes the active coupling
 
     ! Mediator vm
     type(ESMF_VM)          :: vm
 
     ! Global nx,ny dimensions of input arrays (needed for mediator history output)
-    integer                :: nx(:), ny(:)
+    integer, pointer   :: nx(:), ny(:)
 
     ! Import/Export Scalars
     character(len=CL)      :: flds_scalar_name = ''
@@ -131,37 +136,37 @@ module med_internalstate_mod
     real(r8)               :: flds_scalar_precip_factor = 1._r8  ! actual value of precip factor from ocn
 
     ! Import/export States and field bundles (the field bundles have the scalar fields removed)
-    type(ESMF_State)       , allocatable :: NStateImp(:) ! Import data from various component, on their grid
-    type(ESMF_State)       , allocatable :: NStateExp(:) ! Export data to various component, on their grid
-    type(ESMF_FieldBundle) , allocatable :: FBImp(:,:)   ! Import data from various components interpolated to various grids
-    type(ESMF_FieldBundle) , allocatable :: FBExp(:)     ! Export data for various components, on their grid
+    type(ESMF_State)       , pointer :: NStateImp(:) ! Import data from various component, on their grid
+    type(ESMF_State)       , pointer :: NStateExp(:) ! Export data to various component, on their grid
+    type(ESMF_FieldBundle) , pointer :: FBImp(:,:)   ! Import data from various components interpolated to various grids
+    type(ESMF_FieldBundle) , pointer :: FBExp(:)     ! Export data for various components, on their grid
 
     ! Mediator field bundles for ocean albedo
     type(ESMF_FieldBundle) :: FBMed_ocnalb_o            ! Ocn albedo on ocn grid
     type(ESMF_FieldBundle) :: FBMed_ocnalb_a            ! Ocn albedo on atm grid
-    type(packed_data_type) :: packed_data_ocnalb_o2a(:) ! packed data for mapping ocn->atm
+    type(packed_data_type), pointer :: packed_data_ocnalb_o2a(:) ! packed data for mapping ocn->atm
 
     ! Mediator field bundles and other info for atm/ocn flux computation
-    type(ESMF_FieldBundle) :: FBMed_aoflux_a                         ! Ocn/Atm flux output fields on atm grid
-    type(ESMF_FieldBundle) :: FBMed_aoflux_o                         ! Ocn/Atm flux output fields on ocn grid
-    type(packed_data_type), allocatable :: packed_data_aoflux_o2a(:) ! packed data for mapping ocn->atm
-    character(len=CS)      :: aoflux_grid                            ! 'ogrid', 'agrid' or 'xgrid'
+    character(len=CS)      :: aoflux_grid                        ! 'ogrid', 'agrid' or 'xgrid'
+    type(ESMF_FieldBundle) :: FBMed_aoflux_a                     ! Ocn/Atm flux output fields on atm grid
+    type(ESMF_FieldBundle) :: FBMed_aoflux_o                     ! Ocn/Atm flux output fields on ocn grid
+    type(packed_data_type), pointer :: packed_data_aoflux_o2a(:) ! packed data for mapping ocn->atm
 
     ! Mapping
-    type(ESMF_RouteHandle) , allocatable :: RH(:,:,:)            ! Routehandles for pairs of components and different mappers
-    type(ESMF_Field)       , allocatable :: field_NormOne(:,:,:) ! Unity static normalization
-    type(packed_data_type) , allocatable :: packed_data(:,:,:)   ! Packed data structure needed to efficiently map field bundles
+    type(ESMF_RouteHandle) , pointer :: RH(:,:,:)            ! Routehandles for pairs of components and different mappers
+    type(ESMF_Field)       , pointer :: field_NormOne(:,:,:) ! Unity static normalization
+    type(packed_data_type) , pointer :: packed_data(:,:,:)   ! Packed data structure needed to efficiently map field bundles
 
     ! Fractions
-    type(ESMF_FieldBundle), allocatable :: FBfrac(:)     ! Fraction data for various components, on their grid
+    type(ESMF_FieldBundle), pointer :: FBfrac(:)     ! Fraction data for various components, on their grid
 
     ! Accumulators for export field bundles
     type(ESMF_FieldBundle) :: FBExpAccumOcn      ! Accumulator for various components export on their grid
     integer                :: ExpAccumOcnCnt = 0 ! Accumulator counter for each FBExpAccum
 
     ! Component Mesh info
-    type(mesh_info_type)   , allocatable :: mesh_info(:)
-    type(ESMF_FieldBundle) , allocatable :: FBArea(:)     ! needed for mediator history writes
+    type(mesh_info_type)   , pointer :: mesh_info(:)
+    type(ESMF_FieldBundle) , pointer :: FBArea(:)     ! needed for mediator history writes
 
  end type InternalStateStruct
 
@@ -169,30 +174,50 @@ module med_internalstate_mod
     type(InternalStateStruct), pointer :: wrap
  end type InternalState
 
+  character(len=*), parameter :: u_FILE_u  = &
+       __FILE__
+
 !=====================================================================
 contains
 !=====================================================================
 
-  subroutine med_internalstate_init(gcomp, med_present, atm_present, lnd_present, &
+  subroutine med_internalstate_init(gcomp, &
+       med_present, atm_present, lnd_present, &
        ocn_present, ice_present, rof_present, wav_present, glc_present, rc)
 
-    use med_phases_history_mod, only : med_phases_history_init
+    use ESMF         , only : ESMF_LogFoundAllocError
+    use NUOPC_Comp   , only : NUOPC_CompAttributeAdd
+    use NUOPC_Comp   , only : NUOPC_CompAttributeGet 
+    use NUOPC_Comp   , only : NUOPC_CompAttributeSet
+    use med_utils_mod, only : chkerr => med_utils_ChkErr
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
-    logical, intent(out) :: med_present
-    logical, intent(out) :: atm_present
-    logical, intent(out) :: lnd_present
-    logical, intent(out) :: ocn_present
-    logical, intent(out) :: ice_present
-    logical, intent(out) :: rof_present
-    logical, intent(out) :: med_present
+    character(len=*), intent(out) :: med_present
+    character(len=*), intent(out) :: atm_present
+    character(len=*), intent(out) :: lnd_present
+    character(len=*), intent(out) :: ocn_present
+    character(len=*), intent(out) :: ice_present
+    character(len=*), intent(out) :: rof_present
+    character(len=*), intent(out) :: wav_present
+    character(len=*), intent(out) :: glc_present
     integer, intent(out) :: rc
 
     ! local variables
-    integer :: ncomp
+    type(InternalState)        :: is_local
+    integer                    :: n, ns, ncomp 
+    integer                    :: stat
+    character(len=8)           :: cnum
+    character(len=cs)          :: cvalue
+    logical                    :: ispresent, isset
+    character(len=ESMF_MAXSTR) :: mesh_glc
+    character(len=CS)          :: attrList(8)
     character(len=*),parameter :: subname=' (med_internal_state_init)'
     !-----------------------------------------------------------
+
+    nullify(is_local%wrap)
+    call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     call NUOPC_CompAttributeAdd(gcomp, &
          attrList=(/'atm_present','lnd_present','ocn_present','ice_present',&
@@ -226,9 +251,9 @@ contains
     if (isPresent .and. isSet) then
        if (trim(cvalue) /= 'satm') then
           atm_present = "true"
-          ncomp = ncomp + 1
-          compatm = ncomp
        end if
+       ncomp = ncomp + 1
+       compatm = ncomp
        atm_name = trim(cvalue)
     end if
 
@@ -237,9 +262,9 @@ contains
     if (isPresent .and. isSet) then
        if (trim(cvalue) /= 'slnd') then
           lnd_present = "true"
-          ncomp = ncomp + 1
-          complnd = ncomp
        end if
+       ncomp = ncomp + 1
+       complnd = ncomp
        lnd_name = trim(cvalue)
     end if
 
@@ -248,9 +273,9 @@ contains
     if (isPresent .and. isSet) then
        if (trim(cvalue) /= 'socn') then
           ocn_present = "true"
-          ncomp = ncomp + 1
-          compocn = ncomp
        end if
+       ncomp = ncomp + 1
+       compocn = ncomp
        ocn_name = trim(cvalue)
     end if
 
@@ -259,9 +284,9 @@ contains
     if (isPresent .and. isSet) then
        if (trim(cvalue) /= 'sice') then
           ice_present = "true"
-          ncomp = ncomp + 1
-          compice = ncomp
        end if
+       ncomp = ncomp + 1
+       compice = ncomp
        ice_name = trim(cvalue)
     end if
 
@@ -270,9 +295,9 @@ contains
     if (isPresent .and. isSet) then
        if (trim(cvalue) /= 'srof') then
           rof_present = "true"
-          ncomp = ncomp + 1
-          comprof = ncomp
        end if
+       ncomp = ncomp + 1
+       comprof = ncomp
        rof_name = trim(cvalue)
     end if
 
@@ -281,9 +306,9 @@ contains
     if (isPresent .and. isSet) then
        if (trim(cvalue) /= 'swav') then
           wav_present = "true"
-          ncomp = ncomp + 1
-          compwav = ncomp
        end if
+       ncomp = ncomp + 1
+       compwav = ncomp
        wav_name = trim(cvalue)
     end if
 
@@ -318,35 +343,35 @@ contains
     end if
 
     ncomps = ncomp
+
     allocate(compname(ncomps))
-    if (med_present) then
+    if (med_present == 'true') then
        compname(compmed) = 'med'
     end if
-    if (atm_present) then
+    if (atm_present == 'true') then
        compname(compatm) = 'atm'
     end if
-    if (lnd_present) then
+    if (lnd_present == 'true') then
        compname(complnd) = 'lnd'
     end if
-    if (ocn_present) then
+    if (ocn_present == 'true') then
        compname(compocn) = 'ocn'
     end if
-    if (ice_present) then
+    if (ice_present == 'true') then
        compname(compice) = 'ice'
     end if
-    if (rof_present) then
+    if (rof_present == 'true') then
        compname(comprof) = 'rof'
     end if
-    if (wav_present) then
+    if (wav_present == 'true') then
        compname(compwav) = 'wav'
     end if
-    if (glc_present) then
+    if (glc_present == 'true') then
        do ns = 1,num_icesheets
           write(cnum,'(i0)') ns
           compname(compglc(ns)) = 'glc' // trim(cnum)
        end do
     end if
-
     call NUOPC_CompAttributeSet(gcomp, name="atm_present", value=atm_present, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call NUOPC_CompAttributeSet(gcomp, name="lnd_present", value=lnd_present, rc=rc)
@@ -377,6 +402,7 @@ contains
        write(logunit,*)
     end if
 
+    write(6,*)'DEBUG: ncomps = ',ncomps
     allocate(med_coupling_allowed(ncomps,ncomps))
     allocate(is_local%wrap%comp_present(ncomps))
     allocate(is_local%wrap%med_coupling_active(ncomps,ncomps))
@@ -388,9 +414,9 @@ contains
     allocate(is_local%wrap%FBExp(ncomps))
     allocate(is_local%wrap%packed_data_ocnalb_o2a(nmappers))
     allocate(is_local%wrap%packed_data_aoflux_o2a(nmappers))
-    allocate(is_local%wrap%RH(ncomps,ncomps,nmappers)
-    allocate(is_local%wrap%field_NormOne(ncomps,ncomps,nmappers)
-    allocate(is_local%wrap%packed_data(ncomps,ncomps,nmappers)
+    allocate(is_local%wrap%RH(ncomps,ncomps,nmappers))
+    allocate(is_local%wrap%field_NormOne(ncomps,ncomps,nmappers))
+    allocate(is_local%wrap%packed_data(ncomps,ncomps,nmappers))
     allocate(is_local%wrap%FBfrac(ncomps))
     allocate(is_local%wrap%mesh_info(ncomps))
     allocate(is_local%wrap%FBArea(ncomps))

@@ -119,7 +119,7 @@ module med_fraction_mod
   public med_fraction_set
 
   integer, parameter                      :: nfracs = 5
-  character(len=6)                        :: fraclist(nfracs,ncomps)
+  character(len=6),allocatable            :: fraclist(:,:)
   character(len=6),parameter,dimension(4) :: fraclist_a = (/'ifrac ','ofrac ','lfrac ','aofrac'/)
   character(len=6),parameter,dimension(4) :: fraclist_o = (/'ifrac ','ofrac ','ifrad ','ofrad '/)
   character(len=6),parameter,dimension(2) :: fraclist_i = (/'ifrac ','ofrac '/)
@@ -197,6 +197,9 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if (first_call) then
+
+       ! allocate module variable
+       allocate(fraclist(nfracs,ncomps))
 
        !---------------------------------------
        ! Initialize the fraclist arrays

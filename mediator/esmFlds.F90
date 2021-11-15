@@ -1,26 +1,17 @@
 module esmflds
 
   use med_kind_mod, only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
+  use med_internalstate_mod, only : ncomps, compname, compocn, compatm
+  use med_internalstate_mod, only : mapfcopy, mapnames, mapunset
 
   implicit none
   private
 
   !-----------------------------------------------
-  ! Set components
-  !-----------------------------------------------
-
-  use med_internalstate_mod, only : ncomps, compname
-  use med_internalstate_mod, only : compocn, compatm
-
-  !-----------------------------------------------
-  ! Set coupling mode
-  !-----------------------------------------------
-  character(len=CS), public :: coupling_mode ! valid values are [cesm,nems_orig,nems_frac,nems_orig_data,hafs]
-
-  !-----------------------------------------------
   ! PUblic methods
   !-----------------------------------------------
 
+  public :: med_fldList_init1
   public :: med_fldList_AddFld
   public :: med_fldList_AddMap
   public :: med_fldList_AddMrg
@@ -84,26 +75,10 @@ module esmflds
 contains
 !================================================================================
 
-  subroutine med_fldlist_init()
+  subroutine med_fldlist_init1()
     allocate(fldlistTo(ncomps))
-    do n = 1,ncomps
-       allocate(fldlistTo(n)%mapindex(ncomps))
-       allocate(fldlistTo(n)%mapnorm(ncomps))
-       allocate(fldlistTo(n)%mapfile(ncomps))
-       fldlistTo(n)%mapindex(:)) = mapunset
-       fldlistTo(n)%mapnorm(:)) = 'unset'
-       fldlistTo(n)%mapfile(:)) = 'unset'
-    end do
     allocate(fldlistFr(ncomps))
-    do n = 1,ncomps
-       allocate(fldlistFr(n)%merge_fields(ncomps)
-       allocate(fldlistFr(n)%merge_types(ncomps)
-       allocate(fldlistFr(n)%fracnames(ncomps)
-       merge_fields(:)    = 'unset'
-       merge_types(:)     = 'unset'
-       merge_fracnames(:) = 'unset'
-    end do
-  end subroutine med_fldlist_init
+  end subroutine med_fldlist_init1
 
   !================================================================================
   subroutine med_fldList_AddFld(flds, stdname, shortname)
@@ -126,6 +101,7 @@ contains
     ! local variables
     integer :: n,oldsize,id
     logical :: found
+    integer :: mapsize, mrgsize
     type(med_fldList_entry_type), pointer :: newflds(:)
     character(len=*), parameter :: subname='(med_fldList_AddFld)'
     ! ----------------------------------------------
@@ -147,6 +123,9 @@ contains
 
     ! create new entry if fldname is not in original list
 
+    mapsize = ncomps
+    mrgsize = ncomps
+
     if (.not. found) then
 
        ! 1) allocate newfld to be size (one element larger than input flds)
@@ -156,12 +135,27 @@ contains
        do n = 1,oldsize
           newflds(n)%stdname            = flds(n)%stdname
           newflds(n)%shortname          = flds(n)%shortname
+
+          allocate(newflds(n)%mapindex(mapsize))
+          allocate(newflds(n)%mapnorm(mapsize))
+          allocate(newflds(n)%mapfile(mapsize))
+          allocate(newflds(n)%merge_fields(mrgsize))
+          allocate(newflds(n)%merge_types(mrgsize))
+          allocate(newflds(n)%merge_fracnames(mrgsize))
+
           newflds(n)%mapindex(:)        = flds(n)%mapindex(:)
           newflds(n)%mapnorm(:)         = flds(n)%mapnorm(:)
           newflds(n)%mapfile(:)         = flds(n)%mapfile(:)
           newflds(n)%merge_fields(:)    = flds(n)%merge_fields(:)
           newflds(n)%merge_types(:)     = flds(n)%merge_types(:)
           newflds(n)%merge_fracnames(:) = flds(n)%merge_fracnames(:)
+
+          deallocate(flds(n)%mapindex)
+          deallocate(flds(n)%mapnorm)
+          deallocate(flds(n)%mapfile)
+          deallocate(flds(n)%merge_fields)
+          deallocate(flds(n)%merge_types)
+          deallocate(flds(n)%merge_fracnames)
        end do
 
        ! 3) deallocate / nullify flds
@@ -180,6 +174,12 @@ contains
        else
           flds(id)%shortname = trim(stdname)
        end if
+       allocate(flds(id)%mapindex(mapsize))
+       allocate(flds(id)%mapnorm(mapsize))
+       allocate(flds(id)%mapfile(mapsize))
+       allocate(flds(id)%merge_fields(mrgsize))
+       allocate(flds(id)%merge_types(mrgsize))
+       allocate(flds(id)%merge_fracnames(mrgsize))
     end if
 
   end subroutine med_fldList_AddFld

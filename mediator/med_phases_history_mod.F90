@@ -135,7 +135,7 @@ contains
     ! allocate module memory
     allocate(instfiles(ncomps))
     allocate(avgfiles(ncomps))
-    allocate(auxcomps(ncomps))
+    allocate(auxcomp(ncomps))
   end subroutine med_phases_history_init
 
   !===============================================================================
