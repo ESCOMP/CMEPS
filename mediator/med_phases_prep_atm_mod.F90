@@ -242,4 +242,31 @@ contains
 
   end subroutine med_phases_prep_atm
 
+  !-----------------------------------------------------------------------------
+  subroutine med_phases_prep_atm_enthalpy_correction (hcorr, rc) 
+    use ESMF , only : ESMF_VMAllreduce, ESMF_GridCompGet, ESMF_REDUCE_SUM
+
+    ! input/output variables
+    real(r8), intent(in) :: hcorr(:)
+
+    ! local variables
+    integer       :: n
+    real(r8)      :: local_htot_corr(1)
+    type(ESMF_VM) :: vm
+    !---------------------------------------
+
+    rc = ESMF_SUCCESS
+
+    local_htot_corr(1) = 0._r8
+    do n = 1,size(hcorr)
+       local_htot_corr(1) = local_htot_corr(1) + hcorr(n)
+    end do
+    call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_VMAllreduce(vm, senddata=local_htot_corr, recvdata=global_htot_corr, count=1, &
+         reduceflag=ESMF_REDUCE_SUM, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+  end subroutine med_phases_prep_atm_enthalpy_correction
+
 end module med_phases_prep_atm_mod

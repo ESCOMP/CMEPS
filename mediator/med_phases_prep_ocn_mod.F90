@@ -23,7 +23,7 @@ module med_phases_prep_ocn_mod
   use esmFlds               , only : compocn, compatm, compice
   use esmFlds               , only : coupling_mode
   use perf_mod              , only : t_startf, t_stopf
-  use med_phases_prep_atm   , only : global_htot_corr
+  use med_phases_prep_atm   , only : med_phases_prep_atm_enthaly_correction
 
   implicit none
   private
@@ -82,7 +82,6 @@ contains
     use ESMF , only : ESMF_GridComp, ESMF_FieldBundleGet
     use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
     use ESMF , only : ESMF_FAILURE,  ESMF_LOGMSG_ERROR
-    use ESMF , only : ESMF_VMAllreduce, ESMF_GridCompGet
     use shr_const_mod , only : shr_const_cpsw, shr_const_tkfrz, shr_const_pi
 
     ! input/output variables
@@ -92,8 +91,6 @@ contains
     ! local variables
     type(InternalState) :: is_local
     integer             :: n, ncnt
-    type(ESMF_VM)       :: vm
-    real(r8)            :: local_htot_corr(1)
     real(r8)            :: glob_area_inv
     real(r8), pointer   :: tocn(:)
     real(r8), pointer   :: rain(:), hrain(:)
@@ -196,23 +193,20 @@ contains
        end do
 
        ! Determine enthalpy correction factor that will be added to the sensible heat flux sent to the atm
-       ! Areas here in radians**2
-       local_htot_corr(1) = 0._r8
-       glob_area_inv = 1._r8 / (4._r8 * shr_const_pi)
-       areas => is_local%wrap%mesh_info(compocn)%areas
-       do n = 1,size(tocn)
-          local_htot_corr(1) = local_htot_corr(1) &
-               + (hrofl(n) + hcond(n) + hrain(n) + hsnow(n)) * areas(n) * glol_area_inv
-       end do
-       call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_VMAllreduce(vm, senddata=local_htot_corr, recvdata=global_htot_corr, count=1, &
-            reduceflag=ESMF_REDUCE_SUM, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    end if
+       ! Areas here in radians**2 - this is an instantaneous snapshot that will be sent to the atm - only 
+       ! need to calculate this if data is sent back to the atm
 
-    ! htotal_correction = htotal_ocn/area_atm
-    ! write to Peter to determine if the correction will be added to the sensible or the latent
+       if (FB_fldchk(is_local%wrap%FBExp(compatm), 'Faxx_sen', rc=rc)) then
+          glob_area_inv = 1._r8 / (4._r8 * shr_const_pi)
+          areas => is_local%wrap%mesh_info(compocn)%areas
+          do n = 1,size(tocn)
+             hcorr(n) = (hrain(n) + hsnow(n) + hevap(n) + hrofl(n) + hrofi(n) + hmeltw(n)) * areas(n) * glol_area_inv
+          end do
+          call med_phases_prep_atm_enthaly_correction(hcorr, rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       end if
+
+    end if
 
     ! custom merges to ocean
     if (trim(coupling_mode) == 'cesm') then
