@@ -5,7 +5,7 @@ module glc_elevclass_mod
   ! is not used by the UFS system
   !---------------------------------------------------------------------
 
-  use med_kind_mod , only : r8=>shr_kind_r8
+  use ufs_kind_mod , only : r8=>shr_kind_r8
 
   implicit none
   private

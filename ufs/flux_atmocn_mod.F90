@@ -1,6 +1,6 @@
 module flux_atmocn_mod
 
-  use med_kind_mod    ! shared kinds
+  use ufs_kind_mod    ! shared kinds
   use ufs_const_mod   ! shared constants
   use ESMF, only : ESMF_FINALIZE, ESMF_END_ABORT
 

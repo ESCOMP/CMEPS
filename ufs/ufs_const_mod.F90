@@ -1,6 +1,6 @@
 MODULE ufs_const_mod
 
-   use med_kind_mod, only : R8 => shr_kind_r8
+   use ufs_kind_mod, only : R8 => shr_kind_r8
 
    !----------------------------------------------------------------------------
    ! physical constants (all data public)
