@@ -25,6 +25,8 @@ module med_phases_prep_atm_mod
 
   public :: med_phases_prep_atm
 
+  real(r8), public :: global_htot_corr(1) = 1.e36_r8  ! enthalpy correction from med_phases_prep_ocn
+
   character(*), parameter :: u_FILE_u  = &
        __FILE__
 
@@ -155,6 +157,15 @@ contains
     !---------------------------------------
     !--- custom calculations
     !---------------------------------------
+
+    ! Add enthalpy correction to sensible heat if appropriate
+    if (global_htot_corr /= 1.e36_r8) then
+       call FB_GetFldPtr(is_local%wrap%FBExp(compatm), 'Faxx_sen', datatptr1, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       do n = 1,size(dataptr1)
+          dataptr1(n) = dataptr1(n) + global_htot_corr
+       end do
+    end if
 
     ! set fractions to send back to atm
     if (FB_FldChk(is_local%wrap%FBExp(compatm), 'So_ofrac', rc=rc)) then

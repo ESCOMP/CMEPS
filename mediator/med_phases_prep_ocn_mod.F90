@@ -23,6 +23,7 @@ module med_phases_prep_ocn_mod
   use esmFlds               , only : compocn, compatm, compice
   use esmFlds               , only : coupling_mode
   use perf_mod              , only : t_startf, t_stopf
+  use med_phases_prep_atm   , only : global_htot_corr
 
   implicit none
   private
@@ -81,6 +82,8 @@ contains
     use ESMF , only : ESMF_GridComp, ESMF_FieldBundleGet
     use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
     use ESMF , only : ESMF_FAILURE,  ESMF_LOGMSG_ERROR
+    use ESMF , only : ESMF_VMAllreduce, ESMF_GridCompGet
+    use shr_const_mod , only : shr_const_cpsw, shr_const_tkfrz, shr_const_pi
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -89,6 +92,17 @@ contains
     ! local variables
     type(InternalState) :: is_local
     integer             :: n, ncnt
+    type(ESMF_VM)       :: vm
+    real(r8)            :: local_htot_corr(1)
+    real(r8)            :: glob_area_inv
+    real(r8), pointer   :: tocn(:)
+    real(r8), pointer   :: rain(:), hrain(:)
+    real(r8), pointer   :: snow(:), hsnow(:)
+    real(r8), pointer   :: evap(:), hcond(:)
+    real(r8), pointer   :: rofl(:), hrofl(:)
+    real(r8), pointer   :: rofi(:), hrofi(:)
+    real(r8), pointer   :: meltw(:), hmeltw(:)
+    real(r8), pointer   :: areas(:)
     character(len=*), parameter    :: subname='(med_phases_prep_ocn_accum)'
     !---------------------------------------
 
@@ -125,6 +139,80 @@ contains
             fldListTo(compocn), rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
+
+    ! compute enthaly associated with rain, snow, condensation and liquid river runoff
+    ! TODO: add meltw term
+    ! Fioi_meltw - should be sent as Foxx_hmeltw
+
+    ! Also add the contribution from cice
+    if ( FB_fldchk(is_local%wrap%FBExp(compocn), 'Faxa_rain' , rc=rc) .and. &
+         FB_fldchk(is_local%wrap%FBExp(compocn), 'Faxa_snow' , rc=rc) .and. &
+         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_evap' , rc=rc) .and. &
+         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_rofl' , rc=rc) .and. &
+         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_rofi' , rc=rc) .and. &
+         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hevap', rc=rc) .and. &
+         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hrain', rc=rc) .and. &
+         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hsnow', rc=rc) .and. &
+         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hrofl', rc=rc) .and. &
+         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hrofi', rc=rc)) then
+
+       call FB_GetFldPtr(is_local%wrap%FBImp(compocn,compocn), 'So_t', tocn, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Foxx_evap', evap, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Faxa_rain', rain, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Faxa_snow', snow, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Foxx_rofl', rofl, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Foxx_rofi', rofi, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Fioi_meltw', meltw, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Foxx_hrain', hrain, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Foxx_hsnow', hsnow, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Foxx_hevap', hevap, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Foxx_hrofl', hrofl, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Foxx_hrofi', hrofi, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Fioi_hmeltw', hmeltw, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       do n = 1,size(tocn)
+          ! Need max to ensure that will not have an enthalpy contribution if the water is below 0C
+          hrain(n) = max((tocn(n) - shr_const_tkfrz), 0._r8) * rain(n) * shr_const_cpsw
+          hsnow(n) = max((tocn(n) - shr_const_tkfrz), 0._r8) * snow(n) * shr_const_cpsw
+          hevap(n) = (tocn(n) - shr_const_tkfrz) * evap(n) * shr_const_cpsw
+          hrofl(n) = (tocn(n) - shr_const_tkfrz) * rofl(n) * shr_const_cpsw
+         !hrofi(n) = (tocn(n) - shr_const_tkfrz) * rofl(n) * shr_const_cpsw
+          hrofi(n) = 0._r8
+          hmeltw(n) = 0._r8 ! TODO: correct this
+       end do
+
+       ! Determine enthalpy correction factor that will be added to the sensible heat flux sent to the atm
+       ! Areas here in radians**2
+       local_htot_corr(1) = 0._r8
+       glob_area_inv = 1._r8 / (4._r8 * shr_const_pi)
+       areas => is_local%wrap%mesh_info(compocn)%areas
+       do n = 1,size(tocn)
+          local_htot_corr(1) = local_htot_corr(1) &
+               + (hrofl(n) + hcond(n) + hrain(n) + hsnow(n)) * areas(n) * glol_area_inv
+       end do
+       call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_VMAllreduce(vm, senddata=local_htot_corr, recvdata=global_htot_corr, count=1, &
+            reduceflag=ESMF_REDUCE_SUM, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    end if
+
+    ! htotal_correction = htotal_ocn/area_atm
+    ! write to Peter to determine if the correction will be added to the sensible or the latent
 
     ! custom merges to ocean
     if (trim(coupling_mode) == 'cesm') then

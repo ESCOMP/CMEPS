@@ -43,18 +43,6 @@
        canonical_units: N m-2
        description: mediator export
      #
-     - standard_name: Faox_hrain
-       canonical_units: W m-2
-       description: enthalpy from rain to ocn/atm
-     #
-     - standard_name: Faox_hsnow
-       canonical_units: W m-2
-       description: enthalpy from snow to ocn/atm
-     #
-     - standard_name: Faox_hevap
-       canonical_units: W m-2
-       description: enthalpy from evap to ocn/atm
-     #
      - standard_name: area
        canonical_units: radians**2
        description: mediator area for component
@@ -421,18 +409,6 @@
      #-----------------------------------
      # section: atmosphere import
      #-----------------------------------
-     #
-     - standard_name: Faxx_hrain
-       canonical_units: W m-2
-       description: to atm merged enthalpy of rain
-     #
-     - standard_name: Faxx_hsnow
-       canonical_units: W m-2
-       description: to atm merged enthalpy of snow
-     #
-     - standard_name: Faxx_hevap
-       canonical_units: W m-2
-       description: to atm merged enthalpy of evaporation
      #
      - standard_name: Faxx_evap
        canonical_units: kg m-2 s-1
@@ -1015,14 +991,24 @@
        description: to ocn heat content of snow
      #
      - standard_name: Foxx_hevap
-       alias: heat_content_cond
+       alias: heat_content_evap
        canonical_units: W m-2
-       description: to ocn heat content of condensation
+       description: to ocn heat content of evaporation
      #
      - standard_name: Foxx_hrofl
        alias: heat_content_rofl
        canonical_units: W m-2
        description: to ocn heat content of liquid runoff
+     #
+     - standard_name: Foxx_hrofi
+       alias: heat_content_rofi
+       canonical_units: W m-2
+       description: to ocn heat content of ice runoff
+     #
+     - standard_name: Fioi_hmeltw
+       alias: heat_content_meltw
+       canonical_units: W m-2
+       description: to ocn heat content of ice melt
      #
      - standard_name: Foxx_evap
        alias: mean_evap_rate

@@ -1959,37 +1959,19 @@ contains
     end if
 
     ! ---------------------------------------------------------------------
-    ! to ocn: enthalpy from rain, snow, evap
+    ! to ocn: enthalpy from atm rain, snow, evaporation
+    ! to ocn: enthalpy from liquid and ice river runoff
+    ! to ocn: enthalpy from ice melt
     ! ---------------------------------------------------------------------
+    ! Note - do not need to add addmap or addmrg for the following since they
+    ! will be computed directly in med_phases_prep_ocn
     if (phase == 'advertise') then
-       call addfld(fldListMed_aoflux%flds  , 'Faox_hrain')
-       call addfld(fldListTo(compocn)%flds , 'Foxx_hrain')
-    else
-       if ( fldchk(is_local%wrap%FBexp(compocn), 'Foxx_hrain', rc=rc) .and. &
-            fldchk(is_local%wrap%FBMed_aoflux_o, 'Faox_hrain', rc=rc)) then
-          call addmrg(fldListTo(compocn)%flds, 'Foxx_hrain', &
-               mrg_from=compmed, mrg_fld='Faox_hrain', mrg_type='merge', mrg_fracname='ofrac')
-       end if
-    end if
-    if (phase == 'advertise') then
-       call addfld(fldListMed_aoflux%flds  , 'Faox_hsnow')
-       call addfld(fldListTo(compocn)%flds , 'Foxx_hsnow')
-    else
-       if ( fldchk(is_local%wrap%FBexp(compocn), 'Foxx_hsnow', rc=rc) .and. &
-            fldchk(is_local%wrap%FBMed_aoflux_o, 'Faox_hsnow', rc=rc)) then
-          call addmrg(fldListTo(compocn)%flds, 'Foxx_hsnow', &
-               mrg_from=compmed, mrg_fld='Faox_hsnow', mrg_type='merge', mrg_fracname='ofrac')
-       end if
-    end if
-    if (phase == 'advertise') then
-       call addfld(fldListMed_aoflux%flds  , 'Faox_hevap')
-       call addfld(fldListTo(compocn)%flds , 'Foxx_hevap')
-    else
-       if ( fldchk(is_local%wrap%FBexp(compocn), 'Foxx_hevap', rc=rc) .and. &
-            fldchk(is_local%wrap%FBMed_aoflux_o, 'Faox_hevap', rc=rc)) then
-          call addmrg(fldListTo(compocn)%flds, 'Foxx_hevap', &
-               mrg_from=compmed, mrg_fld='Faox_hevap', mrg_type='merge', mrg_fracname='ofrac')
-       end if
+       call addfld(fldListTo(compocn)%flds, 'Foxx_hrain')
+       call addfld(fldListTo(compocn)%flds, 'Foxx_hsnow')
+       call addfld(fldListTo(compocn)%flds, 'Foxx_hevap')
+       call addfld(fldListTo(compocn)%flds, 'Foxx_hrofl')
+       call addfld(fldListTo(compocn)%flds, 'Foxx_hrofi')
+       call addfld(fldListTo(compocn)%flds, 'Fioi_hmeltw')
     end if
 
     ! ---------------------------------------------------------------------

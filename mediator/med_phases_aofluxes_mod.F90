@@ -99,10 +99,6 @@ module med_phases_aofluxes_mod
      real(R8) , pointer :: pbot        (:) => null() ! atm bottom pressure
      real(R8) , pointer :: dens        (:) => null() ! atm bottom density
      real(R8) , pointer :: tbot        (:) => null() ! atm bottom surface T
-     real(R8) , pointer :: rainc       (:) => null() ! atm bottom surface rainc
-     real(R8) , pointer :: rainl       (:) => null() ! atm bottom surface rainl
-     real(R8) , pointer :: snowc       (:) => null() ! atm bottom surface snowc
-     real(R8) , pointer :: snowl       (:) => null() ! atm bottom surface snowl
      real(R8) , pointer :: shum_16O    (:) => null() ! atm H2O tracer
      real(R8) , pointer :: shum_HDO    (:) => null() ! atm HDO tracer
      real(R8) , pointer :: shum_18O    (:) => null() ! atm H218O tracer
@@ -129,9 +125,6 @@ module med_phases_aofluxes_mod
      real(R8) , pointer :: ustar       (:) => null() ! saved ustar
      real(R8) , pointer :: re          (:) => null() ! saved re
      real(R8) , pointer :: ssq         (:) => null() ! saved sq
-     real(R8) , pointer :: hrain       (:) => null() ! enthalpy flux from rain
-     real(R8) , pointer :: hsnow       (:) => null() ! enthalpy flux from snow
-     real(R8) , pointer :: hevap       (:) => null() ! enthalpy flux from evaporation
   end type aoflux_out_type
 
   character(len=CS) :: aoflux_grid
@@ -866,7 +859,6 @@ contains
     use ESMF          , only : ESMF_LogWrite, ESMF_LogMsg_Info, ESMF_SUCCESS
     use med_map_mod   , only : med_map_field_packed, med_map_rh_is_created
     use shr_flux_mod  , only : shr_flux_atmocn
-    use shr_const_mod , only : shr_const_cpsw
 
     ! Arguments
     type(ESMF_GridComp)                   :: gcomp
@@ -1029,16 +1021,6 @@ contains
        end if
     enddo
 
-    ! Add components to aoflux that contains the enthalpy contributions
-    ! compute enthalpy change from precipitation to ocean
-    do n = 1,aoflux_in%lsize
-     ! aoflux_out%hrain(n) = max((aoflux_in%tocn(n) - 272.15_r8), 0._r8) * (aoflux_in%rainc(n) + aoflux_in%rainl(n)) * shr_const_cpsw
-     ! aoflux_out%hsnow(n) = min((aoflux_in%tocn(n) - 272.15_r8), 0._r8) * (aoflux_in%snowc(n) + aoflux_in%snowl(n)) * shr_const_cpsw
-       aoflux_out%hrain(n) = (aoflux_in%tocn(n) - 272.15_r8) * (aoflux_in%rainc(n) + aoflux_in%rainl(n)) * shr_const_cpsw
-       aoflux_out%hsnow(n) = (aoflux_in%tocn(n) - 272.15_r8) * (aoflux_in%snowc(n) + aoflux_in%snowl(n)) * shr_const_cpsw
-       aoflux_out%hevap(n) = (aoflux_in%tocn(n) - 272.15_r8) * (aoflux_out%evap(n)) * shr_const_cpsw
-    end do
-
     !----------------------------------
     ! map aoflux output to relevant atm/ocn grid(s)
     !----------------------------------
@@ -1164,15 +1146,6 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     end if
 
-    call fldbun_getfldptr(fldbun_a, 'Faxa_rainc', aoflux_in%rainc, xgrid=xgrid, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call fldbun_getfldptr(fldbun_a, 'Faxa_rainl', aoflux_in%rainl, xgrid=xgrid, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call fldbun_getfldptr(fldbun_a, 'Faxa_snowc', aoflux_in%snowc, xgrid=xgrid, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call fldbun_getfldptr(fldbun_a, 'Faxa_snowl', aoflux_in%snowl, xgrid=xgrid, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
     ! bottom level potential temperature will need to be computed if not received from the atm
     if (compute_atm_thbot) then
        allocate(aoflux_in%thbot(lsize))
@@ -1239,8 +1212,6 @@ contains
   !================================================================================
   subroutine set_aoflux_out_pointers(fldbun, lsize, aoflux_out, xgrid, rc)
 
-    use med_methods_mod , only : fldbun_fldchk    => med_methods_FB_FldChk
-
     ! input/output variables
     type(ESMF_FieldBundle)     , intent(inout) :: fldbun
     integer                    , intent(in)    :: lsize
@@ -1277,18 +1248,6 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call fldbun_getfldptr(fldbun, 'Faox_lwup', aoflux_out%lwup, xgrid=xgrid, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (fldbun_fldchk(fldbun, 'Faox_hrain', rc=rc)) then
-       call fldbun_getfldptr(fldbun, 'Faox_hrain', aoflux_out%hrain, xgrid=xgrid, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-    end if
-    if (fldbun_fldchk(fldbun, 'Faox_hsnow', rc=rc)) then
-       call fldbun_getfldptr(fldbun, 'Faox_hsnow', aoflux_out%hsnow, xgrid=xgrid, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-    end if
-    if (fldbun_fldchk(fldbun, 'Faox_hevap', rc=rc)) then
-       call fldbun_getfldptr(fldbun, 'Faox_hevap', aoflux_out%hevap, xgrid=xgrid, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-    end if
     if (flds_wiso) then
        call fldbun_getfldptr(fldbun, 'Faox_evap_16O', aoflux_out%evap_16O, xgrid=xgrid, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
