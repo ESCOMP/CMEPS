@@ -12,6 +12,7 @@ LIBRARY  = libcmeps_util.a
 
 OBJ1= \
 perf_mod.o \
+ufs_kind_mod.o \
 ufs_const_mod.o \
 flux_atmocn_mod.o \
 glc_elevclass_mod.o
@@ -31,4 +32,7 @@ clean:
 	$(RM) -f $(LIBRARY) *.f90 *.i90 *.o *.mod
 	$(RM) -f ufs_const_mod.*
 
+perf_mod.o: ufs_kind_mod.o 
 flux_atmocn_mod.o: ufs_const_mod.o
+glc_elevclass_mod.o: ufs_kind_mod.o
+
