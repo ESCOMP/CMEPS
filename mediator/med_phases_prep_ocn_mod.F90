@@ -23,7 +23,6 @@ module med_phases_prep_ocn_mod
   use esmFlds               , only : compocn, compatm, compice
   use esmFlds               , only : coupling_mode
   use perf_mod              , only : t_startf, t_stopf
-  use med_phases_prep_atm   , only : med_phases_prep_atm_enthaly_correction
 
   implicit none
   private
@@ -79,10 +78,11 @@ contains
   !-----------------------------------------------------------------------------
   subroutine med_phases_prep_ocn_accum(gcomp, rc)
 
-    use ESMF , only : ESMF_GridComp, ESMF_FieldBundleGet
-    use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
-    use ESMF , only : ESMF_FAILURE,  ESMF_LOGMSG_ERROR
-    use shr_const_mod , only : shr_const_cpsw, shr_const_tkfrz, shr_const_pi
+    use ESMF                    , only : ESMF_GridComp, ESMF_FieldBundleGet
+    use ESMF                    , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
+    use ESMF                    , only : ESMF_FAILURE,  ESMF_LOGMSG_ERROR
+    use shr_const_mod           , only : shr_const_cpsw, shr_const_tkfrz, shr_const_pi
+    use med_phases_prep_atm_mod , only : med_phases_prep_atm_enthalpy_correction
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -95,11 +95,12 @@ contains
     real(r8), pointer   :: tocn(:)
     real(r8), pointer   :: rain(:), hrain(:)
     real(r8), pointer   :: snow(:), hsnow(:)
-    real(r8), pointer   :: evap(:), hcond(:)
+    real(r8), pointer   :: evap(:), hevap(:)
     real(r8), pointer   :: rofl(:), hrofl(:)
     real(r8), pointer   :: rofi(:), hrofi(:)
     real(r8), pointer   :: meltw(:), hmeltw(:)
     real(r8), pointer   :: areas(:)
+    real(r8), allocatable :: hcorr(:)
     character(len=*), parameter    :: subname='(med_phases_prep_ocn_accum)'
     !---------------------------------------
 
@@ -183,13 +184,13 @@ contains
 
        do n = 1,size(tocn)
           ! Need max to ensure that will not have an enthalpy contribution if the water is below 0C
-          hrain(n) = max((tocn(n) - shr_const_tkfrz), 0._r8) * rain(n) * shr_const_cpsw
-          hsnow(n) = max((tocn(n) - shr_const_tkfrz), 0._r8) * snow(n) * shr_const_cpsw
-          hevap(n) = (tocn(n) - shr_const_tkfrz) * evap(n) * shr_const_cpsw
-          hrofl(n) = (tocn(n) - shr_const_tkfrz) * rofl(n) * shr_const_cpsw
-         !hrofi(n) = (tocn(n) - shr_const_tkfrz) * rofl(n) * shr_const_cpsw
-          hrofi(n) = 0._r8
-          hmeltw(n) = 0._r8 ! TODO: correct this
+          hrain(n)  = max((tocn(n) - shr_const_tkfrz), 0._r8) * rain(n) * shr_const_cpsw
+          hsnow(n)  = max((tocn(n) - shr_const_tkfrz), 0._r8) * snow(n) * shr_const_cpsw
+          hevap(n)  = max((tocn(n) - shr_const_tkfrz), 0._r8) * evap(n) * shr_const_cpsw
+          hmeltw(n) = max((tocn(n) - shr_const_tkfrz), 0._r8) * meltw(n) * shr_const_cpsw
+          hrofl(n)  = max((tocn(n) - shr_const_tkfrz), 0._r8) * rofl(n) * shr_const_cpsw
+         !hrofi(n)  = max((tocn(n) - shr_const_tkfrz), 0._r8) * rofi(n) * shr_const_cpsw
+          hrofi(n)  = 0._r8
        end do
 
        ! Determine enthalpy correction factor that will be added to the sensible heat flux sent to the atm
@@ -197,13 +198,15 @@ contains
        ! need to calculate this if data is sent back to the atm
 
        if (FB_fldchk(is_local%wrap%FBExp(compatm), 'Faxx_sen', rc=rc)) then
+          allocate(hcorr(size(tocn)))
           glob_area_inv = 1._r8 / (4._r8 * shr_const_pi)
           areas => is_local%wrap%mesh_info(compocn)%areas
           do n = 1,size(tocn)
-             hcorr(n) = (hrain(n) + hsnow(n) + hevap(n) + hrofl(n) + hrofi(n) + hmeltw(n)) * areas(n) * glol_area_inv
+             hcorr(n) = (hrain(n) + hsnow(n) + hevap(n) + hrofl(n) + hrofi(n) + hmeltw(n)) * areas(n) * glob_area_inv
           end do
-          call med_phases_prep_atm_enthaly_correction(hcorr, rc)
+          call med_phases_prep_atm_enthalpy_correction(gcomp, hcorr, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          deallocate(hcorr)
        end if
 
     end if
