@@ -11,7 +11,9 @@ module med_phases_profile_mod
   use med_utils_mod         , only : chkerr    => med_utils_ChkErr
   use med_time_mod          , only : alarmInit => med_time_alarmInit
   use perf_mod              , only : t_startf, t_stopf
+#ifdef CESMCOUPLED
   use shr_mem_mod           , only : shr_mem_getusage
+#endif
 
   implicit none
   private
@@ -179,11 +181,13 @@ contains
 
           write(logunit,101) 'Model Date: ',trim(nexttimestr), ' wall clock = ',trim(walltimestr),' avg dt = ', &
                avgdt, ' s/day, dt = ',wallclockelapsed/ringdays,' s/day, rate = ',ypd,' ypd'
+#ifdef CESMCOUPLED
           call shr_mem_getusage(msize,mrss,.true.)
-
           write(logunit,105) ' memory_write: model date = ',trim(nexttimestr), &
                ' memory = ',msize,' MB (highwater)    ',mrss,' MB (usage)'
+#endif
           previous_time = current_time
+
        endif
     endif
     iterations = iterations + 1

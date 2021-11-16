@@ -6,7 +6,7 @@ module med_io_mod
 
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, I8=>SHR_KIND_I8, R8=>SHR_KIND_R8
   use med_kind_mod          , only : R4=>SHR_KIND_R4
-  use shr_const_mod         , only : fillvalue => SHR_CONST_SPVAL
+  use med_constants_mod     , only : fillvalue => SHR_CONST_SPVAL
   use ESMF                  , only : ESMF_VM, ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_LogFoundError
   use ESMF                  , only : ESMF_SUCCESS, ESMF_FAILURE, ESMF_END_ABORT, ESMF_LOGERR_PASSTHRU
   use ESMF                  , only : ESMF_VMGetCurrent, ESMF_VMGet, ESMF_VMBroadCast, ESMF_Finalize
