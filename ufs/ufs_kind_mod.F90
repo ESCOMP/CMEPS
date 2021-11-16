@@ -1,4 +1,4 @@
-MODULE shr_kind_mod
+MODULE ufs_kind_mod
 
   !----------------------------------------------------------------------------
   ! precision/kind constants add data public
@@ -16,4 +16,4 @@ MODULE shr_kind_mod
   integer,parameter :: SHR_KIND_CX = 512                    ! extra-long char
   integer,parameter :: SHR_KIND_CXX= 4096                   ! extra-extra-long char
 
-END MODULE shr_kind_mod
+END MODULE ufs_kind_mod

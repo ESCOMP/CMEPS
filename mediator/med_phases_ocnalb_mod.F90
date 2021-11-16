@@ -210,7 +210,7 @@ contains
     use ESMF          , only : ESMF_FieldBundleGet, ESMF_FieldBundleIsCreated
     use ESMF          , only : operator(+)
     use NUOPC         , only : NUOPC_CompAttributeGet
-    use shr_const_mod , only : shr_const_pi
+    use med_constants_mod , only : shr_const_pi
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
