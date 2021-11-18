@@ -913,7 +913,6 @@ contains
       write(tmpstr,*) subname, 'ng,lnx,lny,ntiles = ',ng,lnx,lny,ntiles
       call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
       if (ntiles /= 6) then
-         write(tmpstr,*) subname,' ERROR: only cubed sphere atm tiles valid '
          call ESMF_LogWrite(trim(subname)//' ERROR: only cubed sphere atm tiles valid ', ESMF_LOGMSG_INFO)
          call ESMF_Finalize(endflag=ESMF_END_ABORT)
       endif
