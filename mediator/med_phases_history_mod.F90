@@ -658,7 +658,7 @@ contains
     integer             :: hist_n       ! freq_n setting relative to freq_option
     character(CL)       :: hist_option_in
     character(CL)       :: hist_n_in
-    integer             :: hist_tilesize 
+    integer             :: hist_tilesize
     logical             :: isPresent
     logical             :: isSet
     type(ESMF_VM)       :: vm
@@ -1075,7 +1075,7 @@ contains
           if (isPresent .and. isSet) then
              call NUOPC_CompAttributeGet(gcomp, name=trim(prefix)//'_enabled', value=cvalue, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             read(cvalue,'(l)') enable_auxfile
+             read(cvalue,'(l7)') enable_auxfile
           else
              enable_auxfile = .false.
           end if

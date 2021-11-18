@@ -959,6 +959,8 @@ contains
           dimid => dimid2
        endif
       endif
+      write(tmpstr,*) subname,' dimid = ',dimid
+      call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
 
        do k = 1,nf
           ! Determine field name
