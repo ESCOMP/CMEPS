@@ -619,7 +619,7 @@ contains
   !===============================================================================
   subroutine med_phases_history_write_comp(gcomp, compid, rc)
 
-    ! Write mediator history file for atm variables
+    ! Write mediator history file for compid variables
 
     ! input/output variables
     type(ESMF_GridComp), intent(inout) :: gcomp
@@ -658,6 +658,7 @@ contains
     integer             :: hist_n       ! freq_n setting relative to freq_option
     character(CL)       :: hist_option_in
     character(CL)       :: hist_n_in
+    integer             :: hist_tilesize 
     logical             :: isPresent
     logical             :: isSet
     type(ESMF_VM)       :: vm
@@ -680,10 +681,20 @@ contains
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+    ! Determine if tiled output to history file is requested
+    call NUOPC_CompAttributeGet(gcomp, name='history_tile_'//trim(compname(compid)), isPresent=isPresent, isSet=isSet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+       call NUOPC_CompAttributeGet(gcomp, name='history_tile_'//trim(compname(compid)), value=cvalue, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       read(cvalue,*) hist_tilesize
+    else
+       hist_tilesize = 0
+    end if
     ! alarm is not set determine hist_option and hist_n
     if (.not. instfile%is_clockset) then
 
-       ! Determine attribute prefix
+       ! Determine attribute name
        write(hist_option_in,'(a)') 'history_option_'//trim(compname(compid))//'_inst'
        write(hist_n_in,'(a)') 'history_n_'//trim(compname(compid))//'_inst'
 
@@ -753,19 +764,19 @@ contains
              ! Define/write import field bundle
              if (ESMF_FieldBundleIsCreated(is_local%wrap%FBimp(compid,compid),rc=rc)) then
                 call med_io_write(hist_file, is_local%wrap%FBimp(compid,compid), whead(m), wdata(m), nx, ny, &
-                     nt=1, pre=trim(compname(compid))//'Imp', rc=rc)
+                     nt=1, pre=trim(compname(compid))//'Imp', tilesize=hist_tilesize, rc=rc)
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
              endif
              ! Define/write import export bundle
              if (ESMF_FieldBundleIsCreated(is_local%wrap%FBexp(compid),rc=rc)) then
                 call med_io_write(hist_file, is_local%wrap%FBexp(compid), whead(m), wdata(m), nx, ny, &
-                     nt=1, pre=trim(compname(compid))//'Exp', rc=rc)
+                     nt=1, pre=trim(compname(compid))//'Exp', tilesize=hist_tilesize, rc=rc)
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
              endif
              ! Define/Write mediator fractions
              if (ESMF_FieldBundleIsCreated(is_local%wrap%FBFrac(compid),rc=rc)) then
                 call med_io_write(hist_file, is_local%wrap%FBFrac(compid), whead(m), wdata(m), nx, ny, &
-                     nt=1, pre='Med_frac_'//trim(compname(compid)), rc=rc)
+                     nt=1, pre='Med_frac_'//trim(compname(compid)), tilesize=hist_tilesize, rc=rc)
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
              end if
 
@@ -805,6 +816,7 @@ contains
     integer                 :: hist_n        ! freq_n setting relative to freq_option
     character(CL)           :: hist_option_in
     character(CL)           :: hist_n_in
+    integer                 :: hist_tilesize
     logical                 :: isPresent
     logical                 :: isSet
     type(ESMF_VM)           :: vm
@@ -829,10 +841,20 @@ contains
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+    ! Determine if tiled output to history file is requested
+    call NUOPC_CompAttributeGet(gcomp, name='history_tile_'//trim(compname(compid)), isPresent=isPresent, isSet=isSet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+       call NUOPC_CompAttributeGet(gcomp, name='history_tile_'//trim(compname(compid)), value=cvalue, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       read(cvalue,*) hist_tilesize
+    else
+       hist_tilesize = 0
+    end if
     ! alarm is not set determine hist_option and hist_n
     if (.not. avgfile%is_clockset) then
 
-       ! Determine attribute prefix
+       ! Determine attribute name
        write(hist_option_in,'(a)') 'history_option_'//trim(compname(compid))//'_avg'
        write(hist_n_in,'(a)') 'history_n_'//trim(compname(compid))//'_avg'
 
@@ -948,7 +970,7 @@ contains
                 ny = is_local%wrap%ny(compid)
                 if (ESMF_FieldBundleIsCreated(is_local%wrap%FBimp(compid,compid),rc=rc)) then
                    call med_io_write(hist_file, avgfile%FBaccum_import, whead(m), wdata(m), nx, ny, &
-                        nt=1, pre=trim(compname(compid))//'Imp', rc=rc)
+                        nt=1, pre=trim(compname(compid))//'Imp', tilesize=hist_tilesize, rc=rc)
                    if (ChkErr(rc,__LINE__,u_FILE_u)) return
                    if (wdata(m)) then
                       call med_methods_FB_reset(avgfile%FBAccum_import, czero, rc=rc)
@@ -957,7 +979,7 @@ contains
                 endif
                 if (ESMF_FieldBundleIsCreated(is_local%wrap%FBexp(compid),rc=rc)) then
                    call med_io_write(hist_file, avgfile%FBaccum_export, whead(m), wdata(m), nx, ny, &
-                        nt=1, pre=trim(compname(compid))//'Exp', rc=rc)
+                        nt=1, pre=trim(compname(compid))//'Exp', tilesize=hist_tilesize, rc=rc)
                    if (ChkErr(rc,__LINE__,u_FILE_u)) return
                    if (wdata(m)) then
                       call med_methods_FB_reset(avgfile%FBAccum_export, czero, rc=rc)
@@ -1053,7 +1075,7 @@ contains
           if (isPresent .and. isSet) then
              call NUOPC_CompAttributeGet(gcomp, name=trim(prefix)//'_enabled', value=cvalue, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             read(cvalue,'(l7)') enable_auxfile
+             read(cvalue,'(l)') enable_auxfile
           else
              enable_auxfile = .false.
           end if
