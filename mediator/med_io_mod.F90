@@ -836,7 +836,9 @@ contains
     lfile_ind = 0
     if (present(file_ind)) lfile_ind=file_ind
     atmtiles = .false.
-    if (present(tilesize) .and. tilesize > 0) atmtiles = .true.
+    if (present(tilesize)) then
+      if (tilesize > 0) atmtiles = .true.
+    end if
 
     ! Error check
     if (.not. ESMF_FieldBundleIsCreated(FB, rc=rc)) then
