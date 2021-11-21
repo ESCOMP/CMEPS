@@ -139,57 +139,60 @@ contains
     end if
 
     ! compute enthaly associated with rain, snow, condensation and liquid river runoff
-    ! TODO: add meltw term
-    ! Fioi_meltw - should be sent as Foxx_hmeltw
-
-    ! Also add the contribution from cice
-    if ( FB_fldchk(is_local%wrap%FBExp(compocn), 'Faxa_rain' , rc=rc) .and. &
-         FB_fldchk(is_local%wrap%FBExp(compocn), 'Faxa_snow' , rc=rc) .and. &
-         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_evap' , rc=rc) .and. &
-         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_rofl' , rc=rc) .and. &
-         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_rofi' , rc=rc) .and. &
-         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hevap', rc=rc) .and. &
-         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hrain', rc=rc) .and. &
-         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hsnow', rc=rc) .and. &
-         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hrofl', rc=rc) .and. &
-         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hrofi', rc=rc)) then
+    if ( FB_fldchk(is_local%wrap%FBExp(compocn), 'Faxa_rain'  , rc=rc) .and. &
+         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hrain' , rc=rc) .and. &
+         FB_fldchk(is_local%wrap%FBExp(compocn), 'Faxa_snow'  , rc=rc) .and. &
+         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hsnow' , rc=rc) .and. &
+         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_evap'  , rc=rc) .and. &
+         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hevap' , rc=rc) .and. &
+         FB_fldchk(is_local%wrap%FBExp(compocn), 'Fioi_meltw' , rc=rc) .and. &
+         FB_fldchk(is_local%wrap%FBExp(compocn), 'Fioi_hmeltw', rc=rc) .and. &
+         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_rofl'  , rc=rc) .and. &
+         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hrofl' , rc=rc) .and. &
+         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_rofi'  , rc=rc) .and. &
+         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hrofi' , rc=rc)) then
 
        call FB_GetFldPtr(is_local%wrap%FBImp(compocn,compocn), 'So_t', tocn, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Foxx_evap', evap, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Faxa_rain', rain, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Faxa_snow', snow, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Foxx_rofl', rofl, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Foxx_rofi', rofi, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Fioi_meltw', meltw, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+       call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Faxa_rain' , rain, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Foxx_hrain', hrain, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Foxx_hsnow', hsnow, rc=rc)
+
+       call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Foxx_evap' , evap, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Foxx_hevap', hevap, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Faxa_snow' , snow, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Foxx_hsnow', hsnow, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Foxx_rofl' , rofl, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Foxx_hrofl', hrofl, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Foxx_rofi' , rofi, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Foxx_hrofi', hrofi, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Fioi_meltw' , meltw, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Fioi_hmeltw', hmeltw, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        do n = 1,size(tocn)
           ! Need max to ensure that will not have an enthalpy contribution if the water is below 0C
-          hrain(n)  = max((tocn(n) - shr_const_tkfrz), 0._r8) * rain(n) * shr_const_cpsw
-          hsnow(n)  = max((tocn(n) - shr_const_tkfrz), 0._r8) * snow(n) * shr_const_cpsw
-          hevap(n)  = max((tocn(n) - shr_const_tkfrz), 0._r8) * evap(n) * shr_const_cpsw
+          hrain(n)  = max((tocn(n) - shr_const_tkfrz), 0._r8) * rain(n)  * shr_const_cpsw
+          hsnow(n)  = max((tocn(n) - shr_const_tkfrz), 0._r8) * snow(n)  * shr_const_cpsw
+          hevap(n)  = max((tocn(n) - shr_const_tkfrz), 0._r8) * evap(n)  * shr_const_cpsw
           hmeltw(n) = max((tocn(n) - shr_const_tkfrz), 0._r8) * meltw(n) * shr_const_cpsw
-          hrofl(n)  = max((tocn(n) - shr_const_tkfrz), 0._r8) * rofl(n) * shr_const_cpsw
-         !hrofi(n)  = max((tocn(n) - shr_const_tkfrz), 0._r8) * rofi(n) * shr_const_cpsw
+          hrofl(n)  = max((tocn(n) - shr_const_tkfrz), 0._r8) * rofl(n)  * shr_const_cpsw
+         !hrofi(n)  = max((tocn(n) - shr_const_tkfrz), 0._r8) * rofi(n)  * shr_const_cpsw
           hrofi(n)  = 0._r8
        end do
 
