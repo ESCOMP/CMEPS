@@ -13,6 +13,7 @@ module med_phases_prep_atm_mod
   use med_utils_mod         , only : chkerr      => med_utils_ChkErr
   use med_methods_mod       , only : FB_diagnose => med_methods_FB_diagnose
   use med_methods_mod       , only : FB_fldchk   => med_methods_FB_FldChk
+  use med_methods_mod       , only : FB_getfldptr=> med_methods_FB_GetFldPtr
   use med_merge_mod         , only : med_merge_auto
   use med_map_mod           , only : med_map_field_packed
   use med_internalstate_mod , only : InternalState, mastertask
@@ -227,6 +228,14 @@ contains
        end do
     end if
 
+    ! Add enthalpy correction to sensible heat if appropriate
+    call FB_getfldptr(is_local%wrap%FBExp(compatm), 'Faxx_sen', dataptr1, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    do n = 1,size(dataptr1)
+       dataptr1(n) = dataptr1(n) + global_htot_corr(1)
+    end do
+    write(6,*)'DEBUG: global_htot_corr = ',global_htot_corr(1)
+
     if (dbug_flag > 5) then
        call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
     end if
@@ -239,7 +248,6 @@ contains
 
     use ESMF            , only : ESMF_VMAllreduce, ESMF_GridCompGet, ESMF_REDUCE_SUM
     use ESMF            , only : ESMF_VM 
-    use med_methods_mod , only : FB_GetFldPtr  => med_methods_FB_GetFldPtr
 
     ! input/output variables
     type(ESMF_GridComp) , intent(in)  :: gcomp
@@ -250,8 +258,6 @@ contains
     type(InternalState) :: is_local
     integer             :: n
     real(r8)            :: local_htot_corr(1)
-    real(r8)            :: global_htot_corr(1)
-    real(r8), pointer   :: dataptr1(:)
     type(ESMF_VM)       :: vm
     !---------------------------------------
 
@@ -261,7 +267,7 @@ contains
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (chkErr(rc,__LINE__,u_FILE_u)) return
 
-    ! Determine enthalpy correction for each processor
+    ! Determine sum of enthalpy correction for each hcorr index locally
     local_htot_corr(1) = 0._r8
     do n = 1,size(hcorr)
        local_htot_corr(1) = local_htot_corr(1) + hcorr(n)
@@ -271,13 +277,6 @@ contains
     call ESMF_VMAllreduce(vm, senddata=local_htot_corr, recvdata=global_htot_corr, count=1, &
          reduceflag=ESMF_REDUCE_SUM, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    ! Add enthalpy correction to sensible heat if appropriate
-    call FB_GetFldPtr(is_local%wrap%FBExp(compatm), 'Faxx_sen', dataptr1, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    do n = 1,size(dataptr1)
-       dataptr1(n) = dataptr1(n) + global_htot_corr(1)
-    end do
 
   end subroutine med_phases_prep_atm_enthalpy_correction
 
