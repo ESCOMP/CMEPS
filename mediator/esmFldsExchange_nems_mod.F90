@@ -103,6 +103,29 @@ contains
          call addfld(fldListMed_aoflux%flds, trim(fldname))
       end do
       deallocate(flds)
+    else if (trim(coupling_mode) == 'nems_frac_aoflux') then
+      ! to med: atm and ocn fields required for atm/ocn flux calculation
+      allocate(flds(11))
+      flds = (/'Sa_u     ', 'Sa_v     ', 'Sa_z     ', 'Sa_tbot  ', 'Sa_pbot  ', &
+               'Sa_pslv  ', 'Sa_shum  ', 'Sa_ptem  ', 'Sa_dens  ', 'Sa_u10m  ', &
+               'Sa_v10m  ', 'Faxa_lwdn'/)
+      do n = 1,size(flds)
+         fldname = trim(flds(n))
+         call addfld(fldListFr(compatm)%flds, trim(fldname))
+         call addmap(fldListFr(compatm)%flds, trim(fldname), compocn, maptype, 'one', 'unset')
+      end do
+      deallocate(flds)
+
+      ! unused fields needed by the atm/ocn flux computation
+      allocate(flds(13))
+      flds = (/'So_tref  ', 'So_qref  ','So_u10   ', 'So_ustar ','So_ssq   ', &
+               'So_re    ', 'So_duu10n','Faox_lwup', 'Faox_sen ','Faox_lat ', &
+               'Faox_evap', 'Faox_taux','Faox_tauy'/)
+      do n = 1,size(flds)
+         fldname = trim(flds(n))
+         call addfld(fldListMed_aoflux%flds, trim(fldname))
+      end do
+      deallocate(flds)
     end if
 
     ! unused fields from ice - but that are needed to be realized by the cice cap
@@ -159,6 +182,17 @@ contains
     call addmap(fldListFr(compocn)%flds, 'So_t', compatm, maptype, 'ofrac', 'unset')
     call addmrg(fldListTo(compatm)%flds, 'So_t', mrg_from=compocn, mrg_fld='So_t', mrg_type='copy')
 
+    ! to atm: surface fluxes from mediator aoflux calculation
+    if (trim(coupling_mode) == 'nems_frac_aoflux') then
+       allocate(flds(6))
+       flds = (/'taux', 'tauy', 'lat', 'sen', 'lwup', 'evap' /)
+       do n = 1,size(flds)
+          call addfld(fldListTo(compatm)%flds, 'Faox_'//trim(flds(n)))
+          call addmap(fldListMed_aoflux%flds, 'Faox_'//trim(flds(n)), compatm, mapconsf, 'ofrac', 'unset')
+       end do
+       deallocate(flds)
+    end if
+
     !=====================================================================
     ! FIELDS TO OCEAN (compocn)
     !=====================================================================
@@ -211,7 +245,7 @@ contains
     end do
     deallocate(flds)
 
-    if (trim(coupling_mode) == 'nems_orig' .or. trim(coupling_mode) == 'nems_frac') then
+    if (trim(coupling_mode) == 'nems_orig' .or. trim(coupling_mode) == 'nems_frac' .or. trim(coupling_mode) == 'nems_frac_aoflux') then
        ! to ocn: merge surface stress (custom merge calculation in med_phases_prep_ocn)
        allocate(flds(2))
        flds = (/'taux', 'tauy'/)
