@@ -1010,11 +1010,6 @@
        canonical_units: W m-2
        description: to ocn heat content of ice runoff
      #
-     - standard_name: Fioi_hmeltw
-       alias: heat_content_meltw
-       canonical_units: W m-2
-       description: to ocn heat content of ice melt
-     #
      - standard_name: Foxx_evap
        alias: mean_evap_rate
        canonical_units: kg m-2 s-1

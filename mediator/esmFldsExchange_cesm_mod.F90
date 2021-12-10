@@ -1951,7 +1951,6 @@ contains
        call addfld(fldListTo(compocn)%flds, 'Foxx_hcond')
        call addfld(fldListTo(compocn)%flds, 'Foxx_hrofl')
        call addfld(fldListTo(compocn)%flds, 'Foxx_hrofi')
-       call addfld(fldListTo(compocn)%flds, 'Fioi_hmeltw')
     end if
 
     ! ---------------------------------------------------------------------
