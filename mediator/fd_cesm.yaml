@@ -995,6 +995,11 @@
        canonical_units: W m-2
        description: to ocn heat content of evaporation
      #
+     - standard_name: Foxx_hcond
+       alias: heat_content_cond
+       canonical_units: W m-2
+       description: to ocn heat content of condensation
+     #
      - standard_name: Foxx_hrofl
        alias: heat_content_rofl
        canonical_units: W m-2
@@ -1004,11 +1009,6 @@
        alias: heat_content_rofi
        canonical_units: W m-2
        description: to ocn heat content of ice runoff
-     #
-     - standard_name: Fioi_hmeltw
-       alias: heat_content_meltw
-       canonical_units: W m-2
-       description: to ocn heat content of ice melt
      #
      - standard_name: Foxx_evap
        alias: mean_evap_rate

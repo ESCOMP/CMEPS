@@ -96,9 +96,9 @@ contains
     real(r8), pointer   :: rain(:), hrain(:)
     real(r8), pointer   :: snow(:), hsnow(:)
     real(r8), pointer   :: evap(:), hevap(:)
+    real(r8), pointer   :: hcond(:)
     real(r8), pointer   :: rofl(:), hrofl(:)
     real(r8), pointer   :: rofi(:), hrofi(:)
-    real(r8), pointer   :: meltw(:), hmeltw(:)
     real(r8), pointer   :: areas(:)
     real(r8), allocatable :: hcorr(:)
     character(len=*), parameter    :: subname='(med_phases_prep_ocn_accum)'
@@ -139,14 +139,15 @@ contains
     end if
 
     ! compute enthaly associated with rain, snow, condensation and liquid river runoff
+    ! the sea-ice model already accounts for the enthalpy flux (as part of melth), so
+    ! enthalpy from meltw **is not** included below
     if ( FB_fldchk(is_local%wrap%FBExp(compocn), 'Faxa_rain'  , rc=rc) .and. &
          FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hrain' , rc=rc) .and. &
          FB_fldchk(is_local%wrap%FBExp(compocn), 'Faxa_snow'  , rc=rc) .and. &
          FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hsnow' , rc=rc) .and. &
          FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_evap'  , rc=rc) .and. &
          FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hevap' , rc=rc) .and. &
-         FB_fldchk(is_local%wrap%FBExp(compocn), 'Fioi_meltw' , rc=rc) .and. &
-         FB_fldchk(is_local%wrap%FBExp(compocn), 'Fioi_hmeltw', rc=rc) .and. &
+         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hcond' , rc=rc) .and. &
          FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_rofl'  , rc=rc) .and. &
          FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hrofl' , rc=rc) .and. &
          FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_rofi'  , rc=rc) .and. &
@@ -164,6 +165,8 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Foxx_hevap', hevap, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Foxx_hcond', hcond, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Faxa_snow' , snow, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -180,24 +183,18 @@ contains
        call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Foxx_hrofi', hrofi, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-       call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Fioi_meltw' , meltw, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Fioi_hmeltw', hmeltw, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
        do n = 1,size(tocn)
           ! Need max to ensure that will not have an enthalpy contribution if the water is below 0C
           hrain(n)  = max((tocn(n) - shr_const_tkfrz), 0._r8) * rain(n)  * shr_const_cpsw
-          hsnow(n)  = max((tocn(n) - shr_const_tkfrz), 0._r8) * snow(n)  * shr_const_cpsw
-          hevap(n)  = max((tocn(n) - shr_const_tkfrz), 0._r8) * evap(n)  * shr_const_cpsw
-          hmeltw(n) = max((tocn(n) - shr_const_tkfrz), 0._r8) * meltw(n) * shr_const_cpsw
+          hsnow(n)  = min((tocn(n) - shr_const_tkfrz), 0._r8) * snow(n)  * shr_const_cpsw
+          hevap(n)  = (tocn(n) - shr_const_tkfrz) * min(evap(n), 0._r8)   * shr_const_cpsw
+          hcond(n)  = max((tocn(n) - shr_const_tkfrz), 0._r8) * max(evap(n), 0._r8)  * shr_const_cpsw
           hrofl(n)  = max((tocn(n) - shr_const_tkfrz), 0._r8) * rofl(n)  * shr_const_cpsw
-         !hrofi(n)  = max((tocn(n) - shr_const_tkfrz), 0._r8) * rofi(n)  * shr_const_cpsw
-          hrofi(n)  = 0._r8
+          hrofi(n)  = min((tocn(n) - shr_const_tkfrz), 0._r8) * rofi(n)  * shr_const_cpsw
        end do
 
        ! Determine enthalpy correction factor that will be added to the sensible heat flux sent to the atm
-       ! Areas here in radians**2 - this is an instantaneous snapshot that will be sent to the atm - only 
+       ! Areas here in radians**2 - this is an instantaneous snapshot that will be sent to the atm - only
        ! need to calculate this if data is sent back to the atm
 
        if (FB_fldchk(is_local%wrap%FBExp(compatm), 'Faxx_sen', rc=rc)) then
@@ -205,7 +202,8 @@ contains
           glob_area_inv = 1._r8 / (4._r8 * shr_const_pi)
           areas => is_local%wrap%mesh_info(compocn)%areas
           do n = 1,size(tocn)
-             hcorr(n) = (hrain(n) + hsnow(n) + hevap(n) + hrofl(n) + hrofi(n) + hmeltw(n)) * areas(n) * glob_area_inv
+             hcorr(n) = (hrain(n) + hsnow(n) + hcond(n) + hevap(n) + hrofl(n) + hrofi(n)) * &
+                        areas(n) * glob_area_inv
           end do
           call med_phases_prep_atm_enthalpy_correction(gcomp, hcorr, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
