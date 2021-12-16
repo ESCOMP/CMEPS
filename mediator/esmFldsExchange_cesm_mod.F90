@@ -77,7 +77,7 @@ contains
     use esmflds               , only : compmed, compatm, complnd, compocn
     use esmflds               , only : compice, comprof, compwav, ncomps
     use esmflds               , only : compglc, num_icesheets, ocn2glc_coupling ! compglc is an array of integers
-    use esmflds               , only : mapbilnr, mapconsf, mapconsd, mappatch, mappatch_uv3d
+    use esmflds               , only : mapbilnr, mapconsf, mapconsd, mappatch, mappatch_uv3d, mapbilnr_nstod
     use esmflds               , only : mapfcopy, mapnstod, mapnstod_consd, mapnstod_consf
     use esmflds               , only : map_glc2ocn_ice, map_glc2ocn_liq, map_rof2ocn_ice, map_rof2ocn_liq
     use esmflds               , only : fldListTo, fldListFr, fldListMed_aoflux, fldListMed_ocnalb
@@ -2228,7 +2228,7 @@ contains
     else
        if ( fldchk(is_local%wrap%FBExp(compocn)         , 'Sw_lamult', rc=rc) .and. &
             fldchk(is_local%wrap%FBImp(compwav, compwav), 'Sw_lamult', rc=rc)) then
-          call addmap(fldListFr(compwav)%flds, 'Sw_lamult', compocn,  mapbilnr, 'one', wav2ocn_smap)
+          call addmap(fldListFr(compwav)%flds, 'Sw_lamult', compocn,  mapbilnr_nstod, 'one', wav2ocn_smap)
           call addmrg(fldListTo(compocn)%flds, 'Sw_lamult', mrg_from=compwav, mrg_fld='Sw_lamult', mrg_type='copy')
        end if
     end if
@@ -2241,7 +2241,7 @@ contains
     else
        if ( fldchk(is_local%wrap%FBExp(compocn)         , 'Sw_ustokes', rc=rc) .and. &
             fldchk(is_local%wrap%FBImp(compwav, compwav), 'Sw_ustokes', rc=rc)) then
-          call addmap(fldListFr(compwav)%flds, 'Sw_ustokes', compocn,  mapbilnr, 'one', wav2ocn_smap)
+          call addmap(fldListFr(compwav)%flds, 'Sw_ustokes', compocn,  mapbilnr_nstod, 'one', wav2ocn_smap)
           call addmrg(fldListTo(compocn)%flds, 'Sw_ustokes', mrg_from=compwav, mrg_fld='Sw_ustokes', mrg_type='copy')
        end if
     end if
@@ -2254,7 +2254,7 @@ contains
     else
        if ( fldchk(is_local%wrap%FBExp(compocn)         , 'Sw_vstokes', rc=rc) .and. &
             fldchk(is_local%wrap%FBImp(compwav, compwav), 'Sw_vstokes', rc=rc)) then
-          call addmap(fldListFr(compwav)%flds, 'Sw_vstokes', compocn,  mapbilnr, 'one', wav2ocn_smap)
+          call addmap(fldListFr(compwav)%flds, 'Sw_vstokes', compocn,  mapbilnr_nstod, 'one', wav2ocn_smap)
           call addmrg(fldListTo(compocn)%flds, 'Sw_vstokes', mrg_from=compwav, mrg_fld='Sw_vstokes', mrg_type='copy')
        end if
     end if
@@ -2267,8 +2267,34 @@ contains
     else
        if ( fldchk(is_local%wrap%FBExp(compocn)         , 'Sw_hstokes', rc=rc) .and. &
             fldchk(is_local%wrap%FBImp(compwav, compwav), 'Sw_hstokes', rc=rc)) then
-          call addmap(fldListFr(compwav)%flds, 'Sw_hstokes', compocn,  mapbilnr, 'one', wav2ocn_smap)
+          call addmap(fldListFr(compwav)%flds, 'Sw_hstokes', compocn,  mapbilnr_nstod, 'one', wav2ocn_smap)
           call addmrg(fldListTo(compocn)%flds, 'Sw_hstokes', mrg_from=compwav, mrg_fld='Sw_hstokes', mrg_type='copy')
+       end if
+    end if
+    !-----------------------------
+    ! to ocn: Partitioned stokes drift components in x-direction
+    !-----------------------------
+    if (phase == 'advertise') then
+       call addfld(fldListFr(compwav)%flds, 'Sw_pstokes_x')
+       call addfld(fldListTo(compocn)%flds, 'Sw_pstokes_x')
+    else
+       if ( fldchk(is_local%wrap%FBExp(compocn)         , 'Sw_pstokes_x', rc=rc) .and. &
+            fldchk(is_local%wrap%FBImp(compwav, compwav), 'Sw_pstokes_x', rc=rc)) then
+          call addmap(fldListFr(compwav)%flds, 'Sw_pstokes_x', compocn,  mapbilnr_nstod, 'one', wav2ocn_smap)
+          call addmrg(fldListTo(compocn)%flds, 'Sw_pstokes_x', mrg_from=compwav, mrg_fld='Sw_pstokes_x', mrg_type='copy')
+       end if
+    end if
+    !-----------------------------
+    ! to ocn: Stokes drift depth from wave
+    !-----------------------------
+    if (phase == 'advertise') then
+       call addfld(fldListFr(compwav)%flds, 'Sw_pstokes_y')
+       call addfld(fldListTo(compocn)%flds, 'Sw_pstokes_y')
+    else
+       if ( fldchk(is_local%wrap%FBExp(compocn)         , 'Sw_pstokes_y', rc=rc) .and. &
+            fldchk(is_local%wrap%FBImp(compwav, compwav), 'Sw_pstokes_y', rc=rc)) then
+          call addmap(fldListFr(compwav)%flds, 'Sw_pstokes_y', compocn,  mapbilnr_nstod, 'one', wav2ocn_smap)
+          call addmrg(fldListTo(compocn)%flds, 'Sw_pstokes_y', mrg_from=compwav, mrg_fld='Sw_pstokes_y', mrg_type='copy')
        end if
     end if
 

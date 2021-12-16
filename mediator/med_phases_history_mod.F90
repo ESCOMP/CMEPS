@@ -47,7 +47,13 @@ module med_phases_history_mod
   private :: med_phases_history_fldbun_average
 
   ! ----------------------------
-  ! Instantaneous history files datatypes/variables
+  ! Instantaneous history files all components
+  ! ----------------------------
+  character(CL)  :: hist_option_all_inst  ! freq_option setting (ndays, nsteps, etc)
+  integer        :: hist_n_all_inst       ! freq_n setting relative to freq_option
+
+  ! ----------------------------
+  ! Instantaneous history files datatypes/variables per component
   ! ----------------------------
   type, public :: instfile_type
      logical          :: write_inst
@@ -144,8 +150,6 @@ contains
     type(ESMF_Clock)        :: mclock
     type(ESMF_Alarm)        :: alarm
     character(CS)           :: alarmname
-    character(CL)           :: hist_option  ! freq_option setting (ndays, nsteps, etc)
-    integer                 :: hist_n       ! freq_n setting relative to freq_option
     character(CL)           :: cvalue       ! attribute string
     logical                 :: isPresent
     logical                 :: isSet
@@ -185,27 +189,27 @@ contains
        call NUOPC_CompAttributeGet(gcomp, name='history_option', isPresent=isPresent, isSet=isSet, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        if (isPresent .and. isSet) then
-          call NUOPC_CompAttributeGet(gcomp, name='history_option', value=hist_option, rc=rc)
+          call NUOPC_CompAttributeGet(gcomp, name='history_option', value=hist_option_all_inst, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           call NUOPC_CompAttributeGet(gcomp, name='history_n', value=cvalue, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          read(cvalue,*) hist_n
+          read(cvalue,*) hist_n_all_inst
        else
           ! If attribute is not present - don't write history output
-          hist_option = 'none'
-          hist_n = -999
+          hist_option_all_inst = 'none'
+          hist_n_all_inst = -999
        end if
 
        ! Set alarm name and initialize clock and alarm for instantaneous history output
        ! The alarm for the full history write is set on the mediator clock not as a separate alarm
-       if (hist_option /= 'none' .and. hist_option /= 'never') then
+       if (hist_option_all_inst /= 'none' .and. hist_option_all_inst /= 'never') then
 
           ! Initialize alarm on mediator clock for instantaneous mediator history output for all variables
           call NUOPC_ModelGet(gcomp, modelClock=mclock,  rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           call ESMF_ClockGet(mclock, startTime=starttime,  rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          call med_time_alarmInit(mclock, alarm, option=hist_option, opt_n=hist_n, &
+          call med_time_alarmInit(mclock, alarm, option=hist_option_all_inst, opt_n=hist_n_all_inst, &
                reftime=starttime, alarmname=alarmname, rc=rc)
           call ESMF_AlarmSet(alarm, clock=mclock, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -221,14 +225,14 @@ contains
           ! Write diagnostic info
           if (mastertask) then
              write(logunit,'(a,2x,i8)') trim(subname) // "  initialized history alarm "//&
-                  trim(alarmname)//"  with option "//trim(hist_option)//" and frequency ",hist_n
+                  trim(alarmname)//"  with option "//trim(hist_option_all_inst)//" and frequency ",hist_n_all_inst
           end if
        end if
        first_time = .false.
     end if
 
     write_now = .false.
-    if (hist_option /= 'none' .and. hist_option /= 'never') then
+    if (hist_option_all_inst /= 'none' .and. hist_option_all_inst /= 'never') then
        call NUOPC_ModelGet(gcomp, modelClock=mclock,  rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call ESMF_ClockGetAlarm(mclock, alarmname=trim(alarmname), alarm=alarm, rc=rc)
@@ -615,7 +619,7 @@ contains
   !===============================================================================
   subroutine med_phases_history_write_comp(gcomp, compid, rc)
 
-    ! Write mediator history file for atm variables
+    ! Write mediator history file for compid variables
 
     ! input/output variables
     type(ESMF_GridComp), intent(inout) :: gcomp
@@ -654,6 +658,7 @@ contains
     integer             :: hist_n       ! freq_n setting relative to freq_option
     character(CL)       :: hist_option_in
     character(CL)       :: hist_n_in
+    integer             :: hist_tilesize
     logical             :: isPresent
     logical             :: isSet
     type(ESMF_VM)       :: vm
@@ -676,10 +681,20 @@ contains
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+    ! Determine if tiled output to history file is requested
+    call NUOPC_CompAttributeGet(gcomp, name='history_tile_'//trim(compname(compid)), isPresent=isPresent, isSet=isSet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+       call NUOPC_CompAttributeGet(gcomp, name='history_tile_'//trim(compname(compid)), value=cvalue, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       read(cvalue,*) hist_tilesize
+    else
+       hist_tilesize = 0
+    end if
     ! alarm is not set determine hist_option and hist_n
     if (.not. instfile%is_clockset) then
 
-       ! Determine attribute prefix
+       ! Determine attribute name
        write(hist_option_in,'(a)') 'history_option_'//trim(compname(compid))//'_inst'
        write(hist_n_in,'(a)') 'history_n_'//trim(compname(compid))//'_inst'
 
@@ -749,19 +764,19 @@ contains
              ! Define/write import field bundle
              if (ESMF_FieldBundleIsCreated(is_local%wrap%FBimp(compid,compid),rc=rc)) then
                 call med_io_write(hist_file, is_local%wrap%FBimp(compid,compid), whead(m), wdata(m), nx, ny, &
-                     nt=1, pre=trim(compname(compid))//'Imp', rc=rc)
+                     nt=1, pre=trim(compname(compid))//'Imp', tilesize=hist_tilesize, rc=rc)
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
              endif
              ! Define/write import export bundle
              if (ESMF_FieldBundleIsCreated(is_local%wrap%FBexp(compid),rc=rc)) then
                 call med_io_write(hist_file, is_local%wrap%FBexp(compid), whead(m), wdata(m), nx, ny, &
-                     nt=1, pre=trim(compname(compid))//'Exp', rc=rc)
+                     nt=1, pre=trim(compname(compid))//'Exp', tilesize=hist_tilesize, rc=rc)
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
              endif
              ! Define/Write mediator fractions
              if (ESMF_FieldBundleIsCreated(is_local%wrap%FBFrac(compid),rc=rc)) then
                 call med_io_write(hist_file, is_local%wrap%FBFrac(compid), whead(m), wdata(m), nx, ny, &
-                     nt=1, pre='Med_frac_'//trim(compname(compid)), rc=rc)
+                     nt=1, pre='Med_frac_'//trim(compname(compid)), tilesize=hist_tilesize, rc=rc)
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
              end if
 
@@ -801,6 +816,7 @@ contains
     integer                 :: hist_n        ! freq_n setting relative to freq_option
     character(CL)           :: hist_option_in
     character(CL)           :: hist_n_in
+    integer                 :: hist_tilesize
     logical                 :: isPresent
     logical                 :: isSet
     type(ESMF_VM)           :: vm
@@ -825,10 +841,20 @@ contains
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+    ! Determine if tiled output to history file is requested
+    call NUOPC_CompAttributeGet(gcomp, name='history_tile_'//trim(compname(compid)), isPresent=isPresent, isSet=isSet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+       call NUOPC_CompAttributeGet(gcomp, name='history_tile_'//trim(compname(compid)), value=cvalue, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       read(cvalue,*) hist_tilesize
+    else
+       hist_tilesize = 0
+    end if
     ! alarm is not set determine hist_option and hist_n
     if (.not. avgfile%is_clockset) then
 
-       ! Determine attribute prefix
+       ! Determine attribute name
        write(hist_option_in,'(a)') 'history_option_'//trim(compname(compid))//'_avg'
        write(hist_n_in,'(a)') 'history_n_'//trim(compname(compid))//'_avg'
 
@@ -944,7 +970,7 @@ contains
                 ny = is_local%wrap%ny(compid)
                 if (ESMF_FieldBundleIsCreated(is_local%wrap%FBimp(compid,compid),rc=rc)) then
                    call med_io_write(hist_file, avgfile%FBaccum_import, whead(m), wdata(m), nx, ny, &
-                        nt=1, pre=trim(compname(compid))//'Imp', rc=rc)
+                        nt=1, pre=trim(compname(compid))//'Imp', tilesize=hist_tilesize, rc=rc)
                    if (ChkErr(rc,__LINE__,u_FILE_u)) return
                    if (wdata(m)) then
                       call med_methods_FB_reset(avgfile%FBAccum_import, czero, rc=rc)
@@ -953,7 +979,7 @@ contains
                 endif
                 if (ESMF_FieldBundleIsCreated(is_local%wrap%FBexp(compid),rc=rc)) then
                    call med_io_write(hist_file, avgfile%FBaccum_export, whead(m), wdata(m), nx, ny, &
-                        nt=1, pre=trim(compname(compid))//'Exp', rc=rc)
+                        nt=1, pre=trim(compname(compid))//'Exp', tilesize=hist_tilesize, rc=rc)
                    if (ChkErr(rc,__LINE__,u_FILE_u)) return
                    if (wdata(m)) then
                       call med_methods_FB_reset(avgfile%FBAccum_export, czero, rc=rc)
@@ -1049,7 +1075,7 @@ contains
           if (isPresent .and. isSet) then
              call NUOPC_CompAttributeGet(gcomp, name=trim(prefix)//'_enabled', value=cvalue, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             read(cvalue,'(l)') enable_auxfile
+             read(cvalue,'(l7)') enable_auxfile
           else
              enable_auxfile = .false.
           end if

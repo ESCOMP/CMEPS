@@ -654,9 +654,9 @@ contains
     ! TransferOfferGeomObject Attribute.
 
     use ESMF  , only : ESMF_GridComp, ESMF_State, ESMF_Clock, ESMF_SUCCESS, ESMF_LogFoundAllocError
-    use ESMF  , only : ESMF_StateIsCreated
+    use ESMF  , only : ESMF_StateIsCreated 
     use ESMF  , only : ESMF_LogMsg_Info, ESMF_LogWrite
-    use ESMF  , only : ESMF_END_ABORT, ESMF_Finalize
+    use ESMF  , only : ESMF_END_ABORT, ESMF_Finalize, ESMF_MAXSTR
     use NUOPC , only : NUOPC_AddNamespace, NUOPC_Advertise, NUOPC_AddNestedState
     use NUOPC , only : NUOPC_CompAttributeGet, NUOPC_CompAttributeSet, NUOPC_CompAttributeAdd
 
@@ -676,6 +676,7 @@ contains
     type(InternalState) :: is_local
     integer             :: stat
     character(len=CS)   :: attrList(8)
+    character(len=ESMF_MAXSTR) :: mesh_glc   
     character(len=*),parameter :: subname=' (InitializeIPDv03p1) '
     !-----------------------------------------------------------
 
@@ -735,13 +736,20 @@ contains
          nestedState=is_local%wrap%NStateExp(compwav), rc=rc)
 
     ! Only create nested states for active ice sheets
-    call NUOPC_CompAttributeGet(gcomp, name='num_icesheets', value=cvalue, &
-         isPresent=isPresent, isSet=isSet, rc=rc)
+    call NUOPC_CompAttributeGet(gcomp, name='mesh_glc', value=mesh_glc, isPresent=isPresent, isSet=isSet, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
+    num_icesheets = 0
     if (isPresent .and. isSet) then
-       read(cvalue,*) num_icesheets
-    else
-       num_icesheets = 0
+       ! determine number of ice sheets - search in mesh_glc for colon deliminted strings
+       if (len_trim(cvalue) > 0) then
+          do n = 1, len_trim(mesh_glc)
+             if (mesh_glc(n:n) == ':') num_icesheets = num_icesheets + 1
+          end do
+          num_icesheets = num_icesheets + 1
+       endif
+       if (mastertask) then
+          write(logunit,'(a,i8)') trim(subname)//' number of ice sheets is ',num_icesheets
+       end if
     end if
     do ns = 1,num_icesheets
        write(cnum,'(i0)') ns

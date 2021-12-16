@@ -2,10 +2,10 @@ module glc_elevclass_mod
 
   !---------------------------------------------------------------------
   ! This module contains the interfaces needed by mediator code - but
-  ! is not used by the NEMS system
+  ! is not used by the UFS system
   !---------------------------------------------------------------------
 
-  use shr_kind_mod , only : r8=>shr_kind_r8
+  use ufs_kind_mod , only : r8=>shr_kind_r8
 
   implicit none
   private
