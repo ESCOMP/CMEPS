@@ -113,7 +113,7 @@ contains
        write(logunit,'(a,2x,i8)') trim(subname)//" restart clock timestep = ",timestep_length
        write(logunit,'(a,2x,i8)') trim(subname)//" set restart alarm with option "//&
             trim(restart_option)//" and frequency ",restart_n
-       write(logunit,'(a)') trim(subname)//" write_restart_at_endofrun : ", write_restart_at_endofrun
+       write(logunit,'(a,l7)') trim(subname)//" write_restart_at_endofrun : ", write_restart_at_endofrun
        write(logunit,*)
     end if
 

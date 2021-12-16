@@ -6,7 +6,7 @@ module med_io_mod
 
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, I8=>SHR_KIND_I8, R8=>SHR_KIND_R8
   use med_kind_mod          , only : R4=>SHR_KIND_R4
-  use shr_const_mod         , only : fillvalue => SHR_CONST_SPVAL
+  use med_constants_mod     , only : fillvalue => SHR_CONST_SPVAL
   use ESMF                  , only : ESMF_VM, ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_LogFoundError
   use ESMF                  , only : ESMF_SUCCESS, ESMF_FAILURE, ESMF_END_ABORT, ESMF_LOGERR_PASSTHRU
   use ESMF                  , only : ESMF_VMGetCurrent, ESMF_VMGet, ESMF_VMBroadCast, ESMF_Finalize
@@ -746,13 +746,13 @@ contains
 
   !===============================================================================
   subroutine med_io_write_FB(filename, FB, whead, wdata, nx, ny, nt, &
-       fillval, pre, flds, tavg, use_float, file_ind, rc)
+       fillval, pre, flds, tavg, use_float, file_ind, tilesize, rc)
 
     !---------------
     ! Write FB to netcdf file
     !---------------
 
-    use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_FAILURE
+    use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_FAILURE, ESMF_END_ABORT
     use ESMF , only : ESMF_FieldBundleIsCreated, ESMF_FieldBundle, ESMF_Mesh, ESMF_DistGrid
     use ESMF , only : ESMF_FieldBundleGet, ESMF_FieldGet, ESMF_MeshGet, ESMF_DistGridGet
     use ESMF , only : ESMF_Field, ESMF_FieldGet, ESMF_AttributeGet
@@ -775,6 +775,7 @@ contains
     logical,          optional , intent(in) :: tavg      ! is this a tavg
     logical,          optional , intent(in) :: use_float ! write output as float rather than double
     integer,          optional , intent(in) :: file_ind
+    integer,          optional , intent(in) :: tilesize  ! if non-zero, write atm component on tiles
     integer                    , intent(out):: rc
 
     ! local variables
@@ -789,6 +790,7 @@ contains
     integer                       :: ndims, nelements
     integer    ,target            :: dimid2(2)
     integer    ,target            :: dimid3(3)
+    integer    ,target            :: dimid4(4)
     integer    ,pointer           :: dimid(:)
     type(var_desc_t)              :: varid
     type(io_desc_t)               :: iodesc
@@ -817,6 +819,8 @@ contains
     integer                       :: ungriddedUBound(1) ! currently the size must equal 1 for rank 2 fields
     integer                       :: gridToFieldMap(1)  ! currently the size must equal 1 for rank 2 fields
     logical                       :: isPresent
+    logical                       :: atmtiles
+    integer                       :: ntiles = 1
     character(CL), allocatable    :: fieldNameList(:)
     character(*),parameter :: subName = '(med_io_write_FB) '
     !-------------------------------------------------------------------------------
@@ -831,6 +835,10 @@ contains
     if (present(use_float)) luse_float = use_float
     lfile_ind = 0
     if (present(file_ind)) lfile_ind=file_ind
+    atmtiles = .false.
+    if (present(tilesize)) then
+      if (tilesize > 0) atmtiles = .true.
+    end if
 
     ! Error check
     if (.not. ESMF_FieldBundleIsCreated(FB, rc=rc)) then
@@ -900,15 +908,27 @@ contains
     ! all the global grid values in the distgrid - e.g. CTSM
 
     ng = maxval(maxIndexPTile)
-    lnx = ng
-    lny = 1
+    if (atmtiles) then
+      lnx = tilesize
+      lny = tilesize
+      ntiles = ng/(lnx*lny)
+      write(tmpstr,*) subname, 'ng,lnx,lny,ntiles = ',ng,lnx,lny,ntiles
+      call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
+      if (ntiles /= 6) then
+         call ESMF_LogWrite(trim(subname)//' ERROR: only cubed sphere atm tiles valid ', ESMF_LOGMSG_INFO)
+         call ESMF_Finalize(endflag=ESMF_END_ABORT)
+      endif
+    else
+      lnx = ng
+      lny = 1
+      if (nx > 0) lnx = nx
+      if (ny > 0) lny = ny
+      if (lnx*lny /= ng) then
+         write(tmpstr,*) subname,' WARNING: grid2d size not consistent ',ng,lnx,lny
+         call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
+      endif
+    end if
     deallocate(minIndexPTile, maxIndexPTile)
-    if (nx > 0) lnx = nx
-    if (ny > 0) lny = ny
-    if (lnx*lny /= ng) then
-       write(tmpstr,*) subname,' WARNING: grid2d size not consistent ',ng,lnx,lny
-       call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
-    endif
 
     if (present(nt)) then
        frame = nt
@@ -918,6 +938,18 @@ contains
 
     ! Write header
     if (whead) then
+      if (atmtiles) then
+       rcode = pio_def_dim(io_file(lfile_ind), trim(lpre)//'_nx', lnx, dimid3(1))
+       rcode = pio_def_dim(io_file(lfile_ind), trim(lpre)//'_ny', lny, dimid3(2))
+       rcode = pio_def_dim(io_file(lfile_ind), trim(lpre)//'_ntiles', ntiles, dimid3(3))
+       if (present(nt)) then
+          dimid4(1:3) = dimid3
+          rcode = pio_inq_dimid(io_file(lfile_ind), 'time', dimid4(4))
+          dimid => dimid4
+       else
+          dimid => dimid3
+       endif
+      else
        rcode = pio_def_dim(io_file(lfile_ind), trim(lpre)//'_nx', lnx, dimid2(1))
        rcode = pio_def_dim(io_file(lfile_ind), trim(lpre)//'_ny', lny, dimid2(2))
        if (present(nt)) then
@@ -927,8 +959,9 @@ contains
        else
           dimid => dimid2
        endif
-       write(tmpstr,*) subname,' dimid = ',dimid
-       call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
+      endif
+      write(tmpstr,*) subname,' dimid = ',dimid
+      call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
 
        do k = 1,nf
           ! Determine field name
@@ -1034,8 +1067,12 @@ contains
        call ESMF_DistGridGet(distgrid, localDE=0, seqIndexList=dof, rc=rc)
        write(tmpstr,*) subname,' dof = ',ns,size(dof),dof(1),dof(ns)  !,minval(dof),maxval(dof)
        call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
-       call pio_initdecomp(io_subsystem, pio_double, (/lnx,lny/), dof, iodesc)
-       ! call pio_writedof(lpre, (/lnx,lny/), int(dof,kind=PIO_OFFSET_KIND), mpicom)
+       if (atmtiles) then
+          call pio_initdecomp(io_subsystem, pio_double, (/lnx,lny,ntiles/), dof, iodesc)
+       else
+          call pio_initdecomp(io_subsystem, pio_double, (/lnx,lny/), dof, iodesc)
+         !call pio_writedof(lpre, (/lnx,lny/), int(dof,kind=PIO_OFFSET_KIND), mpicom)
+       end if
        deallocate(dof)
 
        do k = 1,nf
@@ -1356,7 +1393,7 @@ contains
   !===============================================================================
   subroutine med_io_define_time(time_units, calendar, file_ind, rc)
 
-    use ESMF, only : operator(==), operator(/=) 
+    use ESMF, only : operator(==), operator(/=)
     use ESMF, only : ESMF_Calendar, ESMF_CalendarIsCreated
     use ESMF, only : ESMF_CALKIND_360DAY, ESMF_CALKIND_GREGORIAN
     use ESMF, only : ESMF_CALKIND_JULIAN, ESMF_CALKIND_JULIANDAY, ESMF_CALKIND_MODJULIANDAY
@@ -1913,7 +1950,7 @@ contains
     type(var_desc_t)  :: varid
     character(CL)     :: lversion
     character(CL)     :: name1
-    integer           :: iam 
+    integer           :: iam
     character(*),parameter :: subName = '(med_io_read_r81d) '
     !-------------------------------------------------------------------------------
 
