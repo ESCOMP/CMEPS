@@ -195,12 +195,12 @@ contains
        allocate(flds(5))
        flds = (/'taux', 'tauy', 'lat', 'sen', 'lwup' /)
        do n = 1,size(flds)
-          call addfld(fldListTo(compatm)%flds, 'Faxx_'//trim(flds(n)))
           call addfld(fldListMed_aoflux%flds , 'Faox_'//trim(flds(n)))
+          call addfld(fldListTo(compatm)%flds, 'Faox_'//trim(flds(n)))
           if (trim(is_local%wrap%aoflux_grid) == 'ogrid') then
-             call addmap(fldListMed_aoflux%flds, 'Faox_'//trim(flds(n)), compatm, mapconsf, 'ofrac', 'unset')
+             call addmap(fldListMed_aoflux%flds, 'Faox_'//trim(flds(n)), compatm, maptype, 'ofrac', 'unset')
           end if
-          call addmrg(fldListTo(compatm)%flds, 'Faxx_'//trim(flds(n)),  mrg_from=compmed, mrg_fld='Faox_'//trim(flds(n)), mrg_type='copy')
+          call addmrg(fldListTo(compatm)%flds, 'Faox_'//trim(flds(n)), mrg_from=compmed, mrg_fld='Faox_'//trim(flds(n)), mrg_type='copy')
        end do
        deallocate(flds)
     end if

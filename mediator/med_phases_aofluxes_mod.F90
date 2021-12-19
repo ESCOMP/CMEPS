@@ -1078,21 +1078,24 @@ contains
        end do
     end if
     if (compute_atm_dens) then
-       ! Add limiting factor to be consistent with UFS atmosphere-ocean flux calculation
        if (trim(coupling_mode) == 'nems_frac_aoflux') then
+          ! Add limiting factor to humidity to be consistent with UFS aoflux calculation
           do n = 1,aoflux_in%lsize
              if (aoflux_in%mask(n) /= 0._r8) then
                 aoflux_in%shum(n) = max(aoflux_in%shum(n), qmin)
-                aoflux_in%dens(n) = aoflux_in%psfc(n)/(287.058_R8*(1._R8 + 0.608_R8*aoflux_in%shum(n))*aoflux_in%tbot(n))
              end if
           end do
-       else
-          do n = 1,aoflux_in%lsize
-             if (aoflux_in%mask(n) /= 0._r8) then
-                aoflux_in%dens(n) = aoflux_in%pbot(n)/(287.058_R8*(1._R8 + 0.608_R8*aoflux_in%shum(n))*aoflux_in%tbot(n))
-             end if
-          end do
+          ! Use pbot as psfc for the initial pass since psfc provided by UFS atm is zero
+          if (maxval(aoflux_in%psfc, mask=(aoflux_in%mask/= 0._r8)) < 100._r8) then
+             aoflux_in%psfc(:) = aoflux_in%pbot(:)
+             call ESMF_LogWrite(trim(subname)//" : using pbot as psfc for initial pass!", ESMF_LOGMSG_INFO)
+          end if
        end if
+       do n = 1,aoflux_in%lsize
+          if (aoflux_in%mask(n) /= 0._r8) then
+             aoflux_in%dens(n) = aoflux_in%pbot(n)/(287.058_R8*(1._R8 + 0.608_R8*aoflux_in%shum(n))*aoflux_in%tbot(n))
+          end if
+       end do
     end if
 
     !----------------------------------
@@ -1123,7 +1126,7 @@ contains
          zbot=aoflux_in%zbot, garea=aoflux_in%garea, ubot=aoflux_in%ubot, usfc=aoflux_in%usfc, vbot=aoflux_in%vbot, &
          vsfc=aoflux_in%vsfc, rbot=aoflux_in%dens, ts=aoflux_in%tocn, mask=aoflux_in%mask, &
          sen=aoflux_out%sen, lat=aoflux_out%lat, lwup=aoflux_out%lwup, evp=aoflux_out%evap, &
-         taux=aoflux_out%taux, tauy=aoflux_out%tauy, &
+         taux=aoflux_out%taux, tauy=aoflux_out%tauy, qref=aoflux_out%qref, &
          missval=0.0_r8)
     else
 #endif

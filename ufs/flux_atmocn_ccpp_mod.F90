@@ -45,7 +45,7 @@ contains
 
   subroutine flux_atmOcn_ccpp(nMax, mask, psfc, pbot, tbot, qbot, zbot, &
              garea, ubot, usfc, vbot, vsfc, rbot, ts, lwdn, sen, lat, &
-             lwup, evp, taux, tauy, missval)
+             lwup, evp, taux, tauy, qref, missval)
 
     implicit none
 
@@ -74,6 +74,7 @@ contains
     real(r8), intent(out) :: evp(nMax)   ! heat flux: evap                ((kg/s)/m^2)
     real(r8), intent(out) :: taux(nMax)  ! surface stress, zonal          (N)
     real(r8), intent(out) :: tauy(nMax)  ! surface stress, maridional     (N)
+    real(r8), intent(out) :: qref(nMax)  ! diag: 2m ref humidity          (kg/kg)
 
     !--- local variables --------------------------------
     integer                     :: n           , iter      , ivegsrc   , &
@@ -87,7 +88,8 @@ contains
                                    h0facu      , h0facs
     logical                     :: redrag      , thsfc_loc , lseaspray , &
                                    flag_restart, frac_grid , cplflx    , &
-                                   cplice      , cplwav2atm, lheatstrg
+                                   cplice      , cplwav2atm, lheatstrg , &
+                                   use_med_flux
     character(len=1024)         :: errmsg
     integer, dimension(nMax)    :: vegtype     , islmsk    , islmsk_cice 
     real(kp), dimension(nMax)   :: prsl1       , prslki    , prsik1    , &
@@ -132,8 +134,11 @@ contains
                                    tsfc        ,                         &
                                    tsfc_wat    , tsfc_lnd  , tsfc_ice  , &
                                    semis_rad   , emis_lnd  , emis_ice  , &
-                                   semis_wat   , semis_lnd , semis_ice
+                                   semis_wat   , semis_lnd , semis_ice , &
+                                   dqsfc       , dtsfc
     real(kp), dimension(nMax,1) :: tiice       , stc
+    !integer                     :: naux2d
+    !real(kp), dimension(nMax,2) :: aux2d
     logical, dimension(nMax)    :: flag_iter   , flag_guess, use_flake , &
                                    wet         , dry       , icy       , &
                                    flag_cice   , lake
@@ -338,6 +343,9 @@ contains
     gflx_wat(:)  = 0.0_kp         ! upward_heat_flux_in_soil_over_water
     gflx_lnd(:)  = 0.0_kp         ! upward_heat_flux_in_soil_over_lnd
     gflx_ice(:)  = 0.0_kp         ! upward_heat_flux_in_soil_over_ice
+    use_med_flux = .false.        ! flag_for_mediator_atmosphere_ocean_fluxes
+    dqsfc(:)     = 0.0_kp         ! surface_upward_latent_heat_flux_over_ocean_from_coupled_process
+    dtsfc(:)     = 0.0_kp         ! surface_upward_sensible_heat_flux_over_ocean_from_coupled_process
 
     if (flag_init) then
        allocate(evap(nMax))
@@ -441,17 +449,18 @@ contains
 
        !--- calculate heat fluxes ---
        call sfc_ocean_run( &
-            nMax       , hvap      , cp          , &
-            rd         , eps       , epsm1       , &
-            rvrdm1     , psfc      , ubot        , &
-            vbot       , tbot      , qbot        , &
-            tskin_wat  , cm_wat    , ch_wat      , &
-            lseaspray  , fm_wat    , fm10_wat    , &
-            pbot       , prslki    , wet         , &
-            use_flake  , wind      , flag_iter   , &
-            qss_wat    , cmm_wat   , chh_wat     , &
-            gflx_wat   , evap_wat  , hflx_wat    , &
-            ep1d_wat   , errmsg    , errflg)
+            nMax        , hvap      , cp          , &
+            rd          , eps       , epsm1       , &
+            rvrdm1      , psfc      , ubot        , &
+            vbot        , tbot      , qbot        , &
+            tskin_wat   , cm_wat    , ch_wat      , &
+            lseaspray   , fm_wat    , fm10_wat    , &
+            pbot        , prslki    , wet         , &
+            use_flake   , wind      , flag_iter   , &
+            use_med_flux, dqsfc     , dtsfc       , &
+            qss_wat     , cmm_wat   , chh_wat     , &
+            gflx_wat    , evap_wat  , hflx_wat    , &
+            ep1d_wat    , errmsg    , errflg)
 
        !--- update flag_guess and flag_iter ---
        call GFS_surface_loop_control_part2_run( &
@@ -512,12 +521,13 @@ contains
     !--- unit conversion ---
     do n = 1, nMax
        if (mask(n) /= 0) then
-          sen(n)  = hflx_wat(n)*rbot(n)*cp
-          lat(n)  = evap_wat(n)*rbot(n)*hvap
+          sen(n)  = -1.0_kp*hflx_wat(n)*rbot(n)*cp
+          lat(n)  = -1.0_kp*evap_wat(n)*rbot(n)*hvap
           lwup(n) = semis_wat(n)*sbc*ts(n)**4+(1.0_r8-semis_wat(n))*lwdn(n)
           evp(n)  = lat(n)/hvap
           taux(n) = -1.0_kp*rbot(n)*stress(n)*ubot(n)/wind(n) 
           tauy(n) = -1.0_kp*rbot(n)*stress(n)*vbot(n)/wind(n)
+          qref(n) = qss_wat(n)
        else
           sen(n)  = spval
           lat(n)  = spval
@@ -525,6 +535,7 @@ contains
           evap(n) = spval
           taux(n) = spval
           tauy(n) = spval
+          qref(n) = spval
        end if
     end do
 
