@@ -439,14 +439,16 @@ contains
           srcMaskValue = 0
           dstMaskValue = ispval_mask
        elseif (n1 == compatm .and. n2 == compwav) then
-          dstMaskValue = 1
+          !dstMaskValue = 1
+          dstMaskValue = 0
        elseif (n1 == compwav .and. n2 == compatm) then
-          srcMaskValue = 1
+          !srcMaskValue = 1
+          srcMaskValue = 0
           dstMaskValue = ispval_mask
        endif
     end if
 
-    write(string,'(a,i4,a,i4)') trim(compname(n1))//' to '//trim(compname(n2))//' srcMask = ', &
+    write(string,'(a,i10,a,i10)') trim(compname(n1))//' to '//trim(compname(n2))//' srcMask = ', &
                srcMaskValue,' dstMask = ',dstMaskValue
     call ESMF_LogWrite(trim(string), ESMF_LOGMSG_INFO)
 
