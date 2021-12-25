@@ -30,10 +30,6 @@ module med_internalstate_mod
   integer, public :: compwav = 7
   integer, public :: ncomps = 7 ! this will be incremented if complgc is allocated
   integer, public, allocatable :: compglc(:)
-  integer, public :: num_icesheets     ! obtained from attribute
-  logical, public :: ocn2glc_coupling  ! obtained from attribute
-  logical, public :: lnd2glc_coupling
-  logical, public :: accum_lnd2glc
 
   ! Generic component name (e.g. atm, ocn...)
   character(len=CS), public, allocatable :: compname(:)
@@ -119,23 +115,27 @@ module med_internalstate_mod
     ! RH(n,k,m) is a RH from grid n to grid k, map type m
 
     ! Present/allowed coupling/active coupling logical flags
-    logical, pointer  :: comp_present(:)            ! comp present flag
-    logical, pointer  :: med_coupling_active(:,:)   ! computes the active coupling
+    logical, pointer :: comp_present(:)            ! comp present flag
+    logical, pointer :: med_coupling_active(:,:)   ! computes the active coupling
+    integer          :: num_icesheets              ! obtained from attribute
+    logical          :: ocn2glc_coupling           ! obtained from attribute
+    logical          :: lnd2glc_coupling
+    logical          :: accum_lnd2glc
 
     ! Mediator vm
-    type(ESMF_VM)          :: vm
+    type(ESMF_VM) :: vm
 
     ! Global nx,ny dimensions of input arrays (needed for mediator history output)
     integer, pointer   :: nx(:), ny(:)
 
     ! Import/Export Scalars
-    character(len=CL)      :: flds_scalar_name = ''
-    integer                :: flds_scalar_num = 0
-    integer                :: flds_scalar_index_nx = 0
-    integer                :: flds_scalar_index_ny = 0
-    integer                :: flds_scalar_index_nextsw_cday = 0
-    integer                :: flds_scalar_index_precip_factor = 0
-    real(r8)               :: flds_scalar_precip_factor = 1._r8  ! actual value of precip factor from ocn
+    character(len=CL) :: flds_scalar_name = ''
+    integer           :: flds_scalar_num = 0
+    integer           :: flds_scalar_index_nx = 0
+    integer           :: flds_scalar_index_ny = 0
+    integer           :: flds_scalar_index_nextsw_cday = 0
+    integer           :: flds_scalar_index_precip_factor = 0
+    real(r8)          :: flds_scalar_precip_factor = 1._r8  ! actual value of precip factor from ocn
 
     ! Import/export States and field bundles (the field bundles have the scalar fields removed)
     type(ESMF_State)       , pointer :: NStateImp(:) ! Import data from various component, on their grid
@@ -220,22 +220,22 @@ contains
           glc_present = .true.
           call NUOPC_CompAttributeGet(gcomp, name='mesh_glc', value=mesh_glc, isPresent=isPresent, isSet=isSet, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
-          num_icesheets = 0
+          is_local%wrap%num_icesheets = 0
           if (isPresent .and. isSet) then
              ! determine number of ice sheets - search in mesh_glc for colon deliminted strings
              if (len_trim(cvalue) > 0) then
                 do n = 1, len_trim(mesh_glc)
-                   if (mesh_glc(n:n) == ':') num_icesheets = num_icesheets + 1
+                   if (mesh_glc(n:n) == ':') is_local%wrap%num_icesheets = is_local%wrap%num_icesheets + 1
                 end do
-                num_icesheets = num_icesheets + 1
+                is_local%wrap%num_icesheets = is_local%wrap%num_icesheets + 1
              endif
              if (mastertask) then
-                write(logunit,'(a,i8)') trim(subname)//' number of ice sheets is ',num_icesheets
+                write(logunit,'(a,i8)') trim(subname)//' number of ice sheets is ',is_local%wrap%num_icesheets
              end if
           end if
-          allocate(compglc(num_icesheets))
+          allocate(compglc(is_local%wrap%num_icesheets))
           compglc(:) = 0
-          do ns = 1,num_icesheets
+          do ns = 1,is_local%wrap%num_icesheets
              write(cnum,'(i0)') ns
              ncomps = ncomps + 1
              compglc(ns) = ncomps
@@ -271,7 +271,7 @@ contains
     compname(compice) = 'ice'
     compname(comprof) = 'rof'
     compname(compwav) = 'wav'
-    do ns = 1,num_icesheets
+    do ns = 1,is_local%wrap%num_icesheets
        write(cnum,'(i0)') ns
        compname(compglc(ns)) = 'glc' // trim(cnum)
     end do
@@ -337,7 +337,7 @@ contains
     !       call ESMF_AttributeGet(gcomp, name="glc_present", value=cvalue, &
     !            convention="NUOPC", purpose="Instance", rc=rc)
     !       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    !       do ns = 1,num_icesheets
+    !       do ns = 1,is_local%wrap%num_icesheets
     !          is_local%wrap%comp_present(compglc(ns)) = .true.
     !       end do
     !    else
@@ -398,6 +398,7 @@ contains
     integer              :: cntn1, cntn2
     character(len=CX)    :: msgString
     logical, allocatable :: med_coupling_allowed(:,:)
+    logical              :: ocn2glc_coupling_allowed 
     character(len=CL)    :: cvalue
     logical              :: isPresent, isSet
     character(len=*),parameter :: subname=' (med_internalstate_allowed_coupling)'
@@ -435,7 +436,7 @@ contains
     ! to land
     med_coupling_allowed(compatm,complnd) = .true.
     med_coupling_allowed(comprof,complnd) = .true.
-    do ns = 1,num_icesheets
+    do ns = 1,is_local%wrap%num_icesheets
        med_coupling_allowed(compglc(ns),complnd) = .true.
     end do
 
@@ -444,7 +445,7 @@ contains
     med_coupling_allowed(compice,compocn) = .true.
     med_coupling_allowed(comprof,compocn) = .true.
     med_coupling_allowed(compwav,compocn) = .true.
-    do ns = 1,num_icesheets
+    do ns = 1,is_local%wrap%num_icesheets
        med_coupling_allowed(compglc(ns),compocn) = .true.
     end do
 
@@ -453,7 +454,7 @@ contains
     med_coupling_allowed(compocn,compice) = .true.
     med_coupling_allowed(comprof,compice) = .true.
     med_coupling_allowed(compwav,compice) = .true.
-    do ns = 1,num_icesheets
+    do ns = 1,is_local%wrap%num_icesheets
        med_coupling_allowed(compglc(ns),compice) = .true.
     end do
 
@@ -466,9 +467,18 @@ contains
     med_coupling_allowed(compice,compwav) = .true.
 
     ! to land-ice
-    do ns = 1,num_icesheets
+    call NUOPC_CompAttributeGet(gcomp, name='ocn2glc_coupling', value=cvalue, &
+            isPresent=isPresent, isSet=isSet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+       ! are multiple ocean depths for temperature and salinity sent from the ocn to glc?
+       read(cvalue,*) ocn2glc_coupling_allowed
+    else
+       ocn2glc_coupling_allowed = .false.
+    end if
+    do ns = 1,is_local%wrap%num_icesheets
        med_coupling_allowed(complnd,compglc(ns)) = .true.
-       med_coupling_allowed(compocn,compglc(ns)) = .true.
+       med_coupling_allowed(compocn,compglc(ns)) = ocn2glc_coupling_allowed
     end do
 
     ! initialize med_coupling_active table
@@ -523,14 +533,14 @@ contains
     endif
 
     ! Determine lnd2glc_coupling and accum_lnd2glc flags
-    do ns = 1,num_icesheets
+    do ns = 1,is_local%wrap%num_icesheets
        if (is_local%wrap%med_coupling_active(complnd,compglc(ns))) then
-          lnd2glc_coupling = .true.
+          is_local%wrap%lnd2glc_coupling = .true.
           exit
        end if
     end do
-    if (lnd2glc_coupling) then
-       accum_lnd2glc = .true.
+    if (is_local%wrap%lnd2glc_coupling) then
+       is_local%wrap%accum_lnd2glc = .true.
     else
        ! Determine if will create auxiliary history file that contains
        ! lnd2glc data averaged over the year
@@ -538,15 +548,22 @@ contains
             isPresent=isPresent, isSet=isSet, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        if (isPresent .and. isSet) then
-          read(cvalue,*) accum_lnd2glc
+          read(cvalue,*) is_local%wrap%accum_lnd2glc
        else
-          accum_lnd2glc = .false.
+          is_local%wrap%accum_lnd2glc = .false.
        end if
     end if
 
+    do ns = 1,is_local%wrap%num_icesheets
+       if (is_local%wrap%med_coupling_active(compocn,compglc(ns))) then
+          is_local%wrap%ocn2glc_coupling = .true.
+          exit
+       end if
+    end do
+
     ! Reset ocn2glc active coupling based in input attribute
-    if (.not. ocn2glc_coupling) then
-       do ns = 1,num_icesheets
+    if (.not. is_local%wrap%ocn2glc_coupling) then
+       do ns = 1,is_local%wrap%num_icesheets
           is_local%wrap%med_coupling_active(compocn,compglc(ns)) = .false.
        end do
     end if

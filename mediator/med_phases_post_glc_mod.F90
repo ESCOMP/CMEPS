@@ -14,8 +14,7 @@ module med_phases_post_glc_mod
   use ESMF                  , only : ESMF_Mesh, ESMF_MESHLOC_ELEMENT, ESMF_TYPEKIND_R8
   use ESMF                  , only : ESMF_Field, ESMF_FieldGet, ESMF_FieldCreate
   use ESMF                  , only : ESMF_RouteHandle, ESMF_RouteHandleIsCreated
-  use med_internalstate_mod , only : compatm, compice, complnd, comprof, compocn, compname
-  use med_internalstate_mod , only : num_icesheets, compglc
+  use med_internalstate_mod , only : compatm, compice, complnd, comprof, compocn, compname, compglc
   use med_internalstate_mod , only : mapbilnr, mapconsd, compname
   use med_internalstate_mod , only : InternalState, mastertask, logunit
   use esmFlds               , only : fldListTo
@@ -116,21 +115,21 @@ contains
 
     if (first_call) then
        ! determine if there will be any glc to lnd coupling
-       do ns = 1,num_icesheets
+       do ns = 1,is_local%wrap%num_icesheets
           if (is_local%wrap%med_coupling_active(compglc(ns),complnd)) then
              glc2lnd_coupling = .true.
              exit
           end if
        end do
        ! determine if there will be any glc to ocn coupling
-       do ns = 1,num_icesheets
+       do ns = 1,is_local%wrap%num_icesheets
           if (is_local%wrap%med_coupling_active(compglc(ns),compocn)) then
              glc2ocn_coupling = .true.
              exit
           end if
        end do
        ! determine if there will be any glc to ice coupling
-       do ns = 1,num_icesheets
+       do ns = 1,is_local%wrap%num_icesheets
           if (is_local%wrap%med_coupling_active(compglc(ns),compice)) then
              glc2ice_coupling = .true.
              exit
@@ -160,7 +159,7 @@ contains
     ! merging with rof->ocn fields is done in med_phases_prep_ocn
     !---------------------------------------
     if (glc2ocn_coupling) then
-       do ns = 1,num_icesheets
+       do ns = 1,is_local%wrap%num_icesheets
           if (is_local%wrap%med_coupling_active(compglc(ns),compocn)) then
              call med_map_field_packed( &
                   FBSrc=is_local%wrap%FBImp(compglc(ns),compglc(ns)), &
@@ -187,7 +186,7 @@ contains
     if (glc2lnd_coupling) then
        ! The will following will map and merge Sg_frac and Sg_topo (and in the future Flgg_hflx)
        call t_startf('MED:'//trim(subname)//' glc2lnd ')
-       do ns = 1,num_icesheets
+       do ns = 1,is_local%wrap%num_icesheets
           if (is_local%wrap%med_coupling_active(compglc(ns),complnd)) then
              call med_map_field_packed( &
                   FBSrc=is_local%wrap%FBImp(compglc(ns),compglc(ns)), &
@@ -219,7 +218,7 @@ contains
     call NUOPC_MediatorGet(gcomp, driverClock=dClock, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (ESMF_ClockIsCreated(dclock)) then
-       do ns = 1,num_icesheets
+       do ns = 1,is_local%wrap%num_icesheets
           call med_phases_history_write_comp(gcomp, compglc(ns), rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end do
@@ -299,9 +298,9 @@ contains
     !---------------------------------------
 
     ! allocate module variable
-    allocate(ice_sheet_tolnd(num_icesheets))
+    allocate(ice_sheet_tolnd(is_local%wrap%num_icesheets))
 
-    do ns = 1,num_icesheets
+    do ns = 1,is_local%wrap%num_icesheets
        if (is_local%wrap%med_coupling_active(compglc(ns),complnd)) then
 
           call fldbun_getmesh(is_local%wrap%FBImp(compglc(ns),compglc(ns)), ice_sheet_tolnd(ns)%mesh_g, rc)
@@ -418,7 +417,7 @@ contains
     !---------------------------------
 
     ! Map Sg_icemask and Sg_icemask_coupled_fluxes (no elevation classes)
-    do ns = 1,num_icesheets
+    do ns = 1,is_local%wrap%num_icesheets
        if (is_local%wrap%med_coupling_active(compglc(ns),complnd)) then
           call t_startf('MED:'//trim(subname)//' glc2lnd ')
           call med_map_field_packed( &
@@ -436,7 +435,7 @@ contains
     ! Get Sg_icemask on land as sum of all ice sheets (no elevation classes)
     call fldbun_getdata1d(is_local%wrap%FBExp(complnd), Sg_icemask, dataptr1d_dst, rc)
     dataptr1d_dst(:) = 0._r8
-    do ns = 1,num_icesheets
+    do ns = 1,is_local%wrap%num_icesheets
        if (is_local%wrap%med_coupling_active(compglc(ns),complnd)) then
           call fldbun_getdata1d(is_local%wrap%FBImp(compglc(ns),complnd), Sg_icemask, dataptr1d_src, rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -448,7 +447,7 @@ contains
     call fldbun_getdata1d(is_local%wrap%FBExp(complnd), Sg_icemask_coupled_fluxes, dataptr1d_dst, rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     dataptr1d_dst(:) = 0._r8
-    do ns = 1,num_icesheets
+    do ns = 1,is_local%wrap%num_icesheets
        if (is_local%wrap%med_coupling_active(compglc(ns),complnd)) then
           call fldbun_getdata1d(is_local%wrap%FBImp(compglc(ns),complnd), Sg_icemask_coupled_fluxes, dataptr1d_src, rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -456,7 +455,7 @@ contains
        end if
     end do
 
-    do ns = 1,num_icesheets
+    do ns = 1,is_local%wrap%num_icesheets
        if (is_local%wrap%med_coupling_active(compglc(ns),complnd)) then
 
           ! Set (fractional ice coverage for each elevation class on the glc grid)

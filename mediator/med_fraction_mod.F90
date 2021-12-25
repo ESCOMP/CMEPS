@@ -109,7 +109,7 @@ module med_fraction_mod
   use med_methods_mod       , only : fldbun_init      => med_methods_FB_init
   use med_methods_mod       , only : fldbun_reset     => med_methods_FB_reset
   use med_map_mod           , only : med_map_field
-  use med_internalstate_mod , only : ncomps, num_icesheets
+  use med_internalstate_mod , only : ncomps
 
   implicit none
   private
@@ -212,7 +212,7 @@ contains
        fraclist(1:size(fraclist_l),complnd) = fraclist_l
        fraclist(1:size(fraclist_r),comprof) = fraclist_r
        fraclist(1:size(fraclist_w),compwav) = fraclist_w
-       do ns = 1,num_icesheets
+       do ns = 1,is_local%wrap%num_icesheets
           fraclist(1:size(fraclist_g),compglc(ns)) = fraclist_g
        end do
 
@@ -526,7 +526,7 @@ contains
     ! Set 'gfrac' and 'lfrac' for FBFrac(compglc)
     !---------------------------------------
 
-    do ns = 1,num_icesheets
+    do ns = 1,is_local%wrap%num_icesheets
        if (is_local%wrap%comp_present(compglc(ns))) then
 
           ! Set 'gfrac' in FBFrac(compglc(ns))

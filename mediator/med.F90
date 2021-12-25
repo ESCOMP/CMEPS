@@ -45,8 +45,7 @@ module MED
   use med_internalstate_mod    , only : logunit, mastertask
   use med_internalstate_mod    , only : ncomps, compname
   use med_internalstate_mod    , only : compmed, compatm, compocn, compice, complnd, comprof, compwav ! not arrays
-  use med_internalstate_mod    , only : num_icesheets, compglc  ! compglc is an array
-  use med_internalstate_mod    , only : ocn2glc_coupling, lnd2glc_coupling, accum_lnd2glc
+  use med_internalstate_mod    , only : compglc  ! compglc is an array
   use med_internalstate_mod    , only : coupling_mode
   use esmFlds                  , only : fldListMed_ocnalb
   use esmFlds                  , only : med_fldList_GetNumFlds, med_fldList_GetFldNames, med_fldList_GetFldInfo
@@ -730,7 +729,7 @@ contains
          nestedState=is_local%wrap%NStateExp(compwav), rc=rc)
 
     ! Only create nested states for active land-ice sheets
-    do ns = 1,num_icesheets
+    do ns = 1,is_local%wrap%num_icesheets
        write(cnum,'(i0)') ns
        call NUOPC_AddNestedState(importState, CplSet="GLC"//trim(cnum), &
             nestedState=is_local%wrap%NStateImp(compglc(ns)), rc=rc)
@@ -1794,7 +1793,7 @@ contains
       !---------------------------------------
       ! Initialize glc module field bundles here if appropriate
       !---------------------------------------
-      if (lnd2glc_coupling .or. ocn2glc_coupling .or. accum_lnd2glc) then
+      if (is_local%wrap%lnd2glc_coupling .or. is_local%wrap%ocn2glc_coupling .or. is_local%wrap%accum_lnd2glc) then
          call med_phases_prep_glc_init(gcomp, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
       end if

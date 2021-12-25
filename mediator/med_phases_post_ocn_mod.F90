@@ -9,8 +9,6 @@ module med_phases_post_ocn_mod
 
   public  :: med_phases_post_ocn
 
-  logical :: ocn2glc_coupling
-
   character(*), parameter :: u_FILE_u  = &
        __FILE__
 
@@ -29,7 +27,7 @@ contains
     use med_constants_mod       , only : dbug_flag   => med_constants_dbug_flag
     use med_map_mod             , only : med_map_field_packed
     use med_internalstate_mod   , only : InternalState, logunit, mastertask
-    use med_internalstate_mod   , only : compice, compglc, compocn, num_icesheets
+    use med_internalstate_mod   , only : compice, compocn
     use med_phases_history_mod  , only : med_phases_history_write_comp
     use med_phases_prep_glc_mod , only : med_phases_prep_glc_accum_ocn
     use perf_mod                , only : t_startf, t_stopf
@@ -40,9 +38,7 @@ contains
 
     ! local variables
     type(InternalState) :: is_local
-    integer             :: ns
     type(ESMF_Clock)    :: dClock
-    logical             :: first_call = .true.
     character(len=*),parameter :: subname='(med_phases_post_ocn)'
     !---------------------------------------
 
@@ -73,16 +69,7 @@ contains
     end if
 
     ! Accumulate ocn input for glc if there is ocn->glc coupling
-    if (first_call) then
-       do ns = 1,num_icesheets
-          if (is_local%wrap%med_coupling_active(compocn,compglc(ns))) then
-             ocn2glc_coupling = .true.
-             exit
-          end if
-       end do
-       first_call = .false.
-    end if
-    if (ocn2glc_coupling) then
+    if (is_local%wrap%ocn2glc_coupling) then
        call med_phases_prep_glc_accum_ocn(gcomp, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if

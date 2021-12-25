@@ -72,8 +72,7 @@ contains
     use med_methods_mod       , only : fldchk => med_methods_FB_FldChk
     use med_internalstate_mod , only : InternalState, logunit, mastertask
     use med_internalstate_mod , only : compmed, compatm, complnd, compocn
-    use med_internalstate_mod , only : compice, comprof, compwav, ncomps
-    use med_internalstate_mod , only : compglc, num_icesheets, ocn2glc_coupling ! compglc is an array of integers
+    use med_internalstate_mod , only : compice, comprof, compwav, compglc, ncomps 
     use med_internalstate_mod , only : mapbilnr, mapconsf, mapconsd, mappatch, mappatch_uv3d, mapbilnr_nstod
     use med_internalstate_mod , only : mapfcopy, mapnstod, mapnstod_consd, mapnstod_consf
     use med_internalstate_mod , only : coupling_mode
@@ -102,11 +101,9 @@ contains
     ! Get the internal state
     !---------------------------------------
 
-    if (phase /= 'advertise') then
-       nullify(is_local%wrap)
-       call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-    end if
+    nullify(is_local%wrap)
+    call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     if (phase == 'advertise') then
 
@@ -200,11 +197,6 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        read(cvalue,*) flds_i2o_per_cat
 
-       ! are multiple ocean depths for temperature and salinity sent from the ocn to glc?
-       call NUOPC_CompAttributeGet(gcomp, name='ocn2glc_coupling', value=cvalue, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       read(cvalue,*) ocn2glc_coupling
-
        ! are water isotope exchanges enabled?
        call NUOPC_CompAttributeGet(gcomp, name='flds_wiso', value=cvalue, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -217,7 +209,6 @@ contains
           write(logunit,'(a,l7)') trim(subname)//' flds_co2c         = ',flds_co2b
           write(logunit,'(a,l7)') trim(subname)//' flds_wiso         = ',flds_wiso
           write(logunit,'(a,l7)') trim(subname)//' flds_i2o_per_cat  = ',flds_i2o_per_cat
-          write(logunit,'(a,l7)') trim(subname)//' ocn2glc_coupling  = ',ocn2glc_coupling
           write(logunit,'(a,l7)') trim(subname)//' mapuv_with_cart3d = ',mapuv_with_cart3d
        end if
 
@@ -247,7 +238,7 @@ contains
        call addfld(fldListFr(complnd)%flds, 'Sl_lfrin')
        call addfld(fldListFr(compocn)%flds, 'So_omask')
        call addfld(fldListFr(compice)%flds, 'Si_imask')
-       do ns = 1,num_icesheets
+       do ns = 1,is_local%wrap%num_icesheets
           call addfld(fldlistFr(compglc(ns))%flds, 'Sg_area')
        end do
     else
@@ -716,7 +707,7 @@ contains
     ! fields from med->lnd are in multiple elevation classes
 
     if (phase == 'advertise') then
-       do ns = 1, num_icesheets
+       do ns = 1, is_local%wrap%num_icesheets
           call addfld(fldListFr(compglc(ns))%flds, 'Sg_icemask')     ! ice sheet grid coverage
           call addfld(fldListFr(compglc(ns))%flds, 'Sg_icemask_coupled_fluxes')
           call addfld(fldListFr(compglc(ns))%flds, 'Sg_ice_covered') ! fraction of glacier area
@@ -732,7 +723,7 @@ contains
        ! custom merge in med_phases_prep_lnd for Sg_icemask and Sg_icemask_coupled_fluxes
        ! custom map merge in med_phases_prep_lnd for Sg_ice_covered_elev, Sg_topo_elev and Flgg_hflx_elev
        if ( fldchk(is_local%wrap%FBExp(complnd), 'Sg_icemask', rc=rc)) then
-          do ns = 1, num_icesheets
+          do ns = 1, is_local%wrap%num_icesheets
              if (fldchk(is_local%wrap%FBImp(compglc(ns), compglc(ns)), 'Sg_icemask', rc=rc)) then
                 call addmap(fldListFr(compglc(ns))%flds, 'Sg_icemask', &
                      complnd,  mapconsd, 'one', 'unset')
@@ -740,7 +731,7 @@ contains
           end do
        end if
        if ( fldchk(is_local%wrap%FBExp(complnd), 'Sg_icemask_coupled_fluxes', rc=rc)) then
-          do ns = 1, num_icesheets
+          do ns = 1, is_local%wrap%num_icesheets
              if (fldchk(is_local%wrap%FBImp(compglc(ns), compglc(ns)), 'Sg_icemask_coupled_fluxes', rc=rc)) then
                 call addmap(fldListFr(compglc(ns))%flds, 'Sg_icemask_coupled_fluxes', &
                      complnd, mapconsd, 'one', 'unset')
@@ -2098,13 +2089,13 @@ contains
        ! Note that Flrr_flood below needs to be added to
        ! fldlistFr(comprof) in order to be mapped correctly but the ocean
        ! does not receive it so it is advertised but it will! not be connected
-       do ns = 1, num_icesheets
+       do ns = 1, is_local%wrap%num_icesheets
           call addfld(fldListFr(compglc(ns))%flds, 'Fogg_rofl')
        end do
        call addfld(fldListFr(comprof)%flds, 'Forr_rofl')
        call addfld(fldListTo(compocn)%flds, 'Foxx_rofl')
        call addfld(fldListTo(compocn)%flds, 'Flrr_flood')
-       do ns = 1, num_icesheets
+       do ns = 1, is_local%wrap%num_icesheets
           call addfld(fldListFr(compglc(ns))%flds, 'Fogg_rofi')
        end do
        call addfld(fldListFr(comprof)%flds, 'Forr_rofi')
@@ -2126,7 +2117,7 @@ contains
              end if
           end if
           ! liquid from glc to ocean
-          do ns = 1, num_icesheets
+          do ns = 1, is_local%wrap%num_icesheets
              if (fldchk(is_local%wrap%FBImp(compglc(ns), compglc(ns)), 'Fogg_rofl' , rc=rc)) then
                 ! TODO: this custom map needs to be different for every ice sheet - how will this be handled?
                 call addmap(fldListFr(compglc(ns))%flds, 'Fogg_rofl', compocn, map_glc2ocn_liq, 'one' , glc2ocn_liq_rmap)
@@ -2145,7 +2136,7 @@ contains
              call addmrg(fldListTo(compocn)%flds, 'Foxx_rofi', mrg_from=comprof, mrg_fld='Forr_rofi', mrg_type='sum')
           end if
           ! ice from glc to ocean
-          do ns = 1, num_icesheets
+          do ns = 1, is_local%wrap%num_icesheets
              if (fldchk(is_local%wrap%FBImp(compglc(ns), compglc(ns)), 'Fogg_rofi' , rc=rc)) then
                 ! TODO: this custom map needs to be different for every ice sheet - how will this be handled?
                 call addmap(fldListFr(compglc(ns))%flds, 'Fogg_rofi', compocn, map_glc2ocn_ice, 'one', glc2ocn_ice_rmap)
@@ -2157,13 +2148,13 @@ contains
 
     if (flds_wiso) then
        if (phase == 'advertise') then
-          do ns = 1, num_icesheets
+          do ns = 1, is_local%wrap%num_icesheets
              call addfld(fldListFr(compglc(ns))%flds, 'Fogg_rofl_wiso')
           end do
           call addfld(fldListFr(comprof)%flds, 'Forr_rofl_wiso')
           call addfld(fldListTo(compocn)%flds, 'Foxx_rofl_wiso')
           call addfld(fldListTo(compocn)%flds, 'Flrr_flood_wiso')
-          do ns = 1, num_icesheets
+          do ns = 1, is_local%wrap%num_icesheets
              call addfld(fldListFr(compglc(ns))%flds, 'Fogg_rofi_wiso')
           end do
           call addfld(fldListFr(comprof)%flds, 'Forr_rofi_wiso')
@@ -2187,7 +2178,7 @@ contains
                 end if
              end if
              ! liquid from glc to ocean
-             do ns = 1, num_icesheets
+             do ns = 1, is_local%wrap%num_icesheets
                 if (fldchk(is_local%wrap%FBImp(compglc(ns), compglc(ns)), 'Fogg_rofl_wiso' , rc=rc)) then
                    ! TODO: this custom map needs to be different for every ice sheet - how will this be handled?
                    call addmap(fldListFr(compglc(ns))%flds, 'Fogg_rofl_wiso', compocn, map_glc2ocn_liq, 'one' , glc2ocn_liq_rmap)
@@ -2207,7 +2198,7 @@ contains
                 call addmrg(fldListTo(compocn)%flds, 'Foxx_rofi_wiso', mrg_from=comprof, mrg_fld='Forr_rofi', mrg_type='sum')
              end if
              ! ice from glc to ocean
-             do ns = 1, num_icesheets
+             do ns = 1, is_local%wrap%num_icesheets
                 if (fldchk(is_local%wrap%FBImp(compglc(ns), compglc(ns)), 'Fogg_rofi_wiso' , rc=rc)) then
                    ! TODO: this custom map needs to be different for every ice sheet - how will this be handled?
                    call addmap(fldListFr(compglc(ns))%flds, 'Fogg_rofi_wiso', compocn, map_glc2ocn_ice, 'one', glc2ocn_ice_rmap)
@@ -2741,7 +2732,7 @@ contains
     ! ---------------------------------------------------------------------
     if (phase == 'advertise') then
        call addfld(fldListFr(comprof)%flds, 'Firr_rofi') ! water flux into sea ice due to runoff (frozen)
-       do ns = 1, num_icesheets
+       do ns = 1, is_local%wrap%num_icesheets
           call addfld(fldListFr(compglc(ns))%flds, 'Figg_rofi') ! glc frozen runoff_iceberg flux to ice
        end do
        call addfld(fldListTo(compice)%flds, 'Fixx_rofi') ! total frozen water flux into sea ice
@@ -2751,7 +2742,7 @@ contains
              call addmap(fldListFr(comprof)%flds, 'Forr_rofi', compice, mapconsf, 'none', rof2ocn_ice_rmap)
              call addmrg(fldListTo(compice)%flds, 'Fixx_rofi', mrg_from=comprof, mrg_fld='Firr_rofi', mrg_type='sum')
           end if
-          do ns = 1, num_icesheets
+          do ns = 1, is_local%wrap%num_icesheets
              if (fldchk(is_local%wrap%FBImp(compglc(ns), compglc(ns)), 'Figg_rofi', rc=rc)) then
                 call addmap(fldListFr(compglc(ns))%flds, 'Figg_rofi', compice, mapconsf, 'one' , glc2ice_rmap)
                 call addmrg(fldListTo(compice)%flds, 'Fixx_rofi', mrg_from=compglc(ns), mrg_fld='Figg_rofi', mrg_type='sum')
@@ -2762,7 +2753,7 @@ contains
     if (flds_wiso) then
        if (phase == 'advertise') then
           call addfld(fldListFr(comprof)%flds, 'Firr_rofi_wiso') ! water flux into sea ice due to runoff (frozen)
-          do ns = 1, num_icesheets
+          do ns = 1, is_local%wrap%num_icesheets
              call addfld(fldListFr(compglc(ns))%flds, 'Figg_rofi_wiso') ! glc frozen runoff_iceberg flux to ice
           end do
           call addfld(fldListTo(compice)%flds, 'Fixx_rofi_wiso') ! total frozen water flux into sea ice
@@ -2773,7 +2764,7 @@ contains
                 call addmrg(fldListTo(compice)%flds, 'Fixx_rofi_wiso', &
                      mrg_from=comprof, mrg_fld='Firr_rofi_wiso', mrg_type='sum')
              end if
-             do ns = 1, num_icesheets
+             do ns = 1, is_local%wrap%num_icesheets
                 if (fldchk(is_local%wrap%FBImp(compglc(ns), compglc(ns)), 'Figg_rofi_wiso', rc=rc)) then
                    call addmap(fldListFr(compglc(ns))%flds, 'Figg_rofi_wiso', compice, mapconsf, 'one' , glc2ice_rmap)
                    call addmrg(fldListTo(compice)%flds, 'Fixx_rofi_wiso', &
@@ -2994,13 +2985,13 @@ contains
        call addfld(fldListFr(complnd)%flds, 'Sl_tsrf_elev')   ! surface temperature of glacier (1->glc_nec+1)
        call addfld(fldListFr(complnd)%flds, 'Sl_topo_elev')   ! surface heights of glacier     (1->glc_nec+1)
        call addfld(fldListFr(complnd)%flds, 'Flgl_qice_elev') ! glacier ice flux               (1->glc_nec+1)
-       do ns = 1,num_icesheets
+       do ns = 1,is_local%wrap%num_icesheets
           call addfld(fldListTo(compglc(ns))%flds, 'Sl_tsrf')
           call addfld(fldListTo(compglc(ns))%flds, 'Flgl_qice')
        end do
     else
        ! custom mapping, accumulation and merging will be done in prep_glc_mod.F90
-       do ns = 1,num_icesheets
+       do ns = 1,is_local%wrap%num_icesheets
           if ( fldchk(is_local%wrap%FBImp(complnd,complnd) , 'Flgl_qice_elev', rc=rc)) then
              call addmap(FldListFr(complnd)%flds, 'Flgl_qice_elev', compglc(ns), mapbilnr, 'lfrac', 'unset')
           end if
@@ -3017,18 +3008,18 @@ contains
     !-----------------------------
     ! to glc: from ocn
     !-----------------------------
-    if (ocn2glc_coupling) then
+    if (is_local%wrap%ocn2glc_coupling) then
        if (phase == 'advertise') then
           call addfld(fldListFr(compocn)%flds, 'So_t_depth')
           call addfld(fldListFr(compocn)%flds, 'So_s_depth')
-          do ns = 1,num_icesheets
+          do ns = 1,is_local%wrap%num_icesheets
              call addfld(fldListTo(compglc(ns))%flds, 'So_t_depth')
              call addfld(fldListTo(compglc(ns))%flds, 'So_s_depth')
           end do
        else
           ! custom mapping, accumulation and merging will be done in prep_glc_mod.F90
           ! the following is used to create the route handle
-          do ns = 1,num_icesheets
+          do ns = 1,is_local%wrap%num_icesheets
              if ( fldchk(is_local%wrap%FBImp(compocn,compocn) , 'So_t_depth', rc=rc)) then
                 call addmap(FldListFr(compocn)%flds, 'So_t_depth', compglc(ns), mapbilnr, 'none', 'unset')
              end if

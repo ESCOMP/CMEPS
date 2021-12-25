@@ -27,8 +27,7 @@ contains
     use med_phases_prep_rof_mod , only : med_phases_prep_rof_accum
     use med_phases_prep_glc_mod , only : med_phases_prep_glc_accum_lnd, med_phases_prep_glc_avg
     use med_phases_history_mod  , only : med_phases_history_write_comp
-    use med_internalstate_mod   , only : complnd, compatm, comprof, compglc, num_icesheets
-    use med_internalstate_mod   , only : lnd2glc_coupling, accum_lnd2glc
+    use med_internalstate_mod   , only : complnd, compatm, comprof, compglc
     use perf_mod                , only : t_startf, t_stopf
 
     ! input/output variables
@@ -78,12 +77,12 @@ contains
        end if
 
        ! accumulate lnd input for glc (note that lnd2glc_coupling and accum_lnd2glc is determined in med.F90)
-       if (lnd2glc_coupling) then
+       if (is_local%wrap%lnd2glc_coupling) then
           call med_phases_prep_glc_accum_lnd(gcomp, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           ! Note that in this case med_phases_prep_glc_avg is called 
           ! from med_phases_prep_glc in the run sequence
-       else if (accum_lnd2glc) then
+       else if (is_local%wrap%accum_lnd2glc) then
           call med_phases_prep_glc_accum_lnd(gcomp, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           call med_phases_prep_glc_avg(gcomp, rc)

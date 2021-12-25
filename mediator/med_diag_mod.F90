@@ -1308,7 +1308,7 @@ contains
     ! Compute global glc output
     ! ------------------------------------------------------------------
 
-    use med_internalstate_mod, only : compglc, num_icesheets
+    use med_internalstate_mod, only : compglc
 
     ! input/output variables
     type(ESMF_GridComp) :: gcomp
@@ -1337,7 +1337,7 @@ contains
     ic = c_glc_recv
     ip = period_inst
 
-    do ns = 1,num_icesheets
+    do ns = 1,is_local%wrap%num_icesheets
        areas => is_local%wrap%mesh_info(compglc(ns))%areas
        call diag_glc(is_local%wrap%FBImp(compglc(ns),compglc(ns)), 'Fogg_rofl', f_watr_roff, ic, areas, budget_local, minus=.true., rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
