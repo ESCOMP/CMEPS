@@ -5,7 +5,7 @@ module med_internalstate_mod
   !-----------------------------------------------------------------------------
 
   use ESMF         , only : ESMF_RouteHandle, ESMF_FieldBundle, ESMF_State, ESMF_Field, ESMF_VM
-  use ESMF         , only : ESMF_GridComp, ESMF_MAXSTR
+  use ESMF         , only : ESMF_GridComp, ESMF_MAXSTR, ESMF_LOGMSG_INFO, ESMF_LOGWRITE
   use med_kind_mod , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
 
   implicit none
@@ -17,7 +17,6 @@ module med_internalstate_mod
 
   integer, public :: logunit            ! logunit for mediator log output
   integer, public :: diagunit           ! diagunit for budget output (med master only)
-  integer, public :: loglevel           ! loglevel for mediator log output
   logical, public :: mastertask=.false. ! is this the mastertask
   integer, public :: med_id             ! needed currently in med_io_mod and set in esm.F90
 
@@ -33,10 +32,13 @@ module med_internalstate_mod
   integer, public, allocatable :: compglc(:)
   integer, public :: num_icesheets     ! obtained from attribute
   logical, public :: ocn2glc_coupling  ! obtained from attribute
-  logical, public :: lnd2glc_coupling  ! set in med.F90
-  logical, public :: accum_lnd2glc     ! set in med.F90 (this can be true even if lnd2glc_coupling is false)
+  logical, public :: lnd2glc_coupling
+  logical, public :: accum_lnd2glc
 
+  ! Generic component name (e.g. atm, ocn...)
   character(len=CS), public, allocatable :: compname(:)
+
+  ! Specific component name (e.g. datm, mom6, etc...)
   character(len=CS), public :: med_name = ''
   character(len=CS), public :: atm_name = ''
   character(len=CS), public :: lnd_name = ''
@@ -46,12 +48,10 @@ module med_internalstate_mod
   character(len=CS), public :: wav_name = ''
   character(len=CS), public :: glc_name = ''
 
-  logical, public :: dststatus_print = .false.
-
   ! Coupling mode
   character(len=CS), public :: coupling_mode ! valid values are [cesm,nems_orig,nems_frac,nems_orig_data,hafs]
 
-  ! Set mappers
+  ! Mapping
   integer , public, parameter :: mapunset          = 0
   integer , public, parameter :: mapbilnr          = 1
   integer , public, parameter :: mapconsf          = 2
@@ -71,7 +71,6 @@ module med_internalstate_mod
   integer , public, parameter :: mapbilnr_nstod    = 16 ! bilinear with nstod extrapolation
   integer , public, parameter :: mapconsf_aofrac   = 17 ! conservative with aofrac normalization (ufs only)
   integer , public, parameter :: nmappers          = 17
-
   character(len=*) , public, parameter :: mapnames(nmappers) = &
        (/'bilnr       ',&
          'consf       ',&
@@ -91,12 +90,6 @@ module med_internalstate_mod
          'bilnr_nstod ',&
          'consf_aofrac'/)
 
-  type, public ::  mesh_info_type
-     real(r8), pointer :: areas(:) => null()
-     real(r8), pointer :: lats(:) => null()
-     real(r8), pointer :: lons(:) => null()
-  end type mesh_info_type
-
   type, public :: packed_data_type
      integer, allocatable :: fldindex(:) ! size of number of packed fields
      character(len=CS)    :: mapnorm     ! normalization for packed field
@@ -105,6 +98,15 @@ module med_internalstate_mod
      type(ESMF_Field)     :: field_fracsrc
      type(ESMF_Field)     :: field_fracdst
   end type packed_data_type
+
+  logical, public :: dststatus_print = .false.
+
+  ! Mesh info
+  type, public ::  mesh_info_type
+     real(r8), pointer :: areas(:) => null()
+     real(r8), pointer :: lats(:) => null()
+     real(r8), pointer :: lons(:) => null()
+  end type mesh_info_type
 
   ! private internal state to keep instance data
   type InternalStateStruct
@@ -181,33 +183,22 @@ module med_internalstate_mod
 contains
 !=====================================================================
 
-  subroutine med_internalstate_init(gcomp, &
-       med_present, atm_present, lnd_present, &
-       ocn_present, ice_present, rof_present, wav_present, glc_present, rc)
+  subroutine med_internalstate_init(gcomp, rc)
 
     use ESMF         , only : ESMF_LogFoundAllocError, ESMF_AttributeGet
-    use NUOPC_Comp   , only : NUOPC_CompAttributeAdd
-    use NUOPC_Comp   , only : NUOPC_CompAttributeGet 
-    use NUOPC_Comp   , only : NUOPC_CompAttributeSet
+    use NUOPC_Comp   , only : NUOPC_CompAttributeGet
     use med_utils_mod, only : chkerr => med_utils_ChkErr
 
     ! input/output variables
-    type(ESMF_GridComp)  :: gcomp
-    character(len=*) , intent(out) :: med_present
-    character(len=*) , intent(out) :: atm_present
-    character(len=*) , intent(out) :: lnd_present
-    character(len=*) , intent(out) :: ocn_present
-    character(len=*) , intent(out) :: ice_present
-    character(len=*) , intent(out) :: rof_present
-    character(len=*) , intent(out) :: wav_present
-    character(len=*) , intent(out) :: glc_present
+    type(ESMF_GridComp)            :: gcomp
     integer          , intent(out) :: rc
 
     ! local variables
     type(InternalState)        :: is_local
     logical                    :: ispresent, isset
-    integer                    :: n, ns, n1, n2, ncomp 
+    integer                    :: n, ns, n1, n2
     integer                    :: stat
+    logical                    :: glc_present
     character(len=8)           :: cnum
     character(len=CS)          :: cvalue
     character(len=CL)          :: cname
@@ -221,67 +212,12 @@ contains
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call NUOPC_CompAttributeAdd(gcomp, &
-         attrList=(/'atm_present','lnd_present','ocn_present','ice_present',&
-                    'rof_present','wav_present','glc_present','med_present'/), rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    med_present = "false"
-    atm_present = "false"
-    lnd_present = "false"
-    ocn_present = "false"
-    ice_present = "false"
-    rof_present = "false"
-    wav_present = "false"
-    glc_present = "false"
-
-    call NUOPC_CompAttributeGet(gcomp, name='mediator_present', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent .and. isSet) then
-       med_present = trim(cvalue)
-    end if
-    ! Note that the present flag is set to true if the component is not stub
-    call NUOPC_CompAttributeGet(gcomp, name='ATM_model', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent .and. isSet) then
-       if (trim(cvalue) /= 'satm') atm_present = "true"
-       atm_name = trim(cvalue)
-    end if
-    call NUOPC_CompAttributeGet(gcomp, name='LND_model', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent .and. isSet) then
-       if (trim(cvalue) /= 'slnd') lnd_present = "true"
-       lnd_name = trim(cvalue)
-    end if
-    call NUOPC_CompAttributeGet(gcomp, name='OCN_model', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent .and. isSet) then
-       if (trim(cvalue) /= 'socn') ocn_present = "true"
-       ocn_name = trim(cvalue)
-    end if
-    call NUOPC_CompAttributeGet(gcomp, name='ICE_model', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent .and. isSet) then
-       if (trim(cvalue) /= 'sice') ice_present = "true"
-       ice_name = trim(cvalue)
-    end if
-    call NUOPC_CompAttributeGet(gcomp, name='ROF_model', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent .and. isSet) then
-       if (trim(cvalue) /= 'srof') rof_present = "true"
-       rof_name = trim(cvalue)
-    end if
-    call NUOPC_CompAttributeGet(gcomp, name='WAV_model', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent .and. isSet) then
-       if (trim(cvalue) /= 'swav') wav_present = "true"
-       wav_name = trim(cvalue)
-    end if
+    ! Determine ncomps
     call NUOPC_CompAttributeGet(gcomp, name='GLC_model', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (isPresent .and. isSet) then
        if (trim(cvalue) /= 'sglc') then
-          glc_present = "true"
+          glc_present = .true.
           call NUOPC_CompAttributeGet(gcomp, name='mesh_glc', value=mesh_glc, isPresent=isPresent, isSet=isSet, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           num_icesheets = 0
@@ -308,52 +244,9 @@ contains
        glc_name = trim(cvalue)
     end if
 
-    ! Determine component names
-    allocate(compname(ncomps))
-    compname(compmed) = 'med'
-    compname(compatm) = 'atm'
-    compname(complnd) = 'lnd'
-    compname(compocn) = 'ocn'
-    compname(compice) = 'ice'
-    compname(comprof) = 'rof'
-    compname(compwav) = 'wav'
-    do ns = 1,num_icesheets
-       write(cnum,'(i0)') ns
-       compname(compglc(ns)) = 'glc' // trim(cnum)
-    end do
-
-    ! Determine present flags
-    call NUOPC_CompAttributeSet(gcomp, name="atm_present", value=atm_present, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompAttributeSet(gcomp, name="lnd_present", value=lnd_present, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompAttributeSet(gcomp, name="ocn_present", value=ocn_present, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompAttributeSet(gcomp, name="ice_present", value=ice_present, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompAttributeSet(gcomp, name="rof_present", value=rof_present, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompAttributeSet(gcomp, name="wav_present", value=trim(wav_present), rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompAttributeSet(gcomp, name="glc_present", value=trim(glc_present), rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompAttributeSet(gcomp, name="med_present", value=med_present, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    if (mastertask) then
-       write(logunit,*)
-       if (trim(atm_present).eq."true") write(logunit,*) "atm_name="//trim(atm_name)
-       if (trim(lnd_present).eq."true") write(logunit,*) "lnd_name="//trim(lnd_name)
-       if (trim(ocn_present).eq."true") write(logunit,*) "ocn_name="//trim(ocn_name)
-       if (trim(ice_present).eq."true") write(logunit,*) "ice_name="//trim(ice_name)
-       if (trim(rof_present).eq."true") write(logunit,*) "rof_name="//trim(rof_name)
-       if (trim(wav_present).eq."true") write(logunit,*) "wav_name="//trim(wav_name)
-       if (trim(glc_present).eq."true") write(logunit,*) "glc_name="//trim(glc_name)
-       if (trim(med_present).eq."true") write(logunit,*) "med_name="//trim(med_name)
-       write(logunit,*)
-    end if
-
-    ! Allocate memory
+    ! Allocate memory now that ncomps is determined
+    allocate(is_local%wrap%comp_present(ncomps))
+    allocate(is_local%wrap%med_coupling_active(ncomps,ncomps))
     allocate(is_local%wrap%nx(ncomps))
     allocate(is_local%wrap%ny(ncomps))
     allocate(is_local%wrap%NStateImp(ncomps))
@@ -369,43 +262,121 @@ contains
     allocate(is_local%wrap%FBArea(ncomps))
     allocate(is_local%wrap%mesh_info(ncomps))
 
-    !----------------------------------------------------------
-    ! Initialize mediator present flags
-    !----------------------------------------------------------
+    ! Determine component names
+    allocate(compname(ncomps))
+    compname(compmed) = 'med'
+    compname(compatm) = 'atm'
+    compname(complnd) = 'lnd'
+    compname(compocn) = 'ocn'
+    compname(compice) = 'ice'
+    compname(comprof) = 'rof'
+    compname(compwav) = 'wav'
+    do ns = 1,num_icesheets
+       write(cnum,'(i0)') ns
+       compname(compglc(ns)) = 'glc' // trim(cnum)
+    end do
 
-    allocate(is_local%wrap%comp_present(ncomps))
-    is_local%wrap%comp_present(:) = .false.
-    
-    if (mastertask) then
-       write(logunit,'(a)') trim(subname) // "Initializing present flags"
+    ! Determine present flags
+    is_local%wrap%comp_present(:)       = .false.
+    is_local%wrap%comp_present(compmed) = .false.
+    is_local%wrap%comp_present(compatm) = .false.
+    is_local%wrap%comp_present(complnd) = .false.
+    is_local%wrap%comp_present(compocn) = .false.
+    is_local%wrap%comp_present(compice) = .false.
+    is_local%wrap%comp_present(comprof) = .false.
+    is_local%wrap%comp_present(compwav) = .false.
+
+    call NUOPC_CompAttributeGet(gcomp, name='mediator_present', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+       read(cvalue,*) is_local%wrap%comp_present(compmed)
+    end if
+    ! Note that the present flag is set to true if the component is not stub
+    call NUOPC_CompAttributeGet(gcomp, name='ATM_model', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+       if (trim(cvalue) /= 'satm') is_local%wrap%comp_present(compatm) = .true.
+       atm_name = trim(cvalue)
+    end if
+    call NUOPC_CompAttributeGet(gcomp, name='LND_model', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+       if (trim(cvalue) /= 'slnd') is_local%wrap%comp_present(complnd) = .true.
+       lnd_name = trim(cvalue)
+    end if
+    call NUOPC_CompAttributeGet(gcomp, name='OCN_model', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+       if (trim(cvalue) /= 'socn') is_local%wrap%comp_present(compocn) = .true.
+       ocn_name = trim(cvalue)
+    end if
+    call NUOPC_CompAttributeGet(gcomp, name='ICE_model', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+       if (trim(cvalue) /= 'sice') is_local%wrap%comp_present(compice) = .true.
+       ice_name = trim(cvalue)
+    end if
+    call NUOPC_CompAttributeGet(gcomp, name='ROF_model', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+       if (trim(cvalue) /= 'srof') is_local%wrap%comp_present(comprof) = .true.
+       rof_name = trim(cvalue)
+    end if
+    call NUOPC_CompAttributeGet(gcomp, name='WAV_model', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+       if (trim(cvalue) /= 'swav') is_local%wrap%comp_present(compwav) = .true.
+       wav_name = trim(cvalue)
     end if
 
-    do n1 = 1,ncomps
-       cname = trim(compname(n1))
-       if (cname(1:3) == 'glc') then
-          ! Special logic for glc since there can be multiple ice sheets
-          call ESMF_AttributeGet(gcomp, name="glc_present", value=cvalue, &
-               convention="NUOPC", purpose="Instance", rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          do ns = 1,num_icesheets
-             is_local%wrap%comp_present(compglc(ns)) = .true.
-          end do
-       else
-          call ESMF_AttributeGet(gcomp, name=trim(compname(n1))//"_present", value=cvalue, &
-               convention="NUOPC", purpose="Instance", rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          if (trim(cvalue) == "true") then
-             is_local%wrap%comp_present(n1) = .true.
-          else
-             is_local%wrap%comp_present(n1) = .false.
-          end if
-       end if
-       if (mastertask) then
+    ! Special logic for glc
+    ! do n1 = 1,ncomps
+    !    cname = trim(compname(n1))
+    !    if (cname(1:3) == 'glc') then
+    !       ! Special logic for glc since there can be multiple ice sheets
+    !       call ESMF_AttributeGet(gcomp, name="glc_present", value=cvalue, &
+    !            convention="NUOPC", purpose="Instance", rc=rc)
+    !       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    !       do ns = 1,num_icesheets
+    !          is_local%wrap%comp_present(compglc(ns)) = .true.
+    !       end do
+    !    else
+    !       call ESMF_AttributeGet(gcomp, name=trim(compname(n1))//"_present", value=cvalue, &
+    !            convention="NUOPC", purpose="Instance", rc=rc)
+    !       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    !       if (trim(cvalue) == "true") then
+    !          is_local%wrap%comp_present(n1) = .true.
+    !       else
+    !          is_local%wrap%comp_present(n1) = .false.
+    !       end if
+    !    end if
+    ! end do
+
+    ! Write out component names and present flags
+    if (mastertask) then
+       write(logunit,*)
+       do n1 = 1,ncomps
           write(msgString,'(A,L4)') trim(subname)//' comp_present(comp'//trim(compname(n1))//') = ',&
                is_local%wrap%comp_present(n1)
           write(logunit,'(a)') trim(subname) // trim(msgString)
-       end if
-    end do
+       end do
+       write(logunit,*)
+       if (is_local%wrap%comp_present(compatm)) write(logunit,*) "atm_name="//trim(atm_name)
+       if (is_local%wrap%comp_present(complnd)) write(logunit,*) "lnd_name="//trim(lnd_name)
+       if (is_local%wrap%comp_present(compocn)) write(logunit,*) "ocn_name="//trim(ocn_name)
+       if (is_local%wrap%comp_present(compice)) write(logunit,*) "ice_name="//trim(ice_name)
+       if (is_local%wrap%comp_present(comprof)) write(logunit,*) "rof_name="//trim(rof_name)
+       if (is_local%wrap%comp_present(compwav)) write(logunit,*) "wav_name="//trim(wav_name)
+       if (is_local%wrap%comp_present(compmed)) write(logunit,*) "med_name="//trim(med_name)
+       write(logunit,*)
+    end if
+
+    ! Obtain dststatus_print setting if present
+    call NUOPC_CompAttributeGet(gcomp, name='dststatus_print', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) dststatus_print=(trim(cvalue)=="true")
+    write(msgString,*) trim(subname)//': Mediator dststatus_print is ',dststatus_print
+    call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
 
   end subroutine med_internalstate_init
 
@@ -440,12 +411,12 @@ contains
     ! Check for active coupling interactions
     ! must be allowed, bundles created, and both sides have some fields
     !----------------------------------------------------------
-    
+
     ! This defines the med_coupling_allowed a starting point for what is
     ! allowed in this coupled system.  It will be revised further after the system
     ! starts, but any coupling set to false will never be allowed.
     ! are allowed, just update the table below.
-    
+
     if (mastertask) then
        write(logunit,'(a)') trim(subname) // "Initializing active coupling flags"
     end if
@@ -453,7 +424,6 @@ contains
     ! Initialize med_coupling_allowed
     allocate(med_coupling_allowed(ncomps,ncomps))
     med_coupling_allowed(:,:) = .false.
-    allocate(is_local%wrap%med_coupling_active(ncomps,ncomps))
     is_local%wrap%med_coupling_active(:,:) = .false.
 
     ! to atmosphere
@@ -513,9 +483,7 @@ contains
                      med_coupling_allowed(n1,n2)) then
                    call State_GetNumFields(is_local%wrap%NStateExp(n2), cntn2, rc=rc) ! Import Field Count
                    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-                   if (cntn2 > 0) then
-                      is_local%wrap%med_coupling_active(n1,n2) = .true.
-                   endif
+                   if (cntn2 > 0) is_local%wrap%med_coupling_active(n1,n2) = .true.
                 endif
              enddo
           end if
@@ -554,7 +522,7 @@ contains
        write(logunit,*) ' '
     endif
 
-    ! Determine lnd2glc_coupling and accum_lnd2glc flags 
+    ! Determine lnd2glc_coupling and accum_lnd2glc flags
     do ns = 1,num_icesheets
        if (is_local%wrap%med_coupling_active(complnd,compglc(ns))) then
           lnd2glc_coupling = .true.

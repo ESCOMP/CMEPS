@@ -73,15 +73,10 @@ module MED
   private med_grid_write
   private med_finalize
 
-  character(len=*), parameter :: grid_arbopt = "grid_reg"   ! grid_reg or grid_arb
   character(len=*), parameter :: u_FILE_u  = &
        __FILE__
-  logical :: profile_memory = .false.
 
-  character(len=8) :: atm_present, lnd_present
-  character(len=8) :: ice_present, rof_present
-  character(len=8) :: glc_present, med_present
-  character(len=8) :: ocn_present, wav_present
+  logical :: profile_memory = .false.
 
   logical, allocatable :: compDone(:) ! component done flat
 
@@ -546,7 +541,6 @@ contains
     use ESMF  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_METHOD_INITIALIZE
     use NUOPC , only : NUOPC_CompFilterPhaseMap, NUOPC_CompAttributeGet
     use med_internalstate_mod, only : mastertask, logunit, diagunit
-    use med_internalstate_mod, only : dststatus_print
 
     type(ESMF_GridComp)   :: gcomp
     type(ESMF_State)      :: importState, exportState
@@ -629,13 +623,6 @@ contains
     write(msgString,'(A,i6)') trim(subname)//': Mediator dbug_flag is ',dbug_flag
     call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
 
-    ! Obtain dststatus_print setting if present
-    call NUOPC_CompAttributeGet(gcomp, name='dststatus_print', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent .and. isSet) dststatus_print=(trim(cvalue)=="true")
-    write(msgString,*) trim(subname)//': Mediator dststatus_print is ',dststatus_print
-    call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
-
     ! Switch to IPDv03 by filtering all other phaseMap entries
     call NUOPC_CompFilterPhaseMap(gcomp, ESMF_METHOD_INITIALIZE, acceptStringList=(/"IPDv03p"/), rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -696,8 +683,7 @@ contains
     call ESMF_GridCompSetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call med_internalstate_init(gcomp, med_present, atm_present, lnd_present, &
-         ocn_present, ice_present, rof_present, wav_present, glc_present, rc)
+    call med_internalstate_init(gcomp, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !------------------
@@ -1942,7 +1928,7 @@ contains
           deallocate(fieldNameList)
 
           if (.not. compDone(compatm)) then  ! atmdone is not true
-             if (trim(lnd_present) == 'true') then
+             if (is_local%wrap%comp_present(complnd)) then
                 ! map initial lnd->atm
                 call med_phases_post_lnd(gcomp, rc)
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -2079,37 +2065,37 @@ contains
        !---------------------------------------
        ! Call post routines as part of initialization
        !---------------------------------------
-       if (trim(atm_present) == 'true') then
+       if (is_local%wrap%comp_present(compatm)) then
           ! map atm->ocn, atm->ice, atm->lnd
           call med_phases_post_atm(gcomp, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
-       if (trim(ice_present) == 'true') then
+       if (is_local%wrap%comp_present(compice)) then
           ! call set ice_frac and map ice->atm and ice->ocn
           call med_phases_post_ice(gcomp, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
-       if (trim(glc_present) == 'true') then
+       if (allocated(compglc)) then
           ! map initial glc->lnd, glc->ocn and glc->ice
           call med_phases_post_glc(gcomp, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
-       if (trim(lnd_present) == 'true') then
+       if (is_local%wrap%comp_present(complnd)) then
           ! map initial lnd->atm
           call med_phases_post_lnd(gcomp, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
-       if (trim(ocn_present) == 'true') then
+       if (is_local%wrap%comp_present(compocn)) then
           ! map initial ocn->ice
           call med_phases_post_ocn(gcomp, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
-       if (trim(rof_present) == 'true') then
+       if (is_local%wrap%comp_present(comprof)) then
           ! map initial rof->lnd, rof->ocn and rof->ice
           call med_phases_post_rof(gcomp, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
-       if (trim(wav_present) == 'true') then
+       if (is_local%wrap%comp_present(compwav)) then
           ! map initial wav->ocn and wav->ice
           call med_phases_post_wav(gcomp, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -2117,6 +2103,7 @@ contains
 
        call med_phases_profile(gcomp, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
     else ! Not all done
        call NUOPC_CompAttributeSet(gcomp, name="InitializeDataComplete", value="false", rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
