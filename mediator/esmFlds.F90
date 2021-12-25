@@ -76,8 +76,8 @@ contains
 !================================================================================
 
   subroutine med_fldlist_init1()
-    allocate(fldlistTo(0:ncomps))
-    allocate(fldlistFr(0:ncomps))
+    allocate(fldlistTo(ncomps))
+    allocate(fldlistFr(ncomps))
   end subroutine med_fldlist_init1
 
   !================================================================================
@@ -136,12 +136,12 @@ contains
           newflds(n)%stdname            = flds(n)%stdname
           newflds(n)%shortname          = flds(n)%shortname
 
-          allocate(newflds(n)%mapindex(0:mapsize))
-          allocate(newflds(n)%mapnorm(0:mapsize))
-          allocate(newflds(n)%mapfile(0:mapsize))
-          allocate(newflds(n)%merge_fields(0:mrgsize))
-          allocate(newflds(n)%merge_types(0:mrgsize))
-          allocate(newflds(n)%merge_fracnames(0:mrgsize))
+          allocate(newflds(n)%mapindex(mapsize))
+          allocate(newflds(n)%mapnorm(mapsize))
+          allocate(newflds(n)%mapfile(mapsize))
+          allocate(newflds(n)%merge_fields(mrgsize))
+          allocate(newflds(n)%merge_types(mrgsize))
+          allocate(newflds(n)%merge_fracnames(mrgsize))
 
           newflds(n)%mapindex(:)        = flds(n)%mapindex(:)
           newflds(n)%mapnorm(:)         = flds(n)%mapnorm(:)
@@ -174,12 +174,12 @@ contains
        else
           flds(id)%shortname = trim(stdname)
        end if
-       allocate(flds(id)%mapindex(0:mapsize))
-       allocate(flds(id)%mapnorm(0:mapsize))
-       allocate(flds(id)%mapfile(0:mapsize))
-       allocate(flds(id)%merge_fields(0:mrgsize))
-       allocate(flds(id)%merge_types(0:mrgsize))
-       allocate(flds(id)%merge_fracnames(0:mrgsize))
+       allocate(flds(id)%mapindex(mapsize))
+       allocate(flds(id)%mapnorm(mapsize))
+       allocate(flds(id)%mapfile(mapsize))
+       allocate(flds(id)%merge_fields(mrgsize))
+       allocate(flds(id)%merge_types(mrgsize))
+       allocate(flds(id)%merge_fracnames(mrgsize))
        flds(id)%mapindex(:) = mapunset
        flds(id)%mapnorm(:) = 'unset'
        flds(id)%mapfile(:) = 'unset'
