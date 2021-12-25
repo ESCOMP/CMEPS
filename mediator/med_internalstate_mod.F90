@@ -11,7 +11,9 @@ module med_internalstate_mod
   implicit none
   private
 
+  ! public routines
   public :: med_internalstate_init
+  public :: med_internalstate_active_coupling
 
   integer, public :: logunit            ! logunit for mediator log output
   integer, public :: diagunit           ! diagunit for budget output (med master only)
@@ -19,6 +21,7 @@ module med_internalstate_mod
   logical, public :: mastertask=.false. ! is this the mastertask
   integer, public :: med_id             ! needed currently in med_io_mod and set in esm.F90
 
+  ! Components
   integer, public :: compmed = 1
   integer, public :: compatm = 2
   integer, public :: complnd = 3
@@ -26,8 +29,12 @@ module med_internalstate_mod
   integer, public :: compice = 5
   integer, public :: comprof = 6
   integer, public :: compwav = 7
-  integer, public, allocatable :: compglc(:)
   integer, public :: ncomps = 7 ! this will be incremented if complgc is allocated
+  integer, public, allocatable :: compglc(:)
+  integer, public :: num_icesheets     ! obtained from attribute
+  logical, public :: ocn2glc_coupling  ! obtained from attribute
+  logical, public :: lnd2glc_coupling  ! set in med.F90
+  logical, public :: accum_lnd2glc     ! set in med.F90 (this can be true even if lnd2glc_coupling is false)
 
   character(len=CS), public, allocatable :: compname(:)
   character(len=CS), public :: med_name = ''
@@ -39,17 +46,10 @@ module med_internalstate_mod
   character(len=CS), public :: wav_name = ''
   character(len=CS), public :: glc_name = ''
 
-  integer, public :: num_icesheets     ! obtained from attribute
-  logical, public :: ocn2glc_coupling  ! obtained from attribute
-  logical, public :: lnd2glc_coupling  ! obtained in med.F90
-  logical, public :: accum_lnd2glc     ! obtained in med.F90 (this can be true even if lnd2glc_coupling is false)
   logical, public :: dststatus_print = .false.
 
   ! Coupling mode
   character(len=CS), public :: coupling_mode ! valid values are [cesm,nems_orig,nems_frac,nems_orig_data,hafs]
-
-  ! Active coupling definitions (will be initialize in med.F90)
-  logical, public, allocatable :: med_coupling_allowed(:, :)
 
   ! Set mappers
   integer , public, parameter :: mapunset          = 0
@@ -116,9 +116,9 @@ module med_internalstate_mod
     ! FBImp(n,k) is the FBImp(n,n) interpolated to grid k
     ! RH(n,k,m) is a RH from grid n to grid k, map type m
 
-    ! Present/Active logical flags
-    logical, pointer   :: comp_present(:)          ! comp present flag
-    logical, pointer   :: med_coupling_active(:,:) ! computes the active coupling
+    ! Present/allowed coupling/active coupling logical flags
+    logical, pointer  :: comp_present(:)            ! comp present flag
+    logical, pointer  :: med_coupling_active(:,:)   ! computes the active coupling
 
     ! Mediator vm
     type(ESMF_VM)          :: vm
@@ -214,7 +214,7 @@ contains
     character(len=ESMF_MAXSTR) :: mesh_glc
     character(len=CS)          :: attrList(8)
     character(len=CX)          :: msgString
-    character(len=*),parameter :: subname=' (med_internal_state_init)'
+    character(len=*),parameter :: subname=' (med_internalstate_init)'
     !-----------------------------------------------------------
 
     nullify(is_local%wrap)
@@ -308,6 +308,7 @@ contains
        glc_name = trim(cvalue)
     end if
 
+    ! Determine component names
     allocate(compname(ncomps))
     compname(compmed) = 'med'
     compname(compatm) = 'atm'
@@ -321,6 +322,7 @@ contains
        compname(compglc(ns)) = 'glc' // trim(cnum)
     end do
 
+    ! Determine present flags
     call NUOPC_CompAttributeSet(gcomp, name="atm_present", value=atm_present, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call NUOPC_CompAttributeSet(gcomp, name="lnd_present", value=lnd_present, rc=rc)
@@ -351,9 +353,7 @@ contains
        write(logunit,*)
     end if
 
-    allocate(med_coupling_allowed(ncomps,ncomps))
-    allocate(is_local%wrap%med_coupling_active(ncomps,ncomps))
-    allocate(is_local%wrap%comp_present(ncomps))
+    ! Allocate memory
     allocate(is_local%wrap%nx(ncomps))
     allocate(is_local%wrap%ny(ncomps))
     allocate(is_local%wrap%NStateImp(ncomps))
@@ -366,15 +366,14 @@ contains
     allocate(is_local%wrap%field_NormOne(ncomps,ncomps,nmappers))
     allocate(is_local%wrap%packed_data(ncomps,ncomps,nmappers))
     allocate(is_local%wrap%FBfrac(ncomps))
-    allocate(is_local%wrap%mesh_info(ncomps))
     allocate(is_local%wrap%FBArea(ncomps))
+    allocate(is_local%wrap%mesh_info(ncomps))
 
     !----------------------------------------------------------
     ! Initialize mediator present flags
     !----------------------------------------------------------
 
-    write(6,*)'DEBUG: ncomps = ',ncomps
-    is_local%wrap%med_coupling_active(:,:) = .false.
+    allocate(is_local%wrap%comp_present(ncomps))
     is_local%wrap%comp_present(:) = .false.
     
     if (mastertask) then
@@ -409,5 +408,183 @@ contains
     end do
 
   end subroutine med_internalstate_init
+
+  !=====================================================================
+  subroutine med_internalstate_active_coupling(gcomp, rc)
+
+    use ESMF            , only : ESMF_StateIsCreated
+    use NUOPC           , only : NUOPC_CompAttributeGet
+    use med_methods_mod , only : State_getNumFields => med_methods_State_getNumFields
+    use med_utils_mod   , only : chkerr => med_utils_ChkErr
+
+    ! input/output variables
+    type(ESMF_GridComp) , intent(inout) :: gcomp
+    integer             , intent(out)   :: rc
+
+    ! local variables
+    type(InternalState)  :: is_local
+    integer              :: n1, n2, ns
+    integer              :: cntn1, cntn2
+    character(len=CX)    :: msgString
+    logical, allocatable :: med_coupling_allowed(:,:)
+    character(len=CL)    :: cvalue
+    logical              :: isPresent, isSet
+    character(len=*),parameter :: subname=' (med_internalstate_allowed_coupling)'
+    !-----------------------------------------------------------
+
+    nullify(is_local%wrap)
+    call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    !----------------------------------------------------------
+    ! Check for active coupling interactions
+    ! must be allowed, bundles created, and both sides have some fields
+    !----------------------------------------------------------
+    
+    ! This defines the med_coupling_allowed a starting point for what is
+    ! allowed in this coupled system.  It will be revised further after the system
+    ! starts, but any coupling set to false will never be allowed.
+    ! are allowed, just update the table below.
+    
+    if (mastertask) then
+       write(logunit,'(a)') trim(subname) // "Initializing active coupling flags"
+    end if
+
+    ! Initialize med_coupling_allowed
+    allocate(med_coupling_allowed(ncomps,ncomps))
+    med_coupling_allowed(:,:) = .false.
+    allocate(is_local%wrap%med_coupling_active(ncomps,ncomps))
+    is_local%wrap%med_coupling_active(:,:) = .false.
+
+    ! to atmosphere
+    med_coupling_allowed(complnd,compatm) = .true.
+    med_coupling_allowed(compice,compatm) = .true.
+    med_coupling_allowed(compocn,compatm) = .true.
+    med_coupling_allowed(compwav,compatm) = .true.
+
+    ! to land
+    med_coupling_allowed(compatm,complnd) = .true.
+    med_coupling_allowed(comprof,complnd) = .true.
+    do ns = 1,num_icesheets
+       med_coupling_allowed(compglc(ns),complnd) = .true.
+    end do
+
+    ! to ocean
+    med_coupling_allowed(compatm,compocn) = .true.
+    med_coupling_allowed(compice,compocn) = .true.
+    med_coupling_allowed(comprof,compocn) = .true.
+    med_coupling_allowed(compwav,compocn) = .true.
+    do ns = 1,num_icesheets
+       med_coupling_allowed(compglc(ns),compocn) = .true.
+    end do
+
+    ! to ice
+    med_coupling_allowed(compatm,compice) = .true.
+    med_coupling_allowed(compocn,compice) = .true.
+    med_coupling_allowed(comprof,compice) = .true.
+    med_coupling_allowed(compwav,compice) = .true.
+    do ns = 1,num_icesheets
+       med_coupling_allowed(compglc(ns),compice) = .true.
+    end do
+
+    ! to river
+    med_coupling_allowed(complnd,comprof) = .true.
+
+    ! to wave
+    med_coupling_allowed(compatm,compwav) = .true.
+    med_coupling_allowed(compocn,compwav) = .true.
+    med_coupling_allowed(compice,compwav) = .true.
+
+    ! to land-ice
+    do ns = 1,num_icesheets
+       med_coupling_allowed(complnd,compglc(ns)) = .true.
+       med_coupling_allowed(compocn,compglc(ns)) = .true.
+    end do
+
+    ! initialize med_coupling_active table
+    is_local%wrap%med_coupling_active(:,:) = .false.
+    do n1 = 1,ncomps
+       if (is_local%wrap%comp_present(n1) .and. ESMF_StateIsCreated(is_local%wrap%NStateImp(n1),rc=rc)) then
+          call State_GetNumFields(is_local%wrap%NStateImp(n1), cntn1, rc=rc) ! Import Field Count
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          if (cntn1 > 0) then
+             do n2 = 1,ncomps
+                if (is_local%wrap%comp_present(n2) .and. ESMF_StateIsCreated(is_local%wrap%NStateExp(n2),rc=rc) .and. &
+                     med_coupling_allowed(n1,n2)) then
+                   call State_GetNumFields(is_local%wrap%NStateExp(n2), cntn2, rc=rc) ! Import Field Count
+                   if (ChkErr(rc,__LINE__,u_FILE_u)) return
+                   if (cntn2 > 0) then
+                      is_local%wrap%med_coupling_active(n1,n2) = .true.
+                   endif
+                endif
+             enddo
+          end if
+       endif
+    enddo
+
+    ! create tables of allowed and active coupling flags
+    ! - the rows are the destination of coupling
+    ! - the columns are the source of coupling
+    ! - So, the second column indicates which models the atm is coupled to.
+    ! - And the second row indicates which models are coupled to the atm.
+    if (mastertask) then
+       write(logunit,*) ' '
+       write(logunit,'(A)') trim(subname)//' Allowed coupling flags'
+       write(logunit,'(2x,A10,20(A5))') '|from to-> ',(compname(n2),n2=1,ncomps)
+       do n1 = 1,ncomps
+          write(msgString,'(2x,a1,A,5x,20(L5))') '|',trim(compname(n1)), &
+               (med_coupling_allowed(n1,n2),n2=1,ncomps)
+          do n2 = 1,len_trim(msgString)
+             if (msgString(n2:n2) == 'F') msgString(n2:n2)='-'
+          enddo
+          write(logunit,'(A)') trim(msgString)
+       enddo
+
+       write(logunit,*) ' '
+       write(logunit,'(A)') subname//' Active coupling flags'
+       write(logunit,'(2x,A10,20(A5))') '|from to-> ',(compname(n2),n2=1,ncomps)
+       do n1 = 1,ncomps
+          write(msgString,'(2x,a1,A,5x,20(L5))') '|',trim(compname(n1)), &
+               (is_local%wrap%med_coupling_active(n1,n2),n2=1,ncomps)
+          do n2 = 1,len_trim(msgString)
+             if (msgString(n2:n2) == 'F') msgString(n2:n2)='-'
+          enddo
+          write(logunit,'(A)') trim(msgString)
+       enddo
+       write(logunit,*) ' '
+    endif
+
+    ! Determine lnd2glc_coupling and accum_lnd2glc flags 
+    do ns = 1,num_icesheets
+       if (is_local%wrap%med_coupling_active(complnd,compglc(ns))) then
+          lnd2glc_coupling = .true.
+          exit
+       end if
+    end do
+    if (lnd2glc_coupling) then
+       accum_lnd2glc = .true.
+    else
+       ! Determine if will create auxiliary history file that contains
+       ! lnd2glc data averaged over the year
+       call NUOPC_CompAttributeGet(gcomp, name="histaux_l2x1yrg", value=cvalue, &
+            isPresent=isPresent, isSet=isSet, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       if (isPresent .and. isSet) then
+          read(cvalue,*) accum_lnd2glc
+       else
+          accum_lnd2glc = .false.
+       end if
+    end if
+
+    ! Reset ocn2glc active coupling based in input attribute
+    if (.not. ocn2glc_coupling) then
+       do ns = 1,num_icesheets
+          is_local%wrap%med_coupling_active(compocn,compglc(ns)) = .false.
+       end do
+    end if
+
+    deallocate(med_coupling_allowed)
+
+  end subroutine med_internalstate_active_coupling
 
 end module med_internalstate_mod
