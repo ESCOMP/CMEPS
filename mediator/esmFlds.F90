@@ -76,8 +76,8 @@ contains
 !================================================================================
 
   subroutine med_fldlist_init1()
-    allocate(fldlistTo(ncomps))
-    allocate(fldlistFr(ncomps))
+    allocate(fldlistTo(0:ncomps))
+    allocate(fldlistFr(0:ncomps))
   end subroutine med_fldlist_init1
 
   !================================================================================
@@ -136,12 +136,12 @@ contains
           newflds(n)%stdname            = flds(n)%stdname
           newflds(n)%shortname          = flds(n)%shortname
 
-          allocate(newflds(n)%mapindex(mapsize))
-          allocate(newflds(n)%mapnorm(mapsize))
-          allocate(newflds(n)%mapfile(mapsize))
-          allocate(newflds(n)%merge_fields(mrgsize))
-          allocate(newflds(n)%merge_types(mrgsize))
-          allocate(newflds(n)%merge_fracnames(mrgsize))
+          allocate(newflds(n)%mapindex(0:mapsize))
+          allocate(newflds(n)%mapnorm(0:mapsize))
+          allocate(newflds(n)%mapfile(0:mapsize))
+          allocate(newflds(n)%merge_fields(0:mrgsize))
+          allocate(newflds(n)%merge_types(0:mrgsize))
+          allocate(newflds(n)%merge_fracnames(0:mrgsize))
 
           newflds(n)%mapindex(:)        = flds(n)%mapindex(:)
           newflds(n)%mapnorm(:)         = flds(n)%mapnorm(:)
@@ -174,12 +174,18 @@ contains
        else
           flds(id)%shortname = trim(stdname)
        end if
-       allocate(flds(id)%mapindex(mapsize))
-       allocate(flds(id)%mapnorm(mapsize))
-       allocate(flds(id)%mapfile(mapsize))
-       allocate(flds(id)%merge_fields(mrgsize))
-       allocate(flds(id)%merge_types(mrgsize))
-       allocate(flds(id)%merge_fracnames(mrgsize))
+       allocate(flds(id)%mapindex(0:mapsize))
+       allocate(flds(id)%mapnorm(0:mapsize))
+       allocate(flds(id)%mapfile(0:mapsize))
+       allocate(flds(id)%merge_fields(0:mrgsize))
+       allocate(flds(id)%merge_types(0:mrgsize))
+       allocate(flds(id)%merge_fracnames(0:mrgsize))
+       flds(id)%mapindex(:) = mapunset
+       flds(id)%mapnorm(:) = 'unset'
+       flds(id)%mapfile(:) = 'unset'
+       flds(id)%merge_fields(:) = 'unset'
+       flds(id)%merge_types(:) = 'unset'
+       flds(id)%merge_fracnames(:) = 'unset'
     end if
 
   end subroutine med_fldList_AddFld
@@ -575,11 +581,11 @@ contains
     ! Get field merge info
     ! ----------------------------------------------
     type(med_fldList_type) , intent(in)  :: fldList
-    integer                      , intent(in)  :: fldindex
-    integer                      , intent(in)  :: compsrc
-    character(len=*)             , intent(out) :: merge_field
-    character(len=*)             , intent(out) :: merge_type
-    character(len=*)             , intent(out) :: merge_fracname
+    integer                , intent(in)  :: fldindex
+    integer                , intent(in)  :: compsrc
+    character(len=*)       , intent(out) :: merge_field
+    character(len=*)       , intent(out) :: merge_type
+    character(len=*)       , intent(out) :: merge_fracname
 
     ! local variables
     character(len=*), parameter :: subname='(med_fldList_GetFldInfo_merging)'
@@ -588,6 +594,7 @@ contains
     merge_field    = fldList%flds(fldindex)%merge_fields(compsrc)
     merge_type     = fldList%flds(fldindex)%merge_types(compsrc)
     merge_fracname = fldList%flds(fldindex)%merge_fracnames(compsrc)
+
   end subroutine med_fldList_GetFldInfo_merging
 
   !================================================================================
@@ -670,11 +677,14 @@ contains
     do nsrc = 1,ncomps
        ! Loop over all possible destination components for each src component
        do ndst = 1,ncomps
+          write(6,*)'DEBUG: nsrc,ndst,active= ',nsrc,ndst,med_coupling_active(nsrc,ndst)
           if (nsrc /= ndst .and. med_coupling_active(nsrc,ndst)) then
              ! Write all the mappings for fields from the src to the destination component
              write(logunit,*)' '
              do n = 1,size(fldListFr(nsrc)%flds)
                 mapindex = fldListFr(nsrc)%flds(n)%mapindex(ndst)
+                write(6,*)'DEBUG: nsrc,ndst= ',nsrc,ndst
+                write(6,*)'DEBUG: mapindex = ',mapindex
                 if ( mapindex /= mapunset) then
                    fldname  = trim(fldListFr(nsrc)%flds(n)%stdname)
                    mapnorm  = trim(fldListFr(nsrc)%flds(n)%mapnorm(ndst))

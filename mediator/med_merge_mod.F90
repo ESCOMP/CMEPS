@@ -80,6 +80,13 @@ contains
     real(r8), pointer          :: dataptr1d(:)
     real(r8), pointer          :: dataptr2d(:,:)
     logical                    :: zero_output
+    !DEBUG
+    integer                    :: n
+    type(ESMF_Field)           :: field_debug
+    integer                    :: fieldcount_debug
+    type(ESMF_Field), pointer  :: fieldlist_debug(:)
+    character(CL)   , pointer  :: fieldnamelist_debug(:)
+    !DEBUG
     character(len=*),parameter :: subname=' (module_med_merge_mod: med_merge_auto)'
     !---------------------------------------
 
@@ -182,6 +189,25 @@ contains
                             if (ChkErr(rc,__LINE__,u_FILE_u)) return
                          end if
                       else
+                         !DEBUG
+                         write(6,*)'DEBUG: nfld_out       = ',nfld_out
+                         write(6,*)'DEBUG: compsrc        = ',compsrc
+                         write(6,*)'DEBUG: compname       = ',trim(compname(compsrc))
+                         write(6,*)'DEBUG: merge_field    = ',trim(merge_field)
+                         write(6,*)'DEBUG: merge_fracname = ',trim(merge_fracname)
+                         call ESMF_FieldBundleGet(FBImp(compsrc), fieldCount=fieldcount_debug, rc=rc)
+                         if (chkerr(rc,__LINE__,u_FILE_u)) return
+                         allocate(fieldnamelist_debug(fieldcount_debug))
+                         allocate(fieldlist_debug(fieldcount_debug))
+                         call ESMF_FieldBundleGet(FBImp(compsrc), fieldnamelist=fieldnamelist_debug, &
+                              fieldlist=fieldlist_debug, rc=rc)
+                         if (chkerr(rc,__LINE__,u_FILE_u)) return
+                         do n = 1,fieldcount_debug
+                            write(6,*)'DEBUG: n, fieldname = ',n,trim(fieldnamelist_debug(n))
+                         end do
+                         call ESMF_FieldBundleGet(FBImp(compsrc), trim(merge_field), field=field_debug, rc=rc)
+                         if (chkerr(rc,__LINE__,u_FILE_u)) return
+                         !DEBUG
                          call med_merge_auto_field(trim(merge_type), fieldlist(nfld_out), ungriddedUBound_out, &
                               FB=FBImp(compsrc), FBFld=merge_field, FBw=FBfrac, fldw=trim(merge_fracname), rc=rc)
                          if (ChkErr(rc,__LINE__,u_FILE_u)) return

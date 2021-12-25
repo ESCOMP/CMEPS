@@ -185,7 +185,7 @@ contains
        med_present, atm_present, lnd_present, &
        ocn_present, ice_present, rof_present, wav_present, glc_present, rc)
 
-    use ESMF         , only : ESMF_LogFoundAllocError
+    use ESMF         , only : ESMF_LogFoundAllocError, ESMF_AttributeGet
     use NUOPC_Comp   , only : NUOPC_CompAttributeAdd
     use NUOPC_Comp   , only : NUOPC_CompAttributeGet 
     use NUOPC_Comp   , only : NUOPC_CompAttributeSet
@@ -205,13 +205,15 @@ contains
 
     ! local variables
     type(InternalState)        :: is_local
-    integer                    :: n, ns, ncomp 
+    logical                    :: ispresent, isset
+    integer                    :: n, ns, n1, n2, ncomp 
     integer                    :: stat
     character(len=8)           :: cnum
-    character(len=cs)          :: cvalue
-    logical                    :: ispresent, isset
+    character(len=CS)          :: cvalue
+    character(len=CL)          :: cname
     character(len=ESMF_MAXSTR) :: mesh_glc
     character(len=CS)          :: attrList(8)
+    character(len=CX)          :: msgString
     character(len=*),parameter :: subname=' (med_internal_state_init)'
     !-----------------------------------------------------------
 
@@ -251,9 +253,9 @@ contains
     if (isPresent .and. isSet) then
        if (trim(cvalue) /= 'satm') then
           atm_present = "true"
+          ncomp = ncomp + 1
+          compatm = ncomp
        end if
-       ncomp = ncomp + 1
-       compatm = ncomp
        atm_name = trim(cvalue)
     end if
 
@@ -262,9 +264,9 @@ contains
     if (isPresent .and. isSet) then
        if (trim(cvalue) /= 'slnd') then
           lnd_present = "true"
+          ncomp = ncomp + 1
+          complnd = ncomp
        end if
-       ncomp = ncomp + 1
-       complnd = ncomp
        lnd_name = trim(cvalue)
     end if
 
@@ -273,9 +275,9 @@ contains
     if (isPresent .and. isSet) then
        if (trim(cvalue) /= 'socn') then
           ocn_present = "true"
+          ncomp = ncomp + 1
+          compocn = ncomp
        end if
-       ncomp = ncomp + 1
-       compocn = ncomp
        ocn_name = trim(cvalue)
     end if
 
@@ -284,9 +286,9 @@ contains
     if (isPresent .and. isSet) then
        if (trim(cvalue) /= 'sice') then
           ice_present = "true"
+          ncomp = ncomp + 1
+          compice = ncomp
        end if
-       ncomp = ncomp + 1
-       compice = ncomp
        ice_name = trim(cvalue)
     end if
 
@@ -295,9 +297,9 @@ contains
     if (isPresent .and. isSet) then
        if (trim(cvalue) /= 'srof') then
           rof_present = "true"
+          ncomp = ncomp + 1
+          comprof = ncomp
        end if
-       ncomp = ncomp + 1
-       comprof = ncomp
        rof_name = trim(cvalue)
     end if
 
@@ -306,9 +308,9 @@ contains
     if (isPresent .and. isSet) then
        if (trim(cvalue) /= 'swav') then
           wav_present = "true"
+          ncomp = ncomp + 1
+          compwav = ncomp
        end if
-       ncomp = ncomp + 1
-       compwav = ncomp
        wav_name = trim(cvalue)
     end if
 
@@ -333,6 +335,7 @@ contains
              end if
           end if
           allocate(compglc(num_icesheets))
+          compglc(:) = 0
           do ns = 1,num_icesheets
              write(cnum,'(i0)') ns
              ncomp = ncomp + 1
@@ -403,23 +406,60 @@ contains
     end if
 
     write(6,*)'DEBUG: ncomps = ',ncomps
-    allocate(med_coupling_allowed(ncomps,ncomps))
-    allocate(is_local%wrap%comp_present(ncomps))
-    allocate(is_local%wrap%med_coupling_active(ncomps,ncomps))
+    allocate(med_coupling_allowed(0:ncomps,0:ncomps))
+    allocate(is_local%wrap%med_coupling_active(0:ncomps,0:ncomps))
+    is_local%wrap%med_coupling_active(:,:) = .false.
+    allocate(is_local%wrap%comp_present(0:ncomps))
+    is_local%wrap%comp_present(:) = .false.
     allocate(is_local%wrap%nx(ncomps))
     allocate(is_local%wrap%ny(ncomps))
-    allocate(is_local%wrap%NStateImp(ncomps))
-    allocate(is_local%wrap%NStateExp(ncomps))
-    allocate(is_local%wrap%FBImp(ncomps,ncomps))
-    allocate(is_local%wrap%FBExp(ncomps))
+    allocate(is_local%wrap%NStateImp(0:ncomps))
+    allocate(is_local%wrap%NStateExp(0:ncomps))
+    allocate(is_local%wrap%FBImp(0:ncomps,0:ncomps))
+    allocate(is_local%wrap%FBExp(0:ncomps))
     allocate(is_local%wrap%packed_data_ocnalb_o2a(nmappers))
     allocate(is_local%wrap%packed_data_aoflux_o2a(nmappers))
     allocate(is_local%wrap%RH(ncomps,ncomps,nmappers))
     allocate(is_local%wrap%field_NormOne(ncomps,ncomps,nmappers))
     allocate(is_local%wrap%packed_data(ncomps,ncomps,nmappers))
-    allocate(is_local%wrap%FBfrac(ncomps))
+    allocate(is_local%wrap%FBfrac(0:ncomps))
     allocate(is_local%wrap%mesh_info(ncomps))
     allocate(is_local%wrap%FBArea(ncomps))
+
+      !----------------------------------------------------------
+      ! Initialize mediator present flags
+      !----------------------------------------------------------
+
+      if (mastertask) then
+         write(logunit,'(a)') trim(subname) // "Initializing present flags"
+      end if
+
+      do n1 = 1,ncomps
+         cname = trim(compname(n1))
+         if (cname(1:3) == 'glc') then
+            ! Special logic for glc since there can be multiple ice sheets
+            call ESMF_AttributeGet(gcomp, name="glc_present", value=cvalue, &
+                 convention="NUOPC", purpose="Instance", rc=rc)
+            if (ChkErr(rc,__LINE__,u_FILE_u)) return
+            do ns = 1,num_icesheets
+               is_local%wrap%comp_present(compglc(ns)) = .true.
+            end do
+         else
+            call ESMF_AttributeGet(gcomp, name=trim(compname(n1))//"_present", value=cvalue, &
+                 convention="NUOPC", purpose="Instance", rc=rc)
+            if (ChkErr(rc,__LINE__,u_FILE_u)) return
+            if (trim(cvalue) == "true") then
+               is_local%wrap%comp_present(n1) = .true.
+            else
+               is_local%wrap%comp_present(n1) = .false.
+            end if
+         end if
+         if (mastertask) then
+            write(msgString,'(A,L4)') trim(subname)//' comp_present(comp'//trim(compname(n1))//') = ',&
+                 is_local%wrap%comp_present(n1)
+            write(logunit,'(a)') trim(subname) // trim(msgString)
+         end if
+      end do
 
   end subroutine med_internalstate_init
 

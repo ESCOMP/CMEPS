@@ -1557,7 +1557,6 @@ contains
     character(ESMF_MAXSTR),allocatable :: fieldNameList(:)
     character(CL), pointer             :: fldnames(:)
     character(CL)                      :: cvalue
-    character(CL)                      :: cname
     character(CL)                      :: start_type
     logical                            :: read_restart
     logical                            :: isPresent, isSet
@@ -1596,41 +1595,6 @@ contains
 
        ! Allocate module variable
        allocate(compDone(ncomps))
-
-      !----------------------------------------------------------
-      ! Initialize mediator present flags
-      !----------------------------------------------------------
-
-      if (mastertask) then
-         write(logunit,'(a)') trim(subname) // "Initializing present flags"
-      end if
-
-      do n1 = 1,ncomps
-         cname = trim(compname(n1))
-         if (cname(1:3) == 'glc') then
-            ! Special logic for glc since there can be multiple ice sheets
-            call ESMF_AttributeGet(gcomp, name="glc_present", value=cvalue, &
-                 convention="NUOPC", purpose="Instance", rc=rc)
-            if (ChkErr(rc,__LINE__,u_FILE_u)) return
-            do ns = 1,num_icesheets
-               is_local%wrap%comp_present(compglc(ns)) = .true.
-            end do
-         else
-            call ESMF_AttributeGet(gcomp, name=trim(compname(n1))//"_present", value=cvalue, &
-                 convention="NUOPC", purpose="Instance", rc=rc)
-            if (ChkErr(rc,__LINE__,u_FILE_u)) return
-            if (trim(cvalue) == "true") then
-               is_local%wrap%comp_present(n1) = .true.
-            else
-               is_local%wrap%comp_present(n1) = .false.
-            end if
-         end if
-         if (mastertask) then
-            write(msgString,'(A,L4)') trim(subname)//' comp_present(comp'//trim(compname(n1))//') = ',&
-                 is_local%wrap%comp_present(n1)
-            write(logunit,'(a)') trim(subname) // trim(msgString)
-         end if
-      end do
 
       !----------------------------------------------------------
       ! Check for active coupling interactions
@@ -1730,7 +1694,7 @@ contains
       if (mastertask) then
          write(logunit,*) ' '
          write(logunit,'(A)') trim(subname)//' Allowed coupling flags'
-         write(logunit,'(2x,A10,20(A5))') '|from to->',(compname(n2),n2=1,ncomps)
+         write(logunit,'(2x,A10,20(A5))') '|from to-> ',(compname(n2),n2=1,ncomps)
          do n1 = 1,ncomps
             write(msgString,'(2x,a1,A,5x,20(L5))') '|',trim(compname(n1)), &
                  (med_coupling_allowed(n1,n2),n2=1,ncomps)
@@ -1742,7 +1706,7 @@ contains
 
          write(logunit,*) ' '
          write(logunit,'(A)') subname//' Active coupling flags'
-         write(logunit,'(2x,A10,20(A5))') '|from to->',(compname(n2),n2=1,ncomps)
+         write(logunit,'(2x,A10,20(A5))') '|from to-> ',(compname(n2),n2=1,ncomps)
          do n1 = 1,ncomps
             write(msgString,'(2x,a1,A,5x,20(L5))') '|',trim(compname(n1)), &
                  (is_local%wrap%med_coupling_active(n1,n2),n2=1,ncomps)

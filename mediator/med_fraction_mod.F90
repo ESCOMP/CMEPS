@@ -199,7 +199,7 @@ contains
     if (first_call) then
 
        ! allocate module variable
-       allocate(fraclist(nfracs,ncomps))
+       allocate(fraclist(nfracs,0:ncomps))
 
        !---------------------------------------
        ! Initialize the fraclist arrays
