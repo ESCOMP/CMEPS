@@ -24,8 +24,8 @@ module med_diag_mod
   use ESMF                  , only : ESMF_GridCompGet, ESMF_ClockGet, ESMF_TimeGet, ESMF_ClockGetNextTime
   use ESMF                  , only : ESMF_Alarm, ESMF_ClockGetAlarm, ESMF_AlarmIsRinging, ESMF_AlarmRingerOff
   use ESMF                  , only : ESMF_FieldBundle, ESMF_Field, ESMF_FieldGet
-  use shr_const_mod         , only : shr_const_rearth, shr_const_pi, shr_const_latice, shr_const_latvap
-  use shr_const_mod         , only : shr_const_ice_ref_sal, shr_const_ocn_ref_sal, shr_const_isspval
+  use med_constants_mod     , only : shr_const_rearth, shr_const_pi, shr_const_latice, shr_const_latvap
+  use med_constants_mod     , only : shr_const_ice_ref_sal, shr_const_ocn_ref_sal, shr_const_isspval
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
   use med_internalstate_mod , only : InternalState, logunit, mastertask, diagunit
   use med_methods_mod       , only : fldbun_getdata2d => med_methods_FB_getdata2d

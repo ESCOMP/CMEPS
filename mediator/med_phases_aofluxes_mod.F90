@@ -313,8 +313,11 @@ contains
     use ESMF            , only : ESMF_GridComp, ESMF_GridCompGet
     use ESMF            , only : ESMF_Field, ESMF_FieldGet, ESMF_FieldBundle
     use med_methods_mod , only : FB_fldchk    => med_methods_FB_FldChk
+#ifdef CESMCOUPLED
     use shr_flux_mod    , only : shr_flux_adjust_constants
-    use med_internalstate_mod, only : coupling_mode
+#else
+    use flux_atmocn_mod , only : flux_adjust_constants
+#endif
 
     !-----------------------------------------------------------------------
     ! Initialize pointers to the module variables
@@ -399,7 +402,7 @@ contains
     end if
 
     !----------------------------------
-    ! Initialize shr_flux_adjust_constants
+    ! Initialize flux_adjust_constants
     !----------------------------------
 
     call NUOPC_CompAttributeGet(gcomp, name='coldair_outbreak_mod', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
@@ -423,10 +426,18 @@ contains
     else
        flux_convergence = 0.0_r8
     end if
+
+#ifdef CESMCOUPLED
     call shr_flux_adjust_constants(&
          flux_convergence_tolerance=flux_convergence, &
          flux_convergence_max_iteration=flux_max_iteration, &
          coldair_outbreak_mod=coldair_outbreak_mod)
+#else
+    call flux_adjust_constants(&
+         flux_convergence_tolerance=flux_convergence, &
+         flux_convergence_max_iteration=flux_max_iteration, &
+         coldair_outbreak_mod=coldair_outbreak_mod)
+#endif
 
     if (dbug_flag > 5) then
       call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
@@ -857,10 +868,14 @@ contains
     !  3) Map aoflux output to relevant atm/ocn grid(s)
     !-----------------------------------------------------------------------
 
-    use ESMF          , only : ESMF_GridComp
-    use ESMF          , only : ESMF_LogWrite, ESMF_LogMsg_Info, ESMF_SUCCESS
-    use med_map_mod   , only : med_map_field_packed, med_map_rh_is_created
-    use shr_flux_mod  , only : shr_flux_atmocn
+    use ESMF           , only : ESMF_GridComp
+    use ESMF           , only : ESMF_LogWrite, ESMF_LogMsg_Info, ESMF_SUCCESS
+    use med_map_mod    , only : med_map_field_packed, med_map_rh_is_created
+#ifdef CESMCOUPLED
+    use shr_flux_mod   , only : flux_atmocn
+#else
+    use flux_atmocn_mod, only : flux_atmocn
+#endif
 
     ! Arguments
     type(ESMF_GridComp)                   :: gcomp
@@ -1003,7 +1018,9 @@ contains
     ! Update atmosphere/ocean surface fluxes
     !----------------------------------
 
-    call shr_flux_atmocn (&
+#ifdef CESMCOUPLED
+
+    call flux_atmocn (logunit=logunit, &
          nMax=aoflux_in%lsize, &
          zbot=aoflux_in%zbot, ubot=aoflux_in%ubot, vbot=aoflux_in%vbot, thbot=aoflux_in%thbot, qbot=aoflux_in%shum, &
          s16O=aoflux_in%shum_16O, sHDO=aoflux_in%shum_HDO, s18O=aoflux_in%shum_18O, rbot=aoflux_in%dens, &
@@ -1015,7 +1032,20 @@ contains
          taux=aoflux_out%taux, tauy=aoflux_out%tauy, tref=aoflux_out%tref, qref=aoflux_out%qref, &
          ocn_surface_flux_scheme=ocn_surface_flux_scheme, &
          duu10n=aoflux_out%duu10n, ustar_sv=aoflux_out%ustar, re_sv=aoflux_out%re, ssq_sv=aoflux_out%ssq, &
-         missval = 0.0_r8)
+         missval=0.0_r8)
+
+#else
+
+    call flux_atmocn (logunit=logunit, &
+         nMax=aoflux_in%lsize, mask=aoflux_in%mask, &
+         zbot=aoflux_in%zbot, ubot=aoflux_in%ubot, vbot=aoflux_in%vbot, thbot=aoflux_in%thbot, qbot=aoflux_in%shum, &
+         rbot=aoflux_in%dens, tbot=aoflux_in%tbot, us=aoflux_in%uocn, vs=aoflux_in%vocn, ts=aoflux_in%tocn, &
+         ocn_surface_flux_scheme=ocn_surface_flux_scheme, &
+         sen=aoflux_out%sen, lat=aoflux_out%lat, lwup=aoflux_out%lwup, evap=aoflux_out%evap, &
+         taux=aoflux_out%taux, tauy=aoflux_out%tauy, tref=aoflux_out%tref, qref=aoflux_out%qref, &
+         duu10n=aoflux_out%duu10n, missval=0.0_r8)
+
+#endif
 
     do n = 1,aoflux_in%lsize
        if (aoflux_in%mask(n) /= 0) then

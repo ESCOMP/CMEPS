@@ -1351,7 +1351,7 @@ contains
     use ESMF          , only : ESMF_Field, ESMF_FieldCreate, ESMF_FieldGet
     use ESMF          , only : ESMF_FieldBundle, ESMF_FieldBundleGet
     use ESMF          , only : ESMF_RouteHandle
-    use shr_const_mod , only : shr_const_pi
+    use med_constants_mod , only : shr_const_pi
 
     ! input/output variables
     type(ESMF_FieldBundle) , intent(in)    :: FBsrc

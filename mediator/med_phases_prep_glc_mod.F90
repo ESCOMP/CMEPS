@@ -27,6 +27,7 @@ module med_phases_prep_glc_mod
   use med_map_mod           , only : med_map_field_normalized, med_map_field
   use med_constants_mod     , only : dbug_flag        => med_constants_dbug_flag
   use med_constants_mod     , only : czero            => med_constants_czero
+  use med_constants_mod     , only : shr_const_pi, shr_const_spval
   use med_methods_mod       , only : fldbun_getmesh   => med_methods_FB_getmesh
   use med_methods_mod       , only : fldbun_getdata2d => med_methods_FB_getdata2d
   use med_methods_mod       , only : fldbun_getdata1d => med_methods_FB_getdata1d
@@ -41,8 +42,6 @@ module med_phases_prep_glc_mod
   use glc_elevclass_mod     , only : glc_get_elevation_classes
   use glc_elevclass_mod     , only : glc_get_fractional_icecov
   use perf_mod              , only : t_startf, t_stopf
-  use shr_const_mod         , only : shr_const_pi, shr_const_spval
-  use shr_mpi_mod           , only : shr_mpi_sum
 
   implicit none
   private

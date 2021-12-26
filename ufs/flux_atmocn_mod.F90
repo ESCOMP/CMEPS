@@ -1,9 +1,8 @@
-module shr_flux_mod
+module flux_atmocn_mod
 
-  use shr_kind_mod    ! shared kinds
-  use shr_const_mod   ! shared constants
-  use shr_sys_mod     ! shared system routines
-  use shr_log_mod, only: s_logunit => shr_log_Unit
+  use ufs_kind_mod    ! shared kinds
+  use ufs_const_mod   ! shared constants
+  use ESMF, only : ESMF_FINALIZE, ESMF_END_ABORT
 
   implicit none
 
@@ -11,18 +10,15 @@ module shr_flux_mod
 
   ! !PUBLIC MEMBER FUNCTIONS:
 
-  public :: shr_flux_atmOcn           ! computes atm/ocn fluxes
-  public :: shr_flux_adjust_constants ! adjust constant values used in flux calculations.
+  public :: flux_atmOcn           ! computes atm/ocn fluxes
+  public :: flux_adjust_constants ! adjust constant values used in flux calculations.
 
   !--- rename kinds for local readability only ---
   integer,parameter :: R8 = SHR_KIND_R8  ! 8 byte real
   integer,parameter :: IN = SHR_KIND_IN  ! native/default integer
 
-  ! The follow variables are not declared as parameters so that they can be
-  ! adjusted to support aquaplanet and potentially other simple model modes.
-  ! The shr_flux_adjust_constants subroutine is called to set the desired
-  ! values.  The default values are from shr_const_mod.  Currently they are
-  ! only used by the shr_flux_atmocn and shr_flux_atmice routines.
+  ! The follow variables are not declared as parameters so that they can be adjusted.
+  ! The default values are from ufs_const_mod.
   real(R8) :: loc_zvir   = shr_const_zvir
   real(R8) :: loc_cpdair = shr_const_cpdair
   real(R8) :: loc_cpvir  = shr_const_cpvir
@@ -51,56 +47,32 @@ module shr_flux_mod
 contains
 !===============================================================================
 
-  subroutine shr_flux_adjust_constants( &
-       zvir, cpair, cpvir, karman, gravit, &
-       latvap, latice, stebol, flux_convergence_tolerance, &
-       flux_convergence_max_iteration, &
-       coldair_outbreak_mod)
+  subroutine flux_adjust_constants( flux_convergence_tolerance, &
+       flux_convergence_max_iteration, coldair_outbreak_mod)
 
     ! Adjust local constants.  Used to support simple models.
-
-    real(R8), optional, intent(in) :: zvir
-    real(R8), optional, intent(in) :: cpair
-    real(R8), optional, intent(in) :: cpvir
-    real(R8), optional, intent(in) :: karman
-    real(R8), optional, intent(in) :: gravit
-    real(R8), optional, intent(in) :: latvap
-    real(R8), optional, intent(in) :: latice
-    real(R8), optional, intent(in) :: stebol
-    real(r8), optional, intent(in)  :: flux_convergence_tolerance
-    integer(in), optional, intent(in) :: flux_convergence_max_iteration
-    logical, optional, intent(in) :: coldair_outbreak_mod
+    real(r8)    , optional, intent(in) :: flux_convergence_tolerance
+    integer(in) , optional, intent(in) :: flux_convergence_max_iteration
+    logical     , optional, intent(in) :: coldair_outbreak_mod
     !----------------------------------------------------------------------------
 
-    if (present(zvir))   loc_zvir   = zvir
-    if (present(cpair))  loc_cpdair = cpair
-    if (present(cpvir))  loc_cpvir  = cpvir
-    if (present(karman)) loc_karman = karman
-    if (present(gravit)) loc_g      = gravit
-    if (present(latvap)) loc_latvap = latvap
-    if (present(latice)) loc_latice = latice
-    if (present(stebol)) loc_stebol = stebol
     if (present(flux_convergence_tolerance)) flux_con_tol = flux_convergence_tolerance
     if (present(flux_convergence_max_iteration)) flux_con_max_iter = flux_convergence_max_iteration
-    if(present(coldair_outbreak_mod)) use_coldair_outbreak_mod = coldair_outbreak_mod
-  end subroutine shr_flux_adjust_constants
+    if (present(coldair_outbreak_mod)) use_coldair_outbreak_mod = coldair_outbreak_mod
+
+  end subroutine flux_adjust_constants
 
   !===============================================================================
-  subroutine shr_flux_atmOcn(nMax  ,zbot  ,ubot  ,vbot  ,thbot ,   &
-       &               qbot  ,s16O  ,sHDO  ,s18O  ,rbot  ,   &
-       &               tbot  ,us    ,vs    ,   &
-       &               ts    ,mask  ,seq_flux_atmocn_minwind, &
-       &               sen   ,lat   ,lwup  ,   &
-       &               r16O, rhdo, r18O, &
-       &               evap  ,evap_16O, evap_HDO, evap_18O, &
-       &               taux  ,tauy  ,tref  ,qref  ,   &
-       &               ocn_surface_flux_scheme, &
-       &               duu10n,  ustar_sv   ,re_sv ,ssq_sv,   &
-       &               missval    )
+  subroutine flux_atmOcn(logunit, nMax,zbot   ,ubot  ,vbot  ,thbot ,   &
+       &               qbot  , rbot  ,tbot  ,us    ,vs    ,   &
+       &               ts    , mask  ,sen   ,lat   ,lwup  ,   &
+       &               evap  , taux  ,tauy  ,tref  ,qref  ,   &
+       &               ocn_surface_flux_scheme, duu10n,  missval    )
 
     implicit none
 
     !--- input arguments --------------------------------
+    integer    ,intent(in) :: logunit
     integer(IN),intent(in) ::       nMax  ! data vector length
     integer(IN),intent(in) :: mask (nMax) ! ocn domain mask       0 <=> out of domain
     real(R8)   ,intent(in) :: zbot (nMax) ! atm level height                     (m)
@@ -108,38 +80,23 @@ contains
     real(R8)   ,intent(in) :: vbot (nMax) ! atm v wind (bottom or 10m)           (m/s)
     real(R8)   ,intent(in) :: thbot(nMax) ! atm potential T                      (K)
     real(R8)   ,intent(in) :: qbot (nMax) ! atm specific humidity (bottom or 2m) (kg/kg)
-    real(R8)   ,intent(in) :: s16O (nMax) ! atm H216O tracer conc.               (kg/kg)
-    real(R8)   ,intent(in) :: sHDO (nMax) ! atm HDO tracer conc.                 (kg/kg)
-    real(R8)   ,intent(in) :: s18O (nMax) ! atm H218O tracer conc.               (kg/kg)
-    real(R8)   ,intent(in) :: r16O (nMax) ! ocn H216O tracer ratio/Rstd
-    real(R8)   ,intent(in) :: rHDO (nMax) ! ocn HDO tracer ratio/Rstd
-    real(R8)   ,intent(in) :: r18O (nMax) ! ocn H218O tracer ratio/Rstd
     real(R8)   ,intent(in) :: rbot (nMax) ! atm air density                      (kg/m^3)
     real(R8)   ,intent(in) :: tbot (nMax) ! atm T (bottom or 2m)                 (K)
     real(R8)   ,intent(in) :: us   (nMax) ! ocn u-velocity                       (m/s)
     real(R8)   ,intent(in) :: vs   (nMax) ! ocn v-velocity                       (m/s)
     real(R8)   ,intent(in) :: ts   (nMax) ! ocn temperature                      (K)
     integer(IN),intent(in), optional :: ocn_surface_flux_scheme
-    real(R8)   ,intent(in), optional :: seq_flux_atmocn_minwind ! minimum wind speed for atmocn (m/s)
 
     !--- output arguments -------------------------------
     real(R8),intent(out)  ::  sen  (nMax) ! heat flux: sensible    (W/m^2)
     real(R8),intent(out)  ::  lat  (nMax) ! heat flux: latent      (W/m^2)
     real(R8),intent(out)  ::  lwup (nMax) ! heat flux: lw upward   (W/m^2)
     real(R8),intent(out)  ::  evap (nMax) ! water flux: evap  ((kg/s)/m^2)
-    real(R8),intent(out)  ::  evap_16O (nMax) ! water flux: evap ((kg/s/m^2)
-    real(R8),intent(out)  ::  evap_HDO (nMax) ! water flux: evap ((kg/s)/m^2)
-    real(R8),intent(out)  ::  evap_18O (nMax) ! water flux: evap ((kg/s/m^2)
     real(R8),intent(out)  ::  taux (nMax) ! surface stress, zonal      (N)
     real(R8),intent(out)  ::  tauy (nMax) ! surface stress, maridional (N)
     real(R8),intent(out)  ::  tref (nMax) ! diag:  2m ref height T     (K)
     real(R8),intent(out)  ::  qref (nMax) ! diag:  2m ref humidity (kg/kg)
     real(R8),intent(out)  :: duu10n(nMax) ! diag: 10m wind speed squared (m/s)^2
-
-    real(R8),intent(out),optional :: ustar_sv(nMax) ! diag: ustar
-    real(R8),intent(out),optional :: re_sv   (nMax) ! diag: sqrt of exchange coefficient (water)
-    real(R8),intent(out),optional :: ssq_sv  (nMax) ! diag: sea surface humidity  (kg/kg)
-
     real(R8),intent(in) ,optional :: missval        ! masked value
 
     ! !EOP
@@ -170,7 +127,7 @@ contains
     real(R8)    :: rh     ! sqrt of exchange coefficient (heat)
     real(R8)    :: re     ! sqrt of exchange coefficient (water)
     real(R8)    :: ustar  ! ustar
-    real(r8)     :: ustar_prev
+    real(r8)    :: ustar_prev
     real(R8)    :: qstar  ! qstar
     real(R8)    :: tstar  ! tstar
     real(R8)    :: hol    ! H (at zbot) over L
@@ -329,9 +286,10 @@ contains
              qstar = re * delq
           enddo
           if (iter < 1) then
-             write(s_logunit,*) ustar,ustar_prev,flux_con_tol,flux_con_max_iter
-             call shr_sys_abort('shr_flux_mod: No iterations performed ')
+             write(logunit,*) ustar,ustar_prev,flux_con_tol,flux_con_max_iter
+             call ESMF_Finalize(endflag=ESMF_END_ABORT)
           end if
+
           !------------------------------------------------------------
           ! compute the fluxes
           !------------------------------------------------------------
@@ -365,13 +323,6 @@ contains
 
           duu10n(n) = u10n*u10n ! 10m wind speed squared
 
-          !------------------------------------------------------------
-          ! optional diagnostics, needed for water tracer fluxes (dcn)
-          !------------------------------------------------------------
-          if (present(ustar_sv)) ustar_sv(n) = ustar
-          if (present(re_sv   )) re_sv(n)    = re
-          if (present(ssq_sv  )) ssq_sv(n)   = ssq
-
        else
           !------------------------------------------------------------
           ! no valid data here -- out of domain
@@ -380,21 +331,15 @@ contains
           lat   (n) = spval  ! latent           heat flux  (W/m^2)
           lwup  (n) = spval  ! long-wave upward heat flux  (W/m^2)
           evap  (n) = spval  ! evaporative water flux ((kg/s)/m^2)
-          evap_16O (n) = spval !water tracer flux (kg/s)/m^2)
-          evap_HDO (n) = spval !HDO tracer flux  (kg/s)/m^2)
-          evap_18O (n) = spval !H218O tracer flux (kg/s)/m^2)
           taux  (n) = spval  ! x surface stress (N)
           tauy  (n) = spval  ! y surface stress (N)
           tref  (n) = spval  !  2m reference height temperature (K)
           qref  (n) = spval  !  2m reference height humidity (kg/kg)
           duu10n(n) = spval  ! 10m wind speed squared (m/s)^2
 
-          if (present(ustar_sv)) ustar_sv(n) = spval
-          if (present(re_sv   )) re_sv   (n) = spval
-          if (present(ssq_sv  )) ssq_sv  (n) = spval
        endif
     end DO
 
-  end subroutine shr_flux_atmOcn
+  end subroutine flux_atmOcn
 
-end module shr_flux_mod
+end module flux_atmocn_mod

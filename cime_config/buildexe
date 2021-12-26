@@ -90,7 +90,8 @@ def _main_func():
         out.write(os.path.join(caseroot, "SourceMods", "src.drv") + "\n")
         if not skip_mediator:
             out.write(os.path.join(cmeps_dir, "mediator") + "\n")
-        out.write(os.path.join(cmeps_dir, "drivers", "cime") + "\n")
+            out.write(os.path.join(cmeps_dir, "cesm", "flux_atmocn") + "\n")
+        out.write(os.path.join(cmeps_dir, "cesm", "driver") + "\n")
 
     # build model executable
     makefile = os.path.join(casetools, "Makefile")
