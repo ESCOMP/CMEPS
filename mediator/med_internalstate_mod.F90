@@ -7,6 +7,7 @@ module med_internalstate_mod
   use ESMF         , only : ESMF_RouteHandle, ESMF_FieldBundle, ESMF_State, ESMF_Field, ESMF_VM
   use ESMF         , only : ESMF_GridComp, ESMF_MAXSTR, ESMF_LOGMSG_INFO, ESMF_LOGWRITE
   use med_kind_mod , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
+  use med_utils_mod, only : chkerr => med_utils_ChkErr
 
   implicit none
   private
@@ -28,9 +29,8 @@ module med_internalstate_mod
   integer, public :: compice = 5
   integer, public :: comprof = 6
   integer, public :: compwav = 7
+  integer, public :: ncomps =  7 ! this will be incremented if the size of compglc is > 0
   integer, public, allocatable :: compglc(:)
-  integer, public :: ncomps = 7 ! this will be incremented if complgc is allocated
-  integer, private :: ncomps_nonglc = 7
 
   ! Generic component name (e.g. atm, ocn...)
   character(len=CS), public, allocatable :: compname(:)
@@ -188,7 +188,6 @@ contains
 
     use ESMF         , only : ESMF_LogFoundAllocError, ESMF_AttributeGet
     use NUOPC_Comp   , only : NUOPC_CompAttributeGet
-    use med_utils_mod, only : chkerr => med_utils_ChkErr
 
     ! input/output variables
     type(ESMF_GridComp)            :: gcomp
@@ -204,8 +203,8 @@ contains
     character(len=CS)          :: cvalue
     character(len=CL)          :: cname
     character(len=ESMF_MAXSTR) :: mesh_glc
-    character(len=CS)          :: attrList(8)
     character(len=CX)          :: msgString
+    integer                    :: num_icesheets
     character(len=*),parameter :: subname=' (med_internalstate_init)'
     !-----------------------------------------------------------
 
@@ -213,49 +212,47 @@ contains
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    ! Determine ncomps
+    ! Determine if glc is present 
     call NUOPC_CompAttributeGet(gcomp, name='GLC_model', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    glc_name = trim(cvalue)
-    is_local%wrap%num_icesheets = 0
+    num_icesheets = 0
     if (isPresent .and. isSet) then
        if (trim(cvalue) /= 'sglc') then
           call NUOPC_CompAttributeGet(gcomp, name='mesh_glc', value=mesh_glc, isPresent=isPresent, isSet=isSet, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
+          glc_name = trim(cvalue)
           if (isPresent .and. isSet) then
              ! determine number of ice sheets - search in mesh_glc for colon deliminted strings
              if (len_trim(cvalue) > 0) then
                 do n = 1, len_trim(mesh_glc)
-                   if (mesh_glc(n:n) == ':') is_local%wrap%num_icesheets = is_local%wrap%num_icesheets + 1
+                   if (mesh_glc(n:n) == ':') num_icesheets = num_icesheets + 1
                 end do
-                is_local%wrap%num_icesheets = is_local%wrap%num_icesheets + 1
+                num_icesheets = num_icesheets + 1
              endif
              if (mastertask) then
-                write(logunit,'(a,i8)') trim(subname)//' number of ice sheets is ',is_local%wrap%num_icesheets
+                write(logunit,'(a,i8)') trim(subname)//' number of ice sheets is ',num_icesheets
              end if
           end if
-
-          ! comp_present does not have multiple ice sheets in it - just references if land ice is non-stub
-          allocate(is_local%wrap%comp_present(ncomps_nonglc + 1))
-          is_local%wrap%comp_present(:) = .false.
-          is_local%wrap%comp_present(ncomps_nonglc + 1) = .true.
-
           ! now determing the number of multiple ice sheets and increment ncomps accordingly
-          allocate(compglc(is_local%wrap%num_icesheets))
+          allocate(compglc(num_icesheets))
           compglc(:) = 0
-          do ns = 1,is_local%wrap%num_icesheets
-             write(cnum,'(i0)') ns
+          do ns = 1,num_icesheets
              ncomps = ncomps + 1
              compglc(ns) = ncomps
           end do
-
-       else
-          allocate(is_local%wrap%comp_present(ncomps_nonglc))
-          is_local%wrap%comp_present(:) = .false.
        end if
     end if
 
-    ! Determine present flags for non-glc components
+    ! Determine present flags starting with glc component
+    allocate(is_local%wrap%comp_present(ncomps))
+    is_local%wrap%comp_present(:) = .false.
+    if (num_icesheets > 0) then
+       do ns = 1,num_icesheets
+          is_local%wrap%comp_present(compglc(ns)) = .true.
+       end do
+    end if
+    is_local%wrap%num_icesheets = num_icesheets
+
     call NUOPC_CompAttributeGet(gcomp, name='mediator_present', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (isPresent .and. isSet) then
@@ -343,13 +340,16 @@ contains
           write(logunit,'(a)') trim(subname) // trim(msgString)
        end do
        write(logunit,*)
-       if (is_local%wrap%comp_present(compatm)) write(logunit,*) "atm_name="//trim(atm_name)
-       if (is_local%wrap%comp_present(complnd)) write(logunit,*) "lnd_name="//trim(lnd_name)
-       if (is_local%wrap%comp_present(compocn)) write(logunit,*) "ocn_name="//trim(ocn_name)
-       if (is_local%wrap%comp_present(compice)) write(logunit,*) "ice_name="//trim(ice_name)
-       if (is_local%wrap%comp_present(comprof)) write(logunit,*) "rof_name="//trim(rof_name)
-       if (is_local%wrap%comp_present(compwav)) write(logunit,*) "wav_name="//trim(wav_name)
-       if (is_local%wrap%comp_present(compmed)) write(logunit,*) "med_name="//trim(med_name)
+       if (is_local%wrap%comp_present(compatm)) write(logunit,'(a)') "atm_name="//trim(atm_name)
+       if (is_local%wrap%comp_present(complnd)) write(logunit,'(a)') "lnd_name="//trim(lnd_name)
+       if (is_local%wrap%comp_present(compocn)) write(logunit,'(a)') "ocn_name="//trim(ocn_name)
+       if (is_local%wrap%comp_present(compice)) write(logunit,'(a)') "ice_name="//trim(ice_name)
+       if (is_local%wrap%comp_present(comprof)) write(logunit,'(a)') "rof_name="//trim(rof_name)
+       if (is_local%wrap%comp_present(compwav)) write(logunit,'(a)') "wav_name="//trim(wav_name)
+       if (is_local%wrap%comp_present(compmed)) write(logunit,'(a)') "med_name="//trim(med_name)
+       if (is_local%wrap%num_icesheets > 0) then
+          if (is_local%wrap%comp_present(compglc(1))) write(logunit,'(a)') "glc_name="//trim(glc_name)
+       end if
        write(logunit,*)
     end if
 
@@ -368,7 +368,6 @@ contains
     use ESMF            , only : ESMF_StateIsCreated
     use NUOPC           , only : NUOPC_CompAttributeGet
     use med_methods_mod , only : State_getNumFields => med_methods_State_getNumFields
-    use med_utils_mod   , only : chkerr => med_utils_ChkErr
 
     ! input/output variables
     type(ESMF_GridComp) , intent(inout) :: gcomp

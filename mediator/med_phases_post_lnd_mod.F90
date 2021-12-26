@@ -27,7 +27,7 @@ contains
     use med_phases_prep_rof_mod , only : med_phases_prep_rof_accum
     use med_phases_prep_glc_mod , only : med_phases_prep_glc_accum_lnd, med_phases_prep_glc_avg
     use med_phases_history_mod  , only : med_phases_history_write_comp
-    use med_internalstate_mod   , only : complnd, compatm, comprof, compglc
+    use med_internalstate_mod   , only : complnd, compatm, comprof
     use perf_mod                , only : t_startf, t_stopf
 
     ! input/output variables

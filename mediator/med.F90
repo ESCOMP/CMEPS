@@ -44,8 +44,7 @@ module MED
   use med_internalstate_mod    , only : InternalState, med_internalstate_init, med_internalstate_active_coupling
   use med_internalstate_mod    , only : logunit, mastertask
   use med_internalstate_mod    , only : ncomps, compname
-  use med_internalstate_mod    , only : compmed, compatm, compocn, compice, complnd, comprof, compwav ! not arrays
-  use med_internalstate_mod    , only : compglc  ! compglc is an array
+  use med_internalstate_mod    , only : compmed, compatm, compocn, compice, complnd, comprof, compwav, compglc
   use med_internalstate_mod    , only : coupling_mode
   use esmFlds                  , only : fldListMed_ocnalb
   use esmFlds                  , only : med_fldList_GetNumFlds, med_fldList_GetFldNames, med_fldList_GetFldInfo
