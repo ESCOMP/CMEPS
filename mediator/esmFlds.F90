@@ -677,14 +677,11 @@ contains
     do nsrc = 1,ncomps
        ! Loop over all possible destination components for each src component
        do ndst = 1,ncomps
-          write(6,*)'DEBUG: nsrc,ndst,active= ',nsrc,ndst,med_coupling_active(nsrc,ndst)
           if (nsrc /= ndst .and. med_coupling_active(nsrc,ndst)) then
              ! Write all the mappings for fields from the src to the destination component
              write(logunit,*)' '
              do n = 1,size(fldListFr(nsrc)%flds)
                 mapindex = fldListFr(nsrc)%flds(n)%mapindex(ndst)
-                write(6,*)'DEBUG: nsrc,ndst= ',nsrc,ndst
-                write(6,*)'DEBUG: mapindex = ',mapindex
                 if ( mapindex /= mapunset) then
                    fldname  = trim(fldListFr(nsrc)%flds(n)%stdname)
                    mapnorm  = trim(fldListFr(nsrc)%flds(n)%mapnorm(ndst))

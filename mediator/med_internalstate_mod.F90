@@ -28,8 +28,9 @@ module med_internalstate_mod
   integer, public :: compice = 5
   integer, public :: comprof = 6
   integer, public :: compwav = 7
-  integer, public :: ncomps = 7 ! this will be incremented if complgc is allocated
   integer, public, allocatable :: compglc(:)
+  integer, public :: ncomps = 7 ! this will be incremented if complgc is allocated
+  integer, private :: ncomps_nonglc = 7
 
   ! Generic component name (e.g. atm, ocn...)
   character(len=CS), public, allocatable :: compname(:)
@@ -215,12 +216,12 @@ contains
     ! Determine ncomps
     call NUOPC_CompAttributeGet(gcomp, name='GLC_model', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    glc_name = trim(cvalue)
+    is_local%wrap%num_icesheets = 0
     if (isPresent .and. isSet) then
        if (trim(cvalue) /= 'sglc') then
-          glc_present = .true.
           call NUOPC_CompAttributeGet(gcomp, name='mesh_glc', value=mesh_glc, isPresent=isPresent, isSet=isSet, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
-          is_local%wrap%num_icesheets = 0
           if (isPresent .and. isSet) then
              ! determine number of ice sheets - search in mesh_glc for colon deliminted strings
              if (len_trim(cvalue) > 0) then
@@ -233,6 +234,13 @@ contains
                 write(logunit,'(a,i8)') trim(subname)//' number of ice sheets is ',is_local%wrap%num_icesheets
              end if
           end if
+
+          ! comp_present does not have multiple ice sheets in it - just references if land ice is non-stub
+          allocate(is_local%wrap%comp_present(ncomps_nonglc + 1))
+          is_local%wrap%comp_present(:) = .false.
+          is_local%wrap%comp_present(ncomps_nonglc + 1) = .true.
+
+          ! now determing the number of multiple ice sheets and increment ncomps accordingly
           allocate(compglc(is_local%wrap%num_icesheets))
           compglc(:) = 0
           do ns = 1,is_local%wrap%num_icesheets
@@ -240,58 +248,24 @@ contains
              ncomps = ncomps + 1
              compglc(ns) = ncomps
           end do
+
+       else
+          allocate(is_local%wrap%comp_present(ncomps_nonglc))
+          is_local%wrap%comp_present(:) = .false.
        end if
-       glc_name = trim(cvalue)
     end if
 
-    ! Allocate memory now that ncomps is determined
-    allocate(is_local%wrap%comp_present(ncomps))
-    allocate(is_local%wrap%med_coupling_active(ncomps,ncomps))
-    allocate(is_local%wrap%nx(ncomps))
-    allocate(is_local%wrap%ny(ncomps))
-    allocate(is_local%wrap%NStateImp(ncomps))
-    allocate(is_local%wrap%NStateExp(ncomps))
-    allocate(is_local%wrap%FBImp(ncomps,ncomps))
-    allocate(is_local%wrap%FBExp(ncomps))
-    allocate(is_local%wrap%packed_data_ocnalb_o2a(nmappers))
-    allocate(is_local%wrap%packed_data_aoflux_o2a(nmappers))
-    allocate(is_local%wrap%RH(ncomps,ncomps,nmappers))
-    allocate(is_local%wrap%field_NormOne(ncomps,ncomps,nmappers))
-    allocate(is_local%wrap%packed_data(ncomps,ncomps,nmappers))
-    allocate(is_local%wrap%FBfrac(ncomps))
-    allocate(is_local%wrap%FBArea(ncomps))
-    allocate(is_local%wrap%mesh_info(ncomps))
-
-    ! Determine component names
-    allocate(compname(ncomps))
-    compname(compmed) = 'med'
-    compname(compatm) = 'atm'
-    compname(complnd) = 'lnd'
-    compname(compocn) = 'ocn'
-    compname(compice) = 'ice'
-    compname(comprof) = 'rof'
-    compname(compwav) = 'wav'
-    do ns = 1,is_local%wrap%num_icesheets
-       write(cnum,'(i0)') ns
-       compname(compglc(ns)) = 'glc' // trim(cnum)
-    end do
-
-    ! Determine present flags
-    is_local%wrap%comp_present(:)       = .false.
-    is_local%wrap%comp_present(compmed) = .false.
-    is_local%wrap%comp_present(compatm) = .false.
-    is_local%wrap%comp_present(complnd) = .false.
-    is_local%wrap%comp_present(compocn) = .false.
-    is_local%wrap%comp_present(compice) = .false.
-    is_local%wrap%comp_present(comprof) = .false.
-    is_local%wrap%comp_present(compwav) = .false.
-
+    ! Determine present flags for non-glc components
     call NUOPC_CompAttributeGet(gcomp, name='mediator_present', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (isPresent .and. isSet) then
        read(cvalue,*) is_local%wrap%comp_present(compmed)
     end if
-    ! Note that the present flag is set to true if the component is not stub
+    call NUOPC_CompAttributeGet(gcomp, name='MED_model', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+       med_name = trim(cvalue)
+    end if
     call NUOPC_CompAttributeGet(gcomp, name='ATM_model', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (isPresent .and. isSet) then
@@ -329,28 +303,36 @@ contains
        wav_name = trim(cvalue)
     end if
 
-    ! Special logic for glc
-    ! do n1 = 1,ncomps
-    !    cname = trim(compname(n1))
-    !    if (cname(1:3) == 'glc') then
-    !       ! Special logic for glc since there can be multiple ice sheets
-    !       call ESMF_AttributeGet(gcomp, name="glc_present", value=cvalue, &
-    !            convention="NUOPC", purpose="Instance", rc=rc)
-    !       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    !       do ns = 1,is_local%wrap%num_icesheets
-    !          is_local%wrap%comp_present(compglc(ns)) = .true.
-    !       end do
-    !    else
-    !       call ESMF_AttributeGet(gcomp, name=trim(compname(n1))//"_present", value=cvalue, &
-    !            convention="NUOPC", purpose="Instance", rc=rc)
-    !       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    !       if (trim(cvalue) == "true") then
-    !          is_local%wrap%comp_present(n1) = .true.
-    !       else
-    !          is_local%wrap%comp_present(n1) = .false.
-    !       end if
-    !    end if
-    ! end do
+    ! Allocate memory now that ncomps is determined
+    allocate(is_local%wrap%med_coupling_active(ncomps,ncomps))
+    allocate(is_local%wrap%nx(ncomps))
+    allocate(is_local%wrap%ny(ncomps))
+    allocate(is_local%wrap%NStateImp(ncomps))
+    allocate(is_local%wrap%NStateExp(ncomps))
+    allocate(is_local%wrap%FBImp(ncomps,ncomps))
+    allocate(is_local%wrap%FBExp(ncomps))
+    allocate(is_local%wrap%packed_data_ocnalb_o2a(nmappers))
+    allocate(is_local%wrap%packed_data_aoflux_o2a(nmappers))
+    allocate(is_local%wrap%RH(ncomps,ncomps,nmappers))
+    allocate(is_local%wrap%field_NormOne(ncomps,ncomps,nmappers))
+    allocate(is_local%wrap%packed_data(ncomps,ncomps,nmappers))
+    allocate(is_local%wrap%FBfrac(ncomps))
+    allocate(is_local%wrap%FBArea(ncomps))
+    allocate(is_local%wrap%mesh_info(ncomps))
+
+    ! Determine component names
+    allocate(compname(ncomps))
+    compname(compmed) = 'med'
+    compname(compatm) = 'atm'
+    compname(complnd) = 'lnd'
+    compname(compocn) = 'ocn'
+    compname(compice) = 'ice'
+    compname(comprof) = 'rof'
+    compname(compwav) = 'wav'
+    do ns = 1,is_local%wrap%num_icesheets
+       write(cnum,'(i0)') ns
+       compname(compglc(ns)) = 'glc' // trim(cnum)
+    end do
 
     ! Write out component names and present flags
     if (mastertask) then

@@ -824,7 +824,6 @@ contains
     do ncomp = 1,ncomps
        if (ncomp /= compmed) then
           if (mastertask) write(logunit,*)
-          write(6,*)'DEBUG: ncomp = ',ncomp,trim(compname(ncomp))
           !if (ESMF_StateIsCreated(is_local%wrap%NStateImp(ncomp))) then
              nflds = med_fldList_GetNumFlds(fldListFr(ncomp))
              do n = 1,nflds
