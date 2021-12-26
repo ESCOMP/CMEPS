@@ -41,7 +41,7 @@ module MED
   use med_methods_mod          , only : clock_timeprint    => med_methods_clock_timeprint
   use med_utils_mod            , only : memcheck           => med_memcheck
   use med_time_mod             , only : med_time_alarmInit
-  use med_internalstate_mod    , only : InternalState, med_internalstate_init, med_internalstate_active_coupling
+  use med_internalstate_mod    , only : InternalState, med_internalstate_init, med_internalstate_coupling
   use med_internalstate_mod    , only : logunit, mastertask
   use med_internalstate_mod    , only : ncomps, compname
   use med_internalstate_mod    , only : compmed, compatm, compocn, compice, complnd, comprof, compwav, compglc
@@ -661,7 +661,7 @@ contains
     character(len=8)    :: cnum
     type(InternalState) :: is_local
     integer             :: stat
-    character(len=*),parameter :: subname=' (InitializeIPDv03p1) '
+    character(len=*),parameter :: subname=' (Advertise Fields) '
     !-----------------------------------------------------------
 
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
@@ -891,7 +891,7 @@ contains
     type(InternalState)        :: is_local
     type(ESMF_VM)              :: vm
     integer                    :: n
-    character(len=*),parameter :: subname=' (InitializeIPDv03p3) '
+    character(len=*),parameter :: subname=' (Realize Fields with Transfer Provide) '
     !-----------------------------------------------------------
 
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
@@ -952,7 +952,7 @@ contains
     ! local variables
     type(InternalState) :: is_local
     integer :: n1,n2
-    character(len=*),parameter :: subname=' (InitalizeIPDv03p4) '
+    character(len=*),parameter :: subname=' (Modify Decomp of Mesh/Grid) '
     !-----------------------------------------------------------
 
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
@@ -1280,7 +1280,7 @@ contains
     ! local variables
     type(InternalState) :: is_local
     integer             :: n1,n2
-    character(len=*),parameter  :: subname=' (module_MED:InitializeIPDv03p5) '
+    character(len=*),parameter  :: subname=' (Realize Fields with Transfer Accept) '
     !-----------------------------------------------------------
 
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
@@ -1352,7 +1352,7 @@ contains
       integer, allocatable        :: ungriddedLBound(:), ungriddedUBound(:)
       logical                     :: isPresent
       logical                     :: meshcreated
-      character(len=*),parameter  :: subname=' (module_MED:completeFieldInitialization) '
+      character(len=*),parameter  :: subname=' (Complete Field Initialization) '
       !-----------------------------------------------------------
 
       call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
@@ -1547,7 +1547,7 @@ contains
     logical,save                       :: first_call = .true.
     real(r8)                           :: real_nx, real_ny
     character(len=CX)                  :: msgString
-    character(len=*), parameter        :: subname=' (DataInitialize) '
+    character(len=*), parameter        :: subname=' (Data Initialization) '
     !-----------------------------------------------------------
 
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
@@ -1580,7 +1580,7 @@ contains
        allocate(compDone(ncomps))
 
        ! Determine active coupling logical flags
-       call med_internalstate_active_coupling(gcomp, rc)
+       call med_internalstate_coupling(gcomp, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
       !----------------------------------------------------------
@@ -2144,7 +2144,7 @@ contains
     logical, save           :: stopalarmcreated=.false.
     integer                 :: alarmcount
 
-    character(len=*),parameter :: subname=' (module_MED:SetRunClock) '
+    character(len=*),parameter :: subname=' (Set Run Clock) '
     !-----------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -2302,7 +2302,7 @@ contains
     type(ESMF_ArrayBundle) :: arrayBundle
     integer                :: tileCount
     logical                :: isPresent
-    character(len=*), parameter :: subname=' (module_MED_map:med_grid_write) '
+    character(len=*), parameter :: subname=' (Grid Write) '
     !-------------------------------------------------------------------------------
 
     rc = ESMF_SUCCESS

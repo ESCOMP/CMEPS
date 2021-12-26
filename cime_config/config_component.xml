@@ -28,7 +28,7 @@
 
   <entry id="COUPLING_MODE">
     <type>char</type>
-    <valid_values>cesm,nems_orig,nems_orig_data,nems_frac,hafs</valid_values>
+    <valid_values>cesm</valid_values>
     <default_value>cesm</default_value>
     <group>run_coupling</group>
     <file>env_run.xml</file>

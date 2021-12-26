@@ -14,7 +14,7 @@ module med_internalstate_mod
 
   ! public routines
   public :: med_internalstate_init
-  public :: med_internalstate_active_coupling
+  public :: med_internalstate_coupling
 
   integer, public :: logunit            ! logunit for mediator log output
   integer, public :: diagunit           ! diagunit for budget output (med master only)
@@ -108,20 +108,13 @@ module med_internalstate_mod
   ! private internal state to keep instance data
   type InternalStateStruct
 
-    ! NState_Imp and NState_Exp are the standard NUOPC coupling datatypes
-    ! FBImp and FBExp are the internal mediator datatypes
-    ! NState_Exp(n) = FBExp(n), copied in the connector prep phase
-    ! FBImp(n,n) = NState_Imp(n), copied in connector post phase
-    ! FBImp(n,k) is the FBImp(n,n) interpolated to grid k
-    ! RH(n,k,m) is a RH from grid n to grid k, map type m
-
     ! Present/allowed coupling/active coupling logical flags
     logical, pointer :: comp_present(:)            ! comp present flag
     logical, pointer :: med_coupling_active(:,:)   ! computes the active coupling
     integer          :: num_icesheets              ! obtained from attribute
-    logical          :: ocn2glc_coupling           ! obtained from attribute
-    logical          :: lnd2glc_coupling
-    logical          :: accum_lnd2glc
+    logical          :: ocn2glc_coupling = .false. ! obtained from attribute
+    logical          :: lnd2glc_coupling = .false. 
+    logical          :: accum_lnd2glc = .false.
 
     ! Mediator vm
     type(ESMF_VM) :: vm
@@ -138,6 +131,11 @@ module med_internalstate_mod
     integer           :: flds_scalar_index_precip_factor = 0
     real(r8)          :: flds_scalar_precip_factor = 1._r8  ! actual value of precip factor from ocn
 
+    ! NState_Imp and NState_Exp are the standard NUOPC coupling datatypes
+    ! FBImp and FBExp are the internal mediator datatypes
+    ! NState_Exp(n) = FBExp(n), copied in the connector prep phase
+    ! FBImp(n,n) = NState_Imp(n), copied in connector post phase
+    ! FBImp(n,k) is the FBImp(n,n) interpolated to grid k
     ! Import/export States and field bundles (the field bundles have the scalar fields removed)
     type(ESMF_State)       , pointer :: NStateImp(:) ! Import data from various component, on their grid
     type(ESMF_State)       , pointer :: NStateExp(:) ! Export data to various component, on their grid
@@ -156,6 +154,7 @@ module med_internalstate_mod
     type(packed_data_type), pointer :: packed_data_aoflux_o2a(:) ! packed data for mapping ocn->atm
 
     ! Mapping
+    ! RH(n,k,m) is a RH from grid n to grid k, map type m
     type(ESMF_RouteHandle) , pointer :: RH(:,:,:)            ! Routehandles for pairs of components and different mappers
     type(ESMF_Field)       , pointer :: field_NormOne(:,:,:) ! Unity static normalization
     type(packed_data_type) , pointer :: packed_data(:,:,:)   ! Packed data structure needed to efficiently map field bundles
@@ -204,15 +203,16 @@ contains
     character(len=CL)          :: cname
     character(len=ESMF_MAXSTR) :: mesh_glc
     character(len=CX)          :: msgString
+    character(len=3)           :: name 
     integer                    :: num_icesheets
-    character(len=*),parameter :: subname=' (med_internalstate_init)'
+    character(len=*),parameter :: subname=' (internalstate init) '
     !-----------------------------------------------------------
 
     nullify(is_local%wrap)
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    ! Determine if glc is present 
+    ! Determine if glc is present
     call NUOPC_CompAttributeGet(gcomp, name='GLC_model', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     num_icesheets = 0
@@ -258,46 +258,38 @@ contains
     if (isPresent .and. isSet) then
        read(cvalue,*) is_local%wrap%comp_present(compmed)
     end if
-    call NUOPC_CompAttributeGet(gcomp, name='MED_model', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    call NUOPC_CompAttributeGet(gcomp, name='MED_model', value=med_name, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call NUOPC_CompAttributeGet(gcomp, name='ATM_model', value=atm_name, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (isPresent .and. isSet) then
-       med_name = trim(cvalue)
+       if (trim(atm_name) /= 'satm') is_local%wrap%comp_present(compatm) = .true.
     end if
-    call NUOPC_CompAttributeGet(gcomp, name='ATM_model', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    call NUOPC_CompAttributeGet(gcomp, name='LND_model', value=lnd_name, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (isPresent .and. isSet) then
-       if (trim(cvalue) /= 'satm') is_local%wrap%comp_present(compatm) = .true.
-       atm_name = trim(cvalue)
+       if (trim(lnd_name) /= 'slnd') is_local%wrap%comp_present(complnd) = .true.
     end if
-    call NUOPC_CompAttributeGet(gcomp, name='LND_model', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    call NUOPC_CompAttributeGet(gcomp, name='OCN_model', value=ocn_name, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (isPresent .and. isSet) then
-       if (trim(cvalue) /= 'slnd') is_local%wrap%comp_present(complnd) = .true.
-       lnd_name = trim(cvalue)
+       if (trim(ocn_name) /= 'socn') is_local%wrap%comp_present(compocn) = .true.
     end if
-    call NUOPC_CompAttributeGet(gcomp, name='OCN_model', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    call NUOPC_CompAttributeGet(gcomp, name='ICE_model', value=ice_name, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (isPresent .and. isSet) then
-       if (trim(cvalue) /= 'socn') is_local%wrap%comp_present(compocn) = .true.
-       ocn_name = trim(cvalue)
+       if (trim(ice_name) /= 'sice') is_local%wrap%comp_present(compice) = .true.
     end if
-    call NUOPC_CompAttributeGet(gcomp, name='ICE_model', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    call NUOPC_CompAttributeGet(gcomp, name='ROF_model', value=rof_name, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (isPresent .and. isSet) then
-       if (trim(cvalue) /= 'sice') is_local%wrap%comp_present(compice) = .true.
-       ice_name = trim(cvalue)
+       if (trim(rof_name) /= 'srof') is_local%wrap%comp_present(comprof) = .true.
     end if
-    call NUOPC_CompAttributeGet(gcomp, name='ROF_model', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    call NUOPC_CompAttributeGet(gcomp, name='WAV_model', value=wav_name, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (isPresent .and. isSet) then
-       if (trim(cvalue) /= 'srof') is_local%wrap%comp_present(comprof) = .true.
-       rof_name = trim(cvalue)
-    end if
-    call NUOPC_CompAttributeGet(gcomp, name='WAV_model', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent .and. isSet) then
-       if (trim(cvalue) /= 'swav') is_local%wrap%comp_present(compwav) = .true.
-       wav_name = trim(cvalue)
+       if (trim(wav_name) /= 'swav') is_local%wrap%comp_present(compwav) = .true.
     end if
 
     ! Allocate memory now that ncomps is determined
@@ -331,24 +323,27 @@ contains
        compname(compglc(ns)) = 'glc' // trim(cnum)
     end do
 
-    ! Write out component names and present flags
     if (mastertask) then
+       ! Write out present flags
        write(logunit,*)
        do n1 = 1,ncomps
-          write(msgString,'(A,L4)') trim(subname)//' comp_present(comp'//trim(compname(n1))//') = ',&
+          name = trim(compname(n1))  ! this trims the ice sheets index from the glc name 
+          write(msgString,'(A,L4)') trim(subname)//' comp_present(comp'//name//') = ',&
                is_local%wrap%comp_present(n1)
-          write(logunit,'(a)') trim(subname) // trim(msgString)
+          write(logunit,'(a)') trim(msgString)
        end do
+
+       ! Write out model names if they are present
        write(logunit,*)
-       if (is_local%wrap%comp_present(compatm)) write(logunit,'(a)') "atm_name="//trim(atm_name)
-       if (is_local%wrap%comp_present(complnd)) write(logunit,'(a)') "lnd_name="//trim(lnd_name)
-       if (is_local%wrap%comp_present(compocn)) write(logunit,'(a)') "ocn_name="//trim(ocn_name)
-       if (is_local%wrap%comp_present(compice)) write(logunit,'(a)') "ice_name="//trim(ice_name)
-       if (is_local%wrap%comp_present(comprof)) write(logunit,'(a)') "rof_name="//trim(rof_name)
-       if (is_local%wrap%comp_present(compwav)) write(logunit,'(a)') "wav_name="//trim(wav_name)
-       if (is_local%wrap%comp_present(compmed)) write(logunit,'(a)') "med_name="//trim(med_name)
+       if (is_local%wrap%comp_present(compatm)) write(logunit,'(a)') trim(subname) // " atm model= "//trim(atm_name)
+       if (is_local%wrap%comp_present(complnd)) write(logunit,'(a)') trim(subname) // " lnd model= "//trim(lnd_name)
+       if (is_local%wrap%comp_present(compocn)) write(logunit,'(a)') trim(subname) // " ocn model= "//trim(ocn_name)
+       if (is_local%wrap%comp_present(compice)) write(logunit,'(a)') trim(subname) // " ice model= "//trim(ice_name)
+       if (is_local%wrap%comp_present(comprof)) write(logunit,'(a)') trim(subname) // " rof model= "//trim(rof_name)
+       if (is_local%wrap%comp_present(compwav)) write(logunit,'(a)') trim(subname) // " wav model= "//trim(wav_name)
+       if (is_local%wrap%comp_present(compmed)) write(logunit,'(a)') trim(subname) // " med model= "//trim(med_name)
        if (is_local%wrap%num_icesheets > 0) then
-          if (is_local%wrap%comp_present(compglc(1))) write(logunit,'(a)') "glc_name="//trim(glc_name)
+          if (is_local%wrap%comp_present(compglc(1))) write(logunit,'(a)') trim(subname) // " glc model= "//trim(glc_name)
        end if
        write(logunit,*)
     end if
@@ -363,7 +358,13 @@ contains
   end subroutine med_internalstate_init
 
   !=====================================================================
-  subroutine med_internalstate_active_coupling(gcomp, rc)
+  subroutine med_internalstate_coupling(gcomp, rc)
+
+    !----------------------------------------------------------
+    ! Check for active coupling interactions
+    ! must be allowed, bundles created, and both sides have some fields
+    ! This is called from med.F90 in the DataInitialize routine
+    !----------------------------------------------------------
 
     use ESMF            , only : ESMF_StateIsCreated
     use NUOPC           , only : NUOPC_CompAttributeGet
@@ -377,22 +378,16 @@ contains
     type(InternalState)  :: is_local
     integer              :: n1, n2, ns
     integer              :: cntn1, cntn2
-    character(len=CX)    :: msgString
     logical, allocatable :: med_coupling_allowed(:,:)
-    logical              :: ocn2glc_coupling_allowed 
     character(len=CL)    :: cvalue
+    character(len=CX)    :: msgString
     logical              :: isPresent, isSet
-    character(len=*),parameter :: subname=' (med_internalstate_allowed_coupling)'
+    character(len=*),parameter :: subname=' (internalstate allowed coupling) '
     !-----------------------------------------------------------
 
     nullify(is_local%wrap)
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    !----------------------------------------------------------
-    ! Check for active coupling interactions
-    ! must be allowed, bundles created, and both sides have some fields
-    !----------------------------------------------------------
 
     ! This defines the med_coupling_allowed a starting point for what is
     ! allowed in this coupled system.  It will be revised further after the system
@@ -453,13 +448,13 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (isPresent .and. isSet) then
        ! are multiple ocean depths for temperature and salinity sent from the ocn to glc?
-       read(cvalue,*) ocn2glc_coupling_allowed
+       read(cvalue,*) is_local%wrap%ocn2glc_coupling
     else
-       ocn2glc_coupling_allowed = .false.
+       is_local%wrap%ocn2glc_coupling = .false.
     end if
     do ns = 1,is_local%wrap%num_icesheets
        med_coupling_allowed(complnd,compglc(ns)) = .true.
-       med_coupling_allowed(compocn,compglc(ns)) = ocn2glc_coupling_allowed
+       med_coupling_allowed(compocn,compglc(ns)) = is_local%wrap%ocn2glc_coupling
     end do
 
     ! initialize med_coupling_active table
@@ -489,7 +484,7 @@ contains
     if (mastertask) then
        write(logunit,*) ' '
        write(logunit,'(A)') trim(subname)//' Allowed coupling flags'
-       write(logunit,'(2x,A10,20(A5))') '|from to-> ',(compname(n2),n2=1,ncomps)
+       write(logunit,'(2x,A10,20(A5))') '|from to -> ',(compname(n2),n2=1,ncomps)
        do n1 = 1,ncomps
           write(msgString,'(2x,a1,A,5x,20(L5))') '|',trim(compname(n1)), &
                (med_coupling_allowed(n1,n2),n2=1,ncomps)
@@ -501,7 +496,7 @@ contains
 
        write(logunit,*) ' '
        write(logunit,'(A)') subname//' Active coupling flags'
-       write(logunit,'(2x,A10,20(A5))') '|from to-> ',(compname(n2),n2=1,ncomps)
+       write(logunit,'(2x,A10,20(A5))') '|from to -> ',(compname(n2),n2=1,ncomps)
        do n1 = 1,ncomps
           write(msgString,'(2x,a1,A,5x,20(L5))') '|',trim(compname(n1)), &
                (is_local%wrap%med_coupling_active(n1,n2),n2=1,ncomps)
@@ -513,13 +508,15 @@ contains
        write(logunit,*) ' '
     endif
 
-    ! Determine lnd2glc_coupling and accum_lnd2glc flags
+    ! Determine lnd2glc_coupling flag
     do ns = 1,is_local%wrap%num_icesheets
        if (is_local%wrap%med_coupling_active(complnd,compglc(ns))) then
           is_local%wrap%lnd2glc_coupling = .true.
           exit
        end if
     end do
+
+    ! Determine accum_lnd2glc flag
     if (is_local%wrap%lnd2glc_coupling) then
        is_local%wrap%accum_lnd2glc = .true.
     else
@@ -530,27 +527,26 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        if (isPresent .and. isSet) then
           read(cvalue,*) is_local%wrap%accum_lnd2glc
-       else
-          is_local%wrap%accum_lnd2glc = .false.
        end if
     end if
 
+    ! Determine ocn2glc_coupling flag
     do ns = 1,is_local%wrap%num_icesheets
        if (is_local%wrap%med_coupling_active(compocn,compglc(ns))) then
           is_local%wrap%ocn2glc_coupling = .true.
           exit
        end if
     end do
-
-    ! Reset ocn2glc active coupling based in input attribute
     if (.not. is_local%wrap%ocn2glc_coupling) then
+       ! Reset ocn2glc active coupling based in input attribute
        do ns = 1,is_local%wrap%num_icesheets
           is_local%wrap%med_coupling_active(compocn,compglc(ns)) = .false.
        end do
     end if
 
+    ! Dealloate memory
     deallocate(med_coupling_allowed)
 
-  end subroutine med_internalstate_active_coupling
+  end subroutine med_internalstate_coupling
 
 end module med_internalstate_mod

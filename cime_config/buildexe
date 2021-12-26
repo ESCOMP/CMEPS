@@ -63,7 +63,7 @@ def _main_func():
     else:
         skip_mediator = False
 
-    if ocn_model == 'mom' or atm_model == "ufsatm":
+    if ocn_model == 'mom':
         gmake_args += "USE_FMS=TRUE"
 
     comp_classes = case.get_values("COMP_CLASSES")
