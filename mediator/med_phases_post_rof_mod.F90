@@ -21,7 +21,7 @@ contains
     use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_LOGMSG_ERROR, ESMF_SUCCESS, ESMF_FAILURE
     use ESMF                  , only : ESMF_GridComp, ESMF_GridCompGet
     use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
-    use esmFlds               , only : complnd, compocn, compice, compatm, comprof, ncomps, compname
+    use med_internalstate_mod , only : complnd, compocn, compice, compatm, comprof, compname
     use med_utils_mod         , only : chkerr    => med_utils_ChkErr
     use med_constants_mod     , only : dbug_flag => med_constants_dbug_flag
     use med_internalstate_mod , only : InternalState, mastertask, logunit

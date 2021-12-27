@@ -11,7 +11,7 @@ module med_phases_prep_wav_mod
   use med_merge_mod         , only : med_merge_auto
   use med_map_mod           , only : med_map_field_packed
   use med_internalstate_mod , only : InternalState, mastertask
-  use esmFlds               , only : compwav, ncomps, compname
+  use med_internalstate_mod , only : compwav, ncomps, compname
   use esmFlds               , only : fldListFr, fldListTo
   use perf_mod              , only : t_startf, t_stopf
 

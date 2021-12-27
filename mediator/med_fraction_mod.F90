@@ -97,19 +97,19 @@ module med_fraction_mod
   !
   !-----------------------------------------------------------------------------
 
-  use med_kind_mod      , only : CX =>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
-  use med_constants_mod , only : dbug_flag        => med_constants_dbug_flag
-  use med_constants_mod , only : czero            => med_constants_czero
-  use med_utils_mod     , only : chkErr           => med_utils_ChkErr
-  use med_methods_mod   , only : fldbun_diagnose  => med_methods_FB_diagnose
-  use med_methods_mod   , only : fldbun_fldchk    => med_methods_FB_fldchk
-  use med_methods_mod   , only : fldbun_getmesh   => med_methods_FB_getmesh
-  use med_methods_mod   , only : fldbun_getdata2d => med_methods_FB_getdata2d
-  use med_methods_mod   , only : fldbun_getdata1d => med_methods_FB_getdata1d
-  use med_methods_mod   , only : fldbun_init      => med_methods_FB_init
-  use med_methods_mod   , only : fldbun_reset     => med_methods_FB_reset
-  use med_map_mod       , only : med_map_field
-  use esmFlds           , only : ncomps, max_icesheets, num_icesheets
+  use med_kind_mod          , only : CX =>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
+  use med_constants_mod     , only : dbug_flag        => med_constants_dbug_flag
+  use med_constants_mod     , only : czero            => med_constants_czero
+  use med_utils_mod         , only : chkErr           => med_utils_ChkErr
+  use med_methods_mod       , only : fldbun_diagnose  => med_methods_FB_diagnose
+  use med_methods_mod       , only : fldbun_fldchk    => med_methods_FB_fldchk
+  use med_methods_mod       , only : fldbun_getmesh   => med_methods_FB_getmesh
+  use med_methods_mod       , only : fldbun_getdata2d => med_methods_FB_getdata2d
+  use med_methods_mod       , only : fldbun_getdata1d => med_methods_FB_getdata1d
+  use med_methods_mod       , only : fldbun_init      => med_methods_FB_init
+  use med_methods_mod       , only : fldbun_reset     => med_methods_FB_reset
+  use med_map_mod           , only : med_map_field
+  use med_internalstate_mod , only : ncomps
 
   implicit none
   private
@@ -119,7 +119,7 @@ module med_fraction_mod
   public med_fraction_set
 
   integer, parameter                      :: nfracs = 5
-  character(len=6)                        :: fraclist(nfracs,ncomps)
+  character(len=6),allocatable            :: fraclist(:,:)
   character(len=6),parameter,dimension(4) :: fraclist_a = (/'ifrac ','ofrac ','lfrac ','aofrac'/)
   character(len=6),parameter,dimension(4) :: fraclist_o = (/'ifrac ','ofrac ','ifrad ','ofrad '/)
   character(len=6),parameter,dimension(2) :: fraclist_i = (/'ifrac ','ofrac '/)
@@ -148,13 +148,13 @@ contains
     use ESMF                  , only : ESMF_FieldBundle, ESMF_FieldBundleIsCreated, ESMF_FieldBundleDestroy
     use ESMF                  , only : ESMF_FieldBundleGet
     use ESMF                  , only : ESMF_Field, ESMF_FieldGet
-    use esmFlds               , only : coupling_mode
-    use esmFlds               , only : compatm, compocn, compice, complnd
-    use esmFlds               , only : comprof, compglc, compwav, compname
-    use esmFlds               , only : mapfcopy, mapconsd, mapnstod_consd
+    use med_internalstate_mod , only : coupling_mode
+    use med_internalstate_mod , only : compatm, compocn, compice, complnd
+    use med_internalstate_mod , only : comprof, compglc, compwav, compname
+    use med_internalstate_mod , only : mapfcopy, mapconsd, mapnstod_consd
+    use med_internalstate_mod , only : InternalState, logunit, mastertask
     use med_map_mod           , only : med_map_routehandles_init, med_map_rh_is_created
     use med_methods_mod       , only : State_getNumFields => med_methods_State_getNumFields
-    use med_internalstate_mod , only : InternalState, logunit, mastertask
     use perf_mod              , only : t_startf, t_stopf
 
     ! input/output variables
@@ -198,6 +198,9 @@ contains
 
     if (first_call) then
 
+       ! allocate module variable
+       allocate(fraclist(nfracs,ncomps))
+
        !---------------------------------------
        ! Initialize the fraclist arrays
        !---------------------------------------
@@ -209,7 +212,7 @@ contains
        fraclist(1:size(fraclist_l),complnd) = fraclist_l
        fraclist(1:size(fraclist_r),comprof) = fraclist_r
        fraclist(1:size(fraclist_w),compwav) = fraclist_w
-       do ns = 1,num_icesheets
+       do ns = 1,is_local%wrap%num_icesheets
           fraclist(1:size(fraclist_g),compglc(ns)) = fraclist_g
        end do
 
@@ -523,7 +526,7 @@ contains
     ! Set 'gfrac' and 'lfrac' for FBFrac(compglc)
     !---------------------------------------
 
-    do ns = 1,num_icesheets
+    do ns = 1,is_local%wrap%num_icesheets
        if (is_local%wrap%comp_present(compglc(ns))) then
 
           ! Set 'gfrac' in FBFrac(compglc(ns))
@@ -643,9 +646,9 @@ contains
     use ESMF                  , only : ESMF_Field, ESMF_FieldGet
     use ESMF                  , only : ESMF_FieldBundleGet, ESMF_FieldBundleIsCreated
     use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
-    use esmFlds               , only : compatm, compocn, compice, compname
-    use esmFlds               , only : mapfcopy, mapconsd, mapnstod_consd
-    use esmFlds               , only : coupling_mode
+    use med_internalstate_mod , only : compatm, compocn, compice, compname
+    use med_internalstate_mod , only : mapfcopy, mapconsd, mapnstod_consd
+    use med_internalstate_mod , only : coupling_mode
     use med_internalstate_mod , only : InternalState
     use med_map_mod           , only : med_map_RH_is_created
     use perf_mod              , only : t_startf, t_stopf

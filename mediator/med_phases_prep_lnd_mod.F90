@@ -26,11 +26,11 @@ contains
     use ESMF                  , only : ESMF_FieldBundle, ESMF_FieldBundleGet, ESMF_Field, ESMF_FieldGet
     use ESMF                  , only : ESMF_GridComp, ESMF_GridCompGet
     use ESMF                  , only : ESMF_StateGet, ESMF_StateItem_Flag, ESMF_STATEITEM_NOTFOUND
-    use esmFlds               , only : complnd, compatm, ncomps
     use esmFlds               , only : fldListTo
     use med_methods_mod       , only : fldbun_diagnose  => med_methods_FB_diagnose
     use med_utils_mod         , only : chkerr           => med_utils_ChkErr
     use med_constants_mod     , only : dbug_flag        => med_constants_dbug_flag
+    use med_internalstate_mod , only : complnd, compatm
     use med_internalstate_mod , only : InternalState, mastertask, logunit
     use med_merge_mod         , only : med_merge_auto
     use perf_mod              , only : t_startf, t_stopf

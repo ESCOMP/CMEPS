@@ -24,10 +24,10 @@ module med_phases_aofluxes_mod
   use ESMF                  , only : ESMF_Finalize, ESMF_LogFoundError
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
   use med_internalstate_mod , only : InternalState, mastertask, logunit
+  use med_internalstate_mod , only : compatm, compocn, coupling_mode, mapconsd, mapconsf, mapfcopy
   use med_constants_mod     , only : dbug_flag    => med_constants_dbug_flag
   use med_utils_mod         , only : memcheck     => med_memcheck
   use med_utils_mod         , only : chkerr       => med_utils_chkerr
-  use esmFlds               , only : compatm, compocn, coupling_mode, mapconsd, mapconsf, mapfcopy
   use perf_mod              , only : t_startf, t_stopf
 
   implicit none
@@ -139,9 +139,11 @@ contains
   subroutine med_phases_aofluxes_init_fldbuns(gcomp, rc)
 
     use ESMF            , only : ESMF_FieldBundleIsCreated
-    use esmFlds         , only : med_fldList_GetNumFlds, med_fldList_GetFldNames, compname
+    use esmFlds         , only : med_fldList_GetNumFlds
+    use esmFlds         , only : med_fldList_GetFldNames
     use esmFlds         , only : fldListMed_aoflux
     use med_methods_mod , only : FB_init => med_methods_FB_init
+    use med_internalstate_mod, only : compname
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -310,13 +312,13 @@ contains
     use ESMF            , only : ESMF_SUCCESS, ESMF_LOGERR_PASSTHRU
     use ESMF            , only : ESMF_GridComp, ESMF_GridCompGet
     use ESMF            , only : ESMF_Field, ESMF_FieldGet, ESMF_FieldBundle
-    use esmFlds         , only : coupling_mode
     use med_methods_mod , only : FB_fldchk    => med_methods_FB_FldChk
 #ifdef CESMCOUPLED
     use shr_flux_mod    , only : shr_flux_adjust_constants
 #else
     use flux_atmocn_mod , only : flux_adjust_constants
 #endif
+
     !-----------------------------------------------------------------------
     ! Initialize pointers to the module variables
     !-----------------------------------------------------------------------
