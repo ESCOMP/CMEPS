@@ -6,16 +6,13 @@ Contributors other than yourself, if any:
 
 CMEPS Issues Fixed (include github issue #):
 
-Are changes expected to change answers?
- - [ ] bit for bit
- - [ ] different at roundoff level
- - [ ] more substantial
+Are changes expected to change answers? (specify if bfb, different at roundoff, more substantial) 
 
 Any User Interface Changes (namelist or namelist defaults changes)?
- - [ ] Yes
- - [ ] No
 
-Testing performed if application target is CESM:(either UFS-S2S or CESM testing is required):
+### Testing performed
+
+Testing performed if application target is CESM:
 - [ ] (recommended) CIME_DRIVER=nuopc scripts_regression_tests.py
    - machines:
    - details (e.g. failed tests):
@@ -39,16 +36,14 @@ Testing performed if application target is UFS-HAFS:
    - description:
    - details (e.g. failed tests):
 
-Hashes used for testing:
+### Hashes used for testing:
+
 - [ ] CESM:
   - repository to check out: https://github.com/ESCOMP/CESM.git
-  - branch:
-  - hash:
+  - branch/hash:
 - [ ] UFS-coupled, then umbrella repostiory to check out and associated hash:
   - repository to check out:
-  - branch:
-  - hash:
+  - branch/hash:
 - [ ] UFS-HAFS, then umbrella repostiory to check out and associated hash:
   - repository to check out:
-  - branch:
-  - hash:
+  - branch/hash:
