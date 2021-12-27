@@ -439,10 +439,8 @@ contains
           srcMaskValue = 0
           dstMaskValue = ispval_mask
        elseif (n1 == compatm .and. n2 == compwav) then
-          !dstMaskValue = 1
           dstMaskValue = 0
        elseif (n1 == compwav .and. n2 == compatm) then
-          !srcMaskValue = 1
           srcMaskValue = 0
           dstMaskValue = ispval_mask
        endif

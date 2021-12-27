@@ -96,19 +96,6 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call t_stopf('MED:'//trim(subname)//' map_atm2lnd')
     end if
-    ! map atm->wav
-    !if (is_local%wrap%med_coupling_active(compatm,compwav)) then
-    !   call t_startf('MED:'//trim(subname)//' map_atm2wav')
-    !   call med_map_field_packed( &
-    !        FBSrc=is_local%wrap%FBImp(compatm,compatm), &
-    !        FBDst=is_local%wrap%FBImp(compatm,compwav), &
-    !        FBFracSrc=is_local%wrap%FBFrac(compatm), &
-    !        field_normOne=is_local%wrap%field_normOne(compatm,compwav,:), &
-    !        packed_data=is_local%wrap%packed_data(compatm,compwav,:), &
-    !        routehandles=is_local%wrap%RH(compatm,compwav,:), rc=rc)
-    !   if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    !   call t_stopf('MED:'//trim(subname)//' map_atm2wav')
-    !end if
 
     ! Write atm inst, avg or aux if requested in mediator attributes
     call NUOPC_MediatorGet(gcomp, driverClock=dClock, rc=rc)
