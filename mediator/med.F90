@@ -76,7 +76,7 @@ module MED
 
   logical :: profile_memory = .false.
 
-  logical, allocatable :: compDone(:) ! component done flat
+  logical, allocatable :: compDone(:) ! component done flag
 
 !-----------------------------------------------------------------------------
 contains
@@ -823,44 +823,40 @@ contains
     do ncomp = 1,ncomps
        if (ncomp /= compmed) then
           if (mastertask) write(logunit,*)
-          !if (ESMF_StateIsCreated(is_local%wrap%NStateImp(ncomp))) then
-             nflds = med_fldList_GetNumFlds(fldListFr(ncomp))
-             do n = 1,nflds
-                call med_fldList_GetFldInfo(fldListFr(ncomp), n, stdname, shortname)
-                if (mastertask) then
-                   write(logunit,'(a)') trim(subname)//':Fr_'//trim(compname(ncomp))//': '//trim(shortname)
-                end if
-                if (trim(shortname) == is_local%wrap%flds_scalar_name) then
-                   transferOffer = 'will provide'
-                else
-                   transferOffer = 'cannot provide'
-                end if
-                call NUOPC_Advertise(is_local%wrap%NStateImp(ncomp), &
-                     standardName=stdname, shortname=shortname, name=shortname, &
-                     TransferOfferGeomObject=transferOffer, rc=rc)
-                if (ChkErr(rc,__LINE__,u_FILE_u)) return
-                call ESMF_LogWrite(subname//':Fr_'//trim(compname(ncomp))//': '//trim(shortname), ESMF_LOGMSG_INFO)
-             end do
-          !end if
-          !if (ESMF_StateIsCreated(is_local%wrap%NStateExp(ncomp))) then
-             nflds = med_fldList_GetNumFlds(fldListTo(ncomp))
-             do n = 1,nflds
-                call med_fldList_GetFldInfo(fldListTo(ncomp), n, stdname, shortname)
-                if (mastertask) then
-                   write(logunit,'(a)') trim(subname)//':To_'//trim(compname(ncomp))//': '//trim(shortname)
-                end if
-                if (trim(shortname) == is_local%wrap%flds_scalar_name) then
-                   transferOffer = 'will provide'
-                else
-                   transferOffer = 'cannot provide'
-                end if
-                call NUOPC_Advertise(is_local%wrap%NStateExp(ncomp), &
-                     standardName=stdname, shortname=shortname, name=shortname, &
-                     TransferOfferGeomObject=transferOffer, rc=rc)
-                if (ChkErr(rc,__LINE__,u_FILE_u)) return
-                call ESMF_LogWrite(subname//':To_'//trim(compname(ncomp))//': '//trim(shortname), ESMF_LOGMSG_INFO)
-             end do
-          !end if
+          nflds = med_fldList_GetNumFlds(fldListFr(ncomp))
+          do n = 1,nflds
+             call med_fldList_GetFldInfo(fldListFr(ncomp), n, stdname, shortname)
+             if (mastertask) then
+                write(logunit,'(a)') trim(subname)//':Fr_'//trim(compname(ncomp))//': '//trim(shortname)
+             end if
+             if (trim(shortname) == is_local%wrap%flds_scalar_name) then
+                transferOffer = 'will provide'
+             else
+                transferOffer = 'cannot provide'
+             end if
+             call NUOPC_Advertise(is_local%wrap%NStateImp(ncomp), &
+                  standardName=stdname, shortname=shortname, name=shortname, &
+                  TransferOfferGeomObject=transferOffer, rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             call ESMF_LogWrite(subname//':Fr_'//trim(compname(ncomp))//': '//trim(shortname), ESMF_LOGMSG_INFO)
+          end do
+          nflds = med_fldList_GetNumFlds(fldListTo(ncomp))
+          do n = 1,nflds
+             call med_fldList_GetFldInfo(fldListTo(ncomp), n, stdname, shortname)
+             if (mastertask) then
+                write(logunit,'(a)') trim(subname)//':To_'//trim(compname(ncomp))//': '//trim(shortname)
+             end if
+             if (trim(shortname) == is_local%wrap%flds_scalar_name) then
+                transferOffer = 'will provide'
+             else
+                transferOffer = 'cannot provide'
+             end if
+             call NUOPC_Advertise(is_local%wrap%NStateExp(ncomp), &
+                  standardName=stdname, shortname=shortname, name=shortname, &
+                  TransferOfferGeomObject=transferOffer, rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             call ESMF_LogWrite(subname//':To_'//trim(compname(ncomp))//': '//trim(shortname), ESMF_LOGMSG_INFO)
+          end do
        end if
     end do ! end of ncomps loop
 
