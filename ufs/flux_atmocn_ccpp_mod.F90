@@ -88,8 +88,8 @@ contains
                                    h0facu      , h0facs
     logical                     :: redrag      , thsfc_loc , lseaspray , &
                                    flag_restart, frac_grid , cplflx    , &
-                                   cplice      , cplwav2atm, lheatstrg , &
-                                   use_med_flux
+                                   cplice      , cplwav2atm, lheatstrg !, &
+                                   !use_med_flux
     character(len=1024)         :: errmsg
     integer, dimension(nMax)    :: vegtype     , islmsk    , islmsk_cice 
     real(kp), dimension(nMax)   :: prsl1       , prslki    , prsik1    , &
@@ -134,8 +134,8 @@ contains
                                    tsfc        ,                         &
                                    tsfc_wat    , tsfc_lnd  , tsfc_ice  , &
                                    semis_rad   , emis_lnd  , emis_ice  , &
-                                   semis_wat   , semis_lnd , semis_ice , &
-                                   dqsfc       , dtsfc
+                                   semis_wat   , semis_lnd , semis_ice !, &
+                                   !dqsfc       , dtsfc
     real(kp), dimension(nMax,1) :: tiice       , stc
     !integer                     :: naux2d
     !real(kp), dimension(nMax,2) :: aux2d
@@ -343,9 +343,9 @@ contains
     gflx_wat(:)  = 0.0_kp         ! upward_heat_flux_in_soil_over_water
     gflx_lnd(:)  = 0.0_kp         ! upward_heat_flux_in_soil_over_lnd
     gflx_ice(:)  = 0.0_kp         ! upward_heat_flux_in_soil_over_ice
-    use_med_flux = .false.        ! flag_for_mediator_atmosphere_ocean_fluxes
-    dqsfc(:)     = 0.0_kp         ! surface_upward_latent_heat_flux_over_ocean_from_coupled_process
-    dtsfc(:)     = 0.0_kp         ! surface_upward_sensible_heat_flux_over_ocean_from_coupled_process
+    !use_med_flux = .false.        ! flag_for_mediator_atmosphere_ocean_fluxes
+    !dqsfc(:)     = 0.0_kp         ! surface_upward_latent_heat_flux_over_ocean_from_coupled_process
+    !dtsfc(:)     = 0.0_kp         ! surface_upward_sensible_heat_flux_over_ocean_from_coupled_process
 
     if (flag_init) then
        allocate(evap(nMax))
@@ -457,7 +457,7 @@ contains
             lseaspray   , fm_wat    , fm10_wat    , &
             pbot        , prslki    , wet         , &
             use_flake   , wind      , flag_iter   , &
-            use_med_flux, dqsfc     , dtsfc       , &
+            !use_med_flux, dqsfc     , dtsfc       , &
             qss_wat     , cmm_wat   , chh_wat     , &
             gflx_wat    , evap_wat  , hflx_wat    , &
             ep1d_wat    , errmsg    , errflg)
@@ -523,7 +523,7 @@ contains
        if (mask(n) /= 0) then
           sen(n)  = -1.0_kp*hflx_wat(n)*rbot(n)*cp
           lat(n)  = -1.0_kp*evap_wat(n)*rbot(n)*hvap
-          lwup(n) = semis_wat(n)*sbc*ts(n)**4+(1.0_r8-semis_wat(n))*lwdn(n)
+          lwup(n) = -1.0_kp*semis_wat(n)*sbc*ts(n)**4+(1.0_r8-semis_wat(n))*lwdn(n)
           evp(n)  = lat(n)/hvap
           taux(n) = -1.0_kp*rbot(n)*stress(n)*ubot(n)/wind(n) 
           tauy(n) = -1.0_kp*rbot(n)*stress(n)*vbot(n)/wind(n)

@@ -1,111 +1,17 @@
 module esmflds
 
   use med_kind_mod, only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
+  use med_internalstate_mod, only : ncomps, compname, compocn, compatm
+  use med_internalstate_mod, only : mapfcopy, mapnames, mapunset
 
   implicit none
   private
 
   !-----------------------------------------------
-  ! Set components
-  !-----------------------------------------------
-
-  integer, public, parameter  :: compmed  = 1
-  integer, public, parameter  :: compatm  = 2
-  integer, public, parameter  :: complnd  = 3
-  integer, public, parameter  :: compocn  = 4
-  integer, public, parameter  :: compice  = 5
-  integer, public, parameter  :: comprof  = 6
-  integer, public, parameter  :: compwav  = 7
-  integer, public, parameter  :: compglc1 = 8
-  integer, public, parameter  :: compglc2 = 9
-  integer, public, parameter  :: ncomps   = 9
-
-  character(len=*), public, parameter :: compname(ncomps) = &
-       (/'med ',&
-         'atm ',&
-         'lnd ',&
-         'ocn ',&
-         'ice ',&
-         'rof ',&
-         'wav ',&
-         'glc1',&
-         'glc2'/)
-
-  integer, public, parameter :: max_icesheets = 2
-  integer, public :: compglc(max_icesheets) = (/compglc1,compglc2/)
-  integer, public :: num_icesheets     ! obtained from attribute
-  logical, public :: ocn2glc_coupling  ! obtained from attribute
-  logical, public :: lnd2glc_coupling  ! obtained in med.F90
-  logical, public :: accum_lnd2glc     ! obtained in med.F90 (this can be true even if lnd2glc_coupling is false)
-
-  logical, public :: dststatus_print = .false.
-
-  !-----------------------------------------------
-  ! Set mappers
-  !-----------------------------------------------
-
-  integer , public, parameter :: mapunset          = 0
-  integer , public, parameter :: mapbilnr          = 1
-  integer , public, parameter :: mapconsf          = 2
-  integer , public, parameter :: mapconsd          = 3
-  integer , public, parameter :: mappatch          = 4
-  integer , public, parameter :: mapfcopy          = 5
-  integer , public, parameter :: mapnstod          = 6  ! nearest source to destination
-  integer , public, parameter :: mapnstod_consd    = 7  ! nearest source to destination followed by conservative dst
-  integer , public, parameter :: mapnstod_consf    = 8  ! nearest source to destination followed by conservative frac
-  integer , public, parameter :: mappatch_uv3d     = 9  ! rotate u,v to 3d cartesian space, map from src->dest, then rotate back
-  integer , public, parameter :: mapbilnr_uv3d     = 10 ! rotate u,v to 3d cartesian space, map from src->dest, then rotate back
-  integer , public, parameter :: map_rof2ocn_ice   = 11 ! custom smoothing map to map ice from rof->ocn (cesm only)
-  integer , public, parameter :: map_rof2ocn_liq   = 12 ! custom smoothing map to map liq from rof->ocn (cesm only)
-  integer , public, parameter :: map_glc2ocn_liq   = 13 ! custom smoothing map to map liq from glc->ocn (cesm only)
-  integer , public, parameter :: map_glc2ocn_ice   = 14 ! custom smoothing map to map ice from glc->ocn (cesm only)
-  integer , public, parameter :: mapfillv_bilnr    = 15 ! fill value followed by bilinear
-  integer , public, parameter :: mapbilnr_nstod    = 16 ! bilinear with nstod extrapolation
-  integer , public, parameter :: mapconsf_aofrac   = 17 ! conservative with aofrac normalization (ufs only)
-  integer , public, parameter :: nmappers          = 17
-
-  character(len=*) , public, parameter :: mapnames(nmappers) = &
-       (/'bilnr       ',&
-         'consf       ',&
-         'consd       ',&
-         'patch       ',&
-         'fcopy       ',&
-         'nstod       ',&
-         'nstod_consd ',&
-         'nstod_consf ',&
-         'patch_uv3d  ',&
-         'bilnr_uv3d  ',&
-         'rof2ocn_ice ',&
-         'rof2ocn_liq ',&
-         'glc2ocn_ice ',&
-         'glc2ocn_liq ',&
-         'fillv_bilnr ',&
-         'bilnr_nstod ',&
-         'consf_aofrac'/)
-
-  !-----------------------------------------------
-  ! Set coupling mode
-  !-----------------------------------------------
-
-  character(len=CS), public :: coupling_mode ! valid values are [cesm,nems_orig,nems_frac,nems_orig_data,hafs]
-
-  !-----------------------------------------------
-  ! Name of model components
-  !-----------------------------------------------
-
-  character(len=CS), public :: med_name = ''
-  character(len=CS), public :: atm_name = ''
-  character(len=CS), public :: lnd_name = ''
-  character(len=CS), public :: ocn_name = ''
-  character(len=CS), public :: ice_name = ''
-  character(len=CS), public :: rof_name = ''
-  character(len=CS), public :: wav_name = ''
-  character(len=CS), public :: glc_name = ''
-
-  !-----------------------------------------------
   ! PUblic methods
   !-----------------------------------------------
 
+  public :: med_fldList_init1
   public :: med_fldList_AddFld
   public :: med_fldList_AddMap
   public :: med_fldList_AddMrg
@@ -125,14 +31,14 @@ module esmflds
      character(CS) :: shortname
 
      ! Mapping fldsFr data - for mediator import fields
-     integer       :: mapindex(ncomps) = mapunset
-     character(CS) :: mapnorm(ncomps) = 'unset'
-     character(CX) :: mapfile(ncomps) = 'unset'
+     integer      , allocatable :: mapindex(:)
+     character(CS), allocatable :: mapnorm(:)
+     character(CX), allocatable :: mapfile(:)
 
      ! Merging fldsTo data - for mediator export fields
-     character(CS) :: merge_fields(ncomps)    = 'unset'
-     character(CS) :: merge_types(ncomps)     = 'unset'
-     character(CS) :: merge_fracnames(ncomps) = 'unset'
+     character(CS), allocatable :: merge_fields(:)
+     character(CS), allocatable :: merge_types(:)
+     character(CS), allocatable :: merge_fracnames(:)
   end type med_fldList_entry_type
 
   ! The above would be the field name to merge from
@@ -154,8 +60,8 @@ module esmflds
   !-----------------------------------------------
   ! Instantiate derived types
   !-----------------------------------------------
-  type (med_fldList_type), public :: fldListTo(ncomps) ! advertise fields to components
-  type (med_fldList_type), public :: fldListFr(ncomps) ! advertise fields from components
+  type (med_fldList_type), allocatable, public :: fldListTo(:) ! advertise fields to components
+  type (med_fldList_type), allocatable, public :: fldListFr(:) ! advertise fields from components
 
   type (med_fldList_type), public :: fldListMed_aoflux
   type (med_fldList_type), public :: fldListMed_ocnalb
@@ -169,8 +75,13 @@ module esmflds
 contains
 !================================================================================
 
-  subroutine med_fldList_AddFld(flds, stdname, shortname)
+  subroutine med_fldlist_init1()
+    allocate(fldlistTo(ncomps))
+    allocate(fldlistFr(ncomps))
+  end subroutine med_fldlist_init1
 
+  !================================================================================
+  subroutine med_fldList_AddFld(flds, stdname, shortname)
     ! ----------------------------------------------
     ! Add an entry to to the flds array
     ! Use pointers to create an extensible allocatable array.
@@ -190,6 +101,7 @@ contains
     ! local variables
     integer :: n,oldsize,id
     logical :: found
+    integer :: mapsize, mrgsize
     type(med_fldList_entry_type), pointer :: newflds(:)
     character(len=*), parameter :: subname='(med_fldList_AddFld)'
     ! ----------------------------------------------
@@ -211,6 +123,9 @@ contains
 
     ! create new entry if fldname is not in original list
 
+    mapsize = ncomps
+    mrgsize = ncomps
+
     if (.not. found) then
 
        ! 1) allocate newfld to be size (one element larger than input flds)
@@ -220,12 +135,27 @@ contains
        do n = 1,oldsize
           newflds(n)%stdname            = flds(n)%stdname
           newflds(n)%shortname          = flds(n)%shortname
+
+          allocate(newflds(n)%mapindex(mapsize))
+          allocate(newflds(n)%mapnorm(mapsize))
+          allocate(newflds(n)%mapfile(mapsize))
+          allocate(newflds(n)%merge_fields(mrgsize))
+          allocate(newflds(n)%merge_types(mrgsize))
+          allocate(newflds(n)%merge_fracnames(mrgsize))
+
           newflds(n)%mapindex(:)        = flds(n)%mapindex(:)
           newflds(n)%mapnorm(:)         = flds(n)%mapnorm(:)
           newflds(n)%mapfile(:)         = flds(n)%mapfile(:)
           newflds(n)%merge_fields(:)    = flds(n)%merge_fields(:)
           newflds(n)%merge_types(:)     = flds(n)%merge_types(:)
           newflds(n)%merge_fracnames(:) = flds(n)%merge_fracnames(:)
+
+          deallocate(flds(n)%mapindex)
+          deallocate(flds(n)%mapnorm)
+          deallocate(flds(n)%mapfile)
+          deallocate(flds(n)%merge_fields)
+          deallocate(flds(n)%merge_types)
+          deallocate(flds(n)%merge_fracnames)
        end do
 
        ! 3) deallocate / nullify flds
@@ -244,6 +174,18 @@ contains
        else
           flds(id)%shortname = trim(stdname)
        end if
+       allocate(flds(id)%mapindex(mapsize))
+       allocate(flds(id)%mapnorm(mapsize))
+       allocate(flds(id)%mapfile(mapsize))
+       allocate(flds(id)%merge_fields(mrgsize))
+       allocate(flds(id)%merge_types(mrgsize))
+       allocate(flds(id)%merge_fracnames(mrgsize))
+       flds(id)%mapindex(:) = mapunset
+       flds(id)%mapnorm(:) = 'unset'
+       flds(id)%mapfile(:) = 'unset'
+       flds(id)%merge_fields(:) = 'unset'
+       flds(id)%merge_types(:) = 'unset'
+       flds(id)%merge_fracnames(:) = 'unset'
     end if
 
   end subroutine med_fldList_AddFld
@@ -639,11 +581,11 @@ contains
     ! Get field merge info
     ! ----------------------------------------------
     type(med_fldList_type) , intent(in)  :: fldList
-    integer                      , intent(in)  :: fldindex
-    integer                      , intent(in)  :: compsrc
-    character(len=*)             , intent(out) :: merge_field
-    character(len=*)             , intent(out) :: merge_type
-    character(len=*)             , intent(out) :: merge_fracname
+    integer                , intent(in)  :: fldindex
+    integer                , intent(in)  :: compsrc
+    character(len=*)       , intent(out) :: merge_field
+    character(len=*)       , intent(out) :: merge_type
+    character(len=*)       , intent(out) :: merge_fracname
 
     ! local variables
     character(len=*), parameter :: subname='(med_fldList_GetFldInfo_merging)'
@@ -652,6 +594,7 @@ contains
     merge_field    = fldList%flds(fldindex)%merge_fields(compsrc)
     merge_type     = fldList%flds(fldindex)%merge_types(compsrc)
     merge_fracname = fldList%flds(fldindex)%merge_fracnames(compsrc)
+
   end subroutine med_fldList_GetFldInfo_merging
 
   !================================================================================

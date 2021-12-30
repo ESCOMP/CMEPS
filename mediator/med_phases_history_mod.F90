@@ -18,8 +18,8 @@ module med_phases_history_mod
   use ESMF                  , only : operator(-), operator(+)
   use NUOPC                 , only : NUOPC_CompAttributeGet
   use NUOPC_Model           , only : NUOPC_ModelGet
-  use esmFlds               , only : ncomps, compname
   use med_utils_mod         , only : chkerr => med_utils_ChkErr
+  use med_internalstate_mod , only : ncomps, compname
   use med_internalstate_mod , only : InternalState, mastertask, logunit
   use med_time_mod          , only : med_time_alarmInit
   use med_io_mod            , only : med_io_write, med_io_wopen, med_io_enddef, med_io_close
@@ -27,6 +27,9 @@ module med_phases_history_mod
 
   implicit none
   private
+
+  ! Public routine called from med_internal_state_init
+  public :: med_phases_history_init
 
   ! Public routine called from the run sequence
   public :: med_phases_history_write         ! inst only - for all variables
@@ -65,7 +68,7 @@ module med_phases_history_mod
      logical          :: is_clockset = .false.
      logical          :: is_active = .false.
   end type instfile_type
-  type(instfile_type) , public :: instfiles(ncomps)
+  type(instfile_type) , allocatable, public :: instfiles(:)
 
   ! ----------------------------
   ! Time averaging history files
@@ -84,7 +87,7 @@ module med_phases_history_mod
      logical                :: is_clockset = .false.
      logical                :: is_active = .false.
   end type avgfile_type
-  type(avgfile_type) :: avgfiles(ncomps)
+  type(avgfile_type), allocatable :: avgfiles(:)
 
   ! ----------------------------
   ! Auxiliary history files
@@ -109,9 +112,7 @@ module med_phases_history_mod
      integer            :: num_auxfiles  = 0       ! actual number of auxiliary files
      logical            :: init_auxfiles = .false. ! if auxfile initial has occured
   end type auxcomp_type
-  type(auxcomp_type) , public :: auxcomp(ncomps)
-
-  !logical :: init_auxfiles(ncomps) = .false.   ! if true, auxfiles has been initialized for the component
+  type(auxcomp_type), allocatable, public :: auxcomp(:)
 
   ! ----------------------------
   ! Other private module variables
@@ -130,6 +131,14 @@ module med_phases_history_mod
 contains
 !===============================================================================
 
+  subroutine med_phases_history_init()
+    ! allocate module memory
+    allocate(instfiles(ncomps))
+    allocate(avgfiles(ncomps))
+    allocate(auxcomp(ncomps))
+  end subroutine med_phases_history_init
+
+  !===============================================================================
   subroutine med_phases_history_write(gcomp, rc)
 
     ! --------------------------------------
@@ -139,7 +148,7 @@ contains
     use med_io_mod, only : med_io_write_time, med_io_define_time
     use ESMF      , only : ESMF_Alarm, ESMF_AlarmSet
     use ESMF      , only : ESMF_FieldBundleIsCreated
-    use esmflds   , only : compocn, compatm
+    use med_internalstate_mod, only : compocn, compatm
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -369,7 +378,7 @@ contains
 
     use ESMF      , only : ESMF_FieldBundleIsCreated
     use med_io_mod, only : med_io_write_time, med_io_define_time
-    use esmFlds   , only : compmed, compocn, compatm
+    use med_internalstate_mod, only : compmed, compocn, compatm
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -506,7 +515,7 @@ contains
 
     ! Write yearly average of lnd -> glc fields
 
-    use esmFlds           , only : complnd
+    use med_internalstate_mod, only : complnd
     use med_constants_mod , only : SecPerDay => med_constants_SecPerDay
     use med_io_mod        , only : med_io_write_time, med_io_define_time
     use med_io_mod        , only : med_io_date2yyyymmdd, med_io_sec2hms, med_io_ymd2date

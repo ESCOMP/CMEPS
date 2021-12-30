@@ -24,15 +24,16 @@ contains
     use NUOPC
     use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
     use med_utils_mod         , only : chkerr => med_utils_chkerr
+    use med_internalstate_mod , only : mastertask, logunit
+    use med_internalstate_mod , only : compmed, compatm, compocn, compice, comprof, ncomps
+    use med_internalstate_mod , only : mapbilnr, mapconsf, mapconsd, mappatch
+    use med_internalstate_mod , only : mapfcopy, mapnstod, mapnstod_consd, mapnstod_consf
+    use med_internalstate_mod , only : mapconsf_aofrac
+    use med_internalstate_mod , only : coupling_mode, mapnames
     use esmFlds               , only : med_fldList_type
     use esmFlds               , only : addfld => med_fldList_AddFld
     use esmFlds               , only : addmap => med_fldList_AddMap
     use esmFlds               , only : addmrg => med_fldList_AddMrg
-    use esmflds               , only : compmed, compatm, compocn, compice, comprof, ncomps
-    use esmflds               , only : mapbilnr, mapconsf, mapconsd, mappatch
-    use esmflds               , only : mapfcopy, mapnstod, mapnstod_consd, mapnstod_consf
-    use esmflds               , only : mapconsf_aofrac
-    use esmflds               , only : coupling_mode, mapnames
     use esmflds               , only : fldListTo, fldListFr, fldListMed_aoflux, fldListMed_ocnalb
     use med_internalstate_mod , only : InternalState, mastertask, logunit
 

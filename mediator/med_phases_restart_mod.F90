@@ -8,7 +8,7 @@ module med_phases_restart_mod
   use med_constants_mod       , only : dbug_flag => med_constants_dbug_flag
   use med_utils_mod           , only : chkerr    => med_utils_ChkErr
   use med_internalstate_mod   , only : mastertask, logunit, InternalState
-  use esmFlds                 , only : ncomps, compname, compocn, complnd
+  use med_internalstate_mod   , only : ncomps, compname, compocn, complnd
   use perf_mod                , only : t_startf, t_stopf
   use med_phases_prep_glc_mod , only : FBlndAccum2glc_l, lndAccum2glc_cnt
   use med_phases_prep_glc_mod , only : FBocnAccum2glc_o, ocnAccum2glc_cnt

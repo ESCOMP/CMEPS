@@ -40,11 +40,10 @@
     <type>char</type>
     <category>expdef</category>
     <group>DRIVER_attributes</group>
-    <valid_values>cesm,ufs</valid_values>
+    <valid_values>cesm</valid_values>
     <desc>cime model</desc>
     <values>
-      <value cime_model='cesm'>cesm</value>
-      <value cime_model='ufs'>ufs</value>
+      <value>cesm</value>
     </values>
   </entry>
 
@@ -346,6 +345,7 @@
   <entry id="mesh_mask" modify_via_xml="MASK_MESH">
     <type>char</type>
     <category>mapping</category>
+    <input_pathname>abs</input_pathname>
     <group>ALLCOMP_attributes</group>
     <desc>
       MESH for model mask (used to create masks and fractions at run time if different than model mesh)
@@ -2270,11 +2270,9 @@
     <category>flds</category>
     <group>ALLCOMP_attributes</group>
     <desc>
-      Previously, new fields that were needed to be passed between components
-      for certain compsets were specified by cpp-variables. This has been
-      modified to now be use cases. This use cases are specified in the
-      namelist cpl_flds_inparm and are currently triggered by the xml variable CCSM_BGC.
-      If CCSM_BGC is set to 'CO2A', then flds_co2a will be set to .true.
+      Pass CO2 from ATM to surface components
+      Set this by setting the xml variable BGC_MODE.
+      If BGC_MODE is set to 'CO2A', then flds_co2a will be set to .true.
     </desc>
     <values>
       <value>.false.</value>
@@ -2287,11 +2285,9 @@
     <category>flds</category>
     <group>ALLCOMP_attributes</group>
     <desc>
-      Previously, new fields that were needed to be passed between components
-      for certain compsets were specified by cpp-variables. This has been
-      modified to now be use cases. This use cases are specified in the
-      namelist cpl_flds_inparm and are currently triggered by the xml variable CCSM_BGC.
-      If CCSM_BGC is set to 'CO2B', then flds_co2b will be set to .true.
+      Pass CO2 from ATM to LND and back from LND to ATM
+      Set this by setting the xml variable BGC_MODE.
+      If BGC_MODE is set to 'CO2B', then flds_co2b will be set to .true.
     </desc>
     <values>
       <value>.false.</value>
@@ -2304,11 +2300,9 @@
     <category>flds</category>
     <group>ALLCOMP_attributes</group>
     <desc>
-      Previously, new fields that were needed to be passed between components
-      for certain compsets were specified by cpp-variables. This has been
-      modified to now be use cases. This use cases are specified in the
-      namelist cpl_flds_inparm and are currently triggered by the xml variable CCSM_BGC.
-      If CCSM_BGC is set to 'CO2C', then flds_co2c will be set to .true.
+      Pass CO2 from ATM to surface (OCN/LND) and back from them to ATM
+      Set this by setting the xml variable BGC_MODE.
+      If BGC_MODE is set to 'CO2C', then flds_co2c will be set to .true.
     </desc>
     <values>
       <value>.false.</value>
@@ -2340,6 +2334,19 @@
     </desc>
     <values>
       <value>$FLDS_WISO</value>
+    </values>
+  </entry>
+
+  <entry id="flds_r2l_stream_channel_depths">
+    <type>logical</type>
+    <category>flds</category>
+    <group>ALLCOMP_attributes</group>
+    <desc>
+      Pass channel depths from river component to land component. This is needed for the hillslope
+      model in CTSM.
+    </desc>
+    <values>
+      <value>.false.</value>
     </values>
   </entry>
 
@@ -3813,6 +3820,7 @@
   <entry id="mesh_atm" modify_via_xml="ATM_DOMAIN_MESH">
     <type>char</type>
     <category>mapping</category>
+    <input_pathname>abs</input_pathname>
     <group>ATM_attributes</group>
     <desc>
       MESH description of atm grid
@@ -3872,6 +3880,7 @@
   <entry id="mesh_ice" modify_via_xml="ICE_DOMAIN_MESH">
     <type>char</type>
     <category>mapping</category>
+    <input_pathname>abs</input_pathname>
     <group>ICE_attributes</group>
     <desc>
       MESH description of ice grid
@@ -3898,6 +3907,7 @@
   <entry id="mesh_glc" modify_via_xml="GLC_DOMAIN_MESH">
     <type>char</type>
     <category>mapping</category>
+    <input_pathname>abs</input_pathname>
     <group>ALLCOMP_attributes</group>
     <desc>
       MESH description of glc grid
@@ -3924,6 +3934,7 @@
   <entry id="mesh_lnd" modify_via_xml="LND_DOMAIN_MESH">
     <type>char</type>
     <category>mapping</category>
+    <input_pathname>abs</input_pathname>
     <group>LND_attributes</group>
     <desc>
       MESH description of lnd grid
@@ -3950,6 +3961,7 @@
   <entry id="mesh_ocn" modify_via_xml="OCN_DOMAIN_MESH">
     <type>char</type>
     <category>mapping</category>
+    <input_pathname>abs</input_pathname>
     <group>OCN_attributes</group>
     <desc>
       MESH description of ocn grid
@@ -3976,6 +3988,7 @@
   <entry id="mesh_rof" modify_via_xml="ROF_DOMAIN_MESH">
     <type>char</type>
     <category>mapping</category>
+    <input_pathname>abs</input_pathname>
     <group>ROF_attributes</group>
     <desc>
       MESH description of rof grid
@@ -4002,6 +4015,7 @@
   <entry id="mesh_wav" modify_via_xml="WAV_DOMAIN_MESH">
     <type>char</type>
     <category>mapping</category>
+    <input_pathname>abs</input_pathname>
     <group>WAV_attributes</group>
     <desc>
       MESH description of wav grid
