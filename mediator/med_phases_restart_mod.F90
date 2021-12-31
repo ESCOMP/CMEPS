@@ -386,7 +386,7 @@ contains
              nx = is_local%wrap%nx(compocn)
              ny = is_local%wrap%ny(compocn)
              call med_io_write(restart_file, is_local%wrap%FBExpAccumWav, whead(m), wdata(m), nx, ny, &
-                  nt=1, pre='ocnExpAccum', rc=rc)
+                  nt=1, pre='wavExpAccum', rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
              call med_io_write(restart_file, is_local%wrap%ExpAccumWavCnt, 'wavExpAccum_cnt', whead(m), wdata(m), rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return

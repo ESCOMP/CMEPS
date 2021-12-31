@@ -109,7 +109,8 @@ contains
     use med_phases_prep_atm_mod , only: med_phases_prep_atm
     use med_phases_prep_ice_mod , only: med_phases_prep_ice
     use med_phases_prep_lnd_mod , only: med_phases_prep_lnd
-    use med_phases_prep_wav_mod , only: med_phases_prep_wav
+    use med_phases_prep_wav_mod , only: med_phases_prep_wav_accum
+    use med_phases_prep_wav_mod , only: med_phases_prep_wav_avg
     use med_phases_prep_glc_mod , only: med_phases_prep_glc
     use med_phases_prep_rof_mod , only: med_phases_prep_rof
     use med_phases_prep_ocn_mod , only: med_phases_prep_ocn_accum
@@ -351,10 +352,20 @@ contains
     !------------------
 
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
-         phaseLabelList=(/"med_phases_prep_wav"/), userRoutine=mediator_routine_Run, rc=rc)
+         phaseLabelList=(/"med_phases_prep_wav_accum"/), userRoutine=mediator_routine_Run, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
-         specPhaseLabel="med_phases_prep_wav", specRoutine=med_phases_prep_wav, rc=rc)
+         specPhaseLabel="med_phases_prep_wav_accum", specRoutine=med_phases_prep_wav_accum, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_TimestampExport, &
+         specPhaselabel="med_phases_prep_wav_accum", specRoutine=NUOPC_NoOp, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
+         phaseLabelList=(/"med_phases_prep_wav_avg"/), userRoutine=mediator_routine_Run, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
+         specPhaseLabel="med_phases_prep_wav_avg", specRoutine=med_phases_prep_wav_avg, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
@@ -1627,6 +1638,7 @@ contains
     use med_fraction_mod        , only : med_fraction_init, med_fraction_set
     use med_phases_restart_mod  , only : med_phases_restart_read
     use med_phases_prep_ocn_mod , only : med_phases_prep_ocn_init
+    use med_phases_prep_wav_mod , only : med_phases_prep_wav_init
     use med_phases_prep_rof_mod , only : med_phases_prep_rof_init
     use med_phases_prep_glc_mod , only : med_phases_prep_glc_init
     use med_phases_prep_atm_mod , only : med_phases_prep_atm
@@ -2065,6 +2077,16 @@ contains
            ESMF_StateIsCreated(is_local%wrap%NStateImp(compocn),rc=rc) .and. &
            ESMF_StateIsCreated(is_local%wrap%NStateExp(compocn),rc=rc)) then
          call med_phases_prep_ocn_init(gcomp, rc)
+         if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      end if
+
+      !---------------------------------------
+      ! Initialize wav export accumulation field bundle
+      !---------------------------------------
+      if ( is_local%wrap%comp_present(compwav) .and. &
+           ESMF_StateIsCreated(is_local%wrap%NStateImp(compwav),rc=rc) .and. &
+           ESMF_StateIsCreated(is_local%wrap%NStateExp(compwav),rc=rc)) then
+         call med_phases_prep_wav_init(gcomp, rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
       end if
 

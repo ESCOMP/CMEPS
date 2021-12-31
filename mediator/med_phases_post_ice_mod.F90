@@ -59,7 +59,7 @@ contains
     call med_fraction_set(gcomp, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    ! map ice to atm - scaling by updated ice fraction
+    ! map ice->atm - scaling by updated ice fraction
     if (is_local%wrap%med_coupling_active(compice,compatm)) then
        call med_map_field_packed( &
             FBSrc=is_local%wrap%FBImp(compice,compice), &
@@ -71,7 +71,7 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     end if
-    ! map ice to ocn
+    ! map ice->ocn
     if (is_local%wrap%med_coupling_active(compice,compocn)) then
        call t_startf('MED:'//trim(subname)//' map_ice2ocn')
        call med_map_field_packed( &
@@ -84,7 +84,7 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call t_stopf('MED:'//trim(subname)//' map_ice2ocn')
     end if
-    ! map ice to wav
+    ! map ice->wav
     if (is_local%wrap%med_coupling_active(compice,compwav)) then
        call t_startf('MED:'//trim(subname)//' map_ice2wav')
        call med_map_field_packed( &

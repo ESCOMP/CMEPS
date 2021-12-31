@@ -58,7 +58,7 @@ contains
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    ! map atm to ocn
+    ! map atm->ocn
     if (is_local%wrap%med_coupling_active(compatm,compocn)) then
        call t_startf('MED:'//trim(subname)//' map_atm2ocn')
        call med_map_field_packed( &
@@ -97,7 +97,7 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call t_stopf('MED:'//trim(subname)//' map_atm2lnd')
     end if
-    ! map atm to wav
+    ! map atm->wav
     if (is_local%wrap%med_coupling_active(compatm,compwav)) then
        call t_startf('MED:'//trim(subname)//' map_atm2wav')
        call med_map_field_packed( &

@@ -5,17 +5,20 @@ module med_phases_prep_wav_mod
   !-----------------------------------------------------------------------------
 
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
-  use med_constants_mod     , only : dbug_flag     => med_constants_dbug_flag
+  use med_constants_mod     , only : czero     =>med_constants_czero
+  use med_constants_mod     , only : dbug_flag => med_constants_dbug_flag
+  use med_internalstate_mod , only : InternalState, mastertask, logunit
+  use med_merge_mod         , only : med_merge_auto, med_merge_field
+  use med_map_mod           , only : med_map_field_packed
+  use med_utils_mod         , only : memcheck      => med_memcheck
   use med_utils_mod         , only : chkerr        => med_utils_ChkErr
   use med_methods_mod       , only : FB_diagnose   => med_methods_FB_diagnose
   use med_methods_mod       , only : FB_accum      => med_methods_FB_accum
   use med_methods_mod       , only : FB_average    => med_methods_FB_average
+  use med_methods_mod       , only : FB_copy       => med_methods_FB_copy
   use med_methods_mod       , only : FB_reset      => med_methods_FB_reset
-  use med_merge_mod         , only : med_merge_auto
-  use med_map_mod           , only : med_map_field_packed
-  use med_internalstate_mod , only : InternalState, mastertask
   use esmFlds               , only : compwav, compatm, compice
-  use esmFlds               , only : fldListFr, fldListTo
+  use esmFlds               , only : fldListTo
   use perf_mod              , only : t_startf, t_stopf
 
   implicit none
