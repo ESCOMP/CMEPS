@@ -321,7 +321,6 @@ contains
     use ESMF            , only : ESMF_SUCCESS, ESMF_LOGERR_PASSTHRU
     use ESMF            , only : ESMF_GridComp, ESMF_GridCompGet
     use ESMF            , only : ESMF_Field, ESMF_FieldGet, ESMF_FieldBundle
-    use esmFlds         , only : coupling_mode
     use med_methods_mod , only : FB_fldchk    => med_methods_FB_FldChk
 #ifdef CESMCOUPLED
     use shr_flux_mod    , only : shr_flux_adjust_constants
@@ -774,14 +773,15 @@ contains
     ! create the routehandles atm->xgrid and xgrid->atm
     ! ------------------------
 
+    ! create temporary field
     field_a = ESMF_FieldCreate(atm_mesh, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call ESMF_FieldGet(field_a, farrayptr=dataptr, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     dataptr(:) = 1.0_r8
+
+    ! create agrid->xgrid route handles
     call ESMF_FieldRegridStore(xgrid, field_a, field_x, routehandle=rh_agrid2xgrid, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldRegridStore(xgrid, field_x, field_a, routehandle=rh_xgrid2agrid, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call ESMF_FieldRegridStore(xgrid, field_a, field_x, routehandle=rh_agrid2xgrid_2ndord, &
          regridmethod=ESMF_REGRIDMETHOD_CONSERVE_2ND, rc=rc)
@@ -792,6 +792,12 @@ contains
     call ESMF_FieldRegridStore(field_a, field_x, routehandle=rh_agrid2xgrid_patch, &
          regridmethod=ESMF_REGRIDMETHOD_PATCH, dstMaskValues=(/0/), rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    ! create xgrid->zgrid route handle
+    call ESMF_FieldRegridStore(xgrid, field_x, field_a, routehandle=rh_xgrid2agrid, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    ! destroy temporary field
     call ESMF_FieldDestroy(field_a, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
@@ -1080,16 +1086,28 @@ contains
        ! Get the source field
        call ESMF_FieldBundleGet(is_local%wrap%FBImp(compatm,compatm), fldnames_atm_in(nf), field=field_src, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
+
        ! Get the destination field
        call ESMF_FieldBundleGet(FBatm_x, fldnames_atm_in(nf), field=field_dst, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       ! Map atm->xgrid conservatively
-       if (trim(fldnames_atm_in(nf)) == 'Sa_u' .or. (trim(fldnames_atm_in(nf)) == 'Sa_v')) then
-          call ESMF_FieldRegrid(field_src, field_dst, routehandle=rh_agrid2xgrid_patch, &
-               termorderflag=ESMF_TERMORDER_SRCSEQ, zeroregion=ESMF_REGION_TOTAL, rc=rc)
+
+       ! Map atm->xgrid
+       if (trim(coupling_mode) == 'hafs') then
+          if (trim(fldnames_atm_in(nf)) == 'Sa_u' .or. (trim(fldnames_atm_in(nf)) == 'Sa_v')) then
+             call ESMF_FieldRegrid(field_src, field_dst, routehandle=rh_agrid2xgrid_2ndord, &
+                  termorderflag=ESMF_TERMORDER_SRCSEQ, zeroregion=ESMF_REGION_TOTAL, rc=rc)
+          else
+             call ESMF_FieldRegrid(field_src, field_dst, routehandle=rh_agrid2xgrid, &
+                  termorderflag=ESMF_TERMORDER_SRCSEQ, zeroregion=ESMF_REGION_TOTAL, rc=rc)
+          end if
        else
-          call ESMF_FieldRegrid(field_src, field_dst, routehandle=rh_agrid2xgrid_bilinr, &
-               termorderflag=ESMF_TERMORDER_SRCSEQ, zeroregion=ESMF_REGION_TOTAL, rc=rc)
+          if (trim(fldnames_atm_in(nf)) == 'Sa_u' .or. (trim(fldnames_atm_in(nf)) == 'Sa_v')) then
+             call ESMF_FieldRegrid(field_src, field_dst, routehandle=rh_agrid2xgrid_patch, &
+                  termorderflag=ESMF_TERMORDER_SRCSEQ, zeroregion=ESMF_REGION_TOTAL, rc=rc)
+          else
+             call ESMF_FieldRegrid(field_src, field_dst, routehandle=rh_agrid2xgrid_bilinr, &
+                  termorderflag=ESMF_TERMORDER_SRCSEQ, zeroregion=ESMF_REGION_TOTAL, rc=rc)
+          end if
        end if
     end do
 
