@@ -595,6 +595,12 @@ contains
        call med_io_read(restart_file, vm, is_local%wrap%ExpAccumOcnCnt, 'ocnExpAccum_cnt', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     endif
+    if (ESMF_FieldBundleIsCreated(is_local%wrap%FBExpAccumWav,rc=rc)) then
+       call med_io_read(restart_file, vm, is_local%wrap%FBExpAccumWav, pre='wavExpAccum', rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call med_io_read(restart_file, vm, is_local%wrap%ExpAccumWavCnt, 'wavExpAccum_cnt', rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    endif
     ! If lnd->rof, read accumulation from lnd to rof (CESM only)
     if (ESMF_FieldBundleIsCreated(FBlndAccum2rof_l)) then
        call med_io_read(restart_file, vm, FBlndAccum2rof_l, pre='lndImpAccum2rof', rc=rc)

@@ -69,7 +69,6 @@ contains
             packed_data=is_local%wrap%packed_data(compice,compatm,:), &
             routehandles=is_local%wrap%RH(compice,compatm,:), rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
     end if
     ! map ice->ocn
     if (is_local%wrap%med_coupling_active(compice,compocn)) then
