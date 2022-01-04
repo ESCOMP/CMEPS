@@ -25,7 +25,7 @@ contains
     use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
     use med_utils_mod         , only : chkerr => med_utils_chkerr
     use med_internalstate_mod , only : mastertask, logunit
-    use med_internalstate_mod , only : compmed, compatm, compocn, compice, comprof, ncomps
+    use med_internalstate_mod , only : compmed, compatm, compocn, compice, complnd, ncomps
     use med_internalstate_mod , only : mapbilnr, mapconsf, mapconsd, mappatch
     use med_internalstate_mod , only : mapfcopy, mapnstod, mapnstod_consd, mapnstod_consf
     use med_internalstate_mod , only : mapconsf_aofrac
@@ -350,6 +350,24 @@ contains
        call addfld(fldListFr(compocn)%flds, trim(fldname))
        call addmap(fldListFr(compocn)%flds, trim(fldname), compice, mapfcopy , 'unset', 'unset')
        call addmrg(fldListTo(compice)%flds, trim(fldname), mrg_from=compocn, mrg_fld=trim(fldname), mrg_type='copy')
+    end do
+    deallocate(flds)
+
+    !=====================================================================
+    ! FIELDS TO LAND (complnd)
+    !=====================================================================
+
+    ! to lnd - states and fluxes from atm
+    allocate(flds(11))
+    flds = (/'Sa_z      ', 'Sa_topo   ', 'Sa_tbot   ', 'Sa_pbot   ', &
+             'Sa_shum   ', 'Sa_u      ', 'Sa_v      ', 'Faxa_lwdn ', &
+             'Faxa_swdn ', 'Faxa_rainc', 'Faxa_rainl' /)
+    do n = 1,size(flds)
+       fldname = trim(flds(n))
+       call addfld(fldListFr(compatm)%flds, trim(fldname))
+       call addfld(fldListTo(complnd)%flds, trim(fldname))
+       call addmap(fldListFr(compatm)%flds, trim(fldname), complnd, mapfcopy , 'unset', 'unset')
+       call addmrg(fldListTo(complnd)%flds, trim(fldname), mrg_from=compatm, mrg_fld=trim(fldname), mrg_type='copy')
     end do
     deallocate(flds)
 
