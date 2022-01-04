@@ -77,6 +77,7 @@ contains
     !=====================================================================
 
     ! masks from components
+    call addfld(fldListFr(complnd)%flds, 'Sl_lfrin')
     call addfld(fldListFr(compice)%flds, 'Si_imask')
     call addfld(fldListFr(compocn)%flds, 'So_omask')
     call addmap(fldListFr(compocn)%flds, 'So_omask', compice,  mapfcopy, 'unset', 'unset')
@@ -118,6 +119,8 @@ contains
     call addfld(fldListTo(compatm)%flds, 'Si_ifrac')
     ! ofrac used by atm
     call addfld(fldListFr(compatm)%flds, 'Sa_ofrac')
+    ! lfrac used by atm
+    call addfld(fldListTo(compatm)%flds, 'Sl_lfrac')
 
     ! to atm: unmerged from ice
     ! - zonal surface stress, meridional surface stress
@@ -158,6 +161,12 @@ contains
     call addfld(fldListTo(compatm)%flds, 'So_t')
     call addmap(fldListFr(compocn)%flds, 'So_t', compatm, maptype, 'ofrac', 'unset')
     call addmrg(fldListTo(compatm)%flds, 'So_t', mrg_from=compocn, mrg_fld='So_t', mrg_type='copy')
+
+    ! to atm: unmerged surface temperatures from lnd
+    call addfld(fldListFr(complnd)%flds, 'Sl_t')
+    call addfld(fldListTo(compatm)%flds, 'Sl_t')
+    call addmap(fldListFr(complnd)%flds, 'Sl_t', compatm, maptype, 'lfrac', 'unset')
+    call addmrg(fldListTo(compatm)%flds, 'Sl_t', mrg_from=complnd, mrg_fld='', mrg_type='copy')
 
     !=====================================================================
     ! FIELDS TO OCEAN (compocn)
@@ -358,15 +367,16 @@ contains
     !=====================================================================
 
     ! to lnd - states and fluxes from atm
-    allocate(flds(11))
+    allocate(flds(16))
     flds = (/'Sa_z      ', 'Sa_topo   ', 'Sa_tbot   ', 'Sa_pbot   ', &
              'Sa_shum   ', 'Sa_u      ', 'Sa_v      ', 'Faxa_lwdn ', &
-             'Faxa_swdn ', 'Faxa_rainc', 'Faxa_rainl' /)
+             'Sa_ptem   ', 'Sa_dens   ', 'Faxa_swdn ', 'Faxa_swnet', &
+             'Faxa_snowc', 'Faxa_snowl', 'Faxa_rainc', 'Faxa_rainl' /)
     do n = 1,size(flds)
        fldname = trim(flds(n))
        call addfld(fldListFr(compatm)%flds, trim(fldname))
        call addfld(fldListTo(complnd)%flds, trim(fldname))
-       call addmap(fldListFr(compatm)%flds, trim(fldname), complnd, mapfcopy , 'unset', 'unset')
+       call addmap(fldListFr(compatm)%flds, trim(fldname), complnd, maptype, 'one', 'unset')
        call addmrg(fldListTo(complnd)%flds, trim(fldname), mrg_from=compatm, mrg_fld=trim(fldname), mrg_type='copy')
     end do
     deallocate(flds)
