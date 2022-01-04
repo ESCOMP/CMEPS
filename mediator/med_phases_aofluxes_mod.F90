@@ -1092,22 +1092,12 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        ! Map atm->xgrid
-       if (trim(coupling_mode) == 'hafs') then
-          if (trim(fldnames_atm_in(nf)) == 'Sa_u' .or. (trim(fldnames_atm_in(nf)) == 'Sa_v')) then
-             call ESMF_FieldRegrid(field_src, field_dst, routehandle=rh_agrid2xgrid_2ndord, &
-                  termorderflag=ESMF_TERMORDER_SRCSEQ, zeroregion=ESMF_REGION_TOTAL, rc=rc)
-          else
-             call ESMF_FieldRegrid(field_src, field_dst, routehandle=rh_agrid2xgrid, &
-                  termorderflag=ESMF_TERMORDER_SRCSEQ, zeroregion=ESMF_REGION_TOTAL, rc=rc)
-          end if
+       if (trim(fldnames_atm_in(nf)) == 'Sa_u' .or. (trim(fldnames_atm_in(nf)) == 'Sa_v')) then
+          call ESMF_FieldRegrid(field_src, field_dst, routehandle=rh_agrid2xgrid_patch, &
+               termorderflag=ESMF_TERMORDER_SRCSEQ, zeroregion=ESMF_REGION_TOTAL, rc=rc)
        else
-          if (trim(fldnames_atm_in(nf)) == 'Sa_u' .or. (trim(fldnames_atm_in(nf)) == 'Sa_v')) then
-             call ESMF_FieldRegrid(field_src, field_dst, routehandle=rh_agrid2xgrid_patch, &
-                  termorderflag=ESMF_TERMORDER_SRCSEQ, zeroregion=ESMF_REGION_TOTAL, rc=rc)
-          else
-             call ESMF_FieldRegrid(field_src, field_dst, routehandle=rh_agrid2xgrid_bilinr, &
-                  termorderflag=ESMF_TERMORDER_SRCSEQ, zeroregion=ESMF_REGION_TOTAL, rc=rc)
-          end if
+          call ESMF_FieldRegrid(field_src, field_dst, routehandle=rh_agrid2xgrid_bilinr, &
+               termorderflag=ESMF_TERMORDER_SRCSEQ, zeroregion=ESMF_REGION_TOTAL, rc=rc)
        end if
     end do
 
