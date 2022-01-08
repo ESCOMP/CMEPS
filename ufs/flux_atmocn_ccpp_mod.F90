@@ -80,16 +80,15 @@ contains
     integer                     :: n           , iter      , ivegsrc   , &
                                    sfc_z0_type , errflg    , nstf_name1, &
                                    lkm         , nthreads  , kice      , &
-                                   km          , lsm       , lsm_noahmp, &
-                                   lsm_ruc
+                                   lsm         , lsm_noahmp, km
     real(kp)                    :: spval       , cpinv     , hvapi     , &
                                    elocp       , rch       , tem       , &
                                    min_lakeice , min_seaice, tgice     , &
                                    h0facu      , h0facs
     logical                     :: redrag      , thsfc_loc , lseaspray , &
                                    flag_restart, frac_grid , cplflx    , &
-                                   cplice      , cplwav2atm, lheatstrg !, &
-                                   !use_med_flux
+                                   cplice      , cplwav2atm, lheatstrg , &
+                                   use_med_flux
     character(len=1024)         :: errmsg
     integer, dimension(nMax)    :: vegtype     , islmsk    , islmsk_cice 
     real(kp), dimension(nMax)   :: prsl1       , prslki    , prsik1    , &
@@ -134,11 +133,9 @@ contains
                                    tsfc        ,                         &
                                    tsfc_wat    , tsfc_lnd  , tsfc_ice  , &
                                    semis_rad   , emis_lnd  , emis_ice  , &
-                                   semis_wat   , semis_lnd , semis_ice !, &
-                                   !dqsfc       , dtsfc
+                                   semis_wat   , semis_lnd , semis_ice , &
+                                   dqsfc       , dtsfc
     real(kp), dimension(nMax,1) :: tiice       , stc
-    !integer                     :: naux2d
-    !real(kp), dimension(nMax,2) :: aux2d
     logical, dimension(nMax)    :: flag_iter   , flag_guess, use_flake , &
                                    wet         , dry       , icy       , &
                                    flag_cice   , lake
@@ -343,9 +340,9 @@ contains
     gflx_wat(:)  = 0.0_kp         ! upward_heat_flux_in_soil_over_water
     gflx_lnd(:)  = 0.0_kp         ! upward_heat_flux_in_soil_over_lnd
     gflx_ice(:)  = 0.0_kp         ! upward_heat_flux_in_soil_over_ice
-    !use_med_flux = .false.        ! flag_for_mediator_atmosphere_ocean_fluxes
-    !dqsfc(:)     = 0.0_kp         ! surface_upward_latent_heat_flux_over_ocean_from_coupled_process
-    !dtsfc(:)     = 0.0_kp         ! surface_upward_sensible_heat_flux_over_ocean_from_coupled_process
+    use_med_flux = .false.        ! flag_for_mediator_atmosphere_ocean_fluxes
+    dqsfc(:)     = 0.0_kp         ! surface_upward_latent_heat_flux_over_ocean_from_coupled_process
+    dtsfc(:)     = 0.0_kp         ! surface_upward_sensible_heat_flux_over_ocean_from_coupled_process
 
     if (flag_init) then
        allocate(evap(nMax))
@@ -372,7 +369,6 @@ contains
 
     lsm          = 2              ! control_for_land_surface_scheme 
     lsm_noahmp   = 2              ! identifier_for_noahmp_land_surface_scheme
-    lsm_ruc      = 3              ! identifier_for_ruc_land_surface_scheme
     semis_rad(:) = 0.0_kp         ! surface_longwave_emissivity
     semis_lnd(:) = 0.0_kp         ! surface_longwave_emissivity_over_land_interstitial
     semis_ice(:) = 0.0_kp         ! surface_longwave_emissivity_over_ice_interstitial
@@ -386,31 +382,28 @@ contains
 
     !--- GFS surface scheme pre ---
     call GFS_surface_composites_pre_run( &
-         nMax      , flag_init  , flag_restart, &
-         lkm       , lsm        , lsm_noahmp  , &
-         lsm_ruc   , frac_grid  , flag_cice   , &
-         cplflx    , cplice     , cplwav2atm  , &
-         landfrac  , lakefrac   , lakedepth   , &
-         oceanfrac , frland     , dry         , &
-         icy       , lake       , use_flake   , &
-         wet       , hice       , cice        , &
-         z0rl_wat  , z0rl_lnd   , z0rl_ice    , &
-         snowd     , snowd_lnd  , snowd_ice   , &
-         tprcp     ,                            &
-         tprcp_wat , tprcp_lnd  , tprcp_ice   , &
-         ustar     ,                            &
-         ustar_wat , ustar_lnd  , ustar_ice   , &
-         weasd     , weasd_lnd  , weasd_ice   , &
-         ep1d_ice  , tskin      , tsfco       , &
-         tskin_lnd , tskin_wat  , tskin_ice   , &
-         tisfc     , tsurf_wat  , tsurf_lnd   , &
-         tsurf_ice , gflx_ice   , tgice       , &
-         islmsk    , islmsk_cice, slmsk       , &
-         semis_rad , semis_wat  , semis_lnd   , &
-         semis_ice , emis_lnd   , emis_ice    , &
-         qss       , qss_wat    , qss_lnd     , &
-         qss_ice   , min_lakeice, min_seaice  , &
-         kdt       , errmsg     , errflg)
+         nMax       , flag_init  , flag_restart, &
+         lkm        , frac_grid  , flag_cice   , &
+         cplflx     , cplice     , cplwav2atm  , &
+         landfrac   , lakefrac   , lakedepth   , &
+         oceanfrac  , frland     , dry         , &
+         icy        , lake       , use_flake   , &
+         wet        , hice       , cice        , &
+         z0rl_wat   , z0rl_lnd   , z0rl_ice    , &
+         snowd      , snowd_lnd  , snowd_ice   , &
+         tprcp      ,                            &
+         tprcp_wat  , tprcp_lnd  , tprcp_ice   , &
+         ustar      ,                            &
+         ustar_wat  , ustar_lnd  , ustar_ice   , &
+         weasd      , weasd_lnd  , weasd_ice   , &
+         ep1d_ice   , tskin      , tsfco       , &
+         tskin_lnd  , tskin_wat  , tisfc       , &
+         tsurf_wat  , tsurf_lnd  , tsurf_ice   , &
+         gflx_ice   , tgice      , islmsk      , &
+         islmsk_cice, slmsk      , qss         , &
+         qss_wat    , qss_lnd    , qss_ice     , &
+         min_lakeice, min_seaice , kdt         , &
+         huge       , errmsg     , errflg)
 
     !--- surface iteration loop ---
     do iter = 1, 2
@@ -457,66 +450,66 @@ contains
             lseaspray   , fm_wat    , fm10_wat    , &
             pbot        , prslki    , wet         , &
             use_flake   , wind      , flag_iter   , &
-            !use_med_flux, dqsfc     , dtsfc       , &
+            use_med_flux, dqsfc     , dtsfc       , &
             qss_wat     , cmm_wat   , chh_wat     , &
             gflx_wat    , evap_wat  , hflx_wat    , &
             ep1d_wat    , errmsg    , errflg)
 
        !--- update flag_guess and flag_iter ---
        call GFS_surface_loop_control_part2_run( &
-            nMax       , iter      , wind        , &
-            flag_guess , flag_iter , dry         , &
-            wet        , icy       , nstf_name1  , &
+            nMax       , lsm       , lsm_noahmp, &
+            iter       , wind      ,             &
+            flag_guess , flag_iter , dry       , &
+            wet        , icy       , nstf_name1, &
             errmsg     , errflg)
     end do
 
     !--- GFS surface scheme post ---
     call GFS_surface_composites_post_run( &
-         nMax      , kice       , km          , &
-         rd        , rvrdm1     , cplflx      , &
-         cplwav2atm, frac_grid  , flag_cice   , &
-         thsfc_loc , islmsk     , dry         , &
-         wet       , icy        , wind        , &
-         tbot      , qbot       , pbot        , &
-         landfrac  , lakefrac   , oceanfrac   , &
-         z0rl      , z0rl_wat   , z0rl_lnd    , &
-         z0rl_ice  , garea      , cm          , &
-         cm_wat    , cm_lnd     , cm_ice      , &
-         ch        , ch_wat     , ch_lnd      , &
-         ch_ice    , rb         , rb_wat      , &
-         rb_lnd    , rb_ice     , stress      , &
-         stress_wat, stress_lnd , stress_ice  , &
-         fm        , fm_wat     , fm_lnd      , &
-         fm_ice    , fh         , fh_wat      , &
-         fh_lnd    , fh_ice     , ustar       , &
-         ustar_wat , ustar_lnd  , ustar_ice   , &
-         fm10      , fm10_wat   , fm10_lnd    , &
-         fm10_ice  , fh2        , fh2_wat     , &
-         fh2_lnd   , fh2_ice    , tsurf_wat   , &
-         tsurf_lnd , tsurf_ice  , cmm         , &
-         cmm_wat   , cmm_lnd    , cmm_ice     , &
-         chh       , chh_wat    , chh_lnd     , &
-         chh_ice   , gflx       , gflx_wat    , &
-         gflx_lnd  , gflx_ice   , ep1d        , &
-         ep1d_wat  , ep1d_lnd   , ep1d_ice    , &
-         weasd     , weasd_lnd  , weasd_ice   , &
-         snowd     , snowd_lnd  , snowd_ice   , &
-         tprcp     , tprcp_wat  , tprcp_lnd   , &
-         tprcp_ice , evap       , evap_wat    , &
-         evap_lnd  , evap_ice   , hflx        , &
-         hflx_wat  , hflx_lnd   , hflx_ice    , &
-         qss       , qss_wat    , qss_lnd     , &
-         qss_ice   , tskin      , tsfco       , &
-         tskin_lnd , tskin_wat  , tskin_ice   , &
-         tisfc     , hice       , cice        , & 
-         min_seaice,                            &
-         tiice     , sigmaf     , zvfun       , &
-         lheatstrg , h0facu     , h0facs      , &
-         hflxq     , hffac      , stc         , &
-         grav      , prsik1     , prslk1      , &
-         prslki    , zbot       , ztmax_wat   , &
-         ztmax_lnd , ztmax_ice  ,               &
-         errmsg    , errflg)
+         nMax      , kice       , km        , &
+         rd        , rvrdm1     , cplflx    , &
+         cplwav2atm, frac_grid  , flag_cice , &
+         thsfc_loc , islmsk     , dry       , &
+         wet       , icy        , wind      , &
+         tbot      , qbot       , pbot      , &
+         landfrac  , lakefrac   , oceanfrac , &
+         z0rl      , z0rl_wat   , z0rl_lnd  , &
+         z0rl_ice  , garea      , cm        , &
+         cm_wat    , cm_lnd     , cm_ice    , &
+         ch        , ch_wat     , ch_lnd    , &
+         ch_ice    , rb         , rb_wat    , &
+         rb_lnd    , rb_ice     , stress    , &
+         stress_wat, stress_lnd , stress_ice, &
+         fm        , fm_wat     , fm_lnd    , &
+         fm_ice    , fh         , fh_wat    , &
+         fh_lnd    , fh_ice     , ustar     , &
+         ustar_wat , ustar_lnd  , ustar_ice , &
+         fm10      , fm10_wat   , fm10_lnd  , &
+         fm10_ice  , fh2        , fh2_wat   , &
+         fh2_lnd   , fh2_ice    , tsurf_wat , &
+         tsurf_lnd , tsurf_ice  , cmm       , &
+         cmm_wat   , cmm_lnd    , cmm_ice   , &
+         chh       , chh_wat    , chh_lnd   , &
+         chh_ice   , gflx       , gflx_wat  , &
+         gflx_lnd  , gflx_ice   , ep1d      , &
+         ep1d_wat  , ep1d_lnd   , ep1d_ice  , &
+         weasd     , weasd_lnd  , weasd_ice , &
+         snowd     , snowd_lnd  , snowd_ice , &
+         tprcp     , tprcp_wat  , tprcp_lnd , &
+         tprcp_ice , evap       , evap_wat  , &
+         evap_lnd  , evap_ice   , hflx      , &
+         hflx_wat  , hflx_lnd   , hflx_ice  , &
+         qss       , qss_wat    , qss_lnd   , &
+         qss_ice   , tskin      , tsfco     , &
+         tskin_lnd , tskin_wat  , tisfc     , &
+         hice      , cice       , tiice     , &
+         sigmaf    , zvfun      , lheatstrg , &
+         h0facu    , h0facs     , hflxq     , &
+         hffac     , stc        , grav      , &
+         prsik1    , prslk1     , prslki    , &
+         zbot      , ztmax_wat  , ztmax_lnd , &
+         ztmax_ice , huge       ,  errmsg   , &
+         errflg)
 
     !--- unit conversion ---
     do n = 1, nMax
