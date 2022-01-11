@@ -516,7 +516,7 @@ contains
        if (mask(n) /= 0) then
           sen(n)  = -1.0_kp*hflx_wat(n)*rbot(n)*cp
           lat(n)  = -1.0_kp*evap_wat(n)*rbot(n)*hvap
-          lwup(n) = -1.0_kp*semis_wat(n)*sbc*ts(n)**4+(1.0_r8-semis_wat(n))*lwdn(n)
+          lwup(n) = -1.0_kp*(semis_wat(n)*sbc*ts(n)**4+(1.0_r8-semis_wat(n))*lwdn(n))
           evp(n)  = lat(n)/hvap
           taux(n) = -1.0_kp*rbot(n)*stress(n)*ubot(n)/wind(n) 
           tauy(n) = -1.0_kp*rbot(n)*stress(n)*vbot(n)/wind(n)
