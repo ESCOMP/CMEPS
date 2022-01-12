@@ -193,8 +193,20 @@ contains
     ! - surface upward longwave heat flux
     ! - evaporation water flux from water, not in the list do we need to send it to atm?
     if (trim(coupling_mode) == 'nems_frac_aoflux') then
-       allocate(flds(5))
-       flds = (/'taux', 'tauy', 'lat', 'sen', 'lwup' /)
+       ! custom merge in med_phases_prep_atm (sign changes)
+       allocate(flds(3))
+       flds = (/ 'lat', 'sen', 'lwup' /)
+       do n = 1,size(flds)
+          call addfld(fldListMed_aoflux%flds , 'Faox_'//trim(flds(n)))
+          call addfld(fldListTo(compatm)%flds, 'Faox_'//trim(flds(n)))
+          if (trim(is_local%wrap%aoflux_grid) == 'ogrid') then
+             call addmap(fldListMed_aoflux%flds, 'Faox_'//trim(flds(n)), compatm, maptype, 'ofrac', 'unset')
+          end if
+       end do
+       deallocate(flds)
+
+       allocate(flds(2))
+       flds = (/ 'taux', 'tauy' /)
        do n = 1,size(flds)
           call addfld(fldListMed_aoflux%flds , 'Faox_'//trim(flds(n)))
           call addfld(fldListTo(compatm)%flds, 'Faox_'//trim(flds(n)))

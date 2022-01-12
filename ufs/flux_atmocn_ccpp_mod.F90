@@ -514,12 +514,12 @@ contains
     !--- unit conversion ---
     do n = 1, nMax
        if (mask(n) /= 0) then
-          sen(n)  = -1.0_kp*hflx_wat(n)*rbot(n)*cp
-          lat(n)  = -1.0_kp*evap_wat(n)*rbot(n)*hvap
-          lwup(n) = -1.0_kp*(semis_wat(n)*sbc*ts(n)**4+(1.0_r8-semis_wat(n))*lwdn(n))
+          sen(n)  = hflx_wat(n)*rbot(n)*cp
+          lat(n)  = evap_wat(n)*rbot(n)*hvap
+          lwup(n) = semis_wat(n)*sbc*ts(n)**4+(1.0_r8-semis_wat(n))*lwdn(n)
           evp(n)  = lat(n)/hvap
-          taux(n) = -1.0_kp*rbot(n)*stress(n)*ubot(n)/wind(n) 
-          tauy(n) = -1.0_kp*rbot(n)*stress(n)*vbot(n)/wind(n)
+          taux(n) = rbot(n)*stress(n)*ubot(n)/wind(n) 
+          tauy(n) = rbot(n)*stress(n)*vbot(n)/wind(n)
           qref(n) = qss_wat(n)
        else
           sen(n)  = spval
