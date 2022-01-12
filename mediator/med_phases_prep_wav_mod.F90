@@ -13,12 +13,11 @@ module med_phases_prep_wav_mod
   use med_utils_mod         , only : memcheck      => med_memcheck
   use med_utils_mod         , only : chkerr        => med_utils_ChkErr
   use med_methods_mod       , only : FB_diagnose   => med_methods_FB_diagnose
-  use med_methods_mod       , only : FB_accum      => med_methods_FB_accum
-  use med_methods_mod       , only : FB_average    => med_methods_FB_average
-  use med_methods_mod       , only : FB_copy       => med_methods_FB_copy
-  use med_methods_mod       , only : FB_reset      => med_methods_FB_reset
-  use esmFlds               , only : compwav, compatm, compice
-  use esmFlds               , only : fldListTo
+  use med_merge_mod         , only : med_merge_auto
+  use med_map_mod           , only : med_map_field_packed
+  use med_internalstate_mod , only : InternalState, mastertask
+  use med_internalstate_mod , only : compwav, ncomps, compname
+  use esmFlds               , only : fldListFr, fldListTo
   use perf_mod              , only : t_startf, t_stopf
 
   implicit none
