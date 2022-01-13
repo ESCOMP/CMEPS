@@ -26,7 +26,7 @@ module med_phases_aofluxes_mod
   use ESMF                  , only : ESMF_XGridGet, ESMF_KIND_R8
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
   use med_internalstate_mod , only : InternalState, mastertask, logunit
-  use med_internalstate_mod , only : compatm, compocn, coupling_mode, mapconsd, mapconsf, mapfcopy
+  use med_internalstate_mod , only : compatm, compocn, coupling_mode, aoflux_code, mapconsd, mapconsf, mapfcopy
   use med_constants_mod     , only : dbug_flag    => med_constants_dbug_flag
   use med_utils_mod         , only : memcheck     => med_memcheck
   use med_utils_mod         , only : chkerr       => med_utils_chkerr
@@ -1080,7 +1080,7 @@ contains
        end do
     end if
     if (compute_atm_dens) then
-       if (trim(coupling_mode) == 'nems_frac_aoflux') then
+       if (trim(aoflux_code) == 'ccpp' .and. trim(coupling_mode) == 'nems_frac_aoflux') then
           ! Add limiting factor to humidity to be consistent with UFS aoflux calculation
           do n = 1,aoflux_in%lsize
              if (aoflux_in%mask(n) /= 0._r8) then
@@ -1120,29 +1120,31 @@ contains
          missval=0.0_r8)
 
 #else
-#ifdef UFS_AOFLUX
     if (trim(coupling_mode) == 'nems_frac_aoflux') then
-    call flux_atmocn_ccpp(&
-         nMax=aoflux_in%lsize, psfc=aoflux_in%psfc, &
-         pbot=aoflux_in%pbot, tbot=aoflux_in%tbot, qbot=aoflux_in%shum, lwdn=aoflux_in%lwdn, &
-         zbot=aoflux_in%zbot, garea=aoflux_in%garea, ubot=aoflux_in%ubot, usfc=aoflux_in%usfc, vbot=aoflux_in%vbot, &
-         vsfc=aoflux_in%vsfc, rbot=aoflux_in%dens, ts=aoflux_in%tocn, mask=aoflux_in%mask, &
-         sen=aoflux_out%sen, lat=aoflux_out%lat, lwup=aoflux_out%lwup, evp=aoflux_out%evap, &
-         taux=aoflux_out%taux, tauy=aoflux_out%tauy, qref=aoflux_out%qref, &
-         missval=0.0_r8)
-    else
-#endif
-    call flux_atmocn (logunit=logunit, &
-         nMax=aoflux_in%lsize, mask=aoflux_in%mask, &
-         zbot=aoflux_in%zbot, ubot=aoflux_in%ubot, vbot=aoflux_in%vbot, thbot=aoflux_in%thbot, qbot=aoflux_in%shum, &
-         rbot=aoflux_in%dens, tbot=aoflux_in%tbot, us=aoflux_in%uocn, vs=aoflux_in%vocn, ts=aoflux_in%tocn, &
-         ocn_surface_flux_scheme=ocn_surface_flux_scheme, &
-         sen=aoflux_out%sen, lat=aoflux_out%lat, lwup=aoflux_out%lwup, evap=aoflux_out%evap, &
-         taux=aoflux_out%taux, tauy=aoflux_out%tauy, tref=aoflux_out%tref, qref=aoflux_out%qref, &
-         duu10n=aoflux_out%duu10n, missval=0.0_r8)
 #ifdef UFS_AOFLUX
-    end if
+       if (trim(aoflux_code) == 'ccpp') then
+       call flux_atmocn_ccpp(&
+            nMax=aoflux_in%lsize, psfc=aoflux_in%psfc, &
+            pbot=aoflux_in%pbot, tbot=aoflux_in%tbot, qbot=aoflux_in%shum, lwdn=aoflux_in%lwdn, &
+            zbot=aoflux_in%zbot, garea=aoflux_in%garea, ubot=aoflux_in%ubot, usfc=aoflux_in%usfc, vbot=aoflux_in%vbot, &
+            vsfc=aoflux_in%vsfc, rbot=aoflux_in%dens, ts=aoflux_in%tocn, mask=aoflux_in%mask, &
+            sen=aoflux_out%sen, lat=aoflux_out%lat, lwup=aoflux_out%lwup, evp=aoflux_out%evap, &
+            taux=aoflux_out%taux, tauy=aoflux_out%tauy, qref=aoflux_out%qref, &
+            missval=0.0_r8)
+       else
 #endif
+       call flux_atmocn (logunit=logunit, &
+            nMax=aoflux_in%lsize, mask=aoflux_in%mask, &
+            zbot=aoflux_in%zbot, ubot=aoflux_in%ubot, vbot=aoflux_in%vbot, thbot=aoflux_in%thbot, qbot=aoflux_in%shum, &
+            rbot=aoflux_in%dens, tbot=aoflux_in%tbot, us=aoflux_in%uocn, vs=aoflux_in%vocn, ts=aoflux_in%tocn, &
+            ocn_surface_flux_scheme=ocn_surface_flux_scheme, &
+            sen=aoflux_out%sen, lat=aoflux_out%lat, lwup=aoflux_out%lwup, evap=aoflux_out%evap, &
+            taux=aoflux_out%taux, tauy=aoflux_out%tauy, tref=aoflux_out%tref, qref=aoflux_out%qref, &
+            duu10n=aoflux_out%duu10n, missval=0.0_r8)
+#ifdef UFS_AOFLUX
+       end if
+#endif
+    end if
 
 #endif
 

@@ -288,21 +288,21 @@ contains
     lsize = size(field)
     allocate(customwgt(lsize))
 
-    if (trim(coupling_mode) == 'nems_frac_aoflux') then
-       ! change signs
-       customwgt(:) = -1.0_r8
-       call med_merge_field(is_local%wrap%FBExp(compatm), 'Faox_sen', &
-            FBinA=is_local%wrap%FBMed_aoflux_a, fnameA='Faox_sen', wgtA=customwgt, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-       call med_merge_field(is_local%wrap%FBExp(compatm), 'Faox_lat', &
-            FBinA=is_local%wrap%FBMed_aoflux_a, fnameA='Faox_lat', wgtA=customwgt, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-       call med_merge_field(is_local%wrap%FBExp(compatm), 'Faox_lwup', &
-            FBinA=is_local%wrap%FBMed_aoflux_a, fnameA='Faox_lwup', wgtA=customwgt, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    end if
+    !if (trim(coupling_mode) == 'nems_frac_aoflux') then
+    !   ! change signs
+    !   customwgt(:) = -1.0_r8
+    !   call med_merge_field(is_local%wrap%FBExp(compatm), 'Faox_sen', &
+    !        FBinA=is_local%wrap%FBMed_aoflux_a, fnameA='Faox_sen', wgtA=customwgt, rc=rc)
+    !   if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    !
+    !   call med_merge_field(is_local%wrap%FBExp(compatm), 'Faox_lat', &
+    !        FBinA=is_local%wrap%FBMed_aoflux_a, fnameA='Faox_lat', wgtA=customwgt, rc=rc)
+    !   if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    !
+    !   call med_merge_field(is_local%wrap%FBExp(compatm), 'Faox_lwup', &
+    !        FBinA=is_local%wrap%FBMed_aoflux_a, fnameA='Faox_lwup', wgtA=customwgt, rc=rc)
+    !   if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    !end if
 
     deallocate(customwgt)
 

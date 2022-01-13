@@ -193,20 +193,8 @@ contains
     ! - surface upward longwave heat flux
     ! - evaporation water flux from water, not in the list do we need to send it to atm?
     if (trim(coupling_mode) == 'nems_frac_aoflux') then
-       ! custom merge in med_phases_prep_atm (sign changes)
-       allocate(flds(3))
-       flds = (/ 'lat', 'sen', 'lwup' /)
-       do n = 1,size(flds)
-          call addfld(fldListMed_aoflux%flds , 'Faox_'//trim(flds(n)))
-          call addfld(fldListTo(compatm)%flds, 'Faox_'//trim(flds(n)))
-          if (trim(is_local%wrap%aoflux_grid) == 'ogrid') then
-             call addmap(fldListMed_aoflux%flds, 'Faox_'//trim(flds(n)), compatm, maptype, 'ofrac', 'unset')
-          end if
-       end do
-       deallocate(flds)
-
-       allocate(flds(2))
-       flds = (/ 'taux', 'tauy' /)
+       allocate(flds(5))
+       flds = (/ 'lat', 'sen', 'lwup', 'taux', 'tauy' /)
        do n = 1,size(flds)
           call addfld(fldListMed_aoflux%flds , 'Faox_'//trim(flds(n)))
           call addfld(fldListTo(compatm)%flds, 'Faox_'//trim(flds(n)))
@@ -270,7 +258,7 @@ contains
     end do
     deallocate(flds)
 
-    if (trim(coupling_mode) == 'nems_orig' .or. trim(coupling_mode) == 'nems_frac' .or. trim(coupling_mode) == 'nems_frac_aoflux') then
+    if (trim(coupling_mode) == 'nems_orig' .or. trim(coupling_mode) == 'nems_frac') then
        ! to ocn: merge surface stress (custom merge calculation in med_phases_prep_ocn)
        allocate(flds(2))
        flds = (/'taux', 'tauy'/)
@@ -299,8 +287,7 @@ contains
        call addfld(fldListTo(compocn)%flds, 'Faxa_evap')
        call addfld(fldListFr(compatm)%flds, 'Faxa_lat')
        call addmap(fldListFr(compatm)%flds, 'Faxa_lat', compocn, mapconsf_aofrac, 'aofrac', 'unset')
-    else
-       ! nems_orig_data
+    else if (trim(coupling_mode) == 'nems_orig_data' .or. trim(coupling_mode) == 'nems_frac_aoflux') then
        ! to ocn: surface stress from mediator and ice stress via auto merge
        allocate(flds(2))
        flds = (/'taux', 'tauy'/)
@@ -333,6 +320,9 @@ contains
        call addfld(fldListTo(compocn)%flds, 'Faox_evap')
        call addmrg(fldListTo(compocn)%flds, 'Faox_evap', &
           mrg_from=compmed, mrg_fld='Faox_evap', mrg_type='copy_with_weights', mrg_fracname='ofrac')
+    !else if (trim(coupling_mode) == 'nems_frac_aoflux') then
+    !   ! to ocn: sensible heat flux from mediator (custom merge in med_phases_prep_ocn)
+    !   call addfld(fldListTo(compocn)%flds, 'Foxx_sen')
     end if
 
     ! to ocn: water flux due to melting ice from ice

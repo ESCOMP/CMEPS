@@ -48,6 +48,9 @@ module med_internalstate_mod
   ! Coupling mode
   character(len=CS), public :: coupling_mode ! valid values are [cesm,nems_orig,nems_frac,nems_orig_data,hafs]
 
+  ! Atmosphere-ocean flux algorithm
+  character(len=CS), public :: aoflux_code   ! valid values are [cesm,ccpp]
+
   ! Mapping
   integer , public, parameter :: mapunset          = 0
   integer , public, parameter :: mapbilnr          = 1

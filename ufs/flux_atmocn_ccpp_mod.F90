@@ -511,12 +511,12 @@ contains
          ztmax_ice , huge       ,  errmsg   , &
          errflg)
 
-    !--- unit conversion ---
+    !--- unit and sign conversion to be consistent with other flux scheme ---
     do n = 1, nMax
        if (mask(n) /= 0) then
-          sen(n)  = hflx_wat(n)*rbot(n)*cp
-          lat(n)  = evap_wat(n)*rbot(n)*hvap
-          lwup(n) = semis_wat(n)*sbc*ts(n)**4+(1.0_r8-semis_wat(n))*lwdn(n)
+          sen(n)  = -1.0_r8*hflx_wat(n)*rbot(n)*cp
+          lat(n)  = -1.0_r8*evap_wat(n)*rbot(n)*hvap
+          lwup(n) = -1.0_r8*(semis_wat(n)*sbc*ts(n)**4+(1.0_r8-semis_wat(n))*lwdn(n))
           evp(n)  = lat(n)/hvap
           taux(n) = rbot(n)*stress(n)*ubot(n)/wind(n) 
           tauy(n) = rbot(n)*stress(n)*vbot(n)/wind(n)

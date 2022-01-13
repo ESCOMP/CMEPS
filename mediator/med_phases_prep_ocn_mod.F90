@@ -571,8 +571,7 @@ contains
     allocate(customwgt(lsize))
 
     if (trim(coupling_mode) == 'nems_orig' .or. &
-        trim(coupling_mode) == 'nems_frac' .or. &
-        trim(coupling_mode) == 'nems_frac_aoflux') then
+        trim(coupling_mode) == 'nems_frac') then
        customwgt(:) = -ofrac(:) / const_lhvap
        call med_merge_field(is_local%wrap%FBExp(compocn),      'Faxa_evap', &
             FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_lat' , wgtA=customwgt, rc=rc)
@@ -584,14 +583,19 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        customwgt(:) = -ofrac(:)
-       call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_taux',  &
-            FBinA=is_local%wrap%FBImp(compice,compocn), fnameA='Fioi_taux' , wgtA=ifrac, &
-            FBinB=is_local%wrap%FBImp(compatm,compocn), fnameB='Faxa_taux' , wgtB=customwgt, rc=rc)
+       call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_taux', &
+            FBinA=is_local%wrap%FBImp(compice,compocn), fnameA='Fioi_taux', wgtA=ifrac, &
+            FBinB=is_local%wrap%FBImp(compatm,compocn), fnameB='Faxa_taux', wgtB=customwgt, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_tauy',  &
-            FBinA=is_local%wrap%FBImp(compice,compocn), fnameA='Fioi_tauy' , wgtA=ifrac, &
-            FBinB=is_local%wrap%FBImp(compatm,compocn), fnameB='Faxa_tauy' , wgtB=customwgt, rc=rc)
+       call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_tauy', &
+            FBinA=is_local%wrap%FBImp(compice,compocn), fnameA='Fioi_tauy', wgtA=ifrac, &
+            FBinB=is_local%wrap%FBImp(compatm,compocn), fnameB='Faxa_tauy', wgtB=customwgt, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    !else if (trim(coupling_mode) == 'nems_frac_aoflux') then
+    !   customwgt(:) = -ofrac(:)
+    !   call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_sen', &
+    !        FBinA=is_local%wrap%FBMed_aoflux_o,         fnameA='Faox_sen', wgtA=customwgt, rc=rc)
+    !   if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
     ! netsw_for_ocn = [downsw_from_atm*(1-ice_fraction)*(1-ocn_albedo)] + [pensw_from_ice*(ice_fraction)]
