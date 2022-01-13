@@ -13,8 +13,7 @@ module med_phases_prep_atm_mod
   use med_utils_mod         , only : chkerr       => med_utils_ChkErr
   use med_methods_mod       , only : FB_diagnose  => med_methods_FB_diagnose
   use med_methods_mod       , only : FB_fldchk    => med_methods_FB_FldChk
-  use med_methods_mod       , only : FB_GetFldPtr => med_methods_FB_GetFldPtr
-  use med_merge_mod         , only : med_merge_auto, med_merge_field
+  use med_merge_mod         , only : med_merge_auto
   use med_map_mod           , only : med_map_field_packed
   use med_internalstate_mod , only : InternalState, mastertask
   use med_internalstate_mod , only : compatm, compocn, compice, compname, coupling_mode
@@ -25,8 +24,6 @@ module med_phases_prep_atm_mod
   private
 
   public :: med_phases_prep_atm
-
-  private :: med_phases_prep_atm_custom_nems
 
   character(*), parameter :: u_FILE_u  = &
        __FILE__
@@ -111,7 +108,7 @@ contains
     !--- map atm/ocn fluxes from ocn to atm grid if appropriate
     !---------------------------------------
     if (trim(coupling_mode) == 'cesm' .or. &
-        trim(coupling_mode) == 'hafs' .or. & 
+        trim(coupling_mode) == 'hafs' .or. &
         trim(coupling_mode) == 'nems_frac_aoflux') then
        if (is_local%wrap%aoflux_grid == 'ogrid') then
           call med_map_field_packed( &
@@ -232,85 +229,11 @@ contains
        end do
     end if
 
-    ! custom merges to atmosphere
-    if (trim(coupling_mode(1:5)) == 'nems_') then
-       call med_phases_prep_atm_custom_nems(gcomp, rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    end if
-
     if (dbug_flag > 5) then
        call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
     end if
     call t_stopf('MED:'//subname)
 
   end subroutine med_phases_prep_atm
-
-  !-----------------------------------------------------------------------------
-  subroutine med_phases_prep_atm_custom_nems(gcomp, rc)
-
-    ! ----------------------------------------------
-    ! Custom calculation for nems_frac_aoflux
-    ! ----------------------------------------------
-
-    use ESMF , only : ESMF_GridComp
-    use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
-    use ESMF , only : ESMF_FAILURE,  ESMF_LOGMSG_ERROR
-
-    ! input/output variables
-    type(ESMF_GridComp)  :: gcomp
-    integer, intent(out) :: rc  
-
-    ! local variables
-    type(InternalState) :: is_local
-    real(r8), pointer   :: customwgt(:)
-    real(r8), pointer   :: field(:)
-    integer             :: lsize
-    character(len=*), parameter :: subname='(med_phases_prep_atm_custom_nems)'
-    !---------------------------------------
-
-    rc = ESMF_SUCCESS
-
-    call t_startf('MED:'//subname)
-    if (dbug_flag > 20) then
-       call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
-    end if
-    call memcheck(subname, 5, mastertask)
-
-    ! Get the internal state
-    nullify(is_local%wrap)
-    call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    ! get field on the atm mesh to query lsize
-    call FB_GetFldPtr(is_local%wrap%FBExp(compatm), 'Faox_sen' , field, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    lsize = size(field)
-    allocate(customwgt(lsize))
-
-    !if (trim(coupling_mode) == 'nems_frac_aoflux') then
-    !   ! change signs
-    !   customwgt(:) = -1.0_r8
-    !   call med_merge_field(is_local%wrap%FBExp(compatm), 'Faox_sen', &
-    !        FBinA=is_local%wrap%FBMed_aoflux_a, fnameA='Faox_sen', wgtA=customwgt, rc=rc)
-    !   if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    !
-    !   call med_merge_field(is_local%wrap%FBExp(compatm), 'Faox_lat', &
-    !        FBinA=is_local%wrap%FBMed_aoflux_a, fnameA='Faox_lat', wgtA=customwgt, rc=rc)
-    !   if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    !
-    !   call med_merge_field(is_local%wrap%FBExp(compatm), 'Faox_lwup', &
-    !        FBinA=is_local%wrap%FBMed_aoflux_a, fnameA='Faox_lwup', wgtA=customwgt, rc=rc)
-    !   if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    !end if
-
-    deallocate(customwgt)
-
-    if (dbug_flag > 20) then
-       call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
-    end if
-    call t_stopf('MED:'//subname)
-
-  end subroutine med_phases_prep_atm_custom_nems
 
 end module med_phases_prep_atm_mod
