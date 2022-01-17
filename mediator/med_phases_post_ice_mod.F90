@@ -59,7 +59,7 @@ contains
     call med_fraction_set(gcomp, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    ! map ice->ocn
+    ! map ice to ocn
     if (is_local%wrap%med_coupling_active(compice,compocn)) then
        call t_startf('MED:'//trim(subname)//' map_ice2ocn')
        call med_map_field_packed( &
@@ -72,7 +72,7 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call t_stopf('MED:'//trim(subname)//' map_ice2ocn')
     end if
-    ! map ice->wav
+    ! map ice to wav
     if (is_local%wrap%med_coupling_active(compice,compwav)) then
        call t_startf('MED:'//trim(subname)//' map_ice2wav')
        call med_map_field_packed( &

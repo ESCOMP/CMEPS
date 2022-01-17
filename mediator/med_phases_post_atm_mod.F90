@@ -33,7 +33,7 @@ contains
     use med_map_mod           , only : med_map_field_packed
     use med_constants_mod     , only : dbug_flag => med_constants_dbug_flag
     use med_utils_mod         , only : chkerr    => med_utils_ChkErr
-    use med_internalstate_mod , only : compocn, compatm, compice, complnd
+    use med_internalstate_mod , only : compocn, compatm, compice, complnd, compwav
     use perf_mod              , only : t_startf, t_stopf
 
     ! input/output variables
@@ -58,7 +58,7 @@ contains
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    ! map atm->ocn
+    ! map atm to ocn
     if (is_local%wrap%med_coupling_active(compatm,compocn)) then
        call t_startf('MED:'//trim(subname)//' map_atm2ocn')
        call med_map_field_packed( &

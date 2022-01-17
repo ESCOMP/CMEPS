@@ -50,7 +50,7 @@ contains
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    ! map wav->atm
+    ! map wav to atm
     if (is_local%wrap%med_coupling_active(compwav,compatm)) then
        call med_map_field_packed( &
             FBSrc=is_local%wrap%FBImp(compwav,compwav), &
@@ -61,7 +61,7 @@ contains
             routehandles=is_local%wrap%RH(compwav,compatm,:), rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
-    ! map wav->ocn
+    ! map wav to ocn
     if (is_local%wrap%med_coupling_active(compwav,compocn)) then
        call med_map_field_packed( &
             FBSrc=is_local%wrap%FBImp(compwav,compwav), &
@@ -72,7 +72,7 @@ contains
             routehandles=is_local%wrap%RH(compwav,compocn,:), rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
-    ! map wav->ice
+    ! map wav to ice
     if (is_local%wrap%med_coupling_active(compwav,compice)) then
        call med_map_field_packed( &
             FBSrc=is_local%wrap%FBImp(compwav,compwav), &

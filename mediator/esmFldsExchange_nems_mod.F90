@@ -25,7 +25,7 @@ contains
     use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
     use med_utils_mod         , only : chkerr => med_utils_chkerr
     use med_internalstate_mod , only : mastertask, logunit
-    use med_internalstate_mod , only : compmed, compatm, compocn, compice, comprof, ncomps
+    use med_internalstate_mod , only : compmed, compatm, compocn, compice, comprof, compwav, ncomps
     use med_internalstate_mod , only : mapbilnr, mapconsf, mapconsd, mappatch
     use med_internalstate_mod , only : mapfcopy, mapnstod, mapnstod_consd, mapnstod_consf
     use med_internalstate_mod , only : mapconsf_aofrac

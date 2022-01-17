@@ -13,11 +13,12 @@ module med_phases_prep_wav_mod
   use med_utils_mod         , only : memcheck      => med_memcheck
   use med_utils_mod         , only : chkerr        => med_utils_ChkErr
   use med_methods_mod       , only : FB_diagnose   => med_methods_FB_diagnose
-  use med_merge_mod         , only : med_merge_auto
-  use med_map_mod           , only : med_map_field_packed
-  use med_internalstate_mod , only : InternalState, mastertask
-  use med_internalstate_mod , only : compwav, ncomps, compname
-  use esmFlds               , only : fldListFr, fldListTo
+  use med_methods_mod       , only : FB_accum      => med_methods_FB_accum
+  use med_methods_mod       , only : FB_average    => med_methods_FB_average
+  use med_methods_mod       , only : FB_copy       => med_methods_FB_copy
+  use med_methods_mod       , only : FB_reset      => med_methods_FB_reset
+  use esmFlds               , only : fldListTo
+  use med_internalstate_mod , only : compwav
   use perf_mod              , only : t_startf, t_stopf
 
   implicit none
@@ -38,7 +39,6 @@ contains
 
     use ESMF            , only : ESMF_GridComp, ESMF_SUCCESS
     use med_methods_mod , only : FB_Init  => med_methods_FB_init
-    use med_methods_mod , only : FB_Reset => med_methods_FB_Reset
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -59,7 +59,7 @@ contains
     if (mastertask) then
        write(logunit,'(a)') trim(subname)//' initializing wave export accumulation FB for '
     end if
-    call FB_init(is_local%wrap%FBExpAccumWav, is_local%wrap%flds_scalar_name, &
+    call FB_Init(is_local%wrap%FBExpAccumWav, is_local%wrap%flds_scalar_name, &
          STgeom=is_local%wrap%NStateExp(compwav), STflds=is_local%wrap%NStateExp(compwav), &
          name='FBExpAccumWav', rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return

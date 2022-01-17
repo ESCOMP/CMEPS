@@ -2081,12 +2081,12 @@ contains
        ! Call post routines as part of initialization
        !---------------------------------------
        if (is_local%wrap%comp_present(compatm)) then
-          ! map atm->ocn, atm->ice, atm->lnd
+          ! map atm->ocn, atm->ice, atm->lnd, atm->wav
           call med_phases_post_atm(gcomp, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
        if (is_local%wrap%comp_present(compice)) then
-          ! call set ice_frac and map ice->atm and ice->ocn
+          ! call set ice_frac and map ice->ocn and ice->wav
           call med_phases_post_ice(gcomp, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
@@ -2101,7 +2101,7 @@ contains
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
        if (is_local%wrap%comp_present(compocn)) then
-          ! map initial ocn->ice
+          ! map initial ocn->ice, ocn->wav
           call med_phases_post_ocn(gcomp, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
@@ -2111,7 +2111,7 @@ contains
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
        if (is_local%wrap%comp_present(compwav)) then
-          ! map initial wav->ocn and wav->ice
+          ! map initial wav->ocn, wav->ice, wav->atm
           call med_phases_post_wav(gcomp, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
