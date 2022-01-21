@@ -403,24 +403,19 @@ contains
         polemethod = ESMF_POLEMETHOD_NONE ! todo: remove this when ESMF tripolar mapping fix is in place.
       endif
     else if (coupling_mode(1:4) == 'nems') then
-       if (n1 == compatm .and. (n2 == compocn .or. n2 == compice .or. n2 == compwav)) then
+       if ( (n1 == compocn .or. n1 == compice .or. n1 == compwav) .and. &
+            (n2 == compocn .or. n2 == compice .or. n2 == compwav) ) then
+          srcMaskValue = 0
+          dstMaskValue = 0
+       else if (n1 == compatm .and. (n2 == compocn .or. n2 == compice .or. n2 == compwav)) then
           srcMaskValue = 1
           dstMaskValue = 0
           if (atm_name(1:4).eq.'datm') then
-          srcMaskValue = 0
+             srcMaskValue = 0
           endif
        else if (n2 == compatm .and. (n1 == compocn .or. n1 == compice .or. n1 == compwav)) then
           srcMaskValue = 0
           dstMaskValue = 1
-       else if ((n1 == compocn .and. n2 == compice) .or. (n1 == compice .and. n2 == compocn)) then
-          srcMaskValue = 0
-          dstMaskValue = 0
-       else if ((n1 == compocn .and. n2 == compwav) .or. (n1 == compice .and. n2 == compwav)) then
-          srcMaskValue = 0
-          dstMaskValue = 0
-       else if ((n1 == compwav .and. n2 == compocn) .or. (n1 == compwav .and. n2 == compice)) then
-          srcMaskValue = 0
-          dstMaskValue = 0
        else
           ! TODO: what should the condition be here?
           dstMaskValue = ispval_mask
@@ -440,9 +435,9 @@ contains
           srcMaskValue = 0
           dstMaskValue = ispval_mask
        elseif (n1 == compatm .and. n2 == compwav) then
-          dstMaskValue = 1
+          dstMaskValue = 0
        elseif (n1 == compwav .and. n2 == compatm) then
-          srcMaskValue = 1
+          srcMaskValue = 0
           dstMaskValue = ispval_mask
        endif
     end if
