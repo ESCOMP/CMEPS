@@ -367,11 +367,18 @@ contains
     !=====================================================================
 
     ! to lnd - states and fluxes from atm
-    allocate(flds(16))
-    flds = (/'Sa_z      ', 'Sa_topo   ', 'Sa_tbot   ', 'Sa_pbot   ', &
-             'Sa_shum   ', 'Sa_u      ', 'Sa_v      ', 'Faxa_lwdn ', &
-             'Sa_ptem   ', 'Sa_dens   ', 'Faxa_swdn ', 'Faxa_swnet', &
-             'Faxa_snowc', 'Faxa_snowl', 'Faxa_rainc', 'Faxa_rainl' /)
+    if ( trim(coupling_mode) == 'nems_orig_data') then
+       allocate(flds(16))
+       flds = (/'Sa_z      ', 'Sa_topo   ', 'Sa_tbot   ', 'Sa_pbot   ', &
+                'Sa_shum   ', 'Sa_u      ', 'Sa_v      ', 'Faxa_lwdn ', &
+                'Sa_ptem   ', 'Sa_dens   ', 'Faxa_swdn ', 'Faxa_swnet', &
+                'Faxa_snowc', 'Faxa_snowl', 'Faxa_rainc', 'Faxa_rainl' /)
+    else
+       allocate(flds(9))
+       flds = (/'Sa_z      ', 'Sa_tbot   ', 'Sa_pbot   ', 'Sa_shum   ', &
+                'Sa_u      ', 'Sa_v      ', 'Faxa_swdn ', 'Faxa_lwdn ', &
+                'Faxa_rain ' /)
+    end if
     do n = 1,size(flds)
        fldname = trim(flds(n))
        call addfld(fldListFr(compatm)%flds, trim(fldname))
