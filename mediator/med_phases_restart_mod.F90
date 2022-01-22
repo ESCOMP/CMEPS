@@ -8,7 +8,7 @@ module med_phases_restart_mod
   use med_constants_mod       , only : dbug_flag => med_constants_dbug_flag
   use med_utils_mod           , only : chkerr    => med_utils_ChkErr
   use med_internalstate_mod   , only : mastertask, logunit, InternalState
-  use med_internalstate_mod   , only : ncomps, compname, compocn, complnd
+  use med_internalstate_mod   , only : ncomps, compname, compocn, complnd, compwav
   use perf_mod                , only : t_startf, t_stopf
   use med_phases_prep_glc_mod , only : FBlndAccum2glc_l, lndAccum2glc_cnt
   use med_phases_prep_glc_mod , only : FBocnAccum2glc_o, ocnAccum2glc_cnt
@@ -383,8 +383,8 @@ contains
 
           ! Write export accumulation to wav
           if (ESMF_FieldBundleIsCreated(is_local%wrap%FBExpAccumWav)) then
-             nx = is_local%wrap%nx(compocn)
-             ny = is_local%wrap%ny(compocn)
+             nx = is_local%wrap%nx(compwav)
+             ny = is_local%wrap%ny(compwav)
              call med_io_write(restart_file, is_local%wrap%FBExpAccumWav, whead(m), wdata(m), nx, ny, &
                   nt=1, pre='wavExpAccum', rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
