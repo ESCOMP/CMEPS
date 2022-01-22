@@ -778,8 +778,7 @@ contains
     if (trim(coupling_mode) == 'cesm') then
        call esmFldsExchange_cesm(gcomp, phase='advertise', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    else if (trim(coupling_mode) == 'nems_orig' .or. trim(coupling_mode) == 'nems_frac' &
-       .or. trim(coupling_mode) == 'nems_orig_data') then
+    else if (trim(coupling_mode(1:4)) == 'nems') then
        call esmFldsExchange_nems(gcomp, phase='advertise', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     else if (trim(coupling_mode(1:4)) == 'hafs') then
@@ -1741,6 +1740,8 @@ contains
       if (trim(coupling_mode) == 'cesm') then
          call esmFldsExchange_cesm(gcomp, phase='initialize', rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      else if (trim(coupling_mode(1:4)) == 'nems') then
+       call esmFldsExchange_nems(gcomp, phase='initialize', rc=rc)
       else if (trim(coupling_mode) == 'hafs') then
          call esmFldsExchange_hafs(gcomp, phase='initialize', rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
