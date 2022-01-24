@@ -25,7 +25,8 @@ contains
     use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
     use med_utils_mod         , only : chkerr => med_utils_chkerr
     use med_methods_mod       , only : fldchk => med_methods_FB_FldChk
-    use med_internalstate_mod , only : InternalState,logunit, mastertask
+    use med_internalstate_mod , only : InternalState
+    use med_internalstate_mod , only : mastertask, logunit
     use med_internalstate_mod , only : compmed, compatm, compocn, compice, comprof, compwav, ncomps
     use med_internalstate_mod , only : mapbilnr, mapconsf, mapconsd, mappatch
     use med_internalstate_mod , only : mapfcopy, mapnstod, mapnstod_consd, mapnstod_consf
@@ -201,15 +202,19 @@ contains
        end if
     end if
 
-    ! to atm: surface roughness length from wav
-    if (phase == 'advertise') then
-       call addfld(fldListFr(compwav)%flds, 'Sw_z0')
-       call addfld(fldListTo(compatm)%flds, 'Sw_z0')
-    else
-       if ( fldchk(is_local%wrap%FBexp(compatm)        , 'Sw_z0', rc=rc) .and. &
-            fldchk(is_local%wrap%FBImp(compwav,compwav), 'Sw_z0', rc=rc)) then
-          call addmap(fldListFr(compwav)%flds, 'Sw_z0', compatm, mapnstod_consf, 'one', 'unset')
-          call addmrg(fldListTo(compatm)%flds, 'Sw_z0', mrg_from=compwav, mrg_fld='Sw_z0', mrg_type='copy')
+    ! temporary conditional to avoid conflicts of advertised fields
+    ! when waves are passing through connectors
+    if (is_local%wrap%comp_present(compwav)) then
+       ! to atm: surface roughness length from wav
+       if (phase == 'advertise') then
+          call addfld(fldListFr(compwav)%flds, 'Sw_z0')
+          call addfld(fldListTo(compatm)%flds, 'Sw_z0')
+       else
+          if ( fldchk(is_local%wrap%FBexp(compatm)        , 'Sw_z0', rc=rc) .and. &
+               fldchk(is_local%wrap%FBImp(compwav,compwav), 'Sw_z0', rc=rc)) then
+             call addmap(fldListFr(compwav)%flds, 'Sw_z0', compatm, mapnstod_consf, 'one', 'unset')
+             call addmrg(fldListTo(compatm)%flds, 'Sw_z0', mrg_from=compwav, mrg_fld='Sw_z0', mrg_type='copy')
+          end if
        end if
     end if
 
@@ -426,24 +431,28 @@ contains
     end do
     deallocate(flds)
 
-    ! to ocn: partitioned stokes drift from wav
-    allocate(flds(6))
-    flds = (/'Sw_ustokes1', 'Sw_ustokes2', 'Sw_ustokes3', &
-             'Sw_vstokes1', 'Sw_vstokes2', 'Sw_vstokes3'/)
-    do n = 1,size(flds)
-       fldname = trim(flds(n))
-       if (phase == 'advertise') then
-          call addfld(fldListFr(compwav)%flds, trim(fldname))
-          call addfld(fldListTo(compocn)%flds, trim(fldname))
-       else
-          if ( fldchk(is_local%wrap%FBexp(compocn)        , trim(fldname), rc=rc) .and. &
-               fldchk(is_local%wrap%FBImp(compwav,compwav), trim(fldname), rc=rc)) then
-             call addmap(fldListFr(compwav)%flds, trim(fldname), compocn, mapfcopy, 'unset', 'unset')
-             call addmrg(fldListTo(compocn)%flds, trim(fldname), mrg_from=compwav, mrg_fld=trim(fldname), mrg_type='copy')
+    ! temporary conditional to avoid conflicts of advertised fields
+    ! when waves are passing through connectors
+    if (is_local%wrap%comp_present(compwav)) then
+       ! to ocn: partitioned stokes drift from wav
+       allocate(flds(6))
+       flds = (/'Sw_ustokes1', 'Sw_ustokes2', 'Sw_ustokes3', &
+                'Sw_vstokes1', 'Sw_vstokes2', 'Sw_vstokes3'/)
+       do n = 1,size(flds)
+          fldname = trim(flds(n))
+          if (phase == 'advertise') then
+             call addfld(fldListFr(compwav)%flds, trim(fldname))
+             call addfld(fldListTo(compocn)%flds, trim(fldname))
+          else
+             if ( fldchk(is_local%wrap%FBexp(compocn)        , trim(fldname), rc=rc) .and. &
+                  fldchk(is_local%wrap%FBImp(compwav,compwav), trim(fldname), rc=rc)) then
+                call addmap(fldListFr(compwav)%flds, trim(fldname), compocn, mapfcopy, 'unset', 'unset')
+                call addmrg(fldListTo(compocn)%flds, trim(fldname), mrg_from=compwav, mrg_fld=trim(fldname), mrg_type='copy')
+             end if
           end if
-       end if
-    end do
-    deallocate(flds)
+       end do
+       deallocate(flds)
+    end if
 
     !=====================================================================
     ! FIELDS TO ICE (compice)
@@ -531,54 +540,58 @@ contains
     ! FIELDS TO WAV (compwav)
     !=====================================================================
 
-    ! to wav - 10m winds and bottom temperature from atm
-    allocate(flds(3))
-    flds = (/'Sa_u10m', 'Sa_v10m', 'Sa_tbot'/)
-    do n = 1,size(flds)
-       fldname = trim(flds(n))
+    ! temporary conditional to avoid conflicts of advertised fields
+    ! when waves are passing through connectors
+    if (is_local%wrap%comp_present(compwav)) then
+       ! to wav - 10m winds and bottom temperature from atm
+       allocate(flds(3))
+       flds = (/'Sa_u10m', 'Sa_v10m', 'Sa_tbot'/)
+       do n = 1,size(flds)
+          fldname = trim(flds(n))
+          if (phase == 'advertise') then
+             call addfld(fldListFr(compatm)%flds, trim(fldname))
+             call addfld(fldListTo(compwav)%flds, trim(fldname))
+          else
+             if ( fldchk(is_local%wrap%FBexp(compwav)        , trim(fldname), rc=rc) .and. &
+                  fldchk(is_local%wrap%FBImp(compatm,compatm), trim(fldname), rc=rc)) then
+                call addmap(fldListFr(compatm)%flds, trim(fldname), compwav, mapnstod_consf, 'one', 'unset')
+                call addmrg(fldListTo(compwav)%flds, trim(fldname), mrg_from=compatm, mrg_fld=trim(fldname), mrg_type='copy')
+             end if
+          end if
+       end do
+       deallocate(flds)
+
+       ! to wav: sea ice fraction
        if (phase == 'advertise') then
-          call addfld(fldListFr(compatm)%flds, trim(fldname))
-          call addfld(fldListTo(compwav)%flds, trim(fldname))
+          call addfld(fldListFr(compice)%flds, 'Si_ifrac')
+          call addfld(fldListTo(compwav)%flds, 'Si_ifrac')
        else
-          if ( fldchk(is_local%wrap%FBexp(compwav)        , trim(fldname), rc=rc) .and. &
-               fldchk(is_local%wrap%FBImp(compatm,compatm), trim(fldname), rc=rc)) then
-             call addmap(fldListFr(compatm)%flds, trim(fldname), compwav, mapnstod_consf, 'one', 'unset')
-             call addmrg(fldListTo(compwav)%flds, trim(fldname), mrg_from=compatm, mrg_fld=trim(fldname), mrg_type='copy')
+          if ( fldchk(is_local%wrap%FBexp(compwav)        , 'Si_ifrac', rc=rc) .and. &
+               fldchk(is_local%wrap%FBImp(compice,compice), 'Si_ifrac', rc=rc)) then
+              call addmap(fldListFr(compice)%flds, 'Si_ifrac', compwav, mapfcopy , 'unset', 'unset')
+              call addmrg(fldListTo(compwav)%flds, 'Si_ifrac', mrg_from=compice, mrg_fld='Si_ifrac', mrg_type='copy')
           end if
        end if
-    end do
-    deallocate(flds)
 
-    ! to wav: sea ice fraction
-    if (phase == 'advertise') then
-       call addfld(fldListFr(compice)%flds, 'Si_ifrac')
-       call addfld(fldListTo(compwav)%flds, 'Si_ifrac')
-    else
-       if ( fldchk(is_local%wrap%FBexp(compwav)        , 'Si_ifrac', rc=rc) .and. &
-            fldchk(is_local%wrap%FBImp(compice,compice), 'Si_ifrac', rc=rc)) then
-           call addmap(fldListFr(compice)%flds, 'Si_ifrac', compwav, mapfcopy , 'unset', 'unset')
-           call addmrg(fldListTo(compwav)%flds, 'Si_ifrac', mrg_from=compice, mrg_fld='Si_ifrac', mrg_type='copy')
-       end if
+       ! to wav: zonal sea water velocity from ocn
+       ! to wav: meridional sea water velocity from ocn
+       allocate(flds(3))
+       flds = (/'So_u', 'So_v', 'So_t'/)
+       do n = 1,size(flds)
+          fldname = trim(flds(n))
+          if (phase == 'advertise') then
+             call addfld(fldListFr(compocn)%flds, trim(fldname))
+             call addfld(fldListTo(compwav)%flds, trim(fldname))
+          else
+             if ( fldchk(is_local%wrap%FBexp(compwav)        , trim(fldname), rc=rc) .and. &
+                  fldchk(is_local%wrap%FBImp(compocn,compocn), trim(fldname), rc=rc)) then
+                call addmap(fldListFr(compocn)%flds, trim(fldname), compwav, mapfcopy , 'unset', 'unset')
+                call addmrg(fldListTo(compwav)%flds, trim(fldname), mrg_from=compocn, mrg_fld=trim(fldname), mrg_type='copy')
+             end if
+          end if
+       end do
+       deallocate(flds)
     end if
-
-    ! to wav: zonal sea water velocity from ocn
-    ! to wav: meridional sea water velocity from ocn
-    allocate(flds(3))
-    flds = (/'So_u', 'So_v', 'So_t'/)
-    do n = 1,size(flds)
-       fldname = trim(flds(n))
-       if (phase == 'advertise') then
-          call addfld(fldListFr(compocn)%flds, trim(fldname))
-          call addfld(fldListTo(compwav)%flds, trim(fldname))
-       else
-          if ( fldchk(is_local%wrap%FBexp(compwav)        , trim(fldname), rc=rc) .and. &
-               fldchk(is_local%wrap%FBImp(compocn,compocn), trim(fldname), rc=rc)) then
-             call addmap(fldListFr(compocn)%flds, trim(fldname), compwav, mapfcopy , 'unset', 'unset')
-             call addmrg(fldListTo(compwav)%flds, trim(fldname), mrg_from=compocn, mrg_fld=trim(fldname), mrg_type='copy')
-          end if
-       end if
-    end do
-    deallocate(flds)
 
   end subroutine esmFldsExchange_nems
 
