@@ -49,7 +49,7 @@ contains
     character(len=CX)   :: msgString
     character(len=CL)   :: cvalue
     character(len=CS)   :: fldname
-    character(len=CS), allocatable :: flds(:)
+    character(len=CS), allocatable :: flds(:), oflds(:), aflds(:), iflds(:)
     character(len=*) , parameter   :: subname='(esmFldsExchange_nems)'
     !--------------------------------------
 
@@ -234,46 +234,43 @@ contains
        end if
     end if
 
-    ! to ocn: from atm (custom merge in med_phases_prep_ocn)
-    ! - downward direct  near-infrared incident solar radiation
-    ! - downward diffuse near-infrared incident solar radiation
-    ! - downward dirrect visible incident solar radiation
-    ! - downward diffuse visible incident solar radiation
-    allocate(flds(4))
-    flds = (/'Faxa_swndr', 'Faxa_swndf', 'Faxa_swvdr', 'Faxa_swvdf'/)
-    do n = 1,size(flds)
-       fldname = trim(flds(n))
+    ! to ocn: from sw from atm and sw net from ice (custom merge in med_phases_prep_ocn)
+    ! - downward direct  near-infrared ("n" or "i") incident solar radiation
+    ! - downward diffuse near-infrared ("n" or "i") incident solar radiation
+    ! - downward direct visible ("v") incident solar radiation
+    ! - downward diffuse visible ("v") incident solar radiation
+    allocate(oflds(4))
+    allocate(aflds(4))
+    allocate(iflds(4))
+    oflds = (/'Foxx_swnet_idr', 'Foxx_swnet_idf', 'Foxx_swnet_vdr', 'Foxx_swnet_vdf'/)
+    aflds = (/'Faxa_swndr'    , 'Faxa_swndf'    , 'Faxa_swvdr'    , 'Faxa_swvdf'/)
+    iflds = (/'Fioi_swpen_idr', 'Fioi_swpen_idf', 'Fioi_swpen_vdr', 'Fioi_swpen_vdf'/)
+    do n = 1,size(oflds)
        if (phase == 'advertise') then
-          call addfld(fldListFr(compatm)%flds, trim(fldname))
-          call addfld(fldListTo(compocn)%flds, trim(fldname))
+          call addfld(fldListFr(compatm)%flds, trim(aflds(n)))
+          call addfld(fldListTo(compocn)%flds, trim(oflds(n)))
        else
-          if ( fldchk(is_local%wrap%FBexp(compocn)        , trim(fldname), rc=rc) .and. &
-               fldchk(is_local%wrap%FBImp(compatm,compatm), trim(fldname), rc=rc)) then
-             call addmap(fldListFr(compatm)%flds, trim(fldname), compocn, maptype, 'one', 'unset')
+          if ( fldchk(is_local%wrap%FBexp(compocn)        , trim(oflds(n)), rc=rc) .and. &
+               fldchk(is_local%wrap%FBImp(compatm,compatm), trim(aflds(n)), rc=rc)) then
+             call addmap(fldListFr(compatm)%flds, trim(aflds(n)), compocn, maptype, 'one', 'unset')
           end if
        end if
     end do
-    deallocate(flds)
 
-    ! to ocn: from ice net shortwave radiation (custom merge in med_phases_prep_ocn)
-    ! - downward direct  near-infrared incident solar radiation
-    ! - downward diffuse near-infrared incident solar radiation
-    ! - downward dirrect visible incident solar radiation
-    ! - downward diffuse visible incident solar radiation
-    allocate(flds(4))
-    flds = (/'vdr', 'vdf', 'idr', 'idf'/)
-    do n = 1,size(flds)
+    do n = 1,size(oflds)
        if (phase == 'advertise') then
-          call addfld(fldListFr(compice)%flds, 'Fioi_swpen_'//trim(flds(n)))
-          call addfld(fldListTo(compocn)%flds, 'Foxx_swnet_'//trim(flds(n)))
+          call addfld(fldListFr(compice)%flds, trim(iflds(n)))
+          call addfld(fldListTo(compocn)%flds, trim(oflds(n)))
        else
-          if ( fldchk(is_local%wrap%FBexp(compocn)        , 'Foxx_swnet_'//trim(flds(n)), rc=rc) .and. &
-               fldchk(is_local%wrap%FBImp(compice,compice), 'Fioi_swpen_'//trim(flds(n)), rc=rc)) then
-             call addmap(fldListFr(compice)%flds, 'Fioi_swpen_'//trim(flds(n)), compocn, mapfcopy, 'unset', 'unset')
+          if ( fldchk(is_local%wrap%FBexp(compocn)        , trim(oflds(n)), rc=rc) .and. &
+               fldchk(is_local%wrap%FBImp(compice,compice), trim(iflds(n)), rc=rc)) then
+             call addmap(fldListFr(compice)%flds, trim(iflds(n)), compocn, mapfcopy, 'unset', 'unset')
           end if
        end if
     end do
-    deallocate(flds)
+    deallocate(oflds)
+    deallocate(aflds)
+    deallocate(iflds)
 
     ! to ocn: rain and snow via auto merge
     allocate(flds(2))
