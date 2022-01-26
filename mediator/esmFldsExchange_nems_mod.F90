@@ -30,7 +30,7 @@ contains
     use med_internalstate_mod , only : compmed, compatm, compocn, compice, comprof, compwav, ncomps
     use med_internalstate_mod , only : mapbilnr, mapconsf, mapconsd, mappatch
     use med_internalstate_mod , only : mapfcopy, mapnstod, mapnstod_consd, mapnstod_consf
-    use med_internalstate_mod , only : mapconsf_aofrac
+    use med_internalstate_mod , only : mapconsf_aofrac, mapbilnr_nstod
     use med_internalstate_mod , only : coupling_mode, mapnames
     use esmFlds               , only : med_fldList_type
     use esmFlds               , only : addfld => med_fldList_AddFld
@@ -89,49 +89,44 @@ contains
     ! Mediator fields
     !=====================================================================
 
+    ! masks from components
     if (phase == 'advertise') then
-       ! masks from components
        call addfld(fldListFr(compice)%flds, 'Si_imask')
        call addfld(fldListFr(compocn)%flds, 'So_omask')
-
-       if ( trim(coupling_mode) == 'nems_orig_data') then
-         ! atm and ocn fields required for atm/ocn flux calculation'
-         allocate(flds(10))
-         flds = (/'Sa_u   ', 'Sa_v   ', 'Sa_z   ', 'Sa_tbot', 'Sa_pbot', &
-                  'Sa_shum', 'Sa_u10m', 'Sa_v10m', 'Sa_t2m ', 'Sa_q2m '/)
-         do n = 1,size(flds)
-            fldname = trim(flds(n))
-            call addfld(fldListFr(compatm)%flds, trim(fldname))
-         end do
-         deallocate(flds)
-
-         ! unused fields needed by the atm/ocn flux computation
-         allocate(flds(13))
-         flds = (/'So_tref  ', 'So_qref  ', 'So_u10   ', 'So_ustar ','So_ssq   ', &
-                  'So_re    ', 'So_duu10n', 'Faox_lwup', 'Faox_sen ','Faox_lat ', &
-                  'Faox_evap', 'Faox_taux', 'Faox_tauy'/)
-         do n = 1,size(flds)
-            fldname = trim(flds(n))
-            call addfld(fldListMed_aoflux%flds, trim(fldname))
-         end do
-         deallocate(flds)
-       end if
-       ! unused fields from ice - but that are needed to be realized by the cice cap
-       call addfld(fldListFr(compice)%flds, 'Faii_evap')
-       call addfld(fldListFr(compice)%flds, 'mean_sw_pen_to_ocn')
     else
        call addmap(fldListFr(compocn)%flds, 'So_omask', compice,  mapfcopy, 'unset', 'unset')
+    end if
 
-       if ( trim(coupling_mode) == 'nems_orig_data') then
-         allocate(flds(10))
-         flds = (/'Sa_u   ', 'Sa_v   ', 'Sa_z   ', 'Sa_tbot', 'Sa_pbot', &
-                  'Sa_shum', 'Sa_u10m', 'Sa_v10m', 'Sa_t2m ', 'Sa_q2m '/)
-         do n = 1,size(flds)
-            fldname = trim(flds(n))
-            call addmap(fldListFr(compatm)%flds, trim(fldname), compocn, maptype, 'one', 'unset')
-         end do
-         deallocate(flds)
-       end if
+    if ( trim(coupling_mode) == 'nems_orig_data') then
+       ! atm fields required for atm/ocn flux calculation
+       allocate(flds(10))
+       flds = (/'Sa_u   ', 'Sa_v   ', 'Sa_z   ', 'Sa_tbot', 'Sa_pbot', &
+                'Sa_shum', 'Sa_u10m', 'Sa_v10m', 'Sa_t2m ', 'Sa_q2m '/)
+       do n = 1,size(flds)
+          fldname = trim(flds(n))
+          if (phase == 'advertise') then
+             call addfld(fldListFr(compatm)%flds, trim(fldname))
+          else
+             call addmap(fldListFr(compatm)%flds, trim(fldname), compocn, maptype, 'one', 'unset')
+          end if
+       end do
+       deallocate(flds)
+
+       ! fields returned by the atm/ocn flux computation which are otherwise unadvertised
+       allocate(flds(8))
+       flds = (/'So_tref  ', 'So_qref  ', 'So_ustar ', 'So_re    ','So_ssq   ', &
+                'So_u10   ', 'So_duu10n', 'Faox_lat '/)
+       do n = 1,size(flds)
+          fldname = trim(flds(n))
+          if (phase == 'advertise') then
+             call addfld(fldListMed_aoflux%flds, trim(fldname))
+          end if
+       end do
+       deallocate(flds)
+
+       ! unused fields from ice - but that are needed to be realized by the cice cap
+       !call addfld(fldListFr(compice)%flds, 'Faii_evap')
+       !call addfld(fldListFr(compice)%flds, 'mean_sw_pen_to_ocn')
     end if
 
     !=====================================================================
@@ -230,6 +225,7 @@ contains
        if ( fldchk(is_local%wrap%FBexp(compocn)        , 'Sa_pslv', rc=rc) .and. &
             fldchk(is_local%wrap%FBImp(compatm,compatm), 'Sa_pslv', rc=rc)) then
           call addmap(fldListFr(compatm)%flds, 'Sa_pslv', compocn, maptype, 'one', 'unset')
+          !call addmap(fldListFr(compatm)%flds, 'Sa_pslv', compocn, mapbilnr_nstod, 'one', 'unset')
           call addmrg(fldListTo(compocn)%flds, 'Sa_pslv', mrg_from=compatm, mrg_fld='Sa_pslv', mrg_type='copy')
        end if
     end if
@@ -293,23 +289,29 @@ contains
 
     if (trim(coupling_mode) == 'nems_orig' .or. trim(coupling_mode) == 'nems_frac') then
        ! to ocn: merge surface stress (custom merge calculation in med_phases_prep_ocn)
-       allocate(flds(2))
-       flds = (/'taux', 'tauy'/)
-       do n = 1,size(flds)
+       allocate(oflds(2))
+       allocate(aflds(2))
+       allocate(iflds(2))
+       oflds = (/'Foxx_taux', 'Foxx_tauy'/)
+       aflds = (/'Faxa_taux', 'Faxa_tauy'/)
+       iflds = (/'Fioi_taux', 'Fioi_tauy'/)
+       do n = 1,size(oflds)
           if (phase == 'advertise') then
-             call addfld(fldListFr(compice)%flds, 'Fioi_'//trim(flds(n)))
-             call addfld(fldListFr(compatm)%flds, 'Faxa_'//trim(flds(n)))
-             call addfld(fldListTo(compocn)%flds, 'Foxx_'//trim(flds(n)))
+             call addfld(fldListFr(compice)%flds, trim(iflds(n)))
+             call addfld(fldListFr(compatm)%flds, trim(aflds(n)))
+             call addfld(fldListTo(compocn)%flds, trim(oflds(n)))
           else
-             if ( fldchk(is_local%wrap%FBexp(compocn)        , 'Foxx_'//trim(flds(n)), rc=rc) .and. &
-                  fldchk(is_local%wrap%FBImp(compice,compice), 'Fioi_'//trim(flds(n)), rc=rc) .and. &
-                  fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_'//trim(flds(n)), rc=rc)) then
-                call addmap(fldListFr(compice)%flds, 'Fioi_'//trim(flds(n)), compocn, mapfcopy, 'unset', 'unset')
-                call addmap(fldListFr(compatm)%flds, 'Faxa_'//trim(flds(n)), compocn, mapconsf_aofrac, 'aofrac', 'unset')
+             if ( fldchk(is_local%wrap%FBexp(compocn)        , trim(oflds(n)), rc=rc) .and. &
+                  fldchk(is_local%wrap%FBImp(compice,compice), trim(iflds(n)), rc=rc) .and. &
+                  fldchk(is_local%wrap%FBImp(compatm,compatm), trim(aflds(n)), rc=rc)) then
+                call addmap(fldListFr(compice)%flds, trim(iflds(n)), compocn, mapfcopy, 'unset', 'unset')
+                call addmap(fldListFr(compatm)%flds, trim(aflds(n)), compocn, mapconsf_aofrac, 'aofrac', 'unset')
              end if
           end if
        end do
-       deallocate(flds)
+       deallocate(oflds)
+       deallocate(aflds)
+       deallocate(iflds)
 
        ! to ocn: net long wave via auto merge
        if (phase == 'advertise') then
@@ -352,6 +354,7 @@ contains
        flds = (/'taux', 'tauy'/)
        do n = 1,size(flds)
           if (phase == 'advertise') then
+             call addfld(fldListMed_aoflux%flds  , 'Faox_'//trim(flds(n)))
              call addfld(fldListFr(compice)%flds , 'Fioi_'//trim(flds(n)))
              call addfld(fldListTo(compocn)%flds , 'Foxx_'//trim(flds(n)))
           else
@@ -370,6 +373,7 @@ contains
 
        ! to ocn: long wave net via auto merge
        if (phase == 'advertise') then
+          call addfld(fldListMed_aoflux%flds , 'Faox_lwup')
           call addfld(fldListFr(compatm)%flds, 'Faxa_lwdn')
           call addfld(fldListTo(compocn)%flds, 'Foxx_lwnet')
        else
@@ -386,6 +390,7 @@ contains
 
        ! to ocn: sensible heat flux from mediator via auto merge
        if (phase == 'advertise') then
+          call addfld(fldListMed_aoflux%flds , 'Faox_sen')
           call addfld(fldListTo(compocn)%flds, 'Faox_sen')
        else
           if ( fldchk(is_local%wrap%FBexp(compocn)        , 'Faox_sen', rc=rc) .and. &
@@ -397,6 +402,7 @@ contains
 
        ! to ocn: evaporation water flux from mediator via auto merge
        if (phase == 'advertise') then
+          call addfld(fldListMed_aoflux%flds , 'Faox_evap')
           call addfld(fldListTo(compocn)%flds, 'Faox_evap')
        else
           if ( fldchk(is_local%wrap%FBexp(compocn)        , 'Faox_evap', rc=rc) .and. &
@@ -490,7 +496,7 @@ contains
     ! to ice: meridional wind at the lowest model level from atm
     ! to ice: specific humidity at the lowest model level from atm
     allocate(flds(6))
-    flds = (/'Sa_z   ', 'Sa_pbot', 'Sa_tbot', 'Sa_u   ', 'Sa_v   ', &
+    flds = (/'Sa_u   ', 'Sa_v   ', 'Sa_z   ', 'Sa_tbot', 'Sa_pbot', &
              'Sa_shum'/)
     do n = 1,size(flds)
        fldname = trim(flds(n))

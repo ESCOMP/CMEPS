@@ -415,7 +415,8 @@ contains
           endif
        else if (n2 == compatm .and. (n1 == compocn .or. n1 == compice .or. n1 == compwav)) then
           srcMaskValue = 0
-          dstMaskValue = 1
+          !dstMaskValue = 1
+          dstMaskValue = ispval_mask
        else
           ! TODO: what should the condition be here?
           dstMaskValue = ispval_mask
