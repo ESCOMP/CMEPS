@@ -946,7 +946,9 @@ contains
     use flux_atmocn_mod, only : flux_atmocn
 #endif
 #ifdef UFS_AOFLUX
-    use flux_atmocn_ccpp_mod, only : flux_atmocn_ccpp
+    use flux_atmocn_ccpp_mod, only : flux_atmOcn_init
+    use flux_atmocn_ccpp_mod, only : flux_atmOcn_run
+    use flux_atmocn_ccpp_mod, only : flux_atmOcn_finalize
 #endif
 
     ! Arguments
@@ -1123,14 +1125,8 @@ contains
     if (trim(coupling_mode) == 'nems_frac_aoflux') then
 #ifdef UFS_AOFLUX
        if (trim(aoflux_code) == 'ccpp') then
-       call flux_atmocn_ccpp(&
-            nMax=aoflux_in%lsize, psfc=aoflux_in%psfc, &
-            pbot=aoflux_in%pbot, tbot=aoflux_in%tbot, qbot=aoflux_in%shum, lwdn=aoflux_in%lwdn, &
-            zbot=aoflux_in%zbot, garea=aoflux_in%garea, ubot=aoflux_in%ubot, usfc=aoflux_in%usfc, vbot=aoflux_in%vbot, &
-            vsfc=aoflux_in%vsfc, rbot=aoflux_in%dens, ts=aoflux_in%tocn, mask=aoflux_in%mask, &
-            sen=aoflux_out%sen, lat=aoflux_out%lat, lwup=aoflux_out%lwup, evp=aoflux_out%evap, &
-            taux=aoflux_out%taux, tauy=aoflux_out%tauy, qref=aoflux_out%qref, &
-            missval=0.0_r8)
+          ! TODO: call ccpp
+          print*, "calling ccpp"
        else
 #endif
        call flux_atmocn (logunit=logunit, &
@@ -1144,9 +1140,9 @@ contains
 #ifdef UFS_AOFLUX
        end if
 #endif
-    end if
-
-#endif
+!    end if
+!
+!#endif
 
     do n = 1,aoflux_in%lsize
        if (aoflux_in%mask(n) /= 0) then

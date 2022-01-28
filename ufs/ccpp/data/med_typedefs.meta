@@ -1,0 +1,42 @@
+[ccpp-table-properties]
+  name = physics_type
+  type = ddt
+  dependencies = GFS_typedefs.F90
+
+[ccpp-arg-table]
+  name = physics_type
+  type = ddt 
+[Statein]
+  standard_name = GFS_statein_type_instance
+  long_name = instance of derived type GFS_statein_type
+  units = DDT
+  dimensions = ()
+  type = GFS_statein_type
+
+########################################################################
+[ccpp-table-properties]
+  name = med_typedefs
+  type = module
+  dependencies =GFS_typedefs.F90,../FV3/ccpp/physics/physics/machine.F,../FV3/ccpp/framework/src/ccpp_api.F90
+
+[ccpp-arg-table]
+  name = med_typedefs
+  type = module
+[physics_type]
+  standard_name = physics_type
+  long_name = definition of type physics_type
+  units = DDT
+  dimensions = ()
+  type = physics_type
+[physics]
+  standard_name = physics_type_instance
+  long_name = instance of derived data type physics_type
+  units = DDT
+  dimensions = ()
+  type = physics_type
+[cdata]
+  standard_name = ccpp_t_instance
+  long_name = instance of derived data type ccpp_t
+  units = DDT
+  dimensions = ()
+  type = ccpp_t

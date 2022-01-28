@@ -1,0 +1,61 @@
+[ccpp-table-properties]
+  name = GFS_statein_type
+  type = ddt
+  dependencies =
+
+[ccpp-arg-table]
+  name = GFS_statein_type
+  type = ddt
+[prsl]
+  standard_name = air_pressure_at_surface_adjacent_layer
+  long_name = mean pressure at lowest model layer
+  units = Pa
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+[tgrs]
+  standard_name = air_temperature_at_surface_adjacent_layer
+  long_name = mean temperature at lowest model layer
+  units = K
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+
+########################################################################
+[ccpp-table-properties]
+  name = GFS_data_type
+  type = ddt
+  dependencies =
+
+[ccpp-arg-table]
+  name = GFS_data_type
+  type = ddt
+[Statein]
+  standard_name = GFS_statein_type_instance
+  long_name = prognostic state data in from dycore
+  units = DDT
+  dimensions = ()
+  type = GFS_statein_type
+
+########################################################################
+[ccpp-table-properties]
+  name = GFS_typedefs
+  type = module
+  relative_path = ../FV3/ccpp/physics/physics
+  dependencies = machine.F
+
+[ccpp-arg-table]
+  name = GFS_typedefs
+  type = module
+[GFS_data_type]
+  standard_name = GFS_data_type
+  long_name = definition of type GFS_data_type
+  units = DDT
+  dimensions = ()
+  type = GFS_data_type
+[GFS_statein_type]
+  standard_name = GFS_statein_type
+  long_name = definition of type GFS_statein_type
+  units = DDT
+  dimensions = ()
+  type = GFS_statein_type
