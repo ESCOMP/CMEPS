@@ -10,7 +10,7 @@ module med_type_defs
   implicit none
 
   type physics_type
-    ype(GFS_statein_type) :: statein
+    type(GFS_statein_type) :: statein
   end type physics_type
 
   type(physics_type), target :: physics

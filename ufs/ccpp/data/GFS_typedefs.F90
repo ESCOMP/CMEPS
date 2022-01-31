@@ -8,22 +8,15 @@ module GFS_typedefs
   real(kind=kind_phys), parameter :: clear_val = zero
 
   !--- data containers
+!! \section arg_table_GFS_statein_type
+!! \htmlinclude GFS_statein_type.html
+!!
   type GFS_statein_type
     real (kind=kind_phys), pointer :: prsl(:) => null() !< model layer mean pressure Pa
     real (kind=kind_phys), pointer :: tgrs(:) => null() !< model layer mean temperature in k
   contains
     procedure :: create  => statein_create  !<   allocate array data
   end type GFS_statein_type
-
-!------------------------------------------------------------------------------------
-! combined type of all of the above except GFS_control_type and GFS_interstitial_type
-!------------------------------------------------------------------------------------
-!! \section arg_table_GFS_data_type
-!! \htmlinclude GFS_data_type.html
-!!
-  type GFS_data_type
-     type(GFS_statein_type) :: statein
-  end type GFS_data_type
 
   contains
 

@@ -23,22 +23,6 @@
 
 ########################################################################
 [ccpp-table-properties]
-  name = GFS_data_type
-  type = ddt
-  dependencies =
-
-[ccpp-arg-table]
-  name = GFS_data_type
-  type = ddt
-[Statein]
-  standard_name = GFS_statein_type_instance
-  long_name = prognostic state data in from dycore
-  units = DDT
-  dimensions = ()
-  type = GFS_statein_type
-
-########################################################################
-[ccpp-table-properties]
   name = GFS_typedefs
   type = module
   relative_path = ../FV3/ccpp/physics/physics
@@ -47,12 +31,6 @@
 [ccpp-arg-table]
   name = GFS_typedefs
   type = module
-[GFS_data_type]
-  standard_name = GFS_data_type
-  long_name = definition of type GFS_data_type
-  units = DDT
-  dimensions = ()
-  type = GFS_data_type
 [GFS_statein_type]
   standard_name = GFS_statein_type
   long_name = definition of type GFS_statein_type
