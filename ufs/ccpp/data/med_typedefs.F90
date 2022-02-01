@@ -4,13 +4,21 @@
 module med_type_defs 
 
   use GFS_typedefs, only: GFS_statein_type
+  use GFS_typedefs, only: GFS_init_type
+  use GFS_typedefs, only: GFS_interstitial_type
+  use GFS_typedefs, only: GFS_control_type
+  use GFS_typedefs, only: GFS_coupling_type
   use machine,      only: kind_phys
   use ccpp_api,     only: ccpp_t
 
   implicit none
 
   type physics_type
-    type(GFS_statein_type) :: statein
+    type(GFS_init_type)         :: init
+    type(GFS_statein_type)      :: statein
+    type(GFS_interstitial_type) :: interstitial
+    type(GFS_control_type)      :: model
+    type(GFS_coupling_type)     :: coupling 
   end type physics_type
 
   type(physics_type), target :: physics

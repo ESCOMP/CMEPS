@@ -39,7 +39,11 @@ TYPEDEFS_NEW_METADATA = {
         'machine' : '',
         },
     'GFS_typedefs' : {
+        'GFS_init_type' : 'physics%init',
         'GFS_statein_type' : 'physics%Statein',
+        'GFS_interstitial_type' : 'physics%Interstitial',
+        'GFS_control_type' : 'physics%Model',
+        'GFS_coupling_type' : 'physics%Coupling',
         'GFS_typedefs' : '',
         },
     'med_typedefs' : {

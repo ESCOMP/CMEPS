@@ -1,4 +1,20 @@
 [ccpp-table-properties]
+  name = GFS_init_type
+  type = ddt
+  dependencies =
+
+[ccpp-arg-table]
+  name = GFS_init_type
+  type = ddt
+[im]
+  standard_name = horizontal_loop_extent
+  long_name = horizontal loop extent
+  units = count
+  dimensions = ()
+  type = integer
+
+########################################################################
+[ccpp-table-properties]
   name = GFS_statein_type
   type = ddt
   dependencies =
@@ -6,10 +22,24 @@
 [ccpp-arg-table]
   name = GFS_statein_type
   type = ddt
-[prsl]
-  standard_name = air_pressure_at_surface_adjacent_layer
-  long_name = mean pressure at lowest model layer
+[pgr]
+  standard_name = surface_air_pressure
+  long_name = surface pressure
   units = Pa
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+[ugrs]
+  standard_name = x_wind_at_surface_adjacent_layer
+  long_name = zonal wind at lowest model layer
+  units = m s-1
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+[vgrs]
+  standard_name = y_wind_at_surface_adjacent_layer
+  long_name = meridional wind at lowest model layer
+  units = m s-1
   dimensions = (horizontal_loop_extent)
   type = real
   kind = kind_phys
@@ -20,20 +50,272 @@
   dimensions = (horizontal_loop_extent)
   type = real
   kind = kind_phys
+[qgrs]
+  standard_name = specific_humidity_at_surface_adjacent_layer
+  long_name = water vapor specific humidity at lowest model layer
+  units = kg kg-1
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+[prsl]
+  standard_name = air_pressure_at_surface_adjacent_layer
+  long_name = mean pressure at lowest model layer
+  units = Pa
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+
+########################################################################
+[ccpp-table-properties]
+  name = GFS_interstitial_type
+  type = ddt
+  dependencies =
+
+[ccpp-arg-table]
+  name = GFS_interstitial_type
+  type = ddt
+[tsfc_water]
+  standard_name = surface_skin_temperature_over_water
+  long_name = surface skin temperature over water
+  units = K
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+[cd_water]
+  standard_name = surface_drag_coefficient_for_momentum_in_air_over_water
+  long_name = surface exchange coeff for momentum over water
+  units = none
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+[cdq_water]
+  standard_name = surface_drag_coefficient_for_heat_and_moisture_in_air_over_water
+  long_name = surface exchange coeff heat surface exchange coeff heat & moisture over ocean moisture over water
+  units = none
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+[ffmm_water]
+  standard_name = Monin_Obukhov_similarity_function_for_momentum_over_water
+  long_name = Monin-Obukhov similarity function for momentum over water
+  units = none
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+[fm10_water]
+  standard_name = Monin_Obukhov_similarity_function_for_momentum_at_10m_over_water
+  long_name = Monin-Obukhov similarity parameter for momentum at 10m over water
+  units = none
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+[prslki]
+  standard_name = ratio_of_exner_function_between_midlayer_and_interface_at_lowest_model_layer
+  long_name = Exner function ratio bt midlayer and interface at 1st layer
+  units = ratio
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+[wet]
+  standard_name = flag_nonzero_wet_surface_fraction
+  long_name = flag indicating presence of some ocean or lake surface area fraction
+  units = flag
+  dimensions = (horizontal_loop_extent)
+  type = logical
+[use_flake]
+  standard_name = flag_for_using_flake
+  long_name = flag indicating lake points using flake model
+  units = flag
+  dimensions = (horizontal_loop_extent)
+  type = logical
+[wind]
+  standard_name = wind_speed_at_lowest_model_layer
+  long_name = wind speed at lowest model level
+  units = m s-1
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+[flag_iter]
+  standard_name = flag_for_iteration
+  long_name = flag for iteration
+  units = flag
+  dimensions = (horizontal_loop_extent)
+  type = logical
+[qss_water]
+  standard_name = surface_specific_humidity_over_water
+  long_name = surface air saturation specific humidity over water
+  units = kg kg-1
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+[cmm_water]
+  standard_name = surface_drag_wind_speed_for_momentum_in_air_over_water
+  long_name = momentum exchange coefficient over water
+  units = m s-1
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+[chh_water]
+  standard_name = surface_drag_mass_flux_for_heat_and_moisture_in_air_over_water
+  long_name = thermal exchange coefficient over water
+  units = kg m-2 s-1
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+[gflx_water]
+  standard_name = upward_heat_flux_in_soil_over_water
+  long_name = soil heat flux over water
+  units = W m-2
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+[evap_water]
+  standard_name = kinematic_surface_upward_latent_heat_flux_over_water
+  long_name = kinematic surface upward latent heat flux over water
+  units = kg kg-1 m s-1
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+[hflx_water]
+  standard_name = kinematic_surface_upward_sensible_heat_flux_over_water
+  long_name = kinematic surface upward sensible heat flux over water
+  units = K m s-1
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+[ep1d_water]
+  standard_name = surface_upward_potential_latent_heat_flux_over_water
+  long_name = surface upward potential latent heat flux over water
+  units = W m-2
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+
+########################################################################
+[ccpp-table-properties]
+  name = GFS_control_type
+  type = ddt
+  dependencies =
+
+[ccpp-arg-table]
+  name = GFS_control_type
+  type = ddt
+[lseaspray]
+  standard_name = flag_for_sea_spray
+  long_name = flag for sea spray parameterization
+  units = flag
+  dimensions = ()
+  type = logical
+[use_med_flux]
+  standard_name = flag_for_mediator_atmosphere_ocean_fluxes
+  long_name = flag for using atmosphere-ocean fluxes form mediator (default false)
+  units = flag 
+  dimensions = ()
+  type = logical
+
+########################################################################
+[ccpp-table-properties]
+  name = GFS_coupling_type
+  type = ddt
+  dependencies =
+
+[ccpp-arg-table]
+  name = GFS_coupling_type
+  type = ddt
+[dtsfcino_cpl]
+  standard_name = surface_upward_sensible_heat_flux_over_ocean_from_coupled_process
+  long_name = sfc sensible heat flux input over ocean for coupling
+  units = W m-2
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+[dqsfcino_cpl]
+  standard_name = surface_upward_latent_heat_flux_over_ocean_from_coupled_process
+  long_name = sfc latent heat flux input over ocean for coupling
+  units = W m-2
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
 
 ########################################################################
 [ccpp-table-properties]
   name = GFS_typedefs
   type = module
   relative_path = ../FV3/ccpp/physics/physics
-  dependencies = machine.F
+  dependencies = machine.F,physcons.F90
 
 [ccpp-arg-table]
   name = GFS_typedefs
   type = module
+[GFS_init_type]
+  standard_name = GFS_init_type
+  long_name = definition of type GFS_init_type
+  units = DDT
+  dimensions = ()
+  type = GFS_init_type
 [GFS_statein_type]
   standard_name = GFS_statein_type
   long_name = definition of type GFS_statein_type
   units = DDT
   dimensions = ()
   type = GFS_statein_type
+[GFS_interstitial_type]
+  standard_name = GFS_interstitial_type
+  long_name = definition of type GFS_interstitial_type
+  units = DDT
+  dimensions = ()
+  type = GFS_interstitial_type
+[GFS_control_type]
+  standard_name = GFS_control_type
+  long_name = definition of type GFS_control_type
+  units = DDT
+  dimensions = ()
+  type = GFS_control_type
+[GFS_coupling_type]
+  standard_name = GFS_coupling_type
+  long_name = definition of type GFS_coupling_type
+  units = DDT
+  dimensions = ()
+  type = GFS_coupling_type
+[con_hvap]
+  standard_name = latent_heat_of_vaporization_of_water_at_0C
+  long_name = latent heat of evaporation/sublimation
+  units = J kg-1
+  dimensions = ()
+  type = real
+  kind = kind_phys
+[con_cp]
+  standard_name = specific_heat_of_dry_air_at_constant_pressure
+  long_name = specific heat of dry air at constant pressure
+  units = J kg-1 K-1
+  dimensions = ()
+  type = real
+  kind = kind_phys
+[con_rd]
+  standard_name = gas_constant_of_dry_air
+  long_name = ideal gas constant for dry air
+  units = J kg-1 K-1
+  dimensions = ()
+  type = real
+  kind = kind_phys
+[con_eps]
+  standard_name = ratio_of_dry_air_to_water_vapor_gas_constants
+  long_name = rd/rv
+  units = none
+  dimensions = ()
+  type = real
+  kind = kind_phys
+[con_epsm1]
+  standard_name = ratio_of_dry_air_to_water_vapor_gas_constants_minus_one
+  long_name = (rd/rv) - 1
+  units = none
+  dimensions = ()
+  type = real
+  kind = kind_phys
+[con_fvirt]
+  standard_name = ratio_of_vapor_to_dry_air_gas_constants_minus_one
+  long_name = (rv/rd) - 1 (rv = ideal gas constant for water vapor)
+  units = none
+  dimensions = ()
+  type = real
+  kind = kind_phys
