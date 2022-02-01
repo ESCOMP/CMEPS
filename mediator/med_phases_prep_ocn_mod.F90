@@ -44,7 +44,6 @@ contains
 
     use ESMF            , only : ESMF_GridComp, ESMF_SUCCESS
     use med_methods_mod , only : FB_Init  => med_methods_FB_init
-    use med_methods_mod , only : FB_Reset => med_methods_FB_Reset
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp

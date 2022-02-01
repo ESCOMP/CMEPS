@@ -172,7 +172,7 @@ contains
     ! ---------------------------------------------------------------------
     if (hafs_attr%atm_present .and. hafs_attr%wav_present) then
       allocate(S_flds(1))
-      S_flds = (/'Sw_zo'/) ! wave_z0_roughness_length
+      S_flds = (/'Sw_z0'/) ! wave_z0_roughness_length
       do n = 1,size(S_flds)
          fldname = trim(S_flds(n))
          call addfld(fldListFr(compwav)%flds, trim(fldname))
@@ -385,7 +385,7 @@ contains
     ! ---------------------------------------------------------------------
     if (hafs_attr%atm_present .and. hafs_attr%wav_present) then
       allocate(S_flds(1))
-      S_flds = (/'Sw_zo'/) ! wave_z0_roughness_length
+      S_flds = (/'Sw_z0'/) ! wave_z0_roughness_length
       do n = 1,size(S_flds)
          fldname = trim(S_flds(n))
          if (fldchk(is_local%wrap%FBExp(compatm),trim(fldname),rc=rc) .and. &
