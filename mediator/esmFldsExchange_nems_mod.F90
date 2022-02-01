@@ -213,6 +213,16 @@ contains
        end if
     end if
 
+    ! temporary conditional to avoid conflicts of advertised fields
+    ! when waves are passing through connectors
+    if (is_local%wrap%comp_present(compwav)) then
+       ! to atm: surface roughness length from wav
+       call addfld(fldListFr(compwav)%flds, 'Sw_z0')
+       call addfld(fldListTo(compatm)%flds, 'Sw_z0')
+       call addmap(fldListFr(compwav)%flds, 'Sw_z0', compatm, mapnstod_consf, 'one', 'unset')
+       call addmrg(fldListTo(compatm)%flds, 'Sw_z0', mrg_from=compwav, mrg_fld='Sw_z0', mrg_type='copy')
+    end if
+
     !=====================================================================
     ! FIELDS TO OCEAN (compocn)
     !=====================================================================
@@ -578,6 +588,7 @@ contains
 
        ! to wav: zonal sea water velocity from ocn
        ! to wav: meridional sea water velocity from ocn
+       ! to wav: surface temperature from ocn
        allocate(flds(3))
        flds = (/'So_u', 'So_v', 'So_t'/)
        do n = 1,size(flds)
