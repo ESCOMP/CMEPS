@@ -37,9 +37,9 @@ contains
     use med_constants_mod     , only : dbug_flag    => med_constants_dbug_flag
     use med_merge_mod         , only : med_merge_auto
     use med_internalstate_mod , only : InternalState, logunit, mastertask
-    use esmFlds               , only : compatm, compice, compocn, comprof, compglc, ncomps, compname
+    use med_internalstate_mod , only : compatm, compice, compocn, comprof
+    use med_internalstate_mod , only : coupling_mode
     use esmFlds               , only : fldListTo
-    use esmFlds               , only : coupling_mode
     use perf_mod              , only : t_startf, t_stopf
 
     ! input/output variables

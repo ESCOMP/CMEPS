@@ -30,7 +30,7 @@ contains
     use med_fraction_mod      , only : med_fraction_set
     use med_internalstate_mod , only : InternalState, mastertask
     use med_phases_history_mod, only : med_phases_history_write_comp
-    use esmFlds               , only : compice, compatm, compocn, compwav
+    use med_internalstate_mod , only : compice, compatm, compocn, compwav
     use perf_mod              , only : t_startf, t_stopf
 
     ! input/output variables
@@ -59,18 +59,6 @@ contains
     call med_fraction_set(gcomp, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    ! map ice to atm - scaling by updated ice fraction
-    if (is_local%wrap%med_coupling_active(compice,compatm)) then
-       call med_map_field_packed( &
-            FBSrc=is_local%wrap%FBImp(compice,compice), &
-            FBDst=is_local%wrap%FBImp(compice,compatm), &
-            FBFracSrc=is_local%wrap%FBFrac(compice), &
-            field_NormOne=is_local%wrap%field_normOne(compice,compatm,:), &
-            packed_data=is_local%wrap%packed_data(compice,compatm,:), &
-            routehandles=is_local%wrap%RH(compice,compatm,:), rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    end if
     ! map ice to ocn
     if (is_local%wrap%med_coupling_active(compice,compocn)) then
        call t_startf('MED:'//trim(subname)//' map_ice2ocn')

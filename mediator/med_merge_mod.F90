@@ -5,13 +5,12 @@ module med_merge_mod
   !-----------------------------------------------------------------------------
 
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
-  use med_internalstate_mod , only : logunit
+  use med_internalstate_mod , only : logunit, compmed, compname
   use med_constants_mod     , only : dbug_flag         => med_constants_dbug_flag
   use med_constants_mod     , only : czero             => med_constants_czero
   use med_utils_mod         , only : ChkErr            => med_utils_ChkErr
   use med_methods_mod       , only : FB_FldChk         => med_methods_FB_FldChk
   use med_methods_mod       , only : FB_GetFldPtr      => med_methods_FB_GetFldPtr
-  use esmFlds               , only : compmed, compname
   use esmFlds               , only : med_fldList_type
   use esmFlds               , only : med_fldList_GetNumFlds
   use esmFlds               , only : med_fldList_GetFldInfo

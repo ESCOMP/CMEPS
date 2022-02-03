@@ -37,7 +37,6 @@ def _main_func():
         cime_model = case.get_value("MODEL")
         num_esp   = case.get_value("NUM_COMP_INST_ESP")
         ocn_model = case.get_value("COMP_OCN")
-        atm_model = case.get_value("COMP_ATM")
         gmake_args = get_standard_makefile_args(case)
         esmf_aware_threading = case.get_value("ESMF_AWARE_THREADING")
 
@@ -63,7 +62,7 @@ def _main_func():
     else:
         skip_mediator = False
 
-    if ocn_model == 'mom' or atm_model == "ufsatm":
+    if ocn_model == 'mom':
         gmake_args += "USE_FMS=TRUE"
 
     comp_classes = case.get_values("COMP_CLASSES")
