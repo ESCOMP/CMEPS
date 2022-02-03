@@ -1,4 +1,8 @@
 module GFS_typedefs
+
+!> \section arg_table_GFS_typedefs
+!! \htmlinclude GFS_typedefs.html
+!!
   use machine,  only: kind_phys
   use physcons, only: con_hvap, con_cp, con_rd, con_eps
   use physcons, only: con_epsm1, con_fvirt 

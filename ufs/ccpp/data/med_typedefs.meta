@@ -19,34 +19,33 @@
   dimensions = ()
   type = GFS_statein_type
 [Interstitial]
-  standard_name = GFS_interstitial_type
-  long_name = definition of type GFS_interstitial_type
+  standard_name = GFS_interstitial_type_instance
+  long_name = instance of derived type GFS_interstitial_type
   units = DDT
   dimensions = ()
   type = GFS_interstitial_type
 [Model]
-  standard_name = GFS_control_type
-  long_name = definition of type GFS_control_type
+  standard_name = GFS_control_type_instance
+  long_name = instance of derived type GFS_control_type
   units = DDT
   dimensions = ()
   type = GFS_control_type
 [Coupling]
-  standard_name = GFS_coupling_type
-  long_name = definition of type GFS_coupling_type
+  standard_name = GFS_coupling_type_instance
+  long_name = instance of derived type GFS_coupling_type
   units = DDT
   dimensions = ()
   type = GFS_coupling_type
 
 ########################################################################
 [ccpp-table-properties]
-  name = med_typedefs
+  name = med_type_defs
   type = module
   dependencies = GFS_typedefs.F90
-  dependencies = ../FV3/ccpp/physics/physics/machine.F
-  dependencies = ../FV3/ccpp/framework/src/ccpp_api.F90
+  dependencies = ../../../../../FV3/ccpp/framework/src/ccpp_api.F90
 
 [ccpp-arg-table]
-  name = med_typedefs
+  name = med_type_defs
   type = module
 [physics_type]
   standard_name = physics_type

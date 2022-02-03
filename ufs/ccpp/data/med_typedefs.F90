@@ -3,16 +3,22 @@
 
 module med_type_defs 
 
+!> \section arg_table_med_type_defs
+!! \htmlinclude med_type_defs.html
+!!
+
   use GFS_typedefs, only: GFS_statein_type
   use GFS_typedefs, only: GFS_init_type
   use GFS_typedefs, only: GFS_interstitial_type
   use GFS_typedefs, only: GFS_control_type
   use GFS_typedefs, only: GFS_coupling_type
-  use machine,      only: kind_phys
   use ccpp_api,     only: ccpp_t
 
   implicit none
 
+!! \section arg_table_physics_type
+!! \htmlinclude physics_type.html
+!!
   type physics_type
     type(GFS_init_type)         :: init
     type(GFS_statein_type)      :: statein

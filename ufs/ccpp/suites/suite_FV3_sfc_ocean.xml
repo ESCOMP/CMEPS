@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<suite name="FV3_sfc_ocean" version="1">
+  <group name="physics">
+    <subcycle loop="1">
+      <scheme>sfc_ocean</scheme>
+    </subcycle>
+  </group>
+</suite>

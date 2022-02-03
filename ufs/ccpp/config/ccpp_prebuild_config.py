@@ -195,11 +195,12 @@ CAPS_SOURCEFILE = '{build_dir}/physics/CCPP_CAPS.sh'
 CAPS_DIR = '{build_dir}/physics'
 
 # Directory where the suite definition files are stored
-SUITES_DIR = '{}/ccpp/suites'.format(fv3_path)
+SUITES_DIR = 'CMEPS/ufs/ccpp/suites'
 
 # Directory where to write static API to
 STATIC_API_DIR = '{build_dir}/physics'
-STATIC_API_SRCFILE = '{build_dir}/physics/CCPP_STATIC_API.sh'
+STATIC_API_CMAKEFILE  = '{build_dir}/physics/CCPP_STATIC_API.cmake'
+STATIC_API_SOURCEFILE = '{build_dir}/physics/CCPP_STATIC_API.sh'
 
 # Directory for writing HTML pages generated from metadata files
 METADATA_HTML_OUTPUT_DIR = '{build_dir}/physics/physics/docs'
