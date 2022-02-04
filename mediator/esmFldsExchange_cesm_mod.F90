@@ -73,7 +73,7 @@ contains
     use med_methods_mod       , only : fldchk => med_methods_FB_FldChk
     use med_internalstate_mod , only : InternalState, logunit, mastertask
     use med_internalstate_mod , only : compmed, compatm, complnd, compocn
-    use med_internalstate_mod , only : compice, comprof, compwav, compglc, ncomps 
+    use med_internalstate_mod , only : compice, comprof, compwav, compglc, ncomps
     use med_internalstate_mod , only : mapbilnr, mapconsf, mapconsd, mappatch, mappatch_uv3d, mapbilnr_nstod
     use med_internalstate_mod , only : mapfcopy, mapnstod, mapnstod_consd, mapnstod_consf
     use med_internalstate_mod , only : coupling_mode
@@ -1448,6 +1448,19 @@ contains
             fldchk(is_local%wrap%FBImp(complnd,complnd ), 'Sl_snowh', rc=rc)) then
           call addmap(fldListFr(complnd)%flds, 'Sl_snowh', compatm, mapconsf, 'lfrin', lnd2atm_map)
           call addmrg(fldListTo(compatm)%flds, 'Sl_snowh', mrg_from=complnd, mrg_fld='Sl_snowh', mrg_type='copy')
+       end if
+    end if
+    ! ---------------------------------------------------------------------
+    ! CARMA fields (volumetric soil water)
+    !-----------------------------------------------------------------------------
+    if (phase == 'advertise') then
+       call addfld(fldListFr(complnd)%flds, 'Sl_soilw')
+       call addfld(fldListTo(compatm)%flds, 'Sl_soilw')
+    else
+       if ( fldchk(is_local%wrap%FBexp(compatm)         , 'Sl_soilw', rc=rc) .and. &
+            fldchk(is_local%wrap%FBImp(complnd,complnd ), 'Sl_soilw', rc=rc)) then
+          call addmap(fldListFr(complnd)%flds, 'Sl_soilw', compatm, mapconsf, 'lfrin', lnd2atm_map)
+          call addmrg(fldListTo(compatm)%flds, 'Sl_soilw', mrg_from=complnd, mrg_fld='Sl_soilw', mrg_type='copy')
        end if
     end if
     ! ---------------------------------------------------------------------
@@ -3187,11 +3200,6 @@ contains
           ! custom merge in med_phases_prep_atm
        end if
     endif
-
-    !-----------------------------------------------------------------------------
-    ! CARMA fields (volumetric soil water)
-    !-----------------------------------------------------------------------------
-    ! TODO (mvertens, 2021-07-25): add this
 
   end subroutine esmFldsExchange_cesm
 
