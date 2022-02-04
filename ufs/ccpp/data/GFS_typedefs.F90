@@ -47,8 +47,8 @@ module GFS_typedefs
     real(kind=kind_phys), pointer :: ffmm_water(:) => null() !< Monin-Obukhov similarity function for momentum over water
     real(kind=kind_phys), pointer :: fm10_water(:) => null() !< Monin-Obukhov similarity parameter for momentum at 10m over water
     real(kind=kind_phys), pointer :: prslki(:)     => null() !< Exner function ratio bt midlayer and interface at 1st layer
-    real(kind=kind_phys), pointer :: wet(:)        => null() !< flag indicating presence of some ocean or lake surface area fraction
-    real(kind=kind_phys), pointer :: use_flake(:)  => null() !< flag indicating lake points using flake model
+    logical,              pointer :: wet(:)        => null() !< flag indicating presence of some ocean or lake surface area fraction
+    logical,              pointer :: use_flake(:)  => null() !< flag indicating lake points using flake model
     real(kind=kind_phys), pointer :: wind(:)       => null() !< wind speed at lowest model level (m/s)
     logical,              pointer :: flag_iter(:)  => null() !< flag for iteration
     real(kind=kind_phys), pointer :: qss_water(:)  => null() !< surface air saturation specific humidity over water (kg/kg)

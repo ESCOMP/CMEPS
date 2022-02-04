@@ -1140,9 +1140,9 @@ contains
 #ifdef UFS_AOFLUX
        end if
 #endif
-!    end if
-!
-!#endif
+    end if
+
+#endif
 
     do n = 1,aoflux_in%lsize
        if (aoflux_in%mask(n) /= 0) then
