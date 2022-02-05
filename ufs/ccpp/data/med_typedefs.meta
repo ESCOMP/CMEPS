@@ -36,16 +36,28 @@
   units = DDT
   dimensions = ()
   type = GFS_coupling_type
+[Grid]
+  standard_name = GFS_grid_type_instance
+  long_name = instance of derived type GFS_grid_type
+  units = DDT
+  dimensions = ()
+  type = GFS_grid_type
+[Sfcprop]
+  standard_name = GFS_sfcprop_type_instance
+  long_name = instance of derived type GFS_sfcprop_type
+  units = DDT
+  dimensions = ()
+  type = GFS_sfcprop_type
 
 ########################################################################
 [ccpp-table-properties]
-  name = med_type_defs
+  name = med_typedefs
   type = module
   dependencies = GFS_typedefs.F90
   dependencies = ../../../../../FV3/ccpp/framework/src/ccpp_api.F90
 
 [ccpp-arg-table]
-  name = med_type_defs
+  name = med_typedefs
   type = module
 [physics_type]
   standard_name = physics_type

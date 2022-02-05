@@ -3,6 +3,7 @@
 <suite name="FV3_sfc_ocean" version="1">
   <group name="physics">
     <subcycle loop="1">
+      <scheme>sfc_diff</scheme>
       <scheme>sfc_ocean</scheme>
     </subcycle>
   </group>
