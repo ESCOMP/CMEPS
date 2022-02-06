@@ -26,8 +26,8 @@ VARIABLE_DEFINITION_FILES = [
     # actual variable definition files
     '{}/ccpp/framework/src/ccpp_types.F90'.format(fv3_path),
     '{}/ccpp/physics/physics/machine.F'.format(fv3_path),
-    'CMEPS/ufs/ccpp/data/GFS_typedefs.F90',
-    'CMEPS/ufs/ccpp/data/med_typedefs.F90'
+    'CMEPS/ufs/ccpp/data/MED_typedefs.F90',
+    'CMEPS/ufs/ccpp/data/MED_data.F90'
     ]
 
 TYPEDEFS_NEW_METADATA = {
@@ -38,18 +38,18 @@ TYPEDEFS_NEW_METADATA = {
     'machine' : {
         'machine' : '',
         },
-    'GFS_typedefs' : {
-        'GFS_init_type' : 'physics%init',
-        'GFS_statein_type' : 'physics%Statein',
-        'GFS_interstitial_type' : 'physics%Interstitial',
-        'GFS_control_type' : 'physics%Model',
-        'GFS_coupling_type' : 'physics%Coupling',
-        'GFS_grid_type' : 'physics%Grid',
-        'GFS_sfcprop_type' : 'physics%Sfcprop',
-        'GFS_typedefs' : '',
+    'MED_typedefs' : {
+        'MED_init_type' : 'physics%init',
+        'MED_statein_type' : 'physics%Statein',
+        'MED_interstitial_type' : 'physics%Interstitial',
+        'MED_control_type' : 'physics%Model',
+        'MED_coupling_type' : 'physics%Coupling',
+        'MED_grid_type' : 'physics%Grid',
+        'MED_sfcprop_type' : 'physics%Sfcprop',
+        'MED_typedefs' : '',
         },
-    'med_typedefs' : {
-        'med_typedefs' : '',
+    'MED_data' : {
+        'MED_data' : '',
         'physics_type' : 'physics',
         }
     }

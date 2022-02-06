@@ -1,63 +1,63 @@
 [ccpp-table-properties]
   name = physics_type
   type = ddt
-  dependencies = GFS_typedefs.F90
+  dependencies = MED_typedefs.F90
 
 [ccpp-arg-table]
   name = physics_type
   type = ddt 
 [Init]
-  standard_name = GFS_init_type_instance
-  long_name = instance of derived type GFS_init_type
+  standard_name = MED_init_type_instance
+  long_name = instance of derived type MED_init_type
   units = DDT
   dimensions = ()
-  type = GFS_init_type
+  type = MED_init_type
 [Statein]
-  standard_name = GFS_statein_type_instance
-  long_name = instance of derived type GFS_statein_type
+  standard_name = MED_statein_type_instance
+  long_name = instance of derived type MED_statein_type
   units = DDT
   dimensions = ()
-  type = GFS_statein_type
+  type = MED_statein_type
 [Interstitial]
-  standard_name = GFS_interstitial_type_instance
-  long_name = instance of derived type GFS_interstitial_type
+  standard_name = MED_interstitial_type_instance
+  long_name = instance of derived type MED_interstitial_type
   units = DDT
   dimensions = ()
-  type = GFS_interstitial_type
+  type = MED_interstitial_type
 [Model]
-  standard_name = GFS_control_type_instance
-  long_name = instance of derived type GFS_control_type
+  standard_name = MED_control_type_instance
+  long_name = instance of derived type MED_control_type
   units = DDT
   dimensions = ()
-  type = GFS_control_type
+  type = MED_control_type
 [Coupling]
-  standard_name = GFS_coupling_type_instance
-  long_name = instance of derived type GFS_coupling_type
+  standard_name = MED_coupling_type_instance
+  long_name = instance of derived type MED_coupling_type
   units = DDT
   dimensions = ()
-  type = GFS_coupling_type
+  type = MED_coupling_type
 [Grid]
-  standard_name = GFS_grid_type_instance
-  long_name = instance of derived type GFS_grid_type
+  standard_name = MED_grid_type_instance
+  long_name = instance of derived type MED_grid_type
   units = DDT
   dimensions = ()
-  type = GFS_grid_type
+  type = MED_grid_type
 [Sfcprop]
-  standard_name = GFS_sfcprop_type_instance
-  long_name = instance of derived type GFS_sfcprop_type
+  standard_name = MED_sfcprop_type_instance
+  long_name = instance of derived type MED_sfcprop_type
   units = DDT
   dimensions = ()
-  type = GFS_sfcprop_type
+  type = MED_sfcprop_type
 
 ########################################################################
 [ccpp-table-properties]
-  name = med_typedefs
+  name = MED_data
   type = module
-  dependencies = GFS_typedefs.F90
+  dependencies = MED_typedefs.F90
   dependencies = ../../../../../FV3/ccpp/framework/src/ccpp_api.F90
 
 [ccpp-arg-table]
-  name = med_typedefs
+  name = MED_data
   type = module
 [physics_type]
   standard_name = physics_type

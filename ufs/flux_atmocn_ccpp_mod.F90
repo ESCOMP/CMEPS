@@ -3,7 +3,7 @@ module flux_atmocn_ccpp_mod
   use med_kind_mod,    only : R8=>SHR_KIND_R8
   use physcons,        only : p0 => con_p0
   use physcons,        only : cappa => con_rocp
-  use med_typedefs,    only : physics 
+  use MED_data,        only : physics 
   use med_ccpp_driver, only : med_ccpp_driver_init
   use med_ccpp_driver, only : med_ccpp_driver_run
   use med_ccpp_driver, only : med_ccpp_driver_finalize

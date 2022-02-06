@@ -1,10 +1,10 @@
 [ccpp-table-properties]
-  name = GFS_init_type
+  name = MED_init_type
   type = ddt
   dependencies =
 
 [ccpp-arg-table]
-  name = GFS_init_type
+  name = MED_init_type
   type = ddt
 [im]
   standard_name = horizontal_loop_extent
@@ -15,12 +15,12 @@
 
 ########################################################################
 [ccpp-table-properties]
-  name = GFS_statein_type
+  name = MED_statein_type
   type = ddt
   dependencies =
 
 [ccpp-arg-table]
-  name = GFS_statein_type
+  name = MED_statein_type
   type = ddt
 [pgr]
   standard_name = surface_air_pressure
@@ -102,12 +102,12 @@
 
 ########################################################################
 [ccpp-table-properties]
-  name = GFS_interstitial_type
+  name = MED_interstitial_type
   type = ddt
   dependencies =
 
 [ccpp-arg-table]
-  name = GFS_interstitial_type
+  name = MED_interstitial_type
   type = ddt
 [tsfc_water]
   standard_name = surface_skin_temperature_over_water
@@ -485,12 +485,12 @@
 
 ########################################################################
 [ccpp-table-properties]
-  name = GFS_control_type
+  name = MED_control_type
   type = ddt
   dependencies =
 
 [ccpp-arg-table]
-  name = GFS_control_type
+  name = MED_control_type
   type = ddt
 [lseaspray]
   standard_name = flag_for_sea_spray
@@ -531,12 +531,12 @@
 
 ########################################################################
 [ccpp-table-properties]
-  name = GFS_coupling_type
+  name = MED_coupling_type
   type = ddt
   dependencies =
 
 [ccpp-arg-table]
-  name = GFS_coupling_type
+  name = MED_coupling_type
   type = ddt
 [dtsfcino_cpl]
   standard_name = surface_upward_sensible_heat_flux_over_ocean_from_coupled_process
@@ -555,11 +555,11 @@
 
 ########################################################################
 [ccpp-table-properties]
-  name = GFS_grid_type
+  name = MED_grid_type
   type = ddt
   dependencies =
 [ccpp-arg-table]
-  name = GFS_grid_type
+  name = MED_grid_type
   type = ddt
 [area]
   standard_name = cell_area
@@ -571,12 +571,12 @@
 
 ########################################################################
 [ccpp-table-properties]
-  name = GFS_sfcprop_type
+  name = MED_sfcprop_type
   type = ddt
   dependencies =
 
 [ccpp-arg-table]
-  name = GFS_sfcprop_type
+  name = MED_sfcprop_type
   type = ddt
 [vtype]
   standard_name = vegetation_type_classification
@@ -622,56 +622,56 @@
 
 ########################################################################
 [ccpp-table-properties]
-  name = GFS_typedefs
+  name = MED_typedefs
   type = module
   relative_path = ../../../../../FV3/ccpp/physics/physics
   dependencies = machine.F,physcons.F90
 
 [ccpp-arg-table]
-  name = GFS_typedefs
+  name = MED_typedefs
   type = module
-[GFS_init_type]
-  standard_name = GFS_init_type
-  long_name = definition of type GFS_init_type
+[MED_init_type]
+  standard_name = MED_init_type
+  long_name = definition of type MED_init_type
   units = DDT
   dimensions = ()
-  type = GFS_init_type
-[GFS_statein_type]
-  standard_name = GFS_statein_type
-  long_name = definition of type GFS_statein_type
+  type = MED_init_type
+[MED_statein_type]
+  standard_name = MED_statein_type
+  long_name = definition of type MED_statein_type
   units = DDT
   dimensions = ()
-  type = GFS_statein_type
-[GFS_interstitial_type]
-  standard_name = GFS_interstitial_type
-  long_name = definition of type GFS_interstitial_type
+  type = MED_statein_type
+[MED_interstitial_type]
+  standard_name = MED_interstitial_type
+  long_name = definition of type MED_interstitial_type
   units = DDT
   dimensions = ()
-  type = GFS_interstitial_type
-[GFS_control_type]
-  standard_name = GFS_control_type
-  long_name = definition of type GFS_control_type
+  type = MED_interstitial_type
+[MED_control_type]
+  standard_name = MED_control_type
+  long_name = definition of type MED_control_type
   units = DDT
   dimensions = ()
-  type = GFS_control_type
-[GFS_coupling_type]
-  standard_name = GFS_coupling_type
-  long_name = definition of type GFS_coupling_type
+  type = MED_control_type
+[MED_coupling_type]
+  standard_name = MED_coupling_type
+  long_name = definition of type MED_coupling_type
   units = DDT
   dimensions = ()
-  type = GFS_coupling_type
-[GFS_grid_type]
-  standard_name = GFS_grid_type
-  long_name = definition of type GFS_grid_type
+  type = MED_coupling_type
+[MED_grid_type]
+  standard_name = MED_grid_type
+  long_name = definition of type MED_grid_type
   units = DDT
   dimensions = ()
-  type = GFS_grid_type
-[GFS_sfcprop_type]
-  standard_name = GFS_sfcprop_type
-  long_name = definition of type GFS_sfcprop_type
+  type = MED_grid_type
+[MED_sfcprop_type]
+  standard_name = MED_sfcprop_type
+  long_name = definition of type MED_sfcprop_type
   units = DDT
   dimensions = ()
-  type = GFS_sfcprop_type
+  type = MED_sfcprop_type
 [con_hvap]
   standard_name = latent_heat_of_vaporization_of_water_at_0C
   long_name = latent heat of evaporation/sublimation

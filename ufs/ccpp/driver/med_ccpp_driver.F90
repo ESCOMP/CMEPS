@@ -5,7 +5,7 @@ module med_ccpp_driver
   use ccpp_static_api, only: ccpp_physics_run
   use ccpp_static_api, only: ccpp_physics_finalize
 
-  use med_typedefs   , only: physics, cdata 
+  use MED_data,        only: physics, cdata 
 
   implicit none
 

@@ -1,7 +1,7 @@
-module GFS_typedefs
+module MED_typedefs
 
-!> \section arg_table_GFS_typedefs
-!! \htmlinclude GFS_typedefs.html
+!> \section arg_table_MED_typedefs
+!! \htmlinclude MED_typedefs.html
 !!
   use machine,  only: kind_phys
   use physcons, only: con_hvap, con_cp, con_rd, con_eps
@@ -16,17 +16,17 @@ module GFS_typedefs
 
   !--- data containers
 
-!! \section arg_table_GFS_init_type
-!! \htmlinclude GFS_init_type.html
+!! \section arg_table_MED_init_type
+!! \htmlinclude MED_init_type.html
 !!
-  type GFS_init_type
-    integer, pointer              :: im                     !< horizontal loop extent
-  end type GFS_init_type
+  type MED_init_type
+    integer                       :: im                     !< horizontal loop extent
+  end type MED_init_type
 
-!! \section arg_table_GFS_statein_type
-!! \htmlinclude GFS_statein_type.html
+!! \section arg_table_MED_statein_type
+!! \htmlinclude MED_statein_type.html
 !!
-  type GFS_statein_type
+  type MED_statein_type
     real(kind=kind_phys), pointer :: pgr(:)        => null() !< surface pressure (Pa)
     real(kind=kind_phys), pointer :: ugrs(:)       => null() !< u component of layer wind (m/s)
     real(kind=kind_phys), pointer :: vgrs(:)       => null() !< v component of layer wind (m/s)
@@ -40,12 +40,12 @@ module GFS_typedefs
     real(kind=kind_phys), pointer :: v10m(:)       => null() !< 10 meter v wind speed
     contains
       procedure :: create => statein_create      !< allocate array data
-  end type GFS_statein_type
+  end type MED_statein_type
 
-!! \section arg_table_GFS_interstitial_type
-!! \htmlinclude GFS_interstitial_type.html
+!! \section arg_table_MED_interstitial_type
+!! \htmlinclude MED_interstitial_type.html
 !!
-  type GFS_interstitial_type
+  type MED_interstitial_type
     ! water
     real(kind=kind_phys), pointer :: tsfc_water(:)   => null() !< surface skin temperature over water (K)
     real(kind=kind_phys), pointer :: cd_water(:)     => null() !< surface exchange coeff for momentum over water
@@ -109,12 +109,12 @@ module GFS_typedefs
     real(kind=kind_phys), pointer :: zt1d(:)         => null() !< perturbation of heat to momentum roughness length ratio
     contains
       procedure :: create => interstitial_create !< allocate array data
-  end type GFS_interstitial_type
+  end type MED_interstitial_type
 
-!! \section arg_table_GFS_control_type
-!! \htmlinclude GFS_control_type.html
+!! \section arg_table_MED_control_type
+!! \htmlinclude MED_control_type.html
 !!
-  type GFS_control_type
+  type MED_control_type
     !--- tuning parameters for physical parameterizations
     logical                       :: lseaspray               !< flag for sea spray parameterization    
     !--- coupling parameters
@@ -129,31 +129,31 @@ module GFS_typedefs
     logical                       :: thsfc_loc               !< flag for reference pressure in theta calculation
     contains
       procedure :: init  => control_initialize
-  end type GFS_control_type
+  end type MED_control_type
 
-!! \section arg_table_GFS_coupling_type
-!! \htmlinclude GFS_coupling_type.html
+!! \section arg_table_MED_coupling_type
+!! \htmlinclude MED_coupling_type.html
 !!
-  type GFS_coupling_type
+  type MED_coupling_type
     real(kind=kind_phys), pointer :: dtsfcino_cpl(:) => null() !< sfc latent heat flux over ocean
     real(kind=kind_phys), pointer :: dqsfcino_cpl(:) => null() !< sfc sensible heat flux over ocean
     contains
       procedure :: create  => coupling_create !< allocate array data
-  end type GFS_coupling_type
+  end type MED_coupling_type
 
-!! \section arg_table_GFS_grid_type
-!! \htmlinclude GFS_grid_type.html
+!! \section arg_table_MED_grid_type
+!! \htmlinclude MED_grid_type.html
 !!
-  type GFS_grid_type
+  type MED_grid_type
     real(kind=kind_phys), pointer :: area(:)         => null() !< area of the grid cell
     contains
       procedure :: create  => grid_create !< allocate array data
-  end type GFS_grid_type
+  end type MED_grid_type
 
-!! \section arg_table_GFS_sfcprop_type
-!! \htmlinclude GFS_sfcprop_type.html
+!! \section arg_table_MED_sfcprop_type
+!! \htmlinclude MED_sfcprop_type.html
 !!
-  type GFS_sfcprop_type
+  type MED_sfcprop_type
     ! water
     real(kind=kind_phys), pointer :: zorlw(:)        => null()  !< surface roughness length over water (cm)
 
@@ -173,20 +173,20 @@ module GFS_typedefs
 
     contains
       procedure :: create  => sfcprop_create !< allocate array data
-  end type GFS_sfcprop_type
+  end type MED_sfcprop_type
 
-  public GFS_init_type
-  public GFS_statein_type
-  public GFS_coupling_type
-  public GFS_control_type
-  public GFS_interstitial_type
-  public GFS_grid_type
+  public MED_init_type
+  public MED_statein_type
+  public MED_coupling_type
+  public MED_control_type
+  public MED_interstitial_type
+  public MED_grid_type
 
   contains
 
   subroutine statein_create(statein, im)
     implicit none
-    class(GFS_statein_type) :: statein
+    class(MED_statein_type) :: statein
     integer, intent(in)     :: im
 
     allocate(statein%pgr(im))
@@ -216,7 +216,7 @@ module GFS_typedefs
 
   subroutine interstitial_create(interstitial, im)
     implicit none
-    class(GFS_interstitial_type) :: interstitial
+    class(MED_interstitial_type) :: interstitial
     integer, intent(in)          :: im
 
     ! water
@@ -339,7 +339,7 @@ module GFS_typedefs
 
   subroutine control_initialize(model)
     implicit none
-    class(GFS_control_type) :: model
+    class(MED_control_type) :: model
 
     model%lseaspray = .false.
     model%use_med_flux = .false.
@@ -352,7 +352,7 @@ module GFS_typedefs
 
   subroutine coupling_create(coupling, im)
     implicit none
-    class(GFS_coupling_type) :: coupling
+    class(MED_coupling_type) :: coupling
     integer, intent(in)      :: im
 
     allocate(coupling%dtsfcino_cpl(im))
@@ -364,7 +364,7 @@ module GFS_typedefs
 
   subroutine grid_create(grid, im)
     implicit none
-    class(GFS_grid_type) :: grid
+    class(MED_grid_type) :: grid
     integer, intent(in)  :: im
 
     allocate(grid%area(im))
@@ -374,7 +374,7 @@ module GFS_typedefs
 
   subroutine sfcprop_create(sfcprop, im)
     implicit none
-    class(GFS_sfcprop_type) :: sfcprop
+    class(MED_sfcprop_type) :: sfcprop
     integer, intent(in)  :: im
 
     allocate(sfcprop%vtype(im))
@@ -394,4 +394,4 @@ module GFS_typedefs
 
   end subroutine sfcprop_create
 
-end module GFS_typedefs
+end module MED_typedefs
