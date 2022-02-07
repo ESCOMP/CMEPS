@@ -15,7 +15,6 @@ program esmApp
   use mpi
   use NUOPC,           only : NUOPC_FieldDictionarySetup
   use ensemble_driver, only : SetServices
-  use shr_pio_mod,     only : shr_pio_init1
   use shr_sys_mod,     only : shr_sys_abort
 
   implicit none
@@ -53,7 +52,7 @@ program esmApp
   ! the model completes.  All other tasks call ESMF_Initialize.  8 is the maximum number of component models
   ! supported
 
-  call shr_pio_init1(8, "drv_in", COMP_COMM)
+!  call shr_pio_init1(8, "drv_in", COMP_COMM)
 
   !-----------------------------------------------------------------------------
   ! Initialize ESMF
