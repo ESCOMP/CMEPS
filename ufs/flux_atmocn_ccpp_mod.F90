@@ -3,10 +3,14 @@ module flux_atmocn_ccpp_mod
   use med_kind_mod,    only : R8=>SHR_KIND_R8
   use physcons,        only : p0 => con_p0
   use physcons,        only : cappa => con_rocp
+  use physcons,        only : cp => con_cp
+  use physcons,        only : hvap => con_hvap
+  use physcons,        only : sbc => con_sbc
   use MED_data,        only : physics 
   use med_ccpp_driver, only : med_ccpp_driver_init
   use med_ccpp_driver, only : med_ccpp_driver_run
   use med_ccpp_driver, only : med_ccpp_driver_finalize
+  use ufs_const_mod
 
   implicit none
 
@@ -52,9 +56,22 @@ contains
     real(r8), intent(out) :: qref(nMax)  ! diag: 2m ref humidity          (kg/kg)
 
     !--- local variables --------------------------------
+    integer :: n
+    real(r8) :: spval, semis_water
     logical, save :: first_call = .true.
     character(len=*),parameter :: subname=' (flux_atmOcn_ccpp) '
     !---------------------------------------
+
+    !--- missing value ---
+    if (present(missval)) then
+       spval = missval
+    else
+       spval = shr_const_spval
+    endif
+
+    !--- set up surface emissivity for lw radiation ---
+    !--- semis_wat is constant and set to 0.97 in setemis() call ---
+    semis_water = 0.97
 
     if (first_call) then
        ! allocate and initalize data structures
@@ -93,9 +110,48 @@ contains
     physics%grid%area(:) = garea(:)
 
     ! customization of host model options to calculate the fluxes
+    ! TODO: this needs to be provided by config
     physics%model%lseaspray = .true.
     physics%model%ivegsrc = 1
     physics%model%redrag = .true.
+    physics%model%lsm = 2
+
+    ! run physics
+    print*, "*** call med_ccpp_driver_run ***"
+
+    call physics%interstitial%phys_reset()
+
+    where (mask(:) /= 0)
+       physics%interstitial%wet = .true.
+    end where
+
+    physics%interstitial%wind = sqrt(ubot(:)**2+vbot(:)**2)
+    physics%interstitial%prslki = physics%statein%prsik(:)/physics%statein%prslk(:)
+    physics%interstitial%tsurf_water = ts
+    physics%interstitial%tsfc_water = ts
+
+    call med_ccpp_driver_run('FV3_sfc_ocean', 'physics')
+
+    !--- unit and sign conversion to be consistent with other flux scheme ---
+    do n = 1, nMax
+       if (mask(n) /= 0) then
+          sen(n)  = -1.0_r8*physics%interstitial%hflx_water(n)*rbot(n)*cp
+          lat(n)  = -1.0_r8*physics%interstitial%evap_water(n)*rbot(n)*hvap
+          lwup(n) = -1.0_r8*(semis_water*sbc*ts(n)**4+(1.0_r8-semis_water)*lwdn(n))
+          evp(n)  = lat(n)/hvap
+          taux(n) = rbot(n)*physics%interstitial%stress_water(n)*ubot(n)/physics%interstitial%wind(n)
+          tauy(n) = rbot(n)*physics%interstitial%stress_water(n)*vbot(n)/physics%interstitial%wind(n)
+          qref(n) = physics%interstitial%qss_water(n)
+       else
+          sen(n)  = spval
+          lat(n)  = spval
+          lwup(n) = spval
+          evp(n)  = spval
+          taux(n) = spval
+          tauy(n) = spval
+          qref(n) = spval
+       end if
+    end do
 
   end subroutine flux_atmOcn_ccpp
 

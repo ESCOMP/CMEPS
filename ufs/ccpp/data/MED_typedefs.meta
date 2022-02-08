@@ -482,6 +482,12 @@
   dimensions = (horizontal_loop_extent)
   type = real
   kind = kind_phys
+[flag_guess]
+  standard_name = flag_for_guess_run
+  long_name = flag for guess run
+  units = flag
+  dimensions = (horizontal_loop_extent)
+  type = logical
 
 ########################################################################
 [ccpp-table-properties]
@@ -528,6 +534,24 @@
   units = flag
   dimensions = ()
   type = logical
+[lsm]
+  standard_name = control_for_land_surface_scheme
+  long_name = flag for land surface model
+  units = flag
+  dimensions = ()
+  type = integer
+[lsm_noahmp]
+  standard_name = identifier_for_noahmp_land_surface_scheme
+  long_name = flag for NOAH MP land surface model
+  units = flag
+  dimensions = ()
+  type = integer
+[nstf_name(1)]
+  standard_name = control_for_nsstm
+  long_name = NSSTM flag: off/uncoupled/coupled=0/1/2
+  units = flag
+  dimensions = ()
+  type = integer
 
 ########################################################################
 [ccpp-table-properties]

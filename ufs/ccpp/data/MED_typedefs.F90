@@ -107,8 +107,10 @@ module MED_typedefs
     ! others
     real(kind=kind_phys), pointer :: z01d(:)         => null() !< perturbation of momentum roughness length
     real(kind=kind_phys), pointer :: zt1d(:)         => null() !< perturbation of heat to momentum roughness length ratio
+    logical,              pointer :: flag_guess(:)   => null() !< flag for guess run
     contains
       procedure :: create => interstitial_create !< allocate array data
+      procedure :: phys_reset  => interstitial_phys_reset !<   reset array data for physics
   end type MED_interstitial_type
 
 !! \section arg_table_MED_control_type
@@ -121,12 +123,16 @@ module MED_typedefs
     logical                       :: use_med_flux            !< flag for using atmosphere-ocean fluxes form mediator
     !--- land/surface model parameters, not used to calculate aofluxes
     integer                       :: ivegsrc                 !< land use dataset choice 0 => USGS, 1 => IGBP, 2 => UMD  
+    integer                       :: lsm                     !< flag for land surface model
+    integer                       :: lsm_noahmp              !< flag for NOAH MP land surface model
     !--- tuning parameters for physical parameterizations
     logical                       :: redrag                  !< flag for reduced drag coeff. over sea
     !--- surface layer z0 scheme
     integer                       :: sfc_z0_type             !< surface roughness options over water
     !--- potential temperature definition in surface layer physics
     logical                       :: thsfc_loc               !< flag for reference pressure in theta calculation
+    !--- near surface temperature model
+    integer                       :: nstf_name(5)            !< NSSTM flag: off/uncoupled/coupled=0/1/2
     contains
       procedure :: init  => control_initialize
   end type MED_control_type
@@ -262,8 +268,8 @@ module MED_typedefs
     interstitial%rb_water = huge
     allocate(interstitial%stress_water(im))
     interstitial%stress_water = huge
-    allocate(interstitial%ffmm_water(im))
-    interstitial%ffmm_water = huge
+    allocate(interstitial%ffhh_water(im))
+    interstitial%ffhh_water = huge
     allocate(interstitial%fh2_water(im))
     interstitial%fh2_water = huge
     allocate(interstitial%ztmax_water(im))
@@ -320,8 +326,8 @@ module MED_typedefs
     interstitial%stress_ice = huge
     allocate(interstitial%ffmm_ice(im))
     interstitial%ffmm_ice = huge
-    allocate(interstitial%ffmm_ice(im))
-    interstitial%ffmm_ice = huge
+    allocate(interstitial%ffhh_ice(im))
+    interstitial%ffhh_ice = huge
     allocate(interstitial%fm10_ice(im))
     interstitial%fm10_ice = huge
     allocate(interstitial%fh2_ice(im))
@@ -334,8 +340,72 @@ module MED_typedefs
     interstitial%z01d = clear_val
     allocate(interstitial%zt1d(im))
     interstitial%zt1d = clear_val
+    allocate(interstitial%flag_guess(im))
+    interstitial%flag_guess = .false.
 
   end subroutine interstitial_create
+
+  subroutine interstitial_phys_reset(interstitial)
+    implicit none
+    class(MED_interstitial_type) :: interstitial
+
+    interstitial%cd_ice = huge
+    interstitial%cd_land = huge
+    interstitial%cd_water = huge
+    interstitial%cdq_ice = huge
+    interstitial%cdq_land = huge
+    interstitial%cdq_water = huge
+    interstitial%chh_water = huge
+    interstitial%cmm_water = huge
+    interstitial%dry = .false.
+    interstitial%ep1d_water = huge
+    interstitial%evap_water = huge
+    interstitial%ffhh_ice = huge
+    interstitial%ffhh_land = huge
+    interstitial%ffhh_water = huge
+    interstitial%ffmm_ice = huge
+    interstitial%ffmm_land = huge
+    interstitial%ffmm_water = huge
+    interstitial%fh2_ice = huge
+    interstitial%fh2_land = huge
+    interstitial%fh2_water = huge
+    interstitial%flag_guess = .false.
+    interstitial%flag_iter = .true.
+    interstitial%fm10_ice = huge
+    interstitial%fm10_land = huge
+    interstitial%fm10_water = huge
+    interstitial%gflx_water = clear_val
+    interstitial%hflx_water = huge
+    interstitial%icy = .false.
+    interstitial%prslki = clear_val
+    interstitial%qss_water = huge
+    interstitial%rb_ice = huge
+    interstitial%rb_land = huge
+    interstitial%rb_water = huge
+    interstitial%sigmaf = clear_val
+    interstitial%stress_ice = huge
+    interstitial%stress_land = huge
+    interstitial%stress_water = huge
+    interstitial%tisfc = clear_val
+    interstitial%tsfc_water = huge
+    interstitial%tsfcl = clear_val
+    interstitial%tsurf_ice = huge
+    interstitial%tsurf_land = huge
+    interstitial%tsurf_water = huge
+    interstitial%use_flake = .false.
+    interstitial%uustar_ice = huge
+    interstitial%uustar_land = huge
+    interstitial%uustar_water = huge
+    interstitial%wet = .false.
+    interstitial%wind = huge
+    interstitial%z01d = clear_val
+    interstitial%zt1d = clear_val
+    interstitial%ztmax_ice = clear_val
+    interstitial%ztmax_land = clear_val
+    interstitial%ztmax_water = clear_val
+    interstitial%zvfun = clear_val
+
+  end subroutine interstitial_phys_reset
 
   subroutine control_initialize(model)
     implicit none
@@ -347,6 +417,9 @@ module MED_typedefs
     model%redrag = .false.
     model%sfc_z0_type = 0
     model%thsfc_loc = .true.
+    model%lsm = 1
+    model%lsm_noahmp = 2
+    model%nstf_name = (/0,0,1,0,5/)
 
   end subroutine control_initialize
 
