@@ -1081,7 +1081,8 @@ contains
        end do
     end if
     if (compute_atm_dens) then
-       if (trim(aoflux_code) == 'ccpp' .and. trim(coupling_mode) == 'nems_frac_aoflux') then
+       if (trim(aoflux_code) == 'ccpp' .and. &
+          (trim(coupling_mode) == 'nems_frac_aoflux' .or. trim(coupling_mode) == 'nems_frac_aoflux_sbs')) then
           ! Add limiting factor to humidity to be consistent with UFS aoflux calculation
           do n = 1,aoflux_in%lsize
              if (aoflux_in%mask(n) /= 0._r8) then
@@ -1121,7 +1122,7 @@ contains
          missval=0.0_r8)
 
 #else
-    if (trim(coupling_mode) == 'nems_frac_aoflux') then
+    if (trim(coupling_mode) == 'nems_frac_aoflux' .or. trim(coupling_mode) == 'nems_frac_aoflux_sbs') then
 #ifdef UFS_AOFLUX
        if (trim(aoflux_code) == 'ccpp') then
        call flux_atmocn_ccpp( &
@@ -1281,7 +1282,7 @@ contains
     end if
 
     ! extra fields for nems_frac_aoflux
-    if (trim(coupling_mode) == 'nems_frac_aoflux') then
+    if (trim(coupling_mode) == 'nems_frac_aoflux' .or. trim(coupling_mode) == 'nems_frac_aoflux_sbs') then
        call fldbun_getfldptr(fldbun_a, 'Sa_u10m', aoflux_in%usfc, xgrid=xgrid, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        call fldbun_getfldptr(fldbun_a, 'Sa_v10m', aoflux_in%vsfc, xgrid=xgrid, rc=rc)
@@ -1310,7 +1311,7 @@ contains
     if (compute_atm_dens .or. compute_atm_thbot) then
        call fldbun_getfldptr(fldbun_a, 'Sa_pbot', aoflux_in%pbot, xgrid=xgrid, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (trim(coupling_mode) == 'nems_frac_aoflux') then
+       if (trim(coupling_mode) == 'nems_frac_aoflux' .or. trim(coupling_mode) == 'nems_frac_aoflux_sbs') then
           call fldbun_getfldptr(fldbun_a, 'Sa_pslv', aoflux_in%psfc, xgrid=xgrid, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
        end if

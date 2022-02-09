@@ -117,7 +117,8 @@ contains
             FBMed1=is_local%wrap%FBMed_aoflux_o, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     else if (trim(coupling_mode) == 'nems_frac' .or. &
-             trim(coupling_mode) == 'nems_orig') then
+             trim(coupling_mode) == 'nems_orig' .or. &
+             trim(coupling_mode) == 'nems_frac_aoflux_sbs') then
        call med_merge_auto(&
             is_local%wrap%med_coupling_active(:,compocn), &
             is_local%wrap%FBExp(compocn), &
@@ -571,7 +572,8 @@ contains
     allocate(customwgt(lsize))
 
     if (trim(coupling_mode) == 'nems_orig' .or. &
-        trim(coupling_mode) == 'nems_frac') then
+        trim(coupling_mode) == 'nems_frac' .or. &
+        trim(coupling_mode) == 'nems_frac_aoflux_sbs') then
        customwgt(:) = -ofrac(:) / const_lhvap
        call med_merge_field(is_local%wrap%FBExp(compocn),      'Faxa_evap', &
             FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_lat' , wgtA=customwgt, rc=rc)

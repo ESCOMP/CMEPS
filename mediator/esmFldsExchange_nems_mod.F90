@@ -94,7 +94,7 @@ contains
     call addfld(fldListFr(compocn)%flds, 'So_omask')
     call addmap(fldListFr(compocn)%flds, 'So_omask', compice,  mapfcopy, 'unset', 'unset')
 
-    if ( trim(coupling_mode) == 'nems_orig_data') then
+    if (trim(coupling_mode) == 'nems_orig_data') then
       ! atm and ocn fields required for atm/ocn flux calculation'
       allocate(flds(10))
       flds = (/'Sa_u   ','Sa_v   ', 'Sa_z   ', 'Sa_tbot', 'Sa_pbot', 'Sa_shum', &
@@ -105,7 +105,7 @@ contains
          call addmap(fldListFr(compatm)%flds, trim(fldname), compocn, maptype, 'one', 'unset')
       end do
       deallocate(flds)
-    else if (trim(coupling_mode) == 'nems_frac_aoflux') then
+    else if (trim(coupling_mode) == 'nems_frac_aoflux' .or. trim(coupling_mode) == 'nems_frac_aoflux_sbs') then
       ! to med: atm and ocn fields required for atm/ocn flux calculation
       allocate(flds(11))
       flds = (/'Sa_u     ', 'Sa_v     ', 'Sa_z     ', 'Sa_tbot  ', 'Sa_pbot  ', &
@@ -119,7 +119,8 @@ contains
       deallocate(flds)
     end if
 
-    if ( trim(coupling_mode) == 'nems_orig_data' .or. trim(coupling_mode) == 'nems_frac_aoflux') then
+    if (trim(coupling_mode) == 'nems_orig_data' .or. &
+        trim(coupling_mode) == 'nems_frac_aoflux' .or. trim(coupling_mode) == 'nems_frac_aoflux_sbs') then
       ! unused fields needed by the atm/ocn flux computation
       allocate(flds(13))
       flds = (/'So_tref  ', 'So_qref  ','So_u10   ', 'So_ustar ','So_ssq   ', &
@@ -258,7 +259,8 @@ contains
     end do
     deallocate(flds)
 
-    if (trim(coupling_mode) == 'nems_orig' .or. trim(coupling_mode) == 'nems_frac') then
+    if (trim(coupling_mode) == 'nems_orig' .or. trim(coupling_mode) == 'nems_frac' .or. &
+        trim(coupling_mode) == 'nems_frac_aoflux_sbs') then
        ! to ocn: merge surface stress (custom merge calculation in med_phases_prep_ocn)
        allocate(flds(2))
        flds = (/'taux', 'tauy'/)
