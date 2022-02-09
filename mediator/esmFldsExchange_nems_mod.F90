@@ -320,9 +320,6 @@ contains
        call addfld(fldListTo(compocn)%flds, 'Faox_evap')
        call addmrg(fldListTo(compocn)%flds, 'Faox_evap', &
           mrg_from=compmed, mrg_fld='Faox_evap', mrg_type='copy_with_weights', mrg_fracname='ofrac')
-    !else if (trim(coupling_mode) == 'nems_frac_aoflux') then
-    !   ! to ocn: sensible heat flux from mediator (custom merge in med_phases_prep_ocn)
-    !   call addfld(fldListTo(compocn)%flds, 'Foxx_sen')
     end if
 
     ! to ocn: water flux due to melting ice from ice

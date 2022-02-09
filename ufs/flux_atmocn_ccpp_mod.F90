@@ -62,15 +62,16 @@ contains
     character(len=*),parameter :: subname=' (flux_atmOcn_ccpp) '
     !---------------------------------------
 
-    !--- missing value ---
+    ! missing value
     if (present(missval)) then
        spval = missval
     else
        spval = shr_const_spval
     endif
 
-    !--- set up surface emissivity for lw radiation ---
-    !--- semis_wat is constant and set to 0.97 in setemis() call ---
+    ! set up surface emissivity for lw radiation
+    ! semis_wat is constant and set to 0.97 in setemis() call
+    ! TODO: This could be a part of CCPP suite or provided by ESMF config
     semis_water = 0.97
 
     if (first_call) then
@@ -88,7 +89,7 @@ contains
        ! TODO: part of these need to be ingested from FV3 input.nml or configured through ESMF config file
        call physics%model%init()
 
-       ! call CCPP init
+       ! run CCPP init
        ! TODO: suite name need to be provided by ESMF config file
        call med_ccpp_driver_init('FV3_sfc_ocean')
        first_call = .false.
@@ -98,6 +99,7 @@ contains
     physics%statein%pgr(:)   = psfc(:)
     physics%statein%ugrs(:)  = ubot(:)
     physics%statein%vgrs(:)  = vbot(:)
+    physics%statein%tgrs(:)  = tbot(:)
     physics%statein%qgrs(:)  = qbot(:)
     physics%statein%prsl(:)  = pbot(:)
     physics%statein%zlvl(:)  = zbot(:)
@@ -116,23 +118,23 @@ contains
     physics%model%redrag = .true.
     physics%model%lsm = 2
 
-    ! run physics
-    print*, "*** call med_ccpp_driver_run ***"
-
+    ! reset physics variables
     call physics%interstitial%phys_reset()
 
+    ! fill in required interstitial variables
     where (mask(:) /= 0)
        physics%interstitial%wet = .true.
     end where
-
     physics%interstitial%wind = sqrt(ubot(:)**2+vbot(:)**2)
     physics%interstitial%prslki = physics%statein%prsik(:)/physics%statein%prslk(:)
     physics%interstitial%tsurf_water = ts
     physics%interstitial%tsfc_water = ts
 
+    ! run CCPP physics
+    ! TODO: suite name need to be provided by ESMF config file
     call med_ccpp_driver_run('FV3_sfc_ocean', 'physics')
 
-    !--- unit and sign conversion to be consistent with other flux scheme ---
+    ! unit and sign conversion to be consistent with other flux scheme (CESM)
     do n = 1, nMax
        if (mask(n) /= 0) then
           sen(n)  = -1.0_r8*physics%interstitial%hflx_water(n)*rbot(n)*cp
