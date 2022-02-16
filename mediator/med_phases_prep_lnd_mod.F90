@@ -4,7 +4,8 @@ module med_phases_prep_lnd_mod
   ! Mediator phases for preparing land export from mediator
   !-----------------------------------------------------------------------------
 
-  use med_kind_mod, only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
+  use med_kind_mod,    only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
+  use med_methods_mod, only : fldchk => med_methods_FB_FldChk
 
   implicit none
   private
@@ -21,7 +22,7 @@ contains
   subroutine med_phases_prep_lnd(gcomp, rc)
 
     use NUOPC                 , only : NUOPC_CompAttributeGet
-    use ESMF                  , only : operator(/=)
+    use ESMF                  , only : operator(/=), operator(==)
     use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_LOGMSG_ERROR, ESMF_SUCCESS, ESMF_FAILURE
     use ESMF                  , only : ESMF_FieldBundle, ESMF_FieldBundleGet, ESMF_Field, ESMF_FieldGet
     use ESMF                  , only : ESMF_GridComp, ESMF_GridCompGet
@@ -49,6 +50,7 @@ contains
     real(r8)                    :: tmp(1)
     real(r8), pointer           :: dataptr2d(:,:)
     logical                     :: first_call = .true.
+    logical                     :: field_found
     real(r8), pointer           :: dataptr_scalar_lnd(:,:)
     real(r8), pointer           :: dataptr_scalar_atm(:,:)
     character(len=*), parameter :: subname='(med_phases_prep_lnd)'
@@ -91,9 +93,15 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call t_stopf('MED:'//trim(subname)//' merge')
 
+       ! check cpl_scalars is in the state or not? fix for land components that do not have cpl_scalars
+       call ESMF_StateGet(is_local%wrap%NStateExp(complnd), trim(is_local%wrap%flds_scalar_name), itemType, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       field_found = .true.
+       if (itemType == ESMF_STATEITEM_NOTFOUND) field_found = .false.
+
        ! obtain nextsw_cday from atm if it is in the import state and send it to lnd
        scalar_id=is_local%wrap%flds_scalar_index_nextsw_cday
-       if (scalar_id > 0 .and. mastertask) then
+       if (scalar_id > 0 .and. field_found .and. mastertask) then
           call ESMF_StateGet(is_local%wrap%NstateImp(compatm), &
                itemName=trim(is_local%wrap%flds_scalar_name), field=lfield, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
