@@ -807,7 +807,7 @@ contains
     use mpi          , only : MPI_COMM_NULL, mpi_comm_size
 #endif
     use mct_mod      , only : mct_world_init
-    use shr_pio_mod  , only : shr_pio_init
+    use shr_pio_mod  , only : shr_pio_init, shr_pio_component_init
 
 #ifdef MED_PRESENT
     use med_internalstate_mod , only : med_id
@@ -930,6 +930,10 @@ contains
     else
        inst_suffix = ""
     endif
+
+    ! Initialize PIO
+    call shr_pio_init(driver, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     allocate(comms(componentCount+1), comps(componentCount+1))
     comps(1) = 1
@@ -1175,11 +1179,12 @@ contains
 
     enddo
 
+    call shr_pio_component_init(driver, size(comps), rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
     ! Initialize MCT (this is needed for data models and cice prescribed capability)
     call mct_world_init(componentCount+1, GLOBAL_COMM, comms, comps)
 
-    ! Initialize PIO
-    call shr_pio_init(driver, size(comps))
 
     deallocate(petlist, comms, comps, comp_iamin, comp_comm_iam)
 

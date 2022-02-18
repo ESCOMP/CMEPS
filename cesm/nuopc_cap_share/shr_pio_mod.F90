@@ -15,6 +15,7 @@ module shr_pio_mod
 #endif
   private
   public :: shr_pio_init
+  public :: shr_pio_component_init
   public :: shr_pio_getiosys
   public :: shr_pio_getiotype
   public :: shr_pio_getioroot
@@ -49,6 +50,7 @@ module shr_pio_mod
      integer :: pio_iotype
      integer :: pio_rearranger
      integer :: pio_netcdf_ioformat
+     logical :: pio_async_interface
   end type pio_comp_t
 
   character(len=16), allocatable :: io_compname(:)
@@ -59,11 +61,13 @@ module shr_pio_mod
   integer, allocatable :: io_compid(:)
   integer :: pio_debug_level=0, pio_blocksize=0
   integer(kind=pio_offset_kind) :: pio_buffer_size_limit=-1
-  integer :: pio_rearr_opt_comm_type, pio_rearr_opt_fcd
-  logical :: pio_rearr_opt_c2i_enable_hs, pio_rearr_opt_c2i_enable_isend
-  integer :: pio_rearr_opt_c2i_max_pend_req
-  logical :: pio_rearr_opt_i2c_enable_hs, pio_rearr_opt_i2c_enable_isend
-  integer :: pio_rearr_opt_i2c_max_pend_req
+
+  character(len=shr_kind_cs) :: pio_rearr_comm_type, pio_rearr_comm_fcd
+  integer :: pio_rearr_comm_max_pend_req_comp2io
+  logical :: pio_rearr_comm_enable_hs_comp2io, pio_rearr_comm_enable_isend_comp2io
+  integer :: pio_rearr_comm_max_pend_req_io2comp
+  logical :: pio_rearr_comm_enable_hs_io2comp, pio_rearr_comm_enable_isend_io2comp
+
   integer :: total_comps
   logical :: mastertask
 #define DEBUGI 1
@@ -87,18 +91,18 @@ contains
 !!
 !<
 
-  subroutine shr_pio_init(driver, total_comps)
+  subroutine shr_pio_init(driver, rc)
     use ESMF, only : ESMF_GridComp, ESMF_VM, ESMF_Config, ESMF_GridCompGet
     use ESMF, only : ESMF_VMGet
     use NUOPC, only: NUOPC_CompAttributeGet
     use shr_string_mod, only : shr_string_toLower
     type(ESMF_GridComp)            :: driver
-    integer, intent(in) :: total_comps
+    integer, intent(out) :: rc
 
     type(ESMF_VM)     :: vm
     integer :: i
     character(len=shr_kind_cl) :: nlfilename, cname
-    integer :: ret, rc
+    integer :: ret
     integer :: localPet
     character(*), parameter :: subName = '(shr_pio_init) '
 
@@ -119,72 +123,162 @@ contains
        call pio_set_buffer_size_limit(pio_buffer_size_limit)
     endif
 
-    call NUOPC_CompAttributeGet(driver, name="pio_blocksize", value=pio_blocksize, rc=rc)
+    call NUOPC_CompAttributeGet(driver, name="pio_blocksize", value=cname, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-
+    read(cname, *) pio_blocksize
+    
     if(pio_blocksize>0) then
        if(mastertask) write(shr_log_unit,*) 'Setting pio_blocksize : ',pio_blocksize
        call pio_set_blocksize(pio_blocksize)
     endif
 
-    allocate(iosystems(total_comps))
-#ifdef DOTHIS
-    do i=1,total_comps
+    call NUOPC_CompAttributeGet(driver, name="pio_debug_level", value=cname, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    read(cname, *) pio_debug_level
 
-          if(comp_iamin(i)) then
-             cname = comp_name(i)
-             if(len_trim(cname) <= 3) then
-                nlfilename=trim(shr_string_toLower(cname))//'_modelio.nml'
-             else
-                nlfilename=trim(shr_string_toLower(cname(1:3)))//'_modelio.nml_'//cname(4:8)
-             endif
+    if(pio_debug_level > 0) then
+       if(mastertask) write(shr_log_unit,*) 'Setting pio_debug_level : ',pio_debug_level
+       ret = pio_set_log_level(pio_debug_level)
+    endif
+       
+    call NUOPC_CompAttributeGet(driver, name="pio_rearr_comm_type", value=pio_rearr_comm_type, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    
+    call NUOPC_CompAttributeGet(driver, name="pio_rearr_comm_fcd", value=pio_rearr_comm_fcd, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    
+    call NUOPC_CompAttributeGet(driver, name="pio_rearr_comm_enable_hs_comp2io", value=cname, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-             call shr_pio_read_component_namelist(nlfilename , comp_comm(i), pio_comp_settings(i)%pio_stride, &
-                  pio_comp_settings(i)%pio_root, pio_comp_settings(i)%pio_numiotasks, &
-                  pio_comp_settings(i)%pio_iotype, pio_comp_settings(i)%pio_rearranger, &
-                  pio_comp_settings(i)%pio_netcdf_ioformat)
+    pio_rearr_comm_enable_hs_comp2io = (trim(cname) .eq. '.true.')
 
-             call pio_init(comp_comm_iam(i), comp_comm(i), pio_comp_settings(i)%pio_numiotasks, 0, &
-                  pio_comp_settings(i)%pio_stride, &
-                  pio_comp_settings(i)%pio_rearranger, iosystems(i), &
-                  base=pio_comp_settings(i)%pio_root)
-             ret = pio_set_rearr_opts(iosystems(i), pio_rearr_opt_comm_type,&
-                    pio_rearr_opt_fcd,&
-                    pio_rearr_opt_c2i_enable_hs, pio_rearr_opt_c2i_enable_isend,&
-                    pio_rearr_opt_c2i_max_pend_req,&
-                    pio_rearr_opt_i2c_enable_hs, pio_rearr_opt_i2c_enable_isend,&
-                    pio_rearr_opt_i2c_max_pend_req)
-             if(ret /= PIO_NOERR) then
-                write(shr_log_unit,*) "ERROR: Setting rearranger options failed"
-             end if
-          end if
-       end do
+    call NUOPC_CompAttributeGet(driver, name="pio_rearr_comm_enable_hs_io2comp", value=cname, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    allocate(io_compid(total_comps), io_compname(total_comps))
+    pio_rearr_comm_enable_hs_io2comp = (trim(cname) .eq. '.true.')
 
-    io_compid = comp_id
-    io_compname = comp_name
-    do i=1,total_comps
-       if(comp_iamin(i) .and. (comp_comm_iam(i) == 0)) then
-          write(shr_log_unit,*) io_compname(i),' : pio_numiotasks = ',pio_comp_settings(i)%pio_numiotasks
-          write(shr_log_unit,*) io_compname(i),' : pio_stride = ',pio_comp_settings(i)%pio_stride
-          write(shr_log_unit,*) io_compname(i),' : pio_rearranger = ',pio_comp_settings(i)%pio_rearranger
-          write(shr_log_unit,*) io_compname(i),' : pio_root = ',pio_comp_settings(i)%pio_root
-          write(shr_log_unit,*) io_compname(i),' : pio_iotype = ',pio_comp_settings(i)%pio_iotype
+    call NUOPC_CompAttributeGet(driver, name="pio_rearr_comm_enable_isend_comp2io", value=cname, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    pio_rearr_comm_enable_isend_comp2io = (trim(cname) .eq. '.true.')
+
+    call NUOPC_CompAttributeGet(driver, name="pio_rearr_comm_enable_isend_io2comp", value=cname, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    pio_rearr_comm_enable_isend_io2comp = (trim(cname) .eq. '.true.')
+
+    call NUOPC_CompAttributeGet(driver, name="pio_rearr_comm_max_pend_req_comp2io", value=cname, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    read(cname, *) pio_rearr_comm_max_pend_req_comp2io
+
+    call NUOPC_CompAttributeGet(driver, name="pio_rearr_comm_max_pend_req_io2comp", value=cname, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    read(cname, *) pio_rearr_comm_max_pend_req_io2comp
+
+    if(mastertask) then
+       ! Log the rearranger options
+       write(shr_log_unit, *) "PIO rearranger options:"
+       write(shr_log_unit, *) "  comm type     = ", trim(pio_rearr_comm_type)
+       write(shr_log_unit, *) "  comm fcd      = ", trim(pio_rearr_comm_fcd)
+       if(pio_rearr_comm_max_pend_req_comp2io == PIO_REARR_COMM_UNLIMITED_PEND_REQ) then
+          write(shr_log_unit, *) "  max pend req (comp2io)  = PIO_REARR_COMM_UNLIMITED_PEND_REQ (-1)"
+       else
+          write(shr_log_unit, *) "  max pend req (comp2io)  = ", pio_rearr_comm_max_pend_req_comp2io
        end if
-    enddo
-#endif
+       write(shr_log_unit, *) "  enable_hs (comp2io)     = ", pio_rearr_comm_enable_hs_comp2io
+       write(shr_log_unit, *) "  enable_isend (comp2io)  = ", pio_rearr_comm_enable_isend_comp2io
+       if(pio_rearr_comm_max_pend_req_io2comp == PIO_REARR_COMM_UNLIMITED_PEND_REQ) then
+          write(shr_log_unit, *) "  max pend req (io2comp)  = PIO_REARR_COMM_UNLIMITED_PEND_REQ (-1)"
+       else
+          write(shr_log_unit, *) "  max pend req (io2comp)  = ", pio_rearr_comm_max_pend_req_io2comp
+       end if
+       write(shr_log_unit, *) "  enable_hs (io2comp)    = ", pio_rearr_comm_enable_hs_io2comp
+       write(shr_log_unit, *) "  enable_isend (io2comp)  = ", pio_rearr_comm_enable_isend_io2comp
+    end if
+
   end subroutine shr_pio_init
 
+  subroutine shr_pio_component_init(driver, ncomps, rc)
+    use ESMF, only : ESMF_GridComp, ESMF_LogSetError, ESMF_RC_NOT_VALID, ESMF_GridCompIsCreated
+    use NUOPC, only : NUOPC_CompAttributeGet
+    use NUOPC_Driver, only : NUOPC_DriverGetComp
+    use shr_kind_mod, only : CS=>shr_kind_cs
 
+    type(ESMF_GridComp) :: driver
+    integer, intent(in) :: ncomps
+    integer, intent(out) :: rc
+
+    integer :: i
+    type(ESMF_GridComp), pointer :: gcomp(:)
+    character(CS) :: cval
+    character(CS) :: msgstr
+    allocate(pio_comp_settings(ncomps))
+    allocate(gcomp(ncomps))
+    nullify(gcomp)
+
+    call NUOPC_DriverGetComp(driver, compList=gcomp, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    total_comps = ncomps
+    
+    do i=1,ncomps
+       if (ESMF_GridCompIsCreated(gcomp(i), rc=rc)) then
+
+          call NUOPC_CompAttributeGet(gcomp(i), name="pio_stride", value=cval, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          read(cval, *) pio_comp_settings(i)%pio_stride
+          
+          call NUOPC_CompAttributeGet(gcomp(i), name="pio_rearranger", value=cval, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          read(cval, *) pio_comp_settings(i)%pio_rearranger
+
+          call NUOPC_CompAttributeGet(gcomp(i), name="pio_numiotasks", value=cval, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          read(cval, *) pio_comp_settings(i)%pio_numiotasks
+
+          call NUOPC_CompAttributeGet(gcomp(i), name="pio_root", value=cval, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          read(cval, *) pio_comp_settings(i)%pio_root
+
+          call NUOPC_CompAttributeGet(gcomp(i), name="pio_typename", value=cval, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          
+          select case (trim(cval))
+          case ('pnetcdf')
+             pio_comp_settings(i)%pio_iotype = PIO_IOTYPE_PNETCDF
+          case ('netcdf')
+             pio_comp_settings(i)%pio_iotype = PIO_IOTYPE_NETCDF
+          case ('netcdf4p')
+             pio_comp_settings(i)%pio_iotype = PIO_IOTYPE_NETCDF4P
+          case ('netcdf4c')
+             pio_comp_settings(i)%pio_iotype = PIO_IOTYPE_NETCDF4C
+          case DEFAULT
+             write (msgstr, *) "Invalid PIO_TYPENAME Setting for component ", trim(cval)
+             call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
+             return
+          end select
+
+
+          call NUOPC_CompAttributeGet(gcomp(i), name="pio_async_interface", value=cval, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          pio_comp_settings(i)%pio_async_interface = (trim(cval) == '.true.')
+
+          call NUOPC_CompAttributeGet(gcomp(i), name="pio_netcdf_format", value=cval, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call shr_pio_getioformatfromname(cval, pio_comp_settings(i)%pio_netcdf_ioformat, PIO_64BIT_DATA)
+       endif
+    enddo
+
+    deallocate(gcomp)
+  end subroutine shr_pio_component_init
 
 !===============================================================================
   subroutine shr_pio_finalize(  )
     integer :: ierr
     integer :: i
-!    do i=1,total_comps
+    do i=1,total_comps
        call pio_finalize(iosystems(i), ierr)
-!    end do
+    end do
 
   end subroutine shr_pio_finalize
 
@@ -342,116 +436,6 @@ contains
 
   end function shr_pio_getiosys_fromname
 
-!===============================================================================
-
-
-
-  subroutine shr_pio_read_default_namelist(nlfilename, Comm, pio_stride, pio_root, pio_numiotasks, &
-       pio_iotype, pio_async_interface, pio_rearranger)
-
-    character(len=*), intent(in) :: nlfilename
-    integer, intent(in) :: Comm
-    logical, intent(out) :: pio_async_interface
-    integer, intent(out) :: pio_stride, pio_root, pio_numiotasks, pio_iotype, pio_rearranger
-
-    character(len=shr_kind_cs) :: pio_typename
-    character(len=shr_kind_cs) :: pio_rearr_comm_type, pio_rearr_comm_fcd
-    integer :: pio_netcdf_ioformat
-    integer :: pio_rearr_comm_max_pend_req_comp2io
-    logical :: pio_rearr_comm_enable_hs_comp2io, pio_rearr_comm_enable_isend_comp2io
-    integer :: pio_rearr_comm_max_pend_req_io2comp
-    logical :: pio_rearr_comm_enable_hs_io2comp, pio_rearr_comm_enable_isend_io2comp
-    character(*),parameter :: subName =   '(shr_pio_read_default_namelist) '
-
-    integer :: iam, ierr, npes, unitn
-    logical :: iamroot
-    namelist /pio_default_inparm/  &
-          pio_async_interface, pio_debug_level, pio_blocksize, &
-          pio_buffer_size_limit, pio_root, pio_numiotasks, pio_stride, &
-          pio_rearr_comm_type, pio_rearr_comm_fcd, &
-          pio_rearr_comm_max_pend_req_comp2io, pio_rearr_comm_enable_hs_comp2io, &
-          pio_rearr_comm_enable_isend_comp2io, &
-          pio_rearr_comm_max_pend_req_io2comp, pio_rearr_comm_enable_hs_io2comp, &
-          pio_rearr_comm_enable_isend_io2comp
-
-
-    call mpi_comm_rank(Comm, iam  , ierr)
-    call shr_mpi_chkerr(ierr,subname//' mpi_comm_rank comm_world')
-    call mpi_comm_size(Comm, npes, ierr)
-    call shr_mpi_chkerr(ierr,subname//' mpi_comm_size comm_world')
-
-    if(iam==0) then
-       iamroot=.true.
-    else
-       iamroot=.false.
-    end if
-
-    !--------------------------------------------------------------------------
-    ! read io nml parameters
-    !--------------------------------------------------------------------------
-    pio_stride   = -99 ! set based on pio_numiotasks value when initialized < 0
-    pio_numiotasks = -99 ! set based on pio_stride   value when initialized < 0
-    pio_root     = -99
-    pio_typename = 'nothing'
-    pio_blocksize= -99  ! io blocking size set internally in pio when < 0
-    pio_buffer_size_limit = -99 ! io task memory buffer maximum set internally in pio when < 0
-    pio_debug_level = 0 ! no debug info by default
-    pio_async_interface = .false.   ! pio tasks are a subset of component tasks
-    pio_rearranger = PIO_REARR_SUBSET
-    pio_netcdf_ioformat = PIO_64BIT_OFFSET
-    pio_rearr_comm_type = 'p2p'
-    pio_rearr_comm_fcd = '2denable'
-    pio_rearr_comm_max_pend_req_comp2io = 0
-    pio_rearr_comm_enable_hs_comp2io = .true.
-    pio_rearr_comm_enable_isend_comp2io = .false.
-    pio_rearr_comm_max_pend_req_io2comp = 0
-    pio_rearr_comm_enable_hs_io2comp = .true.
-    pio_rearr_comm_enable_isend_io2comp = .false.
-
-    if(iamroot) then
-       unitn=shr_file_getunit()
-       open( unitn, file=trim(nlfilename), status='old' , iostat=ierr)
-       if(ierr/=0) then
-          write(shr_log_unit,*) 'File ',trim(nlfilename),' not found, setting default values.'
-       else
-          ierr = 1
-          do while( ierr /= 0 )
-             read(unitn,nml=pio_default_inparm,iostat=ierr)
-             if (ierr < 0) then
-                call shr_sys_abort( subname//':: namelist read returns an'// &
-                     ' end of file or end of record condition '//trim(nlfilename) )
-             end if
-          end do
-          close(unitn)
-          call shr_file_freeUnit( unitn )
-
-          call shr_pio_getiotypefromname(pio_typename, pio_iotype, pio_iotype_netcdf)
-       end if
-    end if
-
-     call shr_pio_namelist_set(npes, Comm, pio_stride, pio_root, pio_numiotasks, pio_iotype, &
-          iamroot, pio_rearranger, pio_netcdf_ioformat)
-    call shr_mpi_bcast(pio_debug_level, Comm)
-    call shr_mpi_bcast(pio_root, Comm)
-    call shr_mpi_bcast(pio_numiotasks, Comm)
-    call shr_mpi_bcast(pio_blocksize, Comm)
-    call shr_mpi_bcast(pio_buffer_size_limit, Comm)
-    call shr_mpi_bcast(pio_async_interface, Comm)
-    call shr_mpi_bcast(pio_rearranger, Comm)
-    call shr_mpi_bcast(pio_stride, Comm)
-    if (npes == 1) then
-       pio_rearr_comm_max_pend_req_comp2io = 0
-       pio_rearr_comm_max_pend_req_io2comp = 0
-    endif
-
-
-    call shr_pio_rearr_opts_set(Comm, pio_rearr_comm_type, pio_rearr_comm_fcd, &
-         pio_rearr_comm_max_pend_req_comp2io, pio_rearr_comm_enable_hs_comp2io, &
-         pio_rearr_comm_enable_isend_comp2io, &
-         pio_rearr_comm_max_pend_req_io2comp, pio_rearr_comm_enable_hs_io2comp, &
-         pio_rearr_comm_enable_isend_io2comp, pio_numiotasks)
-
-  end subroutine shr_pio_read_default_namelist
 
   subroutine shr_pio_read_component_namelist(nlfilename, Comm, pio_stride, pio_root, &
        pio_numiotasks, pio_iotype, pio_rearranger, pio_netcdf_ioformat)
@@ -703,176 +687,8 @@ contains
     integer(SHR_KIND_IN), dimension(NUM_REARR_COMM_OPTS) :: buf
     integer :: rank, ierr
 
-    call mpi_comm_rank(comm, rank, ierr)
-    call shr_mpi_chkerr(ierr,subname//' mpi_comm_rank comm_world')
 
-    buf = 0
-    ! buf(1) = comm_type
-    ! buf(2) = comm_fcd
-    ! buf(3) = max_pend_req_comp2io
-    ! buf(4) = enable_hs_comp2io
-    ! buf(5) = enable_isend_comp2io
-    ! buf(6) = max_pend_req_io2comp
-    ! buf(7) = enable_hs_io2comp
-    ! buf(8) = enable_isend_io2comp
-    if(rank == 0) then
-      ! buf(1) = comm_type
-      select case(pio_rearr_comm_type)
-        case ("p2p")
-        case ("default")
-          buf(1) = pio_rearr_comm_p2p
-        case ("coll")
-          buf(1) = pio_rearr_comm_coll
-        case default
-          write(shr_log_unit,*) "Invalid PIO rearranger comm type, ", pio_rearr_comm_type
-          write(shr_log_unit,*) "Resetting PIO rearrange comm type to p2p"
-          buf(1) = pio_rearr_comm_p2p
-      end select
 
-      ! buf(2) = comm_fcd
-      select case(pio_rearr_comm_fcd)
-        case ("2denable")
-        case ("default")
-          buf(2) = pio_rearr_comm_fc_2d_enable
-        case ("io2comp")
-          buf(2) = pio_rearr_comm_fc_1d_io2comp
-        case ("comp2io")
-          buf(2) = pio_rearr_comm_fc_1d_comp2io
-        case ("disable")
-          buf(2) = pio_rearr_comm_fc_2d_disable
-        case default
-          write(shr_log_unit,*) "Invalid PIO rearranger comm flow control direction, ", pio_rearr_comm_fcd
-          write(shr_log_unit,*) "Resetting PIO rearrange comm flow control direction to 2denable"
-          buf(2) = pio_rearr_comm_fc_2d_enable
-      end select
-
-      ! buf(3) = max_pend_req_comp2io
-      if((pio_rearr_comm_max_pend_req_comp2io <= 0) .and. &
-          (pio_rearr_comm_max_pend_req_comp2io /= PIO_REARR_COMM_UNLIMITED_PEND_REQ)) then
-
-        if(pio_rearr_comm_max_pend_req_comp2io /= REARR_COMM_DEF_MAX_PEND_REQ_RESET) then
-          write(shr_log_unit, *) "Invalid PIO rearranger comm max pend req (comp2io), ",&
-               pio_rearr_comm_max_pend_req_comp2io
-        else
-          write(shr_log_unit, *) "User-specified PIO rearranger comm max pend req (comp2io), ",&
-               pio_rearr_comm_max_pend_req_comp2io, " (value will be reset as requested) "
-        end if
-
-        ! Small multiple of pio_numiotasks has proven to perform
-        ! well empirically, and we do not want to allow maximum for
-        ! very large process count runs. Can improve this by
-        ! communicating between iotasks first, and then non-iotasks
-        ! to iotasks (TO DO)
-        write(shr_log_unit, *) "Resetting PIO rearranger comm max pend req (comp2io) to ", &
-             max(PIO_REARR_COMM_DEF_MAX_PEND_REQ, 2 * pio_numiotasks)
-        buf(3) = max(PIO_REARR_COMM_DEF_MAX_PEND_REQ, 2 * pio_numiotasks)
-      else
-        buf(3) = pio_rearr_comm_max_pend_req_comp2io
-      end if
-
-      ! buf(4) = enable_hs_comp2io
-      if(pio_rearr_comm_enable_hs_comp2io) then
-        buf(4) = 1
-      else
-        buf(4) = 0
-      end if
-
-      ! buf(5) = enable_isend_comp2io
-      if(pio_rearr_comm_enable_isend_comp2io) then
-        buf(5) = 1
-      else
-        buf(5) = 0
-      end if
-
-      ! buf(6) = max_pend_req_io2comp
-      if((pio_rearr_comm_max_pend_req_io2comp <= 0) .and. &
-          (pio_rearr_comm_max_pend_req_io2comp /= PIO_REARR_COMM_UNLIMITED_PEND_REQ)) then
-
-        if(pio_rearr_comm_max_pend_req_io2comp /= REARR_COMM_DEF_MAX_PEND_REQ_RESET) then
-          write(shr_log_unit, *) "Invalid PIO rearranger comm max pend req (io2comp), ",&
-               pio_rearr_comm_max_pend_req_io2comp
-        else
-          write(shr_log_unit, *) "User-specified PIO rearranger comm max pend req (io2comp), ",&
-               pio_rearr_comm_max_pend_req_io2comp, " (value will be reset as requested) "
-        end if
-
-        write(shr_log_unit, *) "Resetting PIO rearranger comm max pend req (io2comp) to ", PIO_REARR_COMM_DEF_MAX_PEND_REQ
-        buf(6) = PIO_REARR_COMM_DEF_MAX_PEND_REQ
-      else
-        buf(6) = pio_rearr_comm_max_pend_req_io2comp
-      end if
-
-      ! buf(7) = enable_hs_io2comp
-      if(pio_rearr_comm_enable_hs_io2comp) then
-        buf(7) = 1
-      else
-        buf(7) = 0
-      end if
-
-      ! buf(8) = enable_isend_io2comp
-      if(pio_rearr_comm_enable_isend_io2comp) then
-        buf(8) = 1
-      else
-        buf(8) = 0
-      end if
-
-    end if
-
-    call shr_mpi_bcast(buf, comm)
-
-    ! buf(1) = comm_type
-    ! buf(2) = comm_fcd
-    ! buf(3) = max_pend_req_comp2io
-    ! buf(4) = enable_hs_comp2io
-    ! buf(5) = enable_isend_comp2io
-    ! buf(6) = max_pend_req_io2comp
-    ! buf(7) = enable_hs_io2comp
-    ! buf(8) = enable_isend_io2comp
-    pio_rearr_opt_comm_type = buf(1)
-    pio_rearr_opt_fcd = buf(2)
-    pio_rearr_opt_c2i_max_pend_req = buf(3)
-    if(buf(4) == 0) then
-      pio_rearr_opt_c2i_enable_hs = .false.
-    else
-      pio_rearr_opt_c2i_enable_hs = .true.
-    end if
-    if(buf(5) == 0) then
-      pio_rearr_opt_c2i_enable_isend = .false.
-    else
-      pio_rearr_opt_c2i_enable_isend = .true.
-    end if
-    pio_rearr_opt_i2c_max_pend_req = buf(6)
-    if(buf(7) == 0) then
-      pio_rearr_opt_i2c_enable_hs = .false.
-    else
-      pio_rearr_opt_i2c_enable_hs = .true.
-    end if
-    if(buf(8) == 0) then
-      pio_rearr_opt_i2c_enable_isend = .false.
-    else
-      pio_rearr_opt_i2c_enable_isend = .true.
-    end if
-
-    if(rank == 0) then
-      ! Log the rearranger options
-      write(shr_log_unit, *) "PIO rearranger options:"
-      write(shr_log_unit, *) "  comm type     = ", trim(pio_rearr_comm_type)
-      write(shr_log_unit, *) "  comm fcd      = ", trim(pio_rearr_comm_fcd)
-      if(pio_rearr_opt_c2i_max_pend_req == PIO_REARR_COMM_UNLIMITED_PEND_REQ) then
-        write(shr_log_unit, *) "  max pend req (comp2io)  = PIO_REARR_COMM_UNLIMITED_PEND_REQ (-1)"
-      else
-        write(shr_log_unit, *) "  max pend req (comp2io)  = ", pio_rearr_opt_c2i_max_pend_req
-      end if
-      write(shr_log_unit, *) "  enable_hs (comp2io)     = ", pio_rearr_opt_c2i_enable_hs
-      write(shr_log_unit, *) "  enable_isend (comp2io)  = ", pio_rearr_opt_c2i_enable_isend
-      if(pio_rearr_opt_i2c_max_pend_req == PIO_REARR_COMM_UNLIMITED_PEND_REQ) then
-        write(shr_log_unit, *) "  max pend req (io2comp)  = PIO_REARR_COMM_UNLIMITED_PEND_REQ (-1)"
-      else
-        write(shr_log_unit, *) "  max pend req (io2comp)  = ", pio_rearr_opt_i2c_max_pend_req
-      end if
-      write(shr_log_unit, *) "  enable_hs (io2comp)    = ", pio_rearr_opt_i2c_enable_hs
-      write(shr_log_unit, *) "  enable_isend (io2comp)  = ", pio_rearr_opt_i2c_enable_isend
-    end if
   end subroutine
 !===============================================================================
 
