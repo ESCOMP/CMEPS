@@ -46,6 +46,7 @@ TYPEDEFS_NEW_METADATA = {
         'MED_coupling_type' : 'physics%Coupling',
         'MED_grid_type' : 'physics%Grid',
         'MED_sfcprop_type' : 'physics%Sfcprop',
+        'MED_diag_type' : 'physics%Diag',
         'MED_typedefs' : '',
         },
     'MED_data' : {
@@ -59,9 +60,8 @@ SCHEME_FILES = [
     '{}/ccpp/physics/physics/sfc_ocean.F'.format(fv3_path),
     '{}/ccpp/physics/physics/sfc_diff.f'.format(fv3_path),
     '{}/ccpp/physics/physics/GFS_surface_loop_control.F90'.format(fv3_path),
+    '{}/ccpp/physics/physics/GFS_surface_composites.F90'.format(fv3_path)
     ]
-    #'{}/ccpp/physics/physics/GFS_suite_interstitial.F90'.format(fv3_path)
-    #'{}/ccpp/physics/physics/GFS_surface_composites.F90'.format(fv3_path)
 
 # Default build dir, relative to current working directory,
 # if not specified as command-line argument

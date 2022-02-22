@@ -2,17 +2,17 @@
 
 <suite name="FV3_sfc_ocean" version="1">
   <group name="physics">
-    <!--
     <subcycle loop="1">
       <scheme>GFS_surface_composites_pre</scheme>
     </subcycle>
-    -->
     <subcycle loop="2">
       <scheme>sfc_diff</scheme>
       <scheme>GFS_surface_loop_control_part1</scheme>
       <scheme>sfc_ocean</scheme>
       <scheme>GFS_surface_loop_control_part2</scheme>
     </subcycle>
-
+    <subcycle loop="1">
+      <scheme>GFS_surface_composites_post</scheme>
+    </subcycle>
   </group>
 </suite>

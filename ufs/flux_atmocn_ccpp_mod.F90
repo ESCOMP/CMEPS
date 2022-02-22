@@ -76,11 +76,12 @@ contains
 
     if (first_call) then
        ! allocate and initalize data structures
-       call physics%statein%create(nMax)
+       call physics%statein%create(nMax,physics%model)
        call physics%interstitial%create(nMax)
        call physics%coupling%create(nMax)
        call physics%grid%create(nMax)
-       call physics%sfcprop%create(nMax)
+       call physics%sfcprop%create(nMax,physics%model)
+       call physics%diag%create(nMax)
 
        ! initalize dimension 
        physics%init%im = nMax
@@ -117,6 +118,12 @@ contains
     physics%model%ivegsrc = 1
     physics%model%redrag = .true.
     physics%model%lsm = 2
+    physics%model%frac_grid = .true.
+    physics%model%restart = .true.
+    physics%model%cplice = .true.
+    physics%model%cplflx = .true.
+    physics%model%kdt = physics%model%kdt+1
+    physics%model%lheatstrg = .true.
 
     ! reset physics variables
     call physics%interstitial%phys_reset()
@@ -129,6 +136,16 @@ contains
     physics%interstitial%prslki = physics%statein%prsik(:)/physics%statein%prslk(:)
     physics%interstitial%tsurf_water = ts
     physics%interstitial%tsfc_water = ts
+    physics%interstitial%qss_water = qbot
+
+    ! fill in required sfcprop variables
+    where (mask(:) /= 0)
+       physics%sfcprop%oceanfrac = 1.0d0
+    elsewhere
+       physics%sfcprop%oceanfrac = 0.0d0
+    end where
+    physics%sfcprop%tsfco = ts
+    physics%sfcprop%qss = qbot
 
     ! run CCPP physics
     ! TODO: suite name need to be provided by ESMF config file

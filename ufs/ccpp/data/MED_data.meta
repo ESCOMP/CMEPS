@@ -48,6 +48,12 @@
   units = DDT
   dimensions = ()
   type = MED_sfcprop_type
+[Diag]
+  standard_name = MED_diag_type_instance
+  long_name = fields targeted for diagnostic output
+  units = DDT
+  dimensions = ()
+  type = MED_diag_type
 
 ########################################################################
 [ccpp-table-properties]
