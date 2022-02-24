@@ -101,7 +101,8 @@ contains
     use med_phases_prep_atm_mod , only: med_phases_prep_atm
     use med_phases_prep_ice_mod , only: med_phases_prep_ice
     use med_phases_prep_lnd_mod , only: med_phases_prep_lnd
-    use med_phases_prep_wav_mod , only: med_phases_prep_wav
+    use med_phases_prep_wav_mod , only: med_phases_prep_wav_accum
+    use med_phases_prep_wav_mod , only: med_phases_prep_wav_avg
     use med_phases_prep_glc_mod , only: med_phases_prep_glc
     use med_phases_prep_rof_mod , only: med_phases_prep_rof
     use med_phases_prep_ocn_mod , only: med_phases_prep_ocn_accum
@@ -343,10 +344,20 @@ contains
     !------------------
 
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
-         phaseLabelList=(/"med_phases_prep_wav"/), userRoutine=mediator_routine_Run, rc=rc)
+         phaseLabelList=(/"med_phases_prep_wav_accum"/), userRoutine=mediator_routine_Run, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
-         specPhaseLabel="med_phases_prep_wav", specRoutine=med_phases_prep_wav, rc=rc)
+         specPhaseLabel="med_phases_prep_wav_accum", specRoutine=med_phases_prep_wav_accum, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_TimestampExport, &
+         specPhaselabel="med_phases_prep_wav_accum", specRoutine=NUOPC_NoOp, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
+         phaseLabelList=(/"med_phases_prep_wav_avg"/), userRoutine=mediator_routine_Run, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
+         specPhaseLabel="med_phases_prep_wav_avg", specRoutine=med_phases_prep_wav_avg, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
@@ -638,7 +649,7 @@ contains
     ! TransferOfferGeomObject Attribute.
 
     use ESMF  , only : ESMF_GridComp, ESMF_State, ESMF_Clock, ESMF_SUCCESS, ESMF_LogFoundAllocError
-    use ESMF  , only : ESMF_StateIsCreated
+    use ESMF  , only : ESMF_StateIsCreated 
     use ESMF  , only : ESMF_LogMsg_Info, ESMF_LogWrite
     use ESMF  , only : ESMF_END_ABORT, ESMF_Finalize, ESMF_MAXSTR
     use NUOPC , only : NUOPC_AddNamespace, NUOPC_Advertise, NUOPC_AddNestedState
@@ -1513,6 +1524,7 @@ contains
     use med_fraction_mod        , only : med_fraction_init, med_fraction_set
     use med_phases_restart_mod  , only : med_phases_restart_read
     use med_phases_prep_ocn_mod , only : med_phases_prep_ocn_init
+    use med_phases_prep_wav_mod , only : med_phases_prep_wav_init
     use med_phases_prep_rof_mod , only : med_phases_prep_rof_init
     use med_phases_prep_glc_mod , only : med_phases_prep_glc_init
     use med_phases_prep_atm_mod , only : med_phases_prep_atm
@@ -1800,6 +1812,16 @@ contains
       end if
 
       !---------------------------------------
+      ! Initialize wav export accumulation field bundle
+      !---------------------------------------
+      if ( is_local%wrap%comp_present(compwav) .and. &
+           ESMF_StateIsCreated(is_local%wrap%NStateImp(compwav),rc=rc) .and. &
+           ESMF_StateIsCreated(is_local%wrap%NStateExp(compwav),rc=rc)) then
+         call med_phases_prep_wav_init(gcomp, rc)
+         if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      end if
+
+      !---------------------------------------
       ! Initialize glc module field bundles here if appropriate
       !---------------------------------------
       if (is_local%wrap%lnd2glc_coupling .or. is_local%wrap%ocn2glc_coupling .or. is_local%wrap%accum_lnd2glc) then
@@ -2074,12 +2096,12 @@ contains
        ! Call post routines as part of initialization
        !---------------------------------------
        if (is_local%wrap%comp_present(compatm)) then
-          ! map atm->ocn, atm->ice, atm->lnd
+          ! map atm->ocn, atm->ice, atm->lnd, atm->wav
           call med_phases_post_atm(gcomp, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
        if (is_local%wrap%comp_present(compice)) then
-          ! call set ice_frac and map ice->atm and ice->ocn
+          ! call set ice_frac and map ice->ocn and ice->wav
           call med_phases_post_ice(gcomp, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
@@ -2094,7 +2116,7 @@ contains
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
        if (is_local%wrap%comp_present(compocn)) then
-          ! map initial ocn->ice
+          ! map initial ocn->ice, ocn->wav
           call med_phases_post_ocn(gcomp, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
@@ -2104,7 +2126,7 @@ contains
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
        if (is_local%wrap%comp_present(compwav)) then
-          ! map initial wav->ocn and wav->ice
+          ! map initial wav->ocn, wav->ice, wav->atm
           call med_phases_post_wav(gcomp, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if

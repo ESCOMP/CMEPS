@@ -27,7 +27,7 @@ contains
     use med_constants_mod       , only : dbug_flag   => med_constants_dbug_flag
     use med_map_mod             , only : med_map_field_packed
     use med_internalstate_mod   , only : InternalState, logunit, mastertask
-    use med_internalstate_mod   , only : compice, compocn
+    use med_internalstate_mod   , only : compice, compocn, compwav
     use med_phases_history_mod  , only : med_phases_history_write_comp
     use med_phases_prep_glc_mod , only : med_phases_prep_glc_accum_ocn
     use perf_mod                , only : t_startf, t_stopf
@@ -66,6 +66,19 @@ contains
             routehandles=is_local%wrap%RH(compocn,compice,:), rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call t_stopf('MED:'//trim(subname)//' map_ocn2ice')
+    end if
+    ! Map ocn->wav
+    if (is_local%wrap%med_coupling_active(compocn,compwav)) then
+       call t_startf('MED:'//trim(subname)//' map_ocn2wav')
+       call med_map_field_packed( &
+            FBSrc=is_local%wrap%FBImp(compocn,compocn), &
+            FBDst=is_local%wrap%FBImp(compocn,compwav), &
+            FBFracSrc=is_local%wrap%FBFrac(compocn), &
+            field_normOne=is_local%wrap%field_normOne(compocn,compwav,:), &
+            packed_data=is_local%wrap%packed_data(compocn,compwav,:), &
+            routehandles=is_local%wrap%RH(compocn,compwav,:), rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call t_stopf('MED:'//trim(subname)//' map_ocn2wav')
     end if
 
     ! Accumulate ocn input for glc if there is ocn->glc coupling

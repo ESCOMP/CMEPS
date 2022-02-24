@@ -19,6 +19,8 @@ module med_phases_prep_atm_mod
   use med_internalstate_mod , only : compatm, compocn, compice, compname, coupling_mode
   use esmFlds               , only : fldListTo, fldListMed_aoflux
   use perf_mod              , only : t_startf, t_stopf
+  use med_phases_aofluxes_mod, only : med_aofluxes_map_xgrid2agrid_output
+  use med_phases_aofluxes_mod, only : med_aofluxes_map_ogrid2agrid_output
 
   implicit none
   private
@@ -111,18 +113,13 @@ contains
         trim(coupling_mode) == 'hafs' .or. &
         trim(coupling_mode) == 'nems_frac_aoflux') then
        if (is_local%wrap%aoflux_grid == 'ogrid') then
-          call med_map_field_packed( &
-               FBSrc=is_local%wrap%FBMed_aoflux_o, &
-               FBDst=is_local%wrap%FBMed_aoflux_a, &
-               FBFracSrc=is_local%wrap%FBFrac(compocn), &
-               field_normOne=is_local%wrap%field_normOne(compocn,compatm,:), &
-               packed_data=is_local%wrap%packed_data_aoflux_o2a(:), &
-               routehandles=is_local%wrap%RH(compocn,compatm,:), rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call med_aofluxes_map_ogrid2agrid_output(gcomp, rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
        else if (is_local%wrap%aoflux_grid == 'agrid') then
-          ! do nothing - is_local%wrap%FBMed_aoflux_a has been computed in med_aofluxes_init_agrid
+          ! Do nothing - fluxes are alread being computed on the agrid
        else if (is_local%wrap%aoflux_grid == 'xgrid') then
-          ! do nothing - is_local%wrap%FBMed_aoflux_a has been computed in med_aofluxes_init_agrid
+          call med_aofluxes_map_xgrid2agrid_output(gcomp, rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
        end if
     endif
 
