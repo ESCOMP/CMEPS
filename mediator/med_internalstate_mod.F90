@@ -51,6 +51,9 @@ module med_internalstate_mod
   ! Atmosphere-ocean flux algorithm
   character(len=CS), public :: aoflux_code   ! valid values are [cesm,ccpp]
 
+  ! Atmosphere-ocean CCPP suite name
+  character(len=CL), public :: aoflux_ccpp_suite
+
   ! Mapping
   integer , public, parameter :: mapunset          = 0
   integer , public, parameter :: mapbilnr          = 1

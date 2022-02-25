@@ -11,6 +11,7 @@ module flux_atmocn_ccpp_mod
   use med_ccpp_driver, only : med_ccpp_driver_run
   use med_ccpp_driver, only : med_ccpp_driver_finalize
   use ufs_const_mod
+  use med_internalstate_mod, only : aoflux_ccpp_suite
 
   implicit none
 
@@ -92,7 +93,7 @@ contains
 
        ! run CCPP init
        ! TODO: suite name need to be provided by ESMF config file
-       call med_ccpp_driver_init('FV3_sfc_ocean')
+       call med_ccpp_driver_init(trim(aoflux_ccpp_suite))
        first_call = .false.
     end if
 
@@ -149,7 +150,7 @@ contains
 
     ! run CCPP physics
     ! TODO: suite name need to be provided by ESMF config file
-    call med_ccpp_driver_run('FV3_sfc_ocean', 'physics')
+    call med_ccpp_driver_run(trim(aoflux_ccpp_suite), 'physics')
 
     ! unit and sign conversion to be consistent with other flux scheme (CESM)
     do n = 1, nMax
