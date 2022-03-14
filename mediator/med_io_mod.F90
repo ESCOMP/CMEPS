@@ -177,6 +177,7 @@ contains
     pio_iotype   =  shr_pio_getiotype(med_id)
     pio_ioformat =  shr_pio_getioformat(med_id)
 #else
+    print *,__FILE__,__LINE__,'PIO type, format:',pio_iotype, pio_ioformat
     ! query VM
     call ESMF_VMGetCurrent(vm=vm, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -576,6 +577,7 @@ contains
           if(pio_iotype == PIO_IOTYPE_NETCDF .or. pio_iotype == PIO_IOTYPE_PNETCDF) then
              nmode = ior(nmode,pio_ioformat)
           endif
+          
           rcode = pio_createfile(io_subsystem, io_file(lfile_ind), pio_iotype, trim(filename), nmode)
           if (iam==0) write(logunit,'(a)') trim(subname) //' creating file '// trim(filename)
           rcode = pio_put_att(io_file(lfile_ind),pio_global,"file_version",version)
