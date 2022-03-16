@@ -34,6 +34,10 @@ jobs:
       image: jedwards4b/o${{ matrix.openmpi }}h${{ matrix.hdf5 }}nc${{ matrix.netcdfc }}nf${{ matrix.netcdff }}p${{ matrix.pnetcdf }}
       options: --user 1001
     steps:
+      - name: checkout cmeps
+        uses: actions/checkout@v3
+        with:
+          path: components/cmeps
       - name: checkout cmake_fortran_utils
         uses: actions/checkout@v3
         with:
@@ -110,6 +114,6 @@ jobs:
         run: |
           mkdir build-cmeps
           cd build-cmeps
-          cmake -DCMAKE_BUILD_TYPE=DEBUG -DCMAKE_Fortran_FLAGS="-g -Wall -ffree-form -ffree-line-length-none" ../
+          cmake -DCMAKE_BUILD_TYPE=DEBUG -DCMAKE_Fortran_FLAGS="-g -Wall -ffree-form -ffree-line-length-none" ../components/cmeps
           make VERBOSE=1
           
