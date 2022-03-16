@@ -91,6 +91,8 @@ jobs:
           ESMF_COMPILER: gfortran
           ESMF_BOPT: g
           ESMF_PIO: external
+          ESMF_PIO_INCLUDE: $HOME/ParallelIO/include
+          ESMF_PIO_LIBPATH: $HOME/ParallelIO/lib
           ESMF_NETCDF: /usr/local/bin/nc-config
           ESMF_PNETCDF: /usr/local/bin/pnetcdf-config
           ESMF_COMM: openmpi
