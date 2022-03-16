@@ -67,6 +67,7 @@ jobs:
       - name: build PIO
         if: steps.cache-PIO.outputs.cache-hit != 'true'
         run: |
+          ls $GITHUB_WORKSPACE/
           cd build
           export PATH=/usr/local/bin:$PATH
           cmake -Wno-dev \
