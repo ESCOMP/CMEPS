@@ -1,6 +1,5 @@
 # This is a workflow to compile the cmeps source without cime
 name: extbuild
-
 # Controls when the action will run. Triggers the workflow on push or pull request
 # events but only for the master branch
 on:
@@ -107,10 +106,10 @@ jobs:
       - name: Build CMEPS
         env:
           ESMFMKFILE: ${GITHUB_WORKSPACE}/esmf/lib/libg/Linux.gfortran.64.openmpi.default/esmf.mk
-          PIO: ${GITHUB_WORKSPACE/pio
+          PIO: ${GITHUB_WORKSPACE}/pio
         run: |
           mkdir build-cmeps
-          pushd build-cmeps
+          cd build-cmeps
           cmake -DCMAKE_BUILD_TYPE=DEBUG -DCMAKE_Fortran_FLAGS="-g -Wall -ffree-form -ffree-line-length-none" ../
           make VERBOSE=1
-          popd
+          
