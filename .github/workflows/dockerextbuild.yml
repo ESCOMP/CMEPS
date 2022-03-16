@@ -93,8 +93,8 @@ jobs:
           ESMF_PIO: external
           ESMF_PIO_INCLUDE: ${GITHUB_WORKSPACE}/pio/include
           ESMF_PIO_LIBPATH: ${GITHUB_WORKSPACE}/pio/lib
-          ESMF_NETCDF: /usr/local/bin/nc-config
-          ESMF_PNETCDF: /usr/local/bin/pnetcdf-config
+          ESMF_NETCDF: nc-config
+          ESMF_PNETCDF: pnetcdf-config
           ESMF_COMM: openmpi
           ESMF_INSTALL_PREFIX: esmf
         run: |
