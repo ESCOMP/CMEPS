@@ -88,7 +88,7 @@ jobs:
       - name: build ESMF
         if: steps.cache-esmf.outputs.cache-hit != 'true'
         env:
-          ESMF_DIR: ESMF
+          ESMF_DIR: ${GITHUB_WORKSPACE}/ESMF
           ESMF_COMPILER: gfortran
           ESMF_BOPT: g
           ESMF_PIO: external
@@ -97,7 +97,9 @@ jobs:
           ESMF_COMM: openmpi
           ESMF_INSTALL_PREFIX: ${GITHUB_WORKSPACE}/esmf
         run: |
+          echo $ESMF_DIR
           cd $ESMF_DIR
+          ls
           make -j 2
           sudo make install
 
