@@ -45,11 +45,13 @@ jobs:
         with:
           repository: NCAR/ParallelIO
           ref: ${{ env.PIO_VERSION }}
+          path: ParallelIO
       - name: Checkout ESMF
         uses: actions/checkout@v3
         with:
           repository: esmf-org/esmf
           ref: ${{ env.ESMF_VERSION }}
+          path: ESMF
       - name: Checkout genf90
         uses: actions/checkout@v3
         with:
