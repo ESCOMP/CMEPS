@@ -4,10 +4,11 @@ name: extbuild
 # Controls when the action will run. Triggers the workflow on push or pull request
 # events but only for the master branch
 on:
-  push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
+  push
+#  :
+#    branches: [ master ]
+#  pull_request:
+#    branches: [ master ]
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -27,7 +28,7 @@ jobs:
       CPPFLAGS: "-I/usr/include -I/usr/local/include"
       # Versions of all dependencies can be updated here
       ESMF_VERSION: v8.3.0b09
-      # PIO version 
+      # PIO version
       PIO_VERSION: pio2_5_6
 
     container:
@@ -72,7 +73,7 @@ jobs:
           -DNetCDF_PATH=/usr/local/ \
           -DPnetCDF_PATH=/usr/local \
           -DPIO_ENABLE_FORTRAN=ON \
-          -DPIO_ENABLE_TIMING=Off 
+          -DPIO_ENABLE_TIMING=Off \
           ..
           make VERBOSE=1
           make install
