@@ -45,6 +45,7 @@ jobs:
         with:
           repository: NCAR/ParallelIO
           ref: ${{ env.PIO_VERSION }}
+          path: $GITHUB_WORKSPACE/paralleio
       - name: Checkout ESMF
         uses: actions/checkout@v3
         with:
@@ -59,7 +60,7 @@ jobs:
         id: cache-PIO
         uses: actions/cache@v2
         with:
-          path: ~/pio
+          path: 
           key: ${{ runner.os }}-${{ env.PIO_VERSION }}.pio
 
       - name: build PIO
@@ -74,7 +75,7 @@ jobs:
           -DPnetCDF_PATH=/usr/local \
           -DPIO_ENABLE_FORTRAN=ON \
           -DPIO_ENABLE_TIMING=Off \
-          ..
+          $GITHUB_WORKSPACE/parallelio
           make VERBOSE=1
           make install
 
