@@ -67,11 +67,10 @@ jobs:
       - name: build PIO
         if: steps.cache-PIO.outputs.cache-hit != 'true'
         run: |
-          ls
           cd build
           export PATH=/usr/local/bin:$PATH
           cmake -Wno-dev \
-          -DCMAKE_INSTALL_PREFIX=/usr/local/ \
+          -DCMAKE_INSTALL_PREFIX=${GITHUB_WORKSPACE}/pio \
           -DGENF90_PATH=${GITHUB_WORKSPACE}/build/genf90 \
           -DNetCDF_PATH=/usr/local/ \
           -DPnetCDF_PATH=/usr/local \
@@ -79,7 +78,7 @@ jobs:
           -DPIO_ENABLE_TIMING=Off \
           ../ParallelIO
           make VERBOSE=1
-          sudo make install
+          make install
 
       - id: cache-esmf
         uses: actions/cache@v2
@@ -96,7 +95,7 @@ jobs:
           ESMF_NETCDF: /usr/local/bin/nc-config
           ESMF_PNETCDF: /usr/local/bin/pnetcdf-config
           ESMF_COMM: openmpi
-          ESMF_INSTALL_PREFIX: /usr/local
+          ESMF_INSTALL_PREFIX: ${GITHUB_WORKSPACE}/esmf
         run: |
           cd $ESMF_DIR
           make -j 2
@@ -104,10 +103,9 @@ jobs:
 
       - name: Build CMEPS
         env:
-          ESMFMKFILE: /usr/local/lib/libg/Linux.gfortran.64.openmpi.default/esmf.mk
-          PIO: /usr/local
+          ESMFMKFILE: ${GITHUB_WORKSPACE}/esmf/lib/libg/Linux.gfortran.64.openmpi.default/esmf.mk
+          PIO: ${GITHUB_WORKSPACE/pio
         run: |
-          export PIO=$HOME/pio
           mkdir build-cmeps
           pushd build-cmeps
           cmake -DCMAKE_BUILD_TYPE=DEBUG -DCMAKE_Fortran_FLAGS="-g -Wall -ffree-form -ffree-line-length-none" ../
