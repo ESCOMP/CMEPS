@@ -60,7 +60,7 @@ jobs:
         id: cache-PIO
         uses: actions/cache@v2
         with:
-          path: 
+          path: $GITHUB_WORKSPACE/paralleio
           key: ${{ runner.os }}-${{ env.PIO_VERSION }}.pio
 
       - name: build PIO
