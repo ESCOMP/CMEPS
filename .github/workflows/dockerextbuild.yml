@@ -27,7 +27,7 @@ jobs:
       CXX: mpicxx
       CPPFLAGS: "-I/usr/include -I/usr/local/include"
       # Versions of all dependencies can be updated here
-      ESMF_VERSION: v8.3.0b09
+      ESMF_VERSION: jedwards/pio_update2
       # PIO version
       PIO_VERSION: pio2_5_6
 
@@ -83,7 +83,7 @@ jobs:
       - id: cache-esmf
         uses: actions/cache@v2
         with:
-          path: ESMF
+          path: esmf
           key: ${{ runner.os }}-${{ env.ESMF_VERSION }}-ESMF
       - name: build ESMF
         if: steps.cache-esmf.outputs.cache-hit != 'true'
@@ -94,13 +94,13 @@ jobs:
           ESMF_NETCDF: /usr/local/bin/nc-config
           ESMF_PNETCDF: /usr/local/bin/pnetcdf-config
           ESMF_COMM: openmpi
-          ESMF_INSTALL_PREFIX: ${GITHUB_WORKSPACE}/esmf
+          ESMF_INSTALL_PREFIX: esmf
         run: |
           cd ESMF
           export ESMF_DIR=`pwd`
           echo $ESMF_DIR
           make -j 2
-          sudo make install
+          make install
 
       - name: Build CMEPS
         env:
