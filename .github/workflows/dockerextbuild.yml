@@ -1,0 +1,112 @@
+# This is a workflow to compile the cmeps source without cime
+name: extbuild
+
+# Controls when the action will run. Triggers the workflow on push or pull request
+# events but only for the master branch
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  build-cmeps:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        openmpi: [4.1.2]
+        hdf5: [1.12]
+        netcdfc: [4.8.1]
+        netcdff: [4.5.4]
+        pnetcdf: [1.12.3]
+    env:
+      CC: mpicc
+      FC: mpifort
+      CXX: mpicxx
+      CPPFLAGS: "-I/usr/include -I/usr/local/include"
+      # Versions of all dependencies can be updated here
+      ESMF_VERSION: v8.3.0b09
+      # PIO version 
+      PIO_VERSION: pio2_5_6
+
+    container:
+      image: jedwards4b/o${{ matrix.openmpi }}h${{ matrix.hdf5 }}nc${{ matrix.netcdfc }}nf${{ matrix.netcdff }}p${{ matrix.pnetcdf }}
+      options: --user 1001
+    steps:
+      - name: checkout cmake_fortran_utils
+        uses: actions/checkout@v3
+        with:
+          repository: CESM-Development/CMake_Fortran_utils
+          path: build/CMake_Fortran_utils
+      - name: Checkout PIO
+        uses: actions/checkout@v3
+        with:
+          repository: NCAR/ParallelIO
+          ref: ${{ env.PIO_VERSION }}
+      - name: Checkout ESMF
+        uses: actions/checkout@v3
+        with:
+          repository: esmf-org/esmf
+          ref: ${{ env.ESMF_VERSION }}
+      - name: Checkout genf90
+        uses: actions/checkout@v3
+        with:
+          repository: ParallelIO/genf90
+          path: build/genf90
+      - name: Cache PIO
+        id: cache-PIO
+        uses: actions/cache@v2
+        with:
+          path: ~/pio
+          key: ${{ runner.os }}-${{ env.PIO_VERSION }}.pio
+
+      - name: build PIO
+        if: steps.cache-PIO.outputs.cache-hit != 'true'
+        run: |
+          cd build
+          export PATH=/usr/local/bin:$PATH
+          cmake -Wno-dev \
+          -DCMAKE_INSTALL_PREFIX=/usr/local/ \
+          -DGENF90_PATH=${GITHUB_WORKSPACE}/build/genf90 \
+          -DNetCDF_PATH=/usr/local/ \
+          -DPnetCDF_PATH=/usr/local \
+          -DPIO_ENABLE_FORTRAN=ON \
+          -DPIO_ENABLE_TIMING=Off 
+          ..
+          make VERBOSE=1
+          make install
+
+      - id: cache-esmf
+        uses: actions/cache@v2
+        with:
+          path: $GITHUB_WORKSPACE/ESMF
+          key: ${{ runner.os }}-${{ env.ESMF_VERSION }}-ESMF
+      - name: build ESMF
+        if: steps.cache-esmf.outputs.cache-hit != 'true'
+        env:
+          ESMF_DIR: $GITHUB_WORKSPACE/ESMF
+          ESMF_COMPILER: gfortran
+          ESMF_BOPT: g
+          ESMF_PIO: external
+          ESMF_NETCDF: /usr/local/bin/nc-config
+          ESMF_PNETCDF: /usr/local/bin/pnetcdf-config
+          ESMF_COMM: openmpi
+          ESMF_INSTALL_PREFIX: /usr/local
+        run: |
+          cd $ESMF_DIR
+          make -j 2
+          make install
+
+      - name: Build CMEPS
+        env:
+          ESMFMKFILE: /usr/local/lib/libg/Linux.gfortran.64.openmpi.default/esmf.mk
+          PIO: /usr/local
+        run: |
+          cd $GITHUB_WORKSPACE
+          export PIO=$HOME/pio
+          mkdir build-cmeps
+          pushd build-cmeps
+          cmake -DCMAKE_BUILD_TYPE=DEBUG -DCMAKE_Fortran_FLAGS="-g -Wall -ffree-form -ffree-line-length-none" ../
+          make VERBOSE=1
+          popd
