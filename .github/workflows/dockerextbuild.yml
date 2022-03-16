@@ -79,7 +79,7 @@ jobs:
           -DPIO_ENABLE_TIMING=Off \
           ../ParallelIO
           make VERBOSE=1
-          make install
+          sudo make install
 
       - id: cache-esmf
         uses: actions/cache@v2
@@ -100,7 +100,7 @@ jobs:
         run: |
           cd $ESMF_DIR
           make -j 2
-          make install
+          sudo make install
 
       - name: Build CMEPS
         env:
