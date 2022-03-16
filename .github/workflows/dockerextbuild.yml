@@ -45,13 +45,11 @@ jobs:
         with:
           repository: NCAR/ParallelIO
           ref: ${{ env.PIO_VERSION }}
-          path: ${{ env.GITHUB_WORKSPACE }}
       - name: Checkout ESMF
         uses: actions/checkout@v3
         with:
           repository: esmf-org/esmf
           ref: ${{ env.ESMF_VERSION }}
-          path: ${{ env.GITHUB_WORKSPACE }}
       - name: Checkout genf90
         uses: actions/checkout@v3
         with:
@@ -61,13 +59,13 @@ jobs:
         id: cache-PIO
         uses: actions/cache@v2
         with:
-          path: ${{ env.GITHUB_WORKSPACE }}/ParalleIO
+          path: ParalleIO
           key: ${{ runner.os }}-${{ env.PIO_VERSION }}.pio
 
       - name: build PIO
         if: steps.cache-PIO.outputs.cache-hit != 'true'
         run: |
-          ls ${{ env.GITHUB_WORKSPACE }}/
+          ls
           cd build
           export PATH=/usr/local/bin:$PATH
           cmake -Wno-dev \
@@ -77,19 +75,19 @@ jobs:
           -DPnetCDF_PATH=/usr/local \
           -DPIO_ENABLE_FORTRAN=ON \
           -DPIO_ENABLE_TIMING=Off \
-          ${{ env.GITHUB_WORKSPACE }}/ParallelIO
+          ../ParallelIO
           make VERBOSE=1
           make install
 
       - id: cache-esmf
         uses: actions/cache@v2
         with:
-          path: ${{ env.GITHUB_WORKSPACE }}/ESMF
+          path: ESMF
           key: ${{ runner.os }}-${{ env.ESMF_VERSION }}-ESMF
       - name: build ESMF
         if: steps.cache-esmf.outputs.cache-hit != 'true'
         env:
-          ESMF_DIR: ${{ env.GITHUB_WORKSPACE }}/ESMF
+          ESMF_DIR: ESMF
           ESMF_COMPILER: gfortran
           ESMF_BOPT: g
           ESMF_PIO: external
@@ -107,7 +105,6 @@ jobs:
           ESMFMKFILE: /usr/local/lib/libg/Linux.gfortran.64.openmpi.default/esmf.mk
           PIO: /usr/local
         run: |
-          cd ${{ env.GITHUB_WORKSPACE }}
           export PIO=$HOME/pio
           mkdir build-cmeps
           pushd build-cmeps
