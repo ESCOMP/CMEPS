@@ -312,7 +312,7 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
                 newgroup = "MED_modelio"
             else:
                 newgroup = model.upper()+"_modelio"
-            nmlgen._definition.rename_group("modelio", newgroup)
+            nmlgen.rename_group("modelio", newgroup)
 
             if maxinst == 1 and model != 'cpl' and not multi_driver:
                 inst_count = case.get_value("NINST_" + model.upper())
@@ -499,18 +499,6 @@ def compare_drv_flds_in(first, second, infile1, infile2):
             print('Key: {}, \n Value 1: {}, \n Value 2: {}'.format(key, first[key], second[key]))
             expect(False, "incompatible settings in drv_flds_in from \n %s \n and \n %s"
                    % (infile1, infile2))
-
-###############################################################################
-def _create_component_modelio_namelists(case, confdir, nmlgen, files):
-###############################################################################
-
-    # will need to create a new namelist generator
-    infiles = []
-    definition_dir = os.path.dirname(files.get_value("NAMELIST_DEFINITION_FILE", attribute={"component":"drv"}))
-    definition_file = [os.path.join(definition_dir, "namelist_definition_modelio.xml")]
-
-    confdir = os.path.join(case.get_value("CASEBUILD"), "cplconf")
-
 
 ###############################################################################
 def buildnml(case, caseroot, component):

@@ -145,9 +145,9 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     if(trim(pio_rearr_comm_type) .eq. 'p2p') then
-       pio_rearr_opts.comm_type = PIO_REARR_COMM_P2P
+       pio_rearr_opts%comm_type = PIO_REARR_COMM_P2P
     else
-       pio_rearr_opts.comm_type = PIO_REARR_COMM_COLL
+       pio_rearr_opts%comm_type = PIO_REARR_COMM_COLL
     endif
     
     call NUOPC_CompAttributeGet(driver, name="pio_rearr_comm_fcd", value=pio_rearr_comm_fcd, rc=rc)
@@ -159,50 +159,50 @@ contains
     call NUOPC_CompAttributeGet(driver, name="pio_rearr_comm_enable_hs_comp2io", value=cname, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    pio_rearr_opts.comm_fc_opts_comp2io.enable_hs = (trim(cname) .eq. '.true.')
+    pio_rearr_opts%comm_fc_opts_comp2io%enable_hs = (trim(cname) .eq. '.true.')
 
     call NUOPC_CompAttributeGet(driver, name="pio_rearr_comm_enable_hs_io2comp", value=cname, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    pio_rearr_opts.comm_fc_opts_io2comp.enable_hs = (trim(cname) .eq. '.true.')
+    pio_rearr_opts%comm_fc_opts_io2comp%enable_hs = (trim(cname) .eq. '.true.')
 
     call NUOPC_CompAttributeGet(driver, name="pio_rearr_comm_enable_isend_comp2io", value=cname, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    pio_rearr_opts.comm_fc_opts_comp2io.enable_isend = (trim(cname) .eq. '.true.')
+    pio_rearr_opts%comm_fc_opts_comp2io%enable_isend = (trim(cname) .eq. '.true.')
 
     call NUOPC_CompAttributeGet(driver, name="pio_rearr_comm_enable_isend_io2comp", value=cname, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    pio_rearr_opts.comm_fc_opts_io2comp.enable_isend = (trim(cname) .eq. '.true.')
+    pio_rearr_opts%comm_fc_opts_io2comp%enable_isend = (trim(cname) .eq. '.true.')
 
     call NUOPC_CompAttributeGet(driver, name="pio_rearr_comm_max_pend_req_comp2io", value=cname, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    read(cname, *) pio_rearr_opts.comm_fc_opts_comp2io.max_pend_req
+    read(cname, *) pio_rearr_opts%comm_fc_opts_comp2io%max_pend_req
 
     call NUOPC_CompAttributeGet(driver, name="pio_rearr_comm_max_pend_req_io2comp", value=cname, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    read(cname, *) pio_rearr_opts.comm_fc_opts_io2comp.max_pend_req
+    read(cname, *) pio_rearr_opts%comm_fc_opts_io2comp%max_pend_req
 
     if(mastertask) then
        ! Log the rearranger options
        write(shr_log_unit, *) "PIO rearranger options:"
-       write(shr_log_unit, *) "  comm type     = ", pio_rearr_opts.comm_type, " (",trim(pio_rearr_comm_type),")"
-       write(shr_log_unit, *) "  comm fcd      = ", pio_rearr_opts.fcd, " (",trim(pio_rearr_comm_fcd),")"
-       if(pio_rearr_opts.comm_fc_opts_comp2io.max_pend_req == PIO_REARR_COMM_UNLIMITED_PEND_REQ) then
+       write(shr_log_unit, *) "  comm type     = ", pio_rearr_opts%comm_type, " (",trim(pio_rearr_comm_type),")"
+       write(shr_log_unit, *) "  comm fcd      = ", pio_rearr_opts%fcd, " (",trim(pio_rearr_comm_fcd),")"
+       if(pio_rearr_opts%comm_fc_opts_comp2io%max_pend_req == PIO_REARR_COMM_UNLIMITED_PEND_REQ) then
           write(shr_log_unit, *) "  max pend req (comp2io)  = PIO_REARR_COMM_UNLIMITED_PEND_REQ (-1)"
        else
-          write(shr_log_unit, *) "  max pend req (comp2io)  = ", pio_rearr_opts.comm_fc_opts_comp2io.max_pend_req
+          write(shr_log_unit, *) "  max pend req (comp2io)  = ", pio_rearr_opts%comm_fc_opts_comp2io%max_pend_req
        end if
-       write(shr_log_unit, *) "  enable_hs (comp2io)     = ", pio_rearr_opts.comm_fc_opts_comp2io.enable_hs
-       write(shr_log_unit, *) "  enable_isend (comp2io)  = ", pio_rearr_opts.comm_fc_opts_comp2io.enable_isend
-       if(pio_rearr_opts.comm_fc_opts_io2comp.max_pend_req == PIO_REARR_COMM_UNLIMITED_PEND_REQ) then
+       write(shr_log_unit, *) "  enable_hs (comp2io)     = ", pio_rearr_opts%comm_fc_opts_comp2io%enable_hs
+       write(shr_log_unit, *) "  enable_isend (comp2io)  = ", pio_rearr_opts%comm_fc_opts_comp2io%enable_isend
+       if(pio_rearr_opts%comm_fc_opts_io2comp%max_pend_req == PIO_REARR_COMM_UNLIMITED_PEND_REQ) then
           write(shr_log_unit, *) "  max pend req (io2comp)  = PIO_REARR_COMM_UNLIMITED_PEND_REQ (-1)"
        else
-          write(shr_log_unit, *) "  max pend req (io2comp)  = ", pio_rearr_opts.comm_fc_opts_io2comp.max_pend_req
+          write(shr_log_unit, *) "  max pend req (io2comp)  = ", pio_rearr_opts%comm_fc_opts_io2comp%max_pend_req
        end if
-       write(shr_log_unit, *) "  enable_hs (io2comp)    = ", pio_rearr_opts.comm_fc_opts_io2comp.enable_hs
-       write(shr_log_unit, *) "  enable_isend (io2comp)  = ", pio_rearr_opts.comm_fc_opts_io2comp.enable_isend
+       write(shr_log_unit, *) "  enable_hs (io2comp)    = ", pio_rearr_opts%comm_fc_opts_io2comp%enable_hs
+       write(shr_log_unit, *) "  enable_isend (io2comp)  = ", pio_rearr_opts%comm_fc_opts_io2comp%enable_isend
     end if
 
   end subroutine shr_pio_init
@@ -315,11 +315,11 @@ contains
           
           if (pio_comp_settings(i)%pio_async_interface) then
           else 
-             if(pio_rearr_opts.comm_fc_opts_io2comp.max_pend_req < PIO_REARR_COMM_UNLIMITED_PEND_REQ) then
-                pio_rearr_opts.comm_fc_opts_io2comp.max_pend_req = pio_comp_settings(i)%pio_numiotasks
+             if(pio_rearr_opts%comm_fc_opts_io2comp%max_pend_req < PIO_REARR_COMM_UNLIMITED_PEND_REQ) then
+                pio_rearr_opts%comm_fc_opts_io2comp%max_pend_req = pio_comp_settings(i)%pio_numiotasks
              endif
-             if(pio_rearr_opts.comm_fc_opts_comp2io.max_pend_req < PIO_REARR_COMM_UNLIMITED_PEND_REQ) then
-                pio_rearr_opts.comm_fc_opts_comp2io.max_pend_req = pio_comp_settings(i)%pio_numiotasks
+             if(pio_rearr_opts%comm_fc_opts_comp2io%max_pend_req < PIO_REARR_COMM_UNLIMITED_PEND_REQ) then
+                pio_rearr_opts%comm_fc_opts_comp2io%max_pend_req = pio_comp_settings(i)%pio_numiotasks
              endif
              call pio_init(comp_rank ,comp_comm ,pio_comp_settings(i)%pio_numiotasks, 0, pio_comp_settings(i)%pio_stride, &
                   pio_comp_settings(i)%pio_rearranger, iosystems(i), pio_comp_settings(i)%pio_root, &

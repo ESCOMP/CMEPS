@@ -219,8 +219,7 @@ contains
     !-------------------------------------------
     ! Timer initialization (has to be after pelayouts are determined)
     !-------------------------------------------
-    call t_setLogUnit(logunit)
-    call t_initf('drv_in', LogPrint=.true., mpicom=global_comm, mastertask=mastertask, MaxThreads=maxthreads)
+    call t_initf('drv_in', LogPrint=.true., LogUnit=logunit, mpicom=global_comm, mastertask=mastertask, MaxThreads=maxthreads)
 
     call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
 
