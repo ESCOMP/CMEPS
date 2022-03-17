@@ -10,7 +10,7 @@ module ESM
   use shr_mem_mod  , only : shr_mem_init
   use shr_file_mod , only : shr_file_setLogunit
   use esm_utils_mod, only : logunit, mastertask, dbug_flag, chkerr
-  use perf_mod     , only : t_initf
+  use perf_mod     , only : t_initf, t_setLogUnit
 
   implicit none
   private
@@ -219,7 +219,7 @@ contains
     !-------------------------------------------
     ! Timer initialization (has to be after pelayouts are determined)
     !-------------------------------------------
-
+    call t_setLogUnit(logunit)
     call t_initf('drv_in', LogPrint=.true., mpicom=global_comm, mastertask=mastertask, MaxThreads=maxthreads)
 
     call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
