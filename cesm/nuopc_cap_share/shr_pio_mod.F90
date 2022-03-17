@@ -315,15 +315,16 @@ contains
           
           if (pio_comp_settings(i)%pio_async_interface) then
           else 
+             if(pio_rearr_opts.comm_fc_opts_io2comp.max_pend_req < PIO_REARR_COMM_UNLIMITED_PEND_REQ) then
+                pio_rearr_opts.comm_fc_opts_io2comp.max_pend_req = pio_comp_settings(i)%pio_numiotasks
+             endif
+             if(pio_rearr_opts.comm_fc_opts_comp2io.max_pend_req < PIO_REARR_COMM_UNLIMITED_PEND_REQ) then
+                pio_rearr_opts.comm_fc_opts_comp2io.max_pend_req = pio_comp_settings(i)%pio_numiotasks
+             endif
              call pio_init(comp_rank ,comp_comm ,pio_comp_settings(i)%pio_numiotasks, 0, pio_comp_settings(i)%pio_stride, &
                   pio_comp_settings(i)%pio_rearranger, iosystems(i), pio_comp_settings(i)%pio_root, &
                   pio_rearr_opts)
-             print *,__FILE__,__LINE__,io_compid(i),iosystems(i)
           endif
-!          if(comp_rank == 0) then
-!             call shr_pio_log_comp_settings(gcomp(i))
-!          endif
-          
        endif
     enddo
 

@@ -259,10 +259,7 @@ contains
              logUnit = shrlogunit
              mastertask = .false.
           endif
-          call NUOPC_CompAttributeSet(driver, name="stdout_unit", value=logunit, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-!          call shr_file_setLogUnit (logunit)
+          call shr_file_setLogUnit (logunit)
 
           ! Create a clock for each driver instance
           call esm_time_clockInit(ensemble_driver, driver, logunit, mastertask, rc)

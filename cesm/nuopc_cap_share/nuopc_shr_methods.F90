@@ -156,7 +156,6 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        open(newunit=logunit,file=trim(diro)//"/"//trim(logfile))
-
        call shr_pio_log_comp_settings(gcomp, logunit)
 
     else

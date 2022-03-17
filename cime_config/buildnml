@@ -574,9 +574,6 @@ def buildnml(case, caseroot, component):
     # create the files nuopc.runconfig, nuopc.runseq, drv_in and drv_flds_in
     _create_drv_namelists(case, infile, confdir, nmlgen, files)
 
-    # create the files comp_modelio.nml where comp = [atm, lnd...]
-#    _create_component_modelio_namelists(case, confdir, nmlgen, files)
-
     # set rundir
     rundir = case.get_value("RUNDIR")
 
