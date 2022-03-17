@@ -132,7 +132,7 @@ contains
 !===============================================================================
 
   subroutine set_component_logging(gcomp, mastertask, logunit, shrlogunit, rc)
-
+    use shr_pio_mod, only : shr_pio_log_comp_settings
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
     logical, intent(in)  :: mastertask
@@ -156,12 +156,15 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        open(newunit=logunit,file=trim(diro)//"/"//trim(logfile))
+
+       call shr_pio_log_comp_settings(gcomp, logunit)
+
     else
        logUnit = 6
     endif
 
     call shr_file_setLogUnit (logunit)
-
+    
   end subroutine set_component_logging
 
 !===============================================================================

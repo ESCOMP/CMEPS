@@ -547,8 +547,9 @@ contains
     use ESMF  , only : ESMF_GridComp, ESMF_State, ESMF_Clock, ESMF_VM, ESMF_SUCCESS
     use ESMF  , only : ESMF_GridCompGet, ESMF_VMGet, ESMF_AttributeGet, ESMF_AttributeSet
     use ESMF  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_METHOD_INITIALIZE
-    use NUOPC , only : NUOPC_CompFilterPhaseMap, NUOPC_CompAttributeGet
+    use NUOPC , only : NUOPC_CompFilterPhaseMap, NUOPC_CompAttributeGet, NUOPC_CompAttributeSet
     use med_internalstate_mod, only : mastertask, logunit, diagunit
+    use nuopc_shr_methods, only : set_component_logging
 
     type(ESMF_GridComp)   :: gcomp
     type(ESMF_State)      :: importState, exportState
@@ -560,6 +561,7 @@ contains
     character(len=CL) :: cvalue
     integer           :: localPet
     integer           :: i
+    integer           :: shrlogunit
     logical           :: isPresent, isSet
     character(len=CX) :: msgString
     character(len=CX) :: diro
@@ -590,7 +592,8 @@ contains
        if (.not. isPresent .and. .not. isSet) then
           logfile = 'mediator.log'
        end if
-       open(newunit=logunit, file=trim(diro)//"/"//trim(logfile))
+
+       call set_component_logging(gcomp, mastertask, logunit, shrlogunit, rc)
 
        call NUOPC_CompAttributeGet(gcomp, name="do_budgets", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return

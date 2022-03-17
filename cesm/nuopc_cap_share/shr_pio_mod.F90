@@ -22,6 +22,7 @@ module shr_pio_mod
   public :: shr_pio_finalize
   public :: shr_pio_getioformat
   public :: shr_pio_getrearranger
+  public :: shr_pio_log_comp_settings
 
   interface shr_pio_getiotype
      module procedure shr_pio_getiotype_fromid, shr_pio_getiotype_fromname
@@ -208,8 +209,8 @@ contains
 
   subroutine shr_pio_component_init(driver, ncomps, rc)
     use ESMF, only : ESMF_GridComp, ESMF_LogSetError, ESMF_RC_NOT_VALID, ESMF_GridCompIsCreated, ESMF_VM, ESMF_VMGet
-    use ESMF, only : ESMF_GridCompGet, ESMF_GridCompIsPetLocal
-    use NUOPC, only : NUOPC_CompAttributeGet
+    use ESMF, only : ESMF_GridCompGet, ESMF_GridCompIsPetLocal, ESMF_VMIsCreated
+    use NUOPC, only : NUOPC_CompAttributeGet, NUOPC_CompAttributeSet, NUOPC_CompAttributeAdd
     use NUOPC_Driver, only : NUOPC_DriverGetComp
 
     type(ESMF_GridComp) :: driver
@@ -228,6 +229,7 @@ contains
     allocate(gcomp(ncomps))
 
     allocate(io_compid(ncomps))
+    allocate(io_compname(ncomps))
     allocate(iosystems(ncomps))
 
     nullify(gcomp)
@@ -238,15 +240,24 @@ contains
     total_comps = size(gcomp)
     
     do i=1,total_comps
-       if (ESMF_GridCompIsCreated(gcomp(i), rc=rc)) then
-          io_compid(i) = i
-          call ESMF_GridCompGet(gcomp(i), vm=vm, rc=rc)
+       io_compid(i) = i+1
+
+       if (ESMF_GridCompIsPetLocal(gcomp(i), rc=rc)) then
+          call ESMF_GridCompGet(gcomp(i), vm=vm, name=cval, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          io_compname(i) = trim(cval)
+
+          call NUOPC_CompAttributeAdd(gcomp(i), attrList=(/'MCTID'/), rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+          write(cval, *) io_compid(i)
+          call NUOPC_CompAttributeSet(gcomp(i), name="MCTID", value=trim(cval), rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
 
           call ESMF_VMGet(vm, mpiCommunicator=comp_comm, localPet=comp_rank, petCount=npets, &
                ssiLocalPetCount=default_stride, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
-
+          
           call NUOPC_CompAttributeGet(gcomp(i), name="pio_stride", value=cval, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           read(cval, *) pio_comp_settings(i)%pio_stride
@@ -257,11 +268,11 @@ contains
           call NUOPC_CompAttributeGet(gcomp(i), name="pio_rearranger", value=cval, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           read(cval, *) pio_comp_settings(i)%pio_rearranger
-
+          
           call NUOPC_CompAttributeGet(gcomp(i), name="pio_numiotasks", value=cval, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           read(cval, *) pio_comp_settings(i)%pio_numiotasks
-
+          
           if(pio_comp_settings(i)%pio_numiotasks < 0 .or. pio_comp_settings(i)%pio_numiotasks > npets) then
              pio_comp_settings(i)%pio_numiotasks = max(1,npets/pio_comp_settings(i)%pio_stride)
           endif
@@ -270,12 +281,12 @@ contains
           call NUOPC_CompAttributeGet(gcomp(i), name="pio_root", value=cval, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           read(cval, *) pio_comp_settings(i)%pio_root
-
+          
           if(pio_comp_settings(i)%pio_root < 0 .or. pio_comp_settings(i)%pio_root > npets) then
              pio_comp_settings(i)%pio_root = 0
           endif
-
-
+          
+          
           call NUOPC_CompAttributeGet(gcomp(i), name="pio_typename", value=cval, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           
@@ -293,45 +304,62 @@ contains
              call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
              return
           end select
-
+             
           call NUOPC_CompAttributeGet(gcomp(i), name="pio_async_interface", value=cval, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           pio_comp_settings(i)%pio_async_interface = (trim(cval) == '.true.')
-
+          
           call NUOPC_CompAttributeGet(gcomp(i), name="pio_netcdf_format", value=cval, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           call shr_pio_getioformatfromname(cval, pio_comp_settings(i)%pio_netcdf_ioformat, PIO_64BIT_DATA)
-
-          if(comp_rank == 0) then
-             call shr_pio_log_comp_settings(gcomp(i), pio_comp_settings(i))
-          endif
-
+          
           if (pio_comp_settings(i)%pio_async_interface) then
-          else if(ESMF_GridCompIsPetLocal(gcomp(i), rc=rc)) then
-             print *,__FILE__,__LINE__,i, comp_rank ,comp_comm ,pio_comp_settings(i)%pio_numiotasks, pio_comp_settings(i)%pio_stride,&
-                  pio_comp_settings(i)%pio_rearranger,  pio_comp_settings(i)%pio_root
+          else 
              call pio_init(comp_rank ,comp_comm ,pio_comp_settings(i)%pio_numiotasks, 0, pio_comp_settings(i)%pio_stride, &
                   pio_comp_settings(i)%pio_rearranger, iosystems(i), pio_comp_settings(i)%pio_root, &
                   pio_rearr_opts)
+             print *,__FILE__,__LINE__,io_compid(i),iosystems(i)
           endif
+!          if(comp_rank == 0) then
+!             call shr_pio_log_comp_settings(gcomp(i))
+!          endif
+          
        endif
     enddo
 
     deallocate(gcomp)
   end subroutine shr_pio_component_init
 
-  subroutine shr_pio_log_comp_settings(gcomp, pio_component_settings)
-    use ESMF, only : ESMF_GridComp
+  subroutine shr_pio_log_comp_settings(gcomp, logunit)
+    use ESMF, only : ESMF_GridComp, ESMF_GridCompGet
+    use NUOPC, only: NUOPC_CompAttributeGet
+
     type(ESMF_GridComp) :: gcomp
-    type(pio_comp_t) :: pio_component_settings
+    integer, intent(in) :: logunit
 
-    print *,__FILE__,__LINE__,' numiotasks=',pio_component_settings.pio_numiotasks
-    
-    print *,__FILE__,__LINE__,' stride=',pio_component_settings.pio_stride
-    
-    print *,__FILE__,__LINE__,' rearranger=',pio_component_settings.pio_rearranger
+    integer :: compid
+    character(len=CS) :: name, cval
+    integer :: i
+    integer :: rc
+    logical :: isPresent
 
-    print *,__FILE__,__LINE__,' root=',pio_component_settings.pio_root
+    call ESMF_GridCompGet(gcomp, name=name, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    call NUOPC_CompAttributeGet(gcomp, name="MCTID", value=cval, isPresent=isPresent, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    if(isPresent) then
+       read(cval, *) compid
+       i = shr_pio_getindex(compid)
+    endif
+    write(logunit,*) trim(name),': PIO numiotasks=',   pio_comp_settings(i)%pio_numiotasks
+    
+    write(logunit, *) trim(name), ': PIO stride=',pio_comp_settings(i)%pio_stride
+    
+    write(logunit, *) trim(name),': PIO rearranger=',pio_comp_settings(i)%pio_rearranger
+
+    write(logunit, *) trim(name),': PIO root=',pio_comp_settings(i)%pio_root
         
   end subroutine shr_pio_log_comp_settings
 
@@ -436,7 +464,7 @@ contains
      implicit none
      integer, intent(in) :: compid
      integer :: i
-
+     character(len=shr_kind_cl) :: msg
      index = -1
      do i=1,total_comps
         if(io_compid(i)==compid) then
@@ -446,7 +474,8 @@ contains
     end do
 
     if(index<0) then
-       call shr_sys_abort('shr_pio_getindex :: compid out of allowed range')
+       write(msg, *) 'shr_pio_getindex :: compid=',compid,' out of allowed range: '
+       call shr_sys_abort(msg)
     end if
   end function shr_pio_getindex_fromid
 
@@ -483,7 +512,6 @@ contains
     ! (but it is case-insensitive)
     integer, intent(in) :: compid
     type(iosystem_desc_t), pointer :: iosystem
-
 
     iosystem => iosystems(shr_pio_getindex(compid))
 

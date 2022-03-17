@@ -5,7 +5,6 @@ module ESM
   !-----------------------------------------------------------------------------
 
   use shr_kind_mod , only : r8=>shr_kind_r8, cl=>shr_kind_cl, cs=>shr_kind_cs
-  use shr_log_mod  , only : shrlogunit=> shr_log_unit
   use shr_sys_mod  , only : shr_sys_abort
   use shr_mpi_mod  , only : shr_mpi_bcast
   use shr_mem_mod  , only : shr_mem_init
