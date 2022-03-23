@@ -156,12 +156,13 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        open(newunit=logunit,file=trim(diro)//"/"//trim(logfile))
+       ! Write the PIO settings to the beggining of each component log
        call shr_pio_log_comp_settings(gcomp, logunit)
 
     else
        logUnit = 6
     endif
-
+    ! TODO: shr_file mod is deprecated and should be removed.
     call shr_file_setLogUnit (logunit)
     
   end subroutine set_component_logging

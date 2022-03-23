@@ -930,6 +930,7 @@ contains
     endif
 
     ! Initialize PIO
+    ! This reads in the pio parameters that are independent of component
     call shr_pio_init(driver, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
@@ -1176,7 +1177,8 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     enddo
-
+    ! Read in component dependent PIO parameters and initialize
+    ! IO systems
     call shr_pio_component_init(driver, size(comps), rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 

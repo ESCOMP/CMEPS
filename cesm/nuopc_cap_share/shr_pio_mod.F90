@@ -219,11 +219,13 @@ contains
     integer, intent(out) :: rc
 
     integer :: i, npets, default_stride
-
+    integer :: j
     integer :: comp_comm, comp_rank
     type(ESMF_GridComp), pointer :: gcomp(:)
     character(CS) :: cval
     character(CS) :: msgstr
+    integer :: do_async_init
+    type(io_system_desc_t), allocatable :: async_iosystems(:)
 
     allocate(pio_comp_settings(ncomps))
     allocate(gcomp(ncomps))
@@ -233,6 +235,7 @@ contains
     allocate(iosystems(ncomps))
 
     nullify(gcomp)
+    do_async_init = 0
 
     call NUOPC_DriverGetComp(driver, compList=gcomp, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -314,7 +317,8 @@ contains
           call shr_pio_getioformatfromname(cval, pio_comp_settings(i)%pio_netcdf_ioformat, PIO_64BIT_DATA)
           
           if (pio_comp_settings(i)%pio_async_interface) then
-          else 
+             do_async_init = do_async_init + 1
+          else
              if(pio_rearr_opts%comm_fc_opts_io2comp%max_pend_req < PIO_REARR_COMM_UNLIMITED_PEND_REQ) then
                 pio_rearr_opts%comm_fc_opts_io2comp%max_pend_req = pio_comp_settings(i)%pio_numiotasks
              endif
@@ -327,6 +331,17 @@ contains
           endif
        endif
     enddo
+    if (do_async_init > 0) then
+       allocate(async_iosystems(do_async_init))
+       j=1
+       do i=1,total_comps
+          if(pio_comp_settings(i)%pio_async_interface) then
+             iosystem(i) = async_iosystems(j)
+             j = j+1
+          endif
+       enddo
+       
+    endif
 
     deallocate(gcomp)
   end subroutine shr_pio_component_init

@@ -177,7 +177,6 @@ contains
     pio_iotype   =  shr_pio_getiotype(med_id)
     pio_ioformat =  shr_pio_getioformat(med_id)
 #else
-    print *,__FILE__,__LINE__,'PIO type, format:',pio_iotype, pio_ioformat
     ! query VM
     call ESMF_VMGetCurrent(vm=vm, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
