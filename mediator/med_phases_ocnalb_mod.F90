@@ -6,7 +6,7 @@ module med_phases_ocnalb_mod
   use med_utils_mod         , only : chkerr          => med_utils_chkerr
   use med_methods_mod       , only : FB_diagnose     => med_methods_FB_diagnose
   use med_methods_mod       , only : State_GetScalar => med_methods_State_GetScalar
-  use esmFlds               , only : mapconsf, mapnames, compatm, compocn
+  use med_internalstate_mod , only : mapconsf, mapnames, compatm, compocn
   use perf_mod              , only : t_startf, t_stopf
 #ifdef CESMCOUPLED
   use shr_orb_mod           , only : shr_orb_cosz, shr_orb_decl

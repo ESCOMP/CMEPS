@@ -2,19 +2,19 @@ module esmFldsExchange_hafs_mod
 
   use ESMF
   use NUOPC
-  use med_utils_mod, only : chkerr => med_utils_chkerr
-  use med_kind_mod,  only : CX=>SHR_KIND_CX
-  use med_kind_mod,  only : CS=>SHR_KIND_CS
-  use med_kind_mod,  only : CL=>SHR_KIND_CL
-  use med_kind_mod,  only : R8=>SHR_KIND_R8
-  use esmflds,       only : compmed
-  use esmflds,       only : compatm
-  use esmflds,       only : compocn
-  use esmflds,       only : compwav
-  use esmflds,       only : ncomps
-  use esmflds,       only : fldListTo
-  use esmflds,       only : fldListFr
-  use esmFlds,       only : coupling_mode
+  use med_utils_mod         , only : chkerr => med_utils_chkerr
+  use med_kind_mod          , only : CX=>SHR_KIND_CX
+  use med_kind_mod          , only : CS=>SHR_KIND_CS
+  use med_kind_mod          , only : CL=>SHR_KIND_CL
+  use med_kind_mod          , only : R8=>SHR_KIND_R8
+  use med_internalstate_mod , only : compmed
+  use med_internalstate_mod , only : compatm
+  use med_internalstate_mod , only : compocn
+  use med_internalstate_mod , only : compwav
+  use med_internalstate_mod , only : ncomps
+  use med_internalstate_mod , only : coupling_mode
+  use esmflds               , only : fldListTo
+  use esmflds               , only : fldListFr
 
   !---------------------------------------------------------------------
   ! This is a mediator specific routine that determines ALL possible
@@ -88,7 +88,7 @@ contains
 
   subroutine esmFldsExchange_hafs_advt(gcomp, phase, rc)
 
-    use esmFlds               , only : addfld => med_fldList_AddFld
+    use esmFlds, only : addfld => med_fldList_AddFld
 
     ! input/output parameters:
     type(ESMF_GridComp)              :: gcomp
@@ -172,7 +172,7 @@ contains
     ! ---------------------------------------------------------------------
     if (hafs_attr%atm_present .and. hafs_attr%wav_present) then
       allocate(S_flds(1))
-      S_flds = (/'Sw_zo'/) ! wave_z0_roughness_length
+      S_flds = (/'Sw_z0'/) ! wave_z0_roughness_length
       do n = 1,size(S_flds)
          fldname = trim(S_flds(n))
          call addfld(fldListFr(compwav)%flds, trim(fldname))
@@ -294,13 +294,13 @@ contains
 
     use med_methods_mod       , only : fldchk => med_methods_FB_FldChk
     use med_internalstate_mod , only : InternalState
+    use med_internalstate_mod , only : mapbilnr, mapconsf, mapconsd, mappatch
+    use med_internalstate_mod , only : mapfcopy, mapnstod, mapnstod_consd
+    use med_internalstate_mod , only : mapfillv_bilnr
+    use med_internalstate_mod , only : mapnstod_consf
     use esmFlds               , only : med_fldList_type
     use esmFlds               , only : addmap => med_fldList_AddMap
     use esmFlds               , only : addmrg => med_fldList_AddMrg
-    use esmflds               , only : mapbilnr, mapconsf, mapconsd, mappatch
-    use esmflds               , only : mapfcopy, mapnstod, mapnstod_consd
-    use esmflds               , only : mapfillv_bilnr
-    use esmflds               , only : mapnstod_consf
 
     ! input/output parameters:
     type(ESMF_GridComp)              :: gcomp
@@ -385,7 +385,7 @@ contains
     ! ---------------------------------------------------------------------
     if (hafs_attr%atm_present .and. hafs_attr%wav_present) then
       allocate(S_flds(1))
-      S_flds = (/'Sw_zo'/) ! wave_z0_roughness_length
+      S_flds = (/'Sw_z0'/) ! wave_z0_roughness_length
       do n = 1,size(S_flds)
          fldname = trim(S_flds(n))
          if (fldchk(is_local%wrap%FBExp(compatm),trim(fldname),rc=rc) .and. &

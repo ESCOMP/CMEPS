@@ -18,8 +18,8 @@ module med_phases_history_mod
   use ESMF                  , only : operator(-), operator(+)
   use NUOPC                 , only : NUOPC_CompAttributeGet
   use NUOPC_Model           , only : NUOPC_ModelGet
-  use esmFlds               , only : ncomps, compname
   use med_utils_mod         , only : chkerr => med_utils_ChkErr
+  use med_internalstate_mod , only : ncomps, compname
   use med_internalstate_mod , only : InternalState, mastertask, logunit
   use med_time_mod          , only : med_time_alarmInit
   use med_io_mod            , only : med_io_write, med_io_wopen, med_io_enddef, med_io_close
@@ -27,6 +27,9 @@ module med_phases_history_mod
 
   implicit none
   private
+
+  ! Public routine called from med_internal_state_init
+  public :: med_phases_history_init
 
   ! Public routine called from the run sequence
   public :: med_phases_history_write         ! inst only - for all variables
@@ -65,7 +68,7 @@ module med_phases_history_mod
      logical          :: is_clockset = .false.
      logical          :: is_active = .false.
   end type instfile_type
-  type(instfile_type) , public :: instfiles(ncomps)
+  type(instfile_type) , allocatable, public :: instfiles(:)
 
   ! ----------------------------
   ! Time averaging history files
@@ -84,7 +87,7 @@ module med_phases_history_mod
      logical                :: is_clockset = .false.
      logical                :: is_active = .false.
   end type avgfile_type
-  type(avgfile_type) :: avgfiles(ncomps)
+  type(avgfile_type), allocatable :: avgfiles(:)
 
   ! ----------------------------
   ! Auxiliary history files
@@ -109,9 +112,7 @@ module med_phases_history_mod
      integer            :: num_auxfiles  = 0       ! actual number of auxiliary files
      logical            :: init_auxfiles = .false. ! if auxfile initial has occured
   end type auxcomp_type
-  type(auxcomp_type) , public :: auxcomp(ncomps)
-
-  !logical :: init_auxfiles(ncomps) = .false.   ! if true, auxfiles has been initialized for the component
+  type(auxcomp_type), allocatable, public :: auxcomp(:)
 
   ! ----------------------------
   ! Other private module variables
@@ -130,6 +131,14 @@ module med_phases_history_mod
 contains
 !===============================================================================
 
+  subroutine med_phases_history_init()
+    ! allocate module memory
+    allocate(instfiles(ncomps))
+    allocate(avgfiles(ncomps))
+    allocate(auxcomp(ncomps))
+  end subroutine med_phases_history_init
+
+  !===============================================================================
   subroutine med_phases_history_write(gcomp, rc)
 
     ! --------------------------------------
@@ -139,7 +148,7 @@ contains
     use med_io_mod, only : med_io_write_time, med_io_define_time
     use ESMF      , only : ESMF_Alarm, ESMF_AlarmSet
     use ESMF      , only : ESMF_FieldBundleIsCreated
-    use esmflds   , only : compocn, compatm
+    use med_internalstate_mod, only : compocn, compatm
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -369,7 +378,7 @@ contains
 
     use ESMF      , only : ESMF_FieldBundleIsCreated
     use med_io_mod, only : med_io_write_time, med_io_define_time
-    use esmFlds   , only : compmed, compocn, compatm
+    use med_internalstate_mod, only : compmed, compocn, compatm
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -506,7 +515,7 @@ contains
 
     ! Write yearly average of lnd -> glc fields
 
-    use esmFlds           , only : complnd
+    use med_internalstate_mod, only : complnd
     use med_constants_mod , only : SecPerDay => med_constants_SecPerDay
     use med_io_mod        , only : med_io_write_time, med_io_define_time
     use med_io_mod        , only : med_io_date2yyyymmdd, med_io_sec2hms, med_io_ymd2date
@@ -619,7 +628,7 @@ contains
   !===============================================================================
   subroutine med_phases_history_write_comp(gcomp, compid, rc)
 
-    ! Write mediator history file for atm variables
+    ! Write mediator history file for compid variables
 
     ! input/output variables
     type(ESMF_GridComp), intent(inout) :: gcomp
@@ -658,6 +667,7 @@ contains
     integer             :: hist_n       ! freq_n setting relative to freq_option
     character(CL)       :: hist_option_in
     character(CL)       :: hist_n_in
+    integer             :: hist_tilesize
     logical             :: isPresent
     logical             :: isSet
     type(ESMF_VM)       :: vm
@@ -680,10 +690,20 @@ contains
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+    ! Determine if tiled output to history file is requested
+    call NUOPC_CompAttributeGet(gcomp, name='history_tile_'//trim(compname(compid)), isPresent=isPresent, isSet=isSet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+       call NUOPC_CompAttributeGet(gcomp, name='history_tile_'//trim(compname(compid)), value=cvalue, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       read(cvalue,*) hist_tilesize
+    else
+       hist_tilesize = 0
+    end if
     ! alarm is not set determine hist_option and hist_n
     if (.not. instfile%is_clockset) then
 
-       ! Determine attribute prefix
+       ! Determine attribute name
        write(hist_option_in,'(a)') 'history_option_'//trim(compname(compid))//'_inst'
        write(hist_n_in,'(a)') 'history_n_'//trim(compname(compid))//'_inst'
 
@@ -753,19 +773,19 @@ contains
              ! Define/write import field bundle
              if (ESMF_FieldBundleIsCreated(is_local%wrap%FBimp(compid,compid),rc=rc)) then
                 call med_io_write(hist_file, is_local%wrap%FBimp(compid,compid), whead(m), wdata(m), nx, ny, &
-                     nt=1, pre=trim(compname(compid))//'Imp', rc=rc)
+                     nt=1, pre=trim(compname(compid))//'Imp', tilesize=hist_tilesize, rc=rc)
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
              endif
              ! Define/write import export bundle
              if (ESMF_FieldBundleIsCreated(is_local%wrap%FBexp(compid),rc=rc)) then
                 call med_io_write(hist_file, is_local%wrap%FBexp(compid), whead(m), wdata(m), nx, ny, &
-                     nt=1, pre=trim(compname(compid))//'Exp', rc=rc)
+                     nt=1, pre=trim(compname(compid))//'Exp', tilesize=hist_tilesize, rc=rc)
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
              endif
              ! Define/Write mediator fractions
              if (ESMF_FieldBundleIsCreated(is_local%wrap%FBFrac(compid),rc=rc)) then
                 call med_io_write(hist_file, is_local%wrap%FBFrac(compid), whead(m), wdata(m), nx, ny, &
-                     nt=1, pre='Med_frac_'//trim(compname(compid)), rc=rc)
+                     nt=1, pre='Med_frac_'//trim(compname(compid)), tilesize=hist_tilesize, rc=rc)
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
              end if
 
@@ -805,6 +825,7 @@ contains
     integer                 :: hist_n        ! freq_n setting relative to freq_option
     character(CL)           :: hist_option_in
     character(CL)           :: hist_n_in
+    integer                 :: hist_tilesize
     logical                 :: isPresent
     logical                 :: isSet
     type(ESMF_VM)           :: vm
@@ -829,10 +850,20 @@ contains
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+    ! Determine if tiled output to history file is requested
+    call NUOPC_CompAttributeGet(gcomp, name='history_tile_'//trim(compname(compid)), isPresent=isPresent, isSet=isSet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+       call NUOPC_CompAttributeGet(gcomp, name='history_tile_'//trim(compname(compid)), value=cvalue, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       read(cvalue,*) hist_tilesize
+    else
+       hist_tilesize = 0
+    end if
     ! alarm is not set determine hist_option and hist_n
     if (.not. avgfile%is_clockset) then
 
-       ! Determine attribute prefix
+       ! Determine attribute name
        write(hist_option_in,'(a)') 'history_option_'//trim(compname(compid))//'_avg'
        write(hist_n_in,'(a)') 'history_n_'//trim(compname(compid))//'_avg'
 
@@ -948,7 +979,7 @@ contains
                 ny = is_local%wrap%ny(compid)
                 if (ESMF_FieldBundleIsCreated(is_local%wrap%FBimp(compid,compid),rc=rc)) then
                    call med_io_write(hist_file, avgfile%FBaccum_import, whead(m), wdata(m), nx, ny, &
-                        nt=1, pre=trim(compname(compid))//'Imp', rc=rc)
+                        nt=1, pre=trim(compname(compid))//'Imp', tilesize=hist_tilesize, rc=rc)
                    if (ChkErr(rc,__LINE__,u_FILE_u)) return
                    if (wdata(m)) then
                       call med_methods_FB_reset(avgfile%FBAccum_import, czero, rc=rc)
@@ -957,7 +988,7 @@ contains
                 endif
                 if (ESMF_FieldBundleIsCreated(is_local%wrap%FBexp(compid),rc=rc)) then
                    call med_io_write(hist_file, avgfile%FBaccum_export, whead(m), wdata(m), nx, ny, &
-                        nt=1, pre=trim(compname(compid))//'Exp', rc=rc)
+                        nt=1, pre=trim(compname(compid))//'Exp', tilesize=hist_tilesize, rc=rc)
                    if (ChkErr(rc,__LINE__,u_FILE_u)) return
                    if (wdata(m)) then
                       call med_methods_FB_reset(avgfile%FBAccum_export, czero, rc=rc)

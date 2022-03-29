@@ -110,7 +110,8 @@ def gen_runseq(case, coupling_times):
         runseq.add_action("MED med_phases_prep_ice"         , med_to_ice)
         runseq.add_action("MED -> ICE :remapMethod=redist"  , med_to_ice)
 
-        runseq.add_action("MED med_phases_prep_wav"        , med_to_wav)
+        runseq.add_action("MED med_phases_prep_wav_accum"  , med_to_wav)
+        runseq.add_action("MED med_phases_prep_wav_avg"    , med_to_wav)
         runseq.add_action("MED -> WAV :remapMethod=redist" , med_to_wav)
 
         runseq.add_action("MED med_phases_prep_rof"        , med_to_rof and not rof_outer_loop)

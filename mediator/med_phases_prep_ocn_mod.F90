@@ -20,8 +20,7 @@ module med_phases_prep_ocn_mod
   use med_methods_mod       , only : FB_copy       => med_methods_FB_copy
   use med_methods_mod       , only : FB_reset      => med_methods_FB_reset
   use esmFlds               , only : fldListTo
-  use esmFlds               , only : compocn, compatm, compice
-  use esmFlds               , only : coupling_mode
+  use med_internalstate_mod , only : compocn, compatm, compice, coupling_mode
   use perf_mod              , only : t_startf, t_stopf
 
   implicit none
@@ -45,7 +44,6 @@ contains
 
     use ESMF            , only : ESMF_GridComp, ESMF_SUCCESS
     use med_methods_mod , only : FB_Init  => med_methods_FB_init
-    use med_methods_mod , only : FB_Reset => med_methods_FB_Reset
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
