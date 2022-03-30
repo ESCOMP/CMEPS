@@ -17,6 +17,15 @@
     <desc>List of component classes supported by this driver</desc>
   </entry>
 
+  <entry id="CONTAINER_ENVIRONMENT">
+    <type>char</type>
+    <valid_values></valid_values>
+    <default_value></default_value>
+    <group>case_comp</group>
+    <file>env_case.xml</file>
+    <desc>Container environment to invoke, if any</desc>
+  </entry>
+
   <entry id="COMP_CPL">
     <type>char</type>
     <valid_values>cpl</valid_values>
