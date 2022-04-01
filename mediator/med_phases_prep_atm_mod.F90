@@ -226,12 +226,13 @@ contains
     end if
 
     ! Add enthalpy correction to sensible heat if appropriate
-    call FB_getfldptr(is_local%wrap%FBExp(compatm), 'Faxx_sen', dataptr1, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    do n = 1,size(dataptr1)
-       dataptr1(n) = dataptr1(n) + global_htot_corr(1)
-    end do
-    write(6,*)'DEBUG: global_htot_corr = ',global_htot_corr(1)
+    if (FB_FldChk(is_local%wrap%FBExp(compatm), 'Faxx_sen', rc=rc)) then
+       call FB_getfldptr(is_local%wrap%FBExp(compatm), 'Faxx_sen', dataptr1, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       do n = 1,size(dataptr1)
+          dataptr1(n) = dataptr1(n) + global_htot_corr(1)
+       end do
+    end if
 
     if (dbug_flag > 5) then
        call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
@@ -242,6 +243,13 @@ contains
 
   !-----------------------------------------------------------------------------
   subroutine med_phases_prep_atm_enthalpy_correction (gcomp, hcorr, rc) 
+
+    ! Enthalpy correction term calculation called by med_phases_prep_ocn_accum in 
+    ! med_phases_prep_ocn_mod
+    ! Note that this is only called if the following fields are in FBExp(compocn)
+    ! 'Faxa_rain','Foxx_hrain','Faxa_snow' ,'Foxx_hsnow',
+    ! 'Foxx_evap','Foxx_hevap','Foxx_hcond','Foxx_rofl', 
+    ! 'Foxx_hrofl','Foxx_rofi','Foxx_hrofi'
 
     use ESMF            , only : ESMF_VMAllreduce, ESMF_GridCompGet, ESMF_REDUCE_SUM
     use ESMF            , only : ESMF_VM 
