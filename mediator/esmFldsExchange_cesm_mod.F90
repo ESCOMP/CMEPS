@@ -1305,6 +1305,7 @@ contains
           end if
        end if
     end if
+
     ! ---------------------------------------------------------------------
     ! to atm: merged surface temperature and unmerged temperatures from ice and ocn
     ! ---------------------------------------------------------------------
@@ -1751,13 +1752,12 @@ contains
     if (phase == 'advertise') then
        call addfld(fldListFr(compatm)%flds, 'Faxa_rainc')
        call addfld(fldListFr(compatm)%flds, 'Faxa_rainl')
-       call addfld(fldListFr(compatm)%flds, 'Faxa_rain' )
        call addfld(fldListTo(compocn)%flds, 'Faxa_rain' )
        call addfld(fldListFr(compatm)%flds, 'Faxa_snowc')
        call addfld(fldListFr(compatm)%flds, 'Faxa_snowl')
-       call addfld(fldListFr(compatm)%flds, 'Faxa_snow' )
        call addfld(fldListTo(compocn)%flds, 'Faxa_snow' )
     else
+       ! TODO: why are we not merging Faxa_rain and Faxa_snow if they are sent from atm wiht ofrac
        ! Note that the mediator atm/ocn flux calculation needs Faxa_rainc for the gustiness parameterization
        ! which by default is not actually used
        if ( fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_rainl', rc=rc) .and. &
@@ -1767,10 +1767,6 @@ contains
           call addmap(fldListFr(compatm)%flds, 'Faxa_rainc', compocn, mapconsf, 'one', atm2ocn_map)
           call addmrg(fldListTo(compocn)%flds, 'Faxa_rain' , mrg_from=compatm, mrg_fld='Faxa_rainc:Faxa_rainl', &
                mrg_type='sum_with_weights', mrg_fracname='ofrac')
-       else if ( fldchk(is_local%wrap%FBExp(compocn)        , 'Faxa_rain', rc=rc) .and. &
-                 fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_rain', rc=rc)) then
-          call addmap(fldListFr(compatm)%flds, 'Faxa_rain', compocn, mapconsf, 'one', atm2ocn_map)
-          call addmrg(fldListTo(compocn)%flds, 'Faxa_rain', mrg_from=compatm, mrg_fld='Faxa_rain', mrg_type='copy')
        end if
        if ( fldchk(is_local%wrap%FBExp(compocn)        , 'Faxa_snow' , rc=rc) .and. &
             fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_snowl', rc=rc) .and. &
@@ -1779,10 +1775,6 @@ contains
           call addmap(fldListFr(compatm)%flds, 'Faxa_snowc', compocn, mapconsf, 'one', atm2ocn_map)
           call addmrg(fldListTo(compocn)%flds, 'Faxa_snow'  , &
                mrg_from=compatm, mrg_fld='Faxa_snowc:Faxa_snowl', mrg_type='sum_with_weights', mrg_fracname='ofrac')
-       else if ( fldchk(is_local%wrap%FBExp(compocn)        , 'Faxa_snow', rc=rc) .and. &
-                 fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_snow', rc=rc)) then
-          call addmap(fldListFr(compatm)%flds, 'Faxa_snow', compocn, mapconsf, 'one', atm2ocn_map)
-          call addmrg(fldListTo(compocn)%flds, 'Faxa_snow', mrg_from=compatm, mrg_fld='Faxa_snow', mrg_type='copy')
        end if
     end if
 
@@ -1790,12 +1782,10 @@ contains
        if (phase == 'advertise') then
           call addfld(fldListFr(compatm)%flds, 'Faxa_rainc_wiso')
           call addfld(fldListFr(compatm)%flds, 'Faxa_rainl_wiso')
-          call addfld(fldListFr(compatm)%flds, 'Faxa_rain_wiso' )
           call addfld(fldListTo(compocn)%flds, 'Faxa_rain_wiso' )
           call addfld(fldListFr(compatm)%flds, 'Faxa_snowc_wiso')
           call addfld(fldListFr(compatm)%flds, 'Faxa_snowl_wiso')
           call addfld(fldListFr(compatm)%flds, 'Faxa_snow_wiso' )
-          call addfld(fldListTo(compocn)%flds, 'Faxa_snow_wiso' )
        else
           ! Note that the mediator atm/ocn flux calculation needs Faxa_rainc for the gustiness parameterization
           ! which by default is not actually used
@@ -1807,11 +1797,6 @@ contains
              call addmrg(fldListTo(compocn)%flds, 'Faxa_rain_wiso' , &
                   mrg_from=compatm, mrg_fld=trim('Faxa_rainc_wiso')//':'//trim('Faxa_rainl_wiso'), &
                   mrg_type='sum_with_weights', mrg_fracname='ofrac')
-          else if ( fldchk(is_local%wrap%FBExp(compocn)   , 'Faxa_rain_wiso', rc=rc) .and. &
-               fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_rain_wiso', rc=rc)) then
-             call addmap(fldListFr(compatm)%flds, 'Faxa_rain_wiso', compocn, mapconsf, 'one', atm2ocn_map)
-             call addmrg(fldListTo(compocn)%flds, 'Faxa_rain_wiso', &
-                  mrg_from=compatm, mrg_fld='Faxa_rain_wiso', mrg_type='copy')
           end if
           if ( fldchk(is_local%wrap%FBExp(compocn)        , 'Faxa_snow_wiso', rc=rc) .and. &
                fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_snowl_wiso', rc=rc) .and. &
@@ -1821,11 +1806,6 @@ contains
              call addmrg(fldListTo(compocn)%flds, 'Faxa_snow_wiso', &
                   mrg_from=compatm, mrg_fld=trim('Faxa_snowc_wiso')//':'//trim('Faxa_snowl_wiso'), &
                   mrg_type='sum_with_weights', mrg_fracname='ofrac')
-          else if ( fldchk(is_local%wrap%FBExp(compocn)   , 'Faxa_snow_wiso', rc=rc) .and. &
-               fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_snow_wiso', rc=rc)) then
-             call addmap(fldListFr(compatm)%flds, 'Faxa_snow_wiso', compocn, mapconsf, 'one', atm2ocn_map)
-             call addmrg(fldListTo(compocn)%flds, 'Faxa_snow_wiso', &
-                  mrg_from=compatm, mrg_fld='Faxa_snow_wiso', mrg_type='copy')
           end if
        end if
     end if
@@ -1965,6 +1945,22 @@ contains
           call addmrg(fldListTo(compocn)%flds, 'Faxa_dstdry', &
                mrg_from=compatm, mrg_fld='Faxa_dstdry', mrg_type='copy_with_weights', mrg_fracname='ofrac')
        end if
+    end if
+
+    ! ---------------------------------------------------------------------
+    ! to ocn: enthalpy from atm rain, snow, evaporation
+    ! to ocn: enthalpy from liquid and ice river runoff
+    ! to ocn: enthalpy from ice melt
+    ! ---------------------------------------------------------------------
+    ! Note - do not need to add addmap or addmrg for the following since they
+    ! will be computed directly in med_phases_prep_ocn
+    if (phase == 'advertise') then
+       call addfld(fldListTo(compocn)%flds, 'Foxx_hrain')
+       call addfld(fldListTo(compocn)%flds, 'Foxx_hsnow')
+       call addfld(fldListTo(compocn)%flds, 'Foxx_hevap')
+       call addfld(fldListTo(compocn)%flds, 'Foxx_hcond')
+       call addfld(fldListTo(compocn)%flds, 'Foxx_hrofl')
+       call addfld(fldListTo(compocn)%flds, 'Foxx_hrofi')
     end if
 
     ! ---------------------------------------------------------------------

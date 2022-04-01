@@ -35,7 +35,6 @@ module MED
   use med_methods_mod          , only : FB_Init            => med_methods_FB_init
   use med_methods_mod          , only : FB_Init_pointer    => med_methods_FB_Init_pointer
   use med_methods_mod          , only : FB_Reset           => med_methods_FB_Reset
-  use med_methods_mod          , only : FB_FldChk          => med_methods_FB_FldChk
   use med_methods_mod          , only : FB_diagnose        => med_methods_FB_diagnose
   use med_methods_mod          , only : FB_getFieldN       => med_methods_FB_getFieldN
   use med_methods_mod          , only : clock_timeprint    => med_methods_clock_timeprint

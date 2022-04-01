@@ -142,6 +142,13 @@ module med_diag_mod
   integer :: f_heat_latf     = unset_index ! heat : latent, fusion, snow
   integer :: f_heat_ioff     = unset_index ! heat : latent, fusion, frozen runoff
   integer :: f_heat_sen      = unset_index ! heat : sensible
+  integer :: f_heat_rain     = unset_index ! heat : heat content of rain
+  integer :: f_heat_snow     = unset_index ! heat : heat content of snow
+  integer :: f_heat_evap     = unset_index ! heat : heat content of evaporation
+  integer :: f_heat_cond     = unset_index ! heat : heat content of evaporation
+  integer :: f_heat_rofl     = unset_index ! heat : heat content of liquid runoff
+  integer :: f_heat_rofi     = unset_index ! heat : heat content of ice runoff
+
   integer :: f_watr_frz      = unset_index ! water: freezing
   integer :: f_watr_melt     = unset_index ! water: melting
   integer :: f_watr_rain     = unset_index ! water: precip, liquid
@@ -264,6 +271,10 @@ contains
 
     rc = ESMF_SUCCESS
 
+    if(mastertask) then
+       write(logunit,'(a)') ' Creating budget_diags%comps '
+    end if
+
     call NUOPC_CompAttributeGet(gcomp, name="budget_table_version", value=cvalue, &
          isPresent=isPresent, isSet=isSet, rc=rc)
     if (isPresent .and. isSet) then
@@ -314,8 +325,19 @@ contains
     call add_to_budget_diag(budget_diags%fields, f_heat_latf     ,'hlatfus'     ) ! field  heat : latent, fusion, snow
     call add_to_budget_diag(budget_diags%fields, f_heat_ioff     ,'hiroff'      ) ! field  heat : latent, fusion, frozen runoff
     call add_to_budget_diag(budget_diags%fields, f_heat_sen      ,'hsen'        ) ! field  heat : sensible
-    f_heat_beg = f_heat_frz      ! field  first index for heat
-    f_heat_end = f_heat_sen      ! field  last  index for heat
+    if (trim(budget_table_version) == 'v0') then
+       f_heat_beg = f_heat_frz      ! field  first index for heat
+       f_heat_end = f_heat_sen      ! field  last  index for heat
+    else if (trim(budget_table_version) == 'v1') then
+       call add_to_budget_diag(budget_diags%fields, f_heat_rain  ,'hrain'       ) ! field  heat : enthalpy of rain
+       call add_to_budget_diag(budget_diags%fields, f_heat_snow  ,'hsnow'       ) ! field  heat : enthalpy of snow
+       call add_to_budget_diag(budget_diags%fields, f_heat_evap  ,'hevap'       ) ! field  heat : enthalpy of evaporation
+       call add_to_budget_diag(budget_diags%fields, f_heat_cond  ,'hcond'       ) ! field  heat : enthalpy of evaporation
+       call add_to_budget_diag(budget_diags%fields, f_heat_rofl  ,'hrofl'       ) ! field  heat : enthalpy of liquid runoff
+       call add_to_budget_diag(budget_diags%fields, f_heat_rofi  ,'hrofi'       ) ! field  heat : enthalpy of ice runoff
+       f_heat_beg = f_heat_frz      ! field  first index for heat
+       f_heat_end = f_heat_rofi     ! field  last  index for heat
+    end if
 
     ! -----------------------------------------
     ! Water fluxes budget terms
@@ -1549,6 +1571,19 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
+    call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_hrain', f_heat_rain , ic, areas, sfrac, budget_local, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_hsnow', f_heat_snow , ic, areas, sfrac, budget_local, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_hevap', f_heat_evap , ic, areas, sfrac, budget_local, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_hcond', f_heat_cond , ic, areas, sfrac, budget_local, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_hrofl', f_heat_rofl , ic, areas, sfrac, budget_local, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_hrofi', f_heat_rofi , ic, areas, sfrac, budget_local, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
     budget_local(f_heat_latf,ic,ip) = -budget_local(f_watr_snow,ic,ip)*shr_const_latice
     budget_local(f_heat_ioff,ic,ip) = -budget_local(f_watr_ioff,ic,ip)*shr_const_latice
 
@@ -1897,12 +1932,16 @@ contains
     ic = c_inh_send
     budget_local(f_heat_latf,ic,ip) = -budget_local(f_watr_snow,ic,ip)*shr_const_latice
     budget_local(f_heat_ioff,ic,ip) = -budget_local(f_watr_ioff,ic,ip)*shr_const_latice
-    budget_local(f_watr_frz ,ic,ip) =  budget_local(f_heat_frz ,ic,ip)*HFLXtoWFLX
+    if (trim(budget_table_version) == 'v0') then
+       budget_local(f_watr_frz ,ic,ip) =  budget_local(f_heat_frz ,ic,ip)*HFLXtoWFLX
+    end if
 
     ic = c_ish_send
     budget_local(f_heat_latf,ic,ip) = -budget_local(f_watr_snow,ic,ip)*shr_const_latice
     budget_local(f_heat_ioff,ic,ip) = -budget_local(f_watr_ioff,ic,ip)*shr_const_latice
-    budget_local(f_watr_frz ,ic,ip) =  budget_local(f_heat_frz ,ic,ip)*HFLXtoWFLX
+    if (trim(budget_table_version) == 'v0') then
+       budget_local(f_watr_frz ,ic,ip) =  budget_local(f_heat_frz ,ic,ip)*HFLXtoWFLX
+    end if
 
     if (flds_wiso) then
        call diag_ice_send_wiso(is_local%wrap%FBExp(compice), 'Faxa_rain_wiso', &
