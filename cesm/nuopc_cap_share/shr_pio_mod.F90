@@ -225,7 +225,7 @@ contains
     character(CS) :: cval
     character(CS) :: msgstr
     integer :: do_async_init
-    type(io_system_desc_t), allocatable :: async_iosystems(:)
+    type(iosystem_desc_t), allocatable :: async_iosystems(:)
 
     allocate(pio_comp_settings(ncomps))
     allocate(gcomp(ncomps))
@@ -336,7 +336,7 @@ contains
        j=1
        do i=1,total_comps
           if(pio_comp_settings(i)%pio_async_interface) then
-             iosystem(i) = async_iosystems(j)
+             iosystems(i) = async_iosystems(j)
              j = j+1
           endif
        enddo
