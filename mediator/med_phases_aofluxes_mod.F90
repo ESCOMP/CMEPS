@@ -1102,6 +1102,7 @@ contains
           call ESMF_FieldRegrid(field_src, field_dst, routehandle=rh_agrid2xgrid_bilinr, &
                termorderflag=ESMF_TERMORDER_SRCSEQ, zeroregion=ESMF_REGION_TOTAL, rc=rc)
        end if
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
     end do
 
   end subroutine med_aofluxes_map_agrid2xgrid_input
@@ -1144,6 +1145,7 @@ contains
           call ESMF_FieldRegrid(field_src, field_dst, routehandle=rh_ogrid2xgrid, &
                termorderflag=ESMF_TERMORDER_SRCSEQ, zeroregion=ESMF_REGION_TOTAL, rc=rc)
        end if
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
     end do
 
 end subroutine med_aofluxes_map_ogrid2xgrid_input
@@ -1198,6 +1200,12 @@ end subroutine med_aofluxes_map_ogrid2xgrid_input
     character(*),parameter  :: subName = '(med_aofluxes_map_agrid2ogrid_output) '
     !-----------------------------------------------------------------------
 
+    rc = ESMF_SUCCESS
+
+    nullify(is_local%wrap)
+    call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
     do nf = 1,size(fldnames_aof_out)
        ! Create source field
        call ESMF_FieldBundleGet(is_local%wrap%FBMed_aoflux_a, fldnames_aof_out(nf), field=field_src, rc=rc)
@@ -1220,6 +1228,7 @@ end subroutine med_aofluxes_map_ogrid2xgrid_input
        call ESMF_FieldRegrid(field_src, field_dst, &
             routehandle=is_local%wrap%RH(compatm, compocn, maptype), &
             termorderflag=ESMF_TERMORDER_SRCSEQ, zeroregion=ESMF_REGION_TOTAL, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
     end do
 
   end subroutine med_aofluxes_map_agrid2ogrid_output
@@ -1262,6 +1271,7 @@ end subroutine med_aofluxes_map_ogrid2xgrid_input
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call ESMF_FieldRegrid(field_o, field_x, routehandle=rh_ogrid2xgrid, &
          termorderflag=ESMF_TERMORDER_SRCSEQ, zeroregion=ESMF_REGION_TOTAL, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
     call ESMF_FieldGet(field_x, farrayptr=ofrac_x, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
@@ -1283,6 +1293,7 @@ end subroutine med_aofluxes_map_ogrid2xgrid_input
        end do
        call ESMF_FieldRegrid(field_src, field_dst, routehandle=rh_xgrid2agrid, &
             termorderflag=ESMF_TERMORDER_SRCSEQ, zeroregion=ESMF_REGION_TOTAL, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
        data_src(:) = data_src_save(:)
        deallocate(data_src_save)
        call ESMF_FieldGet(field_dst, farrayptr=data_dst, rc=rc)
@@ -1338,6 +1349,7 @@ end subroutine med_aofluxes_map_ogrid2xgrid_input
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        call ESMF_FieldRegrid(field_src, field_dst, routehandle=rh_xgrid2ogrid, &
             termorderflag=ESMF_TERMORDER_SRCSEQ, zeroregion=ESMF_REGION_TOTAL, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
     end do
 
   end subroutine med_aofluxes_map_xgrid2ogrid_output
