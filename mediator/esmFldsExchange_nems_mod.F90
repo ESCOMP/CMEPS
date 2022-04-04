@@ -123,10 +123,11 @@ contains
           end if
        end do
        deallocate(flds)
+    end if
 
-       ! unused fields from ice - but that are needed to be realized by the cice cap
-       !call addfld(fldListFr(compice)%flds, 'Faii_evap')
-       !call addfld(fldListFr(compice)%flds, 'mean_sw_pen_to_ocn')
+    ! TODO: unused, but required to maintain B4B repro for mediator restarts; should be removed
+    if (phase == 'advertise') then
+       call addfld(fldListFr(compice)%flds, 'mean_sw_pen_to_ocn')
     end if
 
     !=====================================================================
@@ -235,7 +236,6 @@ contains
        if ( fldchk(is_local%wrap%FBexp(compocn)        , 'Sa_pslv', rc=rc) .and. &
             fldchk(is_local%wrap%FBImp(compatm,compatm), 'Sa_pslv', rc=rc)) then
           call addmap(fldListFr(compatm)%flds, 'Sa_pslv', compocn, maptype, 'one', 'unset')
-          !call addmap(fldListFr(compatm)%flds, 'Sa_pslv', compocn, mapbilnr_nstod, 'one', 'unset')
           call addmrg(fldListTo(compocn)%flds, 'Sa_pslv', mrg_from=compatm, mrg_fld='Sa_pslv', mrg_type='copy')
        end if
     end if

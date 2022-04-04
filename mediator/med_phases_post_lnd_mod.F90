@@ -80,7 +80,7 @@ contains
        if (is_local%wrap%lnd2glc_coupling) then
           call med_phases_prep_glc_accum_lnd(gcomp, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          ! Note that in this case med_phases_prep_glc_avg is called 
+          ! Note that in this case med_phases_prep_glc_avg is called
           ! from med_phases_prep_glc in the run sequence
        else if (is_local%wrap%accum_lnd2glc) then
           call med_phases_prep_glc_accum_lnd(gcomp, rc)

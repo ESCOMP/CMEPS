@@ -25,7 +25,6 @@ module MED
   use med_constants_mod        , only : spval_init         => med_constants_spval_init
   use med_constants_mod        , only : spval              => med_constants_spval
   use med_constants_mod        , only : czero              => med_constants_czero
-  use med_constants_mod        , only : ispval_mask        => med_constants_ispval_mask
   use med_utils_mod            , only : chkerr             => med_utils_ChkErr
   use med_methods_mod          , only : Field_GeomPrint    => med_methods_Field_GeomPrint
   use med_methods_mod          , only : State_GeomPrint    => med_methods_State_GeomPrint
@@ -41,7 +40,7 @@ module MED
   use med_utils_mod            , only : memcheck           => med_memcheck
   use med_time_mod             , only : med_time_alarmInit
   use med_internalstate_mod    , only : InternalState, med_internalstate_init, med_internalstate_coupling
-  use med_internalstate_mod    , only : logunit, mastertask
+  use med_internalstate_mod    , only : med_internalstate_defaultmasks, logunit, mastertask
   use med_internalstate_mod    , only : ncomps, compname
   use med_internalstate_mod    , only : compmed, compatm, compocn, compice, complnd, comprof, compwav, compglc
   use med_internalstate_mod    , only : coupling_mode
@@ -648,13 +647,14 @@ contains
     ! TransferOfferGeomObject Attribute.
 
     use ESMF  , only : ESMF_GridComp, ESMF_State, ESMF_Clock, ESMF_SUCCESS, ESMF_LogFoundAllocError
-    use ESMF  , only : ESMF_StateIsCreated 
+    use ESMF  , only : ESMF_StateIsCreated
     use ESMF  , only : ESMF_LogMsg_Info, ESMF_LogWrite
     use ESMF  , only : ESMF_END_ABORT, ESMF_Finalize, ESMF_MAXSTR
     use NUOPC , only : NUOPC_AddNamespace, NUOPC_Advertise, NUOPC_AddNestedState
     use NUOPC , only : NUOPC_CompAttributeGet, NUOPC_CompAttributeSet, NUOPC_CompAttributeAdd
     use esmFlds, only : med_fldlist_init1
     use med_phases_history_mod, only : med_phases_history_init
+    use med_internalstate_mod , only : atm_name
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -787,6 +787,10 @@ contains
         call ESMF_LogWrite(trim(coupling_mode)//' is not a valid coupling_mode', ESMF_LOGMSG_INFO)
         call ESMF_Finalize(endflag=ESMF_END_ABORT)
     end if
+
+    ! Set default masking for mapping
+    call med_internalstate_defaultmasks(gcomp, rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !------------------
     ! Determine component present indices
