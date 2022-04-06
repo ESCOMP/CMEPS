@@ -1032,9 +1032,8 @@ contains
          missval=0.0_r8)
 
 #else
-    if (trim(coupling_mode) == 'nems_frac_aoflux' .or. trim(coupling_mode) == 'nems_frac_aoflux_sbs') then
 #ifdef UFS_AOFLUX
-       if (trim(aoflux_code) == 'ccpp') then
+     if (trim(aoflux_code) == 'ccpp') then
        call flux_atmocn_ccpp( &
             nMax=aoflux_in%lsize, psfc=aoflux_in%psfc, &
             pbot=aoflux_in%pbot, tbot=aoflux_in%tbot, qbot=aoflux_in%shum, lwdn=aoflux_in%lwdn, &
@@ -1043,7 +1042,7 @@ contains
             sen=aoflux_out%sen, lat=aoflux_out%lat, lwup=aoflux_out%lwup, evp=aoflux_out%evap, &
             taux=aoflux_out%taux, tauy=aoflux_out%tauy, qref=aoflux_out%qref, &
             missval=0.0_r8)
-       else
+     else
 #endif
        call flux_atmocn (logunit=logunit, &
             nMax=aoflux_in%lsize, mask=aoflux_in%mask, &
@@ -1054,9 +1053,8 @@ contains
             taux=aoflux_out%taux, tauy=aoflux_out%tauy, tref=aoflux_out%tref, qref=aoflux_out%qref, &
             duu10n=aoflux_out%duu10n, missval=0.0_r8)
 #ifdef UFS_AOFLUX
-       end if
+     end if
 #endif
-    end if
 
 #endif
 
