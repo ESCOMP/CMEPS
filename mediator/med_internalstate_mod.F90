@@ -163,8 +163,10 @@ module med_internalstate_mod
     type(ESMF_FieldBundle), pointer :: FBfrac(:)     ! Fraction data for various components, on their grid
 
     ! Accumulators for export field bundles
-    type(ESMF_FieldBundle) :: FBExpAccumOcn      ! Accumulator for various components export on their grid
-    integer                :: ExpAccumOcnCnt = 0 ! Accumulator counter for each FBExpAccum
+    type(ESMF_FieldBundle) :: FBExpAccumOcn      ! Accumulator for Ocn export on Ocn grid
+    integer                :: ExpAccumOcnCnt = 0 ! Accumulator counter for FBExpAccumOcn
+    type(ESMF_FieldBundle) :: FBExpAccumWav      ! Accumulator for Wav export on Wav grid
+    integer                :: ExpAccumWavCnt = 0 ! Accumulator counter for FBExpAccumWav
 
     ! Component Mesh info
     type(mesh_info_type)   , pointer :: mesh_info(:)

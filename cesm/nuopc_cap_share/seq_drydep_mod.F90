@@ -893,6 +893,7 @@ CONTAINS
     !-----------------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
+    drydep_nflds = 0
 
     !--- Open and read namelist ---
     if ( len_trim(NLFilename) == 0  )then
