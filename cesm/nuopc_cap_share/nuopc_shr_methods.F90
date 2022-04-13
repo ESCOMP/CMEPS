@@ -143,6 +143,8 @@ contains
     ! local variables
     character(len=CL) :: diro
     character(len=CL) :: logfile
+    character(len=CL) :: inst_suffix
+    integer :: inst_index  ! not used here
     !-----------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -154,6 +156,12 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        call NUOPC_CompAttributeGet(gcomp, name="logfile", value=logfile, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call get_component_instance(gcomp, inst_suffix, inst_index, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       ! Multiinstance logfile name needs a correction
+       if(logfile(4:4) == '_') then
+          logfile = logfile(1:3)//trim(inst_suffix)//logfile(9:)
+       endif
 
        open(newunit=logunit,file=trim(diro)//"/"//trim(logfile))
        ! Write the PIO settings to the beggining of each component log

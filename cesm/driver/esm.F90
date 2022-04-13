@@ -668,8 +668,11 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call ReadAttributes(gcomp, config, "ALLCOMP_attributes::", rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call ReadAttributes(gcomp, config, trim(compname)//"_modelio"//trim(inst_suffix)//"::", rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ReadAttributes(gcomp, config, trim(compname)//"_modelio::", rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) then
+       print *,__FILE__,__LINE__,"ERROR reading ",trim(compname)," modelio from runconfig"
+       return
+    endif
     call ReadAttributes(gcomp, config, "CLOCK_attributes::", rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
