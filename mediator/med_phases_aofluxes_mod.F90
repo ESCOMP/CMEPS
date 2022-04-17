@@ -24,7 +24,7 @@ module med_phases_aofluxes_mod
   use ESMF                  , only : ESMF_Mesh, ESMF_MeshGet, ESMF_XGrid, ESMF_XGridCreate, ESMF_TYPEKIND_R8
   use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_LOGMSG_ERROR, ESMF_FAILURE
   use ESMF                  , only : ESMF_Finalize, ESMF_LogFoundError
-  use ESMF                  , only : ESMF_XGridGet, ESMF_KIND_R8
+  use ESMF                  , only : ESMF_XGridGet, ESMF_MeshWrite, ESMF_KIND_R8
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
   use med_internalstate_mod , only : InternalState, mastertask, logunit
   use med_internalstate_mod , only : compatm, compocn, coupling_mode, aoflux_code, mapconsd, mapconsf, mapfcopy
@@ -749,6 +749,7 @@ contains
     type(ESMF_Field)     :: lfield
     type(ESMF_Mesh)      :: ocn_mesh
     type(ESMF_Mesh)      :: atm_mesh
+    type(ESMF_Mesh)      :: xch_mesh
     real(r8), pointer    :: dataptr(:)
     integer              :: fieldcount
     type(ESMF_CoordSys_Flag)           :: coordSys
@@ -784,6 +785,17 @@ contains
     xgrid = ESMF_XGridCreate(sideBMesh=(/ocn_mesh/), sideAMesh=(/atm_mesh/), sideBMaskValues=(/0/), &
          storeOverlay=.true., rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    ! write meshes for debug purpose
+    if (dbug_flag > 20) then
+       call ESMF_MeshWrite(atm_mesh, filename="atm_mesh", rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_MeshWrite(ocn_mesh, filename="ocn_mesh", rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_XGridGet(xgrid, mesh=xch_mesh, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_MeshWrite(xch_mesh, filename="xch_mesh", rc=rc)
+    end if
 
     ! create module field on exchange grid and set its initial value to 1
     field_x = ESMF_FieldCreate(xgrid, typekind=ESMF_TYPEKIND_R8, rc=rc)
@@ -891,18 +903,16 @@ contains
     ! setup grid area
     ! ------------------------
 
-    ! TODO: ESMF_XGridGet() call could return coordSys in newer version of ESMF
     allocate(area(lsize))
-    !call ESMF_XGridGet(xgrid, coordSys=coordSys, area=area, rc=rc)
-    call ESMF_XGridGet(xgrid, area=area, rc=rc)
+    call ESMF_XGridGet(xgrid, coordSys=coordSys, area=area, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     allocate(aoflux_in%garea(lsize))
     aoflux_in%garea(:) = area(:)
     deallocate(area)
-    !if (coordSys /= ESMF_COORDSYS_CART) then
+    if (coordSys /= ESMF_COORDSYS_CART) then
        ! Convert square radians to square meters
        aoflux_in%garea(:) = aoflux_in%garea(:)*(rearth**2)
-    !end if
+    end if
 
   end subroutine med_aofluxes_init_xgrid
 
