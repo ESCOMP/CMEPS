@@ -15,7 +15,7 @@ module MED_data
   use MED_typedefs, only: MED_grid_type
   use MED_typedefs, only: MED_sfcprop_type  
   use MED_typedefs, only: MED_diag_type
-  use ccpp_api,     only: ccpp_t
+  use ccpp_types,   only: ccpp_t
 
   implicit none
 

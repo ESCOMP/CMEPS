@@ -1,6 +1,6 @@
 module med_ccpp_driver
 
-  use ccpp_api,            only: ccpp_t
+  use ccpp_types,          only: ccpp_t
   use ccpp_static_api_med, only: ccpp_physics_init
   use ccpp_static_api_med, only: ccpp_physics_run
   use ccpp_static_api_med, only: ccpp_physics_finalize

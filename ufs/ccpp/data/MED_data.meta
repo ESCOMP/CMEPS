@@ -60,7 +60,6 @@
   name = MED_data
   type = module
   dependencies = MED_typedefs.F90
-  dependencies = ../../../../../FV3/ccpp/framework/src/ccpp_api.F90
 
 [ccpp-arg-table]
   name = MED_data
