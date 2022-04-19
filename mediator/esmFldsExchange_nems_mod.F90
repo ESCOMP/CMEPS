@@ -91,14 +91,13 @@ contains
 
     ! masks from components
     if (phase == 'advertise') then
-       if (is_local%wrap%comp_present(compice) )then
-          call addfld(fldListFr(compice)%flds, 'Si_imask')
-       end if
-       if (is_local%wrap%comp_present(compocn) )then
-          call addfld(fldListFr(compocn)%flds, 'So_omask')
-       end if
+       if (is_local%wrap%comp_present(compice)) call addfld(fldListFr(compice)%flds, 'Si_imask')
+       if (is_local%wrap%comp_present(compocn)) call addfld(fldListFr(compocn)%flds, 'So_omask')
     else
-       call addmap(fldListFr(compocn)%flds, 'So_omask', compice,  mapfcopy, 'unset', 'unset')
+       if ( fldchk(is_local%wrap%FBexp(compice)        , trim(fldname), rc=rc) .and. &
+            fldchk(is_local%wrap%FBImp(compocn,compocn), trim(fldname), rc=rc)) then
+          call addmap(fldListFr(compocn)%flds, 'So_omask', compice,  mapfcopy, 'unset', 'unset')
+       end if
     end if
 
     if ( trim(coupling_mode) == 'nems_orig_data') then
@@ -109,9 +108,13 @@ contains
        do n = 1,size(flds)
           fldname = trim(flds(n))
           if (phase == 'advertise') then
-             call addfld(fldListFr(compatm)%flds, trim(fldname))
+             if (is_local%wrap%comp_present(compatm) )then
+                call addfld(fldListFr(compatm)%flds, trim(fldname))
+             end if
           else
-             call addmap(fldListFr(compatm)%flds, trim(fldname), compocn, maptype, 'one', 'unset')
+            if ( fldchk(is_local%wrap%FBImp(compatm,compatm), trim(fldname), rc=rc)) then
+               call addmap(fldListFr(compatm)%flds, trim(fldname), compocn, maptype, 'one', 'unset')
+            end if
           end if
        end do
        deallocate(flds)
