@@ -1,12 +1,16 @@
 module flux_atmocn_ccpp_mod
 
-  use med_kind_mod,    only : R8=>SHR_KIND_R8
+  use ESMF,            only : ESMF_GridComp, ESMF_SUCCESS
+  use NUOPC,           only : NUOPC_CompAttributeGet
+
+  use med_kind_mod,    only : R8=>SHR_KIND_R8, CS=>SHR_KIND_CS
   use physcons,        only : p0 => con_p0
   use physcons,        only : cappa => con_rocp
   use physcons,        only : cp => con_cp
   use physcons,        only : hvap => con_hvap
   use physcons,        only : sbc => con_sbc
   use MED_data,        only : physics 
+  use med_utils_mod,   only : chkerr       => med_utils_chkerr
   use med_ccpp_driver, only : med_ccpp_driver_init
   use med_ccpp_driver, only : med_ccpp_driver_run
   use med_ccpp_driver, only : med_ccpp_driver_finalize
@@ -19,17 +23,23 @@ module flux_atmocn_ccpp_mod
 
   public :: flux_atmOcn_ccpp ! computes atm/ocn fluxes
 
+  character(*), parameter :: u_FILE_u = &
+       __FILE__
+
 !===============================================================================
 contains
 !===============================================================================
 
-  subroutine flux_atmOcn_ccpp(nMax, mask, psfc, pbot, tbot, qbot, zbot, &
-             garea, ubot, usfc, vbot, vsfc, rbot, ts, lwdn, sen, lat, &
+  subroutine flux_atmOcn_ccpp(gcomp, mastertask, logunit, nMax, mask, psfc, pbot, &
+             tbot, qbot, zbot, garea, ubot, usfc, vbot, vsfc, rbot, ts, lwdn, sen, lat, &
              lwup, evp, taux, tauy, qref, missval)
 
     implicit none
 
     !--- input arguments --------------------------------
+    type(ESMF_GridComp), intent(in) :: gcomp       ! gridded component
+    logical , intent(in)  :: mastertask  ! master task
+    integer , intent(in)  :: logunit     ! log file unit number
     integer , intent(in)  :: nMax        ! data vector length
     integer , intent(in)  :: mask (nMax) ! ocn domain mask
     real(r8), intent(in)  :: psfc(nMax)  ! atm P (surface)                (Pa)
@@ -57,11 +67,16 @@ contains
     real(r8), intent(out) :: qref(nMax)  ! diag: 2m ref humidity          (kg/kg)
 
     !--- local variables --------------------------------
-    integer :: n
-    real(r8) :: spval, semis_water
-    logical, save :: first_call = .true.
-    character(len=*),parameter :: subname=' (flux_atmOcn_ccpp) '
+    integer           :: n, rc
+    real(r8)          :: spval
+    logical           :: isPresent, isSet
+    character(len=cs) :: cvalue
+    real(r8), save    :: semis_water
+    logical, save     :: first_call = .true.
+    character(len=*), parameter :: subname=' (flux_atmOcn_ccpp) '
     !---------------------------------------
+
+    rc = ESMF_SUCCESS
 
     ! missing value
     if (present(missval)) then
@@ -70,12 +85,96 @@ contains
        spval = shr_const_spval
     endif
 
-    ! set up surface emissivity for lw radiation
-    ! semis_wat is constant and set to 0.97 in setemis() call
-    ! TODO: This could be a part of CCPP suite or provided by ESMF config
-    semis_water = 0.97
-
+    ! init CCPP and setup/allocate variables
     if (first_call) then
+       ! determine CCPP/physics specific options
+       ! semis_water, surface emissivity for lw radiation
+       ! semis_wat is constant and set to 0.97 in setemis() call
+       call NUOPC_CompAttributeGet(gcomp, name="ccpp_phy_semis_water", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       semis_water = 0.97
+       if (isPresent .and. isSet) then
+          read(cvalue,*) semis_water
+       end if
+       ! lseaspray
+       call NUOPC_CompAttributeGet(gcomp, name="ccpp_phy_lseaspray", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       physics%model%lseaspray = .true.
+       if (isPresent .and. isSet) then
+          if (trim(cvalue) .eq. '.false.' .or. trim(cvalue) .eq. 'false') physics%model%lseaspray = .false.
+       end if
+       ! ivegsrc
+       call NUOPC_CompAttributeGet(gcomp, name="ccpp_phy_ivegsrc", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       physics%model%ivegsrc = 1
+       if (isPresent .and. isSet) then
+          read(cvalue,*) physics%model%ivegsrc
+       end if
+       ! redrag 
+       call NUOPC_CompAttributeGet(gcomp, name="ccpp_phy_redrag", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       physics%model%redrag = .true.
+       if (isPresent .and. isSet) then
+          if (trim(cvalue) .eq. '.false.' .or. trim(cvalue) .eq. 'false') physics%model%redrag = .false.
+       end if
+       ! lsm
+       call NUOPC_CompAttributeGet(gcomp, name="ccpp_phy_lsm", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       physics%model%lsm = 1
+       if (isPresent .and. isSet) then
+          read(cvalue,*) physics%model%lsm
+       end if
+       ! frac_grid 
+       call NUOPC_CompAttributeGet(gcomp, name="ccpp_phy_frac_grid", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       physics%model%frac_grid = .true.
+       if (isPresent .and. isSet) then
+          if (trim(cvalue) .eq. '.false.' .or. trim(cvalue) .eq. 'false') physics%model%frac_grid = .false.
+       end if
+       ! restart
+       call NUOPC_CompAttributeGet(gcomp, name="ccpp_phy_restart", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       physics%model%restart = .true.
+       if (isPresent .and. isSet) then
+          if (trim(cvalue) .eq. '.false.' .or. trim(cvalue) .eq. 'false') physics%model%restart = .false.
+       end if
+       ! cplice
+       call NUOPC_CompAttributeGet(gcomp, name="ccpp_phy_cplice", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       physics%model%cplice = .true.
+       if (isPresent .and. isSet) then
+          if (trim(cvalue) .eq. '.false.' .or. trim(cvalue) .eq. 'false') physics%model%cplice = .false.
+       end if
+       ! cplflx
+       call NUOPC_CompAttributeGet(gcomp, name="ccpp_phy_cplflx", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       physics%model%cplflx = .true.
+       if (isPresent .and. isSet) then
+          if (trim(cvalue) .eq. '.false.' .or. trim(cvalue) .eq. 'false') physics%model%cplflx = .false.
+       end if
+       ! lheatstrg 
+       call NUOPC_CompAttributeGet(gcomp, name="ccpp_phy_lheatstrg", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       physics%model%lheatstrg = .true.
+       if (isPresent .and. isSet) then
+          if (trim(cvalue) .eq. '.false.' .or. trim(cvalue) .eq. 'false') physics%model%lheatstrg = .false.
+       end if
+
+       if (mastertask) then
+          write(logunit,*) '========================================================'
+          write(logunit,'(a,f5.2)') trim(subname)//' ccpp_phy_semis_water = ', semis_water
+          write(logunit,'(a,l)')    trim(subname)//' ccpp_phy_lseaspray   = ', physics%model%lseaspray
+          write(logunit,'(a,i)')    trim(subname)//' ccpp_phy_ivegsrc     = ', physics%model%ivegsrc
+          write(logunit,'(a,l)')    trim(subname)//' ccpp_phy_redrag      = ', physics%model%redrag
+          write(logunit,'(a,i)')    trim(subname)//' ccpp_phy_lsm         = ', physics%model%lsm
+          write(logunit,'(a,l)')    trim(subname)//' ccpp_phy_frac_grid   = ', physics%model%frac_grid
+          write(logunit,'(a,l)')    trim(subname)//' ccpp_phy_restart     = ', physics%model%restart
+          write(logunit,'(a,l)')    trim(subname)//' ccpp_phy_cplice      = ', physics%model%cplice
+          write(logunit,'(a,l)')    trim(subname)//' ccpp_phy_cplflx      = ', physics%model%cplflx
+          write(logunit,'(a,l)')    trim(subname)//' ccpp_phy_lheatstrg   = ', physics%model%lheatstrg
+          write(logunit,*) '========================================================'
+       end if
+
        ! allocate and initalize data structures
        call physics%statein%create(nMax,physics%model)
        call physics%interstitial%create(nMax)
@@ -113,18 +212,8 @@ contains
     ! fill in grid related variables
     physics%grid%area(:) = garea(:)
 
-    ! customization of host model options to calculate the fluxes
-    ! TODO: this needs to be provided by config
-    physics%model%lseaspray = .true.
-    physics%model%ivegsrc = 1
-    physics%model%redrag = .true.
-    physics%model%lsm = 2
-    physics%model%frac_grid = .true.
-    physics%model%restart = .true.
-    physics%model%cplice = .true.
-    physics%model%cplflx = .true.
+    ! set counter
     physics%model%kdt = physics%model%kdt+1
-    physics%model%lheatstrg = .true.
 
     ! reset physics variables
     call physics%interstitial%phys_reset()

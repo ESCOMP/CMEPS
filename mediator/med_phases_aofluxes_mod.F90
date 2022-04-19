@@ -1053,7 +1053,7 @@ contains
 #else
 #ifdef UFS_AOFLUX
      if (trim(aoflux_code) == 'ccpp') then
-       call flux_atmocn_ccpp( &
+       call flux_atmocn_ccpp(gcomp=gcomp, mastertask=mastertask, logunit=logunit, &
             nMax=aoflux_in%lsize, psfc=aoflux_in%psfc, &
             pbot=aoflux_in%pbot, tbot=aoflux_in%tbot, qbot=aoflux_in%shum, lwdn=aoflux_in%lwdn, &
             zbot=aoflux_in%zbot, garea=aoflux_in%garea, ubot=aoflux_in%ubot, usfc=aoflux_in%usfc, vbot=aoflux_in%vbot, &
