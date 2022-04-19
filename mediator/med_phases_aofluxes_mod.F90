@@ -494,6 +494,7 @@ contains
     integer             :: fieldcount
     type(ESMF_Field)    :: lfield
     type(ESMF_Mesh)     :: lmesh
+    real(R8), pointer   :: garea(:) => null()
     type(ESMF_CoordSys_Flag)   :: coordSys
     character(len=*),parameter :: subname=' (med_aofluxes_init_ocngrid) '
     !-----------------------------------------------------------------------
@@ -536,7 +537,8 @@ contains
 
     call ESMF_FieldBundleGet(is_local%wrap%FBArea(compocn), 'area', field=lfield, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldGet(lfield, farrayPtr=aoflux_in%garea, rc=rc)
+    allocate(aoflux_in%garea(lsize))
+    call ESMF_FieldGet(lfield, farrayPtr=garea, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call ESMF_FieldGet(lfield, mesh=lmesh, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -544,7 +546,9 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     if (coordSys /= ESMF_COORDSYS_CART) then
        ! Convert square radians to square meters
-       aoflux_in%garea(:) = aoflux_in%garea(:)*(rearth**2)
+       aoflux_in%garea(:) = garea(:)*(rearth**2)
+    else
+       aoflux_in%garea(:) = garea(:)
     end if
 
     ! ------------------------
@@ -599,6 +603,7 @@ contains
     integer             :: maptype
     type(ESMF_Field)    :: lfield
     type(ESMF_Mesh)     :: lmesh
+    real(R8), pointer   :: garea(:) => null()
     type(ESMF_CoordSys_Flag)   :: coordSys
     character(len=*),parameter :: subname=' (med_aofluxes_init_atmgrid) '
     !-----------------------------------------------------------------------
@@ -682,7 +687,8 @@ contains
 
     call ESMF_FieldBundleGet(is_local%wrap%FBArea(compatm), 'area', field=lfield, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldGet(lfield, farrayPtr=aoflux_in%garea, rc=rc)
+    allocate(aoflux_in%garea(lsize))
+    call ESMF_FieldGet(lfield, farrayPtr=garea, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call ESMF_FieldGet(lfield, mesh=lmesh, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -690,7 +696,9 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     if (coordSys /= ESMF_COORDSYS_CART) then
        ! Convert square radians to square meters
-       aoflux_in%garea(:) = aoflux_in%garea(:)*(rearth**2)
+       aoflux_in%garea(:) = garea(:)*(rearth**2)
+    else
+       aoflux_in%garea(:) = garea(:)
     end if
 
     ! ------------------------
@@ -753,7 +761,7 @@ contains
     real(r8), pointer    :: dataptr(:)
     integer              :: fieldcount
     type(ESMF_CoordSys_Flag)           :: coordSys
-    real(ESMF_KIND_R8)    ,allocatable :: area(:)
+    real(ESMF_KIND_R8)    ,allocatable :: garea(:)
     character(ESMF_MAXSTR),allocatable :: fieldNameList(:)
     character(len=*),parameter :: subname=' (med_aofluxes_init_xgrid) '
     !-----------------------------------------------------------------------
@@ -903,16 +911,17 @@ contains
     ! setup grid area
     ! ------------------------
 
-    allocate(area(lsize))
-    call ESMF_XGridGet(xgrid, coordSys=coordSys, area=area, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    allocate(garea(lsize))
     allocate(aoflux_in%garea(lsize))
-    aoflux_in%garea(:) = area(:)
-    deallocate(area)
+    call ESMF_XGridGet(xgrid, coordSys=coordSys, area=garea, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
     if (coordSys /= ESMF_COORDSYS_CART) then
        ! Convert square radians to square meters
-       aoflux_in%garea(:) = aoflux_in%garea(:)*(rearth**2)
+       aoflux_in%garea(:) = garea(:)*(rearth**2)
+    else
+       aoflux_in%garea(:) = garea(:)
     end if
+    deallocate(garea)
 
   end subroutine med_aofluxes_init_xgrid
 
