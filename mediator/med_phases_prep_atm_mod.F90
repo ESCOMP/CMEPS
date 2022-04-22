@@ -242,17 +242,17 @@ contains
   end subroutine med_phases_prep_atm
 
   !-----------------------------------------------------------------------------
-  subroutine med_phases_prep_atm_enthalpy_correction (gcomp, hcorr, rc) 
+  subroutine med_phases_prep_atm_enthalpy_correction (gcomp, hcorr, rc)
 
-    ! Enthalpy correction term calculation called by med_phases_prep_ocn_accum in 
+    ! Enthalpy correction term calculation called by med_phases_prep_ocn_accum in
     ! med_phases_prep_ocn_mod
     ! Note that this is only called if the following fields are in FBExp(compocn)
     ! 'Faxa_rain','Foxx_hrain','Faxa_snow' ,'Foxx_hsnow',
-    ! 'Foxx_evap','Foxx_hevap','Foxx_hcond','Foxx_rofl', 
+    ! 'Foxx_evap','Foxx_hevap','Foxx_hcond','Foxx_rofl',
     ! 'Foxx_hrofl','Foxx_rofi','Foxx_hrofi'
 
     use ESMF            , only : ESMF_VMAllreduce, ESMF_GridCompGet, ESMF_REDUCE_SUM
-    use ESMF            , only : ESMF_VM 
+    use ESMF            , only : ESMF_VM
 
     ! input/output variables
     type(ESMF_GridComp) , intent(in)  :: gcomp
