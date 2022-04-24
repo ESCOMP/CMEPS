@@ -103,6 +103,12 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     nmlgen.init_defaults(infile, config, skip_default_for_groups=["modelio"])
 
     #--------------------------------
+    # Overwrite: wav-ice coupling (assumes cice6 as the ice component
+    #--------------------------------
+    if (case.get_value("COMP_WAV") == 'ww3dev' and case.get_value("COMP_ICE") == 'cice'):
+        nmlgen.set_value('wavice_coupling', value='.true.')
+
+    #--------------------------------
     # Overwrite: set brnch_retain_casename
     #--------------------------------
     start_type = nmlgen.get_value('start_type')

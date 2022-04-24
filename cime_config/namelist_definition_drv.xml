@@ -3789,6 +3789,18 @@
   <!--   </values> -->
   <!-- </entry> -->
 
+  <entry id="wavice_coupling">
+    <type>logical</type>
+    <category>expdef</category>
+    <group>ALLCOMP_attributes</group>
+    <desc>
+      If true, wav-ice coupling is active
+    </desc>
+    <values>
+      <value>.false.</value>
+    </values>
+  </entry>
+
   <!-- ======================================== -->
   <!--  ATM attributes                          -->
   <!-- ======================================== -->
@@ -3806,7 +3818,7 @@
     <type>char</type>
     <category>mapping</category>
     <input_pathname>abs</input_pathname>
-    <group>ATM_attributes</group>
+    <group>ALLCOMP_attributes</group>
     <desc>
       MESH description of atm grid
     </desc>
@@ -3866,7 +3878,7 @@
     <type>char</type>
     <category>mapping</category>
     <input_pathname>abs</input_pathname>
-    <group>ICE_attributes</group>
+    <group>ALLCOMP_attributes</group>
     <desc>
       MESH description of ice grid
     </desc>
@@ -3920,7 +3932,7 @@
     <type>char</type>
     <category>mapping</category>
     <input_pathname>abs</input_pathname>
-    <group>LND_attributes</group>
+    <group>ALLCOMP_attributes</group>
     <desc>
       MESH description of lnd grid
     </desc>
@@ -3947,7 +3959,7 @@
     <type>char</type>
     <category>mapping</category>
     <input_pathname>abs</input_pathname>
-    <group>OCN_attributes</group>
+    <group>ALLCOMP_attributes</group>
     <desc>
       MESH description of ocn grid
     </desc>
