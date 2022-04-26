@@ -309,7 +309,7 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
             model = model.lower()
             config = {}
             config['component'] = model
-            nmlgen.init_defaults(infile, config, skip_entry_loop=True)
+            nmlgen.init_defaults([], config, skip_entry_loop=True)
             if model == 'cpl':
                 newgroup = "MED_modelio"
             else:
@@ -347,10 +347,6 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
                 nmlgen.set_value("logfile", logfile)
                 inst_index = inst_index + 1
             nmlgen.write_nuopc_config_file(conffile)
-
-
-
-
 
     #--------------------------------
     # Update nuopc.runconfig file if component needs it
