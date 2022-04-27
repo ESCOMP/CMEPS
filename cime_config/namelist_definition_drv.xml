@@ -3824,7 +3824,6 @@
     </desc>
     <values>
       <value>$ATM_DOMAIN_MESH</value>
-      <value single_column='true'>null</value>
     </values>
   </entry>
   <entry id="perpetual">
@@ -3884,7 +3883,6 @@
     </desc>
     <values>
       <value>$ICE_DOMAIN_MESH</value>
-      <value single_column='true'>null</value>
     </values>
   </entry>
 
@@ -3911,7 +3909,6 @@
     </desc>
     <values>
       <value>$GLC_DOMAIN_MESH</value>
-      <value single_column='true'>null</value>
     </values>
   </entry>
 
@@ -3938,7 +3935,6 @@
     </desc>
     <values>
       <value>$LND_DOMAIN_MESH</value>
-      <value single_column='true'>null</value>
     </values>
   </entry>
 
@@ -3965,7 +3961,6 @@
     </desc>
     <values>
       <value>$OCN_DOMAIN_MESH</value>
-      <value single_column='true'>null</value>
     </values>
   </entry>
 
@@ -3992,7 +3987,6 @@
     </desc>
     <values>
       <value>$ROF_DOMAIN_MESH</value>
-      <value single_column='true'>null</value>
     </values>
   </entry>
 
@@ -4019,7 +4013,6 @@
     </desc>
     <values>
       <value>$WAV_DOMAIN_MESH</value>
-      <value single_column='true'>null</value>
     </values>
   </entry>
 
