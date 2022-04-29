@@ -350,6 +350,8 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
                 nmlgen.set_value("diro", case.get_value('RUNDIR'))
                 if model == 'cpl':
                     logfile = 'med' + inst_string + ".log." + str(lid)
+                elif model == 'drv':
+                    logfile = model + ".log." + str(lid)
                 else:
                     logfile = model + inst_string + ".log." + str(lid)
                 nmlgen.set_value("logfile", logfile)
