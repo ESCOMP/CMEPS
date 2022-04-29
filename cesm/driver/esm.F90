@@ -1460,6 +1460,12 @@ contains
           else
              write(logunit,'(a)')trim(subname)//' atm point has unit mask and unit fraction '
           end if
+          write(cvalue,*) ni
+          call NUOPC_CompAttributeSet(gcomp, name='scol_ni', value=trim(cvalue), rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          write(cvalue,*) nj
+          call NUOPC_CompAttributeSet(gcomp, name='scol_nj', value=trim(cvalue), rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        else
 
@@ -1472,12 +1478,11 @@ contains
           scol_ocnfrac = 1._r8
           scol_area = 1.e30
 
+          write(cvalue,*) 1
           call NUOPC_CompAttributeSet(gcomp, name='scol_ni', value=trim(cvalue), rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
-          write(cvalue,*) 1
           call NUOPC_CompAttributeSet(gcomp, name='scol_nj', value=trim(cvalue), rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
-          write(cvalue,*) 1
 
           write(logunit,'(a)')' single point mode is active'
           write(logunit,'(a,f13.5,a,f13.5,a)')' scol_lon is ',scol_lon,' and scol_lat is '
