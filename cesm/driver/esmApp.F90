@@ -15,7 +15,6 @@ program esmApp
   use mpi
   use NUOPC,           only : NUOPC_FieldDictionarySetup
   use ensemble_driver, only : SetServices
-  use shr_pio_mod,     only : shr_pio_init1
   use shr_sys_mod,     only : shr_sys_abort
 
   implicit none
@@ -43,17 +42,6 @@ program esmApp
   call MPI_init(rc)
 #endif
   COMP_COMM = MPI_COMM_WORLD
-
-  !-----------------------------------------------------------------------------
-  ! Initialize PIO
-  !-----------------------------------------------------------------------------
-
-  ! For planned future use of async io using pio2.  The IO tasks are seperated from the compute tasks here
-  ! and COMP_COMM will be MPI_COMM_NULL on the IO tasks which then call shr_pio_init2 and do not return until
-  ! the model completes.  All other tasks call ESMF_Initialize.  8 is the maximum number of component models
-  ! supported
-
-  call shr_pio_init1(8, "drv_in", COMP_COMM)
 
   !-----------------------------------------------------------------------------
   ! Initialize ESMF
