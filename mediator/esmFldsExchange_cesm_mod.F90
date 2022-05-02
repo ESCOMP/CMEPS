@@ -93,10 +93,20 @@ contains
     integer             :: n, ns
     character(len=CL)   :: cvalue
     character(len=CS)   :: name
+    logical             :: wavice_coupling
+    logical             :: ocn2glc_coupling
     character(len=*) , parameter   :: subname=' (esmFldsExchange_cesm) '
     !--------------------------------------
 
     rc = ESMF_SUCCESS
+
+    call NUOPC_CompAttributeGet(gcomp, name='wavice_coupling', value=cvalue, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    read(cvalue,*) wavice_coupling
+
+    call NUOPC_CompAttributeGet(gcomp, name='ocn2glc_coupling', value=cvalue, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    read(cvalue,*) ocn2glc_coupling
 
     !---------------------------------------
     ! Get the internal state
