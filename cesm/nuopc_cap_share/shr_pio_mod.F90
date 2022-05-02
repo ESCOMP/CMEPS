@@ -209,9 +209,10 @@ contains
 
   subroutine shr_pio_component_init(driver, ncomps, rc)
     use ESMF, only : ESMF_GridComp, ESMF_LogSetError, ESMF_RC_NOT_VALID, ESMF_GridCompIsCreated, ESMF_VM, ESMF_VMGet
-    use ESMF, only : ESMF_GridCompGet, ESMF_GridCompIsPetLocal, ESMF_VMIsCreated
+    use ESMF, only : ESMF_GridCompGet, ESMF_GridCompIsPetLocal, ESMF_VMIsCreated, ESMF_Finalize, ESMF_PtrInt1D
     use NUOPC, only : NUOPC_CompAttributeGet, NUOPC_CompAttributeSet, NUOPC_CompAttributeAdd
     use NUOPC_Driver, only : NUOPC_DriverGetComp
+    use mpi, only : MPI_AllReduce, MPI_AllGather, MPI_INTEGER, MPI_SUM, MPI_IN_PLACE, MPI_MAX
 
     type(ESMF_GridComp) :: driver
     type(ESMF_VM) :: vm
@@ -220,24 +221,41 @@ contains
 
     integer :: i, npets, default_stride
     integer :: j
-    integer :: comp_comm, comp_rank
+    integer :: comp_comm, comp_rank, driver_comm
+    integer, allocatable :: procs_per_comp(:), async_procs_per_comp(:)
+    integer, allocatable :: comp_proc_list(:,:), io_proc_list(:), async_io_tasks(:)
+    type(ESMF_PtrInt1D), pointer :: all_comp_proc_lists(:)
     type(ESMF_GridComp), pointer :: gcomp(:)
     character(CS) :: cval
     character(CS) :: msgstr
     integer :: do_async_init
+    integer :: totalpes
+    integer :: async_io_task
+    integer :: async_io_task_cnt
+    integer :: ierr
     type(iosystem_desc_t), allocatable :: async_iosystems(:)
+    character(len=*), parameter :: subname="shr_pio_component_init"
 
     allocate(pio_comp_settings(ncomps))
     allocate(gcomp(ncomps))
-
+    allocate(procs_per_comp(ncomps))
     allocate(io_compid(ncomps))
     allocate(io_compname(ncomps))
     allocate(iosystems(ncomps))
 
     nullify(gcomp)
     do_async_init = 0
+    ! mark all tasks as IO tasks then set them false if any component uses them
+    async_io_task = 1
 
-    call NUOPC_DriverGetComp(driver, compList=gcomp, rc=rc)
+    call ESMF_GridCompGet(gridcomp=driver, vm=vm, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    
+    call ESMF_VMGet(vm, petCount=totalpes, mpiCommunicator=driver_comm, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    nullify(all_comp_proc_lists)
+    call NUOPC_DriverGetComp(driver, compList=gcomp, petLists=all_comp_proc_lists, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     total_comps = size(gcomp)
@@ -246,6 +264,7 @@ contains
        io_compid(i) = i+1
 
        if (ESMF_GridCompIsPetLocal(gcomp(i), rc=rc)) then
+          async_io_task = 0
           call ESMF_GridCompGet(gcomp(i), vm=vm, name=cval, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           io_compname(i) = trim(cval)
@@ -261,6 +280,8 @@ contains
                ssiLocalPetCount=default_stride, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           
+          procs_per_comp(i) = npets
+
           call NUOPC_CompAttributeGet(gcomp(i), name="pio_stride", value=cval, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           read(cval, *) pio_comp_settings(i)%pio_stride
@@ -331,16 +352,87 @@ contains
           endif
        endif
     enddo
-    if (do_async_init > 0) then
+!
+! Async IO initialization
+!
+!   First get the list of io tasks, these are the driver tasks not assigned to any component.
+!
+   allocate(async_io_tasks(totalpes))
+   call MPI_AllGather(async_io_task, 1, MPI_INTEGER, async_io_tasks, totalpes, MPI_INTEGER, driver_comm, ierr)
+   print *,__FILE__,__LINE__, async_io_task, '<>', async_io_tasks, '<>', totalpes, ierr
+   async_io_task_cnt = 0
+   do i=1,totalpes
+       if(async_io_tasks(i) .ne. 0) then
+          async_io_task_cnt = async_io_task_cnt + 1
+       endif
+    enddo
+    j=1
+    if(async_io_task_cnt > 0) then
+       do i=1,totalpes
+          if(async_io_tasks(i) .ne. 0) then
+             io_proc_list(j) = i
+             j = j + 1
+          endif
+       enddo
+    endif
+    deallocate(async_io_tasks)
+!
+!   Get the PET list for each component using async IO
+!
+    call MPI_Allreduce(MPI_IN_PLACE, do_async_init, 1, MPI_INTEGER, MPI_MAX, driver_comm, ierr)
+    allocate(comp_proc_list(do_async_init, totalpes))
+    j = 1
+    do i=1,total_comps
+       if(pio_comp_settings(i)%pio_async_interface) then
+          comp_proc_list(j,1:size(all_comp_proc_lists(i)%ptr)) = all_comp_proc_lists(i)%ptr
+          j = j+1
+       endif
+    enddo
+    print *,__FILE__,__LINE__,comp_proc_list
+
+!    do i=1,total_comps
+!       call MPI_AllReduce(MPI_IN_PLACE, pio_comp_settings(i)%pio_async_interface, 1, MPI_INTEGER, MPI_SUM, driver_comm, ierr)
+!       if(pio_comp_settings(i)%pio_async_interface) then
+!          call NUOPC_DriverGetComp(driver, 
+!       endif
+!    enddo
+
+
+    if (async_io_task .or. do_async_init > 0) then
+       if(async_io_task_cnt == 0) then
+          call shr_sys_abort(subname//' ERROR: ASYNC IO Requested but no IO PES assigned')
+       endif
+
+
        allocate(async_iosystems(do_async_init))
+       allocate(async_procs_per_comp(do_async_init))
+       
+       
+
        j=1
        do i=1,total_comps
+          if(pio_comp_settings(i)%pio_async_interface) then
+             async_procs_per_comp(j) = procs_per_comp(i)
+             
+             j = j+1
+
+          endif
+       enddo
+!       call init_intercom(async_iosystems, driver_comm, async_procs_per_comp, comp_proc_list, io_proc_list, &
+!            PIO_REARR_BOX)
+       if(async_io_task) then
+          ! IO tasks should not return until the run is completed
+          call ESMF_FINALIZE()
+       endif
+       j=1
+       do i=1,total_comps
+          
           if(pio_comp_settings(i)%pio_async_interface) then
              iosystems(i) = async_iosystems(j)
              j = j+1
           endif
        enddo
-       
+       print *,__FILE__,__LINE__,' async_init: ',do_async_init
     endif
 
     deallocate(gcomp)
