@@ -3007,7 +3007,6 @@ contains
     ! ---------------------------------------------------------------------
     ! to ice: wave elevation spectrum (field with ungridded dimensions)
     ! ---------------------------------------------------------------------
-    write(6,*)'DEBUG: wavice_coupling= ',wavice_coupling
     if (wavice_coupling) then
        if (phase == 'advertise') then
           call addfld(fldListFr(compwav)%flds, 'Sw_elevation_spectrum')
