@@ -25,7 +25,6 @@ module MED
   use med_constants_mod        , only : spval_init         => med_constants_spval_init
   use med_constants_mod        , only : spval              => med_constants_spval
   use med_constants_mod        , only : czero              => med_constants_czero
-  use med_constants_mod        , only : ispval_mask        => med_constants_ispval_mask
   use med_utils_mod            , only : chkerr             => med_utils_ChkErr
   use med_methods_mod          , only : Field_GeomPrint    => med_methods_Field_GeomPrint
   use med_methods_mod          , only : State_GeomPrint    => med_methods_State_GeomPrint
@@ -35,14 +34,13 @@ module MED
   use med_methods_mod          , only : FB_Init            => med_methods_FB_init
   use med_methods_mod          , only : FB_Init_pointer    => med_methods_FB_Init_pointer
   use med_methods_mod          , only : FB_Reset           => med_methods_FB_Reset
-  use med_methods_mod          , only : FB_FldChk          => med_methods_FB_FldChk
   use med_methods_mod          , only : FB_diagnose        => med_methods_FB_diagnose
   use med_methods_mod          , only : FB_getFieldN       => med_methods_FB_getFieldN
   use med_methods_mod          , only : clock_timeprint    => med_methods_clock_timeprint
   use med_utils_mod            , only : memcheck           => med_memcheck
   use med_time_mod             , only : med_time_alarmInit
   use med_internalstate_mod    , only : InternalState, med_internalstate_init, med_internalstate_coupling
-  use med_internalstate_mod    , only : logunit, mastertask
+  use med_internalstate_mod    , only : med_internalstate_defaultmasks, logunit, mastertask
   use med_internalstate_mod    , only : ncomps, compname
   use med_internalstate_mod    , only : compmed, compatm, compocn, compice, complnd, comprof, compwav, compglc
   use med_internalstate_mod    , only : coupling_mode, aoflux_code, aoflux_ccpp_suite
@@ -550,7 +548,9 @@ contains
     use ESMF  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_METHOD_INITIALIZE
     use NUOPC , only : NUOPC_CompFilterPhaseMap, NUOPC_CompAttributeGet
     use med_internalstate_mod, only : mastertask, logunit, diagunit
-
+#ifdef CESMCOUPLED
+    use nuopc_shr_methods, only : set_component_logging
+#endif
     type(ESMF_GridComp)   :: gcomp
     type(ESMF_State)      :: importState, exportState
     type(ESMF_Clock)      :: clock
@@ -561,6 +561,7 @@ contains
     character(len=CL) :: cvalue
     integer           :: localPet
     integer           :: i
+    integer           :: shrlogunit
     logical           :: isPresent, isSet
     character(len=CX) :: msgString
     character(len=CX) :: diro
@@ -591,8 +592,11 @@ contains
        if (.not. isPresent .and. .not. isSet) then
           logfile = 'mediator.log'
        end if
-       open(newunit=logunit, file=trim(diro)//"/"//trim(logfile))
-
+#ifdef CESMCOUPLED
+       call set_component_logging(gcomp, mastertask, logunit, shrlogunit, rc)
+#else
+       open(newunit=logunit,file=trim(diro)//"/"//trim(logfile))
+#endif
        call NUOPC_CompAttributeGet(gcomp, name="do_budgets", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        if (isPresent .and. isSet) then
@@ -649,13 +653,14 @@ contains
     ! TransferOfferGeomObject Attribute.
 
     use ESMF  , only : ESMF_GridComp, ESMF_State, ESMF_Clock, ESMF_SUCCESS, ESMF_LogFoundAllocError
-    use ESMF  , only : ESMF_StateIsCreated 
+    use ESMF  , only : ESMF_StateIsCreated
     use ESMF  , only : ESMF_LogMsg_Info, ESMF_LogWrite
     use ESMF  , only : ESMF_END_ABORT, ESMF_Finalize, ESMF_MAXSTR
     use NUOPC , only : NUOPC_AddNamespace, NUOPC_Advertise, NUOPC_AddNestedState
     use NUOPC , only : NUOPC_CompAttributeGet, NUOPC_CompAttributeSet, NUOPC_CompAttributeAdd
     use esmFlds, only : med_fldlist_init1
     use med_phases_history_mod, only : med_phases_history_init
+    use med_internalstate_mod , only : atm_name
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -808,9 +813,7 @@ contains
     if (trim(coupling_mode) == 'cesm') then
        call esmFldsExchange_cesm(gcomp, phase='advertise', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    else if (trim(coupling_mode) == 'nems_orig' .or. trim(coupling_mode) == 'nems_frac' .or. &
-       trim(coupling_mode) == 'nems_orig_data' .or. trim(coupling_mode) == 'nems_frac_aoflux' .or. &
-       trim(coupling_mode) == 'nems_frac_aoflux_sbs') then
+    else if (trim(coupling_mode(1:4)) == 'nems') then
        call esmFldsExchange_nems(gcomp, phase='advertise', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     else if (trim(coupling_mode(1:4)) == 'hafs') then
@@ -820,6 +823,10 @@ contains
         call ESMF_LogWrite(trim(coupling_mode)//' is not a valid coupling_mode', ESMF_LOGMSG_INFO)
         call ESMF_Finalize(endflag=ESMF_END_ABORT)
     end if
+
+    ! Set default masking for mapping
+    call med_internalstate_defaultmasks(gcomp, rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !------------------
     ! Determine component present indices
@@ -1772,6 +1779,8 @@ contains
       if (trim(coupling_mode) == 'cesm') then
          call esmFldsExchange_cesm(gcomp, phase='initialize', rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      else if (trim(coupling_mode(1:4)) == 'nems') then
+       call esmFldsExchange_nems(gcomp, phase='initialize', rc=rc)
       else if (trim(coupling_mode) == 'hafs') then
          call esmFldsExchange_hafs(gcomp, phase='initialize', rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return

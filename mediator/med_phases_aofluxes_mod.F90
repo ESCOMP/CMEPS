@@ -1238,6 +1238,7 @@ contains
           end if
           if (chkerr(rc,__LINE__,u_FILE_u)) return
        end if
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
     end do
 
   end subroutine med_aofluxes_map_agrid2xgrid_input
@@ -1406,6 +1407,7 @@ end subroutine med_aofluxes_map_ogrid2xgrid_input
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call ESMF_FieldRegrid(field_o, field_x, routehandle=rh_ogrid2xgrid, &
          termorderflag=ESMF_TERMORDER_SRCSEQ, zeroregion=ESMF_REGION_TOTAL, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
     call ESMF_FieldGet(field_x, farrayptr=ofrac_x, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 

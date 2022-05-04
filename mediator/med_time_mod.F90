@@ -73,7 +73,7 @@ contains
     integer          , optional , intent(in)    :: opt_tod       ! alarm tod (sec)
     type(ESMF_Time)  , optional , intent(in)    :: reftime       ! reference time
     character(len=*) , optional , intent(in)    :: alarmname     ! alarm name
-    logical          , optional , intent(in)    :: advance_clock ! advance clock to trigger alarm 
+    logical          , optional , intent(in)    :: advance_clock ! advance clock to trigger alarm
     integer                     , intent(out)   :: rc            ! Return code
 
     ! local variables
@@ -264,7 +264,7 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! Advance model clock to trigger alarm then reset model clock back to currtime
-    if (present(advance_clock)) then 
+    if (present(advance_clock)) then
        if (advance_clock) then
           call ESMF_AlarmSet(alarm, clock=clock, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return

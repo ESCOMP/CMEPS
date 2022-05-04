@@ -49,9 +49,9 @@ CONTAINS
     character(len=32)  :: ndep_list(maxspc) = '' ! List of ndep species
     integer            :: localpet
     integer            :: mpicom
-    character(*),parameter :: F00   = "('(shr_ndep_read) ',8a)"
-    character(*),parameter :: FI1   = "('(shr_ndep_init) ',a,I2)"
-    character(*),parameter :: subName = '(shr_ndep_read) '
+    
+    character(*),parameter :: subName = '(shr_ndep_readnl) '
+    character(*),parameter :: F00   = "('(shr_ndep_readnl) ',8a)"
     ! ------------------------------------------------------------------
 
     namelist /ndep_inparm/ ndep_list
