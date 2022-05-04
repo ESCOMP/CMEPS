@@ -258,7 +258,7 @@ contains
     if (trim(coupling_mode) == 'nems_frac_aoflux') then
        if (is_local%wrap%comp_present(compocn) .and. is_local%wrap%comp_present(compatm)) then
           allocate(flds(5))
-          flds = (/ 'lat', 'sen', 'lwup', 'taux', 'tauy' /)
+          flds = (/ 'lat ', 'sen ', 'lwup', 'taux', 'tauy' /)
           if (phase == 'advertise') then
              do n = 1,size(flds)
                 call addfld(fldListMed_aoflux%flds , 'Faox_'//trim(flds(n)))
