@@ -38,12 +38,13 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install gfortran wget openmpi-bin netcdf-bin libopenmpi-dev libnetcdf-dev
-      - id: build-ESMF
+      - id: checkout-ESMF
         uses: actions/checkout@v3
         with:
           repository: esmf-org/esmf
           path: esmf-src
           ref: v8.3.0b13
+      - id: build-ESMF
         if: steps.cache-esmf.outputs.cache-hit != 'true'
         run: |
           #wget https://github.com/esmf-org/esmf/archive/${{ env.ESMF_VERSION }}.tar.gz
