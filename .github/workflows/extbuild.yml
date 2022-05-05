@@ -19,7 +19,7 @@ jobs:
       CXX: mpicxx
       CPPFLAGS: "-I/usr/include -I/usr/local/include"
       # Versions of all dependencies can be updated here
-      ESMF_VERSION: ESMF_8_3_0_beta_snapshot_13
+      ESMF_VERSION: v8.3.0b13
       PNETCDF_VERSION: pnetcdf-1.12.3
       NETCDF_FORTRAN_VERSION: v4.5.2
       # PIO version is awkward
@@ -43,14 +43,14 @@ jobs:
         with:
           repository: esmf-org/esmf
           path: esmf-src
-          ref: v8.3.0b13
+          ref: ${{ env.ESMF_VERSION }}
       - id: build-ESMF
         if: steps.cache-esmf.outputs.cache-hit != 'true'
         run: |
           #wget https://github.com/esmf-org/esmf/archive/${{ env.ESMF_VERSION }}.tar.gz
           #tar -xzvf ${{ env.ESMF_VERSION }}.tar.gz
           #pushd esmf-${{ env.ESMF_VERSION }}
-          cd esmf-src
+          pushd esmf-src
           export ESMF_DIR=`pwd`
           export ESMF_COMM=openmpi
           export ESMF_YAMLCPP="internal"
