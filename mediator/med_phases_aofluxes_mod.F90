@@ -963,7 +963,7 @@ contains
     real(r8), pointer        :: data_normdst(:)
     real(r8), pointer        :: data_dst(:)
     integer                  :: maptype
-    real(r8)                 :: qmin = 1.0e-8_r8
+    real(r8), parameter      :: qmin = 1.0e-8_r8
     character(*),parameter   :: subName = '(med_aofluxes_update) '
     !-----------------------------------------------------------------------
 
