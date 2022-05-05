@@ -22,9 +22,7 @@ jobs:
       ESMF_VERSION: v8.3.0b13
       PNETCDF_VERSION: pnetcdf-1.12.3
       NETCDF_FORTRAN_VERSION: v4.5.2
-      # PIO version is awkward
-      PIO_VERSION_DIR: pio2_5_7
-      PIO_VERSION: pio-2.5.7
+      PIO_VERSION: pio2_5_7
     steps:
       - uses: actions/checkout@v2
         # Build the ESMF library, if the cache contains a previous build
@@ -102,14 +100,18 @@ jobs:
             ${{ runner.os }}-${{ env.NETCDF_FORTRAN_VERSION }}-netcdf-fortran
             ${{ runner.os }}-${{ env.PNETCDF_VERSION }}-pnetcdf
 
+      - id: checkout-PIO
+        uses: actions/checkout@v3
+        with:
+          repository: NCAR/ParallelIO
+          path: parallelio-src
+          ref: ${{ env.PIO_VERSION }}
       - name: Build PIO
         if: steps.cache-PIO.outputs.cache-hit != 'true'
         run: |
-          wget https://github.com/NCAR/ParallelIO/releases/download/${{ env.PIO_VERSION_DIR }}/${{ env.PIO_VERSION }}.tar.gz
-          tar -xzvf ${{ env.PIO_VERSION }}.tar.gz
           mkdir build-pio
           pushd build-pio
-          cmake -Wno-dev -DNetCDF_C_LIBRARY=/usr/lib/x86_64-linux-gnu/libnetcdf.so -DNetCDF_C_INCLUDE_DIR=/usr/include -DCMAKE_PREFIX_PATH=/usr -DCMAKE_INSTALL_PREFIX=$HOME/pio -DPIO_HDF5_LOGGING=On -DPIO_USE_MALLOC=On -DPIO_ENABLE_TESTS=Off -DPIO_ENABLE_LOGGING=On -DPIO_ENABLE_EXAMPLES=Off -DPIO_ENABLE_TIMING=Off -DNetCDF_Fortran_PATH=$HOME/netcdf-fortran -DPnetCDF_PATH=$HOME/pnetcdf ../${{ env.PIO_VERSION }}
+          cmake -Wno-dev -DNetCDF_C_LIBRARY=/usr/lib/x86_64-linux-gnu/libnetcdf.so -DNetCDF_C_INCLUDE_DIR=/usr/include -DCMAKE_PREFIX_PATH=/usr -DCMAKE_INSTALL_PREFIX=$HOME/pio -DPIO_HDF5_LOGGING=On -DPIO_USE_MALLOC=On -DPIO_ENABLE_TESTS=Off -DPIO_ENABLE_LOGGING=On -DPIO_ENABLE_EXAMPLES=Off -DPIO_ENABLE_TIMING=Off -DNetCDF_Fortran_PATH=$HOME/netcdf-fortran -DPnetCDF_PATH=$HOME/pnetcdf ../parallelio-src
           make VERBOSE=1
           make install
           popd
