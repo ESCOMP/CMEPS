@@ -32,7 +32,7 @@ contains
 
   subroutine flux_atmOcn_ccpp(gcomp, mastertask, logunit, nMax, mask, psfc, pbot, &
              tbot, qbot, zbot, garea, ubot, usfc, vbot, vsfc, rbot, ts, lwdn, sen, lat, &
-             lwup, evp, taux, tauy, qref, missval)
+             lwup, evp, taux, tauy, qref, duu10n, missval)
 
     implicit none
 
@@ -58,13 +58,14 @@ contains
     real(r8), intent(in), optional :: missval ! masked value
 
     !--- output arguments -------------------------------
-    real(r8), intent(out) :: sen(nMax)   ! heat flux: sensible            (W/m^2)
-    real(r8), intent(out) :: lat(nMax)   ! heat flux: latent              (W/m^2)
-    real(r8), intent(out) :: lwup(nMax)  ! heat flux: lw upward           (W/m^2)
-    real(r8), intent(out) :: evp(nMax)   ! heat flux: evap                ((kg/s)/m^2)
-    real(r8), intent(out) :: taux(nMax)  ! surface stress, zonal          (N)
-    real(r8), intent(out) :: tauy(nMax)  ! surface stress, maridional     (N)
-    real(r8), intent(out) :: qref(nMax)  ! diag: 2m ref humidity          (kg/kg)
+    real(r8), intent(out) :: sen(nMax)    ! heat flux: sensible            (W/m^2)
+    real(r8), intent(out) :: lat(nMax)    ! heat flux: latent              (W/m^2)
+    real(r8), intent(out) :: lwup(nMax)   ! heat flux: lw upward           (W/m^2)
+    real(r8), intent(out) :: evp(nMax)    ! heat flux: evap                ((kg/s)/m^2)
+    real(r8), intent(out) :: taux(nMax)   ! surface stress, zonal          (N)
+    real(r8), intent(out) :: tauy(nMax)   ! surface stress, maridional     (N)
+    real(r8), intent(out) :: qref(nMax)   ! diag: 2m ref humidity          (kg/kg)
+    real(r8), intent(out) :: duu10n(nMax) ! diag: 10m wind speed squared (m/s)^2
 
     !--- local variables --------------------------------
     integer           :: n, rc
@@ -251,6 +252,7 @@ contains
           taux(n) = rbot(n)*physics%interstitial%stress_water(n)*ubot(n)/physics%interstitial%wind(n)
           tauy(n) = rbot(n)*physics%interstitial%stress_water(n)*vbot(n)/physics%interstitial%wind(n)
           qref(n) = physics%interstitial%qss_water(n)
+          duu10n(n) = physics%interstitial%wind(n)*physics%interstitial%wind(n)
        else
           sen(n)  = spval
           lat(n)  = spval
@@ -259,6 +261,7 @@ contains
           taux(n) = spval
           tauy(n) = spval
           qref(n) = spval
+          duu10n(n) = spval
        end if
     end do
 
