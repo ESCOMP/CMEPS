@@ -35,6 +35,9 @@ module med_phases_aofluxes_mod
 #ifndef CESMCOUPLED
   use ufs_const_mod         , only : rearth => SHR_CONST_REARTH
   use ufs_const_mod         , only : pi => SHR_CONST_PI
+#else
+  use shr_const_mod         , only : rearth => SHR_CONST_REARTH
+  use shr_const_mod         , only : pi => SHR_CONST_PI
 #endif
 
   implicit none
@@ -964,6 +967,9 @@ contains
     real(r8), pointer        :: data_dst(:)
     integer                  :: maptype
     real(r8), parameter      :: qmin = 1.0e-8_r8
+    real(r8), parameter      :: p0 = 100000.0_r8           ! reference pressure in Pa
+    real(r8), parameter      :: rcp = 0.286_r8             ! gas constant of air / specific heat capacity at a constant pressure
+    real(r8), parameter      :: rdair = 287.058_r8         ! dry air gas constant in J/K/kg
     character(*),parameter   :: subName = '(med_aofluxes_update) '
     !-----------------------------------------------------------------------
 
@@ -1004,8 +1010,8 @@ contains
     ! Note pbot, tbot and shum have already been mapped or are available on the aoflux grid
     if (compute_atm_thbot) then
        do n = 1,aoflux_in%lsize
-          if (aoflux_in%mask(n) /= 0._r8) then
-             aoflux_in%thbot(n) = aoflux_in%tbot(n)*((100000._R8/aoflux_in%pbot(n))**0.286_R8)
+          if (aoflux_in%mask(n) /= 0.0_r8) then
+             aoflux_in%thbot(n) = aoflux_in%tbot(n)*((p0/aoflux_in%pbot(n))**rcp)
           end if
        end do
     end if
@@ -1014,19 +1020,19 @@ contains
           (trim(coupling_mode) == 'nems_frac_aoflux' .or. trim(coupling_mode) == 'nems_frac_aoflux_sbs')) then
           ! Add limiting factor to humidity to be consistent with UFS aoflux calculation
           do n = 1,aoflux_in%lsize
-             if (aoflux_in%mask(n) /= 0._r8) then
+             if (aoflux_in%mask(n) /= 0.0_r8) then
                 aoflux_in%shum(n) = max(aoflux_in%shum(n), qmin)
              end if
           end do
           ! Use pbot as psfc for the initial pass since psfc provided by UFS atm is zero
-          if (maxval(aoflux_in%psfc, mask=(aoflux_in%mask/= 0._r8)) < 100._r8) then
+          if (maxval(aoflux_in%psfc, mask=(aoflux_in%mask/= 0.0_r8)) < 100.0_r8) then
              aoflux_in%psfc(:) = aoflux_in%pbot(:)
              call ESMF_LogWrite(trim(subname)//" : using pbot as psfc for initial pass!", ESMF_LOGMSG_INFO)
           end if
        end if
        do n = 1,aoflux_in%lsize
-          if (aoflux_in%mask(n) /= 0._r8) then
-             aoflux_in%dens(n) = aoflux_in%pbot(n)/(287.058_R8*(1._R8 + 0.608_R8*aoflux_in%shum(n))*aoflux_in%tbot(n))
+          if (aoflux_in%mask(n) /= 0.0_r8) then
+             aoflux_in%dens(n) = aoflux_in%pbot(n)/(rdair*(1.0_r8 + 0.608_r8*aoflux_in%shum(n))*aoflux_in%tbot(n))
           end if
        end do
     end if
