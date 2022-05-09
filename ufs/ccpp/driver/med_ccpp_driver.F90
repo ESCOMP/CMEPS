@@ -28,6 +28,11 @@ contains
     !--- local variables --------------------------------
     integer :: ierr
 
+    ! for physics running over the entire domain, block and thread
+    ! number are not used; set to safe values
+    cdata%blk_no = 1
+    cdata%thrd_no = 1
+
     ! initialize CCPP physics (run all _init routines)
     call ccpp_physics_init(cdata, suite_name=trim(ccpp_suite), ierr=ierr)
     if (ierr /= 0) then
