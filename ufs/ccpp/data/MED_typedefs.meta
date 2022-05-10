@@ -890,15 +890,15 @@
 [ccpp-arg-table]
   name = MED_coupling_type
   type = ddt
-[dtsfcino_cpl]
-  standard_name = surface_upward_sensible_heat_flux_over_ocean_from_coupled_process
+[dtsfcin_med]
+  standard_name = surface_upward_sensible_heat_flux_over_ocean_from_mediator
   long_name = sfc sensible heat flux input over ocean for coupling
   units = W m-2
   dimensions = (horizontal_loop_extent)
   type = real
   kind = kind_phys
-[dqsfcino_cpl]
-  standard_name = surface_upward_latent_heat_flux_over_ocean_from_coupled_process
+[dqsfcin_med]
+  standard_name = surface_upward_latent_heat_flux_over_ocean_from_mediator
   long_name = sfc latent heat flux input over ocean for coupling
   units = W m-2
   dimensions = (horizontal_loop_extent)

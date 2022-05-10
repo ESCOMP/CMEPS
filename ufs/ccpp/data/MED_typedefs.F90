@@ -184,8 +184,8 @@ module MED_typedefs
 !! \htmlinclude MED_coupling_type.html
 !!
   type MED_coupling_type
-    real(kind=kind_phys), pointer :: dtsfcino_cpl(:) => null() !< sfc latent heat flux over ocean
-    real(kind=kind_phys), pointer :: dqsfcino_cpl(:) => null() !< sfc sensible heat flux over ocean
+    real(kind=kind_phys), pointer :: dtsfcin_med(:) => null() !< sfc latent heat flux over ocean
+    real(kind=kind_phys), pointer :: dqsfcin_med(:) => null() !< sfc sensible heat flux over ocean
     contains
       procedure :: create  => coupling_create !< allocate array data
   end type MED_coupling_type
@@ -611,10 +611,10 @@ module MED_typedefs
     class(MED_coupling_type) :: coupling
     integer, intent(in)      :: im
 
-    allocate(coupling%dtsfcino_cpl(im))
-    coupling%dtsfcino_cpl = clear_val
-    allocate(coupling%dqsfcino_cpl(im))
-    coupling%dqsfcino_cpl = clear_val
+    allocate(coupling%dtsfcin_med(im))
+    coupling%dtsfcin_med = clear_val
+    allocate(coupling%dqsfcin_med(im))
+    coupling%dqsfcin_med = clear_val
 
   end subroutine coupling_create
 
