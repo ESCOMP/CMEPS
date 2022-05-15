@@ -24,7 +24,7 @@ module med_phases_aofluxes_mod
   use ESMF                  , only : ESMF_Mesh, ESMF_MeshGet, ESMF_XGrid, ESMF_XGridCreate, ESMF_TYPEKIND_R8
   use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_LOGMSG_ERROR, ESMF_FAILURE
   use ESMF                  , only : ESMF_Finalize, ESMF_LogFoundError
-  use ESMF                  , only : ESMF_XGridGet, ESMF_MeshWrite, ESMF_KIND_R8
+  use ESMF                  , only : ESMF_XGridGet, ESMF_MeshCreate, ESMF_MeshWrite, ESMF_KIND_R8
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
   use med_internalstate_mod , only : InternalState, mastertask, logunit
   use med_internalstate_mod , only : compatm, compocn, coupling_mode, aoflux_code, mapconsd, mapconsf, mapfcopy
@@ -545,6 +545,7 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call ESMF_FieldGet(lfield, mesh=lmesh, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
+    is_local%wrap%aoflux_mesh = ESMF_MeshCreate(lmesh, rc=rc)
     call ESMF_MeshGet(lmesh, coordSys=coordSys, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     if (coordSys /= ESMF_COORDSYS_CART) then
@@ -695,6 +696,7 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call ESMF_FieldGet(lfield, mesh=lmesh, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
+    is_local%wrap%aoflux_mesh = ESMF_MeshCreate(lmesh, rc=rc)
     call ESMF_MeshGet(lmesh, coordSys=coordSys, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     if (coordSys /= ESMF_COORDSYS_CART) then
@@ -758,6 +760,7 @@ contains
     type(ESMF_Field)     :: field_a
     type(ESMF_Field)     :: field_o
     type(ESMF_Field)     :: lfield
+    type(ESMF_Mesh)      :: lmesh
     type(ESMF_Mesh)      :: ocn_mesh
     type(ESMF_Mesh)      :: atm_mesh
     type(ESMF_Mesh)      :: xch_mesh
@@ -916,8 +919,9 @@ contains
 
     allocate(garea(lsize))
     allocate(aoflux_in%garea(lsize))
-    call ESMF_XGridGet(xgrid, coordSys=coordSys, area=garea, rc=rc)
+    call ESMF_XGridGet(xgrid, mesh=lmesh, coordSys=coordSys, area=garea, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
+    is_local%wrap%aoflux_mesh = ESMF_MeshCreate(lmesh, rc=rc)
     if (coordSys /= ESMF_COORDSYS_CART) then
        ! Convert square radians to square meters
        aoflux_in%garea(:) = garea(:)*(rearth**2)

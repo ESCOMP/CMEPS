@@ -1,21 +1,30 @@
 module flux_atmocn_ccpp_mod
 
-  use ESMF,            only : ESMF_GridComp, ESMF_SUCCESS
+  use ESMF,            only : operator(-), operator(/)
+  use ESMF,            only : ESMF_GridComp, ESMF_Time, ESMF_SUCCESS
+  use ESMF,            only : ESMF_Clock, ESMF_TimeInterval, ESMF_ClockGet
+  use ESMF,            only : ESMF_GridCompGetInternalState
   use NUOPC,           only : NUOPC_CompAttributeGet
+  use NUOPC_Mediator,  only : NUOPC_MediatorGet
 
-  use med_kind_mod,    only : R8=>SHR_KIND_R8, CS=>SHR_KIND_CS
   use physcons,        only : p0 => con_p0
   use physcons,        only : cappa => con_rocp
   use physcons,        only : cp => con_cp
   use physcons,        only : hvap => con_hvap
   use physcons,        only : sbc => con_sbc
+
   use MED_data,        only : physics 
-  use med_utils_mod,   only : chkerr       => med_utils_chkerr
   use med_ccpp_driver, only : med_ccpp_driver_init
   use med_ccpp_driver, only : med_ccpp_driver_run
   use med_ccpp_driver, only : med_ccpp_driver_finalize
+
   use ufs_const_mod
-  use med_internalstate_mod, only : aoflux_ccpp_suite
+  use ufs_io_mod,      only : read_initial, read_restart, write_restart
+  use med_kind_mod,    only : R8=>SHR_KIND_R8, CS=>SHR_KIND_CS
+  use med_utils_mod,   only : chkerr => med_utils_chkerr
+  use med_internalstate_mod, only : aoflux_ccpp_suite, logunit
+  use med_internalstate_mod, only : InternalState, mastertask
+  use med_constants_mod,     only : dbug_flag => med_constants_dbug_flag
 
   implicit none
 
@@ -68,16 +77,26 @@ contains
     real(r8), intent(out) :: duu10n(nMax) ! diag: 10m wind speed squared (m/s)^2
 
     !--- local variables --------------------------------
-    integer           :: n, rc
-    real(r8)          :: spval
-    logical           :: isPresent, isSet
-    character(len=cs) :: cvalue
-    real(r8), save    :: semis_water
-    logical, save     :: first_call = .true.
+    type(ESMF_Clock)        :: mclock
+    type(ESMF_Time)         :: currtime, starttime
+    type(ESMF_TimeInterval) :: timeStep
+    type(InternalState)     :: is_local
+    integer                 :: n, rc
+    real(r8)                :: spval
+    logical                 :: isPresent, isSet
+    character(len=cs)       :: cvalue
+    character(len=cs)       :: starttype
+    integer, save           :: restart_freq
+    real(r8), save          :: semis_water
+    logical, save           :: first_call = .true.
     character(len=*), parameter :: subname=' (flux_atmOcn_ccpp) '
     !---------------------------------------
 
     rc = ESMF_SUCCESS
+
+    nullify(is_local%wrap)
+    call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! missing value
     if (present(missval)) then
@@ -86,8 +105,31 @@ contains
        spval = shr_const_spval
     endif
 
+    !----------------------
+    ! Determine clock, starttime and currtime
+    !----------------------
+
+    call NUOPC_MediatorGet(gcomp, mediatorClock=mclock, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_ClockGet(mclock, currtime=currTime, starttime=startTime, timeStep=timeStep, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
     ! init CCPP and setup/allocate variables
     if (first_call) then
+       ! allocate and initalize data structures
+       call physics%statein%create(nMax,physics%model)
+       call physics%interstitial%create(nMax)
+       call physics%coupling%create(nMax)
+       call physics%grid%create(nMax)
+       call physics%sfcprop%create(nMax,physics%model)
+       call physics%diag%create(nMax)
+
+       ! initalize dimension 
+       physics%init%im = nMax
+
+       ! initalize model related parameters
+       call physics%model%init()
+
        ! determine CCPP/physics specific options
        ! semis_water, surface emissivity for lw radiation
        ! semis_wat is constant and set to 0.97 in setemis() call
@@ -161,40 +203,45 @@ contains
           if (trim(cvalue) .eq. '.false.' .or. trim(cvalue) .eq. 'false') physics%model%lheatstrg = .false.
        end if
 
+       ! determine CCPP/host model specific options, set it to < 0 for no restart
+       call NUOPC_CompAttributeGet(gcomp, name="ccpp_restart_interval", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       if (isPresent .and. isSet) then
+          read(cvalue,*) restart_freq
+       else
+          restart_freq = 3600 ! write restart file every hour
+       end if
+
        if (mastertask) then
           write(logunit,*) '========================================================'
-          write(logunit,'(a,f5.2)') trim(subname)//' ccpp_phy_semis_water = ', semis_water
-          write(logunit,'(a,l)')    trim(subname)//' ccpp_phy_lseaspray   = ', physics%model%lseaspray
-          write(logunit,'(a,i)')    trim(subname)//' ccpp_phy_ivegsrc     = ', physics%model%ivegsrc
-          write(logunit,'(a,l)')    trim(subname)//' ccpp_phy_redrag      = ', physics%model%redrag
-          write(logunit,'(a,i)')    trim(subname)//' ccpp_phy_lsm         = ', physics%model%lsm
-          write(logunit,'(a,l)')    trim(subname)//' ccpp_phy_frac_grid   = ', physics%model%frac_grid
-          write(logunit,'(a,l)')    trim(subname)//' ccpp_phy_restart     = ', physics%model%restart
-          write(logunit,'(a,l)')    trim(subname)//' ccpp_phy_cplice      = ', physics%model%cplice
-          write(logunit,'(a,l)')    trim(subname)//' ccpp_phy_cplflx      = ', physics%model%cplflx
-          write(logunit,'(a,l)')    trim(subname)//' ccpp_phy_lheatstrg   = ', physics%model%lheatstrg
+          write(logunit,'(a,f5.2)') trim(subname)//' ccpp_phy_semis_water  = ', semis_water
+          write(logunit,'(a,l)')    trim(subname)//' ccpp_phy_lseaspray    = ', physics%model%lseaspray
+          write(logunit,'(a,i)')    trim(subname)//' ccpp_phy_ivegsrc      = ', physics%model%ivegsrc
+          write(logunit,'(a,l)')    trim(subname)//' ccpp_phy_redrag       = ', physics%model%redrag
+          write(logunit,'(a,i)')    trim(subname)//' ccpp_phy_lsm          = ', physics%model%lsm
+          write(logunit,'(a,l)')    trim(subname)//' ccpp_phy_frac_grid    = ', physics%model%frac_grid
+          write(logunit,'(a,l)')    trim(subname)//' ccpp_phy_restart      = ', physics%model%restart
+          write(logunit,'(a,l)')    trim(subname)//' ccpp_phy_cplice       = ', physics%model%cplice
+          write(logunit,'(a,l)')    trim(subname)//' ccpp_phy_cplflx       = ', physics%model%cplflx
+          write(logunit,'(a,l)')    trim(subname)//' ccpp_phy_lheatstrg    = ', physics%model%lheatstrg
+          write(logunit,'(a,i)')    trim(subname)//' ccpp_restart_interval = ', restart_freq
           write(logunit,*) '========================================================'
        end if
 
-       ! allocate and initalize data structures
-       call physics%statein%create(nMax,physics%model)
-       call physics%interstitial%create(nMax)
-       call physics%coupling%create(nMax)
-       call physics%grid%create(nMax)
-       call physics%sfcprop%create(nMax,physics%model)
-       call physics%diag%create(nMax)
-
-       ! initalize dimension 
-       physics%init%im = nMax
-
-       ! initalize model related parameters
-       ! TODO: part of these need to be ingested from FV3 input.nml or configured through ESMF config file
-       call physics%model%init()
+       ! read initial condition/restart
+       call NUOPC_CompAttributeGet(gcomp, name='start_type', value=cvalue, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       read(cvalue,*) starttype
+       if (trim(starttype) == trim('startup')) then
+          call read_initial(gcomp, rc)
+       else
+          call read_restart(gcomp, rc)
+          !physics%model%restart = .true.
+       end if
 
        ! run CCPP init
        ! TODO: suite name need to be provided by ESMF config file
        call med_ccpp_driver_init(trim(aoflux_ccpp_suite))
-       first_call = .false.
     end if
 
     ! fill in atmospheric forcing
@@ -214,29 +261,41 @@ contains
     physics%grid%area(:) = garea(:)
 
     ! set counter
-    physics%model%kdt = physics%model%kdt+1
+    physics%model%kdt = ((currTime-StartTime)/timeStep)+1
+    if (mastertask .and. dbug_flag > 5) then
+       write(logunit,'(a,i)') 'kdt = ', physics%model%kdt
+    end if
 
-    ! reset physics variables
+    ! reset physics variables, mimic GFS_suite_interstitial_phys_reset
     call physics%interstitial%phys_reset()
 
-    ! fill in required interstitial variables
+    ! set required variables to mimic GFS_surface_generic_pre
+    ! TODO: the wind calculation in GFS_surface_generic_pre has cnvwind adjustment
+    physics%interstitial%wind = sqrt(ubot(:)*ubot(:)+vbot(:)*vbot(:))
+    physics%interstitial%prslki = physics%statein%prsik(:)/physics%statein%prslk(:)
+
+    ! set required variables to mimic GFS_surface_composites_pre (assumes no ice) 
+    physics%interstitial%uustar_water(:) = physics%sfcprop%uustar(:) 
+    physics%sfcprop%tsfco(:) = ts(:)
+    physics%sfcprop%tsfc(:) = ts(:)
+    physics%interstitial%tsfc_water(:) = physics%sfcprop%tsfc(:)
+    physics%interstitial%tsurf_water(:) = physics%sfcprop%tsfc(:)
+    physics%sfcprop%zorlw(:) = physics%sfcprop%zorl(:)
+    do n = 1, nMax
+       physics%sfcprop%zorlw(n) = max(1.0e-5, min(1.0d0, physics%sfcprop%zorlw(n)))
+    end do
+
+    ! other variables
+    if (.not. first_call) physics%sfcprop%qss(:) = qbot(:)
+    physics%interstitial%qss_water(:)  = physics%sfcprop%qss(:)
+
+    ! calculate wet flag and ocean fraction based on masking, assumes full oceean
     where (mask(:) /= 0)
        physics%interstitial%wet = .true.
-    end where
-    physics%interstitial%wind = sqrt(ubot(:)**2+vbot(:)**2)
-    physics%interstitial%prslki = physics%statein%prsik(:)/physics%statein%prslk(:)
-    physics%interstitial%tsurf_water = ts
-    physics%interstitial%tsfc_water = ts
-    physics%interstitial%qss_water = qbot
-
-    ! fill in required sfcprop variables
-    where (mask(:) /= 0)
        physics%sfcprop%oceanfrac = 1.0d0
     elsewhere
        physics%sfcprop%oceanfrac = 0.0d0
     end where
-    physics%sfcprop%tsfco = ts
-    physics%sfcprop%qss = qbot
 
     ! run CCPP physics
     ! TODO: suite name need to be provided by ESMF config file
@@ -264,6 +323,12 @@ contains
           duu10n(n) = spval
        end if
     end do
+
+    ! write restart file
+    call write_restart(gcomp, restart_freq, rc)
+
+    ! set first call flag
+    first_call = .false.
 
   end subroutine flux_atmOcn_ccpp
 
