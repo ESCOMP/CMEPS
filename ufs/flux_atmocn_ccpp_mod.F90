@@ -1,9 +1,10 @@
 module flux_atmocn_ccpp_mod
 
   use ESMF,            only : operator(-), operator(/)
-  use ESMF,            only : ESMF_GridComp, ESMF_Time, ESMF_SUCCESS
+  use ESMF,            only : ESMF_GridComp, ESMF_Time, ESMF_SUCCESS, ESMF_FAILURE
   use ESMF,            only : ESMF_Clock, ESMF_TimeInterval, ESMF_ClockGet
-  use ESMF,            only : ESMF_GridCompGetInternalState
+  use ESMF,            only : ESMF_GridCompGetInternalState, ESMF_LOGMSG_INFO
+  use ESMF,            only : ESMF_LogWrite
   use NUOPC,           only : NUOPC_CompAttributeGet
   use NUOPC_Mediator,  only : NUOPC_MediatorGet
 
@@ -21,6 +22,7 @@ module flux_atmocn_ccpp_mod
   use ufs_const_mod
   use ufs_io_mod,      only : read_initial, read_restart, write_restart
   use med_kind_mod,    only : R8=>SHR_KIND_R8, CS=>SHR_KIND_CS
+  use med_kind_mod,    only : CL=>SHR_KIND_CL
   use med_utils_mod,   only : chkerr => med_utils_chkerr
   use med_internalstate_mod, only : aoflux_ccpp_suite, logunit
   use med_internalstate_mod, only : InternalState, mastertask
@@ -31,6 +33,16 @@ module flux_atmocn_ccpp_mod
   private ! default private
 
   public :: flux_atmOcn_ccpp ! computes atm/ocn fluxes
+
+  integer, save           :: restart_freq
+  integer, save           :: layout(2)
+  real(r8), save          :: semis_water
+  character(len=cs), save :: starttype
+  character(len=cl), save :: ini_file
+  character(len=cl), save :: rst_file
+  character(len=cl), save :: mosaic_file
+  character(len=cl), save :: input_dir
+  character(len=1) , save :: listDel  = ":"
 
   character(*), parameter :: u_FILE_u = &
        __FILE__
@@ -84,10 +96,7 @@ contains
     integer                 :: n, rc
     real(r8)                :: spval
     logical                 :: isPresent, isSet
-    character(len=cs)       :: cvalue
-    character(len=cs)       :: starttype
-    integer, save           :: restart_freq
-    real(r8), save          :: semis_water
+    character(len=cs)       :: cvalue, cname
     logical, save           :: first_call = .true.
     character(len=*), parameter :: subname=' (flux_atmOcn_ccpp) '
     !---------------------------------------
@@ -203,13 +212,73 @@ contains
           if (trim(cvalue) .eq. '.false.' .or. trim(cvalue) .eq. 'false') physics%model%lheatstrg = .false.
        end if
 
-       ! determine CCPP/host model specific options, set it to < 0 for no restart
+       ! determine CCPP/host model specific options
+       ! restart interval, set it to < 0 for no restart
        call NUOPC_CompAttributeGet(gcomp, name="ccpp_restart_interval", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        if (isPresent .and. isSet) then
           read(cvalue,*) restart_freq
        else
           restart_freq = 3600 ! write restart file every hour
+       end if
+
+       ! file name for restart
+       call NUOPC_CompAttributeGet(gcomp, name='ccpp_restart_file', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       if (isPresent .and. isSet) then
+          rst_file = trim(cvalue)
+       else
+          rst_file = 'unset'
+       end if
+
+       ! file name for initial conditions
+       call NUOPC_CompAttributeGet(gcomp, name='ccpp_ini_file_prefix', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       if (isPresent .and. isSet) then
+          ini_file = trim(cvalue)
+       else
+          ini_file = 'INPUT/sfc_data.tile'
+       end if
+
+       ! name of mosaic file that will be used to read tiled files
+       call NUOPC_CompAttributeGet(gcomp, name='ccpp_ini_mosaic_file', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       if (isPresent .and. isSet) then
+          mosaic_file = trim(cvalue)
+       else
+          if (trim(rst_file) == 'unset') then
+             call ESMF_LogWrite(trim(subname)//': ccpp_ini_mosaic_file is required to read tiled initial condition!', ESMF_LOGMSG_INFO)
+             rc = ESMF_FAILURE
+             return
+          end if
+       end if
+
+       ! input directory for tiled CS grid files 
+       call NUOPC_CompAttributeGet(gcomp, name='ccpp_input_dir', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       if (isPresent .and. isSet) then
+          input_dir = trim(cvalue)
+       else
+          input_dir = "INPUT/"
+       end if
+
+       ! layout to to read tiled CS grid files
+       call NUOPC_CompAttributeGet(gcomp, name='ccpp_ini_layout', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (isPresent .and. isSet) then
+          do n = 1, 2
+             call string_listGetName(cvalue, n, cname, rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+             read(cname,*) layout(n)
+          end do
+       else
+          if (trim(rst_file) == 'unset') then
+             call ESMF_LogWrite(trim(subname)//': ccpp_ini_layout is required to read tiled initial condition!', ESMF_LOGMSG_INFO)
+             rc = ESMF_FAILURE
+             return
+          end if
        end if
 
        if (mastertask) then
@@ -225,6 +294,13 @@ contains
           write(logunit,'(a,l)')    trim(subname)//' ccpp_phy_cplflx       = ', physics%model%cplflx
           write(logunit,'(a,l)')    trim(subname)//' ccpp_phy_lheatstrg    = ', physics%model%lheatstrg
           write(logunit,'(a,i)')    trim(subname)//' ccpp_restart_interval = ', restart_freq
+          write(logunit,'(a)')      trim(subname)//' ccpp_ini_file_prefix  = ', trim(ini_file)
+          write(logunit,'(a)')      trim(subname)//' ccpp_ini_mosaic_file  = ', trim(mosaic_file)
+          write(logunit,'(a)')      trim(subname)//' ccpp_input_dir        = ', trim(input_dir)
+          write(logunit,'(a)')      trim(subname)//' ccpp_restart_file     = ', trim(rst_file)
+          do n = 1, 2
+             write(logunit,'(a,i,a,i2)') trim(subname)//' ccpp_ini_layout(',n,') = ', layout(n)
+          end do 
           write(logunit,*) '========================================================'
        end if
 
@@ -233,10 +309,9 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        read(cvalue,*) starttype
        if (trim(starttype) == trim('startup')) then
-          call read_initial(gcomp, rc)
+          call read_initial(gcomp, ini_file, mosaic_file, input_dir, layout, rc)
        else
-          call read_restart(gcomp, rc)
-          !physics%model%restart = .true.
+          call read_restart(gcomp, rst_file, rc)
        end if
 
        ! run CCPP init
@@ -332,4 +407,113 @@ contains
 
   end subroutine flux_atmOcn_ccpp
 
+  !===============================================================================
+  subroutine string_listGetName(list, k, name, rc)
+
+    ! ----------------------------------------------
+    ! Get name of k-th field in list
+    ! It is adapted from CDEPS, shr_string_listGetName
+    ! ----------------------------------------------
+
+    implicit none
+
+    ! input/output variables
+    character(*)     , intent(in)  :: list    ! list/string
+    integer          , intent(in)  :: k       ! index of field
+    character(*)     , intent(out) :: name    ! k-th name in list
+    integer          , intent(out) :: rc
+
+    ! local variables
+    integer :: i,n     ! generic indecies
+    integer :: kFlds   ! number of fields in list
+    integer :: i0,i1   ! name = list(i0:i1)
+    character(*), parameter :: subName = '(shr_string_listGetName)'
+    ! ----------------------------------------------
+
+    rc = ESMF_SUCCESS
+
+    !--- check that this is a valid index ---
+    kFlds = string_listGetNum(list)
+    if (k < 1 .or. kFlds < k) then
+      call ESMF_LogWrite(trim(subname)//": ERROR invalid index ", ESMF_LOGMSG_INFO)
+      rc = ESMF_FAILURE
+    end if
+
+    !--- start with whole list, then remove fields before and after desired
+    !field ---
+    i0 = 1
+    i1 = len_trim(list)
+
+    !--- remove field names before desired field ---
+    do n=2,k
+       i = index(list(i0:i1),listDel)
+       i0 = i0 + i
+    end do
+
+    !--- remove field names after desired field ---
+    if ( k < kFlds ) then
+       i = index(list(i0:i1),listDel)
+       i1 = i0 + i - 2
+    end if
+
+    !--- copy result into output variable ---
+    name = list(i0:i1)//"   "
+
+  end subroutine string_listGetName
+
+  !===============================================================================
+  integer function string_listGetNum(str)
+
+    ! ----------------------------------------------
+    ! Get number of fields in a string list
+    ! It is adapted from CDEPS, string_listGetNum
+    ! ----------------------------------------------
+
+    implicit none
+
+    ! input/output variables
+    character(*), intent(in) :: str   ! string to search
+
+    ! local variables
+    integer :: count ! counts occurances of char
+    character(*), parameter :: subName = '(string_listGetNum)'
+    ! ----------------------------------------------
+
+    string_listGetNum = 0
+
+    if (len_trim(str) > 0) then
+       count = string_countChar(str,listDel)
+       string_listGetNum = count + 1
+    endif
+
+  end function string_listGetNum
+
+  !===============================================================================
+  integer function string_countChar(str,char,rc)
+
+    ! ----------------------------------------------
+    ! Count number of occurances of a character
+    ! It is adapted from CDEPS, string_countChar
+    ! ----------------------------------------------
+
+    implicit none
+
+    ! input/output variables
+    character(*), intent(in)       :: str   ! string to search
+    character(1), intent(in)       :: char  ! char to search for
+    integer, intent(out), optional :: rc    ! return code
+
+    ! local variables
+    integer :: count    ! counts occurances of char
+    integer :: n        ! generic index
+    character(*), parameter :: subName = '(string_countChar)'
+    ! ----------------------------------------------
+
+    count = 0
+    do n = 1, len_trim(str)
+      if (str(n:n) == char) count = count + 1
+    end do
+    string_countChar = count
+
+  end function string_countChar
 end module flux_atmocn_ccpp_mod

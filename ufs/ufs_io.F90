@@ -89,18 +89,21 @@
 contains
 !===============================================================================
 
-  subroutine read_initial(gcomp, rc)
+  subroutine read_initial(gcomp, ini_file, mosaic_file, input_dir, layout, rc)
     implicit none
 
     ! input/output variables
     type(ESMF_GridComp), intent(in)  :: gcomp
+    character(len=cl), intent(in)    :: ini_file
+    character(len=cl), intent(in)    :: mosaic_file
+    character(len=cl), intent(in)    :: input_dir
+    integer                          :: layout(2)
     integer, intent(inout)           :: rc
 
     ! local variables
     type(domain_type)                :: domain  
     type(ESMF_Field)                 :: field
     real(ESMF_KIND_R8), pointer      :: ptr(:,:,:)
-    character(len=cl)                :: filename
     character(len=*), parameter      :: subname = trim(modName)//': (read_initial) '
     !-------------------------------------------------------------------------------
 
@@ -111,27 +114,20 @@ contains
     ! Create domain
     ! ---------------------
 
-    call create_fms_domain(gcomp, domain, rc)
+    domain%layout(:) = layout(:)
+    call create_fms_domain(gcomp, domain, mosaic_file, rc)
 
     ! ---------------------
     ! Create grid 
     ! ---------------------
 
-    call create_grid(domain, rc)
-
-    !----------------------
-    ! Set file name for initial conditions
-    !----------------------
-
-    ! TODO: make file name configurable
-    filename = 'INPUT/sfc_data.tile'
-    call ESMF_LogWrite(subname//' read initial conditions from '//trim(filename)//'*', ESMF_LOGMSG_INFO)
+    call create_grid(gcomp, domain, mosaic_file, input_dir, rc)
 
     !----------------------
     ! Read surface friction velocity 
     !----------------------
 
-    call read_tiled_file(gcomp, filename, 'uustar', domain, field, numrec=1, rc=rc)
+    call read_tiled_file(gcomp, ini_file, 'uustar', domain, field, numrec=1, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -144,39 +140,11 @@ contains
     ! Read surface roughness length
     !----------------------
 
-    call read_tiled_file(gcomp, filename, 'zorl', domain, field, numrec=1, rc=rc)
+    call read_tiled_file(gcomp, ini_file, 'zorl', domain, field, numrec=1, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     physics%sfcprop%zorl(:) = ptr(:,1,1)
-    physics%sfcprop%zorlw(:) = ptr(:,1,1)
-    nullify(ptr)
-    call ESMF_FieldDestroy(field, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    !----------------------
-    ! Read sea surface temperature, composite
-    !----------------------
-
-    call read_tiled_file(gcomp, filename, 'tsea', domain, field, numrec=1, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    physics%sfcprop%tsfco(:) = ptr(:,1,1)
-    physics%sfcprop%tsfc(:) = ptr(:,1,1)
-    nullify(ptr)
-    call ESMF_FieldDestroy(field, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    !----------------------
-    ! Read precipitation
-    !----------------------
-
-    call read_tiled_file(gcomp, filename, 'tprcp', domain, field, numrec=1, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    physics%sfcprop%tprcp(:) = ptr(:,1,1)
     nullify(ptr)
     call ESMF_FieldDestroy(field, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -184,12 +152,13 @@ contains
   end subroutine read_initial
 
   !===============================================================================
-  subroutine read_restart(gcomp, rc)
+  subroutine read_restart(gcomp, rst_file, rc)
     implicit none
 
     ! input/output variables
-    type(ESMF_GridComp), intent(in) :: gcomp       ! gridded component
-    integer, intent(inout)          :: rc          ! return code
+    type(ESMF_GridComp), intent(in) :: gcomp    ! gridded component
+    character(len=cl), intent(inout):: rst_file ! restart file
+    integer, intent(inout)          :: rc       ! return code
 
     ! local variables
     type(ESMF_VM)     :: vm
@@ -200,9 +169,6 @@ contains
     type(InternalState) :: is_local
     integer           :: n, yr, mon, day, sec
     real(r8), pointer :: ptr(:)
-    logical           :: isPresent, isSet
-    character(len=cl) :: cvalue
-    character(len=cl) :: rest_file
     character(len=cl) :: currtime_str
     character(len=cs), allocatable :: flds(:)
     character(len=*), parameter :: subname=trim(modName)//': (read_restart) '
@@ -231,11 +197,7 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
-    call NUOPC_CompAttributeGet(gcomp, name='ccpp_restart_file', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent .and. isSet) then
-       rest_file = trim(cvalue)
-    else
+    if (trim(rst_file) == 'unset') then
        call NUOPC_MediatorGet(gcomp, mediatorClock=mclock, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
@@ -245,7 +207,7 @@ contains
        call ESMF_TimeGet(currTime, yy=yr, mm=mon, dd=day, s=sec, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        write(currtime_str,'(i4.4,a,i2.2,a,i2.2,a,i5.5)') yr,'-',mon,'-',day,'-',sec
-       rest_file = trim(case_name)//'.cpl.ccpp.'//trim(currtime_str)//'.nc'
+       rst_file = trim(case_name)//'.cpl.ccpp.'//trim(currtime_str)//'.nc'
     end if
 
     !----------------------
@@ -253,7 +215,7 @@ contains
     !----------------------
 
     if (mastertask) then
-       write(logunit,'(a)') 'Reading CCPP restart file: '//trim(rest_file)
+       write(logunit,'(a)') 'Reading CCPP restart file: '//trim(rst_file)
     end if
 
     ! create FB
@@ -276,7 +238,7 @@ contains
     end do 
 
     ! read file to FB
-    call med_io_read(rest_file, vm, FBrst,  pre=trim(prefix), rc=rc)     
+    call med_io_read(rst_file, vm, FBrst,  pre=trim(prefix), rc=rc)     
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if (dbug_flag > 1) then
@@ -309,12 +271,13 @@ contains
   end subroutine read_restart
 
   !===============================================================================
-  subroutine create_fms_domain(gcomp, domain, rc)
+  subroutine create_fms_domain(gcomp, domain, mosaic_file, rc)
     implicit none
 
     ! input/output variables
     type(ESMF_GridComp), intent(in)  :: gcomp
     type(domain_type), intent(inout) :: domain
+    character(len=cl), intent(in)    :: mosaic_file
     integer, intent(inout)           :: rc
 
     ! local variables
@@ -326,8 +289,8 @@ contains
     integer                          :: global_indices(4,6)
     integer                          :: layout2d(2,6)
     integer, allocatable             :: pe_start(:), pe_end(:)
-    character(len=cl)                :: msg, mosaic_file
-    character(len=*), parameter      :: subname = trim(modName)//': (create_mosaic) '
+    character(len=cl)                :: msg
+    character(len=*), parameter      :: subname = trim(modName)//': (create_fms_domain) '
     !-------------------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -348,9 +311,6 @@ contains
     ! ---------------------
     ! Open mosaic file and query some information 
     ! ---------------------
-
-    ! TODO: make mosaic file name configurable
-    mosaic_file = 'INPUT/C96_mosaic.nc'
 
     if (.not. open_file(mosaic_fileobj, trim(mosaic_file), 'read')) then
        call ESMF_LogWrite(trim(subname)//'error in opening file '//trim(mosaic_file), ESMF_LOGMSG_ERROR)
@@ -410,10 +370,6 @@ contains
     ! Set pe_start, pe_end 
     !----------------------
 
-    ! TODO: make layout options configurable
-    domain%layout(1) = 3
-    domain%layout(2) = 8
-
     allocate(pe_start(domain%ntiles))
     allocate(pe_end(domain%ntiles))
     do n = 1, domain%ntiles
@@ -457,27 +413,25 @@ contains
   end subroutine create_fms_domain
 
   !===============================================================================
-  subroutine create_grid(domain, rc)
+  subroutine create_grid(gcomp, domain, mosaic_file, input_dir, rc)
     implicit none
 
     ! input/output variables
+    type(ESMF_GridComp), intent(in)  :: gcomp
     type(domain_type), intent(inout) :: domain
+    character(len=cl), intent(in)    :: mosaic_file
+    character(len=cl), intent(in)    :: input_dir
     integer, intent(inout)           :: rc
 
     ! local variables
     type(ESMF_Decomp_Flag)           :: decompflagPTile(2,6)
     integer                          :: n
     integer                          :: decomptile(2,6)
-    character(len=cl)                :: mosaic_file, input_dir
     character(len=*), parameter      :: subname = trim(modName)//': (create_grid) '
     !-------------------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
     call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
-
-    ! TODO: make mosaic file name and input folder configurable
-    mosaic_file = 'INPUT/C96_mosaic.nc'
-    input_dir = 'INPUT/'
 
     ! TODO: currently this is only tested with global application
     ! set decomposition
@@ -710,9 +664,8 @@ contains
     real(r8), pointer :: ptr(:)
     logical :: whead(2) = (/.true. , .false./)
     logical :: wdata(2) = (/.false., .true. /)
-    logical           :: isPresent, isSet
     character(len=cl) :: tmpstr
-    character(len=cl) :: rest_file
+    character(len=cl) :: rst_file
     character(len=cl) :: nexttime_str
     integer, save     :: ns_total
     logical, save     :: first_call = .true.
@@ -757,7 +710,7 @@ contains
     call ESMF_TimeGet(nexttime, yy=yr, mm=mon, dd=day, s=sec, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     write(nexttime_str,'(i4.4,a,i2.2,a,i2.2,a,i5.5)') yr,'-',mon,'-',day,'-',sec
-    rest_file = trim(case_name)//'.cpl.ccpp.'//trim(nexttime_str)//'.nc'
+    rst_file = trim(case_name)//'.cpl.ccpp.'//trim(nexttime_str)//'.nc'
 
     ! return if it is not time to write restart
     if (restart_freq < 0) return
@@ -769,9 +722,9 @@ contains
 
     call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call med_io_wopen(trim(rest_file), vm, clobber=.true., file_ind=file_ind)
+    call med_io_wopen(trim(rst_file), vm, clobber=.true., file_ind=file_ind)
     if (mastertask) then
-       write(logunit,'(a)') 'CCPP restart file is created: '//trim(rest_file)
+       write(logunit,'(a)') 'CCPP restart file is created: '//trim(rst_file)
     end if
 
     !----------------------
@@ -861,7 +814,7 @@ contains
     ! loop over whead/wdata phases
     do m = 1, 2
        if (m == 2) then
-          call med_io_enddef(rest_file, file_ind=file_ind)
+          call med_io_enddef(rst_file, file_ind=file_ind)
        end if
 
        ! write time values
@@ -876,7 +829,7 @@ contains
        end if
 
        ! write data
-       call med_io_write(rest_file, FBrst, whead(m), wdata(m), ns_total, 1, nt=1, pre=trim(prefix), file_ind=file_ind, rc=rc)
+       call med_io_write(rst_file, FBrst, whead(m), wdata(m), ns_total, 1, nt=1, pre=trim(prefix), file_ind=file_ind, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end do
 
@@ -884,11 +837,11 @@ contains
     ! Close file
     !----------------------
 
-    call med_io_close(rest_file, vm, file_ind=file_ind, rc=rc)
+    call med_io_close(rst_file, vm, file_ind=file_ind, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if (mastertask) then
-       write(logunit,'(a)') 'CCPP restart file is closed: '//trim(rest_file)
+       write(logunit,'(a)') 'CCPP restart file is closed: '//trim(rst_file)
     end if
 
   end subroutine write_restart
