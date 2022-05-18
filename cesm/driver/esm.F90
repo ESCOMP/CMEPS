@@ -934,8 +934,8 @@ contains
 
     ! Initialize PIO
     ! This reads in the pio parameters that are independent of component
-    call shr_pio_init(driver, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
+!    call shr_pio_init(driver, rc=rc)
+!    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     allocate(comms(componentCount+1), comps(componentCount+1))
     comps(1) = 1
@@ -1182,8 +1182,8 @@ contains
     enddo
     ! Read in component dependent PIO parameters and initialize
     ! IO systems
-    call shr_pio_component_init(driver, size(comps), rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
+!    call shr_pio_component_init(driver, size(comps), rc)
+!    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! Initialize MCT (this is needed for data models and cice prescribed capability)
     call mct_world_init(componentCount+1, GLOBAL_COMM, comms, comps)

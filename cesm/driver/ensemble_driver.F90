@@ -30,6 +30,7 @@ contains
     use NUOPC        , only : NUOPC_CompDerive, NUOPC_CompSpecialize
     use NUOPC_Driver , only : driver_routine_SS             => SetServices
     use NUOPC_Driver , only : ensemble_label_SetModelServices => label_SetModelServices
+    use NUOPC_Driver , only : ensemble_label_ModifyCplLists => label_ModifyCplLists
     use ESMF         , only : ESMF_GridComp, ESMF_GridCompSet
     use ESMF         , only : ESMF_Config, ESMF_ConfigCreate, ESMF_ConfigLoadFile
     use ESMF         , only : ESMF_SUCCESS, ESMF_LogWrite, ESMF_LOGMSG_INFO
@@ -52,6 +53,10 @@ contains
     ! attach specializing method(s)
     call NUOPC_CompSpecialize(ensemble_driver, specLabel=ensemble_label_SetModelServices, &
          specRoutine=SetModelServices, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    call NUOPC_CompSpecialize(ensemble_driver, specLabel=ensemble_label_ModifyCplLists, &
+         specRoutine=InitializeIO, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! Create, open and set the config
@@ -273,5 +278,46 @@ contains
     call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
 
   end subroutine SetModelServices
+  subroutine InitializeIO(ensemble_driver, rc)
+    use ESMF, only: ESMF_GridComp, ESMF_LOGMSG_INFO, ESMF_LogWrite
+    use ESMF, only: ESMF_SUCCESS, ESMF_VM, ESMF_GridCompGet, ESMF_VMGet
+    use ESMF, only: ESMF_CONFIG, ESMF_GridCompIsPetLocal, ESMF_State, ESMF_Clock
+    use NUOPC, only: NUOPC_CompAttributeGet
+    use NUOPC_DRIVER, only: NUOPC_DriverGetComp
+    use shr_pio_mod   , only: shr_pio_init, shr_pio_component_init
+    
+    type(ESMF_GridComp) :: ensemble_driver
+    type(ESMF_VM) :: ensemble_vm
+    integer, intent(out) :: rc
+    character(len=*), parameter :: subname=u_FILE_u//"InitializeIO"
+    type(ESMF_GridComp), pointer :: dcomp(:), ccomp(:)
+    logical :: asyncio_task=.false.
+    integer :: iam
+    integer :: Global_Comm
+    integer :: drv, comp
+    integer, allocatable :: asyncio_petlist(:)
 
+    rc = ESMF_SUCCESS
+    call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
+
+    call ESMF_GridCompGet(ensemble_driver, vm=ensemble_vm, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    call ESMF_VMGet(ensemble_vm, localpet=iam, mpiCommunicator=Global_Comm, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    nullify(dcomp)
+    call NUOPC_DriverGetComp(ensemble_driver, complist=dcomp, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    
+    do drv=1,size(dcomp)
+       if (ESMF_GridCompIsPetLocal(dcomp(drv), rc=rc) .or. asyncio_task) then
+          call shr_pio_init(dcomp(drv), rc=rc)
+
+          call shr_pio_component_init(dcomp(drv), Global_Comm, asyncio_petlist, rc)
+
+       endif
+    enddo
+    call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
+  end subroutine InitializeIO
 end module Ensemble_driver
