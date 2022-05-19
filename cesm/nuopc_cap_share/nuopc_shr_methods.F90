@@ -228,7 +228,7 @@ contains
     type(ESMF_Field)  :: field
     real(r8), pointer :: farrayptr(:,:)
     real(r8)          :: tmp(1)
-    character(len=*), parameter :: subname='(state_getscalar)'
+    character(len=*), parameter :: subname = '('//__FILE__//':state_getscalar)'
     ! ----------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -279,7 +279,7 @@ contains
     type(ESMF_Field)  :: lfield
     type(ESMF_VM)     :: vm
     real(r8), pointer :: farrayptr(:,:)
-    character(len=*), parameter :: subname='(state_setscalar)'
+    character(len=*), parameter :: subname = '('//__FILE__//':state_setscalar)'
     ! ----------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -325,7 +325,7 @@ contains
     character(ESMF_MAXSTR) ,pointer :: lfieldnamelist(:)
     real(r8), pointer               :: dataPtr1d(:)
     real(r8), pointer               :: dataPtr2d(:,:)
-    character(len=*),parameter      :: subname='(state_diagnose)'
+    character(len=*), parameter :: subname = '('//__FILE__//':state_diagnose)'
     ! ----------------------------------------------
 
     call ESMF_StateGet(state, itemCount=fieldCount, rc=rc)
@@ -402,7 +402,7 @@ contains
     type(ESMF_Mesh)             :: lmesh
     integer                     :: lrank, nnodes, nelements
     logical                     :: labort
-    character(len=*), parameter :: subname='(field_getfldptr)'
+    character(len=*), parameter :: subname = '('//__FILE__//':field_getfldptr)'
     ! ----------------------------------------------
 
     if (.not.present(rc)) then
@@ -529,7 +529,7 @@ contains
     type(ESMF_Time)         :: NextAlarm        ! Next restart alarm time
     type(ESMF_TimeInterval) :: AlarmInterval    ! Alarm interval
     integer                 :: sec
-    character(len=*), parameter :: subname = '(set_alarmInit): '
+    character(len=*), parameter :: subname = '('//__FILE__//':alarmInit)'
     !-------------------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -813,7 +813,7 @@ contains
     ! local variables
     integer :: year, mon, day ! year, month, day as integers
     integer :: tdate          ! temporary date
-    character(len=*), parameter :: subname='(timeInit)'
+    character(len=*), parameter :: subname = '('//__FILE__//':timeInit)'
     !-------------------------------------------------------------------------------
 
     rc = ESMF_SUCCESS

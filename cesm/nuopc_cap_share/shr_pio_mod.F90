@@ -236,7 +236,7 @@ contains
     integer :: pecnt
     integer :: ierr
     type(iosystem_desc_t), allocatable :: async_iosystems(:)
-    character(len=*), parameter :: subname="shr_pio_component_init"
+    character(len=*), parameter :: subname = '('//__FILE__//':shr_pio_component_init)'
 
 
     call ESMF_GridCompGet(gridcomp=driver, vm=vm, rc=rc)

@@ -146,7 +146,7 @@ contains
     character(len=CS)   :: glc_renormalize_smb
     logical             :: glc_coupled_fluxes
     integer             :: ungriddedUBound_output(1) ! currently the size must equal 1 for rank 2 fieldds
-    character(len=*),parameter  :: subname=' (med_phases_prep_glc_init) '
+    character(len=*), parameter :: subname = '('//__FILE__//':med_phases_prep_glc_init)'
     !---------------------------------------
 
     call t_startf('MED:'//subname)
@@ -400,7 +400,7 @@ contains
     integer             :: i,n
     real(r8), pointer   :: data2d_in(:,:)
     real(r8), pointer   :: data2d_out(:,:)
-    character(len=*),parameter :: subname=' (med_phases_prep_glc_accum) '
+    character(len=*), parameter :: subname = '('//__FILE__//':med_phases_prep_glc_accum_lnd)'
     !---------------------------------------
 
     call t_startf('MED:'//subname)
@@ -458,7 +458,7 @@ contains
     integer             :: i,n
     real(r8), pointer   :: data2d_in(:,:)
     real(r8), pointer   :: data2d_out(:,:)
-    character(len=*),parameter  :: subname=' (med_phases_prep_glc_accum) '
+    character(len=*), parameter :: subname = '('//__FILE__//':med_phases_prep_glc_accum_ocn)'
     !---------------------------------------
 
     call t_startf('MED:'//subname)
@@ -531,7 +531,7 @@ contains
     logical             :: do_avg
     logical             :: isPresent, isSet
     logical             :: write_histaux_l2x1yrg
-    character(len=*) , parameter   :: subname=' (med_phases_prep_glc) '
+    character(len=*), parameter :: subname = '('//__FILE__//':med_phases_prep_glc_avg)'
     !---------------------------------------
 
     call t_startf('MED:'//subname)
@@ -771,7 +771,7 @@ contains
     character(len=3)    :: cnum
     type(ESMF_Field), pointer :: fieldlist_lnd(:)
     type(ESMF_Field), pointer :: fieldlist_glc(:)
-    character(len=*) , parameter   :: subname=' (med_phases_prep_glc_map_lnd2glc) '
+    character(len=*), parameter :: subname = '('//__FILE__//':med_phases_prep_glc_map_lnd2glc)'
     !---------------------------------------
 
     ! Get the internal state
@@ -1063,7 +1063,7 @@ contains
     real(r8) :: ablat_renorm_factor ! ratio between global ablation on the two grids
     real(r8) :: effective_area      ! grid cell area multiplied by min(lfrac,icemask_l).
     real(r8), pointer :: area_g(:)  ! areas on glc grid
-    character(len=*), parameter  :: subname=' (renormalize_smb) '
+    character(len=*), parameter :: subname = '('//__FILE__//':med_phases_prep_glc_renormalize_smb)'
     !---------------------------------------------------------------
 
     call t_startf('MED:'//subname)

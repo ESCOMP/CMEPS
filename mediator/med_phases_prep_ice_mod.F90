@@ -59,7 +59,7 @@ contains
     integer                        :: scalar_id
     real(r8)                       :: tmp(1)
     logical                        :: first_precip_fact_call = .true.
-    character(len=*),parameter     :: subname='(med_phases_prep_ice)'
+    character(len=*), parameter :: subname = '('//__FILE__//':med_phases_prep_ice)'
     !---------------------------------------
 
     call t_startf('MED:'//subname)

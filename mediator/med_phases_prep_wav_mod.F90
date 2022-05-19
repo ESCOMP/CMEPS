@@ -46,7 +46,7 @@ contains
 
     ! local variables
     type(InternalState) :: is_local
-    character(len=*),parameter  :: subname=' (med_phases_prep_wav_init) '
+    character(len=*), parameter :: subname = '('//__FILE__//':med_phases_prep_wav_init)'
     !---------------------------------------
 
     rc = ESMF_SUCCESS
@@ -82,7 +82,7 @@ contains
     ! local variables
     type(InternalState) :: is_local
     integer             :: n, ncnt
-    character(len=*), parameter    :: subname='(med_phases_prep_wav_accum)'
+    character(len=*), parameter :: subname = '('//__FILE__//':med_phases_prep_wav_accum)'
     !---------------------------------------
 
     call t_startf('MED:'//subname)
@@ -138,7 +138,7 @@ contains
     ! local variables
     type(InternalState)        :: is_local
     integer                    :: ncnt
-    character(len=*),parameter :: subname='(med_phases_prep_wav_avg)'
+    character(len=*), parameter :: subname = '('//__FILE__//':med_phases_prep_wav_avg)'
     !---------------------------------------
 
     rc = ESMF_SUCCESS

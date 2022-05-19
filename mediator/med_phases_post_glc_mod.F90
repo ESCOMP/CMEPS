@@ -98,7 +98,7 @@ contains
     logical                   :: first_call = .true.
     logical                   :: isPresent
     character(CL)             :: cvalue
-    character(len=*), parameter :: subname='(med_phases_post_glc)'
+    character(len=*), parameter :: subname = '('//__FILE__//':med_phases_post_glc)'
     !---------------------------------------
 
     rc = ESMF_SUCCESS
@@ -246,7 +246,7 @@ contains
     integer                   :: fieldCount
     integer                   :: ns,n
     type(ESMF_Field), pointer :: fieldlist(:)
-    character(len=*) , parameter   :: subname='(map_glc2lnd_init)'
+    character(len=*), parameter :: subname = '('//__FILE__//':map_glc2lnd_init)'
     !---------------------------------------
 
     rc = ESMF_SUCCESS
@@ -383,7 +383,7 @@ contains
     real(r8), pointer     :: dataptr1d_src(:)
     real(r8), pointer     :: dataptr1d_dst(:)
     real(r8), pointer     :: icemask_l(:)
-    character(len=*), parameter :: subname = 'map_glc2lnd'
+    character(len=*), parameter :: subname = '('//__FILE__//':map_glc2lnd)'
     !-----------------------------------------------------------------------
 
     call t_startf('MED:'//subname)

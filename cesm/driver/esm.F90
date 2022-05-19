@@ -55,7 +55,7 @@ contains
 
     ! local variables
     type(ESMF_Config) :: runSeq
-    character(len=*), parameter :: subname = "(esm.F90:SetServices)"
+    character(len=*), parameter :: subname = '('//__FILE__//':SetServices)'
     !---------------------------------------
 
     rc = ESMF_SUCCESS
@@ -133,7 +133,7 @@ contains
     integer           :: maxthreads
     character(len=CL) :: msgstr
     integer           :: componentcount
-    character(len=*), parameter :: subname = "(esm.F90:SetModelServices)"
+    character(len=*), parameter :: subname = '('//__FILE__//':SetModelServices)'
     !-------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -246,7 +246,7 @@ contains
     integer                 :: localrc
     type(ESMF_Config)       :: runSeq
     type(NUOPC_FreeFormat)  :: runSeqFF
-    character(len=*), parameter :: subname = "(esm.F90:SetRunSequence)"
+    character(len=*), parameter :: subname = '('//__FILE__//':SetRunSequence)'
     !---------------------------------------
 
     rc = ESMF_SUCCESS
@@ -344,7 +344,7 @@ contains
     character(len=CL), allocatable :: cplList(:)
     character(len=CL)              :: tempString
     character(len=CL)              :: msgstr
-    character(len=*), parameter    :: subname = "(esm.F90:ModifyCplLists)"
+    character(len=*), parameter :: subname = '('//__FILE__//':pretty_print_nuopc_freeformat)'
     !---------------------------------------
 
     rc = ESMF_SUCCESS
@@ -443,7 +443,7 @@ contains
     integer          , parameter :: ens1=1                ! use first instance of ensemble only
     integer          , parameter :: fix1=1                ! temporary hard-coding to first ensemble, needs to be fixed
     real(R8)         , parameter :: epsilo = shr_const_mwwv/shr_const_mwdair
-    character(len=*) , parameter :: subname = '(InitAttributes)'
+    character(len=*), parameter :: subname = '('//__FILE__//':InitAttributes)'
     !----------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -575,7 +575,7 @@ contains
     character(len=CS) :: logFilePostFix ! postfix for output log files
     character(len=CL) :: outPathRoot    ! root for output log files
     character(len=CS) :: cime_model
-    character(len=*), parameter :: subname = '(driver_attributes_check) '
+    character(len=*), parameter :: subname = '('//__FILE__//':CheckAttributes)'
     !-------------------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -635,7 +635,7 @@ contains
     character(len=CL)              :: cvalue
     character(len=CS)              :: attribute
     integer                        :: componentCount
-    character(len=*), parameter    :: subname = "(esm.F90:AddAttributes)"
+    character(len=*), parameter :: subname = '('//__FILE__//':AddAttributes)'
     !-------------------------------------------
 
     rc = ESMF_Success
@@ -737,7 +737,7 @@ contains
 
     ! local variables
     type(NUOPC_FreeFormat)  :: attrFF
-    character(len=*), parameter :: subname = "(esm.F90:ReadAttributes)"
+    character(len=*), parameter :: subname = '('//__FILE__//':ReadAttributes)'
     !-------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -784,7 +784,7 @@ contains
     integer, intent(out) :: rc
 
     ! local variables
-    character(len=*), parameter :: subname = "(esm.F90:InitAdvertize)"
+    character(len=*), parameter :: subname = '('//__FILE__//':InitAdvertize)'
     !---------------------------------------
 
     rc = ESMF_SUCCESS
@@ -892,7 +892,7 @@ contains
     character(CL)                  :: cvalue
     logical                        :: found_comp
     integer :: rank, nprocs, ierr
-    character(len=*), parameter    :: subname = "(esm_pelayout.F90:esm_init_pelayout)"
+    character(len=*), parameter :: subname = '('//__FILE__//':esm_init_pelayout)'
     !---------------------------------------
 
     rc = ESMF_SUCCESS
@@ -1252,7 +1252,7 @@ contains
     integer                :: iscol_data(1)
     integer                :: petcount
     character(len=CL)      :: cvalue
-    character(len=*), parameter :: subname= ' (esm_get_single_column_attributes) '
+    character(len=*), parameter :: subname = '('//__FILE__//':esm_set_single_column_attributes)'
     !-------------------------------------------------------------------------------
 
     rc = ESMF_SUCCESS

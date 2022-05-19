@@ -54,7 +54,7 @@ CONTAINS
     integer           :: mpicom
 
     character(len=*), parameter :: atm_ozone_frequency_not_present = 'NOT_PRESENT'
-    character(len=*), parameter :: subname = '(shr_ozone_coupling_readnl) '
+    character(len=*), parameter :: subname = '('//__FILE__//':shr_ozone_coupling_readnl)'
     ! ------------------------------------------------------------------
 
     namelist /ozone_coupling_nl/ atm_ozone_frequency

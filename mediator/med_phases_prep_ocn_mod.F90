@@ -51,7 +51,7 @@ contains
 
     ! local variables
     type(InternalState) :: is_local
-    character(len=*),parameter  :: subname=' (med_phases_prep_ocn_init) '
+    character(len=*), parameter :: subname = '('//__FILE__//':med_phases_prep_ocn_init)'
     !---------------------------------------
 
     rc = ESMF_SUCCESS
@@ -99,7 +99,7 @@ contains
     real(r8), pointer   :: rofi(:), hrofi(:)
     real(r8), pointer   :: areas(:)
     real(r8), allocatable :: hcorr(:)
-    character(len=*), parameter    :: subname='(med_phases_prep_ocn_accum)'
+    character(len=*), parameter :: subname = '('//__FILE__//':med_phases_prep_ocn_accum)'
     !---------------------------------------
 
     call t_startf('MED:'//subname)
@@ -251,7 +251,7 @@ contains
     ! local variables
     type(InternalState)        :: is_local
     integer                    :: ncnt
-    character(len=*),parameter :: subname='(med_phases_prep_ocn_avg)'
+    character(len=*), parameter :: subname = '('//__FILE__//':med_phases_prep_ocn_avg)'
     !---------------------------------------
 
     rc = ESMF_SUCCESS
@@ -362,7 +362,7 @@ contains
     integer             :: lsize
     real(R8)            :: c1,c2,c3,c4
     character(len=64), allocatable :: fldnames(:)
-    character(len=*), parameter    :: subname='(med_phases_prep_ocn_custom_cesm)'
+    character(len=*), parameter :: subname = '('//__FILE__//':med_phases_prep_ocn_custom_cesm)'
     !---------------------------------------
 
     rc = ESMF_SUCCESS
@@ -628,7 +628,7 @@ contains
     real(R8), pointer   :: ofrac(:)
     integer             :: lsize
     real(R8)        , parameter    :: const_lhvap = 2.501e6_R8  ! latent heat of evaporation ~ J/kg
-    character(len=*), parameter    :: subname='(med_phases_prep_ocn_custom_nems)'
+    character(len=*), parameter :: subname = '('//__FILE__//':med_phases_prep_ocn_custom_nems)'
     !---------------------------------------
 
     rc = ESMF_SUCCESS

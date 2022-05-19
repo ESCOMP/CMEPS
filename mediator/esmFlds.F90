@@ -103,7 +103,7 @@ contains
     logical :: found
     integer :: mapsize, mrgsize
     type(med_fldList_entry_type), pointer :: newflds(:)
-    character(len=*), parameter :: subname='(med_fldList_AddFld)'
+    character(len=*), parameter :: subname = '('//__FILE__//':med_fldList_AddFld)'
     ! ----------------------------------------------
 
     if (associated(flds)) then
@@ -210,7 +210,7 @@ contains
 
     ! local variables
     integer :: n, id
-    character(len=*), parameter :: subname='(med_fldList_AddMrg)'
+    character(len=*), parameter :: subname = '('//__FILE__//':med_fldList_AddMrg)'
     ! ----------------------------------------------
 
     id = 0
@@ -255,7 +255,7 @@ contains
     integer :: id, n
     integer :: rc
     character(len=CX)                                  :: lmapfile
-    character(len=*),parameter  :: subname='(med_fldList_AddMap)'
+    character(len=*), parameter :: subname = '('//__FILE__//':med_fldList_AddMap)'
     ! ----------------------------------------------
     lmapfile = 'unset'
     if (present(mapfile)) lmapfile = mapfile
@@ -334,7 +334,7 @@ contains
     character(ESMF_MAXSTR), pointer :: ConnectedList(:)
     character(ESMF_MAXSTR), pointer :: NameSpaceList(:)
     character(ESMF_MAXSTR), pointer :: itemNameList(:)
-    character(len=*),parameter  :: subname='(med_fldList_Realize)'
+    character(len=*), parameter :: subname = '('//__FILE__//':med_fldList_Realize)'
     ! ----------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -488,7 +488,7 @@ contains
       ! local variables
       type(ESMF_Distgrid) :: distgrid
       type(ESMF_Grid)     :: grid
-      character(len=*), parameter :: subname='(SetScalarField)'
+      character(len=*), parameter :: subname = '('//__FILE__//':SetScalarField)'
       ! ----------------------------------------------
 
       rc = ESMF_SUCCESS
@@ -525,7 +525,7 @@ contains
     character(len=*)             , intent(out) :: shortname
 
     ! local variables
-    character(len=*), parameter :: subname='(med_fldList_GetFldInfo_general)'
+    character(len=*), parameter :: subname = '('//__FILE__//':med_fldList_GetFldInfo_general)'
     ! ----------------------------------------------
 
     stdname   = fldList%flds(fldindex)%stdname
@@ -544,7 +544,7 @@ contains
     character(len=*)             , intent(out) :: stdname_out
 
     ! local variables
-    character(len=*), parameter :: subname='(med_fldList_GetFldInfo_stdname)'
+    character(len=*), parameter :: subname = '('//__FILE__//':med_fldList_GetFldInfo_stdname)'
     ! ----------------------------------------------
 
     stdname_out   = fldList%flds(fldindex_in)%stdname
@@ -562,7 +562,7 @@ contains
 
     ! local variables
     integer :: n
-    character(len=*), parameter :: subname='(med_fldList_GetFldInfo_index)'
+    character(len=*), parameter :: subname = '('//__FILE__//':med_fldList_GetFldInfo_index)'
     ! ----------------------------------------------
 
     fldindex_out = 0
@@ -588,7 +588,7 @@ contains
     character(len=*)       , intent(out) :: merge_fracname
 
     ! local variables
-    character(len=*), parameter :: subname='(med_fldList_GetFldInfo_merging)'
+    character(len=*), parameter :: subname = '('//__FILE__//':med_fldList_GetFldInfo_merging)'
     ! ----------------------------------------------
 
     merge_field    = fldList%flds(fldindex)%merge_fields(compsrc)
@@ -666,7 +666,7 @@ contains
     character(len=CL) :: mrgstr
     character(len=CL) :: cvalue
     logical           :: init_mrgstr
-    character(len=*),parameter :: subname = '(med_fldList_Document_Mapping)'
+    character(len=*), parameter :: subname = '('//__FILE__//':med_fldList_Document_Mapping)'
     !-----------------------------------------------------------
 
     !---------------------------------------
@@ -763,7 +763,7 @@ contains
     character(len=CS) :: string
     character(len=CL) :: mrgstr
     logical           :: init_mrgstr
-    character(len=*),parameter :: subname = '(med_fldList_Document_Mapping)'
+    character(len=*), parameter :: subname = '('//__FILE__//':med_fldList_Document_Merging)'
     !-----------------------------------------------------------
 
     write(logunit,*)

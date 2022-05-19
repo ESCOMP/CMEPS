@@ -40,7 +40,7 @@ contains
 
     ! local variables
     type(ESMF_Config) :: config
-    character(len=*), parameter :: subname = "(ensemble_driver.F90:SetServices)"
+    character(len=*), parameter :: subname = '('//__FILE__//':SetServices)'
     !---------------------------------------
 
     rc = ESMF_SUCCESS
@@ -120,7 +120,7 @@ contains
     character(len=*) , parameter :: start_type_start = "startup"
     character(len=*) , parameter :: start_type_cont  = "continue"
     character(len=*) , parameter :: start_type_brnch = "branch"
-    character(len=*) , parameter :: subname = "(ensemble_driver.F90:SetModelServices)"
+    character(len=*), parameter :: subname = '('//__FILE__//':SetModelServices)'
     !-------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -289,7 +289,7 @@ contains
     type(ESMF_GridComp) :: ensemble_driver
     type(ESMF_VM) :: ensemble_vm
     integer, intent(out) :: rc
-    character(len=*), parameter :: subname=u_FILE_u//"InitializeIO"
+    character(len=*), parameter :: subname = '('//__FILE__//':InitializeIO)'
     type(ESMF_GridComp), pointer :: dcomp(:), ccomp(:)
     logical :: asyncio_task=.false.
     integer :: iam

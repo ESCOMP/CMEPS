@@ -109,7 +109,7 @@ contains
     real(R8), pointer         :: dataptr(:)
     type(ESMF_Mesh)           :: mesh_src
     type(ESMF_Mesh)           :: mesh_dst
-    character(len=*), parameter :: subname=' (module_med_map: RouteHandles_init) '
+    character(len=*), parameter :: subname = '('//__FILE__//':med_map_RouteHandles_initfrom_esmflds)'
     !-----------------------------------------------------------
 
     call t_startf('MED:'//subname)
@@ -297,7 +297,7 @@ contains
     ! local variables
     type(ESMF_Field)   :: fldsrc
     type(ESMF_Field)   :: flddst
-    character(len=*), parameter :: subname=' (module_MED_map:med_map_routehandles_initfrom_fieldbundle) '
+    character(len=*), parameter :: subname = '('//__FILE__//':med_map_routehandles_initfrom_fieldbundle)'
     !---------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -370,7 +370,7 @@ contains
     integer(I4), pointer       :: dof(:)
     integer                    :: srcTermProcessing_Value = 0
     type(ESMF_PoleMethod_Flag) :: polemethod
-    character(len=*), parameter :: subname=' (module_med_map: med_map_routehandles_initfrom_field) '
+    character(len=*), parameter :: subname = '('//__FILE__//':med_map_routehandles_initfrom_field)'
     !---------------------------------------------
 
     lmapfile = 'unset'
@@ -641,7 +641,7 @@ contains
 
     ! local variables
     integer :: rc1, rc2
-    character(len=*), parameter :: subname=' (module_MED_map:med_map_RH_is_created_RH3d) '
+    character(len=*), parameter :: subname = '('//__FILE__//':med_map_routehandles_initfrom_field)'
     !-----------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -666,7 +666,7 @@ contains
     ! local variables
     integer :: rc1, rc2
     logical :: mapexists
-    character(len=*), parameter :: subname=' (module_MED_map:med_map_RH_is_created_RH1d) '
+    character(len=*), parameter :: subname = '('//__FILE__//':med_map_routehandles_initfrom_field)'
     !-----------------------------------------------------------
 
     rc  = ESMF_SUCCESS
@@ -736,7 +736,7 @@ contains
     character(CL), allocatable :: fieldNameList(:)
     character(CS)              :: mapnorm_mapindex
     character(len=CX)          :: tmpstr
-    character(len=*), parameter :: subname=' (module_MED_map:med_packed_field_create) '
+    character(len=*), parameter :: subname = '('//__FILE__//':med_map_packed_field_create)'
     !-----------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -937,7 +937,7 @@ contains
     type(ESMF_Field)           :: udst, vdst ! only used for 3d mapping of u,v
     real(r8), pointer          :: data_norm(:)
     real(r8), pointer          :: data_dst(:,:)
-    character(len=*), parameter  :: subname=' (module_MED_map:med_map_field_packed) '
+    character(len=*), parameter :: subname = '('//__FILE__//':med_map_field_packed)'
     !-----------------------------------------------------------
 
     call t_startf('MED:'//subname)
@@ -1149,7 +1149,7 @@ contains
     integer           :: ungriddedUBound(1)     ! currently the size must equal 1 for rank 2 fields
     integer           :: lsize_src
     integer           :: lsize_dst
-    character(len=*), parameter  :: subname=' (module_MED_map:med_map_field_normalized) '
+    character(len=*), parameter :: subname = '('//__FILE__//':med_map_field_normalized)'
     !-----------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -1262,7 +1262,7 @@ contains
     logical :: checkflag = .false.
     character(len=CS) :: lfldname
     real(ESMF_KIND_R8), parameter :: fillValue = 9.99e20_ESMF_KIND_R8
-    character(len=*), parameter :: subname='(module_MED_map:med_map_field) '
+    character(len=*), parameter :: subname = '('//__FILE__//':med_map_field)'
     !---------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -1365,7 +1365,7 @@ contains
     integer             :: spatialDim
     real(r8), parameter :: deg2rad = shr_const_pi/180.0_R8  ! deg to rads
     logical             :: first_time = .true.
-    character(len=*), parameter :: subname=' (module_MED_map:med_map_uv_cart3d) '
+    character(len=*), parameter :: subname = '('//__FILE__//':med_map_uv_cart3d)'
     !-------------------------------------------------------------------------------
 
     rc = ESMF_SUCCESS

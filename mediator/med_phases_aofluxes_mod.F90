@@ -164,7 +164,7 @@ contains
     integer             :: n
     integer             :: fieldcount
     type(InternalState) :: is_local
-    character(len=*),parameter :: subname=' (med_phases_aofluxes_init_fldbuns) '
+    character(len=*), parameter :: subname = '('//__FILE__//':med_phases_aofluxes_init_fldbuns)'
     !---------------------------------------
 
     ! Create field bundles for mediator ocean/atmosphere flux computation
@@ -261,7 +261,7 @@ contains
     type(aoflux_out_type) , save :: aoflux_out
     logical               , save :: aoflux_created
     logical               , save :: first_call = .true.
-    character(len=*),parameter :: subname=' (med_phases_aofluxes_run) '
+    character(len=*), parameter :: subname = '('//__FILE__//':med_phases_aofluxes_run)'
     !---------------------------------------
 
     rc = ESMF_SUCCESS
@@ -480,7 +480,7 @@ contains
     character(len=CX)   :: tmpstr
     integer             :: lsize
     integer             :: fieldcount
-    character(len=*),parameter :: subname=' (med_aofluxes_init_ocngrid) '
+    character(len=*), parameter :: subname = '('//__FILE__//':med_aofluxes_init_ogrid)'
     !-----------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -565,7 +565,7 @@ contains
     type(ESMF_Mesh)     :: mesh_src
     type(ESMF_Mesh)     :: mesh_dst
     integer             :: maptype
-    character(len=*),parameter :: subname=' (med_aofluxes_init_atmgrid) '
+    character(len=*), parameter :: subname = '('//__FILE__//':med_aofluxes_init_agrid)'
     !-----------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -701,7 +701,7 @@ contains
     real(r8), pointer    :: dataptr(:)
     integer              :: fieldcount
     character(ESMF_MAXSTR),allocatable :: fieldNameList(:)
-    character(len=*),parameter :: subname=' (med_aofluxes_init_xgrid) '
+    character(len=*), parameter :: subname = '('//__FILE__//':med_aofluxes_init_xgrid)'
     !-----------------------------------------------------------------------
 
     rc = ESMF_SUCCESS

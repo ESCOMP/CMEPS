@@ -181,7 +181,7 @@ contains
     type(ESMF_TimeInterval) :: ringInterval
     integer                 :: ringInterval_length
     logical                 :: first_time = .true.
-    character(len=*), parameter :: subname='(med_phases_history_write)'
+    character(len=*), parameter :: subname = '('//__FILE__//':med_phases_history_write)'
     !---------------------------------------
 
     rc = ESMF_SUCCESS
@@ -402,7 +402,7 @@ contains
     character(CL)       :: hist_n_in
     logical             :: isPresent
     logical             :: isSet
-    character(len=*), parameter :: subname='(med_phases_history_write_med)'
+    character(len=*), parameter :: subname = '('//__FILE__//':med_phases_history_write_med)'
     !---------------------------------------
     rc = ESMF_SUCCESS
 
@@ -544,7 +544,7 @@ contains
     character(len=CL)       :: hist_file
     integer                 :: m
     logical                 :: isPresent, isSet
-    character(len=*), parameter :: subname='(med_phases_history_write_lnd2glc)'
+    character(len=*), parameter :: subname = '('//__FILE__//':med_phases_history_write_lnd2glc)'
     !---------------------------------------
 
     rc = ESMF_SUCCESS
@@ -680,7 +680,7 @@ contains
     real(r8)            :: time_bnds(2) ! time bounds output
     logical             :: write_now    ! true => write to history type
     real(r8)            :: tbnds(2)     ! CF1.0 time bounds
-    character(len=*), parameter :: subname='(med_phases_history_write_inst_comp)'
+    character(len=*), parameter :: subname = '('//__FILE__//':med_phases_history_write_comp_inst)'
     !---------------------------------------
 
     rc = ESMF_SUCCESS
@@ -839,7 +839,7 @@ contains
     logical                 :: write_now         ! true => write to history type
     real(r8)                :: tbnds(2)          ! CF1.0 time bounds
     character(CS)           :: scalar_name
-    character(len=*), parameter :: subname='(med_phases_history_write_comp_avg)'
+    character(len=*), parameter :: subname = '('//__FILE__//':med_phases_history_write_comp_avg)'
     !---------------------------------------
 
     rc = ESMF_SUCCESS
@@ -1059,7 +1059,7 @@ contains
     real(r8)                :: time_val          ! time coordinate output
     real(r8)                :: time_bnds(2)      ! time bounds output
     character(CS), allocatable  :: fieldNameList(:)
-    character(len=*), parameter :: subname='(med_phases_history_write_comp_aux)'
+    character(len=*), parameter :: subname = '('//__FILE__//':med_phases_history_write_comp_aux)'
     !---------------------------------------
 
     rc = ESMF_SUCCESS
@@ -1531,7 +1531,7 @@ contains
     type(ESMF_TimeInterval) :: htimestep
     type(ESMF_TimeInterval) :: mtimestep, dtimestep
     integer                 :: msec, dsec
-    character(len=*), parameter :: subname='(med_phases_history_init_histclock) '
+    character(len=*), parameter :: subname = '('//__FILE__//':med_phases_history_init_histclock)'
     !---------------------------------------
 
     rc = ESMF_SUCCESS
@@ -1593,7 +1593,7 @@ contains
     integer                 :: yr,mon,day,sec ! time units
     type(ESMF_TimeInterval) :: ringInterval
     integer                 :: ringInterval_length
-    character(len=*), parameter :: subname='(med_phases_history_query_ifwrite) '
+    character(len=*), parameter :: subname = '('//__FILE__//':med_phases_history_query_ifwrite)'
     !---------------------------------------
 
     rc = ESMF_SUCCESS
@@ -1707,7 +1707,7 @@ contains
     integer                 :: start_ymd      ! Starting date YYYYMMDD
     logical                 :: isPresent
     logical                 :: isSet
-    character(len=*), parameter :: subname='(med_phases_history_set_timeinfo) '
+    character(len=*), parameter :: subname = '('//__FILE__//':med_phases_history_set_timeinfo)'
     !---------------------------------------
 
     rc = ESMF_SUCCESS

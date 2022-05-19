@@ -58,7 +58,7 @@ contains
     integer          , intent(inout) :: rc
 
     ! local variables:
-    character(len=*) , parameter   :: subname='(esmFldsExchange_hafs)'
+    character(len=*), parameter :: subname = '('//__FILE__//':esmFldsExchange_hafs)'
     !--------------------------------------
 
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
@@ -106,7 +106,7 @@ contains
     character(len=CS), allocatable :: S_flds(:)
     character(len=CS), allocatable :: F_flds(:,:)
     character(len=CS), allocatable :: suffix(:)
-    character(len=*) , parameter   :: subname='(esmFldsExchange_hafs_advt)'
+    character(len=*), parameter :: subname = '('//__FILE__//':esmFldsExchange_hafs_advt)'
     !--------------------------------------
 
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
@@ -261,7 +261,7 @@ contains
 
     ! local variables:
     type(InternalState) :: is_local
-    character(len=*) , parameter   :: subname='(esmFldsExchange_hafs_fchk)'
+    character(len=*), parameter :: subname = '('//__FILE__//':esmFldsExchange_hafs_fchk)'
     !--------------------------------------
 
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
@@ -319,7 +319,7 @@ contains
     character(len=CS), allocatable :: S_flds(:)
     character(len=CS), allocatable :: F_flds(:,:)
     character(len=CS), allocatable :: suffix(:)
-    character(len=*) , parameter   :: subname='(esmFldsExchange_hafs_init)'
+    character(len=*), parameter :: subname = '('//__FILE__//':esmFldsExchange_hafs_init)'
     !--------------------------------------
 
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
@@ -498,7 +498,7 @@ contains
     integer             :: verbosity, diagnostic
     character(len=CL)   :: cvalue
     logical             :: isPresent, isSet
-    character(len=*) , parameter   :: subname='(esmFldsExchange_hafs_attr)'
+    character(len=*), parameter :: subname = '('//__FILE__//':esmFldsExchange_hafs_attr)'
     !--------------------------------------
 
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)

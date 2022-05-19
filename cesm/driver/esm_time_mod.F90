@@ -102,7 +102,7 @@ contains
     character(CS)           :: inst_suffix
     integer                 :: tmp(4)              ! Array for Broadcast
     logical                 :: isPresent
-    character(len=*), parameter :: subname = '(esm_time_clockInit): '
+    character(len=*), parameter :: subname = '('//__FILE__//':esm_time_clockInit)'
     !-------------------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -393,7 +393,7 @@ contains
    type(ESMF_Time)         :: NextAlarm        ! Next restart alarm time
    type(ESMF_TimeInterval) :: AlarmInterval    ! Alarm interval
    integer                 :: sec
-   character(len=*), parameter :: subname = '(med_time_alarmInit): '
+   character(len=*), parameter :: subname = '('//__FILE__//':esm_time_alarmInit)'
    !-------------------------------------------------------------------------------
 
    rc = ESMF_SUCCESS
@@ -582,7 +582,7 @@ contains
    integer                     :: ltod         ! local tod
    character(len=256)          :: ldesc        ! local desc
    integer                     :: rc           ! return code
-   character(len=*), parameter :: subname = '(esm_time_m_ETimeInit) '
+   character(len=*), parameter :: subname = '('//__FILE__//':esm_time_timeInit)'
    !-------------------------------------------------------------------------------
 
    ltod = 0
@@ -649,7 +649,7 @@ contains
    ! local variables
    integer                 :: status, ncid, varid ! netcdf stuff
    character(CL)           :: tmpstr              ! temporary
-   character(len=*), parameter :: subname = "(esm_time_read_restart)"
+   character(len=*), parameter :: subname = '('//__FILE__//':esm_time_read_restart)'
    !----------------------------------------------------------------
 
    ! use netcdf here since it's serial
