@@ -4,7 +4,7 @@ module flux_atmocn_ccpp_mod
   use ESMF,            only : ESMF_GridComp, ESMF_Time, ESMF_SUCCESS, ESMF_FAILURE
   use ESMF,            only : ESMF_Clock, ESMF_TimeInterval, ESMF_ClockGet
   use ESMF,            only : ESMF_GridCompGetInternalState, ESMF_LOGMSG_INFO
-  use ESMF,            only : ESMF_LogWrite
+  use ESMF,            only : ESMF_RouteHandle, ESMF_LogWrite
   use NUOPC,           only : NUOPC_CompAttributeGet
   use NUOPC_Mediator,  only : NUOPC_MediatorGet
 
@@ -42,7 +42,7 @@ module flux_atmocn_ccpp_mod
   character(len=cl), save :: rst_file
   character(len=cl), save :: mosaic_file
   character(len=cl), save :: input_dir
-  character(len=1) , save :: listDel  = ":"
+  character(len=1) , save :: listDel  = ","
 
   character(*), parameter :: u_FILE_u = &
        __FILE__
@@ -51,14 +51,15 @@ module flux_atmocn_ccpp_mod
 contains
 !===============================================================================
 
-  subroutine flux_atmOcn_ccpp(gcomp, mastertask, logunit, nMax, mask, psfc, pbot, &
+  subroutine flux_atmOcn_ccpp(gcomp, rh, mastertask, logunit, nMax, mask, psfc, pbot, &
              tbot, qbot, zbot, garea, ubot, usfc, vbot, vsfc, rbot, ts, lwdn, sen, lat, &
              lwup, evp, taux, tauy, qref, duu10n, missval)
 
     implicit none
 
     !--- input arguments --------------------------------
-    type(ESMF_GridComp), intent(in) :: gcomp       ! gridded component
+    type(ESMF_GridComp), intent(in)    :: gcomp       ! gridded component
+    type(ESMF_RouteHandle), intent(in) :: rh          ! route handle to map atm->xgrid
     logical , intent(in)  :: mastertask  ! master task
     integer , intent(in)  :: logunit     ! log file unit number
     integer , intent(in)  :: nMax        ! data vector length
@@ -186,9 +187,9 @@ contains
        ! restart
        call NUOPC_CompAttributeGet(gcomp, name="ccpp_phy_restart", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       physics%model%restart = .true.
+       physics%model%restart = .false.
        if (isPresent .and. isSet) then
-          if (trim(cvalue) .eq. '.false.' .or. trim(cvalue) .eq. 'false') physics%model%restart = .false.
+          if (trim(cvalue) .eq. '.true.' .or. trim(cvalue) .eq. 'true') physics%model%restart = .true.
        end if
        ! cplice
        call NUOPC_CompAttributeGet(gcomp, name="ccpp_phy_cplice", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
@@ -271,6 +272,7 @@ contains
           do n = 1, 2
              call string_listGetName(cvalue, n, cname, rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
+             if (rc == ESMF_FAILURE) return
              read(cname,*) layout(n)
           end do
        else
@@ -294,10 +296,10 @@ contains
           write(logunit,'(a,l)')    trim(subname)//' ccpp_phy_cplflx       = ', physics%model%cplflx
           write(logunit,'(a,l)')    trim(subname)//' ccpp_phy_lheatstrg    = ', physics%model%lheatstrg
           write(logunit,'(a,i)')    trim(subname)//' ccpp_restart_interval = ', restart_freq
-          write(logunit,'(a)')      trim(subname)//' ccpp_ini_file_prefix  = ', trim(ini_file)
-          write(logunit,'(a)')      trim(subname)//' ccpp_ini_mosaic_file  = ', trim(mosaic_file)
-          write(logunit,'(a)')      trim(subname)//' ccpp_input_dir        = ', trim(input_dir)
-          write(logunit,'(a)')      trim(subname)//' ccpp_restart_file     = ', trim(rst_file)
+          write(logunit,'(a)')      trim(subname)//' ccpp_ini_file_prefix  = '//trim(ini_file)
+          write(logunit,'(a)')      trim(subname)//' ccpp_ini_mosaic_file  = '//trim(mosaic_file)
+          write(logunit,'(a)')      trim(subname)//' ccpp_input_dir        = '//trim(input_dir)
+          write(logunit,'(a)')      trim(subname)//' ccpp_restart_file     = '//trim(rst_file)
           do n = 1, 2
              write(logunit,'(a,i,a,i2)') trim(subname)//' ccpp_ini_layout(',n,') = ', layout(n)
           end do 
@@ -309,7 +311,7 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        read(cvalue,*) starttype
        if (trim(starttype) == trim('startup')) then
-          call read_initial(gcomp, ini_file, mosaic_file, input_dir, layout, rc)
+          call read_initial(gcomp, ini_file, mosaic_file, input_dir, layout, rh, rc)
        else
           call read_restart(gcomp, rst_file, rc)
        end if
@@ -344,12 +346,12 @@ contains
     ! reset physics variables, mimic GFS_suite_interstitial_phys_reset
     call physics%interstitial%phys_reset()
 
-    ! set required variables to mimic GFS_surface_generic_pre
+    ! init required variables to mimic GFS_surface_generic_pre
     ! TODO: the wind calculation in GFS_surface_generic_pre has cnvwind adjustment
     physics%interstitial%wind = sqrt(ubot(:)*ubot(:)+vbot(:)*vbot(:))
     physics%interstitial%prslki = physics%statein%prsik(:)/physics%statein%prslk(:)
 
-    ! set required variables to mimic GFS_surface_composites_pre (assumes no ice) 
+    ! init required variables to mimic GFS_surface_composites_pre (assumes no ice) 
     physics%interstitial%uustar_water(:) = physics%sfcprop%uustar(:) 
     physics%sfcprop%tsfco(:) = ts(:)
     physics%sfcprop%tsfc(:) = ts(:)
@@ -360,9 +362,13 @@ contains
        physics%sfcprop%zorlw(n) = max(1.0e-5, min(1.0d0, physics%sfcprop%zorlw(n)))
     end do
 
-    ! other variables
-    if (.not. first_call) physics%sfcprop%qss(:) = qbot(:)
-    physics%interstitial%qss_water(:)  = physics%sfcprop%qss(:)
+    ! init other variables
+    if (first_call) then
+       physics%interstitial%qss_water(:) = physics%sfcprop%qss(:)
+    else
+       physics%sfcprop%qss(:) = qbot(:)
+       physics%interstitial%qss_water(:) = qbot(:)
+    end if
 
     ! calculate wet flag and ocean fraction based on masking, assumes full oceean
     where (mask(:) /= 0)
@@ -516,4 +522,5 @@ contains
     string_countChar = count
 
   end function string_countChar
+
 end module flux_atmocn_ccpp_mod

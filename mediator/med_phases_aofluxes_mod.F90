@@ -1070,7 +1070,7 @@ contains
             vsfc=aoflux_in%vsfc, rbot=aoflux_in%dens, ts=aoflux_in%tocn, mask=aoflux_in%mask, &
             sen=aoflux_out%sen, lat=aoflux_out%lat, lwup=aoflux_out%lwup, evp=aoflux_out%evap, &
             taux=aoflux_out%taux, tauy=aoflux_out%tauy, qref=aoflux_out%qref, duu10n=aoflux_out%duu10n, &
-            missval=0.0_r8)
+            missval=0.0_r8, rh=rh_agrid2xgrid_2ndord)
      else
 #endif
        call flux_atmocn (logunit=logunit, &

@@ -10,14 +10,15 @@
   use ESMF,                  only : ESMF_GridCompGetInternalState, ESMF_KIND_R8
   use ESMF,                  only : ESMF_ArraySpec, ESMF_ArraySpecSet, ESMF_MESHLOC_ELEMENT
   use ESMF,                  only : ESMF_FieldCreate, ESMF_FieldGet, ESMF_FieldDestroy
-  use ESMF,                  only : ESMF_RouteHandle, ESMF_RouteHandleIsCreated
-  use ESMF,                  only : ESMF_MeshGet, ESMF_FieldRegridStore, ESMF_FieldRedist
+  use ESMF,                  only : ESMF_RouteHandle, ESMF_RouteHandleIsCreated, ESMF_FieldRedist
+  use ESMF,                  only : ESMF_MeshGet, ESMF_FieldRegrid, ESMF_FieldRegridStore
   use ESMF,                  only : ESMF_FieldBundle, ESMF_FieldBundleCreate, ESMF_FieldBundleAdd
   use ESMF,                  only : ESMF_FieldWriteVTK, ESMF_VMAllFullReduce, ESMF_REDUCE_SUM
-  use ESMF,                  only : ESMF_Calendar, ESMF_Clock, ESMF_ClockGet
+  use ESMF,                  only : ESMF_Mesh, ESMF_Calendar, ESMF_Clock, ESMF_ClockGet
   use ESMF,                  only : ESMF_ClockGetNextTime, ESMF_TimeIntervalGet
   use ESMF,                  only : ESMF_Time, ESMF_TimeGet, ESMF_TimeInterval
-  use ESMF,                  only : ESMF_FieldBundleIsCreated
+  use ESMF,                  only : ESMF_FieldBundleIsCreated, ESMF_FieldBundleGet
+  use ESMF,                  only : ESMF_FieldBundleRemove, ESMF_FieldBundleDestroy
   use NUOPC,                 only : NUOPC_CompAttributeGet
   use NUOPC_Mediator,        only : NUOPC_MediatorGet
 
@@ -36,6 +37,7 @@
   use med_utils_mod,         only : chkerr => med_utils_chkerr
   use med_constants_mod,     only : dbug_flag => med_constants_dbug_flag
   use med_internalstate_mod, only : InternalState, mastertask, logunit
+  use med_internalstate_mod, only : compatm, compocn, mapconsf
   use med_io_mod,            only : med_io_write, med_io_wopen, med_io_enddef, med_io_read
   use med_io_mod,            only : med_io_close, med_io_write_time, med_io_define_time
   use med_io_mod,            only : med_io_date2yyyymmdd, med_io_sec2hms, med_io_ymd2date
@@ -76,7 +78,6 @@
      integer, allocatable   :: jend2(:)      ! list of ending j-index in tile 2 of each contact
   end type domain_type
 
-  type(ESMF_FieldBundle), save :: FBrst
   character(cs) :: prefix = 'ccpp'
   integer       :: file_ind = 10
   character(cl) :: case_name = 'unset'  ! case name
@@ -89,7 +90,7 @@
 contains
 !===============================================================================
 
-  subroutine read_initial(gcomp, ini_file, mosaic_file, input_dir, layout, rc)
+  subroutine read_initial(gcomp, ini_file, mosaic_file, input_dir, layout, rh_a2x, rc)
     implicit none
 
     ! input/output variables
@@ -98,17 +99,26 @@ contains
     character(len=cl), intent(in)    :: mosaic_file
     character(len=cl), intent(in)    :: input_dir
     integer                          :: layout(2)
+    type(ESMF_RouteHandle)           :: rh_a2x
     integer, intent(inout)           :: rc
 
     ! local variables
-    type(domain_type)                :: domain  
-    type(ESMF_Field)                 :: field
-    real(ESMF_KIND_R8), pointer      :: ptr(:,:,:)
+    type(domain_type)                :: domain
+    type(InternalState)              :: is_local
+    type(ESMF_Mesh)                  :: atm_mesh
+    type(ESMF_Field)                 :: lfield, field, field_dst
+    real(ESMF_KIND_R8), pointer      :: ptr(:)
+    integer                          :: n
+    character(len=cs), allocatable   :: flds(:)
     character(len=*), parameter      :: subname = trim(modName)//': (read_initial) '
     !-------------------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
     call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
+
+    nullify(is_local%wrap)
+    call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! ---------------------
     ! Create domain
@@ -123,31 +133,69 @@ contains
 
     call create_grid(gcomp, domain, mosaic_file, input_dir, rc)
 
-    !----------------------
-    ! Read surface friction velocity 
-    !----------------------
+    ! ---------------------
+    ! Determine atm mesh 
+    ! ---------------------
 
-    call read_tiled_file(gcomp, ini_file, 'uustar', domain, field, numrec=1, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    physics%sfcprop%uustar(:) = ptr(:,1,1)
-    nullify(ptr)
-    call ESMF_FieldDestroy(field, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldBundleGet(is_local%wrap%FBImp(compatm,compatm), fieldname='Sa_z', field=lfield, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldGet(lfield, mesh=atm_mesh, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     !----------------------
-    ! Read surface roughness length
+    ! Read data 
     !----------------------
 
-    call read_tiled_file(gcomp, ini_file, 'zorl', domain, field, numrec=1, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    physics%sfcprop%zorl(:) = ptr(:,1,1)
-    nullify(ptr)
-    call ESMF_FieldDestroy(field, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    allocate(flds(2))
+    flds = (/ 'zorl  ', &
+              'uustar' /)
+    do n = 1,size(flds)
+       ! read from tiled file
+       call read_tiled_file(gcomp, ini_file, trim(flds(n)), domain, field, atm_mesh, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       ! create destination field
+       field_dst = ESMF_FieldCreate(is_local%wrap%aoflux_mesh, ESMF_TYPEKIND_R8, &
+          name='uustar', meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)        
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       ! map field
+       if (is_local%wrap%aoflux_grid == 'ogrid') then  ! aoflux_grid is ocn
+          ! remap from atm to ocn
+          call ESMF_FieldRegrid(field, field_dst, is_local%wrap%RH(compatm,compocn,mapconsf), rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       else if (is_local%wrap%aoflux_grid == 'agrid') then  ! aoflux_grid is atm
+          ! do nothing, use source field
+          field_dst = field
+       else if (is_local%wrap%aoflux_grid == 'xgrid') then  ! aoflux_grid is exchange
+          ! remap from atm to exchange grid
+          call ESMF_FieldRegrid(field, field_dst, rh_a2x, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       end if
+
+       ! debug
+       if (dbug_flag > 5) then
+          call ESMF_FieldWriteVTK(field_dst, 'ini_'//trim(flds(n))//'_'//trim(is_local%wrap%aoflux_grid), rc=rc)  
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       end if
+
+       ! return pointer and fill variable
+       call ESMF_FieldGet(field_dst, localDe=0, farrayPtr=ptr, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       if (mastertask) write(logunit,'(a)') 'Reading: '//trim(flds(n))
+       if (trim(flds(n)) == 'zorl'  ) physics%sfcprop%zorl(:)  = ptr(:)
+       if (trim(flds(n)) == 'uustar') physics%sfcprop%uustar(:)= ptr(:)
+       nullify(ptr)
+
+       ! free memory
+       call ESMF_FieldDestroy(field_dst, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    end do
+
+    ! free memory
+    if (allocated(flds)) deallocate(flds)
+
+    call ESMF_LogWrite(subname//' done', ESMF_LOGMSG_INFO)
 
   end subroutine read_initial
 
@@ -166,6 +214,7 @@ contains
     type(ESMF_Clock)  :: mclock
     type(ESMF_Time)   :: currtime
     type(ESMF_TimeInterval) :: timeStep 
+    type(ESMF_FieldBundle), save :: FBin
     type(InternalState) :: is_local
     integer           :: n, yr, mon, day, sec
     real(r8), pointer :: ptr(:)
@@ -219,11 +268,11 @@ contains
     end if
 
     ! create FB
-    FBrst = ESMF_FieldBundleCreate(rc=rc)
+    FBin = ESMF_FieldBundleCreate(rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! add fields
-    allocate(flds(12))
+    allocate(flds(3))
     flds = (/ 'zorl  ', &
               'uustar', &
               'qss   ' /)
@@ -234,16 +283,16 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        ptr(:) = 0.0_r8
        nullify(ptr)
-       call ESMF_FieldBundleAdd(FBrst, (/field/), rc=rc)
+       call ESMF_FieldBundleAdd(FBin, (/field/), rc=rc)
     end do 
 
     ! read file to FB
-    call med_io_read(rst_file, vm, FBrst,  pre=trim(prefix), rc=rc)     
+    call med_io_read(rst_file, vm, FBin,  pre=trim(prefix), rc=rc)     
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if (dbug_flag > 1) then
        call ESMF_LogWrite(trim(subname)//' diagnose at '//trim(currtime_str), ESMF_LOGMSG_INFO)
-       call fldbun_diagnose(FBrst, string=trim(subname)//' CCPP FBrst ', rc=rc)
+       call fldbun_diagnose(FBin, string=trim(subname)//' CCPP FBin ', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
@@ -252,8 +301,8 @@ contains
     !----------------------
 
     do n = 1,size(flds)
-       if (FB_FldChk(FBrst, trim(flds(n)), rc=rc)) then              
-          call FB_getfldptr(FBrst, trim(flds(n)), ptr, rc=rc)
+       if (FB_FldChk(FBin, trim(flds(n)), rc=rc)) then              
+          call FB_getfldptr(FBin, trim(flds(n)), ptr, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
           if (mastertask) write(logunit,'(a)') 'Reading: '//trim(flds(n))
@@ -264,7 +313,29 @@ contains
           nullify(ptr)
        end if
     end do
+
+    !----------------------
+    ! Free memory
+    !----------------------
+
+    do n = 1,size(flds)
+       if (FB_FldChk(FBin, trim(flds(n)), rc=rc)) then
+          ! get field from FB
+          call ESMF_FieldBundleGet(FBin, trim(flds(n)), field=field, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          ! remove field from FB
+          call ESMF_FieldBundleRemove(FBin, (/ trim(flds(n)) /), rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          ! remove field
+          call ESMF_FieldDestroy(field, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       end if
+    end do
     deallocate(flds)
+
+    ! remove FB
+    call ESMF_FieldBundleDestroy(FBin, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     call ESMF_LogWrite(subname//' done', ESMF_LOGMSG_INFO)
 
@@ -453,7 +524,7 @@ contains
   end subroutine create_grid
 
   !===============================================================================
-  subroutine read_tiled_file(gcomp, filename, varname, domain, field_dst, numrec, numlev, rc)
+  subroutine read_tiled_file(gcomp, filename, varname, domain, field_dst, mesh, rc)
     implicit none
 
     ! input/output variables
@@ -462,8 +533,7 @@ contains
     character(len=*), intent(in)             :: varname 
     type(domain_type), intent(inout)         :: domain
     type(ESMF_Field), intent(inout)          :: field_dst
-    integer, intent(in), optional            :: numrec
-    integer, intent(in), optional            :: numlev
+    type(ESMF_Mesh), intent(in)              :: mesh
     integer, intent(inout), optional         :: rc
 
     ! local variables
@@ -472,14 +542,13 @@ contains
     type(InternalState)         :: is_local
     type(fieldtype), allocatable:: vars(:) 
     integer                     :: funit, my_tile
-    integer                     :: i, j, n, nt, nl
+    integer                     :: i, j, n
     integer                     :: isc, iec, jsc, jec
     integer                     :: ndim, nvar, natt, ntime
     logical                     :: not_found, is_root_pe
-    real(ESMF_KIND_R8), pointer :: ptr(:), ptr3d(:,:,:)
-    real(ESMF_KIND_R8), pointer :: ptr4d(:,:,:,:)
-    real(r8), allocatable       :: rdata(:,:,:,:)
-    character(len=cl)           :: cname, fname
+    real(ESMF_KIND_R8), pointer :: ptr2d(:,:)
+    real(r8), allocatable       :: rdata(:,:)
+    character(len=cl)           :: cname
     character(len=*), parameter :: subname=trim(modName)//': (read_tiled_file) '
     !-------------------------------------------------------------------------------
 
@@ -495,21 +564,8 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     !----------------------
-    ! Define required variables
+    ! Set tile
     !----------------------
-
-    if (present(numrec)) then
-       nt = numrec
-    else
-       nt = 1
-    end if
-
-    if (present(numlev)) then
-       nl = numlev
-    else
-       nl = 1
-    end if
-
     my_tile = int(mpp_pe()/(domain%layout(1)*domain%layout(2)))+1
 
     is_root_pe = .false.
@@ -540,17 +596,15 @@ contains
           call mpp_get_compute_domain(domain%mosaic_domain, isc, iec, jsc, jec)
 
           ! allocate data array and set initial value
-          allocate(rdata(isc:iec,jsc:jec,nl,nt))
-          rdata(:,:,:,:) = 0.0_r8
+          allocate(rdata(isc:iec,jsc:jec))
+          rdata(:,:) = 0.0_r8
 
           ! read data
-          do i = 1, nt
-             call mpp_read(funit, vars(n), domain%mosaic_domain, rdata, 1)
-          end do
+          call mpp_read(funit, vars(n), domain%mosaic_domain, rdata, 1)
 
           ! set missing values to zero
           where (rdata == 1.0e20)
-             rdata(:,:,:,:) = 0.0_r8
+             rdata(:,:) = 0.0_r8
           end where
        end if
 
@@ -566,26 +620,24 @@ contains
     !----------------------
 
     ! set type and rank for ESMF arrayspec
-    call ESMF_ArraySpecSet(arraySpec, typekind=ESMF_TYPEKIND_R8, rank=4, rc=rc)
+    call ESMF_ArraySpecSet(arraySpec, typekind=ESMF_TYPEKIND_R8, rank=2, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! create source field
     field_src = ESMF_FieldCreate(domain%grid, arraySpec, staggerloc=ESMF_STAGGERLOC_CENTER, &
-       indexflag=ESMF_INDEX_GLOBAL, ungriddedLBound=(/1,1/), ungriddedUBound=(/nl,nt/), &
-       gridToFieldMap=(/1,2/), name=trim(varname), rc=rc)
+       indexflag=ESMF_INDEX_GLOBAL, name=trim(varname), rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! get pointer and fill it
-    call ESMF_FieldGet(field_src, localDe=0, farrayPtr=ptr4d, rc=rc)
+    call ESMF_FieldGet(field_src, localDe=0, farrayPtr=ptr2d, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    ptr4d(:,:,:,:) = rdata(:,:,:,:)
-    nullify(ptr4d)
+    ptr2d(:,:) = rdata(:,:)
+    nullify(ptr2d)
     if (allocated(rdata)) deallocate(rdata)
 
     ! create destination field
-    field_dst = ESMF_FieldCreate(is_local%wrap%aoflux_mesh, ESMF_TYPEKIND_R8, & 
-       name=trim(varname), meshloc=ESMF_MESHLOC_ELEMENT,  ungriddedLbound=(/1,1/), &
-       ungriddedUbound=(/nl,nt/), gridToFieldMap=(/1/), rc=rc)
+    field_dst = ESMF_FieldCreate(mesh, ESMF_TYPEKIND_R8, name=trim(varname), &
+                meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! create routehandle from grid to mesh
@@ -607,33 +659,7 @@ contains
     !----------------------
 
     if (dbug_flag > 5) then
-       ! TODO: ESMF_FieldWriteVTK() call does not support ungridded dimension
-       ! The workaround is implemented in here but it would be nice to extend
-       ! ESMF_FieldWriteVTK() call to handle it.
-       field_tmp = ESMF_FieldCreate(is_local%wrap%aoflux_mesh, ESMF_TYPEKIND_R8, &
-          name=trim(varname), meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-       call ESMF_FieldGet(field_tmp, localDe=0, farrayPtr=ptr, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-       call ESMF_FieldGet(field_dst, localDe=0, farrayPtr=ptr3d, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-       ! write to different file along ungridded dimension
-       do i = 1, nl
-          do j = 1, nt
-            ptr(:) = ptr3d(:,i,j)
-            write(fname, fmt='(A,I2.2,A,I2.2)') trim(varname)//'_lev', i, '_time', j
-            call ESMF_FieldWriteVTK(field_tmp, trim(fname), rc=rc)
-            if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          end do
-       end do
-
-       ! clean memory
-       nullify(ptr)
-       nullify(ptr3d)
-       call ESMF_FieldDestroy(field_tmp, rc=rc)
+       call ESMF_FieldWriteVTK(field_dst, trim(varname)//'_agrid', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
@@ -655,20 +681,22 @@ contains
     type(ESMF_Calendar) :: calendar
     type(ESMF_Time) :: currtime, starttime, nexttime
     type(ESMF_TimeInterval) :: timediff(2)
+    type(ESMF_FieldBundle), save :: FBout
     type(InternalState) :: is_local
     integer           :: yr, mon, day, sec
-    integer           :: m, ns, start_ymd
+    integer           :: n, m, ns, start_ymd
     character(cl)     :: time_units
     real(r8)          :: time_val
     real(r8)          :: time_bnds(2)
     real(r8), pointer :: ptr(:)
-    logical :: whead(2) = (/.true. , .false./)
-    logical :: wdata(2) = (/.false., .true. /)
+    logical           :: whead(2) = (/.true. , .false./)
+    logical           :: wdata(2) = (/.false., .true. /)
     character(len=cl) :: tmpstr
     character(len=cl) :: rst_file
     character(len=cl) :: nexttime_str
     integer, save     :: ns_total
     logical, save     :: first_call = .true.
+    character(len=cs), allocatable :: flds(:)
     character(len=*), parameter :: subname=trim(modName)//': (write_restart) '
     !-------------------------------------------------------------------------------
 
@@ -744,7 +772,7 @@ contains
 
     if (first_call) then
        ! create FB
-       FBrst = ESMF_FieldBundleCreate(rc=rc)
+       FBout = ESMF_FieldBundleCreate(rc=rc)
 
        ! get total element count 
        call ESMF_MeshGet(is_local%wrap%aoflux_mesh, elementCount=ns, rc=rc)
@@ -752,60 +780,51 @@ contains
        call ESMF_VMAllFullReduce(vm, (/ns/), ns_total, 1, ESMF_REDUCE_SUM, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-       ! surface roughness length in cm
-       field = ESMF_FieldCreate(is_local%wrap%aoflux_mesh, ESMF_TYPEKIND_R8, &
-               name='zorl', meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_FieldGet(field, farrayptr=ptr, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       ptr(:) = physics%sfcprop%zorl(:)
-       call ESMF_FieldBundleAdd(FBrst, (/field/), rc=rc)
+       ! add fields
+       allocate(flds(3))
+       flds = (/ 'zorl  ', &
+                 'uustar', &
+                 'qss   ' /)
+       do n = 1,size(flds)
+          ! create new field on aoflux mesh
+          field = ESMF_FieldCreate(is_local%wrap%aoflux_mesh, ESMF_TYPEKIND_R8, &
+             name=trim(flds(n)), meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+ 
+          ! get pointer out of field
+          call ESMF_FieldGet(field, farrayptr=ptr, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-       ! boundary layer parameter
-       field = ESMF_FieldCreate(is_local%wrap%aoflux_mesh, ESMF_TYPEKIND_R8, &
-               name='uustar', meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_FieldGet(field, farrayptr=ptr, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       ptr(:) = physics%sfcprop%uustar(:)
-       nullify(ptr)
-       call ESMF_FieldBundleAdd(FBrst, (/field/), rc=rc)
+          ! fill pointer
+          if (trim(flds(n)) == 'zorl'  ) ptr(:) = physics%sfcprop%zorl(:)
+          if (trim(flds(n)) == 'uustar') ptr(:) = physics%sfcprop%uustar(:)
+          if (trim(flds(n)) == 'qss'   ) ptr(:) = physics%sfcprop%qss(:)
+          nullify(ptr)
 
-       ! surface air saturation specific humidity (kg/kg)
-       field = ESMF_FieldCreate(is_local%wrap%aoflux_mesh, ESMF_TYPEKIND_R8, &
-               name='qss', meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_FieldGet(field, farrayptr=ptr, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       ptr(:) = physics%sfcprop%qss(:)
-       nullify(ptr)
-       call ESMF_FieldBundleAdd(FBrst, (/field/), rc=rc)
+          ! add field to FB
+          call ESMF_FieldBundleAdd(FBout, (/field/), rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+       end do
     else
-       call fldbun_getdata1d(FBrst, 'zorl', ptr, rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       ptr(:) = physics%sfcprop%zorl(:)
-       nullify(ptr)
+       do n = 1,size(flds)
+          ! retrieve field pointer from FB
+          call fldbun_getdata1d(FBout, trim(flds(n)), ptr, rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-       call fldbun_getdata1d(FBrst, 'uustar', ptr, rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       ptr(:) = physics%sfcprop%uustar(:)
-       nullify(ptr)
-
-       call fldbun_getdata1d(FBrst, 'qss', ptr, rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       ptr(:) = physics%sfcprop%qss(:)
-       nullify(ptr)
-    end if
-
-    ! diagnose
-    if (dbug_flag > 1) then
-       call ESMF_LogWrite(trim(subname)//' diagnose at '//trim(nexttime_str), ESMF_LOGMSG_INFO)
-       call fldbun_diagnose(FBrst, string=trim(subname)//' CCPP FBrst ', rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          ! fill pointer
+          if (trim(flds(n)) == 'zorl'  ) ptr(:) = physics%sfcprop%zorl(:)
+          if (trim(flds(n)) == 'uustar') ptr(:) = physics%sfcprop%uustar(:)
+          if (trim(flds(n)) == 'qss'   ) ptr(:) = physics%sfcprop%qss(:)
+          nullify(ptr)
+       end do
     end if
 
     ! debug
-    
+    if (dbug_flag > 1) then
+       call ESMF_LogWrite(trim(subname)//' diagnose at '//trim(nexttime_str), ESMF_LOGMSG_INFO)
+       call fldbun_diagnose(FBout, string=trim(subname)//' CCPP FBout ', rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    end if
 
     !----------------------
     ! Write data
@@ -829,7 +848,7 @@ contains
        end if
 
        ! write data
-       call med_io_write(rst_file, FBrst, whead(m), wdata(m), ns_total, 1, nt=1, pre=trim(prefix), file_ind=file_ind, rc=rc)
+       call med_io_write(rst_file, FBout, whead(m), wdata(m), ns_total, 1, nt=1, pre=trim(prefix), file_ind=file_ind, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end do
 
