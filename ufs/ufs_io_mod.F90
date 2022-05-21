@@ -19,6 +19,7 @@
   use ESMF,                  only : ESMF_Time, ESMF_TimeGet, ESMF_TimeInterval
   use ESMF,                  only : ESMF_FieldBundleIsCreated, ESMF_FieldBundleGet
   use ESMF,                  only : ESMF_FieldBundleRemove, ESMF_FieldBundleDestroy
+  use ESMF,                  only : ESMF_FieldBundleRead, ESMF_FieldBundleWrite
   use NUOPC,                 only : NUOPC_CompAttributeGet
   use NUOPC_Mediator,        only : NUOPC_MediatorGet
 
@@ -38,8 +39,6 @@
   use med_constants_mod,     only : dbug_flag => med_constants_dbug_flag
   use med_internalstate_mod, only : InternalState, mastertask, logunit
   use med_internalstate_mod, only : compatm, compocn, mapconsf
-  use med_io_mod,            only : med_io_write, med_io_wopen, med_io_enddef, med_io_read
-  use med_io_mod,            only : med_io_close, med_io_write_time, med_io_define_time
   use med_io_mod,            only : med_io_date2yyyymmdd, med_io_sec2hms, med_io_ymd2date
   use ufs_const_mod,         only : shr_const_cday
   use med_methods_mod,       only : fldbun_getdata1d => med_methods_FB_getdata1d
@@ -78,11 +77,9 @@
      integer, allocatable   :: jend2(:)      ! list of ending j-index in tile 2 of each contact
   end type domain_type
 
-  character(cs) :: prefix = 'ccpp'
-  integer       :: file_ind = 10
   character(cl) :: case_name = 'unset'  ! case name
 
-  character(*), parameter :: modName = "(ufs_io)"
+  character(*), parameter :: modName = "(ufs_io_mod)"
   character(*), parameter :: u_FILE_u = &
        __FILE__
 
@@ -209,8 +206,7 @@ contains
     integer, intent(inout)          :: rc       ! return code
 
     ! local variables
-    type(ESMF_VM)     :: vm
-    type(ESMF_Field)  :: field
+    type(ESMF_Field)  :: field, lfield
     type(ESMF_Clock)  :: mclock
     type(ESMF_Time)   :: currtime
     type(ESMF_TimeInterval) :: timeStep 
@@ -229,13 +225,6 @@ contains
     nullify(is_local%wrap)
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    !----------------------
-    ! Query VM 
-    !----------------------
-
-    call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !----------------------
     ! Set restart file name
@@ -287,9 +276,10 @@ contains
     end do 
 
     ! read file to FB
-    call med_io_read(rst_file, vm, FBin,  pre=trim(prefix), rc=rc)     
+    call ESMF_FieldBundleRead(FBin, trim(rst_file), rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+    ! debug
     if (dbug_flag > 1) then
        call ESMF_LogWrite(trim(subname)//' diagnose at '//trim(currtime_str), ESMF_LOGMSG_INFO)
        call fldbun_diagnose(FBin, string=trim(subname)//' CCPP FBin ', rc=rc)
@@ -311,6 +301,14 @@ contains
           if (trim(flds(n)) == 'qss'   ) physics%sfcprop%qss(:)   = ptr(:)
 
           nullify(ptr)
+
+          ! debug
+          if (dbug_flag > 5) then
+             call ESMF_FieldBundleGet(FBin, fieldName=trim(flds(n)), field=lfield, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+             call ESMF_FieldWriteVTK(lfield, 'rst_'//trim(flds(n))//'_'//trim(is_local%wrap%aoflux_grid), rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          end if
        end if
     end do
 
@@ -750,10 +748,6 @@ contains
 
     call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call med_io_wopen(trim(rst_file), vm, clobber=.true., file_ind=file_ind)
-    if (mastertask) then
-       write(logunit,'(a)') 'CCPP restart file is created: '//trim(rst_file)
-    end if
 
     !----------------------
     ! Define time dimension
@@ -830,33 +824,7 @@ contains
     ! Write data
     !----------------------
 
-    ! loop over whead/wdata phases
-    do m = 1, 2
-       if (m == 2) then
-          call med_io_enddef(rst_file, file_ind=file_ind)
-       end if
-
-       ! write time values
-       if (whead(m)) then
-          call ESMF_ClockGet(mclock, calendar=calendar, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          call med_io_define_time(time_units, calendar, file_ind=file_ind, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       else
-          call med_io_write_time(time_val, time_bnds, nt=1, file_ind=file_ind, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       end if
-
-       ! write data
-       call med_io_write(rst_file, FBout, whead(m), wdata(m), ns_total, 1, nt=1, pre=trim(prefix), file_ind=file_ind, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    end do
-
-    !----------------------
-    ! Close file
-    !----------------------
-
-    call med_io_close(rst_file, vm, file_ind=file_ind, rc=rc)
+    call ESMF_FieldBundleWrite(FBout, trim(rst_file), overwrite=.true., rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if (mastertask) then

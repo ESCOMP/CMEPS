@@ -44,6 +44,18 @@ module MED_typedefs
       procedure :: create => statein_create      !< allocate array data
   end type MED_statein_type
 
+!! \section arg_table_MED_stateout_type
+!! \htmlinclude MED_stateout_type.html
+!!
+  type MED_stateout_type
+    real(kind=kind_phys), pointer :: gu0(:)   => null()  !< updated zonal wind
+    real(kind=kind_phys), pointer :: gv0(:)   => null()  !< updated meridional wind
+    real(kind=kind_phys), pointer :: gt0(:)   => null()  !< updated temperature
+    real(kind=kind_phys), pointer :: gq0(:)   => null()  !< updated tracers
+    contains
+      procedure :: create  => stateout_create  !<   allocate array data
+  end type MED_stateout_type
+
 !! \section arg_table_MED_interstitial_type
 !! \htmlinclude MED_interstitial_type.html
 !!
@@ -233,6 +245,9 @@ module MED_typedefs
     real(kind=kind_phys), pointer :: evap(:)         => null()  !< kinematic surface upward latent heat flux (kg kg-1 m s-1)
     real(kind=kind_phys), pointer :: hflx(:)         => null()  !< kinematic surface upward sensible heat flux (K m/s)
     real(kind=kind_phys), pointer :: tiice(:,:)      => null()  !< sea ice internal temperature
+    real(kind=kind_phys), pointer :: t2m(:)          => null()  !< temperature at 2 m
+    real(kind=kind_phys), pointer :: q2m(:)          => null()  !< specific humidity at 2 m
+    real(kind=kind_phys), pointer :: f10m(:)         => null()  !< ratio of sigma level 1 wind and 10m wind
     contains
       procedure :: create  => sfcprop_create !< allocate array data
   end type MED_sfcprop_type
@@ -290,6 +305,22 @@ module MED_typedefs
     statein%stc = clear_val
 
   end subroutine statein_create
+
+  subroutine stateout_create(stateout, im)
+    implicit none
+    class(MED_stateout_type) :: stateout
+    integer, intent(in)     :: im
+
+    allocate(stateout%gu0(im))
+    stateout%gu0 = clear_val
+    allocate(stateout%gv0(im))
+    stateout%gv0 = clear_val
+    allocate(stateout%gt0(im))
+    stateout%gt0 = clear_val
+    allocate(stateout%gq0(im))
+    stateout%gq0 = clear_val
+
+  end subroutine stateout_create
 
   subroutine interstitial_create(interstitial, im)
     implicit none
@@ -694,6 +725,12 @@ module MED_typedefs
     sfcprop%hflx = clear_val
     allocate(sfcprop%tiice(im,model%kice))
     sfcprop%tiice = clear_val
+    allocate(sfcprop%t2m(im))
+    sfcprop%t2m = clear_val
+    allocate(sfcprop%q2m(im))
+    sfcprop%q2m = clear_val
+    allocate(sfcprop%f10m(im))
+    sfcprop%f10m = clear_val
 
   end subroutine sfcprop_create
 

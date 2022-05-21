@@ -53,7 +53,7 @@ contains
 
   subroutine flux_atmOcn_ccpp(gcomp, rh, mastertask, logunit, nMax, mask, psfc, pbot, &
              tbot, qbot, zbot, garea, ubot, usfc, vbot, vsfc, rbot, ts, lwdn, sen, lat, &
-             lwup, evp, taux, tauy, qref, duu10n, missval)
+             lwup, evp, taux, tauy, tref, qref, duu10n, ustar_sv, re_sv, ssq_sv, missval)
 
     implicit none
 
@@ -86,8 +86,12 @@ contains
     real(r8), intent(out) :: evp(nMax)    ! heat flux: evap                ((kg/s)/m^2)
     real(r8), intent(out) :: taux(nMax)   ! surface stress, zonal          (N)
     real(r8), intent(out) :: tauy(nMax)   ! surface stress, maridional     (N)
+    real(r8), intent(out) :: tref (nMax)  ! diag: 2m ref height T          (K)
     real(r8), intent(out) :: qref(nMax)   ! diag: 2m ref humidity          (kg/kg)
     real(r8), intent(out) :: duu10n(nMax) ! diag: 10m wind speed squared (m/s)^2
+    real(r8), intent(out) :: ustar_sv(nMax) ! diag: ustar
+    real(r8), intent(out) :: re_sv (nMax) ! diag: sqrt of exchange coefficient (water)
+    real(r8), intent(out) :: ssq_sv(nMax) ! diag: sea surface humidity (kg/kg)
 
     !--- local variables --------------------------------
     type(ESMF_Clock)        :: mclock
@@ -128,6 +132,7 @@ contains
     if (first_call) then
        ! allocate and initalize data structures
        call physics%statein%create(nMax,physics%model)
+       call physics%stateout%create(nMax)
        call physics%interstitial%create(nMax)
        call physics%coupling%create(nMax)
        call physics%grid%create(nMax)
@@ -287,21 +292,21 @@ contains
           write(logunit,*) '========================================================'
           write(logunit,'(a,f5.2)') trim(subname)//' ccpp_phy_semis_water  = ', semis_water
           write(logunit,'(a,l)')    trim(subname)//' ccpp_phy_lseaspray    = ', physics%model%lseaspray
-          write(logunit,'(a,i)')    trim(subname)//' ccpp_phy_ivegsrc      = ', physics%model%ivegsrc
+          write(logunit,'(a,i2)')   trim(subname)//' ccpp_phy_ivegsrc      = ', physics%model%ivegsrc
           write(logunit,'(a,l)')    trim(subname)//' ccpp_phy_redrag       = ', physics%model%redrag
-          write(logunit,'(a,i)')    trim(subname)//' ccpp_phy_lsm          = ', physics%model%lsm
+          write(logunit,'(a,i2)')   trim(subname)//' ccpp_phy_lsm          = ', physics%model%lsm
           write(logunit,'(a,l)')    trim(subname)//' ccpp_phy_frac_grid    = ', physics%model%frac_grid
           write(logunit,'(a,l)')    trim(subname)//' ccpp_phy_restart      = ', physics%model%restart
           write(logunit,'(a,l)')    trim(subname)//' ccpp_phy_cplice       = ', physics%model%cplice
           write(logunit,'(a,l)')    trim(subname)//' ccpp_phy_cplflx       = ', physics%model%cplflx
           write(logunit,'(a,l)')    trim(subname)//' ccpp_phy_lheatstrg    = ', physics%model%lheatstrg
-          write(logunit,'(a,i)')    trim(subname)//' ccpp_restart_interval = ', restart_freq
+          write(logunit,'(a,i5)')   trim(subname)//' ccpp_restart_interval = ', restart_freq
           write(logunit,'(a)')      trim(subname)//' ccpp_ini_file_prefix  = '//trim(ini_file)
           write(logunit,'(a)')      trim(subname)//' ccpp_ini_mosaic_file  = '//trim(mosaic_file)
           write(logunit,'(a)')      trim(subname)//' ccpp_input_dir        = '//trim(input_dir)
           write(logunit,'(a)')      trim(subname)//' ccpp_restart_file     = '//trim(rst_file)
           do n = 1, 2
-             write(logunit,'(a,i,a,i2)') trim(subname)//' ccpp_ini_layout(',n,') = ', layout(n)
+             write(logunit,'(a,i1,a,i2)') trim(subname)//' ccpp_ini_layout(',n,') = ', layout(n)
           end do 
           write(logunit,*) '========================================================'
        end if
@@ -334,13 +339,19 @@ contains
     physics%statein%u10m(:)  = usfc(:)
     physics%statein%v10m(:)  = vsfc(:)
 
+    ! fill in updated states by physics, currently set to statein
+    physics%stateout%gu0(:)  = ubot(:)
+    physics%stateout%gv0(:)  = vbot(:)
+    physics%stateout%gt0(:)  = tbot(:)
+    physics%stateout%gq0(:)  = qbot(:)
+
     ! fill in grid related variables
     physics%grid%area(:) = garea(:)
 
     ! set counter
     physics%model%kdt = ((currTime-StartTime)/timeStep)+1
     if (mastertask .and. dbug_flag > 5) then
-       write(logunit,'(a,i)') 'kdt = ', physics%model%kdt
+       write(logunit,'(a,i5)') 'kdt = ', physics%model%kdt
     end if
 
     ! reset physics variables, mimic GFS_suite_interstitial_phys_reset
@@ -391,8 +402,12 @@ contains
           evp(n)  = lat(n)/hvap
           taux(n) = rbot(n)*physics%interstitial%stress_water(n)*ubot(n)/physics%interstitial%wind(n)
           tauy(n) = rbot(n)*physics%interstitial%stress_water(n)*vbot(n)/physics%interstitial%wind(n)
-          qref(n) = physics%interstitial%qss_water(n)
+          tref(n) = physics%sfcprop%t2m(n)
+          qref(n) = physics%sfcprop%q2m(n)
           duu10n(n) = physics%interstitial%wind(n)*physics%interstitial%wind(n)
+          ustar_sv(n) = physics%interstitial%uustar_water(n) 
+          re_sv(n) = physics%interstitial%cmm_water(n)
+          ssq_sv(n) = physics%interstitial%qss_water(n)
        else
           sen(n)  = spval
           lat(n)  = spval
@@ -400,8 +415,12 @@ contains
           evp(n)  = spval
           taux(n) = spval
           tauy(n) = spval
+          tref(n) = spval
           qref(n) = spval
           duu10n(n) = spval
+          ustar_sv(n) = spval
+          re_sv(n) = spval
+          ssq_sv(n) = spval
        end if
     end do
 

@@ -8,6 +8,7 @@ module MED_data
 !!
 
   use MED_typedefs, only: MED_statein_type
+  use MED_typedefs, only: MED_stateout_type
   use MED_typedefs, only: MED_init_type
   use MED_typedefs, only: MED_interstitial_type
   use MED_typedefs, only: MED_control_type
@@ -27,6 +28,7 @@ module MED_data
   type physics_type
     type(MED_init_type)         :: init
     type(MED_statein_type)      :: statein
+    type(MED_stateout_type)     :: stateout
     type(MED_interstitial_type) :: interstitial
     type(MED_control_type)      :: model
     type(MED_coupling_type)     :: coupling 

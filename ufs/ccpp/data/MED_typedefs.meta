@@ -109,6 +109,44 @@
 
 ########################################################################
 [ccpp-table-properties]
+  name = MED_stateout_type
+  type = ddt
+  dependencies =
+
+[ccpp-arg-table]
+  name = MED_stateout_type
+  type = ddt
+[gu0]
+  standard_name = x_wind_of_new_state_at_surface_adjacent_layer
+  long_name = zonal wind at lowest model layer updated by physics
+  units = m s-1
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+[gv0]
+  standard_name = y_wind_of_new_state_at_surface_adjacent_layer
+  long_name = meridional wind at lowest model layer updated by physics
+  units = m s-1
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+[gt0]
+  standard_name = air_temperature_of_new_state_at_surface_adjacent_layer
+  long_name = temperature at lowest model layer updated by physics
+  units = K
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+[gq0]
+  standard_name = specific_humidity_of_new_state_at_surface_adjacent_layer
+  long_name = water vapor specific humidity at lowest model layer updated by physics
+  units = kg kg-1
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+
+########################################################################
+[ccpp-table-properties]
   name = MED_interstitial_type
   type = ddt
   dependencies =
@@ -1137,6 +1175,27 @@
   long_name = sea ice internal temperature
   units = K
   dimensions = (horizontal_loop_extent,vertical_dimension_of_sea_ice)
+  type = real
+  kind = kind_phys
+[t2m]
+  standard_name = air_temperature_at_2m
+  long_name = 2 meter temperature
+  units = K
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+[q2m]
+  standard_name = specific_humidity_at_2m
+  long_name = 2 meter specific humidity
+  units = kg kg-1
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+[f10m]
+  standard_name = ratio_of_wind_at_surface_adjacent_layer_to_wind_at_10m
+  long_name = ratio of sigma level 1 wind and 10m wind
+  units = ratio
+  dimensions = (horizontal_loop_extent)
   type = real
   kind = kind_phys
 

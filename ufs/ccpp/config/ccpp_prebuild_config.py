@@ -41,6 +41,7 @@ TYPEDEFS_NEW_METADATA = {
     'MED_typedefs' : {
         'MED_init_type' : 'physics%init',
         'MED_statein_type' : 'physics%Statein',
+        'MED_stateout_type' : 'physics%Stateout',
         'MED_interstitial_type' : 'physics%Interstitial',
         'MED_control_type' : 'physics%Model',
         'MED_coupling_type' : 'physics%Coupling',
@@ -62,7 +63,8 @@ SCHEME_FILES = [
     '{}/ccpp/physics/physics/GFS_surface_loop_control_part1.F90'.format(fv3_path),
     '{}/ccpp/physics/physics/GFS_surface_loop_control_part2.F90'.format(fv3_path),
     '{}/ccpp/physics/physics/GFS_surface_composites_pre.F90'.format(fv3_path),
-    '{}/ccpp/physics/physics/GFS_surface_composites_post.F90'.format(fv3_path)
+    '{}/ccpp/physics/physics/GFS_surface_composites_post.F90'.format(fv3_path),
+    '{}/ccpp/physics/physics/sfc_diag.f'.format(fv3_path)
     ]
 
 # Default build dir, relative to current working directory,

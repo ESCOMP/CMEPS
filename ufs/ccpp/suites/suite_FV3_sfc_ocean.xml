@@ -13,6 +13,7 @@
     </subcycle>
     <subcycle loop="1">
       <scheme>GFS_surface_composites_post</scheme>
+      <scheme>sfc_diag</scheme>
     </subcycle>
   </group>
 </suite>
