@@ -288,15 +288,13 @@ contains
           write(logunit,*) '========================================================'
        end if
 
-       ! read initial condition/restart
+       ! read restart
        call NUOPC_CompAttributeGet(gcomp, name='start_type', value=cvalue, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        read(cvalue,*) starttype
-       !if (trim(starttype) == trim('startup')) then
-       !   call read_initial(gcomp, ini_file, mosaic_file, input_dir, rc)
-       !else
-       !   call read_restart(gcomp, rst_file, rc)
-       !end if
+       if (trim(starttype) == trim('continue')) then
+          call read_restart(gcomp, rst_file, rc)
+       end if
 
        ! run CCPP init
        ! TODO: suite name need to be provided by ESMF config file
