@@ -19,7 +19,8 @@
   use ESMF,                  only : ESMF_Time, ESMF_TimeGet, ESMF_TimeInterval
   use ESMF,                  only : ESMF_FieldBundleIsCreated, ESMF_FieldBundleGet
   use ESMF,                  only : ESMF_FieldBundleRemove, ESMF_FieldBundleDestroy
-  use ESMF,                  only : ESMF_FieldBundleRead, ESMF_FieldBundleWrite
+  use ESMF,                  only : ESMF_FieldWrite, ESMF_FieldBundleRead, ESMF_FieldBundleWrite
+  use ESMF,                  only : ESMF_REGRIDMETHOD_CONSERVE_2ND, ESMF_MeshCreate
   use NUOPC,                 only : NUOPC_CompAttributeGet
   use NUOPC_Mediator,        only : NUOPC_MediatorGet
 
@@ -28,7 +29,7 @@
   use mosaic2_mod,           only : get_mosaic_ntiles, get_mosaic_grid_sizes
   use mosaic2_mod,           only : get_mosaic_contact, get_mosaic_ncontacts
   use mpp_mod,               only : mpp_pe, mpp_root_pe, mpp_error, FATAL
-  use mpp_domains_mod,       only : mpp_get_compute_domain
+  use mpp_domains_mod,       only : mpp_define_layout, mpp_get_compute_domain
   use mpp_domains_mod,       only : mpp_domains_init, mpp_define_mosaic, domain2d
   use mpp_io_mod,            only : MPP_RDONLY, MPP_NETCDF, MPP_SINGLE, MPP_MULTI
   use mpp_io_mod,            only : mpp_get_info, mpp_get_fields, mpp_get_atts
@@ -58,7 +59,8 @@
 
   type domain_type
      type(ESMF_Grid)        :: grid          ! ESMF grid object from mosaic file
-     type(ESMF_RouteHandle) :: rh            ! ESMF route handle object to transfer data from grid to mesh
+     type(ESMF_Mesh)        :: mesh          ! ESMF mesh object from CS grid 
+     type(ESMF_RouteHandle) :: rh            ! ESMF routehandle object to redist data from CS grid to mesh
      type(domain2d)         :: mosaic_domain ! domain object created by FMS
      integer                :: layout(2)     ! layout for domain decomposition
      integer, allocatable   :: nit(:)        ! size of tile in i direction
@@ -87,7 +89,8 @@
 contains
 !===============================================================================
 
-  subroutine read_initial(gcomp, ini_file, mosaic_file, input_dir, layout, rh_a2x, rc)
+  subroutine read_initial(gcomp, ini_file, mosaic_file, input_dir, rc)
+
     implicit none
 
     ! input/output variables
@@ -95,14 +98,12 @@ contains
     character(len=cl), intent(in)    :: ini_file
     character(len=cl), intent(in)    :: mosaic_file
     character(len=cl), intent(in)    :: input_dir
-    integer                          :: layout(2)
-    type(ESMF_RouteHandle)           :: rh_a2x
     integer, intent(inout)           :: rc
 
     ! local variables
     type(domain_type)                :: domain
     type(InternalState)              :: is_local
-    type(ESMF_Mesh)                  :: atm_mesh
+    type(ESMF_RouteHandle)           :: rh
     type(ESMF_Field)                 :: lfield, field, field_dst
     real(ESMF_KIND_R8), pointer      :: ptr(:)
     integer                          :: n
@@ -121,7 +122,6 @@ contains
     ! Create domain
     ! ---------------------
 
-    domain%layout(:) = layout(:)
     call create_fms_domain(gcomp, domain, mosaic_file, rc)
 
     ! ---------------------
@@ -129,15 +129,6 @@ contains
     ! ---------------------
 
     call create_grid(gcomp, domain, mosaic_file, input_dir, rc)
-
-    ! ---------------------
-    ! Determine atm mesh 
-    ! ---------------------
-
-    call ESMF_FieldBundleGet(is_local%wrap%FBImp(compatm,compatm), fieldname='Sa_z', field=lfield, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldGet(lfield, mesh=atm_mesh, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     !----------------------
     ! Read data 
@@ -148,7 +139,7 @@ contains
               'uustar' /)
     do n = 1,size(flds)
        ! read from tiled file
-       call read_tiled_file(gcomp, ini_file, trim(flds(n)), domain, field, atm_mesh, rc=rc)
+       call read_tiled_file(gcomp, ini_file, trim(flds(n)), domain, field, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        ! create destination field
@@ -157,17 +148,18 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        ! map field
-       if (is_local%wrap%aoflux_grid == 'ogrid') then  ! aoflux_grid is ocn
-          ! remap from atm to ocn
-          call ESMF_FieldRegrid(field, field_dst, is_local%wrap%RH(compatm,compocn,mapconsf), rc=rc)
+       if (is_local%wrap%aoflux_grid == 'ogrid' .or. is_local%wrap%aoflux_grid == 'xgrid') then
+          ! create rh
+          call ESMF_FieldRegridStore(field, field_dst, routehandle=rh, &
+               regridmethod=ESMF_REGRIDMETHOD_CONSERVE_2ND, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       else if (is_local%wrap%aoflux_grid == 'agrid') then  ! aoflux_grid is atm
+
+          ! remap from atm to ocn/xgrid
+          call ESMF_FieldRegrid(field, field_dst, rh, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       else
           ! do nothing, use source field
           field_dst = field
-       else if (is_local%wrap%aoflux_grid == 'xgrid') then  ! aoflux_grid is exchange
-          ! remap from atm to exchange grid
-          call ESMF_FieldRegrid(field, field_dst, rh_a2x, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
 
        ! debug
@@ -352,8 +344,8 @@ contains
     ! local variables
     type(ESMF_VM)                    :: vm
     type(FmsNetcdfFile_t)            :: mosaic_fileobj
-    integer                          :: mpicomm
-    integer                          :: n, ntiles
+    integer                          :: mpicomm, npes_per_tile
+    integer                          :: n, ntiles, npet
     integer                          :: halo = 0
     integer                          :: global_indices(4,6)
     integer                          :: layout2d(2,6)
@@ -372,7 +364,7 @@ contains
     call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call ESMF_VMGet(vm=vm, mpiCommunicator=mpicomm, rc=rc)
+    call ESMF_VMGet(vm=vm, mpiCommunicator=mpicomm, petCount=npet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     call fms_init(mpicomm)
@@ -416,7 +408,7 @@ contains
          domain%istart2, domain%iend2, domain%jstart2, domain%jend2)
 
     ! print out debug information
-    if (dbug_flag > 5) then
+    if (dbug_flag > 2) then
        do n = 1, domain%ncontacts
           write(msg, fmt='(A,I2,A,2I5)') trim(subname)//' : tile1, tile2 (', n ,') = ', domain%tile1(n), domain%tile2(n)
           call ESMF_LogWrite(trim(msg), ESMF_LOGMSG_INFO)    
@@ -436,6 +428,42 @@ contains
     call mpp_domains_init()
 
     !----------------------
+    ! Find out layout that will be used to read the data
+    !----------------------
+
+    ! setup global indices
+    do n = 1, domain%ntiles
+       global_indices(1,n) = 1
+       global_indices(2,n) = domain%nit(n)
+       global_indices(3,n) = 1
+       global_indices(4,n) = domain%njt(n)
+    end do
+
+    ! check total number of PETs
+    if (mod(npet, domain%ntiles)) then
+       write(msg, fmt='(A,I5)') trim(subname)//' : nPet should be multiple of 6 to read initial conditions but it is ', npet 
+       call ESMF_LogWrite(trim(msg), ESMF_LOGMSG_ERROR)
+       rc = ESMF_FAILURE
+       return
+    end if
+
+    ! calculate layout
+    npes_per_tile = npet/domain%ntiles
+    call mpp_define_layout(global_indices(:,1), npes_per_tile, domain%layout)
+
+    ! set layout and print out debug information
+    do n = 1, domain%ntiles
+       layout2d(:,n) = domain%layout(:)
+       if (dbug_flag > 2) then
+          write(msg, fmt='(A,I2,A,2I5)') trim(subname)//' layout (', n ,') = ', layout2d(1,n), layout2d(2,n)
+          call ESMF_LogWrite(trim(msg), ESMF_LOGMSG_INFO)
+          write(msg, fmt='(A,I2,A,4I5)') trim(subname)//' global_indices (', n,') = ', &
+            global_indices(1,n), global_indices(2,n), global_indices(3,n), global_indices(4,n)
+          call ESMF_LogWrite(trim(msg), ESMF_LOGMSG_INFO)
+       end if
+    enddo
+
+    !----------------------
     ! Set pe_start, pe_end 
     !----------------------
 
@@ -444,7 +472,7 @@ contains
     do n = 1, domain%ntiles
        pe_start(n) = mpp_root_pe()+(n-1)*domain%layout(1)*domain%layout(2)
        pe_end(n) = mpp_root_pe()+n*domain%layout(1)*domain%layout(2)-1
-       if (dbug_flag > 5) then
+       if (dbug_flag > 2) then
           write(msg, fmt='(A,I2,A,2I5)') trim(subname)//' pe_start, pe_end (', n ,') = ', pe_start(n), pe_end(n)
           call ESMF_LogWrite(trim(msg), ESMF_LOGMSG_INFO)
        end if 
@@ -453,14 +481,6 @@ contains
     !----------------------
     ! Create FMS domain object
     !----------------------
-
-    do n = 1, domain%ntiles
-       layout2d(:,n) = domain%layout(:)
-       global_indices(1,n) = 1
-       global_indices(2,n) = domain%nit(n)
-       global_indices(3,n) = 1
-       global_indices(4,n) = domain%njt(n)
-    enddo
 
     call mpp_define_mosaic(global_indices, layout2d, domain%mosaic_domain, &
          domain%ntiles, domain%ncontacts, domain%tile1, domain%tile2, &
@@ -517,12 +537,16 @@ contains
        indexflag=ESMF_INDEX_GLOBAL, name='input_grid', rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+    ! create mesh
+    domain%mesh = ESMF_MeshCreate(domain%grid, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
     call ESMF_LogWrite(subname//' done', ESMF_LOGMSG_INFO)
 
   end subroutine create_grid
 
   !===============================================================================
-  subroutine read_tiled_file(gcomp, filename, varname, domain, field_dst, mesh, rc)
+  subroutine read_tiled_file(gcomp, filename, varname, domain, field_dst, rc)
     implicit none
 
     ! input/output variables
@@ -531,7 +555,6 @@ contains
     character(len=*), intent(in)             :: varname 
     type(domain_type), intent(inout)         :: domain
     type(ESMF_Field), intent(inout)          :: field_dst
-    type(ESMF_Mesh), intent(in)              :: mesh
     integer, intent(inout), optional         :: rc
 
     ! local variables
@@ -634,7 +657,7 @@ contains
     if (allocated(rdata)) deallocate(rdata)
 
     ! create destination field
-    field_dst = ESMF_FieldCreate(mesh, ESMF_TYPEKIND_R8, name=trim(varname), &
+    field_dst = ESMF_FieldCreate(domain%mesh, ESMF_TYPEKIND_R8, name=trim(varname), &
                 meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
@@ -648,18 +671,23 @@ contains
     call ESMF_FieldRedist(field_src, field_dst, domain%rh, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    ! clean memory
-    call ESMF_FieldDestroy(field_src, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return 
-
     !----------------------
     ! Output result field for debugging purpose
     !----------------------
 
-    if (dbug_flag > 5) then
-       call ESMF_FieldWriteVTK(field_dst, trim(varname)//'_agrid', rc=rc)
+    if (dbug_flag > 2) then
+       call ESMF_FieldWrite(field_dst, trim(varname)//'agrid', variableName=trim(varname), overwrite=.true., rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
+
+    if (dbug_flag > 5) then
+       call ESMF_FieldWriteVTK(field_dst, trim(varname)//'agrid', rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    end if
+
+    ! clean memory
+    call ESMF_FieldDestroy(field_src, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return 
 
   end subroutine read_tiled_file
 
@@ -687,8 +715,6 @@ contains
     real(r8)          :: time_val
     real(r8)          :: time_bnds(2)
     real(r8), pointer :: ptr(:)
-    logical           :: whead(2) = (/.true. , .false./)
-    logical           :: wdata(2) = (/.false., .true. /)
     character(len=cl) :: tmpstr
     character(len=cl) :: rst_file
     character(len=cl) :: nexttime_str
@@ -818,6 +844,19 @@ contains
        call ESMF_LogWrite(trim(subname)//' diagnose at '//trim(nexttime_str), ESMF_LOGMSG_INFO)
        call fldbun_diagnose(FBout, string=trim(subname)//' CCPP FBout ', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    end if
+
+    ! debug
+    if (dbug_flag > 5) then
+       do n = 1,size(flds)
+          ! retrieve field from FB
+          call ESMF_FieldBundleGet(FBout, fieldName=trim(flds(n)), field=field, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+          ! write field in VTK format
+          call ESMF_FieldWriteVTK(field, 'rst_'//trim(flds(n))//'_'//trim(is_local%wrap%aoflux_grid)//'_'//trim(nexttime_str), rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       end do
     end if
 
     !----------------------

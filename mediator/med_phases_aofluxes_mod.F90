@@ -1071,7 +1071,7 @@ contains
             sen=aoflux_out%sen, lat=aoflux_out%lat, lwup=aoflux_out%lwup, evp=aoflux_out%evap, &
             taux=aoflux_out%taux, tauy=aoflux_out%tauy, tref=aoflux_out%tref, qref=aoflux_out%qref, &
             duu10n=aoflux_out%duu10n, ustar_sv=aoflux_out%ustar, re_sv=aoflux_out%re, ssq_sv=aoflux_out%ssq, &
-            missval=0.0_r8, rh=rh_agrid2xgrid_2ndord)
+            missval=0.0_r8)
      else
 #endif
        call flux_atmocn (logunit=logunit, &
@@ -1142,7 +1142,7 @@ contains
     real(r8), pointer   :: data_dst(:)
     integer             :: nf,n
     integer             :: maptype
-    character(*),parameter  :: subName = '(med_aofluxes_map_ogrid2agrid_output) '
+    character(*),parameter  :: subName = '(med_aofluxes_map_ogrid2agrid_input) '
     !-----------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -1211,7 +1211,7 @@ contains
     type(ESMF_Field)    :: field_src
     type(ESMF_Field)    :: field_dst
     integer             :: nf
-    character(*),parameter  :: subName = '(med_aofluxes_map_ogrid2agrid_output) '
+    character(*),parameter  :: subName = '(med_aofluxes_map_agrid2xgrid_input) '
     !-----------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -1268,7 +1268,7 @@ contains
     type(ESMF_Field)    :: field_src
     type(ESMF_Field)    :: field_dst
     integer             :: nf
-    character(*),parameter  :: subName = '(med_aofluxes_map_ogrid2agrid_output) '
+    character(*),parameter  :: subName = '(med_aofluxes_map_ogrid2xgrid_input) '
     !-----------------------------------------------------------------------
 
     rc = ESMF_SUCCESS

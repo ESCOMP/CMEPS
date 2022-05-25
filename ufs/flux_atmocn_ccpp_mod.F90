@@ -4,7 +4,7 @@ module flux_atmocn_ccpp_mod
   use ESMF,            only : ESMF_GridComp, ESMF_Time, ESMF_SUCCESS, ESMF_FAILURE
   use ESMF,            only : ESMF_Clock, ESMF_TimeInterval, ESMF_ClockGet
   use ESMF,            only : ESMF_GridCompGetInternalState, ESMF_LOGMSG_INFO
-  use ESMF,            only : ESMF_RouteHandle, ESMF_LogWrite
+  use ESMF,            only : ESMF_LogWrite
   use NUOPC,           only : NUOPC_CompAttributeGet
   use NUOPC_Mediator,  only : NUOPC_MediatorGet
 
@@ -35,7 +35,6 @@ module flux_atmocn_ccpp_mod
   public :: flux_atmOcn_ccpp ! computes atm/ocn fluxes
 
   integer, save           :: restart_freq
-  integer, save           :: layout(2)
   real(r8), save          :: semis_water
   character(len=cs), save :: starttype
   character(len=cl), save :: ini_file
@@ -51,7 +50,7 @@ module flux_atmocn_ccpp_mod
 contains
 !===============================================================================
 
-  subroutine flux_atmOcn_ccpp(gcomp, rh, mastertask, logunit, nMax, mask, psfc, pbot, &
+  subroutine flux_atmOcn_ccpp(gcomp, mastertask, logunit, nMax, mask, psfc, pbot, &
              tbot, qbot, zbot, garea, ubot, usfc, vbot, vsfc, rbot, ts, lwdn, sen, lat, &
              lwup, evp, taux, tauy, tref, qref, duu10n, ustar_sv, re_sv, ssq_sv, missval)
 
@@ -59,7 +58,6 @@ contains
 
     !--- input arguments --------------------------------
     type(ESMF_GridComp), intent(in)    :: gcomp       ! gridded component
-    type(ESMF_RouteHandle), intent(in) :: rh          ! route handle to map atm->xgrid
     logical , intent(in)  :: mastertask  ! master task
     integer , intent(in)  :: logunit     ! log file unit number
     integer , intent(in)  :: nMax        ! data vector length
@@ -270,24 +268,6 @@ contains
           input_dir = "INPUT/"
        end if
 
-       ! layout to to read tiled CS grid files
-       call NUOPC_CompAttributeGet(gcomp, name='ccpp_ini_layout', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (isPresent .and. isSet) then
-          do n = 1, 2
-             call string_listGetName(cvalue, n, cname, rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-             if (rc == ESMF_FAILURE) return
-             read(cname,*) layout(n)
-          end do
-       else
-          if (trim(rst_file) == 'unset') then
-             call ESMF_LogWrite(trim(subname)//': ccpp_ini_layout is required to read tiled initial condition!', ESMF_LOGMSG_INFO)
-             rc = ESMF_FAILURE
-             return
-          end if
-       end if
-
        if (mastertask) then
           write(logunit,*) '========================================================'
           write(logunit,'(a,f5.2)') trim(subname)//' ccpp_phy_semis_water  = ', semis_water
@@ -305,9 +285,6 @@ contains
           write(logunit,'(a)')      trim(subname)//' ccpp_ini_mosaic_file  = '//trim(mosaic_file)
           write(logunit,'(a)')      trim(subname)//' ccpp_input_dir        = '//trim(input_dir)
           write(logunit,'(a)')      trim(subname)//' ccpp_restart_file     = '//trim(rst_file)
-          do n = 1, 2
-             write(logunit,'(a,i1,a,i2)') trim(subname)//' ccpp_ini_layout(',n,') = ', layout(n)
-          end do 
           write(logunit,*) '========================================================'
        end if
 
@@ -315,11 +292,11 @@ contains
        call NUOPC_CompAttributeGet(gcomp, name='start_type', value=cvalue, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        read(cvalue,*) starttype
-       if (trim(starttype) == trim('startup')) then
-          call read_initial(gcomp, ini_file, mosaic_file, input_dir, layout, rh, rc)
-       else
-          call read_restart(gcomp, rst_file, rc)
-       end if
+       !if (trim(starttype) == trim('startup')) then
+       !   call read_initial(gcomp, ini_file, mosaic_file, input_dir, rc)
+       !else
+       !   call read_restart(gcomp, rst_file, rc)
+       !end if
 
        ! run CCPP init
        ! TODO: suite name need to be provided by ESMF config file
