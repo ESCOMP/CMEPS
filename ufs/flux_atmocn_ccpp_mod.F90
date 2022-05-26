@@ -128,6 +128,9 @@ contains
 
     ! init CCPP and setup/allocate variables
     if (first_call) then
+       ! initalize model related parameters
+       call physics%model%init()
+
        ! allocate and initalize data structures
        call physics%statein%create(nMax,physics%model)
        call physics%stateout%create(nMax)
@@ -139,9 +142,6 @@ contains
 
        ! initalize dimension 
        physics%init%im = nMax
-
-       ! initalize model related parameters
-       call physics%model%init()
 
        ! determine CCPP/physics specific options
        ! semis_water, surface emissivity for lw radiation
@@ -349,7 +349,7 @@ contains
     end do
 
     ! init other variables
-    if (first_call) then
+    if (first_call .and. trim(starttype) == trim('continue')) then
        physics%interstitial%qss_water(:) = physics%sfcprop%qss(:)
     else
        physics%sfcprop%qss(:) = qbot(:)
