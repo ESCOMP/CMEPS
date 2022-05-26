@@ -440,7 +440,7 @@ contains
     end do
 
     ! check total number of PETs
-    if (mod(npet, domain%ntiles) == 0) then
+    if (mod(npet, domain%ntiles) /= 0) then
        write(msg, fmt='(A,I5)') trim(subname)//' : nPet should be multiple of 6 to read initial conditions but it is ', npet 
        call ESMF_LogWrite(trim(msg), ESMF_LOGMSG_ERROR)
        rc = ESMF_FAILURE
