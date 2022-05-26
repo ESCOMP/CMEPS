@@ -21,6 +21,7 @@
   use ESMF,                  only : ESMF_FieldBundleRemove, ESMF_FieldBundleDestroy
   use ESMF,                  only : ESMF_FieldWrite, ESMF_FieldBundleRead, ESMF_FieldBundleWrite
   use ESMF,                  only : ESMF_REGRIDMETHOD_CONSERVE_2ND, ESMF_MeshCreate
+  use ESMF,                  only : ESMF_TERMORDER_SRCSEQ, ESMF_REGION_TOTAL 
   use NUOPC,                 only : NUOPC_CompAttributeGet
   use NUOPC_Mediator,        only : NUOPC_MediatorGet
 
@@ -89,7 +90,7 @@
 contains
 !===============================================================================
 
-  subroutine read_initial(gcomp, ini_file, mosaic_file, input_dir, rc)
+  subroutine read_initial(gcomp, ini_file, mosaic_file, input_dir, layout, rc)
 
     implicit none
 
@@ -98,6 +99,7 @@ contains
     character(len=cl), intent(in)    :: ini_file
     character(len=cl), intent(in)    :: mosaic_file
     character(len=cl), intent(in)    :: input_dir
+    integer                          :: layout(2)
     integer, intent(inout)           :: rc
 
     ! local variables
@@ -122,7 +124,7 @@ contains
     ! Create domain
     ! ---------------------
 
-    call create_fms_domain(gcomp, domain, mosaic_file, rc)
+    call create_fms_domain(gcomp, domain, mosaic_file, layout, rc)
 
     ! ---------------------
     ! Create grid 
@@ -144,22 +146,22 @@ contains
 
        ! create destination field
        field_dst = ESMF_FieldCreate(is_local%wrap%aoflux_mesh, ESMF_TYPEKIND_R8, &
-          name='uustar', meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)        
+          name=trim(flds(n)), meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       ! create rh
+       call ESMF_FieldRegridStore(field, field_dst, routehandle=rh, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        ! map field
-       if (is_local%wrap%aoflux_grid == 'ogrid' .or. is_local%wrap%aoflux_grid == 'xgrid') then
-          ! create rh
-          call ESMF_FieldRegridStore(field, field_dst, routehandle=rh, &
-               regridmethod=ESMF_REGRIDMETHOD_CONSERVE_2ND, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-          ! remap from atm to ocn/xgrid
-          call ESMF_FieldRegrid(field, field_dst, rh, rc=rc)
+       if (is_local%wrap%aoflux_grid == 'agrid') then
+          ! do nothing, just redist in case of haning different decomp. in here and aoflux mesh
+          call ESMF_FieldRedist(field, field_dst, rh, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        else
-          ! do nothing, use source field
-          field_dst = field
+          ! remap from atm to ocn or exchange grid
+          call ESMF_FieldRegrid(field, field_dst, rh, termorderflag=ESMF_TERMORDER_SRCSEQ, zeroregion=ESMF_REGION_TOTAL, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
 
        ! debug
@@ -332,13 +334,14 @@ contains
   end subroutine read_restart
 
   !===============================================================================
-  subroutine create_fms_domain(gcomp, domain, mosaic_file, rc)
+  subroutine create_fms_domain(gcomp, domain, mosaic_file, layout, rc)
     implicit none
 
     ! input/output variables
     type(ESMF_GridComp), intent(in)  :: gcomp
     type(domain_type), intent(inout) :: domain
     character(len=cl), intent(in)    :: mosaic_file
+    integer                          :: layout(2)
     integer, intent(inout)           :: rc
 
     ! local variables
@@ -447,9 +450,13 @@ contains
        return
     end if
 
-    ! calculate layout
-    npes_per_tile = npet/domain%ntiles
-    call mpp_define_layout(global_indices(:,1), npes_per_tile, domain%layout)
+    ! calculate layout if it is not provided as configuration option
+    if (layout(1) < 0 .and. layout(2) < 0) then
+       npes_per_tile = npet/domain%ntiles
+       call mpp_define_layout(global_indices(:,1), npes_per_tile, domain%layout)
+    else
+       domain%layout(:) = layout(:)
+    end if
 
     ! set layout and print out debug information
     do n = 1, domain%ntiles
@@ -676,12 +683,12 @@ contains
     !----------------------
 
     if (dbug_flag > 2) then
-       call ESMF_FieldWrite(field_dst, trim(varname)//'agrid', variableName=trim(varname), overwrite=.true., rc=rc)
+       call ESMF_FieldWrite(field_dst, trim(varname)//'_agrid.nc', variableName=trim(varname), overwrite=.true., rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
     if (dbug_flag > 5) then
-       call ESMF_FieldWriteVTK(field_dst, trim(varname)//'agrid', rc=rc)
+       call ESMF_FieldWriteVTK(field_dst, trim(varname)//'_agrid', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 

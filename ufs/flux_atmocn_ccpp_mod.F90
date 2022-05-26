@@ -35,13 +35,15 @@ module flux_atmocn_ccpp_mod
   public :: flux_atmOcn_ccpp ! computes atm/ocn fluxes
 
   integer, save           :: restart_freq
+  integer                 :: layout(2)
   real(r8), save          :: semis_water
   character(len=cs), save :: starttype
   character(len=cl), save :: ini_file
   character(len=cl), save :: rst_file
   character(len=cl), save :: mosaic_file
   character(len=cl), save :: input_dir
-  character(len=1) , save :: listDel  = ","
+  character(len=1) , save :: listDel = ","
+  logical          , save :: ini_read
 
   character(*), parameter :: u_FILE_u = &
        __FILE__
@@ -152,6 +154,7 @@ contains
        if (isPresent .and. isSet) then
           read(cvalue,*) semis_water
        end if
+
        ! lseaspray
        call NUOPC_CompAttributeGet(gcomp, name="ccpp_phy_lseaspray", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -159,6 +162,7 @@ contains
        if (isPresent .and. isSet) then
           if (trim(cvalue) .eq. '.false.' .or. trim(cvalue) .eq. 'false') physics%model%lseaspray = .false.
        end if
+
        ! ivegsrc
        call NUOPC_CompAttributeGet(gcomp, name="ccpp_phy_ivegsrc", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -166,6 +170,7 @@ contains
        if (isPresent .and. isSet) then
           read(cvalue,*) physics%model%ivegsrc
        end if
+
        ! redrag 
        call NUOPC_CompAttributeGet(gcomp, name="ccpp_phy_redrag", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -173,6 +178,7 @@ contains
        if (isPresent .and. isSet) then
           if (trim(cvalue) .eq. '.false.' .or. trim(cvalue) .eq. 'false') physics%model%redrag = .false.
        end if
+
        ! lsm
        call NUOPC_CompAttributeGet(gcomp, name="ccpp_phy_lsm", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -180,6 +186,7 @@ contains
        if (isPresent .and. isSet) then
           read(cvalue,*) physics%model%lsm
        end if
+
        ! frac_grid 
        call NUOPC_CompAttributeGet(gcomp, name="ccpp_phy_frac_grid", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -187,6 +194,7 @@ contains
        if (isPresent .and. isSet) then
           if (trim(cvalue) .eq. '.false.' .or. trim(cvalue) .eq. 'false') physics%model%frac_grid = .false.
        end if
+
        ! restart
        call NUOPC_CompAttributeGet(gcomp, name="ccpp_phy_restart", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -194,6 +202,7 @@ contains
        if (isPresent .and. isSet) then
           if (trim(cvalue) .eq. '.true.' .or. trim(cvalue) .eq. 'true') physics%model%restart = .true.
        end if
+
        ! cplice
        call NUOPC_CompAttributeGet(gcomp, name="ccpp_phy_cplice", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -201,6 +210,7 @@ contains
        if (isPresent .and. isSet) then
           if (trim(cvalue) .eq. '.false.' .or. trim(cvalue) .eq. 'false') physics%model%cplice = .false.
        end if
+
        ! cplflx
        call NUOPC_CompAttributeGet(gcomp, name="ccpp_phy_cplflx", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -208,6 +218,7 @@ contains
        if (isPresent .and. isSet) then
           if (trim(cvalue) .eq. '.false.' .or. trim(cvalue) .eq. 'false') physics%model%cplflx = .false.
        end if
+
        ! lheatstrg 
        call NUOPC_CompAttributeGet(gcomp, name="ccpp_phy_lheatstrg", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -268,6 +279,28 @@ contains
           input_dir = "INPUT/"
        end if
 
+       ! layout to read tiled CS grid files
+       call NUOPC_CompAttributeGet(gcomp, name='ccpp_ini_layout', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (isPresent .and. isSet) then
+          do n = 1, 2
+             call string_listGetName(cvalue, n, cname, rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+             if (rc == ESMF_FAILURE) return
+             read(cname,*) layout(n)
+          end do
+       else
+          layout(:) = -1
+       end if
+
+       ! flag for reading initial conditions
+       call NUOPC_CompAttributeGet(gcomp, name="ccpp_ini_read", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       ini_read = .false.
+       if (isPresent .and. isSet) then
+          if (trim(cvalue) .eq. '.true.' .or. trim(cvalue) .eq. 'true') ini_read = .true.
+       end if
+
        if (mastertask) then
           write(logunit,*) '========================================================'
           write(logunit,'(a,f5.2)') trim(subname)//' ccpp_phy_semis_water  = ', semis_water
@@ -292,7 +325,10 @@ contains
        call NUOPC_CompAttributeGet(gcomp, name='start_type', value=cvalue, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        read(cvalue,*) starttype
-       if (trim(starttype) == trim('continue')) then
+       if (trim(starttype) == trim('startup')) then
+          ! TODO: this is just extra leyer of protection since reading of initial condition is not stable yet
+          if (ini_read) call read_initial(gcomp, ini_file, mosaic_file, input_dir, layout, rc)
+       else
           call read_restart(gcomp, rst_file, rc)
        end if
 
