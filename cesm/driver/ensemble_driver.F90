@@ -282,7 +282,7 @@ contains
     use ESMF, only: ESMF_GridComp, ESMF_LOGMSG_INFO, ESMF_LogWrite
     use ESMF, only: ESMF_SUCCESS, ESMF_VM, ESMF_GridCompGet, ESMF_VMGet
     use ESMF, only: ESMF_CONFIG, ESMF_GridCompIsPetLocal, ESMF_State, ESMF_Clock
-    use NUOPC, only: NUOPC_CompAttributeGet
+    use NUOPC, only: NUOPC_CompAttributeGet, NUOPC_CompGet
     use NUOPC_DRIVER, only: NUOPC_DriverGetComp
     use shr_pio_mod   , only: shr_pio_init, shr_pio_component_init
     
@@ -296,6 +296,7 @@ contains
     integer :: Global_Comm
     integer :: drv, comp
     integer, allocatable :: asyncio_petlist(:)
+    character(len=8) :: compname
 
     rc = ESMF_SUCCESS
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
@@ -309,11 +310,16 @@ contains
     nullify(dcomp)
     call NUOPC_DriverGetComp(ensemble_driver, complist=dcomp, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    
+    allocate(asyncio_petlist(0))
     do drv=1,size(dcomp)
        if (ESMF_GridCompIsPetLocal(dcomp(drv), rc=rc) .or. asyncio_task) then
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call NUOPC_CompGet(dcomp(drv), name=compname, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_LogWrite(trim(subname)//": call shr_pio_init"//compname, ESMF_LOGMSG_INFO)
           call shr_pio_init(dcomp(drv), rc=rc)
 
+          call ESMF_LogWrite(trim(subname)//": call shr_pio_component_init"//compname, ESMF_LOGMSG_INFO)
           call shr_pio_component_init(dcomp(drv), Global_Comm, asyncio_petlist, rc)
 
        endif

@@ -210,6 +210,7 @@ contains
   subroutine shr_pio_component_init(driver, Global_COMM, async_io_petlist, rc)
     use ESMF, only : ESMF_GridComp, ESMF_LogSetError, ESMF_RC_NOT_VALID, ESMF_GridCompIsCreated, ESMF_VM, ESMF_VMGet
     use ESMF, only : ESMF_GridCompGet, ESMF_GridCompIsPetLocal, ESMF_VMIsCreated, ESMF_Finalize, ESMF_PtrInt1D
+    use ESMF, only : ESMF_LOGMSG_INFO, ESMF_LOGWRITE
     use NUOPC, only : NUOPC_CompAttributeGet, NUOPC_CompAttributeSet, NUOPC_CompAttributeAdd
     use NUOPC_Driver, only : NUOPC_DriverGetComp
     use mpi, only :  MPI_INTEGER, MPI_MAX, MPI_IN_PLACE, MPI_LOR, MPI_LOGICAL
@@ -238,7 +239,7 @@ contains
     type(iosystem_desc_t), allocatable :: async_iosystems(:)
     character(len=*), parameter :: subname = '('//__FILE__//':shr_pio_component_init)'
 
-
+    call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
     call ESMF_GridCompGet(gridcomp=driver, vm=vm, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     nullify(gcomp)
@@ -272,6 +273,7 @@ contains
        if (ESMF_GridCompIsPetLocal(gcomp(i), rc=rc)) then
           call ESMF_GridCompGet(gcomp(i), vm=vm, name=cval, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_LogWrite(trim(subname)//": initialize component: "//trim(cval), ESMF_LOGMSG_INFO)
           io_compname(i) = trim(cval)
           call NUOPC_CompAttributeAdd(gcomp(i), attrList=(/'MCTID'/), rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -353,7 +355,8 @@ contains
                   pio_rearr_opts)
           endif
           ! Write the PIO settings to the beggining of each component log
-          if(comp_rank == 0) call shr_pio_log_comp_settings(gcomp(i))
+          if(comp_rank == 0) call shr_pio_log_comp_settings(gcomp(i), rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
        endif
     enddo
     do i=1,total_comps
@@ -426,26 +429,28 @@ contains
        enddo
        print *,__FILE__,__LINE__,' async_init: ',do_async_init
     endif
+    call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
 
   end subroutine shr_pio_component_init
 
-  subroutine shr_pio_log_comp_settings(gcomp)
-    use ESMF, only : ESMF_GridComp, ESMF_GridCompGet
+  subroutine shr_pio_log_comp_settings(gcomp, rc)
+    use ESMF, only : ESMF_GridComp, ESMF_GridCompGet, ESMF_SUCCESS
     use NUOPC, only: NUOPC_CompAttributeGet
 
     type(ESMF_GridComp) :: gcomp
+    integer, intent(out) :: rc
 
     integer :: logunit
     integer :: compid
     character(len=CS) :: name, cval
     integer :: i
-    integer :: rc
     logical :: isPresent
 
+    rc = ESMF_SUCCESS
     call ESMF_GridCompGet(gcomp, name=name, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    call NUOPC_CompAttributeGet(gcomp, name='logunit', value=logunit)
+    call NUOPC_CompAttributeGet(gcomp, name='logunit', value=logunit, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     call NUOPC_CompAttributeGet(gcomp, name="MCTID", value=cval, isPresent=isPresent, rc=rc)

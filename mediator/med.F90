@@ -59,7 +59,7 @@ module MED
   public  SetServices
   public  SetVM
   private InitializeP0
-  private InitializeIPDv03p1 ! advertise fields
+  private AdvertiseFields ! advertise fields
   private InitializeIPDv03p3 ! realize connected Fields with transfer action "provide"
   private InitializeIPDv03p4 ! optionally modify the decomp/distr of transferred Grid/Mesh
   private InitializeIPDv03p5 ! realize all Fields with transfer action "accept"
@@ -161,7 +161,7 @@ contains
     ! The valid values are: [will provide, can provide, cannot provide]
 
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_INITIALIZE, &
-         phaseLabelList=(/"IPDv03p1"/), userRoutine=InitializeIPDv03p1, rc=rc)
+         phaseLabelList=(/"IPDv03p1"/), userRoutine=AdvertiseFields, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !------------------
@@ -647,7 +647,7 @@ contains
 
   !-----------------------------------------------------------------------
 
-  subroutine InitializeIPDv03p1(gcomp, importState, exportState, clock, rc)
+  subroutine AdvertiseFields(gcomp, importState, exportState, clock, rc)
 
     ! Mediator advertises its import and export Fields and sets the
     ! TransferOfferGeomObject Attribute.
@@ -677,7 +677,7 @@ contains
     character(len=8)    :: cnum
     type(InternalState) :: is_local
     integer             :: stat
-    character(len=*), parameter :: subname = '('//__FILE__//':InitializeIPDv03p1)'
+    character(len=*), parameter :: subname = '('//__FILE__//':AdvertiseFields)'
     !-----------------------------------------------------------
 
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
@@ -882,7 +882,7 @@ contains
     if (profile_memory) call ESMF_VMLogMemInfo("Leaving "//trim(subname))
     call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
 
-  end subroutine InitializeIPDv03p1
+  end subroutine AdvertiseFields
 
   !-----------------------------------------------------------------------------
 
