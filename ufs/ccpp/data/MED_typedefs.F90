@@ -188,6 +188,7 @@ module MED_typedefs
     real(kind=kind_phys)          :: h0facs                    !< canopy heat storage factor for sensible heat flux in stable surface layer
     integer                       :: lsoil                     !< number of soil layers
     integer                       :: kice                      !< vertical loop extent for ice levels, start at 1
+    integer                       :: lsm_ruc                   !< flag for RUC land surface model
     contains
       procedure :: init  => control_initialize
   end type MED_control_type
@@ -634,6 +635,7 @@ module MED_typedefs
     model%h0facs = 1.0
     model%lsoil = 4
     model%kice = 2
+    model%lsm_ruc = 3
 
   end subroutine control_initialize
 
