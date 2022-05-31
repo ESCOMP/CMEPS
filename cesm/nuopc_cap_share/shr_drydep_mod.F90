@@ -296,6 +296,8 @@ CONTAINS
     call shr_mpi_bcast( drydep_list, mpicom )
     call shr_mpi_bcast( dep_data_file, mpicom )
 
+    drydep_nflds = 0
+
     do i=1,maxspc
        if(len_trim(drydep_list(i)) > 0) then
           drydep_nflds=drydep_nflds+1
