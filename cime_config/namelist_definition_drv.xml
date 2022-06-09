@@ -1992,7 +1992,7 @@
     <group>MED_attributes</group>
     <desc>atm to ocn mapping, 'unset' or 'idmap' are normal possible values</desc>
     <values>
-      <value>unset</value> 
+      <value>unset</value>
       <value samegrid_atm_ocn='true'>idmap</value>
     </values>
   </entry>
@@ -2002,7 +2002,7 @@
     <group>MED_attributes</group>
     <desc>atm to ocn mapping, 'unset' or 'idmap' are normal possible values</desc>
     <values>
-      <value>unset</value> 
+      <value>unset</value>
       <value samegrid_atm_ice='true'>idmap</value>
     </values>
   </entry>
@@ -2012,7 +2012,7 @@
     <group>MED_attributes</group>
     <desc>atm to lnd mapping, 'unset' or 'idmap' are normal possible values</desc>
     <values>
-      <value>unset</value> 
+      <value>unset</value>
       <value samegrid_atm_lnd='true'>idmap</value>
     </values>
   </entry>
@@ -2022,7 +2022,7 @@
     <group>MED_attributes</group>
     <desc>ocn to atm mapping, 'unset' or 'idmap' are normal possible values</desc>
     <values>
-      <value>unset</value> 
+      <value>unset</value>
       <value samegrid_atm_ocn='true'>idmap</value>
     </values>
   </entry>
@@ -2032,7 +2032,7 @@
     <group>MED_attributes</group>
     <desc>ice to atm mapping, 'unset' or 'idmap' are normal possible values</desc>
     <values>
-      <value>unset</value> 
+      <value>unset</value>
       <value samegrid_atm_ice='true'>idmap</value>
     </values>
   </entry>
@@ -2042,7 +2042,7 @@
     <group>MED_attributes</group>
     <desc>lnd to atm mapping, 'unset' or 'idmap' are normal possible values</desc>
     <values>
-      <value>unset</value> 
+      <value>unset</value>
       <value samegrid_atm_lnd='true'>idmap</value>
     </values>
   </entry>
@@ -2053,7 +2053,7 @@
     <group>MED_attributes</group>
     <desc>lnd to rof mapping, 'unset' or 'idmap' are normal possible values</desc>
     <values>
-      <value>unset</value> 
+      <value>unset</value>
       <value samegrid_lnd_rof='true'>idmap</value>
     </values>
   </entry>
@@ -2064,7 +2064,7 @@
     <group>MED_attributes</group>
     <desc>rof to lnd mapping, 'unset' or 'idmap' are normal possible values</desc>
     <values>
-      <value>unset</value> 
+      <value>unset</value>
       <value samegrid_lnd_rof='true'>idmap</value>
     </values>
   </entry>
@@ -2074,7 +2074,7 @@
     <group>MED_attributes</group>
     <desc>atm to wav mapping, 'unset' or 'idmap' are normal possible values</desc>
     <values>
-      <value>unset</value> 
+      <value>unset</value>
       <value samegrid_atm_wav='true'>idmap</value>
     </values>
   </entry>
@@ -3789,6 +3789,18 @@
   <!--   </values> -->
   <!-- </entry> -->
 
+  <entry id="wavice_coupling">
+    <type>logical</type>
+    <category>expdef</category>
+    <group>ALLCOMP_attributes</group>
+    <desc>
+      If true, wav-ice coupling is active
+    </desc>
+    <values>
+      <value>.false.</value>
+    </values>
+  </entry>
+
   <!-- ======================================== -->
   <!--  ATM attributes                          -->
   <!-- ======================================== -->
@@ -3806,13 +3818,12 @@
     <type>char</type>
     <category>mapping</category>
     <input_pathname>abs</input_pathname>
-    <group>ATM_attributes</group>
+    <group>ALLCOMP_attributes</group>
     <desc>
       MESH description of atm grid
     </desc>
     <values>
       <value>$ATM_DOMAIN_MESH</value>
-      <value single_column='true'>null</value>
     </values>
   </entry>
   <entry id="perpetual">
@@ -3866,13 +3877,12 @@
     <type>char</type>
     <category>mapping</category>
     <input_pathname>abs</input_pathname>
-    <group>ICE_attributes</group>
+    <group>ALLCOMP_attributes</group>
     <desc>
       MESH description of ice grid
     </desc>
     <values>
       <value>$ICE_DOMAIN_MESH</value>
-      <value single_column='true'>null</value>
     </values>
   </entry>
 
@@ -3899,7 +3909,6 @@
     </desc>
     <values>
       <value>$GLC_DOMAIN_MESH</value>
-      <value single_column='true'>null</value>
     </values>
   </entry>
 
@@ -3920,13 +3929,12 @@
     <type>char</type>
     <category>mapping</category>
     <input_pathname>abs</input_pathname>
-    <group>LND_attributes</group>
+    <group>ALLCOMP_attributes</group>
     <desc>
       MESH description of lnd grid
     </desc>
     <values>
       <value>$LND_DOMAIN_MESH</value>
-      <value single_column='true'>null</value>
     </values>
   </entry>
 
@@ -3947,13 +3955,12 @@
     <type>char</type>
     <category>mapping</category>
     <input_pathname>abs</input_pathname>
-    <group>OCN_attributes</group>
+    <group>ALLCOMP_attributes</group>
     <desc>
       MESH description of ocn grid
     </desc>
     <values>
       <value>$OCN_DOMAIN_MESH</value>
-      <value single_column='true'>null</value>
     </values>
   </entry>
 
@@ -3980,7 +3987,6 @@
     </desc>
     <values>
       <value>$ROF_DOMAIN_MESH</value>
-      <value single_column='true'>null</value>
     </values>
   </entry>
 
@@ -4007,7 +4013,6 @@
     </desc>
     <values>
       <value>$WAV_DOMAIN_MESH</value>
-      <value single_column='true'>null</value>
     </values>
   </entry>
 

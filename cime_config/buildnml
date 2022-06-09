@@ -62,11 +62,15 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     config['lnd_grid'] = lnd_grid
     config['ice_grid'] = ice_grid
     config['ocn_grid'] = ocn_grid
-    config['samegrid_atm_lnd'] = 'true' if atm_grid == lnd_grid else 'false'
-    config['samegrid_atm_ice'] = 'true' if atm_grid == ice_grid else 'false'
-    config['samegrid_atm_ocn'] = 'true' if atm_grid == ocn_grid else 'false'
-    config['samegrid_atm_wav'] = 'true' if atm_grid == wav_grid else 'false'
-    config['samegrid_lnd_rof'] = 'true' if lnd_grid == rof_grid else 'false'
+
+    atm_mesh = case.get_value("ATM_DOMAIN_MESH")
+    lnd_mesh = case.get_value("LND_DOMAIN_MESH")
+    rof_mesh = case.get_value("ROF_DOMAIN_MESH")
+    config['samegrid_atm_lnd'] = 'true' if atm_mesh == case.get_value("LND_DOMAIN_MESH") else 'false'
+    config['samegrid_atm_ocn'] = 'true' if atm_mesh == case.get_value("OCN_DOMAIN_MESH") else 'false'
+    config['samegrid_atm_ice'] = 'true' if atm_mesh == case.get_value("ICE_DOMAIN_MESH") else 'false'
+    config['samegrid_atm_wav'] = 'true' if atm_mesh == case.get_value("WAV_DOMAIN_MESH") else 'false'
+    config['samegrid_lnd_rof'] = 'true' if lnd_mesh == rof_mesh else 'false'
 
     # determine if need to set atm_domainfile
     scol_lon = float(case.get_value('PTS_LON'))
@@ -101,6 +105,12 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     # Initialize namelist defaults
     #----------------------------------------------------
     nmlgen.init_defaults(infile, config, skip_default_for_groups=["modelio"])
+
+    #--------------------------------
+    # Overwrite: wav-ice coupling (assumes cice6 as the ice component
+    #--------------------------------
+    if (case.get_value("COMP_WAV") == 'ww3dev' and case.get_value("COMP_ICE") == 'cice'):
+        nmlgen.set_value('wavice_coupling', value='.true.')
 
     #--------------------------------
     # Overwrite: set brnch_retain_casename
@@ -307,7 +317,7 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
             model = model.lower()
             config = {}
             config['component'] = model
-            nmlgen.init_defaults(infile, config, skip_entry_loop=True)
+            nmlgen.init_defaults([], config, skip_entry_loop=True)
             if model == 'cpl':
                 newgroup = "MED_modelio"
             else:
@@ -340,15 +350,13 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
                 nmlgen.set_value("diro", case.get_value('RUNDIR'))
                 if model == 'cpl':
                     logfile = 'med' + inst_string + ".log." + str(lid)
+                elif model == 'drv':
+                    logfile = model + ".log." + str(lid)
                 else:
                     logfile = model + inst_string + ".log." + str(lid)
                 nmlgen.set_value("logfile", logfile)
                 inst_index = inst_index + 1
             nmlgen.write_nuopc_config_file(conffile)
-
-
-
-
 
     #--------------------------------
     # Update nuopc.runconfig file if component needs it

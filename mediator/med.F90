@@ -43,7 +43,7 @@ module MED
   use med_internalstate_mod    , only : med_internalstate_defaultmasks, logunit, mastertask
   use med_internalstate_mod    , only : ncomps, compname
   use med_internalstate_mod    , only : compmed, compatm, compocn, compice, complnd, comprof, compwav, compglc
-  use med_internalstate_mod    , only : coupling_mode
+  use med_internalstate_mod    , only : coupling_mode, aoflux_code, aoflux_ccpp_suite
   use esmFlds                  , only : fldListMed_ocnalb
   use esmFlds                  , only : med_fldList_GetNumFlds, med_fldList_GetFldNames, med_fldList_GetFldInfo
   use esmFlds                  , only : med_fldList_Document_Mapping, med_fldList_Document_Merging
@@ -761,6 +761,36 @@ contains
        cvalue = 'ogrid'
     end if
     is_local%wrap%aoflux_grid = trim(cvalue)
+
+    ! Determine aoflux scheme that will be used to compute atmosphere-ocean fluxes [cesm|ccpp]
+    ! TODO: If ccpp is not available it will be always run in cesm mode independent from aoflux_code option
+    call NUOPC_CompAttributeGet(gcomp, name='aoflux_code', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    if (.not. isPresent .and. .not. isSet) then
+       cvalue = 'cesm'
+    end if
+    aoflux_code = trim(cvalue)
+    if (mastertask) then
+       write(logunit,*) '========================================================'
+       write(logunit,'(a)')trim(subname)//' Mediator aoflux scheme is '//trim(aoflux_code)
+       write(logunit,*) '========================================================'
+    end if
+
+    ! Determine CCPP suite if aoflux scheme set to 'ccpp'
+    if (trim(aoflux_code) == 'ccpp') then
+       call NUOPC_CompAttributeGet(gcomp, name='aoflux_ccpp_suite', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (.not. isPresent .and. .not. isSet) then
+          call ESMF_LogWrite("aoflux_ccpp_suite need to be provided when aoflux_code is set to 'ccpp'", ESMF_LOGMSG_INFO)
+          call ESMF_Finalize(endflag=ESMF_END_ABORT)
+       end if
+       aoflux_ccpp_suite = trim(cvalue)
+       if (mastertask) then
+          write(logunit,*) '========================================================'
+          write(logunit,'(a)')trim(subname)//' Mediator aoflux CCPP suite is '//trim(aoflux_ccpp_suite)
+          write(logunit,*) '========================================================'
+       end if
+    end if
 
     !------------------
     ! Initialize mediator flds

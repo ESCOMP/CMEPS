@@ -93,10 +93,20 @@ contains
     integer             :: n, ns
     character(len=CL)   :: cvalue
     character(len=CS)   :: name
+    logical             :: wavice_coupling
+    logical             :: ocn2glc_coupling
     character(len=*) , parameter   :: subname=' (esmFldsExchange_cesm) '
     !--------------------------------------
 
     rc = ESMF_SUCCESS
+
+    call NUOPC_CompAttributeGet(gcomp, name='wavice_coupling', value=cvalue, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    read(cvalue,*) wavice_coupling
+
+    call NUOPC_CompAttributeGet(gcomp, name='ocn2glc_coupling', value=cvalue, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    read(cvalue,*) ocn2glc_coupling
 
     !---------------------------------------
     ! Get the internal state
@@ -2790,6 +2800,23 @@ contains
        end if
     end if
 
+    ! ---------------------------------------------------------------------
+    ! to ice: wave elevation spectrum (field with ungridded dimensions)
+    ! ---------------------------------------------------------------------
+    if (wavice_coupling) then
+       if (phase == 'advertise') then
+          call addfld(fldListFr(compwav)%flds, 'Sw_elevation_spectrum')
+          call addfld(fldListTo(compice)%flds, 'Sw_elevation_spectrum')
+       else
+          if ( fldchk(is_local%wrap%FBExp(compice)        , 'Sw_elevation_spectrum', rc=rc) .and. &
+               fldchk(is_local%wrap%FBImp(compwav,compwav), 'Sw_elevation_spectrum', rc=rc)) then
+             call addmap(fldListFr(compwav)%flds, 'Sw_elevation_spectrum', compice, mapbilnr, 'one', 'unset')
+             call addmrg(fldListTo(compice)%flds, 'Sw_elevation_spectrum', &
+                  mrg_from=compwav, mrg_fld='Sw_elevation_spectrum', mrg_type='copy')
+          end if
+       end if
+    end if
+
     !=====================================================================
     ! FIELDS TO WAVE (compwav)
     !=====================================================================
@@ -2808,7 +2835,36 @@ contains
           call addmrg(fldListTo(compwav)%flds, 'Si_ifrac', mrg_from=compice, mrg_fld='Si_ifrac', mrg_type='copy')
        end if
     end if
-
+    !----------------------------------------------------------
+    ! to wav: ice thickness from ice
+    !----------------------------------------------------------
+    if (wavice_coupling) then
+       if (phase == 'advertise') then
+          call addfld(fldListFr(compice)%flds, 'Si_thick')
+          call addfld(fldListTo(compwav)%flds, 'Si_thick')
+       else
+          if (fldchk(is_local%wrap%FBexp(compwav)         , 'Si_thick', rc=rc) .and. &
+              fldchk(is_local%wrap%FBImp(compice,compice ), 'Si_thick', rc=rc)) then
+             call addmap(fldListFr(compice)%flds, 'Si_thick', compwav, mapbilnr, 'one', ice2wav_smap)
+             call addmrg(fldListTo(compwav)%flds, 'Si_thick', mrg_from=compice, mrg_fld='Si_thick', mrg_type='copy')
+          end if
+       end if
+    end if
+    !----------------------------------------------------------
+    ! to wav: ice floe diameter from ice
+    !----------------------------------------------------------
+    if (wavice_coupling) then
+       if (phase == 'advertise') then
+          call addfld(fldListFr(compice)%flds, 'Si_floediam')
+          call addfld(fldListTo(compwav)%flds, 'Si_floediam')
+       else
+          if (fldchk(is_local%wrap%FBexp(compwav)         , 'Si_floediam', rc=rc) .and. &
+              fldchk(is_local%wrap%FBImp(compice,compice ), 'Si_floediam', rc=rc)) then
+             call addmap(fldListFr(compice)%flds, 'Si_floediam', compwav, mapbilnr, 'one', ice2wav_smap)
+             call addmrg(fldListTo(compwav)%flds, 'Si_floediam', mrg_from=compice, mrg_fld='Si_floediam', mrg_type='copy')
+          end if
+       end if
+    end if
     ! ---------------------------------------------------------------------
     ! to wav: ocean surface temperature from ocn
     ! ---------------------------------------------------------------------
@@ -2823,7 +2879,6 @@ contains
           call addmrg(fldListTo(compwav)%flds, 'So_t', mrg_from=compocn, mrg_fld='So_t', mrg_type='copy')
        end if
     end if
-
     ! ---------------------------------------------------------------------
     ! to wav: ocean currents from ocn
     ! ---------------------------------------------------------------------

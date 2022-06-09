@@ -740,6 +740,14 @@
        canonical_units: m
        description: sea-ice export - volume of snow per unit area
      #
+     - standard_name: Si_thick
+       canonical_units: m
+       description: sea-ice export - ice thickness
+     #
+     - standard_name: Si_floediam
+       canonical_units: m 
+       description: sea-ice export - ice floe diameter
+       #
      #-----------------------------------
      # section: ocean export to mediator
      #-----------------------------------
@@ -1157,6 +1165,13 @@
      - standard_name: Sw_pstokes_y
        canonical_units: m/s
        description: Northward partitioned stokes drift components
+
+     #
+     - standard_name: Sw_elevation_spectrum
+       alias: wave_elevation_spectrum
+       canonical_units: m2/s
+       description: wave elevation spectrum
+
      #-----------------------------------
      # mediator fields
      #-----------------------------------

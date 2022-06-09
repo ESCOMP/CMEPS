@@ -1203,6 +1203,8 @@ contains
     use netcdf, only : nf90_inq_dimid, nf90_inquire_dimension, nf90_inq_varid, nf90_get_var
     use NUOPC , only : NUOPC_CompAttributeGet, NUOPC_CompAttributeSet, NUOPC_CompAttributeAdd
     use ESMF  , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_VM, ESMF_VMGet, ESMF_SUCCESS
+    use ESMF  , only : ESMF_Mesh, ESMF_MeshCreate, ESMF_FILEFORMAT_ESMFMESH, ESMF_MeshGet, ESMF_MESHLOC_ELEMENT
+    use ESMF  , only : ESMF_Field, ESMF_FieldCreate, ESMF_FieldGet, ESMF_FieldRegridGetArea, ESMF_TYPEKIND_r8
 
     ! input/output variables
     character(len=*)    , intent(in)    :: compname
@@ -1212,6 +1214,7 @@ contains
     ! local variables
     type(ESMF_VM)          :: vm
     character(len=CL)      :: single_column_lnd_domainfile
+    character(len=CL)      :: single_column_global_meshfile
     real(r8)               :: scol_lon
     real(r8)               :: scol_lat
     real(r8)               :: scol_area
@@ -1219,7 +1222,16 @@ contains
     real(r8)               :: scol_lndfrac
     integer                :: scol_ocnmask
     real(r8)               :: scol_ocnfrac
-    integer                :: i,j,ni,nj
+    integer                :: scol_mesh_n
+    type(ESMF_Mesh)        :: mesh
+    type(ESMF_Field)       :: lfield
+    integer                :: lsize
+    integer                :: spatialdim
+    real(r8), pointer      :: ownedElemCoords(:)
+    real(r8), pointer      :: latMesh(:)
+    real(r8), pointer      :: lonMesh(:)
+    real(r8), pointer      :: dataptr(:)
+    integer                :: i,j,ni,nj,n
     integer                :: ncid
     integer                :: dimid
     integer                :: varid_xc
@@ -1243,7 +1255,6 @@ contains
     character(len=*), parameter :: subname= ' (esm_get_single_column_attributes) '
     !-------------------------------------------------------------------------------
 
-
     rc = ESMF_SUCCESS
 
     ! obtain the single column lon and lat
@@ -1254,6 +1265,8 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     read(cvalue,*) scol_lat
     call NUOPC_CompAttributeGet(gcomp, name='single_column_lnd_domainfile', value=single_column_lnd_domainfile, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompAttributeGet(gcomp, name='mesh_atm', value=single_column_global_meshfile, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call NUOPC_CompAttributeAdd(gcomp, attrList=(/'scol_spval'/), rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -1349,6 +1362,7 @@ contains
           do j = 1,nj
              lats(j) = glob_grid(1,j)
           end do
+
           ! find nearest neighbor indices of scol_lon and scol_lat in single_column_lnd_domain file
           ! convert lons array and scol_lon to 0,360 and find index of value closest to 0
           ! and obtain single-column longitude/latitude indices to retrieve
@@ -1388,26 +1402,53 @@ contains
                   //' ocean and land mask cannot both be zero')
           end if
 
-          write(cvalue,*) scol_lon
-          call NUOPC_CompAttributeSet(gcomp, name='scol_lon', value=trim(cvalue), rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-          write(cvalue,*) scol_lat
-          call NUOPC_CompAttributeSet(gcomp, name='scol_lat', value=trim(cvalue), rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-          write(cvalue,*) ni
-          call NUOPC_CompAttributeSet(gcomp, name='scol_ni', value=trim(cvalue), rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-          write(cvalue,*) nj
-          call NUOPC_CompAttributeSet(gcomp, name='scol_nj', value=trim(cvalue), rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-
           status = nf90_close(ncid)
           if (status /= nf90_noerr) call shr_sys_abort (trim(subname) //': closing '//&
                trim(single_column_lnd_domainfile))
 
+          ! Now read in mesh file to get exact values of scol_lon and scol_lat that will be used
+          ! by the models - assume that this occurs only on 1 processor
+          mesh = ESMF_MeshCreate(filename=trim(single_column_global_meshfile), fileformat=ESMF_FILEFORMAT_ESMFMESH, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_MeshGet(mesh, spatialDim=spatialDim, numOwnedElements=lsize, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          allocate(ownedElemCoords(spatialDim*lsize))
+          allocate(lonMesh(lsize), latMesh(lsize))
+          call ESMF_MeshGet(mesh, ownedElemCoords=ownedElemCoords)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          do n = 1,lsize
+             lonMesh(n) = ownedElemCoords(2*n-1)
+             latMesh(n) = ownedElemCoords(2*n)
+             if (abs(lonMesh(n) - scol_lon) < 1.e-4 .and. abs(latMesh(n) - scol_lat) < 1.e-4) then
+                scol_mesh_n = n
+                scol_mesh_n = n
+                exit
+             end if
+          end do
+          scol_lon  = lonMesh(scol_mesh_n)
+          scol_lat  = latMesh(scol_mesh_n)
+
+          ! Obtain mesh info areas
+          lfield = ESMF_FieldCreate(mesh, ESMF_TYPEKIND_r8, name='area', meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_FieldRegridGetArea(lfield, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_FieldGet(lfield, farrayPtr=dataptr, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          scol_area = dataptr(scol_mesh_n)
+
+          ! Set single column attribute values for all components
+          write(cvalue,*) scol_lon
+          call NUOPC_CompAttributeSet(gcomp, name='scol_lon', value=trim(cvalue), rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          write(cvalue,*) scol_lat
+          call NUOPC_CompAttributeSet(gcomp, name='scol_lat', value=trim(cvalue), rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          write(cvalue,*) scol_area
+          call NUOPC_CompAttributeSet(gcomp, name='scol_area', value=trim(cvalue), rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+          ! Write out diagnostic info
           write(logunit,'(a,2(f13.5,2x))')trim(subname)//' nearest neighbor scol_lon and scol_lat in '&
                //trim(single_column_lnd_domainfile)//' are ',scol_lon,scol_lat
           if (trim(compname) == 'LND') then
@@ -1419,6 +1460,12 @@ contains
           else
              write(logunit,'(a)')trim(subname)//' atm point has unit mask and unit fraction '
           end if
+          write(cvalue,*) ni
+          call NUOPC_CompAttributeSet(gcomp, name='scol_ni', value=trim(cvalue), rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          write(cvalue,*) nj
+          call NUOPC_CompAttributeSet(gcomp, name='scol_nj', value=trim(cvalue), rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        else
 
@@ -1431,12 +1478,11 @@ contains
           scol_ocnfrac = 1._r8
           scol_area = 1.e30
 
+          write(cvalue,*) 1
           call NUOPC_CompAttributeSet(gcomp, name='scol_ni', value=trim(cvalue), rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
-          write(cvalue,*) 1
           call NUOPC_CompAttributeSet(gcomp, name='scol_nj', value=trim(cvalue), rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
-          write(cvalue,*) 1
 
           write(logunit,'(a)')' single point mode is active'
           write(logunit,'(a,f13.5,a,f13.5,a)')' scol_lon is ',scol_lon,' and scol_lat is '
