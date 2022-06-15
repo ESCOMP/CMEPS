@@ -278,6 +278,7 @@ contains
     call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
 
   end subroutine SetModelServices
+
   subroutine InitializeIO(ensemble_driver, rc)
     use ESMF, only: ESMF_GridComp, ESMF_LOGMSG_INFO, ESMF_LogWrite
     use ESMF, only: ESMF_SUCCESS, ESMF_VM, ESMF_GridCompGet, ESMF_VMGet
@@ -318,10 +319,11 @@ contains
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           call ESMF_LogWrite(trim(subname)//": call shr_pio_init"//compname, ESMF_LOGMSG_INFO)
           call shr_pio_init(dcomp(drv), rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
 
           call ESMF_LogWrite(trim(subname)//": call shr_pio_component_init"//compname, ESMF_LOGMSG_INFO)
           call shr_pio_component_init(dcomp(drv), Global_Comm, asyncio_petlist, rc)
-
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
        endif
     enddo
     call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
