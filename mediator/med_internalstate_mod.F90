@@ -5,7 +5,7 @@ module med_internalstate_mod
   !-----------------------------------------------------------------------------
 
   use ESMF         , only : ESMF_RouteHandle, ESMF_FieldBundle, ESMF_State, ESMF_Field, ESMF_VM
-  use ESMF         , only : ESMF_GridComp, ESMF_MAXSTR, ESMF_LOGMSG_INFO, ESMF_LOGWRITE
+  use ESMF         , only : ESMF_GridComp, ESMF_Mesh, ESMF_MAXSTR, ESMF_LOGMSG_INFO, ESMF_LOGWRITE
   use med_kind_mod , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
   use med_utils_mod, only : chkerr => med_utils_ChkErr
 
@@ -47,7 +47,13 @@ module med_internalstate_mod
   character(len=CS), public :: glc_name = ''
 
   ! Coupling mode
-  character(len=CS), public :: coupling_mode ! valid values are [cesm,nems_orig,nems_frac,nems_orig_data,hafs]
+  character(len=CS), public :: coupling_mode ! valid values are [cesm,nems_orig,nems_frac,nems_orig_data,hafs,nems_frac_aoflux,nems_frac_aoflux_sbs]
+
+  ! Atmosphere-ocean flux algorithm
+  character(len=CS), public :: aoflux_code   ! valid values are [cesm,ccpp]
+
+  ! Atmosphere-ocean CCPP suite name
+  character(len=CL), public :: aoflux_ccpp_suite
 
   ! Default src and destination masks for mapping
   integer, public, allocatable :: defaultMasks(:,:)
@@ -153,6 +159,7 @@ module med_internalstate_mod
 
     ! Mediator field bundles and other info for atm/ocn flux computation
     character(len=CS)      :: aoflux_grid                        ! 'ogrid', 'agrid' or 'xgrid'
+    type(ESMF_Mesh)        :: aoflux_mesh                        ! Mesh used for atm/ocn flux computation
     type(ESMF_FieldBundle) :: FBMed_aoflux_a                     ! Ocn/Atm flux output fields on atm grid
     type(ESMF_FieldBundle) :: FBMed_aoflux_o                     ! Ocn/Atm flux output fields on ocn grid
     type(packed_data_type), pointer :: packed_data_aoflux_o2a(:) ! packed data for mapping ocn->atm

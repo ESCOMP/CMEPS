@@ -367,7 +367,10 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
       ! Set 'aofrac' in FBfrac(compatm)
-       if (trim(coupling_mode) == 'nems_orig' .or. trim(coupling_mode) == 'nems_frac') then
+       if (trim(coupling_mode) == 'nems_orig' .or. &
+           trim(coupling_mode) == 'nems_frac' .or. &
+           trim(coupling_mode) == 'nems_frac_aoflux' .or. &
+           trim(coupling_mode) == 'nems_frac_aoflux_sbs') then
           call fldbun_getdata1d(is_local%wrap%FBImp(compatm,compatm), 'Sa_ofrac', Sa_ofrac, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           call fldbun_getdata1d(is_local%wrap%FBFrac(compatm), 'aofrac', aofrac, rc)
@@ -789,7 +792,10 @@ contains
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
           ! Set 'aofrac' from FBImp(compatm) to FBfrac(compatm)
-          if (trim(coupling_mode) == 'nems_orig' .or. trim(coupling_mode) == 'nems_frac') then
+          if (trim(coupling_mode) == 'nems_orig' .or. &
+              trim(coupling_mode) == 'nems_frac' .or. &
+              trim(coupling_mode) == 'nems_frac_aoflux' .or. &
+              trim(coupling_mode) == 'nems_frac_aoflux_sbs') then
              call fldbun_getdata1d(is_local%wrap%FBImp(compatm,compatm), 'Sa_ofrac', Sa_ofrac, rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
              call fldbun_getdata1d(is_local%wrap%FBFrac(compatm), 'aofrac', aofrac, rc)
