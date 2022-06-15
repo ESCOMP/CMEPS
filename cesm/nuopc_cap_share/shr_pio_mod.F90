@@ -222,7 +222,7 @@ contains
 
     type(ESMF_VM) :: vm
     integer :: i, npets, default_stride
-    integer :: j
+    integer :: j, myid
     integer :: comp_comm, comp_rank, driver_comm
     integer, allocatable :: procs_per_comp(:), async_procs_per_comp(:)
     integer, allocatable :: io_proc_list(:), async_io_tasks(:), comp_proc_list(:,:)
@@ -236,6 +236,7 @@ contains
     integer :: asyncio_stride
     integer :: pecnt
     integer :: ierr
+    logical :: asyncio_task
     type(iosystem_desc_t), allocatable :: async_iosystems(:)
     character(len=*), parameter :: subname = '('//__FILE__//':shr_pio_component_init)'
 
@@ -246,7 +247,7 @@ contains
     nullify(all_comp_proc_lists)
     call NUOPC_DriverGetComp(driver, compList=gcomp, petLists=all_comp_proc_lists, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-
+    asyncio_task=.false.
     total_comps = size(gcomp)
     allocate(pio_comp_settings(total_comps))
     allocate(procs_per_comp(total_comps))
@@ -255,7 +256,7 @@ contains
     allocate(iosystems(total_comps))
     do_async_init = 0
     
-    call ESMF_VMGet(vm, petCount=totalpes, mpiCommunicator=driver_comm, rc=rc)
+    call ESMF_VMGet(vm, petCount=totalpes, localPet=myid, mpiCommunicator=driver_comm, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
 
@@ -269,6 +270,7 @@ contains
     asyncio_stride = 0
 
     do i=1,total_comps
+       pio_comp_settings(i)%pio_async_interface = .false.
        io_compid(i) = i+1
        if (ESMF_GridCompIsPetLocal(gcomp(i), rc=rc)) then
           call ESMF_GridCompGet(gcomp(i), vm=vm, name=cval, rc=rc)
@@ -362,7 +364,10 @@ contains
     do i=1,total_comps
        call MPI_AllReduce(MPI_IN_PLACE, pio_comp_settings(i)%pio_async_interface, 1, MPI_LOGICAL, &
             MPI_LOR, driver_comm, rc)
-       if(pio_comp_settings(i)%pio_async_interface) do_async_init = do_async_init + 1
+       if(pio_comp_settings(i)%pio_async_interface) then
+          do_async_init = do_async_init + 1
+          print *,__FILE__,__LINE__,i,do_async_init
+       endif
     enddo
     
 !
@@ -377,6 +382,7 @@ contains
           if (mod(i,asyncio_stride) == 0) then
              io_proc_list(j) = i
              j = j + 1
+             if(i==myid) asyncio_task=.true.
           endif
        enddo
     endif
@@ -416,7 +422,7 @@ contains
        enddo
 !       call init_intercom(async_iosystems, driver_comm, async_procs_per_comp, comp_proc_list, io_proc_list, &
 !            PIO_REARR_BOX)
-       if(asyncio_ntasks) then
+       if(asyncio_task) then
           ! IO tasks should not return until the run is completed
           call ESMF_FINALIZE()
        endif
