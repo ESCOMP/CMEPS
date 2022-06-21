@@ -265,6 +265,8 @@ contains
             fldchk(is_local%wrap%FBImp(complnd,complnd), 'Sl_t', rc=rc)) then
           call addmap(fldListFr(complnd)%flds, 'Sl_t', compatm, maptype, 'lfrin', 'unset')
           call addmrg(fldListTo(compatm)%flds, 'Sl_t', mrg_from=complnd, mrg_fld='Sl_t', mrg_type='copy')
+       end if
+    end if
 
     ! to atm: unmerged from mediator, merge will be done under FV3/CCPP composite step
     ! - zonal surface stress, meridional surface stress
@@ -685,10 +687,18 @@ contains
     end if
     do n = 1,size(flds)
        fldname = trim(flds(n))
-       call addfld(fldListFr(compatm)%flds, trim(fldname))
-       call addfld(fldListTo(complnd)%flds, trim(fldname))
-       call addmap(fldListFr(compatm)%flds, trim(fldname), complnd, maptype, 'one', 'unset')
-       call addmrg(fldListTo(complnd)%flds, trim(fldname), mrg_from=compatm, mrg_fld=trim(fldname), mrg_type='copy')
+       if (phase == 'advertise') then
+          if (is_local%wrap%comp_present(compatm) .and. is_local%wrap%comp_present(complnd)) then
+             call addfld(fldListFr(compatm)%flds, trim(fldname))
+             call addfld(fldListTo(complnd)%flds, trim(fldname))
+          end if
+       else
+          if ( fldchk(is_local%wrap%FBexp(compatm)        , trim(fldname), rc=rc) .and. &
+               fldchk(is_local%wrap%FBImp(complnd,complnd), trim(fldname), rc=rc)) then
+             call addmap(fldListFr(compatm)%flds, trim(fldname), complnd, maptype, 'one', 'unset')
+             call addmrg(fldListTo(complnd)%flds, trim(fldname), mrg_from=compatm, mrg_fld=trim(fldname), mrg_type='copy')
+          end if
+       end if
     end do
     deallocate(flds)
 
