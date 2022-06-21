@@ -37,6 +37,7 @@ contains
     use esmFlds               , only : addmap => med_fldList_AddMap
     use esmFlds               , only : addmrg => med_fldList_AddMrg
     use esmflds               , only : fldListTo, fldListFr, fldListMed_aoflux, fldListMed_ocnalb
+    use med_internalstate_mod , only : InternalState, mastertask, logunit
 
     ! input/output parameters:
     type(ESMF_GridComp)              :: gcomp
@@ -124,6 +125,39 @@ contains
        allocate(flds(8))
        flds = (/'So_tref  ', 'So_qref  ', 'So_ustar ', 'So_re    ','So_ssq   ', &
                 'So_u10   ', 'So_duu10n', 'Faox_lat '/)
+       do n = 1,size(flds)
+          fldname = trim(flds(n))
+          if (phase == 'advertise') then
+             call addfld(fldListMed_aoflux%flds, trim(fldname))
+          end if
+       end do
+       deallocate(flds)
+    end if
+
+    if (trim(coupling_mode) == 'nems_frac_aoflux' .or. trim(coupling_mode) == 'nems_frac_aoflux_sbs') then
+       allocate(flds(12))
+       flds = (/'Sa_u     ', 'Sa_v     ', 'Sa_z     ', 'Sa_tbot  ', 'Sa_pbot  ', &
+                'Sa_pslv  ', 'Sa_shum  ', 'Sa_ptem  ', 'Sa_dens  ', 'Sa_u10m  ', &
+                'Sa_v10m  ', 'Faxa_lwdn'/)
+       do n = 1,size(flds)
+          fldname = trim(flds(n))
+          if (phase == 'advertise') then
+             if (is_local%wrap%comp_present(compatm) )then
+                call addfld(fldListFr(compatm)%flds, trim(fldname))
+             end if
+          else
+            if ( fldchk(is_local%wrap%FBImp(compatm,compatm), trim(fldname), rc=rc)) then
+               call addmap(fldListFr(compatm)%flds, trim(fldname), compocn, maptype, 'one', 'unset')
+            end if
+          end if
+       end do
+       deallocate(flds)
+
+       ! fields returned by the atm/ocn flux computation which are otherwise unadvertised
+       allocate(flds(13))
+       flds = (/'So_tref  ', 'So_qref  ','So_u10   ', 'So_ustar ','So_ssq   ', &
+                'So_re    ', 'So_duu10n','Faox_lwup', 'Faox_sen ','Faox_lat ', &
+                'Faox_evap', 'Faox_taux','Faox_tauy'/)
        do n = 1,size(flds)
           fldname = trim(flds(n))
           if (phase == 'advertise') then
@@ -231,6 +265,33 @@ contains
             fldchk(is_local%wrap%FBImp(complnd,complnd), 'Sl_t', rc=rc)) then
           call addmap(fldListFr(complnd)%flds, 'Sl_t', compatm, maptype, 'lfrin', 'unset')
           call addmrg(fldListTo(compatm)%flds, 'Sl_t', mrg_from=complnd, mrg_fld='Sl_t', mrg_type='copy')
+
+    ! to atm: unmerged from mediator, merge will be done under FV3/CCPP composite step
+    ! - zonal surface stress, meridional surface stress
+    ! - surface latent heat flux,
+    ! - surface sensible heat flux
+    ! - surface upward longwave heat flux
+    ! - evaporation water flux from water, not in the list do we need to send it to atm?
+    if (trim(coupling_mode) == 'nems_frac_aoflux') then
+       if (is_local%wrap%comp_present(compocn) .and. is_local%wrap%comp_present(compatm)) then
+          allocate(flds(5))
+          flds = (/ 'lat ', 'sen ', 'lwup', 'taux', 'tauy' /)
+          if (phase == 'advertise') then
+             do n = 1,size(flds)
+                call addfld(fldListMed_aoflux%flds , 'Faox_'//trim(flds(n)))
+                call addfld(fldListTo(compatm)%flds, 'Faox_'//trim(flds(n)))
+             end do
+          else
+             do n = 1,size(flds)
+                if (fldchk(is_local%wrap%FBMed_aoflux_o, 'Faox_'//trim(flds(n)), rc=rc)) then
+                   if (trim(is_local%wrap%aoflux_grid) == 'ogrid') then
+                      call addmap(fldListMed_aoflux%flds, 'Faox_'//trim(flds(n)), compatm, maptype, 'ofrac', 'unset')
+                   end if
+                   call addmrg(fldListTo(compatm)%flds, 'Faox_'//trim(flds(n)), mrg_from=compmed, mrg_fld='Faox_'//trim(flds(n)), mrg_type='copy')
+                end if
+             end do
+          end if
+          deallocate(flds)
        end if
     end if
 
@@ -329,7 +390,8 @@ contains
     end do
     deallocate(flds)
 
-    if (trim(coupling_mode) == 'nems_orig' .or. trim(coupling_mode) == 'nems_frac') then
+    if (trim(coupling_mode) == 'nems_orig' .or. trim(coupling_mode) == 'nems_frac' .or. &
+        trim(coupling_mode) == 'nems_frac_aoflux_sbs') then
        ! to ocn: merge surface stress (custom merge calculation in med_phases_prep_ocn)
        allocate(oflds(2))
        allocate(aflds(2))
@@ -398,7 +460,7 @@ contains
              call addmap(fldListFr(compatm)%flds, 'Faxa_lat', compocn, mapconsf_aofrac, 'aofrac', 'unset')
           end if
        end if
-    else
+    else if (trim(coupling_mode) == 'nems_orig_data' .or. trim(coupling_mode) == 'nems_frac_aoflux') then
        ! nems_orig_data
        ! to ocn: surface stress from mediator and ice stress via auto merge
        allocate(flds(2))

@@ -1111,12 +1111,14 @@ contains
                       call pio_write_darray(io_file(lfile_ind), varid, iodesc, fldptr2(n,:), rcode, fillval=lfillvalue)
                    end if
                 end do
-             else if (rank == 1) then
+             else if (rank == 1 .or. rank == 0) then
                 name1 = trim(lpre)//'_'//trim(itemc)
                 rcode = pio_inq_varid(io_file(lfile_ind), trim(name1), varid)
                 call pio_setframe(io_file(lfile_ind),varid,frame)
+                ! fix for writing data on exchange grid, which has no data in some PETs
+                if (rank == 0) nullify(fldptr1)
                 call pio_write_darray(io_file(lfile_ind), varid, iodesc, fldptr1, rcode, fillval=lfillvalue)
-             end if  ! end if rank is 2 or 1
+             end if  ! end if rank is 2 or 1 or 0
 
           end if ! end if not "hgt"
        end do  ! end loop over fields in FB
