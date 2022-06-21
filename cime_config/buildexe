@@ -105,7 +105,7 @@ def _main_func():
     if os.path.isfile(exename):
         os.remove(exename)
 
-    cmd = "{} exec_se -j {} EXEC_SE={} MODEL=driver {} -f {} "\
+    cmd = "{} exec_se -j {} EXEC_SE={} COMP_NAME=driver {} -f {} "\
         .format(gmake, gmake_j, exename, gmake_args, makefile)
 
 

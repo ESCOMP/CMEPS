@@ -342,7 +342,7 @@ contains
     use med_internalstate_mod , only : mapfillv_bilnr, mapbilnr_nstod, mapconsf_aofrac
     use med_internalstate_mod , only : ncomps, compatm, compice, compocn, compwav, compname
     use med_internalstate_mod , only : coupling_mode, dststatus_print
-    use med_internalstate_mod , only : atm_name
+    use med_internalstate_mod , only : defaultMasks
     use med_constants_mod     , only : ispval_mask => med_constants_ispval_mask
 
     ! input/output variables
@@ -389,62 +389,32 @@ contains
     ! set local flag to false
     ldstprint = .false.
 
-    polemethod=ESMF_POLEMETHOD_ALLAVG
+    ! set src and dst masking using defaults
+    srcMaskValue = defaultMasks(n1,1)
+    dstMaskValue = defaultMasks(n2,2)
+
+    ! override defaults for specific cases
     if (trim(coupling_mode) == 'cesm') then
-       dstMaskValue = ispval_mask
-       srcMaskValue = ispval_mask
-       if (n1 == compocn .or. n1 == compice) srcMaskValue = 0
-       if (n2 == compocn .or. n2 == compice) dstMaskValue = 0
        if (n1 == compwav .and. n2 == compocn) then
          srcMaskValue = 0
          dstMaskValue = ispval_mask
       endif
-      if (n1 == compwav .or. n2 == compwav) then
-        polemethod = ESMF_POLEMETHOD_NONE ! todo: remove this when ESMF tripolar mapping fix is in place.
-      endif
-    else if (coupling_mode(1:4) == 'nems') then
-       if ( (n1 == compocn .or. n1 == compice .or. n1 == compwav) .and. &
-            (n2 == compocn .or. n2 == compice .or. n2 == compwav) ) then
-          srcMaskValue = 0
-          dstMaskValue = 0
-       else if (n1 == compatm .and. (n2 == compocn .or. n2 == compice .or. n2 == compwav)) then
-          srcMaskValue = 1
-          dstMaskValue = 0
-          if (atm_name(1:4).eq.'datm') then
-             srcMaskValue = 0
-          endif
-       else if (n2 == compatm .and. (n1 == compocn .or. n1 == compice .or. n1 == compwav)) then
-          srcMaskValue = 0
-          dstMaskValue = 1
-       else
-          ! TODO: what should the condition be here?
-          dstMaskValue = ispval_mask
+    end if
+    if (trim(coupling_mode) == 'hafs') then
+       if (n1 == compatm .and. n2 == compwav) then
           srcMaskValue = ispval_mask
        end if
-    else if (trim(coupling_mode) == 'hafs') then
-       dstMaskValue = ispval_mask
-       srcMaskValue = ispval_mask
-       if (n1 == compocn .or. n1 == compice) srcMaskValue = 0
-       if (n2 == compocn .or. n2 == compice) dstMaskValue = 0
-       if (n1 == compatm .and. n2 == compocn) then
-          if (trim(atm_name).ne.'datm') then
-             srcMaskValue = 1
-          endif
-          dstMaskValue = 0
-       elseif (n1 == compocn .and. n2 == compatm) then
-          srcMaskValue = 0
-          dstMaskValue = ispval_mask
-       elseif (n1 == compatm .and. n2 == compwav) then
-          dstMaskValue = 0
-       elseif (n1 == compwav .and. n2 == compatm) then
-          srcMaskValue = 0
-          dstMaskValue = ispval_mask
-       endif
     end if
-
     write(string,'(a,i10,a,i10)') trim(compname(n1))//' to '//trim(compname(n2))//' srcMask = ', &
                srcMaskValue,' dstMask = ',dstMaskValue
     call ESMF_LogWrite(trim(string), ESMF_LOGMSG_INFO)
+
+    polemethod=ESMF_POLEMETHOD_ALLAVG
+    if (trim(coupling_mode) == 'cesm') then
+      if (n1 == compwav .or. n2 == compwav) then
+        polemethod = ESMF_POLEMETHOD_NONE ! todo: remove this when ESMF tripolar mapping fix is in place.
+      endif
+    end if
 
     ! Create route handle
     if (mapindex == mapfcopy) then

@@ -62,11 +62,15 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     config['lnd_grid'] = lnd_grid
     config['ice_grid'] = ice_grid
     config['ocn_grid'] = ocn_grid
-    config['samegrid_atm_lnd'] = 'true' if atm_grid == lnd_grid else 'false'
-    config['samegrid_atm_ice'] = 'true' if atm_grid == ice_grid else 'false'
-    config['samegrid_atm_ocn'] = 'true' if atm_grid == ocn_grid else 'false'
-    config['samegrid_atm_wav'] = 'true' if atm_grid == wav_grid else 'false'
-    config['samegrid_lnd_rof'] = 'true' if lnd_grid == rof_grid else 'false'
+
+    atm_mesh = case.get_value("ATM_DOMAIN_MESH")
+    lnd_mesh = case.get_value("LND_DOMAIN_MESH")
+    rof_mesh = case.get_value("ROF_DOMAIN_MESH")
+    config['samegrid_atm_lnd'] = 'true' if atm_mesh == case.get_value("LND_DOMAIN_MESH") else 'false'
+    config['samegrid_atm_ocn'] = 'true' if atm_mesh == case.get_value("OCN_DOMAIN_MESH") else 'false'
+    config['samegrid_atm_ice'] = 'true' if atm_mesh == case.get_value("ICE_DOMAIN_MESH") else 'false'
+    config['samegrid_atm_wav'] = 'true' if atm_mesh == case.get_value("WAV_DOMAIN_MESH") else 'false'
+    config['samegrid_lnd_rof'] = 'true' if lnd_mesh == rof_mesh else 'false'
 
     # determine if need to set atm_domainfile
     scol_lon = float(case.get_value('PTS_LON'))
@@ -100,7 +104,13 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     #----------------------------------------------------
     # Initialize namelist defaults
     #----------------------------------------------------
-    nmlgen.init_defaults(infile, config)
+    nmlgen.init_defaults(infile, config, skip_default_for_groups=["modelio"])
+
+    #--------------------------------
+    # Overwrite: wav-ice coupling (assumes cice6 as the ice component
+    #--------------------------------
+    if (case.get_value("COMP_WAV") == 'ww3dev' and case.get_value("COMP_ICE") == 'cice'):
+        nmlgen.set_value('wavice_coupling', value='.true.')
 
     #--------------------------------
     # Overwrite: set brnch_retain_casename
@@ -233,7 +243,7 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     # Write namelist file drv_in and initial input dataset list.
     #--------------------------------
     namelist_file = os.path.join(confdir, "drv_in")
-    drv_namelist_groups = ["papi_inparm", "pio_default_inparm", "prof_inparm", "debug_inparm"]
+    drv_namelist_groups = ["papi_inparm", "prof_inparm", "debug_inparm"]
     nmlgen.write_output_file(namelist_file, data_list_path=data_list_path, groups=drv_namelist_groups)
 
     #--------------------------------
@@ -288,7 +298,65 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
 
     logger.info("Writing nuopc_runconfig for components {}".format(valid_comps))
     nuopc_config_file = os.path.join(confdir, "nuopc.runconfig")
-    nmlgen.write_nuopc_config_file(nuopc_config_file, data_list_path=data_list_path)
+
+    if os.path.exists(nuopc_config_file):
+        os.unlink(nuopc_config_file)
+
+    lid = os.environ["LID"] if "LID" in os.environ else get_timestamp("%y%m%d-%H%M%S")
+
+    #if we are in multi-coupler mode the number of instances of mediator will be the max
+    # of any NINST_* value
+    maxinst = 1
+    if case.get_value("MULTI_DRIVER"):
+        maxinst = case.get_value("NINST_MAX")
+        multi_driver = True
+    with open(nuopc_config_file, 'a', encoding="utf-8") as conffile:
+        nmlgen.write_nuopc_config_file(conffile, data_list_path=data_list_path)
+
+        for model in case.get_values("COMP_CLASSES") + ['DRV']:
+            model = model.lower()
+            config = {}
+            config['component'] = model
+            nmlgen.init_defaults([], config, skip_entry_loop=True)
+            if model == 'cpl':
+                newgroup = "MED_modelio"
+            else:
+                newgroup = model.upper()+"_modelio"
+            nmlgen.rename_group("modelio", newgroup)
+
+            if maxinst == 1 and model != 'cpl' and not multi_driver:
+                inst_count = case.get_value("NINST_" + model.upper())
+            else:
+                inst_count = maxinst
+            if not model == 'drv':
+                for entry in ["pio_async_interface", 
+                              "pio_netcdf_format",  
+                              "pio_numiotasks",
+                              "pio_rearranger",
+                              "pio_root",
+                              "pio_stride",
+                              "pio_typename"]:
+                    nmlgen.add_default(entry)
+
+
+            inst_string = ""
+            inst_index = 1
+            while inst_index <= inst_count:
+            # determine instance string
+                if inst_count > 1:
+                    inst_string = '_{:04d}'.format(inst_index)
+
+                # Output the following to nuopc.runconfig
+                nmlgen.set_value("diro", case.get_value('RUNDIR'))
+                if model == 'cpl':
+                    logfile = 'med' + inst_string + ".log." + str(lid)
+                elif model == 'drv':
+                    logfile = model + ".log." + str(lid)
+                else:
+                    logfile = model + inst_string + ".log." + str(lid)
+                nmlgen.set_value("logfile", logfile)
+                inst_index = inst_index + 1
+            nmlgen.write_nuopc_config_file(conffile)
 
     #--------------------------------
     # Update nuopc.runconfig file if component needs it
@@ -441,90 +509,6 @@ def compare_drv_flds_in(first, second, infile1, infile2):
                    % (infile1, infile2))
 
 ###############################################################################
-def _create_component_modelio_namelists(confdir, case, files):
-###############################################################################
-
-    # will need to create a new namelist generator
-    infiles = []
-    definition_dir = os.path.dirname(files.get_value("NAMELIST_DEFINITION_FILE", attribute={"component":"drv"}))
-    definition_file = [os.path.join(definition_dir, "namelist_definition_modelio.xml")]
-
-    confdir = os.path.join(case.get_value("CASEBUILD"), "cplconf")
-    lid = os.environ["LID"] if "LID" in os.environ else get_timestamp("%y%m%d-%H%M%S")
-
-    #if we are in multi-coupler mode the number of instances of mediator will be the max
-    # of any NINST_* value
-    maxinst = 1
-    if case.get_value("MULTI_DRIVER"):
-        maxinst = case.get_value("NINST_MAX")
-        multi_driver = True
-
-    nuopc_config_file = os.path.join(confdir, "nuopc.runconfig")
-    for model in case.get_values("COMP_CLASSES"):
-        model = model.lower()
-        with NamelistGenerator(case, definition_file) as nmlgen:
-            config = {}
-            config['component'] = model
-            entries = nmlgen.init_defaults(infiles, config, skip_entry_loop=True)
-            if maxinst == 1 and model != 'cpl' and not multi_driver:
-                inst_count = case.get_value("NINST_" + model.upper())
-            else:
-                inst_count = maxinst
-
-            inst_string = ""
-            inst_index = 1
-            while inst_index <= inst_count:
-                # determine instance string
-                if inst_count > 1:
-                    inst_string = '_{:04d}'.format(inst_index)
-
-                # Write out just the pio_inparm to the output file
-                for entry in entries:
-                    nmlgen.add_default(entry)
-
-                if inst_index == 1:
-                    if model == "cpl":      
-                        modelio_file = "med_modelio.nml"
-                    else:
-                        modelio_file = model + "_modelio.nml"
-                    nmlgen.write_nuopc_modelio_file(os.path.join(confdir, modelio_file))
-
-                # Output the following to nuopc.runconfig
-                moddiro = case.get_value('RUNDIR')
-                if model == 'cpl':
-                    logfile = 'med' + inst_string + ".log." + str(lid)
-                else:
-                    logfile = model + inst_string + ".log." + str(lid)
-
-                with open(nuopc_config_file, 'a', encoding="utf-8") as outfile:
-                    if model == 'cpl':
-                        name = "MED"
-                    else:
-                        name = model.upper()
-                    if inst_string:
-                        outfile.write("{}_modelio{}::\n".format(name,inst_string))
-                    else:
-                        outfile.write("{}_modelio::\n".format(name))
-                    outfile.write("     {}{}{}".format("diro = ", moddiro,"\n"))
-                    outfile.write("     {}{}{}".format("logfile = ", logfile,"\n"))
-                    outfile.write("::\n\n")
-
-                    # also write out a driver log file
-                    if model == 'cpl':
-                        name = "DRV"
-                        logfile = 'drv' + inst_string + ".log." + str(lid)
-                        if inst_string:
-                            outfile.write("{}_modelio{}::\n".format(name,inst_string))
-                        else:
-                            outfile.write("{}_modelio::\n".format(name))
-                        outfile.write("     {}{}{}".format("diro = ", moddiro,"\n"))
-                        outfile.write("     {}{}{}".format("logfile = ", logfile,"\n"))
-                        outfile.write("::\n\n")
-
-                inst_index = inst_index + 1
-
-
-###############################################################################
 def buildnml(case, caseroot, component):
 ###############################################################################
     if component != "drv":
@@ -566,13 +550,13 @@ def buildnml(case, caseroot, component):
     comp_root_dir_cpl = files.get_value( "COMP_ROOT_DIR_CPL",{"component":"cpl"}, resolved=False)
     files.set_value("COMP_ROOT_DIR_CPL", comp_root_dir_cpl)
 
-    definition_file = [files.get_value("NAMELIST_DEFINITION_FILE", {"component": "cpl"})]
-    user_definition = os.path.join(user_xml_dir, "namelist_definition_drv.xml")
-    if os.path.isfile(user_definition):
-        definition_file = [user_definition]
+    definition_files = [files.get_value("NAMELIST_DEFINITION_FILE", {"component": "cpl"})]
+    user_drv_definition = os.path.join(user_xml_dir, "namelist_definition_drv.xml")
+    if os.path.isfile(user_drv_definition):
+        definition_files.append(user_drv_definition)
 
     # create the namelist generator object - independent of instance
-    nmlgen = NamelistGenerator(case, definition_file)
+    nmlgen = NamelistGenerator(case, definition_files)
 
     # create cplconf/namelist
     infile_text = ""
@@ -585,9 +569,6 @@ def buildnml(case, caseroot, component):
 
     # create the files nuopc.runconfig, nuopc.runseq, drv_in and drv_flds_in
     _create_drv_namelists(case, infile, confdir, nmlgen, files)
-
-    # create the files comp_modelio.nml where comp = [atm, lnd...]
-    _create_component_modelio_namelists(confdir, case, files)
 
     # set rundir
     rundir = case.get_value("RUNDIR")
