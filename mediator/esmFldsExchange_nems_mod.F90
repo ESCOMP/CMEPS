@@ -554,7 +554,7 @@ contains
        else
           if ( fldchk(is_local%wrap%FBexp(compocn)        , trim(fldname), rc=rc) .and. &
                fldchk(is_local%wrap%FBImp(compwav,compwav), trim(fldname), rc=rc)) then
-             call addmap(fldListFr(compwav)%flds, trim(fldname), compocn, mapfcopy, 'unset', 'unset')
+             call addmap(fldListFr(compwav)%flds, trim(fldname), compocn, mapbilnr_nstod, 'one', 'unset')
              call addmrg(fldListTo(compocn)%flds, trim(fldname), mrg_from=compwav, mrg_fld=trim(fldname), mrg_type='copy')
           end if
        end if
@@ -682,7 +682,7 @@ contains
      else
         if ( fldchk(is_local%wrap%FBexp(compwav)        , 'Si_ifrac', rc=rc) .and. &
              fldchk(is_local%wrap%FBImp(compice,compice), 'Si_ifrac', rc=rc)) then
-            call addmap(fldListFr(compice)%flds, 'Si_ifrac', compwav, mapfcopy , 'unset', 'unset')
+            call addmap(fldListFr(compice)%flds, 'Si_ifrac', compwav, mapbilnr_nstod, 'one', 'unset')
             call addmrg(fldListTo(compwav)%flds, 'Si_ifrac', mrg_from=compice, mrg_fld='Si_ifrac', mrg_type='copy')
         end if
      end if
@@ -702,7 +702,7 @@ contains
         else
            if ( fldchk(is_local%wrap%FBexp(compwav)        , trim(fldname), rc=rc) .and. &
                 fldchk(is_local%wrap%FBImp(compocn,compocn), trim(fldname), rc=rc)) then
-              call addmap(fldListFr(compocn)%flds, trim(fldname), compwav, mapfcopy , 'unset', 'unset')
+              call addmap(fldListFr(compocn)%flds, trim(fldname), compwav, mapbilnr_nstod , 'one', 'unset')
               call addmrg(fldListTo(compwav)%flds, trim(fldname), mrg_from=compocn, mrg_fld=trim(fldname), mrg_type='copy')
            end if
         end if
