@@ -757,7 +757,6 @@ contains
        else
           if ( fldchk(is_local%wrap%FBexp(complnd)        , trim(fldname), rc=rc) .and. &
                fldchk(is_local%wrap%FBImp(compatm,compatm), trim(fldname), rc=rc)) then
-             print*, "i am here !!!"
              call addmap(fldListFr(compatm)%flds, trim(fldname), complnd, maptype, 'one', 'unset')
              call addmrg(fldListTo(complnd)%flds, trim(fldname), mrg_from=compatm, mrg_fld=trim(fldname), mrg_type='copy')
           end if
