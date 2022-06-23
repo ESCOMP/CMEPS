@@ -59,6 +59,8 @@ contains
          specRoutine=SetModelServices, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
+    ! The ModifyCplLists specialization happens after Advertize but before Realize and
+    ! is the perfect time to initialize IO.
     call NUOPC_CompSpecialize(ensemble_driver, specLabel=ensemble_label_ModifyCplLists, &
          specRoutine=InitializeIO, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -73,10 +75,12 @@ contains
     call ESMF_GridCompSet(ensemble_driver, config=config, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
+    ! The ensemble_driver does not need to InitializeDataResolution and doing so will cause a hang
+    ! if asyncronous IO is used. 
     call NUOPC_CompAttributeSet(ensemble_driver, name="InitializeDataResolution", value="false", rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    ! Set a finalize method
+    ! Set a finalize method, it calls pio_finalize
     call NUOPC_CompSpecialize(ensemble_driver, specLabel=label_Finalize, &
          specRoutine=ensemble_finalize, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
