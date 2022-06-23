@@ -669,40 +669,6 @@ contains
     deallocate(flds)
 
     !=====================================================================
-    ! FIELDS TO LAND (complnd)
-    !=====================================================================
-
-    ! to lnd - states and fluxes from atm
-    if ( trim(coupling_mode) == 'nems_orig_data') then
-       allocate(flds(16))
-       flds = (/'Sa_z      ', 'Sa_topo   ', 'Sa_tbot   ', 'Sa_pbot   ', &
-                'Sa_shum   ', 'Sa_u      ', 'Sa_v      ', 'Faxa_lwdn ', &
-                'Sa_ptem   ', 'Sa_dens   ', 'Faxa_swdn ', 'Faxa_swnet', &
-                'Faxa_snowc', 'Faxa_snowl', 'Faxa_rainc', 'Faxa_rainl' /)
-    else
-       allocate(flds(9))
-       flds = (/'Sa_z      ', 'Sa_tbot   ', 'Sa_pbot   ', 'Sa_shum   ', &
-                'Sa_u      ', 'Sa_v      ', 'Faxa_swdn ', 'Faxa_lwdn ', &
-                'Faxa_rain ' /)
-    end if
-    do n = 1,size(flds)
-       fldname = trim(flds(n))
-       if (phase == 'advertise') then
-          if (is_local%wrap%comp_present(compatm) .and. is_local%wrap%comp_present(complnd)) then
-             call addfld(fldListFr(compatm)%flds, trim(fldname))
-             call addfld(fldListTo(complnd)%flds, trim(fldname))
-          end if
-       else
-          if ( fldchk(is_local%wrap%FBexp(compatm)        , trim(fldname), rc=rc) .and. &
-               fldchk(is_local%wrap%FBImp(complnd,complnd), trim(fldname), rc=rc)) then
-             call addmap(fldListFr(compatm)%flds, trim(fldname), complnd, maptype, 'one', 'unset')
-             call addmrg(fldListTo(complnd)%flds, trim(fldname), mrg_from=compatm, mrg_fld=trim(fldname), mrg_type='copy')
-          end if
-       end if
-    end do
-    deallocate(flds)
-
-    !=====================================================================
     ! FIELDS TO WAV (compwav)
     !=====================================================================
 
@@ -761,6 +727,43 @@ contains
         end if
      end do
      deallocate(flds)
+
+    !=====================================================================
+    ! FIELDS TO LAND (complnd)
+    !=====================================================================
+
+    ! to lnd - states and fluxes from atm
+    if ( trim(coupling_mode) == 'nems_orig_data') then
+       allocate(flds(21))
+       flds = (/'Sa_z      ', 'Sa_topo   ', 'Sa_tbot   ', 'Sa_pbot   ', &
+                'Sa_shum   ', 'Sa_u      ', 'Sa_v      ', 'Faxa_lwdn ', &
+                'Sa_ptem   ', 'Sa_dens   ', 'Faxa_swdn ', 'Faxa_swnet', &
+                'Faxa_snowc', 'Faxa_snowl', 'Faxa_rainc', 'Faxa_rainl', & 
+                'Sa_pslv   ', &
+                'Faxa_swndr', 'Faxa_swndf', 'Faxa_swvdr', 'Faxa_swvdf'/)
+    else
+       allocate(flds(9))
+       flds = (/'Sa_z      ', 'Sa_tbot   ', 'Sa_pbot   ', 'Sa_shum   ', &
+                'Sa_u      ', 'Sa_v      ', 'Faxa_swdn ', 'Faxa_lwdn ', &
+                'Faxa_rain ' /)
+    end if
+    do n = 1,size(flds)
+       fldname = trim(flds(n))
+       if (phase == 'advertise') then
+          if (is_local%wrap%comp_present(compatm) .and. is_local%wrap%comp_present(complnd)) then
+             call addfld(fldListFr(compatm)%flds, trim(fldname))
+             call addfld(fldListTo(complnd)%flds, trim(fldname))
+          end if
+       else
+          if ( fldchk(is_local%wrap%FBexp(complnd)        , trim(fldname), rc=rc) .and. &
+               fldchk(is_local%wrap%FBImp(compatm,compatm), trim(fldname), rc=rc)) then
+             print*, "i am here !!!"
+             call addmap(fldListFr(compatm)%flds, trim(fldname), complnd, maptype, 'one', 'unset')
+             call addmrg(fldListTo(complnd)%flds, trim(fldname), mrg_from=compatm, mrg_fld=trim(fldname), mrg_type='copy')
+          end if
+       end if
+    end do
+    deallocate(flds)
 
   end subroutine esmFldsExchange_nems
 
