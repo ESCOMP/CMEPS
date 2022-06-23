@@ -2023,6 +2023,22 @@
     <desc>pio blocksize for box decompositions</desc>
   </entry>
 
+  <entry id="PIO_ASYNC_IOTASKS">
+    <type>integer</type>
+    <default_value>0</default_value>
+    <group>run_pio</group>
+    <file>env_run.xml</file>
+    <desc>Task count for asyncronous IO, only valid if PIO_ASYNC_INTERFACE is True</desc>
+  </entry>
+
+  <entry id="PIO_ASYNC_IOSTRIDE">
+    <type>integer</type>
+    <default_value>0</default_value>
+    <group>run_pio</group>
+    <file>env_run.xml</file>
+    <desc>Stride of tasks for asyncronous IO, only valid if PIO_ASYNC_INTERFACE is True</desc>
+  </entry>
+
   <entry id="PIO_BUFFER_SIZE_LIMIT">
     <type>integer</type>
     <default_value>-1</default_value>
