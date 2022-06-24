@@ -246,7 +246,11 @@ contains
        comp_task = .false.
        ! Determine pet list for driver instance
        do n=1,ntasks_per_member+pio_async_iotasks
-          if(pio_async_iostride == 0 .or. modulo(n,pio_async_iostride) .ne. 2) then
+          if(pio_async_iostride == 0) then
+             petList(petcnt) = currentpet
+             petcnt = petcnt+1
+            if (currentpet == localPet) comp_task=.true.
+          else if(modulo(n,pio_async_iostride) .ne. 2) then
              petList(petcnt) = currentpet
              petcnt = petcnt+1
             if (currentpet == localPet) comp_task=.true.
