@@ -108,6 +108,7 @@ module med_phases_aofluxes_mod
      real(R8) , pointer :: thbot       (:) => null() ! atm potential T
      real(R8) , pointer :: shum        (:) => null() ! atm specific humidity
      real(R8) , pointer :: pbot        (:) => null() ! atm bottom pressure
+     real(R8) , pointer :: pslv        (:) => null() ! atm sea level pressure
      real(R8) , pointer :: dens        (:) => null() ! atm bottom density
      real(R8) , pointer :: tbot        (:) => null() ! atm bottom surface T
      real(R8) , pointer :: shum_16O    (:) => null() ! atm H2O tracer
@@ -931,7 +932,7 @@ contains
          nMax=aoflux_in%lsize, &
          zbot=aoflux_in%zbot, ubot=aoflux_in%ubot, vbot=aoflux_in%vbot, thbot=aoflux_in%thbot, qbot=aoflux_in%shum, &
          s16O=aoflux_in%shum_16O, sHDO=aoflux_in%shum_HDO, s18O=aoflux_in%shum_18O, rbot=aoflux_in%dens, &
-         tbot=aoflux_in%tbot, us=aoflux_in%uocn, vs=aoflux_in%vocn, ts=aoflux_in%tocn, &
+         tbot=aoflux_in%tbot, us=aoflux_in%uocn, vs=aoflux_in%vocn, pslv=aoflux_in%pslv, ts=aoflux_in%tocn, &
          mask=aoflux_in%mask, seq_flux_atmocn_minwind=0.5_r8, &
          sen=aoflux_out%sen, lat=aoflux_out%lat, lwup=aoflux_out%lwup, &
          r16O=aoflux_in%roce_16O, rhdo=aoflux_in%roce_HDO, r18O=aoflux_in%roce_18O, &
@@ -1360,6 +1361,8 @@ end subroutine med_aofluxes_map_ogrid2xgrid_input
     ! Set pointers for aoflux_in attributes
     ! Note that if computation is on the xgrid, fldbun_a and fldbun_o are both fldbun_x
 
+    use med_methods_mod , only : FB_fldchk    => med_methods_FB_FldChk
+
     ! input/output variables
     type(ESMF_FieldBundle)     , intent(inout) :: fldbun_a
     type(ESMF_FieldBundle)     , intent(inout) :: fldbun_o
@@ -1415,6 +1418,11 @@ end subroutine med_aofluxes_map_ogrid2xgrid_input
        allocate(aoflux_in%dens(lsize))
     else
        call fldbun_getfldptr(fldbun_a, 'Sa_dens', aoflux_in%dens, xgrid=xgrid, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+    end if
+
+    if (FB_fldchk(fldbun_a, 'Sa_pslv', rc=rc)) then
+       call fldbun_getfldptr(fldbun_a, 'Sa_pslv', aoflux_in%pslv, xgrid=xgrid, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     end if
 

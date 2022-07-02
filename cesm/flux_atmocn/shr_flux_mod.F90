@@ -133,8 +133,8 @@ contains
   !                   Thomas Toniazzo (Bjerknes Centre, Bergen) ”
   !===============================================================================
   SUBROUTINE flux_atmOcn(logunit, nMax  ,zbot  ,ubot  ,vbot  ,thbot ,   &
-       &               qbot  ,s16O  ,sHDO  ,s18O  ,rbot  ,   &
-       &               tbot  ,us    ,vs    ,   &
+       &               qbot  ,s16O  ,sHDO  ,s18O  ,rbot,  &
+       &               tbot  ,us    ,vs,  pslv,  &
        &               ts    ,mask  , seq_flux_atmocn_minwind, &
        &               sen   ,lat   ,lwup  ,   &
        &               r16O, rhdo, r18O, &
@@ -169,6 +169,7 @@ contains
     real(R8)   ,intent(in) :: r18O (nMax) ! ocn H218O tracer ratio/Rstd
     real(R8)   ,intent(in) :: rbot (nMax) ! atm air density       (kg/m^3)
     real(R8)   ,intent(in) :: tbot (nMax) ! atm T                 (K)
+    real(R8)   ,intent(in) :: pslv (nMax) ! atm sea level pressure(Pa)
     real(R8)   ,intent(in) :: us   (nMax) ! ocn u-velocity        (m/s)
     real(R8)   ,intent(in) :: vs   (nMax) ! ocn v-velocity        (m/s)
     real(R8)   ,intent(in) :: ts   (nMax) ! ocn temperature       (K)
@@ -552,6 +553,19 @@ contains
              if (present(ssq_sv  )) ssq_sv  (n) = spval
           endif
        ENDDO
+
+    else if (ocn_surface_flux_scheme .eq. 2) then
+
+       call flux_atmOcn_UA(logunit,&
+                          nMax, zbot, ubot, vbot, thbot, &
+                          qbot, s16O, sHDO, s18O, rbot, &
+                          tbot, pslv, us, vs, &
+                          ts, mask, sen, lat, lwup, &
+                          r16O, rhdo, r18O, &
+                          evap, evap_16O, evap_HDO, evap_18O, &
+                          taux, tauy, tref, qref, &
+                          duu10n, ustar_sv, re_sv, ssq_sv, &
+                          missval)
 
     else
 
