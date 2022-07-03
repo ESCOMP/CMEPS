@@ -384,6 +384,12 @@ contains
     else
        ocn_surface_flux_scheme = 0
     end if
+#ifdef CESMCOUPLED
+    if (mastertask) then
+       write(logunit,*)
+       write(logunit,'(a)') trim(subname)//' ocn_surface_flux_scheme is '//trim(cvalue)
+    end if
+#endif
 
     ! bottom level potential temperature and/or botom level density
     ! will need to be computed if not received from the atm

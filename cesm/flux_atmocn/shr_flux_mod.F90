@@ -569,7 +569,7 @@ contains
 
     else
 
-       call shr_sys_abort(subName//" subroutine flux_atmOcn requires ocn_surface_flux_scheme = 0 or 1")
+       call shr_sys_abort(subName//" subroutine flux_atmOcn requires ocn_surface_flux_scheme = 0, 1 or 2")
 
     endif  !! ocn_surface_flux_scheme
 
