@@ -1,4 +1,4 @@
-module init_pio_mod
+module driver_pio_mod
   use pio
   use shr_pio_mod,  only : io_compname, pio_comp_settings, iosystems, io_compid, shr_pio_getindex
   use shr_kind_mod, only : CS=>shr_kind_CS, shr_kind_cl, shr_kind_in
@@ -15,10 +15,10 @@ module init_pio_mod
 #include <mpif.h>
 #endif
   private
-  public :: init_pio_init
-  public :: init_pio_component_init
-  public :: init_pio_finalize
-  public :: init_pio_log_comp_settings
+  public :: driver_pio_init
+  public :: driver_pio_component_init
+  public :: driver_pio_finalize
+  public :: driver_pio_log_comp_settings
 
   integer :: io_comm
   integer :: pio_debug_level=0, pio_blocksize=0
@@ -50,7 +50,7 @@ contains
 !!
 !<
 
-  subroutine init_pio_init(driver, rc)
+  subroutine driver_pio_init(driver, rc)
     use ESMF, only : ESMF_GridComp, ESMF_VM, ESMF_Config, ESMF_GridCompGet
     use ESMF, only : ESMF_VMGet, ESMF_RC_NOT_VALID, ESMF_LogSetError
     use NUOPC, only: NUOPC_CompAttributeGet
@@ -66,7 +66,7 @@ contains
     character(len=CS) :: pio_rearr_comm_type, pio_rearr_comm_fcd
     character(CS) :: msgstr
 
-    character(*), parameter :: subName = '(init_pio_init) '
+    character(*), parameter :: subName = '(driver_pio_init) '
 
     call ESMF_GridCompGet(driver, vm=vm, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -167,9 +167,9 @@ contains
        write(shr_log_unit, *) "  enable_isend (io2comp)  = ", pio_rearr_opts%comm_fc_opts_io2comp%enable_isend
     end if
 
-  end subroutine init_pio_init
+  end subroutine driver_pio_init
 
-  subroutine init_pio_component_init(driver, ncomps, rc)
+  subroutine driver_pio_component_init(driver, ncomps, rc)
     use ESMF, only : ESMF_GridComp, ESMF_LogSetError, ESMF_RC_NOT_VALID, ESMF_GridCompIsCreated, ESMF_VM, ESMF_VMGet
     use ESMF, only : ESMF_GridCompGet, ESMF_GridCompIsPetLocal, ESMF_VMIsCreated
     use NUOPC, only : NUOPC_CompAttributeGet, NUOPC_CompAttributeSet, NUOPC_CompAttributeAdd
@@ -278,7 +278,7 @@ contains
           
           call NUOPC_CompAttributeGet(gcomp(i), name="pio_netcdf_format", value=cval, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call init_pio_getioformatfromname(cval, pio_comp_settings(i)%pio_netcdf_ioformat, PIO_64BIT_DATA)
+          call driver_pio_getioformatfromname(cval, pio_comp_settings(i)%pio_netcdf_ioformat, PIO_64BIT_DATA)
           
           if (pio_async_interface(i)) then
              do_async_init = do_async_init + 1
@@ -308,9 +308,9 @@ contains
     endif
 
     deallocate(gcomp)
-  end subroutine init_pio_component_init
+  end subroutine driver_pio_component_init
 
-  subroutine init_pio_log_comp_settings(gcomp, logunit)
+  subroutine driver_pio_log_comp_settings(gcomp, logunit)
     use ESMF, only : ESMF_GridComp, ESMF_GridCompGet
     use NUOPC, only: NUOPC_CompAttributeGet
 
@@ -341,21 +341,21 @@ contains
 
     write(logunit, *) trim(name),': PIO root=',pio_comp_settings(i)%pio_root
         
-  end subroutine init_pio_log_comp_settings
+  end subroutine driver_pio_log_comp_settings
 
 !===============================================================================
-  subroutine init_pio_finalize(  )
+  subroutine driver_pio_finalize(  )
     integer :: ierr
     integer :: i
     do i=1,total_comps
        call pio_finalize(iosystems(i), ierr)
     end do
 
-  end subroutine init_pio_finalize
+  end subroutine driver_pio_finalize
 
 !===============================================================================
 
-  subroutine init_pio_getioformatfromname(pio_netcdf_format, pio_netcdf_ioformat, pio_default_netcdf_ioformat)
+  subroutine driver_pio_getioformatfromname(pio_netcdf_format, pio_netcdf_ioformat, pio_default_netcdf_ioformat)
     use shr_string_mod, only : shr_string_toupper
     character(len=*), intent(inout) :: pio_netcdf_format
     integer, intent(out) :: pio_netcdf_ioformat
@@ -372,10 +372,10 @@ contains
        pio_netcdf_ioformat = pio_default_netcdf_ioformat
     endif
 
-  end subroutine init_pio_getioformatfromname
+  end subroutine driver_pio_getioformatfromname
 
 
-  subroutine init_pio_getiotypefromname(typename, iotype, defaulttype)
+  subroutine driver_pio_getiotypefromname(typename, iotype, defaulttype)
     use shr_string_mod, only : shr_string_toupper
     character(len=*), intent(inout) :: typename
     integer, intent(out) :: iotype
@@ -395,12 +395,12 @@ contains
     else if ( typename .eq. 'DEFAULT') then
        iotype = defaulttype
     else
-       write(shr_log_unit,*) 'init_pio_mod: WARNING Bad io_type argument - using iotype_netcdf'
+       write(shr_log_unit,*) 'driver_pio_mod: WARNING Bad io_type argument - using iotype_netcdf'
        iotype=pio_iotype_netcdf
     end if
 
-  end subroutine init_pio_getiotypefromname
+  end subroutine driver_pio_getiotypefromname
 
 !===============================================================================
 
-end module init_pio_mod
+end module driver_pio_mod
