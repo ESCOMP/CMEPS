@@ -25,6 +25,7 @@ module init_pio_mod
   integer(kind=pio_offset_kind) :: pio_buffer_size_limit=-1
 
   type(pio_rearr_opt_t) :: pio_rearr_opts
+  logical, allocatable :: pio_async_interface(:)
 
   integer :: total_comps
   logical :: mastertask
@@ -187,7 +188,6 @@ contains
     character(CS) :: msgstr
     integer :: do_async_init
     type(iosystem_desc_t), allocatable :: async_iosystems(:)
-    logical, allocatable :: pio_async_interface(:)
 
     allocate(pio_comp_settings(ncomps))
     allocate(gcomp(ncomps))
