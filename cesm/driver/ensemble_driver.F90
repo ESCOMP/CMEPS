@@ -361,6 +361,7 @@ contains
           call ESMF_LogWrite(trim(subname)//": call shr_pio_component_init"//compname, ESMF_LOGMSG_INFO)
           call shr_pio_component_init(dcomp(drv), Global_Comm, asyncio_petlist, rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_LogWrite(trim(subname)//": shr_pio_component_init done"//compname, ESMF_LOGMSG_INFO)
        endif
     enddo
     deallocate(asyncio_petlist)
