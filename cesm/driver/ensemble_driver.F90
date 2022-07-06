@@ -32,6 +32,7 @@ contains
   subroutine SetServices(ensemble_driver, rc)
 
     use NUOPC        , only : NUOPC_CompDerive, NUOPC_CompSpecialize, NUOPC_CompAttributeSet
+    use NUOPC        , only : NUOPC_CompAttributeGet
     use NUOPC_Driver , only : driver_routine_SS             => SetServices
     use NUOPC_Driver , only : ensemble_label_SetModelServices => label_SetModelServices
     use NUOPC_Driver , only : ensemble_label_ModifyCplLists => label_ModifyCplLists
