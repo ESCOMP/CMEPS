@@ -261,8 +261,9 @@ contains
 
     nullify(gcomp)
 
-    driverpecount = 0
-    if (.not. asyncio_task) then
+    if (asyncio_task) then
+       driverpecount = 0
+    else
        call ESMF_GridCompGet(gridcomp=driver, vm=vm, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        

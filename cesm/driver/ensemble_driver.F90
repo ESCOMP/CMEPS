@@ -21,6 +21,7 @@ module Ensemble_driver
 
   integer, allocatable :: asyncio_petlist(:)
   logical :: asyncio_task=.false.
+  logical :: asyncIO_available=.false.
   character(*),parameter :: u_FILE_u = &
        __FILE__
 
@@ -44,6 +45,7 @@ contains
 
     ! local variables
     type(ESMF_Config) :: config
+    logical :: isPresent ! Check to see if InitializeDataResolution attribute is available
     character(len=*), parameter :: subname = '('//__FILE__//':SetServices)'
     !---------------------------------------
 
@@ -75,10 +77,19 @@ contains
     call ESMF_GridCompSet(ensemble_driver, config=config, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
+    ! NUOPC component drivers end the initialization process with an internal call to InitializeDataResolution.
     ! The ensemble_driver does not need to InitializeDataResolution and doing so will cause a hang
-    ! if asyncronous IO is used. 
-    call NUOPC_CompAttributeSet(ensemble_driver, name="InitializeDataResolution", value="false", rc=rc)
+    ! if asyncronous IO is used.  This attribute is available after ESMF8.4.0b03 to toggle that control.
+    ! Cannot use asyncIO with older ESMF versions. 
+    call NUOPC_CompAttributeGet(ensemble_driver, name="InitializeDataResolution", &
+         isPresent=isPresent, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    if(isPresent) then
+       call NUOPC_CompAttributeSet(ensemble_driver, name="InitializeDataResolution", value="false", rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       asyncIO_available = .true.
+    endif
 
     ! Set a finalize method, it calls pio_finalize
     call NUOPC_CompSpecialize(ensemble_driver, specLabel=label_Finalize, &
@@ -213,7 +224,7 @@ contains
     call NUOPC_CompAttributeGet(ensemble_driver, name="ninst", value=cvalue, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     read(cvalue,*) number_of_members
-
+    
     call NUOPC_CompAttributeGet(ensemble_driver, name="pio_async_iotasks", value=cvalue, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     read(cvalue,*) pio_async_iotasks
@@ -230,6 +241,11 @@ contains
        write (msgstr,'(a,i5,a,i3,a,i3,a)') &
             "PetCount - Async IOtasks (",PetCount-pio_async_iotasks,") must be evenly divisable by number of members (",number_of_members,")"
        call ESMF_LogSetError(ESMF_RC_ARG_BAD, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
+       return
+    endif
+
+    if(pio_async_iotasks > 0 .and. .not. asyncIO_available) then
+       call ESMF_LogSetError(ESMF_RC_ARG_BAD, msg="AsyncIO requires ESMF version 8.4.0b03 or newer", line=__LINE__, file=__FILE__, rcToReturn=rc)
        return
     endif
 
@@ -367,6 +383,7 @@ contains
     deallocate(asyncio_petlist)
     call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
   end subroutine InitializeIO
+
   subroutine ensemble_finalize(ensemble_driver, rc)
     use ESMF, only : ESMF_GridComp, ESMF_SUCCESS
     use shr_pio_mod, only: shr_pio_finalize
