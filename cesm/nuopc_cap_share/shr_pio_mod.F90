@@ -434,6 +434,7 @@ contains
           endif
        enddo
        ! IO tasks should not return until the run is completed
+       if(asyncio_task) j = pio_set_log_level(3)
        call pio_init(async_iosystems, Global_comm, async_procs_per_comp, comp_proc_list, asyncio_petlist, &
             PIO_REARR_BOX, asyncio_comp_comm, io_comm)
        if(.not. asyncio_task) then
