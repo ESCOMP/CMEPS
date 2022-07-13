@@ -62,8 +62,10 @@ contains
          specRoutine=SetModelServices, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    ! The ModifyCplLists specialization happens after Advertize but before Realize and
-    ! is the perfect time to initialize IO.
+    ! ModifyCplLists is a NUOPC specialization which happens after Advertize but before Realize
+    ! We have overloaded this specialization location to initilize IO.
+    ! So after all components have called Advertise but before any component calls Realize
+    ! IO will be initialized and any async IO tasks will be split off to the PIO async IO driver.
     call NUOPC_CompSpecialize(ensemble_driver, specLabel=ensemble_label_ModifyCplLists, &
          specRoutine=InitializeIO, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -91,7 +93,6 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        asyncIO_available = .true.
     endif
-
     ! Set a finalize method, it calls pio_finalize
     call NUOPC_CompSpecialize(ensemble_driver, specLabel=label_Finalize, &
          specRoutine=ensemble_finalize, rc=rc)
@@ -142,8 +143,9 @@ contains
     integer                :: currentpet, petcnt, iopetcnt
     integer                :: number_of_members
     integer                :: ntasks_per_member
-    integer                :: pio_async_iotasks
-    integer                :: pio_async_iostride
+    integer                :: pio_asyncio_ntasks
+    integer                :: pio_asyncio_stride
+    integer                :: pio_asyncio_rootpe
     character(CL)          :: start_type     ! Type of startup
     character(len=7)       :: drvrinst
     character(len=5)       :: inst_suffix
@@ -226,26 +228,30 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     read(cvalue,*) number_of_members
     
-    call NUOPC_CompAttributeGet(ensemble_driver, name="pio_async_iotasks", value=cvalue, rc=rc)
+    call NUOPC_CompAttributeGet(ensemble_driver, name="pio_asyncio_ntasks", value=cvalue, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) pio_async_iotasks
+    read(cvalue,*) pio_asyncio_ntasks
 
-    call NUOPC_CompAttributeGet(ensemble_driver, name="pio_async_iostride", value=cvalue, rc=rc)
+    call NUOPC_CompAttributeGet(ensemble_driver, name="pio_asyncio_stride", value=cvalue, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) pio_async_iostride
+    read(cvalue,*) pio_asyncio_stride
+
+    call NUOPC_CompAttributeGet(ensemble_driver, name="pio_asyncio_rootpe", value=cvalue, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    read(cvalue,*) pio_asyncio_rootpe
 
     call ESMF_VMGet(vm, localPet=localPet, PetCount=PetCount, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     
-    ntasks_per_member = PetCount/number_of_members - pio_async_iotasks
-    if(ntasks_per_member*number_of_members .ne. (PetCount - pio_async_iotasks)) then
+    ntasks_per_member = PetCount/number_of_members - pio_asyncio_ntasks
+    if(ntasks_per_member*number_of_members .ne. (PetCount - pio_asyncio_ntasks)) then
        write (msgstr,'(a,i5,a,i3,a,i3,a)') &
-            "PetCount - Async IOtasks (",PetCount-pio_async_iotasks,") must be evenly divisable by number of members (",number_of_members,")"
+            "PetCount - Async IOtasks (",PetCount-pio_asyncio_ntasks,") must be evenly divisable by number of members (",number_of_members,")"
        call ESMF_LogSetError(ESMF_RC_ARG_BAD, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
        return
     endif
 
-    if(pio_async_iotasks > 0 .and. .not. asyncIO_available) then
+    if(pio_asyncio_ntasks > 0 .and. .not. asyncIO_available) then
        call ESMF_LogSetError(ESMF_RC_ARG_BAD, msg="AsyncIO requires ESMF version 8.4.0b03 or newer", line=__LINE__, file=__FILE__, rcToReturn=rc)
        return
     endif
@@ -255,35 +261,55 @@ contains
     !-------------------------------------------
 
     allocate(petList(ntasks_per_member))
-    allocate(asyncio_petlist(pio_async_iotasks))
-    currentpet = 0
+    ! Create an asyncio petlist (a list of Pets who will be dedicated to IO).   All components 
+    ! with async IO enabled will use these IO PETS.  If stride = MPI_TASKS_PER_NODE then there will
+    ! be one IO task per node. 
+    allocate(asyncio_petlist(pio_asyncio_ntasks))
     iopetcnt = 1
+    currentPet = 0
+
+    do n=1,pio_asyncio_ntasks
+       asyncio_petlist(n) = pio_asyncio_rootpe + (n-1)*pio_asyncio_stride
+       if (localPet == asyncio_petlist(n)) asyncio_task = .true.
+!       if (asyncio_petlist(n) == currentPet) currentPet = currentPet + 1
+    enddo
+
+
     do inst=1,number_of_members
        petcnt=1
        comp_task = .false.
        ! Determine pet list for driver instance
-       do n=1,ntasks_per_member+pio_async_iotasks
-          if(pio_async_iostride == 0) then
+       do n=1,ntasks_per_member+pio_asyncio_ntasks
+          if(pio_asyncio_stride == 0) then
              petList(petcnt) = currentpet
              petcnt = petcnt+1
-            if (currentpet == localPet) comp_task=.true.
-          else if(modulo(n,pio_async_iostride) .ne. 2) then
+             if (currentpet == localPet) comp_task=.true.
+          else if(pio_asyncio_stride == 1) then
+             if (currentpet < asyncio_petlist(1) .or. currentpet > asyncio_petlist(pio_asyncio_ntasks)) then
+                petList(petcnt) = currentpet
+                petcnt = petcnt+1
+                if (currentpet == localPet) comp_task=.true.
+             endif
+          else if(modulo(n-1,pio_asyncio_stride) .ne. pio_asyncio_rootpe) then
              petList(petcnt) = currentpet
              petcnt = petcnt+1
-            if (currentpet == localPet) comp_task=.true.
-          else
-             asyncio_petlist(iopetcnt) = currentpet
-             iopetcnt = iopetcnt + 1
-             if (currentpet == localPet) asyncio_task=.true.
+             if (currentpet == localPet) comp_task=.true.
           endif
           currentpet = currentpet + 1
        enddo
 
+       if(asyncio_task .and. comp_task) then
+          call ESMF_LogSetError(ESMF_RC_ARG_BAD, msg="task is set as both a compute task and an asyncio task", line=__LINE__, file=__FILE__, rcToReturn=rc)
+          return
+       endif
        ! Add driver instance to ensemble driver
        write(drvrinst,'(a,i4.4)') "ESM",inst
        call NUOPC_DriverAddComp(ensemble_driver, drvrinst, ESMSetServices, petList=petList, comp=driver, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-
+       if (chkerr(rc,__LINE__,u_FILE_u)) then
+          write(msgstr,*) 'size(petList):', size(petList), ' petcnt:', petcnt, ' petList: ',petList
+          call ESMF_LogSetError(ESMF_RC_ARG_BAD, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
+          return
+       endif
        mastertask = .false.
        if (comp_task) then
 
@@ -313,7 +339,7 @@ contains
           if (chkerr(rc,__LINE__,u_FILE_u)) return
 
           ! Set the driver log to the driver task 0 
-          if (mod(localPet, ntasks_per_member) == 0) then
+          if (petList(1) == localPet) then
              call NUOPC_CompAttributeGet(driver, name="diro", value=diro, rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
              call NUOPC_CompAttributeGet(driver, name="logfile", value=logfile, rc=rc)

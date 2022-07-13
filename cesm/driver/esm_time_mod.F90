@@ -62,7 +62,8 @@ contains
 
     ! local variables
     type(ESMF_Clock)        :: clock
-    type(ESMF_VM)           :: vm, envm
+    type(ESMF_VM)           :: vm                  ! VM of the driver
+    type(ESMF_VM)           :: envm                ! VM of the ensemble_driver (which includes asyncIO tasks)
     type(ESMF_Time)         :: StartTime           ! Start time
     type(ESMF_Time)         :: RefTime             ! Reference time
     type(ESMF_Time)         :: CurrTime            ! Current time
@@ -103,8 +104,8 @@ contains
     integer                 :: tmp(4)              ! Array for Broadcast
     integer                 :: myid, bcastID(2)
     logical                 :: isPresent
-    logical, save           :: firsttime = .true.
-    logical                 :: indriver
+    logical                 :: firsttime = .true.
+    logical                 :: is_driver_pet
     character(len=*), parameter :: subname = '('//__FILE__//':esm_time_clockInit) '
     !-------------------------------------------------------------------------------
 
@@ -171,10 +172,10 @@ contains
     
     call ESMF_VMGet(envm, localPet=myid, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    indriver = ESMF_GridCompIsPetLocal(instance_driver, rc=rc)
+    is_driver_pet = ESMF_GridCompIsPetLocal(instance_driver, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    if(indriver) then
+    if(is_driver_pet) then
        call ESMF_GridCompGet(instance_driver, vm=vm, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
@@ -188,7 +189,7 @@ contains
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
           if (trim(restart_file) /= 'none') then
-
+             ! inst_suffix is set by ensemble_driver if the number of members is > 1
              call NUOPC_CompAttributeGet(instance_driver, name="inst_suffix", isPresent=isPresent, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
              if(isPresent) then
@@ -321,7 +322,7 @@ contains
     end do
 
     ! Set the driver gridded component clock to the created clock
-    if (indriver) then
+    if (is_driver_pet) then
        call ESMF_GridCompSet(instance_driver, clock=clock, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     endif
@@ -351,7 +352,6 @@ contains
        write(tmpstr,'(i10)') stop_tod
        call ESMF_LogWrite(trim(subname)//': driver stop_tod: '// trim(tmpstr), ESMF_LOGMSG_INFO)
        write(logunit,*)   trim(subname)//': driver stop_tod: '// trim(tmpstr)
-    else
     endif
 
     call esm_time_alarmInit(clock, &
@@ -374,6 +374,8 @@ contains
     ! Create the ensemble driver clock
     !---------------------------------------------------------------------------
     if(firsttime) then
+       ! TimeStep for the ensemble_driver and any asyncIO tasks is the full length of
+       ! the model run.
        TimeStep = StopTime - ClockTime
        clock = ESMF_ClockCreate(TimeStep, ClockTime, StopTime=StopTime, &
             refTime=RefTime, name='ESMF ensemble Driver Clock', rc=rc)

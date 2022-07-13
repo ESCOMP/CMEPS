@@ -22,7 +22,6 @@ module nuopc_shr_methods
   use NUOPC_Model  , only : NUOPC_ModelGet
   use shr_kind_mod , only : r8 => shr_kind_r8, cl=>shr_kind_cl, cs=>shr_kind_cs
   use shr_sys_mod  , only : shr_sys_abort
-  use shr_file_mod , only : shr_file_setlogunit, shr_file_getLogUnit
 
   implicit none
   private
@@ -171,8 +170,7 @@ contains
     else
        logUnit = 6
     endif
-    ! TODO: shr_file mod is deprecated and should be removed.
-    call shr_file_setLogUnit (logunit)
+
     
     call ESMF_GridCompGet(gcomp, name=name, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return

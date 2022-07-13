@@ -36,7 +36,7 @@
     </values>
   </entry>
 
-  <entry id="pio_async_iotasks" modify_via_xml="PIO_ASYNC_IOTASKS">
+  <entry id="pio_asyncio_ntasks" modify_via_xml="PIO_ASYNCIO_NTASKS">
     <type>integer</type>
     <category>pio</category>
     <group>PELAYOUT_attributes</group>
@@ -44,19 +44,31 @@
       IO tasks FOR ASYNC IO, only valid if ASYNCIO is true.
     </desc>
     <values>
-      <value>$PIO_ASYNC_IOTASKS</value>
+      <value>$PIO_ASYNCIO_NTASKS</value>
     </values>
   </entry>
 
-  <entry id="pio_async_iostride" modify_via_xml="PIO_ASYNC_IOSTRIDE">
+  <entry id="pio_asyncio_stride" modify_via_xml="PIO_ASYNCIO_STRIDE">
     <type>integer</type>
     <category>pio</category>
     <group>PELAYOUT_attributes</group>
     <desc>
-      IO tasks FOR ASYNC IO, only valid if ASYNCIO is true.
+      IO task stride FOR ASYNC IO, only valid if ASYNCIO is true.
     </desc>
     <values>
-      <value>$PIO_ASYNC_IOSTRIDE</value>
+      <value>$PIO_ASYNCIO_STRIDE</value>
+    </values>
+  </entry>
+
+  <entry id="pio_asyncio_rootpe" modify_via_xml="PIO_ASYNCIO_ROOTPE">
+    <type>integer</type>
+    <category>pio</category>
+    <group>PELAYOUT_attributes</group>
+    <desc>
+      IO rootpe task FOR ASYNC IO, only valid if ASYNCIO is true.
+    </desc>
+    <values>
+      <value>$PIO_ASYNCIO_ROOTPE</value>
     </values>
   </entry>
 
@@ -4125,7 +4137,7 @@
     <value component="rof">$ROF_PIO_REARRANGER</value>
     <value component="glc">$GLC_PIO_REARRANGER</value>
     <value component="wav">$WAV_PIO_REARRANGER</value>
-    <value component="esp">-99</value>
+    <value component="esp">$ESP_PIO_REARRANGER</value>
     </values>
   </entry>
 

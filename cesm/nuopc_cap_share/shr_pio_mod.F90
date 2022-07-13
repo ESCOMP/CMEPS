@@ -259,6 +259,8 @@ contains
        endif
     enddo
 
+    if(asyncio_task) print *,__FILE__,__LINE__,'I am an ASYNCIO TASK'
+
     nullify(gcomp)
 
     if (asyncio_task) then
@@ -435,6 +437,7 @@ contains
        call pio_init(async_iosystems, Global_comm, async_procs_per_comp, comp_proc_list, asyncio_petlist, &
             PIO_REARR_BOX, asyncio_comp_comm, io_comm)
        if(.not. asyncio_task) then
+          print *,__FILE__,__LINE__,'I am a compute task'
           j=1
           do i=1,total_comps
              if(pio_comp_settings(i)%pio_async_interface) then
