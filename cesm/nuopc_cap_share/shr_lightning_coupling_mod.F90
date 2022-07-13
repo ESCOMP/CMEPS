@@ -24,7 +24,7 @@ module shr_lightning_coupling_mod
 CONTAINS
   !====================================================================================
 
-  subroutine shr_lightning_coupling_readnl(NLFilename, atm_lightning_flash_out)
+  subroutine shr_lightning_coupling_readnl(NLFilename, atm_provides_lightning_out)
 
     !========================================================================
     ! reads lightning_coupling_nl namelist and returns a variable specifying
@@ -33,10 +33,10 @@ CONTAINS
 
     ! input/output variables
     character(len=*), intent(in)  :: NLFilename ! Namelist filename
-    logical, intent(out) :: atm_lightning_flash_out ! if TRUE atm will provide lightning flash frequency
+    logical, intent(out) :: atm_provides_lightning_out ! if TRUE atm will provide lightning flash frequency
 
     !----- local -----
-    logical :: atm_lightning_flash_freq
+    logical :: atm_provides_lightning
     type(ESMF_VM)     :: vm
     integer           :: unitn                  ! namelist unit number
     integer           :: ierr                   ! error code
@@ -49,7 +49,7 @@ CONTAINS
     character(len=*), parameter :: subname = '(shr_lightning_coupling_readnl) '
     ! ------------------------------------------------------------------
 
-    namelist /lightning_coupling_nl/ atm_lightning_flash_freq
+    namelist /lightning_coupling_nl/ atm_provides_lightning
 
     rc = ESMF_SUCCESS
 
@@ -70,7 +70,7 @@ CONTAINS
        ! doesn't exist within the file, or a given variable isn't present in the namelist
        ! group in the file.
        ! ------------------------------------------------------------------------
-       atm_lightning_flash_freq = .false.
+       atm_provides_lightning = .false.
 
        ! ------------------------------------------------------------------------
        ! Read namelist file
@@ -90,14 +90,14 @@ CONTAINS
           close( unitn )
        end if
 
-       atm_lightning_flash_out = atm_lightning_flash_freq
+       atm_provides_lightning_out = atm_provides_lightning
 
     end if
 
     ! ------------------------------------------------------------------------
     ! Broadcast values to all processors
     ! ------------------------------------------------------------------------
-    call shr_mpi_bcast(atm_lightning_flash_out, mpicom)
+    call shr_mpi_bcast(atm_provides_lightning_out, mpicom)
 
   end subroutine shr_lightning_coupling_readnl
 
