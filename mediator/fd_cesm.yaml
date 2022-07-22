@@ -325,7 +325,7 @@
        canonical_units: mol/mol
        description: atmosphere export - O3 in the lowest model layer (prognosed or prescribed)
      #
-     - standard_name: Sa_lght
+     - standard_name: Sa_lightning
        canonical_units: /min
        description: atmosphere export - lightning flash freqency
      #
