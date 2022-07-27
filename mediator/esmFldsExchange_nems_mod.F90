@@ -649,6 +649,20 @@ contains
     end do
     deallocate(flds)
 
+    if (phase == 'advertise') then
+       if (is_local%wrap%comp_present(compice) .and. is_local%wrap%comp_present(compwav)) then
+          call addfld(fldListFr(compwav)%flds, 'Sw_elevation_spectrum')
+          call addfld(fldListTo(compice)%flds, 'Sw_elevation_spectrum')
+       end if
+    else
+       if ( fldchk(is_local%wrap%FBExp(compice)        , 'Sw_elevation_spectrum', rc=rc) .and. &
+            fldchk(is_local%wrap%FBImp(compwav,compwav), 'Sw_elevation_spectrum', rc=rc)) then
+            call addmap(fldListFr(compwav)%flds, 'Sw_elevation_spectrum', compice, mapbilnr_nstod, 'one', 'unset')
+            call addmrg(fldListTo(compice)%flds, 'Sw_elevation_spectrum', &
+                  mrg_from=compwav, mrg_fld='Sw_elevation_spectrum', mrg_type='copy')
+       end if
+    end if
+
     !=====================================================================
     ! FIELDS TO WAV (compwav)
     !=====================================================================
@@ -673,19 +687,25 @@ contains
      end do
      deallocate(flds)
 
-     ! to wav: sea ice fraction
-     if (phase == 'advertise') then
-        if (is_local%wrap%comp_present(compice) .and. is_local%wrap%comp_present(compwav)) then
-           call addfld(fldListFr(compice)%flds, 'Si_ifrac')
-           call addfld(fldListTo(compwav)%flds, 'Si_ifrac')
+     ! to wav: sea ice fraction, thickness and floe diameter
+     allocate(flds(3))
+     flds = (/'Si_ifrac   ', 'Si_floediam', 'Si_thick   '/)
+     do n = 1,size(flds)
+        fldname = trim(flds(n))
+        if (phase == 'advertise') then
+           if (is_local%wrap%comp_present(compice) .and. is_local%wrap%comp_present(compwav)) then
+              call addfld(fldListFr(compice)%flds, trim(fldname))
+              call addfld(fldListTo(compwav)%flds, trim(fldname))
+           end if
+        else
+           if ( fldchk(is_local%wrap%FBexp(compwav)        , trim(fldname), rc=rc) .and. &
+                fldchk(is_local%wrap%FBImp(compice,compice), trim(fldname), rc=rc)) then
+               call addmap(fldListFr(compice)%flds, trim(fldname), compwav, mapbilnr_nstod, 'one', 'unset')
+               call addmrg(fldListTo(compwav)%flds, trim(fldname), mrg_from=compice, mrg_fld=trim(fldname), mrg_type='copy')
+           end if
         end if
-     else
-        if ( fldchk(is_local%wrap%FBexp(compwav)        , 'Si_ifrac', rc=rc) .and. &
-             fldchk(is_local%wrap%FBImp(compice,compice), 'Si_ifrac', rc=rc)) then
-            call addmap(fldListFr(compice)%flds, 'Si_ifrac', compwav, mapbilnr_nstod, 'one', 'unset')
-            call addmrg(fldListTo(compwav)%flds, 'Si_ifrac', mrg_from=compice, mrg_fld='Si_ifrac', mrg_type='copy')
-        end if
-     end if
+      end do
+      deallocate(flds)
 
      ! to wav: zonal sea water velocity from ocn
      ! to wav: meridional sea water velocity from ocn
