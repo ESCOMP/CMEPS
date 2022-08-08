@@ -179,7 +179,8 @@ contains
        call ESMF_GridCompGet(instance_driver, vm=vm, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-       call NUOPC_CompAttributeGet(instance_driver, name='read_restart', value=cvalue, rc=rc)
+       ! read_restart is set in ensemble_driver SetModelServices
+       call NUOPC_CompAttributeGet(ensemble_driver, name='read_restart', value=cvalue, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        read(cvalue,*) read_restart
 

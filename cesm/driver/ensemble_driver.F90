@@ -208,6 +208,8 @@ contains
     write(read_restart_string,*) read_restart
 
     ! Add read_restart to ensemble_driver attributes
+
+    call ESMF_LogWrite(trim(subname)//": set read_restart "//trim(read_restart_string), ESMF_LOGMSG_INFO)
     call NUOPC_CompAttributeAdd(ensemble_driver, attrList=(/'read_restart'/), rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call NUOPC_CompAttributeSet(ensemble_driver, name='read_restart', value=trim(read_restart_string), rc=rc)

@@ -223,6 +223,7 @@ contains
     type(ESMF_VM) :: vm
     integer :: i, npets, default_stride
     integer :: j, myid
+    integer :: k
     integer :: comp_comm, comp_rank
     integer, allocatable :: procs_per_comp(:), async_procs_per_comp(:)
     integer, allocatable :: io_proc_list(:), asyncio_tasks(:), comp_proc_list(:,:)
@@ -239,8 +240,10 @@ contains
     integer :: iocomm
     integer :: ncomps
     integer :: driverpecount, driver_myid
+    integer, allocatable :: driverpetlist(:)
     integer, allocatable :: asyncio_comp_comm(:)
-    logical :: asyncio_task, petlocal
+    logical :: asyncio_task
+    logical, allocatable :: petlocal(:)
     type(iosystem_desc_t), allocatable :: async_iosystems(:)
     character(len=*), parameter :: subname = '('//__FILE__//':shr_pio_component_init)'
 
@@ -258,9 +261,6 @@ contains
           exit
        endif
     enddo
-
-    if(asyncio_task) print *,__FILE__,__LINE__,'I am an ASYNCIO TASK'
-
     nullify(gcomp)
 
     if (asyncio_task) then
@@ -281,6 +281,9 @@ contains
        total_comps = 0
     endif
        
+    call ESMF_LogWrite(trim(subname)//": share total_comps and driverpecount", ESMF_LOGMSG_INFO)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
     call MPI_AllReduce(MPI_IN_PLACE, total_comps, 1, MPI_INTEGER, &
          MPI_MAX, Global_comm, rc)
     call MPI_AllReduce(MPI_IN_PLACE, driverpecount, 1, MPI_INTEGER, &
@@ -291,18 +294,20 @@ contains
     allocate(io_compid(total_comps))
     allocate(io_compname(total_comps))
     allocate(iosystems(total_comps))
+    allocate(petlocal(total_comps))
     do_async_init = 0
     procs_per_comp = 0
+
     do i=1,total_comps
        if(associated(gcomp)) then
-          petlocal = ESMF_GridCompIsPetLocal(gcomp(i), rc=rc)
+          petlocal(i) = ESMF_GridCompIsPetLocal(gcomp(i), rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
        else
-          petlocal = .false.
+          petlocal(i) = .false.
        endif
        pio_comp_settings(i)%pio_async_interface = .false.
        io_compid(i) = i+1
-       if (petlocal) then
+       if (petlocal(i)) then
           call ESMF_GridCompGet(gcomp(i), vm=vm, name=cval, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           call ESMF_LogWrite(trim(subname)//": initialize component: "//trim(cval), ESMF_LOGMSG_INFO)
@@ -389,8 +394,13 @@ contains
           ! Write the PIO settings to the beggining of each component log
           if(comp_rank == 0) call shr_pio_log_comp_settings(gcomp(i), rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
+
        endif
     enddo
+
+    call ESMF_LogWrite(trim(subname)//": check for async", ESMF_LOGMSG_INFO)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
     do i=1,total_comps
        call MPI_AllReduce(MPI_IN_PLACE, pio_comp_settings(i)%pio_async_interface, 1, MPI_LOGICAL, &
             MPI_LOR, global_comm, rc)
@@ -398,9 +408,11 @@ contains
           do_async_init = do_async_init + 1
        endif
     enddo
+
 !
 !   Get the PET list for each component using async IO
 !
+
     call MPI_Allreduce(MPI_IN_PLACE, do_async_init, 1, MPI_INTEGER, MPI_MAX, Global_comm, ierr)
 
     call MPI_Allreduce(MPI_IN_PLACE, procs_per_comp, total_comps, MPI_INTEGER, MPI_MAX, Global_comm, ierr)
@@ -409,23 +421,43 @@ contains
        allocate(asyncio_comp_comm(do_async_init))
        allocate(comp_proc_list(driverpecount, do_async_init))
        j = 1
-       comp_proc_list = 0
+       k = 1
+       comp_proc_list = -1
        if(.not. asyncio_task) then
           do i=1,total_comps
-             if(pio_comp_settings(i)%pio_async_interface) then
-                comp_proc_list(1+driver_myid,j) = myid
+             if(pio_comp_settings(i)%pio_async_interface .and. petlocal(i)) then
+                comp_proc_list(1+driver_myid,j) = myid 
+                do k=1,size(asyncio_petlist)
+                   if(comp_proc_list(1+driver_myid, j) == asyncio_petlist(k)) then
+                      call shr_sys_abort(subname//' ERROR: OVERLAP with asyncio_petlist')
+                   endif
+                enddo
                 j = j+1
              endif
           enddo
        endif
+
        call MPI_AllReduce(MPI_IN_PLACE, comp_proc_list, driverpecount*do_async_init, MPI_INTEGER, MPI_MAX, Global_comm, ierr)
        if(asyncio_ntasks == 0) then
           call shr_sys_abort(subname//' ERROR: ASYNC IO Requested but no IO PES assigned')
        endif
 
+       do i=1,do_async_init
+          do j=1,driverpecount
+             if(comp_proc_list(j,i) == -1) then
+                do k=j+1,driverpecount
+                   if(comp_proc_list(k,i) >= 0) then
+                      comp_proc_list(j,i) = comp_proc_list(k,i)
+                      comp_proc_list(k,i) = -1
+                      exit
+                   endif
+                enddo
+             endif
+          enddo
+       enddo
+
        allocate(async_iosystems(do_async_init))
        allocate(async_procs_per_comp(do_async_init))
-
        j=1
        do i=1,total_comps
           if(pio_comp_settings(i)%pio_async_interface) then
@@ -434,11 +466,14 @@ contains
           endif
        enddo
        ! IO tasks should not return until the run is completed
-       if(asyncio_task) j = pio_set_log_level(3)
+!       ierr = pio_set_log_level(3)
+
+       call ESMF_LogWrite(trim(subname)//": call async pio_init", ESMF_LOGMSG_INFO)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+
        call pio_init(async_iosystems, Global_comm, async_procs_per_comp, comp_proc_list, asyncio_petlist, &
             PIO_REARR_BOX, asyncio_comp_comm, io_comm)
        if(.not. asyncio_task) then
-          print *,__FILE__,__LINE__,'I am a compute task'
           j=1
           do i=1,total_comps
              if(pio_comp_settings(i)%pio_async_interface) then
