@@ -130,7 +130,7 @@ contains
     integer                :: n, n1, stat
     integer, pointer       :: petList(:)
     character(len=20)      :: model, prefix
-    integer                :: petCount, i
+    integer                :: petCount, i, k
     integer                :: localPet
     logical                :: is_set
     character(len=512)     :: diro
@@ -246,6 +246,7 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     
     ntasks_per_member = PetCount/number_of_members - pio_asyncio_ntasks
+
     if(ntasks_per_member*number_of_members .ne. (PetCount - pio_asyncio_ntasks)) then
        write (msgstr,'(a,i5,a,i3,a,i3,a)') &
             "PetCount - Async IOtasks (",PetCount-pio_asyncio_ntasks,") must be evenly divisable by number of members (",number_of_members,")"
@@ -273,10 +274,9 @@ contains
     do n=1,pio_asyncio_ntasks
        asyncio_petlist(n) = pio_asyncio_rootpe + (n-1)*pio_asyncio_stride
        if (localPet == asyncio_petlist(n)) asyncio_task = .true.
-!       if (asyncio_petlist(n) == currentPet) currentPet = currentPet + 1
     enddo
 
-
+    k = 1
     do inst=1,number_of_members
        petcnt=1
        comp_task = .false.
@@ -292,10 +292,12 @@ contains
                 petcnt = petcnt+1
                 if (currentpet == localPet) comp_task=.true.
              endif
-          else if(modulo(n-1,pio_asyncio_stride) .ne. pio_asyncio_rootpe) then
+          else if (currentpet .ne. asyncio_petlist(k)) then
              petList(petcnt) = currentpet
              petcnt = petcnt+1
              if (currentpet == localPet) comp_task=.true.
+          else if (currentpet == asyncio_petlist(k)) then
+             k = modulo(k,pio_asyncio_ntasks) + 1
           endif
           currentpet = currentpet + 1
        enddo
@@ -399,14 +401,14 @@ contains
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           call NUOPC_CompGet(dcomp(drv), name=compname, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call ESMF_LogWrite(trim(subname)//": call shr_pio_init"//compname, ESMF_LOGMSG_INFO)
+          call ESMF_LogWrite(trim(subname)//": call shr_pio_init "//compname, ESMF_LOGMSG_INFO)
           call shr_pio_init(dcomp(drv), rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-          call ESMF_LogWrite(trim(subname)//": call shr_pio_component_init"//compname, ESMF_LOGMSG_INFO)
+          call ESMF_LogWrite(trim(subname)//": call shr_pio_component_init "//compname, ESMF_LOGMSG_INFO)
           call shr_pio_component_init(dcomp(drv), Global_Comm, asyncio_petlist, rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call ESMF_LogWrite(trim(subname)//": shr_pio_component_init done"//compname, ESMF_LOGMSG_INFO)
+          call ESMF_LogWrite(trim(subname)//": shr_pio_component_init done "//compname, ESMF_LOGMSG_INFO)
        endif
     enddo
     deallocate(asyncio_petlist)

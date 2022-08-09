@@ -414,7 +414,6 @@ contains
 !
 
     call MPI_Allreduce(MPI_IN_PLACE, do_async_init, 1, MPI_INTEGER, MPI_MAX, Global_comm, ierr)
-
     call MPI_Allreduce(MPI_IN_PLACE, procs_per_comp, total_comps, MPI_INTEGER, MPI_MAX, Global_comm, ierr)
 
     if (do_async_init > 0) then
@@ -425,8 +424,8 @@ contains
        comp_proc_list = -1
        if(.not. asyncio_task) then
           do i=1,total_comps
-             if(pio_comp_settings(i)%pio_async_interface .and. petlocal(i)) then
-                comp_proc_list(1+driver_myid,j) = myid 
+             if(pio_comp_settings(i)%pio_async_interface) then
+                if(petlocal(i)) comp_proc_list(1+driver_myid,j) = myid 
                 do k=1,size(asyncio_petlist)
                    if(comp_proc_list(1+driver_myid, j) == asyncio_petlist(k)) then
                       call shr_sys_abort(subname//' ERROR: OVERLAP with asyncio_petlist')
@@ -436,7 +435,6 @@ contains
              endif
           enddo
        endif
-
        call MPI_AllReduce(MPI_IN_PLACE, comp_proc_list, driverpecount*do_async_init, MPI_INTEGER, MPI_MAX, Global_comm, ierr)
        if(asyncio_ntasks == 0) then
           call shr_sys_abort(subname//' ERROR: ASYNC IO Requested but no IO PES assigned')
@@ -470,7 +468,6 @@ contains
 
        call ESMF_LogWrite(trim(subname)//": call async pio_init", ESMF_LOGMSG_INFO)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-
        call pio_init(async_iosystems, Global_comm, async_procs_per_comp, comp_proc_list, asyncio_petlist, &
             PIO_REARR_BOX, asyncio_comp_comm, io_comm)
        if(.not. asyncio_task) then
