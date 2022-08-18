@@ -743,7 +743,7 @@ contains
                 'Faxa_swndr', 'Faxa_swndf', 'Faxa_swvdr', 'Faxa_swvdf'/)
     else
        allocate(flds(9))
-       flds = (/'Sa_z      ', 'Sa_tbot   ', 'Sa_pbot   ', 'Sa_shum   ', &
+       flds = (/'Sa_z      ', 'Sa_tbot   ', 'Sa_pslv   ', 'Sa_shum   ', &
                 'Sa_u      ', 'Sa_v      ', 'Faxa_swdn ', 'Faxa_lwdn ', &
                 'Faxa_rain ' /)
     end if
