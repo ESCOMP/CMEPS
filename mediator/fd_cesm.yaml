@@ -737,6 +737,11 @@
        canonical_units: m
        description: sea-ice export - volume of snow per unit area
      #
+     - standard_name: Si_bpress
+       alias: basal_pressure
+       canonical_units: Pa
+       description: sea-ice export - ice basal pressure
+     #
      #-----------------------------------
      # section: ocean export to mediator
      #-----------------------------------
@@ -744,6 +749,11 @@
      - standard_name: Fioo_q
        alias: freezing_melting_potential
        canonical_units: W m-2
+       description: ocean export
+     #
+     - standard_name: Fioo_frazil
+       alias: frazil_mass_flux
+       canonical_units: kg m-2 s-1
        description: ocean export
      #
      - standard_name: Faoo_fco2_ocn

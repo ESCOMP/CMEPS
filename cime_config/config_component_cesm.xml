@@ -326,6 +326,7 @@
     <default_value>8</default_value>
     <values match="last">
       <value compset="_DATM.*_POP2.*_DROF" grid="oi%gx3v7">1</value>
+      <value compset="_DATM.*_MPASO.*_DROF"        >$ATM_NCPL</value>
       <value compset="_DATM.*_MOM6.*_DROF"        >$ATM_NCPL</value>
       <value compset="_DATM.*_DOCN%SOM"           >$ATM_NCPL</value>
       <value compset="_DATM.*_SLND.*_DICE.*_DOCN" >$ATM_NCPL</value>
@@ -362,6 +363,7 @@
     <default_value>FALSE</default_value>
     <values match="last">
       <value compset="DATM.+POP\d">TRUE</value>
+      <value compset="DATM.+MPASO">TRUE</value>
       <value compset="DATM.+MOM\d">TRUE</value>
       <value compset="DATM.+DOCN%IAF">TRUE</value>
       <value compset="DATM%CPLHIST.+POP\d">FALSE</value>

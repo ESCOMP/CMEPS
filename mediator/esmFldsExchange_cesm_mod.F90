@@ -1534,6 +1534,20 @@ contains
     end if
 
     ! ---------------------------------------------------------------------
+    ! to ocn: seaice basal pressure
+    ! ---------------------------------------------------------------------
+    if (phase == 'advertise') then
+       call addfld(fldListFr(compice)%flds, 'Si_bpress')
+       call addfld(fldListTo(compocn)%flds, 'Si_bpress')
+    else
+       if ( fldchk(is_local%wrap%FBImp(compice, compice), 'Si_bpress', rc=rc) .and. &
+            fldchk(is_local%wrap%FBExp(compocn)         , 'Si_bpress', rc=rc)) then
+          call addmap(fldListFr(compice)%flds, 'Si_bpress', compocn,  mapfcopy, 'unset', 'unset')
+          call addmrg(fldListTo(compocn)%flds, 'Si_bpress', mrg_from=compice, mrg_fld='Si_bpress', mrg_type='copy')
+       end if
+    end if
+
+    ! ---------------------------------------------------------------------
     ! to ocn: downward longwave heat flux from atm
     ! to ocn: downward direct  near-infrared incident solar radiation from atm
     ! to ocn: downward diffuse near-infrared incident solar radiation from atm
@@ -2715,6 +2729,19 @@ contains
             fldchk(is_local%wrap%FBExp(compice)         , 'Fioo_q', rc=rc)) then
           call addmap(fldListFr(compocn)%flds, 'Fioo_q', compice,  mapfcopy, 'unset', 'unset')
           call addmrg(fldListTo(compice)%flds, 'Fioo_q', mrg_from=compocn, mrg_fld='Fioo_q', mrg_type='copy')
+       end if
+    end if
+    ! ---------------------------------------------------------------------
+    ! to ice: frazil from ocn
+    ! ---------------------------------------------------------------------
+    if (phase == 'advertise') then
+       call addfld(fldListFr(compocn)%flds, 'Fioo_frazil')
+       call addfld(fldListTo(compice)%flds, 'Fioo_frazil')
+    else
+       if ( fldchk(is_local%wrap%FBImp(compocn, compocn), 'Fioo_frazil', rc=rc) .and. &
+            fldchk(is_local%wrap%FBExp(compice)         , 'Fioo_frazil', rc=rc)) then
+          call addmap(fldListFr(compocn)%flds, 'Fioo_frazil', compice,  mapfcopy, 'unset', 'unset')
+          call addmrg(fldListTo(compice)%flds, 'Fioo_frazil', mrg_from=compocn, mrg_fld='Fioo_frazil', mrg_type='copy')
        end if
     end if
     !-----------------------------
