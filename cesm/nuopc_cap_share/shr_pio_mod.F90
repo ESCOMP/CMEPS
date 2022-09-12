@@ -239,6 +239,7 @@ contains
     integer :: ierr
     integer :: iocomm
     integer :: ncomps
+    integer :: async_rearr
     integer :: driverpecount, driver_myid
     integer, allocatable :: driverpetlist(:)
     integer, allocatable :: asyncio_comp_comm(:)
@@ -461,6 +462,11 @@ contains
           if(pio_comp_settings(i)%pio_async_interface) then
              async_procs_per_comp(j) = procs_per_comp(i)
              j = j+1
+             if(async_rearr == 0) then
+                async_rearr = pio_comp_settings(i)%pio_rearranger
+             elseif(async_rearr .ne. pio_comp_settings(i)%pio_rearranger) then
+                call shr_sys_abort(subname//' ERROR: all async component rearrangers must match')
+             endif
           endif
        enddo
        ! IO tasks should not return until the run is completed
@@ -469,7 +475,7 @@ contains
        call ESMF_LogWrite(trim(subname)//": call async pio_init", ESMF_LOGMSG_INFO)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        call pio_init(async_iosystems, Global_comm, async_procs_per_comp, comp_proc_list, asyncio_petlist, &
-            PIO_REARR_BOX, asyncio_comp_comm, io_comm)
+            async_rearr, asyncio_comp_comm, io_comm)
        if(.not. asyncio_task) then
           j=1
           do i=1,total_comps
