@@ -170,8 +170,8 @@ contains
        open(newunit=logunit,file=trim(diro)//"/"//trim(logfile))
 
        ! Write the PIO settings to the beggining of each component log
-       call driver_pio_log_comp_settings(gcomp, logunit)
-
+       call driver_pio_log_comp_settings(gcomp, logunit, rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
     else
        logUnit = 6
     endif

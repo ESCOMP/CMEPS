@@ -169,7 +169,7 @@ contains
 
   end subroutine driver_pio_init
 
-  subroutine driver_pio_component_init(driver, ncomps, rc)
+  subroutine driver_pio_component_init(driver, Global_comm, asyncio_petlist, rc)
     use ESMF, only : ESMF_GridComp, ESMF_LogSetError, ESMF_RC_NOT_VALID, ESMF_GridCompIsCreated, ESMF_VM, ESMF_VMGet
     use ESMF, only : ESMF_GridCompGet, ESMF_GridCompIsPetLocal, ESMF_VMIsCreated, ESMF_Finalize, ESMF_PtrInt1D
     use ESMF, only : ESMF_LOGMSG_INFO, ESMF_LOGWRITE
@@ -457,8 +457,8 @@ contains
     deallocate(gcomp)
   end subroutine driver_pio_component_init
 
-  subroutine driver_pio_log_comp_settings(gcomp, logunit)
-    use ESMF, only : ESMF_GridComp, ESMF_GridCompGet
+  subroutine driver_pio_log_comp_settings(gcomp, logunit, rc)
+    use ESMF, only : ESMF_GridComp, ESMF_GridCompGet, ESMF_SUCCESS
     use NUOPC, only: NUOPC_CompAttributeGet
 
     type(ESMF_GridComp) :: gcomp
