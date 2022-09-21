@@ -930,7 +930,17 @@
       <value>ogrid</value>
     </values>
   </entry>
-
+  <entry id="ocn_surface_flux_scheme">
+    <type>integer</type>
+    <category>control</category>
+    <group>MED_attributes</group>
+    <desc>
+      atm/ocn flux calculation scheme
+    </desc>
+    <values>
+      <value>0</value>
+    </values>
+  </entry>
   <entry id="gust_fac">
     <type>real</type>
     <category>control</category>
@@ -3725,7 +3735,7 @@
       components that need to look at the same data.
     </desc>
     <values>
-      <value>Buildconf/camconf/drv_flds_in,Buildconf/clmconf/drv_flds_in</value>
+      <value>Buildconf/camconf/drv_flds_in,Buildconf/clmconf/drv_flds_in,Buildconf/datmconf/drv_flds_in</value>
     </values>
   </entry>
 
