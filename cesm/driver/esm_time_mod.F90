@@ -29,18 +29,18 @@ module esm_time_mod
 
   ! Clock and alarm options
   character(len=*), private, parameter :: &
-       optNONE           = "none"      , &
-       optNever          = "never"     , &
-       optNSteps         = "nsteps"    , &
-       optNSeconds       = "nseconds"  , &
-       optNMinutes       = "nminutes"  , &
-       optNHours         = "nhours"    , &
-       optNDays          = "ndays"     , &
-       optNMonths        = "nmonths"   , &
-       optNYears         = "nyears"    , &
-       optMonthly        = "monthly"   , &
-       optYearly         = "yearly"    , &
-       optDate           = "date"      , &
+       optNONE           = "none"    , &
+       optNever          = "never"   , &
+       optNSteps         = "nstep"   , &
+       optNSeconds       = "nsecond" , &
+       optNMinutes       = "nminute" , &
+       optNHours         = "nhour"   , &
+       optNDays          = "nday"    , &
+       optNMonths        = "nmonth"  , &
+       optNYears         = "nyear"   , &
+       optMonthly        = "monthly" , &
+       optYearly         = "yearly"  , &
+       optDate           = "date"    , &
        optGLCCouplingPeriod = "glc_coupling_period"
 
   ! Module data
@@ -434,13 +434,14 @@ contains
          rc = ESMF_FAILURE
          return
       end if
-   else if (trim(option) == optNSteps   .or. &
-        trim(option) == optNSeconds .or. &
-        trim(option) == optNMinutes .or. &
-        trim(option) == optNHours   .or. &
-        trim(option) == optNDays    .or. &
-        trim(option) == optNMonths  .or. &
-        trim(option) == optNYears) then
+   else if (&
+        trim(option) == optNSteps   .or. trim(option) == optNSteps//'s'   .or. &
+        trim(option) == optNSeconds .or. trim(option) == optNSeconds//'s' .or. &
+        trim(option) == optNMinutes .or. trim(option) == optNMinutes//'s' .or. &
+        trim(option) == optNHours   .or. trim(option) == optNHours//'s'   .or. &
+        trim(option) == optNDays    .or. trim(option) == optNDays//'s'    .or. &
+        trim(option) == optNMonths  .or. trim(option) == optNMonths//'s'  .or. &
+        trim(option) == optNYears   .or. trim(option) == optNYears//'s' ) then
       if (.not.present(opt_n)) then
          call ESMF_LogWrite(subname//trim(option)//' requires opt_n', ESMF_LOGMSG_ERROR)
          rc = ESMF_FAILURE
