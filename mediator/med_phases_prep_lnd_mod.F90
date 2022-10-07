@@ -51,7 +51,7 @@ contains
     logical                     :: first_call = .true.
     real(r8), pointer           :: dataptr_scalar_lnd(:,:)
     real(r8), pointer           :: dataptr_scalar_atm(:,:)
-    character(len=*), parameter :: subname='(med_phases_prep_lnd)'
+    character(len=*), parameter :: subname = '('//__FILE__//':med_phases_prep_lnd)'
     !---------------------------------------
 
     rc = ESMF_SUCCESS

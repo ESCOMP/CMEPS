@@ -78,7 +78,7 @@ contains
     integer, intent(in), optional :: logunit
     !
     ! !LOCAL VARIABLES:
-    character(len=*), parameter :: subname = 'glc_elevclass_init'
+    character(len=*), parameter :: subname = '('//__FILE__//':glc_elevclass_init_default)'
     !-----------------------------------------------------------------------
 
     glc_nec = my_glc_nec
@@ -130,7 +130,7 @@ contains
     !
     ! !LOCAL VARIABLES:
 
-    character(len=*), parameter :: subname = 'glc_elevclass_init_override'
+    character(len=*), parameter :: subname = '('//__FILE__//':glc_elevclass_init_override)'
     !-----------------------------------------------------------------------
 
     SHR_ASSERT_ALL_FL((ubound(my_topomax) == (/my_glc_nec/)), __FILE__, __LINE__)
@@ -147,7 +147,7 @@ contains
     ! !DESCRIPTION:
     ! Deallocate memory allocated in this module
 
-    character(len=*), parameter :: subname = 'glc_elevclass_clean'
+    character(len=*), parameter :: subname = '('//__FILE__//':glc_elevclass_clean)'
     !-----------------------------------------------------------------------
 
     if (allocated(topomax)) then
@@ -169,7 +169,7 @@ contains
     !
     ! !LOCAL VARIABLES:
 
-    character(len=*), parameter :: subname = 'glc_get_num_elevation_classes'
+    character(len=*), parameter :: subname = '('//__FILE__//':glc_elevclass_clean)'
     !-----------------------------------------------------------------------
 
     num_elevation_classes = glc_nec
@@ -199,7 +199,7 @@ contains
     integer :: glc_pt
     integer :: err_code
 
-    character(len=*), parameter :: subname = 'get_glc_elevation_classes'
+    character(len=*), parameter :: subname = '('//__FILE__//':glc_get_elevation_classes_without_bareland)'
     !-----------------------------------------------------------------------
 
     npts = size(glc_elevclass)
@@ -246,7 +246,7 @@ contains
     ! Tolerance for checking whether ice_covered is 0 or 1
     real(r8), parameter :: ice_covered_tol = 1.e-13
 
-    character(len=*), parameter :: subname = 'get_glc_elevation_classes'
+    character(len=*), parameter :: subname = '('//__FILE__//':glc_get_elevation_classes_with_bareland)'
     !-----------------------------------------------------------------------
 
     npts = size(glc_elevclass)
@@ -315,7 +315,7 @@ contains
     ! !LOCAL VARIABLES:
     integer :: ec  ! temporary elevation class
 
-    character(len=*), parameter :: subname = 'glc_get_elevation_class'
+    character(len=*), parameter :: subname = '('//__FILE__//':glc_get_elevation_class)'
     !-----------------------------------------------------------------------
 
     if (glc_nec < 1) then
@@ -359,7 +359,7 @@ contains
     !
     ! !LOCAL VARIABLES:
 
-    character(len=*), parameter :: subname = 'glc_get_elevclass_bounds'
+    character(len=*), parameter :: subname = '('//__FILE__//':glc_get_elevation_class)'
     !-----------------------------------------------------------------------
 
     elevclass_bounds(:) = topomax(:)
@@ -388,7 +388,7 @@ contains
     ! !LOCAL VARIABLES:
     character(len=16) :: format_string
 
-    character(len=*), parameter :: subname = 'glc_elevclass_as_string'
+    character(len=*), parameter :: subname = '('//__FILE__//':glc_get_elevation_class)'
     !-----------------------------------------------------------------------
 
     ! e.g., for GLC_ELEVCLASS_STRLEN = 2, format_string will be '(i2.2)'
@@ -412,7 +412,7 @@ contains
     integer :: resulting_elevation_class
     integer :: err_code
 
-    character(len=*), parameter :: subname = 'glc_mean_elevation_virtual'
+    character(len=*), parameter :: subname = '('//__FILE__//':glc_get_elevation_class)'
     !-----------------------------------------------------------------------
 
     if (elevation_class == 0) then
@@ -478,7 +478,7 @@ contains
     !
     ! !LOCAL VARIABLES:
 
-    character(len=*), parameter :: subname = 'glc_errcode_to_string'
+    character(len=*), parameter :: subname = '('//__FILE__//':glc_get_elevation_class)'
     !-----------------------------------------------------------------------
 
     select case (err_code)
@@ -522,7 +522,7 @@ contains
     integer :: ec 
     integer :: glc_pt
     integer :: err_code
-    character(len=*), parameter :: subname = 'get_glc_elevation_classes'
+    character(len=*), parameter :: subname = '('//__FILE__//':glc_get_fractional_icecov)'
     !-----------------------------------------------------------------------
 
     npts = size(glc_topo)

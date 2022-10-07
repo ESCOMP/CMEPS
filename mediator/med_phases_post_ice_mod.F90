@@ -40,7 +40,7 @@ contains
     ! local variables
     type(InternalState) :: is_local
     type(ESMF_Clock)    :: dClock
-    character(len=*),parameter :: subname='(med_phases_post_ice)'
+    character(len=*), parameter :: subname = '('//__FILE__//':med_phases_post_ice)'
     !-------------------------------------------------------------------------------
 
     call t_startf('MED:'//subname)
