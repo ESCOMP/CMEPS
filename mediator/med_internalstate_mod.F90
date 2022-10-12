@@ -218,7 +218,7 @@ contains
     character(len=CX)          :: msgString
     character(len=3)           :: name
     integer                    :: num_icesheets
-    character(len=*), parameter :: subname = '('//__FILE__//':med_internalstate_init)'
+    character(len=*),parameter :: subname=' (internalstate init) '
     !-----------------------------------------------------------
 
     nullify(is_local%wrap)
@@ -395,7 +395,7 @@ contains
     character(len=CL)    :: cvalue
     character(len=CX)    :: msgString
     logical              :: isPresent, isSet
-    character(len=*), parameter :: subname = '('//__FILE__//':med_internalstate_coupling)'
+    character(len=*),parameter :: subname=' (internalstate allowed coupling) '
     !-----------------------------------------------------------
 
     nullify(is_local%wrap)

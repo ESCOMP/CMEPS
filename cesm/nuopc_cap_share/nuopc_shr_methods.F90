@@ -22,6 +22,7 @@ module nuopc_shr_methods
   use NUOPC_Model  , only : NUOPC_ModelGet
   use shr_kind_mod , only : r8 => shr_kind_r8, cl=>shr_kind_cl, cs=>shr_kind_cs
   use shr_sys_mod  , only : shr_sys_abort
+  use shr_file_mod , only : shr_file_setlogunit, shr_file_getLogUnit
 
   implicit none
   private
@@ -131,10 +132,7 @@ contains
 !===============================================================================
 
   subroutine set_component_logging(gcomp, mastertask, logunit, shrlogunit, rc)
-    use NUOPC, only : NUOPC_CompAttributeSet, NUOPC_CompAttributeAdd
-    use ESMF, only  : ESMF_GridCompGet, ESMF_LOGMSG_INFO, ESMF_LogWrite
     use driver_pio_mod, only : driver_pio_log_comp_settings
-
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
     logical, intent(in)  :: mastertask
@@ -146,9 +144,7 @@ contains
     character(len=CL) :: diro
     character(len=CL) :: logfile
     character(len=CL) :: inst_suffix
-    character(len=CL) :: name
     integer :: inst_index  ! not used here
-    character(len=*), parameter :: subname = "("//__FILE__//": set_component_logging)"
     !-----------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -168,25 +164,15 @@ contains
        endif
 
        open(newunit=logunit,file=trim(diro)//"/"//trim(logfile))
-
        ! Write the PIO settings to the beggining of each component log
-       call driver_pio_log_comp_settings(gcomp, logunit, rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call driver_pio_log_comp_settings(gcomp, logunit)
+
     else
        logUnit = 6
     endif
-
+    ! TODO: shr_file mod is deprecated and should be removed.
+    call shr_file_setLogUnit (logunit)
     
-    call ESMF_GridCompGet(gcomp, name=name, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    call ESMF_LogWrite(trim(subname)//": setting logunit for component: "//trim(name), ESMF_LOGMSG_INFO)
-
-    call NUOPC_CompAttributeAdd(gcomp, attrList=(/'logunit'/), rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompAttributeSet(gcomp, name='logunit',value=logunit, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
   end subroutine set_component_logging
 
 !===============================================================================
@@ -239,7 +225,7 @@ contains
     type(ESMF_Field)  :: field
     real(r8), pointer :: farrayptr(:,:)
     real(r8)          :: tmp(1)
-    character(len=*), parameter :: subname = '('//__FILE__//':state_getscalar)'
+    character(len=*), parameter :: subname='(state_getscalar)'
     ! ----------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -290,7 +276,7 @@ contains
     type(ESMF_Field)  :: lfield
     type(ESMF_VM)     :: vm
     real(r8), pointer :: farrayptr(:,:)
-    character(len=*), parameter :: subname = '('//__FILE__//':state_setscalar)'
+    character(len=*), parameter :: subname='(state_setscalar)'
     ! ----------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -336,7 +322,7 @@ contains
     character(ESMF_MAXSTR) ,pointer :: lfieldnamelist(:)
     real(r8), pointer               :: dataPtr1d(:)
     real(r8), pointer               :: dataPtr2d(:,:)
-    character(len=*), parameter :: subname = '('//__FILE__//':state_diagnose)'
+    character(len=*),parameter      :: subname='(state_diagnose)'
     ! ----------------------------------------------
 
     call ESMF_StateGet(state, itemCount=fieldCount, rc=rc)
@@ -413,7 +399,7 @@ contains
     type(ESMF_Mesh)             :: lmesh
     integer                     :: lrank, nnodes, nelements
     logical                     :: labort
-    character(len=*), parameter :: subname = '('//__FILE__//':field_getfldptr)'
+    character(len=*), parameter :: subname='(field_getfldptr)'
     ! ----------------------------------------------
 
     if (.not.present(rc)) then
@@ -540,7 +526,7 @@ contains
     type(ESMF_Time)         :: NextAlarm        ! Next restart alarm time
     type(ESMF_TimeInterval) :: AlarmInterval    ! Alarm interval
     integer                 :: sec
-    character(len=*), parameter :: subname = '('//__FILE__//':alarmInit)'
+    character(len=*), parameter :: subname = '(set_alarmInit): '
     !-------------------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -824,7 +810,7 @@ contains
     ! local variables
     integer :: year, mon, day ! year, month, day as integers
     integer :: tdate          ! temporary date
-    character(len=*), parameter :: subname = '('//__FILE__//':timeInit)'
+    character(len=*), parameter :: subname='(timeInit)'
     !-------------------------------------------------------------------------------
 
     rc = ESMF_SUCCESS

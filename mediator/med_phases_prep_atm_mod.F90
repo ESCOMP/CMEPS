@@ -53,7 +53,7 @@ contains
     real(R8), pointer          :: ifrac(:)
     real(R8), pointer          :: ofrac(:)
     integer                    :: i, j, n, n1, ncnt
-    character(len=*), parameter :: subname = '('//__FILE__//':med_phases_prep_atm)'
+    character(len=*),parameter :: subname='(med_phases_prep_atm)'
     !-------------------------------------------------------------------------------
 
     call t_startf('MED:'//subname)

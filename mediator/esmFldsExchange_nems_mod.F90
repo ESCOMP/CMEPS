@@ -51,7 +51,7 @@ contains
     character(len=CL)   :: cvalue
     character(len=CS)   :: fldname
     character(len=CS), allocatable :: flds(:), oflds(:), aflds(:), iflds(:)
-    character(len=*), parameter :: subname = '('//__FILE__//':esmFldsExchange_nems)'
+    character(len=*) , parameter   :: subname='(esmFldsExchange_nems)'
     !--------------------------------------
 
     rc = ESMF_SUCCESS

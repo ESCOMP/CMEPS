@@ -109,7 +109,7 @@ contains
     real(R8), pointer  :: dataptr1d(:)
     real(R8), pointer  :: dataptr2d(:,:)
     character(ESMF_MAXSTR), allocatable :: lfieldNameList(:)
-    character(len=*), parameter :: subname = '('//__FILE__//':med_methods_FB_init_pointer)'
+    character(len=*), parameter :: subname='(med_methods_FB_init_pointer)'
     ! ----------------------------------------------
 
     ! Create empty FBout
@@ -262,7 +262,7 @@ contains
     integer, allocatable   :: gridToFieldMap(:)
     logical                :: isPresent
     character(ESMF_MAXSTR), allocatable :: lfieldNameList(:)
-    character(len=*), parameter :: subname = '('//__FILE__//':med_methods_FB_init)'
+    character(len=*), parameter :: subname='(med_methods_FB_init)'
     ! ----------------------------------------------
 
     if (dbug_flag > 10) then
@@ -540,7 +540,7 @@ contains
     ! local variables
     integer                         :: fieldCount
     character(ESMF_MAXSTR) ,pointer :: lfieldnamelist(:)
-    character(len=*), parameter :: subname = '('//__FILE__//':med_methods_FB_getNameN)'
+    character(len=*),parameter      :: subname='(med_methods_FB_getNameN)'
     ! ----------------------------------------------
 
     if (dbug_flag > 10) then
@@ -586,7 +586,7 @@ contains
 
     ! local variables
     character(len=ESMF_MAXSTR) :: name
-    character(len=*), parameter :: subname = '('//__FILE__//':med_methods_FB_getFieldN)'
+    character(len=*),parameter :: subname='(med_methods_FB_getFieldN)'
     ! ----------------------------------------------
 
     if (dbug_flag > 10) then
@@ -624,7 +624,7 @@ contains
     ! local variables
     integer                         :: fieldCount
     character(ESMF_MAXSTR) ,pointer :: lfieldnamelist(:)
-    character(len=*), parameter :: subname = '('//__FILE__//':med_methods_State_getNameN)'
+    character(len=*),parameter      :: subname='(med_methods_State_getNameN)'
     ! ----------------------------------------------
 
     if (dbug_flag > 10) then
@@ -671,7 +671,7 @@ contains
     ! local variables
     integer                            :: n,itemCount
     type(ESMF_Field), pointer          :: fieldList(:)
-    character(len=*), parameter :: subname = '('//__FILE__//':med_methods_State_getNumFields)'
+    character(len=*),parameter         :: subname='(med_methods_State_getNumFields)'
     ! ----------------------------------------------
 
     if (dbug_flag > 10) then
@@ -718,7 +718,7 @@ contains
     integer                         :: lrank
     real(R8), pointer               :: fldptr1(:)
     real(R8), pointer               :: fldptr2(:,:)
-    character(len=*), parameter :: subname = '('//__FILE__//':med_methods_FB_reset)'
+    character(len=*),parameter      :: subname='(med_methods_FB_reset)'
     ! ----------------------------------------------
 
     if (dbug_flag > 10) then
@@ -796,7 +796,7 @@ contains
     integer                         :: lrank
     real(R8), pointer               :: fldptr1(:)
     real(R8), pointer               :: fldptr2(:,:)
-    character(len=*), parameter :: subname = '('//__FILE__//':med_methods_State_reset)'
+    character(len=*),parameter      :: subname='(med_methods_State_reset)'
     ! ----------------------------------------------
 
     if (dbug_flag > 10) then
@@ -862,7 +862,7 @@ contains
     real(R8), pointer               :: dataPtr1(:)
     real(R8), pointer               :: dataPtr2(:,:)
     type(ESMF_Field)                :: lfield
-    character(len=*), parameter :: subname = '('//__FILE__//':med_methods_FB_average)'
+    character(len=*),parameter      :: subname='(med_methods_FB_average)'
     ! ----------------------------------------------
 
     if (dbug_flag > 10) then
@@ -941,7 +941,7 @@ contains
     real(R8), pointer               :: dataPtr1d(:)
     real(R8), pointer               :: dataPtr2d(:,:)
     type(ESMF_Field)                :: lfield
-    character(len=*), parameter :: subname = '('//__FILE__//':med_methods_FB_diagnose)'
+    character(len=*), parameter     :: subname='(med_methods_FB_diagnose)'
     ! ----------------------------------------------
 
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
@@ -1021,7 +1021,7 @@ contains
     ! local variables
     character(len=CS) :: lstring
     real(R8), pointer :: dataPtr3d(:,:,:)
-    character(len=*), parameter :: subname = '('//__FILE__//':med_methods_Array_diagnose)'
+    character(len=*),parameter  :: subname='(med_methods_Array_diagnose)'
     ! ----------------------------------------------
 
     if (dbug_flag > 10) then
@@ -1075,7 +1075,7 @@ contains
     real(R8), pointer               :: dataPtr1d(:)
     real(R8), pointer               :: dataPtr2d(:,:)
     type(ESMF_Field)                :: lfield
-    character(len=*), parameter :: subname = '('//__FILE__//':med_methods_State_diagnose)'
+    character(len=*),parameter      :: subname='(med_methods_State_diagnose)'
     ! ----------------------------------------------
 
     if (dbug_flag > 5) then
@@ -1157,7 +1157,7 @@ contains
     real(R8), pointer :: dataPtr2d(:,:)
     type(ESMF_Field)  :: lfield
     integer           :: ungriddedUBound(1)     ! currently the size must equal 1 for rank 2 fields
-    character(len=*), parameter :: subname = '('//__FILE__//':med_methods_FB_Field_diagnose)'
+    character(len=*),parameter :: subname='(med_methods_FB_Field_diagnose)'
     ! ----------------------------------------------
 
     if (dbug_flag > 10) then
@@ -1222,7 +1222,7 @@ contains
     character(len=CS)          :: lstring
     real(R8), pointer          :: dataPtr1d(:)
     real(R8), pointer          :: dataPtr2d(:,:)
-    character(len=*), parameter :: subname = '('//__FILE__//':med_methods_Field_diagnose)'
+    character(len=*),parameter :: subname='(med_methods_Field_diagnose)'
     ! ----------------------------------------------
 
     if (dbug_flag > 10) then
@@ -1284,7 +1284,7 @@ contains
     type(ESMF_FieldBundle), intent(inout) :: FBout
     type(ESMF_FieldBundle), intent(in)    :: FBin
     integer               , intent(out)   :: rc
-    character(len=*), parameter :: subname = '('//__FILE__//':med_methods_FB_copy)'
+    character(len=*), parameter :: subname='(med_methods_FB_copy)'
     ! ----------------------------------------------
 
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
@@ -1327,7 +1327,7 @@ contains
     real(R8), pointer               :: dataPtri2(:,:)
     real(R8), pointer               :: dataPtro2(:,:)
     type(ESMF_Field)                :: lfield
-    character(len=*), parameter :: subname = '('//__FILE__//':med_methods_FB_accum)'
+    character(len=*), parameter     :: subname='(med_methods_FB_accum)'
     ! ----------------------------------------------
 
     if (dbug_flag > 10) then
@@ -1439,7 +1439,7 @@ contains
     integer               , intent(out) :: rc
 
     ! local variables
-    character(len=*), parameter :: subname = '('//__FILE__//':med_methods_FB_accum)'
+    character(len=*), parameter :: subname='(med_methods_FB_FldChk)'
     ! ----------------------------------------------
 
     if (dbug_flag > 10) then
@@ -1499,7 +1499,7 @@ contains
     integer                  :: lrank, nnodes, nelements
     logical                  :: labort
     type(ESMF_GeomType_Flag) :: geomtype
-    character(len=*), parameter :: subname = '('//__FILE__//':med_methods_Field_GetFldPtr)'
+    character(len=*), parameter :: subname='(med_methods_Field_GetFldPtr)'
     ! ----------------------------------------------
 
     if (dbug_flag > 10) then
@@ -1619,7 +1619,7 @@ contains
     ! local variables
     type(ESMF_Field) :: lfield
     integer          :: lrank
-    character(len=*), parameter :: subname = '('//__FILE__//':med_methods_FB_GetFldPtr)'
+    character(len=*), parameter :: subname='(med_methods_FB_GetFldPtr)'
     ! ----------------------------------------------
 
     if (dbug_flag > 10) then
@@ -1670,7 +1670,7 @@ contains
     integer          ,          intent(out) :: rc
 
     ! local variables
-    character(len=*), parameter :: subname = '('//__FILE__//':med_methods_FB_GetFldPtr)'
+    character(len=*), parameter :: subname='(med_methods_FieldPtr_Compare1)'
     ! ----------------------------------------------
 
     if (dbug_flag > 10) then
@@ -1707,7 +1707,7 @@ contains
     integer           , intent(out) :: rc
 
     ! local variables
-    character(len=*), parameter :: subname = '('//__FILE__//':med_methods_FB_GetFldPtr)'
+    character(len=*), parameter :: subname='(med_methods_FieldPtr_Compare2)'
     ! ----------------------------------------------
 
     if (dbug_flag > 10) then
@@ -1750,7 +1750,7 @@ contains
     integer                         :: fieldcount
     character(ESMF_MAXSTR) ,pointer :: lfieldnamelist(:)
     character(ESMF_MAXSTR)          :: name
-    character(len=*), parameter :: subname = '('//__FILE__//':med_methods_State_GeomPrint)'
+    character(len=*),parameter  :: subname='(med_methods_State_GeomPrint)'
     ! ----------------------------------------------
 
     if (dbug_flag > 10) then
@@ -1793,7 +1793,7 @@ contains
 
     type(ESMF_Field)  :: lfield
     integer           :: fieldcount
-    character(len=*), parameter :: subname = '('//__FILE__//':med_methods_FB_GeomPrint)'
+    character(len=*),parameter  :: subname='(med_methods_FB_GeomPrint)'
     ! ----------------------------------------------
 
     if (dbug_flag > 10) then
@@ -1836,7 +1836,7 @@ contains
     real(R8), pointer        :: dataPtr1(:)
     real(R8), pointer        :: dataPtr2(:,:)
     type(ESMF_GeomType_Flag) :: geomtype
-    character(len=*), parameter :: subname = '('//__FILE__//':med_methods_Field_GeomPrint)'
+    character(len=*),parameter  :: subname='(med_methods_Field_GeomPrint)'
     ! ----------------------------------------------
 
     if (dbug_flag > 10) then
@@ -1918,7 +1918,7 @@ contains
     integer, allocatable        :: minIndexPTile(:,:), maxIndexPTile(:,:)
     type(ESMF_MeshStatus_Flag)  :: meshStatus
     logical                     :: elemDGPresent, nodeDGPresent
-    character(len=*), parameter :: subname = '('//__FILE__//':med_methods_Mesh_Print)'
+    character(len=*),parameter  :: subname='(med_methods_Mesh_Print)'
     ! ----------------------------------------------
 
     if (dbug_flag > 10) then
@@ -2082,7 +2082,7 @@ contains
     real(R8), pointer          :: fldptrR81D(:)
     real(R8), pointer          :: fldptrR82D(:,:)
     integer                    :: n1,n2,n3
-    character(len=*), parameter :: subname = '('//__FILE__//':med_methods_Grid_Print)'
+    character(len=*),parameter :: subname='(med_methods_Grid_Print)'
     ! ----------------------------------------------
 
     if (dbug_flag > 10) then
@@ -2209,7 +2209,7 @@ contains
     type(ESMF_TimeInterval) :: timeStep
     character(len=CS)       :: timestr
     character(len=CL)       :: lstring
-    character(len=*), parameter :: subname = '('//__FILE__//':med_methods_Clock_TimePrint)'
+    character(len=*), parameter :: subname='(med_methods_Clock_TimePrint)'
     ! ----------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -2281,7 +2281,7 @@ contains
     type(ESMF_Field)  :: field
     real(R8), pointer :: farrayptr(:,:)
     real(r8)          :: tmp(1)
-    character(len=*), parameter :: subname = '('//__FILE__//':med_methods_State_GetScalar)'
+    character(len=*), parameter :: subname='(med_methods_State_GetScalar)'
     ! ----------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -2344,7 +2344,7 @@ contains
     type(ESMF_Field)  :: field
     type(ESMF_VM)     :: vm
     real(R8), pointer :: farrayptr(:,:)
-    character(len=*), parameter :: subname = '('//__FILE__//':med_methods_State_SetScalar)'
+    character(len=*), parameter :: subname='(med_methods_State_SetScalar)'
     ! ----------------------------------------------
 
     rc = ESMF_SUCCESS

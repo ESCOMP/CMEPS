@@ -128,7 +128,7 @@ contains
     integer             :: rc
     integer             :: i, tmp(1)
     character(*), parameter :: F00   = "('(shr_megan_readnl) ',2a)"
-    character(len=*), parameter :: subname = '('//__FILE__//':shr_megan_readnl)'
+    character(len=*), parameter :: subname='(shr_megan_readnl)'
     !--------------------------------------------------------------
 
     namelist /megan_emis_nl/ megan_specifier, megan_factors_file, megan_mapped_emisfctrs

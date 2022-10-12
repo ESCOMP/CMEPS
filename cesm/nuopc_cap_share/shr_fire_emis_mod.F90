@@ -115,7 +115,7 @@ contains
     logical             :: fire_emis_elevated = .true.
     integer             :: i, tmp(1)
     character(*),parameter :: F00   = "('(shr_fire_emis_readnl) ',2a)"
-    character(len=*), parameter :: subname = '('//__FILE__//':shr_fire_emis_readnl)'
+    character(len=*), parameter :: subname='(shr_fire_emis_readnl)'
     !------------------------------------------------------------------
 
     namelist /fire_emis_nl/ fire_emis_specifier, fire_emis_factors_file, fire_emis_elevated

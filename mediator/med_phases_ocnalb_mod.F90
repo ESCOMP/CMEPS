@@ -252,7 +252,7 @@ contains
     real(R8), parameter     :: const_deg2rad = shr_const_pi/180.0_R8  ! deg to rads
     character(CL)           :: msg
     logical                 :: first_call = .true.
-    character(len=*), parameter :: subname = '('//__FILE__//':med_phases_ocnalb_run)'
+    character(len=*)  , parameter :: subname='(med_phases_ocnalb_run)'
     !---------------------------------------
 
     rc = ESMF_SUCCESS
@@ -463,7 +463,7 @@ contains
     ! local variables
     character(len=CL) :: msgstr          ! temporary
     character(len=CL) :: cvalue          ! temporary
-    character(len=*), parameter :: subname = '('//__FILE__//':med_phases_ocnalb_orbital_init)'
+    character(len=*) , parameter :: subname = "(med_phases_ocnalb_orbital_init)"
     !-------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -570,7 +570,7 @@ contains
     character(len=CL) :: msgstr   ! temporary
     logical           :: lprint
     logical           :: first_time = .true.
-    character(len=*), parameter :: subname = '('//__FILE__//':med_phases_ocnalb_orbital_update)'
+    character(len=*) , parameter :: subname = "(med_phases_ocnalb_orbital_update)"
     !-------------------------------------------
 
     rc = ESMF_SUCCESS

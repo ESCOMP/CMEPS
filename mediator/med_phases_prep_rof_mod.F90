@@ -94,7 +94,7 @@ contains
     type(ESMF_Mesh)     :: mesh_r
     type(ESMF_Field)    :: lfield
     character(len=CS), allocatable  :: fldnames_temp(:)
-    character(len=*), parameter :: subname = '('//__FILE__//':med_phases_prep_rof_init)'
+    character(len=*),parameter  :: subname=' (med_phases_prep_rof_init) '
     !---------------------------------------
 
     rc = ESMF_SUCCESS
@@ -198,7 +198,7 @@ contains
     real(r8), pointer         :: dataptr1d_accum(:)
     type(ESMF_Field)          :: lfield
     type(ESMF_Field)          :: lfield_accum
-    character(len=*), parameter :: subname = '('//__FILE__//':med_phases_prep_rof_accum)'
+    character(len=*), parameter :: subname='(med_phases_prep_rof_mod: med_phases_prep_rof_accum)'
     !---------------------------------------
 
     call t_startf('MED:'//subname)
@@ -281,7 +281,7 @@ contains
     type(ESMF_Field)          :: lfield_dst
     type(ESMF_Field)          :: field_lfrac_lnd
     character(CL), pointer    :: lfieldnamelist(:)
-    character(len=*), parameter :: subname = '('//__FILE__//':med_phases_prep_rof)'
+    character(len=*),parameter  :: subname='(med_phases_prep_rof_mod: med_phases_prep_rof)'
     !---------------------------------------
 
     call t_startf('MED:'//subname)
@@ -462,7 +462,7 @@ contains
     real(r8), pointer         :: irrig_volr0_r(:)
     real(r8), pointer         :: irrig_flux_l(:)
     real(r8), pointer         :: irrig_flux_r(:)
-    character(len=*), parameter :: subname = '('//__FILE__//':med_phases_prep_rof_irrig)'
+    character(len=*), parameter :: subname='(med_phases_prep_rof_mod: med_phases_prep_rof_irrig)'
     !---------------------------------------------------------------
 
     call t_startf('MED:'//subname)

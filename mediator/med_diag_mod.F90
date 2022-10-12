@@ -2751,7 +2751,7 @@ contains
     integer :: oldsize
     logical :: found
     type(budget_diag_type), pointer :: new_entries(:)
-    character(len=*), parameter :: subname = '('//__FILE__//':add_to_budget_diag)'
+    character(len=*), parameter :: subname='(add_to_budget_diag)'
     !----------------------------------------------------------------------
 
     if (associated(entries)) then

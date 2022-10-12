@@ -182,7 +182,7 @@ contains
     integer             :: maptype
     integer             :: fieldCount
     logical, save       :: first_call = .true.
-    character(len=*), parameter :: subname = '('//__FILE__//':med_fraction_init)'
+    character(len=*),parameter :: subname=' (med_fraction_init)'
     !---------------------------------------
 
     call t_startf('MED:'//subname)
@@ -674,7 +674,7 @@ contains
     type(ESMF_Field)           :: field_dst
     integer                    :: n
     integer                    :: maptype
-    character(len=*), parameter :: subname = '('//__FILE__//':med_fraction_set)'
+    character(len=*),parameter :: subname=' (med_fraction_set)'
     !---------------------------------------
 
     rc = ESMF_SUCCESS

@@ -95,7 +95,7 @@ contains
     character(len=CS)   :: name
     logical             :: wavice_coupling
     logical             :: ocn2glc_coupling
-    character(len=*), parameter :: subname = '('//__FILE__//':esmFldsExchange_cesm)'
+    character(len=*) , parameter   :: subname=' (esmFldsExchange_cesm) '
     !--------------------------------------
 
     rc = ESMF_SUCCESS
