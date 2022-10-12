@@ -87,7 +87,7 @@ contains
     type(ESMF_Time)         :: NextAlarm        ! Next alarm time
     type(ESMF_TimeInterval) :: AlarmInterval    ! Alarm interval
     integer                 :: sec
-    character(len=*), parameter :: subname = '('//__FILE__//':med_time_alarmInit)'
+    character(len=*), parameter :: subname = '(med_time_alarmInit): '
     !-------------------------------------------------------------------------------
 
     rc = ESMF_SUCCESS

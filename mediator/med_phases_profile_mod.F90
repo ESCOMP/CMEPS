@@ -65,7 +65,7 @@ contains
     real(r8)                :: msize, mrss, ringdays
     real(r8), save          :: avgdt
     character(len=CL)       :: walltimestr, nexttimestr
-    character(len=*), parameter :: subname = '('//__FILE__//':med_phases_profile)'
+    character(len=*), parameter :: subname='(med_phases_profile)'
     !---------------------------------------
 
     call t_startf('MED:'//subname)

@@ -178,7 +178,7 @@ contains
     integer             :: n
     integer             :: fieldcount
     type(InternalState) :: is_local
-    character(len=*), parameter :: subname = '('//__FILE__//':med_phases_aofluxes_init_fldbuns)'
+    character(len=*),parameter :: subname=' (med_phases_aofluxes_init_fldbuns) '
     !---------------------------------------
 
     ! Create field bundles for mediator ocean/atmosphere flux computation
@@ -275,7 +275,7 @@ contains
     type(aoflux_out_type) , save :: aoflux_out
     logical               , save :: aoflux_created
     logical               , save :: first_call = .true.
-    character(len=*), parameter :: subname = '('//__FILE__//':med_phases_aofluxes_run)'
+    character(len=*),parameter :: subname=' (med_phases_aofluxes_run) '
     !---------------------------------------
 
     rc = ESMF_SUCCESS
@@ -505,7 +505,7 @@ contains
     type(ESMF_Mesh)     :: lmesh
     real(R8), pointer   :: garea(:) => null()
     type(ESMF_CoordSys_Flag)   :: coordSys
-    character(len=*), parameter :: subname = '('//__FILE__//':med_aofluxes_init_ogrid)'
+    character(len=*),parameter :: subname=' (med_aofluxes_init_ocngrid) '
     !-----------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -615,8 +615,7 @@ contains
     type(ESMF_Mesh)     :: lmesh
     real(R8), pointer   :: garea(:) => null()
     type(ESMF_CoordSys_Flag)   :: coordSys
-    character(len=*), parameter :: subname = '('//__FILE__//':med_aofluxes_init_agrid)'
-
+    character(len=*),parameter :: subname=' (med_aofluxes_init_atmgrid) '
     !-----------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -776,7 +775,7 @@ contains
     type(ESMF_CoordSys_Flag)           :: coordSys
     real(ESMF_KIND_R8)    ,allocatable :: garea(:)
     character(ESMF_MAXSTR),allocatable :: fieldNameList(:)
-    character(len=*), parameter :: subname = '('//__FILE__//':med_aofluxes_init_xgrid)'
+    character(len=*),parameter :: subname=' (med_aofluxes_init_xgrid) '
     !-----------------------------------------------------------------------
 
     rc = ESMF_SUCCESS

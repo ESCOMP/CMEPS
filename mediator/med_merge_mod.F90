@@ -79,7 +79,7 @@ contains
     real(r8), pointer          :: dataptr1d(:)
     real(r8), pointer          :: dataptr2d(:,:)
     logical                    :: zero_output
-    character(len=*), parameter :: subname = '('//__FILE__//':med_merge_auto_multi_fldbuns)'
+    character(len=*),parameter :: subname=' (module_med_merge_mod: med_merge_auto)'
     !---------------------------------------
 
     call t_startf('MED:'//subname)
@@ -244,7 +244,7 @@ contains
     real(r8), pointer          :: dataptr1d(:)
     real(r8), pointer          :: dataptr2d(:,:)
     logical                    :: zero_output
-    character(len=*), parameter :: subname = '('//__FILE__//':med_merge_auto_single_fldbun)'
+    character(len=*),parameter :: subname=' (module_med_merge_mod: med_merge_auto)'
     !---------------------------------------
 
     call t_startf('MED:'//subname)
@@ -364,7 +364,7 @@ contains
     real(R8), pointer :: dpf1(:)
     real(R8), pointer :: dpf2(:,:)  ! intput pointers to 1d and 2d fields
     real(R8), pointer :: dpw1(:)    ! weight pointer
-    character(len=*), parameter :: subname = '('//__FILE__//':med_merge_auto_field)'
+    character(len=*),parameter :: subname=' (med_merge_mod: med_merge_auto_field)'
     !---------------------------------------
 
     rc = ESMF_SUCCESS
@@ -481,7 +481,7 @@ contains
     type(ESMF_Field)  :: field_in
     integer           :: ungriddedUBound_in(1)  ! size of ungridded dimension, if any
     character(len=CL) :: errmsg
-    character(len=*), parameter :: subname = '('//__FILE__//':med_merge_auto_errcheck)'
+    character(len=*),parameter :: subname=' (module_med_merge_mod: med_merge_errcheck)'
     !---------------------------------------
 
     rc = ESMF_SUCCESS
@@ -572,7 +572,7 @@ contains
     integer                    :: lb1,ub1,i,j,n
     logical                    :: wgtfound, FBinfound
     integer                    :: dbrc
-    character(len=*), parameter :: subname = '('//__FILE__//':med_merge_field_1D)'
+    character(len=*),parameter :: subname='(med_merge_field_1D)'
     ! ----------------------------------------------
 
     if (dbug_flag > 10) then

@@ -55,7 +55,7 @@ contains
 
     ! local variables
     type(ESMF_Config) :: runSeq
-    character(len=*), parameter :: subname = '('//__FILE__//':SetServices)'
+    character(len=*), parameter :: subname = "(esm.F90:SetServices)"
     !---------------------------------------
 
     rc = ESMF_SUCCESS
@@ -133,7 +133,7 @@ contains
     integer           :: maxthreads
     character(len=CL) :: msgstr
     integer           :: componentcount
-    character(len=*), parameter :: subname = '('//__FILE__//':SetModelServices)'
+    character(len=*), parameter :: subname = "(esm.F90:SetModelServices)"
     !-------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -246,7 +246,7 @@ contains
     integer                 :: localrc
     type(ESMF_Config)       :: runSeq
     type(NUOPC_FreeFormat)  :: runSeqFF
-    character(len=*), parameter :: subname = '('//__FILE__//':SetRunSequence)'
+    character(len=*), parameter :: subname = "(esm.F90:SetRunSequence)"
     !---------------------------------------
 
     rc = ESMF_SUCCESS
@@ -344,7 +344,7 @@ contains
     character(len=CL), allocatable :: cplList(:)
     character(len=CL)              :: tempString
     character(len=CL)              :: msgstr
-    character(len=*), parameter :: subname = '('//__FILE__//':pretty_print_nuopc_freeformat)'
+    character(len=*), parameter    :: subname = "(esm.F90:ModifyCplLists)"
     !---------------------------------------
 
     rc = ESMF_SUCCESS
@@ -443,7 +443,7 @@ contains
     integer          , parameter :: ens1=1                ! use first instance of ensemble only
     integer          , parameter :: fix1=1                ! temporary hard-coding to first ensemble, needs to be fixed
     real(R8)         , parameter :: epsilo = shr_const_mwwv/shr_const_mwdair
-    character(len=*), parameter :: subname = '('//__FILE__//':InitAttributes)'
+    character(len=*) , parameter :: subname = '(InitAttributes)'
     !----------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -575,7 +575,7 @@ contains
     character(len=CS) :: logFilePostFix ! postfix for output log files
     character(len=CL) :: outPathRoot    ! root for output log files
     character(len=CS) :: cime_model
-    character(len=*), parameter :: subname = '('//__FILE__//':CheckAttributes)'
+    character(len=*), parameter :: subname = '(driver_attributes_check) '
     !-------------------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -635,7 +635,7 @@ contains
     character(len=CL)              :: cvalue
     character(len=CS)              :: attribute
     integer                        :: componentCount
-    character(len=*), parameter :: subname = '('//__FILE__//':AddAttributes)'
+    character(len=*), parameter    :: subname = "(esm.F90:AddAttributes)"
     !-------------------------------------------
 
     rc = ESMF_Success
@@ -737,7 +737,7 @@ contains
 
     ! local variables
     type(NUOPC_FreeFormat)  :: attrFF
-    character(len=*), parameter :: subname = '('//__FILE__//':ReadAttributes)'
+    character(len=*), parameter :: subname = "(esm.F90:ReadAttributes)"
     !-------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -784,7 +784,7 @@ contains
     integer, intent(out) :: rc
 
     ! local variables
-    character(len=*), parameter :: subname = '('//__FILE__//':InitAdvertize)'
+    character(len=*), parameter :: subname = "(esm.F90:InitAdvertize)"
     !---------------------------------------
 
     rc = ESMF_SUCCESS
@@ -801,8 +801,7 @@ contains
     use ESMF         , only : ESMF_ConfigGetLen, ESMF_LogFoundAllocError, ESMF_ConfigGetAttribute
     use ESMF         , only : ESMF_RC_NOT_VALID, ESMF_LogSetError, ESMF_Info, ESMF_InfoSet
     use ESMF         , only : ESMF_GridCompIsPetLocal, ESMF_MethodAdd, ESMF_UtilStringLowerCase
-    use ESMF         , only : ESMF_InfoCreate, ESMF_InfoDestroy, ESMF_VMGetGlobal
-    use ESMF         , only : ESMF_VMAllGather
+    use ESMF         , only : ESMF_InfoCreate, ESMF_InfoDestroy
     use NUOPC        , only : NUOPC_CompAttributeGet
     use NUOPC_Driver , only : NUOPC_DriverAddComp
 #ifndef NO_MPI2
@@ -871,14 +870,11 @@ contains
     ! local variables
     type(ESMF_GridComp)            :: child
     type(ESMF_VM)                  :: vm
-    type(ESMF_VM)                  :: globalvm
     type(ESMF_Config)              :: config
     type(ESMF_Info)                :: info
     integer                        :: componentcount
     integer                        :: PetCount
     integer                        :: LocalPet
-    integer                        :: PetIDinGlobal(1)
-    integer, allocatable           :: PetMapinGlobal(:)
     integer                        :: ntasks, rootpe, nthrds, stride
     integer                        :: ntask, cnt
     integer                        :: i
@@ -888,7 +884,7 @@ contains
     character(CL)                  :: msgstr
     integer, allocatable           :: petlist(:)
     integer, pointer               :: comms(:), comps(:)
-    integer                        :: Driver_comm
+    integer                        :: Global_Comm
     logical                        :: isPresent
     integer, allocatable           :: comp_comm_iam(:)
     logical, allocatable           :: comp_iamin(:)
@@ -896,8 +892,7 @@ contains
     character(CL)                  :: cvalue
     logical                        :: found_comp
     integer :: rank, nprocs, ierr
-    integer :: n ! loop variable
-    character(len=*), parameter :: subname = '('//__FILE__//':esm_init_pelayout)'
+    character(len=*), parameter    :: subname = "(esm_pelayout.F90:esm_init_pelayout)"
     !---------------------------------------
 
     rc = ESMF_SUCCESS
@@ -906,21 +901,10 @@ contains
     call ESMF_GridCompGet(driver, vm=vm, config=config, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    call ESMF_VMGetGlobal(vm=globalvm, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-
     call ReadAttributes(driver, config, "PELAYOUT_attributes::", rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    call ESMF_VMGet(vm, petCount=petCount, LocalPet=LocalPet, mpiCommunicator=Driver_comm,  rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    
-    call ESMF_VMGet(globalvm, LocalPet=PetIDinGlobal(1), rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    allocate(PetMapinGlobal(petCount))
-    call ESMF_VMAllGather(vm, PetIDinGlobal, PetMapinGlobal, 1, rc=rc)
+    call ESMF_VMGet(vm, petCount=petCount, mpiCommunicator=Global_Comm, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     componentCount = ESMF_ConfigGetLen(config,label="component_list:", rc=rc)
@@ -956,8 +940,8 @@ contains
     allocate(comms(componentCount+1), comps(componentCount+1))
     comps(1) = 1
     comms = MPI_COMM_NULL
-    comms(1) = Driver_comm
-    ! First find the maximum number of threads across all components
+    comms(1) = Global_Comm
+
     maxthreads = 1
     do i=1,componentCount
        namestr = ESMF_UtilStringLowerCase(compLabels(i))
@@ -968,7 +952,7 @@ contains
 
        if(nthrds > maxthreads) maxthreads = nthrds
     enddo
-    ! Now loop over components and add each to driver
+
     do i=1,componentCount
        namestr = ESMF_UtilStringLowerCase(compLabels(i))
        if (namestr == 'med') namestr = 'cpl'
@@ -995,22 +979,11 @@ contains
        call NUOPC_CompAttributeGet(driver, name=trim(namestr)//'_rootpe', value=cvalue, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        read(cvalue,*) rootpe
-
-       ! rootpe is specified in context of the ensemble_driver which may include asyncio tasks 
-       ! so we need to adjust.
-       do n=1,PetCount
-          if(rootpe == PetMapinGlobal(n)) then
-             rootpe = n - 1
-             exit
-          endif
-       enddo
-
        if (rootpe < 0 .or. rootpe > PetCount) then
           write (msgstr, *) "Invalid Rootpe value specified for component: ",namestr, ' rootpe: ',rootpe
           call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
           return
        endif
-
        if(rootpe+ntasks > PetCount) then
           write (msgstr, *) "Invalid pelayout value specified for component: ",namestr, ' rootpe+ntasks: ',rootpe+ntasks
           call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
@@ -1020,7 +993,6 @@ contains
        call NUOPC_CompAttributeGet(driver, name=trim(namestr)//'_pestride', value=cvalue, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        read(cvalue,*) stride
-
        if (stride < 1 .or. rootpe+(ntasks-1)*stride > PetCount) then
           write (msgstr, *) "Invalid pestride value specified for component: ",namestr,&
                ' rootpe: ',rootpe, ' pestride: ', stride, ' ntasks: ',ntasks, ' PetCount: ', PetCount
@@ -1214,10 +1186,10 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! Initialize MCT (this is needed for data models and cice prescribed capability)
-    call mct_world_init(componentCount+1, DRIVER_COMM, comms, comps)
+    call mct_world_init(componentCount+1, GLOBAL_COMM, comms, comps)
 
 
-    deallocate(petlist, comms, comps, comp_iamin, comp_comm_iam, PetMapinGlobal)
+    deallocate(petlist, comms, comps, comp_iamin, comp_comm_iam)
 
   end subroutine esm_init_pelayout
 
@@ -1280,7 +1252,7 @@ contains
     integer                :: iscol_data(1)
     integer                :: petcount
     character(len=CL)      :: cvalue
-    character(len=*), parameter :: subname = '('//__FILE__//':esm_set_single_column_attributes)'
+    character(len=*), parameter :: subname= ' (esm_get_single_column_attributes) '
     !-------------------------------------------------------------------------------
 
     rc = ESMF_SUCCESS

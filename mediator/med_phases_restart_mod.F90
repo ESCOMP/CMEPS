@@ -66,7 +66,7 @@ contains
     integer                 :: restart_n       ! freq_n setting relative to freq_option
     logical                 :: isPresent
     logical                 :: isSet
-    character(len=*), parameter :: subname = '('//__FILE__//':med_phases_restart_alarm_init)'
+    character(len=*), parameter :: subname='(med_phases_restart_alarm_init)'
     !---------------------------------------
 
     rc = ESMF_SUCCESS
@@ -182,7 +182,7 @@ contains
     character(ESMF_MAXSTR)     :: tmpstr
     logical                    :: isPresent
     logical                    :: first_time = .true.
-    character(len=*), parameter :: subname = '('//__FILE__//':med_phases_restart_write)'
+    character(len=*), parameter :: subname='(med_phases_restart_write)'
     !---------------------------------------
 
     call t_startf('MED:'//subname)
@@ -503,7 +503,7 @@ contains
     character(ESMF_MAXSTR) :: restart_pfile  ! Local path to restart pointer filename
     character(ESMF_MAXSTR) :: cpl_inst_tag   ! instance tag
     logical                :: isPresent
-    character(len=*), parameter :: subname = '('//__FILE__//':med_phases_restart_read)'
+    character(len=*), parameter :: subname='(med_phases_restart_read)'
     !---------------------------------------
     call t_startf('MED:'//subname)
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
