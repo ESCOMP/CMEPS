@@ -522,7 +522,7 @@ contains
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
       update_nextalarm  = .true.
 
-   case (optNYears)
+   case (optNYears, trim(optNYears)//'s')
       call ESMF_TimeIntervalSet(AlarmInterval, yy=1, rc=rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
       AlarmInterval = AlarmInterval * opt_n
