@@ -1257,12 +1257,6 @@ contains
        ! Write time sample to file
        if ( write_now ) then
 
-          ! Determine time_val and tbnds data for history as well as history file name
-          call med_phases_history_set_timeinfo(gcomp, auxcomp%files(nf)%clock, auxcomp%files(nf)%alarmname, &
-               time_val, time_bnds, time_units, auxcomp%files(nf)%histfile, auxcomp%files(nf)%doavg, &
-               auxname=auxcomp%files(nf)%auxname, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
           ! Set shorthand variables
           nx = is_local%wrap%nx(compid)
           ny = is_local%wrap%ny(compid)
@@ -1272,6 +1266,13 @@ contains
 
           ! Write  header
           if (auxcomp%files(nf)%nt == 1) then
+
+             ! Determine time_val and tbnds data for history as well as history file name
+             call med_phases_history_set_timeinfo(gcomp, auxcomp%files(nf)%clock, auxcomp%files(nf)%alarmname, &
+                  time_val, time_bnds, time_units, auxcomp%files(nf)%histfile, auxcomp%files(nf)%doavg, &
+                  auxname=auxcomp%files(nf)%auxname, rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
              ! open file
              call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -1313,6 +1314,8 @@ contains
 
           ! Close file
           if (auxcomp%files(nf)%nt == auxcomp%files(nf)%ntperfile) then
+             call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
              call med_io_close(auxcomp%files(nf)%histfile, vm, file_ind=nf,  rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
              auxcomp%files(nf)%nt = 0
@@ -1406,30 +1409,77 @@ contains
     integer                :: n
     type(ESMF_Field)       :: lfield
     type(ESMF_Field)       :: lfield_accum
+    integer                :: fieldCount_accum
+    character(CL), pointer :: fieldnames_accum(:)
     integer                :: fieldCount
     character(CL), pointer :: fieldnames(:)
     real(r8), pointer      :: dataptr1d(:)
     real(r8), pointer      :: dataptr2d(:,:)
     real(r8), pointer      :: dataptr1d_accum(:)
     real(r8), pointer      :: dataptr2d_accum(:,:)
+    integer                :: ungriddedUBound_accum(1)
     integer                :: ungriddedUBound(1)
+    character(len=64)      :: msg
     !---------------------------------------
 
     rc = ESMF_SUCCESS
 
     ! Accumulate field
-    call ESMF_FieldBundleGet(fldbun_accum, fieldCount=fieldCount, rc=rc)
+    call ESMF_FieldBundleGet(fldbun, fieldCount=fieldCount, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
+    write(msg,'(a,i0)') ' fldbun number of fields = ',fieldcount
+    call ESMF_LogWrite(trim(msg), ESMF_LOGMSG_INFO)
     allocate(fieldnames(fieldCount))
-    call ESMF_FieldBundleGet(fldbun_accum, fieldNameList=fieldnames, rc=rc)
+    call ESMF_FieldBundleGet(fldbun, fieldNameList=fieldnames, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     do n = 1, fieldcount
        call ESMF_FieldBundleGet(fldbun, fieldName=trim(fieldnames(n)), field=lfield, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_FieldBundleGet(fldbun_accum, fieldName=trim(fieldnames(n)), field=lfield_accum, rc=rc)
+       call ESMF_FieldGet(lfield, ungriddedUBound=ungriddedUBound, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       write(msg,'(a,i0)') ' fldbun fieldname, ubound = '//trim(fieldnames(n)),ungriddedUBound(1)
+       call ESMF_LogWrite(trim(msg), ESMF_LOGMSG_INFO)
+    end do
+
+    call ESMF_FieldBundleGet(fldbun_accum, fieldCount=fieldCount_accum, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    allocate(fieldnames_accum(fieldCount_accum))
+    call ESMF_FieldBundleGet(fldbun_accum, fieldCount=fieldCount_accum, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    write(msg,'(a,i0)') ' fldbun_accum number of fields = ',fieldcount_accum
+    call ESMF_LogWrite(trim(msg), ESMF_LOGMSG_INFO)
+    write(6,*)'DEBUG: here1'
+    call ESMF_FieldBundleGet(fldbun_accum, fieldNameList=fieldnames_accum, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    write(6,*)'DEBUG: here2'
+    do n = 1, fieldcount_accum
+       write(6,*)'DEBUG: n = ',n
+       call ESMF_FieldBundleGet(fldbun_accum, fieldName=trim(fieldnames_accum(n)), field=lfield, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        call ESMF_FieldGet(lfield, ungriddedUBound=ungriddedUBound, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
+       write(msg,'(a,i0)') ' fldbun_accum fieldname, ubound = '//trim(fieldnames(n)),ungriddedUBound(1)
+       call ESMF_LogWrite(trim(msg), ESMF_LOGMSG_INFO)
+    end do
+
+    do n = 1, fieldcount_accum
+
+       call ESMF_FieldBundleGet(fldbun, fieldName=trim(fieldnames(n)), field=lfield, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_FieldGet(lfield, ungriddedUBound=ungriddedUBound, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+       call ESMF_FieldBundleGet(fldbun_accum, fieldName=trim(fieldnames_accum(n)), field=lfield_accum, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_FieldGet(lfield_accum, ungriddedUBound=ungriddedUBound_accum, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+       if (ungriddedUBound(1) /= ungriddedUBound_accum(1)) then
+          call ESMF_LogWrite(" upper bounds for field and field_accum do not match", &
+               ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
+          rc = ESMF_FAILURE
+       end if
+
        if (ungriddedUBound(1) > 0) then
           call ESMF_FieldGet(lfield, farrayptr=dataptr2d, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
