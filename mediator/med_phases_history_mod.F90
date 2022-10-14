@@ -1264,14 +1264,20 @@ contains
           ! Increment number of time samples on file
           auxcomp%files(nf)%nt = auxcomp%files(nf)%nt + 1
 
-          ! Write  header
+          ! Determine time_val and tbnds data for history as well as history file name
           if (auxcomp%files(nf)%nt == 1) then
-
-             ! Determine time_val and tbnds data for history as well as history file name
              call med_phases_history_set_timeinfo(gcomp, auxcomp%files(nf)%clock, auxcomp%files(nf)%alarmname, &
                   time_val, time_bnds, time_units, auxcomp%files(nf)%histfile, auxcomp%files(nf)%doavg, &
                   auxname=auxcomp%files(nf)%auxname, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          else
+             call med_phases_history_set_timeinfo(gcomp, auxcomp%files(nf)%clock, auxcomp%files(nf)%alarmname, &
+                  time_val, time_bnds, time_units, auxcomp%files(nf)%histfile, auxcomp%files(nf)%doavg, rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          end if
+
+          ! Write  header
+          if (auxcomp%files(nf)%nt == 1) then
 
              ! open file
              call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
