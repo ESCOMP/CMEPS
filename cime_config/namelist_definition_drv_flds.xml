@@ -62,27 +62,23 @@
   <!-- drydep Namelists                                                                          -->
   <!-- ========================================================================================  -->
 
-  <entry id="drydep_method">
-    <type>char</type>
-    <category>dry-deposition</category>
-    <group>drydep_inparm</group>
-    <valid_values>xactive_lnd,xactive_atm,table</valid_values>
-    <desc>
-      Where dry deposition is calculated (from land, atmosphere, or from a table)
-      This specifies the method used to calculate dry
-      deposition velocities of gas-phase chemical species.  The available methods are:
-      'table'       - prescribed method in CAM
-      'xactive_atm' - interactive method in CAM
-      'xactive_lnd' - interactive method in CLM
-    </desc>
-  </entry>
-
   <entry id="drydep_list">
     <type>char(300)</type>
     <category>dry-deposition</category>
     <group>drydep_inparm</group>
     <desc>
       List of species that undergo dry deposition.
+    </desc>
+  </entry>
+
+  <entry id="dep_data_file">
+    <type>char</type>
+    <input_pathname>abs</input_pathname>
+    <category>drv_flds_in</category>
+    <group>drydep_inparm</group>
+    <desc>
+      Full pathname of file containing gas phase deposition data including effective
+      Henry's law coefficients.
     </desc>
   </entry>
 

@@ -29,18 +29,18 @@ module esm_time_mod
 
   ! Clock and alarm options
   character(len=*), private, parameter :: &
-       optNONE           = "none"      , &
-       optNever          = "never"     , &
-       optNSteps         = "nsteps"    , &
-       optNSeconds       = "nseconds"  , &
-       optNMinutes       = "nminutes"  , &
-       optNHours         = "nhours"    , &
-       optNDays          = "ndays"     , &
-       optNMonths        = "nmonths"   , &
-       optNYears         = "nyears"    , &
-       optMonthly        = "monthly"   , &
-       optYearly         = "yearly"    , &
-       optDate           = "date"      , &
+       optNONE           = "none"    , &
+       optNever          = "never"   , &
+       optNSteps         = "nstep"   , &
+       optNSeconds       = "nsecond" , &
+       optNMinutes       = "nminute" , &
+       optNHours         = "nhour"   , &
+       optNDays          = "nday"    , &
+       optNMonths        = "nmonth"  , &
+       optNYears         = "nyear"   , &
+       optMonthly        = "monthly" , &
+       optYearly         = "yearly"  , &
+       optDate           = "date"    , &
        optGLCCouplingPeriod = "glc_coupling_period"
 
   ! Module data
@@ -434,13 +434,14 @@ contains
          rc = ESMF_FAILURE
          return
       end if
-   else if (trim(option) == optNSteps   .or. &
-        trim(option) == optNSeconds .or. &
-        trim(option) == optNMinutes .or. &
-        trim(option) == optNHours   .or. &
-        trim(option) == optNDays    .or. &
-        trim(option) == optNMonths  .or. &
-        trim(option) == optNYears) then
+    else if (&
+         trim(option) == optNSteps   .or. trim(option) == trim(optNSteps)//'s'   .or. &
+         trim(option) == optNSeconds .or. trim(option) == trim(optNSeconds)//'s' .or. &
+         trim(option) == optNMinutes .or. trim(option) == trim(optNMinutes)//'s' .or. &
+         trim(option) == optNHours   .or. trim(option) == trim(optNHours)//'s'   .or. &
+         trim(option) == optNDays    .or. trim(option) == trim(optNDays)//'s'    .or. &
+         trim(option) == optNMonths  .or. trim(option) == trim(optNMonths)//'s'  .or. &
+         trim(option) == optNYears   .or. trim(option) == trim(optNYears)//'s' ) then
       if (.not.present(opt_n)) then
          call ESMF_LogWrite(subname//trim(option)//' requires opt_n', ESMF_LOGMSG_ERROR)
          rc = ESMF_FAILURE
@@ -451,7 +452,7 @@ contains
          rc = ESMF_FAILURE
          return
       end if
-   end if
+    end if
 
    ! Determine inputs for call to create alarm
    selectcase (trim(option))
@@ -479,36 +480,36 @@ contains
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
       update_nextalarm  = .false.
 
-   case (optNSteps)
+   case (optNSteps,trim(optNSteps)//'s')
       call ESMF_ClockGet(clock, TimeStep=AlarmInterval, rc=rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
       AlarmInterval = AlarmInterval * opt_n
       update_nextalarm  = .true.
 
-   case (optNSeconds)
+   case (optNSeconds,trim(optNSeconds)//'s')
       call ESMF_TimeIntervalSet(AlarmInterval, s=1, rc=rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
       AlarmInterval = AlarmInterval * opt_n
       update_nextalarm  = .true.
 
-   case (optNMinutes)
+   case (optNMinutes,trim(optNMinutes)//'s')
       call ESMF_TimeIntervalSet(AlarmInterval, s=60, rc=rc)
       AlarmInterval = AlarmInterval * opt_n
       update_nextalarm  = .true.
 
-   case (optNHours)
+   case (optNHours,trim(optNHours)//'s')
       call ESMF_TimeIntervalSet(AlarmInterval, s=3600, rc=rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
       AlarmInterval = AlarmInterval * opt_n
       update_nextalarm  = .true.
 
-   case (optNDays)
+   case (optNDays,trim(optNDays)//'s')
       call ESMF_TimeIntervalSet(AlarmInterval, d=1, rc=rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
       AlarmInterval = AlarmInterval * opt_n
       update_nextalarm  = .true.
 
-   case (optNMonths)
+   case (optNMonths,trim(optNMonths)//'s')
       call ESMF_TimeIntervalSet(AlarmInterval, mm=1, rc=rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
       AlarmInterval = AlarmInterval * opt_n
