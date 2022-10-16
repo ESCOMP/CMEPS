@@ -896,7 +896,7 @@ contains
           if ( ESMF_FieldBundleIsCreated(is_local%wrap%FBimp(compid,compid)) .and. .not. &
                ESMF_FieldBundleIsCreated(avgfile%FBaccum_import)) then
              call med_methods_FB_init(avgfile%FBaccum_import, scalar_name, &
-                  FBgeom=is_local%wrap%FBImp(compid,compid), FBflds=is_local%wrap%FBimp(compid,compid), rc=rc)
+                  STgeom=is_local%wrap%NStateImp(compid), STflds=is_local%wrap%NStateImp(compid), rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
              call med_methods_FB_reset(avgfile%FBaccum_import, czero, rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -905,7 +905,7 @@ contains
           if ( ESMF_FieldBundleIsCreated(is_local%wrap%FBexp(compid)) .and. .not. &
                ESMF_FieldBundleIsCreated(avgfile%FBaccum_export)) then
              call med_methods_FB_init(avgfile%FBaccum_export, scalar_name, &
-                  FBgeom=is_local%wrap%FBExp(compid), FBflds=is_local%wrap%FBexp(compid), rc=rc)
+                  STgeom=is_local%wrap%NStateExp(compid), STflds=is_local%wrap%NStateExp(compid), rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
              call med_methods_FB_reset(avgfile%FBaccum_export, czero, rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -1021,6 +1021,7 @@ contains
     ! -----------------------------
 
     use ESMF             , only : ESMF_FieldBundleIsCreated, ESMF_FieldBundleRemove
+    use ESMF             , only : ESMF_Field, ESMF_FieldGet !DEBUG
     use med_constants_mod, only : czero => med_constants_czero
     use med_io_mod       , only : med_io_write_time, med_io_define_time
     use med_methods_mod  , only : med_methods_FB_init
@@ -1058,6 +1059,10 @@ contains
     integer                 :: yr,mon,day,sec    ! time units
     real(r8)                :: time_val          ! time coordinate output
     real(r8)                :: time_bnds(2)      ! time bounds output
+    !DEBUG
+    integer                 :: ungriddedUBound(1)
+    type(ESMF_Field)        :: lfield
+    !DEBUG
     character(CS), allocatable  :: fieldNameList(:)
     character(len=*), parameter :: subname='(med_phases_history_write_comp_aux)'
     !---------------------------------------
@@ -1166,7 +1171,8 @@ contains
                 if ( ESMF_FieldBundleIsCreated(is_local%wrap%FBImp(compid,compid)) .and. .not. &
                      ESMF_FieldBundleIsCreated(auxcomp%files(nfcnt)%FBaccum)) then
                    call med_methods_FB_init(auxcomp%files(nfcnt)%FBaccum, is_local%wrap%flds_scalar_name, &
-                        FBgeom=is_local%wrap%FBImp(compid,compid), FBflds=is_local%wrap%FBImp(compid,compid), rc=rc)
+                        STgeom=is_local%wrap%NStateImp(compid), STflds=is_local%wrap%NStateImp(compid), &
+                        rc=rc)
                    if (chkerr(rc,__LINE__,u_FILE_u)) return
                    call med_methods_FB_reset(auxcomp%files(nfcnt)%FBaccum, czero, rc=rc)
                    if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -1430,47 +1436,18 @@ contains
 
     rc = ESMF_SUCCESS
 
-    ! Accumulate field
-    call ESMF_FieldBundleGet(fldbun, fieldCount=fieldCount, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    write(msg,'(a,i0)') ' fldbun number of fields = ',fieldcount
-    call ESMF_LogWrite(trim(msg), ESMF_LOGMSG_INFO)
-    allocate(fieldnames(fieldCount))
-    call ESMF_FieldBundleGet(fldbun, fieldNameList=fieldnames, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    do n = 1, fieldcount
-       call ESMF_FieldBundleGet(fldbun, fieldName=trim(fieldnames(n)), field=lfield, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_FieldGet(lfield, ungriddedUBound=ungriddedUBound, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       write(msg,'(a,i0)') ' fldbun fieldname, ubound = '//trim(fieldnames(n)),ungriddedUBound(1)
-       call ESMF_LogWrite(trim(msg), ESMF_LOGMSG_INFO)
-    end do
+    ! Loop over field names in fldbun_accum
 
     call ESMF_FieldBundleGet(fldbun_accum, fieldCount=fieldCount_accum, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     allocate(fieldnames_accum(fieldCount_accum))
     call ESMF_FieldBundleGet(fldbun_accum, fieldCount=fieldCount_accum, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    write(msg,'(a,i0)') ' fldbun_accum number of fields = ',fieldcount_accum
-    call ESMF_LogWrite(trim(msg), ESMF_LOGMSG_INFO)
-    write(6,*)'DEBUG: here1'
     call ESMF_FieldBundleGet(fldbun_accum, fieldNameList=fieldnames_accum, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    write(6,*)'DEBUG: here2'
-    do n = 1, fieldcount_accum
-       write(6,*)'DEBUG: n = ',n
-       call ESMF_FieldBundleGet(fldbun_accum, fieldName=trim(fieldnames_accum(n)), field=lfield, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_FieldGet(lfield, ungriddedUBound=ungriddedUBound, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       write(msg,'(a,i0)') ' fldbun_accum fieldname, ubound = '//trim(fieldnames(n)),ungriddedUBound(1)
-       call ESMF_LogWrite(trim(msg), ESMF_LOGMSG_INFO)
-    end do
 
     do n = 1, fieldcount_accum
-
-       call ESMF_FieldBundleGet(fldbun, fieldName=trim(fieldnames(n)), field=lfield, rc=rc)
+       call ESMF_FieldBundleGet(fldbun, fieldName=trim(fieldnames_accum(n)), field=lfield, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        call ESMF_FieldGet(lfield, ungriddedUBound=ungriddedUBound, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -1500,7 +1477,7 @@ contains
           dataptr1d_accum(:) = dataptr1d_accum(:) + dataptr1d(:)
        end if
     end do
-    deallocate(fieldnames)
+    deallocate(fieldnames_accum)
 
     ! Accumulate counter
     count = count + 1
