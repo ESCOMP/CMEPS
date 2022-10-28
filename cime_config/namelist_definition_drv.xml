@@ -894,7 +894,17 @@
       <value>ogrid</value>
     </values>
   </entry>
-
+  <entry id="ocn_surface_flux_scheme">
+    <type>integer</type>
+    <category>control</category>
+    <group>MED_attributes</group>
+    <desc>
+      atm/ocn flux calculation scheme
+    </desc>
+    <values>
+      <value>0</value>
+    </values>
+  </entry>
   <entry id="gust_fac">
     <type>real</type>
     <category>control</category>
@@ -1062,23 +1072,22 @@
     <type>char</type>
     <category>time</category>
     <group>ALLCOMP_attributes</group>
-    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,monthly,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,nmonths,nyears,monthly,yearly,date,end</valid_values>
     <desc>
       mediator history snapshot option (used with history_n and history_ymd)
       set by HIST_OPTION in env_run.xml.
       history_option alarms are:
       [none/never], turns option off
-      [nstep/s]   , history snapshot every history_n nsteps  , relative to current run start time
-      [nsecond/s] , history snapshot every history_n nseconds, relative to current run start time
-      [nminute/s] , history snapshot every history_n nminutes, relative to current run start time
-      [nhour/s]   , history snapshot every history_n nhours  , relative to current run start time
-      [nday/s]    , history snapshot every history_n ndays   , relative to current run start time
-      [monthly/s] , history snapshot every           month   , relative to current run start time
-      [nmonth/s]  , history snapshot every history_n nmonths , relative to current run start time
-      [nyear/s]   , history snapshot every history_n nyears  , relative to current run start time
-      [date]      , history snapshot at history_ymd value
-      [ifdays0]   , history snapshot at history_n calendar day value and seconds equal 0
-      [end]       , history snapshot at end
+      [nsteps]   , history snapshot every history_n nsteps  , relative to current run start time
+      [nseconds] , history snapshot every history_n nseconds, relative to current run start time
+      [nminutes] , history snapshot every history_n nminutes, relative to current run start time
+      [nhours]   , history snapshot every history_n nhours  , relative to current run start time
+      [ndays]    , history snapshot every history_n ndays   , relative to current run start time
+      [monthly]  , history snapshot every           month   , relative to current run start time
+      [nmonths]  , history snapshot every history_n nmonths , relative to current run start time
+      [nyears]   , history snapshot every history_n nyears  , relative to current run start time
+      [date]     , history snapshot at history_ymd value
+      [end]      , history snapshot at end
     </desc>
     <values>
       <value>$HIST_OPTION</value>
@@ -1119,7 +1128,7 @@
     <type>char</type>
     <category>time</category>
     <group>MED_attributes</group>
-    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,monthly,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,nmonths,nyears,monthly,yearly,date,end</valid_values>
     <desc>
       mediator history for mediator aoflux and oceean albedoes (used with history_n and history_ymd)
     </desc>
@@ -1147,7 +1156,7 @@
     <type>char</type>
     <category>time</category>
     <group>MED_attributes</group>
-    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,monthly,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,nmonths,nyears,monthly,yearly,date,end</valid_values>
     <desc>
       mediator history for atm import/export/fields snapshot option (used with history_n and history_ymd)
     </desc>
@@ -1170,7 +1179,7 @@
     <type>char</type>
     <category>time</category>
     <group>MED_attributes</group>
-    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,monthly,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,nmonths,nyears,monthly,yearly,date,end</valid_values>
     <desc>
       mediator time average history option (used with histavg_n and histavg_ymd)
     </desc>
@@ -1529,7 +1538,7 @@
     <type>char</type>
     <category>time</category>
     <group>MED_attributes</group>
-    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,monthly,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,nmonths,nyears,monthly,yearly,date,end</valid_values>
     <desc>
       mediator history for ice import/export/fields snapshot option (used with history_n and history_ymd)
     </desc>
@@ -1552,7 +1561,7 @@
     <type>char</type>
     <category>time</category>
     <group>MED_attributes</group>
-    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,monthly,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,nmonths,nyears,monthly,yearly,date,end</valid_values>
     <desc>
       mediator time average history option (used with histavg_n and histavg_ymd)
     </desc>
@@ -1580,7 +1589,7 @@
     <type>char</type>
     <category>time</category>
     <group>MED_attributes</group>
-    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,monthly,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,nmonths,nyears,monthly,yearly,date,end</valid_values>
     <desc>
       mediator history for glc import/export/fields snapshot option (used with history_n and history_ymd)
     </desc>
@@ -1603,7 +1612,7 @@
     <type>char</type>
     <category>time</category>
     <group>MED_attributes</group>
-    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,monthly,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,nmonths,nyears,monthly,yearly,date,end</valid_values>
     <desc>
       mediator time average history option (used with histavg_n and histavg_ymd)
     </desc>
@@ -1631,7 +1640,7 @@
     <type>char</type>
     <category>time</category>
     <group>MED_attributes</group>
-    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,monthly,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,nmonths,nyears,monthly,yearly,date,end</valid_values>
     <desc>
       mediator history for lnd import/export/fields snapshot option (used with history_n and history_ymd)
     </desc>
@@ -1654,7 +1663,7 @@
     <type>char</type>
     <category>time</category>
     <group>MED_attributes</group>
-    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,monthly,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,nmonths,nyears,monthly,yearly,date,end</valid_values>
     <desc>
       mediator time average history option (used with histavg_n and histavg_ymd)
     </desc>
@@ -1760,7 +1769,7 @@
     <type>char</type>
     <category>time</category>
     <group>MED_attributes</group>
-    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,monthly,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,nmonths,nyears,monthly,yearly,date,end</valid_values>
     <desc>
       mediator history for ocn import/export/fields snapshot option (used with history_n and history_ymd)
     </desc>
@@ -1783,7 +1792,7 @@
     <type>char</type>
     <category>time</category>
     <group>MED_attributes</group>
-    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,monthly,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,nmonths,nyears,monthly,yearly,date,end</valid_values>
     <desc>
       mediator time average history option (used with histavg_n and histavg_ymd)
     </desc>
@@ -1811,7 +1820,7 @@
     <type>char</type>
     <category>time</category>
     <group>MED_attributes</group>
-    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,monthly,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,nmonths,nyears,monthly,yearly,date,end</valid_values>
     <desc>
       mediator history for rof import/export/fields snapshot option (used with history_n and history_ymd)
     </desc>
@@ -1834,7 +1843,7 @@
     <type>char</type>
     <category>time</category>
     <group>MED_attributes</group>
-    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,monthly,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,nmonths,nyears,monthly,yearly,date,end</valid_values>
     <desc>
       mediator time average history option (used with histavg_n and histavg_ymd)
     </desc>
@@ -1927,7 +1936,7 @@
     <type>char</type>
     <category>time</category>
     <group>MED_attributes</group>
-    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,monthly,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,nmonths,nyears,monthly,yearly,date,end</valid_values>
     <desc>
       mediator history for wav import/export/fields snapshot option (used with history_n and history_ymd)
     </desc>
@@ -1950,7 +1959,7 @@
     <type>char</type>
     <category>time</category>
     <group>MED_attributes</group>
-    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,monthly,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,nmonths,nyears,monthly,yearly,date,end</valid_values>
     <desc>
       mediator time average history option (used with histavg_n and histavg_ymd)
     </desc>
@@ -2580,22 +2589,22 @@
     <type>char</type>
     <category>time</category>
     <group>CLOCK_attributes</group>
-    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,monthly,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,monthly,nmonths,nyears,date,end</valid_values>
     <desc>
       sets the run length with stop_n and stop_ymd
       stop_option alarms are:
-      [none/never], turns option off
-      [nstep/s]   , stops every stop_n nsteps  , relative to current run start time
-      [nsecond/s] , stops every stop_n nseconds, relative to current run start time
-      [nminute/s] , stops every stop_n nminutes, relative to current run start time
-      [nhour/s]   , stops every stop_n nhours  , relative to current run start time
-      [nday/s]    , stops every stop_n ndays   , relative to current run start time
-      [nmonth/s]  , stops every stop_n nmonths , relative to current run start time
-      [monthly/s] , stops every        month   , relative to current run start time
-      [nyear/s]   , stops every stop_n nyears  , relative to current run start time
-      [date]      , stops at stop_ymd value
-      [ifdays0]   , stops at stop_n calendar day value and seconds equal 0
-      [end]       , stops at end
+      [none/never] , turns option off
+      [nsteps]     , stops every stop_n nsteps  , relative to current run start time
+      [nseconds]   , stops every stop_n nseconds, relative to current run start time
+      [nminutes]   , stops every stop_n nminutes, relative to current run start time
+      [nhours]     , stops every stop_n nhours  , relative to current run start time
+      [ndays]      , stops every stop_n ndays   , relative to current run start time
+      [nmonths]    , stops every stop_n nmonths , relative to current run start time
+      [nyears]     , stops every stop_n nyears  , relative to current run start time
+      [monthly]    , stops every        month   , relative to current run start time
+      [yearly]     , stops every        year    , relative to current run start time
+      [end]        , stops at end
+      [date]       , stops at stop_ymd value
     </desc>
     <values>
       <value>$STOP_OPTION</value>
@@ -2644,22 +2653,22 @@
     <type>char</type>
     <category>time</category>
     <group>CLOCK_attributes</group>
-    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,nmonths,monthly,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,nmonths,nyears,monthly,yearly,date,end</valid_values>
     <desc>
       sets the restart frequency with restart_n and restart_ymd
       restart_option alarms are:
       [none/never], turns option off
-      [nstep/s]   , restarts every restart_n nsteps  , relative to current run start time
-      [nsecond/s] , restarts every restart_n nseconds, relative to current run start time
-      [nminute/s] , restarts every restart_n nminutes, relative to current run start time
-      [nhour/s]   , restarts every restart_n nhours  , relative to current run start time
-      [nday/s]    , restarts every restart_n ndays   , relative to current run start time
-      [monthly/s] , restarts every           month   , relative to current run start time
-      [nmonth/s]  , restarts every restart_n nmonths , relative to current run start time
-      [nyear/s]   , restarts every restart_n nyears  , relative to current run start time
-      [date]      , restarts at restart_ymd value
-      [ifdays0]   , restarts at restart_n calendar day value and seconds equal 0
-      [end]       , restarts at end
+      [nsteps]   , restarts every restart_n nsteps  , relative to current run start time
+      [nseconds] , restarts every restart_n nseconds, relative to current run start time
+      [nminutes] , restarts every restart_n nminutes, relative to current run start time
+      [nhours]   , restarts every restart_n nhours  , relative to current run start time
+      [ndays]    , restarts every restart_n ndays   , relative to current run start time
+      [nmonths]  , restarts every restart_n nmonths , relative to current run start time
+      [nyears]   , restarts every restart_n nyears  , relative to current run start time
+      [monthly]  , restarts every           month   , relative to current run start time
+      [yearly]   , restarts every           year    , relative to current run start time
+      [date]     , restarts at restart_ymd value
+      [end]      , restarts at end
     </desc>
     <values>
       <value>$REST_OPTION</value>
@@ -2711,22 +2720,22 @@
     <type>char</type>
     <category>time</category>
     <group>CLOCK_attributes</group>
-    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,monthly,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,nmonths,nyears,monthly,yearly,date,end</valid_values>
     <desc>
       Sets timing output file frequency (like rest_option but relative to run start date)
       tprof_option alarms are:
       [none/never], turns option off
-      [nstep/s]   , every tprof_n nsteps  , relative to current run start time
-      [nsecond/s] , every tprof_n nseconds, relative to current run start time
-      [nminute/s] , every tprof_n nminutes, relative to current run start time
-      [nhour/s]   , every tprof_n nhours  , relative to current run start time
-      [nday/s]    , every tprof_n ndays   , relative to current run start time
-      [monthly/s] , every         month   , relative to current run start time
-      [nmonth/s]  , every tprof_n nmonths , relative to current run start time
-      [nyear/s]   , every tprof_n nyears  , relative to current run start time
-      [date]      , at tprof_ymd value
-      [ifdays0]   , at tprof_n calendar day value and seconds equal 0
-      [end]       , at end
+      [nsteps]   , every tprof_n nsteps  , relative to current run start time
+      [nseconds] , every tprof_n nseconds, relative to current run start time
+      [nminutes] , every tprof_n nminutes, relative to current run start time
+      [nhours]   , every tprof_n nhours  , relative to current run start time
+      [ndays]    , every tprof_n ndays   , relative to current run start time
+      [nmonths]  , every tprof_n nmonths , relative to current run start time
+      [nyears]   , every tprof_n nyears  , relative to current run start time
+      [monthly]  , every         month   , relative to current run start time
+      [yearly]   , every         year    , relative to current run start time
+      [date]     , at tprof_ymd value
+      [end]      , at end
     </desc>
     <values>
       <value>never</value>
@@ -2761,19 +2770,19 @@
   <!--   <type>char</type> -->
   <!--   <category>time</category> -->
   <!--   <group>CLOCK_attributes</group> -->
-  <!--   <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,monthly,nmonths,nmonth,nyears,nyear</valid_values> -->
+  <!--   <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,monthly,nmonths,nyears</valid_values> -->
   <!--   <desc> -->
   <!--     sets the pause frequency with pause_n -->
   <!--     pause_option alarms are: -->
   <!--     [none/never], turns option off -->
-  <!--     [nstep/s]   , pauses every pause_n nsteps  , relative to start or last pause time -->
-  <!--     [nsecond/s] , pauses every pause_n nseconds, relative to start or last pause time -->
-  <!--     [nminute/s] , pauses every pause_n nminutes, relative to start or last pause time -->
-  <!--     [nhour/s]   , pauses every pause_n nhours  , relative to start or last pause time -->
-  <!--     [nday/s]    , pauses every pause_n ndays   , relative to start or last pause time -->
-  <!--     [nmonth/s]  , pauses every pause_n nmonths , relative to start or last pause time -->
-  <!--     [monthly/s] , pauses every        month    , relative to start or last pause time -->
-  <!--     [nyear/s]   , pauses every pause_n nyears  , relative to start or last pause time -->
+  <!--     [nsteps]   , pauses every pause_n nsteps  , relative to start or last pause time -->
+  <!--     [nseconds] , pauses every pause_n nseconds, relative to start or last pause time -->
+  <!--     [nminutes] , pauses every pause_n nminutes, relative to start or last pause time -->
+  <!--     [nhours]   , pauses every pause_n nhours  , relative to start or last pause time -->
+  <!--     [ndays]    , pauses every pause_n ndays   , relative to start or last pause time -->
+  <!--     [nmonths]  , pauses every pause_n nmonths , relative to start or last pause time -->
+  <!--     [monthly]  , pauses every        month    , relative to start or last pause time -->
+  <!--     [nyear]    , pauses every pause_n nyears  , relative to start or last pause time -->
   <!--   </desc> -->
   <!--   <values> -->
   <!--     <value>$PAUSE_OPTION</value> -->
@@ -3689,105 +3698,105 @@
       components that need to look at the same data.
     </desc>
     <values>
-      <value>Buildconf/camconf/drv_flds_in,Buildconf/clmconf/drv_flds_in</value>
+      <value>Buildconf/camconf/drv_flds_in,Buildconf/clmconf/drv_flds_in,Buildconf/datmconf/drv_flds_in</value>
     </values>
   </entry>
 
-  <!-- <entry id="data_assimilation_atm" modify_via_xml="DATA_ASSIMILATION_ATM"> -->
-  <!--   <type>logical</type> -->
-  <!--   <category>data_assimilation</category> -->
-  <!--   <group>ALLCOMP_attributes</group> -->
-  <!--   <desc> -->
-  <!--     Whether Data Assimilation is on for component atm -->
-  <!--   </desc> -->
-  <!--   <values> -->
-  <!--     <value>$DATA_ASSIMILATION_ATM</value> -->
-  <!--   </values> -->
-  <!-- </entry> -->
+  <entry id="data_assimilation_atm" modify_via_xml="DATA_ASSIMILATION_ATM">
+    <type>logical</type>
+    <category>data_assimilation</category>
+    <group>ALLCOMP_attributes</group>
+    <desc>
+      Whether Data Assimilation is on for component atm
+    </desc>
+    <values>
+      <value>$DATA_ASSIMILATION_ATM</value>
+    </values>
+  </entry>
 
-  <!-- <entry id="data_assimilation_cpl" modify_via_xml="DATA_ASSIMILATION_CPL"> -->
-  <!--   <type>logical</type> -->
-  <!--   <category>data_assimilation</category> -->
-  <!--   <group>ALLCOMP_attributes</group> -->
-  <!--   <desc> -->
-  <!--     Whether Data Assimilation is on for component CPL -->
-  <!--   </desc> -->
-  <!--   <values> -->
-  <!--     <value>$DATA_ASSIMILATION_CPL</value> -->
-  <!--   </values> -->
-  <!-- </entry> -->
+  <entry id="data_assimilation_cpl" modify_via_xml="DATA_ASSIMILATION_CPL">
+    <type>logical</type>
+    <category>data_assimilation</category>
+    <group>ALLCOMP_attributes</group>
+    <desc>
+      Whether Data Assimilation is on for component CPL
+    </desc>
+    <values>
+      <value>$DATA_ASSIMILATION_CPL</value>
+    </values>
+  </entry>
 
-  <!-- <entry id="data_assimilation_ocn" modify_via_xml="DATA_ASSIMILATION_OCN"> -->
-  <!--   <type>logical</type> -->
-  <!--   <category>data_assimilation</category> -->
-  <!--   <group>ALLCOMP_attributes</group> -->
-  <!--   <desc> -->
-  <!--     Whether Data Assimilation is on for component ocn -->
-  <!--   </desc> -->
-  <!--   <values> -->
-  <!--     <value>$DATA_ASSIMILATION_OCN</value> -->
-  <!--   </values> -->
-  <!-- </entry> -->
+  <entry id="data_assimilation_ocn" modify_via_xml="DATA_ASSIMILATION_OCN">
+    <type>logical</type>
+    <category>data_assimilation</category>
+    <group>ALLCOMP_attributes</group>
+    <desc>
+      Whether Data Assimilation is on for component ocn
+    </desc>
+    <values>
+      <value>$DATA_ASSIMILATION_OCN</value>
+    </values>
+  </entry>
 
-  <!-- <entry id="data_assimilation_wav" modify_via_xml="DATA_ASSIMILATION_WAV"> -->
-  <!--   <type>logical</type> -->
-  <!--   <category>data_assimilation</category> -->
-  <!--   <group>ALLCOMP_attributes</group> -->
-  <!--   <desc> -->
-  <!--     Whether Data Assimilation is on for component wav -->
-  <!--   </desc> -->
-  <!--   <values> -->
-  <!--     <value>$DATA_ASSIMILATION_WAV</value> -->
-  <!--   </values> -->
-  <!-- </entry> -->
+  <entry id="data_assimilation_wav" modify_via_xml="DATA_ASSIMILATION_WAV">
+    <type>logical</type>
+    <category>data_assimilation</category>
+    <group>ALLCOMP_attributes</group>
+    <desc>
+      Whether Data Assimilation is on for component wav
+    </desc>
+    <values>
+      <value>$DATA_ASSIMILATION_WAV</value>
+    </values>
+  </entry>
 
-  <!-- <entry id="data_assimilation_glc" modify_via_xml="DATA_ASSIMILATION_GLC"> -->
-  <!--   <type>logical</type> -->
-  <!--   <category>data_assimilation</category> -->
-  <!--   <group>ALLCOMP_attributes</group> -->
-  <!--   <desc> -->
-  <!--     Whether Data Assimilation is on for component glc -->
-  <!--   </desc> -->
-  <!--   <values> -->
-  <!--     <value>$DATA_ASSIMILATION_GLC</value> -->
-  <!--   </values> -->
-  <!-- </entry> -->
+  <entry id="data_assimilation_glc" modify_via_xml="DATA_ASSIMILATION_GLC">
+    <type>logical</type>
+    <category>data_assimilation</category>
+    <group>ALLCOMP_attributes</group>
+    <desc>
+      Whether Data Assimilation is on for component glc
+    </desc>
+    <values>
+      <value>$DATA_ASSIMILATION_GLC</value>
+    </values>
+  </entry>
 
-  <!-- <entry id="data_assimilation_rof" modify_via_xml="DATA_ASSIMILATION_ROF"> -->
-  <!--   <type>logical</type> -->
-  <!--   <category>data_assimilation</category> -->
-  <!--   <group>ALLCOMP_attributes</group> -->
-  <!--   <desc> -->
-  <!--     Whether Data Assimilation is on for component rof -->
-  <!--   </desc> -->
-  <!--   <values> -->
-  <!--     <value>$DATA_ASSIMILATION_ROF</value> -->
-  <!--   </values> -->
-  <!-- </entry> -->
+  <entry id="data_assimilation_rof" modify_via_xml="DATA_ASSIMILATION_ROF">
+    <type>logical</type>
+    <category>data_assimilation</category>
+    <group>ALLCOMP_attributes</group>
+    <desc>
+      Whether Data Assimilation is on for component rof
+    </desc>
+    <values>
+      <value>$DATA_ASSIMILATION_ROF</value>
+    </values>
+  </entry>
 
-  <!-- <entry id="data_assimilation_ice" modify_via_xml="DATA_ASSIMILATION_ICE"> -->
-  <!--   <type>logical</type> -->
-  <!--   <category>data_assimilation</category> -->
-  <!--   <group>ALLCOMP_attributes</group> -->
-  <!--   <desc> -->
-  <!--     Whether Data Assimilation is on for component ice -->
-  <!--   </desc> -->
-  <!--   <values> -->
-  <!--     <value>$DATA_ASSIMILATION_ICE</value> -->
-  <!--   </values> -->
-  <!-- </entry> -->
+  <entry id="data_assimilation_ice" modify_via_xml="DATA_ASSIMILATION_ICE">
+    <type>logical</type>
+    <category>data_assimilation</category>
+    <group>ALLCOMP_attributes</group>
+    <desc>
+      Whether Data Assimilation is on for component ice
+    </desc>
+    <values>
+      <value>$DATA_ASSIMILATION_ICE</value>
+    </values>
+  </entry>
 
-  <!-- <entry id="data_assimilation_lnd" modify_via_xml="DATA_ASSIMILATION_LND"> -->
-  <!--   <type>logical</type> -->
-  <!--   <category>data_assimilation</category> -->
-  <!--   <group>ALLCOMP_attributes</group> -->
-  <!--   <desc> -->
-  <!--     Whether Data Assimilation is on for component lnd -->
-  <!--   </desc> -->
-  <!--   <values> -->
-  <!--     <value>$DATA_ASSIMILATION_LND</value> -->
-  <!--   </values> -->
-  <!-- </entry> -->
+  <entry id="data_assimilation_lnd" modify_via_xml="DATA_ASSIMILATION_LND">
+    <type>logical</type>
+    <category>data_assimilation</category>
+    <group>ALLCOMP_attributes</group>
+    <desc>
+      Whether Data Assimilation is on for component lnd
+    </desc>
+    <values>
+      <value>$DATA_ASSIMILATION_LND</value>
+    </values>
+  </entry>
 
   <entry id="wavice_coupling">
     <type>logical</type>

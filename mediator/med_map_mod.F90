@@ -340,7 +340,7 @@ contains
     use med_internalstate_mod , only : mapunset, mapnames, nmappers
     use med_internalstate_mod , only : mapnstod, mapnstod_consd, mapnstod_consf, mapnstod_consd
     use med_internalstate_mod , only : mapfillv_bilnr, mapbilnr_nstod, mapconsf_aofrac
-    use med_internalstate_mod , only : ncomps, compatm, compice, compocn, compwav, compname
+    use med_internalstate_mod , only : ncomps, compatm, compice, compocn, compwav, complnd, compname
     use med_internalstate_mod , only : coupling_mode, dststatus_print
     use med_internalstate_mod , only : defaultMasks
     use med_constants_mod     , only : ispval_mask => med_constants_ispval_mask
@@ -399,6 +399,12 @@ contains
          srcMaskValue = 0
          dstMaskValue = ispval_mask
       endif
+    end if
+    if (trim(coupling_mode(1:4)) == 'nems') then
+       if (n1 == compatm .and. n2 == complnd) then
+          srcMaskValue = ispval_mask
+          dstMaskValue = ispval_mask
+       end if
     end if
     if (trim(coupling_mode) == 'hafs') then
        if (n1 == compatm .and. n2 == compwav) then

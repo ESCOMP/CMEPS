@@ -132,7 +132,7 @@ contains
 !===============================================================================
 
   subroutine set_component_logging(gcomp, mastertask, logunit, shrlogunit, rc)
-    use shr_pio_mod, only : shr_pio_log_comp_settings
+    use driver_pio_mod, only : driver_pio_log_comp_settings
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
     logical, intent(in)  :: mastertask
@@ -165,7 +165,7 @@ contains
 
        open(newunit=logunit,file=trim(diro)//"/"//trim(logfile))
        ! Write the PIO settings to the beggining of each component log
-       call shr_pio_log_comp_settings(gcomp, logunit)
+       call driver_pio_log_comp_settings(gcomp, logunit)
 
     else
        logUnit = 6

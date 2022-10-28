@@ -1234,7 +1234,7 @@
   name = MED_typedefs
   type = module
   relative_path = ../../../../../FV3/ccpp/physics/physics
-  dependencies = machine.F,physcons.F90,physparam.f
+  dependencies = machine.F,physcons.F90
 
 [ccpp-arg-table]
   name = MED_typedefs

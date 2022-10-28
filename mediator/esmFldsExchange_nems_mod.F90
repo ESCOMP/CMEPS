@@ -27,7 +27,7 @@ contains
     use med_methods_mod       , only : fldchk => med_methods_FB_FldChk
     use med_internalstate_mod , only : InternalState
     use med_internalstate_mod , only : mastertask, logunit
-    use med_internalstate_mod , only : compmed, compatm, compocn, compice, comprof, compwav, ncomps
+    use med_internalstate_mod , only : compmed, compatm, compocn, compice, complnd, compwav, ncomps
     use med_internalstate_mod , only : mapbilnr, mapconsf, mapconsd, mappatch
     use med_internalstate_mod , only : mapfcopy, mapnstod, mapnstod_consd, mapnstod_consf
     use med_internalstate_mod , only : mapconsf_aofrac, mapbilnr_nstod
@@ -94,6 +94,7 @@ contains
     if (phase == 'advertise') then
        if (is_local%wrap%comp_present(compice)) call addfld(fldListFr(compice)%flds, 'Si_imask')
        if (is_local%wrap%comp_present(compocn)) call addfld(fldListFr(compocn)%flds, 'So_omask')
+       if (is_local%wrap%comp_present(complnd)) call addfld(fldListFr(complnd)%flds, 'Sl_lfrin')
     else
        if ( fldchk(is_local%wrap%FBexp(compice)        , trim(fldname), rc=rc) .and. &
             fldchk(is_local%wrap%FBImp(compocn,compocn), trim(fldname), rc=rc)) then
@@ -185,6 +186,10 @@ contains
        if (is_local%wrap%comp_present(compocn) .and. is_local%wrap%comp_present(compatm)) then
           call addfld(fldListFr(compatm)%flds, 'Sa_ofrac')
        end if
+       ! lfrac used by atm
+       if (is_local%wrap%comp_present(complnd) .and. is_local%wrap%comp_present(compatm)) then
+          call addfld(fldListTo(compatm)%flds, 'Sl_lfrac')
+       end if
     end if
 
     ! to atm: unmerged from ice
@@ -246,6 +251,20 @@ contains
             fldchk(is_local%wrap%FBImp(compocn,compocn), 'So_t', rc=rc)) then
           call addmap(fldListFr(compocn)%flds, 'So_t', compatm, maptype, 'ofrac', 'unset')
           call addmrg(fldListTo(compatm)%flds, 'So_t', mrg_from=compocn, mrg_fld='So_t', mrg_type='copy')
+       end if
+    end if
+
+    ! to atm: unmerged surface temperatures from lnd
+    if (phase == 'advertise') then
+       if (is_local%wrap%comp_present(complnd) .and. is_local%wrap%comp_present(compatm)) then
+          call addfld(fldListFr(complnd)%flds, 'Sl_t')
+          call addfld(fldListTo(compatm)%flds, 'Sl_t')
+       end if
+    else
+       if ( fldchk(is_local%wrap%FBexp(compatm)        , 'Sl_t', rc=rc) .and. &
+            fldchk(is_local%wrap%FBImp(complnd,complnd), 'Sl_t', rc=rc)) then
+          call addmap(fldListFr(complnd)%flds, 'Sl_t', compatm, maptype, 'lfrin', 'unset')
+          call addmrg(fldListTo(compatm)%flds, 'Sl_t', mrg_from=complnd, mrg_fld='Sl_t', mrg_type='copy')
        end if
     end if
 
@@ -728,6 +747,44 @@ contains
         end if
      end do
      deallocate(flds)
+
+    !=====================================================================
+    ! FIELDS TO LAND (complnd)
+    !=====================================================================
+
+    ! to lnd - states and fluxes from atm
+    if ( trim(coupling_mode) == 'nems_orig_data') then
+       allocate(flds(21))
+       flds = (/'Sa_z      ', 'Sa_topo   ', 'Sa_tbot   ', 'Sa_pbot   ', &
+                'Sa_shum   ', 'Sa_u      ', 'Sa_v      ', 'Faxa_lwdn ', &
+                'Sa_ptem   ', 'Sa_dens   ', 'Faxa_swdn ', 'Sa_pslv   ', &
+                'Faxa_snowc', 'Faxa_snowl', 'Faxa_rainc', 'Faxa_rainl', & 
+                'Faxa_swndr', 'Faxa_swndf', 'Faxa_swvdr', 'Faxa_swvdf', &
+                'Faxa_swnet'/)
+    else
+       allocate(flds(18))
+       flds = (/'Sa_z      ', 'Sa_ta     ', 'Sa_pslv   ', 'Sa_qa     ', &
+                'Sa_ua     ', 'Sa_va     ', 'Faxa_swdn ', 'Faxa_lwdn ', &
+                'Faxa_swnet', 'Faxa_rain ', 'Sa_prsl   ', 'vfrac     ', &
+                'Faxa_snow ', 'Faxa_rainc', 'Sa_tskn   ', 'Sa_exner  ', &
+                'Sa_ustar  ', 'zorl      ' /)
+    end if
+    do n = 1,size(flds)
+       fldname = trim(flds(n))
+       if (phase == 'advertise') then
+          if (is_local%wrap%comp_present(compatm) .and. is_local%wrap%comp_present(complnd)) then
+             call addfld(fldListFr(compatm)%flds, trim(fldname))
+             call addfld(fldListTo(complnd)%flds, trim(fldname))
+          end if
+       else
+          if ( fldchk(is_local%wrap%FBexp(complnd)        , trim(fldname), rc=rc) .and. &
+               fldchk(is_local%wrap%FBImp(compatm,compatm), trim(fldname), rc=rc)) then
+             call addmap(fldListFr(compatm)%flds, trim(fldname), complnd, maptype, 'one', 'unset')
+             call addmrg(fldListTo(complnd)%flds, trim(fldname), mrg_from=compatm, mrg_fld=trim(fldname), mrg_type='copy')
+          end if
+       end if
+    end do
+    deallocate(flds)
 
   end subroutine esmFldsExchange_nems
 
