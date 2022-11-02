@@ -1059,10 +1059,6 @@ contains
     integer                 :: yr,mon,day,sec    ! time units
     real(r8)                :: time_val          ! time coordinate output
     real(r8)                :: time_bnds(2)      ! time bounds output
-    !DEBUG
-    integer                 :: ungriddedUBound(1)
-    type(ESMF_Field)        :: lfield
-    !DEBUG
     character(CS), allocatable  :: fieldNameList(:)
     character(len=*), parameter :: subname='(med_phases_history_write_comp_aux)'
     !---------------------------------------
