@@ -795,7 +795,7 @@
 
   <entry id="GPU_OFFLOAD">
     <type>char</type>
-    <valid_values>none, OpenACC, OpenMP</valid_values>
+    <valid_values>none, OpenACC, OpenMP, combined</valid_values>
     <default_value>none</default_value>
     <group>build_def</group>
     <file>env_build.xml</file>
