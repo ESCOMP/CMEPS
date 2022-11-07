@@ -33,6 +33,8 @@ module med_phases_prep_rof_mod
   public  :: med_phases_prep_rof        ! called by run sequence
 
   private :: med_phases_prep_rof_irrig
+  private :: med_phases_prep_rof_sectorwater
+
 
   ! the following are needed for lnd2rof irrigation
   type(ESMF_Field) :: field_lndVolr
@@ -47,6 +49,98 @@ module med_phases_prep_rof_mod
   character(len=*), parameter :: irrig_flux_field       = 'Flrl_irrig'
   character(len=*), parameter :: irrig_normalized_field = 'Flrl_irrig_normalized'
   character(len=*), parameter :: irrig_volr0_field      = 'Flrl_irrig_volr0     '
+
+  ! the following are needed for lnd2rof sector water usage
+  type(ESMF_Field) :: field_lnd_dom_withd
+  type(ESMF_Field) :: field_rof_dom_withd
+  type(ESMF_Field) :: field_lnd_dom_withd0
+  type(ESMF_Field) :: field_rof_dom_withd0
+
+  type(ESMF_Field) :: field_lnd_liv_withd
+  type(ESMF_Field) :: field_rof_liv_withd
+  type(ESMF_Field) :: field_lnd_liv_withd0
+  type(ESMF_Field) :: field_rof_liv_withd0
+
+
+  type(ESMF_Field) :: field_lnd_elec_withd
+  type(ESMF_Field) :: field_rof_elec_withd
+  type(ESMF_Field) :: field_lnd_elec_withd0
+  type(ESMF_Field) :: field_rof_elec_withd0
+
+  type(ESMF_Field) :: field_lnd_mfc_withd
+  type(ESMF_Field) :: field_rof_mfc_withd
+  type(ESMF_Field) :: field_lnd_mfc_withd0
+  type(ESMF_Field) :: field_rof_mfc_withd0
+
+  type(ESMF_Field) :: field_lnd_min_withd
+  type(ESMF_Field) :: field_rof_min_withd
+  type(ESMF_Field) :: field_lnd_min_withd0
+  type(ESMF_Field) :: field_rof_min_withd0
+
+  type(ESMF_Field) :: field_lnd_dom_rf
+  type(ESMF_Field) :: field_rof_dom_rf
+  type(ESMF_Field) :: field_lnd_dom_rf0
+  type(ESMF_Field) :: field_rof_dom_rf0
+
+  type(ESMF_Field) :: field_lnd_liv_rf
+  type(ESMF_Field) :: field_rof_liv_rf
+  type(ESMF_Field) :: field_lnd_liv_rf0
+  type(ESMF_Field) :: field_rof_liv_rf0
+
+  type(ESMF_Field) :: field_lnd_elec_rf
+  type(ESMF_Field) :: field_rof_elec_rf
+  type(ESMF_Field) :: field_lnd_elec_rf0
+  type(ESMF_Field) :: field_rof_elec_rf0
+
+  type(ESMF_Field) :: field_lnd_mfc_rf
+  type(ESMF_Field) :: field_rof_mfc_rf
+  type(ESMF_Field) :: field_lnd_mfc_rf0
+  type(ESMF_Field) :: field_rof_mfc_rf0
+
+  type(ESMF_Field) :: field_lnd_min_rf
+  type(ESMF_Field) :: field_rof_min_rf
+  type(ESMF_Field) :: field_lnd_min_rf0
+  type(ESMF_Field) :: field_rof_min_rf0
+
+  character(len=*), parameter :: dom_withd_flux_field       = 'Flrl_dom_withd'
+  character(len=*), parameter :: dom_withd_normalized_field = 'Flrl_dom_withd_normalized'
+  character(len=*), parameter :: dom_withd_volr0_field      = 'Flrl_dom_withd_volr0     '
+
+  character(len=*), parameter :: liv_withd_flux_field       = 'Flrl_liv_withd'
+  character(len=*), parameter :: liv_withd_normalized_field = 'Flrl_liv_withd_normalized'
+  character(len=*), parameter :: liv_withd_volr0_field      = 'Flrl_liv_withd_volr0     '
+
+  character(len=*), parameter :: elec_withd_flux_field       = 'Flrl_elec_withd'
+  character(len=*), parameter :: elec_withd_normalized_field = 'Flrl_elec_withd_normalized'
+  character(len=*), parameter :: elec_withd_volr0_field      = 'Flrl_elec_withd_volr0     '
+
+  character(len=*), parameter :: mfc_withd_flux_field       = 'Flrl_mfc_withd'
+  character(len=*), parameter :: mfc_withd_normalized_field = 'Flrl_mfc_withd_normalized'
+  character(len=*), parameter :: mfc_withd_volr0_field      = 'Flrl_mfc_withd_volr0     '
+
+  character(len=*), parameter :: min_withd_flux_field       = 'Flrl_min_withd'
+  character(len=*), parameter :: min_withd_normalized_field = 'Flrl_min_withd_normalized'
+  character(len=*), parameter :: min_withd_volr0_field      = 'Flrl_min_withd_volr0     '
+
+  character(len=*), parameter :: dom_rf_flux_field       = 'Flrl_dom_rf'
+  character(len=*), parameter :: dom_rf_normalized_field = 'Flrl_dom_rf_normalized'
+  character(len=*), parameter :: dom_rf_volr0_field      = 'Flrl_dom_rf_volr0     '
+
+  character(len=*), parameter :: liv_rf_flux_field       = 'Flrl_liv_rf'
+  character(len=*), parameter :: liv_rf_normalized_field = 'Flrl_liv_rf_normalized'
+  character(len=*), parameter :: liv_rf_volr0_field      = 'Flrl_liv_rf_volr0     '
+
+  character(len=*), parameter :: elec_rf_flux_field       = 'Flrl_elec_rf'
+  character(len=*), parameter :: elec_rf_normalized_field = 'Flrl_elec_rf_normalized'
+  character(len=*), parameter :: elec_rf_volr0_field      = 'Flrl_elec_rf_volr0     '
+
+  character(len=*), parameter :: mfc_rf_flux_field       = 'Flrl_mfc_rf'
+  character(len=*), parameter :: mfc_rf_normalized_field = 'Flrl_mfc_rf_normalized'
+  character(len=*), parameter :: mfc_rf_volr0_field      = 'Flrl_mfc_rf_volr0     '
+
+  character(len=*), parameter :: min_rf_flux_field       = 'Flrl_min_rf'
+  character(len=*), parameter :: min_rf_normalized_field = 'Flrl_min_rf_normalized'
+  character(len=*), parameter :: min_rf_volr0_field      = 'Flrl_min_rf_volr0     '
 
   ! the following are the fields that will be accumulated from the land and are derived from fldlistTo(comprof)
   character(CS), allocatable :: lnd2rof_flds(:)
@@ -276,6 +370,16 @@ contains
     real(r8), pointer         :: dataptr(:)
     real(r8), pointer         :: dataptr1d(:)
     type(ESMF_Field)          :: field_irrig_flux
+    type(ESMF_Field)          :: field_dom_withd_flux
+    type(ESMF_Field)          :: field_liv_withd_flux
+    type(ESMF_Field)          :: field_elec_withd_flux
+    type(ESMF_Field)          :: field_mfc_withd_flux
+    type(ESMF_Field)          :: field_min_withd_flux
+    type(ESMF_Field)          :: field_dom_rf_flux
+    type(ESMF_Field)          :: field_liv_rf_flux
+    type(ESMF_Field)          :: field_elec_rf_flux
+    type(ESMF_Field)          :: field_mfc_rf_flux
+    type(ESMF_Field)          :: field_min_rf_flux
     type(ESMF_Field)          :: lfield
     type(ESMF_Field)          :: lfield_src
     type(ESMF_Field)          :: lfield_dst
@@ -359,6 +463,44 @@ contains
        call fldbun_getdata1d(FBlndAccum2rof_r, irrig_flux_field, dataptr, rc)
        dataptr(:) = czero
     end if
+
+
+    ! Reset the sectoral water usage field with the map_lnd2rof_sectorwater calculation below if appropriate
+    if ( NUOPC_IsConnected(is_local%wrap%NStateImp(complnd), fieldname=trim(dom_withd_flux_field)) &
+         .and. NUOPC_IsConnected(is_local%wrap%NStateImp(complnd), fieldname=trim(dom_rf_flux_field)) &
+         .and. NUOPC_IsConnected(is_local%wrap%NStateImp(complnd), fieldname=trim(liv_withd_flux_field)) &
+         .and. NUOPC_IsConnected(is_local%wrap%NStateImp(complnd), fieldname=trim(liv_rf_flux_field)) &
+         .and. NUOPC_IsConnected(is_local%wrap%NStateImp(complnd), fieldname=trim(elec_withd_flux_field)) &
+         .and. NUOPC_IsConnected(is_local%wrap%NStateImp(complnd), fieldname=trim(elec_rf_flux_field)) &
+         .and. NUOPC_IsConnected(is_local%wrap%NStateImp(complnd), fieldname=trim(mfc_withd_flux_field)) &
+         .and. NUOPC_IsConnected(is_local%wrap%NStateImp(complnd), fieldname=trim(mfc_rf_flux_field)) &
+         .and. NUOPC_IsConnected(is_local%wrap%NStateImp(complnd), fieldname=trim(min_withd_flux_field)) &
+         .and. NUOPC_IsConnected(is_local%wrap%NStateImp(complnd), fieldname=trim(min_rf_flux_field))) then
+      call med_phases_prep_rof_sectorwater( gcomp, rc=rc )
+      if (chkerr(rc,__LINE__,u_FILE_u)) return
+   else
+      ! This will ensure that no sector water withdrawal and return flow is sent from the land
+      call fldbun_getdata1d(FBlndAccum2rof_r, dom_withd_flux_field, dataptr, rc)
+      dataptr(:) = czero
+      call fldbun_getdata1d(FBlndAccum2rof_r, dom_rf_flux_field, dataptr, rc)
+      dataptr(:) = czero
+      call fldbun_getdata1d(FBlndAccum2rof_r, liv_withd_flux_field, dataptr, rc)
+      dataptr(:) = czero
+      call fldbun_getdata1d(FBlndAccum2rof_r, liv_rf_flux_field, dataptr, rc)
+      dataptr(:) = czero
+      call fldbun_getdata1d(FBlndAccum2rof_r, elec_withd_flux_field, dataptr, rc)
+      dataptr(:) = czero
+      call fldbun_getdata1d(FBlndAccum2rof_r, elec_rf_flux_field, dataptr, rc)
+      dataptr(:) = czero
+      call fldbun_getdata1d(FBlndAccum2rof_r, mfc_withd_flux_field, dataptr, rc)
+      dataptr(:) = czero
+      call fldbun_getdata1d(FBlndAccum2rof_r, mfc_rf_flux_field, dataptr, rc)
+      dataptr(:) = czero
+      call fldbun_getdata1d(FBlndAccum2rof_r, min_withd_flux_field, dataptr, rc)
+      dataptr(:) = czero
+      call fldbun_getdata1d(FBlndAccum2rof_r, min_rf_flux_field, dataptr, rc)
+      dataptr(:) = czero
+   end if
 
     !---------------------------------------
     ! auto merges to create FBExp(comprof) - assumes that all data is coming from FBlndAccum2rof_r
@@ -658,4 +800,811 @@ contains
 
   end subroutine med_phases_prep_rof_irrig
 
+    !===============================================================================
+  subroutine med_phases_prep_rof_sectorwater(gcomp, rc)
+
+   !---------------------------------------------------------------
+   ! Description
+   ! Do custom mapping for the sectoral water fluxes, from land -> rof.
+   !
+   ! The basic idea is that we want to pull/add the fluxes out of ROF cells proportionally to
+   ! the river volume (volr) in each cell. This is important in cases where the various
+   ! ROF cells overlapping a CTSM cell have very different volr: If we didn't do this
+   ! volr-normalized remapping, we'd try to extract the same amount of water from each
+   ! of the ROF cells, which would be more likely to have withdrawals exceeding
+   ! available volr.
+   !
+   ! (Both RTM and MOSART have code to handle excess withdrawals by pulling the excess
+   ! directly out of the ocean. We'd like to avoid resorting to this if possible.
+   !
+   ! This mapping works by:
+   ! (1) Normalizing the land's sectoral water fluxes by volr
+   ! (2) Mapping this volr-normalized flux to the rof grid
+   ! (3) Converting the mapped, volr-normalized flux back to a normal
+   !     (non-volr-normalized) flux on the rof grid.
+   !---------------------------------------------------------------
+
+   use ESMF        , only : ESMF_GridComp, ESMF_Field, ESMF_FieldGet, ESMF_FieldCreate
+   use ESMF        , only : ESMF_FieldBundle, ESMF_FieldBundleGet, ESMF_FieldIsCreated
+   use ESMF        , only : ESMF_Mesh, ESMF_TYPEKIND_R8, ESMF_MESHLOC_ELEMENT
+   use ESMF        , only : ESMF_SUCCESS, ESMF_FAILURE
+   use ESMF        , only : ESMF_LOGMSG_INFO, ESMF_LogWrite, ESMF_LOGMSG_ERROR
+   use med_map_mod , only : med_map_rh_is_created, med_map_field, med_map_field_normalized
+
+   ! input/output variables
+   type(ESMF_GridComp)  :: gcomp
+   integer, intent(out) :: rc
+
+   ! local variables
+   integer                   :: r,l
+   type(InternalState)       :: is_local
+   integer                   :: fieldcount
+   type(ESMF_Field)          :: field_import_rof
+   type(ESMF_Field)          :: field_import_lnd
+   type(ESMF_Field)          :: field_dom_withd_flux
+   type(ESMF_Field)          :: field_dom_rf_flux
+   type(ESMF_Field)          :: field_liv_withd_flux
+   type(ESMF_Field)          :: field_liv_rf_flux
+   type(ESMF_Field)          :: field_elec_withd_flux
+   type(ESMF_Field)          :: field_elec_rf_flux
+   type(ESMF_Field)          :: field_mfc_withd_flux
+   type(ESMF_Field)          :: field_mfc_rf_flux
+   type(ESMF_Field)          :: field_min_withd_flux
+   type(ESMF_Field)          :: field_min_rf_flux
+   type(ESMF_Field)          :: field_lfrac_lnd
+   type(ESMF_Mesh)           :: lmesh_lnd
+   type(ESMF_Mesh)           :: lmesh_rof
+   real(r8), pointer         :: volr_l(:)
+   real(r8), pointer         :: volr_r(:)
+   real(r8), pointer         :: volr_r_import(:)
+
+   real(r8), pointer         :: dom_withd_normalized_l(:)
+   real(r8), pointer         :: dom_withd_normalized_r(:)
+   real(r8), pointer         :: dom_withd_volr0_l(:)
+   real(r8), pointer         :: dom_withd_volr0_r(:)
+   real(r8), pointer         :: dom_withd_flux_l(:)
+   real(r8), pointer         :: dom_withd_flux_r(:)
+
+   real(r8), pointer         :: dom_rf_normalized_l(:)
+   real(r8), pointer         :: dom_rf_normalized_r(:)
+   real(r8), pointer         :: dom_rf_volr0_l(:)
+   real(r8), pointer         :: dom_rf_volr0_r(:)
+   real(r8), pointer         :: dom_rf_flux_l(:)
+   real(r8), pointer         :: dom_rf_flux_r(:)
+
+   real(r8), pointer         :: liv_withd_normalized_l(:)
+   real(r8), pointer         :: liv_withd_normalized_r(:)
+   real(r8), pointer         :: liv_withd_volr0_l(:)
+   real(r8), pointer         :: liv_withd_volr0_r(:)
+   real(r8), pointer         :: liv_withd_flux_l(:)
+   real(r8), pointer         :: liv_withd_flux_r(:)
+
+   real(r8), pointer         :: liv_rf_normalized_l(:)
+   real(r8), pointer         :: liv_rf_normalized_r(:)
+   real(r8), pointer         :: liv_rf_volr0_l(:)
+   real(r8), pointer         :: liv_rf_volr0_r(:)
+   real(r8), pointer         :: liv_rf_flux_l(:)
+   real(r8), pointer         :: liv_rf_flux_r(:)
+
+   real(r8), pointer         :: elec_withd_normalized_l(:)
+   real(r8), pointer         :: elec_withd_normalized_r(:)
+   real(r8), pointer         :: elec_withd_volr0_l(:)
+   real(r8), pointer         :: elec_withd_volr0_r(:)
+   real(r8), pointer         :: elec_withd_flux_l(:)
+   real(r8), pointer         :: elec_withd_flux_r(:)
+
+   real(r8), pointer         :: elec_rf_normalized_l(:)
+   real(r8), pointer         :: elec_rf_normalized_r(:)
+   real(r8), pointer         :: elec_rf_volr0_l(:)
+   real(r8), pointer         :: elec_rf_volr0_r(:)
+   real(r8), pointer         :: elec_rf_flux_l(:)
+   real(r8), pointer         :: elec_rf_flux_r(:)
+
+
+   real(r8), pointer         :: mfc_withd_normalized_l(:)
+   real(r8), pointer         :: mfc_withd_normalized_r(:)
+   real(r8), pointer         :: mfc_withd_volr0_l(:)
+   real(r8), pointer         :: mfc_withd_volr0_r(:)
+   real(r8), pointer         :: mfc_withd_flux_l(:)
+   real(r8), pointer         :: mfc_withd_flux_r(:)
+
+   real(r8), pointer         :: mfc_rf_normalized_l(:)
+   real(r8), pointer         :: mfc_rf_normalized_r(:)
+   real(r8), pointer         :: mfc_rf_volr0_l(:)
+   real(r8), pointer         :: mfc_rf_volr0_r(:)
+   real(r8), pointer         :: mfc_rf_flux_l(:)
+   real(r8), pointer         :: mfc_rf_flux_r(:)
+
+   real(r8), pointer         :: min_withd_normalized_l(:)
+   real(r8), pointer         :: min_withd_normalized_r(:)
+   real(r8), pointer         :: min_withd_volr0_l(:)
+   real(r8), pointer         :: min_withd_volr0_r(:)
+   real(r8), pointer         :: min_withd_flux_l(:)
+   real(r8), pointer         :: min_withd_flux_r(:)
+
+   real(r8), pointer         :: min_rf_normalized_l(:)
+   real(r8), pointer         :: min_rf_normalized_r(:)
+   real(r8), pointer         :: min_rf_volr0_l(:)
+   real(r8), pointer         :: min_rf_volr0_r(:)
+   real(r8), pointer         :: min_rf_flux_l(:)
+   real(r8), pointer         :: min_rf_flux_r(:)
+
+
+   character(len=*), parameter :: subname='(med_phases_prep_rof_mod: med_phases_prep_rof_sectorwater)'
+   !---------------------------------------------------------------
+
+   call t_startf('MED:'//subname)
+
+   if (dbug_flag > 20) then
+      call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
+   end if
+   rc = ESMF_SUCCESS
+
+   !---------------------------------------
+   ! Get the internal state
+   !---------------------------------------
+
+   nullify(is_local%wrap)
+   call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+   if (med_map_RH_is_created(is_local%wrap%RH(complnd,comprof,:),mapconsf, rc=rc)) then
+      maptype_lnd2rof = mapconsf
+   else if ( med_map_RH_is_created(is_local%wrap%RH(complnd,comprof,:),mapfcopy, rc=rc)) then
+      maptype_lnd2rof = mapfcopy
+   else
+      call ESMF_LogWrite(trim(subname)//&
+           ": ERROR conservative or redist route handles not created for lnd->rof mapping", &
+           ESMF_LOGMSG_ERROR)
+      rc = ESMF_FAILURE
+      return
+   end if
+
+   if (med_map_RH_is_created(is_local%wrap%RH(comprof,complnd,:),mapconsf, rc=rc)) then
+      maptype_rof2lnd = mapconsf
+   else if ( med_map_RH_is_created(is_local%wrap%RH(comprof,complnd,:),mapfcopy, rc=rc)) then
+      maptype_rof2lnd = mapfcopy
+   else
+      call ESMF_LogWrite(trim(subname)//&
+           ": ERROR conservative or redist route handles not created for rof->lnd mapping", &
+           ESMF_LOGMSG_ERROR)
+      rc = ESMF_FAILURE
+      return
+   end if
+
+   ! ------------------------------------------------------------------------
+   ! Initialize module field bundles if not already initialized
+   ! ------------------------------------------------------------------------
+
+   if (.not. ESMF_FieldIsCreated(field_lnd_dom_withd)  .and. &
+       .not. ESMF_FieldIsCreated(field_rof_dom_withd)  .and. &
+       .not. ESMF_FieldIsCreated(field_lnd_dom_withd0) .and. &
+       .not. ESMF_FieldIsCreated(field_rof_dom_withd0) .and. &
+       .not. ESMF_FieldIsCreated(field_lnd_liv_withd)  .and. &
+       .not. ESMF_FieldIsCreated(field_rof_liv_withd)  .and. &
+       .not. ESMF_FieldIsCreated(field_lnd_liv_withd0) .and. &
+       .not. ESMF_FieldIsCreated(field_rof_liv_withd0) .and. &
+       .not. ESMF_FieldIsCreated(field_lnd_elec_withd)  .and. &
+       .not. ESMF_FieldIsCreated(field_rof_elec_withd)  .and. &
+       .not. ESMF_FieldIsCreated(field_lnd_elec_withd0) .and. &
+       .not. ESMF_FieldIsCreated(field_rof_elec_withd0) .and. &
+       .not. ESMF_FieldIsCreated(field_lnd_mfc_withd)  .and. &
+       .not. ESMF_FieldIsCreated(field_rof_mfc_withd)  .and. &
+       .not. ESMF_FieldIsCreated(field_lnd_mfc_withd0) .and. &
+       .not. ESMF_FieldIsCreated(field_rof_mfc_withd0) .and. &
+       .not. ESMF_FieldIsCreated(field_lnd_min_withd)  .and. &
+       .not. ESMF_FieldIsCreated(field_rof_min_withd)  .and. &
+       .not. ESMF_FieldIsCreated(field_lnd_min_withd0) .and. &
+       .not. ESMF_FieldIsCreated(field_rof_min_withd0) .and. &
+       .not. ESMF_FieldIsCreated(field_lnd_dom_rf)  .and. &
+       .not. ESMF_FieldIsCreated(field_rof_dom_rf)  .and. &
+       .not. ESMF_FieldIsCreated(field_lnd_dom_rf0) .and. &
+       .not. ESMF_FieldIsCreated(field_rof_dom_rf0) .and. &
+       .not. ESMF_FieldIsCreated(field_lnd_liv_rf)  .and. &
+       .not. ESMF_FieldIsCreated(field_rof_liv_rf)  .and. &
+       .not. ESMF_FieldIsCreated(field_lnd_liv_rf0) .and. &
+       .not. ESMF_FieldIsCreated(field_rof_liv_rf0) .and. &
+       .not. ESMF_FieldIsCreated(field_lnd_elec_rf)  .and. &
+       .not. ESMF_FieldIsCreated(field_rof_elec_rf)  .and. &
+       .not. ESMF_FieldIsCreated(field_lnd_elec_rf0) .and. &
+       .not. ESMF_FieldIsCreated(field_rof_elec_rf0) .and. &
+       .not. ESMF_FieldIsCreated(field_lnd_mfc_rf)  .and. &
+       .not. ESMF_FieldIsCreated(field_rof_mfc_rf)  .and. &
+       .not. ESMF_FieldIsCreated(field_lnd_mfc_rf0) .and. &
+       .not. ESMF_FieldIsCreated(field_rof_mfc_rf0) .and. &
+       .not. ESMF_FieldIsCreated(field_lnd_min_rf)  .and. &
+       .not. ESMF_FieldIsCreated(field_rof_min_rf)  .and. &
+       .not. ESMF_FieldIsCreated(field_lnd_min_rf0) .and. &
+       .not. ESMF_FieldIsCreated(field_rof_min_rf0)) then
+
+      ! get fields in source and destination field bundles
+      call fldbun_getmesh(is_local%wrap%FBImp(complnd,complnd), lmesh_lnd, rc)
+      if (chkerr(rc,__LINE__,u_FILE_u)) return
+      call fldbun_getmesh(is_local%wrap%FBImp(comprof,comprof), lmesh_rof, rc)
+      if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+      field_lnd_dom_withd = ESMF_FieldCreate(lmesh_lnd, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+      if (chkerr(rc,__LINE__,u_FILE_u)) return
+      field_rof_dom_withd = ESMF_FieldCreate(lmesh_rof, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+      if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+      field_lnd_dom_withd0 = ESMF_FieldCreate(lmesh_lnd, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+      if (chkerr(rc,__LINE__,u_FILE_u)) return
+      field_rof_dom_withd0 = ESMF_FieldCreate(lmesh_rof, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+      if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+      field_lnd_liv_withd = ESMF_FieldCreate(lmesh_lnd, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+      if (chkerr(rc,__LINE__,u_FILE_u)) return
+      field_rof_liv_withd = ESMF_FieldCreate(lmesh_rof, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+      if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+      field_lnd_liv_withd0 = ESMF_FieldCreate(lmesh_lnd, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+      if (chkerr(rc,__LINE__,u_FILE_u)) return
+      field_rof_liv_withd0 = ESMF_FieldCreate(lmesh_rof, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+      if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+
+      field_lnd_elec_withd = ESMF_FieldCreate(lmesh_lnd, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+      if (chkerr(rc,__LINE__,u_FILE_u)) return
+      field_rof_elec_withd = ESMF_FieldCreate(lmesh_rof, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+      if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+      field_lnd_elec_withd0 = ESMF_FieldCreate(lmesh_lnd, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+      if (chkerr(rc,__LINE__,u_FILE_u)) return
+      field_rof_elec_withd0 = ESMF_FieldCreate(lmesh_rof, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+      if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+
+      field_lnd_mfc_withd = ESMF_FieldCreate(lmesh_lnd, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+      if (chkerr(rc,__LINE__,u_FILE_u)) return
+      field_rof_mfc_withd = ESMF_FieldCreate(lmesh_rof, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+      if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+      field_lnd_mfc_withd0 = ESMF_FieldCreate(lmesh_lnd, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+      if (chkerr(rc,__LINE__,u_FILE_u)) return
+      field_rof_mfc_withd0 = ESMF_FieldCreate(lmesh_rof, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+      if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+
+      field_lnd_min_withd = ESMF_FieldCreate(lmesh_lnd, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+      if (chkerr(rc,__LINE__,u_FILE_u)) return
+      field_rof_min_withd = ESMF_FieldCreate(lmesh_rof, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+      if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+      field_lnd_min_withd0 = ESMF_FieldCreate(lmesh_lnd, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+      if (chkerr(rc,__LINE__,u_FILE_u)) return
+      field_rof_min_withd0 = ESMF_FieldCreate(lmesh_rof, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+      if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+
+      field_lnd_dom_rf = ESMF_FieldCreate(lmesh_lnd, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+      if (chkerr(rc,__LINE__,u_FILE_u)) return
+      field_rof_dom_rf = ESMF_FieldCreate(lmesh_rof, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+      if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+      field_lnd_dom_rf0 = ESMF_FieldCreate(lmesh_lnd, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+      if (chkerr(rc,__LINE__,u_FILE_u)) return
+      field_rof_dom_rf0 = ESMF_FieldCreate(lmesh_rof, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+      if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+      field_lnd_liv_rf = ESMF_FieldCreate(lmesh_lnd, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+      if (chkerr(rc,__LINE__,u_FILE_u)) return
+      field_rof_liv_rf = ESMF_FieldCreate(lmesh_rof, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+      if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+      field_lnd_liv_rf0 = ESMF_FieldCreate(lmesh_lnd, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+      if (chkerr(rc,__LINE__,u_FILE_u)) return
+      field_rof_liv_rf0 = ESMF_FieldCreate(lmesh_rof, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+      if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+      field_lnd_elec_rf = ESMF_FieldCreate(lmesh_lnd, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+      if (chkerr(rc,__LINE__,u_FILE_u)) return
+      field_rof_elec_rf = ESMF_FieldCreate(lmesh_rof, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+      if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+      field_lnd_elec_rf0 = ESMF_FieldCreate(lmesh_lnd, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+      if (chkerr(rc,__LINE__,u_FILE_u)) return
+      field_rof_elec_rf0 = ESMF_FieldCreate(lmesh_rof, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+      if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+      field_lnd_mfc_rf = ESMF_FieldCreate(lmesh_lnd, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+      if (chkerr(rc,__LINE__,u_FILE_u)) return
+      field_rof_mfc_rf = ESMF_FieldCreate(lmesh_rof, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+      if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+      field_lnd_mfc_rf0 = ESMF_FieldCreate(lmesh_lnd, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+      if (chkerr(rc,__LINE__,u_FILE_u)) return
+      field_rof_mfc_rf0 = ESMF_FieldCreate(lmesh_rof, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+      if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+      field_lnd_min_rf = ESMF_FieldCreate(lmesh_lnd, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+      if (chkerr(rc,__LINE__,u_FILE_u)) return
+      field_rof_min_rf = ESMF_FieldCreate(lmesh_rof, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+      if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+      field_lnd_min_rf0 = ESMF_FieldCreate(lmesh_lnd, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+      if (chkerr(rc,__LINE__,u_FILE_u)) return
+      field_rof_min_rf0 = ESMF_FieldCreate(lmesh_rof, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+      if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+   end if
+
+   ! ------------------------------------------------------------------------
+   ! 1) Create volr_l: Adjust volr_r, and map it to the land grid
+   ! ------------------------------------------------------------------------
+
+   ! Treat any rof point with volr < 0 as if it had volr = 0. Negative volr values can
+   ! arise in RTM. This fix is needed to avoid mapping negative sector waterfluxes to those
+   ! cells: while conservative, this would be unphysical (it would mean that sector water fluxes
+   ! actually adds water to those cells).
+
+   ! Create volr_r
+   call fldbun_getdata1d(is_local%wrap%FBImp(comprof,comprof), trim(volr_field), volr_r_import, rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+   call field_getdata1d(field_rofVolr, volr_r, rc=rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+   do r = 1, size(volr_r)
+      if (volr_r_import(r) < 0._r8) then
+         volr_r(r) = 0._r8
+      else
+         volr_r(r) = volr_r_import(r)
+      end if
+   end do
+
+   ! Map volr_r to volr_l (rof->lnd) using conservative mapping without any fractional weighting
+   call med_map_field( &
+        field_src=field_rofVolr, &
+        field_dst=field_lndVolr, &
+        routehandles=is_local%wrap%RH(comprof,complnd,:), &
+        maptype=maptype_rof2lnd, rc=rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+   ! Get volr_l
+   call field_getdata1d(field_lndVolr, volr_l, rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+   ! ------------------------------------------------------------------------
+   ! (2) Determine sector water usage from land on land grid normalized by volr_l
+   ! ------------------------------------------------------------------------
+
+   ! In order to avoid possible divide by 0, as well as to handle non-sensical negative
+   ! volr on the land grid, we divide the land's sector water flux into two separate flux
+   ! components:
+   ! - a component where we have positive volr on the land grid (put in
+   !   sectorX_withd/rf_normalized_l, which is mapped using volr-normalization)
+   ! - a component where we have zero or negative volr on the land
+   !   grid (put in sectorX_withd/rf_volr0_l, which is mapped as a standard flux).
+   ! We then remap both of these components to the rof grid, and then
+   ! finally add the two components to determine the total sector water
+   ! flux on the rof grid.
+
+   ! First extract accumulated sector water flux from land
+   call fldbun_getdata1d(FBlndAccum2rof_l, trim(dom_withd_flux_field), dom_withd_flux_l, rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+   call fldbun_getdata1d(FBlndAccum2rof_l, trim(dom_rf_flux_field), dom_rf_flux_l, rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+   call fldbun_getdata1d(FBlndAccum2rof_l, trim(liv_withd_flux_field), liv_withd_flux_l, rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+   call fldbun_getdata1d(FBlndAccum2rof_l, trim(liv_rf_flux_field), liv_rf_flux_l, rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+   call fldbun_getdata1d(FBlndAccum2rof_l, trim(elec_withd_flux_field), elec_withd_flux_l, rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+   call fldbun_getdata1d(FBlndAccum2rof_l, trim(elec_rf_flux_field), elec_rf_flux_l, rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+   call fldbun_getdata1d(FBlndAccum2rof_l, trim(mfc_withd_flux_field), mfc_withd_flux_l, rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+   call fldbun_getdata1d(FBlndAccum2rof_l, trim(mfc_rf_flux_field), mfc_rf_flux_l, rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+   call fldbun_getdata1d(FBlndAccum2rof_l, trim(min_withd_flux_field), min_withd_flux_l, rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+   call fldbun_getdata1d(FBlndAccum2rof_l, trim(min_rf_flux_field), min_rf_flux_l, rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+   ! Fill in values for sectorX_withd/rf_normalized_l and sectorX_withd/rf_volr0_l
+   call field_getdata1d(field_lnd_dom_withd, dom_withd_normalized_l, rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+   call field_getdata1d(field_lnd_dom_withd0, dom_withd_volr0_l, rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+   call field_getdata1d(field_lnd_dom_rf, dom_rf_normalized_l, rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+   call field_getdata1d(field_lnd_dom_rf0, dom_rf_volr0_l, rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+   call field_getdata1d(field_lnd_liv_withd, liv_withd_normalized_l, rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+   call field_getdata1d(field_lnd_liv_withd0, liv_withd_volr0_l, rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+   call field_getdata1d(field_lnd_liv_rf, liv_rf_normalized_l, rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+   call field_getdata1d(field_lnd_liv_rf0, liv_rf_volr0_l, rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+   call field_getdata1d(field_lnd_elec_withd, elec_withd_normalized_l, rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+   call field_getdata1d(field_lnd_elec_withd0, elec_withd_volr0_l, rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+   call field_getdata1d(field_lnd_elec_rf, elec_rf_normalized_l, rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+   call field_getdata1d(field_lnd_elec_rf0, elec_rf_volr0_l, rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+   call field_getdata1d(field_lnd_mfc_withd, mfc_withd_normalized_l, rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+   call field_getdata1d(field_lnd_mfc_withd0, mfc_withd_volr0_l, rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+   call field_getdata1d(field_lnd_mfc_rf, mfc_rf_normalized_l, rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+   call field_getdata1d(field_lnd_mfc_rf0, mfc_rf_volr0_l, rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+
+   call field_getdata1d(field_lnd_min_withd, min_withd_normalized_l, rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+   call field_getdata1d(field_lnd_min_withd0, min_withd_volr0_l, rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+   call field_getdata1d(field_lnd_min_rf, min_rf_normalized_l, rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+   call field_getdata1d(field_lnd_min_rf0, min_rf_volr0_l, rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+   do l = 1, size(volr_l)
+      if (volr_l(l) > 0._r8) then
+         dom_withd_normalized_l(l) = dom_withd_flux_l(l) / volr_l(l)
+         dom_withd_volr0_l(l)      = 0._r8
+         dom_rf_normalized_l(l) = dom_rf_flux_l(l) / volr_l(l)
+         dom_rf_volr0_l(l)      = 0._r8
+
+         liv_withd_normalized_l(l) = liv_withd_flux_l(l) / volr_l(l)
+         liv_withd_volr0_l(l)      = 0._r8
+         liv_rf_normalized_l(l) = liv_rf_flux_l(l) / volr_l(l)
+         liv_rf_volr0_l(l)      = 0._r8
+
+         elec_withd_normalized_l(l) = elec_withd_flux_l(l) / volr_l(l)
+         elec_withd_volr0_l(l)      = 0._r8
+         elec_rf_normalized_l(l) = elec_rf_flux_l(l) / volr_l(l)
+         elec_rf_volr0_l(l)      = 0._r8
+
+         mfc_withd_normalized_l(l) = mfc_withd_flux_l(l) / volr_l(l)
+         mfc_withd_volr0_l(l)      = 0._r8
+         mfc_rf_normalized_l(l) = mfc_rf_flux_l(l) / volr_l(l)
+         mfc_rf_volr0_l(l)      = 0._r8
+
+         min_withd_normalized_l(l) = min_withd_flux_l(l) / volr_l(l)
+         min_withd_volr0_l(l)      = 0._r8
+         min_rf_normalized_l(l) = min_rf_flux_l(l) / volr_l(l)
+         min_rf_volr0_l(l)      = 0._r8
+      else
+         dom_withd_normalized_l(l) = 0._r8
+         dom_withd_volr0_l(l)      = dom_withd_flux_l(l)
+         dom_rf_normalized_l(l) = 0._r8
+         dom_rf_volr0_l(l)      = dom_rf_flux_l(l)
+
+         liv_withd_normalized_l(l) = 0._r8
+         liv_withd_volr0_l(l)      = liv_withd_flux_l(l)
+         liv_rf_normalized_l(l) = 0._r8
+         liv_rf_volr0_l(l)      = liv_rf_flux_l(l)
+
+         elec_withd_normalized_l(l) = 0._r8
+         elec_withd_volr0_l(l)      = elec_withd_flux_l(l)
+         elec_rf_normalized_l(l) = 0._r8
+         elec_rf_volr0_l(l)      = elec_rf_flux_l(l)
+
+         mfc_withd_normalized_l(l) = 0._r8
+         mfc_withd_volr0_l(l)      = mfc_withd_flux_l(l)
+         mfc_rf_normalized_l(l) = 0._r8
+         mfc_rf_volr0_l(l)      = mfc_rf_flux_l(l)
+
+         min_withd_normalized_l(l) = 0._r8
+         min_withd_volr0_l(l)      = min_withd_flux_l(l)
+         min_rf_normalized_l(l) = 0._r8
+         min_rf_volr0_l(l)      = min_rf_flux_l(l)
+      end if
+   end do
+
+   ! ------------------------------------------------------------------------
+   ! (3) Map normalized sector water fluxes from land to rof grid and
+   !     convert to a total sector fluxes on the ROF grid
+   ! ------------------------------------------------------------------------
+
+   call ESMF_FieldBundleGet(is_local%wrap%FBFrac(complnd), 'lfrac', field=field_lfrac_lnd, rc=rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+   call med_map_field_normalized(  &
+        field_src=field_lnd_dom_withd, &
+        field_dst=field_rof_dom_withd, &
+        routehandles=is_local%wrap%RH(complnd,comprof,:), &
+        maptype=maptype_lnd2rof, &
+        field_normsrc=field_lfrac_lnd, &
+        field_normdst=field_lfrac_rof, rc=rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+   call med_map_field_normalized(  &
+        field_src=field_lnd_dom_withd0, &
+        field_dst=field_rof_dom_withd0, &
+        routehandles=is_local%wrap%RH(complnd,comprof,:), &
+        maptype=maptype_lnd2rof, &
+        field_normsrc=field_lfrac_lnd, &
+        field_normdst=field_lfrac_rof, rc=rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+   call med_map_field_normalized(  &
+        field_src=field_lnd_dom_rf, &
+        field_dst=field_rof_dom_rf, &
+        routehandles=is_local%wrap%RH(complnd,comprof,:), &
+        maptype=maptype_lnd2rof, &
+        field_normsrc=field_lfrac_lnd, &
+        field_normdst=field_lfrac_rof, rc=rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+   call med_map_field_normalized(  &
+        field_src=field_lnd_dom_rf0, &
+        field_dst=field_rof_dom_rf0, &
+        routehandles=is_local%wrap%RH(complnd,comprof,:), &
+        maptype=maptype_lnd2rof, &
+        field_normsrc=field_lfrac_lnd, &
+        field_normdst=field_lfrac_rof, rc=rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+   call med_map_field_normalized(  &
+        field_src=field_lnd_liv_withd, &
+        field_dst=field_rof_liv_withd, &
+        routehandles=is_local%wrap%RH(complnd,comprof,:), &
+        maptype=maptype_lnd2rof, &
+        field_normsrc=field_lfrac_lnd, &
+        field_normdst=field_lfrac_rof, rc=rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+   call med_map_field_normalized(  &
+        field_src=field_lnd_liv_withd0, &
+        field_dst=field_rof_liv_withd0, &
+        routehandles=is_local%wrap%RH(complnd,comprof,:), &
+        maptype=maptype_lnd2rof, &
+        field_normsrc=field_lfrac_lnd, &
+        field_normdst=field_lfrac_rof, rc=rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+   call med_map_field_normalized(  &
+        field_src=field_lnd_liv_rf, &
+        field_dst=field_rof_liv_rf, &
+        routehandles=is_local%wrap%RH(complnd,comprof,:), &
+        maptype=maptype_lnd2rof, &
+        field_normsrc=field_lfrac_lnd, &
+        field_normdst=field_lfrac_rof, rc=rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+   call med_map_field_normalized(  &
+        field_src=field_lnd_liv_rf0, &
+        field_dst=field_rof_liv_rf0, &
+        routehandles=is_local%wrap%RH(complnd,comprof,:), &
+        maptype=maptype_lnd2rof, &
+        field_normsrc=field_lfrac_lnd, &
+        field_normdst=field_lfrac_rof, rc=rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+   call med_map_field_normalized(  &
+        field_src=field_lnd_elec_withd, &
+        field_dst=field_rof_elec_withd, &
+        routehandles=is_local%wrap%RH(complnd,comprof,:), &
+        maptype=maptype_lnd2rof, &
+        field_normsrc=field_lfrac_lnd, &
+        field_normdst=field_lfrac_rof, rc=rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+   call med_map_field_normalized(  &
+        field_src=field_lnd_elec_withd0, &
+        field_dst=field_rof_elec_withd0, &
+        routehandles=is_local%wrap%RH(complnd,comprof,:), &
+        maptype=maptype_lnd2rof, &
+        field_normsrc=field_lfrac_lnd, &
+        field_normdst=field_lfrac_rof, rc=rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+   call med_map_field_normalized(  &
+        field_src=field_lnd_elec_rf, &
+        field_dst=field_rof_elec_rf, &
+        routehandles=is_local%wrap%RH(complnd,comprof,:), &
+        maptype=maptype_lnd2rof, &
+        field_normsrc=field_lfrac_lnd, &
+        field_normdst=field_lfrac_rof, rc=rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+   call med_map_field_normalized(  &
+        field_src=field_lnd_elec_rf0, &
+        field_dst=field_rof_elec_rf0, &
+        routehandles=is_local%wrap%RH(complnd,comprof,:), &
+        maptype=maptype_lnd2rof, &
+        field_normsrc=field_lfrac_lnd, &
+        field_normdst=field_lfrac_rof, rc=rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+
+   call med_map_field_normalized(  &
+        field_src=field_lnd_mfc_withd, &
+        field_dst=field_rof_mfc_withd, &
+        routehandles=is_local%wrap%RH(complnd,comprof,:), &
+        maptype=maptype_lnd2rof, &
+        field_normsrc=field_lfrac_lnd, &
+        field_normdst=field_lfrac_rof, rc=rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+   call med_map_field_normalized(  &
+        field_src=field_lnd_mfc_withd0, &
+        field_dst=field_rof_mfc_withd0, &
+        routehandles=is_local%wrap%RH(complnd,comprof,:), &
+        maptype=maptype_lnd2rof, &
+        field_normsrc=field_lfrac_lnd, &
+        field_normdst=field_lfrac_rof, rc=rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+   call med_map_field_normalized(  &
+        field_src=field_lnd_mfc_rf, &
+        field_dst=field_rof_mfc_rf, &
+        routehandles=is_local%wrap%RH(complnd,comprof,:), &
+        maptype=maptype_lnd2rof, &
+        field_normsrc=field_lfrac_lnd, &
+        field_normdst=field_lfrac_rof, rc=rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+   call med_map_field_normalized(  &
+        field_src=field_lnd_mfc_rf0, &
+        field_dst=field_rof_mfc_rf0, &
+        routehandles=is_local%wrap%RH(complnd,comprof,:), &
+        maptype=maptype_lnd2rof, &
+        field_normsrc=field_lfrac_lnd, &
+        field_normdst=field_lfrac_rof, rc=rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+   call med_map_field_normalized(  &
+        field_src=field_lnd_min_withd, &
+        field_dst=field_rof_min_withd, &
+        routehandles=is_local%wrap%RH(complnd,comprof,:), &
+        maptype=maptype_lnd2rof, &
+        field_normsrc=field_lfrac_lnd, &
+        field_normdst=field_lfrac_rof, rc=rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+   call med_map_field_normalized(  &
+        field_src=field_lnd_min_withd0, &
+        field_dst=field_rof_min_withd0, &
+        routehandles=is_local%wrap%RH(complnd,comprof,:), &
+        maptype=maptype_lnd2rof, &
+        field_normsrc=field_lfrac_lnd, &
+        field_normdst=field_lfrac_rof, rc=rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+   call med_map_field_normalized(  &
+        field_src=field_lnd_min_rf, &
+        field_dst=field_rof_min_rf, &
+        routehandles=is_local%wrap%RH(complnd,comprof,:), &
+        maptype=maptype_lnd2rof, &
+        field_normsrc=field_lfrac_lnd, &
+        field_normdst=field_lfrac_rof, rc=rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+   call med_map_field_normalized(  &
+        field_src=field_lnd_min_rf0, &
+        field_dst=field_rof_min_rf0, &
+        routehandles=is_local%wrap%RH(complnd,comprof,:), &
+        maptype=maptype_lnd2rof, &
+        field_normsrc=field_lfrac_lnd, &
+        field_normdst=field_lfrac_rof, rc=rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+   ! Convert to a total sector water flux on the ROF grid, and put this in the pre-merge FBlndAccum2rof_r
+   call field_getdata1d(field_rof_dom_withd, dom_withd_normalized_r, rc=rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+   call field_getdata1d(field_rof_dom_withd0, dom_withd_volr0_r, rc=rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+   call fldbun_getdata1d(FBlndAccum2rof_r, trim(dom_withd_flux_field), dom_withd_flux_r, rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+   call field_getdata1d(field_rof_dom_withd0, dom_withd_volr0_r, rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+   call field_getdata1d(field_rof_dom_rf, dom_rf_normalized_r, rc=rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+   call field_getdata1d(field_rof_dom_rf0, dom_rf_volr0_r, rc=rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+   call fldbun_getdata1d(FBlndAccum2rof_r, trim(dom_rf_flux_field), dom_rf_flux_r, rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+   call field_getdata1d(field_rof_dom_rf0, dom_rf_volr0_r, rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+   call field_getdata1d(field_rof_liv_withd, liv_withd_normalized_r, rc=rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+   call field_getdata1d(field_rof_liv_withd0, liv_withd_volr0_r, rc=rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+   call fldbun_getdata1d(FBlndAccum2rof_r, trim(liv_withd_flux_field), liv_withd_flux_r, rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+   call field_getdata1d(field_rof_liv_withd0, liv_withd_volr0_r, rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+   call field_getdata1d(field_rof_liv_rf, liv_rf_normalized_r, rc=rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+   call field_getdata1d(field_rof_liv_rf0, liv_rf_volr0_r, rc=rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+   call fldbun_getdata1d(FBlndAccum2rof_r, trim(liv_rf_flux_field), liv_rf_flux_r, rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+   call field_getdata1d(field_rof_liv_rf0, liv_rf_volr0_r, rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+   call field_getdata1d(field_rof_elec_withd, elec_withd_normalized_r, rc=rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+   call field_getdata1d(field_rof_elec_withd0, elec_withd_volr0_r, rc=rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+   call fldbun_getdata1d(FBlndAccum2rof_r, trim(elec_withd_flux_field), elec_withd_flux_r, rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+   call field_getdata1d(field_rof_elec_withd0, elec_withd_volr0_r, rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+   call field_getdata1d(field_rof_elec_rf, elec_rf_normalized_r, rc=rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+   call field_getdata1d(field_rof_elec_rf0, elec_rf_volr0_r, rc=rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+   call fldbun_getdata1d(FBlndAccum2rof_r, trim(elec_rf_flux_field), elec_rf_flux_r, rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+   call field_getdata1d(field_rof_elec_rf0, elec_rf_volr0_r, rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+   call field_getdata1d(field_rof_mfc_withd, mfc_withd_normalized_r, rc=rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+   call field_getdata1d(field_rof_mfc_withd0, mfc_withd_volr0_r, rc=rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+   call fldbun_getdata1d(FBlndAccum2rof_r, trim(mfc_withd_flux_field), mfc_withd_flux_r, rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+   call field_getdata1d(field_rof_mfc_withd0, mfc_withd_volr0_r, rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+   call field_getdata1d(field_rof_mfc_rf, mfc_rf_normalized_r, rc=rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+   call field_getdata1d(field_rof_mfc_rf0, mfc_rf_volr0_r, rc=rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+   call fldbun_getdata1d(FBlndAccum2rof_r, trim(mfc_rf_flux_field), mfc_rf_flux_r, rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+   call field_getdata1d(field_rof_mfc_rf0, mfc_rf_volr0_r, rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+   call field_getdata1d(field_rof_min_withd, min_withd_normalized_r, rc=rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+   call field_getdata1d(field_rof_min_withd0, min_withd_volr0_r, rc=rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+   call fldbun_getdata1d(FBlndAccum2rof_r, trim(min_withd_flux_field), min_withd_flux_r, rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+   call field_getdata1d(field_rof_min_withd0, min_withd_volr0_r, rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+   call field_getdata1d(field_rof_min_rf, min_rf_normalized_r, rc=rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+   call field_getdata1d(field_rof_min_rf0, min_rf_volr0_r, rc=rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+   call fldbun_getdata1d(FBlndAccum2rof_r, trim(min_rf_flux_field), min_rf_flux_r, rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+   call field_getdata1d(field_rof_min_rf0, min_rf_volr0_r, rc)
+   if (chkerr(rc,__LINE__,u_FILE_u)) return
+   
+
+   do r = 1, size(dom_withd_flux_r)
+      dom_withd_flux_r(r) = (dom_withd_normalized_r(r) * volr_r(r)) + dom_withd_volr0_r(r)
+      dom_rf_flux_r(r) = (dom_rf_normalized_r(r) * volr_r(r)) + dom_rf_volr0_r(r)
+
+      liv_withd_flux_r(r) = (liv_withd_normalized_r(r) * volr_r(r)) + liv_withd_volr0_r(r)
+      liv_rf_flux_r(r) = (liv_rf_normalized_r(r) * volr_r(r)) + liv_rf_volr0_r(r)
+
+      elec_withd_flux_r(r) = (elec_withd_normalized_r(r) * volr_r(r)) + elec_withd_volr0_r(r)
+      elec_rf_flux_r(r) = (elec_rf_normalized_r(r) * volr_r(r)) + elec_rf_volr0_r(r)
+
+      mfc_withd_flux_r(r) = (mfc_withd_normalized_r(r) * volr_r(r)) + mfc_withd_volr0_r(r)
+      mfc_rf_flux_r(r) = (mfc_rf_normalized_r(r) * volr_r(r)) + mfc_rf_volr0_r(r)
+
+      min_withd_flux_r(r) = (min_withd_normalized_r(r) * volr_r(r)) + min_withd_volr0_r(r)
+      min_rf_flux_r(r) = (min_rf_normalized_r(r) * volr_r(r)) + min_rf_volr0_r(r)
+
+   end do
+
+   if (dbug_flag > 20) then
+      call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
+   end if
+   call t_stopf('MED:'//subname)
+
+ end subroutine med_phases_prep_rof_sectorwater
+ 
 end module med_phases_prep_rof_mod
