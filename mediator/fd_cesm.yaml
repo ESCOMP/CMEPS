@@ -915,6 +915,46 @@
        canonical_units: kg m-2 s-1
        description: land export to river
      #
+     - standard_name: Flrl_dom_withd
+       canonical_units: kg m-2 s-1
+       description: land export to river
+     #
+     - standard_name: Flrl_dom_rf
+       canonical_units: kg m-2 s-1
+       description: land export to river
+     #
+     - standard_name: Flrl_liv_withd
+       canonical_units: kg m-2 s-1
+       description: land export to river
+     #
+     - standard_name: Flrl_liv_rf
+       canonical_units: kg m-2 s-1
+       description: land export to river
+     #
+     - standard_name: Flrl_elec_withd
+       canonical_units: kg m-2 s-1
+       description: land export to river
+     #
+     - standard_name: Flrl_elec_rf
+       canonical_units: kg m-2 s-1
+       description: land export to river
+     #
+     - standard_name: Flrl_mfc_withd
+       canonical_units: kg m-2 s-1
+       description: land export to river
+     #
+     - standard_name: Flrl_mfc_rf
+       canonical_units: kg m-2 s-1
+       description: land export to river
+     #
+     - standard_name: Flrl_min_withd
+       canonical_units: kg m-2 s-1
+       description: land export to river
+     #
+     - standard_name: Flrl_min_rf
+       canonical_units: kg m-2 s-1
+       description: land export to river
+     #
      - standard_name: Flrl_rofdto
        canonical_units: kg m-2 s-1
        description: land export to river
