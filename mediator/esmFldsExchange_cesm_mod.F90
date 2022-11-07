@@ -3038,6 +3038,156 @@ contains
        end if
     end if
 
+        ! ---------------------------------------------------------------------
+    ! to rof: domestic withdrawal flux from land (withdrawal from rivers)
+    ! ---------------------------------------------------------------------
+    if (phase == 'advertise') then
+      call addfld(fldListFr(complnd)%flds, 'Flrl_dom_withd')
+      call addfld(fldListTo(comprof)%flds, 'Flrl_dom_withd')
+   else
+      if ( fldchk(is_local%wrap%FBImp(complnd, complnd), 'Flrl_dom_withd', rc=rc) .and. &
+           fldchk(is_local%wrap%FBExp(comprof)         , 'Flrl_dom_withd', rc=rc)) then
+         call addmap(fldListFr(complnd)%flds, 'Flrl_dom_withd', comprof, mapconsf, 'lfrac', lnd2rof_map)
+         call addmrg(fldListTo(comprof)%flds, 'Flrl_dom_withd', &
+              mrg_from=complnd, mrg_fld='Flrl_dom_withd', mrg_type='copy_with_weights', mrg_fracname='lfrac')
+      end if
+   end if
+
+   ! ---------------------------------------------------------------------
+   ! to rof: domestic return flow flux from land (withdrawal from rivers)
+   ! ---------------------------------------------------------------------
+   if (phase == 'advertise') then
+      call addfld(fldListFr(complnd)%flds, 'Flrl_dom_rf')
+      call addfld(fldListTo(comprof)%flds, 'Flrl_dom_rf')
+   else
+      if ( fldchk(is_local%wrap%FBImp(complnd, complnd), 'Flrl_dom_rf', rc=rc) .and. &
+           fldchk(is_local%wrap%FBExp(comprof)         , 'Flrl_dom_rf', rc=rc)) then
+         call addmap(fldListFr(complnd)%flds, 'Flrl_dom_rf', comprof, mapconsf, 'lfrac', lnd2rof_map)
+         call addmrg(fldListTo(comprof)%flds, 'Flrl_dom_rf', &
+              mrg_from=complnd, mrg_fld='Flrl_dom_rf', mrg_type='copy_with_weights', mrg_fracname='lfrac')
+      end if
+   end if
+
+   ! ---------------------------------------------------------------------
+   ! to rof: livestock withdrawal flux from land (withdrawal from rivers)
+   ! ---------------------------------------------------------------------
+   if (phase == 'advertise') then
+      call addfld(fldListFr(complnd)%flds, 'Flrl_liv_withd')
+      call addfld(fldListTo(comprof)%flds, 'Flrl_liv_withd')
+   else
+      if ( fldchk(is_local%wrap%FBImp(complnd, complnd), 'Flrl_liv_withd', rc=rc) .and. &
+           fldchk(is_local%wrap%FBExp(comprof)         , 'Flrl_liv_withd', rc=rc)) then
+         call addmap(fldListFr(complnd)%flds, 'Flrl_liv_withd', comprof, mapconsf, 'lfrac', lnd2rof_map)
+         call addmrg(fldListTo(comprof)%flds, 'Flrl_liv_withd', &
+              mrg_from=complnd, mrg_fld='Flrl_liv_withd', mrg_type='copy_with_weights', mrg_fracname='lfrac')
+      end if
+   end if
+
+   ! ---------------------------------------------------------------------
+   ! to rof: livestock return flow flux from land (withdrawal from rivers)
+   ! ---------------------------------------------------------------------
+   if (phase == 'advertise') then
+      call addfld(fldListFr(complnd)%flds, 'Flrl_liv_rf')
+      call addfld(fldListTo(comprof)%flds, 'Flrl_liv_rf')
+   else
+      if ( fldchk(is_local%wrap%FBImp(complnd, complnd), 'Flrl_liv_rf', rc=rc) .and. &
+           fldchk(is_local%wrap%FBExp(comprof)         , 'Flrl_liv_rf', rc=rc)) then
+         call addmap(fldListFr(complnd)%flds, 'Flrl_liv_rf', comprof, mapconsf, 'lfrac', lnd2rof_map)
+         call addmrg(fldListTo(comprof)%flds, 'Flrl_liv_rf', &
+              mrg_from=complnd, mrg_fld='Flrl_liv_rf', mrg_type='copy_with_weights', mrg_fracname='lfrac')
+      end if
+   end if
+
+   ! ---------------------------------------------------------------------
+   ! to rof: thermoelectric withdrawal flux from land (withdrawal from rivers)
+   ! ---------------------------------------------------------------------
+   if (phase == 'advertise') then
+      call addfld(fldListFr(complnd)%flds, 'Flrl_elec_withd')
+      call addfld(fldListTo(comprof)%flds, 'Flrl_elec_withd')
+   else
+      if ( fldchk(is_local%wrap%FBImp(complnd, complnd), 'Flrl_elec_withd', rc=rc) .and. &
+           fldchk(is_local%wrap%FBExp(comprof)         , 'Flrl_elec_withd', rc=rc)) then
+         call addmap(fldListFr(complnd)%flds, 'Flrl_elec_withd', comprof, mapconsf, 'lfrac', lnd2rof_map)
+         call addmrg(fldListTo(comprof)%flds, 'Flrl_elec_withd', &
+              mrg_from=complnd, mrg_fld='Flrl_elec_withd', mrg_type='copy_with_weights', mrg_fracname='lfrac')
+      end if
+   end if
+
+   ! ---------------------------------------------------------------------
+   ! to rof: thermoelectric return flow flux from land (withdrawal from rivers)
+   ! ---------------------------------------------------------------------
+   if (phase == 'advertise') then
+      call addfld(fldListFr(complnd)%flds, 'Flrl_elec_rf')
+      call addfld(fldListTo(comprof)%flds, 'Flrl_elec_rf')
+   else
+      if ( fldchk(is_local%wrap%FBImp(complnd, complnd), 'Flrl_elec_rf', rc=rc) .and. &
+           fldchk(is_local%wrap%FBExp(comprof)         , 'Flrl_elec_rf', rc=rc)) then
+         call addmap(fldListFr(complnd)%flds, 'Flrl_elec_rf', comprof, mapconsf, 'lfrac', lnd2rof_map)
+         call addmrg(fldListTo(comprof)%flds, 'Flrl_elec_rf', &
+              mrg_from=complnd, mrg_fld='Flrl_elec_rf', mrg_type='copy_with_weights', mrg_fracname='lfrac')
+      end if
+   end if
+
+   ! ---------------------------------------------------------------------
+   ! to rof: manufacturing withdrawal flux from land (withdrawal from rivers)
+   ! ---------------------------------------------------------------------
+   if (phase == 'advertise') then
+     call addfld(fldListFr(complnd)%flds, 'Flrl_mfc_withd')
+     call addfld(fldListTo(comprof)%flds, 'Flrl_mfc_withd')
+  else
+     if ( fldchk(is_local%wrap%FBImp(complnd, complnd), 'Flrl_mfc_withd', rc=rc) .and. &
+          fldchk(is_local%wrap%FBExp(comprof)         , 'Flrl_mfc_withd', rc=rc)) then
+        call addmap(fldListFr(complnd)%flds, 'Flrl_mfc_withd', comprof, mapconsf, 'lfrac', lnd2rof_map)
+        call addmrg(fldListTo(comprof)%flds, 'Flrl_mfc_withd', &
+             mrg_from=complnd, mrg_fld='Flrl_mfc_withd', mrg_type='copy_with_weights', mrg_fracname='lfrac')
+     end if
+  end if
+
+   ! ---------------------------------------------------------------------
+   ! to rof: manufacturing return flow flux from land (withdrawal from rivers)
+   ! ---------------------------------------------------------------------
+   if (phase == 'advertise') then
+      call addfld(fldListFr(complnd)%flds, 'Flrl_mfc_rf')
+      call addfld(fldListTo(comprof)%flds, 'Flrl_mfc_rf')
+   else
+      if ( fldchk(is_local%wrap%FBImp(complnd, complnd), 'Flrl_mfc_rf', rc=rc) .and. &
+           fldchk(is_local%wrap%FBExp(comprof)         , 'Flrl_mfc_rf', rc=rc)) then
+         call addmap(fldListFr(complnd)%flds, 'Flrl_mfc_rf', comprof, mapconsf, 'lfrac', lnd2rof_map)
+         call addmrg(fldListTo(comprof)%flds, 'Flrl_mfc_rf', &
+              mrg_from=complnd, mrg_fld='Flrl_mfc_rf', mrg_type='copy_with_weights', mrg_fracname='lfrac')
+      end if
+   end if
+
+   ! ---------------------------------------------------------------------
+   ! to rof: mining withdrawal flux from land (withdrawal from rivers)
+   ! ---------------------------------------------------------------------
+   if (phase == 'advertise') then
+      call addfld(fldListFr(complnd)%flds, 'Flrl_min_withd')
+      call addfld(fldListTo(comprof)%flds, 'Flrl_min_withd')
+   else
+      if ( fldchk(is_local%wrap%FBImp(complnd, complnd), 'Flrl_min_withd', rc=rc) .and. &
+           fldchk(is_local%wrap%FBExp(comprof)         , 'Flrl_min_withd', rc=rc)) then
+         call addmap(fldListFr(complnd)%flds, 'Flrl_min_withd', comprof, mapconsf, 'lfrac', lnd2rof_map)
+         call addmrg(fldListTo(comprof)%flds, 'Flrl_min_withd', &
+              mrg_from=complnd, mrg_fld='Flrl_min_withd', mrg_type='copy_with_weights', mrg_fracname='lfrac')
+      end if
+   end if
+   
+
+   ! ---------------------------------------------------------------------
+   ! to rof: mining return flow flux from land (withdrawal from rivers)
+   ! ---------------------------------------------------------------------
+   if (phase == 'advertise') then
+     call addfld(fldListFr(complnd)%flds, 'Flrl_min_rf')
+     call addfld(fldListTo(comprof)%flds, 'Flrl_min_rf')
+  else
+     if ( fldchk(is_local%wrap%FBImp(complnd, complnd), 'Flrl_min_rf', rc=rc) .and. &
+          fldchk(is_local%wrap%FBExp(comprof)         , 'Flrl_min_rf', rc=rc)) then
+        call addmap(fldListFr(complnd)%flds, 'Flrl_min_rf', comprof, mapconsf, 'lfrac', lnd2rof_map)
+        call addmrg(fldListTo(comprof)%flds, 'Flrl_min_rf', &
+             mrg_from=complnd, mrg_fld='Flrl_min_rf', mrg_type='copy_with_weights', mrg_fracname='lfrac')
+     end if
+  end if
     !=====================================================================
     ! FIELDS TO LAND-ICE (compglc)
     !=====================================================================
