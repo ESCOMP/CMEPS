@@ -1029,6 +1029,36 @@ contains
     call diag_lnd(is_local%wrap%FBImp(complnd,complnd), 'Flrl_irrig' , f_watr_roff, ic,&
          areas, lfrac, budget_local, minus=.true., rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call diag_lnd(is_local%wrap%FBImp(complnd,complnd), 'Flrl_dom_withd' , f_watr_roff, ic,&
+    areas, lfrac, budget_local, minus=.true., rc=rc)
+   if (ChkErr(rc,__LINE__,u_FILE_u)) return
+   call diag_lnd(is_local%wrap%FBImp(complnd,complnd), 'Flrl_dom_rf' , f_watr_roff, ic,&
+      areas, lfrac, budget_local, minus=.false., rc=rc)
+   if (ChkErr(rc,__LINE__,u_FILE_u)) return
+   call diag_lnd(is_local%wrap%FBImp(complnd,complnd), 'Flrl_liv_withd' , f_watr_roff, ic,&
+      areas, lfrac, budget_local, minus=.true., rc=rc)
+   if (ChkErr(rc,__LINE__,u_FILE_u)) return
+   call diag_lnd(is_local%wrap%FBImp(complnd,complnd), 'Flrl_liv_rf' , f_watr_roff, ic,&
+      areas, lfrac, budget_local, minus=.false., rc=rc)
+   if (ChkErr(rc,__LINE__,u_FILE_u)) return
+   call diag_lnd(is_local%wrap%FBImp(complnd,complnd), 'Flrl_elec_withd' , f_watr_roff, ic,&
+      areas, lfrac, budget_local, minus=.true., rc=rc)
+   if (ChkErr(rc,__LINE__,u_FILE_u)) return
+   call diag_lnd(is_local%wrap%FBImp(complnd,complnd), 'Flrl_elec_rf' , f_watr_roff, ic,&
+      areas, lfrac, budget_local, minus=.false., rc=rc)
+   if (ChkErr(rc,__LINE__,u_FILE_u)) return
+   call diag_lnd(is_local%wrap%FBImp(complnd,complnd), 'Flrl_mfc_withd' , f_watr_roff, ic,&
+      areas, lfrac, budget_local, minus=.true., rc=rc)
+   if (ChkErr(rc,__LINE__,u_FILE_u)) return
+   call diag_lnd(is_local%wrap%FBImp(complnd,complnd), 'Flrl_mfc_rf' , f_watr_roff, ic,&
+      areas, lfrac, budget_local, minus=.false., rc=rc)
+   if (ChkErr(rc,__LINE__,u_FILE_u)) return
+   call diag_lnd(is_local%wrap%FBImp(complnd,complnd), 'Flrl_min_withd' , f_watr_roff, ic,&
+      areas, lfrac, budget_local, minus=.true., rc=rc)
+   if (ChkErr(rc,__LINE__,u_FILE_u)) return
+   call diag_lnd(is_local%wrap%FBImp(complnd,complnd), 'Flrl_min_rf' , f_watr_roff, ic,&
+      areas, lfrac, budget_local, minus=.false., rc=rc)
+   if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call diag_lnd(is_local%wrap%FBImp(complnd,complnd), 'Flrl_rofi'  , f_watr_ioff, ic,&
          areas, lfrac, budget_local, minus=.true., rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -1235,6 +1265,26 @@ contains
     call diag_rof(is_local%wrap%FBExp(comprof), 'Flrl_rofsub', f_watr_roff, ic, areas, budget_local, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call diag_rof(is_local%wrap%FBExp(comprof), 'Flrl_irrig' , f_watr_roff, ic, areas, budget_local, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call diag_rof(is_local%wrap%FBExp(comprof), 'Flrl_dom_withd' , f_watr_roff, ic, areas, budget_local, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call diag_rof(is_local%wrap%FBExp(comprof), 'Flrl_dom_rf' , f_watr_roff, ic, areas, budget_local, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call diag_rof(is_local%wrap%FBExp(comprof), 'Flrl_liv_withd' , f_watr_roff, ic, areas, budget_local, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call diag_rof(is_local%wrap%FBExp(comprof), 'Flrl_liv_rf' , f_watr_roff, ic, areas, budget_local, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call diag_rof(is_local%wrap%FBExp(comprof), 'Flrl_elec_withd' , f_watr_roff, ic, areas, budget_local, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call diag_rof(is_local%wrap%FBExp(comprof), 'Flrl_elec_rf' , f_watr_roff, ic, areas, budget_local, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call diag_rof(is_local%wrap%FBExp(comprof), 'Flrl_mfc_withd' , f_watr_roff, ic, areas, budget_local, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call diag_rof(is_local%wrap%FBExp(comprof), 'Flrl_mfc_rf' , f_watr_roff, ic, areas, budget_local, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call diag_rof(is_local%wrap%FBExp(comprof), 'Flrl_min_withd' , f_watr_roff, ic, areas, budget_local, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call diag_rof(is_local%wrap%FBExp(comprof), 'Flrl_min_rf' , f_watr_roff, ic, areas, budget_local, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call diag_rof(is_local%wrap%FBExp(comprof), 'Flrl_rofi'  , f_watr_ioff, ic, areas, budget_local, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
