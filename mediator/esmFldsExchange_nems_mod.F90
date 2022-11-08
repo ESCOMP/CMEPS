@@ -706,6 +706,7 @@ contains
      end do
      deallocate(flds)
 
+<<<<<<< HEAD
      ! to wav: sea ice fraction, thickness and floe diameter
      allocate(flds(3))
      flds = (/'Si_ifrac   ', 'Si_floediam', 'Si_thick   '/)
@@ -725,6 +726,21 @@ contains
         end if
       end do
       deallocate(flds)
+=======
+     ! to wav: sea ice fraction
+     if (phase == 'advertise') then
+        if (is_local%wrap%comp_present(compice) .and. is_local%wrap%comp_present(compwav)) then
+           call addfld(fldListFr(compice)%flds, 'Si_ifrac')
+           call addfld(fldListTo(compwav)%flds, 'Si_ifrac')
+        end if
+     else
+        if ( fldchk(is_local%wrap%FBexp(compwav)        , 'Si_ifrac', rc=rc) .and. &
+             fldchk(is_local%wrap%FBImp(compice,compice), 'Si_ifrac', rc=rc)) then
+            call addmap(fldListFr(compice)%flds, 'Si_ifrac', compwav, mapfcopy , 'unset', 'unset')
+            call addmrg(fldListTo(compwav)%flds, 'Si_ifrac', mrg_from=compice, mrg_fld='Si_ifrac', mrg_type='copy')
+        end if
+     end if
+>>>>>>> escomp/master
 
      ! to wav: zonal sea water velocity from ocn
      ! to wav: meridional sea water velocity from ocn
@@ -741,7 +757,11 @@ contains
         else
            if ( fldchk(is_local%wrap%FBexp(compwav)        , trim(fldname), rc=rc) .and. &
                 fldchk(is_local%wrap%FBImp(compocn,compocn), trim(fldname), rc=rc)) then
+<<<<<<< HEAD
               call addmap(fldListFr(compocn)%flds, trim(fldname), compwav, mapbilnr_nstod , 'one', 'unset')
+=======
+              call addmap(fldListFr(compocn)%flds, trim(fldname), compwav, mapfcopy , 'unset', 'unset')
+>>>>>>> escomp/master
               call addmrg(fldListTo(compwav)%flds, trim(fldname), mrg_from=compocn, mrg_fld=trim(fldname), mrg_type='copy')
            end if
         end if
@@ -758,7 +778,7 @@ contains
        flds = (/'Sa_z      ', 'Sa_topo   ', 'Sa_tbot   ', 'Sa_pbot   ', &
                 'Sa_shum   ', 'Sa_u      ', 'Sa_v      ', 'Faxa_lwdn ', &
                 'Sa_ptem   ', 'Sa_dens   ', 'Faxa_swdn ', 'Sa_pslv   ', &
-                'Faxa_snowc', 'Faxa_snowl', 'Faxa_rainc', 'Faxa_rainl', & 
+                'Faxa_snowc', 'Faxa_snowl', 'Faxa_rainc', 'Faxa_rainl', &
                 'Faxa_swndr', 'Faxa_swndf', 'Faxa_swvdr', 'Faxa_swvdf', &
                 'Faxa_swnet'/)
     else
