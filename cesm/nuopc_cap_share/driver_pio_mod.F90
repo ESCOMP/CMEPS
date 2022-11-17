@@ -226,13 +226,7 @@ contains
           if (chkerr(rc,__LINE__,u_FILE_u)) return
 
           if(comp_comm .ne. MPI_COMM_NULL) then
-             call ESMF_VMGet(vm, petCount=npets, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-             call ESMF_VMGet(vm, localPet=comp_rank, rc=rc) 
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-             call ESMF_VMGet(vm, ssiLocalPetCount=default_stride, rc=rc)
+             call ESMF_VMGet(vm, petCount=npets, localPet=comp_rank, ssiLocalPetCount=default_stride, rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
           
              call NUOPC_CompAttributeGet(gcomp(i), name="pio_stride", value=cval, rc=rc)
@@ -254,7 +248,6 @@ contains
                 pio_comp_settings(i)%pio_numiotasks = max(1,npets/pio_comp_settings(i)%pio_stride)
              endif
 
-
              call NUOPC_CompAttributeGet(gcomp(i), name="pio_root", value=cval, rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
              read(cval, *) pio_comp_settings(i)%pio_root
@@ -262,7 +255,6 @@ contains
              if(pio_comp_settings(i)%pio_root < 0 .or. pio_comp_settings(i)%pio_root > npets) then
                 pio_comp_settings(i)%pio_root = 0
              endif
-          
           
              call NUOPC_CompAttributeGet(gcomp(i), name="pio_typename", value=cval, rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
