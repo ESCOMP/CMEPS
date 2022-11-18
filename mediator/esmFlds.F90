@@ -47,7 +47,7 @@ module esmflds
   !    merge_type(comptm) = 'copy'  (could also have 'copy_with_weighting')
 
   type, public :: med_fldList_type
-     type (med_fldList_entry_type), pointer :: flds(:) => null()
+     type (med_fldList_entry_type), allocatable :: flds(:)
   end type med_fldList_type
 
   interface med_fldList_GetFldInfo ; module procedure &
@@ -94,7 +94,7 @@ contains
     ! 5) point flds => newflds
     ! ----------------------------------------------
 
-    type(med_fldList_entry_type) , pointer                :: flds(:)
+    type(med_fldList_entry_type) , allocatable            :: flds(:)
     character(len=*)             , intent(in)             :: stdname
     character(len=*)             , intent(in)  , optional :: shortname
 
@@ -102,22 +102,21 @@ contains
     integer :: n,oldsize,id
     logical :: found
     integer :: mapsize, mrgsize
-    type(med_fldList_entry_type), pointer :: newflds(:)
+    type(med_fldList_entry_type), allocatable :: newflds(:)
     character(len=*), parameter :: subname='(med_fldList_AddFld)'
     ! ----------------------------------------------
 
-    if (associated(flds)) then
+    found = .false.
+    oldsize = 0
+
+    if (allocated(flds)) then
        oldsize = size(flds)
-       found = .false.
        do n= 1,oldsize
           if (trim(stdname) == trim(flds(n)%stdname)) then
              found = .true.
              exit
           end if
        end do
-    else
-       oldsize = 0
-       found = .false.
     end if
     id = oldsize + 1
 
@@ -127,47 +126,16 @@ contains
     mrgsize = ncomps
 
     if (.not. found) then
-
        ! 1) allocate newfld to be size (one element larger than input flds)
-       allocate(newflds(id))
+       if(oldsize > 0) then
+          allocate(newflds(id))
+          newflds(1:oldsize) = flds
+          call move_alloc(newflds, flds)
+       else
+          allocate(flds(1))
+       endif
 
-       ! 2) copy flds into first N-1 elements of newflds
-       do n = 1,oldsize
-          newflds(n)%stdname            = flds(n)%stdname
-          newflds(n)%shortname          = flds(n)%shortname
-
-          allocate(newflds(n)%mapindex(mapsize))
-          allocate(newflds(n)%mapnorm(mapsize))
-          allocate(newflds(n)%mapfile(mapsize))
-          allocate(newflds(n)%merge_fields(mrgsize))
-          allocate(newflds(n)%merge_types(mrgsize))
-          allocate(newflds(n)%merge_fracnames(mrgsize))
-
-          newflds(n)%mapindex(:)        = flds(n)%mapindex(:)
-          newflds(n)%mapnorm(:)         = flds(n)%mapnorm(:)
-          newflds(n)%mapfile(:)         = flds(n)%mapfile(:)
-          newflds(n)%merge_fields(:)    = flds(n)%merge_fields(:)
-          newflds(n)%merge_types(:)     = flds(n)%merge_types(:)
-          newflds(n)%merge_fracnames(:) = flds(n)%merge_fracnames(:)
-
-          deallocate(flds(n)%mapindex)
-          deallocate(flds(n)%mapnorm)
-          deallocate(flds(n)%mapfile)
-          deallocate(flds(n)%merge_fields)
-          deallocate(flds(n)%merge_types)
-          deallocate(flds(n)%merge_fracnames)
-       end do
-
-       ! 3) deallocate / nullify flds
-       if (oldsize >  0) then
-          deallocate(flds)
-          nullify(flds)
-       end if
-
-       ! 4) point flds => new_flds
-       flds => newflds
-
-       ! 5) now update flds information for new entry
+       ! 2) now update flds information for new entry
        flds(id)%stdname   = trim(stdname)
        if (present(shortname)) then
           flds(id)%shortname = trim(shortname)
@@ -201,7 +169,7 @@ contains
     use ESMF, only : ESMF_LogWrite, ESMF_END_ABORT, ESMF_LOGMSG_ERROR, ESMF_Finalize
 
     ! input/output variables
-    type(med_fldList_entry_type) , pointer              :: flds(:)
+    type(med_fldList_entry_type) , allocatable          :: flds(:)
     character(len=*)             , intent(in)           :: fldname
     integer                      , intent(in)           :: mrg_from
     character(len=*)             , intent(in)           :: mrg_fld
@@ -566,7 +534,7 @@ contains
     ! ----------------------------------------------
 
     fldindex_out = 0
-    if (associated(fldList%flds)) then
+    if (allocated(fldList%flds)) then
        do n = 1,size(fldList%flds)
           if (trim(fldList%flds(n)%stdname) == stdname_in) fldindex_out = n
        enddo
@@ -605,7 +573,7 @@ contains
     type(med_fldList_type), intent(in)  :: fldList
     ! ----------------------------------------------
 
-    if (associated(fldList%flds)) then
+    if (allocated(fldList%flds)) then
        med_fldList_GetNumFlds = size(fldList%flds)
     else
        med_fldList_GetNumFlds = 0
@@ -620,7 +588,7 @@ contains
     use ESMF, only : ESMF_LOGMSG_INFO, ESMF_FAILURE, ESMF_SUCCESS, ESMF_LogWrite
 
     ! input/output variables
-    type(med_fldList_entry_type) , pointer     :: flds(:)
+    type(med_fldList_entry_type) , allocatable     :: flds(:)
     character(len=*)             , pointer     :: fldnames(:)
     integer, optional            , intent(out) :: rc
 
@@ -630,7 +598,7 @@ contains
 
     rc = ESMF_SUCCESS
 
-    if (associated(flds) .and. associated(fldnames)) then
+    if (allocated(flds) .and. associated(fldnames)) then
        do n = 1,size(flds)
           fldnames(n) = trim(flds(n)%shortname)
        end do
@@ -709,7 +677,7 @@ contains
     ! ocn-> atm mappings for atm/ocn fluxes computed in mediator on the ocn grid
     nsrc = compocn
     ndst = compatm
-    if (med_coupling_active(nsrc,ndst) .and. associated(fldListMed_aoflux%flds)) then
+    if (med_coupling_active(nsrc,ndst) .and. allocated(fldListMed_aoflux%flds)) then
        do n = 1,size(fldListMed_aoflux%flds)
           mapindex = fldlistMed_aoflux%flds(n)%mapindex(ndst)
           if ( mapindex /= mapunset) then

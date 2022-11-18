@@ -718,7 +718,7 @@ contains
     ! input/output variables
     integer                      , intent(in)    :: destcomp
     character(len=*)             , intent(in)    :: flds_scalar_name
-    type(med_fldList_entry_type) , pointer       :: fldsSrc(:) ! array over mapping types
+    type(med_fldList_entry_type) , allocatable   :: fldsSrc(:) ! array over mapping types
     type(ESMF_FieldBundle)       , intent(in)    :: FBSrc
     type(ESMF_FieldBundle)       , intent(inout) :: FBDst
     type(packed_data_type)       , intent(inout) :: packed_data(:) ! array over mapping types
