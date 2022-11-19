@@ -874,7 +874,7 @@ contains
           if (mastertask) write(logunit,*)
           nflds = med_fldList_GetNumFlds(fldListFr(ncomp))
           do n = 1,nflds
-             call med_fldList_GetFldInfo(fldListFr(ncomp), n, stdname, shortname)
+             call med_fldList_GetFldInfo(fldListFr(ncomp), n, stdname=stdname, shortname=shortname)
              if (mastertask) then
                 write(logunit,'(a)') trim(subname)//':Fr_'//trim(compname(ncomp))//': '//trim(shortname)
              end if
@@ -891,7 +891,7 @@ contains
           end do
           nflds = med_fldList_GetNumFlds(fldListTo(ncomp))
           do n = 1,nflds
-             call med_fldList_GetFldInfo(fldListTo(ncomp), n, stdname, shortname)
+             call med_fldList_GetFldInfo(fldListTo(ncomp), n, stdname=stdname, shortname=shortname)
              if (mastertask) then
                 write(logunit,'(a)') trim(subname)//':To_'//trim(compname(ncomp))//': '//trim(shortname)
              end if

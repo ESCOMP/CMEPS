@@ -109,7 +109,7 @@ contains
     nflds = med_fldlist_getnumflds(fldlistTo(comprof))
     allocate(fldnames_temp(nflds))
     do n = 1,nflds
-       call med_fldList_GetFldInfo(fldListTo(comprof), n, fldnames_temp(n))
+       call med_fldList_GetFldInfo(fldListTo(comprof), n, stdname=fldnames_temp(n))
     end do
     do n = 1,nflds
        if (trim(fldnames_temp(n)) == trim(is_local%wrap%flds_scalar_name)) then

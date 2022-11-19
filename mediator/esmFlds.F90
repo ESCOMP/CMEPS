@@ -39,6 +39,7 @@ module esmflds
      character(CS), allocatable :: merge_fields(:)
      character(CS), allocatable :: merge_types(:)
      character(CS), allocatable :: merge_fracnames(:)
+     type(med_fldList_entry_type), pointer :: next => null()
   end type med_fldList_entry_type
 
   ! The above would be the field name to merge from
@@ -47,7 +48,7 @@ module esmflds
   !    merge_type(comptm) = 'copy'  (could also have 'copy_with_weighting')
 
   type, public :: med_fldList_type
-     type (med_fldList_entry_type), pointer :: flds(:) => null()
+     type (med_fldList_entry_type) :: fields
   end type med_fldList_type
 
   interface med_fldList_GetFldInfo ; module procedure &
@@ -94,33 +95,26 @@ contains
     ! 5) point flds => newflds
     ! ----------------------------------------------
 
-    type(med_fldList_entry_type) , pointer                :: flds(:)
+    type(med_fldList_entry_type) , target                :: fields
     character(len=*)             , intent(in)             :: stdname
     character(len=*)             , intent(in)  , optional :: shortname
 
     ! local variables
-    integer :: n,oldsize,id
     logical :: found
     integer :: mapsize, mrgsize
-    type(med_fldList_entry_type), pointer :: newflds(:)
+    type(med_fldList_entry_type), pointer :: newfld
     character(len=*), parameter :: subname='(med_fldList_AddFld)'
     ! ----------------------------------------------
 
-    if (associated(flds)) then
-       oldsize = size(flds)
-       found = .false.
-       do n= 1,oldsize
-          if (trim(stdname) == trim(flds(n)%stdname)) then
-             found = .true.
-             exit
-          end if
-       end do
-    else
-       oldsize = 0
-       found = .false.
-    end if
-    id = oldsize + 1
-
+    newfld => fields
+    found = .false.
+    do while(newfld%next)
+       if (trim(stdname) == trim(newfld%stdname)) then
+          found = .true.
+          exit
+       end if
+       newfld => newfld%next
+    enddo
     ! create new entry if fldname is not in original list
 
     mapsize = ncomps
@@ -129,76 +123,39 @@ contains
     if (.not. found) then
 
        ! 1) allocate newfld to be size (one element larger than input flds)
-       allocate(newflds(id))
+       allocate(newfld%next)
+       newfld => newfld%next
 
-       ! 2) copy flds into first N-1 elements of newflds
-       do n = 1,oldsize
-          newflds(n)%stdname            = flds(n)%stdname
-          newflds(n)%shortname          = flds(n)%shortname
-
-          allocate(newflds(n)%mapindex(mapsize))
-          allocate(newflds(n)%mapnorm(mapsize))
-          allocate(newflds(n)%mapfile(mapsize))
-          allocate(newflds(n)%merge_fields(mrgsize))
-          allocate(newflds(n)%merge_types(mrgsize))
-          allocate(newflds(n)%merge_fracnames(mrgsize))
-
-          newflds(n)%mapindex(:)        = flds(n)%mapindex(:)
-          newflds(n)%mapnorm(:)         = flds(n)%mapnorm(:)
-          newflds(n)%mapfile(:)         = flds(n)%mapfile(:)
-          newflds(n)%merge_fields(:)    = flds(n)%merge_fields(:)
-          newflds(n)%merge_types(:)     = flds(n)%merge_types(:)
-          newflds(n)%merge_fracnames(:) = flds(n)%merge_fracnames(:)
-
-          deallocate(flds(n)%mapindex)
-          deallocate(flds(n)%mapnorm)
-          deallocate(flds(n)%mapfile)
-          deallocate(flds(n)%merge_fields)
-          deallocate(flds(n)%merge_types)
-          deallocate(flds(n)%merge_fracnames)
-       end do
-
-       ! 3) deallocate / nullify flds
-       if (oldsize >  0) then
-          deallocate(flds)
-          nullify(flds)
-       end if
-
-       ! 4) point flds => new_flds
-       flds => newflds
-
-       ! 5) now update flds information for new entry
-       flds(id)%stdname   = trim(stdname)
+       ! 2) now update flds information for new entry
+       newfld%stdname   = trim(stdname)
        if (present(shortname)) then
-          flds(id)%shortname = trim(shortname)
+          newfld%shortname = trim(shortname)
        else
-          flds(id)%shortname = trim(stdname)
+          newfld%shortname = trim(stdname)
        end if
-       allocate(flds(id)%mapindex(mapsize))
-       allocate(flds(id)%mapnorm(mapsize))
-       allocate(flds(id)%mapfile(mapsize))
-       allocate(flds(id)%merge_fields(mrgsize))
-       allocate(flds(id)%merge_types(mrgsize))
-       allocate(flds(id)%merge_fracnames(mrgsize))
-       flds(id)%mapindex(:) = mapunset
-       flds(id)%mapnorm(:) = 'unset'
-       flds(id)%mapfile(:) = 'unset'
-       flds(id)%merge_fields(:) = 'unset'
-       flds(id)%merge_types(:) = 'unset'
-       flds(id)%merge_fracnames(:) = 'unset'
+       allocate(newfld%mapindex(mapsize))
+       allocate(newfld%mapnorm(mapsize))
+       allocate(newfld%mapfile(mapsize))
+       allocate(newfld%merge_fields(mrgsize))
+       allocate(newfld%merge_types(mrgsize))
+       allocate(newfld%merge_fracnames(mrgsize))
+       newfld%mapindex(:) = mapunset
+       newfld%mapnorm(:) = 'unset'
+       newfld%mapfile(:) = 'unset'
+       newfld%merge_fields(:) = 'unset'
+       newfld%merge_types(:) = 'unset'
+       newfld%merge_fracnames(:) = 'unset'
     end if
 
   end subroutine med_fldList_AddFld
 
   !================================================================================
 
-  subroutine med_fldList_AddMrg(flds, fldname, mrg_from, mrg_fld, mrg_type, mrg_fracname)
+  subroutine med_fldList_AddMrg(flds, fldname, mrg_from, mrg_fld, mrg_type, mrg_fracname, rc)
 
     ! ----------------------------------------------
     ! Determine mrg entry or entries in flds aray
     ! ----------------------------------------------
-
-    use ESMF, only : ESMF_LogWrite, ESMF_END_ABORT, ESMF_LOGMSG_ERROR, ESMF_Finalize
 
     ! input/output variables
     type(med_fldList_entry_type) , pointer              :: flds(:)
@@ -207,92 +164,97 @@ contains
     character(len=*)             , intent(in)           :: mrg_fld
     character(len=*)             , intent(in)           :: mrg_type
     character(len=*)             , intent(in), optional :: mrg_fracname
+    integer                      , intent(out), optional :: rc
 
     ! local variables
-    integer :: n, id
+    integer :: lrc
+    type(med_fldList_entry_type), pointer :: newfld
     character(len=*), parameter :: subname='(med_fldList_AddMrg)'
     ! ----------------------------------------------
+    
+    newfld => med_fldList_GetFld(flds, fldname, lrc)
+    if (present(rc)) rc = lrc
+    if (chkerr(lrc,__LINE__,u_FILE_u)) return    
 
-    id = 0
-    do n= 1,size(flds)
-       if (trim(fldname) == trim(flds(n)%stdname)) then
-          id = n
-          exit
-       end if
-    end do
-    if (id == 0) then
-       do n = 1,size(flds)
-          write(6,*) trim(subname)//' input flds entry is ',trim(flds(n)%stdname)
-       end do
-       call ESMF_LogWrite(subname // 'ERROR: fldname '// trim(fldname) // ' not found in input flds', ESMF_LOGMSG_ERROR)
-       call ESMF_Finalize(endflag=ESMF_END_ABORT)
-    end if
-
-    n = mrg_from
-    flds(id)%merge_fields(n) = mrg_fld
-    flds(id)%merge_types(n) = mrg_type
+    newfld%merge_fields(n) = mrg_fld
+    newfld%merge_types(n) = mrg_type
     if (present(mrg_fracname)) then
-       flds(id)%merge_fracnames(n) = mrg_fracname
+       newfld%merge_fracnames(n) = mrg_fracname
     end if
 
   end subroutine med_fldList_AddMrg
 
+  function med_fldList_GetFld(flds, fldname, rc) result(newfld)
+    use ESMF, only : ESMF_LogWrite, ESMF_END_ABORT, ESMF_LOGMSG_ERROR, ESMF_Finalize
+
+    type(med_fldList_entry_type) , intent(in), target :: fields
+    character(len=*)                  , intent(in)    :: fldname
+
+    type(med_fldList_entry_type), pointer :: newfld
+    integer :: rc
+    
+    newfld => fields
+    rc = ESMF_FAILURE
+    do while(associated(newfld%next))
+       if(trim(fldname) .eq. newfld%stdname) then
+          rc = ESMF_SUCCESS
+          exit
+       endif
+       newfld => newfld%next
+    enddo
+    if(rc /= ESMF_SUCCESS) then
+       newfld => fields
+       do while(associated(newfld%next))
+          write(6,*) trim(subname)//' input flds entry is ',trim(newfld%stdname)
+          newfld => newfld%next
+       end do
+       call ESMF_LogWrite(subname // 'ERROR: fldname '// trim(fldname) // ' not found in input flds', ESMF_LOGMSG_INFO)
+       return
+    endif
+    
+  end function med_fldList_GetFld
   !================================================================================
 
-  subroutine med_fldList_AddMap(flds, fldname, destcomp, maptype, mapnorm, mapfile)
+  subroutine med_fldList_AddMap(flds, fldname, destcomp, maptype, mapnorm, mapfile, rc)
 
     use ESMF, only : ESMF_LOGMSG_ERROR, ESMF_FAILURE, ESMF_LogWrite, ESMF_LOGMSG_INFO
 
     ! intput/output variables
-    type(med_fldList_entry_type) , intent(inout) :: flds(:)
-    character(len=*)                   , intent(in)    :: fldname
     integer                            , intent(in)    :: destcomp
     integer                            , intent(in)    :: maptype
     character(len=*)                   , intent(in)    :: mapnorm
     character(len=*), optional         , intent(in)    :: mapfile
+    integer                            , intent(out)   :: rc
 
     ! local variables
+    type(med_fldList_entry_type), pointer :: newfld
     integer :: id, n
-    integer :: rc
     character(len=CX)                                  :: lmapfile
     character(len=*),parameter  :: subname='(med_fldList_AddMap)'
     ! ----------------------------------------------
     lmapfile = 'unset'
+    rc = ESMF_FAILURE
     if (present(mapfile)) lmapfile = mapfile
 
-    id = 0
-    do n = 1,size(flds)
-       if (trim(fldname) == trim(flds(n)%stdname)) then
-          id = n
-          exit
-       end if
-    end do
-    if (id == 0) then
-       do n = 1,size(flds)
-          write(6,*) trim(subname)//' input flds entry is ',trim(flds(n)%stdname)
-       end do
-       call ESMF_LogWrite(subname // 'ERROR: fldname '// trim(fldname) // ' not found in input flds', ESMF_LOGMSG_INFO)
-       rc = ESMF_FAILURE
-       return
-    end if
-
+    newfld => med_fldList_GetFld(flds, fldname, rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return    
     ! Note - default values are already set for the fld entries - so only non-default
     ! values need to be set below
     ! If mapindex is mapfcopy - create a redistribution route handle
     ! If mapfile is idmap - create a redistribution route nhandle
     ! If mapfile is unset then create the mapping route handle at run time
 
-    flds(id)%mapindex(destcomp) = maptype
-    flds(id)%mapnorm(destcomp)  = trim(mapnorm)
-    flds(id)%mapfile(destcomp)  = trim(lmapfile)
+    newfld%mapindex(destcomp) = maptype
+    newfld%mapnorm(destcomp)  = trim(mapnorm)
+    newfld%mapfile(destcomp)  = trim(lmapfile)
 
     ! overwrite values if appropriate
-    if (flds(id)%mapindex(destcomp) == mapfcopy) then
-       flds(id)%mapfile(destcomp) = 'unset'
-       flds(id)%mapnorm(destcomp) = 'unset'
-    else if (trim(flds(id)%mapfile(destcomp)) == 'idmap') then
-       flds(id)%mapindex(destcomp) = mapfcopy
-       flds(id)%mapnorm(destcomp) = 'unset'
+    if (newfld%mapindex(destcomp) == mapfcopy) then
+       newfld%mapfile(destcomp) = 'unset'
+       newfld%mapnorm(destcomp) = 'unset'
+    else if (trim(newfld%mapfile(destcomp)) == 'idmap') then
+       newfld%mapindex(destcomp) = mapfcopy
+       newfld%mapnorm(destcomp) = 'unset'
     end if
 
   end subroutine med_fldList_AddMap
@@ -515,40 +477,53 @@ contains
 
   !================================================================================
 
-  subroutine med_fldList_GetFldInfo_general(fldList, fldindex, stdname, shortname)
+  subroutine med_fldList_GetFldInfo(fldList, fldindex, stdname, shortname, merge_field, merge_type, merge_fracname)
     ! ----------------------------------------------
     ! Get field info
     ! ----------------------------------------------
     type(med_fldList_type) , intent(in)  :: fldList
     integer                      , intent(in)  :: fldindex
-    character(len=*)             , intent(out) :: stdname
-    character(len=*)             , intent(out) :: shortname
+    integer                      , optional, intent(in)  :: compsrc
+    character(len=*)             , optional, intent(out) :: stdname
+    character(len=*)             , optional, intent(out) :: shortname
+    character(len=*)             , optional, intent(out) :: merge_fields
+    character(len=*)             , optional, intent(out) :: merge_type
+    character(len=*)             , optional, intent(out) :: merge_fracname
 
     ! local variables
+    type(med_fldList_entry_type), pointer :: newfld
+    integer :: i
+    integer :: lcompsrc
     character(len=*), parameter :: subname='(med_fldList_GetFldInfo_general)'
     ! ----------------------------------------------
+    i = 0
+    lcompsrc = 1
+    newfld => fldList%fields
+    do while(newfld)
+       i = i+1
+       if (i==fldindex) exit
+       newfld => newfld%next
+    enddo
+    if(present(stdname)) then
+       stdname   = fldList%fields%stdname
+    endif
+    if(present(shortname)) then
+       shortname = fldList%fields%shortname
+    endif
+    if(present(merge_fields)) then
+       if(present(compsrc)) lcompsrc = compsrc
+       merge_field    = fldList%fields%merge_fields(compsrc)
+    endif
+    if(present(merge_type)) then
+       if(present(compsrc)) lcompsrc = compsrc
+       merge_type     = fldList%fields%merge_types(compsrc)
+    endif
+    if(present(merge_fracname)) then
+       if(present(compsrc)) lcompsrc = compsrc
+       merge_fracname = fldList%fields%merge_fracnames(compsrc)
+    endif
 
-    stdname   = fldList%flds(fldindex)%stdname
-    shortname = fldList%flds(fldindex)%shortname
-
-  end subroutine med_fldList_GetFldInfo_general
-
-  !================================================================================
-
-  subroutine med_fldList_GetFldInfo_stdname(fldList, fldindex_in, stdname_out)
-    ! ----------------------------------------------
-    ! Get field info
-    ! ----------------------------------------------
-    type(med_fldList_type) , intent(in)  :: fldList
-    integer                      , intent(in)  :: fldindex_in
-    character(len=*)             , intent(out) :: stdname_out
-
-    ! local variables
-    character(len=*), parameter :: subname='(med_fldList_GetFldInfo_stdname)'
-    ! ----------------------------------------------
-
-    stdname_out   = fldList%flds(fldindex_in)%stdname
-  end subroutine med_fldList_GetFldInfo_stdname
+  end subroutine med_fldList_GetFldInfo
 
   !================================================================================
 
@@ -602,15 +577,17 @@ contains
   integer function med_fldList_GetNumFlds(fldList)
 
     ! input/output variables
-    type(med_fldList_type), intent(in)  :: fldList
+    type(med_fldList_type), intent(in), target  :: fldList
     ! ----------------------------------------------
-
-    if (associated(fldList%flds)) then
-       med_fldList_GetNumFlds = size(fldList%flds)
-    else
-       med_fldList_GetNumFlds = 0
-    end if
-
+    type(med_fldList_entry_type), pointer :: newfld
+    
+    newfld => fldList
+    med_fldList_GetNumFlds = 0
+    do while(newfld%next)
+       med_fldList_GetNumFlds = med_fldList_GetNumFlds + 1
+       newfld => newfld%next
+    end do
+    
   end function med_fldList_GetNumFlds
 
   !================================================================================

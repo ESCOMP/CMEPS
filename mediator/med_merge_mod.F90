@@ -101,7 +101,7 @@ contains
     num_merge_fields = med_fldList_GetNumFlds(fldListTo)
     allocate(merge_field_names(num_merge_fields))
     do nfld_in = 1,num_merge_fields
-       call med_fldList_GetFldInfo(fldListTo, nfld_in, merge_field_names(nfld_in))
+       call med_fldList_GetFldInfo(fldListTo, nfld_in, stdname=merge_field_names(nfld_in))
     end do
 
     ! Want to loop over all of the fields in FBout here - and find the corresponding index in fldListTo(compxxx)
@@ -112,7 +112,7 @@ contains
        zero_output = .true.
 
        ! Loop over the field in fldListTo
-       do nfld_in = 1,med_fldList_GetNumFlds(fldListTo)
+       do nfld_in = 1,num_merge_fields
 
           if (trim(merge_field_names(nfld_in)) == trim(fieldnamelist(nfld_out))) then
 
@@ -130,7 +130,7 @@ contains
                 end if
 
                 ! Determine the merge information for the import field
-                call med_fldList_GetFldInfo(fldListTo, nfld_in, compsrc, merge_fields, merge_type, merge_fracname)
+                call med_fldList_GetFldInfo(fldListTo, nfld_in, compsrc=compsrc, merge_fields=merge_fields, merge_type=merge_type, merge_fracname=merge_fracname)
 
                 if (merge_type /= 'unset' .and. merge_field /= 'unset') then
                    ! If merge_field is a colon delimited string then cycle through every field - otherwise by default nm
@@ -266,7 +266,7 @@ contains
     num_merge_fields = med_fldList_GetNumFlds(fldListTo)
     allocate(merge_field_names(num_merge_fields))
     do nfld_in = 1,num_merge_fields
-       call med_fldList_GetFldInfo(fldListTo, nfld_in, merge_field_names(nfld_in))
+       call med_fldList_GetFldInfo(fldListTo, nfld_in, stdname=merge_field_names(nfld_in))
     end do
 
     ! Loop over all fields in output field bundle FBOut
@@ -282,7 +282,7 @@ contains
              ! If the merge field name from the source components is not set, then simply go to the next component
 
              ! Determine the merge information for the import field
-             call med_fldList_GetFldInfo(fldListTo, nfld_in, compsrc, merge_fields, merge_type, merge_fracname)
+             call med_fldList_GetFldInfo(fldListTo, nfld_in, compsrc=compsrc, merge_fields=merge_fields, merge_type=merge_type, merge_fracname=merge_fracname)
 
              if (merge_type /= 'unset' .and. merge_field /= 'unset') then
 
