@@ -83,7 +83,8 @@ contains
     use ESMF                  , only : ESMF_Mesh, ESMF_TYPEKIND_R8, ESMF_MESHLOC_ELEMENT
     use med_methods_mod       , only : med_methods_FB_getFieldN, med_methods_FB_getNameN
     use med_constants_mod     , only : czero => med_constants_czero
-    use esmFlds               , only : fldListFr
+    use esmFlds               , only : med_fldList_GetfldListFr, med_fldList_GetNumFlds, med_fldlist_type
+    use esmFlds               , only : med_fldList_GetFldInfo
     use med_internalstate_mod , only : mapunset, compname, compocn, compatm
     use med_internalstate_mod , only : ncomps, nmappers, compname, mapnames, mapfcopy
 
@@ -109,6 +110,7 @@ contains
     real(R8), pointer         :: dataptr(:)
     type(ESMF_Mesh)           :: mesh_src
     type(ESMF_Mesh)           :: mesh_dst
+    type(med_fldlist_type), pointer :: FldListFr
     character(len=*), parameter :: subname=' (module_med_map: RouteHandles_init) '
     !-----------------------------------------------------------
 
@@ -156,10 +158,11 @@ contains
                 end if
 
                 ! Loop over fields
-                do nf = 1,size(fldListFr(n1)%flds)
+                fldListFr => med_fldList_getFldListFr(n1)
+                do nf = 1,med_fldList_GetNumFlds(fldlistFr)
 
                    ! Determine the mapping type for mapping field nf from n1 to n2
-                   mapindex = fldListFr(n1)%flds(nf)%mapindex(n2)
+                   call med_fldList_GetFldInfo(fldListFr, nf, compsrc=n2, mapindex=mapindex)
                    if (mapindex /= mapunset) then
 
                       ! determine if route handle has already been created
@@ -169,7 +172,8 @@ contains
                       ! Create route handle for target mapindex if route handle is required
                       ! (i.e. mapindex /= mapunset) and route handle has not already been created
                       if (.not. mapexists) then
-                         mapfile = trim(fldListFr(n1)%flds(nf)%mapfile(n2))
+                        !~                         mapfile = trim(fldListFr%fields(nf)%mapfile(n2))
+                         call med_fldList_GetFldInfo(fldListFr, nf, compsrc=n2, mapfile=mapfile)
                          call med_map_routehandles_initfrom_field(n1, n2, fldsrc, flddst, &
                               mapindex, is_local%wrap%rh(n1,n2,:), mapfile=trim(mapfile), rc=rc)
                          if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -177,6 +181,8 @@ contains
 
                    end if ! end if mapindex is mapunset
                 end do ! loop over fields
+
+                
              end if ! if coupling active
           end if ! if n1 not equal to n2
        end do ! loop over n2
@@ -718,7 +724,7 @@ contains
     ! input/output variables
     integer                      , intent(in)    :: destcomp
     character(len=*)             , intent(in)    :: flds_scalar_name
-    type(med_fldList_entry_type) , pointer       :: fldsSrc(:) ! array over mapping types
+    type(med_fldList_entry_type) , target        :: fieldsSrc  ! mapping types top of LL
     type(ESMF_FieldBundle)       , intent(in)    :: FBSrc
     type(ESMF_FieldBundle)       , intent(inout) :: FBDst
     type(packed_data_type)       , intent(inout) :: packed_data(:) ! array over mapping types
@@ -792,14 +798,16 @@ contains
        ! Loop over source field bundle
        do nf = 1, fieldCount
           ! Loop over the fldsSrc types
-          do ns = 1,size(fldsSrc)
+          numflds = med_fldlist_GetNumFlds(fldsSrc)
+          do ns = 1,numflds
              ! Note that fieldnamelist is an array of names for the source fields
              ! The assumption is that there is only one mapping normalization
              ! for any given mapping type
-             if ( fldsSrc(ns)%mapindex(destcomp) == mapindex .and. &
-                  trim(fldsSrc(ns)%shortname) == trim(fieldnamelist(nf))) then
+             call med_fldList_GetFldInfo(fldsSrc, ns, compsrc=destcomp, shortname=shortname, mapindex=destindex)
+             if ( destindex == mapindex .and. &
+                  trim(shortname) == trim(fieldnamelist(nf))) then
                 ! Set the normalization to the input
-                packed_data(mapindex)%mapnorm = fldsSrc(ns)%mapnorm(destcomp)
+                call med_FldList_GetFldInfo(fldsSrc, ns, compsrc=destcomp, mapnorm=packed_data(mapindex)%mapnorm=mapnorm)
                 if (mapnorm_mapindex == 'not_set') then
                    mapnorm_mapindex = packed_data(mapindex)%mapnorm
                    write(tmpstr,*)'Map type '//trim(mapnames(mapindex)) &

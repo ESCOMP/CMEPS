@@ -80,7 +80,8 @@ contains
     use ESMF        , only : ESMF_FieldBundle, ESMF_FieldBundleCreate, ESMF_FieldBundleGet, ESMF_FieldBundleAdd
     use ESMF        , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
     use ESMF        , only : ESMF_TYPEKIND_R8
-    use esmFlds     , only : fldListFr, fldlistTo, med_fldlist_GetNumFlds, med_fldlist_getFldInfo
+    use esmFlds     , only : med_fldList_GetfldListFr, med_fldList_GetfldlistTo, med_fldlist_GetNumFlds, med_fldlist_getFldInfo
+    use esmFlds     , only : med_fldList_type
     use med_map_mod , only : med_map_packed_field_create
 
     ! input/output variables
@@ -93,6 +94,7 @@ contains
     type(ESMF_Mesh)     :: mesh_l
     type(ESMF_Mesh)     :: mesh_r
     type(ESMF_Field)    :: lfield
+    type(med_fldList_type), pointer :: fldListTo
     character(len=CS), allocatable  :: fldnames_temp(:)
     character(len=*),parameter  :: subname=' (med_phases_prep_rof_init) '
     !---------------------------------------
@@ -106,10 +108,11 @@ contains
 
     ! Determine lnd2rof_flds (module variable) - note that fldListTo is set in esmFldsExchange_cesm.F90
     ! Remove scalar field from lnd2rof_flds
-    nflds = med_fldlist_getnumflds(fldlistTo(comprof))
+    fldListTo => med_fldList_GetfldlistTo(comprof)
+    nflds = med_fldlist_getnumflds(fldListTo)
     allocate(fldnames_temp(nflds))
     do n = 1,nflds
-       call med_fldList_GetFldInfo(fldListTo(comprof), n, stdname=fldnames_temp(n))
+       call med_fldList_GetFldInfo(fldListTo, n, stdname=fldnames_temp(n))
     end do
     do n = 1,nflds
        if (trim(fldnames_temp(n)) == trim(is_local%wrap%flds_scalar_name)) then
@@ -157,11 +160,11 @@ contains
     call fldbun_reset(FBlndAccum2rof_r, value=0.0_r8, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     lndAccum2rof_cnt = 0
-
+    fldList = med_fldList_GetFldListFr(complnd)
     ! Create packed mapping from rof->lnd
     call med_map_packed_field_create(destcomp=comprof, &
          flds_scalar_name=is_local%wrap%flds_scalar_name, &
-         fldsSrc=fldListFr(complnd)%flds, &
+         fldsSrc=med_fldlist_getfldListFr(complnd), &
          FBSrc=FBLndAccum2rof_l, FBDst=FBLndAccum2rof_r, &
          packed_data=is_local%wrap%packed_data(complnd,comprof,:), rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return

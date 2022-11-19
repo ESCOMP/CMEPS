@@ -27,7 +27,7 @@ contains
     use ESMF                  , only : ESMF_FieldBundle, ESMF_FieldBundleGet, ESMF_Field, ESMF_FieldGet
     use ESMF                  , only : ESMF_GridComp, ESMF_GridCompGet
     use ESMF                  , only : ESMF_StateGet, ESMF_StateItem_Flag, ESMF_STATEITEM_NOTFOUND
-    use esmFlds               , only : fldListTo
+    use esmFlds               , only : med_fldList_GetFldListTo
     use med_methods_mod       , only : fldbun_diagnose  => med_methods_FB_diagnose
     use med_utils_mod         , only : chkerr           => med_utils_ChkErr
     use med_constants_mod     , only : dbug_flag        => med_constants_dbug_flag
@@ -89,7 +89,7 @@ contains
             is_local%wrap%FBExp(complnd), &
             is_local%wrap%FBFrac(complnd), &
             is_local%wrap%FBImp(:,complnd), &
-            fldListTo(complnd), rc=rc)
+            med_fldList_GetFldListTo(complnd), rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call t_stopf('MED:'//trim(subname)//' merge')
 
