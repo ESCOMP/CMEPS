@@ -713,10 +713,10 @@ contains
 
   !================================================================================
   subroutine med_map_packed_field_create(destcomp, flds_scalar_name, &
-       fldsSrc, FBSrc, FBDst, packed_data, rc)
+       fieldsSrc, FBSrc, FBDst, packed_data, rc)
 
     use ESMF
-    use esmFlds               , only : med_fldList_entry_type
+    use esmFlds               , only : med_fldList_entry_type, med_fldList_getNumFlds
     use med_internalstate_mod , only : nmappers
     use med_internalstate_mod , only : ncomps, compatm, compice, compocn, compname, mapnames
     use med_internalstate_mod , only : packed_data_type
@@ -743,6 +743,7 @@ contains
     type(ESMF_Mesh)            :: lmesh_src
     type(ESMF_Mesh)            :: lmesh_dst
     integer                    :: mapindex
+    integer                    :: numFlds
     type(ESMF_Field), pointer  :: fieldlist_src(:)
     type(ESMF_Field), pointer  :: fieldlist_dst(:)
     character(CL), allocatable :: fieldNameList(:)
@@ -798,16 +799,17 @@ contains
        ! Loop over source field bundle
        do nf = 1, fieldCount
           ! Loop over the fldsSrc types
-          numflds = med_fldlist_GetNumFlds(fldsSrc)
+
+          numflds = med_fldlist_GetNumFlds(fieldsSrc)
           do ns = 1,numflds
              ! Note that fieldnamelist is an array of names for the source fields
              ! The assumption is that there is only one mapping normalization
              ! for any given mapping type
-             call med_fldList_GetFldInfo(fldsSrc, ns, compsrc=destcomp, shortname=shortname, mapindex=destindex)
+             call med_fldList_GetFldInfo(fieldsSrc, ns, compsrc=destcomp, shortname=shortname, mapindex=destindex)
              if ( destindex == mapindex .and. &
                   trim(shortname) == trim(fieldnamelist(nf))) then
                 ! Set the normalization to the input
-                call med_FldList_GetFldInfo(fldsSrc, ns, compsrc=destcomp, mapnorm=packed_data(mapindex)%mapnorm=mapnorm)
+                call med_FldList_GetFldInfo(fieldsSrc, ns, compsrc=destcomp, mapnorm=packed_data(mapindex)%mapnorm=mapnorm)
                 if (mapnorm_mapindex == 'not_set') then
                    mapnorm_mapindex = packed_data(mapindex)%mapnorm
                    write(tmpstr,*)'Map type '//trim(mapnames(mapindex)) &

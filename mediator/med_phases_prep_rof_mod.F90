@@ -164,7 +164,7 @@ contains
     ! Create packed mapping from rof->lnd
     call med_map_packed_field_create(destcomp=comprof, &
          flds_scalar_name=is_local%wrap%flds_scalar_name, &
-         fldsSrc=med_fldlist_getfldListFr(complnd), &
+         fldsSrc=fldList, &
          FBSrc=FBLndAccum2rof_l, FBDst=FBLndAccum2rof_r, &
          packed_data=is_local%wrap%packed_data(complnd,comprof,:), rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
