@@ -877,6 +877,7 @@ contains
           nflds = med_fldList_GetNumFlds(fldListFr)
           do n=1,nflds
              call med_fldList_GetFldInfo(fldListFr, n, stdname=stdname, shortname=shortname)
+             print *,__FILE__,__LINE__,n,trim(stdname),trim(shortname)
              if (mastertask) then
                 write(logunit,'(a)') trim(subname)//':Fr_'//trim(compname(ncomp))//': '//trim(shortname)
              end if
