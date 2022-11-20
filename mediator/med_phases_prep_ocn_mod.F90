@@ -19,7 +19,7 @@ module med_phases_prep_ocn_mod
   use med_methods_mod       , only : FB_average    => med_methods_FB_average
   use med_methods_mod       , only : FB_copy       => med_methods_FB_copy
   use med_methods_mod       , only : FB_reset      => med_methods_FB_reset
-  use esmFlds               , only : fldListTo
+  use esmFlds               , only : med_fldList_GetfldListTo
   use med_internalstate_mod , only : compocn, compatm, compice, coupling_mode
   use perf_mod              , only : t_startf, t_stopf
 
@@ -124,7 +124,7 @@ contains
             is_local%wrap%FBExp(compocn), &
             is_local%wrap%FBFrac(compocn), &
             is_local%wrap%FBImp(:,compocn), &
-            fldListTo(compocn), &
+            med_fldList_GetfldListTo(compocn), &
             FBMed1=is_local%wrap%FBMed_aoflux_o, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     else if (trim(coupling_mode) == 'nems_frac' .or. &
@@ -135,7 +135,7 @@ contains
             is_local%wrap%FBExp(compocn), &
             is_local%wrap%FBFrac(compocn), &
             is_local%wrap%FBImp(:,compocn), &
-            fldListTo(compocn), rc=rc)
+            med_fldList_GetfldListTo(compocn), rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 

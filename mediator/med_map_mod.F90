@@ -716,7 +716,8 @@ contains
        fieldsSrc, FBSrc, FBDst, packed_data, rc)
 
     use ESMF
-    use esmFlds               , only : med_fldList_entry_type, med_fldList_getNumFlds
+    use esmFlds               , only : med_fldList_entry_type, med_fldList_getNumFlds, med_fldList_type
+    use esmFlds               , only : med_fldList_getFldInfo
     use med_internalstate_mod , only : nmappers
     use med_internalstate_mod , only : ncomps, compatm, compice, compocn, compname, mapnames
     use med_internalstate_mod , only : packed_data_type
@@ -724,7 +725,7 @@ contains
     ! input/output variables
     integer                      , intent(in)    :: destcomp
     character(len=*)             , intent(in)    :: flds_scalar_name
-    type(med_fldList_entry_type) , target        :: fieldsSrc  ! mapping types top of LL
+    type(med_fldList_type)       , intent(in)    :: fieldsSrc  ! mapping types top of LL
     type(ESMF_FieldBundle)       , intent(in)    :: FBSrc
     type(ESMF_FieldBundle)       , intent(inout) :: FBDst
     type(packed_data_type)       , intent(inout) :: packed_data(:) ! array over mapping types
@@ -746,6 +747,8 @@ contains
     integer                    :: numFlds
     type(ESMF_Field), pointer  :: fieldlist_src(:)
     type(ESMF_Field), pointer  :: fieldlist_dst(:)
+    character(CL)              :: shortname
+    integer                    :: destindex
     character(CL), allocatable :: fieldNameList(:)
     character(CS)              :: mapnorm_mapindex
     character(len=CX)          :: tmpstr
@@ -794,13 +797,12 @@ contains
 
     ! Determine the normalization type for each packed_data mapping element
     ! Loop over mapping types
+    numflds = med_fldlist_GetNumFlds(fieldsSrc)
     do mapindex = 1,nmappers
        mapnorm_mapindex = 'not_set'
        ! Loop over source field bundle
        do nf = 1, fieldCount
           ! Loop over the fldsSrc types
-
-          numflds = med_fldlist_GetNumFlds(fieldsSrc)
           do ns = 1,numflds
              ! Note that fieldnamelist is an array of names for the source fields
              ! The assumption is that there is only one mapping normalization
@@ -809,7 +811,7 @@ contains
              if ( destindex == mapindex .and. &
                   trim(shortname) == trim(fieldnamelist(nf))) then
                 ! Set the normalization to the input
-                call med_FldList_GetFldInfo(fieldsSrc, ns, compsrc=destcomp, mapnorm=packed_data(mapindex)%mapnorm=mapnorm)
+                call med_FldList_GetFldInfo(fieldsSrc, ns, compsrc=destcomp, mapnorm=packed_data(mapindex)%mapnorm)
                 if (mapnorm_mapindex == 'not_set') then
                    mapnorm_mapindex = packed_data(mapindex)%mapnorm
                    write(tmpstr,*)'Map type '//trim(mapnames(mapindex)) &
@@ -850,10 +852,10 @@ contains
        do nf = 1, fieldCount
 
           ! Loop over the fldsSrc types
-          do ns = 1,size(fldsSrc)
-
-             if ( fldsSrc(ns)%mapindex(destcomp) == mapindex .and. &
-                  trim(fldsSrc(ns)%shortname) == trim(fieldnamelist(nf))) then
+          do ns = 1,numFlds
+             call med_fldList_GetFldInfo(fieldsSrc, ns, compsrc=destcomp, shortname=shortname, mapindex=destIndex)
+             if ( destIndex == mapindex .and. &
+                  trim(shortname) == trim(fieldnamelist(nf))) then
 
                 ! Determine mapping of indices into packed field bundle
                 ! Get source field

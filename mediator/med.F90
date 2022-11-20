@@ -44,10 +44,10 @@ module MED
   use med_internalstate_mod    , only : ncomps, compname
   use med_internalstate_mod    , only : compmed, compatm, compocn, compice, complnd, comprof, compwav, compglc
   use med_internalstate_mod    , only : coupling_mode, aoflux_code, aoflux_ccpp_suite
-  use esmFlds                  , only : fldListMed_ocnalb
+  use esmFlds                  , only : med_fldList_GetocnalbfldList, med_fldList_type
   use esmFlds                  , only : med_fldList_GetNumFlds, med_fldList_GetFldNames, med_fldList_GetFldInfo
   use esmFlds                  , only : med_fldList_Document_Mapping, med_fldList_Document_Merging
-  use esmFlds                  , only : fldListFr, fldListTo, med_fldList_Realize
+  use esmFlds                  , only : med_fldList_GetfldListFr, med_fldList_GetfldListTo, med_fldList_Realize
   use esmFldsExchange_nems_mod , only : esmFldsExchange_nems
   use esmFldsExchange_cesm_mod , only : esmFldsExchange_cesm
   use esmFldsExchange_hafs_mod , only : esmFldsExchange_hafs
@@ -676,6 +676,7 @@ contains
     character(len=CS)   :: cvalue
     character(len=8)    :: cnum
     type(InternalState) :: is_local
+    type(med_fldlist_type), pointer :: fldListFr, fldListTo
     integer             :: stat
     character(len=*),parameter :: subname=' (Advertise Fields) '
     !-----------------------------------------------------------
@@ -872,9 +873,10 @@ contains
     do ncomp = 1,ncomps
        if (ncomp /= compmed) then
           if (mastertask) write(logunit,*)
-          nflds = med_fldList_GetNumFlds(fldListFr(ncomp))
-          do n = 1,nflds
-             call med_fldList_GetFldInfo(fldListFr(ncomp), n, stdname=stdname, shortname=shortname)
+          fldListFr => med_fldList_GetFldListFr(ncomp)
+          nflds = med_fldList_GetNumFlds(fldListFr)
+          do n=1,nflds
+             call med_fldList_GetFldInfo(fldListFr, n, stdname=stdname, shortname=shortname)
              if (mastertask) then
                 write(logunit,'(a)') trim(subname)//':Fr_'//trim(compname(ncomp))//': '//trim(shortname)
              end if
@@ -889,9 +891,11 @@ contains
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
              call ESMF_LogWrite(subname//':Fr_'//trim(compname(ncomp))//': '//trim(shortname), ESMF_LOGMSG_INFO)
           end do
-          nflds = med_fldList_GetNumFlds(fldListTo(ncomp))
+          
+          fldListTo => med_fldList_GetFldListTo(ncomp)
+          nflds = med_fldList_GetNumFlds(fldListTo)
           do n = 1,nflds
-             call med_fldList_GetFldInfo(fldListTo(ncomp), n, stdname=stdname, shortname=shortname)
+             call med_fldList_GetFldInfo(fldListTo, n, stdname=stdname, shortname=shortname)
              if (mastertask) then
                 write(logunit,'(a)') trim(subname)//':To_'//trim(compname(ncomp))//': '//trim(shortname)
              end if
@@ -958,7 +962,7 @@ contains
       if (ESMF_StateIsCreated(is_local%wrap%NStateImp(n), rc=rc)) then
          call ESMF_StateSet(is_local%wrap%NStateImp(n), stateIntent=ESMF_StateIntent_Import, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-         call med_fldList_Realize(is_local%wrap%NStateImp(n), fldListFr(n), &
+         call med_fldList_Realize(is_local%wrap%NStateImp(n), med_fldList_GetfldListFr(n), &
               is_local%wrap%flds_scalar_name, is_local%wrap%flds_scalar_num, &
               tag=subname//':Fr_'//trim(compname(n)), rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -966,7 +970,7 @@ contains
       if (ESMF_StateIsCreated(is_local%wrap%NStateExp(n), rc=rc)) then
           call ESMF_StateSet(is_local%wrap%NStateExp(n), stateIntent=ESMF_StateIntent_Export, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          call med_fldList_Realize(is_local%wrap%NStateExp(n), fldListTo(n), &
+          call med_fldList_Realize(is_local%wrap%NStateExp(n), med_fldList_getfldListTo(n), &
               is_local%wrap%flds_scalar_name, is_local%wrap%flds_scalar_num, &
               tag=subname//':To_'//trim(compname(n)), rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -1564,7 +1568,7 @@ contains
     use med_diag_mod            , only : med_diag_zero, med_diag_init
     use med_map_mod             , only : med_map_routehandles_init, med_map_packed_field_create
     use med_io_mod              , only : med_io_init
-    use esmFlds                 , only : fldListMed_aoflux
+    use esmFlds                 , only : med_fldList_GetaofluxfldList
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -1578,6 +1582,7 @@ contains
     type(ESMF_Time)                    :: time
     type(ESMF_Field)                   :: field
     type(ESMF_StateItem_Flag)          :: itemType
+    type(med_fldList_type), pointer    :: fldListMed_ocnalb
     logical                            :: atCorrectTime, connected
     integer                            :: n1,n2,n,ns
     integer                            :: nsrc,ndst
@@ -1723,10 +1728,11 @@ contains
 
       if ( is_local%wrap%med_coupling_active(compocn,compatm) .or. is_local%wrap%med_coupling_active(compatm,compocn)) then
          ! Create field bundles for mediator ocean albedo computation
+         fldListMed_ocnalb => med_fldlist_getocnalbFldList()
          fieldCount = med_fldList_GetNumFlds(fldListMed_ocnalb)
          if (fieldCount > 0) then
             allocate(fldnames(fieldCount))
-            call med_fldList_getfldnames(fldListMed_ocnalb%flds, fldnames, rc=rc)
+            call med_fldList_getfldnames(fldListMed_ocnalb%fields, fldnames, rc=rc)
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
             call FB_init(is_local%wrap%FBMed_ocnalb_a, is_local%wrap%flds_scalar_name, &
                  STgeom=is_local%wrap%NStateImp(compatm), fieldnamelist=fldnames, name='FBMed_ocnalb_a', rc=rc)
@@ -1751,8 +1757,7 @@ contains
 
       ! NOTE: this section must be done BEFORE the second call to esmFldsExchange
       ! Create field bundles for mediator ocean albedo computation
-
-      fieldCount = med_fldList_GetNumFlds(fldListMed_aoflux)
+      fieldCount = med_fldList_GetNumFlds(med_fldList_getaofluxfldList())
       if ( fieldCount > 0 ) then
          if ( is_local%wrap%med_coupling_active(compocn,compatm) .or. &
               is_local%wrap%med_coupling_active(compatm,compocn)) then
@@ -1807,7 +1812,7 @@ contains
             if (is_local%wrap%med_coupling_active(nsrc,ndst)) then
                 call med_map_packed_field_create(ndst, &
                      is_local%wrap%flds_scalar_name, &
-                     fldsSrc=fldListFr(nsrc)%flds, &
+                     fieldsSrc=med_fldList_GetfldListFr(nsrc), &
                      FBSrc=is_local%wrap%FBImp(nsrc,nsrc), &
                      FBDst=is_local%wrap%FBImp(nsrc,ndst), &
                      packed_data=is_local%wrap%packed_data(nsrc,ndst,:), rc=rc)
@@ -1819,7 +1824,7 @@ contains
             ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_ocnalb_a)) then
           call med_map_packed_field_create(compatm, &
                is_local%wrap%flds_scalar_name, &
-               fldsSrc=fldListMed_ocnalb%flds, &
+               fieldsSrc=med_fldList_getocnalbfldList(), &
                FBSrc=is_local%wrap%FBMed_ocnalb_o, &
                FBDst=is_local%wrap%FBMed_ocnalb_a, &
                packed_data=is_local%wrap%packed_data_ocnalb_o2a(:), rc=rc)

@@ -81,6 +81,7 @@ contains
     use esmFlds               , only : addocnalbfld => med_fldList_AddocnalbFld
     use esmFlds               , only : addaofluxfld => med_fldList_AddaofluxFld
     use esmFlds               , only : addaofluxMap => med_fldList_AddaofluxMap
+    use esmFlds               , only : addocnalbMap => med_fldList_AddocnalbMap
 
     use esmFlds               , only : addfldTo => med_fldList_AddFldTo
     use esmFlds               , only : addfldFrom => med_fldList_AddFldFrom
@@ -803,7 +804,7 @@ contains
                   mrg_from=compice, mrg_fld='Si_avsdr', mrg_type='merge', mrg_fracname='ifrac')
           end if
           if (fldchk(is_local%wrap%FBMed_ocnalb_a, 'So_avsdr', rc=rc)) then
-             call addocnalpmap( 'So_avsdr', compatm, mapconsf, 'ofrac', ocn2atm_map)
+             call addocnalbmap( 'So_avsdr', compatm, mapconsf, 'ofrac', ocn2atm_map)
              call addmrgTo(compatm, 'Sx_avsdr', &
                   mrg_from=compmed, mrg_fld='So_avsdr', mrg_type='merge', mrg_fracname='ofrac')
           end if
@@ -830,7 +831,7 @@ contains
                   mrg_from=compice, mrg_fld='Si_avsdf', mrg_type='merge', mrg_fracname='ifrac')
           end if
           if (fldchk(is_local%wrap%FBMed_ocnalb_a, 'So_avsdf', rc=rc)) then
-             call addocnalpmap( 'So_avsdf', compatm, mapconsf, 'ofrac', ocn2atm_map)
+             call addocnalbmap( 'So_avsdf', compatm, mapconsf, 'ofrac', ocn2atm_map)
              call addmrgTo(compatm, 'Sx_avsdf', &
                   mrg_from=compmed, mrg_fld='So_avsdf', mrg_type='merge', mrg_fracname='ofrac')
           end if
@@ -857,7 +858,7 @@ contains
                   mrg_from=compice, mrg_fld='Si_anidr', mrg_type='merge', mrg_fracname='ifrac')
           end if
           if (fldchk(is_local%wrap%FBMed_ocnalb_a, 'So_anidr', rc=rc)) then
-             call addocnalpmap( 'So_anidr', compatm, mapconsf, 'ofrac', ocn2atm_map)
+             call addocnalbmap( 'So_anidr', compatm, mapconsf, 'ofrac', ocn2atm_map)
              call addmrgTo(compatm, 'Sx_anidr', &
                   mrg_from=compmed, mrg_fld='So_anidr', mrg_type='merge', mrg_fracname='ofrac')
           end if
@@ -884,7 +885,7 @@ contains
                   mrg_from=compice, mrg_fld='Si_anidf', mrg_type='merge', mrg_fracname='ifrac')
           end if
           if (fldchk(is_local%wrap%FBMed_ocnalb_a, 'So_anidf', rc=rc)) then
-             call addocnalpmap( 'So_anidf', compatm, mapconsf, 'ofrac', ocn2atm_map)
+             call addocnalbmap( 'So_anidf', compatm, mapconsf, 'ofrac', ocn2atm_map)
              call addmrgTo(compatm, 'Sx_anidf', &
                   mrg_from=compmed, mrg_fld='So_anidf', mrg_type='merge', mrg_fracname='ofrac')
           end if
@@ -1163,7 +1164,7 @@ contains
        call addfldTo(compatm, 'Faxx_tauy')
        call addFldFrom(complnd, 'Fall_tauy')
        call addfldFrom(compice, 'Faii_tauy')
-       call addaoflusFld( 'Faox_tauy')
+       call addaofluxFld( 'Faox_tauy')
     else
        if (fldchk(is_local%wrap%FBexp(compatm), 'Faxx_tauy', rc=rc)) then
           if ( fldchk(is_local%wrap%FBImp(complnd,complnd), 'Fall_tauy', rc=rc)) then
@@ -1190,7 +1191,7 @@ contains
        call addfldTo(compatm, 'Faxx_lat')
        call addFldFrom(complnd, 'Fall_lat')
        call addfldFrom(compice, 'Faii_lat')
-       call addaoflusFld( 'Faox_lat')
+       call addaofluxFld( 'Faox_lat')
     else
        if (fldchk(is_local%wrap%FBexp(compatm), 'Faxx_lat', rc=rc)) then
           if ( fldchk(is_local%wrap%FBImp(complnd,complnd), 'Fall_lat', rc=rc)) then
@@ -1217,7 +1218,7 @@ contains
        call addfldTo(compatm, 'Faxx_sen')
        call addFldFrom(complnd, 'Fall_sen')
        call addfldFrom(compice, 'Faii_sen')
-       call addaoflusFld( 'Faox_sen')
+       call addaofluxFld( 'Faox_sen')
     else
        if (fldchk(is_local%wrap%FBexp(compatm), 'Faxx_sen', rc=rc)) then
           if ( fldchk(is_local%wrap%FBImp(complnd,complnd), 'Fall_sen', rc=rc)) then
@@ -1244,7 +1245,7 @@ contains
        call addfldTo(compatm, 'Faxx_evap')
        call addFldFrom(complnd, 'Fall_evap')
        call addfldFrom(compice, 'Faii_evap')
-       call addaoflusFld( 'Faox_evap')
+       call addaofluxFld( 'Faox_evap')
     else
        if (fldchk(is_local%wrap%FBexp(compatm), 'Faxx_evap', rc=rc)) then
           if ( fldchk(is_local%wrap%FBImp(complnd,complnd), 'Fall_evap', rc=rc)) then
@@ -1271,7 +1272,7 @@ contains
        call addfldTo(compatm, 'Faxx_lwup')
        call addFldFrom(complnd, 'Fall_lwup')
        call addfldFrom(compice, 'Faii_lwup')
-       call addaoflusFld( 'Faox_lwup')
+       call addaofluxFld( 'Faox_lwup')
     else
        if (fldchk(is_local%wrap%FBexp(compatm), 'Faxx_lwup', rc=rc)) then
           if ( fldchk(is_local%wrap%FBImp(complnd,complnd), 'Fall_lwup', rc=rc)) then
@@ -1299,7 +1300,7 @@ contains
           call addfldTo(compatm, 'Faxx_evap_wiso')
           call addFldFrom(complnd, 'Fall_evap_wiso')
           call addfldFrom(compice, 'Faii_evap_wiso')
-          call addaoflusFld( 'Faox_evap_wiso')
+          call addaofluxFld( 'Faox_evap_wiso')
        else
           if (fldchk(is_local%wrap%FBexp(compatm), 'Faxx_evap_wiso', rc=rc)) then
              if ( fldchk(is_local%wrap%FBImp(complnd,complnd), 'Fall_evap_wiso', rc=rc)) then
@@ -1848,8 +1849,8 @@ contains
     ! ---------------------------------------------------------------------
     if (phase == 'advertise') then
        call addFldFrom(compatm, 'Faxa_lat' )
-       call addaoflusFld( 'Faox_lat' )
-       call addaoflusFld( 'Faox_evap')
+       call addaofluxFld( 'Faox_lat' )
+       call addaofluxFld( 'Faox_evap')
        call addFldTo(compocn, 'Foxx_lat' )
        call addFldTo(compocn, 'Foxx_evap')
     else
@@ -1865,7 +1866,7 @@ contains
 
     if (flds_wiso) then
        if (phase == 'advertise') then
-          call addaoflusFld( 'Faox_lat_wiso' )
+          call addaofluxFld( 'Faox_lat_wiso' )
           call addFldTo(compocn, 'Foxx_lat_wiso' )
        else
           if ( fldchk(is_local%wrap%FBexp(compocn), 'Foxx_lat_wiso', rc=rc)) then
@@ -1882,7 +1883,7 @@ contains
     ! If the aoflux grid is ogrid - then nothing needs to be done to send to the ocean
     ! All other mappings are set in med_phases_aoflux_mod.F90
     if (phase == 'advertise') then
-       call addaoflusFld( 'So_duu10n')
+       call addaofluxFld( 'So_duu10n')
        call addFldTo(compocn, 'So_duu10n')
     else
        if (fldchk(is_local%wrap%FBExp(compocn), 'So_duu10n', rc=rc)) then

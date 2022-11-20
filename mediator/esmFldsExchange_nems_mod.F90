@@ -39,7 +39,9 @@ contains
     use esmFlds               , only : addfldFrom => med_fldList_AddFldFrom
     use esmFlds               , only : addmapFrom => med_fldList_AddMapFrom
     use esmFlds               , only : addmrgFrom => med_fldList_AddMrgFrom
-
+    use esmFlds               , only : addaofluxFld => med_fldList_addaofluxFld
+    use esmFlds               , only : addaofluxMap => med_fldList_addaofluxMap
+    
     use med_internalstate_mod , only : InternalState, mastertask, logunit
 
     ! input/output parameters:

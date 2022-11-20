@@ -21,6 +21,7 @@ module esmflds
   public :: med_fldList_AddMrgTo
 
   public :: med_fldList_AddOcnalbFld
+  public :: med_fldList_AddocnalbMap
 
   public :: med_fldList_AddaofluxFld
   public :: med_fldList_AddaofluxMap
@@ -37,6 +38,8 @@ module esmflds
   public :: med_fldList_Document_Merging
   public :: med_fldList_GetFldListFr
   public :: med_fldList_GetFldListTo
+  public :: med_fldList_GetaofluxFldList
+  public :: med_fldList_GetocnalbFldList
   !-----------------------------------------------
   ! Types and instantiations that determine fields, mappings, mergings
   !-----------------------------------------------
@@ -88,6 +91,18 @@ contains
     allocate(fldlistTo(ncomps))
     allocate(fldlistFr(ncomps))
   end subroutine med_fldlist_init1
+
+  function med_fldList_GetaofluxFldList() result(fldList)
+    type(med_fldList_type), pointer :: fldList
+
+    fldList => fldListMed_aoflux
+  end function Med_FldList_GetaofluxFldList
+
+  function med_fldList_GetocnalbFldList() result(fldList)
+    type(med_fldList_type), pointer :: fldList
+
+    fldList => fldListMed_ocnalb
+  end function Med_FldList_GetocnalbFldList
 
   function med_fldList_GetFldListFr(index) result(fldList)
     integer, intent(in) :: index
@@ -340,6 +355,17 @@ contains
     call med_fldList_AddMap(fldlistmed_aoflux%fields, fldname, destcomp, maptype, mapnorm, mapfile)
     
   end subroutine med_fldList_AddaofluxMap
+
+  subroutine med_fldList_AddocnalbMap(fldname, destcomp, maptype, mapnorm, mapfile)
+    character(len=*)                  , intent(in)    :: fldname    
+    integer                            , intent(in)    :: destcomp
+    integer                            , intent(in)    :: maptype
+    character(len=*)                   , intent(in)    :: mapnorm
+    character(len=*), optional         , intent(in)    :: mapfile
+
+    call med_fldList_AddMap(fldlistmed_ocnalb%fields, fldname, destcomp, maptype, mapnorm, mapfile)
+    
+  end subroutine med_fldList_AddocnalbMap
 
   subroutine med_fldList_AddMap(fields, fldname, destcomp, maptype, mapnorm, mapfile)
 
