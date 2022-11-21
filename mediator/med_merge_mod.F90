@@ -74,7 +74,7 @@ contains
     character(CS)              :: merge_type
     character(CS)              :: merge_fracname
     character(CS), pointer     :: merge_field_names(:)
-    logical                    :: error_check = .true.  ! TODO: make this an input argument
+    logical                    :: error_check = .false.  ! TODO: make this an input argument
     integer                    :: ungriddedUBound_out(1) ! size of ungridded dimension
     integer                    :: fieldcount
     character(CL)   , pointer  :: fieldnamelist(:)

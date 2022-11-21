@@ -166,16 +166,12 @@ contains
     lastfld => fields
     found = .false.
     do while(associated(lastfld%next))
-       if (trim(stdname) == trim(lastfld%stdname)) then
-          found = .true.
-          exit
-       end if
+       if (trim(stdname) == trim(lastfld%stdname)) exit
        lastfld => lastfld%next
     enddo
-    ! Check the last lastfld
-    if (trim(stdname) == trim(lastfld%stdname)) then
-       found = .true.
-    end if
+    ! Check the lastfld
+    if (trim(stdname) == trim(lastfld%stdname)) found = .true.
+
   end subroutine med_fldList_findName
 
   subroutine med_fldList_AddFld(fields, stdname, shortname)
