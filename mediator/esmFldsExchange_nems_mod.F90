@@ -34,11 +34,9 @@ contains
     use med_internalstate_mod , only : coupling_mode, mapnames
     use esmFlds               , only : med_fldList_type
     use esmFlds               , only : addfldTo => med_fldList_AddFldTo
-    use esmFlds               , only : addmapTo => med_fldList_AddMapTo
     use esmFlds               , only : addmrgTo => med_fldList_AddMrgTo
     use esmFlds               , only : addfldFrom => med_fldList_AddFldFrom
     use esmFlds               , only : addmapFrom => med_fldList_AddMapFrom
-    use esmFlds               , only : addmrgFrom => med_fldList_AddMrgFrom
     use esmFlds               , only : addaofluxFld => med_fldList_addaofluxFld
     use esmFlds               , only : addaofluxMap => med_fldList_addaofluxMap
     

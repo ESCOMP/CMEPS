@@ -1,9 +1,11 @@
 module esmflds
-  use ESMF, only : ESMF_SUCCESS, ESMF_FAILURE
-  use med_kind_mod, only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
-  use med_internalstate_mod, only : ncomps, compname, compocn, compatm
+  use ESMF, only                  : ESMF_SUCCESS, ESMF_FAILURE, ESMF_LOGMSG_ERROR, ESMF_LOGWRITE
+  use ESMF, only : ESMF_FINALIZE, ESMF_END_ABORT
+
+  use med_kind_mod, only          : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
+  use med_internalstate_mod, only : ncomps, compname, compocn, compatm, compice
   use med_internalstate_mod, only : mapfcopy, mapnames, mapunset
-  use med_utils_mod            , only : chkerr             => med_utils_ChkErr
+  use med_utils_mod        , only : chkerr => med_utils_ChkErr
   implicit none
   private
 
@@ -15,9 +17,9 @@ module esmflds
 
   public :: med_fldList_AddFldFrom
   public :: med_fldList_AddMapFrom
-  public :: med_fldList_AddMrgFrom
+!  public :: med_fldList_AddMrgFrom
   public :: med_fldList_AddFldTo
-  public :: med_fldList_AddMapTo
+!  public :: med_fldList_AddMapTo
   public :: med_fldList_AddMrgTo
 
   public :: med_fldList_AddOcnalbFld
@@ -29,10 +31,11 @@ module esmflds
   private :: med_fldList_AddFld
   private :: med_fldList_AddMap
   private :: med_fldList_AddMrg
-
+  private :: med_fldList_findName
   public :: med_fldList_GetFldNames
   public :: med_fldList_GetNumFlds
   public :: med_fldList_GetFldInfo
+  public :: med_fld_GetFldInfo
   public :: med_fldList_Realize
   public :: med_fldList_Document_Mapping
   public :: med_fldList_Document_Merging
@@ -154,6 +157,29 @@ contains
     
   end subroutine med_fldList_AddFldTo
 
+  subroutine med_fldList_findName(fields, stdname, found, lastfld)
+    ! on return if found == .true. lastfield is the field matching stdname
+    ! if found == .false. lastfield is the last field in the list
+    type(med_fldList_entry_type) , intent(in), target                :: fields
+    character(len=*)             , intent(in)             :: stdname
+    logical                      , intent(out)            :: found
+    type(med_fldList_entry_type) , intent(out), pointer                :: lastfld
+
+    lastfld => fields
+    found = .false.
+    do while(associated(lastfld%next))
+       if (trim(stdname) == trim(lastfld%stdname)) then
+          found = .true.
+          exit
+       end if
+       lastfld => lastfld%next
+    enddo
+    ! Check the last lastfld
+    if (trim(stdname) == trim(lastfld%stdname)) then
+       found = .true.
+    end if
+  end subroutine med_fldList_findName
+
   subroutine med_fldList_AddFld(fields, stdname, shortname)
     ! ----------------------------------------------
     ! Add an entry to to the flds array
@@ -177,26 +203,20 @@ contains
     type(med_fldList_entry_type), pointer :: newfld
     character(len=*), parameter :: subname='(med_fldList_AddFld)'
     ! ----------------------------------------------
-
-    newfld => fields
-    found = .false.
-    do while(associated(newfld%next))
-       if (trim(stdname) == trim(newfld%stdname)) then
-          found = .true.
-          exit
-       end if
-       newfld => newfld%next
-    enddo
+    
+    call med_fldList_findName(fields, stdname, found, newfld)
     ! create new entry if fldname is not in original list
-
+    
     mapsize = ncomps
     mrgsize = ncomps
 
     if (.not. found) then
-
        ! 1) allocate newfld to be size (one element larger than input flds)
-       allocate(newfld%next)
-       newfld => newfld%next
+       ! the if statement allows the first entry to be filed
+       if(allocated(newfld%mapindex)) then
+          allocate(newfld%next)
+          newfld => newfld%next
+       endif
 
        ! 2) now update flds information for new entry
        newfld%stdname   = trim(stdname)
@@ -222,24 +242,23 @@ contains
   end subroutine med_fldList_AddFld
 
   !================================================================================
-  subroutine med_fldList_AddMrgFrom(index, fldname, mrg_from, mrg_fld, mrg_type, mrg_fracname, rc)
-
+!  subroutine med_fldList_AddMrgFrom(index, fldname, mrg_from, mrg_fld, mrg_type, mrg_fracname, rc)
     ! ----------------------------------------------
     ! Determine mrg entry or entries in flds aray
     ! ----------------------------------------------
 
     ! input/output variables
-    integer                      , intent(in)           :: index
-    character(len=*)             , intent(in)           :: fldname
-    integer                      , intent(in)           :: mrg_from
-    character(len=*)             , intent(in)           :: mrg_fld
-    character(len=*)             , intent(in)           :: mrg_type
-    character(len=*)             , intent(in), optional :: mrg_fracname
-    integer                      , intent(out), optional :: rc
+!    integer                      , intent(in)           :: index
+!    character(len=*)             , intent(in)           :: fldname
+!    integer                      , intent(in)           :: mrg_from
+!    character(len=*)             , intent(in)           :: mrg_fld
+!    character(len=*)             , intent(in)           :: mrg_type
+!    character(len=*)             , intent(in), optional :: mrg_fracname
+!    integer                      , intent(out), optional :: rc
 
-    call med_FldList_addMrg(fldListFr(index)%fields, fldname, mrg_from, mrg_fld, mrg_type, mrg_fracname)
+!    call med_FldList_addMrg(fldListFr(index)%fields, fldname, mrg_from, mrg_fld, mrg_type, mrg_fracname)
     
-  end subroutine med_fldList_AddMrgFrom
+!  end subroutine med_fldList_AddMrgFrom
   !================================================================================
   subroutine med_fldList_AddMrgTo(index, fldname, mrg_from, mrg_fld, mrg_type, mrg_fracname, rc)
 
@@ -278,7 +297,7 @@ contains
     type(med_fldList_entry_type), pointer :: newfld
     character(len=*), parameter :: subname='(med_fldList_AddMrg)'
     ! ----------------------------------------------
-    
+        
     newfld => med_fldList_GetFld(flds, fldname, rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return    
 
@@ -297,25 +316,22 @@ contains
     character(len=*)                  , intent(in)    :: fldname
 
     type(med_fldList_entry_type), pointer :: newfld
+    logical :: found
     integer :: rc
     character(len=*), parameter :: subname='(med_fldList_GetFld)'
     
-    newfld => fields
-    rc = ESMF_FAILURE
-    do while(associated(newfld%next))
-       if(trim(fldname) .eq. newfld%stdname) then
-          rc = ESMF_SUCCESS
-          exit
-       endif
-       newfld => newfld%next
-    enddo
-    if(rc /= ESMF_SUCCESS) then
+
+    call med_fldList_findName(fields, fldname, found, newfld)
+
+    rc = ESMF_SUCCESS
+    if(.not. found) then
+       rc = ESMF_FAILURE
        newfld => fields
-       do while(associated(newfld%next))
+       do while(associated(newfld))
           write(6,*) trim(subname)//' input flds entry is ',trim(newfld%stdname)
           newfld => newfld%next
        end do
-       call ESMF_LogWrite(subname // 'ERROR: fldname '// trim(fldname) // ' not found in input flds', ESMF_LOGMSG_INFO)
+       call ESMF_LogWrite(subname // 'ERROR: fldname '// trim(fldname) // ' not found in input flds', ESMF_LOGMSG_ERROR)
        return
     endif
     
@@ -333,17 +349,20 @@ contains
     
   end subroutine med_fldList_AddMapFrom
   !================================================================================
-  subroutine med_fldList_AddMapTo(index, fldname, destcomp, maptype, mapnorm, mapfile)
-    integer, intent(in) :: index
-    character(len=*)                  , intent(in)    :: fldname    
-    integer                            , intent(in)    :: destcomp
-    integer                            , intent(in)    :: maptype
-    character(len=*)                   , intent(in)    :: mapnorm
-    character(len=*), optional         , intent(in)    :: mapfile
-
-    call med_fldList_AddMap(FldListTo(index)%fields, fldname, destcomp, maptype, mapnorm, mapfile)
-    
-  end subroutine med_fldList_AddMapTo
+!  subroutine med_fldList_AddMapTo(index, fldname, destcomp, maptype, mapnorm, mapfile)
+!    integer, intent(in) :: index
+!    character(len=*)                  , intent(in)    :: fldname    
+!    integer                            , intent(in)    :: destcomp
+!    integer                            , intent(in)    :: maptype
+!    character(len=*)                   , intent(in)    :: mapnorm
+!    character(len=*), optional         , intent(in)    :: mapfile
+!
+!    if(index == compice .and. trim(fldname) .eq. 'cpl_scalars') then
+!       call ESMF_Finalize(endflag=ESMF_END_ABORT)
+!    endif
+!    call med_fldList_AddMap(FldListTo(index)%fields, fldname, destcomp, maptype, mapnorm, mapfile)
+!    
+!  end subroutine med_fldList_AddMapTo
   !================================================================================
   subroutine med_fldList_AddaofluxMap(fldname, destcomp, maptype, mapnorm, mapfile)
     character(len=*)                  , intent(in)    :: fldname    
@@ -521,7 +540,7 @@ contains
     endif
 
     newfld => fldList%fields
-    do while(associated(newfld%next))
+    do while(associated(newfld))
        shortname = newfld%shortname
 
        ! call ESMF_LogWrite(subname//' fld = '//trim(shortname), ESMF_LOGMSG_INFO)
@@ -568,9 +587,6 @@ contains
              call NUOPC_Realize(state, field=field, rc=rc)
              if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=u_FILE_u)) return
 
-             ! call ESMF_FieldPrint(field=field, rc=rc)
-             ! if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=u_FILE_u)) return
-
           endif
 
        else
@@ -581,7 +597,7 @@ contains
           if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=u_FILE_u)) return
 
        end if
-
+       newfld => newfld%next
     end do
 
     call ESMF_LogWrite(subname//' done ', ESMF_LOGMSG_INFO)
@@ -630,7 +646,7 @@ contains
 
   !================================================================================
 
-  subroutine med_fldList_GetFldInfo(fldList, fldindex, compsrc, stdname, shortname, mapindex, mapFile, mapnorm, merge_fields, merge_type, merge_fracname)
+  subroutine med_fldList_GetFldInfo(fldList, fldindex, compsrc, stdname, shortname, mapindex, mapFile, mapnorm, merge_fields, merge_type, merge_fracname, rc)
     ! ----------------------------------------------
     ! Get field info
     ! ----------------------------------------------
@@ -645,21 +661,52 @@ contains
     character(len=*)             , optional, intent(out) :: merge_fields
     character(len=*)             , optional, intent(out) :: merge_type
     character(len=*)             , optional, intent(out) :: merge_fracname
+    integer                      , optional, intent(out) :: rc
 
     ! local variables
     type(med_fldList_entry_type), pointer :: newfld
     integer :: i
     integer :: lcompsrc
-    character(len=*), parameter :: subname='(med_fldList_GetFldInfo_general)'
+    character(len=*), parameter :: subname='(med_fldList_GetFldInfo)'
     ! ----------------------------------------------
     i = 0
     lcompsrc = 1
     newfld => fldList%fields
-    do while(associated(newfld%next))
+    do while(associated(newfld))
        i = i+1
        if (i==fldindex) exit
        newfld => newfld%next
     enddo
+
+    call med_fld_GetFldInfo(newfld, compsrc, stdname, shortname, mapindex, mapFile, mapnorm, merge_fields, merge_type, merge_fracname, rc)
+
+  end subroutine med_fldList_GetFldInfo
+
+  subroutine med_fld_GetFldInfo(newfld, compsrc, stdname, shortname, mapindex, mapFile, mapnorm, merge_fields, merge_type, merge_fracname, rc)
+    ! ----------------------------------------------
+    ! Get field info
+    ! ----------------------------------------------
+    type(med_fldList_entry_type) , intent(in)            :: newfld
+    integer                      , optional, intent(in)  :: compsrc
+    integer                      , optional, intent(out) :: mapindex
+    character(len=*)             , optional, intent(out) :: mapfile
+    character(len=*)             , optional, intent(out) :: mapnorm
+    character(len=*)             , optional, intent(out) :: stdname
+    character(len=*)             , optional, intent(out) :: shortname
+    character(len=*)             , optional, intent(out) :: merge_fields
+    character(len=*)             , optional, intent(out) :: merge_type
+    character(len=*)             , optional, intent(out) :: merge_fracname
+    integer                      , optional, intent(out) :: rc
+    
+    ! local variables
+    integer :: lrc
+    integer :: lcompsrc 
+    character(len=*), parameter :: subname='(med_fld_GetFldInfo)'
+    lrc = ESMF_SUCCESS
+
+    lcompsrc = -1
+    if(present(compsrc)) lcompsrc = compsrc
+
     if(present(stdname)) then
        stdname   = newfld%stdname
     endif
@@ -668,31 +715,41 @@ contains
     endif
 
     if(present(mapindex)) then
-       if(present(compsrc)) lcompsrc = compsrc
-       mapindex    = newfld%mapindex(compsrc)
+       if(lcompsrc < 0) call med_fldList_compsrcerror(lrc)
+       mapindex    = newfld%mapindex(lcompsrc)
     endif
     if(present(mapfile)) then
-       if(present(compsrc)) lcompsrc = compsrc
-       mapfile    = newfld%mapfile(compsrc)
+       if(lcompsrc < 0) call med_fldList_compsrcerror(lrc)
+       mapfile    = newfld%mapfile(lcompsrc)
     endif
     if(present(mapnorm)) then
-       if(present(compsrc)) lcompsrc = compsrc
-       mapnorm    = newfld%mapnorm(compsrc)
+       if(lcompsrc < 0) call med_fldList_compsrcerror(lrc)
+       mapnorm    = newfld%mapnorm(lcompsrc)
     endif
     if(present(merge_fields)) then
-       if(present(compsrc)) lcompsrc = compsrc
-       merge_fields    = newfld%merge_fields(compsrc)
+       if(lcompsrc < 0) call med_fldList_compsrcerror(lrc)
+       merge_fields    = newfld%merge_fields(lcompsrc)
     endif
     if(present(merge_type)) then
-       if(present(compsrc)) lcompsrc = compsrc
-       merge_type     = newfld%merge_types(compsrc)
+       if(lcompsrc < 0) call med_fldList_compsrcerror(lrc)
+       merge_type     = newfld%merge_types(lcompsrc)
     endif
     if(present(merge_fracname)) then
-       if(present(compsrc)) lcompsrc = compsrc
-       merge_fracname = newfld%merge_fracnames(compsrc)
+       if(lcompsrc < 0) call med_fldList_compsrcerror(lrc)
+       merge_fracname = newfld%merge_fracnames(lcompsrc)
     endif
+    if(present(rc)) rc=lrc
 
-  end subroutine med_fldList_GetFldInfo
+  end subroutine med_fld_GetFldInfo
+
+  subroutine med_fldList_compsrcerror(rc)
+    integer, intent(out) :: rc
+    call ESMF_LogWrite("In med_fld_GetFldInfo a field requiring compsrc was requested but compsrc was not provided. ", &
+         ESMF_LOGMSG_ERROR)
+    rc = ESMF_FAILURE
+    return
+  end subroutine med_fldList_compsrcerror
+
 
   !================================================================================
 
@@ -705,7 +762,7 @@ contains
     
     newfld => fldList%fields
     med_fldList_GetNumFlds = 0
-    do while(associated(newfld%next))
+    do while(associated(newfld))
        med_fldList_GetNumFlds = med_fldList_GetNumFlds + 1
        newfld => newfld%next
     end do
@@ -716,11 +773,11 @@ contains
 
   subroutine med_fldList_GetFldNames(fields, fldnames, rc)
 
-    use ESMF, only : ESMF_LOGMSG_INFO, ESMF_FAILURE, ESMF_SUCCESS, ESMF_LogWrite
+    use ESMF, only : ESMF_LOGMSG_ERROR, ESMF_FAILURE, ESMF_SUCCESS, ESMF_LogWrite
 
     ! input/output variables
     type(med_fldList_entry_type) , intent(in), target     :: fields
-    character(len=*)             , intent(out), pointer   :: fldnames(:)
+    character(len=*)             , intent(inout), pointer   :: fldnames(:)
     integer, optional            , intent(out) :: rc
 
     !local variables
@@ -728,17 +785,16 @@ contains
     integer :: n
     ! ----------------------------------------------
 
-    rc = ESMF_SUCCESS
-
+    if(present(rc)) rc = ESMF_SUCCESS
     if (.not. associated(fldnames) .or. .not. allocated(fields%mapindex)) then
        call ESMF_LogWrite("med_fldList_GetFldNames: ERROR either fields or fldnames have not been allocate ", &
-            ESMF_LOGMSG_INFO)
-       rc = ESMF_FAILURE
+            ESMF_LOGMSG_ERROR)
+       if(present(rc)) rc = ESMF_FAILURE
        return
     endif
     n = 0
     newfld => fields
-    do while(associated(newfld%next))
+    do while(associated(newfld))
        n = n+1
        fldnames(n) = trim(newfld%shortname)
        newfld => newfld%next
@@ -785,12 +841,11 @@ contains
              ! Write all the mappings for fields from the src to the destination component
              write(logunit,*)' '
              newfld => fldListFr(nsrc)%fields
-             do while(associated(newfld%next))
+             do while(associated(newfld))
                 mapindex = newfld%mapindex(ndst)
                 if ( mapindex /= mapunset) then
-                   fldname  = trim(newfld%stdname)
-                   mapnorm  = trim(newfld%mapnorm(ndst))
-                   mapfile  = trim(newfld%mapfile(ndst))
+                   call med_fld_GetFldInfo(newfld, compsrc=ndst, stdname=fldname, mapnorm=mapnorm, mapfile=mapfile, rc=rc)
+                   if (chkerr(rc,__LINE__,u_FILE_u)) return          
 
                    if (trim(mapnorm) == 'unset') then
                       cvalue = ' mapping '//trim(compname(nsrc))//'->'//trim(compname(ndst)) //' '//trim(fldname) // &
@@ -817,13 +872,12 @@ contains
     ndst = compatm
     if (med_coupling_active(nsrc,ndst) .and. allocated(fldListMed_aoflux%fields%mapindex)) then
        newfld => fldListMed_aoflux%fields
-       do while(associated(newfld%next))
-          mapindex = newfld%mapindex(ndst)
+       do while(associated(newfld))
+          call med_fld_GetFldInfo(newfld, compsrc=ndst, mapindex=mapindex, rc=rc)
           if ( mapindex /= mapunset) then
-             fldname  = trim(newfld%stdname)
-             mapnorm  = trim(newfld%mapnorm(ndst))
-             mapfile  = trim(newfld%mapfile(ndst))
-
+             call med_fld_GetFldInfo(newfld, stdname=fldname, compsrc=ndst, mapnorm=mapnorm, mapfile=mapfile, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return          
+             
              if (trim(mapnorm) == 'unset') then
                 cvalue = ' mapping '//trim(compname(nsrc))//'->'//trim(compname(ndst)) //' '//trim(fldname) // &
                      ' via '// trim(mapnames(mapindex))
@@ -872,7 +926,7 @@ contains
     character(len=CL) :: mrgstr
     logical           :: init_mrgstr
     type(med_fldList_entry_type), pointer :: newfld
-    character(len=*),parameter :: subname = '(med_fldList_Document_Mapping)'
+    character(len=*),parameter :: subname = '(med_fldList_Document_Merging)'
     !-----------------------------------------------------------
 
     write(logunit,*)
@@ -884,18 +938,18 @@ contains
 
        ! Loop over all flds in the destination component and determine merging data
        newfld => fldListTo(ndst)%fields
-       do while(associated(newfld%next))
-          dst_field = newfld%stdname
-
+       do while(associated(newfld))
+          call med_fld_GetFldInfo(newfld, stdname=dst_field, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return          
+          
           ! Loop over all possible source components for destination component field
           mrgstr = ' '
           do nsrc = 1,ncomps
 
              if (nsrc /= ndst .and. med_coupling_active(nsrc,ndst)) then
                 src_comp    = compname(nsrc)
-                merge_field = newfld%merge_fields(nsrc)
-                merge_type  = newfld%merge_types(nsrc)
-                merge_frac  = newfld%merge_fracnames(nsrc)
+                call med_fld_GetFldInfo(newfld, compsrc=nsrc, merge_fields=merge_field, merge_type=merge_type, merge_fracname=merge_frac, rc=rc)
+                if (chkerr(rc,__LINE__,u_FILE_u)) return          
 
                 if (merge_type == 'merge' .or. merge_type == 'sum_with_weights') then
                    string = trim(merge_frac)//'*'//trim(merge_field)//'('//trim(src_comp)//')'
@@ -921,12 +975,12 @@ contains
                    end if
                 end if
              end if
-             newfld => newfld%next
           end do ! end loop over nsrc
           if (mrgstr /= ' ') then
              write(logunit,'(a)') trim(mrgstr)
           end if
-       end do ! end loop over nf
+          newfld => newfld%next
+       end do ! end loop over fields
     end do  ! end loop over ndst
 
   end subroutine med_fldList_Document_Merging

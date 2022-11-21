@@ -658,7 +658,7 @@ contains
     use ESMF  , only : ESMF_END_ABORT, ESMF_Finalize, ESMF_MAXSTR
     use NUOPC , only : NUOPC_AddNamespace, NUOPC_Advertise, NUOPC_AddNestedState
     use NUOPC , only : NUOPC_CompAttributeGet, NUOPC_CompAttributeSet, NUOPC_CompAttributeAdd
-    use esmFlds, only : med_fldlist_init1
+    use esmFlds, only : med_fldlist_init1, med_fld_GetFldInfo, med_fldList_entry_type
     use med_phases_history_mod, only : med_phases_history_init
     use med_internalstate_mod , only : atm_name
 
@@ -677,6 +677,7 @@ contains
     character(len=8)    :: cnum
     type(InternalState) :: is_local
     type(med_fldlist_type), pointer :: fldListFr, fldListTo
+    type(med_fldList_entry_type), pointer :: fld
     integer             :: stat
     character(len=*),parameter :: subname=' (Advertise Fields) '
     !-----------------------------------------------------------
@@ -877,7 +878,6 @@ contains
           nflds = med_fldList_GetNumFlds(fldListFr)
           do n=1,nflds
              call med_fldList_GetFldInfo(fldListFr, n, stdname=stdname, shortname=shortname)
-             print *,__FILE__,__LINE__,n,trim(stdname),trim(shortname)
              if (mastertask) then
                 write(logunit,'(a)') trim(subname)//':Fr_'//trim(compname(ncomp))//': '//trim(shortname)
              end if
@@ -894,9 +894,9 @@ contains
           end do
           
           fldListTo => med_fldList_GetFldListTo(ncomp)
-          nflds = med_fldList_GetNumFlds(fldListTo)
-          do n = 1,nflds
-             call med_fldList_GetFldInfo(fldListTo, n, stdname=stdname, shortname=shortname)
+          fld => fldListTo%fields
+          do while(associated(fld))
+             call med_fld_GetFldInfo(fld, stdname=stdname, shortname=shortname, rc=rc)
              if (mastertask) then
                 write(logunit,'(a)') trim(subname)//':To_'//trim(compname(ncomp))//': '//trim(shortname)
              end if
@@ -910,6 +910,7 @@ contains
                   TransferOfferGeomObject=transferOffer, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
              call ESMF_LogWrite(subname//':To_'//trim(compname(ncomp))//': '//trim(shortname), ESMF_LOGMSG_INFO)
+             fld => fld%next
           end do
        end if
     end do ! end of ncomps loop

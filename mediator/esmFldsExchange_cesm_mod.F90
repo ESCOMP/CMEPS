@@ -85,10 +85,8 @@ contains
 
     use esmFlds               , only : addfldTo => med_fldList_AddFldTo
     use esmFlds               , only : addfldFrom => med_fldList_AddFldFrom
-    use esmFlds               , only : addmapTo => med_fldList_AddMapTo
     use esmFlds               , only : addmapFrom => med_fldList_AddMapFrom
     use esmFlds               , only : addmrgTo => med_fldList_AddMrgTo
-    use esmFlds               , only : addmrgFrom => med_fldList_AddMrgFrom
 
     ! input/output parameters:
     type(ESMF_GridComp)              :: gcomp
