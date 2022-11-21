@@ -17,9 +17,7 @@ module esmflds
 
   public :: med_fldList_AddFldFrom
   public :: med_fldList_AddMapFrom
-!  public :: med_fldList_AddMrgFrom
   public :: med_fldList_AddFldTo
-!  public :: med_fldList_AddMapTo
   public :: med_fldList_AddMrgTo
 
   public :: med_fldList_AddOcnalbFld
@@ -206,7 +204,6 @@ contains
     
     call med_fldList_findName(fields, stdname, found, newfld)
     ! create new entry if fldname is not in original list
-    
     mapsize = ncomps
     mrgsize = ncomps
 
@@ -242,24 +239,7 @@ contains
   end subroutine med_fldList_AddFld
 
   !================================================================================
-!  subroutine med_fldList_AddMrgFrom(index, fldname, mrg_from, mrg_fld, mrg_type, mrg_fracname, rc)
-    ! ----------------------------------------------
-    ! Determine mrg entry or entries in flds aray
-    ! ----------------------------------------------
 
-    ! input/output variables
-!    integer                      , intent(in)           :: index
-!    character(len=*)             , intent(in)           :: fldname
-!    integer                      , intent(in)           :: mrg_from
-!    character(len=*)             , intent(in)           :: mrg_fld
-!    character(len=*)             , intent(in)           :: mrg_type
-!    character(len=*)             , intent(in), optional :: mrg_fracname
-!    integer                      , intent(out), optional :: rc
-
-!    call med_FldList_addMrg(fldListFr(index)%fields, fldname, mrg_from, mrg_fld, mrg_type, mrg_fracname)
-    
-!  end subroutine med_fldList_AddMrgFrom
-  !================================================================================
   subroutine med_fldList_AddMrgTo(index, fldname, mrg_from, mrg_fld, mrg_type, mrg_fracname, rc)
 
     ! ----------------------------------------------
@@ -278,6 +258,9 @@ contains
     call med_FldList_addMrg(fldListTo(index)%fields, fldname, mrg_from, mrg_fld, mrg_type, mrg_fracname)
     
   end subroutine med_fldList_AddMrgTo
+
+  !================================================================================
+
   subroutine med_fldList_AddMrg(flds, fldname, mrg_from, mrg_fld, mrg_type, mrg_fracname)
 
     ! ----------------------------------------------
@@ -336,7 +319,9 @@ contains
     endif
     
   end function med_fldList_GetFld
+
   !================================================================================
+
   subroutine med_fldList_AddMapFrom(index, fldname, destcomp, maptype, mapnorm, mapfile)
     integer, intent(in) :: index
     character(len=*)                  , intent(in)    :: fldname    
@@ -348,22 +333,9 @@ contains
     call med_fldList_AddMap(FldListFr(index)%fields, fldname, destcomp, maptype, mapnorm, mapfile)
     
   end subroutine med_fldList_AddMapFrom
+
   !================================================================================
-!  subroutine med_fldList_AddMapTo(index, fldname, destcomp, maptype, mapnorm, mapfile)
-!    integer, intent(in) :: index
-!    character(len=*)                  , intent(in)    :: fldname    
-!    integer                            , intent(in)    :: destcomp
-!    integer                            , intent(in)    :: maptype
-!    character(len=*)                   , intent(in)    :: mapnorm
-!    character(len=*), optional         , intent(in)    :: mapfile
-!
-!    if(index == compice .and. trim(fldname) .eq. 'cpl_scalars') then
-!       call ESMF_Finalize(endflag=ESMF_END_ABORT)
-!    endif
-!    call med_fldList_AddMap(FldListTo(index)%fields, fldname, destcomp, maptype, mapnorm, mapfile)
-!    
-!  end subroutine med_fldList_AddMapTo
-  !================================================================================
+
   subroutine med_fldList_AddaofluxMap(fldname, destcomp, maptype, mapnorm, mapfile)
     character(len=*)                  , intent(in)    :: fldname    
     integer                            , intent(in)    :: destcomp
@@ -375,6 +347,8 @@ contains
     
   end subroutine med_fldList_AddaofluxMap
 
+  !================================================================================
+
   subroutine med_fldList_AddocnalbMap(fldname, destcomp, maptype, mapnorm, mapfile)
     character(len=*)                  , intent(in)    :: fldname    
     integer                            , intent(in)    :: destcomp
@@ -385,6 +359,8 @@ contains
     call med_fldList_AddMap(fldlistmed_ocnalb%fields, fldname, destcomp, maptype, mapnorm, mapfile)
     
   end subroutine med_fldList_AddocnalbMap
+
+  !================================================================================
 
   subroutine med_fldList_AddMap(fields, fldname, destcomp, maptype, mapnorm, mapfile)
 
