@@ -875,9 +875,9 @@ contains
        if (ncomp /= compmed) then
           if (mastertask) write(logunit,*)
           fldListFr => med_fldList_GetFldListFr(ncomp)
-          nflds = med_fldList_GetNumFlds(fldListFr)
-          do n=1,nflds
-             call med_fldList_GetFldInfo(fldListFr, n, stdname=stdname, shortname=shortname)
+          fld => fldListFr%fields
+          do while(associated(fld))
+             call med_fld_GetFldInfo(fld, stdname=stdname, shortname=shortname)
              if (mastertask) then
                 write(logunit,'(a)') trim(subname)//':Fr_'//trim(compname(ncomp))//': '//trim(shortname)
              end if
@@ -891,6 +891,7 @@ contains
                   TransferOfferGeomObject=transferOffer, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
              call ESMF_LogWrite(subname//':Fr_'//trim(compname(ncomp))//': '//trim(shortname), ESMF_LOGMSG_INFO)
+             fld => fld%next
           end do
           
           fldListTo => med_fldList_GetFldListTo(ncomp)
