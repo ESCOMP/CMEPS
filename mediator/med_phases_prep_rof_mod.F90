@@ -80,8 +80,8 @@ contains
     use ESMF        , only : ESMF_FieldBundle, ESMF_FieldBundleCreate, ESMF_FieldBundleGet, ESMF_FieldBundleAdd
     use ESMF        , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
     use ESMF        , only : ESMF_TYPEKIND_R8
-    use esmFlds     , only : med_fldList_GetfldListFr, med_fldList_GetfldlistTo, med_fldlist_GetNumFlds, med_fldlist_getFldInfo
-    use esmFlds     , only : med_fldList_type
+    use esmFlds     , only : med_fldList_GetfldListFr, med_fldList_GetfldlistTo, med_fldlist_GetNumFlds, med_fld_getFldInfo
+    use esmFlds     , only : med_fldList_type, med_fldList_entry_type
     use med_map_mod , only : med_map_packed_field_create
 
     ! input/output variables
@@ -95,6 +95,8 @@ contains
     type(ESMF_Mesh)     :: mesh_r
     type(ESMF_Field)    :: lfield
     type(med_fldList_type), pointer :: fldList
+    type(med_fldList_entry_type), pointer :: fldptr
+    character(len=CS)  :: fldname
     character(len=CS), allocatable  :: fldnames_temp(:)
     character(len=*),parameter  :: subname=' (med_phases_prep_rof_init) '
     !---------------------------------------
@@ -111,22 +113,20 @@ contains
     fldList => med_fldList_GetfldlistTo(comprof)
     nflds = med_fldlist_getnumflds(fldList)
     allocate(fldnames_temp(nflds))
-    do n = 1,nflds
-       call med_fldList_GetFldInfo(fldList, n, stdname=fldnames_temp(n))
-    end do
-    do n = 1,nflds
-       if (trim(fldnames_temp(n)) == trim(is_local%wrap%flds_scalar_name)) then
-          do n1 = n, nflds-1
-             fldnames_temp(n1) = fldnames_temp(n1+1)
-          enddo
-          nflds = nflds - 1
+    fldptr => fldList%fields
+    n = 0
+    do while(associated(fldptr))
+       n = n+1
+       call med_fld_GetFldInfo(fldptr, stdname=fldname)
+       if (trim(fldname) .ne. trim(is_local%wrap%flds_scalar_name)) then
+          fldnames_temp(n) = fldname
        endif
+       fldptr => fldptr%next
     enddo
-    allocate(lnd2rof_flds(nflds))
-    do n = 1,nflds
-       lnd2rof_flds(n) = trim(fldnames_temp(n))
-    end do
+    allocate(lnd2rof_flds(n))
+    lnd2rof_flds = fldnames_temp(1:n)
     deallocate(fldnames_temp)
+
 
     ! Get lnd and rof meshes
     call fldbun_getmesh(is_local%wrap%FBImp(complnd,complnd), mesh_l, rc)
