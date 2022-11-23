@@ -731,10 +731,7 @@ contains
     !---------------------------------------
 
     rc = ESMF_SUCCESS
-    if(k==1) then
-       name = trim(list)
-       return
-    endif
+
     ! check that this is a valid list
     valid_list = .true.
     nChar = len_trim(list)
@@ -748,6 +745,9 @@ contains
        valid_list = .false.
     else if (index(trim(list),listDel2) > 0) then ! found zero length field
        valid_list = .false.
+    else if (index(trim(list),listDel) == 0) then ! found a single field
+       name = trim(list)
+       return
     end if
     if (.not. valid_list) then
        write(logunit,*) "ERROR: invalid list = ",trim(list)

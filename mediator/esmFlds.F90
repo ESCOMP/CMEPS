@@ -48,7 +48,6 @@ module esmflds
   type, public :: med_fldList_entry_type
      character(CS) :: stdname
      character(CS) :: shortname
-     type(med_fldList_entry_type), pointer :: next => null()
 
      ! Mapping fldsFr data - for mediator import fields
      integer      , allocatable :: mapindex(:)
@@ -59,6 +58,7 @@ module esmflds
      character(CS), allocatable :: merge_fields(:)
      character(CS), allocatable :: merge_types(:)
      character(CS), allocatable :: merge_fracnames(:)
+     type(med_fldList_entry_type), pointer :: next => null()
   end type med_fldList_entry_type
 
   ! The above would be the field name to merge from
