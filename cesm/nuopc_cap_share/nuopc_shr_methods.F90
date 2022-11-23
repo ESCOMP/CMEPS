@@ -149,8 +149,6 @@ contains
 
     rc = ESMF_SUCCESS
 
-    shrlogunit = 6
-
     if (mastertask) then
        call NUOPC_CompAttributeGet(gcomp, name="diro", value=diro, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -170,6 +168,8 @@ contains
     else
        logUnit = 6
     endif
+    shrlogunit = logunit
+
     ! TODO: shr_file mod is deprecated and should be removed.
     call shr_file_setLogUnit (logunit)
     

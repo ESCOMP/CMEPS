@@ -116,9 +116,9 @@ contains
     fldptr => fldList%fields
     n = 0
     do while(associated(fldptr))
-       n = n+1
        call med_fld_GetFldInfo(fldptr, stdname=fldname)
        if (trim(fldname) .ne. trim(is_local%wrap%flds_scalar_name)) then
+          n = n+1
           fldnames_temp(n) = fldname
        endif
        fldptr => fldptr%next
@@ -126,7 +126,6 @@ contains
     allocate(lnd2rof_flds(n))
     lnd2rof_flds = fldnames_temp(1:n)
     deallocate(fldnames_temp)
-
 
     ! Get lnd and rof meshes
     call fldbun_getmesh(is_local%wrap%FBImp(complnd,complnd), mesh_l, rc)
@@ -139,6 +138,7 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     FBlndAccum2rof_r = ESMF_FieldBundleCreate(name='FBlndAccum2rof_r', rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
+
     do n = 1,size(lnd2rof_flds)
        lfield = ESMF_FieldCreate(mesh_l, ESMF_TYPEKIND_R8, name=lnd2rof_flds(n), meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -155,13 +155,17 @@ contains
     end do
 
     ! Initialize field bundles and accumulation count
+
     call fldbun_reset(FBlndAccum2rof_l, value=0.0_r8, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
+
     call fldbun_reset(FBlndAccum2rof_r, value=0.0_r8, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     lndAccum2rof_cnt = 0
-    fldList = med_fldList_GetFldListFr(complnd)
+
+    fldList => med_fldList_GetFldListFr(complnd)
     ! Create packed mapping from rof->lnd
+
     call med_map_packed_field_create(destcomp=comprof, &
          flds_scalar_name=is_local%wrap%flds_scalar_name, &
          fieldsSrc=fldList, &
@@ -262,7 +266,7 @@ contains
     use ESMF              , only : ESMF_GridComp, ESMF_GridCompGet
     use ESMF              , only : ESMF_FieldBundleGet, ESMF_FieldGet
     use ESMF              , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
-    use esmFlds           , only : med_fldList_GetfldListTo
+    use esmFlds           , only : med_fldList_GetfldListTo, med_fldList_type
     use med_map_mod       , only : med_map_field_packed
     use med_merge_mod     , only : med_merge_auto
     use med_constants_mod , only : czero => med_constants_czero
@@ -283,6 +287,7 @@ contains
     type(ESMF_Field)          :: lfield_src
     type(ESMF_Field)          :: lfield_dst
     type(ESMF_Field)          :: field_lfrac_lnd
+    type(med_fldList_type), pointer :: fldList
     character(CL), pointer    :: lfieldnamelist(:)
     character(len=*),parameter  :: subname='(med_phases_prep_rof_mod: med_phases_prep_rof)'
     !---------------------------------------
@@ -301,6 +306,7 @@ contains
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
+    fldList => med_fldList_GetfldListTo(comprof)
     !---------------------------------------
     ! Average import from land accumuled FB
     !---------------------------------------
@@ -374,7 +380,7 @@ contains
     end if
 
     call med_merge_auto(compsrc=complnd, FBout=is_local%wrap%FBExp(comprof), &
-         FBfrac=is_local%wrap%FBFrac(comprof), FBin=FBlndAccum2rof_r, fldListTo=med_fldList_GetfldListTo(comprof), rc=rc)
+         FBfrac=is_local%wrap%FBFrac(comprof), FBin=FBlndAccum2rof_r, fldListTo=fldList, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     if (dbug_flag > 1) then

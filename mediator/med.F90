@@ -550,6 +550,7 @@ contains
     use med_internalstate_mod, only : mastertask, logunit, diagunit
 #ifdef CESMCOUPLED
     use nuopc_shr_methods, only : set_component_logging
+    use shr_log_mod, only : shr_log_unit
 #endif
     type(ESMF_GridComp)   :: gcomp
     type(ESMF_State)      :: importState, exportState
@@ -561,7 +562,6 @@ contains
     character(len=CL) :: cvalue
     integer           :: localPet
     integer           :: i
-    integer           :: shrlogunit
     logical           :: isPresent, isSet
     character(len=CX) :: msgString
     character(len=CX) :: diro
@@ -593,7 +593,7 @@ contains
           logfile = 'mediator.log'
        end if
 #ifdef CESMCOUPLED
-       call set_component_logging(gcomp, mastertask, logunit, shrlogunit, rc)
+       call set_component_logging(gcomp, mastertask, logunit, shr_log_unit, rc)
 #else
        open(newunit=logunit,file=trim(diro)//"/"//trim(logfile))
 #endif
@@ -1813,17 +1813,18 @@ contains
       do ndst = 1,ncomps
          do nsrc = 1,ncomps
             if (is_local%wrap%med_coupling_active(nsrc,ndst)) then
-                call med_map_packed_field_create(ndst, &
-                     is_local%wrap%flds_scalar_name, &
-                     fieldsSrc=med_fldList_GetfldListFr(nsrc), &
-                     FBSrc=is_local%wrap%FBImp(nsrc,nsrc), &
-                     FBDst=is_local%wrap%FBImp(nsrc,ndst), &
-                     packed_data=is_local%wrap%packed_data(nsrc,ndst,:), rc=rc)
-                if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             end if
-          end do
-       end do
-       if ( ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_ocnalb_o) .and. &
+               call med_map_packed_field_create(ndst, &
+                    is_local%wrap%flds_scalar_name, &
+                    fieldsSrc=med_fldList_GetfldListFr(nsrc), &
+                    FBSrc=is_local%wrap%FBImp(nsrc,nsrc), &
+                    FBDst=is_local%wrap%FBImp(nsrc,ndst), &
+                    packed_data=is_local%wrap%packed_data(nsrc,ndst,:), rc=rc)
+               if (ChkErr(rc,__LINE__,u_FILE_u)) return
+            end if
+         end do
+      end do
+
+      if ( ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_ocnalb_o) .and. &
             ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_ocnalb_a)) then
           call med_map_packed_field_create(compatm, &
                is_local%wrap%flds_scalar_name, &
@@ -1833,7 +1834,6 @@ contains
                packed_data=is_local%wrap%packed_data_ocnalb_o2a(:), rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
-
       !---------------------------------------
       ! Initialize ocn export accumulation field bundle
       !---------------------------------------
@@ -1869,7 +1869,6 @@ contains
          call med_phases_prep_rof_init(gcomp, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
       end if
-
       !---------------------------------------
       ! Set the data initialize flag to false
       !---------------------------------------
@@ -2174,6 +2173,7 @@ contains
             ESMF_LOGMSG_INFO)
 
     end if
+
     if (profile_memory) call ESMF_VMLogMemInfo("Leaving "//trim(subname))
     if (dbug_flag > 5) then
       call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)

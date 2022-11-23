@@ -3,7 +3,7 @@ module esmflds
   use ESMF, only : ESMF_FINALIZE, ESMF_END_ABORT
 
   use med_kind_mod, only          : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
-  use med_internalstate_mod, only : ncomps, compname, compocn, compatm, compice
+  use med_internalstate_mod, only : ncomps, compname, compocn, compatm, compice, comprof
   use med_internalstate_mod, only : mapfcopy, mapnames, mapunset
   use med_utils_mod        , only : chkerr => med_utils_ChkErr
   implicit none
@@ -29,7 +29,7 @@ module esmflds
   private :: med_fldList_AddFld
   private :: med_fldList_AddMap
   private :: med_fldList_AddMrg
-  private :: med_fldList_findName
+  public :: med_fldList_findName
   public :: med_fldList_GetFldNames
   public :: med_fldList_GetNumFlds
   public :: med_fldList_GetFldInfo
@@ -48,6 +48,7 @@ module esmflds
   type, public :: med_fldList_entry_type
      character(CS) :: stdname
      character(CS) :: shortname
+     type(med_fldList_entry_type), pointer :: next => null()
 
      ! Mapping fldsFr data - for mediator import fields
      integer      , allocatable :: mapindex(:)
@@ -58,7 +59,6 @@ module esmflds
      character(CS), allocatable :: merge_fields(:)
      character(CS), allocatable :: merge_types(:)
      character(CS), allocatable :: merge_fracnames(:)
-     type(med_fldList_entry_type), pointer :: next => null()
   end type med_fldList_entry_type
 
   ! The above would be the field name to merge from
@@ -158,7 +158,7 @@ contains
   subroutine med_fldList_findName(fields, stdname, found, lastfld)
     ! on return if found == .true. lastfield is the field matching stdname
     ! if found == .false. lastfield is the last field in the list
-    type(med_fldList_entry_type) , intent(in), target                :: fields
+    type(med_fldList_entry_type) , intent(in), target           :: fields
     character(len=*)             , intent(in)             :: stdname
     logical                      , intent(out)            :: found
     type(med_fldList_entry_type) , intent(out), pointer                :: lastfld
@@ -252,7 +252,7 @@ contains
     integer                      , intent(out), optional :: rc
 
     call med_FldList_addMrg(fldListTo(index)%fields, fldname, mrg_from, mrg_fld, mrg_type, mrg_fracname)
-    
+
   end subroutine med_fldList_AddMrgTo
 
   !================================================================================
@@ -279,7 +279,6 @@ contains
         
     newfld => med_fldList_GetFld(flds, fldname, rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return    
-
     newfld%merge_fields(mrg_from) = mrg_fld
     newfld%merge_types(mrg_from) = mrg_type
     if (present(mrg_fracname)) then
@@ -649,7 +648,11 @@ contains
        if (i==fldindex) exit
        newfld => newfld%next
     enddo
-
+    if( .not. associated(newfld)) then
+       call ESMF_LogWrite(subname//' No field found', ESMF_LOGMSG_ERROR)
+       if(present(rc)) rc = ESMF_FAILURE
+       return
+    endif
     call med_fld_GetFldInfo(newfld, compsrc, stdname, shortname, mapindex, mapFile, mapnorm, merge_fields, merge_type, merge_fracname, rc)
 
   end subroutine med_fldList_GetFldInfo
