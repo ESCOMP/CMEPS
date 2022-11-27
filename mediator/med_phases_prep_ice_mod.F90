@@ -39,7 +39,7 @@ contains
     use med_internalstate_mod , only : InternalState, logunit, mastertask
     use med_internalstate_mod , only : compatm, compice, compocn, comprof
     use med_internalstate_mod , only : coupling_mode
-    use esmFlds               , only : fldListTo
+    use esmFlds               , only : med_fldList_GetFldListTo
     use perf_mod              , only : t_startf, t_stopf
 
     ! input/output variables
@@ -85,7 +85,8 @@ contains
          is_local%wrap%FBExp(compice), &
          is_local%wrap%FBFrac(compice), &
          is_local%wrap%FBImp(:,compice), &
-         fldListTo(compice), rc=rc)
+         med_fldList_GetFldListTo(compice), &
+         rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! Apply precipitation factor from ocean (that scales atm rain and snow to ice) if appropriate

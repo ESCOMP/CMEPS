@@ -18,7 +18,7 @@ module med_phases_prep_atm_mod
   use med_map_mod           , only : med_map_field_packed
   use med_internalstate_mod , only : InternalState, mastertask
   use med_internalstate_mod , only : compatm, compocn, compice, compname, coupling_mode
-  use esmFlds               , only : fldListTo, fldListMed_aoflux
+  use esmFlds               , only : med_fldlist_GetfldListTo
   use perf_mod              , only : t_startf, t_stopf
   use med_phases_aofluxes_mod, only : med_aofluxes_map_xgrid2agrid_output
   use med_phases_aofluxes_mod, only : med_aofluxes_map_ogrid2agrid_output
@@ -139,7 +139,7 @@ contains
             is_local%wrap%FBExp(compatm), &
             is_local%wrap%FBFrac(compatm), &
             is_local%wrap%FBImp(:,compatm), &
-            fldListTo(compatm), &
+            med_fldList_GetfldListTo(compatm), &
             FBMed1=is_local%wrap%FBMed_ocnalb_a, &
             FBMed2=is_local%wrap%FBMed_aoflux_a, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -151,7 +151,7 @@ contains
             is_local%wrap%FBExp(compatm), &
             is_local%wrap%FBFrac(compatm), &
             is_local%wrap%FBImp(:,compatm), &
-            fldListTo(compatm), rc=rc)
+            med_fldList_GetfldListTo(compatm), rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 

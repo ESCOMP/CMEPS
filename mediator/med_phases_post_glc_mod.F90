@@ -17,7 +17,6 @@ module med_phases_post_glc_mod
   use med_internalstate_mod , only : compatm, compice, complnd, comprof, compocn, compname, compglc
   use med_internalstate_mod , only : mapbilnr, mapconsd, compname
   use med_internalstate_mod , only : InternalState, mastertask, logunit
-  use esmFlds               , only : fldListTo
   use med_methods_mod       , only : fldbun_diagnose  => med_methods_FB_diagnose
   use med_methods_mod       , only : fldbun_fldchk    => med_methods_FB_fldchk
   use med_methods_mod       , only : fldbun_getmesh   => med_methods_FB_getmesh
