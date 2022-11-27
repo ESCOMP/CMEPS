@@ -673,15 +673,15 @@ contains
 
     if (phase == 'advertise') then
        if (is_local%wrap%comp_present(compice) .and. is_local%wrap%comp_present(compwav)) then
-          call addfld(fldListFr(compwav)%flds, 'Sw_elevation_spectrum')
-          call addfld(fldListTo(compice)%flds, 'Sw_elevation_spectrum')
+          call addfldFrom(compwav, 'Sw_elevation_spectrum')
+          call addfldTo(compice, 'Sw_elevation_spectrum')
        end if
     else
        if ( fldchk(is_local%wrap%FBExp(compice)        , 'Sw_elevation_spectrum', rc=rc) .and. &
             fldchk(is_local%wrap%FBImp(compwav,compwav), 'Sw_elevation_spectrum', rc=rc)) then
-            call addmap(fldListFr(compwav)%flds, 'Sw_elevation_spectrum', compice, mapbilnr_nstod, 'one', 'unset')
-            call addmrg(fldListTo(compice)%flds, 'Sw_elevation_spectrum', &
-                  mrg_from=compwav, mrg_fld='Sw_elevation_spectrum', mrg_type='copy')
+          call addMapFrom(compwav, 'Sw_elevation_spectrum', compice, mapbilnr_nstod, 'one', 'unset')
+          call addmrgTo(compice, 'Sw_elevation_spectrum', mrg_from=compwav, &
+               mrg_fld='Sw_elevation_spectrum', mrg_type='copy')
        end if
     end if
 
