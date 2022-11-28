@@ -737,8 +737,10 @@ contains
     
     newfld => fldList%fields
     med_fldList_GetNumFlds = 0
-    do while(allocated(newfld%mapindex))
-       med_fldList_GetNumFlds = med_fldList_GetNumFlds + 1
+    do while(associated(newfld))
+       if(allocated(newfld%mapindex)) then
+          med_fldList_GetNumFlds = med_fldList_GetNumFlds + 1
+       endif
        newfld => newfld%next
     end do
     
