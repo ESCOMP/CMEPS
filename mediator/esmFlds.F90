@@ -764,8 +764,7 @@ contains
     if(present(rc)) rc = ESMF_SUCCESS
     if (.not. associated(fldnames) .or. .not. allocated(fields%mapindex)) then
        write(msg, *) "med_fldList_GetFldNames: ERROR either fields or fldnames have not been allocated. ",associated(fldnames), allocated(fields%mapindex)
-       call ESMF_LogWrite(msg)
-            ESMF_LOGMSG_ERROR)
+       call ESMF_LogWrite(msg, ESMF_LOGMSG_ERROR)
        if(present(rc)) rc = ESMF_FAILURE
        return
     endif
