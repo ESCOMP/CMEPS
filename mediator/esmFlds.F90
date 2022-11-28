@@ -758,11 +758,13 @@ contains
     !local variables
     type(med_fldList_entry_type), pointer :: newfld
     integer :: n
+    character(len=CL) :: msg
     ! ----------------------------------------------
 
     if(present(rc)) rc = ESMF_SUCCESS
     if (.not. associated(fldnames) .or. .not. allocated(fields%mapindex)) then
-       call ESMF_LogWrite("med_fldList_GetFldNames: ERROR either fields or fldnames have not been allocate ", &
+       write(msg, *) "med_fldList_GetFldNames: ERROR either fields or fldnames have not been allocated. ",associated(fldnames), allocated(fields%mapindex)
+       call ESMF_LogWrite(msg)
             ESMF_LOGMSG_ERROR)
        if(present(rc)) rc = ESMF_FAILURE
        return
