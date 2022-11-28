@@ -737,7 +737,7 @@ contains
     
     newfld => fldList%fields
     med_fldList_GetNumFlds = 0
-    do while(associated(newfld))
+    do while(allocated(newfld%mapindex))
        med_fldList_GetNumFlds = med_fldList_GetNumFlds + 1
        newfld => newfld%next
     end do
