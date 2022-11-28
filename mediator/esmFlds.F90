@@ -737,7 +737,7 @@ contains
     
     newfld => fldList%fields
     med_fldList_GetNumFlds = 0
-    do while(associated(newfld))
+    do while(allocated(newfld%mapindex))
        med_fldList_GetNumFlds = med_fldList_GetNumFlds + 1
        newfld => newfld%next
     end do
@@ -758,12 +758,13 @@ contains
     !local variables
     type(med_fldList_entry_type), pointer :: newfld
     integer :: n
+    character(len=CL) :: msg
     ! ----------------------------------------------
 
     if(present(rc)) rc = ESMF_SUCCESS
     if (.not. associated(fldnames) .or. .not. allocated(fields%mapindex)) then
-       call ESMF_LogWrite("med_fldList_GetFldNames: ERROR either fields or fldnames have not been allocate ", &
-            ESMF_LOGMSG_ERROR)
+       write(msg, *) "med_fldList_GetFldNames: ERROR either fields or fldnames have not been allocated. ",associated(fldnames), allocated(fields%mapindex)
+       call ESMF_LogWrite(msg, ESMF_LOGMSG_ERROR)
        if(present(rc)) rc = ESMF_FAILURE
        return
     endif
