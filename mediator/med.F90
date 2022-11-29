@@ -810,7 +810,7 @@ contains
 
     ! Initialize memory for fldlistTo and fldlistFr - this is need for the calls below for the
     ! advertise phase
-    call med_fldlist_init1()
+    call med_fldlist_init1(ncomps)
 
     if (trim(coupling_mode) == 'cesm') then
        call esmFldsExchange_cesm(gcomp, phase='advertise', rc=rc)

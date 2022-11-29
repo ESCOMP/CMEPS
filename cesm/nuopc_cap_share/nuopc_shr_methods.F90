@@ -170,7 +170,6 @@ contains
     endif
     shrlogunit = logunit
 
-    ! TODO: shr_file mod is deprecated and should be removed.
     call shr_file_setLogUnit (logunit)
     
   end subroutine set_component_logging

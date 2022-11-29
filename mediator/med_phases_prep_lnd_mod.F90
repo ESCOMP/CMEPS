@@ -27,7 +27,7 @@ contains
     use ESMF                  , only : ESMF_FieldBundle, ESMF_FieldBundleGet, ESMF_Field, ESMF_FieldGet
     use ESMF                  , only : ESMF_GridComp, ESMF_GridCompGet
     use ESMF                  , only : ESMF_StateGet, ESMF_StateItem_Flag, ESMF_STATEITEM_NOTFOUND
-    use esmFlds               , only : med_fldList_GetFldListTo
+    use esmFlds               , only : med_fldList_GetFldListTo, med_fldList_type
     use med_methods_mod       , only : fldbun_diagnose  => med_methods_FB_diagnose
     use med_utils_mod         , only : chkerr           => med_utils_ChkErr
     use med_constants_mod     , only : dbug_flag        => med_constants_dbug_flag
@@ -51,6 +51,7 @@ contains
     real(r8), pointer           :: dataptr2d(:,:)
     logical                     :: first_call = .true.
     logical                     :: field_found
+    type(med_fldlist_type), pointer :: fldList
     real(r8), pointer           :: dataptr_scalar_lnd(:,:)
     real(r8), pointer           :: dataptr_scalar_atm(:,:)
     character(len=*), parameter :: subname='(med_phases_prep_lnd)'
@@ -84,12 +85,14 @@ contains
        ! auto merges to create FBExp(complnd) - other than glc->lnd
        ! The following will merge all fields in fldsSrc
        call t_startf('MED:'//trim(subname)//' merge')
+       fldList => med_fldList_GetFldListTo(complnd)
        call med_merge_auto(&
             is_local%wrap%med_coupling_active(:,complnd), &
             is_local%wrap%FBExp(complnd), &
             is_local%wrap%FBFrac(complnd), &
             is_local%wrap%FBImp(:,complnd), &
-            med_fldList_GetFldListTo(complnd), rc=rc)
+            fldList, &
+            rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call t_stopf('MED:'//trim(subname)//' merge')
 
