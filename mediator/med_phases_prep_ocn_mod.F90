@@ -137,7 +137,7 @@ contains
             is_local%wrap%FBFrac(compocn), &
             is_local%wrap%FBImp(:,compocn), &
             fldList, &
-            rc)
+            rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 

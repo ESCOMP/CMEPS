@@ -18,7 +18,7 @@ module med_phases_prep_atm_mod
   use med_map_mod           , only : med_map_field_packed
   use med_internalstate_mod , only : InternalState, mastertask
   use med_internalstate_mod , only : compatm, compocn, compice, compname, coupling_mode
-  use esmFlds               , only : med_fldlist_GetfldListTo, esm_fldlist_type
+  use esmFlds               , only : med_fldlist_GetfldListTo, med_fldlist_type
   use perf_mod              , only : t_startf, t_stopf
   use med_phases_aofluxes_mod, only : med_aofluxes_map_xgrid2agrid_output
   use med_phases_aofluxes_mod, only : med_aofluxes_map_ogrid2agrid_output
@@ -53,7 +53,7 @@ contains
     real(R8), pointer          :: ifrac(:)
     real(R8), pointer          :: ofrac(:)
     integer                    :: i, j, n, n1, ncnt
-    type(esm_fldlist_type), pointer :: fldList
+    type(med_fldlist_type), pointer :: fldList
     character(len=*),parameter :: subname='(med_phases_prep_atm)'
     !-------------------------------------------------------------------------------
 

@@ -54,7 +54,8 @@ module esmflds
      character(CS), allocatable :: mapnorm(:)
      character(CX), allocatable :: mapfile(:)
 
-     ! Merging fldsTo data - for mediator export field     character(CS), allocatable :: merge_fields(:)
+     ! Merging fldsTo data - for mediator export field
+     character(CS), allocatable :: merge_fields(:)
      character(CS), allocatable :: merge_types(:)
      character(CS), allocatable :: merge_fracnames(:)
      type(med_fldList_entry_type), pointer :: next => null()
@@ -219,7 +220,7 @@ contains
     call med_fldList_findName(fields, stdname, found, newfld)
     ! create new entry if fldname is not in original list
     mapsize = size(fldListTo)
-    mrgsize = size(fldListFrom)
+    mrgsize = size(fldListFr)
 
     if (.not. found) then
        ! 1) allocate newfld to be size (one element larger than input flds)
