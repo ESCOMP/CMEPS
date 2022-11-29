@@ -76,8 +76,8 @@ module esmflds
   type (med_fldList_type), allocatable, target :: fldListTo(:) ! advertise fields to components
   type (med_fldList_type), allocatable, target :: fldListFr(:) ! advertise fields from components
 
-  type (med_fldList_type), target :: fldListMed_aoflux
-  type (med_fldList_type), target :: fldListMed_ocnalb
+  type (med_fldList_type), target :: fldlist_aoflux
+  type (med_fldList_type), target :: fldlist_ocnalb
 
   integer                    :: rc
   character(len=CL)          :: infostr
@@ -95,24 +95,27 @@ contains
   end subroutine med_fldlist_init1
 
   !================================================================================
-
+  
   function med_fldList_GetaofluxFldList() result(fldList)
+    ! Return a pointer to the aoflux fldlist
     type(med_fldList_type), pointer :: fldList
 
-    fldList => fldListMed_aoflux
+    fldList => fldlist_aoflux
   end function Med_FldList_GetaofluxFldList
 
   !================================================================================
 
   function med_fldList_GetocnalbFldList() result(fldList)
+    ! Return a pointer to the ocnalb fldlist
     type(med_fldList_type), pointer :: fldList
 
-    fldList => fldListMed_ocnalb
+    fldList => fldlist_ocnalb
   end function Med_FldList_GetocnalbFldList
 
   !================================================================================
 
   function med_fldList_GetFldListFr(index) result(fldList)
+    ! Return a pointer to the FldListFr(index)
     integer, intent(in) :: index
     type(med_fldList_type), pointer :: fldList
 
@@ -122,6 +125,7 @@ contains
   !================================================================================
 
   function med_fldList_GetFldListTo(index) result(fldList)
+    ! Return a pointer to the FldListTo(index)
     integer, intent(in) :: index
     type(med_fldList_type), pointer :: fldList
 
@@ -131,6 +135,7 @@ contains
   !================================================================================
 
   subroutine med_fldList_addfld_from(index, stdname, shortname)
+    ! add a fld with name stdname to the FldListFr list
     integer, intent(in) :: index
     character(len=*)             , intent(in)             :: stdname
     character(len=*)             , intent(in)  , optional :: shortname
@@ -142,10 +147,11 @@ contains
   !================================================================================
 
   subroutine med_fldList_addfld_aoflux(stdname, shortname)
+    ! add a fld to the aoflux fldList
     character(len=*)             , intent(in)             :: stdname
     character(len=*)             , intent(in)  , optional :: shortname
 
-    call med_fldList_AddFld(fldListMed_aoflux%fields, stdname, shortname)
+    call med_fldList_AddFld(fldlist_aoflux%fields, stdname, shortname)
     
   end subroutine med_fldList_addfld_aoflux
 
@@ -155,7 +161,7 @@ contains
     character(len=*)             , intent(in)             :: stdname
     character(len=*)             , intent(in)  , optional :: shortname
 
-    call med_fldList_AddFld(fldListMed_ocnalb%fields, stdname, shortname)
+    call med_fldList_AddFld(fldlist_ocnalb%fields, stdname, shortname)
     
   end subroutine med_fldList_addfld_ocnalb
 
@@ -359,7 +365,7 @@ contains
     character(len=*)                   , intent(in)    :: mapnorm
     character(len=*), optional         , intent(in)    :: mapfile
 
-    call med_fldList_AddMap(fldlistmed_aoflux%fields, fldname, destcomp, maptype, mapnorm, mapfile)
+    call med_fldList_AddMap(fldlist_aoflux%fields, fldname, destcomp, maptype, mapnorm, mapfile)
     
   end subroutine med_fldList_addmap_aoflux
 
@@ -372,7 +378,7 @@ contains
     character(len=*)                   , intent(in)    :: mapnorm
     character(len=*), optional         , intent(in)    :: mapfile
 
-    call med_fldList_AddMap(fldlistmed_ocnalb%fields, fldname, destcomp, maptype, mapnorm, mapfile)
+    call med_fldList_AddMap(fldlist_ocnalb%fields, fldname, destcomp, maptype, mapnorm, mapfile)
     
   end subroutine med_fldList_addmap_ocnalb
 
@@ -870,8 +876,8 @@ contains
     ! ocn-> atm mappings for atm/ocn fluxes computed in mediator on the ocn grid
     nsrc = compocn
     ndst = compatm
-    if (med_coupling_active(nsrc,ndst) .and. allocated(fldListMed_aoflux%fields%mapindex)) then
-       newfld => fldListMed_aoflux%fields
+    if (med_coupling_active(nsrc,ndst) .and. allocated(fldlist_aoflux%fields%mapindex)) then
+       newfld => fldlist_aoflux%fields
        do while(associated(newfld))
           call med_fld_GetFldInfo(newfld, compsrc=ndst, mapindex=mapindex, rc=rc)
           if ( mapindex /= mapunset) then
