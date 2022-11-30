@@ -1,7 +1,5 @@
 module esmflds
   use ESMF, only                  : ESMF_SUCCESS, ESMF_FAILURE, ESMF_LOGMSG_ERROR, ESMF_LOGWRITE
-  use ESMF, only : ESMF_FINALIZE, ESMF_END_ABORT
-
   use med_kind_mod, only          : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
   use med_internalstate_mod, only : compname, compocn, compatm, compice, comprof
   use med_internalstate_mod, only : mapfcopy, mapnames, mapunset
@@ -295,7 +293,7 @@ contains
     character(len=*)             , intent(in)           :: mrg_fld
     character(len=*)             , intent(in)           :: mrg_type
     character(len=*)             , intent(in), optional :: mrg_fracname
-
+    
     ! local variables
     integer :: rc
     type(med_fldList_entry_type), pointer :: newfld
@@ -315,7 +313,9 @@ contains
   !================================================================================
 
   function med_fldList_GetFld(fields, fldname, rc) result(newfld)
-    use ESMF, only : ESMF_LogWrite, ESMF_END_ABORT, ESMF_LOGMSG_ERROR, ESMF_Finalize, ESMF_LOGMSG_INFO
+    use ESMF, only : ESMF_LogWrite, ESMF_LOGMSG_ERROR, ESMF_LOGMSG_INFO
+    use ESMF, only : ESMF_FINALIZE, ESMF_END_ABORT
+  
 
     type(med_fldList_entry_type) , intent(in), target :: fields
     character(len=*)                  , intent(in)    :: fldname
@@ -337,7 +337,7 @@ contains
           newfld => newfld%next
        end do
        call ESMF_LogWrite(subname // 'ERROR: fldname '// trim(fldname) // ' not found in input flds', ESMF_LOGMSG_ERROR)
-       return
+       call ESMF_Finalize(endflag=ESMF_END_ABORT)
     endif
     
   end function med_fldList_GetFld
