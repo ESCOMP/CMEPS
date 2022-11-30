@@ -17,7 +17,7 @@ module med_phases_prep_wav_mod
   use med_methods_mod       , only : FB_average    => med_methods_FB_average
   use med_methods_mod       , only : FB_copy       => med_methods_FB_copy
   use med_methods_mod       , only : FB_reset      => med_methods_FB_reset
-  use esmFlds               , only : fldListTo
+  use esmFlds               , only : med_fldList_GetfldListTo
   use med_internalstate_mod , only : compwav
   use perf_mod              , only : t_startf, t_stopf
 
@@ -103,7 +103,7 @@ contains
          is_local%wrap%FBExp(compwav), &
          is_local%wrap%FBFrac(compwav), &
          is_local%wrap%FBImp(:,compwav), &
-         fldListTo(compwav), rc=rc)
+         med_fldList_GetfldListTo(compwav), rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! wave accumulator
