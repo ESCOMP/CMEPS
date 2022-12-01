@@ -2,7 +2,6 @@ module driver_pio_mod
   use pio
   use shr_pio_mod,  only : io_compname, pio_comp_settings, iosystems, io_compid, shr_pio_getindex
   use shr_kind_mod, only : CS=>shr_kind_CS, shr_kind_cl, shr_kind_in
-  use shr_file_mod, only : shr_file_getunit, shr_file_freeunit
   use shr_log_mod,  only : shr_log_unit
   use shr_mpi_mod,  only : shr_mpi_bcast, shr_mpi_chkerr
   use shr_sys_mod,  only : shr_sys_abort

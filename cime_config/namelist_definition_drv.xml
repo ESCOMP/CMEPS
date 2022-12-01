@@ -891,7 +891,7 @@
       default: ocn
     </desc>
     <values>
-      <value>ogrid</value>
+      <value>xgrid</value>
     </values>
   </entry>
   <entry id="ocn_surface_flux_scheme">
