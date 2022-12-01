@@ -1,9 +1,7 @@
 module esmflds
   use ESMF, only                  : ESMF_SUCCESS, ESMF_FAILURE, ESMF_LOGMSG_ERROR, ESMF_LOGWRITE
-  use ESMF, only : ESMF_FINALIZE, ESMF_END_ABORT
-
   use med_kind_mod, only          : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
-  use med_internalstate_mod, only : ncomps, compname, compocn, compatm, compice, comprof
+  use med_internalstate_mod, only : compname, compocn, compatm, compice, comprof
   use med_internalstate_mod, only : mapfcopy, mapnames, mapunset
   use med_utils_mod        , only : chkerr => med_utils_ChkErr
   implicit none
@@ -15,16 +13,16 @@ module esmflds
 
   public :: med_fldList_init1
 
-  public :: med_fldList_AddFldFrom
-  public :: med_fldList_AddMapFrom
-  public :: med_fldList_AddFldTo
-  public :: med_fldList_AddMrgTo
+  public :: med_fldList_addfld_from
+  public :: med_fldList_addmap_from
+  public :: med_fldList_addfld_to
+  public :: med_fldList_addmrg_to
 
-  public :: med_fldList_AddOcnalbFld
-  public :: med_fldList_AddocnalbMap
+  public :: med_fldList_addfld_ocnalb
+  public :: med_fldList_addmap_ocnalb
 
-  public :: med_fldList_AddaofluxFld
-  public :: med_fldList_AddaofluxMap
+  public :: med_fldList_addfld_aoflux
+  public :: med_fldList_addmap_aoflux
   
   private :: med_fldList_AddFld
   private :: med_fldList_AddMap
@@ -54,7 +52,7 @@ module esmflds
      character(CS), allocatable :: mapnorm(:)
      character(CX), allocatable :: mapfile(:)
 
-     ! Merging fldsTo data - for mediator export fields
+     ! Merging fldsTo data - for mediator export field
      character(CS), allocatable :: merge_fields(:)
      character(CS), allocatable :: merge_types(:)
      character(CS), allocatable :: merge_fracnames(:)
@@ -76,8 +74,8 @@ module esmflds
   type (med_fldList_type), allocatable, target :: fldListTo(:) ! advertise fields to components
   type (med_fldList_type), allocatable, target :: fldListFr(:) ! advertise fields from components
 
-  type (med_fldList_type), target :: fldListMed_aoflux
-  type (med_fldList_type), target :: fldListMed_ocnalb
+  type (med_fldList_type), target :: fldlist_aoflux
+  type (med_fldList_type), target :: fldlist_ocnalb
 
   integer                    :: rc
   character(len=CL)          :: infostr
@@ -88,72 +86,95 @@ module esmflds
 contains
 !================================================================================
 
-  subroutine med_fldlist_init1()
+  subroutine med_fldlist_init1(ncomps)
+    integer, intent(in) :: ncomps
     allocate(fldlistTo(ncomps))
     allocate(fldlistFr(ncomps))
   end subroutine med_fldlist_init1
 
+  !================================================================================
+  
   function med_fldList_GetaofluxFldList() result(fldList)
+    ! Return a pointer to the aoflux fldlist
     type(med_fldList_type), pointer :: fldList
 
-    fldList => fldListMed_aoflux
+    fldList => fldlist_aoflux
   end function Med_FldList_GetaofluxFldList
 
+  !================================================================================
+
   function med_fldList_GetocnalbFldList() result(fldList)
+    ! Return a pointer to the ocnalb fldlist
     type(med_fldList_type), pointer :: fldList
 
-    fldList => fldListMed_ocnalb
+    fldList => fldlist_ocnalb
   end function Med_FldList_GetocnalbFldList
 
+  !================================================================================
+
   function med_fldList_GetFldListFr(index) result(fldList)
+    ! Return a pointer to the FldListFr(index)
     integer, intent(in) :: index
     type(med_fldList_type), pointer :: fldList
 
     fldList => fldListFr(index)
   end function Med_FldList_GetFldListFr
 
+  !================================================================================
+
   function med_fldList_GetFldListTo(index) result(fldList)
+    ! Return a pointer to the FldListTo(index)
     integer, intent(in) :: index
     type(med_fldList_type), pointer :: fldList
 
     fldList => fldListTo(index)
   end function Med_FldList_GetFldListTo
   
-
   !================================================================================
-  subroutine med_fldList_AddFldFrom(index, stdname, shortname)
+
+  subroutine med_fldList_addfld_from(index, stdname, shortname)
+    ! add a fld with name stdname to the FldListFr list
     integer, intent(in) :: index
     character(len=*)             , intent(in)             :: stdname
     character(len=*)             , intent(in)  , optional :: shortname
 
     call med_fldList_AddFld(FldListFr(index)%fields, stdname, shortname)
     
-  end subroutine med_fldList_AddFldFrom
+  end subroutine med_fldList_addfld_from
+
   !================================================================================
-  subroutine med_fldList_AddaofluxFld(stdname, shortname)
+
+  subroutine med_fldList_addfld_aoflux(stdname, shortname)
+    ! add a fld to the aoflux fldList
     character(len=*)             , intent(in)             :: stdname
     character(len=*)             , intent(in)  , optional :: shortname
 
-    call med_fldList_AddFld(fldListMed_aoflux%fields, stdname, shortname)
+    call med_fldList_AddFld(fldlist_aoflux%fields, stdname, shortname)
     
-  end subroutine med_fldList_AddaofluxFld
+  end subroutine med_fldList_addfld_aoflux
+
   !================================================================================
-  subroutine med_fldList_AddocnalbFld(stdname, shortname)
+
+  subroutine med_fldList_addfld_ocnalb(stdname, shortname)
     character(len=*)             , intent(in)             :: stdname
     character(len=*)             , intent(in)  , optional :: shortname
 
-    call med_fldList_AddFld(fldListMed_ocnalb%fields, stdname, shortname)
+    call med_fldList_AddFld(fldlist_ocnalb%fields, stdname, shortname)
     
-  end subroutine med_fldList_AddocnalbFld
+  end subroutine med_fldList_addfld_ocnalb
+
   !================================================================================
-  subroutine med_fldList_AddFldTo(index, stdname, shortname)
+
+  subroutine med_fldList_addfld_to(index, stdname, shortname)
     integer, intent(in) :: index
     character(len=*)             , intent(in)             :: stdname
     character(len=*)             , intent(in)  , optional :: shortname
 
     call med_fldList_AddFld(FldListTo(index)%fields, stdname, shortname)
     
-  end subroutine med_fldList_AddFldTo
+  end subroutine med_fldList_addfld_to
+
+  !================================================================================
 
   subroutine med_fldList_findName(fields, stdname, found, lastfld)
     ! on return if found == .true. lastfield is the field matching stdname
@@ -173,6 +194,8 @@ contains
     if (trim(stdname) == trim(lastfld%stdname)) found = .true.
 
   end subroutine med_fldList_findName
+
+  !================================================================================
 
   subroutine med_fldList_AddFld(fields, stdname, shortname)
     ! ----------------------------------------------
@@ -200,8 +223,8 @@ contains
     
     call med_fldList_findName(fields, stdname, found, newfld)
     ! create new entry if fldname is not in original list
-    mapsize = ncomps
-    mrgsize = ncomps
+    mapsize = size(fldListTo)
+    mrgsize = size(fldListFr)
 
     if (.not. found) then
        ! 1) allocate newfld to be size (one element larger than input flds)
@@ -236,7 +259,7 @@ contains
 
   !================================================================================
 
-  subroutine med_fldList_AddMrgTo(index, fldname, mrg_from, mrg_fld, mrg_type, mrg_fracname, rc)
+  subroutine med_fldList_addmrg_to(index, fldname, mrg_from, mrg_fld, mrg_type, mrg_fracname, rc)
 
     ! ----------------------------------------------
     ! Determine mrg entry or entries in flds aray
@@ -253,7 +276,7 @@ contains
 
     call med_FldList_addMrg(fldListTo(index)%fields, fldname, mrg_from, mrg_fld, mrg_type, mrg_fracname)
 
-  end subroutine med_fldList_AddMrgTo
+  end subroutine med_fldList_addmrg_to
 
   !================================================================================
 
@@ -270,7 +293,7 @@ contains
     character(len=*)             , intent(in)           :: mrg_fld
     character(len=*)             , intent(in)           :: mrg_type
     character(len=*)             , intent(in), optional :: mrg_fracname
-
+    
     ! local variables
     integer :: rc
     type(med_fldList_entry_type), pointer :: newfld
@@ -278,7 +301,7 @@ contains
     ! ----------------------------------------------
         
     newfld => med_fldList_GetFld(flds, fldname, rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return    
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
     newfld%merge_fields(mrg_from) = mrg_fld
     newfld%merge_types(mrg_from) = mrg_type
     if (present(mrg_fracname)) then
@@ -287,8 +310,12 @@ contains
 
   end subroutine med_fldList_AddMrg
 
+  !================================================================================
+
   function med_fldList_GetFld(fields, fldname, rc) result(newfld)
-    use ESMF, only : ESMF_LogWrite, ESMF_END_ABORT, ESMF_LOGMSG_ERROR, ESMF_Finalize, ESMF_LOGMSG_INFO
+    use ESMF, only : ESMF_LogWrite, ESMF_LOGMSG_ERROR, ESMF_LOGMSG_INFO
+    use ESMF, only : ESMF_FINALIZE, ESMF_END_ABORT
+  
 
     type(med_fldList_entry_type) , intent(in), target :: fields
     character(len=*)                  , intent(in)    :: fldname
@@ -310,16 +337,16 @@ contains
           newfld => newfld%next
        end do
        call ESMF_LogWrite(subname // 'ERROR: fldname '// trim(fldname) // ' not found in input flds', ESMF_LOGMSG_ERROR)
-       return
+       call ESMF_Finalize(endflag=ESMF_END_ABORT)
     endif
     
   end function med_fldList_GetFld
 
   !================================================================================
 
-  subroutine med_fldList_AddMapFrom(index, fldname, destcomp, maptype, mapnorm, mapfile)
+  subroutine med_fldList_addmap_from(index, fldname, destcomp, maptype, mapnorm, mapfile)
     integer, intent(in) :: index
-    character(len=*)                  , intent(in)    :: fldname    
+    character(len=*)                  , intent(in)    :: fldname
     integer                            , intent(in)    :: destcomp
     integer                            , intent(in)    :: maptype
     character(len=*)                   , intent(in)    :: mapnorm
@@ -327,33 +354,33 @@ contains
 
     call med_fldList_AddMap(FldListFr(index)%fields, fldname, destcomp, maptype, mapnorm, mapfile)
     
-  end subroutine med_fldList_AddMapFrom
+  end subroutine med_fldList_addmap_from
 
   !================================================================================
 
-  subroutine med_fldList_AddaofluxMap(fldname, destcomp, maptype, mapnorm, mapfile)
-    character(len=*)                  , intent(in)    :: fldname    
+  subroutine med_fldList_addmap_aoflux(fldname, destcomp, maptype, mapnorm, mapfile)
+    character(len=*)                  , intent(in)    :: fldname
     integer                            , intent(in)    :: destcomp
     integer                            , intent(in)    :: maptype
     character(len=*)                   , intent(in)    :: mapnorm
     character(len=*), optional         , intent(in)    :: mapfile
 
-    call med_fldList_AddMap(fldlistmed_aoflux%fields, fldname, destcomp, maptype, mapnorm, mapfile)
+    call med_fldList_AddMap(fldlist_aoflux%fields, fldname, destcomp, maptype, mapnorm, mapfile)
     
-  end subroutine med_fldList_AddaofluxMap
+  end subroutine med_fldList_addmap_aoflux
 
   !================================================================================
 
-  subroutine med_fldList_AddocnalbMap(fldname, destcomp, maptype, mapnorm, mapfile)
-    character(len=*)                  , intent(in)    :: fldname    
+  subroutine med_fldList_addmap_ocnalb(fldname, destcomp, maptype, mapnorm, mapfile)
+    character(len=*)                  , intent(in)    :: fldname
     integer                            , intent(in)    :: destcomp
     integer                            , intent(in)    :: maptype
     character(len=*)                   , intent(in)    :: mapnorm
     character(len=*), optional         , intent(in)    :: mapfile
 
-    call med_fldList_AddMap(fldlistmed_ocnalb%fields, fldname, destcomp, maptype, mapnorm, mapfile)
+    call med_fldList_AddMap(fldlist_ocnalb%fields, fldname, destcomp, maptype, mapnorm, mapfile)
     
-  end subroutine med_fldList_AddocnalbMap
+  end subroutine med_fldList_addmap_ocnalb
 
   !================================================================================
 
@@ -363,7 +390,7 @@ contains
 
     ! intput/output variables
     type(med_fldList_entry_type) , intent(in), target :: fields
-    character(len=*)                  , intent(in)    :: fldname    
+    character(len=*)                  , intent(in)    :: fldname
     integer                            , intent(in)    :: destcomp
     integer                            , intent(in)    :: maptype
     character(len=*)                   , intent(in)    :: mapnorm
@@ -379,7 +406,7 @@ contains
     if (present(mapfile)) lmapfile = mapfile
 
     newfld => med_fldList_GetFld(fields, fldname, rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return    
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
     ! Note - default values are already set for the fld entries - so only non-default
     ! values need to be set below
     ! If mapindex is mapfcopy - create a redistribution route handle
@@ -657,6 +684,8 @@ contains
 
   end subroutine med_fldList_GetFldInfo
 
+  !================================================================================
+
   subroutine med_fld_GetFldInfo(newfld, compsrc, stdname, shortname, mapindex, mapFile, mapnorm, merge_fields, merge_type, merge_fracname, rc)
     ! ----------------------------------------------
     ! Get field info
@@ -675,7 +704,7 @@ contains
     
     ! local variables
     integer :: lrc
-    integer :: lcompsrc 
+    integer :: lcompsrc
     character(len=*), parameter :: subname='(med_fld_GetFldInfo)'
     lrc = ESMF_SUCCESS
 
@@ -715,16 +744,15 @@ contains
     endif
     if(present(rc)) rc=lrc
 
+  contains
+    subroutine med_fldList_compsrcerror(rc)
+      integer, intent(out) :: rc
+      call ESMF_LogWrite("In med_fld_GetFldInfo a field requiring compsrc was requested but compsrc was not provided. ", &
+           ESMF_LOGMSG_ERROR)
+      rc = ESMF_FAILURE
+      return
+    end subroutine med_fldList_compsrcerror
   end subroutine med_fld_GetFldInfo
-
-  subroutine med_fldList_compsrcerror(rc)
-    integer, intent(out) :: rc
-    call ESMF_LogWrite("In med_fld_GetFldInfo a field requiring compsrc was requested but compsrc was not provided. ", &
-         ESMF_LOGMSG_ERROR)
-    rc = ESMF_FAILURE
-    return
-  end subroutine med_fldList_compsrcerror
-
 
   !================================================================================
 
@@ -812,9 +840,9 @@ contains
     !---------------------------------------
 
     ! Loop over src components
-    do nsrc = 1,ncomps
+    do nsrc = 1,size(fldListFr)
        ! Loop over all possible destination components for each src component
-       do ndst = 1,ncomps
+       do ndst = 1,size(fldListTo)
           if (nsrc /= ndst .and. med_coupling_active(nsrc,ndst)) then
              ! Write all the mappings for fields from the src to the destination component
              write(logunit,*)' '
@@ -823,7 +851,7 @@ contains
                 mapindex = newfld%mapindex(ndst)
                 if ( mapindex /= mapunset) then
                    call med_fld_GetFldInfo(newfld, compsrc=ndst, stdname=fldname, mapnorm=mapnorm, mapfile=mapfile, rc=rc)
-                   if (chkerr(rc,__LINE__,u_FILE_u)) return          
+                   if (chkerr(rc,__LINE__,u_FILE_u)) return
 
                    if (trim(mapnorm) == 'unset') then
                       cvalue = ' mapping '//trim(compname(nsrc))//'->'//trim(compname(ndst)) //' '//trim(fldname) // &
@@ -848,13 +876,13 @@ contains
     ! ocn-> atm mappings for atm/ocn fluxes computed in mediator on the ocn grid
     nsrc = compocn
     ndst = compatm
-    if (med_coupling_active(nsrc,ndst) .and. allocated(fldListMed_aoflux%fields%mapindex)) then
-       newfld => fldListMed_aoflux%fields
+    if (med_coupling_active(nsrc,ndst) .and. allocated(fldlist_aoflux%fields%mapindex)) then
+       newfld => fldlist_aoflux%fields
        do while(associated(newfld))
           call med_fld_GetFldInfo(newfld, compsrc=ndst, mapindex=mapindex, rc=rc)
           if ( mapindex /= mapunset) then
              call med_fld_GetFldInfo(newfld, stdname=fldname, compsrc=ndst, mapnorm=mapnorm, mapfile=mapfile, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return          
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
              
              if (trim(mapnorm) == 'unset') then
                 cvalue = ' mapping '//trim(compname(nsrc))//'->'//trim(compname(ndst)) //' '//trim(fldname) // &
@@ -910,7 +938,7 @@ contains
     write(logunit,*)
 
     ! Loop over destination components
-    do ndst = 1,ncomps
+    do ndst = 1,size(fldListTo)
        dst_comp = trim(compname(ndst))
        prefix = '(merge_to_'//trim(dst_comp)//')'
 
@@ -918,16 +946,16 @@ contains
        newfld => fldListTo(ndst)%fields
        do while(associated(newfld))
           call med_fld_GetFldInfo(newfld, stdname=dst_field, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return          
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
           
           ! Loop over all possible source components for destination component field
           mrgstr = ' '
-          do nsrc = 1,ncomps
+          do nsrc = 1,size(fldListFr)
 
              if (nsrc /= ndst .and. med_coupling_active(nsrc,ndst)) then
                 src_comp    = compname(nsrc)
                 call med_fld_GetFldInfo(newfld, compsrc=nsrc, merge_fields=merge_field, merge_type=merge_type, merge_fracname=merge_frac, rc=rc)
-                if (chkerr(rc,__LINE__,u_FILE_u)) return          
+                if (chkerr(rc,__LINE__,u_FILE_u)) return
 
                 if (merge_type == 'merge' .or. merge_type == 'sum_with_weights') then
                    string = trim(merge_frac)//'*'//trim(merge_field)//'('//trim(src_comp)//')'
