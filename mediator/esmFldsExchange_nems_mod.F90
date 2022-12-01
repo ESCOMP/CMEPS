@@ -39,7 +39,7 @@ contains
     use esmFlds               , only : addmap_from => med_fldList_addmap_from
     use esmFlds               , only : addfld_aoflux => med_fldList_addfld_aoflux
     use esmFlds               , only : addmap_aoflux => med_fldList_addmap_aoflux
-    
+
     use med_internalstate_mod , only : InternalState, mastertask, logunit
 
     ! input/output parameters:
@@ -673,14 +673,14 @@ contains
 
     if (phase == 'advertise') then
        if (is_local%wrap%comp_present(compice) .and. is_local%wrap%comp_present(compwav)) then
-          call addfldFrom(compwav, 'Sw_elevation_spectrum')
-          call addfldTo(compice, 'Sw_elevation_spectrum')
+          call addfld_from(compwav, 'Sw_elevation_spectrum')
+          call addfld_to(compice, 'Sw_elevation_spectrum')
        end if
     else
        if ( fldchk(is_local%wrap%FBExp(compice)        , 'Sw_elevation_spectrum', rc=rc) .and. &
             fldchk(is_local%wrap%FBImp(compwav,compwav), 'Sw_elevation_spectrum', rc=rc)) then
-          call addMapFrom(compwav, 'Sw_elevation_spectrum', compice, mapbilnr_nstod, 'one', 'unset')
-          call addmrgTo(compice, 'Sw_elevation_spectrum', mrg_from=compwav, &
+          call addmap_from(compwav, 'Sw_elevation_spectrum', compice, mapbilnr_nstod, 'one', 'unset')
+          call addmrg_to(compice, 'Sw_elevation_spectrum', mrg_from=compwav, &
                mrg_fld='Sw_elevation_spectrum', mrg_type='copy')
        end if
     end if
