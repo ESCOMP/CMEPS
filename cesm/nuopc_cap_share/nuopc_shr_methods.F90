@@ -22,7 +22,7 @@ module nuopc_shr_methods
   use NUOPC_Model  , only : NUOPC_ModelGet
   use shr_kind_mod , only : r8 => shr_kind_r8, cl=>shr_kind_cl, cs=>shr_kind_cs
   use shr_sys_mod  , only : shr_sys_abort
-  use shr_file_mod , only : shr_file_setlogunit, shr_file_getLogUnit
+  use shr_log_mod , only : shr_log_setLogUnit
 
   implicit none
   private
@@ -170,7 +170,7 @@ contains
     endif
     shrlogunit = logunit
 
-    call shr_file_setLogUnit (logunit)
+    call shr_log_setLogUnit (logunit)
     
   end subroutine set_component_logging
 

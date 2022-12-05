@@ -8,8 +8,7 @@ module Ensemble_driver
   !-----------------------------------------------------------------------------
 
   use shr_kind_mod  , only : cl=>shr_kind_cl, cs=>shr_kind_cs
-  use shr_log_mod   , only : shrlogunit=> shr_log_unit
-  use shr_file_mod  , only : shr_file_setLogUnit
+  use shr_log_mod   , only : shr_log_setLogUnit
   use esm_utils_mod , only : mastertask, logunit, chkerr
 
   implicit none
@@ -256,10 +255,10 @@ contains
              open (newunit=logunit,file=trim(diro)//"/"//trim(logfile))
              mastertask = .true.
           else
-             logUnit = shrlogunit
+             logUnit = 6
              mastertask = .false.
           endif
-          call shr_file_setLogUnit (logunit)
+          call shr_log_setLogUnit (logunit)
 
           ! Create a clock for each driver instance
           call esm_time_clockInit(ensemble_driver, driver, logunit, mastertask, rc)
