@@ -145,6 +145,8 @@ contains
     character(len=CL) :: logfile
     character(len=CL) :: inst_suffix
     integer :: inst_index  ! not used here
+    character(len=CL) :: name
+    character(len=*), parameter :: subname = "("//__FILE__//": set_component_logging)"    
     !-----------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -162,15 +164,18 @@ contains
        endif
 
        open(newunit=logunit,file=trim(diro)//"/"//trim(logfile))
-       ! Write the PIO settings to the beggining of each component log
-       call driver_pio_log_comp_settings(gcomp, logunit)
 
     else
        logUnit = 6
     endif
-    shrlogunit = logunit
+    
+    call ESMF_GridCompGet(gcomp, name=name, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    call ESMF_LogWrite(trim(subname)//": setting logunit for component: "//trim(name), ESMF_LOGMSG_INFO)
 
     call shr_log_setLogUnit (logunit)
+    call ESMF_LogWrite(trim(subname)//": done for component "//trim(name), ESMF_LOGMSG_INFO)
     
   end subroutine set_component_logging
 

@@ -36,6 +36,42 @@
     </values>
   </entry>
 
+  <entry id="pio_asyncio_ntasks" modify_via_xml="PIO_ASYNCIO_NTASKS">
+    <type>integer</type>
+    <category>pio</category>
+    <group>PELAYOUT_attributes</group>
+    <desc>
+      IO tasks FOR ASYNC IO, only valid if ASYNCIO is true.
+    </desc>
+    <values>
+      <value>$PIO_ASYNCIO_NTASKS</value>
+    </values>
+  </entry>
+
+  <entry id="pio_asyncio_stride" modify_via_xml="PIO_ASYNCIO_STRIDE">
+    <type>integer</type>
+    <category>pio</category>
+    <group>PELAYOUT_attributes</group>
+    <desc>
+      IO task stride FOR ASYNC IO, only valid if ASYNCIO is true.
+    </desc>
+    <values>
+      <value>$PIO_ASYNCIO_STRIDE</value>
+    </values>
+  </entry>
+
+  <entry id="pio_asyncio_rootpe" modify_via_xml="PIO_ASYNCIO_ROOTPE">
+    <type>integer</type>
+    <category>pio</category>
+    <group>PELAYOUT_attributes</group>
+    <desc>
+      IO rootpe task FOR ASYNC IO, only valid if ASYNCIO is true.
+    </desc>
+    <values>
+      <value>$PIO_ASYNCIO_ROOTPE</value>
+    </values>
+  </entry>
+
   <entry id="cime_model" modify_via_xml="CIME_MODEL">
     <type>char</type>
     <category>expdef</category>
