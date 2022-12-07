@@ -175,8 +175,9 @@ contains
     call ESMF_LogWrite(trim(subname)//": setting logunit for component: "//trim(name), ESMF_LOGMSG_INFO)
 
     call shr_log_setLogUnit (logunit)
+    ! Still need to set this return value
+    shrlogunit = logunit
     call ESMF_LogWrite(trim(subname)//": done for component "//trim(name), ESMF_LOGMSG_INFO)
-    
   end subroutine set_component_logging
 
 !===============================================================================
