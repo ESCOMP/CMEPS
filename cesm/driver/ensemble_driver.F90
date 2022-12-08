@@ -62,7 +62,7 @@ contains
          specRoutine=SetModelServices, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    ! ModifyCplLists is a NUOPC specialization which happens after Advertize but before Realize
+    ! PostChildrenAdvertise is a NUOPC specialization which happens after Advertize but before Realize
     ! We have overloaded this specialization location to initilize IO.
     ! So after all components have called Advertise but before any component calls Realize
     ! IO will be initialized and any async IO tasks will be split off to the PIO async IO driver.

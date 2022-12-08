@@ -89,7 +89,6 @@ contains
     integer                 :: rof_cpl_dt          ! Runoff coupling interval
     integer                 :: wav_cpl_dt          ! Wav coupling interval
     integer                 :: esp_cpl_dt          ! Esp coupling interval
-    character(CS)           :: glc_avg_period      ! Glc avering coupling period
     logical                 :: read_restart
     character(len=CL)       :: restart_file
     character(len=CL)       :: restart_pfile
@@ -154,10 +153,6 @@ contains
     call NUOPC_CompAttributeGet(ensemble_driver, name="wav_cpl_dt", value=cvalue, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     read(cvalue,*) wav_cpl_dt
-
-    call NUOPC_CompAttributeGet(ensemble_driver, name="glc_avg_period", value=glc_avg_period, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) glc_avg_period
 
     dtime_drv = minval((/atm_cpl_dt, lnd_cpl_dt, ocn_cpl_dt, ice_cpl_dt, glc_cpl_dt, rof_cpl_dt, wav_cpl_dt/))
     if(mastertask) then

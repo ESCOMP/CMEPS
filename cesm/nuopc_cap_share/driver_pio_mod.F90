@@ -203,7 +203,6 @@ contains
     integer :: pecnt
     integer :: ierr
     integer :: iocomm
-    integer :: ncomps
     integer :: async_rearr
     integer :: driverpecount, driver_myid
     integer, allocatable :: driverpetlist(:)
@@ -247,14 +246,16 @@ contains
     else
        total_comps = 0
     endif
-       
+    print *,__FILE__,__LINE__,total_comps
     call ESMF_LogWrite(trim(subname)//": share total_comps and driverpecount", ESMF_LOGMSG_INFO)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    call MPI_AllReduce(MPI_IN_PLACE, total_comps, 1, MPI_INTEGER, &
-         MPI_MAX, Global_comm, rc)
-    call MPI_AllReduce(MPI_IN_PLACE, driverpecount, 1, MPI_INTEGER, &
-         MPI_MAX, Global_comm, rc)
+    if(driverpecount > 1) then
+       call MPI_AllReduce(MPI_IN_PLACE, total_comps, 1, MPI_INTEGER, &
+            MPI_MAX, Global_comm, rc)
+       call MPI_AllReduce(MPI_IN_PLACE, driverpecount, 1, MPI_INTEGER, &
+            MPI_MAX, Global_comm, rc)
+    endif
+    print *,__FILE__,__LINE__,total_comps
     allocate(pio_comp_settings(total_comps))
     allocate(procs_per_comp(total_comps))
     allocate(io_compid(total_comps))
@@ -273,6 +274,7 @@ contains
        endif
        pio_comp_settings(i)%pio_async_interface = .false.
        io_compid(i) = i+1
+       print *,__FILE__,__LINE__,total_comps, i, io_compid(i)
        if (petlocal(i)) then
           call ESMF_GridCompGet(gcomp(i), vm=vm, name=cval, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -323,35 +325,7 @@ contains
                 pio_comp_settings(i)%pio_root = 0
              endif
           endif
-          
-          call NUOPC_CompAttributeGet(gcomp(i), name="pio_async_interface", value=cval, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          pio_comp_settings(i)%pio_async_interface = (trim(cval) == '.true.')
-          if(.not. pio_comp_settings(i)%pio_async_interface) then
-             call NUOPC_CompAttributeGet(gcomp(i), name="pio_stride", value=cval, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-             read(cval, *) pio_comp_settings(i)%pio_stride
-             if(pio_comp_settings(i)%pio_stride <= 0 .or. pio_comp_settings(i)%pio_stride > npets) then
-                pio_comp_settings(i)%pio_stride = min(npets, default_stride)
-             endif
-                       
-             call NUOPC_CompAttributeGet(gcomp(i), name="pio_numiotasks", value=cval, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-             read(cval, *) pio_comp_settings(i)%pio_numiotasks
-          
-             if(pio_comp_settings(i)%pio_numiotasks < 0 .or. pio_comp_settings(i)%pio_numiotasks > npets) then
-                pio_comp_settings(i)%pio_numiotasks = max(1,npets/pio_comp_settings(i)%pio_stride)
-             endif
-
-
-             call NUOPC_CompAttributeGet(gcomp(i), name="pio_root", value=cval, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-             read(cval, *) pio_comp_settings(i)%pio_root
-          
-             if(pio_comp_settings(i)%pio_root < 0 .or. pio_comp_settings(i)%pio_root > npets) then
-                pio_comp_settings(i)%pio_root = 0
-             endif
-          endif
+         
           call NUOPC_CompAttributeGet(gcomp(i), name="pio_typename", value=cval, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           
