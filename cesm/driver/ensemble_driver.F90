@@ -273,10 +273,12 @@ contains
        ! Determine pet list for driver instance
        do n=1,ntasks_per_member+pio_asyncio_ntasks
           if(pio_asyncio_stride == 0 .or. modulo(n,pio_asyncio_rootpe+1) .ne. 0) then
+             ! Here if asyncio is false or this is a compute task
              petList(petcnt) = currentpet
              petcnt = petcnt+1
              if (currentpet == localPet) comp_task=.true.
           else
+             ! Here if asyncio is true and this is an io task
              asyncio_petlist(iopetcnt) = currentpet
              iopetcnt = iopetcnt + 1
              if (currentpet == localPet) asyncio_task=.true.
