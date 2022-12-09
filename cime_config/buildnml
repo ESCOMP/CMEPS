@@ -249,11 +249,15 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     #--------------------------------
     # Write nuopc.runconfig file and add to input dataset list.
     #--------------------------------
-
     # Determine valid components
     valid_comps = []
+    asyncio = False
+
     for item in case.get_values("COMP_CLASSES"):
         comp = case.get_value("COMP_" + item)
+        if case.get_value(f"PIO_ASYNC_INTERFACE", {"compclass":item}):
+            asyncio = True
+
         valid = True
         # stub comps
         if comp == 's' + item.lower():
@@ -273,6 +277,20 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
                 valid = False
         if valid:
             valid_comps.append(item)
+    asyncio_ntasks = case.get_value("PIO_ASYNCIO_NTASKS")
+    asyncio_stride = case.get_value("PIO_ASYNCIO_STRIDE")
+    # If asyncio is enabled make sure that the aysncio values are set
+    # if not enabled then do not pass xml settings to namelists. 
+    if asyncio:
+        expect(asyncio_ntasks > 0 and asyncio_stride > 0,
+               "ASYNCIO is enabled but PIO_ASYNCIO_NTASKS={} and PIO_ASYNCIO_STRIDE = {}".
+               format(asyncio_ntasks, asyncio_stride))
+    else:
+        if asyncio_ntasks > 0 or asyncio_stride > 0:
+            logger.warning("ASYNCIO is disabled, ignoring settings for PIO_ASYNCIO_NTASKS={} and PIO_ASYNCIO_STRIDE = {}".
+                           format(asyncio_ntasks, asyncio_stride))
+            nmlgen.set_value("pio_asyncio_ntasks", 0)
+            nmlgen.set_value("pio_asyncio_stride", 0)
 
     # Determine if there are any data components in the compset
     datamodel_in_compset = False

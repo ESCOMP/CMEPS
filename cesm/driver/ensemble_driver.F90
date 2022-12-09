@@ -262,6 +262,11 @@ contains
     allocate(asyncio_petlist(pio_asyncio_ntasks))     
     currentpet = 0
     iopetcnt = 1
+    !
+    ! Logic for asyncio variables is handled in cmeps buildnml.  
+    ! here we assume that pio_asyncio_stride and pio_asyncio_ntasks are only set 
+    ! if asyncio is enabled.
+    !
     do inst=1,number_of_members
        petcnt=1
        comp_task = .false.
@@ -372,14 +377,14 @@ contains
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           call NUOPC_CompGet(dcomp(drv), name=compname, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call ESMF_LogWrite(trim(subname)//": call shr_pio_init "//compname, ESMF_LOGMSG_INFO)
+          call ESMF_LogWrite(trim(subname)//": call driver_pio_init "//compname, ESMF_LOGMSG_INFO)
           call driver_pio_init(dcomp(drv), rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-          call ESMF_LogWrite(trim(subname)//": call shr_pio_component_init "//compname, ESMF_LOGMSG_INFO)
+          call ESMF_LogWrite(trim(subname)//": call driver_pio_component_init "//compname, ESMF_LOGMSG_INFO)
           call driver_pio_component_init(dcomp(drv), Global_Comm, asyncio_petlist, rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call ESMF_LogWrite(trim(subname)//": shr_pio_component_init done "//compname, ESMF_LOGMSG_INFO)
+          call ESMF_LogWrite(trim(subname)//": driver_pio_component_init done "//compname, ESMF_LOGMSG_INFO)
        endif
     enddo
     deallocate(asyncio_petlist)
