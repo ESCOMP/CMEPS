@@ -6,7 +6,7 @@ module driver_pio_mod
   use pio         , only : pio_set_blocksize, pio_set_buffer_size_limit, pio_finalize
   use shr_pio_mod,  only : io_compname, pio_comp_settings, iosystems, io_compid, shr_pio_getindex
   use shr_kind_mod, only : CS=>shr_kind_CS, shr_kind_cl, shr_kind_in
-  use shr_log_mod,  only : shr_log_unit
+  use shr_log_mod,  only : shr_log_getLogUnit
   use shr_mpi_mod,  only : shr_mpi_bcast, shr_mpi_chkerr
   use shr_sys_mod,  only : shr_sys_abort
 #ifndef NO_MPI2
@@ -66,11 +66,13 @@ contains
     character(len=shr_kind_cl) :: nlfilename, cname
     integer :: ret
     integer :: localPet
+    integer :: logunit
     character(len=CS) :: pio_rearr_comm_type, pio_rearr_comm_fcd
     character(CS) :: msgstr
 
     character(*), parameter :: subName = '(driver_pio_init) '
-
+    
+    call shr_log_getLogUnit(logunit)
     call ESMF_GridCompGet(driver, vm=vm, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
@@ -84,7 +86,7 @@ contains
 
     ! 0 is a valid value of pio_buffer_size_limit
     if(pio_buffer_size_limit>=0) then
-       if(mastertask) write(shr_log_unit,*) 'Setting pio_buffer_size_limit : ',pio_buffer_size_limit
+       if(mastertask) write(logunit,*) 'Setting pio_buffer_size_limit : ',pio_buffer_size_limit
        call pio_set_buffer_size_limit(pio_buffer_size_limit)
     endif
 
@@ -93,7 +95,7 @@ contains
     read(cname, *) pio_blocksize
     
     if(pio_blocksize>0) then
-       if(mastertask) write(shr_log_unit,*) 'Setting pio_blocksize : ',pio_blocksize
+       if(mastertask) write(logunit,*) 'Setting pio_blocksize : ',pio_blocksize
        call pio_set_blocksize(pio_blocksize)
     endif
 
@@ -102,7 +104,7 @@ contains
     read(cname, *) pio_debug_level
 
     if(pio_debug_level > 0) then
-       if(mastertask) write(shr_log_unit,*) 'Setting pio_debug_level : ',pio_debug_level
+       if(mastertask) write(logunit,*) 'Setting pio_debug_level : ',pio_debug_level
        ret = pio_set_log_level(pio_debug_level)
     endif
        
@@ -151,23 +153,23 @@ contains
 
     if(mastertask) then
        ! Log the rearranger options
-       write(shr_log_unit, *) "PIO rearranger options:"
-       write(shr_log_unit, *) "  comm type     = ", pio_rearr_opts%comm_type, " (",trim(pio_rearr_comm_type),")"
-       write(shr_log_unit, *) "  comm fcd      = ", pio_rearr_opts%fcd, " (",trim(pio_rearr_comm_fcd),")"
+       write(logunit, *) "PIO rearranger options:"
+       write(logunit, *) "  comm type     = ", pio_rearr_opts%comm_type, " (",trim(pio_rearr_comm_type),")"
+       write(logunit, *) "  comm fcd      = ", pio_rearr_opts%fcd, " (",trim(pio_rearr_comm_fcd),")"
        if(pio_rearr_opts%comm_fc_opts_comp2io%max_pend_req == PIO_REARR_COMM_UNLIMITED_PEND_REQ) then
-          write(shr_log_unit, *) "  max pend req (comp2io)  = PIO_REARR_COMM_UNLIMITED_PEND_REQ (-1)"
+          write(logunit, *) "  max pend req (comp2io)  = PIO_REARR_COMM_UNLIMITED_PEND_REQ (-1)"
        else
-          write(shr_log_unit, *) "  max pend req (comp2io)  = ", pio_rearr_opts%comm_fc_opts_comp2io%max_pend_req
+          write(logunit, *) "  max pend req (comp2io)  = ", pio_rearr_opts%comm_fc_opts_comp2io%max_pend_req
        end if
-       write(shr_log_unit, *) "  enable_hs (comp2io)     = ", pio_rearr_opts%comm_fc_opts_comp2io%enable_hs
-       write(shr_log_unit, *) "  enable_isend (comp2io)  = ", pio_rearr_opts%comm_fc_opts_comp2io%enable_isend
+       write(logunit, *) "  enable_hs (comp2io)     = ", pio_rearr_opts%comm_fc_opts_comp2io%enable_hs
+       write(logunit, *) "  enable_isend (comp2io)  = ", pio_rearr_opts%comm_fc_opts_comp2io%enable_isend
        if(pio_rearr_opts%comm_fc_opts_io2comp%max_pend_req == PIO_REARR_COMM_UNLIMITED_PEND_REQ) then
-          write(shr_log_unit, *) "  max pend req (io2comp)  = PIO_REARR_COMM_UNLIMITED_PEND_REQ (-1)"
+          write(logunit, *) "  max pend req (io2comp)  = PIO_REARR_COMM_UNLIMITED_PEND_REQ (-1)"
        else
-          write(shr_log_unit, *) "  max pend req (io2comp)  = ", pio_rearr_opts%comm_fc_opts_io2comp%max_pend_req
+          write(logunit, *) "  max pend req (io2comp)  = ", pio_rearr_opts%comm_fc_opts_io2comp%max_pend_req
        end if
-       write(shr_log_unit, *) "  enable_hs (io2comp)    = ", pio_rearr_opts%comm_fc_opts_io2comp%enable_hs
-       write(shr_log_unit, *) "  enable_isend (io2comp)  = ", pio_rearr_opts%comm_fc_opts_io2comp%enable_isend
+       write(logunit, *) "  enable_hs (io2comp)    = ", pio_rearr_opts%comm_fc_opts_io2comp%enable_hs
+       write(logunit, *) "  enable_isend (io2comp)  = ", pio_rearr_opts%comm_fc_opts_io2comp%enable_isend
     end if
 
   end subroutine driver_pio_init
@@ -214,7 +216,7 @@ contains
     character(len=*), parameter :: subname = '('//__FILE__//':shr_pio_component_init)'
 
     asyncio_ntasks = size(asyncio_petlist)
-
+    call shr_log_getLogUnit(logunit)
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
@@ -246,7 +248,7 @@ contains
     else
        total_comps = 0
     endif
-    print *,__FILE__,__LINE__,total_comps
+
     call ESMF_LogWrite(trim(subname)//": share total_comps and driverpecount", ESMF_LOGMSG_INFO)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     if(driverpecount > 1) then
@@ -255,7 +257,7 @@ contains
        call MPI_AllReduce(MPI_IN_PLACE, driverpecount, 1, MPI_INTEGER, &
             MPI_MAX, Global_comm, rc)
     endif
-    print *,__FILE__,__LINE__,total_comps
+
     allocate(pio_comp_settings(total_comps))
     allocate(procs_per_comp(total_comps))
     allocate(io_compid(total_comps))
@@ -274,7 +276,6 @@ contains
        endif
        pio_comp_settings(i)%pio_async_interface = .false.
        io_compid(i) = i+1
-       print *,__FILE__,__LINE__,total_comps, i, io_compid(i)
        if (petlocal(i)) then
           call ESMF_GridCompGet(gcomp(i), vm=vm, name=cval, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -539,6 +540,10 @@ contains
     integer, intent(out) :: iotype
     integer, intent(in) :: defaulttype
 
+    integer :: logunit
+    
+    call shr_log_getLogUnit(logunit)
+
     typename = shr_string_toupper(typename)
     if      ( typename .eq. 'NETCDF' ) then
        iotype = pio_iotype_netcdf
@@ -553,7 +558,7 @@ contains
     else if ( typename .eq. 'DEFAULT') then
        iotype = defaulttype
     else
-       write(shr_log_unit,*) 'driver_pio_mod: WARNING Bad io_type argument - using iotype_netcdf'
+       write(logunit,*) 'driver_pio_mod: WARNING Bad io_type argument - using iotype_netcdf'
        iotype=pio_iotype_netcdf
     end if
 
