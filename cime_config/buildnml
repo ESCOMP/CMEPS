@@ -280,7 +280,7 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     asyncio_ntasks = case.get_value("PIO_ASYNCIO_NTASKS")
     asyncio_stride = case.get_value("PIO_ASYNCIO_STRIDE")
     # If asyncio is enabled make sure that the aysncio values are set
-    # if not enabled then do not pass xml settings to namelists. 
+    # if not enabled then do not pass xml settings to namelists.
     if asyncio:
         expect(asyncio_ntasks > 0 and asyncio_stride > 0,
                "ASYNCIO is enabled but PIO_ASYNCIO_NTASKS={} and PIO_ASYNCIO_STRIDE = {}".
