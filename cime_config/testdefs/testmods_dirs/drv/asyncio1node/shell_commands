@@ -1,0 +1,7 @@
+# This will add one asyncio node
+./xmlchange PIO_ASYNC_INTERFACE=TRUE
+ntasks=`./xmlquery --value TOTAL_TASKS`
+./xmlchange PIO_ASYNCIO_ROOTPE=$ntasks
+./xmlchange PIO_ASYNCIO_STRIDE=1
+./xmlchange PIO_ASYNCIO_NTASKS=4
+./xmlchange PIO_REARRANGER=2

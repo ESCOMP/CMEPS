@@ -7,7 +7,6 @@ module driver_pio_mod
   use shr_pio_mod,  only : io_compname, pio_comp_settings, iosystems, io_compid, shr_pio_getindex
   use shr_kind_mod, only : CS=>shr_kind_CS, shr_kind_cl, shr_kind_in
   use shr_log_mod,  only : shr_log_getLogUnit
-  use shr_mpi_mod,  only : shr_mpi_bcast, shr_mpi_chkerr
   use shr_sys_mod,  only : shr_sys_abort
 #ifndef NO_MPI2
   use mpi, only : mpi_comm_null, mpi_comm_world, mpi_finalize
@@ -251,7 +250,7 @@ contains
 
     call ESMF_LogWrite(trim(subname)//": share total_comps and driverpecount", ESMF_LOGMSG_INFO)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if(driverpecount > 1) then
+    if(totalpes > 1) then
        call MPI_AllReduce(MPI_IN_PLACE, total_comps, 1, MPI_INTEGER, &
             MPI_MAX, Global_comm, rc)
        call MPI_AllReduce(MPI_IN_PLACE, driverpecount, 1, MPI_INTEGER, &
@@ -356,6 +355,7 @@ contains
              if(pio_rearr_opts%comm_fc_opts_comp2io%max_pend_req < PIO_REARR_COMM_UNLIMITED_PEND_REQ) then
                 pio_rearr_opts%comm_fc_opts_comp2io%max_pend_req = pio_comp_settings(i)%pio_numiotasks
              endif
+             
              call pio_init(comp_rank ,comp_comm ,pio_comp_settings(i)%pio_numiotasks, 0, pio_comp_settings(i)%pio_stride, &
                   pio_comp_settings(i)%pio_rearranger, iosystems(i), pio_comp_settings(i)%pio_root, &
                   pio_rearr_opts)
@@ -369,7 +369,6 @@ contains
 
     call ESMF_LogWrite(trim(subname)//": check for async", ESMF_LOGMSG_INFO)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-
     do i=1,total_comps
        call MPI_AllReduce(MPI_IN_PLACE, pio_comp_settings(i)%pio_async_interface, 1, MPI_LOGICAL, &
             MPI_LOR, global_comm, rc)
@@ -384,7 +383,6 @@ contains
 
     call MPI_Allreduce(MPI_IN_PLACE, do_async_init, 1, MPI_INTEGER, MPI_MAX, Global_comm, ierr)
     call MPI_Allreduce(MPI_IN_PLACE, procs_per_comp, total_comps, MPI_INTEGER, MPI_MAX, Global_comm, ierr)
-
     if (do_async_init > 0) then
        allocate(asyncio_comp_comm(do_async_init))
        allocate(comp_proc_list(driverpecount, do_async_init))
@@ -447,9 +445,8 @@ contains
 
        call ESMF_LogWrite(trim(subname)//": call async pio_init", ESMF_LOGMSG_INFO)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call MPI_AllReduce(MPI_IN_PLACE, async_rearr, 1, MPI_INTEGER, &
+       call MPI_AllReduce(pio_comp_settings(1)%pio_rearranger, async_rearr, 1, MPI_INTEGER, &
             MPI_MAX, Global_comm, rc)
-
        call pio_init(async_iosystems, Global_comm, async_procs_per_comp, &
             comp_proc_list, asyncio_petlist, &
             async_rearr, asyncio_comp_comm, io_comm)

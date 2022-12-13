@@ -142,7 +142,6 @@ contains
     integer                :: inst
     integer                :: number_of_members
     integer                :: ntasks_per_member
-    integer                :: currentpet
     integer                :: iopetcnt
     integer                :: petcnt
     logical                :: comp_task
@@ -260,8 +259,6 @@ contains
 
     allocate(petList(ntasks_per_member))
     allocate(asyncio_petlist(pio_asyncio_ntasks))     
-    currentpet = 0
-    iopetcnt = 1
     !
     ! Logic for asyncio variables is handled in cmeps buildnml.  
     ! here we assume that pio_asyncio_stride and pio_asyncio_ntasks are only set 
@@ -269,24 +266,49 @@ contains
     !
     do inst=1,number_of_members
        petcnt=1
+       iopetcnt = 1
        comp_task = .false.
+       asyncio_task = .false.
        ! Determine pet list for driver instance
-       do n=1,ntasks_per_member+pio_asyncio_ntasks
-          if(pio_asyncio_stride == 0 .or. modulo(n,pio_asyncio_rootpe+1) .ne. 0) then
-             ! Here if asyncio is false or this is a compute task
-             petList(petcnt) = currentpet
-             petcnt = petcnt+1
-             if (currentpet == localPet) comp_task=.true.
+       if(pio_asyncio_ntasks > 0) then
+          do n=pio_asyncio_rootpe,pio_asyncio_rootpe+pio_asyncio_stride*(pio_asyncio_ntasks-1),pio_asyncio_stride
+             asyncio_petlist(iopetcnt) = n
+             iopetcnt = iopetcnt+1
+             if(n == localPet) asyncio_task = .true.
+          enddo
+          iopetcnt = 1
+       endif
+       do n=0,ntasks_per_member+pio_asyncio_ntasks-1
+          if(iopetcnt<=pio_asyncio_ntasks) then
+             if( asyncio_petlist(iopetcnt)==n) then
+                ! Here if asyncio is true and this is an io task
+                iopetcnt = iopetcnt+1               
+             else if(petcnt <= ntasks_per_member) then
+                ! Here if this is a compute task
+                petList(petcnt) = n
+                petcnt = petcnt+1
+                if (n == localPet) comp_task=.true.
+             else
+                msgstr = "ERROR task cannot be nether a compute task nor an asyncio task"
+                call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
+                return  ! bail out
+             endif
           else
-             ! Here if asyncio is true and this is an io task
-             asyncio_petlist(iopetcnt) = currentpet
-             iopetcnt = iopetcnt + 1
-             if (currentpet == localPet) asyncio_task=.true.
+             ! Here if asyncio is false
+             petList(petcnt) = n
+             petcnt = petcnt+1
+             if (n == localPet) comp_task=.true.
           endif
-          currentpet = currentpet + 1
        enddo                   
+       if(comp_task .and. asyncio_task) then
+          msgstr = "ERROR task cannot be both a compute task and an asyncio task"
+          call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
+          return  ! bail out
+       endif
+
        ! Add driver instance to ensemble driver
        write(drvrinst,'(a,i4.4)') "ESM",inst
+
        call NUOPC_DriverAddComp(ensemble_driver, drvrinst, ESMSetServices, petList=petList, comp=driver, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 

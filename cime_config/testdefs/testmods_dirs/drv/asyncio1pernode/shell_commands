@@ -1,0 +1,14 @@
+# This will add one async pio task per node to a test
+# does not work for all cases
+./xmlchange PIO_ASYNC_INTERFACE=TRUE
+ntasks=`./xmlquery --value TOTAL_TASKS`
+tpn=`./xmlquery --value MAX_MPITASKS_PER_NODE`
+echo "ntasks=$ntasks tpn=$tpn"
+./xmlchange PIO_ASYNCIO_STRIDE=$tpn
+let piontasks=ntasks/tpn
+echo "piontasks=$piontasks"
+./xmlchange PIO_ASYNCIO_NTASKS=$piontasks
+let newntasks=ntasks-piontasks
+echo "newntasks=$newntasks"
+./xmlchange NTASKS=$newntasks
+./xmlchange PIO_REARRANGER=2
