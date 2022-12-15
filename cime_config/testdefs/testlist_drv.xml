@@ -263,7 +263,7 @@
   <!-- ======================================= -->
   <!-- Asyncio tests -->
   <!-- ======================================= -->
-  <test name="ERS_Ln9" grid="f19_f19_mgl7" compset="FHIST" testmods="drv/asyncio1pernode--cam/outfrq9s>
+  <test name="ERS_Ln9" grid="f19_f19_mgl7" compset="FHIST" testmods="drv/asyncio1pernode--cam/outfrq9s">
     <machines>
       <machine name="cheyenne" compiler="intel" category="prealpha">
         <options>
