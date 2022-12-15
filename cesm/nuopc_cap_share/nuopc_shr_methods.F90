@@ -132,7 +132,7 @@ contains
 !===============================================================================
 
   subroutine set_component_logging(gcomp, mastertask, logunit, shrlogunit, rc)
-
+    use driver_pio_mod, only : driver_pio_log_comp_settings
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
     logical, intent(in)  :: mastertask
@@ -143,25 +143,35 @@ contains
     ! local variables
     character(len=CL) :: diro
     character(len=CL) :: logfile
+    character(len=CL) :: inst_suffix
+    integer :: inst_index  ! not used here
     !-----------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
-
-    shrlogunit = 6
 
     if (mastertask) then
        call NUOPC_CompAttributeGet(gcomp, name="diro", value=diro, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        call NUOPC_CompAttributeGet(gcomp, name="logfile", value=logfile, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call get_component_instance(gcomp, inst_suffix, inst_index, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       ! Multiinstance logfile name needs a correction
+       if(logfile(4:4) == '_') then
+          logfile = logfile(1:3)//trim(inst_suffix)//logfile(9:)
+       endif
 
        open(newunit=logunit,file=trim(diro)//"/"//trim(logfile))
+       ! Write the PIO settings to the beggining of each component log
+       call driver_pio_log_comp_settings(gcomp, logunit)
+
     else
        logUnit = 6
     endif
+    shrlogunit = logunit
 
     call shr_file_setLogUnit (logunit)
-
+    
   end subroutine set_component_logging
 
 !===============================================================================

@@ -244,7 +244,7 @@ contains
           call ReadAttributes(driver, config, "DRIVER_attributes::", rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-          call ReadAttributes(driver, config, "DRV_modelio"//trim(inst_suffix)//"::", rc=rc)
+          call ReadAttributes(driver, config, "DRV_modelio::", rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
 
           ! Set the driver log to the driver task 0 

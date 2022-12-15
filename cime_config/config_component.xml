@@ -17,6 +17,15 @@
     <desc>List of component classes supported by this driver</desc>
   </entry>
 
+  <entry id="CONTAINER_ENVIRONMENT">
+    <type>char</type>
+    <valid_values></valid_values>
+    <default_value></default_value>
+    <group>case_comp</group>
+    <file>env_case.xml</file>
+    <desc>Container environment to invoke, if any</desc>
+  </entry>
+
   <entry id="COMP_CPL">
     <type>char</type>
     <valid_values>cpl</valid_values>
@@ -331,7 +340,7 @@
 
   <entry id="STOP_OPTION">
     <type>char</type>
-    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,nmonths,nmonth,nyears,nyear,date,end</valid_values>
+    <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,nmonths,nyears,date,end</valid_values>
     <default_value>ndays</default_value>
     <group>run_begin_stop_restart</group>
     <file>env_run.xml</file>
@@ -363,7 +372,7 @@
 
   <entry id="REST_OPTION">
     <type>char</type>
-    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,nmonths,nmonth,nyears,nyear,date,end</valid_values>
+    <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,nmonths,nyears,date,end</valid_values>
     <default_value>$STOP_OPTION</default_value>
     <group>run_begin_stop_restart</group>
     <file>env_run.xml</file>
@@ -395,7 +404,7 @@
 
   <entry id="PAUSE_OPTION">
     <type>char</type>
-    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,nmonths,nmonth,nyears,nyear</valid_values>
+    <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,nmonths,nyears</valid_values>
     <default_value>never</default_value>
     <group>run_begin_stop_restart</group>
     <file>env_run.xml</file>
@@ -1919,15 +1928,6 @@
     <desc>PIO configure options, see PIO configure utility for details</desc>
   </entry>
 
-  <entry id="PIO_ASYNC_INTERFACE">
-    <type>logical</type>
-    <valid_values>TRUE,FALSE</valid_values>
-    <default_value>FALSE</default_value>
-    <group>run_pio</group>
-    <file>env_run.xml</file>
-    <desc>TRUE implies perform asynchronous i/o</desc>
-  </entry>
-
   <entry id="PIO_REARR_COMM_TYPE">
     <type>char</type>
     <valid_values>p2p,coll,default</valid_values>
@@ -2029,6 +2029,25 @@
     <group>run_pio</group>
     <file>env_run.xml</file>
     <desc>pio buffer size limit for pnetcdf output</desc>
+  </entry>
+
+  <entry id="PIO_ASYNC_INTERFACE">
+    <type>logical</type>
+    <valid_values>TRUE,FALSE</valid_values>
+    <group>run_pio</group>
+    <file>env_run.xml</file>
+    <desc>TRUE implies perform asynchronous i/o</desc>
+    <values>
+      <value compclass="ATM">FALSE</value>
+      <value compclass="CPL">FALSE</value>
+      <value compclass="OCN">FALSE</value>
+      <value compclass="WAV">FALSE</value>
+      <value compclass="GLC">FALSE</value>
+      <value compclass="ICE">FALSE</value>
+      <value compclass="ROF">FALSE</value>
+      <value compclass="LND">FALSE</value>
+      <value compclass="ESP">FALSE</value>
+    </values>
   </entry>
 
   <entry id="PIO_TYPENAME">

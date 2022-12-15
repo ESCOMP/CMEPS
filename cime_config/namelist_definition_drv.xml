@@ -894,7 +894,17 @@
       <value>ogrid</value>
     </values>
   </entry>
-
+  <entry id="ocn_surface_flux_scheme">
+    <type>integer</type>
+    <category>control</category>
+    <group>MED_attributes</group>
+    <desc>
+      atm/ocn flux calculation scheme
+    </desc>
+    <values>
+      <value>0</value>
+    </values>
+  </entry>
   <entry id="gust_fac">
     <type>real</type>
     <category>control</category>
@@ -1062,23 +1072,22 @@
     <type>char</type>
     <category>time</category>
     <group>ALLCOMP_attributes</group>
-    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,monthly,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,nmonths,nyears,monthly,yearly,date,end</valid_values>
     <desc>
       mediator history snapshot option (used with history_n and history_ymd)
       set by HIST_OPTION in env_run.xml.
       history_option alarms are:
       [none/never], turns option off
-      [nstep/s]   , history snapshot every history_n nsteps  , relative to current run start time
-      [nsecond/s] , history snapshot every history_n nseconds, relative to current run start time
-      [nminute/s] , history snapshot every history_n nminutes, relative to current run start time
-      [nhour/s]   , history snapshot every history_n nhours  , relative to current run start time
-      [nday/s]    , history snapshot every history_n ndays   , relative to current run start time
-      [monthly/s] , history snapshot every           month   , relative to current run start time
-      [nmonth/s]  , history snapshot every history_n nmonths , relative to current run start time
-      [nyear/s]   , history snapshot every history_n nyears  , relative to current run start time
-      [date]      , history snapshot at history_ymd value
-      [ifdays0]   , history snapshot at history_n calendar day value and seconds equal 0
-      [end]       , history snapshot at end
+      [nsteps]   , history snapshot every history_n nsteps  , relative to current run start time
+      [nseconds] , history snapshot every history_n nseconds, relative to current run start time
+      [nminutes] , history snapshot every history_n nminutes, relative to current run start time
+      [nhours]   , history snapshot every history_n nhours  , relative to current run start time
+      [ndays]    , history snapshot every history_n ndays   , relative to current run start time
+      [monthly]  , history snapshot every           month   , relative to current run start time
+      [nmonths]  , history snapshot every history_n nmonths , relative to current run start time
+      [nyears]   , history snapshot every history_n nyears  , relative to current run start time
+      [date]     , history snapshot at history_ymd value
+      [end]      , history snapshot at end
     </desc>
     <values>
       <value>$HIST_OPTION</value>
@@ -1119,7 +1128,7 @@
     <type>char</type>
     <category>time</category>
     <group>MED_attributes</group>
-    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,monthly,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,nmonths,nyears,monthly,yearly,date,end</valid_values>
     <desc>
       mediator history for mediator aoflux and oceean albedoes (used with history_n and history_ymd)
     </desc>
@@ -1147,7 +1156,7 @@
     <type>char</type>
     <category>time</category>
     <group>MED_attributes</group>
-    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,monthly,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,nmonths,nyears,monthly,yearly,date,end</valid_values>
     <desc>
       mediator history for atm import/export/fields snapshot option (used with history_n and history_ymd)
     </desc>
@@ -1170,7 +1179,7 @@
     <type>char</type>
     <category>time</category>
     <group>MED_attributes</group>
-    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,monthly,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,nmonths,nyears,monthly,yearly,date,end</valid_values>
     <desc>
       mediator time average history option (used with histavg_n and histavg_ymd)
     </desc>
@@ -1529,7 +1538,7 @@
     <type>char</type>
     <category>time</category>
     <group>MED_attributes</group>
-    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,monthly,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,nmonths,nyears,monthly,yearly,date,end</valid_values>
     <desc>
       mediator history for ice import/export/fields snapshot option (used with history_n and history_ymd)
     </desc>
@@ -1552,7 +1561,7 @@
     <type>char</type>
     <category>time</category>
     <group>MED_attributes</group>
-    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,monthly,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,nmonths,nyears,monthly,yearly,date,end</valid_values>
     <desc>
       mediator time average history option (used with histavg_n and histavg_ymd)
     </desc>
@@ -1580,7 +1589,7 @@
     <type>char</type>
     <category>time</category>
     <group>MED_attributes</group>
-    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,monthly,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,nmonths,nyears,monthly,yearly,date,end</valid_values>
     <desc>
       mediator history for glc import/export/fields snapshot option (used with history_n and history_ymd)
     </desc>
@@ -1603,7 +1612,7 @@
     <type>char</type>
     <category>time</category>
     <group>MED_attributes</group>
-    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,monthly,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,nmonths,nyears,monthly,yearly,date,end</valid_values>
     <desc>
       mediator time average history option (used with histavg_n and histavg_ymd)
     </desc>
@@ -1631,7 +1640,7 @@
     <type>char</type>
     <category>time</category>
     <group>MED_attributes</group>
-    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,monthly,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,nmonths,nyears,monthly,yearly,date,end</valid_values>
     <desc>
       mediator history for lnd import/export/fields snapshot option (used with history_n and history_ymd)
     </desc>
@@ -1654,7 +1663,7 @@
     <type>char</type>
     <category>time</category>
     <group>MED_attributes</group>
-    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,monthly,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,nmonths,nyears,monthly,yearly,date,end</valid_values>
     <desc>
       mediator time average history option (used with histavg_n and histavg_ymd)
     </desc>
@@ -1760,7 +1769,7 @@
     <type>char</type>
     <category>time</category>
     <group>MED_attributes</group>
-    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,monthly,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,nmonths,nyears,monthly,yearly,date,end</valid_values>
     <desc>
       mediator history for ocn import/export/fields snapshot option (used with history_n and history_ymd)
     </desc>
@@ -1783,7 +1792,7 @@
     <type>char</type>
     <category>time</category>
     <group>MED_attributes</group>
-    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,monthly,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,nmonths,nyears,monthly,yearly,date,end</valid_values>
     <desc>
       mediator time average history option (used with histavg_n and histavg_ymd)
     </desc>
@@ -1811,7 +1820,7 @@
     <type>char</type>
     <category>time</category>
     <group>MED_attributes</group>
-    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,monthly,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,nmonths,nyears,monthly,yearly,date,end</valid_values>
     <desc>
       mediator history for rof import/export/fields snapshot option (used with history_n and history_ymd)
     </desc>
@@ -1834,7 +1843,7 @@
     <type>char</type>
     <category>time</category>
     <group>MED_attributes</group>
-    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,monthly,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,nmonths,nyears,monthly,yearly,date,end</valid_values>
     <desc>
       mediator time average history option (used with histavg_n and histavg_ymd)
     </desc>
@@ -1927,7 +1936,7 @@
     <type>char</type>
     <category>time</category>
     <group>MED_attributes</group>
-    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,monthly,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,nmonths,nyears,monthly,yearly,date,end</valid_values>
     <desc>
       mediator history for wav import/export/fields snapshot option (used with history_n and history_ymd)
     </desc>
@@ -1950,7 +1959,7 @@
     <type>char</type>
     <category>time</category>
     <group>MED_attributes</group>
-    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,monthly,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,nmonths,nyears,monthly,yearly,date,end</valid_values>
     <desc>
       mediator time average history option (used with histavg_n and histavg_ymd)
     </desc>
@@ -1992,7 +2001,7 @@
     <group>MED_attributes</group>
     <desc>atm to ocn mapping, 'unset' or 'idmap' are normal possible values</desc>
     <values>
-      <value>unset</value> 
+      <value>unset</value>
       <value samegrid_atm_ocn='true'>idmap</value>
     </values>
   </entry>
@@ -2002,7 +2011,7 @@
     <group>MED_attributes</group>
     <desc>atm to ocn mapping, 'unset' or 'idmap' are normal possible values</desc>
     <values>
-      <value>unset</value> 
+      <value>unset</value>
       <value samegrid_atm_ice='true'>idmap</value>
     </values>
   </entry>
@@ -2012,7 +2021,7 @@
     <group>MED_attributes</group>
     <desc>atm to lnd mapping, 'unset' or 'idmap' are normal possible values</desc>
     <values>
-      <value>unset</value> 
+      <value>unset</value>
       <value samegrid_atm_lnd='true'>idmap</value>
     </values>
   </entry>
@@ -2022,7 +2031,7 @@
     <group>MED_attributes</group>
     <desc>ocn to atm mapping, 'unset' or 'idmap' are normal possible values</desc>
     <values>
-      <value>unset</value> 
+      <value>unset</value>
       <value samegrid_atm_ocn='true'>idmap</value>
     </values>
   </entry>
@@ -2032,7 +2041,7 @@
     <group>MED_attributes</group>
     <desc>ice to atm mapping, 'unset' or 'idmap' are normal possible values</desc>
     <values>
-      <value>unset</value> 
+      <value>unset</value>
       <value samegrid_atm_ice='true'>idmap</value>
     </values>
   </entry>
@@ -2042,7 +2051,7 @@
     <group>MED_attributes</group>
     <desc>lnd to atm mapping, 'unset' or 'idmap' are normal possible values</desc>
     <values>
-      <value>unset</value> 
+      <value>unset</value>
       <value samegrid_atm_lnd='true'>idmap</value>
     </values>
   </entry>
@@ -2053,7 +2062,7 @@
     <group>MED_attributes</group>
     <desc>lnd to rof mapping, 'unset' or 'idmap' are normal possible values</desc>
     <values>
-      <value>unset</value> 
+      <value>unset</value>
       <value samegrid_lnd_rof='true'>idmap</value>
     </values>
   </entry>
@@ -2064,7 +2073,7 @@
     <group>MED_attributes</group>
     <desc>rof to lnd mapping, 'unset' or 'idmap' are normal possible values</desc>
     <values>
-      <value>unset</value> 
+      <value>unset</value>
       <value samegrid_lnd_rof='true'>idmap</value>
     </values>
   </entry>
@@ -2074,7 +2083,7 @@
     <group>MED_attributes</group>
     <desc>atm to wav mapping, 'unset' or 'idmap' are normal possible values</desc>
     <values>
-      <value>unset</value> 
+      <value>unset</value>
       <value samegrid_atm_wav='true'>idmap</value>
     </values>
   </entry>
@@ -2580,22 +2589,22 @@
     <type>char</type>
     <category>time</category>
     <group>CLOCK_attributes</group>
-    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,monthly,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,monthly,nmonths,nyears,date,end</valid_values>
     <desc>
       sets the run length with stop_n and stop_ymd
       stop_option alarms are:
-      [none/never], turns option off
-      [nstep/s]   , stops every stop_n nsteps  , relative to current run start time
-      [nsecond/s] , stops every stop_n nseconds, relative to current run start time
-      [nminute/s] , stops every stop_n nminutes, relative to current run start time
-      [nhour/s]   , stops every stop_n nhours  , relative to current run start time
-      [nday/s]    , stops every stop_n ndays   , relative to current run start time
-      [nmonth/s]  , stops every stop_n nmonths , relative to current run start time
-      [monthly/s] , stops every        month   , relative to current run start time
-      [nyear/s]   , stops every stop_n nyears  , relative to current run start time
-      [date]      , stops at stop_ymd value
-      [ifdays0]   , stops at stop_n calendar day value and seconds equal 0
-      [end]       , stops at end
+      [none/never] , turns option off
+      [nsteps]     , stops every stop_n nsteps  , relative to current run start time
+      [nseconds]   , stops every stop_n nseconds, relative to current run start time
+      [nminutes]   , stops every stop_n nminutes, relative to current run start time
+      [nhours]     , stops every stop_n nhours  , relative to current run start time
+      [ndays]      , stops every stop_n ndays   , relative to current run start time
+      [nmonths]    , stops every stop_n nmonths , relative to current run start time
+      [nyears]     , stops every stop_n nyears  , relative to current run start time
+      [monthly]    , stops every        month   , relative to current run start time
+      [yearly]     , stops every        year    , relative to current run start time
+      [end]        , stops at end
+      [date]       , stops at stop_ymd value
     </desc>
     <values>
       <value>$STOP_OPTION</value>
@@ -2644,22 +2653,22 @@
     <type>char</type>
     <category>time</category>
     <group>CLOCK_attributes</group>
-    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,nmonths,monthly,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,nmonths,nyears,monthly,yearly,date,end</valid_values>
     <desc>
       sets the restart frequency with restart_n and restart_ymd
       restart_option alarms are:
       [none/never], turns option off
-      [nstep/s]   , restarts every restart_n nsteps  , relative to current run start time
-      [nsecond/s] , restarts every restart_n nseconds, relative to current run start time
-      [nminute/s] , restarts every restart_n nminutes, relative to current run start time
-      [nhour/s]   , restarts every restart_n nhours  , relative to current run start time
-      [nday/s]    , restarts every restart_n ndays   , relative to current run start time
-      [monthly/s] , restarts every           month   , relative to current run start time
-      [nmonth/s]  , restarts every restart_n nmonths , relative to current run start time
-      [nyear/s]   , restarts every restart_n nyears  , relative to current run start time
-      [date]      , restarts at restart_ymd value
-      [ifdays0]   , restarts at restart_n calendar day value and seconds equal 0
-      [end]       , restarts at end
+      [nsteps]   , restarts every restart_n nsteps  , relative to current run start time
+      [nseconds] , restarts every restart_n nseconds, relative to current run start time
+      [nminutes] , restarts every restart_n nminutes, relative to current run start time
+      [nhours]   , restarts every restart_n nhours  , relative to current run start time
+      [ndays]    , restarts every restart_n ndays   , relative to current run start time
+      [nmonths]  , restarts every restart_n nmonths , relative to current run start time
+      [nyears]   , restarts every restart_n nyears  , relative to current run start time
+      [monthly]  , restarts every           month   , relative to current run start time
+      [yearly]   , restarts every           year    , relative to current run start time
+      [date]     , restarts at restart_ymd value
+      [end]      , restarts at end
     </desc>
     <values>
       <value>$REST_OPTION</value>
@@ -2711,22 +2720,22 @@
     <type>char</type>
     <category>time</category>
     <group>CLOCK_attributes</group>
-    <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,monthly,nmonths,nmonth,nyears,nyear,date,ifdays0,end</valid_values>
+    <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,nmonths,nyears,monthly,yearly,date,end</valid_values>
     <desc>
       Sets timing output file frequency (like rest_option but relative to run start date)
       tprof_option alarms are:
       [none/never], turns option off
-      [nstep/s]   , every tprof_n nsteps  , relative to current run start time
-      [nsecond/s] , every tprof_n nseconds, relative to current run start time
-      [nminute/s] , every tprof_n nminutes, relative to current run start time
-      [nhour/s]   , every tprof_n nhours  , relative to current run start time
-      [nday/s]    , every tprof_n ndays   , relative to current run start time
-      [monthly/s] , every         month   , relative to current run start time
-      [nmonth/s]  , every tprof_n nmonths , relative to current run start time
-      [nyear/s]   , every tprof_n nyears  , relative to current run start time
-      [date]      , at tprof_ymd value
-      [ifdays0]   , at tprof_n calendar day value and seconds equal 0
-      [end]       , at end
+      [nsteps]   , every tprof_n nsteps  , relative to current run start time
+      [nseconds] , every tprof_n nseconds, relative to current run start time
+      [nminutes] , every tprof_n nminutes, relative to current run start time
+      [nhours]   , every tprof_n nhours  , relative to current run start time
+      [ndays]    , every tprof_n ndays   , relative to current run start time
+      [nmonths]  , every tprof_n nmonths , relative to current run start time
+      [nyears]   , every tprof_n nyears  , relative to current run start time
+      [monthly]  , every         month   , relative to current run start time
+      [yearly]   , every         year    , relative to current run start time
+      [date]     , at tprof_ymd value
+      [end]      , at end
     </desc>
     <values>
       <value>never</value>
@@ -2761,19 +2770,19 @@
   <!--   <type>char</type> -->
   <!--   <category>time</category> -->
   <!--   <group>CLOCK_attributes</group> -->
-  <!--   <valid_values>none,never,nsteps,nstep,nseconds,nsecond,nminutes,nminute,nhours,nhour,ndays,nday,monthly,nmonths,nmonth,nyears,nyear</valid_values> -->
+  <!--   <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,monthly,nmonths,nyears</valid_values> -->
   <!--   <desc> -->
   <!--     sets the pause frequency with pause_n -->
   <!--     pause_option alarms are: -->
   <!--     [none/never], turns option off -->
-  <!--     [nstep/s]   , pauses every pause_n nsteps  , relative to start or last pause time -->
-  <!--     [nsecond/s] , pauses every pause_n nseconds, relative to start or last pause time -->
-  <!--     [nminute/s] , pauses every pause_n nminutes, relative to start or last pause time -->
-  <!--     [nhour/s]   , pauses every pause_n nhours  , relative to start or last pause time -->
-  <!--     [nday/s]    , pauses every pause_n ndays   , relative to start or last pause time -->
-  <!--     [nmonth/s]  , pauses every pause_n nmonths , relative to start or last pause time -->
-  <!--     [monthly/s] , pauses every        month    , relative to start or last pause time -->
-  <!--     [nyear/s]   , pauses every pause_n nyears  , relative to start or last pause time -->
+  <!--     [nsteps]   , pauses every pause_n nsteps  , relative to start or last pause time -->
+  <!--     [nseconds] , pauses every pause_n nseconds, relative to start or last pause time -->
+  <!--     [nminutes] , pauses every pause_n nminutes, relative to start or last pause time -->
+  <!--     [nhours]   , pauses every pause_n nhours  , relative to start or last pause time -->
+  <!--     [ndays]    , pauses every pause_n ndays   , relative to start or last pause time -->
+  <!--     [nmonths]  , pauses every pause_n nmonths , relative to start or last pause time -->
+  <!--     [monthly]  , pauses every        month    , relative to start or last pause time -->
+  <!--     [nyear]    , pauses every pause_n nyears  , relative to start or last pause time -->
   <!--   </desc> -->
   <!--   <values> -->
   <!--     <value>$PAUSE_OPTION</value> -->
@@ -3537,28 +3546,13 @@
   </entry>
 
   <!-- ===========================   -->
-  <!-- namelist: pio_default_inparm  -->
+  <!-- namelist: DRIVER_attributes  -->
   <!-- ===========================   -->
-
-  <entry id="pio_async_interface">
-    <type>logical</type>
-    <category>pio</category>
-    <group>pio_default_inparm</group>
-    <desc>
-      future asynchronous IO capability (not currently supported).
-      If pio_async_interface is .true. or {component}_PIO_* variable is not set or set to -99
-      the component variable will be set using the pio_* value.
-      default: .false.
-    </desc>
-    <values>
-      <value>$PIO_ASYNC_INTERFACE</value>
-    </values>
-  </entry>
 
   <entry id="pio_debug_level" modify_via_xml="PIO_DEBUG_LEVEL">
     <type>integer</type>
     <category>pio</category>
-    <group>pio_default_inparm</group>
+    <group>DRIVER_attributes</group>
     <valid_values>0,1,2,3,4,5,6</valid_values>
     <desc>
       pio debug level
@@ -3572,7 +3566,7 @@
   <entry id="pio_blocksize" modify_via_xml="PIO_BLOCKSIZE">
     <type>integer</type>
     <category>pio</category>
-    <group>pio_default_inparm</group>
+    <group>DRIVER_attributes</group>
     <desc>
       blocksize for pio box rearranger
     </desc>
@@ -3584,7 +3578,7 @@
   <entry id="pio_buffer_size_limit" modify_via_xml="PIO_BUFFER_SIZE_LIMIT">
     <type>integer</type>
     <category>pio</category>
-    <group>pio_default_inparm</group>
+    <group>DRIVER_attributes</group>
     <desc>
       pio buffer size limit
     </desc>
@@ -3596,7 +3590,7 @@
   <entry id="pio_rearr_comm_type" modify_via_xml="PIO_REARR_COMM_TYPE">
     <type>char</type>
     <category>pio</category>
-    <group>pio_default_inparm</group>
+    <group>DRIVER_attributes</group>
     <valid_values>p2p,coll,default</valid_values>
     <desc>
       pio rearranger communication type.
@@ -3610,7 +3604,7 @@
   <entry id="pio_rearr_comm_fcd" modify_via_xml="PIO_REARR_COMM_FCD">
     <type>char</type>
     <category>pio</category>
-    <group>pio_default_inparm</group>
+    <group>DRIVER_attributes</group>
     <valid_values>2denable,io2comp,comp2io,disable,default</valid_values>
     <desc>
       pio rearranger communication flow control direction.
@@ -3623,7 +3617,7 @@
   <entry id="pio_rearr_comm_max_pend_req_comp2io" modify_via_xml=" PIO_REARR_COMM_MAX_PEND_REQ_COMP2IO">
     <type>integer</type>
     <category>pio</category>
-    <group>pio_default_inparm</group>
+    <group>DRIVER_attributes</group>
     <desc>
       pio rearranger communication max pending req (comp2io)
     </desc>
@@ -3635,7 +3629,7 @@
   <entry id="pio_rearr_comm_enable_hs_comp2io" modify_via_xml="PIO_REARR_COMM_ENABLE_HS_COMP2IO">
     <type>logical</type>
     <category>pio</category>
-    <group>pio_default_inparm</group>
+    <group>DRIVER_attributes</group>
     <desc>
       pio rearranger communication option: Enable handshake (comp2io)
     </desc>
@@ -3647,7 +3641,7 @@
   <entry id="pio_rearr_comm_enable_isend_comp2io"    modify_via_xml="PIO_REARR_COMM_ENABLE_ISEND_COMP2IO">
     <type>logical</type>
     <category>pio</category>
-    <group>pio_default_inparm</group>
+    <group>DRIVER_attributes</group>
     <desc>
       pio rearranger communication option: Enable isends (comp2io)
     </desc>
@@ -3659,7 +3653,7 @@
   <entry id="pio_rearr_comm_max_pend_req_io2comp"    modify_via_xml="PIO_REARR_COMM_MAX_PEND_REQ_IO2COMP">
     <type>integer</type>
     <category>pio</category>
-    <group>pio_default_inparm</group>
+    <group>DRIVER_attributes</group>
     <desc>
       pio rearranger communication max pending req (io2comp)
     </desc>
@@ -3671,7 +3665,7 @@
   <entry id="pio_rearr_comm_enable_hs_io2comp"    modify_via_xml="PIO_REARR_COMM_ENABLE_HS_IO2COMP">
     <type>logical</type>
     <category>pio</category>
-    <group>pio_default_inparm</group>
+    <group>DRIVER_attributes</group>
     <desc>
       pio rearranger communication option: Enable handshake (io2comp)
     </desc>
@@ -3683,7 +3677,7 @@
   <entry id="pio_rearr_comm_enable_isend_io2comp">
     <type>logical</type>
     <category>pio</category>
-    <group>pio_default_inparm</group>
+    <group>DRIVER_attributes</group>
     <desc>
       pio rearranger communication option: Enable isends (io2comp)
       default: .false.
@@ -3704,105 +3698,117 @@
       components that need to look at the same data.
     </desc>
     <values>
-      <value>Buildconf/camconf/drv_flds_in,Buildconf/clmconf/drv_flds_in</value>
+      <value>Buildconf/camconf/drv_flds_in,Buildconf/clmconf/drv_flds_in,Buildconf/datmconf/drv_flds_in</value>
     </values>
   </entry>
 
-  <!-- <entry id="data_assimilation_atm" modify_via_xml="DATA_ASSIMILATION_ATM"> -->
-  <!--   <type>logical</type> -->
-  <!--   <category>data_assimilation</category> -->
-  <!--   <group>ALLCOMP_attributes</group> -->
-  <!--   <desc> -->
-  <!--     Whether Data Assimilation is on for component atm -->
-  <!--   </desc> -->
-  <!--   <values> -->
-  <!--     <value>$DATA_ASSIMILATION_ATM</value> -->
-  <!--   </values> -->
-  <!-- </entry> -->
+  <entry id="data_assimilation_atm" modify_via_xml="DATA_ASSIMILATION_ATM">
+    <type>logical</type>
+    <category>data_assimilation</category>
+    <group>ALLCOMP_attributes</group>
+    <desc>
+      Whether Data Assimilation is on for component atm
+    </desc>
+    <values>
+      <value>$DATA_ASSIMILATION_ATM</value>
+    </values>
+  </entry>
 
-  <!-- <entry id="data_assimilation_cpl" modify_via_xml="DATA_ASSIMILATION_CPL"> -->
-  <!--   <type>logical</type> -->
-  <!--   <category>data_assimilation</category> -->
-  <!--   <group>ALLCOMP_attributes</group> -->
-  <!--   <desc> -->
-  <!--     Whether Data Assimilation is on for component CPL -->
-  <!--   </desc> -->
-  <!--   <values> -->
-  <!--     <value>$DATA_ASSIMILATION_CPL</value> -->
-  <!--   </values> -->
-  <!-- </entry> -->
+  <entry id="data_assimilation_cpl" modify_via_xml="DATA_ASSIMILATION_CPL">
+    <type>logical</type>
+    <category>data_assimilation</category>
+    <group>ALLCOMP_attributes</group>
+    <desc>
+      Whether Data Assimilation is on for component CPL
+    </desc>
+    <values>
+      <value>$DATA_ASSIMILATION_CPL</value>
+    </values>
+  </entry>
 
-  <!-- <entry id="data_assimilation_ocn" modify_via_xml="DATA_ASSIMILATION_OCN"> -->
-  <!--   <type>logical</type> -->
-  <!--   <category>data_assimilation</category> -->
-  <!--   <group>ALLCOMP_attributes</group> -->
-  <!--   <desc> -->
-  <!--     Whether Data Assimilation is on for component ocn -->
-  <!--   </desc> -->
-  <!--   <values> -->
-  <!--     <value>$DATA_ASSIMILATION_OCN</value> -->
-  <!--   </values> -->
-  <!-- </entry> -->
+  <entry id="data_assimilation_ocn" modify_via_xml="DATA_ASSIMILATION_OCN">
+    <type>logical</type>
+    <category>data_assimilation</category>
+    <group>ALLCOMP_attributes</group>
+    <desc>
+      Whether Data Assimilation is on for component ocn
+    </desc>
+    <values>
+      <value>$DATA_ASSIMILATION_OCN</value>
+    </values>
+  </entry>
 
-  <!-- <entry id="data_assimilation_wav" modify_via_xml="DATA_ASSIMILATION_WAV"> -->
-  <!--   <type>logical</type> -->
-  <!--   <category>data_assimilation</category> -->
-  <!--   <group>ALLCOMP_attributes</group> -->
-  <!--   <desc> -->
-  <!--     Whether Data Assimilation is on for component wav -->
-  <!--   </desc> -->
-  <!--   <values> -->
-  <!--     <value>$DATA_ASSIMILATION_WAV</value> -->
-  <!--   </values> -->
-  <!-- </entry> -->
+  <entry id="data_assimilation_wav" modify_via_xml="DATA_ASSIMILATION_WAV">
+    <type>logical</type>
+    <category>data_assimilation</category>
+    <group>ALLCOMP_attributes</group>
+    <desc>
+      Whether Data Assimilation is on for component wav
+    </desc>
+    <values>
+      <value>$DATA_ASSIMILATION_WAV</value>
+    </values>
+  </entry>
 
-  <!-- <entry id="data_assimilation_glc" modify_via_xml="DATA_ASSIMILATION_GLC"> -->
-  <!--   <type>logical</type> -->
-  <!--   <category>data_assimilation</category> -->
-  <!--   <group>ALLCOMP_attributes</group> -->
-  <!--   <desc> -->
-  <!--     Whether Data Assimilation is on for component glc -->
-  <!--   </desc> -->
-  <!--   <values> -->
-  <!--     <value>$DATA_ASSIMILATION_GLC</value> -->
-  <!--   </values> -->
-  <!-- </entry> -->
+  <entry id="data_assimilation_glc" modify_via_xml="DATA_ASSIMILATION_GLC">
+    <type>logical</type>
+    <category>data_assimilation</category>
+    <group>ALLCOMP_attributes</group>
+    <desc>
+      Whether Data Assimilation is on for component glc
+    </desc>
+    <values>
+      <value>$DATA_ASSIMILATION_GLC</value>
+    </values>
+  </entry>
 
-  <!-- <entry id="data_assimilation_rof" modify_via_xml="DATA_ASSIMILATION_ROF"> -->
-  <!--   <type>logical</type> -->
-  <!--   <category>data_assimilation</category> -->
-  <!--   <group>ALLCOMP_attributes</group> -->
-  <!--   <desc> -->
-  <!--     Whether Data Assimilation is on for component rof -->
-  <!--   </desc> -->
-  <!--   <values> -->
-  <!--     <value>$DATA_ASSIMILATION_ROF</value> -->
-  <!--   </values> -->
-  <!-- </entry> -->
+  <entry id="data_assimilation_rof" modify_via_xml="DATA_ASSIMILATION_ROF">
+    <type>logical</type>
+    <category>data_assimilation</category>
+    <group>ALLCOMP_attributes</group>
+    <desc>
+      Whether Data Assimilation is on for component rof
+    </desc>
+    <values>
+      <value>$DATA_ASSIMILATION_ROF</value>
+    </values>
+  </entry>
 
-  <!-- <entry id="data_assimilation_ice" modify_via_xml="DATA_ASSIMILATION_ICE"> -->
-  <!--   <type>logical</type> -->
-  <!--   <category>data_assimilation</category> -->
-  <!--   <group>ALLCOMP_attributes</group> -->
-  <!--   <desc> -->
-  <!--     Whether Data Assimilation is on for component ice -->
-  <!--   </desc> -->
-  <!--   <values> -->
-  <!--     <value>$DATA_ASSIMILATION_ICE</value> -->
-  <!--   </values> -->
-  <!-- </entry> -->
+  <entry id="data_assimilation_ice" modify_via_xml="DATA_ASSIMILATION_ICE">
+    <type>logical</type>
+    <category>data_assimilation</category>
+    <group>ALLCOMP_attributes</group>
+    <desc>
+      Whether Data Assimilation is on for component ice
+    </desc>
+    <values>
+      <value>$DATA_ASSIMILATION_ICE</value>
+    </values>
+  </entry>
 
-  <!-- <entry id="data_assimilation_lnd" modify_via_xml="DATA_ASSIMILATION_LND"> -->
-  <!--   <type>logical</type> -->
-  <!--   <category>data_assimilation</category> -->
-  <!--   <group>ALLCOMP_attributes</group> -->
-  <!--   <desc> -->
-  <!--     Whether Data Assimilation is on for component lnd -->
-  <!--   </desc> -->
-  <!--   <values> -->
-  <!--     <value>$DATA_ASSIMILATION_LND</value> -->
-  <!--   </values> -->
-  <!-- </entry> -->
+  <entry id="data_assimilation_lnd" modify_via_xml="DATA_ASSIMILATION_LND">
+    <type>logical</type>
+    <category>data_assimilation</category>
+    <group>ALLCOMP_attributes</group>
+    <desc>
+      Whether Data Assimilation is on for component lnd
+    </desc>
+    <values>
+      <value>$DATA_ASSIMILATION_LND</value>
+    </values>
+  </entry>
+
+  <entry id="wavice_coupling">
+    <type>logical</type>
+    <category>expdef</category>
+    <group>ALLCOMP_attributes</group>
+    <desc>
+      If true, wav-ice coupling is active
+    </desc>
+    <values>
+      <value>.false.</value>
+    </values>
+  </entry>
 
   <!-- ======================================== -->
   <!--  ATM attributes                          -->
@@ -3821,13 +3827,12 @@
     <type>char</type>
     <category>mapping</category>
     <input_pathname>abs</input_pathname>
-    <group>ATM_attributes</group>
+    <group>ALLCOMP_attributes</group>
     <desc>
       MESH description of atm grid
     </desc>
     <values>
       <value>$ATM_DOMAIN_MESH</value>
-      <value single_column='true'>null</value>
     </values>
   </entry>
   <entry id="perpetual">
@@ -3881,13 +3886,12 @@
     <type>char</type>
     <category>mapping</category>
     <input_pathname>abs</input_pathname>
-    <group>ICE_attributes</group>
+    <group>ALLCOMP_attributes</group>
     <desc>
       MESH description of ice grid
     </desc>
     <values>
       <value>$ICE_DOMAIN_MESH</value>
-      <value single_column='true'>null</value>
     </values>
   </entry>
 
@@ -3914,7 +3918,6 @@
     </desc>
     <values>
       <value>$GLC_DOMAIN_MESH</value>
-      <value single_column='true'>null</value>
     </values>
   </entry>
 
@@ -3935,13 +3938,12 @@
     <type>char</type>
     <category>mapping</category>
     <input_pathname>abs</input_pathname>
-    <group>LND_attributes</group>
+    <group>ALLCOMP_attributes</group>
     <desc>
       MESH description of lnd grid
     </desc>
     <values>
       <value>$LND_DOMAIN_MESH</value>
-      <value single_column='true'>null</value>
     </values>
   </entry>
 
@@ -3962,13 +3964,12 @@
     <type>char</type>
     <category>mapping</category>
     <input_pathname>abs</input_pathname>
-    <group>OCN_attributes</group>
+    <group>ALLCOMP_attributes</group>
     <desc>
       MESH description of ocn grid
     </desc>
     <values>
       <value>$OCN_DOMAIN_MESH</value>
-      <value single_column='true'>null</value>
     </values>
   </entry>
 
@@ -3995,7 +3996,6 @@
     </desc>
     <values>
       <value>$ROF_DOMAIN_MESH</value>
-      <value single_column='true'>null</value>
     </values>
   </entry>
 
@@ -4022,8 +4022,179 @@
     </desc>
     <values>
       <value>$WAV_DOMAIN_MESH</value>
-      <value single_column='true'>null</value>
     </values>
   </entry>
 
+  <!-- =========================== -->
+  <!-- group modelio               -->
+  <!-- =========================== -->
+
+  <entry id="pio_async_interface">
+    <type>logical</type>
+    <category>pio</category>
+    <group>modelio</group>
+    <desc>
+      future asynchronous IO capability (not currently supported).
+      If pio_async_interface is .true. or {component}_PIO_* variable is not set or set to -99
+      the component variable will be set using the pio_* value.
+      default: .false.
+    </desc>
+    <values>
+    <value component="cpl">$CPL_PIO_ASYNC_INTERFACE</value>
+    <value component="atm">$ATM_PIO_ASYNC_INTERFACE</value>
+    <value component="lnd">$LND_PIO_ASYNC_INTERFACE</value>
+    <value component="ocn">$OCN_PIO_ASYNC_INTERFACE</value>
+    <value component="ice">$ICE_PIO_ASYNC_INTERFACE</value>
+    <value component="rof">$ROF_PIO_ASYNC_INTERFACE</value>
+    <value component="glc">$GLC_PIO_ASYNC_INTERFACE</value>
+    <value component="wav">$WAV_PIO_ASYNC_INTERFACE</value>
+    <value component="esp">.false.</value>
+    </values>
+  </entry>
+
+  <entry id="pio_stride" modify_via_xml="PIO_STRIDE">
+    <type>integer</type>
+    <category>pio</category>
+    <group>modelio</group>
+    <desc>
+      stride of tasks in pio used generically, component based value takes precedent.
+    </desc>
+    <values>
+    <value component="cpl">$CPL_PIO_STRIDE</value>
+    <value component="atm">$ATM_PIO_STRIDE</value>
+    <value component="lnd">$LND_PIO_STRIDE</value>
+    <value component="ocn">$OCN_PIO_STRIDE</value>
+    <value component="ice">$ICE_PIO_STRIDE</value>
+    <value component="rof">$ROF_PIO_STRIDE</value>
+    <value component="glc">$GLC_PIO_STRIDE</value>
+    <value component="wav">$WAV_PIO_STRIDE</value>
+    <value component="esp">-99</value>
+    </values>
+  </entry>
+
+  <entry id="pio_root" modify_via_xml="PIO_ROOT">
+    <type>integer</type>
+    <category>pio</category>
+    <group>modelio</group>
+    <desc>
+      io task root in pio used generically, component based value takes precedent.
+    </desc>
+    <values>
+    <value component="cpl">$CPL_PIO_ROOT</value>
+    <value component="atm">$ATM_PIO_ROOT</value>
+    <value component="lnd">$LND_PIO_ROOT</value>
+    <value component="ocn">$OCN_PIO_ROOT</value>
+    <value component="ice">$ICE_PIO_ROOT</value>
+    <value component="rof">$ROF_PIO_ROOT</value>
+    <value component="glc">$GLC_PIO_ROOT</value>
+    <value component="wav">$WAV_PIO_ROOT</value>
+    <value component="esp">-99</value>
+    </values>
+  </entry>
+
+  <entry id="pio_rearranger" modify_via_xml="PIO_REARRANGER">
+    <type>integer</type>
+    <category>pio</category>
+    <group>modelio</group>
+    <valid_values>-99,1,2</valid_values>
+    <desc>
+      Rearranger method for pio 1=box, 2=subset.
+    </desc>
+    <values>
+    <value component="cpl">$CPL_PIO_REARRANGER</value>
+    <value component="atm">$ATM_PIO_REARRANGER</value>
+    <value component="lnd">$LND_PIO_REARRANGER</value>
+    <value component="ocn">$OCN_PIO_REARRANGER</value>
+    <value component="ice">$ICE_PIO_REARRANGER</value>
+    <value component="rof">$ROF_PIO_REARRANGER</value>
+    <value component="glc">$GLC_PIO_REARRANGER</value>
+    <value component="wav">$WAV_PIO_REARRANGER</value>
+    <value component="esp">-99</value>
+    </values>
+  </entry>
+
+  <entry id="pio_numiotasks" modify_via_xml="PIO_NUMTASKS">
+    <type>integer</type>
+    <category>pio</category>
+    <group>modelio</group>
+    <desc>
+      number of io tasks in pio used generically, component based value takes precedent.
+    </desc>
+    <values>
+    <value component="cpl">$CPL_PIO_NUMTASKS</value>
+    <value component="atm">$ATM_PIO_NUMTASKS</value>
+    <value component="lnd">$LND_PIO_NUMTASKS</value>
+    <value component="ocn">$OCN_PIO_NUMTASKS</value>
+    <value component="ice">$ICE_PIO_NUMTASKS</value>
+    <value component="rof">$ROF_PIO_NUMTASKS</value>
+    <value component="glc">$GLC_PIO_NUMTASKS</value>
+    <value component="wav">$WAV_PIO_NUMTASKS</value>
+    <value component="esp">-99</value>
+    </values>
+  </entry>
+
+  <entry id="pio_typename" modify_via_xml="PIO_TYPENAME">
+    <type>char*64</type>
+    <category>pio</category>
+    <group>modelio</group>
+    <valid_values>netcdf,pnetcdf,netcdf4p,netcdf4c,default,nothing</valid_values>
+    <desc>
+      io type in pio used generically, component based value takes precedent.
+      valid values: netcdf, pnetcdf, netcdf4p, netcdf4c, default
+    </desc>
+    <values>
+    <value component="cpl">$CPL_PIO_TYPENAME</value>
+    <value component="atm">$ATM_PIO_TYPENAME</value>
+    <value component="lnd">$LND_PIO_TYPENAME</value>
+    <value component="ocn">$OCN_PIO_TYPENAME</value>
+    <value component="ice">$ICE_PIO_TYPENAME</value>
+    <value component="rof">$ROF_PIO_TYPENAME</value>
+    <value component="glc">$GLC_PIO_TYPENAME</value>
+    <value component="wav">$WAV_PIO_TYPENAME</value>
+    <value component="esp">nothing</value>
+    </values>
+  </entry>
+
+  <entry id="pio_netcdf_format" modify_via_xml="PIO_NETCDF_FORMAT">
+    <type>char*64</type>
+    <category>pio</category>
+    <group>modelio</group>
+    <valid_values>classic,64bit_offset,64bit_data</valid_values>
+    <desc>
+      format of netcdf files created by pio, ignored if
+      PIO_TYPENAME is netcdf4p or netcdf4c.  64bit_data only
+      supported in netcdf 4.4.0 or newer
+    </desc>
+    <values>
+    <value component="cpl">$CPL_PIO_NETCDF_FORMAT</value>
+    <value component="atm">$ATM_PIO_NETCDF_FORMAT</value>
+    <value component="lnd">$LND_PIO_NETCDF_FORMAT</value>
+    <value component="ocn">$OCN_PIO_NETCDF_FORMAT</value>
+    <value component="ice">$ICE_PIO_NETCDF_FORMAT</value>
+    <value component="rof">$ROF_PIO_NETCDF_FORMAT</value>
+    <value component="glc">$GLC_PIO_NETCDF_FORMAT</value>
+    <value component="wav">$WAV_PIO_NETCDF_FORMAT</value>
+    <value component="esp">$ESP_PIO_NETCDF_FORMAT</value>
+    </values>
+  </entry>
+
+  <entry id="diro">
+    <type>char*256</type>
+    <category>modelio</category>
+    <group>modelio</group>
+    <desc>directory for output log files</desc>
+    <values>
+      <value>UNSET</value>
+    </values>
+  </entry>
+
+  <entry id="logfile">
+    <type>char*256</type>
+    <category>modelio</category>
+    <group>modelio</group>
+    <desc>name of component output log file</desc>
+    <values>
+    <value>UNSET</value>
+    </values>
+  </entry>
 </entry_id>
