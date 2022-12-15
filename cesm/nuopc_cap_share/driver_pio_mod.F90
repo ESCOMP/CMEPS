@@ -20,7 +20,7 @@ module driver_pio_mod
   public :: driver_pio_init
   public :: driver_pio_component_init
   public :: driver_pio_finalize
-  public :: driver_pio_log_comp_settings
+  private :: driver_pio_log_comp_settings
 
   integer :: io_comm
   integer :: pio_debug_level=0, pio_blocksize=0
@@ -204,13 +204,17 @@ contains
     integer :: pecnt
     integer :: ierr
     integer :: iocomm
+    integer :: pp
     integer :: async_rearr
-    integer :: driverpecount, driver_myid
+    integer :: maxprocspercomp, driver_myid
     integer, allocatable :: driverpetlist(:)
     integer, allocatable :: asyncio_comp_comm(:)
     integer :: logunit
+    integer :: ioproc
+    integer :: n
     logical :: asyncio_task
     logical, allocatable :: petlocal(:)
+    type(ESMF_PtrInt1D), pointer :: petLists(:)
     type(iosystem_desc_t), allocatable :: async_iosystems(:)
     character(len=*), parameter :: subname = '('//__FILE__//':shr_pio_component_init)'
 
@@ -229,19 +233,16 @@ contains
        endif
     enddo
     nullify(gcomp)
-
-    if (asyncio_task) then
-       driverpecount = 0
-    else
+    nullify(petLists)
+    if (.not. asyncio_task) then
        call ESMF_GridCompGet(gridcomp=driver, vm=vm, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        
-       call NUOPC_DriverGetComp(driver, compList=gcomp, rc=rc)
+       call NUOPC_DriverGetComp(driver, compList=gcomp, petLists=petLists, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_VMGet(vm, localPet=driver_myid, petcount=driverpecount, rc=rc)
+       call ESMF_VMGet(vm, localPet=driver_myid, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     endif
-
     if(associated(gcomp)) then
        total_comps = size(gcomp)       
     else
@@ -252,8 +253,6 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     if(totalpes > 1) then
        call MPI_AllReduce(MPI_IN_PLACE, total_comps, 1, MPI_INTEGER, &
-            MPI_MAX, Global_comm, rc)
-       call MPI_AllReduce(MPI_IN_PLACE, driverpecount, 1, MPI_INTEGER, &
             MPI_MAX, Global_comm, rc)
     endif
 
@@ -361,7 +360,7 @@ contains
                   pio_rearr_opts)
           endif
           ! Write the PIO settings to the beggining of each component log
-          if(comp_rank == 0) call driver_pio_log_comp_settings(gcomp(i), logunit, rc)
+          if(comp_rank == 0) call driver_pio_log_comp_settings(gcomp(i), rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        endif
@@ -384,42 +383,41 @@ contains
     call MPI_Allreduce(MPI_IN_PLACE, do_async_init, 1, MPI_INTEGER, MPI_MAX, Global_comm, ierr)
     call MPI_Allreduce(MPI_IN_PLACE, procs_per_comp, total_comps, MPI_INTEGER, MPI_MAX, Global_comm, ierr)
     if (do_async_init > 0) then
+       maxprocspercomp = 0
+       do i=1,total_comps
+          if(procs_per_comp(i) > maxprocspercomp) maxprocspercomp = procs_per_comp(i)
+       enddo
+       call MPI_AllReduce(MPI_IN_PLACE, maxprocspercomp, 1, MPI_INTEGER, &
+            MPI_MAX, Global_comm, rc)
+
        allocate(asyncio_comp_comm(do_async_init))
-       allocate(comp_proc_list(driverpecount, do_async_init))
+       allocate(comp_proc_list(maxprocspercomp, do_async_init))
        j = 1
        k = 1
        comp_proc_list = -1
        if(.not. asyncio_task) then
           do i=1,total_comps
              if(pio_comp_settings(i)%pio_async_interface) then
-                if(petlocal(i)) comp_proc_list(1+driver_myid,j) = myid 
+                comp_proc_list(1:procs_per_comp(i), j) = petLists(i)%ptr
+                ! IO tasks are not in the driver comp so we need to correct the comp_proc_list
                 do k=1,size(asyncio_petlist)
-                   if(comp_proc_list(1+driver_myid, j) == asyncio_petlist(k)) then
-                      call shr_sys_abort(subname//' ERROR: OVERLAP with asyncio_petlist')
-                   endif
+                  ioproc = asyncio_petlist(k)
+                  do n=1,procs_per_comp(i)
+                     if(petLists(i)%ptr(n) >= (ioproc-k+1)) comp_proc_list(n,j) = comp_proc_list(n,j) + 1
+                  enddo
                 enddo
                 j = j+1
              endif
+!             deallocate(petLists(i)%ptr)
           enddo
        endif
-       call MPI_AllReduce(MPI_IN_PLACE, comp_proc_list, driverpecount*do_async_init, MPI_INTEGER, MPI_MAX, Global_comm, ierr)
+       ! Copy comp_proc_list to io tasks
+       do i=1,do_async_init
+          call MPI_AllReduce(MPI_IN_PLACE, comp_proc_list(:,i), maxprocspercomp, MPI_INTEGER, MPI_MAX, Global_comm, ierr)
+       enddo
        if(asyncio_ntasks == 0) then
           call shr_sys_abort(subname//' ERROR: ASYNC IO Requested but no IO PES assigned')
        endif
-
-       do i=1,do_async_init
-          do j=1,driverpecount
-             if(comp_proc_list(j,i) == -1) then
-                do k=j+1,driverpecount
-                   if(comp_proc_list(k,i) >= 0) then
-                      comp_proc_list(j,i) = comp_proc_list(k,i)
-                      comp_proc_list(k,i) = -1
-                      exit
-                   endif
-                enddo
-             endif
-          enddo
-       enddo
 
        allocate(async_iosystems(do_async_init))
        allocate(async_procs_per_comp(do_async_init))
@@ -441,11 +439,10 @@ contains
        enddo
        
        ! IO tasks should not return until the run is completed
-       !ierr = pio_set_log_level(3)
-
+       !ierr = pio_set_log_level(1)
        call ESMF_LogWrite(trim(subname)//": call async pio_init", ESMF_LOGMSG_INFO)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call MPI_AllReduce(pio_comp_settings(1)%pio_rearranger, async_rearr, 1, MPI_INTEGER, &
+       call MPI_AllReduce(MPI_IN_PLACE, async_rearr, 1, MPI_INTEGER, &
             MPI_MAX, Global_comm, rc)
        call pio_init(async_iosystems, Global_comm, async_procs_per_comp, &
             comp_proc_list, asyncio_petlist, &
@@ -461,20 +458,20 @@ contains
        endif
     endif
     call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
-
+    if(associated(petLists)) deallocate(petLists)
     if(associated(gcomp)) deallocate(gcomp)
   end subroutine driver_pio_component_init
 
-  subroutine driver_pio_log_comp_settings(gcomp, logunit, rc)
+  subroutine driver_pio_log_comp_settings(gcomp, rc)
     use ESMF, only : ESMF_GridComp, ESMF_GridCompGet, ESMF_SUCCESS
     use NUOPC, only: NUOPC_CompAttributeGet
 
     type(ESMF_GridComp) :: gcomp
-    integer, intent(in) :: logunit
     integer, intent(out) :: rc
     integer :: compid
     character(len=CS) :: name, cval
     integer :: i
+    integer :: logunit
     logical :: isPresent
 
     rc = ESMF_SUCCESS
@@ -488,6 +485,11 @@ contains
        read(cval, *) compid
        i = shr_pio_getindex(compid)
     endif
+
+    logunit = 6
+    call NUOPC_CompAttributeGet(gcomp, name="logunit", value=logunit, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
     if(pio_comp_settings(i)%pio_async_interface) then
        write(logunit,*) trim(name),': using ASYNC IO interface'
     else

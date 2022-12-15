@@ -10,7 +10,6 @@ module Ensemble_driver
   use shr_kind_mod  , only : cl=>shr_kind_cl, cs=>shr_kind_cs
   use shr_log_mod   , only : shr_log_setLogUnit
   use esm_utils_mod , only : mastertask, logunit, chkerr
-
   implicit none
   private
 
@@ -21,7 +20,6 @@ module Ensemble_driver
   integer, allocatable :: asyncio_petlist(:)
   logical :: asyncio_task=.false.
   logical :: asyncIO_available=.false.
-
   character(*),parameter :: u_FILE_u = &
        __FILE__
 
@@ -83,7 +81,7 @@ contains
     ! NUOPC component drivers end the initialization process with an internal call to InitializeDataResolution.
     ! The ensemble_driver does not need to InitializeDataResolution and doing so will cause a hang
     ! if asyncronous IO is used.  This attribute is available after ESMF8.4.0b03 to toggle that control.
-    ! Cannot use asyncIO with older ESMF versions. 
+    ! Cannot use asyncIO with older ESMF versions.
     call NUOPC_CompAttributeGet(ensemble_driver, name="InitializeDataResolution", &
          isPresent=isPresent, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -126,17 +124,14 @@ contains
 
     ! local variables
     type(ESMF_VM)          :: vm
-    type(ESMF_GridComp)    :: driver, gridcomptmp
+    type(ESMF_GridComp)    :: driver
     type(ESMF_Config)      :: config
-    integer                :: n, n1, stat
+    integer                :: n, n1
     integer, pointer       :: petList(:)
-    character(len=20)      :: model, prefix
-    integer                :: petCount, i
+    integer                :: petCount
     integer                :: localPet
-    logical                :: is_set
     character(len=512)     :: diro
     character(len=512)     :: logfile
-    integer                :: global_comm
     logical                :: read_restart
     character(len=CS)      :: read_restart_string
     integer                :: inst
@@ -176,7 +171,7 @@ contains
     call ReadAttributes(ensemble_driver, config, "CLOCK_attributes::", rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    call NUOPC_CompAttributeGet(ensemble_driver, 'calendar', calendar, rc=rc) 
+    call NUOPC_CompAttributeGet(ensemble_driver, 'calendar', calendar, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     if (calendar == 'NO_LEAP') then
        call ESMF_CalendarSetDefault(ESMF_CALKIND_NOLEAP, rc=rc)
@@ -258,106 +253,105 @@ contains
     !-------------------------------------------
 
     allocate(petList(ntasks_per_member))
-    allocate(asyncio_petlist(pio_asyncio_ntasks))     
+    allocate(asyncio_petlist(pio_asyncio_ntasks))
     !
-    ! Logic for asyncio variables is handled in cmeps buildnml.  
-    ! here we assume that pio_asyncio_stride and pio_asyncio_ntasks are only set 
+    ! Logic for asyncio variables is handled in cmeps buildnml.
+    ! here we assume that pio_asyncio_stride and pio_asyncio_ntasks are only set
     ! if asyncio is enabled.
     !
-    do inst=1,number_of_members
-       petcnt=1
+    inst = localPet/(ntasks_per_member+pio_asyncio_ntasks) + 1
+
+    petcnt=1
+    iopetcnt = 1
+    comp_task = .false.
+    asyncio_task = .false.
+    ! Determine pet list for driver instance
+    if(pio_asyncio_ntasks > 0) then
+       do n=pio_asyncio_rootpe,pio_asyncio_rootpe+pio_asyncio_stride*(pio_asyncio_ntasks-1),pio_asyncio_stride
+          asyncio_petlist(iopetcnt) = (inst-1)*ntasks_per_member + n
+          iopetcnt = iopetcnt+1
+          if((inst-1)*ntasks_per_member + n == localPet) asyncio_task = .true.
+       enddo
        iopetcnt = 1
-       comp_task = .false.
-       asyncio_task = .false.
-       ! Determine pet list for driver instance
-       if(pio_asyncio_ntasks > 0) then
-          do n=pio_asyncio_rootpe,pio_asyncio_rootpe+pio_asyncio_stride*(pio_asyncio_ntasks-1),pio_asyncio_stride
-             asyncio_petlist(iopetcnt) = n
+    endif
+    do n=0,ntasks_per_member+pio_asyncio_ntasks-1
+       if(iopetcnt<=pio_asyncio_ntasks) then
+          if( asyncio_petlist(iopetcnt)==n) then
+             ! Here if asyncio is true and this is an io task
              iopetcnt = iopetcnt+1
-             if(n == localPet) asyncio_task = .true.
-          enddo
-          iopetcnt = 1
-       endif
-       do n=0,ntasks_per_member+pio_asyncio_ntasks-1
-          if(iopetcnt<=pio_asyncio_ntasks) then
-             if( asyncio_petlist(iopetcnt)==n) then
-                ! Here if asyncio is true and this is an io task
-                iopetcnt = iopetcnt+1               
-             else if(petcnt <= ntasks_per_member) then
-                ! Here if this is a compute task
-                petList(petcnt) = n
-                petcnt = petcnt+1
-                if (n == localPet) comp_task=.true.
-             else
-                msgstr = "ERROR task cannot be nether a compute task nor an asyncio task"
-                call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
-                return  ! bail out
-             endif
-          else
-             ! Here if asyncio is false
-             petList(petcnt) = n
+          else if(petcnt <= ntasks_per_member) then
+             ! Here if this is a compute task
+             petList(petcnt) = (inst-1)*ntasks_per_member + n
              petcnt = petcnt+1
-             if (n == localPet) comp_task=.true.
-          endif
-       enddo                   
-       if(comp_task .and. asyncio_task) then
-          msgstr = "ERROR task cannot be both a compute task and an asyncio task"
-          call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
-          return  ! bail out
-       endif
-
-       ! Add driver instance to ensemble driver
-       write(drvrinst,'(a,i4.4)') "ESM",inst
-
-       call NUOPC_DriverAddComp(ensemble_driver, drvrinst, ESMSetServices, petList=petList, comp=driver, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-       mastertask = .false.
-       if (comp_task) then
-
-          if(number_of_members > 1) then
-             call NUOPC_CompAttributeAdd(driver, attrList=(/'inst_suffix'/), rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-             write(inst_suffix,'(a,i4.4)') '_',inst
-             call NUOPC_CompAttributeSet(driver, name='inst_suffix', value=inst_suffix, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
+             if ((inst-1)*ntasks_per_member + n == localPet) comp_task=.true.
           else
-             inst_suffix = ''
+             msgstr = "ERROR task cannot be neither a compute task nor an asyncio task"
+             call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
+             return  ! bail out
           endif
-
-          ! Set the driver instance attributes
-          call NUOPC_CompAttributeAdd(driver, attrList=(/'read_restart'/), rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call NUOPC_CompAttributeSet(driver, name='read_restart', value=trim(read_restart_string), rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-          call ReadAttributes(driver, config, "CLOCK_attributes::", rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-          call ReadAttributes(driver, config, "DRIVER_attributes::", rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-          call ReadAttributes(driver, config, "DRV_modelio::", rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-          ! Set the driver log to the driver task 0 
-          if (mod(localPet, ntasks_per_member) == 0) then
-             call NUOPC_CompAttributeGet(driver, name="diro", value=diro, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-             call NUOPC_CompAttributeGet(driver, name="logfile", value=logfile, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-             open (newunit=logunit,file=trim(diro)//"/"//trim(logfile))
-             mastertask = .true.
-          else
-             logUnit = 6
-          endif
-          call shr_log_setLogUnit (logunit)
+       else
+          ! Here if asyncio is false
+          petList(petcnt) = (inst-1)*ntasks_per_member + n
+          petcnt = petcnt+1
+          if ((inst-1)*ntasks_per_member + n == localPet) comp_task=.true.
        endif
-       ! Create a clock for each driver instance
-       call esm_time_clockInit(ensemble_driver, driver, logunit, mastertask, rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-
     enddo
+    if(comp_task .and. asyncio_task) then
+       msgstr = "ERROR task cannot be both a compute task and an asyncio task"
+       call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
+       return  ! bail out
+    endif
+
+    ! Add driver instance to ensemble driver
+    write(drvrinst,'(a,i4.4)') "ESM",inst
+
+    call NUOPC_DriverAddComp(ensemble_driver, drvrinst, ESMSetServices, petList=petList, comp=driver, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    mastertask = .false.
+    if (comp_task) then
+
+       if(number_of_members > 1) then
+          call NUOPC_CompAttributeAdd(driver, attrList=(/'inst_suffix'/), rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          write(inst_suffix,'(a,i4.4)') '_',inst
+          call NUOPC_CompAttributeSet(driver, name='inst_suffix', value=inst_suffix, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+       else
+          inst_suffix = ''
+       endif
+
+       ! Set the driver instance attributes
+       call NUOPC_CompAttributeAdd(driver, attrList=(/'read_restart'/), rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call NUOPC_CompAttributeSet(driver, name='read_restart', value=trim(read_restart_string), rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+       call ReadAttributes(driver, config, "CLOCK_attributes::", rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+       call ReadAttributes(driver, config, "DRIVER_attributes::", rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+       call ReadAttributes(driver, config, "DRV_modelio::", rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+       ! Set the driver log to the driver task 0
+       if (mod(localPet, ntasks_per_member) == 0) then
+          call NUOPC_CompAttributeGet(driver, name="diro", value=diro, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call NUOPC_CompAttributeGet(driver, name="logfile", value=logfile, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          open (newunit=logunit,file=trim(diro)//"/"//trim(logfile))
+          mastertask = .true.
+       else
+          logUnit = 6
+       endif
+       call shr_log_setLogUnit (logunit)
+    endif
+    ! Create a clock for each driver instance
+    call esm_time_clockInit(ensemble_driver, driver, logunit, mastertask, rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     deallocate(petList)
 
@@ -372,7 +366,7 @@ contains
     use NUOPC, only: NUOPC_CompAttributeGet, NUOPC_CompGet
     use NUOPC_DRIVER, only: NUOPC_DriverGetComp
     use driver_pio_mod   , only: driver_pio_init, driver_pio_component_init
-    
+
     type(ESMF_GridComp) :: ensemble_driver
     type(ESMF_VM) :: ensemble_vm
     integer, intent(out) :: rc
@@ -380,7 +374,7 @@ contains
     type(ESMF_GridComp), pointer :: dcomp(:), ccomp(:)
     integer :: iam
     integer :: Global_Comm
-    integer :: drv, comp
+    integer :: drv
     character(len=8) :: compname
 
     rc = ESMF_SUCCESS

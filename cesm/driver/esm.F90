@@ -54,7 +54,6 @@ contains
     integer, intent(out) :: rc
 
     ! local variables
-    type(ESMF_Config) :: runSeq
     character(len=*), parameter :: subname = "(esm.F90:SetServices)"
     !---------------------------------------
 
@@ -125,9 +124,7 @@ contains
     ! local variables
     type(ESMF_VM)     :: vm
     type(ESMF_Config) :: config
-    integer           :: n, i, stat
-    character(len=20) :: model, prefix
-    integer           :: localPet, medpet
+    integer           :: localPet
     character(len=CL) :: meminitStr
     integer           :: global_comm
     integer           :: maxthreads
@@ -241,7 +238,6 @@ contains
     integer, intent(out) :: rc
 
     ! local variables
-    integer                 :: localrc
     type(ESMF_Config)       :: runSeq
     type(NUOPC_FreeFormat)  :: runSeqFF
     character(len=*), parameter :: subname = "(esm.F90:SetRunSequence)"
@@ -433,11 +429,7 @@ contains
     type(ShrWVSatTableSpec)      :: liquid_spec
     type(ShrWVSatTableSpec)      :: ice_spec
     type(ShrWVSatTableSpec)      :: mixed_spec
-    logical                      :: flag
-    integer                      :: i, it, n
-    integer                      :: unitn                 ! Namelist unit number to read
     integer                      :: localPet, rootpe_med
-    character(len=CL)            :: msgstr
     integer          , parameter :: ens1=1                ! use first instance of ensemble only
     integer          , parameter :: fix1=1                ! temporary hard-coding to first ensemble, needs to be fixed
     real(R8)         , parameter :: epsilo = shr_const_mwwv/shr_const_mwdair
@@ -568,8 +560,6 @@ contains
     integer             , intent(out)   :: rc
 
     !----- local -----
-    character(len=CL) :: cvalue         ! temporary
-    character(len=CL) :: start_type     ! Type of startup
     character(len=CS) :: logFilePostFix ! postfix for output log files
     character(len=CL) :: outPathRoot    ! root for output log files
     character(len=CS) :: cime_model
@@ -627,12 +617,9 @@ contains
     integer             , intent(inout) :: rc
 
     ! local variables
-    integer                        :: n
-    integer                        :: stat
     integer                        :: inst_index
     character(len=CL)              :: cvalue
     character(len=CS)              :: attribute
-    integer                        :: componentCount
     character(len=*), parameter    :: subname = "(esm.F90:AddAttributes)"
     !-------------------------------------------
 
@@ -871,9 +858,8 @@ contains
     type(ESMF_Info)                :: info
     integer                        :: componentcount
     integer                        :: PetCount
-    integer                        :: LocalPet
     integer                        :: ntasks, rootpe, nthrds, stride
-    integer                        :: ntask, cnt
+    integer                        :: ntask
     integer                        :: i
     integer                        :: stat
     character(len=32), allocatable :: compLabels(:)
@@ -1403,11 +1389,12 @@ contains
           allocate(lonMesh(lsize), latMesh(lsize))
           call ESMF_MeshGet(mesh, ownedElemCoords=ownedElemCoords)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+          scol_mesh_n = 0
           do n = 1,lsize
              lonMesh(n) = ownedElemCoords(2*n-1)
              latMesh(n) = ownedElemCoords(2*n)
              if (abs(lonMesh(n) - scol_lon) < 1.e-4 .and. abs(latMesh(n) - scol_lat) < 1.e-4) then
-                scol_mesh_n = n
                 scol_mesh_n = n
                 exit
              end if
