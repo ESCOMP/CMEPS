@@ -276,7 +276,7 @@
     <machines>
       <machine name="cheyenne" compiler="intel" category="prealpha">
         <options>
-          <option name="wallclock">0:20</option>
+          <option name="wallclock">0:40</option>
         </options>
       </machine>
     </machines>
@@ -286,7 +286,7 @@
     <machines>
       <machine name="cheyenne" compiler="intel" category="prealpha">
         <options>
-          <option name="wallclock">0:20</option>
+          <option name="wallclock">0:40</option>
         </options>
       </machine>
     </machines>

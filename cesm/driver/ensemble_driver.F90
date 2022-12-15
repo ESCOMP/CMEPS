@@ -240,10 +240,10 @@ contains
     call ESMF_VMGet(vm, localPet=localPet, PetCount=PetCount, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    ntasks_per_member = PetCount/number_of_members - pio_asyncio_ntasks
-    if(ntasks_per_member*number_of_members .ne. (PetCount - pio_asyncio_ntasks)) then
+    ntasks_per_member = PetCount/number_of_members - pio_asyncio_ntasks*number_of_members
+    if(ntasks_per_member*number_of_members .ne. (PetCount - pio_asyncio_ntasks*number_of_members)) then
        write (msgstr,'(a,i5,a,i3,a,i3,a)') &
-            "PetCount - Async IOtasks (",PetCount-pio_asyncio_ntasks,") must be evenly divisable by number of members (",number_of_members,")"
+            "PetCount - Async IOtasks (",PetCount-pio_asyncio_ntasks*number_of_members,") must be evenly divisable by number of members (",number_of_members,")"
        call ESMF_LogSetError(ESMF_RC_ARG_BAD, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
        return
     endif
