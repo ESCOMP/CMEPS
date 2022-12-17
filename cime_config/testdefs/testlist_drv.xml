@@ -263,7 +263,7 @@
   <!-- ======================================= -->
   <!-- Asyncio tests -->
   <!-- ======================================= -->
-  <test name="ERS_Ln9" grid="f19_f19_mgl7" compset="FHIST" testmods="drv/asyncio1pernode--cam/outfrq9s">
+  <test name="ERS_Ln9_Vnuopc" grid="f19_f19_mg17" compset="FHIST" testmods="drv/asyncio1pernode--cam/outfrq9s">
     <machines>
       <machine name="cheyenne" compiler="intel" category="prealpha">
         <options>
@@ -272,7 +272,7 @@
       </machine>
     </machines>
   </test>
-  <test name="ERS_C3" grid="f19_gl7" compset="A" testmods="drv/asyncio1pernode">
+  <test name="ERS_C3_Vnuopc" grid="f19_g17" compset="A" testmods="drv/asyncio1pernode">
     <machines>
       <machine name="cheyenne" compiler="intel" category="prealpha">
         <options>
@@ -282,7 +282,7 @@
     </machines>
   </test>
 
-  <test name="ERS_Ld5" grid="ne30pg3_t061" compset="B1850MOM" testmods="allactive-defaultio--drv/asyncio1node">
+  <test name="ERS_Ld5_Vnuopc" grid="ne30pg3_t061" compset="B1850MOM" testmods="allactive/defaultio--drv/asyncio1node">
     <machines>
       <machine name="cheyenne" compiler="intel" category="prealpha">
         <options>
@@ -291,6 +291,5 @@
       </machine>
     </machines>
   </test>
-
 
 </testlist>

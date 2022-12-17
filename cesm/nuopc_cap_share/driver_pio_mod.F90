@@ -431,8 +431,8 @@ contains
                 if(async_rearr == 0) then
                    async_rearr = pio_comp_settings(i)%pio_rearranger
                 elseif(async_rearr .ne. pio_comp_settings(i)%pio_rearranger) then
-
-                   call shr_sys_abort(subname//' ERROR: all async component rearrangers must match')
+                   write(msgstr,*) i,async_rearr,pio_comp_settings(i)%pio_rearranger
+                   call shr_sys_abort(subname//' ERROR: all async component rearrangers must match '//msgstr)
                 endif
              endif
           endif
