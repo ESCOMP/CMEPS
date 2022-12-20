@@ -173,7 +173,7 @@ contains
 
   end subroutine driver_pio_init
 
-  subroutine driver_pio_component_init(driver, Global_comm, asyncio_petlist, rc)
+  subroutine driver_pio_component_init(driver, Inst_comm, asyncio_petlist, rc)
     use ESMF, only : ESMF_GridComp, ESMF_LogSetError, ESMF_RC_NOT_VALID, ESMF_GridCompIsCreated, ESMF_VM, ESMF_VMGet
     use ESMF, only : ESMF_GridCompGet, ESMF_GridCompIsPetLocal, ESMF_VMIsCreated, ESMF_Finalize, ESMF_PtrInt1D
     use ESMF, only : ESMF_LOGMSG_INFO, ESMF_LOGWRITE
@@ -182,7 +182,7 @@ contains
     use mpi, only :  MPI_INTEGER, MPI_MAX, MPI_IN_PLACE, MPI_LOR, MPI_LOGICAL
 
     type(ESMF_GridComp) :: driver
-    integer, intent(in) :: Global_COMM ! The communicator associated with the ensemble_driver
+    integer, intent(in) :: Inst_comm ! The communicator associated with the ensemble_driver
     integer, intent(in) :: asyncio_petlist(:) 
     integer, intent(out) :: rc
 
@@ -219,15 +219,18 @@ contains
     character(len=*), parameter :: subname = '('//__FILE__//':shr_pio_component_init)'
 
     asyncio_ntasks = size(asyncio_petlist)
+
     call shr_log_getLogUnit(logunit)
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    call MPI_Comm_rank(global_comm, myid, rc)
-    call MPI_Comm_size(global_comm, totalpes, rc)
+    call MPI_Comm_rank(Inst_comm, myid, rc)
+    call MPI_Comm_size(Inst_comm, totalpes, rc)
     asyncio_task=.false.
+
     do i=1,asyncio_ntasks
-       if(myid == asyncio_petlist(i)) then
+       ! asyncio_petlist is in 
+       if(modulo(asyncio_petlist(i), totalpes) == myid) then
           asyncio_task = .true.
           exit
        endif
@@ -253,7 +256,7 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     if(totalpes > 1) then
        call MPI_AllReduce(MPI_IN_PLACE, total_comps, 1, MPI_INTEGER, &
-            MPI_MAX, Global_comm, rc)
+            MPI_MAX, Inst_comm, rc)
     endif
 
     allocate(pio_comp_settings(total_comps))
@@ -299,6 +302,7 @@ contains
           call NUOPC_CompAttributeGet(gcomp(i), name="pio_rearranger", value=cval, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           read(cval, *) pio_comp_settings(i)%pio_rearranger
+ 
           if(.not. pio_comp_settings(i)%pio_async_interface) then
              call NUOPC_CompAttributeGet(gcomp(i), name="pio_stride", value=cval, rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -370,7 +374,7 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     do i=1,total_comps
        call MPI_AllReduce(MPI_IN_PLACE, pio_comp_settings(i)%pio_async_interface, 1, MPI_LOGICAL, &
-            MPI_LOR, global_comm, rc)
+            MPI_LOR, Inst_comm, rc)
        if(pio_comp_settings(i)%pio_async_interface) then
           do_async_init = do_async_init + 1
        endif
@@ -380,15 +384,15 @@ contains
 !   Get the PET list for each component using async IO
 !
 
-    call MPI_Allreduce(MPI_IN_PLACE, do_async_init, 1, MPI_INTEGER, MPI_MAX, Global_comm, ierr)
-    call MPI_Allreduce(MPI_IN_PLACE, procs_per_comp, total_comps, MPI_INTEGER, MPI_MAX, Global_comm, ierr)
+    call MPI_Allreduce(MPI_IN_PLACE, do_async_init, 1, MPI_INTEGER, MPI_MAX, Inst_comm, ierr)
+    call MPI_Allreduce(MPI_IN_PLACE, procs_per_comp, total_comps, MPI_INTEGER, MPI_MAX, Inst_comm, ierr)
     if (do_async_init > 0) then
        maxprocspercomp = 0
        do i=1,total_comps
           if(procs_per_comp(i) > maxprocspercomp) maxprocspercomp = procs_per_comp(i)
        enddo
        call MPI_AllReduce(MPI_IN_PLACE, maxprocspercomp, 1, MPI_INTEGER, &
-            MPI_MAX, Global_comm, rc)
+            MPI_MAX, Inst_comm, rc)
 
        allocate(asyncio_comp_comm(do_async_init))
        allocate(comp_proc_list(maxprocspercomp, do_async_init))
@@ -413,7 +417,7 @@ contains
        endif
        ! Copy comp_proc_list to io tasks
        do i=1,do_async_init
-          call MPI_AllReduce(MPI_IN_PLACE, comp_proc_list(:,i), maxprocspercomp, MPI_INTEGER, MPI_MAX, Global_comm, ierr)
+          call MPI_AllReduce(MPI_IN_PLACE, comp_proc_list(:,i), maxprocspercomp, MPI_INTEGER, MPI_MAX, Inst_comm, ierr)
        enddo
        if(asyncio_ntasks == 0) then
           call shr_sys_abort(subname//' ERROR: ASYNC IO Requested but no IO PES assigned')
@@ -443,8 +447,8 @@ contains
        call ESMF_LogWrite(trim(subname)//": call async pio_init", ESMF_LOGMSG_INFO)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        call MPI_AllReduce(MPI_IN_PLACE, async_rearr, 1, MPI_INTEGER, &
-            MPI_MAX, Global_comm, rc)
-       call pio_init(async_iosystems, Global_comm, async_procs_per_comp, &
+            MPI_MAX, Inst_comm, rc)
+       call pio_init(async_iosystems, Inst_comm, async_procs_per_comp, &
             comp_proc_list, asyncio_petlist, &
             async_rearr, asyncio_comp_comm, io_comm)
        if(.not. asyncio_task) then

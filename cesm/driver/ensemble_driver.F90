@@ -20,6 +20,8 @@ module Ensemble_driver
   integer, allocatable :: asyncio_petlist(:)
   logical :: asyncio_task=.false.
   logical :: asyncIO_available=.false.
+  integer :: number_of_members
+  integer :: inst  ! ensemble instance containing this task
   character(*),parameter :: u_FILE_u = &
        __FILE__
 
@@ -134,8 +136,6 @@ contains
     character(len=512)     :: logfile
     logical                :: read_restart
     character(len=CS)      :: read_restart_string
-    integer                :: inst
-    integer                :: number_of_members
     integer                :: ntasks_per_member
     integer                :: iopetcnt
     integer                :: petcnt
@@ -240,10 +240,10 @@ contains
     call ESMF_VMGet(vm, localPet=localPet, PetCount=PetCount, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    ntasks_per_member = PetCount/number_of_members - pio_asyncio_ntasks*number_of_members
-    if(ntasks_per_member*number_of_members .ne. (PetCount - pio_asyncio_ntasks*number_of_members)) then
+    ntasks_per_member = PetCount/number_of_members - pio_asyncio_ntasks
+    if(modulo(PetCount-pio_asyncio_ntasks*number_of_members, number_of_members) .ne. 0) then
        write (msgstr,'(a,i5,a,i3,a,i3,a)') &
-            "PetCount - Async IOtasks (",PetCount-pio_asyncio_ntasks*number_of_members,") must be evenly divisable by number of members (",number_of_members,")"
+            "PetCount (",PetCount,") - Async IOtasks (",pio_asyncio_ntasks*number_of_members,") must be evenly divisable by number of members (",number_of_members,")"
        call ESMF_LogSetError(ESMF_RC_ARG_BAD, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
        return
     endif
@@ -268,22 +268,24 @@ contains
     ! Determine pet list for driver instance
     if(pio_asyncio_ntasks > 0) then
        do n=pio_asyncio_rootpe,pio_asyncio_rootpe+pio_asyncio_stride*(pio_asyncio_ntasks-1),pio_asyncio_stride
-          asyncio_petlist(iopetcnt) = (inst-1)*ntasks_per_member + n
+          asyncio_petlist(iopetcnt) = (inst-1)*(ntasks_per_member+pio_asyncio_ntasks) + n
+          if(asyncio_petlist(iopetcnt) == localPet) asyncio_task = .true.
           iopetcnt = iopetcnt+1
-          if((inst-1)*ntasks_per_member + n == localPet) asyncio_task = .true.
        enddo
        iopetcnt = 1
     endif
     do n=0,ntasks_per_member+pio_asyncio_ntasks-1
-       if(iopetcnt<=pio_asyncio_ntasks) then
-          if( asyncio_petlist(iopetcnt)==n) then
+       if(pio_asyncio_ntasks > 0) then
+          if( asyncio_petlist(iopetcnt)==(inst-1)*(ntasks_per_member+pio_asyncio_ntasks) + n) then
              ! Here if asyncio is true and this is an io task
              iopetcnt = iopetcnt+1
           else if(petcnt <= ntasks_per_member) then
              ! Here if this is a compute task
-             petList(petcnt) = (inst-1)*ntasks_per_member + n
+             petList(petcnt) = n + (inst-1)*(ntasks_per_member + pio_asyncio_ntasks)
+             if (petList(petcnt) == localPet) then
+                comp_task=.true.
+             endif
              petcnt = petcnt+1
-             if ((inst-1)*ntasks_per_member + n == localPet) comp_task=.true.
           else
              msgstr = "ERROR task cannot be neither a compute task nor an asyncio task"
              call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
@@ -292,8 +294,8 @@ contains
        else
           ! Here if asyncio is false
           petList(petcnt) = (inst-1)*ntasks_per_member + n
+          if (petList(petcnt) == localPet) comp_task=.true.
           petcnt = petcnt+1
-          if ((inst-1)*ntasks_per_member + n == localPet) comp_task=.true.
        endif
     enddo
     if(comp_task .and. asyncio_task) then
@@ -366,15 +368,18 @@ contains
     use NUOPC, only: NUOPC_CompAttributeGet, NUOPC_CompGet
     use NUOPC_DRIVER, only: NUOPC_DriverGetComp
     use driver_pio_mod   , only: driver_pio_init, driver_pio_component_init
+    use MPI,  only : MPI_Comm_split, MPI_UNDEFINED
 
     type(ESMF_GridComp) :: ensemble_driver
     type(ESMF_VM) :: ensemble_vm
     integer, intent(out) :: rc
     character(len=*), parameter :: subname = '('//__FILE__//':InitializeIO)'
-    type(ESMF_GridComp), pointer :: dcomp(:), ccomp(:)
+    type(ESMF_GridComp), pointer :: dcomp(:)
     integer :: iam
-    integer :: Global_Comm
+    integer :: Global_Comm, Instance_Comm
     integer :: drv
+    integer :: PetCount
+    integer :: key, color, i
     character(len=8) :: compname
 
     rc = ESMF_SUCCESS
@@ -382,29 +387,34 @@ contains
 
     call ESMF_GridCompGet(ensemble_driver, vm=ensemble_vm, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    call ESMF_VMGet(ensemble_vm, localpet=iam, mpiCommunicator=Global_Comm, rc=rc)
+    call ESMF_VMGet(ensemble_vm, localpet=iam, mpiCommunicator=Global_Comm, PetCount=PetCount, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-
+    if(number_of_members > 1) then
+       color = inst
+       key = modulo(iam, PetCount/number_of_members)
+       call MPI_Comm_split(Global_Comm, color, key, Instance_Comm, rc)
+       do i=1,size(asyncio_petlist)
+          asyncio_petList(i) = modulo(asyncio_petList(i), PetCount/number_of_members)
+       enddo
+    else
+       Instance_Comm = Global_Comm
+    endif
     nullify(dcomp)
     call NUOPC_DriverGetComp(ensemble_driver, complist=dcomp, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompGet(dcomp(1), name=compname, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_LogWrite(trim(subname)//": call driver_pio_init "//compname, ESMF_LOGMSG_INFO)
+    call driver_pio_init(dcomp(1), rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    do drv=1,size(dcomp)
-       if (ESMF_GridCompIsPetLocal(dcomp(drv), rc=rc) .or. asyncio_task) then
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call NUOPC_CompGet(dcomp(drv), name=compname, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call ESMF_LogWrite(trim(subname)//": call driver_pio_init "//compname, ESMF_LOGMSG_INFO)
-          call driver_pio_init(dcomp(drv), rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_LogWrite(trim(subname)//": call driver_pio_component_init "//compname, ESMF_LOGMSG_INFO)
+    call driver_pio_component_init(dcomp(1), Instance_Comm, asyncio_petlist, rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_LogWrite(trim(subname)//": driver_pio_component_init done "//compname, ESMF_LOGMSG_INFO)
 
-          call ESMF_LogWrite(trim(subname)//": call driver_pio_component_init "//compname, ESMF_LOGMSG_INFO)
-          call driver_pio_component_init(dcomp(drv), Global_Comm, asyncio_petlist, rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call ESMF_LogWrite(trim(subname)//": driver_pio_component_init done "//compname, ESMF_LOGMSG_INFO)
-       endif
-    enddo
+    deallocate(dcomp)
     deallocate(asyncio_petlist)
     call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
   end subroutine InitializeIO

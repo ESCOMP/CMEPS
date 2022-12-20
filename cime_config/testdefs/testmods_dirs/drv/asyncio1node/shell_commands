@@ -1,7 +1,13 @@
 # This will add one asyncio node
 ./xmlchange PIO_ASYNC_INTERFACE=TRUE
-ntasks=`./xmlquery --value TOTAL_TASKS`
-./xmlchange PIO_ASYNCIO_ROOTPE=$ntasks
+ntasks=`./xmlquery --value TOTALPES`
+let rootpe=$ntasks-4 
+./xmlchange PIO_ASYNCIO_ROOTPE=$rootpe
 ./xmlchange PIO_ASYNCIO_STRIDE=1
 ./xmlchange PIO_ASYNCIO_NTASKS=4
 ./xmlchange PIO_REARRANGER=2
+comp_ocn=`./xmlquery --value COMP_OCN`
+# MOM ocn has no pio interface
+if [[ "$comp_ocn" == "mom" ]]; then
+  ./xmlchange PIO_ASYNC_INTERFACE_OCN=FALSE;
+fi

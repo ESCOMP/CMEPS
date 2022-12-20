@@ -325,9 +325,7 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     #if we are in multi-coupler mode the number of instances of mediator will be the max
     # of any NINST_* value
     maxinst = 1
-    if case.get_value("MULTI_DRIVER"):
-        maxinst = case.get_value("NINST_MAX")
-        multi_driver = True
+
     with open(nuopc_config_file, 'a', encoding="utf-8") as conffile:
         nmlgen.write_nuopc_config_file(conffile, data_list_path=data_list_path)
 
@@ -342,10 +340,7 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
                 newgroup = model.upper()+"_modelio"
             nmlgen.rename_group("modelio", newgroup)
 
-            if maxinst == 1 and model != 'cpl' and not multi_driver:
-                inst_count = case.get_value("NINST_" + model.upper())
-            else:
-                inst_count = maxinst
+            inst_count = maxinst
             if not model == 'drv':
                 for entry in ["pio_async_interface", 
                               "pio_netcdf_format",  
