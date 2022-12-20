@@ -339,7 +339,8 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        ! Set the driver log to the driver task 0
-       if (mod(localPet, ntasks_per_member) == 0) then
+
+       if (localPet == petList(1)) then
           call NUOPC_CompAttributeGet(driver, name="diro", value=diro, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           call NUOPC_CompAttributeGet(driver, name="logfile", value=logfile, rc=rc)
@@ -384,6 +385,7 @@ contains
 
     rc = ESMF_SUCCESS
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
+    call shr_log_setLogUnit (logunit)
 
     call ESMF_GridCompGet(ensemble_driver, vm=ensemble_vm, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -425,6 +427,7 @@ contains
     type(ESMF_GridComp) :: Ensemble_driver
     integer, intent(out) :: rc
     rc = ESMF_SUCCESS
+    call shr_log_setLogUnit (logunit)
     call driver_pio_finalize()
 
   end subroutine ensemble_finalize

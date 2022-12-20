@@ -245,6 +245,7 @@ contains
 
     rc = ESMF_SUCCESS
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
+    call shr_log_setLogunit(logunit)
 
     !--------
     ! Run Sequence and Connectors
@@ -343,6 +344,7 @@ contains
 
     rc = ESMF_SUCCESS
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
+    call shr_log_setLogunit(logunit)
 
     call ESMF_LogWrite("Driver is in ModifyCplLists()", ESMF_LOGMSG_INFO, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -438,6 +440,7 @@ contains
 
     rc = ESMF_SUCCESS
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
+    call shr_log_setLogunit(logunit)
 
     !----------------------------------------------------------
     ! Initialize options for reproducible sums
@@ -625,6 +628,7 @@ contains
 
     rc = ESMF_Success
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
+    call shr_log_setLogunit(logunit)
 
     !------
     ! Add compid to gcomp attributes
@@ -726,6 +730,7 @@ contains
     !-------------------------------------------
 
     rc = ESMF_SUCCESS
+    call shr_log_setLogunit(logunit)
 
     if (present(relaxedflag)) then
        attrFF = NUOPC_FreeFormatCreate(config, label=trim(label), relaxedflag=.true., rc=rc)
@@ -877,6 +882,7 @@ contains
     integer :: rank, nprocs, ierr
     character(len=*), parameter    :: subname = "(esm_pelayout.F90:esm_init_pelayout)"
     !---------------------------------------
+    call shr_log_setLogunit(logunit)
 
     rc = ESMF_SUCCESS
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
@@ -1229,6 +1235,7 @@ contains
     !-------------------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
+    call shr_log_setLogunit(logunit)
 
     ! obtain the single column lon and lat
     call NUOPC_CompAttributeGet(gcomp, name='scol_lon', value=cvalue, rc=rc)
@@ -1508,10 +1515,7 @@ contains
     !---------------------------------------
 
     rc = ESMF_SUCCESS
-
-    if (mastertask) then
-       write(logunit,*)' SUCCESSFUL TERMINATION OF CESM'
-    end if
+    call shr_log_setLogunit(logunit)
 
     call ESMF_GridCompGet(driver, vm=vm, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -1530,6 +1534,10 @@ contains
        inst_suffix = ""
     endif
     call t_prf(trim(timing_dir)//'/model_timing'//trim(inst_suffix), mpicom=mpicomm)
+
+    if (mastertask) then
+       write(logunit,*)' SUCCESSFUL TERMINATION OF CESM'
+    end if
 
     call t_finalizef()
   end subroutine esm_finalize

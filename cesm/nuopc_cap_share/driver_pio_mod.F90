@@ -272,22 +272,31 @@ contains
        if(associated(gcomp)) then
           petlocal(i) = ESMF_GridCompIsPetLocal(gcomp(i), rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+          call NUOPC_CompAttributeGet(gcomp(i), name="pio_async_interface", value=cval, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          pio_comp_settings(i)%pio_async_interface = (trim(cval) == '.true.')
+          
+          call NUOPC_CompAttributeGet(gcomp(i), name="pio_rearranger", value=cval, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          read(cval, *) pio_comp_settings(i)%pio_rearranger          
        else
           petlocal(i) = .false.
        endif
        pio_comp_settings(i)%pio_async_interface = .false.
        io_compid(i) = i+1
+
        if (petlocal(i)) then
+          call NUOPC_CompAttributeAdd(gcomp(i), attrList=(/'MCTID'/), rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          write(cval, *) io_compid(i)
+          call NUOPC_CompAttributeSet(gcomp(i), name="MCTID", value=trim(cval), rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          
           call ESMF_GridCompGet(gcomp(i), vm=vm, name=cval, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           call ESMF_LogWrite(trim(subname)//": initialize component: "//trim(cval), ESMF_LOGMSG_INFO)
           io_compname(i) = trim(cval)
-          call NUOPC_CompAttributeAdd(gcomp(i), attrList=(/'MCTID'/), rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-          write(cval, *) io_compid(i)
-          call NUOPC_CompAttributeSet(gcomp(i), name="MCTID", value=trim(cval), rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
 
           call ESMF_VMGet(vm, mpiCommunicator=comp_comm, localPet=comp_rank, petCount=npets, &
                ssiLocalPetCount=default_stride, rc=rc)
@@ -295,14 +304,6 @@ contains
           
           procs_per_comp(i) = npets
 
-          call NUOPC_CompAttributeGet(gcomp(i), name="pio_async_interface", value=cval, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          pio_comp_settings(i)%pio_async_interface = (trim(cval) == '.true.')
-
-          call NUOPC_CompAttributeGet(gcomp(i), name="pio_rearranger", value=cval, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          read(cval, *) pio_comp_settings(i)%pio_rearranger
- 
           if(.not. pio_comp_settings(i)%pio_async_interface) then
              call NUOPC_CompAttributeGet(gcomp(i), name="pio_stride", value=cval, rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
