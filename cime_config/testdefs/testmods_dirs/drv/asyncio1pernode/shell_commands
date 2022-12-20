@@ -1,15 +1,22 @@
 # This will add one async pio task per node to a test
 # does not work for all cases
-./xmlchange --force PIO_ASYNC_INTERFACE=TRUE
-ntasks=`./xmlquery --value TOTALPES`
-ninst=`./xmlquery --value NINST`
+max2() { printf '%d' $(( $1 > $2 ? $1 : $2 )); }
+let totaltasks=0
+./xmlchange --force --force PIO_ASYNC_INTERFACE=TRUE
+for comp in ATM OCN LND ICE CPL GLC ROF
+do
+  ntasks=`./xmlquery --value NTASKS_$comp`
+  rootpe=`./xmlquery --value ROOTPE_$comp`
+  let maxpe=ntasks+rootpe
+  totaltasks=$(( $totaltasks > $maxpe ? $totaltasks : $maxpe ))
+done
+echo "totaltasks is $totaltasks"
 tpn=`./xmlquery --value MAX_MPITASKS_PER_NODE`
-echo "ntasks=$ntasks tpn=$tpn"
-./xmlchange --force PIO_ASYNCIO_STRIDE=$tpn
-let piontasks=(ntasks/ninst)/tpn
+./xmlchange --force --force PIO_ASYNCIO_STRIDE=$tpn
+let piontasks=totaltasks/tpn
 echo "piontasks=$piontasks"
-./xmlchange --force PIO_ASYNCIO_NTASKS=$piontasks
-let newntasks=ntasks/ninst-piontasks
+./xmlchange --force --force PIO_ASYNCIO_NTASKS=$piontasks
+let newntasks=totaltasks-piontasks
 echo "newntasks=$newntasks"
-./xmlchange --force NTASKS=$newntasks
-./xmlchange --force PIO_REARRANGER=2
+./xmlchange --force --force NTASKS=$newntasks
+./xmlchange --force --force PIO_REARRANGER=2

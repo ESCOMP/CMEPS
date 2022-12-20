@@ -434,7 +434,7 @@ contains
              if(.not.asyncio_task) then
                 if(async_rearr == 0) then
                    async_rearr = pio_comp_settings(i)%pio_rearranger
-                elseif(async_rearr .ne. pio_comp_settings(i)%pio_rearranger) then
+                elseif(async_rearr .ne. pio_comp_settings(i)%pio_rearranger .and. pio_comp_settings(i)%pio_rearranger > 0) then
                    write(msgstr,*) i,async_rearr,pio_comp_settings(i)%pio_rearranger
                    call shr_sys_abort(subname//' ERROR: all async component rearrangers must match '//msgstr)
                 endif
