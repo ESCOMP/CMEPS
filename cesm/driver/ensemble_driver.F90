@@ -302,13 +302,18 @@ contains
        msgstr = "ERROR task cannot be both a compute task and an asyncio task"
        call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
        return  ! bail out
+    elseif (.not. comp_task .and. .not. asyncio_task) then
+       msgstr = "ERROR task is nether a compute task nor an asyncio task"
+       call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
+       return  ! bail out
     endif
-
     ! Add driver instance to ensemble driver
     write(drvrinst,'(a,i4.4)') "ESM",inst
-
+    
     call NUOPC_DriverAddComp(ensemble_driver, drvrinst, ESMSetServices, petList=petList, comp=driver, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
+    write(msgstr, *) ": driver added on PETS ",petlist(1),' to ',petlist(petcnt-1)
+    call ESMF_LogWrite(trim(subname)//msgstr)
 
     mastertask = .false.
     if (comp_task) then
@@ -369,8 +374,9 @@ contains
     use NUOPC, only: NUOPC_CompAttributeGet, NUOPC_CompGet
     use NUOPC_DRIVER, only: NUOPC_DriverGetComp
     use driver_pio_mod   , only: driver_pio_init, driver_pio_component_init
+#ifndef NO_MPI2
     use MPI,  only : MPI_Comm_split, MPI_UNDEFINED
-
+#endif
     type(ESMF_GridComp) :: ensemble_driver
     type(ESMF_VM) :: ensemble_vm
     integer, intent(out) :: rc
@@ -394,7 +400,9 @@ contains
     if(number_of_members > 1) then
        color = inst
        key = modulo(iam, PetCount/number_of_members)
+#ifndef NO_MPI2
        call MPI_Comm_split(Global_Comm, color, key, Instance_Comm, rc)
+#endif
        do i=1,size(asyncio_petlist)
           asyncio_petList(i) = modulo(asyncio_petList(i), PetCount/number_of_members)
        enddo

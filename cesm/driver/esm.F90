@@ -1498,7 +1498,7 @@ contains
   subroutine esm_finalize(driver, rc)
 
     use ESMF     , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_VM, ESMF_VMGet
-    use ESMF     , only : ESMF_SUCCESS
+    use ESMF     , only : ESMF_SUCCESS, ESMF_LOGMSG_INFO, ESMF_LOGWRITE
     use NUOPC    , only : NUOPC_CompAttributeGet
     use perf_mod , only : t_prf, t_finalizef
 
@@ -1512,8 +1512,10 @@ contains
     logical              :: isPresent
     type(ESMF_VM)        :: vm
     integer              :: mpicomm
+    character(len=*), parameter :: subname = '(esm_finalize) '
     !---------------------------------------
 
+    call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
     rc = ESMF_SUCCESS
     call shr_log_setLogunit(logunit)
 
@@ -1538,6 +1540,7 @@ contains
     if (mastertask) then
        write(logunit,*)' SUCCESSFUL TERMINATION OF CESM'
     end if
+    call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
 
     call t_finalizef()
   end subroutine esm_finalize

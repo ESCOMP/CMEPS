@@ -30,7 +30,7 @@ module driver_pio_mod
   logical               :: pio_async_interface
 
   integer :: total_comps
-  logical :: mastertask
+  logical :: maintask
 #define DEBUGI 1
 
 #ifdef DEBUGI
@@ -77,7 +77,7 @@ contains
 
     call ESMF_VMGet(vm, localPet=localPet, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    mastertask = (localPet == 0)
+    maintask = (localPet == 0)
 
     call NUOPC_CompAttributeGet(driver, name="pio_buffer_size_limit", value=cname, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -85,7 +85,7 @@ contains
 
     ! 0 is a valid value of pio_buffer_size_limit
     if(pio_buffer_size_limit>=0) then
-       if(mastertask) write(logunit,*) 'Setting pio_buffer_size_limit : ',pio_buffer_size_limit
+       if(maintask) write(logunit,*) 'Setting pio_buffer_size_limit : ',pio_buffer_size_limit
        call pio_set_buffer_size_limit(pio_buffer_size_limit)
     endif
 
@@ -94,7 +94,7 @@ contains
     read(cname, *) pio_blocksize
     
     if(pio_blocksize>0) then
-       if(mastertask) write(logunit,*) 'Setting pio_blocksize : ',pio_blocksize
+       if(maintask) write(logunit,*) 'Setting pio_blocksize : ',pio_blocksize
        call pio_set_blocksize(pio_blocksize)
     endif
 
@@ -103,7 +103,7 @@ contains
     read(cname, *) pio_debug_level
 
     if(pio_debug_level > 0) then
-       if(mastertask) write(logunit,*) 'Setting pio_debug_level : ',pio_debug_level
+       if(maintask) write(logunit,*) 'Setting pio_debug_level : ',pio_debug_level
        ret = pio_set_log_level(pio_debug_level)
     endif
        
@@ -150,7 +150,7 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     read(cname, *) pio_rearr_opts%comm_fc_opts_io2comp%max_pend_req
 
-    if(mastertask) then
+    if(maintask) then
        ! Log the rearranger options
        write(logunit, *) "PIO rearranger options:"
        write(logunit, *) "  comm type     = ", pio_rearr_opts%comm_type, " (",trim(pio_rearr_comm_type),")"
@@ -470,7 +470,8 @@ contains
   subroutine driver_pio_log_comp_settings(gcomp, rc)
     use ESMF, only : ESMF_GridComp, ESMF_GridCompGet, ESMF_SUCCESS
     use NUOPC, only: NUOPC_CompAttributeGet
-
+    use, intrinsic :: iso_fortran_env, only: output_unit
+ 
     type(ESMF_GridComp) :: gcomp
     integer, intent(out) :: rc
     integer :: compid
@@ -492,9 +493,12 @@ contains
     endif
 
     logunit = 6
-    call NUOPC_CompAttributeGet(gcomp, name="logunit", value=logunit, rc=rc)
+    call NUOPC_CompAttributeGet(gcomp, name="logunit", value=logunit, isPresent=ispresent, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-
+    if(.not. isPresent) then
+       logunit = output_unit
+       if(maintask) write(logunit,*) 'Attribute logunit not set for ',trim(name)
+    endif
     if(pio_comp_settings(i)%pio_async_interface) then
        write(logunit,*) trim(name),': using ASYNC IO interface'
     else
@@ -503,7 +507,6 @@ contains
        write(logunit, *) trim(name),': PIO rearranger=',pio_comp_settings(i)%pio_rearranger
        write(logunit, *) trim(name),': PIO root=',pio_comp_settings(i)%pio_root
     endif
-        
   end subroutine driver_pio_log_comp_settings
 
 !===============================================================================
