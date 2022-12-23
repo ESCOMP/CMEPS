@@ -27,6 +27,10 @@ jobs:
       - uses: actions/checkout@v3
         # Build the ESMF library, if the cache contains a previous build
         # it will be used instead
+      - id: load-env
+        run: |
+          sudo apt-get update
+          sudo apt-get install gfortran wget openmpi-bin netcdf-bin libopenmpi-dev libnetcdf-dev autotools-dev autoconf
       - id: cache-esmf
         uses: actions/cache@v3
         with:
