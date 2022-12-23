@@ -19,77 +19,30 @@ jobs:
       CXX: mpicxx
       CPPFLAGS: "-I/usr/include -I/usr/local/include"
       # Versions of all dependencies can be updated here
-      ESMF_VERSION: v8.3.0b13
-      PNETCDF_VERSION: pnetcdf-1.12.3
-      NETCDF_FORTRAN_VERSION: v4.5.2
-      PIO_VERSION: pio2_5_7
+      ESMF_VERSION: v8.4.0
+      PNETCDF_VERSION: checkpoint.1.12.3
+      NETCDF_FORTRAN_VERSION: v4.6.0
+      PIO_VERSION: pio2_5_10
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         # Build the ESMF library, if the cache contains a previous build
         # it will be used instead
       - id: cache-esmf
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ~/ESMF
           key: ${{ runner.os }}-${{ env.ESMF_VERSION }}-ESMF
-      - id: load-env
-        run: |
-          sudo apt-get update
-          sudo apt-get install gfortran wget openmpi-bin netcdf-bin libopenmpi-dev libnetcdf-dev
-      - id: checkout-ESMF
-        uses: actions/checkout@v3
-        with:
-          repository: esmf-org/esmf
-          path: esmf-src
-          ref: ${{ env.ESMF_VERSION }}
-      - id: build-ESMF
-        if: steps.cache-esmf.outputs.cache-hit != 'true'
-        run: |
-          #wget https://github.com/esmf-org/esmf/archive/${{ env.ESMF_VERSION }}.tar.gz
-          #tar -xzvf ${{ env.ESMF_VERSION }}.tar.gz
-          #pushd esmf-${{ env.ESMF_VERSION }}
-          pushd esmf-src
-          export ESMF_DIR=`pwd`
-          export ESMF_COMM=openmpi
-          export ESMF_YAMLCPP="internal"
-          export ESMF_INSTALL_PREFIX=$HOME/ESMF
-          export ESMF_BOPT=g
-          make
-          make install
-          popd
       - id: cache-pnetcdf
         uses: actions/cache@v2
         with:
           path: ~/pnetcdf
           key: ${{ runner.os }}-${{ env.PNETCDF_VERSION}}-pnetcdf
-      - name: pnetcdf build
-        if: steps.cache-pnetcdf.outputs.cache-hit != 'true'
-        run: |
-          wget https://parallel-netcdf.github.io/Release/${{ env.PNETCDF_VERSION }}.tar.gz
-          tar -xzvf ${{ env.PNETCDF_VERSION }}.tar.gz
-          ls -l
-          pushd ${{ env.PNETCDF_VERSION }}
-          ./configure --prefix=$HOME/pnetcdf --enable-shared --disable-cxx
-          make
-          make install
-          popd
       - name: Cache netcdf-fortran
         id: cache-netcdf-fortran
         uses: actions/cache@v2
         with:
           path: ~/netcdf-fortran
           key: ${{ runner.os }}-${{ env.NETCDF_FORTRAN_VERSION }}-netcdf-fortran
-      - name: netcdf fortran build
-        if: steps.cache-netcdf-fortran.outputs.cache-hit != 'true'
-        run: |
-          wget https://github.com/Unidata/netcdf-fortran/archive/${{ env.NETCDF_FORTRAN_VERSION }}.tar.gz
-          tar -xzvf ${{ env.NETCDF_FORTRAN_VERSION }}.tar.gz
-          ls -l
-          pushd netcdf-fortran-*
-          ./configure --prefix=$HOME/netcdf-fortran
-          make
-          make install
-
       - name: Cache PIO
         id: cache-PIO
         uses: actions/cache@v2
@@ -99,23 +52,40 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-${{ env.NETCDF_FORTRAN_VERSION }}-netcdf-fortran
             ${{ runner.os }}-${{ env.PNETCDF_VERSION }}-pnetcdf
-
-      - id: checkout-PIO
-        uses: actions/checkout@v3
+      - name: Build PNetCDF
+        if: steps.cache-pnetcdf.outputs.cache-hit != 'true'
+        uses: ESCOMP/CDEPS/.github/actions/buildpnetcdf@e06246b
         with:
-          repository: NCAR/ParallelIO
-          path: parallelio-src
-          ref: ${{ env.PIO_VERSION }}
-      - name: Build PIO
-        if: steps.cache-PIO.outputs.cache-hit != 'true'
-        run: |
-          mkdir build-pio
-          pushd build-pio
-          cmake -Wno-dev -DNetCDF_C_LIBRARY=/usr/lib/x86_64-linux-gnu/libnetcdf.so -DNetCDF_C_INCLUDE_DIR=/usr/include -DCMAKE_PREFIX_PATH=/usr -DCMAKE_INSTALL_PREFIX=$HOME/pio -DPIO_HDF5_LOGGING=On -DPIO_USE_MALLOC=On -DPIO_ENABLE_TESTS=Off -DPIO_ENABLE_LOGGING=On -DPIO_ENABLE_EXAMPLES=Off -DPIO_ENABLE_TIMING=Off -DNetCDF_Fortran_PATH=$HOME/netcdf-fortran -DPnetCDF_PATH=$HOME/pnetcdf ../parallelio-src
-          make VERBOSE=1
-          make install
-          popd
-
+          pnetcdf_version: ${{ env.PNETCDF_VERSION }}
+          install_prefix: $HOME/pnetcdf
+      - name: Build NetCDF Fortran
+        if: steps.cache-netcdf-fortran.outputs.cache-hit != 'true'
+        uses: ESCOMP/CDEPS/.github/actions/buildnetcdff@e06246b
+        with:
+          netcdf_fortran_version: ${{ env.NETCDF_FORTRAN_VERSION }}
+          install_prefix: $HOME/netcdf-fortran
+          netcdf_c_path: /usr
+      - name: Build ParallelIO
+        if: steps.cache-PARALLELIO.outputs.cache-hit != 'true'
+        uses: ESCOMP/CDEPS/.github/actions/buildpio@e06246b
+        with:
+          parallelio_version: ${{ env.ParallelIO_VERSION }}
+          netcdf_c_path: /usr
+          netcdf_fortran_path: $HOME/netcdf-fortran
+          pnetcdf_path: $HOME/pnetcdf
+          install_prefix: $HOME/pio
+      - name: Build ESMF
+        if: steps.cache-esmf.outputs.cache-hit != 'true'
+        uses: ESCOMP/CDEPS/.github/actions/buildesmf@e06246b
+        with:
+          esmf_version: ${{ env.ESMF_VERSION }}
+          esmf_bopt: g
+          esmf_comm: openmpi
+          install_prefix: $HOME/ESMF
+          netcdf_c_path: /usr
+          netcdf_fortran_path: $HOME/netcdf-fortran
+          pnetcdf_path: $HOME/pnetcdf
+          parallelio_path: $HOME/pio
       - name: Build CMEPS
         run: |
           export ESMFMKFILE=$HOME/ESMF/lib/libg/Linux.gfortran.64.openmpi.default/esmf.mk
