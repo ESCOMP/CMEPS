@@ -48,6 +48,8 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+      - run: pip install yaml
       # use the latest cesm master
       - name: cesm checkout
         uses: actions/checkout@v3
@@ -58,7 +60,7 @@ jobs:
       - name: cmeps checkout
         uses: actions/checkout@v3
         with:
-          path: components/cmeps
+          path: cesm/components/cmeps
           
       # Checkout cesm datamodels and support
       - name: checkout externals
@@ -73,27 +75,27 @@ jobs:
           key: ${{ runner.os }}-${{ env.ESMF_VERSION }}-ESMF
       - name: cache pnetcdf
         id: cache-pnetcdf
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ~/pnetcdf
           key: ${{ runner.os }}-${{ env.PNETCDF_VERSION}}-pnetcdf
 
       - name: Cache netcdf-fortran
         id: cache-netcdf-fortran
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ~/netcdf-fortran
           key: ${{ runner.os }}-${{ env.NETCDF_FORTRAN_VERSION }}-netcdf-fortran
 
       - name: Cache ParallelIO
         id: cache-ParallelIO
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ~/pio
           key: ${{ runner.os }}-${{ env.PARALLELIO_VERSION }}.pio
       - name: Cache inputdata
         id: cache-inputdata
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: $HOME/cesm/inputdata
           key: inputdata
