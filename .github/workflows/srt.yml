@@ -66,6 +66,11 @@ jobs:
           pushd cesm
           ./manage_externals/checkout_externals ccs_config cdeps cime share mct 
           
+      - id: cache-esmf
+        uses: actions/cache@v3
+        with:
+          path: ~/ESMF
+          key: ${{ runner.os }}-${{ env.ESMF_VERSION }}-ESMF
       - name: cache pnetcdf
         id: cache-pnetcdf
         uses: actions/cache@v2
@@ -136,7 +141,7 @@ jobs:
         run: |
           mkdir -p $HOME/cesm/scratch
           mkdir -p $HOME/cesm/inputdata
-          cd $HOME/cesm/cime/CIME/tests
+          cd $GITHUB_WORKSPACE/cesm/cime/CIME/tests
           export NETCDF=$HOME/netcdf-fortran
           export PATH=$NETCDF/bin:$PATH
           export LD_LIBRARY_PATH=$NETCDF/lib:$HOME/pnetcdf/lib:$LD_LIBRARY_PATH
