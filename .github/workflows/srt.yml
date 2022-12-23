@@ -49,7 +49,9 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
-      - run: pip install yaml
+      - run: |
+          echo 'yaml-1.3 0.1.0' > requirements.txt
+          pip install -r requirements.txt
       # use the latest cesm master
       - name: cesm checkout
         uses: actions/checkout@v3
