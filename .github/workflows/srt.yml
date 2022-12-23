@@ -55,13 +55,13 @@ jobs:
           repository: ESCOMP/CESM
           path: cesm
 
-      # Checkout cesm and update cmeps to this commit
+      # Checkout cesm (datamodels only) and update cmeps to this commit
       - name: checkout externals
         run: |
           pushd cesm
-          ./manage_externals/checkout_externals -o
+          ./manage_externals/checkout_externals cmeps ccs_config cdeps cime share mct 
           pushd components/cmeps
-          git checkout $GITHUB_SHA
+          git checkout $GITHUB_REF
           
       - name: cache pnetcdf
         id: cache-pnetcdf
