@@ -68,7 +68,7 @@ jobs:
       - name: checkout externals
         run: |
           pushd cesm
-          ./manage_externals/checkout_externals ccs_config cdeps cime share mct cpl7
+          ./manage_externals/checkout_externals ccs_config cdeps cime share mct cpl7 parallelio
           
       - name: Cache ESMF
         id: cache-esmf
@@ -136,11 +136,6 @@ jobs:
           netcdf_fortran_path: $HOME/netcdf-fortran
           pnetcdf_path: $HOME/pnetcdf
           parallelio_path: $HOME/pio
-#
-#      The following can be used to ssh to the testnode for debugging
-#      see https://github.com/mxschmitt/action-tmate for details
-#      - name: Setup tmate session
-#        uses: mxschmitt/action-tmate@v3
 
       - name: scripts regression tests
         run: |
@@ -160,6 +155,6 @@ jobs:
 
 #     the following can be used by developers to login to the github server in case of errors
 #     see https://github.com/marketplace/actions/debugging-with-tmate for further details
-      - name: Setup tmate session
-        if: ${{ failure() }}
-        uses: mxschmitt/action-tmate@v3
+#      - name: Setup tmate session
+#        if: ${{ failure() }}
+#        uses: mxschmitt/action-tmate@v3
