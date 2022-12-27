@@ -17,238 +17,285 @@ from CIME.utils import expect
 from CIME.utils import get_model, get_time_in_seconds, get_timestamp
 from CIME.buildnml import create_namelist_infile, parse_input
 from CIME.XML.files import Files
-#pylint: disable=undefined-variable
+
+# pylint: disable=undefined-variable
 logger = logging.getLogger(__name__)
 
 ###############################################################################
 def _create_drv_namelists(case, infile, confdir, nmlgen, files):
-###############################################################################
+    ###############################################################################
 
-    #--------------------------------
+    # --------------------------------
     # Set up config dictionary
-    #--------------------------------
+    # --------------------------------
     config = {}
     cime_model = get_model()
-    config['cime_model'] = cime_model
-    config['iyear'] = case.get_value('COMPSET').split('_')[0]
-    config['BGC_MODE'] = case.get_value("CCSM_BGC")
-    config['CPL_I2O_PER_CAT'] = case.get_value('CPL_I2O_PER_CAT')
-    config['DRV_THREADING'] = case.get_value('DRV_THREADING')
-    config['CPL_ALBAV'] = case.get_value('CPL_ALBAV')
-    config['CPL_EPBAL'] = case.get_value('CPL_EPBAL')
-    config['FLDS_WISO'] = case.get_value('FLDS_WISO')
-    config['BUDGETS'] = case.get_value('BUDGETS')
-    config['MACH'] = case.get_value('MACH')
-    config['MPILIB'] = case.get_value('MPILIB')
-    config['OS'] = case.get_value('OS')
-    config['glc_nec'] = 0 if case.get_value('GLC_NEC') == 0 else case.get_value('GLC_NEC')
-    config['timer_level'] = 'pos' if case.get_value('TIMER_LEVEL') >= 1 else 'neg'
-    config['continue_run'] = '.true.' if case.get_value('CONTINUE_RUN') else '.false.'
-    config['flux_epbal'] = 'ocn' if case.get_value('CPL_EPBAL')  == 'ocn' else 'off'
-    config['mask_grid'] = case.get_value('MASK_GRID')
-    config['rest_option'] = case.get_value('REST_OPTION')
-    config['comp_ocn'] = case.get_value('COMP_OCN')
+    config["cime_model"] = cime_model
+    config["iyear"] = case.get_value("COMPSET").split("_")[0]
+    config["BGC_MODE"] = case.get_value("CCSM_BGC")
+    config["CPL_I2O_PER_CAT"] = case.get_value("CPL_I2O_PER_CAT")
+    config["DRV_THREADING"] = case.get_value("DRV_THREADING")
+    config["CPL_ALBAV"] = case.get_value("CPL_ALBAV")
+    config["CPL_EPBAL"] = case.get_value("CPL_EPBAL")
+    config["FLDS_WISO"] = case.get_value("FLDS_WISO")
+    config["BUDGETS"] = case.get_value("BUDGETS")
+    config["MACH"] = case.get_value("MACH")
+    config["MPILIB"] = case.get_value("MPILIB")
+    config["OS"] = case.get_value("OS")
+    config["glc_nec"] = (
+        0 if case.get_value("GLC_NEC") == 0 else case.get_value("GLC_NEC")
+    )
+    config["timer_level"] = "pos" if case.get_value("TIMER_LEVEL") >= 1 else "neg"
+    config["continue_run"] = ".true." if case.get_value("CONTINUE_RUN") else ".false."
+    config["flux_epbal"] = "ocn" if case.get_value("CPL_EPBAL") == "ocn" else "off"
+    config["mask_grid"] = case.get_value("MASK_GRID")
+    config["rest_option"] = case.get_value("REST_OPTION")
+    config["comp_ocn"] = case.get_value("COMP_OCN")
 
-    atm_grid = case.get_value('ATM_GRID')
-    lnd_grid = case.get_value('LND_GRID')
-    ice_grid = case.get_value('ICE_GRID')
-    ocn_grid = case.get_value('OCN_GRID')
-    rof_grid = case.get_value('ROF_GRID')
-    wav_grid = case.get_value('WAV_GRID')
-    #pylint: disable=unused-variable
-    glc_grid = case.get_value('GLC_GRID')
+    atm_grid = case.get_value("ATM_GRID")
+    lnd_grid = case.get_value("LND_GRID")
+    ice_grid = case.get_value("ICE_GRID")
+    ocn_grid = case.get_value("OCN_GRID")
+    # pylint: disable=unused-variable
+    rof_grid = case.get_value("ROF_GRID")
+    # pylint: disable=unused-variable
+    wav_grid = case.get_value("WAV_GRID")
+    # pylint: disable=unused-variable
+    glc_grid = case.get_value("GLC_GRID")
 
-    config['atm_grid'] = atm_grid
-    config['lnd_grid'] = lnd_grid
-    config['ice_grid'] = ice_grid
-    config['ocn_grid'] = ocn_grid
+    config["atm_grid"] = atm_grid
+    config["lnd_grid"] = lnd_grid
+    config["ice_grid"] = ice_grid
+    config["ocn_grid"] = ocn_grid
 
     atm_mesh = case.get_value("ATM_DOMAIN_MESH")
     lnd_mesh = case.get_value("LND_DOMAIN_MESH")
     rof_mesh = case.get_value("ROF_DOMAIN_MESH")
-    config['samegrid_atm_lnd'] = 'true' if atm_mesh == case.get_value("LND_DOMAIN_MESH") else 'false'
-    config['samegrid_atm_ocn'] = 'true' if atm_mesh == case.get_value("OCN_DOMAIN_MESH") else 'false'
-    config['samegrid_atm_ice'] = 'true' if atm_mesh == case.get_value("ICE_DOMAIN_MESH") else 'false'
-    config['samegrid_atm_wav'] = 'true' if atm_mesh == case.get_value("WAV_DOMAIN_MESH") else 'false'
-    config['samegrid_lnd_rof'] = 'true' if lnd_mesh == rof_mesh else 'false'
+    config["samegrid_atm_lnd"] = (
+        "true" if atm_mesh == case.get_value("LND_DOMAIN_MESH") else "false"
+    )
+    config["samegrid_atm_ocn"] = (
+        "true" if atm_mesh == case.get_value("OCN_DOMAIN_MESH") else "false"
+    )
+    config["samegrid_atm_ice"] = (
+        "true" if atm_mesh == case.get_value("ICE_DOMAIN_MESH") else "false"
+    )
+    config["samegrid_atm_wav"] = (
+        "true" if atm_mesh == case.get_value("WAV_DOMAIN_MESH") else "false"
+    )
+    config["samegrid_lnd_rof"] = "true" if lnd_mesh == rof_mesh else "false"
 
     # determine if need to set atm_domainfile
-    scol_lon = float(case.get_value('PTS_LON'))
-    scol_lat = float(case.get_value('PTS_LAT'))
-    if scol_lon > -999. and scol_lat > -999. and case.get_value("ATM_DOMAIN_FILE") != "UNSET":
-        config['single_column'] = 'true'
+    scol_lon = float(case.get_value("PTS_LON"))
+    scol_lat = float(case.get_value("PTS_LAT"))
+    if (
+        scol_lon > -999.0
+        and scol_lat > -999.0
+        and case.get_value("ATM_DOMAIN_FILE") != "UNSET"
+    ):
+        config["single_column"] = "true"
     else:
-        config['single_column'] = 'false'
+        config["single_column"] = "false"
 
     # needed for determining the run sequence as well as glc_renormalize_smb
-    config['COMP_ATM'] = case.get_value("COMP_ATM")
-    config['COMP_ICE'] = case.get_value("COMP_ICE")
-    config['COMP_GLC'] = case.get_value("COMP_GLC")
-    config['COMP_LND'] = case.get_value("COMP_LND")
-    config['COMP_OCN'] = case.get_value("COMP_OCN")
-    config['COMP_ROF'] = case.get_value("COMP_ROF")
-    config['COMP_WAV'] = case.get_value("COMP_WAV")
+    config["COMP_ATM"] = case.get_value("COMP_ATM")
+    config["COMP_ICE"] = case.get_value("COMP_ICE")
+    config["COMP_GLC"] = case.get_value("COMP_GLC")
+    config["COMP_LND"] = case.get_value("COMP_LND")
+    config["COMP_OCN"] = case.get_value("COMP_OCN")
+    config["COMP_ROF"] = case.get_value("COMP_ROF")
+    config["COMP_WAV"] = case.get_value("COMP_WAV")
 
-    if ((case.get_value("COMP_ROF") == 'mosart' and case.get_value("MOSART_MODE") == 'NULL') or
-        (case.get_value("COMP_ROF") == 'rtm' and case.get_value("RTM_MODE") == 'NULL') or
-        (case.get_value("ROF_GRID") == 'null')):
-        config['ROF_MODE'] = 'null'
+    if (
+        (
+            case.get_value("COMP_ROF") == "mosart"
+            and case.get_value("MOSART_MODE") == "NULL"
+        )
+        or (
+            case.get_value("COMP_ROF") == "rtm" and case.get_value("RTM_MODE") == "NULL"
+        )
+        or (case.get_value("ROF_GRID") == "null")
+    ):
+        config["ROF_MODE"] = "null"
 
-    if case.get_value('RUN_TYPE') == 'startup':
-        config['run_type'] = 'startup'
-    elif case.get_value('RUN_TYPE') == 'hybrid':
-        config['run_type'] = 'startup'
-    elif case.get_value('RUN_TYPE') == 'branch':
-        config['run_type'] = 'branch'
+    if case.get_value("RUN_TYPE") == "startup":
+        config["run_type"] = "startup"
+    elif case.get_value("RUN_TYPE") == "hybrid":
+        config["run_type"] = "startup"
+    elif case.get_value("RUN_TYPE") == "branch":
+        config["run_type"] = "branch"
 
-    #----------------------------------------------------
+    # ----------------------------------------------------
     # Initialize namelist defaults
-    #----------------------------------------------------
+    # ----------------------------------------------------
     nmlgen.init_defaults(infile, config, skip_default_for_groups=["modelio"])
 
-    #--------------------------------
+    # --------------------------------
     # Set default wav-ice coupling (assumes cice6 as the ice component
-    #--------------------------------
-    if (case.get_value("COMP_WAV") == 'ww3dev' and case.get_value("COMP_ICE") == 'cice'):
-        nmlgen.add_default('wavice_coupling', value='.true.')
+    # --------------------------------
+    if case.get_value("COMP_WAV") == "ww3dev" and case.get_value("COMP_ICE") == "cice":
+        nmlgen.add_default("wavice_coupling", value=".true.")
 
-    #--------------------------------
+    # --------------------------------
     # Overwrite: set brnch_retain_casename
-    #--------------------------------
-    start_type = nmlgen.get_value('start_type')
-    if start_type != 'startup':
-        if case.get_value('CASE') == case.get_value('RUN_REFCASE'):
-            nmlgen.set_value('brnch_retain_casename' , value='.true.')
+    # --------------------------------
+    start_type = nmlgen.get_value("start_type")
+    if start_type != "startup":
+        if case.get_value("CASE") == case.get_value("RUN_REFCASE"):
+            nmlgen.set_value("brnch_retain_casename", value=".true.")
 
     # set aquaplanet if appropriate
-    if config['COMP_OCN'] == 'docn' and 'aqua' in case.get_value("DOCN_MODE"):
-        nmlgen.set_value('aqua_planet' , value='.true.')
+    if config["COMP_OCN"] == "docn" and "aqua" in case.get_value("DOCN_MODE"):
+        nmlgen.set_value("aqua_planet", value=".true.")
 
-    #--------------------------------
+    # --------------------------------
     # Overwrite: set component coupling frequencies
-    #--------------------------------
-    ncpl_base_period  = case.get_value('NCPL_BASE_PERIOD')
-    if ncpl_base_period == 'hour':
+    # --------------------------------
+    ncpl_base_period = case.get_value("NCPL_BASE_PERIOD")
+    if ncpl_base_period == "hour":
         basedt = 3600
-    elif ncpl_base_period == 'day':
+    elif ncpl_base_period == "day":
         basedt = 3600 * 24
-    elif ncpl_base_period == 'year':
-        if case.get_value('CALENDAR') == 'NO_LEAP':
+    elif ncpl_base_period == "year":
+        if case.get_value("CALENDAR") == "NO_LEAP":
             basedt = 3600 * 24 * 365
         else:
-            expect(False, "Invalid CALENDAR for NCPL_BASE_PERIOD %s " %ncpl_base_period)
-    elif ncpl_base_period == 'decade':
-        if case.get_value('CALENDAR') == 'NO_LEAP':
+            expect(
+                False, "Invalid CALENDAR for NCPL_BASE_PERIOD %s " % ncpl_base_period
+            )
+    elif ncpl_base_period == "decade":
+        if case.get_value("CALENDAR") == "NO_LEAP":
             basedt = 3600 * 24 * 365 * 10
         else:
-            expect(False, "invalid NCPL_BASE_PERIOD NCPL_BASE_PERIOD %s " %ncpl_base_period)
+            expect(
+                False,
+                "invalid NCPL_BASE_PERIOD NCPL_BASE_PERIOD %s " % ncpl_base_period,
+            )
     else:
-        expect(False, "invalid NCPL_BASE_PERIOD NCPL_BASE_PERIOD %s " %ncpl_base_period)
+        expect(
+            False, "invalid NCPL_BASE_PERIOD NCPL_BASE_PERIOD %s " % ncpl_base_period
+        )
 
     if basedt < 0:
-        expect(False, "basedt invalid overflow for NCPL_BASE_PERIOD %s " %ncpl_base_period)
-
+        expect(
+            False, "basedt invalid overflow for NCPL_BASE_PERIOD %s " % ncpl_base_period
+        )
 
     # determine coupling intervals
     comps = case.get_values("COMP_CLASSES")
     mindt = basedt
     coupling_times = {}
     for comp in comps:
-        ncpl = case.get_value(comp.upper() + '_NCPL')
+        ncpl = case.get_value(comp.upper() + "_NCPL")
         if ncpl is not None:
             cpl_dt = basedt // int(ncpl)
             totaldt = cpl_dt * int(ncpl)
             if totaldt != basedt:
-                expect(False, " %s ncpl doesn't divide base dt evenly" %comp)
-            nmlgen.add_default(comp.lower() + '_cpl_dt', value=cpl_dt)
-            coupling_times[comp.lower() + '_cpl_dt'] = cpl_dt
+                expect(False, " %s ncpl doesn't divide base dt evenly" % comp)
+            nmlgen.add_default(comp.lower() + "_cpl_dt", value=cpl_dt)
+            coupling_times[comp.lower() + "_cpl_dt"] = cpl_dt
             mindt = min(mindt, cpl_dt)
 
     # sanity check
     comp_atm = case.get_value("COMP_ATM")
-    if comp_atm is not None and comp_atm not in('datm', 'xatm', 'satm'):
-        atmdt = int(basedt / case.get_value('ATM_NCPL'))
-        expect(atmdt == mindt, 'Active atm should match shortest model timestep atmdt={} mindt={}'
-               .format(atmdt, mindt))
+    if comp_atm is not None and comp_atm not in ("datm", "xatm", "satm"):
+        atmdt = int(basedt / case.get_value("ATM_NCPL"))
+        expect(
+            atmdt == mindt,
+            "Active atm should match shortest model timestep atmdt={} mindt={}".format(
+                atmdt, mindt
+            ),
+        )
 
-    #--------------------------------
+    # --------------------------------
     # Overwrite: set start_ymd
-    #--------------------------------
-    run_startdate = "".join(str(x) for x in case.get_value('RUN_STARTDATE').split('-'))
-    nmlgen.set_value('start_ymd', value=run_startdate)
+    # --------------------------------
+    run_startdate = "".join(str(x) for x in case.get_value("RUN_STARTDATE").split("-"))
+    nmlgen.set_value("start_ymd", value=run_startdate)
 
-    #--------------------------------
+    # --------------------------------
     # Overwrite: set tprof_option and tprof_n - if tprof_total is > 0
-    #--------------------------------
+    # --------------------------------
     # This would be better handled inside the alarm logic in the driver routines.
     # Here supporting only nday(s), nmonth(s), and nyear(s).
 
-    stop_option = case.get_value('STOP_OPTION')
-    if 'nyear' in stop_option:
-        tprofoption = 'ndays'
+    stop_option = case.get_value("STOP_OPTION")
+    if "nyear" in stop_option:
+        tprofoption = "ndays"
         tprofmult = 365
-    elif 'nmonth' in stop_option:
-        tprofoption = 'ndays'
+    elif "nmonth" in stop_option:
+        tprofoption = "ndays"
         tprofmult = 30
-    elif 'nday' in stop_option:
-        tprofoption = 'ndays'
+    elif "nday" in stop_option:
+        tprofoption = "ndays"
         tprofmult = 1
     else:
         tprofmult = 1
-        tprofoption = 'never'
+        tprofoption = "never"
 
-    tprof_total = case.get_value('TPROF_TOTAL')
-    if ((tprof_total > 0) and (case.get_value('STOP_DATE') < 0) and ('ndays' in tprofoption)):
-        stop_n = case.get_value('STOP_N')
+    tprof_total = case.get_value("TPROF_TOTAL")
+    if (
+        (tprof_total > 0)
+        and (case.get_value("STOP_DATE") < 0)
+        and ("ndays" in tprofoption)
+    ):
+        stop_n = case.get_value("STOP_N")
         stopn = tprofmult * stop_n
         tprofn = int(stopn / tprof_total)
         if tprofn < 1:
             tprofn = 1
-        nmlgen.set_value('tprof_option', value=tprofoption)
-        nmlgen.set_value('tprof_n'     , value=tprofn)
+        nmlgen.set_value("tprof_option", value=tprofoption)
+        nmlgen.set_value("tprof_n", value=tprofn)
 
     # Set up the pause_component_list if pause is active
-    pauseo = case.get_value('PAUSE_OPTION')
-    if pauseo != 'never' and pauseo != 'none':
-        pausen = case.get_value('PAUSE_N')
-        pcl = nmlgen.get_default('pause_component_list')
-        nmlgen.add_default('pause_component_list', pcl)
+    pauseo = case.get_value("PAUSE_OPTION")
+    if pauseo != "never" and pauseo != "none":
+        pausen = case.get_value("PAUSE_N")
+        pcl = nmlgen.get_default("pause_component_list")
+        nmlgen.add_default("pause_component_list", pcl)
         # Check to make sure pause_component_list is valid
-        pcl = nmlgen.get_value('pause_component_list')
-        if pcl != 'none' and pcl != 'all':
-            pause_comps = pcl.split(':')
+        pcl = nmlgen.get_value("pause_component_list")
+        if pcl != "none" and pcl != "all":
+            pause_comps = pcl.split(":")
             comp_classes = case.get_values("COMP_CLASSES")
             for comp in pause_comps:
-                expect(comp == 'drv' or comp.upper() in comp_classes,
-                       "Invalid PAUSE_COMPONENT_LIST, %s is not a valid component type"%comp)
+                expect(
+                    comp == "drv" or comp.upper() in comp_classes,
+                    "Invalid PAUSE_COMPONENT_LIST, %s is not a valid component type"
+                    % comp,
+                )
             # End for
         # End if
         # Set esp interval
-        if 'nstep' in pauseo:
+        if "nstep" in pauseo:
             esp_time = mindt
         else:
             esp_time = get_time_in_seconds(pausen, pauseo)
 
-        nmlgen.set_value('esp_cpl_dt', value=esp_time)
+        nmlgen.set_value("esp_cpl_dt", value=esp_time)
     # End if pause is active
 
-    #--------------------------------
+    # --------------------------------
     # Specify input data list file
-    #--------------------------------
-    data_list_path = os.path.join(case.get_case_root(), "Buildconf", "cpl.input_data_list")
+    # --------------------------------
+    data_list_path = os.path.join(
+        case.get_case_root(), "Buildconf", "cpl.input_data_list"
+    )
     if os.path.exists(data_list_path):
         os.remove(data_list_path)
 
-    #--------------------------------
+    # --------------------------------
     # Write namelist file drv_in and initial input dataset list.
-    #--------------------------------
+    # --------------------------------
     namelist_file = os.path.join(confdir, "drv_in")
     drv_namelist_groups = ["papi_inparm", "prof_inparm", "debug_inparm"]
-    nmlgen.write_output_file(namelist_file, data_list_path=data_list_path, groups=drv_namelist_groups)
+    nmlgen.write_output_file(
+        namelist_file, data_list_path=data_list_path, groups=drv_namelist_groups
+    )
 
-    #--------------------------------
+    # --------------------------------
     # Write nuopc.runconfig file and add to input dataset list.
-    #--------------------------------
+    # --------------------------------
     # Determine valid components
     valid_comps = []
     asyncio = False
@@ -259,21 +306,24 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
             asyncio = True
 
         valid = True
-        # stub comps
-        if comp == 's' + item.lower():
+        if comp == "s" + item.lower():
+            # stub comps
             valid = False
-        # xcpl_comps
-        elif comp == 'x' + item.lower():
-            if item != 'ESP': #no esp xcpl component
-                if case.get_value(item + "_NX") == "0" and case.get_value(item + "_NY") == "0":
+        elif comp == "x" + item.lower():
+            # xcpl_comps
+            if item != "ESP":  # no esp xcpl component
+                if (
+                    case.get_value(item + "_NX") == "0"
+                    and case.get_value(item + "_NY") == "0"
+                ):
                     valid = False
-        # special case - mosart in NULL mode
-        elif (comp == 'mosart'):
-            if (case.get_value("MOSART_MODE") == 'NULL'):
+        elif comp == "mosart":
+            # special case - mosart in NULL mode
+            if case.get_value("MOSART_MODE") == "NULL":
                 valid = False
-        # special case - rtm in NULL mode
-        elif (comp == 'rtm'):
-            if (case.get_value("RTM_MODE") == 'NULL'):
+        elif comp == "rtm":
+            # special case - rtm in NULL mode
+            if case.get_value("RTM_MODE") == "NULL":
                 valid = False
         if valid:
             valid_comps.append(item)
@@ -296,7 +346,7 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     datamodel_in_compset = False
     comp_classes = case.get_values("COMP_CLASSES")
     for comp in comp_classes:
-        dcompname = "d"+comp.lower()
+        dcompname = "d" + comp.lower()
         if dcompname in case.get_value("COMP_{}".format(comp)):
             datamodel_in_compset = True
 
@@ -305,12 +355,14 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     if len(valid_comps) == 2 and not datamodel_in_compset:
         # skip the mediator if there is a prognostic component and all other components are stub
         valid_comps.remove("CPL")
-        nmlgen.set_value('mediator_present', value='.false.')
+        nmlgen.set_value("mediator_present", value=".false.")
         nmlgen.set_value("component_list", value=" ".join(valid_comps))
     else:
         # do not skip mediator if there is a data component but all other components are stub
         valid_comps_string = " ".join(valid_comps)
-        nmlgen.set_value("component_list", value=valid_comps_string.replace("CPL","MED"))
+        nmlgen.set_value(
+            "component_list", value=valid_comps_string.replace("CPL", "MED")
+        )
     # the driver restart pointer will look like a mediator is present even if it is not
     nmlgen.set_value("drv_restart_pointer", value="rpointer.cpl")
 
@@ -322,48 +374,49 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
 
     lid = os.environ["LID"] if "LID" in os.environ else get_timestamp("%y%m%d-%H%M%S")
 
-    #if we are in multi-coupler mode the number of instances of mediator will be the max
+    # if we are in multi-coupler mode the number of instances of mediator will be the max
     # of any NINST_* value
     maxinst = 1
 
-    with open(nuopc_config_file, 'a', encoding="utf-8") as conffile:
+    with open(nuopc_config_file, "a", encoding="utf-8") as conffile:
         nmlgen.write_nuopc_config_file(conffile, data_list_path=data_list_path)
 
-        for model in case.get_values("COMP_CLASSES") + ['DRV']:
+        for model in case.get_values("COMP_CLASSES") + ["DRV"]:
             model = model.lower()
             config = {}
-            config['component'] = model
+            config["component"] = model
             nmlgen.init_defaults([], config, skip_entry_loop=True)
-            if model == 'cpl':
+            if model == "cpl":
                 newgroup = "MED_modelio"
             else:
-                newgroup = model.upper()+"_modelio"
+                newgroup = model.upper() + "_modelio"
             nmlgen.rename_group("modelio", newgroup)
 
             inst_count = maxinst
-            if not model == 'drv':
-                for entry in ["pio_async_interface", 
-                              "pio_netcdf_format",  
-                              "pio_numiotasks",
-                              "pio_rearranger",
-                              "pio_root",
-                              "pio_stride",
-                              "pio_typename"]:
+            if not model == "drv":
+                for entry in [
+                    "pio_async_interface",
+                    "pio_netcdf_format",
+                    "pio_numiotasks",
+                    "pio_rearranger",
+                    "pio_root",
+                    "pio_stride",
+                    "pio_typename",
+                ]:
                     nmlgen.add_default(entry)
-
 
             inst_string = ""
             inst_index = 1
             while inst_index <= inst_count:
-            # determine instance string
+                # determine instance string
                 if inst_count > 1:
-                    inst_string = '_{:04d}'.format(inst_index)
+                    inst_string = "_{:04d}".format(inst_index)
 
                 # Output the following to nuopc.runconfig
-                nmlgen.set_value("diro", case.get_value('RUNDIR'))
-                if model == 'cpl':
-                    logfile = 'med' + inst_string + ".log." + str(lid)
-                elif model == 'drv':
+                nmlgen.set_value("diro", case.get_value("RUNDIR"))
+                if model == "cpl":
+                    logfile = "med" + inst_string + ".log." + str(lid)
+                elif model == "drv":
                     logfile = model + ".log." + str(lid)
                 else:
                     logfile = model + inst_string + ".log." + str(lid)
@@ -371,24 +424,31 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
                 inst_index = inst_index + 1
             nmlgen.write_nuopc_config_file(conffile)
 
-    #--------------------------------
+    # --------------------------------
     # Update nuopc.runconfig file if component needs it
-    #--------------------------------
+    # --------------------------------
 
     # Read nuopc.runconfig
-    with open(nuopc_config_file, 'r', encoding="utf-8") as f:
+    with open(nuopc_config_file, "r", encoding="utf-8") as f:
         lines_cpl = f.readlines()
 
     # Look for only active components except CPL
     lines_comp = []
     for comp in comps:
-        if comp != 'CPL' and case.get_value("COMP_{}".format(comp)) != 'd'+comp.lower():
+        if (
+            comp != "CPL"
+            and case.get_value("COMP_{}".format(comp)) != "d" + comp.lower()
+        ):
             # Read *.configure file for component
-            caseroot = case.get_value('CASEROOT')
-            comp_config_file = os.path.join(caseroot,"Buildconf","{}conf".format(case.get_value("COMP_{}".format(comp))),
-                                            "{}.configure".format(case.get_value("COMP_{}".format(comp))))
+            caseroot = case.get_value("CASEROOT")
+            comp_config_file = os.path.join(
+                caseroot,
+                "Buildconf",
+                "{}conf".format(case.get_value("COMP_{}".format(comp))),
+                "{}.configure".format(case.get_value("COMP_{}".format(comp))),
+            )
             if os.path.isfile(comp_config_file):
-                with open(comp_config_file, 'r', encoding="utf-8") as f:
+                with open(comp_config_file, "r", encoding="utf-8") as f:
                     lines_comp = f.readlines()
 
             if lines_comp:
@@ -406,25 +466,25 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
                             lines_cpl_new.append(line_comp)
 
                 # Write to a file
-                with open(nuopc_config_file, 'w', encoding="utf-8") as f:
+                with open(nuopc_config_file, "w", encoding="utf-8") as f:
                     for line in lines_cpl_new:
                         f.write(line)
 
-    #--------------------------------
+    # --------------------------------
     # Write nuopc.runseq
-    #--------------------------------
+    # --------------------------------
     _create_runseq(case, coupling_times, valid_comps)
 
-    #--------------------------------
+    # --------------------------------
     # Write drv_flds_in
-    #--------------------------------
+    # --------------------------------
     # In thte following, all values come simply from the infiles - no default values need to be added
     # FIXME - do want to add the possibility that will use a user definition file for drv_flds_in
 
-    caseroot = case.get_value('CASEROOT')
+    caseroot = case.get_value("CASEROOT")
     namelist_file = os.path.join(confdir, "drv_flds_in")
-    nmlgen.add_default('drv_flds_in_files')
-    drvflds_files = nmlgen.get_default('drv_flds_in_files')
+    nmlgen.add_default("drv_flds_in_files")
+    drvflds_files = nmlgen.get_default("drv_flds_in_files")
     infiles = []
     for drvflds_file in drvflds_files:
         infile = os.path.join(caseroot, drvflds_file)
@@ -440,31 +500,36 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
             dict_ = {}
             with open(infile, "r", encoding="utf-8") as myfile:
                 for line in myfile:
-                    if "=" in line and '!' not in line:
+                    if "=" in line and "!" not in line:
                         name, var = line.partition("=")[::2]
                         name = name.strip()
                         var = var.strip()
                         dict_[name] = var
             dicts[infile] = dict_
 
-        for first,second in itertools.combinations(dicts.keys(),2):
+        for first, second in itertools.combinations(dicts.keys(), 2):
             compare_drv_flds_in(dicts[first], dicts[second], first, second)
 
         # Now create drv_flds_in
         config = {}
-        definition_dir = os.path.dirname(files.get_value("NAMELIST_DEFINITION_FILE", attribute={"component":"drv"}))
-        definition_file = [os.path.join(definition_dir, "namelist_definition_drv_flds.xml")]
+        definition_dir = os.path.dirname(
+            files.get_value("NAMELIST_DEFINITION_FILE", attribute={"component": "drv"})
+        )
+        definition_file = [
+            os.path.join(definition_dir, "namelist_definition_drv_flds.xml")
+        ]
         nmlgen = NamelistGenerator(case, definition_file, files=files)
         skip_entry_loop = True
         nmlgen.init_defaults(infiles, config, skip_entry_loop=skip_entry_loop)
         drv_flds_in = os.path.join(caseroot, "CaseDocs", "drv_flds_in")
         nmlgen.write_output_file(drv_flds_in)
 
+
 ###############################################################################
 def _create_runseq(case, coupling_times, valid_comps):
-###############################################################################
+    ###############################################################################
 
-    caseroot  = case.get_value("CASEROOT")
+    caseroot = case.get_value("CASEROOT")
     user_file = os.path.join(caseroot, "nuopc.runseq")
     rundir = case.get_value("RUNDIR")
 
@@ -472,7 +537,7 @@ def _create_runseq(case, coupling_times, valid_comps):
 
         # Determine if there is a user run sequence file in CASEROOT, use it
         shutil.copy(user_file, rundir)
-        shutil.copy(user_file, os.path.join(caseroot,"CaseDocs"))
+        shutil.copy(user_file, os.path.join(caseroot, "CaseDocs"))
         logger.info("NUOPC run sequence: copying custom run sequence from case root")
 
     else:
@@ -480,13 +545,17 @@ def _create_runseq(case, coupling_times, valid_comps):
         if len(valid_comps) == 1:
 
             # Create run sequence with no mediator
-            outfile = open(os.path.join(caseroot, "CaseDocs", "nuopc.runseq"), "w", encoding="utf-8")
-            dtime = coupling_times[valid_comps[0].lower() + '_cpl_dt']
-            outfile.write ("runSeq:: \n")
-            outfile.write ("@" + str(dtime) + " \n")
-            outfile.write ("  " + valid_comps[0] + " \n")
-            outfile.write ("@  \n")
-            outfile.write (":: \n")
+            outfile = open(
+                os.path.join(caseroot, "CaseDocs", "nuopc.runseq"),
+                "w",
+                encoding="utf-8",
+            )
+            dtime = coupling_times[valid_comps[0].lower() + "_cpl_dt"]
+            outfile.write("runSeq:: \n")
+            outfile.write("@" + str(dtime) + " \n")
+            outfile.write("  " + valid_comps[0] + " \n")
+            outfile.write("@  \n")
+            outfile.write(":: \n")
             outfile.close()
             shutil.copy(os.path.join(caseroot, "CaseDocs", "nuopc.runseq"), rundir)
 
@@ -501,9 +570,9 @@ def _create_runseq(case, coupling_times, valid_comps):
 
             sys.path.append(os.path.join(os.path.dirname(__file__), "runseq"))
 
-            if (comp_ice == "cice" and comp_atm == 'datm' and comp_ocn == "docn"):
+            if comp_ice == "cice" and comp_atm == "datm" and comp_ocn == "docn":
                 from runseq_D import gen_runseq
-            elif (comp_lnd == 'dlnd' and comp_glc == "cism"):
+            elif comp_lnd == "dlnd" and comp_glc == "cism":
                 from runseq_TG import gen_runseq
             else:
                 from runseq_general import gen_runseq
@@ -511,37 +580,52 @@ def _create_runseq(case, coupling_times, valid_comps):
             # create the run sequence
             gen_runseq(case, coupling_times)
 
+
 ###############################################################################
 def compare_drv_flds_in(first, second, infile1, infile2):
-###############################################################################
+    ###############################################################################
     sharedKeys = set(first.keys()).intersection(second.keys())
     for key in sharedKeys:
         if first[key] != second[key]:
-            print('Key: {}, \n Value 1: {}, \n Value 2: {}'.format(key, first[key], second[key]))
-            expect(False, "incompatible settings in drv_flds_in from \n %s \n and \n %s"
-                   % (infile1, infile2))
+            print(
+                "Key: {}, \n Value 1: {}, \n Value 2: {}".format(
+                    key, first[key], second[key]
+                )
+            )
+            expect(
+                False,
+                "incompatible settings in drv_flds_in from \n %s \n and \n %s"
+                % (infile1, infile2),
+            )
+
 
 ###############################################################################
 def buildnml(case, caseroot, component):
-###############################################################################
+    ###############################################################################
     if component != "drv":
         raise AttributeError
 
     #   Do a check here of ESMF VERSION, requires 8.1.0 or newer (8.2.0 or newer for esmf_aware_threading)
     esmf_aware_threading = case.get_value("ESMF_AWARE_THREADING")
     esmfmkfile = os.getenv("ESMFMKFILE")
-    expect(esmfmkfile and os.path.isfile(esmfmkfile),"ESMFMKFILE not found {}".format(esmfmkfile))
-    with open(esmfmkfile, 'r', encoding="utf-8") as f:
+    expect(
+        esmfmkfile and os.path.isfile(esmfmkfile),
+        "ESMFMKFILE not found {}".format(esmfmkfile),
+    )
+    with open(esmfmkfile, "r", encoding="utf-8") as f:
         major = None
         minor = None
         for line in f.readlines():
-            if 'ESMF_VERSION' in line:
-                major = line[-2] if 'MAJOR' in line else major
-                minor = line[-2] if 'MINOR' in line else minor
-        logger.debug("ESMF version major {} minor {}".format(major,minor))
-        expect(int(major) >=8,"ESMF version should be 8.1 or newer")
+            if "ESMF_VERSION" in line:
+                major = line[-2] if "MAJOR" in line else major
+                minor = line[-2] if "MINOR" in line else minor
+        logger.debug("ESMF version major {} minor {}".format(major, minor))
+        expect(int(major) >= 8, "ESMF version should be 8.1 or newer")
         if esmf_aware_threading:
-            expect(int(minor) >= 2, "ESMF version should be 8.2.0 or newer when using ESMF_AWARE_THREADING")
+            expect(
+                int(minor) >= 2,
+                "ESMF version should be 8.2.0 or newer when using ESMF_AWARE_THREADING",
+            )
         else:
             expect(int(minor) >= 1, "ESMF version should be 8.1.0 or newer")
 
@@ -553,17 +637,22 @@ def buildnml(case, caseroot, component):
     # TODO: Append instead of replace?
     user_xml_dir = os.path.join(caseroot, "SourceMods", "src.drv")
 
-    expect (os.path.isdir(user_xml_dir),
-            "user_xml_dir %s does not exist " %user_xml_dir)
+    expect(
+        os.path.isdir(user_xml_dir), "user_xml_dir %s does not exist " % user_xml_dir
+    )
 
     files = Files(comp_interface="nuopc")
 
     # TODO: to get the right attributes of COMP_ROOT_DIR_CPL in evaluating definition_file - need
     # to do the following first - this needs to be changed so that the following two lines are not needed!
-    comp_root_dir_cpl = files.get_value( "COMP_ROOT_DIR_CPL",{"component":"cpl"}, resolved=False)
+    comp_root_dir_cpl = files.get_value(
+        "COMP_ROOT_DIR_CPL", {"component": "cpl"}, resolved=False
+    )
     files.set_value("COMP_ROOT_DIR_CPL", comp_root_dir_cpl)
 
-    definition_files = [files.get_value("NAMELIST_DEFINITION_FILE", {"component": "cpl"})]
+    definition_files = [
+        files.get_value("NAMELIST_DEFINITION_FILE", {"component": "cpl"})
+    ]
     user_drv_definition = os.path.join(user_xml_dir, "namelist_definition_drv.xml")
     if os.path.isfile(user_drv_definition):
         definition_files.append(user_drv_definition)
@@ -587,8 +676,8 @@ def buildnml(case, caseroot, component):
     rundir = case.get_value("RUNDIR")
 
     # copy nuopc.runconfig to rundir
-    shutil.copy(os.path.join(confdir,"drv_in"), rundir)
-    shutil.copy(os.path.join(confdir,"nuopc.runconfig"), rundir)
+    shutil.copy(os.path.join(confdir, "drv_in"), rundir)
+    shutil.copy(os.path.join(confdir, "nuopc.runconfig"), rundir)
 
     # copy drv_flds_in to rundir
     drv_flds_in = os.path.join(caseroot, "CaseDocs", "drv_flds_in")
@@ -604,8 +693,11 @@ def buildnml(case, caseroot, component):
     if os.path.isfile(user_yaml_file):
         filename = user_yaml_file
     else:
-        filename = os.path.join(os.path.dirname(__file__), os.pardir, "mediator", "fd_cesm.yaml")
+        filename = os.path.join(
+            os.path.dirname(__file__), os.pardir, "mediator", "fd_cesm.yaml"
+        )
     shutil.copy(filename, os.path.join(rundir, "fd.yaml"))
+
 
 ###############################################################################
 def _main_func():
@@ -613,6 +705,7 @@ def _main_func():
 
     with Case(caseroot) as case:
         buildnml(case, caseroot, "drv")
+
 
 if __name__ == "__main__":
     _main_func()
