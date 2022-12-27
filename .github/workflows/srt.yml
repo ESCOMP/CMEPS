@@ -147,6 +147,10 @@ jobs:
           mkdir -p $HOME/cesm/scratch
           mkdir -p $HOME/cesm/inputdata
           cd $GITHUB_WORKSPACE/cesm/cime/CIME/tests
+          export PIO_INCDIR=$HOME/pio/include
+          export PIO_LIBDIR=$HOME/pio/lib
+          export PIO_VERSION_MAJOR=2
+          export PIO_TYPENAME_VALID_VALUES="netcdf,pnetcdf,netcdf4p,netcdf4c"
           export NETCDF=$HOME/netcdf-fortran
           export PATH=$NETCDF/bin:$PATH
           export LD_LIBRARY_PATH=$NETCDF/lib:$HOME/pnetcdf/lib:$LD_LIBRARY_PATH
