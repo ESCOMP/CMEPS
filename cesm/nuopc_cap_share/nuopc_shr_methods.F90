@@ -144,7 +144,8 @@ contains
     character(len=CL) :: diro
     character(len=CL) :: logfile
     character(len=CL) :: inst_suffix
-    integer :: inst_index  ! not used here
+    integer :: inst_index ! Not used here
+    integer :: i
     character(len=CL) :: name
     character(len=*), parameter :: subname = "("//__FILE__//": set_component_logging)"    
     !-----------------------------------------------------------------------
@@ -159,8 +160,9 @@ contains
        call get_component_instance(gcomp, inst_suffix, inst_index, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        ! Multiinstance logfile name needs a correction
-       if(logfile(4:4) == '_') then
-          logfile = logfile(1:3)//trim(inst_suffix)//logfile(9:)
+       if(len_trim(inst_suffix) > 0) then
+          i = index(logfile, ".log")
+          logfile = logfile(1:i-1)//trim(inst_suffix)//logfile(i:)
        endif
 
        open(newunit=logunit,file=trim(diro)//"/"//trim(logfile))
