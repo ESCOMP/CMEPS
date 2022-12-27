@@ -147,12 +147,13 @@ jobs:
           mkdir -p $HOME/cesm/scratch
           mkdir -p $HOME/cesm/inputdata
           cd $GITHUB_WORKSPACE/cesm/cime/CIME/tests
+          export CIME_TEST_PLATFORM=ubuntu-latest
           export PIO_INCDIR=$HOME/pio/include
           export PIO_LIBDIR=$HOME/pio/lib
           export PIO_VERSION_MAJOR=2
           export PIO_TYPENAME_VALID_VALUES="netcdf,pnetcdf,netcdf4p,netcdf4c"
           export NETCDF=$HOME/netcdf-fortran
-          export PATH=$NETCDF/bin:$PATH
+          export PATH=$NETCDF/bin:$PATH:$HOME/netcdf-fortran/bin
           export LD_LIBRARY_PATH=$NETCDF/lib:$HOME/pnetcdf/lib:$LD_LIBRARY_PATH
           export ESMFMKFILE=$HOME/ESMF/lib/libg/Linux.gfortran.64.openmpi.default/esmf.mk
           ./scripts_regression_tests.py  --no-fortran-run --compiler gnu --mpilib openmpi --machine ubuntu-latest
