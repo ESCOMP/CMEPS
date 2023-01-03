@@ -8,7 +8,7 @@ module ESM
   use shr_sys_mod  , only : shr_sys_abort
   use shr_mpi_mod  , only : shr_mpi_bcast
   use shr_mem_mod  , only : shr_mem_init
-  use shr_file_mod , only : shr_file_setLogunit
+  use shr_log_mod  , only : shr_log_setLogunit
   use esm_utils_mod, only : logunit, mastertask, dbug_flag, chkerr
   use perf_mod     , only : t_initf, t_setLogUnit
 
@@ -141,10 +141,8 @@ contains
 
     !-------------------------------------------
     ! Set the io logunit to the value defined in ensemble_driver
-    ! TODO: - is this statement still correct?
-    ! it may be corrected below if the med mastertask is not the driver mastertask
     !-------------------------------------------
-    call shr_file_setLogunit(logunit)
+    call shr_log_setLogunit(logunit)
 
     !-------------------------------------------
     ! Get the config and vm objects from the driver

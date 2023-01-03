@@ -130,7 +130,7 @@ module med_phases_aofluxes_mod
      integer            :: lsize                     ! local size
      integer  , pointer :: mask        (:) => null() ! integer ocn domain mask: 0 <=> inactive cell
      real(R8) , pointer :: rmask       (:) => null() ! real    ocn domain mask: 0 <=> inactive cell
-     real(R8) , pointer :: garea       (:) => null() ! atm grid area 
+     real(R8) , pointer :: garea       (:) => null() ! atm grid area
   end type aoflux_in_type
 
   type aoflux_out_type

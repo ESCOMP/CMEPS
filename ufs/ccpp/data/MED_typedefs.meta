@@ -772,7 +772,7 @@
 [use_med_flux]
   standard_name = do_mediator_atmosphere_ocean_fluxes
   long_name = flag for using atmosphere-ocean fluxes form mediator (default false)
-  units = flag 
+  units = flag
   dimensions = ()
   type = logical
 [ivegsrc]
@@ -1234,7 +1234,7 @@
   name = MED_typedefs
   type = module
   relative_path = ../../../../../FV3/ccpp/physics/physics
-  dependencies = machine.F,physcons.F90,physparam.f
+  dependencies = machine.F,physcons.F90
 
 [ccpp-arg-table]
   name = MED_typedefs

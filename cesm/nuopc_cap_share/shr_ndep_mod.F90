@@ -9,7 +9,7 @@ module shr_ndep_mod
   use ESMF         , only : ESMF_VMGetCurrent, ESMF_VM, ESMF_VMGet
   use ESMF         , only : ESMF_LogFoundError, ESMF_LOGERR_PASSTHRU, ESMF_SUCCESS
   use shr_sys_mod  , only : shr_sys_abort
-  use shr_log_mod  , only : s_logunit => shr_log_Unit
+  use shr_log_mod  , only : shr_log_getLogUnit
   use shr_kind_mod , only : r8 => shr_kind_r8
   use shr_nl_mod   , only : shr_nl_find_group_name
   use shr_mpi_mod  , only : shr_mpi_bcast
@@ -49,7 +49,7 @@ CONTAINS
     character(len=32)  :: ndep_list(maxspc) = '' ! List of ndep species
     integer            :: localpet
     integer            :: mpicom
-    
+    integer            :: logunit
     character(*),parameter :: subName = '(shr_ndep_readnl) '
     character(*),parameter :: F00   = "('(shr_ndep_readnl) ',8a)"
     ! ------------------------------------------------------------------
@@ -67,7 +67,7 @@ CONTAINS
     if ( len_trim(NLFilename) == 0 ) then
        call shr_sys_abort( subName//'ERROR: nlfilename not set' )
     end if
-
+    call shr_log_getLogUnit(logunit)
     call ESMF_VMGetCurrent(vm, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=__FILE__)) return 
 
@@ -80,7 +80,7 @@ CONTAINS
        inquire( file=trim(NLFileName), exist=exists)
        if ( exists ) then
           open(newunit=unitn, file=trim(NLFilename), status='old' )
-          write(s_logunit,F00) 'Read in ndep_inparm namelist from: ', trim(NLFilename)
+          write(logunit,F00) 'Read in ndep_inparm namelist from: ', trim(NLFilename)
           call shr_nl_find_group_name(unitn, 'ndep_inparm', ierr)
           if (ierr == 0) then
              ! Note that ierr /= 0, no namelist is present.
