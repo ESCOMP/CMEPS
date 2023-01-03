@@ -301,7 +301,7 @@ contains
     ! ----------------------------------------------
         
     newfld => med_fldList_GetFld(flds, fldname, rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return    
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
     newfld%merge_fields(mrg_from) = mrg_fld
     newfld%merge_types(mrg_from) = mrg_type
     if (present(mrg_fracname)) then
@@ -346,7 +346,7 @@ contains
 
   subroutine med_fldList_addmap_from(index, fldname, destcomp, maptype, mapnorm, mapfile)
     integer, intent(in) :: index
-    character(len=*)                  , intent(in)    :: fldname    
+    character(len=*)                  , intent(in)    :: fldname
     integer                            , intent(in)    :: destcomp
     integer                            , intent(in)    :: maptype
     character(len=*)                   , intent(in)    :: mapnorm
@@ -359,7 +359,7 @@ contains
   !================================================================================
 
   subroutine med_fldList_addmap_aoflux(fldname, destcomp, maptype, mapnorm, mapfile)
-    character(len=*)                  , intent(in)    :: fldname    
+    character(len=*)                  , intent(in)    :: fldname
     integer                            , intent(in)    :: destcomp
     integer                            , intent(in)    :: maptype
     character(len=*)                   , intent(in)    :: mapnorm
@@ -372,7 +372,7 @@ contains
   !================================================================================
 
   subroutine med_fldList_addmap_ocnalb(fldname, destcomp, maptype, mapnorm, mapfile)
-    character(len=*)                  , intent(in)    :: fldname    
+    character(len=*)                  , intent(in)    :: fldname
     integer                            , intent(in)    :: destcomp
     integer                            , intent(in)    :: maptype
     character(len=*)                   , intent(in)    :: mapnorm
@@ -390,7 +390,7 @@ contains
 
     ! intput/output variables
     type(med_fldList_entry_type) , intent(in), target :: fields
-    character(len=*)                  , intent(in)    :: fldname    
+    character(len=*)                  , intent(in)    :: fldname
     integer                            , intent(in)    :: destcomp
     integer                            , intent(in)    :: maptype
     character(len=*)                   , intent(in)    :: mapnorm
@@ -406,7 +406,7 @@ contains
     if (present(mapfile)) lmapfile = mapfile
 
     newfld => med_fldList_GetFld(fields, fldname, rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return    
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
     ! Note - default values are already set for the fld entries - so only non-default
     ! values need to be set below
     ! If mapindex is mapfcopy - create a redistribution route handle
@@ -704,7 +704,7 @@ contains
     
     ! local variables
     integer :: lrc
-    integer :: lcompsrc 
+    integer :: lcompsrc
     character(len=*), parameter :: subname='(med_fld_GetFldInfo)'
     lrc = ESMF_SUCCESS
 
@@ -851,7 +851,7 @@ contains
                 mapindex = newfld%mapindex(ndst)
                 if ( mapindex /= mapunset) then
                    call med_fld_GetFldInfo(newfld, compsrc=ndst, stdname=fldname, mapnorm=mapnorm, mapfile=mapfile, rc=rc)
-                   if (chkerr(rc,__LINE__,u_FILE_u)) return          
+                   if (chkerr(rc,__LINE__,u_FILE_u)) return
 
                    if (trim(mapnorm) == 'unset') then
                       cvalue = ' mapping '//trim(compname(nsrc))//'->'//trim(compname(ndst)) //' '//trim(fldname) // &
@@ -882,7 +882,7 @@ contains
           call med_fld_GetFldInfo(newfld, compsrc=ndst, mapindex=mapindex, rc=rc)
           if ( mapindex /= mapunset) then
              call med_fld_GetFldInfo(newfld, stdname=fldname, compsrc=ndst, mapnorm=mapnorm, mapfile=mapfile, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return          
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
              
              if (trim(mapnorm) == 'unset') then
                 cvalue = ' mapping '//trim(compname(nsrc))//'->'//trim(compname(ndst)) //' '//trim(fldname) // &
@@ -946,7 +946,7 @@ contains
        newfld => fldListTo(ndst)%fields
        do while(associated(newfld))
           call med_fld_GetFldInfo(newfld, stdname=dst_field, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return          
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
           
           ! Loop over all possible source components for destination component field
           mrgstr = ' '
@@ -955,7 +955,7 @@ contains
              if (nsrc /= ndst .and. med_coupling_active(nsrc,ndst)) then
                 src_comp    = compname(nsrc)
                 call med_fld_GetFldInfo(newfld, compsrc=nsrc, merge_fields=merge_field, merge_type=merge_type, merge_fracname=merge_frac, rc=rc)
-                if (chkerr(rc,__LINE__,u_FILE_u)) return          
+                if (chkerr(rc,__LINE__,u_FILE_u)) return
 
                 if (merge_type == 'merge' .or. merge_type == 'sum_with_weights') then
                    string = trim(merge_frac)//'*'//trim(merge_field)//'('//trim(src_comp)//')'

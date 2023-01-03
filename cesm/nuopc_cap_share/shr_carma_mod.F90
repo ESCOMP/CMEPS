@@ -7,7 +7,7 @@ module shr_carma_mod
 
   use shr_kind_mod , only : r8 => shr_kind_r8, CX => SHR_KIND_CX
   use shr_sys_mod  , only : shr_sys_abort
-  use shr_log_mod  , only : logunit => shr_log_Unit
+  use shr_log_mod  , only : shr_log_getLogUnit
   use shr_nl_mod   , only : shr_nl_find_group_name
 
   implicit none
@@ -38,9 +38,11 @@ contains
     integer :: ierr             ! error code
     logical :: exists           ! if file exists or not
     integer :: i, tmp(1)
+    integer :: logunit
     character(*),parameter :: F00   = "('(shr_carma_readnl) ',2a)"
 
     namelist /carma_inparm/ carma_fields
+    call shr_log_getLogUnit(logunit)
 
     carma_fields = ' '
     call ESMF_VMGetCurrent(vm, rc=rc)
