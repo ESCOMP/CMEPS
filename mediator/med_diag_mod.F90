@@ -1414,7 +1414,6 @@ contains
     real(r8), pointer   :: sfrac(:)  ! sum of ifrac and ofrac
     real(r8), pointer   :: areas(:)
     real(r8), pointer   :: data(:)
-    type(ESMF_field)    :: lfield
     character(*), parameter :: subName = '(med_phases_diag_ocn) '
     ! ------------------------------------------------------------------
 
