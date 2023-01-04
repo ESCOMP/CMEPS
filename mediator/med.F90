@@ -568,6 +568,7 @@ contains
     character(len=CX) :: logfile
     character(len=CX) :: diagfile
     character(len=CX) :: do_budgets
+    integer :: unused_variable
     character(len=*),parameter :: subname=' (InitializeP0) '
     !-----------------------------------------------------------
 
