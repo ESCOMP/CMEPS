@@ -19,7 +19,7 @@ module med_phases_prep_ocn_mod
   use med_methods_mod       , only : FB_average    => med_methods_FB_average
   use med_methods_mod       , only : FB_copy       => med_methods_FB_copy
   use med_methods_mod       , only : FB_reset      => med_methods_FB_reset
-  use esmFlds               , only : fldListTo
+  use esmFlds               , only : med_fldList_GetfldListTo, med_fldlist_type
   use med_internalstate_mod , only : compocn, compatm, compice, coupling_mode
   use perf_mod              , only : t_startf, t_stopf
 
@@ -99,6 +99,7 @@ contains
     real(r8), pointer   :: rofi(:), hrofi(:)
     real(r8), pointer   :: areas(:)
     real(r8), allocatable :: hcorr(:)
+    type(med_fldlist_type), pointer :: fldList
     character(len=*), parameter    :: subname='(med_phases_prep_ocn_accum)'
     !---------------------------------------
 
@@ -113,7 +114,7 @@ contains
     nullify(is_local%wrap)
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
+    fldList => med_fldList_GetfldListTo(compocn)
     ! auto merges to ocn
     if ( trim(coupling_mode) == 'cesm' .or. &
          trim(coupling_mode) == 'nems_orig_data' .or. &
@@ -124,7 +125,7 @@ contains
             is_local%wrap%FBExp(compocn), &
             is_local%wrap%FBFrac(compocn), &
             is_local%wrap%FBImp(:,compocn), &
-            fldListTo(compocn), &
+            fldList, &
             FBMed1=is_local%wrap%FBMed_aoflux_o, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     else if (trim(coupling_mode) == 'nems_frac' .or. &
@@ -135,7 +136,8 @@ contains
             is_local%wrap%FBExp(compocn), &
             is_local%wrap%FBFrac(compocn), &
             is_local%wrap%FBImp(:,compocn), &
-            fldListTo(compocn), rc=rc)
+            fldList, &
+            rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 

@@ -33,10 +33,13 @@ contains
     use med_internalstate_mod , only : mapconsf_aofrac, mapbilnr_nstod
     use med_internalstate_mod , only : coupling_mode, mapnames
     use esmFlds               , only : med_fldList_type
-    use esmFlds               , only : addfld => med_fldList_AddFld
-    use esmFlds               , only : addmap => med_fldList_AddMap
-    use esmFlds               , only : addmrg => med_fldList_AddMrg
-    use esmflds               , only : fldListTo, fldListFr, fldListMed_aoflux, fldListMed_ocnalb
+    use esmFlds               , only : addfld_to => med_fldList_addfld_to
+    use esmFlds               , only : addmrg_to => med_fldList_addmrg_to
+    use esmFlds               , only : addfld_from => med_fldList_addfld_from
+    use esmFlds               , only : addmap_from => med_fldList_addmap_from
+    use esmFlds               , only : addfld_aoflux => med_fldList_addfld_aoflux
+    use esmFlds               , only : addmap_aoflux => med_fldList_addmap_aoflux
+
     use med_internalstate_mod , only : InternalState, mastertask, logunit
 
     ! input/output parameters:
@@ -81,8 +84,8 @@ contains
        call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldName", value=cvalue, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        do n = 1,ncomps
-          call addfld(fldListFr(n)%flds, trim(cvalue))
-          call addfld(fldListTo(n)%flds, trim(cvalue))
+          call addfld_to(n, trim(cvalue))
+          call addfld_from(n, trim(cvalue))
        end do
     end if
 
@@ -92,13 +95,13 @@ contains
 
     ! masks from components
     if (phase == 'advertise') then
-       if (is_local%wrap%comp_present(compice)) call addfld(fldListFr(compice)%flds, 'Si_imask')
-       if (is_local%wrap%comp_present(compocn)) call addfld(fldListFr(compocn)%flds, 'So_omask')
-       if (is_local%wrap%comp_present(complnd)) call addfld(fldListFr(complnd)%flds, 'Sl_lfrin')
+       if (is_local%wrap%comp_present(compice)) call addfld_from(compice, 'Si_imask')
+       if (is_local%wrap%comp_present(compocn)) call addfld_from(compocn, 'So_omask')
+       if (is_local%wrap%comp_present(complnd)) call addfld_from(complnd, 'Sl_lfrin')
     else
        if ( fldchk(is_local%wrap%FBexp(compice)        , trim(fldname), rc=rc) .and. &
             fldchk(is_local%wrap%FBImp(compocn,compocn), trim(fldname), rc=rc)) then
-          call addmap(fldListFr(compocn)%flds, 'So_omask', compice,  mapfcopy, 'unset', 'unset')
+          call addmap_from(compocn, 'So_omask', compice,  mapfcopy, 'unset', 'unset')
        end if
     end if
 
@@ -111,11 +114,11 @@ contains
           fldname = trim(flds(n))
           if (phase == 'advertise') then
              if (is_local%wrap%comp_present(compatm) )then
-                call addfld(fldListFr(compatm)%flds, trim(fldname))
+                call addfld_from(compatm, trim(fldname))
              end if
           else
             if ( fldchk(is_local%wrap%FBImp(compatm,compatm), trim(fldname), rc=rc)) then
-               call addmap(fldListFr(compatm)%flds, trim(fldname), compocn, maptype, 'one', 'unset')
+               call addmap_from(compatm, trim(fldname), compocn, maptype, 'one', 'unset')
             end if
           end if
        end do
@@ -128,7 +131,7 @@ contains
        do n = 1,size(flds)
           fldname = trim(flds(n))
           if (phase == 'advertise') then
-             call addfld(fldListMed_aoflux%flds, trim(fldname))
+             call addfld_aoflux(trim(fldname))
           end if
        end do
        deallocate(flds)
@@ -143,11 +146,11 @@ contains
           fldname = trim(flds(n))
           if (phase == 'advertise') then
              if (is_local%wrap%comp_present(compatm) )then
-                call addfld(fldListFr(compatm)%flds, trim(fldname))
+                call addfld_from(compatm, trim(fldname))
              end if
           else
             if ( fldchk(is_local%wrap%FBImp(compatm,compatm), trim(fldname), rc=rc)) then
-               call addmap(fldListFr(compatm)%flds, trim(fldname), compocn, maptype, 'one', 'unset')
+               call addmap_from(compatm, trim(fldname), compocn, maptype, 'one', 'unset')
             end if
           end if
        end do
@@ -161,7 +164,7 @@ contains
        do n = 1,size(flds)
           fldname = trim(flds(n))
           if (phase == 'advertise') then
-             call addfld(fldListMed_aoflux%flds, trim(fldname))
+             call addfld_aoflux(trim(fldname))
           end if
        end do
        deallocate(flds)
@@ -169,7 +172,7 @@ contains
 
     ! TODO: unused, but required to maintain B4B repro for mediator restarts; should be removed
     if (phase == 'advertise') then
-       call addfld(fldListFr(compice)%flds, 'mean_sw_pen_to_ocn')
+       call addfld_from(compice, 'mean_sw_pen_to_ocn')
     end if
 
     !=====================================================================
@@ -179,16 +182,16 @@ contains
     ! to atm: fractions (computed in med_phases_prep_atm)
     if (phase == 'advertise') then
        if (is_local%wrap%comp_present(compice) .and. is_local%wrap%comp_present(compatm)) then
-          call addfld(fldListFr(compice)%flds, 'Si_ifrac')
-          call addfld(fldListTo(compatm)%flds, 'Si_ifrac')
+          call addfld_from(compice, 'Si_ifrac')
+          call addfld_to(compatm, 'Si_ifrac')
        end if
        ! ofrac used by atm
        if (is_local%wrap%comp_present(compocn) .and. is_local%wrap%comp_present(compatm)) then
-          call addfld(fldListFr(compatm)%flds, 'Sa_ofrac')
+          call addfld_from(compatm, 'Sa_ofrac')
        end if
        ! lfrac used by atm
        if (is_local%wrap%comp_present(complnd) .and. is_local%wrap%comp_present(compatm)) then
-          call addfld(fldListTo(compatm)%flds, 'Sl_lfrac')
+          call addfld_to(compatm, 'Sl_lfrac')
        end if
     end if
 
@@ -208,14 +211,14 @@ contains
        fldname = trim(flds(n))
        if (phase == 'advertise') then
           if (is_local%wrap%comp_present(compice) .and. is_local%wrap%comp_present(compatm)) then
-             call addfld(fldListFr(compice)%flds, trim(fldname))
-             call addfld(fldListTo(compatm)%flds, trim(fldname))
+             call addfld_from(compice, trim(fldname))
+             call addfld_to(compatm, trim(fldname))
           end if
        else
           if ( fldchk(is_local%wrap%FBexp(compatm)        , trim(fldname), rc=rc) .and. &
                fldchk(is_local%wrap%FBImp(compice,compice), trim(fldname), rc=rc)) then
-             call addmap(fldListFr(compice)%flds, trim(fldname), compatm, maptype, 'ifrac', 'unset')
-             call addmrg(fldListTo(compatm)%flds, trim(fldname), mrg_from=compice, mrg_fld=trim(fldname), mrg_type='copy')
+             call addmap_from(compice, trim(fldname), compatm, maptype, 'ifrac', 'unset')
+             call addmrg_to(compatm, trim(fldname), mrg_from=compice, mrg_fld=trim(fldname), mrg_type='copy')
           end if
        end if
     end do
@@ -227,14 +230,14 @@ contains
        fldname = trim(flds(n))
        if (phase == 'advertise') then
           if (is_local%wrap%comp_present(compice) .and. is_local%wrap%comp_present(compatm)) then
-             call addfld(fldListFr(compice)%flds, trim(fldname))
-             call addfld(fldListTo(compatm)%flds, trim(fldname))
+             call addfld_from(compice, trim(fldname))
+             call addfld_to(compatm, trim(fldname))
           end if
        else
           if ( fldchk(is_local%wrap%FBexp(compatm)        , trim(fldname), rc=rc) .and. &
                fldchk(is_local%wrap%FBImp(compice,compice), trim(fldname), rc=rc)) then
-             call addmap(fldListFr(compice)%flds, trim(fldname), compatm, maptype, 'ifrac', 'unset')
-             call addmrg(fldListTo(compatm)%flds, trim(fldname), mrg_from=compice, mrg_fld=trim(fldname), mrg_type='copy')
+             call addmap_from(compice, trim(fldname), compatm, maptype, 'ifrac', 'unset')
+             call addmrg_to(compatm, trim(fldname), mrg_from=compice, mrg_fld=trim(fldname), mrg_type='copy')
           end if
        end if
     end do
@@ -243,28 +246,28 @@ contains
     ! to atm: unmerged surface temperatures from ocn
     if (phase == 'advertise') then
        if (is_local%wrap%comp_present(compocn) .and. is_local%wrap%comp_present(compatm)) then
-          call addfld(fldListFr(compocn)%flds, 'So_t')
-          call addfld(fldListTo(compatm)%flds, 'So_t')
+          call addfld_from(compocn, 'So_t')
+          call addfld_to(compatm, 'So_t')
        end if
     else
        if ( fldchk(is_local%wrap%FBexp(compatm)        , 'So_t', rc=rc) .and. &
             fldchk(is_local%wrap%FBImp(compocn,compocn), 'So_t', rc=rc)) then
-          call addmap(fldListFr(compocn)%flds, 'So_t', compatm, maptype, 'ofrac', 'unset')
-          call addmrg(fldListTo(compatm)%flds, 'So_t', mrg_from=compocn, mrg_fld='So_t', mrg_type='copy')
+          call addmap_from(compocn, 'So_t', compatm, maptype, 'ofrac', 'unset')
+          call addmrg_to(compatm, 'So_t', mrg_from=compocn, mrg_fld='So_t', mrg_type='copy')
        end if
     end if
 
     ! to atm: unmerged surface temperatures from lnd
     if (phase == 'advertise') then
        if (is_local%wrap%comp_present(complnd) .and. is_local%wrap%comp_present(compatm)) then
-          call addfld(fldListFr(complnd)%flds, 'Sl_t')
-          call addfld(fldListTo(compatm)%flds, 'Sl_t')
+          call addfld_from(complnd, 'Sl_t')
+          call addfld_to(compatm, 'Sl_t')
        end if
     else
        if ( fldchk(is_local%wrap%FBexp(compatm)        , 'Sl_t', rc=rc) .and. &
             fldchk(is_local%wrap%FBImp(complnd,complnd), 'Sl_t', rc=rc)) then
-          call addmap(fldListFr(complnd)%flds, 'Sl_t', compatm, maptype, 'lfrin', 'unset')
-          call addmrg(fldListTo(compatm)%flds, 'Sl_t', mrg_from=complnd, mrg_fld='Sl_t', mrg_type='copy')
+          call addmap_from(complnd, 'Sl_t', compatm, maptype, 'lfrin', 'unset')
+          call addmrg_to(compatm, 'Sl_t', mrg_from=complnd, mrg_fld='Sl_t', mrg_type='copy')
        end if
     end if
 
@@ -280,16 +283,16 @@ contains
           flds = (/ 'lat ', 'sen ', 'lwup', 'taux', 'tauy' /)
           if (phase == 'advertise') then
              do n = 1,size(flds)
-                call addfld(fldListMed_aoflux%flds , 'Faox_'//trim(flds(n)))
-                call addfld(fldListTo(compatm)%flds, 'Faox_'//trim(flds(n)))
+                call addfld_aoflux('Faox_'//trim(flds(n)))
+                call addfld_to(compatm, 'Faox_'//trim(flds(n)))
              end do
           else
              do n = 1,size(flds)
                 if (fldchk(is_local%wrap%FBMed_aoflux_o, 'Faox_'//trim(flds(n)), rc=rc)) then
                    if (trim(is_local%wrap%aoflux_grid) == 'ogrid') then
-                      call addmap(fldListMed_aoflux%flds, 'Faox_'//trim(flds(n)), compatm, maptype, 'ofrac', 'unset')
+                      call addmap_aoflux('Faox_'//trim(flds(n)), compatm, maptype, 'ofrac', 'unset')
                    end if
-                   call addmrg(fldListTo(compatm)%flds, 'Faox_'//trim(flds(n)), mrg_from=compmed, mrg_fld='Faox_'//trim(flds(n)), mrg_type='copy')
+                   call addmrg_to(compatm, 'Faox_'//trim(flds(n)), mrg_from=compmed, mrg_fld='Faox_'//trim(flds(n)), mrg_type='copy')
                 end if
              end do
           end if
@@ -300,14 +303,14 @@ contains
     ! to atm: surface roughness length from wav
     if (phase == 'advertise') then
        if (is_local%wrap%comp_present(compwav) .and. is_local%wrap%comp_present(compatm)) then
-          call addfld(fldListFr(compwav)%flds, 'Sw_z0')
-          call addfld(fldListTo(compatm)%flds, 'Sw_z0')
+          call addfld_from(compwav, 'Sw_z0')
+          call addfld_to(compatm, 'Sw_z0')
        end if
     else
        if ( fldchk(is_local%wrap%FBexp(compatm)        , 'Sw_z0', rc=rc) .and. &
             fldchk(is_local%wrap%FBImp(compwav,compwav), 'Sw_z0', rc=rc)) then
-          call addmap(fldListFr(compwav)%flds, 'Sw_z0', compatm, mapnstod_consf, 'one', 'unset')
-          call addmrg(fldListTo(compatm)%flds, 'Sw_z0', mrg_from=compwav, mrg_fld='Sw_z0', mrg_type='copy')
+          call addmap_from(compwav, 'Sw_z0', compatm, mapnstod_consf, 'one', 'unset')
+          call addmrg_to(compatm, 'Sw_z0', mrg_from=compwav, mrg_fld='Sw_z0', mrg_type='copy')
        end if
     end if
 
@@ -318,14 +321,14 @@ contains
     ! to ocn: sea level pressure from atm
     if (phase == 'advertise') then
        if (is_local%wrap%comp_present(compatm) .and. is_local%wrap%comp_present(compocn)) then
-          call addfld(fldListFr(compatm)%flds, 'Sa_pslv')
-          call addfld(fldListTo(compocn)%flds, 'Sa_pslv')
+          call addfld_from(compatm, 'Sa_pslv')
+          call addfld_to(compocn, 'Sa_pslv')
        end if
     else
        if ( fldchk(is_local%wrap%FBexp(compocn)        , 'Sa_pslv', rc=rc) .and. &
             fldchk(is_local%wrap%FBImp(compatm,compatm), 'Sa_pslv', rc=rc)) then
-          call addmap(fldListFr(compatm)%flds, 'Sa_pslv', compocn, maptype, 'one', 'unset')
-          call addmrg(fldListTo(compocn)%flds, 'Sa_pslv', mrg_from=compatm, mrg_fld='Sa_pslv', mrg_type='copy')
+          call addmap_from(compatm, 'Sa_pslv', compocn, maptype, 'one', 'unset')
+          call addmrg_to(compocn, 'Sa_pslv', mrg_from=compatm, mrg_fld='Sa_pslv', mrg_type='copy')
        end if
     end if
 
@@ -343,13 +346,13 @@ contains
     do n = 1,size(oflds)
        if (phase == 'advertise') then
           if (is_local%wrap%comp_present(compatm) .and. is_local%wrap%comp_present(compocn)) then
-             call addfld(fldListFr(compatm)%flds, trim(aflds(n)))
-             call addfld(fldListTo(compocn)%flds, trim(oflds(n)))
+             call addfld_from(compatm, trim(aflds(n)))
+             call addfld_to(compocn, trim(oflds(n)))
           end if
        else
           if ( fldchk(is_local%wrap%FBexp(compocn)        , trim(oflds(n)), rc=rc) .and. &
                fldchk(is_local%wrap%FBImp(compatm,compatm), trim(aflds(n)), rc=rc)) then
-             call addmap(fldListFr(compatm)%flds, trim(aflds(n)), compocn, maptype, 'one', 'unset')
+             call addmap_from(compatm, trim(aflds(n)), compocn, maptype, 'one', 'unset')
           end if
        end if
     end do
@@ -357,13 +360,13 @@ contains
     do n = 1,size(oflds)
        if (phase == 'advertise') then
           if (is_local%wrap%comp_present(compice) .and. is_local%wrap%comp_present(compocn)) then
-             call addfld(fldListFr(compice)%flds, trim(iflds(n)))
-             call addfld(fldListTo(compocn)%flds, trim(oflds(n)))
+             call addfld_from(compice, trim(iflds(n)))
+             call addfld_to(compocn, trim(oflds(n)))
           end if
        else
           if ( fldchk(is_local%wrap%FBexp(compocn)        , trim(oflds(n)), rc=rc) .and. &
                fldchk(is_local%wrap%FBImp(compice,compice), trim(iflds(n)), rc=rc)) then
-             call addmap(fldListFr(compice)%flds, trim(iflds(n)), compocn, mapfcopy, 'unset', 'unset')
+             call addmap_from(compice, trim(iflds(n)), compocn, mapfcopy, 'unset', 'unset')
           end if
        end if
     end do
@@ -378,14 +381,14 @@ contains
        fldname = trim(flds(n))
        if (phase == 'advertise') then
           if (is_local%wrap%comp_present(compatm) .and. is_local%wrap%comp_present(compocn)) then
-             call addfld(fldListFr(compatm)%flds, trim(fldname))
-             call addfld(fldListTo(compocn)%flds, trim(fldname))
+             call addfld_from(compatm, trim(fldname))
+             call addfld_to(compocn, trim(fldname))
           end if
        else
           if ( fldchk(is_local%wrap%FBexp(compocn)        , trim(fldname), rc=rc) .and. &
                fldchk(is_local%wrap%FBImp(compatm,compatm), trim(fldname), rc=rc)) then
-             call addmap(fldListFr(compatm)%flds, trim(fldname), compocn, maptype, 'one', 'unset')
-             call addmrg(fldListTo(compocn)%flds, trim(fldname), &
+             call addmap_from(compatm, trim(fldname), compocn, maptype, 'one', 'unset')
+             call addmrg_to(compocn, trim(fldname), &
                   mrg_from=compatm, mrg_fld=trim(fldname), mrg_type='copy_with_weights', mrg_fracname='ofrac')
           end if
        end if
@@ -405,16 +408,16 @@ contains
           if (phase == 'advertise') then
              if (is_local%wrap%comp_present(compice) .and. is_local%wrap%comp_present(compatm) &
                 .and. is_local%wrap%comp_present(compocn)) then
-                   call addfld(fldListFr(compice)%flds, trim(iflds(n)))
-                   call addfld(fldListFr(compatm)%flds, trim(aflds(n)))
-                   call addfld(fldListTo(compocn)%flds, trim(oflds(n)))
+                   call addfld_from(compice, trim(iflds(n)))
+                   call addfld_from(compatm, trim(aflds(n)))
+                   call addfld_to(compocn, trim(oflds(n)))
              end if
           else
              if ( fldchk(is_local%wrap%FBexp(compocn)        , trim(oflds(n)), rc=rc) .and. &
                   fldchk(is_local%wrap%FBImp(compice,compice), trim(iflds(n)), rc=rc) .and. &
                   fldchk(is_local%wrap%FBImp(compatm,compatm), trim(aflds(n)), rc=rc)) then
-                call addmap(fldListFr(compice)%flds, trim(iflds(n)), compocn, mapfcopy, 'unset', 'unset')
-                call addmap(fldListFr(compatm)%flds, trim(aflds(n)), compocn, mapconsf_aofrac, 'aofrac', 'unset')
+                call addmap_from(compice, trim(iflds(n)), compocn, mapfcopy, 'unset', 'unset')
+                call addmap_from(compatm, trim(aflds(n)), compocn, mapconsf_aofrac, 'aofrac', 'unset')
              end if
           end if
        end do
@@ -425,14 +428,14 @@ contains
        ! to ocn: net long wave via auto merge
        if (phase == 'advertise') then
           if (is_local%wrap%comp_present(compatm) .and. is_local%wrap%comp_present(compocn)) then
-             call addfld(fldListFr(compatm)%flds, 'Faxa_lwnet')
-             call addfld(fldListTo(compocn)%flds, 'Faxa_lwnet')
+             call addfld_from(compatm, 'Faxa_lwnet')
+             call addfld_to(compocn, 'Faxa_lwnet')
           end if
        else
           if ( fldchk(is_local%wrap%FBexp(compocn)        , 'Faxa_lwnet', rc=rc) .and. &
                fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_lwnet', rc=rc)) then
-             call addmap(fldListFr(compatm)%flds, 'Faxa_lwnet', compocn, mapconsf_aofrac, 'aofrac', 'unset')
-             call addmrg(fldListTo(compocn)%flds, 'Faxa_lwnet', &
+             call addmap_from(compatm, 'Faxa_lwnet', compocn, mapconsf_aofrac, 'aofrac', 'unset')
+             call addmrg_to(compocn, 'Faxa_lwnet', &
                   mrg_from=compatm, mrg_fld='Faxa_lwnet', mrg_type='copy_with_weights', mrg_fracname='ofrac')
           end if
        end if
@@ -440,26 +443,26 @@ contains
        ! to ocn: merged sensible heat flux (custom merge in med_phases_prep_ocn)
        if (phase == 'advertise') then
           if (is_local%wrap%comp_present(compatm) .and. is_local%wrap%comp_present(compocn)) then
-             call addfld(fldListFr(compatm)%flds, 'Faxa_sen')
-             call addfld(fldListTo(compocn)%flds, 'Faxa_sen')
+             call addfld_from(compatm, 'Faxa_sen')
+             call addfld_to(compocn, 'Faxa_sen')
           end if
        else
           if ( fldchk(is_local%wrap%FBexp(compocn)        , 'Faxa_sen', rc=rc) .and. &
                fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_sen', rc=rc)) then
-             call addmap(fldListFr(compatm)%flds, 'Faxa_sen', compocn, mapconsf_aofrac, 'aofrac', 'unset')
+             call addmap_from(compatm, 'Faxa_sen', compocn, mapconsf_aofrac, 'aofrac', 'unset')
           end if
        end if
 
        ! to ocn: evaporation water flux (custom merge in med_phases_prep_ocn)
        if (phase == 'advertise') then
           if (is_local%wrap%comp_present(compatm) .and. is_local%wrap%comp_present(compocn)) then
-             call addfld(fldListFr(compatm)%flds, 'Faxa_lat')
-             call addfld(fldListTo(compocn)%flds, 'Faxa_evap')
+             call addfld_from(compatm, 'Faxa_lat')
+             call addfld_to(compocn, 'Faxa_evap')
           end if
        else
           if ( fldchk(is_local%wrap%FBexp(compocn)        , 'Faxa_evap', rc=rc) .and. &
                fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_lat' , rc=rc)) then
-             call addmap(fldListFr(compatm)%flds, 'Faxa_lat', compocn, mapconsf_aofrac, 'aofrac', 'unset')
+             call addmap_from(compatm, 'Faxa_lat', compocn, mapconsf_aofrac, 'aofrac', 'unset')
           end if
        end if
     else if (trim(coupling_mode) == 'nems_orig_data' .or. trim(coupling_mode) == 'nems_frac_aoflux') then
@@ -470,18 +473,18 @@ contains
        do n = 1,size(flds)
           if (phase == 'advertise') then
              if (is_local%wrap%comp_present(compice) .and. is_local%wrap%comp_present(compocn)) then
-                call addfld(fldListMed_aoflux%flds  , 'Faox_'//trim(flds(n)))
-                call addfld(fldListFr(compice)%flds , 'Fioi_'//trim(flds(n)))
-                call addfld(fldListTo(compocn)%flds , 'Foxx_'//trim(flds(n)))
+                call addfld_aoflux('Faox_'//trim(flds(n)))
+                call addfld_from(compice , 'Fioi_'//trim(flds(n)))
+                call addfld_to(compocn , 'Foxx_'//trim(flds(n)))
              end if
           else
              if ( fldchk(is_local%wrap%FBexp(compocn)        , 'Foxx_'//trim(flds(n)), rc=rc) .and. &
                   fldchk(is_local%wrap%FBMed_aoflux_o        , 'Faox_'//trim(flds(n)), rc=rc) .and. &
                   fldchk(is_local%wrap%FBImp(compice,compice), 'Fioi_'//trim(flds(n)), rc=rc)) then
-                call addmap(fldListFr(compice)%flds,  'Fioi_'//trim(flds(n)), compocn, mapfcopy, 'unset', 'unset')
-                call addmrg(fldListTo(compocn)%flds,  'Foxx_'//trim(flds(n)), &
+                call addmap_from(compice,  'Fioi_'//trim(flds(n)), compocn, mapfcopy, 'unset', 'unset')
+                call addmrg_to(compocn,  'Foxx_'//trim(flds(n)), &
                      mrg_from=compmed, mrg_fld='Faox_'//trim(flds(n)), mrg_type='merge', mrg_fracname='ofrac')
-                call addmrg(fldListTo(compocn)%flds,  'Foxx_'//trim(flds(n)), &
+                call addmrg_to(compocn,  'Foxx_'//trim(flds(n)), &
                      mrg_from=compice, mrg_fld='Fioi_'//trim(flds(n)), mrg_type='merge', mrg_fracname='ifrac')
              end if
           end if
@@ -491,18 +494,18 @@ contains
        ! to ocn: long wave net via auto merge
        if (phase == 'advertise') then
           if (is_local%wrap%comp_present(compatm) .and. is_local%wrap%comp_present(compocn)) then
-             call addfld(fldListMed_aoflux%flds , 'Faox_lwup')
-             call addfld(fldListFr(compatm)%flds, 'Faxa_lwdn')
-             call addfld(fldListTo(compocn)%flds, 'Foxx_lwnet')
+             call addfld_aoflux('Faox_lwup')
+             call addfld_from(compatm, 'Faxa_lwdn')
+             call addfld_to(compocn, 'Foxx_lwnet')
           end if
        else
           if ( fldchk(is_local%wrap%FBexp(compocn)        , 'Foxx_lwnet', rc=rc) .and. &
                fldchk(is_local%wrap%FBMed_aoflux_o        , 'Faox_lwup' , rc=rc) .and. &
                fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_lwdn' , rc=rc)) then
-             call addmap(fldListFr(compatm)%flds, 'Faxa_lwdn', compocn, maptype, 'one', 'unset')
-             call addmrg(fldListTo(compocn)%flds, 'Foxx_lwnet', &
+             call addmap_from(compatm, 'Faxa_lwdn', compocn, maptype, 'one', 'unset')
+             call addmrg_to(compocn, 'Foxx_lwnet', &
                   mrg_from=compmed, mrg_fld='Faox_lwup', mrg_type='merge', mrg_fracname='ofrac')
-             call addmrg(fldListTo(compocn)%flds, 'Foxx_lwnet', &
+             call addmrg_to(compocn, 'Foxx_lwnet', &
                   mrg_from=compatm, mrg_fld='Faxa_lwdn', mrg_type='merge', mrg_fracname='ofrac')
           end if
        end if
@@ -510,13 +513,13 @@ contains
        ! to ocn: sensible heat flux from mediator via auto merge
        if (phase == 'advertise') then
           if (is_local%wrap%comp_present(compocn)) then
-             call addfld(fldListMed_aoflux%flds , 'Faox_sen')
-             call addfld(fldListTo(compocn)%flds, 'Faox_sen')
+             call addfld_aoflux('Faox_sen')
+             call addfld_to(compocn, 'Faox_sen')
           end if
        else
           if ( fldchk(is_local%wrap%FBexp(compocn)        , 'Faox_sen', rc=rc) .and. &
                fldchk(is_local%wrap%FBMed_aoflux_o        , 'Faox_sen' , rc=rc)) then
-             call addmrg(fldListTo(compocn)%flds, 'Faox_sen', &
+             call addmrg_to(compocn, 'Faox_sen', &
                   mrg_from=compmed, mrg_fld='Faox_sen', mrg_type='copy_with_weights', mrg_fracname='ofrac')
           end if
        end if
@@ -524,13 +527,13 @@ contains
        ! to ocn: evaporation water flux from mediator via auto merge
        if (phase == 'advertise') then
           if (is_local%wrap%comp_present(compocn)) then
-             call addfld(fldListMed_aoflux%flds , 'Faox_evap')
-             call addfld(fldListTo(compocn)%flds, 'Faox_evap')
+             call addfld_aoflux('Faox_evap')
+             call addfld_to(compocn, 'Faox_evap')
           end if
        else
           if ( fldchk(is_local%wrap%FBexp(compocn)        , 'Faox_evap', rc=rc) .and. &
                fldchk(is_local%wrap%FBMed_aoflux_o        , 'Faox_evap' , rc=rc)) then
-             call addmrg(fldListTo(compocn)%flds, 'Faox_evap', &
+             call addmrg_to(compocn, 'Faox_evap', &
                   mrg_from=compmed, mrg_fld='Faox_evap', mrg_type='copy_with_weights', mrg_fracname='ofrac')
           end if
        end if
@@ -545,14 +548,14 @@ contains
        fldname = trim(flds(n))
        if (phase == 'advertise') then
           if (is_local%wrap%comp_present(compice) .and. is_local%wrap%comp_present(compocn)) then
-             call addfld(fldListFr(compice)%flds, trim(fldname))
-             call addfld(fldListTo(compocn)%flds, trim(fldname))
+             call addfld_from(compice, trim(fldname))
+             call addfld_to(compocn, trim(fldname))
           end if
        else
           if ( fldchk(is_local%wrap%FBexp(compocn)        , trim(fldname), rc=rc) .and. &
                fldchk(is_local%wrap%FBImp(compice,compice), trim(fldname), rc=rc)) then
-             call addmap(fldListFr(compice)%flds, trim(fldname), compocn,  mapfcopy, 'unset', 'unset')
-             call addmrg(fldListTo(compocn)%flds, trim(fldname), &
+             call addmap_from(compice, trim(fldname), compocn,  mapfcopy, 'unset', 'unset')
+             call addmrg_to(compocn, trim(fldname), &
                   mrg_from=compice, mrg_fld=trim(fldname), mrg_type='copy_with_weights', mrg_fracname='ifrac')
           end if
        end if
@@ -560,21 +563,20 @@ contains
     deallocate(flds)
 
     ! to ocn: partitioned stokes drift from wav
-    allocate(flds(6))
-    flds = (/'Sw_ustokes1', 'Sw_ustokes2', 'Sw_ustokes3', &
-             'Sw_vstokes1', 'Sw_vstokes2', 'Sw_vstokes3'/)
+    allocate(flds(2))
+    flds = (/'Sw_pstokes_x', 'Sw_pstokes_y'/)
     do n = 1,size(flds)
        fldname = trim(flds(n))
        if (phase == 'advertise') then
           if (is_local%wrap%comp_present(compwav) .and. is_local%wrap%comp_present(compocn)) then
-             call addfld(fldListFr(compwav)%flds, trim(fldname))
-             call addfld(fldListTo(compocn)%flds, trim(fldname))
+             call addfld_from(compwav, trim(fldname))
+             call addfld_to(compocn, trim(fldname))
           end if
        else
           if ( fldchk(is_local%wrap%FBexp(compocn)        , trim(fldname), rc=rc) .and. &
                fldchk(is_local%wrap%FBImp(compwav,compwav), trim(fldname), rc=rc)) then
-             call addmap(fldListFr(compwav)%flds, trim(fldname), compocn, mapbilnr_nstod, 'one', 'unset')
-             call addmrg(fldListTo(compocn)%flds, trim(fldname), mrg_from=compwav, mrg_fld=trim(fldname), mrg_type='copy')
+             call addmap_from(compwav, trim(fldname), compocn, mapbilnr_nstod, 'one', 'unset')
+             call addmrg_to(compocn, trim(fldname), mrg_from=compwav, mrg_fld=trim(fldname), mrg_type='copy')
           end if
        end if
     end do
@@ -600,14 +602,14 @@ contains
        fldname = trim(flds(n))
        if (phase == 'advertise') then
           if (is_local%wrap%comp_present(compatm) .and. is_local%wrap%comp_present(compice)) then
-             call addfld(fldListFr(compatm)%flds, trim(fldname))
-             call addfld(fldListTo(compice)%flds, trim(fldname))
+             call addfld_from(compatm, trim(fldname))
+             call addfld_to(compice, trim(fldname))
           end if
        else
           if ( fldchk(is_local%wrap%FBexp(compice)        , trim(fldname), rc=rc) .and. &
                fldchk(is_local%wrap%FBImp(compatm,compatm), trim(fldname), rc=rc)) then
-             call addmap(fldListFr(compatm)%flds, trim(fldname), compice, maptype, 'one', 'unset')
-             call addmrg(fldListTo(compice)%flds, trim(fldname), mrg_from=compatm, mrg_fld=trim(fldname), mrg_type='copy')
+             call addmap_from(compatm, trim(fldname), compice, maptype, 'one', 'unset')
+             call addmrg_to(compice, trim(fldname), mrg_from=compatm, mrg_fld=trim(fldname), mrg_type='copy')
           end if
        end if
     end do
@@ -627,14 +629,14 @@ contains
        fldname = trim(flds(n))
        if (phase == 'advertise') then
           if (is_local%wrap%comp_present(compatm) .and. is_local%wrap%comp_present(compice)) then
-             call addfld(fldListFr(compatm)%flds, trim(fldname))
-             call addfld(fldListTo(compice)%flds, trim(fldname))
+             call addfld_from(compatm, trim(fldname))
+             call addfld_to(compice, trim(fldname))
           endif
        else
           if ( fldchk(is_local%wrap%FBexp(compice)        , trim(fldname), rc=rc) .and. &
                fldchk(is_local%wrap%FBImp(compatm,compatm), trim(fldname), rc=rc)) then
-             call addmap(fldListFr(compatm)%flds, trim(fldname), compice, maptype, 'one', 'unset')
-             call addmrg(fldListTo(compice)%flds, trim(fldname), mrg_from=compatm, mrg_fld=trim(fldname), mrg_type='copy')
+             call addmap_from(compatm, trim(fldname), compice, maptype, 'one', 'unset')
+             call addmrg_to(compice, trim(fldname), mrg_from=compatm, mrg_fld=trim(fldname), mrg_type='copy')
           end if
        end if
     end do
@@ -655,14 +657,14 @@ contains
        fldname = trim(flds(n))
        if (phase == 'advertise') then
           if (is_local%wrap%comp_present(compocn) .and. is_local%wrap%comp_present(compice)) then
-             call addfld(fldListFr(compocn)%flds, trim(fldname))
-             call addfld(fldListTo(compice)%flds, trim(fldname))
+             call addfld_from(compocn, trim(fldname))
+             call addfld_to(compice, trim(fldname))
           endif
        else
           if ( fldchk(is_local%wrap%FBexp(compice)        , trim(fldname), rc=rc) .and. &
                fldchk(is_local%wrap%FBImp(compocn,compocn), trim(fldname), rc=rc)) then
-             call addmap(fldListFr(compocn)%flds, trim(fldname), compice, mapfcopy , 'unset', 'unset')
-             call addmrg(fldListTo(compice)%flds, trim(fldname), mrg_from=compocn, mrg_fld=trim(fldname), mrg_type='copy')
+             call addmap_from(compocn, trim(fldname), compice, mapfcopy , 'unset', 'unset')
+             call addmrg_to(compice, trim(fldname), mrg_from=compocn, mrg_fld=trim(fldname), mrg_type='copy')
           end if
        end if
     end do
@@ -670,15 +672,15 @@ contains
 
     if (phase == 'advertise') then
        if (is_local%wrap%comp_present(compice) .and. is_local%wrap%comp_present(compwav)) then
-          call addfld(fldListFr(compwav)%flds, 'Sw_elevation_spectrum')
-          call addfld(fldListTo(compice)%flds, 'Sw_elevation_spectrum')
+          call addfld_from(compwav, 'Sw_elevation_spectrum')
+          call addfld_to(compice, 'Sw_elevation_spectrum')
        end if
     else
        if ( fldchk(is_local%wrap%FBExp(compice)        , 'Sw_elevation_spectrum', rc=rc) .and. &
             fldchk(is_local%wrap%FBImp(compwav,compwav), 'Sw_elevation_spectrum', rc=rc)) then
-            call addmap(fldListFr(compwav)%flds, 'Sw_elevation_spectrum', compice, mapbilnr_nstod, 'one', 'unset')
-            call addmrg(fldListTo(compice)%flds, 'Sw_elevation_spectrum', &
-                  mrg_from=compwav, mrg_fld='Sw_elevation_spectrum', mrg_type='copy')
+          call addmap_from(compwav, 'Sw_elevation_spectrum', compice, mapbilnr_nstod, 'one', 'unset')
+          call addmrg_to(compice, 'Sw_elevation_spectrum', mrg_from=compwav, &
+               mrg_fld='Sw_elevation_spectrum', mrg_type='copy')
        end if
     end if
 
@@ -693,14 +695,14 @@ contains
        fldname = trim(flds(n))
        if (phase == 'advertise') then
           if (is_local%wrap%comp_present(compatm) .and. is_local%wrap%comp_present(compwav)) then
-             call addfld(fldListFr(compatm)%flds, trim(fldname))
-             call addfld(fldListTo(compwav)%flds, trim(fldname))
+             call addfld_from(compatm, trim(fldname))
+             call addfld_to(compwav, trim(fldname))
           end if
        else
           if ( fldchk(is_local%wrap%FBexp(compwav)        , trim(fldname), rc=rc) .and. &
                fldchk(is_local%wrap%FBImp(compatm,compatm), trim(fldname), rc=rc)) then
-             call addmap(fldListFr(compatm)%flds, trim(fldname), compwav, mapnstod_consf, 'one', 'unset')
-             call addmrg(fldListTo(compwav)%flds, trim(fldname), mrg_from=compatm, mrg_fld=trim(fldname), mrg_type='copy')
+             call addmap_from(compatm, trim(fldname), compwav, mapnstod_consf, 'one', 'unset')
+             call addmrg_to(compwav, trim(fldname), mrg_from=compatm, mrg_fld=trim(fldname), mrg_type='copy')
           end if
        end if
      end do
@@ -713,14 +715,14 @@ contains
         fldname = trim(flds(n))
         if (phase == 'advertise') then
            if (is_local%wrap%comp_present(compice) .and. is_local%wrap%comp_present(compwav)) then
-              call addfld(fldListFr(compice)%flds, trim(fldname))
-              call addfld(fldListTo(compwav)%flds, trim(fldname))
-           end if
+              call addfld_from(compice, trim(fldname))
+              call addfld_to(compwav, trim(fldname))
+        end if
         else
            if ( fldchk(is_local%wrap%FBexp(compwav)        , trim(fldname), rc=rc) .and. &
                 fldchk(is_local%wrap%FBImp(compice,compice), trim(fldname), rc=rc)) then
-               call addmap(fldListFr(compice)%flds, trim(fldname), compwav, mapbilnr_nstod, 'one', 'unset')
-               call addmrg(fldListTo(compwav)%flds, trim(fldname), mrg_from=compice, mrg_fld=trim(fldname), mrg_type='copy')
+              call addmap_from(compice, trim(fldname), compwav, mapbilnr_nstod , 'one', 'unset')
+              call addmrg_to(compwav, trim(fldname), mrg_from=compice, mrg_fld=trim(fldname), mrg_type='copy')
            end if
         end if
       end do
@@ -735,14 +737,14 @@ contains
         fldname = trim(flds(n))
         if (phase == 'advertise') then
            if (is_local%wrap%comp_present(compocn) .and. is_local%wrap%comp_present(compwav)) then
-              call addfld(fldListFr(compocn)%flds, trim(fldname))
-              call addfld(fldListTo(compwav)%flds, trim(fldname))
+              call addfld_from(compocn, trim(fldname))
+              call addfld_to(compwav, trim(fldname))
            end if
         else
            if ( fldchk(is_local%wrap%FBexp(compwav)        , trim(fldname), rc=rc) .and. &
                 fldchk(is_local%wrap%FBImp(compocn,compocn), trim(fldname), rc=rc)) then
-              call addmap(fldListFr(compocn)%flds, trim(fldname), compwav, mapbilnr_nstod , 'one', 'unset')
-              call addmrg(fldListTo(compwav)%flds, trim(fldname), mrg_from=compocn, mrg_fld=trim(fldname), mrg_type='copy')
+              call addmap_from(compocn, trim(fldname), compwav, mapbilnr_nstod , 'one', 'unset')
+              call addmrg_to(compwav, trim(fldname), mrg_from=compocn, mrg_fld=trim(fldname), mrg_type='copy')
            end if
         end if
      end do
@@ -773,14 +775,14 @@ contains
        fldname = trim(flds(n))
        if (phase == 'advertise') then
           if (is_local%wrap%comp_present(compatm) .and. is_local%wrap%comp_present(complnd)) then
-             call addfld(fldListFr(compatm)%flds, trim(fldname))
-             call addfld(fldListTo(complnd)%flds, trim(fldname))
+             call addfld_from(compatm, trim(fldname))
+             call addfld_to(complnd, trim(fldname))
           end if
        else
           if ( fldchk(is_local%wrap%FBexp(complnd)        , trim(fldname), rc=rc) .and. &
                fldchk(is_local%wrap%FBImp(compatm,compatm), trim(fldname), rc=rc)) then
-             call addmap(fldListFr(compatm)%flds, trim(fldname), complnd, maptype, 'one', 'unset')
-             call addmrg(fldListTo(complnd)%flds, trim(fldname), mrg_from=compatm, mrg_fld=trim(fldname), mrg_type='copy')
+             call addmap_from(compatm, trim(fldname), complnd, maptype, 'one', 'unset')
+             call addmrg_to(complnd, trim(fldname), mrg_from=compatm, mrg_fld=trim(fldname), mrg_type='copy')
           end if
        end if
     end do

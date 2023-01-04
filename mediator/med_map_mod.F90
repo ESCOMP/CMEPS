@@ -83,7 +83,8 @@ contains
     use ESMF                  , only : ESMF_Mesh, ESMF_TYPEKIND_R8, ESMF_MESHLOC_ELEMENT
     use med_methods_mod       , only : med_methods_FB_getFieldN, med_methods_FB_getNameN
     use med_constants_mod     , only : czero => med_constants_czero
-    use esmFlds               , only : fldListFr
+    use esmFlds               , only : med_fldList_GetfldListFr, med_fldlist_type
+    use esmFlds               , only : med_fld_GetFldInfo, med_fldList_entry_type
     use med_internalstate_mod , only : mapunset, compname, compocn, compatm
     use med_internalstate_mod , only : ncomps, nmappers, compname, mapnames, mapfcopy
 
@@ -109,6 +110,8 @@ contains
     real(R8), pointer         :: dataptr(:)
     type(ESMF_Mesh)           :: mesh_src
     type(ESMF_Mesh)           :: mesh_dst
+    type(med_fldlist_type), pointer :: FldListFr
+    type(med_fldlist_entry_type), pointer :: fldptr
     character(len=*), parameter :: subname=' (module_med_map: RouteHandles_init) '
     !-----------------------------------------------------------
 
@@ -156,10 +159,12 @@ contains
                 end if
 
                 ! Loop over fields
-                do nf = 1,size(fldListFr(n1)%flds)
-
+                fldListFr => med_fldList_getFldListFr(n1)
+                fldptr => fldListFr%fields
+                nf = 0
+                do while(associated(fldptr))
                    ! Determine the mapping type for mapping field nf from n1 to n2
-                   mapindex = fldListFr(n1)%flds(nf)%mapindex(n2)
+                   call med_fld_GetFldInfo(fldptr, compsrc=n2, mapindex=mapindex)
                    if (mapindex /= mapunset) then
 
                       ! determine if route handle has already been created
@@ -169,14 +174,17 @@ contains
                       ! Create route handle for target mapindex if route handle is required
                       ! (i.e. mapindex /= mapunset) and route handle has not already been created
                       if (.not. mapexists) then
-                         mapfile = trim(fldListFr(n1)%flds(nf)%mapfile(n2))
+                         call med_fld_GetFldInfo(fldptr, compsrc=n2, mapfile=mapfile)
                          call med_map_routehandles_initfrom_field(n1, n2, fldsrc, flddst, &
                               mapindex, is_local%wrap%rh(n1,n2,:), mapfile=trim(mapfile), rc=rc)
                          if (chkerr(rc,__LINE__,u_FILE_u)) return
                       end if
 
                    end if ! end if mapindex is mapunset
+                   fldptr => fldptr%next
                 end do ! loop over fields
+
+                
              end if ! if coupling active
           end if ! if n1 not equal to n2
        end do ! loop over n2
@@ -707,10 +715,11 @@ contains
 
   !================================================================================
   subroutine med_map_packed_field_create(destcomp, flds_scalar_name, &
-       fldsSrc, FBSrc, FBDst, packed_data, rc)
+       fieldsSrc, FBSrc, FBDst, packed_data, rc)
 
     use ESMF
-    use esmFlds               , only : med_fldList_entry_type
+    use esmFlds               , only : med_fldList_entry_type, med_fldList_getNumFlds, med_fldList_type
+    use esmFlds               , only : med_fld_getFldInfo
     use med_internalstate_mod , only : nmappers
     use med_internalstate_mod , only : ncomps, compatm, compice, compocn, compname, mapnames
     use med_internalstate_mod , only : packed_data_type
@@ -718,7 +727,7 @@ contains
     ! input/output variables
     integer                      , intent(in)    :: destcomp
     character(len=*)             , intent(in)    :: flds_scalar_name
-    type(med_fldList_entry_type) , pointer       :: fldsSrc(:) ! array over mapping types
+    type(med_fldList_type)       , intent(in), target    :: fieldsSrc  ! mapping types top of LL
     type(ESMF_FieldBundle)       , intent(in)    :: FBSrc
     type(ESMF_FieldBundle)       , intent(inout) :: FBDst
     type(packed_data_type)       , intent(inout) :: packed_data(:) ! array over mapping types
@@ -737,8 +746,12 @@ contains
     type(ESMF_Mesh)            :: lmesh_src
     type(ESMF_Mesh)            :: lmesh_dst
     integer                    :: mapindex
+    integer                    :: numFlds
     type(ESMF_Field), pointer  :: fieldlist_src(:)
     type(ESMF_Field), pointer  :: fieldlist_dst(:)
+    type(med_fldlist_entry_type), pointer :: fldptr
+    character(CL)              :: shortname
+    integer                    :: destindex
     character(CL), allocatable :: fieldNameList(:)
     character(CS)              :: mapnorm_mapindex
     character(len=CX)          :: tmpstr
@@ -792,14 +805,16 @@ contains
        ! Loop over source field bundle
        do nf = 1, fieldCount
           ! Loop over the fldsSrc types
-          do ns = 1,size(fldsSrc)
+          fldptr => fieldsSrc%fields
+          do while(associated(fldptr))
              ! Note that fieldnamelist is an array of names for the source fields
              ! The assumption is that there is only one mapping normalization
              ! for any given mapping type
-             if ( fldsSrc(ns)%mapindex(destcomp) == mapindex .and. &
-                  trim(fldsSrc(ns)%shortname) == trim(fieldnamelist(nf))) then
+             call med_fld_GetFldInfo(fldptr, compsrc=destcomp, shortname=shortname, mapindex=destindex)
+             if ( destindex == mapindex .and. &
+                  trim(shortname) == trim(fieldnamelist(nf))) then
                 ! Set the normalization to the input
-                packed_data(mapindex)%mapnorm = fldsSrc(ns)%mapnorm(destcomp)
+                call med_Fld_GetFldInfo(fldptr, compsrc=destcomp, mapnorm=packed_data(mapindex)%mapnorm)
                 if (mapnorm_mapindex == 'not_set') then
                    mapnorm_mapindex = packed_data(mapindex)%mapnorm
                    write(tmpstr,*)'Map type '//trim(mapnames(mapindex)) &
@@ -819,6 +834,7 @@ contains
                    end if
                 end if
              end if
+             fldptr => fldptr%next
           end do
        end do
     end do
@@ -840,10 +856,11 @@ contains
        do nf = 1, fieldCount
 
           ! Loop over the fldsSrc types
-          do ns = 1,size(fldsSrc)
-
-             if ( fldsSrc(ns)%mapindex(destcomp) == mapindex .and. &
-                  trim(fldsSrc(ns)%shortname) == trim(fieldnamelist(nf))) then
+          fldptr => fieldsSrc%fields
+          do while(associated(fldptr))
+             call med_fld_GetFldInfo(fldptr, compsrc=destcomp, shortname=shortname, mapindex=destIndex)
+             if ( destIndex == mapindex .and. &
+                  trim(shortname) == trim(fieldnamelist(nf))) then
 
                 ! Determine mapping of indices into packed field bundle
                 ! Get source field
@@ -872,6 +889,7 @@ contains
                 end if
 
              end if! end if source field is mapped to destination field with mapindex
+             fldptr => fldptr%next
           end do ! end loop over FBSrc fields
        end do ! end loop over fldsSrc elements
 

@@ -130,7 +130,7 @@ module med_phases_aofluxes_mod
      integer            :: lsize                     ! local size
      integer  , pointer :: mask        (:) => null() ! integer ocn domain mask: 0 <=> inactive cell
      real(R8) , pointer :: rmask       (:) => null() ! real    ocn domain mask: 0 <=> inactive cell
-     real(R8) , pointer :: garea       (:) => null() ! atm grid area 
+     real(R8) , pointer :: garea       (:) => null() ! atm grid area
   end type aoflux_in_type
 
   type aoflux_out_type
@@ -166,7 +166,8 @@ contains
     use ESMF            , only : ESMF_FieldBundleIsCreated
     use esmFlds         , only : med_fldList_GetNumFlds
     use esmFlds         , only : med_fldList_GetFldNames
-    use esmFlds         , only : fldListMed_aoflux
+    use esmFlds         , only : med_fldList_GetaofluxfldList
+    use esmFlds         , only : med_fldList_type
     use med_methods_mod , only : FB_init => med_methods_FB_init
     use med_internalstate_mod, only : compname
 
@@ -177,13 +178,14 @@ contains
     ! local variables
     integer             :: n
     integer             :: fieldcount
+    type(med_fldList_type), pointer :: fldListMed_aoflux
     type(InternalState) :: is_local
     character(len=*),parameter :: subname=' (med_phases_aofluxes_init_fldbuns) '
     !---------------------------------------
 
     ! Create field bundles for mediator ocean/atmosphere flux computation
     ! This is needed regardless of the grid on which the atm/ocn flux computation is done on
-
+    fldListMed_aoflux => med_fldList_GetaofluxFldList()
     ! Get the internal state from the mediator Component.
     nullify(is_local%wrap)
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
@@ -192,7 +194,7 @@ contains
     ! Set module variable fldnames_aof_out
     fieldCount = med_fldList_GetNumFlds(fldListMed_aoflux)
     allocate(fldnames_aof_out(fieldCount))
-    call med_fldList_getfldnames(fldListMed_aoflux%flds, fldnames_aof_out, rc=rc)
+    call med_fldList_getfldnames(fldListMed_aoflux%fields, fldnames_aof_out, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! Initialize FBMed_aoflux_a
@@ -487,7 +489,8 @@ contains
     ! --------------------------------------------
 
     use ESMF        , only : ESMF_FieldBundleIsCreated
-    use esmFlds     , only : fldListMed_aoflux
+    use esmFlds     , only : med_fldlist_GetaofluxfldList
+    use esmFlds     , only : med_fldList_type
     use med_map_mod , only : med_map_packed_field_create
 
     ! Arguments
@@ -497,6 +500,7 @@ contains
     integer               , intent(out)   :: rc
     !
     ! Local variables
+    type(med_fldList_type), pointer :: FldListMed_aoflux
     type(InternalState) :: is_local
     character(len=CX)   :: tmpstr
     integer             :: lsize
@@ -509,7 +513,7 @@ contains
     !-----------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
-
+    FldListMed_aoflux => med_fldlist_GetaofluxFldList()
     ! Get the internal state from the mediator Component.
     nullify(is_local%wrap)
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
@@ -570,7 +574,7 @@ contains
 
           call med_map_packed_field_create(destcomp=compatm, &
                flds_scalar_name=is_local%wrap%flds_scalar_name, &
-               fldsSrc=fldListMed_aoflux%flds, &
+               fieldsSrc=fldListMed_aoflux, &
                FBSrc=is_local%wrap%FBMed_aoflux_o, &
                FBDst=is_local%wrap%FBMed_aoflux_a, &
                packed_data=is_local%wrap%packed_data_aoflux_o2a(:), rc=rc)
