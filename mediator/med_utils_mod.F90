@@ -21,8 +21,8 @@ contains
     character(len=*), intent(in) :: string
     integer, intent(in) :: level
     logical, intent(in) :: mastertask
-    integer :: ierr
 #ifdef CESMCOUPLED
+    integer :: ierr
     integer, external :: GPTLprint_memusage
     if((mastertask .and. memdebug_level > level) .or. memdebug_level > level+1) then
        ierr = GPTLprint_memusage(string)
@@ -48,9 +48,11 @@ contains
     logical, optional, intent(in) :: mpierr
 #ifdef NO_MPI2
     integer, parameter :: MPI_MAX_ERROR_STRING=80
+#else
+    integer :: ierr, len
 #endif
     character(MPI_MAX_ERROR_STRING) :: lstring
-    integer :: lrc, len, ierr
+    integer :: lrc
 
     med_utils_ChkErr = .false.
     lrc = rc

@@ -64,8 +64,8 @@ jobs:
           esmf_comm: openmpi
           install_prefix: $HOME/ESMF
           netcdf_c_path: /usr
-          netcdf_fortran_path: $HOME/netcdf-fortran
-          pnetcdf_path: $HOME/pnetcdf
+          netcdf_fortran_path: /usr
+          pnetcdf_path: /usr
           parallelio_path: $HOME/pio
       - name: Build CMEPS
         run: |
