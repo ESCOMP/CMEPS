@@ -457,14 +457,15 @@ contains
     logical             , intent(in)    :: mastertask
     integer             , intent(out)   :: rc              ! output error
 
+#ifdef CESMCOUPLED
+
     ! local variables
     character(len=CL) :: msgstr          ! temporary
     character(len=CL) :: cvalue          ! temporary
     character(len=*) , parameter :: subname = "(med_phases_ocnalb_orbital_init)"
     !-------------------------------------------
-
+#endif
     rc = ESMF_SUCCESS
-
 #ifdef CESMCOUPLED
     ! Determine orbital attributes from input
     call NUOPC_CompAttributeGet(gcomp, name="orb_mode", value=cvalue, rc=rc)
@@ -559,7 +560,7 @@ contains
     real(R8)         , intent(inout) :: lambm0 ! Mean long of perihelion at vernal equinox (radians)
     real(R8)         , intent(inout) :: mvelpp ! moving vernal equinox long of perihelion plus pi (rad)
     integer          , intent(out)   :: rc     ! output error
-
+#ifdef CESMCOUPLED
     ! local variables
     type(ESMF_Time)   :: CurrTime ! current time
     integer           :: year     ! model year at current time
@@ -569,7 +570,7 @@ contains
     logical           :: first_time = .true.
     character(len=*) , parameter :: subname = "(med_phases_ocnalb_orbital_update)"
     !-------------------------------------------
-
+#endif
     rc = ESMF_SUCCESS
 
 #ifdef CESMCOUPLED
