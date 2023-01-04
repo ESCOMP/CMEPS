@@ -99,9 +99,8 @@ contains
     type(ESMF_Field)          :: fldsrc
     type(ESMF_Field)          :: flddst
     integer                   :: n1,n2
-    integer                   :: n,m,nf,id,nflds
+    integer                   :: nf
     integer                   :: fieldCount
-    character(len=CL)         :: fieldname
     type(ESMF_Field), pointer :: fieldlist(:)
     type(ESMF_Field)          :: field_src
     character(len=CX)         :: mapfile
@@ -348,7 +347,7 @@ contains
     use med_internalstate_mod , only : mapunset, mapnames, nmappers
     use med_internalstate_mod , only : mapnstod, mapnstod_consd, mapnstod_consf, mapnstod_consd
     use med_internalstate_mod , only : mapfillv_bilnr, mapbilnr_nstod, mapconsf_aofrac
-    use med_internalstate_mod , only : ncomps, compatm, compice, compocn, compwav, complnd, compname
+    use med_internalstate_mod , only : compocn, compwav, complnd, compname
     use med_internalstate_mod , only : coupling_mode, dststatus_print
     use med_internalstate_mod , only : defaultMasks
     use med_constants_mod     , only : ispval_mask => med_constants_ispval_mask
@@ -654,7 +653,6 @@ contains
     integer                , intent(out)   :: rc
 
     ! local variables
-    integer :: rc1, rc2
     character(len=*), parameter :: subname=' (module_MED_map:med_map_RH_is_created_RH3d) '
     !-----------------------------------------------------------
 
@@ -720,8 +718,7 @@ contains
     use ESMF
     use esmFlds               , only : med_fldList_entry_type, med_fldList_getNumFlds, med_fldList_type
     use esmFlds               , only : med_fld_getFldInfo
-    use med_internalstate_mod , only : nmappers
-    use med_internalstate_mod , only : ncomps, compatm, compice, compocn, compname, mapnames
+    use med_internalstate_mod , only : ncomps, compname, mapnames
     use med_internalstate_mod , only : packed_data_type
 
     ! input/output variables
@@ -734,10 +731,9 @@ contains
     integer                      , intent(out)   :: rc
 
     ! local variables
-    integer                    :: nf, nu, ns
+    integer                    :: nf, nu
     integer, allocatable       :: npacked(:)
     integer                    :: fieldcount
-    type(ESMF_Field)           :: lfield
     integer                    :: ungriddedUBound(1)     ! currently the size must equal 1 for rank 2 fields
     real(r8), pointer          :: ptrsrc_packed(:,:)
     real(r8), pointer          :: ptrdst_packed(:,:)
@@ -746,7 +742,6 @@ contains
     type(ESMF_Mesh)            :: lmesh_src
     type(ESMF_Mesh)            :: lmesh_dst
     integer                    :: mapindex
-    integer                    :: numFlds
     type(ESMF_Field), pointer  :: fieldlist_src(:)
     type(ESMF_Field), pointer  :: fieldlist_dst(:)
     type(med_fldlist_entry_type), pointer :: fldptr
@@ -953,12 +948,9 @@ contains
     real(r8), pointer          :: dataptr1d(:)
     real(r8), pointer          :: dataptr2d(:,:)
     real(r8), pointer          :: dataptr2d_packed(:,:)
-    type(ESMF_Field)           :: lfield
     type(ESMF_Field)           :: field_fracsrc
     type(ESMF_Field), pointer  :: fieldlist_src(:)
     type(ESMF_Field), pointer  :: fieldlist_dst(:)
-    type(ESMF_Field)           :: usrc, vsrc ! only used for 3d mapping of u,v
-    type(ESMF_Field)           :: udst, vdst ! only used for 3d mapping of u,v
     real(r8), pointer          :: data_norm(:)
     real(r8), pointer          :: data_dst(:,:)
     character(len=*), parameter  :: subname=' (module_MED_map:med_map_field_packed) '
