@@ -184,6 +184,7 @@ contains
           call shr_mem_getusage(msize,mrss,.true.)
           write(logunit,105) ' memory_write: model date = ',trim(nexttimestr), &
                ' memory = ',msize,' MB (highwater)    ',mrss,' MB (usage)'
+105 format( 3A, f10.2, A, f10.2, A)
 #endif
           previous_time = current_time
 
@@ -192,7 +193,6 @@ contains
     iterations = iterations + 1
 
 101 format( 5A, F8.2, A, F8.2, A, F8.2, A)
-105 format( 3A, f10.2, A, f10.2, A)
     !---------------------------------------
     !--- clean up
     !---------------------------------------
