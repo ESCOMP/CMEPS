@@ -29,8 +29,8 @@ module med_phases_ocnalb_mod
 #ifdef CESMCOUPLED
   private med_phases_ocnalb_init
   private med_phases_ocnalb_orbital_update
-#endif
   private med_phases_ocnalb_orbital_init
+#endif
 
   !--------------------------------------------------------------------------
   ! Private data
@@ -441,7 +441,7 @@ contains
   end subroutine med_phases_ocnalb_run
 
 !===============================================================================
-
+#ifdef CESMCOUPLED
   subroutine med_phases_ocnalb_orbital_init(gcomp, logunit, mastertask, rc)
 
     !----------------------------------------------------------
@@ -460,16 +460,14 @@ contains
     integer             , intent(out)   :: rc              ! output error
 
     ! local variables
-#ifdef CESMCOUPLED
+
     character(len=CL) :: msgstr          ! temporary
     character(len=CL) :: cvalue          ! temporary
     character(len=*) , parameter :: subname = "(med_phases_ocnalb_orbital_init)"
-#endif
     !-------------------------------------------
 
     rc = ESMF_SUCCESS
 
-#ifdef CESMCOUPLED
     ! Determine orbital attributes from input
     call NUOPC_CompAttributeGet(gcomp, name="orb_mode", value=cvalue, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -539,12 +537,10 @@ contains
        rc = ESMF_FAILURE
        return  ! bail out
     endif
-#endif
-
   end subroutine med_phases_ocnalb_orbital_init
 
   !===============================================================================
-#ifdef CESMCOUPLED
+
   subroutine med_phases_ocnalb_orbital_update(clock, logunit,  mastertask, eccen, obliqr, lambm0, mvelpp, rc)
 
     !----------------------------------------------------------
