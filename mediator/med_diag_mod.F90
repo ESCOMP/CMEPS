@@ -263,7 +263,6 @@ contains
     integer           :: c_size   ! number of component send/recvs
     integer           :: f_size   ! number of fields
     integer           :: p_size   ! number of period types
-    type(ESMF_Clock)  :: mediatorClock
     character(CS)     :: cvalue
     logical           :: isPresent, isSet
     character(*), parameter :: subName = '(med_phases_diag_init) '
@@ -575,7 +574,7 @@ contains
     integer, intent(out) :: rc
 
     ! local variables
-    integer     :: ip, ic
+    integer     :: ip
     character(*), parameter :: subName = '(med_diag_accum) '
     ! ------------------------------------------------------------------
 
@@ -647,14 +646,13 @@ contains
 
     ! local variables
     type(InternalState) :: is_local
-    integer             :: n,nf,ic,ip
+    integer             :: n,nf,ip
     real(r8), pointer   :: afrac(:)
     real(r8), pointer   :: lfrac(:)
     real(r8), pointer   :: ifrac(:)
     real(r8), pointer   :: ofrac(:)
     real(r8), pointer   :: areas(:)
     real(r8), pointer   :: lats(:)
-    type(ESMF_Field)    :: lfield
     character(*), parameter :: subName = '(med_phases_diag_atm) '
     !-------------------------------------------------------------------------------
 
@@ -790,7 +788,6 @@ contains
     integer                , intent(out)   :: rc
     ! local variables
     integer           :: n, ip
-    type(ESMF_field)  :: lfield
     real(r8), pointer :: data(:)
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
@@ -826,7 +823,6 @@ contains
     integer                , intent(out)   :: rc
     ! local variables
     integer           :: n, ip
-    type(ESMF_field)  :: lfield
     real(r8), pointer :: data(:)
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
@@ -865,7 +861,6 @@ contains
     integer                , intent(out)   :: rc
     ! local variables
     integer           :: n, ip
-    type(ESMF_Field)  :: lfield
     real(r8), pointer :: data(:,:)
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
@@ -922,7 +917,6 @@ contains
     integer                , intent(out)   :: rc
     ! local variables
     integer           :: n, ip
-    type(ESMF_Field)  :: lfield
     real(r8), pointer :: data(:,:)
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
@@ -979,7 +973,6 @@ contains
     real(r8), pointer   :: lfrac(:)
     integer             :: n,ip, ic
     real(r8), pointer   :: areas(:)
-    type(ESMF_Field)    :: lfield
     character(*), parameter :: subName = '(med_phases_diag_lnd) '
     ! ------------------------------------------------------------------
 
@@ -1105,7 +1098,6 @@ contains
     integer                , intent(out)   :: rc
     ! local variables
     integer           :: n, ip
-    type(ESMF_field)  :: lfield
     real(r8), pointer :: data(:)
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
@@ -1139,7 +1131,6 @@ contains
     integer                , intent(out)   :: rc
     ! local variables
     integer           :: n, ip
-    type(ESMF_field)  :: lfield
     real(r8), pointer :: data(:,:)
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
@@ -1177,7 +1168,7 @@ contains
 
     ! local variables
     type(InternalState) :: is_local
-    integer             :: ic, ip, n
+    integer             :: ic, ip
     real(r8), pointer   :: areas(:)
     character(*), parameter :: subName = '(med_phases_diag_rof) '
     ! ------------------------------------------------------------------
@@ -1266,7 +1257,6 @@ contains
 
     ! local variables
     integer           :: n, ip
-    type(ESMF_field)  :: lfield
     real(r8), pointer :: data(:)
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
@@ -1300,7 +1290,6 @@ contains
 
     ! local variables
     integer           :: n, ip
-    type(ESMF_field)  :: lfield
     real(r8), pointer :: data(:,:)
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
@@ -1386,7 +1375,6 @@ contains
     integer                , intent(out)   :: rc
     ! local variables
     integer           :: n, ip
-    type(ESMF_field)  :: lfield
     real(r8), pointer :: data(:)
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
@@ -1424,7 +1412,6 @@ contains
     real(r8), pointer   :: ifrac(:)  ! ice fraction in ocean grid cell
     real(r8), pointer   :: ofrac(:)  ! non-ice fraction nin ocean grid cell
     real(r8), pointer   :: sfrac(:)  ! sum of ifrac and ofrac
-    real(r8), pointer   :: sfrac_x_ofrac(:)
     real(r8), pointer   :: areas(:)
     real(r8), pointer   :: data(:)
     type(ESMF_field)    :: lfield
@@ -1605,7 +1592,6 @@ contains
     integer                , intent(out)   :: rc
     ! local variables
     integer           :: n, ip
-    type(ESMF_field)  :: lfield
     real(r8), pointer :: data(:)
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
@@ -1639,7 +1625,6 @@ contains
 
     ! local variables
     integer           :: n, ip
-    type(ESMF_field)  :: lfield
     real(r8), pointer :: data(:,:)
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
@@ -1675,7 +1660,6 @@ contains
     real(r8), pointer   :: ifrac(:)
     real(r8), pointer   :: areas(:)
     real(r8), pointer   :: lats(:)
-    type(ESMF_field)    :: lfield
     character(*), parameter :: subName = '(med_phases_diag_ice_ice2med) '
     ! ------------------------------------------------------------------
 
@@ -1779,7 +1763,6 @@ contains
     integer                , intent(out)   :: rc
     ! local variables
     integer           :: n, ic, ip
-    type(ESMF_Field)  :: lfield
     real(r8), pointer :: data(:)
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
@@ -1825,7 +1808,6 @@ contains
     integer                , intent(out)   :: rc
     ! local variables
     integer           :: n, ic, ip
-    type(ESMF_Field)  :: lfield
     real(r8), pointer :: data(:,:)
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
@@ -1875,7 +1857,6 @@ contains
     real(r8), pointer   :: data(:)
     real(r8), pointer   :: areas(:)
     real(r8), pointer   :: lats(:)
-    type(ESMF_Field)    :: lfield
     character(*), parameter :: subName = '(med_phases_diag_ice_med2ice) '
     ! ------------------------------------------------------------------
 
@@ -1967,7 +1948,6 @@ contains
     integer                , intent(out)   :: rc
     ! local variables
     integer           :: n, ic, ip
-    type(ESMF_Field)  :: lfield
     real(r8), pointer :: data(:)
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
@@ -2001,7 +1981,6 @@ contains
 
     ! local variables
     integer           :: n, ic, ip
-    type(ESMF_Field)  :: lfield
     real(r8), pointer :: data(:,:)
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
@@ -2044,13 +2023,11 @@ contains
     integer               :: tod
     integer               :: output_level ! print level
     logical               :: sumdone      ! has a sum been computed yet
-    character(CS)         :: cvalue
     integer               :: ip
     integer               :: c_size       ! number of component send/recvs
     integer               :: f_size       ! number of fields
     integer               :: p_size       ! number of period types
     real(r8), allocatable :: datagpr(:,:,:)
-    character(len=64)     :: timestr
     logical, save         :: firstcall = .true.
     character(*), parameter :: subName = '(med_phases_diag_print) '
     ! ------------------------------------------------------------------
@@ -2498,10 +2475,10 @@ contains
     integer , intent(in) :: tod
 
     ! local variables
-    integer  :: ic,nf,is ! data array indicies
+    integer  :: nf,is ! data array indicies
     real(r8) :: atm_area, lnd_area, ocn_area
     real(r8) :: ice_area_nh, ice_area_sh
-    real(r8) :: sum_area, sum_area_tot
+    real(r8) :: sum_area
     real(r8) :: net_water_atm    , sum_net_water_atm
     real(r8) :: net_water_lnd    , sum_net_water_lnd
     real(r8) :: net_water_rof    , sum_net_water_rof
@@ -2526,7 +2503,6 @@ contains
     real(r8) :: net_salt_ice_nh  , sum_net_salt_ice_nh
     real(r8) :: net_salt_ice_sh  , sum_net_salt_ice_sh
     real(r8) :: net_salt_tot     , sum_net_salt_tot
-    character(len=40) :: str
     character(*), parameter:: subName = '(med_diag_print_summary) '
     ! ------------------------------------------------------------------
 
