@@ -214,7 +214,7 @@ contains
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc
-
+#ifdef CESMCOUPLED
     ! local variables
     type(ocnalb_type), save :: ocnalb
     type(ESMF_VM)           :: vm
@@ -252,7 +252,7 @@ contains
     logical                 :: first_call = .true.
     character(len=*)  , parameter :: subname='(med_phases_ocnalb_run)'
     !---------------------------------------
-
+#endif
     rc = ESMF_SUCCESS
 
 #ifndef CESMCOUPLED
@@ -459,9 +459,11 @@ contains
     integer             , intent(out)   :: rc              ! output error
 
     ! local variables
+#ifdef CESMCOUPLED
     character(len=CL) :: msgstr          ! temporary
     character(len=CL) :: cvalue          ! temporary
     character(len=*) , parameter :: subname = "(med_phases_ocnalb_orbital_init)"
+#endif
     !-------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -562,6 +564,7 @@ contains
     integer          , intent(out)   :: rc     ! output error
 
     ! local variables
+#ifdef CESMCOUPLED
     type(ESMF_Time)   :: CurrTime ! current time
     integer           :: year     ! model year at current time
     integer           :: orb_year ! orbital year for current orbital computation
@@ -569,6 +572,7 @@ contains
     logical           :: lprint
     logical           :: first_time = .true.
     character(len=*) , parameter :: subname = "(med_phases_ocnalb_orbital_update)"
+#endif
     !-------------------------------------------
 
     rc = ESMF_SUCCESS

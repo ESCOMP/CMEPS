@@ -58,7 +58,6 @@ contains
     type(ESMF_Time), save   :: prevTime
     type(ESMF_TimeInterval) :: ringInterval, timestep
     type(ESMF_Alarm)        :: alarm
-    integer                 :: yr, mon, day, hr, min, sec
     logical                 :: ispresent
     logical                 :: alarmison=.false., stopalarmison=.false.
     real(R8)                :: current_time, wallclockelapsed, ypd

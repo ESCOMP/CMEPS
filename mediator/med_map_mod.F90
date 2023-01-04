@@ -664,7 +664,7 @@ contains
 
 !================================================================================
 
-  logical function med_map_RH_is_created_RH1d(RHs,mapindex,rc)
+  logical function med_map_RH_is_created_RH1d(RHs,mapindex,rc) 
 
     use ESMF                  , only : ESMF_RouteHandle, ESMF_RouteHandleIsCreated
     use med_internalstate_mod , only : mapconsd, mapconsf, mapnstod
@@ -684,7 +684,7 @@ contains
     rc  = ESMF_SUCCESS
     rc1 = ESMF_SUCCESS
     rc2 = ESMF_SUCCESS
-
+    med_map_RH_is_created_RH1d = .false.
     mapexists = .false.
     if      (mapindex == mapnstod_consd .and. &
              ESMF_RouteHandleIsCreated(RHs(mapnstod), rc=rc1) .and. &

@@ -567,8 +567,6 @@ contains
     character(len=CX) :: diro
     character(len=CX) :: logfile
     character(len=CX) :: diagfile
-    character(len=CX) :: do_budgets
-    integer :: unused_variable
     character(len=*),parameter :: subname=' (InitializeP0) '
     !-----------------------------------------------------------
 
@@ -661,7 +659,6 @@ contains
     use NUOPC , only : NUOPC_CompAttributeGet, NUOPC_CompAttributeSet, NUOPC_CompAttributeAdd
     use esmFlds, only : med_fldlist_init1, med_fld_GetFldInfo, med_fldList_entry_type
     use med_phases_history_mod, only : med_phases_history_init
-    use med_internalstate_mod , only : atm_name
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -671,7 +668,7 @@ contains
 
     ! local variables
     character(len=CS)   :: stdname, shortname
-    integer             :: n, n1, n2, ncomp, nflds, ns
+    integer             :: ncomp, ns
     logical             :: isPresent, isSet
     character(len=CS)   :: transferOffer
     character(len=CS)   :: cvalue
@@ -1004,7 +1001,7 @@ contains
 
     ! local variables
     type(InternalState) :: is_local
-    integer :: n1,n2
+    integer :: n1
     character(len=*),parameter :: subname=' (Modify Decomp of Mesh/Grid) '
     !-----------------------------------------------------------
 
@@ -1065,7 +1062,7 @@ contains
       integer                       :: dimCount, tileCount
       integer                       :: connectionCount
       integer                       :: fieldCount
-      integer                       :: i, j, n, n1, i1, i2
+      integer                       :: n, n1, i1, i2
       type(ESMF_GeomType_Flag)      :: geomtype
       type(ESMF_FieldStatus_Flag)   :: fieldStatus
       character(len=CX)             :: msgString
@@ -1332,7 +1329,7 @@ contains
 
     ! local variables
     type(InternalState) :: is_local
-    integer             :: n1,n2
+    integer             :: n1
     character(len=*),parameter  :: subname=' (Realize Fields with Transfer Accept) '
     !-----------------------------------------------------------
 
@@ -1580,24 +1577,19 @@ contains
 
     ! local variables
     type(InternalState)                :: is_local
-    type(ESMF_VM)                      :: vm
     type(ESMF_Clock)                   :: clock
     type(ESMF_State)                   :: importState, exportState
     type(ESMF_Time)                    :: time
     type(ESMF_Field)                   :: field
-    type(ESMF_StateItem_Flag)          :: itemType
     type(med_fldList_type), pointer    :: fldListMed_ocnalb
-    logical                            :: atCorrectTime, connected
-    integer                            :: n1,n2,n,ns
+    logical                            :: atCorrectTime
+    integer                            :: n1,n2,n
     integer                            :: nsrc,ndst
-    integer                            :: cntn1, cntn2
     integer                            :: fieldCount
     character(ESMF_MAXSTR),allocatable :: fieldNameList(:)
     character(CL), pointer             :: fldnames(:)
     character(CL)                      :: cvalue
-    character(CL)                      :: start_type
     logical                            :: read_restart
-    logical                            :: isPresent, isSet
     logical                            :: allDone = .false.
     logical,save                       :: first_call = .true.
     real(r8)                           :: real_nx, real_ny
@@ -2205,11 +2197,9 @@ contains
     type(ESMF_TimeInterval) :: timeStep
     type(ESMF_Alarm)        :: stop_alarm
     character(len=CL)       :: cvalue
-    character(len=CL)       :: name, stop_option
+    character(len=CL)       :: stop_option
     integer                 :: stop_n, stop_ymd
-    logical                 :: first_time = .true.
     logical, save           :: stopalarmcreated=.false.
-    integer                 :: alarmcount
 
     character(len=*),parameter :: subname=' (Set Run Clock) '
     !-----------------------------------------------------------

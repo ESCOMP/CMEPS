@@ -2028,6 +2028,7 @@ contains
     integer               :: p_size       ! number of period types
     real(r8), allocatable :: datagpr(:,:,:)
     logical, save         :: firstcall = .true.
+    character(len=CL)     :: timestr
     character(*), parameter :: subName = '(med_phases_diag_print) '
     ! ------------------------------------------------------------------
 
@@ -2171,6 +2172,12 @@ contains
     character(*), parameter:: subName = '(med_phases_diag_print_atm) '
     ! ------------------------------------------------------------------
 
+    ica = 0
+    icl = 0
+    icn = 0
+    ics = 0
+    ico = 0
+    str = ""
     do ic = 1,2
        if (ic == 1) then    ! from atm to mediator
           ica = c_atm_recv ! total from atm
@@ -2318,7 +2325,11 @@ contains
     character(len=40) :: str      ! string
     character(*), parameter :: subName = '(med_diag_print_lnd_ice_ocn) '
     ! ------------------------------------------------------------------
-
+    icar = 0
+    icxs = 0
+    icxr = 0
+    icas = 0
+    str = ""
     do ic = 1,4
 
        if (ic == 1) then

@@ -91,15 +91,12 @@ contains
     type(ESMF_VM)          :: vm
     type(ESMF_GridComp)    :: driver, gridcomptmp
     type(ESMF_Config)      :: config
-    integer                :: n, n1, stat
+    integer                :: n
     integer, pointer       :: petList(:)
-    character(len=20)      :: model, prefix
-    integer                :: petCount, i
+    integer                :: petCount
     integer                :: localPet
-    logical                :: is_set
     character(len=512)     :: diro
     character(len=512)     :: logfile
-    integer                :: global_comm
     logical                :: read_restart
     character(len=CS)      :: read_restart_string
     integer                :: inst

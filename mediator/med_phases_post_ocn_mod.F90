@@ -26,7 +26,7 @@ contains
     use med_utils_mod           , only : chkerr      => med_utils_ChkErr
     use med_constants_mod       , only : dbug_flag   => med_constants_dbug_flag
     use med_map_mod             , only : med_map_field_packed
-    use med_internalstate_mod   , only : InternalState, logunit, mastertask
+    use med_internalstate_mod   , only : InternalState
     use med_internalstate_mod   , only : compice, compocn, compwav
     use med_phases_history_mod  , only : med_phases_history_write_comp
     use med_phases_prep_glc_mod , only : med_phases_prep_glc_accum_ocn

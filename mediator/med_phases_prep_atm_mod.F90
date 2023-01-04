@@ -46,13 +46,12 @@ contains
 
     ! local variables
     type(ESMF_Field)           :: lfield
-    character(len=64)          :: timestr
     type(InternalState)        :: is_local
     real(R8), pointer          :: dataPtr1(:)
     real(R8), pointer          :: dataPtr2(:)
     real(R8), pointer          :: ifrac(:)
     real(R8), pointer          :: ofrac(:)
-    integer                    :: i, j, n, n1, ncnt
+    integer                    :: n
     type(med_fldlist_type), pointer :: fldList
     character(len=*),parameter :: subname='(med_phases_prep_atm)'
     !-------------------------------------------------------------------------------
