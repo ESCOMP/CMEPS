@@ -90,8 +90,6 @@ module med_phases_prep_glc_mod
   type(ESMF_Field)               :: field_icemask_l
   type(ESMF_Field)               :: field_frac_l
   type(ESMF_Field)               :: field_frac_l_ec
-  type(ESMF_Field)               :: field_lnd_icemask_l
-  real(r8) , pointer             :: aream_l(:)  ! cell areas on land grid, for mapping
 
   character(len=*), parameter    :: qice_fieldname       = 'Flgl_qice' ! Name of flux field giving surface mass balance
   character(len=*), parameter    :: Sg_frac_fieldname    = 'Sg_ice_covered'
@@ -108,7 +106,6 @@ module med_phases_prep_glc_mod
   character(len=14)              :: fldnames_fr_ocn(2) = (/'So_t_depth','So_s_depth'/)  ! TODO: what else needs to be added here
   type(ESMF_DynamicMask)         :: dynamicOcnMask
   integer, parameter             :: num_ocndepths = 7
-  logical                        :: ocn_sends_depths = .false.
 
   type(ESMF_Clock)        :: prepglc_clock
   character(*), parameter :: u_FILE_u  = &
@@ -131,18 +128,10 @@ contains
 
     ! local variables
     type(InternalState) :: is_local
-    type(ESMF_Clock)    :: med_clock
-    type(ESMF_ALARM)    :: glc_avg_alarm
-    character(len=CS)   :: glc_avg_period
-    type(ESMF_Time)     :: starttime
-    integer             :: glc_cpl_dt
-    integer             :: i,n,ns,nf
+    integer             :: n,ns,nf
     type(ESMF_Mesh)     :: mesh_l
     type(ESMF_Mesh)     :: mesh_o
     type(ESMF_Field)    :: lfield
-    character(len=CS)   :: cvalue
-    real(r8), pointer   :: data2d_in(:,:)
-    real(r8), pointer   :: data2d_out(:,:)
     character(len=CS)   :: glc_renormalize_smb
     logical             :: glc_coupled_fluxes
     integer             :: ungriddedUBound_output(1) ! currently the size must equal 1 for rank 2 fieldds
@@ -396,7 +385,6 @@ contains
 
     ! local variables
     type(InternalState) :: is_local
-    type(ESMF_Field)    :: lfield
     integer             :: i,n
     real(r8), pointer   :: data2d_in(:,:)
     real(r8), pointer   :: data2d_out(:,:)
@@ -454,7 +442,6 @@ contains
 
     ! local variables
     type(InternalState) :: is_local
-    type(ESMF_Field)    :: lfield
     integer             :: i,n
     real(r8), pointer   :: data2d_in(:,:)
     real(r8), pointer   :: data2d_out(:,:)
@@ -524,7 +511,7 @@ contains
     integer             :: yr_med, mon_med, day_med, sec_med
     integer             :: yr_prepglc, mon_prepglc, day_prepglc, sec_prepglc
     type(ESMF_Alarm)    :: alarm
-    integer             :: i, n, ns
+    integer             :: n, ns
     real(r8), pointer   :: data2d(:,:)
     real(r8), pointer   :: data2d_import(:,:)
     character(len=CS)   :: cvalue
@@ -752,20 +739,16 @@ contains
     ! local variables
     type(InternalState) :: is_local
     real(r8), pointer   :: topolnd_g_ec(:,:)      ! topo in elevation classes
-    real(r8), pointer   :: dataptr_g(:)           ! temporary data pointer for one elevation class
     real(r8), pointer   :: topoglc_g(:)           ! ice topographic height on the glc grid extracted from glc import
     real(r8), pointer   :: data_ice_covered_g(:)  ! data for ice-covered regions on the GLC grid
     real(r8), pointer   :: ice_covered_g(:)       ! if points on the glc grid is ice-covered (1) or ice-free (0)
     integer , pointer   :: elevclass_g(:)         ! elevation classes glc grid
     real(r8), pointer   :: dataexp_g(:)           ! pointer into
     real(r8), pointer   :: dataptr2d(:,:)
-    real(r8), pointer   :: dataptr1d(:)
     real(r8)            :: elev_l, elev_u         ! lower and upper elevations in interpolation range
     real(r8)            :: d_elev                 ! elev_u - elev_l
     integer             :: nfld, ec
-    integer             :: i,j,n,g,lsize_g,ns
-    integer             :: ungriddedUBound_output(1)
-    type(ESMF_Field)    :: lfield
+    integer             :: n,lsize_g,ns
     type(ESMF_Field)    :: field_lfrac_l
     integer             :: fieldCount
     character(len=3)    :: cnum
@@ -1037,7 +1020,6 @@ contains
     ! local variables
     type(InternalState) :: is_local
     type(ESMF_VM)       :: vm
-    type(ESMF_Field)    :: lfield
     real(r8) , pointer  :: qice_g(:)       ! SMB (Flgl_qice) on glc grid without elev classes
     real(r8) , pointer  :: qice_l_ec(:,:)  ! SMB (Flgl_qice) on land grid with elev classes
     real(r8) , pointer  :: topo_g(:)       ! ice topographic height on the glc grid cell
@@ -1048,7 +1030,6 @@ contains
     real(r8) , pointer  :: icemask_l(:)    ! icemask on land grid
     real(r8) , pointer  :: lfrac(:)        ! land fraction on land grid
     real(r8) , pointer  :: dataptr1d(:)    ! temporary 1d pointer
-    real(r8) , pointer  :: dataptr2d(:,:)  ! temporary 2d pointer
     integer             :: ec              ! loop index over elevation classes
     integer             :: n
 
