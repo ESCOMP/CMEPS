@@ -2028,7 +2028,9 @@ contains
     integer               :: p_size       ! number of period types
     real(r8), allocatable :: datagpr(:,:,:)
     logical, save         :: firstcall = .true.
+#ifdef DEBUG
     character(len=CL)     :: timestr
+#endif
     character(*), parameter :: subName = '(med_phases_diag_print) '
     ! ------------------------------------------------------------------
 
