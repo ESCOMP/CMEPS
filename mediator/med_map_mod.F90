@@ -347,7 +347,7 @@ contains
     use med_internalstate_mod , only : mapunset, mapnames, nmappers
     use med_internalstate_mod , only : mapnstod, mapnstod_consd, mapnstod_consf, mapnstod_consd
     use med_internalstate_mod , only : mapfillv_bilnr, mapbilnr_nstod, mapconsf_aofrac
-    use med_internalstate_mod , only : compocn, compwav, complnd, compname
+    use med_internalstate_mod , only : compocn, compwav, complnd, compname, compatm
     use med_internalstate_mod , only : coupling_mode, dststatus_print
     use med_internalstate_mod , only : defaultMasks
     use med_constants_mod     , only : ispval_mask => med_constants_ispval_mask
@@ -719,7 +719,7 @@ contains
     use esmFlds               , only : med_fldList_entry_type, med_fldList_getNumFlds, med_fldList_type
     use esmFlds               , only : med_fld_getFldInfo
     use med_internalstate_mod , only : ncomps, compname, mapnames
-    use med_internalstate_mod , only : packed_data_type
+    use med_internalstate_mod , only : packed_data_type, nmappers
 
     ! input/output variables
     integer                      , intent(in)    :: destcomp
