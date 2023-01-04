@@ -61,7 +61,10 @@ contains
     logical                 :: ispresent
     logical                 :: alarmison=.false., stopalarmison=.false.
     real(R8)                :: current_time, wallclockelapsed, ypd
-    real(r8)                :: msize, mrss, ringdays
+    real(r8)                :: ringdays
+#ifdef CESMCOUPLED
+    real(r8)                :: msize, mrss
+#endif
     real(r8), save          :: avgdt
     character(len=CL)       :: walltimestr, nexttimestr
     character(len=*), parameter :: subname='(med_phases_profile)'
