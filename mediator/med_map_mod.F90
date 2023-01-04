@@ -85,7 +85,7 @@ contains
     use med_constants_mod     , only : czero => med_constants_czero
     use esmFlds               , only : med_fldList_GetfldListFr, med_fldlist_type
     use esmFlds               , only : med_fld_GetFldInfo, med_fldList_entry_type
-    use med_internalstate_mod , only : mapunset, compname, compocn, compatm
+    use med_internalstate_mod , only : mapunset, compname
     use med_internalstate_mod , only : ncomps, nmappers, compname, mapnames, mapfcopy
 
     ! input/output variables
@@ -718,7 +718,7 @@ contains
     use ESMF
     use esmFlds               , only : med_fldList_entry_type, med_fldList_getNumFlds, med_fldList_type
     use esmFlds               , only : med_fld_getFldInfo
-    use med_internalstate_mod , only : ncomps, compname, mapnames
+    use med_internalstate_mod , only : compname, mapnames
     use med_internalstate_mod , only : packed_data_type, nmappers
 
     ! input/output variables
