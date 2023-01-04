@@ -783,7 +783,6 @@ contains
     type(ESMF_Field)              :: field
     type(ESMF_Mesh)               :: mesh
     type(ESMF_Distgrid)           :: distgrid
-    type(ESMF_VM)                 :: VM
     integer                       :: mpicom
     integer                       :: rcode
     integer                       :: nf,ns,ng
@@ -799,8 +798,6 @@ contains
     character(CL)                 :: itemc       ! string converted to char
     character(CL)                 :: name1       ! var name
     character(CL)                 :: cunit       ! var units
-    character(CL)                 :: lname       ! long name
-    character(CL)                 :: sname       ! standard name
     character(CL)                 :: lpre        ! local prefix
     integer                       :: lnx,lny
     logical                       :: luse_float
@@ -819,7 +816,6 @@ contains
     integer                       :: rank
     integer                       :: ungriddedUBound(1) ! currently the size must equal 1 for rank 2 fields
     integer                       :: gridToFieldMap(1)  ! currently the size must equal 1 for rank 2 fields
-    logical                       :: isPresent
     logical                       :: atmtiles
     integer                       :: ntiles = 1
     character(CL), allocatable    :: fieldNameList(:)
@@ -1216,8 +1212,6 @@ contains
     integer          :: dimid(1)
     type(var_desc_t) :: varid
     character(CL)    :: cunit       ! var units
-    character(CL)    :: lname       ! long name
-    character(CL)    :: sname       ! standard name
     integer          :: lnx
     integer          :: lfile_ind
     character(*),parameter :: subName = '(med_io_write_int1d) '
@@ -1274,6 +1268,11 @@ contains
 
     rc = ESMF_SUCCESS
 
+    if(present(file_ind)) then
+       lfile_ind = file_ind
+    else
+       lfile_ind = 1
+    endif
     if (whead) then
        rcode = pio_def_var(io_file(lfile_ind),trim(dname),PIO_DOUBLE,varid)
        if (rcode==PIO_NOERR) then
@@ -1322,6 +1321,11 @@ contains
 
     rc = ESMF_SUCCESS
 
+    if(present(file_ind)) then
+       lfile_ind = file_ind
+    else
+       lfile_ind = 1
+    endif
     if (whead) then
        lnx = size(rdata)
        rcode = pio_def_dim(io_file(lfile_ind),trim(dname)//'_nx',lnx,dimid(1))
@@ -1365,8 +1369,6 @@ contains
     integer          :: dimid(1)
     type(var_desc_t) :: varid
     character(CL)    :: cunit       ! var units
-    character(CL)    :: lname       ! long name
-    character(CL)    :: sname       ! standard name
     integer          :: lnx
     integer          :: lfile_ind
     character(CL)    :: charvar   ! buffer for string read/write
@@ -1374,7 +1376,11 @@ contains
     !-------------------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
-
+    if(present(file_ind)) then
+       lfile_ind = file_ind
+    else
+       lfile_ind = 1
+    endif
     if (whead) then
        lnx = len(charvar)
        rcode = pio_def_dim(io_file(lfile_ind),trim(dname)//'_len',lnx,dimid(1))
@@ -1534,7 +1540,7 @@ contains
     ! local variables
     type(ESMF_Field)              :: lfield
     integer                       :: rcode
-    integer                       :: nf,ns,ng
+    integer                       :: nf
     integer                       :: k,n,l
     type(file_desc_t)             :: pioid
     type(var_desc_t)              :: varid
@@ -1543,7 +1549,6 @@ contains
     character(CL)                 :: name1       ! var name
     character(CL)                 :: lpre        ! local prefix
     real(r8)                      :: lfillvalue
-    integer                       :: tmp(1)
     integer                       :: rank, lsize
     real(r8), pointer             :: fldptr1(:), fldptr1_tmp(:)
     real(r8), pointer             :: fldptr2(:,:)
@@ -1740,17 +1745,15 @@ contains
     type(ESMF_Distgrid) :: distgrid
     integer             :: rcode
     integer             :: ns,ng
-    integer             :: n,ndims
+    integer             :: ndims
     integer, pointer    :: dimid(:)
     type(var_desc_t)    :: varid
     integer             :: lnx,lny
-    integer             :: tmp(1)
     integer, pointer    :: minIndexPTile(:,:)
     integer, pointer    :: maxIndexPTile(:,:)
     integer             :: dimCount, tileCount
     integer, pointer    :: Dof(:)
     character(CL)       :: tmpstr
-    integer             :: rank
     character(*),parameter :: subName = '(med_io_read_init_iodesc) '
     !-------------------------------------------------------------------------------
 
