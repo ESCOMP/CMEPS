@@ -2079,7 +2079,7 @@ contains
     year =int(tdate/10000)
     if (date < 0) year = -year
     month = int( mod(tdate,10000_I8)/  100)
-    day = mod(tdate,  100_I8)
+    day = int(mod(tdate,  100_I8))
   end subroutine med_io_date2ymd_long
 
   !===============================================================================
