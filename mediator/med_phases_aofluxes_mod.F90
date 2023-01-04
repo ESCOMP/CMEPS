@@ -94,7 +94,6 @@ module med_phases_aofluxes_mod
   type(ESMF_RouteHandle) :: rh_agrid2xgrid        ! atm->xgrid mapping
   type(ESMF_RouteHandle) :: rh_xgrid2ogrid        ! xgrid->ocn mapping
   type(ESMF_RouteHandle) :: rh_xgrid2agrid        ! xgrid->atm mapping
-  type(ESMF_RouteHandle) :: rh_ogrid2xgrid_2ndord ! ocn->xgrid mapping 2nd order conservative
   type(ESMF_RouteHandle) :: rh_agrid2xgrid_2ndord ! atm->xgrid mapping 2nd order conservative
   type(ESMF_RouteHandle) :: rh_agrid2xgrid_bilinr ! atm->xgrid mapping bilinear
   type(ESMF_RouteHandle) :: rh_agrid2xgrid_patch  ! atm->xgrid mapping patch
@@ -151,8 +150,6 @@ module med_phases_aofluxes_mod
      real(R8) , pointer :: re          (:) => null() ! saved re
      real(R8) , pointer :: ssq         (:) => null() ! saved sq
   end type aoflux_out_type
-
-  character(len=CS) :: aoflux_grid
 
   character(*), parameter :: u_FILE_u = &
        __FILE__
@@ -359,9 +356,7 @@ contains
 
     ! local variables
     type(InternalState) :: is_local
-    integer             :: n
     character(CL)       :: cvalue
-    character(len=CX)   :: tmpstr
     real(R8)            :: flux_convergence        ! convergence criteria for implicit flux computation
     integer             :: flux_max_iteration      ! maximum number of iterations for convergence
     logical             :: coldair_outbreak_mod    ! cold air outbreak adjustment  (Mahrt & Sun 1995,MWR)
@@ -504,7 +499,6 @@ contains
     type(InternalState) :: is_local
     character(len=CX)   :: tmpstr
     integer             :: lsize
-    integer             :: fieldcount
     type(ESMF_Field)    :: lfield
     type(ESMF_Mesh)     :: lmesh
     real(R8), pointer   :: garea(:) => null()
@@ -608,7 +602,6 @@ contains
     ! Local variables
     type(InternalState) :: is_local
     integer             :: lsize,n
-    integer             :: fieldcount
     type(ESMF_Field)    :: field_src
     type(ESMF_Field)    :: field_dst
     real(r8), pointer   :: dataptr1d(:)
@@ -764,7 +757,6 @@ contains
     integer               , intent(out)   :: rc
 
     ! Local variables
-    integer              :: n
     integer              :: lsize
     type(InternalState)  :: is_local
     type(ESMF_Field)     :: field_a
@@ -778,7 +770,6 @@ contains
     integer              :: fieldcount
     type(ESMF_CoordSys_Flag)           :: coordSys
     real(ESMF_KIND_R8)    ,allocatable :: garea(:)
-    character(ESMF_MAXSTR),allocatable :: fieldNameList(:)
     character(len=*),parameter :: subname=' (med_aofluxes_init_xgrid) '
     !-----------------------------------------------------------------------
 
@@ -974,12 +965,7 @@ contains
     !
     ! Local variables
     type(InternalState)      :: is_local
-    type(ESMF_Field)         :: field_src
-    type(ESMF_Field)         :: field_dst
-    integer                  :: n,i,nf                     ! indices
-    real(r8), pointer        :: data_normdst(:)
-    real(r8), pointer        :: data_dst(:)
-    integer                  :: maptype
+    integer                  :: n                          ! indices
     real(r8), parameter      :: qmin = 1.0e-8_r8
     real(r8), parameter      :: p0 = 100000.0_r8           ! reference pressure in Pa
     real(r8), parameter      :: rcp = 0.286_r8             ! gas constant of air / specific heat capacity at a constant pressure
@@ -1404,7 +1390,7 @@ end subroutine med_aofluxes_map_ogrid2xgrid_input
     type(ESMF_Field)    :: field_src
     type(ESMF_Field)    :: field_dst
     type(ESMF_Field)    :: lfield
-    integer             :: n,i,nf                     ! indices
+    integer             :: n,nf                     ! indices
     real(r8), pointer   :: data_src(:)
     real(r8), pointer   :: data_src_save(:)
     real(r8), pointer   :: data_dst(:)
@@ -1484,7 +1470,7 @@ end subroutine med_aofluxes_map_ogrid2xgrid_input
     !
     ! Local variables
     type(InternalState) :: is_local
-    integer             :: n,i,nf                     ! indices
+    integer             :: nf                     ! indices
     type(ESMF_Field)    :: field_src
     type(ESMF_Field)    :: field_dst
     character(*),parameter  :: subName = '(med_aofluxes_map_xgrid2ogrid_output) '
