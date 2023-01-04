@@ -50,12 +50,12 @@ module med_phases_ocnalb_mod
   character(*),parameter :: u_FILE_u = &
        __FILE__
 
-  character(len=CL)      :: orb_mode        ! attribute - orbital mode
-  integer                :: orb_iyear       ! attribute - orbital year
-  integer                :: orb_iyear_align ! attribute - associated with model year
-  real(R8)               :: orb_obliq       ! attribute - obliquity in degrees
-  real(R8)               :: orb_mvelp       ! attribute - moving vernal equinox longitude
-  real(R8)               :: orb_eccen       ! attribute and update-  orbital eccentricity
+!  character(len=CL)      :: orb_mode        ! attribute - orbital mode
+!  integer                :: orb_iyear       ! attribute - orbital year
+!  integer                :: orb_iyear_align ! attribute - associated with model year
+!  real(R8)               :: orb_obliq       ! attribute - obliquity in degrees
+!  real(R8)               :: orb_mvelp       ! attribute - moving vernal equinox longitude
+!  real(R8)               :: orb_eccen       ! attribute and update-  orbital eccentricity
 
   character(len=*) , parameter :: orb_fixed_year       = 'fixed_year'
   character(len=*) , parameter :: orb_variable_year    = 'variable_year'
@@ -216,7 +216,7 @@ contains
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc
-
+#ifdef CESMCOUPLED
     ! local variables
     type(ocnalb_type), save :: ocnalb
     type(ESMF_VM)           :: vm
@@ -255,15 +255,13 @@ contains
     logical                 :: first_call = .true.
     character(len=*)  , parameter :: subname='(med_phases_ocnalb_run)'
     !---------------------------------------
-
+#else
     rc = ESMF_SUCCESS
-
-#ifndef CESMCOUPLED
-
     RETURN  ! the following code is not executed unless the model is CESM
 
-#else
-
+#endif
+#ifdef CESMCOUPLED
+    rc = ESMF_SUCCESS
     ! Determine master task
     call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -437,9 +435,7 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     end if
     call t_stopf('MED:'//subname)
-
 #endif
-
   end subroutine med_phases_ocnalb_run
 
 !===============================================================================
