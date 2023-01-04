@@ -783,7 +783,6 @@ contains
     type(ESMF_Field)              :: field
     type(ESMF_Mesh)               :: mesh
     type(ESMF_Distgrid)           :: distgrid
-    integer                       :: mpicom
     integer                       :: rcode
     integer                       :: nf,ns,ng
     integer                       :: k,n
