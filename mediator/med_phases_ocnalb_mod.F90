@@ -26,10 +26,11 @@ module med_phases_ocnalb_mod
   !--------------------------------------------------------------------------
   ! Private interfaces
   !--------------------------------------------------------------------------
-
+#ifdef CESMCOUPLED
   private med_phases_ocnalb_init
-  private med_phases_ocnalb_orbital_init
   private med_phases_ocnalb_orbital_update
+#endif
+  private med_phases_ocnalb_orbital_init
 
   !--------------------------------------------------------------------------
   ! Private data
@@ -64,7 +65,7 @@ module med_phases_ocnalb_mod
 !===============================================================================
 contains
 !===============================================================================
-
+#ifdef CESMCOUPLED
   subroutine med_phases_ocnalb_init(gcomp, ocnalb, rc)
 
     !-----------------------------------------------------------------------
@@ -191,7 +192,7 @@ contains
     call t_stopf('MED:'//subname)
 
   end subroutine med_phases_ocnalb_init
-
+#endif
   !===============================================================================
 
   subroutine med_phases_ocnalb_run(gcomp, rc)
@@ -543,7 +544,7 @@ contains
   end subroutine med_phases_ocnalb_orbital_init
 
   !===============================================================================
-
+#ifdef CESMCOUPLED
   subroutine med_phases_ocnalb_orbital_update(clock, logunit,  mastertask, eccen, obliqr, lambm0, mvelpp, rc)
 
     !----------------------------------------------------------
@@ -564,7 +565,6 @@ contains
     integer          , intent(out)   :: rc     ! output error
 
     ! local variables
-#ifdef CESMCOUPLED
     type(ESMF_Time)   :: CurrTime ! current time
     integer           :: year     ! model year at current time
     integer           :: orb_year ! orbital year for current orbital computation
@@ -572,12 +572,10 @@ contains
     logical           :: lprint
     logical           :: first_time = .true.
     character(len=*) , parameter :: subname = "(med_phases_ocnalb_orbital_update)"
-#endif
     !-------------------------------------------
 
     rc = ESMF_SUCCESS
 
-#ifdef CESMCOUPLED
     if (trim(orb_mode) == trim(orb_variable_year)) then
        call ESMF_ClockGet(clock, CurrTime=CurrTime, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -605,9 +603,9 @@ contains
        call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
        return  ! bail out
     endif
-#endif
 
   end subroutine med_phases_ocnalb_orbital_update
+#endif
 
 !===============================================================================
 
