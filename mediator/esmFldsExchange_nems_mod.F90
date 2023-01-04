@@ -46,7 +46,7 @@ contains
 
     ! local variables:
     type(InternalState) :: is_local
-    integer             :: i, maptype
+    integer             :: i, n, maptype
     character(len=CX)   :: msgString
     character(len=CL)   :: cvalue
     character(len=CS)   :: fldname
