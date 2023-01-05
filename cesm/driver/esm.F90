@@ -271,8 +271,8 @@ contains
     !   file=__FILE__)) &
     !   return  ! bail out
 
-    call pretty_print_nuopc_freeformat(runSeqFF, 'run sequence', rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
+!    call pretty_print_nuopc_freeformat(runSeqFF, 'run sequence', rc=rc)
+!    if (chkerr(rc,__LINE__,u_FILE_u)) return
 #endif
     call NUOPC_FreeFormatDestroy(runSeqFF, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -737,11 +737,11 @@ contains
 
     call NUOPC_CompAttributeIngest(gcomp, attrFF, addFlag=.true., rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-#if DEBUG
-    if (present (formatprint)) then
-       call pretty_print_nuopc_freeformat(attrFF, trim(label)//' attributes', rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-    end if
+#ifdef DEBUG
+!    if (present (formatprint)) then
+!       call pretty_print_nuopc_freeformat(attrFF, trim(label)//' attributes', rc=rc)
+!       if (chkerr(rc,__LINE__,u_FILE_u)) return
+!    end if
 #endif
     call NUOPC_FreeFormatDestroy(attrFF, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
