@@ -571,7 +571,7 @@ contains
     !-------------------------------------------
 
     rc = ESMF_SUCCESS
-
+    lprint = .false.
     if (trim(orb_mode) == trim(orb_variable_year)) then
        call ESMF_ClockGet(clock, CurrTime=CurrTime, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
