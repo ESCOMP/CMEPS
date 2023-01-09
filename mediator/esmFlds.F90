@@ -398,7 +398,7 @@ contains
 
     ! local variables
     type(med_fldList_entry_type), pointer :: newfld
-    integer :: id, n, rc
+    integer :: rc
     character(len=CX)                                  :: lmapfile
     character(len=*),parameter  :: subname='(med_fldList_AddMap)'
     ! ----------------------------------------------
@@ -458,7 +458,6 @@ contains
     integer                         :: n
     type(ESMF_Field)                :: field
     character(CS)                   :: shortname
-    character(CS)                   :: stdname
     character(ESMF_MAXSTR)          :: transferActionAttr
     type(ESMF_StateIntent_Flag)     :: stateIntent
     character(ESMF_MAXSTR)          :: transferAction
@@ -817,20 +816,12 @@ contains
     logical, intent(in)  :: med_coupling_active(:,:)
 
     ! local variables
-    integer           :: nsrc,ndst,nf,nm,n
+    integer           :: nsrc,ndst
     integer           :: mapindex
     character(len=CS) :: mapnorm
     character(len=CL) :: mapfile
     character(len=CS) :: fldname
-    character(len=CS) :: stdname
-    character(len=CX) :: merge_fields
-    character(len=CX) :: merge_field
-    character(len=CS) :: merge_type
-    character(len=CS) :: merge_fracname
-    character(len=CS) :: string
-    character(len=CL) :: mrgstr
     character(len=CL) :: cvalue
-    logical           :: init_mrgstr
     type(med_fldList_entry_type), pointer :: newfld
     character(len=*),parameter :: subname = '(med_fldList_Document_Mapping)'
     !-----------------------------------------------------------
@@ -919,18 +910,16 @@ contains
     logical, intent(in)  :: med_coupling_active(:,:)
 
     ! local variables
-    integer           :: nsrc,ndst,nf,n
+    integer           :: nsrc,ndst
     character(len=CS) :: dst_comp
     character(len=CS) :: dst_field
     character(len=CS) :: src_comp
-    character(len=CS) :: src_field
     character(len=CS) :: merge_type
     character(len=CS) :: merge_field
     character(len=CS) :: merge_frac
     character(len=CS) :: prefix
     character(len=CS) :: string
     character(len=CL) :: mrgstr
-    logical           :: init_mrgstr
     type(med_fldList_entry_type), pointer :: newfld
     character(len=*),parameter :: subname = '(med_fldList_Document_Merging)'
     !-----------------------------------------------------------

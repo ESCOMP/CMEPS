@@ -23,7 +23,7 @@ module esm_time_mod
 
   public  :: esm_time_clockInit  ! initialize driver clock (assumes default calendar)
 
-  private :: esm_time_timeInit
+!  private :: esm_time_timeInit
   private :: esm_time_alarmInit
   private :: esm_time_date2ymd
 
@@ -87,15 +87,14 @@ contains
     integer                 :: glc_cpl_dt          ! Glc coupling interval
     integer                 :: rof_cpl_dt          ! Runoff coupling interval
     integer                 :: wav_cpl_dt          ! Wav coupling interval
-    integer                 :: esp_cpl_dt          ! Esp coupling interval
+!    integer                 :: esp_cpl_dt          ! Esp coupling interval
     character(CS)           :: glc_avg_period      ! Glc avering coupling period
     logical                 :: read_restart
     character(len=CL)       :: restart_file
     character(len=CL)       :: restart_pfile
     character(len=CL)       :: cvalue
     integer                 :: dtime_drv           ! time-step to use
-    integer                 :: yr, mon, day, sec   ! Year, month, day, secs as integers
-    integer                 :: localPet            ! local pet in esm domain
+    integer                 :: yr, mon, day        ! Year, month, day as integers
     integer                 :: unitn               ! unit number
     integer                 :: ierr                ! Return code
     character(CL)           :: tmpstr              ! temporary
@@ -392,7 +391,6 @@ contains
    type(ESMF_Time)         :: CurrTime         ! Current Time
    type(ESMF_Time)         :: NextAlarm        ! Next restart alarm time
    type(ESMF_TimeInterval) :: AlarmInterval    ! Alarm interval
-   integer                 :: sec
    character(len=*), parameter :: subname = '(med_time_alarmInit): '
    !-------------------------------------------------------------------------------
 
@@ -563,7 +561,7 @@ contains
  end subroutine esm_time_alarmInit
 
  !===============================================================================
-
+#ifdef UNUSEDFUNCTION
  subroutine esm_time_timeInit( Time, ymd, cal, tod, desc, logunit )
 
    !  Create the ESMF_Time object corresponding to the given input time, given in
@@ -607,7 +605,7 @@ contains
    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
  end subroutine esm_time_timeInit
-
+#endif
  !===============================================================================
 
  subroutine esm_time_date2ymd (date, year, month, day)

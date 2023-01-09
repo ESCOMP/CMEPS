@@ -54,7 +54,6 @@ contains
     integer, intent(out) :: rc
 
     ! local variables
-    type(ESMF_Config) :: runSeq
     character(len=*), parameter :: subname = "(esm.F90:SetServices)"
     !---------------------------------------
 
@@ -125,9 +124,7 @@ contains
     ! local variables
     type(ESMF_VM)     :: vm
     type(ESMF_Config) :: config
-    integer           :: n, i, stat
-    character(len=20) :: model, prefix
-    integer           :: localPet, medpet
+    integer           :: localPet
     character(len=CL) :: meminitStr
     integer           :: global_comm
     integer           :: maxthreads
@@ -241,7 +238,6 @@ contains
     integer, intent(out) :: rc
 
     ! local variables
-    integer                 :: localrc
     type(ESMF_Config)       :: runSeq
     type(NUOPC_FreeFormat)  :: runSeqFF
     character(len=*), parameter :: subname = "(esm.F90:SetRunSequence)"
@@ -267,7 +263,7 @@ contains
 
     call NUOPC_DriverIngestRunSequence(driver, runSeqFF, autoAddConnectors=.true., rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-
+#ifdef DEBUG
     ! Uncomment these to add debugging information for driver
     ! call NUOPC_DriverPrint(driver, orderflag=.true.)
     ! if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
@@ -275,9 +271,9 @@ contains
     !   file=__FILE__)) &
     !   return  ! bail out
 
-    ! call pretty_print_nuopc_freeformat(runSeqFF, 'run sequence', rc=rc)
-    ! if (chkerr(rc,__LINE__,u_FILE_u)) return
-
+!    call pretty_print_nuopc_freeformat(runSeqFF, 'run sequence', rc=rc)
+!    if (chkerr(rc,__LINE__,u_FILE_u)) return
+#endif
     call NUOPC_FreeFormatDestroy(runSeqFF, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
@@ -433,11 +429,7 @@ contains
     type(ShrWVSatTableSpec)      :: liquid_spec
     type(ShrWVSatTableSpec)      :: ice_spec
     type(ShrWVSatTableSpec)      :: mixed_spec
-    logical                      :: flag
-    integer                      :: i, it, n
-    integer                      :: unitn                 ! Namelist unit number to read
     integer                      :: localPet, rootpe_med
-    character(len=CL)            :: msgstr
     integer          , parameter :: ens1=1                ! use first instance of ensemble only
     integer          , parameter :: fix1=1                ! temporary hard-coding to first ensemble, needs to be fixed
     real(R8)         , parameter :: epsilo = shr_const_mwwv/shr_const_mwdair
@@ -568,8 +560,6 @@ contains
     integer             , intent(out)   :: rc
 
     !----- local -----
-    character(len=CL) :: cvalue         ! temporary
-    character(len=CL) :: start_type     ! Type of startup
     character(len=CS) :: logFilePostFix ! postfix for output log files
     character(len=CL) :: outPathRoot    ! root for output log files
     character(len=CS) :: cime_model
@@ -627,12 +617,9 @@ contains
     integer             , intent(inout) :: rc
 
     ! local variables
-    integer                        :: n
-    integer                        :: stat
     integer                        :: inst_index
     character(len=CL)              :: cvalue
     character(len=CS)              :: attribute
-    integer                        :: componentCount
     character(len=*), parameter    :: subname = "(esm.F90:AddAttributes)"
     !-------------------------------------------
 
@@ -750,12 +737,12 @@ contains
 
     call NUOPC_CompAttributeIngest(gcomp, attrFF, addFlag=.true., rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    !    if (present (formatprint)) then
-    !       call pretty_print_nuopc_freeformat(attrFF, trim(label)//' attributes', rc=rc)
-    !       if (chkerr(rc,__LINE__,u_FILE_u)) return
-    !    end if
-
+#ifdef DEBUG
+!    if (present (formatprint)) then
+!       call pretty_print_nuopc_freeformat(attrFF, trim(label)//' attributes', rc=rc)
+!       if (chkerr(rc,__LINE__,u_FILE_u)) return
+!    end if
+#endif
     call NUOPC_FreeFormatDestroy(attrFF, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
@@ -870,11 +857,10 @@ contains
     type(ESMF_VM)                  :: vm
     type(ESMF_Config)              :: config
     type(ESMF_Info)                :: info
-    integer                        :: componentcount
     integer                        :: PetCount
-    integer                        :: LocalPet
+    integer                        :: ComponentCount
     integer                        :: ntasks, rootpe, nthrds, stride
-    integer                        :: ntask, cnt
+    integer                        :: ntask
     integer                        :: i
     integer                        :: stat
     character(len=32), allocatable :: compLabels(:)
@@ -1254,7 +1240,7 @@ contains
     !-------------------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
-
+    scol_mesh_n = 0
     ! obtain the single column lon and lat
     call NUOPC_CompAttributeGet(gcomp, name='scol_lon', value=cvalue, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return

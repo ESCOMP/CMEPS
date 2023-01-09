@@ -28,9 +28,9 @@ contains
     use med_methods_mod       , only : FB_diagnose => med_methods_FB_diagnose
     use med_map_mod           , only : med_map_field_packed
     use med_fraction_mod      , only : med_fraction_set
-    use med_internalstate_mod , only : InternalState, mastertask
+    use med_internalstate_mod , only : InternalState
     use med_phases_history_mod, only : med_phases_history_write_comp
-    use med_internalstate_mod , only : compice, compatm, compocn, compwav
+    use med_internalstate_mod , only : compice, compocn, compwav
     use perf_mod              , only : t_startf, t_stopf
 
     ! input/output variables

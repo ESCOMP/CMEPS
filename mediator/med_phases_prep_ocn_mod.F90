@@ -88,7 +88,7 @@ contains
 
     ! local variables
     type(InternalState) :: is_local
-    integer             :: n, ncnt
+    integer             :: n
     real(r8)            :: glob_area_inv
     real(r8), pointer   :: tocn(:)
     real(r8), pointer   :: rain(:), hrain(:)
@@ -624,10 +624,6 @@ contains
 
     ! local variables
     type(InternalState) :: is_local
-    real(R8), pointer   :: ocnwgt1(:)
-    real(R8), pointer   :: icewgt1(:)
-    real(R8), pointer   :: wgtp01(:)
-    real(R8), pointer   :: wgtm01(:)
     real(R8), pointer   :: customwgt(:)
     real(R8), pointer   :: ifrac(:)
     real(R8), pointer   :: ofrac(:)

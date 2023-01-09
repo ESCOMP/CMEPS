@@ -164,14 +164,12 @@ contains
     logical                 :: isSet
     type(ESMF_VM)           :: vm
     type(ESMF_Calendar)     :: calendar     ! calendar type
-    integer                 :: i,m,n        ! indices
-    integer                 :: nx,ny        ! global grid size
+    integer                 :: m,n        ! indices
     character(CL)           :: time_units   ! units of time variable
     character(CL)           :: hist_file    ! history file name
     real(r8)                :: time_val     ! time coordinate output
     real(r8)                :: time_bnds(2) ! time bounds output
     logical                 :: write_now    ! true => write to history type
-    real(r8)                :: tbnds(2)     ! CF1.0 time bounds
     type(ESMF_Time)         :: starttime
     type(ESMF_Time)         :: currtime
     type(ESMF_Time)         :: nexttime
@@ -388,8 +386,7 @@ contains
     type(InternalState) :: is_local
     type(ESMF_VM)       :: vm
     type(ESMF_Calendar) :: calendar     ! calendar type
-    integer             :: i,m,n        ! indices
-    integer             :: nx,ny        ! global grid size
+    integer             :: m            ! indices
     character(CL)       :: time_units   ! units of time variable
     character(CL)       :: hist_file    ! history file name
     real(r8)            :: time_val     ! time coordinate output
@@ -540,10 +537,9 @@ contains
     character(CL)           :: time_units   ! units of time variable
     real(r8)                :: time_val     ! time coordinate output
     real(r8)                :: time_bnds(2) ! time bounds output
-    character(len=CL)       :: hist_str
     character(len=CL)       :: hist_file
     integer                 :: m
-    logical                 :: isPresent, isSet
+    logical                 :: isPresent
     character(len=*), parameter :: subname='(med_phases_history_write_lnd2glc)'
     !---------------------------------------
 
@@ -672,14 +668,13 @@ contains
     logical             :: isSet
     type(ESMF_VM)       :: vm
     type(ESMF_Calendar) :: calendar     ! calendar type
-    integer             :: i,m,n        ! indices
+    integer             :: m            ! indices
     integer             :: nx,ny        ! global grid size
     character(CL)       :: time_units   ! units of time variable
     character(CL)       :: hist_file    ! history file name
     real(r8)            :: time_val     ! time coordinate output
     real(r8)            :: time_bnds(2) ! time bounds output
     logical             :: write_now    ! true => write to history type
-    real(r8)            :: tbnds(2)     ! CF1.0 time bounds
     character(len=*), parameter :: subname='(med_phases_history_write_inst_comp)'
     !---------------------------------------
 
@@ -830,14 +825,13 @@ contains
     logical                 :: isSet
     type(ESMF_VM)           :: vm
     type(ESMF_Calendar)     :: calendar          ! calendar type
-    integer                 :: i,m,n             ! indices
+    integer                 :: m                 ! indices
     integer                 :: nx,ny             ! global grid size
     character(CL)           :: time_units        ! units of time variable
     character(CL)           :: hist_file         ! history file name
     real(r8)                :: time_val          ! time coordinate output
     real(r8)                :: time_bnds(2)      ! time bounds output
     logical                 :: write_now         ! true => write to history type
-    real(r8)                :: tbnds(2)          ! CF1.0 time bounds
     character(CS)           :: scalar_name
     character(len=*), parameter :: subname='(med_phases_history_write_comp_avg)'
     !---------------------------------------
@@ -1052,11 +1046,9 @@ contains
     integer                 :: fieldCount
     logical                 :: found
     logical                 :: enable_auxfile
-    character(CS)           :: timestr           ! yr-mon-day-sec string
     character(CL)           :: time_units        ! units of time variable
     integer                 :: nx,ny             ! global grid size
     logical                 :: write_now         ! if true, write time sample to file
-    integer                 :: yr,mon,day,sec    ! time units
     real(r8)                :: time_val          ! time coordinate output
     real(r8)                :: time_bnds(2)      ! time bounds output
     character(CS), allocatable  :: fieldNameList(:)
@@ -1345,7 +1337,6 @@ contains
       integer          :: i,k,n ! generic indecies
       integer          :: nflds ! allocatable size of flds
       integer          :: count ! counts occurances of char
-      integer          :: kFlds ! number of fields in list
       integer          :: i0,i1 ! name = list(i0:i1)
       integer          :: nChar ! temporary
       logical          :: valid ! check if str is valid
@@ -1419,15 +1410,12 @@ contains
     type(ESMF_Field)       :: lfield_accum
     integer                :: fieldCount_accum
     character(CL), pointer :: fieldnames_accum(:)
-    integer                :: fieldCount
-    character(CL), pointer :: fieldnames(:)
     real(r8), pointer      :: dataptr1d(:)
     real(r8), pointer      :: dataptr2d(:,:)
     real(r8), pointer      :: dataptr1d_accum(:)
     real(r8), pointer      :: dataptr2d_accum(:,:)
     integer                :: ungriddedUBound_accum(1)
     integer                :: ungriddedUBound(1)
-    character(len=64)      :: msg
     !---------------------------------------
 
     rc = ESMF_SUCCESS
@@ -1492,7 +1480,7 @@ contains
     integer                , intent(out)   :: rc
 
     ! local variables
-    integer                :: n,i
+    integer                :: n
     type(ESMF_Field)       :: lfield_accum
     integer                :: fieldCount
     character(CL), pointer :: fieldnames(:)
@@ -1557,7 +1545,6 @@ contains
     ! local variables
     type(ESMF_Clock)        :: mclock, dclock
     type(ESMF_Time)         :: StartTime
-    type(ESMF_TimeInterval) :: htimestep
     type(ESMF_TimeInterval) :: mtimestep, dtimestep
     integer                 :: msec, dsec
     character(len=*), parameter :: subname='(med_phases_history_init_histclock) '
@@ -1735,7 +1722,6 @@ contains
     integer                 :: yr,mon,day,sec ! time units
     integer                 :: start_ymd      ! Starting date YYYYMMDD
     logical                 :: isPresent
-    logical                 :: isSet
     character(len=*), parameter :: subname='(med_phases_history_set_timeinfo) '
     !---------------------------------------
 

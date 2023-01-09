@@ -81,7 +81,6 @@ contains
 
     ! local variables
     type(InternalState) :: is_local
-    integer             :: n, ncnt
     character(len=*), parameter    :: subname='(med_phases_prep_wav_accum)'
     !---------------------------------------
 

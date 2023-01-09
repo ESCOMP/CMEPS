@@ -32,7 +32,7 @@ contains
     use med_utils_mod         , only : chkerr           => med_utils_ChkErr
     use med_constants_mod     , only : dbug_flag        => med_constants_dbug_flag
     use med_internalstate_mod , only : complnd, compatm
-    use med_internalstate_mod , only : InternalState, mastertask, logunit
+    use med_internalstate_mod , only : InternalState, mastertask
     use med_merge_mod         , only : med_merge_auto
     use perf_mod              , only : t_startf, t_stopf
 
@@ -44,11 +44,8 @@ contains
     type(ESMF_StateItem_Flag)   :: itemType
     type(InternalState)         :: is_local
     type(ESMF_Field)            :: lfield
-    integer                     :: ncnt,ns
-    real(r8)                    :: nextsw_cday
+    integer                     :: ncnt
     integer                     :: scalar_id
-    real(r8)                    :: tmp(1)
-    real(r8), pointer           :: dataptr2d(:,:)
     logical                     :: first_call = .true.
     logical                     :: field_found
     type(med_fldlist_type), pointer :: fldList

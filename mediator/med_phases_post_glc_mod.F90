@@ -90,10 +90,8 @@ contains
 
     ! local variables
     type(ESMF_Clock)          :: dClock
-    type(ESMF_StateItem_Flag) :: itemType
     type(InternalState)       :: is_local
-    integer                   :: n1,ncnt,ns
-    real(r8)                  :: nextsw_cday
+    integer                   :: ns
     logical                   :: first_call = .true.
     logical                   :: isPresent
     character(CL)             :: cvalue
@@ -242,9 +240,7 @@ contains
     type(ESMF_Field)          :: lfield_l
     type(ESMF_Mesh)           :: mesh_l
     integer                   :: ungriddedUBound_output(1)
-    integer                   :: fieldCount
-    integer                   :: ns,n
-    type(ESMF_Field), pointer :: fieldlist(:)
+    integer                   :: ns
     character(len=*) , parameter   :: subname='(map_glc2lnd_init)'
     !---------------------------------------
 
@@ -360,10 +356,7 @@ contains
 
     ! local variables
     type(InternalState)   :: is_local
-    type(ESMF_Field)      :: lfield
-    type(ESMF_Field)      :: lfield_src
-    type(ESMF_Field)      :: lfield_dst
-    integer               :: ec, l, g, ns, n
+    integer               :: ec, l, ns
     real(r8)              :: topo_virtual
     real(r8), pointer     :: icemask_g(:)              ! glc ice mask field on glc grid
     real(r8), pointer     :: frac_g(:)                 ! total ice fraction in each glc cell
@@ -374,9 +367,7 @@ contains
     real(r8), pointer     :: frac_x_icemask_g_ec(:,:)  ! (glc fraction) x (icemask), on the glc grid
     real(r8), pointer     :: frac_x_icemask_l_ec(:,:)
     real(r8), pointer     :: topo_x_icemask_g_ec(:,:)
-    real(r8), pointer     :: topo_x_icemask_l_ec(:,:)
     real(r8), pointer     :: dataptr1d(:)
-    real(r8), pointer     :: dataptr2d(:,:)
     real(r8), pointer     :: frac_l_ec_sum(:,:)
     real(r8), pointer     :: topo_l_ec_sum(:,:)
     real(r8), pointer     :: dataptr1d_src(:)

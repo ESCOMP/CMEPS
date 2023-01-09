@@ -1445,7 +1445,8 @@ contains
        tSkin_night(:) = ts(:)
        cSkin_night(:) = 0.0_R8
     endif
-
+    u10n = 0.0_r8
+    stable = 0.0_r8
     DO n=1,nMax
 
        if (mask(n) /= 0) then
