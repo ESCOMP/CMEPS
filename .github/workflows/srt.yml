@@ -38,23 +38,23 @@ jobs:
       - name: Setup Ubuntu Environment
         id: load-env
         run: |
-        set -x
-        sudo apt-get update 
-        sudo apt-get install netcdf-bin 
-        sudo apt-get install libnetcdf-mpi-19
-        sudo apt-get install libnetcdf-mpi-dev
-        sudo apt-get install pnetcdf-bin
-        sudo apt-get install libpnetcdf-dev
-        sudo apt-get install doxygen
-        sudo apt-get install graphviz
-        sudo apt-get install wget
-        sudo apt-get install gfortran
-        sudo apt-get install libjpeg-dev
-        sudo apt-get install libz-dev
-        sudo apt-get install openmpi-bin
-        sudo apt-get install libopenmpi-dev
-        cd /usr/lib/x86_64-linux-gnu
-        sudo ln -fs libnetcdf_mpi.so libnetcdf.so
+          set -x
+          sudo apt-get update 
+          sudo apt-get install netcdf-bin 
+          sudo apt-get install libnetcdf-mpi-19
+          sudo apt-get install libnetcdf-mpi-dev
+          sudo apt-get install pnetcdf-bin
+          sudo apt-get install libpnetcdf-dev
+          sudo apt-get install doxygen
+          sudo apt-get install graphviz
+          sudo apt-get install wget
+          sudo apt-get install gfortran
+          sudo apt-get install libjpeg-dev
+          sudo apt-get install libz-dev
+          sudo apt-get install openmpi-bin
+          sudo apt-get install libopenmpi-dev
+          cd /usr/lib/x86_64-linux-gnu
+          sudo ln -fs libnetcdf_mpi.so libnetcdf.so
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
