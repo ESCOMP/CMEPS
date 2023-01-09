@@ -159,12 +159,12 @@ jobs:
           export PIO_VERSION_MAJOR=2
           export PIO_TYPENAME_VALID_VALUES="netcdf,pnetcdf,netcdf4p,netcdf4c"
           export NETCDF=/usr
-          export LD_LIBRARY_PATH=$NETCDF/libx86_64-linux-gnu/:$LD_LIBRARY_PATH
+          export LD_LIBRARY_PATH=$NETCDF/lib/libx86_64-linux-gnu/:$LD_LIBRARY_PATH
           export ESMFMKFILE=$HOME/ESMF/lib/libg/Linux.gfortran.64.openmpi.default/esmf.mk
           ./scripts_regression_tests.py  --no-fortran-run --compiler gnu --mpilib openmpi --machine ubuntu-latest
 
 #     the following can be used by developers to login to the github server in case of errors
 #     see https://github.com/marketplace/actions/debugging-with-tmate for further details
-#      - name: Setup tmate session
-#        if: ${{ failure() }}
-#        uses: mxschmitt/action-tmate@v3
+      - name: Setup tmate session
+        if: ${{ failure() }}
+        uses: mxschmitt/action-tmate@v3
