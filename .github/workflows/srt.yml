@@ -23,8 +23,8 @@ jobs:
       CC: mpicc
       FC: mpifort
       CXX: mpicxx
-      CPPFLAGS: "-I/usr/include -I/usr/local/include -I/usr/lib/x86_64-linux-gnu/netcdf/mpi/include/"
-      LDFLAGS: "-L/usr/lib/x86_64-linux-gnu -lnetcdf_mpi -lpnetcdf"     
+      CPPFLAGS: "-I/usr/include -I/usr/local/include "
+      LDFLAGS: "-L/usr/lib/x86_64-linux-gnu -lnetcdf -lnetcdff -lpnetcdf"     
       # Versions of all dependencies can be updated here
       ESMF_VERSION: v8.4.0
       PARALLELIO_VERSION: pio2_5_10
@@ -42,8 +42,8 @@ jobs:
           sudo apt-get update 
           sudo apt-get install libxml2-utils
           sudo apt-get install netcdf-bin 
-          sudo apt-get install libnetcdf-mpi-19
-          sudo apt-get install libnetcdf-mpi-dev
+          sudo apt-get install libnetcdf-dev
+          sudo apt-get install libnetcdff-dev
           sudo apt-get install pnetcdf-bin
           sudo apt-get install libpnetcdf-dev
           sudo apt-get install doxygen
@@ -54,8 +54,6 @@ jobs:
           sudo apt-get install libz-dev
           sudo apt-get install openmpi-bin
           sudo apt-get install libopenmpi-dev
-          cd /usr/lib/x86_64-linux-gnu
-          sudo ln -fs libnetcdf_mpi.so libnetcdf.so
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
@@ -158,7 +156,7 @@ jobs:
           export PIO_INCDIR=$HOME/pio/include
           export PIO_LIBDIR=$HOME/pio/lib
           export PIO_VERSION_MAJOR=2
-          export PIO_TYPENAME_VALID_VALUES="netcdf,pnetcdf,netcdf4p,netcdf4c"
+          export PIO_TYPENAME_VALID_VALUES="netcdf,pnetcdf"
           export NETCDF_PATH=/usr
           export PNETCDF_PATH=/usr
           export LD_LIBRARY_PATH=$NETCDF/lib/libx86_64-linux-gnu/:$LD_LIBRARY_PATH
