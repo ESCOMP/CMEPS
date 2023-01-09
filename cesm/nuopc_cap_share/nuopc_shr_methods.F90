@@ -75,12 +75,12 @@ module nuopc_shr_methods
 contains
 !===============================================================================
 
-  subroutine memcheck(string, level, mastertask)
+  subroutine memcheck(string, level, maintask)
 
     ! input/output variables
     character(len=*) , intent(in) :: string
     integer          , intent(in) :: level
-    logical          , intent(in) :: mastertask
+    logical          , intent(in) :: maintask
 
     ! local variables
     integer :: ierr
@@ -90,7 +90,7 @@ contains
     !-----------------------------------------------------------------------
 
 #ifdef CESMCOUPLED
-    if ((mastertask .and. memdebug_level > level) .or. memdebug_level > level+1) then
+    if ((maintask .and. memdebug_level > level) .or. memdebug_level > level+1) then
        ierr = GPTLprint_memusage(string)
     endif
 #endif
@@ -131,11 +131,11 @@ contains
 
 !===============================================================================
 
-  subroutine set_component_logging(gcomp, mastertask, logunit, shrlogunit, rc)
+  subroutine set_component_logging(gcomp, maintask, logunit, shrlogunit, rc)
     use driver_pio_mod, only : driver_pio_log_comp_settings
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
-    logical, intent(in)  :: mastertask
+    logical, intent(in)  :: maintask
     integer, intent(out) :: logunit
     integer, intent(out) :: shrlogunit
     integer, intent(out) :: rc
@@ -149,7 +149,7 @@ contains
 
     rc = ESMF_SUCCESS
 
-    if (mastertask) then
+    if (maintask) then
        call NUOPC_CompAttributeGet(gcomp, name="diro", value=diro, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        call NUOPC_CompAttributeGet(gcomp, name="logfile", value=logfile, rc=rc)

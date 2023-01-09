@@ -3,12 +3,12 @@
 name: scripts regression tests
 
 # Controls when the action will run. Triggers the workflow on push or pull request
-# events but only for the master branch
+# events but only for the main branch
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
   pull_request:
-    branches: [ master ]
+    branches: [ main ]
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -51,7 +51,7 @@ jobs:
       - run: echo "PyYAML" > requirements.txt
       - name: Install PyYAML
         run: pip install -r requirements.txt
-      # use the latest cesm master
+      # use the latest cesm main
       - name: cesm checkout
         uses: actions/checkout@v3
         with:

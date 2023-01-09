@@ -27,7 +27,7 @@ module driver_pio_mod
   logical, allocatable :: pio_async_interface(:)
 
   integer :: total_comps
-  logical :: mastertask
+  logical :: maintask
 #define DEBUGI 1
 
 #ifdef DEBUGI
@@ -72,7 +72,7 @@ contains
 
     call ESMF_VMGet(vm, localPet=localPet, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    mastertask = (localPet == 0)
+    maintask = (localPet == 0)
 
     call NUOPC_CompAttributeGet(driver, name="pio_buffer_size_limit", value=cname, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -80,7 +80,7 @@ contains
 
     ! 0 is a valid value of pio_buffer_size_limit
     if(pio_buffer_size_limit>=0) then
-       if(mastertask) write(shr_log_unit,*) 'Setting pio_buffer_size_limit : ',pio_buffer_size_limit
+       if(maintask) write(shr_log_unit,*) 'Setting pio_buffer_size_limit : ',pio_buffer_size_limit
        call pio_set_buffer_size_limit(pio_buffer_size_limit)
     endif
 
@@ -89,7 +89,7 @@ contains
     read(cname, *) pio_blocksize
     
     if(pio_blocksize>0) then
-       if(mastertask) write(shr_log_unit,*) 'Setting pio_blocksize : ',pio_blocksize
+       if(maintask) write(shr_log_unit,*) 'Setting pio_blocksize : ',pio_blocksize
        call pio_set_blocksize(pio_blocksize)
     endif
 
@@ -98,7 +98,7 @@ contains
     read(cname, *) pio_debug_level
 
     if(pio_debug_level > 0) then
-       if(mastertask) write(shr_log_unit,*) 'Setting pio_debug_level : ',pio_debug_level
+       if(maintask) write(shr_log_unit,*) 'Setting pio_debug_level : ',pio_debug_level
        ret = pio_set_log_level(pio_debug_level)
     endif
        
@@ -145,7 +145,7 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     read(cname, *) pio_rearr_opts%comm_fc_opts_io2comp%max_pend_req
 
-    if(mastertask) then
+    if(maintask) then
        ! Log the rearranger options
        write(shr_log_unit, *) "PIO rearranger options:"
        write(shr_log_unit, *) "  comm type     = ", pio_rearr_opts%comm_type, " (",trim(pio_rearr_comm_type),")"

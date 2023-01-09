@@ -32,7 +32,7 @@ contains
     use med_utils_mod         , only : chkerr           => med_utils_ChkErr
     use med_constants_mod     , only : dbug_flag        => med_constants_dbug_flag
     use med_internalstate_mod , only : complnd, compatm
-    use med_internalstate_mod , only : InternalState, mastertask
+    use med_internalstate_mod , only : InternalState, maintask
     use med_merge_mod         , only : med_merge_auto
     use perf_mod              , only : t_startf, t_stopf
 
@@ -101,7 +101,7 @@ contains
 
        ! obtain nextsw_cday from atm if it is in the import state and send it to lnd
        scalar_id=is_local%wrap%flds_scalar_index_nextsw_cday
-       if (scalar_id > 0 .and. field_found .and. mastertask) then
+       if (scalar_id > 0 .and. field_found .and. maintask) then
           call ESMF_StateGet(is_local%wrap%NstateImp(compatm), &
                itemName=trim(is_local%wrap%flds_scalar_name), field=lfield, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return

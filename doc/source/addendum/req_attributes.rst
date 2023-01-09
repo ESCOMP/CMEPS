@@ -34,7 +34,7 @@ Scalar attributes
   between the mediator and a component.  Currently scalar values are
   put into a field bundle that only contains an undistributed
   dimension equal to the size of ``ScalarFieldCount`` and communicated
-  between the component and the mediator on the `master task` of each
+  between the component and the mediator on the `main task` of each
   component.
 
 **ScalarFieldName** (required)

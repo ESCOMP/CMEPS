@@ -16,7 +16,7 @@ module med_phases_prep_atm_mod
   use med_methods_mod       , only : FB_getfldptr=> med_methods_FB_GetFldPtr
   use med_merge_mod         , only : med_merge_auto
   use med_map_mod           , only : med_map_field_packed
-  use med_internalstate_mod , only : InternalState, mastertask
+  use med_internalstate_mod , only : InternalState, maintask
   use med_internalstate_mod , only : compatm, compocn, compice, compname, coupling_mode
   use esmFlds               , only : med_fldlist_GetfldListTo, med_fldlist_type
   use perf_mod              , only : t_startf, t_stopf
@@ -62,7 +62,7 @@ contains
     if (dbug_flag > 5) then
        call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
     end if
-    call memcheck(subname, 3, mastertask)
+    call memcheck(subname, 3, maintask)
 
     !---------------------------------------
     ! --- Get the internal state

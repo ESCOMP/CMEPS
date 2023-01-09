@@ -22,7 +22,7 @@ module med_phases_prep_glc_mod
   use ESMF                  , only : ESMF_DYNAMICMASK, ESMF_DynamicMaskSetR8R8R8, ESMF_DYNAMICMASKELEMENTR8R8R8
   use ESMF                  , only : ESMF_FieldRegrid
   use med_internalstate_mod , only : complnd, compocn,  mapbilnr, mapconsd, compname, compglc
-  use med_internalstate_mod , only : InternalState, mastertask, logunit
+  use med_internalstate_mod , only : InternalState, maintask, logunit
   use med_map_mod           , only : med_map_routehandles_init, med_map_rh_is_created
   use med_map_mod           , only : med_map_field_normalized, med_map_field
   use med_constants_mod     , only : dbug_flag        => med_constants_dbug_flag
@@ -258,7 +258,7 @@ contains
           rc = ESMF_FAILURE
           return
        end select
-       if (mastertask) then
+       if (maintask) then
           write(logunit,'(a,l4)') trim(subname)//' smb_renormalize is ',smb_renormalize
        end if
 
@@ -546,7 +546,7 @@ contains
        if (trim(glc_avg_period) == 'yearly') then
           call med_time_alarmInit(prepglc_clock, glc_avg_alarm, 'yearly', alarmname='alarm_glc_avg', rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          if (mastertask) then
+          if (maintask) then
              write(logunit,'(a,i10)') trim(subname)//&
                   ' created alarm with averaging period for export to glc is yearly'
           end if
@@ -556,7 +556,7 @@ contains
           read(cvalue,*) glc_cpl_dt
           call med_time_alarmInit(prepglc_clock, glc_avg_alarm, 'nseconds', opt_n=glc_cpl_dt, alarmname='alarm_glc_avg', rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          if (mastertask) then
+          if (maintask) then
              write(logunit,'(a,i10)') trim(subname)//&
                   ' created alarm with averaging period for export to glc (in seconds) ',glc_cpl_dt
           end if
@@ -576,7 +576,7 @@ contains
 
     ! Check time
     if (dbug_flag > 5) then
-       if (mastertask) then
+       if (maintask) then
           call NUOPC_ModelGet(gcomp, modelClock=med_clock, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           call ESMF_ClockGet(med_clock, currtime=med_currtime, rc=rc)
@@ -586,7 +586,7 @@ contains
           call ESMF_ClockGet(prepglc_clock, currtime=prepglc_currtime, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           call ESMF_TimeGet(prepglc_currtime,yy=yr_prepglc, mm=mon_prepglc, dd=day_prepglc, s=sec_prepglc, rc=rc)
-          if (mastertask) then
+          if (maintask) then
              write(logunit,'(a,4(i8,2x))') trim(subname)//'med clock yr, mon, day, sec      = ',&
                   yr_med,mon_med,day_med,sec_med
              write(logunit,'(a,4(i8,2x))') trim(subname)//'prep glc clock yr, mon, day, sec = ',&
@@ -602,7 +602,7 @@ contains
        do_avg = .true.
        call ESMF_LogWrite(trim(subname)//": glc_avg alarm is ringing - average input from lnd and ocn to glc", &
             ESMF_LOGMSG_INFO)
-       if (mastertask) then
+       if (maintask) then
           write(logunit,'(a)') trim(subname)//"glc_avg alarm is ringing - averaging input from lnd and ocn to glc"
        end if
        ! Turn off the alarm
@@ -1154,7 +1154,7 @@ contains
     call ESMF_VMAllreduce(vm, senddata=local_ablat_lnd, recvdata=global_ablat_lnd, count=1, &
          reduceflag=ESMF_REDUCE_SUM, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (mastertask) then
+    if (maintask) then
        write(logunit,'(a,d21.10)') trim(subname)//'global_accum_lnd = ', global_accum_lnd
        write(logunit,'(a,d21.10)') trim(subname)//'global_ablat_lnd = ', global_ablat_lnd
     endif
@@ -1184,7 +1184,7 @@ contains
          reduceflag=ESMF_REDUCE_SUM, rc=rc)
     call ESMF_VMAllreduce(vm, senddata=local_ablat_glc, recvdata=global_ablat_glc, count=1, &
          reduceflag=ESMF_REDUCE_SUM, rc=rc)
-    if (mastertask) then
+    if (maintask) then
        write(logunit,'(a,d21.10)') trim(subname)//'global_accum_glc = ', global_accum_glc
        write(logunit,'(a,d21.10)') trim(subname)//'global_ablat_glc = ', global_ablat_glc
     endif
@@ -1200,7 +1200,7 @@ contains
     else
        ablat_renorm_factor = 0.0_r8
     endif
-    if (mastertask) then
+    if (maintask) then
        write(logunit,'(a,d21.10)') trim(subname)//'accum_renorm_factor = ', accum_renorm_factor
        write(logunit,'(a,d21.10)') trim(subname)//'ablat_renorm_factor = ', ablat_renorm_factor
     endif
