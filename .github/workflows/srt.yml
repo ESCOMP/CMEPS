@@ -135,7 +135,7 @@ jobs:
           parallelio_version: ${{ env.ParallelIO_VERSION }}
           enable_fortran: True
           with_pnetcdf: /usr
-          install_prefix: ~/pio
+          install_prefix: /home/runner/pio
       - name: Build ESMF
         if: steps.cache-esmf.outputs.cache-hit != 'true'
         uses: ESCOMP/CDEPS/.github/actions/buildesmf@e06246b560d3132170bb1a5443fa3d65dfbd2040
@@ -167,6 +167,6 @@ jobs:
 
 #     the following can be used by developers to login to the github server in case of errors
 #     see https://github.com/marketplace/actions/debugging-with-tmate for further details
-      - name: Setup tmate session
-        if: ${{ failure() }}
-        uses: mxschmitt/action-tmate@v3
+#      - name: Setup tmate session
+#        if: ${{ failure() }}
+#        uses: mxschmitt/action-tmate@v3
