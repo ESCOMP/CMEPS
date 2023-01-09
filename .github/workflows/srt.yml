@@ -23,15 +23,11 @@ jobs:
       CC: mpicc
       FC: mpifort
       CXX: mpicxx
-      CPPFLAGS: "-I/usr/include -I/usr/local/include"
+      CPPFLAGS: "-I/usr/include -I/usr/local/include -I/usr/lib/x86_64-linux-gnu/netcdf/mpi/include/"
+      LDFLAGS: "-L/usr/lib/x86_64-linux-gnu -lnetcdf_mpi -lpnetcdf"     
       # Versions of all dependencies can be updated here
-      PNETCDF_VERSION: checkpoint.1.12.3
-      NETCDF_FORTRAN_VERSION: v4.6.0
       ESMF_VERSION: v8.4.0
       PARALLELIO_VERSION: pio2_5_10
-      NETCDF_C_PATH: /usr
-      NETCDF_FORTRAN_PATH: ${HOME}/netcdf-fortran
-      PNETCDF_PATH: ${HOME}/pnetcdf
       CIME_MODEL: cesm
       CIME_DRIVER: nuopc
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -39,10 +35,26 @@ jobs:
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
 
-      - id: load-env
+      - name: Setup Ubuntu Environment
+        id: load-env
         run: |
-          sudo apt-get update
-          sudo apt-get install libxml2-utils pylint wget gfortran openmpi-bin netcdf-bin libopenmpi-dev cmake libnetcdf-dev autotools-dev autoconf
+        set -x
+        sudo apt-get update 
+        sudo apt-get install netcdf-bin 
+        sudo apt-get install libnetcdf-mpi-19
+        sudo apt-get install libnetcdf-mpi-dev
+        sudo apt-get install pnetcdf-bin
+        sudo apt-get install libpnetcdf-dev
+        sudo apt-get install doxygen
+        sudo apt-get install graphviz
+        sudo apt-get install wget
+        sudo apt-get install gfortran
+        sudo apt-get install libjpeg-dev
+        sudo apt-get install libz-dev
+        sudo apt-get install openmpi-bin
+        sudo apt-get install libopenmpi-dev
+        cd /usr/lib/x86_64-linux-gnu
+        sudo ln -fs libnetcdf_mpi.so libnetcdf.so
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
@@ -76,19 +88,19 @@ jobs:
         with:
           path: ~/ESMF
           key: ${{ runner.os }}-${{ env.ESMF_VERSION }}-ESMF
-      - name: cache pnetcdf
-        id: cache-pnetcdf
-        uses: actions/cache@v3
-        with:
-          path: ~/pnetcdf
-          key: ${{ runner.os }}-${{ env.PNETCDF_VERSION}}-pnetcdf
+      # - name: cache pnetcdf
+      #   id: cache-pnetcdf
+      #   uses: actions/cache@v3
+      #   with:
+      #     path: ~/pnetcdf
+      #     key: ${{ runner.os }}-${{ env.PNETCDF_VERSION}}-pnetcdf
 
-      - name: Cache netcdf-fortran
-        id: cache-netcdf-fortran
-        uses: actions/cache@v3
-        with:
-          path: ~/netcdf-fortran
-          key: ${{ runner.os }}-${{ env.NETCDF_FORTRAN_VERSION }}-netcdf-fortran
+      # - name: Cache netcdf-fortran
+      #   id: cache-netcdf-fortran
+      #   uses: actions/cache@v3
+      #   with:
+      #     path: ~/netcdf-fortran
+      #     key: ${{ runner.os }}-${{ env.NETCDF_FORTRAN_VERSION }}-netcdf-fortran
 
       - name: Cache ParallelIO
         id: cache-ParallelIO
@@ -102,27 +114,26 @@ jobs:
         with:
           path: $HOME/cesm/inputdata
           key: inputdata
-      - name: Build PNetCDF
-        if: steps.cache-pnetcdf.outputs.cache-hit != 'true'
-        uses: ESCOMP/CDEPS/.github/actions/buildpnetcdf@e06246b560d3132170bb1a5443fa3d65dfbd2040
-        with:
-          pnetcdf_version: ${{ env.PNETCDF_VERSION }}
-          install_prefix: $HOME/pnetcdf
-      - name: Build NetCDF Fortran
-        if: steps.cache-netcdf-fortran.outputs.cache-hit != 'true'
-        uses: ESCOMP/CDEPS/.github/actions/buildnetcdff@e06246b560d3132170bb1a5443fa3d65dfbd2040
-        with:
-          netcdf_fortran_version: ${{ env.NETCDF_FORTRAN_VERSION }}
-          install_prefix: $HOME/netcdf-fortran
-          netcdf_c_path: /usr
+      # - name: Build PNetCDF
+      #   if: steps.cache-pnetcdf.outputs.cache-hit != 'true'
+      #   uses: ESCOMP/CDEPS/.github/actions/buildpnetcdf@e06246b560d3132170bb1a5443fa3d65dfbd2040
+      #   with:
+      #     pnetcdf_version: ${{ env.PNETCDF_VERSION }}
+      #     install_prefix: $HOME/pnetcdf
+      # - name: Build NetCDF Fortran
+      #   if: steps.cache-netcdf-fortran.outputs.cache-hit != 'true'
+      #   uses: ESCOMP/CDEPS/.github/actions/buildnetcdff@e06246b560d3132170bb1a5443fa3d65dfbd2040
+      #   with:
+      #     netcdf_fortran_version: ${{ env.NETCDF_FORTRAN_VERSION }}
+      #     install_prefix: $HOME/netcdf-fortran
+      #     netcdf_c_path: /usr
       - name: Build ParallelIO
         if: steps.cache-PARALLELIO.outputs.cache-hit != 'true'
-        uses: ESCOMP/CDEPS/.github/actions/buildpio@e06246b560d3132170bb1a5443fa3d65dfbd2040
+        uses: NCAR/ParallelIO/.github/actions/parallelio_autotools@05173a6556ea8d80eb34e3881a5014ea8f4b7543
         with:
           parallelio_version: ${{ env.ParallelIO_VERSION }}
-          netcdf_c_path: /usr
-          netcdf_fortran_path: $HOME/netcdf-fortran
-          pnetcdf_path: $HOME/pnetcdf
+          enable_fortran: True
+          with_pnetcdf: /usr
           install_prefix: $HOME/pio
       - name: Build ESMF
         if: steps.cache-esmf.outputs.cache-hit != 'true'
