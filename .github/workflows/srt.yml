@@ -135,7 +135,7 @@ jobs:
           parallelio_version: ${{ env.ParallelIO_VERSION }}
           enable_fortran: True
           with_pnetcdf: /usr
-          install_prefix: $HOME/pio
+          install_prefix: ~/pio
       - name: Build ESMF
         if: steps.cache-esmf.outputs.cache-hit != 'true'
         uses: ESCOMP/CDEPS/.github/actions/buildesmf@e06246b560d3132170bb1a5443fa3d65dfbd2040
@@ -143,11 +143,11 @@ jobs:
           esmf_version: ${{ env.ESMF_VERSION }}
           esmf_bopt: g
           esmf_comm: openmpi
-          install_prefix: $HOME/ESMF
+          install_prefix: ~/ESMF
           netcdf_c_path: /usr
-          netcdf_fortran_path: $HOME/netcdf-fortran
-          pnetcdf_path: $HOME/pnetcdf
-          parallelio_path: $HOME/pio
+          netcdf_fortran_path: /usr
+          pnetcdf_path: /usr
+          parallelio_path: ~/pio
 
       - name: scripts regression tests
         run: |
