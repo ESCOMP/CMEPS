@@ -79,7 +79,7 @@ contains
     use ESMF          , only : ESMF_CalendarSetDefault
     use ESMF          , only : ESMF_CALKIND_NOLEAP, ESMF_CALKIND_GREGORIAN
     use NUOPC         , only : NUOPC_CompAttributeGet, NUOPC_CompAttributeSet, NUOPC_CompAttributeAdd
-    use NUOPC_Driver  , only : NUOPC_DriverAddComp
+    use NUOPC_Driver  , only : NUOPC_DriverAddComp, NUOPC_DriverGetComp
     use esm           , only : ESMSetServices => SetServices, ReadAttributes
     use esm_time_mod  , only : esm_time_clockInit
 
@@ -89,7 +89,7 @@ contains
 
     ! local variables
     type(ESMF_VM)          :: vm
-    type(ESMF_GridComp)    :: driver, gridcomptmp
+    type(ESMF_GridComp)    :: driver
     type(ESMF_Config)      :: config
     integer                :: n
     integer, pointer       :: petList(:)
@@ -169,6 +169,10 @@ contains
     call NUOPC_CompAttributeSet(ensemble_driver, name='read_restart', value=trim(read_restart_string), rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
+
+    call NUOPC_CompAttributeSet(ensemble_driver, name='Profiling', value='max', rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
     !-------------------------------------------
     ! Extract the config object from the ensemble_driver
     !-------------------------------------------
@@ -200,23 +204,30 @@ contains
     !-------------------------------------------
 
     allocate(petList(ntasks_per_member))
-    ! which driver instance is this?
-    inst = localPet/ntasks_per_member + 1
+    ! We need to loop over instances
+    do inst = 1, number_of_members
 
-    ! Determine pet list for driver instance
+       ! Determine pet list for driver instance
+       petList(1) = (inst-1) * ntasks_per_member
+       do n=2,ntasks_per_member
+          petList(n) = petList(n-1) + 1
+       enddo
+
+       ! Add driver instance to ensemble driver
+       write(drvrinst,'(a,i4.4)') "ESM",inst
+       call NUOPC_DriverAddComp(ensemble_driver, drvrinst, ESMSetServices, petList=petList, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+    enddo
+
+    inst = localPet/ntasks_per_member + 1
     petList(1) = (inst-1) * ntasks_per_member
     do n=2,ntasks_per_member
        petList(n) = petList(n-1) + 1
     enddo
-
-    ! Add driver instance to ensemble driver
-    write(drvrinst,'(a,i4.4)') "ESM",inst
-    call NUOPC_DriverAddComp(ensemble_driver, drvrinst, ESMSetServices, petList=petList, comp=gridcomptmp, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
     if (localpet >= petlist(1) .and. localpet <= petlist(ntasks_per_member)) then
-
-       driver = gridcomptmp
+       write(drvrinst,'(a,i4.4)') "ESM",inst
+       call NUOPC_DriverGetComp(ensemble_driver, drvrinst, comp=driver, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        if(number_of_members > 1) then
           call NUOPC_CompAttributeAdd(driver, attrList=(/'inst_suffix'/), rc=rc)

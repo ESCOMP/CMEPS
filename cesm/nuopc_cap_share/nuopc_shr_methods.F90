@@ -145,6 +145,7 @@ contains
     character(len=CL) :: logfile
     character(len=CL) :: inst_suffix
     integer :: inst_index  ! not used here
+    integer :: n
     !-----------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -157,8 +158,9 @@ contains
        call get_component_instance(gcomp, inst_suffix, inst_index, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        ! Multiinstance logfile name needs a correction
-       if(logfile(4:4) == '_') then
-          logfile = logfile(1:3)//trim(inst_suffix)//logfile(9:)
+       if(len_trim(inst_suffix) > 0) then
+          n = index(logfile, '.')
+          logfile = logfile(1:n-1)//trim(inst_suffix)//logfile(n:)
        endif
 
        open(newunit=logunit,file=trim(diro)//"/"//trim(logfile))

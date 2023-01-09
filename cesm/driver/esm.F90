@@ -636,7 +636,7 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     !------
-    ! Add driver restart flag a to gcomp attributes
+    ! Add driver restart flag to gcomp attributes
     !------
     attribute = 'read_restart'
     call NUOPC_CompAttributeGet(driver, name=trim(attribute), value=cvalue, rc=rc)
