@@ -90,7 +90,7 @@ contains
 
     ! local variables
     type(InternalState) :: is_local
-    integer             :: n, n1, nflds
+    integer             :: n, nflds
     type(ESMF_Mesh)     :: mesh_l
     type(ESMF_Mesh)     :: mesh_r
     type(ESMF_Field)    :: lfield
@@ -197,9 +197,7 @@ contains
 
     ! local variables
     type(InternalState)       :: is_local
-    integer                   :: i,j,n,ncnt
-    integer                   :: fieldCount
-    integer                   :: ungriddedUBound(1)
+    integer                   :: n
     logical                   :: exists
     real(r8), pointer         :: dataptr1d(:)
     real(r8), pointer         :: dataptr1d_accum(:)
@@ -277,18 +275,13 @@ contains
 
     ! local variables
     type(InternalState)       :: is_local
-    integer                   :: i,j,n,n1,ncnt
+    integer                   :: n
     integer                   :: count
     logical                   :: exists
     real(r8), pointer         :: dataptr(:)
     real(r8), pointer         :: dataptr1d(:)
-    type(ESMF_Field)          :: field_irrig_flux
     type(ESMF_Field)          :: lfield
-    type(ESMF_Field)          :: lfield_src
-    type(ESMF_Field)          :: lfield_dst
-    type(ESMF_Field)          :: field_lfrac_lnd
     type(med_fldList_type), pointer :: fldList
-    character(CL), pointer    :: lfieldnamelist(:)
     character(len=*),parameter  :: subname='(med_phases_prep_rof_mod: med_phases_prep_rof)'
     !---------------------------------------
 
@@ -455,10 +448,6 @@ contains
     ! local variables
     integer                   :: r,l
     type(InternalState)       :: is_local
-    integer                   :: fieldcount
-    type(ESMF_Field)          :: field_import_rof
-    type(ESMF_Field)          :: field_import_lnd
-    type(ESMF_Field)          :: field_irrig_flux
     type(ESMF_Field)          :: field_lfrac_lnd
     type(ESMF_Mesh)           :: lmesh_lnd
     type(ESMF_Mesh)           :: lmesh_rof

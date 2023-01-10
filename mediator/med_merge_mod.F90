@@ -64,15 +64,13 @@ contains
 
     ! local variables
     type(med_fldList_entry_type), pointer :: fldptr
-    integer                    :: nfld_out,nfld_in,nm
+    integer                    :: nfld_out,nm
     integer                    :: compsrc
-    integer                    :: num_merge_fields
     integer                    :: num_merge_colon_fields
     character(CL)              :: merge_fields
     character(CL)              :: merge_field
     character(CS)              :: merge_type
     character(CS)              :: merge_fracname
-    character(CS), pointer     :: merge_field_names(:)
     logical                    :: error_check = .false.  ! TODO: make this an input argument
     integer                    :: ungriddedUBound_out(1) ! size of ungridded dimension
     integer                    :: fieldcount
@@ -124,7 +122,7 @@ contains
              else if (.not. coupling_active(compsrc)) then
                 CYCLE
              end if
-                
+
              ! Determine the merge information for the import field
              call med_fld_GetFldInfo(fldptr, compsrc=compsrc, merge_fields=merge_fields, merge_type=merge_type, merge_fracname=merge_fracname, rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -218,14 +216,12 @@ contains
 
     ! local variables
     type(med_fldList_entry_type), pointer :: fldptr
-    integer                    :: nfld_out,nfld_in,nm
-    integer                    :: num_merge_fields
+    integer                    :: nfld_out,nm
     integer                    :: num_merge_colon_fields
     character(CL)              :: merge_fields
     character(CL)              :: merge_field
     character(CS)              :: merge_type
     character(CS)              :: merge_fracname
-    character(CS)              :: merge_field_name
     integer                    :: ungriddedUBound_out(1) ! size of ungridded dimension
     integer                    :: fieldcount
     character(CL)   , pointer  :: fieldnamelist(:)
@@ -273,7 +269,7 @@ contains
                 ! Determine merge field name from source field
                 call merge_listGetName(merge_fields, nm, merge_field, rc)
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
-                
+
                 ! Initialize initial output field data to zero before doing merge
                 if (zero_output) then
                    if (ungriddedUBound_out(1) > 0) then
@@ -287,12 +283,12 @@ contains
                    end if
                    zero_output = .false.
                 end if
-                
+
                 ! Perform merge
                 call med_merge_auto_field(trim(merge_type), fieldlist(nfld_out), ungriddedUBound_out, &
                      FB=FBIn, FBFld=merge_field, FBw=FBfrac, fldw=trim(merge_fracname), rc=rc)
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
-                
+
              end do ! end of nm loop
           end if ! end of check of merge_type and merge_field not unset
        end if ! end of check if stdname and fldname are the same
@@ -544,7 +540,7 @@ contains
     real(R8), pointer          :: dataOut(:)
     real(R8), pointer          :: dataPtr(:)
     real(R8), pointer          :: wgt(:)
-    integer                    :: lb1,ub1,i,j,n
+    integer                    :: lb1,ub1,i,n
     logical                    :: wgtfound, FBinfound
     integer                    :: dbrc
     character(len=*),parameter :: subname='(med_merge_field_1D)'

@@ -25,9 +25,9 @@ module flux_atmocn_mod
   real(R8) :: loc_karman = shr_const_karman
   real(R8) :: loc_g      = shr_const_g
   real(R8) :: loc_latvap = shr_const_latvap
-  real(R8) :: loc_latice = shr_const_latice
+!  real(R8) :: loc_latice = shr_const_latice
   real(R8) :: loc_stebol = shr_const_stebol
-  real(R8) :: loc_tkfrz  = shr_const_tkfrz
+!  real(R8) :: loc_tkfrz  = shr_const_tkfrz
 
   ! These control convergence of the iterative flux calculation
   ! (For Large and Pond scheme only; not UA or COARE).
@@ -144,10 +144,6 @@ contains
     real(R8)    :: cp     ! specific heat of moist air
     real(R8)    :: fac    ! vertical interpolation factor
     real(R8)    :: spval  ! local missing value
-    !!++ COARE only
-    real(R8)    :: zo,zot,zoq      ! roughness lengths
-    real(R8)    :: hsb,hlb         ! sens & lat heat flxs at zbot
-    real(R8) :: trf,qrf,urf,vrf ! reference-height quantities
 
     !--- local functions --------------------------------
     real(R8)    :: qsat   ! function: the saturation humididty of air (kg/m^3)

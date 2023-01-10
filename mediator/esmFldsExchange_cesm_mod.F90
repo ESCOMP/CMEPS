@@ -76,7 +76,6 @@ contains
     use med_internalstate_mod , only : compice, comprof, compwav, compglc, ncomps
     use med_internalstate_mod , only : mapbilnr, mapconsf, mapconsd, mappatch, mappatch_uv3d, mapbilnr_nstod
     use med_internalstate_mod , only : mapfcopy, mapnstod, mapnstod_consd, mapnstod_consf
-    use med_internalstate_mod , only : coupling_mode
     use med_internalstate_mod , only : map_glc2ocn_ice, map_glc2ocn_liq, map_rof2ocn_ice, map_rof2ocn_liq
     use esmFlds               , only : addfld_ocnalb => med_fldList_addfld_ocnalb
     use esmFlds               , only : addfld_aoflux => med_fldList_addfld_aoflux
@@ -97,7 +96,6 @@ contains
     type(InternalState) :: is_local
     integer             :: n, ns
     character(len=CL)   :: cvalue
-    character(len=CS)   :: name
     logical             :: wavice_coupling
     logical             :: ocn2glc_coupling
     character(len=*) , parameter   :: subname=' (esmFldsExchange_cesm) '

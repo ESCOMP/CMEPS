@@ -152,7 +152,7 @@ contains
     use med_internalstate_mod , only : compatm, compocn, compice, complnd
     use med_internalstate_mod , only : comprof, compglc, compwav, compname
     use med_internalstate_mod , only : mapfcopy, mapconsd, mapnstod_consd
-    use med_internalstate_mod , only : InternalState, logunit, mastertask
+    use med_internalstate_mod , only : InternalState
     use med_map_mod           , only : med_map_routehandles_init, med_map_rh_is_created
     use med_methods_mod       , only : State_getNumFields => med_methods_State_getNumFields
     use perf_mod              , only : t_startf, t_stopf
@@ -165,7 +165,6 @@ contains
     type(InternalState) :: is_local
     type(ESMF_Field)    :: field_src
     type(ESMF_Field)    :: field_dst
-    type(ESMF_Field)    :: lfield
     real(R8), pointer   :: frac(:)
     real(R8), pointer   :: ofrac(:)
     real(R8), pointer   :: aofrac(:)
@@ -178,7 +177,7 @@ contains
     real(R8), pointer   :: Si_imask(:)
     real(R8), pointer   :: So_omask(:)
     real(R8), pointer   :: Sa_ofrac(:)
-    integer             :: i,j,n,n1,ns
+    integer             :: n,n1,ns
     integer             :: maptype
     integer             :: fieldCount
     logical, save       :: first_call = .true.
@@ -662,14 +661,12 @@ contains
 
     ! local variables
     type(InternalState)        :: is_local
-    real(r8), pointer          :: lfrac(:)
     real(r8), pointer          :: ifrac(:)
     real(r8), pointer          :: ofrac(:)
     real(r8), pointer          :: aofrac(:)
     real(r8), pointer          :: Si_ifrac(:)
     real(r8), pointer          :: Si_imask(:)
     real(r8), pointer          :: Sa_ofrac(:)
-    type(ESMF_Field)           :: lfield
     type(ESMF_Field)           :: field_src
     type(ESMF_Field)           :: field_dst
     integer                    :: n

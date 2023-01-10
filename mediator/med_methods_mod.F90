@@ -68,8 +68,9 @@ module med_methods_mod
   private med_methods_Mesh_Print
   private med_methods_Grid_Print
   private med_methods_Field_GetFldPtr
+#ifdef DIAGNOSE
   private med_methods_Array_diagnose
-
+#endif
 !-----------------------------------------------------------------------------
 contains
 !-----------------------------------------------------------------------------
@@ -242,13 +243,11 @@ contains
     integer               , intent(out)          :: rc
 
     ! local variables
-    integer                :: i,j,n,n1
+    integer                :: n,n1
     integer                :: fieldCount,fieldCountgeom
-    logical                :: found
     character(ESMF_MAXSTR) :: lname
     type(ESMF_Field)       :: field,lfield
     type(ESMF_Mesh)        :: lmesh
-    type(ESMF_StaggerLoc)  :: staggerloc
     type(ESMF_MeshLoc)     :: meshloc
     integer                :: ungriddedCount
     integer                :: ungriddedCount_in
@@ -658,7 +657,6 @@ contains
     integer         , intent(out)   :: rc
 
     ! local variables
-    integer                            :: n,itemCount
     type(ESMF_Field), pointer          :: fieldList(:)
     character(len=*),parameter         :: subname='(med_methods_State_getNumFields)'
     ! ----------------------------------------------
@@ -699,7 +697,7 @@ contains
     integer                , intent(out)          :: rc
 
     ! local variables
-    integer                         :: i,j,n
+    integer                         :: n
     integer                         :: fieldCount
     character(ESMF_MAXSTR) ,pointer :: lfieldnamelist(:)
     real(R8)                        :: lvalue
@@ -777,7 +775,7 @@ contains
     integer          , intent(out)          :: rc
 
     ! local variables
-    integer                         :: i,j,n
+    integer                         :: n
     integer                         :: fieldCount
     character(ESMF_MAXSTR) ,pointer :: lfieldnamelist(:)
     real(R8)                        :: lvalue
@@ -923,7 +921,7 @@ contains
     integer                , intent(out)          :: rc
 
     ! local variables
-    integer                         :: i,j,n
+    integer                         :: n
     integer                         :: fieldCount, lrank
     character(ESMF_MAXSTR), pointer :: lfieldnamelist(:)
     character(len=CL)               :: lstring
@@ -993,7 +991,7 @@ contains
   end subroutine med_methods_FB_diagnose
 
   !-----------------------------------------------------------------------------
-
+#ifdef DIAGNOSE
   subroutine med_methods_Array_diagnose(array, string, rc)
 
     ! ----------------------------------------------
@@ -1041,7 +1039,7 @@ contains
     endif
 
   end subroutine med_methods_Array_diagnose
-
+#endif
   !-----------------------------------------------------------------------------
 
   subroutine med_methods_State_diagnose(State, string, rc)
@@ -1057,7 +1055,7 @@ contains
     integer         , intent(out)          :: rc
 
     ! local variables
-    integer                         :: i,j,n
+    integer                         :: n
     integer                         :: fieldCount, lrank
     character(ESMF_MAXSTR) ,pointer :: lfieldnamelist(:)
     character(len=CS)               :: lstring
@@ -1140,7 +1138,6 @@ contains
     integer         , intent(out)          :: rc
 
     ! local variables
-    integer           :: lrank
     character(len=CS) :: lstring
     real(R8), pointer :: dataPtr1d(:)
     real(R8), pointer :: dataPtr2d(:,:)
@@ -1738,7 +1735,6 @@ contains
     type(ESMF_Field)                :: lfield
     integer                         :: fieldcount
     character(ESMF_MAXSTR) ,pointer :: lfieldnamelist(:)
-    character(ESMF_MAXSTR)          :: name
     character(len=*),parameter  :: subname='(med_methods_State_GeomPrint)'
     ! ----------------------------------------------
 
@@ -2061,7 +2057,7 @@ contains
     integer                    :: localDeCount
     integer                    :: DeCount
     integer                    :: dimCount, tileCount
-    integer                    :: staggerlocCount, arbdimCount, rank
+    integer                    :: rank
     type(ESMF_StaggerLoc)      :: staggerloc
     type(ESMF_TypeKind_Flag)   :: coordTypeKind
     character(len=32)          :: staggerstr
@@ -2265,7 +2261,7 @@ contains
     integer,          intent(inout)  :: rc
 
     ! local variables
-    integer           :: mytask, ierr, len, icount
+    integer           :: mytask, icount
     type(ESMF_VM)     :: vm
     type(ESMF_Field)  :: field
     real(R8), pointer :: farrayptr(:,:)

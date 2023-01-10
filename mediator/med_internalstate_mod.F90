@@ -208,12 +208,9 @@ contains
     ! local variables
     type(InternalState)        :: is_local
     logical                    :: ispresent, isset
-    integer                    :: n, ns, n1, n2
-    integer                    :: stat
-    logical                    :: glc_present
+    integer                    :: n, ns, n1
     character(len=8)           :: cnum
     character(len=CS)          :: cvalue
-    character(len=CL)          :: cname
     character(len=ESMF_MAXSTR) :: mesh_glc
     character(len=CX)          :: msgString
     character(len=3)           :: name

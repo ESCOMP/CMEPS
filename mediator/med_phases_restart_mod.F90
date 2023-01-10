@@ -58,8 +58,6 @@ contains
     type(ESMF_Clock)        :: mclock
     type(ESMF_TimeInterval) :: mtimestep
     type(ESMF_Time)         :: mCurrTime
-    type(ESMF_Time)         :: mStartTime
-    type(ESMF_TimeInterval) :: timestep
     integer                 :: timestep_length
     character(CL)           :: cvalue          ! attribute string
     character(CL)           :: restart_option  ! freq_option setting (ndays, nsteps, etc)
@@ -175,11 +173,8 @@ contains
     character(ESMF_MAXSTR)     :: cpl_inst_tag   ! instance tag
     character(ESMF_MAXSTR)     :: restart_dir    ! Optional restart directory name
     character(ESMF_MAXSTR)     :: cvalue         ! attribute string
-    character(ESMF_MAXSTR)     :: freq_option    ! freq_option setting (ndays, nsteps, etc)
-    integer                    :: freq_n         ! freq_n setting relative to freq_option
     logical                    :: alarmIsOn      ! generic alarm flag
     real(R8)                   :: tbnds(2)       ! CF1.0 time bounds
-    character(ESMF_MAXSTR)     :: tmpstr
     logical                    :: isPresent
     logical                    :: first_time = .true.
     character(len=*), parameter :: subname='(med_phases_restart_write)'
@@ -304,7 +299,7 @@ contains
             trim(nexttimestr),'.nc'
 
        if (mastertask) then
-          restart_pfile = "rpointer.cpl"//cpl_inst_tag
+          restart_pfile = "rpointer.cpl"//trim(cpl_inst_tag)
           call ESMF_LogWrite(trim(subname)//" write rpointer file = "//trim(restart_pfile), ESMF_LOGMSG_INFO)
           open(newunit=unitn, file=restart_pfile, form='FORMATTED')
           write(unitn,'(a)') trim(restart_file)
@@ -495,7 +490,7 @@ contains
     type(ESMF_Time)        :: currtime
     character(len=CS)      :: currtimestr
     type(InternalState)    :: is_local
-    integer                :: i,j,m,n
+    integer                :: n
     integer                :: ierr, unitn
     integer                :: yr,mon,day,sec ! time units
     character(ESMF_MAXSTR) :: case_name      ! case name
@@ -543,7 +538,7 @@ contains
     endif
 
     ! Get the restart file name from the pointer file
-    restart_pfile = "rpointer.cpl"//cpl_inst_tag
+    restart_pfile = "rpointer.cpl"//trim(cpl_inst_tag)
     if (mastertask) then
        call ESMF_LogWrite(trim(subname)//" read rpointer file = "//trim(restart_pfile), ESMF_LOGMSG_INFO)
        open(newunit=unitn, file=restart_pfile, form='FORMATTED', status='old', iostat=ierr)

@@ -21,8 +21,8 @@ contains
     character(len=*), intent(in) :: string
     integer, intent(in) :: level
     logical, intent(in) :: mastertask
-    integer :: ierr
 #ifdef CESMCOUPLED
+    integer :: ierr
     integer, external :: GPTLprint_memusage
     if((mastertask .and. memdebug_level > level) .or. memdebug_level > level+1) then
        ierr = GPTLprint_memusage(string)
@@ -48,19 +48,21 @@ contains
     logical, optional, intent(in) :: mpierr
 #ifdef NO_MPI2
     integer, parameter :: MPI_MAX_ERROR_STRING=80
+#else
+    integer :: ierr, len
 #endif
     character(MPI_MAX_ERROR_STRING) :: lstring
-    integer :: lrc, len, ierr
+    integer :: lrc
 
     med_utils_ChkErr = .false.
     lrc = rc
     if (present(mpierr)) then
        if(mpierr) then
           if (rc == MPI_SUCCESS) return
-#ifdef USE_MPI2
-          call MPI_ERROR_STRING(rc, lstring, len, ierr)
-#else
+#ifdef NO_MPI2
           write(lstring,*) "ERROR in mct mpi-serial library rc=",rc
+#else
+          call MPI_ERROR_STRING(rc, lstring, len, ierr)
 #endif
           call ESMF_LogWrite("ERROR: "//trim(lstring), ESMF_LOGMSG_INFO, line=line, file=file)
           lrc = ESMF_FAILURE
