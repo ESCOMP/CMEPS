@@ -20,7 +20,7 @@ module med_phases_history_mod
   use NUOPC_Model           , only : NUOPC_ModelGet
   use med_utils_mod         , only : chkerr => med_utils_ChkErr
   use med_internalstate_mod , only : ncomps, compname
-  use med_internalstate_mod , only : InternalState, mastertask, logunit
+  use med_internalstate_mod , only : InternalState, maintask, logunit
   use med_time_mod          , only : med_time_alarmInit
   use med_io_mod            , only : med_io_write, med_io_wopen, med_io_enddef, med_io_close
   use perf_mod              , only : t_startf, t_stopf
@@ -230,7 +230,7 @@ contains
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
           ! Write diagnostic info
-          if (mastertask) then
+          if (maintask) then
              write(logunit,'(a,2x,i8)') trim(subname) // "  initialized history alarm "//&
                   trim(alarmname)//"  with option "//trim(hist_option_all_inst)//" and frequency ",hist_n_all_inst
           end if
@@ -253,7 +253,7 @@ contains
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
           ! Write diagnostic info if appropriate
-          if (mastertask .and. debug_alarms) then
+          if (maintask .and. debug_alarms) then
              call ESMF_AlarmGet(alarm, ringInterval=ringInterval, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
              call ESMF_TimeIntervalGet(ringInterval, s=ringinterval_length, rc=rc)
@@ -271,7 +271,7 @@ contains
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
              write(nexttimestr,'(i4.4,a,i2.2,a,i2.2,a,i5.5)') yr,'-',mon,'-',day,'-',sec
 
-             if (mastertask) then
+             if (maintask) then
                 write(logunit,*)
                 write(logunit,'(a,i8)') trim(subname)//" : history alarmname "//trim(alarmname)//&
                      ' is ringing, interval length is ', ringInterval_length
@@ -1142,7 +1142,7 @@ contains
 
              end if ! end of if auxflds is set to 'all'
 
-             if (mastertask) then
+             if (maintask) then
                 write(logunit,*)
                 write(logunit,'(a,i4,a)') trim(subname) // '   Writing the following fields to auxfile ',nfcnt,&
                      ' for component '//trim(compname(compid))
@@ -1356,7 +1356,7 @@ contains
          valid = .false.
       end if
       if (.not. valid) then
-         if (mastertask) write(logunit,*) "ERROR: invalid list = ",trim(str)
+         if (maintask) write(logunit,*) "ERROR: invalid list = ",trim(str)
          call ESMF_LogWrite("ERROR: invalid list = "//trim(str), ESMF_LOGMSG_ERROR)
          rc = ESMF_FAILURE
          return
@@ -1565,7 +1565,7 @@ contains
     call ESMF_TimeIntervalGet(dtimestep, s=dsec, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    if (mastertask) then
+    if (maintask) then
        write(logunit,'(a,2x,i8,2x,i8)') trim(subname) // "  mediator, driver timesteps for " &
             //trim(alarmname),msec,dsec
     end if
@@ -1580,7 +1580,7 @@ contains
          reftime=StartTime, alarmname=trim(alarmname), advance_clock=.true., rc=rc)
 
     ! Write diagnostic info
-    if (mastertask) then
+    if (maintask) then
        write(logunit,'(a,2x,i8)') trim(subname) // "  initialized history alarm "//&
             trim(alarmname)//"  with option "//trim(hist_option)//" and frequency ",hist_n
     end if
@@ -1634,7 +1634,7 @@ contains
 
     ! Write diagnostic output
     if (write_now) then
-       if (mastertask .and. debug_alarms) then
+       if (maintask .and. debug_alarms) then
           ! output alarm info
           call ESMF_AlarmGet(alarm, ringInterval=ringInterval, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -1652,7 +1652,7 @@ contains
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           write(nexttimestr,'(i4.4,a,i2.2,a,i2.2,a,i5.5)') yr,'-',mon,'-',day,'-',sec
 
-          if (mastertask) then
+          if (maintask) then
              write(logunit,*)
              write(logunit,'(a,i8)') trim(subname)//" : history alarmname "//trim(alarmname)//&
                   ' is ringing, interval length is ', ringInterval_length
@@ -1674,7 +1674,7 @@ contains
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           write(nexttimestr,'(i4.4,a,i2.2,a,i2.2,a,i5.5)') yr,'-',mon,'-',day,'-',sec
 
-          if (mastertask) then
+          if (maintask) then
              write(logunit,'(a)') trim(subname)//" : mclock currtime = "//trim(currtimestr)//&
                   " mclock nexttime = "//trim(nexttimestr)
           end if
@@ -1800,7 +1800,7 @@ contains
        write(histfile, "(6a)") trim(case_name),'.cpl',trim(inst_tag),trim(hist_str),trim(nexttime_str),'.nc'
     end if
 
-    if (mastertask) then
+    if (maintask) then
        call ESMF_TimeGet(currtime, yy=yr, mm=mon, dd=day, s=sec, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        write(currtime_str,'(i4.4,a,i2.2,a,i2.2,a,i5.5)') yr,'-',mon,'-',day,'-',sec

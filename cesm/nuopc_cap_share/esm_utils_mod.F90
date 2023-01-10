@@ -3,7 +3,7 @@ module esm_utils_mod
   implicit none
   public
 
-  logical :: mastertask
+  logical :: maintask
   integer :: logunit
   integer :: dbug_flag = 0
 

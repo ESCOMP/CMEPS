@@ -16,7 +16,7 @@ module med_phases_post_glc_mod
   use ESMF                  , only : ESMF_RouteHandle, ESMF_RouteHandleIsCreated
   use med_internalstate_mod , only : compatm, compice, complnd, comprof, compocn, compname, compglc
   use med_internalstate_mod , only : mapbilnr, mapconsd, compname
-  use med_internalstate_mod , only : InternalState, mastertask, logunit
+  use med_internalstate_mod , only : InternalState, maintask, logunit
   use med_methods_mod       , only : fldbun_diagnose  => med_methods_FB_diagnose
   use med_methods_mod       , only : fldbun_fldchk    => med_methods_FB_fldchk
   use med_methods_mod       , only : fldbun_getmesh   => med_methods_FB_getmesh
@@ -132,7 +132,7 @@ contains
              exit
           end if
        end do
-       if (mastertask) then
+       if (maintask) then
           write(logunit,'(a,L1)') trim(subname) // 'glc2lnd_coupling is ',glc2lnd_coupling
           write(logunit,'(a,L1)') trim(subname) // 'glc2ocn_coupling is ',glc2ocn_coupling
           write(logunit,'(a,L1)') trim(subname) // 'glc2ice_coupling is ',glc2ice_coupling
@@ -145,7 +145,7 @@ contains
           call NUOPC_CompAttributeGet(gcomp, name="cism_evolve", value=cvalue, isPresent=isPresent, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           read (cvalue,*) cism_evolve
-          if (mastertask) then
+          if (maintask) then
              write(logunit,'(a,l7)') trim(subname)//' cism_evolve = ',cism_evolve
           end if
        end if

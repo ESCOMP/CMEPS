@@ -36,7 +36,7 @@ contains
     use med_methods_mod       , only : FB_GetFldPtr => med_methods_FB_GetFldPtr
     use med_constants_mod     , only : dbug_flag    => med_constants_dbug_flag
     use med_merge_mod         , only : med_merge_auto
-    use med_internalstate_mod , only : InternalState, logunit, mastertask
+    use med_internalstate_mod , only : InternalState, logunit, maintask
     use med_internalstate_mod , only : compatm, compice, compocn
     use med_internalstate_mod , only : coupling_mode
     use esmFlds               , only : med_fldList_GetFldListTo
@@ -93,7 +93,7 @@ contains
        ! is initialized to 0.
        ! In addition, in med.F90, if this attribute is not present as a mediator component attribute,
        ! it is set to 0.
-       if (mastertask) then
+       if (maintask) then
           call ESMF_StateGet(is_local%wrap%NstateImp(compocn), &
                itemName=trim(is_local%wrap%flds_scalar_name), field=lfield, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -130,7 +130,7 @@ contains
 
     ! obtain nextsw_cday from atm if it is in the import state and send it to ice
     scalar_id=is_local%wrap%flds_scalar_index_nextsw_cday
-    if (scalar_id > 0 .and. mastertask) then
+    if (scalar_id > 0 .and. maintask) then
        call ESMF_StateGet(is_local%wrap%NstateImp(compatm), &
             itemName=trim(is_local%wrap%flds_scalar_name), field=lfield, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return

@@ -7,7 +7,7 @@ module med_phases_profile_mod
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
   use med_constants_mod     , only : dbug_flag=>med_constants_dbug_flag
   use med_utils_mod         , only : med_utils_chkerr, med_memcheck
-  use med_internalstate_mod , only : mastertask, logunit
+  use med_internalstate_mod , only : maintask, logunit
   use med_utils_mod         , only : chkerr    => med_utils_ChkErr
   use med_time_mod          , only : alarmInit => med_time_alarmInit
   use perf_mod              , only : t_startf, t_stopf
@@ -144,7 +144,7 @@ contains
           endif
        endif
 
-       if ((stopalarmison .or. alarmIsOn .or. iterations==1) .and. mastertask) then
+       if ((stopalarmison .or. alarmIsOn .or. iterations==1) .and. maintask) then
           ! We need to get the next time for display
           call ESMF_ClockGetNextTime(clock, nextTime=nexttime, rc=rc)
           if (med_utils_ChkErr(rc,__LINE__,u_FILE_u)) return

@@ -18,8 +18,8 @@ module med_internalstate_mod
   public :: med_internalstate_defaultmasks
 
   integer, public :: logunit            ! logunit for mediator log output
-  integer, public :: diagunit           ! diagunit for budget output (med master only)
-  logical, public :: mastertask=.false. ! is this the mastertask
+  integer, public :: diagunit           ! diagunit for budget output (med main only)
+  logical, public :: maintask=.false. ! is this the maintask
   integer, public :: med_id             ! needed currently in med_io_mod and set in esm.F90
 
   ! Components
@@ -239,7 +239,7 @@ contains
                 end do
                 num_icesheets = num_icesheets + 1
              endif
-             if (mastertask) then
+             if (maintask) then
                 write(logunit,'(a,i8)') trim(subname)//' number of ice sheets is ',num_icesheets
              end if
           end if
@@ -333,7 +333,7 @@ contains
        compname(compglc(ns)) = 'glc' // trim(cnum)
     end do
 
-    if (mastertask) then
+    if (maintask) then
        ! Write out present flags
        write(logunit,*)
        do n1 = 1,ncomps
@@ -404,7 +404,7 @@ contains
     ! starts, but any coupling set to false will never be allowed.
     ! are allowed, just update the table below.
 
-    if (mastertask) then
+    if (maintask) then
        write(logunit,'(a)') trim(subname) // "Initializing active coupling flags"
     end if
 
@@ -491,7 +491,7 @@ contains
     ! - the columns are the source of coupling
     ! - So, the second column indicates which models the atm is coupled to.
     ! - And the second row indicates which models are coupled to the atm.
-    if (mastertask) then
+    if (maintask) then
        write(logunit,*) ' '
        write(logunit,'(A)') trim(subname)//' Allowed coupling flags'
        write(logunit,'(2x,A10,20(A5))') '|from to -> ',(compname(n2),n2=1,ncomps)

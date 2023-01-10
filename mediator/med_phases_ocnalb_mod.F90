@@ -262,7 +262,7 @@ contains
 
 #else
 
-    ! Determine master task
+    ! Determine main task
     call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call ESMF_VMGet(vm, localPet=iam, rc=rc)
@@ -442,7 +442,7 @@ contains
 
 !===============================================================================
 #ifdef CESMCOUPLED
-  subroutine med_phases_ocnalb_orbital_init(gcomp, logunit, mastertask, rc)
+  subroutine med_phases_ocnalb_orbital_init(gcomp, logunit, maintask, rc)
 
     !----------------------------------------------------------
     ! Obtain orbital related values
@@ -456,7 +456,7 @@ contains
     ! input/output variables
     type(ESMF_GridComp)                 :: gcomp
     integer             , intent(in)    :: logunit         ! output logunit
-    logical             , intent(in)    :: mastertask
+    logical             , intent(in)    :: maintask
     integer             , intent(out)   :: rc              ! output error
 
     ! local variables
@@ -541,7 +541,7 @@ contains
 
   !===============================================================================
 
-  subroutine med_phases_ocnalb_orbital_update(clock, logunit,  mastertask, eccen, obliqr, lambm0, mvelpp, rc)
+  subroutine med_phases_ocnalb_orbital_update(clock, logunit,  maintask, eccen, obliqr, lambm0, mvelpp, rc)
 
     !----------------------------------------------------------
     ! Update orbital settings
@@ -553,7 +553,7 @@ contains
     ! input/output variables
     type(ESMF_Clock) , intent(in)    :: clock
     integer          , intent(in)    :: logunit
-    logical          , intent(in)    :: mastertask
+    logical          , intent(in)    :: maintask
     real(R8)         , intent(inout) :: eccen  ! orbital eccentricity
     real(R8)         , intent(inout) :: obliqr ! Earths obliquity in rad
     real(R8)         , intent(inout) :: lambm0 ! Mean long of perihelion at vernal equinox (radians)
@@ -578,11 +578,11 @@ contains
        call ESMF_TimeGet(CurrTime, yy=year, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        orb_year = orb_iyear + (year - orb_iyear_align)
-       lprint = mastertask
+       lprint = maintask
     else
        orb_year = orb_iyear
        if (first_time) then
-          lprint = mastertask
+          lprint = maintask
           first_time = .false.
        else
           lprint = .false.
