@@ -160,14 +160,14 @@ jobs:
           export PIO_TYPENAME_VALID_VALUES="netcdf,pnetcdf"
           export NETCDF_PATH=/usr
           export PNETCDF_PATH=/usr
-          export LD_LIBRARY_PATH=$NETCDF/lib/libx86_64-linux-gnu/:$LD_LIBRARY_PATH
+          export LD_LIBRARY_PATH=/usr/lib/libx86_64-linux-gnu/:$LD_LIBRARY_PATH
           export ESMFMKFILE=$HOME/ESMF/lib/libg/Linux.gfortran.64.openmpi.default/esmf.mk
           printenv >> $GITHUB_ENV
           popd
       - name: scripts regression tests
         run: |
           pushd $GITHUB_WORKSPACE/cesm/cime/CIME/tests
-          ./scripts_regression_tests.py  --no-fortran-run --compiler gnu --mpilib openmpi --machine ubuntu-latest
+          ./scripts_regression_tests.py  --no-fortran-run --compiler gnu --mpilib openmpi --machine ubuntu-latest test_sys_build_system.py
           popd
 #     the following can be used by developers to login to the github server in case of errors
 #     see https://github.com/marketplace/actions/debugging-with-tmate for further details
