@@ -171,10 +171,10 @@ jobs:
       - name: scripts regression tests
         run: |
           pushd $GITHUB_WORKSPACE/cesm/cime/CIME/tests
-          ./scripts_regression_tests.py  --no-fortran-run --compiler gnu --mpilib openmpi --machine ubuntu-latest test_sys_build_system.py
+          ./scripts_regression_tests.py  --no-fortran-run --compiler gnu --mpilib openmpi --machine ubuntu-latest 
           popd
 #     the following can be used by developers to login to the github server in case of errors
 #     see https://github.com/marketplace/actions/debugging-with-tmate for further details
-      - name: Setup tmate session
-        if: ${{ failure() }}
-        uses: mxschmitt/action-tmate@v3
+#      - name: Setup tmate session
+#        if: ${{ failure() }}
+#        uses: mxschmitt/action-tmate@v3
