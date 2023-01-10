@@ -128,12 +128,13 @@ jobs:
       #     netcdf_c_path: /usr
       - name: Build ParallelIO
         if: steps.cache-PARALLELIO.outputs.cache-hit != 'true'
-        uses: NCAR/ParallelIO/.github/actions/parallelio_autotools@05173a6556ea8d80eb34e3881a5014ea8f4b7543
+        uses: NCAR/ParallelIO/.github/actions/parallelio_cmake@05173a6556ea8d80eb34e3881a5014ea8f4b7543
         with:
           parallelio_version: ${{ env.ParallelIO_VERSION }}
           enable_fortran: True
           with_pnetcdf: /usr
           install_prefix: /home/runner/pio
+          
       - name: Build ESMF
         if: steps.cache-esmf.outputs.cache-hit != 'true'
         uses: ESCOMP/CDEPS/.github/actions/buildesmf@e06246b560d3132170bb1a5443fa3d65dfbd2040
