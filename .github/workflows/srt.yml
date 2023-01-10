@@ -132,7 +132,6 @@ jobs:
         with:
           parallelio_version: ${{ env.ParallelIO_VERSION }}
           enable_fortran: True
-          with_pnetcdf: /usr
           install_prefix: /home/runner/pio
           
       - name: Build ESMF
