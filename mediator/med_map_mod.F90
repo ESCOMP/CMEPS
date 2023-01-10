@@ -742,7 +742,6 @@ contains
     type(ESMF_Mesh)            :: lmesh_src
     type(ESMF_Mesh)            :: lmesh_dst
     integer                    :: mapindex
-    integer                    :: numFlds
     type(ESMF_Field), pointer  :: fieldlist_src(:)
     type(ESMF_Field), pointer  :: fieldlist_dst(:)
     type(med_fldlist_entry_type), pointer :: fldptr

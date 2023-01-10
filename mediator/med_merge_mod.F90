@@ -333,7 +333,6 @@ contains
     real(R8), pointer :: dpf1(:)
     real(R8), pointer :: dpf2(:,:)  ! intput pointers to 1d and 2d fields
     real(R8), pointer :: dpw1(:)    ! weight pointer
-    character(CL) :: name
     character(len=*),parameter :: subname=' (med_merge_mod: med_merge_auto_field)'
     !---------------------------------------
 
