@@ -82,7 +82,7 @@ contains
     use NUOPC_Driver  , only : NUOPC_DriverAddComp, NUOPC_DriverGetComp
     use esm           , only : ESMSetServices => SetServices, ReadAttributes
     use esm_time_mod  , only : esm_time_clockInit
-
+    use perf_mod      , only : t_startf, t_stopf, t_initf
     ! input/output variables
     type(ESMF_GridComp)    :: ensemble_driver
     integer, intent(out)   :: rc
@@ -102,6 +102,7 @@ contains
     integer                :: inst
     integer                :: number_of_members
     integer                :: ntasks_per_member
+    integer                :: Global_Comm
     character(CL)          :: start_type     ! Type of startup
     character(len=7)       :: drvrinst
     character(len=5)       :: inst_suffix
@@ -116,9 +117,20 @@ contains
 
     rc = ESMF_SUCCESS
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
-
     call ESMF_GridCompGet(ensemble_driver, config=config, vm=vm, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    call ESMF_VMGet(vm, localPet=localPet, mpiCommunicator=global_comm, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    if (localPet == 0) then
+       mastertask=.true.
+    else
+       mastertask = .false.
+    end if
+
+    call t_initf('drv_in', LogPrint=.true., LogUnit=logunit, mpicom=global_comm, mastertask=mastertask)
+    call t_startf(subname)
 
     !-------------------------------------------
     ! Initialize clocks
@@ -169,10 +181,6 @@ contains
     call NUOPC_CompAttributeSet(ensemble_driver, name='read_restart', value=trim(read_restart_string), rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-
-    call NUOPC_CompAttributeSet(ensemble_driver, name='Profiling', value='max', rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
     !-------------------------------------------
     ! Extract the config object from the ensemble_driver
     !-------------------------------------------
@@ -205,6 +213,7 @@ contains
 
     allocate(petList(ntasks_per_member))
     ! We need to loop over instances
+    call t_startf('compute_drivers')
     do inst = 1, number_of_members
 
        ! Determine pet list for driver instance
@@ -218,6 +227,7 @@ contains
        call NUOPC_DriverAddComp(ensemble_driver, drvrinst, ESMSetServices, petList=petList, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     enddo
+    call t_stopf('compute_drivers')
 
     inst = localPet/ntasks_per_member + 1
     petList(1) = (inst-1) * ntasks_per_member
@@ -275,6 +285,7 @@ contains
     endif
 
     deallocate(petList)
+    call t_stopf(subname)
 
     call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
 
