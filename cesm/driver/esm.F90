@@ -10,7 +10,6 @@ module ESM
   use shr_mem_mod  , only : shr_mem_init
   use shr_log_mod  , only : shr_log_setLogunit
   use esm_utils_mod, only : logunit, maintask, dbug_flag, chkerr
-  use perf_mod     , only : t_initf, t_setLogUnit
 
   implicit none
   private
@@ -151,8 +150,6 @@ contains
     call ESMF_VMGet(vm, localPet=localPet, mpiCommunicator=global_comm, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    call ESMF_VMGet(vm, localPet=localPet, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
     if (localPet == 0) then
        maintask=.true.
     else
@@ -210,11 +207,6 @@ contains
        call shr_mem_init(strbuf=meminitstr)
        write(logunit,*) trim(meminitstr)
     end if
-
-    !-------------------------------------------
-    ! Timer initialization (has to be after pelayouts are determined)
-    !-------------------------------------------
-    call t_initf('drv_in', LogPrint=.true., LogUnit=logunit, mpicom=global_comm, mastertask=maintask, MaxThreads=maxthreads)
 
     call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
 
@@ -636,7 +628,7 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     !------
-    ! Add driver restart flag a to gcomp attributes
+    ! Add driver restart flag to gcomp attributes
     !------
     attribute = 'read_restart'
     call NUOPC_CompAttributeGet(driver, name=trim(attribute), value=cvalue, rc=rc)
