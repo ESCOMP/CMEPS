@@ -124,12 +124,12 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     if (localPet == 0) then
-       mastertask=.true.
+       maintask=.true.
     else
-       mastertask = .false.
+       maintask = .false.
     end if
 
-    call t_initf('drv_in', LogPrint=.true., LogUnit=logunit, mpicom=global_comm, mastertask=mastertask)
+    call t_initf('drv_in', LogPrint=.true., LogUnit=logunit, mpicom=global_comm, mastertask=maintask)
     call t_startf(subname)
 
     !-------------------------------------------

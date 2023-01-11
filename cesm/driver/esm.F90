@@ -9,7 +9,7 @@ module ESM
   use shr_mpi_mod  , only : shr_mpi_bcast
   use shr_mem_mod  , only : shr_mem_init
   use shr_log_mod  , only : shr_log_setLogunit
-  use esm_utils_mod, only : logunit, mastertask, dbug_flag, chkerr
+  use esm_utils_mod, only : logunit, maintask, dbug_flag, chkerr
 
   implicit none
   private
