@@ -45,7 +45,7 @@
   </entry>
 
   <!-- ===================================================================== -->
-  <!-- master configuration file that specifies all relevant filenames and -->
+  <!-- main configuration file that specifies all relevant filenames and -->
   <!-- and directories to configure a case -->
   <!-- ===================================================================== -->
 
@@ -54,7 +54,7 @@
     <default_value>$CIMEROOT/config_files.xml</default_value>
     <group>case_def</group>
     <file>env_case.xml</file>
-    <desc> master configuration file that specifies all relevant filenames
+    <desc> main configuration file that specifies all relevant filenames
     and directories to configure a case</desc>
   </entry>
 

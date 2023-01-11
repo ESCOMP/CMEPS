@@ -27,7 +27,7 @@ module med_diag_mod
   use med_constants_mod     , only : shr_const_rearth, shr_const_pi, shr_const_latice, shr_const_latvap
   use med_constants_mod     , only : shr_const_ice_ref_sal, shr_const_ocn_ref_sal, shr_const_isspval
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
-  use med_internalstate_mod , only : InternalState, logunit, mastertask, diagunit
+  use med_internalstate_mod , only : InternalState, logunit, maintask, diagunit
   use med_methods_mod       , only : fldbun_getdata2d => med_methods_FB_getdata2d
   use med_methods_mod       , only : fldbun_getdata1d => med_methods_FB_getdata1d
   use med_methods_mod       , only : fldbun_fldChk    => med_methods_FB_FldChk
@@ -50,7 +50,7 @@ module med_diag_mod
   public  :: med_phases_diag_ice_ice2med
   public  :: med_phases_diag_ice_med2ice
 
-  private :: med_diag_sum_master
+  private :: med_diag_sum_main
   private :: med_diag_print_atm
   private :: med_diag_print_lnd_ice_ocn
   private :: med_diag_print_summary
@@ -231,7 +231,7 @@ module med_diag_mod
   ! public data members
   ! ---------------------------------
 
-  ! note: call med_diag_sum_master then save budget_global and budget_counter on restart from/to root pe ---
+  ! note: call med_diag_sum_main then save budget_global and budget_counter on restart from/to root pe ---
 
   real(r8), allocatable :: budget_local  (:,:,:) ! local sum, valid on all pes
   real(r8), allocatable :: budget_global (:,:,:) ! global sum, valid only on root pe
@@ -270,7 +270,7 @@ contains
 
     rc = ESMF_SUCCESS
 
-    if(mastertask) then
+    if(maintask) then
        write(logunit,'(a)') ' Creating budget_diags%comps '
     end if
 
@@ -281,7 +281,7 @@ contains
     else
        budget_table_version = 'v1'
     end if
-    if (mastertask) then
+    if (maintask) then
        write(logunit,'(a)') trim(subname) //' budget table version is '//trim(budget_table_version)
     end if
 
@@ -589,7 +589,7 @@ contains
   end subroutine med_phases_diag_accum
 
   !===============================================================================
-  subroutine med_diag_sum_master(gcomp, rc)
+  subroutine med_diag_sum_main(gcomp, rc)
 
     ! ------------------------------------------------------------------
     ! Sum local values to global on root
@@ -605,7 +605,7 @@ contains
     integer       :: c_size  ! number of component send/recvs
     integer       :: f_size  ! number of fields
     integer       :: p_size  ! number of period types
-    character(*), parameter :: subName = '(med_diag_sum_master) '
+    character(*), parameter :: subName = '(med_diag_sum_main) '
     ! ------------------------------------------------------------------
 
     call t_startf('MED:'//subname)
@@ -629,7 +629,7 @@ contains
 
     call t_stopf('MED:'//subname)
 
-  end subroutine med_diag_sum_master
+  end subroutine med_diag_sum_main
 
   !===============================================================================
   subroutine med_phases_diag_atm(gcomp, rc)
@@ -2055,7 +2055,7 @@ contains
     date = year*10000 + mon*100 + day
 
 #ifdef DEBUG
-    if(mastertask) then
+    if(maintask) then
        write(timestr,'(i4.4,a,i2.2,a,i2.2,a,i5.5)') year,'-',mon,'-',day,'-',tod
        write(logunit,' (a)') trim(subname)//": time = "//trim(timestr)
     endif
@@ -2103,13 +2103,13 @@ contains
           if (.not. sumdone) then
              ! Some budgets will be printed for this period type
              ! Determine sums if not already done
-             call med_diag_sum_master(gcomp, rc)
+             call med_diag_sum_main(gcomp, rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
              sumdone = .true.
           end if
 
-          if (mastertask) then
+          if (maintask) then
              c_size = size(budget_diags%comps)
              f_size = size(budget_diags%fields)
              p_size = size(budget_diags%periods)
@@ -2124,7 +2124,7 @@ contains
              end if
              datagpr(:,:,:) = datagpr(:,:,:)/budget_counter(:,:,:)
 
-             ! Write diagnostic tables to logunit (mastertask only)
+             ! Write diagnostic tables to logunit (maintask only)
              if (output_level >= 3) then
                 ! detail atm budgets and breakdown into components ---
                 call med_diag_print_atm(datagpr, ip, date, tod)
@@ -2141,8 +2141,8 @@ contains
 
              deallocate(datagpr)
 
-          endif ! output_level > 0 and mastertask
-       end if ! if mastertask
+          endif ! output_level > 0 and maintask
+       end if ! if maintask
     enddo  ! ip = 1, period_types
 
     !-------------------------------------------------------------------------------
@@ -2760,7 +2760,7 @@ contains
     ! create new entry if fldname is not in original list
 
     if (.not. found) then
-       if(mastertask) write(logunit,*) ' Add ',trim(name),' to budgets with index ',index
+       if(maintask) write(logunit,*) ' Add ',trim(name),' to budgets with index ',index
        ! 1) allocate newfld to be size (one element larger than input flds)
        allocate(new_entries(index))
 

@@ -5,7 +5,7 @@ module med_map_mod
   use ESMF                  , only : ESMF_SUCCESS, ESMF_FAILURE
   use ESMF                  , only : ESMF_LOGMSG_ERROR, ESMF_LOGMSG_INFO, ESMF_LogWrite
   use ESMF                  , only : ESMF_Field
-  use med_internalstate_mod , only : InternalState, logunit, mastertask
+  use med_internalstate_mod , only : InternalState, logunit, maintask
   use med_constants_mod     , only : dbug_flag => med_constants_dbug_flag
   use med_utils_mod         , only : chkerr    => med_utils_ChkErr
   use perf_mod              , only : t_startf, t_stopf
@@ -131,7 +131,7 @@ contains
     ! --------------------------------------------------------------
 
     ! First loop over source and destination components components
-    if (mastertask) write(logunit,*) ' '
+    if (maintask) write(logunit,*) ' '
     do n1 = 1, ncomps
        do n2 = 1, ncomps
           if (n1 /= n2) then
@@ -194,7 +194,7 @@ contains
     ! unity normalization up front
     ! --------------------------------------------------------------
 
-    if (mastertask) then
+    if (maintask) then
        write(logunit,*)
        write(logunit,'(a)') trim(subname)//"Initializing unity map normalizations"
     endif
@@ -212,7 +212,7 @@ contains
           call ESMF_FieldBundleGet(is_local%wrap%FBImp(n1,n1), fieldCount=fieldCount, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           if (fieldCount == 0) then
-            if (mastertask) then
+            if (maintask) then
               write(logunit,*) trim(subname)//' '//trim(compname(n1))//' import FB field count is = ', fieldCount
               write(logunit,*) trim(subname)//' '//trim(compname(n1))//' trying to use export FB'
             end if
@@ -257,7 +257,7 @@ contains
                       call med_map_field(field_src=field_src, field_dst=is_local%wrap%field_NormOne(n1,n2,mapindex), &
                            routehandles=is_local%wrap%RH(n1,n2,:), maptype=mapindex, rc=rc)
                       if (chkerr(rc,__LINE__,u_FILE_u)) return
-                      if (mastertask) then
+                      if (maintask) then
                          write(logunit,'(a)') trim(subname)//' created field_NormOne for '&
                               //compname(n1)//'->'//compname(n2)//' with mapping '//trim(mapnames(mapindex))
                       end if
@@ -431,14 +431,14 @@ contains
 
     ! Create route handle
     if (mapindex == mapfcopy) then
-       if (mastertask) then
+       if (maintask) then
           write(logunit,'(A)') trim(subname)//' creating RH redist for '//trim(string)
        end if
        call ESMF_FieldRedistStore(fldsrc, flddst, routehandle=routehandles(mapfcopy), &
             ignoreUnmatchedIndices = .true., rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     else if (lmapfile /= 'unset') then
-       if (mastertask) then
+       if (maintask) then
           write(logunit,'(A)') trim(subname)//' creating RH '//trim(mapname)//&
                ' via input file '//trim(mapfile)//' for '//trim(string)
        end if
@@ -448,7 +448,7 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     else if (mapindex == mapbilnr .or. mapindex == mapbilnr_uv3d) then
        if (.not. ESMF_RouteHandleIsCreated(routehandles(mapbilnr))) then
-          if (mastertask) then
+          if (maintask) then
              write(logunit,'(A)') trim(subname)//' creating RH '//trim(mapname)//' for '//trim(string)
           end if
           call ESMF_FieldRegridStore(fldsrc, flddst, routehandle=routehandles(mapbilnr), &
@@ -464,7 +464,7 @@ contains
           ldstprint = .true.
        end if
     else if (mapindex == mapfillv_bilnr) then
-       if (mastertask) then
+       if (maintask) then
           write(logunit,'(A)') trim(subname)//' creating RH '//trim(mapname)//' for '//trim(string)
        end if
        call ESMF_FieldRegridStore(fldsrc, flddst, routehandle=routehandles(mapfillv_bilnr), &
@@ -479,7 +479,7 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        ldstprint = .true.
     else if (mapindex == mapbilnr_nstod) then
-       if (mastertask) then
+       if (maintask) then
           write(logunit,'(A)') trim(subname)//' creating RH '//trim(mapname)//' for '//trim(string)
        end if
        call ESMF_FieldRegridStore(fldsrc, flddst, routehandle=routehandles(mapbilnr_nstod), &
@@ -495,7 +495,7 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        ldstprint = .true.
     else if (mapindex == mapconsf .or. mapindex == mapnstod_consf) then
-       if (mastertask) then
+       if (maintask) then
           write(logunit,'(A)') trim(subname)//' creating RH '//trim(mapname)//' for '//trim(string)
        end if
        call ESMF_FieldRegridStore(fldsrc, flddst, routehandle=routehandles(mapconsf), &
@@ -512,7 +512,7 @@ contains
        ldstprint = .true.
     else if (mapindex == mapconsf_aofrac) then
        if (.not. ESMF_RouteHandleIsCreated(routehandles(mapconsf))) then
-          if (mastertask) then
+          if (maintask) then
              write(logunit,'(A)') trim(subname)//' creating RH '//trim(mapname)//' for '//trim(string)
           end if
           call ESMF_FieldRegridStore(fldsrc, flddst, routehandle=routehandles(mapconsf_aofrac), &
@@ -529,14 +529,14 @@ contains
           ldstprint = .true.
        else
           ! Copy existing consf RH
-          if (mastertask) then
+          if (maintask) then
              write(logunit,'(A)') trim(subname)//' copying RH(mapconsf) to '//trim(mapname)//' for '//trim(string)
           end if
           routehandles(mapconsf_aofrac) = ESMF_RouteHandleCreate(routehandles(mapconsf), rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
        end if
     else if (mapindex == mapconsd .or. mapindex == mapnstod_consd) then
-       if (mastertask) then
+       if (maintask) then
           write(logunit,'(A)') trim(subname)//' creating RH '//trim(mapname)//' for '//trim(string)
        end if
        call ESMF_FieldRegridStore(fldsrc, flddst, routehandle=routehandles(mapconsd), &
@@ -553,7 +553,7 @@ contains
        ldstprint = .true.
     else if (mapindex == mappatch .or. mapindex == mappatch_uv3d) then
        if (.not. ESMF_RouteHandleIsCreated(routehandles(mappatch))) then
-          if (mastertask) then
+          if (maintask) then
              write(logunit,'(A)') trim(subname)//' creating RH '//trim(mapname)//' for '//trim(string)
           end if
           call ESMF_FieldRegridStore(fldsrc, flddst, routehandle=routehandles(mappatch), &
@@ -569,7 +569,7 @@ contains
           ldstprint = .true.
        end if
     else
-       if (mastertask) then
+       if (maintask) then
           write(logunit,'(A)') trim(subname)//' mapindex '//trim(mapname)//' not supported for '//trim(string)
        end if
        call ESMF_LogWrite(trim(subname)//' mapindex '//trim(mapname)//' not supported ', &
@@ -629,7 +629,7 @@ contains
 
     ! Output route handle to file if requested
     if (rhprint) then
-       if (mastertask) then
+       if (maintask) then
           write(logunit,'(a)') trim(subname)//trim(string)//": printing  RH for "//trim(mapname)
        end if
        call ESMF_RouteHandlePrint(routehandles(mapindex), rc=rc)
@@ -791,7 +791,7 @@ contains
     ! ungridded dimensions and need to unwrap them into separate fields for the
     ! purposes of packing
 
-    if (mastertask) write(logunit,*)
+    if (maintask) write(logunit,*)
 
     ! Determine the normalization type for each packed_data mapping element
     ! Loop over mapping types
@@ -873,7 +873,7 @@ contains
                    packed_data(mapindex)%fldindex(nf) = npacked(mapindex)
                 end if
 
-                if (mastertask) then
+                if (maintask) then
                    write(logunit,'(5(a,2x),2x,i4)') trim(subname)//&
                         'Packed field: destcomp,mapping,mapnorm,fldname,index: ', &
                         trim(compname(destcomp)), &

@@ -9,7 +9,7 @@ module Ensemble_driver
 
   use shr_kind_mod  , only : cl=>shr_kind_cl, cs=>shr_kind_cs
   use shr_log_mod   , only : shr_log_setLogUnit
-  use esm_utils_mod , only : mastertask, logunit, chkerr
+  use esm_utils_mod , only : maintask, logunit, chkerr
 
   implicit none
   private
@@ -271,15 +271,15 @@ contains
           call NUOPC_CompAttributeGet(driver, name="logfile", value=logfile, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           open (newunit=logunit,file=trim(diro)//"/"//trim(logfile))
-          mastertask = .true.
+          maintask = .true.
        else
           logUnit = 6
-          mastertask = .false.
+          maintask = .false.
        endif
        call shr_log_setLogUnit (logunit)
 
        ! Create a clock for each driver instance
-       call esm_time_clockInit(ensemble_driver, driver, logunit, mastertask, rc)
+       call esm_time_clockInit(ensemble_driver, driver, logunit, maintask, rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     endif

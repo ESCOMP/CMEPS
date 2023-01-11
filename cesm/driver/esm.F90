@@ -151,9 +151,9 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     if (localPet == 0) then
-       mastertask=.true.
+       maintask=.true.
     else
-       mastertask = .false.
+       maintask = .false.
     end if
 
     !-------------------------------------------
@@ -203,7 +203,7 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! Memory test
-    if (mastertask) then
+    if (maintask) then
        call shr_mem_init(strbuf=meminitstr)
        write(logunit,*) trim(meminitstr)
     end if
@@ -293,7 +293,7 @@ contains
 
     rc = ESMF_SUCCESS
 
-    if (mastertask .or. dbug_flag > 3) then
+    if (maintask .or. dbug_flag > 3) then
        write(logunit, *) 'BEGIN: ', trim(label)
        call NUOPC_FreeFormatGet(ffstuff, linecount=linecnt, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -459,7 +459,7 @@ contains
     call NUOPC_CompAttributeGet(driver, name="tfreeze_option", value=tfreeze_option, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    call shr_frz_freezetemp_init(tfreeze_option, mastertask)
+    call shr_frz_freezetemp_init(tfreeze_option, maintask)
 
     call NUOPC_CompAttributeGet(driver, name='cpl_rootpe', value=cvalue, rc=rc)
     read(cvalue, *) rootpe_med
@@ -1511,7 +1511,7 @@ contains
 
     rc = ESMF_SUCCESS
 
-    if (mastertask) then
+    if (maintask) then
        write(logunit,*)' SUCCESSFUL TERMINATION OF CESM'
     end if
 
