@@ -891,7 +891,7 @@ contains
              call ESMF_LogWrite(subname//':Fr_'//trim(compname(ncomp))//': '//trim(shortname), ESMF_LOGMSG_INFO)
              fld => fld%next
           end do
-          
+
           fldListTo => med_fldList_GetFldListTo(ncomp)
           fld => fldListTo%fields
           do while(associated(fld))

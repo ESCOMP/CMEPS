@@ -122,7 +122,7 @@ contains
              else if (.not. coupling_active(compsrc)) then
                 CYCLE
              end if
-                
+
              ! Determine the merge information for the import field
              call med_fld_GetFldInfo(fldptr, compsrc=compsrc, merge_fields=merge_fields, merge_type=merge_type, merge_fracname=merge_fracname, rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -269,7 +269,7 @@ contains
                 ! Determine merge field name from source field
                 call merge_listGetName(merge_fields, nm, merge_field, rc)
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
-                
+
                 ! Initialize initial output field data to zero before doing merge
                 if (zero_output) then
                    if (ungriddedUBound_out(1) > 0) then
@@ -283,12 +283,12 @@ contains
                    end if
                    zero_output = .false.
                 end if
-                
+
                 ! Perform merge
                 call med_merge_auto_field(trim(merge_type), fieldlist(nfld_out), ungriddedUBound_out, &
                      FB=FBIn, FBFld=merge_field, FBw=FBfrac, fldw=trim(merge_fracname), rc=rc)
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
-                
+
              end do ! end of nm loop
           end if ! end of check of merge_type and merge_field not unset
        end if ! end of check if stdname and fldname are the same

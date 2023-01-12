@@ -560,9 +560,8 @@ contains
     deallocate(flds)
 
     ! to ocn: partitioned stokes drift from wav
-    allocate(flds(6))
-    flds = (/'Sw_ustokes1', 'Sw_ustokes2', 'Sw_ustokes3', &
-             'Sw_vstokes1', 'Sw_vstokes2', 'Sw_vstokes3'/)
+    allocate(flds(2))
+    flds = (/'Sw_pstokes_x', 'Sw_pstokes_y'/)
     do n = 1,size(flds)
        fldname = trim(flds(n))
        if (phase == 'advertise') then

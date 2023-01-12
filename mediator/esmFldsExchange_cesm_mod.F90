@@ -2305,7 +2305,7 @@ contains
        end if
     end if
     !-----------------------------
-    ! to ocn: Stokes drift depth from wave
+    ! to ocn: Partitioned stokes drift components in y-direction
     !-----------------------------
     if (phase == 'advertise') then
        call addfld_from(compwav, 'Sw_pstokes_y')

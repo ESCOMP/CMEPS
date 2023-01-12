@@ -183,7 +183,7 @@ contains
                    fldptr => fldptr%next
                 end do ! loop over fields
 
-                
+
              end if ! if coupling active
           end if ! if n1 not equal to n2
        end do ! loop over n2
@@ -664,7 +664,7 @@ contains
 
 !================================================================================
 
-  logical function med_map_RH_is_created_RH1d(RHs,mapindex,rc) 
+  logical function med_map_RH_is_created_RH1d(RHs,mapindex,rc)
 
     use ESMF                  , only : ESMF_RouteHandle, ESMF_RouteHandleIsCreated
     use med_internalstate_mod , only : mapconsd, mapconsf, mapnstod
