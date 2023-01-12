@@ -17,14 +17,14 @@ module med_utils_mod
 contains
 !===============================================================================
 
-  subroutine med_memcheck(string, level, mastertask)
+  subroutine med_memcheck(string, level, maintask)
     character(len=*), intent(in) :: string
     integer, intent(in) :: level
-    logical, intent(in) :: mastertask
+    logical, intent(in) :: maintask
 #ifdef CESMCOUPLED
     integer :: ierr
     integer, external :: GPTLprint_memusage
-    if((mastertask .and. memdebug_level > level) .or. memdebug_level > level+1) then
+    if((maintask .and. memdebug_level > level) .or. memdebug_level > level+1) then
        ierr = GPTLprint_memusage(string)
     endif
 #endif

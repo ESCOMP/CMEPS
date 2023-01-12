@@ -26,7 +26,7 @@ module med_phases_aofluxes_mod
   use ESMF                  , only : ESMF_Finalize, ESMF_LogFoundError
   use ESMF                  , only : ESMF_XGridGet, ESMF_MeshCreate, ESMF_MeshWrite, ESMF_KIND_R8
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
-  use med_internalstate_mod , only : InternalState, mastertask, logunit
+  use med_internalstate_mod , only : InternalState, maintask, logunit
   use med_internalstate_mod , only : compatm, compocn, coupling_mode, aoflux_code, mapconsd, mapconsf, mapfcopy
   use med_constants_mod     , only : dbug_flag    => med_constants_dbug_flag
   use med_utils_mod         , only : memcheck     => med_memcheck
@@ -198,7 +198,7 @@ contains
     call FB_init(is_local%wrap%FBMed_aoflux_a, is_local%wrap%flds_scalar_name, &
          STgeom=is_local%wrap%NStateImp(compatm), fieldnamelist=fldnames_aof_out, name='FBMed_aoflux_a', rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (mastertask) then
+    if (maintask) then
        write(logunit,*)
        write(logunit,'(a)') trim(subname)//' initialized FB FBMed_aoflux_a'
     end if
@@ -207,7 +207,7 @@ contains
     call FB_init(is_local%wrap%FBMed_aoflux_o, is_local%wrap%flds_scalar_name, &
          STgeom=is_local%wrap%NStateImp(compocn), fieldnamelist=fldnames_aof_out, name='FBMed_aoflux_o', rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (mastertask) then
+    if (maintask) then
        write(logunit,'(a)') trim(subname)//' initialized FB FBMed_aoflux_o'
        write(logunit,'(a)') trim(subname)//' following are the fields in FBMed_aoflux_o and FBMed_aoflux_a'
        do n = 1,fieldcount
@@ -220,7 +220,7 @@ contains
 
        ! Create the field bundle is_local%wrap%FBImp(compatm,compocn) if needed
        if (.not. ESMF_FieldBundleIsCreated(is_local%wrap%FBImp(compatm,compocn), rc=rc)) then
-          if (mastertask) then
+          if (maintask) then
              write(logunit,'(a)') trim(subname)//' creating field bundle FBImp(compatm,compocn)'
           end if
           call FB_init(is_local%wrap%FBImp(compatm,compocn), is_local%wrap%flds_scalar_name, &
@@ -228,14 +228,14 @@ contains
                name='FBImp'//trim(compname(compatm))//'_'//trim(compname(compocn)), rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
-       if (mastertask) then
+       if (maintask) then
           write(logunit,'(a)') trim(subname)//' initializing FB for '// &
                trim(compname(compatm))//'_'//trim(compname(compocn))
        end if
 
        ! Create the field bundle is_local%wrap%FBImp(compocn,compatm) if needed
        if (.not. ESMF_FieldBundleIsCreated(is_local%wrap%FBImp(compocn,compatm), rc=rc)) then
-          if (mastertask) then
+          if (maintask) then
              write(logunit,'(a)') trim(subname)//' creating field bundle FBImp(compocn,compatm)'
           end if
           call FB_init(is_local%wrap%FBImp(compocn,compatm), is_local%wrap%flds_scalar_name, &
@@ -243,7 +243,7 @@ contains
                name='FBImp'//trim(compname(compocn))//'_'//trim(compname(compatm)), rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
-       if (mastertask) then
+       if (maintask) then
           write(logunit,'(a)') trim(subname)//' initializing FB for '// &
                trim(compname(compocn))//'_'//trim(compname(compatm))
        end if
@@ -309,7 +309,7 @@ contains
        if (dbug_flag > 5) then
           call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
        endif
-       call memcheck(subname, 5, mastertask)
+       call memcheck(subname, 5, maintask)
 
        ! Calculate atm/ocn fluxes on the destination grid
        call med_aofluxes_update(gcomp, aoflux_in, aoflux_out, rc)
@@ -368,7 +368,7 @@ contains
       call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
     endif
     rc = ESMF_SUCCESS
-    call memcheck(subname, 5, mastertask)
+    call memcheck(subname, 5, maintask)
 
     call t_startf('MED:'//subname)
 
@@ -396,7 +396,7 @@ contains
        ocn_surface_flux_scheme = 0
     end if
 #ifdef CESMCOUPLED
-    if (mastertask) then
+    if (maintask) then
        write(logunit,*)
        write(logunit,'(a)') trim(subname)//' ocn_surface_flux_scheme is '//trim(cvalue)
     end if
@@ -1059,7 +1059,7 @@ contains
 #else
 #ifdef UFS_AOFLUX
      if (trim(aoflux_code) == 'ccpp') then
-       call flux_atmocn_ccpp(gcomp=gcomp, mastertask=mastertask, logunit=logunit, &
+       call flux_atmocn_ccpp(gcomp=gcomp, maintask=maintask, logunit=logunit, &
             nMax=aoflux_in%lsize, psfc=aoflux_in%psfc, &
             pbot=aoflux_in%pbot, tbot=aoflux_in%tbot, qbot=aoflux_in%shum, lwdn=aoflux_in%lwdn, &
             zbot=aoflux_in%zbot, garea=aoflux_in%garea, ubot=aoflux_in%ubot, usfc=aoflux_in%usfc, vbot=aoflux_in%vbot, &

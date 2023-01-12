@@ -9,7 +9,7 @@ module Ensemble_driver
 
   use shr_kind_mod  , only : cl=>shr_kind_cl, cs=>shr_kind_cs
   use shr_log_mod   , only : shr_log_setLogUnit
-  use esm_utils_mod , only : mastertask, logunit, chkerr
+  use esm_utils_mod , only : maintask, logunit, chkerr
 
   implicit none
   private
@@ -79,17 +79,17 @@ contains
     use ESMF          , only : ESMF_CalendarSetDefault
     use ESMF          , only : ESMF_CALKIND_NOLEAP, ESMF_CALKIND_GREGORIAN
     use NUOPC         , only : NUOPC_CompAttributeGet, NUOPC_CompAttributeSet, NUOPC_CompAttributeAdd
-    use NUOPC_Driver  , only : NUOPC_DriverAddComp
+    use NUOPC_Driver  , only : NUOPC_DriverAddComp, NUOPC_DriverGetComp
     use esm           , only : ESMSetServices => SetServices, ReadAttributes
     use esm_time_mod  , only : esm_time_clockInit
-
+    use perf_mod      , only : t_startf, t_stopf, t_initf
     ! input/output variables
     type(ESMF_GridComp)    :: ensemble_driver
     integer, intent(out)   :: rc
 
     ! local variables
     type(ESMF_VM)          :: vm
-    type(ESMF_GridComp)    :: driver, gridcomptmp
+    type(ESMF_GridComp)    :: driver
     type(ESMF_Config)      :: config
     integer                :: n
     integer, pointer       :: petList(:)
@@ -102,6 +102,7 @@ contains
     integer                :: inst
     integer                :: number_of_members
     integer                :: ntasks_per_member
+    integer                :: Global_Comm
     character(CL)          :: start_type     ! Type of startup
     character(len=7)       :: drvrinst
     character(len=5)       :: inst_suffix
@@ -116,9 +117,20 @@ contains
 
     rc = ESMF_SUCCESS
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
-
     call ESMF_GridCompGet(ensemble_driver, config=config, vm=vm, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    call ESMF_VMGet(vm, localPet=localPet, mpiCommunicator=global_comm, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    if (localPet == 0) then
+       maintask=.true.
+    else
+       maintask = .false.
+    end if
+
+    call t_initf('drv_in', LogPrint=.true., LogUnit=logunit, mpicom=global_comm, mastertask=maintask)
+    call t_startf(subname)
 
     !-------------------------------------------
     ! Initialize clocks
@@ -200,23 +212,32 @@ contains
     !-------------------------------------------
 
     allocate(petList(ntasks_per_member))
-    ! which driver instance is this?
-    inst = localPet/ntasks_per_member + 1
+    ! We need to loop over instances
+    call t_startf('compute_drivers')
+    do inst = 1, number_of_members
 
-    ! Determine pet list for driver instance
+       ! Determine pet list for driver instance
+       petList(1) = (inst-1) * ntasks_per_member
+       do n=2,ntasks_per_member
+          petList(n) = petList(n-1) + 1
+       enddo
+
+       ! Add driver instance to ensemble driver
+       write(drvrinst,'(a,i4.4)') "ESM",inst
+       call NUOPC_DriverAddComp(ensemble_driver, drvrinst, ESMSetServices, petList=petList, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+    enddo
+    call t_stopf('compute_drivers')
+
+    inst = localPet/ntasks_per_member + 1
     petList(1) = (inst-1) * ntasks_per_member
     do n=2,ntasks_per_member
        petList(n) = petList(n-1) + 1
     enddo
-
-    ! Add driver instance to ensemble driver
-    write(drvrinst,'(a,i4.4)') "ESM",inst
-    call NUOPC_DriverAddComp(ensemble_driver, drvrinst, ESMSetServices, petList=petList, comp=gridcomptmp, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
     if (localpet >= petlist(1) .and. localpet <= petlist(ntasks_per_member)) then
-
-       driver = gridcomptmp
+       write(drvrinst,'(a,i4.4)') "ESM",inst
+       call NUOPC_DriverGetComp(ensemble_driver, drvrinst, comp=driver, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        if(number_of_members > 1) then
           call NUOPC_CompAttributeAdd(driver, attrList=(/'inst_suffix'/), rc=rc)
@@ -250,20 +271,21 @@ contains
           call NUOPC_CompAttributeGet(driver, name="logfile", value=logfile, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           open (newunit=logunit,file=trim(diro)//"/"//trim(logfile))
-          mastertask = .true.
+          maintask = .true.
        else
           logUnit = 6
-          mastertask = .false.
+          maintask = .false.
        endif
        call shr_log_setLogUnit (logunit)
 
        ! Create a clock for each driver instance
-       call esm_time_clockInit(ensemble_driver, driver, logunit, mastertask, rc)
+       call esm_time_clockInit(ensemble_driver, driver, logunit, maintask, rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     endif
 
     deallocate(petList)
+    call t_stopf(subname)
 
     call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
 

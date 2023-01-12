@@ -9,8 +9,7 @@ module ESM
   use shr_mpi_mod  , only : shr_mpi_bcast
   use shr_mem_mod  , only : shr_mem_init
   use shr_log_mod  , only : shr_log_setLogunit
-  use esm_utils_mod, only : logunit, mastertask, dbug_flag, chkerr
-  use perf_mod     , only : t_initf, t_setLogUnit
+  use esm_utils_mod, only : logunit, maintask, dbug_flag, chkerr
 
   implicit none
   private
@@ -151,12 +150,10 @@ contains
     call ESMF_VMGet(vm, localPet=localPet, mpiCommunicator=global_comm, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    call ESMF_VMGet(vm, localPet=localPet, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
     if (localPet == 0) then
-       mastertask=.true.
+       maintask=.true.
     else
-       mastertask = .false.
+       maintask = .false.
     end if
 
     !-------------------------------------------
@@ -206,15 +203,10 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! Memory test
-    if (mastertask) then
+    if (maintask) then
        call shr_mem_init(strbuf=meminitstr)
        write(logunit,*) trim(meminitstr)
     end if
-
-    !-------------------------------------------
-    ! Timer initialization (has to be after pelayouts are determined)
-    !-------------------------------------------
-    call t_initf('drv_in', LogPrint=.true., LogUnit=logunit, mpicom=global_comm, mastertask=mastertask, MaxThreads=maxthreads)
 
     call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
 
@@ -301,7 +293,7 @@ contains
 
     rc = ESMF_SUCCESS
 
-    if (mastertask .or. dbug_flag > 3) then
+    if (maintask .or. dbug_flag > 3) then
        write(logunit, *) 'BEGIN: ', trim(label)
        call NUOPC_FreeFormatGet(ffstuff, linecount=linecnt, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -467,7 +459,7 @@ contains
     call NUOPC_CompAttributeGet(driver, name="tfreeze_option", value=tfreeze_option, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    call shr_frz_freezetemp_init(tfreeze_option, mastertask)
+    call shr_frz_freezetemp_init(tfreeze_option, maintask)
 
     call NUOPC_CompAttributeGet(driver, name='cpl_rootpe', value=cvalue, rc=rc)
     read(cvalue, *) rootpe_med
@@ -636,7 +628,7 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     !------
-    ! Add driver restart flag a to gcomp attributes
+    ! Add driver restart flag to gcomp attributes
     !------
     attribute = 'read_restart'
     call NUOPC_CompAttributeGet(driver, name=trim(attribute), value=cvalue, rc=rc)
@@ -1519,7 +1511,7 @@ contains
 
     rc = ESMF_SUCCESS
 
-    if (mastertask) then
+    if (maintask) then
        write(logunit,*)' SUCCESSFUL TERMINATION OF CESM'
     end if
 
