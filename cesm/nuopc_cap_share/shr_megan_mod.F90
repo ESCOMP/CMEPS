@@ -5,9 +5,9 @@ module shr_megan_mod
   ! MEGAN = Model of Emissions of Gases and Aerosols from Nature
   !
   ! This reads the megan_emis_nl namelist in drv_flds_in and makes the relavent
-  ! information available to CAM, CLM, and driver. 
-  ! - The driver sets up CLM to CAM communication for the  VOC flux fields. 
-  ! - CLM needs to know what specific VOC fluxes need to be passed to the coupler 
+  ! information available to CAM, CLM, and driver.
+  ! - The driver sets up CLM to CAM communication for the  VOC flux fields.
+  ! - CLM needs to know what specific VOC fluxes need to be passed to the coupler
   !   and how to assemble the fluxes.
   ! - CAM needs to know what specific VOC fluxes to expect from CLM.
   !================================================================================
@@ -20,7 +20,7 @@ module shr_megan_mod
   use shr_mpi_mod         , only : shr_mpi_bcast
   use shr_nl_mod          , only : shr_nl_find_group_name
   use shr_expr_parser_mod , only : shr_exp_parse, shr_exp_item_t, shr_exp_list_destroy
-  
+
   implicit none
   private
 
@@ -100,7 +100,8 @@ contains
     ! Example:
     ! &megan_emis_nl
     !  megan_specifier = 'ISOP = isoprene',
-    !     'C10H16 = myrcene + sabinene + limonene + carene_3 + ocimene_t_b + pinene_b + ...',
+    !     'C10H16 = myrcene + sabinene + limonene + carene_3 + ocimene_t_b + pinene_b + ',
+    !     ' thujene_a + bornene + 0.5*(terpineol_4 + terpineol_a + terpinyl_ACT_a + myrtenal) + ...',
     !     'CH3OH = methanol',
     !     'C2H5OH = ethanol',
     !     'CH2O = formaldehyde',
@@ -109,7 +110,7 @@ contains
     !  megan_factors_file = '$datapath/megan_emis_factors.nc'
     ! /
     !-------------------------------------------------------------------------
-    
+
     ! input/output variables
     character(len=*), intent(in)  :: NLFileName
     integer,          intent(out) :: megan_nflds
@@ -121,8 +122,8 @@ contains
     integer             :: unitn            ! namelist unit number
     integer             :: ierr             ! error code
     logical             :: exists           ! if file exists or not
-    integer, parameter  :: maxspc = 100
-    character(len=2*CX) :: megan_specifier(maxspc) = ' '
+    integer, parameter  :: maxspc = 200
+    character(len=CX)   :: megan_specifier(maxspc) = ' '
     logical             :: megan_mapped_emisfctrs = .false.
     character(len=CL)   :: megan_factors_file = ' '
     integer             :: rc
@@ -140,12 +141,12 @@ contains
     end if
 
     call ESMF_VMGetCurrent(vm, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=__FILE__)) return 
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=__FILE__)) return
 
     call ESMF_VMGet(vm, localPet=localPet, mpiCommunicator=mpicom, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=__FILE__)) return 
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=__FILE__)) return
     call shr_log_getLogUnit(logunit)
-    ! Note the following still needs to be called on all processors since the mpi_bcast is a collective 
+    ! Note the following still needs to be called on all processors since the mpi_bcast is a collective
     ! call on all the pes of mpicom
     if (localPet==0) then
        inquire( file=trim(NLFileName), exist=exists)
