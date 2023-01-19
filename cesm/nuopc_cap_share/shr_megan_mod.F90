@@ -13,8 +13,8 @@ module shr_megan_mod
   !================================================================================
 
   use ESMF                , only : ESMF_VMGetCurrent, ESMF_VM, ESMF_VMGet
-  use ESMF                , only : ESMF_LogFoundError, ESMF_LOGERR_PASSTHRU, ESMF_SUCCESS
-  use shr_kind_mod        , only : r8 => shr_kind_r8, cl=>shr_kind_cl, cx=>shr_kind_cx, cs=>shr_kind_cs
+  use ESMF                , only : ESMF_LogFoundError, ESMF_LOGERR_PASSTHRU
+  use shr_kind_mod        , only : r8 => shr_kind_r8, cl=>shr_kind_cl, cx=>shr_kind_cx
   use shr_sys_mod         , only : shr_sys_abort
   use shr_log_mod         , only : shr_log_getLogUnit
   use shr_mpi_mod         , only : shr_mpi_bcast
@@ -129,7 +129,6 @@ contains
     logical             :: megan_mapped_emisfctrs = .false.
     character(len=CL)   :: megan_factors_file = ' '
     integer             :: rc
-    integer             :: i, tmp(1)
     character(*), parameter :: F00   = "('(shr_megan_readnl) ',2a)"
     character(len=*), parameter :: subname='(shr_megan_readnl)'
     !--------------------------------------------------------------
