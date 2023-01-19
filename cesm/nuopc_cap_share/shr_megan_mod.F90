@@ -68,6 +68,9 @@ module shr_megan_mod
   ! switch to use mapped emission factors
   logical :: shr_megan_mapped_emisfctrs = .false.
 
+  integer :: localPet = -huge(1)
+  integer :: logunit = -huge(1)
+
 !--------------------------------------------------------
 contains
 !--------------------------------------------------------
@@ -117,7 +120,6 @@ contains
 
     ! local variables
     type(ESMF_VM)       :: vm
-    integer             :: localPet
     integer             :: mpicom
     integer             :: unitn            ! namelist unit number
     integer             :: ierr             ! error code
@@ -127,7 +129,6 @@ contains
     logical             :: megan_mapped_emisfctrs = .false.
     character(len=CL)   :: megan_factors_file = ' '
     integer             :: rc
-    integer             :: logunit
     integer             :: i, tmp(1)
     character(*), parameter :: F00   = "('(shr_megan_readnl) ',2a)"
     character(len=*), parameter :: subname='(shr_megan_readnl)'
@@ -205,6 +206,8 @@ contains
     allocate(shr_megan_mechcomps(n_entries))
     shr_megan_mechcomps(:)%n_megan_comps = 0
 
+    if (localPet==0) write(logunit,*) 'MEGAN entries:'
+
     item => items_list
     i = 1
     do while(associated(item))
@@ -222,7 +225,9 @@ contains
        shr_megan_mechcomps(i)%n_megan_comps = item%n_terms
        allocate(shr_megan_mechcomps(i)%megan_comps(item%n_terms))
 
+       if (localPet==0) write(logunit,*) ' species : ', item%name
        do j = 1,item%n_terms
+          if (localPet==0) write(logunit,'(f12.4,a,a)')  item%coeffs(j),' * ', item%vars(j)
           shr_megan_mechcomps(i)%megan_comps(j)%ptr => add_megan_comp( item%vars(j), item%coeffs(j) )
        enddo
        shr_megan_mechcomps_n = shr_megan_mechcomps_n+1
