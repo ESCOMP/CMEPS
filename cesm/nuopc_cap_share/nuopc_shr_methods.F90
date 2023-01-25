@@ -130,9 +130,8 @@ contains
   end subroutine get_component_instance
 
 !===============================================================================
-
+  subroutine set_component_logging(gcomp, maintask, logunit, shrlogunit, rc)
     use NUOPC, only: NUOPC_CompAttributeSet, NUOPC_CompAttributeAdd  
-    use driver_pio_mod, only : driver_pio_log_comp_settings
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
     logical, intent(in)  :: maintask
@@ -145,7 +144,7 @@ contains
     character(len=CL) :: logfile
     character(len=CL) :: inst_suffix
     integer :: inst_index ! Not used here
-    integer :: i
+    integer :: n
     character(len=CL) :: name
     character(len=*), parameter :: subname = "("//__FILE__//": set_component_logging)"   
     !-----------------------------------------------------------------------

@@ -155,7 +155,7 @@ contains
     read(cvalue,*) wav_cpl_dt
 
     dtime_drv = minval((/atm_cpl_dt, lnd_cpl_dt, ocn_cpl_dt, ice_cpl_dt, glc_cpl_dt, rof_cpl_dt, wav_cpl_dt/))
-    if(mastertask) then
+    if(maintask) then
        write(tmpstr,'(i10)') dtime_drv
        call ESMF_LogWrite(trim(subname)//': driver time interval is : '// trim(tmpstr), ESMF_LOGMSG_INFO, rc=rc)
        write(logunit,*)   trim(subname)//': driver time interval is : '// trim(tmpstr)
@@ -193,7 +193,7 @@ contains
 
              restart_pfile = trim(restart_file)//inst_suffix
 
-             if (mastertask) then
+             if (maintask) then
                 call ESMF_LogWrite(trim(subname)//" read rpointer file = "//trim(restart_pfile), &
                      ESMF_LOGMSG_INFO)
                 open(newunit=unitn, file=restart_pfile, form='FORMATTED', status='old',iostat=ierr)
@@ -211,27 +211,27 @@ contains
                    return
                 end if
                 close(unitn)
-                if (mastertask) then
+                if (maintask) then
                    write(logunit,'(a)') trim(subname)//" reading driver restart from file = "//trim(restart_file)
                 end if
                 call esm_time_read_restart(restart_file, start_ymd, start_tod, curr_ymd, curr_tod, rc)
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
-                
              endif
           else
-
-       
-          if (maintask) then
-             write(logunit,*) ' NOTE: the current compset has no mediator - which provides the clock restart information'
-             write(logunit,*) '   In this case the restarts are handled solely by the component being used and'
-             write(logunit,*) '   and the driver clock will always be starting from the initial date on restart'
-          end if
+             if(maintask) then
+                write(logunit,*) ' NOTE: the current compset has no mediator - which provides the clock restart information'
+                write(logunit,*) '   In this case the restarts are handled solely by the component being used and'
+                write(logunit,*) '   and the driver clock will always be starting from the initial date on restart'
+             end if
+             curr_ymd = start_ymd
+             curr_tod = start_tod
+          endif
+       else
           curr_ymd = start_ymd
-          curr_tod = start_tod
-
+          curr_tod = start_tod                                            
        end if ! end if read_restart
     endif
-    if(mastertask) then
+    if(maintask) then
        bcastID(1) = myid
        tmp(1) = start_ymd ; tmp(2) = start_tod
        tmp(3) = curr_ymd  ; tmp(4) = curr_tod
@@ -282,48 +282,7 @@ contains
     call ESMF_TimeSet( RefTime, yy=yr, mm=mon, dd=day, s=ref_tod, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    !---------------------------------------------------------------------------
-    ! Determine driver clock timestep
-    !---------------------------------------------------------------------------
 
-    call NUOPC_CompAttributeGet(instance_driver, name="atm_cpl_dt", value=cvalue, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) atm_cpl_dt
-
-    call NUOPC_CompAttributeGet(instance_driver, name="lnd_cpl_dt", value=cvalue, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) lnd_cpl_dt
-
-    call NUOPC_CompAttributeGet(instance_driver, name="ice_cpl_dt", value=cvalue, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) ice_cpl_dt
-
-    call NUOPC_CompAttributeGet(instance_driver, name="ocn_cpl_dt", value=cvalue, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) ocn_cpl_dt
-
-    call NUOPC_CompAttributeGet(instance_driver, name="glc_cpl_dt", value=cvalue, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) glc_cpl_dt
-
-    call NUOPC_CompAttributeGet(instance_driver, name="rof_cpl_dt", value=cvalue, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) rof_cpl_dt
-
-    call NUOPC_CompAttributeGet(instance_driver, name="wav_cpl_dt", value=cvalue, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) wav_cpl_dt
-
-    call NUOPC_CompAttributeGet(instance_driver, name="glc_avg_period", value=glc_avg_period, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) glc_avg_period
-
-    dtime_drv = minval((/atm_cpl_dt, lnd_cpl_dt, ocn_cpl_dt, ice_cpl_dt, glc_cpl_dt, rof_cpl_dt, wav_cpl_dt/))
-    if(maintask) then
-       write(tmpstr,'(i10)') dtime_drv
-       call ESMF_LogWrite(trim(subname)//': driver time interval is : '// trim(tmpstr), ESMF_LOGMSG_INFO, rc=rc)
-       write(logunit,*)   trim(subname)//': driver time interval is : '// trim(tmpstr)
-    endif
     call ESMF_TimeIntervalSet( TimeStep, s=dtime_drv, rc=rc )
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 

@@ -328,7 +328,7 @@ contains
     write(msgstr, *) ": driver added on PETS ",petlist(1),' to ',petlist(petcnt-1)
     call ESMF_LogWrite(trim(subname)//msgstr)
 
-    mastertask = .false.
+    maintask = .false.
     if (comp_task) then
        if(number_of_members > 1) then
           call NUOPC_CompAttributeAdd(driver, attrList=(/'inst_suffix'/), rc=rc)
@@ -370,7 +370,7 @@ contains
        call shr_log_setLogUnit (logunit)
     endif
     ! Create a clock for each driver instance
-    call esm_time_clockInit(ensemble_driver, driver, logunit, mastertask, rc)
+    call esm_time_clockInit(ensemble_driver, driver, logunit, maintask, rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     deallocate(petList)

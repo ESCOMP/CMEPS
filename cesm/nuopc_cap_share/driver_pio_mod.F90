@@ -85,7 +85,7 @@ contains
 
     ! 0 is a valid value of pio_buffer_size_limit
     if(pio_buffer_size_limit>=0) then
-       if(maintask) write(shr_log_unit,*) 'Setting pio_buffer_size_limit : ',pio_buffer_size_limit
+       if(maintask) write(logunit,*) 'Setting pio_buffer_size_limit : ',pio_buffer_size_limit
        call pio_set_buffer_size_limit(pio_buffer_size_limit)
     endif
 
@@ -94,7 +94,7 @@ contains
     read(cname, *) pio_blocksize
     
     if(pio_blocksize>0) then
-       if(maintask) write(shr_log_unit,*) 'Setting pio_blocksize : ',pio_blocksize
+       if(maintask) write(logunit,*) 'Setting pio_blocksize : ',pio_blocksize
        call pio_set_blocksize(pio_blocksize)
     endif
 
@@ -103,7 +103,7 @@ contains
     read(cname, *) pio_debug_level
 
     if(pio_debug_level > 0) then
-       if(maintask) write(shr_log_unit,*) 'Setting pio_debug_level : ',pio_debug_level
+       if(maintask) write(logunit,*) 'Setting pio_debug_level : ',pio_debug_level
        ret = pio_set_log_level(pio_debug_level)
     endif
        
@@ -125,22 +125,22 @@ contains
     call NUOPC_CompAttributeGet(driver, name="pio_rearr_comm_enable_hs_comp2io", value=cname, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    pio_rearr_opts%comm_fc_opts_comp2io%enable_hs = (trim(cname) .eq. '.true.')
+    pio_rearr_opts%comm_fc_opts_comp2io%enable_hs = logical((trim(cname) .eq. '.true.'), kind=1)
 
     call NUOPC_CompAttributeGet(driver, name="pio_rearr_comm_enable_hs_io2comp", value=cname, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    pio_rearr_opts%comm_fc_opts_io2comp%enable_hs = (trim(cname) .eq. '.true.')
+    pio_rearr_opts%comm_fc_opts_io2comp%enable_hs = logical((trim(cname) .eq. '.true.'), kind=1)
 
     call NUOPC_CompAttributeGet(driver, name="pio_rearr_comm_enable_isend_comp2io", value=cname, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    pio_rearr_opts%comm_fc_opts_comp2io%enable_isend = (trim(cname) .eq. '.true.')
+    pio_rearr_opts%comm_fc_opts_comp2io%enable_isend = logical((trim(cname) .eq. '.true.'), kind=1)
 
     call NUOPC_CompAttributeGet(driver, name="pio_rearr_comm_enable_isend_io2comp", value=cname, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    pio_rearr_opts%comm_fc_opts_io2comp%enable_isend = (trim(cname) .eq. '.true.')
+    pio_rearr_opts%comm_fc_opts_io2comp%enable_isend = logical((trim(cname) .eq. '.true.'), kind=1)
 
     call NUOPC_CompAttributeGet(driver, name="pio_rearr_comm_max_pend_req_comp2io", value=cname, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return

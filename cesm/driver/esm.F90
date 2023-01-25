@@ -1529,7 +1529,7 @@ contains
     endif
     call t_prf(trim(timing_dir)//'/model_timing'//trim(inst_suffix), mpicom=mpicomm)
 
-    if (mastertask) then
+    if (maintask) then
        write(logunit,*)' SUCCESSFUL TERMINATION OF CESM'
     end if
     call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
