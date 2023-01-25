@@ -25,7 +25,7 @@ module flux_atmocn_ccpp_mod
   use med_kind_mod,    only : CL=>SHR_KIND_CL
   use med_utils_mod,   only : chkerr => med_utils_chkerr
   use med_internalstate_mod, only : aoflux_ccpp_suite, logunit
-  use med_internalstate_mod, only : InternalState, mastertask
+  use med_internalstate_mod, only : InternalState, maintask
   use med_constants_mod,     only : dbug_flag => med_constants_dbug_flag
 
   implicit none
@@ -52,7 +52,7 @@ module flux_atmocn_ccpp_mod
 contains
 !===============================================================================
 
-  subroutine flux_atmOcn_ccpp(gcomp, mastertask, logunit, nMax, mask, psfc, pbot, &
+  subroutine flux_atmOcn_ccpp(gcomp, maintask, logunit, nMax, mask, psfc, pbot, &
              tbot, qbot, zbot, garea, ubot, usfc, vbot, vsfc, rbot, ts, lwdn, sen, lat, &
              lwup, evp, taux, tauy, tref, qref, duu10n, ustar_sv, re_sv, ssq_sv, missval)
 
@@ -60,7 +60,7 @@ contains
 
     !--- input arguments --------------------------------
     type(ESMF_GridComp), intent(in)    :: gcomp       ! gridded component
-    logical , intent(in)  :: mastertask  ! master task
+    logical , intent(in)  :: maintask  ! main task
     integer , intent(in)  :: logunit     ! log file unit number
     integer , intent(in)  :: nMax        ! data vector length
     integer , intent(in)  :: mask (nMax) ! ocn domain mask
@@ -301,7 +301,7 @@ contains
           if (trim(cvalue) .eq. '.true.' .or. trim(cvalue) .eq. 'true') ini_read = .true.
        end if
 
-       if (mastertask) then
+       if (maintask) then
           write(logunit,*) '========================================================'
           write(logunit,'(a,f5.2)') trim(subname)//' ccpp_phy_semis_water  = ', semis_water
           write(logunit,'(a,l)')    trim(subname)//' ccpp_phy_lseaspray    = ', physics%model%lseaspray
@@ -361,7 +361,7 @@ contains
 
     ! set counter
     physics%model%kdt = ((currTime-StartTime)/timeStep)+1
-    if (mastertask .and. dbug_flag > 5) then
+    if (maintask .and. dbug_flag > 5) then
        write(logunit,'(a,i5)') 'kdt = ', physics%model%kdt
     end if
 

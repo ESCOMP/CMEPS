@@ -75,12 +75,12 @@ module nuopc_shr_methods
 contains
 !===============================================================================
 
-  subroutine memcheck(string, level, mastertask)
+  subroutine memcheck(string, level, maintask)
 
     ! input/output variables
     character(len=*) , intent(in) :: string
     integer          , intent(in) :: level
-    logical          , intent(in) :: mastertask
+    logical          , intent(in) :: maintask
 
     ! local variables
     integer :: ierr
@@ -90,7 +90,7 @@ contains
     !-----------------------------------------------------------------------
 
 #ifdef CESMCOUPLED
-    if ((mastertask .and. memdebug_level > level) .or. memdebug_level > level+1) then
+    if ((maintask .and. memdebug_level > level) .or. memdebug_level > level+1) then
        ierr = GPTLprint_memusage(string)
     endif
 #endif
@@ -131,11 +131,11 @@ contains
 
 !===============================================================================
 
-  subroutine set_component_logging(gcomp, mastertask, logunit, shrlogunit, rc)
-    use NUOPC, only: NUOPC_CompAttributeSet, NUOPC_CompAttributeAdd
+    use NUOPC, only: NUOPC_CompAttributeSet, NUOPC_CompAttributeAdd  
+    use driver_pio_mod, only : driver_pio_log_comp_settings
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
-    logical, intent(in)  :: mastertask
+    logical, intent(in)  :: maintask
     integer, intent(out) :: logunit
     integer, intent(out) :: shrlogunit
     integer, intent(out) :: rc
@@ -147,12 +147,12 @@ contains
     integer :: inst_index ! Not used here
     integer :: i
     character(len=CL) :: name
-    character(len=*), parameter :: subname = "("//__FILE__//": set_component_logging)"    
+    character(len=*), parameter :: subname = "("//__FILE__//": set_component_logging)"   
     !-----------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
 
-    if (mastertask) then
+    if (maintask) then
        call NUOPC_CompAttributeGet(gcomp, name="diro", value=diro, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        call NUOPC_CompAttributeGet(gcomp, name="logfile", value=logfile, rc=rc)
@@ -161,8 +161,8 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        ! Multiinstance logfile name needs a correction
        if(len_trim(inst_suffix) > 0) then
-          i = index(logfile, ".log")
-          logfile = logfile(1:i-1)//trim(inst_suffix)//logfile(i:)
+          n = index(logfile, '.')
+          logfile = logfile(1:n-1)//trim(inst_suffix)//logfile(n:)
        endif
 
        open(newunit=logunit,file=trim(diro)//"/"//trim(logfile))

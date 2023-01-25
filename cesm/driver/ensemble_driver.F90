@@ -9,7 +9,8 @@ module Ensemble_driver
 
   use shr_kind_mod  , only : cl=>shr_kind_cl, cs=>shr_kind_cs
   use shr_log_mod   , only : shr_log_setLogUnit
-  use esm_utils_mod , only : mastertask, logunit, chkerr
+  use esm_utils_mod , only : maintask, logunit, chkerr
+
   implicit none
   private
 
@@ -116,10 +117,10 @@ contains
     use ESMF          , only : ESMF_CalendarSetDefault
     use ESMF          , only : ESMF_CALKIND_NOLEAP, ESMF_CALKIND_GREGORIAN
     use NUOPC         , only : NUOPC_CompAttributeGet, NUOPC_CompAttributeSet, NUOPC_CompAttributeAdd
-    use NUOPC_Driver  , only : NUOPC_DriverAddComp
+    use NUOPC_Driver  , only : NUOPC_DriverAddComp, NUOPC_DriverGetComp
     use esm           , only : ESMSetServices => SetServices, ReadAttributes
     use esm_time_mod  , only : esm_time_clockInit
-
+    use perf_mod      , only : t_startf, t_stopf, t_initf
     ! input/output variables
     type(ESMF_GridComp)    :: ensemble_driver
     integer, intent(out)   :: rc
@@ -128,7 +129,7 @@ contains
     type(ESMF_VM)          :: vm
     type(ESMF_GridComp)    :: driver
     type(ESMF_Config)      :: config
-    integer                :: n, n1
+    integer                :: n
     integer, pointer       :: petList(:)
     integer                :: petCount
     integer                :: localPet
@@ -143,6 +144,7 @@ contains
     integer                :: pio_asyncio_ntasks
     integer                :: pio_asyncio_stride
     integer                :: pio_asyncio_rootpe
+    integer                :: Global_Comm
     character(CL)          :: start_type     ! Type of startup
     character(len=7)       :: drvrinst
     character(len=5)       :: inst_suffix
@@ -157,9 +159,20 @@ contains
 
     rc = ESMF_SUCCESS
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
-
     call ESMF_GridCompGet(ensemble_driver, config=config, vm=vm, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    call ESMF_VMGet(vm, localPet=localPet, mpiCommunicator=global_comm, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    if (localPet == 0) then
+       maintask=.true.
+    else
+       maintask = .false.
+    end if
+
+    call t_initf('drv_in', LogPrint=.true., LogUnit=logunit, mpicom=global_comm, mastertask=maintask)
+    call t_startf(subname)
 
     !-------------------------------------------
     ! Initialize clocks
@@ -317,7 +330,6 @@ contains
 
     mastertask = .false.
     if (comp_task) then
-
        if(number_of_members > 1) then
           call NUOPC_CompAttributeAdd(driver, attrList=(/'inst_suffix'/), rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -351,7 +363,7 @@ contains
           call NUOPC_CompAttributeGet(driver, name="logfile", value=logfile, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           open (newunit=logunit,file=trim(diro)//"/"//trim(logfile))
-          mastertask = .true.
+          maintask = .true.
        else
           logUnit = 6
        endif
@@ -362,6 +374,7 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     deallocate(petList)
+    call t_stopf(subname)
 
     call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
 
