@@ -237,6 +237,7 @@ contains
 
     rc = ESMF_SUCCESS
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
+    call shr_log_setLogunit(logunit)
 
     !--------
     ! Run Sequence and Connectors
@@ -335,6 +336,7 @@ contains
 
     rc = ESMF_SUCCESS
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
+    call shr_log_setLogunit(logunit)
 
     call ESMF_LogWrite("Driver is in ModifyCplLists()", ESMF_LOGMSG_INFO, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -430,6 +432,7 @@ contains
 
     rc = ESMF_SUCCESS
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
+    call shr_log_setLogunit(logunit)
 
     !----------------------------------------------------------
     ! Initialize options for reproducible sums
@@ -617,6 +620,7 @@ contains
 
     rc = ESMF_Success
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
+    call shr_log_setLogunit(logunit)
 
     !------
     ! Add compid to gcomp attributes
@@ -718,6 +722,7 @@ contains
     !-------------------------------------------
 
     rc = ESMF_SUCCESS
+    call shr_log_setLogunit(logunit)
 
     if (present(relaxedflag)) then
        attrFF = NUOPC_FreeFormatCreate(config, label=trim(label), relaxedflag=.true., rc=rc)
@@ -785,7 +790,6 @@ contains
     use mpi          , only : MPI_COMM_NULL, mpi_comm_size
 #endif
     use mct_mod      , only : mct_world_init
-    use driver_pio_mod , only : driver_pio_init, driver_pio_component_init
 
 #ifdef MED_PRESENT
     use med_internalstate_mod , only : med_id
@@ -870,6 +874,7 @@ contains
     integer :: rank, nprocs, ierr
     character(len=*), parameter    :: subname = "(esm_pelayout.F90:esm_init_pelayout)"
     !---------------------------------------
+    call shr_log_setLogunit(logunit)
 
     rc = ESMF_SUCCESS
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
@@ -908,11 +913,6 @@ contains
        inst_suffix = ""
     endif
 
-    ! Initialize PIO
-    ! This reads in the pio parameters that are independent of component
-    call driver_pio_init(driver, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
     allocate(comms(componentCount+1), comps(componentCount+1))
     comps(1) = 1
     comms = MPI_COMM_NULL
@@ -937,7 +937,7 @@ contains
        read(cvalue,*) ntasks
 
        if (ntasks < 0 .or. ntasks > PetCount) then
-          write (msgstr, *) "Invalid NTASKS value specified for component: ",namestr, ' ntasks: ',ntasks
+          write (msgstr, *) "Invalid NTASKS value specified for component: ",namestr, ' ntasks: ',ntasks, petcount
           call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
           return
        endif
@@ -1156,12 +1156,7 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     enddo
-    ! Read in component dependent PIO parameters and initialize
-    ! IO systems
-    call driver_pio_component_init(driver, size(comps), rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    ! Initialize MCT (this is needed for data models and cice prescribed capability)
     call mct_world_init(componentCount+1, GLOBAL_COMM, comms, comps)
 
 
@@ -1232,7 +1227,9 @@ contains
     !-------------------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
+    call shr_log_setLogunit(logunit)
     scol_mesh_n = 0
+
     ! obtain the single column lon and lat
     call NUOPC_CompAttributeGet(gcomp, name='scol_lon', value=cvalue, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -1392,11 +1389,12 @@ contains
           allocate(lonMesh(lsize), latMesh(lsize))
           call ESMF_MeshGet(mesh, ownedElemCoords=ownedElemCoords)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+          scol_mesh_n = 0
           do n = 1,lsize
              lonMesh(n) = ownedElemCoords(2*n-1)
              latMesh(n) = ownedElemCoords(2*n)
              if (abs(lonMesh(n) - scol_lon) < 1.e-4 .and. abs(latMesh(n) - scol_lat) < 1.e-4) then
-                scol_mesh_n = n
                 scol_mesh_n = n
                 exit
              end if
@@ -1493,7 +1491,7 @@ contains
   subroutine esm_finalize(driver, rc)
 
     use ESMF     , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_VM, ESMF_VMGet
-    use ESMF     , only : ESMF_SUCCESS
+    use ESMF     , only : ESMF_SUCCESS, ESMF_LOGMSG_INFO, ESMF_LOGWRITE
     use NUOPC    , only : NUOPC_CompAttributeGet
     use perf_mod , only : t_prf, t_finalizef
 
@@ -1507,14 +1505,12 @@ contains
     logical              :: isPresent
     type(ESMF_VM)        :: vm
     integer              :: mpicomm
+    character(len=*), parameter :: subname = '(esm_finalize) '
     !---------------------------------------
 
+    call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
     rc = ESMF_SUCCESS
-
-    if (maintask) then
-       write(logunit,*)' SUCCESSFUL TERMINATION OF CESM'
-    end if
-
+    call shr_log_setLogunit(logunit)
     call ESMF_GridCompGet(driver, vm=vm, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call ESMF_VMGet(vm, mpiCommunicator=mpicomm, rc=rc)
@@ -1532,6 +1528,11 @@ contains
        inst_suffix = ""
     endif
     call t_prf(trim(timing_dir)//'/model_timing'//trim(inst_suffix), mpicom=mpicomm)
+
+    if (maintask) then
+       write(logunit,*)' SUCCESSFUL TERMINATION OF CESM'
+    end if
+    call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
 
     call t_finalizef()
   end subroutine esm_finalize

@@ -16,7 +16,13 @@ module Ensemble_driver
 
   public  :: SetServices
   private :: SetModelServices
+  private :: ensemble_finalize
 
+  integer, allocatable :: asyncio_petlist(:)
+  logical :: asyncio_task=.false.
+  logical :: asyncIO_available=.false.
+  integer :: number_of_members
+  integer :: inst  ! ensemble instance containing this task
   character(*),parameter :: u_FILE_u = &
        __FILE__
 
@@ -26,9 +32,12 @@ contains
 
   subroutine SetServices(ensemble_driver, rc)
 
-    use NUOPC        , only : NUOPC_CompDerive, NUOPC_CompSpecialize
+    use NUOPC        , only : NUOPC_CompDerive, NUOPC_CompSpecialize, NUOPC_CompAttributeSet
+    use NUOPC        , only : NUOPC_CompAttributeGet
     use NUOPC_Driver , only : driver_routine_SS             => SetServices
     use NUOPC_Driver , only : ensemble_label_SetModelServices => label_SetModelServices
+    use NUOPC_Driver , only : ensemble_label_PostChildrenAdvertise => label_PostChildrenAdvertise
+    use NUOPC_Driver , only : label_Finalize
     use ESMF         , only : ESMF_GridComp, ESMF_GridCompSet
     use ESMF         , only : ESMF_Config, ESMF_ConfigCreate, ESMF_ConfigLoadFile
     use ESMF         , only : ESMF_SUCCESS, ESMF_LogWrite, ESMF_LOGMSG_INFO
@@ -38,6 +47,7 @@ contains
 
     ! local variables
     type(ESMF_Config) :: config
+    logical           :: isPresent
     character(len=*), parameter :: subname = "(ensemble_driver.F90:SetServices)"
     !---------------------------------------
 
@@ -53,6 +63,14 @@ contains
          specRoutine=SetModelServices, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
+    ! PostChildrenAdvertise is a NUOPC specialization which happens after Advertize but before Realize
+    ! We have overloaded this specialization location to initilize IO.
+    ! So after all components have called Advertise but before any component calls Realize
+    ! IO will be initialized and any async IO tasks will be split off to the PIO async IO driver.
+    call NUOPC_CompSpecialize(ensemble_driver, specLabel=ensemble_label_PostChildrenAdvertise, &
+         specRoutine=InitializeIO, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
     ! Create, open and set the config
     config = ESMF_ConfigCreate(rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -61,6 +79,26 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     call ESMF_GridCompSet(ensemble_driver, config=config, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    ! NUOPC component drivers end the initialization process with an internal call to InitializeDataResolution.
+    ! The ensemble_driver does not need to InitializeDataResolution and doing so will cause a hang
+    ! if asyncronous IO is used.  This attribute is available after ESMF8.4.0b03 to toggle that control.
+    ! Cannot use asyncIO with older ESMF versions.
+    call NUOPC_CompAttributeGet(ensemble_driver, name="InitializeDataResolution", &
+         isPresent=isPresent, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    if(isPresent) then
+       call ESMF_LogWrite(trim(subname)//": setting InitializeDataResolution false", ESMF_LOGMSG_INFO)
+       call NUOPC_CompAttributeSet(ensemble_driver, name="InitializeDataResolution", value="false", rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       asyncIO_available = .true.
+       call ESMF_LogWrite(trim(subname)//": asyncio is available", ESMF_LOGMSG_INFO)
+    endif
+    ! Set a finalize method, it calls pio_finalize
+    call NUOPC_CompSpecialize(ensemble_driver, specLabel=label_Finalize, &
+         specRoutine=ensemble_finalize, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
@@ -99,9 +137,13 @@ contains
     character(len=512)     :: logfile
     logical                :: read_restart
     character(len=CS)      :: read_restart_string
-    integer                :: inst
-    integer                :: number_of_members
     integer                :: ntasks_per_member
+    integer                :: iopetcnt
+    integer                :: petcnt
+    logical                :: comp_task
+    integer                :: pio_asyncio_ntasks
+    integer                :: pio_asyncio_stride
+    integer                :: pio_asyncio_rootpe
     integer                :: Global_Comm
     character(CL)          :: start_type     ! Type of startup
     character(len=7)       :: drvrinst
@@ -196,13 +238,25 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     read(cvalue,*) number_of_members
 
+    call NUOPC_CompAttributeGet(ensemble_driver, name="pio_asyncio_ntasks", value=cvalue, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    read(cvalue,*) pio_asyncio_ntasks
+
+    call NUOPC_CompAttributeGet(ensemble_driver, name="pio_asyncio_stride", value=cvalue, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    read(cvalue,*) pio_asyncio_stride
+
+    call NUOPC_CompAttributeGet(ensemble_driver, name="pio_asyncio_rootpe", value=cvalue, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    read(cvalue,*) pio_asyncio_rootpe
+
     call ESMF_VMGet(vm, localPet=localPet, PetCount=PetCount, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    ntasks_per_member = PetCount/number_of_members
-    if(ntasks_per_member*number_of_members .ne. PetCount) then
+    ntasks_per_member = PetCount/number_of_members - pio_asyncio_ntasks
+    if(modulo(PetCount-pio_asyncio_ntasks*number_of_members, number_of_members) .ne. 0) then
        write (msgstr,'(a,i5,a,i3,a,i3,a)') &
-            "PetCount (",PetCount,") must be evenly divisable by number of members (",number_of_members,")"
+            "PetCount (",PetCount,") - Async IOtasks (",pio_asyncio_ntasks*number_of_members,") must be evenly divisable by number of members (",number_of_members,")"
        call ESMF_LogSetError(ESMF_RC_ARG_BAD, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
        return
     endif
@@ -212,33 +266,70 @@ contains
     !-------------------------------------------
 
     allocate(petList(ntasks_per_member))
-    ! We need to loop over instances
-    call t_startf('compute_drivers')
-    do inst = 1, number_of_members
+    allocate(asyncio_petlist(pio_asyncio_ntasks))
+    !
+    ! Logic for asyncio variables is handled in cmeps buildnml.
+    ! here we assume that pio_asyncio_stride and pio_asyncio_ntasks are only set
+    ! if asyncio is enabled.
+    !
+    inst = localPet/(ntasks_per_member+pio_asyncio_ntasks) + 1
 
-       ! Determine pet list for driver instance
-       petList(1) = (inst-1) * ntasks_per_member
-       do n=2,ntasks_per_member
-          petList(n) = petList(n-1) + 1
+    petcnt=1
+    iopetcnt = 1
+    comp_task = .false.
+    asyncio_task = .false.
+    ! Determine pet list for driver instance
+    if(pio_asyncio_ntasks > 0) then
+       do n=pio_asyncio_rootpe,pio_asyncio_rootpe+pio_asyncio_stride*(pio_asyncio_ntasks-1),pio_asyncio_stride
+          asyncio_petlist(iopetcnt) = (inst-1)*(ntasks_per_member+pio_asyncio_ntasks) + n
+          if(asyncio_petlist(iopetcnt) == localPet) asyncio_task = .true.
+          iopetcnt = iopetcnt+1
        enddo
-
-       ! Add driver instance to ensemble driver
-       write(drvrinst,'(a,i4.4)') "ESM",inst
-       call NUOPC_DriverAddComp(ensemble_driver, drvrinst, ESMSetServices, petList=petList, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       iopetcnt = 1
+    endif
+    do n=0,ntasks_per_member+pio_asyncio_ntasks-1
+       if(pio_asyncio_ntasks > 0) then
+          if( asyncio_petlist(iopetcnt)==(inst-1)*(ntasks_per_member+pio_asyncio_ntasks) + n) then
+             ! Here if asyncio is true and this is an io task
+             iopetcnt = iopetcnt+1
+          else if(petcnt <= ntasks_per_member) then
+             ! Here if this is a compute task
+             petList(petcnt) = n + (inst-1)*(ntasks_per_member + pio_asyncio_ntasks)
+             if (petList(petcnt) == localPet) then
+                comp_task=.true.
+             endif
+             petcnt = petcnt+1
+          else
+             msgstr = "ERROR task cannot be neither a compute task nor an asyncio task"
+             call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
+             return  ! bail out
+          endif
+       else
+          ! Here if asyncio is false
+          petList(petcnt) = (inst-1)*ntasks_per_member + n
+          if (petList(petcnt) == localPet) comp_task=.true.
+          petcnt = petcnt+1
+       endif
     enddo
-    call t_stopf('compute_drivers')
+    if(comp_task .and. asyncio_task) then
+       msgstr = "ERROR task cannot be both a compute task and an asyncio task"
+       call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
+       return  ! bail out
+    elseif (.not. comp_task .and. .not. asyncio_task) then
+       msgstr = "ERROR task is nether a compute task nor an asyncio task"
+       call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
+       return  ! bail out
+    endif
+    ! Add driver instance to ensemble driver
+    write(drvrinst,'(a,i4.4)') "ESM",inst
+    
+    call NUOPC_DriverAddComp(ensemble_driver, drvrinst, ESMSetServices, petList=petList, comp=driver, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    write(msgstr, *) ": driver added on PETS ",petlist(1),' to ',petlist(petcnt-1)
+    call ESMF_LogWrite(trim(subname)//msgstr)
 
-    inst = localPet/ntasks_per_member + 1
-    petList(1) = (inst-1) * ntasks_per_member
-    do n=2,ntasks_per_member
-       petList(n) = petList(n-1) + 1
-    enddo
-    if (localpet >= petlist(1) .and. localpet <= petlist(ntasks_per_member)) then
-       write(drvrinst,'(a,i4.4)') "ESM",inst
-       call NUOPC_DriverGetComp(ensemble_driver, drvrinst, comp=driver, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-
+    maintask = .false.
+    if (comp_task) then
        if(number_of_members > 1) then
           call NUOPC_CompAttributeAdd(driver, attrList=(/'inst_suffix'/), rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -265,7 +356,8 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        ! Set the driver log to the driver task 0
-       if (mod(localPet, ntasks_per_member) == 0) then
+
+       if (localPet == petList(1)) then
           call NUOPC_CompAttributeGet(driver, name="diro", value=diro, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           call NUOPC_CompAttributeGet(driver, name="logfile", value=logfile, rc=rc)
@@ -274,15 +366,12 @@ contains
           maintask = .true.
        else
           logUnit = 6
-          maintask = .false.
        endif
        call shr_log_setLogUnit (logunit)
-
-       ! Create a clock for each driver instance
-       call esm_time_clockInit(ensemble_driver, driver, logunit, maintask, rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-
     endif
+    ! Create a clock for each driver instance
+    call esm_time_clockInit(ensemble_driver, driver, logunit, maintask, rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     deallocate(petList)
     call t_stopf(subname)
@@ -291,4 +380,76 @@ contains
 
   end subroutine SetModelServices
 
+  subroutine InitializeIO(ensemble_driver, rc)
+    use ESMF, only: ESMF_GridComp, ESMF_LOGMSG_INFO, ESMF_LogWrite
+    use ESMF, only: ESMF_SUCCESS, ESMF_VM, ESMF_GridCompGet, ESMF_VMGet
+    use ESMF, only: ESMF_CONFIG, ESMF_GridCompIsPetLocal, ESMF_State, ESMF_Clock
+    use NUOPC, only: NUOPC_CompAttributeGet, NUOPC_CompGet
+    use NUOPC_DRIVER, only: NUOPC_DriverGetComp
+    use driver_pio_mod   , only: driver_pio_init, driver_pio_component_init
+#ifndef NO_MPI2
+    use MPI,  only : MPI_Comm_split, MPI_UNDEFINED
+#endif
+    type(ESMF_GridComp) :: ensemble_driver
+    type(ESMF_VM) :: ensemble_vm
+    integer, intent(out) :: rc
+    character(len=*), parameter :: subname = '('//__FILE__//':InitializeIO)'
+    type(ESMF_GridComp), pointer :: dcomp(:)
+    integer :: iam
+    integer :: Global_Comm, Instance_Comm
+    integer :: drv
+    integer :: PetCount
+    integer :: key, color, i
+    character(len=8) :: compname
+
+    rc = ESMF_SUCCESS
+    call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
+    call shr_log_setLogUnit (logunit)
+
+    call ESMF_GridCompGet(ensemble_driver, vm=ensemble_vm, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_VMGet(ensemble_vm, localpet=iam, mpiCommunicator=Global_Comm, PetCount=PetCount, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    if(number_of_members > 1) then
+       color = inst
+       key = modulo(iam, PetCount/number_of_members)
+#ifndef NO_MPI2
+       call MPI_Comm_split(Global_Comm, color, key, Instance_Comm, rc)
+#endif
+       do i=1,size(asyncio_petlist)
+          asyncio_petList(i) = modulo(asyncio_petList(i), PetCount/number_of_members)
+       enddo
+    else
+       Instance_Comm = Global_Comm
+    endif
+    nullify(dcomp)
+    call NUOPC_DriverGetComp(ensemble_driver, complist=dcomp, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompGet(dcomp(1), name=compname, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_LogWrite(trim(subname)//": call driver_pio_init "//compname, ESMF_LOGMSG_INFO)
+    call driver_pio_init(dcomp(1), rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    call ESMF_LogWrite(trim(subname)//": call driver_pio_component_init "//compname, ESMF_LOGMSG_INFO)
+    call driver_pio_component_init(dcomp(1), Instance_Comm, asyncio_petlist, rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_LogWrite(trim(subname)//": driver_pio_component_init done "//compname, ESMF_LOGMSG_INFO)
+
+    deallocate(dcomp)
+    deallocate(asyncio_petlist)
+    call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
+  end subroutine InitializeIO
+
+  subroutine ensemble_finalize(ensemble_driver, rc)
+    use ESMF, only : ESMF_GridComp, ESMF_SUCCESS
+    use driver_pio_mod, only: driver_pio_finalize
+    type(ESMF_GridComp) :: Ensemble_driver
+    integer, intent(out) :: rc
+    rc = ESMF_SUCCESS
+    call shr_log_setLogUnit (logunit)
+    call driver_pio_finalize()
+
+  end subroutine ensemble_finalize
 end module Ensemble_driver
