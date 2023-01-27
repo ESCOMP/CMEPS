@@ -412,6 +412,7 @@
     <values match="last">
       <value compset="_DATM.*_DOCN%SOM"			>OPTION2</value>
       <value compset="_POP2"				>OPTION2</value>
+      <value compset="_NEMO"				>OPTION2</value>
       <value compset="_MOM6"				>OPTION1</value>
       <value compset="_POP2" grid="oi%gx1v6"		>OPTION1</value>
       <value compset="_POP2" grid="oi%gx1v7"		>OPTION1</value>
@@ -506,6 +507,7 @@
       <value compset="DATM.*_MOM\d">TRUE</value>
       <value compset="CAM.*_MOM\d">TRUE</value>
       <value compset="CAM.*_POP\d">TRUE</value>
+      <value compset="CAM.*_NEMO">FALSE</value>
       <value compset="CAM.*_DOCN%SOM">TRUE</value>
     </values>
     <group>run_budgets</group>
