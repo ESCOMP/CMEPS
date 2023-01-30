@@ -372,7 +372,6 @@ contains
 
     rc = ESMF_SUCCESS
 
-    call t_startf('MED:'//subname)
     if (dbug_flag > 20) then
        call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
     end if
@@ -382,6 +381,13 @@ contains
     nullify(is_local%wrap)
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    ! Check that the necessary export field is present
+    if ( .not. FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_swnet', rc=rc)) then
+       return
+    end if
+
+    call t_startf('MED:'//subname)
 
     !---------------------------------------
     ! Compute netsw for ocean
