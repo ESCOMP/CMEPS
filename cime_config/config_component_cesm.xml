@@ -466,37 +466,6 @@
   <!-- averaged history frequencies -->
   <!-- ===================================================================== -->
 
-  <entry id="AVGHIST_OPTION">
-    <type>char</type>
-    <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,nmonths,nyears,date,end</valid_values>
-    <default_value>never</default_value>
-    <values match="last">
-      <value compset="_DOCN%IAF">nmonths</value>
-    </values>
-    <group>med_history</group>
-    <file>env_run.xml</file>
-    <desc>Sets mediator average history file frequency (like REST_OPTION)</desc>
-  </entry>
-  <entry id="AVGHIST_N">
-    <type>char</type>
-    <valid_values></valid_values>
-    <default_value>-999</default_value>
-    <values match="last">
-      <value compset="_DOCN%IAF">1</value>
-    </values>
-    <group>med_history</group>
-    <file>env_run.xml</file>
-    <desc>Sets mediator average history file frequency (like REST_N)</desc>
-  </entry>
-  <entry id="AVGHIST_DATE">
-    <type>integer</type>
-    <valid_values></valid_values>
-    <default_value>-999</default_value>
-    <group>med_history</group>
-    <file>env_run.xml</file>
-    <desc>yyyymmdd format, sets mediator average history date (like REST_DATE)</desc>
-  </entry>
-
   <entry id="BUDGETS">
     <type>logical</type>
     <valid_values>TRUE,FALSE</valid_values>
