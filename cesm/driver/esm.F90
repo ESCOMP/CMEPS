@@ -610,14 +610,14 @@ contains
     character(len=*)    , intent(in)    :: inst_suffix
     integer             , intent(in)    :: nthrds
     integer             , intent(inout) :: rc
-
     ! local variables
     integer                        :: inst_index
+    logical                        :: computetask
     character(len=CL)              :: cvalue
     character(len=CS)              :: attribute
     character(len=*), parameter    :: subname = "(esm.F90:AddAttributes)"
     !-------------------------------------------
-
+    computetask = .false.
     rc = ESMF_Success
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
     call shr_log_setLogunit(logunit)
@@ -635,6 +635,10 @@ contains
     ! Add driver restart flag to gcomp attributes
     !------
     attribute = 'read_restart'
+    call NUOPC_CompAttributeGet(driver, name=trim(attribute), isPresent=computetask, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    if(.not. computetask) return
+
     call NUOPC_CompAttributeGet(driver, name=trim(attribute), value=cvalue, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call NUOPC_CompAttributeAdd(gcomp, (/trim(attribute)/), rc=rc)
@@ -649,6 +653,9 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call ReadAttributes(gcomp, config, "ALLCOMP_attributes::", rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    call ESMF_LogWrite(trim(subname)//": call Readattributes for"//trim(compname), ESMF_LOGMSG_INFO)
+
     call ReadAttributes(gcomp, config, trim(compname)//"_modelio::", rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) then
        print *,__FILE__,__LINE__,"ERROR reading ",trim(compname)," modelio from runconfig"
