@@ -22,7 +22,7 @@ module nuopc_shr_methods
   use NUOPC_Model  , only : NUOPC_ModelGet
   use shr_kind_mod , only : r8 => shr_kind_r8, cl=>shr_kind_cl, cs=>shr_kind_cs
   use shr_sys_mod  , only : shr_sys_abort
-  use shr_file_mod , only : shr_file_setlogunit, shr_file_getLogUnit
+  use shr_log_mod , only : shr_log_setLogUnit
 
   implicit none
   private
@@ -75,12 +75,12 @@ module nuopc_shr_methods
 contains
 !===============================================================================
 
-  subroutine memcheck(string, level, mastertask)
+  subroutine memcheck(string, level, maintask)
 
     ! input/output variables
     character(len=*) , intent(in) :: string
     integer          , intent(in) :: level
-    logical          , intent(in) :: mastertask
+    logical          , intent(in) :: maintask
 
     ! local variables
     integer :: ierr
@@ -90,7 +90,7 @@ contains
     !-----------------------------------------------------------------------
 
 #ifdef CESMCOUPLED
-    if ((mastertask .and. memdebug_level > level) .or. memdebug_level > level+1) then
+    if ((maintask .and. memdebug_level > level) .or. memdebug_level > level+1) then
        ierr = GPTLprint_memusage(string)
     endif
 #endif
@@ -131,11 +131,11 @@ contains
 
 !===============================================================================
 
-  subroutine set_component_logging(gcomp, mastertask, logunit, shrlogunit, rc)
+  subroutine set_component_logging(gcomp, maintask, logunit, shrlogunit, rc)
     use driver_pio_mod, only : driver_pio_log_comp_settings
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
-    logical, intent(in)  :: mastertask
+    logical, intent(in)  :: maintask
     integer, intent(out) :: logunit
     integer, intent(out) :: shrlogunit
     integer, intent(out) :: rc
@@ -145,11 +145,12 @@ contains
     character(len=CL) :: logfile
     character(len=CL) :: inst_suffix
     integer :: inst_index  ! not used here
+    integer :: n
     !-----------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
 
-    if (mastertask) then
+    if (maintask) then
        call NUOPC_CompAttributeGet(gcomp, name="diro", value=diro, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        call NUOPC_CompAttributeGet(gcomp, name="logfile", value=logfile, rc=rc)
@@ -157,8 +158,9 @@ contains
        call get_component_instance(gcomp, inst_suffix, inst_index, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        ! Multiinstance logfile name needs a correction
-       if(logfile(4:4) == '_') then
-          logfile = logfile(1:3)//trim(inst_suffix)//logfile(9:)
+       if(len_trim(inst_suffix) > 0) then
+          n = index(logfile, '.')
+          logfile = logfile(1:n-1)//trim(inst_suffix)//logfile(n:)
        endif
 
        open(newunit=logunit,file=trim(diro)//"/"//trim(logfile))
@@ -170,7 +172,7 @@ contains
     endif
     shrlogunit = logunit
 
-    call shr_file_setLogUnit (logunit)
+    call shr_log_setLogUnit (logunit)
     
   end subroutine set_component_logging
 

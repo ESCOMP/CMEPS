@@ -27,7 +27,7 @@ module med_diag_mod
   use med_constants_mod     , only : shr_const_rearth, shr_const_pi, shr_const_latice, shr_const_latvap
   use med_constants_mod     , only : shr_const_ice_ref_sal, shr_const_ocn_ref_sal, shr_const_isspval
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
-  use med_internalstate_mod , only : InternalState, logunit, mastertask, diagunit
+  use med_internalstate_mod , only : InternalState, logunit, maintask, diagunit
   use med_methods_mod       , only : fldbun_getdata2d => med_methods_FB_getdata2d
   use med_methods_mod       , only : fldbun_getdata1d => med_methods_FB_getdata1d
   use med_methods_mod       , only : fldbun_fldChk    => med_methods_FB_FldChk
@@ -50,7 +50,7 @@ module med_diag_mod
   public  :: med_phases_diag_ice_ice2med
   public  :: med_phases_diag_ice_med2ice
 
-  private :: med_diag_sum_master
+  private :: med_diag_sum_main
   private :: med_diag_print_atm
   private :: med_diag_print_lnd_ice_ocn
   private :: med_diag_print_summary
@@ -231,7 +231,7 @@ module med_diag_mod
   ! public data members
   ! ---------------------------------
 
-  ! note: call med_diag_sum_master then save budget_global and budget_counter on restart from/to root pe ---
+  ! note: call med_diag_sum_main then save budget_global and budget_counter on restart from/to root pe ---
 
   real(r8), allocatable :: budget_local  (:,:,:) ! local sum, valid on all pes
   real(r8), allocatable :: budget_global (:,:,:) ! global sum, valid only on root pe
@@ -263,7 +263,6 @@ contains
     integer           :: c_size   ! number of component send/recvs
     integer           :: f_size   ! number of fields
     integer           :: p_size   ! number of period types
-    type(ESMF_Clock)  :: mediatorClock
     character(CS)     :: cvalue
     logical           :: isPresent, isSet
     character(*), parameter :: subName = '(med_phases_diag_init) '
@@ -271,7 +270,7 @@ contains
 
     rc = ESMF_SUCCESS
 
-    if(mastertask) then
+    if(maintask) then
        write(logunit,'(a)') ' Creating budget_diags%comps '
     end if
 
@@ -282,7 +281,7 @@ contains
     else
        budget_table_version = 'v1'
     end if
-    if (mastertask) then
+    if (maintask) then
        write(logunit,'(a)') trim(subname) //' budget table version is '//trim(budget_table_version)
     end if
 
@@ -575,7 +574,7 @@ contains
     integer, intent(out) :: rc
 
     ! local variables
-    integer     :: ip, ic
+    integer     :: ip
     character(*), parameter :: subName = '(med_diag_accum) '
     ! ------------------------------------------------------------------
 
@@ -590,7 +589,7 @@ contains
   end subroutine med_phases_diag_accum
 
   !===============================================================================
-  subroutine med_diag_sum_master(gcomp, rc)
+  subroutine med_diag_sum_main(gcomp, rc)
 
     ! ------------------------------------------------------------------
     ! Sum local values to global on root
@@ -606,7 +605,7 @@ contains
     integer       :: c_size  ! number of component send/recvs
     integer       :: f_size  ! number of fields
     integer       :: p_size  ! number of period types
-    character(*), parameter :: subName = '(med_diag_sum_master) '
+    character(*), parameter :: subName = '(med_diag_sum_main) '
     ! ------------------------------------------------------------------
 
     call t_startf('MED:'//subname)
@@ -630,7 +629,7 @@ contains
 
     call t_stopf('MED:'//subname)
 
-  end subroutine med_diag_sum_master
+  end subroutine med_diag_sum_main
 
   !===============================================================================
   subroutine med_phases_diag_atm(gcomp, rc)
@@ -647,14 +646,13 @@ contains
 
     ! local variables
     type(InternalState) :: is_local
-    integer             :: n,nf,ic,ip
+    integer             :: n,nf,ip
     real(r8), pointer   :: afrac(:)
     real(r8), pointer   :: lfrac(:)
     real(r8), pointer   :: ifrac(:)
     real(r8), pointer   :: ofrac(:)
     real(r8), pointer   :: areas(:)
     real(r8), pointer   :: lats(:)
-    type(ESMF_Field)    :: lfield
     character(*), parameter :: subName = '(med_phases_diag_atm) '
     !-------------------------------------------------------------------------------
 
@@ -790,7 +788,6 @@ contains
     integer                , intent(out)   :: rc
     ! local variables
     integer           :: n, ip
-    type(ESMF_field)  :: lfield
     real(r8), pointer :: data(:)
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
@@ -826,7 +823,6 @@ contains
     integer                , intent(out)   :: rc
     ! local variables
     integer           :: n, ip
-    type(ESMF_field)  :: lfield
     real(r8), pointer :: data(:)
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
@@ -865,7 +861,6 @@ contains
     integer                , intent(out)   :: rc
     ! local variables
     integer           :: n, ip
-    type(ESMF_Field)  :: lfield
     real(r8), pointer :: data(:,:)
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
@@ -922,7 +917,6 @@ contains
     integer                , intent(out)   :: rc
     ! local variables
     integer           :: n, ip
-    type(ESMF_Field)  :: lfield
     real(r8), pointer :: data(:,:)
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
@@ -979,7 +973,6 @@ contains
     real(r8), pointer   :: lfrac(:)
     integer             :: n,ip, ic
     real(r8), pointer   :: areas(:)
-    type(ESMF_Field)    :: lfield
     character(*), parameter :: subName = '(med_phases_diag_lnd) '
     ! ------------------------------------------------------------------
 
@@ -1105,7 +1098,6 @@ contains
     integer                , intent(out)   :: rc
     ! local variables
     integer           :: n, ip
-    type(ESMF_field)  :: lfield
     real(r8), pointer :: data(:)
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
@@ -1139,7 +1131,6 @@ contains
     integer                , intent(out)   :: rc
     ! local variables
     integer           :: n, ip
-    type(ESMF_field)  :: lfield
     real(r8), pointer :: data(:,:)
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
@@ -1177,7 +1168,7 @@ contains
 
     ! local variables
     type(InternalState) :: is_local
-    integer             :: ic, ip, n
+    integer             :: ic, ip
     real(r8), pointer   :: areas(:)
     character(*), parameter :: subName = '(med_phases_diag_rof) '
     ! ------------------------------------------------------------------
@@ -1266,7 +1257,6 @@ contains
 
     ! local variables
     integer           :: n, ip
-    type(ESMF_field)  :: lfield
     real(r8), pointer :: data(:)
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
@@ -1300,7 +1290,6 @@ contains
 
     ! local variables
     integer           :: n, ip
-    type(ESMF_field)  :: lfield
     real(r8), pointer :: data(:,:)
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
@@ -1386,7 +1375,6 @@ contains
     integer                , intent(out)   :: rc
     ! local variables
     integer           :: n, ip
-    type(ESMF_field)  :: lfield
     real(r8), pointer :: data(:)
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
@@ -1424,10 +1412,8 @@ contains
     real(r8), pointer   :: ifrac(:)  ! ice fraction in ocean grid cell
     real(r8), pointer   :: ofrac(:)  ! non-ice fraction nin ocean grid cell
     real(r8), pointer   :: sfrac(:)  ! sum of ifrac and ofrac
-    real(r8), pointer   :: sfrac_x_ofrac(:)
     real(r8), pointer   :: areas(:)
     real(r8), pointer   :: data(:)
-    type(ESMF_field)    :: lfield
     character(*), parameter :: subName = '(med_phases_diag_ocn) '
     ! ------------------------------------------------------------------
 
@@ -1605,7 +1591,6 @@ contains
     integer                , intent(out)   :: rc
     ! local variables
     integer           :: n, ip
-    type(ESMF_field)  :: lfield
     real(r8), pointer :: data(:)
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
@@ -1639,7 +1624,6 @@ contains
 
     ! local variables
     integer           :: n, ip
-    type(ESMF_field)  :: lfield
     real(r8), pointer :: data(:,:)
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
@@ -1675,7 +1659,6 @@ contains
     real(r8), pointer   :: ifrac(:)
     real(r8), pointer   :: areas(:)
     real(r8), pointer   :: lats(:)
-    type(ESMF_field)    :: lfield
     character(*), parameter :: subName = '(med_phases_diag_ice_ice2med) '
     ! ------------------------------------------------------------------
 
@@ -1779,7 +1762,6 @@ contains
     integer                , intent(out)   :: rc
     ! local variables
     integer           :: n, ic, ip
-    type(ESMF_Field)  :: lfield
     real(r8), pointer :: data(:)
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
@@ -1825,7 +1807,6 @@ contains
     integer                , intent(out)   :: rc
     ! local variables
     integer           :: n, ic, ip
-    type(ESMF_Field)  :: lfield
     real(r8), pointer :: data(:,:)
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
@@ -1875,7 +1856,6 @@ contains
     real(r8), pointer   :: data(:)
     real(r8), pointer   :: areas(:)
     real(r8), pointer   :: lats(:)
-    type(ESMF_Field)    :: lfield
     character(*), parameter :: subName = '(med_phases_diag_ice_med2ice) '
     ! ------------------------------------------------------------------
 
@@ -1967,7 +1947,6 @@ contains
     integer                , intent(out)   :: rc
     ! local variables
     integer           :: n, ic, ip
-    type(ESMF_Field)  :: lfield
     real(r8), pointer :: data(:)
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
@@ -2001,7 +1980,6 @@ contains
 
     ! local variables
     integer           :: n, ic, ip
-    type(ESMF_Field)  :: lfield
     real(r8), pointer :: data(:,:)
     ! ------------------------------------------------------------------
     rc = ESMF_SUCCESS
@@ -2044,14 +2022,15 @@ contains
     integer               :: tod
     integer               :: output_level ! print level
     logical               :: sumdone      ! has a sum been computed yet
-    character(CS)         :: cvalue
     integer               :: ip
     integer               :: c_size       ! number of component send/recvs
     integer               :: f_size       ! number of fields
     integer               :: p_size       ! number of period types
     real(r8), allocatable :: datagpr(:,:,:)
-    character(len=64)     :: timestr
     logical, save         :: firstcall = .true.
+#ifdef DEBUG
+    character(len=CL)     :: timestr
+#endif
     character(*), parameter :: subName = '(med_phases_diag_print) '
     ! ------------------------------------------------------------------
 
@@ -2076,7 +2055,7 @@ contains
     date = year*10000 + mon*100 + day
 
 #ifdef DEBUG
-    if(mastertask) then
+    if(maintask) then
        write(timestr,'(i4.4,a,i2.2,a,i2.2,a,i5.5)') year,'-',mon,'-',day,'-',tod
        write(logunit,' (a)') trim(subname)//": time = "//trim(timestr)
     endif
@@ -2124,13 +2103,13 @@ contains
           if (.not. sumdone) then
              ! Some budgets will be printed for this period type
              ! Determine sums if not already done
-             call med_diag_sum_master(gcomp, rc)
+             call med_diag_sum_main(gcomp, rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
              sumdone = .true.
           end if
 
-          if (mastertask) then
+          if (maintask) then
              c_size = size(budget_diags%comps)
              f_size = size(budget_diags%fields)
              p_size = size(budget_diags%periods)
@@ -2145,7 +2124,7 @@ contains
              end if
              datagpr(:,:,:) = datagpr(:,:,:)/budget_counter(:,:,:)
 
-             ! Write diagnostic tables to logunit (mastertask only)
+             ! Write diagnostic tables to logunit (maintask only)
              if (output_level >= 3) then
                 ! detail atm budgets and breakdown into components ---
                 call med_diag_print_atm(datagpr, ip, date, tod)
@@ -2162,8 +2141,8 @@ contains
 
              deallocate(datagpr)
 
-          endif ! output_level > 0 and mastertask
-       end if ! if mastertask
+          endif ! output_level > 0 and maintask
+       end if ! if maintask
     enddo  ! ip = 1, period_types
 
     !-------------------------------------------------------------------------------
@@ -2195,6 +2174,12 @@ contains
     character(*), parameter:: subName = '(med_phases_diag_print_atm) '
     ! ------------------------------------------------------------------
 
+    ica = 0
+    icl = 0
+    icn = 0
+    ics = 0
+    ico = 0
+    str = ""
     do ic = 1,2
        if (ic == 1) then    ! from atm to mediator
           ica = c_atm_recv ! total from atm
@@ -2342,7 +2327,11 @@ contains
     character(len=40) :: str      ! string
     character(*), parameter :: subName = '(med_diag_print_lnd_ice_ocn) '
     ! ------------------------------------------------------------------
-
+    icar = 0
+    icxs = 0
+    icxr = 0
+    icas = 0
+    str = ""
     do ic = 1,4
 
        if (ic == 1) then
@@ -2498,10 +2487,10 @@ contains
     integer , intent(in) :: tod
 
     ! local variables
-    integer  :: ic,nf,is ! data array indicies
+    integer  :: nf,is ! data array indicies
     real(r8) :: atm_area, lnd_area, ocn_area
     real(r8) :: ice_area_nh, ice_area_sh
-    real(r8) :: sum_area, sum_area_tot
+    real(r8) :: sum_area
     real(r8) :: net_water_atm    , sum_net_water_atm
     real(r8) :: net_water_lnd    , sum_net_water_lnd
     real(r8) :: net_water_rof    , sum_net_water_rof
@@ -2526,7 +2515,6 @@ contains
     real(r8) :: net_salt_ice_nh  , sum_net_salt_ice_nh
     real(r8) :: net_salt_ice_sh  , sum_net_salt_ice_sh
     real(r8) :: net_salt_tot     , sum_net_salt_tot
-    character(len=40) :: str
     character(*), parameter:: subName = '(med_diag_print_summary) '
     ! ------------------------------------------------------------------
 
@@ -2772,7 +2760,7 @@ contains
     ! create new entry if fldname is not in original list
 
     if (.not. found) then
-       if(mastertask) write(logunit,*) ' Add ',trim(name),' to budgets with index ',index
+       if(maintask) write(logunit,*) ' Add ',trim(name),' to budgets with index ',index
        ! 1) allocate newfld to be size (one element larger than input flds)
        allocate(new_entries(index))
 

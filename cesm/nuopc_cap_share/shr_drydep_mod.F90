@@ -13,8 +13,7 @@ module shr_drydep_mod
   use shr_kind_mod   , only : r8 => shr_kind_r8, CS => SHR_KIND_CS, CX => SHR_KIND_CX
   use shr_const_mod  , only : SHR_CONST_MWWV
   use shr_nl_mod     , only : shr_nl_find_group_name
-  use shr_log_mod    , only : s_logunit => shr_log_Unit
-  use shr_file_mod   , only : shr_file_getLogUnit
+  use shr_log_mod    , only : shr_log_getLogUnit
   use shr_infnan_mod , only : shr_infnan_posinf, assignment(=)
   use nuopc_shr_methods, only : chkerr
 
@@ -254,6 +253,7 @@ CONTAINS
     type(ESMF_VM) :: vm
     integer       :: localPet
     integer       :: mpicom
+    integer       :: s_logunit
     integer       :: rc
     character(*),parameter :: F00   = "('(shr_drydep_read) ',8a)"
     character(*),parameter :: FI1   = "('(shr_drydep_init) ',a,I2)"
@@ -281,8 +281,8 @@ CONTAINS
     call ESMF_VMGet(vm, localPet=localPet, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=__FILE__)) return
 
+    call shr_log_getLogUnit(s_logunit)
     if (localPet==0) then
-       call shr_file_getLogUnit(s_logunit)
        inquire( file=trim(NLFileName), exist=exists)
        if ( exists ) then
           open(newunit=unitn, file=trim(NLFilename), status='old' )
@@ -348,6 +348,7 @@ CONTAINS
     integer       :: mpicom
     integer       :: bint(2)
     real(kind=r8), pointer :: dptr(:)
+    integer       :: s_logunit
     integer       :: rc
     logical, save :: drydep_initialized=.false.
     character(len=256) :: msg
@@ -357,6 +358,7 @@ CONTAINS
     character(*),parameter :: F00   = "('(shr_drydep_init) ',8a)"
 
     call ESMF_LogWrite(subname//' start', ESMF_LOGMSG_INFO)
+    call shr_log_getLogUnit(s_logunit)
 
     if (dep_data_file=='NONE' .or. len_trim(dep_data_file)==0) return
 
@@ -615,7 +617,7 @@ CONTAINS
     real(r8) :: dk1s(ncol)     ! DK Work array 1
     real(r8) :: dk2s(ncol)     ! DK Work array 2
     real(r8) :: wrk(ncol)      ! Work array
-
+    integer  :: s_logunit
     !----- formats -----
     character(*),parameter :: subName = '(shr_drydep_set_hcoeff) '
     character(*),parameter :: F00   = "('(shr_drydep_set_hcoeff) ',8a)"
@@ -624,6 +626,7 @@ CONTAINS
     ! notes:
     !-------------------------------------------------------------------------------
 
+    call shr_log_getLogUnit(s_logunit)
     wrk(:) = (t0 - sfc_temp(:))/(t0*sfc_temp(:))
     do m = 1,n_drydep
        l    = mapping(m)

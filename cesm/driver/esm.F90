@@ -8,9 +8,8 @@ module ESM
   use shr_sys_mod  , only : shr_sys_abort
   use shr_mpi_mod  , only : shr_mpi_bcast
   use shr_mem_mod  , only : shr_mem_init
-  use shr_file_mod , only : shr_file_setLogunit
-  use esm_utils_mod, only : logunit, mastertask, dbug_flag, chkerr
-  use perf_mod     , only : t_initf, t_setLogUnit
+  use shr_log_mod  , only : shr_log_setLogunit
+  use esm_utils_mod, only : logunit, maintask, dbug_flag, chkerr
 
   implicit none
   private
@@ -54,7 +53,6 @@ contains
     integer, intent(out) :: rc
 
     ! local variables
-    type(ESMF_Config) :: runSeq
     character(len=*), parameter :: subname = "(esm.F90:SetServices)"
     !---------------------------------------
 
@@ -125,9 +123,7 @@ contains
     ! local variables
     type(ESMF_VM)     :: vm
     type(ESMF_Config) :: config
-    integer           :: n, i, stat
-    character(len=20) :: model, prefix
-    integer           :: localPet, medpet
+    integer           :: localPet
     character(len=CL) :: meminitStr
     integer           :: global_comm
     integer           :: maxthreads
@@ -141,10 +137,8 @@ contains
 
     !-------------------------------------------
     ! Set the io logunit to the value defined in ensemble_driver
-    ! TODO: - is this statement still correct?
-    ! it may be corrected below if the med mastertask is not the driver mastertask
     !-------------------------------------------
-    call shr_file_setLogunit(logunit)
+    call shr_log_setLogunit(logunit)
 
     !-------------------------------------------
     ! Get the config and vm objects from the driver
@@ -156,12 +150,10 @@ contains
     call ESMF_VMGet(vm, localPet=localPet, mpiCommunicator=global_comm, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    call ESMF_VMGet(vm, localPet=localPet, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
     if (localPet == 0) then
-       mastertask=.true.
+       maintask=.true.
     else
-       mastertask = .false.
+       maintask = .false.
     end if
 
     !-------------------------------------------
@@ -211,15 +203,10 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! Memory test
-    if (mastertask) then
+    if (maintask) then
        call shr_mem_init(strbuf=meminitstr)
        write(logunit,*) trim(meminitstr)
     end if
-
-    !-------------------------------------------
-    ! Timer initialization (has to be after pelayouts are determined)
-    !-------------------------------------------
-    call t_initf('drv_in', LogPrint=.true., LogUnit=logunit, mpicom=global_comm, mastertask=mastertask, MaxThreads=maxthreads)
 
     call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
 
@@ -243,7 +230,6 @@ contains
     integer, intent(out) :: rc
 
     ! local variables
-    integer                 :: localrc
     type(ESMF_Config)       :: runSeq
     type(NUOPC_FreeFormat)  :: runSeqFF
     character(len=*), parameter :: subname = "(esm.F90:SetRunSequence)"
@@ -269,7 +255,7 @@ contains
 
     call NUOPC_DriverIngestRunSequence(driver, runSeqFF, autoAddConnectors=.true., rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-
+#ifdef DEBUG
     ! Uncomment these to add debugging information for driver
     ! call NUOPC_DriverPrint(driver, orderflag=.true.)
     ! if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
@@ -277,9 +263,9 @@ contains
     !   file=__FILE__)) &
     !   return  ! bail out
 
-    ! call pretty_print_nuopc_freeformat(runSeqFF, 'run sequence', rc=rc)
-    ! if (chkerr(rc,__LINE__,u_FILE_u)) return
-
+!    call pretty_print_nuopc_freeformat(runSeqFF, 'run sequence', rc=rc)
+!    if (chkerr(rc,__LINE__,u_FILE_u)) return
+#endif
     call NUOPC_FreeFormatDestroy(runSeqFF, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
@@ -307,7 +293,7 @@ contains
 
     rc = ESMF_SUCCESS
 
-    if (mastertask .or. dbug_flag > 3) then
+    if (maintask .or. dbug_flag > 3) then
        write(logunit, *) 'BEGIN: ', trim(label)
        call NUOPC_FreeFormatGet(ffstuff, linecount=linecnt, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -435,11 +421,7 @@ contains
     type(ShrWVSatTableSpec)      :: liquid_spec
     type(ShrWVSatTableSpec)      :: ice_spec
     type(ShrWVSatTableSpec)      :: mixed_spec
-    logical                      :: flag
-    integer                      :: i, it, n
-    integer                      :: unitn                 ! Namelist unit number to read
     integer                      :: localPet, rootpe_med
-    character(len=CL)            :: msgstr
     integer          , parameter :: ens1=1                ! use first instance of ensemble only
     integer          , parameter :: fix1=1                ! temporary hard-coding to first ensemble, needs to be fixed
     real(R8)         , parameter :: epsilo = shr_const_mwwv/shr_const_mwdair
@@ -477,7 +459,7 @@ contains
     call NUOPC_CompAttributeGet(driver, name="tfreeze_option", value=tfreeze_option, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    call shr_frz_freezetemp_init(tfreeze_option, mastertask)
+    call shr_frz_freezetemp_init(tfreeze_option, maintask)
 
     call NUOPC_CompAttributeGet(driver, name='cpl_rootpe', value=cvalue, rc=rc)
     read(cvalue, *) rootpe_med
@@ -570,8 +552,6 @@ contains
     integer             , intent(out)   :: rc
 
     !----- local -----
-    character(len=CL) :: cvalue         ! temporary
-    character(len=CL) :: start_type     ! Type of startup
     character(len=CS) :: logFilePostFix ! postfix for output log files
     character(len=CL) :: outPathRoot    ! root for output log files
     character(len=CS) :: cime_model
@@ -629,12 +609,9 @@ contains
     integer             , intent(inout) :: rc
 
     ! local variables
-    integer                        :: n
-    integer                        :: stat
     integer                        :: inst_index
     character(len=CL)              :: cvalue
     character(len=CS)              :: attribute
-    integer                        :: componentCount
     character(len=*), parameter    :: subname = "(esm.F90:AddAttributes)"
     !-------------------------------------------
 
@@ -651,7 +628,7 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     !------
-    ! Add driver restart flag a to gcomp attributes
+    ! Add driver restart flag to gcomp attributes
     !------
     attribute = 'read_restart'
     call NUOPC_CompAttributeGet(driver, name=trim(attribute), value=cvalue, rc=rc)
@@ -752,12 +729,12 @@ contains
 
     call NUOPC_CompAttributeIngest(gcomp, attrFF, addFlag=.true., rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    !    if (present (formatprint)) then
-    !       call pretty_print_nuopc_freeformat(attrFF, trim(label)//' attributes', rc=rc)
-    !       if (chkerr(rc,__LINE__,u_FILE_u)) return
-    !    end if
-
+#ifdef DEBUG
+!    if (present (formatprint)) then
+!       call pretty_print_nuopc_freeformat(attrFF, trim(label)//' attributes', rc=rc)
+!       if (chkerr(rc,__LINE__,u_FILE_u)) return
+!    end if
+#endif
     call NUOPC_FreeFormatDestroy(attrFF, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
@@ -872,11 +849,10 @@ contains
     type(ESMF_VM)                  :: vm
     type(ESMF_Config)              :: config
     type(ESMF_Info)                :: info
-    integer                        :: componentcount
     integer                        :: PetCount
-    integer                        :: LocalPet
+    integer                        :: ComponentCount
     integer                        :: ntasks, rootpe, nthrds, stride
-    integer                        :: ntask, cnt
+    integer                        :: ntask
     integer                        :: i
     integer                        :: stat
     character(len=32), allocatable :: compLabels(:)
@@ -1256,7 +1232,7 @@ contains
     !-------------------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
-
+    scol_mesh_n = 0
     ! obtain the single column lon and lat
     call NUOPC_CompAttributeGet(gcomp, name='scol_lon', value=cvalue, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -1535,7 +1511,7 @@ contains
 
     rc = ESMF_SUCCESS
 
-    if (mastertask) then
+    if (maintask) then
        write(logunit,*)' SUCCESSFUL TERMINATION OF CESM'
     end if
 
