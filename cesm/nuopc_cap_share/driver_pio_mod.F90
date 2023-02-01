@@ -173,7 +173,7 @@ contains
 
   end subroutine driver_pio_init
 
-  subroutine driver_pio_component_init(driver, Inst_comm, asyncio_petlist, rc)
+  subroutine driver_pio_component_init(driver, inst_comm, asyncio_petlist, rc)
     use ESMF, only : ESMF_GridComp, ESMF_LogSetError, ESMF_RC_NOT_VALID, ESMF_GridCompIsCreated, ESMF_VM, ESMF_VMGet
     use ESMF, only : ESMF_GridCompGet, ESMF_GridCompIsPetLocal, ESMF_VMIsCreated, ESMF_Finalize, ESMF_PtrInt1D
     use ESMF, only : ESMF_LOGMSG_INFO, ESMF_LOGWRITE
@@ -182,8 +182,8 @@ contains
     use mpi, only :  MPI_INTEGER, MPI_MAX, MPI_IN_PLACE, MPI_LOR, MPI_LOGICAL
 
     type(ESMF_GridComp) :: driver
-    integer, intent(in) :: Inst_comm ! The communicator associated with the ensemble_driver
     integer, intent(in) :: asyncio_petlist(:) 
+    integer, intent(in) :: Inst_comm ! The communicator associated with the driver
     integer, intent(out) :: rc
 
     type(ESMF_VM) :: vm
@@ -195,6 +195,7 @@ contains
     integer, allocatable :: io_proc_list(:), asyncio_tasks(:), comp_proc_list(:,:)
 
     type(ESMF_GridComp), pointer :: gcomp(:)
+
     character(CS) :: cval
     character(CS) :: msgstr
     integer :: do_async_init
@@ -221,29 +222,31 @@ contains
     asyncio_ntasks = size(asyncio_petlist)
 
     call shr_log_getLogUnit(logunit)
-    call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
+    call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     call MPI_Comm_rank(Inst_comm, myid, rc)
     call MPI_Comm_size(Inst_comm, totalpes, rc)
+
     asyncio_task=.false.
 
     do i=1,asyncio_ntasks
        ! asyncio_petlist is in 
-       if(modulo(asyncio_petlist(i), totalpes) == myid) then
+       if(asyncio_petlist(i) == myid) then
           asyncio_task = .true.
           exit
        endif
     enddo
+    write(msgstr,*) 'asyncio_task = ', asyncio_task, myid, asyncio_petlist
+    call ESMF_LogWrite(trim(subname)//msgstr, ESMF_LOGMSG_INFO, rc=rc)
     nullify(gcomp)
     nullify(petLists)
     if (.not. asyncio_task) then
        call ESMF_GridCompGet(gridcomp=driver, vm=vm, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       
-       call NUOPC_DriverGetComp(driver, compList=gcomp, petLists=petLists, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
        call ESMF_VMGet(vm, localPet=driver_myid, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call NUOPC_DriverGetComp(driver, compList=gcomp, petLists=petLists, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     endif
     if(associated(gcomp)) then
