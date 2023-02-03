@@ -7,7 +7,7 @@ module shr_lightning_coupling_mod
   use ESMF         , only : ESMF_VMGetCurrent, ESMF_VM, ESMF_VMGet
   use ESMF         , only : ESMF_LogFoundError, ESMF_LOGERR_PASSTHRU, ESMF_SUCCESS
   use shr_sys_mod  , only : shr_sys_abort
-  use shr_log_mod  , only : s_logunit => shr_log_Unit
+  use shr_log_mod  , only : shr_log_getLogUnit
   use shr_nl_mod   , only : shr_nl_find_group_name
   use shr_mpi_mod  , only : shr_mpi_bcast
 
@@ -44,7 +44,7 @@ CONTAINS
     integer           :: rc
     integer           :: localpet
     integer           :: mpicom
-
+    integer           :: s_logunit
     character(len=*), parameter :: atm_ozone_frequency_not_present = 'NOT_PRESENT'
     character(len=*), parameter :: subname = '(shr_lightning_coupling_readnl) '
     ! ------------------------------------------------------------------
@@ -57,7 +57,7 @@ CONTAINS
     if ( len_trim(NLFilename) == 0 ) then
        call shr_sys_abort( subname//'ERROR: nlfilename not set' )
     end if
-
+    call shr_log_getLogUnit(s_logunit)
     call ESMF_VMGetCurrent(vm, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=__FILE__)) return
 
