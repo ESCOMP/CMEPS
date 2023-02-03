@@ -375,7 +375,7 @@ contains
        call shr_log_setLogUnit (logunit)
        ! Create a clock for each driver instance
 
-       call esm_time_clockInit(ensemble_driver, driver, logunit, maintask, rc)
+       call esm_time_clockInit(ensemble_driver, driver, logunit, localpet==petList(1), rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     enddo
