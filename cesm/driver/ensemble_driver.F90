@@ -36,7 +36,7 @@ contains
     use NUOPC        , only : NUOPC_CompAttributeGet
     use NUOPC_Driver , only : driver_routine_SS             => SetServices
     use NUOPC_Driver , only : ensemble_label_SetModelServices => label_SetModelServices
-    use NUOPC_Driver , only : ensemble_label_PostChildrenAdvertise => label_PostChildrenAdvertise
+!    use NUOPC_Driver , only : ensemble_label_PostChildrenAdvertise => label_PostChildrenAdvertise
     use NUOPC_Driver , only : label_Finalize
     use ESMF         , only : ESMF_GridComp, ESMF_GridCompSet
     use ESMF         , only : ESMF_Config, ESMF_ConfigCreate, ESMF_ConfigLoadFile
@@ -63,13 +63,13 @@ contains
          specRoutine=SetModelServices, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    ! PostChildrenAdvertise is a NUOPC specialization which happens after Advertize but before Realize
-    ! We have overloaded this specialization location to initilize IO.
-    ! So after all components have called Advertise but before any component calls Realize
-    ! IO will be initialized and any async IO tasks will be split off to the PIO async IO driver.
-    call NUOPC_CompSpecialize(ensemble_driver, specLabel=ensemble_label_PostChildrenAdvertise, &
-         specRoutine=InitializeIO, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
+!    ! PostChildrenAdvertise is a NUOPC specialization which happens after Advertize but before Realize
+!    ! We have overloaded this specialization location to initilize IO.
+!    ! So after all components have called Advertise but before any component calls Realize
+!    ! IO will be initialized and any async IO tasks will be split off to the PIO async IO driver.
+!    call NUOPC_CompSpecialize(ensemble_driver, specLabel=ensemble_label_PostChildrenAdvertise, &
+!         specRoutine=InitializeIO, rc=rc)
+!    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! Create, open and set the config
     config = ESMF_ConfigCreate(rc=rc)
