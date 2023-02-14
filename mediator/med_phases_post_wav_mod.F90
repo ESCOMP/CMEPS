@@ -23,7 +23,7 @@ contains
     use med_utils_mod         , only : chkerr      => med_utils_ChkErr
     use med_methods_mod       , only : FB_diagnose => med_methods_FB_diagnose
     use med_map_mod           , only : med_map_field_packed
-    use med_internalstate_mod , only : InternalState, mastertask
+    use med_internalstate_mod , only : InternalState
     use med_internalstate_mod , only : compwav, compatm, compocn, compice
     use med_phases_history_mod, only : med_phases_history_write_comp
     use perf_mod              , only : t_startf, t_stopf

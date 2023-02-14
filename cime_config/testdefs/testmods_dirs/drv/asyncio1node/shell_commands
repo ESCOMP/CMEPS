@@ -1,0 +1,17 @@
+# This will add 4 asyncio tasks on the first node
+./xmlchange PIO_ASYNCIO_ROOTPE=0
+./xmlchange PIO_ASYNCIO_STRIDE=1
+./xmlchange PIO_ASYNCIO_NTASKS=4
+./xmlchange PIO_REARRANGER=2
+./xmlchange PIO_ASYNC_INTERFACE=TRUE
+for comp in ATM OCN LND ICE CPL GLC ROF
+do
+  rootpe=`./xmlquery --value ROOTPE_$comp`
+  let newrootpe=rootpe+4
+  ./xmlchange ROOTPE_$comp=$newrootpe
+done
+comp_ocn=`./xmlquery --value COMP_OCN`
+# MOM ocn has no pio interface
+if [[ "$comp_ocn" == "mom" ]]; then
+  ./xmlchange PIO_ASYNC_INTERFACE_OCN=FALSE;
+fi

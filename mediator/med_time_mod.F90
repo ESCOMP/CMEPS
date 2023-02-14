@@ -17,7 +17,7 @@ module med_time_mod
   use ESMF                , only : operator(<=), operator(>), operator(==)
   use med_constants_mod   , only : dbug_flag => med_constants_dbug_flag
   use med_utils_mod       , only : chkerr => med_utils_ChkErr
-  use med_internalstate_mod, only : mastertask, logunit
+  use med_internalstate_mod, only : maintask, logunit
 
   implicit none
   private    ! default private
@@ -86,7 +86,6 @@ contains
     type(ESMF_Time)         :: CurrTime         ! Current Time
     type(ESMF_Time)         :: NextAlarm        ! Next alarm time
     type(ESMF_TimeInterval) :: AlarmInterval    ! Alarm interval
-    integer                 :: sec
     character(len=*), parameter :: subname = '(med_time_alarmInit): '
     !-------------------------------------------------------------------------------
 
@@ -255,7 +254,7 @@ contains
        enddo
     endif
 
-    if (mastertask) then
+    if (maintask) then
        write(logunit,*)
        write(logunit,'(a)') trim(subname) //' creating alarm '// trim(lalarmname)
     end if
