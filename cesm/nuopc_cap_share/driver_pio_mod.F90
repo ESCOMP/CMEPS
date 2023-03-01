@@ -27,7 +27,8 @@ module driver_pio_mod
   integer(kind=pio_offset_kind) :: pio_buffer_size_limit=-1
 
   type(pio_rearr_opt_t) :: pio_rearr_opts
-  logical               :: pio_async_interface
+!  logical               :: pio_async_interface
+  logical, allocatable :: pio_async_interface(:)
 
   integer :: total_comps
   logical :: maintask
@@ -173,148 +174,375 @@ contains
 
   end subroutine driver_pio_init
 
-  subroutine driver_pio_component_init(driver, inst_comm, asyncio_petlist, rc)
+!  subroutine driver_pio_component_init(driver, inst_comm, asyncio_petlist, rc)
+!    use ESMF, only : ESMF_GridComp, ESMF_LogSetError, ESMF_RC_NOT_VALID, ESMF_GridCompIsCreated, ESMF_VM, ESMF_VMGet
+!    use ESMF, only : ESMF_GridCompGet, ESMF_GridCompIsPetLocal, ESMF_VMIsCreated, ESMF_Finalize, ESMF_PtrInt1D
+!    use ESMF, only : ESMF_LOGMSG_INFO, ESMF_LOGWRITE
+!    use NUOPC, only : NUOPC_CompAttributeGet, NUOPC_CompAttributeSet, NUOPC_CompAttributeAdd
+!    use NUOPC_Driver, only : NUOPC_DriverGetComp
+!    use mpi, only :  MPI_INTEGER, MPI_MAX, MPI_IN_PLACE, MPI_LOR, MPI_LOGICAL
+!
+!    type(ESMF_GridComp) :: driver
+!    integer, intent(in) :: asyncio_petlist(:) 
+!    integer, intent(in) :: Inst_comm ! The communicator associated with the driver
+!    integer, intent(out) :: rc
+!
+!    type(ESMF_VM) :: vm
+!    integer :: i, npets, default_stride
+!    integer :: j, myid
+!    integer :: k
+!    integer :: comp_comm, comp_rank
+!    integer, allocatable :: procs_per_comp(:), async_procs_per_comp(:)
+!    integer, allocatable :: io_proc_list(:), asyncio_tasks(:), comp_proc_list(:,:)
+!
+!    type(ESMF_GridComp), pointer :: gcomp(:)
+!
+!    character(CS) :: cval
+!    character(CS) :: msgstr
+!    integer :: do_async_init
+!    integer :: totalpes
+!    integer :: asyncio_ntasks
+!    integer :: asyncio_stride
+!    integer :: pecnt
+!    integer :: ierr
+!    integer :: iocomm
+!    integer :: pp
+!    integer :: async_rearr
+!    integer :: maxprocspercomp, driver_myid
+!    integer, allocatable :: driverpetlist(:)
+!    integer, allocatable :: asyncio_comp_comm(:)
+!    integer :: logunit
+!    integer :: ioproc
+!    integer :: n
+!    logical :: asyncio_task
+!    logical, allocatable :: petlocal(:)
+!    type(ESMF_PtrInt1D), pointer :: petLists(:)
+!    type(iosystem_desc_t), allocatable :: async_iosystems(:)
+!    character(len=*), parameter :: subname = '('//__FILE__//':shr_pio_component_init)'
+!
+!    asyncio_ntasks = size(asyncio_petlist)
+!
+!    call shr_log_getLogUnit(logunit)
+!    call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO, rc=rc)
+!    if (chkerr(rc,__LINE__,u_FILE_u)) return
+!
+!    call MPI_Comm_rank(Inst_comm, myid, rc)
+!    call MPI_Comm_size(Inst_comm, totalpes, rc)
+!
+!    asyncio_task=.false.
+!
+!    do i=1,asyncio_ntasks
+!       ! asyncio_petlist is in 
+!       if(asyncio_petlist(i) == myid) then
+!          asyncio_task = .true.
+!          exit
+!       endif
+!    enddo
+!    write(msgstr,*) 'asyncio_task = ', asyncio_task, myid, asyncio_petlist
+!    call ESMF_LogWrite(trim(subname)//msgstr, ESMF_LOGMSG_INFO, rc=rc)
+!    nullify(gcomp)
+!    nullify(petLists)
+!    if (.not. asyncio_task) then
+!       call ESMF_GridCompGet(gridcomp=driver, vm=vm, rc=rc)
+!       if (chkerr(rc,__LINE__,u_FILE_u)) return
+!       call ESMF_VMGet(vm, localPet=driver_myid, rc=rc)
+!       if (chkerr(rc,__LINE__,u_FILE_u)) return
+!       call NUOPC_DriverGetComp(driver, compList=gcomp, petLists=petLists, rc=rc)
+!       if (chkerr(rc,__LINE__,u_FILE_u)) return
+!    endif
+!!    if(associated(gcomp)) then
+!!       total_comps = size(gcomp)       
+!!    else
+!!       total_comps = 0
+!!    endif
+!
+!    call ESMF_LogWrite(trim(subname)//": share total_comps and driverpecount", ESMF_LOGMSG_INFO)
+!    if (chkerr(rc,__LINE__,u_FILE_u)) return
+!    if(totalpes > 1) then
+!       call MPI_AllReduce(MPI_IN_PLACE, total_comps, 1, MPI_INTEGER, &
+!            MPI_MAX, Inst_comm, rc)
+!    endif
+!
+!    allocate(pio_comp_settings(total_comps))
+!    allocate(procs_per_comp(total_comps))
+!    allocate(io_compid(total_comps))
+!    allocate(io_compname(total_comps))
+!    allocate(iosystems(total_comps))
+!    allocate(petlocal(total_comps))
+!    do_async_init = 0
+!    procs_per_comp = 0
+!
+!    do i=1,total_comps
+!       if(associated(gcomp)) then
+!          petlocal(i) = ESMF_GridCompIsPetLocal(gcomp(i), rc=rc)
+!          if (chkerr(rc,__LINE__,u_FILE_u)) return
+!
+!          call NUOPC_CompAttributeGet(gcomp(i), name="pio_async_interface", value=cval, rc=rc)
+!          if (chkerr(rc,__LINE__,u_FILE_u)) return
+!          pio_comp_settings(i)%pio_async_interface = (trim(cval) == '.true.')
+!          
+!          call NUOPC_CompAttributeGet(gcomp(i), name="pio_rearranger", value=cval, rc=rc)
+!          if (chkerr(rc,__LINE__,u_FILE_u)) return
+!          read(cval, *) pio_comp_settings(i)%pio_rearranger          
+!       else
+!          petlocal(i) = .false.
+!       endif
+!       pio_comp_settings(i)%pio_async_interface = .false.
+!       io_compid(i) = i+1
+!
+!       if (petlocal(i)) then
+!          call NUOPC_CompAttributeAdd(gcomp(i), attrList=(/'MCTID'/), rc=rc)
+!          if (chkerr(rc,__LINE__,u_FILE_u)) return
+!          write(cval, *) io_compid(i)
+!          call NUOPC_CompAttributeSet(gcomp(i), name="MCTID", value=trim(cval), rc=rc)
+!          if (chkerr(rc,__LINE__,u_FILE_u)) return
+!          
+!          call ESMF_GridCompGet(gcomp(i), vm=vm, name=cval, rc=rc)
+!          if (chkerr(rc,__LINE__,u_FILE_u)) return
+!          call ESMF_LogWrite(trim(subname)//": initialize component: "//trim(cval), ESMF_LOGMSG_INFO)
+!          io_compname(i) = trim(cval)
+!
+!          call ESMF_VMGet(vm, mpiCommunicator=comp_comm, localPet=comp_rank, petCount=npets, &
+!               ssiLocalPetCount=default_stride, rc=rc)
+!          if (chkerr(rc,__LINE__,u_FILE_u)) return
+!          
+!          procs_per_comp(i) = npets
+!
+!          if(.not. pio_comp_settings(i)%pio_async_interface) then
+!             call NUOPC_CompAttributeGet(gcomp(i), name="pio_stride", value=cval, rc=rc)
+!             if (chkerr(rc,__LINE__,u_FILE_u)) return
+!             read(cval, *) pio_comp_settings(i)%pio_stride
+!             if(pio_comp_settings(i)%pio_stride <= 0 .or. pio_comp_settings(i)%pio_stride > npets) then
+!                pio_comp_settings(i)%pio_stride = min(npets, default_stride)
+!             endif
+!          
+!             call NUOPC_CompAttributeGet(gcomp(i), name="pio_numiotasks", value=cval, rc=rc)
+!             if (chkerr(rc,__LINE__,u_FILE_u)) return
+!             read(cval, *) pio_comp_settings(i)%pio_numiotasks
+!          
+!             if(pio_comp_settings(i)%pio_numiotasks < 0 .or. pio_comp_settings(i)%pio_numiotasks > npets) then
+!                pio_comp_settings(i)%pio_numiotasks = max(1,npets/pio_comp_settings(i)%pio_stride)
+!             endif
+!
+!
+!             call NUOPC_CompAttributeGet(gcomp(i), name="pio_root", value=cval, rc=rc)
+!             if (chkerr(rc,__LINE__,u_FILE_u)) return
+!             read(cval, *) pio_comp_settings(i)%pio_root
+!          
+!             if(pio_comp_settings(i)%pio_root < 0 .or. pio_comp_settings(i)%pio_root > npets) then
+!                pio_comp_settings(i)%pio_root = 0
+!             endif
+!          endif
+!         
+!          call NUOPC_CompAttributeGet(gcomp(i), name="pio_typename", value=cval, rc=rc)
+!          if (chkerr(rc,__LINE__,u_FILE_u)) return
+!          
+!          select case (trim(cval))
+!          case ('pnetcdf')
+!             pio_comp_settings(i)%pio_iotype = PIO_IOTYPE_PNETCDF
+!          case ('netcdf')
+!             pio_comp_settings(i)%pio_iotype = PIO_IOTYPE_NETCDF
+!          case ('netcdf4p')
+!             pio_comp_settings(i)%pio_iotype = PIO_IOTYPE_NETCDF4P
+!          case ('netcdf4c')
+!             pio_comp_settings(i)%pio_iotype = PIO_IOTYPE_NETCDF4C
+!          case DEFAULT
+!             write (msgstr, *) "Invalid PIO_TYPENAME Setting for component ", trim(cval)
+!             call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
+!             return
+!          end select
+!                       
+!          call NUOPC_CompAttributeGet(gcomp(i), name="pio_netcdf_format", value=cval, rc=rc)
+!          if (chkerr(rc,__LINE__,u_FILE_u)) return
+!          call driver_pio_getioformatfromname(cval, pio_comp_settings(i)%pio_netcdf_ioformat, PIO_64BIT_DATA)
+!          
+!          if (.not. pio_comp_settings(i)%pio_async_interface) then
+!             if(pio_rearr_opts%comm_fc_opts_io2comp%max_pend_req < PIO_REARR_COMM_UNLIMITED_PEND_REQ) then
+!                pio_rearr_opts%comm_fc_opts_io2comp%max_pend_req = pio_comp_settings(i)%pio_numiotasks
+!             endif
+!             if(pio_rearr_opts%comm_fc_opts_comp2io%max_pend_req < PIO_REARR_COMM_UNLIMITED_PEND_REQ) then
+!                pio_rearr_opts%comm_fc_opts_comp2io%max_pend_req = pio_comp_settings(i)%pio_numiotasks
+!             endif
+!             
+!             call pio_init(comp_rank ,comp_comm ,pio_comp_settings(i)%pio_numiotasks, 0, pio_comp_settings(i)%pio_stride, &
+!                  pio_comp_settings(i)%pio_rearranger, iosystems(i), pio_comp_settings(i)%pio_root, &
+!                  pio_rearr_opts)
+!          endif
+!          ! Write the PIO settings to the beggining of each component log
+!          if(comp_rank == 0) call driver_pio_log_comp_settings(gcomp(i), rc)
+!          if (chkerr(rc,__LINE__,u_FILE_u)) return
+!
+!       endif
+!    enddo
+!
+!    call ESMF_LogWrite(trim(subname)//": check for async", ESMF_LOGMSG_INFO)
+!    if (chkerr(rc,__LINE__,u_FILE_u)) return
+!    do i=1,total_comps
+!       call MPI_AllReduce(MPI_IN_PLACE, pio_comp_settings(i)%pio_async_interface, 1, MPI_LOGICAL, &
+!            MPI_LOR, Inst_comm, rc)
+!       if(pio_comp_settings(i)%pio_async_interface) then
+!          do_async_init = do_async_init + 1
+!       endif
+!    enddo
+!
+!!
+!!   Get the PET list for each component using async IO
+!!
+!
+!    call MPI_Allreduce(MPI_IN_PLACE, do_async_init, 1, MPI_INTEGER, MPI_MAX, Inst_comm, ierr)
+!    call MPI_Allreduce(MPI_IN_PLACE, procs_per_comp, total_comps, MPI_INTEGER, MPI_MAX, Inst_comm, ierr)
+!    if (do_async_init > 0) then
+!       maxprocspercomp = 0
+!       do i=1,total_comps
+!          if(procs_per_comp(i) > maxprocspercomp) maxprocspercomp = procs_per_comp(i)
+!       enddo
+!       call MPI_AllReduce(MPI_IN_PLACE, maxprocspercomp, 1, MPI_INTEGER, &
+!            MPI_MAX, Inst_comm, rc)
+!
+!       allocate(asyncio_comp_comm(do_async_init))
+!       allocate(comp_proc_list(maxprocspercomp, do_async_init))
+!       j = 1
+!       k = 1
+!       comp_proc_list = -1
+!       if(.not. asyncio_task) then
+!          do i=1,total_comps
+!             if(pio_comp_settings(i)%pio_async_interface) then
+!                comp_proc_list(1:procs_per_comp(i), j) = petLists(i)%ptr
+!                ! IO tasks are not in the driver comp so we need to correct the comp_proc_list
+!                do k=1,size(asyncio_petlist)
+!                  ioproc = asyncio_petlist(k)
+!                  do n=1,procs_per_comp(i)
+!                     if(petLists(i)%ptr(n) >= (ioproc-k+1)) comp_proc_list(n,j) = comp_proc_list(n,j) + 1
+!                  enddo
+!                enddo
+!                j = j+1
+!             endif
+!!             deallocate(petLists(i)%ptr)
+!          enddo
+!       endif
+!       ! Copy comp_proc_list to io tasks
+!       do i=1,do_async_init
+!          call MPI_AllReduce(MPI_IN_PLACE, comp_proc_list(:,i), maxprocspercomp, MPI_INTEGER, MPI_MAX, Inst_comm, ierr)
+!       enddo
+!       if(asyncio_ntasks == 0) then
+!          call shr_sys_abort(subname//' ERROR: ASYNC IO Requested but no IO PES assigned')
+!       endif
+!
+!       allocate(async_iosystems(do_async_init))
+!       allocate(async_procs_per_comp(do_async_init))
+!       j=1
+!       async_rearr = 0
+!       do i=1,total_comps
+!          if(pio_comp_settings(i)%pio_async_interface) then
+!             async_procs_per_comp(j) = procs_per_comp(i)
+!             j = j+1
+!             if(.not.asyncio_task) then
+!                if(async_rearr == 0) then
+!                   async_rearr = pio_comp_settings(i)%pio_rearranger
+!                elseif(async_rearr .ne. pio_comp_settings(i)%pio_rearranger .and. pio_comp_settings(i)%pio_rearranger > 0) then
+!                   write(msgstr,*) i,async_rearr,pio_comp_settings(i)%pio_rearranger
+!                   call shr_sys_abort(subname//' ERROR: all async component rearrangers must match '//msgstr)
+!                endif
+!             endif
+!          endif
+!       enddo
+!       
+!       ! IO tasks should not return until the run is completed
+!       !ierr = pio_set_log_level(1)
+!       call ESMF_LogWrite(trim(subname)//": call async pio_init", ESMF_LOGMSG_INFO)
+!       if (chkerr(rc,__LINE__,u_FILE_u)) return
+!       call MPI_AllReduce(MPI_IN_PLACE, async_rearr, 1, MPI_INTEGER, &
+!            MPI_MAX, Inst_comm, rc)
+!       call pio_init(async_iosystems, Inst_comm, async_procs_per_comp, &
+!            comp_proc_list, asyncio_petlist, &
+!            async_rearr, asyncio_comp_comm, io_comm)
+!       if(.not. asyncio_task) then
+!          j=1
+!          do i=1,total_comps
+!             if(pio_comp_settings(i)%pio_async_interface) then
+!                iosystems(i) = async_iosystems(j)
+!                j = j+1
+!             endif
+!          enddo
+!       endif
+!    endif
+!    call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
+!    if(associated(petLists)) deallocate(petLists)
+!    if(associated(gcomp)) deallocate(gcomp)
+!  end subroutine driver_pio_component_init
+
+
+  subroutine driver_pio_component_init(driver, ncomps, rc)
     use ESMF, only : ESMF_GridComp, ESMF_LogSetError, ESMF_RC_NOT_VALID, ESMF_GridCompIsCreated, ESMF_VM, ESMF_VMGet
-    use ESMF, only : ESMF_GridCompGet, ESMF_GridCompIsPetLocal, ESMF_VMIsCreated, ESMF_Finalize, ESMF_PtrInt1D
-    use ESMF, only : ESMF_LOGMSG_INFO, ESMF_LOGWRITE
+    use ESMF, only : ESMF_GridCompGet, ESMF_GridCompIsPetLocal, ESMF_VMIsCreated
     use NUOPC, only : NUOPC_CompAttributeGet, NUOPC_CompAttributeSet, NUOPC_CompAttributeAdd
     use NUOPC_Driver, only : NUOPC_DriverGetComp
-    use mpi, only :  MPI_INTEGER, MPI_MAX, MPI_IN_PLACE, MPI_LOR, MPI_LOGICAL
 
     type(ESMF_GridComp) :: driver
-    integer, intent(in) :: asyncio_petlist(:) 
-    integer, intent(in) :: Inst_comm ! The communicator associated with the driver
+    type(ESMF_VM) :: vm
+    integer, intent(in) :: ncomps
     integer, intent(out) :: rc
 
-    type(ESMF_VM) :: vm
     integer :: i, npets, default_stride
-    integer :: j, myid
-    integer :: k
+    integer :: j
     integer :: comp_comm, comp_rank
-    integer, allocatable :: procs_per_comp(:), async_procs_per_comp(:)
-    integer, allocatable :: io_proc_list(:), asyncio_tasks(:), comp_proc_list(:,:)
-
     type(ESMF_GridComp), pointer :: gcomp(:)
-
     character(CS) :: cval
     character(CS) :: msgstr
     integer :: do_async_init
-    integer :: totalpes
-    integer :: asyncio_ntasks
-    integer :: asyncio_stride
-    integer :: pecnt
-    integer :: ierr
-    integer :: iocomm
-    integer :: pp
-    integer :: async_rearr
-    integer :: maxprocspercomp, driver_myid
-    integer, allocatable :: driverpetlist(:)
-    integer, allocatable :: asyncio_comp_comm(:)
-    integer :: logunit
-    integer :: ioproc
-    integer :: n
-    logical :: asyncio_task
-    logical, allocatable :: petlocal(:)
-    type(ESMF_PtrInt1D), pointer :: petLists(:)
     type(iosystem_desc_t), allocatable :: async_iosystems(:)
-    character(len=*), parameter :: subname = '('//__FILE__//':shr_pio_component_init)'
 
-    asyncio_ntasks = size(asyncio_petlist)
+    allocate(pio_comp_settings(ncomps))
+    allocate(gcomp(ncomps))
 
-    call shr_log_getLogUnit(logunit)
-    call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    allocate(io_compid(ncomps))
+    allocate(io_compname(ncomps))
+    allocate(iosystems(ncomps))
 
-    call MPI_Comm_rank(Inst_comm, myid, rc)
-    call MPI_Comm_size(Inst_comm, totalpes, rc)
+    allocate(pio_async_interface(ncomps))
 
-    asyncio_task=.false.
-
-    do i=1,asyncio_ntasks
-       ! asyncio_petlist is in 
-       if(asyncio_petlist(i) == myid) then
-          asyncio_task = .true.
-          exit
-       endif
-    enddo
-    write(msgstr,*) 'asyncio_task = ', asyncio_task, myid, asyncio_petlist
-    call ESMF_LogWrite(trim(subname)//msgstr, ESMF_LOGMSG_INFO, rc=rc)
     nullify(gcomp)
-    nullify(petLists)
-    if (.not. asyncio_task) then
-       call ESMF_GridCompGet(gridcomp=driver, vm=vm, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_VMGet(vm, localPet=driver_myid, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call NUOPC_DriverGetComp(driver, compList=gcomp, petLists=petLists, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-    endif
-    if(associated(gcomp)) then
-       total_comps = size(gcomp)       
-    else
-       total_comps = 0
-    endif
-
-    call ESMF_LogWrite(trim(subname)//": share total_comps and driverpecount", ESMF_LOGMSG_INFO)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if(totalpes > 1) then
-       call MPI_AllReduce(MPI_IN_PLACE, total_comps, 1, MPI_INTEGER, &
-            MPI_MAX, Inst_comm, rc)
-    endif
-
-    allocate(pio_comp_settings(total_comps))
-    allocate(procs_per_comp(total_comps))
-    allocate(io_compid(total_comps))
-    allocate(io_compname(total_comps))
-    allocate(iosystems(total_comps))
-    allocate(petlocal(total_comps))
     do_async_init = 0
-    procs_per_comp = 0
 
+    call NUOPC_DriverGetComp(driver, compList=gcomp, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    total_comps = size(gcomp)
+    
     do i=1,total_comps
-       if(associated(gcomp)) then
-          petlocal(i) = ESMF_GridCompIsPetLocal(gcomp(i), rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-          call NUOPC_CompAttributeGet(gcomp(i), name="pio_async_interface", value=cval, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          pio_comp_settings(i)%pio_async_interface = (trim(cval) == '.true.')
-          
-          call NUOPC_CompAttributeGet(gcomp(i), name="pio_rearranger", value=cval, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          read(cval, *) pio_comp_settings(i)%pio_rearranger          
-       else
-          petlocal(i) = .false.
-       endif
-       pio_comp_settings(i)%pio_async_interface = .false.
        io_compid(i) = i+1
 
-       if (petlocal(i)) then
+       if (ESMF_GridCompIsPetLocal(gcomp(i), rc=rc)) then
+          call ESMF_GridCompGet(gcomp(i), vm=vm, name=cval, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          
+          io_compname(i) = trim(cval)
+          
           call NUOPC_CompAttributeAdd(gcomp(i), attrList=(/'MCTID'/), rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
+          
           write(cval, *) io_compid(i)
           call NUOPC_CompAttributeSet(gcomp(i), name="MCTID", value=trim(cval), rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
-          
-          call ESMF_GridCompGet(gcomp(i), vm=vm, name=cval, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call ESMF_LogWrite(trim(subname)//": initialize component: "//trim(cval), ESMF_LOGMSG_INFO)
-          io_compname(i) = trim(cval)
 
-          call ESMF_VMGet(vm, mpiCommunicator=comp_comm, localPet=comp_rank, petCount=npets, &
-               ssiLocalPetCount=default_stride, rc=rc)
+          call ESMF_VMGet(vm, mpiCommunicator=comp_comm, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
-          
-          procs_per_comp(i) = npets
 
-          if(.not. pio_comp_settings(i)%pio_async_interface) then
+          if(comp_comm .ne. MPI_COMM_NULL) then
+             call ESMF_VMGet(vm, petCount=npets, localPet=comp_rank, ssiLocalPetCount=default_stride, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+          
              call NUOPC_CompAttributeGet(gcomp(i), name="pio_stride", value=cval, rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
              read(cval, *) pio_comp_settings(i)%pio_stride
              if(pio_comp_settings(i)%pio_stride <= 0 .or. pio_comp_settings(i)%pio_stride > npets) then
                 pio_comp_settings(i)%pio_stride = min(npets, default_stride)
              endif
-          
+             
+             call NUOPC_CompAttributeGet(gcomp(i), name="pio_rearranger", value=cval, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+             read(cval, *) pio_comp_settings(i)%pio_rearranger
+             
              call NUOPC_CompAttributeGet(gcomp(i), name="pio_numiotasks", value=cval, rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
              read(cval, *) pio_comp_settings(i)%pio_numiotasks
@@ -323,151 +551,69 @@ contains
                 pio_comp_settings(i)%pio_numiotasks = max(1,npets/pio_comp_settings(i)%pio_stride)
              endif
 
-
              call NUOPC_CompAttributeGet(gcomp(i), name="pio_root", value=cval, rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
              read(cval, *) pio_comp_settings(i)%pio_root
-          
+             
              if(pio_comp_settings(i)%pio_root < 0 .or. pio_comp_settings(i)%pio_root > npets) then
                 pio_comp_settings(i)%pio_root = 0
              endif
-          endif
-         
-          call NUOPC_CompAttributeGet(gcomp(i), name="pio_typename", value=cval, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
           
-          select case (trim(cval))
-          case ('pnetcdf')
-             pio_comp_settings(i)%pio_iotype = PIO_IOTYPE_PNETCDF
-          case ('netcdf')
-             pio_comp_settings(i)%pio_iotype = PIO_IOTYPE_NETCDF
-          case ('netcdf4p')
-             pio_comp_settings(i)%pio_iotype = PIO_IOTYPE_NETCDF4P
-          case ('netcdf4c')
-             pio_comp_settings(i)%pio_iotype = PIO_IOTYPE_NETCDF4C
-          case DEFAULT
-             write (msgstr, *) "Invalid PIO_TYPENAME Setting for component ", trim(cval)
-             call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
-             return
-          end select
-                       
-          call NUOPC_CompAttributeGet(gcomp(i), name="pio_netcdf_format", value=cval, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call driver_pio_getioformatfromname(cval, pio_comp_settings(i)%pio_netcdf_ioformat, PIO_64BIT_DATA)
-          
-          if (.not. pio_comp_settings(i)%pio_async_interface) then
-             if(pio_rearr_opts%comm_fc_opts_io2comp%max_pend_req < PIO_REARR_COMM_UNLIMITED_PEND_REQ) then
-                pio_rearr_opts%comm_fc_opts_io2comp%max_pend_req = pio_comp_settings(i)%pio_numiotasks
-             endif
-             if(pio_rearr_opts%comm_fc_opts_comp2io%max_pend_req < PIO_REARR_COMM_UNLIMITED_PEND_REQ) then
-                pio_rearr_opts%comm_fc_opts_comp2io%max_pend_req = pio_comp_settings(i)%pio_numiotasks
-             endif
+             call NUOPC_CompAttributeGet(gcomp(i), name="pio_typename", value=cval, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
              
-             call pio_init(comp_rank ,comp_comm ,pio_comp_settings(i)%pio_numiotasks, 0, pio_comp_settings(i)%pio_stride, &
-                  pio_comp_settings(i)%pio_rearranger, iosystems(i), pio_comp_settings(i)%pio_root, &
-                  pio_rearr_opts)
-          endif
-          ! Write the PIO settings to the beggining of each component log
-          if(comp_rank == 0) call driver_pio_log_comp_settings(gcomp(i), rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-       endif
-    enddo
-
-    call ESMF_LogWrite(trim(subname)//": check for async", ESMF_LOGMSG_INFO)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    do i=1,total_comps
-       call MPI_AllReduce(MPI_IN_PLACE, pio_comp_settings(i)%pio_async_interface, 1, MPI_LOGICAL, &
-            MPI_LOR, Inst_comm, rc)
-       if(pio_comp_settings(i)%pio_async_interface) then
-          do_async_init = do_async_init + 1
-       endif
-    enddo
-
-!
-!   Get the PET list for each component using async IO
-!
-
-    call MPI_Allreduce(MPI_IN_PLACE, do_async_init, 1, MPI_INTEGER, MPI_MAX, Inst_comm, ierr)
-    call MPI_Allreduce(MPI_IN_PLACE, procs_per_comp, total_comps, MPI_INTEGER, MPI_MAX, Inst_comm, ierr)
-    if (do_async_init > 0) then
-       maxprocspercomp = 0
-       do i=1,total_comps
-          if(procs_per_comp(i) > maxprocspercomp) maxprocspercomp = procs_per_comp(i)
-       enddo
-       call MPI_AllReduce(MPI_IN_PLACE, maxprocspercomp, 1, MPI_INTEGER, &
-            MPI_MAX, Inst_comm, rc)
-
-       allocate(asyncio_comp_comm(do_async_init))
-       allocate(comp_proc_list(maxprocspercomp, do_async_init))
-       j = 1
-       k = 1
-       comp_proc_list = -1
-       if(.not. asyncio_task) then
-          do i=1,total_comps
-             if(pio_comp_settings(i)%pio_async_interface) then
-                comp_proc_list(1:procs_per_comp(i), j) = petLists(i)%ptr
-                ! IO tasks are not in the driver comp so we need to correct the comp_proc_list
-                do k=1,size(asyncio_petlist)
-                  ioproc = asyncio_petlist(k)
-                  do n=1,procs_per_comp(i)
-                     if(petLists(i)%ptr(n) >= (ioproc-k+1)) comp_proc_list(n,j) = comp_proc_list(n,j) + 1
-                  enddo
-                enddo
-                j = j+1
-             endif
-!             deallocate(petLists(i)%ptr)
-          enddo
-       endif
-       ! Copy comp_proc_list to io tasks
-       do i=1,do_async_init
-          call MPI_AllReduce(MPI_IN_PLACE, comp_proc_list(:,i), maxprocspercomp, MPI_INTEGER, MPI_MAX, Inst_comm, ierr)
-       enddo
-       if(asyncio_ntasks == 0) then
-          call shr_sys_abort(subname//' ERROR: ASYNC IO Requested but no IO PES assigned')
-       endif
-
-       allocate(async_iosystems(do_async_init))
-       allocate(async_procs_per_comp(do_async_init))
-       j=1
-       async_rearr = 0
-       do i=1,total_comps
-          if(pio_comp_settings(i)%pio_async_interface) then
-             async_procs_per_comp(j) = procs_per_comp(i)
-             j = j+1
-             if(.not.asyncio_task) then
-                if(async_rearr == 0) then
-                   async_rearr = pio_comp_settings(i)%pio_rearranger
-                elseif(async_rearr .ne. pio_comp_settings(i)%pio_rearranger .and. pio_comp_settings(i)%pio_rearranger > 0) then
-                   write(msgstr,*) i,async_rearr,pio_comp_settings(i)%pio_rearranger
-                   call shr_sys_abort(subname//' ERROR: all async component rearrangers must match '//msgstr)
+             select case (trim(cval))
+             case ('pnetcdf')
+                pio_comp_settings(i)%pio_iotype = PIO_IOTYPE_PNETCDF
+             case ('netcdf')
+                pio_comp_settings(i)%pio_iotype = PIO_IOTYPE_NETCDF
+             case ('netcdf4p')
+                pio_comp_settings(i)%pio_iotype = PIO_IOTYPE_NETCDF4P
+             case ('netcdf4c')
+                pio_comp_settings(i)%pio_iotype = PIO_IOTYPE_NETCDF4C
+             case DEFAULT
+                write (msgstr, *) "Invalid PIO_TYPENAME Setting for component ", trim(cval)
+                call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
+                return
+             end select
+             
+             call NUOPC_CompAttributeGet(gcomp(i), name="pio_async_interface", value=cval, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+             pio_async_interface(i) = (trim(cval) == '.true.')
+             
+             call NUOPC_CompAttributeGet(gcomp(i), name="pio_netcdf_format", value=cval, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+             call driver_pio_getioformatfromname(cval, pio_comp_settings(i)%pio_netcdf_ioformat, PIO_64BIT_DATA)
+             
+             if (pio_async_interface(i)) then
+                do_async_init = do_async_init + 1
+             else
+                if(pio_rearr_opts%comm_fc_opts_io2comp%max_pend_req < PIO_REARR_COMM_UNLIMITED_PEND_REQ) then
+                   pio_rearr_opts%comm_fc_opts_io2comp%max_pend_req = pio_comp_settings(i)%pio_numiotasks
                 endif
+                if(pio_rearr_opts%comm_fc_opts_comp2io%max_pend_req < PIO_REARR_COMM_UNLIMITED_PEND_REQ) then
+                   pio_rearr_opts%comm_fc_opts_comp2io%max_pend_req = pio_comp_settings(i)%pio_numiotasks
+                endif
+                call pio_init(comp_rank ,comp_comm ,pio_comp_settings(i)%pio_numiotasks, 0, pio_comp_settings(i)%pio_stride, &
+                     pio_comp_settings(i)%pio_rearranger, iosystems(i), pio_comp_settings(i)%pio_root, &
+                     pio_rearr_opts)
              endif
+          endif
+       endif
+    enddo
+    if (do_async_init > 0) then
+       allocate(async_iosystems(do_async_init))
+       j=1
+       do i=1,total_comps
+          if(pio_async_interface(i)) then
+             iosystems(i) = async_iosystems(j)
+             j = j+1
           endif
        enddo
        
-       ! IO tasks should not return until the run is completed
-       !ierr = pio_set_log_level(1)
-       call ESMF_LogWrite(trim(subname)//": call async pio_init", ESMF_LOGMSG_INFO)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call MPI_AllReduce(MPI_IN_PLACE, async_rearr, 1, MPI_INTEGER, &
-            MPI_MAX, Inst_comm, rc)
-       call pio_init(async_iosystems, Inst_comm, async_procs_per_comp, &
-            comp_proc_list, asyncio_petlist, &
-            async_rearr, asyncio_comp_comm, io_comm)
-       if(.not. asyncio_task) then
-          j=1
-          do i=1,total_comps
-             if(pio_comp_settings(i)%pio_async_interface) then
-                iosystems(i) = async_iosystems(j)
-                j = j+1
-             endif
-          enddo
-       endif
     endif
-    call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
-    if(associated(petLists)) deallocate(petLists)
-    if(associated(gcomp)) deallocate(gcomp)
+
+    deallocate(gcomp)
   end subroutine driver_pio_component_init
 
   subroutine driver_pio_log_comp_settings(gcomp, rc)
