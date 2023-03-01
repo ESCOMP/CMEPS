@@ -797,6 +797,7 @@ contains
     use mpi          , only : MPI_COMM_NULL, mpi_comm_size
 #endif
     use mct_mod      , only : mct_world_init
+    use driver_pio_mod , only : driver_pio_init, driver_pio_component_init
 
 #ifdef MED_PRESENT
     use med_internalstate_mod , only : med_id
@@ -1163,6 +1164,10 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     enddo
+    ! Read in component dependent PIO parameters and initialize
+    ! IO systems
+    call driver_pio_component_init(driver, size(comps), rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     call mct_world_init(componentCount+1, GLOBAL_COMM, comms, comps)
 
