@@ -36,8 +36,8 @@ contains
     use med_methods_mod       , only : FB_GetFldPtr => med_methods_FB_GetFldPtr
     use med_constants_mod     , only : dbug_flag    => med_constants_dbug_flag
     use med_merge_mod         , only : med_merge_auto
-    use med_internalstate_mod , only : InternalState, logunit, mastertask
-    use med_internalstate_mod , only : compatm, compice, compocn, comprof
+    use med_internalstate_mod , only : InternalState, logunit, maintask
+    use med_internalstate_mod , only : compatm, compice, compocn
     use med_internalstate_mod , only : coupling_mode
     use esmFlds               , only : med_fldList_GetFldListTo
     use perf_mod              , only : t_startf, t_stopf
@@ -49,16 +49,13 @@ contains
     ! local variables
     type(InternalState)            :: is_local
     type(ESMF_Field)               :: lfield
-    integer                        :: i,n
+    integer                        :: n
     real(R8), pointer              :: dataptr(:)
     real(R8), pointer              :: dataptr_scalar_ocn(:,:)
     real(R8)                       :: precip_fact(1)
     character(len=CS)              :: cvalue
     character(len=64), allocatable :: fldnames(:)
-    real(r8)                       :: nextsw_cday
     integer                        :: scalar_id
-    real(r8)                       :: tmp(1)
-    logical                        :: first_precip_fact_call = .true.
     character(len=*),parameter     :: subname='(med_phases_prep_ice)'
     !---------------------------------------
 
@@ -96,7 +93,7 @@ contains
        ! is initialized to 0.
        ! In addition, in med.F90, if this attribute is not present as a mediator component attribute,
        ! it is set to 0.
-       if (mastertask) then
+       if (maintask) then
           call ESMF_StateGet(is_local%wrap%NstateImp(compocn), &
                itemName=trim(is_local%wrap%flds_scalar_name), field=lfield, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -133,7 +130,7 @@ contains
 
     ! obtain nextsw_cday from atm if it is in the import state and send it to ice
     scalar_id=is_local%wrap%flds_scalar_index_nextsw_cday
-    if (scalar_id > 0 .and. mastertask) then
+    if (scalar_id > 0 .and. maintask) then
        call ESMF_StateGet(is_local%wrap%NstateImp(compatm), &
             itemName=trim(is_local%wrap%flds_scalar_name), field=lfield, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return

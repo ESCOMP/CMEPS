@@ -9,8 +9,7 @@ module ESM
   use shr_mpi_mod  , only : shr_mpi_bcast
   use shr_mem_mod  , only : shr_mem_init
   use shr_log_mod  , only : shr_log_setLogunit
-  use esm_utils_mod, only : logunit, mastertask, dbug_flag, chkerr
-  use perf_mod     , only : t_initf, t_setLogUnit
+  use esm_utils_mod, only : logunit, maintask, dbug_flag, chkerr
 
   implicit none
   private
@@ -54,7 +53,6 @@ contains
     integer, intent(out) :: rc
 
     ! local variables
-    type(ESMF_Config) :: runSeq
     character(len=*), parameter :: subname = "(esm.F90:SetServices)"
     !---------------------------------------
 
@@ -125,9 +123,7 @@ contains
     ! local variables
     type(ESMF_VM)     :: vm
     type(ESMF_Config) :: config
-    integer           :: n, i, stat
-    character(len=20) :: model, prefix
-    integer           :: localPet, medpet
+    integer           :: localPet
     character(len=CL) :: meminitStr
     integer           :: global_comm
     integer           :: maxthreads
@@ -154,12 +150,10 @@ contains
     call ESMF_VMGet(vm, localPet=localPet, mpiCommunicator=global_comm, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    call ESMF_VMGet(vm, localPet=localPet, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
     if (localPet == 0) then
-       mastertask=.true.
+       maintask=.true.
     else
-       mastertask = .false.
+       maintask = .false.
     end if
 
     !-------------------------------------------
@@ -209,15 +203,10 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! Memory test
-    if (mastertask) then
+    if (maintask) then
        call shr_mem_init(strbuf=meminitstr)
        write(logunit,*) trim(meminitstr)
     end if
-
-    !-------------------------------------------
-    ! Timer initialization (has to be after pelayouts are determined)
-    !-------------------------------------------
-    call t_initf('drv_in', LogPrint=.true., LogUnit=logunit, mpicom=global_comm, mastertask=mastertask, MaxThreads=maxthreads)
 
     call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
 
@@ -241,7 +230,6 @@ contains
     integer, intent(out) :: rc
 
     ! local variables
-    integer                 :: localrc
     type(ESMF_Config)       :: runSeq
     type(NUOPC_FreeFormat)  :: runSeqFF
     character(len=*), parameter :: subname = "(esm.F90:SetRunSequence)"
@@ -249,6 +237,7 @@ contains
 
     rc = ESMF_SUCCESS
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
+    call shr_log_setLogunit(logunit)
 
     !--------
     ! Run Sequence and Connectors
@@ -267,7 +256,7 @@ contains
 
     call NUOPC_DriverIngestRunSequence(driver, runSeqFF, autoAddConnectors=.true., rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-
+#ifdef DEBUG
     ! Uncomment these to add debugging information for driver
     ! call NUOPC_DriverPrint(driver, orderflag=.true.)
     ! if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
@@ -275,9 +264,9 @@ contains
     !   file=__FILE__)) &
     !   return  ! bail out
 
-    ! call pretty_print_nuopc_freeformat(runSeqFF, 'run sequence', rc=rc)
-    ! if (chkerr(rc,__LINE__,u_FILE_u)) return
-
+!    call pretty_print_nuopc_freeformat(runSeqFF, 'run sequence', rc=rc)
+!    if (chkerr(rc,__LINE__,u_FILE_u)) return
+#endif
     call NUOPC_FreeFormatDestroy(runSeqFF, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
@@ -305,7 +294,7 @@ contains
 
     rc = ESMF_SUCCESS
 
-    if (mastertask .or. dbug_flag > 3) then
+    if (maintask .or. dbug_flag > 3) then
        write(logunit, *) 'BEGIN: ', trim(label)
        call NUOPC_FreeFormatGet(ffstuff, linecount=linecnt, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -347,6 +336,7 @@ contains
 
     rc = ESMF_SUCCESS
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
+    call shr_log_setLogunit(logunit)
 
     call ESMF_LogWrite("Driver is in ModifyCplLists()", ESMF_LOGMSG_INFO, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -433,11 +423,7 @@ contains
     type(ShrWVSatTableSpec)      :: liquid_spec
     type(ShrWVSatTableSpec)      :: ice_spec
     type(ShrWVSatTableSpec)      :: mixed_spec
-    logical                      :: flag
-    integer                      :: i, it, n
-    integer                      :: unitn                 ! Namelist unit number to read
     integer                      :: localPet, rootpe_med
-    character(len=CL)            :: msgstr
     integer          , parameter :: ens1=1                ! use first instance of ensemble only
     integer          , parameter :: fix1=1                ! temporary hard-coding to first ensemble, needs to be fixed
     real(R8)         , parameter :: epsilo = shr_const_mwwv/shr_const_mwdair
@@ -446,6 +432,7 @@ contains
 
     rc = ESMF_SUCCESS
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
+    call shr_log_setLogunit(logunit)
 
     !----------------------------------------------------------
     ! Initialize options for reproducible sums
@@ -475,7 +462,7 @@ contains
     call NUOPC_CompAttributeGet(driver, name="tfreeze_option", value=tfreeze_option, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    call shr_frz_freezetemp_init(tfreeze_option, mastertask)
+    call shr_frz_freezetemp_init(tfreeze_option, maintask)
 
     call NUOPC_CompAttributeGet(driver, name='cpl_rootpe', value=cvalue, rc=rc)
     read(cvalue, *) rootpe_med
@@ -568,8 +555,6 @@ contains
     integer             , intent(out)   :: rc
 
     !----- local -----
-    character(len=CL) :: cvalue         ! temporary
-    character(len=CL) :: start_type     ! Type of startup
     character(len=CS) :: logFilePostFix ! postfix for output log files
     character(len=CL) :: outPathRoot    ! root for output log files
     character(len=CS) :: cime_model
@@ -625,19 +610,17 @@ contains
     character(len=*)    , intent(in)    :: inst_suffix
     integer             , intent(in)    :: nthrds
     integer             , intent(inout) :: rc
-
     ! local variables
-    integer                        :: n
-    integer                        :: stat
     integer                        :: inst_index
+    logical                        :: computetask
     character(len=CL)              :: cvalue
     character(len=CS)              :: attribute
-    integer                        :: componentCount
     character(len=*), parameter    :: subname = "(esm.F90:AddAttributes)"
     !-------------------------------------------
-
+    computetask = .false.
     rc = ESMF_Success
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
+    call shr_log_setLogunit(logunit)
 
     !------
     ! Add compid to gcomp attributes
@@ -649,9 +632,13 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     !------
-    ! Add driver restart flag a to gcomp attributes
+    ! Add driver restart flag to gcomp attributes
     !------
     attribute = 'read_restart'
+    call NUOPC_CompAttributeGet(driver, name=trim(attribute), isPresent=computetask, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    if(.not. computetask) return
+
     call NUOPC_CompAttributeGet(driver, name=trim(attribute), value=cvalue, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call NUOPC_CompAttributeAdd(gcomp, (/trim(attribute)/), rc=rc)
@@ -666,6 +653,9 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call ReadAttributes(gcomp, config, "ALLCOMP_attributes::", rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    call ESMF_LogWrite(trim(subname)//": call Readattributes for"//trim(compname), ESMF_LOGMSG_INFO)
+
     call ReadAttributes(gcomp, config, trim(compname)//"_modelio::", rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) then
        print *,__FILE__,__LINE__,"ERROR reading ",trim(compname)," modelio from runconfig"
@@ -739,6 +729,7 @@ contains
     !-------------------------------------------
 
     rc = ESMF_SUCCESS
+    call shr_log_setLogunit(logunit)
 
     if (present(relaxedflag)) then
        attrFF = NUOPC_FreeFormatCreate(config, label=trim(label), relaxedflag=.true., rc=rc)
@@ -750,12 +741,12 @@ contains
 
     call NUOPC_CompAttributeIngest(gcomp, attrFF, addFlag=.true., rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    !    if (present (formatprint)) then
-    !       call pretty_print_nuopc_freeformat(attrFF, trim(label)//' attributes', rc=rc)
-    !       if (chkerr(rc,__LINE__,u_FILE_u)) return
-    !    end if
-
+#ifdef DEBUG
+!    if (present (formatprint)) then
+!       call pretty_print_nuopc_freeformat(attrFF, trim(label)//' attributes', rc=rc)
+!       if (chkerr(rc,__LINE__,u_FILE_u)) return
+!    end if
+#endif
     call NUOPC_FreeFormatDestroy(attrFF, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
@@ -870,11 +861,10 @@ contains
     type(ESMF_VM)                  :: vm
     type(ESMF_Config)              :: config
     type(ESMF_Info)                :: info
-    integer                        :: componentcount
     integer                        :: PetCount
-    integer                        :: LocalPet
+    integer                        :: ComponentCount
     integer                        :: ntasks, rootpe, nthrds, stride
-    integer                        :: ntask, cnt
+    integer                        :: ntask
     integer                        :: i
     integer                        :: stat
     character(len=32), allocatable :: compLabels(:)
@@ -892,6 +882,7 @@ contains
     integer :: rank, nprocs, ierr
     character(len=*), parameter    :: subname = "(esm_pelayout.F90:esm_init_pelayout)"
     !---------------------------------------
+    call shr_log_setLogunit(logunit)
 
     rc = ESMF_SUCCESS
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
@@ -930,11 +921,6 @@ contains
        inst_suffix = ""
     endif
 
-    ! Initialize PIO
-    ! This reads in the pio parameters that are independent of component
-    call driver_pio_init(driver, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
     allocate(comms(componentCount+1), comps(componentCount+1))
     comps(1) = 1
     comms = MPI_COMM_NULL
@@ -959,7 +945,7 @@ contains
        read(cvalue,*) ntasks
 
        if (ntasks < 0 .or. ntasks > PetCount) then
-          write (msgstr, *) "Invalid NTASKS value specified for component: ",namestr, ' ntasks: ',ntasks
+          write (msgstr, *) "Invalid NTASKS value specified for component: ",namestr, ' ntasks: ',ntasks, petcount
           call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
           return
        endif
@@ -1183,7 +1169,6 @@ contains
     call driver_pio_component_init(driver, size(comps), rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    ! Initialize MCT (this is needed for data models and cice prescribed capability)
     call mct_world_init(componentCount+1, GLOBAL_COMM, comms, comps)
 
 
@@ -1254,6 +1239,8 @@ contains
     !-------------------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
+    call shr_log_setLogunit(logunit)
+    scol_mesh_n = 0
 
     ! obtain the single column lon and lat
     call NUOPC_CompAttributeGet(gcomp, name='scol_lon', value=cvalue, rc=rc)
@@ -1414,11 +1401,12 @@ contains
           allocate(lonMesh(lsize), latMesh(lsize))
           call ESMF_MeshGet(mesh, ownedElemCoords=ownedElemCoords)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+          scol_mesh_n = 0
           do n = 1,lsize
              lonMesh(n) = ownedElemCoords(2*n-1)
              latMesh(n) = ownedElemCoords(2*n)
              if (abs(lonMesh(n) - scol_lon) < 1.e-4 .and. abs(latMesh(n) - scol_lat) < 1.e-4) then
-                scol_mesh_n = n
                 scol_mesh_n = n
                 exit
              end if
@@ -1515,7 +1503,7 @@ contains
   subroutine esm_finalize(driver, rc)
 
     use ESMF     , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_VM, ESMF_VMGet
-    use ESMF     , only : ESMF_SUCCESS
+    use ESMF     , only : ESMF_SUCCESS, ESMF_LOGMSG_INFO, ESMF_LOGWRITE
     use NUOPC    , only : NUOPC_CompAttributeGet
     use perf_mod , only : t_prf, t_finalizef
 
@@ -1529,14 +1517,12 @@ contains
     logical              :: isPresent
     type(ESMF_VM)        :: vm
     integer              :: mpicomm
+    character(len=*), parameter :: subname = '(esm_finalize) '
     !---------------------------------------
 
+    call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
     rc = ESMF_SUCCESS
-
-    if (mastertask) then
-       write(logunit,*)' SUCCESSFUL TERMINATION OF CESM'
-    end if
-
+    call shr_log_setLogunit(logunit)
     call ESMF_GridCompGet(driver, vm=vm, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call ESMF_VMGet(vm, mpiCommunicator=mpicomm, rc=rc)
@@ -1554,6 +1540,11 @@ contains
        inst_suffix = ""
     endif
     call t_prf(trim(timing_dir)//'/model_timing'//trim(inst_suffix), mpicom=mpicomm)
+
+    if (maintask) then
+       write(logunit,*)' SUCCESSFUL TERMINATION OF CESM'
+    end if
+    call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
 
     call t_finalizef()
   end subroutine esm_finalize

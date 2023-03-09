@@ -26,7 +26,6 @@ contains
     use med_utils_mod         , only : chkerr => med_utils_chkerr
     use med_methods_mod       , only : fldchk => med_methods_FB_FldChk
     use med_internalstate_mod , only : InternalState
-    use med_internalstate_mod , only : mastertask, logunit
     use med_internalstate_mod , only : compmed, compatm, compocn, compice, complnd, compwav, ncomps
     use med_internalstate_mod , only : mapbilnr, mapconsf, mapconsd, mappatch
     use med_internalstate_mod , only : mapfcopy, mapnstod, mapnstod_consd, mapnstod_consf
@@ -40,8 +39,6 @@ contains
     use esmFlds               , only : addfld_aoflux => med_fldList_addfld_aoflux
     use esmFlds               , only : addmap_aoflux => med_fldList_addmap_aoflux
 
-    use med_internalstate_mod , only : InternalState, mastertask, logunit
-
     ! input/output parameters:
     type(ESMF_GridComp)              :: gcomp
     character(len=*) , intent(in)    :: phase
@@ -49,7 +46,7 @@ contains
 
     ! local variables:
     type(InternalState) :: is_local
-    integer             :: i, n, maptype
+    integer             :: n, maptype
     character(len=CX)   :: msgString
     character(len=CL)   :: cvalue
     character(len=CS)   :: fldname
@@ -563,9 +560,8 @@ contains
     deallocate(flds)
 
     ! to ocn: partitioned stokes drift from wav
-    allocate(flds(6))
-    flds = (/'Sw_ustokes1', 'Sw_ustokes2', 'Sw_ustokes3', &
-             'Sw_vstokes1', 'Sw_vstokes2', 'Sw_vstokes3'/)
+    allocate(flds(2))
+    flds = (/'Sw_pstokes_x', 'Sw_pstokes_y'/)
     do n = 1,size(flds)
        fldname = trim(flds(n))
        if (phase == 'advertise') then

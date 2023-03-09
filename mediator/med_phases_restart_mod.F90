@@ -7,7 +7,7 @@ module med_phases_restart_mod
   use med_kind_mod            , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
   use med_constants_mod       , only : dbug_flag => med_constants_dbug_flag
   use med_utils_mod           , only : chkerr    => med_utils_ChkErr
-  use med_internalstate_mod   , only : mastertask, logunit, InternalState
+  use med_internalstate_mod   , only : maintask, logunit, InternalState
   use med_internalstate_mod   , only : ncomps, compname, compocn, complnd, compwav
   use perf_mod                , only : t_startf, t_stopf
   use med_phases_prep_glc_mod , only : FBlndAccum2glc_l, lndAccum2glc_cnt
@@ -58,8 +58,6 @@ contains
     type(ESMF_Clock)        :: mclock
     type(ESMF_TimeInterval) :: mtimestep
     type(ESMF_Time)         :: mCurrTime
-    type(ESMF_Time)         :: mStartTime
-    type(ESMF_TimeInterval) :: timestep
     integer                 :: timestep_length
     character(CL)           :: cvalue          ! attribute string
     character(CL)           :: restart_option  ! freq_option setting (ndays, nsteps, etc)
@@ -108,7 +106,7 @@ contains
     end if
 
     ! Write mediator diagnostic output
-    if (mastertask) then
+    if (maintask) then
        write(logunit,*)
        write(logunit,'(a,2x,i8)') trim(subname)//" restart clock timestep = ",timestep_length
        write(logunit,'(a,2x,i8)') trim(subname)//" set restart alarm with option "//&
@@ -175,11 +173,8 @@ contains
     character(ESMF_MAXSTR)     :: cpl_inst_tag   ! instance tag
     character(ESMF_MAXSTR)     :: restart_dir    ! Optional restart directory name
     character(ESMF_MAXSTR)     :: cvalue         ! attribute string
-    character(ESMF_MAXSTR)     :: freq_option    ! freq_option setting (ndays, nsteps, etc)
-    integer                    :: freq_n         ! freq_n setting relative to freq_option
     logical                    :: alarmIsOn      ! generic alarm flag
     real(R8)                   :: tbnds(2)       ! CF1.0 time bounds
-    character(ESMF_MAXSTR)     :: tmpstr
     logical                    :: isPresent
     logical                    :: first_time = .true.
     character(len=*), parameter :: subname='(med_phases_restart_write)'
@@ -267,7 +262,7 @@ contains
        if (dbug_flag > 1) then
           call ESMF_LogWrite(trim(subname)//": nexttime = "//trim(nexttimestr), ESMF_LOGMSG_INFO)
        endif
-       if (mastertask) then
+       if (maintask) then
           call ESMF_ClockPrint(clock, options="currTime", &
                preString="-------->"//trim(subname)//" mediating for: ", unit=cvalue, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -303,8 +298,8 @@ contains
        write(restart_file,"(6a)") trim(restart_dir)//trim(case_name),'.cpl', trim(cpl_inst_tag),'.r.',&
             trim(nexttimestr),'.nc'
 
-       if (mastertask) then
-          restart_pfile = "rpointer.cpl"//cpl_inst_tag
+       if (maintask) then
+          restart_pfile = "rpointer.cpl"//trim(cpl_inst_tag)
           call ESMF_LogWrite(trim(subname)//" write rpointer file = "//trim(restart_pfile), ESMF_LOGMSG_INFO)
           open(newunit=unitn, file=restart_pfile, form='FORMATTED')
           write(unitn,'(a)') trim(restart_file)
@@ -495,7 +490,7 @@ contains
     type(ESMF_Time)        :: currtime
     character(len=CS)      :: currtimestr
     type(InternalState)    :: is_local
-    integer                :: i,j,m,n
+    integer                :: n
     integer                :: ierr, unitn
     integer                :: yr,mon,day,sec ! time units
     character(ESMF_MAXSTR) :: case_name      ! case name
@@ -537,14 +532,14 @@ contains
     if (dbug_flag > 1) then
        call ESMF_LogWrite(trim(subname)//": currtime = "//trim(currtimestr), ESMF_LOGMSG_INFO)
     endif
-    if (mastertask) then
+    if (maintask) then
        call ESMF_ClockPrint(clock, options="currTime", preString="-------->"//trim(subname)//" mediating for: ", rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     endif
 
     ! Get the restart file name from the pointer file
-    restart_pfile = "rpointer.cpl"//cpl_inst_tag
-    if (mastertask) then
+    restart_pfile = "rpointer.cpl"//trim(cpl_inst_tag)
+    if (maintask) then
        call ESMF_LogWrite(trim(subname)//" read rpointer file = "//trim(restart_pfile), ESMF_LOGMSG_INFO)
        open(newunit=unitn, file=restart_pfile, form='FORMATTED', status='old', iostat=ierr)
        if (ierr < 0) then

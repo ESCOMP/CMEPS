@@ -20,7 +20,7 @@ module med_phases_history_mod
   use NUOPC_Model           , only : NUOPC_ModelGet
   use med_utils_mod         , only : chkerr => med_utils_ChkErr
   use med_internalstate_mod , only : ncomps, compname
-  use med_internalstate_mod , only : InternalState, mastertask, logunit
+  use med_internalstate_mod , only : InternalState, maintask, logunit
   use med_time_mod          , only : med_time_alarmInit
   use med_io_mod            , only : med_io_write, med_io_wopen, med_io_enddef, med_io_close
   use perf_mod              , only : t_startf, t_stopf
@@ -164,14 +164,12 @@ contains
     logical                 :: isSet
     type(ESMF_VM)           :: vm
     type(ESMF_Calendar)     :: calendar     ! calendar type
-    integer                 :: i,m,n        ! indices
-    integer                 :: nx,ny        ! global grid size
+    integer                 :: m,n        ! indices
     character(CL)           :: time_units   ! units of time variable
     character(CL)           :: hist_file    ! history file name
     real(r8)                :: time_val     ! time coordinate output
     real(r8)                :: time_bnds(2) ! time bounds output
     logical                 :: write_now    ! true => write to history type
-    real(r8)                :: tbnds(2)     ! CF1.0 time bounds
     type(ESMF_Time)         :: starttime
     type(ESMF_Time)         :: currtime
     type(ESMF_Time)         :: nexttime
@@ -232,7 +230,7 @@ contains
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
           ! Write diagnostic info
-          if (mastertask) then
+          if (maintask) then
              write(logunit,'(a,2x,i8)') trim(subname) // "  initialized history alarm "//&
                   trim(alarmname)//"  with option "//trim(hist_option_all_inst)//" and frequency ",hist_n_all_inst
           end if
@@ -255,7 +253,7 @@ contains
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
           ! Write diagnostic info if appropriate
-          if (mastertask .and. debug_alarms) then
+          if (maintask .and. debug_alarms) then
              call ESMF_AlarmGet(alarm, ringInterval=ringInterval, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
              call ESMF_TimeIntervalGet(ringInterval, s=ringinterval_length, rc=rc)
@@ -273,7 +271,7 @@ contains
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
              write(nexttimestr,'(i4.4,a,i2.2,a,i2.2,a,i5.5)') yr,'-',mon,'-',day,'-',sec
 
-             if (mastertask) then
+             if (maintask) then
                 write(logunit,*)
                 write(logunit,'(a,i8)') trim(subname)//" : history alarmname "//trim(alarmname)//&
                      ' is ringing, interval length is ', ringInterval_length
@@ -388,8 +386,7 @@ contains
     type(InternalState) :: is_local
     type(ESMF_VM)       :: vm
     type(ESMF_Calendar) :: calendar     ! calendar type
-    integer             :: i,m,n        ! indices
-    integer             :: nx,ny        ! global grid size
+    integer             :: m            ! indices
     character(CL)       :: time_units   ! units of time variable
     character(CL)       :: hist_file    ! history file name
     real(r8)            :: time_val     ! time coordinate output
@@ -540,10 +537,9 @@ contains
     character(CL)           :: time_units   ! units of time variable
     real(r8)                :: time_val     ! time coordinate output
     real(r8)                :: time_bnds(2) ! time bounds output
-    character(len=CL)       :: hist_str
     character(len=CL)       :: hist_file
     integer                 :: m
-    logical                 :: isPresent, isSet
+    logical                 :: isPresent
     character(len=*), parameter :: subname='(med_phases_history_write_lnd2glc)'
     !---------------------------------------
 
@@ -672,14 +668,13 @@ contains
     logical             :: isSet
     type(ESMF_VM)       :: vm
     type(ESMF_Calendar) :: calendar     ! calendar type
-    integer             :: i,m,n        ! indices
+    integer             :: m            ! indices
     integer             :: nx,ny        ! global grid size
     character(CL)       :: time_units   ! units of time variable
     character(CL)       :: hist_file    ! history file name
     real(r8)            :: time_val     ! time coordinate output
     real(r8)            :: time_bnds(2) ! time bounds output
     logical             :: write_now    ! true => write to history type
-    real(r8)            :: tbnds(2)     ! CF1.0 time bounds
     character(len=*), parameter :: subname='(med_phases_history_write_inst_comp)'
     !---------------------------------------
 
@@ -830,14 +825,13 @@ contains
     logical                 :: isSet
     type(ESMF_VM)           :: vm
     type(ESMF_Calendar)     :: calendar          ! calendar type
-    integer                 :: i,m,n             ! indices
+    integer                 :: m                 ! indices
     integer                 :: nx,ny             ! global grid size
     character(CL)           :: time_units        ! units of time variable
     character(CL)           :: hist_file         ! history file name
     real(r8)                :: time_val          ! time coordinate output
     real(r8)                :: time_bnds(2)      ! time bounds output
     logical                 :: write_now         ! true => write to history type
-    real(r8)                :: tbnds(2)          ! CF1.0 time bounds
     character(CS)           :: scalar_name
     character(len=*), parameter :: subname='(med_phases_history_write_comp_avg)'
     !---------------------------------------
@@ -1052,11 +1046,9 @@ contains
     integer                 :: fieldCount
     logical                 :: found
     logical                 :: enable_auxfile
-    character(CS)           :: timestr           ! yr-mon-day-sec string
     character(CL)           :: time_units        ! units of time variable
     integer                 :: nx,ny             ! global grid size
     logical                 :: write_now         ! if true, write time sample to file
-    integer                 :: yr,mon,day,sec    ! time units
     real(r8)                :: time_val          ! time coordinate output
     real(r8)                :: time_bnds(2)      ! time bounds output
     character(CS), allocatable  :: fieldNameList(:)
@@ -1150,7 +1142,7 @@ contains
 
              end if ! end of if auxflds is set to 'all'
 
-             if (mastertask) then
+             if (maintask) then
                 write(logunit,*)
                 write(logunit,'(a,i4,a)') trim(subname) // '   Writing the following fields to auxfile ',nfcnt,&
                      ' for component '//trim(compname(compid))
@@ -1345,7 +1337,6 @@ contains
       integer          :: i,k,n ! generic indecies
       integer          :: nflds ! allocatable size of flds
       integer          :: count ! counts occurances of char
-      integer          :: kFlds ! number of fields in list
       integer          :: i0,i1 ! name = list(i0:i1)
       integer          :: nChar ! temporary
       logical          :: valid ! check if str is valid
@@ -1365,7 +1356,7 @@ contains
          valid = .false.
       end if
       if (.not. valid) then
-         if (mastertask) write(logunit,*) "ERROR: invalid list = ",trim(str)
+         if (maintask) write(logunit,*) "ERROR: invalid list = ",trim(str)
          call ESMF_LogWrite("ERROR: invalid list = "//trim(str), ESMF_LOGMSG_ERROR)
          rc = ESMF_FAILURE
          return
@@ -1419,15 +1410,12 @@ contains
     type(ESMF_Field)       :: lfield_accum
     integer                :: fieldCount_accum
     character(CL), pointer :: fieldnames_accum(:)
-    integer                :: fieldCount
-    character(CL), pointer :: fieldnames(:)
     real(r8), pointer      :: dataptr1d(:)
     real(r8), pointer      :: dataptr2d(:,:)
     real(r8), pointer      :: dataptr1d_accum(:)
     real(r8), pointer      :: dataptr2d_accum(:,:)
     integer                :: ungriddedUBound_accum(1)
     integer                :: ungriddedUBound(1)
-    character(len=64)      :: msg
     !---------------------------------------
 
     rc = ESMF_SUCCESS
@@ -1492,7 +1480,7 @@ contains
     integer                , intent(out)   :: rc
 
     ! local variables
-    integer                :: n,i
+    integer                :: n
     type(ESMF_Field)       :: lfield_accum
     integer                :: fieldCount
     character(CL), pointer :: fieldnames(:)
@@ -1557,7 +1545,6 @@ contains
     ! local variables
     type(ESMF_Clock)        :: mclock, dclock
     type(ESMF_Time)         :: StartTime
-    type(ESMF_TimeInterval) :: htimestep
     type(ESMF_TimeInterval) :: mtimestep, dtimestep
     integer                 :: msec, dsec
     character(len=*), parameter :: subname='(med_phases_history_init_histclock) '
@@ -1578,7 +1565,7 @@ contains
     call ESMF_TimeIntervalGet(dtimestep, s=dsec, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    if (mastertask) then
+    if (maintask) then
        write(logunit,'(a,2x,i8,2x,i8)') trim(subname) // "  mediator, driver timesteps for " &
             //trim(alarmname),msec,dsec
     end if
@@ -1593,7 +1580,7 @@ contains
          reftime=StartTime, alarmname=trim(alarmname), advance_clock=.true., rc=rc)
 
     ! Write diagnostic info
-    if (mastertask) then
+    if (maintask) then
        write(logunit,'(a,2x,i8)') trim(subname) // "  initialized history alarm "//&
             trim(alarmname)//"  with option "//trim(hist_option)//" and frequency ",hist_n
     end if
@@ -1647,7 +1634,7 @@ contains
 
     ! Write diagnostic output
     if (write_now) then
-       if (mastertask .and. debug_alarms) then
+       if (maintask .and. debug_alarms) then
           ! output alarm info
           call ESMF_AlarmGet(alarm, ringInterval=ringInterval, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -1665,7 +1652,7 @@ contains
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           write(nexttimestr,'(i4.4,a,i2.2,a,i2.2,a,i5.5)') yr,'-',mon,'-',day,'-',sec
 
-          if (mastertask) then
+          if (maintask) then
              write(logunit,*)
              write(logunit,'(a,i8)') trim(subname)//" : history alarmname "//trim(alarmname)//&
                   ' is ringing, interval length is ', ringInterval_length
@@ -1687,7 +1674,7 @@ contains
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           write(nexttimestr,'(i4.4,a,i2.2,a,i2.2,a,i5.5)') yr,'-',mon,'-',day,'-',sec
 
-          if (mastertask) then
+          if (maintask) then
              write(logunit,'(a)') trim(subname)//" : mclock currtime = "//trim(currtimestr)//&
                   " mclock nexttime = "//trim(nexttimestr)
           end if
@@ -1735,7 +1722,6 @@ contains
     integer                 :: yr,mon,day,sec ! time units
     integer                 :: start_ymd      ! Starting date YYYYMMDD
     logical                 :: isPresent
-    logical                 :: isSet
     character(len=*), parameter :: subname='(med_phases_history_set_timeinfo) '
     !---------------------------------------
 
@@ -1814,7 +1800,7 @@ contains
        write(histfile, "(6a)") trim(case_name),'.cpl',trim(inst_tag),trim(hist_str),trim(nexttime_str),'.nc'
     end if
 
-    if (mastertask) then
+    if (maintask) then
        call ESMF_TimeGet(currtime, yy=yr, mm=mon, dd=day, s=sec, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        write(currtime_str,'(i4.4,a,i2.2,a,i2.2,a,i5.5)') yr,'-',mon,'-',day,'-',sec

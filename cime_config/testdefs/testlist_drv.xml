@@ -260,4 +260,36 @@
     </machines>
   </test>
 
+  <!-- ======================================= -->
+  <!-- Asyncio tests -->
+  <!-- ======================================= -->
+  <test name="ERS_Ln9_Vnuopc" grid="f19_f19_mg17" compset="FHIST" testmods="drv/asyncio1pernode--cam/outfrq9s">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="prealpha">
+        <options>
+          <option name="wallclock">0:20</option>
+        </options>
+      </machine>
+    </machines>
+  </test>
+  <test name="ERS_C3_Vnuopc" grid="f19_g17" compset="A" testmods="drv/asyncio1pernode">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="prealpha">
+        <options>
+          <option name="wallclock">0:40</option>
+        </options>
+      </machine>
+    </machines>
+  </test>
+
+  <test name="ERS_Ld5_Vnuopc" grid="ne30pg3_t061" compset="B1850MOM" testmods="allactive/defaultio--drv/asyncio1node">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="prealpha">
+        <options>
+          <option name="wallclock">0:40</option>
+        </options>
+      </machine>
+    </machines>
+  </test>
+
 </testlist>

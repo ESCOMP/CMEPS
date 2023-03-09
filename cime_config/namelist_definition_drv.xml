@@ -36,6 +36,42 @@
     </values>
   </entry>
 
+  <entry id="pio_asyncio_ntasks" modify_via_xml="PIO_ASYNCIO_NTASKS">
+    <type>integer</type>
+    <category>pio</category>
+    <group>PELAYOUT_attributes</group>
+    <desc>
+      IO tasks FOR ASYNC IO, only valid if ASYNCIO is true.
+    </desc>
+    <values>
+      <value>$PIO_ASYNCIO_NTASKS</value>
+    </values>
+  </entry>
+
+  <entry id="pio_asyncio_stride" modify_via_xml="PIO_ASYNCIO_STRIDE">
+    <type>integer</type>
+    <category>pio</category>
+    <group>PELAYOUT_attributes</group>
+    <desc>
+      IO task stride FOR ASYNC IO, only valid if ASYNCIO is true.
+    </desc>
+    <values>
+      <value>$PIO_ASYNCIO_STRIDE</value>
+    </values>
+  </entry>
+
+  <entry id="pio_asyncio_rootpe" modify_via_xml="PIO_ASYNCIO_ROOTPE">
+    <type>integer</type>
+    <category>pio</category>
+    <group>PELAYOUT_attributes</group>
+    <desc>
+      IO rootpe task FOR ASYNC IO, only valid if ASYNCIO is true.
+    </desc>
+    <values>
+      <value>$PIO_ASYNCIO_ROOTPE</value>
+    </values>
+  </entry>
+
   <entry id="cime_model" modify_via_xml="CIME_MODEL">
     <type>char</type>
     <category>expdef</category>
@@ -887,8 +923,8 @@
     <group>MED_attributes</group>
     <valid_values>ogrid,agrid,xgrid</valid_values>
     <desc>
-      Grid for atm ocn flux calc (untested)
-      default: ocn
+      Grid for atm ocn flux calc
+      default: xgrid 
     </desc>
     <values>
       <value>ogrid</value>
@@ -1764,6 +1800,71 @@
   <!-- ======================================= -->
   <!-- MED ocn history files -->
   <!-- ======================================= -->
+
+  <!-- MED histaux ocn2med file1 -->
+  <entry id="histaux_ocn2med_file1_enabled">
+    <type>logical</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>Auxiliary mediator ocn2med average history output every day.</desc>
+    <values>
+      <value>.false.</value>
+    </values>
+  </entry>
+  <entry id="histaux_ocn2med_file1_flds">
+    <type>char</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>Auxiliary mediator ocn2med average history output every day.</desc>
+    <values>
+      <value>So_bldepth:So_t:So_u:So_v</value>
+    </values>
+  </entry>
+  <entry id="histaux_ocn2med_file1_history_option">
+    <type>char</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>history option type</desc>
+    <values>
+      <value>ndays</value>
+    </values>
+  </entry>
+  <entry id="histaux_ocn2med_file1_history_n">
+    <type>char</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>history option type</desc>
+    <values>
+      <value>1</value>
+    </values>
+  </entry>
+  <entry id="histaux_ocn2med_file1_doavg">
+    <type>logical</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>If true, use time average for aux file output.</desc>
+    <values>
+      <value>.true.</value>
+    </values>
+  </entry>
+  <entry id="histaux_ocn2med_file1_auxname">
+    <type>char</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>Auxiliary name identifier in history name</desc>
+    <values>
+      <value>ocn.24h.avg</value>
+    </values>
+  </entry>
+  <entry id="histaux_ocn2med_file1_ntperfile">
+    <type>integer</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>Number of time sames per file.</desc>
+    <values>
+      <value>30</value>
+    </values>
+  </entry>
 
   <entry id="history_option_ocn_inst">
     <type>char</type>
