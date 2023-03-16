@@ -924,10 +924,10 @@
     <valid_values>ogrid,agrid,xgrid</valid_values>
     <desc>
       Grid for atm ocn flux calc
-      default: xgrid 
+      default: ogrid
     </desc>
     <values>
-      <value>xgrid</value>
+      <value>ogrid</value>
     </values>
   </entry>
   <entry id="ocn_surface_flux_scheme">
