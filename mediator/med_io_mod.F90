@@ -1140,7 +1140,6 @@ contains
        call pio_syncfile(io_file(lfile_ind))
        call pio_freedecomp(io_file(lfile_ind), iodesc)
     endif
-    deallocate(fieldNameList)
     deallocate(ownedElemCoords, ownedElemCoords_x, ownedElemCoords_y)
 
     if (dbug_flag > 5) then
