@@ -399,6 +399,19 @@ contains
        end if
     end if
     ! ---------------------------------------------------------------------
+    ! to lnd: cld to grnd lightning flash freq
+    ! ---------------------------------------------------------------------
+    if (phase == 'advertise') then
+       call addfld_from(compatm, 'Sa_lightning')
+       call addfld_to(complnd, 'Sa_lightning')
+    else
+       if ( fldchk(is_local%wrap%FBexp(complnd)         , 'Sa_lightning', rc=rc) .and. &
+            fldchk(is_local%wrap%FBImp(compatm,compatm ), 'Sa_lightning', rc=rc)) then
+          call addmap_from(compatm, 'Sa_lightning', complnd, mapbilnr, 'one', atm2lnd_map)
+          call addmrg_to(complnd, 'Sa_lightning', mrg_from=compatm, mrg_fld='Sa_lightning', mrg_type='copy')
+       end if
+    end if
+    ! ---------------------------------------------------------------------
     ! to lnd: temperature at the lowest model level from atm
     ! ---------------------------------------------------------------------
     if (phase == 'advertise') then
