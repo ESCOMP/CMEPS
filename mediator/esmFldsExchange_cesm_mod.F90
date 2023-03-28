@@ -1964,6 +1964,21 @@ contains
     end if
 
     ! ---------------------------------------------------------------------
+    ! to ocn: nitrogen deposition fields from atm
+    ! ---------------------------------------------------------------------
+    if (phase == 'advertise') then
+       call addfld_to(compocn, 'Faxa_ndep')
+       call addfld_from(compatm, 'Faxa_ndep')
+    else
+       if ( fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_ndep', rc=rc) .and. &
+            fldchk(is_local%wrap%FBExp(compocn)        , 'Faxa_ndep', rc=rc)) then
+          call addmap_from(compatm, 'Faxa_ndep', compocn, mapconsf, 'one', atm2ocn_map)
+          call addmrg_to(compocn, 'Faxa_ndep', &
+               mrg_from=compatm, mrg_fld='Faxa_ndep', mrg_type='copy_with_weights', mrg_fracname='ofrac')
+       end if
+    end if
+
+    ! ---------------------------------------------------------------------
     ! to ocn: enthalpy from atm rain, snow, evaporation
     ! to ocn: enthalpy from liquid and ice river runoff
     ! to ocn: enthalpy from ice melt
