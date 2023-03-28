@@ -1962,10 +1962,6 @@ contains
                mrg_from=compatm, mrg_fld='Faxa_dstdry', mrg_type='copy_with_weights', mrg_fracname='ofrac')
        end if
     end if
-
-    ! ---------------------------------------------------------------------
-    ! to ocn: nitrogen deposition fields from atm
-    ! ---------------------------------------------------------------------
     if (phase == 'advertise') then
        call addfld_to(compocn, 'Faxa_ndep')
        call addfld_from(compatm, 'Faxa_ndep')
