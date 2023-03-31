@@ -4,9 +4,9 @@ module MED_typedefs
 !! \htmlinclude MED_typedefs.html
 !!
   use machine,  only: kind_phys
-  use physcons, only: con_hvap, con_cp, con_rd, con_eps
+  use physcons, only: con_hvap, con_cp, con_rd, con_eps, con_rocp
   use physcons, only: con_epsm1, con_fvirt, con_g 
-  use physcons, only: con_tice
+  use physcons, only: con_tice, karman
 
   implicit none
 
@@ -189,6 +189,8 @@ module MED_typedefs
     integer                       :: lsoil                     !< number of soil layers
     integer                       :: kice                      !< vertical loop extent for ice levels, start at 1
     integer                       :: lsm_ruc                   !< flag for RUC land surface model
+    logical                       :: diag_flux                 !< flag for flux method of 2-m diagnostics
+    logical                       :: diag_log                  !< flag for log 2-m diagnostics
     contains
       procedure :: init  => control_initialize
   end type MED_control_type
@@ -208,6 +210,8 @@ module MED_typedefs
 !!
   type MED_grid_type
     real(kind=kind_phys), pointer :: area(:)         => null() !< area of the grid cell
+    real(kind=kind_phys), pointer :: xlat_d(:)       => null() !< latitude in degrees
+    real(kind=kind_phys), pointer :: xlon_d(:)       => null() !< longtitude in degrees
     contains
       procedure :: create  => grid_create !< allocate array data
   end type MED_grid_type
@@ -259,6 +263,7 @@ module MED_typedefs
   type MED_diag_type
     real(kind=kind_phys), pointer :: chh(:)          => null()  !< thermal exchange coefficient (kg m-2 s-1)
     real(kind=kind_phys), pointer :: cmm(:)          => null()  !< momentum exchange coefficient (m/s)
+    real(kind=kind_phys), pointer :: dpt2m(:)        => null()  !< 2-m dewpoint (K)
     contains
       procedure :: create  => diag_create    !< allocate array data
   end type MED_diag_type
@@ -636,6 +641,8 @@ module MED_typedefs
     model%lsoil = 4
     model%kice = 2
     model%lsm_ruc = 3
+    model%diag_flux = .false.
+    model%diag_log = .false.
 
   end subroutine control_initialize
 
@@ -658,6 +665,10 @@ module MED_typedefs
 
     allocate(grid%area(im))
     grid%area = clear_val
+    allocate(grid%xlat_d(im))
+    grid%xlat_d = clear_val
+    allocate(grid%xlon_d(im))
+    grid%xlon_d = clear_val
 
   end subroutine grid_create
 
@@ -745,6 +756,8 @@ module MED_typedefs
     diag%chh = clear_val
     allocate(diag%cmm(im))
     diag%cmm = clear_val
+    allocate(diag%dpt2m(im))
+    diag%dpt2m = clear_val
 
   end subroutine diag_create
 
