@@ -924,6 +924,18 @@
   units = flag
   dimensions = ()
   type = integer
+[diag_flux]
+  standard_name = flag_for_flux_method_in_2m_diagnostics
+  long_name = flag for flux method in 2-m diagnostics
+  units = flag
+  dimensions = ()
+  type = logical
+[diag_log]
+  standard_name = flag_for_log_method_in_2m_diagnostics
+  long_name = flag for log method in 2-m diagnostics
+  units = flag
+  dimensions = ()
+  type = logical
 
 ########################################################################
 [ccpp-table-properties]
@@ -961,6 +973,20 @@
   standard_name = cell_area
   long_name = area of the grid cell
   units = m2
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+[xlat_d]
+  standard_name = latitude_in_degree
+  long_name = latitude in degree north
+  units = degree_north
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+[xlon_d]
+  standard_name = longitude_in_degree
+  long_name = longitude in degree east
+  units = degree_east
   dimensions = (horizontal_loop_extent)
   type = real
   kind = kind_phys
@@ -1228,6 +1254,13 @@
   dimensions = (horizontal_loop_extent)
   type = real
   kind = kind_phys
+[dpt2m]
+  standard_name = dewpoint_temperature_at_2m
+  long_name = 2 meter dewpoint temperature
+  units = K
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
 
 ########################################################################
 [ccpp-table-properties]
@@ -1343,3 +1376,17 @@
   dimensions = ()
   type = real
   kind = kind_phys
+[con_rocp]
+  standard_name = ratio_of_gas_constant_dry_air_to_specific_heat_of_dry_air_at_constant_pressure
+  long_name = (rd/cp)
+  units = none
+  dimensions = ()
+  type = real
+  kind = kind_phys
+[karman]
+  standard_name = von_karman_constant
+  long_name = von karman constant
+  units = none
+  dimensions = ()
+  type = real
+
