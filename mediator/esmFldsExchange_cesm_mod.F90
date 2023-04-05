@@ -1970,7 +1970,7 @@ contains
             fldchk(is_local%wrap%FBExp(compocn)        , 'Faxa_ndep', rc=rc)) then
           call addmap_from(compatm, 'Faxa_ndep', compocn, mapconsf, 'one', atm2ocn_map)
           call addmrg_to(compocn, 'Faxa_ndep', &
-               mrg_from=compatm, mrg_fld='Faxa_ndep', mrg_type='copy_with_weights', mrg_fracname='ofrac')
+               mrg_from=compatm, mrg_fld='Faxa_ndep', mrg_type='copy')
        end if
     end if
 
