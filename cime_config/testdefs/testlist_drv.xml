@@ -189,7 +189,7 @@
   </test>
   <test compset="QPC6" grid="ne5pg3_ne5pg3_mg37" name="ERP_Vnuopc_Ln9" testmods="cam/outfrq9s_clubbmf">
     <machines>
-      <machine name="izumi" compiler="nag" category="aux_cam"/>
+      <machine name="izumi" compiler="nag" category="aux_cmeps"/>
     </machines>
     <options>
       <option name="wallclock">00:10:00</option>
