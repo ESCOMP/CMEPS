@@ -5,11 +5,12 @@ module shr_lightning_coupling_mod
   !========================================================================
 
   use ESMF         , only : ESMF_VMGetCurrent, ESMF_VM, ESMF_VMGet
-  use ESMF         , only : ESMF_LogFoundError, ESMF_LOGERR_PASSTHRU, ESMF_SUCCESS
+  use ESMF         , only : ESMF_LOGERR_PASSTHRU, ESMF_SUCCESS
+  use ESMF         , only : ESMF_VMBroadCast, ESMF_Logical, assignment(=)
   use shr_sys_mod  , only : shr_sys_abort
   use shr_log_mod  , only : shr_log_getLogUnit
   use shr_nl_mod   , only : shr_nl_find_group_name
-  use shr_mpi_mod  , only : shr_mpi_bcast
+  use nuopc_shr_methods, only : chkerr
 
   implicit none
   private
@@ -41,6 +42,7 @@ CONTAINS
     integer           :: unitn                  ! namelist unit number
     integer           :: ierr                   ! error code
     logical           :: exists                 ! if file exists or not
+    type(ESMF_Logical):: ltmp(1)
     integer           :: rc
     integer           :: localpet
     integer           :: mpicom
@@ -53,16 +55,19 @@ CONTAINS
 
     rc = ESMF_SUCCESS
 
+    atm_provides_lightning_out = .false.
+    ltmp(1) = .false.
+
     !--- Open and read namelist ---
     if ( len_trim(NLFilename) == 0 ) then
        call shr_sys_abort( subname//'ERROR: nlfilename not set' )
     end if
     call shr_log_getLogUnit(s_logunit)
     call ESMF_VMGetCurrent(vm, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=__FILE__)) return
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     call ESMF_VMGet(vm, localPet=localpet, mpiCommunicator=mpicom, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=__FILE__)) return
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     if (localpet==0) then
        ! ------------------------------------------------------------------------
@@ -90,14 +95,17 @@ CONTAINS
           close( unitn )
        end if
 
-       atm_provides_lightning_out = atm_provides_lightning
+       ltmp(1) = atm_provides_lightning
 
     end if
 
     ! ------------------------------------------------------------------------
-    ! Broadcast values to all processors
+    ! Broadcast values to all tasks
     ! ------------------------------------------------------------------------
-    call shr_mpi_bcast(atm_provides_lightning_out, mpicom)
+    call ESMF_VMBroadcast(vm,  ltmp, count=1, rootPet=0, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    atm_provides_lightning_out = ltmp(1)
 
   end subroutine shr_lightning_coupling_readnl
 
