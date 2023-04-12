@@ -1172,6 +1172,25 @@
        canonical_units: m2/s
        description: wave elevation spectrum
 
+#PSH begin
+     #   
+     #-----------------------------------
+     # section: wave import
+     #-----------------------------------
+     #   
+
+     #   
+     - standard_name: Fwxx_taux
+       alias: mean_zonal_moment_flx
+       canonical_units: N m-2
+       description: wave import - zonal surface stress
+     #   
+     - standard_name: Fwxx_tauy
+       alias: mean_merid_moment_flx
+       canonical_units: N m-2
+       description: wave import - meridional surface stress
+#PSH end
+
      #-----------------------------------
      # mediator fields
      #-----------------------------------
