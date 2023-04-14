@@ -2967,8 +2967,8 @@ contains
     ! ---------------------------------------------------------------------
     ! to wav: zonal and meridional wind stress
     ! ---------------------------------------------------------------------
-    if (phase == 'advertise') then
-       call addfld_to(compwav , 'Foxx_taux')
+!    if (phase == 'advertise') then
+!       call addfld_to(compwav , 'Foxx_taux')
 !       call addfld_from(compice , 'Fioi_taux')
 !       call addfld_aoflux('Faox_taux')
 !    else
@@ -2981,9 +2981,9 @@ contains
 !          call addmrg_to(compwav, 'Foxx_taux', &
 !               mrg_from=compmed, mrg_fld='Faox_taux', mrg_type='merge', mrg_fracname='ofrac')
 !       end if     
-    end if
-    if (phase == 'advertise') then
-       call addfld_to(compwav , 'Foxx_tauy')
+!    end if
+!    if (phase == 'advertise') then
+!       call addfld_to(compwav , 'Foxx_tauy')
 !       call addfld_from(compice , 'Fioi_tauy')
 !       call addfld_aoflux('Faox_tauy')
 !    else  
@@ -2996,7 +2996,7 @@ contains
 !          call addmrg_to(compwav, 'Fwxx_tauy', &
 !               mrg_from=compmed, mrg_fld='Faox_tauy', mrg_type='merge', mrg_fracname='ofrac')
 !       end if
-    end if
+!    end if
 !PSH end
 
     !=====================================================================
