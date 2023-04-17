@@ -37,7 +37,7 @@ module med_phases_prep_wav_mod
   public :: med_phases_prep_wav_avg    ! called from run sequence
 
 !PSH begin
-  private :: med_phases_prep_ocn_custom_cesm
+!  private :: med_phases_prep_wav_custom_cesm
 !PSH end
 
   character(*), parameter :: u_FILE_u  = &
