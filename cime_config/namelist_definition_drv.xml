@@ -2156,25 +2156,25 @@
       <value samegrid_atm_lnd='true'>idmap</value>
     </values>
   </entry>
-  <entry id="lnd2rof_map">
+  <entry id="lnd2rof_map" modify_via_xml="LND2ROF_FMAPNAME">
     <type>char</type>
     <category>mapping</category>
     <input_pathname>abs</input_pathname>
     <group>MED_attributes</group>
-    <desc>lnd to rof mapping, 'unset' or 'idmap' are normal possible values</desc>
+    <desc>lnd to rof mapping, 'unset' or 'idmap' are normal possible values (mapping file given for mizuRoute grids)</desc>
     <values>
-      <value>unset</value>
+      <value>$LND2ROF_FMAPNAME</value>
       <value samegrid_lnd_rof='true'>idmap</value>
     </values>
   </entry>
-  <entry id="rof2lnd_map">
+  <entry id="rof2lnd_map" modify_via_xml="ROF2LND_FMAPNAME">
     <type>char</type>
     <category>mapping</category>
     <input_pathname>abs</input_pathname>
     <group>MED_attributes</group>
-    <desc>rof to lnd mapping, 'unset' or 'idmap' are normal possible values</desc>
+    <desc>rof to lnd mapping, 'unset' or 'idmap' are normal possible values (mapping file given for mizuRoute grids)</desc>
     <values>
-      <value>unset</value>
+      <value>$ROF2LND_FMAPNAME</value>
       <value samegrid_lnd_rof='true'>idmap</value>
     </values>
   </entry>
