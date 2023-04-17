@@ -13,12 +13,20 @@ module med_phases_prep_wav_mod
   use med_utils_mod         , only : memcheck      => med_memcheck
   use med_utils_mod         , only : chkerr        => med_utils_ChkErr
   use med_methods_mod       , only : FB_diagnose   => med_methods_FB_diagnose
+!PSH begin
+  use med_methods_mod       , only : FB_fldchk     => med_methods_FB_FldChk
+  use med_methods_mod       , only : FB_GetFldPtr  => med_methods_FB_GetFldPtr
+!PSH end
   use med_methods_mod       , only : FB_accum      => med_methods_FB_accum
   use med_methods_mod       , only : FB_average    => med_methods_FB_average
   use med_methods_mod       , only : FB_copy       => med_methods_FB_copy
   use med_methods_mod       , only : FB_reset      => med_methods_FB_reset
-  use esmFlds               , only : med_fldList_GetfldListTo
-  use med_internalstate_mod , only : compwav
+!PSH begin
+!  use esmFlds               , only : med_fldList_GetfldListTo
+!  use med_internalstate_mod , only : compwav
+  use esmFlds               , only : med_fldList_GetfldListTo, med_fldlist_type
+  use med_internalstate_mod , only : compwav, compocn, compatm, compice, coupling_mode
+!PSH end
   use perf_mod              , only : t_startf, t_stopf
 
   implicit none
@@ -27,6 +35,10 @@ module med_phases_prep_wav_mod
   public :: med_phases_prep_wav_init   ! called from med.F90
   public :: med_phases_prep_wav_accum  ! called from run sequence
   public :: med_phases_prep_wav_avg    ! called from run sequence
+
+!PSH begin
+  private :: med_phases_prep_ocn_custom_cesm
+!PSH end
 
   character(*), parameter :: u_FILE_u  = &
        __FILE__
@@ -82,6 +94,9 @@ contains
     ! local variables
     type(InternalState) :: is_local
     integer             :: n, ncnt
+!PSH begin
+    type(med_fldlist_type), pointer :: fldList
+!PSH end
     character(len=*), parameter    :: subname='(med_phases_prep_wav_accum)'
     !---------------------------------------
 
@@ -96,14 +111,25 @@ contains
     nullify(is_local%wrap)
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
+!PSH begin
+    fldList => med_fldList_GetfldListTo(compwav)
+!PSH end
     ! auto merges to wav
-    call med_merge_auto(&
-         is_local%wrap%med_coupling_active(:,compwav), &
-         is_local%wrap%FBExp(compwav), &
-         is_local%wrap%FBFrac(compwav), &
-         is_local%wrap%FBImp(:,compwav), &
-         med_fldList_GetfldListTo(compwav), rc=rc)
+!PSH begin
+!    call med_merge_auto(&
+!         is_local%wrap%med_coupling_active(:,compwav), &
+!         is_local%wrap%FBExp(compwav), &
+!         is_local%wrap%FBFrac(compwav), &
+!         is_local%wrap%FBImp(:,compwav), &
+!         med_fldList_GetfldListTo(compwav), rc=rc)
+       call med_merge_auto(&
+            is_local%wrap%med_coupling_active(:,compwav), &
+            is_local%wrap%FBExp(compwav), &
+            is_local%wrap%FBFrac(compwav), &
+            is_local%wrap%FBImp(:,compwav), &
+            fldList, &
+            FBMed1=is_local%wrap%FBMed_aoflux_o, rc=rc)
+!PSH end
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! wave accumulator
