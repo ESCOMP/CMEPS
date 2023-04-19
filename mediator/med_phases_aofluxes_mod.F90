@@ -768,6 +768,7 @@ contains
     type(ESMF_Mesh)      :: xch_mesh
     real(r8), pointer    :: dataptr(:)
     integer              :: fieldcount
+    integer              :: stp ! srcTermProcessing is declared inout and must have variable not constant
     type(ESMF_CoordSys_Flag)           :: coordSys
     real(ESMF_KIND_R8)    ,allocatable :: garea(:)
     character(len=*),parameter :: subname=' (med_aofluxes_init_xgrid) '
@@ -870,11 +871,12 @@ contains
          regridmethod=ESMF_REGRIDMETHOD_CONSERVE_2ND, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     if (trim(coupling_mode) == 'cesm') then
+       stp = 1
        call ESMF_FieldRegridStore(field_a, field_x, routehandle=rh_agrid2xgrid_bilinr, &
-            regridmethod=ESMF_REGRIDMETHOD_BILINEAR, dstMaskValues=(/0/), rc=rc)
+            regridmethod=ESMF_REGRIDMETHOD_BILINEAR, dstMaskValues=(/0/), srcTermProcessing=stp, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        call ESMF_FieldRegridStore(field_a, field_x, routehandle=rh_agrid2xgrid_patch, &
-            regridmethod=ESMF_REGRIDMETHOD_PATCH, dstMaskValues=(/0/), rc=rc)
+            regridmethod=ESMF_REGRIDMETHOD_PATCH, dstMaskValues=(/0/), srcTermProcessing=stp, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     end if
 
