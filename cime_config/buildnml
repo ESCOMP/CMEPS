@@ -620,14 +620,7 @@ def buildnml(case, caseroot, component):
                 major = line[-2] if "MAJOR" in line else major
                 minor = line[-2] if "MINOR" in line else minor
         logger.debug("ESMF version major {} minor {}".format(major, minor))
-        expect(int(major) >= 8, "ESMF version should be 8.1 or newer")
-        if esmf_aware_threading:
-            expect(
-                int(minor) >= 2,
-                "ESMF version should be 8.2.0 or newer when using ESMF_AWARE_THREADING",
-            )
-        else:
-            expect(int(minor) >= 1, "ESMF version should be 8.1.0 or newer")
+        expect(int(major) >= 8 and int(minor) >=4, "ESMF version should be 8.4.1 or newer")
 
     confdir = os.path.join(case.get_value("CASEBUILD"), "cplconf")
     if not os.path.isdir(confdir):
