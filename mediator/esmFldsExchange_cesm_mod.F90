@@ -98,16 +98,16 @@ contains
     integer             :: n, ns
     character(len=CL)   :: cvalue
     character(len=CS)   :: name
-    logical             :: wavice_coupling
+    logical             :: wav_coupling_to_cice
     logical             :: ocn2glc_coupling
     character(len=*) , parameter   :: subname=' (esmFldsExchange_cesm) '
     !--------------------------------------
 
     rc = ESMF_SUCCESS
 
-    call NUOPC_CompAttributeGet(gcomp, name='wavice_coupling', value=cvalue, rc=rc)
+    call NUOPC_CompAttributeGet(gcomp, name='wav_coupling_to_cice', value=cvalue, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) wavice_coupling
+    read(cvalue,*) wav_coupling_to_cice
 
     call NUOPC_CompAttributeGet(gcomp, name='ocn2glc_coupling', value=cvalue, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -2809,7 +2809,7 @@ contains
     ! ---------------------------------------------------------------------
     ! to ice: wave elevation spectrum (field with ungridded dimensions)
     ! ---------------------------------------------------------------------
-    if (wavice_coupling) then
+    if (wav_coupling_to_cice) then
        if (phase == 'advertise') then
           call addfld_from(compwav, 'Sw_elevation_spectrum')
           call addfld_to(compice, 'Sw_elevation_spectrum')
@@ -2844,7 +2844,7 @@ contains
     !----------------------------------------------------------
     ! to wav: ice thickness from ice
     !----------------------------------------------------------
-    if (wavice_coupling) then
+    if (wav_coupling_to_cice) then
        if (phase == 'advertise') then
           call addfld_from(compice, 'Si_thick')
           call addfld_to(compwav, 'Si_thick')
@@ -2859,7 +2859,7 @@ contains
     !----------------------------------------------------------
     ! to wav: ice floe diameter from ice
     !----------------------------------------------------------
-    if (wavice_coupling) then
+    if (wav_coupling_to_cice) then
        if (phase == 'advertise') then
           call addfld_from(compice, 'Si_floediam')
           call addfld_to(compwav, 'Si_floediam')
