@@ -95,16 +95,14 @@ contains
     integer          , intent(inout) :: rc
 
     ! local variables:
-    integer             :: num, i, n
+    integer             :: n
     logical             :: isPresent
     character(len=CL)   :: cvalue
-    character(len=CS)   :: name, fldname
+    character(len=CS)   :: fldname
     character(len=CS)   :: fldname1, fldname2
     type(gcomp_attr)    :: hafs_attr
-    character(len=CS), allocatable :: flds(:)
     character(len=CS), allocatable :: S_flds(:)
     character(len=CS), allocatable :: F_flds(:,:)
-    character(len=CS), allocatable :: suffix(:)
     character(len=*) , parameter   :: subname='(esmFldsExchange_hafs_advt)'
     !--------------------------------------
 
@@ -307,16 +305,12 @@ contains
 
     ! local variables:
     type(InternalState) :: is_local
-    integer             :: num, i, n
-    integer             :: n1, n2, n3, n4
-    character(len=CL)   :: cvalue
-    character(len=CS)   :: name, fldname
+    integer             :: n
+    character(len=CS)   :: fldname
     character(len=CS)   :: fldname1, fldname2
     type(gcomp_attr)    :: hafs_attr
-    character(len=CS), allocatable :: flds(:)
     character(len=CS), allocatable :: S_flds(:)
     character(len=CS), allocatable :: F_flds(:,:)
-    character(len=CS), allocatable :: suffix(:)
     character(len=*) , parameter   :: subname='(esmFldsExchange_hafs_init)'
     !--------------------------------------
 

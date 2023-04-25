@@ -435,7 +435,7 @@ contains
     else
        pio_rearr_comm_enable_isend_comp2io = .false.
     end if
-   
+
     ! pio_rearr_comm_max_pend_req_comp2io
     call NUOPC_CompAttributeGet(gcomp, name='pio_rearr_comm_max_pend_req_comp2io', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -576,7 +576,7 @@ contains
           if(pio_iotype == PIO_IOTYPE_NETCDF .or. pio_iotype == PIO_IOTYPE_PNETCDF) then
              nmode = ior(nmode,pio_ioformat)
           endif
-          
+
           rcode = pio_createfile(io_subsystem, io_file(lfile_ind), pio_iotype, trim(filename), nmode)
           if (iam==0) write(logunit,'(a)') trim(subname) //' creating file '// trim(filename)
           rcode = pio_put_att(io_file(lfile_ind),pio_global,"file_version",version)
@@ -753,10 +753,12 @@ contains
     ! Write FB to netcdf file
     !---------------
 
+    use ESMF,  only : operator(==)
     use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_FAILURE, ESMF_END_ABORT
     use ESMF , only : ESMF_FieldBundleIsCreated, ESMF_FieldBundle, ESMF_Mesh, ESMF_DistGrid
     use ESMF , only : ESMF_FieldBundleGet, ESMF_FieldGet, ESMF_MeshGet, ESMF_DistGridGet
     use ESMF , only : ESMF_Field, ESMF_FieldGet, ESMF_AttributeGet
+    use ESMF , only : ESMF_CoordSys_Flag, ESMF_COORDSYS_SPH_DEG, ESMF_COORDSYS_SPH_RAD, ESMF_COORDSYS_CART
     use pio  , only : var_desc_t, io_desc_t, pio_offset_kind
     use pio  , only : pio_def_dim, pio_inq_dimid, pio_real, pio_def_var, pio_put_att, pio_double
     use pio  , only : pio_inq_varid, pio_setframe, pio_write_darray, pio_initdecomp, pio_freedecomp
@@ -783,8 +785,7 @@ contains
     type(ESMF_Field)              :: field
     type(ESMF_Mesh)               :: mesh
     type(ESMF_Distgrid)           :: distgrid
-    type(ESMF_VM)                 :: VM
-    integer                       :: mpicom
+    type(ESMF_CoordSys_Flag)      :: coordsys
     integer                       :: rcode
     integer                       :: nf,ns,ng
     integer                       :: k,n
@@ -799,9 +800,10 @@ contains
     character(CL)                 :: itemc       ! string converted to char
     character(CL)                 :: name1       ! var name
     character(CL)                 :: cunit       ! var units
-    character(CL)                 :: lname       ! long name
-    character(CL)                 :: sname       ! standard name
     character(CL)                 :: lpre        ! local prefix
+    character(CS)                 :: coordvarnames(2)   ! coordinate variable names
+    character(CS)                 :: coordnames(2)      ! coordinate long names
+    character(CS)                 :: coordunits(2)      ! coordinate units
     integer                       :: lnx,lny
     logical                       :: luse_float
     real(r8)                      :: lfillvalue
@@ -819,7 +821,6 @@ contains
     integer                       :: rank
     integer                       :: ungriddedUBound(1) ! currently the size must equal 1 for rank 2 fields
     integer                       :: gridToFieldMap(1)  ! currently the size must equal 1 for rank 2 fields
-    logical                       :: isPresent
     logical                       :: atmtiles
     integer                       :: ntiles = 1
     character(CL), allocatable    :: fieldNameList(:)
@@ -878,12 +879,25 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! Get mesh distgrid and number of elements
-    call ESMF_MeshGet(mesh, elementDistgrid=distgrid, rc=rc)
+    call ESMF_MeshGet(mesh, elementDistgrid=distgrid, coordSys=coordsys, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call ESMF_MeshGet(mesh, spatialDim=ndims, numOwnedElements=nelements, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     write(tmpstr,*) subname, 'ndims, nelements = ', ndims, nelements
     call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
+    ! Define coordinate attributes according to CoordSys
+    if (coordsys == ESMF_COORDSYS_CART) then
+       coordvarnames(1) = trim(lpre)//'_x'
+       coordvarnames(2) = trim(lpre)//'_y'
+       coordnames = (/'x-coordinate', 'y-coordinate'/)
+       coordunits = (/'unitless','unitless'/)
+    else
+       coordvarnames(1) = trim(lpre)//'_lon'
+       coordvarnames(2) = trim(lpre)//'_lat'
+       coordnames = (/'longitude', 'latitude '/)
+       if (coordsys == ESMF_COORDSYS_SPH_DEG) coordunits = (/'degrees_E', 'degrees_N'/)
+       if (coordsys == ESMF_COORDSYS_SPH_RAD) coordunits = (/'radians  ', 'radians  '/)
+    end if
 
     ! Set element coordinates
     if (.not. allocated(ownedElemCoords) .and. ndims > 0 .and. nelements > 0) then
@@ -1039,25 +1053,16 @@ contains
        end do
 
        ! Add coordinate information to file
-       name1 = trim(lpre)//'_lon'
-       if (luse_float) then
-          rcode = pio_def_var(io_file(lfile_ind), trim(name1), PIO_REAL, dimid, varid)
-       else
-          rcode = pio_def_var(io_file(lfile_ind), trim(name1), PIO_DOUBLE, dimid, varid)
-       end if
-       rcode = pio_put_att(io_file(lfile_ind), varid, "long_name", "longitude")
-       rcode = pio_put_att(io_file(lfile_ind), varid, "units", "degrees_east")
-       rcode = pio_put_att(io_file(lfile_ind), varid, "standard_name", "longitude")
-
-       name1 = trim(lpre)//'_lat'
-       if (luse_float) then
-          rcode = pio_def_var(io_file(lfile_ind), trim(name1), PIO_REAL, dimid, varid)
-       else
-          rcode = pio_def_var(io_file(lfile_ind), trim(name1), PIO_DOUBLE, dimid, varid)
-       end if
-       rcode = pio_put_att(io_file(lfile_ind), varid, "long_name", "latitude")
-       rcode = pio_put_att(io_file(lfile_ind), varid, "units", "degrees_north")
-       rcode = pio_put_att(io_file(lfile_ind), varid, "standard_name", "latitude")
+       do n = 1,ndims
+          if (luse_float) then
+             rcode = pio_def_var(io_file(lfile_ind), trim(coordvarnames(n)), PIO_REAL, dimid, varid)
+          else
+             rcode = pio_def_var(io_file(lfile_ind), trim(coordvarnames(n)), PIO_DOUBLE, dimid, varid)
+          end if
+          rcode = pio_put_att(io_file(lfile_ind), varid, "long_name", trim(coordnames(n)))
+          rcode = pio_put_att(io_file(lfile_ind), varid, "units", trim(coordunits(n)))
+          rcode = pio_put_att(io_file(lfile_ind), varid, "standard_name", trim(coordnames(n)))
+       end do
     end if
 
     if (wdata) then
@@ -1083,7 +1088,7 @@ contains
           else
              itemc = trim(fieldNameList(k))
           end if
- 
+
           call FB_getFldPtr(FB, itemc, &
                fldptr1=fldptr1, fldptr2=fldptr2, rank=rank, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -1124,19 +1129,18 @@ contains
        end do  ! end loop over fields in FB
 
        ! Fill coordinate variables - why is this being done each time?
-       name1 = trim(lpre)//'_lon'
-       rcode = pio_inq_varid(io_file(lfile_ind), trim(name1), varid)
+       rcode = pio_inq_varid(io_file(lfile_ind), trim(coordvarnames(1)), varid)
        call pio_setframe(io_file(lfile_ind),varid,frame)
        call pio_write_darray(io_file(lfile_ind), varid, iodesc, ownedElemCoords_x, rcode, fillval=lfillvalue)
 
-       name1 = trim(lpre)//'_lat'
-       rcode = pio_inq_varid(io_file(lfile_ind), trim(name1), varid)
+       rcode = pio_inq_varid(io_file(lfile_ind), trim(coordvarnames(2)), varid)
        call pio_setframe(io_file(lfile_ind),varid,frame)
        call pio_write_darray(io_file(lfile_ind), varid, iodesc, ownedElemCoords_y, rcode, fillval=lfillvalue)
 
        call pio_syncfile(io_file(lfile_ind))
        call pio_freedecomp(io_file(lfile_ind), iodesc)
     endif
+    deallocate(ownedElemCoords, ownedElemCoords_x, ownedElemCoords_y)
 
     if (dbug_flag > 5) then
        call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
@@ -1216,8 +1220,6 @@ contains
     integer          :: dimid(1)
     type(var_desc_t) :: varid
     character(CL)    :: cunit       ! var units
-    character(CL)    :: lname       ! long name
-    character(CL)    :: sname       ! standard name
     integer          :: lnx
     integer          :: lfile_ind
     character(*),parameter :: subName = '(med_io_write_int1d) '
@@ -1274,6 +1276,11 @@ contains
 
     rc = ESMF_SUCCESS
 
+    if(present(file_ind)) then
+       lfile_ind = file_ind
+    else
+       lfile_ind = 1
+    endif
     if (whead) then
        rcode = pio_def_var(io_file(lfile_ind),trim(dname),PIO_DOUBLE,varid)
        if (rcode==PIO_NOERR) then
@@ -1322,6 +1329,11 @@ contains
 
     rc = ESMF_SUCCESS
 
+    if(present(file_ind)) then
+       lfile_ind = file_ind
+    else
+       lfile_ind = 1
+    endif
     if (whead) then
        lnx = size(rdata)
        rcode = pio_def_dim(io_file(lfile_ind),trim(dname)//'_nx',lnx,dimid(1))
@@ -1365,8 +1377,6 @@ contains
     integer          :: dimid(1)
     type(var_desc_t) :: varid
     character(CL)    :: cunit       ! var units
-    character(CL)    :: lname       ! long name
-    character(CL)    :: sname       ! standard name
     integer          :: lnx
     integer          :: lfile_ind
     character(CL)    :: charvar   ! buffer for string read/write
@@ -1374,7 +1384,11 @@ contains
     !-------------------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
-
+    if(present(file_ind)) then
+       lfile_ind = file_ind
+    else
+       lfile_ind = 1
+    endif
     if (whead) then
        lnx = len(charvar)
        rcode = pio_def_dim(io_file(lfile_ind),trim(dname)//'_len',lnx,dimid(1))
@@ -1534,7 +1548,7 @@ contains
     ! local variables
     type(ESMF_Field)              :: lfield
     integer                       :: rcode
-    integer                       :: nf,ns,ng
+    integer                       :: nf
     integer                       :: k,n,l
     type(file_desc_t)             :: pioid
     type(var_desc_t)              :: varid
@@ -1543,7 +1557,6 @@ contains
     character(CL)                 :: name1       ! var name
     character(CL)                 :: lpre        ! local prefix
     real(r8)                      :: lfillvalue
-    integer                       :: tmp(1)
     integer                       :: rank, lsize
     real(r8), pointer             :: fldptr1(:), fldptr1_tmp(:)
     real(r8), pointer             :: fldptr2(:,:)
@@ -1740,17 +1753,15 @@ contains
     type(ESMF_Distgrid) :: distgrid
     integer             :: rcode
     integer             :: ns,ng
-    integer             :: n,ndims
+    integer             :: ndims
     integer, pointer    :: dimid(:)
     type(var_desc_t)    :: varid
     integer             :: lnx,lny
-    integer             :: tmp(1)
     integer, pointer    :: minIndexPTile(:,:)
     integer, pointer    :: maxIndexPTile(:,:)
     integer             :: dimCount, tileCount
     integer, pointer    :: Dof(:)
     character(CL)       :: tmpstr
-    integer             :: rank
     character(*),parameter :: subName = '(med_io_read_init_iodesc) '
     !-------------------------------------------------------------------------------
 
@@ -2079,7 +2090,7 @@ contains
     year =int(tdate/10000)
     if (date < 0) year = -year
     month = int( mod(tdate,10000_I8)/  100)
-    day = mod(tdate,  100_I8)
+    day = int(mod(tdate,  100_I8))
   end subroutine med_io_date2ymd_long
 
   !===============================================================================

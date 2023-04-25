@@ -13,7 +13,7 @@ module med_phases_prep_rof_mod
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
   use ESMF                  , only : ESMF_FieldBundle, ESMF_Field
   use med_internalstate_mod , only : complnd, comprof, mapconsf, mapconsd, mapfcopy
-  use med_internalstate_mod , only : InternalState, mastertask, logunit
+  use med_internalstate_mod , only : InternalState, maintask, logunit
   use med_constants_mod     , only : dbug_flag        => med_constants_dbug_flag
   use med_constants_mod     , only : czero            => med_constants_czero
   use med_utils_mod         , only : chkerr           => med_utils_chkerr
@@ -90,7 +90,7 @@ contains
 
     ! local variables
     type(InternalState) :: is_local
-    integer             :: n, n1, nflds
+    integer             :: n, nflds
     type(ESMF_Mesh)     :: mesh_l
     type(ESMF_Mesh)     :: mesh_r
     type(ESMF_Field)    :: lfield
@@ -197,9 +197,7 @@ contains
 
     ! local variables
     type(InternalState)       :: is_local
-    integer                   :: i,j,n,ncnt
-    integer                   :: fieldCount
-    integer                   :: ungriddedUBound(1)
+    integer                   :: n
     logical                   :: exists
     real(r8), pointer         :: dataptr1d(:)
     real(r8), pointer         :: dataptr1d_accum(:)
@@ -277,18 +275,13 @@ contains
 
     ! local variables
     type(InternalState)       :: is_local
-    integer                   :: i,j,n,n1,ncnt
+    integer                   :: n
     integer                   :: count
     logical                   :: exists
     real(r8), pointer         :: dataptr(:)
     real(r8), pointer         :: dataptr1d(:)
-    type(ESMF_Field)          :: field_irrig_flux
     type(ESMF_Field)          :: lfield
-    type(ESMF_Field)          :: lfield_src
-    type(ESMF_Field)          :: lfield_dst
-    type(ESMF_Field)          :: field_lfrac_lnd
     type(med_fldList_type), pointer :: fldList
-    character(CL), pointer    :: lfieldnamelist(:)
     character(len=*),parameter  :: subname='(med_phases_prep_rof_mod: med_phases_prep_rof)'
     !---------------------------------------
 
@@ -313,7 +306,7 @@ contains
 
     count = lndAccum2rof_cnt
     if (count == 0) then
-       if (mastertask) then
+       if (maintask) then
           write(logunit,'(a)')trim(subname)//'accumulation count for land input averging to river is 0 '// &
                ' accumulation field is set to zero'
        end if
@@ -455,10 +448,6 @@ contains
     ! local variables
     integer                   :: r,l
     type(InternalState)       :: is_local
-    integer                   :: fieldcount
-    type(ESMF_Field)          :: field_import_rof
-    type(ESMF_Field)          :: field_import_lnd
-    type(ESMF_Field)          :: field_irrig_flux
     type(ESMF_Field)          :: field_lfrac_lnd
     type(ESMF_Mesh)           :: lmesh_lnd
     type(ESMF_Mesh)           :: lmesh_rof
