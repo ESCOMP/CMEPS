@@ -2964,6 +2964,22 @@ contains
        end if
     end if
 !PSH begin
+    if (phase == 'advertise') then
+       call addfld_from(compocn, 'So_ofrac')
+       call addfld_to(compwav, 'So_ofrac')
+    end if
+!    if (phase == 'advertise') then
+!       call addfld_from(compocn, 'So_ofrac')
+!       call addfld_to(compwav, 'So_ofrac')
+!    else
+!       if ( fldchk(is_local%wrap%FBexp(compwav)         , 'So_ofrac', rc=rc) .and. &
+!            fldchk(is_local%wrap%FBImp(compice,compice ), 'So_ofrac', rc=rc)) then
+!             ! By default will be using a custom map - but if one is not available, use a generated bilinear instead
+!          call addmap_from(compice, 'Si_ifrac', compwav, mapbilnr, 'one', ice2wav_smap)
+!          call addmrg_to(compwav, 'Si_ifrac', mrg_from=compice, mrg_fld='Si_ifrac', mrg_type='copy')
+!       end if
+!    end if
+
     ! ---------------------------------------------------------------------
     ! to wav: zonal and meridional wind stress
     ! ---------------------------------------------------------------------
