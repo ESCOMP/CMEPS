@@ -2986,7 +2986,8 @@ contains
     if (phase == 'advertise') then 
        call addfld_to(compwav , 'Fwxx_taux')
 !       call addfld_from(compice , 'Fioi_taux')
-       call addfld_aoflux('Faox_taux')
+       call addfld_from(compocn, 'Foxx_taux')
+!       call addfld_aoflux('Faox_taux')
     else 
        if ( fldchk(is_local%wrap%FBexp(compwav), 'Fwxx_taux', rc=rc)) then 
 !          if (fldchk(is_local%wrap%FBimp(compice,compice), 'Fioi_taux', rc=rc)) then 
@@ -2995,7 +2996,8 @@ contains
 !                  mrg_from=compice, mrg_fld='Fioi_taux', mrg_type='merge', mrg_fracname='ifrac')
 !          end if
           call addmrg_to(compwav, 'Fwxx_taux', &
-               mrg_from=compmed, mrg_fld='Faox_taux', mrg_type='copy')
+               mrg_from=compocn, mrg_fld='Foxx_taux', mrg_type='copy')
+!               mrg_from=compmed, mrg_fld='Faox_taux', mrg_type='copy')
 !               mrg_from=compmed, mrg_fld='Faox_taux', mrg_type='merge', mrg_fracname='ofrac')
        end if
     end if
