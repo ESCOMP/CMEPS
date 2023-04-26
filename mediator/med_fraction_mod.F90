@@ -126,8 +126,10 @@ module med_fraction_mod
   character(len=6),parameter,dimension(1) :: fraclist_l = (/'lfrac '/)
   character(len=6),parameter,dimension(2) :: fraclist_g = (/'gfrac ','lfrac '/)
   character(len=6),parameter,dimension(2) :: fraclist_r = (/'rfrac ','lfrac '/)
-  character(len=6),parameter,dimension(1) :: fraclist_w = (/'wfrac '/)
-
+!PSH begin  
+!  character(len=6),parameter,dimension(1) :: fraclist_w = (/'wfrac '/)
+  character(len=6),parameter,dimension(3) :: fraclist_w = (/'ifrac ','ofrac ','wfrac '/)
+!PSH end
   !--- standard ---
   real(R8)    , parameter :: eps_fraclim = 1.0e-03      ! truncation limit in fractions_a(lfrac)
   character(*), parameter :: u_FILE_u =  &
