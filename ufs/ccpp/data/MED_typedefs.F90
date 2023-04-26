@@ -68,7 +68,9 @@ module MED_typedefs
     real(kind=kind_phys), pointer :: fm10_water(:)   => null() !< Monin-Obukhov similarity parameter for momentum at 10m over water
     real(kind=kind_phys), pointer :: prslki(:)       => null() !< Exner function ratio bt midlayer and interface at 1st layer
     logical,              pointer :: wet(:)          => null() !< flag indicating presence of some ocean or lake surface area fraction
-    logical,              pointer :: use_flake(:)    => null() !< flag indicating lake points using flake model
+    integer,              pointer :: use_lake_model(:)=>null() !< 0 for points that don't use a lake model, lkm for points that do
+    real (kind=kind_phys),pointer :: lake_t2m (:)    => null() !< 2 meter temperature from CLM Lake model 
+    real (kind=kind_phys),pointer :: lake_q2m (:)    => null() !< 2 meter humidity from CLM Lake model
     real(kind=kind_phys), pointer :: wind(:)         => null() !< wind speed at lowest model level (m/s)
     logical,              pointer :: flag_iter(:)    => null() !< flag for iteration
     real(kind=kind_phys), pointer :: qss_water(:)    => null() !< surface air saturation specific humidity over water (kg/kg)
@@ -172,7 +174,7 @@ module MED_typedefs
     integer                       :: sfc_z0_type               !< surface roughness options over water
     logical                       :: thsfc_loc                 !< flag for reference pressure in theta calculation
     integer                       :: nstf_name(5)              !< NSSTM flag: off/uncoupled/coupled=0/1/2
-    integer                       :: lkm                       !< flag for flake model
+    integer                       :: lkm                       !< 0 = no lake model, 1 = lake model, 2 = lake & nsst on lake points
     logical                       :: first_time_step           !< flag signaling first time step for time integration routine
     logical                       :: frac_grid                 !< flag for fractional grid
     logical                       :: cplwav2atm                !< default no wav->atm coupling
@@ -189,6 +191,14 @@ module MED_typedefs
     integer                       :: lsoil                     !< number of soil layers
     integer                       :: kice                      !< vertical loop extent for ice levels, start at 1
     integer                       :: lsm_ruc                   !< flag for RUC land surface model
+
+    ! Lake variables
+    logical                       :: frac_ice = .false.        !< flag for fractional ice when fractional grid is not in use
+    logical                       :: use_lake2m = .false.      !< use 2m T & Q calculated by the lake model
+    integer                       :: iopt_lake = 1             !< =1 flake, =2 clm lake
+    integer                       :: iopt_lake_flake = 1
+    integer                       :: iopt_lake_clm = 2
+
     logical                       :: diag_flux                 !< flag for flux method of 2-m diagnostics
     logical                       :: diag_log                  !< flag for log 2-m diagnostics
     contains
@@ -348,8 +358,12 @@ module MED_typedefs
     interstitial%prslki = clear_val
     allocate(interstitial%wet(im))
     interstitial%wet = .false.
-    allocate(interstitial%use_flake(im))
-    interstitial%use_flake = .false.
+    allocate(interstitial%use_lake_model(im))
+    interstitial%use_lake_model = 0
+    allocate(interstitial%lake_t2m(im))
+    interstitial%lake_t2m=-9999
+    allocate(interstitial%lake_q2m(im))
+    interstitial%lake_q2m=-9999
     allocate(interstitial%wind(im))
     interstitial%wind = huge
     allocate(interstitial%flag_iter(im))
@@ -596,7 +610,9 @@ module MED_typedefs
     interstitial%tsurf_ice = huge
     interstitial%tsurf_land = huge
     interstitial%tsurf_water = huge
-    interstitial%use_flake = .false.
+    interstitial%use_lake_model = 0
+    interstitial%lake_t2m = -9999
+    interstitial%lake_q2m = -9999
     interstitial%uustar_ice = huge
     interstitial%uustar_land = huge
     interstitial%uustar_water = huge
@@ -641,6 +657,11 @@ module MED_typedefs
     model%lsoil = 4
     model%kice = 2
     model%lsm_ruc = 3
+    model%frac_ice = .false.
+    model%use_lake2m = .false.
+    model%iopt_lake = 1
+    model%iopt_lake_flake = 1
+    model%iopt_lake_clm = 2
     model%diag_flux = .false.
     model%diag_log = .false.
 
