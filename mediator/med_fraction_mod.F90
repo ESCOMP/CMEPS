@@ -23,6 +23,7 @@ module med_fraction_mod
   !    character(*),parameter :: fraclist_l = 'lfrac'
   !    character(*),parameter :: fraclist_g = 'gfrac:lfrac'
   !    character(*),parameter :: fraclist_r = 'lfrac:rfrac'
+  !    character(*),parameter :: fraclist_w = 'ifrac:ofrac:wfrac'
   !
   !  we assume ocean and ice are on the same grids, same masks
   !  we assume ocn2atm and ice2atm are masked maps
