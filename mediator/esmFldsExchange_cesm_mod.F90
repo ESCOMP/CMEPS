@@ -2964,10 +2964,10 @@ contains
        end if
     end if
 !PSH begin
-    if (phase == 'advertise') then
-       call addfld_from(compocn, 'So_ofrac')
-       call addfld_to(compwav, 'So_ofrac')
-    end if
+!    if (phase == 'advertise') then
+!       call addfld_from(compocn, 'So_ofrac')
+!       call addfld_to(compwav, 'So_ofrac')
+!    end if
 !    if (phase == 'advertise') then
 !       call addfld_from(compocn, 'So_ofrac')
 !       call addfld_to(compwav, 'So_ofrac')
@@ -2999,36 +2999,6 @@ contains
 !               mrg_from=compmed, mrg_fld='Faox_taux', mrg_type='merge', mrg_fracname='ofrac')
        end if
     end if
-!    if (phase == 'advertise') then
-!       call addfld_to(compwav , 'Foxx_taux')
-!       call addfld_from(compice , 'Fioi_taux')
-!       call addfld_aoflux('Faox_taux')
-!    else
-!       if ( fldchk(is_local%wrap%FBexp(compwav), 'Foxx_taux', rc=rc)) then
-!          if (fldchk(is_local%wrap%FBimp(compice,compice), 'Fioi_taux', rc=rc)) then
-!             call addmap_from(compice, 'Fioi_taux', compocn, mapfcopy, 'unset', 'unset')
-!             call addmrg_to(compwav, 'Foxx_taux', &
-!                  mrg_from=compice, mrg_fld='Fioi_taux', mrg_type='merge', mrg_fracname='ifrac')
-!          end if
-!          call addmrg_to(compwav, 'Foxx_taux', &
-!               mrg_from=compmed, mrg_fld='Faox_taux', mrg_type='merge', mrg_fracname='ofrac')
-!       end if     
-!    end if
-!    if (phase == 'advertise') then
-!       call addfld_to(compwav , 'Foxx_tauy')
-!       call addfld_from(compice , 'Fioi_tauy')
-!       call addfld_aoflux('Faox_tauy')
-!    else  
-!       if ( fldchk(is_local%wrap%FBexp(compwav), 'Foxx_tauy', rc=rc)) then
-!          if (fldchk(is_local%wrap%FBimp(compice,compice), 'Fioi_tauy', rc=rc)) then
-!             call addmap_from(compice, 'Fioi_tauy', compocn, mapfcopy, 'unset', 'unset')
-!             call addmrg_to(compwav, 'Fwxx_tauy', &
-!                  mrg_from=compice, mrg_fld='Fioi_tauy', mrg_type='merge', mrg_fracname='ifrac')
-!          end if  
-!          call addmrg_to(compwav, 'Fwxx_tauy', &
-!               mrg_from=compmed, mrg_fld='Faox_tauy', mrg_type='merge', mrg_fracname='ofrac')
-!       end if
-!    end if
 !PSH end
 
     !=====================================================================
