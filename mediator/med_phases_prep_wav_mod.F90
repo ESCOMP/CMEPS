@@ -95,7 +95,7 @@ contains
     type(InternalState) :: is_local
     integer             :: n, ncnt
 !PSH begin
-    type(med_fldlist_type), pointer :: fldList
+!    type(med_fldlist_type), pointer :: fldList
 !PSH end
     character(len=*), parameter    :: subname='(med_phases_prep_wav_accum)'
     !---------------------------------------
@@ -112,7 +112,7 @@ contains
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 !PSH begin
-    fldList => med_fldList_GetfldListTo(compwav)
+!    fldList => med_fldList_GetfldListTo(compwav)
 !PSH end
     ! auto merges to wav
 !PSH begin
