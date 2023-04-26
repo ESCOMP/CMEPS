@@ -3009,12 +3009,10 @@ contains
           if (fldchk(is_local%wrap%FBimp(compice,compice), 'Fioi_taux', rc=rc)) then 
              call addmap_from(compice, 'Fioi_taux', compwav, mapfcopy, 'unset', 'unset')
              call addmrg_to(compwav, 'Fwxx_taux', &
-                  mrg_from=compice, mrg_fld='Fioi_taux', mrg_type='merge')
-!                  mrg_from=compice, mrg_fld='Fioi_taux', mrg_type='merge', mrg_fracname='ifrac')
+                  mrg_from=compice, mrg_fld='Fioi_taux', mrg_type='merge', mrg_fracname='ifrac')
           end if
           call addmrg_to(compwav, 'Fwxx_taux', &
-               mrg_from=compmed, mrg_fld='Faox_taux', mrg_type='merge')
-!               mrg_from=compmed, mrg_fld='Faox_taux', mrg_type='merge', mrg_fracname='ofrac')
+               mrg_from=compmed, mrg_fld='Faox_taux', mrg_type='merge', mrg_fracname='ofrac')
        end if
     end if
 !PSH end
