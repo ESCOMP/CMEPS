@@ -142,7 +142,7 @@
   </entry>
 
   <!-- ========================================================================================  -->
-  <!-- Ozone control                                                                              -->
+  <!-- Ozone control                                                                             -->
   <!-- ========================================================================================  -->
 
   <entry id="atm_ozone_frequency">
@@ -154,6 +154,19 @@
       Surface ozone is passed every coupling interval, but this namelist flag
       indicates whether the timestep-level values are interpolated from a
       coarser temporal resolution.
+    </desc>
+  </entry>
+
+  <!-- ========================================================================================  -->
+  <!-- Lightning                                                                                 -->
+  <!-- ========================================================================================  -->
+
+  <entry id="atm_provides_lightning">
+    <type>logical</type>
+    <category>lightning_coupling</category>
+    <group>lightning_coupling_nl</group>
+    <desc>
+      If TRUE atmosphere model will provide prognosed lightning flash frequency (flashes per minute).
     </desc>
   </entry>
 
