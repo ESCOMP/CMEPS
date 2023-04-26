@@ -14,18 +14,18 @@ module med_phases_prep_wav_mod
   use med_utils_mod         , only : chkerr        => med_utils_ChkErr
   use med_methods_mod       , only : FB_diagnose   => med_methods_FB_diagnose
 !PSH begin
-!  use med_methods_mod       , only : FB_fldchk     => med_methods_FB_FldChk
-!  use med_methods_mod       , only : FB_GetFldPtr  => med_methods_FB_GetFldPtr
+  use med_methods_mod       , only : FB_fldchk     => med_methods_FB_FldChk
+  use med_methods_mod       , only : FB_GetFldPtr  => med_methods_FB_GetFldPtr
 !PSH end
   use med_methods_mod       , only : FB_accum      => med_methods_FB_accum
   use med_methods_mod       , only : FB_average    => med_methods_FB_average
   use med_methods_mod       , only : FB_copy       => med_methods_FB_copy
   use med_methods_mod       , only : FB_reset      => med_methods_FB_reset
 !PSH begin
-  use esmFlds               , only : med_fldList_GetfldListTo
-  use med_internalstate_mod , only : compwav
-!  use esmFlds               , only : med_fldList_GetfldListTo, med_fldlist_type
-!  use med_internalstate_mod , only : compwav, compocn, compatm, compice, coupling_mode
+!  use esmFlds               , only : med_fldList_GetfldListTo
+!  use med_internalstate_mod , only : compwav
+  use esmFlds               , only : med_fldList_GetfldListTo, med_fldlist_type
+  use med_internalstate_mod , only : compwav, compocn, compatm, compice, coupling_mode
 !PSH end
   use perf_mod              , only : t_startf, t_stopf
 
@@ -37,7 +37,7 @@ module med_phases_prep_wav_mod
   public :: med_phases_prep_wav_avg    ! called from run sequence
 
 !PSH begin
-!  private :: med_phases_prep_wav_custom_cesm
+  private :: med_phases_prep_wav_custom_cesm
 !PSH end
 
   character(*), parameter :: u_FILE_u  = &
@@ -95,7 +95,7 @@ contains
     type(InternalState) :: is_local
     integer             :: n, ncnt
 !PSH begin
-!    type(med_fldlist_type), pointer :: fldList
+    type(med_fldlist_type), pointer :: fldList
 !PSH end
     character(len=*), parameter    :: subname='(med_phases_prep_wav_accum)'
     !---------------------------------------
@@ -112,31 +112,31 @@ contains
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 !PSH begin
-!    fldList => med_fldList_GetfldListTo(compwav)
+    fldList => med_fldList_GetfldListTo(compwav)
 !PSH end
     ! auto merges to wav
 !PSH begin
-    call med_merge_auto(&
-         is_local%wrap%med_coupling_active(:,compwav), &
-         is_local%wrap%FBExp(compwav), &
-         is_local%wrap%FBFrac(compwav), &
-         is_local%wrap%FBImp(:,compwav), &
-         med_fldList_GetfldListTo(compwav), rc=rc)
-!       call med_merge_auto(&
-!            is_local%wrap%med_coupling_active(:,compwav), &
-!            is_local%wrap%FBExp(compwav), &
-!            is_local%wrap%FBFrac(compwav), &
-!            is_local%wrap%FBImp(:,compwav), &
-!            fldList, &
-!            FBMed1=is_local%wrap%FBMed_aoflux_o, rc=rc)
+!    call med_merge_auto(&
+!         is_local%wrap%med_coupling_active(:,compwav), &
+!         is_local%wrap%FBExp(compwav), &
+!         is_local%wrap%FBFrac(compwav), &
+!         is_local%wrap%FBImp(:,compwav), &
+!         med_fldList_GetfldListTo(compwav), rc=rc)
+       call med_merge_auto(&
+            is_local%wrap%med_coupling_active(:,compwav), &
+            is_local%wrap%FBExp(compwav), &
+            is_local%wrap%FBFrac(compwav), &
+            is_local%wrap%FBImp(:,compwav), &
+            fldList, &
+            FBMed1=is_local%wrap%FBMed_aoflux_o, rc=rc)
 !PSH end
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 !PSH begin
-!    ! custom merges to ocean
-!    if (trim(coupling_mode) == 'cesm') then
-!       call med_phases_prep_wav_custom_cesm(gcomp, rc) 
-!       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-!    end if
+    ! custom merges to ocean
+    if (trim(coupling_mode) == 'cesm') then
+       call med_phases_prep_wav_custom_cesm(gcomp, rc) 
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    end if
 !PSH end
 
     ! wave accumulator
@@ -224,79 +224,79 @@ contains
 
   end subroutine med_phases_prep_wav_avg
   !-----------------------------------------------------------------------------
-!  subroutine med_phases_prep_wav_custom_cesm(gcomp, rc)
-!
-!    !---------------------------------------
-!    ! custom calculations for cesm
-!    !---------------------------------------
-!
-!    use ESMF , only : ESMF_GridComp, ESMF_StateGet, ESMF_Field, ESMF_FieldGet
-!    use ESMF , only : ESMF_VMBroadCast
-!    use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
-!    use ESMF , only : ESMF_FAILURE,  ESMF_LOGMSG_ERROR
-!
-!    ! input/output variables
-!    type(ESMF_GridComp)  :: gcomp
-!    integer, intent(out) :: rc
-!
-!    ! local variables
-!    type(InternalState) :: is_local
-!    type(ESMF_Field)    :: lfield
-!    real(R8), pointer   :: ifrac(:)
-!    real(R8), pointer   :: ofrac(:)
-!    real(R8), pointer   :: ifracr(:)
-!    real(R8), pointer   :: ofracr(:)
-!    real(R8), pointer   :: avsdr(:)
-!    real(R8), pointer   :: avsdf(:)
-!    real(R8), pointer   :: anidr(:)
-!    real(R8), pointer   :: anidf(:)
-!    real(R8), pointer   :: Faxa_swvdf(:)
-!    real(R8), pointer   :: Faxa_swndf(:)
-!    real(R8), pointer   :: Faxa_swvdr(:)
-!    real(R8), pointer   :: Faxa_swndr(:)
-!    real(R8), pointer   :: Foxx_swnet(:)
-!    real(R8), pointer   :: Foxx_swnet_afracr(:)
-!    real(R8), pointer   :: Foxx_swnet_vdr(:)
-!    real(R8), pointer   :: Foxx_swnet_vdf(:)
-!    real(R8), pointer   :: Foxx_swnet_idr(:)
-!    real(R8), pointer   :: Foxx_swnet_idf(:)
-!    real(R8), pointer   :: Fioi_swpen_vdr(:)
-!    real(R8), pointer   :: Fioi_swpen_vdf(:)
-!    real(R8), pointer   :: Fioi_swpen_idr(:)
-!    real(R8), pointer   :: Fioi_swpen_idf(:)
-!    real(R8), pointer   :: Fioi_swpen(:)
-!    real(R8), pointer   :: dataptr(:)
-!    real(R8), pointer   :: dataptr_scalar_ocn(:,:)
-!    real(R8)            :: frac_sum
-!    real(R8)            :: ifrac_scaled, ofrac_scaled
-!    real(R8)            :: ifracr_scaled, ofracr_scaled
-!    logical             :: export_swnet_by_bands
-!    logical             :: import_swpen_by_bands
-!    logical             :: export_swnet_afracr
-!    real(R8)            :: precip_fact(1)
-!    character(CS)       :: cvalue
-!    real(R8)            :: fswabsv, fswabsi
-!    integer             :: scalar_id
-!    integer             :: n
-!    integer             :: lsize
-!    real(R8)            :: c1,c2,c3,c4
-!    character(len=64), allocatable :: fldnames(:)
-!    character(len=*), parameter    :: subname='(med_phases_prep_wav_custom_cesm)'
-!    !---------------------------------------
-!
-!    rc = ESMF_SUCCESS
-!
-!    call t_startf('MED:'//subname)
-!    if (dbug_flag > 20) then
-!       call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
-!    end if
-!    call memcheck(subname, 5, mastertask)
-!
-!    ! Get the internal state
-!    nullify(is_local%wrap)
-!    call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
-!    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-!
+  subroutine med_phases_prep_wav_custom_cesm(gcomp, rc)
+
+    !---------------------------------------
+    ! custom calculations for cesm
+    !---------------------------------------
+
+    use ESMF , only : ESMF_GridComp, ESMF_StateGet, ESMF_Field, ESMF_FieldGet
+    use ESMF , only : ESMF_VMBroadCast
+    use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
+    use ESMF , only : ESMF_FAILURE,  ESMF_LOGMSG_ERROR
+
+    ! input/output variables
+    type(ESMF_GridComp)  :: gcomp
+    integer, intent(out) :: rc
+
+    ! local variables
+    type(InternalState) :: is_local
+    type(ESMF_Field)    :: lfield
+    real(R8), pointer   :: ifrac(:)
+    real(R8), pointer   :: ofrac(:)
+    real(R8), pointer   :: ifracr(:)
+    real(R8), pointer   :: ofracr(:)
+    real(R8), pointer   :: avsdr(:)
+    real(R8), pointer   :: avsdf(:)
+    real(R8), pointer   :: anidr(:)
+    real(R8), pointer   :: anidf(:)
+    real(R8), pointer   :: Faxa_swvdf(:)
+    real(R8), pointer   :: Faxa_swndf(:)
+    real(R8), pointer   :: Faxa_swvdr(:)
+    real(R8), pointer   :: Faxa_swndr(:)
+    real(R8), pointer   :: Foxx_swnet(:)
+    real(R8), pointer   :: Foxx_swnet_afracr(:)
+    real(R8), pointer   :: Foxx_swnet_vdr(:)
+    real(R8), pointer   :: Foxx_swnet_vdf(:)
+    real(R8), pointer   :: Foxx_swnet_idr(:)
+    real(R8), pointer   :: Foxx_swnet_idf(:)
+    real(R8), pointer   :: Fioi_swpen_vdr(:)
+    real(R8), pointer   :: Fioi_swpen_vdf(:)
+    real(R8), pointer   :: Fioi_swpen_idr(:)
+    real(R8), pointer   :: Fioi_swpen_idf(:)
+    real(R8), pointer   :: Fioi_swpen(:)
+    real(R8), pointer   :: dataptr(:)
+    real(R8), pointer   :: dataptr_scalar_ocn(:,:)
+    real(R8)            :: frac_sum
+    real(R8)            :: ifrac_scaled, ofrac_scaled
+    real(R8)            :: ifracr_scaled, ofracr_scaled
+    logical             :: export_swnet_by_bands
+    logical             :: import_swpen_by_bands
+    logical             :: export_swnet_afracr
+    real(R8)            :: precip_fact(1)
+    character(CS)       :: cvalue
+    real(R8)            :: fswabsv, fswabsi
+    integer             :: scalar_id
+    integer             :: n
+    integer             :: lsize
+    real(R8)            :: c1,c2,c3,c4
+    character(len=64), allocatable :: fldnames(:)
+    character(len=*), parameter    :: subname='(med_phases_prep_wav_custom_cesm)'
+    !---------------------------------------
+
+    rc = ESMF_SUCCESS
+
+    call t_startf('MED:'//subname)
+    if (dbug_flag > 20) then
+       call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
+    end if
+    call memcheck(subname, 5, mastertask)
+
+    ! Get the internal state
+    nullify(is_local%wrap)
+    call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
 !    !---------------------------------------
 !    ! Compute netsw for ocean
 !    !---------------------------------------
@@ -519,6 +519,6 @@ contains
 !    end if
 !    call t_stopf('MED:'//subname)
 !
-!  end subroutine med_phases_prep_wav_custom_cesm
+  end subroutine med_phases_prep_wav_custom_cesm
 
 end module med_phases_prep_wav_mod
