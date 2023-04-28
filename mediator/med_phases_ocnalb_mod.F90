@@ -11,6 +11,7 @@ module med_phases_ocnalb_mod
 #ifdef CESMCOUPLED
   use shr_orb_mod           , only : shr_orb_cosz, shr_orb_decl
   use shr_orb_mod           , only : shr_orb_params, SHR_ORB_UNDEF_INT, SHR_ORB_UNDEF_REAL
+  use shr_log_mod           , only : shr_log_unit
 #endif
 
   implicit none
@@ -594,6 +595,7 @@ contains
     end if
 
     eccen = orb_eccen
+    shr_log_unit = logunit
     call shr_orb_params(orb_year, eccen, orb_obliq, orb_mvelp, obliqr, lambm0, mvelpp, lprint)
 
     if ( eccen  == SHR_ORB_UNDEF_REAL .or. obliqr == SHR_ORB_UNDEF_REAL .or. &

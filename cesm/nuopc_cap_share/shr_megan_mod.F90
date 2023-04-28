@@ -16,7 +16,7 @@ module shr_megan_mod
   use ESMF                , only : ESMF_LogFoundError, ESMF_LOGERR_PASSTHRU, ESMF_SUCCESS
   use shr_kind_mod        , only : r8 => shr_kind_r8, cl=>shr_kind_cl, cx=>shr_kind_cx, cs=>shr_kind_cs
   use shr_sys_mod         , only : shr_sys_abort
-  use shr_log_mod         , only : logunit => shr_log_Unit
+  use shr_log_mod         , only : shr_log_getLogUnit
   use shr_mpi_mod         , only : shr_mpi_bcast
   use shr_nl_mod          , only : shr_nl_find_group_name
   use shr_expr_parser_mod , only : shr_exp_parse, shr_exp_item_t, shr_exp_list_destroy
@@ -126,6 +126,7 @@ contains
     logical             :: megan_mapped_emisfctrs = .false.
     character(len=CL)   :: megan_factors_file = ' '
     integer             :: rc
+    integer             :: logunit
     integer             :: i, tmp(1)
     character(*), parameter :: F00   = "('(shr_megan_readnl) ',2a)"
     character(len=*), parameter :: subname='(shr_megan_readnl)'
@@ -143,7 +144,7 @@ contains
 
     call ESMF_VMGet(vm, localPet=localPet, mpiCommunicator=mpicom, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=__FILE__)) return 
-
+    call shr_log_getLogUnit(logunit)
     ! Note the following still needs to be called on all processors since the mpi_bcast is a collective 
     ! call on all the pes of mpicom
     if (localPet==0) then

@@ -4,7 +4,7 @@ module med_phases_post_atm_mod
   ! Mediator phase for post atm calculations, maps atm->ice, atm->lnd, atm->ocn
   ! and atm->wav
   !-----------------------------------------------------------------------------
-
+ 
   implicit none
   private
 
