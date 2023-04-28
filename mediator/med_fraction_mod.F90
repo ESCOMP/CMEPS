@@ -808,6 +808,10 @@ contains
     use ESMF                  , only : ESMF_Field, ESMF_FieldGet
     use ESMF                  , only : ESMF_FieldBundleGet, ESMF_FieldBundleIsCreated
     use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
+!PSH Begin
+!    use med_internalstate_mod , only : compatm, compocn, compice, compname
+    use med_internalstate_mod , only : compatm, compocn, compice, compname, compwav
+!PSH End
     use med_internalstate_mod , only : compatm, compocn, compice, compname
     use med_internalstate_mod , only : mapfcopy, mapconsd, mapnstod_consd
     use med_internalstate_mod , only : coupling_mode
