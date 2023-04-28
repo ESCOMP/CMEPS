@@ -719,8 +719,8 @@ contains
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
           call med_map_routehandles_init(compwav, compocn, &
-               FBSrc=is_local%wrap%FBImp(compwav,compice), &
-               FBDst=is_local%wrap%FBImp(compwav,compice), &
+               FBSrc=is_local%wrap%FBImp(compwav,compocn), &
+               FBDst=is_local%wrap%FBImp(compwav,compocn), &
                mapindex=mapfcopy, RouteHandle=is_local%wrap%RH, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
@@ -812,7 +812,6 @@ contains
 !    use med_internalstate_mod , only : compatm, compocn, compice, compname
     use med_internalstate_mod , only : compatm, compocn, compice, compname, compwav
 !PSH End
-    use med_internalstate_mod , only : compatm, compocn, compice, compname
     use med_internalstate_mod , only : mapfcopy, mapconsd, mapnstod_consd
     use med_internalstate_mod , only : coupling_mode
     use med_internalstate_mod , only : InternalState
