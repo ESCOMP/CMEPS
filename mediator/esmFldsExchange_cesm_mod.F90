@@ -1562,13 +1562,13 @@ contains
     ! to ocn: seaice basal pressure
     ! ---------------------------------------------------------------------
     if (phase == 'advertise') then
-       call addfld(fldListFr(compice)%flds, 'Si_bpress')
-       call addfld(fldListTo(compocn)%flds, 'Si_bpress')
+       call addfld_from(compice, 'Si_bpress')
+       call addfld_to(compocn, 'Si_bpress')
     else
        if ( fldchk(is_local%wrap%FBImp(compice, compice), 'Si_bpress', rc=rc) .and. &
             fldchk(is_local%wrap%FBExp(compocn)         , 'Si_bpress', rc=rc)) then
-          call addmap(fldListFr(compice)%flds, 'Si_bpress', compocn,  mapfcopy, 'unset', 'unset')
-          call addmrg(fldListTo(compocn)%flds, 'Si_bpress', mrg_from=compice, mrg_fld='Si_bpress', mrg_type='copy')
+          call addmap_from(compice, 'Si_bpress', compocn,  mapfcopy, 'unset', 'unset')
+          call addmrg_to(compocn, 'Si_bpress', mrg_from=compice, mrg_fld='Si_bpress', mrg_type='copy')
        end if
     end if
 
@@ -2755,13 +2755,13 @@ contains
     ! to ice: frazil from ocn
     ! ---------------------------------------------------------------------
     if (phase == 'advertise') then
-       call addfld(fldListFr(compocn)%flds, 'Fioo_frazil')
-       call addfld(fldListTo(compice)%flds, 'Fioo_frazil')
+       call addfld_from(compocn, 'Fioo_frazil')
+       call addfld_to(compice, 'Fioo_frazil')
     else
        if ( fldchk(is_local%wrap%FBImp(compocn, compocn), 'Fioo_frazil', rc=rc) .and. &
             fldchk(is_local%wrap%FBExp(compice)         , 'Fioo_frazil', rc=rc)) then
-          call addmap(fldListFr(compocn)%flds, 'Fioo_frazil', compice,  mapfcopy, 'unset', 'unset')
-          call addmrg(fldListTo(compice)%flds, 'Fioo_frazil', mrg_from=compocn, mrg_fld='Fioo_frazil', mrg_type='copy')
+          call addmap_from(compocn, 'Fioo_frazil', compice,  mapfcopy, 'unset', 'unset')
+          call addmrg_to(compice, 'Fioo_frazil', mrg_from=compocn, mrg_fld='Fioo_frazil', mrg_type='copy')
        end if
     end if
     !-----------------------------
