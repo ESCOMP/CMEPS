@@ -340,7 +340,7 @@ contains
           else
              inst_suffix = ''
           endif
-          # CESM does not use this ESMF feature and at large processor counts it can be expensive to have it on.
+          ! CESM does not use this ESMF feature and at large processor counts it can be expensive to have it on.
           call NUOPC_CompAttributeSet(driver, name="HierarchyProtocol", value="off", rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           
