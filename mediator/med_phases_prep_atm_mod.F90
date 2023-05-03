@@ -243,6 +243,33 @@ contains
        end do
     end if
 
+
+    call ESMF_FieldBundleGet(is_local%wrap%FBExp(compatm), fieldCount=fieldCount, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    do i=1,fieldCount
+       call med_methods_FB_getFieldN(is_local%wrap%FBExp(compatm), i, fldptr, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       call ESMF_FieldGet(fldptr, rank=rank, name=name, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       
+       if(rank == 1) then
+          call ESMF_FieldGet(fldptr, dataptr1=farrayPtr, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+          call med_method_check_for_nans(dataptr1, name, rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       elseif(rank == 2) then
+          call ESMF_FieldGet(fldptr, dataptr2=farrayPtr, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call med_method_check_for_nans(dataptr2, name, rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       endif
+
+    enddo
+
     if (dbug_flag > 5) then
        call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
     end if

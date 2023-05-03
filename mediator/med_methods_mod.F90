@@ -24,6 +24,11 @@ module med_methods_mod
     med_methods_FieldPtr_compare2
   end interface
 
+  interface med_methods_check_for_nans
+     module procedure med_methods_check_for_nans_1d
+     module procedure med_methods_check_for_nans_2d
+  end interface med_methods_check_for_nans
+
   ! used/reused in module
 
   logical                       :: isPresent
@@ -2496,5 +2501,40 @@ contains
     deallocate(fieldlist)
 
   end subroutine med_methods_FB_getmesh
+
+  subroutine med_methods_check_for_nans_1d(ptr, name, rc)
+    real(r8), intent(in) :: ptr(:)
+    character(len=*), intent(in) :: name
+    integer, intent(out) :: rc
+
+    if(any(isnan(ptr))) then
+!       do i=1,size(ptr)
+!          if (isnan(ptr(i))) then
+!             write(msg,*) 
+!          endif
+!       enddo
+
+       call ESMF_LogWrite(trim(subname)//": ERROR NaN found in field: "//trim(name), ESMF_LOGMSG_ERROR)
+       rc = ESMF_FAILURE
+       return
+    endif
+  end subroutine med_methods_check_for_nans_1d
+  subroutine med_methods_check_for_nans_2d(ptr, name, rc)
+    real(r8), intent(in) :: ptr(:,:)
+    character(len=*), intent(in) :: name
+    integer, intent(out) :: rc
+
+    if(any(isnan(ptr))) then
+!       do i=1,size(ptr)
+!          if (isnan(ptr(i))) then
+!             write(msg,*) 
+!          endif
+!       enddo
+
+       call ESMF_LogWrite(trim(subname)//": ERROR NaN found in field: "//trim(name), ESMF_LOGMSG_ERROR)
+       rc = ESMF_FAILURE
+       return
+    endif
+  end subroutine med_methods_check_for_nans_1d
 
 end module med_methods_mod
