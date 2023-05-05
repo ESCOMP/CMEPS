@@ -96,7 +96,6 @@ contains
     type(InternalState) :: is_local
     integer             :: n, ns
     character(len=CL)   :: cvalue
-    character(len=CS)   :: name
     logical             :: wav_coupling_to_cice
     logical             :: ocn2glc_coupling
     character(len=*) , parameter   :: subname=' (esmFldsExchange_cesm) '
