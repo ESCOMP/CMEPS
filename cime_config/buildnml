@@ -125,16 +125,12 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     elif case.get_value("RUN_TYPE") == "branch":
         config["run_type"] = "branch"
 
+    config['wav_ice_coupling'] = config['COMP_WAV'] == 'ww3dev' and config['COMP_ICE'] == 'cice'
+
     # ----------------------------------------------------
     # Initialize namelist defaults
     # ----------------------------------------------------
     nmlgen.init_defaults(infile, config, skip_default_for_groups=["modelio"])
-
-    # --------------------------------
-    # Set default wav-ice coupling (assumes cice6 as the ice component
-    # --------------------------------
-    if case.get_value("COMP_WAV") == "ww3dev" and case.get_value("COMP_ICE") == "cice":
-        nmlgen.add_default("wavice_coupling", value=".true.")
 
     # --------------------------------
     # Overwrite: set brnch_retain_casename
