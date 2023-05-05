@@ -24,6 +24,11 @@ module med_methods_mod
     med_methods_FieldPtr_compare2
   end interface
 
+  interface med_methods_check_for_nans
+     module procedure med_methods_check_for_nans_1d
+     module procedure med_methods_check_for_nans_2d
+  end interface med_methods_check_for_nans
+
   ! used/reused in module
 
   logical                       :: isPresent
@@ -49,6 +54,7 @@ module med_methods_mod
   public med_methods_FB_getdata2d
   public med_methods_FB_getdata1d
   public med_methods_FB_getmesh
+  public med_methods_FB_check_for_nans
 
   public med_methods_State_reset
   public med_methods_State_diagnose
@@ -71,6 +77,8 @@ module med_methods_mod
 #ifdef DIAGNOSE
   private med_methods_Array_diagnose
 #endif
+  private med_methods_check_for_nans
+
 !-----------------------------------------------------------------------------
 contains
 !-----------------------------------------------------------------------------
@@ -2496,5 +2504,105 @@ contains
     deallocate(fieldlist)
 
   end subroutine med_methods_FB_getmesh
+
+  !-----------------------------------------------------------------------------
+  subroutine med_methods_FB_check_for_nans(FB, rc)
+
+    use ESMF, only : ESMF_FieldBundle, ESMF_Field, ESMF_FieldBundleGet, ESMF_FieldGet
+
+    ! input/output variables
+    type(ESMF_FieldBundle) , intent(in)    :: FB
+    integer                , intent(inout) :: rc
+
+    ! local variables
+    type(ESMF_Field)   :: field
+    integer            :: index
+    integer            :: fieldcount
+    integer            :: fieldrank
+    character(len=CL)  :: fieldname
+    real(r8) , pointer :: dataptr1d(:)
+    real(r8) , pointer :: dataptr2d(:,:)
+    ! ----------------------------------------------
+    rc = ESMF_SUCCESS
+
+    call ESMF_FieldBundleGet(FB, fieldCount=fieldCount, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    do index=1,fieldCount
+       call med_methods_FB_getNameN(FB, index, fieldname, rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_FieldBundleGet(FB, fieldName=fieldname, field=field, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_FieldGet(field, rank=fieldrank, name=fieldname, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       if (fieldrank == 1) then
+          call ESMF_FieldGet(field, farrayPtr=dataptr1d, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+       else
+          call ESMF_FieldGet(field, farrayPtr=dataptr2d, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+       end if
+    end do
+
+  end subroutine med_methods_FB_check_for_nans
+
+  !-----------------------------------------------------------------------------
+  subroutine med_methods_check_for_nans_1d(dataptr, name, rc)
+    ! input/output variables
+    real(r8)         , intent(in)  :: dataptr(:)
+    character(len=*) , intent(in)  :: name
+    integer          , intent(out) :: rc
+
+    ! local variables
+    integer :: n
+    integer :: nancount
+    character(len=CS) :: nancount_char
+    character(len=*), parameter :: subname='(med_methods_check_for_nans_1d)'
+    ! ----------------------------------------------
+    rc = ESMF_SUCCESS
+
+    nancount = 0
+    do n = 1,size(dataptr)
+       if (isnan(dataptr(n))) then
+          nancount = nancount + 1
+       end if
+    end do
+    if (nancount > 0) then
+       write(nancount_char, '(i0)') nancount
+       call ESMF_LogWrite(trim(subname)//": ERROR "//trim(nancount_char)//" NaNs found in field: "//trim(name), &
+            ESMF_LOGMSG_ERROR)
+       return
+    endif
+  end subroutine med_methods_check_for_nans_1d
+
+  subroutine med_methods_check_for_nans_2d(dataptr, name, rc)
+    ! input/output variables
+    real(r8)         , intent(in)  :: dataptr(:,:)
+    character(len=*) , intent(in)  :: name
+    integer          , intent(out) :: rc
+
+    ! local variables
+    integer :: n,k
+    integer :: nancount
+    character(len=CS) :: nancount_char
+    character(len=*), parameter :: subname='(med_methods_check_for_nans_2d)'
+    ! ----------------------------------------------
+    rc = ESMF_SUCCESS
+
+    nancount = 0
+    do k = 1,size(dataptr, dim=1)
+       do n = 1,size(dataptr, dim=2)
+          if (isnan(dataptr(k,n))) then
+             nancount = nancount + 1
+          end if
+       end do
+    end do
+    if (nancount > 0) then
+       write(nancount_char, '(i0)') nancount
+       call ESMF_LogWrite(trim(subname)//": ERROR "//trim(nancount_char)//" NaNs found in field: "//trim(name), &
+            ESMF_LOGMSG_ERROR)
+       return
+    end if
+  end subroutine med_methods_check_for_nans_2d
 
 end module med_methods_mod
