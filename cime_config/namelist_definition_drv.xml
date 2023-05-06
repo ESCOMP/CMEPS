@@ -1526,7 +1526,7 @@
     <group>MED_attributes</group>
     <desc>history option type</desc>
     <values>
-      <value>ndays</value>
+      <value>nhours</value>
     </values>
   </entry>
   <entry id="histaux_atm2med_file5_history_n">
@@ -1989,7 +1989,7 @@
     <group>MED_attributes</group>
     <desc>history option type</desc>
     <values>
-      <value>ndays</value>
+      <value>nhours</value>
     </values>
   </entry>
   <entry id="histaux_rof2med_file1_history_n">
@@ -1998,7 +1998,7 @@
     <group>MED_attributes</group>
     <desc>history option type</desc>
     <values>
-      <value>1</value>
+      <value>6</value>
     </values>
   </entry>
   <entry id="histaux_rof2med_file1_doavg">
