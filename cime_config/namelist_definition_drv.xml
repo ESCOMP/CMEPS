@@ -2371,6 +2371,7 @@
     </desc>
     <values>
       <value COMP_OCN="pop">4</value>
+      <value COMP_OCN="blom">4</value>
       <value>0</value>
     </values>
   </entry>
@@ -3899,7 +3900,7 @@
     </values>
   </entry>
 
-  <entry id="wavice_coupling">
+  <entry id="wav_coupling_to_cice">
     <type>logical</type>
     <category>expdef</category>
     <group>ALLCOMP_attributes</group>
@@ -3908,6 +3909,8 @@
     </desc>
     <values>
       <value>.false.</value>
+      <!-- The following is not set as a default for now -->
+      <!-- <value wav_coupling_to_cice='on'>.true.</value>    -->
     </values>
   </entry>
 
