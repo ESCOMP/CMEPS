@@ -2567,7 +2567,8 @@ contains
 
   !-----------------------------------------------------------------------------
   subroutine med_methods_check_for_nans_1d(dataptr, nancount)
-   use shr_infnan_mod, only: nan => shr_infnan_nan, inf => shr_infnan_inf, assignment(=)
+    use shr_infnan_mod, only: nan => isnan
+
     ! input/output variables
     real(r8) , intent(in)  :: dataptr(:)
     integer  , intent(out) :: nancount
@@ -2584,7 +2585,8 @@ contains
   end subroutine med_methods_check_for_nans_1d
 
   subroutine med_methods_check_for_nans_2d(dataptr, nancount)
-    use shr_infnan_mod, only: nan => shr_infnan_nan, inf => shr_infnan_inf, assignment(=)
+    use shr_infnan_mod, only: isnan
+
     ! input/output variables
     real(r8) , intent(in)  :: dataptr(:,:)
     integer  , intent(out) :: nancount
