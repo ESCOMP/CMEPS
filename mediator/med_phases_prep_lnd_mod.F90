@@ -29,7 +29,7 @@ contains
     use ESMF                  , only : ESMF_StateGet, ESMF_StateItem_Flag, ESMF_STATEITEM_NOTFOUND
     use esmFlds               , only : med_fldList_GetFldListTo, med_fldList_type
     use med_methods_mod       , only : fldbun_diagnose  => med_methods_FB_diagnose
-    use med_methods_mod       , only : fldbun_check_for_nans => med_methods_FB_check_for_nans
+    use med_methods_mod       , only : FB_check_for_nans => med_methods_FB_check_for_nans
     use med_utils_mod         , only : chkerr           => med_utils_ChkErr
     use med_constants_mod     , only : dbug_flag        => med_constants_dbug_flag
     use med_internalstate_mod , only : complnd, compatm
@@ -129,7 +129,7 @@ contains
     first_call = .false.
 
     ! Check for nans in fields export to atm
-    call fldbun_check_for_nans(is_local%wrap%FBExp(complnd), rc=rc)
+    call FB_check_for_nans(is_local%wrap%FBExp(complnd), rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if (dbug_flag > 5) then

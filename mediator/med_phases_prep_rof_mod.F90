@@ -23,7 +23,7 @@ module med_phases_prep_rof_mod
   use med_methods_mod       , only : fldbun_reset     => med_methods_FB_reset
   use med_methods_mod       , only : fldbun_average   => med_methods_FB_average
   use med_methods_mod       , only : field_getdata1d  => med_methods_Field_getdata1d
-  use med_methods_mod       , only : fldbun_check_for_nans => med_methods_FB_check_for_nans
+  use med_methods_mod       , only : FB_check_for_nans => med_methods_FB_check_for_nans
   use perf_mod              , only : t_startf, t_stopf
 
   implicit none
@@ -378,7 +378,7 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! Check for nans in fields export to atm
-    call fldbun_check_for_nans(is_local%wrap%FBExp(comprof), rc=rc)
+    call FB_check_for_nans(is_local%wrap%FBExp(comprof), rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if (dbug_flag > 1) then
