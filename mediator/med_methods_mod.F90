@@ -2515,16 +2515,17 @@ contains
     integer                , intent(inout) :: rc
 
     ! local variables
-    type(ESMF_Field)   :: field
-    integer            :: index
-    integer            :: fieldcount
-    integer            :: fieldrank
-    character(len=CL)  :: fieldname
-    real(r8) , pointer :: dataptr1d(:)
-    real(r8) , pointer :: dataptr2d(:,:)
-    integer            :: nancount
-    character(len=CS)  :: nancount_char
-    logical            :: nanfound
+    type(ESMF_Field)            :: field
+    integer                     :: index
+    integer                     :: fieldcount
+    integer                     :: fieldrank
+    character(len=CL)           :: fieldname
+    real(r8) , pointer          :: dataptr1d(:)
+    real(r8) , pointer          :: dataptr2d(:,:)
+    integer                     :: nancount
+    character(len=CS)           :: nancount_char
+    character(len=CL)           :: msg_error
+    logical                     :: nanfound
     character(len=*), parameter :: subname='(med_methods_FB_check_for_nans)'
     ! ----------------------------------------------
     rc = ESMF_SUCCESS
@@ -2543,21 +2544,22 @@ contains
        if (fieldrank == 1) then
           call ESMF_FieldGet(field, farrayPtr=dataptr1d, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call med_methods_check_for_nans(dataptr1d, nancount) 
+          call med_methods_check_for_nans(dataptr1d, nancount)
        else
           call ESMF_FieldGet(field, farrayPtr=dataptr2d, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call med_methods_check_for_nans(dataptr2d, nancount) 
+          call med_methods_check_for_nans(dataptr2d, nancount)
        end if
        if (nancount > 0) then
           write(nancount_char, '(i0)') nancount
-          call ESMF_LogWrite(trim(subname)//": ERROR "//trim(nancount_char)//" NaNs found in field: "//trim(fieldname), &
-               ESMF_LOGMSG_WARNING)
+          msg_error = "ERROR: " // trim(nancount_char) //" nans found in "//trim(fieldname)
+          call ESMF_LogWrite(trim(msg_error), ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
           nanfound = .true.
        end if
     end do
     if (nanfound) then
-       call ESMF_LogWrite(trim(subname)//": ERROR nans found in export field bundle ",ESMF_LOGMSG_ERROR)
+       call ESMF_LogWrite('ABORTING JOB', ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
+       rc = ESMF_FAILURE
        return
     end if
 
@@ -2565,6 +2567,7 @@ contains
 
   !-----------------------------------------------------------------------------
   subroutine med_methods_check_for_nans_1d(dataptr, nancount)
+   use shr_infnan_mod, only: nan => shr_infnan_nan, inf => shr_infnan_inf, assignment(=)
     ! input/output variables
     real(r8) , intent(in)  :: dataptr(:)
     integer  , intent(out) :: nancount
@@ -2581,6 +2584,7 @@ contains
   end subroutine med_methods_check_for_nans_1d
 
   subroutine med_methods_check_for_nans_2d(dataptr, nancount)
+    use shr_infnan_mod, only: nan => shr_infnan_nan, inf => shr_infnan_inf, assignment(=)
     ! input/output variables
     real(r8) , intent(in)  :: dataptr(:,:)
     integer  , intent(out) :: nancount
