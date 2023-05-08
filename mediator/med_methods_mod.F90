@@ -2530,6 +2530,11 @@ contains
     ! ----------------------------------------------
     rc = ESMF_SUCCESS
 
+#ifndef CESM_COUPLED
+    ! For now only CESM uses shr_infnan_isnan - so until other models provide this
+    RETURN
+#endif
+
     call ESMF_FieldBundleGet(FB, fieldCount=fieldCount, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
@@ -2566,42 +2571,62 @@ contains
   end subroutine med_methods_FB_check_for_nans
 
   !-----------------------------------------------------------------------------
-  subroutine med_methods_check_for_nans_1d(dataptr, nancount)
-    use shr_infnan_mod, only: nan => isnan
+#ifdef CESM_COUPLED
 
+  subroutine med_methods_check_for_nans_1d(dataptr, nancount)
+    use shr_infnan_mod, only: shr_infnan_isnan
     ! input/output variables
     real(r8) , intent(in)  :: dataptr(:)
     integer  , intent(out) :: nancount
-
     ! local variables
     integer :: n
-    ! ----------------------------------------------
+
     nancount = 0
     do n = 1,size(dataptr)
-       if (isnan(dataptr(n))) then
+       if (shr_infnan_isnan(dataptr(n))) then
           nancount = nancount + 1
        end if
     end do
   end subroutine med_methods_check_for_nans_1d
 
   subroutine med_methods_check_for_nans_2d(dataptr, nancount)
-    use shr_infnan_mod, only: isnan
-
+    use shr_infnan_mod, only: shr_infan_isnan
     ! input/output variables
     real(r8) , intent(in)  :: dataptr(:,:)
     integer  , intent(out) :: nancount
-
     ! local variables
     integer :: n,k
-    ! ----------------------------------------------
+
     nancount = 0
     do k = 1,size(dataptr, dim=1)
        do n = 1,size(dataptr, dim=2)
-          if (isnan(dataptr(k,n))) then
+          if (shr_infan_isnan(dataptr(k,n))) then
              nancount = nancount + 1
           end if
        end do
     end do
   end subroutine med_methods_check_for_nans_2d
+
+#else
+
+  ! For now only CESM uses shr_infnan_isnan - so until other models provide this
+  ! nancount will just be set to zero
+
+  subroutine med_methods_check_for_nans_1d(dataptr, nancount)
+    ! input/output variables
+    real(r8) , intent(in)  :: dataptr(:)
+    integer  , intent(out) :: nancount
+
+    nancount = 0
+  end subroutine med_methods_check_for_nans_1d
+
+  subroutine med_methods_check_for_nans_2d(dataptr, nancount)
+    ! input/output variables
+    real(r8) , intent(in)  :: dataptr(:,:)
+    integer  , intent(out) :: nancount
+
+    nancount = 0
+  end subroutine med_methods_check_for_nans_2d
+#endif
 
 end module med_methods_mod
