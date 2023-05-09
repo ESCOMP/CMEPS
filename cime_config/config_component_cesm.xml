@@ -108,12 +108,15 @@
       <value compset="_CAM">CO2A</value>
       <value compset="_DATM">none</value>
       <value compset="_DATM%CPLHIST.+POP\d">CO2A</value>
+      <value compset="_DATM%CPLHIST.+BLOM%ECO">CO2A</value>
       <value compset="^OMIP_DATM%IAF.*_POP2%[^_]*ECO">CO2A</value>
       <value compset="^OMIP_DATM%JRA.*_POP2%[^_]*ECO">CO2A</value>
       <value compset="HIST.*_DATM.*_CLM">CO2A</value>
       <value compset="SSP.*_DATM.*_CLM">CO2A</value>
       <value compset="_BGC%BPRP">CO2C</value>
       <value compset="_BGC%BDRD">CO2C</value>
+      <value compset="20TR_DATM%IAF.*_BLOM%ECO">CO2A</value>
+      <value compset="20TR_DATM%JRA.*_BLOM%ECO">CO2A</value>
     </values>
     <group>run_coupling</group>
     <file>env_run.xml</file>
@@ -232,6 +235,11 @@
       <!-- =================================================== -->
       <!-- TODO: why is this here? -->
       <value compset="_DLND.*_CISM\d">1</value>
+      <!-- =================================================== -->
+      <!-- N compsets -->
+      <!-- =================================================== -->
+      <value compset="_DATM.*_BLOM">24</value>
+      <value compset="_BLOM" grid="oi%tnx0.25v">48</value>
     </values>
     <group>run_coupling</group>
     <file>env_run.xml</file>
@@ -465,37 +473,6 @@
   <!-- ===================================================================== -->
   <!-- averaged history frequencies -->
   <!-- ===================================================================== -->
-
-  <entry id="AVGHIST_OPTION">
-    <type>char</type>
-    <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,nmonths,nyears,date,end</valid_values>
-    <default_value>never</default_value>
-    <values match="last">
-      <value compset="_DOCN%IAF">nmonths</value>
-    </values>
-    <group>med_history</group>
-    <file>env_run.xml</file>
-    <desc>Sets mediator average history file frequency (like REST_OPTION)</desc>
-  </entry>
-  <entry id="AVGHIST_N">
-    <type>char</type>
-    <valid_values></valid_values>
-    <default_value>-999</default_value>
-    <values match="last">
-      <value compset="_DOCN%IAF">1</value>
-    </values>
-    <group>med_history</group>
-    <file>env_run.xml</file>
-    <desc>Sets mediator average history file frequency (like REST_N)</desc>
-  </entry>
-  <entry id="AVGHIST_DATE">
-    <type>integer</type>
-    <valid_values></valid_values>
-    <default_value>-999</default_value>
-    <group>med_history</group>
-    <file>env_run.xml</file>
-    <desc>yyyymmdd format, sets mediator average history date (like REST_DATE)</desc>
-  </entry>
 
   <entry id="BUDGETS">
     <type>logical</type>

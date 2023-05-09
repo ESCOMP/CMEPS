@@ -130,9 +130,8 @@ contains
   end subroutine get_component_instance
 
 !===============================================================================
-
   subroutine set_component_logging(gcomp, maintask, logunit, shrlogunit, rc)
-    use driver_pio_mod, only : driver_pio_log_comp_settings
+    use NUOPC, only: NUOPC_CompAttributeSet, NUOPC_CompAttributeAdd  
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
     logical, intent(in)  :: maintask
@@ -144,8 +143,10 @@ contains
     character(len=CL) :: diro
     character(len=CL) :: logfile
     character(len=CL) :: inst_suffix
-    integer :: inst_index  ! not used here
+    integer :: inst_index ! Not used here
     integer :: n
+    character(len=CL) :: name
+    character(len=*), parameter :: subname = "("//__FILE__//": set_component_logging)"   
     !-----------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -164,16 +165,23 @@ contains
        endif
 
        open(newunit=logunit,file=trim(diro)//"/"//trim(logfile))
-       ! Write the PIO settings to the beggining of each component log
-       call driver_pio_log_comp_settings(gcomp, logunit)
 
     else
        logUnit = 6
     endif
-    shrlogunit = logunit
-
-    call shr_log_setLogUnit (logunit)
     
+    call ESMF_GridCompGet(gcomp, name=name, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    call ESMF_LogWrite(trim(subname)//": setting logunit for component: "//trim(name), ESMF_LOGMSG_INFO)
+    call NUOPC_CompAttributeAdd(gcomp, (/"logunit"/), rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompAttributeSet(gcomp, "logunit", logunit, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call shr_log_setLogUnit (logunit)
+    ! Still need to set this return value
+    shrlogunit = logunit
+    call ESMF_LogWrite(trim(subname)//": done for component "//trim(name), ESMF_LOGMSG_INFO)
   end subroutine set_component_logging
 
 !===============================================================================
