@@ -1294,7 +1294,7 @@
     <type>integer</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>Number of time sames per file.</desc>
+    <desc>Number of time samples per file.</desc>
     <values>
       <value>24</value>
     </values>
@@ -1350,7 +1350,7 @@
     <type>char</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>Number of time sames per file.</desc>
+    <desc>Number of time samples per file.</desc>
     <values>
       <value>24</value>
     </values>
@@ -1417,7 +1417,7 @@
     <type>char</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>Number of time sames per file.</desc>
+    <desc>Number of time samples per file.</desc>
     <values>
       <value>8</value>
     </values>
@@ -1486,7 +1486,7 @@
     <type>char</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>Number of time sames per file.</desc>
+    <desc>Number of time samples per file.</desc>
     <values>
       <value>8</value>
     </values>
@@ -1551,7 +1551,7 @@
     <type>char</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>Number of time sames per file.</desc>
+    <desc>Number of time samples per file.</desc>
     <values>
       <value>1</value>
     </values>
@@ -1769,7 +1769,7 @@
     <type>char</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>Number of time sames per file.</desc>
+    <desc>Number of time samples per file.</desc>
     <values>
       <value>1</value>
     </values>
@@ -1860,7 +1860,7 @@
     <type>integer</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>Number of time sames per file.</desc>
+    <desc>Number of time samples per file.</desc>
     <values>
       <value>30</value>
     </values>
@@ -2014,7 +2014,7 @@
     <type>char</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>Number of time sames per file.</desc>
+    <desc>Number of time samples per file.</desc>
     <values>
       <value>1</value>
     </values>
