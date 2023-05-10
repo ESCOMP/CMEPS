@@ -2994,7 +2994,7 @@ contains
              call addmrg_to(compwav, 'Fwxx_taux', &
                   mrg_from=compice, mrg_fld='Fioi_taux', mrg_type='merge', mrg_fracname='ifrac')
           end if
-          call addmrg_to(compocn, 'Fwxx_taux', &
+          call addmrg_to(compwav, 'Fwxx_taux', &
                mrg_from=compmed, mrg_fld='Faox_taux', mrg_type='merge', mrg_fracname='ofrac')
        end if
     end if
