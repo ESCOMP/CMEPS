@@ -292,7 +292,8 @@ contains
           ! Create history file
           call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          call med_io_wopen(hist_file, vm, clobber=.true.)
+          call med_io_wopen(hist_file, vm, rc, clobber=.true.)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
           ! Loop over whead/wdata phases
           do m = 1,2
@@ -463,7 +464,8 @@ contains
           ! Create history file
           call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          call med_io_wopen(hist_file, vm, clobber=.true.)
+          call med_io_wopen(hist_file, vm, rc, clobber=.true.)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
           do m = 1,2
              ! Write time values
              if (whead(m)) then
@@ -596,7 +598,8 @@ contains
     ! Create history file
     call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call med_io_wopen(hist_file, vm, clobber=.true.)
+    call med_io_wopen(hist_file, vm, rc, clobber=.true.)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! Write data to history file
     do m = 1,2
@@ -749,7 +752,8 @@ contains
           ! Create history file
           call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          call med_io_wopen(hist_file, vm, clobber=.true.)
+          call med_io_wopen(hist_file, vm, rc, clobber=.true.)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
           do m = 1,2
              ! Write time values
              if (whead(m)) then
@@ -953,7 +957,8 @@ contains
           ! Create history file
           call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          call med_io_wopen(hist_file, vm, clobber=.true.)
+          call med_io_wopen(hist_file, vm, rc, clobber=.true.)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
           do m = 1,2
              ! Write time values
              if (whead(m)) then
@@ -1276,7 +1281,8 @@ contains
              ! open file
              call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             call med_io_wopen(auxcomp%files(nf)%histfile, vm, file_ind=nf, clobber=.true.)
+             call med_io_wopen(auxcomp%files(nf)%histfile, vm, rc, file_ind=nf, clobber=.true.)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
              ! define time variables
              call ESMF_ClockGet(auxcomp%files(nf)%clock, calendar=calendar, rc=rc)

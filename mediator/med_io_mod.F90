@@ -7,7 +7,7 @@ module med_io_mod
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, I8=>SHR_KIND_I8, R8=>SHR_KIND_R8
   use med_kind_mod          , only : R4=>SHR_KIND_R4
   use med_constants_mod     , only : fillvalue => SHR_CONST_SPVAL
-  use ESMF                  , only : ESMF_VM, ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_LogFoundError
+  use ESMF                  , only : ESMF_VM, ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_LogFoundError, ESMF_LOGMSG_ERROR
   use ESMF                  , only : ESMF_SUCCESS, ESMF_FAILURE, ESMF_END_ABORT, ESMF_LOGERR_PASSTHRU
   use ESMF                  , only : ESMF_VMGetCurrent, ESMF_VMGet, ESMF_VMBroadCast, ESMF_Finalize
   use NUOPC                 , only : NUOPC_FieldDictionaryGetEntry
@@ -198,7 +198,7 @@ contains
        else if (trim(cvalue) .eq. '64BIT_DATA') then
          pio_ioformat = PIO_64BIT_DATA
        else
-         call ESMF_LogWrite(trim(subname)//': need to provide valid option for pio_ioformat (CLASSIC|64BIT_OFFSET|64BIT_DATA)', ESMF_LOGMSG_INFO)
+         call ESMF_LogWrite(trim(subname)//': need to provide valid option for pio_ioformat (CLASSIC|64BIT_OFFSET|64BIT_DATA)', ESMF_LOGMSG_ERROR)
          rc = ESMF_FAILURE
          return
        end if
@@ -223,7 +223,7 @@ contains
        else if (trim(cvalue) .eq. 'NETCDF4P') then
          pio_iotype = PIO_IOTYPE_NETCDF4P
        else
-         call ESMF_LogWrite(trim(subname)//': need to provide valid option for pio_typename (NETCDF|PNETCDF|NETCDF4C|NETCDF4P)', ESMF_LOGMSG_INFO)
+         call ESMF_LogWrite(trim(subname)//': need to provide valid option for pio_typename (NETCDF|PNETCDF|NETCDF4C|NETCDF4P)', ESMF_LOGMSG_ERROR)
          rc = ESMF_FAILURE
          return
        end if
@@ -334,13 +334,13 @@ contains
        else if (trim(cvalue) .eq. 'SUBSET') then
          pio_rearranger = PIO_REARR_SUBSET
        else
-         call ESMF_LogWrite(trim(subname)//': need to provide valid option for pio_rearranger (BOX|SUBSET)', ESMF_LOGMSG_INFO)
+         call ESMF_LogWrite(trim(subname)//': need to provide valid option for pio_rearranger (BOX|SUBSET)', ESMF_LOGMSG_ERROR)
          rc = ESMF_FAILURE
          return
        end if
     else
-       cvalue = 'BOX'
-       pio_rearranger = PIO_REARR_BOX
+       cvalue = 'SUBSET'
+       pio_rearranger = PIO_REARR_SUBSET
     end if
     if (localPet == 0) write(logunit,*) trim(subname), ' : pio_rearranger = ', trim(cvalue), pio_rearranger
 
@@ -357,7 +357,7 @@ contains
     if (isPresent .and. isSet) then
        read(cvalue,*) pio_debug_level
        if (pio_debug_level < 0 .or. pio_debug_level > 6) then
-         call ESMF_LogWrite(trim(subname)//': need to provide valid option for pio_debug_level (0-6)', ESMF_LOGMSG_INFO)
+         call ESMF_LogWrite(trim(subname)//': need to provide valid option for pio_debug_level (0-6)', ESMF_LOGMSG_ERROR)
          rc = ESMF_FAILURE
          return
        end if
@@ -381,7 +381,7 @@ contains
        else if (trim(cvalue) .eq. 'COLL') then
           pio_rearr_comm_type = PIO_REARR_COMM_COLL
        else
-         call ESMF_LogWrite(trim(subname)//': need to provide valid option for pio_rearr_comm_type (P2P|COLL)', ESMF_LOGMSG_INFO)
+         call ESMF_LogWrite(trim(subname)//': need to provide valid option for pio_rearr_comm_type (P2P|COLL)', ESMF_LOGMSG_ERROR)
          rc = ESMF_FAILURE
          return
        end if
@@ -406,7 +406,7 @@ contains
        else if (trim(cvalue) .eq. '2DDISABLE') then
           pio_rearr_comm_fcd = PIO_REARR_COMM_FC_2D_DISABLE
        else
-         call ESMF_LogWrite(trim(subname)//': need to provide valid option for pio_rearr_comm_fcd (2DENABLE|IO2COMP|COMP2IO|2DDISABLE)', ESMF_LOGMSG_INFO)
+         call ESMF_LogWrite(trim(subname)//': need to provide valid option for pio_rearr_comm_fcd (2DENABLE|IO2COMP|COMP2IO|2DDISABLE)', ESMF_LOGMSG_ERROR)
          rc = ESMF_FAILURE
          return
        end if
@@ -498,7 +498,7 @@ contains
   end subroutine med_io_init
 
   !===============================================================================
-  subroutine med_io_wopen(filename, vm, clobber, file_ind, model_doi_url)
+  subroutine med_io_wopen(filename, vm, rc, clobber, file_ind, model_doi_url)
 
     !---------------
     ! open netcdf file
@@ -512,16 +512,15 @@ contains
     ! input/output arguments
     character(*),            intent(in) :: filename
     type(ESMF_VM)                       :: vm
+    integer,                 intent(out) :: rc
     logical,       optional, intent(in) :: clobber
     integer,       optional, intent(in) :: file_ind
     character(CL), optional, intent(in) :: model_doi_url
-
     ! local variables
     logical       :: lclobber
     integer       :: rcode
     integer       :: nmode
     integer       :: lfile_ind
-    integer       :: rc
     integer       :: iam
     character(CL) :: lversion
     character(CL) :: lmodel_doi_url
@@ -539,10 +538,11 @@ contains
     lfile_ind = 0
     if (present(file_ind)) lfile_ind=file_ind
 
-    if (.not. pio_file_is_open(io_file(lfile_ind))) then
+    call ESMF_VMGet(vm, localPet=iam, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-       call ESMF_VMGet(vm, localPet=iam, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    if (.not. pio_file_is_open(io_file(lfile_ind))) then
 
        ! filename not open
        wfilename(lfile_ind) = trim(filename)
@@ -589,7 +589,7 @@ contains
           write(logunit,'(a)') trim(subname)//' different  filename currently open '//trim(filename)
           write(logunit,'(a)') trim(subname)//' different wfilename currently open '//trim(wfilename(lfile_ind))
        end if
-       call ESMF_LogWrite(trim(subname)//'different file currently open '//trim(filename), ESMF_LOGMSG_INFO)
+       call ESMF_LogWrite(trim(subname)//'different file currently open '//trim(filename), ESMF_LOGMSG_ERROR)
        rc = ESMF_FAILURE
        return
 
@@ -848,7 +848,6 @@ contains
        if (dbug_flag > 5) then
           call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
        endif
-       rc = ESMF_Success
        return
     endif
 

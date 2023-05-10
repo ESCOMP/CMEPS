@@ -309,7 +309,8 @@ contains
        call ESMF_LogWrite(trim(subname)//": write "//trim(restart_file), ESMF_LOGMSG_INFO)
        call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call med_io_wopen(restart_file, vm, clobber=.true.)
+       call med_io_wopen(restart_file, vm, rc, clobber=.true.)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        do m = 1,2
           if (m == 2) then
