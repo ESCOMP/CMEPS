@@ -1264,7 +1264,7 @@
     </values>
   </entry>
   <entry id="histaux_atm2med_file1_history_n">
-    <type>char</type>
+    <type>integer</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
     <desc>history option type</desc>
@@ -1329,7 +1329,7 @@
     </values>
   </entry>
   <entry id="histaux_atm2med_file2_history_n">
-    <type>char</type>
+    <type>integer</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
     <desc>history option type</desc>
@@ -1396,7 +1396,7 @@
     </values>
   </entry>
   <entry id="histaux_atm2med_file3_history_n">
-    <type>char</type>
+    <type>integer</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
     <desc>history option type</desc>
@@ -1465,7 +1465,7 @@
     </values>
   </entry>
   <entry id="histaux_atm2med_file4_history_n">
-    <type>char</type>
+    <type>integer</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
     <desc>history option type</desc>
@@ -1530,7 +1530,7 @@
     </values>
   </entry>
   <entry id="histaux_atm2med_file5_history_n">
-    <type>char</type>
+    <type>integer</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
     <desc>history option type</desc>
@@ -1748,7 +1748,7 @@
     </values>
   </entry>
   <entry id="histaux_lnd2med_file1_history_n">
-    <type>char</type>
+    <type>integer</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
     <desc>history option type</desc>
@@ -1830,7 +1830,7 @@
     </values>
   </entry>
   <entry id="histaux_ocn2med_file1_history_n">
-    <type>char</type>
+    <type>integer</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
     <desc>history option type</desc>
@@ -1993,7 +1993,7 @@
     </values>
   </entry>
   <entry id="histaux_rof2med_file1_history_n">
-    <type>char</type>
+    <type>integer</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
     <desc>history option type</desc>
