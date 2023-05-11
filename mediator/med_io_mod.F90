@@ -616,7 +616,6 @@ contains
 
     ! local variables
 
-    integer :: iam
     character(*),parameter :: subName = '(med_io_close) '
     !-------------------------------------------------------------------------------
 
