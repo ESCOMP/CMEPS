@@ -1347,7 +1347,7 @@
     </values>
   </entry>
   <entry id="histaux_atm2med_file2_ntperfile">
-    <type>char</type>
+    <type>integer</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
     <desc>Number of time samples per file.</desc>
@@ -1414,7 +1414,7 @@
     </values>
   </entry>
   <entry id="histaux_atm2med_file3_ntperfile">
-    <type>char</type>
+    <type>integer</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
     <desc>Number of time samples per file.</desc>
@@ -1483,7 +1483,7 @@
     </values>
   </entry>
   <entry id="histaux_atm2med_file4_ntperfile">
-    <type>char</type>
+    <type>integer</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
     <desc>Number of time samples per file.</desc>
@@ -1548,7 +1548,7 @@
     </values>
   </entry>
   <entry id="histaux_atm2med_file5_ntperfile">
-    <type>char</type>
+    <type>integer</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
     <desc>Number of time samples per file.</desc>
@@ -1766,7 +1766,7 @@
     </values>
   </entry>
   <entry id="histaux_lnd2med_file1_ntperfile">
-    <type>char</type>
+    <type>integer</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
     <desc>Number of time samples per file.</desc>
@@ -2011,7 +2011,7 @@
     </values>
   </entry>
   <entry id="histaux_rof2med_file1_ntperfile">
-    <type>char</type>
+    <type>integer</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
     <desc>Number of time samples per file.</desc>
