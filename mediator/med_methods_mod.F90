@@ -2530,7 +2530,7 @@ contains
     ! ----------------------------------------------
     rc = ESMF_SUCCESS
 
-#ifndef CESM_COUPLED
+#ifndef CESMCOUPLED
     ! For now only CESM uses shr_infnan_isnan - so until other models provide this
     RETURN
 #endif
@@ -2571,7 +2571,7 @@ contains
   end subroutine med_methods_FB_check_for_nans
 
   !-----------------------------------------------------------------------------
-#ifdef CESM_COUPLED
+#ifdef CESMCOUPLED
 
   subroutine med_methods_check_for_nans_1d(dataptr, nancount)
     use shr_infnan_mod, only: shr_infnan_isnan
@@ -2590,7 +2590,7 @@ contains
   end subroutine med_methods_check_for_nans_1d
 
   subroutine med_methods_check_for_nans_2d(dataptr, nancount)
-    use shr_infnan_mod, only: shr_infan_isnan
+    use shr_infnan_mod, only: shr_infnan_isnan
     ! input/output variables
     real(r8) , intent(in)  :: dataptr(:,:)
     integer  , intent(out) :: nancount
@@ -2600,7 +2600,7 @@ contains
     nancount = 0
     do k = 1,size(dataptr, dim=1)
        do n = 1,size(dataptr, dim=2)
-          if (shr_infan_isnan(dataptr(k,n))) then
+          if (shr_infnan_isnan(dataptr(k,n))) then
              nancount = nancount + 1
           end if
        end do
