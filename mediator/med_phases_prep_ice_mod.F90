@@ -34,6 +34,7 @@ contains
     use med_methods_mod       , only : FB_fldchk    => med_methods_FB_FldChk
     use med_methods_mod       , only : FB_diagnose  => med_methods_FB_diagnose
     use med_methods_mod       , only : FB_GetFldPtr => med_methods_FB_GetFldPtr
+    use med_methods_mod       , only : FB_check_for_nans => med_methods_FB_check_for_nans
     use med_constants_mod     , only : dbug_flag    => med_constants_dbug_flag
     use med_merge_mod         , only : med_merge_auto
     use med_internalstate_mod , only : InternalState, logunit, maintask
@@ -148,6 +149,10 @@ contains
        call FB_diagnose(is_local%wrap%FBExp(compice), string=trim(subname)//' FBexp(compice) ', rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     end if
+
+    ! Check for nans in fields export to atm
+    call FB_check_for_nans(is_local%wrap%FBExp(compice), rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if (dbug_flag > 5) then
        call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
