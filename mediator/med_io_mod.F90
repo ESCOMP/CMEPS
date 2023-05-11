@@ -75,10 +75,6 @@ module med_io_mod
   character(*),parameter         :: prefix    = "med_io_"
   character(*),parameter         :: modName   = "(med_io_mod) "
   character(*),parameter         :: version   = "cmeps0"
-  integer    , parameter         :: number_strlen = 8
-  integer    , parameter         :: file_desc_t_cnt = 20 ! Note - this is hard-wired for now
-
-!  character(CL)                  :: wfilename(0:file_desc_t_cnt) = ''
   
   integer                        :: pio_iotype
   integer                        :: pio_ioformat
@@ -546,9 +542,6 @@ contains
 
     if (.not. pio_file_is_open(io_file)) then
 
-       ! filename not open
-!       wfilename(lfile_ind) = trim(filename)
-
        if (med_io_file_exists(vm, filename)) then
           if (lclobber) then
              nmode = pio_clobber
@@ -584,16 +577,6 @@ contains
           rcode = pio_put_att(io_file,pio_global,"file_version",version)
           rcode = pio_put_att(io_file,pio_global,"model_doi_url",lmodel_doi_url)
        endif
-
-!    elseif (trim(wfilename(lfile_ind)) /= trim(filename)) then
-       ! filename is open, better match open filename
-!       if (iam==0) then
-!          write(logunit,'(a)') trim(subname)//' different  filename currently open '//trim(filename)
-!          write(logunit,'(a)') trim(subname)//' different wfilename currently open '//trim(wfilename(lfile_ind))
-!       end if
-!       call ESMF_LogWrite(trim(subname)//'different file currently open '//trim(filename), ESMF_LOGMSG_ERROR)
-!       rc = ESMF_FAILURE
-!       return
 
     else
        ! filename is already open, just return
