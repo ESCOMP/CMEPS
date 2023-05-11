@@ -1264,7 +1264,7 @@
     </values>
   </entry>
   <entry id="histaux_atm2med_file1_history_n">
-    <type>char</type>
+    <type>integer</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
     <desc>history option type</desc>
@@ -1294,7 +1294,7 @@
     <type>integer</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>Number of time sames per file.</desc>
+    <desc>Number of time samples per file.</desc>
     <values>
       <value>24</value>
     </values>
@@ -1329,7 +1329,7 @@
     </values>
   </entry>
   <entry id="histaux_atm2med_file2_history_n">
-    <type>char</type>
+    <type>integer</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
     <desc>history option type</desc>
@@ -1347,10 +1347,10 @@
     </values>
   </entry>
   <entry id="histaux_atm2med_file2_ntperfile">
-    <type>char</type>
+    <type>integer</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>Number of time sames per file.</desc>
+    <desc>Number of time samples per file.</desc>
     <values>
       <value>24</value>
     </values>
@@ -1396,7 +1396,7 @@
     </values>
   </entry>
   <entry id="histaux_atm2med_file3_history_n">
-    <type>char</type>
+    <type>integer</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
     <desc>history option type</desc>
@@ -1414,10 +1414,10 @@
     </values>
   </entry>
   <entry id="histaux_atm2med_file3_ntperfile">
-    <type>char</type>
+    <type>integer</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>Number of time sames per file.</desc>
+    <desc>Number of time samples per file.</desc>
     <values>
       <value>8</value>
     </values>
@@ -1465,7 +1465,7 @@
     </values>
   </entry>
   <entry id="histaux_atm2med_file4_history_n">
-    <type>char</type>
+    <type>integer</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
     <desc>history option type</desc>
@@ -1483,10 +1483,10 @@
     </values>
   </entry>
   <entry id="histaux_atm2med_file4_ntperfile">
-    <type>char</type>
+    <type>integer</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>Number of time sames per file.</desc>
+    <desc>Number of time samples per file.</desc>
     <values>
       <value>8</value>
     </values>
@@ -1530,7 +1530,7 @@
     </values>
   </entry>
   <entry id="histaux_atm2med_file5_history_n">
-    <type>char</type>
+    <type>integer</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
     <desc>history option type</desc>
@@ -1548,10 +1548,10 @@
     </values>
   </entry>
   <entry id="histaux_atm2med_file5_ntperfile">
-    <type>char</type>
+    <type>integer</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>Number of time sames per file.</desc>
+    <desc>Number of time samples per file.</desc>
     <values>
       <value>1</value>
     </values>
@@ -1748,7 +1748,7 @@
     </values>
   </entry>
   <entry id="histaux_lnd2med_file1_history_n">
-    <type>char</type>
+    <type>integer</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
     <desc>history option type</desc>
@@ -1766,10 +1766,10 @@
     </values>
   </entry>
   <entry id="histaux_lnd2med_file1_ntperfile">
-    <type>char</type>
+    <type>integer</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>Number of time sames per file.</desc>
+    <desc>Number of time samples per file.</desc>
     <values>
       <value>1</value>
     </values>
@@ -1830,7 +1830,7 @@
     </values>
   </entry>
   <entry id="histaux_ocn2med_file1_history_n">
-    <type>char</type>
+    <type>integer</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
     <desc>history option type</desc>
@@ -1860,7 +1860,7 @@
     <type>integer</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>Number of time sames per file.</desc>
+    <desc>Number of time samples per file.</desc>
     <values>
       <value>30</value>
     </values>
@@ -1993,7 +1993,7 @@
     </values>
   </entry>
   <entry id="histaux_rof2med_file1_history_n">
-    <type>char</type>
+    <type>integer</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
     <desc>history option type</desc>
@@ -2011,10 +2011,10 @@
     </values>
   </entry>
   <entry id="histaux_rof2med_file1_ntperfile">
-    <type>char</type>
+    <type>integer</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>Number of time sames per file.</desc>
+    <desc>Number of time samples per file.</desc>
     <values>
       <value>1</value>
     </values>
