@@ -377,7 +377,7 @@ contains
          FBfrac=is_local%wrap%FBFrac(comprof), FBin=FBlndAccum2rof_r, fldListTo=fldList, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    ! Check for nans in fields export to atm
+    ! Check for nans in fields export to rof
     call FB_check_for_nans(is_local%wrap%FBExp(comprof), rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 

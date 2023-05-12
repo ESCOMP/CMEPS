@@ -296,7 +296,7 @@ contains
        call FB_copy(is_local%wrap%FBExp(compocn), is_local%wrap%FBExpAccumOcn, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-       ! Check for nans in fields export to atm
+       ! Check for nans in fields export to ocn
        call FB_check_for_nans(is_local%wrap%FBExp(compocn), rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
