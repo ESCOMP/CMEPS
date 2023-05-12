@@ -111,6 +111,8 @@ def _main_func():
 
     rc, out, err = run_cmd(cmd,from_dir=bld_root)
     expect(rc==0,"Command {} failed rc={}\nout={}\nerr={}".format(cmd,rc,out,err))
+    if err:
+        logger.info(err)
     logger.info(out)
 
 ###############################################################################
