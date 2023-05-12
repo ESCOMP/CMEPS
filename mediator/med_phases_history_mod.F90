@@ -60,7 +60,7 @@ module med_phases_history_mod
   ! Instantaneous history files datatypes/variables per component
   ! ----------------------------
   type, public :: instfile_type
-     type(file_desc_t) :: io_file
+     type(file_desc_t):: io_file
      logical          :: write_inst
      character(CS)    :: hist_option
      integer          :: hist_n
@@ -76,7 +76,7 @@ module med_phases_history_mod
   ! Time averaging history files
   ! ----------------------------
   type, public :: avgfile_type
-     type(file_desc_t) :: io_file
+     type(file_desc_t)      :: io_file
      logical                :: write_avg
      type(ESMF_FieldBundle) :: FBaccum_import    ! field bundle for time averaging
      integer                :: accumcnt_import   ! field bundle accumulation counter
@@ -96,7 +96,7 @@ module med_phases_history_mod
   ! Auxiliary history files
   ! ----------------------------
   type, public :: auxfile_type
-     type(file_desc_t) :: io_file
+     type(file_desc_t)          :: io_file
      character(CS), allocatable :: flds(:)       ! array of aux field names
      character(CS)              :: auxname       ! name for history file creation
      character(CL)              :: histfile = '' ! current history file name
