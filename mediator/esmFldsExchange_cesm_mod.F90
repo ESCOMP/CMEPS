@@ -2983,28 +2983,28 @@ contains
     ! ---------------------------------------------------------------------
     ! to wav: zonal and meridional wind stress
     ! ---------------------------------------------------------------------
-    if (phase == 'advertise') then 
+    if (phase == 'advertise') then
        call addfld_to(compwav , 'Fwxx_taux')
-       call addfld_from(compice , 'Fioi_taux')
-       call addfld_aoflux('Faox_taux')
-    else 
-       if ( fldchk(is_local%wrap%FBexp(compwav), 'Fwxx_taux', rc=rc)) then 
-          if (fldchk(is_local%wrap%FBimp(compice,compice), 'Fioi_taux', rc=rc)) then 
-             call addmap_from(compice, 'Fioi_taux', compwav, mapfcopy, 'unset', 'unset')
-             call addmrg_to(compwav, 'Fwxx_taux', &
-                  mrg_from=compice, mrg_fld='Fioi_taux', mrg_type='merge', mrg_fracname='ifrac')
-          end if
-          call addmrg_to(compwav, 'Fwxx_taux', &
-               mrg_from=compmed, mrg_fld='Faox_taux', mrg_type='merge', mrg_fracname='ofrac')
-       end if
+       ! call addfld_from(compice , 'Fioi_taux')
+       ! call addfld_aoflux('Faox_taux')
+    else
+       ! if ( fldchk(is_local%wrap%FBexp(compwav), 'Fwxx_taux', rc=rc)) then
+       !    if (fldchk(is_local%wrap%FBimp(compice,compice), 'Fioi_taux', rc=rc)) then
+       !       call addmap_from(compice, 'Fioi_taux', compwav, mapfcopy, 'unset', 'unset')
+       !       call addmrg_to(compwav, 'Fwxx_taux', &
+       !            mrg_from=compice, mrg_fld='Fioi_taux', mrg_type='merge', mrg_fracname='ifrac')
+       !    end if
+       !    call addmrg_to(compwav, 'Fwxx_taux', &
+       !         mrg_from=compmed, mrg_fld='Faox_taux', mrg_type='merge', mrg_fracname='ofrac')
+       ! end if
     end if
-!    if (phase == 'advertise') then 
+!    if (phase == 'advertise') then
 !       call addfld_to(compwav , 'Fwxx_taux')
 !!       call addfld_from(compice , 'Fioi_taux')
 !       call addfld_aoflux('Faox_taux')
-!    else 
-!       if ( fldchk(is_local%wrap%FBexp(compwav), 'Fwxx_taux', rc=rc)) then 
-!!          if (fldchk(is_local%wrap%FBimp(compice,compice), 'Fioi_taux', rc=rc)) then 
+!    else
+!       if ( fldchk(is_local%wrap%FBexp(compwav), 'Fwxx_taux', rc=rc)) then
+!!          if (fldchk(is_local%wrap%FBimp(compice,compice), 'Fioi_taux', rc=rc)) then
 !!             call addmap_from(compice, 'Fioi_taux', compwav, mapfcopy, 'unset', 'unset')
 !!             call addmrg_to(compwav, 'Fwxx_taux', &
 !!                  mrg_from=compice, mrg_fld='Fioi_taux', mrg_type='merge', mrg_fracname='ifrac')
