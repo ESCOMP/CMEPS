@@ -503,7 +503,6 @@ contains
     type(ESMF_Field)    :: lfield
     type(ESMF_Mesh)     :: lmesh
     real(R8), pointer   :: garea(:) => null()
-    integer             :: maptype
     type(ESMF_CoordSys_Flag)   :: coordSys
     character(len=*),parameter :: subname=' (med_aofluxes_init_ocngrid) '
     !-----------------------------------------------------------------------
