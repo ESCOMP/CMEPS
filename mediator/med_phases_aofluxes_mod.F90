@@ -503,8 +503,8 @@ contains
     type(ESMF_Field)    :: lfield
     type(ESMF_Mesh)     :: lmesh
     real(R8), pointer   :: garea(:) => null()
-    type(ESMF_CoordSys_Flag)   :: coordSys
     integer             :: maptype
+    type(ESMF_CoordSys_Flag)   :: coordSys
     character(len=*),parameter :: subname=' (med_aofluxes_init_ocngrid) '
     !-----------------------------------------------------------------------
 
@@ -1120,8 +1120,9 @@ contains
 
     end if
 
-    ! map aoflux fields to wav grid if stresses are needed on the wave grid
-    if ( FB_fldchk(is_local%wrap%FBExp(compwav), 'Fwxx_taux', rc=rc)) then
+    ! map taux and tauy from ocean to wave grid if stresses are needed on the wave grid
+    if ( FB_fldchk(is_local%wrap%FBExp(compwav), 'Fwxx_taux', rc=rc) .and. &
+         FB_fldchk(is_local%wrap%FBExp(compwav), 'Fwxx_tauy', rc=rc)) then
        maptype = mapconsf
        if (.not. med_map_RH_is_created(is_local%wrap%RH(compocn,compwav,:), maptype, rc=rc)) then
           call med_map_routehandles_init( compocn, compwav, &
@@ -1133,6 +1134,14 @@ contains
        call ESMF_FieldBundleGet(is_local%wrap%FBMed_aoflux_o, 'Faox_taux', field=field_src, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        call ESMF_FieldBundleGet(is_local%wrap%FBExp(compwav), 'Fwxx_taux', field=field_dst, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_FieldRegrid(field_src, field_dst, &
+            routehandle=is_local%wrap%RH(compocn, compwav, maptype), &
+            termorderflag=ESMF_TERMORDER_SRCSEQ, zeroregion=ESMF_REGION_TOTAL, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_FieldBundleGet(is_local%wrap%FBMed_aoflux_o, 'Faox_tauy', field=field_src, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_FieldBundleGet(is_local%wrap%FBExp(compwav), 'Fwxx_tauy', field=field_dst, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        call ESMF_FieldRegrid(field_src, field_dst, &
             routehandle=is_local%wrap%RH(compocn, compwav, maptype), &

@@ -23,11 +23,8 @@ module med_fraction_mod
   !    character(*),parameter :: fraclist_l = 'lfrac'
   !    character(*),parameter :: fraclist_g = 'gfrac:lfrac'
   !    character(*),parameter :: fraclist_r = 'lfrac:rfrac'
-  !    character(*),parameter :: fraclist_w = 'ifrac:ofrac:wfrac'
-!PSH begin  !
-!  !  we assume ocean and ice are on the same grids, same masks
-  !  we assume ocean, ice, and waves are on the same grids, same masks
-!PSH end
+  !
+  !  we assume ocean and ice are on the same grids, same masks
   !  we assume ocn2atm and ice2atm are masked maps
   !  we assume lnd2atm is a global map
   !  we assume that the ice fraction evolves in time but that
@@ -129,10 +126,8 @@ module med_fraction_mod
   character(len=6),parameter,dimension(1) :: fraclist_l = (/'lfrac '/)
   character(len=6),parameter,dimension(2) :: fraclist_g = (/'gfrac ','lfrac '/)
   character(len=6),parameter,dimension(2) :: fraclist_r = (/'rfrac ','lfrac '/)
-!PSH begin  
-!  character(len=6),parameter,dimension(1) :: fraclist_w = (/'wfrac '/)
-  character(len=6),parameter,dimension(3) :: fraclist_w = (/'ifrac ','ofrac ','wfrac '/)
-!PSH end
+  character(len=6),parameter,dimension(1) :: fraclist_w = (/'wfrac '/)
+
   !--- standard ---
   real(R8)    , parameter :: eps_fraclim = 1.0e-03      ! truncation limit in fractions_a(lfrac)
   character(*), parameter :: u_FILE_u =  &
@@ -588,86 +583,6 @@ contains
        endif
     endif
 
-!PSH Begin - In progress...
-! Note: started this section, based on setting ifrac and ofrac for compatm, but it is not
-! clear to me that this approach is correct, since we can assume ocn, ice, wav are all on
-! the same grid. Commenting out for now, can delete once I'm confident other approach
-! works
-!    !---------------------------------------
-!    ! Set 'ofrac' in FBFrac(compwav)
-!    !---------------------------------------
-!
-!    if ( is_local%wrap%comp_present(compocn) .and. &
-!         is_local%wrap%comp_present(compwav) .and. &
-!         is_local%wrap%med_coupling_active(compocn,compwav)) then
-!
-!       ! Set 'ofrac' in FBFrac(compwav) - at this point this is the
-!       ! ocean mask mapped to the atm grid This is mapping the ocean mask to
-!       ! the wav grid
-!
-!       if (med_map_RH_is_created(is_local%wrap%RH(compocn,compwav,:),mapfcopy, rc=rc)) then
-!          ! If ocn and atm are on the same mesh - a redist route handle has already been created
-!          maptype = mapfcopy
-!       else
-!          if (trim(coupling_mode) == 'nems_orig' ) then
-!             maptype = mapnstod_consd
-!          else
-!             maptype = mapconsd
-!          end if
-!          if (.not. med_map_RH_is_created(is_local%wrap%RH(compocn,compwav,:),maptype, rc=rc)) then
-!             call med_map_routehandles_init( compocn, compwav, &
-!                  FBSrc=is_local%wrap%FBImp(compocn,compocn), &
-!                  FBDst=is_local%wrap%FBImp(compocn,compwav), &
-!                  mapindex=maptype, RouteHandle=is_local%wrap%RH, rc=rc)
-!             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-!          end if
-!       end if
-!       call ESMF_FieldBundleGet(is_local%wrap%FBfrac(compocn), fieldname='ofrac', field=field_src, rc=rc)
-!       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-!       call ESMF_FieldBundleGet(is_local%wrap%FBfrac(compwav), fieldname='ofrac', field=field_dst, rc=rc)
-!       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-!       call med_map_field(field_src, field_dst, is_local%wrap%RH(compocn,compwav,:), maptype, rc=rc)
-!       if (chkerr(rc,__LINE__,u_FILE_u)) return
-!
-!    end if
-!
-!    !---------------------------------------
-!    ! Set 'ifrac' in FBFrac(compwav)
-!    !---------------------------------------
-!
-!    if ( is_local%wrap%comp_present(compice) .and. &
-!         is_local%wrap%comp_present(compwav) .and. &
-!         is_local%wrap%med_coupling_active(compice,compwav)) then
-!
-!       ! Set 'ifrac' in  FBFrac(compwav) - at this point this is the ice mask mapped to the wav mesh
-!       ! This maps the ice mask (which is the same as the ocean mask) to the wav mesh
-!       if (med_map_RH_is_created(is_local%wrap%RH(compice,compwav,:),mapfcopy, rc=rc)) then
-!          ! If ice and wav are on the same mesh - a redist route handle has already been created
-!          maptype = mapfcopy
-!       else       
-!          if (trim(coupling_mode) == 'nems_orig' ) then
-!             maptype = mapnstod_consd
-!          else
-!             maptype = mapconsd
-!          end if
-!          if (.not. med_map_RH_is_created(is_local%wrap%RH(compice,compwav,:),maptype, rc=rc)) then
-!             call med_map_routehandles_init( compice, compwav, &
-!                  FBSrc=is_local%wrap%FBImp(compice,compice), &
-!                  FBDst=is_local%wrap%FBImp(compice,compwav), &
-!                  mapindex=maptype, RouteHandle=is_local%wrap%RH, rc=rc)
-!             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-!          end if
-!       end if
-!       call ESMF_FieldBundleGet(is_local%wrap%FBfrac(compice), 'ifrac', field=field_src, rc=rc)
-!       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-!       call ESMF_FieldBundleGet(is_local%wrap%FBfrac(compwav), 'ifrac', field=field_dst, rc=rc)
-!       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-!       call med_map_field(field_src, field_dst, is_local%wrap%RH(compice,compwav,:), maptype, rc=rc)
-!       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-!    end if
-!
-!PSH end
-
     !---------------------------------------
     ! Create route handles ocn<->ice if not created
     !---------------------------------------
@@ -703,80 +618,6 @@ contains
        end if
     end if
 
-!PSH begin
-!    !---------------------------------------
-!    ! Create route handles ocn<->wav if not created
-!    !---------------------------------------
-!
-!    if (is_local%wrap%comp_present(compwav) .and. is_local%wrap%comp_present(compocn)) then
-!       if (.not. med_map_RH_is_created(is_local%wrap%RH(compwav,compocn,:),mapfcopy, rc=rc)) then
-!          if (.not. ESMF_FieldBundleIsCreated(is_local%wrap%FBImp(compwav,compocn))) then
-!             call fldbun_init(is_local%wrap%FBImp(compwav,compocn), is_local%wrap%flds_scalar_name, &
-!                  STgeom=is_local%wrap%NStateImp(compocn), &
-!                  STflds=is_local%wrap%NStateImp(compwav), &
-!                  name='FBImp'//trim(compname(compwav))//'_'//trim(compname(compocn)), rc=rc)
-!             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-!          end if
-!          call med_map_routehandles_init(compwav, compocn, &
-!               FBSrc=is_local%wrap%FBImp(compwav,compocn), &
-!               FBDst=is_local%wrap%FBImp(compwav,compocn), &
-!               mapindex=mapfcopy, RouteHandle=is_local%wrap%RH, rc=rc)
-!          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-!       end if
-!       if (.not. med_map_RH_is_created(is_local%wrap%RH(compocn,compwav,:),mapfcopy, rc=rc)) then
-!          if (.not. ESMF_FieldBundleIsCreated(is_local%wrap%FBImp(compocn,compwav))) then
-!             call fldbun_init(is_local%wrap%FBImp(compocn,compwav), is_local%wrap%flds_scalar_name, &
-!                  STgeom=is_local%wrap%NStateImp(compwav), &
-!                  STflds=is_local%wrap%NStateImp(compocn), &
-!                  name='FBImp'//trim(compname(compocn))//'_'//trim(compname(compwav)), rc=rc)
-!             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-!          end if
-!          call med_map_routehandles_init( compocn, compwav, &
-!               FBSrc=is_local%wrap%FBImp(compocn,compocn), &
-!               FBDst=is_local%wrap%FBImp(compocn,compwav), &
-!               mapindex=mapfcopy, RouteHandle=is_local%wrap%RH, rc=rc)
-!          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-!       end if
-!    end if
-!
-!    !---------------------------------------
-!    ! Create route handles ice<->wav if not created
-!    !---------------------------------------
-!
-!    if (is_local%wrap%comp_present(compwav) .and. is_local%wrap%comp_present(compice)) then
-!       if (.not. med_map_RH_is_created(is_local%wrap%RH(compwav,compice,:),mapfcopy, rc=rc)) then
-!          if (.not. ESMF_FieldBundleIsCreated(is_local%wrap%FBImp(compwav,compice))) then
-!             call fldbun_init(is_local%wrap%FBImp(compwav,compice), is_local%wrap%flds_scalar_name, &
-!                  STgeom=is_local%wrap%NStateImp(compice), &
-!                  STflds=is_local%wrap%NStateImp(compwav), &
-!                  name='FBImp'//trim(compname(compwav))//'_'//trim(compname(compice)), rc=rc)
-!             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-!          end if
-!          call med_map_routehandles_init(compwav, compice, &
-!               FBSrc=is_local%wrap%FBImp(compwav,compice), &
-!               FBDst=is_local%wrap%FBImp(compwav,compice), &
-!               mapindex=mapfcopy, RouteHandle=is_local%wrap%RH, rc=rc)
-!          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-!       end if
-!       if (.not. med_map_RH_is_created(is_local%wrap%RH(compice,compwav,:),mapfcopy, rc=rc)) then
-!          if (.not. ESMF_FieldBundleIsCreated(is_local%wrap%FBImp(compice,compwav))) then
-!             call fldbun_init(is_local%wrap%FBImp(compice,compwav), is_local%wrap%flds_scalar_name, &
-!                  STgeom=is_local%wrap%NStateImp(compwav), &
-!                  STflds=is_local%wrap%NStateImp(compice), &
-!                  name='FBImp'//trim(compname(compice))//'_'//trim(compname(compwav)), rc=rc)
-!             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-!          end if
-!          call med_map_routehandles_init( compice, compwav, &
-!               FBSrc=is_local%wrap%FBImp(compice,compice), &
-!               FBDst=is_local%wrap%FBImp(compice,compwav), &
-!               mapindex=mapfcopy, RouteHandle=is_local%wrap%RH, rc=rc)
-!          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-!       end if
-!    end if
-!
-!PSH end
-
-
     !---------------------------------------
     ! Diagnostic output
     !---------------------------------------
@@ -807,10 +648,7 @@ contains
     use ESMF                  , only : ESMF_Field, ESMF_FieldGet
     use ESMF                  , only : ESMF_FieldBundleGet, ESMF_FieldBundleIsCreated
     use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
-!PSH Begin
-!    use med_internalstate_mod , only : compatm, compocn, compice, compname
-    use med_internalstate_mod , only : compatm, compocn, compice, compname, compwav
-!PSH End
+    use med_internalstate_mod , only : compatm, compocn, compice, compname
     use med_internalstate_mod , only : mapfcopy, mapconsd, mapnstod_consd
     use med_internalstate_mod , only : coupling_mode
     use med_internalstate_mod , only : InternalState
@@ -912,34 +750,6 @@ contains
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        endif
        call t_stopf('MED:'//trim(subname)//' fbfrac(compocn)')
-
-!PSH begin
-!       ! -------------------------------------------
-!       ! Set FBfrac(compwav)
-!       ! -------------------------------------------
-!
-!       ! The following is just a redistribution from FBFrac(compice)
-!
-!       call t_startf('MED:'//trim(subname)//' fbfrac(compwav)')
-!       if (is_local%wrap%comp_present(compwav)) then
-!          ! Map 'ifrac' from FBfrac(compice) to FBfrac(compwav)
-!          call ESMF_FieldBundleGet(is_local%wrap%FBfrac(compice), 'ifrac', field=field_src, rc=rc)
-!          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-!          call ESMF_FieldBundleGet(is_local%wrap%FBfrac(compwav), 'ifrac', field=field_dst, rc=rc)
-!          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-!          call med_map_field(field_src, field_dst, is_local%wrap%RH(compice,compwav,:), mapfcopy, rc=rc)
-!          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-!
-!          ! Map 'ofrac' from FBfrac(compice) to FBfrac(compwav)
-!          call ESMF_FieldBundleGet(is_local%wrap%FBfrac(compice), 'ofrac', field=field_src, rc=rc)
-!          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-!          call ESMF_FieldBundleGet(is_local%wrap%FBfrac(compwav), 'ofrac', field=field_dst, rc=rc)
-!          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-!          call med_map_field(field_src, field_dst, is_local%wrap%RH(compice,compwav,:), mapfcopy, rc=rc)
-!          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-!       endif
-!       call t_stopf('MED:'//trim(subname)//' fbfrac(compwav)')
-!PSH end
 
        ! -------------------------------------------
        ! Set FBfrac(compatm)

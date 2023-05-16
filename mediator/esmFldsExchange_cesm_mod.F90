@@ -2985,58 +2985,14 @@ contains
           call addmrg_to(compwav, 'Sa_tbot', mrg_from=compatm, mrg_fld='Sa_tbot', mrg_type='copy')
        end if
     end if
-!PSH begin
-!    if (phase == 'advertise') then
-!       call addfld_from(compocn, 'So_ofrac')
-!       call addfld_to(compwav, 'So_ofrac')
-!    end if
-!    if (phase == 'advertise') then
-!       call addfld_from(compocn, 'So_ofrac')
-!       call addfld_to(compwav, 'So_ofrac')
-!    else
-!       if ( fldchk(is_local%wrap%FBexp(compwav)         , 'So_ofrac', rc=rc) .and. &
-!            fldchk(is_local%wrap%FBImp(compice,compice ), 'So_ofrac', rc=rc)) then
-!             ! By default will be using a custom map - but if one is not available, use a generated bilinear instead
-!          call addmap_from(compice, 'Si_ifrac', compwav, mapbilnr, 'one', ice2wav_smap)
-!          call addmrg_to(compwav, 'Si_ifrac', mrg_from=compice, mrg_fld='Si_ifrac', mrg_type='copy')
-!       end if
-!    end if
 
     ! ---------------------------------------------------------------------
     ! to wav: zonal and meridional wind stress
     ! ---------------------------------------------------------------------
     if (phase == 'advertise') then
        call addfld_to(compwav , 'Fwxx_taux')
-       ! call addfld_from(compice , 'Fioi_taux')
-       ! call addfld_aoflux('Faox_taux')
-    else
-       ! if ( fldchk(is_local%wrap%FBexp(compwav), 'Fwxx_taux', rc=rc)) then
-       !    if (fldchk(is_local%wrap%FBimp(compice,compice), 'Fioi_taux', rc=rc)) then
-       !       call addmap_from(compice, 'Fioi_taux', compwav, mapfcopy, 'unset', 'unset')
-       !       call addmrg_to(compwav, 'Fwxx_taux', &
-       !            mrg_from=compice, mrg_fld='Fioi_taux', mrg_type='merge', mrg_fracname='ifrac')
-       !    end if
-       !    call addmrg_to(compwav, 'Fwxx_taux', &
-       !         mrg_from=compmed, mrg_fld='Faox_taux', mrg_type='merge', mrg_fracname='ofrac')
-       ! end if
+       call addfld_to(compwav , 'Fwxx_tauy')
     end if
-!    if (phase == 'advertise') then
-!       call addfld_to(compwav , 'Fwxx_taux')
-!!       call addfld_from(compice , 'Fioi_taux')
-!       call addfld_aoflux('Faox_taux')
-!    else
-!       if ( fldchk(is_local%wrap%FBexp(compwav), 'Fwxx_taux', rc=rc)) then
-!!          if (fldchk(is_local%wrap%FBimp(compice,compice), 'Fioi_taux', rc=rc)) then
-!!             call addmap_from(compice, 'Fioi_taux', compwav, mapfcopy, 'unset', 'unset')
-!!             call addmrg_to(compwav, 'Fwxx_taux', &
-!!                  mrg_from=compice, mrg_fld='Fioi_taux', mrg_type='merge', mrg_fracname='ifrac')
-!!          end if
-!          call addmrg_to(compwav, 'Fwxx_taux', &
-!               mrg_from=compmed, mrg_fld='Faox_taux', mrg_type='copy')
-!!               mrg_from=compmed, mrg_fld='Faox_taux', mrg_type='merge', mrg_fracname='ofrac')
-!       end if
-!    end if
-!PSH end
 
     !=====================================================================
     ! FIELDS TO RIVER (comprof)
