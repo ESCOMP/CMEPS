@@ -1,12 +1,12 @@
 !=============================================================================
 ! expression parser utility --
 !   for parsing simple linear mathematical expressions of the form
-!   X = a*Y + b*Z + ...
+!   X = a*R + b*S + c*(X + Y + Z) ...
 !
 !=============================================================================
 module shr_expr_parser_mod
   use shr_kind_mod,only : r8 => shr_kind_r8
-  use shr_kind_mod,only : cx => shr_kind_cx
+  use shr_kind_mod,only : CXX => shr_kind_cxx
 
   implicit none
   private
@@ -35,82 +35,122 @@ contains
     integer, optional, intent(out) :: nitems       ! number of expressions parsed
     type(shr_exp_item_t), pointer  :: exp_items_list ! linked list of items returned
 
-    integer :: i,j, jj, nmax, nterms, n_exp_items
-    character(len=cx) :: tmp_str
+    integer :: i,j, n_exp_items
     type(shr_exp_item_t), pointer :: exp_item, list_item
+    integer :: ndxs(512)
+    integer :: nelem, j1,j2,k
+    character(len=CXX) :: tmp_str, tmp_name
+    character(len=8) :: xchr ! multipler
+    real(r8) :: xdbl
+    real(r8) :: coeff0
+    logical :: more_to_come
+    character(len=CXX), allocatable :: sums_grps(:)
+    character(len=CXX) :: sum_string
+
+    allocate(sums_grps(size(exp_array)))
 
     nullify( exp_items_list )
     nullify( exp_item )
     nullify( list_item )
 
-    n_exp_items = 0
-    nmax = size( exp_array )
+    sums_grps(:) = ' '
 
-    do i = 1,nmax
-       if (len_trim(exp_array(i))>0) then
+    ! combine lines that have a trailing "+" with the next line
+    i=1
+    j=1
+    loop1: do while( len_trim(exp_array(i)) > 0 )
 
-          j = scan( exp_array(i), '=' )
+       k = scan(exp_array(i), '+', back=.true. )
+       more_to_come = k == len_trim(exp_array(i)) ! line ends with "+"
 
-          if ( j>0 ) then
+       if ( more_to_come ) then
+          sums_grps(j) = trim(sums_grps(j)) // trim(adjustl(exp_array(i)))
+       else
+          sums_grps(j) = trim(sums_grps(j)) // trim(adjustl(exp_array(i)))
+          j = j+1
+       endif
 
-             n_exp_items = n_exp_items + 1
+       i = i+1
+       if ( i > size(exp_array) ) exit loop1
 
-             allocate( exp_item )
-             exp_item%n_terms = 0
-             exp_item%name = trim(adjustl(exp_array(i)(:j-1)))
+    end do loop1
 
-             tmp_str = trim(adjustl(exp_array(i)(j+1:)))
+    n_exp_items = j-1
 
-             nterms = 1
-             jj = scan( tmp_str, '+' )
-             do while(jj>0)
-                nterms = nterms + 1
-                tmp_str = tmp_str(jj+1:)
-                jj = scan( tmp_str, '+' )
-             enddo
+    ! a group is  a summation of terms
 
-             allocate( exp_item%vars(nterms) )
-             allocate( exp_item%coeffs(nterms) )
+    ! parse the individual sum strings...  and form the groupings
+    has_grps: if (n_exp_items>0) then
 
-             tmp_str = trim(adjustl(exp_array(i)(j+1:)))
+       ! from shr_megan_mod ... should be generalized and shared...
+       grploop: do i = 1,n_exp_items
 
-             j = scan( tmp_str, '+' )
+          ! parse out the term names
+          ! from first parsing out the terms in the summation equation ("+" separates the terms)
 
-             if (j>0) then
-                call set_coefvar( tmp_str(:j-1), exp_item )
-                tmp_str = tmp_str(j-1:)
-             else
-                call set_coefvar( tmp_str, exp_item )
-             endif
+          sum_string = sums_grps(i)
+          j = scan( sum_string, '=' )
+          nelem = 1
+          ndxs(nelem) = j ! ndxs stores the index of each term of the equation
 
-          else
-
-             tmp_str = trim(adjustl(exp_array(i))) ! assumed to begin with '+'
-
-          endif
-
-          ! at this point tmp_str begins with '+'
+          ! find indices of all the terms in the equation
+          tmp_str = trim( sum_string(j+1:) )
           j = scan( tmp_str, '+' )
-
-          if (j>0) then
-
-             ! remove the leading + ...
+          do while(j>0)
+             nelem = nelem+1
+             ndxs(nelem) = ndxs(nelem-1) + j
              tmp_str = tmp_str(j+1:)
              j = scan( tmp_str, '+' )
+          enddo
+          ndxs(nelem+1) = len(sum_string)+1
 
-             do while(j>0)
+          allocate( exp_item )
 
-                call set_coefvar( tmp_str(:j-1), exp_item )
+          exp_item%n_terms = nelem ! number of terms
 
-                tmp_str = tmp_str(j+1:)
-                j = scan( tmp_str, '+' )
+          exp_item%name = trim(adjustl( sum_string(:ndxs(1)-1))) ! thing to the left of the "=" is used as the name of the group
 
-             enddo
+          ! now that we have the number of terms in the summation allocate memory for the terms
+          allocate( exp_item%vars(nelem) )
+          allocate( exp_item%coeffs(nelem) )
 
-             call set_coefvar( tmp_str, exp_item )
+          coeff0 = 1._r8 ! default multiplier
 
-          endif
+          ! now parse out the multiplier from the terms
+          elmloop: do k = 1,nelem
 
+             exp_item%coeffs(k) = coeff0
+
+             ! get the term name which follows the '*' operator if the is one
+             tmp_name = adjustl(sum_string(ndxs(k)+1:ndxs(k+1)-1))
+
+             j = scan( tmp_name, '*' )
+             if (j>0) then
+
+                xchr = tmp_name(1:j-1) ! get the multipler (left of the '*')
+                read( xchr, * ) xdbl   ! convert the string to a real
+                exp_item%coeffs(k) = xdbl ! store the multiplier
+
+                j1 = scan( tmp_name, '(' )
+                if (j1>0) then
+                   coeff0 = xdbl
+                   tmp_name = trim(adjustl(tmp_name(j1+1:))) ! get the term name (right of the '*')
+                else
+                   coeff0 = 1._r8
+                   tmp_name = trim(adjustl(tmp_name(j+1:))) ! get the term name (right of the '*')
+                endif
+
+             endif
+
+             j2 = scan( tmp_name, ')' )
+             if (j2>0) then
+                coeff0 = 1._r8
+                tmp_name = tmp_name(1:j2-1)
+             endif
+
+             exp_item%vars(k) = trim(tmp_name)
+
+          enddo elmloop
 
           if (associated(exp_item)) then
              if (associated(exp_items_list)) then
@@ -124,12 +164,15 @@ contains
              endif
           endif
 
-       endif
-    enddo
+
+       enddo grploop
+    endif has_grps
 
     if ( present(nitems) ) then
        nitems = n_exp_items
     endif
+
+    deallocate(sums_grps)
 
   end function shr_exp_parse
 
@@ -156,30 +199,5 @@ contains
     enddo
 
   end subroutine  shr_exp_list_destroy
-
- !==========================
- ! Private Methods
-
-  ! -----------------------------------------------------------------
-  ! -----------------------------------------------------------------
-  subroutine set_coefvar( term, item )
-    character(len=*), intent(in)  :: term
-    type(shr_exp_item_t) , intent(inout) :: item
-
-    integer :: k, n
-
-    item%n_terms = item%n_terms + 1
-    n = item%n_terms
-
-    k = scan( term, '*' )
-    if (k>0) then
-       item%vars(n) = trim(adjustl(term(k+1:)))
-       read( term(:k-1), *) item%coeffs(n)
-    else
-       item%vars(n) = trim(adjustl(term))
-       item%coeffs(n) = 1.0_r8
-    endif
-
-  end subroutine set_coefvar
 
 end module shr_expr_parser_mod

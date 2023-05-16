@@ -7,7 +7,7 @@ module med_phases_profile_mod
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
   use med_constants_mod     , only : dbug_flag=>med_constants_dbug_flag
   use med_utils_mod         , only : med_utils_chkerr, med_memcheck
-  use med_internalstate_mod , only : mastertask, logunit
+  use med_internalstate_mod , only : maintask, logunit
   use med_utils_mod         , only : chkerr    => med_utils_ChkErr
   use med_time_mod          , only : alarmInit => med_time_alarmInit
   use perf_mod              , only : t_startf, t_stopf
@@ -58,11 +58,13 @@ contains
     type(ESMF_Time), save   :: prevTime
     type(ESMF_TimeInterval) :: ringInterval, timestep
     type(ESMF_Alarm)        :: alarm
-    integer                 :: yr, mon, day, hr, min, sec
     logical                 :: ispresent
     logical                 :: alarmison=.false., stopalarmison=.false.
     real(R8)                :: current_time, wallclockelapsed, ypd
-    real(r8)                :: msize, mrss, ringdays
+    real(r8)                :: ringdays
+#ifdef CESMCOUPLED
+    real(r8)                :: msize, mrss
+#endif
     real(r8), save          :: avgdt
     character(len=CL)       :: walltimestr, nexttimestr
     character(len=*), parameter :: subname='(med_phases_profile)'
@@ -142,7 +144,7 @@ contains
           endif
        endif
 
-       if ((stopalarmison .or. alarmIsOn .or. iterations==1) .and. mastertask) then
+       if ((stopalarmison .or. alarmIsOn .or. iterations==1) .and. maintask) then
           ! We need to get the next time for display
           call ESMF_ClockGetNextTime(clock, nextTime=nexttime, rc=rc)
           if (med_utils_ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -185,6 +187,7 @@ contains
           call shr_mem_getusage(msize,mrss,.true.)
           write(logunit,105) ' memory_write: model date = ',trim(nexttimestr), &
                ' memory = ',msize,' MB (highwater)    ',mrss,' MB (usage)'
+105 format( 3A, f10.2, A, f10.2, A)
 #endif
           previous_time = current_time
 
@@ -193,7 +196,6 @@ contains
     iterations = iterations + 1
 
 101 format( 5A, F8.2, A, F8.2, A, F8.2, A)
-105 format( 3A, f10.2, A, f10.2, A)
     !---------------------------------------
     !--- clean up
     !---------------------------------------

@@ -39,7 +39,7 @@
   use med_kind_mod,          only : r8=>SHR_KIND_R8, cs=>SHR_KIND_CS, cl=>SHR_KIND_CL
   use med_utils_mod,         only : chkerr => med_utils_chkerr
   use med_constants_mod,     only : dbug_flag => med_constants_dbug_flag
-  use med_internalstate_mod, only : InternalState, mastertask, logunit
+  use med_internalstate_mod, only : InternalState, maintask, logunit
   use med_internalstate_mod, only : compatm, compocn, mapconsf
   use med_io_mod,            only : med_io_date2yyyymmdd, med_io_sec2hms, med_io_ymd2date
   use ufs_const_mod,         only : shr_const_cday
@@ -173,7 +173,7 @@ contains
        ! return pointer and fill variable
        call ESMF_FieldGet(field_dst, localDe=0, farrayPtr=ptr, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       if (mastertask) write(logunit,'(a)') 'Reading: '//trim(flds(n))
+       if (maintask) write(logunit,'(a)') 'Reading: '//trim(flds(n))
        if (trim(flds(n)) == 'zorl'  ) physics%sfcprop%zorl(:)  = ptr(:)
        if (trim(flds(n)) == 'uustar') physics%sfcprop%uustar(:)= ptr(:)
        nullify(ptr)
@@ -246,7 +246,7 @@ contains
     ! Now read in the restart file
     !----------------------
 
-    if (mastertask) then
+    if (maintask) then
        write(logunit,'(a)') 'Reading CCPP restart file: '//trim(rst_file)
     end if
 
@@ -289,7 +289,7 @@ contains
           call FB_getfldptr(FBin, trim(flds(n)), ptr, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-          if (mastertask) write(logunit,'(a)') 'Reading: '//trim(flds(n))
+          if (maintask) write(logunit,'(a)') 'Reading: '//trim(flds(n))
           if (trim(flds(n)) == 'zorl'  ) physics%sfcprop%zorl(:)  = ptr(:)
           if (trim(flds(n)) == 'uustar') physics%sfcprop%uustar(:)= ptr(:)
           if (trim(flds(n)) == 'qss'   ) physics%sfcprop%qss(:)   = ptr(:)
@@ -873,7 +873,7 @@ contains
     call ESMF_FieldBundleWrite(FBout, trim(rst_file), overwrite=.true., rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    if (mastertask) then
+    if (maintask) then
        write(logunit,'(a)') 'CCPP restart file is closed: '//trim(rst_file)
     end if
 

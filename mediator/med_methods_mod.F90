@@ -24,6 +24,11 @@ module med_methods_mod
     med_methods_FieldPtr_compare2
   end interface
 
+  interface med_methods_check_for_nans
+     module procedure med_methods_check_for_nans_1d
+     module procedure med_methods_check_for_nans_2d
+  end interface med_methods_check_for_nans
+
   ! used/reused in module
 
   logical                       :: isPresent
@@ -49,6 +54,7 @@ module med_methods_mod
   public med_methods_FB_getdata2d
   public med_methods_FB_getdata1d
   public med_methods_FB_getmesh
+  public med_methods_FB_check_for_nans
 
   public med_methods_State_reset
   public med_methods_State_diagnose
@@ -68,7 +74,10 @@ module med_methods_mod
   private med_methods_Mesh_Print
   private med_methods_Grid_Print
   private med_methods_Field_GetFldPtr
+#ifdef DIAGNOSE
   private med_methods_Array_diagnose
+#endif
+  private med_methods_check_for_nans
 
 !-----------------------------------------------------------------------------
 contains
@@ -242,13 +251,11 @@ contains
     integer               , intent(out)          :: rc
 
     ! local variables
-    integer                :: i,j,n,n1
+    integer                :: n,n1
     integer                :: fieldCount,fieldCountgeom
-    logical                :: found
     character(ESMF_MAXSTR) :: lname
     type(ESMF_Field)       :: field,lfield
     type(ESMF_Mesh)        :: lmesh
-    type(ESMF_StaggerLoc)  :: staggerloc
     type(ESMF_MeshLoc)     :: meshloc
     integer                :: ungriddedCount
     integer                :: ungriddedCount_in
@@ -658,7 +665,6 @@ contains
     integer         , intent(out)   :: rc
 
     ! local variables
-    integer                            :: n,itemCount
     type(ESMF_Field), pointer          :: fieldList(:)
     character(len=*),parameter         :: subname='(med_methods_State_getNumFields)'
     ! ----------------------------------------------
@@ -699,7 +705,7 @@ contains
     integer                , intent(out)          :: rc
 
     ! local variables
-    integer                         :: i,j,n
+    integer                         :: n
     integer                         :: fieldCount
     character(ESMF_MAXSTR) ,pointer :: lfieldnamelist(:)
     real(R8)                        :: lvalue
@@ -777,7 +783,7 @@ contains
     integer          , intent(out)          :: rc
 
     ! local variables
-    integer                         :: i,j,n
+    integer                         :: n
     integer                         :: fieldCount
     character(ESMF_MAXSTR) ,pointer :: lfieldnamelist(:)
     real(R8)                        :: lvalue
@@ -923,7 +929,7 @@ contains
     integer                , intent(out)          :: rc
 
     ! local variables
-    integer                         :: i,j,n
+    integer                         :: n
     integer                         :: fieldCount, lrank
     character(ESMF_MAXSTR), pointer :: lfieldnamelist(:)
     character(len=CL)               :: lstring
@@ -993,7 +999,7 @@ contains
   end subroutine med_methods_FB_diagnose
 
   !-----------------------------------------------------------------------------
-
+#ifdef DIAGNOSE
   subroutine med_methods_Array_diagnose(array, string, rc)
 
     ! ----------------------------------------------
@@ -1041,7 +1047,7 @@ contains
     endif
 
   end subroutine med_methods_Array_diagnose
-
+#endif
   !-----------------------------------------------------------------------------
 
   subroutine med_methods_State_diagnose(State, string, rc)
@@ -1057,7 +1063,7 @@ contains
     integer         , intent(out)          :: rc
 
     ! local variables
-    integer                         :: i,j,n
+    integer                         :: n
     integer                         :: fieldCount, lrank
     character(ESMF_MAXSTR) ,pointer :: lfieldnamelist(:)
     character(len=CS)               :: lstring
@@ -1140,7 +1146,6 @@ contains
     integer         , intent(out)          :: rc
 
     ! local variables
-    integer           :: lrank
     character(len=CS) :: lstring
     real(R8), pointer :: dataPtr1d(:)
     real(R8), pointer :: dataPtr2d(:,:)
@@ -1738,7 +1743,6 @@ contains
     type(ESMF_Field)                :: lfield
     integer                         :: fieldcount
     character(ESMF_MAXSTR) ,pointer :: lfieldnamelist(:)
-    character(ESMF_MAXSTR)          :: name
     character(len=*),parameter  :: subname='(med_methods_State_GeomPrint)'
     ! ----------------------------------------------
 
@@ -2061,7 +2065,7 @@ contains
     integer                    :: localDeCount
     integer                    :: DeCount
     integer                    :: dimCount, tileCount
-    integer                    :: staggerlocCount, arbdimCount, rank
+    integer                    :: rank
     type(ESMF_StaggerLoc)      :: staggerloc
     type(ESMF_TypeKind_Flag)   :: coordTypeKind
     character(len=32)          :: staggerstr
@@ -2265,7 +2269,7 @@ contains
     integer,          intent(inout)  :: rc
 
     ! local variables
-    integer           :: mytask, ierr, len, icount
+    integer           :: mytask, icount
     type(ESMF_VM)     :: vm
     type(ESMF_Field)  :: field
     real(R8), pointer :: farrayptr(:,:)
@@ -2500,5 +2504,129 @@ contains
     deallocate(fieldlist)
 
   end subroutine med_methods_FB_getmesh
+
+  !-----------------------------------------------------------------------------
+  subroutine med_methods_FB_check_for_nans(FB, rc)
+
+    use ESMF, only : ESMF_FieldBundle, ESMF_Field, ESMF_FieldBundleGet, ESMF_FieldGet
+
+    ! input/output variables
+    type(ESMF_FieldBundle) , intent(in)    :: FB
+    integer                , intent(inout) :: rc
+
+    ! local variables
+    type(ESMF_Field)            :: field
+    integer                     :: index
+    integer                     :: fieldcount
+    integer                     :: fieldrank
+    character(len=CL)           :: fieldname
+    real(r8) , pointer          :: dataptr1d(:)
+    real(r8) , pointer          :: dataptr2d(:,:)
+    integer                     :: nancount
+    character(len=CS)           :: nancount_char
+    character(len=CL)           :: msg_error
+    logical                     :: nanfound
+    character(len=*), parameter :: subname='(med_methods_FB_check_for_nans)'
+    ! ----------------------------------------------
+    rc = ESMF_SUCCESS
+
+#ifndef CESMCOUPLED
+    ! For now only CESM uses shr_infnan_isnan - so until other models provide this
+    RETURN
+#endif
+
+    call ESMF_FieldBundleGet(FB, fieldCount=fieldCount, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    nanfound = .false.
+    do index=1,fieldCount
+       call med_methods_FB_getNameN(FB, index, fieldname, rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_FieldBundleGet(FB, fieldName=fieldname, field=field, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_FieldGet(field, rank=fieldrank, name=fieldname, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       if (fieldrank == 1) then
+          call ESMF_FieldGet(field, farrayPtr=dataptr1d, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call med_methods_check_for_nans(dataptr1d, nancount)
+       else
+          call ESMF_FieldGet(field, farrayPtr=dataptr2d, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call med_methods_check_for_nans(dataptr2d, nancount)
+       end if
+       if (nancount > 0) then
+          write(nancount_char, '(i0)') nancount
+          msg_error = "ERROR: " // trim(nancount_char) //" nans found in "//trim(fieldname)
+          call ESMF_LogWrite(trim(msg_error), ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
+          nanfound = .true.
+       end if
+    end do
+    if (nanfound) then
+       call ESMF_LogWrite('ABORTING JOB', ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
+       rc = ESMF_FAILURE
+       return
+    end if
+
+  end subroutine med_methods_FB_check_for_nans
+
+  !-----------------------------------------------------------------------------
+#ifdef CESMCOUPLED
+
+  subroutine med_methods_check_for_nans_1d(dataptr, nancount)
+    use shr_infnan_mod, only: shr_infnan_isnan
+    ! input/output variables
+    real(r8) , intent(in)  :: dataptr(:)
+    integer  , intent(out) :: nancount
+    ! local variables
+    integer :: n
+
+    nancount = 0
+    do n = 1,size(dataptr)
+       if (shr_infnan_isnan(dataptr(n))) then
+          nancount = nancount + 1
+       end if
+    end do
+  end subroutine med_methods_check_for_nans_1d
+
+  subroutine med_methods_check_for_nans_2d(dataptr, nancount)
+    use shr_infnan_mod, only: shr_infnan_isnan
+    ! input/output variables
+    real(r8) , intent(in)  :: dataptr(:,:)
+    integer  , intent(out) :: nancount
+    ! local variables
+    integer :: n,k
+
+    nancount = 0
+    do k = 1,size(dataptr, dim=1)
+       do n = 1,size(dataptr, dim=2)
+          if (shr_infnan_isnan(dataptr(k,n))) then
+             nancount = nancount + 1
+          end if
+       end do
+    end do
+  end subroutine med_methods_check_for_nans_2d
+
+#else
+
+  ! For now only CESM uses shr_infnan_isnan - so until other models provide this
+  ! nancount will just be set to zero
+
+  subroutine med_methods_check_for_nans_1d(dataptr, nancount)
+    ! input/output variables
+    real(r8) , intent(in)  :: dataptr(:)
+    integer  , intent(out) :: nancount
+
+    nancount = 0
+  end subroutine med_methods_check_for_nans_1d
+
+  subroutine med_methods_check_for_nans_2d(dataptr, nancount)
+    ! input/output variables
+    real(r8) , intent(in)  :: dataptr(:,:)
+    integer  , intent(out) :: nancount
+
+    nancount = 0
+  end subroutine med_methods_check_for_nans_2d
+#endif
 
 end module med_methods_mod

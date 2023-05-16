@@ -7,7 +7,7 @@ module med_phases_prep_ocn_mod
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
   use med_constants_mod     , only : czero     =>med_constants_czero
   use med_constants_mod     , only : dbug_flag => med_constants_dbug_flag
-  use med_internalstate_mod , only : InternalState, mastertask, logunit
+  use med_internalstate_mod , only : InternalState, maintask, logunit
   use med_merge_mod         , only : med_merge_auto, med_merge_field
   use med_map_mod           , only : med_map_field_packed
   use med_utils_mod         , only : memcheck      => med_memcheck
@@ -19,6 +19,7 @@ module med_phases_prep_ocn_mod
   use med_methods_mod       , only : FB_average    => med_methods_FB_average
   use med_methods_mod       , only : FB_copy       => med_methods_FB_copy
   use med_methods_mod       , only : FB_reset      => med_methods_FB_reset
+  use med_methods_mod       , only : FB_check_for_nans => med_methods_FB_check_for_nans
   use esmFlds               , only : med_fldList_GetfldListTo, med_fldlist_type
   use med_internalstate_mod , only : compocn, compatm, compice, coupling_mode
   use perf_mod              , only : t_startf, t_stopf
@@ -61,7 +62,7 @@ contains
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (chkErr(rc,__LINE__,u_FILE_u)) return
 
-    if (mastertask) then
+    if (maintask) then
        write(logunit,'(a)') trim(subname)//' initializing ocean export accumulation FB for '
     end if
     call FB_init(is_local%wrap%FBExpAccumOcn, is_local%wrap%flds_scalar_name, &
@@ -88,7 +89,7 @@ contains
 
     ! local variables
     type(InternalState) :: is_local
-    integer             :: n, ncnt
+    integer             :: n
     real(r8)            :: glob_area_inv
     real(r8), pointer   :: tocn(:)
     real(r8), pointer   :: rain(:), hrain(:)
@@ -108,7 +109,7 @@ contains
        call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
     end if
     rc = ESMF_SUCCESS
-    call memcheck(subname, 5, mastertask)
+    call memcheck(subname, 5, maintask)
 
     ! Get the internal state
     nullify(is_local%wrap)
@@ -295,6 +296,10 @@ contains
        call FB_copy(is_local%wrap%FBExp(compocn), is_local%wrap%FBExpAccumOcn, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+       ! Check for nans in fields export to atm
+       call FB_check_for_nans(is_local%wrap%FBExp(compocn), rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
        ! zero accumulator
        is_local%wrap%ExpAccumOcnCnt = 0
        call FB_reset(is_local%wrap%FBExpAccumOcn, value=czero, rc=rc)
@@ -372,16 +377,22 @@ contains
 
     rc = ESMF_SUCCESS
 
-    call t_startf('MED:'//subname)
     if (dbug_flag > 20) then
        call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
     end if
-    call memcheck(subname, 5, mastertask)
+    call memcheck(subname, 5, maintask)
 
     ! Get the internal state
     nullify(is_local%wrap)
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    ! Check that the necessary export field is present
+    if ( .not. FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_swnet', rc=rc)) then
+       return
+    end if
+
+    call t_startf('MED:'//subname)
 
     !---------------------------------------
     ! Compute netsw for ocean
@@ -565,7 +576,7 @@ contains
        ! is initialized to 0.
        ! In addition, in med.F90, if this attribute is not present as a mediator component attribute,
        ! it is set to 0.
-       if (mastertask) then
+       if (maintask) then
           call ESMF_StateGet(is_local%wrap%NstateImp(compocn), &
                itemName=trim(is_local%wrap%flds_scalar_name), field=lfield, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -624,10 +635,6 @@ contains
 
     ! local variables
     type(InternalState) :: is_local
-    real(R8), pointer   :: ocnwgt1(:)
-    real(R8), pointer   :: icewgt1(:)
-    real(R8), pointer   :: wgtp01(:)
-    real(R8), pointer   :: wgtm01(:)
     real(R8), pointer   :: customwgt(:)
     real(R8), pointer   :: ifrac(:)
     real(R8), pointer   :: ofrac(:)
@@ -642,7 +649,7 @@ contains
     if (dbug_flag > 20) then
        call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
     end if
-    call memcheck(subname, 5, mastertask)
+    call memcheck(subname, 5, maintask)
 
     ! Get the internal state
     nullify(is_local%wrap)
