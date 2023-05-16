@@ -975,6 +975,9 @@ contains
     real(r8), parameter      :: p0 = 100000.0_r8           ! reference pressure in Pa
     real(r8), parameter      :: rcp = 0.286_r8             ! gas constant of air / specific heat capacity at a constant pressure
     real(r8), parameter      :: rdair = 287.058_r8         ! dry air gas constant in J/K/kg
+    integer                  :: maptype
+    type(ESMF_Field)         :: field_src
+    type(ESMF_Field)         :: field_dst
     character(*),parameter   :: subName = '(med_aofluxes_update) '
     !-----------------------------------------------------------------------
 
