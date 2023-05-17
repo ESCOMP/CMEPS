@@ -2986,6 +2986,14 @@ contains
        end if
     end if
 
+    ! ---------------------------------------------------------------------
+    ! to wav: zonal and meridional wind stress
+    ! ---------------------------------------------------------------------
+    if (phase == 'advertise') then
+       call addfld_to(compwav , 'Fwxx_taux')
+       call addfld_to(compwav , 'Fwxx_tauy')
+    end if
+
     !=====================================================================
     ! FIELDS TO RIVER (comprof)
     !=====================================================================
