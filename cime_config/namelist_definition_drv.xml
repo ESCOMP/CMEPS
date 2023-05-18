@@ -721,7 +721,7 @@
     <category>performance</category>
     <group>MED_attributes</group>
     <desc>
-      Check for NaN values in fields returned from mediator to components
+      Check for NaN values in fields returned from mediator to components.  This has a small performance impact.
     </desc>
     <values>
       <value>.false.</value>
