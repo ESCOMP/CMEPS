@@ -129,7 +129,7 @@ contains
     first_call = .false.
 
     ! Check for nans in fields export to atm
-    call FB_check_for_nans(is_local%wrap%FBExp(complnd), rc=rc)
+    call FB_check_for_nans(gcomp, is_local%wrap%FBExp(complnd), rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if (dbug_flag > 5) then

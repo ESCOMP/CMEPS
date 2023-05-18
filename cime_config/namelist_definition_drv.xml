@@ -716,6 +716,17 @@
       <value>$ESMF_VERBOSITY_LEVEL</value>
     </values>
   </entry>
+  <entry id="check_for_nans">
+    <type>logical</type>
+    <category>performance</category>
+    <group>MED_attributes</group>
+    <desc>
+      Check for NaN values in fields returned from mediator to components
+    </desc>
+    <values>
+      <value>.false.</value>
+    </values>
+  </entry>
   <entry id="atm_nx" modify_via_xml="ATM_NX">
     <type>integer</type>
     <category>control</category>

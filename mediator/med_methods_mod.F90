@@ -2506,11 +2506,12 @@ contains
   end subroutine med_methods_FB_getmesh
 
   !-----------------------------------------------------------------------------
-  subroutine med_methods_FB_check_for_nans(FB, rc)
+  subroutine med_methods_FB_check_for_nans(gcomp, FB, rc)
 
-    use ESMF, only : ESMF_FieldBundle, ESMF_Field, ESMF_FieldBundleGet, ESMF_FieldGet
-
+    use ESMF, only  : ESMF_FieldBundle, ESMF_Field, ESMF_FieldBundleGet, ESMF_FieldGet, ESMF_GridComp
+    use NUOPC, only : NUOPC_CompAttributeGet
     ! input/output variables
+    type(ESMF_GridComp)    , intent(in)    :: gcomp
     type(ESMF_FieldBundle) , intent(in)    :: FB
     integer                , intent(inout) :: rc
 
@@ -2526,11 +2527,23 @@ contains
     character(len=CS)           :: nancount_char
     character(len=CL)           :: msg_error
     logical                     :: nanfound
+    logical, save               :: checkfornans
+    logical, save               :: firstcall=.true.
+    character(len=CL)            :: cvalue
     character(len=*), parameter :: subname='(med_methods_FB_check_for_nans)'
     ! ----------------------------------------------
     rc = ESMF_SUCCESS
 
-#ifndef CESMCOUPLED
+#ifdef CESMCOUPLED
+    if (firstcall) then
+       call NUOPC_CompAttributeGet(gcomp, name="check_for_nans", value=cvalue, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       read(cvalue, *) checkfornans
+       firstcall = .false.
+    endif
+    if(.not. checkfornans) return
+
+#else
     ! For now only CESM uses shr_infnan_isnan - so until other models provide this
     RETURN
 #endif
