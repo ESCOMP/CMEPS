@@ -2507,7 +2507,7 @@ contains
 
   !-----------------------------------------------------------------------------
   subroutine med_methods_FB_check_for_nans(gcomp, FB, rc)
-
+    use med_internalstate_mod, only : maintask, logunit
     use ESMF, only  : ESMF_FieldBundle, ESMF_Field, ESMF_FieldBundleGet, ESMF_FieldGet, ESMF_GridComp
     use NUOPC, only : NUOPC_CompAttributeGet
     ! input/output variables
@@ -2538,16 +2538,23 @@ contains
     if (firstcall) then
        call NUOPC_CompAttributeGet(gcomp, name="check_for_nans", value=cvalue, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       read(cvalue, *) checkfornans
+       read(cvalue, *) checkfornans       
        firstcall = .false.
+       if(maintask) then
+          write(logunit,*) ' check_for_nans is ',checkfornans
+          if(checkfornans) then
+             write(logunit,*) ' Fields will be checked for NaN values when passed from mediator to component'
+          else
+             write(logunit,*) ' Fields will NOT be checked for NaN values when passed from mediator to component'
+          endif
+       endif
     endif
     if(.not. checkfornans) return
-
 #else
     ! For now only CESM uses shr_infnan_isnan - so until other models provide this
     RETURN
 #endif
-
+    
     call ESMF_FieldBundleGet(FB, fieldCount=fieldCount, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 

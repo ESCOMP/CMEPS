@@ -724,7 +724,7 @@
       Check for NaN values in fields returned from mediator to components.  This has a small performance impact.
     </desc>
     <values>
-      <value>.false.</value>
+      <value>.true.</value>
     </values>
   </entry>
   <entry id="atm_nx" modify_via_xml="ATM_NX">
