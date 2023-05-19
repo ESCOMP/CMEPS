@@ -2535,7 +2535,6 @@ contains
     ! ----------------------------------------------
     rc = ESMF_SUCCESS
 
-#ifdef CESMCOUPLED
     if (firstcall) then
        call NUOPC_CompAttributeGet(gcomp, name="check_for_nans", value=cvalue, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -2551,11 +2550,7 @@ contains
        endif
     endif
     if(.not. checkfornans) return
-#else
-    ! For now only CESM uses shr_infnan_isnan - so until other models provide this
-    RETURN
-#endif
-    
+
     call ESMF_FieldBundleGet(FB, fieldCount=fieldCount, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
@@ -2592,7 +2587,6 @@ contains
   end subroutine med_methods_FB_check_for_nans
 
   !-----------------------------------------------------------------------------
-#ifdef CESMCOUPLED
 
   subroutine med_methods_check_for_nans_1d(dataptr, nancount)
     use shr_infnan_mod, only: shr_infnan_isnan
@@ -2627,27 +2621,5 @@ contains
        end do
     end do
   end subroutine med_methods_check_for_nans_2d
-
-#else
-
-  ! For now only CESM uses shr_infnan_isnan - so until other models provide this
-  ! nancount will just be set to zero
-
-  subroutine med_methods_check_for_nans_1d(dataptr, nancount)
-    ! input/output variables
-    real(r8) , intent(in)  :: dataptr(:)
-    integer  , intent(out) :: nancount
-
-    nancount = 0
-  end subroutine med_methods_check_for_nans_1d
-
-  subroutine med_methods_check_for_nans_2d(dataptr, nancount)
-    ! input/output variables
-    real(r8) , intent(in)  :: dataptr(:,:)
-    integer  , intent(out) :: nancount
-
-    nancount = 0
-  end subroutine med_methods_check_for_nans_2d
-#endif
 
 end module med_methods_mod
