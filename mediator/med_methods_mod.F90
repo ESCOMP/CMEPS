@@ -30,7 +30,7 @@ module med_methods_mod
   end interface med_methods_check_for_nans
 
   ! used/reused in module
-
+  logical, public               :: mediator_checkfornans  ! set in med.F90 AdvertiseFields
   logical                       :: isPresent
   character(len=1024)           :: msgString
   type(ESMF_FieldStatus_Flag)   :: status
@@ -2506,11 +2506,9 @@ contains
   end subroutine med_methods_FB_getmesh
 
   !-----------------------------------------------------------------------------
-  subroutine med_methods_FB_check_for_nans(gcomp, FB, maintask, logunit, rc)
-    use ESMF, only  : ESMF_FieldBundle, ESMF_Field, ESMF_FieldBundleGet, ESMF_FieldGet, ESMF_GridComp
-    use NUOPC, only : NUOPC_CompAttributeGet
+  subroutine med_methods_FB_check_for_nans(FB, maintask, logunit, rc)
+    use ESMF, only  : ESMF_FieldBundle, ESMF_Field, ESMF_FieldBundleGet, ESMF_FieldGet
     ! input/output variables
-    type(ESMF_GridComp)    , intent(in)    :: gcomp
     type(ESMF_FieldBundle) , intent(in)    :: FB
     logical                , intent(in)    :: maintask
     integer                , intent(in)    :: logunit
@@ -2528,36 +2526,15 @@ contains
     character(len=CS)           :: nancount_char
     character(len=CL)           :: msg_error
     logical                     :: nanfound
-    logical, save               :: checkfornans
-    logical, save               :: firstcall=.true.
-    character(len=CL)            :: cvalue
     character(len=*), parameter :: subname='(med_methods_FB_check_for_nans)'
     ! ----------------------------------------------
     rc = ESMF_SUCCESS
 
-#ifdef CESMCOUPLED
-    if (firstcall) then
-       call NUOPC_CompAttributeGet(gcomp, name="check_for_nans", value=cvalue, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       read(cvalue, *) checkfornans       
-       firstcall = .false.
-       if(maintask) then
-          write(logunit,*) ' check_for_nans is ',checkfornans
-          if(checkfornans) then
-             write(logunit,*) ' Fields will be checked for NaN values when passed from mediator to component'
-          else
-             write(logunit,*) ' Fields will NOT be checked for NaN values when passed from mediator to component'
-          endif
-       endif
-    endif
-#else
+#ifndef CESMCOUPLED
     ! For now only CESM uses shr_infnan_isnan - so until other models provide this
-    cvalue = ".false."
-    checkfornans = .false.
-    if(firstcall) write(logunit,*) ' Fields will NOT be checked for NaN values when passed from mediator to component'
-    firstcall = .false.
+    mediator_checkfornans = .false.
 #endif
-    if(.not. checkfornans) return
+    if(.not. mediator_checkfornans) return
     
     call ESMF_FieldBundleGet(FB, fieldCount=fieldCount, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return

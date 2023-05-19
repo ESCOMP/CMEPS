@@ -128,8 +128,8 @@ contains
     ! Set first call logical to false
     first_call = .false.
 
-    ! Check for nans in fields export to atm
-    call FB_check_for_nans(gcomp, is_local%wrap%FBExp(complnd), maintask, logunit, rc=rc)
+    ! Check for nans in fields export to lnd
+    call FB_check_for_nans(is_local%wrap%FBExp(complnd), maintask, logunit, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if (dbug_flag > 5) then

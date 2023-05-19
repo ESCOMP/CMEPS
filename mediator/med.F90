@@ -661,6 +661,7 @@ contains
     use NUOPC , only : NUOPC_CompAttributeGet, NUOPC_CompAttributeSet, NUOPC_CompAttributeAdd
     use esmFlds, only : med_fldlist_init1, med_fld_GetFldInfo, med_fldList_entry_type
     use med_phases_history_mod, only : med_phases_history_init
+    use med_methods_mod       , only : mediator_checkfornans  
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -915,6 +916,20 @@ contains
           end do
        end if
     end do ! end of ncomps loop
+
+    ! Should mediator check for NaNs?
+    call NUOPC_CompAttributeGet(gcomp, name="check_for_nans", value=cvalue, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    read(cvalue, *) mediator_checkfornans       
+    if(maintask) then
+       write(logunit,*) ' check_for_nans is ',mediator_checkfornans
+       if(mediator_checkfornans) then
+          write(logunit,*) ' Fields will be checked for NaN values when passed from mediator to component'
+       else
+          write(logunit,*) ' Fields will NOT be checked for NaN values when passed from mediator to component'
+       endif
+    endif
+
 
     if (profile_memory) call ESMF_VMLogMemInfo("Leaving "//trim(subname))
     call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
