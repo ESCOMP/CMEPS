@@ -2506,13 +2506,14 @@ contains
   end subroutine med_methods_FB_getmesh
 
   !-----------------------------------------------------------------------------
-  subroutine med_methods_FB_check_for_nans(gcomp, FB, rc)
-    use med_internalstate_mod, only : maintask, logunit
+  subroutine med_methods_FB_check_for_nans(gcomp, FB, maintask, logunit, rc)
     use ESMF, only  : ESMF_FieldBundle, ESMF_Field, ESMF_FieldBundleGet, ESMF_FieldGet, ESMF_GridComp
     use NUOPC, only : NUOPC_CompAttributeGet
     ! input/output variables
     type(ESMF_GridComp)    , intent(in)    :: gcomp
     type(ESMF_FieldBundle) , intent(in)    :: FB
+    logical                , intent(in)    :: maintask
+    integer                , intent(in)    :: logunit
     integer                , intent(inout) :: rc
 
     ! local variables

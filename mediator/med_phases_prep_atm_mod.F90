@@ -17,7 +17,7 @@ module med_phases_prep_atm_mod
   use med_methods_mod       , only : FB_check_for_nans => med_methods_FB_check_for_nans
   use med_merge_mod         , only : med_merge_auto
   use med_map_mod           , only : med_map_field_packed
-  use med_internalstate_mod , only : InternalState, maintask
+  use med_internalstate_mod , only : InternalState, maintask, logunit
   use med_internalstate_mod , only : compatm, compocn, compice, compname, coupling_mode
   use esmFlds               , only : med_fldlist_GetfldListTo, med_fldlist_type
   use perf_mod              , only : t_startf, t_stopf
@@ -245,7 +245,7 @@ contains
     end if
 
     ! Check for nans in fields export to atm
-    call FB_check_for_nans(gcomp, is_local%wrap%FBExp(compatm), rc=rc)
+    call FB_check_for_nans(gcomp, is_local%wrap%FBExp(compatm), maintask, logunit, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if (dbug_flag > 5) then

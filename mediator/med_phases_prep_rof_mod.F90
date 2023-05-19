@@ -378,7 +378,7 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! Check for nans in fields export to atm
-    call FB_check_for_nans(gcomp, is_local%wrap%FBExp(comprof), rc=rc)
+    call FB_check_for_nans(gcomp, is_local%wrap%FBExp(comprof), maintask, logunit, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if (dbug_flag > 1) then

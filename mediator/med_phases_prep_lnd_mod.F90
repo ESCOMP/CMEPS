@@ -33,7 +33,7 @@ contains
     use med_utils_mod         , only : chkerr           => med_utils_ChkErr
     use med_constants_mod     , only : dbug_flag        => med_constants_dbug_flag
     use med_internalstate_mod , only : complnd, compatm
-    use med_internalstate_mod , only : InternalState, maintask
+    use med_internalstate_mod , only : InternalState, maintask, logunit
     use med_merge_mod         , only : med_merge_auto
     use perf_mod              , only : t_startf, t_stopf
 
@@ -129,7 +129,7 @@ contains
     first_call = .false.
 
     ! Check for nans in fields export to atm
-    call FB_check_for_nans(gcomp, is_local%wrap%FBExp(complnd), rc=rc)
+    call FB_check_for_nans(gcomp, is_local%wrap%FBExp(complnd), maintask, logunit, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if (dbug_flag > 5) then
