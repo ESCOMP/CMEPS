@@ -52,14 +52,14 @@ jobs:
           key: ${{ runner.os }}-${{ env.PIO_VERSION }}.pio
       - name: Build ParallelIO
         if: steps.cache-ParallelIO.outputs.cache-hit != 'true'
-        uses: NCAR/ParallelIO/.github/actions/parallelio_cmake@${{ env.PIO_VERSION }}
+        uses: NCAR/ParallelIO/.github/actions/parallelio_cmake@pio2_6_0
         with:
           parallelio_version: ${{ env.ParallelIO_VERSION }}
           enable_fortran: True
           install_prefix: $HOME/pio
       - name: Build ESMF
         if: steps.cache-esmf.outputs.cache-hit != 'true'
-        uses: ESCOMP/CDEPS/.github/actions/buildesmf@${{ env.CDEPS_VERSION }}
+        uses: ESCOMP/CDEPS/.github/actions/buildesmf@cdeps1.0.15
         with:
           esmf_version: ${{ env.ESMF_VERSION }}
           esmf_bopt: g
