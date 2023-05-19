@@ -83,7 +83,7 @@ jobs:
           path: cdeps-src
           ref: ${{ env.CDEPS_VERSION }}
       - name: Build CDEPS
-        if steps.cache-cdeps.outputs.cache-hit != 'true'
+        if: steps.cache-cdeps.outputs.cache-hit != 'true'
         uses: ESCOMP/CDEPS/.github/actions/buildcdeps@cdeps1.0.15
         with:
           esmfmkfile: $HOME/ESMF/lib/libg/Linux.gfortran.64.openmpi.default/esmf.mk
