@@ -918,9 +918,13 @@ contains
     end do ! end of ncomps loop
 
     ! Should mediator check for NaNs?
-    call NUOPC_CompAttributeGet(gcomp, name="check_for_nans", value=cvalue, rc=rc)
+    call NUOPC_CompAttributeGet(gcomp, name="check_for_nans", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue, *) mediator_checkfornans       
+    if(isPresent .and. isSet) then
+       read(cvalue, *) mediator_checkfornans       
+    else
+       mediator_checkfornans = .false.
+    endif
     if(maintask) then
        write(logunit,*) ' check_for_nans is ',mediator_checkfornans
        if(mediator_checkfornans) then
