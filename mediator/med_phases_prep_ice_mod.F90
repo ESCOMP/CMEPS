@@ -151,7 +151,7 @@ contains
     end if
 
     ! Check for nans in fields export to ice
-    call FB_check_for_nans(is_local%wrap%FBExp(compice), rc=rc)
+    call FB_check_for_nans(is_local%wrap%FBExp(compice), maintask, logunit, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if (dbug_flag > 5) then

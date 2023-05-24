@@ -178,7 +178,7 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        ! Check for nans in fields export to wav
-       call FB_check_for_nans(is_local%wrap%FBExp(compwav), rc=rc)
+       call FB_check_for_nans(is_local%wrap%FBExp(compwav), maintask, logunit, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        ! zero accumulator

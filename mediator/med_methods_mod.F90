@@ -30,7 +30,7 @@ module med_methods_mod
   end interface med_methods_check_for_nans
 
   ! used/reused in module
-
+  logical, public               :: mediator_checkfornans  ! set in med.F90 AdvertiseFields
   logical                       :: isPresent
   character(len=1024)           :: msgString
   type(ESMF_FieldStatus_Flag)   :: status
@@ -2506,12 +2506,12 @@ contains
   end subroutine med_methods_FB_getmesh
 
   !-----------------------------------------------------------------------------
-  subroutine med_methods_FB_check_for_nans(FB, rc)
-
-    use ESMF, only : ESMF_FieldBundle, ESMF_Field, ESMF_FieldBundleGet, ESMF_FieldGet
-
+  subroutine med_methods_FB_check_for_nans(FB, maintask, logunit, rc)
+    use ESMF, only  : ESMF_FieldBundle, ESMF_Field, ESMF_FieldBundleGet, ESMF_FieldGet
     ! input/output variables
     type(ESMF_FieldBundle) , intent(in)    :: FB
+    logical                , intent(in)    :: maintask
+    integer                , intent(in)    :: logunit
     integer                , intent(inout) :: rc
 
     ! local variables
@@ -2530,6 +2530,8 @@ contains
     ! ----------------------------------------------
     rc = ESMF_SUCCESS
 
+    if(.not. mediator_checkfornans) return
+    
     call ESMF_FieldBundleGet(FB, fieldCount=fieldCount, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
@@ -2566,7 +2568,6 @@ contains
   end subroutine med_methods_FB_check_for_nans
 
   !-----------------------------------------------------------------------------
-
   subroutine med_methods_check_for_nans_1d(dataptr, nancount)
     use shr_infnan_mod, only: shr_infnan_isnan
     ! input/output variables
