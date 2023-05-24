@@ -217,10 +217,12 @@ contains
     end if
 
     ! custom merges to ocean
-    if (trim(coupling_mode) == 'cesm') then
-       call med_phases_prep_ocn_custom_cesm(gcomp, rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    else if (trim(coupling_mode(1:5)) == 'nems_') then
+    ! TODO: fix this
+    !if (trim(coupling_mode) == 'cesm') then
+    call med_phases_prep_ocn_custom_cesm(gcomp, rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    !else if (trim(coupling_mode(1:5)) == 'nems_') then
+    if (trim(coupling_mode(1:5)) == 'nems_') then
        call med_phases_prep_ocn_custom_nems(gcomp, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
@@ -388,9 +390,10 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! Check that the necessary export field is present
-    if ( .not. FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_swnet', rc=rc)) then
-       return
-    end if
+    ! TODO: fix this
+    !if ( .not. FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_swnet', rc=rc)) then
+    !   return
+    !end if
 
     call t_startf('MED:'//subname)
 
@@ -479,8 +482,6 @@ contains
        call FB_GetFldPtr(is_local%wrap%FBfrac(compocn), 'ofrad' , ofracr, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-       call FB_GetFldPtr(is_local%wrap%FBImp(compice,compocn), 'Fioi_swpen', Fioi_swpen, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
        if (FB_fldchk(is_local%wrap%FBImp(compice,compice), 'Fioi_swpen_vdr', rc=rc)) then
           import_swpen_by_bands = .true.
           call FB_GetFldPtr(is_local%wrap%FBImp(compice,compocn), 'Fioi_swpen_vdr', Fioi_swpen_vdr, rc=rc)
@@ -493,6 +494,8 @@ contains
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        else
           import_swpen_by_bands = .false.
+          call FB_GetFldPtr(is_local%wrap%FBImp(compice,compocn), 'Fioi_swpen', Fioi_swpen, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
 
        if ( FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_swnet_afracr',rc=rc)) then
@@ -525,8 +528,10 @@ contains
              ifracr_scaled = ifracr(n) / (frac_sum)
              ofracr_scaled = ofracr(n) / (frac_sum)
           endif
-          Foxx_swnet(n) = ofracr_scaled*(fswabsv + fswabsi) + ifrac_scaled*Fioi_swpen(n)
-
+          !TODO: fix this
+          if (.not.import_swpen_by_bands) then
+             Foxx_swnet(n) = ofracr_scaled*(fswabsv + fswabsi) + ifrac_scaled*Fioi_swpen(n)
+          end if
           if (export_swnet_afracr) then
              Foxx_swnet_afracr(n) = ofracr_scaled*(fswabsv + fswabsi)
           end if
@@ -688,25 +693,25 @@ contains
             FBinB=is_local%wrap%FBImp(compatm,compocn), fnameB='Faxa_tauy', wgtB=customwgt, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
-
-    ! netsw_for_ocn = [downsw_from_atm*(1-ice_fraction)*(1-ocn_albedo)] + [pensw_from_ice*(ice_fraction)]
-    customwgt(:) = ofrac(:) * (1.0_R8 - 0.06_R8)
-    call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_swnet_vdr', &
-         FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_swvdr'    , wgtA=customwgt, &
-         FBinB=is_local%wrap%FBImp(compice,compocn), fnameB='Fioi_swpen_vdr', wgtB=ifrac, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_swnet_vdf', &
-         FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_swvdf'    , wgtA=customwgt, &
-         FBinB=is_local%wrap%FBImp(compice,compocn), fnameB='Fioi_swpen_vdf', wgtB=ifrac, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_swnet_idr', &
-         FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_swndr'    , wgtA=customwgt, &
-         FBinB=is_local%wrap%FBImp(compice,compocn), fnameB='Fioi_swpen_idr', wgtB=ifrac, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_swnet_idf', &
-         FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_swndf'    , wgtA=customwgt, &
-         FBinB=is_local%wrap%FBImp(compice,compocn), fnameB='Fioi_swpen_idf', wgtB=ifrac, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    ! TODO: fix this
+    ! ! netsw_for_ocn = [downsw_from_atm*(1-ice_fraction)*(1-ocn_albedo)] + [pensw_from_ice*(ice_fraction)]
+    ! customwgt(:) = ofrac(:) * (1.0_R8 - 0.06_R8)
+    ! call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_swnet_vdr', &
+    !      FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_swvdr'    , wgtA=customwgt, &
+    !      FBinB=is_local%wrap%FBImp(compice,compocn), fnameB='Fioi_swpen_vdr', wgtB=ifrac, rc=rc)
+    ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    ! call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_swnet_vdf', &
+    !      FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_swvdf'    , wgtA=customwgt, &
+    !      FBinB=is_local%wrap%FBImp(compice,compocn), fnameB='Fioi_swpen_vdf', wgtB=ifrac, rc=rc)
+    ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    ! call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_swnet_idr', &
+    !      FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_swndr'    , wgtA=customwgt, &
+    !      FBinB=is_local%wrap%FBImp(compice,compocn), fnameB='Fioi_swpen_idr', wgtB=ifrac, rc=rc)
+    ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    ! call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_swnet_idf', &
+    !      FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_swndf'    , wgtA=customwgt, &
+    !      FBinB=is_local%wrap%FBImp(compice,compocn), fnameB='Fioi_swpen_idf', wgtB=ifrac, rc=rc)
+    ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     deallocate(customwgt)
 

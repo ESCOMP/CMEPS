@@ -1920,14 +1920,12 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !----------------------------------------------------------
-    ! Initialize ocean albedos (this is needed for cesm and hafs)
+    ! Initialize ocean albedos
     !----------------------------------------------------------
 
-    if (trim(coupling_mode(1:5)) /= 'nems_') then
-       if (is_local%wrap%comp_present(compocn) .or. is_local%wrap%comp_present(compatm)) then
-          call med_phases_ocnalb_run(gcomp, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       end if
+    if (is_local%wrap%comp_present(compocn) .or. is_local%wrap%comp_present(compatm)) then
+       call med_phases_ocnalb_run(gcomp, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
     !---------------------------------------
