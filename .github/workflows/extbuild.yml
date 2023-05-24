@@ -98,7 +98,7 @@ jobs:
           export PIO=$HOME/pio
           mkdir build-cmeps
           pushd build-cmeps
-          cmake -DCMAKE_BUILD_TYPE=DEBUG -DCMAKE_Fortran_FLAGS="-g -Wall -Werror -ffree-form -ffree-line-length-none  -Wno-unused-dummy-argument" ../
+          cmake -DCMAKE_BUILD_TYPE=DEBUG -DCMAKE_Fortran_FLAGS="-g -Wall -Werror -ffree-form -ffree-line-length-none  -Wno-unused-dummy-argument -I /home/runner/work/CMEPS/CMEPS/build-cdeps/share" ../
           make VERBOSE=1
           popd
 
