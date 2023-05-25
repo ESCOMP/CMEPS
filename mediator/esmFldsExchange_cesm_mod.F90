@@ -96,7 +96,6 @@ contains
     type(InternalState) :: is_local
     integer             :: n, ns
     character(len=CL)   :: cvalue
-    character(len=CS)   :: name
     logical             :: wav_coupling_to_cice
     logical             :: ocn2glc_coupling
     character(len=*) , parameter   :: subname=' (esmFldsExchange_cesm) '
@@ -2985,6 +2984,14 @@ contains
           call addmap_from(compatm, 'Sa_tbot', compwav, mapbilnr, 'one', atm2wav_map)
           call addmrg_to(compwav, 'Sa_tbot', mrg_from=compatm, mrg_fld='Sa_tbot', mrg_type='copy')
        end if
+    end if
+
+    ! ---------------------------------------------------------------------
+    ! to wav: zonal and meridional wind stress
+    ! ---------------------------------------------------------------------
+    if (phase == 'advertise') then
+       call addfld_to(compwav , 'Fwxx_taux')
+       call addfld_to(compwav , 'Fwxx_tauy')
     end if
 
     !=====================================================================

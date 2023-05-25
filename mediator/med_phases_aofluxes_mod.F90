@@ -27,7 +27,7 @@ module med_phases_aofluxes_mod
   use ESMF                  , only : ESMF_XGridGet, ESMF_MeshCreate, ESMF_MeshWrite, ESMF_KIND_R8
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
   use med_internalstate_mod , only : InternalState, maintask, logunit
-  use med_internalstate_mod , only : compatm, compocn, coupling_mode, aoflux_code, mapconsd, mapconsf, mapfcopy
+  use med_internalstate_mod , only : compatm, compocn, compwav, coupling_mode, aoflux_code, mapconsd, mapconsf, mapfcopy
   use med_constants_mod     , only : dbug_flag    => med_constants_dbug_flag
   use med_utils_mod         , only : memcheck     => med_memcheck
   use med_utils_mod         , only : chkerr       => med_utils_chkerr
@@ -487,6 +487,7 @@ contains
     use esmFlds     , only : med_fldlist_GetaofluxfldList
     use esmFlds     , only : med_fldList_type
     use med_map_mod , only : med_map_packed_field_create
+    use med_methods_mod , only : FB_fldchk    => med_methods_FB_FldChk
 
     ! Arguments
     type(ESMF_GridComp)   , intent(inout) :: gcomp
@@ -565,7 +566,6 @@ contains
     if (is_local%wrap%aoflux_grid == 'ogrid') then
        if ( ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_aoflux_o) .and. &
             ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_aoflux_a)) then
-
           call med_map_packed_field_create(destcomp=compatm, &
                flds_scalar_name=is_local%wrap%flds_scalar_name, &
                fieldsSrc=fldListMed_aoflux, &
@@ -573,7 +573,6 @@ contains
                FBDst=is_local%wrap%FBMed_aoflux_a, &
                packed_data=is_local%wrap%packed_data_aoflux_o2a(:), rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
        end if
     end if
 
@@ -950,6 +949,9 @@ contains
     use ESMF           , only : ESMF_GridComp
     use ESMF           , only : ESMF_LogWrite, ESMF_LogMsg_Info, ESMF_SUCCESS
     use med_map_mod    , only : med_map_field_packed, med_map_rh_is_created
+    use med_map_mod    , only : med_map_routehandles_init
+    use med_methods_mod, only : FB_fldchk => med_methods_FB_fldchk
+    use med_methods_mod, only : FB_diagnose  => med_methods_FB_diagnose
 #ifdef CESMCOUPLED
     use shr_flux_mod   , only : flux_atmocn
 #else
@@ -972,6 +974,9 @@ contains
     real(r8), parameter      :: p0 = 100000.0_r8           ! reference pressure in Pa
     real(r8), parameter      :: rcp = 0.286_r8             ! gas constant of air / specific heat capacity at a constant pressure
     real(r8), parameter      :: rdair = 287.058_r8         ! dry air gas constant in J/K/kg
+    integer                  :: maptype
+    type(ESMF_Field)         :: field_src
+    type(ESMF_Field)         :: field_dst
     character(*),parameter   :: subName = '(med_aofluxes_update) '
     !-----------------------------------------------------------------------
 
@@ -1115,6 +1120,35 @@ contains
        call med_aofluxes_map_xgrid2ogrid_output(gcomp, rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
+    end if
+
+    ! map taux and tauy from ocean to wave grid if stresses are needed on the wave grid
+    if ( FB_fldchk(is_local%wrap%FBExp(compwav), 'Fwxx_taux', rc=rc) .and. &
+         FB_fldchk(is_local%wrap%FBExp(compwav), 'Fwxx_tauy', rc=rc)) then
+       maptype = mapconsf
+       if (.not. med_map_RH_is_created(is_local%wrap%RH(compocn,compwav,:), maptype, rc=rc)) then
+          call med_map_routehandles_init( compocn, compwav, &
+               FBSrc=is_local%wrap%FBImp(compocn,compocn), &
+               FBDst=is_local%wrap%FBImp(compwav,compwav), &
+               mapindex=maptype, RouteHandle=is_local%wrap%RH, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       end if
+       call ESMF_FieldBundleGet(is_local%wrap%FBMed_aoflux_o, 'Faox_taux', field=field_src, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_FieldBundleGet(is_local%wrap%FBExp(compwav), 'Fwxx_taux', field=field_dst, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_FieldRegrid(field_src, field_dst, &
+            routehandle=is_local%wrap%RH(compocn, compwav, maptype), &
+            termorderflag=ESMF_TERMORDER_SRCSEQ, zeroregion=ESMF_REGION_TOTAL, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_FieldBundleGet(is_local%wrap%FBMed_aoflux_o, 'Faox_tauy', field=field_src, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_FieldBundleGet(is_local%wrap%FBExp(compwav), 'Fwxx_tauy', field=field_dst, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_FieldRegrid(field_src, field_dst, &
+            routehandle=is_local%wrap%RH(compocn, compwav, maptype), &
+            termorderflag=ESMF_TERMORDER_SRCSEQ, zeroregion=ESMF_REGION_TOTAL, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
     end if
 
     call t_stopf('MED:'//subname)
