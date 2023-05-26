@@ -190,6 +190,7 @@
       <!-- =================================================== -->
       <value compset="_DATM.*_DICE.*_POP2">24</value>
       <value compset="_DATM.*_DICE.*_MOM6">24</value>
+      <value compset="_DATM.*_DICE.*_BLOM">24</value>
       <!-- TODO: currently a NUOPC runseqence cannot be generated with the ATM_NCPL < OCN_NCPL - as is the case -->
       <!-- with the POP2 C compset run sequence - for now will set these to be the same as MOM6 -->
       <!-- =================================================== -->
@@ -198,6 +199,7 @@
       <value compset="_DATM.*_SLND.*_CICE.*_POP2">24</value>
       <value compset="_DATM.*_SLND.*_CICE.*_POP2" grid="oi%tx0.1v3">144</value>
       <value compset="_DATM.*_SLND.*_CICE.*_MOM6">24</value>
+      <value compset="_DATM.*_SLND.*_CICE.*_BLOM">24</value>
       <value compset="_DATM.*_CICE.*_DOCN">24</value>
       <!-- =================================================== -->
       <!-- C/G compsets -->
@@ -236,9 +238,8 @@
       <!-- TODO: why is this here? -->
       <value compset="_DLND.*_CISM\d">1</value>
       <!-- =================================================== -->
-      <!-- N compsets -->
+      <!-- High res BLOM -->
       <!-- =================================================== -->
-      <value compset="_DATM.*_BLOM">24</value>
       <value compset="_BLOM" grid="oi%tnx0.25v">48</value>
     </values>
     <group>run_coupling</group>
@@ -286,6 +287,8 @@
       <value compset="_POP2" grid="oi%tx0.1v3">48</value>
       <value compset="_DLND.*_CISM\d">1</value>
       <value compset="_NEMO">24</value>
+      <value compset="_BLOM">24</value>
+      <value compset="_BLOM" grid="oi%tnx0.25v">48</value>
     </values>
     <group>run_coupling</group>
     <file>env_run.xml</file>
@@ -335,11 +338,13 @@
     <values match="last">
       <value compset="_DATM.*_POP2.*_DROF" grid="oi%gx3v7">1</value>
       <value compset="_DATM.*_MOM6.*_DROF"        >$ATM_NCPL</value>
+      <value compset="_DATM.*_BLOM.*_DROF"        >$ATM_NCPL</value>
       <value compset="_DATM.*_DOCN%SOM"           >$ATM_NCPL</value>
       <value compset="_DATM.*_SLND.*_DICE.*_DOCN" >$ATM_NCPL</value>
       <value compset="_MIZUROUTE_"                >1</value>
       <value compset="_DATM%CPLHIST.+POP\d"       >8</value>
       <value compset="_DATM%CPLHIST.+MOM\d"       >8</value>
+      <value compset="_DATM%CPLHIST.+BLOM\d"       >8</value>
       <value compset="_XATM.*_XLND.*_XICE.*_XOCN" >$ATM_NCPL</value>
       <value compset="_DLND.*_CISM\d"             >1</value>
       <value compset="_XROF"                      >$ATM_NCPL</value>
@@ -360,7 +365,6 @@
     This is used to set the driver namelist wav_cpl_dt, equal to basedt/WAV_NCPL
     where basedt is equal to NCPL_BASE_PERIOD in seconds.</desc>
   </entry>
-
 
   <!-- Logic for CPL_ALBAV should be reworked to depend on datm forcing rather
        than compset: see https://github.com/ESMCI/cime/issues/120 -->
@@ -421,6 +425,7 @@
       <value compset="_DATM.*_DOCN%SOM"			>OPTION2</value>
       <value compset="_POP2"				>OPTION2</value>
       <value compset="_MOM6"				>OPTION1</value>
+      <value compset="_BLOM"				>OPTION1</value>
       <value compset="_POP2" grid="oi%gx1v6"		>OPTION1</value>
       <value compset="_POP2" grid="oi%gx1v7"		>OPTION1</value>
       <value compset="_DATM%NYF.*_SLND.*_DICE.*_DOCN"	>OPTION2</value>
