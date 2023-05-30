@@ -57,6 +57,10 @@ module med_phases_ocnalb_mod
   character(len=*) , parameter :: orb_variable_year    = 'variable_year'
   character(len=*) , parameter :: orb_fixed_parameters = 'fixed_parameters'
 
+  ! used, reused in module
+  logical :: use_min_albedo  ! apply minimum value of albedo for direct vis, nir
+  logical :: use_nextswcday  ! use the scalar field for next time (otherwise, will be set using clock)
+
 !===============================================================================
 contains
 !===============================================================================
@@ -69,11 +73,12 @@ contains
     ! All input field bundles are ASSUMED to be on the ocean grid
     !-----------------------------------------------------------------------
 
-    use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_FAILURE
-    use ESMF , only : ESMF_VM, ESMF_VMGet, ESMF_Mesh, ESMF_MeshGet
-    use ESMF , only : ESMF_GridComp, ESMF_GridCompGet
-    use ESMF , only : ESMF_FieldBundleGet, ESMF_Field, ESMF_FieldGet
-    use ESMF , only : operator(==)
+    use ESMF  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_FAILURE
+    use ESMF  , only : ESMF_VM, ESMF_VMGet, ESMF_Mesh, ESMF_MeshGet
+    use ESMF  , only : ESMF_GridComp, ESMF_GridCompGet
+    use ESMF  , only : ESMF_FieldBundleGet, ESMF_Field, ESMF_FieldGet
+    use NUOPC , only : NUOPC_CompAttributeGet
+    use ESMF  , only : operator(==)
 
     ! Arguments
     type(ESMF_GridComp)               :: gcomp
@@ -92,6 +97,8 @@ contains
     type(InternalState)      :: is_local
     real(R8), pointer        :: ownedElemCoords(:)
     character(len=CL)        :: tempc1,tempc2
+    character(len=CS)        :: cvalue
+    logical                  :: isPresent, isSet
     integer                  :: fieldCount
     type(ESMF_Field), pointer :: fieldlist(:)
     character(*), parameter  :: subname = '(med_phases_ocnalb_init) '
@@ -181,6 +188,21 @@ contains
     call  med_phases_ocnalb_orbital_init(gcomp, logunit, iam==0, rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
+    ! Determine if direct albedos should have a minimum value
+    use_min_albedo = .false.
+    call NUOPC_CompAttributeGet(gcomp, name="limit_ocean_albedo", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+       use_min_albedo=(trim(cvalue)=="true")
+    endif
+    ! Allow setting of albedo timestep using the clock instead of the atm's next timestep
+    use_nextswcday = .true.
+    call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldIdxNextSwCday", isPresent=isPresent, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (.not. isPresent ) then
+       use_nextswcday = .false.
+    endif
+
     if (dbug_flag > 5) then
       call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
     endif
@@ -251,10 +273,16 @@ contains
     character(CL)           :: msg
     logical                 :: first_call = .true.
     logical                 :: isPresent, isSet
+    character(len=CL)       :: logmsg
     character(len=*)  , parameter :: subname='(med_phases_ocnalb_run)'
     !---------------------------------------
 
     rc = ESMF_SUCCESS
+
+    write(logmsg,'(A,l)') trim(subname)//': use_min_albedo setting is ',use_min_albedo
+    call ESMF_LogWrite(trim(logmsg), ESMF_LOGMSG_INFO)
+    write(logmsg,'(A,l)') trim(subname)//': use_nextswcday setting is ',use_nextswcday
+    call ESMF_LogWrite(trim(logmsg), ESMF_LOGMSG_INFO)
 
     ! Determine main task
     call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
@@ -267,16 +295,10 @@ contains
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    ! TODO: ? maybe somewhere else. Also need place to set ufs limit on albedo calc
-    !call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldIdxNextSwCday", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
-    !if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    !if (isPresent .and. isSet) use_nextswcday = .true.
-
     ! Determine if ocnalb data type will be initialized - and if not return
     if (first_call) then
-       !TODO: works?
-       if ( ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_aoflux_a, rc=rc) .or. &
-            ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_aoflux_o, rc=rc) .or. &
+       if ((ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_aoflux_a, rc=rc) .and. &
+            ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_aoflux_o, rc=rc)) .or. &
             ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_ocnalb_o, rc=rc)) then
           ocnalb%created = .true.
        else
@@ -332,9 +354,7 @@ contains
           call ESMF_TimeGet( currTime, dayOfYear_r8=nextsw_cday, rc=rc )
           if (chkerr(rc,__LINE__,u_FILE_u)) return
        else
-          call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldIdxNextSwCday", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          if (isPresent .and. isSet) then
+          if (use_nextswcday) then
              call State_GetScalar(&
                   state=is_local%wrap%NstateImp(compatm), &
                   flds_scalar_name=is_local%wrap%flds_scalar_name, &
@@ -351,11 +371,8 @@ contains
        first_call = .false.
 
     else
-       !TODO: ?set logical if nextsw is being done cesm way instead of attr get each time
        ! Note that med_methods_State_GetScalar includes a broadcast to all other pets
-       call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldIdxNextSwCday", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       if (isPresent .and. isSet) then
+       if (use_nextswcday) then
           call State_GetScalar(&
                state=is_local%wrap%NstateImp(compatm), &
                flds_scalar_name=is_local%wrap%flds_scalar_name, &
@@ -365,17 +382,19 @@ contains
           if (chkerr(rc,__LINE__,u_FILE_u)) return
        else
           ! TODO: Clock is advanced at end of run phase; use nextTime
-          call ESMF_ClockGetNextTime(clock, nextTime, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          call ESMF_TimeGet(nextTime, dayOfYear_r8=nextsw_cday, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          !call ESMF_ClockGet( clock, currTime=currTime, rc=rc)
+          !call ESMF_ClockGetNextTime(clock, nextTime, rc=rc)
           !if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          !call ESMF_TimeGet(currTime, dayOfYear_r8=nextsw_cday, rc=rc)
+          !call ESMF_TimeGet(nextTime, dayOfYear_r8=nextsw_cday, rc=rc)
           !if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          ! TODO: albedos are used only for ocean sw net calculation at this Advance, use currTime
+          call ESMF_ClockGet( clock, currTime=currTime, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_TimeGet(currTime, dayOfYear_r8=nextsw_cday, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
     end if
 
+    !TODO: is there a reason to get this each time instead of at init?
     call NUOPC_CompAttributeGet(gcomp, name='flux_albav', value=cvalue, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     read(cvalue,*) flux_albav
@@ -414,8 +433,10 @@ contains
                 ocnalb%anidr(n) = (.026_r8/(cosz**1.7_r8 + 0.065_r8)) +   &
                                   (.150_r8*(cosz         - 0.100_r8 ) *   &
                                   (cosz - 0.500_r8 ) * (cosz - 1.000_r8 )  )
-                !TODO: make config---why does fv3atm use albdif here and not albdir ?
-                ocnalb%anidr(n) = max (ocnalb%anidr(n), albdif)
+                if (use_min_albedo) then
+                   !TODO: why does fv3atm use albdif here and not albdir ?
+                   ocnalb%anidr(n) = max (ocnalb%anidr(n), albdif)
+                end if
                 ocnalb%avsdr(n) = ocnalb%anidr(n)
                 ocnalb%anidf(n) = albdif
                 ocnalb%avsdf(n) = albdif
@@ -454,15 +475,14 @@ contains
     endif
 
     ! Write mediator ocnalb history if aofluxes are not active
-    if (ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_ocnalb_o, rc=rc)) then
-       if ( .not. ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_aoflux_a, rc=rc) .and. &
-            .not. ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_aoflux_o, rc=rc)) then
-          call NUOPC_MediatorGet(gcomp, driverClock=dClock, rc=rc)
+    if ( ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_ocnalb_o, rc=rc) .and. &
+         .not. ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_aoflux_a, rc=rc) .and. &
+         .not. ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_aoflux_o, rc=rc)) then
+       call NUOPC_MediatorGet(gcomp, driverClock=dClock, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       if (ESMF_ClockIsCreated(dclock)) then
+          call med_phases_history_write_med(gcomp, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          if (ESMF_ClockIsCreated(dclock)) then
-             call med_phases_history_write_med(gcomp, rc=rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          end if
        end if
     end if
 
