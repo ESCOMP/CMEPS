@@ -709,7 +709,7 @@ contains
 
     ! Check for nans in fields export to glc
     do ns = 1,is_local%wrap%num_icesheets
-       call FB_check_for_nans(is_local%wrap%FBExp(compglc(ns)), rc=rc)
+       call FB_check_for_nans(is_local%wrap%FBExp(compglc(ns)), maintask, logunit, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end do
 

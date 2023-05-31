@@ -299,7 +299,7 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        ! Check for nans in fields export to ocn
-       call FB_check_for_nans(is_local%wrap%FBExp(compocn), rc=rc)
+       call FB_check_for_nans(is_local%wrap%FBExp(compocn), maintask, logunit, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        ! zero accumulator
@@ -390,10 +390,13 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! Check that the necessary export field is present
-    ! TODO: fix this
-    !if ( .not. FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_swnet', rc=rc)) then
-    !   return
-    !end if
+    if ( .not. FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_swnet', rc=rc) .and. &
+         .not. (FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_swnet_vdr', rc=rc) .and. &
+         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_swnet_vdf', rc=rc) .and. &
+         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_swnet_idr', rc=rc) .and. &
+         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_swnet_idf', rc=rc))) then
+       return
+    end if
 
     call t_startf('MED:'//subname)
 
