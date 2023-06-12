@@ -6,7 +6,7 @@ module med_phases_ocnalb_mod
   use med_utils_mod         , only : chkerr          => med_utils_chkerr
   use med_methods_mod       , only : FB_diagnose     => med_methods_FB_diagnose
   use med_methods_mod       , only : State_GetScalar => med_methods_State_GetScalar
-  use med_internalstate_mod , only : mapconsf, mapnames, compatm, compocn
+  use med_internalstate_mod , only : mapconsf, mapnames, compatm, compocn, maintask
   use perf_mod              , only : t_startf, t_stopf
   use shr_orb_mod           , only : shr_orb_cosz, shr_orb_decl
   use shr_orb_mod           , only : shr_orb_params, SHR_ORB_UNDEF_INT, SHR_ORB_UNDEF_REAL
@@ -58,9 +58,12 @@ module med_phases_ocnalb_mod
   character(len=*) , parameter :: orb_fixed_parameters = 'fixed_parameters'
 
   ! used, reused in module
-  logical :: use_min_albedo  ! apply minimum value of albedo for direct vis, nir
-  logical :: use_nextswcday  ! use the scalar field for next time (otherwise, will be set using clock)
-
+  logical  :: flux_albav      ! use average dif and dir albedos
+  logical  :: use_nextswcday  ! use the scalar field for next time (otherwise, will be set using clock)
+  logical  :: use_min_albedo  ! apply minimum value of albedo for direct vis, nir
+  real(R8) :: min_albedo      ! minimum value of albedo for direct vis, nir
+  real(R8) :: albdif          ! 60 deg reference albedo, diffuse
+  real(R8) :: albdir          ! 60 deg reference albedo, direct
 !===============================================================================
 contains
 !===============================================================================
@@ -98,8 +101,10 @@ contains
     real(R8), pointer        :: ownedElemCoords(:)
     character(len=CL)        :: tempc1,tempc2
     character(len=CS)        :: cvalue
+    logical                  :: use_min_ocnalb
     logical                  :: isPresent, isSet
     integer                  :: fieldCount
+    character(CL)            :: msg
     type(ESMF_Field), pointer :: fieldlist(:)
     character(*), parameter  :: subname = '(med_phases_ocnalb_init) '
     !-----------------------------------------------------------------------
@@ -188,12 +193,37 @@ contains
     call  med_phases_ocnalb_orbital_init(gcomp, logunit, iam==0, rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    ! Determine if direct albedos should have a minimum value
-    use_min_albedo = .false.
-    call NUOPC_CompAttributeGet(gcomp, name="limit_ocean_albedo", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    ! Determine if reference albedos are used
+    flux_albav = .false.
+    call NUOPC_CompAttributeGet(gcomp, name='flux_albav', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+       read(cvalue,*) flux_albav
+    end if
+    ! Set reference albedo values
+    call NUOPC_CompAttributeGet(gcomp, name="albdif", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (isPresent .and. isSet) then
-       use_min_albedo=(trim(cvalue)=="true")
+       read(cvalue,*) albdif
+    else
+       albdif = 0.06_r8
+    end if
+    call NUOPC_CompAttributeGet(gcomp, name="albdir", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+       read(cvalue,*) albdir
+    else
+       albdir = 0.07_r8
+    end if
+    ! Determine if direct albedo should have a minimum value
+    call NUOPC_CompAttributeGet(gcomp, name="ocean_albedo_limit", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+       read(cvalue,*) min_albedo
+       use_min_albedo = .true.
+    else
+       min_albedo = 0.0_R8
+       use_min_ocnalb = .false.
     endif
     ! Allow setting of albedo timestep using the clock instead of the atm's next timestep
     use_nextswcday = .true.
@@ -202,6 +232,18 @@ contains
     if (.not. isPresent ) then
        use_nextswcday = .false.
     endif
+
+    if (flux_albav) then
+       write(msg,'(2(A,f8.2))') trim(subname)//': mean albedos set: albdif = ',albdif,', albdir = ',albdir
+       call ESMF_LogWrite(trim(msg), ESMF_LOGMSG_INFO)
+    else
+       if (use_min_albedo) then
+          write(msg,'(A,f8.2)') trim(subname)//': min_albedo setting = ',min_albedo
+          call ESMF_LogWrite(trim(msg), ESMF_LOGMSG_INFO)
+       end if
+    end if
+    write(msg,'(A,l)') trim(subname)//': use_nextswcday setting is ',use_nextswcday
+    call ESMF_LogWrite(trim(msg), ESMF_LOGMSG_INFO)
 
     if (dbug_flag > 5) then
       call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
@@ -250,7 +292,6 @@ contains
     character(CL)           :: cvalue
     character(CS)           :: starttype        ! config start type
     character(CL)           :: runtype          ! initial, continue, hybrid, branch
-    logical                 :: flux_albav       ! flux avg option
     real(R8)                :: nextsw_cday      ! calendar day of next atm shortwave
     real(R8), pointer       :: ofrac(:)
     real(R8), pointer       :: ofrad(:)
@@ -267,22 +308,13 @@ contains
     real(R8)                :: obliqr           ! Earth orbit
     real(R8)                :: delta            ! Solar declination angle  in radians
     real(R8)                :: eccf             ! Earth orbit eccentricity factor
-    real(R8), parameter     :: albdif = 0.06_r8 ! 60 deg reference albedo, diffuse
-    real(R8), parameter     :: albdir = 0.07_r8 ! 60 deg reference albedo, direct
     real(R8), parameter     :: const_deg2rad = shr_const_pi/180.0_R8  ! deg to rads
     character(CL)           :: msg
     logical                 :: first_call = .true.
-    logical                 :: isPresent, isSet
-    character(len=CL)       :: logmsg
     character(len=*)  , parameter :: subname='(med_phases_ocnalb_run)'
     !---------------------------------------
 
     rc = ESMF_SUCCESS
-
-    write(logmsg,'(A,l)') trim(subname)//': use_min_albedo setting is ',use_min_albedo
-    call ESMF_LogWrite(trim(logmsg), ESMF_LOGMSG_INFO)
-    write(logmsg,'(A,l)') trim(subname)//': use_nextswcday setting is ',use_nextswcday
-    call ESMF_LogWrite(trim(logmsg), ESMF_LOGMSG_INFO)
 
     ! Determine main task
     call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
@@ -354,6 +386,7 @@ contains
           call ESMF_TimeGet( currTime, dayOfYear_r8=nextsw_cday, rc=rc )
           if (chkerr(rc,__LINE__,u_FILE_u)) return
        else
+          ! obtain nextsw_cday from atm if it is in the import state
           if (use_nextswcday) then
              call State_GetScalar(&
                   state=is_local%wrap%NstateImp(compatm), &
@@ -382,22 +415,17 @@ contains
           if (chkerr(rc,__LINE__,u_FILE_u)) return
        else
           ! TODO: Clock is advanced at end of run phase; use nextTime
-          !call ESMF_ClockGetNextTime(clock, nextTime, rc=rc)
-          !if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          !call ESMF_TimeGet(nextTime, dayOfYear_r8=nextsw_cday, rc=rc)
-          !if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          ! TODO: albedos are used only for ocean sw net calculation at this Advance, use currTime
-          call ESMF_ClockGet( clock, currTime=currTime, rc=rc)
+          call ESMF_ClockGetNextTime(clock, nextTime, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          call ESMF_TimeGet(currTime, dayOfYear_r8=nextsw_cday, rc=rc)
+          call ESMF_TimeGet(nextTime, dayOfYear_r8=nextsw_cday, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
     end if
 
     !TODO: is there a reason to get this each time instead of at init?
-    call NUOPC_CompAttributeGet(gcomp, name='flux_albav', value=cvalue, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) flux_albav
+    !call NUOPC_CompAttributeGet(gcomp, name='flux_albav', value=cvalue, rc=rc)
+    !if (chkerr(rc,__LINE__,u_FILE_u)) return
+    !read(cvalue,*) flux_albav
 
     ! Get orbital values
     call med_phases_ocnalb_orbital_update(clock, logunit, iam==0, eccen, obliqr, lambm0, mvelpp, rc)
@@ -435,7 +463,7 @@ contains
                                   (cosz - 0.500_r8 ) * (cosz - 1.000_r8 )  )
                 if (use_min_albedo) then
                    !TODO: why does fv3atm use albdif here and not albdir ?
-                   ocnalb%anidr(n) = max (ocnalb%anidr(n), albdif)
+                   ocnalb%anidr(n) = max (ocnalb%anidr(n), min_albedo)
                 end if
                 ocnalb%avsdr(n) = ocnalb%anidr(n)
                 ocnalb%anidf(n) = albdif

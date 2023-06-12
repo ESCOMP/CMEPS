@@ -31,7 +31,7 @@ module med_phases_prep_ocn_mod
   public :: med_phases_prep_ocn_accum  ! called from run sequence
   public :: med_phases_prep_ocn_avg    ! called from run sequence
 
-  private :: med_phases_prep_ocn_custom_cesm
+  private :: med_phases_prep_ocn_custom
   private :: med_phases_prep_ocn_custom_nems
 
   character(*), parameter :: u_FILE_u  = &
@@ -217,11 +217,8 @@ contains
     end if
 
     ! custom merges to ocean
-    ! TODO: fix this
-    !if (trim(coupling_mode) == 'cesm') then
-    call med_phases_prep_ocn_custom_cesm(gcomp, rc)
+    call med_phases_prep_ocn_custom(gcomp, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    !else if (trim(coupling_mode(1:5)) == 'nems_') then
     if (trim(coupling_mode(1:5)) == 'nems_') then
        call med_phases_prep_ocn_custom_nems(gcomp, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -317,7 +314,7 @@ contains
   end subroutine med_phases_prep_ocn_avg
 
   !-----------------------------------------------------------------------------
-  subroutine med_phases_prep_ocn_custom_cesm(gcomp, rc)
+  subroutine med_phases_prep_ocn_custom(gcomp, rc)
 
     !---------------------------------------
     ! custom calculations for cesm
@@ -374,7 +371,7 @@ contains
     integer             :: lsize
     real(R8)            :: c1,c2,c3,c4
     character(len=64), allocatable :: fldnames(:)
-    character(len=*), parameter    :: subname='(med_phases_prep_ocn_custom_cesm)'
+    character(len=*), parameter    :: subname='(med_phases_prep_ocn_custom)'
     !---------------------------------------
 
     rc = ESMF_SUCCESS
@@ -531,7 +528,7 @@ contains
              ifracr_scaled = ifracr(n) / (frac_sum)
              ofracr_scaled = ofracr(n) / (frac_sum)
           endif
-          !TODO: fix this
+          !TODO: ? fix this
           if (.not.import_swpen_by_bands) then
              Foxx_swnet(n) = ofracr_scaled*(fswabsv + fswabsi) + ifrac_scaled*Fioi_swpen(n)
           end if
@@ -624,7 +621,7 @@ contains
     end if
     call t_stopf('MED:'//subname)
 
-  end subroutine med_phases_prep_ocn_custom_cesm
+  end subroutine med_phases_prep_ocn_custom
 
   !-----------------------------------------------------------------------------
   subroutine med_phases_prep_ocn_custom_nems(gcomp, rc)
@@ -696,25 +693,6 @@ contains
             FBinB=is_local%wrap%FBImp(compatm,compocn), fnameB='Faxa_tauy', wgtB=customwgt, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
-    ! TODO: fix this
-    ! ! netsw_for_ocn = [downsw_from_atm*(1-ice_fraction)*(1-ocn_albedo)] + [pensw_from_ice*(ice_fraction)]
-    ! customwgt(:) = ofrac(:) * (1.0_R8 - 0.06_R8)
-    ! call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_swnet_vdr', &
-    !      FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_swvdr'    , wgtA=customwgt, &
-    !      FBinB=is_local%wrap%FBImp(compice,compocn), fnameB='Fioi_swpen_vdr', wgtB=ifrac, rc=rc)
-    ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    ! call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_swnet_vdf', &
-    !      FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_swvdf'    , wgtA=customwgt, &
-    !      FBinB=is_local%wrap%FBImp(compice,compocn), fnameB='Fioi_swpen_vdf', wgtB=ifrac, rc=rc)
-    ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    ! call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_swnet_idr', &
-    !      FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_swndr'    , wgtA=customwgt, &
-    !      FBinB=is_local%wrap%FBImp(compice,compocn), fnameB='Fioi_swpen_idr', wgtB=ifrac, rc=rc)
-    ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    ! call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_swnet_idf', &
-    !      FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_swndf'    , wgtA=customwgt, &
-    !      FBinB=is_local%wrap%FBImp(compice,compocn), fnameB='Fioi_swpen_idf', wgtB=ifrac, rc=rc)
-    ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     deallocate(customwgt)
 
