@@ -132,7 +132,8 @@ class DriverConfig(dict):
             # TODO: check of data model prognostic flag is on - this is a new xml variable
             # If the prognostic flag is on, then should set med_to_wav to True
             docn_mode = case.get_value("DOCN_MODE")
-            med_to_ocn = ('som' in docn_mode or 'interannual' in docn_mode)
+            docn_import_fields = case.get_value("DOCN_IMPORT_FIELDS")
+            med_to_ocn = ('som' in docn_mode or 'interannual' in docn_mode or docn_import_fields != 'none')
 
         return (run_ocn, med_to_ocn, coupling_times["ocn_cpl_dt"])
 

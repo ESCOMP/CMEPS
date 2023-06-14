@@ -36,6 +36,42 @@
     </values>
   </entry>
 
+  <entry id="pio_asyncio_ntasks" modify_via_xml="PIO_ASYNCIO_NTASKS">
+    <type>integer</type>
+    <category>pio</category>
+    <group>PELAYOUT_attributes</group>
+    <desc>
+      IO tasks FOR ASYNC IO, only valid if ASYNCIO is true.
+    </desc>
+    <values>
+      <value>$PIO_ASYNCIO_NTASKS</value>
+    </values>
+  </entry>
+
+  <entry id="pio_asyncio_stride" modify_via_xml="PIO_ASYNCIO_STRIDE">
+    <type>integer</type>
+    <category>pio</category>
+    <group>PELAYOUT_attributes</group>
+    <desc>
+      IO task stride FOR ASYNC IO, only valid if ASYNCIO is true.
+    </desc>
+    <values>
+      <value>$PIO_ASYNCIO_STRIDE</value>
+    </values>
+  </entry>
+
+  <entry id="pio_asyncio_rootpe" modify_via_xml="PIO_ASYNCIO_ROOTPE">
+    <type>integer</type>
+    <category>pio</category>
+    <group>PELAYOUT_attributes</group>
+    <desc>
+      IO rootpe task FOR ASYNC IO, only valid if ASYNCIO is true.
+    </desc>
+    <values>
+      <value>$PIO_ASYNCIO_ROOTPE</value>
+    </values>
+  </entry>
+
   <entry id="cime_model" modify_via_xml="CIME_MODEL">
     <type>char</type>
     <category>expdef</category>
@@ -680,6 +716,17 @@
       <value>$ESMF_VERBOSITY_LEVEL</value>
     </values>
   </entry>
+  <entry id="check_for_nans">
+    <type>logical</type>
+    <category>performance</category>
+    <group>MED_attributes</group>
+    <desc>
+      Check for NaN values in fields returned from mediator to components.  This has a small performance impact.
+    </desc>
+    <values>
+      <value>.true.</value>
+    </values>
+  </entry>
   <entry id="atm_nx" modify_via_xml="ATM_NX">
     <type>integer</type>
     <category>control</category>
@@ -888,10 +935,10 @@
     <valid_values>ogrid,agrid,xgrid</valid_values>
     <desc>
       Grid for atm ocn flux calc
-      default: xgrid 
+      default: ogrid
     </desc>
     <values>
-      <value>ogrid</value>
+      <value>xgrid</value>
     </values>
   </entry>
   <entry id="ocn_surface_flux_scheme">
@@ -1199,7 +1246,7 @@
     </values>
   </entry>
 
-  <!-- MED histaux atm2med file1 -->
+  <!-- MED histaux atm2med file 1 -->
   <entry id="histaux_atm2med_file1_enabled">
     <type>logical</type>
     <category>aux_hist</category>
@@ -1228,10 +1275,10 @@
     </values>
   </entry>
   <entry id="histaux_atm2med_file1_history_n">
-    <type>char</type>
+    <type>integer</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>history option type</desc>
+    <desc>history option span</desc>
     <values>
       <value>1</value>
     </values>
@@ -1258,13 +1305,13 @@
     <type>integer</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>Number of time sames per file.</desc>
+    <desc>Number of time samples per file.</desc>
     <values>
       <value>24</value>
     </values>
   </entry>
 
-  <!-- MED histaux atm2med file2 -->
+  <!-- MED histaux atm2med file 2 -->
   <entry id="histaux_atm2med_file2_enabled">
     <type>logical</type>
     <category>aux_hist</category>
@@ -1293,10 +1340,10 @@
     </values>
   </entry>
   <entry id="histaux_atm2med_file2_history_n">
-    <type>char</type>
+    <type>integer</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>history option type</desc>
+    <desc>history option span</desc>
     <values>
       <value>1</value>
     </values>
@@ -1311,10 +1358,10 @@
     </values>
   </entry>
   <entry id="histaux_atm2med_file2_ntperfile">
-    <type>char</type>
+    <type>integer</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>Number of time sames per file.</desc>
+    <desc>Number of time samples per file.</desc>
     <values>
       <value>24</value>
     </values>
@@ -1329,7 +1376,7 @@
     </values>
   </entry>
 
-  <!-- MED histaux atm2med file3 -->
+  <!-- MED histaux atm2med file 3 -->
   <entry id="histaux_atm2med_file3_enabled">
     <type>logical</type>
     <category>aux_hist</category>
@@ -1345,7 +1392,7 @@
     <type>char</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>Auxiliary mediator atm2med precipitation history output every 3 hours</desc>
+    <desc>Auxiliary mediator atm2med precipitation fields history output every 3 hours</desc>
     <values>
       <value>Faxa_rainc:Faxa_rainl:Faxa_snowc:Faxa_snowl</value>
     </values>
@@ -1360,10 +1407,10 @@
     </values>
   </entry>
   <entry id="histaux_atm2med_file3_history_n">
-    <type>char</type>
+    <type>integer</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>history option type</desc>
+    <desc>history option span</desc>
     <values>
       <value>3</value>
     </values>
@@ -1378,10 +1425,10 @@
     </values>
   </entry>
   <entry id="histaux_atm2med_file3_ntperfile">
-    <type>char</type>
+    <type>integer</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>Number of time sames per file.</desc>
+    <desc>Number of time samples per file.</desc>
     <values>
       <value>8</value>
     </values>
@@ -1396,13 +1443,13 @@
     </values>
   </entry>
 
-  <!-- MED histaux atm2med file4 -->
+  <!-- MED histaux atm2med file 4 -->
   <entry id="histaux_atm2med_file4_enabled">
     <type>logical</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
     <desc>
-      Auxiliary mediator a2x precipitation history output every 3 hours
+      Auxiliary mediator a2x dynamic, radiation, and precipitation history output every 3 hours
     </desc>
     <values>
       <value>.false.</value>
@@ -1413,7 +1460,7 @@
     <category>aux_hist</category>
     <group>MED_attributes</group>
     <desc>
-      Auxiliary mediator a2x precipitation history output every 3 hours
+      Auxiliary mediator a2x dynamic, radiation, and precipitation fields history output every 3 hours
     </desc>
     <values>
       <value>Sa_z:Sa_topo:Sa_u:Sa_v:Sa_tbot:Sa_ptem:Sa_shum:Sa_dens:Sa_pbot:Sa_pslv:Faxa_lwdn:Faxa_rainc:Faxa_rainl:Faxa_snowc:Faxa_snowl:Faxa_swndr:Faxa_swvdr:Faxa_swndf:Faxa_swvdf:Sa_co2diag:Sa_co2prog</value>
@@ -1429,10 +1476,10 @@
     </values>
   </entry>
   <entry id="histaux_atm2med_file4_history_n">
-    <type>char</type>
+    <type>integer</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>history option type</desc>
+    <desc>history option span</desc>
     <values>
       <value>3</value>
     </values>
@@ -1447,10 +1494,10 @@
     </values>
   </entry>
   <entry id="histaux_atm2med_file4_ntperfile">
-    <type>char</type>
+    <type>integer</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>Number of time sames per file.</desc>
+    <desc>Number of time samples per file.</desc>
     <values>
       <value>8</value>
     </values>
@@ -1465,12 +1512,12 @@
     </values>
   </entry>
 
-  <!-- MED histaux atm2med file5 -->
+  <!-- MED histaux atm2med file 5 -->
   <entry id="histaux_atm2med_file5_enabled">
     <type>logical</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>Auxiliary mediator a2x precipitation history output every 3 hours</desc>
+    <desc>Auxiliary mediator a2x aerosol and ghg history output daily or endofrun</desc>
     <values>
       <value>.false.</value>
     </values>
@@ -1479,7 +1526,7 @@
     <type>char</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>Auxiliary mediator a2x precipitation history output every 3 hours</desc>
+    <desc>Auxiliary mediator a2x aerosol and ghg history output daily or endofrun</desc>
     <values>
       <value>Faxa_bcph:Faxa_ocph:Faxa_dstwet:Faxa_dstdry:Sa_co2prog:Sa_co2diag</value>
     </values>
@@ -1490,16 +1537,16 @@
     <group>MED_attributes</group>
     <desc>history option type</desc>
     <values>
-      <value>ndays</value>
+      <value>nhours</value>
     </values>
   </entry>
   <entry id="histaux_atm2med_file5_history_n">
-    <type>char</type>
+    <type>integer</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>history option type</desc>
+    <desc>history option span</desc>
     <values>
-      <value>1</value>
+      <value>3</value>
     </values>
   </entry>
   <entry id="histaux_atm2med_file5_doavg">
@@ -1512,12 +1559,12 @@
     </values>
   </entry>
   <entry id="histaux_atm2med_file5_ntperfile">
-    <type>char</type>
+    <type>integer</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>Number of time sames per file.</desc>
+    <desc>Number of time samples per file.</desc>
     <values>
-      <value>1</value>
+      <value>2</value>
     </values>
   </entry>
   <entry id="histaux_atm2med_file5_auxname">
@@ -1712,7 +1759,7 @@
     </values>
   </entry>
   <entry id="histaux_lnd2med_file1_history_n">
-    <type>char</type>
+    <type>integer</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
     <desc>history option type</desc>
@@ -1730,10 +1777,10 @@
     </values>
   </entry>
   <entry id="histaux_lnd2med_file1_ntperfile">
-    <type>char</type>
+    <type>integer</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>Number of time sames per file.</desc>
+    <desc>Number of time samples per file.</desc>
     <values>
       <value>1</value>
     </values>
@@ -1764,6 +1811,71 @@
   <!-- ======================================= -->
   <!-- MED ocn history files -->
   <!-- ======================================= -->
+
+  <!-- MED histaux ocn2med file 1 -->
+  <entry id="histaux_ocn2med_file1_enabled">
+    <type>logical</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>Auxiliary mediator ocn2med average history output every day.</desc>
+    <values>
+      <value>.false.</value>
+    </values>
+  </entry>
+  <entry id="histaux_ocn2med_file1_flds">
+    <type>char</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>Auxiliary mediator ocn2med average history output every day.</desc>
+    <values>
+      <value>So_bldepth:So_t:So_u:So_v</value>
+    </values>
+  </entry>
+  <entry id="histaux_ocn2med_file1_history_option">
+    <type>char</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>history option type</desc>
+    <values>
+      <value>ndays</value>
+    </values>
+  </entry>
+  <entry id="histaux_ocn2med_file1_history_n">
+    <type>integer</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>history option type</desc>
+    <values>
+      <value>1</value>
+    </values>
+  </entry>
+  <entry id="histaux_ocn2med_file1_doavg">
+    <type>logical</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>If true, use time average for aux file output.</desc>
+    <values>
+      <value>.true.</value>
+    </values>
+  </entry>
+  <entry id="histaux_ocn2med_file1_auxname">
+    <type>char</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>Auxiliary name identifier in history name</desc>
+    <values>
+      <value>ocn.24h.avg</value>
+    </values>
+  </entry>
+  <entry id="histaux_ocn2med_file1_ntperfile">
+    <type>integer</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>Number of time samples per file.</desc>
+    <values>
+      <value>30</value>
+    </values>
+  </entry>
 
   <entry id="history_option_ocn_inst">
     <type>char</type>
@@ -1877,7 +1989,7 @@
     <type>char</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>Auxiliary mediator rof2med precipitation history output.</desc>
+    <desc>Auxiliary mediator rof2med precipitation fields history output.</desc>
     <values>
       <value>all</value>
     </values>
@@ -1888,16 +2000,16 @@
     <group>MED_attributes</group>
     <desc>history option type</desc>
     <values>
-      <value>ndays</value>
+      <value>nhours</value>
     </values>
   </entry>
   <entry id="histaux_rof2med_file1_history_n">
-    <type>char</type>
+    <type>integer</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>history option type</desc>
+    <desc>history option span</desc>
     <values>
-      <value>1</value>
+      <value>3</value>
     </values>
   </entry>
   <entry id="histaux_rof2med_file1_doavg">
@@ -1910,12 +2022,12 @@
     </values>
   </entry>
   <entry id="histaux_rof2med_file1_ntperfile">
-    <type>char</type>
+    <type>integer</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>Number of time sames per file.</desc>
+    <desc>Number of time samples per file.</desc>
     <values>
-      <value>1</value>
+      <value>2</value>
     </values>
   </entry>
   <entry id="histaux_rof2med_file1_auxname">
@@ -2055,25 +2167,25 @@
       <value samegrid_atm_lnd='true'>idmap</value>
     </values>
   </entry>
-  <entry id="lnd2rof_map">
+  <entry id="lnd2rof_map" modify_via_xml="LND2ROF_FMAPNAME">
     <type>char</type>
     <category>mapping</category>
     <input_pathname>abs</input_pathname>
     <group>MED_attributes</group>
-    <desc>lnd to rof mapping, 'unset' or 'idmap' are normal possible values</desc>
+    <desc>lnd to rof mapping, 'unset' or 'idmap' are normal possible values (mapping file given for mizuRoute grids)</desc>
     <values>
-      <value>unset</value>
+      <value>$LND2ROF_FMAPNAME</value>
       <value samegrid_lnd_rof='true'>idmap</value>
     </values>
   </entry>
-  <entry id="rof2lnd_map">
+  <entry id="rof2lnd_map" modify_via_xml="ROF2LND_FMAPNAME">
     <type>char</type>
     <category>mapping</category>
     <input_pathname>abs</input_pathname>
     <group>MED_attributes</group>
-    <desc>rof to lnd mapping, 'unset' or 'idmap' are normal possible values</desc>
+    <desc>rof to lnd mapping, 'unset' or 'idmap' are normal possible values (mapping file given for mizuRoute grids)</desc>
     <values>
-      <value>unset</value>
+      <value>$ROF2LND_FMAPNAME</value>
       <value samegrid_lnd_rof='true'>idmap</value>
     </values>
   </entry>
@@ -2270,6 +2382,7 @@
     </desc>
     <values>
       <value COMP_OCN="pop">4</value>
+      <value COMP_OCN="blom">4</value>
       <value>0</value>
     </values>
   </entry>
@@ -3798,7 +3911,7 @@
     </values>
   </entry>
 
-  <entry id="wavice_coupling">
+  <entry id="wav_coupling_to_cice">
     <type>logical</type>
     <category>expdef</category>
     <group>ALLCOMP_attributes</group>
@@ -3807,6 +3920,8 @@
     </desc>
     <values>
       <value>.false.</value>
+      <!-- The following is not set as a default for now -->
+      <!-- <value wav_coupling_to_cice='on'>.true.</value>    -->
     </values>
   </entry>
 

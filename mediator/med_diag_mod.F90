@@ -95,6 +95,8 @@ module med_diag_mod
   character(*), parameter :: FA1  = "('    ',a12,6f15.8)"
   character(*), parameter :: FA0r = "('    ',12x,8(6x,a8,1x))"
   character(*), parameter :: FA1r = "('    ',a12,8f15.8)"
+  character(*), parameter :: FA0s = "('    ',12x,8(7x,a8,2x))"
+  character(*), parameter :: FA1s = "('    ',a12,8g18.8)"
 
   ! ---------------------------------
   ! C for component
@@ -2683,7 +2685,7 @@ contains
        write(diagunit,*) ' '
        write(diagunit,FAH) subname,'NET SALT BUDGET (kg/m2s): period = ',&
             trim(budget_diags%periods(ip)%name), ': date = ',date,tod
-       write(diagunit,FA0r) '     atm','     lnd','     rof','     ocn','  ice nh','  ice sh','     glc',' *SUM*  '
+       write(diagunit,FA0s) '     atm','     lnd','     rof','     ocn','  ice nh','  ice sh','     glc',' *SUM*  '
        do nf = f_salt_beg, f_salt_end
           net_salt_atm    = data(nf, c_atm_recv, ip) + data(nf, c_atm_send, ip)
           net_salt_lnd    = data(nf, c_lnd_recv, ip) + data(nf, c_lnd_send, ip)
@@ -2695,7 +2697,7 @@ contains
           net_salt_tot    = net_salt_atm + net_salt_lnd + net_salt_rof + net_salt_ocn + &
                net_salt_ice_nh + net_salt_ice_sh + net_salt_glc
 
-          write(diagunit,FA1r) budget_diags%fields(nf)%name,&
+          write(diagunit,FA1s) budget_diags%fields(nf)%name,&
                net_salt_atm, net_salt_lnd, net_salt_rof, net_salt_ocn, &
                net_salt_ice_nh, net_salt_ice_sh, net_salt_glc, net_salt_tot
        enddo
@@ -2718,7 +2720,7 @@ contains
        sum_net_salt_tot    = sum_net_salt_atm + sum_net_salt_lnd + sum_net_salt_rof + sum_net_salt_ocn + &
             sum_net_salt_ice_nh + sum_net_salt_ice_sh + sum_net_salt_glc
 
-       write(diagunit,FA1r)'   *SUM*',&
+       write(diagunit,FA1s)'   *SUM*',&
             sum_net_salt_atm, sum_net_salt_lnd, sum_net_salt_rof, sum_net_salt_ocn, &
             sum_net_salt_ice_nh, sum_net_salt_ice_sh, sum_net_salt_glc, sum_net_salt_tot
     end if

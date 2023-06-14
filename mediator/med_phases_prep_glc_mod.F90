@@ -34,6 +34,7 @@ module med_phases_prep_glc_mod
   use med_methods_mod       , only : fldbun_diagnose  => med_methods_FB_diagnose
   use med_methods_mod       , only : fldbun_reset     => med_methods_FB_reset
   use med_methods_mod       , only : fldbun_init      => med_methods_FB_init
+  use med_methods_mod       , only : FB_check_for_nans => med_methods_FB_check_for_nans
   use med_methods_mod       , only : field_getdata2d  => med_methods_Field_getdata2d
   use med_methods_mod       , only : field_getdata1d  => med_methods_Field_getdata1d
   use med_utils_mod         , only : chkerr           => med_utils_ChkErr
@@ -705,6 +706,12 @@ contains
           end do
        endif
     end if
+
+    ! Check for nans in fields export to glc
+    do ns = 1,is_local%wrap%num_icesheets
+       call FB_check_for_nans(is_local%wrap%FBExp(compglc(ns)), maintask, logunit, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    end do
 
     if (dbug_flag > 5) then
        call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)

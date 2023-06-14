@@ -325,6 +325,10 @@
        canonical_units: mol/mol
        description: atmosphere export - O3 in the lowest model layer (prognosed or prescribed)
      #
+     - standard_name: Sa_lightning
+       canonical_units: /min
+       description: atmosphere export - lightning flash freqency
+     #
      - standard_name: Sa_topo
        alias: inst_surface_height
        canonical_units: m
@@ -745,7 +749,7 @@
        description: sea-ice export - ice thickness
      #
      - standard_name: Si_floediam
-       canonical_units: m 
+       canonical_units: m
        description: sea-ice export - ice floe diameter
        #
      #-----------------------------------
@@ -1171,6 +1175,21 @@
        alias: wave_elevation_spectrum
        canonical_units: m2/s
        description: wave elevation spectrum
+
+     #
+     #-----------------------------------
+     # section: wave import
+     #-----------------------------------
+     #
+     - standard_name: Fwxx_taux
+       alias: mean_zonal_moment_flx
+       canonical_units: N m-2
+       description: wave import - zonal surface stress
+     #
+     - standard_name: Fwxx_tauy
+       alias: mean_merid_moment_flx
+       canonical_units: N m-2
+       description: wave import - meridional surface stress
 
      #-----------------------------------
      # mediator fields

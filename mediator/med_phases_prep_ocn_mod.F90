@@ -19,6 +19,7 @@ module med_phases_prep_ocn_mod
   use med_methods_mod       , only : FB_average    => med_methods_FB_average
   use med_methods_mod       , only : FB_copy       => med_methods_FB_copy
   use med_methods_mod       , only : FB_reset      => med_methods_FB_reset
+  use med_methods_mod       , only : FB_check_for_nans => med_methods_FB_check_for_nans
   use esmFlds               , only : med_fldList_GetfldListTo, med_fldlist_type
   use med_internalstate_mod , only : compocn, compatm, compice, coupling_mode
   use perf_mod              , only : t_startf, t_stopf
@@ -295,6 +296,10 @@ contains
        call FB_copy(is_local%wrap%FBExp(compocn), is_local%wrap%FBExpAccumOcn, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+       ! Check for nans in fields export to ocn
+       call FB_check_for_nans(is_local%wrap%FBExp(compocn), maintask, logunit, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
        ! zero accumulator
        is_local%wrap%ExpAccumOcnCnt = 0
        call FB_reset(is_local%wrap%FBExpAccumOcn, value=czero, rc=rc)
@@ -372,7 +377,6 @@ contains
 
     rc = ESMF_SUCCESS
 
-    call t_startf('MED:'//subname)
     if (dbug_flag > 20) then
        call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
     end if
@@ -382,6 +386,17 @@ contains
     nullify(is_local%wrap)
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    ! Check that the necessary export field is present
+    if ( .not. FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_swnet', rc=rc) .and. &
+         .not. (FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_swnet_vdr', rc=rc) .and. &
+         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_swnet_vdf', rc=rc) .and. &
+         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_swnet_idr', rc=rc) .and. &
+         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_swnet_idf', rc=rc))) then
+       return
+    end if
+
+    call t_startf('MED:'//subname)
 
     !---------------------------------------
     ! Compute netsw for ocean
