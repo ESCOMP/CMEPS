@@ -2387,10 +2387,9 @@
     </desc>
     <values>
       <value>.false.</value>
-      <value BGC_MODE="CO2A.*">.true.</value>
+      <value BGC_MODE=".*CO2A.*">.true.</value>
     </values>
   </entry>
-
   <entry id="flds_co2b">
     <type>logical</type>
     <category>flds</category>
@@ -2402,10 +2401,9 @@
     </desc>
     <values>
       <value>.false.</value>
-      <value BGC_MODE="CO2B">.true.</value>
+      <value BGC_MODE=".*CO2B.*">.true.</value>
     </values>
   </entry>
-
   <entry id="flds_co2c">
     <type>logical</type>
     <category>flds</category>
@@ -2417,7 +2415,23 @@
     </desc>
     <values>
       <value>.false.</value>
-      <value BGC_MODE="CO2C">.true.</value>
+      <value BGC_MODE="BGC%.*CO2C.*">.true.</value>
+    </values>
+  </entry>
+
+  <entry id="flds_dms_med">
+    <type>logical</type>
+    <category>flds</category>
+    <group>ALLCOMP_attributes</group>
+    <desc>
+      Pass DMS flux computed in MED to both ATM and OCN
+      Set this by setting the xml variable BGC_MODE.
+      If BGC_MODE has 'DMSmed', then DMSmed will be set to .true.
+    </desc>
+    <values>
+      <value>.false.</value>
+      <value COMPSET=".*DMS.*">.true.</value>
+      <value COMPSET=".*_BLOM%ECO.*">.true.</value>
     </values>
   </entry>
 

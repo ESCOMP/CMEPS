@@ -30,21 +30,17 @@
      - standard_name: Faox_lwup
        alias: mean_up_lw_flx_ocn
        canonical_units: W m-2
-       description: mediator export - long wave radiation flux over the ocean
+       description: long wave radiation flux over the ocean computed in mediator
      #
      - standard_name: Faox_taux
        alias: stress_on_air_ocn_zonal
        canonical_units: N m-2
-       description: mediator export
+       description: zonal stress on ocean/air computed in mediator
      #
      - standard_name: Faox_tauy
        alias: stress_on_air_ocn_merid
        canonical_units: N m-2
-       description: mediator export
-     #
-     - standard_name: area
-       canonical_units: radians**2
-       description: mediator area for component
+       description: meridional stress on ocean/air computed in mediator
      #
      #-----------------------------------
      # section: land export
@@ -1203,3 +1199,30 @@
      #
      - standard_name: mask
        canonical_units: 1
+     #
+     - standard_name: area
+       canonical_units: radians**2
+       description: mediator area for component
+     #
+     #-----------------------------------
+     # section: dms exchange
+     #-----------------------------------
+     #
+     - standard_name: So_dms
+       canonical_units: nmol L-1
+       description: DMS uppoer ocean concentration
+     #
+     - standard_name: Faoo_dms
+       alias: surface_upward_flux_of_dimethyl_sulfide
+       canonical_units: moles m-2 s-1
+       description: Surface flux of DMS computed in ocean
+     #
+     - standard_name: Faox_dms
+       alias: surface_upward_flux_of_dimethyl_sulfide
+       canonical_units: moles m-2 s-1
+       description: Surface flux of DMS computed in mediator
+     #
+     - standard_name: Faxx_dms
+       alias: surface_upward_flux_of_dimethyl_sulfide
+       canonical_units: moles m-2 s-1
+       description: merged surface flux of DMS to atm

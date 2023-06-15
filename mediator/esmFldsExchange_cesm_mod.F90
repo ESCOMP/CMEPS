@@ -3288,6 +3288,43 @@ contains
        end if
     endif
 
+    !=====================================================================
+    ! DMS EXCHANGE
+    !=====================================================================
+
+    ! Get dms concentration from ocn and compute dms flux in mediator and send to both atm and ocn
+    if (phase == 'advertise') then
+       call addfld_aoflux('Faox_dms')
+       call addfld_from(compocn, 'So_dms')
+       call addfld_to(compocn, 'Faox_dms')
+       call addfld_to(compatm, 'Faxx_dms')
+    else
+       ! TODO: this assumes that the aoflux grid is always the ocean
+       ! need to generalize this
+       if (fldchk(is_local%wrap%FBexp(compatm), 'Faxx_dms', rc=rc)) then
+          call addmrg_to(compatm , 'Faxx_dms', &
+               mrg_from=compmed, mrg_fld='Faox_dms', mrg_type='merge', mrg_fracname='ofrac')
+       end if
+       if ( fldchk(is_local%wrap%FBexp(compocn), 'Faox_dms', rc=rc) .and. &
+            fldchk(is_local%wrap%FBImp(compocn,compocn), 'So_dms', rc=rc) ) then
+          call addmrg_to(compocn, 'Faox_dms', &
+               mrg_from=compmed, mrg_fld='Faox_dms', mrg_type='merge', mrg_fracname='ofrac')
+       end if
+    end if
+
+    ! Get dms flux from ocn and send to atm (this is a deprecated functionality - only used for testing now)
+    if (phase == 'advertise') then
+       call addfld_from(compocn, 'Faoo_dms')
+       call addfld_to(compatm, 'Faxx_dms')
+    else
+       ! Note that Faoo_dmds should not be weighted by ifrac - since
+       ! it will be weighted by ifrac in the merge to the atm
+       if (fldchk(is_local%wrap%FBexp(compatm), 'Faxx_dms', rc=rc)) then
+          call addmrg_to(compatm , 'Faxx_dms', &
+               mrg_from=compmed, mrg_fld='Faoo_dms', mrg_type='merge', mrg_fracname='ofrac')
+       end if
+    end if
+
   end subroutine esmFldsExchange_cesm
 
 end module esmFldsExchange_cesm_mod
