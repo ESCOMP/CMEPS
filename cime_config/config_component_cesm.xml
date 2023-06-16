@@ -113,15 +113,16 @@
       <value compset="^OMIP_DATM%JRA.*_POP2%[^_]*ECO">CO2A</value>
       <value compset="HIST.*_DATM.*_CLM">CO2A</value>
       <value compset="SSP.*_DATM.*_CLM">CO2A</value>
-      <value compset="_BGC%BPRP">CO2C</value>
-      <value compset="_BGC%BDRD">CO2C</value>
       <value compset="_BGC%CO2C:DMS">CO2C:DMS</value>
       <value compset="_BGC%CO2A:DMS">CO2A:DMS</value>
-      <value compset="_BGC%DMS">CO2A:DMS</value>
+      <value compset="_BGC%DMS">DMS</value>
       <value compset="HIST.*_DATM%(QIA|CRU)">CO2A</value>
       <value compset="RCP.*_DATM%(QIA|CRU)" >CO2A</value>
       <value compset="20TR_DATM%IAF.*_BLOM%ECO">CO2A</value>
       <value compset="20TR_DATM%JRA.*_BLOM%ECO">CO2A</value>
+      <!-- The following two are here just for backwards compatibility -->
+      <value compset="_BGC%BPRP">CO2C</value>
+      <value compset="_BGC%BDRD">CO2C</value>
     </values>
     <group>run_coupling</group>
     <file>env_run.xml</file>
