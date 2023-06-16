@@ -2430,7 +2430,7 @@
     </desc>
     <values>
       <value>.false.</value>
-      <value COMPSET=".*DMS.*">.true.</value>
+      <value COMPSET="BGC%.*DMS.*">.true.</value>
       <value COMPSET=".*_BLOM%ECO.*">.true.</value>
     </values>
   </entry>
