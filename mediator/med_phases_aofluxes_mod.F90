@@ -1211,56 +1211,6 @@ contains
           ! The following comes from the BLOM/iHAMOCC routine carchm.F90
           ! See https://noresm-docs.readthedocs.io/en/noresm2/model-description/ocn_bgc_model.html
           do n = 1,size(sst)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
              sst_c = sst(n) - tfrz
              sst_c = min(40.,max(-3., sst_c))
              scdms = 2855.7+  (-177.63 + (6.0438 + (-0.11645 + 0.00094743*sst_c)*sst_c)*sst_c)*sst_c
