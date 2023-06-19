@@ -35,9 +35,15 @@ module med_phases_aofluxes_mod
 #ifndef CESMCOUPLED
   use ufs_const_mod         , only : rearth => SHR_CONST_REARTH
   use ufs_const_mod         , only : pi => SHR_CONST_PI
-#else
+  use ufs_const_mod         , only : tfrz => SHR_CONST_TKFRZ
+  use ufs_const_mod         , only : rdair => SHR_CONST_RDAIR
+  use ufs_const_mod         , only : cpdair => SHR_CONST_CPDAIR
+#ELSE
   use shr_const_mod         , only : rearth => SHR_CONST_REARTH
   use shr_const_mod         , only : pi => SHR_CONST_PI
+  use shr_const_mod         , only : tfrz => SHR_CONST_TKFRZ
+  use shr_const_mod         , only : rdair => SHR_CONST_RDAIR
+  use shr_const_mod         , only : cpdair => SHR_CONST_CPDAIR
 #endif
 
   implicit none
@@ -74,9 +80,13 @@ module med_phases_aofluxes_mod
   ! Private data
   !--------------------------------------------------------------------------
 
-  logical :: flds_wiso  ! use case
+  real(r8), parameter :: rcp = rdair/cpdair ! gas constant of air / specific heat capacity at a constant pressure
+
+  logical :: flds_wiso    ! use case
+
   logical :: compute_atm_dens
   logical :: compute_atm_thbot
+  logical :: compute_dms_flux
   integer :: ocn_surface_flux_scheme ! use case
 
   character(len=CS), pointer :: fldnames_ocn_in(:)
@@ -109,6 +119,8 @@ module med_phases_aofluxes_mod
      real(R8) , pointer :: roce_16O    (:) => null() ! ocn H2O ratio
      real(R8) , pointer :: roce_HDO    (:) => null() ! ocn HDO ratio
      real(R8) , pointer :: roce_18O    (:) => null() ! ocn H218O ratio
+     real(R8) , pointer :: dms_ocn     (:) => null() ! ocn dms concentration
+
      ! input: atm
      real(R8) , pointer :: zbot        (:) => null() ! atm level height
      real(R8) , pointer :: ubot        (:) => null() ! atm velocity, zonal
@@ -125,6 +137,7 @@ module med_phases_aofluxes_mod
      real(R8) , pointer :: shum_HDO    (:) => null() ! atm HDO tracer
      real(R8) , pointer :: shum_18O    (:) => null() ! atm H218O tracer
      real(R8) , pointer :: lwdn        (:) => null() ! atm downward longwave heat flux
+
      ! local size and computational mask and area: on aoflux grid
      integer            :: lsize                     ! local size
      integer  , pointer :: mask        (:) => null() ! integer ocn domain mask: 0 <=> inactive cell
@@ -149,6 +162,7 @@ module med_phases_aofluxes_mod
      real(R8) , pointer :: ustar       (:) => null() ! saved ustar
      real(R8) , pointer :: re          (:) => null() ! saved re
      real(R8) , pointer :: ssq         (:) => null() ! saved sq
+     real(R8) , pointer :: dms         (:) => null() ! ocn-> atm dms flux (optional) 
   end type aoflux_out_type
 
   character(*), parameter :: u_FILE_u = &
@@ -229,8 +243,8 @@ contains
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
        if (maintask) then
-          write(logunit,'(a)') trim(subname)//' initializing FB for '// &
-               trim(compname(compatm))//'_'//trim(compname(compocn))
+          write(logunit,'(a)') trim(subname)//' initialized FB for '// &
+               trim(compname(compatm))//'->'//trim(compname(compocn))
        end if
 
        ! Create the field bundle is_local%wrap%FBImp(compocn,compatm) if needed
@@ -244,8 +258,8 @@ contains
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
        if (maintask) then
-          write(logunit,'(a)') trim(subname)//' initializing FB for '// &
-               trim(compname(compocn))//'_'//trim(compname(compatm))
+          write(logunit,'(a)') trim(subname)//' initialized FB for '// &
+               trim(compname(compocn))//'->'//trim(compname(compatm))
        end if
 
     end if
@@ -413,6 +427,15 @@ contains
        compute_atm_dens = .false.
     else
        compute_atm_dens = .true.
+    end if
+
+    ! Determine if dms flux will be computed in mediator
+    if (   FB_fldchk(is_local%wrap%FBImp(compocn,compocn), 'So_dms', rc=rc ) .and. &
+         ( FB_fldchk(is_local%wrap%FBExp(compocn), 'Faox_dms', rc=rc) .or. &
+           FB_fldchk(is_local%wrap%FBExp(compatm), 'Faxx_dms', rc=rc) ) ) then
+       compute_dms_flux = .true.
+    else
+       compute_dms_flux = .false.
     end if
 
     !----------------------------------
@@ -968,16 +991,22 @@ contains
     integer               , intent(out)   :: rc
     !
     ! Local variables
-    type(InternalState)      :: is_local
-    integer                  :: n                          ! indices
-    real(r8), parameter      :: qmin = 1.0e-8_r8
-    real(r8), parameter      :: p0 = 100000.0_r8           ! reference pressure in Pa
-    real(r8), parameter      :: rcp = 0.286_r8             ! gas constant of air / specific heat capacity at a constant pressure
-    real(r8), parameter      :: rdair = 287.058_r8         ! dry air gas constant in J/K/kg
-    integer                  :: maptype
-    type(ESMF_Field)         :: field_src
-    type(ESMF_Field)         :: field_dst
-    character(*),parameter   :: subName = '(med_aofluxes_update) '
+    type(InternalState)    :: is_local
+    integer                :: n                  ! indices
+    real(r8), parameter    :: qmin = 1.0e-8_r8   ! minimum
+    real(r8), parameter    :: p0 = 100000.0_r8   ! reference pressure in Pa
+    real(r8), parameter    :: Xconvxa= 6.97e-07  ! Wanninkhof's a=0.251 converted to ms-1/(ms-1)^2 
+    integer                :: maptype
+    type(ESMF_Field)       :: field_src
+    type(ESMF_Field)       :: field_dst
+    real(r8)               :: sst_c
+    real(r8)               :: scdms
+    real(r8)               :: kwdms
+    real(r8), pointer      :: odms(:)
+    real(r8), pointer      :: sst(:)
+    real(r8), pointer      :: u10m(:)
+    real(r8), pointer      :: flux_dms(:)
+    character(*),parameter :: subName = '(med_aofluxes_update) '
     !-----------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -1149,6 +1178,52 @@ contains
             routehandle=is_local%wrap%RH(compocn, compwav, maptype), &
             termorderflag=ESMF_TERMORDER_SRCSEQ, zeroregion=ESMF_REGION_TOTAL, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
+    end if
+
+    ! compute DMS fluxes to atm and ocn
+    if (compute_dms_flux) then
+       if (is_local%wrap%aoflux_grid == 'ogrid') then
+          ! TODO: extend this to to agrid and xgrid
+
+          call ESMF_FieldBundleGet(is_local%wrap%FBImp(compocn,compocn), 'So_dms', field=field_src, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_FieldGet(field_src, farrayptr=odms, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+          call ESMF_FieldBundleGet(is_local%wrap%FBImp(compocn,compocn), 'So_t', field=field_src, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_FieldGet(field_src, farrayptr=sst, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+          call ESMF_FieldBundleGet(is_local%wrap%FBMed_aoflux_o, 'So_u10', field=field_src, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_FieldGet(field_src, farrayptr=u10m, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+          call ESMF_FieldBundleGet(is_local%wrap%FBMed_aoflux_o, 'Faox_dms', field=field_src, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_FieldGet(field_src, farrayptr=flux_dms, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+          ! flux_dms from ocean is in kg/m2/s
+          ! flux is downwards positive - therefore negative values to
+          ! the atmosphere (this is the opposite of what is there in BLOM)
+          ! The following comes from the BLOM/iHAMOCC routine carchm.F90
+          ! See https://noresm-docs.readthedocs.io/en/noresm2/model-description/ocn_bgc_model.html
+          do n = 1,size(sst)
+             sst_c = sst(n) - tfrz
+             sst_c = min(40.,max(-3., sst_c))
+             scdms = 2855.7+  (-177.63 + (6.0438 + (-0.11645 + 0.00094743*sst_c)*sst_c)*sst_c)*sst_c
+             kwdms = Xconvxa * u10m(n)**2 * (660./scdms)**0.5 
+             flux_dms(n) = -62.13 *kwdms * odms(n)
+          end do
+       else
+          call ESMF_LogWrite(trim(subname)//&
+               ": only ogrid has been enabled for dms flux computation", &
+               ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
+          rc = ESMF_FAILURE
+          return
+       end if
     end if
 
     call t_stopf('MED:'//subname)
@@ -1663,6 +1738,11 @@ end subroutine med_aofluxes_map_ogrid2xgrid_input
        allocate(aoflux_in%roce_HDO(aoflux_in%lsize)); aoflux_in%roce_HDO(:) = 0._R8
     end if
 
+    if ( compute_dms_flux) then
+       call fldbun_getfldptr(fldbun_o, 'So_dms', aoflux_in%dms_ocn, xgrid=xgrid, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+    end if
+
   end subroutine set_aoflux_in_pointers
 
   !================================================================================
@@ -1715,6 +1795,10 @@ end subroutine med_aofluxes_map_ogrid2xgrid_input
        allocate(aoflux_out%evap_16O(lsize)); aoflux_out%evap_16O(:) = 0._R8
        allocate(aoflux_out%evap_18O(lsize)); aoflux_out%evap_18O(:) = 0._R8
        allocate(aoflux_out%evap_HDO(lsize)); aoflux_out%evap_HDO(:) = 0._R8
+    end if
+    if (compute_dms_flux) then
+       call fldbun_getfldptr(fldbun, 'Faox_dms', aoflux_out%dms, xgrid=xgrid, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
     end if
 
   end subroutine set_aoflux_out_pointers
