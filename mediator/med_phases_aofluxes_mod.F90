@@ -35,9 +35,15 @@ module med_phases_aofluxes_mod
 #ifndef CESMCOUPLED
   use ufs_const_mod         , only : rearth => SHR_CONST_REARTH
   use ufs_const_mod         , only : pi => SHR_CONST_PI
-#else
+  use ufs_const_mod         , only : tfrz => SHR_CONST_TKFRZ
+  use ufs_const_mod         , only : rdair => SHR_CONST_RDAIR
+  use ufs_const_mod         , only : cpdair => SHR_CONST_CPDAIR
+#ELSE
   use shr_const_mod         , only : rearth => SHR_CONST_REARTH
   use shr_const_mod         , only : pi => SHR_CONST_PI
+  use shr_const_mod         , only : tfrz => SHR_CONST_TKFRZ
+  use shr_const_mod         , only : rdair => SHR_CONST_RDAIR
+  use shr_const_mod         , only : cpdair => SHR_CONST_CPDAIR
 #endif
 
   implicit none
@@ -73,6 +79,8 @@ module med_phases_aofluxes_mod
   !--------------------------------------------------------------------------
   ! Private data
   !--------------------------------------------------------------------------
+
+  real(r8), parameter :: rcp = rdair/cpdair ! gas constant of air / specific heat capacity at a constant pressure
 
   logical :: flds_wiso    ! use case
 
@@ -984,11 +992,10 @@ contains
     !
     ! Local variables
     type(InternalState)    :: is_local
-    integer                :: n                          ! indices
-    real(r8), parameter    :: qmin = 1.0e-8_r8
-    real(r8), parameter    :: p0 = 100000.0_r8           ! reference pressure in Pa
-    real(r8), parameter    :: rcp = 0.286_r8             ! gas constant of air / specific heat capacity at a constant pressure
-    real(r8), parameter    :: rdair = 287.058_r8         ! dry air gas constant in J/K/kg
+    integer                :: n                  ! indices
+    real(r8), parameter    :: qmin = 1.0e-8_r8   ! minimum
+    real(r8), parameter    :: p0 = 100000.0_r8   ! reference pressure in Pa
+    real(r8), parameter    :: Xconvxa= 6.97e-07  ! Wanninkhof's a=0.251 converted to ms-1/(ms-1)^2 
     integer                :: maptype
     type(ESMF_Field)       :: field_src
     type(ESMF_Field)       :: field_dst
@@ -999,7 +1006,6 @@ contains
     real(r8), pointer      :: sst(:)
     real(r8), pointer      :: u10m(:)
     real(r8), pointer      :: flux_dms(:)
-    real(r8), parameter    :: Xconvxa= 6.97e-07 ! Wanninkhof's a=0.251 converted to ms-1/(ms-1)^2 
     character(*),parameter :: subName = '(med_aofluxes_update) '
     !-----------------------------------------------------------------------
 
@@ -1175,8 +1181,9 @@ contains
     end if
 
     ! compute DMS fluxes to atm and ocn
-    if (is_local%wrap%aoflux_grid == 'ogrid') then
-       if (compute_dms_flux) then
+    if (compute_dms_flux) then
+       if (is_local%wrap%aoflux_grid == 'ogrid') then
+          ! TODO: extend this to to agrid and xgrid
 
           call ESMF_FieldBundleGet(is_local%wrap%FBImp(compocn,compocn), 'So_dms', field=field_src, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -1199,15 +1206,73 @@ contains
           if (chkerr(rc,__LINE__,u_FILE_u)) return
 
           ! flux_dms from ocean is in kg/m2/s
-          ! flux is downwards positive - therefore negative values to the atmosphere  (this is the opposite of what is there in BLOM)
+          ! flux is downwards positive - therefore negative values to
+          ! the atmosphere (this is the opposite of what is there in BLOM)
+          ! The following comes from the BLOM/iHAMOCC routine carchm.F90
+          ! See https://noresm-docs.readthedocs.io/en/noresm2/model-description/ocn_bgc_model.html
           do n = 1,size(sst)
-             sst_c = sst(n) - 273.15_r8
-             sst_c = min(40.,max(-3.,sst_c))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+             sst_c = sst(n) - tfrz
+             sst_c = min(40.,max(-3., sst_c))
              scdms = 2855.7+  (-177.63 + (6.0438 + (-0.11645 + 0.00094743*sst_c)*sst_c)*sst_c)*sst_c
              kwdms = Xconvxa * u10m(n)**2 * (660./scdms)**0.5 
              flux_dms(n) = -62.13 *kwdms * odms(n)
           end do
-
+       else
+          call ESMF_LogWrite(trim(subname)//&
+               ": only ogrid has been enabled for dms flux computation", &
+               ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
+          rc = ESMF_FAILURE
+          return
        end if
     end if
 

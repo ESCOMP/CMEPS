@@ -3299,20 +3299,28 @@ contains
        call addfld_to(compocn, 'Faox_dms')
        call addfld_to(compatm, 'Faxx_dms')
     else
-       ! TODO: this assumes that the aoflux grid is always the ocean
-       ! need to generalize this
-       if (fldchk(is_local%wrap%FBexp(compatm), 'Faxx_dms', rc=rc)) then
-          call addmrg_to(compatm , 'Faxx_dms', &
-               mrg_from=compmed, mrg_fld='Faox_dms', mrg_type='merge', mrg_fracname='ofrac')
-       end if
-       if ( fldchk(is_local%wrap%FBexp(compocn), 'Faox_dms', rc=rc) .and. &
-            fldchk(is_local%wrap%FBImp(compocn,compocn), 'So_dms', rc=rc) ) then
-          call addmrg_to(compocn, 'Faox_dms', &
-               mrg_from=compmed, mrg_fld='Faox_dms', mrg_type='merge', mrg_fracname='ofrac')
+       if (trim(is_local%wrap%aoflux_grid) == 'ogrid') then
+          ! TODO: extend this to to agrid and xgrid
+          if (fldchk(is_local%wrap%FBexp(compatm), 'Faxx_dms', rc=rc)) then
+             call addmrg_to(compatm , 'Faxx_dms', &
+                  mrg_from=compmed, mrg_fld='Faox_dms', mrg_type='merge', mrg_fracname='ofrac')
+          end if
+          if ( fldchk(is_local%wrap%FBexp(compocn), 'Faox_dms', rc=rc) .and. &
+               fldchk(is_local%wrap%FBImp(compocn,compocn), 'So_dms', rc=rc) ) then
+             call addmrg_to(compocn, 'Faox_dms', &
+                  mrg_from=compmed, mrg_fld='Faox_dms', mrg_type='merge', mrg_fracname='ofrac')
+          end if
+       else
+          call ESMF_LogWrite(trim(subname)//&
+               ": only ogrid has been enabled for dms flux computation", &
+               ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
+          rc = ESMF_FAILURE
+          return
        end if
     end if
 
     ! Get dms flux from ocn and send to atm (this is a deprecated functionality - only used for testing now)
+    ! TODO: remove this 
     if (phase == 'advertise') then
        call addfld_from(compocn, 'Faoo_dms')
        call addfld_to(compatm, 'Faxx_dms')

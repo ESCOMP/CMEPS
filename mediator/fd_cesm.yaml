@@ -1213,16 +1213,13 @@
        description: DMS uppoer ocean concentration
      #
      - standard_name: Faoo_dms
-       alias: surface_upward_flux_of_dimethyl_sulfide
        canonical_units: moles m-2 s-1
-       description: Surface flux of DMS computed in ocean
+       description: Surface flux of DMS computed in ocean (downward positive)
      #
      - standard_name: Faox_dms
-       alias: surface_upward_flux_of_dimethyl_sulfide
        canonical_units: moles m-2 s-1
-       description: Surface flux of DMS computed in mediator
+       description: Surface flux of DMS computed in mediator (downward positive)
      #
      - standard_name: Faxx_dms
-       alias: surface_upward_flux_of_dimethyl_sulfide
        canonical_units: moles m-2 s-1
-       description: merged surface flux of DMS to atm
+       description: merged surface flux of DMS to atm (downward positive)
