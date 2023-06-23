@@ -7,7 +7,7 @@ module med_phases_prep_wav_mod
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
   use med_constants_mod     , only : czero     =>med_constants_czero
   use med_constants_mod     , only : dbug_flag => med_constants_dbug_flag
-  use med_internalstate_mod , only : InternalState, mastertask, logunit
+  use med_internalstate_mod , only : InternalState, maintask, logunit
   use med_merge_mod         , only : med_merge_auto, med_merge_field
   use med_map_mod           , only : med_map_field_packed
   use med_utils_mod         , only : memcheck      => med_memcheck
@@ -17,6 +17,7 @@ module med_phases_prep_wav_mod
   use med_methods_mod       , only : FB_average    => med_methods_FB_average
   use med_methods_mod       , only : FB_copy       => med_methods_FB_copy
   use med_methods_mod       , only : FB_reset      => med_methods_FB_reset
+  use med_methods_mod       , only : FB_check_for_nans => med_methods_FB_check_for_nans
   use esmFlds               , only : med_fldList_GetfldListTo
   use med_internalstate_mod , only : compwav
   use perf_mod              , only : t_startf, t_stopf
@@ -56,7 +57,7 @@ contains
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (chkErr(rc,__LINE__,u_FILE_u)) return
 
-    if (mastertask) then
+    if (maintask) then
        write(logunit,'(a)') trim(subname)//' initializing wave export accumulation FB for '
     end if
     call FB_Init(is_local%wrap%FBExpAccumWav, is_local%wrap%flds_scalar_name, &
@@ -81,7 +82,6 @@ contains
 
     ! local variables
     type(InternalState) :: is_local
-    integer             :: n, ncnt
     character(len=*), parameter    :: subname='(med_phases_prep_wav_accum)'
     !---------------------------------------
 
@@ -90,7 +90,7 @@ contains
        call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
     end if
     rc = ESMF_SUCCESS
-    call memcheck(subname, 5, mastertask)
+    call memcheck(subname, 5, maintask)
 
     ! Get the internal state
     nullify(is_local%wrap)
@@ -175,6 +175,10 @@ contains
 
        ! copy to FBExp(compwav)
        call FB_copy(is_local%wrap%FBExp(compwav), is_local%wrap%FBExpAccumWav, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       ! Check for nans in fields export to wav
+       call FB_check_for_nans(is_local%wrap%FBExp(compwav), maintask, logunit, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        ! zero accumulator

@@ -14,9 +14,10 @@ module med_phases_prep_atm_mod
   use med_methods_mod       , only : FB_diagnose => med_methods_FB_diagnose
   use med_methods_mod       , only : FB_fldchk   => med_methods_FB_FldChk
   use med_methods_mod       , only : FB_getfldptr=> med_methods_FB_GetFldPtr
+  use med_methods_mod       , only : FB_check_for_nans => med_methods_FB_check_for_nans
   use med_merge_mod         , only : med_merge_auto
   use med_map_mod           , only : med_map_field_packed
-  use med_internalstate_mod , only : InternalState, mastertask
+  use med_internalstate_mod , only : InternalState, maintask, logunit
   use med_internalstate_mod , only : compatm, compocn, compice, compname, coupling_mode
   use esmFlds               , only : med_fldlist_GetfldListTo, med_fldlist_type
   use perf_mod              , only : t_startf, t_stopf
@@ -46,13 +47,12 @@ contains
 
     ! local variables
     type(ESMF_Field)           :: lfield
-    character(len=64)          :: timestr
     type(InternalState)        :: is_local
     real(R8), pointer          :: dataPtr1(:)
     real(R8), pointer          :: dataPtr2(:)
     real(R8), pointer          :: ifrac(:)
     real(R8), pointer          :: ofrac(:)
-    integer                    :: i, j, n, n1, ncnt
+    integer                    :: n
     type(med_fldlist_type), pointer :: fldList
     character(len=*),parameter :: subname='(med_phases_prep_atm)'
     !-------------------------------------------------------------------------------
@@ -63,7 +63,7 @@ contains
     if (dbug_flag > 5) then
        call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
     end if
-    call memcheck(subname, 3, mastertask)
+    call memcheck(subname, 3, maintask)
 
     !---------------------------------------
     ! --- Get the internal state
@@ -243,6 +243,10 @@ contains
           dataptr1(n) = dataptr1(n) + global_htot_corr(1)
        end do
     end if
+
+    ! Check for nans in fields export to atm
+    call FB_check_for_nans(is_local%wrap%FBExp(compatm), maintask, logunit, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if (dbug_flag > 5) then
        call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)

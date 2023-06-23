@@ -20,7 +20,7 @@ module esmFldsExchange_cesm_mod
   !--------------------------------------
 
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
-  use med_internalstate_mod , only : logunit, mastertask
+  use med_internalstate_mod , only : logunit, maintask
 
   implicit none
   public
@@ -71,12 +71,11 @@ contains
     use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
     use med_utils_mod         , only : chkerr => med_utils_chkerr
     use med_methods_mod       , only : fldchk => med_methods_FB_FldChk
-    use med_internalstate_mod , only : InternalState, logunit, mastertask
+    use med_internalstate_mod , only : InternalState, logunit, maintask
     use med_internalstate_mod , only : compmed, compatm, complnd, compocn
     use med_internalstate_mod , only : compice, comprof, compwav, compglc, ncomps
     use med_internalstate_mod , only : mapbilnr, mapconsf, mapconsd, mappatch, mappatch_uv3d, mapbilnr_nstod
     use med_internalstate_mod , only : mapfcopy, mapnstod, mapnstod_consd, mapnstod_consf
-    use med_internalstate_mod , only : coupling_mode
     use med_internalstate_mod , only : map_glc2ocn_ice, map_glc2ocn_liq, map_rof2ocn_ice, map_rof2ocn_liq
     use esmFlds               , only : addfld_ocnalb => med_fldList_addfld_ocnalb
     use esmFlds               , only : addfld_aoflux => med_fldList_addfld_aoflux
@@ -97,17 +96,16 @@ contains
     type(InternalState) :: is_local
     integer             :: n, ns
     character(len=CL)   :: cvalue
-    character(len=CS)   :: name
-    logical             :: wavice_coupling
+    logical             :: wav_coupling_to_cice
     logical             :: ocn2glc_coupling
     character(len=*) , parameter   :: subname=' (esmFldsExchange_cesm) '
     !--------------------------------------
 
     rc = ESMF_SUCCESS
 
-    call NUOPC_CompAttributeGet(gcomp, name='wavice_coupling', value=cvalue, rc=rc)
+    call NUOPC_CompAttributeGet(gcomp, name='wav_coupling_to_cice', value=cvalue, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) wavice_coupling
+    read(cvalue,*) wav_coupling_to_cice
 
     call NUOPC_CompAttributeGet(gcomp, name='ocn2glc_coupling', value=cvalue, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -126,71 +124,71 @@ contains
        ! mapping to atm
        call NUOPC_CompAttributeGet(gcomp, name='ice2atm_map', value=ice2atm_map,  rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (mastertask) write(logunit, '(a)') trim(subname)//'ice2atm_map = '// trim(ice2atm_map)
+       if (maintask) write(logunit, '(a)') trim(subname)//'ice2atm_map = '// trim(ice2atm_map)
        call NUOPC_CompAttributeGet(gcomp, name='lnd2atm_map', value=lnd2atm_map,  rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (mastertask) write(logunit, '(a)') trim(subname)//'lnd2atm_map = '// trim(lnd2atm_map)
+       if (maintask) write(logunit, '(a)') trim(subname)//'lnd2atm_map = '// trim(lnd2atm_map)
        call NUOPC_CompAttributeGet(gcomp, name='ocn2atm_map', value=ocn2atm_map,  rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (mastertask) write(logunit, '(a)') trim(subname)//'ocn2atm_map = '// trim(ocn2atm_map)
+       if (maintask) write(logunit, '(a)') trim(subname)//'ocn2atm_map = '// trim(ocn2atm_map)
 
        ! mapping to lnd
        call NUOPC_CompAttributeGet(gcomp, name='atm2lnd_map', value=atm2lnd_map,  rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (mastertask) write(logunit, '(a)') trim(subname)//'atm2lnd_map = '// trim(atm2lnd_map)
+       if (maintask) write(logunit, '(a)') trim(subname)//'atm2lnd_map = '// trim(atm2lnd_map)
        call NUOPC_CompAttributeGet(gcomp, name='rof2lnd_map', value=rof2lnd_map,  rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (mastertask) write(logunit, '(a)') trim(subname)//'rof2lnd_map = '// trim(rof2lnd_map)
+       if (maintask) write(logunit, '(a)') trim(subname)//'rof2lnd_map = '// trim(rof2lnd_map)
 
        ! mapping to ice
        call NUOPC_CompAttributeGet(gcomp, name='atm2ice_map', value=atm2ice_map,  rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (mastertask) write(logunit, '(a)') trim(subname)//'atm2ice_map = '// trim(atm2ice_map)
+       if (maintask) write(logunit, '(a)') trim(subname)//'atm2ice_map = '// trim(atm2ice_map)
        call NUOPC_CompAttributeGet(gcomp, name='glc2ice_rmapname', value=glc2ice_rmap,  rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (mastertask) write(logunit, '(a)') trim(subname)//'glc2ice_rmapname = '// trim(glc2ice_rmap)
+       if (maintask) write(logunit, '(a)') trim(subname)//'glc2ice_rmapname = '// trim(glc2ice_rmap)
 
        ! mapping to ocn
        call NUOPC_CompAttributeGet(gcomp, name='atm2ocn_map', value=atm2ocn_map,  rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (mastertask) write(logunit, '(a)') trim(subname)//'atm2ocn_map = '// trim(atm2ocn_map)
+       if (maintask) write(logunit, '(a)') trim(subname)//'atm2ocn_map = '// trim(atm2ocn_map)
        call NUOPC_CompAttributeGet(gcomp, name='glc2ocn_liq_rmapname', value=glc2ocn_liq_rmap,  rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (mastertask) write(logunit, '(a)') trim(subname)//'glc2ocn_liq_rmapname = '// trim(glc2ocn_liq_rmap)
+       if (maintask) write(logunit, '(a)') trim(subname)//'glc2ocn_liq_rmapname = '// trim(glc2ocn_liq_rmap)
        call NUOPC_CompAttributeGet(gcomp, name='glc2ocn_ice_rmapname', value=glc2ocn_ice_rmap,  rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (mastertask) write(logunit, '(a)') trim(subname)//'glc2ocn_ice_rmapname = '// trim(glc2ocn_ice_rmap)
+       if (maintask) write(logunit, '(a)') trim(subname)//'glc2ocn_ice_rmapname = '// trim(glc2ocn_ice_rmap)
        call NUOPC_CompAttributeGet(gcomp, name='wav2ocn_smapname', value=wav2ocn_smap,  rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (mastertask) write(logunit, '(a)') trim(subname)//'wav2ocn_smapname = '// trim(wav2ocn_smap)
+       if (maintask) write(logunit, '(a)') trim(subname)//'wav2ocn_smapname = '// trim(wav2ocn_smap)
 
        call NUOPC_CompAttributeGet(gcomp, name='rof2ocn_fmapname', value=rof2ocn_fmap,  rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (mastertask) write(logunit, '(a)') trim(subname)//'rof2ocn_fmapname = '// trim(rof2ocn_fmap)
+       if (maintask) write(logunit, '(a)') trim(subname)//'rof2ocn_fmapname = '// trim(rof2ocn_fmap)
 
        call NUOPC_CompAttributeGet(gcomp, name='rof2ocn_liq_rmapname', value=rof2ocn_liq_rmap,  rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (mastertask) write(logunit, '(a)') trim(subname)//'rof2ocn_liq_rmapname = '// trim(rof2ocn_liq_rmap)
+       if (maintask) write(logunit, '(a)') trim(subname)//'rof2ocn_liq_rmapname = '// trim(rof2ocn_liq_rmap)
        call NUOPC_CompAttributeGet(gcomp, name='rof2ocn_ice_rmapname', value=rof2ocn_ice_rmap,  rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (mastertask) write(logunit, '(a)') trim(subname)//'rof2ocn_ice_rmapname = '// trim(rof2ocn_ice_rmap)
+       if (maintask) write(logunit, '(a)') trim(subname)//'rof2ocn_ice_rmapname = '// trim(rof2ocn_ice_rmap)
 
        ! mapping to rof
        call NUOPC_CompAttributeGet(gcomp, name='lnd2rof_map', value=lnd2rof_map,  rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (mastertask) write(logunit, '(a)') trim(subname)//'lnd2rof_map = '// trim(lnd2rof_map)
+       if (maintask) write(logunit, '(a)') trim(subname)//'lnd2rof_map = '// trim(lnd2rof_map)
 
        ! mapping to wav
        call NUOPC_CompAttributeGet(gcomp, name='atm2wav_map', value=atm2wav_map, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (mastertask) write(logunit,'(a)') trim(subname)//'atm2wav_map = '// trim(atm2wav_map)
+       if (maintask) write(logunit,'(a)') trim(subname)//'atm2wav_map = '// trim(atm2wav_map)
 
        call NUOPC_CompAttributeGet(gcomp, name='ice2wav_smapname', value=ice2wav_smap,  rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (mastertask) write(logunit,'(a)') trim(subname)//'ice2wav_smapname = '// trim(ice2wav_smap)
+       if (maintask) write(logunit,'(a)') trim(subname)//'ice2wav_smapname = '// trim(ice2wav_smap)
        call NUOPC_CompAttributeGet(gcomp, name='ocn2wav_smapname', value=ocn2wav_smap,  rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (mastertask) write(logunit,'(a)') trim(subname)//'ocn2wav_smapname = '// trim(ocn2wav_smap)
+       if (maintask) write(logunit,'(a)') trim(subname)//'ocn2wav_smapname = '// trim(ocn2wav_smap)
 
        ! uv cart3d mapping
        call NUOPC_CompAttributeGet(gcomp, name='mapuv_with_cart3d', value=cvalue,  rc=rc)
@@ -223,7 +221,7 @@ contains
        read(cvalue,*) flds_r2l_stream_channel_depths
 
        ! write diagnostic output
-       if (mastertask) then
+       if (maintask) then
           write(logunit,'(a,l7)') trim(subname)//' flds_co2a                       = ',flds_co2a
           write(logunit,'(a,l7)') trim(subname)//' flds_co2b                       = ',flds_co2b
           write(logunit,'(a,l7)') trim(subname)//' flds_co2c                       = ',flds_co2c
@@ -398,6 +396,19 @@ contains
             fldchk(is_local%wrap%FBImp(compatm,compatm ), 'Sa_o3', rc=rc)) then
           call addmap_from(compatm, 'Sa_o3', complnd, mapbilnr, 'one', atm2lnd_map)
           call addmrg_to(complnd, 'Sa_o3', mrg_from=compatm, mrg_fld='Sa_o3', mrg_type='copy')
+       end if
+    end if
+    ! ---------------------------------------------------------------------
+    ! to lnd: cld to grnd lightning flash freq
+    ! ---------------------------------------------------------------------
+    if (phase == 'advertise') then
+       call addfld_from(compatm, 'Sa_lightning')
+       call addfld_to(complnd, 'Sa_lightning')
+    else
+       if ( fldchk(is_local%wrap%FBexp(complnd)         , 'Sa_lightning', rc=rc) .and. &
+            fldchk(is_local%wrap%FBImp(compatm,compatm ), 'Sa_lightning', rc=rc)) then
+          call addmap_from(compatm, 'Sa_lightning', complnd, mapbilnr, 'one', atm2lnd_map)
+          call addmrg_to(complnd, 'Sa_lightning', mrg_from=compatm, mrg_fld='Sa_lightning', mrg_type='copy')
        end if
     end if
     ! ---------------------------------------------------------------------
@@ -1976,6 +1987,17 @@ contains
                mrg_from=compatm, mrg_fld='Faxa_dstdry', mrg_type='copy_with_weights', mrg_fracname='ofrac')
        end if
     end if
+    if (phase == 'advertise') then
+       call addfld_to(compocn, 'Faxa_ndep')
+       call addfld_from(compatm, 'Faxa_ndep')
+    else
+       if ( fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_ndep', rc=rc) .and. &
+            fldchk(is_local%wrap%FBExp(compocn)        , 'Faxa_ndep', rc=rc)) then
+          call addmap_from(compatm, 'Faxa_ndep', compocn, mapconsf, 'one', atm2ocn_map)
+          call addmrg_to(compocn, 'Faxa_ndep', &
+               mrg_from=compatm, mrg_fld='Faxa_ndep', mrg_type='copy')
+       end if
+    end if
 
     ! ---------------------------------------------------------------------
     ! to ocn: enthalpy from atm rain, snow, evaporation
@@ -2321,7 +2343,7 @@ contains
        end if
     end if
     !-----------------------------
-    ! to ocn: Stokes drift depth from wave
+    ! to ocn: Partitioned stokes drift components in y-direction
     !-----------------------------
     if (phase == 'advertise') then
        call addfld_from(compwav, 'Sw_pstokes_y')
@@ -2836,7 +2858,7 @@ contains
     ! ---------------------------------------------------------------------
     ! to ice: wave elevation spectrum (field with ungridded dimensions)
     ! ---------------------------------------------------------------------
-    if (wavice_coupling) then
+    if (wav_coupling_to_cice) then
        if (phase == 'advertise') then
           call addfld_from(compwav, 'Sw_elevation_spectrum')
           call addfld_to(compice, 'Sw_elevation_spectrum')
@@ -2871,7 +2893,7 @@ contains
     !----------------------------------------------------------
     ! to wav: ice thickness from ice
     !----------------------------------------------------------
-    if (wavice_coupling) then
+    if (wav_coupling_to_cice) then
        if (phase == 'advertise') then
           call addfld_from(compice, 'Si_thick')
           call addfld_to(compwav, 'Si_thick')
@@ -2886,7 +2908,7 @@ contains
     !----------------------------------------------------------
     ! to wav: ice floe diameter from ice
     !----------------------------------------------------------
-    if (wavice_coupling) then
+    if (wav_coupling_to_cice) then
        if (phase == 'advertise') then
           call addfld_from(compice, 'Si_floediam')
           call addfld_to(compwav, 'Si_floediam')
@@ -2989,6 +3011,14 @@ contains
           call addmap_from(compatm, 'Sa_tbot', compwav, mapbilnr, 'one', atm2wav_map)
           call addmrg_to(compwav, 'Sa_tbot', mrg_from=compatm, mrg_fld='Sa_tbot', mrg_type='copy')
        end if
+    end if
+
+    ! ---------------------------------------------------------------------
+    ! to wav: zonal and meridional wind stress
+    ! ---------------------------------------------------------------------
+    if (phase == 'advertise') then
+       call addfld_to(compwav , 'Fwxx_taux')
+       call addfld_to(compwav , 'Fwxx_tauy')
     end if
 
     !=====================================================================
