@@ -242,7 +242,12 @@
       <!-- =================================================== -->
       <value compset="_BLOM" grid="oi%tnx0.25v">48</value>
       <!-- =================================================== -->
-      <!-- High res WW3DEV -->
+      <!-- WW3DEV Testing -->
+      <!-- This can be used for testing but is incompatible with many -->
+      <!-- coupled compsets (e.g., 1/2 degree needs 96, higher-top models -->
+      <!-- often need shorter intervals). I think this section should -->
+      <!-- (eventually) be expanded with more entries for different -->
+      <!-- atmosphere (and ocean) configurations and resolutions. -->
       <!-- =================================================== -->
       <value compset="_WW3DEV" grid="w%w025">72</value>
     </values>
