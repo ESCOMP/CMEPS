@@ -241,6 +241,10 @@
       <!-- High res BLOM -->
       <!-- =================================================== -->
       <value compset="_BLOM" grid="oi%tnx0.25v">48</value>
+      <!-- =================================================== -->
+      <!-- High res WW3DEV -->
+      <!-- =================================================== -->
+      <value compset="_WW3DEV" grid="w%w025">72</value>
     </values>
     <group>run_coupling</group>
     <file>env_run.xml</file>
