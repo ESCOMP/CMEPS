@@ -1287,7 +1287,7 @@ contains
              call med_io_write(auxcomp%files(nf)%histfile, is_local%wrap%FBimp(compid,compid), &
                   whead(1), wdata(1), nx, ny, nt=auxcomp%files(nf)%nt, &
                   pre=trim(compname(compid))//'Imp', flds=auxcomp%files(nf)%flds, &
-                  file_ind=nf, use_float=.true., rc=rc)
+                  file_ind=nf, use_float=.false., rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
              ! end definition phase

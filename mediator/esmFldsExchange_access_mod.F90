@@ -7,10 +7,7 @@ module esmFldsExchange_access_mod
     use med_kind_mod          , only : CS=>SHR_KIND_CS
     use med_kind_mod          , only : CL=>SHR_KIND_CL
     use med_kind_mod          , only : R8=>SHR_KIND_R8
-    use med_internalstate_mod , only : compmed
-    use med_internalstate_mod , only : compatm
-    use med_internalstate_mod , only : compocn
-    use med_internalstate_mod , only : compwav
+    use med_internalstate_mod , only : compmed, compatm, compocn, compwav, compice
     use med_internalstate_mod , only : ncomps
     use med_internalstate_mod , only : coupling_mode
     use esmflds               , only : fldListTo
@@ -121,14 +118,14 @@ module esmFldsExchange_access_mod
       ! to med: masks from components
       !----------------------------------------------------------
       call addfld(fldListFr(compocn)%flds, 'So_omask')
-      call addfld(fldListFr(compocn)%flds, 'So_imask')
+      call addfld(fldListFr(compice)%flds, 'Si_imask')
 
       !=====================================================================
       ! FIELDS TO ATMOSPHERE
       !=====================================================================
 
       call addfld(fldListTo(compatm)%flds, 'So_ofrac')
-      call addfld(fldListTo(compatm)%flds, 'So_ifrac')
+      call addfld(fldListTo(compatm)%flds, 'Si_ifrac')
 
       ! ---------------------------------------------------------------------
       ! to atm: from ocn
@@ -145,14 +142,8 @@ module esmFldsExchange_access_mod
       ! ---------------------------------------------------------------------
       ! to atm: from ice
       ! ---------------------------------------------------------------------
-      allocate(S_flds(1))
-      S_flds = (/'Si_t'/) ! sea_surface_temperature
-      do n = 1,size(S_flds)
-        fldname = trim(S_flds(n))
-        call addfld(fldListFr(compice)%flds, trim(fldname))
-        call addfld(fldListTo(compatm)%flds, trim(fldname))
-      end do
-      deallocate(S_flds)
+      call addfld(fldListFr(compice)%flds, 'Si_t')
+      call addfld(fldListTo(compatm)%flds, 'Si_t')
 
       !=====================================================================
       ! FIELDS TO OCEAN (compocn)
@@ -162,7 +153,7 @@ module esmFldsExchange_access_mod
       ! to ocn: state fields
       ! ---------------------------------------------------------------------
       allocate(S_flds(2))
-      S_flds = (/'inst_pres_height_surface', & ! inst_zonal_wind_height10m
+      S_flds = (/'Sa_pslv', & ! inst_zonal_wind_height10m
                   'So_duu10n' /) ! inst_temp_height_surface
       do n = 1,size(S_flds)
          fldname = trim(S_flds(n))
@@ -176,22 +167,20 @@ module esmFldsExchange_access_mod
       ! ---------------------------------------------------------------------
 
       ! from atm
-      allocate(F_flds(15, 2))
+      allocate(F_flds(13, 2))
       F_flds(1,:) = (/'Faxa_taux ', 'Foxx_taux'/)
       F_flds(2,:) = (/'Faxa_tauy ', 'Foxx_tauy'/)
-      F_flds(3,:) = (/'mean_sensi_heat_flx', 'mean_sensi_heat_flx'/)
-      F_flds(4,:) = (/'mean_evap_rate', 'mean_evap_rate'/)
-      F_flds(5,:) = (/'mean_net_lw_flx', 'mean_net_lw_flx'/)
-      F_flds(6,:) = (/'mean_net_sw_vis_dir_flx', 'mean_net_sw_vis_dir_flx'/)
-      F_flds(7,:) = (/'mean_net_sw_vis_dif_flx', 'mean_net_sw_vis_dif_flx'/)
-      F_flds(8,:) = (/'mean_net_sw_ir_dir_flx', 'mean_net_sw_ir_dir_flx'/)
-      F_flds(9,:) = (/'mean_net_sw_ir_dif_flx', 'mean_net_sw_ir_dif_flx'/)
-      F_flds(10,:) = (/'Faxa_rainc', 'mean_prec_rate'/)
-      F_flds(11,:) = (/'Faxa_rainl', 'mean_prec_rate'/)
-      F_flds(12,:) = (/'Faxa_snowc', 'mean_fprec_rate'/)
-      F_flds(13,:) = (/'Faxa_snowl', 'mean_fprec_rate'/)
-      F_flds(14,:) = (/'Foxx_rofl', 'Foxx_rofl'/)  ! mean runoff rate (liquid)
-      F_flds(15,:) = (/'Foxx_rofi', 'Foxx_rofi'/)  ! mean runnof rate (frozen)
+      F_flds(3,:) = (/'Foxx_sen', 'Foxx_sen'/)
+      F_flds(4,:) = (/'Foxx_evap', 'Foxx_evap'/)
+      F_flds(5,:) = (/'Foxx_lwnet', 'Foxx_lwnet'/)
+      F_flds(6,:) = (/'Foxx_swnet_vdr', 'Foxx_swnet_vdr'/)
+      F_flds(7,:) = (/'Foxx_swnet_vdf', 'Foxx_swnet_vdf'/)
+      F_flds(8,:) = (/'Foxx_swnet_idr', 'Foxx_swnet_idr'/)
+      F_flds(9,:) = (/'Foxx_swnet_idf', 'Foxx_swnet_idf'/)
+      F_flds(10,:) = (/'Faxa_rainc', 'Faxa_rain'/)
+      F_flds(11,:) = (/'Faxa_snowc', 'Faxa_snow'/)
+      F_flds(12,:) = (/'Foxx_rofl', 'Foxx_rofl'/)  ! mean runoff rate (liquid)
+      F_flds(13,:) = (/'Foxx_rofi', 'Foxx_rofi'/)  ! mean runnof rate (frozen)
 
       do n = 1,size(F_flds,1)
          fldname1 = trim(F_flds(n,1))
@@ -201,12 +190,15 @@ module esmFldsExchange_access_mod
       end do
       deallocate(F_flds)
 
+      call addfld(fldListFr(compatm)%flds, 'Faxa_rainc')
+      call addfld(fldListFr(compatm)%flds, 'Faxa_snowc')
+
       ! from ice
       allocate(F_flds(6, 2))
-      F_flds(1,:) = (/'mean_salt_rate', 'mean_salt_rate'/)
+      F_flds(1,:) = (/'Fioi_salt', 'Fioi_salt'/)
       F_flds(2,:) = (/'Si_ifrac', 'Si_ifrac'/) ! ice_fraction
-      F_flds(3,:) = (/'mean_fresh_water_to_ocean_rate', 'mean_fresh_water_to_ocean_rate'/)
-      F_flds(4,:) = (/'net_heat_flx_to_ocn', 'net_heat_flx_to_ocn'/) ! heat flux sea-ice to ocean
+      F_flds(3,:) = (/'Fioi_meltw', 'Fioi_meltw'/)
+      F_flds(4,:) = (/'Fioi_melth', 'Fioi_melth'/) ! heat flux sea-ice to ocean
       F_flds(5,:) = (/'Fioi_taux', 'Foxx_taux'/)
       F_flds(6,:) = (/'Fioi_tauy', 'Foxx_tauy'/) ! heat flux sea-ice to ocean
       do n = 1,size(F_flds,1)
@@ -227,13 +219,13 @@ module esmFldsExchange_access_mod
 
       ! from atm
       allocate(S_flds(2))
-      S_flds = (/'inst_height_lowest', &
-                  'inst_zonal_wind_height_lowest', &
-                  'inst_merid_wind_height_lowest', &
-                  'inst_spec_humid_height_lowest', &
-                  'inst_temp_height_lowest', &
-                  'inst_pres_height_lowest', &
-                  'air_density_height_lowest', &
+      S_flds = (/'Sa_z', &
+                  'Sa_u', &
+                  'Sa_v', &
+                  'Sa_shum', &
+                  'Sa_tbot', &
+                  'Sa_pbot', &
+                  'Sa_dens', &
                   'Sa_ptem'/)
       do n = 1,size(S_flds)
          fldname = trim(S_flds(n))
@@ -244,13 +236,13 @@ module esmFldsExchange_access_mod
 
       ! from ocn
       allocate(S_flds(7))
-      S_flds = (/'sea_surface_slope_zonal', & ! inst_zonal_wind_height10m
-                  'sea_surface_slope_merid', & ! inst_merid_wind_height10m
-                  'sea_surface_temperature ', & ! inst_temp_height2m
-                  's_surf ', & ! inst_spec_humid_height2m
-                  'ocn_current_zonal', & ! inst_pres_height_surface
-                  'ocn_current_merid', & ! inst_pres_height_surface
-                  'freezing_melting_potential' /) ! inst_temp_height_surface
+      S_flds = (/'So_dhdx', & 
+                 'So_dhdy', &
+                 'So_t', & 
+                 'So_s', & 
+                 'So_u', & 
+                 'So_v', & 
+                 'Fioo_q' /) 
       do n = 1,size(S_flds)
          fldname = trim(S_flds(n))
          call addfld(fldListFr(compocn)%flds, trim(fldname))
@@ -262,13 +254,13 @@ module esmFldsExchange_access_mod
       ! to ice: flux fields
       ! ---------------------------------------------------------------------
       allocate(F_flds(7, 2))
-      F_flds(1,:) = (/'mean_down_sw_vis_dir_flx ', 'mean_down_sw_vis_dir_flx '/)
-      F_flds(2,:) = (/'mean_down_sw_ir_dir_flx ', 'mean_down_sw_ir_dir_flx '/)
-      F_flds(3,:) = (/'mean_down_sw_vis_dif_flx', 'mean_down_sw_vis_dif_flx'/)
-      F_flds(4,:) = (/'mean_down_sw_ir_dif_flx', 'mean_down_sw_ir_dif_flx'/)
-      F_flds(5,:) = (/'mean_down_lw_flx', 'mean_down_lw_flx'/)
-      F_flds(6,:) = (/'mean_prec_rate', 'mean_prec_rate'/)
-      F_flds(7,:) = (/'mean_fprec_rate', 'mean_fprec_rate'/)
+      F_flds(1,:) = (/'Faxa_swvdr ', 'Faxa_swvdr '/)
+      F_flds(2,:) = (/'Faxa_swndr ', 'Faxa_swndr '/)
+      F_flds(3,:) = (/'Faxa_swvdf', 'Faxa_swvdf'/)
+      F_flds(4,:) = (/'Faxa_swndf', 'Faxa_swndf'/)
+      F_flds(5,:) = (/'Faxa_lwdn', 'Faxa_lwdn'/)
+      F_flds(6,:) = (/'Faxa_rainl', 'Faxa_rain'/)
+      F_flds(7,:) = (/'Faxa_snowl', 'Faxa_snow'/)
       do n = 1,size(F_flds,1)
          fldname1 = trim(F_flds(n,1))
          fldname2 = trim(F_flds(n,2))
@@ -277,6 +269,9 @@ module esmFldsExchange_access_mod
       end do
       deallocate(F_flds)
 
+      call addfld(fldListFr(compatm)%flds, 'Faxa_rainc')
+      call addfld(fldListFr(compatm)%flds, 'Faxa_snowc')
+      
       call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
 
     end subroutine esmFldsExchange_access_advt
@@ -372,35 +367,11 @@ module esmFldsExchange_access_mod
       ! ---------------------------------------------------------------------
       ! to atm: sea surface temperature
       ! ---------------------------------------------------------------------
-      allocate(S_flds(1))
-      S_flds = (/'So_t'/) ! sea_surface_temperature
-      do n = 1,size(S_flds)
-         fldname = trim(S_flds(n))
-         if (fldchk(is_local%wrap%FBExp(compatm), trim(fldname),rc=rc) .and. &
-             fldchk(is_local%wrap%FBImp(compocn, compocn), trim(fldname),rc=rc) &
-            ) then
+      call addmap(fldListFr(compocn)%flds, 'So_t', compatm, mapconsf, 'ofrac', 'unset')
+      call addmrg(fldListTo(compatm)%flds, 'So_t', mrg_from=compocn, mrg_fld='So_t', mrg_type='copy')
 
-            call addmap(fldListFr(compocn)%flds, trim(fldname), compatm, mapconsf, 'ofrac', 'unset')
-            call addmrg(fldListTo(compatm)%flds, trim(fldname), mrg_from=compocn, mrg_fld=trim(fldname), mrg_type='copy')
-
-         end if
-      end do
-      deallocate(S_flds)
-
-      allocate(S_flds(1))
-      S_flds = (/'Si_t'/) ! sea ice temperature
-      do n = 1,size(S_flds)
-         fldname = trim(S_flds(n))
-         if (fldchk(is_local%wrap%FBExp(compatm), trim(fldname),rc=rc) .and. &
-            fldchk(is_local%wrap%FBImp(compice, compice), trim(fldname),rc=rc) &
-            ) then
-
-            call addmap(fldListFr(compice)%flds, trim(fldname), compatm, mapconsf, 'ifrac', 'unset')
-            call addmrg(fldListTo(compatm)%flds, trim(fldname), mrg_from=compice, mrg_fld=trim(fldname), mrg_type='copy')
-
-            end if
-      end do
-      deallocate(S_flds)
+      call addmap(fldListFr(compice)%flds, 'Si_t', compatm, mapconsf, 'ifrac', 'unset')
+      call addmrg(fldListTo(compatm)%flds, 'Si_t', mrg_from=compice, mrg_fld='Si_t', mrg_type='copy')
 
       !=====================================================================
       ! FIELDS TO OCEAN (compocn)
@@ -410,7 +381,7 @@ module esmFldsExchange_access_mod
       ! to ocn: state fields
       ! ---------------------------------------------------------------------
       allocate(S_flds(2))
-      S_flds = (/'inst_pres_height_surface', & ! inst_zonal_wind_height10m
+      S_flds = (/'Sa_pslv', & ! inst_zonal_wind_height10m
                   'So_duu10n' /) ! inst_temp_height_surface
       do n = 1,size(S_flds)
          fldname = trim(S_flds(n))
@@ -418,7 +389,7 @@ module esmFldsExchange_access_mod
              fldchk(is_local%wrap%FBImp(compatm, compatm), trim(fldname), rc=rc) &
             ) then
 
-            call addmap(fldListFr(compatm)%flds, trim(fldname), compocn, mapbilnr, 'one', atm2ice_map)
+            call addmap(fldListFr(compatm)%flds, trim(fldname), compocn, mapbilnr, 'one', 'unset')
             call addmrg(fldListTo(compocn)%flds, trim(fldname), mrg_from=compatm, mrg_fld=trim(fldname), mrg_type='copy')
 
          end if
@@ -431,17 +402,15 @@ module esmFldsExchange_access_mod
 
       ! from atm
       allocate(F_flds(11, 2))
-      F_flds(1,:) = (/'mean_zonal_moment_flx', 'mean_zonal_moment_flx'/)
-      F_flds(2,:) = (/'mean_merid_moment_flx', 'mean_merid_moment_flx'/)
-      F_flds(3,:) = (/'mean_sensi_heat_flx', 'mean_sensi_heat_flx'/)
-      F_flds(4,:) = (/'mean_evap_rate', 'mean_evap_rate'/)
-      F_flds(5,:) = (/'mean_net_lw_flx', 'mean_net_lw_flx'/)
-      F_flds(6,:) = (/'mean_net_sw_vis_dir_flx', 'mean_net_sw_vis_dir_flx'/)
-      F_flds(7,:) = (/'mean_net_sw_vis_dif_flx', 'mean_net_sw_vis_dif_flx'/)
-      F_flds(8,:) = (/'mean_net_sw_ir_dir_flx', 'mean_net_sw_ir_dir_flx'/)
-      F_flds(9,:) = (/'mean_net_sw_ir_dif_flx', 'mean_net_sw_ir_dif_flx'/)
-      F_flds(10,:) = (/'Foxx_rofl', 'Foxx_rofl'/)  ! mean runoff rate (liquid)
-      F_flds(11,:) = (/'Foxx_rofi', 'Foxx_rofi'/)  ! mean runnof rate (frozen)
+      F_flds(1,:) = (/'Foxx_sen', 'Foxx_sen'/)
+      F_flds(2,:) = (/'Foxx_evap', 'Foxx_evap'/)
+      F_flds(3,:) = (/'Foxx_lwnet', 'Foxx_lwnet'/)
+      F_flds(4,:) = (/'Foxx_swnet_vdr', 'Foxx_swnet_vdr'/)
+      F_flds(5,:) = (/'Foxx_swnet_vdf', 'Foxx_swnet_vdf'/)
+      F_flds(6,:) = (/'Foxx_swnet_idr', 'Foxx_swnet_idr'/)
+      F_flds(7,:) = (/'Foxx_swnet_idf', 'Foxx_swnet_idf'/)
+      F_flds(8,:) = (/'Foxx_rofl', 'Foxx_rofl'/)  ! mean runoff rate (liquid)
+      F_flds(9,:) = (/'Foxx_rofi', 'Foxx_rofi'/)  ! mean runnof rate (frozen)
 
       do n = 1,size(F_flds,1)
          fldname1 = trim(F_flds(n,1))
@@ -456,22 +425,22 @@ module esmFldsExchange_access_mod
       deallocate(F_flds)
 
       ! precip
-      call addmap_from(compatm, 'Faxa_rainc', compocn, mapconsf, 'one', 'unset')
-      call addmrg_to(compocn, 'mean_prec_rate', mrg_from=compatm, mrg_fld='Faxa_rainc', mrg_type='merge')
-      call addmap_from(compatm, 'Faxa_rainl', compocn, mapconsf, 'one', 'unset')
-      call addmrg_to(compocn, 'mean_prec_rate', mrg_from=compatm, mrg_fld='Faxa_rainl', mrg_type='merge')
+      call addmap(fldListFr(compatm)%flds, 'Faxa_rainc', compocn, mapconsf, 'one', 'unset')
+      call addmrg(fldListTo(compocn)%flds, 'Faxa_rain', mrg_from=compatm, mrg_fld='Faxa_rainc', mrg_type='sum')
+      call addmap(fldListFr(compatm)%flds, 'Faxa_rainl', compocn, mapconsf, 'one', 'unset')
+      call addmrg(fldListTo(compocn)%flds, 'Faxa_rain', mrg_from=compatm, mrg_fld='Faxa_rainl', mrg_type='sum')
 
-      call addmap_from(compatm, 'Faxa_snowc', compocn, mapconsf, 'one', 'unset')
-      call addmrg_to(compocn, 'mean_fprec_rate', mrg_from=compatm, mrg_fld='Faxa_snowc', mrg_type='merge')
-      call addmap_from(compatm, 'Faxa_snowl', compocn, mapconsf, 'one', 'unset')
-      call addmrg_to(compocn, 'mean_fprec_rate', mrg_from=compatm, mrg_fld='Faxa_snowl', mrg_type='merge')
+      call addmap(fldListFr(compatm)%flds, 'Faxa_snowc', compocn, mapconsf, 'one', 'unset')
+      call addmrg(fldListTo(compocn)%flds, 'Faxa_snow', mrg_from=compatm, mrg_fld='Faxa_snowc', mrg_type='sum')
+      call addmap(fldListFr(compatm)%flds, 'Faxa_snowl', compocn, mapconsf, 'one', 'unset')
+      call addmrg(fldListTo(compocn)%flds, 'Faxa_snow', mrg_from=compatm, mrg_fld='Faxa_snowl', mrg_type='sum')
 
       ! from ice
       allocate(F_flds(4, 2))
-      F_flds(1,:) = (/'mean_salt_rate', 'mean_salt_rate'/)
+      F_flds(1,:) = (/'Fioi_salt', 'Fioi_salt'/)
       F_flds(2,:) = (/'Si_ifrac', 'Si_ifrac'/) ! ice_fraction
-      F_flds(3,:) = (/'mean_fresh_water_to_ocean_rate', 'mean_fresh_water_to_ocean_rate'/)
-      F_flds(4,:) = (/'net_heat_flx_to_ocn', 'net_heat_flx_to_ocn'/) ! heat flux sea-ice to ocean
+      F_flds(3,:) = (/'Fioi_meltw', 'Fioi_meltw'/)
+      F_flds(4,:) = (/'Fioi_melth', 'Fioi_melth'/) ! heat flux sea-ice to ocean
       do n = 1,size(F_flds,1)
          fldname1 = trim(F_flds(n,1))
          fldname2 = trim(F_flds(n,2))
@@ -485,15 +454,15 @@ module esmFldsExchange_access_mod
       deallocate(F_flds)
 
       ! momentum transfer
-      call addmap_from(compice, 'Fioi_taux', compocn, mapfcopy, 'unset', 'unset')
-      call addmrg_to(compocn, 'Foxx_taux', mrg_from=compice, mrg_fld='Fioi_taux', mrg_type='merge', mrg_fracname='ifrac')
-      call addmap_from(compatm, 'Faxa_taux', compocn, mapconsf, 'one', 'unset')
-      call addmrg_to(compocn, 'Foxx_taux', mrg_from=compatm, mrg_fld='Faxa_taux', mrg_type='merge', mrg_fracname='ofrac')
+      call addmap(fldListFr(compice)%flds, 'Fioi_taux', compocn, mapfcopy, 'unset', 'unset')
+      call addmrg(fldListTo(compocn)%flds, 'Foxx_taux', mrg_from=compice, mrg_fld='Fioi_taux', mrg_type='merge', mrg_fracname='ifrac')
+      call addmap(fldListFr(compatm)%flds, 'Faxa_taux', compocn, mapconsf, 'one', 'unset')
+      call addmrg(fldListTo(compocn)%flds, 'Foxx_taux', mrg_from=compatm, mrg_fld='Faxa_taux', mrg_type='merge', mrg_fracname='ofrac')
 
-      call addmap_from(compice, 'Fioi_tauy', compocn, mapfcopy, 'unset', 'unset')
-      call addmrg_to(compocn, 'Foxx_tauy', mrg_from=compice, mrg_fld='Fioi_tauy', mrg_type='merge', mrg_fracname='ifrac')
-      call addmap_from(compatm, 'Faxa_tauy', compocn, mapconsf, 'one', 'unset')
-      call addmrg_to(compocn, 'Foxx_tauy', mrg_from=compatm, mrg_fld='Faxa_tauyx', mrg_type='merge', mrg_fracname='ofrac')
+      call addmap(fldListFr(compice)%flds, 'Fioi_tauy', compocn, mapfcopy, 'unset', 'unset')
+      call addmrg(fldListTo(compocn)%flds, 'Foxx_tauy', mrg_from=compice, mrg_fld='Fioi_tauy', mrg_type='merge', mrg_fracname='ifrac')
+      call addmap(fldListFr(compatm)%flds, 'Faxa_tauy', compocn, mapconsf, 'one', 'unset')
+      call addmrg(fldListTo(compocn)%flds, 'Foxx_tauy', mrg_from=compatm, mrg_fld='Faxa_tauy', mrg_type='merge', mrg_fracname='ofrac')
 
       !=====================================================================
       ! FIELDS TO ICE (compice)
@@ -505,13 +474,13 @@ module esmFldsExchange_access_mod
 
       ! from atm
       allocate(S_flds(8))
-      S_flds = (/'inst_height_lowest', & ! inst_zonal_wind_height10m
-                  'inst_zonal_wind_height_lowest', & ! inst_merid_wind_height10m
-                  'inst_merid_wind_height_lowest ', & ! inst_temp_height2m
-                  'inst_spec_humid_height_lowest ', & ! inst_spec_humid_height2m
-                  'inst_temp_height_lowest', & ! inst_pres_height_surface
-                  'inst_pres_height_lowest', &
-                  'air_density_height_lowest', &
+      S_flds = (/'Sa_z', & ! inst_zonal_wind_height10m
+                  'Sa_u', & ! inst_merid_wind_height10m
+                  'Sa_v ', & ! inst_temp_height2m
+                  'Sa_shum ', & ! inst_spec_humid_height2m
+                  'Sa_tbot', & ! Sa_pslv
+                  'Sa_pbot', &
+                  'Sa_dens', &
                   'Sa_ptem' /) ! inst_temp_height_surface
 
       do n = 1,size(S_flds)
@@ -529,13 +498,13 @@ module esmFldsExchange_access_mod
 
       ! from ocn
       allocate(S_flds(6))
-      S_flds = (/'sea_surface_slope_zonal', & ! inst_zonal_wind_height10m
-                  'sea_surface_slope_merid', & ! inst_merid_wind_height10m
-                  'sea_surface_temperature ', & ! inst_temp_height2m
-                  's_surf ', & ! inst_spec_humid_height2m
-                  'ocn_current_zonal', & ! inst_pres_height_surface
-                  'ocn_current_merid', & ! inst_pres_height_surface
-                  'freezing_melting_potential' /) ! inst_temp_height_surface
+      S_flds = (/'So_dhdx', & ! inst_zonal_wind_height10m
+                 'So_dhdy', & ! inst_merid_wind_height10m
+                 'So_t ', & ! inst_temp_height2m
+                 'So_s ', & ! inst_spec_humid_height2m
+                 'So_u', & ! Sa_pslv
+                 'So_v', & ! Sa_pslv
+                 'Fioo_q' /) ! inst_temp_height_surface
       do n = 1,size(S_flds)
          fldname = trim(S_flds(n))
          if (fldchk(is_local%wrap%FBExp(compice),trim(fldname),rc=rc) .and. &
@@ -555,11 +524,11 @@ module esmFldsExchange_access_mod
 
       ! from atm
       allocate(F_flds(5, 2))
-      F_flds(1,:) = (/'mean_down_sw_vis_dir_flx ', 'mean_down_sw_vis_dir_flx '/)
-      F_flds(2,:) = (/'mean_down_sw_ir_dir_flx ', 'mean_down_sw_ir_dir_flx '/)
-      F_flds(3,:) = (/'mean_down_sw_vis_dif_flx', 'mean_down_sw_vis_dif_flx'/)
-      F_flds(4,:) = (/'mean_down_sw_ir_dif_flx', 'mean_down_sw_ir_dif_flx'/)
-      F_flds(5,:) = (/'mean_down_lw_flx', 'mean_down_lw_flx'/)
+      F_flds(1,:) = (/'Faxa_swvdr ', 'Faxa_swvdr '/)
+      F_flds(2,:) = (/'Faxa_swndr ', 'Faxa_swndr '/)
+      F_flds(3,:) = (/'Faxa_swvdf', 'Faxa_swvdf'/)
+      F_flds(4,:) = (/'Faxa_swndf', 'Faxa_swndf'/)
+      F_flds(5,:) = (/'Faxa_lwdn', 'Faxa_lwdn'/)
 
       do n = 1,size(F_flds,1)
          fldname1 = trim(F_flds(n,1))
@@ -576,15 +545,15 @@ module esmFldsExchange_access_mod
       deallocate(F_flds)
 
       ! precip
-      call addmap_from(compatm, 'Faxa_rainc', compice, mapconsf, 'one', 'unset')
-      call addmrg_to(compice, 'mean_prec_rate', mrg_from=compatm, mrg_fld='Faxa_rainc', mrg_type='merge')
-      call addmap_from(compatm, 'Faxa_rainl', compice, mapconsf, 'one', 'unset')
-      call addmrg_to(compice, 'mean_prec_rate', mrg_from=compatm, mrg_fld='Faxa_rainl', mrg_type='merge')
+      call addmap(fldListFr(compatm)%flds, 'Faxa_rainc', compice, mapconsf, 'one', 'unset')
+      call addmrg(fldListTo(compice)%flds, 'Faxa_rain', mrg_from=compatm, mrg_fld='Faxa_rainc', mrg_type='sum')
+      call addmap(fldListFr(compatm)%flds, 'Faxa_rainl', compice, mapconsf, 'one', 'unset')
+      call addmrg(fldListTo(compice)%flds, 'Faxa_rain', mrg_from=compatm, mrg_fld='Faxa_rainl', mrg_type='sum')
 
-      call addmap_from(compatm, 'Faxa_snowc', compice, mapconsf, 'one', 'unset')
-      call addmrg_to(compice, 'mean_fprec_rate', mrg_from=compatm, mrg_fld='Faxa_snowc', mrg_type='merge')
-      call addmap_from(compatm, 'Faxa_snowl', compice, mapconsf, 'one', 'unset')
-      call addmrg_to(compice, 'mean_fprec_rate', mrg_from=compatm, mrg_fld='Faxa_snowl', mrg_type='merge')
+      call addmap(fldListFr(compatm)%flds, 'Faxa_snowc', compice, mapconsf, 'one', 'unset')
+      call addmrg(fldListTo(compice)%flds, 'Faxa_snow', mrg_from=compatm, mrg_fld='Faxa_snowc', mrg_type='sum')
+      call addmap(fldListFr(compatm)%flds, 'Faxa_snowl', compice, mapconsf, 'one', 'unset')
+      call addmrg(fldListTo(compice)%flds, 'Faxa_snow', mrg_from=compatm, mrg_fld='Faxa_snowl', mrg_type='sum')
 
       call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
 

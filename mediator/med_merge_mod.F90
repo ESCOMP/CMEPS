@@ -394,7 +394,13 @@ contains
 
     ! Get input field
     call ESMF_FieldBundleGet(FB, FBfld, field=field_in, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    if (chkerr(rc,__LINE__,u_FILE_u)) then
+      call ESMF_LogWrite(trim(subname)//": error "//trim(FBfld)//"is not in FB", &
+               ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
+          rc = ESMF_FAILURE
+      return
+    end if
 
     ! Get field pointer to output and input fields
     ! Assume that input and output ungridded upper bounds are the same - this is checked in error check
