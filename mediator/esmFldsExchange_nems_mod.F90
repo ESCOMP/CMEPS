@@ -463,13 +463,13 @@ contains
        ! to ocn: evaporation water flux (custom merge in med_phases_prep_ocn)
        if (phase == 'advertise') then
           if (is_local%wrap%comp_present(compatm) .and. is_local%wrap%comp_present(compocn)) then
-             call addfld_from(compatm, 'Faxa_lat')
+             call addfld_from(compatm, 'Faxa_evap')
              call addfld_to(compocn, 'Faxa_evap')
           end if
        else
           if ( fldchk(is_local%wrap%FBexp(compocn)        , 'Faxa_evap', rc=rc) .and. &
-               fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_lat' , rc=rc)) then
-             call addmap_from(compatm, 'Faxa_lat', compocn, mapconsf_aofrac, 'aofrac', 'unset')
+               fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_evap' , rc=rc)) then
+             call addmap_from(compatm, 'Faxa_evap', compocn, mapconsf_aofrac, 'aofrac', 'unset')
           end if
        end if
     else if (trim(coupling_mode) == 'nems_orig_data' .or. trim(coupling_mode) == 'nems_frac_aoflux') then
