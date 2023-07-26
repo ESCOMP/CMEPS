@@ -182,6 +182,7 @@ contains
     integer                 :: ringInterval_length
     logical                 :: first_time = .true.
     character(len=*), parameter :: subname='(med_phases_history_write)'
+    character(len=200) :: tmpString
     !---------------------------------------
 
     rc = ESMF_SUCCESS
@@ -321,6 +322,8 @@ contains
                            is_local%wrap%nx(n), is_local%wrap%ny(n), nt=1, pre=trim(compname(n))//'Imp', rc=rc)
                       if (ChkErr(rc,__LINE__,u_FILE_u)) return
                    endif
+                   write(tmpString, *) ESMF_FieldBundleIsCreated(is_local%wrap%FBexp(n),rc=rc)
+                   call ESMF_Logwrite('FBexp created: ' // trim(tmpString))
                    if (ESMF_FieldBundleIsCreated(is_local%wrap%FBexp(n),rc=rc)) then
                       call med_io_write(hist_file, is_local%wrap%FBexp(n), whead(m), wdata(m), &
                            is_local%wrap%nx(n), is_local%wrap%ny(n), nt=1, pre=trim(compname(n))//'Exp', rc=rc)
