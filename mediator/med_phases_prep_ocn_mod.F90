@@ -528,7 +528,6 @@ contains
              ifracr_scaled = ifracr(n) / (frac_sum)
              ofracr_scaled = ofracr(n) / (frac_sum)
           endif
-          !TODO: ? fix this
           if (.not.import_swpen_by_bands) then
              Foxx_swnet(n) = ofracr_scaled*(fswabsv + fswabsi) + ifrac_scaled*Fioi_swpen(n)
           end if
