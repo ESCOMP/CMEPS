@@ -414,18 +414,12 @@ contains
                scalar_value=nextsw_cday, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
        else
-          ! TODO: Clock is advanced at end of run phase; use nextTime
           call ESMF_ClockGetNextTime(clock, nextTime, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           call ESMF_TimeGet(nextTime, dayOfYear_r8=nextsw_cday, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
     end if
-
-    !TODO: is there a reason to get this each time instead of at init?
-    !call NUOPC_CompAttributeGet(gcomp, name='flux_albav', value=cvalue, rc=rc)
-    !if (chkerr(rc,__LINE__,u_FILE_u)) return
-    !read(cvalue,*) flux_albav
 
     ! Get orbital values
     call med_phases_ocnalb_orbital_update(clock, logunit, iam==0, eccen, obliqr, lambm0, mvelpp, rc)
@@ -462,7 +456,6 @@ contains
                                   (.150_r8*(cosz         - 0.100_r8 ) *   &
                                   (cosz - 0.500_r8 ) * (cosz - 1.000_r8 )  )
                 if (use_min_albedo) then
-                   !TODO: why does fv3atm use albdif here and not albdir ?
                    ocnalb%anidr(n) = max (ocnalb%anidr(n), min_albedo)
                 end if
                 ocnalb%avsdr(n) = ocnalb%anidr(n)
