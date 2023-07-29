@@ -661,7 +661,7 @@ contains
     use NUOPC , only : NUOPC_CompAttributeGet, NUOPC_CompAttributeSet, NUOPC_CompAttributeAdd
     use esmFlds, only : med_fldlist_init1, med_fld_GetFldInfo, med_fldList_entry_type
     use med_phases_history_mod, only : med_phases_history_init
-    use med_methods_mod       , only : mediator_checkfornans  
+    use med_methods_mod       , only : mediator_checkfornans
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -921,7 +921,7 @@ contains
     call NUOPC_CompAttributeGet(gcomp, name="check_for_nans", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if(isPresent .and. isSet) then
-       read(cvalue, *) mediator_checkfornans       
+       read(cvalue, *) mediator_checkfornans
     else
        mediator_checkfornans = .false.
     endif
@@ -1804,7 +1804,8 @@ contains
          call esmFldsExchange_cesm(gcomp, phase='initialize', rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
       else if (trim(coupling_mode(1:4)) == 'nems') then
-       call esmFldsExchange_nems(gcomp, phase='initialize', rc=rc)
+         call esmFldsExchange_nems(gcomp, phase='initialize', rc=rc)
+         if (ChkErr(rc,__LINE__,u_FILE_u)) return
       else if (trim(coupling_mode) == 'hafs') then
          call esmFldsExchange_hafs(gcomp, phase='initialize', rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
