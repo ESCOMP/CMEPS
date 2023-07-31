@@ -1738,7 +1738,7 @@ contains
 
        deallocate(minIndexPTile, maxIndexPTile)
     else
-       if(maintask) write(logunit,*) trim(subname),' ERROR: '//trim(name1)//' is not present, aborting '
+       if(maintask) write(logunit,'(a)') trim(subname)//' ERROR: '//trim(name1)//' is not present, aborting '
        call ESMF_LogWrite(trim(subname)//' ERROR: '//trim(name1)//' is not present, aborting ', ESMF_LOGMSG_ERROR)
        rc = ESMF_FAILURE
     end if ! end if rcode check

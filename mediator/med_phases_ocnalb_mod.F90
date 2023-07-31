@@ -329,9 +329,7 @@ contains
 
     ! Determine if ocnalb data type will be initialized - and if not return
     if (first_call) then
-       if ((ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_aoflux_a, rc=rc) .and. &
-            ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_aoflux_o, rc=rc)) .or. &
-            ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_ocnalb_o, rc=rc)) then
+       if (ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_ocnalb_o, rc=rc)) then
           ocnalb%created = .true.
        else
           ocnalb%created = .false.
@@ -495,10 +493,7 @@ contains
        ofrad(:) = ofrac(:)
     endif
 
-    ! Write mediator ocnalb history if aofluxes are not active
-    if ( ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_ocnalb_o, rc=rc) .and. &
-         .not. ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_aoflux_a, rc=rc) .and. &
-         .not. ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_aoflux_o, rc=rc)) then
+    if (ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_ocnalb_o, rc=rc)) then
        call NUOPC_MediatorGet(gcomp, driverClock=dClock, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        if (ESMF_ClockIsCreated(dclock)) then
