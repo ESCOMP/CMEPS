@@ -817,7 +817,8 @@ contains
                       //',  mapnorm '//trim(mapnorm_mapindex) &
                       //'  '//trim(fieldnamelist(nf))
                    call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
-                else if(rof_name .ne. 'xrof' .and. compname(destcomp) .ne. 'ocn') then
+                else
+                   !if(rof_name .ne. 'xrof' .and. compname(destcomp) .ne. 'ocn') then
                    if (mapnorm_mapindex /= packed_data(mapindex)%mapnorm) then
                      write(tmpstr,*)'Map type '//trim(mapnames(mapindex)) &
                         //', destcomp '//trim(compname(destcomp)) &
