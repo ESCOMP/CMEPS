@@ -153,6 +153,7 @@ jobs:
           mkdir -p $HOME/cesm/scratch
           mkdir -p $HOME/cesm/inputdata
           pushd $GITHUB_WORKSPACE/cesm/cime/CIME/tests
+          export SRCROOT=$GITHUB_WORKSPACE/cesm/
           export CIME_TEST_PLATFORM=ubuntu-latest
           export PIO_INCDIR=$HOME/pio/include
           export PIO_LIBDIR=$HOME/pio/lib
