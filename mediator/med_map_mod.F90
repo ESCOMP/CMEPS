@@ -718,7 +718,7 @@ contains
     use ESMF
     use esmFlds               , only : med_fldList_entry_type, med_fldList_getNumFlds, med_fldList_type
     use esmFlds               , only : med_fld_getFldInfo
-    use med_internalstate_mod , only : compname, mapnames, rof_name
+    use med_internalstate_mod , only : compname, mapnames
     use med_internalstate_mod , only : packed_data_type, nmappers
 
     ! input/output variables
