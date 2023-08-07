@@ -482,6 +482,8 @@ contains
        call FB_GetFldPtr(is_local%wrap%FBfrac(compocn), 'ofrad' , ofracr, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+       call FB_GetFldPtr(is_local%wrap%FBImp(compice,compocn), 'Fioi_swpen', Fioi_swpen, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
        if (FB_fldchk(is_local%wrap%FBImp(compice,compice), 'Fioi_swpen_vdr', rc=rc)) then
           import_swpen_by_bands = .true.
           call FB_GetFldPtr(is_local%wrap%FBImp(compice,compocn), 'Fioi_swpen_vdr', Fioi_swpen_vdr, rc=rc)
@@ -494,8 +496,6 @@ contains
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        else
           import_swpen_by_bands = .false.
-          call FB_GetFldPtr(is_local%wrap%FBImp(compice,compocn), 'Fioi_swpen', Fioi_swpen, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
 
        if ( FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_swnet_afracr',rc=rc)) then
@@ -528,9 +528,8 @@ contains
              ifracr_scaled = ifracr(n) / (frac_sum)
              ofracr_scaled = ofracr(n) / (frac_sum)
           endif
-          if (.not.import_swpen_by_bands) then
-             Foxx_swnet(n) = ofracr_scaled*(fswabsv + fswabsi) + ifrac_scaled*Fioi_swpen(n)
-          end if
+          Foxx_swnet(n) = ofracr_scaled*(fswabsv + fswabsi) + ifrac_scaled*Fioi_swpen(n)
+
           if (export_swnet_afracr) then
              Foxx_swnet_afracr(n) = ofracr_scaled*(fswabsv + fswabsi)
           end if
