@@ -13,7 +13,7 @@ module med_phases_restart_mod
   use med_phases_prep_glc_mod , only : FBlndAccum2glc_l, lndAccum2glc_cnt
   use med_phases_prep_glc_mod , only : FBocnAccum2glc_o, ocnAccum2glc_cnt
   use med_phases_prep_rof_mod , only : FBlndAccum2rof_l, lndAccum2rof_cnt
-
+  use pio                     , only : file_desc_t
   implicit none
   private
 
@@ -143,6 +143,7 @@ contains
     integer, intent(out) :: rc
 
     ! local variables
+    type(file_desc_t)          :: io_file
     type(ESMF_VM)              :: vm
     type(ESMF_Clock)           :: clock
     type(ESMF_Time)            :: starttime
@@ -309,11 +310,12 @@ contains
        call ESMF_LogWrite(trim(subname)//": write "//trim(restart_file), ESMF_LOGMSG_INFO)
        call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call med_io_wopen(restart_file, vm, clobber=.true.)
+       call med_io_wopen(restart_file, io_file, vm, rc, clobber=.true.)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        do m = 1,2
           if (m == 2) then
-             call med_io_enddef(restart_file)
+             call med_io_enddef(io_file)
           end if
 
           tbnds = days_since
@@ -321,23 +323,23 @@ contains
           if (whead(m)) then
              call ESMF_ClockGet(clock, calendar=calendar, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             call med_io_define_time(time_units, calendar, rc=rc)
+             call med_io_define_time(io_file, time_units, calendar, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           else
-             call med_io_write_time(days_since, tbnds=(/days_since,days_since/), nt=1, rc=rc)
+             call med_io_write_time(io_file, days_since, tbnds=(/days_since,days_since/), nt=1, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
 
           ! Write out next ymd/tod in place of curr ymd/tod because the
           ! restart represents the time at end of the current timestep
           ! and that is where we want to start the next run.
-          call med_io_write(restart_file, start_ymd, 'start_ymd', whead(m), wdata(m), rc=rc)
+          call med_io_write(io_file, start_ymd, 'start_ymd', whead(m), wdata(m), rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          call med_io_write(restart_file, start_tod, 'start_tod', whead(m), wdata(m), rc=rc)
+          call med_io_write(io_file, start_tod, 'start_tod', whead(m), wdata(m), rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          call med_io_write(restart_file, next_ymd , 'curr_ymd' , whead(m), wdata(m), rc=rc)
+          call med_io_write(io_file, next_ymd , 'curr_ymd' , whead(m), wdata(m), rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          call med_io_write(restart_file, next_tod , 'curr_tod' , whead(m), wdata(m), rc=rc)
+          call med_io_write(io_file, next_tod , 'curr_tod' , whead(m), wdata(m), rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
           do n = 1,ncomps
@@ -346,19 +348,19 @@ contains
                 ny = is_local%wrap%ny(n)
                 ! Write import field bundles
                 if (ESMF_FieldBundleIsCreated(is_local%wrap%FBimp(n,n),rc=rc)) then
-                   call med_io_write(restart_file, is_local%wrap%FBimp(n,n), whead(m), wdata(m), nx, ny, &
+                   call med_io_write(io_file, is_local%wrap%FBimp(n,n), whead(m), wdata(m), nx, ny, &
                         nt=1, pre=trim(compname(n))//'Imp', rc=rc)
                    if (ChkErr(rc,__LINE__,u_FILE_u)) return
                 endif
                 ! Write export field bundles
                 if (ESMF_FieldBundleIsCreated(is_local%wrap%FBexp(n),rc=rc)) then
-                   call med_io_write(restart_file, is_local%wrap%FBexp(n), whead(m), wdata(m), nx, ny, &
+                   call med_io_write(io_file, is_local%wrap%FBexp(n), whead(m), wdata(m), nx, ny, &
                         nt=1, pre=trim(compname(n))//'Exp', rc=rc)
                    if (ChkErr(rc,__LINE__,u_FILE_u)) return
                 endif
                 ! Write fraction field bundles
                 if (ESMF_FieldBundleIsCreated(is_local%wrap%FBfrac(n),rc=rc)) then
-                   call med_io_write(restart_file, is_local%wrap%FBfrac(n), whead(m), wdata(m), nx, ny, &
+                   call med_io_write(io_file, is_local%wrap%FBfrac(n), whead(m), wdata(m), nx, ny, &
                         nt=1, pre=trim(compname(n))//'Frac', rc=rc)
                    if (ChkErr(rc,__LINE__,u_FILE_u)) return
                 endif
@@ -369,10 +371,10 @@ contains
           if (ESMF_FieldBundleIsCreated(is_local%wrap%FBExpAccumOcn)) then
              nx = is_local%wrap%nx(compocn)
              ny = is_local%wrap%ny(compocn)
-             call med_io_write(restart_file, is_local%wrap%FBExpAccumOcn, whead(m), wdata(m), nx, ny, &
+             call med_io_write(io_file, is_local%wrap%FBExpAccumOcn, whead(m), wdata(m), nx, ny, &
                   nt=1, pre='ocnExpAccum', rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             call med_io_write(restart_file, is_local%wrap%ExpAccumOcnCnt, 'ocnExpAccum_cnt', whead(m), wdata(m), rc=rc)
+             call med_io_write(io_file, is_local%wrap%ExpAccumOcnCnt, 'ocnExpAccum_cnt', whead(m), wdata(m), rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           endif
 
@@ -380,10 +382,10 @@ contains
           if (ESMF_FieldBundleIsCreated(is_local%wrap%FBExpAccumWav)) then
              nx = is_local%wrap%nx(compwav)
              ny = is_local%wrap%ny(compwav)
-             call med_io_write(restart_file, is_local%wrap%FBExpAccumWav, whead(m), wdata(m), nx, ny, &
+             call med_io_write(io_file, is_local%wrap%FBExpAccumWav, whead(m), wdata(m), nx, ny, &
                   nt=1, pre='wavExpAccum', rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             call med_io_write(restart_file, is_local%wrap%ExpAccumWavCnt, 'wavExpAccum_cnt', whead(m), wdata(m), rc=rc)
+             call med_io_write(io_file, is_local%wrap%ExpAccumWavCnt, 'wavExpAccum_cnt', whead(m), wdata(m), rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           endif
 
@@ -391,10 +393,10 @@ contains
           if (ESMF_FieldBundleIsCreated(FBlndAccum2rof_l)) then
              nx = is_local%wrap%nx(complnd)
              ny = is_local%wrap%ny(complnd)
-             call med_io_write(restart_file, FBlndAccum2rof_l, whead(m), wdata(m), nx, ny, &
+             call med_io_write(io_file, FBlndAccum2rof_l, whead(m), wdata(m), nx, ny, &
                   nt=1, pre='lndImpAccum2rof', rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             call med_io_write(restart_file, lndAccum2rof_cnt, 'lndImpAccum2rof_cnt', whead(m), wdata(m), rc=rc)
+             call med_io_write(io_file, lndAccum2rof_cnt, 'lndImpAccum2rof_cnt', whead(m), wdata(m), rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
 
@@ -402,10 +404,10 @@ contains
           if (ESMF_FieldBundleIsCreated(FBlndAccum2glc_l)) then
              nx = is_local%wrap%nx(complnd)
              ny = is_local%wrap%ny(complnd)
-             call med_io_write(restart_file, FBlndAccum2glc_l, whead(m), wdata(m), nx, ny, &
+             call med_io_write(io_file, FBlndAccum2glc_l, whead(m), wdata(m), nx, ny, &
                   nt=1, pre='lndImpAccum2glc', rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             call med_io_write(restart_file, lndAccum2glc_cnt, 'lndImpAccum2glc_cnt', whead(m), wdata(m), rc=rc)
+             call med_io_write(io_file, lndAccum2glc_cnt, 'lndImpAccum2glc_cnt', whead(m), wdata(m), rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
 
@@ -413,10 +415,10 @@ contains
           if (ESMF_FieldBundleIsCreated(FBocnAccum2glc_o)) then
              nx = is_local%wrap%nx(compocn)
              ny = is_local%wrap%ny(compocn)
-             call med_io_write(restart_file, FBocnAccum2glc_o, whead(m), wdata(m), nx, ny, &
+             call med_io_write(io_file, FBocnAccum2glc_o, whead(m), wdata(m), nx, ny, &
                   nt=1, pre='ocnImpAccum2glc_o', rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             call med_io_write(restart_file, ocnAccum2glc_cnt, 'ocnImpAccum2glc_cnt', whead(m), wdata(m), rc=rc)
+             call med_io_write(io_file, ocnAccum2glc_cnt, 'ocnImpAccum2glc_cnt', whead(m), wdata(m), rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
 
@@ -424,7 +426,7 @@ contains
           if (ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_ocnalb_o,rc=rc)) then
              nx = is_local%wrap%nx(compocn)
              ny = is_local%wrap%ny(compocn)
-             call med_io_write(restart_file, is_local%wrap%FBMed_ocnalb_o, whead(m), wdata(m), nx, ny, &
+             call med_io_write(io_file, is_local%wrap%FBMed_ocnalb_o, whead(m), wdata(m), nx, ny, &
                   nt=1, pre='MedOcnAlb_o', rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
@@ -437,11 +439,11 @@ contains
                 if (auxcomp(nc)%files(nf)%doavg .and. auxcomp(nc)%files(nf)%accumcnt > 0) then
                    nx = is_local%wrap%nx(nc)
                    ny = is_local%wrap%ny(nc)
-                   call med_io_write(restart_file, auxcomp(nc)%files(nf)%FBaccum, &
+                   call med_io_write(io_file, auxcomp(nc)%files(nf)%FBaccum, &
                         whead(m), wdata(m), nx, ny, &
                         nt=1, pre=trim(compname(nc))//trim(auxcomp(nc)%files(nf)%auxname), rc=rc)
                    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-                   call med_io_write(restart_file, auxcomp(nc)%files(nf)%accumcnt, &
+                   call med_io_write(io_file, auxcomp(nc)%files(nf)%accumcnt, &
                         trim(compname(nc))//trim(auxcomp(nc)%files(nf)%auxname)//'_accumcnt', &
                         whead(m), wdata(m), rc=rc)
                    if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -452,7 +454,7 @@ contains
        enddo ! end of whead/wdata loop
 
        ! Close file
-       call med_io_close(restart_file, vm, rc=rc)
+       call med_io_close(io_file, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     endif
 

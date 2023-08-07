@@ -262,7 +262,6 @@ contains
        end do
     end if
     is_local%wrap%num_icesheets = num_icesheets
-
     call NUOPC_CompAttributeGet(gcomp, name='mediator_present', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (isPresent .and. isSet) then
