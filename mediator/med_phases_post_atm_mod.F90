@@ -17,12 +17,88 @@ module med_phases_post_atm_mod
 contains
 !-----------------------------------------------------------------------------
 
-   real(ESMF_KIND_R8) function field_integral(field, frac)
+   subroutine conservation_checks(gcomp, compin, compout, rc)
+      use ESMF
+      use med_internalstate_mod , only : InternalState, mastertask, logunit
+      use med_internalstate_mod , only : compocn, compatm, compice, complnd, compwav
+
+      ! input/output variables
+      type(ESMF_GridComp)  :: gcomp
+      integer              :: compin, compout
+      integer, intent(out) :: rc
+
+      ! local variables
+      type(InternalState) :: is_local      
+      integer                     :: fieldCount, i
+      character(len=1000), pointer  :: fieldNameList(:)
+      character(len=200)          :: tmpString
+      character(len=1000)         :: msgString
+      type(ESMF_Field), pointer   :: inFieldList(:), outFieldList(:)
+      real                        :: integral_1, integral_2, error
+      real(ESMF_KIND_R8), pointer :: frac_1(:), frac_2(:), fld_ptr(:)
+      type(ESMF_Field)            :: lfield
+
+
+      call ESMF_GridCompGetInternalState(gcomp, is_local, rc=rc)
+
+      ! integral checks
+      call ESMF_FieldBundleGet(is_local%wrap%FBImp(compin,compin), fieldCount=fieldCount)
+      allocate(fieldNameList(fieldcount))
+      allocate(inFieldList(fieldcount))
+      allocate(outFieldList(fieldcount))
+      call ESMF_FieldBundleGet(is_local%wrap%FBImp(compin,compin), fieldNameList=fieldNameList, fieldList=inFieldList)
+      call ESMF_FieldBundleGet(is_local%wrap%FBImp(compin,compout), fieldList=outFieldList)
+      
+      ! get fractions
+      call ESMF_FieldBundleGet(is_local%wrap%FBFrac(compin), fieldName='ofrac', field=lfield, rc=rc)
+      call ESMF_FieldGet(lfield, farrayPtr=fld_ptr, rc=rc)
+      allocate(frac_1(size(fld_ptr)))
+      
+      do i = 1,size(fld_ptr)
+        frac_1(i) = fld_ptr(i)
+      end do
+      
+      call ESMF_FieldBundleGet(is_local%wrap%FBFrac(compatm), fieldName='ifrac', field=lfield, rc=rc)
+      call ESMF_FieldGet(lfield, farrayPtr=fld_ptr, rc=rc)
+      do i = 1,size(fld_ptr)
+        frac_1(i) = frac_1(i) + fld_ptr(i)
+      end do
+
+      call ESMF_FieldGet(outFieldList(1), farrayPtr=fld_ptr, rc=rc)
+      allocate(frac_2(size(fld_ptr)))
+      frac_2(:) = 1.0
+
+      do i=1,fieldCount
+        integral_1 = field_integral(inFieldList(i), frac_1, is_local%wrap%vm)
+        integral_2 = field_integral(outFieldList(i), frac_2, is_local%wrap%vm)
+        error = (integral_2 - integral_1) / abs(integral_1)
+
+        write (tmpString, *) error
+        msgString = 'Field: ' // trim(fieldNameList(i)) // '. Error: ' //  trim(tmpString)
+        write (tmpString, *) integral_1
+        msgString = trim(msgString) // '. In grid integral: ' // trim(tmpString)
+        write (tmpString, *) integral_2
+        msgString = trim(msgString) // '. Out grid integral: ' // trim(tmpString) // '.'
+
+        if (abs(integral_2) > 0) then
+           call ESMF_Logwrite(trim(msgString))
+        end if
+      end do
+      
+      deallocate(fieldNameList)
+      deallocate(inFieldList)
+      deallocate(outFieldList)
+      deallocate(frac_1)
+      deallocate(frac_2)
+   end subroutine conservation_checks
+
+   real(ESMF_KIND_R8) function field_integral(field, frac, vm)
       use ESMF 
 
       ! inputs
       type(ESMF_Field)            :: field
       real(ESMF_KIND_R8), pointer :: frac(:)
+      type(ESMF_VM)               :: vm
 
       ! local vars
       type(ESMF_Mesh)             :: mesh
@@ -30,11 +106,10 @@ contains
       real(ESMF_KIND_R8), pointer :: area1(:), fld_ptr1(:), area2(:, :), fld_ptr2(:, :)
       integer(ESMF_KIND_I4), pointer :: mask1(:), mask2(:, :)
       integer                     :: n, elementCount, i, j, lbnd1, ubnd1, lbnd2, ubnd2
-      real(ESMF_KIND_R8)          :: local_integral(1), mask_integral(1), norm
-      type(ESMF_VM)               :: vm  
+      real(ESMF_KIND_R8)          :: local_integral(1), mask_integral(1), norm  
       type(ESMF_GeomType_Flag)    :: geomtype
       logical                     :: is_masked
-      character(len=200)               :: tmpstr
+      character(len=200)           :: tmpstr
    
 
       local_integral(1) = 0.0
@@ -93,7 +168,7 @@ contains
 
       field_integral = -1.0
       norm = -1.0
-      call ESMF_VMGetCurrent(vm)
+      call ESMF_VMGetGlobal(vm)
       call ESMF_VMAllFullReduce(vm, local_integral, field_integral, 1, ESMF_REDUCE_SUM)
       call ESMF_VMAllFullReduce(vm, mask_integral, norm, 1, ESMF_REDUCE_SUM)
 
@@ -166,55 +241,8 @@ contains
             routehandles=is_local%wrap%RH(compatm,compocn,:), rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call t_stopf('MED:'//trim(subname)//' map_atm2ocn')
-       
-       call ESMF_FieldBundleGet(is_local%wrap%FBImp(compatm,compatm), fieldCount=fieldCount)
-       allocate(fieldNameList(fieldcount))
-       allocate(atmFieldList(fieldcount))
-       allocate(ocnFieldList(fieldcount))
-       call ESMF_FieldBundleGet(is_local%wrap%FBImp(compatm,compatm), fieldNameList=fieldNameList, fieldList=atmFieldList)
-       call ESMF_FieldBundleGet(is_local%wrap%FBImp(compatm,compocn), fieldList=ocnFieldList)
-       
-       ! get fractions
-       call ESMF_FieldBundleGet(is_local%wrap%FBFrac(compatm), fieldName='ofrac', field=lfield, rc=rc)
-       call ESMF_FieldGet(lfield, farrayPtr=fld_ptr, rc=rc)
-       allocate(frac_1(size(fld_ptr)))
-       
-       do i = 1,size(fld_ptr)
-         frac_1(i) = fld_ptr(i)
-       end do
-       
-       call ESMF_FieldBundleGet(is_local%wrap%FBFrac(compatm), fieldName='ifrac', field=lfield, rc=rc)
-       call ESMF_FieldGet(lfield, farrayPtr=fld_ptr, rc=rc)
-       do i = 1,size(fld_ptr)
-         frac_1(i) = frac_1(i) + fld_ptr(i)
-       end do
-
-       call ESMF_FieldGet(ocnFieldList(1), farrayPtr=fld_ptr, rc=rc)
-       allocate(frac_2(size(fld_ptr)))
-       frac_2(:) = 1.0
-
-       do i=1,fieldCount
-         integral_1 = field_integral(atmFieldList(i), frac_1)
-         integral_2 = field_integral(ocnFieldList(i), frac_2)
-         error = (integral_2 - integral_1) / abs(integral_1)
-
-         write (tmpString, *) error
-         msgString = 'Field: ' // trim(fieldNameList(i)) // '. Error: ' //  trim(tmpString)
-         write (tmpString, *) integral_1
-         msgString = trim(msgString) // '. Atm grid integral: ' // trim(tmpString)
-         write (tmpString, *) integral_2
-         msgString = trim(msgString) // '. Ocn grid integral: ' // trim(tmpString) // '.'
-
-         if (abs(integral_2) > 0) then
-            call ESMF_Logwrite(trim(msgString))
-         end if
-       end do
-       
-       deallocate(fieldNameList)
-       deallocate(atmFieldList)
-       deallocate(ocnFieldList)
-       deallocate(frac_1)
-       deallocate(frac_2)
+      
+      !call conservation_checks(gcomp, compatm, compocn, rc=rc)
 
     end if
     ! map atm->ice
