@@ -802,6 +802,16 @@
     <desc>If set will compile and submit with this gpu offload method enabled </desc>
   </entry>
 
+  <entry id="MPI_GPU_WRAPPER_SCRIPT">
+    <type>char</type>
+    <valid_values></valid_values>
+    <default_value></default_value>
+    <group>build_def</group>
+    <file>env_build.xml</file>
+    <desc>If set will attach this script to the MPI run command, mapping
+    different MPI ranks to different GPUs within the same compute node</desc>
+  </entry>
+
   <entry id="SMP_PRESENT">
     <type>logical</type>
     <valid_values>TRUE,FALSE</valid_values>
