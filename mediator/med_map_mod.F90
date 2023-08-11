@@ -259,7 +259,8 @@ contains
                       if (chkerr(rc,__LINE__,u_FILE_u)) return
                       if (maintask) then
                          write(logunit,'(a)') trim(subname)//' created field_NormOne for '&
-                              //compname(n1)//'->'//compname(n2)//' with mapping '//trim(mapnames(mapindex))
+                              //trim(compname(n1))//'->'//trim(compname(n2))//' with mapping '&
+                              //trim(mapnames(mapindex))
                       end if
                    end if
                 end do ! end of loop over map_indiex mappers
