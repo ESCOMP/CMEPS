@@ -4140,6 +4140,21 @@
     </values>
   </entry>
 
+
+  <!-- ======================================== -->
+  <!--  ESP attributes                          -->
+  <!-- ======================================== -->
+
+  <entry id="Verbosity@esp_attributes" modify_via_xml="ESMF_VERBOSITY_LEVEL">
+    <type>char</type>
+    <category>nuopc</category>
+    <group>ESP_attributes</group>
+    <valid_values>off,low,high,max</valid_values>
+    <values>
+      <value>$ESMF_VERBOSITY_LEVEL</value>
+    </values>
+  </entry>
+
   <!-- =========================== -->
   <!-- group modelio               -->
   <!-- =========================== -->
@@ -4266,7 +4281,7 @@
     <value component="rof">$ROF_PIO_TYPENAME</value>
     <value component="glc">$GLC_PIO_TYPENAME</value>
     <value component="wav">$WAV_PIO_TYPENAME</value>
-    <value component="esp">nothing</value>
+    <value component="esp">$ESP_PIO_TYPENAME</value>
     </values>
   </entry>
 

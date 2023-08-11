@@ -847,6 +847,12 @@ contains
     use glc_comp_nuopc        , only : GLCSetVM => SetVM
 #endif
 #endif
+#ifdef ESP_PRESENT
+    use esp_comp_nuopc        , only : ESPSetServices => SetServices
+#ifdef ESMF_AWARE_THREADING
+    use esp_comp_nuopc        , only : ESPSetVM => SetVM
+#endif
+#endif
 #ifdef NO_MPI2
     include 'mpif.h'
 #endif
