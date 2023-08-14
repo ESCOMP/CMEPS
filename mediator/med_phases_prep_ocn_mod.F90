@@ -119,8 +119,7 @@ contains
     ! auto merges to ocn
     if ( trim(coupling_mode) == 'cesm' .or. &
          trim(coupling_mode) == 'nems_orig_data' .or. &
-         trim(coupling_mode) == 'nems_frac_aoflux' .or. &
-         trim(coupling_mode) == 'hafs') then
+         trim(coupling_mode) == 'nems_frac_aoflux') then
        call med_merge_auto(&
             is_local%wrap%med_coupling_active(:,compocn), &
             is_local%wrap%FBExp(compocn), &
@@ -131,6 +130,7 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     else if (trim(coupling_mode) == 'nems_frac' .or. &
              trim(coupling_mode) == 'nems_orig' .or. &
+             trim(coupling_mode) == 'hafs'      .or. &
              trim(coupling_mode) == 'nems_frac_aoflux_sbs') then
        call med_merge_auto(&
             is_local%wrap%med_coupling_active(:,compocn), &
@@ -667,30 +667,6 @@ contains
 
     lsize = size(ofrac)
     allocate(customwgt(lsize))
-
-    if (trim(coupling_mode) == 'nems_orig' .or. &
-        trim(coupling_mode) == 'nems_frac' .or. &
-        trim(coupling_mode) == 'nems_frac_aoflux_sbs') then
-       customwgt(:) = -ofrac(:)
-       call med_merge_field(is_local%wrap%FBExp(compocn),      'Faxa_evap', &
-            FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_evap' , wgtA=customwgt, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-       customwgt(:) = -ofrac(:)
-       call med_merge_field(is_local%wrap%FBExp(compocn),      'Faxa_sen',  &
-            FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_sen', wgtA=customwgt, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-       customwgt(:) = -ofrac(:)
-       call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_taux', &
-            FBinA=is_local%wrap%FBImp(compice,compocn), fnameA='Fioi_taux', wgtA=ifrac, &
-            FBinB=is_local%wrap%FBImp(compatm,compocn), fnameB='Faxa_taux', wgtB=customwgt, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_tauy', &
-            FBinA=is_local%wrap%FBImp(compice,compocn), fnameA='Fioi_tauy', wgtA=ifrac, &
-            FBinB=is_local%wrap%FBImp(compatm,compocn), fnameB='Faxa_tauy', wgtB=customwgt, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    end if
 
     ! netsw_for_ocn = [downsw_from_atm*(1-ice_fraction)*(1-ocn_albedo)] + [pensw_from_ice*(ice_fraction)]
     customwgt(:) = ofrac(:) * (1.0_R8 - 0.06_R8)
