@@ -75,7 +75,7 @@ module med_io_mod
   character(*),parameter         :: prefix    = "med_io_"
   character(*),parameter         :: modName   = "(med_io_mod) "
   character(*),parameter         :: version   = "cmeps0"
-  
+
   integer                        :: pio_iotype
   integer                        :: pio_ioformat
   type(iosystem_desc_t), pointer :: io_subsystem
@@ -1738,8 +1738,8 @@ contains
 
        deallocate(minIndexPTile, maxIndexPTile)
     else
-       if(maintask) write(logunit,*) trim(subname),' ERROR: '//trim(name1)//' is not present, aborting '
-       call ESMF_LogWrite(trim(subname)//' ERROR: '//trim(name1)//' is not present, aborting ', ESMF_LOGMSG_INFO)
+       if(maintask) write(logunit,'(a)') trim(subname)//' ERROR: '//trim(name1)//' is not present, aborting '
+       call ESMF_LogWrite(trim(subname)//' ERROR: '//trim(name1)//' is not present, aborting ', ESMF_LOGMSG_ERROR)
        rc = ESMF_FAILURE
     end if ! end if rcode check
 

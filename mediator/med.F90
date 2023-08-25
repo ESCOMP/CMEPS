@@ -1804,7 +1804,8 @@ contains
          call esmFldsExchange_cesm(gcomp, phase='initialize', rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
       else if (trim(coupling_mode(1:4)) == 'nems') then
-       call esmFldsExchange_nems(gcomp, phase='initialize', rc=rc)
+         call esmFldsExchange_nems(gcomp, phase='initialize', rc=rc)
+         if (ChkErr(rc,__LINE__,u_FILE_u)) return
       else if (trim(coupling_mode) == 'hafs') then
          call esmFldsExchange_hafs(gcomp, phase='initialize', rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -1939,14 +1940,12 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !----------------------------------------------------------
-    ! Initialize ocean albedos (this is needed for cesm and hafs)
+    ! Initialize ocean albedos
     !----------------------------------------------------------
 
-    if (trim(coupling_mode(1:5)) == 'cesm_') then
-       if (is_local%wrap%comp_present(compocn) .or. is_local%wrap%comp_present(compatm)) then
-          call med_phases_ocnalb_run(gcomp, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       end if
+    if (is_local%wrap%comp_present(compocn) .or. is_local%wrap%comp_present(compatm)) then
+       call med_phases_ocnalb_run(gcomp, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
     !---------------------------------------

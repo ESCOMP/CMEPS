@@ -31,8 +31,7 @@ module med_phases_prep_ocn_mod
   public :: med_phases_prep_ocn_accum  ! called from run sequence
   public :: med_phases_prep_ocn_avg    ! called from run sequence
 
-  private :: med_phases_prep_ocn_custom_cesm
-  private :: med_phases_prep_ocn_custom_nems
+  private :: med_phases_prep_ocn_custom
 
   character(*), parameter :: u_FILE_u  = &
        __FILE__
@@ -217,13 +216,8 @@ contains
     end if
 
     ! custom merges to ocean
-    if (trim(coupling_mode) == 'cesm') then
-       call med_phases_prep_ocn_custom_cesm(gcomp, rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    else if (trim(coupling_mode(1:5)) == 'nems_') then
-       call med_phases_prep_ocn_custom_nems(gcomp, rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    end if
+    call med_phases_prep_ocn_custom(gcomp, rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! ocean accumulator
     call FB_accum(is_local%wrap%FBExpAccumOcn, is_local%wrap%FBExp(compocn), rc=rc)
@@ -315,7 +309,7 @@ contains
   end subroutine med_phases_prep_ocn_avg
 
   !-----------------------------------------------------------------------------
-  subroutine med_phases_prep_ocn_custom_cesm(gcomp, rc)
+  subroutine med_phases_prep_ocn_custom(gcomp, rc)
 
     !---------------------------------------
     ! custom calculations for cesm
@@ -372,7 +366,7 @@ contains
     integer             :: lsize
     real(R8)            :: c1,c2,c3,c4
     character(len=64), allocatable :: fldnames(:)
-    character(len=*), parameter    :: subname='(med_phases_prep_ocn_custom_cesm)'
+    character(len=*), parameter    :: subname='(med_phases_prep_ocn_custom)'
     !---------------------------------------
 
     rc = ESMF_SUCCESS
@@ -620,80 +614,6 @@ contains
     end if
     call t_stopf('MED:'//subname)
 
-  end subroutine med_phases_prep_ocn_custom_cesm
-
-  !-----------------------------------------------------------------------------
-  subroutine med_phases_prep_ocn_custom_nems(gcomp, rc)
-
-    ! ----------------------------------------------
-    ! Custom calculation for nems_orig or nems_frac
-    ! ----------------------------------------------
-
-    use ESMF , only : ESMF_GridComp
-    use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
-    use ESMF , only : ESMF_FAILURE,  ESMF_LOGMSG_ERROR
-
-    ! input/output variables
-    type(ESMF_GridComp)  :: gcomp
-    integer, intent(out) :: rc
-
-    ! local variables
-    type(InternalState) :: is_local
-    real(R8), pointer   :: customwgt(:)
-    real(R8), pointer   :: ifrac(:)
-    real(R8), pointer   :: ofrac(:)
-    integer             :: lsize
-    character(len=*), parameter    :: subname='(med_phases_prep_ocn_custom_nems)'
-    !---------------------------------------
-
-    rc = ESMF_SUCCESS
-
-    call t_startf('MED:'//subname)
-    if (dbug_flag > 20) then
-       call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
-    end if
-    call memcheck(subname, 5, maintask)
-
-    ! Get the internal state
-    nullify(is_local%wrap)
-    call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    ! get ice and open ocean fractions on the ocn mesh
-    call FB_GetFldPtr(is_local%wrap%FBfrac(compocn), 'ifrac' , ifrac, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call FB_GetFldPtr(is_local%wrap%FBfrac(compocn), 'ofrac' , ofrac, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    lsize = size(ofrac)
-    allocate(customwgt(lsize))
-
-    ! netsw_for_ocn = [downsw_from_atm*(1-ice_fraction)*(1-ocn_albedo)] + [pensw_from_ice*(ice_fraction)]
-    customwgt(:) = ofrac(:) * (1.0_R8 - 0.06_R8)
-    call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_swnet_vdr', &
-         FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_swvdr'    , wgtA=customwgt, &
-         FBinB=is_local%wrap%FBImp(compice,compocn), fnameB='Fioi_swpen_vdr', wgtB=ifrac, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_swnet_vdf', &
-         FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_swvdf'    , wgtA=customwgt, &
-         FBinB=is_local%wrap%FBImp(compice,compocn), fnameB='Fioi_swpen_vdf', wgtB=ifrac, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_swnet_idr', &
-         FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_swndr'    , wgtA=customwgt, &
-         FBinB=is_local%wrap%FBImp(compice,compocn), fnameB='Fioi_swpen_idr', wgtB=ifrac, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_swnet_idf', &
-         FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_swndf'    , wgtA=customwgt, &
-         FBinB=is_local%wrap%FBImp(compice,compocn), fnameB='Fioi_swpen_idf', wgtB=ifrac, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    deallocate(customwgt)
-
-    if (dbug_flag > 20) then
-       call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
-    end if
-    call t_stopf('MED:'//subname)
-
-  end subroutine med_phases_prep_ocn_custom_nems
+  end subroutine med_phases_prep_ocn_custom
 
 end module med_phases_prep_ocn_mod

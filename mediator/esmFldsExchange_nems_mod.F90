@@ -38,6 +38,8 @@ contains
     use esmFlds               , only : addmap_from => med_fldList_addmap_from
     use esmFlds               , only : addfld_aoflux => med_fldList_addfld_aoflux
     use esmFlds               , only : addmap_aoflux => med_fldList_addmap_aoflux
+    use esmFlds               , only : addfld_ocnalb => med_fldList_addfld_ocnalb
+    use esmFlds               , only : addmap_ocnalb => med_fldList_addmap_ocnalb
 
     ! input/output parameters:
     type(ESMF_GridComp)              :: gcomp
@@ -167,9 +169,12 @@ contains
        deallocate(flds)
     end if
 
-    ! TODO: unused, but required to maintain B4B repro for mediator restarts; should be removed
+    ! Advertise the ocean albedos. These are not sent to the ATM in UFS.
     if (phase == 'advertise') then
-       call addfld_from(compice, 'mean_sw_pen_to_ocn')
+       call addfld_ocnalb('So_avsdr')
+       call addfld_ocnalb('So_avsdf')
+       call addfld_ocnalb('So_anidr')
+       call addfld_ocnalb('So_anidf')
     end if
 
     !=====================================================================
@@ -326,6 +331,17 @@ contains
             fldchk(is_local%wrap%FBImp(compatm,compatm), 'Sa_pslv', rc=rc)) then
           call addmap_from(compatm, 'Sa_pslv', compocn, maptype, 'one', 'unset')
           call addmrg_to(compocn, 'Sa_pslv', mrg_from=compatm, mrg_fld='Sa_pslv', mrg_type='copy')
+       end if
+    end if
+
+    ! to ocn: swpen thru ice w/o bands
+    if (phase == 'advertise') then
+       if (is_local%wrap%comp_present(compice) .and. is_local%wrap%comp_present(compocn)) then
+          call addfld_from(compice, 'Fioi_swpen')
+       end if
+    else
+       if (fldchk(is_local%wrap%FBImp(compice,compice), 'Fioi_swpen', rc=rc)) then
+          call addmap_from(compice, 'Fioi_swpen', compocn, mapfcopy, 'unset', 'unset')
        end if
     end if
 
