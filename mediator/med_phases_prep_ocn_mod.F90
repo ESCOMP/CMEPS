@@ -7,7 +7,7 @@ module med_phases_prep_ocn_mod
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
   use med_constants_mod     , only : czero     =>med_constants_czero
   use med_constants_mod     , only : dbug_flag => med_constants_dbug_flag
-  use med_internalstate_mod , only : InternalState, maintask, logunit
+  use med_internalstate_mod , only : InternalState, maintask, logunit, compocn, compatm, compice, coupling_mode
   use med_merge_mod         , only : med_merge_auto, med_merge_field
   use med_map_mod           , only : med_map_field_packed
   use med_utils_mod         , only : memcheck      => med_memcheck
@@ -21,7 +21,6 @@ module med_phases_prep_ocn_mod
   use med_methods_mod       , only : FB_reset      => med_methods_FB_reset
   use med_methods_mod       , only : FB_check_for_nans => med_methods_FB_check_for_nans
   use esmFlds               , only : med_fldList_GetfldListTo, med_fldlist_type
-  use med_internalstate_mod , only : compocn, compatm, compice, coupling_mode
   use perf_mod              , only : t_startf, t_stopf
 
   implicit none
@@ -31,7 +30,7 @@ module med_phases_prep_ocn_mod
   public :: med_phases_prep_ocn_accum  ! called from run sequence
   public :: med_phases_prep_ocn_avg    ! called from run sequence
 
-  private :: med_phases_prep_ocn_custom
+  private :: med_phases_prep_ocn_custom_cesm
   private :: med_phases_prep_ocn_custom_nems
 
   character(*), parameter :: u_FILE_u  = &
@@ -81,7 +80,8 @@ contains
     use ESMF                    , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
     use ESMF                    , only : ESMF_FAILURE,  ESMF_LOGMSG_ERROR
     use med_constants_mod       , only : shr_const_cpsw, shr_const_tkfrz, shr_const_pi
-    use med_phases_prep_atm_mod , only : med_phases_prep_atm_enthalpy_correction
+    use med_constants_mod       , only : shr_const_cpfw, shr_const_cpice, shr_const_cpwv
+    use med_enthalpy_mod        , only : med_compute_enthalpy
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -142,7 +142,7 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
-    ! compute enthaly associated with rain, snow, condensation and liquid river runoff
+    ! compute enthalpy associated with rain, snow, condensation and liquid river runoff
     ! the sea-ice model already accounts for the enthalpy flux (as part of melth), so
     ! enthalpy from meltw **is not** included below
     if ( FB_fldchk(is_local%wrap%FBExp(compocn), 'Faxa_rain'  , rc=rc) .and. &
@@ -157,6 +157,9 @@ contains
          FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_rofi'  , rc=rc) .and. &
          FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hrofi' , rc=rc)) then
 
+       call med_compute_enthalpy(is_local, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+#ifdef DOTHIS       
        call FB_GetFldPtr(is_local%wrap%FBImp(compocn,compocn), 'So_t', tocn, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
@@ -189,12 +192,13 @@ contains
 
        do n = 1,size(tocn)
           ! Need max to ensure that will not have an enthalpy contribution if the water is below 0C
-          hrain(n)  = max((tocn(n) - shr_const_tkfrz), 0._r8) * rain(n)  * shr_const_cpsw
-          hsnow(n)  = min((tocn(n) - shr_const_tkfrz), 0._r8) * snow(n)  * shr_const_cpsw
-          hevap(n)  = (tocn(n) - shr_const_tkfrz) * min(evap(n), 0._r8)   * shr_const_cpsw
-          hcond(n)  = max((tocn(n) - shr_const_tkfrz), 0._r8) * max(evap(n), 0._r8)  * shr_const_cpsw
+          hrain(n)  = max((tocn(n) - shr_const_tkfrz), 0._r8) * rain(n)  * shr_const_cpfw
+          hsnow(n)  = min((tocn(n) - shr_const_tkfrz), 0._r8) * snow(n)  * shr_const_cpice
+          hevap(n)  = (tocn(n) - shr_const_tkfrz) * min(evap(n), 0._r8)  * shr_const_cpwv
+          hcond(n)  = (tocn(n) - shr_const_tkfrz) * max(evap(n), 0._r8)  * shr_const_cpwv
           hrofl(n)  = max((tocn(n) - shr_const_tkfrz), 0._r8) * rofl(n)  * shr_const_cpsw
-          hrofi(n)  = min((tocn(n) - shr_const_tkfrz), 0._r8) * rofi(n)  * shr_const_cpsw
+          hrofi(n)  = min((tocn(n) - shr_const_tkfrz), 0._r8) * rofi(n)  * shr_const_cpice
+          ! GMM - note change in hcond
        end do
 
        ! Determine enthalpy correction factor that will be added to the sensible heat flux sent to the atm
@@ -213,13 +217,14 @@ contains
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           deallocate(hcorr)
        end if
-
+#endif
     end if
 
     ! custom merges to ocean
-    call med_phases_prep_ocn_custom(gcomp, rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (trim(coupling_mode(1:5)) == 'nems_') then
+    if (trim(coupling_mode) == 'cesm') then
+       call med_phases_prep_ocn_custom_cesm(gcomp, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    else if (trim(coupling_mode(1:5)) == 'nems_') then
        call med_phases_prep_ocn_custom_nems(gcomp, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
@@ -314,7 +319,7 @@ contains
   end subroutine med_phases_prep_ocn_avg
 
   !-----------------------------------------------------------------------------
-  subroutine med_phases_prep_ocn_custom(gcomp, rc)
+  subroutine med_phases_prep_ocn_custom_cesm(gcomp, rc)
 
     !---------------------------------------
     ! custom calculations for cesm
@@ -371,7 +376,7 @@ contains
     integer             :: lsize
     real(R8)            :: c1,c2,c3,c4
     character(len=64), allocatable :: fldnames(:)
-    character(len=*), parameter    :: subname='(med_phases_prep_ocn_custom)'
+    character(len=*), parameter    :: subname='(med_phases_prep_ocn_custom_cesm)'
     !---------------------------------------
 
     rc = ESMF_SUCCESS
@@ -619,7 +624,7 @@ contains
     end if
     call t_stopf('MED:'//subname)
 
-  end subroutine med_phases_prep_ocn_custom
+  end subroutine med_phases_prep_ocn_custom_cesm
 
   !-----------------------------------------------------------------------------
   subroutine med_phases_prep_ocn_custom_nems(gcomp, rc)
@@ -642,6 +647,7 @@ contains
     real(R8), pointer   :: ifrac(:)
     real(R8), pointer   :: ofrac(:)
     integer             :: lsize
+    real(R8)        , parameter    :: const_lhvap = 2.501e6_R8  ! latent heat of evaporation ~ J/kg
     character(len=*), parameter    :: subname='(med_phases_prep_ocn_custom_nems)'
     !---------------------------------------
 
@@ -670,9 +676,9 @@ contains
     if (trim(coupling_mode) == 'nems_orig' .or. &
         trim(coupling_mode) == 'nems_frac' .or. &
         trim(coupling_mode) == 'nems_frac_aoflux_sbs') then
-       customwgt(:) = -ofrac(:)
+       customwgt(:) = -ofrac(:) / const_lhvap
        call med_merge_field(is_local%wrap%FBExp(compocn),      'Faxa_evap', &
-            FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_evap' , wgtA=customwgt, rc=rc)
+            FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_lat' , wgtA=customwgt, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        customwgt(:) = -ofrac(:)
@@ -690,6 +696,25 @@ contains
             FBinB=is_local%wrap%FBImp(compatm,compocn), fnameB='Faxa_tauy', wgtB=customwgt, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
+
+    ! netsw_for_ocn = [downsw_from_atm*(1-ice_fraction)*(1-ocn_albedo)] + [pensw_from_ice*(ice_fraction)]
+    customwgt(:) = ofrac(:) * (1.0_R8 - 0.06_R8)
+    call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_swnet_vdr', &
+         FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_swvdr'    , wgtA=customwgt, &
+         FBinB=is_local%wrap%FBImp(compice,compocn), fnameB='Fioi_swpen_vdr', wgtB=ifrac, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_swnet_vdf', &
+         FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_swvdf'    , wgtA=customwgt, &
+         FBinB=is_local%wrap%FBImp(compice,compocn), fnameB='Fioi_swpen_vdf', wgtB=ifrac, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_swnet_idr', &
+         FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_swndr'    , wgtA=customwgt, &
+         FBinB=is_local%wrap%FBImp(compice,compocn), fnameB='Fioi_swpen_idr', wgtB=ifrac, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_swnet_idf', &
+         FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_swndf'    , wgtA=customwgt, &
+         FBinB=is_local%wrap%FBImp(compice,compocn), fnameB='Fioi_swpen_idf', wgtB=ifrac, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     deallocate(customwgt)
 

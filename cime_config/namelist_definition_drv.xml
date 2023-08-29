@@ -727,6 +727,20 @@
       <value>.true.</value>
     </values>
   </entry>
+
+  <entry id="compute_enthalpy">
+    <type>logical</type>
+    <category>control</category>
+    <group>MED_attributes</group>
+    <desc>
+      Compute energy of enthalpy
+    </desc>
+    <values>
+      <value>.false.</value>
+      <value comp_ocn="mom">.true.</value>
+    </values>
+  </entry>
+
   <entry id="atm_nx" modify_via_xml="ATM_NX">
     <type>integer</type>
     <category>control</category>
