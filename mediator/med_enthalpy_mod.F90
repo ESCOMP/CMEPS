@@ -31,13 +31,14 @@ contains
     ! local variables
     
     real(r8), pointer :: tocn(:), rain(:), snow(:), rofl(:), rofi(:), evap(:)
-    real(r8), pointer :: rainl(:), rainc(:)
+    real(r8), pointer :: rainl(:), rainc(:), tbot(:)
     real(r8), pointer :: snowl(:), snowc(:)
     real(r8), pointer :: hrain(:), hsnow(:), hevap(:), hcond(:), hrofl(:), hrofi(:)
     real(r8), allocatable :: hcorr(:)
     real(r8), pointer :: areas(:)
     real(r8), parameter :: glob_area_inv = 1._r8 / (4._r8 * pi)
     real(r8) :: local_htot_corr(1)
+    
     integer :: n, nmax
     character(len=*), parameter:: subname = "med_compute_enthalpy"
 
@@ -47,6 +48,14 @@ contains
     call FB_GetFldPtr(is_local%wrap%FBImp(compocn,compocn), 'So_t', tocn, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     nmax = size(tocn)
+
+    if (FB_fldchk(is_local%wrap%FBExp(compocn), 'Sa_tbot'    , rc=rc)) then
+       call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Sa_tbot', tbot, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    else
+       call FB_GetFldPtr(is_local%wrap%FBImp(compatm, compatm), 'Sa_tbot', tbot, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    endif
     
     if(FB_fldchk(is_local%wrap%FBExp(compocn), 'Faxa_rain', rc)) then
        call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Faxa_rain' , rain, rc=rc)
@@ -136,14 +145,17 @@ contains
     endif
     do n = 1,nmax
        ! Need max to ensure that will not have an enthalpy contribution if the water is below 0C
-       hrain(n)  = max((tocn(n) - tkfrz), 0._r8) * rain(n)  * cpfw
-       hsnow(n)  = min((tocn(n) - tkfrz), 0._r8) * snow(n)  * cpice
+       hrain(n)  = max((tbot(n) - tkfrz), 0._r8) * rain(n)  * cpfw
+       hsnow(n)  = min((tbot(n) - tkfrz), 0._r8) * snow(n)  * cpice
        hevap(n)  = (tocn(n) - tkfrz) * min(evap(n), 0._r8)  * cpwv
        hcond(n)  = (tocn(n) - tkfrz) * max(evap(n), 0._r8)  * cpwv
-       hrofl(n)  = max((tocn(n) - tkfrz), 0._r8) * rofl(n)  * cpsw
+       hrofl(n)  = max((tocn(n) - tkfrz), 0._r8) * rofl(n)  * cpfw
        hrofi(n)  = min((tocn(n) - tkfrz), 0._r8) * rofi(n)  * cpice
        ! GMM - note change in hcond
     end do
+
+    if(.not. FB_fldchk(is_local%wrap%FBExp(compocn), 'Faxa_rain', rc)) deallocate(rain)
+    if(.not. FB_fldchk(is_local%wrap%FBExp(compocn), 'Faxa_snow', rc)) deallocate(snow)
     
     ! Determine enthalpy correction factor that will be added to the sensible heat flux sent to the atm
     ! Areas here in radians**2 - this is an instantaneous snapshot that will be sent to the atm - only
@@ -168,6 +180,13 @@ contains
        if (maintask) write(logunit, '(a,a,f21.13)') trim(subname),' global enthalpy correction: ',global_htot_corr(1)
        deallocate(hcorr)
     endif
+    if(.not. FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hsnow', rc)) deallocate(hsnow)
+    if(.not. FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hrofl', rc)) deallocate(hrofl)
+    if(.not. FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hrofi', rc)) deallocate(hrofi)
+    if(.not. FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hrain', rc)) deallocate(hrain)
+    if(.not. FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hevap', rc)) deallocate(hevap)
+    if(.not. FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hcond', rc)) deallocate(hcond)
+    
     call t_stopf(subname)
 
   end subroutine med_compute_enthalpy
