@@ -23,7 +23,7 @@ module med_phases_prep_atm_mod
   use perf_mod              , only : t_startf, t_stopf
   use med_phases_aofluxes_mod, only : med_aofluxes_map_xgrid2agrid_output
   use med_phases_aofluxes_mod, only : med_aofluxes_map_ogrid2agrid_output
-  use med_enthalpy_mod,       only : med_enthalpy_get_global_htot_corr, med_compute_enthalpy
+  use med_enthalpy_mod,       only : med_enthalpy_get_global_htot_corr, med_compute_enthalpy, mediator_compute_enthalpy
 
   implicit none
   private
@@ -234,7 +234,7 @@ contains
     end if
 
     ! Add enthalpy correction to sensible heat if appropriate
-    if (FB_FldChk(is_local%wrap%FBExp(compatm), 'Faxx_sen', rc=rc)) then
+    if (Mediator_compute_enthalpy) then
        call FB_getfldptr(is_local%wrap%FBExp(compatm), 'Faxx_sen', dataptr1, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
