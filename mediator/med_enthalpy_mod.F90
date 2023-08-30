@@ -12,8 +12,9 @@ module med_enthalpy_mod
 
   implicit none
   public :: med_compute_enthalpy
+  logical, public :: mediator_compute_enthalpy = .true.
   
-  real(r8) :: global_htot_corr(1)
+  real(r8) :: global_htot_corr(1) = 0._r8
   character(*), parameter :: u_FILE_u  = &
        __FILE__
 contains
@@ -41,11 +42,11 @@ contains
 
     call t_startf(subname)
     rc = ESMF_SUCCESS
-    nmax = size(tocn)
 
     call FB_GetFldPtr(is_local%wrap%FBImp(compocn,compocn), 'So_t', tocn, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
+    nmax = size(tocn)
+    
     if(FB_fldchk(is_local%wrap%FBExp(compocn), 'Faxa_rain', rc)) then
        call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Faxa_rain' , rain, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -128,7 +129,6 @@ contains
     else
        allocate(hrofi(nmax))
     endif
-    
     do n = 1,nmax
        ! Need max to ensure that will not have an enthalpy contribution if the water is below 0C
        hrain(n)  = max((tocn(n) - tkfrz), 0._r8) * rain(n)  * cpfw
@@ -157,7 +157,6 @@ contains
        do n = 1,size(hcorr)
           local_htot_corr(1) = local_htot_corr(1) + hcorr(n)
        end do
-
        call ESMF_VMAllreduce(is_local%wrap%vm, senddata=local_htot_corr, recvdata=global_htot_corr, count=1, &
             reduceflag=ESMF_REDUCE_SUM, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return

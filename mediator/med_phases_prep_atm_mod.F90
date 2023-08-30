@@ -242,7 +242,6 @@ contains
        
 !       call med_compute_enthalpy(is_local, rc)
 !       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       
        do n = 1,size(dataptr1)
           dataptr1(n) = dataptr1(n) + med_enthalpy_get_global_htot_corr()
        end do
