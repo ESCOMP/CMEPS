@@ -12,7 +12,7 @@ module med_enthalpy_mod
 
   implicit none
   public :: med_compute_enthalpy
-  logical, public :: mediator_compute_enthalpy = .true.
+  logical, public :: mediator_compute_enthalpy = .false.
   
   real(r8) :: global_htot_corr(1) = 0._r8
   character(*), parameter :: u_FILE_u  = &
