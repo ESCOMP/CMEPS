@@ -7,7 +7,7 @@ module med_phases_prep_atm_mod
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
   use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
   use ESMF                  , only : ESMF_Field, ESMF_FieldGet, ESMF_FieldBundleGet
-  use ESMF                  , only : ESMF_GridComp, ESMF_GridCompGet
+  use ESMF                  , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_FieldBundleIsCreated
   use med_constants_mod     , only : dbug_flag   => med_constants_dbug_flag
   use med_utils_mod         , only : memcheck    => med_memcheck
   use med_utils_mod         , only : chkerr      => med_utils_ChkErr
@@ -239,9 +239,10 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        ! IF data ocn case compute first, otherwise computed in prep_ocn_mod
-       
-!       call med_compute_enthalpy(is_local, rc)
-!       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       if(is_local%wrap%docn_present) then
+          call med_compute_enthalpy(is_local, rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       endif
        do n = 1,size(dataptr1)
           dataptr1(n) = dataptr1(n) + med_enthalpy_get_global_htot_corr()
        end do

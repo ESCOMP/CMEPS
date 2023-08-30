@@ -125,7 +125,8 @@ module med_internalstate_mod
     logical          :: ocn2glc_coupling = .false. ! obtained from attribute
     logical          :: lnd2glc_coupling = .false.
     logical          :: accum_lnd2glc = .false.
-
+    logical          :: docn_present               ! aoflux calc requires med_coupling_active true even for docn
+                                                   ! so we need an additional flag
     ! Mediator vm
     type(ESMF_VM) :: vm
 
@@ -282,8 +283,10 @@ contains
     end if
     call NUOPC_CompAttributeGet(gcomp, name='OCN_model', value=ocn_name, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    is_local%wrap%docn_present = .false.
     if (isPresent .and. isSet) then
        if (trim(ocn_name) /= 'socn') is_local%wrap%comp_present(compocn) = .true.
+       if (trim(ocn_name) == 'docn') is_local%wrap%docn_present = .true.
     end if
     call NUOPC_CompAttributeGet(gcomp, name='ICE_model', value=ice_name, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return

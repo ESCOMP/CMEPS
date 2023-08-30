@@ -6,7 +6,7 @@ module med_enthalpy_mod
   use med_utils_mod         , only : chkerr        => med_utils_ChkErr
   use med_methods_mod       , only : FB_fldchk     => med_methods_FB_FldChk
   use med_methods_mod       , only : FB_GetFldPtr  => med_methods_FB_GetFldPtr
-  use med_internalstate_mod, only : compocn, compatm, InternalState
+  use med_internalstate_mod, only : compocn, compatm, comprof, InternalState
   use perf_mod, only : t_startf, t_stopf
     
 
@@ -110,6 +110,8 @@ contains
        call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Foxx_rofl' , rofl, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     else
+       call FB_GetFldPtr(is_local%wrap%FBImp(comprof, comprof), 'Forr_rofl', rofl, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
     endif
     if(FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hrofl', rc)) then
        call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Foxx_hrofl', hrofl, rc=rc)
@@ -122,6 +124,8 @@ contains
        call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Foxx_rofi' , rofi, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     else
+       call FB_GetFldPtr(is_local%wrap%FBImp(comprof, comprof), 'Forr_rofi', rofi, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
     endif
     if(FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hrofi', rc)) then
        call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Foxx_hrofi', hrofi, rc=rc)
