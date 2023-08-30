@@ -7,6 +7,7 @@ module med_enthalpy_mod
   use med_methods_mod       , only : FB_fldchk     => med_methods_FB_FldChk
   use med_methods_mod       , only : FB_GetFldPtr  => med_methods_FB_GetFldPtr
   use med_internalstate_mod, only : compocn, compatm, comprof, InternalState
+  use med_internalstate_mod , only : logunit, maintask
   use perf_mod, only : t_startf, t_stopf
     
 
@@ -164,7 +165,7 @@ contains
        call ESMF_VMAllreduce(is_local%wrap%vm, senddata=local_htot_corr, recvdata=global_htot_corr, count=1, &
             reduceflag=ESMF_REDUCE_SUM, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
+       if (maintask) write(logunit, '(a,a,f21.13)') trim(subname),' global enthalpy correction: ',global_htot_corr(1)
        deallocate(hcorr)
     endif
     call t_stopf(subname)
