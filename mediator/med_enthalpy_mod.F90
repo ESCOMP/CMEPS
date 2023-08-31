@@ -153,7 +153,6 @@ contains
        hcond(n)  = (tocn(n) - tkfrz) * max(evap(n), 0._r8)  * cpwv  * ofrac(n)
        hrofl(n)  = max((tocn(n) - tkfrz), 0._r8) * rofl(n)  * cpfw  * ofrac(n)
        hrofi(n)  = min((tocn(n) - tkfrz), 0._r8) * rofi(n)  * cpice * ofrac(n)
-       ! GMM - note change in hcond
     end do
     if(.not. FB_fldchk(is_local%wrap%FBExp(compocn), 'Faxa_rain', rc)) deallocate(rain)
     if(.not. FB_fldchk(is_local%wrap%FBExp(compocn), 'Faxa_snow', rc)) deallocate(snow)
