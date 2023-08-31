@@ -90,16 +90,6 @@ contains
     ! local variables
     type(InternalState) :: is_local
     integer             :: n
-    real(r8)            :: glob_area_inv
-    real(r8), pointer   :: tocn(:)
-    real(r8), pointer   :: rain(:), hrain(:)
-    real(r8), pointer   :: snow(:), hsnow(:)
-    real(r8), pointer   :: evap(:), hevap(:)
-    real(r8), pointer   :: hcond(:)
-    real(r8), pointer   :: rofl(:), hrofl(:)
-    real(r8), pointer   :: rofi(:), hrofi(:)
-    real(r8), pointer   :: areas(:)
-    real(r8), allocatable :: hcorr(:)
     type(med_fldlist_type), pointer :: fldList
     character(len=*), parameter    :: subname='(med_phases_prep_ocn_accum)'
     !---------------------------------------
