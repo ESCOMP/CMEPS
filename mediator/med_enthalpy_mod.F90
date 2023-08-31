@@ -6,6 +6,7 @@ module med_enthalpy_mod
   use med_utils_mod         , only : chkerr        => med_utils_ChkErr
   use med_methods_mod       , only : FB_fldchk     => med_methods_FB_FldChk
   use med_methods_mod       , only : FB_GetFldPtr  => med_methods_FB_GetFldPtr
+  use med_methods_mod       , only : fldbun_getdata1d => med_methods_FB_getdata1d
   use med_internalstate_mod, only : compocn, compatm, comprof, InternalState
   use med_internalstate_mod , only : logunit, maintask
   use perf_mod, only : t_startf, t_stopf
@@ -49,13 +50,8 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     nmax = size(tocn)
        
-    if (FB_fldchk(is_local%wrap%FBExp(compocn), 'Sa_tbot'    , rc=rc)) then
-       call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Sa_tbot', tbot, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    else
-       call FB_GetFldPtr(is_local%wrap%FBImp(compatm, compatm), 'Sa_tbot', tbot, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    endif
+    call FB_GetFldPtr(is_local%wrap%FBImp(compatm, compocn), 'Sa_tbot', tbot, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
     
     if(FB_fldchk(is_local%wrap%FBExp(compocn), 'Faxa_rain', rc)) then
        call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Faxa_rain' , rain, rc=rc)
@@ -143,29 +139,25 @@ contains
     else
        allocate(hrofi(nmax))
     endif
-    if(is_local%wrap%docn_present) then
-       ! For docn land points have none 0 tocn values so we need to include
-       ! ocnfrac in calculations.
-       call FB_GetFldPtr(is_local%wrap%FBfrac(compocn), 'ofrac' , ofrac, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    else
-       ! if not docn then tbot is 0 over land and we don't need ofrac
-       allocate(ofrac(nmax))
-       ofrac = 1.0_R8
-    endif
-    do n = 1,nmax
+
+    call fldbun_getdata1d(is_local%wrap%FBImp(compocn,compocn), 'So_omask', ofrac, rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    do n=1,nmax
+       ! for F cases (docn) tocn is non-zero over land and so ofrac must be included
+       ! so that only ocean points are included in calculation
        ! Need max to ensure that will not have an enthalpy contribution if the water is below 0C
-       hrain(n)  = max((tbot(n) - tkfrz), 0._r8) * rain(n)  * cpfw * ofrac(n)
+       hrain(n)  = max((tbot(n) - tkfrz), 0._r8) * rain(n)  * cpfw  * ofrac(n)
        hsnow(n)  = min((tbot(n) - tkfrz), 0._r8) * snow(n)  * cpice * ofrac(n)
-       hevap(n)  = (tocn(n) - tkfrz) * min(evap(n), 0._r8)  * cpwv * ofrac(n)
-       hcond(n)  = (tocn(n) - tkfrz) * max(evap(n), 0._r8)  * cpwv * ofrac(n)
-       hrofl(n)  = max((tocn(n) - tkfrz), 0._r8) * rofl(n)  * cpfw * ofrac(n)
+       hevap(n)  = (tocn(n) - tkfrz) * min(evap(n), 0._r8)  * cpwv  * ofrac(n)
+       hcond(n)  = (tocn(n) - tkfrz) * max(evap(n), 0._r8)  * cpwv  * ofrac(n)
+       hrofl(n)  = max((tocn(n) - tkfrz), 0._r8) * rofl(n)  * cpfw  * ofrac(n)
        hrofi(n)  = min((tocn(n) - tkfrz), 0._r8) * rofi(n)  * cpice * ofrac(n)
        ! GMM - note change in hcond
     end do
-
     if(.not. FB_fldchk(is_local%wrap%FBExp(compocn), 'Faxa_rain', rc)) deallocate(rain)
     if(.not. FB_fldchk(is_local%wrap%FBExp(compocn), 'Faxa_snow', rc)) deallocate(snow)
+
     
     ! Determine enthalpy correction factor that will be added to the sensible heat flux sent to the atm
     ! Areas here in radians**2 - this is an instantaneous snapshot that will be sent to the atm - only
