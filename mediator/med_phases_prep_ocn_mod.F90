@@ -87,7 +87,6 @@ contains
 
     ! local variables
     type(InternalState) :: is_local
-    integer             :: n
     type(med_fldlist_type), pointer :: fldList
     character(len=*), parameter    :: subname='(med_phases_prep_ocn_accum)'
     !---------------------------------------
