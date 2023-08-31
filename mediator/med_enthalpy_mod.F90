@@ -32,7 +32,7 @@ contains
     
     real(r8), pointer :: tocn(:), rain(:), snow(:), rofl(:), rofi(:), evap(:)
     real(r8), pointer :: rainl(:), rainc(:), tbot(:)
-    real(r8), pointer :: snowl(:), snowc(:)
+    real(r8), pointer :: snowl(:), snowc(:), ofrac(:)
     real(r8), pointer :: hrain(:), hsnow(:), hevap(:), hcond(:), hrofl(:), hrofi(:)
     real(r8), allocatable :: hcorr(:)
     real(r8), pointer :: areas(:)
@@ -48,7 +48,7 @@ contains
     call FB_GetFldPtr(is_local%wrap%FBImp(compocn,compocn), 'So_t', tocn, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     nmax = size(tocn)
-
+       
     if (FB_fldchk(is_local%wrap%FBExp(compocn), 'Sa_tbot'    , rc=rc)) then
        call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Sa_tbot', tbot, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -143,14 +143,24 @@ contains
     else
        allocate(hrofi(nmax))
     endif
+    if(is_local%wrap%docn_present) then
+       ! For docn land points have none 0 tocn values so we need to include
+       ! ocnfrac in calculations.
+       call FB_GetFldPtr(is_local%wrap%FBfrac(compocn), 'ofrac' , ofrac, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    else
+       ! if not docn then tbot is 0 over land and we don't need ofrac
+       allocate(ofrac(nmax))
+       ofrac = 1.0_R8
+    endif
     do n = 1,nmax
        ! Need max to ensure that will not have an enthalpy contribution if the water is below 0C
-       hrain(n)  = max((tbot(n) - tkfrz), 0._r8) * rain(n)  * cpfw
-       hsnow(n)  = min((tbot(n) - tkfrz), 0._r8) * snow(n)  * cpice
-       hevap(n)  = (tocn(n) - tkfrz) * min(evap(n), 0._r8)  * cpwv
-       hcond(n)  = (tocn(n) - tkfrz) * max(evap(n), 0._r8)  * cpwv
-       hrofl(n)  = max((tocn(n) - tkfrz), 0._r8) * rofl(n)  * cpfw
-       hrofi(n)  = min((tocn(n) - tkfrz), 0._r8) * rofi(n)  * cpice
+       hrain(n)  = max((tbot(n) - tkfrz), 0._r8) * rain(n)  * cpfw * ofrac(n)
+       hsnow(n)  = min((tbot(n) - tkfrz), 0._r8) * snow(n)  * cpice * ofrac(n)
+       hevap(n)  = (tocn(n) - tkfrz) * min(evap(n), 0._r8)  * cpwv * ofrac(n)
+       hcond(n)  = (tocn(n) - tkfrz) * max(evap(n), 0._r8)  * cpwv * ofrac(n)
+       hrofl(n)  = max((tocn(n) - tkfrz), 0._r8) * rofl(n)  * cpfw * ofrac(n)
+       hrofi(n)  = min((tocn(n) - tkfrz), 0._r8) * rofi(n)  * cpice * ofrac(n)
        ! GMM - note change in hcond
     end do
 
