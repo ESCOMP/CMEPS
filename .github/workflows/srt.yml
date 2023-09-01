@@ -26,8 +26,8 @@ jobs:
       CPPFLAGS: "-I/usr/include -I/usr/local/include "
       LDFLAGS: "-L/usr/lib/x86_64-linux-gnu -lnetcdf -lnetcdff -lpnetcdf"     
       # Versions of all dependencies can be updated here
-      ESMF_VERSION: v8.4.0
-      PARALLELIO_VERSION: pio2_5_10
+      ESMF_VERSION: v8.5.0
+      PARALLELIO_VERSION: pio2_6_0
       CIME_MODEL: cesm
       CIME_DRIVER: nuopc
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -153,6 +153,7 @@ jobs:
           mkdir -p $HOME/cesm/scratch
           mkdir -p $HOME/cesm/inputdata
           pushd $GITHUB_WORKSPACE/cesm/cime/CIME/tests
+          export SRCROOT=$GITHUB_WORKSPACE/cesm/
           export CIME_TEST_PLATFORM=ubuntu-latest
           export PIO_INCDIR=$HOME/pio/include
           export PIO_LIBDIR=$HOME/pio/lib
@@ -175,6 +176,6 @@ jobs:
           popd
 #     the following can be used by developers to login to the github server in case of errors
 #     see https://github.com/marketplace/actions/debugging-with-tmate for further details
-#      - name: Setup tmate session
-#        if: ${{ failure() }}
-#        uses: mxschmitt/action-tmate@v3
+      - name: Setup tmate session
+        if: ${{ failure() }}
+        uses: mxschmitt/action-tmate@v3
