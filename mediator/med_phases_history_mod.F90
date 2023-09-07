@@ -25,7 +25,7 @@ module med_phases_history_mod
   use med_io_mod            , only : med_io_write, med_io_wopen, med_io_enddef, med_io_close
   use perf_mod              , only : t_startf, t_stopf
   use pio                   , only : file_desc_t
-  
+
   implicit none
   private
 
