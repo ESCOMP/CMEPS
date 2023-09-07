@@ -2172,7 +2172,7 @@ contains
           ! liquid from river and possibly flood from river to ocean
           if (fldchk(is_local%wrap%FBImp(comprof, comprof), 'Forr_rofl' , rc=rc)) then
              if (trim(rof2ocn_liq_rmap) == 'unset') then
-                call addmap_from(comprof, 'Forr_rofl', compocn, mapconsd, 'none', 'unset')
+                call addmap_from(comprof, 'Forr_rofl', compocn, mapconsd, 'one', 'unset')
              else
                 call addmap_from(comprof, 'Forr_rofl', compocn, map_rof2ocn_liq, 'none', rof2ocn_liq_rmap)
              end if
@@ -2196,7 +2196,7 @@ contains
           ! ice from river to ocean
           if (fldchk(is_local%wrap%FBImp(comprof, comprof), 'Forr_rofi' , rc=rc)) then
              if (trim(rof2ocn_ice_rmap) == 'unset') then
-                call addmap_from(comprof, 'Forr_rofi', compocn, mapconsd, 'none', 'unset')
+                call addmap_from(comprof, 'Forr_rofi', compocn, mapconsd, 'one', 'unset')
              else
                 call addmap_from(comprof, 'Forr_rofi', compocn, map_rof2ocn_ice, 'none', rof2ocn_ice_rmap)
              end if
