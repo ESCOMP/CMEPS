@@ -35,6 +35,7 @@ contains
     real(r8), pointer :: rainl(:), rainc(:), tbot(:)
     real(r8), pointer :: snowl(:), snowc(:), ofrac(:)
     real(r8), pointer :: hrain(:), hsnow(:), hevap(:), hcond(:), hrofl(:), hrofi(:)
+    real(r8), pointer :: hrain_a(:), hevap_a(:), hsnow_a(:), hrofl_a(:), hrofi_a(:)
     real(r8), allocatable :: hcorr(:)
     real(r8), pointer :: areas(:)
     real(r8), parameter :: glob_area_inv = 1._r8 / (4._r8 * pi)
@@ -50,8 +51,13 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     nmax = size(tocn)
        
-    call FB_GetFldPtr(is_local%wrap%FBImp(compatm, compocn), 'Sa_tbot', tbot, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if  (FB_fldchk(is_local%wrap%FBExp(compocn), 'Sa_tbot'    , rc=rc)) then 
+       call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Sa_tbot', tbot, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    else
+       call FB_GetFldPtr(is_local%wrap%FBImp(compatm, compocn), 'Sa_tbot', tbot, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    endif
     
     if(FB_fldchk(is_local%wrap%FBExp(compocn), 'Faxa_rain', rc)) then
        call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Faxa_rain' , rain, rc=rc)
@@ -143,16 +149,63 @@ contains
     call fldbun_getdata1d(is_local%wrap%FBImp(compocn,compocn), 'So_omask', ofrac, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+    if       (FB_fldchk(is_local%wrap%FBExp(compocn), 'Faxa_hrain' , rc=rc)) then 
+       call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Faxa_hrain', hrain_a, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       do n = 1,nmax
+          hrain(n)  = hrain_a(n) - tkfrz*rain(n)*cpfw * ofrac(n)
+       enddo
+    else if  (FB_fldchk(is_local%wrap%FBExp(compocn), 'Sa_tbot'    , rc=rc)) then 
+       do n = 1,nmax
+          hrain(n)  = max((tbot(n) - tkfrz), 0._r8) * rain(n) * cpfw * ofrac(n)
+       enddo
+    else 
+       do n = 1,nmax
+          hrain(n)  = max((tocn(n) - tkfrz), 0._r8) * rain(n) * cpfw * ofrac(n)
+       enddo
+    endif
+
+    if       (FB_fldchk(is_local%wrap%FBExp(compocn), 'Faxa_hevap' , rc=rc)) then 
+       call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Faxa_hevap', hevap_a, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       do n = 1,nmax
+          hevap(n)  = min(hevap_a(n),0._r8) - tkfrz * min(evap(n),0._r8) * cpwv * ofrac(n) 
+          hcond(n)  = max(hevap_a(n),0._r8) - tkfrz * max(evap(n),0._r8) * cpwv * ofrac(n)
+       enddo
+    else
+       do n = 1,nmax
+          hevap(n)  = (tocn(n) - tkfrz) * min(evap(n),0._r8) * cpwv * ofrac(n)
+          hcond(n)  = (tocn(n) - tkfrz) * max(evap(n),0._r8) * cpwv * ofrac(n)
+       enddo
+    endif
+
+    if       (FB_fldchk(is_local%wrap%FBExp(compocn), 'Faxa_hsnow' , rc=rc)) then 
+       call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Faxa_hsnow', hsnow_a, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       do n = 1,nmax
+          hsnow(n)  = hsnow_a(n) - tkfrz * snow(n) * cpice * ofrac(n)
+       enddo
+    else if  (FB_fldchk(is_local%wrap%FBExp(compocn), 'Sa_tbot'    , rc=rc)) then 
+       do n = 1,nmax
+          hsnow(n)  = min((tbot(n) - tkfrz), 0._r8) * snow(n)  * cpice * ofrac(n)
+       enddo
+    else 
+       do n = 1,nmax
+          hsnow(n)  = min((tocn(n) - tkfrz), 0._r8) * snow(n)  * cpice * ofrac(n)
+       enddo
+    endif
+
+    
     do n=1,nmax
        ! for F cases (docn) tocn is non-zero over land and so ofrac must be included
        ! so that only ocean points are included in calculation
        ! Need max to ensure that will not have an enthalpy contribution if the water is below 0C
-       hrain(n)  = max((tbot(n) - tkfrz), 0._r8) * rain(n)  * cpfw  * ofrac(n)
-       hsnow(n)  = min((tbot(n) - tkfrz), 0._r8) * snow(n)  * cpice * ofrac(n)
-       hevap(n)  = (tocn(n) - tkfrz) * min(evap(n), 0._r8)  * cpwv  * ofrac(n)
-       hcond(n)  = (tocn(n) - tkfrz) * max(evap(n), 0._r8)  * cpwv  * ofrac(n)
-       hrofl(n)  = max((tocn(n) - tkfrz), 0._r8) * rofl(n)  * cpfw  * ofrac(n)
-       hrofi(n)  = min((tocn(n) - tkfrz), 0._r8) * rofi(n)  * cpice * ofrac(n)
+
+       hrofl_a(n)= max( tocn(n) , tkfrz        ) * rofl(n)  * cpsw * ofrac(n)
+       hrofi_a(n)= min( tocn(n) , tkfrz        ) * rofi(n)  * cpsw * ofrac(n)
+
+       hrofl(n)  = max((tocn(n) - tkfrz), 0._r8) * rofl(n)  * cpsw * ofrac(n)
+       hrofi(n)  = min((tocn(n) - tkfrz), 0._r8) * rofi(n)  * cpsw * ofrac(n)
     end do
     if(.not. FB_fldchk(is_local%wrap%FBExp(compocn), 'Faxa_rain', rc)) deallocate(rain)
     if(.not. FB_fldchk(is_local%wrap%FBExp(compocn), 'Faxa_snow', rc)) deallocate(snow)
