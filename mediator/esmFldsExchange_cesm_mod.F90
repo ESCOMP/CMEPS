@@ -1999,6 +1999,31 @@ contains
        call addfld_to(compocn, 'Foxx_hcond')
        call addfld_to(compocn, 'Foxx_hrofl')
        call addfld_to(compocn, 'Foxx_hrofi')
+
+       call addfld_from(compatm, 'Faxa_hrain')
+       call addfld_from(compatm, 'Faxa_hsnow')
+       call addfld_from(compatm, 'Faxa_hevap')
+    else
+       if ( fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_hrain', rc=rc) .and. &
+            fldchk(is_local%wrap%FBExp(compocn)        , 'Faxa_hrain', rc=rc)) then
+          call addmap_from(compatm, 'Faxa_hrain', compocn, mapconsf, 'one', atm2ocn_map)
+          call addmrg_to(compocn, 'Faxa_hrain', &
+               mrg_from=compatm, mrg_fld='Faxa_hrain', mrg_type='copy')
+       end if
+       if ( fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_hsnow', rc=rc) .and. &
+            
+            fldchk(is_local%wrap%FBExp(compocn)        , 'Faxa_hsnow', rc=rc)) then
+          call addmap_from(compatm, 'Faxa_hsnow', compocn, mapconsf, 'one', atm2ocn_map)
+          call addmrg_to(compocn, 'Faxa_hsnow', &
+               mrg_from=compatm, mrg_fld='Faxa_hsnow', mrg_type='copy')
+       end if
+       if ( fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_hevap', rc=rc) .and. &
+            
+            fldchk(is_local%wrap%FBExp(compocn)        , 'Faxa_hevap', rc=rc)) then
+          call addmap_from(compatm, 'Faxa_hevap', compocn, mapconsf, 'one', atm2ocn_map)
+          call addmrg_to(compocn, 'Faxa_hevap', &
+               mrg_from=compatm, mrg_fld='Faxa_hevap', mrg_type='copy')
+       end if
     end if
 
     ! ---------------------------------------------------------------------
