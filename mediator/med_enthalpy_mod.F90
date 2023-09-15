@@ -219,8 +219,10 @@ contains
        allocate(hcorr(nmax))
        areas => is_local%wrap%mesh_info(compocn)%areas
        do n = 1,nmax
-          hcorr(n) = (hrain(n) + hsnow(n) + hcond(n) + hevap(n) + hrofl(n) + hrofi(n)) * &
+          hcorr(n) = (hrain_a(n) + hsnow_a(n) + hevap_a(n) + hrofl_a(n) + hrofi_a(n)) * &
                areas(n) * glob_area_inv
+
+          !          hcorr(n) = (hrofl_a(n) + hrofi_a(n)) *areas(n) *glob_area_inv    
        end do
 
        ! Determine sum of enthalpy correction for each hcorr index locally
