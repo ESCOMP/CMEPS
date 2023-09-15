@@ -1181,22 +1181,6 @@
        canonical_units: 1
        description: ocean import - fractional atmosphere coverage used in radiation computations wrt ocean
      #
-     - standard_name: Sw_swh
-       canonical_units: m
-       description: wave import - significant wave height
-     #
-     - standard_name: Sw_mwl
-       canonical_units: m
-       description: wave import - mean wave length
-     #
-     - standard_name: Sw_ch
-       canonical_units: nondmnsnl
-       description: wave import - Charnock parameter
-     #
-     - standard_name: Sw_z0
-       canonical_units: m
-       description: wave import - roughness length
-     #
      - standard_name: Sw_hstokes
        canonical_units: m
        description: ocean import - Stokes drift depth
