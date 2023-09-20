@@ -195,7 +195,8 @@ contains
        enddo
     endif
 
-    
+    allocate(hrofl_a(nmax))
+    allocate(hrofi_a(nmax))
     do n=1,nmax
        ! for F cases (docn) tocn is non-zero over land and so ofrac must be included
        ! so that only ocean points are included in calculation
@@ -242,7 +243,8 @@ contains
     if(.not. FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hrain', rc)) deallocate(hrain)
     if(.not. FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hevap', rc)) deallocate(hevap)
     if(.not. FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hcond', rc)) deallocate(hcond)
-    
+    deallocate(hrofl_a)
+    deallocate(hrofi_a)
     call t_stopf(subname)
 
   end subroutine med_compute_enthalpy
