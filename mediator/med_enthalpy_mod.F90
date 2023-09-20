@@ -244,11 +244,11 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        if (maintask) write(logunit, '(a,a,f21.13)') trim(subname),' global enthalpy correction: ',global_htot_corr(1)
 #ifdef DEBUG
-       write(logunit, '(a,a,f21.13)') trim(subname), 'hrain_a: ',minval(hrain_a),maxval(hrain_a),sum(hrain_a)
-       write(logunit, '(a,a,f21.13)') trim(subname), 'hsnow_a: ',minval(hsnow_a),maxval(hsnow_a),sum(hsnow_a)
-       write(logunit, '(a,a,f21.13)') trim(subname), 'hevap_a: ',minval(hevap_a),maxval(hevap_a),sum(hevap_a)
-       write(logunit, '(a,a,f21.13)') trim(subname), 'hrofl_a: ',minval(hrofl_a),maxval(hrofl_a),sum(hrofl_a)
-       write(logunit, '(a,a,f21.13)') trim(subname), 'hrofi_a: ',minval(hrofi_a),maxval(hrofi_a),sum(hrofi_a)
+       write(logunit, '(a,a,3f21.13)') trim(subname), ' hrain_a: ',minval(hrain_a),maxval(hrain_a),sum(hrain_a)
+       write(logunit, '(a,a,3f21.13)') trim(subname), ' hsnow_a: ',minval(hsnow_a),maxval(hsnow_a),sum(hsnow_a)
+       write(logunit, '(a,a,3f21.13)') trim(subname), ' hevap_a: ',minval(hevap_a),maxval(hevap_a),sum(hevap_a)
+       write(logunit, '(a,a,3f21.13)') trim(subname), ' hrofl_a: ',minval(hrofl_a),maxval(hrofl_a),sum(hrofl_a)
+       write(logunit, '(a,a,3f21.13)') trim(subname), ' hrofi_a: ',minval(hrofi_a),maxval(hrofi_a),sum(hrofi_a)
 #endif
        deallocate(hcorr)
     endif
