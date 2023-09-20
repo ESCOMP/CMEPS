@@ -149,24 +149,27 @@ contains
     call fldbun_getdata1d(is_local%wrap%FBImp(compocn,compocn), 'So_omask', ofrac, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    if       (FB_fldchk(is_local%wrap%FBExp(compocn), 'Faxa_hrain' , rc=rc)) then 
-       call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Faxa_hrain', hrain_a, rc=rc)
+    if       (FB_fldchk(is_local%wrap%FBImp(compatm,compocn), 'Faxa_hrain' , rc=rc)) then 
+       call FB_GetFldPtr(is_local%wrap%FBImp(compatm,compocn), 'Faxa_hrain', hrain_a, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        do n = 1,nmax
           hrain(n)  = hrain_a(n) - tkfrz*rain(n)*cpfw * ofrac(n)
        enddo
-    else if  (FB_fldchk(is_local%wrap%FBExp(compocn), 'Sa_tbot'    , rc=rc)) then 
-       do n = 1,nmax
-          hrain(n)  = max((tbot(n) - tkfrz), 0._r8) * rain(n) * cpfw * ofrac(n)
-       enddo
-    else 
-       do n = 1,nmax
-          hrain(n)  = max((tocn(n) - tkfrz), 0._r8) * rain(n) * cpfw * ofrac(n)
-       enddo
+    else
+       if  (FB_fldchk(is_local%wrap%FBExp(compocn), 'Sa_tbot'    , rc=rc)) then 
+          do n = 1,nmax
+             hrain(n)  = max((tbot(n) - tkfrz), 0._r8) * rain(n) * cpfw * ofrac(n)
+          enddo
+       else 
+          do n = 1,nmax
+             hrain(n)  = max((tocn(n) - tkfrz), 0._r8) * rain(n) * cpfw * ofrac(n)
+          enddo
+       endif
+       hrain_a => hrain
     endif
 
-    if       (FB_fldchk(is_local%wrap%FBExp(compocn), 'Faxa_hevap' , rc=rc)) then 
-       call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Faxa_hevap', hevap_a, rc=rc)
+    if       (FB_fldchk(is_local%wrap%FBImp(compatm,compocn), 'Faxa_hevap' , rc=rc)) then 
+       call FB_GetFldPtr(is_local%wrap%FBImp(compatm,compocn), 'Faxa_hevap', hevap_a, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        do n = 1,nmax
           hevap(n)  = min(hevap_a(n),0._r8) - tkfrz * min(evap(n),0._r8) * cpwv * ofrac(n) 
@@ -177,22 +180,27 @@ contains
           hevap(n)  = (tocn(n) - tkfrz) * min(evap(n),0._r8) * cpwv * ofrac(n)
           hcond(n)  = (tocn(n) - tkfrz) * max(evap(n),0._r8) * cpwv * ofrac(n)
        enddo
+       hevap_a => hevap
     endif
 
-    if       (FB_fldchk(is_local%wrap%FBExp(compocn), 'Faxa_hsnow' , rc=rc)) then 
-       call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Faxa_hsnow', hsnow_a, rc=rc)
+    if       (FB_fldchk(is_local%wrap%FBImp(compatm,compocn), 'Faxa_hsnow' , rc=rc)) then 
+       call FB_GetFldPtr(is_local%wrap%FBImp(compatm,compocn), 'Faxa_hsnow', hsnow_a, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        do n = 1,nmax
           hsnow(n)  = hsnow_a(n) - tkfrz * snow(n) * cpice * ofrac(n)
        enddo
-    else if  (FB_fldchk(is_local%wrap%FBExp(compocn), 'Sa_tbot'    , rc=rc)) then 
-       do n = 1,nmax
-          hsnow(n)  = min((tbot(n) - tkfrz), 0._r8) * snow(n)  * cpice * ofrac(n)
-       enddo
-    else 
-       do n = 1,nmax
-          hsnow(n)  = min((tocn(n) - tkfrz), 0._r8) * snow(n)  * cpice * ofrac(n)
-       enddo
+    else
+      
+       if  (FB_fldchk(is_local%wrap%FBExp(compocn), 'Sa_tbot'    , rc=rc)) then 
+          do n = 1,nmax
+             hsnow(n)  = min((tbot(n) - tkfrz), 0._r8) * snow(n)  * cpice * ofrac(n)
+          enddo
+       else 
+          do n = 1,nmax
+             hsnow(n)  = min((tocn(n) - tkfrz), 0._r8) * snow(n)  * cpice * ofrac(n)
+          enddo
+       endif
+       hsnow_a => hsnow
     endif
 
     allocate(hrofl_a(nmax))
@@ -235,6 +243,13 @@ contains
             reduceflag=ESMF_REDUCE_SUM, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        if (maintask) write(logunit, '(a,a,f21.13)') trim(subname),' global enthalpy correction: ',global_htot_corr(1)
+#ifdef DEBUG
+       write(logunit, '(a,a,f21.13)') trim(subname), 'hrain_a: ',minval(hrain_a),maxval(hrain_a),sum(hrain_a)
+       write(logunit, '(a,a,f21.13)') trim(subname), 'hsnow_a: ',minval(hsnow_a),maxval(hsnow_a),sum(hsnow_a)
+       write(logunit, '(a,a,f21.13)') trim(subname), 'hevap_a: ',minval(hevap_a),maxval(hevap_a),sum(hevap_a)
+       write(logunit, '(a,a,f21.13)') trim(subname), 'hrofl_a: ',minval(hrofl_a),maxval(hrofl_a),sum(hrofl_a)
+       write(logunit, '(a,a,f21.13)') trim(subname), 'hrofi_a: ',minval(hrofi_a),maxval(hrofi_a),sum(hrofi_a)
+#endif
        deallocate(hcorr)
     endif
     if(.not. FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hsnow', rc)) deallocate(hsnow)
