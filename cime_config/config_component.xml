@@ -2338,23 +2338,61 @@
   </entry>
 
   <!-- Data Assimilation type stuff -->
-
-  <entry id="DATA_ASSIMILATION">
+  <entry id="DATA_ASSIMILATION_ATM">
     <type>logical</type>
-    <valid_values>TRUE,FALSE</valid_values>
-    <group>external_tools</group>
-    <file>env_run.xml</file>
+    <default_value>FALSE</default_value>
+    <group>build_def</group>
+    <file>env_build.xml</file>
     <desc> Run the external tool pointed to by DATA_ASSIMILATION_SCRIPT after the model run completes </desc>
-    <values>
-      <value compclass="ATM">FALSE</value>
-      <value compclass="CPL">FALSE</value>
-      <value compclass="OCN">FALSE</value>
-      <value compclass="WAV">FALSE</value>
-      <value compclass="GLC">FALSE</value>
-      <value compclass="ICE">FALSE</value>
-      <value compclass="ROF">FALSE</value>
-      <value compclass="LND">FALSE</value>
-    </values>
+  </entry>
+  <entry id="DATA_ASSIMILATION_CPL">
+    <type>logical</type>
+    <default_value>FALSE</default_value>
+    <group>build_def</group>
+    <file>env_build.xml</file>
+    <desc> Run the external tool pointed to by DATA_ASSIMILATION_SCRIPT after the model run completes </desc>
+  </entry>
+  <entry id="DATA_ASSIMILATION_OCN">
+    <type>logical</type>
+    <default_value>FALSE</default_value>
+    <group>build_def</group>
+    <file>env_build.xml</file>
+    <desc> Run the external tool pointed to by DATA_ASSIMILATION_SCRIPT after the model run completes </desc>
+  </entry>
+  <entry id="DATA_ASSIMILATION_WAV">
+    <type>logical</type>
+    <default_value>FALSE</default_value>
+    <group>build_def</group>
+    <file>env_build.xml</file>
+    <desc> Run the external tool pointed to by DATA_ASSIMILATION_SCRIPT after the model run completes </desc>
+  </entry>
+  <entry id="DATA_ASSIMILATION_GLC">
+    <type>logical</type>
+    <default_value>FALSE</default_value>
+    <group>build_def</group>
+    <file>env_build.xml</file>
+    <desc> Run the external tool pointed to by DATA_ASSIMILATION_SCRIPT after the model run completes </desc>
+  </entry>
+  <entry id="DATA_ASSIMILATION_ICE">
+    <type>logical</type>
+    <default_value>FALSE</default_value>
+    <group>build_def</group>
+    <file>env_build.xml</file>
+    <desc> Run the external tool pointed to by DATA_ASSIMILATION_SCRIPT after the model run completes </desc>
+  </entry>
+  <entry id="DATA_ASSIMILATION_ROF">
+    <type>logical</type>
+    <default_value>FALSE</default_value>
+    <group>build_def</group>
+    <file>env_build.xml</file>
+    <desc> Run the external tool pointed to by DATA_ASSIMILATION_SCRIPT after the model run completes </desc>
+  </entry>
+  <entry id="DATA_ASSIMILATION_LND">
+    <type>logical</type>
+    <default_value>FALSE</default_value>
+    <group>build_def</group>
+    <file>env_build.xml</file>
+    <desc> Run the external tool pointed to by DATA_ASSIMILATION_SCRIPT after the model run completes </desc>
   </entry>
 
   <entry id="DATA_ASSIMILATION_CYCLES">
