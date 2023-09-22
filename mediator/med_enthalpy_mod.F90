@@ -146,14 +146,14 @@ contains
        allocate(hrofi(nmax))
     endif
 
-    call fldbun_getdata1d(is_local%wrap%FBImp(compocn,compocn), 'So_omask', ofrac, rc)
+    call FB_GetFldPtr(is_local%wrap%FBfrac(compocn), 'ofrac' , ofrac, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    if       (FB_fldchk(is_local%wrap%FBExp(compatm), 'Faxa_hrain' , rc=rc)) then 
-       call FB_GetFldPtr(is_local%wrap%FBExp(compatm), 'Faxa_hrain', hrain_a, rc=rc)
+    if       (FB_fldchk(is_local%wrap%FBImp(compatm,compocn), 'Faxa_hrain' , rc=rc)) then 
+       call FB_GetFldPtr(is_local%wrap%FBImp(compatm,compocn), 'Faxa_hrain', hrain_a, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        do n = 1,nmax
-          hrain(n)  = hrain_a(n) - tkfrz*rain(n)*cpfw * ofrac(n)
+          hrain(n)  = (hrain_a(n) - tkfrz*rain(n)*cpfw) * ofrac(n)
        enddo
     else
        if  (FB_fldchk(is_local%wrap%FBExp(compocn), 'Sa_tbot'    , rc=rc)) then 
@@ -168,12 +168,12 @@ contains
        hrain_a => hrain
     endif
 
-    if       (FB_fldchk(is_local%wrap%FBExp(compatm), 'Faxa_hevap' , rc=rc)) then 
-       call FB_GetFldPtr(is_local%wrap%FBExp(compatm), 'Faxa_hevap', hevap_a, rc=rc)
+    if       (FB_fldchk(is_local%wrap%FBImp(compatm, compocn), 'Faxa_hevap' , rc=rc)) then 
+       call FB_GetFldPtr(is_local%wrap%FBImp(compatm, compocn), 'Faxa_hevap', hevap_a, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        do n = 1,nmax
-          hevap(n)  = min(hevap_a(n),0._r8) - tkfrz * min(evap(n),0._r8) * cpwv * ofrac(n) 
-          hcond(n)  = max(hevap_a(n),0._r8) - tkfrz * max(evap(n),0._r8) * cpwv * ofrac(n)
+          hevap(n)  = (min(hevap_a(n),0._r8) - tkfrz * min(evap(n),0._r8) * cpwv) * ofrac(n) 
+          hcond(n)  = (max(hevap_a(n),0._r8) - tkfrz * max(evap(n),0._r8) * cpwv) * ofrac(n)
        enddo
     else
        do n = 1,nmax
@@ -183,11 +183,11 @@ contains
        hevap_a => hevap
     endif
 
-    if        (FB_fldchk(is_local%wrap%FBExp(compatm), 'Faxa_hsnow' , rc=rc)) then 
-       call FB_GetFldPtr(is_local%wrap%FBExp(compatm), 'Faxa_hsnow', hsnow_a, rc=rc)
+    if        (FB_fldchk(is_local%wrap%FBImp(compatm, compocn), 'Faxa_hsnow' , rc=rc)) then 
+       call FB_GetFldPtr(is_local%wrap%FBImp(compatm, compocn), 'Faxa_hsnow', hsnow_a, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        do n = 1,nmax
-          hsnow(n)  = hsnow_a(n) - tkfrz * snow(n) * cpice * ofrac(n)
+          hsnow(n)  = (hsnow_a(n) - tkfrz * snow(n) * cpice) * ofrac(n)
        enddo
     else
       
