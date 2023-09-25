@@ -150,7 +150,7 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if       (FB_fldchk(is_local%wrap%FBImp(compatm,compocn), 'Faxa_hrain' , rc=rc)) then 
-       call FB_GetFldPtr(is_local%wrap%FBImp(compatm,compocn), 'Faxa_hrain', hrain_a, rc=rc)
+       call FB_GetFldPtr(is_local%wrap%FBImp(compatm, compocn), 'Faxa_hrain', hrain_a, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        do n = 1,nmax
           hrain(n)  = (hrain_a(n) - tkfrz*rain(n)*cpfw) * ofrac(n)

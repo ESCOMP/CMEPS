@@ -1991,7 +1991,7 @@ contains
     ! to ocn: enthalpy from ice melt
     ! ---------------------------------------------------------------------
     ! Note - do not need to add addmap or addmrg for the following since they
-    ! will be computed directly in med_phases_prep_ocn
+    ! will be computed directly in med_enthalpy_mod
     if (phase == 'advertise') then
        call addfld_to(compocn, 'Foxx_hrain')
        call addfld_to(compocn, 'Foxx_hsnow')
@@ -2004,18 +2004,16 @@ contains
        call addfld_from(compatm, 'Faxa_hsnow')
        call addfld_from(compatm, 'Faxa_hevap')
     else
-       if ( fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_hrain', rc=rc) .and. &
-            fldchk(is_local%wrap%FBExp(compocn)        , 'Faxa_hrain', rc=rc)) then
+       if ( fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_hrain', rc=rc)) then
+          !            fldchk(is_local%wrap%FBExp(compocn)        , 'Foxx_hrain', rc=rc)) then
           call addmap_from(compatm, 'Faxa_hrain', compocn, mapconsf, 'one', atm2ocn_map)
        end if
-       if ( fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_hsnow', rc=rc) .and. &
-            
-            fldchk(is_local%wrap%FBExp(compocn)        , 'Faxa_hsnow', rc=rc)) then
+       if ( fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_hsnow', rc=rc)) then
+          !            fldchk(is_local%wrap%FBExp(compocn)        , 'Foxx_hsnow', rc=rc)) then
           call addmap_from(compatm, 'Faxa_hsnow', compocn, mapconsf, 'one', atm2ocn_map)
        end if
-       if ( fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_hevap', rc=rc) .and. &
-            
-            fldchk(is_local%wrap%FBExp(compocn)        , 'Faxa_hevap', rc=rc)) then
+       if ( fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_hevap', rc=rc)) then
+          !            fldchk(is_local%wrap%FBExp(compocn)        , 'Foxx_hevap', rc=rc)) then
           call addmap_from(compatm, 'Faxa_hevap', compocn, mapconsf, 'one', atm2ocn_map)
        end if
     end if
