@@ -1224,13 +1224,17 @@ contains
     real (r8), allocatable :: lats(:)        ! temporary
     real (r8), allocatable :: lons(:)        ! temporary
     real (r8), allocatable :: pos_lons(:)    ! temporary
+    real (r8), allocatable :: pos_lats(:)    ! temporary
+    real (r8), allocatable :: cols(:)        ! temporary
     real (r8), allocatable :: glob_grid(:,:) ! temporary
     real (r8)              :: pos_scol_lon   ! temporary
+    real (r8)              :: pos_scol_lat   ! temporary
     real (r8)              :: scol_data(1)
     integer                :: iscol_data(1)
     integer                :: petcount
     character(len=CL)      :: cvalue
     character(len=*), parameter :: subname= ' (esm_get_single_column_attributes) '
+    logical                :: unstructured = .false.
     !-------------------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -1324,7 +1328,15 @@ contains
           if (status /= nf90_noerr) call shr_sys_abort (subname//' inq_varid frac')
 
           ! Read in domain file for single column
-          allocate(lats(nj))
+          ! Check for unstructured data ni>1 and nj==1
+          if (ni.gt.1 .and. nj == 1) unstructured=.true.
+
+          if (unstructured) then
+             allocate(lats(ni))
+             allocate(pos_lats(ni))
+          else
+             allocate(lats(nj))
+          end if
           allocate(lons(ni))
           allocate(pos_lons(ni))
           allocate(glob_grid(ni,nj))
@@ -1334,28 +1346,37 @@ contains
           count3=(/ni,nj,1/)
           status = nf90_get_var(ncid, varid_xc, glob_grid, start3, count3)
           if (status /= nf90_noerr) call shr_sys_abort (subname//' get_var xc')
-          do i = 1,ni
-             lons(i) = glob_grid(i,1)
-          end do
+          lons(1:ni) = glob_grid(1:ni,1)
           status = nf90_get_var(ncid, varid_yc, glob_grid, start3, count3)
           if (status /= nf90_noerr) call shr_sys_abort (subname//' get_var yc')
-          do j = 1,nj
-             lats(j) = glob_grid(1,j)
-          end do
-
+          if (unstructured) then
+             lats(1:ni) = glob_grid(1:ni,1)
+          else
+             lats(1:nj) = glob_grid(1,1:nj)
+          end if
           ! find nearest neighbor indices of scol_lon and scol_lat in single_column_lnd_domain file
           ! convert lons array and scol_lon to 0,360 and find index of value closest to 0
           ! and obtain single-column longitude/latitude indices to retrieve
-          pos_lons(:)  = mod(lons(:)  + 360._r8, 360._r8)
-          pos_scol_lon = mod(scol_lon + 360._r8, 360._r8)
-          start(1) = (MINLOC(abs(pos_lons - pos_scol_lon), dim=1))
-          start(2) = (MINLOC(abs(lats      -scol_lat    ), dim=1))
-
+          if (unstructured) then
+             allocate(cols(ni))
+             pos_lons(:)  = mod(lons(:)  + 360._r8, 360._r8)
+             pos_scol_lon = mod(scol_lon + 360._r8, 360._r8)
+             pos_lats(:)  = lats(:)  + 90._r8
+             pos_scol_lat = scol_lat + 90._r8
+             cols=abs(pos_lons - pos_scol_lon)+abs(pos_lats - pos_scol_lat)
+             start(1) = MINLOC(cols, dim=1)
+             start(2) = 1
+             deallocate(cols)
+          else
+             pos_lons(:)  = mod(lons(:)  + 360._r8, 360._r8)
+             pos_scol_lon = mod(scol_lon + 360._r8, 360._r8)
+             start(1) = (MINLOC(abs(pos_lons - pos_scol_lon), dim=1))
+             start(2) = (MINLOC(abs(lats      -scol_lat    ), dim=1))
+          end if
           deallocate(lats)
           deallocate(lons)
           deallocate(pos_lons)
           deallocate(glob_grid)
-
           ! read in value of nearest neighbor lon and RESET scol_lon and scol_lat
           ! also get area of gridcell, mask and frac
           status = nf90_get_var(ncid, varid_xc, scol_lon, start)
