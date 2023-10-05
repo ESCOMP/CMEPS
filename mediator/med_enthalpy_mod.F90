@@ -1,5 +1,5 @@
 module med_enthalpy_mod
-  use ESMF, only : ESMF_SUCCESS, ESMF_GridComp, ESMF_VMAllreduce, ESMF_REDUCE_SUM
+  use ESMF, only : ESMF_SUCCESS, ESMF_GridComp, ESMF_VMAllreduce, ESMF_REDUCE_SUM, ESMF_FieldBundleGet, ESMF_Field
   use shr_kind_mod, only : R8=>shr_kind_r8
   use shr_const_mod, only : tkfrz=>shr_const_tkfrz, cpfw=>shr_const_cpfw, cpice=>shr_const_cpice,&
        cpwv=>shr_const_cpwv, cpsw=>shr_const_cpsw, pi=>shr_const_pi
@@ -26,16 +26,19 @@ contains
   end function med_enthalpy_get_global_htot_corr
 
   subroutine med_compute_enthalpy(is_local, rc)
+    use med_map_mod, only : med_map_field
+    use med_internalstate_mod, only : mapconsf
     type(InternalState), intent(in) :: is_local
     integer, intent(out) :: rc
 
     ! local variables
-    
+    type(ESMF_Field) :: fld_a, fld_o
     real(r8), pointer :: tocn(:), rain(:), snow(:), rofl(:), rofi(:), evap(:)
     real(r8), pointer :: rainl(:), rainc(:), tbot(:)
     real(r8), pointer :: snowl(:), snowc(:), ofrac(:)
     real(r8), pointer :: hrain(:), hsnow(:), hevap(:), hcond(:), hrofl(:), hrofi(:)
     real(r8), pointer :: hrain_a(:), hevap_a(:), hsnow_a(:), hrofl_a(:), hrofi_a(:)
+    
     real(r8), allocatable :: hcorr(:)
     real(r8), pointer :: areas(:)
     real(r8), parameter :: glob_area_inv = 1._r8 / (4._r8 * pi)
@@ -150,8 +153,18 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if       (FB_fldchk(is_local%wrap%FBImp(compatm,compocn), 'Faxa_hrain' , rc=rc)) then 
+       call ESMF_FieldBundleGet(is_local%wrap%FBImp(compatm, compatm), 'Faxa_hrain', field=fld_a, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       call ESMF_FieldBundleGet(is_local%wrap%FBImp(compatm, compocn), 'Faxa_hrain', field=fld_o, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       call med_map_field(fld_a, fld_o, is_local%wrap%RH(compatm, compocn,:), mapconsf, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       
        call FB_GetFldPtr(is_local%wrap%FBImp(compatm, compocn), 'Faxa_hrain', hrain_a, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
        do n = 1,nmax
           hrain(n)  = (hrain_a(n) - tkfrz*rain(n)*cpfw) * ofrac(n)
        enddo
@@ -169,8 +182,18 @@ contains
     endif
 
     if       (FB_fldchk(is_local%wrap%FBImp(compatm, compocn), 'Faxa_hevap' , rc=rc)) then 
+       call ESMF_FieldBundleGet(is_local%wrap%FBImp(compatm, compatm), 'Faxa_hevap', field=fld_a, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       call ESMF_FieldBundleGet(is_local%wrap%FBImp(compatm, compocn), 'Faxa_hevap', field=fld_o, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       call med_map_field(fld_a, fld_o, is_local%wrap%RH(compatm, compocn,:), mapconsf, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
        call FB_GetFldPtr(is_local%wrap%FBImp(compatm, compocn), 'Faxa_hevap', hevap_a, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
        do n = 1,nmax
           hevap(n)  = (min(hevap_a(n),0._r8) - tkfrz * min(evap(n),0._r8) * cpwv) * ofrac(n) 
           hcond(n)  = (max(hevap_a(n),0._r8) - tkfrz * max(evap(n),0._r8) * cpwv) * ofrac(n)
@@ -184,6 +207,15 @@ contains
     endif
 
     if        (FB_fldchk(is_local%wrap%FBImp(compatm, compocn), 'Faxa_hsnow' , rc=rc)) then 
+       call ESMF_FieldBundleGet(is_local%wrap%FBImp(compatm, compatm), 'Faxa_hsnow', field=fld_a, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       call ESMF_FieldBundleGet(is_local%wrap%FBImp(compatm, compocn), 'Faxa_hsnow', field=fld_o, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       call med_map_field(fld_a, fld_o, is_local%wrap%RH(compatm, compocn,:), mapconsf, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
        call FB_GetFldPtr(is_local%wrap%FBImp(compatm, compocn), 'Faxa_hsnow', hsnow_a, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        do n = 1,nmax
