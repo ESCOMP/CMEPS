@@ -116,30 +116,14 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     fldList => med_fldList_GetfldListTo(compocn)
     ! auto merges to ocn
-    if ( trim(coupling_mode) == 'cesm' .or. &
-         trim(coupling_mode) == 'nems_orig_data' .or. &
-         trim(coupling_mode) == 'nems_frac_aoflux') then
-       call med_merge_auto(&
-            is_local%wrap%med_coupling_active(:,compocn), &
-            is_local%wrap%FBExp(compocn), &
-            is_local%wrap%FBFrac(compocn), &
-            is_local%wrap%FBImp(:,compocn), &
-            fldList, &
-            FBMed1=is_local%wrap%FBMed_aoflux_o, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    else if (trim(coupling_mode) == 'nems_frac' .or. &
-             trim(coupling_mode) == 'nems_orig' .or. &
-             trim(coupling_mode) == 'hafs'      .or. &
-             trim(coupling_mode) == 'nems_frac_aoflux_sbs') then
-       call med_merge_auto(&
-            is_local%wrap%med_coupling_active(:,compocn), &
-            is_local%wrap%FBExp(compocn), &
-            is_local%wrap%FBFrac(compocn), &
-            is_local%wrap%FBImp(:,compocn), &
-            fldList, &
-            rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    end if
+    call med_merge_auto(&
+         is_local%wrap%med_coupling_active(:,compocn), &
+         is_local%wrap%FBExp(compocn), &
+         is_local%wrap%FBFrac(compocn), &
+         is_local%wrap%FBImp(:,compocn), &
+         fldList, &
+         FBMed1=is_local%wrap%FBMed_aoflux_o, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! compute enthaly associated with rain, snow, condensation and liquid river runoff
     ! the sea-ice model already accounts for the enthalpy flux (as part of melth), so
