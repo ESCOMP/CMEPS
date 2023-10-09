@@ -164,7 +164,6 @@ contains
        
        call FB_GetFldPtr(is_local%wrap%FBImp(compatm, compocn), 'Faxa_hrain', hrain_a, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
        do n = 1,nmax
           hrain(n)  = (hrain_a(n) - tkfrz*rain(n)*cpfw) * ofrac(n)
        enddo
@@ -260,10 +259,10 @@ contains
        allocate(hcorr(nmax))
        areas => is_local%wrap%mesh_info(compocn)%areas
        do n = 1,nmax
-          hcorr(n) = (hrain_a(n) + hsnow_a(n) + hevap_a(n) + hrofl_a(n) + hrofi_a(n)) * &
-               areas(n) * glob_area_inv
+          !          hcorr(n) = (hrain_a(n) + hsnow_a(n) + hevap_a(n) + hrofl_a(n) + hrofi_a(n)) * &
+          !               areas(n) * glob_area_inv
 
-          !          hcorr(n) = (hrofl_a(n) + hrofi_a(n)) *areas(n) *glob_area_inv    
+          hcorr(n) = (hrofl_a(n) + hrofi_a(n)) *areas(n) *glob_area_inv    
        end do
 
        ! Determine sum of enthalpy correction for each hcorr index locally
