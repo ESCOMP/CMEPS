@@ -1165,7 +1165,42 @@
      - standard_name: Sw_pstokes_y
        canonical_units: m/s
        description: Northward partitioned stokes drift components
-
+     #
+     - standard_name: Sw_hs
+       canonical_units: m
+       description: Significant wave hight (only needed for mediatory history output)
+     #
+     - standard_name: Sw_wlm
+       canonical_units: m
+       description: Mean wave length (only needed for mediatory history output)
+     #
+     - standard_name: Sw_thm
+       canonical_units: unitless
+       description: Mean wave direction (only needed for mediatory history output)
+     #
+     - standard_name: Sw_thp0
+       canonical_units: unitless
+       description: Peak wave direction (only needed for mediatory history output)
+     #
+     - standard_name: Sw_fp0
+       canonical_units: 1/s
+       description: Peak wave frequency (only needed for mediatory history output)
+     #
+     - standard_name: Sw_u
+       canonical_units: m/s
+       description: Surface wind zonal (only needed for mediatory history output)
+     #
+     - standard_name: Sw_v
+       canonical_units: m/s
+       description: Surface wind meridional (only needed for mediatory history output)
+     #
+     - standard_name: Sw_tusx
+       canonical_units: m2/s
+       description: Stokes zonal transport vector (only needed for mediatory history output)
+     #
+     - standard_name: Sw_tusy
+       canonical_units: m2/s
+       description: Stokes meridional transport vector (only needed for mediatory history output)
      #
      - standard_name: Sw_elevation_spectrum
        alias: wave_elevation_spectrum

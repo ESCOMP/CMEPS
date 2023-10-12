@@ -2080,6 +2080,74 @@
     </values>
   </entry>
 
+  <!-- ======================================= -->
+  <!-- MED ocn history files -->
+  <!-- ======================================= -->
+
+  <entry id="histaux_wav2med_file1_enabled">
+    <type>logical</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>Auxiliary mediator wav2med average history output every day.</desc>
+    <values>
+      <value>.false.</value>
+    </values>
+  </entry>
+  <entry id="histaux_wav2med_file1_flds">
+    <type>char</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>Auxiliary mediator wav2med average history output every day.</desc>
+    <values>
+      <value>Sw_hs:Sw_wlm:Sw_thm:Sw_thp0:Sw_fp0:Sw_u:Sw_v:Sw_ustokes:Sw_vstokes:Sw_tusx:Sw_tusy</value>
+    </values>
+  </entry>
+  <entry id="histaux_wav2med_file1_history_option">
+    <type>char</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>history option type</desc>
+    <values>
+      <value>ndays</value>
+    </values>
+  </entry>
+  <entry id="histaux_wav2med_file1_history_n">
+    <type>integer</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>history option type</desc>
+    <values>
+      <value>1</value>
+    </values>
+  </entry>
+  <entry id="histaux_wav2med_file1_doavg">
+    <type>logical</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>If true, use time average for aux file output.</desc>
+    <values>
+      <value>.true.</value>
+    </values>
+  </entry>
+  <entry id="histaux_wav2med_file1_auxname">
+    <type>char</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>Auxiliary name identifier in history name</desc>
+    <values>
+      <value>wav.24h.avg</value>
+    </values>
+  </entry>
+  <entry id="histaux_wav2med_file1_ntperfile">
+    <type>integer</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>Number of time samples per file.</desc>
+    <values>
+      <value>30</value>
+    </values>
+  </entry>
+
   <!-- =========================== -->
   <!-- MED mapping attributes      -->
   <!-- =========================== -->

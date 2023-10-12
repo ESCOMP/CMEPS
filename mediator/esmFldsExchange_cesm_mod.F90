@@ -2264,6 +2264,21 @@ contains
     end if
 
     !-----------------------------
+    ! from wav: for auxiliary purposes only
+    !-----------------------------
+    if (phase == 'advertise') then
+       call addfld_from(compwav, 'Sw_hs')
+       call addfld_from(compwav, 'Sw_wlm')
+       call addfld_from(compwav, 'Sw_thm')
+       call addfld_from(compwav, 'Sw_thp0')
+       call addfld_from(compwav, 'Sw_fp0')
+       call addfld_from(compwav, 'Sw_u')
+       call addfld_from(compwav, 'Sw_v')
+       call addfld_from(compwav, 'Sw_tusx')
+       call addfld_from(compwav, 'Sw_tusy')
+    end if
+
+    !-----------------------------
     ! to ocn: Langmuir multiplier from wave
     !-----------------------------
     if (phase == 'advertise') then
