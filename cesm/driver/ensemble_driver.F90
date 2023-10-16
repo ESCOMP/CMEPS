@@ -36,7 +36,7 @@ contains
     use NUOPC        , only : NUOPC_CompAttributeGet
     use NUOPC_Driver , only : driver_routine_SS             => SetServices
     use NUOPC_Driver , only : ensemble_label_SetModelServices => label_SetModelServices
-!    use NUOPC_Driver , only : ensemble_label_PostChildrenAdvertise => label_PostChildrenAdvertise
+    use NUOPC_Driver , only : ensemble_label_PostChildrenAdvertise => label_PostChildrenAdvertise
     use NUOPC_Driver , only : label_Finalize
     use ESMF         , only : ESMF_GridComp, ESMF_GridCompSet
     use ESMF         , only : ESMF_Config, ESMF_ConfigCreate, ESMF_ConfigLoadFile
@@ -63,13 +63,13 @@ contains
          specRoutine=SetModelServices, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-!    ! PostChildrenAdvertise is a NUOPC specialization which happens after Advertize but before Realize
-!    ! We have overloaded this specialization location to initilize IO.
-!    ! So after all components have called Advertise but before any component calls Realize
-!    ! IO will be initialized and any async IO tasks will be split off to the PIO async IO driver.
-!    call NUOPC_CompSpecialize(ensemble_driver, specLabel=ensemble_label_PostChildrenAdvertise, &
-!         specRoutine=InitializeIO, rc=rc)
-!    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    ! PostChildrenAdvertise is a NUOPC specialization which happens after Advertize but before Realize
+    ! We have overloaded this specialization location to initilize IO.
+    ! So after all components have called Advertise but before any component calls Realize
+    ! IO will be initialized and any async IO tasks will be split off to the PIO async IO driver.
+    call NUOPC_CompSpecialize(ensemble_driver, specLabel=ensemble_label_PostChildrenAdvertise, &
+         specRoutine=InitializeIO, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! Create, open and set the config
     config = ESMF_ConfigCreate(rc=rc)
@@ -391,67 +391,67 @@ contains
 
   end subroutine SetModelServices
 
-!  subroutine InitializeIO(ensemble_driver, rc)
-!    use ESMF, only: ESMF_GridComp, ESMF_LOGMSG_INFO, ESMF_LogWrite
-!    use ESMF, only: ESMF_SUCCESS, ESMF_VM, ESMF_GridCompGet, ESMF_VMGet
-!    use ESMF, only: ESMF_CONFIG, ESMF_GridCompIsPetLocal, ESMF_State, ESMF_Clock
-!    use NUOPC, only: NUOPC_CompAttributeGet, NUOPC_CompGet
-!    use NUOPC_DRIVER, only: NUOPC_DriverGetComp
-!    use driver_pio_mod   , only: driver_pio_init, driver_pio_component_init
-!#ifndef NO_MPI2
-!    use MPI,  only : MPI_Comm_split, MPI_UNDEFINED
-!#endif
-!    type(ESMF_GridComp) :: ensemble_driver
-!    type(ESMF_VM) :: ensemble_vm
-!    integer, intent(out) :: rc
-!    character(len=*), parameter :: subname = '('//__FILE__//':InitializeIO)'
-!    type(ESMF_GridComp), pointer :: dcomp(:)
-!    integer :: iam
-!    integer :: Global_Comm, Instance_Comm
-!    integer :: drv
-!    integer :: PetCount
-!    integer :: key, color, i
-!    type(ESMF_GridComp) :: driver
-!    character(len=7)       :: drvrinst
-!    character(len=8) :: compname
-!
-!    rc = ESMF_SUCCESS
-!    call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
-!    call shr_log_setLogUnit (logunit)
-!
-!    call ESMF_GridCompGet(ensemble_driver, vm=ensemble_vm, rc=rc)
-!    if (chkerr(rc,__LINE__,u_FILE_u)) return
-!    call ESMF_VMGet(ensemble_vm, localpet=iam, mpiCommunicator=Global_Comm, PetCount=PetCount, rc=rc)
-!    if (chkerr(rc,__LINE__,u_FILE_u)) return
-!    if(number_of_members > 1) then
-!       color = inst
-!       key = modulo(iam, PetCount/number_of_members)
-!#ifndef NO_MPI2
-!       call MPI_Comm_split(Global_Comm, color, key, Instance_Comm, rc)
-!#endif
-!       do i=1,size(asyncio_petlist)
-!          asyncio_petList(i) = modulo(asyncio_petList(i), PetCount/number_of_members)
-!       enddo
-!    else
-!       Instance_Comm = Global_Comm
-!    endif
-!    write(drvrinst,'(a,i4.4)') "ESM",inst
-!    call NUOPC_DriverGetComp(ensemble_driver, drvrinst, comp=driver, rc=rc)
-!    if (chkerr(rc,__LINE__,u_FILE_u)) return
-!
-!    call ESMF_LogWrite(trim(subname)//": call driver_pio_init "//compname, ESMF_LOGMSG_INFO)
-!    call driver_pio_init(driver, rc=rc)
-!    if (chkerr(rc,__LINE__,u_FILE_u)) return
-!
-!    call ESMF_LogWrite(trim(subname)//": call driver_pio_component_init "//compname, ESMF_LOGMSG_INFO)
-!    call driver_pio_component_init(driver, Instance_Comm, asyncio_petlist, rc)
-!    if (chkerr(rc,__LINE__,u_FILE_u)) return
-!    call ESMF_LogWrite(trim(subname)//": driver_pio_component_init done "//compname, ESMF_LOGMSG_INFO)
-!
-!    deallocate(asyncio_petlist)
-!    call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
-!  end subroutine InitializeIO
-!
+  subroutine InitializeIO(ensemble_driver, rc)
+    use ESMF, only: ESMF_GridComp, ESMF_LOGMSG_INFO, ESMF_LogWrite
+    use ESMF, only: ESMF_SUCCESS, ESMF_VM, ESMF_GridCompGet, ESMF_VMGet
+    use ESMF, only: ESMF_CONFIG, ESMF_GridCompIsPetLocal, ESMF_State, ESMF_Clock
+    use NUOPC, only: NUOPC_CompAttributeGet, NUOPC_CompGet
+    use NUOPC_DRIVER, only: NUOPC_DriverGetComp
+    use driver_pio_mod   , only: driver_pio_init, driver_pio_component_init
+#ifndef NO_MPI2
+    use MPI,  only : MPI_Comm_split, MPI_UNDEFINED
+#endif
+    type(ESMF_GridComp) :: ensemble_driver
+    type(ESMF_VM) :: ensemble_vm
+    integer, intent(out) :: rc
+    character(len=*), parameter :: subname = '('//__FILE__//':InitializeIO)'
+    type(ESMF_GridComp), pointer :: dcomp(:)
+    integer :: iam
+    integer :: Global_Comm, Instance_Comm
+    integer :: drv
+    integer :: PetCount
+    integer :: key, color, i
+    type(ESMF_GridComp) :: driver
+    character(len=7)       :: drvrinst
+    character(len=8) :: compname
+
+    rc = ESMF_SUCCESS
+    call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
+    call shr_log_setLogUnit (logunit)
+
+    call ESMF_GridCompGet(ensemble_driver, vm=ensemble_vm, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_VMGet(ensemble_vm, localpet=iam, mpiCommunicator=Global_Comm, PetCount=PetCount, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    if(number_of_members > 1) then
+       color = inst
+       key = modulo(iam, PetCount/number_of_members)
+#ifndef NO_MPI2
+       call MPI_Comm_split(Global_Comm, color, key, Instance_Comm, rc)
+#endif
+       do i=1,size(asyncio_petlist)
+          asyncio_petList(i) = modulo(asyncio_petList(i), PetCount/number_of_members)
+       enddo
+    else
+       Instance_Comm = Global_Comm
+    endif
+    write(drvrinst,'(a,i4.4)') "ESM",inst
+    call NUOPC_DriverGetComp(ensemble_driver, drvrinst, comp=driver, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    call ESMF_LogWrite(trim(subname)//": call driver_pio_init "//compname, ESMF_LOGMSG_INFO)
+    call driver_pio_init(driver, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    call ESMF_LogWrite(trim(subname)//": call driver_pio_component_init "//compname, ESMF_LOGMSG_INFO)
+    call driver_pio_component_init(driver, Instance_Comm, asyncio_petlist, rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_LogWrite(trim(subname)//": driver_pio_component_init done "//compname, ESMF_LOGMSG_INFO)
+
+    deallocate(asyncio_petlist)
+    call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
+  end subroutine InitializeIO
+
   subroutine ensemble_finalize(ensemble_driver, rc)
     use ESMF, only : ESMF_GridComp, ESMF_SUCCESS
     use driver_pio_mod, only: driver_pio_finalize
