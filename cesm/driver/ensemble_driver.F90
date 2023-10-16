@@ -340,6 +340,9 @@ contains
           else
              inst_suffix = ''
           endif
+          ! CESM does not use this ESMF feature and at large processor counts it can be expensive to have it on.
+          call NUOPC_CompAttributeSet(driver, name="HierarchyProtocol", value="off", rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
           
           ! Set the driver instance attributes
           call NUOPC_CompAttributeAdd(driver, attrList=(/'read_restart'/), rc=rc)
@@ -375,7 +378,7 @@ contains
        call shr_log_setLogUnit (logunit)
        ! Create a clock for each driver instance
 
-       call esm_time_clockInit(ensemble_driver, driver, logunit, maintask, rc)
+       call esm_time_clockInit(ensemble_driver, driver, logunit, localpet==petList(1), rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     enddo

@@ -796,8 +796,7 @@ contains
 #ifndef NO_MPI2
     use mpi          , only : MPI_COMM_NULL, mpi_comm_size
 #endif
-    use mct_mod      , only : mct_world_init
-    use driver_pio_mod , only : driver_pio_init, driver_pio_component_init
+    use m_MCTWorld   , only : mct_world_init => init
 
 #ifdef MED_PRESENT
     use med_internalstate_mod , only : med_id

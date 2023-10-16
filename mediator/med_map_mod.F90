@@ -111,7 +111,7 @@ contains
     type(ESMF_Mesh)           :: mesh_dst
     type(med_fldlist_type), pointer :: FldListFr
     type(med_fldlist_entry_type), pointer :: fldptr
-    character(len=*), parameter :: subname=' (module_med_map: RouteHandles_init) '
+    character(len=*), parameter :: subname=' (med_map_mod: RouteHandles_init) '
     !-----------------------------------------------------------
 
     call t_startf('MED:'//subname)
@@ -259,7 +259,8 @@ contains
                       if (chkerr(rc,__LINE__,u_FILE_u)) return
                       if (maintask) then
                          write(logunit,'(a)') trim(subname)//' created field_NormOne for '&
-                              //compname(n1)//'->'//compname(n2)//' with mapping '//trim(mapnames(mapindex))
+                              //trim(compname(n1))//'->'//trim(compname(n2))//' with mapping '&
+                              //trim(mapnames(mapindex))
                       end if
                    end if
                 end do ! end of loop over map_indiex mappers
@@ -304,7 +305,7 @@ contains
     ! local variables
     type(ESMF_Field)   :: fldsrc
     type(ESMF_Field)   :: flddst
-    character(len=*), parameter :: subname=' (module_MED_map:med_map_routehandles_initfrom_fieldbundle) '
+    character(len=*), parameter :: subname=' (med_map_mod:med_map_routehandles_initfrom_fieldbundle) '
     !---------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -657,7 +658,7 @@ contains
     integer                , intent(out)   :: rc
 
     ! local variables
-    character(len=*), parameter :: subname=' (module_MED_map:med_map_RH_is_created_RH3d) '
+    character(len=*), parameter :: subname=' (med_map_mod:med_map_RH_is_created_RH3d) '
     !-----------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -682,7 +683,7 @@ contains
     ! local variables
     integer :: rc1, rc2
     logical :: mapexists
-    character(len=*), parameter :: subname=' (module_MED_map:med_map_RH_is_created_RH1d) '
+    character(len=*), parameter :: subname=' (med_map_mod:med_map_RH_is_created_RH1d) '
     !-----------------------------------------------------------
 
     rc  = ESMF_SUCCESS
@@ -754,7 +755,7 @@ contains
     character(CL), allocatable :: fieldNameList(:)
     character(CS)              :: mapnorm_mapindex
     character(len=CX)          :: tmpstr
-    character(len=*), parameter :: subname=' (module_MED_map:med_packed_field_create) '
+    character(len=*), parameter :: subname=' (med_map_mod:med_packed_field_create) '
     !-----------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -822,6 +823,7 @@ contains
                       //'  '//trim(fieldnamelist(nf))
                    call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
                 else
+                   !if(rof_name .ne. 'xrof' .and. compname(destcomp) .ne. 'ocn') then
                    if (mapnorm_mapindex /= packed_data(mapindex)%mapnorm) then
                      write(tmpstr,*)'Map type '//trim(mapnames(mapindex)) &
                         //', destcomp '//trim(compname(destcomp)) &
@@ -957,7 +959,7 @@ contains
     type(ESMF_Field), pointer  :: fieldlist_dst(:)
     real(r8), pointer          :: data_norm(:)
     real(r8), pointer          :: data_dst(:,:)
-    character(len=*), parameter  :: subname=' (module_MED_map:med_map_field_packed) '
+    character(len=*), parameter  :: subname=' (med_map_mod:med_map_field_packed) '
     !-----------------------------------------------------------
 
     call t_startf('MED:'//subname)
@@ -1169,7 +1171,7 @@ contains
     integer           :: ungriddedUBound(1)     ! currently the size must equal 1 for rank 2 fields
     integer           :: lsize_src
     integer           :: lsize_dst
-    character(len=*), parameter  :: subname=' (module_MED_map:med_map_field_normalized) '
+    character(len=*), parameter  :: subname=' (med_map_mod:med_map_field_normalized) '
     !-----------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -1282,7 +1284,7 @@ contains
     logical :: checkflag = .false.
     character(len=CS) :: lfldname
     real(ESMF_KIND_R8), parameter :: fillValue = 9.99e20_ESMF_KIND_R8
-    character(len=*), parameter :: subname='(module_MED_map:med_map_field) '
+    character(len=*), parameter :: subname='(med_map_mod:med_map_field) '
     !---------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -1385,7 +1387,7 @@ contains
     integer             :: spatialDim
     real(r8), parameter :: deg2rad = shr_const_pi/180.0_R8  ! deg to rads
     logical             :: first_time = .true.
-    character(len=*), parameter :: subname=' (module_MED_map:med_map_uv_cart3d) '
+    character(len=*), parameter :: subname=' (med_map_mod:med_map_uv_cart3d) '
     !-------------------------------------------------------------------------------
 
     rc = ESMF_SUCCESS

@@ -534,6 +534,15 @@
    <desc>List of job ids for most recent case.submit</desc>
  </entry>
 
+ <entry id="JOB_PRIORITY">
+   <type>char</type>
+   <default_value>regular</default_value>
+   <valid_values>regular,premium,economy</valid_values>
+   <group>run_begin_stop_restart</group>
+   <file>env_run.xml</file>
+   <desc>job priority for systems supporting this option</desc>
+ </entry>
+
   <!-- ===================================================================== -->
   <!-- definitions archive -->
   <!-- ===================================================================== -->
@@ -782,6 +791,34 @@
       If FALSE, component libraries are built with OpenMP capability only if
       the NTHREADS_ setting for that component is greater than 1 in env_mach_pes.xml.
       If TRUE, the component libraries are always built with OpenMP capability.</desc>
+  </entry>
+
+  <entry id="GPU_TYPE">
+    <type>char</type>
+    <valid_values></valid_values>
+    <default_value></default_value>
+    <group>build_def</group>
+    <file>env_build.xml</file>
+    <desc>If set will compile and submit with this gpu type enabled </desc>
+  </entry>
+
+  <entry id="GPU_OFFLOAD">
+    <type>char</type>
+    <valid_values></valid_values>
+    <default_value></default_value>
+    <group>build_def</group>
+    <file>env_build.xml</file>
+    <desc>If set will compile and submit with this gpu offload method enabled </desc>
+  </entry>
+
+  <entry id="MPI_GPU_WRAPPER_SCRIPT">
+    <type>char</type>
+    <valid_values></valid_values>
+    <default_value></default_value>
+    <group>build_def</group>
+    <file>env_build.xml</file>
+    <desc>If set will attach this script to the MPI run command, mapping
+    different MPI ranks to different GPUs within the same compute node</desc>
   </entry>
 
   <entry id="SMP_PRESENT">
@@ -1361,87 +1398,6 @@
   </entry>
 
   <!--- map files -->
-  <!--- comment out map type for now, tcraig 3/25/13 -->
-
-  <entry id="ATM2OCN_FMAPNAME">
-    <type>char</type>
-    <default_value>idmap</default_value>
-    <group>run_domain</group>
-    <file>env_run.xml</file>
-    <desc>atm2ocn flux mapping file</desc>
-  </entry>
-
-  <entry id="ATM2OCN_SMAPNAME">
-    <type>char</type>
-    <default_value>idmap</default_value>
-    <group>run_domain</group>
-    <file>env_run.xml</file>
-    <desc>atm2ocn state mapping file</desc>
-  </entry>
-
-  <entry id="ATM2OCN_VMAPNAME">
-    <type>char</type>
-    <default_value>idmap</default_value>
-    <group>run_domain</group>
-    <file>env_run.xml</file>
-    <desc>atm2ocn vector mapping file</desc>
-  </entry>
-
-  <entry id="ATM2LND_FMAPNAME">
-    <type>char</type>
-    <default_value>idmap</default_value>
-    <group>run_domain</group>
-    <file>env_run.xml</file>
-    <desc>atm2lnd flux mapping file</desc>
-  </entry>
-
-  <entry id="ATM2LND_SMAPNAME">
-    <type>char</type>
-    <default_value>idmap</default_value>
-    <group>run_domain</group>
-    <file>env_run.xml</file>
-    <desc>atm2lnd state mapping file</desc>
-  </entry>
-
-  <entry id="ATM2WAV_SMAPNAME">
-    <type>char</type>
-    <default_value>idmap</default_value>
-    <group>run_domain</group>
-    <file>env_run.xml</file>
-    <desc>atm2wav state mapping file</desc>
-  </entry>
-
-  <entry id="OCN2ATM_FMAPNAME">
-    <type>char</type>
-    <default_value>idmap</default_value>
-    <group>run_domain</group>
-    <file>env_run.xml</file>
-    <desc>ocn2atm flux mapping file</desc>
-  </entry>
-
-  <entry id="OCN2ATM_SMAPNAME">
-    <type>char</type>
-    <default_value>idmap</default_value>
-    <group>run_domain</group>
-    <file>env_run.xml</file>
-    <desc>ocn2atm state mapping file</desc>
-  </entry>
-
-  <entry id="LND2ATM_FMAPNAME">
-    <type>char</type>
-    <default_value>idmap</default_value>
-    <group>run_domain</group>
-    <file>env_run.xml</file>
-    <desc>lnd2atm flux mapping file</desc>
-  </entry>
-
-  <entry id="LND2ATM_SMAPNAME">
-    <type>char</type>
-    <default_value>idmap</default_value>
-    <group>run_domain</group>
-    <file>env_run.xml</file>
-    <desc>lnd2atm state mapping file</desc>
-  </entry>
 
   <entry id="LND2ROF_FMAPNAME">
     <type>char</type>
@@ -1879,12 +1835,22 @@
     <desc>pes or cores per node for accounting purposes </desc>
   </entry>
 
+  <entry id="MAX_CPUTASKS_PER_GPU_NODE">
+    <type>integer</type>
+    <default_value>0</default_value>
+    <values>
+      <value compiler="nvhpc">1</value>
+    </values>
+    <group>mach_pes_last</group>
+    <file>env_mach_pes.xml</file>
+    <desc> Number of CPU cores per GPU node used for simulation </desc>
+  </entry>
+
   <entry id="NGPUS_PER_NODE">
     <type>integer</type>
     <default_value>0</default_value>
     <values>
-      <value compiler="pgi-gpu">1</value>
-      <value compiler="nvhpc-gpu">1</value>
+      <value compiler="nvhpc">1</value>
     </values>
     <group>mach_pes</group>
     <file>env_mach_pes.xml</file>

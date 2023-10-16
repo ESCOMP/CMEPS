@@ -24,8 +24,13 @@ module med_methods_mod
     med_methods_FieldPtr_compare2
   end interface
 
-  ! used/reused in module
+  interface med_methods_check_for_nans
+     module procedure med_methods_check_for_nans_1d
+     module procedure med_methods_check_for_nans_2d
+  end interface med_methods_check_for_nans
 
+  ! used/reused in module
+  logical, public               :: mediator_checkfornans  ! set in med.F90 AdvertiseFields
   logical                       :: isPresent
   character(len=1024)           :: msgString
   type(ESMF_FieldStatus_Flag)   :: status
@@ -49,6 +54,7 @@ module med_methods_mod
   public med_methods_FB_getdata2d
   public med_methods_FB_getdata1d
   public med_methods_FB_getmesh
+  public med_methods_FB_check_for_nans
 
   public med_methods_State_reset
   public med_methods_State_diagnose
@@ -71,6 +77,8 @@ module med_methods_mod
 #ifdef DIAGNOSE
   private med_methods_Array_diagnose
 #endif
+  private med_methods_check_for_nans
+
 !-----------------------------------------------------------------------------
 contains
 !-----------------------------------------------------------------------------
@@ -1346,7 +1354,10 @@ contains
         call med_methods_Field_GetFldPtr(lfield, fldptr1=dataptro1, fldptr2=dataptro2, rank=lranko, rc=rc)
         if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-        if (lranki == 1 .and. lranko == 1) then
+        if (lranki == 0 .and. lranko == 0) then
+           ! do nothing
+          call ESMF_LogWrite(trim(subname)//": Both ranki and ranko are 0", ESMF_LOGMSG_INFO)
+        elseif (lranki == 1 .and. lranko == 1) then
 
           if (.not.med_methods_FieldPtr_Compare(dataPtro1, dataPtri1, subname, rc)) then
             call ESMF_LogWrite(trim(subname)//": ERROR in dataPtr1 size ", ESMF_LOGMSG_ERROR)
@@ -1389,7 +1400,7 @@ contains
         else
 
           write(msgString,'(a,2i8)') trim(subname)//": ranki, ranko = ",lranki,lranko
-          call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
+          call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_ERROR)
           call ESMF_LogWrite(trim(subname)//": ERROR ranki ranko not supported "//trim(lfieldnamelist(n)), &
                ESMF_LOGMSG_ERROR)
           rc = ESMF_FAILURE
@@ -2496,5 +2507,102 @@ contains
     deallocate(fieldlist)
 
   end subroutine med_methods_FB_getmesh
+
+  !-----------------------------------------------------------------------------
+  subroutine med_methods_FB_check_for_nans(FB, maintask, logunit, rc)
+    use ESMF, only  : ESMF_FieldBundle, ESMF_Field, ESMF_FieldBundleGet, ESMF_FieldGet
+    ! input/output variables
+    type(ESMF_FieldBundle) , intent(in)    :: FB
+    logical                , intent(in)    :: maintask
+    integer                , intent(in)    :: logunit
+    integer                , intent(inout) :: rc
+
+    ! local variables
+    type(ESMF_Field)            :: field
+    integer                     :: index
+    integer                     :: fieldcount
+    integer                     :: fieldrank
+    character(len=CL)           :: fieldname
+    real(r8) , pointer          :: dataptr1d(:)
+    real(r8) , pointer          :: dataptr2d(:,:)
+    integer                     :: nancount
+    character(len=CS)           :: nancount_char
+    character(len=CL)           :: msg_error
+    logical                     :: nanfound
+    character(len=*), parameter :: subname='(med_methods_FB_check_for_nans)'
+    ! ----------------------------------------------
+    rc = ESMF_SUCCESS
+
+    if(.not. mediator_checkfornans) return
+    
+    call ESMF_FieldBundleGet(FB, fieldCount=fieldCount, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    nanfound = .false.
+    do index=1,fieldCount
+       call med_methods_FB_getNameN(FB, index, fieldname, rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_FieldBundleGet(FB, fieldName=fieldname, field=field, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_FieldGet(field, rank=fieldrank, name=fieldname, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       if (fieldrank == 1) then
+          call ESMF_FieldGet(field, farrayPtr=dataptr1d, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call med_methods_check_for_nans(dataptr1d, nancount)
+       else
+          call ESMF_FieldGet(field, farrayPtr=dataptr2d, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call med_methods_check_for_nans(dataptr2d, nancount)
+       end if
+       if (nancount > 0) then
+          write(nancount_char, '(i0)') nancount
+          msg_error = "ERROR: " // trim(nancount_char) //" nans found in "//trim(fieldname)
+          call ESMF_LogWrite(trim(msg_error), ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
+          nanfound = .true.
+       end if
+    end do
+    if (nanfound) then
+       call ESMF_LogWrite('ABORTING JOB', ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
+       rc = ESMF_FAILURE
+       return
+    end if
+
+  end subroutine med_methods_FB_check_for_nans
+
+  !-----------------------------------------------------------------------------
+  subroutine med_methods_check_for_nans_1d(dataptr, nancount)
+    use shr_infnan_mod, only: shr_infnan_isnan
+    ! input/output variables
+    real(r8) , intent(in)  :: dataptr(:)
+    integer  , intent(out) :: nancount
+    ! local variables
+    integer :: n
+
+    nancount = 0
+    do n = 1,size(dataptr)
+       if (shr_infnan_isnan(dataptr(n))) then
+          nancount = nancount + 1
+       end if
+    end do
+  end subroutine med_methods_check_for_nans_1d
+
+  subroutine med_methods_check_for_nans_2d(dataptr, nancount)
+    use shr_infnan_mod, only: shr_infnan_isnan
+    ! input/output variables
+    real(r8) , intent(in)  :: dataptr(:,:)
+    integer  , intent(out) :: nancount
+    ! local variables
+    integer :: n,k
+
+    nancount = 0
+    do k = 1,size(dataptr, dim=1)
+       do n = 1,size(dataptr, dim=2)
+          if (shr_infnan_isnan(dataptr(k,n))) then
+             nancount = nancount + 1
+          end if
+       end do
+    end do
+  end subroutine med_methods_check_for_nans_2d
 
 end module med_methods_mod

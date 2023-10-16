@@ -661,6 +661,7 @@ contains
     use NUOPC , only : NUOPC_CompAttributeGet, NUOPC_CompAttributeSet, NUOPC_CompAttributeAdd
     use esmFlds, only : med_fldlist_init1, med_fld_GetFldInfo, med_fldList_entry_type
     use med_phases_history_mod, only : med_phases_history_init
+    use med_methods_mod       , only : mediator_checkfornans
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -915,6 +916,23 @@ contains
           end do
        end if
     end do ! end of ncomps loop
+
+    ! Should mediator check for NaNs?
+    call NUOPC_CompAttributeGet(gcomp, name="check_for_nans", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if(isPresent .and. isSet) then
+       read(cvalue, *) mediator_checkfornans
+    else
+       mediator_checkfornans = .false.
+    endif
+    if(maintask) then
+       write(logunit,*) ' check_for_nans is ',mediator_checkfornans
+       if(mediator_checkfornans) then
+          write(logunit,*) ' Fields will be checked for NaN values when passed from mediator to component'
+       else
+          write(logunit,*) ' Fields will NOT be checked for NaN values when passed from mediator to component'
+       endif
+    endif
 
     if (profile_memory) call ESMF_VMLogMemInfo("Leaving "//trim(subname))
     call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
@@ -1756,7 +1774,7 @@ contains
       !---------------------------------------
 
       ! NOTE: this section must be done BEFORE the second call to esmFldsExchange
-      ! Create field bundles for mediator ocean albedo computation
+      ! Create field bundles for mediator atm/ocean flux computation
       fieldCount = med_fldList_GetNumFlds(med_fldList_getaofluxfldList())
       if ( fieldCount > 0 ) then
          if ( is_local%wrap%med_coupling_active(compocn,compatm) .or. &
@@ -1785,7 +1803,8 @@ contains
          call esmFldsExchange_cesm(gcomp, phase='initialize', rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
       else if (trim(coupling_mode(1:4)) == 'nems') then
-       call esmFldsExchange_nems(gcomp, phase='initialize', rc=rc)
+         call esmFldsExchange_nems(gcomp, phase='initialize', rc=rc)
+         if (ChkErr(rc,__LINE__,u_FILE_u)) return
       else if (trim(coupling_mode) == 'hafs') then
          call esmFldsExchange_hafs(gcomp, phase='initialize', rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -1920,14 +1939,12 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !----------------------------------------------------------
-    ! Initialize ocean albedos (this is needed for cesm and hafs)
+    ! Initialize ocean albedos
     !----------------------------------------------------------
 
-    if (trim(coupling_mode(1:5)) /= 'nems_') then
-       if (is_local%wrap%comp_present(compocn) .or. is_local%wrap%comp_present(compatm)) then
-          call med_phases_ocnalb_run(gcomp, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       end if
+    if (is_local%wrap%comp_present(compocn) .or. is_local%wrap%comp_present(compatm)) then
+       call med_phases_ocnalb_run(gcomp, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
     !---------------------------------------
