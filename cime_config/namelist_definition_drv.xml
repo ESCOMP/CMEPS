@@ -2092,14 +2092,14 @@
   </entry>
 
   <!-- ======================================= -->
-  <!-- MED ocn history files -->
+  <!-- MED auxiliary wav2med history files -->
   <!-- ======================================= -->
 
   <entry id="histaux_wav2med_file1_enabled">
     <type>logical</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>Auxiliary mediator wav2med average history output every day.</desc>
+    <desc>Auxiliary mediator wav2med file1 output enabled if true</desc>
     <values>
       <value>.false.</value>
     </values>
@@ -2108,7 +2108,7 @@
     <type>char</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>Auxiliary mediator wav2med average history output every day.</desc>
+    <desc>Auxiliary mediator wav2med file1 output fields (colon delimited)</desc>
     <values>
       <value>Sw_hs:Sw_wlm:Sw_thm:Sw_thp0:Sw_fp0:Sw_u:Sw_v:Sw_ustokes:Sw_vstokes:Sw_tusx:Sw_tusy</value>
     </values>
@@ -2117,7 +2117,7 @@
     <type>char</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>history option type</desc>
+    <desc>Auxiliary mediator wav2med file1 output option</desc>
     <values>
       <value>ndays</value>
     </values>
@@ -2126,7 +2126,7 @@
     <type>integer</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>history option type</desc>
+    <desc>Auxiliary mediator wav2med file1 output frequency (used for option type)</desc>
     <values>
       <value>1</value>
     </values>
@@ -2135,7 +2135,7 @@
     <type>logical</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>If true, use time average for aux file output.</desc>
+    <desc>Auxiliary mediator wav2med file1 time averaged flag for file output.</desc> 
     <values>
       <value>.true.</value>
     </values>
@@ -2144,7 +2144,7 @@
     <type>char</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>Auxiliary name identifier in history name</desc>
+    <desc>Auxiliary mediator wav2med file1 name identifier. By default will be wav.24h.avg</desc>
     <values>
       <value>wav.24h.avg</value>
     </values>
@@ -2153,7 +2153,7 @@
     <type>integer</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>Number of time samples per file.</desc>
+    <desc>Auxiliary mediator wav2med file1 number of time samples per file. By default will be 30</desc>
     <values>
       <value>30</value>
     </values>
