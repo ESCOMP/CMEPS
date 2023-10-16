@@ -403,9 +403,13 @@ contains
     ! override defaults for specific cases
     if (trim(coupling_mode) == 'cesm') then
        if (n1 == compwav .and. n2 == compocn) then
-         srcMaskValue = 0
-         dstMaskValue = ispval_mask
-      endif
+          srcMaskValue = 0
+          dstMaskValue = ispval_mask
+       endif
+       if (n1 == compocn .and. n2 == compatm) then
+          srcMaskValue = 0
+          dstMaskValue = 0
+       endif
     end if
     if (trim(coupling_mode(1:4)) == 'nems') then
        if (n1 == compatm .and. n2 == complnd) then
