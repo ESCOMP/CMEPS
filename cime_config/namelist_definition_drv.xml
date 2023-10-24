@@ -716,6 +716,17 @@
       <value>$ESMF_VERBOSITY_LEVEL</value>
     </values>
   </entry>
+  <entry id="check_for_nans">
+    <type>logical</type>
+    <category>performance</category>
+    <group>MED_attributes</group>
+    <desc>
+      Check for NaN values in fields returned from mediator to components.  This has a small performance impact.
+    </desc>
+    <values>
+      <value>.true.</value>
+    </values>
+  </entry>
   <entry id="atm_nx" modify_via_xml="ATM_NX">
     <type>integer</type>
     <category>control</category>
@@ -2077,6 +2088,74 @@
     </desc>
     <values>
       <value>-999</value>
+    </values>
+  </entry>
+
+  <!-- ======================================= -->
+  <!-- MED auxiliary wav2med history files -->
+  <!-- ======================================= -->
+
+  <entry id="histaux_wav2med_file1_enabled">
+    <type>logical</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>Auxiliary mediator wav2med file1 output enabled if true</desc>
+    <values>
+      <value>.false.</value>
+    </values>
+  </entry>
+  <entry id="histaux_wav2med_file1_flds">
+    <type>char</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>Auxiliary mediator wav2med file1 output fields (colon delimited)</desc>
+    <values>
+      <value>Sw_hs:Sw_wlm:Sw_thm:Sw_thp0:Sw_fp0:Sw_u:Sw_v:Sw_ustokes:Sw_vstokes:Sw_tusx:Sw_tusy</value>
+    </values>
+  </entry>
+  <entry id="histaux_wav2med_file1_history_option">
+    <type>char</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>Auxiliary mediator wav2med file1 output option</desc>
+    <values>
+      <value>ndays</value>
+    </values>
+  </entry>
+  <entry id="histaux_wav2med_file1_history_n">
+    <type>integer</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>Auxiliary mediator wav2med file1 output frequency (used for option type)</desc>
+    <values>
+      <value>1</value>
+    </values>
+  </entry>
+  <entry id="histaux_wav2med_file1_doavg">
+    <type>logical</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>Auxiliary mediator wav2med file1 time averaged flag for file output.</desc> 
+    <values>
+      <value>.true.</value>
+    </values>
+  </entry>
+  <entry id="histaux_wav2med_file1_auxname">
+    <type>char</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>Auxiliary mediator wav2med file1 name identifier. By default will be wav.24h.avg</desc>
+    <values>
+      <value>wav.24h.avg</value>
+    </values>
+  </entry>
+  <entry id="histaux_wav2med_file1_ntperfile">
+    <type>integer</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>Auxiliary mediator wav2med file1 number of time samples per file. By default will be 30</desc>
+    <values>
+      <value>30</value>
     </values>
   </entry>
 
