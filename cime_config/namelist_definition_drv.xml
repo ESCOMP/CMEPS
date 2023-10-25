@@ -2098,11 +2098,12 @@
   <entry id="histaux_wav2med_file1_enabled">
     <type>logical</type>
     <category>aux_hist</category>
-    <group>MED_attributes</group>
+    <group>ALLCOMP_attributes</group>
     <desc>Auxiliary mediator wav2med file1 output enabled if true</desc>
     <values>
       <value>.false.</value>
     </values>
+    <desc>Note that ww3dev will obtain this configuration variable and send the fields needed for wav2med</desc>
   </entry>
   <entry id="histaux_wav2med_file1_flds">
     <type>char</type>
