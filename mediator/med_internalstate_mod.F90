@@ -147,10 +147,11 @@ module med_internalstate_mod
     ! FBImp(n,n) = NState_Imp(n), copied in connector post phase
     ! FBImp(n,k) is the FBImp(n,n) interpolated to grid k
     ! Import/export States and field bundles (the field bundles have the scalar fields removed)
-    type(ESMF_State)       , pointer :: NStateImp(:) ! Import data from various component, on their grid
-    type(ESMF_State)       , pointer :: NStateExp(:) ! Export data to various component, on their grid
-    type(ESMF_FieldBundle) , pointer :: FBImp(:,:)   ! Import data from various components interpolated to various grids
-    type(ESMF_FieldBundle) , pointer :: FBExp(:)     ! Export data for various components, on their grid
+    type(ESMF_State)       , pointer :: NStateImp(:)   ! Import data from various component, on their grid
+    type(ESMF_State)       , pointer :: NStateExp(:)   ! Export data to various component, on their grid
+    type(ESMF_FieldBundle) , pointer :: FBImp(:,:)     ! Import data from various components interpolated to various grids
+    type(ESMF_FieldBundle) , pointer :: FBExp(:)       ! Export data for various components, on their grid
+    type(ESMF_FieldBundle) , pointer :: FBExpInline(:) ! Export data coming from CDEPS inline for various components, on their grid
 
     ! Mediator field bundles for ocean albedo
     type(ESMF_FieldBundle) :: FBMed_ocnalb_o            ! Ocn albedo on ocn grid
