@@ -6,12 +6,12 @@
 
 The following attributes are obtained from the respective driver and
 available to all components that the driver uses.  In the case of
-NEMS, the NEMS driver ingests these attributes from the
-``nems.configure`` file.  In the case of CESM, the CESM driver ingests
+UFS, the UFS driver ingests these attributes from the
+``ufs.configure`` file.  In the case of CESM, the CESM driver ingests
 these attributes from the ``nuopc.runconfig`` file.  The list of
 attributes below are separated into application independent attributes
 and at this time additional attributes required by CESM. There are no
-NEMS-specific attributes required by the NEMS application.
+UFS-specific attributes required by the UFS application.
 
 
 General
@@ -24,7 +24,7 @@ General
   CMEPS and is also leveraged in some of the custom calculations in
   the ``prep`` modules.
 
-  The currently supported values for ``coupling_mode`` are ``cesm``, ``nems_orig``, ``nems_frac`` and ``hafs``.
+  The currently supported values for ``coupling_mode`` are ``cesm``, ``ufs.(frac,nfrac).(aoflux)``, and ``hafs``.
 
 Scalar attributes
 -----------------

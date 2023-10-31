@@ -1,4 +1,4 @@
-module esmFldsExchange_nems_mod
+module esmFldsExchange_ufs_mod
 
   !---------------------------------------------------------------------
   ! This is a mediator specific routine that determines ALL possible
@@ -9,7 +9,7 @@ module esmFldsExchange_nems_mod
   implicit none
   public
 
-  public :: esmFldsExchange_nems
+  public :: esmFldsExchange_ufs
 
   character(*), parameter :: u_FILE_u = &
        __FILE__
@@ -18,7 +18,7 @@ module esmFldsExchange_nems_mod
 contains
 !================================================================================
 
-  subroutine esmFldsExchange_nems(gcomp, phase, rc)
+  subroutine esmFldsExchange_ufs(gcomp, phase, rc)
 
     use ESMF
     use NUOPC
@@ -54,7 +54,7 @@ contains
     character(len=CL)   :: cvalue
     character(len=CS)   :: fldname
     character(len=CS), allocatable :: flds(:), oflds(:), aflds(:), iflds(:)
-    character(len=*) , parameter   :: subname='(esmFldsExchange_nems)'
+    character(len=*) , parameter   :: subname='(esmFldsExchange_ufs)'
     !--------------------------------------
 
     rc = ESMF_SUCCESS
@@ -68,7 +68,7 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! Set maptype according to coupling_mode
-    if (trim(coupling_mode) == 'nems_orig' .or. trim(coupling_mode) == 'nems_orig_data') then
+    if (trim(coupling_mode) == 'ufs.nfrac' .or. trim(coupling_mode) == 'ufs.nfrac.aoflux') then
       maptype = mapnstod_consf
     else
       maptype = mapconsf
@@ -76,7 +76,7 @@ contains
     write(msgString,'(A,i6,A)') trim(subname)//': maptype is ',maptype,', '//mapnames(maptype)
     call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
 
-    if (trim(coupling_mode) == 'nems_orig_data' .or. trim(coupling_mode) == 'nems_frac_aoflux') then
+    if (trim(coupling_mode) == 'ufs.nfrac.aoflux' .or. trim(coupling_mode) == 'ufs.frac.aoflux') then
        med_aoflux_to_ocn = .true.
     else
        med_aoflux_to_ocn = .false.
@@ -713,7 +713,7 @@ contains
     !=====================================================================
 
     ! to lnd - states and fluxes from atm
-    if ( trim(coupling_mode) == 'nems_orig_data') then
+    if ( trim(coupling_mode) == 'ufs.nfrac.aoflux') then
        allocate(flds(21))
        flds = (/'Sa_z      ', 'Sa_topo   ', 'Sa_tbot   ', 'Sa_pbot   ', &
                 'Sa_shum   ', 'Sa_u      ', 'Sa_v      ', 'Faxa_lwdn ', &
@@ -746,6 +746,6 @@ contains
     end do
     deallocate(flds)
 
-  end subroutine esmFldsExchange_nems
+  end subroutine esmFldsExchange_ufs
 
-end module esmFldsExchange_nems_mod
+end module esmFldsExchange_ufs_mod

@@ -47,7 +47,7 @@ module med_internalstate_mod
   character(len=CS), public :: glc_name = ''
 
   ! Coupling mode
-  character(len=CS), public :: coupling_mode ! valid values are [cesm,nems_orig,nems_frac,nems_orig_data,hafs,nems_frac_aoflux,nems_frac_aoflux_sbs]
+  character(len=CS), public :: coupling_mode ! valid values are [cesm,ufs.nfrac,ufs.frac,ufs.nfrac.aoflux,ufs.frac.aoflux,hafs]
 
   ! Atmosphere-ocean flux algorithm
   character(len=CS), public :: aoflux_code   ! valid values are [cesm,ccpp]
@@ -584,7 +584,7 @@ contains
     if (is_local%wrap%comp_present(compocn)) defaultMasks(compocn,:) = 0
     if (is_local%wrap%comp_present(compice)) defaultMasks(compice,:) = 0
     if (is_local%wrap%comp_present(compwav)) defaultMasks(compwav,:) = 0
-    if ( trim(coupling_mode(1:4)) == 'nems') then
+    if ( trim(coupling_mode(1:3)) == 'ufs') then
        if (is_local%wrap%comp_present(compatm)) defaultMasks(compatm,:) = 1
     endif
     if ( trim(coupling_mode) == 'hafs') then
