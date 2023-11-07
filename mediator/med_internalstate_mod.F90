@@ -121,6 +121,7 @@ module med_internalstate_mod
     ! Present/allowed coupling/active coupling logical flags
     logical, pointer :: comp_present(:)            ! comp present flag
     logical, pointer :: med_coupling_active(:,:)   ! computes the active coupling
+    logical, pointer :: med_bg_fill_active(:,:)    ! use cdeps for background fill 
     integer          :: num_icesheets              ! obtained from attribute
     logical          :: ocn2glc_coupling = .false. ! obtained from attribute
     logical          :: lnd2glc_coupling = .false.
@@ -151,7 +152,7 @@ module med_internalstate_mod
     type(ESMF_State)       , pointer :: NStateExp(:)   ! Export data to various component, on their grid
     type(ESMF_FieldBundle) , pointer :: FBImp(:,:)     ! Import data from various components interpolated to various grids
     type(ESMF_FieldBundle) , pointer :: FBExp(:)       ! Export data for various components, on their grid
-    type(ESMF_FieldBundle) , pointer :: FBExpInline(:) ! Export data coming from CDEPS inline for various components, on their grid
+    type(ESMF_FieldBundle) , pointer :: FBExpIn(:)     ! Export data for various components, on their grid, CDEPS inline
 
     ! Mediator field bundles for ocean albedo
     type(ESMF_FieldBundle) :: FBMed_ocnalb_o            ! Ocn albedo on ocn grid
@@ -304,6 +305,7 @@ contains
 
     ! Allocate memory now that ncomps is determined
     allocate(is_local%wrap%med_coupling_active(ncomps,ncomps))
+    allocate(is_local%wrap%med_bg_fill_active(ncomps,ncomps))
     allocate(is_local%wrap%nx(ncomps))
     allocate(is_local%wrap%ny(ncomps))
     allocate(is_local%wrap%NStateImp(ncomps))
@@ -364,6 +366,10 @@ contains
     if (isPresent .and. isSet) dststatus_print=(trim(cvalue) == "true")
     write(msgString,*) trim(subname)//': Mediator dststatus_print is ',dststatus_print
     call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
+
+    ! Initialize flag for background fill
+    is_local%wrap%med_bg_fill_active(:,:) = .false.
+    is_local%wrap%med_bg_fill_active(compocn,compatm) = .true.
 
   end subroutine med_internalstate_init
 

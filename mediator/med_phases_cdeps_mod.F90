@@ -5,28 +5,31 @@ module med_phases_cdeps_mod
   use ESMF, only: ESMF_GridComp, ESMF_GridCompGet
   use ESMF, only: ESMF_LogWrite
   use ESMF, only: ESMF_Field, ESMF_FieldGet
-  use ESMF, only: ESMF_FieldBundleGet
-  use ESMF, only: ESMF_StateIsCreated
+  use ESMF, only: ESMF_FieldBundleGet, ESMF_FieldBundleIsCreated
+  use ESMF, only: ESMF_FieldBundleCreate
   use ESMF, only: ESMF_GridCompGetInternalState
   use ESMF, only: ESMF_SUCCESS, ESMF_LOGMSG_INFO
 
   use med_internalstate_mod, only: InternalState
-  use med_internalstate_mod, only: logunit
-  use med_internalstate_mod, only: compname, compatm, compocn
+  use med_internalstate_mod, only: logunit, maintask
+  use med_internalstate_mod, only: ncomps, compname, compatm, compocn
   use perf_mod             , only: t_startf, t_stopf
   use med_kind_mod         , only: cl => shr_kind_cl
   use med_kind_mod         , only: r8 => shr_kind_r8
   use med_constants_mod    , only: dbug_flag => med_constants_dbug_flag
   use med_utils_mod        , only: chkerr => med_utils_ChkErr
-  use med_methods_mod      , only: med_methods_FB_FldChk 
-  use med_methods_mod      , only: med_methods_FB_getFieldN
-  use med_methods_mod      , only: FB_init_pointer => med_methods_FB_Init_pointer
+  use med_methods_mod      , only: FB_FldChk => med_methods_FB_FldChk 
+  use med_methods_mod      , only: FB_getFieldN => med_methods_FB_getFieldN
+  use med_methods_mod      , only: FB_getNumflds => med_methods_FB_getNumflds 
+  use med_methods_mod      , only: FB_init => med_methods_FB_Init
   use med_methods_mod      , only: FB_diagnose => med_methods_FB_diagnose
   use med_methods_mod      , only: FB_write => med_methods_FB_write
 
+  use dshr_mod             , only: dshr_pio_init
   use dshr_strdata_mod     , only: shr_strdata_type
   use dshr_strdata_mod     , only: shr_strdata_init_from_inline
   use dshr_strdata_mod     , only: shr_strdata_advance
+  use dshr_stream_mod      , only: shr_stream_init_from_esmfconfig
 
   implicit none
   private
@@ -57,8 +60,8 @@ module med_phases_cdeps_mod
      character(len=cl) :: name
   end type config
 
-  type(config), allocatable           :: stream(:) ! stream configuration
-  type(shr_strdata_type), allocatable :: sdat(:)   ! input data stream
+  type(config) :: stream ! stream configuration
+  type(shr_strdata_type), allocatable :: sdat(:,:) ! input data stream
 
   character(*),parameter :: u_FILE_u = __FILE__
 
@@ -79,25 +82,27 @@ contains
     integer, intent(out) :: rc
 
     ! local variables
-    type(InternalState)         :: is_local
-    type(ESMF_Clock)            :: clock
-    type(ESMF_Time)             :: currTime
-    type(ESMF_Mesh)             :: meshdst
-    type(ESMF_Field)            :: flddst
-    integer                     :: n1, n2, item, localPet
-    integer                     :: curr_ymd, sec
-    integer                     :: year, month, day, hour, minute, second
-    logical, save               :: first_time = .true.
-    character(len=cl)           :: prefix 
-    character(len=*), parameter :: subname = '(med_phases_cdeps_run)'
+    type(InternalState)            :: is_local
+    type(ESMF_Clock)               :: clock
+    type(ESMF_Time)                :: currTime
+    type(ESMF_Mesh)                :: meshdst
+    type(ESMF_Field)               :: flddst
+    integer                        :: i, j, k, l, nflds, streamid
+    integer                        :: n1, n2, item, nstreams, localPet
+    integer                        :: curr_ymd, sec
+    integer                        :: year, month, day, hour, minute, second
+    logical                        :: isCreated
+    logical, save                  :: first_time = .true.
+    character(len=cl), allocatable :: fileList(:), varList(:,:)
+    character(len=cl)              :: streamfilename, suffix, fldname
+    type(shr_strdata_type)         :: sdat_config
+    character(len=*), parameter    :: subname = '(med_phases_cdeps_run)'
     !---------------------------------------
 
     rc = ESMF_SUCCESS
 
     call t_startf('MED:'//subname)
-    !if (dbug_flag > 5) then
-       call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
-    !endif
+    call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
 
     ! Get the internal state from gcomp
     nullify(is_local%wrap)
@@ -108,138 +113,159 @@ contains
     call ESMF_GridCompGet(gcomp, clock=clock, localPet=localPet, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
+    ! Initialize sdat streams
+    if (.not. allocated(sdat)) allocate(sdat(ncomps,ncomps))
+    sdat(:,:)%mainproc = (localPet == 0)
+
     ! Initialize cdeps inline
     if (first_time) then 
-       ! Set components in both side
-       ! TODO: This needs to be dynamic and read from hconfig file
-       n1 = compocn
-       n2 = compatm
+       ! Init PIO
+       call dshr_pio_init(gcomp, sdat_config, logunit, rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-       ! Allocate data structures
-       ! TODO: The number of stream will come from config file
-       if (.not. allocated(sdat)) allocate(sdat(3))
-       if (.not. allocated(stream)) allocate(stream(3))
+       ! Read stream configuration file
+       ! TODO: At this point it only suports ESMF config format (XML?)
+       streamfilename = 'stream.config' 
+       call shr_stream_init_from_esmfconfig(streamfilename, sdat_config%stream, logunit, &
+          sdat_config%pio_subsystem, sdat_config%io_type, sdat_config%io_format, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-       ! Check coupling direction
-       if (n1 /= n2) then
-          if (is_local%wrap%med_coupling_active(n1,n2)) then
-             ! Get destination field
-             call med_methods_FB_getFieldN(is_local%wrap%FBImp(n2,n2), 1, flddst, rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
+       ! Get number of streams
+       nstreams = size(sdat_config%stream)
 
-             ! Get destination field mesh
-             call ESMF_FieldGet(flddst, mesh=meshdst, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
+       ! Loop over coupling directions and try to find field match in given streams
+       do n1 = 1, ncomps
+          do n2 = 1, ncomps
+             ! Check for coupling direction and background fill
+             if (n1 /= n2 .and. is_local%wrap%med_coupling_active(n1,n2) .and. is_local%wrap%med_bg_fill_active(n1,n2)) then
+                ! Get number of fields
+                call FB_getNumflds(is_local%wrap%FBImp(n1,n2), trim(subname), nflds, rc)
+                if (chkerr(rc,__LINE__,u_FILE_u)) return
+                
+                ! Loop over fields and try to find it in the given stream
+                do i = 1, nflds
+                   ! Query destination field
+                   call FB_getFieldN(is_local%wrap%FBImp(n1,n2), i, flddst, rc)
+                   if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-             ! Initialize cdeps inline
-             print*, "here 1 "//trim(compname(n2))
-             call shr_strdata_init_from_inline(sdat(1), my_task = localPet, logunit = logunit, &
-                compname = trim(compname(n2)), &
-                model_clock = clock, model_mesh = meshdst, &
-                !stream_meshfile     = 'INPUT_CDEPS/sst_mesh.nc', &
-                !stream_filenames    = (/ 'INPUT_CDEPS/sst20190829_new.nc' /), &
-                stream_meshfile     = 'INPUT_CDEPS/mesh.nc', &
-                stream_filenames    = (/ 'INPUT_CDEPS/sst.day.mean.2019.nc' /), &
-                stream_yearFirst    = 2019, &
-                stream_yearLast     = 2019,               &
-                stream_yearAlign    = 2019,              &
-                !stream_fldlistFile  = (/ 'TMPSFC' /),                 &
-                stream_fldlistFile  = (/ 'sst' /),                 &
-                stream_fldListModel = (/ 'So_t' /),                 &
-                stream_lev_dimname  = 'null',                              &
-                stream_mapalgo      = 'bilinear',                          &
-                stream_offset       = 0,                                   &
-                stream_taxmode      = 'limit',                             &
-                stream_dtlimit      = 1.5d0,                           &
-                stream_tintalgo     = 'linear',                            &
-                stream_name         = 'sst',         &
-                rc                  = rc) 
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-             print*, "here 2"
+                   ! Query destination field name and its mesh
+                   call ESMF_FieldGet(flddst, mesh=meshdst, name=fldname, rc=rc)
+                   if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-            
-             ! Create FB to store data
-             !if (ESMF_StateIsCreated(is_local%wrap%NStateExp(n2), rc=rc)) then
-             !   call FB_init_pointer(is_local%wrap%NStateExp(n2), is_local%wrap%FBExpInline(n2), &
-             !      is_local%wrap%flds_scalar_name, name='FBExpInline'//trim(compname(n2)), rc=rc)
-             !   if (chkerr(rc,__LINE__,u_FILE_u)) return
-             !end if
-          end if
-       end if
+                   ! Check if any field in FB in the given stream
+                   ! NOTE: Single stream could provide multiple fields !!!
+                   streamid = 0
+                   do j = 1, nstreams
+                      do k = 1, sdat_config%stream(j)%nvars
+                         if (trim(sdat_config%stream(j)%varlist(k)%nameinmodel) == trim(fldname)) then
+                            streamid = j
+                         end if
+                      end do
+                   end do
+
+                   ! If match is found, then initialize cdeps inline for the stream
+                   if (streamid /= 0) then
+                      ! Debug print
+                      if (maintask) then
+                         write(logunit,'(a,i)') trim(subname)//": "//trim(fldname)//" is found in stream ", streamid
+                      end if
+
+                      ! Allocate temporary variable to store file names in the stream
+                      allocate(fileList(sdat_config%stream(streamid)%nfiles)) 
+                      allocate(varList(sdat_config%stream(streamid)%nvars,2))
+                      
+                      ! Fill file abd variable lists with data
+                      do l = 1, sdat_config%stream(streamid)%nfiles
+                         fileList(l) = trim(sdat_config%stream(streamid)%file(l)%name) 
+                         if (maintask) write(logunit,'(a,i2,x,a)') trim(subname)//": file ", l, trim(fileList(l))
+                      end do
+                      do l = 1, sdat_config%stream(streamid)%nvars
+                         varList(l,1) = trim(sdat_config%stream(streamid)%varlist(l)%nameinfile)
+                         varList(l,2) = trim(sdat_config%stream(streamid)%varlist(l)%nameinmodel)
+                         if (maintask) write(logunit,'(a,i2,x,a)') trim(subname)//": variable ", l, trim(varList(l,1))//" -> "//trim(varList(l,2))
+                      end do
+
+                      ! Set PIO related variables
+                      sdat(n1,n2)%pio_subsystem => sdat_config%pio_subsystem
+                      sdat(n1,n2)%io_type = sdat_config%io_type
+                      sdat(n1,n2)%io_format = sdat_config%io_format
+
+                      ! Init stream
+                      call shr_strdata_init_from_inline(sdat(n1,n2), my_task=localPet, logunit=logunit, &
+                         compname = 'cmeps', model_clock=clock, model_mesh=meshdst, &
+                         stream_meshfile=trim(sdat_config%stream(streamid)%meshfile), &
+                         stream_filenames=fileList, &
+                         stream_yearFirst=sdat_config%stream(streamid)%yearFirst, &
+                         stream_yearLast=sdat_config%stream(streamid)%yearLast, &
+                         stream_yearAlign=sdat_config%stream(streamid)%yearAlign, &
+                         stream_fldlistFile=varList(:,1), &
+                         stream_fldListModel=varList(:,2), &
+                         stream_lev_dimname=trim(sdat_config%stream(streamid)%lev_dimname), &
+                         stream_mapalgo=trim(sdat_config%stream(streamid)%mapalgo), &
+                         stream_offset=sdat_config%stream(streamid)%offset, &
+                         stream_taxmode=trim(sdat_config%stream(streamid)%taxmode), &
+                         stream_dtlimit=sdat_config%stream(streamid)%dtlimit, &
+                         stream_tintalgo=trim(sdat_config%stream(streamid)%tInterpAlgo), &
+                         stream_name=trim(compname(n1))//'_'//trim(compname(n2)), &
+                         rc=rc)
+                      if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+                      ! Remove temporary variables
+                      deallocate(fileList)
+                      deallocate(varList)
+                   end if
+                end do ! nflds
+             end if
+          end do ! n2
+       end do ! n1
 
        ! Set flag to false
        first_time = .false.
     end if
 
     ! Get current time
-    !call ESMF_ClockGet(clock, currTime=currTime, rc=rc)
-    !if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_ClockGet(clock, currTime=currTime, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    !! Query current time
-    !call ESMF_TimeGet(currTime, yy=year, mm=month, dd=day, h=hour, m=minute, s=second, rc=rc)
-    !if (chkerr(rc,__LINE__,u_FILE_u)) return
+    ! Query current time
+    call ESMF_TimeGet(currTime, yy=year, mm=month, dd=day, h=hour, m=minute, s=second, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    !curr_ymd = abs(year)*10000+month*100+day
-    !sec = hour*3600+minute*60+second
-    !         print*, "here 3"
+    curr_ymd = abs(year)*10000+month*100+day
+    sec = hour*3600+minute*60+second
 
-    !! Run inline cdeps and read data
-    !n1 = compocn
-    !n2 = compatm
+    ! Read data if stream initialized
+    do n1 = 1, ncomps
+       do n2 = 1, ncomps
+          if (size(sdat(n1,n2)%stream) > 0) then
+             ! Debug print
+             if (maintask) then
+                 write(logunit,'(a,i)') trim(subname)//": read stream "//trim(compname(n1))//" -> "//trim(compname(n2))  
+             end if
 
-    !if (n1 /= n2) then
-    !   if (is_local%wrap%med_coupling_active(n1,n2)) then
-    !      print*, "here 4"
-    !      ! Run cdeps inline adn read data
-    !      call shr_strdata_advance(sdat(1), ymd=curr_ymd, tod=sec, logunit=6, istr=trim(compname(n2)), rc=rc) 
-    !      if (chkerr(rc,__LINE__,u_FILE_u)) return
+             ! Read data
+             call shr_strdata_advance(sdat(n1,n2), ymd=curr_ymd, tod=sec, logunit=logunit, &
+                istr=trim(compname(n1))//'_'//trim(compname(n2)), rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    !      ! Check FB
-    !      call FB_diagnose(sdat(1)%pstrm(1)%fldbun_model, trim(subname)//": sst", rc)
-    !      if (chkerr(rc,__LINE__,u_FILE_u)) return
+             ! Check FB
+             call FB_diagnose(sdat(n1,n2)%pstrm(1)%fldbun_model, &
+                trim(subname)//':'//trim(compname(n1))//'_'//trim(compname(n2)), rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+        
+             ! Write FB for debugging
+             if (dbug_flag > 10) then
+                write(suffix, fmt='(i4,a1,i2.2,a1,i2.2,a1,i5.5)') year, '-', month, '-', day, '-', sec
+                call FB_write(sdat(n1,n2)%pstrm(1)%fldbun_model, suffix, rc)
+                if (chkerr(rc,__LINE__,u_FILE_u)) return
+             end if
+          end if
+       end do
+    end do
 
-    !      ! Write FB for debugging
-    !      !if (dbug_flag > 10) then
-    !         write(prefix, fmt='(a,i4,a1,i2.2,a1,i2.2,a1,i5.5)') "FBExpInline", &
-    !            year, '-', month, '-', day, '-', sec
-    !         call FB_write(sdat(1)%pstrm(1)%fldbun_model, prefix, rc)
-    !         if (chkerr(rc,__LINE__,u_FILE_u)) return
-    !      !end if
-
-
-    !      ! Loop over fields provided by CDEPS inline and add it to FB
-    !      !do item = 1, 1 !size(config%stream_fldListFile)
-    !         ! Get field
-    !         !call ESMF_FieldBundleGet(sdat(1)%pstrm(1)%fldbun_model, fieldName=trim(config%stream_fldListFile(item)), field=flddst, rc=rc)
-    !      !   call ESMF_FieldBundleGet(sdat(1)%pstrm(1)%fldbun_model, fieldName='So_t', field=flddst, rc=rc)
-    !      !   if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    !         ! Check FB for field
-    !         !if (med_methods_FB_FldChk(is_local%wrap%FBExpInline(n2), trim(config%stream_fldListFile(item)))) then
-    !         !   
-    !         !end if
-
-    !      !end do
-    !   end if
-    !end if      
-
-    !if (dbug_flag > 5) then
-      call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
-    !endif
+    call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
     call t_stopf('MED:'//subname)
 
   end subroutine med_phases_cdeps_run
-
-  !==========================================================================
-
-  subroutine read_config()
-
-    !------------------------------------------------------------------------
-    ! Read YAML based Hconfig file
-    !------------------------------------------------------------------------
-
-
-
-  end subroutine read_config
 
 end module med_phases_cdeps_mod

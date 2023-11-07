@@ -1028,7 +1028,7 @@ contains
 
     lstring = ''
     if (present(string)) then
-       lstring = trim(string)//'_'
+       lstring = trim(string)
     endif
 
     ! Determine number of fields in field bundle and allocate memory for lfieldnamelist
@@ -1049,7 +1049,7 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        if (lrank == 1) then
-          call ESMF_FieldWriteVTK(lfield, trim(lstring)//trim(lfieldnamelist(n)), rc=rc)
+          call ESMF_FieldWriteVTK(lfield, trim(lfieldnamelist(n))//'_'//trim(lstring), rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
        else
           call ESMF_LogWrite(trim(subname)//": ERROR rank not supported ", ESMF_LOGMSG_ERROR)
