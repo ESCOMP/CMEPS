@@ -151,6 +151,14 @@ contains
        call addfld_ocnalb('So_anidf')
     end if
 
+    ! Advertise the ocean albedos. These are not sent to the ATM in UFS.
+    if (phase == 'advertise') then
+       call addfld_ocnalb('So_avsdr')
+       call addfld_ocnalb('So_avsdf')
+       call addfld_ocnalb('So_anidr')
+       call addfld_ocnalb('So_anidf')
+    end if
+
     !=====================================================================
     ! FIELDS TO ATMOSPHERE (compatm)
     !=====================================================================
