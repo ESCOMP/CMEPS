@@ -312,6 +312,7 @@ contains
     allocate(is_local%wrap%NStateExp(ncomps))
     allocate(is_local%wrap%FBImp(ncomps,ncomps))
     allocate(is_local%wrap%FBExp(ncomps))
+    allocate(is_local%wrap%FBExpIn(ncomps))
     allocate(is_local%wrap%packed_data_ocnalb_o2a(nmappers))
     allocate(is_local%wrap%packed_data_aoflux_o2a(nmappers))
     allocate(is_local%wrap%RH(ncomps,ncomps,nmappers))

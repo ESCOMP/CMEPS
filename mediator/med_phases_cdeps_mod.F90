@@ -24,6 +24,7 @@ module med_phases_cdeps_mod
   use med_methods_mod      , only: FB_init => med_methods_FB_Init
   use med_methods_mod      , only: FB_diagnose => med_methods_FB_diagnose
   use med_methods_mod      , only: FB_write => med_methods_FB_write
+  use med_methods_mod      , only: FB_GetFldPtr => med_methods_FB_GetFldPtr
 
   use dshr_mod             , only: dshr_pio_init
   use dshr_strdata_mod     , only: shr_strdata_type
@@ -91,7 +92,7 @@ contains
     integer                        :: n1, n2, item, nstreams, localPet
     integer                        :: curr_ymd, sec
     integer                        :: year, month, day, hour, minute, second
-    logical                        :: isCreated
+    logical                        :: found 
     logical, save                  :: first_time = .true.
     character(len=cl), allocatable :: fileList(:), varList(:,:)
     character(len=cl)              :: streamfilename, suffix, fldname
@@ -143,6 +144,7 @@ contains
                 if (chkerr(rc,__LINE__,u_FILE_u)) return
                 
                 ! Loop over fields and try to find it in the given stream
+                found = .false.
                 do i = 1, nflds
                    ! Query destination field
                    call FB_getFieldN(is_local%wrap%FBImp(n1,n2), i, flddst, rc)
@@ -213,8 +215,17 @@ contains
                       ! Remove temporary variables
                       deallocate(fileList)
                       deallocate(varList)
+
+                      ! Set flag
+                      found = .true.
                    end if
                 end do ! nflds
+
+                ! Create empty FB
+                if (.not. ESMF_FieldBundleIsCreated(is_local%wrap%FBExpIn(n2), rc=rc) .and. found) then
+                   is_local%wrap%FBExpIn(n2) = ESMF_FieldBundleCreate(name="inline_"//trim(compname(n2)), rc=rc)
+                   if (chkerr(rc,__LINE__,u_FILE_u)) return
+                end if
              end if
           end do ! n2
        end do ! n1
@@ -252,11 +263,14 @@ contains
              call FB_diagnose(sdat(n1,n2)%pstrm(1)%fldbun_model, &
                 trim(subname)//':'//trim(compname(n1))//'_'//trim(compname(n2)), rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
-        
+
+             ! Point FB from internal one
+             is_local%wrap%FBExpIn(n2) = sdat(n1,n2)%pstrm(1)%fldbun_model
+  
              ! Write FB for debugging
              if (dbug_flag > 10) then
                 write(suffix, fmt='(i4,a1,i2.2,a1,i2.2,a1,i5.5)') year, '-', month, '-', day, '-', sec
-                call FB_write(sdat(n1,n2)%pstrm(1)%fldbun_model, suffix, rc)
+                call FB_write(is_local%wrap%FBExpIn(n2), suffix, rc)
                 if (chkerr(rc,__LINE__,u_FILE_u)) return
              end if
           end if
