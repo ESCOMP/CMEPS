@@ -4,8 +4,9 @@ module util
   ! CustomFieldDictionaryProto utility module
   !-----------------------------------------------------------------------------
 
-  use ESMF
-  use NUOPC
+  use ESMF, only : ESMF_SUCCESS, ESMF_MAXSTR, ESMF_IOFmt_flag, ESMF_LogWrite
+  use ESMF, only : ESMF_LOGMSG_INFO, ESMF_LOGERR_PASSTHRU, ESMF_LOGFoundError
+  use NUOPC, only : nuopc_freeFormat, nuopc_freeformatLog, nuopc_fieldDictionaryEgest
   
   implicit none
   

@@ -26,8 +26,8 @@ module med_phases_aofluxes_mod
   use ESMF                  , only : ESMF_Finalize, ESMF_LogFoundError
   use ESMF                  , only : ESMF_XGridGet, ESMF_MeshCreate, ESMF_MeshWrite, ESMF_KIND_R8
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
-  use med_internalstate_mod , only : InternalState, mastertask, logunit
-  use med_internalstate_mod , only : compatm, compocn, coupling_mode, aoflux_code, mapconsd, mapconsf, mapfcopy
+  use med_internalstate_mod , only : InternalState, maintask, logunit
+  use med_internalstate_mod , only : compatm, compocn, compwav, coupling_mode, aoflux_code, mapconsd, mapconsf, mapfcopy
   use med_constants_mod     , only : dbug_flag    => med_constants_dbug_flag
   use med_utils_mod         , only : memcheck     => med_memcheck
   use med_utils_mod         , only : chkerr       => med_utils_chkerr
@@ -94,7 +94,6 @@ module med_phases_aofluxes_mod
   type(ESMF_RouteHandle) :: rh_agrid2xgrid        ! atm->xgrid mapping
   type(ESMF_RouteHandle) :: rh_xgrid2ogrid        ! xgrid->ocn mapping
   type(ESMF_RouteHandle) :: rh_xgrid2agrid        ! xgrid->atm mapping
-  type(ESMF_RouteHandle) :: rh_ogrid2xgrid_2ndord ! ocn->xgrid mapping 2nd order conservative
   type(ESMF_RouteHandle) :: rh_agrid2xgrid_2ndord ! atm->xgrid mapping 2nd order conservative
   type(ESMF_RouteHandle) :: rh_agrid2xgrid_bilinr ! atm->xgrid mapping bilinear
   type(ESMF_RouteHandle) :: rh_agrid2xgrid_patch  ! atm->xgrid mapping patch
@@ -130,7 +129,7 @@ module med_phases_aofluxes_mod
      integer            :: lsize                     ! local size
      integer  , pointer :: mask        (:) => null() ! integer ocn domain mask: 0 <=> inactive cell
      real(R8) , pointer :: rmask       (:) => null() ! real    ocn domain mask: 0 <=> inactive cell
-     real(R8) , pointer :: garea       (:) => null() ! atm grid area 
+     real(R8) , pointer :: garea       (:) => null() ! atm grid area
   end type aoflux_in_type
 
   type aoflux_out_type
@@ -152,8 +151,6 @@ module med_phases_aofluxes_mod
      real(R8) , pointer :: ssq         (:) => null() ! saved sq
   end type aoflux_out_type
 
-  character(len=CS) :: aoflux_grid
-
   character(*), parameter :: u_FILE_u = &
        __FILE__
 
@@ -166,7 +163,8 @@ contains
     use ESMF            , only : ESMF_FieldBundleIsCreated
     use esmFlds         , only : med_fldList_GetNumFlds
     use esmFlds         , only : med_fldList_GetFldNames
-    use esmFlds         , only : fldListMed_aoflux
+    use esmFlds         , only : med_fldList_GetaofluxfldList
+    use esmFlds         , only : med_fldList_type
     use med_methods_mod , only : FB_init => med_methods_FB_init
     use med_internalstate_mod, only : compname
 
@@ -177,13 +175,14 @@ contains
     ! local variables
     integer             :: n
     integer             :: fieldcount
+    type(med_fldList_type), pointer :: fldListMed_aoflux
     type(InternalState) :: is_local
     character(len=*),parameter :: subname=' (med_phases_aofluxes_init_fldbuns) '
     !---------------------------------------
 
     ! Create field bundles for mediator ocean/atmosphere flux computation
     ! This is needed regardless of the grid on which the atm/ocn flux computation is done on
-
+    fldListMed_aoflux => med_fldList_GetaofluxFldList()
     ! Get the internal state from the mediator Component.
     nullify(is_local%wrap)
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
@@ -192,14 +191,14 @@ contains
     ! Set module variable fldnames_aof_out
     fieldCount = med_fldList_GetNumFlds(fldListMed_aoflux)
     allocate(fldnames_aof_out(fieldCount))
-    call med_fldList_getfldnames(fldListMed_aoflux%flds, fldnames_aof_out, rc=rc)
+    call med_fldList_getfldnames(fldListMed_aoflux%fields, fldnames_aof_out, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! Initialize FBMed_aoflux_a
     call FB_init(is_local%wrap%FBMed_aoflux_a, is_local%wrap%flds_scalar_name, &
          STgeom=is_local%wrap%NStateImp(compatm), fieldnamelist=fldnames_aof_out, name='FBMed_aoflux_a', rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (mastertask) then
+    if (maintask) then
        write(logunit,*)
        write(logunit,'(a)') trim(subname)//' initialized FB FBMed_aoflux_a'
     end if
@@ -208,7 +207,7 @@ contains
     call FB_init(is_local%wrap%FBMed_aoflux_o, is_local%wrap%flds_scalar_name, &
          STgeom=is_local%wrap%NStateImp(compocn), fieldnamelist=fldnames_aof_out, name='FBMed_aoflux_o', rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (mastertask) then
+    if (maintask) then
        write(logunit,'(a)') trim(subname)//' initialized FB FBMed_aoflux_o'
        write(logunit,'(a)') trim(subname)//' following are the fields in FBMed_aoflux_o and FBMed_aoflux_a'
        do n = 1,fieldcount
@@ -221,7 +220,7 @@ contains
 
        ! Create the field bundle is_local%wrap%FBImp(compatm,compocn) if needed
        if (.not. ESMF_FieldBundleIsCreated(is_local%wrap%FBImp(compatm,compocn), rc=rc)) then
-          if (mastertask) then
+          if (maintask) then
              write(logunit,'(a)') trim(subname)//' creating field bundle FBImp(compatm,compocn)'
           end if
           call FB_init(is_local%wrap%FBImp(compatm,compocn), is_local%wrap%flds_scalar_name, &
@@ -229,14 +228,14 @@ contains
                name='FBImp'//trim(compname(compatm))//'_'//trim(compname(compocn)), rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
-       if (mastertask) then
+       if (maintask) then
           write(logunit,'(a)') trim(subname)//' initializing FB for '// &
                trim(compname(compatm))//'_'//trim(compname(compocn))
        end if
 
        ! Create the field bundle is_local%wrap%FBImp(compocn,compatm) if needed
        if (.not. ESMF_FieldBundleIsCreated(is_local%wrap%FBImp(compocn,compatm), rc=rc)) then
-          if (mastertask) then
+          if (maintask) then
              write(logunit,'(a)') trim(subname)//' creating field bundle FBImp(compocn,compatm)'
           end if
           call FB_init(is_local%wrap%FBImp(compocn,compatm), is_local%wrap%flds_scalar_name, &
@@ -244,7 +243,7 @@ contains
                name='FBImp'//trim(compname(compocn))//'_'//trim(compname(compatm)), rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
-       if (mastertask) then
+       if (maintask) then
           write(logunit,'(a)') trim(subname)//' initializing FB for '// &
                trim(compname(compocn))//'_'//trim(compname(compatm))
        end if
@@ -310,7 +309,7 @@ contains
        if (dbug_flag > 5) then
           call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
        endif
-       call memcheck(subname, 5, mastertask)
+       call memcheck(subname, 5, maintask)
 
        ! Calculate atm/ocn fluxes on the destination grid
        call med_aofluxes_update(gcomp, aoflux_in, aoflux_out, rc)
@@ -357,9 +356,7 @@ contains
 
     ! local variables
     type(InternalState) :: is_local
-    integer             :: n
     character(CL)       :: cvalue
-    character(len=CX)   :: tmpstr
     real(R8)            :: flux_convergence        ! convergence criteria for implicit flux computation
     integer             :: flux_max_iteration      ! maximum number of iterations for convergence
     logical             :: coldair_outbreak_mod    ! cold air outbreak adjustment  (Mahrt & Sun 1995,MWR)
@@ -371,7 +368,7 @@ contains
       call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
     endif
     rc = ESMF_SUCCESS
-    call memcheck(subname, 5, mastertask)
+    call memcheck(subname, 5, maintask)
 
     call t_startf('MED:'//subname)
 
@@ -399,7 +396,7 @@ contains
        ocn_surface_flux_scheme = 0
     end if
 #ifdef CESMCOUPLED
-    if (mastertask) then
+    if (maintask) then
        write(logunit,*)
        write(logunit,'(a)') trim(subname)//' ocn_surface_flux_scheme is '//trim(cvalue)
     end if
@@ -487,8 +484,10 @@ contains
     ! --------------------------------------------
 
     use ESMF        , only : ESMF_FieldBundleIsCreated
-    use esmFlds     , only : fldListMed_aoflux
+    use esmFlds     , only : med_fldlist_GetaofluxfldList
+    use esmFlds     , only : med_fldList_type
     use med_map_mod , only : med_map_packed_field_create
+    use med_methods_mod , only : FB_fldchk    => med_methods_FB_FldChk
 
     ! Arguments
     type(ESMF_GridComp)   , intent(inout) :: gcomp
@@ -497,10 +496,10 @@ contains
     integer               , intent(out)   :: rc
     !
     ! Local variables
+    type(med_fldList_type), pointer :: FldListMed_aoflux
     type(InternalState) :: is_local
     character(len=CX)   :: tmpstr
     integer             :: lsize
-    integer             :: fieldcount
     type(ESMF_Field)    :: lfield
     type(ESMF_Mesh)     :: lmesh
     real(R8), pointer   :: garea(:) => null()
@@ -509,7 +508,7 @@ contains
     !-----------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
-
+    FldListMed_aoflux => med_fldlist_GetaofluxFldList()
     ! Get the internal state from the mediator Component.
     nullify(is_local%wrap)
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
@@ -567,15 +566,13 @@ contains
     if (is_local%wrap%aoflux_grid == 'ogrid') then
        if ( ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_aoflux_o) .and. &
             ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_aoflux_a)) then
-
           call med_map_packed_field_create(destcomp=compatm, &
                flds_scalar_name=is_local%wrap%flds_scalar_name, &
-               fldsSrc=fldListMed_aoflux%flds, &
+               fieldsSrc=fldListMed_aoflux, &
                FBSrc=is_local%wrap%FBMed_aoflux_o, &
                FBDst=is_local%wrap%FBMed_aoflux_a, &
                packed_data=is_local%wrap%packed_data_aoflux_o2a(:), rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
        end if
     end if
 
@@ -604,7 +601,6 @@ contains
     ! Local variables
     type(InternalState) :: is_local
     integer             :: lsize,n
-    integer             :: fieldcount
     type(ESMF_Field)    :: field_src
     type(ESMF_Field)    :: field_dst
     real(r8), pointer   :: dataptr1d(:)
@@ -760,7 +756,6 @@ contains
     integer               , intent(out)   :: rc
 
     ! Local variables
-    integer              :: n
     integer              :: lsize
     type(InternalState)  :: is_local
     type(ESMF_Field)     :: field_a
@@ -772,9 +767,9 @@ contains
     type(ESMF_Mesh)      :: xch_mesh
     real(r8), pointer    :: dataptr(:)
     integer              :: fieldcount
+    integer              :: stp ! srcTermProcessing is declared inout and must have variable not constant
     type(ESMF_CoordSys_Flag)           :: coordSys
     real(ESMF_KIND_R8)    ,allocatable :: garea(:)
-    character(ESMF_MAXSTR),allocatable :: fieldNameList(:)
     character(len=*),parameter :: subname=' (med_aofluxes_init_xgrid) '
     !-----------------------------------------------------------------------
 
@@ -875,11 +870,12 @@ contains
          regridmethod=ESMF_REGRIDMETHOD_CONSERVE_2ND, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     if (trim(coupling_mode) == 'cesm') then
+       stp = 1
        call ESMF_FieldRegridStore(field_a, field_x, routehandle=rh_agrid2xgrid_bilinr, &
-            regridmethod=ESMF_REGRIDMETHOD_BILINEAR, dstMaskValues=(/0/), rc=rc)
+            regridmethod=ESMF_REGRIDMETHOD_BILINEAR, dstMaskValues=(/0/), srcTermProcessing=stp, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        call ESMF_FieldRegridStore(field_a, field_x, routehandle=rh_agrid2xgrid_patch, &
-            regridmethod=ESMF_REGRIDMETHOD_PATCH, dstMaskValues=(/0/), rc=rc)
+            regridmethod=ESMF_REGRIDMETHOD_PATCH, dstMaskValues=(/0/), srcTermProcessing=stp, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     end if
 
@@ -953,6 +949,9 @@ contains
     use ESMF           , only : ESMF_GridComp
     use ESMF           , only : ESMF_LogWrite, ESMF_LogMsg_Info, ESMF_SUCCESS
     use med_map_mod    , only : med_map_field_packed, med_map_rh_is_created
+    use med_map_mod    , only : med_map_routehandles_init
+    use med_methods_mod, only : FB_fldchk => med_methods_FB_fldchk
+    use med_methods_mod, only : FB_diagnose  => med_methods_FB_diagnose
 #ifdef CESMCOUPLED
     use shr_flux_mod   , only : flux_atmocn
 #else
@@ -970,16 +969,14 @@ contains
     !
     ! Local variables
     type(InternalState)      :: is_local
-    type(ESMF_Field)         :: field_src
-    type(ESMF_Field)         :: field_dst
-    integer                  :: n,i,nf                     ! indices
-    real(r8), pointer        :: data_normdst(:)
-    real(r8), pointer        :: data_dst(:)
-    integer                  :: maptype
+    integer                  :: n                          ! indices
     real(r8), parameter      :: qmin = 1.0e-8_r8
     real(r8), parameter      :: p0 = 100000.0_r8           ! reference pressure in Pa
     real(r8), parameter      :: rcp = 0.286_r8             ! gas constant of air / specific heat capacity at a constant pressure
     real(r8), parameter      :: rdair = 287.058_r8         ! dry air gas constant in J/K/kg
+    integer                  :: maptype
+    type(ESMF_Field)         :: field_src
+    type(ESMF_Field)         :: field_dst
     character(*),parameter   :: subName = '(med_aofluxes_update) '
     !-----------------------------------------------------------------------
 
@@ -1069,7 +1066,7 @@ contains
 #else
 #ifdef UFS_AOFLUX
      if (trim(aoflux_code) == 'ccpp') then
-       call flux_atmocn_ccpp(gcomp=gcomp, mastertask=mastertask, logunit=logunit, &
+       call flux_atmocn_ccpp(gcomp=gcomp, maintask=maintask, logunit=logunit, &
             nMax=aoflux_in%lsize, psfc=aoflux_in%psfc, &
             pbot=aoflux_in%pbot, tbot=aoflux_in%tbot, qbot=aoflux_in%shum, lwdn=aoflux_in%lwdn, &
             zbot=aoflux_in%zbot, garea=aoflux_in%garea, ubot=aoflux_in%ubot, usfc=aoflux_in%usfc, vbot=aoflux_in%vbot, &
@@ -1123,6 +1120,35 @@ contains
        call med_aofluxes_map_xgrid2ogrid_output(gcomp, rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
+    end if
+
+    ! map taux and tauy from ocean to wave grid if stresses are needed on the wave grid
+    if ( FB_fldchk(is_local%wrap%FBExp(compwav), 'Fwxx_taux', rc=rc) .and. &
+         FB_fldchk(is_local%wrap%FBExp(compwav), 'Fwxx_tauy', rc=rc)) then
+       maptype = mapconsf
+       if (.not. med_map_RH_is_created(is_local%wrap%RH(compocn,compwav,:), maptype, rc=rc)) then
+          call med_map_routehandles_init( compocn, compwav, &
+               FBSrc=is_local%wrap%FBImp(compocn,compocn), &
+               FBDst=is_local%wrap%FBImp(compwav,compwav), &
+               mapindex=maptype, RouteHandle=is_local%wrap%RH, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       end if
+       call ESMF_FieldBundleGet(is_local%wrap%FBMed_aoflux_o, 'Faox_taux', field=field_src, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_FieldBundleGet(is_local%wrap%FBExp(compwav), 'Fwxx_taux', field=field_dst, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_FieldRegrid(field_src, field_dst, &
+            routehandle=is_local%wrap%RH(compocn, compwav, maptype), &
+            termorderflag=ESMF_TERMORDER_SRCSEQ, zeroregion=ESMF_REGION_TOTAL, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_FieldBundleGet(is_local%wrap%FBMed_aoflux_o, 'Faox_tauy', field=field_src, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_FieldBundleGet(is_local%wrap%FBExp(compwav), 'Fwxx_tauy', field=field_dst, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_FieldRegrid(field_src, field_dst, &
+            routehandle=is_local%wrap%RH(compocn, compwav, maptype), &
+            termorderflag=ESMF_TERMORDER_SRCSEQ, zeroregion=ESMF_REGION_TOTAL, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
     end if
 
     call t_stopf('MED:'//subname)
@@ -1400,7 +1426,7 @@ end subroutine med_aofluxes_map_ogrid2xgrid_input
     type(ESMF_Field)    :: field_src
     type(ESMF_Field)    :: field_dst
     type(ESMF_Field)    :: lfield
-    integer             :: n,i,nf                     ! indices
+    integer             :: n,nf                     ! indices
     real(r8), pointer   :: data_src(:)
     real(r8), pointer   :: data_src_save(:)
     real(r8), pointer   :: data_dst(:)
@@ -1480,7 +1506,7 @@ end subroutine med_aofluxes_map_ogrid2xgrid_input
     !
     ! Local variables
     type(InternalState) :: is_local
-    integer             :: n,i,nf                     ! indices
+    integer             :: nf                     ! indices
     type(ESMF_Field)    :: field_src
     type(ESMF_Field)    :: field_dst
     character(*),parameter  :: subName = '(med_aofluxes_map_xgrid2ogrid_output) '

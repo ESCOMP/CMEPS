@@ -38,6 +38,7 @@ def _main_func():
         num_esp   = case.get_value("NUM_COMP_INST_ESP")
         ocn_model = case.get_value("COMP_OCN")
         gmake_args = get_standard_makefile_args(case)
+        link_libs = case.get_value("CAM_LINKED_LIBS", subgroup="build_component_cam")
         esmf_aware_threading = case.get_value("ESMF_AWARE_THREADING")
 
     # Determine valid components
@@ -64,6 +65,9 @@ def _main_func():
 
     if ocn_model == 'mom':
         gmake_args += "USE_FMS=TRUE"
+
+    if link_libs is not None:
+        gmake_args += 'USER_SLIBS="{}"'.format(link_libs)
 
     comp_classes = case.get_values("COMP_CLASSES")
     for comp in comp_classes:
@@ -111,6 +115,8 @@ def _main_func():
 
     rc, out, err = run_cmd(cmd,from_dir=bld_root)
     expect(rc==0,"Command {} failed rc={}\nout={}\nerr={}".format(cmd,rc,out,err))
+    if err:
+        logger.info(err)
     logger.info(out)
 
 ###############################################################################

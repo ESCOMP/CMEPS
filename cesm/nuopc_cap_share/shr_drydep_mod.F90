@@ -6,15 +6,16 @@ module shr_drydep_mod
   ! dry deposition of tracers
   !========================================================================
 
-  use ESMF           , only : ESMF_VMGetCurrent, ESMF_VM, ESMF_VMGet
+  use ESMF           , only : ESMF_VMGetCurrent, ESMF_VM, ESMF_VMGet, ESMF_LOGMSG_INFO
   use ESMF           , only : ESMF_LogFoundError, ESMF_LOGERR_PASSTHRU, ESMF_SUCCESS
+  use ESMF           , only : ESMF_LogWrite, ESMF_VMBroadCast
   use shr_sys_mod    , only : shr_sys_abort
   use shr_kind_mod   , only : r8 => shr_kind_r8, CS => SHR_KIND_CS, CX => SHR_KIND_CX
   use shr_const_mod  , only : SHR_CONST_MWWV
-  use shr_mpi_mod    , only : shr_mpi_bcast
   use shr_nl_mod     , only : shr_nl_find_group_name
-  use shr_log_mod    , only : s_logunit => shr_log_Unit
+  use shr_log_mod    , only : shr_log_getLogUnit
   use shr_infnan_mod , only : shr_infnan_posinf, assignment(=)
+  use nuopc_shr_methods, only : chkerr
 
   implicit none
   private
@@ -31,8 +32,6 @@ module shr_drydep_mod
   integer, private, parameter :: NSeas = 5                 ! Number of seasons
   integer, public,  parameter :: NLUse = 11                ! Number of land-use types
   integer, private, protected :: NHen
-
-  logical, private :: drydep_initialized = .false.
 
   ! public data members:
 
@@ -222,12 +221,15 @@ module shr_drydep_mod
   character(len=16), public, protected, allocatable :: species_name_table(:)
 
   !--- data for effective Henry's Law coefficient ---
-  real(r8), public, protected, allocatable :: dheff(:,:)
+  real(r8), public, protected, allocatable, target :: dheff(:,:)
 
   real(r8), private, parameter :: wh2o = SHR_CONST_MWWV
   real(r8), allocatable :: mol_wgts(:)
 
   character(len=500) :: dep_data_file = 'NONE' ! complete file path
+  character(len=*), parameter :: u_FILE_u = &
+       __FILE__
+
 
 !===============================================================================
 CONTAINS
@@ -251,6 +253,7 @@ CONTAINS
     type(ESMF_VM) :: vm
     integer       :: localPet
     integer       :: mpicom
+    integer       :: s_logunit
     integer       :: rc
     character(*),parameter :: F00   = "('(shr_drydep_read) ',8a)"
     character(*),parameter :: FI1   = "('(shr_drydep_init) ',a,I2)"
@@ -263,6 +266,7 @@ CONTAINS
     ! Read namelist and figure out the drydep field list to pass
     ! First check if file exists and if not, n_drydep will be zero
     !-----------------------------------------------------------------------------
+    call ESMF_LogWrite(subname//' start', ESMF_LOGMSG_INFO)
 
     rc = ESMF_SUCCESS
 
@@ -274,9 +278,10 @@ CONTAINS
     call ESMF_VMGetCurrent(vm, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=__FILE__)) return
 
-    call ESMF_VMGet(vm, localPet=localPet, mpiCommunicator=mpicom, rc=rc)
+    call ESMF_VMGet(vm, localPet=localPet, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=__FILE__)) return
 
+    call shr_log_getLogUnit(s_logunit)
     if (localPet==0) then
        inquire( file=trim(NLFileName), exist=exists)
        if ( exists ) then
@@ -293,8 +298,10 @@ CONTAINS
           close( unitn )
        end if
     end if
-    call shr_mpi_bcast( drydep_list, mpicom )
-    call shr_mpi_bcast( dep_data_file, mpicom )
+    call ESMF_LogWrite(subname//' bcast drydep_list', ESMF_LOGMSG_INFO)
+    call ESMF_VMBroadcast(vm,  drydep_list, maxspc*32, 0)
+    call ESMF_LogWrite(subname//' bcast dep_data_file', ESMF_LOGMSG_INFO)
+    call ESMF_VMBroadcast(vm,  dep_data_file, 500, 0)
 
     drydep_nflds = 0
 
@@ -314,25 +321,22 @@ CONTAINS
           write(s_logunit,FI1) 'Number of dry deposition fields transfered is ', drydep_nflds
        end if
     end if
-
-    if (.not. drydep_initialized) then
-       call shr_drydep_init()
-    end if
+    call shr_drydep_init()
+    call ESMF_LogWrite(subname//' done', ESMF_LOGMSG_INFO)
 
   end subroutine shr_drydep_readnl
 
 !====================================================================================
 
   subroutine shr_drydep_init( )
-
-    use shr_pio_mod,  only: shr_pio_getiosys, shr_pio_getiotype
-    use pio
     use netcdf
 
     !========================================================================
     ! Initialization of dry deposition fields
     ! reads drydep_inparm namelist and sets up CCSM driver list of fields for
     ! land-atmosphere communications.
+    ! This is called by both lnd and atm - we need to do this in order to 
+    ! allow for these components to run on disjoint sets of tasks 
     !========================================================================
 
     !----- local -----
@@ -342,26 +346,29 @@ CONTAINS
     type(ESMF_VM) :: vm
     integer       :: localPet
     integer       :: mpicom
+    integer       :: bint(2)
+    real(kind=r8), pointer :: dptr(:)
+    integer       :: s_logunit
     integer       :: rc
+    logical, save :: drydep_initialized=.false.
+    character(len=256) :: msg
 
     !----- formats -----
     character(*),parameter :: subName = '(shr_drydep_init) '
     character(*),parameter :: F00   = "('(shr_drydep_init) ',8a)"
 
-    !-----------------------------------------------------------------------------
-    ! Return if this routine has already been called (e.g. cam and clm both call this)
-    !-----------------------------------------------------------------------------
-    if(allocated(foxd)) return
+    call ESMF_LogWrite(subname//' start', ESMF_LOGMSG_INFO)
+    call shr_log_getLogUnit(s_logunit)
 
     if (dep_data_file=='NONE' .or. len_trim(dep_data_file)==0) return
 
     rc = ESMF_SUCCESS
 
     call ESMF_VMGetCurrent(vm, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=__FILE__)) return
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     call ESMF_VMGet(vm, localPet=localPet, mpiCommunicator=mpicom, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=__FILE__)) return
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     rc = nf90_noerr
 
@@ -372,23 +379,29 @@ CONTAINS
        rc = nf90_inq_dimid(fileid,'n_species_table',dimid)
        if (rc/=nf90_noerr) call shr_sys_abort(subName//' ERROR: nf90_inq_dimid n_species_table')
 
-       rc = nf90_inquire_dimension(fileid,dimid,len=n_species_table)
+       rc = nf90_inquire_dimension(fileid,dimid,len=bint(1))
        if (rc/=nf90_noerr) call shr_sys_abort(subName//' ERROR: nf90_inquire_dimension n_species_table')
 
        rc = nf90_inq_dimid(fileid,'NHen',dimid)
        if (rc/=nf90_noerr) call shr_sys_abort(subName//' ERROR: nf90_inq_dimid NHen')
 
-       rc = nf90_inquire_dimension(fileid,dimid,len=nHen)
+       rc = nf90_inquire_dimension(fileid,dimid,len=bint(2))
        if (rc/=nf90_noerr) call shr_sys_abort(subName//' ERROR: nf90_inquire_dimension nHen')
     endif
-    call shr_mpi_bcast( n_species_table, mpicom )
-    call shr_mpi_bcast( nHen, mpicom )
-
-    allocate( mol_wgts(n_species_table) )
-    allocate( dfoxd(n_species_table) )
-    allocate( species_name_table(n_species_table) )
-    allocate( dheff(nhen,n_species_table))
-
+    write(msg,*) subname//' bcast n_species_table', localPet, bint
+    call ESMF_LogWrite(msg, ESMF_LOGMSG_INFO)
+    call ESMF_VMBroadcast(vm,  bint, 2, 0, rc=rc )
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    n_species_table = bint(1)
+    nHen = bint(2)
+    write(msg,*) subname//' after bcast n_species_table', n_species_table, nhen
+    call ESMF_LogWrite(msg, ESMF_LOGMSG_INFO)
+    if(.not. allocated(mol_wgts))           allocate( mol_wgts(n_species_table) )
+    if(.not. allocated(dfoxd))              allocate( dfoxd(n_species_table) )
+    if(.not. allocated(species_name_table)) allocate( species_name_table(n_species_table) )
+    if(.not. allocated(dheff))              allocate( dheff(nhen,n_species_table))
+    ! This pointer is needed for ESMF_VMBroadcast
+    dptr => dheff(:,1)
     if (localPet==0) then
        rc = nf90_inq_varid(fileid,'mol_wghts',varid)
        if (rc/=nf90_noerr) call shr_sys_abort(subName//' ERROR: nf90_inq_varid mol_wghts')
@@ -413,141 +426,147 @@ CONTAINS
        rc = nf90_close(fileid)
        if (rc/=nf90_noerr) call shr_sys_abort(subName//' ERROR: nf90_close')
     end if
-    call shr_mpi_bcast( mol_wgts, mpicom )
-    call shr_mpi_bcast( dfoxd, mpicom )
-    call shr_mpi_bcast( species_name_table, mpicom )
-    call shr_mpi_bcast( dheff, mpicom )
+    call ESMF_LogWrite(subname//' bcast mol_wgts', ESMF_LOGMSG_INFO)
+    call ESMF_VMBroadcast(vm,  mol_wgts, n_species_table, 0, rc=rc )
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_LogWrite(subname//' bcast dfoxd', ESMF_LOGMSG_INFO)
+    call ESMF_VMBroadcast(vm,  dfoxd, n_species_table, 0, rc=rc )
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_LogWrite(subname//' bcast species_name_table', ESMF_LOGMSG_INFO)
+    call ESMF_VMBroadcast(vm,  species_name_table, 16*n_species_table, 0, rc=rc )
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_LogWrite(subname//' bcast dheff', ESMF_LOGMSG_INFO)
+    call ESMF_VMBroadcast(vm,  dptr, nhen*n_species_table, 0, rc=rc )
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     !-----------------------------------------------------------------------------
     ! Allocate and fill foxd, drat and mapping as well as species indices
     !-----------------------------------------------------------------------------
 
-    if ( n_drydep > 0 ) then
-
-       allocate( foxd(n_drydep) )
-       allocate( drat(n_drydep) )
-       allocate( mapping(n_drydep) )
-
-       ! This initializes these variables to infinity.
-       foxd = shr_infnan_posinf
-       drat = shr_infnan_posinf
-
-       mapping(:) = 0
-
-    end if
-
-    h2_ndx=-1; ch4_ndx=-1; co_ndx=-1; mpan_ndx = -1; pan_ndx = -1; so2_ndx=-1; o3_ndx=-1; xpan_ndx=-1
-
-    !--- Loop over drydep species that need to be worked with ---
-    do i=1,n_drydep
-       if ( len_trim(drydep_list(i))==0 ) exit
-
-       test_name = drydep_list(i)
-
-       if( trim(test_name) == 'O3' ) then
-          test_name = 'OX'
-       end if
-
-       !--- Figure out if species maps to a species in the species table ---
-       do l = 1,n_species_table
-          if(  trim( test_name ) == trim( species_name_table(l) ) ) then
-             mapping(i)  = l
-             exit
-          end if
-       end do
-
-       !--- If it doesn't map to a species in the species table find species close enough ---
-       if( mapping(i) < 1 ) then
-          select case( trim(test_name) )
-          case( 'O3S', 'O3INERT' )
-             test_name = 'OX'
-          case( 'Pb' )
-             test_name = 'HNO3'
-          case( 'SOGM','SOGI','SOGT','SOGB','SOGX' )
-             test_name = 'CH3OOH'
-          case( 'SOA', 'SO4', 'CB1', 'CB2', 'OC1', 'OC2', 'NH4', 'SA1', 'SA2', 'SA3', 'SA4' )
-             test_name = 'OX'  ! this is just a place holder. values are explicitly set below
-          case( 'SOAM', 'SOAI', 'SOAT', 'SOAB', 'SOAX' )
-             test_name = 'OX'  ! this is just a place holder. values are explicitly set below
-          case( 'SOAGbb0' )
-             test_name = 'SOAGff0'
-          case( 'SOAGbb1' )
-             test_name = 'SOAGff1'
-          case( 'SOAGbb2' )
-             test_name = 'SOAGff2'
-          case( 'SOAGbb3' )
-             test_name = 'SOAGff3'
-          case( 'SOAGbb4' )
-             test_name = 'SOAGff4'
-          case( 'O3A' )
-             test_name = 'OX'
-          case( 'XMPAN' )
-             test_name = 'MPAN'
-          case( 'XPAN' )
-             test_name = 'PAN'
-          case( 'XNO' )
-             test_name = 'NO'
-          case( 'XNO2' )
-             test_name = 'NO2'
-          case( 'XHNO3' )
-             test_name = 'HNO3'
-          case( 'XONIT' )
-             test_name = 'ONIT'
-          case( 'XONITR' )
-             test_name = 'ONITR'
-          case( 'XHO2NO2')
-             test_name = 'HO2NO2'
-          case( 'XNH4NO3' )
-             test_name = 'HNO3'
-          case( 'NH4NO3' )
-             test_name = 'HNO3'
-          case default
-             test_name = 'blank'
-          end select
-
-          !--- If found a match check the species table again ---
-          if( trim(test_name) /= 'blank' ) then
-             do l = 1,n_species_table
-                if( trim( test_name ) == trim( species_name_table(l) ) ) then
-                   mapping(i)  = l
-                   exit
-                end if
-             end do
-          else
-             write(s_logunit,F00) trim(drydep_list(i)),' not in tables; will have dep vel = 0'
-             call shr_sys_abort( subName//': '//trim(drydep_list(i))//' is not in tables' )
-          end if
-       end if
-
-       !--- Figure out the specific species indices ---
-       if ( trim(drydep_list(i)) == 'H2' )   h2_ndx   = i
-       if ( trim(drydep_list(i)) == 'CO' )   co_ndx   = i
-       if ( trim(drydep_list(i)) == 'CH4' )  ch4_ndx  = i
-       if ( trim(drydep_list(i)) == 'MPAN' ) mpan_ndx = i
-       if ( trim(drydep_list(i)) == 'PAN' )  pan_ndx  = i
-       if ( trim(drydep_list(i)) == 'SO2' )  so2_ndx  = i
-       if ( trim(drydep_list(i)) == 'OX' .or. trim(drydep_list(i)) == 'O3' ) o3_ndx  = i
-       if ( trim(drydep_list(i)) == 'O3A' ) o3a_ndx  = i
-       if ( trim(drydep_list(i)) == 'XPAN' ) xpan_ndx = i
-
-       if( mapping(i) > 0) then
-         l = mapping(i)
-         foxd(i) = dfoxd(l)
-         drat(i) = sqrt(mol_wgts(l)/wh2o)
+    if ( .not. drydep_initialized ) then
+       if (n_drydep > 0) then
+          allocate( foxd(n_drydep) )
+          allocate( drat(n_drydep) )
+          allocate( mapping(n_drydep) )
+          
+          ! This initializes these variables to infinity.
+          foxd = shr_infnan_posinf
+          drat = shr_infnan_posinf
+          
+          mapping(:) = 0
        endif
 
-    enddo
+       h2_ndx=-1; ch4_ndx=-1; co_ndx=-1; mpan_ndx = -1; pan_ndx = -1; so2_ndx=-1; o3_ndx=-1; xpan_ndx=-1
 
-    where( rgss < 1._r8 )
-       rgss = 1._r8
-    endwhere
+       !--- Loop over drydep species that need to be worked with ---
+       do i=1,n_drydep
+          if ( len_trim(drydep_list(i))==0 ) exit
+          
+          test_name = drydep_list(i)
+          
+          if( trim(test_name) == 'O3' ) then
+             test_name = 'OX'
+          end if
+          
+          !--- Figure out if species maps to a species in the species table ---
+          do l = 1,n_species_table
+             if(  trim( test_name ) == trim( species_name_table(l) ) ) then
+                mapping(i)  = l
+                exit
+             end if
+          end do
+          
+          !--- If it doesn't map to a species in the species table find species close enough ---
+          if( mapping(i) < 1 ) then
+             select case( trim(test_name) )
+             case( 'O3S', 'O3INERT' )
+                test_name = 'OX'
+             case( 'Pb' )
+                test_name = 'HNO3'
+             case( 'SOGM','SOGI','SOGT','SOGB','SOGX' )
+                test_name = 'CH3OOH'
+             case( 'SOA', 'SO4', 'CB1', 'CB2', 'OC1', 'OC2', 'NH4', 'SA1', 'SA2', 'SA3', 'SA4' )
+                test_name = 'OX'  ! this is just a place holder. values are explicitly set below
+             case( 'SOAM', 'SOAI', 'SOAT', 'SOAB', 'SOAX' )
+                test_name = 'OX'  ! this is just a place holder. values are explicitly set below
+             case( 'SOAGbb0' )
+                test_name = 'SOAGff0'
+             case( 'SOAGbb1' )
+                test_name = 'SOAGff1'
+             case( 'SOAGbb2' )
+                test_name = 'SOAGff2'
+             case( 'SOAGbb3' )
+                test_name = 'SOAGff3'
+             case( 'SOAGbb4' )
+                test_name = 'SOAGff4'
+             case( 'O3A' )
+                test_name = 'OX'
+             case( 'XMPAN' )
+                test_name = 'MPAN'
+             case( 'XPAN' )
+                test_name = 'PAN'
+             case( 'XNO' )
+                test_name = 'NO'
+             case( 'XNO2' )
+                test_name = 'NO2'
+             case( 'XHNO3' )
+                test_name = 'HNO3'
+             case( 'XONIT' )
+                test_name = 'ONIT'
+             case( 'XONITR' )
+                test_name = 'ONITR'
+             case( 'XHO2NO2')
+                test_name = 'HO2NO2'
+             case( 'XNH4NO3' )
+                test_name = 'HNO3'
+             case( 'NH4NO3' )
+                test_name = 'HNO3'
+             case default
+                test_name = 'blank'
+             end select
+             
+             !--- If found a match check the species table again ---
+             if( trim(test_name) /= 'blank' ) then
+                do l = 1,n_species_table
+                   if( trim( test_name ) == trim( species_name_table(l) ) ) then
+                      mapping(i)  = l
+                      exit
+                   end if
+                end do
+             else
+                write(s_logunit,F00) trim(drydep_list(i)),' not in tables; will have dep vel = 0'
+                call shr_sys_abort( subName//': '//trim(drydep_list(i))//' is not in tables' )
+             end if
+          end if
 
-    where( rac < small_value)
-       rac = small_value
-    endwhere
+          !--- Figure out the specific species indices ---
+          if ( trim(drydep_list(i)) == 'H2' )   h2_ndx   = i
+          if ( trim(drydep_list(i)) == 'CO' )   co_ndx   = i
+          if ( trim(drydep_list(i)) == 'CH4' )  ch4_ndx  = i
+          if ( trim(drydep_list(i)) == 'MPAN' ) mpan_ndx = i
+          if ( trim(drydep_list(i)) == 'PAN' )  pan_ndx  = i
+          if ( trim(drydep_list(i)) == 'SO2' )  so2_ndx  = i
+          if ( trim(drydep_list(i)) == 'OX' .or. trim(drydep_list(i)) == 'O3' ) o3_ndx  = i
+          if ( trim(drydep_list(i)) == 'O3A' ) o3a_ndx  = i
+          if ( trim(drydep_list(i)) == 'XPAN' ) xpan_ndx = i
+          
+          if( mapping(i) > 0) then
+             l = mapping(i)
+             foxd(i) = dfoxd(l)
+             drat(i) = sqrt(mol_wgts(l)/wh2o)
+          endif
+          
+       enddo
 
+       where( rgss < 1._r8 )
+          rgss = 1._r8
+       endwhere
+
+       where( rac < small_value)
+          rac = small_value
+       endwhere
+    end if
     drydep_initialized = .true.
-
   end subroutine shr_drydep_init
 
 !====================================================================================
@@ -598,7 +617,7 @@ CONTAINS
     real(r8) :: dk1s(ncol)     ! DK Work array 1
     real(r8) :: dk2s(ncol)     ! DK Work array 2
     real(r8) :: wrk(ncol)      ! Work array
-
+    integer  :: s_logunit
     !----- formats -----
     character(*),parameter :: subName = '(shr_drydep_set_hcoeff) '
     character(*),parameter :: F00   = "('(shr_drydep_set_hcoeff) ',8a)"
@@ -607,6 +626,7 @@ CONTAINS
     ! notes:
     !-------------------------------------------------------------------------------
 
+    call shr_log_getLogUnit(s_logunit)
     wrk(:) = (t0 - sfc_temp(:))/(t0*sfc_temp(:))
     do m = 1,n_drydep
        l    = mapping(m)

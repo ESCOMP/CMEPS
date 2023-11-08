@@ -1,4 +1,4 @@
-.. on documentation master file, created by
+.. on documentation main file, created by
    sphinx-quickstart on Mon May 18 11:50:23 2020.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.

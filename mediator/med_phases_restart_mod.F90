@@ -7,13 +7,13 @@ module med_phases_restart_mod
   use med_kind_mod            , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
   use med_constants_mod       , only : dbug_flag => med_constants_dbug_flag
   use med_utils_mod           , only : chkerr    => med_utils_ChkErr
-  use med_internalstate_mod   , only : mastertask, logunit, InternalState
+  use med_internalstate_mod   , only : maintask, logunit, InternalState
   use med_internalstate_mod   , only : ncomps, compname, compocn, complnd, compwav
   use perf_mod                , only : t_startf, t_stopf
   use med_phases_prep_glc_mod , only : FBlndAccum2glc_l, lndAccum2glc_cnt
   use med_phases_prep_glc_mod , only : FBocnAccum2glc_o, ocnAccum2glc_cnt
   use med_phases_prep_rof_mod , only : FBlndAccum2rof_l, lndAccum2rof_cnt
-
+  use pio                     , only : file_desc_t
   implicit none
   private
 
@@ -58,8 +58,6 @@ contains
     type(ESMF_Clock)        :: mclock
     type(ESMF_TimeInterval) :: mtimestep
     type(ESMF_Time)         :: mCurrTime
-    type(ESMF_Time)         :: mStartTime
-    type(ESMF_TimeInterval) :: timestep
     integer                 :: timestep_length
     character(CL)           :: cvalue          ! attribute string
     character(CL)           :: restart_option  ! freq_option setting (ndays, nsteps, etc)
@@ -108,7 +106,7 @@ contains
     end if
 
     ! Write mediator diagnostic output
-    if (mastertask) then
+    if (maintask) then
        write(logunit,*)
        write(logunit,'(a,2x,i8)') trim(subname)//" restart clock timestep = ",timestep_length
        write(logunit,'(a,2x,i8)') trim(subname)//" set restart alarm with option "//&
@@ -145,6 +143,7 @@ contains
     integer, intent(out) :: rc
 
     ! local variables
+    type(file_desc_t)          :: io_file
     type(ESMF_VM)              :: vm
     type(ESMF_Clock)           :: clock
     type(ESMF_Time)            :: starttime
@@ -175,11 +174,8 @@ contains
     character(ESMF_MAXSTR)     :: cpl_inst_tag   ! instance tag
     character(ESMF_MAXSTR)     :: restart_dir    ! Optional restart directory name
     character(ESMF_MAXSTR)     :: cvalue         ! attribute string
-    character(ESMF_MAXSTR)     :: freq_option    ! freq_option setting (ndays, nsteps, etc)
-    integer                    :: freq_n         ! freq_n setting relative to freq_option
     logical                    :: alarmIsOn      ! generic alarm flag
     real(R8)                   :: tbnds(2)       ! CF1.0 time bounds
-    character(ESMF_MAXSTR)     :: tmpstr
     logical                    :: isPresent
     logical                    :: first_time = .true.
     character(len=*), parameter :: subname='(med_phases_restart_write)'
@@ -267,7 +263,7 @@ contains
        if (dbug_flag > 1) then
           call ESMF_LogWrite(trim(subname)//": nexttime = "//trim(nexttimestr), ESMF_LOGMSG_INFO)
        endif
-       if (mastertask) then
+       if (maintask) then
           call ESMF_ClockPrint(clock, options="currTime", &
                preString="-------->"//trim(subname)//" mediating for: ", unit=cvalue, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -303,8 +299,8 @@ contains
        write(restart_file,"(6a)") trim(restart_dir)//trim(case_name),'.cpl', trim(cpl_inst_tag),'.r.',&
             trim(nexttimestr),'.nc'
 
-       if (mastertask) then
-          restart_pfile = "rpointer.cpl"//cpl_inst_tag
+       if (maintask) then
+          restart_pfile = "rpointer.cpl"//trim(cpl_inst_tag)
           call ESMF_LogWrite(trim(subname)//" write rpointer file = "//trim(restart_pfile), ESMF_LOGMSG_INFO)
           open(newunit=unitn, file=restart_pfile, form='FORMATTED')
           write(unitn,'(a)') trim(restart_file)
@@ -314,11 +310,12 @@ contains
        call ESMF_LogWrite(trim(subname)//": write "//trim(restart_file), ESMF_LOGMSG_INFO)
        call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call med_io_wopen(restart_file, vm, clobber=.true.)
+       call med_io_wopen(restart_file, io_file, vm, rc, clobber=.true.)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        do m = 1,2
           if (m == 2) then
-             call med_io_enddef(restart_file)
+             call med_io_enddef(io_file)
           end if
 
           tbnds = days_since
@@ -326,23 +323,23 @@ contains
           if (whead(m)) then
              call ESMF_ClockGet(clock, calendar=calendar, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             call med_io_define_time(time_units, calendar, rc=rc)
+             call med_io_define_time(io_file, time_units, calendar, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           else
-             call med_io_write_time(days_since, tbnds=(/days_since,days_since/), nt=1, rc=rc)
+             call med_io_write_time(io_file, days_since, tbnds=(/days_since,days_since/), nt=1, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
 
           ! Write out next ymd/tod in place of curr ymd/tod because the
           ! restart represents the time at end of the current timestep
           ! and that is where we want to start the next run.
-          call med_io_write(restart_file, start_ymd, 'start_ymd', whead(m), wdata(m), rc=rc)
+          call med_io_write(io_file, start_ymd, 'start_ymd', whead(m), wdata(m), rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          call med_io_write(restart_file, start_tod, 'start_tod', whead(m), wdata(m), rc=rc)
+          call med_io_write(io_file, start_tod, 'start_tod', whead(m), wdata(m), rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          call med_io_write(restart_file, next_ymd , 'curr_ymd' , whead(m), wdata(m), rc=rc)
+          call med_io_write(io_file, next_ymd , 'curr_ymd' , whead(m), wdata(m), rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          call med_io_write(restart_file, next_tod , 'curr_tod' , whead(m), wdata(m), rc=rc)
+          call med_io_write(io_file, next_tod , 'curr_tod' , whead(m), wdata(m), rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
           do n = 1,ncomps
@@ -351,19 +348,19 @@ contains
                 ny = is_local%wrap%ny(n)
                 ! Write import field bundles
                 if (ESMF_FieldBundleIsCreated(is_local%wrap%FBimp(n,n),rc=rc)) then
-                   call med_io_write(restart_file, is_local%wrap%FBimp(n,n), whead(m), wdata(m), nx, ny, &
+                   call med_io_write(io_file, is_local%wrap%FBimp(n,n), whead(m), wdata(m), nx, ny, &
                         nt=1, pre=trim(compname(n))//'Imp', rc=rc)
                    if (ChkErr(rc,__LINE__,u_FILE_u)) return
                 endif
                 ! Write export field bundles
                 if (ESMF_FieldBundleIsCreated(is_local%wrap%FBexp(n),rc=rc)) then
-                   call med_io_write(restart_file, is_local%wrap%FBexp(n), whead(m), wdata(m), nx, ny, &
+                   call med_io_write(io_file, is_local%wrap%FBexp(n), whead(m), wdata(m), nx, ny, &
                         nt=1, pre=trim(compname(n))//'Exp', rc=rc)
                    if (ChkErr(rc,__LINE__,u_FILE_u)) return
                 endif
                 ! Write fraction field bundles
                 if (ESMF_FieldBundleIsCreated(is_local%wrap%FBfrac(n),rc=rc)) then
-                   call med_io_write(restart_file, is_local%wrap%FBfrac(n), whead(m), wdata(m), nx, ny, &
+                   call med_io_write(io_file, is_local%wrap%FBfrac(n), whead(m), wdata(m), nx, ny, &
                         nt=1, pre=trim(compname(n))//'Frac', rc=rc)
                    if (ChkErr(rc,__LINE__,u_FILE_u)) return
                 endif
@@ -374,10 +371,10 @@ contains
           if (ESMF_FieldBundleIsCreated(is_local%wrap%FBExpAccumOcn)) then
              nx = is_local%wrap%nx(compocn)
              ny = is_local%wrap%ny(compocn)
-             call med_io_write(restart_file, is_local%wrap%FBExpAccumOcn, whead(m), wdata(m), nx, ny, &
+             call med_io_write(io_file, is_local%wrap%FBExpAccumOcn, whead(m), wdata(m), nx, ny, &
                   nt=1, pre='ocnExpAccum', rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             call med_io_write(restart_file, is_local%wrap%ExpAccumOcnCnt, 'ocnExpAccum_cnt', whead(m), wdata(m), rc=rc)
+             call med_io_write(io_file, is_local%wrap%ExpAccumOcnCnt, 'ocnExpAccum_cnt', whead(m), wdata(m), rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           endif
 
@@ -385,10 +382,10 @@ contains
           if (ESMF_FieldBundleIsCreated(is_local%wrap%FBExpAccumWav)) then
              nx = is_local%wrap%nx(compwav)
              ny = is_local%wrap%ny(compwav)
-             call med_io_write(restart_file, is_local%wrap%FBExpAccumWav, whead(m), wdata(m), nx, ny, &
+             call med_io_write(io_file, is_local%wrap%FBExpAccumWav, whead(m), wdata(m), nx, ny, &
                   nt=1, pre='wavExpAccum', rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             call med_io_write(restart_file, is_local%wrap%ExpAccumWavCnt, 'wavExpAccum_cnt', whead(m), wdata(m), rc=rc)
+             call med_io_write(io_file, is_local%wrap%ExpAccumWavCnt, 'wavExpAccum_cnt', whead(m), wdata(m), rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           endif
 
@@ -396,10 +393,10 @@ contains
           if (ESMF_FieldBundleIsCreated(FBlndAccum2rof_l)) then
              nx = is_local%wrap%nx(complnd)
              ny = is_local%wrap%ny(complnd)
-             call med_io_write(restart_file, FBlndAccum2rof_l, whead(m), wdata(m), nx, ny, &
+             call med_io_write(io_file, FBlndAccum2rof_l, whead(m), wdata(m), nx, ny, &
                   nt=1, pre='lndImpAccum2rof', rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             call med_io_write(restart_file, lndAccum2rof_cnt, 'lndImpAccum2rof_cnt', whead(m), wdata(m), rc=rc)
+             call med_io_write(io_file, lndAccum2rof_cnt, 'lndImpAccum2rof_cnt', whead(m), wdata(m), rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
 
@@ -407,10 +404,10 @@ contains
           if (ESMF_FieldBundleIsCreated(FBlndAccum2glc_l)) then
              nx = is_local%wrap%nx(complnd)
              ny = is_local%wrap%ny(complnd)
-             call med_io_write(restart_file, FBlndAccum2glc_l, whead(m), wdata(m), nx, ny, &
+             call med_io_write(io_file, FBlndAccum2glc_l, whead(m), wdata(m), nx, ny, &
                   nt=1, pre='lndImpAccum2glc', rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             call med_io_write(restart_file, lndAccum2glc_cnt, 'lndImpAccum2glc_cnt', whead(m), wdata(m), rc=rc)
+             call med_io_write(io_file, lndAccum2glc_cnt, 'lndImpAccum2glc_cnt', whead(m), wdata(m), rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
 
@@ -418,10 +415,10 @@ contains
           if (ESMF_FieldBundleIsCreated(FBocnAccum2glc_o)) then
              nx = is_local%wrap%nx(compocn)
              ny = is_local%wrap%ny(compocn)
-             call med_io_write(restart_file, FBocnAccum2glc_o, whead(m), wdata(m), nx, ny, &
+             call med_io_write(io_file, FBocnAccum2glc_o, whead(m), wdata(m), nx, ny, &
                   nt=1, pre='ocnImpAccum2glc_o', rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             call med_io_write(restart_file, ocnAccum2glc_cnt, 'ocnImpAccum2glc_cnt', whead(m), wdata(m), rc=rc)
+             call med_io_write(io_file, ocnAccum2glc_cnt, 'ocnImpAccum2glc_cnt', whead(m), wdata(m), rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
 
@@ -429,7 +426,7 @@ contains
           if (ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_ocnalb_o,rc=rc)) then
              nx = is_local%wrap%nx(compocn)
              ny = is_local%wrap%ny(compocn)
-             call med_io_write(restart_file, is_local%wrap%FBMed_ocnalb_o, whead(m), wdata(m), nx, ny, &
+             call med_io_write(io_file, is_local%wrap%FBMed_ocnalb_o, whead(m), wdata(m), nx, ny, &
                   nt=1, pre='MedOcnAlb_o', rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
@@ -442,11 +439,11 @@ contains
                 if (auxcomp(nc)%files(nf)%doavg .and. auxcomp(nc)%files(nf)%accumcnt > 0) then
                    nx = is_local%wrap%nx(nc)
                    ny = is_local%wrap%ny(nc)
-                   call med_io_write(restart_file, auxcomp(nc)%files(nf)%FBaccum, &
+                   call med_io_write(io_file, auxcomp(nc)%files(nf)%FBaccum, &
                         whead(m), wdata(m), nx, ny, &
                         nt=1, pre=trim(compname(nc))//trim(auxcomp(nc)%files(nf)%auxname), rc=rc)
                    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-                   call med_io_write(restart_file, auxcomp(nc)%files(nf)%accumcnt, &
+                   call med_io_write(io_file, auxcomp(nc)%files(nf)%accumcnt, &
                         trim(compname(nc))//trim(auxcomp(nc)%files(nf)%auxname)//'_accumcnt', &
                         whead(m), wdata(m), rc=rc)
                    if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -457,7 +454,7 @@ contains
        enddo ! end of whead/wdata loop
 
        ! Close file
-       call med_io_close(restart_file, vm, rc=rc)
+       call med_io_close(io_file, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     endif
 
@@ -495,7 +492,7 @@ contains
     type(ESMF_Time)        :: currtime
     character(len=CS)      :: currtimestr
     type(InternalState)    :: is_local
-    integer                :: i,j,m,n
+    integer                :: n
     integer                :: ierr, unitn
     integer                :: yr,mon,day,sec ! time units
     character(ESMF_MAXSTR) :: case_name      ! case name
@@ -537,14 +534,14 @@ contains
     if (dbug_flag > 1) then
        call ESMF_LogWrite(trim(subname)//": currtime = "//trim(currtimestr), ESMF_LOGMSG_INFO)
     endif
-    if (mastertask) then
+    if (maintask) then
        call ESMF_ClockPrint(clock, options="currTime", preString="-------->"//trim(subname)//" mediating for: ", rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     endif
 
     ! Get the restart file name from the pointer file
-    restart_pfile = "rpointer.cpl"//cpl_inst_tag
-    if (mastertask) then
+    restart_pfile = "rpointer.cpl"//trim(cpl_inst_tag)
+    if (maintask) then
        call ESMF_LogWrite(trim(subname)//" read rpointer file = "//trim(restart_pfile), ESMF_LOGMSG_INFO)
        open(newunit=unitn, file=restart_pfile, form='FORMATTED', status='old', iostat=ierr)
        if (ierr < 0) then
