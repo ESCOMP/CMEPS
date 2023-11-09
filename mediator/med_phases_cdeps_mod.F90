@@ -209,8 +209,14 @@ contains
                          stream_dtlimit=sdat_config%stream(streamid)%dtlimit, &
                          stream_tintalgo=trim(sdat_config%stream(streamid)%tInterpAlgo), &
                          stream_name=trim(compname(n1))//'_'//trim(compname(n2)), &
+                         stream_src_mask=sdat_config%stream(streamid)%src_mask_val, &
+                         stream_dst_mask=sdat_config%stream(streamid)%dst_mask_val, &
                          rc=rc)
                       if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+                      ! Print out source and destination mask used in the stream
+                      if (maintask) write(logunit,'(a,2i2)') trim(subname)//": mask values src, dst ", &
+                         sdat_config%stream(streamid)%src_mask_val, sdat_config%stream(streamid)%dst_mask_val
 
                       ! Remove temporary variables
                       deallocate(fileList)
