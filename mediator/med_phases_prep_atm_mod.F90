@@ -81,6 +81,7 @@ contains
             FBSrc=is_local%wrap%FBImp(compocn,compocn), &
             FBDst=is_local%wrap%FBImp(compocn,compatm), &
             FBFracSrc=is_local%wrap%FBFrac(compocn), &
+            FBDat=is_local%wrap%FBData(compatm), &
             field_NormOne=is_local%wrap%field_normOne(compocn,compatm,:), &
             packed_data=is_local%wrap%packed_data(compocn,compatm,:), &
             routehandles=is_local%wrap%RH(compocn,compatm,:), rc=rc)

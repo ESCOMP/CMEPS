@@ -152,7 +152,6 @@ module med_internalstate_mod
     type(ESMF_State)       , pointer :: NStateExp(:)   ! Export data to various component, on their grid
     type(ESMF_FieldBundle) , pointer :: FBImp(:,:)     ! Import data from various components interpolated to various grids
     type(ESMF_FieldBundle) , pointer :: FBExp(:)       ! Export data for various components, on their grid
-    type(ESMF_FieldBundle) , pointer :: FBExpIn(:)     ! Export data for various components, on their grid, CDEPS inline
 
     ! Mediator field bundles for ocean albedo
     type(ESMF_FieldBundle) :: FBMed_ocnalb_o            ! Ocn albedo on ocn grid
@@ -174,6 +173,9 @@ module med_internalstate_mod
 
     ! Fractions
     type(ESMF_FieldBundle), pointer :: FBfrac(:)     ! Fraction data for various components, on their grid
+
+    ! Data
+    type(ESMF_FieldBundle) , pointer :: FBData(:)    ! Background data for various components, on their grid, provided by CDEPS inline
 
     ! Accumulators for export field bundles
     type(ESMF_FieldBundle) :: FBExpAccumOcn      ! Accumulator for Ocn export on Ocn grid
@@ -312,7 +314,6 @@ contains
     allocate(is_local%wrap%NStateExp(ncomps))
     allocate(is_local%wrap%FBImp(ncomps,ncomps))
     allocate(is_local%wrap%FBExp(ncomps))
-    allocate(is_local%wrap%FBExpIn(ncomps))
     allocate(is_local%wrap%packed_data_ocnalb_o2a(nmappers))
     allocate(is_local%wrap%packed_data_aoflux_o2a(nmappers))
     allocate(is_local%wrap%RH(ncomps,ncomps,nmappers))
@@ -320,6 +321,7 @@ contains
     allocate(is_local%wrap%packed_data(ncomps,ncomps,nmappers))
     allocate(is_local%wrap%FBfrac(ncomps))
     allocate(is_local%wrap%FBArea(ncomps))
+    allocate(is_local%wrap%FBData(ncomps))
     allocate(is_local%wrap%mesh_info(ncomps))
 
     ! Determine component names

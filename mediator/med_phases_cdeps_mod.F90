@@ -228,8 +228,8 @@ contains
                 end do ! nflds
 
                 ! Create empty FB
-                if (.not. ESMF_FieldBundleIsCreated(is_local%wrap%FBExpIn(n2), rc=rc) .and. found) then
-                   is_local%wrap%FBExpIn(n2) = ESMF_FieldBundleCreate(name="inline_"//trim(compname(n2)), rc=rc)
+                if (.not. ESMF_FieldBundleIsCreated(is_local%wrap%FBData(n2), rc=rc) .and. found) then
+                   is_local%wrap%FBData(n2) = ESMF_FieldBundleCreate(name="inline_"//trim(compname(n2)), rc=rc)
                    if (chkerr(rc,__LINE__,u_FILE_u)) return
                 end if
              end if
@@ -271,12 +271,12 @@ contains
              if (chkerr(rc,__LINE__,u_FILE_u)) return
 
              ! Point FB from internal one
-             is_local%wrap%FBExpIn(n2) = sdat(n1,n2)%pstrm(1)%fldbun_model
+             is_local%wrap%FBData(n2) = sdat(n1,n2)%pstrm(1)%fldbun_model
   
              ! Write FB for debugging
              if (dbug_flag > 10) then
                 write(suffix, fmt='(i4,a1,i2.2,a1,i2.2,a1,i5.5)') year, '-', month, '-', day, '-', sec
-                call FB_write(is_local%wrap%FBExpIn(n2), suffix, rc)
+                call FB_write(is_local%wrap%FBData(n2), suffix, rc)
                 if (chkerr(rc,__LINE__,u_FILE_u)) return
              end if
           end if
