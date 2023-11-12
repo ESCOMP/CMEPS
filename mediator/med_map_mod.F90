@@ -929,9 +929,12 @@ contains
     use ESMF                  , only : ESMF_FieldBundle, ESMF_FieldBundleGet
     use ESMF                  , only : ESMF_FieldBundleIsCreated
     use ESMF                  , only : ESMF_FieldRedist, ESMF_RouteHandle
+    use ESMF                  , only : ESMF_FieldFill
+    use ESMF                  , only : ESMF_KIND_R8
     use med_internalstate_mod , only : nmappers, mapfcopy
     use med_internalstate_mod , only : mappatch_uv3d, mappatch, mapbilnr_uv3d, mapbilnr
     use med_internalstate_mod , only : packed_data_type
+    use med_methods_mod       , only : Field_diagnose => med_methods_Field_diagnose
 
     ! input/output variables
     type(ESMF_FieldBundle)          , intent(in)    :: FBSrc
@@ -944,23 +947,24 @@ contains
     integer, optional               , intent(out)   :: rc
 
     ! local variables
-    integer                     :: nf, nu, np, n, nfd
-    integer                     :: fieldcount, fieldcount_dat
-    integer                     :: mapindex
-    integer                     :: ungriddedUBound(1)
-    real(r8), pointer           :: dataptr(:)
-    real(r8), pointer           :: dataptr1d(:)
-    real(r8), pointer           :: dataptr2d(:,:)
-    real(r8), pointer           :: dataptr2d_packed(:,:)
-    type(ESMF_Field)            :: field_fracsrc
-    type(ESMF_Field), pointer   :: fieldlist_src(:)
-    type(ESMF_Field), pointer   :: fieldlist_dst(:)
-    type(ESMF_Field), pointer   :: fieldlist_dat(:)
-    real(r8), pointer           :: data_norm(:)
-    real(r8), pointer           :: data_dst(:,:)
-    character(cl)               :: field_name
-    character(cl), allocatable  :: field_namelist_dat(:)
-    character(len=*), parameter :: subname=' (med_map_mod:med_map_field_packed) '
+    integer                       :: nf, nu, np, n, nfd
+    integer                       :: fieldcount, fieldcount_dat
+    integer                       :: mapindex
+    integer                       :: ungriddedUBound(1)
+    real(r8), pointer             :: dataptr(:)
+    real(r8), pointer             :: dataptr1d(:)
+    real(r8), pointer             :: dataptr2d(:,:)
+    real(r8), pointer             :: dataptr2d_packed(:,:)
+    type(ESMF_Field)              :: field_fracsrc
+    type(ESMF_Field), pointer     :: fieldlist_src(:)
+    type(ESMF_Field), pointer     :: fieldlist_dst(:)
+    type(ESMF_Field), pointer     :: fieldlist_dat(:)
+    real(r8), pointer             :: data_norm(:)
+    real(r8), pointer             :: data_dst(:,:)
+    character(cl)                 :: field_name
+    character(cl), allocatable    :: field_namelist_dat(:)
+    real(ESMF_KIND_R8), parameter :: fillValue = 9.99e20_ESMF_KIND_R8
+    character(len=*), parameter   :: subname=' (med_map_mod:med_map_field_packed) '
     !-----------------------------------------------------------
 
     call t_startf('MED:'//subname)
@@ -1030,6 +1034,7 @@ contains
                 ! Get the indices into the packed data structure
                 np = packed_data(mapindex)%fldindex(nf)
                 if (np > 0) then
+                   ! Fill packed source field
                    call ESMF_FieldGet(fieldlist_src(nf), ungriddedUBound=ungriddedUBound, rc=rc)
                    if (chkerr(rc,__LINE__,u_FILE_u)) return
                    if (ungriddedUBound(1) > 0) then
@@ -1070,17 +1075,21 @@ contains
                      ! Get size of ungridded dimension and name of the field
                      call ESMF_FieldGet(fieldlist_dst(nf), ungriddedUBound=ungriddedUBound, name=field_name, rc=rc)
                      if (chkerr(rc,__LINE__,u_FILE_u)) return
-                     if (maintask) write(logunit,'(a)') trim(subname)//" serach for "//trim(field_name)
+                     if (maintask) write(logunit,'(a)') trim(subname)//" search "//trim(field_name)//" field for bg fill"
 
                      ! Check if field has match in data fields
                      do nfd = 1, fieldcount_dat
-                        if (maintask) write(logunit,'(a)') trim(subname)//" field "//trim(field_namelist_dat(nfd))
                         if (trim(field_name) == trim(field_namelist_dat(nfd))) then
-                           if (maintask) write(logunit,'(a)') trim(subname)//" filling with background data "
+                           if (maintask) write(logunit,'(a)') trim(subname)//" field "//trim(field_namelist_dat(nfd))//" is found!"
                            
                            ! Get pointer from data field
                            call ESMF_FieldGet(fieldlist_dat(nfd), farrayptr=dataptr, rc=rc)
                            if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+                           if (dbug_flag > 1) then
+                              call Field_diagnose(fieldlist_dst(nf), trim(field_name), " --> before bg fill: ", rc=rc)
+                              if (chkerr(rc,__LINE__,u_FILE_u)) return
+                           end if
 
                            ! Get pointer from destination field and fill it with data
                            if (ungriddedUBound(1) > 0) then
@@ -1095,11 +1104,22 @@ contains
                               if (chkerr(rc,__LINE__,u_FILE_u)) return
                               dataptr2d_packed(np,:) = dataptr(:)
                            end if
-                           exit 
+
+                           if (dbug_flag > 1) then
+                              call Field_diagnose(fieldlist_dst(nf), trim(field_name), " --> after  bg fill: ", rc=rc)
+                              if (chkerr(rc,__LINE__,u_FILE_u)) return
+                           end if
+
+                           exit
                         end if
                      end do
                    end if
                 end do
+             else
+                ! Fill packed destination field/s with large value if data is unavailable
+                ! The data needs to be compated in the component side
+                call ESMF_FieldFill(packed_data(mapindex)%field_dst, dataFillScheme="const", const1=fillValue, rc=rc)
+                if (chkerr(rc,__LINE__,u_FILE_u)) return
              end if
 
              ! -----------------------------------
@@ -1335,9 +1355,7 @@ contains
 
     use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
     use ESMF                  , only : ESMF_LOGMSG_ERROR, ESMF_FAILURE, ESMF_MAXSTR
-    use ESMF                  , only : ESMF_KIND_R8
     use ESMF                  , only : ESMF_Field, ESMF_FieldRegrid
-    use ESMF                  , only : ESMF_FieldFill
     use ESMF                  , only : ESMF_TERMORDER_SRCSEQ, ESMF_Region_Flag, ESMF_REGION_TOTAL
     use ESMF                  , only : ESMF_REGION_SELECT
     use ESMF                  , only : ESMF_RouteHandle
@@ -1358,7 +1376,6 @@ contains
     ! local variables
     logical :: checkflag = .false.
     character(len=CS) :: lfldname
-    real(ESMF_KIND_R8), parameter :: fillValue = 9.99e20_ESMF_KIND_R8
     character(len=*), parameter :: subname='(med_map_mod:med_map_field) '
     !---------------------------------------------------
 
@@ -1401,31 +1418,13 @@ contains
           if (chkerr(rc,__LINE__,u_FILE_u)) return
        end if
     else if (maptype == mapfillv_bilnr) then
-       !call ESMF_FieldFill(field_dst, dataFillScheme="const", const1=fillValue, rc=rc)
-       !call ESMF_FieldFill(field_dst, dataFillScheme="const", const1=0.0d0, rc=rc)
-       !if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-       !if (dbug_flag > 1) then
-       !   call Field_diagnose(field_dst, lfldname, " --> after fillv: ", rc=rc)
-       !   if (chkerr(rc,__LINE__,u_FILE_u)) return
-       !end if
-
-       !call ESMF_FieldWriteVTK(field_src, 'field_src_'//trim(lfldname), rc=rc)
-       !if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-       !call ESMF_FieldWriteVTK(field_dst, 'field_dst_'//trim(lfldname)//'_before', rc=rc)
-       !if (chkerr(rc,__LINE__,u_FILE_u)) return
-
        call ESMF_FieldRegrid(field_src, field_dst, routehandle=RouteHandles(mapfillv_bilnr), &
             termorderflag=ESMF_TERMORDER_SRCSEQ, checkflag=checkflag, zeroregion=ESMF_REGION_SELECT, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       !if (dbug_flag > 1) then
-       !   call Field_diagnose(field_dst, lfldname, " --> after bilnr: ", rc=rc)
-       !   if (chkerr(rc,__LINE__,u_FILE_u)) return
-       !end if
-
-       !call ESMF_FieldWriteVTK(field_dst, 'field_dst_'//trim(lfldname)//'_after', rc=rc)
-       !if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (dbug_flag > 1) then
+          call Field_diagnose(field_dst, lfldname, " --> after bilnr: ", rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+       end if
     else
        call ESMF_FieldRegrid(field_src, field_dst, routehandle=RouteHandles(maptype), &
             termorderflag=ESMF_TERMORDER_SRCSEQ, checkflag=checkflag, zeroregion=ESMF_REGION_TOTAL, rc=rc)
