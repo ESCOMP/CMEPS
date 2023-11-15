@@ -153,6 +153,7 @@ contains
                    ! Query destination field name and its mesh
                    call ESMF_FieldGet(flddst, mesh=meshdst, name=fldname, rc=rc)
                    if (chkerr(rc,__LINE__,u_FILE_u)) return
+                   if (maintask) write(logunit,'(a)') trim(subname)//": extracting destination mesh from "//trim(fldname)
 
                    ! Check if any field in FB in the given stream
                    ! NOTE: Single stream could provide multiple fields !!!
@@ -165,11 +166,11 @@ contains
                       end do
                    end do
 
-                   ! If match is found, then initialize cdeps inline for the stream
-                   if (streamid /= 0) then
+                   ! If match is found and previously not initialized, then initialize cdeps inline for the stream
+                   if (size(sdat(n1,n2)%stream) == 0 .and. streamid /= 0) then
                       ! Debug print
                       if (maintask) then
-                         write(logunit,'(a,i)') trim(subname)//": "//trim(fldname)//" is found in stream ", streamid
+                         write(logunit,'(a,i)') trim(subname)//": initialize stream ", streamid
                       end if
 
                       ! Allocate temporary variable to store file names in the stream
@@ -179,7 +180,7 @@ contains
                       ! Fill file abd variable lists with data
                       do l = 1, sdat_config%stream(streamid)%nfiles
                          fileList(l) = trim(sdat_config%stream(streamid)%file(l)%name) 
-                         if (maintask) write(logunit,'(a,i2,x,a)') trim(subname)//": file ", l, trim(fileList(l))
+                         if (maintask) write(logunit,'(a,i2,x,a)') trim(subname)//": file     ", l, trim(fileList(l))
                       end do
                       do l = 1, sdat_config%stream(streamid)%nvars
                          varList(l,1) = trim(sdat_config%stream(streamid)%varlist(l)%nameinfile)

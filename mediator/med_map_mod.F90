@@ -1062,6 +1062,7 @@ contains
              ! Fill destination field with background data provided by CDEPS inline 
              ! -----------------------------------
 
+             if (maintask) write(logunit,'(a,i)') trim(subname), fieldcount_dat
              if (fieldcount_dat > 0) then
                 ! First get the pointer for the packed destination data
                 call ESMF_FieldGet(packed_data(mapindex)%field_dst, farrayptr=dataptr2d_packed, rc=rc)
@@ -1075,10 +1076,11 @@ contains
                      ! Get size of ungridded dimension and name of the field
                      call ESMF_FieldGet(fieldlist_dst(nf), ungriddedUBound=ungriddedUBound, name=field_name, rc=rc)
                      if (chkerr(rc,__LINE__,u_FILE_u)) return
-                     if (maintask) write(logunit,'(a)') trim(subname)//" search "//trim(field_name)//" field for bg fill"
+                     if (maintask) write(logunit,'(a)') trim(subname)//" search "//trim(field_name)//" field for background fill."
 
                      ! Check if field has match in data fields
                      do nfd = 1, fieldcount_dat
+                        if (maintask) write(logunit,'(a)') trim(field_name)//" - "//trim(field_namelist_dat(nfd))
                         if (trim(field_name) == trim(field_namelist_dat(nfd))) then
                            if (maintask) write(logunit,'(a)') trim(subname)//" field "//trim(field_namelist_dat(nfd))//" is found!"
                            
@@ -1087,7 +1089,7 @@ contains
                            if (chkerr(rc,__LINE__,u_FILE_u)) return
 
                            if (dbug_flag > 1) then
-                              call Field_diagnose(fieldlist_dst(nf), trim(field_name), " --> before bg fill: ", rc=rc)
+                              call Field_diagnose(fieldlist_dst(nf), trim(field_name), " --> before background fill: ", rc=rc)
                               if (chkerr(rc,__LINE__,u_FILE_u)) return
                            end if
 
@@ -1106,7 +1108,7 @@ contains
                            end if
 
                            if (dbug_flag > 1) then
-                              call Field_diagnose(fieldlist_dst(nf), trim(field_name), " --> after  bg fill: ", rc=rc)
+                              call Field_diagnose(fieldlist_dst(nf), trim(field_name), " --> after  background fill: ", rc=rc)
                               if (chkerr(rc,__LINE__,u_FILE_u)) return
                            end if
 

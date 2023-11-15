@@ -373,6 +373,7 @@ contains
     ! Initialize flag for background fill
     is_local%wrap%med_bg_fill_active(:,:) = .false.
     is_local%wrap%med_bg_fill_active(compocn,compatm) = .true.
+    is_local%wrap%med_bg_fill_active(compatm,compocn) = .true.
 
   end subroutine med_internalstate_init
 
