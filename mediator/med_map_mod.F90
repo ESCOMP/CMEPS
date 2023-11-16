@@ -1062,7 +1062,6 @@ contains
              ! Fill destination field with background data provided by CDEPS inline 
              ! -----------------------------------
 
-             if (maintask) write(logunit,'(a,i)') trim(subname), fieldcount_dat
              if (fieldcount_dat > 0) then
                 ! First get the pointer for the packed destination data
                 call ESMF_FieldGet(packed_data(mapindex)%field_dst, farrayptr=dataptr2d_packed, rc=rc)
