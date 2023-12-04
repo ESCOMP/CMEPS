@@ -716,6 +716,17 @@
       <value>$ESMF_VERBOSITY_LEVEL</value>
     </values>
   </entry>
+  <entry id="check_for_nans">
+    <type>logical</type>
+    <category>performance</category>
+    <group>MED_attributes</group>
+    <desc>
+      Check for NaN values in fields returned from mediator to components.  This has a small performance impact.
+    </desc>
+    <values>
+      <value>.true.</value>
+    </values>
+  </entry>
   <entry id="atm_nx" modify_via_xml="ATM_NX">
     <type>integer</type>
     <category>control</category>
@@ -2081,17 +2092,18 @@
   </entry>
 
   <!-- ======================================= -->
-  <!-- MED ocn history files -->
+  <!-- MED auxiliary wav2med history files -->
   <!-- ======================================= -->
 
   <entry id="histaux_wav2med_file1_enabled">
     <type>logical</type>
     <category>aux_hist</category>
-    <group>MED_attributes</group>
+    <group>ALLCOMP_attributes</group>
     <desc>Auxiliary mediator wav2med average history output every day.</desc>
     <values>
       <value>.false.</value>
     </values>
+    <desc>Note that ww3dev will obtain this configuration variable and send the fields needed for wav2med</desc>
   </entry>
   <entry id="histaux_wav2med_file1_flds">
     <type>char</type>
@@ -2101,6 +2113,7 @@
     <values>
       <value>Sw_hs:Sw_Tm1:Sw_thm:Sw_thp0:Sw_fp0:Sw_u:Sw_v:Sw_ustokes:Sw_vstokes:Sw_tusx:Sw_tusy</value>
     </values>
+    <desc>Auxiliary mediator wav2med file1 output fields (colon delimited)</desc>
   </entry>
   <entry id="histaux_wav2med_file1_history_option">
     <type>char</type>
@@ -2110,6 +2123,7 @@
     <values>
       <value>ndays</value>
     </values>
+    <desc>Auxiliary mediator wav2med file1 output option</desc>
   </entry>
   <entry id="histaux_wav2med_file1_history_n">
     <type>integer</type>
@@ -2119,6 +2133,7 @@
     <values>
       <value>1</value>
     </values>
+    <desc>Auxiliary mediator wav2med file1 output frequency (used for option type)</desc>
   </entry>
   <entry id="histaux_wav2med_file1_doavg">
     <type>logical</type>
@@ -2128,6 +2143,7 @@
     <values>
       <value>.true.</value>
     </values>
+    <desc>Auxiliary mediator wav2med file1 time averaged flag for file output.</desc>
   </entry>
   <entry id="histaux_wav2med_file1_auxname">
     <type>char</type>
@@ -2167,6 +2183,7 @@
     <values>
       <value>Sw_phs0:Sw_phs1:Sw_pdir0:Sw_pdir1:Sw_pTm10:Sw_pTm11</value>
     </values>
+    <desc>Auxiliary mediator wav2med file2 output fields (colon delimited)</desc>
   </entry>
   <entry id="histaux_wav2med_file2_history_option">
     <type>char</type>
@@ -2176,6 +2193,7 @@
     <values>
       <value>ndays</value>
     </values>
+    <desc>Auxiliary mediator wav2med file2 output option</desc>
   </entry>
   <entry id="histaux_wav2med_file2_history_n">
     <type>integer</type>
@@ -2185,6 +2203,7 @@
     <values>
       <value>1</value>
     </values>
+    <desc>Auxiliary mediator wav2med file2 output frequency (used for option type)</desc>
   </entry>
   <entry id="histaux_wav2med_file2_doavg">
     <type>logical</type>
@@ -2194,6 +2213,7 @@
     <values>
       <value>.false.</value>
     </values>
+    <desc>Auxiliary mediator wav2med file2 time averaged flag for file output.</desc>
   </entry>
   <entry id="histaux_wav2med_file2_auxname">
     <type>char</type>
