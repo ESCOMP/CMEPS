@@ -1168,39 +1168,63 @@
      #
      - standard_name: Sw_hs
        canonical_units: m
-       description: Significant wave hight (only needed for mediatory history output)
+       description: Significant wave hight (only needed for mediator history output)
      #
-     - standard_name: Sw_wlm
+     - standard_name: Sw_phs0
        canonical_units: m
-       description: Mean wave length (only needed for mediatory history output)
+       description: Wind sea swh (only needed for mediator history output)
+     #
+     - standard_name: Sw_phs1
+       canonical_units: m
+       description: Swell swh (only needed for mediator history output)
+     #
+     - standard_name: Sw_pdir0
+       canonical_units: degrees
+       description: Wind sea swh (only needed for mediator history output)
+     #
+     - standard_name: Sw_pdir1
+       canonical_units: degrees
+       description: Swell swh (only needed for mediator history output)
+     #
+     - standard_name: Sw_pTm10
+       canonical_units: s
+       description: Wind sea mean wave Tm1 period (only needed for mediator history output)
+     #
+     - standard_name: Sw_pTm11
+       canonical_units: s
+       description: Swell mean wave Tm1 period (only needed for mediator history output)
+     #
+     - standard_name: Sw_Tm1
+       canonical_units: s
+       description: Mean wave period of the first moment (only needed for mediator history output)
      #
      - standard_name: Sw_thm
-       canonical_units: unitless
-       description: Mean wave direction (only needed for mediatory history output)
+       canonical_units: degrees
+       description: Mean wave direction (only needed for mediator history output)
      #
      - standard_name: Sw_thp0
-       canonical_units: unitless
-       description: Peak wave direction (only needed for mediatory history output)
+       canonical_units: degrees
+       description: Peak wave direction (only needed for mediator history output)
      #
      - standard_name: Sw_fp0
        canonical_units: 1/s
-       description: Peak wave frequency (only needed for mediatory history output)
+       description: Peak wave frequency (only needed for mediator history output)
      #
      - standard_name: Sw_u
        canonical_units: m/s
-       description: Surface wind zonal (only needed for mediatory history output)
+       description: Surface wind zonal (only needed for mediator history output)
      #
      - standard_name: Sw_v
        canonical_units: m/s
-       description: Surface wind meridional (only needed for mediatory history output)
+       description: Surface wind meridional (only needed for mediator history output)
      #
      - standard_name: Sw_tusx
        canonical_units: m2/s
-       description: Stokes zonal transport vector (only needed for mediatory history output)
+       description: Stokes zonal transport vector (only needed for mediator history output)
      #
      - standard_name: Sw_tusy
        canonical_units: m2/s
-       description: Stokes meridional transport vector (only needed for mediatory history output)
+       description: Stokes meridional transport vector (only needed for mediator history output)
      #
      - standard_name: Sw_elevation_spectrum
        alias: wave_elevation_spectrum

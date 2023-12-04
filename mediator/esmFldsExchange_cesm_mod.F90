@@ -2268,7 +2268,13 @@ contains
     !-----------------------------
     if (phase == 'advertise') then
        call addfld_from(compwav, 'Sw_hs')
-       call addfld_from(compwav, 'Sw_wlm')
+       call addfld_from(compwav, 'Sw_phs0')
+       call addfld_from(compwav, 'Sw_phs1')
+       call addfld_from(compwav, 'Sw_pdir0')
+       call addfld_from(compwav, 'Sw_pdir1')
+       call addfld_from(compwav, 'Sw_pTm10')
+       call addfld_from(compwav, 'Sw_pTm11')
+       call addfld_from(compwav, 'Sw_Tm1')
        call addfld_from(compwav, 'Sw_thm')
        call addfld_from(compwav, 'Sw_thp0')
        call addfld_from(compwav, 'Sw_fp0')
