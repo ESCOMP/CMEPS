@@ -43,374 +43,374 @@
        description: meridional stress on ocean/air computed in mediator
      #
      #-----------------------------------
-     # section: land export
+     # section: land import
      #-----------------------------------
      #
      - standard_name: Fall_evap
        canonical_units: kg m-2 s-1
-       description: land export
+       description: land import
      #
      - standard_name: Fall_evap_wiso
        canonical_units: kg m-2 s-1
-       description: land export
+       description: land import
      #
      - standard_name: Fall_fco2_lnd
        canonical_units: moles m-2 s-1
-       description: land export
+       description: land import
      #
      - standard_name: Fall_fire
        canonical_units: kg/m2/sec
-       description: land export - wild fire emission fluxes (1->10)
+       description: land import - wild fire emission fluxes (1->10)
      #
      - standard_name: Fall_flxdst
        canonical_units: kg m-2 s-1
-       description: land export - dust fluxes from land (sizes 1->4)
+       description: land import - dust fluxes from land (sizes 1->4)
      #
      - standard_name: Fall_lat
        canonical_units: W m-2
-       description: land export
+       description: land import
      #
      - standard_name: Fall_lwup
        canonical_units: W m-2
-       description: land export
+       description: land import
      #
      - standard_name: Fall_sen
        canonical_units: W m-2
-       description: land export
+       description: land import
      #
      - standard_name: Fall_swnet
        canonical_units: W m-2
-       description: land export
+       description: land import
      #
      - standard_name: Fall_taux
        canonical_units: N m-2
-       description: land export
+       description: land import
      #
      - standard_name: Fall_tauy
        canonical_units: N m-2
-       description: land export
+       description: land import
      #
      - standard_name: Fall_voc
        canonical_units: molecules/m2/sec
-       description: land export - MEGAN voc emission fluxes from land (1->20)
+       description: land import - MEGAN voc emission fluxes from land (1->20)
      #
      - standard_name: Sl_anidf
        canonical_units: 1
-       description: land export
+       description: land import
      #
      - standard_name: Sl_anidr
        canonical_units: 1
-       description: land export
+       description: land import
      #
      - standard_name: Sl_avsdf
        canonical_units: 1
-       description: land export
+       description: land import
      #
      - standard_name: Sl_avsdr
        canonical_units: 1
-       description: land export
+       description: land import
      #
      - standard_name: Sl_ddvel
        canonical_units: cm/sec
-       description: land export - dry deposition velocities from (1->80)
+       description: land import - dry deposition velocities from (1->80)
      #
      - standard_name: Sl_fv
        canonical_units: m s-1
-       description: land export
+       description: land import
      #
      - standard_name: Sl_fztop
        canonical_units: m
-       description: land export
+       description: land import
      #
      - standard_name: Sl_lfrac
        canonical_units: 1
-       description: land export
+       description: land import
      #
      - standard_name: Sl_lfrin
        canonical_units: 1
-       description: land export
+       description: land import
      #
      - standard_name: Sl_qref
        canonical_units: kg kg-1
-       description: land export
+       description: land import
      #
      - standard_name: Sl_qref_wiso
        canonical_units: kg kg-1
-       description: land export
+       description: land import
      #
      - standard_name: Sl_ram1
        canonical_units: s/m
-       description: land export
+       description: land import
      #
      - standard_name: Sl_snowh
        canonical_units: m
-       description: land export
+       description: land import
      #
      - standard_name: Sl_snowh_wiso
        canonical_units: m
-       description: land export
+       description: land import
      #
      - standard_name: Sl_soilw
        canonical_units: m3/m3
-       description: land export
+       description: land import
      #
      - standard_name: Sl_t
        canonical_units: K
-       description: land export
+       description: land import
      #
      - standard_name: Sl_topo_elev
        canonical_units: m
-       description: land export to mediator in elevation classes (1->glc_nec)
+       description: land import to mediator in elevation classes (1->glc_nec)
      #
      - standard_name: Sl_topo
        canonical_units: m
-       description: mediator export to glc - no levation classes
+       description: mediator import to glc - no levation classes
      #
      - standard_name: Sl_tsrf_elev
        canonical_units: deg C
-       description: land export to mediator in elevation classes (1->glc_nec)
+       description: land import to mediator in elevation classes (1->glc_nec)
      #
      - standard_name: Sl_tsrf
        canonical_units: deg C
-       description: mediator export to gcl with no elevation classes
+       description: mediator import to gcl with no elevation classes
      #
      - standard_name: Sl_tref
        canonical_units: K
-       description: mediator export to glc - no levation classes
+       description: mediator import to glc - no levation classes
      #
      - standard_name: Sl_u10
        canonical_units: m
-       description: land export
+       description: land import
      #
      #-----------------------------------
-     # section: atmosphere export
+     # section: atmosphere import
      #-----------------------------------
      #
      - standard_name: Faxa_nhx
        canonical_units: kg m-2 s-1
-       description: atmosphere export
+       description: atmosphere import
      #
      - standard_name: Faxa_noy
        canonical_units: kg m-2 s-1
-       description: atmosphere export
+       description: atmosphere import
      #
      - standard_name: Faxa_bcph
        canonical_units: kg m-2 s-1
-       description: atmosphere export
+       description: atmosphere import
      #
      - standard_name: Faxa_ocph
        canonical_units: kg m-2 s-1
-       description: atmosphere export
+       description: atmosphere import
      #
      - standard_name: Faxa_dstdry
        canonical_units: kg m-2 s-1
-       description: atmosphere export
+       description: atmosphere import
      #
      - standard_name: Faxa_dstwet
        canonical_units: kg m-2 s-1
-       description: atmosphere export
+       description: atmosphere import
      #
      - standard_name: Faxa_swdn
        alias: mean_down_sw_flx
        canonical_units: W m-2
-       description: atmosphere export
+       description: atmosphere import
          mean downward SW heat flux
      #
      - standard_name: Faxa_lwdn
        alias: mean_down_lw_flx
        canonical_units: W m-2
-       description: atmosphere export
+       description: atmosphere import
          mean downward SW heat flux
      #
      - standard_name: Faxa_ndep
        canonical_units: kg(N)/m2/sec
-       description: atmosphere export to land and ocean - currently nhx and noy
+       description: atmosphere import (sent to land and ocean) - currently nhx and noy
      #
      - standard_name: Faxa_prec_wiso
        canonical_units: kg m-2 s-1
-       description: atmosphere export
+       description: atmosphere import
      #
      - standard_name: Faxa_rain
        alias: mean_prec_rate
        canonical_units: kg m-2 s-1
-       description: atmosphere export
+       description: atmosphere import
      #
      - standard_name: Faxa_rain_wiso
        alias: mean_prec_rate_wiso
        canonical_units: kg m-2 s-1
-       description: atmosphere export
+       description: atmosphere import
      #
      - standard_name: Faxa_rainc
        canonical_units: kg m-2 s-1
-       description: atmosphere export
+       description: atmosphere import
      #
      - standard_name: Faxa_rainc_wiso
        canonical_units: kg m-2 s-1
-       description: atmosphere export
+       description: atmosphere import
      #
      - standard_name: Faxa_rainl
        canonical_units: kg m-2 s-1
-       description: atmosphere export
+       description: atmosphere import
      #
      - standard_name: Faxa_rainl_wiso
        canonical_units: kg m-2 s-1
-       description: atmosphere export
+       description: atmosphere import
      #
      - standard_name: Faxa_snow
        alias: mean_fprec_rate
        canonical_units: kg m-2 s-1
-       description: atmosphere export
+       description: atmosphere import
      #
      - standard_name: Faxa_snow_wiso
        canonical_units: kg m-2 s-1
-       description: atmosphere export
+       description: atmosphere import
      #
      - standard_name: Faxa_snowc
        canonical_units: kg m-2 s-1
-       description: atmosphere export
+       description: atmosphere import
      #
      - standard_name: Faxa_snowc_wiso
        canonical_units: kg m-2 s-1
-       description: atmosphere export
+       description: atmosphere import
      #
      - standard_name: Faxa_snowl
        canonical_units: kg m-2 s-1
-       description: atmosphere export
+       description: atmosphere import
      #
      - standard_name: Faxa_snowl_wiso
        canonical_units: kg m-2 s-1
-       description: atmosphere export
+       description: atmosphere import
      #
      - standard_name: Faxa_swnet
        canonical_units: W m-2
-       description: atmosphere export
+       description: atmosphere import
      #
      - standard_name: Faxa_lwnet
        canonical_units: W m-2
-       description: atmosphere export
+       description: atmosphere import
      #
      - standard_name: Faxa_swndf
        alias: mean_down_sw_ir_dif_flx
        canonical_units: W m-2
-       description: atmosphere export - mean surface downward nir diffuse flux
+       description: atmosphere import - mean surface downward nir diffuse flux
      #
      - standard_name: Faxa_swndr
        alias: mean_down_sw_ir_dir_flx
        canonical_units: W m-2
-       description: atmosphere export - mean surface downward nir direct flux
+       description: atmosphere import - mean surface downward nir direct flux
      #
      - standard_name: Faxa_swvdf
        alias: mean_down_sw_vis_dif_flx
        canonical_units: W m-2
-       description: atmosphere export - mean surface downward uv+vis diffuse flux
+       description: atmosphere import - mean surface downward uv+vis diffuse flux
      #
      - standard_name: Faxa_swvdr
        alias: mean_down_sw_vis_dir_flx
        canonical_units: W m-2
-       description: atmosphere export - mean surface downward uv+visvdirect flux
+       description: atmosphere import - mean surface downward uv+visvdirect flux
      #
      - standard_name: Sa_co2diag
        canonical_units: 1e-6 mol/mol
-       description: atmosphere export - diagnostic CO2 at the lowest model level
+       description: atmosphere import - diagnostic CO2 at the lowest model level
      #
      - standard_name: Sa_co2prog
        canonical_units: 1e-6 mol/mol
-       description: atmosphere export - prognostic CO2 at the lowest model level
+       description: atmosphere import - prognostic CO2 at the lowest model level
      #
      - standard_name: Sa_o3
        canonical_units: mol/mol
-       description: atmosphere export - O3 in the lowest model layer (prognosed or prescribed)
+       description: atmosphere import - O3 in the lowest model layer (prognosed or prescribed)
      #
      - standard_name: Sa_lightning
        canonical_units: /min
-       description: atmosphere export - lightning flash freqency
+       description: atmosphere import - lightning flash freqency
      #
      - standard_name: Sa_topo
        alias: inst_surface_height
        canonical_units: m
-       description: atmosphere export - topographic height
+       description: atmosphere import - topographic height
      #
      - standard_name: Sa_dens
        alias: air_density_height_lowest
        canonical_units: kg m-3
-       description: atmosphere export - density at the lowest model layer
+       description: atmosphere import - density at the lowest model layer
      #
      - standard_name: Sa_pbot
        alias: inst_pres_height_lowest
        canonical_units: Pa
-       description: atmosphere export - pressure at lowest model layer
+       description: atmosphere import - pressure at lowest model layer
      #
      - standard_name: Sa_pslv
        alias: inst_pres_height_surface
        canonical_units: Pa
-       description: atmosphere export
+       description: atmosphere import
      #
      - standard_name: Sa_ptem
        canonical_units: K
-       description: atmosphere export - bottom layer potential temperature
+       description: atmosphere import - bottom layer potential temperature
      #
      - standard_name: Sa_shum
        alias: inst_spec_humid_height_lowest
        canonical_units: kg kg-1
-       description: atmosphere export - bottom layer specific humidity
+       description: atmosphere import - bottom layer specific humidity
      #
      - standard_name: Sa_shum_wiso
        alias: inst_spec_humid_height_lowest_wiso
        canonical_units: kg kg-1
-       description: atmosphere export - bottom layer specific humidity 16O, 18O, HDO
+       description: atmosphere import - bottom layer specific humidity 16O, 18O, HDO
      #
      - standard_name: Sa_tbot
        alias: inst_temp_height_lowest
        canonical_units: K
-       description: atmosphere export - bottom layer temperature
+       description: atmosphere import - bottom layer temperature
      #
      - standard_name: Sa_tskn
        alias: inst_temp_skin_temperature
        canonical_units: K
-       description: atmosphere export - sea surface skin temperature
+       description: atmosphere import - sea surface skin temperature
      #
      - standard_name: Sa_u
        alias: inst_zonal_wind_height_lowest
        canonical_units: m s-1
-       description: atmosphere export - bottom layer zonal wind
+       description: atmosphere import - bottom layer zonal wind
      #
      - standard_name: Sa_v
        alias: inst_merid_wind_height_lowest
        canonical_units: m s-1
-       description: atmosphere export - bottom layer meridional wind
+       description: atmosphere import - bottom layer meridional wind
      #
      - standard_name: Sa_wspd
        alias: inst_wind_speed_height_lowest
        canonical_units: m s-1
-       description: atmosphere export - bottom layer wind speed
+       description: atmosphere import - bottom layer wind speed
      #
      - standard_name: Sa_z
        alias: inst_height_lowest
        canonical_units: m
-       description: atmosphere export - bottom layer height
+       description: atmosphere import - bottom layer height
      #
      - standard_name: Faxa_taux
        alias: mean_zonal_moment_flx_atm
        canonical_units: N m-2
-       description: atmosphere export - zonal component of momentum flux
+       description: atmosphere import - zonal component of momentum flux
      #
      - standard_name: Faxa_tauy
        alias: mean_merid_moment_flx_atm
        canonical_units: N m-2
-       description: atmosphere export - meridional component of momentum flux
+       description: atmosphere import - meridional component of momentum flux
      #
      - standard_name: Faxa_lat
        alias: mean_laten_heat_flx_atm
        canonical_units: W m-2
-       description: atmosphere export
+       description: atmosphere import
      #
      - standard_name: Faxa_sen
        alias: mean_sensi_heat_flx_atm
        canonical_units: W m-2
-       description: atmosphere export
+       description: atmosphere import
      #
      #-----------------------------------
-     # section: atmosphere import
+     # section: atmosphere export
      #-----------------------------------
      #
      - standard_name: Faxx_evap
@@ -447,7 +447,6 @@
      #
      - standard_name: Sx_anidf
        canonical_units: 1
-       description: atmosphere import
        description: to atm merged surface diffuse albedo (near-infrared radiation)
      #
      - standard_name: Sx_anidr
@@ -464,24 +463,24 @@
      #
      - standard_name: Sx_qref
        canonical_units: kg kg-1
-       description: atmosphere import
+       description: atmosphere export
      #
      - standard_name: Sx_qref_wiso
        canonical_units: kg kg-1
-       description: atmosphere import
+       description: atmosphere export
      #
      - standard_name: Sx_t
        alias: surface_temperature
        canonical_units: K
-       description: atmosphere import
+       description: atmosphere export
      #
      - standard_name: Sx_tref
        canonical_units: K
-       description: atmosphere import
+       description: atmosphere export
      #
      - standard_name: Sx_u10
        canonical_units: m
-       description: atmosphere import
+       description: atmosphere export
      #
      #-----------------------------------
      # section: land-ice export
@@ -936,59 +935,59 @@
        description: land export to river
      #
      #-----------------------------------
-     # section: river export
+     # section: river import
      #-----------------------------------
      #
      - standard_name: Flrr_flood
        canonical_units: kg m-2 s-1
-       description: river export to land - water flux due to flooding
+       description: water flux due to flooding (sent to land)
      #
      - standard_name: Flrr_flood_wiso
        canonical_units: kg m-2 s-1
-       description: river export to land - water flux due to flooding for 16O, 18O, HDO
+       description: water flux due to flooding for 16O, 18O, HDO (sent to land)
      #
      - standard_name: Flrr_volr
        canonical_units: m
-       description: river export to land - river channel total water volume
+       description: river channel total water volume (sent to land)
      #
      - standard_name: Flrr_volr_wiso
        canonical_units: m
-       description: river export to land - river channel total water volume from 16O, 18O, HDO
+       description: river channel total water volume from 16O, 18O, HDO (sent to land)
      #
      - standard_name: Flrr_volrmch
        canonical_units: m
-       description: river export to land - river channel main channel water volume
+       description: river channel main channel water volume (sent to land)
      #
      - standard_name: Flrr_volrmch_wiso
        canonical_units: m
-       description: river export to land - river channel main channel water volume from 16O, 18O, HDO
+       description: river channel main channel water volume from 16O, 18O, HDO (sent to land)
      #
      - standard_name: Sr_tdepth
        canonical_units: m
-       description: river export to land - tributary channel water depth
+       description: tributary channel water depth (sent to land)
      #
      - standard_name: Sr_tdepth_max
        canonical_units: m
-       description: river export to land - tributary channel bankfull depth
+       description: tributary channel bankfull depth (sent to land)
      #
      - standard_name: Forr_rofi
        canonical_units: kg m-2 s-1
-       description: river export to ocean - water flux due to runoff (frozen)
+       description: water flux due to runoff (frozen) (sent to ocean)
      #
      - standard_name: Forr_rofi_wiso
        canonical_units: kg m-2 s-1
-       description: river export to ocean - water flux due to runoff (frozen) for 16O, 18O, HDO
+       description: water flux due to runoff (frozen) for 16O, 18O, HDO (sent to ocean)
      #
      - standard_name: Forr_rofl
        canonical_units: kg m-2 s-1
-       description: river export to ocean - water flux due to runoff (liquid)
+       description: water flux due to runoff (liquid) (sent to ocean)
      #
      - standard_name: Forr_rofl_wiso
        canonical_units: kg m-2 s-1
-       description: river export to ocean - water flux due to runoff (frozen) for 16O, 18O, HDO
+       description: water flux due to runoff (frozen) for 16O, 18O, HDO (sent to ocean)
      #
      #-----------------------------------
-     # section: ocean import
+     # section: ocean export
      #-----------------------------------
      #
      - standard_name: Foxx_hrain
@@ -1024,123 +1023,127 @@
      - standard_name: Foxx_evap
        alias: mean_evap_rate
        canonical_units: kg m-2 s-1
-       description: ocean import - specific humidity flux
+       description: to ocn - specific humidity flux
      #
      - standard_name: Foxx_evap_wiso
        alias: mean_evap_rate_wiso
        canonical_units: kg m-2 s-1
-       description: ocean import - specific humidity flux 16O, 18O, HDO
+       description: to ocn - specific humidity flux 16O, 18O, HDO
      #
      - standard_name: Foxx_lat
        canonical_units: W m-2
-       description: ocean import - latent heat flux into ocean
+       description: to ocn - latent heat flux into ocean
      #
      - standard_name: Foxx_lat_wiso
        canonical_units: W m-2
-       description: ocean import - latent heat flux into ocean for 16O, 18O, HDO
+       description: to ocn - latent heat flux into ocean for 16O, 18O, HDO
      #
      - standard_name: Foxx_lat
        canonical_units: W m-2
-       description: ocean import - latent heat flux into ocean for HDO
+       description: to ocn - latent heat flux into ocean for HDO
      #
      - standard_name: Foxx_sen
        alias: mean_sensi_heat_flx
        canonical_units: W m-2
-       description: ocean import - sensible heat flux into ocean
+       description: to ocn - sensible heat flux into ocean
      #
      - standard_name: Foxx_lwup
        canonical_units: W m-2
-       description: ocean import - surface upward longwave heat flux
+       description: to ocn - surface upward longwave heat flux
      #
      - standard_name: Foxx_lwnet
        alias: mean_net_lw_flx
        canonical_units: W m-2
-       description: ocean import - mean NET long wave radiation flux to ocean
+       description: to ocn - mean NET long wave radiation flux to ocean
      #
      - standard_name: mean_runoff_rate
        canonical_units: kg m-2 s-1
-       description: ocean import - total runoff to ocean
+       description: to ocn - total runoff to ocean
      #
      - standard_name: mean_runoff_heat_flux
        canonical_units: kg m-2 s-1
-       description: ocean import - heat content of runoff
+       description: to ocn - heat content of runoff
      #
      - standard_name: mean_calving_rate
        canonical_units: kg m-2 s-1
-       description: ocean import - total calving to ocean
+       description: to ocn - total calving to ocean
      #
      - standard_name: mean_calving_heat_flux
        canonical_units: kg m-2 s-1
-       description: ocean import - heat content of calving
+       description: to ocn - heat content of calving
      #
      - standard_name: Foxx_rofi
        canonical_units: kg m-2 s-1
-       description: ocean import - water flux due to runoff (frozen)
+       description: to ocn - water flux due to runoff (frozen)
      #
      - standard_name: Foxx_rofi_wiso
        canonical_units: kg m-2 s-1
-       description: ocean import - water flux due to runoff (frozen) for 16O, 18O, HDO
+       description: to ocn - water flux due to runoff (frozen) for 16O, 18O, HDO
      #
      - standard_name: Foxx_rofl
        alias: mean_runoff_rate
        canonical_units: kg m-2 s-1
-       description: ocean import - water flux due to runoff (liquid)
+       description: to ocn - water flux due to runoff (liquid)
      #
      - standard_name: Foxx_rofl_wiso
        canonical_units: kg m-2 s-1
-       description: ocean import - water flux due to runoff (liquid) for 16O, 18O, HDO
+       description: to ocn - water flux due to runoff (liquid) for 16O, 18O, HDO
      #
      - standard_name: Foxx_swnet
        alias: mean_net_sw_flx
        canonical_units: W m-2
-       description: ocean import - net shortwave radiation to ocean
+       description: to ocn - net shortwave radiation to ocean
      #
      - standard_name: Foxx_swnet_vdr
        alias: mean_net_sw_vis_dir_flx
        canonical_units: W m-2
-       description: ocean import - net shortwave visible direct radiation to ocean
+       description: to ocn - net shortwave visible direct radiation to ocean
      #
      - standard_name: Foxx_swnet_vdf
        alias: mean_net_sw_vis_dif_flx
        canonical_units: W m-2
-       description: ocean import - net shortwave visible diffuse radiation to ocean
+       description: to ocn - net shortwave visible diffuse radiation to ocean
      #
      - standard_name: Foxx_swnet_idr
        alias: mean_net_sw_ir_dir_flx
        canonical_units: W m-2
-       description: ocean import - net shortwave ir direct radiation to ocean
+       description: to ocn - net shortwave ir direct radiation to ocean
      #
      - standard_name: Foxx_swnet_idf
        alias: mean_net_sw_ir_dif_flx
        canonical_units: W m-2
-       description: ocean import - net shortwave ir diffuse radiation to ocean
+       description: to ocn - net shortwave ir diffuse radiation to ocean
      #
      - standard_name: Foxx_swnet_afracr
        canonical_units: W m-2
-       description: ocean import - net shortwave radiation times atmosphere fraction
+       description: to ocn - net shortwave radiation times atmosphere fraction
      #
      - standard_name: Foxx_taux
        alias: mean_zonal_moment_flx
        canonical_units: N m-2
-       description: ocean import - zonal surface stress
+       description: to ocn - zonal surface stress
      #
      - standard_name: Foxx_tauy
        alias: mean_merid_moment_flx
        canonical_units: N m-2
-       description: ocean import - meridional surface stress
+       description: to ocn - meridional surface stress
      #
      - standard_name: Fioi_swpen_ifrac_n
        alias: mean_sw_pen_to_ocn_ifrac_n
        canonical_units: W m-2
-       description: ocean import - net shortwave radiation penetrating into ice and ocean times ice fraction for thickness category 1
+       description: to ocn - net shortwave radiation penetrating into ice and ocean times ice fraction for thickness category 1
      #
      - standard_name: Sf_afrac
        canonical_units: 1
-       description: ocean import - fractional atmosphere coverage wrt ocean
+       description: to ocn - fractional atmosphere coverage wrt ocean
      #
      - standard_name: Sf_afracr
        canonical_units: 1
-       description: ocean import - fractional atmosphere coverage used in radiation computations wrt ocean
+       description: to ocn - fractional atmosphere coverage used in radiation computations wrt ocean
+     #
+     #-----------------------------------
+     # section: wave import
+     #-----------------------------------
      #
      - standard_name: Sw_hstokes
        canonical_units: m
@@ -1166,74 +1169,81 @@
        canonical_units: m/s
        description: Northward partitioned stokes drift components
      #
-     - standard_name: Sw_hs
-       canonical_units: m
-       description: Significant wave hight (only needed for mediator history output)
-     #
-     - standard_name: Sw_phs0
-       canonical_units: m
-       description: Wind sea swh (only needed for mediator history output)
-     #
-     - standard_name: Sw_phs1
-       canonical_units: m
-       description: Swell swh (only needed for mediator history output)
-     #
-     - standard_name: Sw_pdir0
-       canonical_units: degrees
-       description: Wind sea swh (only needed for mediator history output)
-     #
-     - standard_name: Sw_pdir1
-       canonical_units: degrees
-       description: Swell swh (only needed for mediator history output)
-     #
-     - standard_name: Sw_pTm10
-       canonical_units: s
-       description: Wind sea mean wave Tm1 period (only needed for mediator history output)
-     #
-     - standard_name: Sw_pTm11
-       canonical_units: s
-       description: Swell mean wave Tm1 period (only needed for mediator history output)
-     #
-     - standard_name: Sw_Tm1
-       canonical_units: s
-       description: Mean wave period of the first moment (only needed for mediator history output)
-     #
-     - standard_name: Sw_thm
-       canonical_units: degrees
-       description: Mean wave direction (only needed for mediator history output)
-     #
-     - standard_name: Sw_thp0
-       canonical_units: degrees
-       description: Peak wave direction (only needed for mediator history output)
-     #
-     - standard_name: Sw_fp0
-       canonical_units: 1/s
-       description: Peak wave frequency (only needed for mediator history output)
-     #
-     - standard_name: Sw_u
-       canonical_units: m/s
-       description: Surface wind zonal (only needed for mediator history output)
-     #
-     - standard_name: Sw_v
-       canonical_units: m/s
-       description: Surface wind meridional (only needed for mediator history output)
-     #
-     - standard_name: Sw_tusx
-       canonical_units: m2/s
-       description: Stokes zonal transport vector (only needed for mediator history output)
-     #
-     - standard_name: Sw_tusy
-       canonical_units: m2/s
-       description: Stokes meridional transport vector (only needed for mediator history output)
-     #
      - standard_name: Sw_elevation_spectrum
        alias: wave_elevation_spectrum
        canonical_units: m2/s
        description: wave elevation spectrum
-
+     #
+     - standard_name: Sw_ustokes_avg
+       canonical_units: m/s
+       description: Daily averaged stokes drift u component (only needed for mediator history output)
+     #
+     - standard_name: Sw_vstokes_avg
+       canonical_units: m/s
+       description: Daily averaged stokes drift v component (only needed for mediator history output)
+     #
+     - standard_name: Sw_hs_avg
+       canonical_units: m
+       description: Daily averaged significant wave hight (only needed for mediator history output)
+     #
+     - standard_name: Sw_phs0_avg
+       canonical_units: m
+       description: Daily averaged averaged wind sea swh (only needed for mediator history output)
+     #
+     - standard_name: Sw_phs1_avg
+       canonical_units: m
+       description: Daily averaged swell swh (only needed for mediator history output)
+     #
+     - standard_name: Sw_pdir0_avg
+       canonical_units: degrees
+       description: Daily averaged wind sea swh (only needed for mediator history output)
+     #
+     - standard_name: Sw_pdir1_avg
+       canonical_units: degrees
+       description: Daily averaged swell swh (only needed for mediator history output)
+     #
+     - standard_name: Sw_pTm10_avg
+       canonical_units: s
+       description: Daily averaged wind sea mean wave Tm1 period (only needed for mediator history output)
+     #
+     - standard_name: Sw_pTm11_avg
+       canonical_units: s
+       description: Daily average swell mean wave Tm1 period (only needed for mediator history output)
+     #
+     - standard_name: Sw_Tm1_avg
+       canonical_units: s
+       description: Daily averaged mean wave period of the first moment (only needed for mediator history output)
+     #
+     - standard_name: Sw_thm_avg
+       canonical_units: degrees
+       description: Daily averaged mean wave direction (only needed for mediator history output)
+     #
+     - standard_name: Sw_thp0_avg
+       canonical_units: degrees
+       description: Daily averaged peak wave direction (only needed for mediator history output)
+     #
+     - standard_name: Sw_fp0_avg
+       canonical_units: 1/s
+       description: Daily averaged peak wave frequency (only needed for mediator history output)
+     #
+     - standard_name: Sw_u_avg
+       canonical_units: m/s
+       description: Daily averaged surface wind zonal (only needed for mediator history output)
+     #
+     - standard_name: Sw_v_avg
+       canonical_units: m/s
+       description: Daily averaged surface wind meridional (only needed for mediator history output)
+     #
+     - standard_name: Sw_tusx_avg
+       canonical_units: m2/s
+       description: Daily averaged stokes zonal transport vector (only needed for mediator history output)
+     #
+     - standard_name: Sw_tusy_avg
+       canonical_units: m2/s
+       description: Daily averaged stokes meridional transport vector (only needed for mediator history output)
      #
      #-----------------------------------
-     # section: wave import
+     # section: wave export
      #-----------------------------------
      #
      - standard_name: Fwxx_taux
