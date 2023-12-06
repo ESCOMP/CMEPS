@@ -2099,7 +2099,6 @@
     <type>logical</type>
     <category>aux_hist</category>
     <group>ALLCOMP_attributes</group>
-    <desc>Auxiliary mediator wav2med average history output every day.</desc>
     <values>
       <value>.false.</value>
     </values>
@@ -2111,7 +2110,6 @@
     <type>char</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>Auxiliary mediator wav2med average history output every day.</desc>
     <values>
       <value>Sw_hs_avg:Sw_Tm1_avg:Sw_thm_avg:Sw_u_avg:Sw_v_avg:Sw_ustokes_avg:Sw_vstokes_avg:Sw_tusx_avg:Sw_tusy_avg:Sw_thp0_avg:Sw_fp0_avg:Sw_phs0_avg:Sw_phs1_avg:Sw_pdir0_avg:Sw_pdir1_avg:Sw_pTm10_avg:Sw_pTm11_avg</value>
     </values>
@@ -2125,7 +2123,6 @@
     <type>char</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>history option type</desc>
     <values>
       <value>ndays</value>
     </values>
@@ -2135,7 +2132,6 @@
     <type>integer</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>history option type</desc>
     <values>
       <value>1</value>
     </values>
@@ -2145,7 +2141,6 @@
     <type>logical</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>If true, use time average for aux file output.</desc>
     <values>
       <value>.false.</value>
     </values>
@@ -2156,7 +2151,6 @@
     <type>char</type>
     <category>aux_hist</category>
     <group>MED_attributes</group>
-    <desc>Auxiliary name identifier in history name</desc>
     <values>
       <value>wav.24h.avg</value>
     </values>
