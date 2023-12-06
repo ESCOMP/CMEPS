@@ -2149,7 +2149,8 @@
     <values>
       <value>.false.</value>
     </values>
-    <desc>Auxiliary mediator wav2med file1 time averaged flag for file output.</desc>
+    <desc>Auxiliary mediator wav2med file1 time averaged flag for file output.
+    If this flag is set to .false. only instantaneous output will be created in the auxiliary file.</desc>
   </entry>
   <entry id="histaux_wav2med_file1_auxname">
     <type>char</type>
