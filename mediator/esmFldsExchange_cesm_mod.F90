@@ -2264,18 +2264,27 @@ contains
     end if
 
     !-----------------------------
-    ! from wav: for auxiliary purposes only
+    ! from wav: for daily averaged fields for
+    ! output to auxiliary file only
     !-----------------------------
     if (phase == 'advertise') then
-       call addfld_from(compwav, 'Sw_hs')
-       call addfld_from(compwav, 'Sw_wlm')
-       call addfld_from(compwav, 'Sw_thm')
-       call addfld_from(compwav, 'Sw_thp0')
-       call addfld_from(compwav, 'Sw_fp0')
-       call addfld_from(compwav, 'Sw_u')
-       call addfld_from(compwav, 'Sw_v')
-       call addfld_from(compwav, 'Sw_tusx')
-       call addfld_from(compwav, 'Sw_tusy')
+       call addfld_from(compwav, 'Sw_ustokes_avg')
+       call addfld_from(compwav, 'Sw_vstokes_avg')
+       call addfld_from(compwav, 'Sw_hs_avg')
+       call addfld_from(compwav, 'Sw_phs0_avg')
+       call addfld_from(compwav, 'Sw_phs1_avg')
+       call addfld_from(compwav, 'Sw_pdir0_avg')
+       call addfld_from(compwav, 'Sw_pdir1_avg')
+       call addfld_from(compwav, 'Sw_pTm10_avg')
+       call addfld_from(compwav, 'Sw_pTm11_avg')
+       call addfld_from(compwav, 'Sw_Tm1_avg')
+       call addfld_from(compwav, 'Sw_thm_avg')
+       call addfld_from(compwav, 'Sw_thp0_avg')
+       call addfld_from(compwav, 'Sw_fp0_avg')
+       call addfld_from(compwav, 'Sw_u_avg')
+       call addfld_from(compwav, 'Sw_v_avg')
+       call addfld_from(compwav, 'Sw_tusx_avg')
+       call addfld_from(compwav, 'Sw_tusy_avg')
     end if
 
     !-----------------------------
@@ -3335,7 +3344,7 @@ contains
     end if
 
     ! Get dms flux from ocn and send to atm (this is a deprecated functionality - only used for testing now)
-    ! TODO: remove this 
+    ! TODO: remove this
     if (phase == 'advertise') then
        call addfld_from(compocn, 'Faoo_dms')
        call addfld_to(compatm, 'Faxx_dms')
