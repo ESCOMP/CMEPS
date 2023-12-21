@@ -144,6 +144,10 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     if config["COMP_OCN"] == "docn" and "aqua" in case.get_value("DOCN_MODE"):
         nmlgen.set_value("aqua_planet", value=".true.")
 
+    # make sure that variable add_gusts is only set to true if compset includes cam_dev
+    if nmlgen.get_value("add_gusts"):
+        expect("CAM%DEV" in case.get_value("COMPSET"),"ERROR: add_gusts can only be set if CAM%DEV in compset {}".format(case.get_value("COMPSET")))
+            
     # --------------------------------
     # Overwrite: set component coupling frequencies
     # --------------------------------
@@ -658,6 +662,7 @@ def buildnml(case, caseroot, component):
     create_namelist_infile(case, user_nl_file, namelist_infile, infile_text)
     infile = [namelist_infile]
 
+    
     # create the files nuopc.runconfig, nuopc.runseq, drv_in and drv_flds_in
     _create_drv_namelists(case, infile, confdir, nmlgen, files)
 
