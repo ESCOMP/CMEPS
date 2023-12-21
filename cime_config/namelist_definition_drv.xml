@@ -954,7 +954,8 @@
       add a wind gustiness factor
     </desc>
     <values>
-      <value>.false.</value>
+      <value CAMDEV="True">.true.</value>
+      <value CAMDEV="False">.false.</value>
     </values>
   </entry>
 
