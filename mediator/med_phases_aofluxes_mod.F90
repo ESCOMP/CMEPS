@@ -1100,7 +1100,6 @@ contains
             sen=aoflux_out%sen, lat=aoflux_out%lat, lwup=aoflux_out%lwup, evap=aoflux_out%evap, &
             taux=aoflux_out%taux, tauy=aoflux_out%tauy, tref=aoflux_out%tref, qref=aoflux_out%qref, &
             duu10n=aoflux_out%duu10n, & 
-            ugust_out = aoflux_out%ugust_out, &
             missval=0.0_r8)
 #ifdef UFS_AOFLUX
      end if
