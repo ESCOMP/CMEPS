@@ -20,11 +20,11 @@ jobs:
       CPPFLAGS: "-I/usr/include -I/usr/local/include"
 
       # Versions of all dependencies can be updated here
-      ESMF_VERSION: v8.4.2
+      ESMF_VERSION: v8.6.0
       PNETCDF_VERSION: checkpoint.1.12.3
-      NETCDF_FORTRAN_VERSION: v4.6.0
-      PIO_VERSION: pio2_6_0
-      CDEPS_VERSION: cdeps1.0.15
+      NETCDF_FORTRAN_VERSION: v4.6.1
+      PIO_VERSION: pio2_6_2
+      CDEPS_VERSION: cdeps1.0.26
     steps:
       - uses: actions/checkout@v3
         # Build the ESMF library, if the cache contains a previous build
@@ -84,7 +84,7 @@ jobs:
           ref: ${{ env.CDEPS_VERSION }}
       - name: Build CDEPS
         if: steps.cache-cdeps.outputs.cache-hit != 'true'
-        uses: ESCOMP/CDEPS/.github/actions/buildcdeps@cdeps1.0.15
+        uses: ESCOMP/CDEPS/.github/actions/buildcdeps@cdeps1.0.26
         with:
           esmfmkfile: $HOME/ESMF/lib/libg/Linux.gfortran.64.openmpi.default/esmf.mk
           pio_path: $HOME/pio
@@ -102,6 +102,6 @@ jobs:
           make VERBOSE=1
           popd
 
-      - name: Setup tmate session
-        if: ${{ failure() }}
-        uses: mxschmitt/action-tmate@v3
+#      - name: Setup tmate session
+#        if: ${{ failure() }}
+#        uses: mxschmitt/action-tmate@v3

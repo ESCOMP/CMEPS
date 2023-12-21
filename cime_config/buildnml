@@ -15,6 +15,7 @@ from CIME.case import Case
 from CIME.nmlgen import NamelistGenerator
 from CIME.utils import expect
 from CIME.utils import get_model, get_time_in_seconds, get_timestamp
+from CIME.namelist import literal_to_python_value
 from CIME.buildnml import create_namelist_infile, parse_input
 from CIME.XML.files import Files
 
@@ -144,6 +145,11 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     if config["COMP_OCN"] == "docn" and "aqua" in case.get_value("DOCN_MODE"):
         nmlgen.set_value("aqua_planet", value=".true.")
 
+    # make sure that variable add_gusts is only set to true if compset includes cam_dev
+    add_gusts = literal_to_python_value(nmlgen.get_value("add_gusts"), type_="logical")
+    if add_gusts:
+        expect("CAM%DEV" in case.get_value("COMPSET"),"ERROR: add_gusts can only be set if CAM%DEV in compset {}".format(case.get_value("COMPSET")))
+            
     # --------------------------------
     # Overwrite: set component coupling frequencies
     # --------------------------------
@@ -658,6 +664,7 @@ def buildnml(case, caseroot, component):
     create_namelist_infile(case, user_nl_file, namelist_infile, infile_text)
     infile = [namelist_infile]
 
+    
     # create the files nuopc.runconfig, nuopc.runseq, drv_in and drv_flds_in
     _create_drv_namelists(case, infile, confdir, nmlgen, files)
 

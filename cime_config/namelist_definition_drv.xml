@@ -946,6 +946,18 @@
     </values>
   </entry>
 
+  <entry id="add_gusts">
+    <type>logical</type>
+    <category>control</category>
+    <group>MED_attributes</group>
+    <desc>
+      add a wind gustiness factor
+    </desc>
+    <values>
+      <value>.false.</value>
+    </values>
+  </entry>
+
   <entry id="do_budgets" modify_via_xml="BUDGETS">
     <type>logical</type>
     <category>budget</category>
