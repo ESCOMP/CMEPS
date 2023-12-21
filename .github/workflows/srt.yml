@@ -84,6 +84,7 @@ jobs:
           git checkout main
           cd ../cime
           git checkout master
+          git submodule update --init
       - name: Cache ESMF
         id: cache-esmf
         uses: actions/cache@v3
