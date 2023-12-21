@@ -1095,7 +1095,6 @@ contains
        call flux_atmocn (logunit=logunit, &
             nMax=aoflux_in%lsize, mask=aoflux_in%mask, &
             zbot=aoflux_in%zbot, ubot=aoflux_in%ubot, vbot=aoflux_in%vbot, thbot=aoflux_in%thbot, qbot=aoflux_in%shum, &
-            rainc=aoflux_in%rainc, &
             rbot=aoflux_in%dens, tbot=aoflux_in%tbot, us=aoflux_in%uocn, vs=aoflux_in%vocn, ts=aoflux_in%tocn, &
             ocn_surface_flux_scheme=ocn_surface_flux_scheme, &
             sen=aoflux_out%sen, lat=aoflux_out%lat, lwup=aoflux_out%lwup, evap=aoflux_out%evap, &

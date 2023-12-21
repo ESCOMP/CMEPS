@@ -82,7 +82,8 @@ jobs:
           ./manage_externals/checkout_externals ccs_config cdeps cime share mct cpl7 parallelio
           cd ccs_config
           git checkout main
-          
+          cd ../cime
+          git checkout master
       - name: Cache ESMF
         id: cache-esmf
         uses: actions/cache@v3
