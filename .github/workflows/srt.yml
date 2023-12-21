@@ -80,6 +80,8 @@ jobs:
         run: |
           pushd cesm
           ./manage_externals/checkout_externals ccs_config cdeps cime share mct cpl7 parallelio
+          cd ccs_config
+          git checkout main
           
       - name: Cache ESMF
         id: cache-esmf
