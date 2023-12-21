@@ -84,6 +84,12 @@ jobs:
           git checkout main
           cd ../cime
           git checkout master
+          if [[ ! -e "${PWD}/.gitmodules.bak" ]]
+             then
+              echo "Convering git@github.com to https://github.com urls in ${PWD}/.gitmodules"
+
+              sed -i".bak" "s/git@github.com:/https:\/\/github.com\//g" "${PWD}/.gitmodules"
+          fi
           git submodule update --init
       - name: Cache ESMF
         id: cache-esmf
