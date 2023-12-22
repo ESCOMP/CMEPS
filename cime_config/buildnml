@@ -106,7 +106,8 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     config["COMP_OCN"] = case.get_value("COMP_OCN")
     config["COMP_ROF"] = case.get_value("COMP_ROF")
     config["COMP_WAV"] = case.get_value("COMP_WAV")
-
+    config["CAMDEV"] = "True" if "CAM%DEV" in case.get_value("COMPSET") else "False"
+    
     if (
         (
             case.get_value("COMP_ROF") == "mosart"
