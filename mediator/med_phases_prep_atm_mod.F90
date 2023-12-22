@@ -113,7 +113,6 @@ contains
     !--- map atm/ocn fluxes from ocn to atm grid if appropriate
     !---------------------------------------
     if (trim(coupling_mode) == 'cesm' .or. &
-        trim(coupling_mode) == 'hafs' .or. &
         trim(coupling_mode) == 'nems_frac_aoflux' .or. &
         trim(coupling_mode) == 'nems_frac_aoflux_sbs') then
        if (is_local%wrap%aoflux_grid == 'ogrid') then
@@ -131,30 +130,15 @@ contains
     !--- merge all fields to atm
     !---------------------------------------
     fldList => med_fldList_GetfldListTo(compatm)
-    if (trim(coupling_mode) == 'cesm' .or. &
-        trim(coupling_mode) == 'nems_frac_aoflux' .or. &
-        trim(coupling_mode) == 'hafs') then
-       call med_merge_auto(&
-            is_local%wrap%med_coupling_active(:,compatm), &
-            is_local%wrap%FBExp(compatm), &
-            is_local%wrap%FBFrac(compatm), &
-            is_local%wrap%FBImp(:,compatm), &
-            fldList, &
-            FBMed1=is_local%wrap%FBMed_ocnalb_a, &
-            FBMed2=is_local%wrap%FBMed_aoflux_a, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    else if (trim(coupling_mode) == 'nems_frac' .or. &
-             trim(coupling_mode) == 'nems_orig' .or. &
-             trim(coupling_mode) == 'nems_frac_aoflux_sbs') then
-       call med_merge_auto(&
-            is_local%wrap%med_coupling_active(:,compatm), &
-            is_local%wrap%FBExp(compatm), &
-            is_local%wrap%FBFrac(compatm), &
-            is_local%wrap%FBImp(:,compatm), &
-            fldList, &
-            rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    end if
+    call med_merge_auto(&
+         is_local%wrap%med_coupling_active(:,compatm), &
+         is_local%wrap%FBExp(compatm), &
+         is_local%wrap%FBFrac(compatm), &
+         is_local%wrap%FBImp(:,compatm), &
+         fldList, &
+         FBMed1=is_local%wrap%FBMed_ocnalb_a, &
+         FBMed2=is_local%wrap%FBMed_aoflux_a, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if (dbug_flag > 1) then
        call FB_diagnose(is_local%wrap%FBExp(compatm),string=trim(subname)//' FBexp(compatm) ', rc=rc)

@@ -935,7 +935,6 @@ contains
        endif
     endif
 
-
     ! Should enthalpy be calculated
     call NUOPC_CompAttributeGet(gcomp, name="compute_enthalpy", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -952,8 +951,6 @@ contains
           write(logunit,*) ' Enthalpy calculation is OFF'
        endif
     endif
-
-
     if (profile_memory) call ESMF_VMLogMemInfo("Leaving "//trim(subname))
     call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
 
@@ -1794,7 +1791,7 @@ contains
       !---------------------------------------
 
       ! NOTE: this section must be done BEFORE the second call to esmFldsExchange
-      ! Create field bundles for mediator ocean albedo computation
+      ! Create field bundles for mediator atm/ocean flux computation
       fieldCount = med_fldList_GetNumFlds(med_fldList_getaofluxfldList())
       if ( fieldCount > 0 ) then
          if ( is_local%wrap%med_coupling_active(compocn,compatm) .or. &
