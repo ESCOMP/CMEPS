@@ -110,12 +110,40 @@ contains
     rc = ESMF_SUCCESS
     call memcheck(subname, 5, maintask)
 
-    ! Get the internal state
+    !---------------------------------------
+    ! --- Get the internal state
+    !---------------------------------------
     nullify(is_local%wrap)
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     fldList => med_fldList_GetfldListTo(compocn)
-    ! auto merges to ocn
+
+    !---------------------------------------
+    ! --- map atm to ocn, only if data stream is available
+    !---------------------------------------
+    if (is_local%wrap%med_coupling_active(compatm,compocn) .and. &
+        is_local%wrap%med_data_active(compatm,compocn) .and. &
+        is_local%wrap%med_data_force_first(compocn)) then
+       call t_startf('MED:'//trim(subname)//' map_atm2ocn')
+       call med_map_field_packed( &
+            FBSrc=is_local%wrap%FBImp(compatm,compatm), &
+            FBDst=is_local%wrap%FBImp(compatm,compocn), &
+            FBFracSrc=is_local%wrap%FBFrac(compocn), &
+            FBDat=is_local%wrap%FBData(compocn), &
+            use_data=is_local%wrap%med_data_force_first(compocn), &
+            field_normOne=is_local%wrap%field_normOne(compatm,compocn,:), &
+            packed_data=is_local%wrap%packed_data(compatm,compocn,:), &
+            routehandles=is_local%wrap%RH(compatm,compocn,:), rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call t_stopf('MED:'//trim(subname)//' map_atm2ocn')
+
+       ! Reset flag to use data
+       is_local%wrap%med_data_force_first(compocn) = .false.
+    end if
+
+    !---------------------------------------
+    !--- merge all fields to ocn
+    !---------------------------------------
     call med_merge_auto(&
          is_local%wrap%med_coupling_active(:,compocn), &
          is_local%wrap%FBExp(compocn), &
@@ -125,6 +153,9 @@ contains
          FBMed1=is_local%wrap%FBMed_aoflux_o, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+    !---------------------------------------
+    !--- custom calculations
+    !---------------------------------------
     ! compute enthaly associated with rain, snow, condensation and liquid river runoff
     ! the sea-ice model already accounts for the enthalpy flux (as part of melth), so
     ! enthalpy from meltw **is not** included below

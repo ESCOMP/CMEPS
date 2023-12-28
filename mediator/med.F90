@@ -950,6 +950,22 @@ contains
        endif
     endif
 
+    ! Should terget component use all data for first time step?
+    do ncomp = 1,ncomps
+       if (ncomp /= compmed) then
+          call NUOPC_CompAttributeGet(gcomp, name=trim(compname(ncomp))//"_use_data_first_import", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          if (isPresent .and. isSet) then
+             read(cvalue, *) is_local%wrap%med_data_force_first(ncomp)
+          else
+             is_local%wrap%med_data_force_first(ncomp) = .false.
+          endif
+          if (maintask) then
+             write(logunit,*) trim(compname(ncomp))//'_use_data_first_import is ', is_local%wrap%med_data_force_first(ncomp)
+          endif    
+       end if
+    end do
+
     if (profile_memory) call ESMF_VMLogMemInfo("Leaving "//trim(subname))
     call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
 

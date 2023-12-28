@@ -138,7 +138,7 @@ contains
        do n1 = 1, ncomps
           do n2 = 1, ncomps
              ! Check for coupling direction and background fill
-             if (n1 /= n2 .and. is_local%wrap%med_coupling_active(n1,n2) .and. is_local%wrap%med_bg_fill_active(n1,n2)) then
+             if (n1 /= n2 .and. is_local%wrap%med_coupling_active(n1,n2) .and. is_local%wrap%med_data_active(n1,n2)) then
                 ! Get number of fields
                 call FB_getNumflds(is_local%wrap%FBImp(n1,n2), trim(subname), nflds, rc)
                 if (chkerr(rc,__LINE__,u_FILE_u)) return

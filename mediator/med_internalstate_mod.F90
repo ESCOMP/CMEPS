@@ -19,7 +19,7 @@ module med_internalstate_mod
 
   integer, public :: logunit            ! logunit for mediator log output
   integer, public :: diagunit           ! diagunit for budget output (med main only)
-  logical, public :: maintask=.false. ! is this the maintask
+  logical, public :: maintask = .false. ! is this the maintask
   integer, public :: med_id             ! needed currently in med_io_mod and set in esm.F90
 
   ! Components
@@ -119,11 +119,12 @@ module med_internalstate_mod
   type InternalStateStruct
 
     ! Present/allowed coupling/active coupling logical flags
-    logical, pointer :: comp_present(:)            ! comp present flag
-    logical, pointer :: med_coupling_active(:,:)   ! computes the active coupling
-    logical, pointer :: med_bg_fill_active(:,:)    ! use cdeps for background fill 
-    integer          :: num_icesheets              ! obtained from attribute
-    logical          :: ocn2glc_coupling = .false. ! obtained from attribute
+    logical, pointer :: comp_present(:)               ! comp present flag
+    logical, pointer :: med_coupling_active(:,:)      ! computes the active coupling
+    logical, pointer :: med_data_active(:,:)          ! uses stream data to provide background fill 
+    logical, pointer :: med_data_force_first(:)       ! force to use stream data for first coupling timestep
+    integer          :: num_icesheets                 ! obtained from attribute
+    logical          :: ocn2glc_coupling = .false.    ! obtained from attribute
     logical          :: lnd2glc_coupling = .false.
     logical          :: accum_lnd2glc = .false.
 
@@ -307,7 +308,8 @@ contains
 
     ! Allocate memory now that ncomps is determined
     allocate(is_local%wrap%med_coupling_active(ncomps,ncomps))
-    allocate(is_local%wrap%med_bg_fill_active(ncomps,ncomps))
+    allocate(is_local%wrap%med_data_active(ncomps,ncomps))
+    allocate(is_local%wrap%med_data_force_first(ncomps))
     allocate(is_local%wrap%nx(ncomps))
     allocate(is_local%wrap%ny(ncomps))
     allocate(is_local%wrap%NStateImp(ncomps))
@@ -370,11 +372,14 @@ contains
     write(msgString,*) trim(subname)//': Mediator dststatus_print is ',dststatus_print
     call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
 
-    ! Initialize flag for background fill
-    is_local%wrap%med_bg_fill_active(:,:) = .false.
-    is_local%wrap%med_bg_fill_active(compocn,compatm) = .true.
-    is_local%wrap%med_bg_fill_active(compatm,compocn) = .true.
-    is_local%wrap%med_bg_fill_active(compatm,compwav) = .true.
+    ! Initialize flag for background fill using data
+    is_local%wrap%med_data_active(:,:) = .false.
+    is_local%wrap%med_data_active(compocn,compatm) = .true.
+    is_local%wrap%med_data_active(compatm,compocn) = .true.
+    is_local%wrap%med_data_active(compatm,compwav) = .true.
+
+    ! Initialize flag to force using data in first coupling time step
+    is_local%wrap%med_data_force_first(:) = .false.
 
   end subroutine med_internalstate_init
 

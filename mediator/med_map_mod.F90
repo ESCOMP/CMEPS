@@ -919,7 +919,7 @@ contains
   end subroutine med_map_packed_field_create
 
   !================================================================================
-  subroutine med_map_field_packed(FBSrc, FBDst, FBFracSrc, FBDat, field_normOne, packed_data, routehandles, rc)
+  subroutine med_map_field_packed(FBSrc, FBDst, FBFracSrc, FBDat, use_data, field_normOne, packed_data, routehandles, rc)
 
     ! -----------------------------------------------
     ! Do regridding via packed field bundles
@@ -944,6 +944,7 @@ contains
     type(packed_data_type)          , intent(inout) :: packed_data(:)    ! array over mapping types
     type(ESMF_RouteHandle)          , intent(inout) :: routehandles(:)
     type(ESMF_FieldBundle), optional, intent(in)    :: FBDat             ! data field bundle 
+    logical, optional               , intent(in)    :: use_data          ! skip mapping and use data instead
     integer, optional               , intent(out)   :: rc
 
     ! local variables
@@ -963,6 +964,7 @@ contains
     real(r8), pointer             :: data_dst(:,:)
     character(cl)                 :: field_name
     character(cl), allocatable    :: field_namelist_dat(:)
+    logical                       :: skip_mapping
     real(ESMF_KIND_R8), parameter :: fillValue = 9.99e20_ESMF_KIND_R8
     character(len=*), parameter   :: subname=' (med_map_mod:med_map_field_packed) '
     !-----------------------------------------------------------
@@ -988,6 +990,7 @@ contains
 
     ! Get field count for FBDat if it is given and created
     fieldcount_dat = 0
+    skip_mapping = .false.
     if (present(FBdat)) then
        if (ESMF_FieldBundleIsCreated(FBdat)) then
           call ESMF_FieldBundleGet(FBDat, fieldCount=fieldcount_dat, rc=rc)
@@ -997,6 +1000,8 @@ contains
           allocate(field_namelist_dat(fieldcount_dat))
           call ESMF_FieldBundleGet(FBDat, fieldlist=fieldlist_dat, fieldNameList=field_namelist_dat, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          
+          if (present(use_data)) skip_mapping = use_data
        end if
     end if
 
@@ -1075,12 +1080,16 @@ contains
                      ! Get size of ungridded dimension and name of the field
                      call ESMF_FieldGet(fieldlist_dst(nf), ungriddedUBound=ungriddedUBound, name=field_name, rc=rc)
                      if (chkerr(rc,__LINE__,u_FILE_u)) return
+
                      if (maintask) write(logunit,'(a)') trim(subname)//" search "//trim(field_name)//" field for background fill."
 
                      ! Check if field has match in data fields
                      do nfd = 1, fieldcount_dat
-                        if (maintask) write(logunit,'(a)') trim(field_name)//" - "//trim(field_namelist_dat(nfd))
+                        ! Debug output for checked fields to find match
+                        if (maintask .and. dbug_flag > 1) write(logunit,'(a)') trim(field_name)//" - "//trim(field_namelist_dat(nfd))
+
                         if (trim(field_name) == trim(field_namelist_dat(nfd))) then
+                           ! Debug output about match
                            if (maintask) write(logunit,'(a)') trim(subname)//" field "//trim(field_namelist_dat(nfd))//" is found!"
                            
                            ! Get pointer from data field
@@ -1088,29 +1097,26 @@ contains
                            if (chkerr(rc,__LINE__,u_FILE_u)) return
 
                            if (dbug_flag > 1) then
-                              call Field_diagnose(fieldlist_dst(nf), trim(field_name), " --> before background fill: ", rc=rc)
+                              call Field_diagnose(packed_data(mapindex)%field_dst, trim(field_name), " --> before background fill: ", rc=rc)
                               if (chkerr(rc,__LINE__,u_FILE_u)) return
                            end if
 
                            ! Get pointer from destination field and fill it with data
                            if (ungriddedUBound(1) > 0) then
-                              call ESMF_FieldGet(fieldlist_dst(nf), farrayptr=dataptr2d, rc=rc)
-                              if (chkerr(rc,__LINE__,u_FILE_u)) return
                               ! TODO: Currently assumes same data along the ungridded dimension
                               do nu = 1,ungriddedUBound(1)
                                  dataptr2d_packed(np+nu-1,:) = dataptr(:)
                               end do
                            else
-                              call ESMF_FieldGet(fieldlist_dst(nf), farrayptr=dataptr1d, rc=rc)
-                              if (chkerr(rc,__LINE__,u_FILE_u)) return
                               dataptr2d_packed(np,:) = dataptr(:)
                            end if
 
                            if (dbug_flag > 1) then
-                              call Field_diagnose(fieldlist_dst(nf), trim(field_name), " --> after  background fill: ", rc=rc)
+                              call Field_diagnose(packed_data(mapindex)%field_dst, trim(field_name), " --> after  background fill: ", rc=rc)
                               if (chkerr(rc,__LINE__,u_FILE_u)) return
                            end if
 
+                           ! Exit from loop since match is already found
                            exit
                         end if
                      end do
@@ -1156,31 +1162,35 @@ contains
 
              else if ( trim(packed_data(mapindex)%mapnorm) == 'one' .or. trim(packed_data(mapindex)%mapnorm) == 'none') then
 
-                ! Mapping with no normalization that is not redistribution
-                call med_map_field (&
-                     field_src=packed_data(mapindex)%field_src, &
-                     field_dst=packed_data(mapindex)%field_dst, &
-                     routehandles=routehandles, &
-                     maptype=mapindex, &
-                     rc=rc)
-                if (chkerr(rc,__LINE__,u_FILE_u)) return
+                ! Skip mapping if it is requested
+                if (skip_mapping) then
+                   if (maintask) write(logunit,'(a)') trim(subname)//" skip mapping since use_data is set to .true."
+                else
+                   ! Mapping with no normalization that is not redistribution
+                   call med_map_field (&
+                        field_src=packed_data(mapindex)%field_src, &
+                        field_dst=packed_data(mapindex)%field_dst, &
+                        routehandles=routehandles, &
+                        maptype=mapindex, &
+                        rc=rc)
+                   if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-                ! Obtain unity normalization factor and multiply
-                ! interpolated field by reciprocal of normalization factor
-                if (trim(packed_data(mapindex)%mapnorm) == 'one') then
-                   call ESMF_FieldGet(field_normOne(mapindex), farrayPtr=data_norm, rc=rc)
-                   if (chkerr(rc,__LINE__,u_FILE_u)) return
-                   call ESMF_FieldGet(packed_data(mapindex)%field_dst, farrayPtr=data_dst, rc=rc)
-                   if (chkerr(rc,__LINE__,u_FILE_u)) return
-                   do n = 1,size(data_dst,dim=2)
-                      if (data_norm(n) == 0.0_r8) then
-                         data_dst(:,n) = 0.0_r8
-                      else
-                         data_dst(:,n) = data_dst(:,n)/data_norm(n)
-                      end if
-                   end do
+                   ! Obtain unity normalization factor and multiply
+                   ! interpolated field by reciprocal of normalization factor
+                   if (trim(packed_data(mapindex)%mapnorm) == 'one') then
+                      call ESMF_FieldGet(field_normOne(mapindex), farrayPtr=data_norm, rc=rc)
+                      if (chkerr(rc,__LINE__,u_FILE_u)) return
+                      call ESMF_FieldGet(packed_data(mapindex)%field_dst, farrayPtr=data_dst, rc=rc)
+                      if (chkerr(rc,__LINE__,u_FILE_u)) return
+                      do n = 1,size(data_dst,dim=2)
+                         if (data_norm(n) == 0.0_r8) then
+                            data_dst(:,n) = 0.0_r8
+                         else
+                            data_dst(:,n) = data_dst(:,n)/data_norm(n)
+                         end if
+                      end do
+                   end if
                 end if
-
              end if
              call t_stopf('MED:'//trim(subname)//' map')
 
