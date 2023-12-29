@@ -242,7 +242,7 @@ contains
           call ESMF_LogWrite(trim(msg), ESMF_LOGMSG_INFO)
        end if
     end if
-    write(msg,'(A,l)') trim(subname)//': use_nextswcday setting is ',use_nextswcday
+    write(msg,'(A,l1)') trim(subname)//': use_nextswcday setting is ',use_nextswcday
     call ESMF_LogWrite(trim(msg), ESMF_LOGMSG_INFO)
 
     if (dbug_flag > 5) then
