@@ -379,6 +379,14 @@
        canonical_units: m s-1
        description: atmosphere import - bottom layer meridional wind
      #
+     - standard_name: Sa_u10m
+       canonical_units: m s-1
+       description: atmosphere import - 10m zonal wind
+     #
+     - standard_name: Sa_v10m
+       canonical_units: m s-1
+       description: atmosphere import - 10m meridional wind
+     #
      - standard_name: Sa_wspd
        alias: inst_wind_speed_height_lowest
        canonical_units: m s-1
