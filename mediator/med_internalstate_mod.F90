@@ -47,7 +47,7 @@ module med_internalstate_mod
   character(len=CS), public :: glc_name = ''
 
   ! Coupling mode
-  character(len=CS), public :: coupling_mode ! valid values are [cesm,ufs.nfrac,ufs.frac,ufs.nfrac.aoflux,ufs.frac.aoflux,hafs]
+  character(len=CS), public :: coupling_mode ! valid values are [cesm,ufs.nfrac,ufs.frac,ufs.nfrac.aoflux,ufs.frac.aoflux,hafs,hafs.mom6]
 
   ! Atmosphere-ocean flux algorithm
   character(len=CS), public :: aoflux_code   ! valid values are [cesm,ccpp]
