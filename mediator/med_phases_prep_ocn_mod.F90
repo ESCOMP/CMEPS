@@ -469,11 +469,18 @@ contains
        end do
        ! Compute sw export to ocean bands if required
        if (export_swnet_by_bands) then
-          c1 = 0.285; c2 = 0.285; c3 = 0.215; c4 = 0.215
-          Foxx_swnet_vdr(:) = c1 * Foxx_swnet(:)
-          Foxx_swnet_vdf(:) = c2 * Foxx_swnet(:)
-          Foxx_swnet_idr(:) = c3 * Foxx_swnet(:)
-          Foxx_swnet_idf(:) = c4 * Foxx_swnet(:)
+          if (trim(coupling_mode) == 'cesm') then
+             c1 = 0.285; c2 = 0.285; c3 = 0.215; c4 = 0.215
+             Foxx_swnet_vdr(:) = c1 * Foxx_swnet(:)
+             Foxx_swnet_vdf(:) = c2 * Foxx_swnet(:)
+             Foxx_swnet_idr(:) = c3 * Foxx_swnet(:)
+             Foxx_swnet_idf(:) = c4 * Foxx_swnet(:)
+          else
+             Foxx_swnet_vdr(:) = Faxa_swvdr(:) * (1.0_R8 - avsdr(:))
+             Foxx_swnet_vdf(:) = Faxa_swvdf(:) * (1.0_R8 - avsdf(:))
+             Foxx_swnet_idr(:) = Faxa_swndr(:) * (1.0_R8 - anidr(:))
+             Foxx_swnet_idf(:) = Faxa_swndf(:) * (1.0_R8 - anidf(:))
+          end if
        end if
     end if
 
