@@ -263,7 +263,7 @@ contains
           F_flds(3 ,:) = (/'Faxa_rain     ','Faxa_rain     '/) ! mean_prec_rate
           F_flds(4 ,:) = (/'Faxa_lwnet    ','Foxx_lwnet    '/) ! mean_net_lw_flx
           F_flds(5 ,:) = (/'Faxa_sen      ','Foxx_sen      '/) ! mean_sensi_heat_flx
-          F_flds(6 ,:) = (/'Faxa_lat      ','Foxx_evap     '/) ! mean_laten_heat_flx
+          F_flds(6 ,:) = (/'Faxa_evap     ','Foxx_evap     '/) ! inst_evap_rate
           F_flds(7 ,:) = (/'Faxa_swndr    ','Foxx_swnet_idr'/) ! inst_down_sw_ir_dir_flx
           F_flds(8 ,:) = (/'Faxa_swndf    ','Foxx_swnet_idf'/) ! inst_down_sw_ir_dif_flx
           F_flds(9 ,:) = (/'Faxa_swvdr    ','Foxx_swnet_vdr'/) ! inst_down_sw_vis_dir_flx
@@ -546,7 +546,7 @@ contains
           F_flds(3 ,:) = (/'Faxa_rain     ','Faxa_rain     '/) ! mean_prec_rate
           F_flds(4 ,:) = (/'Faxa_lwnet    ','Foxx_lwnet    '/) ! mean_net_lw_flx
           F_flds(5 ,:) = (/'Faxa_sen      ','Foxx_sen      '/) ! mean_sensi_heat_flx
-          F_flds(6 ,:) = (/'Faxa_lat      ','Foxx_evap     '/) ! mean_laten_heat_flx
+          F_flds(6 ,:) = (/'Faxa_evap     ','Foxx_evap     '/) ! inst_evap_rate
           F_flds(7 ,:) = (/'Faxa_swndr    ','Foxx_swnet_idr'/) ! inst_down_sw_ir_dir_flx
           F_flds(8 ,:) = (/'Faxa_swndf    ','Foxx_swnet_idf'/) ! inst_down_sw_ir_dif_flx
           F_flds(9 ,:) = (/'Faxa_swvdr    ','Foxx_swnet_vdr'/) ! inst_down_sw_vis_dir_flx
