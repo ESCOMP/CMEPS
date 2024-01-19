@@ -150,11 +150,13 @@ contains
     !----------------------------------------------------------
     ! from med: ocean albedos (not sent to the ATM in UFS).
     !----------------------------------------------------------
-    if (phase == 'advertise') then
-       call addfld_ocnalb('So_avsdr')
-       call addfld_ocnalb('So_avsdf')
-       call addfld_ocnalb('So_anidr')
-       call addfld_ocnalb('So_anidf')
+    if (trim(coupling_mode) == 'hafs.mom6') then
+       if (phase == 'advertise') then
+          call addfld_ocnalb('So_avsdr')
+          call addfld_ocnalb('So_avsdf')
+          call addfld_ocnalb('So_anidr')
+          call addfld_ocnalb('So_anidf')
+       end if
     end if
 
     !=====================================================================
