@@ -1367,7 +1367,7 @@ contains
     use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
     use ESMF                  , only : ESMF_LOGMSG_ERROR, ESMF_FAILURE, ESMF_MAXSTR
     use ESMF                  , only : ESMF_Field, ESMF_FieldRegrid
-    use ESMF                  , only : ESMF_TERMORDER_SRCSEQ, ESMF_Region_Flag, ESMF_REGION_TOTAL
+    use ESMF                  , only : ESMF_TERMORDER_SRCSEQ, ESMF_Region_Flag
     use ESMF                  , only : ESMF_REGION_SELECT
     use ESMF                  , only : ESMF_RouteHandle
     use ESMF                  , only : ESMF_FieldWriteVTK
@@ -1400,7 +1400,7 @@ contains
 
     if (maptype == mapnstod_consd) then
        call ESMF_FieldRegrid(field_src, field_dst, routehandle=RouteHandles(mapnstod), &
-            termorderflag=ESMF_TERMORDER_SRCSEQ, checkflag=checkflag, zeroregion=ESMF_REGION_TOTAL, rc=rc)
+            termorderflag=ESMF_TERMORDER_SRCSEQ, checkflag=checkflag, zeroregion=ESMF_REGION_SELECT, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        if (dbug_flag > 1) then
           call Field_diagnose(field_dst, lfldname, " --> after nstod: ", rc=rc)
@@ -1415,7 +1415,7 @@ contains
        end if
     else if (maptype == mapnstod_consf) then
        call ESMF_FieldRegrid(field_src, field_dst, routehandle=RouteHandles(mapnstod), &
-            termorderflag=ESMF_TERMORDER_SRCSEQ, checkflag=checkflag, zeroregion=ESMF_REGION_TOTAL, rc=rc)
+            termorderflag=ESMF_TERMORDER_SRCSEQ, checkflag=checkflag, zeroregion=ESMF_REGION_SELECT, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        if (dbug_flag > 1) then
           call Field_diagnose(field_dst, lfldname, " --> after nstod: ", rc=rc)
@@ -1438,7 +1438,7 @@ contains
        end if
     else
        call ESMF_FieldRegrid(field_src, field_dst, routehandle=RouteHandles(maptype), &
-            termorderflag=ESMF_TERMORDER_SRCSEQ, checkflag=checkflag, zeroregion=ESMF_REGION_TOTAL, rc=rc)
+            termorderflag=ESMF_TERMORDER_SRCSEQ, checkflag=checkflag, zeroregion=ESMF_REGION_SELECT, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     end if
 
