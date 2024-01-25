@@ -893,12 +893,14 @@ contains
        if (npacked(mapindex) > 0) then
           ! Create the packed source field bundle for mapindex
           allocate(ptrsrc_packed(npacked(mapindex), lsize_src))
+          ptrsrc_packed(npacked(mapindex),:) = 0._R8
           packed_data(mapindex)%field_src = ESMF_FieldCreate(lmesh_src, &
                ptrsrc_packed, gridToFieldMap=(/2/),  meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
 
           ! Create the packed destination field bundle for mapindex
           allocate(ptrdst_packed(npacked(mapindex), lsize_dst))
+          ptrdst_packed(npacked(mapindex),:) = 0._R8
           packed_data(mapindex)%field_dst = ESMF_FieldCreate(lmesh_dst, &
                ptrdst_packed, gridToFieldMap=(/2/),  meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
