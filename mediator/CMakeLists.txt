@@ -5,7 +5,7 @@ set(SRCFILES esmFldsExchange_cesm_mod.F90 med_fraction_mod.F90
               med_phases_restart_mod.F90 esmFldsExchange_hafs_mod.F90
               med_internalstate_mod.F90 med_phases_aofluxes_mod.F90
               med_phases_prep_lnd_mod.F90 med_time_mod.F90
-              esmFldsExchange_nems_mod.F90 med_io_mod.F90
+              esmFldsExchange_ufs_mod.F90 med_io_mod.F90
               med_phases_history_mod.F90 med_phases_prep_ocn_mod.F90
               med_utils_mod.F90 esmFlds.F90 med_kind_mod.F90
               med_phases_prep_rof_mod.F90

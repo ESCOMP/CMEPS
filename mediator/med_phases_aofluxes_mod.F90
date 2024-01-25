@@ -1024,7 +1024,7 @@ contains
     end if
     if (compute_atm_dens) then
        if (trim(aoflux_code) == 'ccpp' .and. &
-          (trim(coupling_mode) == 'nems_frac_aoflux' .or. trim(coupling_mode) == 'nems_frac_aoflux_sbs')) then
+          (trim(coupling_mode) == 'ufs.frac.aoflux')) then
           ! Add limiting factor to humidity to be consistent with UFS aoflux calculation
           do n = 1,aoflux_in%lsize
              if (aoflux_in%mask(n) /= 0.0_r8) then
@@ -1562,8 +1562,8 @@ end subroutine med_aofluxes_map_ogrid2xgrid_input
     lsize = size(aoflux_in%zbot)
     aoflux_in%lsize = lsize
 
-    ! bulk formula quantities for nems_orig_data
-    if (trim(coupling_mode) == 'nems_orig_data' .and. ocn_surface_flux_scheme == -1) then
+    ! bulk formula quantities for ufs non-frac with med-aoflux
+    if (trim(coupling_mode) == 'ufs.nfrac.aoflux' .and. ocn_surface_flux_scheme == -1) then
        call fldbun_getfldptr(fldbun_a, 'Sa_u10m', aoflux_in%ubot, xgrid=xgrid, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        call fldbun_getfldptr(fldbun_a, 'Sa_v10m', aoflux_in%vbot, xgrid=xgrid, rc=rc)
@@ -1583,8 +1583,8 @@ end subroutine med_aofluxes_map_ogrid2xgrid_input
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     end if
 
-    ! extra fields for nems_frac_aoflux
-    if (trim(coupling_mode) == 'nems_frac_aoflux' .or. trim(coupling_mode) == 'nems_frac_aoflux_sbs') then
+    ! extra fields for ufs.frac.aoflux
+    if (trim(coupling_mode) == 'ufs.frac.aoflux') then
        call fldbun_getfldptr(fldbun_a, 'Sa_u10m', aoflux_in%usfc, xgrid=xgrid, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        call fldbun_getfldptr(fldbun_a, 'Sa_v10m', aoflux_in%vsfc, xgrid=xgrid, rc=rc)
@@ -1618,7 +1618,7 @@ end subroutine med_aofluxes_map_ogrid2xgrid_input
     if (compute_atm_dens .or. compute_atm_thbot) then
        call fldbun_getfldptr(fldbun_a, 'Sa_pbot', aoflux_in%pbot, xgrid=xgrid, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (trim(coupling_mode) == 'nems_frac_aoflux' .or. trim(coupling_mode) == 'nems_frac_aoflux_sbs') then
+       if (trim(coupling_mode) == 'ufs.frac.aoflux') then
           call fldbun_getfldptr(fldbun_a, 'Sa_pslv', aoflux_in%psfc, xgrid=xgrid, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
        end if
