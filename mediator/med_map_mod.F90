@@ -1049,6 +1049,7 @@ contains
                   trim(packed_data(mapindex)%mapnorm) /= 'none') then
 
                 ! Normalized mapping - assume that  each packed field has only one normalization type
+                call ESMF_LogWrite(trim(subname)//": FB get "//trim(packed_data(mapindex)%mapnorm), ESMF_LOGMSG_INFO)
                 call ESMF_FieldBundleGet(FBFracSrc, packed_data(mapindex)%mapnorm, field=field_fracsrc, rc=rc)
                 if (chkerr(rc,__LINE__,u_FILE_u)) return
                 call med_map_field_normalized(&
