@@ -933,6 +933,7 @@ contains
     use ESMF                  , only : ESMF_FieldRedist, ESMF_RouteHandle
     use ESMF                  , only : ESMF_FieldFill
     use ESMF                  , only : ESMF_KIND_R8
+    use ESMF                  , only : ESMF_Region_Flag, ESMF_REGION_SELECT, ESMF_REGION_TOTAL
     use med_internalstate_mod , only : nmappers, mapfcopy
     use med_internalstate_mod , only : mappatch_uv3d, mappatch, mapbilnr_uv3d, mapbilnr
     use med_internalstate_mod , only : packed_data_type
@@ -967,6 +968,7 @@ contains
     character(cl)                 :: field_name
     character(cl), allocatable    :: field_namelist_dat(:)
     logical                       :: skip_mapping
+    type(ESMF_Region_Flag)        :: zeroregion
     real(ESMF_KIND_R8), parameter :: fillValue = 9.99e20_ESMF_KIND_R8
     character(len=*), parameter   :: subname=' (med_map_mod:med_map_field_packed) '
     !-----------------------------------------------------------
@@ -1124,11 +1126,18 @@ contains
                      end do
                    end if
                 end do
+
+                ! Set zeroregion option to select since we are blending data
+                zeroregion = ESMF_REGION_SELECT
              else
                 ! Fill packed destination field/s with large value if data is unavailable
-                ! The data needs to be compated in the component side
+                ! The data needs to be merged in the component side
+                ! This is also required for mapfillv_bilnr interpolation type
                 call ESMF_FieldFill(packed_data(mapindex)%field_dst, dataFillScheme="const", const1=fillValue, rc=rc)
                 if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+                ! Set zeroregion option to total since we have no data to blend
+                zeroregion = ESMF_REGION_TOTAL
              end if
 
              ! -----------------------------------
@@ -1174,6 +1183,7 @@ contains
                         field_dst=packed_data(mapindex)%field_dst, &
                         routehandles=routehandles, &
                         maptype=mapindex, &
+                        zeroregiontype=zeroregion, &
                         rc=rc)
                    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
@@ -1360,7 +1370,7 @@ contains
   end subroutine med_map_field_normalized
 
   !================================================================================
-  subroutine med_map_field(field_src, field_dst, routehandles, maptype, fldname, rc)
+  subroutine med_map_field(field_src, field_dst, routehandles, maptype, fldname, zeroregiontype, rc)
 
     !---------------------------------------------------
     ! map the source field to the destination field
@@ -1370,7 +1380,7 @@ contains
     use ESMF                  , only : ESMF_LOGMSG_ERROR, ESMF_FAILURE, ESMF_MAXSTR
     use ESMF                  , only : ESMF_Field, ESMF_FieldRegrid
     use ESMF                  , only : ESMF_TERMORDER_SRCSEQ, ESMF_Region_Flag
-    use ESMF                  , only : ESMF_REGION_SELECT
+    use ESMF                  , only : ESMF_REGION_TOTAL, ESMF_REGION_SELECT
     use ESMF                  , only : ESMF_RouteHandle
     use ESMF                  , only : ESMF_FieldWriteVTK
     use med_internalstate_mod , only : mapnstod_consd, mapnstod_consf, mapnstod_consd, mapnstod
@@ -1379,16 +1389,18 @@ contains
     use med_methods_mod       , only : Field_diagnose => med_methods_Field_diagnose
 
     ! input/output variables
-    type(ESMF_Field)          , intent(in)    :: field_src
-    type(ESMF_Field)          , intent(inout) :: field_dst
-    type(ESMF_RouteHandle)    , intent(inout) :: routehandles(:)
-    integer                   , intent(in)    :: maptype
-    character(len=*), optional, intent(in)    :: fldname
-    integer, optional         , intent(out)   :: rc
+    type(ESMF_Field)                , intent(in)    :: field_src
+    type(ESMF_Field)                , intent(inout) :: field_dst
+    type(ESMF_RouteHandle)          , intent(inout) :: routehandles(:)
+    integer                         , intent(in)    :: maptype
+    character(len=*), optional      , intent(in)    :: fldname
+    type(ESMF_Region_Flag), optional, intent(in)    :: zeroregiontype
+    integer, optional               , intent(out)   :: rc
 
     ! local variables
     logical :: checkflag = .false.
     character(len=CS) :: lfldname
+    type(ESMF_Region_Flag) :: zeroregion
     character(len=*), parameter :: subname='(med_map_mod:med_map_field) '
     !---------------------------------------------------
 
@@ -1400,9 +1412,12 @@ contains
     lfldname = 'unknown'
     if (present(fldname)) lfldname = trim(fldname)
 
+    zeroregion = ESMF_REGION_TOTAL
+    if (present(zeroregiontype)) zeroregion = zeroregiontype
+
     if (maptype == mapnstod_consd) then
        call ESMF_FieldRegrid(field_src, field_dst, routehandle=RouteHandles(mapnstod), &
-            termorderflag=ESMF_TERMORDER_SRCSEQ, checkflag=checkflag, zeroregion=ESMF_REGION_SELECT, rc=rc)
+            termorderflag=ESMF_TERMORDER_SRCSEQ, checkflag=checkflag, zeroregion=zeroregion, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        if (dbug_flag > 1) then
           call Field_diagnose(field_dst, lfldname, " --> after nstod: ", rc=rc)
@@ -1417,7 +1432,7 @@ contains
        end if
     else if (maptype == mapnstod_consf) then
        call ESMF_FieldRegrid(field_src, field_dst, routehandle=RouteHandles(mapnstod), &
-            termorderflag=ESMF_TERMORDER_SRCSEQ, checkflag=checkflag, zeroregion=ESMF_REGION_SELECT, rc=rc)
+            termorderflag=ESMF_TERMORDER_SRCSEQ, checkflag=checkflag, zeroregion=zeroregion, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        if (dbug_flag > 1) then
           call Field_diagnose(field_dst, lfldname, " --> after nstod: ", rc=rc)
@@ -1440,7 +1455,7 @@ contains
        end if
     else
        call ESMF_FieldRegrid(field_src, field_dst, routehandle=RouteHandles(maptype), &
-            termorderflag=ESMF_TERMORDER_SRCSEQ, checkflag=checkflag, zeroregion=ESMF_REGION_SELECT, rc=rc)
+            termorderflag=ESMF_TERMORDER_SRCSEQ, checkflag=checkflag, zeroregion=ESMF_REGION_TOTAL, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     end if
 
