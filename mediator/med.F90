@@ -950,7 +950,7 @@ contains
        endif
     endif
 
-    ! Should terget component use all data for first time step?
+    ! Should target component use all data for first time step?
     do ncomp = 1,ncomps
        if (ncomp /= compmed) then
           call NUOPC_CompAttributeGet(gcomp, name=trim(compname(ncomp))//"_use_data_first_import", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)

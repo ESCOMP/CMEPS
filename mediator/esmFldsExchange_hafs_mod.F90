@@ -244,13 +244,13 @@ contains
     if (hafs_attr%atm_present .and. hafs_attr%ocn_present) then
        if (trim(coupling_mode) == 'hafs') then
           allocate(F_flds(7,2))
-          F_flds(1,:) = (/'Faxa_taux ','Faxa_taux '/) ! mean_zonal_moment_flx_atm
-          F_flds(2,:) = (/'Faxa_tauy ','Faxa_tauy '/) ! mean_merid_moment_flx_atm
-          F_flds(3,:) = (/'Faxa_rain ','Faxa_rain '/) ! mean_prec_rate
-          F_flds(4,:) = (/'Faxa_swnet','Faxa_swnet'/) ! mean_net_sw_flx
-          F_flds(5,:) = (/'Faxa_lwnet','Faxa_lwnet'/) ! mean_net_lw_flx
-          F_flds(6,:) = (/'Faxa_sen  ','Faxa_sen  '/) ! mean_sensi_heat_flx
-          F_flds(7,:) = (/'Faxa_lat  ','Faxa_lat  '/) ! mean_laten_heat_flx
+          F_flds(1,:) = (/'Faxa_taux ','Faxa_taux '/) ! inst_zonal_moment_flx_atm
+          F_flds(2,:) = (/'Faxa_tauy ','Faxa_tauy '/) ! inst_merid_moment_flx_atm
+          F_flds(3,:) = (/'Faxa_rain ','Faxa_rain '/) ! inst_prec_rate
+          F_flds(4,:) = (/'Faxa_swnet','Faxa_swnet'/) ! inst_net_sw_flx
+          F_flds(5,:) = (/'Faxa_lwnet','Faxa_lwnet'/) ! inst_net_lw_flx
+          F_flds(6,:) = (/'Faxa_sen  ','Faxa_sen  '/) ! inst_sensi_heat_flx
+          F_flds(7,:) = (/'Faxa_lat  ','Faxa_lat  '/) ! inst_laten_heat_flx
           do n = 1,size(F_flds,1)
              fldname1 = trim(F_flds(n,1))
              fldname2 = trim(F_flds(n,2))
@@ -260,11 +260,11 @@ contains
           deallocate(F_flds)
        else
           allocate(F_flds(10,2))
-          F_flds(1 ,:) = (/'Faxa_taux     ','Foxx_taux     '/) ! mean_zonal_moment_flx_atm
-          F_flds(2 ,:) = (/'Faxa_tauy     ','Foxx_tauy     '/) ! mean_merid_moment_flx_atm
-          F_flds(3 ,:) = (/'Faxa_rain     ','Faxa_rain     '/) ! mean_prec_rate
-          F_flds(4 ,:) = (/'Faxa_lwnet    ','Foxx_lwnet    '/) ! mean_net_lw_flx
-          F_flds(5 ,:) = (/'Faxa_sen      ','Foxx_sen      '/) ! mean_sensi_heat_flx
+          F_flds(1 ,:) = (/'Faxa_taux     ','Foxx_taux     '/) ! inst_zonal_moment_flx_atm
+          F_flds(2 ,:) = (/'Faxa_tauy     ','Foxx_tauy     '/) ! inst_merid_moment_flx_atm
+          F_flds(3 ,:) = (/'Faxa_rain     ','Faxa_rain     '/) ! inst_prec_rate
+          F_flds(4 ,:) = (/'Faxa_lwnet    ','Foxx_lwnet    '/) ! inst_net_lw_flx
+          F_flds(5 ,:) = (/'Faxa_sen      ','Foxx_sen      '/) ! inst_sensi_heat_flx
           F_flds(6 ,:) = (/'Faxa_evap     ','Foxx_evap     '/) ! inst_evap_rate
           F_flds(7 ,:) = (/'Faxa_swndr    ','Foxx_swnet_idr'/) ! inst_down_sw_ir_dir_flx
           F_flds(8 ,:) = (/'Faxa_swndf    ','Foxx_swnet_idf'/) ! inst_down_sw_ir_dif_flx
@@ -521,13 +521,13 @@ contains
     if (hafs_attr%atm_present .and. hafs_attr%ocn_present) then
        if (trim(coupling_mode) == 'hafs') then
           allocate(F_flds(7,2))
-          F_flds(1,:) = (/'Faxa_taux ','Faxa_taux '/) ! mean_zonal_moment_flx_atm
-          F_flds(2,:) = (/'Faxa_tauy ','Faxa_tauy '/) ! mean_merid_moment_flx_atm
-          F_flds(3,:) = (/'Faxa_rain ','Faxa_rain '/) ! mean_prec_rate
-          F_flds(4,:) = (/'Faxa_swnet','Faxa_swnet'/) ! mean_net_sw_flx
-          F_flds(5,:) = (/'Faxa_lwnet','Faxa_lwnet'/) ! mean_net_lw_flx
-          F_flds(6,:) = (/'Faxa_sen  ','Faxa_sen  '/) ! mean_sensi_heat_flx
-          F_flds(7,:) = (/'Faxa_lat  ','Faxa_lat  '/) ! mean_laten_heat_flx
+          F_flds(1,:) = (/'Faxa_taux ','Faxa_taux '/) ! inst_zonal_moment_flx_atm
+          F_flds(2,:) = (/'Faxa_tauy ','Faxa_tauy '/) ! inst_merid_moment_flx_atm
+          F_flds(3,:) = (/'Faxa_rain ','Faxa_rain '/) ! inst_prec_rate
+          F_flds(4,:) = (/'Faxa_swnet','Faxa_swnet'/) ! inst_net_sw_flx
+          F_flds(5,:) = (/'Faxa_lwnet','Faxa_lwnet'/) ! inst_net_lw_flx
+          F_flds(6,:) = (/'Faxa_sen  ','Faxa_sen  '/) ! inst_sensi_heat_flx
+          F_flds(7,:) = (/'Faxa_lat  ','Faxa_lat  '/) ! inst_laten_heat_flx
           do n = 1,size(F_flds,1)
              fldname1 = trim(F_flds(n,1))
              fldname2 = trim(F_flds(n,2))
@@ -543,11 +543,11 @@ contains
           deallocate(F_flds)
        else
           allocate(F_flds(10,2))
-          F_flds(1 ,:) = (/'Faxa_taux     ','Foxx_taux     '/) ! mean_zonal_moment_flx_atm
-          F_flds(2 ,:) = (/'Faxa_tauy     ','Foxx_tauy     '/) ! mean_merid_moment_flx_atm
-          F_flds(3 ,:) = (/'Faxa_rain     ','Faxa_rain     '/) ! mean_prec_rate
-          F_flds(4 ,:) = (/'Faxa_lwnet    ','Foxx_lwnet    '/) ! mean_net_lw_flx
-          F_flds(5 ,:) = (/'Faxa_sen      ','Foxx_sen      '/) ! mean_sensi_heat_flx
+          F_flds(1 ,:) = (/'Faxa_taux     ','Foxx_taux     '/) ! inst_zonal_moment_flx_atm
+          F_flds(2 ,:) = (/'Faxa_tauy     ','Foxx_tauy     '/) ! inst_merid_moment_flx_atm
+          F_flds(3 ,:) = (/'Faxa_rain     ','Faxa_rain     '/) ! inst_prec_rate
+          F_flds(4 ,:) = (/'Faxa_lwnet    ','Foxx_lwnet    '/) ! inst_net_lw_flx
+          F_flds(5 ,:) = (/'Faxa_sen      ','Foxx_sen      '/) ! inst_sensi_heat_flx
           F_flds(6 ,:) = (/'Faxa_evap     ','Foxx_evap     '/) ! inst_evap_rate
           F_flds(7 ,:) = (/'Faxa_swndr    ','Foxx_swnet_idr'/) ! inst_down_sw_ir_dir_flx
           F_flds(8 ,:) = (/'Faxa_swndf    ','Foxx_swnet_idf'/) ! inst_down_sw_ir_dif_flx
