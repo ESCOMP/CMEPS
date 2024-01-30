@@ -414,7 +414,7 @@ contains
           dstMaskValue = ispval_mask
        end if
     end if
-    if (trim(coupling_mode(1:4)) == 'hafs') then
+    if (coupling_mode(1:4) == 'hafs') then
        if (n1 == compatm .and. n2 == compwav) then
           srcMaskValue = ispval_mask
        end if
