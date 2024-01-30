@@ -84,9 +84,10 @@ jobs:
           git checkout main 
           cd ../
           git clone https://github.com/ESMCI/cime
+          cd cime
           if [[ ! -e "${PWD}/.gitmodules.bak" ]]
              then
-              echo "Convering git@github.com to https://github.com urls in ${PWD}/.gitmodules"
+              echo "Converting git@github.com to https://github.com urls in ${PWD}/.gitmodules"
 
               sed -i".bak" "s/git@github.com:/https:\/\/github.com\//g" "${PWD}/.gitmodules"
           fi
