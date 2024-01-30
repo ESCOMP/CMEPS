@@ -79,11 +79,11 @@ jobs:
       - name: checkout externals
         run: |
           pushd cesm
-          ./manage_externals/checkout_externals ccs_config cdeps cime share mct cpl7 parallelio
+          ./manage_externals/checkout_externals ccs_config cdeps share mct cpl7 parallelio
           cd ccs_config
-          git checkout main
-          cd ../cime
-          git checkout master
+          git checkout main 
+          cd ../
+          git clone https://github.com/ESMCI/cime
           if [[ ! -e "${PWD}/.gitmodules.bak" ]]
              then
               echo "Convering git@github.com to https://github.com urls in ${PWD}/.gitmodules"
