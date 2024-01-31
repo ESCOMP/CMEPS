@@ -1517,6 +1517,7 @@ contains
 
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
     rc = ESMF_SUCCESS
+
     call shr_log_setLogunit(logunit)
     call ESMF_GridCompGet(driver, vm=vm, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
