@@ -170,7 +170,7 @@ contains
                    if (size(sdat(n1,n2)%stream) == 0 .and. streamid /= 0) then
                       ! Debug print
                       if (maintask) then
-                         write(logunit,'(a,i)') trim(subname)//": initialize stream ", streamid
+                         write(logunit,'(a,i3)') trim(subname)//": initialize stream ", streamid
                       end if
 
                       ! Allocate temporary variable to store file names in the stream
@@ -258,7 +258,7 @@ contains
           if (size(sdat(n1,n2)%stream) > 0) then
              ! Debug print
              if (maintask) then
-                 write(logunit,'(a,i)') trim(subname)//": read stream "//trim(compname(n1))//" -> "//trim(compname(n2))  
+                 write(logunit,'(a)') trim(subname)//": read stream "//trim(compname(n1))//" -> "//trim(compname(n2))  
              end if
 
              ! Read data
