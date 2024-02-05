@@ -534,6 +534,15 @@
    <desc>List of job ids for most recent case.submit</desc>
  </entry>
 
+ <entry id="JOB_PRIORITY">
+   <type>char</type>
+   <default_value>regular</default_value>
+   <valid_values>regular,premium,economy</valid_values>
+   <group>run_begin_stop_restart</group>
+   <file>env_run.xml</file>
+   <desc>job priority for systems supporting this option</desc>
+ </entry>
+
   <!-- ===================================================================== -->
   <!-- definitions archive -->
   <!-- ===================================================================== -->
@@ -812,15 +821,6 @@
     different MPI ranks to different GPUs within the same compute node</desc>
   </entry>
 
-  <entry id="SMP_PRESENT">
-    <type>logical</type>
-    <valid_values>TRUE,FALSE</valid_values>
-    <default_value>FALSE</default_value>
-    <group>build_def</group>
-    <file>env_build.xml</file>
-    <desc>TRUE implies that at least one of the components is built threaded (DO NOT EDIT)</desc>
-  </entry>
-
   <entry id="ESMF_AWARE_THREADING">
     <type>logical</type>
     <valid_values>TRUE,FALSE</valid_values>
@@ -1024,23 +1024,6 @@
     <desc>Enables the papi hardware counters in gptl
     The papi library must be included in the build step for
     this to work.</desc>
-  </entry>
-
-  <entry id="ESMF_LOGFILE_KIND">
-    <type>char</type>
-    <valid_values>ESMF_LOGKIND_SINGLE,ESMF_LOGKIND_MULTI,ESMF_LOGKIND_NONE</valid_values>
-    <default_value>ESMF_LOGKIND_NONE</default_value>
-    <group>run_flags</group>
-    <file>env_run.xml</file>
-    <desc>
-      Determines what ESMF log files (if any) are generated when
-          USE_ESMF_LIB is TRUE.
-      ESMF_LOGKIND_SINGLE: Use a single log file, combining messages from
-          all of the PETs. Not supported on some platforms.
-      ESMF_LOGKIND_MULTI: Use multiple log files -- one per PET.
-      ESMF_LOGKIND_NONE: Do not issue messages to a log file.
-      By default, no ESMF log files are generated.
-    </desc>
   </entry>
 
   <entry id="ESMF_VERBOSITY_LEVEL">
