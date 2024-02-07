@@ -23,6 +23,7 @@ module med_phases_prep_rof_mod
   use med_methods_mod       , only : fldbun_reset     => med_methods_FB_reset
   use med_methods_mod       , only : fldbun_average   => med_methods_FB_average
   use med_methods_mod       , only : field_getdata1d  => med_methods_Field_getdata1d
+  use med_methods_mod       , only : field_getdata2d  => med_methods_Field_getdata2d
   use med_methods_mod       , only : FB_check_for_nans => med_methods_FB_check_for_nans
   use perf_mod              , only : t_startf, t_stopf
 
@@ -92,6 +93,8 @@ contains
     ! local variables
     type(InternalState) :: is_local
     integer             :: n, nflds
+    integer             :: lrank
+    integer             :: ungriddedUBound(1)
     type(ESMF_Mesh)     :: mesh_l
     type(ESMF_Mesh)     :: mesh_r
     type(ESMF_Field)    :: lfield
@@ -141,14 +144,43 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     do n = 1,size(lnd2rof_flds)
-       lfield = ESMF_FieldCreate(mesh_l, ESMF_TYPEKIND_R8, name=lnd2rof_flds(n), meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+       ! Obtain import field on land grid and determine its rank
+       call ESMF_FieldBundleGet(is_local%wrap%FBImp(complnd,complnd), fieldName=trim(lnd2rof_flds(n)), field=lfield, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_FieldGet(lfield, rank=lrank, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (lrank == 2) then
+          call ESMF_FieldGet(lfield, ungriddedUBound=ungriddedUBound, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+       end if
+
+       ! Create accumulation field on lnd grid
+       if (lrank == 2) then
+          lfield = ESMF_FieldCreate(mesh_l, ESMF_TYPEKIND_R8, name=lnd2rof_flds(n), meshloc=ESMF_MESHLOC_ELEMENT, &
+               ungriddedLbound=(/1/), ungriddedUbound=ungriddedUBound, gridToFieldMap=(/2/), rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+       else
+          lfield = ESMF_FieldCreate(mesh_l, ESMF_TYPEKIND_R8, name=lnd2rof_flds(n), meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+       end if
+
+       ! Add field to accumulation field bundle on lnd grid
        call ESMF_FieldBundleAdd(FBlndAccum2rof_l, (/lfield/), rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        call ESMF_LogWrite(trim(subname)//' adding field '//trim(lnd2rof_flds(n))//' to FBLndAccum2rof_l', &
             ESMF_LOGMSG_INFO)
-       lfield = ESMF_FieldCreate(mesh_r, ESMF_TYPEKIND_R8, name=lnd2rof_flds(n), meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+       ! Create accumulation field on rof grid - first determine rank and ubound if rank is 2
+       if (lrank == 2) then
+          lfield = ESMF_FieldCreate(mesh_r, ESMF_TYPEKIND_R8, name=lnd2rof_flds(n), meshloc=ESMF_MESHLOC_ELEMENT, &
+               ungriddedLbound=(/1/), ungriddedUbound=ungriddedUBound, gridToFieldMap=(/2/), rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+       else
+          lfield = ESMF_FieldCreate(mesh_r, ESMF_TYPEKIND_R8, name=lnd2rof_flds(n), meshloc=ESMF_MESHLOC_ELEMENT)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+       end if
+
+       ! Add field to accumulation field bundle on rof grid
        call ESMF_FieldBundleAdd(FBlndAccum2rof_r, (/lfield/), rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        call ESMF_LogWrite(trim(subname)//' adding field '//trim(lnd2rof_flds(n))//' to FBLndAccum2rof_r', &
@@ -199,9 +231,12 @@ contains
     ! local variables
     type(InternalState)       :: is_local
     integer                   :: n
+    integer                   :: lrank
     logical                   :: exists
     real(r8), pointer         :: dataptr1d(:)
     real(r8), pointer         :: dataptr1d_accum(:)
+    real(r8), pointer         :: dataptr2d(:,:)
+    real(r8), pointer         :: dataptr2d_accum(:,:)
     type(ESMF_Field)          :: lfield
     type(ESMF_Field)          :: lfield_accum
     character(len=*), parameter :: subname='(med_phases_prep_rof_mod: med_phases_prep_rof_accum)'
@@ -231,11 +266,22 @@ contains
           call ESMF_FieldBundleGet(is_local%wrap%FBImp(complnd,complnd), fieldName=trim(lnd2rof_flds(n)), &
                field=lfield, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call field_getdata1d(lfield, dataptr1d, rc=rc)
+          call ESMF_FieldGet(lfield, rank=lrank, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call field_getdata1d(lfield_accum, dataptr1d_accum, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          dataptr1d_accum(:) = dataptr1d_accum(:) + dataptr1d(:)
+          ! determine rank of field
+          if (lrank == 2) then
+             call field_getdata2d(lfield, dataptr2d, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+             call field_getdata2d(lfield_accum, dataptr2d_accum, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+             dataptr2d_accum(:,:) = dataptr2d_accum(:,:) + dataptr2d(:,:)
+          else
+             call field_getdata1d(lfield, dataptr1d, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+             call field_getdata1d(lfield_accum, dataptr1d_accum, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+             dataptr1d_accum(:) = dataptr1d_accum(:) + dataptr1d(:)
+          end if
        end if
     end do
 
@@ -261,6 +307,7 @@ contains
     ! Prepare the ROF export Fields from the mediator
     !------------------------------------
 
+
     use NUOPC             , only : NUOPC_IsConnected
     use ESMF              , only : ESMF_GridComp, ESMF_GridCompGet
     use ESMF              , only : ESMF_FieldBundleGet, ESMF_FieldGet
@@ -277,10 +324,12 @@ contains
     ! local variables
     type(InternalState)       :: is_local
     integer                   :: n
+    integer                   :: lrank
     integer                   :: count
     logical                   :: exists
     real(r8), pointer         :: dataptr(:)
     real(r8), pointer         :: dataptr1d(:)
+    real(r8), pointer         :: dataptr2d(:,:)
     type(ESMF_Field)          :: lfield
     type(med_fldList_type), pointer :: fldList
     character(len=*),parameter  :: subname='(med_phases_prep_rof_mod: med_phases_prep_rof)'
@@ -319,12 +368,25 @@ contains
        if (exists) then
           call ESMF_FieldBundleGet(FBlndAccum2rof_l, fieldName=trim(lnd2rof_flds(n)), field=lfield, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call field_getdata1d(lfield, dataptr1d, rc=rc)
+          call ESMF_FieldGet(lfield, rank=lrank, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
-          if (count == 0) then
-             dataptr1d(:) = czero
+          ! determine rank of field
+          if (lrank == 2) then
+             call field_getdata2d(lfield, dataptr2d, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+             if (count == 0) then
+                dataptr2d(:,:) = czero
+             else
+                dataptr2d(:,:) = dataptr2d(:,:) / real(count, r8)
+             end if
           else
-             dataptr1d(:) = dataptr1d(:) / real(count, r8)
+             call field_getdata1d(lfield, dataptr1d, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+             if (count == 0) then
+                dataptr1d(:) = czero
+             else
+                dataptr1d(:) = dataptr1d(:) / real(count, r8)
+             end if
           end if
        end if
     end do
@@ -402,9 +464,18 @@ contains
        if (exists) then
           call ESMF_FieldBundleGet(FBlndAccum2rof_l, fieldName=trim(lnd2rof_flds(n)), field=lfield, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call field_getdata1d(lfield, dataptr1d, rc=rc)
+          call ESMF_FieldGet(lfield, rank=lrank, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
-          dataptr1d(:) = czero
+          ! determine rank of field
+          if (lrank == 2) then
+             call field_getdata2d(lfield, dataptr2d, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+             dataptr2d(:,:) = czero
+          else
+             call field_getdata1d(lfield, dataptr1d, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+             dataptr1d(:) = czero
+          end if
        end if
     end do
 

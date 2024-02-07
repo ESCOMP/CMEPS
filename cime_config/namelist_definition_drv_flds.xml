@@ -170,4 +170,17 @@
     </desc>
   </entry>
 
+  <!-- ========================================================================================  -->
+  <!-- Liquid tracers from land sent to river model                                              -->
+  <!-- ========================================================================================  -->
+
+  <entry id="lnd2rof_tracers">
+	  <type>char</type>
+	  <category>lnd2rof_tracers</category>
+	  <group>lnd2rof_tracers_inparm</group>
+    <desc>
+      Liquid lnd2rof tracers (other than water)
+    </desc>
+  </entry>
+
 </entry_id>
