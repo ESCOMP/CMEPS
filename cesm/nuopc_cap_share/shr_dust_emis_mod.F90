@@ -1,0 +1,204 @@
+module shr_dust_emis_mod
+
+  !========================================================================
+  ! Module for handling dust emissions.
+  ! This module is shared by land and atmosphere models for the computation of
+  ! dust emissions.
+  !========================================================================
+
+  use ESMF           , only : ESMF_VMGetCurrent, ESMF_VM, ESMF_VMGet, ESMF_LOGMSG_INFO
+  use ESMF           , only : ESMF_LogFoundError, ESMF_LOGERR_PASSTHRU, ESMF_SUCCESS
+  use ESMF           , only : ESMF_LogWrite, ESMF_VMBroadCast
+  use shr_sys_mod    , only : shr_sys_abort
+  use shr_kind_mod   , only : CS => SHR_KIND_CS
+  use shr_nl_mod     , only : shr_nl_find_group_name
+  use shr_log_mod    , only : shr_log_getLogUnit, errMsg => shr_log_errMsg
+  use nuopc_shr_methods, only : chkerr
+
+  implicit none
+  private
+
+  ! public member functions
+  public :: shr_dust_emis_readnl           ! Read namelist
+  public :: shr_dust_emis_init             ! Initialization of dust emissions data (needed?)
+  public :: is_dust_emis_zender            ! If Zender_2003 dust emission method is being used
+  public :: is_dust_emis_leung             ! If Leungr_2023 dust emission method is being used
+  public :: is_zender_soil_erod_from_lnd   ! If Zender_2003 is being used and soil eroditability is in land
+  public :: is_zender_soil_erod_from_atm   ! If Zender_2003 is being used and soil eroditability is in atmosphere
+
+  ! public data members:
+  private :: check_if_initialized          ! Check if dust emission has been initialized
+
+  ! PRIVATE DATA:
+  character(len=CS) :: dust_emis_method = 'Zender_2003'  ! Dust emisison method to use: Zender_2003 or Leung_2023
+  character(len=CS) :: zender_soil_erod_source = 'none'  ! if calculed in lnd or atm (only when Zender_2003 is used)
+  logical           :: dust_emis_initialized=.false.     ! If dust emissions have been initiatlized yet or not
+
+  character(len=*), parameter :: u_FILE_u = &
+       __FILE__
+
+!===============================================================================
+CONTAINS
+!===============================================================================
+
+  subroutine shr_dust_emis_readnl(NLFilename)
+
+    !========================================================================
+    ! reads dust_emis_inparm namelist to determine how dust emissions will
+    ! be handled between the land and atmosphere models
+    !========================================================================
+
+    character(len=*), intent(in)  :: NLFilename ! Namelist filename
+
+    !----- local -----
+    integer       :: i                ! Indices
+    integer       :: unitn            ! namelist unit number
+    integer       :: ierr             ! error code
+    logical       :: exists           ! if file exists or not
+    type(ESMF_VM) :: vm
+    integer       :: localPet
+    integer       :: mpicom
+    integer       :: s_logunit
+    integer       :: rc
+    character(*),parameter :: F00   = "('(shr_dust_emis_read) ',8a)"
+    character(*),parameter :: subName = '(shr_dust_emis_read) '
+    !-----------------------------------------------------------------------------
+
+    namelist /dust_emis_inparm/ dust_emis_method, zender_soil_erod_source
+
+    !-----------------------------------------------------------------------------
+    ! Read namelist, check if namelist file exists first
+    !-----------------------------------------------------------------------------
+    call ESMF_LogWrite(subname//' start', ESMF_LOGMSG_INFO)
+
+    rc = ESMF_SUCCESS
+
+    !--- Open and read namelist ---
+    if ( len_trim(NLFilename) == 0  )then
+       call shr_sys_abort( subName//'ERROR: nlfilename not set' )
+    end if
+
+    call ESMF_VMGetCurrent(vm, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=u_FILE_u)) return
+
+    call ESMF_VMGet(vm, localPet=localPet, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=u_FILE_u)) return
+
+    call shr_log_getLogUnit(s_logunit)
+    if (localPet==0) then
+       inquire( file=trim(NLFileName), exist=exists)
+       if ( exists ) then
+          open(newunit=unitn, file=trim(NLFilename), status='old' )
+          write(s_logunit,F00) 'Read in dust_emis_inparm namelist from: ', trim(NLFilename)
+          call shr_nl_find_group_name(unitn, 'dust_emis_inparm', ierr)
+          if (ierr == 0) then
+             ! Note that ierr /= 0, no namelist is present.
+             read(unitn, dust_emis_inparm, iostat=ierr)
+             if (ierr > 0) then
+                call shr_sys_abort( subName//'ERROR:: problem on read of dust_emis_inparm ' &
+                                    // 'namelist in shr_dust_emis_readnl')
+             end if
+          endif
+          close( unitn )
+       end if
+    end if
+    call ESMF_LogWrite(subname//' bcast dust_emis_method', ESMF_LOGMSG_INFO)
+    call ESMF_VMBroadcast(vm,  dust_emis_method, CS, 0, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=u_FILE_u)) return
+    call ESMF_LogWrite(subname//' bcast zender_soil_erod_source', ESMF_LOGMSG_INFO)
+    call ESMF_VMBroadcast(vm,  zender_soil_erod_source, CS, 0, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=u_FILE_u)) return
+
+    ! Some error checking
+    if (trim(dust_emis_method) == 'Leung_2023') then
+       if ( trim(zender_soil_erod_source) /= 'none' )then
+          call shr_sys_abort(subName//"ERROR: zender_soil_erod_source should NOT be set, when dust_emis_method=Leung_2023 " &
+                             //errMsg(u_FILE_u, __LINE__))
+       end if
+    else if (trim(dust_emis_method) == 'Zender_2003') then
+       if ( (trim(zender_soil_erod_source) /= 'lnd') .and. (trim(zender_soil_erod_source) /= 'atm') )then
+          write(s_logunit,*) 'zender_soil_erod_source is NOT valid = ', trim(zender_soil_erod_source)
+          call shr_sys_abort(subName//"ERROR: zender_soil_erod_source can only be lnd or atm" &
+                             //errMsg(u_FILE_u, __LINE__))
+       end if
+    else
+       write(s_logunit,*) 'dust_emis_method not recognized = ', trim(dust_emis_method)
+       call shr_sys_abort(subName//"ERROR: dust_emis_method namelist item is not valid " &
+                          //errMsg(u_FILE_u, __LINE__))
+    end if
+
+    call ESMF_LogWrite(subname//' done', ESMF_LOGMSG_INFO)
+    dust_emis_initialized = .true.
+
+  end subroutine shr_dust_emis_readnl
+
+!====================================================================================
+
+  logical function is_dust_emis_zender()
+     ! is_dust_emis_zender – Logical function, true if the Zender 2003 scheme is being used
+     call check_if_initiatlized()
+     if (trim(dust_emis_method) == 'Zender_2003') then
+        is_dust_emis_zender = .true.
+     else
+        is_dust_emis_zender = .false.
+     end if
+  end function is_dust_emis_zender
+
+!===============================================================================
+
+  logical function is_dust_emis_leung()
+     ! is_dust_emis_leung – Logical function, true if the Leung 2023 scheme is being used
+     call check_if_initiatlized()
+     if (trim(dust_emis_method) == 'Leung_2023') then
+        is_dust_emis_leung = .true.
+     else
+        is_dust_emis_leung = .false.
+     end if
+  end function is_dust_emis_leung
+
+!===============================================================================
+
+  logical function is_zender_soil_erod_from_land()
+     ! is_zender_soil_erod_from_land – Logical function, true if the Zender method is being used and soil erodibility is in CTSM
+     call check_if_initiatlized()
+     if is_dust_emis_zender() )then
+        if (trim(zender_soil_erod_source) == 'lnd') then
+           is_zender_soil_erod_from_land = .true.
+        else
+           is_zender_soil_erod_from_land = .false.
+        end if
+    else
+        is_zender_soil_erod_from_land = .false.
+    end if
+  end function is_zender_soil_erod_from_land
+
+!===============================================================================
+
+  logical function is_zender_soil_erod_from_atm()
+     !is_zender_soil_erod_from_land – Logical function, true if the Zender method is being used and soil erodibility is in CAM
+     call check_if_initiatlized()
+     if is_dust_emis_zender() )then
+        if (trim(zender_soil_erod_source) == 'atm') then
+           is_zender_soil_erod_from_land = .true.
+        else
+           is_zender_soil_erod_from_land = .false.
+        end if
+    else
+        is_zender_soil_erod_from_land = .false.
+    end if
+  end function is_zender_soil_erod_from_atm
+
+!===============================================================================
+
+  subroutine check_if_initiatlized()
+     if ( dust_emis_initialized )then
+        return
+     else
+        call shr_sys_abort( 'ERROR: dust emission namelist has NOT been read in yet,' &
+                            ' shr_dust_emis_mod is NOT initialized '//errMsg(u_FILE_u, __LINE__ )
+     end if
+  end subroutine check_if_initiatlized
+
+!===============================================================================
+
+end module shr_dust_emis_mod
