@@ -20,11 +20,11 @@ jobs:
       CPPFLAGS: "-I/usr/include -I/usr/local/include"
 
       # Versions of all dependencies can be updated here
-      ESMF_VERSION: v8.5.0
+      ESMF_VERSION: v8.6.0
       PNETCDF_VERSION: checkpoint.1.12.3
-      NETCDF_FORTRAN_VERSION: v4.6.0
+      NETCDF_FORTRAN_VERSION: v4.6.1
       PIO_VERSION: pio2_6_2
-      CDEPS_VERSION: cdeps1.0.21
+      CDEPS_VERSION: cdeps1.0.26
     steps:
       - uses: actions/checkout@v3
         # Build the ESMF library, if the cache contains a previous build
@@ -88,7 +88,7 @@ jobs:
           ref: ${{ env.CDEPS_VERSION }}
       - name: Build CDEPS
         if: steps.cache-cdeps.outputs.cache-hit != 'true'
-        uses: ESCOMP/CDEPS/.github/actions/buildcdeps@cdeps1.0.21
+        uses: ESCOMP/CDEPS/.github/actions/buildcdeps@cdeps1.0.26
         with:
           esmfmkfile: $ESMFMKFILE
           pio_path: ${GITHUB_WORKSPACE}/pio

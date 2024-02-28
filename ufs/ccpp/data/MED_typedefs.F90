@@ -73,6 +73,7 @@ module MED_typedefs
     real (kind=kind_phys),pointer :: lake_q2m (:)    => null() !< 2 meter humidity from CLM Lake model
     real(kind=kind_phys), pointer :: wind(:)         => null() !< wind speed at lowest model level (m/s)
     logical,              pointer :: flag_iter(:)    => null() !< flag for iteration
+    logical,              pointer :: flag_lakefreeze(:) => null() !< flag for lake freeze
     real(kind=kind_phys), pointer :: qss_water(:)    => null() !< surface air saturation specific humidity over water (kg/kg)
     real(kind=kind_phys), pointer :: cmm_water(:)    => null() !< momentum exchange coefficient over water (m/s)
     real(kind=kind_phys), pointer :: chh_water(:)    => null() !< thermal exchange coefficient over water (kg/m2s)
@@ -368,6 +369,8 @@ module MED_typedefs
     interstitial%wind = huge
     allocate(interstitial%flag_iter(im))
     interstitial%flag_iter = .true.
+    allocate(interstitial%flag_lakefreeze(im))
+    interstitial%flag_lakefreeze = .false.
     allocate(interstitial%qss_water(im))
     interstitial%qss_water = huge
     allocate(interstitial%cmm_ice(im))
@@ -571,6 +574,7 @@ module MED_typedefs
     interstitial%flag_cice = .false.
     interstitial%flag_guess = .false.
     interstitial%flag_iter = .true.
+    interstitial%flag_lakefreeze = .false.
     interstitial%fm10_ice = huge
     interstitial%fm10_land = huge
     interstitial%fm10_water = huge

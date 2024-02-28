@@ -145,7 +145,7 @@ contains
     integer                :: pio_asyncio_stride
     integer                :: pio_asyncio_rootpe
     integer                :: Global_Comm
-    character(len=CL)          :: start_type     ! Type of startup
+    character(len=CL)      :: start_type     ! Type of startup
     character(len=7)       :: drvrinst
     character(len=5)       :: inst_suffix
     character(len=CX)      :: msgstr
@@ -377,10 +377,8 @@ contains
        endif
        call shr_log_setLogUnit (logunit)
        ! Create a clock for each driver instance
-
        call esm_time_clockInit(ensemble_driver, driver, logunit, localpet==petList(1), rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-
     enddo
     inst = localPet/(ntasks_per_member+pio_asyncio_ntasks) + 1
 

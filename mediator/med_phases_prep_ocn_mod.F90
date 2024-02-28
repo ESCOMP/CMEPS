@@ -96,12 +96,40 @@ contains
     rc = ESMF_SUCCESS
     call memcheck(subname, 5, maintask)
 
-    ! Get the internal state
+    !---------------------------------------
+    ! --- Get the internal state
+    !---------------------------------------
     nullify(is_local%wrap)
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     fldList => med_fldList_GetfldListTo(compocn)
-    ! auto merges to ocn
+
+    !---------------------------------------
+    ! --- map atm to ocn, only if data stream is available
+    !---------------------------------------
+    if (is_local%wrap%med_coupling_active(compatm,compocn) .and. &
+        is_local%wrap%med_data_active(compatm,compocn) .and. &
+        is_local%wrap%med_data_force_first(compocn)) then
+       call t_startf('MED:'//trim(subname)//' map_atm2ocn')
+       call med_map_field_packed( &
+            FBSrc=is_local%wrap%FBImp(compatm,compatm), &
+            FBDst=is_local%wrap%FBImp(compatm,compocn), &
+            FBFracSrc=is_local%wrap%FBFrac(compocn), &
+            FBDat=is_local%wrap%FBData(compocn), &
+            use_data=is_local%wrap%med_data_force_first(compocn), &
+            field_normOne=is_local%wrap%field_normOne(compatm,compocn,:), &
+            packed_data=is_local%wrap%packed_data(compatm,compocn,:), &
+            routehandles=is_local%wrap%RH(compatm,compocn,:), rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call t_stopf('MED:'//trim(subname)//' map_atm2ocn')
+
+       ! Reset flag to use data
+       is_local%wrap%med_data_force_first(compocn) = .false.
+    end if
+
+    !---------------------------------------
+    !--- merge all fields to ocn
+    !---------------------------------------
     call med_merge_auto(&
          is_local%wrap%med_coupling_active(:,compocn), &
          is_local%wrap%FBExp(compocn), &
@@ -355,11 +383,18 @@ contains
        end do
        ! Compute sw export to ocean bands if required
        if (export_swnet_by_bands) then
-          c1 = 0.285; c2 = 0.285; c3 = 0.215; c4 = 0.215
-          Foxx_swnet_vdr(:) = c1 * Foxx_swnet(:)
-          Foxx_swnet_vdf(:) = c2 * Foxx_swnet(:)
-          Foxx_swnet_idr(:) = c3 * Foxx_swnet(:)
-          Foxx_swnet_idf(:) = c4 * Foxx_swnet(:)
+          if (trim(coupling_mode) == 'cesm') then
+             c1 = 0.285; c2 = 0.285; c3 = 0.215; c4 = 0.215
+             Foxx_swnet_vdr(:) = c1 * Foxx_swnet(:)
+             Foxx_swnet_vdf(:) = c2 * Foxx_swnet(:)
+             Foxx_swnet_idr(:) = c3 * Foxx_swnet(:)
+             Foxx_swnet_idf(:) = c4 * Foxx_swnet(:)
+          else
+             Foxx_swnet_vdr(:) = Faxa_swvdr(:) * (1.0_R8 - avsdr(:))
+             Foxx_swnet_vdf(:) = Faxa_swvdf(:) * (1.0_R8 - avsdf(:))
+             Foxx_swnet_idr(:) = Faxa_swndr(:) * (1.0_R8 - anidr(:))
+             Foxx_swnet_idf(:) = Faxa_swndf(:) * (1.0_R8 - anidf(:))
+          end if
        end if
     end if
 

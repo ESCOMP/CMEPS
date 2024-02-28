@@ -133,7 +133,7 @@ contains
   !                   Thomas Toniazzo (Bjerknes Centre, Bergen) ”
   !===============================================================================
   SUBROUTINE flux_atmOcn(logunit, nMax  ,zbot  ,ubot  ,vbot  ,thbot ,   &
-       &               qbot  ,s16O  ,sHDO  ,s18O  ,rbot,  &
+       &               qbot,  rainc ,s16O  ,sHDO  ,s18O  ,rbot,  &
        &               tbot  ,us    ,vs,  pslv,  &
        &               ts    ,mask  , seq_flux_atmocn_minwind, &
        &               sen   ,lat   ,lwup  ,   &
@@ -141,7 +141,10 @@ contains
        &               evap  ,evap_16O, evap_HDO, evap_18O, &
        &               taux  ,tauy  ,tref  ,qref  ,   &
        &               ocn_surface_flux_scheme, &
-       &               duu10n,  ustar_sv ,re_sv ,ssq_sv,   &
+       &               add_gusts, & 
+       &               duu10n, & 
+       &               ugust_out, & 
+       &               ustar_sv ,re_sv ,ssq_sv,   &
        &               missval)
 
     ! !USES:
@@ -156,11 +159,13 @@ contains
     integer(IN),intent(in) :: nMax        ! data vector length
     integer(IN),intent(in) :: mask (nMax) ! ocn domain mask       0 <=> out of domain
     integer(IN),intent(in) :: ocn_surface_flux_scheme
+    logical ,intent(in)    :: add_gusts
     real(R8)   ,intent(in) :: zbot (nMax) ! atm level height      (m)
     real(R8)   ,intent(in) :: ubot (nMax) ! atm u wind            (m/s)
     real(R8)   ,intent(in) :: vbot (nMax) ! atm v wind            (m/s)
     real(R8)   ,intent(in) :: thbot(nMax) ! atm potential T       (K)
     real(R8)   ,intent(in) :: qbot (nMax) ! atm specific humidity (kg/kg)
+    real(R8)   ,intent(in) :: rainc(nMax) ! atm precip for convective gustiness (kg/m^3) - RBN 24Nov2008/MDF 31Jan2022
     real(R8)   ,intent(in) :: s16O (nMax) ! atm H216O tracer conc. (kg/kg)
     real(R8)   ,intent(in) :: sHDO (nMax) ! atm HDO tracer conc.  (kg/kg)
     real(R8)   ,intent(in) :: s18O (nMax) ! atm H218O tracer conc. (kg/kg)
@@ -188,6 +193,7 @@ contains
     real(R8),intent(out)  ::  tref (nMax) ! diag:  2m ref height T     (K)
     real(R8),intent(out)  ::  qref (nMax) ! diag:  2m ref humidity (kg/kg)
     real(R8),intent(out)  :: duu10n(nMax) ! diag: 10m wind speed squared (m/s)^2
+    real(R8),intent(out)  :: ugust_out(nMax) ! diag: gustiness addition to U10 (m/s)
 
     real(R8),intent(out),optional :: ustar_sv(nMax) ! diag: ustar
     real(R8),intent(out),optional :: re_sv   (nMax) ! diag: sqrt of exchange coefficient (water)
@@ -257,6 +263,8 @@ contains
     real(R8)    :: tdiff(nMax)               ! tbot - ts
     real(R8)    :: vscl
 
+    real(R8)    :: ugust      ! function: gustiness as a function of convective rainfall.  
+    real(R8)    :: gprec   ! convective rainfall argument for ugust
 
     qsat(Tk)   = 640380.0_R8 / exp(5107.4_R8/Tk)
 
@@ -264,7 +272,7 @@ contains
     cdn(Umps)  =  0.0027_R8 / min(33.0000_R8,Umps) + 0.000142_R8 + &
          0.0000764_R8 * min(33.0000_R8,Umps) - 3.14807e-13_r8 * min(33.0000_R8,Umps)**6
     ! Capped Large and Pond by wind
-    !   cdn(Umps)  =   0.0027_R8 / min(30.0_R8,Umps) + 0.000142_R8 + 0.0000764_R8 * min(30.0_R8,Umps) 
+    !   cdn(Umps)  =   0.0027_R8 / min(30.0_R8,Umps) + 0.000142_R8 + 0.0000764_R8 * min(30.0_R8,Umps)
     ! Capped Large and Pond by Cd
     !   cdn(Umps) = min(0.0025_R8, (0.0027_R8 / Umps + 0.000142_R8 + 0.0000764_R8 * Umps ))
     ! Large and Pond
@@ -272,6 +280,13 @@ contains
 
     psimhu(xd) = log((1.0_R8+xd*(2.0_R8+xd))*(1.0_R8+xd*xd)/8.0_R8) - 2.0_R8*atan(xd) + 1.571_R8
     psixhu(xd) = 2.0_R8 * log((1.0_R8 + xd*xd)/2.0_R8)
+
+    ! Convective gustiness appropriate for input precipitation.
+    ! Following Regelsperger et al. (2000, J. Clim)
+    ! Ug = log(1.0+6.69R-0.476R^2)
+    ! Coefficients X by 8640 for mm/s (from cam) -> cm/day (for above forumla)
+    ugust(gprec) = log(1._R8+57801.6_r8*gprec-3.55332096e7_r8*(gprec**2))
+
 
     !--- formats ----------------------------------------
     character(*),parameter :: subName = '(flux_atmOcn) '
@@ -327,7 +342,14 @@ contains
           if (mask(n) /= 0) then
 
              !--- compute some needed quantities ---
-             vmag   = max(seq_flux_atmocn_minwind, sqrt( (ubot(n)-us(n))**2 + (vbot(n)-vs(n))**2) )
+             if (add_gusts) then 
+                vmag   = max(seq_flux_atmocn_minwind, sqrt( (ubot(n)-us(n))**2 + (vbot(n)-vs(n))**2) + ugust(min(rainc(n),6.94444e-4_r8)) )
+                ugust_out(n) = ugust(min(rainc(n),6.94444e-4_r8))
+             else 
+                vmag   = max(seq_flux_atmocn_minwind, sqrt( (ubot(n)-us(n))**2 + (vbot(n)-vs(n))**2) )
+                ugust_out(n) = 0.0_r8
+             end if
+
              if (use_coldair_outbreak_mod) then
                 ! Cold Air Outbreak Modification:
                 ! Increase windspeed for negative tbot-ts
@@ -462,6 +484,7 @@ contains
              tref  (n) = spval  !  2m reference height temperature (K)
              qref  (n) = spval  !  2m reference height humidity (kg/kg)
              duu10n(n) = spval  ! 10m wind speed squared (m/s)^2
+             ugust_out(n) = spval ! gustiness addition (m/s) 
 
              if (present(ustar_sv)) ustar_sv(n) = spval
              if (present(re_sv   )) re_sv   (n) = spval
