@@ -1804,7 +1804,7 @@ contains
        call addfld_from(compatm, 'Faxa_snowl')
        call addfld_to(compocn, 'Faxa_snow' )
     else
-       ! TODO: why are we not merging Faxa_rain and Faxa_snow if they are sent from atm wiht ofrac
+       ! TODO: why are we not merging Faxa_rain and Faxa_snow if they are sent from atm with ofrac
        ! Note that the mediator atm/ocn flux calculation needs Faxa_rainc for the gustiness parameterization
        ! which by default is not actually used
        if ( fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_rainl', rc=rc) .and. &
@@ -2011,7 +2011,7 @@ contains
     ! to ocn: enthalpy from ice melt
     ! ---------------------------------------------------------------------
     ! Note - do not need to add addmap or addmrg for the following since they
-    ! will be computed directly in med_phases_prep_ocn
+    ! will be computed directly in med_enthalpy_mod
     if (phase == 'advertise') then
        call addfld_to(compocn, 'Foxx_hrain')
        call addfld_to(compocn, 'Foxx_hsnow')
@@ -2019,6 +2019,23 @@ contains
        call addfld_to(compocn, 'Foxx_hcond')
        call addfld_to(compocn, 'Foxx_hrofl')
        call addfld_to(compocn, 'Foxx_hrofi')
+
+       call addfld_from(compatm, 'Faxa_hrain')
+       call addfld_from(compatm, 'Faxa_hsnow')
+       call addfld_from(compatm, 'Faxa_hevap')
+    else
+       if ( fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_hrain', rc=rc)) then
+          !            fldchk(is_local%wrap%FBExp(compocn)        , 'Foxx_hrain', rc=rc)) then
+          call addmap_from(compatm, 'Faxa_hrain', compocn, mapconsf, 'one', atm2ocn_map)
+       end if
+       if ( fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_hsnow', rc=rc)) then
+          !            fldchk(is_local%wrap%FBExp(compocn)        , 'Foxx_hsnow', rc=rc)) then
+          call addmap_from(compatm, 'Faxa_hsnow', compocn, mapconsf, 'one', atm2ocn_map)
+       end if
+       if ( fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_hevap', rc=rc)) then
+          !            fldchk(is_local%wrap%FBExp(compocn)        , 'Foxx_hevap', rc=rc)) then
+          call addmap_from(compatm, 'Faxa_hevap', compocn, mapconsf, 'one', atm2ocn_map)
+       end if
     end if
 
     ! ---------------------------------------------------------------------

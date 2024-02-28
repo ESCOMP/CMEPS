@@ -7,7 +7,7 @@ module med_phases_prep_atm_mod
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
   use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
   use ESMF                  , only : ESMF_Field, ESMF_FieldGet, ESMF_FieldBundleGet
-  use ESMF                  , only : ESMF_GridComp, ESMF_GridCompGet
+  use ESMF                  , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_FieldBundleIsCreated
   use med_constants_mod     , only : dbug_flag   => med_constants_dbug_flag
   use med_utils_mod         , only : memcheck    => med_memcheck
   use med_utils_mod         , only : chkerr      => med_utils_ChkErr
@@ -23,14 +23,12 @@ module med_phases_prep_atm_mod
   use perf_mod              , only : t_startf, t_stopf
   use med_phases_aofluxes_mod, only : med_aofluxes_map_xgrid2agrid_output
   use med_phases_aofluxes_mod, only : med_aofluxes_map_ogrid2agrid_output
+  use med_enthalpy_mod,       only : med_enthalpy_get_global_htot_corr, med_compute_enthalpy, mediator_compute_enthalpy
 
   implicit none
   private
 
   public :: med_phases_prep_atm
-  public :: med_phases_prep_atm_enthalpy_correction
-
-  real(r8), public :: global_htot_corr(1) = 0._r8  ! enthalpy correction from med_phases_prep_ocn
 
   character(*), parameter :: u_FILE_u  = &
        __FILE__
@@ -220,11 +218,17 @@ contains
     end if
 
     ! Add enthalpy correction to sensible heat if appropriate
-    if (FB_FldChk(is_local%wrap%FBExp(compatm), 'Faxx_sen', rc=rc)) then
+    if (Mediator_compute_enthalpy) then
        call FB_getfldptr(is_local%wrap%FBExp(compatm), 'Faxx_sen', dataptr1, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       ! IF data ocn case compute first, otherwise computed in prep_ocn_mod
+       if(is_local%wrap%docn_present) then
+          call med_compute_enthalpy(is_local, rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       endif
        do n = 1,size(dataptr1)
-          dataptr1(n) = dataptr1(n) + global_htot_corr(1)
+          dataptr1(n) = dataptr1(n) + med_enthalpy_get_global_htot_corr()
        end do
     end if
 
@@ -238,49 +242,5 @@ contains
     call t_stopf('MED:'//subname)
 
   end subroutine med_phases_prep_atm
-
-  !-----------------------------------------------------------------------------
-  subroutine med_phases_prep_atm_enthalpy_correction (gcomp, hcorr, rc)
-
-    ! Enthalpy correction term calculation called by med_phases_prep_ocn_accum in
-    ! med_phases_prep_ocn_mod
-    ! Note that this is only called if the following fields are in FBExp(compocn)
-    ! 'Faxa_rain','Foxx_hrain','Faxa_snow' ,'Foxx_hsnow',
-    ! 'Foxx_evap','Foxx_hevap','Foxx_hcond','Foxx_rofl',
-    ! 'Foxx_hrofl','Foxx_rofi','Foxx_hrofi'
-
-    use ESMF            , only : ESMF_VMAllreduce, ESMF_GridCompGet, ESMF_REDUCE_SUM
-    use ESMF            , only : ESMF_VM
-
-    ! input/output variables
-    type(ESMF_GridComp) , intent(in)  :: gcomp
-    real(r8)            , intent(in)  :: hcorr(:)
-    integer             , intent(out) :: rc
-
-    ! local variables
-    type(InternalState) :: is_local
-    integer             :: n
-    real(r8)            :: local_htot_corr(1)
-    type(ESMF_VM)       :: vm
-    !---------------------------------------
-
-    rc = ESMF_SUCCESS
-
-    nullify(is_local%wrap)
-    call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
-    if (chkErr(rc,__LINE__,u_FILE_u)) return
-
-    ! Determine sum of enthalpy correction for each hcorr index locally
-    local_htot_corr(1) = 0._r8
-    do n = 1,size(hcorr)
-       local_htot_corr(1) = local_htot_corr(1) + hcorr(n)
-    end do
-    call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_VMAllreduce(vm, senddata=local_htot_corr, recvdata=global_htot_corr, count=1, &
-         reduceflag=ESMF_REDUCE_SUM, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-  end subroutine med_phases_prep_atm_enthalpy_correction
 
 end module med_phases_prep_atm_mod

@@ -144,6 +144,7 @@ module med_diag_mod
   integer :: f_heat_latf     = unset_index ! heat : latent, fusion, snow
   integer :: f_heat_ioff     = unset_index ! heat : latent, fusion, frozen runoff
   integer :: f_heat_sen      = unset_index ! heat : sensible
+
   integer :: f_heat_rain     = unset_index ! heat : heat content of rain
   integer :: f_heat_snow     = unset_index ! heat : heat content of snow
   integer :: f_heat_evap     = unset_index ! heat : heat content of evaporation
@@ -405,7 +406,7 @@ contains
     ! Salt fluxes budget terms (for v1 only)
     ! -----------------------------------------
 
-    if (trim(budget_table_version) == 'v1') then
+    if (trim(budget_table_version) .ne. 'v0') then
        call add_to_budget_diag(budget_diags%fields, f_watr_salt  ,'saltf') ! field  water: salt flux
        f_salt_beg = f_watr_salt
        f_salt_end = f_watr_salt
@@ -444,7 +445,6 @@ contains
     allocate(budget_global   (f_size , c_size , p_size)) ! global sum, valid only on root pe
     allocate(budget_counter  (f_size , c_size , p_size)) ! counter, valid only on root pe
     allocate(budget_global_1d(f_size * c_size * p_size)) ! needed for ESMF_VMReduce call
-
   end subroutine med_diag_init
 
   integer function get_diag_attribute(gcomp, name, rc)
@@ -726,6 +726,25 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
+    call diag_atm_recv(is_local%wrap%FBImp(compatm,compatm), 'Faxa_hrain', f_heat_rain, &
+         areas, lats, afrac, lfrac, ofrac, ifrac, budget_local, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    
+    call diag_atm_recv(is_local%wrap%FBImp(compatm,compatm), 'Faxa_hsnow', f_heat_snow, &
+         areas, lats, afrac, lfrac, ofrac, ifrac, budget_local, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    
+    call diag_atm_recv(is_local%wrap%FBImp(compatm,compatm), 'Faxa_hevap', f_heat_evap, &
+         areas, lats, afrac, lfrac, ofrac, ifrac, budget_local, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call diag_atm_recv(is_local%wrap%FBImp(compatm,compatm), 'Faxa_hrofl', f_heat_rofl, &
+         areas, lats, afrac, lfrac, ofrac, ifrac, budget_local, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call diag_atm_recv(is_local%wrap%FBImp(compatm,compatm), 'Faxa_hrofi', f_heat_rofi, &
+         areas, lats, afrac, lfrac, ofrac, ifrac, budget_local, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    
     ! heat implied by snow flux from atm to mediator
     budget_local(f_heat_latf,c_atm_recv ,ip) = -budget_local(f_watr_snow,c_atm_recv ,ip)*shr_const_latice
     budget_local(f_heat_latf,c_lnd_arecv,ip) = -budget_local(f_watr_snow,c_lnd_arecv,ip)*shr_const_latice
@@ -2681,7 +2700,7 @@ contains
     ! write out net salt budgets
     ! -----------------------------
 
-    if (trim(budget_table_version) == 'v1') then
+    if (trim(budget_table_version) .ne. 'v0') then
        write(diagunit,*) ' '
        write(diagunit,FAH) subname,'NET SALT BUDGET (kg/m2s): period = ',&
             trim(budget_diags%periods(ip)%name), ': date = ',date,tod
