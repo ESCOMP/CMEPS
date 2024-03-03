@@ -882,7 +882,7 @@ contains
     if (isPresent .and. isSet) then
        read(cvalue,*) is_local%wrap%flds_scalar_index_nextsw_cday
     else
-       is_local%wrap%flds_scalar_index_nextsw_cday = spval
+       is_local%wrap%flds_scalar_index_nextsw_cday = 0
     end if
 
     call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldIdxPrecipFactor", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
@@ -2137,15 +2137,19 @@ contains
                   flds_scalar_name=is_local%wrap%flds_scalar_name, &
                   flds_scalar_num=is_local%wrap%flds_scalar_num, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             call State_GetScalar(scalar_value=real_ntile, &
-                  scalar_id=is_local%wrap%flds_scalar_index_ntile, &
-                  state=is_local%wrap%NstateImp(n1), &
-                  flds_scalar_name=is_local%wrap%flds_scalar_name, &
-                  flds_scalar_num=is_local%wrap%flds_scalar_num, rc=rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             if (is_local%wrap%flds_scalar_index_ntile > 0) then
+                call State_GetScalar(scalar_value=real_ntile, &
+                     scalar_id=is_local%wrap%flds_scalar_index_ntile, &
+                     state=is_local%wrap%NstateImp(n1), &
+                     flds_scalar_name=is_local%wrap%flds_scalar_name, &
+                     flds_scalar_num=is_local%wrap%flds_scalar_num, rc=rc)
+                if (ChkErr(rc,__LINE__,u_FILE_u)) return
+                is_local%wrap%ntile(n1) = nint(real_ntile)
+             else
+                is_local%wrap%ntile(n1) = 0
+             end if
              is_local%wrap%nx(n1) = nint(real_nx)
              is_local%wrap%ny(n1) = nint(real_ny)
-             is_local%wrap%ntile(n1) = nint(real_ntile)
              write(msgString,'(3i8)') is_local%wrap%nx(n1), is_local%wrap%ny(n1), is_local%wrap%ntile(n1)
              if (maintask) then
                 write(logunit,'(a)') 'global nx,ny,ntile sizes for '//trim(compname(n1))//":"//trim(msgString)
