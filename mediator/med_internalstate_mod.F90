@@ -121,7 +121,7 @@ module med_internalstate_mod
     ! Present/allowed coupling/active coupling logical flags
     logical, pointer :: comp_present(:)               ! comp present flag
     logical, pointer :: med_coupling_active(:,:)      ! computes the active coupling
-    logical, pointer :: med_data_active(:,:)          ! uses stream data to provide background fill 
+    logical, pointer :: med_data_active(:,:)          ! uses stream data to provide background fill
     logical, pointer :: med_data_force_first(:)       ! force to use stream data for first coupling timestep
     integer          :: num_icesheets                 ! obtained from attribute
     logical          :: ocn2glc_coupling = .false.    ! obtained from attribute
@@ -132,13 +132,14 @@ module med_internalstate_mod
     type(ESMF_VM) :: vm
 
     ! Global nx,ny dimensions of input arrays (needed for mediator history output)
-    integer, pointer   :: nx(:), ny(:)
+    integer, pointer   :: nx(:), ny(:), ntile(:)
 
     ! Import/Export Scalars
     character(len=CL) :: flds_scalar_name = ''
     integer           :: flds_scalar_num = 0
     integer           :: flds_scalar_index_nx = 0
     integer           :: flds_scalar_index_ny = 0
+    integer           :: flds_scalar_index_ntile = 0
     integer           :: flds_scalar_index_nextsw_cday = 0
     integer           :: flds_scalar_index_precip_factor = 0
     real(r8)          :: flds_scalar_precip_factor = 1._r8  ! actual value of precip factor from ocn
@@ -312,6 +313,7 @@ contains
     allocate(is_local%wrap%med_data_force_first(ncomps))
     allocate(is_local%wrap%nx(ncomps))
     allocate(is_local%wrap%ny(ncomps))
+    allocate(is_local%wrap%ntile(ncomps))
     allocate(is_local%wrap%NStateImp(ncomps))
     allocate(is_local%wrap%NStateExp(ncomps))
     allocate(is_local%wrap%FBImp(ncomps,ncomps))
@@ -601,7 +603,7 @@ contains
     if (is_local%wrap%comp_present(compocn)) defaultMasks(compocn,:) = 0
     if (is_local%wrap%comp_present(compice)) defaultMasks(compice,:) = 0
     if (is_local%wrap%comp_present(compwav)) defaultMasks(compwav,:) = 0
-    if ( trim(coupling_mode(1:3)) == 'ufs') then
+    if ( coupling_mode(1:3) == 'ufs') then
        if (is_local%wrap%comp_present(compatm)) defaultMasks(compatm,:) = 1
     endif
     if ( trim(coupling_mode) == 'hafs') then
