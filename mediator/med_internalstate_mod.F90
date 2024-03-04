@@ -132,7 +132,9 @@ module med_internalstate_mod
     type(ESMF_VM) :: vm
 
     ! Global nx,ny dimensions of input arrays (needed for mediator history output)
-    integer, pointer   :: nx(:), ny(:), ntile(:)
+    integer, pointer   :: nx(:), ny(:)
+    ! Number of nx*ny domains (needed for cubed-sphere and regional domains)
+    integer, pointer   :: ntile(:)
 
     ! Import/Export Scalars
     character(len=CL) :: flds_scalar_name = ''

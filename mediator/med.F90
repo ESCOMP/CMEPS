@@ -510,7 +510,7 @@ contains
 
 #ifdef CDEPS_INLINE
     !------------------
-    ! phase routine for cdeps inline capabilty
+    ! phase routine for cdeps inline capability
     !------------------
 
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
