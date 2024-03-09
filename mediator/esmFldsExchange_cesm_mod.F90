@@ -1559,6 +1559,22 @@ contains
        end if
     end if
 
+    !-----------------------------------------------------------------------------
+    ! to atm: dms flux from ocean
+    !-----------------------------------------------------------------------------
+    if (phase == 'advertise') then
+       call addfld_from(compocn, 'Faoo_fdms_ocn')
+       call addfld_to(compatm, 'Faoo_fdms_ocn')
+    else
+       if ( fldchk(is_local%wrap%FBImp(compocn, compocn), 'Faoo_fdms_ocn', rc=rc) .and. &
+            fldchk(is_local%wrap%FBExp(compatm)         , 'Faoo_fdms_ocn', rc=rc)) then
+          call addmap_from(compocn, 'Faoo_fdms_ocn', compatm, mapconsd, 'one', ocn2atm_map)
+          call addmrg_to(compatm , 'Faoo_fdms_ocn', &
+               mrg_from=compocn, mrg_fld='Faoo_fdms_ocn', mrg_type='merge', mrg_fracname='ofrac')
+          ! TODO: does this need a custom merge like Faoo_fco2_ocn ???
+       end if
+    end if
+
     !=====================================================================
     ! FIELDS TO OCEAN (compocn)
     !=====================================================================
@@ -3311,51 +3327,6 @@ contains
           ! custom merge in med_phases_prep_atm
        end if
     endif
-
-    !=====================================================================
-    ! DMS EXCHANGE
-    !=====================================================================
-
-    ! Get dms concentration from ocn and compute dms flux in mediator and send to both atm and ocn
-    if (phase == 'advertise') then
-       call addfld_aoflux('Faox_dms')
-       call addfld_from(compocn, 'So_dms')
-       call addfld_to(compocn, 'Faox_dms')
-       call addfld_to(compatm, 'Faxx_dms')
-    else
-       if (trim(is_local%wrap%aoflux_grid) == 'ogrid') then
-          ! TODO: extend this to to agrid and xgrid
-          if (fldchk(is_local%wrap%FBexp(compatm), 'Faxx_dms', rc=rc)) then
-             call addmrg_to(compatm , 'Faxx_dms', &
-                  mrg_from=compmed, mrg_fld='Faox_dms', mrg_type='merge', mrg_fracname='ofrac')
-          end if
-          if ( fldchk(is_local%wrap%FBexp(compocn), 'Faox_dms', rc=rc) .and. &
-               fldchk(is_local%wrap%FBImp(compocn,compocn), 'So_dms', rc=rc) ) then
-             call addmrg_to(compocn, 'Faox_dms', &
-                  mrg_from=compmed, mrg_fld='Faox_dms', mrg_type='merge', mrg_fracname='ofrac')
-          end if
-       else
-          call ESMF_LogWrite(trim(subname)//&
-               ": only ogrid has been enabled for dms flux computation", &
-               ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
-          rc = ESMF_FAILURE
-          return
-       end if
-    end if
-
-    ! Get dms flux from ocn and send to atm (this is a deprecated functionality - only used for testing now)
-    ! TODO: remove this
-    if (phase == 'advertise') then
-       call addfld_from(compocn, 'Faoo_dms')
-       call addfld_to(compatm, 'Faxx_dms')
-    else
-       ! Note that Faoo_dmds should not be weighted by ifrac - since
-       ! it will be weighted by ifrac in the merge to the atm
-       if (fldchk(is_local%wrap%FBexp(compatm), 'Faxx_dms', rc=rc)) then
-          call addmrg_to(compatm , 'Faxx_dms', &
-               mrg_from=compmed, mrg_fld='Faoo_dms', mrg_type='merge', mrg_fracname='ofrac')
-       end if
-    end if
 
   end subroutine esmFldsExchange_cesm
 

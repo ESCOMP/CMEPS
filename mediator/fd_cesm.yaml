@@ -1282,21 +1282,9 @@
        description: mediator area for component
      #
      #-----------------------------------
-     # section: dms exchange
+     # section: dms exchange ocn->atm
      #-----------------------------------
      #
-     - standard_name: So_dms
-       canonical_units: nmol L-1
-       description: DMS uppoer ocean concentration
-     #
-     - standard_name: Faoo_dms
+     - standard_name: Faoo_fdms_ocn
        canonical_units: moles m-2 s-1
        description: Surface flux of DMS computed in ocean (downward positive)
-     #
-     - standard_name: Faox_dms
-       canonical_units: moles m-2 s-1
-       description: Surface flux of DMS computed in mediator (downward positive)
-     #
-     - standard_name: Faxx_dms
-       canonical_units: moles m-2 s-1
-       description: merged surface flux of DMS to atm (downward positive)
