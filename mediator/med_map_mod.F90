@@ -415,7 +415,7 @@ contains
        end if
        if (n1 == complnd .and. n2 == compatm) then
           srcMaskValue = ispval_mask
-          dstMaskValue = 0
+          dstMaskValue = ispval_mask
        end if
     end if
     if (coupling_mode(1:4) == 'hafs') then
