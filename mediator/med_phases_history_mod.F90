@@ -336,12 +336,14 @@ contains
                 ! Write mediator fraction field bundles
                 if (ESMF_FieldBundleIsCreated(is_local%wrap%FBFrac(n),rc=rc)) then
                    call med_io_write(io_file, is_local%wrap%FBFrac(n), whead(m), wdata(m), &
-                        is_local%wrap%nx(n), is_local%wrap%ny(n), nt=1, pre='Med_frac_'//trim(compname(n)), rc=rc)
+                        is_local%wrap%nx(n), is_local%wrap%ny(n), nt=1, pre='Med_frac_'//trim(compname(n)), &
+                        ntile=is_local%wrap%ntile(n), rc=rc)
                    if (ChkErr(rc,__LINE__,u_FILE_u)) return
                 end if
                 ! Write component mediator area field bundles
                 call med_io_write(io_file, is_local%wrap%FBArea(n), whead(m), wdata(m), &
-                     is_local%wrap%nx(n), is_local%wrap%ny(n), nt=1, pre='MED_'//trim(compname(n)), rc=rc)
+                     is_local%wrap%nx(n), is_local%wrap%ny(n), nt=1, pre='MED_'//trim(compname(n)), &
+                     ntile=is_local%wrap%ntile(n), rc=rc)
              end do
 
              ! Write atm/ocn fluxes and ocean albedoes if field bundles are created

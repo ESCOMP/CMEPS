@@ -413,6 +413,10 @@ contains
           srcMaskValue = ispval_mask
           dstMaskValue = ispval_mask
        end if
+       if (n1 == complnd .and. n2 == compatm) then
+          srcMaskValue = ispval_mask
+          dstMaskValue = 0
+       end if
     end if
     if (coupling_mode(1:4) == 'hafs') then
        if (n1 == compatm .and. n2 == compwav) then
