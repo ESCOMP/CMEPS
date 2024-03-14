@@ -491,6 +491,14 @@
        canonical_units: m/s
        description: atmosphere import
      #
+     - standard_name: So_u10withGust
+       canonical_units: m/s
+       description: atmosphere import
+     #
+     - standard_name: So_u10res
+       canonical_units: m/s
+       description: atmosphere import
+     #
      #-----------------------------------
      # section: land-ice export
      # Note that the fields sent from glc->med do NOT have elevation classes,
