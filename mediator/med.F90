@@ -48,7 +48,7 @@ module MED
   use esmFlds                  , only : med_fldList_GetNumFlds, med_fldList_GetFldNames, med_fldList_GetFldInfo
   use esmFlds                  , only : med_fldList_Document_Mapping, med_fldList_Document_Merging
   use esmFlds                  , only : med_fldList_GetfldListFr, med_fldList_GetfldListTo, med_fldList_Realize
-  use esmFldsExchange_nems_mod , only : esmFldsExchange_nems
+  use esmFldsExchange_ufs_mod  , only : esmFldsExchange_ufs
   use esmFldsExchange_cesm_mod , only : esmFldsExchange_cesm
   use esmFldsExchange_hafs_mod , only : esmFldsExchange_hafs
   use med_phases_profile_mod   , only : med_phases_profile_finalize
@@ -123,6 +123,9 @@ contains
     use med_diag_mod            , only: med_phases_diag_ice_ice2med, med_phases_diag_ice_med2ice
     use med_fraction_mod        , only: med_fraction_init, med_fraction_set
     use med_phases_profile_mod  , only: med_phases_profile
+#ifdef CDEPS_INLINE
+    use med_phases_cdeps_mod    , only: med_phases_cdeps_run
+#endif
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -505,6 +508,19 @@ contains
          specPhaselabel="med_phases_diag_print", specRoutine=NUOPC_NoOp, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+#ifdef CDEPS_INLINE
+    !------------------
+    ! phase routine for cdeps inline capabilty 
+    !------------------
+
+    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
+         phaseLabelList=(/"med_phases_cdeps_run"/), userRoutine=mediator_routine_Run, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
+         specPhaseLabel="med_phases_cdeps_run", specRoutine=med_phases_cdeps_run, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+#endif
+
     !------------------
     ! attach specializing method(s)
     ! -> NUOPC specializes by default --->>> first need to remove the default
@@ -816,8 +832,8 @@ contains
     if (trim(coupling_mode) == 'cesm') then
        call esmFldsExchange_cesm(gcomp, phase='advertise', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    else if (trim(coupling_mode(1:4)) == 'nems') then
-       call esmFldsExchange_nems(gcomp, phase='advertise', rc=rc)
+    else if (trim(coupling_mode(1:3)) == 'ufs') then
+       call esmFldsExchange_ufs(gcomp, phase='advertise', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     else if (trim(coupling_mode(1:4)) == 'hafs') then
        call esmFldsExchange_hafs(gcomp, phase='advertise', rc=rc)
@@ -934,6 +950,22 @@ contains
        endif
     endif
 
+    ! Should target component use all data for first time step?
+    do ncomp = 1,ncomps
+       if (ncomp /= compmed) then
+          call NUOPC_CompAttributeGet(gcomp, name=trim(compname(ncomp))//"_use_data_first_import", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          if (isPresent .and. isSet) then
+             read(cvalue, *) is_local%wrap%med_data_force_first(ncomp)
+          else
+             is_local%wrap%med_data_force_first(ncomp) = .false.
+          endif
+          if (maintask) then
+             write(logunit,*) trim(compname(ncomp))//'_use_data_first_import is ', is_local%wrap%med_data_force_first(ncomp)
+          endif    
+       end if
+    end do
+
     if (profile_memory) call ESMF_VMLogMemInfo("Leaving "//trim(subname))
     call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
 
@@ -1023,7 +1055,6 @@ contains
     type(InternalState) :: is_local
     integer :: n1
     character(len=*), parameter :: subname = '('//__FILE__//':ModifyDecompofMesh)'
-
     !-----------------------------------------------------------
 
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
@@ -1352,7 +1383,6 @@ contains
     type(InternalState) :: is_local
     integer             :: n1
     character(len=*), parameter :: subname = '('//__FILE__//':RealizeFieldsWithTransferAccept)'
-
     !-----------------------------------------------------------
 
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
@@ -1802,10 +1832,10 @@ contains
       if (trim(coupling_mode) == 'cesm') then
          call esmFldsExchange_cesm(gcomp, phase='initialize', rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-      else if (trim(coupling_mode(1:4)) == 'nems') then
-         call esmFldsExchange_nems(gcomp, phase='initialize', rc=rc)
+      else if (trim(coupling_mode(1:3)) == 'ufs') then
+         call esmFldsExchange_ufs(gcomp, phase='initialize', rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-      else if (trim(coupling_mode) == 'hafs') then
+      else if (coupling_mode(1:4) == 'hafs') then
          call esmFldsExchange_hafs(gcomp, phase='initialize', rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
       end if
@@ -2222,7 +2252,6 @@ contains
     integer                 :: stop_n, stop_ymd
     logical, save           :: stopalarmcreated=.false.
     character(len=*), parameter :: subname = '('//__FILE__//':SetRunClock)'
-
     !-----------------------------------------------------------
 
     rc = ESMF_SUCCESS

@@ -6,20 +6,20 @@
 
 The following modules comprise the "prep phase" CMEPS code:
 
-**med_phases_prep_atm_mod.F90**: prepares the mediator export state to the atmosphere component 
+**med_phases_prep_atm_mod.F90**: prepares the mediator export state to the atmosphere component
 
-**med_phases_prep_ice_mod.F90**: prepares the mediator export state to the sea-ice component 
-  
-**med_phases_prep_glc_mod.F90**: prepares the mediator export state to the land-ice component 
-  
+**med_phases_prep_ice_mod.F90**: prepares the mediator export state to the sea-ice component
+
+**med_phases_prep_glc_mod.F90**: prepares the mediator export state to the land-ice component
+
 **med_phases_prep_lnd_mod.F90**: prepares the mediator export state to the land component
-  
+
 **med_phases_prep_ocn_mod.F90**: prepares the mediator export state to the ocean component
 
 **med_phases_prep_rof_mod.F90**: prepares the mediator export state to the river component
-  
+
 **med_phases_prep_wav_mod.F90**: prepares the mediator export state to the wave component
-  
+
 
 Each prep phase module has several sections:
 
@@ -71,8 +71,7 @@ Each prep phase module has several sections:
    * ``med_phases_prep_ocn``:
 
      * computation of net shortwave that is sent to the ocean.
-     * apply precipitation fractor to scale rain and snow sent to ocean (for CESM)
-     * carry out custom merges for NEMS coupling modes (for NEMS)
+     * apply precipitation fractor to scale rain and snow sent to ocean
 
    * ``med_phases_prep_rof``:
 

@@ -19,7 +19,7 @@ module med_internalstate_mod
 
   integer, public :: logunit            ! logunit for mediator log output
   integer, public :: diagunit           ! diagunit for budget output (med main only)
-  logical, public :: maintask=.false. ! is this the maintask
+  logical, public :: maintask = .false. ! is this the maintask
   integer, public :: med_id             ! needed currently in med_io_mod and set in esm.F90
 
   ! Components
@@ -47,7 +47,7 @@ module med_internalstate_mod
   character(len=CS), public :: glc_name = ''
 
   ! Coupling mode
-  character(len=CS), public :: coupling_mode ! valid values are [cesm,nems_orig,nems_frac,nems_orig_data,hafs,nems_frac_aoflux,nems_frac_aoflux_sbs]
+  character(len=CS), public :: coupling_mode ! valid values are [cesm,ufs.nfrac,ufs.frac,ufs.nfrac.aoflux,ufs.frac.aoflux,hafs,hafs.mom6]
 
   ! Atmosphere-ocean flux algorithm
   character(len=CS), public :: aoflux_code   ! valid values are [cesm,ccpp]
@@ -119,10 +119,12 @@ module med_internalstate_mod
   type InternalStateStruct
 
     ! Present/allowed coupling/active coupling logical flags
-    logical, pointer :: comp_present(:)            ! comp present flag
-    logical, pointer :: med_coupling_active(:,:)   ! computes the active coupling
-    integer          :: num_icesheets              ! obtained from attribute
-    logical          :: ocn2glc_coupling = .false. ! obtained from attribute
+    logical, pointer :: comp_present(:)               ! comp present flag
+    logical, pointer :: med_coupling_active(:,:)      ! computes the active coupling
+    logical, pointer :: med_data_active(:,:)          ! uses stream data to provide background fill 
+    logical, pointer :: med_data_force_first(:)       ! force to use stream data for first coupling timestep
+    integer          :: num_icesheets                 ! obtained from attribute
+    logical          :: ocn2glc_coupling = .false.    ! obtained from attribute
     logical          :: lnd2glc_coupling = .false.
     logical          :: accum_lnd2glc = .false.
 
@@ -147,10 +149,10 @@ module med_internalstate_mod
     ! FBImp(n,n) = NState_Imp(n), copied in connector post phase
     ! FBImp(n,k) is the FBImp(n,n) interpolated to grid k
     ! Import/export States and field bundles (the field bundles have the scalar fields removed)
-    type(ESMF_State)       , pointer :: NStateImp(:) ! Import data from various component, on their grid
-    type(ESMF_State)       , pointer :: NStateExp(:) ! Export data to various component, on their grid
-    type(ESMF_FieldBundle) , pointer :: FBImp(:,:)   ! Import data from various components interpolated to various grids
-    type(ESMF_FieldBundle) , pointer :: FBExp(:)     ! Export data for various components, on their grid
+    type(ESMF_State)       , pointer :: NStateImp(:)   ! Import data from various component, on their grid
+    type(ESMF_State)       , pointer :: NStateExp(:)   ! Export data to various component, on their grid
+    type(ESMF_FieldBundle) , pointer :: FBImp(:,:)     ! Import data from various components interpolated to various grids
+    type(ESMF_FieldBundle) , pointer :: FBExp(:)       ! Export data for various components, on their grid
 
     ! Mediator field bundles for ocean albedo
     type(ESMF_FieldBundle) :: FBMed_ocnalb_o            ! Ocn albedo on ocn grid
@@ -172,6 +174,9 @@ module med_internalstate_mod
 
     ! Fractions
     type(ESMF_FieldBundle), pointer :: FBfrac(:)     ! Fraction data for various components, on their grid
+
+    ! Data
+    type(ESMF_FieldBundle) , pointer :: FBData(:)    ! Background data for various components, on their grid, provided by CDEPS inline
 
     ! Accumulators for export field bundles
     type(ESMF_FieldBundle) :: FBExpAccumOcn      ! Accumulator for Ocn export on Ocn grid
@@ -303,6 +308,8 @@ contains
 
     ! Allocate memory now that ncomps is determined
     allocate(is_local%wrap%med_coupling_active(ncomps,ncomps))
+    allocate(is_local%wrap%med_data_active(ncomps,ncomps))
+    allocate(is_local%wrap%med_data_force_first(ncomps))
     allocate(is_local%wrap%nx(ncomps))
     allocate(is_local%wrap%ny(ncomps))
     allocate(is_local%wrap%NStateImp(ncomps))
@@ -316,6 +323,7 @@ contains
     allocate(is_local%wrap%packed_data(ncomps,ncomps,nmappers))
     allocate(is_local%wrap%FBfrac(ncomps))
     allocate(is_local%wrap%FBArea(ncomps))
+    allocate(is_local%wrap%FBData(ncomps))
     allocate(is_local%wrap%mesh_info(ncomps))
 
     ! Determine component names
@@ -363,6 +371,15 @@ contains
     if (isPresent .and. isSet) dststatus_print=(trim(cvalue) == "true")
     write(msgString,*) trim(subname)//': Mediator dststatus_print is ',dststatus_print
     call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
+
+    ! Initialize flag for background fill using data
+    is_local%wrap%med_data_active(:,:) = .false.
+    is_local%wrap%med_data_active(compocn,compatm) = .true.
+    is_local%wrap%med_data_active(compatm,compocn) = .true.
+    is_local%wrap%med_data_active(compatm,compwav) = .true.
+
+    ! Initialize flag to force using data in first coupling time step
+    is_local%wrap%med_data_force_first(:) = .false.
 
   end subroutine med_internalstate_init
 
@@ -584,7 +601,7 @@ contains
     if (is_local%wrap%comp_present(compocn)) defaultMasks(compocn,:) = 0
     if (is_local%wrap%comp_present(compice)) defaultMasks(compice,:) = 0
     if (is_local%wrap%comp_present(compwav)) defaultMasks(compwav,:) = 0
-    if ( trim(coupling_mode(1:4)) == 'nems') then
+    if ( trim(coupling_mode(1:3)) == 'ufs') then
        if (is_local%wrap%comp_present(compatm)) defaultMasks(compatm,:) = 1
     endif
     if ( trim(coupling_mode) == 'hafs') then

@@ -18,24 +18,6 @@
     </values>
   </entry>
 
-  <entry id="esmf_logging" modify_via_xml="ESMF_LOGFILE_KIND">
-    <type>char</type>
-    <category>cime_pes</category>
-    <group>PELAYOUT_attributes</group>
-    <desc>
-      Determines what ESMF log files (if any) are generated when
-          USE_ESMF_LIB is TRUE.
-      ESMF_LOGKIND_SINGLE: Use a single log file, combining messages from
-          all of the PETs. Not supported on some platforms.
-      ESMF_LOGKIND_MULTI: Use multiple log files — one per PET.
-      ESMF_LOGKIND_NONE: Do not issue messages to a log file.
-      By default, no ESMF log files are generated.
-    </desc>
-    <values>
-      <value>$ESMF_LOGFILE_KIND</value>
-    </values>
-  </entry>
-
   <entry id="pio_asyncio_ntasks" modify_via_xml="PIO_ASYNCIO_NTASKS">
     <type>integer</type>
     <category>pio</category>
@@ -961,6 +943,19 @@
     </desc>
     <values>
       <value>0.0D0</value>
+    </values>
+  </entry>
+
+  <entry id="add_gusts">
+    <type>logical</type>
+    <category>control</category>
+    <group>MED_attributes</group>
+    <desc>
+      add a wind gustiness factor
+    </desc>
+    <values>
+      <value CAMDEV="True">.true.</value>
+      <value CAMDEV="False">.false.</value>
     </values>
   </entry>
 

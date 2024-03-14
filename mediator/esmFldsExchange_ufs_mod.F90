@@ -1,4 +1,4 @@
-module esmFldsExchange_nems_mod
+module esmFldsExchange_ufs_mod
 
   !---------------------------------------------------------------------
   ! This is a mediator specific routine that determines ALL possible
@@ -9,7 +9,7 @@ module esmFldsExchange_nems_mod
   implicit none
   public
 
-  public :: esmFldsExchange_nems
+  public :: esmFldsExchange_ufs
 
   character(*), parameter :: u_FILE_u = &
        __FILE__
@@ -18,7 +18,7 @@ module esmFldsExchange_nems_mod
 contains
 !================================================================================
 
-  subroutine esmFldsExchange_nems(gcomp, phase, rc)
+  subroutine esmFldsExchange_ufs(gcomp, phase, rc)
 
     use ESMF
     use NUOPC
@@ -54,7 +54,7 @@ contains
     character(len=CL)   :: cvalue
     character(len=CS)   :: fldname
     character(len=CS), allocatable :: flds(:), oflds(:), aflds(:), iflds(:)
-    character(len=*) , parameter   :: subname='(esmFldsExchange_nems)'
+    character(len=*) , parameter   :: subname='(esmFldsExchange_ufs)'
     !--------------------------------------
 
     rc = ESMF_SUCCESS
@@ -68,7 +68,7 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! Set maptype according to coupling_mode
-    if (trim(coupling_mode) == 'nems_orig' .or. trim(coupling_mode) == 'nems_orig_data') then
+    if (trim(coupling_mode) == 'ufs.nfrac' .or. trim(coupling_mode) == 'ufs.nfrac.aoflux') then
       maptype = mapnstod_consf
     else
       maptype = mapconsf
@@ -76,7 +76,7 @@ contains
     write(msgString,'(A,i6,A)') trim(subname)//': maptype is ',maptype,', '//mapnames(maptype)
     call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
 
-    if (trim(coupling_mode) == 'nems_orig_data' .or. trim(coupling_mode) == 'nems_frac_aoflux') then
+    if (trim(coupling_mode) == 'ufs.nfrac.aoflux' .or. trim(coupling_mode) == 'ufs.frac.aoflux') then
        med_aoflux_to_ocn = .true.
     else
        med_aoflux_to_ocn = .false.
@@ -144,14 +144,6 @@ contains
     end if
 
     ! from med: ocean albedos (not sent to the ATM in UFS).
-    if (phase == 'advertise') then
-       call addfld_ocnalb('So_avsdr')
-       call addfld_ocnalb('So_avsdf')
-       call addfld_ocnalb('So_anidr')
-       call addfld_ocnalb('So_anidf')
-    end if
-
-    ! Advertise the ocean albedos. These are not sent to the ATM in UFS.
     if (phase == 'advertise') then
        call addfld_ocnalb('So_avsdr')
        call addfld_ocnalb('So_avsdf')
@@ -242,18 +234,46 @@ contains
        end if
     end if
 
-    ! to atm: unmerged surface temperatures from lnd
-    if (phase == 'advertise') then
-       if (is_local%wrap%comp_present(complnd) .and. is_local%wrap%comp_present(compatm)) then
-          call addfld_from(complnd , 'Sl_t')
-          call addfld_to(compatm   , 'Sl_t')
+    ! to atm: unmerged flux components from lnd
+    if (is_local%wrap%comp_present(complnd) .and. is_local%wrap%comp_present(compatm)) then
+       allocate(flds(6))
+       flds = (/ 'lat ', 'sen ', 'evap', 'gflx', 'roff', 'soff' /)
+       if (phase == 'advertise') then
+          do n = 1,size(flds)
+             call addfld_from(complnd, 'Fall_'//trim(flds(n)))
+             call addfld_to(compatm, 'Fall_'//trim(flds(n)))
+          end do
+       else
+          do n = 1,size(flds)
+             if ( fldchk(is_local%wrap%FBexp(compatm)        , 'Fall_'//trim(flds(n)), rc=rc) .and. &
+                  fldchk(is_local%wrap%FBImp(complnd,complnd), 'Fall_'//trim(flds(n)), rc=rc)) then
+                call addmap_from(complnd, 'Fall_'//trim(flds(n)), compatm, maptype, 'lfrac', 'unset')
+                call addmrg_to(compatm, 'Fall_'//trim(flds(n)), mrg_from=complnd, mrg_fld='Fall_'//trim(flds(n)), mrg_type='copy')
+             end if
+          end do
        end if
-    else
-       if ( fldchk(is_local%wrap%FBexp(compatm)        , 'Sl_t', rc=rc) .and. &
-            fldchk(is_local%wrap%FBImp(complnd,complnd), 'Sl_t', rc=rc)) then
-          call addmap_from(complnd, 'Sl_t', compatm, maptype, 'lfrin', 'unset')
-          call addmrg_to(compatm, 'Sl_t', mrg_from=complnd, mrg_fld='Sl_t', mrg_type='copy')
+       deallocate(flds)
+    end if
+
+    ! to atm: unmerged state variables from lnd
+    if (is_local%wrap%comp_present(complnd) .and. is_local%wrap%comp_present(compatm)) then
+       allocate(flds(7))
+       flds = (/ 'sfrac', 'tref ', 'qref ', 'q    ', 'cmm  ', 'chh  ', 'zvfun' /)
+       if (phase == 'advertise') then
+          do n = 1,size(flds)
+             call addfld_from(complnd, 'Sl_'//trim(flds(n)))
+             call addfld_to(compatm, 'Sl_'//trim(flds(n)))
+          end do
+       else
+          do n = 1,size(flds)
+             if ( fldchk(is_local%wrap%FBexp(compatm)        , 'Sl_'//trim(flds(n)), rc=rc) .and. &
+                  fldchk(is_local%wrap%FBImp(complnd,complnd), 'Sl_'//trim(flds(n)), rc=rc)) then
+                call addmap_from(complnd, 'Sl_'//trim(flds(n)), compatm, maptype, 'lfrac', 'unset')
+                call addmrg_to(compatm, 'Sl_'//trim(flds(n)), mrg_from=complnd, mrg_fld='Sl_'//trim(flds(n)), mrg_type='copy')
+             end if
+          end do
        end if
+       deallocate(flds)
     end if
 
     ! to atm: unmerged from mediator, merge will be done under FV3/CCPP composite step
@@ -721,21 +741,19 @@ contains
     !=====================================================================
 
     ! to lnd - states and fluxes from atm
-    if ( trim(coupling_mode) == 'nems_orig_data') then
+    if ( trim(coupling_mode) == 'ufs.nfrac.aoflux') then
        allocate(flds(21))
        flds = (/'Sa_z      ', 'Sa_topo   ', 'Sa_tbot   ', 'Sa_pbot   ', &
-                'Sa_shum   ', 'Sa_u      ', 'Sa_v      ', 'Faxa_lwdn ', &
-                'Sa_ptem   ', 'Sa_dens   ', 'Faxa_swdn ', 'Sa_pslv   ', &
-                'Faxa_snowc', 'Faxa_snowl', 'Faxa_rainc', 'Faxa_rainl', &
-                'Faxa_swndr', 'Faxa_swndf', 'Faxa_swvdr', 'Faxa_swvdf', &
-                'Faxa_swnet'/)
+                'Sa_shum   ', 'Sa_u      ', 'Sa_v      ', 'Sa_pslv   ', &
+                'Faxa_lwdn ', 'Faxa_swdn ', 'Faxa_snowc', 'Faxa_snowl', &
+                'Faxa_rainc', 'Faxa_rainl', 'Faxa_rain ', 'Faxa_swnet'/)
     else
        allocate(flds(18))
        flds = (/'Sa_z      ', 'Sa_ta     ', 'Sa_pslv   ', 'Sa_qa     ', &
-                'Sa_ua     ', 'Sa_va     ', 'Faxa_swdn ', 'Faxa_lwdn ', &
-                'Faxa_swnet', 'Faxa_rain ', 'Sa_prsl   ', 'vfrac     ', &
+                'Sa_u      ', 'Sa_v      ', 'Faxa_swdn ', 'Faxa_lwdn ', &
+                'Faxa_swnet', 'Faxa_rain ', 'Sa_prsl   ', 'Sa_vfrac  ', &
                 'Faxa_snow ', 'Faxa_rainc', 'Sa_tskn   ', 'Sa_exner  ', &
-                'Sa_ustar  ', 'zorl      ' /)
+                'Sa_ustar  ', 'Sa_zorl   ' /)
     end if
     do n = 1,size(flds)
        fldname = trim(flds(n))
@@ -754,6 +772,6 @@ contains
     end do
     deallocate(flds)
 
-  end subroutine esmFldsExchange_nems
+  end subroutine esmFldsExchange_ufs
 
-end module esmFldsExchange_nems_mod
+end module esmFldsExchange_ufs_mod
