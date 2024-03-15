@@ -34,12 +34,12 @@ med_kind_mod.o :
 med_constants_mod.o : med_kind_mod.o
 esmFlds.o : med_kind_mod.o
 esmFldsExchange_cesm_mod.o : med_kind_mod.o med_methods_mod.o esmFlds.o med_internalstate_mod.o med_utils_mod.o
-esmFldsExchange_nems_mod.o : med_kind_mod.o med_methods_mod.o esmFlds.o med_internalstate_mod.o med_utils_mod.o
+esmFldsExchange_ufs_mod.o : med_kind_mod.o med_methods_mod.o esmFlds.o med_internalstate_mod.o med_utils_mod.o
 esmFldsExchange_hafs_mod.o : med_kind_mod.o med_methods_mod.o esmFlds.o med_internalstate_mod.o med_utils_mod.o
 med.o : med_kind_mod.o med_phases_profile_mod.o med_utils_mod.o med_phases_prep_rof_mod.o med_phases_aofluxes_mod.o \
    med_phases_prep_ice_mod.o med_fraction_mod.o med_map_mod.o med_constants_mod.o med_phases_prep_wav_mod.o \
    med_phases_prep_lnd_mod.o med_phases_history_mod.o med_phases_ocnalb_mod.o med_phases_restart_mod.o \
-   med_time_mod.o med_internalstate_mod.o med_phases_prep_atm_mod.o esmFldsExchange_cesm_mod.o esmFldsExchange_nems_mod.o \
+   med_time_mod.o med_internalstate_mod.o med_phases_prep_atm_mod.o esmFldsExchange_cesm_mod.o esmFldsExchange_ufs_mod.o \
    esmFldsExchange_hafs_mod.o med_phases_prep_glc_mod.o esmFlds.o med_io_mod.o med_methods_mod.o med_phases_prep_ocn_mod.o \
    med_phases_post_atm_mod.o med_phases_post_ice_mod.o med_phases_post_lnd_mod.o med_phases_post_glc_mod.o med_phases_post_rof_mod.o \
    med_phases_post_wav_mod.o

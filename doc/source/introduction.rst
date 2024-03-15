@@ -31,7 +31,7 @@ matching of  standard field names. These  standard names are defined  in a field
 dictionary.  Since CMEPS  is a  community mediator,  these standard  names are
 specific to each application.
 
-   
+
 Organization of the CMEPS mediator code
 #######################################
 
@@ -39,28 +39,28 @@ Organization of the CMEPS mediator code
 When you check out the code you  will files, which can be organized into three
 groups:
 
-* totally generic components that carry  out the mediator functionality such as mapping, 
-  merging, restarts and history writes. Included here is a a  "fraction" module that 
-  determines  the fractions of different  source model components on every source 
+* totally generic components that carry  out the mediator functionality such as mapping,
+  merging, restarts and history writes. Included here is a a  "fraction" module that
+  determines  the fractions of different  source model components on every source
   destination mesh.
 
-* application specific  code that determines what fields  are exchanged between 
+* application specific  code that determines what fields  are exchanged between
   components and how they are merged and mapped.
 
-* prep phase modules  that carry out the mapping and merging  from one or more 
+* prep phase modules  that carry out the mapping and merging  from one or more
   source components to  the destination component.
 
 =========================== ============================ ===========================
   Generic Code               Application Specific Code   Prep Phase Code
 =========================== ============================ ===========================
 med.F90                     esmFldsExchange_cesm_mod.F90 med_phases_prep_atm_mod.F90
-esmFlds.F90                 esmFldsExchange_nems_mod.F90 med_phases_prep_ice_mod.F90
+esmFlds.F90                 esmFldsExchange_ufs_mod.F90  med_phases_prep_ice_mod.F90
 med_map_mod.F90             esmFldsExchange_hafs_mod.F90 med_phases_prep_ocn_mod.F90
 med_merge_mod.F90           fd_cesm.yaml                 med_phases_prep_glc_mod.F90
-med_frac_mod.F90            fd_nems.yaml                 med_phases_prep_lnd_mod.F90                          
-med_internalstate_mod.F90   fd_hafs.yaml                 med_phases_prep_rof_mod.F90               
-med_methods_mod.F90.                         
-med_phases_aofluxes_mod.F90 
+med_frac_mod.F90            fd_ufs.yaml                  med_phases_prep_lnd_mod.F90
+med_internalstate_mod.F90   fd_ufs.yaml                  med_phases_prep_rof_mod.F90
+med_methods_mod.F90.
+med_phases_aofluxes_mod.F90
 med_phases_ocnalb_mod.F90
 med_phases_history_mod.F90
 med_phases_restart_mod.F90
@@ -78,8 +78,8 @@ Mapping and Merging Primer
 #######################################
 
 This section provides a primer on mapping (interpolation) and merging of gridded
-coupled fields.  Masks, support for partial fractions on grids, weights generation, 
-and fraction 
+coupled fields.  Masks, support for partial fractions on grids, weights generation,
+and fraction
 weighted mapping and merging all play roles in the conservation and quality of the
 coupled fields.
 
@@ -89,11 +89,11 @@ A pair of atmosphere and ocean/ice grids can be used to highlight the analysis.
   :width: 400
   :alt: Sample CMEPS grids
 
-The most general CMEPS mediator assumes the ocean and sea ice surface grids are 
+The most general CMEPS mediator assumes the ocean and sea ice surface grids are
 identical while the atmosphere and land grids are also identical.  The ocean/ice
 grid defines the mask which means each ocean/ice gridcell is either a fully
-active ocean/ice gridcell or not (i.e. land).  Other configurations have been 
-and can be implemented and analyzed as well.  
+active ocean/ice gridcell or not (i.e. land).  Other configurations have been
+and can be implemented and analyzed as well.
 
 The ocean/ice mask interpolated to the atmosphere/land grid
 determines the complementary ocean/ice and land masks on the atmosphere grid.
@@ -112,12 +112,12 @@ The gridcells can be labeled as follows.
   :width: 300
   :alt: Sample CMEPS gridcell naming convention
 
-The atmosphere gridcell is labeled "a".  On the atmosphere gridcell (the red box), 
+The atmosphere gridcell is labeled "a".  On the atmosphere gridcell (the red box),
 in general,
 there is a land fraction (fal), an ocean fraction (fao), and a sea ice fraction
 (fai).  The sum of the surface fractions should always be 1.0 in these
-conventions.  There is also a gridbox average field on the atmosphere grid (Fa).  
-This could be a flux or a state that is 
+conventions.  There is also a gridbox average field on the atmosphere grid (Fa).
+This could be a flux or a state that is
 derived from the equivalent land (Fal), ocean (Fao), and sea ice (Fai) fields.
 The gridbox average field is computed by merging the various surfaces::
 
@@ -130,9 +130,9 @@ This is a standard merge where::
 and each surface field, Fal, Fao, and Fai are the values of the surface fields
 on the atmosphere grid.
 
-The ocean gridcells (blue boxes) are labeled 1, 2, 3, and 4 in this example.  
-In general, 
-each ocean/ice gridcell partially overlaps multiple atmosphere gridcells.  
+The ocean gridcells (blue boxes) are labeled 1, 2, 3, and 4 in this example.
+In general,
+each ocean/ice gridcell partially overlaps multiple atmosphere gridcells.
 Each ocean/ice gridcell has an overlapping Area (A) and a Mask (M) associated with it.
 In this example, land is colored green, ocean blue, and sea ice white so just for
 the figure depicted::
@@ -159,7 +159,7 @@ gridcells.  Nonlinear interpolation is not yet supported in most coupled systems
 
 Mapping weights can be defined in a number of ways even beyond conservative
 or bilinear.  They can be masked or normalized using multiple approaches.  The
-weights generation is intricately tied to other aspects of the coupling method.  
+weights generation is intricately tied to other aspects of the coupling method.
 In CMEPS, area-overlap conservative weights are defined as follows::
 
   w1 = A1/Aa
@@ -167,7 +167,7 @@ In CMEPS, area-overlap conservative weights are defined as follows::
   w3 = A3/Aa
   w4 = A4/Aa
 
-This simple approach which does not include any masking or normalization provides a 
+This simple approach which does not include any masking or normalization provides a
 number of useful attributes.  The weights always add up to 1.0::
 
   w1 + w2 + w3 + w4 = 1.0
@@ -207,11 +207,11 @@ And the equation for f_land and fal above are consistent if fl1=1-M1::
   fal = w1 + w2 + w3 + w4 - (w1*M1 + w2*M2 + w3*M3 + w4*M4)
   fal = 1 - (w1*M1 + w2*M2 + w3*M3 + w4*M4)
 
-Clearly defined and consistent weights, areas, fractions, and masks is critical 
+Clearly defined and consistent weights, areas, fractions, and masks is critical
 to generating conservation in the system.
 
 When mapping masked or fraction weighted fields, these weights require that the
-mapped field be normalized by the mapped fraction.  Consider a case where sea 
+mapped field be normalized by the mapped fraction.  Consider a case where sea
 surface temperature (SST) is to be mapped to the atmosphere grid with::
 
   M1 = 0; M2 = M3 = M4 = 1
@@ -223,15 +223,15 @@ because w1 is non-zero and Fo1 is underfined since it's a land gridcell
 on the ocean grid.  A masked weighted average,
 **Fa = M1*w1*Fo1 + M2*w2*Fo2 + M3*w3*Fo3 + M4*w4*Fo4 is also problematic**
 because M1 is zero, so the contribution of the first term is zero.  But the sum
-of the remaining weights (M2*w2 + M3*w3 + M4*w4) is now not identically 1 
-which means the weighted average is incorrect.  (To test this, assume all the 
+of the remaining weights (M2*w2 + M3*w3 + M4*w4) is now not identically 1
+which means the weighted average is incorrect.  (To test this, assume all the
 weights are each 0.25 and all the Fo values are 10 degC, Fa would then be 7.5 degC).
 Next consider a masked weighted normalized average,
 **f_ocean = (w1*M1 + w2*M2 + w3*M3 + w4*M4) combined with
 Fa = (M1*w1*Fo1 + M2*w2*Fo2 + M3*w3*Fo3 + M4*w4*Fo4) / (f_ocean) which produces a reasonable but incorrect result**
 because the weighted average uses the mask instead of the fraction.  The
 mask only produces a correct result
-in cases where there is no sea ice because sea ice impacts the surface fractions.  
+in cases where there is no sea ice because sea ice impacts the surface fractions.
 Finally, consider
 a fraction weighted normalized average using the dynamically varying
 ocean fraction that is exposed to the atmosphere::
@@ -249,9 +249,9 @@ fao is the mapped ocean fraction on the atmosphere gridcell, and Fa
 is the mapped SST.  The ocean fractions are only defined where the ocean
 mask is 1, otherwise the ocean and sea ice fractions are zero.
 Now, the SST in each ocean gridcell is weighted by the fraction of the ocean
-box exposed to the atmosphere and that weighted average is normalized by 
+box exposed to the atmosphere and that weighted average is normalized by
 the mapped dynamically varying fraction.  This produces a reasonable result
-as well as a conservative result.  
+as well as a conservative result.
 
 The conservation check involves thinking of Fo and Fa as a flux.  On the
 ocean grid, the quantity associated with the flux is::
@@ -268,7 +268,7 @@ Via some simple math, it can be shown that Qo = Qa if::
   fao = w1*fo1 + w2*fo2 + w3*fo3 + w4*fo4
   Fao = (fo1*w1*Fo1 + fo2*w2*Fo2 + fo3*w3*Fo3 + fo4*w4*Fo4) / (fao)
 
-In practice, the fraction weighted normlized mapping field is computed 
+In practice, the fraction weighted normlized mapping field is computed
 by mapping the ocean fraction and the fraction
 weighted field from the ocean to the atmosphere grid separately and then
 using the mapped fraction to normalize the field as a four step process::
@@ -278,19 +278,19 @@ using the mapped fraction to normalize the field as a four step process::
   Fao' = w1*Fo1' + w2*Fo2' + w3*Fo3' + w4*Fo4'  (c)
   Fao = Fao'/fao                                (d)
 
-Steps (b) and (c) above are the sparse matrix multiply by the standard 
+Steps (b) and (c) above are the sparse matrix multiply by the standard
 conservative weights.
-Step (a) fraction weighs the field and step (d) normalizes the mapped field.  
+Step (a) fraction weighs the field and step (d) normalizes the mapped field.
 
 Another way to think of this is that the mapped flux (Fao') is normalized by the
-same fraction (fao) that is used in the merge, so they actually cancel.  
-Both the normalization at the end of the mapping and the fraction weighting 
+same fraction (fao) that is used in the merge, so they actually cancel.
+Both the normalization at the end of the mapping and the fraction weighting
 in the merge can be skipped and the results should be identical.  But then the mediator
 will carry around Fao' instead of Fao and that field is far less intuitive
 as it no longer represents the gridcell average value, but some subarea average
 value.
 In addition, that approach is only valid when carrying out full surface merges.  If,
-for instance, the SST is to be interpolated and not merged with anything, the field 
+for instance, the SST is to be interpolated and not merged with anything, the field
 must be normalized after mapping to be useful.
 
 The same mapping and merging process is valid for the sea ice::
@@ -311,23 +311,23 @@ where now::
   Fao = (fo1*w1*Fo1 + fo2*w2*Fo2 + fo3*w3*Fo3 + fo4*w4*Fo4) / (fao)
   Fai = (fi1*w1*Fi1 + fi2*w2*Fi2 + fi3*w3*Fi3 + fi4*w4*Fi4) / (fai)
 
-will simplify to an equation that contains twelve distinct terms for each of the 
+will simplify to an equation that contains twelve distinct terms for each of the
 four ocean gridboxes and the three different surfaces::
 
-  Fa = (w1*fl1*Fl1 + w2*fl2*Fl2  + w3*fl3*Fl3 + w4*fl4*Fl4) + 
-       (w1*fo1*Fo1 + w2*fo2*Fo2  + w3*fo3*Fo3 + w4*fo4*Fo4) + 
-       (w1*fi1*Fi1 + w2*fi2*Fi2  + w3*fi3*Fi3 + w4*fi4*Fi4) 
+  Fa = (w1*fl1*Fl1 + w2*fl2*Fl2  + w3*fl3*Fl3 + w4*fl4*Fl4) +
+       (w1*fo1*Fo1 + w2*fo2*Fo2  + w3*fo3*Fo3 + w4*fo4*Fo4) +
+       (w1*fi1*Fi1 + w2*fi2*Fi2  + w3*fi3*Fi3 + w4*fi4*Fi4)
 
 and this further simplifies to something that looks like a mapping
 of the field merged on the ocean grid::
 
-  Fa = w1*(fl1*Fl1+fo1*Fo1+fi1*Fi1) + 
+  Fa = w1*(fl1*Fl1+fo1*Fo1+fi1*Fi1) +
        w2*(fl2*Fl2+fo2*Fo2+fi2*Fi2) +
-       w3*(fl3*Fl3+fo3*Fo3+fi3*Fi3) + 
+       w3*(fl3*Fl3+fo3*Fo3+fi3*Fi3) +
        w4*(fl4*Fl4+fo4*Fo4+fi4*Fi4)
 
 Like the exercise with Fao above, these equations can be shown to be
-fully conservative.  
+fully conservative.
 
 To summarize, multiple features such as area calculations,
 weights, masking, normalization, fraction weighting, and merging approaches
@@ -335,9 +335,9 @@ have to be considered together to ensure conservation.  The CMEPS mediator
 uses unmasked and unnormalized weights and then generally
 maps using the fraction weighted normalized approach.  Merges are carried
 out with fraction weights.
-This is applied to both state and flux fields, with conservative, bilinear, 
+This is applied to both state and flux fields, with conservative, bilinear,
 and other mapping approaches, and for both merged and unmerged fields.
-This ensures that the fields are always useful gridcell average values 
+This ensures that the fields are always useful gridcell average values
 when being coupled or analyzed throughout the coupling implementation.
 
 
@@ -353,7 +353,7 @@ model discretization, they are NOT ad-hoc.
 
 If the previous section, areas and weights were introduced.  Those areas
 were assumed to consist of the area overlaps between gridcells and were computed
-using a consistent approach such that the areas conserve.  ESMF is able to compute 
+using a consistent approach such that the areas conserve.  ESMF is able to compute
 these area overlaps and the corresponding mapping weights such that fluxes can
 be mapped and quantities are conserved.
 
@@ -369,13 +369,13 @@ ESMF are identical, and all the weights are 1.0.  So::
   F2*A2 = F1*A1 (conservation)
 
 Now lets assume that the two models have fundamentally different discretizations,
-different area algorithms (i.e. great circle vs simpler lon/lat approximations), 
+different area algorithms (i.e. great circle vs simpler lon/lat approximations),
 or even different
 assumptions about the size and shape of the earth.  The grids can be identical in
-terms of the longitude and latitude of the 
+terms of the longitude and latitude of the
 gridcell corners and centers, but the areas can also
-be different because of the underlying model implementation.  When a flux is passed 
-to or from each component, the quantity associated with that flux is proportional to 
+be different because of the underlying model implementation.  When a flux is passed
+to or from each component, the quantity associated with that flux is proportional to
 the model area, so::
 
   A1 = A2 (ESMF areas)
@@ -385,7 +385,7 @@ the model area, so::
   A1m != A2m  (model areas)
   F1*A1m != F2*A2m  (loss of conservation)
 
-This can be corrected by multiplying the fluxes 
+This can be corrected by multiplying the fluxes
 by an area correction.  For each model, outgoing fluxes should be multiplied
 by the model area divided by the ESMF area.  Incoming fluxes should be multiplied
 by the ESMF area divided by the model area.  So::
@@ -411,14 +411,14 @@ can actually be applied a number of ways.
 * Models can pass the areas to the mediator and the mediator can multiple fluxes by the source model area before mapping and divide by the destination model area area after mapping.
 * Models can pass the areas to the mediator and implement an area correction term on the incoming and outgoing fluxes that is the ratio of the model and ESMF areas.  This is the approach shown above and is how CMEPS traditionally implements this feature.
 
-Model areas should be passed to the mediator at initialization so the area corrections 
+Model areas should be passed to the mediator at initialization so the area corrections
 can be computed and applied.  These area corrections do not vary in time.
 
 
 Lags, Accumulation and Averaging
 #######################################
 
-In a coupled model, the component model sequencing and coupling frequency tend to introduce 
+In a coupled model, the component model sequencing and coupling frequency tend to introduce
 some lags as well as a requirement to accumulate and average.  This occurs when
 component models are running sequentially or concurrently.  In general, the component
 models advance in time separately and the "current time" in each model becomes out of
@@ -430,7 +430,7 @@ multiple timesteps are taken between coupling periods in a component model, the 
 states should be averaged over those timesteps before being passed back out to the
 coupler.  In the same way, the fluxes and states passed into the coupler should be
 averaged over shorter coupling periods for models that are coupled at longer coupling
-periods.  
+periods.
 
 For conservation of mass and energy, the field that is accumluated should be consistent
 with the field that would be passed if there were no averaging required.  Take for
@@ -447,13 +447,13 @@ where sum_n represents the sum over n time periods.  This can also be written as
 
   Fo = 1/n * (sum_n(fao*Fao) + sum_n(fio*Fio))
 
-So multiple terms can be summed and accumulated or the individual terms fao*Fao 
+So multiple terms can be summed and accumulated or the individual terms fao*Fao
 and fio*Fio can be accumulated and later summed and averaged in either order.
 Both approaches produce identical results.
 Finally, **it's important to note that sum_n(fao)*sum_n(Fao) does not produce the same
 results as the sum_n(fao*Fao)**.  In other words, the fraction weighted flux has to be
 accumulated and NOT the fraction and flux separately.  This is important for conservation
-in flux coupling.  The same approach should be taken with merged states to compute the 
+in flux coupling.  The same approach should be taken with merged states to compute the
 most accurate representation of the average state over the slow coupling period.
 An analysis and review of each coupling field should be carried out to determine
 the most conservative and accurate representation of averaged fields.  This is particularly
@@ -493,14 +493,14 @@ Simplifying the above equation::
 
   Fo = 1/n * sum_n(mapa2o(fao_a*Fao_a)
 
-Accumulation (sum_n) and mapping (mapa2o) are both linear operations so this can 
+Accumulation (sum_n) and mapping (mapa2o) are both linear operations so this can
 be written as::
 
   Fo = 1/n * mapa2o(sum_n(fao_a*Fao_a))
   Fo = mapa2o(1/n*sum_n(fao_a*Fao_a))
 
 which suggests that the accumulation can be done on the source side (i.e. atmosphere)
-and only mapped on the slow coupling period.  But again, fao_a*Fao_a has to be 
+and only mapped on the slow coupling period.  But again, fao_a*Fao_a has to be
 accumulated and then when mapped, NO fraction would be applied to the merge as this
 is already included in the mapped field.  In equation form, the full merged ocean
 field would be implemented as::
@@ -520,7 +520,7 @@ two atmosphere fields are mapped every fast coupling period, the merge is now
 fraction weighted for all terms, and the mapped fields, fao_o and Fao_o, have
 physically meaningful values.  Fao'_o above does not.  This implementation
 has a parallel with the normalization step.  As suggested above, there are two
-implementations for conservative mapping and merging in general.  The one outlined 
+implementations for conservative mapping and merging in general.  The one outlined
 above with fraction weighted normalized mapping and fraction weighted
 merging::
 
@@ -536,7 +536,7 @@ fraction is NOT applied during the merge::
 
 These will produce identical results in the same way that their accumulated averages
 do.
-  
+
 
 
 Flux Calculation Grid
@@ -564,7 +564,7 @@ equations::
   Fa = fl_a*Fal_a + fo_a*Fao_a + fi_a*Fai_a
   Fo =              fo_o*Fao_o + fi_o*Fio_o
 
-The above equations indicate that the land fraction on the atmosphere grid is the 
+The above equations indicate that the land fraction on the atmosphere grid is the
 complement of the mapped ocean mask and is static.  The ice and ocean fractions are
 determined from the ice model and are dynamic.  Both can be mapped to the atmosphere
 grid.  Finally, the atmosphere flux is a three-way merge of the land, ocean, and
@@ -572,7 +572,7 @@ ice terms on the atmosphere grid while the ocean flux is a two-way merge of the
 atmosphere and ice terms on the ocean grid.
 
 When the atmosphere/ocean and atmosphere/ice fluxes are both computed on the same
-grid, at the same frequency, and both are mapped to the atmosphere grid, conservative 
+grid, at the same frequency, and both are mapped to the atmosphere grid, conservative
 mapping and merging is relatively straight-forward::
 
   fo_a  = mapo2a(fo_o)
@@ -588,15 +588,15 @@ and everything conserves relatively directly::
   fi_a*Fai_a = fi_o*Fai_o
 
 When the atmosphere/ice fluxes are computed on the ocean grid while
-the atmosphere/ocean fluxes are computed on the atmosphere grid, 
+the atmosphere/ocean fluxes are computed on the atmosphere grid,
 extra care is needed with regard to fractions and conservation.  In this case::
 
   fo_a  = mapo2a(fo_o)
   Fao_o = mapa2o(fo_a*Fao_a)/mapa2o(fo_a)
   fi_a  = mapo2a(fi_o)
   Fai_a = mapo2a(fi_o*Fai_o)/fi_a
-  
-fo_o, fi_o, Fai_o, and Fao_a are specified and Fao_o has to be computed. The most 
+
+fo_o, fi_o, Fai_o, and Fao_a are specified and Fao_o has to be computed. The most
 important point here is that during the ocean merge, the mapped ocean fraction on the
 atmosphere grid is used so::
 

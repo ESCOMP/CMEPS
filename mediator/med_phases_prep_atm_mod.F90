@@ -115,8 +115,7 @@ contains
     !--- map atm/ocn fluxes from ocn to atm grid if appropriate
     !---------------------------------------
     if (trim(coupling_mode) == 'cesm' .or. &
-        trim(coupling_mode) == 'nems_frac_aoflux' .or. &
-        trim(coupling_mode) == 'nems_frac_aoflux_sbs') then
+         trim(coupling_mode) == 'ufs.frac.aoflux') then
        if (is_local%wrap%aoflux_grid == 'ogrid') then
           call med_aofluxes_map_ogrid2agrid_output(gcomp, rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
