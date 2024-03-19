@@ -173,6 +173,7 @@ module MED_typedefs
     integer                       :: lsm_noahmp                !< flag for NOAH MP land surface model
     logical                       :: redrag                    !< flag for reduced drag coeff. over sea
     integer                       :: sfc_z0_type               !< surface roughness options over water
+    integer                       :: icplocn2atm               !< flag controlling whether to consider ocean current in air-sea flux calculation 
     logical                       :: thsfc_loc                 !< flag for reference pressure in theta calculation
     integer                       :: nstf_name(5)              !< NSSTM flag: off/uncoupled/coupled=0/1/2
     integer                       :: lkm                       !< 0 = no lake model, 1 = lake model, 2 = lake & nsst on lake points
@@ -249,6 +250,8 @@ module MED_typedefs
     real(kind=kind_phys), pointer :: fice(:)         => null()  !< ice fraction over open water
     real(kind=kind_phys), pointer :: hice(:)         => null()  !< sea ice thickness (m)
     real(kind=kind_phys), pointer :: tsfco(:)        => null()  !< sea surface temperature
+    real(kind=kind_phys), pointer :: usfco(:)        => null()  !< sea surface ocean current (zonal) 
+    real(kind=kind_phys), pointer :: vsfco(:)        => null()  !< sea surface ocean current (merdional)
     real(kind=kind_phys), pointer :: uustar(:)       => null()  !< boundary layer parameter
     real(kind=kind_phys), pointer :: tsfc(:)         => null()  !< surface skin temperature
     real(kind=kind_phys), pointer :: snodi(:)        => null()  !< water equivalent snow depth over ice (mm)
@@ -640,6 +643,7 @@ module MED_typedefs
     model%ivegsrc = 2
     model%redrag = .false.
     model%sfc_z0_type = 0
+    model%icplocn2atm = 0
     model%thsfc_loc = .true.
     model%lsm = 1
     model%lsm_noahmp = 2
@@ -739,6 +743,10 @@ module MED_typedefs
     sfcprop%hice = clear_val
     allocate(sfcprop%tsfco(im))
     sfcprop%tsfco = clear_val
+    allocate(sfcprop%usfco(im))
+    sfcprop%usfco = clear_val
+    allocate(sfcprop%vsfco(im))
+    sfcprop%vsfco = clear_val
     allocate(sfcprop%uustar(im))
     sfcprop%uustar = clear_val
     allocate(sfcprop%tsfc(im))

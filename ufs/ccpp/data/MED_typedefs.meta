@@ -911,6 +911,12 @@
   units = flag
   dimensions = ()
   type = logical
+[icplocn2atm]
+  standard_name = control_for_air_sea_flux_computation_over_water
+  long_name = air-sea flux option
+  units = 1
+  dimensions = ()
+  type = integer
 [kdt]
   standard_name = index_of_timestep
   long_name = current forecast iteration
@@ -1153,6 +1159,20 @@
   standard_name = sea_surface_temperature
   long_name = sea surface temperature
   units = K
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+[usfco]
+  standard_name = x_ocean_current
+  long_name = zonal current at ocean surface
+  units = m s-1
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+[vsfco]
+  standard_name = y_ocean_current
+  long_name = meridional current at ocean surface
+  units = m s-1
   dimensions = (horizontal_loop_extent)
   type = real
   kind = kind_phys
