@@ -549,7 +549,6 @@ contains
     character(len=CL)       :: hist_file
     integer                 :: m,n
     logical                 :: isPresent
-    character(len=CS)       :: cvalue
     character(len=*), parameter :: subname='(med_phases_history_write_lnd2glc)'
     !---------------------------------------
 
