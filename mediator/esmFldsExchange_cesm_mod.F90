@@ -1386,6 +1386,40 @@ contains
     end if
 
     ! ---------------------------------------------------------------------
+    ! to atm: 10 m winds including/excluding gust component 
+    ! ---------------------------------------------------------------------
+    if (phase == 'advertise') then
+       call addfld_aoflux('So_u10withGust')
+       call addfld_to(compatm, 'So_u10withGust')
+    else
+       if ( fldchk(is_local%wrap%FBexp(compatm), 'So_u10withGust', rc=rc)) then
+          if (fldchk(is_local%wrap%FBMed_aoflux_o, 'So_u10withGust', rc=rc)) then
+             if (trim(is_local%wrap%aoflux_grid) == 'ogrid') then
+                call addmap_aoflux('So_u10withGust', compatm, mapconsf, 'ofrac', ocn2atm_map)
+             end if
+             call addmrg_to(compatm , 'So_u10withGust', &
+                  mrg_from=compmed, mrg_fld='So_u10withGust', mrg_type='merge', mrg_fracname='ofrac')
+          end if
+       end if
+    end if
+
+    if (phase == 'advertise') then
+       call addfld_aoflux('So_u10res')
+       call addfld_to(compatm, 'So_u10res')
+    else
+      if ( fldchk(is_local%wrap%FBexp(compatm), 'So_u10res', rc=rc)) then
+         if (fldchk(is_local%wrap%FBMed_aoflux_o, 'So_u10res', rc=rc)) then
+            if (trim(is_local%wrap%aoflux_grid) == 'ogrid') then
+               call addmap_aoflux('So_u10res', compatm, mapconsf, 'ofrac', ocn2atm_map)
+            end if
+            call addmrg_to(compatm , 'So_u10res', &
+                 mrg_from=compmed, mrg_fld='So_u10res', mrg_type='merge', mrg_fracname='ofrac')
+         end if
+      end if
+    end if
+
+
+    ! ---------------------------------------------------------------------
     ! to atm: surface snow depth             from ice (needed for cam)
     ! to atm: mean ice volume per unit area  from ice
     ! to atm: mean snow volume per unit area from ice
