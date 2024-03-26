@@ -519,19 +519,20 @@ contains
   end subroutine med_phases_history_write_med
 
   !===============================================================================
-  subroutine med_phases_history_write_lnd2glc(gcomp, fldbun, rc)
+  subroutine med_phases_history_write_lnd2glc(gcomp, fldbun_lnd, rc, fldbun_glc)
 
-    ! Write yearly average of lnd -> glc fields
+    ! Write yearly average of lnd -> glc fields on both land and glc grids
 
-    use med_internalstate_mod, only : complnd
+    use med_internalstate_mod, only : complnd, compglc
     use med_constants_mod , only : SecPerDay => med_constants_SecPerDay
     use med_io_mod        , only : med_io_write_time, med_io_define_time
     use med_io_mod        , only : med_io_date2yyyymmdd, med_io_sec2hms, med_io_ymd2date
 
     ! input/output variables
     type(ESMF_GridComp)    , intent(in)  :: gcomp
-    type(ESMF_FieldBundle) , intent(in)  :: fldbun
+    type(ESMF_FieldBundle) , intent(in)  :: fldbun_lnd
     integer                , intent(out) :: rc
+    type(ESMF_FieldBundle) , intent(in), optional :: fldbun_glc(:)
 
     ! local variables
     type(file_desc_t)       :: io_file
@@ -550,7 +551,7 @@ contains
     real(r8)                :: time_val     ! time coordinate output
     real(r8)                :: time_bnds(2) ! time bounds output
     character(len=CL)       :: hist_file
-    integer                 :: m
+    integer                 :: m,n
     logical                 :: isPresent
     character(len=*), parameter :: subname='(med_phases_history_write_lnd2glc)'
     !---------------------------------------
@@ -623,9 +624,21 @@ contains
           call med_io_write_time(io_file, time_val, time_bnds, nt=1, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
-       call med_io_write(io_file, fldbun, whead(m), wdata(m), is_local%wrap%nx(complnd), is_local%wrap%ny(complnd), &
+
+       call med_io_write(io_file, fldbun_lnd, whead(m), wdata(m), &
+            is_local%wrap%nx(complnd), is_local%wrap%ny(complnd), &
             nt=1, pre=trim(compname(complnd))//'Imp', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       if (present(fldbun_glc)) then
+          do n = 1,size(fldbun_glc)
+             call med_io_write(io_file, fldbun_glc(n), whead(m), wdata(m), &
+                  is_local%wrap%nx(compglc(n)), is_local%wrap%ny(compglc(n)), &
+                  nt=1, pre=trim(compname(compglc(n)))//'Exp', rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          end do
+       end if
+
     end do ! end of loop over m
 
     ! Close history file
