@@ -79,18 +79,22 @@ jobs:
       - name: checkout externals
         run: |
           pushd cesm
-          ./manage_externals/checkout_externals ccs_config cdeps cime share mct cpl7 parallelio
+          ./manage_externals/checkout_externals ccs_config cdeps share mct cpl7 parallelio
           cd ccs_config
-          git checkout main
-          cd ../cime
-          git checkout master
+          git checkout main 
+          cd ../
+          git clone https://github.com/ESMCI/cime
+          cd cime
           if [[ ! -e "${PWD}/.gitmodules.bak" ]]
              then
-              echo "Convering git@github.com to https://github.com urls in ${PWD}/.gitmodules"
+              echo "Converting git@github.com to https://github.com urls in ${PWD}/.gitmodules"
 
               sed -i".bak" "s/git@github.com:/https:\/\/github.com\//g" "${PWD}/.gitmodules"
           fi
           git submodule update --init
+          cd ../components/cdeps
+          git checkout main
+          
       - name: Cache ESMF
         id: cache-esmf
         uses: actions/cache@v3
