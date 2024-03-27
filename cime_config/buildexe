@@ -99,7 +99,7 @@ def _main_func():
     # build model executable
     makefile = os.path.join(casetools, "Makefile")
     exename = os.path.join(exeroot, cime_model + ".exe")
-
+    
     # always rebuild file esm.F90 this is because cpp macros in that file may have changed
     esm = os.path.join(bld_root,"esm.o")
     if os.path.isfile(esm):
@@ -108,12 +108,15 @@ def _main_func():
     # always relink
     if os.path.isfile(exename):
         os.remove(exename)
-
+    exename = os.path.relpath(exename, bld_root)
     cmd = "{} exec_se -j {} EXEC_SE={} COMP_NAME=driver {} -f {} "\
         .format(gmake, gmake_j, exename, gmake_args, makefile)
+    pio = os.environ.get("PIO")
+    if pio:
+        os.environ["PIO_LIBDIR"] = os.path.join(pio,"lib")
+        
 
-
-    rc, out, err = run_cmd(cmd,from_dir=bld_root)
+    rc, out, err = run_cmd(cmd,from_dir=bld_root,verbose=True)
     expect(rc==0,"Command {} failed rc={}\nout={}\nerr={}".format(cmd,rc,out,err))
     if err:
         logger.info(err)
