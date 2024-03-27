@@ -108,10 +108,12 @@ def _main_func():
     # always relink
     if os.path.isfile(exename):
         os.remove(exename)
-
+    exename = os.path.relpath(exename, bld_root)
     cmd = "{} exec_se -j {} EXEC_SE={} COMP_NAME=driver {} -f {} "\
         .format(gmake, gmake_j, exename, gmake_args, makefile)
-
+    pio = os.environ.get("PIO")
+    if pio:
+        os.environ["PIO_LIBDIR"] = os.path.join(pio,"lib")
 
     rc, out, err = run_cmd(cmd,from_dir=bld_root)
     expect(rc==0,"Command {} failed rc={}\nout={}\nerr={}".format(cmd,rc,out,err))
