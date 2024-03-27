@@ -59,6 +59,9 @@ class DriverConfig(dict):
         elif (comp_glc == 'cism'):
             if not case.get_value("CISM_EVOLVE"):
                 med_to_glc = False
+        elif (comp_glc == 'dglc'):
+            if not case.get_value("DGLC_GET_IMPORT_DATA"):
+                med_to_glc = False
 
         # If CISM is not evolving only get data back from cism at the initial time
         # However will still need to call the exchange at the end if the stop_option
@@ -77,6 +80,8 @@ class DriverConfig(dict):
                     glc_coupling_time = stop_n * 86400
                 else:
                     glc_coupling_time = 86400
+        elif (comp_glc == 'dglc'):
+            glc_coupling_time = coupling_times["glc_cpl_dt"]
         elif (comp_glc == 'xglc'):
             glc_coupling_time = coupling_times["glc_cpl_dt"]
         else:

@@ -20,7 +20,7 @@ def gen_runseq(case, coupling_times):
     cpl_seq_option = case.get_value('CPL_SEQ_OPTION')
     coupling_mode  = case.get_value('COUPLING_MODE')
     diag_mode      = case.get_value('BUDGETS')
-    xcompset = case.get_value("COMP_ATM") == 'xatm'
+    xcompset       = case.get_value("COMP_ATM") == 'xatm'
     cpl_add_aoflux = not xcompset and case.get_value('ADD_AOFLUX_TO_RUNSEQ')
 
     # It is assumed that if a component will be run it will send information to the mediator
@@ -41,6 +41,12 @@ def gen_runseq(case, coupling_times):
     if (comp_glc == 'cism'):
         run_glc = True
         if case.get_value("CISM_EVOLVE"):
+            post_glc = True
+        else:
+            post_glc = False
+    elif (comp_glc == 'dglc'):
+        run_glc = True
+        if case.get_value("DGLC_IMPORT_ON"):
             post_glc = True
         else:
             post_glc = False

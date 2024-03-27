@@ -537,6 +537,7 @@
     <default_value>FALSE</default_value>
     <values match="last">
       <value compset="_CLM.+CISM\d">TRUE</value>
+      <value compset="_CLM.+DGLC%">TRUE</value>
       <!-- Turn on two-way coupling for TG compsets - even though there are no
            feedbacks for a TG compset, this will give us additional diagnostics -->
       <value compset="_DLND.+CISM\d">TRUE</value>
