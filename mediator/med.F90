@@ -2256,7 +2256,8 @@ contains
     use ESMF                  , only : ESMF_ClockGetAlarmList
     use NUOPC                 , only : NUOPC_CompCheckSetClock, NUOPC_CompAttributeGet
     use NUOPC_Mediator        , only : NUOPC_MediatorGet
-
+    use nuopc_shr_methods, only : get_minimum_timestep
+    
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc
@@ -2271,6 +2272,8 @@ contains
     character(len=CL)       :: stop_option
     integer                 :: stop_n, stop_ymd
     logical, save           :: stopalarmcreated=.false.
+    integer                 :: min_timestep = 0    ! used for nsteps option
+    character(len=*), parameter :: optNsteps = "nstep"
     character(len=*), parameter :: subname = '('//__FILE__//':SetRunClock)'
     !-----------------------------------------------------------
 
@@ -2313,8 +2316,13 @@ contains
        call NUOPC_CompAttributeGet(gcomp, name="stop_ymd", value=cvalue, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        read(cvalue,*) stop_ymd
+
+       if (stop_option(1:len(optnsteps)) .eq. optNSteps) then
+          min_timestep = get_minimum_timestep(gcomp, rc)
+       endif
+
        call med_time_alarmInit(mclock, stop_alarm, stop_option, opt_n=stop_n, opt_ymd=stop_ymd, &
-            alarmname='alarm_stop', rc=rc)
+            alarmname='alarm_stop', min_timestep=min_timestep, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        stopalarmcreated = .true.
     end if

@@ -48,6 +48,7 @@ contains
     use NUOPC        , only : NUOPC_CompAttributeGet
     use NUOPC_Model  , only : NUOPC_ModelGet
     use med_time_mod , only : med_time_AlarmInit
+    use nuopc_shr_methods, only : get_minimum_timestep
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -64,6 +65,8 @@ contains
     integer                 :: restart_n       ! freq_n setting relative to freq_option
     logical                 :: isPresent
     logical                 :: isSet
+    integer                 :: min_timestep = 0    ! used for nsteps option
+    character(len=*), parameter :: optNsteps = "nstep"
     character(len=*), parameter :: subname='(med_phases_restart_alarm_init)'
     !---------------------------------------
 
@@ -83,8 +86,16 @@ contains
     ! Set alarm for instantaneous mediator restart output
     call ESMF_ClockGet(mclock, currTime=mCurrTime,  rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    print *,__FILE__,__LINE__,trim(restart_option), trim(optNsteps)
+    if (restart_option(1:len(optNsteps)) .eq. optNSteps) then
+       min_timestep = get_minimum_timestep(gcomp, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       print *,__FILE__,__LINE__,min_timestep
+    endif
+    
     call med_time_alarmInit(mclock, alarm, option=restart_option, opt_n=restart_n, &
-         reftime=mcurrTime, alarmname='alarm_restart', rc=rc)
+         reftime=mcurrTime, alarmname='alarm_restart', min_timestep=min_timestep, rc=rc)
+
     call ESMF_AlarmSet(alarm, clock=mclock, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 

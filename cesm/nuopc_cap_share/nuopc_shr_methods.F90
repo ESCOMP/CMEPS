@@ -35,36 +35,35 @@ module nuopc_shr_methods
   public  :: state_setscalar
   public  :: state_diagnose
   public  :: alarmInit
+  public  :: get_minimum_timestep
   public  :: chkerr
 
   private :: timeInit
   private :: field_getfldptr
 
-  ! Clock and alarm options
-  character(len=*), private, parameter :: &
-       optNONE           = "none"      , &
-       optNever          = "never"     , &
-       optNSteps         = "nsteps"    , &
-       optNStep          = "nstep"     , &
-       optNSeconds       = "nseconds"  , &
-       optNSecond        = "nsecond"   , &
-       optNMinutes       = "nminutes"  , &
-       optNMinute        = "nminute"   , &
-       optNHours         = "nhours"    , &
-       optNHour          = "nhour"     , &
-       optNDays          = "ndays"     , &
-       optNDay           = "nday"      , &
-       optNMonths        = "nmonths"   , &
-       optNMonth         = "nmonth"    , &
-       optNYears         = "nyears"    , &
-       optNYear          = "nyear"     , &
-       optMonthly        = "monthly"   , &
-       optYearly         = "yearly"    , &
-       optEnd            = "end"       , &
-       optDate           = "date"
-
-  
   ! Module data
+  
+  ! Clock and alarm options shared with esm_time_mod along with dtime_driver which is initialized there.
+  ! Dtime_driver is needed here for setting alarm options which use the nstep option and is a module variable
+  ! to avoid requiring a change in all model caps. 
+  character(len=*), public, parameter :: &
+       optNONE           = "none"    , &
+       optNever          = "never"   , &
+       optNSteps         = "nstep"   , &
+       optNSeconds       = "nsecond" , &
+       optNMinutes       = "nminute" , &
+       optNHours         = "nhour"   , &
+       optNDays          = "nday"    , &
+       optNMonths        = "nmonth"  , &
+       optNYears         = "nyear"   , &
+       optMonthly        = "monthly" , &
+       optYearly         = "yearly"  , &
+       optDate           = "date"    , &
+       optEnd            = "end"       , &
+       optGLCCouplingPeriod = "glc_coupling_period"
+  
+  integer, public :: dtime_drv ! initialized in esm_time_mod.F90
+
   integer, parameter :: SecPerDay = 86400 ! Seconds per day
   integer, parameter :: memdebug_level=1
   character(len=1024)                   :: msgString
@@ -566,21 +565,7 @@ contains
     ! Determine inputs for call to create alarm
     selectcase (trim(option))
 
-    case (optNONE)
-       call ESMF_TimeIntervalSet(AlarmInterval, yy=9999, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_TimeSet( NextAlarm, yy=9999, mm=12, dd=1, s=0, calendar=cal, rc=rc )
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       update_nextalarm  = .false.
-
-    case (optNever)
-       call ESMF_TimeIntervalSet(AlarmInterval, yy=9999, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_TimeSet( NextAlarm, yy=9999, mm=12, dd=1, s=0, calendar=cal, rc=rc )
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       update_nextalarm  = .false.
-
-    case (optEnd)
+    case (optNONE, optNever, optEnd)
        call ESMF_TimeIntervalSet(AlarmInterval, yy=9999, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        call ESMF_TimeSet( NextAlarm, yy=9999, mm=12, dd=1, s=0, calendar=cal, rc=rc )
@@ -600,27 +585,15 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        update_nextalarm  = .false.
 
-    case (optNSteps)
-       if (.not.present(opt_n)) then
-          call shr_sys_abort(subname//trim(option)//' requires opt_n')
-       end if
-       if (opt_n <= 0) then
-          call shr_sys_abort(subname//trim(option)//' invalid opt_n')
-       end if
-       call ESMF_ClockGet(clock, TimeStep=AlarmInterval, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       AlarmInterval = AlarmInterval * opt_n
-       update_nextalarm  = .true.
-
-    case (optNStep)
+    case (optNSteps, trim(optNSteps)//'s')
        if (.not.present(opt_n)) call shr_sys_abort(subname//trim(option)//' requires opt_n')
        if (opt_n <= 0)  call shr_sys_abort(subname//trim(option)//' invalid opt_n')
-       call ESMF_ClockGet(clock, TimeStep=AlarmInterval, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       AlarmInterval = AlarmInterval * opt_n
+       ! variable dtime_drv is the smallest component timestep, set in esm_time_mod.F90
+       call ESMF_TimeIntervalSet(AlarmInterval, s=dtime_drv, rc=rc )
+       AlarmInterval = AlarmInterval * opt_n 
        update_nextalarm  = .true.
 
-    case (optNSeconds)
+    case (optNSeconds, trim(optNSeconds)//'s')
        if (.not.present(opt_n)) then
           call shr_sys_abort(subname//trim(option)//' requires opt_n')
        end if
@@ -632,19 +605,7 @@ contains
        AlarmInterval = AlarmInterval * opt_n
        update_nextalarm  = .true.
 
-    case (optNSecond)
-       if (.not.present(opt_n)) then
-          call shr_sys_abort(subname//trim(option)//' requires opt_n')
-       end if
-       if (opt_n <= 0) then
-          call shr_sys_abort(subname//trim(option)//' invalid opt_n')
-       end if
-       call ESMF_TimeIntervalSet(AlarmInterval, s=1, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       AlarmInterval = AlarmInterval * opt_n
-       update_nextalarm  = .true.
-
-    case (optNMinutes)
+    case (optNMinutes, trim(optNMinutes)//'s')
        call ESMF_TimeIntervalSet(AlarmInterval, s=60, rc=rc)
        if (.not.present(opt_n)) then
           call shr_sys_abort(subname//trim(option)//' requires opt_n')
@@ -655,19 +616,7 @@ contains
        AlarmInterval = AlarmInterval * opt_n
        update_nextalarm  = .true.
 
-    case (optNMinute)
-       if (.not.present(opt_n)) then
-          call shr_sys_abort(subname//trim(option)//' requires opt_n')
-       end if
-       if (opt_n <= 0) then
-          call shr_sys_abort(subname//trim(option)//' invalid opt_n')
-       end if
-       call ESMF_TimeIntervalSet(AlarmInterval, s=60, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       AlarmInterval = AlarmInterval * opt_n
-       update_nextalarm  = .true.
-
-    case (optNHours)
+    case (optNHours, trim(optNHours)//'s')
        if (.not.present(opt_n)) then
           call shr_sys_abort(subname//trim(option)//' requires opt_n')
        end if
@@ -679,19 +628,7 @@ contains
        AlarmInterval = AlarmInterval * opt_n
        update_nextalarm  = .true.
 
-    case (optNHour)
-       if (.not.present(opt_n)) then
-          call shr_sys_abort(subname//trim(option)//' requires opt_n')
-       end if
-       if (opt_n <= 0) then
-          call shr_sys_abort(subname//trim(option)//' invalid opt_n')
-       end if
-       call ESMF_TimeIntervalSet(AlarmInterval, s=3600, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       AlarmInterval = AlarmInterval * opt_n
-       update_nextalarm  = .true.
-
-    case (optNDays)
+    case (optNDays, trim(optNDays)//'s')
        if (.not.present(opt_n)) then
           call shr_sys_abort(subname//trim(option)//' requires opt_n')
        end if
@@ -703,31 +640,7 @@ contains
        AlarmInterval = AlarmInterval * opt_n
        update_nextalarm  = .true.
 
-    case (optNDay)
-       if (.not.present(opt_n)) then
-          call shr_sys_abort(subname//trim(option)//' requires opt_n')
-       end if
-       if (opt_n <= 0) then
-          call shr_sys_abort(subname//trim(option)//' invalid opt_n')
-       end if
-       call ESMF_TimeIntervalSet(AlarmInterval, d=1, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       AlarmInterval = AlarmInterval * opt_n
-       update_nextalarm  = .true.
-
-    case (optNMonths)
-       if (.not.present(opt_n)) then
-          call shr_sys_abort(subname//trim(option)//' requires opt_n')
-       end if
-       if (opt_n <= 0) then
-          call shr_sys_abort(subname//trim(option)//' invalid opt_n')
-       end if
-       call ESMF_TimeIntervalSet(AlarmInterval, mm=1, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       AlarmInterval = AlarmInterval * opt_n
-       update_nextalarm  = .true.
-
-    case (optNMonth)
+    case (optNMonths, trim(optNMonths)//'s')
        if (.not.present(opt_n)) then
           call shr_sys_abort(subname//trim(option)//' requires opt_n')
        end if
@@ -746,19 +659,7 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        update_nextalarm  = .true.
 
-    case (optNYears)
-       if (.not.present(opt_n)) then
-          call shr_sys_abort(subname//trim(option)//' requires opt_n')
-       end if
-       if (opt_n <= 0) then
-          call shr_sys_abort(subname//trim(option)//' invalid opt_n')
-       end if
-       call ESMF_TimeIntervalSet(AlarmInterval, yy=1, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       AlarmInterval = AlarmInterval * opt_n
-       update_nextalarm  = .true.
-
-    case (optNYear)
+    case (optNYears, trim(optNYears)//'s')
        if (.not.present(opt_n)) then
           call shr_sys_abort(subname//trim(option)//' requires opt_n')
        end if
@@ -838,6 +739,64 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
   end subroutine timeInit
+
+!===============================================================================
+
+  integer function get_minimum_timestep(gcomp, rc)
+    type(ESMF_GridComp), intent(in) :: gcomp
+    integer, intent(out)            :: rc
+
+    character(len=CS) :: cvalue
+    integer                 :: atm_cpl_dt          ! Atmosphere coupling interval
+    integer                 :: lnd_cpl_dt          ! Land coupling interval
+    integer                 :: ice_cpl_dt          ! Sea-Ice coupling interval
+    integer                 :: ocn_cpl_dt          ! Ocean coupling interval
+    integer                 :: glc_cpl_dt          ! Glc coupling interval
+    integer                 :: rof_cpl_dt          ! Runoff coupling interval
+    integer                 :: wav_cpl_dt          ! Wav coupling interval
+
+    !    integer                 :: esp_cpl_dt          ! Esp coupling interval
+
+    !---------------------------------------------------------------------------
+    ! Determine driver clock timestep
+    !---------------------------------------------------------------------------
+    
+    call NUOPC_CompAttributeGet(gcomp, name="atm_cpl_dt", value=cvalue, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    read(cvalue,*) atm_cpl_dt
+
+    call NUOPC_CompAttributeGet(gcomp, name="lnd_cpl_dt", value=cvalue, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    read(cvalue,*) lnd_cpl_dt
+
+    call NUOPC_CompAttributeGet(gcomp, name="ice_cpl_dt", value=cvalue, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    read(cvalue,*) ice_cpl_dt
+
+    call NUOPC_CompAttributeGet(gcomp, name="ocn_cpl_dt", value=cvalue, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    read(cvalue,*) ocn_cpl_dt
+
+    call NUOPC_CompAttributeGet(gcomp, name="glc_cpl_dt", value=cvalue, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    read(cvalue,*) glc_cpl_dt
+
+    call NUOPC_CompAttributeGet(gcomp, name="rof_cpl_dt", value=cvalue, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    read(cvalue,*) rof_cpl_dt
+
+    call NUOPC_CompAttributeGet(gcomp, name="wav_cpl_dt", value=cvalue, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    read(cvalue,*) wav_cpl_dt
+
+    get_minimum_timestep = minval((/atm_cpl_dt, lnd_cpl_dt, ocn_cpl_dt, ice_cpl_dt, glc_cpl_dt, rof_cpl_dt, wav_cpl_dt/))
+    if(get_minimum_timestep <= 0) then
+       print *,__FILE__,__LINE__,atm_cpl_dt, lnd_cpl_dt, ocn_cpl_dt, ice_cpl_dt, glc_cpl_dt, rof_cpl_dt, wav_cpl_dt
+       call ESMF_LogWrite('minimum_timestep_error ERROR ', ESMF_LOGMSG_ERROR)
+       rc = ESMF_FAILURE
+       return
+    endif
+  end function get_minimum_timestep
 
 !===============================================================================
 

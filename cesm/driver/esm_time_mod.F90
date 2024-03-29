@@ -18,7 +18,7 @@ module esm_time_mod
   use ESMF                , only : operator(<=), operator(>), operator(==)
   use NUOPC               , only : NUOPC_CompAttributeGet
   use esm_utils_mod       , only : chkerr
-
+  
   implicit none
   private    ! default private
 
@@ -54,7 +54,7 @@ contains
 !===============================================================================
 
   subroutine esm_time_clockInit(ensemble_driver, instance_driver, logunit, maintask, rc)
-
+    use nuopc_shr_methods, only : get_minimum_timestep, dtime_drv
     ! input/output variables
     type(ESMF_GridComp)  :: ensemble_driver, instance_driver
     integer, intent(in)  :: logunit
@@ -81,20 +81,11 @@ contains
     integer                 :: stop_ymd            ! Stop date (YYYYMMDD)
     integer                 :: stop_tod            ! Stop time-of-day
     character(CS)           :: stop_option         ! Stop option units
-    integer                 :: atm_cpl_dt          ! Atmosphere coupling interval
-    integer                 :: lnd_cpl_dt          ! Land coupling interval
-    integer                 :: ice_cpl_dt          ! Sea-Ice coupling interval
-    integer                 :: ocn_cpl_dt          ! Ocean coupling interval
-    integer                 :: glc_cpl_dt          ! Glc coupling interval
-    integer                 :: rof_cpl_dt          ! Runoff coupling interval
-    integer                 :: wav_cpl_dt          ! Wav coupling interval
-!    integer                 :: esp_cpl_dt          ! Esp coupling interval
     character(CS)           :: glc_avg_period      ! Glc avering coupling period
     logical                 :: read_restart
     character(len=CL)       :: restart_file
     character(len=CL)       :: restart_pfile
     character(len=CL)       :: cvalue
-    integer                 :: dtime_drv           ! time-step to use
     integer                 :: yr, mon, day        ! Year, month, day as integers
     integer                 :: unitn               ! unit number
     integer                 :: ierr                ! Return code
@@ -122,44 +113,7 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     read(cvalue,*) start_tod
 
-    !---------------------------------------------------------------------------
-    ! Determine driver clock timestep
-    !---------------------------------------------------------------------------
 
-    call NUOPC_CompAttributeGet(ensemble_driver, name="atm_cpl_dt", value=cvalue, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) atm_cpl_dt
-
-    call NUOPC_CompAttributeGet(ensemble_driver, name="lnd_cpl_dt", value=cvalue, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) lnd_cpl_dt
-
-    call NUOPC_CompAttributeGet(ensemble_driver, name="ice_cpl_dt", value=cvalue, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) ice_cpl_dt
-
-    call NUOPC_CompAttributeGet(ensemble_driver, name="ocn_cpl_dt", value=cvalue, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) ocn_cpl_dt
-
-    call NUOPC_CompAttributeGet(ensemble_driver, name="glc_cpl_dt", value=cvalue, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) glc_cpl_dt
-
-    call NUOPC_CompAttributeGet(ensemble_driver, name="rof_cpl_dt", value=cvalue, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) rof_cpl_dt
-
-    call NUOPC_CompAttributeGet(ensemble_driver, name="wav_cpl_dt", value=cvalue, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) wav_cpl_dt
-
-    dtime_drv = minval((/atm_cpl_dt, lnd_cpl_dt, ocn_cpl_dt, ice_cpl_dt, glc_cpl_dt, rof_cpl_dt, wav_cpl_dt/))
-    if(maintask) then
-       write(tmpstr,'(i10)') dtime_drv
-       call ESMF_LogWrite(trim(subname)//': driver time interval is : '// trim(tmpstr), ESMF_LOGMSG_INFO, rc=rc)
-       write(logunit,*)   trim(subname)//': driver time interval is : '// trim(tmpstr)
-    endif
     call ESMF_GridCompGet(ensemble_driver, vm=envm, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     
@@ -282,6 +236,12 @@ contains
     call ESMF_TimeSet( RefTime, yy=yr, mm=mon, dd=day, s=ref_tod, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+    dtime_drv = get_minimum_timestep(ensemble_driver, rc)
+    if(maintask) then
+       write(tmpstr,'(i10)') dtime_drv
+       call ESMF_LogWrite(trim(subname)//': driver time interval is : '// trim(tmpstr), ESMF_LOGMSG_INFO, rc=rc)
+       write(logunit,*)   trim(subname)//': driver time interval is : '// trim(tmpstr)
+    endif
     call ESMF_TimeIntervalSet( TimeStep, s=dtime_drv, rc=rc )
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
@@ -292,7 +252,7 @@ contains
     ! Create the clock
     clock = ESMF_ClockCreate(TimeStep, StartTime, refTime=RefTime, name='ESMF Driver Clock', rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
+    
     ! Advance the clock to the current time (in case of a restart)
     call ESMF_ClockGet(clock, currTime=clocktime, rc=rc )
     if (ChkErr(rc,__LINE__,u_FILE_u)) return

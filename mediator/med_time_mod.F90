@@ -12,7 +12,7 @@ module med_time_mod
   use ESMF                , only : ESMF_SUCCESS, ESMF_LogWrite, ESMF_FAILURE
   use ESMF                , only : ESMF_VM, ESMF_VMGet, ESMF_VMBroadcast
   use ESMF                , only : ESMF_LOGMSG_INFO, ESMF_FAILURE, ESMF_LOGMSG_ERROR
-  use ESMF                , only : operator(<), operator(/=), operator(+)
+  use ESMF                , only : operator(<), operator(/=), operator(+), mod
   use ESMF                , only : operator(-), operator(*) , operator(>=)
   use ESMF                , only : operator(<=), operator(>), operator(==)
   use med_constants_mod   , only : dbug_flag => med_constants_dbug_flag
@@ -51,7 +51,7 @@ contains
 !===============================================================================
 
   subroutine med_time_alarmInit( clock, alarm, option, &
-       opt_n, opt_ymd, opt_tod, reftime, alarmname, advance_clock, rc)
+       opt_n, opt_ymd, opt_tod, reftime, alarmname, advance_clock, min_timestep, rc)
 
     ! Setup an alarm in a clock
     ! Notes: The ringtime sent to AlarmCreate MUST be the next alarm
@@ -74,6 +74,7 @@ contains
     type(ESMF_Time)  , optional , intent(in)    :: reftime       ! reference time
     character(len=*) , optional , intent(in)    :: alarmname     ! alarm name
     logical          , optional , intent(in)    :: advance_clock ! advance clock to trigger alarm
+    integer          , optional , intent(in)    :: min_timestep  ! used for nsteps option only
     integer                     , intent(out)   :: rc            ! Return code
 
     ! local variables
@@ -85,6 +86,7 @@ contains
     logical                 :: update_nextalarm ! update next alarm
     type(ESMF_Time)         :: CurrTime         ! Current Time
     type(ESMF_Time)         :: NextAlarm        ! Next alarm time
+    type(ESMF_TimeInterval) :: TimeStepInterval ! Timestep interval
     type(ESMF_TimeInterval) :: AlarmInterval    ! Alarm interval
     character(len=*), parameter :: subname = '(med_time_alarmInit): '
     !-------------------------------------------------------------------------------
@@ -139,11 +141,25 @@ contains
           rc = ESMF_FAILURE
           return
        end if
+       if(trim(option) == optNSteps   .or. trim(option) == trim(optNSteps)//'s') then
+          if(present(min_timestep)) then
+             if(min_timestep <= 0) then
+                call ESMF_LogWrite(subname//trim(option)//' min_timestep <= 0', ESMF_LOGMSG_ERROR)
+                rc = ESMF_FAILURE
+                return
+             endif
+          else
+             call ESMF_LogWrite(subname//trim(option)//' requires min_timestep', ESMF_LOGMSG_ERROR)
+             rc = ESMF_FAILURE
+             return
+          end if
+       endif
        if (opt_n <= 0) then
           call ESMF_LogWrite(subname//trim(option)//' invalid opt_n', ESMF_LOGMSG_ERROR)
           rc = ESMF_FAILURE
           return
        end if
+
     end if
 
     ! Determine inputs for call to create alarm
@@ -180,9 +196,16 @@ contains
       update_nextalarm  = .false.
 
    case (optNSteps,trim(optNSteps)//'s')
-      call ESMF_ClockGet(clock, TimeStep=AlarmInterval, rc=rc)
+      call ESMF_ClockGet(clock, TimeStep=TimestepInterval, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      call ESMF_TimeIntervalSet(AlarmInterval, s=min_timestep, rc=rc )
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
       AlarmInterval = AlarmInterval * opt_n
+      if (mod(AlarmInterval, TimestepInterval) /= (timestepinterval*0)) then
+         call ESMF_LogWrite(subname//'illegal Alarm setting for '//trim(alarmname), ESMF_LOGMSG_ERROR)
+         rc = ESMF_FAILURE
+         return
+      endif
       update_nextalarm  = .true.
 
    case (optNSeconds,trim(optNSeconds)//'s')
@@ -249,6 +272,11 @@ contains
 
     if (update_nextalarm) then
        NextAlarm = NextAlarm - AlarmInterval
+       if (AlarmInterval <= AlarmInterval*0) then
+          call ESMF_LogWrite(subname//'AlarmInterval ERROR ', ESMF_LOGMSG_ERROR)
+          rc = ESMF_FAILURE
+          return
+       endif
        do while (NextAlarm <= CurrTime)
           NextAlarm = NextAlarm + AlarmInterval
        enddo
