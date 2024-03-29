@@ -383,6 +383,14 @@
        canonical_units: m s-1
        description: atmosphere export - bottom layer meridional wind
      #
+     - standard_name: Sa_u10m
+       canonical_units: m s-1
+       description: atmosphere export - 10m zonal wind
+     #
+     - standard_name: Sa_v10m
+       canonical_units: m s-1
+       description: atmosphere export- 10m meridional wind
+     #
      - standard_name: Sa_wspd
        alias: inst_wind_speed_height_lowest
        canonical_units: m s-1
@@ -1187,6 +1195,74 @@
        alias: wave_elevation_spectrum
        canonical_units: m2/s
        description: wave elevation spectrum
+     #
+     - standard_name: Sw_ustokes_avg
+       canonical_units: m/s
+       description: Daily averaged stokes drift u component (only needed for mediator history output)
+     #
+     - standard_name: Sw_vstokes_avg
+       canonical_units: m/s
+       description: Daily averaged stokes drift v component (only needed for mediator history output)
+     #
+     - standard_name: Sw_hs_avg
+       canonical_units: m
+       description: Daily averaged significant wave hight (only needed for mediator history output)
+     #
+     - standard_name: Sw_phs0_avg
+       canonical_units: m
+       description: Daily averaged averaged wind sea swh (only needed for mediator history output)
+     #
+     - standard_name: Sw_phs1_avg
+       canonical_units: m
+       description: Daily averaged swell swh (only needed for mediator history output)
+     #
+     - standard_name: Sw_pdir0_avg
+       canonical_units: degrees
+       description: Daily averaged wind sea swh (only needed for mediator history output)
+     #
+     - standard_name: Sw_pdir1_avg
+       canonical_units: degrees
+       description: Daily averaged swell swh (only needed for mediator history output)
+     #
+     - standard_name: Sw_pTm10_avg
+       canonical_units: s
+       description: Daily averaged wind sea mean wave Tm1 period (only needed for mediator history output)
+     #
+     - standard_name: Sw_pTm11_avg
+       canonical_units: s
+       description: Daily average swell mean wave Tm1 period (only needed for mediator history output)
+     #
+     - standard_name: Sw_Tm1_avg
+       canonical_units: s
+       description: Daily averaged mean wave period of the first moment (only needed for mediator history output)
+     #
+     - standard_name: Sw_thm_avg
+       canonical_units: degrees
+       description: Daily averaged mean wave direction (only needed for mediator history output)
+     #
+     - standard_name: Sw_thp0_avg
+       canonical_units: degrees
+       description: Daily averaged peak wave direction (only needed for mediator history output)
+     #
+     - standard_name: Sw_fp0_avg
+       canonical_units: 1/s
+       description: Daily averaged peak wave frequency (only needed for mediator history output)
+     #
+     - standard_name: Sw_u_avg
+       canonical_units: m/s
+       description: Daily averaged surface wind zonal (only needed for mediator history output)
+     #
+     - standard_name: Sw_v_avg
+       canonical_units: m/s
+       description: Daily averaged surface wind meridional (only needed for mediator history output)
+     #
+     - standard_name: Sw_tusx_avg
+       canonical_units: m2/s
+       description: Daily averaged stokes zonal transport vector (only needed for mediator history output)
+     #
+     - standard_name: Sw_tusy_avg
+       canonical_units: m2/s
+       description: Daily averaged stokes meridional transport vector (only needed for mediator history output)
 
      #
      #-----------------------------------
@@ -1215,3 +1291,11 @@
      #
      - standard_name: mask
        canonical_units: 1
+
+     #-----------------------------------
+     # section: dms exchange
+     #-----------------------------------
+     #
+     - standard_name: Faoo_dms_ocn
+       canonical_units: moles m-2 s-1
+       description: Surface flux of DMS from ocn to atm (downward positive)
