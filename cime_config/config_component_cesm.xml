@@ -299,6 +299,7 @@
     <default_value>1</default_value>
     <values match="last">
       <value compset="_DLND.*_CISM\d">1</value>
+      <value compset="_DGLC">1</value>
       <value compset="_SGLC">$ATM_NCPL</value>
       <value compset="_XGLC">$ATM_NCPL</value>
       <value compset="_MOM6">1</value>
