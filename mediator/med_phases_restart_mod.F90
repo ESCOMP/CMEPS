@@ -86,11 +86,9 @@ contains
     ! Set alarm for instantaneous mediator restart output
     call ESMF_ClockGet(mclock, currTime=mCurrTime,  rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    print *,__FILE__,__LINE__,trim(restart_option), trim(optNsteps)
     if (restart_option(1:len(optNsteps)) .eq. optNSteps) then
        min_timestep = get_minimum_timestep(gcomp, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       print *,__FILE__,__LINE__,min_timestep
     endif
     
     call med_time_alarmInit(mclock, alarm, option=restart_option, opt_n=restart_n, &

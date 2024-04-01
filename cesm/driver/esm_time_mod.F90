@@ -11,7 +11,7 @@ module esm_time_mod
   use ESMF                , only : ESMF_TimeInterval, ESMF_TimeIntervalSet, ESMF_TimeIntervalGet
   use ESMF                , only : ESMF_SUCCESS, ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_FAILURE, ESMF_LOGMSG_ERROR
   use ESMF                , only : ESMF_VM, ESMF_VMGet, ESMF_VMBroadcast
-  use ESMF                , only : ESMF_VMAllReduce, ESMF_REDUCE_MAX
+  use ESMF                , only : ESMF_VMAllReduce, ESMF_REDUCE_MAX, ESMF_ClockGetAlarm
   use ESMF                , only : ESMF_LOGMSG_INFO, ESMF_FAILURE, ESMF_GridCompIsPetLocal
   use ESMF                , only : operator(<), operator(/=), operator(+)
   use ESMF                , only : operator(-), operator(*) , operator(>=)
@@ -42,6 +42,7 @@ module esm_time_mod
        optMonthly        = "monthly" , &
        optYearly         = "yearly"  , &
        optDate           = "date"    , &
+       optEnd            = "end"     , &
        optGLCCouplingPeriod = "glc_coupling_period"
 
   ! Module data
@@ -505,6 +506,15 @@ contains
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
       update_nextalarm  = .true.
 
+   case (optEnd)
+      call ESMF_TimeIntervalSet(AlarmInterval, yy=9999, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_ClockGetAlarm(clock, "alarm_stop", alarm, rc=rc) 
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_AlarmGet(alarm, ringTime=NextAlarm, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       update_nextalarm  = .false.
+      
    case default
       call ESMF_LogWrite(subname//'unknown option '//trim(option), ESMF_LOGMSG_ERROR)
       rc = ESMF_FAILURE

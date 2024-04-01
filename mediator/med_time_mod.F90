@@ -10,7 +10,7 @@ module med_time_mod
   use ESMF                , only : ESMF_Time, ESMF_TimeGet, ESMF_TimeSet
   use ESMF                , only : ESMF_TimeInterval, ESMF_TimeIntervalSet, ESMF_TimeIntervalGet
   use ESMF                , only : ESMF_SUCCESS, ESMF_LogWrite, ESMF_FAILURE
-  use ESMF                , only : ESMF_VM, ESMF_VMGet, ESMF_VMBroadcast
+  use ESMF                , only : ESMF_VM, ESMF_VMGet, ESMF_VMBroadcast, ESMF_ClockGetAlarm
   use ESMF                , only : ESMF_LOGMSG_INFO, ESMF_FAILURE, ESMF_LOGMSG_ERROR
   use ESMF                , only : operator(<), operator(/=), operator(+), mod
   use ESMF                , only : operator(-), operator(*) , operator(>=)
@@ -182,7 +182,9 @@ contains
     case (optEnd)
        call ESMF_TimeIntervalSet(AlarmInterval, yy=9999, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_TimeSet( NextAlarm, yy=9999, mm=12, dd=1, s=0, calendar=cal, rc=rc )
+       call ESMF_ClockGetAlarm(clock, "alarm_stop", alarm, rc=rc) 
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_AlarmGet(alarm, ringTime=NextAlarm, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        update_nextalarm  = .false.
 
@@ -201,6 +203,7 @@ contains
       call ESMF_TimeIntervalSet(AlarmInterval, s=min_timestep, rc=rc )
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
       AlarmInterval = AlarmInterval * opt_n
+      ! timestepinterval*0 is 0 of kind ESMF_TimeStepInterval
       if (mod(AlarmInterval, TimestepInterval) /= (timestepinterval*0)) then
          call ESMF_LogWrite(subname//'illegal Alarm setting for '//trim(alarmname), ESMF_LOGMSG_ERROR)
          rc = ESMF_FAILURE
@@ -272,6 +275,7 @@ contains
 
     if (update_nextalarm) then
        NextAlarm = NextAlarm - AlarmInterval
+       ! AlarmInterval*0 is 0 of kind ESMF_TimeStepInterval
        if (AlarmInterval <= AlarmInterval*0) then
           call ESMF_LogWrite(subname//'AlarmInterval ERROR ', ESMF_LOGMSG_ERROR)
           rc = ESMF_FAILURE
