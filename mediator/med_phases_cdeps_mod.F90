@@ -7,7 +7,6 @@ module med_phases_cdeps_mod
   use ESMF, only: ESMF_Field, ESMF_FieldGet
   use ESMF, only: ESMF_FieldBundleGet, ESMF_FieldBundleIsCreated
   use ESMF, only: ESMF_FieldBundleCreate
-  use ESMF, only: ESMF_GridCompGetInternalState
   use ESMF, only: ESMF_SUCCESS, ESMF_LOGMSG_INFO
 
   use med_internalstate_mod, only: InternalState
