@@ -347,7 +347,6 @@ contains
              !--- compute some needed quantities ---
              if (add_gusts) then 
                 vmag   = max(seq_flux_atmocn_minwind, sqrt( (ubot(n)-us(n))**2 + (vbot(n)-vs(n))**2 + (1.0_R8*ugust(min(rainc(n),6.94444e-4_r8))**2)) )
-               
                 ugust_out(n) = ugust(min(rainc(n),6.94444e-4_r8))
              else 
                 vmag   = max(seq_flux_atmocn_minwind, sqrt( (ubot(n)-us(n))**2 + (vbot(n)-vs(n))**2) )
@@ -355,17 +354,20 @@ contains
              end if
              wind0 = max(seq_flux_atmocn_minwind, sqrt( (ubot(n)-us(n))**2 + (vbot(n)-vs(n))**2) )
 
-
              if (use_coldair_outbreak_mod) then
                 ! Cold Air Outbreak Modification:
                 ! Increase windspeed for negative tbot-ts
                 ! based on Mahrt & Sun 1995,MWR
 
                 if (tdiff(n).lt.td0) then
+                   ! if add_gusts wind0 and vmag are different, both need this factor.
                    vscl=min((1._R8+alpha*(abs(tdiff(n)-td0)**0.5_R8/abs(vmag))),maxscl)
                    vmag=vmag*vscl
+                   vscl=min((1._R8+alpha*(abs(tdiff(n)-td0)**0.5_R8/abs(wind0))),maxscl)
+                   wind0=wind0*vscl
                 endif
              endif
+
              ssq    = 0.98_R8 * qsat(ts(n)) / rbot(n)   ! sea surf hum (kg/kg)
              delt   = thbot(n) - ts(n)                  ! pot temp diff (K)
              delq   = qbot(n) - ssq                     ! spec hum dif (kg/kg)
@@ -466,7 +468,6 @@ contains
              qref(n) =  qbot(n) - delq*fac
 
              duu10n(n) = u10n*u10n ! 10m wind speed squared
-
              u10res(n) = u10n * (wind0/vmag)  ! resolved 10m wind
 
              !------------------------------------------------------------
