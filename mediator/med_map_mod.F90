@@ -408,8 +408,12 @@ contains
          dstMaskValue = ispval_mask
       endif
     end if
-    if (trim(coupling_mode(1:3)) == 'ufs') then
+    if (coupling_mode(1:3) == 'ufs') then
        if (n1 == compatm .and. n2 == complnd) then
+          srcMaskValue = ispval_mask
+          dstMaskValue = ispval_mask
+       end if
+       if (n1 == complnd .and. n2 == compatm) then
           srcMaskValue = ispval_mask
           dstMaskValue = ispval_mask
        end if
@@ -424,7 +428,7 @@ contains
     call ESMF_LogWrite(trim(string), ESMF_LOGMSG_INFO)
 
     polemethod=ESMF_POLEMETHOD_ALLAVG
-    if (trim(coupling_mode) == 'cesm' .or. trim(coupling_mode(1:3)) == 'ufs') then
+    if (trim(coupling_mode) == 'cesm' .or. coupling_mode(1:3) == 'ufs') then
        if (n1 == compwav .or. n2 == compwav) then
          polemethod = ESMF_POLEMETHOD_NONE ! todo: remove this when ESMF tripolar mapping fix is in place.
        endif
@@ -949,7 +953,7 @@ contains
     type(ESMF_FieldBundle)          , intent(in)    :: FBFracSrc         ! fraction field bundle for source
     type(packed_data_type)          , intent(inout) :: packed_data(:)    ! array over mapping types
     type(ESMF_RouteHandle)          , intent(inout) :: routehandles(:)
-    type(ESMF_FieldBundle), optional, intent(in)    :: FBDat             ! data field bundle 
+    type(ESMF_FieldBundle), optional, intent(in)    :: FBDat             ! data field bundle
     logical, optional               , intent(in)    :: use_data          ! skip mapping and use data instead
     integer, optional               , intent(out)   :: rc
 
@@ -1008,7 +1012,7 @@ contains
           allocate(field_namelist_dat(fieldcount_dat))
           call ESMF_FieldBundleGet(FBDat, fieldlist=fieldlist_dat, fieldNameList=field_namelist_dat, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          
+
           if (present(use_data)) skip_mapping = use_data
        end if
     end if
@@ -1072,7 +1076,7 @@ contains
              call t_stopf('MED:'//trim(subname)//' copy from src')
 
              ! -----------------------------------
-             ! Fill destination field with background data provided by CDEPS inline 
+             ! Fill destination field with background data provided by CDEPS inline
              ! -----------------------------------
 
              if (fieldcount_dat > 0) then
@@ -1085,52 +1089,52 @@ contains
                    ! Get the indices into the packed data structure
                    np = packed_data(mapindex)%fldindex(nf)
                    if (np > 0) then
-                     ! Get size of ungridded dimension and name of the field
-                     call ESMF_FieldGet(fieldlist_dst(nf), ungriddedUBound=ungriddedUBound, name=field_name, rc=rc)
-                     if (chkerr(rc,__LINE__,u_FILE_u)) return
+                      ! Get size of ungridded dimension and name of the field
+                      call ESMF_FieldGet(fieldlist_dst(nf), ungriddedUBound=ungriddedUBound, name=field_name, rc=rc)
+                      if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-                     if (maintask) write(logunit,'(a)') trim(subname)//" search "//trim(field_name)//" field for background fill."
+                      if (maintask) write(logunit,'(a)') trim(subname)//" search "//trim(field_name)//" field for background fill."
 
-                     ! Check if field has match in data fields
-                     isFound = .false.
-                     do nfd = 1, fieldcount_dat
-                        ! Debug output for checked fields to find match
-                        if (maintask .and. dbug_flag > 1) write(logunit,'(a)') trim(field_name)//" - "//trim(field_namelist_dat(nfd))
+                      ! Check if field has match in data fields
+                      isFound = .false.
+                      do nfd = 1, fieldcount_dat
+                         ! Debug output for checked fields to find match
+                         if (maintask .and. dbug_flag > 1) write(logunit,'(a)') trim(field_name)//" - "//trim(field_namelist_dat(nfd))
 
-                        if (trim(field_name) == trim(field_namelist_dat(nfd))) then
-                           ! Debug output about match
-                           if (maintask) write(logunit,'(a)') trim(subname)//" field "//trim(field_namelist_dat(nfd))//" is found!"
-                           
-                           ! Get pointer from data field
-                           call ESMF_FieldGet(fieldlist_dat(nfd), farrayptr=dataptr, rc=rc)
-                           if (chkerr(rc,__LINE__,u_FILE_u)) return
+                         if (trim(field_name) == trim(field_namelist_dat(nfd))) then
+                            ! Debug output about match
+                            if (maintask) write(logunit,'(a)') trim(subname)//" field "//trim(field_namelist_dat(nfd))//" is found!"
 
-                           if (dbug_flag > 1) then
-                              call Field_diagnose(packed_data(mapindex)%field_dst, trim(field_name), " --> before background fill: ", rc=rc)
-                              if (chkerr(rc,__LINE__,u_FILE_u)) return
-                           end if
+                            ! Get pointer from data field
+                            call ESMF_FieldGet(fieldlist_dat(nfd), farrayptr=dataptr, rc=rc)
+                            if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-                           ! Fill destination field with background data coming from stream
-                           dataptr2d_packed(np,:) = dataptr(:)
+                            if (dbug_flag > 1) then
+                               call Field_diagnose(packed_data(mapindex)%field_dst, trim(field_name), " --> before background fill: ", rc=rc)
+                               if (chkerr(rc,__LINE__,u_FILE_u)) return
+                            end if
 
-                           if (dbug_flag > 1) then
-                              call Field_diagnose(packed_data(mapindex)%field_dst, trim(field_name), " --> after  background fill: ", rc=rc)
-                              if (chkerr(rc,__LINE__,u_FILE_u)) return
-                           end if
+                            ! Fill destination field with background data coming from stream
+                            dataptr2d_packed(np,:) = dataptr(:)
 
-                           ! Exit from loop since match is already found
-                           isFound = .true.
-                           exit
-                        end if
-                     end do ! loop for stream fields
+                            if (dbug_flag > 1) then
+                               call Field_diagnose(packed_data(mapindex)%field_dst, trim(field_name), " --> after  background fill: ", rc=rc)
+                               if (chkerr(rc,__LINE__,u_FILE_u)) return
+                            end if
 
-                     ! Could not find match in the list of stream fields
-                     if (.not. isFound) then
-                        if (maintask) write(logunit,'(a)') trim(subname)//" field "//trim(field_name)//" is not found!"
+                            ! Exit from loop since match is already found
+                            isFound = .true.
+                            exit
+                         end if
+                      end do ! loop for stream fields
 
-                        ! Fill destination field with very large background data
-                        dataptr2d_packed(np,:) = fillValue
-                     end if
+                      ! Could not find match in the list of stream fields
+                      if (.not. isFound) then
+                         if (maintask) write(logunit,'(a)') trim(subname)//" field "//trim(field_name)//" is not found!"
+
+                         ! Fill destination field with very large background data
+                         dataptr2d_packed(np,:) = fillValue
+                      end if
                    end if
                 end do ! loop for destination fields
 

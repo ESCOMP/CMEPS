@@ -510,7 +510,7 @@ contains
 
 #ifdef CDEPS_INLINE
     !------------------
-    ! phase routine for cdeps inline capabilty 
+    ! phase routine for cdeps inline capability
     !------------------
 
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
@@ -832,10 +832,10 @@ contains
     if (trim(coupling_mode) == 'cesm') then
        call esmFldsExchange_cesm(gcomp, phase='advertise', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    else if (trim(coupling_mode(1:3)) == 'ufs') then
+    else if (coupling_mode(1:3) == 'ufs') then
        call esmFldsExchange_ufs(gcomp, phase='advertise', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    else if (trim(coupling_mode(1:4)) == 'hafs') then
+    else if (coupling_mode(1:4) == 'hafs') then
        call esmFldsExchange_hafs(gcomp, phase='advertise', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     else
@@ -867,13 +867,22 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     read(cvalue,*) is_local%wrap%flds_scalar_index_ny
 
+    call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldIdxGridNTile", value=cvalue, &
+         isPresent=isPresent, isSet=isSet,rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+       read(cvalue,*) is_local%wrap%flds_scalar_index_ntile
+    else
+       is_local%wrap%flds_scalar_index_ntile = 0
+    end if
+
     call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldIdxNextSwCday", value=cvalue, &
          isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (isPresent .and. isSet) then
        read(cvalue,*) is_local%wrap%flds_scalar_index_nextsw_cday
     else
-       is_local%wrap%flds_scalar_index_nextsw_cday = spval
+       is_local%wrap%flds_scalar_index_nextsw_cday = 0
     end if
 
     call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldIdxPrecipFactor", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
@@ -962,7 +971,7 @@ contains
           endif
           if (maintask) then
              write(logunit,*) trim(compname(ncomp))//'_use_data_first_import is ', is_local%wrap%med_data_force_first(ncomp)
-          endif    
+          endif
        end if
     end do
 
@@ -1067,7 +1076,7 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !------------------
-    ! Recieve Grids
+    ! Receive Grids
     !------------------
 
     do n1 = 1,ncomps
@@ -1644,7 +1653,7 @@ contains
     logical                            :: read_restart
     logical                            :: allDone = .false.
     logical,save                       :: first_call = .true.
-    real(r8)                           :: real_nx, real_ny
+    real(r8)                           :: real_nx, real_ny, real_ntile
     character(len=CX)                  :: msgString
     character(len=*), parameter :: subname = '('//__FILE__//':DataInitialize)'
     !-----------------------------------------------------------
@@ -1832,7 +1841,7 @@ contains
       if (trim(coupling_mode) == 'cesm') then
          call esmFldsExchange_cesm(gcomp, phase='initialize', rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-      else if (trim(coupling_mode(1:3)) == 'ufs') then
+      else if (coupling_mode(1:3) == 'ufs') then
          call esmFldsExchange_ufs(gcomp, phase='initialize', rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
       else if (coupling_mode(1:4) == 'hafs') then
@@ -2128,11 +2137,22 @@ contains
                   flds_scalar_name=is_local%wrap%flds_scalar_name, &
                   flds_scalar_num=is_local%wrap%flds_scalar_num, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             if (is_local%wrap%flds_scalar_index_ntile > 0) then
+                call State_GetScalar(scalar_value=real_ntile, &
+                     scalar_id=is_local%wrap%flds_scalar_index_ntile, &
+                     state=is_local%wrap%NstateImp(n1), &
+                     flds_scalar_name=is_local%wrap%flds_scalar_name, &
+                     flds_scalar_num=is_local%wrap%flds_scalar_num, rc=rc)
+                if (ChkErr(rc,__LINE__,u_FILE_u)) return
+                is_local%wrap%ntile(n1) = nint(real_ntile)
+             else
+                is_local%wrap%ntile(n1) = 0
+             end if
              is_local%wrap%nx(n1) = nint(real_nx)
              is_local%wrap%ny(n1) = nint(real_ny)
-             write(msgString,'(2i8,2l4)') is_local%wrap%nx(n1), is_local%wrap%ny(n1)
+             write(msgString,'(3i8)') is_local%wrap%nx(n1), is_local%wrap%ny(n1), is_local%wrap%ntile(n1)
              if (maintask) then
-                write(logunit,'(a)') 'global nx,ny sizes for '//trim(compname(n1))//":"//trim(msgString)
+                write(logunit,'(a)') 'global nx,ny,ntile sizes for '//trim(compname(n1))//":"//trim(msgString)
              end if
              call ESMF_LogWrite(trim(subname)//":"//trim(compname(n1))//":"//trim(msgString), ESMF_LOGMSG_INFO)
           end if
