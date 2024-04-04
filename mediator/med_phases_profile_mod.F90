@@ -9,7 +9,7 @@ module med_phases_profile_mod
   use med_utils_mod         , only : med_utils_chkerr, med_memcheck
   use med_internalstate_mod , only : maintask, logunit
   use med_utils_mod         , only : chkerr    => med_utils_ChkErr
-  use med_time_mod          , only : alarmInit => med_time_alarmInit
+  use nuopc_shr_methods     , only : alarmInit
   use perf_mod              , only : t_startf, t_stopf
 #ifdef CESMCOUPLED
   use shr_mem_mod           , only : shr_mem_getusage

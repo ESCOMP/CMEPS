@@ -154,8 +154,8 @@ contains
     use ESMF      , only : ESMF_Alarm, ESMF_AlarmSet
     use ESMF      , only : ESMF_FieldBundleIsCreated
     use med_internalstate_mod, only : compocn, compatm
-    use med_time_mod          , only : med_time_alarmInit
-    
+    use nuopc_shr_methods    , only : alarmInit
+
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc
@@ -228,8 +228,8 @@ contains
           if (hist_option_all_inst(1:len(optnsteps)) == optnsteps) then
              min_timestep = get_minimum_timestep(gcomp, rc=rc)
           endif
-          call med_time_alarmInit(mclock, alarm, option=hist_option_all_inst, opt_n=hist_n_all_inst, &
-               reftime=starttime, alarmname=alarmname, min_timestep=min_timestep, rc=rc)
+          call alarmInit(mclock, alarm, option=hist_option_all_inst, opt_n=hist_n_all_inst, &
+               reftime=starttime, alarmname=alarmname, rc=rc)
           call ESMF_AlarmSet(alarm, clock=mclock, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
@@ -1536,8 +1536,7 @@ contains
 
     use NUOPC_Mediator, only : NUOPC_MediatorGet
     use ESMF          , only : ESMF_ClockCreate, ESMF_ClockGet, ESMF_ClockSet
-    use med_time_mod  , only : med_time_alarmInit
-    use nuopc_shr_methods, only: get_minimum_timestep
+    use nuopc_shr_methods, only: AlarmInit
 
     ! input/output variables
     type(ESMF_GridComp) , intent(in)    :: gcomp
@@ -1547,7 +1546,7 @@ contains
     character(len=*)    , intent(in)    :: hist_option  ! freq_option setting (ndays, nsteps, etc)
     integer             , intent(in)    :: hist_n       ! freq_n setting relative to freq_option
     integer             , intent(out)   :: rc
-    
+
     ! local variables
     type(ESMF_Clock)        :: mclock, dclock
     type(ESMF_Time)         :: StartTime
@@ -1581,13 +1580,8 @@ contains
     hclock = ESMF_ClockCreate(mclock, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    ! Initialize history alarm and advance history clock to trigger
-    ! alarms then reset history clock back to mcurrtime
-    if (hist_option(1:len(optnsteps)) == optnsteps) then
-       min_timestep = get_minimum_timestep(gcomp, rc=rc)
-    endif
-    call med_time_alarmInit(hclock, alarm, option=hist_option, opt_n=hist_n, &
-         reftime=StartTime, alarmname=trim(alarmname), advance_clock=.true., min_timestep=min_timestep, rc=rc)
+    call alarmInit(hclock, alarm, option=hist_option, opt_n=hist_n, &
+         reftime=StartTime, alarmname=trim(alarmname), advance_clock=.true., rc=rc)
 
     ! Write diagnostic info
     if (maintask) then
