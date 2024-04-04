@@ -632,22 +632,6 @@ contains
           end if
        end do
 
-       ! Write auxiliary history file if flag is set and accumulation is being done
-       if (lndAccum2glc_cnt > 0) then
-          call NUOPC_CompAttributeGet(gcomp, name="histaux_l2x1yrg", value=cvalue, &
-               isPresent=isPresent, isSet=isSet, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          if (isPresent .and. isSet) then
-             read(cvalue,*) write_histaux_l2x1yrg
-          else
-             write_histaux_l2x1yrg = .false.
-          end if
-          if (write_histaux_l2x1yrg) then
-             call med_phases_history_write_lnd2glc(gcomp, FBlndAccum2glc_l, rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          end if
-       end if
-
        if (is_local%wrap%ocn2glc_coupling) then
           ! Average import from accumulated ocn import data
           do n = 1, size(fldnames_fr_ocn)
@@ -688,15 +672,39 @@ contains
           if (chkErr(rc,__LINE__,u_FILE_u)) return
        end if
 
+       ! Determine if auxiliary file will be written
+       write_histaux_l2x1yrg = .false.
+       if (lndAccum2glc_cnt > 0) then
+          call NUOPC_CompAttributeGet(gcomp, name="histaux_l2x1yrg", value=cvalue, &
+               isPresent=isPresent, isSet=isSet, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          if (isPresent .and. isSet) then
+             read(cvalue,*) write_histaux_l2x1yrg
+          end if
+       end if
+
+       ! Write auxiliary history file if flag is set and accumulation is being done
        if (is_local%wrap%lnd2glc_coupling) then
           ! Map accumulated field bundle from land grid (with elevation classes) to glc grid (without elevation classes)
           ! and set FBExp(compglc(ns)) data
           ! Zero land accumulator and accumulated field bundles on land grid
           call med_phases_prep_glc_map_lnd2glc(gcomp, rc)
           if (chkErr(rc,__LINE__,u_FILE_u)) return
+
+          if (write_histaux_l2x1yrg) then
+             call med_phases_history_write_lnd2glc(gcomp, FBlndAccum2glc_l, &
+                  fldbun_glc=is_local%wrap%FBExp(compglc(:)), rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          end if
+
           lndAccum2glc_cnt = 0
           call fldbun_reset(FBlndAccum2glc_l, value=czero, rc=rc)
           if (chkErr(rc,__LINE__,u_FILE_u)) return
+       else
+          if (write_histaux_l2x1yrg) then
+             call med_phases_history_write_lnd2glc(gcomp, FBlndAccum2glc_l, rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          end if
        end if
 
        if (dbug_flag > 1) then
