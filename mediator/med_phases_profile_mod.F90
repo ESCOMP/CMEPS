@@ -170,7 +170,8 @@ contains
           call ESMF_TimeGet(nexttime, timestring=nexttimestr, rc=rc)
           if (med_utils_ChkErr(rc,__LINE__,u_FILE_u)) return
           ! get current wall clock time
-          call ESMF_TimeSet(wallclockTime, calkindflag=ESMF_CALKIND_GREGORIAN, rc=rc)
+          ! s=0 is to prevent an internal divide by 0 error in esmf
+          call ESMF_TimeSet(wallclockTime, calkindflag=ESMF_CALKIND_GREGORIAN, s=0, rc=rc)
           if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
           call ESMF_TimeSyncToRealTime(wallclockTime, rc=rc)
           if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
