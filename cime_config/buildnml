@@ -51,6 +51,8 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     config["flux_epbal"] = "ocn" if case.get_value("CPL_EPBAL") == "ocn" else "off"
     config["mask_grid"] = case.get_value("MASK_GRID")
     config["rest_option"] = case.get_value("REST_OPTION")
+
+
     config["comp_ocn"] = case.get_value("COMP_OCN")
 
     atm_grid = case.get_value("ATM_GRID")

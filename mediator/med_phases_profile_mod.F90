@@ -53,7 +53,8 @@ contains
     ! local variables
     character(len=CS)       :: cpl_inst_tag
     type(ESMF_Clock)        :: clock
-    type(ESMF_Time)         :: wallclockTime, nextTime
+    type(ESMF_Time), save   :: wallclockTime
+    type(ESMF_Time)         :: nextTime
     type(ESMF_Time)         :: currTime
     type(ESMF_Time), save   :: prevTime
     type(ESMF_TimeInterval) :: ringInterval, timestep
@@ -119,6 +120,12 @@ contains
 
        call ESMF_TimeIntervalGet(timestep, d_r8=timestep_length, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+       ! use gregorian calendar for wallclocktime
+       ! The s=0 is just to avoid an internal /0 error in esmf
+       call ESMF_TimeSet(wallclockTime, calkindflag=ESMF_CALKIND_GREGORIAN, s=0, rc=rc)
+       if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
+
        iterations = 1
 
     else
@@ -170,8 +177,7 @@ contains
           call ESMF_TimeGet(nexttime, timestring=nexttimestr, rc=rc)
           if (med_utils_ChkErr(rc,__LINE__,u_FILE_u)) return
           ! get current wall clock time
-          call ESMF_TimeSet(wallclockTime, calkindflag=ESMF_CALKIND_GREGORIAN, rc=rc)
-          if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
+
           call ESMF_TimeSyncToRealTime(wallclockTime, rc=rc)
           if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
 
