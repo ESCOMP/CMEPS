@@ -299,6 +299,7 @@
     <default_value>1</default_value>
     <values match="last">
       <value compset="_DLND.*_CISM\d">1</value>
+      <value compset="_DGLC">1</value>
       <value compset="_SGLC">$ATM_NCPL</value>
       <value compset="_XGLC">$ATM_NCPL</value>
       <value compset="_MOM6">1</value>
@@ -537,6 +538,7 @@
     <default_value>FALSE</default_value>
     <values match="last">
       <value compset="_CLM.+CISM\d">TRUE</value>
+      <value compset="_CLM.+DGLC%">TRUE</value>
       <!-- Turn on two-way coupling for TG compsets - even though there are no
            feedbacks for a TG compset, this will give us additional diagnostics -->
       <value compset="_DLND.+CISM\d">TRUE</value>
