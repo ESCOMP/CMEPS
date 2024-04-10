@@ -334,7 +334,7 @@
     <group>run_begin_stop_restart</group>
     <file>env_run.xml</file>
     <desc>
-      Run start time-of-day
+      Run start time-of-day, units are seconds with values from 0 to 86400.
     </desc>
   </entry>
 
