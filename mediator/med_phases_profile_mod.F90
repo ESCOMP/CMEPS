@@ -41,7 +41,7 @@ contains
     use ESMF  , only : ESMF_TimeInterval, ESMF_AlarmGet, ESMF_TimeIntervalGet
     use ESMF  , only : ESMF_ClockGetNextTime, ESMF_TimeGet, ESMF_ClockGet
     use ESMF  , only : ESMF_ClockAdvance, ESMF_ClockSet, ESMF_ClockIsStopTime
-    use ESMF  , only : operator(-)
+    use ESMF  , only : operator(-), ESMF_CALKIND_GREGORIAN
     use NUOPC , only : NUOPC_CompAttributeGet
 
     ! write profile output
@@ -170,12 +170,13 @@ contains
           call ESMF_TimeGet(nexttime, timestring=nexttimestr, rc=rc)
           if (med_utils_ChkErr(rc,__LINE__,u_FILE_u)) return
           ! get current wall clock time
-          call ESMF_TimeSet(wallclocktime, rc=rc)
+          ! s=0 is to prevent an internal divide by 0 error in esmf
+          call ESMF_TimeSet(wallclockTime, calkindflag=ESMF_CALKIND_GREGORIAN, s=0, rc=rc)
           if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
-          call ESMF_TimeSyncToRealTime(wallclocktime, rc=rc)
+          call ESMF_TimeSyncToRealTime(wallclockTime, rc=rc)
           if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
 
-          call ESMF_TimeGet(wallclocktime,timeString=walltimestr, rc=rc)
+          call ESMF_TimeGet(wallclockTime,timeString=walltimestr, rc=rc)
           if (med_utils_ChkErr(rc,__LINE__,u_FILE_u)) return
 
           ! 1 model day/ x seconds = 1/365 yrs/ (wallclockelapsed s/86400spd

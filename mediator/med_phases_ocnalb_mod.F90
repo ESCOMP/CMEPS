@@ -6,13 +6,11 @@ module med_phases_ocnalb_mod
   use med_utils_mod         , only : chkerr          => med_utils_chkerr
   use med_methods_mod       , only : FB_diagnose     => med_methods_FB_diagnose
   use med_methods_mod       , only : State_GetScalar => med_methods_State_GetScalar
-  use med_internalstate_mod , only : mapconsf, mapnames, compatm, compocn
+  use med_internalstate_mod , only : mapconsf, mapnames, compatm, compocn, maintask
   use perf_mod              , only : t_startf, t_stopf
-#ifdef CESMCOUPLED
   use shr_orb_mod           , only : shr_orb_cosz, shr_orb_decl
   use shr_orb_mod           , only : shr_orb_params, SHR_ORB_UNDEF_INT, SHR_ORB_UNDEF_REAL
   use shr_log_mod           , only : shr_log_unit
-#endif
 
   implicit none
   private
@@ -26,11 +24,10 @@ module med_phases_ocnalb_mod
   !--------------------------------------------------------------------------
   ! Private interfaces
   !--------------------------------------------------------------------------
-#ifdef CESMCOUPLED
+
   private med_phases_ocnalb_init
   private med_phases_ocnalb_orbital_update
   private med_phases_ocnalb_orbital_init
-#endif
 
   !--------------------------------------------------------------------------
   ! Private data
@@ -47,25 +44,30 @@ module med_phases_ocnalb_mod
      logical            :: created   ! has memory been allocated here
   end type ocnalb_type
 
-  ! Conversion from degrees to radians
   character(*),parameter :: u_FILE_u = &
        __FILE__
-#ifdef CESMCOUPLED
   character(len=CL)      :: orb_mode        ! attribute - orbital mode
   integer                :: orb_iyear       ! attribute - orbital year
   integer                :: orb_iyear_align ! attribute - associated with model year
   real(R8)               :: orb_obliq       ! attribute - obliquity in degrees
   real(R8)               :: orb_mvelp       ! attribute - moving vernal equinox longitude
   real(R8)               :: orb_eccen       ! attribute and update-  orbital eccentricity
-#endif
+
   character(len=*) , parameter :: orb_fixed_year       = 'fixed_year'
   character(len=*) , parameter :: orb_variable_year    = 'variable_year'
   character(len=*) , parameter :: orb_fixed_parameters = 'fixed_parameters'
 
+  ! used, reused in module
+  logical  :: flux_albav      ! use average dif and dir albedos
+  logical  :: use_nextswcday  ! use the scalar field for next time (otherwise, will be set using clock)
+  logical  :: use_min_albedo  ! apply minimum value of albedo for direct vis, nir
+  real(R8) :: min_albedo      ! minimum value of albedo for direct vis, nir
+  real(R8) :: albdif          ! 60 deg reference albedo, diffuse
+  real(R8) :: albdir          ! 60 deg reference albedo, direct
 !===============================================================================
 contains
 !===============================================================================
-#ifdef CESMCOUPLED
+
   subroutine med_phases_ocnalb_init(gcomp, ocnalb, rc)
 
     !-----------------------------------------------------------------------
@@ -74,11 +76,12 @@ contains
     ! All input field bundles are ASSUMED to be on the ocean grid
     !-----------------------------------------------------------------------
 
-    use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_FAILURE
-    use ESMF , only : ESMF_VM, ESMF_VMGet, ESMF_Mesh, ESMF_MeshGet
-    use ESMF , only : ESMF_GridComp, ESMF_GridCompGet
-    use ESMF , only : ESMF_FieldBundleGet, ESMF_Field, ESMF_FieldGet
-    use ESMF , only : operator(==)
+    use ESMF  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_FAILURE
+    use ESMF  , only : ESMF_VM, ESMF_VMGet, ESMF_Mesh, ESMF_MeshGet
+    use ESMF  , only : ESMF_GridComp, ESMF_GridCompGet
+    use ESMF  , only : ESMF_FieldBundleGet, ESMF_Field, ESMF_FieldGet
+    use NUOPC , only : NUOPC_CompAttributeGet
+    use ESMF  , only : operator(==)
 
     ! Arguments
     type(ESMF_GridComp)               :: gcomp
@@ -97,7 +100,11 @@ contains
     type(InternalState)      :: is_local
     real(R8), pointer        :: ownedElemCoords(:)
     character(len=CL)        :: tempc1,tempc2
+    character(len=CS)        :: cvalue
+    logical                  :: use_min_ocnalb
+    logical                  :: isPresent, isSet
     integer                  :: fieldCount
+    character(CL)            :: msg
     type(ESMF_Field), pointer :: fieldlist(:)
     character(*), parameter  :: subname = '(med_phases_ocnalb_init) '
     !-----------------------------------------------------------------------
@@ -186,13 +193,65 @@ contains
     call  med_phases_ocnalb_orbital_init(gcomp, logunit, iam==0, rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
+    ! Determine if reference albedos are used
+    flux_albav = .false.
+    call NUOPC_CompAttributeGet(gcomp, name='flux_albav', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+       read(cvalue,*) flux_albav
+    end if
+    ! Set reference albedo values
+    call NUOPC_CompAttributeGet(gcomp, name="albdif", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+       read(cvalue,*) albdif
+    else
+       albdif = 0.06_r8
+    end if
+    call NUOPC_CompAttributeGet(gcomp, name="albdir", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+       read(cvalue,*) albdir
+    else
+       albdir = 0.07_r8
+    end if
+    ! Determine if direct albedo should have a minimum value
+    call NUOPC_CompAttributeGet(gcomp, name="ocean_albedo_limit", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+       read(cvalue,*) min_albedo
+       use_min_albedo = .true.
+    else
+       min_albedo = 0.0_R8
+       use_min_ocnalb = .false.
+    endif
+    ! Allow setting of albedo timestep using the clock instead of the atm's next timestep
+    use_nextswcday = .true.
+    call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldIdxNextSwCday", isPresent=isPresent, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (.not. isPresent ) then
+       use_nextswcday = .false.
+    endif
+
+    if (flux_albav) then
+       write(msg,'(2(A,f8.2))') trim(subname)//': mean albedos set: albdif = ',albdif,', albdir = ',albdir
+       call ESMF_LogWrite(trim(msg), ESMF_LOGMSG_INFO)
+    else
+       if (use_min_albedo) then
+          write(msg,'(A,f8.2)') trim(subname)//': min_albedo setting = ',min_albedo
+          call ESMF_LogWrite(trim(msg), ESMF_LOGMSG_INFO)
+       end if
+    end if
+    write(msg,'(A,l1)') trim(subname)//': use_nextswcday setting is ',use_nextswcday
+    call ESMF_LogWrite(trim(msg), ESMF_LOGMSG_INFO)
+
     if (dbug_flag > 5) then
       call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
     endif
     call t_stopf('MED:'//subname)
 
   end subroutine med_phases_ocnalb_init
-#endif
+
   !===============================================================================
 
   subroutine med_phases_ocnalb_run(gcomp, rc)
@@ -201,8 +260,10 @@ contains
     ! Compute ocean albedos (on the ocean grid)
     !-----------------------------------------------------------------------
 
+    use NUOPC_Mediator, only : NUOPC_MediatorGet
     use ESMF          , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_TimeInterval
     use ESMF          , only : ESMF_Clock, ESMF_ClockGet, ESMF_Time, ESMF_TimeGet
+    use ESMF          , only : ESMF_ClockIsCreated, ESMF_ClockGetNextTime
     use ESMF          , only : ESMF_VM, ESMF_VMGet
     use ESMF          , only : ESMF_LogWrite, ESMF_LogFoundError
     use ESMF          , only : ESMF_SUCCESS, ESMF_FAILURE, ESMF_LOGMSG_INFO
@@ -211,11 +272,11 @@ contains
     use ESMF          , only : operator(+)
     use NUOPC         , only : NUOPC_CompAttributeGet
     use med_constants_mod , only : shr_const_pi
+    use med_phases_history_mod, only : med_phases_history_write_med
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc
-#ifdef CESMCOUPLED
     ! local variables
     type(ocnalb_type), save :: ocnalb
     type(ESMF_VM)           :: vm
@@ -224,12 +285,13 @@ contains
     logical                 :: update_alb
     type(InternalState)     :: is_local
     type(ESMF_Clock)        :: clock
+    type(ESMF_Clock)        :: dclock
     type(ESMF_Time)         :: currTime
+    type(ESMF_Time)         :: nextTime
     type(ESMF_TimeInterval) :: timeStep
     character(CL)           :: cvalue
     character(CS)           :: starttype        ! config start type
     character(CL)           :: runtype          ! initial, continue, hybrid, branch
-    logical                 :: flux_albav       ! flux avg option
     real(R8)                :: nextsw_cday      ! calendar day of next atm shortwave
     real(R8), pointer       :: ofrac(:)
     real(R8), pointer       :: ofrad(:)
@@ -246,21 +308,13 @@ contains
     real(R8)                :: obliqr           ! Earth orbit
     real(R8)                :: delta            ! Solar declination angle  in radians
     real(R8)                :: eccf             ! Earth orbit eccentricity factor
-    real(R8), parameter     :: albdif = 0.06_r8 ! 60 deg reference albedo, diffuse
-    real(R8), parameter     :: albdir = 0.07_r8 ! 60 deg reference albedo, direct
     real(R8), parameter     :: const_deg2rad = shr_const_pi/180.0_R8  ! deg to rads
     character(CL)           :: msg
     logical                 :: first_call = .true.
     character(len=*)  , parameter :: subname='(med_phases_ocnalb_run)'
     !---------------------------------------
-#endif
+
     rc = ESMF_SUCCESS
-
-#ifndef CESMCOUPLED
-
-    RETURN  ! the following code is not executed unless the model is CESM
-
-#else
 
     ! Determine main task
     call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
@@ -275,8 +329,7 @@ contains
 
     ! Determine if ocnalb data type will be initialized - and if not return
     if (first_call) then
-       if ( ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_aoflux_a, rc=rc) .and. &
-            ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_aoflux_o, rc=rc)) then
+       if (ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_ocnalb_o, rc=rc)) then
           ocnalb%created = .true.
        else
           ocnalb%created = .false.
@@ -331,6 +384,26 @@ contains
           call ESMF_TimeGet( currTime, dayOfYear_r8=nextsw_cday, rc=rc )
           if (chkerr(rc,__LINE__,u_FILE_u)) return
        else
+          ! obtain nextsw_cday from atm if it is in the import state
+          if (use_nextswcday) then
+             call State_GetScalar(&
+                  state=is_local%wrap%NstateImp(compatm), &
+                  flds_scalar_name=is_local%wrap%flds_scalar_name, &
+                  flds_scalar_num=is_local%wrap%flds_scalar_num, &
+                  scalar_id=is_local%wrap%flds_scalar_index_nextsw_cday, &
+                  scalar_value=nextsw_cday, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+          else
+             call ESMF_TimeGet( currTime, dayOfYear_r8=nextsw_cday, rc=rc )
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          end if
+       end if
+
+       first_call = .false.
+
+    else
+       ! Note that med_methods_State_GetScalar includes a broadcast to all other pets
+       if (use_nextswcday) then
           call State_GetScalar(&
                state=is_local%wrap%NstateImp(compatm), &
                flds_scalar_name=is_local%wrap%flds_scalar_name, &
@@ -338,26 +411,13 @@ contains
                scalar_id=is_local%wrap%flds_scalar_index_nextsw_cday, &
                scalar_value=nextsw_cday, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
+       else
+          call ESMF_ClockGetNextTime(clock, nextTime, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_TimeGet(nextTime, dayOfYear_r8=nextsw_cday, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
-
-       first_call = .false.
-
-    else
-
-       ! Note that med_methods_State_GetScalar includes a broadcast to all other pets
-       call State_GetScalar(&
-            state=is_local%wrap%NstateImp(compatm), &
-            flds_scalar_name=is_local%wrap%flds_scalar_name, &
-            flds_scalar_num=is_local%wrap%flds_scalar_num, &
-            scalar_id=is_local%wrap%flds_scalar_index_nextsw_cday, &
-            scalar_value=nextsw_cday, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-
     end if
-
-    call NUOPC_CompAttributeGet(gcomp, name='flux_albav', value=cvalue, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) flux_albav
 
     ! Get orbital values
     call med_phases_ocnalb_orbital_update(clock, logunit, iam==0, eccen, obliqr, lambm0, mvelpp, rc)
@@ -393,6 +453,9 @@ contains
                 ocnalb%anidr(n) = (.026_r8/(cosz**1.7_r8 + 0.065_r8)) +   &
                                   (.150_r8*(cosz         - 0.100_r8 ) *   &
                                   (cosz - 0.500_r8 ) * (cosz - 1.000_r8 )  )
+                if (use_min_albedo) then
+                   ocnalb%anidr(n) = max (ocnalb%anidr(n), min_albedo)
+                end if
                 ocnalb%avsdr(n) = ocnalb%anidr(n)
                 ocnalb%anidf(n) = albdif
                 ocnalb%avsdf(n) = albdif
@@ -430,18 +493,25 @@ contains
        ofrad(:) = ofrac(:)
     endif
 
+    if (ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_ocnalb_o, rc=rc)) then
+       call NUOPC_MediatorGet(gcomp, driverClock=dClock, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       if (ESMF_ClockIsCreated(dclock)) then
+          call med_phases_history_write_med(gcomp, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       end if
+    end if
+
     if (dbug_flag > 1) then
        call FB_diagnose(is_local%wrap%FBMed_ocnalb_o, string=trim(subname)//' FBMed_ocnalb_o', rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     end if
     call t_stopf('MED:'//subname)
 
-#endif
-
   end subroutine med_phases_ocnalb_run
 
 !===============================================================================
-#ifdef CESMCOUPLED
+
   subroutine med_phases_ocnalb_orbital_init(gcomp, logunit, maintask, rc)
 
     !----------------------------------------------------------
@@ -601,7 +671,6 @@ contains
     endif
 
   end subroutine med_phases_ocnalb_orbital_update
-#endif
 
 !===============================================================================
 
