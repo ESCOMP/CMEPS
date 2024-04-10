@@ -177,7 +177,6 @@ contains
           call ESMF_TimeGet(nexttime, timestring=nexttimestr, rc=rc)
           if (med_utils_ChkErr(rc,__LINE__,u_FILE_u)) return
           ! get current wall clock time
-
           call ESMF_TimeSyncToRealTime(wallclockTime, rc=rc)
           if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
 
