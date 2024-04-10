@@ -859,7 +859,7 @@
        canonical_units: moles m-2 s-1
        description: ocn import to med
      #
-     - standard_name: Faoo_dms_ocn
+     - standard_name: Faoo_fdms_ocn
        canonical_units: moles m-2 s-1
        description: ocn import to med - surface flux of DMS (downward positive)
      #

@@ -1620,6 +1620,8 @@ contains
        call addfld_from(compocn, 'Faoo_fdms_ocn')
        call addfld_to(compatm, 'Faoo_fdms_ocn')
     else
+       ! Note that Faoo_dmds should not be weighted by ifrac - since
+       ! it will be weighted by ifrac in the merge to the atm
        if ( fldchk(is_local%wrap%FBImp(compocn, compocn), 'Faoo_fdms_ocn', rc=rc) .and. &
             fldchk(is_local%wrap%FBExp(compatm)         , 'Faoo_fdms_ocn', rc=rc)) then
           call addmap_from(compocn, 'Faoo_fdms_ocn', compatm, mapconsd, 'one', ocn2atm_map)
@@ -3391,25 +3393,6 @@ contains
           ! custom merge in med_phases_prep_atm
        end if
     endif
-
-    !=====================================================================
-    ! DMS EXCHANGE
-    !=====================================================================
-
-    ! Get dms flux from ocn and send to atm
-    if (phase == 'advertise') then
-       call addfld_from(compocn, 'Faoo_dms_ocn')
-       call addfld_to(compatm, 'Faoo_dms_ocn')
-    else
-       ! Note that Faoo_dmds should not be weighted by ifrac - since
-       ! it will be weighted by ifrac in the merge to the atm
-       if ( fldchk(is_local%wrap%FBImp(compocn,compocn), 'Faoo_dms_ocn', rc=rc) .and. &
-            fldchk(is_local%wrap%FBexp(compatm)        , 'Faoo_dms_ocn', rc=rc)) then
-          call addmap_from(complnd, 'Faoo_dms_ocn', compocn, mapconsf, 'lfrac', ocn2atm_map)
-          call addmrg_to(compatm , 'Faoo_dms_ocn', &
-               mrg_from=compmed, mrg_fld='Faoo_dms_ocn', mrg_type='merge', mrg_fracname='ofrac')
-       end if
-    end if
 
   end subroutine esmFldsExchange_cesm
 
