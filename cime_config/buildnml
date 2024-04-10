@@ -52,7 +52,6 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     config["mask_grid"] = case.get_value("MASK_GRID")
     config["rest_option"] = case.get_value("REST_OPTION")
     config["comp_ocn"] = case.get_value("COMP_OCN")
-    config["COMPSET"] = case.get_value("COMPSET")
 
     atm_grid = case.get_value("ATM_GRID")
     lnd_grid = case.get_value("LND_GRID")
