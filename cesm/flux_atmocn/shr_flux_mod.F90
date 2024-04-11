@@ -143,7 +143,8 @@ contains
        &               ocn_surface_flux_scheme, &
        &               add_gusts, & 
        &               duu10n, & 
-       &               ugust_out, & 
+       &               ugust_out, &
+       &               u10res, & 
        &               ustar_sv ,re_sv ,ssq_sv,   &
        &               missval)
 
@@ -194,6 +195,7 @@ contains
     real(R8),intent(out)  ::  qref (nMax) ! diag:  2m ref humidity (kg/kg)
     real(R8),intent(out)  :: duu10n(nMax) ! diag: 10m wind speed squared (m/s)^2
     real(R8),intent(out)  :: ugust_out(nMax) ! diag: gustiness addition to U10 (m/s)
+    real(R8),intent(out)  :: u10res(nMax) ! diag: gustiness addition to U10 (m/s)
 
     real(R8),intent(out),optional :: ustar_sv(nMax) ! diag: ustar
     real(R8),intent(out),optional :: re_sv   (nMax) ! diag: sqrt of exchange coefficient (water)
@@ -243,6 +245,7 @@ contains
     real(R8)    :: cp     ! specific heat of moist air
     real(R8)    :: fac    ! vertical interpolation factor
     real(R8)    :: spval  ! local missing value
+    real(R8)    :: wind0  ! resolved large-scale 10m wind (no gust added)
     !!++ COARE only
     real(R8)    :: zo,zot,zoq      ! roughness lengths
     real(R8)    :: hsb,hlb         ! sens & lat heat flxs at zbot
@@ -343,12 +346,13 @@ contains
 
              !--- compute some needed quantities ---
              if (add_gusts) then 
-                vmag   = max(seq_flux_atmocn_minwind, sqrt( (ubot(n)-us(n))**2 + (vbot(n)-vs(n))**2) + ugust(min(rainc(n),6.94444e-4_r8)) )
+                vmag   = max(seq_flux_atmocn_minwind, sqrt( (ubot(n)-us(n))**2 + (vbot(n)-vs(n))**2 + (1.0_R8*ugust(min(rainc(n),6.94444e-4_r8))**2)) )
                 ugust_out(n) = ugust(min(rainc(n),6.94444e-4_r8))
              else 
                 vmag   = max(seq_flux_atmocn_minwind, sqrt( (ubot(n)-us(n))**2 + (vbot(n)-vs(n))**2) )
                 ugust_out(n) = 0.0_r8
              end if
+             wind0 = max(seq_flux_atmocn_minwind, sqrt( (ubot(n)-us(n))**2 + (vbot(n)-vs(n))**2) )
 
              if (use_coldair_outbreak_mod) then
                 ! Cold Air Outbreak Modification:
@@ -356,10 +360,14 @@ contains
                 ! based on Mahrt & Sun 1995,MWR
 
                 if (tdiff(n).lt.td0) then
+                   ! if add_gusts wind0 and vmag are different, both need this factor.
                    vscl=min((1._R8+alpha*(abs(tdiff(n)-td0)**0.5_R8/abs(vmag))),maxscl)
                    vmag=vmag*vscl
+                   vscl=min((1._R8+alpha*(abs(tdiff(n)-td0)**0.5_R8/abs(wind0))),maxscl)
+                   wind0=wind0*vscl
                 endif
              endif
+
              ssq    = 0.98_R8 * qsat(ts(n)) / rbot(n)   ! sea surf hum (kg/kg)
              delt   = thbot(n) - ts(n)                  ! pot temp diff (K)
              delq   = qbot(n) - ssq                     ! spec hum dif (kg/kg)
@@ -460,6 +468,7 @@ contains
              qref(n) =  qbot(n) - delq*fac
 
              duu10n(n) = u10n*u10n ! 10m wind speed squared
+             u10res(n) = u10n * (wind0/vmag)  ! resolved 10m wind
 
              !------------------------------------------------------------
              ! optional diagnostics, needed for water tracer fluxes (dcn)
@@ -472,6 +481,7 @@ contains
              !------------------------------------------------------------
              ! no valid data here -- out of domain
              !------------------------------------------------------------
+
              sen   (n) = spval  ! sensible         heat flux  (W/m^2)
              lat   (n) = spval  ! latent           heat flux  (W/m^2)
              lwup  (n) = spval  ! long-wave upward heat flux  (W/m^2)
@@ -484,7 +494,8 @@ contains
              tref  (n) = spval  !  2m reference height temperature (K)
              qref  (n) = spval  !  2m reference height humidity (kg/kg)
              duu10n(n) = spval  ! 10m wind speed squared (m/s)^2
-             ugust_out(n) = spval ! gustiness addition (m/s) 
+             ugust_out(n) = spval ! gustiness addition (m/s)
+             u10res(n) = spval ! 10m resolved wind (no gusts) (m/s) 
 
              if (present(ustar_sv)) ustar_sv(n) = spval
              if (present(re_sv   )) re_sv   (n) = spval

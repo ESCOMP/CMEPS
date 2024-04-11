@@ -7,7 +7,6 @@ module med_phases_cdeps_mod
   use ESMF, only: ESMF_Field, ESMF_FieldGet
   use ESMF, only: ESMF_FieldBundleGet, ESMF_FieldBundleIsCreated
   use ESMF, only: ESMF_FieldBundleCreate
-  use ESMF, only: ESMF_GridCompGetInternalState
   use ESMF, only: ESMF_SUCCESS, ESMF_LOGMSG_INFO
 
   use med_internalstate_mod, only: InternalState
@@ -180,12 +179,12 @@ contains
                       ! Fill file abd variable lists with data
                       do l = 1, sdat_config%stream(streamid)%nfiles
                          fileList(l) = trim(sdat_config%stream(streamid)%file(l)%name) 
-                         if (maintask) write(logunit,'(a,i2,x,a)') trim(subname)//": file     ", l, trim(fileList(l))
+                         if (maintask) write(logunit,'(a,i2,2x,a)') trim(subname)//": file     ", l, trim(fileList(l))
                       end do
                       do l = 1, sdat_config%stream(streamid)%nvars
                          varList(l,1) = trim(sdat_config%stream(streamid)%varlist(l)%nameinfile)
                          varList(l,2) = trim(sdat_config%stream(streamid)%varlist(l)%nameinmodel)
-                         if (maintask) write(logunit,'(a,i2,x,a)') trim(subname)//": variable ", l, trim(varList(l,1))//" -> "//trim(varList(l,2))
+                         if (maintask) write(logunit,'(a,i2,2x,a)') trim(subname)//": variable ", l, trim(varList(l,1))//" -> "//trim(varList(l,2))
                       end do
 
                       ! Set PIO related variables
