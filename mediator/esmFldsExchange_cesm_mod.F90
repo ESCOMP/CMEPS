@@ -3045,16 +3045,18 @@ contains
     end if
 
     ! ---------------------------------------------------------------------
-    ! to wav: 10m zonal and meridional winds from atm
+    ! to wav: zonal and meridional winds at the lowest model level from atm
     ! ---------------------------------------------------------------------
     if (phase == 'advertise') then
+       call addfld_from(compatm, 'Sa_u')
+       call addfld_to(compwav, 'Sa_u')
        call addfld_from(compatm, 'Sa_u10m')
        call addfld_to(compwav, 'Sa_u10m')
     else
-       if ( fldchk(is_local%wrap%FBexp(compwav)         , 'Sa_u10m', rc=rc) .and. &
-            fldchk(is_local%wrap%FBImp(compatm,compatm ), 'Sa_u10m', rc=rc)) then
-          call addmap_from(compatm, 'Sa_u10m', compwav, mapbilnr, 'one', atm2wav_map)
-          call addmrg_to(compwav, 'Sa_u10m', mrg_from=compatm, mrg_fld='Sa_u10m', mrg_type='copy')
+       if ( fldchk(is_local%wrap%FBexp(compwav)         , 'Sa_u', rc=rc) .and. &
+            fldchk(is_local%wrap%FBImp(compatm,compatm ), 'Sa_u', rc=rc)) then
+          call addmap_from(compatm, 'Sa_u', compwav, mapbilnr, 'one', atm2wav_map)
+          call addmrg_to(compwav, 'Sa_u', mrg_from=compatm, mrg_fld='Sa_u', mrg_type='copy')
        end if
        if ( fldchk(is_local%wrap%FBexp(compwav)         , 'Sa_u10m', rc=rc) .and. &
             fldchk(is_local%wrap%FBImp(compatm,compatm ), 'Sa_u10m', rc=rc)) then
@@ -3063,13 +3065,15 @@ contains
        end if
     end if
     if (phase == 'advertise') then
+       call addfld_from(compatm, 'Sa_v')
+       call addfld_to(compwav, 'Sa_v')
        call addfld_from(compatm, 'Sa_v10m')
        call addfld_to(compwav, 'Sa_v10m')
     else
-       if ( fldchk(is_local%wrap%FBexp(compwav)         , 'Sa_v10m', rc=rc) .and. &
-            fldchk(is_local%wrap%FBImp(compatm,compatm ), 'Sa_v10m', rc=rc)) then
-          call addmap_from(compatm, 'Sa_v10m', compwav, mapbilnr, 'one', atm2wav_map)
-          call addmrg_to(compwav, 'Sa_v10m', mrg_from=compatm, mrg_fld='Sa_v10m', mrg_type='copy')
+       if ( fldchk(is_local%wrap%FBexp(compwav)         , 'Sa_v', rc=rc) .and. &
+            fldchk(is_local%wrap%FBImp(compatm,compatm ), 'Sa_v', rc=rc)) then
+          call addmap_from(compatm, 'Sa_v', compwav, mapbilnr, 'one', atm2wav_map)
+          call addmrg_to(compwav, 'Sa_v', mrg_from=compatm, mrg_fld='Sa_v', mrg_type='copy')
        end if
        if ( fldchk(is_local%wrap%FBexp(compwav)         , 'Sa_v10m', rc=rc) .and. &
             fldchk(is_local%wrap%FBImp(compatm,compatm ), 'Sa_v10m', rc=rc)) then
