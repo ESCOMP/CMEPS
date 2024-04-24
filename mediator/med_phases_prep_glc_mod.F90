@@ -20,7 +20,7 @@ module med_phases_prep_glc_mod
   use ESMF                  , only : ESMF_Field, ESMF_FieldGet, ESMF_FieldCreate
   use ESMF                  , only : ESMF_Mesh, ESMF_MESHLOC_ELEMENT, ESMF_TYPEKIND_R8, ESMF_KIND_R8
   use ESMF                  , only : ESMF_DYNAMICMASK, ESMF_DynamicMaskSetR8R8R8, ESMF_DYNAMICMASKELEMENTR8R8R8
-  use ESMF                  , only : ESMF_FieldRegrid
+  use ESMF                  , only : ESMF_FieldRegrid, ESMF_REGION_EMPTY
   use med_internalstate_mod , only : complnd, compocn,  mapbilnr, mapconsd, compname, compglc
   use med_internalstate_mod , only : InternalState, maintask, logunit
   use med_map_mod           , only : med_map_routehandles_init, med_map_rh_is_created
@@ -523,6 +523,7 @@ contains
     logical             :: isPresent, isSet
     logical             :: write_histaux_l2x1yrg
     character(len=*) , parameter   :: subname=' (med_phases_prep_glc) '
+    integer :: k,cnt
     !---------------------------------------
 
     call t_startf('MED:'//subname)
@@ -638,7 +639,6 @@ contains
        end do
 
        if (is_local%wrap%ocn2glc_coupling) then
-          call ESMF_LogWrite(subname//' DEBUG: averaging FBocnAccum2glc_o', ESMF_LOGMSG_INFO)
           ! Average import from accumulated ocn import data
           do n = 1, size(fldnames_fr_ocn)
              call fldbun_getdata2d(FBocnAccum2glc_o, fldnames_fr_ocn(n), data2d, rc)
@@ -668,10 +668,14 @@ contains
                 call ESMF_FieldBundleGet(is_local%wrap%FBExp(compglc(ns)), fldnames_fr_ocn(n), field=lfield_dst, rc=rc)
                 if (chkErr(rc,__LINE__,u_FILE_u)) return
                 ! Do mapping of ocn to glc with dynamic masking
-                write(6,'(a)')' DEBUG: mapping FBocnAccum2glc_o with dynamic masking for '//trim(fldnames_fr_ocn(n))
                 call ESMF_FieldRegrid(lfield_src, lfield_dst, &
-                     routehandle=is_local%wrap%RH(compocn,compglc(ns),mapbilnr), dynamicMask=dynamicOcnMask, rc=rc)
+                     routehandle=is_local%wrap%RH(compocn,compglc(ns),mapbilnr), dynamicMask=dynamicOcnMask, &
+                     zeroregion=ESMF_REGION_EMPTY, rc=rc)
                 if (chkErr(rc,__LINE__,u_FILE_u)) return
+                call fldbun_getdata2d(is_local%wrap%FBExp(compglc(ns)), fldnames_fr_ocn(n), data2d, rc)
+                if (chkerr(rc,__LINE__,u_FILE_u)) return
+                ! reset values of 0 to spval
+                where (data2d == 0._r8) data2d = shr_const_spval
              end do
           end do
           ocnAccum2glc_cnt = 0
@@ -1251,7 +1255,7 @@ contains
     integer           , intent(out)           :: rc
 
     ! local variables
-    integer  :: no, ni
+    integer  :: no, ni, i, j
     real(ESMF_KIND_R8)  :: renorm
     !---------------------------------------------------------------
 
@@ -1260,17 +1264,14 @@ contains
     ! Below - ONLY if you do NOT have the source masked out then do
     ! the regridding (which is done explicitly here)
 
-    write(6,*)'DEBUG: dynamicSrcMaskValue = ',dynamicSrcMaskValue
     if (associated(dynamicMaskList)) then
        do no = 1, size(dynamicMaskList)
           dynamicMaskList(no)%dstElement = czero ! set to zero
           renorm = 0.d0 ! reset
           do ni = 1, size(dynamicMaskList(no)%factor)
-
-             write(6,'(a,2(i10,2x),3(d13.5,2x))')'DEBUG: ',no,ni,&
-                  dynamicMaskList(no)%srcElement(ni), dynamicMaskList(no)%dstElement, dynamicMaskList(no)%factor(ni)
-
-             if (dynamicSrcMaskValue /= dynamicMaskList(no)%srcElement(ni)) then
+             ! Need to multiply by .90 to handle averaging of input fields before remapping is called
+             if ( dynamicMaskList(no)%srcElement(ni) > 0.d0 .and. &
+                  dynamicMaskList(no)%srcElement(ni) < dynamicSrcMaskValue*.90) then
                 dynamicMaskList(no)%dstElement = dynamicMaskList(no)%dstElement + &
                      (dynamicMaskList(no)%factor(ni) * dynamicMaskList(no)%srcElement(ni))
                 renorm = renorm + dynamicMaskList(no)%factor(ni)
