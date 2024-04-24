@@ -37,12 +37,15 @@ module med_phases_prep_glc_mod
   use med_methods_mod       , only : FB_check_for_nans => med_methods_FB_check_for_nans
   use med_methods_mod       , only : field_getdata2d  => med_methods_Field_getdata2d
   use med_methods_mod       , only : field_getdata1d  => med_methods_Field_getdata1d
+  use med_methods_mod       , only : fldchk           => med_methods_FB_FldChk
   use med_utils_mod         , only : chkerr           => med_utils_ChkErr
   use med_time_mod          , only : med_time_alarmInit
   use glc_elevclass_mod     , only : glc_get_num_elevation_classes
   use glc_elevclass_mod     , only : glc_get_elevation_classes
   use glc_elevclass_mod     , only : glc_get_fractional_icecov
   use perf_mod              , only : t_startf, t_stopf
+
+  use shr_sys_mod, only : shr_sys_abort
 
   implicit none
   private
@@ -106,7 +109,7 @@ module med_phases_prep_glc_mod
   integer               , public :: ocnAccum2glc_cnt
   character(len=14)              :: fldnames_fr_ocn(2) = (/'So_t_depth','So_s_depth'/)  ! TODO: what else needs to be added here
   type(ESMF_DynamicMask)         :: dynamicOcnMask
-  integer, parameter             :: num_ocndepths = 7
+  integer, parameter             :: num_ocndepths = 30
 
   type(ESMF_Clock)        :: prepglc_clock
   character(*), parameter :: u_FILE_u  = &
@@ -319,7 +322,7 @@ contains
     end if
 
     ! -------------------------------
-    ! If ocn->glc couplng is active
+    ! If ocn->glc coupling is active
     ! -------------------------------
 
     if (is_local%wrap%ocn2glc_coupling) then
@@ -355,8 +358,8 @@ contains
        ! Create a dynamic mask object
        ! The dynamic mask object further holds a pointer to the routine that will be called in order to
        ! handle dynamically masked elements - in this case its DynOcnMaskProc (see below)
-       call ESMF_DynamicMaskSetR8R8R8(dynamicOcnMask, dynamicSrcMaskValue=czero, &
-            dynamicMaskRoutine=DynOcnMaskProc, rc=rc)
+       call ESMF_DynamicMaskSetR8R8R8(dynamicOcnMask, dynamicMaskRoutine=DynOcnMaskProc, &
+            dynamicSrcMaskValue=1.e30_r8,  handleAllElements=.true., rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     end if
@@ -618,21 +621,24 @@ contains
     if (do_avg) then
        ! Always average import from accumulated land import data
        do n = 1, size(fldnames_fr_lnd)
-          call fldbun_getdata2d(FBlndAccum2glc_l, fldnames_fr_lnd(n), data2d, rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          if (lndAccum2glc_cnt > 0) then
-             ! If accumulation count is greater than 0, do the averaging
-             data2d(:,:) = data2d(:,:) / real(lndAccum2glc_cnt)
-          else
-             ! If accumulation count is 0, then simply set the averaged field bundle values from the land
-             ! to the import field bundle values
-             call fldbun_getdata2d(is_local%wrap%FBImp(complnd,complnd), fldnames_fr_lnd(n), data2d_import, rc)
+          if (fldchk(FBlndAccum2glc_l, fldnames_fr_lnd(n), rc=rc)) then
+             call fldbun_getdata2d(FBlndAccum2glc_l, fldnames_fr_lnd(n), data2d, rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
-             data2d(:,:) = data2d_import(:,:)
+             if (lndAccum2glc_cnt > 0) then
+                ! If accumulation count is greater than 0, do the averaging
+                data2d(:,:) = data2d(:,:) / real(lndAccum2glc_cnt)
+             else
+                ! If accumulation count is 0, then simply set the averaged field bundle values from the land
+                ! to the import field bundle values
+                call fldbun_getdata2d(is_local%wrap%FBImp(complnd,complnd), fldnames_fr_lnd(n), data2d_import, rc)
+                if (chkerr(rc,__LINE__,u_FILE_u)) return
+                data2d(:,:) = data2d_import(:,:)
+             end if
           end if
        end do
 
        if (is_local%wrap%ocn2glc_coupling) then
+          call ESMF_LogWrite(subname//' DEBUG: averaging FBocnAccum2glc_o', ESMF_LOGMSG_INFO)
           ! Average import from accumulated ocn import data
           do n = 1, size(fldnames_fr_ocn)
              call fldbun_getdata2d(FBocnAccum2glc_o, fldnames_fr_ocn(n), data2d, rc)
@@ -662,6 +668,7 @@ contains
                 call ESMF_FieldBundleGet(is_local%wrap%FBExp(compglc(ns)), fldnames_fr_ocn(n), field=lfield_dst, rc=rc)
                 if (chkErr(rc,__LINE__,u_FILE_u)) return
                 ! Do mapping of ocn to glc with dynamic masking
+                write(6,'(a)')' DEBUG: mapping FBocnAccum2glc_o with dynamic masking for '//trim(fldnames_fr_ocn(n))
                 call ESMF_FieldRegrid(lfield_src, lfield_dst, &
                      routehandle=is_local%wrap%RH(compocn,compglc(ns),mapbilnr), dynamicMask=dynamicOcnMask, rc=rc)
                 if (chkErr(rc,__LINE__,u_FILE_u)) return
@@ -1244,7 +1251,7 @@ contains
     integer           , intent(out)           :: rc
 
     ! local variables
-    integer  :: i, j
+    integer  :: no, ni
     real(ESMF_KIND_R8)  :: renorm
     !---------------------------------------------------------------
 
@@ -1253,21 +1260,26 @@ contains
     ! Below - ONLY if you do NOT have the source masked out then do
     ! the regridding (which is done explicitly here)
 
+    write(6,*)'DEBUG: dynamicSrcMaskValue = ',dynamicSrcMaskValue
     if (associated(dynamicMaskList)) then
-       do i=1, size(dynamicMaskList)
-          dynamicMaskList(i)%dstElement = czero ! set to zero
+       do no = 1, size(dynamicMaskList)
+          dynamicMaskList(no)%dstElement = czero ! set to zero
           renorm = 0.d0 ! reset
-          do j = 1, size(dynamicMaskList(i)%factor)
-             if (dynamicSrcMaskValue /= dynamicMaskList(i)%srcElement(j)) then
-                dynamicMaskList(i)%dstElement = dynamicMaskList(i)%dstElement + &
-                     (dynamicMaskList(i)%factor(j) * dynamicMaskList(i)%srcElement(j))
-                renorm = renorm + dynamicMaskList(i)%factor(j)
+          do ni = 1, size(dynamicMaskList(no)%factor)
+
+             write(6,'(a,2(i10,2x),3(d13.5,2x))')'DEBUG: ',no,ni,&
+                  dynamicMaskList(no)%srcElement(ni), dynamicMaskList(no)%dstElement, dynamicMaskList(no)%factor(ni)
+
+             if (dynamicSrcMaskValue /= dynamicMaskList(no)%srcElement(ni)) then
+                dynamicMaskList(no)%dstElement = dynamicMaskList(no)%dstElement + &
+                     (dynamicMaskList(no)%factor(ni) * dynamicMaskList(no)%srcElement(ni))
+                renorm = renorm + dynamicMaskList(no)%factor(ni)
              endif
           enddo
           if (renorm > 0.d0) then
-             dynamicMaskList(i)%dstElement = dynamicMaskList(i)%dstElement / renorm
+             dynamicMaskList(no)%dstElement = dynamicMaskList(no)%dstElement / renorm
           else if (present(dynamicSrcMaskValue)) then
-             dynamicMaskList(i)%dstElement = dynamicSrcMaskValue
+             dynamicMaskList(no)%dstElement = dynamicSrcMaskValue
           else
              rc = ESMF_RC_ARG_BAD  ! error detected
              return
