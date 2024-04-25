@@ -142,10 +142,6 @@
     the atmosphere to the land and ocean, and the surface upward flux of CO2
     to be sent from the land and the open ocean back to the atmosphere.
 
-    DMS: sets nuopc.runconfig variable flds_dms_med = .true.; this adds
-    turns on the computation of DMS flux in the mediator and that flux is passed back to both the
-    ocean (if prognostic) and the atm (if prognostic)
-
     </desc>
   </entry>
 
