@@ -19,7 +19,7 @@ module med_phases_prep_wav_mod
   use med_methods_mod       , only : FB_reset      => med_methods_FB_reset
   use med_methods_mod       , only : FB_check_for_nans => med_methods_FB_check_for_nans
   use esmFlds               , only : med_fldList_GetfldListTo
-  use med_internalstate_mod , only : compwav
+  use med_internalstate_mod , only : compatm, compwav
   use perf_mod              , only : t_startf, t_stopf
 
   implicit none
@@ -92,12 +92,39 @@ contains
     rc = ESMF_SUCCESS
     call memcheck(subname, 5, maintask)
 
-    ! Get the internal state
+    !---------------------------------------
+    ! --- Get the internal state
+    !---------------------------------------
     nullify(is_local%wrap)
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    ! auto merges to wav
+    !---------------------------------------
+    ! --- map atm to wav, only if data stream is available
+    !---------------------------------------
+    if (is_local%wrap%med_coupling_active(compatm,compwav) .and. &
+        is_local%wrap%med_data_active(compatm,compwav) .and. &
+        is_local%wrap%med_data_force_first(compwav)) then
+       call t_startf('MED:'//trim(subname)//' map_atm2wav')
+       call med_map_field_packed( &
+            FBSrc=is_local%wrap%FBImp(compatm,compatm), &
+            FBDst=is_local%wrap%FBImp(compatm,compwav), &
+            FBFracSrc=is_local%wrap%FBFrac(compatm), &
+            FBDat=is_local%wrap%FBData(compwav), &
+            use_data=is_local%wrap%med_data_force_first(compwav), &
+            field_normOne=is_local%wrap%field_normOne(compatm,compwav,:), &
+            packed_data=is_local%wrap%packed_data(compatm,compwav,:), &
+            routehandles=is_local%wrap%RH(compatm,compwav,:), rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call t_stopf('MED:'//trim(subname)//' map_atm2wav')
+
+       ! Reset flag to use data
+       is_local%wrap%med_data_force_first(compwav) = .false.
+    end if
+
+    !---------------------------------------
+    !--- merge all fields to wav 
+    !---------------------------------------
     call med_merge_auto(&
          is_local%wrap%med_coupling_active(:,compwav), &
          is_local%wrap%FBExp(compwav), &
@@ -177,8 +204,8 @@ contains
        call FB_copy(is_local%wrap%FBExp(compwav), is_local%wrap%FBExpAccumWav, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-       ! Check for nans in fields export to atm
-       call FB_check_for_nans(is_local%wrap%FBExp(compwav), rc=rc)
+       ! Check for nans in fields export to wav
+       call FB_check_for_nans(is_local%wrap%FBExp(compwav), maintask, logunit, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        ! zero accumulator

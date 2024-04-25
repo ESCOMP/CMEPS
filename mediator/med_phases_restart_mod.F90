@@ -346,6 +346,10 @@ contains
              if (is_local%wrap%comp_present(n)) then
                 nx = is_local%wrap%nx(n)
                 ny = is_local%wrap%ny(n)
+                if (is_local%wrap%ntile(n) > 0) then
+                   nx = is_local%wrap%ntile(n)*is_local%wrap%ny(n)*is_local%wrap%nx(n)
+                   ny = 1
+                end if
                 ! Write import field bundles
                 if (ESMF_FieldBundleIsCreated(is_local%wrap%FBimp(n,n),rc=rc)) then
                    call med_io_write(io_file, is_local%wrap%FBimp(n,n), whead(m), wdata(m), nx, ny, &

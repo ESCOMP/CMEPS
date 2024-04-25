@@ -20,7 +20,7 @@ def gen_runseq(case, coupling_times):
     cpl_seq_option = case.get_value('CPL_SEQ_OPTION')
     coupling_mode  = case.get_value('COUPLING_MODE')
     diag_mode      = case.get_value('BUDGETS')
-    xcompset = case.get_value("COMP_ATM") == 'xatm'
+    xcompset       = case.get_value("COMP_ATM") == 'xatm'
     cpl_add_aoflux = not xcompset and case.get_value('ADD_AOFLUX_TO_RUNSEQ')
 
     # It is assumed that if a component will be run it will send information to the mediator
@@ -35,19 +35,6 @@ def gen_runseq(case, coupling_times):
     run_rof, med_to_rof, rof_cpl_time = driver_config['rof']
     run_wav, med_to_wav, wav_cpl_time = driver_config['wav']
 
-    comp_glc = case.get_value("COMP_GLC")
-    run_glc = False
-    post_glc = False
-    if (comp_glc == 'cism'):
-        run_glc = True
-        if case.get_value("CISM_EVOLVE"):
-            post_glc = True
-        else:
-            post_glc = False
-    elif (comp_glc == 'xglc'):
-        run_glc = True
-        post_glc = True
-
     # Note: assume that atm_cpl_dt, lnd_cpl_dt, ice_cpl_dt and wav_cpl_dt are the same
 
     if lnd_cpl_time != atm_cpl_time:
@@ -59,18 +46,32 @@ def gen_runseq(case, coupling_times):
     if rof_cpl_time < ocn_cpl_time:
         expect(False, "assume that rof_cpl_time is always greater than or equal to ocn_cpl_time")
 
+    if run_glc:
+        # It wouldn't make sense to run GLC unless we also do MED -> GLC to transfer fields to GLC,
+        # and some of the below logic controlling what appears in the run sequence depends on this
+        # (i.e., depends on the fact that, if run_glc is True, then med_to_glc is also True).
+        expect(med_to_glc, "if run_glc is True, then med_to_glc must also be True")
+
     rof_outer_loop = run_rof and rof_cpl_time > atm_cpl_time
     ocn_outer_loop = run_ocn and ocn_cpl_time > atm_cpl_time
 
+    # Note that we do some aspects of the GLC outer loop even if run_glc is False
+    # (as long as med_to_glc is True).
+    #
+    # Note that, in contrast to the other outer_loop variables, this doesn't check glc_cpl_time.
+    # This is for consistency with the logic that was in place before adding this variable;
+    # this seems to implicitly assume that glc_cpl_time > atm_cpl_time.
+    glc_outer_loop = med_to_glc
+
     inner_loop = ((atm_cpl_time < ocn_cpl_time) or
                   (atm_cpl_time < rof_cpl_time) or
-                  (run_glc and atm_cpl_time < glc_cpl_time) or
+                  (glc_outer_loop and atm_cpl_time < glc_cpl_time) or
                   atm_cpl_time == ocn_cpl_time)
 
     with RunSeq(os.path.join(caseroot, "CaseDocs", "nuopc.runseq")) as runseq:
 
         #------------------
-        runseq.enter_time_loop(glc_cpl_time, newtime=run_glc, active=med_to_glc)
+        runseq.enter_time_loop(glc_cpl_time, newtime=glc_outer_loop)
         #------------------
 
         #------------------
@@ -199,8 +200,10 @@ def gen_runseq(case, coupling_times):
 
         runseq.add_action("MED med_phases_prep_glc"        , med_to_glc)
         runseq.add_action("MED -> GLC :remapMethod=redist" , med_to_glc)
-        runseq.add_action("GLC"                            , run_glc and med_to_glc)
-        runseq.add_action("GLC -> MED :remapMethod=redist" , run_glc)
-        runseq.add_action("MED med_phases_post_glc"        , run_glc and post_glc)
+        runseq.add_action("GLC"                            , run_glc)
+        # Need to do GLC -> MED even if not running GLC; otherwise, we get a
+        # failure in InitializeRealize ("Object being used before creation")
+        runseq.add_action("GLC -> MED :remapMethod=redist" , med_to_glc)
+        runseq.add_action("MED med_phases_post_glc"        , run_glc)
 
     shutil.copy(os.path.join(caseroot, "CaseDocs", "nuopc.runseq"), rundir)

@@ -17,7 +17,7 @@ module med_phases_prep_atm_mod
   use med_methods_mod       , only : FB_check_for_nans => med_methods_FB_check_for_nans
   use med_merge_mod         , only : med_merge_auto
   use med_map_mod           , only : med_map_field_packed
-  use med_internalstate_mod , only : InternalState, maintask
+  use med_internalstate_mod , only : InternalState, maintask, logunit
   use med_internalstate_mod , only : compatm, compocn, compice, compname, coupling_mode
   use esmFlds               , only : med_fldlist_GetfldListTo, med_fldlist_type
   use perf_mod              , only : t_startf, t_stopf
@@ -81,6 +81,7 @@ contains
             FBSrc=is_local%wrap%FBImp(compocn,compocn), &
             FBDst=is_local%wrap%FBImp(compocn,compatm), &
             FBFracSrc=is_local%wrap%FBFrac(compocn), &
+            FBDat=is_local%wrap%FBData(compatm), &
             field_NormOne=is_local%wrap%field_normOne(compocn,compatm,:), &
             packed_data=is_local%wrap%packed_data(compocn,compatm,:), &
             routehandles=is_local%wrap%RH(compocn,compatm,:), rc=rc)
@@ -115,9 +116,7 @@ contains
     !--- map atm/ocn fluxes from ocn to atm grid if appropriate
     !---------------------------------------
     if (trim(coupling_mode) == 'cesm' .or. &
-        trim(coupling_mode) == 'hafs' .or. &
-        trim(coupling_mode) == 'nems_frac_aoflux' .or. &
-        trim(coupling_mode) == 'nems_frac_aoflux_sbs') then
+         trim(coupling_mode) == 'ufs.frac.aoflux') then
        if (is_local%wrap%aoflux_grid == 'ogrid') then
           call med_aofluxes_map_ogrid2agrid_output(gcomp, rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -133,30 +132,15 @@ contains
     !--- merge all fields to atm
     !---------------------------------------
     fldList => med_fldList_GetfldListTo(compatm)
-    if (trim(coupling_mode) == 'cesm' .or. &
-        trim(coupling_mode) == 'nems_frac_aoflux' .or. &
-        trim(coupling_mode) == 'hafs') then
-       call med_merge_auto(&
-            is_local%wrap%med_coupling_active(:,compatm), &
-            is_local%wrap%FBExp(compatm), &
-            is_local%wrap%FBFrac(compatm), &
-            is_local%wrap%FBImp(:,compatm), &
-            fldList, &
-            FBMed1=is_local%wrap%FBMed_ocnalb_a, &
-            FBMed2=is_local%wrap%FBMed_aoflux_a, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    else if (trim(coupling_mode) == 'nems_frac' .or. &
-             trim(coupling_mode) == 'nems_orig' .or. &
-             trim(coupling_mode) == 'nems_frac_aoflux_sbs') then
-       call med_merge_auto(&
-            is_local%wrap%med_coupling_active(:,compatm), &
-            is_local%wrap%FBExp(compatm), &
-            is_local%wrap%FBFrac(compatm), &
-            is_local%wrap%FBImp(:,compatm), &
-            fldList, &
-            rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    end if
+    call med_merge_auto(&
+         is_local%wrap%med_coupling_active(:,compatm), &
+         is_local%wrap%FBExp(compatm), &
+         is_local%wrap%FBFrac(compatm), &
+         is_local%wrap%FBImp(:,compatm), &
+         fldList, &
+         FBMed1=is_local%wrap%FBMed_ocnalb_a, &
+         FBMed2=is_local%wrap%FBMed_aoflux_a, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if (dbug_flag > 1) then
        call FB_diagnose(is_local%wrap%FBExp(compatm),string=trim(subname)//' FBexp(compatm) ', rc=rc)
@@ -245,7 +229,7 @@ contains
     end if
 
     ! Check for nans in fields export to atm
-    call FB_check_for_nans(is_local%wrap%FBExp(compatm), rc=rc)
+    call FB_check_for_nans(is_local%wrap%FBExp(compatm), maintask, logunit, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if (dbug_flag > 5) then

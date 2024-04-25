@@ -322,24 +322,28 @@ contains
                 if (is_local%wrap%comp_present(n)) then
                    if (ESMF_FieldBundleIsCreated(is_local%wrap%FBimp(n,n),rc=rc)) then
                       call med_io_write(io_file, is_local%wrap%FBimp(n,n), whead(m), wdata(m), &
-                           is_local%wrap%nx(n), is_local%wrap%ny(n), nt=1, pre=trim(compname(n))//'Imp', rc=rc)
+                           is_local%wrap%nx(n), is_local%wrap%ny(n), nt=1, pre=trim(compname(n))//'Imp', &
+                           ntile=is_local%wrap%ntile(n), rc=rc)
                       if (ChkErr(rc,__LINE__,u_FILE_u)) return
                    endif
                    if (ESMF_FieldBundleIsCreated(is_local%wrap%FBexp(n),rc=rc)) then
                       call med_io_write(io_file, is_local%wrap%FBexp(n), whead(m), wdata(m), &
-                           is_local%wrap%nx(n), is_local%wrap%ny(n), nt=1, pre=trim(compname(n))//'Exp', rc=rc)
+                           is_local%wrap%nx(n), is_local%wrap%ny(n), nt=1, pre=trim(compname(n))//'Exp', &
+                           ntile=is_local%wrap%ntile(n), rc=rc)
                       if (ChkErr(rc,__LINE__,u_FILE_u)) return
                    endif
                 end if
                 ! Write mediator fraction field bundles
                 if (ESMF_FieldBundleIsCreated(is_local%wrap%FBFrac(n),rc=rc)) then
                    call med_io_write(io_file, is_local%wrap%FBFrac(n), whead(m), wdata(m), &
-                        is_local%wrap%nx(n), is_local%wrap%ny(n), nt=1, pre='Med_frac_'//trim(compname(n)), rc=rc)
+                        is_local%wrap%nx(n), is_local%wrap%ny(n), nt=1, pre='Med_frac_'//trim(compname(n)), &
+                        ntile=is_local%wrap%ntile(n), rc=rc)
                    if (ChkErr(rc,__LINE__,u_FILE_u)) return
                 end if
                 ! Write component mediator area field bundles
                 call med_io_write(io_file, is_local%wrap%FBArea(n), whead(m), wdata(m), &
-                     is_local%wrap%nx(n), is_local%wrap%ny(n), nt=1, pre='MED_'//trim(compname(n)), rc=rc)
+                     is_local%wrap%nx(n), is_local%wrap%ny(n), nt=1, pre='MED_'//trim(compname(n)), &
+                     ntile=is_local%wrap%ntile(n), rc=rc)
              end do
 
              ! Write atm/ocn fluxes and ocean albedoes if field bundles are created
@@ -549,7 +553,6 @@ contains
     character(len=CL)       :: hist_file
     integer                 :: m,n
     logical                 :: isPresent
-    character(len=CS)       :: cvalue
     character(len=*), parameter :: subname='(med_phases_history_write_lnd2glc)'
     !---------------------------------------
 
@@ -686,13 +689,13 @@ contains
     integer             :: hist_n       ! freq_n setting relative to freq_option
     character(CL)       :: hist_option_in
     character(CL)       :: hist_n_in
-    integer             :: hist_tilesize
     logical             :: isPresent
     logical             :: isSet
     type(ESMF_VM)       :: vm
     type(ESMF_Calendar) :: calendar     ! calendar type
     integer             :: m            ! indices
     integer             :: nx,ny        ! global grid size
+    integer             :: ntile        ! number of tiles for tiled domain eg CSG
     character(CL)       :: time_units   ! units of time variable
     character(CL)       :: hist_file    ! history file name
     real(r8)            :: time_val     ! time coordinate output
@@ -708,16 +711,6 @@ contains
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    ! Determine if tiled output to history file is requested
-    call NUOPC_CompAttributeGet(gcomp, name='history_tile_'//trim(compname(compid)), isPresent=isPresent, isSet=isSet, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent .and. isSet) then
-       call NUOPC_CompAttributeGet(gcomp, name='history_tile_'//trim(compname(compid)), value=cvalue, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       read(cvalue,*) hist_tilesize
-    else
-       hist_tilesize = 0
-    end if
     ! alarm is not set determine hist_option and hist_n
     if (.not. instfile%is_clockset) then
 
@@ -789,22 +782,23 @@ contains
 
              nx = is_local%wrap%nx(compid)
              ny = is_local%wrap%ny(compid)
+             ntile = is_local%wrap%ntile(compid)
              ! Define/write import field bundle
              if (ESMF_FieldBundleIsCreated(is_local%wrap%FBimp(compid,compid),rc=rc)) then
                 call med_io_write(instfile%io_file, is_local%wrap%FBimp(compid,compid), whead(m), wdata(m), nx, ny, &
-                     nt=1, pre=trim(compname(compid))//'Imp', tilesize=hist_tilesize, rc=rc)
+                     nt=1, pre=trim(compname(compid))//'Imp', ntile=ntile, rc=rc)
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
              endif
              ! Define/write import export bundle
              if (ESMF_FieldBundleIsCreated(is_local%wrap%FBexp(compid),rc=rc)) then
                 call med_io_write(instfile%io_file, is_local%wrap%FBexp(compid), whead(m), wdata(m), nx, ny, &
-                     nt=1, pre=trim(compname(compid))//'Exp', tilesize=hist_tilesize, rc=rc)
+                     nt=1, pre=trim(compname(compid))//'Exp', ntile=ntile, rc=rc)
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
              endif
              ! Define/Write mediator fractions
              if (ESMF_FieldBundleIsCreated(is_local%wrap%FBFrac(compid),rc=rc)) then
                 call med_io_write(instfile%io_file, is_local%wrap%FBFrac(compid), whead(m), wdata(m), nx, ny, &
-                     nt=1, pre='Med_frac_'//trim(compname(compid)), tilesize=hist_tilesize, rc=rc)
+                     nt=1, pre='Med_frac_'//trim(compname(compid)), ntile=ntile, rc=rc)
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
              end if
 
@@ -844,13 +838,13 @@ contains
     integer                 :: hist_n        ! freq_n setting relative to freq_option
     character(CL)           :: hist_option_in
     character(CL)           :: hist_n_in
-    integer                 :: hist_tilesize
     logical                 :: isPresent
     logical                 :: isSet
     type(ESMF_VM)           :: vm
     type(ESMF_Calendar)     :: calendar          ! calendar type
     integer                 :: m                 ! indices
     integer                 :: nx,ny             ! global grid size
+    integer                 :: ntile             ! number of tiles for tiled domain eg CSG
     character(CL)           :: time_units        ! units of time variable
     character(CL)           :: hist_file         ! history file name
     real(r8)                :: time_val          ! time coordinate output
@@ -868,16 +862,6 @@ contains
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    ! Determine if tiled output to history file is requested
-    call NUOPC_CompAttributeGet(gcomp, name='history_tile_'//trim(compname(compid)), isPresent=isPresent, isSet=isSet, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent .and. isSet) then
-       call NUOPC_CompAttributeGet(gcomp, name='history_tile_'//trim(compname(compid)), value=cvalue, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       read(cvalue,*) hist_tilesize
-    else
-       hist_tilesize = 0
-    end if
     ! alarm is not set determine hist_option and hist_n
     if (.not. avgfile%is_clockset) then
 
@@ -996,9 +980,10 @@ contains
              if (is_local%wrap%comp_present(compid)) then
                 nx = is_local%wrap%nx(compid)
                 ny = is_local%wrap%ny(compid)
+                ntile = is_local%wrap%ntile(compid)
                 if (ESMF_FieldBundleIsCreated(is_local%wrap%FBimp(compid,compid),rc=rc)) then
                    call med_io_write(avgfile%io_file, avgfile%FBaccum_import, whead(m), wdata(m), nx, ny, &
-                        nt=1, pre=trim(compname(compid))//'Imp', tilesize=hist_tilesize, rc=rc)
+                        nt=1, pre=trim(compname(compid))//'Imp', ntile=ntile, rc=rc)
                    if (ChkErr(rc,__LINE__,u_FILE_u)) return
                    if (wdata(m)) then
                       call med_methods_FB_reset(avgfile%FBAccum_import, czero, rc=rc)
@@ -1007,7 +992,7 @@ contains
                 endif
                 if (ESMF_FieldBundleIsCreated(is_local%wrap%FBexp(compid),rc=rc)) then
                    call med_io_write(avgfile%io_file, avgfile%FBaccum_export, whead(m), wdata(m), nx, ny, &
-                        nt=1, pre=trim(compname(compid))//'Exp', tilesize=hist_tilesize, rc=rc)
+                        nt=1, pre=trim(compname(compid))//'Exp', ntile=ntile, rc=rc)
                    if (ChkErr(rc,__LINE__,u_FILE_u)) return
                    if (wdata(m)) then
                       call med_methods_FB_reset(avgfile%FBAccum_export, czero, rc=rc)
