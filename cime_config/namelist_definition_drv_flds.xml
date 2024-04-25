@@ -178,7 +178,6 @@
     <type>logical</type>
     <category>control</category>
     <group>wind_gusts_nl</group>
-    <valid_values>.true.,.false.</valid_values>
     <desc>
       add a wind gustiness factor
     </desc>
