@@ -6,14 +6,10 @@ module shr_dust_emis_mod
   ! dust emissions.
   !========================================================================
 
-  use ESMF           , only : ESMF_VMGetCurrent, ESMF_VM, ESMF_VMGet, ESMF_LOGMSG_INFO
-  use ESMF           , only : ESMF_LogFoundError, ESMF_LOGERR_PASSTHRU, ESMF_SUCCESS
-  use ESMF           , only : ESMF_LogWrite, ESMF_VMBroadCast
   use shr_sys_mod    , only : shr_sys_abort
   use shr_kind_mod   , only : CS => SHR_KIND_CS
   use shr_nl_mod     , only : shr_nl_find_group_name
   use shr_log_mod    , only : shr_log_getLogUnit, errMsg => shr_log_errMsg
-  use nuopc_shr_methods, only : chkerr
 
   implicit none
   private
@@ -41,25 +37,24 @@ module shr_dust_emis_mod
 CONTAINS
 !===============================================================================
 
-  subroutine shr_dust_emis_readnl(NLFilename)
+  subroutine shr_dust_emis_readnl(mpicom, NLFilename)
 
     !========================================================================
     ! reads dust_emis_inparm namelist to determine how dust emissions will
     ! be handled between the land and atmosphere models
     !========================================================================
+    use shr_mpi_mod, only : shr_mpi_bcast, shr_mpi_commrank
 
     character(len=*), intent(in)  :: NLFilename ! Namelist filename
+    integer         , intent(in)  :: mpicom     ! MPI communicator for broadcasting all all tasks
 
     !----- local -----
     integer       :: i                ! Indices
     integer       :: unitn            ! namelist unit number
     integer       :: ierr             ! error code
     logical       :: exists           ! if file exists or not
-    type(ESMF_VM) :: vm
-    integer       :: localPet
-    integer       :: mpicom
+    integer       :: localPet         ! Local processor rank
     integer       :: s_logunit
-    integer       :: rc
     character(*),parameter :: F00   = "('(shr_dust_emis_read) ',8a)"
     character(*),parameter :: subName = '(shr_dust_emis_read) '
     !-----------------------------------------------------------------------------
@@ -69,20 +64,13 @@ CONTAINS
     !-----------------------------------------------------------------------------
     ! Read namelist, check if namelist file exists first
     !-----------------------------------------------------------------------------
-    call ESMF_LogWrite(subname//' start', ESMF_LOGMSG_INFO)
-
-    rc = ESMF_SUCCESS
 
     !--- Open and read namelist ---
     if ( len_trim(NLFilename) == 0  )then
        call shr_sys_abort( subName//'ERROR: nlfilename not set' )
     end if
 
-    call ESMF_VMGetCurrent(vm, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=u_FILE_u)) return
-
-    call ESMF_VMGet(vm, localPet=localPet, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=u_FILE_u)) return
+    call shr_mpi_commrank( mpicom, localPet )
 
     call shr_log_getLogUnit(s_logunit)
     if (localPet==0) then
@@ -102,12 +90,8 @@ CONTAINS
           close( unitn )
        end if
     end if
-    call ESMF_LogWrite(subname//' bcast dust_emis_method', ESMF_LOGMSG_INFO)
-    call ESMF_VMBroadcast(vm,  dust_emis_method, CS, 0, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=u_FILE_u)) return
-    call ESMF_LogWrite(subname//' bcast zender_soil_erod_source', ESMF_LOGMSG_INFO)
-    call ESMF_VMBroadcast(vm,  zender_soil_erod_source, CS, 0, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=u_FILE_u)) return
+    call shr_mpi_bcast(dust_emis_method, mpicom)
+    call shr_mpi_bcast(zender_soil_erod_source, mpicom)
 
     ! Some error checking
     if (trim(dust_emis_method) == 'Leung_2023') then
@@ -127,7 +111,6 @@ CONTAINS
                           //errMsg(u_FILE_u, __LINE__))
     end if
 
-    call ESMF_LogWrite(subname//' done', ESMF_LOGMSG_INFO)
     dust_emis_initialized = .true.
 
   end subroutine shr_dust_emis_readnl
@@ -161,7 +144,7 @@ CONTAINS
   logical function is_zender_soil_erod_from_land()
      ! is_zender_soil_erod_from_land – Logical function, true if the Zender method is being used and soil erodibility is in CTSM
      call check_if_initiatlized()
-     if is_dust_emis_zender() )then
+     if ( is_dust_emis_zender() )then
         if (trim(zender_soil_erod_source) == 'lnd') then
            is_zender_soil_erod_from_land = .true.
         else
@@ -177,7 +160,7 @@ CONTAINS
   logical function is_zender_soil_erod_from_atm()
      !is_zender_soil_erod_from_land – Logical function, true if the Zender method is being used and soil erodibility is in CAM
      call check_if_initiatlized()
-     if is_dust_emis_zender() )then
+     if ( is_dust_emis_zender() )then
         if (trim(zender_soil_erod_source) == 'atm') then
            is_zender_soil_erod_from_land = .true.
         else
