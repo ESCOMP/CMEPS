@@ -16,10 +16,9 @@ module shr_dust_emis_mod
 
   ! public member functions
   public :: shr_dust_emis_readnl           ! Read namelist
-  public :: shr_dust_emis_init             ! Initialization of dust emissions data (needed?)
   public :: is_dust_emis_zender            ! If Zender_2003 dust emission method is being used
   public :: is_dust_emis_leung             ! If Leungr_2023 dust emission method is being used
-  public :: is_zender_soil_erod_from_lnd   ! If Zender_2003 is being used and soil eroditability is in land
+  public :: is_zender_soil_erod_from_land  ! If Zender_2003 is being used and soil eroditability is in land
   public :: is_zender_soil_erod_from_atm   ! If Zender_2003 is being used and soil eroditability is in atmosphere
 
   ! public data members:
@@ -49,12 +48,11 @@ CONTAINS
     integer         , intent(in)  :: mpicom     ! MPI communicator for broadcasting all all tasks
 
     !----- local -----
-    integer       :: i                ! Indices
     integer       :: unitn            ! namelist unit number
     integer       :: ierr             ! error code
     logical       :: exists           ! if file exists or not
     integer       :: localPet         ! Local processor rank
-    integer       :: s_logunit
+    integer       :: s_logunit        ! Output log unit
     character(*),parameter :: F00   = "('(shr_dust_emis_read) ',8a)"
     character(*),parameter :: subName = '(shr_dust_emis_read) '
     !-----------------------------------------------------------------------------
@@ -131,7 +129,7 @@ CONTAINS
 
   logical function is_dust_emis_leung()
      ! is_dust_emis_leung – Logical function, true if the Leung 2023 scheme is being used
-     call check_if_initiatlized()
+     call check_if_initialized()
      if (trim(dust_emis_method) == 'Leung_2023') then
         is_dust_emis_leung = .true.
      else
@@ -150,37 +148,37 @@ CONTAINS
         else
            is_zender_soil_erod_from_land = .false.
         end if
-    else
+     else
         is_zender_soil_erod_from_land = .false.
-    end if
+     end if
   end function is_zender_soil_erod_from_land
 
 !===============================================================================
 
   logical function is_zender_soil_erod_from_atm()
-     !is_zender_soil_erod_from_land – Logical function, true if the Zender method is being used and soil erodibility is in CAM
+     !is_zender_soil_erod_from_atm – Logical function, true if the Zender method is being used and soil erodibility is in CAM
      call check_if_initiatlized()
      if ( is_dust_emis_zender() )then
-        if (trim(zender_soil_erod_source) == 'atm') then
-           is_zender_soil_erod_from_land = .true.
+        if ( trim(zender_soil_erod_source) == 'atm') then
+           is_zender_soil_erod_from_atm = .true.
         else
-           is_zender_soil_erod_from_land = .false.
+           is_zender_soil_erod_from_atm = .false.
         end if
-    else
-        is_zender_soil_erod_from_land = .false.
-    end if
+     else
+        is_zender_soil_erod_from_atm = .false.
+     end if
   end function is_zender_soil_erod_from_atm
 
 !===============================================================================
 
-  subroutine check_if_initiatlized()
+  subroutine check_if_initialized()
      if ( dust_emis_initialized )then
         return
      else
-        call shr_sys_abort( 'ERROR: dust emission namelist has NOT been read in yet,' &
-                            ' shr_dust_emis_mod is NOT initialized '//errMsg(u_FILE_u, __LINE__ )
+        call shr_sys_abort( 'ERROR: dust emission namelist has NOT been read in yet,' // &
+                            ' shr_dust_emis_mod is NOT initialized '//errMsg(u_FILE_u, __LINE__) )
      end if
-  end subroutine check_if_initiatlized
+  end subroutine check_if_initialized
 
 !===============================================================================
 
