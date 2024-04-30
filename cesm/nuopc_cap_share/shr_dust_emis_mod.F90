@@ -19,10 +19,14 @@ module shr_dust_emis_mod
   public :: is_dust_emis_zender            ! If Zender_2003 dust emission method is being used
   public :: is_dust_emis_leung             ! If Leungr_2023 dust emission method is being used
   public :: is_zender_soil_erod_from_land  ! If Zender_2003 is being used and soil eroditability is in land
-  public :: is_zender_soil_erod_from_atm   ! If Zender_2003 is being used and soil eroditability is in atmosphere
+  public :: is_zender_soil_erod_from_atm   ! If Zender/_2003 is being used and soil eroditability is in atmosphere
 
-  ! public data members:
-  private :: check_if_initialized          ! Check if dust emission has been initialized
+  ! The following is only public for the sake of unit testing; it should not be called
+  ! directly outside this module
+  public :: dust_emis_set_options          ! Set the namelist options directory not through the namelist
+
+  ! private data members: (only public for unit testing)
+  public :: check_if_initialized          ! Check if dust emission has been initialized
 
   ! PRIVATE DATA:
   character(len=CS) :: dust_emis_method = 'Zender_2003'  ! Dust emisison method to use: Zender_2003 or Leung_2023
@@ -117,7 +121,7 @@ CONTAINS
 
   logical function is_dust_emis_zender()
      ! is_dust_emis_zender – Logical function, true if the Zender 2003 scheme is being used
-     call check_if_initiatlized()
+     call check_if_initialized()
      if (trim(dust_emis_method) == 'Zender_2003') then
         is_dust_emis_zender = .true.
      else
@@ -141,7 +145,7 @@ CONTAINS
 
   logical function is_zender_soil_erod_from_land()
      ! is_zender_soil_erod_from_land – Logical function, true if the Zender method is being used and soil erodibility is in CTSM
-     call check_if_initiatlized()
+     call check_if_initialized()
      if ( is_dust_emis_zender() )then
         if (trim(zender_soil_erod_source) == 'lnd') then
            is_zender_soil_erod_from_land = .true.
@@ -157,7 +161,7 @@ CONTAINS
 
   logical function is_zender_soil_erod_from_atm()
      !is_zender_soil_erod_from_atm – Logical function, true if the Zender method is being used and soil erodibility is in CAM
-     call check_if_initiatlized()
+     call check_if_initialized()
      if ( is_dust_emis_zender() )then
         if ( trim(zender_soil_erod_source) == 'atm') then
            is_zender_soil_erod_from_atm = .true.
@@ -172,13 +176,25 @@ CONTAINS
 !===============================================================================
 
   subroutine check_if_initialized()
+     integer       :: s_logunit        ! Output log unit
+
      if ( dust_emis_initialized )then
         return
      else
+        call shr_log_getLogUnit(s_logunit)
+        write(s_logunit,*) 'ERROR: '//errMsg(u_FILE_u, __LINE__) 
         call shr_sys_abort( 'ERROR: dust emission namelist has NOT been read in yet,' // &
-                            ' shr_dust_emis_mod is NOT initialized '//errMsg(u_FILE_u, __LINE__) )
+                            ' shr_dust_emis_mod is NOT initialized ' )
      end if
   end subroutine check_if_initialized
+
+  subroutine dust_emis_set_options( dust_emis_method_in, zender_soil_erod_source_in)
+    character(len=CS), intent(IN) :: dust_emis_method_in         ! Dust emisison method to use: Zender_2003 or Leung_2023
+    character(len=CS), intent(IN) :: zender_soil_erod_source_in  ! if calculed in lnd or atm (only when Zender_2003 is used)
+
+   dust_emis_method = dust_emis_method_in
+   zender_soil_erod_source = zender_soil_erod_source_in
+  end subroutine dust_emis_set_options
 
 !===============================================================================
 
