@@ -194,11 +194,12 @@ CONTAINS
    end function is_NOT_initialized
 
   subroutine dust_emis_set_options( dust_emis_method_in, zender_soil_erod_source_in)
-    character(len=CS), intent(IN) :: dust_emis_method_in         ! Dust emisison method to use: Zender_2003 or Leung_2023
-    character(len=CS), intent(IN) :: zender_soil_erod_source_in  ! if calculed in lnd or atm (only when Zender_2003 is used)
+    character(len=*), intent(IN) :: dust_emis_method_in         ! Dust emisison method to use: Zender_2003 or Leung_2023
+    character(len=*), intent(IN) :: zender_soil_erod_source_in  ! if calculed in lnd or atm (only when Zender_2003 is used)
 
    dust_emis_method = dust_emis_method_in
    zender_soil_erod_source = zender_soil_erod_source_in
+   dust_emis_initialized = .true.
   end subroutine dust_emis_set_options
 
 !===============================================================================
