@@ -23,14 +23,15 @@ module shr_dust_emis_mod
 
   ! The following is only public for the sake of unit testing; it should not be called
   ! directly outside this module
-  public :: dust_emis_set_options          ! Set the namelist options directory not through the namelist
-
-  ! private data members: (only public for unit testing)
+  public :: dust_emis_set_options       ! Set the namelist options directory not through the namelist
   public :: is_NOT_initialized          ! Check if dust emission has NOT been initialized
+
+  ! private data members:
+  private :: check_options_finish_init  ! Check that the options are correct and finish initialization
 
   ! PRIVATE DATA:
   character(len=CS) :: dust_emis_method = 'Zender_2003'  ! Dust emisison method to use: Zender_2003 or Leung_2023
-  character(len=CS) :: zender_soil_erod_source = 'none'  ! if calculed in lnd or atm (only when Zender_2003 is used)
+  character(len=CS) :: zender_soil_erod_source = 'none'  ! if calculated in lnd or atm (only when Zender_2003 is used)
   logical           :: dust_emis_initialized=.false.     ! If dust emissions have been initiatlized yet or not
 
   character(len=*), parameter :: u_FILE_u = &
@@ -95,27 +96,41 @@ CONTAINS
     call shr_mpi_bcast(dust_emis_method, mpicom)
     call shr_mpi_bcast(zender_soil_erod_source, mpicom)
 
-    ! Some error checking
-    if (trim(dust_emis_method) == 'Leung_2023') then
-       if ( trim(zender_soil_erod_source) /= 'none' )then
-          call shr_sys_abort(subName//"ERROR: zender_soil_erod_source should NOT be set, when dust_emis_method=Leung_2023 " &
-                             //errMsg(u_FILE_u, __LINE__))
-       end if
-    else if (trim(dust_emis_method) == 'Zender_2003') then
-       if ( (trim(zender_soil_erod_source) /= 'lnd') .and. (trim(zender_soil_erod_source) /= 'atm') )then
-          write(s_logunit,*) 'zender_soil_erod_source is NOT valid = ', trim(zender_soil_erod_source)
-          call shr_sys_abort(subName//"ERROR: zender_soil_erod_source can only be lnd or atm" &
-                             //errMsg(u_FILE_u, __LINE__))
-       end if
-    else
-       write(s_logunit,*) 'dust_emis_method not recognized = ', trim(dust_emis_method)
-       call shr_sys_abort(subName//"ERROR: dust_emis_method namelist item is not valid " &
-                          //errMsg(u_FILE_u, __LINE__))
-    end if
-
-    dust_emis_initialized = .true.
+    call check_options_finish_init()
 
   end subroutine shr_dust_emis_readnl
+
+!====================================================================================
+
+  subroutine check_options_finish_init()
+   ! Some error checking and mark initialization as finished
+   integer :: s_logunit        ! Output log unit
+   character(*),parameter :: subName = '(check_options_finish_init) '
+
+   call shr_log_getLogUnit(s_logunit)
+   if (trim(dust_emis_method) == 'Leung_2023') then
+      if ( trim(zender_soil_erod_source) /= 'none' )then
+         write(s_logunit,*) 'ERROR: '//errMsg(u_FILE_u, __LINE__)
+         call shr_sys_abort(subName//"ERROR: zender_soil_erod_source should NOT be set, when dust_emis_method=Leung_2023" )
+         return
+      end if
+   else if (trim(dust_emis_method) == 'Zender_2003') then
+      if ( (trim(zender_soil_erod_source) /= 'lnd') .and. (trim(zender_soil_erod_source) /= 'atm') )then
+         write(s_logunit,*) 'zender_soil_erod_source is NOT valid = ', trim(zender_soil_erod_source)
+         write(s_logunit,*) 'ERROR: '//errMsg(u_FILE_u, __LINE__)
+         call shr_sys_abort(subName//"ERROR: zender_soil_erod_source can only be lnd or atm" )
+         return
+      end if
+   else
+      write(s_logunit,*) 'dust_emis_method not recognized = ', trim(dust_emis_method)
+      write(s_logunit,*) 'ERROR: '//errMsg(u_FILE_u, __LINE__)
+      call shr_sys_abort(subName//"ERROR: dust_emis_method namelist item is not valid" )
+      return
+   end if
+
+   dust_emis_initialized = .true.
+
+  end subroutine check_options_finish_init
 
 !====================================================================================
 
@@ -187,7 +202,7 @@ CONTAINS
      else
         is_NOT_initialized = .true.
         call shr_log_getLogUnit(s_logunit)
-        write(s_logunit,*) 'ERROR: '//errMsg(u_FILE_u, __LINE__) 
+        write(s_logunit,*) 'ERROR: '//errMsg(u_FILE_u, __LINE__)
         call shr_sys_abort( 'ERROR: dust emission namelist has NOT been read in yet,' // &
                             ' shr_dust_emis_mod is NOT initialized ' )
      end if
@@ -197,9 +212,9 @@ CONTAINS
     character(len=*), intent(IN) :: dust_emis_method_in         ! Dust emisison method to use: Zender_2003 or Leung_2023
     character(len=*), intent(IN) :: zender_soil_erod_source_in  ! if calculed in lnd or atm (only when Zender_2003 is used)
 
-   dust_emis_method = dust_emis_method_in
-   zender_soil_erod_source = zender_soil_erod_source_in
-   dust_emis_initialized = .true.
+    dust_emis_method = dust_emis_method_in
+    zender_soil_erod_source = zender_soil_erod_source_in
+    call check_options_finish_init()
   end subroutine dust_emis_set_options
 
 !===============================================================================
