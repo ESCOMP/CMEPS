@@ -20,13 +20,13 @@ jobs:
       CPPFLAGS: "-I/usr/include -I/usr/local/include"
 
       # Versions of all dependencies can be updated here
-      ESMF_VERSION: v8.6.0
+      ESMF_VERSION: v8.6.1
       PNETCDF_VERSION: checkpoint.1.12.3
       NETCDF_FORTRAN_VERSION: v4.6.1
       PIO_VERSION: pio2_6_2
-      CDEPS_VERSION: cdeps1.0.26
+      CDEPS_VERSION: cdeps1.0.35
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         # Build the ESMF library, if the cache contains a previous build
         # it will be used instead
       - id: load-env
@@ -40,13 +40,13 @@ jobs:
           sudo apt-get install pnetcdf-bin libpnetcdf-dev
           sudo apt-get install autotools-dev autoconf
       - id: cache-esmf
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/ESMF
           key: ${{ runner.os }}-${{ env.ESMF_VERSION }}-ESMF
       - name: Cache ParallelIO
         id: cache-ParallelIO
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/pio
           key: ${{ runner.os }}-${{ env.PIO_VERSION }}.pio
@@ -71,13 +71,13 @@ jobs:
           parallelio_path: $HOME/pio
       - name: Cache CDEPS
         id: cache-cdeps
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: $HOME/cdeps
           key: ${{ runner.os }}-${{ env.CDEPS_VERSION }}.cdeps
           
       - name: checkout CDEPS
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: ESCOMP/CDEPS
           path: cdeps-src

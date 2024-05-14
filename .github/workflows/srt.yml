@@ -101,20 +101,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/ESMF
-          key: ${{ runner.os }}-${{ env.ESMF_VERSION }}-ESMF1
-      # - name: cache pnetcdf
-      #   id: cache-pnetcdf
-      #   uses: actions/cache@v3
-      #   with:
-      #     path: ~/pnetcdf
-      #     key: ${{ runner.os }}-${{ env.PNETCDF_VERSION}}-pnetcdf
-
-      # - name: Cache netcdf-fortran
-      #   id: cache-netcdf-fortran
-      #   uses: actions/cache@v3
-      #   with:
-      #     path: ~/netcdf-fortran
-      #     key: ${{ runner.os }}-${{ env.NETCDF_FORTRAN_VERSION }}-netcdf-fortran
+          key: ${{ runner.os }}-${{ env.ESMF_VERSION }}
 
       - name: Cache ParallelIO
         id: cache-ParallelIO
@@ -122,25 +109,14 @@ jobs:
         with:
           path: ${GITHUB_WORKSPACE}/pio
           key: ${{ runner.os }}-${{ env.PARALLELIO_VERSION }}.parallelio
+
       - name: Cache inputdata
         id: cache-inputdata
         uses: actions/cache@v4
         with:
           path: $HOME/cesm/inputdata
           key: inputdata
-      # - name: Build PNetCDF
-      #   if: steps.cache-pnetcdf.outputs.cache-hit != 'true'
-      #   uses: ESCOMP/CDEPS/.github/actions/buildpnetcdf@e06246b560d3132170bb1a5443fa3d65dfbd2040
-      #   with:
-      #     pnetcdf_version: ${{ env.PNETCDF_VERSION }}
-      #     install_prefix: $HOME/pnetcdf
-      # - name: Build NetCDF Fortran
-      #   if: steps.cache-netcdf-fortran.outputs.cache-hit != 'true'
-      #   uses: ESCOMP/CDEPS/.github/actions/buildnetcdff@e06246b560d3132170bb1a5443fa3d65dfbd2040
-      #   with:
-      #     netcdf_fortran_version: ${{ env.NETCDF_FORTRAN_VERSION }}
-      #     install_prefix: $HOME/netcdf-fortran
-      #     netcdf_c_path: /usr
+
       - name: Build ParallelIO
         if: steps.cache-PARALLELIO.outputs.cache-hit != 'true'
         uses: NCAR/ParallelIO/.github/actions/parallelio_cmake@05173a6556ea8d80eb34e3881a5014ea8f4b7543
@@ -181,7 +157,6 @@ jobs:
           export NETCDF_PATH=/usr
           export PNETCDF_PATH=/usr
           export LD_LIBRARY_PATH=/usr/lib/libx86_64-linux-gnu/:$LD_LIBRARY_PATH
-          export ESMFMKFILE=$GITHUB_WORKSPACE/ESMF/lib/libg/Linux.gfortran.64.openmpi.default/esmf.mk
           cat <<EOF >> $GITHUB_WORKSPACE/cesm/ccs_config/machines/cmake_macros/ubuntu-latest.cmake
           set(NetCDF_Fortran_INCLUDE_DIR /usr/include)
           set(NetCDF_Fortran_LIBRARY /usr/lib/x86_64-gnu-Linux/libnetcdff.so)
