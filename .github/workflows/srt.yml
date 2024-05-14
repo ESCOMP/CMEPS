@@ -26,7 +26,7 @@ jobs:
       CPPFLAGS: "-I/usr/include -I/usr/local/include "
       LDFLAGS: "-L/usr/lib/x86_64-linux-gnu -lnetcdf -lnetcdff -lpnetcdf"     
       # Versions of all dependencies can be updated here
-      ESMF_VERSION: v8.6.0
+      ESMF_VERSION: v8.6.1
       PARALLELIO_VERSION: pio2_6_2
       CIME_MODEL: cesm
       CIME_DRIVER: nuopc
@@ -64,13 +64,13 @@ jobs:
         run: pip install -r requirements.txt
       # use the latest cesm main
       - name: cesm checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: ESCOMP/CESM
           path: cesm
       # this cmeps commit
       - name: cmeps checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           path: cesm/components/cmeps
           
@@ -94,10 +94,11 @@ jobs:
           git submodule update --init
           cd ../components/cdeps
           git checkout main
+          git submodule update --init
           
       - name: Cache ESMF
         id: cache-esmf
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/ESMF
           key: ${{ runner.os }}-${{ env.ESMF_VERSION }}-ESMF1
@@ -117,13 +118,13 @@ jobs:
 
       - name: Cache ParallelIO
         id: cache-ParallelIO
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/pio
           key: ${{ runner.os }}-${{ env.PARALLELIO_VERSION }}.parallelio
       - name: Cache inputdata
         id: cache-inputdata
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: $HOME/cesm/inputdata
           key: inputdata
@@ -148,18 +149,22 @@ jobs:
           enable_fortran: True
           install_prefix: /home/runner/pio
           
-      - name: Build ESMF
-        if: steps.cache-esmf.outputs.cache-hit != 'true'
-        uses: ESCOMP/CDEPS/.github/actions/buildesmf@e06246b560d3132170bb1a5443fa3d65dfbd2040
+      - name: Install ESMF
+        uses: esmf-org/install-esmf-action@v1
+        env:
+          ESMF_COMPILER: gfortran
+          ESMF_BOPT: g
+          ESMF_COMM: openmpi
+          ESMF_NETCDF: nc-config
+          ESMF_PNETCDF: pnetcdf-config
+          ESMF_INSTALL_PREFIX: ${GITHUB_WORKSPACE}/ESMF
+          ESMF_PIO: external
+          ESMF_PIO_INCLUDE: ${GITHUB_WORKSPACE}/pio/include
+          ESMF_PIO_LIBPATH: ${GITHUB_WORKSPACE}/pio/lib
         with:
-          esmf_version: ${{ env.ESMF_VERSION }}
-          esmf_bopt: g
-          esmf_comm: openmpi
-          install_prefix: ~/ESMF
-          netcdf_c_path: /usr
-          netcdf_fortran_path: /usr
-          pnetcdf_path: /usr
-          parallelio_path: ~/pio
+          version: ${{ env.ESMF_VERSION }}
+          esmpy: false
+          cache: true
 
 
       - name: PREP for scripts regression test
@@ -190,6 +195,6 @@ jobs:
           popd
 #     the following can be used by developers to login to the github server in case of errors
 #     see https://github.com/marketplace/actions/debugging-with-tmate for further details
-      - name: Setup tmate session
-        if: ${{ failure() }}
-        uses: mxschmitt/action-tmate@v3
+#      - name: Setup tmate session
+#        if: ${{ failure() }}
+#        uses: mxschmitt/action-tmate@v3
