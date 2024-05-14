@@ -181,7 +181,7 @@ jobs:
           export NETCDF_PATH=/usr
           export PNETCDF_PATH=/usr
           export LD_LIBRARY_PATH=/usr/lib/libx86_64-linux-gnu/:$LD_LIBRARY_PATH
-          export ESMFMKFILE=$HOME/ESMF/lib/libg/Linux.gfortran.64.openmpi.default/esmf.mk
+          export ESMFMKFILE=$GITHUB_WORKSPACE/ESMF/lib/libg/Linux.gfortran.64.openmpi.default/esmf.mk
           cat <<EOF >> $GITHUB_WORKSPACE/cesm/ccs_config/machines/cmake_macros/ubuntu-latest.cmake
           set(NetCDF_Fortran_INCLUDE_DIR /usr/include)
           set(NetCDF_Fortran_LIBRARY /usr/lib/x86_64-gnu-Linux/libnetcdff.so)
