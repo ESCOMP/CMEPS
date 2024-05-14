@@ -120,7 +120,7 @@ jobs:
         id: cache-ParallelIO
         uses: actions/cache@v4
         with:
-          path: ~/pio
+          path: ${GITHUB_WORKSPACE}/pio
           key: ${{ runner.os }}-${{ env.PARALLELIO_VERSION }}.parallelio
       - name: Cache inputdata
         id: cache-inputdata
@@ -147,7 +147,7 @@ jobs:
         with:
           parallelio_version: ${{ env.ParallelIO_VERSION }}
           enable_fortran: True
-          install_prefix: /home/runner/pio
+          install_prefix: ${GITHUB_WORKSPACE}/pio
           
       - name: Install ESMF
         uses: esmf-org/install-esmf-action@v1
@@ -174,8 +174,8 @@ jobs:
           pushd $GITHUB_WORKSPACE/cesm/cime/CIME/tests
           export SRCROOT=$GITHUB_WORKSPACE/cesm/
           export CIME_TEST_PLATFORM=ubuntu-latest
-          export PIO_INCDIR=$HOME/pio/include
-          export PIO_LIBDIR=$HOME/pio/lib
+          export PIO_INCDIR=$GITHUB_WORKSPACE/pio/include
+          export PIO_LIBDIR=$GITHUB_WORKSPACE/pio/lib
           export PIO_VERSION_MAJOR=2
           export PIO_TYPENAME_VALID_VALUES="netcdf,pnetcdf"
           export NETCDF_PATH=/usr
