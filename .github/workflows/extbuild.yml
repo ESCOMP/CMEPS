@@ -24,7 +24,7 @@ jobs:
       PNETCDF_VERSION: checkpoint.1.12.3
       NETCDF_FORTRAN_VERSION: v4.6.1
       PIO_VERSION: pio2_6_2
-      CDEPS_VERSION: cdeps1.0.35
+      CDEPS_VERSION: cdeps1.0.36
     steps:
       - uses: actions/checkout@v4
         # Build the ESMF library, if the cache contains a previous build
@@ -99,6 +99,7 @@ jobs:
       - name: Build CMEPS
         run: |
           export PIO=$HOME/pio
+          export ESMFMKFILE=$HOME/ESMF/lib/libg/Linux.gfortran.64.openmpi.default/esmf.mk
           mkdir build-cmeps
           pushd build-cmeps
           cmake -DCMAKE_BUILD_TYPE=DEBUG -DCMAKE_Fortran_FLAGS="-g -Wall -Werror -ffree-form -ffree-line-length-none  -Wno-unused-dummy-argument -I /home/runner/work/CMEPS/CMEPS/build-cdeps/share" ../
