@@ -73,7 +73,7 @@ jobs:
         id: cache-cdeps
         uses: actions/cache@v4
         with:
-          path: $HOME/cdeps
+          path: cdeps-src
           key: ${{ runner.os }}-${{ env.CDEPS_VERSION }}.cdeps
           
       - name: checkout CDEPS
@@ -82,6 +82,10 @@ jobs:
           repository: ESCOMP/CDEPS
           path: cdeps-src
           ref: ${{ env.CDEPS_VERSION }}
+      - name: get genf90
+        run: |
+          cd cdeps-src
+          git submodule update --init 
       - name: Build CDEPS
         if: steps.cache-cdeps.outputs.cache-hit != 'true'
         uses: ESCOMP/CDEPS/.github/actions/buildcdeps@cdeps1.0.26
