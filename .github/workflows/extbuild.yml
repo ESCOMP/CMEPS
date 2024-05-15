@@ -89,7 +89,7 @@ jobs:
           esmfmkfile: $HOME/ESMF/lib/libg/Linux.gfortran.64.openmpi.default/esmf.mk
           pio_path: $HOME/pio
           src_root: ${GITHUB_WORKSPACE}/cdeps-src
-          cmake_flags: " -Wno-dev -DDISABLE_FOX=ON -DCMAKE_BUILD_TYPE=DEBUG -DWERROR=ON  -DCMAKE_Fortran_FLAGS=\"-DCPRGNU -g -Wall \
+          cmake_flags: " -Wno-dev -DDISABLE_FoX=ON -DCMAKE_BUILD_TYPE=DEBUG -DWERROR=ON  -DCMAKE_Fortran_FLAGS=\"-DCPRGNU -g -Wall \
           -ffree-form -ffree-line-length-none -fallow-argument-mismatch \""
       
       - name: Build CMEPS
