@@ -293,7 +293,7 @@ contains
           ! If ice and atm are on the same mesh - a redist route handle has already been created
           maptype = mapfcopy
        else
-          if (trim(coupling_mode) == 'nems_orig' ) then
+          if (coupling_mode(1:9) == 'ufs.nfrac' ) then
              maptype = mapnstod_consd
           else
              maptype = mapconsd
@@ -345,7 +345,7 @@ contains
           ! If ocn and atm are on the same mesh - a redist route handle has already been created
           maptype = mapfcopy
        else
-          if (trim(coupling_mode) == 'nems_orig' ) then
+          if (coupling_mode(1:9) == 'ufs.nfrac' ) then
              maptype = mapnstod_consd
           else
              maptype = mapconsd
@@ -756,7 +756,7 @@ contains
 
           call t_startf('MED:'//trim(subname)//' fbfrac(compatm)')
           ! Determine maptype
-          if (trim(coupling_mode) == 'nems_orig' ) then
+          if (coupling_mode(1:9) == 'ufs.nfrac' ) then
              maptype = mapnstod_consd
           else
              if (med_map_RH_is_created(is_local%wrap%RH(compice,compatm,:),mapfcopy, rc=rc)) then

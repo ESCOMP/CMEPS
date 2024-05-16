@@ -44,6 +44,7 @@ module med_methods_mod
   public med_methods_FB_init_pointer
   public med_methods_FB_reset
   public med_methods_FB_diagnose
+  public med_methods_FB_write
   public med_methods_FB_FldChk
   public med_methods_FB_GetFldPtr
   public med_methods_FB_getNameN
@@ -997,6 +998,72 @@ contains
     call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
 
   end subroutine med_methods_FB_diagnose
+
+  !-----------------------------------------------------------------------------
+
+  subroutine med_methods_FB_write(FB, string, rc)
+    ! ----------------------------------------------
+    ! Diagnose status of FB
+    ! ----------------------------------------------
+
+    use ESMF, only : ESMF_FieldBundle, ESMF_FieldBundleGet
+    use ESMF, only : ESMF_Field, ESMF_FieldGet
+    use ESMF, only : ESMF_FieldWriteVTK
+
+    type(ESMF_FieldBundle) , intent(inout)        :: FB
+    character(len=*)       , intent(in), optional :: string
+    integer                , intent(out)          :: rc
+
+    ! local variables
+    integer                         :: n
+    integer                         :: fieldCount, lrank
+    character(ESMF_MAXSTR), pointer :: lfieldnamelist(:)
+    character(len=CL)               :: lstring
+    type(ESMF_Field)                :: lfield
+    character(len=*), parameter     :: subname='(med_methods_FB_write)'
+    ! ----------------------------------------------
+
+    call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
+    rc = ESMF_SUCCESS
+
+    lstring = ''
+    if (present(string)) then
+       lstring = trim(string)
+    endif
+
+    ! Determine number of fields in field bundle and allocate memory for lfieldnamelist
+    call ESMF_FieldBundleGet(FB, fieldCount=fieldCount, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    allocate(lfieldnamelist(fieldCount))
+
+    ! Get the fields in the field bundle
+    call ESMF_FieldBundleGet(FB, fieldNameList=lfieldnamelist, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    ! For each field in the bundle, get its memory location and print out the field
+    do n = 1, fieldCount
+       call ESMF_FieldBundleGet(FB, fieldName=trim(lfieldnamelist(n)), field=lfield, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+       call ESMF_FieldGet(lfield, rank=lrank, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+       if (lrank == 1) then
+          call ESMF_FieldWriteVTK(lfield, trim(lfieldnamelist(n))//'_'//trim(lstring), rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+       else
+          call ESMF_LogWrite(trim(subname)//": ERROR rank not supported ", ESMF_LOGMSG_ERROR)
+          rc = ESMF_FAILURE
+          return
+       endif
+    end do
+
+    ! Deallocate memory
+    deallocate(lfieldnamelist)
+
+    call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
+
+  end subroutine med_methods_FB_write
 
   !-----------------------------------------------------------------------------
 #ifdef DIAGNOSE

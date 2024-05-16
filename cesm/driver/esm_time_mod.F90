@@ -282,7 +282,6 @@ contains
     call ESMF_TimeSet( RefTime, yy=yr, mm=mon, dd=day, s=ref_tod, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-
     call ESMF_TimeIntervalSet( TimeStep, s=dtime_drv, rc=rc )
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 

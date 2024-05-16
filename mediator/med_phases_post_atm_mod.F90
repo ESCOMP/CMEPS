@@ -65,6 +65,7 @@ contains
             FBSrc=is_local%wrap%FBImp(compatm,compatm), &
             FBDst=is_local%wrap%FBImp(compatm,compocn), &
             FBFracSrc=is_local%wrap%FBFrac(compatm), &
+            FBDat=is_local%wrap%FBData(compocn), &
             field_normOne=is_local%wrap%field_normOne(compatm,compocn,:), &
             packed_data=is_local%wrap%packed_data(compatm,compocn,:), &
             routehandles=is_local%wrap%RH(compatm,compocn,:), rc=rc)
@@ -104,6 +105,7 @@ contains
             FBSrc=is_local%wrap%FBImp(compatm,compatm), &
             FBDst=is_local%wrap%FBImp(compatm,compwav), &
             FBFracSrc=is_local%wrap%FBFrac(compatm), &
+            FBDat=is_local%wrap%FBData(compwav), &
             field_normOne=is_local%wrap%field_normOne(compatm,compwav,:), &
             packed_data=is_local%wrap%packed_data(compatm,compwav,:), &
             routehandles=is_local%wrap%RH(compatm,compwav,:), rc=rc)
