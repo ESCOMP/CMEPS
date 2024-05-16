@@ -73,8 +73,8 @@ jobs:
         id: cache-cdeps
         uses: actions/cache@v4
         with:
-          path: cdeps-src
-          key: ${{ runner.os }}-${{ env.CDEPS_VERSION }}.cdeps
+          path: /homme/runner/work/CMEPS/CMEPS/build-cdeps
+          key: ${{ runner.os }}-${{ env.CDEPS_VERSION }}.cdeps1
           
       - name: checkout CDEPS
         uses: actions/checkout@v4
