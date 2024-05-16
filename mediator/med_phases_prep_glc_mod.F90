@@ -45,8 +45,6 @@ module med_phases_prep_glc_mod
   use glc_elevclass_mod     , only : glc_get_fractional_icecov
   use perf_mod              , only : t_startf, t_stopf
 
-  use shr_sys_mod, only : shr_sys_abort
-
   implicit none
   private
 
