@@ -248,6 +248,14 @@
       <value compset=".+" grid="a%mpasa15"                    >360</value>
       <value compset=".+" grid="a%mpasa7p5"                   >720</value>
       <value compset=".+" grid="a%mpasa3p75"                  >1440</value>
+      <value compset="_MPAS" grid="a%mpasa480"                >2</value>
+      <value compset="_MPAS" grid="a%mpasa240"                >2</value>
+      <value compset="_MPAS" grid="a%mpasa120"                >2</value>
+      <value compset="_MPAS" grid="a%mpasa60"                 >4</value>
+      <value compset="_MPAS" grid="a%mpasa30"                 >8</value>
+      <value compset="_MPAS" grid="a%mpasa15"                 >15</value>
+      <value compset="_MPAS" grid="a%mpasa7p5"                >30</value>
+      <value compset="_MPAS" grid="a%mpasa3p75"               >60</value>
     </values>
     <group>run_coupling</group>
     <file>env_run.xml</file>
@@ -352,6 +360,7 @@
       <value compset="_XATM.*_XLND.*_XICE.*_XOCN" >$ATM_NCPL</value>
       <value compset="_DLND.*_CISM\d"             >1</value>
       <value compset="_XROF"                      >$ATM_NCPL</value>
+      <value compset="_MPAS"                      >$ATM_NCPL</value>
     </values>
     <group>run_coupling</group>
     <file>env_run.xml</file>
