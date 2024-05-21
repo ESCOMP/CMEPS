@@ -364,6 +364,7 @@
       <value compset="_DLND.*_CISM\d"             >1</value>
       <value compset="_XROF"                      >$ATM_NCPL</value>
       <value compset="_MPAS"                      >$ATM_NCPL</value>
+      <value compset="_MOSART_" grid="a%mpasa.+"  >$ATM_NCPL</value>
     </values>
     <group>run_coupling</group>
     <file>env_run.xml</file>
