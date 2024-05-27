@@ -585,6 +585,22 @@
      # Note that the fields sent from glc->med do NOT have elevation classes,
      # but the fields from med->lnd are broken into multiple elevation classes
      #
+     - standard_name: Fgrg_rofi
+       canonical_units: kg m-2 s-1
+       description: glc import tomed - glacier frozen_runoff_flux_to_ocean
+     #
+     - standard_name: Fgrg_rofi_wiso
+       canonical_units: kg m-2 s-1
+       description: glc import to med - glacier_frozen_runoff_flux_to_ocean for 16O, 18O, HDO
+     #
+     - standard_name: Fgrg_rofl
+       canonical_units: kg m-2 s-1
+       description: glc import to med - glacier liquid runoff flux to ocean
+     #
+     - standard_name: Fgrg_rofl_wiso
+       canonical_units: kg m-2 s-1
+       description: glc import to med - glacier_frozen_runoff_flux_to_ocean for 16O, 18O, HDO
+     #
      - standard_name: Figg_rofi
        canonical_units: kg m-2 s-1
        description: glc import to med - glc frozen runoff_iceberg flux to ice
@@ -634,22 +650,6 @@
      - standard_name: Sg_topo_elev
        canonical_units: m
        description: glc export from med (elevation classes 1->glc_nec)
-     #
-     - standard_name: Fogg_rofi
-       canonical_units: kg m-2 s-1
-       description: glc export from med - glacier_frozen_runoff_flux_to_ocean
-     #
-     - standard_name: Fogg_rofi_wiso
-       canonical_units: kg m-2 s-1
-       description: glc export from med - glacier_frozen_runoff_flux_to_ocean for 16O, 18O, HDO
-     #
-     - standard_name: Fogg_rofl
-       canonical_units: kg m-2 s-1
-       description: glc export from med - glacier liquid runoff flux to ocean
-     #
-     - standard_name: Fogg_rofl_wiso
-       canonical_units: kg m-2 s-1
-       description: glc export from med - glacier_frozen_runoff_flux_to_ocean for 16O, 18O, HDO
      #
      #-----------------------------------
      # section: ice import to med
