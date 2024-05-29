@@ -3037,30 +3037,44 @@ contains
     ! ---------------------------------------------------------------------
     ! to rof: liquid and ice from glc
     ! ---------------------------------------------------------------------
-    ! Note: we are assuming that the rof mesh has a mask of one everywhere
-    ! TODO: should the following have fractional mapping?
     do ns = 1, is_local%wrap%num_icesheets
-       if (fldchk(is_local%wrap%FBImp(compglc(ns), compglc(ns)), 'Fgrg_rofl' , rc=rc)) then
-          call addmap_from(compglc(ns), 'Fgrg_rofl', comprof, mapconsd, 'one' , 'unset')
-          ! Custom merge in med_phases_prep_rof
-       end if
-       if (fldchk(is_local%wrap%FBImp(compglc(ns), compglc(ns)), 'Fgrg_rofi' , rc=rc)) then
-          call addmap_from(compglc(ns), 'Fgrg_rofi', comprof, mapconsd, 'one', 'unset')
-          ! Custom merge in med_phases_prep_rof
+       if (phase == 'advertise') then
+          call addfld_from(compglc(ns), 'Fgrg_rofl')
+          call addfld_from(compglc(ns), 'Fgrg_rofi')
+          call addfld_to(comprof, 'Fgrg_rofl')
+          call addfld_to(comprof, 'Fgrg_rofi')
+       else
+          ! Note: we are assuming that the rof mesh has a mask of one everywhere
+          ! TODO: should the following have fractional mapping?
+          if (fldchk(is_local%wrap%FBImp(compglc(ns), compglc(ns)), 'Fgrg_rofl' , rc=rc)) then
+             call addmap_from(compglc(ns), 'Fgrg_rofl', comprof, mapconsd, 'one' , 'unset')
+             ! Custom merge in med_phases_prep_rof
+          end if
+          if (fldchk(is_local%wrap%FBImp(compglc(ns), compglc(ns)), 'Fgrg_rofi' , rc=rc)) then
+             call addmap_from(compglc(ns), 'Fgrg_rofi', comprof, mapconsd, 'one', 'unset')
+             ! Custom merge in med_phases_prep_rof
+          end if
        end if
     end do
 
     ! ---------------------------------------------------------------------
-    ! to rof: liquid and ice from glc
+    ! to rof: liquid and ice from glc water isoptopes
     ! ---------------------------------------------------------------------
     do ns = 1, is_local%wrap%num_icesheets
-       if (fldchk(is_local%wrap%FBImp(compglc(ns), compglc(ns)), 'Fgrg_rofl_wiso' , rc=rc)) then
-          call addmap_from(compglc(ns), 'Fgrg_rofl_wiso', comprof, mapconsd, 'one' , 'unset')
-          ! TODO: implement custom merge
-       end if
-       if (fldchk(is_local%wrap%FBImp(compglc(ns), compglc(ns)), 'Fgrg_rofi_wiso' , rc=rc)) then
-          call addmap_from(compglc(ns), 'Fgrg_rofi_wiso', comprof, mapconsd, 'one', 'unset')
-          ! TODO: implement custom merge
+       if (phase == 'advertise') then
+          call addfld_from(compglc(ns), 'Fgrg_rofl_wiso')
+          call addfld_from(compglc(ns), 'Fgrg_rofi_wiso')
+          call addfld_to(comprof, 'Fgrg_rofl_wiso')
+          call addfld_to(comprof, 'Fgrg_rofi_wiso')
+       else
+          if (fldchk(is_local%wrap%FBImp(compglc(ns), compglc(ns)), 'Fgrg_rofl_wiso' , rc=rc)) then
+             call addmap_from(compglc(ns), 'Fgrg_rofl_wiso', comprof, mapconsd, 'one' , 'unset')
+             ! TODO: implement custom merge
+          end if
+          if (fldchk(is_local%wrap%FBImp(compglc(ns), compglc(ns)), 'Fgrg_rofi_wiso' , rc=rc)) then
+             call addmap_from(compglc(ns), 'Fgrg_rofi_wiso', comprof, mapconsd, 'one', 'unset')
+             ! TODO: implement custom merge
+          end if
        end if
     end do
 

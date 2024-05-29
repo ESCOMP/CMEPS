@@ -61,7 +61,7 @@ module med_phases_prep_rof_mod
   type(ESMF_FieldBundle), public :: FBlndAccum2rof_l
   type(ESMF_FieldBundle), public :: FBlndAccum2rof_r
 
-  character(len=9) :: fldnames_fr_glc(2) = (/'Frgg_rofl', 'Frgg_rofi')
+  character(len=9) :: fldnames_fr_glc(2) = (/'Fgrg_rofl', 'Fgrg_rofi'/)
 
   character(*)    , parameter :: u_FILE_u = &
        __FILE__
@@ -386,13 +386,19 @@ contains
        if (is_local%wrap%med_coupling_active(compglc(ns),comprof)) then
           do nf = 1,size(fldnames_fr_glc)
              call fldbun_getdata1d(is_local%wrap%FBImp(compglc(ns),comprof), &
-                  trim(fldnames_fr_glc(nf)), dataptr_out, rc)
+                  trim(fldnames_fr_glc(nf)), dataptr_in, rc)
              call fldbun_getdata1d(is_local%wrap%FBExp(comprof), &
-                  trim(fldnames_fr_glc(nf)), dataptr_in , rc)
-             dataptr_out(:) = dataptr_in():
+                  trim(fldnames_fr_glc(nf)), dataptr_out , rc)
+             ! Determine export data
+             if (ns == 1) then
+                dataptr_out(:) = dataptr_in(:)
+             else
+                dataptr_out(:) = dataptr_out(:) + dataptr_in(:)
+             end if
           end do
        end if
     end do
+
 
     ! Check for nans in fields export to rof
     call FB_check_for_nans(is_local%wrap%FBExp(comprof), maintask, logunit, rc=rc)

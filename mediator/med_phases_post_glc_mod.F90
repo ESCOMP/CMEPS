@@ -154,6 +154,7 @@ contains
     !---------------------------------------
     ! glc->rof mapping
     !---------------------------------------
+
     if (glc2rof_coupling) then
        do ns = 1,is_local%wrap%num_icesheets
           if (is_local%wrap%med_coupling_active(compglc(ns),comprof)) then
