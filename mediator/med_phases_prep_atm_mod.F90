@@ -17,7 +17,7 @@ module med_phases_prep_atm_mod
   use med_methods_mod       , only : FB_check_for_nans => med_methods_FB_check_for_nans
   use med_merge_mod         , only : med_merge_auto
   use med_map_mod           , only : med_map_field_packed
-  use med_internalstate_mod , only : InternalState, maintask, logunit
+  use med_internalstate_mod , only : InternalState, maintask, logunit, samegrid_atmlnd
   use med_internalstate_mod , only : compatm, compocn, compice, compname, coupling_mode
   use esmFlds               , only : med_fldlist_GetfldListTo, med_fldlist_type
   use perf_mod              , only : t_startf, t_stopf
@@ -183,8 +183,13 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        call ESMF_FieldGet(lfield, farrayPtr=dataptr1, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_FieldBundleGet(is_local%wrap%FBFrac(compatm), fieldName='lfrac', field=lfield, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (samegrid_atmlnd) then
+          call ESMF_FieldBundleGet(is_local%wrap%FBFrac(compatm), fieldName='lfrac', field=lfield, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+       else
+          call ESMF_FieldBundleGet(is_local%wrap%FBFrac(compatm), fieldName='lfrin', field=lfield, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+       end if
        call ESMF_FieldGet(lfield, farrayPtr=dataptr2, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        do n = 1,size(dataptr1)

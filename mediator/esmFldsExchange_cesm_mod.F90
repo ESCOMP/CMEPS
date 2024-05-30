@@ -20,7 +20,7 @@ module esmFldsExchange_cesm_mod
   !--------------------------------------
 
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
-  use med_internalstate_mod , only : logunit, maintask
+  use med_internalstate_mod , only : logunit, maintask, samegrid_atmlnd
 
   implicit none
   public
@@ -45,7 +45,6 @@ module esmFldsExchange_cesm_mod
   character(len=CX)   :: ice2atm_map='unset'
   character(len=CX)   :: ocn2atm_map='unset'
   character(len=CX)   :: lnd2atm_map='unset'
-  character(len=CX)   :: lnd2rof_map='unset'
   character(len=CX)   :: rof2lnd_map='unset'
   character(len=CX)   :: atm2wav_map='unset'
 
@@ -56,8 +55,6 @@ module esmFldsExchange_cesm_mod
   logical             :: flds_co2c                      ! Pass CO2 from ATM to surface (OCN/LND) and back from them to ATM
   logical             :: flds_wiso                      ! Pass water isotop fields
   logical             :: flds_r2l_stream_channel_depths ! Pass channel depths from ROF to LND
-
-  logical             :: samegrid_al                    ! true=>atm and lnd are on the same grid
 
   character(*), parameter :: u_FILE_u = &
        __FILE__
@@ -178,11 +175,6 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        if (maintask) write(logunit, '(a)') trim(subname)//'rof2ocn_ice_rmapname = '// trim(rof2ocn_ice_rmap)
 
-       ! mapping to rof
-       call NUOPC_CompAttributeGet(gcomp, name='lnd2rof_map', value=lnd2rof_map,  rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (maintask) write(logunit, '(a)') trim(subname)//'lnd2rof_map = '// trim(lnd2rof_map)
-
        ! mapping to wav
        call NUOPC_CompAttributeGet(gcomp, name='atm2wav_map', value=atm2wav_map, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -231,9 +223,9 @@ contains
        call NUOPC_CompAttributeGet(gcomp, name='ATM_DOMAIN_MESH', value=lnd_mesh, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        if (trim(atm_mesh) == trim(lnd_mesh)) then
-          samegrid_al = .true.
+          samegrid_atmlnd = .true.
        else
-          samegrid_al = .false.
+          samegrid_atmlnd = .false.
        end if
 
        ! write diagnostic output
@@ -1169,7 +1161,7 @@ contains
        if (fldchk(is_local%wrap%FBexp(compatm), 'Faxx_taux', rc=rc)) then
           if ( fldchk(is_local%wrap%FBImp(complnd,complnd), 'Fall_taux', rc=rc)) then
              call addmap_from(complnd , 'Fall_taux', compatm, mapconsf, 'lfrin', lnd2atm_map)
-             if (samegrid_al) then
+             if (samegrid_atmlnd) then
                 mrg_fracname_lnd='lfrac'
              else
                 mrg_fracname_lnd='lfrin'
@@ -1201,7 +1193,7 @@ contains
        if (fldchk(is_local%wrap%FBexp(compatm), 'Faxx_tauy', rc=rc)) then
           if ( fldchk(is_local%wrap%FBImp(complnd,complnd), 'Fall_tauy', rc=rc)) then
              call addmap_from(complnd , 'Fall_tauy', compatm, mapconsf, 'lfrin', lnd2atm_map)
-             if (samegrid_al) then
+             if (samegrid_atmlnd) then
                 mrg_fracname_lnd='lfrac'
              else
                 mrg_fracname_lnd='lfrin'
@@ -1233,7 +1225,7 @@ contains
        if (fldchk(is_local%wrap%FBexp(compatm), 'Faxx_lat', rc=rc)) then
           if ( fldchk(is_local%wrap%FBImp(complnd,complnd), 'Fall_lat', rc=rc)) then
              call addmap_from(complnd , 'Fall_lat', compatm, mapconsf, 'lfrin', lnd2atm_map)
-             if (samegrid_al) then
+             if (samegrid_atmlnd) then
                 mrg_fracname_lnd='lfrac'
              else
                 mrg_fracname_lnd='lfrin'
@@ -1265,7 +1257,7 @@ contains
        if (fldchk(is_local%wrap%FBexp(compatm), 'Faxx_sen', rc=rc)) then
           if ( fldchk(is_local%wrap%FBImp(complnd,complnd), 'Fall_sen', rc=rc)) then
              call addmap_from(complnd , 'Fall_sen', compatm, mapconsf, 'lfrin', lnd2atm_map)
-             if (samegrid_al) then
+             if (samegrid_atmlnd) then
                 mrg_fracname_lnd='lfrac'
              else
                 mrg_fracname_lnd='lfrin'
@@ -1297,7 +1289,7 @@ contains
        if (fldchk(is_local%wrap%FBexp(compatm), 'Faxx_evap', rc=rc)) then
           if ( fldchk(is_local%wrap%FBImp(complnd,complnd), 'Fall_evap', rc=rc)) then
              call addmap_from(complnd , 'Fall_evap', compatm, mapconsf, 'lfrin', lnd2atm_map)
-             if (samegrid_al) then
+             if (samegrid_atmlnd) then
                 mrg_fracname_lnd='lfrac'
              else
                 mrg_fracname_lnd='lfrin'
@@ -1329,7 +1321,7 @@ contains
        if (fldchk(is_local%wrap%FBexp(compatm), 'Faxx_lwup', rc=rc)) then
           if ( fldchk(is_local%wrap%FBImp(complnd,complnd), 'Fall_lwup', rc=rc)) then
              call addmap_from(complnd , 'Fall_lwup', compatm, mapconsf, 'lfrin', lnd2atm_map)
-             if (samegrid_al) then
+             if (samegrid_atmlnd) then
                 mrg_fracname_lnd='lfrac'
              else
                 mrg_fracname_lnd='lfrin'
@@ -1362,7 +1354,7 @@ contains
           if (fldchk(is_local%wrap%FBexp(compatm), 'Faxx_evap_wiso', rc=rc)) then
              if ( fldchk(is_local%wrap%FBImp(complnd,complnd), 'Fall_evap_wiso', rc=rc)) then
                 call addmap_from(complnd , 'Fall_evap_wiso', compatm, mapconsf, 'lfrin', lnd2atm_map)
-                if (samegrid_al) then
+                if (samegrid_atmlnd) then
                    mrg_fracname_lnd='lfrac'
                 else
                    mrg_fracname_lnd='lfrin'
@@ -1623,7 +1615,7 @@ contains
        if ( fldchk(is_local%wrap%FBImp(complnd, complnd), 'Fall_voc', rc=rc) .and. &
             fldchk(is_local%wrap%FBExp(compatm)         , 'Fall_voc', rc=rc)) then
           call addmap_from(complnd, 'Fall_voc', compatm, mapconsf, 'one', atm2lnd_map)
-          if (samegrid_al) then
+          if (samegrid_atmlnd) then
              mrg_fracname_lnd='lfrac'
           else
              mrg_fracname_lnd='lfrin'
@@ -1644,7 +1636,7 @@ contains
        if ( fldchk(is_local%wrap%FBImp(complnd, complnd), 'Fall_fire', rc=rc) .and. &
             fldchk(is_local%wrap%FBExp(compatm)         , 'Fall_fire', rc=rc)) then
           call addmap_from(complnd, 'Fall_fire', compatm, mapconsf, 'one', lnd2atm_map)
-          if (samegrid_al) then
+          if (samegrid_atmlnd) then
              mrg_fracname_lnd='lfrac'
           else
              mrg_fracname_lnd='lfrin'
@@ -3165,8 +3157,8 @@ contains
     else
        if ( fldchk(is_local%wrap%FBImp(complnd, complnd), 'Flrl_rofsur', rc=rc) .and. &
             fldchk(is_local%wrap%FBExp(comprof)         , 'Flrl_rofsur', rc=rc)) then
-          call addmap_from(complnd, 'Flrl_rofsur', comprof, mapconsf, 'lfrin', lnd2rof_map)
-          if (samegrid_al) then
+          call addmap_from(complnd, 'Flrl_rofsur', comprof, mapconsf, 'lfrin', 'unset')
+          if (samegrid_atmlnd) then
              mrg_fracname_lnd = 'lfrac'
           else
              mrg_fracname_lnd = 'lfrin'
@@ -3185,8 +3177,8 @@ contains
     else
        if ( fldchk(is_local%wrap%FBImp(complnd, complnd), 'Flrl_rofi', rc=rc) .and. &
             fldchk(is_local%wrap%FBExp(comprof)         , 'Flrl_rofi', rc=rc)) then
-          call addmap_from(complnd, 'Flrl_rofi', comprof, mapconsf, 'lfrin', lnd2rof_map)
-          if (samegrid_al) then
+          call addmap_from(complnd, 'Flrl_rofi', comprof, mapconsf, 'lfrin', 'unset')
+          if (samegrid_atmlnd) then
              mrg_fracname_lnd = 'lfrac'
           else
              mrg_fracname_lnd = 'lfrin'
@@ -3205,8 +3197,8 @@ contains
     else
        if ( fldchk(is_local%wrap%FBImp(complnd, complnd), 'Flrl_rofgwl', rc=rc) .and. &
             fldchk(is_local%wrap%FBExp(comprof)         , 'Flrl_rofgwl', rc=rc)) then
-          call addmap_from(complnd, 'Flrl_rofgwl', comprof, mapconsf, 'lfrin', lnd2rof_map)
-          if (samegrid_al) then
+          call addmap_from(complnd, 'Flrl_rofgwl', comprof, mapconsf, 'lfrin', 'unset')
+          if (samegrid_atmlnd) then
              mrg_fracname_lnd = 'lfrac'
           else
              mrg_fracname_lnd = 'lfrin'
@@ -3225,8 +3217,8 @@ contains
     else
        if ( fldchk(is_local%wrap%FBImp(complnd, complnd), 'Flrl_rofsub', rc=rc) .and. &
             fldchk(is_local%wrap%FBExp(comprof)         , 'Flrl_rofsub', rc=rc)) then
-          call addmap_from(complnd, 'Flrl_rofsub', comprof, mapconsf, 'lfrac', lnd2rof_map)
-          if (samegrid_al) then
+          call addmap_from(complnd, 'Flrl_rofsub', comprof, mapconsf, 'lfrac', 'unset')
+          if (samegrid_atmlnd) then
              mrg_fracname_lnd = 'lfrac'
           else
              mrg_fracname_lnd = 'lfrin'
@@ -3245,8 +3237,8 @@ contains
     else
        if ( fldchk(is_local%wrap%FBImp(complnd, complnd), 'Flrl_irrig', rc=rc) .and. &
             fldchk(is_local%wrap%FBExp(comprof)         , 'Flrl_irrig', rc=rc)) then
-          call addmap_from(complnd, 'Flrl_irrig', comprof, mapconsf, 'lfrac', lnd2rof_map)
-          if (samegrid_al) then
+          call addmap_from(complnd, 'Flrl_irrig', comprof, mapconsf, 'lfrac', 'unset')
+          if (samegrid_atmlnd) then
              mrg_fracname_lnd = 'lfrac'
           else
              mrg_fracname_lnd = 'lfrin'

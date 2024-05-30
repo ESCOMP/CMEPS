@@ -115,6 +115,8 @@ module med_internalstate_mod
      real(r8), pointer :: lons(:) => null()
   end type mesh_info_type
 
+  logical, public ::  samegrid_atmlnd = .true. ! true=>atm and lnd are on the same grid
+
   ! private internal state to keep instance data
   type InternalStateStruct
 

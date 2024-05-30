@@ -814,8 +814,13 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! get land fraction field on land mesh
-    call ESMF_FieldBundleGet(is_local%wrap%FBFrac(complnd), 'lfrac', field=field_lfrac_l, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (samegrid_atmlnd) then
+       call ESMF_FieldBundleGet(is_local%wrap%FBFrac(compatm), fieldName='lfrac', field=lfield_lfrac_l, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+    else
+       call ESMF_FieldBundleGet(is_local%wrap%FBFrac(compatm), fieldName='lfrin', field=lfield_lfrac_l, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+    end if
 
     ! map accumlated land fields to each ice sheet (normalize by the land fraction in the mapping)
     do ns = 1,is_local%wrap%num_icesheets
@@ -1149,8 +1154,13 @@ contains
     if (chkErr(rc,__LINE__,u_FILE_u)) return
 
     ! determine fraction on land grid, lfrac(:)
-    call fldbun_getdata1d(is_local%wrap%FBFrac(complnd), 'lfrac', lfrac, rc)
-    if (chkErr(rc,__LINE__,u_FILE_u)) return
+    if (samegrid_atmlnd) then
+       call fldbun_getdata1d(is_local%wrap%FBFrac(complnd), 'lfrac', lfrac, rc)
+       if (chkErr(rc,__LINE__,u_FILE_u)) return
+    else
+       call fldbun_getdata1d(is_local%wrap%FBFrac(complnd), 'lfrin', lfrac, rc)
+       if (chkErr(rc,__LINE__,u_FILE_u)) return
+    end if
 
     ! get qice_l_ec
     call fldbun_getdata2d(FBlndAccum2glc_l, trim(qice_fieldname)//'_elev', qice_l_ec, rc)
