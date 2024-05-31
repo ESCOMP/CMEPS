@@ -78,7 +78,7 @@ contains
     use med_internalstate_mod , only : compice, comprof, compwav, compglc, ncomps
     use med_internalstate_mod , only : mapbilnr, mapconsf, mapconsd, mappatch, mappatch_uv3d, mapbilnr_nstod
     use med_internalstate_mod , only : mapfcopy, mapnstod, mapnstod_consd, mapnstod_consf
-    use med_internalstate_mod , only : map_glc2ocn_ice, map_glc2ocn_liq, map_rof2ocn_ice, map_rof2ocn_liq
+    use med_internalstate_mod , only : map_rof2ocn_ice, map_rof2ocn_liq
     use esmFlds               , only : addfld_ocnalb => med_fldList_addfld_ocnalb
     use esmFlds               , only : addfld_aoflux => med_fldList_addfld_aoflux
     use esmFlds               , only : addmap_aoflux => med_fldList_addmap_aoflux
@@ -154,20 +154,12 @@ contains
        call NUOPC_CompAttributeGet(gcomp, name='atm2ocn_map', value=atm2ocn_map,  rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        if (maintask) write(logunit, '(a)') trim(subname)//'atm2ocn_map = '// trim(atm2ocn_map)
-       call NUOPC_CompAttributeGet(gcomp, name='glc2ocn_liq_rmapname', value=glc2ocn_liq_rmap,  rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (maintask) write(logunit, '(a)') trim(subname)//'glc2ocn_liq_rmapname = '// trim(glc2ocn_liq_rmap)
-       call NUOPC_CompAttributeGet(gcomp, name='glc2ocn_ice_rmapname', value=glc2ocn_ice_rmap,  rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (maintask) write(logunit, '(a)') trim(subname)//'glc2ocn_ice_rmapname = '// trim(glc2ocn_ice_rmap)
        call NUOPC_CompAttributeGet(gcomp, name='wav2ocn_smapname', value=wav2ocn_smap,  rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        if (maintask) write(logunit, '(a)') trim(subname)//'wav2ocn_smapname = '// trim(wav2ocn_smap)
-
        call NUOPC_CompAttributeGet(gcomp, name='rof2ocn_fmapname', value=rof2ocn_fmap,  rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        if (maintask) write(logunit, '(a)') trim(subname)//'rof2ocn_fmapname = '// trim(rof2ocn_fmap)
-
        call NUOPC_CompAttributeGet(gcomp, name='rof2ocn_liq_rmapname', value=rof2ocn_liq_rmap,  rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        if (maintask) write(logunit, '(a)') trim(subname)//'rof2ocn_liq_rmapname = '// trim(rof2ocn_liq_rmap)
@@ -2190,7 +2182,7 @@ contains
     end if
 
     !-----------------------------
-    ! to ocn: liquid runoff from rof and glc components
+    ! to ocn: liquid runoff from rof components
     ! to ocn: frozen runoff flux from rof and glc components
     ! to ocn: waterflux back to ocn due to flooding from rof
     !-----------------------------
@@ -2199,15 +2191,9 @@ contains
        ! Note that Flrr_flood below needs to be added to
        ! fldlistFr(comprof) in order to be mapped correctly but the ocean
        ! does not receive it so it is advertised but it will! not be connected
-       do ns = 1, is_local%wrap%num_icesheets
-          call addfld_from(compglc(ns), 'Fogg_rofl')
-       end do
        call addfld_from(comprof, 'Forr_rofl')
        call addfld_to(compocn, 'Foxx_rofl')
        call addfld_to(compocn, 'Flrr_flood')
-       do ns = 1, is_local%wrap%num_icesheets
-          call addfld_from(compglc(ns), 'Fogg_rofi')
-       end do
        call addfld_from(comprof, 'Forr_rofi')
        call addfld_to(compocn, 'Foxx_rofi')
     else
@@ -2226,14 +2212,6 @@ contains
                 call addmrg_to(compocn, 'Foxx_rofl', mrg_from=comprof, mrg_fld='Forr_rofl', mrg_type='sum')
              end if
           end if
-          ! liquid from glc to ocean
-          do ns = 1, is_local%wrap%num_icesheets
-             if (fldchk(is_local%wrap%FBImp(compglc(ns), compglc(ns)), 'Fogg_rofl' , rc=rc)) then
-                ! TODO: this custom map needs to be different for every ice sheet - how will this be handled?
-                call addmap_from(compglc(ns), 'Fogg_rofl', compocn, map_glc2ocn_liq, 'one' , glc2ocn_liq_rmap)
-                call addmrg_to(compocn, 'Foxx_rofl', mrg_from=compglc(ns), mrg_fld='Fogg_rofl', mrg_type='sum')
-             end if
-          end do
        end if
        if ( fldchk(is_local%wrap%FBExp(compocn), 'Foxx_rofi' , rc=rc)) then
           ! ice from river to ocean
@@ -2245,30 +2223,16 @@ contains
              end if
              call addmrg_to(compocn, 'Foxx_rofi', mrg_from=comprof, mrg_fld='Forr_rofi', mrg_type='sum')
           end if
-          ! ice from glc to ocean
-          do ns = 1, is_local%wrap%num_icesheets
-             if (fldchk(is_local%wrap%FBImp(compglc(ns), compglc(ns)), 'Fogg_rofi' , rc=rc)) then
-                ! TODO: this custom map needs to be different for every ice sheet - how will this be handled?
-                call addmap_from(compglc(ns), 'Fogg_rofi', compocn, map_glc2ocn_ice, 'one', glc2ocn_ice_rmap)
-                call addmrg_to(compocn, 'Foxx_rofi', mrg_from=compglc(ns), mrg_fld='Fogg_rofi', mrg_type='sum')
-             end if
-          end do
        end if
     end if
 
     if (flds_wiso) then
        if (phase == 'advertise') then
-          do ns = 1, is_local%wrap%num_icesheets
-             call addfld_from(compglc(ns), 'Fogg_rofl_wiso')
-          end do
           call addfld_from(comprof, 'Forr_rofl_wiso')
-          call addfld_to(compocn, 'Foxx_rofl_wiso')
-          call addfld_to(compocn, 'Flrr_flood_wiso')
-          do ns = 1, is_local%wrap%num_icesheets
-             call addfld_from(compglc(ns), 'Fogg_rofi_wiso')
-          end do
           call addfld_from(comprof, 'Forr_rofi_wiso')
+          call addfld_to(compocn, 'Foxx_rofl_wiso')
           call addfld_to(compocn, 'Foxx_rofi_wiso')
+          call addfld_to(compocn, 'Flrr_flood_wiso')
        else
           if ( fldchk(is_local%wrap%FBExp(compocn), 'Foxx_rofl_wiso' , rc=rc)) then
              ! liquid from river and possibly flood from river to ocean
@@ -2287,15 +2251,6 @@ contains
                         mrg_from=comprof, mrg_fld='Forr_rofl', mrg_type='sum')
                 end if
              end if
-             ! liquid from glc to ocean
-             do ns = 1, is_local%wrap%num_icesheets
-                if (fldchk(is_local%wrap%FBImp(compglc(ns), compglc(ns)), 'Fogg_rofl_wiso' , rc=rc)) then
-                   ! TODO: this custom map needs to be different for every ice sheet - how will this be handled?
-                   call addmap_from(compglc(ns), 'Fogg_rofl_wiso', compocn, map_glc2ocn_liq, 'one' , glc2ocn_liq_rmap)
-                   call addmrg_to(compocn, 'Foxx_rofl_wiso', &
-                        mrg_from=compglc(ns), mrg_fld='Fogg_rofl_wiso', mrg_type='sum')
-                end if
-             end do
           end if
           if ( fldchk(is_local%wrap%FBExp(compocn), 'Foxx_rofi_wiso' , rc=rc)) then
              ! ice from river to ocean
@@ -2307,15 +2262,6 @@ contains
                 end if
                 call addmrg_to(compocn, 'Foxx_rofi_wiso', mrg_from=comprof, mrg_fld='Forr_rofi', mrg_type='sum')
              end if
-             ! ice from glc to ocean
-             do ns = 1, is_local%wrap%num_icesheets
-                if (fldchk(is_local%wrap%FBImp(compglc(ns), compglc(ns)), 'Fogg_rofi_wiso' , rc=rc)) then
-                   ! TODO: this custom map needs to be different for every ice sheet - how will this be handled?
-                   call addmap_from(compglc(ns), 'Fogg_rofi_wiso', compocn, map_glc2ocn_ice, 'one', glc2ocn_ice_rmap)
-                   call addmrg_to(compocn, 'Foxx_rofi_wiso', &
-                        mrg_from=compglc(ns), mrg_fld='Fogg_rofi_wiso', mrg_type='sum')
-                end if
-             end do
           end if
        end if
     end if
@@ -3094,6 +3040,50 @@ contains
     !=====================================================================
 
     ! ---------------------------------------------------------------------
+    ! to rof: liquid and ice from glc
+    ! ---------------------------------------------------------------------
+    do ns = 1, is_local%wrap%num_icesheets
+       if (phase == 'advertise') then
+          call addfld_from(compglc(ns), 'Fgrg_rofl')
+          call addfld_from(compglc(ns), 'Fgrg_rofi')
+          call addfld_to(comprof, 'Fgrg_rofl')
+          call addfld_to(comprof, 'Fgrg_rofi')
+       else
+          ! Note: we are assuming that the rof mesh has a mask of one everywhere
+          ! TODO: should the following have fractional mapping?
+          if (fldchk(is_local%wrap%FBImp(compglc(ns), compglc(ns)), 'Fgrg_rofl' , rc=rc)) then
+             call addmap_from(compglc(ns), 'Fgrg_rofl', comprof, mapconsd, 'one' , 'unset')
+             ! Custom merge in med_phases_prep_rof
+          end if
+          if (fldchk(is_local%wrap%FBImp(compglc(ns), compglc(ns)), 'Fgrg_rofi' , rc=rc)) then
+             call addmap_from(compglc(ns), 'Fgrg_rofi', comprof, mapconsd, 'one', 'unset')
+             ! Custom merge in med_phases_prep_rof
+          end if
+       end if
+    end do
+
+    ! ---------------------------------------------------------------------
+    ! to rof: liquid and ice from glc water isoptopes
+    ! ---------------------------------------------------------------------
+    do ns = 1, is_local%wrap%num_icesheets
+       if (phase == 'advertise') then
+          call addfld_from(compglc(ns), 'Fgrg_rofl_wiso')
+          call addfld_from(compglc(ns), 'Fgrg_rofi_wiso')
+          call addfld_to(comprof, 'Fgrg_rofl_wiso')
+          call addfld_to(comprof, 'Fgrg_rofi_wiso')
+       else
+          if (fldchk(is_local%wrap%FBImp(compglc(ns), compglc(ns)), 'Fgrg_rofl_wiso' , rc=rc)) then
+             call addmap_from(compglc(ns), 'Fgrg_rofl_wiso', comprof, mapconsd, 'one' , 'unset')
+             ! TODO: implement custom merge
+          end if
+          if (fldchk(is_local%wrap%FBImp(compglc(ns), compglc(ns)), 'Fgrg_rofi_wiso' , rc=rc)) then
+             call addmap_from(compglc(ns), 'Fgrg_rofi_wiso', comprof, mapconsd, 'one', 'unset')
+             ! TODO: implement custom merge
+          end if
+       end if
+    end do
+
+    ! ---------------------------------------------------------------------
     ! to rof: water flux from land (liquid surface)
     ! ---------------------------------------------------------------------
     if (phase == 'advertise') then
@@ -3209,7 +3199,7 @@ contains
     !-----------------------------
     ! to glc: from ocn
     !-----------------------------
-    if (ocn2glc_coupling) then
+    if (is_local%wrap%ocn2glc_coupling) then
        if (phase == 'advertise') then
           call addfld_from(compocn, 'So_t_depth')
           call addfld_from(compocn, 'So_s_depth')

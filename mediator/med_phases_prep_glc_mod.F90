@@ -45,8 +45,6 @@ module med_phases_prep_glc_mod
   use glc_elevclass_mod     , only : glc_get_fractional_icecov
   use perf_mod              , only : t_startf, t_stopf
 
-  use shr_sys_mod, only : shr_sys_abort
-
   implicit none
   private
 
@@ -523,7 +521,7 @@ contains
     logical             :: isPresent, isSet
     logical             :: write_histaux_l2x1yrg
     character(len=*) , parameter   :: subname=' (med_phases_prep_glc) '
-    integer :: k,cnt
+
     !---------------------------------------
 
     call t_startf('MED:'//subname)
@@ -1255,7 +1253,7 @@ contains
     integer           , intent(out)           :: rc
 
     ! local variables
-    integer  :: no, ni, i, j
+    integer  :: no, ni
     real(ESMF_KIND_R8)  :: renorm
     !---------------------------------------------------------------
 
