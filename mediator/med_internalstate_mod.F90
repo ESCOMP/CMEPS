@@ -115,7 +115,14 @@ module med_internalstate_mod
      real(r8), pointer :: lons(:) => null()
   end type mesh_info_type
 
-  logical, public ::  samegrid_atmlnd = .true. ! true=>atm and lnd are on the same grid
+  logical          , public :: samegrid_atmlnd = .true. ! true=>atm and lnd are on the same grid
+  character(len=CS), public :: mrg_fracname_lnd2atm_state
+  character(len=CS), public :: mrg_fracname_lnd2atm_flux
+  character(len=CS), public :: map_fracname_lnd2atm
+  character(len=CS), public :: mrg_fracname_lnd2rof
+  character(len=CS), public :: map_fracname_lnd2rof
+  character(len=CS), public :: mrg_fracname_lnd2glc
+  character(len=CS), public :: map_fracname_lnd2glc
 
   ! private internal state to keep instance data
   type InternalStateStruct
@@ -193,11 +200,11 @@ module med_internalstate_mod
     type(mesh_info_type)   , pointer :: mesh_info(:)
     type(ESMF_FieldBundle) , pointer :: FBArea(:)     ! needed for mediator history writes
 
- end type InternalStateStruct
+  end type InternalStateStruct
 
- type, public :: InternalState
+  type, public :: InternalState
     type(InternalStateStruct), pointer :: wrap
- end type InternalState
+  end type InternalState
 
   character(len=*), parameter :: u_FILE_u  = &
        __FILE__
@@ -225,12 +232,45 @@ contains
     character(len=CX)          :: msgString
     character(len=3)           :: name
     integer                    :: num_icesheets
+    character(len=CL)          :: atm_mesh
+    character(len=CL)          :: lnd_mesh
     character(len=*),parameter :: subname=' (internalstate init) '
     !-----------------------------------------------------------
 
     nullify(is_local%wrap)
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+
+    ! determine if atm and lnd have the same mesh
+    call NUOPC_CompAttributeGet(gcomp, name='ATM_DOMAIN_MESH', value=atm_mesh, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompAttributeGet(gcomp, name='ATM_DOMAIN_MESH', value=lnd_mesh, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (trim(atm_mesh) == trim(lnd_mesh)) then
+      samegrid_atmlnd = .true.
+    else
+      samegrid_atmlnd = .false.
+    end if
+
+    ! See med_fraction_mod for the following definitions
+    if (samegrid_atmlnd) then
+      map_fracname_lnd2atm       = 'lfrin' ! in fraclist_a
+      mrg_fracname_lnd2atm_state = 'lfrac' ! in fraclist_a
+      mrg_fracname_lnd2atm_flux  = 'lfrac' ! in fraclist_a
+      map_fracname_lnd2rof       = 'lfrac' ! in fraclist_r
+      mrg_fracname_lnd2rof       = 'lfrac' ! in fraclist_r
+      map_fracname_lnd2glc       = 'lfrac' ! in fraclist_g
+      mrg_fracname_lnd2glc       = 'lfrac' ! in fraclist_g
+    else
+      map_fracname_lnd2atm       = 'lfrin' ! in fraclist_a
+      mrg_fracname_lnd2atm_state = 'lfrin' ! in fraclist_a
+      mrg_fracname_lnd2atm_flux  = 'lfrin' ! in fraclist_r
+      map_fracname_lnd2rof       = 'lfrin' ! in fraclist_r
+      mrg_fracname_lnd2rof       = 'lfrin' ! in fraclist_r
+      map_fracname_lnd2glc       = 'lfrin' ! in fraclist_g
+      mrg_fracname_lnd2rof       = 'lfrin' ! in fraclist_g
+    endif
 
     ! Determine if glc is present
     call NUOPC_CompAttributeGet(gcomp, name='GLC_model', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
