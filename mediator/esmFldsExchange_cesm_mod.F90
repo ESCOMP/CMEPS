@@ -1560,7 +1560,7 @@ contains
     else
        if ( fldchk(is_local%wrap%FBImp(complnd, complnd), 'Fall_voc', rc=rc) .and. &
             fldchk(is_local%wrap%FBExp(compatm)         , 'Fall_voc', rc=rc)) then
-          call addmap_from(complnd, 'Fall_voc', compatm, mapconsf, 'one', atm2lnd_map)
+          call addmap_from(complnd, 'Fall_voc', compatm, mapconsf, map_fracname_lnd2atm, atm2lnd_map)
           call addmrg_to(compatm, 'Fall_voc', &
                mrg_from=complnd, mrg_fld='Fall_voc', mrg_type='merge', mrg_fracname=mrg_fracname_lnd2atm_flux)
        end if
@@ -1577,7 +1577,7 @@ contains
        if ( fldchk(is_local%wrap%FBImp(complnd, complnd), 'Fall_fire', rc=rc) .and. &
             fldchk(is_local%wrap%FBExp(compatm)         , 'Fall_fire', rc=rc)) then
 
-          call addmap_from(complnd, 'Fall_fire', compatm, mapconsf, 'one', lnd2atm_map)
+          call addmap_from(complnd, 'Fall_fire', compatm, mapconsf, map_fracname_lnd2atm, lnd2atm_map)
           call addmrg_to(compatm, 'Fall_fire', &
                mrg_from=complnd, mrg_fld='Fall_fire', mrg_type='merge', mrg_fracname=mrg_fracname_lnd2atm_flux)
        end if
@@ -1589,7 +1589,7 @@ contains
     else
        if ( fldchk(is_local%wrap%FBImp(complnd, complnd), 'Sl_fztop', rc=rc) .and. &
             fldchk(is_local%wrap%FBExp(compatm)         , 'Sl_fztop', rc=rc)) then
-          call addmap_from(complnd, 'Sl_fztop', compatm, mapconsf, 'one', lnd2atm_map)
+          call addmap_from(complnd, 'Sl_fztop', compatm, mapconsf, map_fracname_lnd2atm, lnd2atm_map)
           call addmrg_to(compatm, 'Sl_fztop', mrg_from=complnd, mrg_fld='Sl_fztop', mrg_type='copy')
        end if
     end if
@@ -1603,7 +1603,7 @@ contains
     else
        if ( fldchk(is_local%wrap%FBImp(complnd, complnd), 'Sl_ddvel', rc=rc) .and. &
             fldchk(is_local%wrap%FBExp(compatm)         , 'Sl_ddvel', rc=rc)) then
-          call addmap_from(complnd, 'Sl_ddvel', compatm, mapconsf, 'one', lnd2atm_map)
+          call addmap_from(complnd, 'Sl_ddvel', compatm, mapconsf, map_fracname_lnd2atm, lnd2atm_map)
           call addmrg_to(compatm, 'Sl_ddvel', mrg_from=complnd, mrg_fld='Sl_ddvel', mrg_type='copy')
        end if
     end if

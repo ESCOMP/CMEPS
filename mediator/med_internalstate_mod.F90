@@ -232,8 +232,8 @@ contains
     character(len=CX)          :: msgString
     character(len=3)           :: name
     integer                    :: num_icesheets
-    character(len=CL)          :: atm_mesh
-    character(len=CL)          :: lnd_mesh
+    character(len=CL)          :: atm_mesh_name
+    character(len=CL)          :: lnd_mesh_name
     character(len=*),parameter :: subname=' (internalstate init) '
     !-----------------------------------------------------------
 
@@ -243,11 +243,11 @@ contains
 
 
     ! determine if atm and lnd have the same mesh
-    call NUOPC_CompAttributeGet(gcomp, name='ATM_DOMAIN_MESH', value=atm_mesh, rc=rc)
+    call NUOPC_CompAttributeGet(gcomp, name='mesh_atm', value=atm_mesh_name, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompAttributeGet(gcomp, name='ATM_DOMAIN_MESH', value=lnd_mesh, rc=rc)
+    call NUOPC_CompAttributeGet(gcomp, name='mesh_lnd', value=lnd_mesh_name, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (trim(atm_mesh) == trim(lnd_mesh)) then
+    if (trim(atm_mesh_name) == trim(lnd_mesh_name)) then
       samegrid_atmlnd = .true.
     else
       samegrid_atmlnd = .false.
