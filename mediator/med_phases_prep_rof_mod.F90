@@ -23,6 +23,7 @@ module med_phases_prep_rof_mod
   use med_methods_mod       , only : fldbun_reset     => med_methods_FB_reset
   use med_methods_mod       , only : fldbun_average   => med_methods_FB_average
   use med_methods_mod       , only : field_getdata1d  => med_methods_Field_getdata1d
+  use med_methods_mod       , only : fldbun_fldchk    => med_methods_FB_fldchk
   use med_methods_mod       , only : FB_check_for_nans => med_methods_FB_check_for_nans
   use perf_mod              , only : t_startf, t_stopf
 
@@ -383,22 +384,26 @@ contains
     ! custom merge for glc->rof
     ! glc->rof is mapped in med_phases_post_glc
     do ns = 1,is_local%wrap%num_icesheets
-       if (is_local%wrap%med_coupling_active(compglc(ns),comprof)) then
-          do nf = 1,size(fldnames_fr_glc)
-             call fldbun_getdata1d(is_local%wrap%FBImp(compglc(ns),comprof), &
-                  trim(fldnames_fr_glc(nf)), dataptr_in, rc)
-             call fldbun_getdata1d(is_local%wrap%FBExp(comprof), &
-                  trim(fldnames_fr_glc(nf)), dataptr_out , rc)
-             ! Determine export data
-             if (ns == 1) then
-                dataptr_out(:) = dataptr_in(:)
-             else
-                dataptr_out(:) = dataptr_out(:) + dataptr_in(:)
-             end if
-          end do
-       end if
+      if (is_local%wrap%med_coupling_active(compglc(ns),comprof)) then
+        do nf = 1,size(fldnames_fr_glc)
+          if ( fldbun_fldchk(is_local%wrap%FBImp(compglc(ns),comprof), fldnames_fr_glc(nf), rc=rc) .and. &
+               fldbun_fldchk(is_local%wrap%FBExp(comprof), fldnames_fr_glc(nf), rc=rc) ) then
+            call fldbun_getdata1d(is_local%wrap%FBImp(compglc(ns),comprof), &
+                 trim(fldnames_fr_glc(nf)), dataptr_in, rc)
+            if (chkerr(rc,__LINE__,u_FILE_u)) return
+            call fldbun_getdata1d(is_local%wrap%FBExp(comprof), &
+                 trim(fldnames_fr_glc(nf)), dataptr_out , rc)
+            if (chkerr(rc,__LINE__,u_FILE_u)) return
+            ! Determine export data
+            if (ns == 1) then
+              dataptr_out(:) = dataptr_in(:)
+            else
+              dataptr_out(:) = dataptr_out(:) + dataptr_in(:)
+            end if
+          end if
+        end do
+      end if
     end do
-
 
     ! Check for nans in fields export to rof
     call FB_check_for_nans(is_local%wrap%FBExp(comprof), maintask, logunit, rc=rc)
