@@ -698,7 +698,7 @@ contains
 
   !===============================================================================
   subroutine med_io_write_FB(io_file, FB, whead, wdata, nx, ny, nt, &
-       fillval, pre, flds, tavg, use_float, tilesize, rc)
+       fillval, pre, flds, tavg, use_float, ntile, rc)
 
     !---------------
     ! Write FB to netcdf file
@@ -728,7 +728,7 @@ contains
     character(len=*), optional , intent(in) :: flds(:)   ! specific fields to write out
     logical,          optional , intent(in) :: tavg      ! is this a tavg
     logical,          optional , intent(in) :: use_float ! write output as float rather than double
-    integer,          optional , intent(in) :: tilesize  ! if non-zero, write atm component on tiles
+    integer,          optional , intent(in) :: ntile     ! number of nx * ny tiles
     integer                    , intent(out):: rc
 
     ! local variables
@@ -754,7 +754,7 @@ contains
     character(CS)                 :: coordvarnames(2)   ! coordinate variable names
     character(CS)                 :: coordnames(2)      ! coordinate long names
     character(CS)                 :: coordunits(2)      ! coordinate units
-    integer                       :: lnx,lny
+    integer                       :: lnx,lny,lntile
     logical                       :: luse_float
     real(r8)                      :: lfillvalue
     integer, pointer              :: minIndexPTile(:,:)
@@ -770,8 +770,7 @@ contains
     integer                       :: rank
     integer                       :: ungriddedUBound(1) ! currently the size must equal 1 for rank 2 fields
     integer                       :: gridToFieldMap(1)  ! currently the size must equal 1 for rank 2 fields
-    logical                       :: atmtiles
-    integer                       :: ntiles = 1
+    logical                       :: tiles
     character(CL), allocatable    :: fieldNameList(:)
     character(*),parameter :: subName = '(med_io_write_FB) '
     !-------------------------------------------------------------------------------
@@ -785,9 +784,9 @@ contains
     luse_float = .false.
     if (present(use_float)) luse_float = use_float
 
-    atmtiles = .false.
-    if (present(tilesize)) then
-      if (tilesize > 0) atmtiles = .true.
+    tiles = .false.
+    if (present(ntile)) then
+      if (ntile > 0) tiles = .true.
     end if
 
     ! Error check
@@ -870,14 +869,14 @@ contains
     ! all the global grid values in the distgrid - e.g. CTSM
 
     ng = maxval(maxIndexPTile)
-    if (atmtiles) then
-      lnx = tilesize
-      lny = tilesize
-      ntiles = ng/(lnx*lny)
-      write(tmpstr,*) subname, 'ng,lnx,lny,ntiles = ',ng,lnx,lny,ntiles
+    if (tiles) then
+      lnx = nx
+      lny = ny
+      lntile = ng/(lnx*lny)
+      write(tmpstr,*) subname, 'ng,lnx,lny,lntile = ',ng,lnx,lny,lntile
       call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
-      if (ntiles /= 6) then
-         call ESMF_LogWrite(trim(subname)//' ERROR: only cubed sphere atm tiles valid ', ESMF_LOGMSG_INFO)
+      if (lntile /= ntile) then
+         call ESMF_LogWrite(trim(subname)//' ERROR: grid2d size and ntile are not consistent ', ESMF_LOGMSG_INFO)
          call ESMF_Finalize(endflag=ESMF_END_ABORT)
       endif
     else
@@ -900,10 +899,10 @@ contains
 
     ! Write header
     if (whead) then
-      if (atmtiles) then
+      if (tiles) then
        rcode = pio_def_dim(io_file, trim(lpre)//'_nx', lnx, dimid3(1))
        rcode = pio_def_dim(io_file, trim(lpre)//'_ny', lny, dimid3(2))
-       rcode = pio_def_dim(io_file, trim(lpre)//'_ntiles', ntiles, dimid3(3))
+       rcode = pio_def_dim(io_file, trim(lpre)//'_ntile', ntile, dimid3(3))
        if (present(nt)) then
           dimid4(1:3) = dimid3
           rcode = pio_inq_dimid(io_file, 'time', dimid4(4))
@@ -1020,8 +1019,8 @@ contains
        call ESMF_DistGridGet(distgrid, localDE=0, seqIndexList=dof, rc=rc)
        write(tmpstr,*) subname,' dof = ',ns,size(dof),dof(1),dof(ns)  !,minval(dof),maxval(dof)
        call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
-       if (atmtiles) then
-          call pio_initdecomp(io_subsystem, pio_double, (/lnx,lny,ntiles/), dof, iodesc)
+       if (tiles) then
+          call pio_initdecomp(io_subsystem, pio_double, (/lnx,lny,ntile/), dof, iodesc)
        else
           call pio_initdecomp(io_subsystem, pio_double, (/lnx,lny/), dof, iodesc)
          !call pio_writedof(lpre, (/lnx,lny/), int(dof,kind=PIO_OFFSET_KIND), mpicom)
@@ -1579,8 +1578,8 @@ contains
           allocate(fldptr1_tmp(lsize))
 
           do n = 1,ungriddedUBound(1)
-             ! Creat a name for the 1d field on the mediator history or restart file based on the
-             ! ungridded dimension index of the field bundle 2d fiedl
+             ! Create a name for the 1d field on the mediator history or restart file based on the
+             ! ungridded dimension index of the field bundle 2d field
              write(cnumber,'(i0)') n
              name1 = trim(lpre)//'_'//trim(itemc)//trim(cnumber)
 

@@ -1368,7 +1368,7 @@ contains
     end if
 
     ! ---------------------------------------------------------------------
-    ! to atm: unmerged ugust_out from ocn 
+    ! to atm: unmerged ugust_out from ocn
     ! ---------------------------------------------------------------------
     if (phase == 'advertise') then
        call addfld_aoflux('So_ugustOut')
@@ -1384,6 +1384,40 @@ contains
           end if
        end if
     end if
+
+    ! ---------------------------------------------------------------------
+    ! to atm: 10 m winds including/excluding gust component
+    ! ---------------------------------------------------------------------
+    if (phase == 'advertise') then
+       call addfld_aoflux('So_u10withGust')
+       call addfld_to(compatm, 'So_u10withGust')
+    else
+       if ( fldchk(is_local%wrap%FBexp(compatm), 'So_u10withGust', rc=rc)) then
+          if (fldchk(is_local%wrap%FBMed_aoflux_o, 'So_u10withGust', rc=rc)) then
+             if (trim(is_local%wrap%aoflux_grid) == 'ogrid') then
+                call addmap_aoflux('So_u10withGust', compatm, mapconsf, 'ofrac', ocn2atm_map)
+             end if
+             call addmrg_to(compatm , 'So_u10withGust', &
+                  mrg_from=compmed, mrg_fld='So_u10withGust', mrg_type='merge', mrg_fracname='ofrac')
+          end if
+       end if
+    end if
+
+    if (phase == 'advertise') then
+       call addfld_aoflux('So_u10res')
+       call addfld_to(compatm, 'So_u10res')
+    else
+      if ( fldchk(is_local%wrap%FBexp(compatm), 'So_u10res', rc=rc)) then
+         if (fldchk(is_local%wrap%FBMed_aoflux_o, 'So_u10res', rc=rc)) then
+            if (trim(is_local%wrap%aoflux_grid) == 'ogrid') then
+               call addmap_aoflux('So_u10res', compatm, mapconsf, 'ofrac', ocn2atm_map)
+            end if
+            call addmrg_to(compatm , 'So_u10res', &
+                 mrg_from=compmed, mrg_fld='So_u10res', mrg_type='merge', mrg_fracname='ofrac')
+         end if
+      end if
+    end if
+
 
     ! ---------------------------------------------------------------------
     ! to atm: surface snow depth             from ice (needed for cam)
@@ -2301,6 +2335,30 @@ contains
     end if
 
     !-----------------------------
+    ! from wav: for daily averaged fields for
+    ! output to auxiliary file only
+    !-----------------------------
+    if (phase == 'advertise') then
+       call addfld_from(compwav, 'Sw_ustokes_avg')
+       call addfld_from(compwav, 'Sw_vstokes_avg')
+       call addfld_from(compwav, 'Sw_hs_avg')
+       call addfld_from(compwav, 'Sw_phs0_avg')
+       call addfld_from(compwav, 'Sw_phs1_avg')
+       call addfld_from(compwav, 'Sw_pdir0_avg')
+       call addfld_from(compwav, 'Sw_pdir1_avg')
+       call addfld_from(compwav, 'Sw_pTm10_avg')
+       call addfld_from(compwav, 'Sw_pTm11_avg')
+       call addfld_from(compwav, 'Sw_Tm1_avg')
+       call addfld_from(compwav, 'Sw_thm_avg')
+       call addfld_from(compwav, 'Sw_thp0_avg')
+       call addfld_from(compwav, 'Sw_fp0_avg')
+       call addfld_from(compwav, 'Sw_u_avg')
+       call addfld_from(compwav, 'Sw_v_avg')
+       call addfld_from(compwav, 'Sw_tusx_avg')
+       call addfld_from(compwav, 'Sw_tusy_avg')
+    end if
+
+    !-----------------------------
     ! to ocn: Langmuir multiplier from wave
     !-----------------------------
     if (phase == 'advertise') then
@@ -2991,21 +3049,35 @@ contains
     if (phase == 'advertise') then
        call addfld_from(compatm, 'Sa_u')
        call addfld_to(compwav, 'Sa_u')
+       call addfld_from(compatm, 'Sa_u10m')
+       call addfld_to(compwav, 'Sa_u10m')
     else
        if ( fldchk(is_local%wrap%FBexp(compwav)         , 'Sa_u', rc=rc) .and. &
             fldchk(is_local%wrap%FBImp(compatm,compatm ), 'Sa_u', rc=rc)) then
           call addmap_from(compatm, 'Sa_u', compwav, mapbilnr, 'one', atm2wav_map)
           call addmrg_to(compwav, 'Sa_u', mrg_from=compatm, mrg_fld='Sa_u', mrg_type='copy')
        end if
+       if ( fldchk(is_local%wrap%FBexp(compwav)         , 'Sa_u10m', rc=rc) .and. &
+            fldchk(is_local%wrap%FBImp(compatm,compatm ), 'Sa_u10m', rc=rc)) then
+          call addmap_from(compatm, 'Sa_u10m', compwav, mapbilnr, 'one', atm2wav_map)
+          call addmrg_to(compwav, 'Sa_u10m', mrg_from=compatm, mrg_fld='Sa_u10m', mrg_type='copy')
+       end if
     end if
     if (phase == 'advertise') then
        call addfld_from(compatm, 'Sa_v')
        call addfld_to(compwav, 'Sa_v')
+       call addfld_from(compatm, 'Sa_v10m')
+       call addfld_to(compwav, 'Sa_v10m')
     else
        if ( fldchk(is_local%wrap%FBexp(compwav)         , 'Sa_v', rc=rc) .and. &
             fldchk(is_local%wrap%FBImp(compatm,compatm ), 'Sa_v', rc=rc)) then
           call addmap_from(compatm, 'Sa_v', compwav, mapbilnr, 'one', atm2wav_map)
           call addmrg_to(compwav, 'Sa_v', mrg_from=compatm, mrg_fld='Sa_v', mrg_type='copy')
+       end if
+       if ( fldchk(is_local%wrap%FBexp(compwav)         , 'Sa_v10m', rc=rc) .and. &
+            fldchk(is_local%wrap%FBImp(compatm,compatm ), 'Sa_v10m', rc=rc)) then
+          call addmap_from(compatm, 'Sa_v10m', compwav, mapbilnr, 'one', atm2wav_map)
+          call addmrg_to(compwav, 'Sa_v10m', mrg_from=compatm, mrg_fld='Sa_v10m', mrg_type='copy')
        end if
     end if
 
@@ -3324,6 +3396,25 @@ contains
           ! custom merge in med_phases_prep_atm
        end if
     endif
+
+    !=====================================================================
+    ! DMS EXCHANGE
+    !=====================================================================
+
+    ! Get dms flux from ocn and send to atm
+    if (phase == 'advertise') then
+       call addfld_from(compocn, 'Faoo_dms_ocn')
+       call addfld_to(compatm, 'Faoo_dms_ocn')
+    else
+       ! Note that Faoo_dmds should not be weighted by ifrac - since
+       ! it will be weighted by ifrac in the merge to the atm
+       if ( fldchk(is_local%wrap%FBImp(compocn,compocn), 'Faoo_dms_ocn', rc=rc) .and. &
+            fldchk(is_local%wrap%FBexp(compatm)        , 'Faoo_dms_ocn', rc=rc)) then
+          call addmap_from(complnd, 'Faoo_dms_ocn', compocn, mapconsf, 'lfrac', ocn2atm_map)
+          call addmrg_to(compatm , 'Faoo_dms_ocn', &
+               mrg_from=compmed, mrg_fld='Faoo_dms_ocn', mrg_type='merge', mrg_fracname='ofrac')
+       end if
+    end if
 
   end subroutine esmFldsExchange_cesm
 
