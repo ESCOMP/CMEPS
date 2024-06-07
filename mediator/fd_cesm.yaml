@@ -1172,6 +1172,10 @@
        canonical_units: kg m-2 s-1
        description: river export to ocean - water flux due to runoff (frozen)
      #
+     - standard_name: Forr_rofi_glc
+       canonical_units: kg m-2 s-1
+       description: river export to ocean - water flux due to runoff originating from glc (frozen)
+     #
      - standard_name: Forr_rofi_wiso
        canonical_units: kg m-2 s-1
        description: river import to med - water flux due to runoff (frozen) for 16O, 18O, HDO
@@ -1180,29 +1184,13 @@
        canonical_units: kg m-2 s-1
        description: river import to med - water flux due to runoff (liquid)
      #
+     - standard_name: Forr_rofl_glc
+       canonical_units: kg m-2 s-1
+       description: river import to med - water flux due to runoff originating from glc (liquid)
+     #
      - standard_name: Forr_rofl_wiso
        canonical_units: kg m-2 s-1
        description: river import to med - water flux due to runoff (frozen) for 16O, 18O, HDO
-     #
-     - standard_name: Firr_rofi
-       canonical_units: kg m-2 s-1
-       description: river export - water flux into sea ice due to runoff (frozen)
-     #
-     - standard_name: Firr_rofi_wiso
-       canonical_units: kg m-2 s-1
-       description: river export - water flux into sea ice due to runoff (frozen) for 16O, 18O, HDO
-     #
-     #-----------------------------------
-     # section: river export from med (computed in med)
-     #-----------------------------------
-     #
-     - standard_name: Fixx_rofi
-       canonical_units: kg m-2 s-1
-       description: frozen runoff to ice from river and lnd-ice
-     #
-     - standard_name: Fixx_rofi_wiso
-       canonical_units: kg m-2 s-1
-       description: frozen runoff to ice from river and lnd-ice for 16O, 18O, HDO
      #
      #-----------------------------------
      # section: wav import to med
