@@ -2122,7 +2122,7 @@ contains
        do n1 = 1,ncomps
           if (maintask) then
              write(logunit,*)
-             write(logunit,'(a)') trim(subname)//" "//trim(compname(n1))
+             write(logunit,'(a,2L2)') trim(subname)//" "//trim(compname(n1)), is_local%wrap%comp_present(n1), ESMF_StateIsCreated(is_local%wrap%NStateImp(n1),rc=rc)
           end if
           if (is_local%wrap%comp_present(n1) .and. ESMF_StateIsCreated(is_local%wrap%NStateImp(n1),rc=rc)) then
              call State_GetScalar(scalar_value=real_nx, &
@@ -2150,12 +2150,14 @@ contains
              end if
              is_local%wrap%nx(n1) = nint(real_nx)
              is_local%wrap%ny(n1) = nint(real_ny)
+          endif
+          if (is_local%wrap%comp_present(n1)) then
              write(msgString,'(3i8)') is_local%wrap%nx(n1), is_local%wrap%ny(n1), is_local%wrap%ntile(n1)
              if (maintask) then
                 write(logunit,'(a)') 'global nx,ny,ntile sizes for '//trim(compname(n1))//":"//trim(msgString)
              end if
              call ESMF_LogWrite(trim(subname)//":"//trim(compname(n1))//":"//trim(msgString), ESMF_LOGMSG_INFO)
-          end if
+          endif
        end do
        if (maintask) write(logunit,*)
 
