@@ -74,16 +74,16 @@ module esmFldsExchange_cesm_mod
   character(len=CX)   :: atm2ice_map  = 'unset'
   character(len=CX)   :: atm2ocn_map  = 'unset'
   character(len=CX)   :: atm2lnd_map  = 'unset'
+  character(len=CX)   :: atm2wav_map  = 'unset'
   character(len=CX)   :: ice2atm_map  = 'unset'
-  character(len=CX)   :: ocn2atm_map  = 'unset'
+  character(len=CX)   :: ice2wav_smap = 'unset'
   character(len=CX)   :: lnd2atm_map  = 'unset'
   character(len=CX)   :: lnd2rof_map  = 'unset'
-  character(len=CX)   :: rof2lnd_map  = 'unset'
-  character(len=CX)   :: atm2wav_map  = 'unset'
-  character(len=CX)   :: wav2ocn_smap = 'unset'
-  character(len=CX)   :: ice2wav_smap = 'unset'
+  character(len=CX)   :: ocn2atm_map  = 'unset'
   character(len=CX)   :: ocn2wav_smap = 'unset'
+  character(len=CX)   :: rof2lnd_map  = 'unset'
   character(len=CX)   :: rof2ocn_fmap = 'unset'
+  character(len=CX)   :: wav2ocn_smap = 'unset'
 
   logical             :: mapuv_with_cart3d              ! Map U/V vector wind fields from ATM to OCN/ICE by rotating in Cartesian 3D space and then back
   logical             :: flds_i2o_per_cat               ! Ice thickness category fields passed to OCN
