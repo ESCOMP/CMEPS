@@ -1601,7 +1601,7 @@ end subroutine med_aofluxes_map_ogrid2xgrid_input
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        call fldbun_getfldptr(fldbun_a, 'Sa_shum', aoflux_in%shum, xgrid=xgrid, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (coupling_mode == 'cesm') then
+       if (associated(aoflux_in%rainc)) then
           call fldbun_getfldptr(fldbun_a, 'Faxa_rainc', aoflux_in%rainc, xgrid=xgrid, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
        end if
@@ -1716,6 +1716,13 @@ end subroutine med_aofluxes_map_ogrid2xgrid_input
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call fldbun_getfldptr(fldbun, 'So_duu10n', aoflux_out%duu10n, xgrid=xgrid, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    call fldbun_getfldptr(fldbun, 'So_ugustOut', aoflux_out%ugust_out, xgrid=xgrid, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call fldbun_getfldptr(fldbun, 'So_u10withGust', aoflux_out%u10_withGust, xgrid=xgrid, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call fldbun_getfldptr(fldbun, 'So_u10res', aoflux_out%u10res, xgrid=xgrid, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
     call fldbun_getfldptr(fldbun, 'Faox_taux', aoflux_out%taux, xgrid=xgrid, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call fldbun_getfldptr(fldbun, 'Faox_tauy', aoflux_out%tauy, xgrid=xgrid, rc=rc)
@@ -1745,18 +1752,8 @@ end subroutine med_aofluxes_map_ogrid2xgrid_input
     if (add_gusts) then
        call fldbun_getfldptr(fldbun, 'So_ugustOut', aoflux_out%ugust_out, xgrid=xgrid, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call fldbun_getfldptr(fldbun, 'So_u10withGust', aoflux_out%u10_withGust, xgrid=xgrid, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
     else
        allocate(aoflux_out%ugust_out(lsize)); aoflux_out%ugust_out(:) = 0._R8
-       allocate(aoflux_out%u10_withGust(lsize)); aoflux_out%u10_withGust(:) = 0._R8
-    end if
-
-    if (coupling_mode == 'cesm') then
-       call fldbun_getfldptr(fldbun, 'So_u10res', aoflux_out%u10res, xgrid=xgrid, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-    else
-       allocate(aoflux_out%u10res(lsize)); aoflux_out%u10res(:) = 0._R8
     end if
 
   end subroutine set_aoflux_out_pointers
