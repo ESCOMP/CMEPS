@@ -12,8 +12,8 @@ module med_phases_prep_rof_mod
 
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
   use ESMF                  , only : ESMF_FieldBundle, ESMF_Field
-  use med_internalstate_mod , only : complnd, compglc, comprof, mapconsd, mapconsf, mapfcopy
-  use med_internalstate_mod , only : InternalState, maintask, logunit, map_fracname_lnd2rof
+  use med_internalstate_mod , only : complnd, compglc, comprof, mapconsf, mapfcopy
+  use med_internalstate_mod , only : InternalState, maintask, logunit
   use med_constants_mod     , only : dbug_flag        => med_constants_dbug_flag
   use med_constants_mod     , only : czero            => med_constants_czero
   use med_utils_mod         , only : chkerr           => med_utils_chkerr
@@ -23,6 +23,7 @@ module med_phases_prep_rof_mod
   use med_methods_mod       , only : fldbun_reset     => med_methods_FB_reset
   use med_methods_mod       , only : fldbun_average   => med_methods_FB_average
   use med_methods_mod       , only : field_getdata1d  => med_methods_Field_getdata1d
+  use med_methods_mod       , only : fldbun_fldchk    => med_methods_FB_fldchk
   use med_methods_mod       , only : FB_check_for_nans => med_methods_FB_check_for_nans
   use perf_mod              , only : t_startf, t_stopf
 
@@ -646,7 +647,7 @@ contains
     !     convert to a total irrigation flux on the ROF grid
     ! ------------------------------------------------------------------------
 
-    call ESMF_FieldBundleGet(is_local%wrap%FBFrac(complnd), map_fracname_lnd2rof, field=field_lfrac_lnd, rc=rc)
+    call ESMF_FieldBundleGet(is_local%wrap%FBFrac(complnd), 'lfrac', field=field_lfrac_lnd, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     call med_map_field_normalized(  &
