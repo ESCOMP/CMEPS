@@ -277,12 +277,10 @@ contains
     endif
 
     !---------------------------------------
+    ! Set 'lfrac' in FBFrac(complnd) - this might be overwritten later
     ! Set 'lfrin' in FBFrac(complnd)
-    ! Set 'lfrac' in FBFrac(complnd)
     !---------------------------------------
 
-    ! Initially both lfrac and lfrin in FBFrac are the same
-    ! However, 'lfrac' in FBFrac(complnd) might be overwritten later
     if (is_local%wrap%comp_present(complnd)) then
        call fldbun_getdata1d(is_local%wrap%FBImp(complnd,complnd) , 'Sl_lfrin', Sl_lfrin, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -447,7 +445,6 @@ contains
     ! Set 'lfrac' in FBFrac(compatm)
     ! Reset 'ofrac' in FBFrac(compatm) if appropriate
     ! ---------------------------------------
-
     ! These should actually be mapo2a of ofrac and lfrac but we can't
     ! map lfrac from o2a due to masked mapping weights.  So we have to
     ! settle for a residual calculation that is truncated to zero to
@@ -455,10 +452,9 @@ contains
 
     if (is_local%wrap%comp_present(compatm)) then
 
-      if ( is_local%wrap%comp_present(compocn) .or. &
-           is_local%wrap%comp_present(compice)) then
+       if (is_local%wrap%comp_present(compocn) .or. is_local%wrap%comp_present(compice)) then
 
-          ! Ocean or ice are present
+          ! Ocean or ice is present
           call fldbun_getdata1d(is_local%wrap%FBfrac(compatm), 'lfrac', lfrac, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           call fldbun_getdata1d(is_local%wrap%FBfrac(compatm), 'ofrac', ofrac, rc)
@@ -476,12 +472,30 @@ contains
              end if
           end if
 
-        else if (is_local%wrap%comp_present(complnd) .and. &
-                 is_local%wrap%med_coupling_active(complnd,compatm)) then
+       else if (is_local%wrap%comp_present(complnd) .and. is_local%wrap%med_coupling_active(complnd,compatm)) then
 
-          ! Ocean or ice are not present but land is present and couples to atm
-          call fldbun_getdata1d(is_local%wrap%FBfrac(compatm), 'lfrin', lfrin, rc)
+          ! If the ocean or ice are absent, regrid 'lfrac' from FBFrac(complnd) -> FBFrac(compatm)
+          if (med_map_RH_is_created(is_local%wrap%RH(complnd,compatm,:),mapfcopy, rc=rc)) then
+             maptype = mapfcopy
+          else
+             maptype = mapconsd
+             if (.not. med_map_RH_is_created(is_local%wrap%RH(complnd,compatm,:),maptype, rc=rc)) then
+                if (ESMF_FieldBundleIsCreated(is_local%wrap%FBImp(complnd,compatm))) then
+                   call med_map_routehandles_init( complnd, compatm, &
+                        FBSrc=is_local%wrap%FBImp(complnd,complnd), &
+                        FBDst=is_local%wrap%FBImp(complnd,compatm), &
+                        mapindex=maptype, RouteHandle=is_local%wrap%RH, rc=rc)
+                   if (ChkErr(rc,__LINE__,u_FILE_u)) return
+                end if
+             end if
+          end if
+          call ESMF_FieldBundleGet(is_local%wrap%FBfrac(complnd), 'lfrac', field=field_src, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_FieldBundleGet(is_local%wrap%FBfrac(compatm), 'lfrac', field=field_dst, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call med_map_field(field_src, field_dst, is_local%wrap%RH(complnd,compatm,:), maptype, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
           call fldbun_getdata1d(is_local%wrap%FBfrac(compatm), 'lfrac', lfrac, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           call fldbun_getdata1d(is_local%wrap%FBfrac(compatm), 'ofrac', ofrac, rc)
@@ -503,12 +517,12 @@ contains
     ! Reset 'lfrac' in FBFrac(complnd) if appropriate
     !---------------------------------------
 
-    ! If lnd -> atm coupling is active - map 'lfrac' from FBFrac(compatm) to FBFrac(complnd)
-    ! If the atmosphere is absent, then simply set fractions_l(lfrac) = fractions_l(lfrin) from above
-
     if ( is_local%wrap%comp_present(complnd) .and. &
-         is_local%wrap%comp_present(compatm) .and. &
          is_local%wrap%med_coupling_active(complnd,compatm)) then
+
+       ! If lnd -> atm coupling is active - map 'lfrac' from FBFrac(compatm) to FBFrac(complnd)
+       ! Note that if the atmosphere is absent, then simply set fractions_l(lfrac) = fractions_l(lfrin)
+       ! from above
 
        if (med_map_RH_is_created(is_local%wrap%RH(compatm,complnd,:),mapfcopy, rc=rc)) then
           maptype = mapfcopy
@@ -531,7 +545,7 @@ contains
     end if
 
     !---------------------------------------
-    ! Set 'rfrac', 'lfrac' and 'lfrin' in FBFrac(comprof)
+    ! Set 'rfrac' and 'lfrac' for FBFrac(comprof)
     !---------------------------------------
 
     if (is_local%wrap%comp_present(comprof)) then
@@ -564,6 +578,7 @@ contains
                   mapindex=maptype, RouteHandle=is_local%wrap%RH, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
+
           call ESMF_FieldBundleGet(is_local%wrap%FBfrac(complnd), 'lfrac', field=field_src, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           call ESMF_FieldBundleGet(is_local%wrap%FBfrac(comprof), 'lfrac', field=field_dst, rc=rc)
@@ -606,7 +621,7 @@ contains
              endif
           endif
 
-          ! Set 'lfrac' in FBFrac(compglc(ns))
+          ! Set 'lfrac' and 'lfrin' in FBFrac(compglc(ns))
           if ( is_local%wrap%comp_present(complnd) .and. is_local%wrap%med_coupling_active(complnd,compglc(ns))) then
              maptype = mapconsd
              if (.not. med_map_RH_is_created(is_local%wrap%RH(complnd,compglc(ns),:),maptype, rc=rc)) then
@@ -616,6 +631,7 @@ contains
                      mapindex=maptype, RouteHandle=is_local%wrap%RH, rc=rc)
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
              end if
+
              call ESMF_FieldBundleGet(is_local%wrap%FBfrac(complnd), 'lfrac', field=field_src, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
              call ESMF_FieldBundleGet(is_local%wrap%FBfrac(compglc(ns)), 'lfrac', field=field_dst, rc=rc)
@@ -851,7 +867,6 @@ contains
              call med_map_field(field_src, field_dst, is_local%wrap%RH(compice,compatm,:), maptype, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
-
           ! Set 'aofrac' from FBImp(compatm) to FBfrac(compatm) if available
           if ( fldbun_fldchk(is_local%wrap%FBImp(compatm,compatm), 'Sa_ofrac', rc=rc)) then
              call fldbun_getdata1d(is_local%wrap%FBImp(compatm,compatm), 'Sa_ofrac', Sa_ofrac, rc)

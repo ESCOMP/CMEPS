@@ -265,12 +265,22 @@ contains
     else
       map_fracname_lnd2atm       = 'lfrin' ! in fraclist_a
       mrg_fracname_lnd2atm_state = 'lfrin' ! in fraclist_a
-      mrg_fracname_lnd2atm_flux  = 'lfrin' ! in fraclist_r
+      mrg_fracname_lnd2atm_flux  = 'lfrin' ! in fraclist_a
       map_fracname_lnd2rof       = 'lfrin' ! in fraclist_r
       mrg_fracname_lnd2rof       = 'lfrin' ! in fraclist_r
       map_fracname_lnd2glc       = 'lfrin' ! in fraclist_g
       mrg_fracname_lnd2rof       = 'lfrin' ! in fraclist_g
     endif
+
+    if (maintask) then
+      write(logunit,'(a,i8)') trim(subname)//'      map_fracname_lnd2atm       = '//trim(map_fracname_lnd2atm)      //' in fraclist_a'
+      write(logunit,'(a,i8)') trim(subname)//'      mrg_fracname_lnd2atm_state = '//trim(mrg_fracname_lnd2atm_state)//' in fraclist_a'
+      write(logunit,'(a,i8)') trim(subname)//'      mrg_fracname_lnd2atm_flux  = '//trim(mrg_fracname_lnd2atm_flux) //' in fraclist_a'
+      write(logunit,'(a,i8)') trim(subname)//'      map_fracname_lnd2rof       = '//trim(map_fracname_lnd2rof)      //' in fraclist_r'
+      write(logunit,'(a,i8)') trim(subname)//'      mrg_fracname_lnd2rof       = '//trim(mrg_fracname_lnd2rof)      //' in fraclist_r'
+      write(logunit,'(a,i8)') trim(subname)//'      map_fracname_lnd2glc       = '//trim(map_fracname_lnd2glc)      //' in fraclist_g'
+      write(logunit,'(a,i8)') trim(subname)//'      mrg_fracname_lnd2rof       = '//trim(mrg_fracname_lnd2rof)      //' in fraclist_g'
+    end if
 
     ! Determine if glc is present
     call NUOPC_CompAttributeGet(gcomp, name='GLC_model', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
