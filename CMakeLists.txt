@@ -45,4 +45,5 @@ if(BLD_STANDALONE)
   list(APPEND EXTRA_INCLUDES "${CMAKE_BINARY_DIR}/ufs")
 endif()
 
+add_subdirectory(shared)
 add_subdirectory(mediator)
