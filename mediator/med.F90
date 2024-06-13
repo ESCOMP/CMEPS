@@ -51,6 +51,7 @@ module MED
   use esmFldsExchange_ufs_mod  , only : esmFldsExchange_ufs
   use esmFldsExchange_cesm_mod , only : esmFldsExchange_cesm
   use esmFldsExchange_hafs_mod , only : esmFldsExchange_hafs
+  use esmFldsExchange_sofar_mod, only : esmFldsExchange_sofar
   use med_phases_profile_mod   , only : med_phases_profile_finalize
 
   implicit none
@@ -837,6 +838,9 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     else if (coupling_mode(1:4) == 'hafs') then
        call esmFldsExchange_hafs(gcomp, phase='advertise', rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    else if (coupling_mode(1:5) == 'sofar') then
+       call esmFldsExchange_sofar(gcomp, phase='advertise', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     else
         call ESMF_LogWrite(trim(coupling_mode)//' is not a valid coupling_mode', ESMF_LOGMSG_INFO)
@@ -1846,6 +1850,9 @@ contains
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
       else if (coupling_mode(1:4) == 'hafs') then
          call esmFldsExchange_hafs(gcomp, phase='initialize', rc=rc)
+         if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      else if (coupling_mode(1:5) == 'sofar') then
+         call esmFldsExchange_sofar(gcomp, phase='initialize', rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
       end if
 
