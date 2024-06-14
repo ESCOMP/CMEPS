@@ -69,21 +69,21 @@ module esmFldsExchange_cesm_mod
   ! currently required mapping files
   character(len=CX)   :: rof2ocn_ice_rmap ='unset'
   character(len=CX)   :: rof2ocn_liq_rmap ='unset'
+  character(len=CX)   :: rof2lnd_map = 'unset'
+  character(len=CX)   :: lnd2rof_map = 'unset'
 
   ! no mapping files (value is 'idmap' or 'unset')
-  character(len=CX)   :: atm2ice_map  = 'unset'
-  character(len=CX)   :: atm2ocn_map  = 'unset'
-  character(len=CX)   :: atm2lnd_map  = 'unset'
-  character(len=CX)   :: atm2wav_map  = 'unset'
-  character(len=CX)   :: ice2atm_map  = 'unset'
-  character(len=CX)   :: ice2wav_smap = 'unset'
-  character(len=CX)   :: lnd2atm_map  = 'unset'
-  character(len=CX)   :: lnd2rof_map  = 'unset'
-  character(len=CX)   :: ocn2atm_map  = 'unset'
-  character(len=CX)   :: ocn2wav_smap = 'unset'
-  character(len=CX)   :: rof2lnd_map  = 'unset'
-  character(len=CX)   :: rof2ocn_fmap = 'unset'
-  character(len=CX)   :: wav2ocn_smap = 'unset'
+  character(len=CX)   :: atm2ice_map = 'unset'
+  character(len=CX)   :: atm2ocn_map = 'unset'
+  character(len=CX)   :: atm2lnd_map = 'unset'
+  character(len=CX)   :: atm2wav_map = 'unset'
+  character(len=CX)   :: ice2atm_map = 'unset'
+  character(len=CX)   :: ice2wav_map = 'unset'
+  character(len=CX)   :: lnd2atm_map = 'unset'
+  character(len=CX)   :: ocn2atm_map = 'unset'
+  character(len=CX)   :: ocn2wav_map = 'unset'
+  character(len=CX)   :: rof2ocn_map = 'unset'
+  character(len=CX)   :: wav2ocn_map = 'unset'
 
   logical             :: mapuv_with_cart3d              ! Map U/V vector wind fields from ATM to OCN/ICE by rotating in Cartesian 3D space and then back
   logical             :: flds_i2o_per_cat               ! Ice thickness category fields passed to OCN
@@ -117,7 +117,6 @@ contains
     use esmFlds               , only : addfld_aoflux => med_fldList_addfld_aoflux
     use esmFlds               , only : addmap_aoflux => med_fldList_addmap_aoflux
     use esmFlds               , only : addmap_ocnalb => med_fldList_addmap_ocnalb
-
     use esmFlds               , only : addfld_to => med_fldList_addfld_to
     use esmFlds               , only : addfld_from => med_fldList_addfld_from
     use esmFlds               , only : addmap_from => med_fldList_addmap_from
@@ -131,6 +130,10 @@ contains
     ! local variables:
     type(InternalState) :: is_local
     integer             :: n, ns
+    character(len=CL)   :: atm_mesh_name
+    character(len=CL)   :: lnd_mesh_name
+    character(len=CL)   :: ice_mesh_name
+    character(len=CL)   :: ocn_mesh_name
     character(len=CL)   :: cvalue
     logical             :: wav_coupling_to_cice
     logical             :: ocn2glc_coupling
@@ -157,63 +160,43 @@ contains
 
     if (phase == 'advertise') then
 
-       ! mapping to atm
-       call NUOPC_CompAttributeGet(gcomp, name='ice2atm_map', value=ice2atm_map,  rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (maintask) write(logunit, '(a)') trim(subname)//'ice2atm_map = '// trim(ice2atm_map)
-       call NUOPC_CompAttributeGet(gcomp, name='lnd2atm_map', value=lnd2atm_map,  rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (maintask) write(logunit, '(a)') trim(subname)//'lnd2atm_map = '// trim(lnd2atm_map)
-       call NUOPC_CompAttributeGet(gcomp, name='ocn2atm_map', value=ocn2atm_map,  rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (maintask) write(logunit, '(a)') trim(subname)//'ocn2atm_map = '// trim(ocn2atm_map)
+      ! determine if atm and lnd have the same mesh
+      call NUOPC_CompAttributeGet(gcomp, name='mesh_atm', value=atm_mesh_name, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      call NUOPC_CompAttributeGet(gcomp, name='mesh_lnd', value=lnd_mesh_name, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      call NUOPC_CompAttributeGet(gcomp, name='mesh_ice', value=ice_mesh_name, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      call NUOPC_CompAttributeGet(gcomp, name='mesh_ocn', value=ocn_mesh_name, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      if (trim(atm_mesh_name) == trim(lnd_mesh_name)) then
+        atm2lnd_map = 'idmap'
+        lnd2atm_map = 'idmap'
+      end if
+      if (trim(atm_mesh_name) == trim(ocn_mesh_name)) then
+        atm2ocn_map = 'idmap'
+        ocn2atm_map = 'idmap'
+      end if
+      if (trim(atm_mesh_name) == trim(ice_mesh_name)) then
+        atm2ice_map = 'idmap'
+        ice2atm_map = 'idmap'
+      end if
 
-       ! mapping to lnd
-       call NUOPC_CompAttributeGet(gcomp, name='atm2lnd_map', value=atm2lnd_map,  rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (maintask) write(logunit, '(a)') trim(subname)//'atm2lnd_map = '// trim(atm2lnd_map)
+       ! mapping rof=>lnd and lnd=>rof - the following two maps are needed for MIZUROUTE
        call NUOPC_CompAttributeGet(gcomp, name='rof2lnd_map', value=rof2lnd_map,  rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        if (maintask) write(logunit, '(a)') trim(subname)//'rof2lnd_map = '// trim(rof2lnd_map)
+       call NUOPC_CompAttributeGet(gcomp, name='lnd2rof_map', value=lnd2rof_map,  rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (maintask) write(logunit, '(a)') trim(subname)//'lnd2rof_map = '// trim(lnd2rof_map)
 
-       ! mapping to ice
-       call NUOPC_CompAttributeGet(gcomp, name='atm2ice_map', value=atm2ice_map,  rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (maintask) write(logunit, '(a)') trim(subname)//'atm2ice_map = '// trim(atm2ice_map)
-
-       ! mapping to ocn
-       call NUOPC_CompAttributeGet(gcomp, name='atm2ocn_map', value=atm2ocn_map,  rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (maintask) write(logunit, '(a)') trim(subname)//'atm2ocn_map = '// trim(atm2ocn_map)
-       call NUOPC_CompAttributeGet(gcomp, name='wav2ocn_smapname', value=wav2ocn_smap,  rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (maintask) write(logunit, '(a)') trim(subname)//'wav2ocn_smapname = '// trim(wav2ocn_smap)
-       call NUOPC_CompAttributeGet(gcomp, name='rof2ocn_fmapname', value=rof2ocn_fmap,  rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (maintask) write(logunit, '(a)') trim(subname)//'rof2ocn_fmapname = '// trim(rof2ocn_fmap)
+       ! mapping to rof => ocn with custom mapping
        call NUOPC_CompAttributeGet(gcomp, name='rof2ocn_liq_rmapname', value=rof2ocn_liq_rmap,  rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        if (maintask) write(logunit, '(a)') trim(subname)//'rof2ocn_liq_rmapname = '// trim(rof2ocn_liq_rmap)
        call NUOPC_CompAttributeGet(gcomp, name='rof2ocn_ice_rmapname', value=rof2ocn_ice_rmap,  rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        if (maintask) write(logunit, '(a)') trim(subname)//'rof2ocn_ice_rmapname = '// trim(rof2ocn_ice_rmap)
-
-       ! mapping to rof
-       call NUOPC_CompAttributeGet(gcomp, name='lnd2rof_map', value=lnd2rof_map,  rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (maintask) write(logunit, '(a)') trim(subname)//'lnd2rof_map = '// trim(lnd2rof_map)
-
-       ! mapping to wav
-       call NUOPC_CompAttributeGet(gcomp, name='atm2wav_map', value=atm2wav_map, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (maintask) write(logunit,'(a)') trim(subname)//'atm2wav_map = '// trim(atm2wav_map)
-
-       call NUOPC_CompAttributeGet(gcomp, name='ice2wav_smapname', value=ice2wav_smap,  rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (maintask) write(logunit,'(a)') trim(subname)//'ice2wav_smapname = '// trim(ice2wav_smap)
-       call NUOPC_CompAttributeGet(gcomp, name='ocn2wav_smapname', value=ocn2wav_smap,  rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (maintask) write(logunit,'(a)') trim(subname)//'ocn2wav_smapname = '// trim(ocn2wav_smap)
 
        ! uv cart3d mapping
        call NUOPC_CompAttributeGet(gcomp, name='mapuv_with_cart3d', value=cvalue,  rc=rc)
@@ -1638,6 +1621,23 @@ contains
        end if
     end if
 
+    !-----------------------------------------------------------------------------
+    ! to atm: dms from ocean
+    !-----------------------------------------------------------------------------
+    if (phase == 'advertise') then
+       call addfld_from(compocn, 'Faoo_dms_ocn')
+       call addfld_to(compatm, 'Faoo_dms_ocn')
+    else
+       ! Note that Faoo_dmds should not be weighted by ifrac - since
+       ! it will be weighted by ifrac in the merge to the atm
+       if ( fldchk(is_local%wrap%FBImp(compocn,compocn), 'Faoo_dms_ocn', rc=rc) .and. &
+            fldchk(is_local%wrap%FBexp(compatm)        , 'Faoo_dms_ocn', rc=rc)) then
+          call addmap_from(complnd, 'Faoo_dms_ocn', compocn, mapconsf, 'lfrac', ocn2atm_map)
+          call addmrg_to(compatm , 'Faoo_dms_ocn', &
+               mrg_from=compmed, mrg_fld='Faoo_dms_ocn', mrg_type='merge', mrg_fracname='ofrac')
+       end if
+    end if
+
     !=====================================================================
     ! FIELDS TO OCEAN (compocn)
     !=====================================================================
@@ -2242,7 +2242,7 @@ contains
                 call addmap_from(comprof, 'Forr_rofl', compocn, map_rof2ocn_liq, 'none', rof2ocn_liq_rmap)
              end if
              if (fldchk(is_local%wrap%FBImp(comprof, comprof), 'Flrr_flood', rc=rc)) then
-                call addmap_from(comprof, 'Flrr_flood', compocn, mapconsd, 'one', rof2ocn_fmap)
+                call addmap_from(comprof, 'Flrr_flood', compocn, mapconsd, 'one', rof2ocn_map)
                 call addmrg_to(compocn, 'Foxx_rofl', mrg_from=comprof, mrg_fld='Forr_rofl:Flrr_flood', mrg_type='sum')
              else
                 call addmrg_to(compocn, 'Foxx_rofl', mrg_from=comprof, mrg_fld='Forr_rofl', mrg_type='sum')
@@ -2299,7 +2299,7 @@ contains
                    call addmap_from(comprof, 'Forr_rofl_wiso', compocn, map_rof2ocn_liq, 'none', rof2ocn_liq_rmap)
                 end if
                 if (fldchk(is_local%wrap%FBImp(comprof, comprof), 'Flrr_flood_wiso', rc=rc)) then
-                   call addmap_from(comprof, 'Flrr_flood_wiso', compocn, mapconsd, 'one', rof2ocn_fmap)
+                   call addmap_from(comprof, 'Flrr_flood_wiso', compocn, mapconsd, 'one', rof2ocn_map)
                    call addmrg_to(compocn, 'Foxx_rofl_wiso', &
                         mrg_from=comprof, mrg_fld='Forr_rofl:Flrr_flood', mrg_type='sum')
                 else
@@ -2355,7 +2355,7 @@ contains
     else
        if ( fldchk(is_local%wrap%FBExp(compocn)         , 'Sw_lamult', rc=rc) .and. &
             fldchk(is_local%wrap%FBImp(compwav, compwav), 'Sw_lamult', rc=rc)) then
-          call addmap_from(compwav, 'Sw_lamult', compocn,  mapbilnr_nstod, 'one', wav2ocn_smap)
+          call addmap_from(compwav, 'Sw_lamult', compocn,  mapbilnr_nstod, 'one', wav2ocn_map)
           call addmrg_to(compocn, 'Sw_lamult', mrg_from=compwav, mrg_fld='Sw_lamult', mrg_type='copy')
        end if
     end if
@@ -2368,7 +2368,7 @@ contains
     else
        if ( fldchk(is_local%wrap%FBExp(compocn)         , 'Sw_ustokes', rc=rc) .and. &
             fldchk(is_local%wrap%FBImp(compwav, compwav), 'Sw_ustokes', rc=rc)) then
-          call addmap_from(compwav, 'Sw_ustokes', compocn,  mapbilnr_nstod, 'one', wav2ocn_smap)
+          call addmap_from(compwav, 'Sw_ustokes', compocn,  mapbilnr_nstod, 'one', wav2ocn_map)
           call addmrg_to(compocn, 'Sw_ustokes', mrg_from=compwav, mrg_fld='Sw_ustokes', mrg_type='copy')
        end if
     end if
@@ -2381,7 +2381,7 @@ contains
     else
        if ( fldchk(is_local%wrap%FBExp(compocn)         , 'Sw_vstokes', rc=rc) .and. &
             fldchk(is_local%wrap%FBImp(compwav, compwav), 'Sw_vstokes', rc=rc)) then
-          call addmap_from(compwav, 'Sw_vstokes', compocn,  mapbilnr_nstod, 'one', wav2ocn_smap)
+          call addmap_from(compwav, 'Sw_vstokes', compocn,  mapbilnr_nstod, 'one', wav2ocn_map)
           call addmrg_to(compocn, 'Sw_vstokes', mrg_from=compwav, mrg_fld='Sw_vstokes', mrg_type='copy')
        end if
     end if
@@ -2394,7 +2394,7 @@ contains
     else
        if ( fldchk(is_local%wrap%FBExp(compocn)         , 'Sw_hstokes', rc=rc) .and. &
             fldchk(is_local%wrap%FBImp(compwav, compwav), 'Sw_hstokes', rc=rc)) then
-          call addmap_from(compwav, 'Sw_hstokes', compocn,  mapbilnr_nstod, 'one', wav2ocn_smap)
+          call addmap_from(compwav, 'Sw_hstokes', compocn,  mapbilnr_nstod, 'one', wav2ocn_map)
           call addmrg_to(compocn, 'Sw_hstokes', mrg_from=compwav, mrg_fld='Sw_hstokes', mrg_type='copy')
        end if
     end if
@@ -2407,7 +2407,7 @@ contains
     else
        if ( fldchk(is_local%wrap%FBExp(compocn)         , 'Sw_pstokes_x', rc=rc) .and. &
             fldchk(is_local%wrap%FBImp(compwav, compwav), 'Sw_pstokes_x', rc=rc)) then
-          call addmap_from(compwav, 'Sw_pstokes_x', compocn,  mapbilnr_nstod, 'one', wav2ocn_smap)
+          call addmap_from(compwav, 'Sw_pstokes_x', compocn,  mapbilnr_nstod, 'one', wav2ocn_map)
           call addmrg_to(compocn, 'Sw_pstokes_x', mrg_from=compwav, mrg_fld='Sw_pstokes_x', mrg_type='copy')
        end if
     end if
@@ -2420,7 +2420,7 @@ contains
     else
        if ( fldchk(is_local%wrap%FBExp(compocn)         , 'Sw_pstokes_y', rc=rc) .and. &
             fldchk(is_local%wrap%FBImp(compwav, compwav), 'Sw_pstokes_y', rc=rc)) then
-          call addmap_from(compwav, 'Sw_pstokes_y', compocn,  mapbilnr_nstod, 'one', wav2ocn_smap)
+          call addmap_from(compwav, 'Sw_pstokes_y', compocn,  mapbilnr_nstod, 'one', wav2ocn_map)
           call addmrg_to(compocn, 'Sw_pstokes_y', mrg_from=compwav, mrg_fld='Sw_pstokes_y', mrg_type='copy')
        end if
     end if
@@ -2894,7 +2894,7 @@ contains
        if ( fldchk(is_local%wrap%FBexp(compwav)         , 'Si_ifrac', rc=rc) .and. &
             fldchk(is_local%wrap%FBImp(compice,compice ), 'Si_ifrac', rc=rc)) then
              ! By default will be using a custom map - but if one is not available, use a generated bilinear instead
-          call addmap_from(compice, 'Si_ifrac', compwav, mapbilnr, 'one', ice2wav_smap)
+          call addmap_from(compice, 'Si_ifrac', compwav, mapbilnr, 'one', ice2wav_map)
           call addmrg_to(compwav, 'Si_ifrac', mrg_from=compice, mrg_fld='Si_ifrac', mrg_type='copy')
        end if
     end if
@@ -2908,7 +2908,7 @@ contains
        else
           if (fldchk(is_local%wrap%FBexp(compwav)         , 'Si_thick', rc=rc) .and. &
               fldchk(is_local%wrap%FBImp(compice,compice ), 'Si_thick', rc=rc)) then
-             call addmap_from(compice, 'Si_thick', compwav, mapbilnr, 'one', ice2wav_smap)
+             call addmap_from(compice, 'Si_thick', compwav, mapbilnr, 'one', ice2wav_map)
              call addmrg_to(compwav, 'Si_thick', mrg_from=compice, mrg_fld='Si_thick', mrg_type='copy')
           end if
        end if
@@ -2923,7 +2923,7 @@ contains
        else
           if (fldchk(is_local%wrap%FBexp(compwav)         , 'Si_floediam', rc=rc) .and. &
               fldchk(is_local%wrap%FBImp(compice,compice ), 'Si_floediam', rc=rc)) then
-             call addmap_from(compice, 'Si_floediam', compwav, mapbilnr, 'one', ice2wav_smap)
+             call addmap_from(compice, 'Si_floediam', compwav, mapbilnr, 'one', ice2wav_map)
              call addmrg_to(compwav, 'Si_floediam', mrg_from=compice, mrg_fld='Si_floediam', mrg_type='copy')
           end if
        end if
@@ -2937,8 +2937,7 @@ contains
     else
        if ( fldchk(is_local%wrap%FBImp(compocn, compocn), 'So_t', rc=rc) .and. &
             fldchk(is_local%wrap%FBExp(compwav)         , 'So_t', rc=rc)) then
-          ! By default will be using a custom map - but if one is not available, use a generated bilinear instead
-          call addmap_from(compocn, 'So_t', compwav, mapbilnr, 'one', ocn2wav_smap)
+          call addmap_from(compocn, 'So_t', compwav, mapbilnr, 'one', ocn2wav_map)
           call addmrg_to(compwav, 'So_t', mrg_from=compocn, mrg_fld='So_t', mrg_type='copy')
        end if
     end if
@@ -2952,7 +2951,7 @@ contains
        if ( fldchk(is_local%wrap%FBImp(compocn, compocn), 'So_u', rc=rc) .and. &
             fldchk(is_local%wrap%FBExp(compwav)         , 'So_u', rc=rc)) then
           ! By default will be using a custom map - but if one is not available, use a generated bilinear instead
-          call addmap_from(compocn, 'So_u', compwav, mapbilnr, 'one', ocn2wav_smap)
+          call addmap_from(compocn, 'So_u', compwav, mapbilnr, 'one', ocn2wav_map)
           call addmrg_to(compwav, 'So_u', mrg_from=compocn, mrg_fld='So_u', mrg_type='copy')
        end if
     end if
@@ -2963,7 +2962,7 @@ contains
        if ( fldchk(is_local%wrap%FBImp(compocn, compocn), 'So_v', rc=rc) .and. &
             fldchk(is_local%wrap%FBExp(compwav)         , 'So_v', rc=rc)) then
           ! By default will be using a custom map - but if one is not available, use a generated bilinear instead
-          call addmap_from(compocn, 'So_v', compwav, mapbilnr, 'one', ocn2wav_smap)
+          call addmap_from(compocn, 'So_v', compwav, mapbilnr, 'one', ocn2wav_map)
           call addmrg_to(compwav, 'So_v', mrg_from=compocn, mrg_fld='So_v', mrg_type='copy')
        end if
     end if
@@ -2978,7 +2977,7 @@ contains
        if ( fldchk(is_local%wrap%FBImp(compocn, compocn), 'So_bldepth', rc=rc) .and. &
             fldchk(is_local%wrap%FBExp(compwav)         , 'So_bldepth', rc=rc)) then
           ! By default will be using a custom map - but if one is not available, use a generated bilinear instead
-          call addmap_from(compocn, 'So_bldepth', compwav, mapbilnr, 'one', ocn2wav_smap)
+          call addmap_from(compocn, 'So_bldepth', compwav, mapbilnr, 'one', ocn2wav_map)
           call addmrg_to(compwav, 'So_bldepth', mrg_from=compocn, mrg_fld='So_bldepth', mrg_type='copy')
        end if
     end if
@@ -3381,25 +3380,6 @@ contains
           ! custom merge in med_phases_prep_atm
        end if
     endif
-
-    !=====================================================================
-    ! DMS EXCHANGE
-    !=====================================================================
-
-    ! Get dms flux from ocn and send to atm
-    if (phase == 'advertise') then
-       call addfld_from(compocn, 'Faoo_dms_ocn')
-       call addfld_to(compatm, 'Faoo_dms_ocn')
-    else
-       ! Note that Faoo_dmds should not be weighted by ifrac - since
-       ! it will be weighted by ifrac in the merge to the atm
-       if ( fldchk(is_local%wrap%FBImp(compocn,compocn), 'Faoo_dms_ocn', rc=rc) .and. &
-            fldchk(is_local%wrap%FBexp(compatm)        , 'Faoo_dms_ocn', rc=rc)) then
-          call addmap_from(complnd, 'Faoo_dms_ocn', compocn, mapconsf, 'lfrac', ocn2atm_map)
-          call addmrg_to(compatm , 'Faoo_dms_ocn', &
-               mrg_from=compmed, mrg_fld='Faoo_dms_ocn', mrg_type='merge', mrg_fracname='ofrac')
-       end if
-    end if
 
   end subroutine esmFldsExchange_cesm
 
