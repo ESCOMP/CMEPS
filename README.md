@@ -13,6 +13,8 @@ For documentation see
 
 https://escomp.github.io/CMEPS/  
 
+## Building
+
 In order to build the package, the NCAR [ParallelIO package](https://github.com/NCAR/ParallelIO) must be installed and an environment variable PIO=${PIO_DIRECTORY} set. [PnetCDF](https://github.com/Parallel-NetCDF/PnetCDF) is optional.
 
 To build stand-alone libraries, run:
