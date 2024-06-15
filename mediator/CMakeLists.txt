@@ -35,6 +35,7 @@ endif()
 
 target_include_directories (cmeps PUBLIC ${ESMF_F90COMPILEPATHS})
 target_include_directories (cmeps PUBLIC "${CMAKE_BINARY_DIR}/ufs")
+target_include_directories (cmeps PUBLIC "${CMAKE_BINARY_DIR}/shared")
 target_include_directories (cmeps PUBLIC ${PIO_Fortran_INCLUDE_DIR})
 
 install(TARGETS cmeps
