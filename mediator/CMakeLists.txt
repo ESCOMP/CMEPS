@@ -29,6 +29,7 @@ endforeach()
 add_library(cmeps ${SRCFILES})
 
 if(BLD_STANDALONE)
+  add_dependencies(cmeps shared)
   add_dependencies(cmeps cmeps_share)
 endif()
 
