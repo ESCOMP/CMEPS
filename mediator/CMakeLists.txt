@@ -3,6 +3,7 @@ project(cmeps Fortran)
 set(SRCFILES esmFldsExchange_cesm_mod.F90 med_fraction_mod.F90
               med_methods_mod.F90 med_phases_prep_ice_mod.F90
               med_phases_restart_mod.F90 esmFldsExchange_hafs_mod.F90
+              esmFldsExchange_sofar_mod.F90
               med_internalstate_mod.F90 med_phases_aofluxes_mod.F90
               med_phases_prep_lnd_mod.F90 med_time_mod.F90
               esmFldsExchange_ufs_mod.F90 med_io_mod.F90
