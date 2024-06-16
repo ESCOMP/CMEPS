@@ -233,6 +233,12 @@ contains
 
        ! write diagnostic output
        if (maintask) then
+          write(logunit,'(a)'   ) ' flds_co2a: prognostic and diagnostic CO2 at lowest atm level is sent to lnd and ocn'
+          write(logunit,'(a)'   ) ' flds_co2b: prognostic and diagnostic CO2 at lowest atm level is sent to lnd and ocn'
+          write(logunit,'(a)'   ) '            and surface flux of CO2 from lnd is sent back to atm'
+          write(logunit,'(a)'   ) ' flds_co2c: prognostic and diagnostic CO2 at lowest atm level is sent to lnd and ocn'
+          write(logunit,'(a)'   ) '            and surface flux of CO2 from lnd is sent back to atm'
+          write(logunit,'(a)'   ) '            and surface flux of CO2 from ocn is sent back to atm'
           write(logunit,'(a,l7)') trim(subname)//' flds_co2a                       = ',flds_co2a
           write(logunit,'(a,l7)') trim(subname)//' flds_co2b                       = ',flds_co2b
           write(logunit,'(a,l7)') trim(subname)//' flds_co2c                       = ',flds_co2c
@@ -1607,9 +1613,9 @@ contains
     else
        if ( fldchk(is_local%wrap%FBImp(complnd, complnd), 'Fall_voc', rc=rc) .and. &
             fldchk(is_local%wrap%FBExp(compatm)         , 'Fall_voc', rc=rc)) then
-          call addmap_from(complnd, 'Fall_voc', compatm, mapconsf, map_fracname_lnd2atm, lnd2atm_map
+          call addmap_from(complnd, 'Fall_voc', compatm, mapconsf, map_fracname_lnd2atm, lnd2atm_map)
           call addmrg_to(compatm, 'Fall_voc', &
-               mrg_from=complnd, mrg_fld='Fall_voc', mrg_type='merge', mrg_fracname=mrg_fracname_lnd2atm_flux)
+               mrg_from=complnd, mrg_fld='Fall_voc', mrg_type='copy_with_weights', mrg_fracname=mrg_fracname_lnd2atm_flux)
        end if
     end if
 
@@ -1625,7 +1631,7 @@ contains
             fldchk(is_local%wrap%FBExp(compatm)         , 'Fall_fire', rc=rc)) then
           call addmap_from(complnd, 'Fall_fire', compatm, mapconsf, 'lfrin', lnd2atm_map)
           call addmrg_to(compatm, 'Fall_fire', &
-               mrg_from=complnd, mrg_fld='Fall_fire', mrg_type='merge', mrg_fracname=mrg_fracname_lnd2atm_flux)
+               mrg_from=complnd, mrg_fld='Fall_fire', mrg_type='copy_with_weights', mrg_fracname=mrg_fracname_lnd2atm_flux)
        end if
     end if
     ! 'wild fire plume height'
@@ -1636,7 +1642,8 @@ contains
        if ( fldchk(is_local%wrap%FBImp(complnd, complnd), 'Sl_fztop', rc=rc) .and. &
             fldchk(is_local%wrap%FBExp(compatm)         , 'Sl_fztop', rc=rc)) then
           call addmap_from(complnd, 'Sl_fztop', compatm, mapconsf, map_fracname_lnd2atm, lnd2atm_map)
-          call addmrg_to(compatm, 'Sl_fztop', mrg_from=complnd, mrg_fld='Sl_fztop', mrg_type='copy')
+          call addmrg_to(compatm, 'Sl_fztop', &
+               mrg_from=complnd, mrg_fld='Sl_fztop', mrg_type='copy')
        end if
     end if
 
