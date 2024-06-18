@@ -79,7 +79,7 @@ jobs:
       - name: checkout externals
         run: |
           pushd cesm
-          ./manage_externals/checkout_externals ccs_config cdeps share mct cpl7 parallelio
+          ./bin/git-fleximod update ccs_config cdeps share mct parallelio
           cd ccs_config
           git checkout main 
           cd ../
