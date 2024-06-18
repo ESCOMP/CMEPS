@@ -18,7 +18,7 @@ module esmFldsExchange_cesm_mod
   ! index        : destination component index that merging will occur to
   ! fldname      : field name in mediator export field bundle for destination component
   ! mrg_from     : source component index that will contribute to the merge
-  ! mrg_field    : field name fom source component field bundle that will be used in merge
+  ! mrg_fld      : field name fom source component field bundle that will be used in merge
   ! mrg_type     : one of ['copy', 'copy_with_weights', 'sum', 'sum_with_weights', 'merge']
   ! mrg_fracname : if mrg_type is copy_with_weights or merge -
   !                fraction name in fraction field bundle to use in merge
@@ -138,6 +138,7 @@ contains
     character(len=CL)   :: ice_mesh_name
     character(len=CL)   :: ocn_mesh_name
     character(len=CL)   :: cvalue
+    character(len=CS)   :: mrgfld_source
     logical             :: wav_coupling_to_cice
     logical             :: ocn2glc_coupling
     character(len=*) , parameter   :: subname=' (esmFldsExchange_cesm) '
@@ -2339,93 +2340,73 @@ contains
        call addfld_to(compocn, 'Forr_rofi_glc')
        call addfld_to(compocn, 'Flrr_flood')
     else
-       if ( fldchk(is_local%wrap%FBExp(compocn), 'Foxx_rofl' , rc=rc)) then
-          ! liquid from river and possibly flood from river to ocean
-          if (fldchk(is_local%wrap%FBImp(comprof, comprof), 'Forr_rofl' , rc=rc)) then
-             if (trim(rof2ocn_liq_rmap) == 'unset') then
-                call addmap_from(comprof, 'Forr_rofl', compocn, mapconsd, 'one', 'unset')
-             else
-                call addmap_from(comprof, 'Forr_rofl', compocn, map_rof2ocn_liq, 'none', rof2ocn_liq_rmap)
-             end if
-             if (fldchk(is_local%wrap%FBImp(comprof, comprof), 'Flrr_flood', rc=rc)) then
-                call addmap_from(comprof, 'Flrr_flood', compocn, mapconsd, 'one', rof2ocn_map)
-                call addmrg_to(compocn, 'Foxx_rofl', mrg_from=comprof, mrg_fld='Forr_rofl:Flrr_flood', mrg_type='sum')
-             else
-                call addmrg_to(compocn, 'Foxx_rofl', mrg_from=comprof, mrg_fld='Forr_rofl', mrg_type='sum')
-             end if
+      ! Liquid runoff from land and glc - mapping
+      if (fldchk(is_local%wrap%FBImp(comprof, comprof), 'Forr_rofl' , rc=rc)) then
+        if ( fldchk(is_local%wrap%FBExp(compocn), 'Foxx_rofl' , rc=rc)) then
+          if (trim(rof2ocn_liq_rmap) == 'unset') then
+            call addmap_from(comprof, 'Forr_rofl', compocn, mapconsd, 'one', 'unset')
+          else
+            call addmap_from(comprof, 'Forr_rofl', compocn, map_rof2ocn_liq, 'none', rof2ocn_liq_rmap)
           end if
-       end if
-       if ( fldchk(is_local%wrap%FBExp(compocn), 'Foxx_rofi' , rc=rc)) then
-          ! ice from river to ocean
-          if (fldchk(is_local%wrap%FBImp(comprof, comprof), 'Forr_rofi' , rc=rc)) then
-             if (trim(rof2ocn_ice_rmap) == 'unset') then
-                call addmap_from(comprof, 'Forr_rofi', compocn, mapconsd, 'one', 'unset')
-             else
-                call addmap_from(comprof, 'Forr_rofi', compocn, map_rof2ocn_ice, 'none', rof2ocn_ice_rmap)
-             end if
-             call addmrg_to(compocn, 'Foxx_rofi', mrg_from=comprof, mrg_fld='Forr_rofi', mrg_type='sum')
+        end if
+      end if
+      if (fldchk(is_local%wrap%FBImp(comprof, comprof), 'Flrr_flood', rc=rc)) then
+        if ( fldchk(is_local%wrap%FBExp(compocn), 'Foxx_rofl' , rc=rc)) then
+          call addmap_from(comprof, 'Flrr_flood', compocn, mapconsd, 'one', rof2ocn_map)
+        end if
+      end if
+      if ( fldchk(is_local%wrap%FBImp(comprof, comprof), 'Forr_rofl_glc', rc=rc)) then
+        if (fldchk(is_local%wrap%FBExp(compocn), 'Forr_rofl_glc', rc=rc) .or. &
+            fldchk(is_local%wrap%FBExp(compocn), 'Foxx_rofl', rc=rc)) then
+          if (trim(rof2ocn_liq_rmap) == 'unset') then
+            call addmap_from(comprof, 'Forr_rofl_glc', compocn, mapconsd, 'one', 'unset')
+          else
+            call addmap_from(comprof, 'Forr_rofl_glc', compocn, map_rof2ocn_liq, 'none', rof2ocn_liq_rmap)
           end if
-       end if
+        end if
+      end if
 
-       if ( fldchk(is_local%wrap%FBExp(compocn), 'Forr_rofl_glc' , rc=rc) .and. &
-            fldchk(is_local%wrap%FBImp(comprof, comprof), 'Forr_rofl_glc', rc=rc)) then
-         if (trim(rof2ocn_liq_rmap) == 'unset') then
-           call addmap_from(comprof, 'Forr_rofl_glc', compocn, mapconsd, 'one', 'unset')
-         else
-           call addmap_from(comprof, 'Forr_rofl_glc', compocn, map_rof2ocn_liq, 'none', rof2ocn_liq_rmap)
-         end if
-         call addmrg_to(compocn, 'Foxx_rofl_glc', mrg_from=comprof, mrg_fld='Forr_rofl_glc', mrg_type='copy')
-       end if
+      ! Liquid runoff from land and glc - merging
+      if ( fldchk(is_local%wrap%FBExp(compocn), 'Foxx_rofl' , rc=rc)) then
+        mrgfld_source = 'Forr_rofl'
+        if (fldchk(is_local%wrap%FBImp(comprof, comprof), 'Flrr_flood', rc=rc)) then
+          mrgfld_source = trim(mrgfld_source) //':Flrr_flood'
+        end if
+        if (fldchk(is_local%wrap%FBImp(comprof, comprof), 'Forr_rofl_glc', rc=rc)) then
+          mrgfld_source = trim(mrgfld_source) //':Forr_rofl_glc'
+        end if
+        call addmrg_to(compocn, 'Foxx_rofl', mrg_from=comprof, mrg_fld=trim(mrgfld_source), mrg_type='sum')
+      end if
 
-       if ( fldchk(is_local%wrap%FBExp(compocn), 'Forr_rofi_glc' , rc=rc) .and. &
-            fldchk(is_local%wrap%FBImp(comprof, comprof), 'Forr_rofi_glc', rc=rc)) then
-         if (trim(rof2ocn_ice_rmap) == 'unset') then
-           call addmap_from(comprof, 'Forr_rofi_glc', compocn, mapconsd, 'one', 'unset')
-         else
-           call addmap_from(comprof, 'Forr_rofo_glc', compocn, map_rof2ocn_liq, 'none', rof2ocn_liq_rmap)
-         end if
-         call addmrg_to(compocn, 'Foxx_rofl_glc', mrg_from=comprof, mrg_fld='Forr_rofi_glc', mrg_type='copy')
-       end if
-    end if
+      ! Frozen runoff from land and glc - mapping
+      if (fldchk(is_local%wrap%FBImp(comprof, comprof), 'Forr_rofi' , rc=rc)) then
+        if ( fldchk(is_local%wrap%FBExp(compocn), 'Foxx_rofi' , rc=rc)) then
+          if (trim(rof2ocn_ice_rmap) == 'unset') then
+            call addmap_from(comprof, 'Forr_rofi', compocn, mapconsd, 'one', 'unset')
+          else
+            call addmap_from(comprof, 'Forr_rofi', compocn, map_rof2ocn_ice, 'none', rof2ocn_ice_rmap)
+          end if
+        end if
+      end if
+      if ( fldchk(is_local%wrap%FBImp(comprof, comprof), 'Forr_rofi_glc', rc=rc)) then
+        if (fldchk(is_local%wrap%FBExp(compocn), 'Forr_rofi_glc', rc=rc) .or. &
+            fldchk(is_local%wrap%FBExp(compocn), 'Foxx_rofi', rc=rc)) then
+          if (trim(rof2ocn_ice_rmap) == 'unset') then
+            call addmap_from(comprof, 'Forr_rofi_glc', compocn, mapconsd, 'one', 'unset')
+          else
+            call addmap_from(comprof, 'Forr_rofi_glc', compocn, map_rof2ocn_ice, 'none', rof2ocn_ice_rmap)
+          end if
+        end if
+      end if
 
-    if (flds_wiso) then
-       if (phase == 'advertise') then
-          call addfld_from(comprof, 'Forr_rofl_wiso')
-          call addfld_from(comprof, 'Forr_rofi_wiso')
-          call addfld_to(compocn, 'Foxx_rofl_wiso')
-          call addfld_to(compocn, 'Foxx_rofi_wiso')
-          call addfld_to(compocn, 'Flrr_flood_wiso')
-       else
-          if ( fldchk(is_local%wrap%FBExp(compocn), 'Foxx_rofl_wiso' , rc=rc)) then
-             ! liquid from river and possibly flood from river to ocean
-             if (fldchk(is_local%wrap%FBImp(comprof, comprof), 'Forr_rofl_wiso' , rc=rc)) then
-                if (trim(rof2ocn_liq_rmap) == 'unset') then
-                   call addmap_from(comprof, 'Forr_rofl_wiso', compocn, mapconsd, 'none', 'unset')
-                else
-                   call addmap_from(comprof, 'Forr_rofl_wiso', compocn, map_rof2ocn_liq, 'none', rof2ocn_liq_rmap)
-                end if
-                if (fldchk(is_local%wrap%FBImp(comprof, comprof), 'Flrr_flood_wiso', rc=rc)) then
-                   call addmap_from(comprof, 'Flrr_flood_wiso', compocn, mapconsd, 'one', rof2ocn_map)
-                   call addmrg_to(compocn, 'Foxx_rofl_wiso', &
-                        mrg_from=comprof, mrg_fld='Forr_rofl:Flrr_flood', mrg_type='sum')
-                else
-                   call addmrg_to(compocn, 'Foxx_rofl_wiso', &
-                        mrg_from=comprof, mrg_fld='Forr_rofl', mrg_type='sum')
-                end if
-             end if
-          end if
-          if ( fldchk(is_local%wrap%FBExp(compocn), 'Foxx_rofi_wiso' , rc=rc)) then
-             ! ice from river to ocean
-             if (fldchk(is_local%wrap%FBImp(comprof, comprof), 'Forr_rofi_wiso' , rc=rc)) then
-                if (trim(rof2ocn_ice_rmap) == 'unset') then
-                   call addmap_from(comprof, 'Forr_rofi_wiso', compocn, mapconsd, 'none', 'unset')
-                else
-                   call addmap_from(comprof, 'Forr_rofi_wiso', compocn, map_rof2ocn_ice, 'none', rof2ocn_ice_rmap)
-                end if
-                call addmrg_to(compocn, 'Foxx_rofi_wiso', mrg_from=comprof, mrg_fld='Forr_rofi', mrg_type='sum')
-             end if
-          end if
-       end if
+      ! Frozen runoff from land and glc - merging
+      if ( fldchk(is_local%wrap%FBExp(compocn), 'Foxx_rofi' , rc=rc)) then
+        mrgfld_source = 'Forr_rofi'
+        if (fldchk(is_local%wrap%FBImp(comprof, comprof), 'Forr_rofi_glc', rc=rc)) then
+          mrgfld_source = trim(mrgfld_source) //':Forr_rofi_glc'
+        end if
+        call addmrg_to(compocn, 'Foxx_rofi', mrg_from=comprof, mrg_fld=trim(mrgfld_source), mrg_type='sum')
+      end if
     end if
 
     !-----------------------------
