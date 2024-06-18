@@ -4,7 +4,7 @@
 #-----------------------------------------------
 
 # component module name
-MED_ESMF_DEP_FRONT := MED
+MED_ESMF_DEP_FRONT := 
 # component module path
 MED_ESMF_DEP_INCPATH := 
 # component module objects
