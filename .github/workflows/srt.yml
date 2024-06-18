@@ -91,9 +91,7 @@ jobs:
 
               sed -i".bak" "s/git@github.com:/https:\/\/github.com\//g" "${PWD}/.gitmodules"
           fi
-          git checkout fix-quiet-lockedfiles
           git submodule update --init
-
           cd ../components/cdeps
           git checkout main
           git submodule update --init
