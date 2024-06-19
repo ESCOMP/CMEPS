@@ -264,7 +264,7 @@ contains
       mrg_fracname_lnd2glc       = 'lfrac' ! in fraclist_g
     else
       map_fracname_lnd2atm       = 'lfrin' ! in fraclist_a
-      mrg_fracname_lnd2atm_state = 'lfrin' ! in fraclist_a
+      mrg_fracname_lnd2atm_state = 'lfrac' ! in fraclist_a
       mrg_fracname_lnd2atm_flux  = 'lfrin' ! in fraclist_a
       map_fracname_lnd2rof       = 'lfrin' ! in fraclist_r
       mrg_fracname_lnd2rof       = 'lfrin' ! in fraclist_r
