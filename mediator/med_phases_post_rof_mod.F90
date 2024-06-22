@@ -6,6 +6,10 @@ module med_phases_post_rof_mod
   use ESMF                  , only : ESMF_Clock, ESMF_ClockIsCreated
   use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_LOGMSG_ERROR, ESMF_SUCCESS, ESMF_FAILURE
   use ESMF                  , only : ESMF_GridComp, ESMF_GridCompGet
+  use ESMF                  , only : ESMF_Mesh, ESMF_MESHLOC_ELEMENT, ESMF_TYPEKIND_R8
+  use ESMF                  , only : ESMF_Field, ESMF_FieldCreate
+  use ESMF                  , only : ESMF_FieldBundle, ESMF_FieldBundleCreate, ESMF_FieldBundleIsCreated
+  use ESMF                  , only : ESMF_FieldBundleGet, ESMF_FieldBundleAdd
   use ESMF                  , only : ESMF_VM, ESMF_VMAllreduce, ESMF_REDUCE_SUM
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
   use med_internalstate_mod , only : complnd, compocn, compice, comprof
@@ -15,13 +19,24 @@ module med_phases_post_rof_mod
   use med_phases_history_mod, only : med_phases_history_write_comp
   use med_map_mod           , only : med_map_field_packed
   use med_methods_mod       , only : fldbun_getdata1d => med_methods_FB_getdata1d
+  use med_methods_mod       , only : fldbun_getmesh   => med_methods_FB_getmesh
   use perf_mod              , only : t_startf, t_stopf
 
   implicit none
   private
 
   public  :: med_phases_post_rof
+  private :: med_phases_post_rof_create_rof_field_bundle
   private :: med_phases_post_rof_remove_negative_runoff
+
+  ! A local FieldBundle to hold a copy of rof fields, so that when we modify them, we
+  ! aren't modifying the import fields in-place.
+  type(ESMF_FieldBundle) :: FBrof_r
+  integer :: num_rof_fields
+  character(len=CS), allocatable :: rof_field_names(:)
+
+  character(len=9), parameter :: fields_to_remove_negative_runoff(2) = &
+       ['Forr_rofl', 'Forr_rofi']
 
   character(*) , parameter :: u_FILE_u = &
        __FILE__
@@ -39,6 +54,9 @@ contains
     ! local variables
     type(InternalState) :: is_local
     type(ESMF_Clock)    :: dClock
+    real(r8), pointer   :: data_orig(:)
+    real(r8), pointer   :: data_copy(:)
+    integer             :: n
     character(len=*), parameter :: subname='(med_phases_post_rof)'
     !---------------------------------------
 
@@ -53,16 +71,29 @@ contains
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call med_phases_post_rof_remove_negative_runoff(gcomp, 'Forr_rofl', rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call med_phases_post_rof_remove_negative_runoff(gcomp, 'Forr_rofi', rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (.not. ESMF_FieldBundleIsCreated(FBrof_r)) then
+      call med_phases_post_rof_create_rof_field_bundle(gcomp, rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    end if
+
+    do n = 1, num_rof_fields
+      call fldbun_getdata1d(is_local%wrap%FBImp(comprof,comprof), trim(rof_field_names(n)), data_orig, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      call fldbun_getdata1d(FBrof_r, trim(rof_field_names(n)), data_copy, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      data_copy(:) = data_orig(:)
+    end do
+
+    do n = 1, size(fields_to_remove_negative_runoff)
+      call med_phases_post_rof_remove_negative_runoff(gcomp, fields_to_remove_negative_runoff(n), rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    end do
 
     ! map rof to lnd
     if (is_local%wrap%med_coupling_active(comprof,complnd)) then
        call t_startf('MED:'//trim(subname)//' map_rof2lnd')
        call med_map_field_packed( &
-            FBSrc=is_local%wrap%FBImp(comprof,comprof), &
+            FBSrc=FBrof_r, &
             FBDst=is_local%wrap%FBImp(comprof,complnd), &
             FBFracSrc=is_local%wrap%FBFrac(comprof), &
             field_normOne=is_local%wrap%field_normOne(comprof,complnd,:), &
@@ -75,7 +106,7 @@ contains
     if (is_local%wrap%med_coupling_active(comprof,compocn)) then
        call t_startf('MED:'//trim(subname)//' map_rof2ocn')
        call med_map_field_packed( &
-            FBSrc=is_local%wrap%FBImp(comprof,comprof), &
+            FBSrc=FBrof_r, &
             FBDst=is_local%wrap%FBImp(comprof,compocn), &
             FBFracSrc=is_local%wrap%FBFrac(comprof), &
             field_normOne=is_local%wrap%field_normOne(comprof,compocn,:), &
@@ -88,7 +119,7 @@ contains
     if (is_local%wrap%med_coupling_active(comprof,compice)) then
        call t_startf('MED:'//trim(subname)//' map_rof2ice')
        call med_map_field_packed( &
-            FBSrc=is_local%wrap%FBImp(comprof,comprof), &
+            FBSrc=FBrof_r, &
             FBDst=is_local%wrap%FBImp(comprof,compice), &
             FBFracSrc=is_local%wrap%FBFrac(comprof), &
             field_normOne=is_local%wrap%field_normOne(comprof,compice,:), &
@@ -112,6 +143,61 @@ contains
     call t_stopf('MED:'//subname)
 
   end subroutine med_phases_post_rof
+
+  subroutine med_phases_post_rof_create_rof_field_bundle(gcomp, rc)
+    !---------------------------------------------------------------
+    ! Create FBrof_r
+
+    ! input/output variables
+    type(ESMF_GridComp)  :: gcomp
+    integer, intent(out) :: rc
+
+    ! local variables
+    type(InternalState) :: is_local
+    integer :: n
+    type(ESMF_Mesh)  :: mesh
+    type(ESMF_Field) :: field
+    integer, parameter :: dbug_threshold = 20 ! threshold for writing debug information in this subroutine
+    character(len=*), parameter :: subname='(med_phases_post_rof_mod: med_phases_post_rof_create_rof_field_bundle)'
+    !---------------------------------------
+
+    rc = ESMF_SUCCESS
+
+    call t_startf('MED:'//subname)
+    if (dbug_flag > dbug_threshold) then
+      call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
+    end if
+
+    nullify(is_local%wrap)
+    call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call fldbun_getmesh(is_local%wrap%FBImp(comprof,comprof), mesh, rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    
+    call ESMF_FieldBundleGet(is_local%wrap%FBImp(comprof,comprof), fieldCount=num_rof_fields, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    allocate(rof_field_names(num_rof_fields))
+    call ESMF_FieldBundleGet(is_local%wrap%FBImp(comprof,comprof), fieldNameList=rof_field_names, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    ! Note that, for simplicity, we'll add all rof fields to this local FieldBundle, even
+    ! though we only need to modify a subset of the fields.
+    FBrof_r = ESMF_FieldBundleCreate(name='FBrof_r', rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    do n = 1, num_rof_fields
+      field = ESMF_FieldCreate(mesh, ESMF_TYPEKIND_R8, name=rof_field_names(n), meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      call ESMF_FieldBundleAdd(FBrof_r, (/field/), rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    end do
+
+    if (dbug_flag > dbug_threshold) then
+      call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
+    end if
+    call t_stopf('MED:'//subname)
+
+  end subroutine med_phases_post_rof_create_rof_field_bundle
 
   subroutine med_phases_post_rof_remove_negative_runoff(gcomp, field_name, rc)
     !---------------------------------------------------------------
@@ -157,7 +243,7 @@ contains
     ! everywhere.
     areas => is_local%wrap%mesh_info(comprof)%areas
 
-    call fldbun_getdata1d(is_local%wrap%FBImp(comprof,comprof), trim(field_name), runoff_flux, rc=rc)
+    call fldbun_getdata1d(FBrof_r, trim(field_name), runoff_flux, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     local_positive(1) = 0.0_r8
@@ -243,6 +329,9 @@ contains
       end if
     end if
 
+    if (dbug_flag > dbug_threshold) then
+      call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
+    end if
     call t_stopf('MED:'//subname)
 
   end subroutine med_phases_post_rof_remove_negative_runoff
