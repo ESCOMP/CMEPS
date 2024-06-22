@@ -3,12 +3,13 @@ module med_phases_post_rof_mod
   ! Post rof phase, if appropriate, map initial rof->lnd, rof->ocn, rof->ice
 
   use NUOPC_Mediator        , only : NUOPC_MediatorGet
+  use NUOPC                 , only : NUOPC_CompAttributeGet
   use ESMF                  , only : ESMF_Clock, ESMF_ClockIsCreated
   use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_LOGMSG_ERROR, ESMF_SUCCESS, ESMF_FAILURE
   use ESMF                  , only : ESMF_GridComp, ESMF_GridCompGet
   use ESMF                  , only : ESMF_Mesh, ESMF_MESHLOC_ELEMENT, ESMF_TYPEKIND_R8
   use ESMF                  , only : ESMF_Field, ESMF_FieldCreate
-  use ESMF                  , only : ESMF_FieldBundle, ESMF_FieldBundleCreate, ESMF_FieldBundleIsCreated
+  use ESMF                  , only : ESMF_FieldBundle, ESMF_FieldBundleCreate
   use ESMF                  , only : ESMF_FieldBundleGet, ESMF_FieldBundleAdd
   use ESMF                  , only : ESMF_VM, ESMF_VMAllreduce, ESMF_REDUCE_SUM
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
@@ -21,10 +22,12 @@ module med_phases_post_rof_mod
   use med_methods_mod       , only : fldbun_getdata1d => med_methods_FB_getdata1d
   use med_methods_mod       , only : fldbun_getmesh   => med_methods_FB_getmesh
   use perf_mod              , only : t_startf, t_stopf
+  use shr_sys_mod           , only : shr_sys_abort
 
   implicit none
   private
 
+  public  :: med_phases_post_rof_init
   public  :: med_phases_post_rof
   private :: med_phases_post_rof_create_rof_field_bundle
   private :: med_phases_post_rof_remove_negative_runoff
@@ -35,6 +38,8 @@ module med_phases_post_rof_mod
   integer :: num_rof_fields
   character(len=CS), allocatable :: rof_field_names(:)
 
+  logical :: remove_negative_runoff
+
   character(len=9), parameter :: fields_to_remove_negative_runoff(2) = &
        ['Forr_rofl', 'Forr_rofi']
 
@@ -44,6 +49,61 @@ module med_phases_post_rof_mod
 !================================================================================================
 contains
 !================================================================================================
+
+  subroutine med_phases_post_rof_init(gcomp, rc)
+
+    ! input/output variables
+    type(ESMF_GridComp)  :: gcomp
+    integer, intent(out) :: rc
+
+    ! local variables
+    character(CL) :: cvalue
+    logical       :: isPresent, isSet
+    logical       :: flds_wiso
+
+    character(len=*), parameter :: subname='(med_phases_post_rof_init)'
+    !---------------------------------------
+
+    rc = ESMF_SUCCESS
+
+    call t_startf('MED:'//subname)
+    if (dbug_flag > 20) then
+       call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
+    end if
+
+    call med_phases_post_rof_create_rof_field_bundle(gcomp, rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call NUOPC_CompAttributeGet(gcomp, name='remove_negative_runoff', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+      read(cvalue,*) remove_negative_runoff
+    else
+      remove_negative_runoff = .false.
+    end if
+
+    ! remove_negative_runoff isn't yet set up to handle isotope fields, so ensure that
+    ! this isn't set along with flds_wiso
+    call NUOPC_CompAttributeGet(gcomp, name='flds_wiso', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+       read(cvalue,*) flds_wiso
+    else
+       flds_wiso = .false.
+    end if
+    if (remove_negative_runoff .and. flds_wiso) then
+      call shr_sys_abort('remove_negative_runoff must be set to false when flds_wiso is true')
+    end if
+
+    if (maintask) then
+      write(logunit,'(a,l7)') trim(subname)//' remove_negative_runoff = ', remove_negative_runoff
+    end if
+
+    if (dbug_flag > 20) then
+      call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
+    end if
+    call t_stopf('MED:'//subname)
+  end subroutine med_phases_post_rof_init
 
   subroutine med_phases_post_rof(gcomp, rc)
 
@@ -71,11 +131,6 @@ contains
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    if (.not. ESMF_FieldBundleIsCreated(FBrof_r)) then
-      call med_phases_post_rof_create_rof_field_bundle(gcomp, rc)
-      if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    end if
-
     do n = 1, num_rof_fields
       call fldbun_getdata1d(is_local%wrap%FBImp(comprof,comprof), trim(rof_field_names(n)), data_orig, rc=rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -84,10 +139,12 @@ contains
       data_copy(:) = data_orig(:)
     end do
 
-    do n = 1, size(fields_to_remove_negative_runoff)
-      call med_phases_post_rof_remove_negative_runoff(gcomp, fields_to_remove_negative_runoff(n), rc)
-      if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    end do
+    if (remove_negative_runoff) then
+      do n = 1, size(fields_to_remove_negative_runoff)
+        call med_phases_post_rof_remove_negative_runoff(gcomp, fields_to_remove_negative_runoff(n), rc)
+        if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      end do
+    end if
 
     ! map rof to lnd
     if (is_local%wrap%med_coupling_active(comprof,complnd)) then
@@ -174,7 +231,7 @@ contains
 
     call fldbun_getmesh(is_local%wrap%FBImp(comprof,comprof), mesh, rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    
+
     call ESMF_FieldBundleGet(is_local%wrap%FBImp(comprof,comprof), fieldCount=num_rof_fields, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     allocate(rof_field_names(num_rof_fields))
