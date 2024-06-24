@@ -1029,9 +1029,9 @@ contains
           if (luse_float) then
              call pio_initdecomp(io_subsystem, pio_real, (/lnx,lny/), dof, iodesc)
           else
-          call pio_initdecomp(io_subsystem, pio_double, (/lnx,lny/), dof, iodesc)
+             call pio_initdecomp(io_subsystem, pio_double, (/lnx,lny/), dof, iodesc)
           end if
-         !call pio_writedof(lpre, (/lnx,lny/), int(dof,kind=PIO_OFFSET_KIND), mpicom)
+          !call pio_writedof(lpre, (/lnx,lny/), int(dof,kind=PIO_OFFSET_KIND), mpicom)
        end if
        deallocate(dof)
 
@@ -1065,16 +1065,16 @@ contains
                    call pio_setframe(io_file,varid,frame)
 
                    if (luse_float) then
-                   if (gridToFieldMap(1) == 1) then
+                      if (gridToFieldMap(1) == 1) then
                          call pio_write_darray(io_file, varid, iodesc, real(fldptr2(:,n),r4), rcode, fillval=real(lfillvalue,r4))
                       else if (gridToFieldMap(1) == 2) then
                          call pio_write_darray(io_file, varid, iodesc, real(fldptr2(n,:),r4), rcode, fillval=real(lfillvalue,r4))
                       end if
                    else
                       if (gridToFieldMap(1) == 1) then
-                      call pio_write_darray(io_file, varid, iodesc, fldptr2(:,n), rcode, fillval=lfillvalue)
-                   else if (gridToFieldMap(1) == 2) then
-                      call pio_write_darray(io_file, varid, iodesc, fldptr2(n,:), rcode, fillval=lfillvalue)
+                         call pio_write_darray(io_file, varid, iodesc, fldptr2(:,n), rcode, fillval=lfillvalue)
+                      else if (gridToFieldMap(1) == 2) then
+                         call pio_write_darray(io_file, varid, iodesc, fldptr2(n,:), rcode, fillval=lfillvalue)
                       end if
                    end if
                 end do
@@ -1087,7 +1087,7 @@ contains
                 if (luse_float) then
                    call pio_write_darray(io_file, varid, iodesc, real(fldptr1,r4), rcode, fillval=real(lfillvalue,r4))
                 else
-                call pio_write_darray(io_file, varid, iodesc, fldptr1, rcode, fillval=lfillvalue)
+                   call pio_write_darray(io_file, varid, iodesc, fldptr1, rcode, fillval=lfillvalue)
                 end if
              end if  ! end if rank is 2 or 1 or 0
 
@@ -1100,7 +1100,7 @@ contains
        if (luse_float) then
           call pio_write_darray(io_file, varid, iodesc, real(ownedElemCoords_x,r4), rcode, fillval=real(lfillvalue,r4))
        else
-       call pio_write_darray(io_file, varid, iodesc, ownedElemCoords_x, rcode, fillval=lfillvalue)
+          call pio_write_darray(io_file, varid, iodesc, ownedElemCoords_x, rcode, fillval=lfillvalue)
        end if
 
        rcode = pio_inq_varid(io_file, trim(coordvarnames(2)), varid)
@@ -1108,7 +1108,7 @@ contains
        if (luse_float) then
           call pio_write_darray(io_file, varid, iodesc, real(ownedElemCoords_y,r4), rcode, fillval=real(lfillvalue,r4))
        else
-       call pio_write_darray(io_file, varid, iodesc, ownedElemCoords_y, rcode, fillval=lfillvalue)
+          call pio_write_darray(io_file, varid, iodesc, ownedElemCoords_y, rcode, fillval=lfillvalue)
        end if
        call pio_syncfile(io_file)
        call pio_freedecomp(io_file, iodesc)
