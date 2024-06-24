@@ -451,9 +451,6 @@ contains
     med_coupling_allowed(compice,compocn) = .true.
     med_coupling_allowed(comprof,compocn) = .true.
     med_coupling_allowed(compwav,compocn) = .true.
-    do ns = 1,is_local%wrap%num_icesheets
-       med_coupling_allowed(compglc(ns),compocn) = .true.
-    end do
 
     ! to ice
     med_coupling_allowed(compatm,compice) = .true.
@@ -466,6 +463,9 @@ contains
 
     ! to river
     med_coupling_allowed(complnd,comprof) = .true.
+    do ns = 1,is_local%wrap%num_icesheets
+       med_coupling_allowed(compglc(ns),comprof) = .true.
+    end do
 
     ! to wave
     med_coupling_allowed(compatm,compwav) = .true.

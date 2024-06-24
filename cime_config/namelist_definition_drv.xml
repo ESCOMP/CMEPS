@@ -2267,54 +2267,6 @@
     </values>
   </entry>
 
-  <entry id="glc2ocn_liq_rmapname"    modify_via_xml="GLC2OCN_LIQ_RMAPNAME">
-    <type>char</type>
-    <category>mapping</category>
-    <input_pathname>abs</input_pathname>
-    <group>MED_attributes</group>
-    <desc>
-      glc2ocn runoff mapping file for liquid runoff
-    </desc>
-    <values>
-      <value>$GLC2OCN_LIQ_RMAPNAME</value>
-    </values>
-  </entry>
-  <entry id="glc2ice_rmapname"    modify_via_xml="GLC2ICE_RMAPNAME">
-    <type>char</type>
-    <category>mapping</category>
-    <input_pathname>abs</input_pathname>
-    <group>MED_attributes</group>
-    <desc>
-      glc to ice runoff conservative mapping file
-    </desc>
-    <values>
-      <value>$GLC2ICE_RMAPNAME</value>
-    </values>
-  </entry>
-  <entry id="glc2ocn_ice_rmapname"    modify_via_xml="GLC2OCN_ICE_RMAPNAME">
-    <type>char</type>
-    <category>mapping</category>
-    <input_pathname>abs</input_pathname>
-    <group>MED_attributes</group>
-    <desc>
-      glc2ocn runoff mapping file for ice runoff
-    </desc>
-    <values>
-      <value>$GLC2OCN_ICE_RMAPNAME</value>
-    </values>
-  </entry>
-  <entry id="rof2ocn_fmapname"    modify_via_xml="ROF2OCN_FMAPNAME">
-    <type>char</type>
-    <category>mapping</category>
-    <input_pathname>abs</input_pathname>
-    <group>MED_attributes</group>
-    <desc>
-      runoff to ocn area overlap conservative mapping file
-    </desc>
-    <values>
-      <value>$ROF2OCN_FMAPNAME</value>
-    </values>
-  </entry>
   <entry id="rof2ocn_liq_rmapname"    modify_via_xml="ROF2OCN_LIQ_RMAPNAME">
     <type>char</type>
     <category>mapping</category>
@@ -2337,42 +2289,6 @@
     </desc>
     <values>
       <value>$ROF2OCN_ICE_RMAPNAME</value>
-    </values>
-  </entry>
-  <entry id="ocn2wav_smapname"    modify_via_xml="OCN2WAV_SMAPNAME">
-    <type>char</type>
-    <category>mapping</category>
-    <input_pathname>abs</input_pathname>
-    <group>MED_attributes</group>
-    <desc>
-      ocn to wav state mapping file for states
-    </desc>
-    <values>
-      <value>$OCN2WAV_SMAPNAME</value>
-    </values>
-  </entry>
-  <entry id="ice2wav_smapname"    modify_via_xml="ICE2WAV_SMAPNAME">
-    <type>char</type>
-    <category>mapping</category>
-    <input_pathname>abs</input_pathname>
-    <group>MED_attributes</group>
-    <desc>
-      ice to wav state mapping file for states
-    </desc>
-    <values>
-      <value>$ICE2WAV_SMAPNAME</value>
-    </values>
-  </entry>
-  <entry id="wav2ocn_smapname"    modify_via_xml="WAV2OCN_SMAPNAME">
-    <type>char</type>
-    <category>mapping</category>
-    <input_pathname>abs</input_pathname>
-    <group>MED_attributes</group>
-    <desc>
-      wav to ocn state mapping file for states
-    </desc>
-    <values>
-      <value>$WAV2OCN_SMAPNAME</value>
     </values>
   </entry>
 
