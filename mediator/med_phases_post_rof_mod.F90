@@ -40,8 +40,11 @@ module med_phases_post_rof_mod
 
   logical :: remove_negative_runoff
 
-  character(len=9), parameter :: fields_to_remove_negative_runoff(2) = &
-       ['Forr_rofl', 'Forr_rofi']
+  character(len=13), parameter :: fields_to_remove_negative_runoff(4) = &
+       ['Forr_rofl    ', &
+        'Forr_rofi    ', &
+        'Forr_rofl_glc', &
+        'Forr_rofi_glc']
 
   character(*) , parameter :: u_FILE_u = &
        __FILE__
