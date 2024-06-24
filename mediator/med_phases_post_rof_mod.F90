@@ -120,6 +120,7 @@ contains
     real(r8), pointer   :: data_orig(:)
     real(r8), pointer   :: data_copy(:)
     integer             :: n
+    logical             :: exists
     character(len=*), parameter :: subname='(med_phases_post_rof)'
     !---------------------------------------
 
@@ -144,8 +145,12 @@ contains
 
     if (remove_negative_runoff) then
       do n = 1, size(fields_to_remove_negative_runoff)
-        call med_phases_post_rof_remove_negative_runoff(gcomp, fields_to_remove_negative_runoff(n), rc)
+        call ESMF_FieldBundleGet(FBrof_r, fieldName=trim(fields_to_remove_negative_runoff(n)), isPresent=exists, rc=rc)
         if (ChkErr(rc,__LINE__,u_FILE_u)) return
+        if (exists) then
+          call med_phases_post_rof_remove_negative_runoff(gcomp, fields_to_remove_negative_runoff(n), rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+        end if
       end do
     end if
 
