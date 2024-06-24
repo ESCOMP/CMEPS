@@ -234,6 +234,7 @@ contains
     integer                    :: num_icesheets
     character(len=CL)          :: atm_mesh_name
     character(len=CL)          :: lnd_mesh_name
+    logical                   :: isPresent, isSet
     character(len=*),parameter :: subname=' (internalstate init) '
     !-----------------------------------------------------------
 
@@ -241,16 +242,20 @@ contains
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-
     ! determine if atm and lnd have the same mesh
     call NUOPC_CompAttributeGet(gcomp, name='mesh_atm', value=atm_mesh_name, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call NUOPC_CompAttributeGet(gcomp, name='mesh_lnd', value=lnd_mesh_name, rc=rc)
+    call NUOPC_CompAttributeGet(gcomp, name='mesh_lnd', value=lnd_mesh_name, &
+         isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (trim(atm_mesh_name) == trim(lnd_mesh_name)) then
-      samegrid_atmlnd = .true.
+    if (isPresent .and. isSet) then
+      if (trim(atm_mesh_name) == trim(lnd_mesh_name)) then
+        samegrid_atmlnd = .true.
+      else
+        samegrid_atmlnd = .false.
+      end if
     else
-      samegrid_atmlnd = .false.
+      samegrid_atmlnd = .true.
     end if
 
     ! See med_fraction_mod for the following definitions
