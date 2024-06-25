@@ -50,7 +50,7 @@ module med_fraction_mod
   !    *frac is the fraction of a particular component in the bundle.
   !
   !  in general, on every grid,
-  !              fractions_*(ifrac) + fractions_*(ofrac) + fractions_*(lfrac) = 1.0
+  !    fractions_*(ifrac) + fractions_*(ofrac) + fractions_*(lfrac) = 1.0
   !
   !  the fractions are computed fundamentally as follows (although the
   !    detailed implementation might be slightly different)

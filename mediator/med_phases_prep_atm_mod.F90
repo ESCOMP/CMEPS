@@ -32,7 +32,8 @@ module med_phases_prep_atm_mod
 
   real(r8), public :: global_htot_corr(1) = 0._r8  ! enthalpy correction from med_phases_prep_ocn
 
-  character(len=14) :: fldnames_to_ocn(3) = (/'Faoo_bromo_ocn','Faoo_fdms_ocn ','Faoo_fco2_ocn '/)
+  character(len=14) :: fldnames_to_ocn(5) = (/'Faoo_fbrf_ocn','Faoo_fdms_ocn ','Faoo_fco2_ocn ',&
+                                              'Faoo_fn2o_ocn','Faoo_fnh3_ocn'/)
 
   character(*), parameter :: u_FILE_u  = &
        __FILE__

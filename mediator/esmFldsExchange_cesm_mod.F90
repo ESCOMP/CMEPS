@@ -1684,37 +1684,65 @@ contains
        call addfld_from(compocn, 'Faoo_fco2_ocn')
        call addfld_to(compatm, 'Faoo_fco2_ocn')
     else
-       if ( fldchk(is_local%wrap%FBImp(compocn,compocn), 'Faoo_co2_ocn', rc=rc) .and. &
-            fldchk(is_local%wrap%FBexp(compatm)        , 'Faoo_co2_ocn', rc=rc)) then
+       if ( fldchk(is_local%wrap%FBImp(compocn,compocn), 'Faoo_fco2_ocn', rc=rc) .and. &
+            fldchk(is_local%wrap%FBexp(compatm)        , 'Faoo_fco2_ocn', rc=rc)) then
           call addmap_from(compocn, 'Faoo_fco2_ocn', compatm, mapconsd, 'one', ocn2atm_map)
           ! custom merge in med_phases_prep_atm
        end if
     end if
 
     !-----------------------------------------------------------------------------
-    ! to atm: dms from ocean
+    ! to atm: surface flux of dms from ocean
     !-----------------------------------------------------------------------------
     if (phase == 'advertise') then
-       call addfld_from(compocn, 'Faoo_dms_ocn')
-       call addfld_to(compatm, 'Faoo_dms_ocn')
+       call addfld_from(compocn, 'Faoo_fdms_ocn')
+       call addfld_to(compatm, 'Faoo_fdms_ocn')
     else
-       if ( fldchk(is_local%wrap%FBImp(compocn,compocn), 'Faoo_dms_ocn', rc=rc) .and. &
-            fldchk(is_local%wrap%FBexp(compatm)        , 'Faoo_dms_ocn', rc=rc)) then
-          call addmap_from(compocn, 'Faoo_dms_ocn', compocn, mapconsd, 'one', ocn2atm_map)
+       if ( fldchk(is_local%wrap%FBImp(compocn,compocn), 'Faoo_fdms_ocn', rc=rc) .and. &
+            fldchk(is_local%wrap%FBexp(compatm)        , 'Faoo_fdms_ocn', rc=rc)) then
+          call addmap_from(compocn, 'Faoo_fdms_ocn', compocn, mapconsd, 'one', ocn2atm_map)
           ! custom merge in med_phases_prep_atm
        end if
     end if
 
     !-----------------------------------------------------------------------------
-    ! to atm: bromoform from ocean
+    ! to atm: surface flux of bromoform from ocean
     !-----------------------------------------------------------------------------
     if (phase == 'advertise') then
-       call addfld_from(compocn, 'Faoo_bromo_ocn')
-       call addfld_to(compatm, 'Faoo_bromo_ocn')
+       call addfld_from(compocn, 'Faoo_fbrf_ocn')
+       call addfld_to(compatm, 'Faoo_fbrf_ocn')
     else
-       if ( fldchk(is_local%wrap%FBImp(compocn,compocn), 'Faoo_bromo_ocn', rc=rc) .and. &
-            fldchk(is_local%wrap%FBexp(compatm)        , 'Faoo_bromo_ocn', rc=rc)) then
-          call addmap_from(compocn, 'Faoo_bromo_ocn', compocn, mapconsd, 'one', ocn2atm_map)
+       if ( fldchk(is_local%wrap%FBImp(compocn,compocn), 'Faoo_fbrf_ocn', rc=rc) .and. &
+            fldchk(is_local%wrap%FBexp(compatm)        , 'Faoo_fbrf_ocn', rc=rc)) then
+          call addmap_from(compocn, 'Faoo_fbrf_ocn', compocn, mapconsd, 'one', ocn2atm_map)
+          ! custom merge in med_phases_prep_atm
+       end if
+    end if
+
+    !-----------------------------------------------------------------------------
+    ! to atm: surface flux of n2o from ocean
+    !-----------------------------------------------------------------------------
+    if (phase == 'advertise') then
+       call addfld_from(compocn, 'Faoo_fn2o_ocn')
+       call addfld_to(compatm, 'Faoo_fn2o_ocn')
+    else
+       if ( fldchk(is_local%wrap%FBImp(compocn,compocn), 'Faoo_fn2o_ocn', rc=rc) .and. &
+            fldchk(is_local%wrap%FBexp(compatm)        , 'Faoo_fn2o_ocn', rc=rc)) then
+          call addmap_from(compocn, 'Faoo_fn2o_ocn', compocn, mapconsd, 'one', ocn2atm_map)
+          ! custom merge in med_phases_prep_atm
+       end if
+    end if
+
+    !-----------------------------------------------------------------------------
+    ! to atm: surface flux of nh3 from ocean
+    !-----------------------------------------------------------------------------
+    if (phase == 'advertise') then
+       call addfld_from(compocn, 'Faoo_fnh3_ocn')
+       call addfld_to(compatm, 'Faoo_fnh3_ocn')
+    else
+       if ( fldchk(is_local%wrap%FBImp(compocn,compocn), 'Faoo_fnh3_ocn', rc=rc) .and. &
+            fldchk(is_local%wrap%FBexp(compatm)        , 'Faoo_fnh3_ocn', rc=rc)) then
+          call addmap_from(compocn, 'Faoo_fnh3_ocn', compocn, mapconsd, 'one', ocn2atm_map)
           ! custom merge in med_phases_prep_atm
        end if
     end if
