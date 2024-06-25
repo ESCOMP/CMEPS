@@ -131,9 +131,10 @@ contains
        deallocate(flds)
 
        ! from med: fields returned by the atm/ocn flux computation, otherwise unadvertised
-       allocate(flds(8))
-       flds = (/'So_tref  ', 'So_qref  ', 'So_ustar ', 'So_re    ','So_ssq   ', 'So_u10   ', &
-                'So_duu10n', 'Faox_lat '/)
+       allocate(flds(12))
+       flds = (/'So_tref       ', 'So_qref       ', 'So_ustar      ', 'So_re         ', 'So_ssq        ', &
+                'So_u10        ', 'So_duu10n     ', 'Faox_lat      ', 'So_ugustOut   ', 'So_u10withGust', &
+                'So_u10res     ', 'Faxa_rainc    '/)
        do n = 1,size(flds)
           fldname = trim(flds(n))
           if (phase == 'advertise') then
