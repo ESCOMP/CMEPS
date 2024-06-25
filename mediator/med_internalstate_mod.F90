@@ -245,10 +245,10 @@ contains
 
     ! determine if atm and lnd have the same mesh
     call NUOPC_CompAttributeGet(gcomp, name='mesh_atm', value=atm_mesh_name, &
-         isPresent=isPresent, isSet=isSet, rc=rc)
+         isPresent=isPresent_atm, isSet=isSet_atm, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call NUOPC_CompAttributeGet(gcomp, name='mesh_lnd', value=lnd_mesh_name, &
-         isPresent=isPresent, isSet=isSet, rc=rc)
+         isPresent=isPresent_lnd, isSet=isSet_lnd, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if ((isPresent_lnd .and. isSet_lnd) .and. (isPresent_atm .and. isSet_atm)) then
