@@ -796,7 +796,6 @@ contains
 #ifndef NO_MPI2
     use mpi          , only : MPI_COMM_NULL, mpi_comm_size
 #endif
-    use m_MCTWorld   , only : mct_world_init => init
 
 #ifdef MED_PRESENT
     use med_internalstate_mod , only : med_id
@@ -1163,9 +1162,6 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     enddo
-
-    call mct_world_init(componentCount+1, GLOBAL_COMM, comms, comps)
-
 
     deallocate(petlist, comms, comps, comp_iamin, comp_comm_iam)
 
