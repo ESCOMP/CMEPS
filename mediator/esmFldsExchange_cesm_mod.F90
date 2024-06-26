@@ -2854,7 +2854,7 @@ contains
        else
           if ( fldchk(is_local%wrap%FBExp(compice)        , 'Sw_elevation_spectrum', rc=rc) .and. &
                fldchk(is_local%wrap%FBImp(compwav,compwav), 'Sw_elevation_spectrum', rc=rc)) then
-             call addmap_from(compwav, 'Sw_elevation_spectrum', compice, mapbilnr, 'one', 'unset')
+             call addmap_from(compwav, 'Sw_elevation_spectrum', compice, mapbilnr_nstod, 'one', wav2ocn_smap)
              call addmrg_to(compice, 'Sw_elevation_spectrum', &
                   mrg_from=compwav, mrg_fld='Sw_elevation_spectrum', mrg_type='copy')
           end if
