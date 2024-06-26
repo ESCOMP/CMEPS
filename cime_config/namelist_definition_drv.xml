@@ -2415,6 +2415,30 @@
     </values>
   </entry>
 
+  <entry id="flds_dms" modify_via_xml="DMS_EMIS">
+    <type>logical</type>
+    <category>flds</category>
+    <group>ALLCOMP_attributes</group>
+    <desc>
+      Pass DMS from OCN to ATM component
+    </desc>
+    <values>
+      <value>.false.</value>
+    </values>
+  </entry>
+
+  <entry id="flds_brf" modify_via_xml="BRF_EMIS">
+    <type>logical</type>
+    <category>flds</category>
+    <group>ALLCOMP_attributes</group>
+    <desc>
+      Pass Bromoform from OCN to ATM component
+    </desc>
+    <values>
+      <value>.false.</value>
+    </values>
+  </entry>
+
   <entry id="flds_bgc_oi">
     <type>logical</type>
     <category>seq_flds</category>
