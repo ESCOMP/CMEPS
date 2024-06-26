@@ -27,7 +27,7 @@ module med_diag_mod
   use med_constants_mod     , only : shr_const_rearth, shr_const_pi, shr_const_latice, shr_const_latvap
   use med_constants_mod     , only : shr_const_ice_ref_sal, shr_const_ocn_ref_sal, shr_const_isspval
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
-  use med_internalstate_mod , only : InternalState, logunit, maintask, diagunit
+  use med_internalstate_mod , only : InternalState, logunit, maintask, diagunit, samegrid_atmlnd
   use med_methods_mod       , only : fldbun_getdata2d => med_methods_FB_getdata2d
   use med_methods_mod       , only : fldbun_getdata1d => med_methods_FB_getdata1d
   use med_methods_mod       , only : fldbun_fldChk    => med_methods_FB_FldChk
@@ -666,8 +666,13 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! Get fractions on atm mesh
-    call fldbun_getdata1d(is_local%wrap%FBfrac(compatm), 'lfrac', lfrac, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (samegrid_atmlnd) then
+      call fldbun_getdata1d(is_local%wrap%FBfrac(compatm), 'lfrac', lfrac, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    else
+      call fldbun_getdata1d(is_local%wrap%FBfrac(compatm), 'lfrin', lfrac, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    end if
     call fldbun_getdata1d(is_local%wrap%FBfrac(compatm), 'ifrac', ifrac, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call fldbun_getdata1d(is_local%wrap%FBfrac(compatm), 'ofrac', ofrac, rc=rc)
@@ -986,7 +991,7 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! get fractions on lnd mesh
-    call fldbun_getdata1d(is_local%wrap%FBfrac(complnd), 'lfrac', lfrac, rc=rc)
+    call fldbun_getdata1d(is_local%wrap%FBfrac(complnd), 'lfrin', lfrac, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     areas => is_local%wrap%mesh_info(complnd)%areas
