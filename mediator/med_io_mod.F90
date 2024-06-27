@@ -870,15 +870,21 @@ contains
 
     ng = maxval(maxIndexPTile)
     if (tiles) then
-      lnx = nx
-      lny = ny
-      lntile = ng/(lnx*lny)
-      write(tmpstr,*) subname, 'ng,lnx,lny,lntile = ',ng,lnx,lny,lntile
-      call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
-      if (lntile /= ntile) then
-         call ESMF_LogWrite(trim(subname)//' ERROR: grid2d size and ntile are not consistent ', ESMF_LOGMSG_INFO)
-         call ESMF_Finalize(endflag=ESMF_END_ABORT)
-      endif
+       if (luse_float) then
+          lnx = ntile*ny*nx
+          lny = 1
+          lntile = 1
+       else
+          lnx = nx
+          lny = ny
+          lntile = ng/(lnx*lny)
+          write(tmpstr,*) subname, 'ng,lnx,lny,lntile = ',ng,lnx,lny,lntile
+          call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
+          if (lntile /= ntile) then
+             call ESMF_LogWrite(trim(subname)//' ERROR: grid2d size and ntile are not consistent ', ESMF_LOGMSG_INFO)
+             call ESMF_Finalize(endflag=ESMF_END_ABORT)
+          endif
+       end if
     else
       lnx = ng
       lny = 1
@@ -902,7 +908,7 @@ contains
       if (tiles) then
        rcode = pio_def_dim(io_file, trim(lpre)//'_nx', lnx, dimid3(1))
        rcode = pio_def_dim(io_file, trim(lpre)//'_ny', lny, dimid3(2))
-       rcode = pio_def_dim(io_file, trim(lpre)//'_ntile', ntile, dimid3(3))
+       rcode = pio_def_dim(io_file, trim(lpre)//'_ntile', lntile, dimid3(3))
        if (present(nt)) then
           dimid4(1:3) = dimid3
           rcode = pio_inq_dimid(io_file, 'time', dimid4(4))
