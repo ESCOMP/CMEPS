@@ -17,7 +17,7 @@ module med_phases_prep_atm_mod
   use med_methods_mod       , only : FB_check_for_nans => med_methods_FB_check_for_nans
   use med_merge_mod         , only : med_merge_auto
   use med_map_mod           , only : med_map_field_packed
-  use med_internalstate_mod , only : InternalState, maintask, logunit
+  use med_internalstate_mod , only : InternalState, maintask, logunit, samegrid_atmlnd
   use med_internalstate_mod , only : compatm, compocn, compice, compname, coupling_mode
   use esmFlds               , only : med_fldlist_GetfldListTo, med_fldlist_type
   use perf_mod              , only : t_startf, t_stopf
@@ -31,6 +31,9 @@ module med_phases_prep_atm_mod
   public :: med_phases_prep_atm_enthalpy_correction
 
   real(r8), public :: global_htot_corr(1) = 0._r8  ! enthalpy correction from med_phases_prep_ocn
+
+  character(len=13) :: fldnames_from_ocn(5) = (/'Faoo_fbrf_ocn','Faoo_fdms_ocn','Faoo_fco2_ocn',&
+                                                'Faoo_fn2o_ocn','Faoo_fnh3_ocn'/)
 
   character(*), parameter :: u_FILE_u  = &
        __FILE__
@@ -52,7 +55,7 @@ contains
     real(R8), pointer          :: dataPtr2(:)
     real(R8), pointer          :: ifrac(:)
     real(R8), pointer          :: ofrac(:)
-    integer                    :: n
+    integer                    :: n,nf
     type(med_fldlist_type), pointer :: fldList
     character(len=*),parameter :: subname='(med_phases_prep_atm)'
     !-------------------------------------------------------------------------------
@@ -183,8 +186,13 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        call ESMF_FieldGet(lfield, farrayPtr=dataptr1, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_FieldBundleGet(is_local%wrap%FBFrac(compatm), fieldName='lfrac', field=lfield, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (samegrid_atmlnd) then
+          call ESMF_FieldBundleGet(is_local%wrap%FBFrac(compatm), fieldName='lfrac', field=lfield, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+       else
+          call ESMF_FieldBundleGet(is_local%wrap%FBFrac(compatm), fieldName='lfrin', field=lfield, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+       end if
        call ESMF_FieldGet(lfield, farrayPtr=dataptr2, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        do n = 1,size(dataptr1)
@@ -194,30 +202,33 @@ contains
 
     ! Note - the following needs a custom merge since Faoo_fco2_ocn is scaled by (ifrac+ofrac)
     ! in the merge to the atm
-    if ( FB_FldChk(is_local%wrap%FBExp(compatm)        , 'Faoo_fco2_ocn', rc=rc) .and. &
-         FB_FldChk(is_local%wrap%FBImp(compocn,compocn), 'Faoo_fco2_ocn', rc=rc)) then
-       call ESMF_FieldGet(lfield, farrayPtr=dataptr1, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_FieldBundleGet(is_local%wrap%FBFrac(compatm), fieldName='ifrac', field=lfield, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_FieldGet(lfield, farrayPtr=ifrac, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_FieldBundleGet(is_local%wrap%FBFrac(compatm), fieldName='ofrac', field=lfield, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_FieldGet(lfield, farrayPtr=ofrac, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_FieldBundleGet(is_local%wrap%FBImp(compocn,compatm), fieldName='Faoo_fco2_ocn', field=lfield, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_FieldGet(lfield, farrayPtr=dataptr1, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_FieldBundleGet(is_local%wrap%FBExp(compatm), fieldName='Faoo_fco2_ocn', field=lfield, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_FieldGet(lfield, farrayPtr=dataptr2, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       do n = 1,size(dataptr2)
+    call ESMF_FieldBundleGet(is_local%wrap%FBFrac(compatm), fieldName='ifrac', field=lfield, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldGet(lfield, farrayPtr=ifrac, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldBundleGet(is_local%wrap%FBFrac(compatm), fieldName='ofrac', field=lfield, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldGet(lfield, farrayPtr=ofrac, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    do nf = 1,size(fldnames_from_ocn)
+      if ( FB_FldChk(is_local%wrap%FBExp(compatm)        , trim(fldnames_from_ocn(nf)), rc=rc) .and. &
+           FB_FldChk(is_local%wrap%FBImp(compocn,compocn), trim(fldnames_from_ocn(nf)), rc=rc)) then
+        call ESMF_FieldBundleGet(is_local%wrap%FBImp(compocn,compatm), &
+             fieldName=trim(fldnames_from_ocn(nf)), field=lfield, rc=rc)
+        if (chkerr(rc,__LINE__,u_FILE_u)) return
+        call ESMF_FieldGet(lfield, farrayPtr=dataptr1, rc=rc)
+        if (chkerr(rc,__LINE__,u_FILE_u)) return
+        call ESMF_FieldBundleGet(is_local%wrap%FBExp(compatm), &
+             fieldName=trim(fldnames_from_ocn(nf)), field=lfield, rc=rc)
+        if (chkerr(rc,__LINE__,u_FILE_u)) return
+        call ESMF_FieldGet(lfield, farrayPtr=dataptr2, rc=rc)
+        if (chkerr(rc,__LINE__,u_FILE_u)) return
+        do n = 1,size(dataptr2)
           dataptr2(n) = (ifrac(n) + ofrac(n)) * dataptr1(n)
-       end do
-    end if
+        end do
+      end if
+    end do
 
     ! Add enthalpy correction to sensible heat if appropriate
     if (FB_FldChk(is_local%wrap%FBExp(compatm), 'Faxx_sen', rc=rc)) then
