@@ -1626,7 +1626,7 @@ contains
     use med_phases_post_lnd_mod , only : med_phases_post_lnd
     use med_phases_post_glc_mod , only : med_phases_post_glc
     use med_phases_post_ocn_mod , only : med_phases_post_ocn
-    use med_phases_post_rof_mod , only : med_phases_post_rof
+    use med_phases_post_rof_mod , only : med_phases_post_rof_init, med_phases_post_rof
     use med_phases_post_wav_mod , only : med_phases_post_wav
     use med_phases_ocnalb_mod   , only : med_phases_ocnalb_run
     use med_phases_aofluxes_mod , only : med_phases_aofluxes_init_fldbuns
@@ -1929,6 +1929,10 @@ contains
       !---------------------------------------
       if (is_local%wrap%med_coupling_active(comprof,complnd)) then
          call med_phases_prep_rof_init(gcomp, rc=rc)
+         if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      end if
+      if (is_local%wrap%comp_present(comprof)) then
+         call med_phases_post_rof_init(gcomp, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
       end if
       !---------------------------------------
