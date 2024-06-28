@@ -95,6 +95,8 @@ jobs:
           cd ../components/cdeps
           git checkout main
           git submodule update --init
+          cd ../../share
+          git checkout main
           
       - name: Cache ESMF
         id: cache-esmf
