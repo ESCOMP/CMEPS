@@ -302,10 +302,10 @@ contains
 !      allocate(S_flds(2))
 !      S_flds = (/'Sa_u10m', 'Sa_v10m'/)
        allocate(S_flds(4))          ! Sofar system !ISSUE: add option to change the export vars at runtime
-       S_flds = (/'Sa_u10m',        ! zonal diagnosed 10m wind component
-                  'Sa_v10m',        ! meridional diagnosed 10m wind component
-                  'Sa_rhoa',        ! atmospheric surface density
-                  'Sa_astdiff'      ! air minus sea surface temperature difference
+       S_flds = (/'Sa_u10m', &      ! zonal diagnosed 10m wind component
+                  'Sa_v10m', &      ! meridional diagnosed 10m wind component
+                  'Sa_rhoa', &      ! atmospheric surface density
+                  'Sa_astdiff' &    ! air minus sea surface temperature difference
                  /)                 ! Sofar system with diagnosed 10m winds
 !      S_flds = (/'Sa_u10n', 'Sa_v10n', 'Sa_rhoa', 'Sa_astdiff'/)  ! Sofar system with neutral winds
        do n = 1,size(S_flds)
@@ -603,10 +603,10 @@ contains
 !     allocate(S_flds(2))
 !     S_flds = (/'Sa_u10m', 'Sa_v10m'/)
       allocate(S_flds(4))          ! Sofar system !ISSUE: add option to change the export vars at runtime
-      S_flds = (/'Sa_u10m',        ! zonal diagnosed 10m wind component
-                 'Sa_v10m',        ! meridional diagnosed 10m wind component
-                 'Sa_rhoa',        ! atmospheric surface density
-                 'Sa_astdiff'      ! air minus sea surface temperature difference
+      S_flds = (/'Sa_u10m', &      ! zonal diagnosed 10m wind component
+                 'Sa_v10m', &      ! meridional diagnosed 10m wind component
+                 'Sa_rhoa', &      ! atmospheric surface density
+                 'Sa_astdiff' &    ! air minus sea surface temperature difference
                 /)                 ! Sofar system with diagnosed 10m winds
       !S_flds = (/'Sa_u10n', 'Sa_v10n', 'Sa_rhoa', 'Sa_astdiff'/)  ! Sofar system with neutral winds
       do n = 1,size(S_flds)
