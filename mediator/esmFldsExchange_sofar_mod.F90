@@ -140,12 +140,17 @@ contains
     !----------------------------------------------------------
     ! to med: masks from components
     !----------------------------------------------------------
-    call addfld_from(compocn, 'So_omask')
+    if (sofar_attr%ocn_present) then                 ! Sofar system: added
+        call addfld_from(compocn, 'So_omask')
+    endif                                            ! Sofar system: added
 
     !----------------------------------------------------------
     ! to med: frac from components
     !----------------------------------------------------------
-    call addfld_to(compatm, 'So_ofrac')
+    if (sofar_attr%atm_present .and. sofar_attr%ocn_present) then    ! Sofar system: added
+        call addfld_to(compatm, 'So_ofrac')
+!       call addfld_from(compatm , 'Sa_ofrac')                       ! Sofar system: added
+    endif                                                            ! Sofar system: added 
 
     !----------------------------------------------------------
     ! from med: ocean albedos (not sent to the ATM in UFS).
@@ -170,6 +175,7 @@ contains
        if (trim(coupling_mode) == 'sofar') then
           allocate(S_flds(1))
           S_flds = (/'So_t'/) ! sea_surface_temperature
+                              ! Sofar system: add surface temperature, or add NSST computation to mediator
           do n = 1,size(S_flds)
              fldname = trim(S_flds(n))
              call addfld_from(compocn, trim(fldname))
@@ -191,11 +197,16 @@ contains
     end if
 
     ! ---------------------------------------------------------------------
-    ! to atm: surface roughness length
+    ! to atm: Charnock parameter and surface roughness length
     ! ---------------------------------------------------------------------
     if (sofar_attr%atm_present .and. sofar_attr%wav_present) then
        allocate(S_flds(1))
-       S_flds = (/'Sw_z0'/) ! wave_z0_roughness_length
+       !allocate(S_flds(2))                                          ! Sofar system !ISSUE: add option to change the export vars at runtime 
+!      S_flds = (/'Sw_z0rlen'/)    ! wave_z0_roughness_length
+       S_flds = (/'Sw_charno'/)    ! Charnock parameter
+       !S_flds = (/'Sw_z0rlen', &  ! wave_z0_roughness_length        ! Sofar system
+       !           'Sw_charno', &  ! Charnock parameter              ! Sofar system
+       !          /)                                                 ! Sofar system
        do n = 1,size(S_flds)
           fldname = trim(S_flds(n))
           call addfld_from(compwav, trim(fldname))
@@ -288,8 +299,15 @@ contains
     ! to wav: 10-m wind components
     ! ---------------------------------------------------------------------
     if (sofar_attr%atm_present .and. sofar_attr%wav_present) then
-       allocate(S_flds(2))
-       S_flds = (/'Sa_u10m', 'Sa_v10m'/)
+!      allocate(S_flds(2))
+!      S_flds = (/'Sa_u10m', 'Sa_v10m'/)
+       allocate(S_flds(4))          ! Sofar system !ISSUE: add option to change the export vars at runtime
+       S_flds = (/'Sa_u10m',        ! zonal diagnosed 10m wind component
+                  'Sa_v10m',        ! meridional diagnosed 10m wind component
+                  'Sa_rhoa',        ! atmospheric surface density
+                  'Sa_astdiff'      ! air minus sea surface temperature difference
+                 /)                 ! Sofar system with diagnosed 10m winds
+!      S_flds = (/'Sa_u10n', 'Sa_v10n', 'Sa_rhoa', 'Sa_astdiff'/)  ! Sofar system with neutral winds
        do n = 1,size(S_flds)
           fldname = trim(S_flds(n))
           call addfld_from(compatm, trim(fldname))
@@ -450,11 +468,16 @@ contains
     end if
 
     ! ---------------------------------------------------------------------
-    ! to atm: surface roughness length
+    ! to atm: Charnock parameter and surface roughness length
     ! ---------------------------------------------------------------------
     if (sofar_attr%atm_present .and. sofar_attr%wav_present) then
        allocate(S_flds(1))
-       S_flds = (/'Sw_z0'/) ! wave_z0_roughness_length
+       !allocate(S_flds(2))                                          ! Sofar system !ISSUE: add option to change the export vars at runtime
+!      S_flds = (/'Sw_z0rlen'/)    ! wave_z0_roughness_length
+       S_flds = (/'Sw_charno'/)    ! Charnock parameter
+       !S_flds = (/'Sw_z0rlen', &  ! wave_z0_roughness_length        ! Sofar system
+       !           'Sw_charno', &  ! Charnock parameter              ! Sofar system
+       !          /)
        do n = 1,size(S_flds)
           fldname = trim(S_flds(n))
           if (fldchk(is_local%wrap%FBExp(compatm),trim(fldname),rc=rc) .and. &
@@ -577,8 +600,15 @@ contains
     ! to wav: 10-m wind components
     ! ---------------------------------------------------------------------
     if (sofar_attr%atm_present .and. sofar_attr%wav_present) then
-      allocate(S_flds(2))
-      S_flds = (/'Sa_u10m', 'Sa_v10m'/)
+!     allocate(S_flds(2))
+!     S_flds = (/'Sa_u10m', 'Sa_v10m'/)
+      allocate(S_flds(4))          ! Sofar system !ISSUE: add option to change the export vars at runtime
+      S_flds = (/'Sa_u10m',        ! zonal diagnosed 10m wind component
+                 'Sa_v10m',        ! meridional diagnosed 10m wind component
+                 'Sa_rhoa',        ! atmospheric surface density
+                 'Sa_astdiff'      ! air minus sea surface temperature difference
+                /)                 ! Sofar system with diagnosed 10m winds
+      !S_flds = (/'Sa_u10n', 'Sa_v10n', 'Sa_rhoa', 'Sa_astdiff'/)  ! Sofar system with neutral winds
       do n = 1,size(S_flds)
         fldname = trim(S_flds(n))
         if (fldchk(is_local%wrap%FBexp(compwav),trim(fldname),rc=rc) .and. &
