@@ -1,7 +1,6 @@
 module seq_drydep_mod
 
   use shr_drydep_mod, only: seq_drydep_setHCoeff=>shr_drydep_setHCoeff
-
   implicit none
 
   ! method specification

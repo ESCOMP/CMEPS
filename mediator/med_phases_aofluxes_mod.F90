@@ -1601,7 +1601,7 @@ end subroutine med_aofluxes_map_ogrid2xgrid_input
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        call fldbun_getfldptr(fldbun_a, 'Sa_shum', aoflux_in%shum, xgrid=xgrid, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (associated(aoflux_in%rainc)) then
+       if (add_gusts) then
           call fldbun_getfldptr(fldbun_a, 'Faxa_rainc', aoflux_in%rainc, xgrid=xgrid, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
        end if
