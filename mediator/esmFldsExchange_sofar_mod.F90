@@ -114,12 +114,10 @@ contains
     ! scalar information
     !=====================================================================
 
-    call NUOPC_CompAttributeGet(gcomp, name='ScalarFieldName', &
-       isPresent=isPresent, rc=rc)
+    call NUOPC_CompAttributeGet(gcomp, name='ScalarFieldName', isPresent=isPresent, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     if (isPresent) then
-       call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldName", &
-          value=cvalue, rc=rc)
+       call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldName", value=cvalue, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        do n = 1,ncomps
           call addfld_from(n, trim(cvalue))

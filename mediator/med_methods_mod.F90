@@ -2345,6 +2345,7 @@ contains
     real(R8), pointer :: farrayptr(:,:)
     real(r8)          :: tmp(1)
     character(len=*), parameter :: subname='(med_methods_State_GetScalar)'
+    character(ESMF_MAXSTR) :: msgString    ! Sofar added
     ! ----------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -2367,7 +2368,8 @@ contains
         call ESMF_FieldGet(field, farrayPtr = farrayptr, rc=rc)
         if (chkerr(rc,__LINE__,u_FILE_u)) return
         if (scalar_id < 0 .or. scalar_id > flds_scalar_num) then
-          call ESMF_LogWrite(trim(subname)//": ERROR in scalar_id", ESMF_LOGMSG_INFO, line=__LINE__, file=u_FILE_u)
+          write (msgString,*) ": ERROR in scalar_id, must be between [0,flds_scalar_num]. However, scalar_id = ", scalar_id   ! Sofar added
+          call ESMF_LogWrite(trim(subname)//trim(msgString), ESMF_LOGMSG_INFO, line=__LINE__, file=u_FILE_u)
           rc = ESMF_FAILURE
           if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=u_FILE_u)) return
         endif
