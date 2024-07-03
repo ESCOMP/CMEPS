@@ -134,7 +134,7 @@ module med_fraction_mod
   use med_methods_mod       , only : fldbun_init      => med_methods_FB_init
   use med_methods_mod       , only : fldbun_reset     => med_methods_FB_reset
   use med_map_mod           , only : med_map_field
-  use med_internalstate_mod , only : ncomps
+  use med_internalstate_mod , only : ncomps, samegrid_atmlnd
 
   implicit none
   private
@@ -496,21 +496,26 @@ contains
           call med_map_field(field_src, field_dst, is_local%wrap%RH(complnd,compatm,:), maptype, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-          call fldbun_getdata1d(is_local%wrap%FBfrac(compatm), 'lfrac', lfrac, rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          ! Reset ofrac in FBFrac(compatm)
+          if (samegrid_atmlnd) then
+            call fldbun_getdata1d(is_local%wrap%FBfrac(compatm), 'lfrac', lfrac, rc)
+            if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          else
+            call fldbun_getdata1d(is_local%wrap%FBfrac(compatm), 'lfrin', lfrac, rc)
+            if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          end if
           call fldbun_getdata1d(is_local%wrap%FBfrac(compatm), 'ofrac', ofrac, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           if (associated(ofrac)) then
-             do n = 1,size(lfrac)
-                lfrac(n) = lfrin(n)
-                ofrac(n) = 1.0_R8 - lfrac(n)
-                if (abs(ofrac(n)) < eps_fraclim) then
-                   ofrac(n) = 0.0_R8
-                end if
-             end do
+            do n = 1,size(lfrac)
+              ofrac(n) = 1.0_R8 - lfrac(n)
+              if (abs(ofrac(n)) < eps_fraclim) then
+                ofrac(n) = 0.0_R8
+              end if
+            end do
           end if
 
-       end if
+        end if
     end if
 
     !---------------------------------------
