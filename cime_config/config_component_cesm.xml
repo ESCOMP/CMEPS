@@ -226,14 +226,15 @@
       <!-- =================================================== -->
       <value compset="_DATM.*_DICE.*_POP2">24</value>
       <value compset="_DATM.*_DICE.*_MOM6">24</value>
-      <!-- TODO: currently a NUOPC runseqence cannot be generated with the ATM_NCPL < OCN_NCPL - as is the case -->
-      <!-- with the POP2 C compset run sequence - for now will set these to be the same as MOM6 -->
+      <value compset="_DATM.*_DICE.*_BLOM">24</value>
+      <!-- NOTE: urrently a NUOPC runseqence cannot be generated with the ATM_NCPL < OCN_NCPL -->
       <!-- =================================================== -->
       <!-- G compsets -->
       <!-- =================================================== -->
       <value compset="_DATM.*_SLND.*_CICE.*_POP2">24</value>
       <value compset="_DATM.*_SLND.*_CICE.*_POP2" grid="oi%tx0.1v3">144</value>
       <value compset="_DATM.*_SLND.*_CICE.*_MOM6">24</value>
+      <value compset="_DATM.*_SLND.*_CICE.*_BLOM">24</value>
       <value compset="_DATM.*_CICE.*_DOCN">24</value>
       <!-- =================================================== -->
       <!-- C/G compsets -->
@@ -241,6 +242,7 @@
       <value compset="_DATM.*_DOCN%US20">24</value>
       <value compset="_DATM%CPLHIST.+POP\d">48</value>
       <value compset="_DATM%CPLHIST.+MOM\d">48</value>
+      <value compset="_DATM%CPLHIST.+BLOM\d">48</value>
       <!-- =================================================== -->
       <!-- atm dependent resolutions (primarily CAM) -->
       <!-- =================================================== -->
@@ -315,6 +317,7 @@
     <default_value>$ATM_NCPL</default_value>
     <values match="last">
       <value compset="_MOM6">24</value>
+      <value compset="_BLOM">24</value>
       <value compset="_POP2" grid="oi%gx3v7">1</value>
       <value compset="_POP2" grid="oi%gx1v6">24</value>
       <value compset="_POP2" grid="oi%gx1v7">24</value>
@@ -339,6 +342,7 @@
       <value compset="_SGLC">$ATM_NCPL</value>
       <value compset="_XGLC">$ATM_NCPL</value>
       <value compset="_MOM6">1</value>
+      <value compset="_BLOM">1</value>
     </values>
     <group>run_coupling</group>
     <file>env_run.xml</file>
@@ -372,11 +376,13 @@
     <values match="last">
       <value compset="_DATM.*_POP2.*_DROF" grid="oi%gx3v7">1</value>
       <value compset="_DATM.*_MOM6.*_DROF"        >$ATM_NCPL</value>
+      <value compset="_DATM.*_BLOM.*_DROF"        >$ATM_NCPL</value>
       <value compset="_DATM.*_DOCN%SOM"           >$ATM_NCPL</value>
       <value compset="_DATM.*_SLND.*_DICE.*_DOCN" >$ATM_NCPL</value>
       <value compset="_MIZUROUTE_"                >1</value>
       <value compset="_DATM%CPLHIST.+POP\d"       >8</value>
       <value compset="_DATM%CPLHIST.+MOM\d"       >8</value>
+      <value compset="_DATM%CPLHIST.+BLOM\d"      >8</value>
       <value compset="_XATM.*_XLND.*_XICE.*_XOCN" >$ATM_NCPL</value>
       <value compset="_DLND.*_CISM\d"             >1</value>
       <value compset="_XROF"                      >$ATM_NCPL</value>
@@ -408,13 +414,14 @@
     <values match="last">
       <value compset="DATM.+POP\d">TRUE</value>
       <value compset="DATM.+MOM\d">TRUE</value>
+      <value compset="DATM.+BLOM\d">TRUE</value>
       <value compset="DATM.+DOCN%IAF">TRUE</value>
       <value compset="DATM%CPLHIST.+POP\d">FALSE</value>
     </values>
     <group>run_component_cpl</group>
     <file>env_run.xml</file>
     <desc>
-      Only used for compsets with DATM and POP (currently C, G and J):
+      Only used for compsets with DATM and [POP or MOM] (currently C, G and J):
       If true, compute albedos to work with daily avg SW down
       If false (default), albedos are computed with the assumption that downward
       solar radiation from the atm component has a diurnal cycle and zenith-angle
@@ -455,14 +462,15 @@
     <valid_values>TIGHT,OPTION1,OPTION2</valid_values>
     <default_value>TIGHT</default_value>
     <values match="last">
-      <value compset="_DATM.*_DOCN%SOM"			>OPTION2</value>
-      <value compset="_POP2"				>OPTION2</value>
-      <value compset="_MOM6"				>OPTION1</value>
-      <value compset="_POP2" grid="oi%gx1v6"		>OPTION1</value>
-      <value compset="_POP2" grid="oi%gx1v7"		>OPTION1</value>
+      <value compset="_DATM.*_DOCN%SOM"               >OPTION2</value>
+      <value compset="_POP2"                          >OPTION2</value>
+      <value compset="_MOM6"                          >OPTION1</value>
+      <value compset="_BLOM"                          >OPTION1</value>
+      <value compset="_POP2" grid="oi%gx1v6"          >OPTION1</value>
+      <value compset="_POP2" grid="oi%gx1v7"          >OPTION1</value>
       <value compset="_DATM%NYF.*_SLND.*_DICE.*_DOCN"	>OPTION2</value>
-      <value compset="_XATM.*_XLND.*_XICE.*_XOCN"	>OPTION2</value>
-      <value compset="_SOCN"				>OPTION2</value>
+      <value compset="_XATM.*_XLND.*_XICE.*_XOCN"     >OPTION2</value>
+      <value compset="_SOCN"                          >OPTION2</value>
     </values>
     <group>run_coupling</group>
     <file>env_run.xml</file>
@@ -518,7 +526,9 @@
     <values match="last">
       <value compset="DATM.*_POP\d">TRUE</value>
       <value compset="DATM.*_MOM\d">TRUE</value>
+      <value compset="DATM.*_BLOM\d">TRUE</value>
       <value compset="CAM.*_MOM\d">TRUE</value>
+      <value compset="CAM.*_BLOM\d">TRUE</value>
       <value compset="CAM.*_POP\d">TRUE</value>
       <value compset="CAM.*_DOCN%SOM">TRUE</value>
     </values>
