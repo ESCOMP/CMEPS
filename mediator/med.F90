@@ -629,8 +629,7 @@ contains
     endif
 
     ! Obtain verbosity level
-    call ESMF_AttributeGet(gcomp, name="Verbosity", value=cvalue, defaultValue="max", &
-         convention="NUOPC", purpose="Instance", rc=rc)
+    call ESMF_AttributeGet(gcomp, name="Verbosity", value=cvalue, defaultValue="max", convention="NUOPC", purpose="Instance", rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (maintask) then
        write(logunit,'(a)')trim(subname)//": Mediator verbosity is set to "//trim(cvalue)
