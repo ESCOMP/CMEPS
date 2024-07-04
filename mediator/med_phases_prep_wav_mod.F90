@@ -40,6 +40,7 @@ contains
 
     use ESMF            , only : ESMF_GridComp, ESMF_SUCCESS
     use med_methods_mod , only : FB_Init  => med_methods_FB_init
+    use ESMF            , only : ESMF_LogWrite, ESMF_LOGMSG_INFO
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
