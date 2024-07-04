@@ -1971,9 +1971,13 @@ contains
       ! the correct timestamps, which also indicates that the actual
       ! data has been transferred reliably, and CMEPS can safely use it.
 
+      call ESMF_LogWrite(trim(subname)//": done first call.", ESMF_LOGMSG_INFO)
+
       RETURN
 
     endif  ! end first_call if-block
+
+    call ESMF_LogWrite(trim(subname)//": called beyond first call", ESMF_LOGMSG_INFO)
 
     !----------------------------------------------------------
     ! Create FBfrac field bundles and initialize fractions
