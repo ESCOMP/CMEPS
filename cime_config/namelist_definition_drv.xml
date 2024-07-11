@@ -872,17 +872,28 @@
       <value COMP_LND="xlnd">off</value>
     </values>
   </entry>
-  <entry id="remove_negative_runoff">
+  <entry id="remove_negative_runoff_lnd">
     <type>logical</type>
     <category>control</category>
     <group>MED_attributes</group>
     <desc>
-      If true, remove negative runoff by downweighting all positive runoff globally.
+      If true, remove negative runoff generated from the land component by downweighting all positive runoff globally.
     </desc>
     <values>
       <value>.true.</value>
     </values>
   </entry>
+  <entry id="remove_negative_runoff_glc">
+    <type>logical</type>
+    <category>control</category>
+    <group>MED_attributes</group>
+    <desc>
+      If true, remove negative runoff generated from the glc (ice sheet) component by downweighting all positive runoff globally.
+    </desc>
+    <values>
+      <value>.false.</value>
+    </values>
+  </entry>  
 
   <entry id="info_debug" modify_via_xml="INFO_DBUG">
     <type>integer</type>
