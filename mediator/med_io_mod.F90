@@ -1086,7 +1086,15 @@ contains
        call pio_syncfile(io_file)
        call pio_freedecomp(io_file, iodesc)
     endif
-    deallocate(ownedElemCoords, ownedElemCoords_x, ownedElemCoords_y)
+    if(allocated(ownedElemCoords)) then
+       deallocate(ownedElemCoords)
+    endif
+    if(allocated(ownedElemCoords_x)) then
+       deallocate(ownedElemCoords_x)
+    endif
+    if(allocated(ownedElemCoords_y)) then
+       deallocate(ownedElemCoords_y)
+    endif
 
     if (dbug_flag > 5) then
        call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
