@@ -147,7 +147,10 @@
     <valid_values>TRUE,FALSE</valid_values>
     <group>run_coupling</group>
     <file>env_run.xml</file>
-    <desc>Activates DMS fluxes to be sent from ocn to atm </desc>
+    <desc>
+      Activates DMS fluxes to be sent from ocn to atm.
+      Currently this is only available with BLOM ocean component.
+    </desc>
   </entry>
 
   <entry id="BRF_EMIS_OCN">
@@ -156,7 +159,10 @@
     <valid_values>TRUE,FALSE</valid_values>
     <group>run_coupling</group>
     <file>env_run.xml</file>
-    <desc>Activates Bromoform fluxes to be sent from ocn to atm </desc>
+    <desc>
+      Activates Bromoform fluxes to be sent from ocn to atm.
+      Currently this is only available with BLOM ocean component.
+    </desc>
   </entry>
 
   <entry id="N2O_EMIS_OCN">
@@ -165,7 +171,10 @@
     <valid_values>TRUE,FALSE</valid_values>
     <group>run_coupling</group>
     <file>env_run.xml</file>
-    <desc>Activates N2O fluxes to be sent from ocn to atm </desc>
+    <desc>
+      Activates N2O fluxes to be sent from ocn to atm.
+      Currently this is only available with BLOM ocean component.
+    </desc>
   </entry>
 
   <entry id="NH3_EMIS_OCN">
@@ -174,7 +183,10 @@
     <valid_values>TRUE,FALSE</valid_values>
     <group>run_coupling</group>
     <file>env_run.xml</file>
-    <desc>Activates NH3 fluxes to be sent from ocn to atm </desc>
+    <desc>
+      Activates NH3 fluxes to be sent from ocn to atm.
+      Currently this is only available with BLOM ocean component.
+    </desc>
   </entry>
 
   <entry id="CPL_USER_MODS">
@@ -227,7 +239,7 @@
       <value compset="_DATM.*_DICE.*_POP2">24</value>
       <value compset="_DATM.*_DICE.*_MOM6">24</value>
       <value compset="_DATM.*_DICE.*_BLOM">24</value>
-      <!-- NOTE: urrently a NUOPC runseqence cannot be generated with the ATM_NCPL < OCN_NCPL -->
+      <!-- NOTE: currently a NUOPC runseqence cannot be generated with the ATM_NCPL < OCN_NCPL -->
       <!-- =================================================== -->
       <!-- G compsets -->
       <!-- =================================================== -->
