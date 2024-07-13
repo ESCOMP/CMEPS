@@ -5,7 +5,7 @@ module med_phases_restart_mod
   !-----------------------------------------------------------------------------
 
   use med_kind_mod            , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
-  use med_constants_mod       , only : dbug_flag => med_constants_dbug_flag
+!  use med_constants_mod       , only : dbug_flag => med_constants_dbug_flag
   use med_utils_mod           , only : chkerr    => med_utils_ChkErr
   use med_internalstate_mod   , only : maintask, logunit, InternalState
   use med_internalstate_mod   , only : ncomps, compname, compocn, complnd, compwav
@@ -25,7 +25,7 @@ module med_phases_restart_mod
   logical :: write_restart_at_endofrun = .false.
   logical :: whead(2) = (/.true. , .false./)
   logical :: wdata(2) = (/.false., .true. /)
-
+  integer, parameter:: dbug_flag = 2
   character(*), parameter :: u_FILE_u  = &
        __FILE__
 
@@ -47,7 +47,7 @@ contains
     use ESMF         , only : ESMF_SUCCESS, ESMF_FAILURE
     use NUOPC        , only : NUOPC_CompAttributeGet
     use NUOPC_Model  , only : NUOPC_ModelGet
-    use med_time_mod , only : med_time_AlarmInit
+    use nuopc_shr_methods, only : AlarmInit
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -83,8 +83,10 @@ contains
     ! Set alarm for instantaneous mediator restart output
     call ESMF_ClockGet(mclock, currTime=mCurrTime,  rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call med_time_alarmInit(mclock, alarm, option=restart_option, opt_n=restart_n, &
+
+    call alarmInit(mclock, alarm, option=restart_option, opt_n=restart_n, &
          reftime=mcurrTime, alarmname='alarm_restart', rc=rc)
+
     call ESMF_AlarmSet(alarm, clock=mclock, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
@@ -300,7 +302,7 @@ contains
             trim(nexttimestr),'.nc'
 
        if (maintask) then
-          restart_pfile = "rpointer.cpl"//trim(cpl_inst_tag)
+          restart_pfile = "rpointer.cpl"//trim(cpl_inst_tag)//'.'//trim(nexttimestr)
           call ESMF_LogWrite(trim(subname)//" write rpointer file = "//trim(restart_pfile), ESMF_LOGMSG_INFO)
           open(newunit=unitn, file=restart_pfile, form='FORMATTED')
           write(unitn,'(a)') trim(restart_file)
@@ -545,14 +547,21 @@ contains
     endif
 
     ! Get the restart file name from the pointer file
-    restart_pfile = "rpointer.cpl"//trim(cpl_inst_tag)
+    restart_pfile = "rpointer.cpl"//trim(cpl_inst_tag)//'.'//trim(currtimestr)
     if (maintask) then
        call ESMF_LogWrite(trim(subname)//" read rpointer file = "//trim(restart_pfile), ESMF_LOGMSG_INFO)
        open(newunit=unitn, file=restart_pfile, form='FORMATTED', status='old', iostat=ierr)
+
        if (ierr < 0) then
-          call ESMF_LogWrite(trim(subname)//' rpointer file open returns error', ESMF_LOGMSG_INFO)
-          rc=ESMF_Failure
-          return
+          ! try without currtimestr
+          restart_pfile = "rpointer.cpl"//trim(cpl_inst_tag)
+          call ESMF_LogWrite(trim(subname)//" read rpointer file = "//trim(restart_pfile), ESMF_LOGMSG_INFO)
+          open(newunit=unitn, file=restart_pfile, form='FORMATTED', status='old', iostat=ierr)
+          if(ierr < 0) then
+             call ESMF_LogWrite(trim(subname)//' rpointer file open returns error', ESMF_LOGMSG_INFO)
+             rc=ESMF_Failure
+             return
+          end if
        end if
        read (unitn,'(a)', iostat=ierr) restart_file
        if (ierr < 0) then

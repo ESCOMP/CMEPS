@@ -38,7 +38,6 @@ module MED
   use med_methods_mod          , only : FB_getFieldN       => med_methods_FB_getFieldN
   use med_methods_mod          , only : clock_timeprint    => med_methods_clock_timeprint
   use med_utils_mod            , only : memcheck           => med_memcheck
-  use med_time_mod             , only : med_time_alarmInit
   use med_internalstate_mod    , only : InternalState, med_internalstate_init, med_internalstate_coupling
   use med_internalstate_mod    , only : med_internalstate_defaultmasks, logunit, maintask
   use med_internalstate_mod    , only : ncomps, compname
@@ -2262,7 +2261,9 @@ contains
     use ESMF                  , only : ESMF_ClockGetAlarmList
     use NUOPC                 , only : NUOPC_CompCheckSetClock, NUOPC_CompAttributeGet
     use NUOPC_Mediator        , only : NUOPC_MediatorGet
-
+    ! NUOPC_shr_methods is now in cesm_share and cdeps 
+    use nuopc_shr_methods, only : get_minimum_timestep, AlarmInit
+    
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc
@@ -2277,6 +2278,8 @@ contains
     character(len=CL)       :: stop_option
     integer                 :: stop_n, stop_ymd
     logical, save           :: stopalarmcreated=.false.
+    integer                 :: min_timestep = 0    ! used for nsteps option
+    character(len=*), parameter :: optNsteps = "nstep"
     character(len=*), parameter :: subname = '('//__FILE__//':SetRunClock)'
     !-----------------------------------------------------------
 
@@ -2319,7 +2322,12 @@ contains
        call NUOPC_CompAttributeGet(gcomp, name="stop_ymd", value=cvalue, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        read(cvalue,*) stop_ymd
-       call med_time_alarmInit(mclock, stop_alarm, stop_option, opt_n=stop_n, opt_ymd=stop_ymd, &
+
+       if (stop_option(1:len(optnsteps)) .eq. optNSteps) then
+          min_timestep = get_minimum_timestep(gcomp, rc)
+       endif
+
+       call AlarmInit(mclock, stop_alarm, stop_option, opt_n=stop_n, opt_ymd=stop_ymd, &
             alarmname='alarm_stop', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        stopalarmcreated = .true.
