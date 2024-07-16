@@ -146,14 +146,14 @@ contains
     ! to med: frac from components
     !----------------------------------------------------------
     if (sofar_attr%atm_present .and. sofar_attr%ocn_present) then    ! Sofar system: added
-        call addfld_to(compatm, 'So_ofrac')
-!       call addfld_from(compatm , 'Sa_ofrac')                       ! Sofar system: added
+!       call addfld_to(compatm, 'So_ofrac')                          ! Sofar system: added
+        call addfld_from(compatm , 'Sa_oceanfrac')                   
     endif                                                            ! Sofar system: added 
 
     !----------------------------------------------------------
     ! from med: ocean albedos (not sent to the ATM in UFS).
     !----------------------------------------------------------
-    if (trim(coupling_mode) == 'sofar.awo' .or. (trim(coupling_mode) == 'sofar.ao') then
+    if (trim(coupling_mode) == 'sofar') then
        if (phase == 'advertise') then
           call addfld_ocnalb('So_avsdr')
           call addfld_ocnalb('So_avsdf')
@@ -170,11 +170,11 @@ contains
     ! to atm: surface temperatures from ocn
     ! ---------------------------------------------------------------------
     if (sofar_attr%atm_present .and. sofar_attr%ocn_present) then
-       if (trim(coupling_mode) == 'sofar.awo' .or. (trim(coupling_mode) == 'sofar.ao') then
-          allocate(S_flds(3))
-          S_flds = (/'So_t', & ! sea_surface_temperature
-                     'So_u', & ! surface zonal current
-                     'So_v'/)  ! surface meridional current
+       if (trim(coupling_mode) == 'sofar') then
+          allocate(S_flds(1))
+          S_flds = (/'So_t'/)  ! sea_surface_temperature
+                 !   'So_u', & ! surface zonal current
+                 !   'So_v'/)  ! surface meridional current
        elseif (trim(coupling_mode) == 'sofar.test') then
           allocate(S_flds(1))
           S_flds = (/'So_t'/) ! sea_surface_temperature
@@ -217,7 +217,7 @@ contains
     ! to ocn: state fields
     ! ---------------------------------------------------------------------
     if (sofar_attr%atm_present .and. sofar_attr%ocn_present) then
-        if (trim(coupling_mode) == 'sofar.awo' .or. trim(coupling_mode) == 'sofar.ao') then
+        if (trim(coupling_mode) == 'sofar') then
             allocate(S_flds(1))
             S_flds = (/'Sa_pslv'/) ! inst_pres_height_surface
         elseif (trim(coupling_mode) == 'sofar.test') then
@@ -225,8 +225,8 @@ contains
             S_flds = (/'Sa_t2m ' /) ! inst_temp_height2m
         elseif (trim(coupling_mode) == 'sofar.hycom')
             allocate(S_flds(6))
-            S_flds = (/'Sa_u10m', & ! inst_zonal_wind_height10m
-                       'Sa_v10m', & ! inst_merid_wind_height10m
+            S_flds = (/'Sa_u10n', & ! inst_zonal_wind_height10m
+                       'Sa_v10n', & ! inst_merid_wind_height10m
                        'Sa_t2m ', & ! inst_temp_height2m
                        'Sa_q2m ', & ! inst_spec_humid_height2m
                        'Sa_pslv', & ! inst_pres_height_surface
@@ -246,18 +246,7 @@ contains
     ! to ocn: flux fields
     ! ---------------------------------------------------------------------
     if (sofar_attr%atm_present .and. sofar_attr%ocn_present) then
-        if (trim(coupling_mode) == 'sofar.awo' .or. (trim(coupling_mode) == 'sofar.ao') then
-            allocate(F_flds(7,2))
-            F_flds(1,:) = (/'Faxa_taux ','Faxa_taux '/) ! inst_zonal_moment_flx_atm
-            F_flds(2,:) = (/'Faxa_tauy ','Faxa_tauy '/) ! inst_merid_moment_flx_atm
-            F_flds(3,:) = (/'Faxa_rain ','Faxa_rain '/) ! inst_prec_rate
-            F_flds(4,:) = (/'Faxa_swnet','Faxa_swnet'/) ! inst_net_sw_flx
-            F_flds(5,:) = (/'Faxa_lwnet','Faxa_lwnet'/) ! inst_net_lw_flx
-            F_flds(6,:) = (/'Faxa_sen  ','Faxa_sen  '/) ! inst_sensi_heat_flx
-            F_flds(7,:) = (/'Faxa_lat  ','Faxa_lat  '/) ! inst_laten_heat_flx
-        elseif (trim(coupling_mode) == 'sofar.test') then
-            print *, "esmFldsExchange_sofar_mod.F90:: coupling_mode==sofar.test, Skip fluxes..."
-        elseif (trim(coupling_mode) == 'sofar.hycom') then
+        if (trim(coupling_mode) == 'sofar') then
             allocate(F_flds(10,2))
             F_flds(1 ,:) = (/'Faxa_taux     ','Foxx_taux     '/) ! inst_zonal_moment_flx_atm
             F_flds(2 ,:) = (/'Faxa_tauy     ','Foxx_tauy     '/) ! inst_merid_moment_flx_atm
@@ -269,6 +258,17 @@ contains
             F_flds(8 ,:) = (/'Faxa_swndf    ','Foxx_swnet_idf'/) ! inst_down_sw_ir_dif_flx
             F_flds(9 ,:) = (/'Faxa_swvdr    ','Foxx_swnet_vdr'/) ! inst_down_sw_vis_dir_flx
             F_flds(10,:) = (/'Faxa_swvdf    ','Foxx_swnet_vdf'/) ! inst_down_sw_vis_dif_flx
+        elseif (trim(coupling_mode) == 'sofar.test') then
+            print *, "esmFldsExchange_sofar_mod.F90:: coupling_mode==sofar.test, Skip fluxes..."
+        elseif (trim(coupling_mode) == 'sofar.hycom') then
+            allocate(F_flds(7,2))
+            F_flds(1,:) = (/'Faxa_taux ','Faxa_taux '/) ! inst_zonal_moment_flx_atm
+            F_flds(2,:) = (/'Faxa_tauy ','Faxa_tauy '/) ! inst_merid_moment_flx_atm
+            F_flds(3,:) = (/'Faxa_rain ','Faxa_rain '/) ! inst_prec_rate
+            F_flds(4,:) = (/'Faxa_swnet','Faxa_swnet'/) ! inst_net_sw_flx
+            F_flds(5,:) = (/'Faxa_lwnet','Faxa_lwnet'/) ! inst_net_lw_flx
+            F_flds(6,:) = (/'Faxa_sen  ','Faxa_sen  '/) ! inst_sensi_heat_flx
+            F_flds(7,:) = (/'Faxa_lat  ','Faxa_lat  '/) ! inst_laten_heat_flx
         else
             allocate(F_flds(0,1))
         endif
@@ -290,12 +290,11 @@ contains
     ! ---------------------------------------------------------------------
     if (sofar_attr%atm_present .and. sofar_attr%wav_present) then
         allocate(S_flds(4))          ! Sofar system !ISSUE: add option to change the export vars at runtime
-        S_flds = (/'Sa_u10m', &      ! zonal diagnosed 10m wind component
-                   'Sa_v10m', &      ! meridional diagnosed 10m wind component
+        S_flds = (/'Sa_u10n', &      ! zonal diagnosed 10m neutral wind component
+                   'Sa_v10n', &      ! meridional diagnosed 10m neutral wind component
                    'Sa_rhoa', &      ! atmospheric surface density
                    'Sa_astdiff' &    ! air minus sea surface temperature difference
                   /)                 ! Sofar system with diagnosed 10m winds
-!       S_flds = (/'Sa_u10n', 'Sa_v10n', 'Sa_rhoa', 'Sa_astdiff'/)  ! Sofar system with neutral winds
         do n = 1,size(S_flds)
             fldname = trim(S_flds(n))
             call addfld_from(compatm, trim(fldname))
@@ -420,11 +419,11 @@ contains
     ! to atm: sea surface temperature
     ! ---------------------------------------------------------------------
     if (sofar_attr%atm_present .and. sofar_attr%ocn_present) then
-       if (trim(coupling_mode) == 'sofar.awo' .or. trim(coupling_mode) == 'sofar.ao') then
-          allocate(S_flds(3))
-          S_flds = (/'So_t', & ! sea_surface_temperature
-                     'So_u', & ! surface zonal current
-                     'So_v'/)  ! surface meridional current
+       if (trim(coupling_mode) == 'sofar') then
+          allocate(S_flds(1))
+          S_flds = (/'So_t'/)  ! sea_surface_temperature
+                 !   'So_u', & ! surface zonal current
+                 !   'So_v'/)  ! surface meridional current
        elseif (trim(coupling_mode) == 'sofar.test') then
           allocate(S_flds(1))
           S_flds = (/'So_t'/) ! sea_surface_temperature
@@ -481,7 +480,7 @@ contains
     ! to ocn: state fields
     ! ---------------------------------------------------------------------
     if (sofar_attr%atm_present .and. sofar_attr%ocn_present) then
-       if (trim(coupling_mode) == 'sofar.awo' .or. trim(coupling_mode) == 'sofar.ao') then
+       if (trim(coupling_mode) == 'sofar') then
           allocate(S_flds(1))
           S_flds = (/'Sa_pslv'/) ! inst_pres_height_surface
        elseif (trim(coupling_mode) == 'sofar.test') then
@@ -489,8 +488,8 @@ contains
           S_flds = (/'Sa_t2m ' /) ! inst_temp_height2m
        elseif (trim(coupling_mode) == 'sofar.hycom') then
           allocate(S_flds(6))
-          S_flds = (/'Sa_u10m', & ! inst_zonal_wind_height10m
-                     'Sa_v10m', & ! inst_merid_wind_height10m
+          S_flds = (/'Sa_u10n', & ! inst_zonal_wind_height10m
+                     'Sa_v10n', & ! inst_merid_wind_height10m
                      'Sa_t2m ', & ! inst_temp_height2m
                      'Sa_q2m ', & ! inst_spec_humid_height2m
                      'Sa_pslv', & ! inst_pres_height_surface
@@ -516,7 +515,7 @@ contains
     ! to ocn: flux fields
     ! ---------------------------------------------------------------------
     if (sofar_attr%atm_present .and. sofar_attr%ocn_present) then
-       if (trim(coupling_mode) == 'sofar.awo' .or. trim(coupling_mode) == 'sofar.ao') then
+       if (trim(coupling_mode) == 'sofar') then
           allocate(F_flds(10,2))
           F_flds(1 ,:) = (/'Faxa_taux     ','Foxx_taux     '/) ! inst_zonal_moment_flx_atm
           F_flds(2 ,:) = (/'Faxa_tauy     ','Foxx_tauy     '/) ! inst_merid_moment_flx_atm
@@ -568,12 +567,11 @@ contains
 !     allocate(S_flds(2))
 !     S_flds = (/'Sa_u10m', 'Sa_v10m'/)
       allocate(S_flds(4))          ! Sofar system !ISSUE: add option to change the export vars at runtime
-      S_flds = (/'Sa_u10m', &      ! zonal diagnosed 10m wind component
-                 'Sa_v10m', &      ! meridional diagnosed 10m wind component
+      S_flds = (/'Sa_u10n', &      ! zonal diagnosed 10m neutral wind component
+                 'Sa_v10n', &      ! meridional diagnosed 10m neutral wind component
                  'Sa_rhoa', &      ! atmospheric surface density
                  'Sa_astdiff' &    ! air minus sea surface temperature difference
                 /)                 ! Sofar system with diagnosed 10m winds
-      !S_flds = (/'Sa_u10n', 'Sa_v10n', 'Sa_rhoa', 'Sa_astdiff'/)  ! Sofar system with neutral winds
       do n = 1,size(S_flds)
         fldname = trim(S_flds(n))
         if (fldchk(is_local%wrap%FBexp(compwav),trim(fldname),rc=rc) .and. &
