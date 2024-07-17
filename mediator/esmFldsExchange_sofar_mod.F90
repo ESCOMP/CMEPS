@@ -223,7 +223,7 @@ contains
         elseif (trim(coupling_mode) == 'sofar.test') then
             allocate(S_flds(1))
             S_flds = (/'Sa_t2m ' /) ! inst_temp_height2m
-        elseif (trim(coupling_mode) == 'sofar.hycom')
+        elseif (trim(coupling_mode) == 'sofar.hycom') then
             allocate(S_flds(6))
             S_flds = (/'Sa_u10n', & ! inst_zonal_wind_height10m
                        'Sa_v10n', & ! inst_merid_wind_height10m
