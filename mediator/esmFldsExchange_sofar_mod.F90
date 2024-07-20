@@ -315,7 +315,7 @@ contains
     ! to wav: ocean surface components
     ! ---------------------------------------------------------------------
     if (sofar_attr%ocn_present .and. sofar_attr%wav_present) then
-        if (trim(coupling_mode) == 'sofar.ocn2wav')
+        if (trim(coupling_mode) == 'sofar.ocn2wav') then
             allocate(S_flds(3))          ! Sofar system !ISSUE: add option to change the export vars at runtime
             S_flds = (/'So_u', &         ! zonal ocean surface current
                        'So_v', &         ! meridional ocean surface current
@@ -338,9 +338,9 @@ contains
     ! to wav: sea ice (not yet supported)
     ! ---------------------------------------------------------------------
     if (sofar_attr%ocn_present .and. sofar_attr%wav_present) then
-        if (trim(coupling_mode) == 'sofar.ice2wav')
+        if (trim(coupling_mode) == 'sofar.ice2wav') then
             allocate(S_flds(1))          ! Sofar system !ISSUE: add option to change the export vars at runtime
-            S_flds = (/'Si_seaice'       ! Sea ice fraction / concentration
+            S_flds = (/'Si_seaice' &     ! Sea ice fraction / concentration
                       /)                 
         else
             allocate(S_flds(0))
