@@ -11,6 +11,7 @@ module esmFldsExchange_sofar_mod
   use med_internalstate_mod , only : compatm
   use med_internalstate_mod , only : compocn
   use med_internalstate_mod , only : compwav
+  use med_internalstate_mod , only : compice    ! Sofar added: for eventual coupling of cice6
   use med_internalstate_mod , only : ncomps
   use med_internalstate_mod , only : coupling_mode
   use esmFlds               , only : addfld_ocnalb => med_fldList_addfld_ocnalb
