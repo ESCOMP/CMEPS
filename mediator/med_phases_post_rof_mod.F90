@@ -38,14 +38,16 @@ module med_phases_post_rof_mod
   integer :: num_rof_fields
   character(len=CS), allocatable :: rof_field_names(:)
 
-  logical :: remove_negative_runoff
+  logical :: remove_negative_runoff_lnd
+  logical :: remove_negative_runoff_glc
 
-  character(len=13), parameter :: fields_to_remove_negative_runoff(4) = &
-       ['Forr_rofl    ', &
-        'Forr_rofi    ', &
-        'Forr_rofl_glc', &
+  character(len=9), parameter :: fields_to_remove_negative_runoff_lnd(2) = &
+       ['Forr_rofl', &
+        'Forr_rofi']
+  character(len=13), parameter :: fields_to_remove_negative_runoff_glc(2) = &
+       ['Forr_rofl_glc', &
         'Forr_rofi_glc']
-
+ 
   character(*) , parameter :: u_FILE_u = &
        __FILE__
 
@@ -77,12 +79,20 @@ contains
     call med_phases_post_rof_create_rof_field_bundle(gcomp, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call NUOPC_CompAttributeGet(gcomp, name='remove_negative_runoff', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    call NUOPC_CompAttributeGet(gcomp, name='remove_negative_runoff_lnd', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     if (isPresent .and. isSet) then
-      read(cvalue,*) remove_negative_runoff
+      read(cvalue,*) remove_negative_runoff_lnd
     else
-      remove_negative_runoff = .false.
+      remove_negative_runoff_lnd = .false.
+    end if
+
+    call NUOPC_CompAttributeGet(gcomp, name='remove_negative_runoff_glc', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+      read(cvalue,*) remove_negative_runoff_glc
+    else
+      remove_negative_runoff_glc = .false.
     end if
 
     ! remove_negative_runoff isn't yet set up to handle isotope fields, so ensure that
@@ -94,12 +104,13 @@ contains
     else
        flds_wiso = .false.
     end if
-    if (remove_negative_runoff .and. flds_wiso) then
-      call shr_sys_abort('remove_negative_runoff must be set to false when flds_wiso is true')
+    if ((remove_negative_runoff_lnd .or. remove_negative_runoff_glc) .and. flds_wiso) then
+      call shr_sys_abort('remove_negative_runoff_lnd and remove_negative_runoff_glc must be set to false when flds_wiso is true')
     end if
 
     if (maintask) then
-      write(logunit,'(a,l7)') trim(subname)//' remove_negative_runoff = ', remove_negative_runoff
+      write(logunit,'(a,l7)') trim(subname)//' remove_negative_runoff_lnd = ', remove_negative_runoff_lnd
+      write(logunit,'(a,l7)') trim(subname)//' remove_negative_runoff_glc = ', remove_negative_runoff_glc
     end if
 
     if (dbug_flag > 20) then
@@ -143,12 +154,22 @@ contains
       data_copy(:) = data_orig(:)
     end do
 
-    if (remove_negative_runoff) then
-      do n = 1, size(fields_to_remove_negative_runoff)
-        call ESMF_FieldBundleGet(FBrof_r, fieldName=trim(fields_to_remove_negative_runoff(n)), isPresent=exists, rc=rc)
+    if (remove_negative_runoff_lnd) then
+      do n = 1, size(fields_to_remove_negative_runoff_lnd)
+        call ESMF_FieldBundleGet(FBrof_r, fieldName=trim(fields_to_remove_negative_runoff_lnd(n)), isPresent=exists, rc=rc)
         if (ChkErr(rc,__LINE__,u_FILE_u)) return
         if (exists) then
-          call med_phases_post_rof_remove_negative_runoff(gcomp, fields_to_remove_negative_runoff(n), rc)
+          call med_phases_post_rof_remove_negative_runoff(gcomp, fields_to_remove_negative_runoff_lnd(n), rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+        end if
+      end do
+    end if
+    if (remove_negative_runoff_glc) then
+      do n = 1, size(fields_to_remove_negative_runoff_glc)
+        call ESMF_FieldBundleGet(FBrof_r, fieldName=trim(fields_to_remove_negative_runoff_glc(n)), isPresent=exists, rc=rc)
+        if (ChkErr(rc,__LINE__,u_FILE_u)) return
+        if (exists) then
+          call med_phases_post_rof_remove_negative_runoff(gcomp, fields_to_remove_negative_runoff_glc(n), rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
         end if
       end do
