@@ -153,7 +153,7 @@ contains
     !----------------------------------------------------------
     ! from med: ocean albedos (not sent to the ATM in UFS).
     !----------------------------------------------------------
-    if (trim(coupling_mode) == 'sofar') then
+    if (trim(coupling_mode(1:5)) == 'sofar') then
        if (phase == 'advertise') then
           call addfld_ocnalb('So_avsdr')
           call addfld_ocnalb('So_avsdf')
@@ -170,15 +170,9 @@ contains
     ! to atm: surface temperatures from ocn
     ! ---------------------------------------------------------------------
     if (sofar_attr%atm_present .and. sofar_attr%ocn_present) then
-       if (trim(coupling_mode) == 'sofar') then
+       if (trim(coupling_mode(1:5)) == 'sofar') then
           allocate(S_flds(1))
           S_flds = (/'So_t'/)  ! sea_surface_temperature
-                 !   'So_u', & ! surface zonal current
-                 !   'So_v'/)  ! surface meridional current
-       elseif (trim(coupling_mode) == 'sofar.test') then
-          allocate(S_flds(1))
-          S_flds = (/'So_t'/) ! sea_surface_temperature
-                              ! Sofar system: add surface temperature, or add NSST computation to mediator
        else
            allocate(S_flds(0))
        end if
@@ -196,7 +190,6 @@ contains
     if (sofar_attr%atm_present .and. sofar_attr%wav_present) then
        allocate(S_flds(1))
        !allocate(S_flds(2))                                          ! Sofar system !ISSUE: add option to change the export vars at runtime 
-!      S_flds = (/'Sw_z0rlen'/)    ! wave_z0_roughness_length
        S_flds = (/'Sw_charno'/)    ! Charnock parameter
        !S_flds = (/'Sw_z0rlen', &  ! wave_z0_roughness_length        ! Sofar system
        !           'Sw_charno', &  ! Charnock parameter              ! Sofar system
@@ -217,20 +210,9 @@ contains
     ! to ocn: state fields
     ! ---------------------------------------------------------------------
     if (sofar_attr%atm_present .and. sofar_attr%ocn_present) then
-        if (trim(coupling_mode) == 'sofar') then
+        if (trim(coupling_mode(1:5)) == 'sofar') then
             allocate(S_flds(1))
             S_flds = (/'Sa_pslv'/) ! inst_pres_height_surface
-        elseif (trim(coupling_mode) == 'sofar.test') then
-            allocate(S_flds(1))
-            S_flds = (/'Sa_t2m ' /) ! inst_temp_height2m
-        elseif (trim(coupling_mode) == 'sofar.hycom') then
-            allocate(S_flds(6))
-            S_flds = (/'Sa_u10n', & ! inst_zonal_wind_height10m
-                       'Sa_v10n', & ! inst_merid_wind_height10m
-                       'Sa_t2m ', & ! inst_temp_height2m
-                       'Sa_q2m ', & ! inst_spec_humid_height2m
-                       'Sa_pslv', & ! inst_pres_height_surface
-                       'Sa_tskn' /) ! inst_temp_height_surface
         else
             allocate(S_flds(0))
         endif
@@ -246,7 +228,9 @@ contains
     ! to ocn: flux fields
     ! ---------------------------------------------------------------------
     if (sofar_attr%atm_present .and. sofar_attr%ocn_present) then
-        if (trim(coupling_mode) == 'sofar') then
+        if (trim(coupling_mode) == 'sofar.nofluxes') then
+            print *, "esmFldsExchange_sofar_mod.F90:: coupling_mode==sofar.test, Skip fluxes..."
+        elseif (trim(coupling_mode(1:5)) == 'sofar') then
             allocate(F_flds(10,2))
             F_flds(1 ,:) = (/'Faxa_taux     ','Foxx_taux     '/) ! inst_zonal_moment_flx_atm
             F_flds(2 ,:) = (/'Faxa_tauy     ','Foxx_tauy     '/) ! inst_merid_moment_flx_atm
@@ -258,17 +242,6 @@ contains
             F_flds(8 ,:) = (/'Faxa_swndf    ','Foxx_swnet_idf'/) ! inst_down_sw_ir_dif_flx
             F_flds(9 ,:) = (/'Faxa_swvdr    ','Foxx_swnet_vdr'/) ! inst_down_sw_vis_dir_flx
             F_flds(10,:) = (/'Faxa_swvdf    ','Foxx_swnet_vdf'/) ! inst_down_sw_vis_dif_flx
-        elseif (trim(coupling_mode) == 'sofar.test') then
-            print *, "esmFldsExchange_sofar_mod.F90:: coupling_mode==sofar.test, Skip fluxes..."
-        elseif (trim(coupling_mode) == 'sofar.hycom') then
-            allocate(F_flds(7,2))
-            F_flds(1,:) = (/'Faxa_taux ','Faxa_taux '/) ! inst_zonal_moment_flx_atm
-            F_flds(2,:) = (/'Faxa_tauy ','Faxa_tauy '/) ! inst_merid_moment_flx_atm
-            F_flds(3,:) = (/'Faxa_rain ','Faxa_rain '/) ! inst_prec_rate
-            F_flds(4,:) = (/'Faxa_swnet','Faxa_swnet'/) ! inst_net_sw_flx
-            F_flds(5,:) = (/'Faxa_lwnet','Faxa_lwnet'/) ! inst_net_lw_flx
-            F_flds(6,:) = (/'Faxa_sen  ','Faxa_sen  '/) ! inst_sensi_heat_flx
-            F_flds(7,:) = (/'Faxa_lat  ','Faxa_lat  '/) ! inst_laten_heat_flx
         else
             allocate(F_flds(0,1))
         endif
@@ -281,12 +254,46 @@ contains
         if (allocated(F_flds)) deallocate(F_flds)
     endif
 
+    ! ---------------------------------------------------------------------
+    ! to ocn: wave parameters
+    ! ---------------------------------------------------------------------
+    if (sofar_attr%wav_present .and. sofar_attr%ocn_present) then
+        ! See here for fields that the ocean model can actually accept:
+        ! https://github.com/NOAA-GFDL/MOM6/blob/2f2b7905c08e95a729d3dd3f8b02e0a0bed10602/config_src/drivers/nuopc_cap/mom_cap.F90#L787
+        if (trim(coupling_mode) == 'sofar.wav2ocn') then
+            S_flds = (/'Sw_uscurr', &      ! Stokes Drift 3D
+                       'Sw_vscurr', &      ! 
+                       'Sw_x1pstk', &      ! Partitioned Stokes Drift 3 2D fields
+                       'Sw_y1pstk', &      ! 
+                       'Sw_x2pstk', &      ! 
+                       'Sw_y2pstk', &      ! 
+                       'Sw_x3pstk', &      ! 
+                       'Sw_y3pstk', &      ! 
+                       'Sw_wbcuru', &      ! Bottom Currents
+                       'Sw_wbcurv', &      ! 
+                       'Sw_wbcurp', &      ! 
+                       'Sw_wavsuu', &      ! Radiation stresses 2D
+                       'Sw_wavsuv', &      ! 
+                       'Sw_wavsvv' &       ! 
+                      /)                   
+        else
+            allocate(S_flds(0))
+        endif
+        do n = 1,size(S_flds)
+            fldname = trim(S_flds(n))
+            call addfld_from(compwav, trim(fldname))
+            call addfld_to(compocn, trim(fldname))
+        enddo
+        deallocate(S_flds)
+        if (allocated(F_flds)) deallocate(F_flds)
+    endif
+
     !=====================================================================
     ! FIELDS TO WAVE (compwav)
     !=====================================================================
 
     ! ---------------------------------------------------------------------
-    ! to wav: 10-m wind components
+    ! to wav: 10-m wind components, air surface density, and air-sea temp difference
     ! ---------------------------------------------------------------------
     if (sofar_attr%atm_present .and. sofar_attr%wav_present) then
         allocate(S_flds(4))          ! Sofar system !ISSUE: add option to change the export vars at runtime
@@ -302,6 +309,49 @@ contains
         enddo
         deallocate(S_flds)
     endif
+
+    ! ---------------------------------------------------------------------
+    ! to wav: ocean surface components
+    ! ---------------------------------------------------------------------
+    if (sofar_attr%ocn_present .and. sofar_attr%wav_present) then
+        if (trim(coupling_mode) == 'sofar.ocn2wav')
+            allocate(S_flds(3))          ! Sofar system !ISSUE: add option to change the export vars at runtime
+            S_flds = (/'So_u', &         ! zonal ocean surface current
+                       'So_v', &         ! meridional ocean surface current
+                       'So_ssh'  &       ! Sea surface height
+                   !   'So_rhoo', &      ! ocean surface density
+                   !   'So_t' &          ! ocean surface temperature (eventually pass gustiness from atm to wav)
+                      /)                 
+        else
+            allocate(S_flds(0))
+        endif
+        do n = 1,size(S_flds)
+            fldname = trim(S_flds(n))
+            call addfld_from(compocn, trim(fldname))
+            call addfld_to(compwav, trim(fldname))
+        enddo
+        deallocate(S_flds)
+    endif
+
+    ! ---------------------------------------------------------------------
+    ! to wav: sea ice (not yet supported)
+    ! ---------------------------------------------------------------------
+    if (sofar_attr%ocn_present .and. sofar_attr%wav_present) then
+        if (trim(coupling_mode) == 'sofar.ice2wav')
+            allocate(S_flds(1))          ! Sofar system !ISSUE: add option to change the export vars at runtime
+            S_flds = (/'Si_seaice'       ! Sea ice fraction / concentration
+                      /)                 
+        else
+            allocate(S_flds(0))
+        endif
+        do n = 1,size(S_flds)
+            fldname = trim(S_flds(n))
+            call addfld_from(compice, trim(fldname))
+            call addfld_to(compwav, trim(fldname))
+        enddo
+        deallocate(S_flds)
+    endif
+
 
     call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
 
