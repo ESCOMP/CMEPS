@@ -870,30 +870,28 @@ contains
 
     ng = maxval(maxIndexPTile)
     if (tiles) then
-       if (luse_float) then
-          lnx = ntile*ny*nx
-          lny = 1
-          lntile = 1
-       else
-          lnx = nx
-          lny = ny
-          lntile = ng/(lnx*lny)
-          write(tmpstr,*) subname, 'ng,lnx,lny,lntile = ',ng,lnx,lny,lntile
+       lnx = ng
+       lny = 1
+       lntile = 1
+       if (nx > 0) lnx = nx
+       if (ny > 0) lny = ny
+       if (ntile > 0) lntile = ntile
+       write(tmpstr,*) subname, 'ng,lnx,lny,lntile = ',ng,lnx,lny,lntile
+       call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
+       if (lnx*lny*lntile /= ng) then
+          write(tmpstr,*) subname,' ERROR: grid size not consistent ',ng,lnx,lny,lntile
           call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
-          if (lntile /= ntile) then
-             call ESMF_LogWrite(trim(subname)//' ERROR: grid2d size and ntile are not consistent ', ESMF_LOGMSG_INFO)
-             call ESMF_Finalize(endflag=ESMF_END_ABORT)
-          endif
+          call ESMF_Finalize(endflag=ESMF_END_ABORT)
        end if
     else
-      lnx = ng
-      lny = 1
-      if (nx > 0) lnx = nx
-      if (ny > 0) lny = ny
-      if (lnx*lny /= ng) then
-         write(tmpstr,*) subname,' WARNING: grid2d size not consistent ',ng,lnx,lny
-         call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
-      endif
+       lnx = ng
+       lny = 1
+       if (nx > 0) lnx = nx
+       if (ny > 0) lny = ny
+       if (lnx*lny /= ng) then
+          write(tmpstr,*) subname,' WARNING: grid2d size not consistent ',ng,lnx,lny
+          call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
+       endif
     end if
     deallocate(minIndexPTile, maxIndexPTile)
 
