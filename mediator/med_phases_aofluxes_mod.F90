@@ -149,6 +149,8 @@ module med_phases_aofluxes_mod
      real(R8) , pointer :: u10         (:) => null() ! diagnostic: 10m wind speed
      real(R8) , pointer :: duu10n      (:) => null() ! diagnostic: 10m wind speed squared
      real(R8) , pointer :: ugust_out   (:) => null() ! diagnostic: gust wind added
+     real(R8) , pointer :: u10_withGust(:) => null() ! diagnostic: gust wind added
+     real(R8) , pointer :: u10res      (:) => null() ! diagnostic: no gust wind added
      real(R8) , pointer :: ustar       (:) => null() ! saved ustar
      real(R8) , pointer :: re          (:) => null() ! saved re
      real(R8) , pointer :: ssq         (:) => null() ! saved sq
@@ -1073,8 +1075,9 @@ contains
          taux=aoflux_out%taux, tauy=aoflux_out%tauy, tref=aoflux_out%tref, qref=aoflux_out%qref, &
          ocn_surface_flux_scheme=ocn_surface_flux_scheme, &
          add_gusts=add_gusts, &
-         duu10n=aoflux_out%duu10n, & 
+         duu10n=aoflux_out%duu10n, &
          ugust_out = aoflux_out%ugust_out, &
+         u10res = aoflux_out%u10res, &
          ustar_sv=aoflux_out%ustar, re_sv=aoflux_out%re, ssq_sv=aoflux_out%ssq, &
          missval=0.0_r8)
 
@@ -1099,7 +1102,7 @@ contains
             ocn_surface_flux_scheme=ocn_surface_flux_scheme, &
             sen=aoflux_out%sen, lat=aoflux_out%lat, lwup=aoflux_out%lwup, evap=aoflux_out%evap, &
             taux=aoflux_out%taux, tauy=aoflux_out%tauy, tref=aoflux_out%tref, qref=aoflux_out%qref, &
-            duu10n=aoflux_out%duu10n, & 
+            duu10n=aoflux_out%duu10n, &
             missval=0.0_r8)
 #ifdef UFS_AOFLUX
      end if
@@ -1109,7 +1112,8 @@ contains
 
     do n = 1,aoflux_in%lsize
        if (aoflux_in%mask(n) /= 0) then
-          aoflux_out%u10(n) = sqrt(aoflux_out%duu10n(n))
+          aoflux_out%u10(n)          = aoflux_out%u10res(n)
+          aoflux_out%u10_withGust(n) = sqrt(aoflux_out%duu10n(n))
        end if
     enddo
 
@@ -1711,6 +1715,13 @@ end subroutine med_aofluxes_map_ogrid2xgrid_input
     call fldbun_getfldptr(fldbun, 'So_u10', aoflux_out%u10, xgrid=xgrid, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call fldbun_getfldptr(fldbun, 'So_duu10n', aoflux_out%duu10n, xgrid=xgrid, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    call fldbun_getfldptr(fldbun, 'So_ugustOut', aoflux_out%ugust_out, xgrid=xgrid, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call fldbun_getfldptr(fldbun, 'So_u10withGust', aoflux_out%u10_withGust, xgrid=xgrid, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call fldbun_getfldptr(fldbun, 'So_u10res', aoflux_out%u10res, xgrid=xgrid, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call fldbun_getfldptr(fldbun, 'Faox_taux', aoflux_out%taux, xgrid=xgrid, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return

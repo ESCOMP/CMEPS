@@ -620,19 +620,6 @@
     </values>
   </entry>
 
-  <entry id="ocn2glc_levels">
-    <type>char</type>
-    <category>flds</category>
-    <group>ALLCOMP_attributes</group>
-    <desc>
-      if the ocean component sends fields at multiple ocean levels to the
-      land-ice component, these are the colon deliminted level indices
-    </desc>
-    <values>
-      <value>1:10:19:26:30:33:35</value>
-    </values>
-  </entry>
-
   <entry id="tfreeze_option" modify_via_xml="TFREEZE_SALTWATER_OPTION">
     <type>char</type>
     <category>control</category>
@@ -883,6 +870,17 @@
     <values>
       <value>on_if_glc_coupled_fluxes</value>
       <value COMP_LND="xlnd">off</value>
+    </values>
+  </entry>
+  <entry id="remove_negative_runoff">
+    <type>logical</type>
+    <category>control</category>
+    <group>MED_attributes</group>
+    <desc>
+      If true, remove negative runoff by downweighting all positive runoff globally.
+    </desc>
+    <values>
+      <value>.true.</value>
     </values>
   </entry>
 
@@ -2086,6 +2084,80 @@
     </values>
   </entry>
 
+  <!-- ======================================= -->
+  <!-- MED auxiliary wav2med history files -->
+  <!-- ======================================= -->
+
+  <entry id="histaux_wav2med_file1_enabled">
+    <type>logical</type>
+    <category>aux_hist</category>
+    <group>ALLCOMP_attributes</group>
+    <values>
+      <value>.false.</value>
+    </values>
+    <desc>Auxiliary mediator wav2med average history output every day.
+    Note that ww3dev will use this configuration variable and send
+    the fields needed for wav2med auxiliary file</desc>
+  </entry>
+  <entry id="histaux_wav2med_file1_flds">
+    <type>char</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <values>
+      <value>Sw_hs_avg:Sw_Tm1_avg:Sw_thm_avg:Sw_u_avg:Sw_v_avg:Sw_ustokes_avg:Sw_vstokes_avg:Sw_tusx_avg:Sw_tusy_avg:Sw_thp0_avg:Sw_fp0_avg:Sw_phs0_avg:Sw_phs1_avg:Sw_pdir0_avg:Sw_pdir1_avg:Sw_pTm10_avg:Sw_pTm11_avg</value>
+    </values>
+    <desc>Auxiliary mediator wav2med file1 colon delimited output
+    fields. NOTE: these are assumed to be time averaged over a day in
+    the WW3 cap - so the settings of histaux_wav2med_file1_history_n
+    and histaux_wav2med_file1_history_option should be 1 and ndays,
+    respectively.</desc>
+  </entry>
+  <entry id="histaux_wav2med_file1_history_option">
+    <type>char</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <values>
+      <value>ndays</value>
+    </values>
+    <desc>Auxiliary mediator wav2med file1 output option</desc>
+  </entry>
+  <entry id="histaux_wav2med_file1_history_n">
+    <type>integer</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <values>
+      <value>1</value>
+    </values>
+    <desc>Auxiliary mediator wav2med file1 output frequency (used for option type)</desc>
+  </entry>
+  <entry id="histaux_wav2med_file1_doavg">
+    <type>logical</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <values>
+      <value>.false.</value>
+    </values>
+    <desc>Auxiliary mediator wav2med file1 time averaged flag for file output.
+    If this flag is set to .false. only instantaneous output will be created in the auxiliary file.</desc>
+  </entry>
+  <entry id="histaux_wav2med_file1_auxname">
+    <type>char</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <values>
+      <value>wav.24h.avg</value>
+    </values>
+  </entry>
+  <entry id="histaux_wav2med_file1_ntperfile">
+    <type>integer</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>Number of time samples per file.</desc>
+    <values>
+      <value>30</value>
+    </values>
+  </entry>
+
   <!-- =========================== -->
   <!-- MED mapping attributes      -->
   <!-- =========================== -->
@@ -2195,54 +2267,6 @@
     </values>
   </entry>
 
-  <entry id="glc2ocn_liq_rmapname"    modify_via_xml="GLC2OCN_LIQ_RMAPNAME">
-    <type>char</type>
-    <category>mapping</category>
-    <input_pathname>abs</input_pathname>
-    <group>MED_attributes</group>
-    <desc>
-      glc2ocn runoff mapping file for liquid runoff
-    </desc>
-    <values>
-      <value>$GLC2OCN_LIQ_RMAPNAME</value>
-    </values>
-  </entry>
-  <entry id="glc2ice_rmapname"    modify_via_xml="GLC2ICE_RMAPNAME">
-    <type>char</type>
-    <category>mapping</category>
-    <input_pathname>abs</input_pathname>
-    <group>MED_attributes</group>
-    <desc>
-      glc to ice runoff conservative mapping file
-    </desc>
-    <values>
-      <value>$GLC2ICE_RMAPNAME</value>
-    </values>
-  </entry>
-  <entry id="glc2ocn_ice_rmapname"    modify_via_xml="GLC2OCN_ICE_RMAPNAME">
-    <type>char</type>
-    <category>mapping</category>
-    <input_pathname>abs</input_pathname>
-    <group>MED_attributes</group>
-    <desc>
-      glc2ocn runoff mapping file for ice runoff
-    </desc>
-    <values>
-      <value>$GLC2OCN_ICE_RMAPNAME</value>
-    </values>
-  </entry>
-  <entry id="rof2ocn_fmapname"    modify_via_xml="ROF2OCN_FMAPNAME">
-    <type>char</type>
-    <category>mapping</category>
-    <input_pathname>abs</input_pathname>
-    <group>MED_attributes</group>
-    <desc>
-      runoff to ocn area overlap conservative mapping file
-    </desc>
-    <values>
-      <value>$ROF2OCN_FMAPNAME</value>
-    </values>
-  </entry>
   <entry id="rof2ocn_liq_rmapname"    modify_via_xml="ROF2OCN_LIQ_RMAPNAME">
     <type>char</type>
     <category>mapping</category>
@@ -2265,42 +2289,6 @@
     </desc>
     <values>
       <value>$ROF2OCN_ICE_RMAPNAME</value>
-    </values>
-  </entry>
-  <entry id="ocn2wav_smapname"    modify_via_xml="OCN2WAV_SMAPNAME">
-    <type>char</type>
-    <category>mapping</category>
-    <input_pathname>abs</input_pathname>
-    <group>MED_attributes</group>
-    <desc>
-      ocn to wav state mapping file for states
-    </desc>
-    <values>
-      <value>$OCN2WAV_SMAPNAME</value>
-    </values>
-  </entry>
-  <entry id="ice2wav_smapname"    modify_via_xml="ICE2WAV_SMAPNAME">
-    <type>char</type>
-    <category>mapping</category>
-    <input_pathname>abs</input_pathname>
-    <group>MED_attributes</group>
-    <desc>
-      ice to wav state mapping file for states
-    </desc>
-    <values>
-      <value>$ICE2WAV_SMAPNAME</value>
-    </values>
-  </entry>
-  <entry id="wav2ocn_smapname"    modify_via_xml="WAV2OCN_SMAPNAME">
-    <type>char</type>
-    <category>mapping</category>
-    <input_pathname>abs</input_pathname>
-    <group>MED_attributes</group>
-    <desc>
-      wav to ocn state mapping file for states
-    </desc>
-    <values>
-      <value>$WAV2OCN_SMAPNAME</value>
     </values>
   </entry>
 
@@ -2635,24 +2623,6 @@
     </values>
   </entry>
 
-  <!-- <entry id="esp_run_on_pause" modify_via_xml="ESP_RUN_ON_PAUSE"> -->
-  <!--   <type>logical</type> -->
-  <!--   <category>time</category> -->
-  <!--   <group>CLOCK_attributes</group> -->
-  <!--   <desc> -->
-  <!--     true => ESP component runs after driver 'pause cycle' If any -->
-  <!--     component 'pauses' (see PAUSE_OPTION, -->
-  <!--     PAUSE_N and DATA_ASSIMILATION_XXX XML -->
-  <!--     variables), the ESP component (if present) will be run to -->
-  <!--     process the component 'pause' (restart) files and set any -->
-  <!--     required 'resume' signals.  If true, esp_cpl_dt and -->
-  <!--     esp_cpl_offset settings are ignored.  default: true -->
-  <!--   </desc> -->
-  <!--   <values> -->
-  <!--     <value>.true.</value> -->
-  <!--   </values> -->
-  <!-- </entry> -->
-
   <entry id="calendar" modify_via_xml="CALENDAR">
     <type>char</type>
     <category>time</category>
@@ -2873,137 +2843,6 @@
       <value>-999</value>
     </values>
   </entry>
-
-  <!-- <entry id="pause_option" modify_via_xml="PAUSE_OPTION"> -->
-  <!--   <type>char</type> -->
-  <!--   <category>time</category> -->
-  <!--   <group>CLOCK_attributes</group> -->
-  <!--   <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,monthly,nmonths,nyears</valid_values> -->
-  <!--   <desc> -->
-  <!--     sets the pause frequency with pause_n -->
-  <!--     pause_option alarms are: -->
-  <!--     [none/never], turns option off -->
-  <!--     [nsteps]   , pauses every pause_n nsteps  , relative to start or last pause time -->
-  <!--     [nseconds] , pauses every pause_n nseconds, relative to start or last pause time -->
-  <!--     [nminutes] , pauses every pause_n nminutes, relative to start or last pause time -->
-  <!--     [nhours]   , pauses every pause_n nhours  , relative to start or last pause time -->
-  <!--     [ndays]    , pauses every pause_n ndays   , relative to start or last pause time -->
-  <!--     [nmonths]  , pauses every pause_n nmonths , relative to start or last pause time -->
-  <!--     [monthly]  , pauses every        month    , relative to start or last pause time -->
-  <!--     [nyear]    , pauses every pause_n nyears  , relative to start or last pause time -->
-  <!--   </desc> -->
-  <!--   <values> -->
-  <!--     <value>$PAUSE_OPTION</value> -->
-  <!--   </values> -->
-  <!-- </entry> -->
-
-  <!-- <entry id="pause_n" modify_via_xml="PAUSE_N"> -->
-  <!--   <type>integer</type> -->
-  <!--   <category>time</category> -->
-  <!--   <group>CLOCK_attributes</group> -->
-  <!--   <desc> -->
-  <!--     Sets the pause frequency with pause_option -->
-  <!--   </desc> -->
-  <!--   <values> -->
-  <!--     <value>$PAUSE_N</value> -->
-  <!--   </values> -->
-  <!-- </entry> -->
-
-  <!-- <entry id="pause_active_atm" modify_via_xml="PAUSE_ACTIVE_ATM"> -->
-  <!--   <type>logical</type> -->
-  <!--   <category>time</category> -->
-  <!--   <group>CLOCK_attributes</group> -->
-  <!--   <desc> -->
-  <!--     Whether Pause signals are active for component atm -->
-  <!--   </desc> -->
-  <!--   <values> -->
-  <!--     <value>$PAUSE_ACTIVE_ATM</value> -->
-  <!--   </values> -->
-  <!-- </entry> -->
-
-  <!-- <entry id="pause_active_cpl" modify_via_xml="PAUSE_ACTIVE_CPL"> -->
-  <!--   <type>logical</type> -->
-  <!--   <category>time</category> -->
-  <!--   <group>CLOCK_attributes</group> -->
-  <!--   <desc> -->
-  <!--     Whether Pause signals are active for component CPL -->
-  <!--   </desc> -->
-  <!--   <values> -->
-  <!--     <value>$PAUSE_ACTIVE_CPL</value> -->
-  <!--   </values> -->
-  <!-- </entry> -->
-
-  <!-- <entry id="pause_active_ocn" modify_via_xml="PAUSE_ACTIVE_OCN"> -->
-  <!--   <type>logical</type> -->
-  <!--   <category>time</category> -->
-  <!--   <group>CLOCK_attributes</group> -->
-  <!--   <desc> -->
-  <!--     Whether Pause signals are active for component ocn -->
-  <!--   </desc> -->
-  <!--   <values> -->
-  <!--     <value>$PAUSE_ACTIVE_OCN</value> -->
-  <!--   </values> -->
-  <!-- </entry> -->
-
-  <!-- <entry id="pause_active_wav" modify_via_xml="PAUSE_ACTIVE_WAV"> -->
-  <!--   <type>logical</type> -->
-  <!--   <category>time</category> -->
-  <!--   <group>CLOCK_attributes</group> -->
-  <!--   <desc> -->
-  <!--     Whether Pause signals are active for component wav -->
-  <!--   </desc> -->
-  <!--   <values> -->
-  <!--     <value>$PAUSE_ACTIVE_WAV</value> -->
-  <!--   </values> -->
-  <!-- </entry> -->
-
-  <!-- <entry id="pause_active_glc" modify_via_xml="PAUSE_ACTIVE_GLC"> -->
-  <!--   <type>logical</type> -->
-  <!--   <category>time</category> -->
-  <!--   <group>CLOCK_attributes</group> -->
-  <!--   <desc> -->
-  <!--     Whether Pause signals are active for component glc -->
-  <!--   </desc> -->
-  <!--   <values> -->
-  <!--     <value>$PAUSE_ACTIVE_GLC</value> -->
-  <!--   </values> -->
-  <!-- </entry> -->
-
-  <!-- <entry id="pause_active_rof" modify_via_xml="PAUSE_ACTIVE_ROF"> -->
-  <!--   <type>logical</type> -->
-  <!--   <category>time</category> -->
-  <!--   <group>CLOCK_attributes</group> -->
-  <!--   <desc> -->
-  <!--     Whether Pause signals are active for component rof -->
-  <!--   </desc> -->
-  <!--   <values> -->
-  <!--     <value>$PAUSE_ACTIVE_ROF</value> -->
-  <!--   </values> -->
-  <!-- </entry> -->
-
-  <!-- <entry id="pause_active_ice" modify_via_xml="PAUSE_ACTIVE_ICE"> -->
-  <!--   <type>logical</type> -->
-  <!--   <category>time</category> -->
-  <!--   <group>CLOCK_attributes</group> -->
-  <!--   <desc> -->
-  <!--     Whether Pause signals are active for component ice -->
-  <!--   </desc> -->
-  <!--   <values> -->
-  <!--     <value>$PAUSE_ACTIVE_ICE</value> -->
-  <!--   </values> -->
-  <!-- </entry> -->
-
-  <!-- <entry id="pause_active_lnd" modify_via_xml="PAUSE_ACTIVE_LND"> -->
-  <!--   <type>logical</type> -->
-  <!--   <category>time</category> -->
-  <!--   <group>CLOCK_attributes</group> -->
-  <!--   <desc> -->
-  <!--     Whether Pause signals are active for component lnd -->
-  <!--   </desc> -->
-  <!--   <values> -->
-  <!--     <value>$PAUSE_ACTIVE_LND</value> -->
-  <!--   </values> -->
-  <!-- </entry> -->
 
   <!-- =========================== -->
   <!--  PELAYOUT attributes        -->

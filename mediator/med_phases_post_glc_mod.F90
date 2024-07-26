@@ -68,7 +68,7 @@ module med_phases_post_glc_mod
 
   logical :: cism_evolve = .false.
   logical :: glc2lnd_coupling = .false.
-  logical :: glc2ocn_coupling = .false.
+  logical :: glc2rof_coupling = .false.
   logical :: glc2ice_coupling = .false.
 
   character(*) , parameter :: u_FILE_u = &
@@ -120,8 +120,8 @@ contains
        end do
        ! determine if there will be any glc to ocn coupling
        do ns = 1,is_local%wrap%num_icesheets
-          if (is_local%wrap%med_coupling_active(compglc(ns),compocn)) then
-             glc2ocn_coupling = .true.
+          if (is_local%wrap%med_coupling_active(compglc(ns),comprof)) then
+             glc2rof_coupling = .true.
              exit
           end if
        end do
@@ -134,7 +134,7 @@ contains
        end do
        if (maintask) then
           write(logunit,'(a,L1)') trim(subname) // 'glc2lnd_coupling is ',glc2lnd_coupling
-          write(logunit,'(a,L1)') trim(subname) // 'glc2ocn_coupling is ',glc2ocn_coupling
+          write(logunit,'(a,L1)') trim(subname) // 'glc2rof_coupling is ',glc2rof_coupling
           write(logunit,'(a,L1)') trim(subname) // 'glc2ice_coupling is ',glc2ice_coupling
        end if
 
@@ -152,19 +152,19 @@ contains
     end if
 
     !---------------------------------------
-    ! glc->ocn mapping
-    ! merging with rof->ocn fields is done in med_phases_prep_ocn
+    ! glc->rof mapping
     !---------------------------------------
-    if (glc2ocn_coupling) then
+
+    if (glc2rof_coupling) then
        do ns = 1,is_local%wrap%num_icesheets
-          if (is_local%wrap%med_coupling_active(compglc(ns),compocn)) then
+          if (is_local%wrap%med_coupling_active(compglc(ns),comprof)) then
              call med_map_field_packed( &
                   FBSrc=is_local%wrap%FBImp(compglc(ns),compglc(ns)), &
-                  FBDst=is_local%wrap%FBImp(compglc(ns),compocn), &
+                  FBDst=is_local%wrap%FBImp(compglc(ns),comprof), &
                   FBFracSrc=is_local%wrap%FBFrac(compglc(ns)), &
-                  field_normOne=is_local%wrap%field_normOne(compglc(ns),compocn,:), &
-                  packed_data=is_local%wrap%packed_data(compglc(ns),compocn,:), &
-                  routehandles=is_local%wrap%RH(compglc(ns),compocn,:), rc=rc)
+                  field_normOne=is_local%wrap%field_normOne(compglc(ns),comprof,:), &
+                  packed_data=is_local%wrap%packed_data(compglc(ns),comprof,:), &
+                  routehandles=is_local%wrap%RH(compglc(ns),comprof,:), rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
        end do
