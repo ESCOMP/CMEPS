@@ -48,27 +48,31 @@ jobs:
         id: cache-ParallelIO
         uses: actions/cache@v4
         with:
-          path: ~/pio
+          path: {GITHUB_WORKSPACE}/pio
           key: ${{ runner.os }}-${{ env.PIO_VERSION }}.pio
       - name: Build ParallelIO
         if: steps.cache-ParallelIO.outputs.cache-hit != 'true'
-        uses: NCAR/ParallelIO/.github/actions/parallelio_cmake@pio2_6_0
+        uses: NCAR/ParallelIO/.github/actions/parallelio_cmake@pio2_6_2
         with:
           parallelio_version: ${{ env.ParallelIO_VERSION }}
           enable_fortran: True
-          install_prefix: $HOME/pio
-      - name: Build ESMF
-        if: steps.cache-esmf.outputs.cache-hit != 'true'
-        uses: ESCOMP/CDEPS/.github/actions/buildesmf@cdeps1.0.15
+          install_prefix: ${GITHUB_WORKSPACE}/pio
+      - name: Install ESMF
+        uses: esmf-org/install-esmf-action@v1
+        env:
+          ESMF_COMPILER: gfortran
+          ESMF_BOPT: g
+          ESMF_COMM: openmpi
+          ESMF_NETCDF: nc-config
+          ESMF_PNETCDF: pnetcdf-config
+          ESMF_INSTALL_PREFIX: ${GITHUB_WORKSPACE}/ESMF
+          ESMF_PIO: external
+          ESMF_PIO_INCLUDE: ${GITHUB_WORKSPACE}/pio/include
+          ESMF_PIO_LIBPATH: ${GITHUB_WORKSPACE}/pio/lib
         with:
-          esmf_version: ${{ env.ESMF_VERSION }}
-          esmf_bopt: g
-          esmf_comm: openmpi
-          install_prefix: $HOME/ESMF
-          netcdf_c_path: /usr
-          netcdf_fortran_path: /usr
-          pnetcdf_path: /usr
-          parallelio_path: $HOME/pio
+          version: ${{ env.ESMF_VERSION }}
+          esmpy: false
+          cache: true
       - name: Cache CDEPS
         id: cache-cdeps
         uses: actions/cache@v4
@@ -90,8 +94,8 @@ jobs:
         if: steps.cache-cdeps.outputs.cache-hit != 'true'
         uses: ESCOMP/CDEPS/.github/actions/buildcdeps@cdeps1.0.26
         with:
-          esmfmkfile: $HOME/ESMF/lib/libg/Linux.gfortran.64.openmpi.default/esmf.mk
-          pio_path: $HOME/pio
+          esmfmkfile: $ESMFMKFILE
+          pio_path: ${GITHUB_WORKSPACE}/pio
           src_root: ${GITHUB_WORKSPACE}/cdeps-src
           cmake_flags: " -Wno-dev -DDISABLE_FoX=ON -DCMAKE_BUILD_TYPE=DEBUG -DWERROR=ON  -DCMAKE_Fortran_FLAGS=\"-DCPRGNU -g -Wall \
           -ffree-form -ffree-line-length-none -fallow-argument-mismatch \""

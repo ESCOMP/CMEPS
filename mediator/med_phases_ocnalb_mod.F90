@@ -636,7 +636,7 @@ contains
     integer           :: orb_year ! orbital year for current orbital computation
     character(len=CL) :: msgstr   ! temporary
     logical           :: lprint
-    logical           :: first_time = .true.
+    logical, save     :: first_time = .true.
     character(len=*) , parameter :: subname = "(med_phases_ocnalb_orbital_update)"
     !-------------------------------------------
 
@@ -648,16 +648,12 @@ contains
        call ESMF_TimeGet(CurrTime, yy=year, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        orb_year = orb_iyear + (year - orb_iyear_align)
-       lprint = maintask
+       if(first_time) lprint = maintask
     else
        orb_year = orb_iyear
-       if (first_time) then
-          lprint = maintask
-          first_time = .false.
-       else
-          lprint = .false.
-       end if
+       if(first_time) lprint = maintask
     end if
+    first_time = .false.
 
     eccen = orb_eccen
     shr_log_unit = logunit
