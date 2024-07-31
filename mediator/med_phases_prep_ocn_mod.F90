@@ -266,6 +266,7 @@ contains
     ! local variables
     type(InternalState)        :: is_local
     integer                    :: ncnt
+    logical, save              :: first_call = .true.
     character(len=*),parameter :: subname='(med_phases_prep_ocn_avg)'
     !---------------------------------------
 
@@ -306,9 +307,10 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        ! Check for nans in fields export to ocn
-       call FB_check_for_nans(is_local%wrap%FBExp(compocn), maintask, logunit, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
+       if(.not. first_call) then
+          call FB_check_for_nans(is_local%wrap%FBExp(compocn), maintask, logunit, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       endif
        ! zero accumulator
        is_local%wrap%ExpAccumOcnCnt = 0
        call FB_reset(is_local%wrap%FBExpAccumOcn, value=czero, rc=rc)
@@ -320,6 +322,7 @@ contains
        call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
     end if
     call t_stopf('MED:'//subname)
+    first_call = .false.
 
   end subroutine med_phases_prep_ocn_avg
 
