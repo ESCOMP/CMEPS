@@ -1389,14 +1389,6 @@
     <desc>rof2lnd flux mapping file</desc>
   </entry>
 
-  <entry id="ROF2OCN_FMAPNAME">
-    <type>char</type>
-    <default_value>idmap</default_value>
-    <group>run_domain</group>
-    <file>env_run.xml</file>
-    <desc>rof2ocn flux mapping file</desc>
-  </entry>
-
   <entry id="ROF2OCN_LIQ_RMAPNAME">
     <type>char</type>
     <default_value>idmap</default_value>
@@ -1411,54 +1403,6 @@
     <group>run_domain</group>
     <file>env_run.xml</file>
     <desc>rof2ocn runoff mapping file</desc>
-  </entry>
-
-  <entry id="GLC2ICE_RMAPNAME">
-    <type>char</type>
-    <default_value>idmap</default_value>
-    <group>run_domain</group>
-    <file>env_run.xml</file>
-    <desc>glc2ice runoff mapping file</desc>
-  </entry>
-
-  <entry id="GLC2OCN_LIQ_RMAPNAME">
-    <type>char</type>
-    <default_value>idmap</default_value>
-    <group>run_domain</group>
-    <file>env_run.xml</file>
-    <desc>glc2ocn runoff mapping file for liquid runoff</desc>
-  </entry>
-
-  <entry id="GLC2OCN_ICE_RMAPNAME">
-    <type>char</type>
-    <default_value>idmap</default_value>
-    <group>run_domain</group>
-    <file>env_run.xml</file>
-    <desc>glc2ocn runoff mapping file for ice runoff</desc>
-  </entry>
-
-  <entry id="OCN2WAV_SMAPNAME">
-    <type>char</type>
-    <default_value>idmap</default_value>
-    <group>run_domain</group>
-    <file>env_run.xml</file>
-    <desc>ocn2wav state mapping file</desc>
-  </entry>
-
-  <entry id="ICE2WAV_SMAPNAME">
-    <type>char</type>
-    <default_value>idmap</default_value>
-    <group>run_domain</group>
-    <file>env_run.xml</file>
-    <desc>ice2wav state mapping file</desc>
-  </entry>
-
-  <entry id="WAV2OCN_SMAPNAME">
-    <type>char</type>
-    <default_value>idmap</default_value>
-    <group>run_domain</group>
-    <file>env_run.xml</file>
-    <desc>wav2ocn state mapping file</desc>
   </entry>
 
   <entry id="EPS_FRAC">
@@ -2042,15 +1986,15 @@
     https://www.unidata.ucar.edu/software/netcdf/docs/data_type.html
     </desc>
     <values>
-      <value compclass="ATM">64bit_offset</value>
-      <value compclass="CPL">64bit_offset</value>
-      <value compclass="OCN">64bit_offset</value>
-      <value compclass="WAV">64bit_offset</value>
-      <value compclass="GLC">64bit_offset</value>
-      <value compclass="ICE">64bit_offset</value>
-      <value compclass="ROF">64bit_offset</value>
-      <value compclass="LND">64bit_offset</value>
-      <value compclass="ESP">64bit_offset</value>
+      <value compclass="ATM">64bit_data</value>
+      <value compclass="CPL">64bit_data</value>
+      <value compclass="OCN">64bit_data</value>
+      <value compclass="WAV">64bit_data</value>
+      <value compclass="GLC">64bit_data</value>
+      <value compclass="ICE">64bit_data</value>
+      <value compclass="ROF">64bit_data</value>
+      <value compclass="LND">64bit_data</value>
+      <value compclass="ESP">64bit_data</value>
     </values>
   </entry>
 

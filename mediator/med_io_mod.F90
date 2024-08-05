@@ -870,24 +870,28 @@ contains
 
     ng = maxval(maxIndexPTile)
     if (tiles) then
-      lnx = nx
-      lny = ny
-      lntile = ng/(lnx*lny)
-      write(tmpstr,*) subname, 'ng,lnx,lny,lntile = ',ng,lnx,lny,lntile
-      call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
-      if (lntile /= ntile) then
-         call ESMF_LogWrite(trim(subname)//' ERROR: grid2d size and ntile are not consistent ', ESMF_LOGMSG_INFO)
-         call ESMF_Finalize(endflag=ESMF_END_ABORT)
-      endif
+       lnx = ng
+       lny = 1
+       lntile = 1
+       if (nx > 0) lnx = nx
+       if (ny > 0) lny = ny
+       if (ntile > 0) lntile = ntile
+       write(tmpstr,*) subname, 'ng,lnx,lny,lntile = ',ng,lnx,lny,lntile
+       call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
+       if (lnx*lny*lntile /= ng) then
+          write(tmpstr,*) subname,' ERROR: grid size not consistent ',ng,lnx,lny,lntile
+          call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
+          call ESMF_Finalize(endflag=ESMF_END_ABORT)
+       end if
     else
-      lnx = ng
-      lny = 1
-      if (nx > 0) lnx = nx
-      if (ny > 0) lny = ny
-      if (lnx*lny /= ng) then
-         write(tmpstr,*) subname,' WARNING: grid2d size not consistent ',ng,lnx,lny
-         call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
-      endif
+       lnx = ng
+       lny = 1
+       if (nx > 0) lnx = nx
+       if (ny > 0) lny = ny
+       if (lnx*lny /= ng) then
+          write(tmpstr,*) subname,' WARNING: grid2d size not consistent ',ng,lnx,lny
+          call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
+       endif
     end if
     deallocate(minIndexPTile, maxIndexPTile)
 
@@ -902,7 +906,7 @@ contains
       if (tiles) then
        rcode = pio_def_dim(io_file, trim(lpre)//'_nx', lnx, dimid3(1))
        rcode = pio_def_dim(io_file, trim(lpre)//'_ny', lny, dimid3(2))
-       rcode = pio_def_dim(io_file, trim(lpre)//'_ntile', ntile, dimid3(3))
+       rcode = pio_def_dim(io_file, trim(lpre)//'_ntile', lntile, dimid3(3))
        if (present(nt)) then
           dimid4(1:3) = dimid3
           rcode = pio_inq_dimid(io_file, 'time', dimid4(4))
@@ -1020,10 +1024,18 @@ contains
        write(tmpstr,*) subname,' dof = ',ns,size(dof),dof(1),dof(ns)  !,minval(dof),maxval(dof)
        call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
        if (tiles) then
-          call pio_initdecomp(io_subsystem, pio_double, (/lnx,lny,ntile/), dof, iodesc)
+          if (luse_float) then
+             call pio_initdecomp(io_subsystem, pio_real, (/lnx,lny,lntile/), dof, iodesc)
+          else
+             call pio_initdecomp(io_subsystem, pio_double, (/lnx,lny,lntile/), dof, iodesc)
+          end if
        else
-          call pio_initdecomp(io_subsystem, pio_double, (/lnx,lny/), dof, iodesc)
-         !call pio_writedof(lpre, (/lnx,lny/), int(dof,kind=PIO_OFFSET_KIND), mpicom)
+          if (luse_float) then
+             call pio_initdecomp(io_subsystem, pio_real, (/lnx,lny/), dof, iodesc)
+          else
+             call pio_initdecomp(io_subsystem, pio_double, (/lnx,lny/), dof, iodesc)
+          end if
+          !call pio_writedof(lpre, (/lnx,lny/), int(dof,kind=PIO_OFFSET_KIND), mpicom)
        end if
        deallocate(dof)
 
@@ -1056,10 +1068,18 @@ contains
                    rcode = pio_inq_varid(io_file, trim(name1), varid)
                    call pio_setframe(io_file,varid,frame)
 
-                   if (gridToFieldMap(1) == 1) then
-                      call pio_write_darray(io_file, varid, iodesc, fldptr2(:,n), rcode, fillval=lfillvalue)
-                   else if (gridToFieldMap(1) == 2) then
-                      call pio_write_darray(io_file, varid, iodesc, fldptr2(n,:), rcode, fillval=lfillvalue)
+                   if (luse_float) then
+                      if (gridToFieldMap(1) == 1) then
+                         call pio_write_darray(io_file, varid, iodesc, real(fldptr2(:,n),r4), rcode, fillval=real(lfillvalue,r4))
+                      else if (gridToFieldMap(1) == 2) then
+                         call pio_write_darray(io_file, varid, iodesc, real(fldptr2(n,:),r4), rcode, fillval=real(lfillvalue,r4))
+                      end if
+                   else
+                      if (gridToFieldMap(1) == 1) then
+                         call pio_write_darray(io_file, varid, iodesc, fldptr2(:,n), rcode, fillval=lfillvalue)
+                      else if (gridToFieldMap(1) == 2) then
+                         call pio_write_darray(io_file, varid, iodesc, fldptr2(n,:), rcode, fillval=lfillvalue)
+                      end if
                    end if
                 end do
              else if (rank == 1 .or. rank == 0) then
@@ -1068,7 +1088,11 @@ contains
                 call pio_setframe(io_file,varid,frame)
                 ! fix for writing data on exchange grid, which has no data in some PETs
                 if (rank == 0) nullify(fldptr1)
-                call pio_write_darray(io_file, varid, iodesc, fldptr1, rcode, fillval=lfillvalue)
+                if (luse_float) then
+                   call pio_write_darray(io_file, varid, iodesc, real(fldptr1,r4), rcode, fillval=real(lfillvalue,r4))
+                else
+                   call pio_write_darray(io_file, varid, iodesc, fldptr1, rcode, fillval=lfillvalue)
+                end if
              end if  ! end if rank is 2 or 1 or 0
 
           end if ! end if not "hgt"
@@ -1077,16 +1101,31 @@ contains
        ! Fill coordinate variables - why is this being done each time?
        rcode = pio_inq_varid(io_file, trim(coordvarnames(1)), varid)
        call pio_setframe(io_file,varid,frame)
-       call pio_write_darray(io_file, varid, iodesc, ownedElemCoords_x, rcode, fillval=lfillvalue)
+       if (luse_float) then
+          call pio_write_darray(io_file, varid, iodesc, real(ownedElemCoords_x,r4), rcode, fillval=real(lfillvalue,r4))
+       else
+          call pio_write_darray(io_file, varid, iodesc, ownedElemCoords_x, rcode, fillval=lfillvalue)
+       end if
 
        rcode = pio_inq_varid(io_file, trim(coordvarnames(2)), varid)
        call pio_setframe(io_file,varid,frame)
-       call pio_write_darray(io_file, varid, iodesc, ownedElemCoords_y, rcode, fillval=lfillvalue)
-
+       if (luse_float) then
+          call pio_write_darray(io_file, varid, iodesc, real(ownedElemCoords_y,r4), rcode, fillval=real(lfillvalue,r4))
+       else
+          call pio_write_darray(io_file, varid, iodesc, ownedElemCoords_y, rcode, fillval=lfillvalue)
+       end if
        call pio_syncfile(io_file)
        call pio_freedecomp(io_file, iodesc)
     endif
-    deallocate(ownedElemCoords, ownedElemCoords_x, ownedElemCoords_y)
+    if(allocated(ownedElemCoords)) then
+       deallocate(ownedElemCoords)
+    endif
+    if(allocated(ownedElemCoords_x)) then
+       deallocate(ownedElemCoords_x)
+    endif
+    if(allocated(ownedElemCoords_y)) then
+       deallocate(ownedElemCoords_y)
+    endif
 
     if (dbug_flag > 5) then
        call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)

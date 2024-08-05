@@ -115,6 +115,15 @@ module med_internalstate_mod
      real(r8), pointer :: lons(:) => null()
   end type mesh_info_type
 
+  logical          , public :: samegrid_atmlnd = .true. ! true=>atm and lnd are on the same grid
+  character(len=CS), public :: mrg_fracname_lnd2atm_state
+  character(len=CS), public :: mrg_fracname_lnd2atm_flux
+  character(len=CS), public :: map_fracname_lnd2atm
+  character(len=CS), public :: mrg_fracname_lnd2rof
+  character(len=CS), public :: map_fracname_lnd2rof
+  character(len=CS), public :: mrg_fracname_lnd2glc
+  character(len=CS), public :: map_fracname_lnd2glc
+
   ! private internal state to keep instance data
   type InternalStateStruct
 
@@ -191,11 +200,11 @@ module med_internalstate_mod
     type(mesh_info_type)   , pointer :: mesh_info(:)
     type(ESMF_FieldBundle) , pointer :: FBArea(:)     ! needed for mediator history writes
 
- end type InternalStateStruct
+  end type InternalStateStruct
 
- type, public :: InternalState
+  type, public :: InternalState
     type(InternalStateStruct), pointer :: wrap
- end type InternalState
+  end type InternalState
 
   character(len=*), parameter :: u_FILE_u  = &
        __FILE__
@@ -223,12 +232,63 @@ contains
     character(len=CX)          :: msgString
     character(len=3)           :: name
     integer                    :: num_icesheets
+    character(len=CL)          :: atm_mesh_name
+    character(len=CL)          :: lnd_mesh_name
+    logical                    :: isPresent_lnd, isSet_lnd
+    logical                    :: isPresent_atm, isSet_atm
     character(len=*),parameter :: subname=' (internalstate init) '
     !-----------------------------------------------------------
 
     nullify(is_local%wrap)
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    ! determine if atm and lnd have the same mesh
+    call NUOPC_CompAttributeGet(gcomp, name='mesh_atm', value=atm_mesh_name, &
+         isPresent=isPresent_atm, isSet=isSet_atm, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompAttributeGet(gcomp, name='mesh_lnd', value=lnd_mesh_name, &
+         isPresent=isPresent_lnd, isSet=isSet_lnd, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    if ((isPresent_lnd .and. isSet_lnd) .and. (isPresent_atm .and. isSet_atm)) then
+      if (trim(atm_mesh_name) == trim(lnd_mesh_name)) then
+        samegrid_atmlnd = .true.
+      else
+        samegrid_atmlnd = .false.
+      end if
+    else
+      samegrid_atmlnd = .true.
+    end if
+
+    ! See med_fraction_mod for the following definitions
+    if (samegrid_atmlnd) then
+      map_fracname_lnd2atm       = 'lfrin' ! in fraclist_a
+      mrg_fracname_lnd2atm_state = 'lfrac' ! in fraclist_a
+      mrg_fracname_lnd2atm_flux  = 'lfrac' ! in fraclist_a
+      map_fracname_lnd2rof       = 'lfrac' ! in fraclist_r
+      mrg_fracname_lnd2rof       = 'lfrac' ! in fraclist_r
+      map_fracname_lnd2glc       = 'lfrac' ! in fraclist_g
+      mrg_fracname_lnd2glc       = 'lfrac' ! in fraclist_g
+    else
+      map_fracname_lnd2atm       = 'lfrin' ! in fraclist_a
+      mrg_fracname_lnd2atm_state = 'lfrac' ! in fraclist_a
+      mrg_fracname_lnd2atm_flux  = 'lfrin' ! in fraclist_a
+      map_fracname_lnd2rof       = 'lfrin' ! in fraclist_r
+      mrg_fracname_lnd2rof       = 'lfrin' ! in fraclist_r
+      map_fracname_lnd2glc       = 'lfrin' ! in fraclist_g
+      mrg_fracname_lnd2rof       = 'lfrin' ! in fraclist_g
+    endif
+
+    if (maintask) then
+      write(logunit,'(a,i8)') trim(subname)//'      map_fracname_lnd2atm       = '//trim(map_fracname_lnd2atm)      //' in fraclist_a'
+      write(logunit,'(a,i8)') trim(subname)//'      mrg_fracname_lnd2atm_state = '//trim(mrg_fracname_lnd2atm_state)//' in fraclist_a'
+      write(logunit,'(a,i8)') trim(subname)//'      mrg_fracname_lnd2atm_flux  = '//trim(mrg_fracname_lnd2atm_flux) //' in fraclist_a'
+      write(logunit,'(a,i8)') trim(subname)//'      map_fracname_lnd2rof       = '//trim(map_fracname_lnd2rof)      //' in fraclist_r'
+      write(logunit,'(a,i8)') trim(subname)//'      mrg_fracname_lnd2rof       = '//trim(mrg_fracname_lnd2rof)      //' in fraclist_r'
+      write(logunit,'(a,i8)') trim(subname)//'      map_fracname_lnd2glc       = '//trim(map_fracname_lnd2glc)      //' in fraclist_g'
+      write(logunit,'(a,i8)') trim(subname)//'      mrg_fracname_lnd2rof       = '//trim(mrg_fracname_lnd2rof)      //' in fraclist_g'
+    end if
 
     ! Determine if glc is present
     call NUOPC_CompAttributeGet(gcomp, name='GLC_model', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
@@ -451,9 +511,6 @@ contains
     med_coupling_allowed(compice,compocn) = .true.
     med_coupling_allowed(comprof,compocn) = .true.
     med_coupling_allowed(compwav,compocn) = .true.
-    do ns = 1,is_local%wrap%num_icesheets
-       med_coupling_allowed(compglc(ns),compocn) = .true.
-    end do
 
     ! to ice
     med_coupling_allowed(compatm,compice) = .true.
@@ -466,6 +523,9 @@ contains
 
     ! to river
     med_coupling_allowed(complnd,comprof) = .true.
+    do ns = 1,is_local%wrap%num_icesheets
+       med_coupling_allowed(compglc(ns),comprof) = .true.
+    end do
 
     ! to wave
     med_coupling_allowed(compatm,compwav) = .true.
@@ -477,7 +537,7 @@ contains
             isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (isPresent .and. isSet) then
-       ! are multiple ocean depths for temperature and salinity sent from the ocn to glc?
+       ! multiple ocean depths for temperature and salinity sent from the ocn to glc
        read(cvalue,*) is_local%wrap%ocn2glc_coupling
     else
        is_local%wrap%ocn2glc_coupling = .false.

@@ -26,7 +26,7 @@ jobs:
       CPPFLAGS: "-I/usr/include -I/usr/local/include "
       LDFLAGS: "-L/usr/lib/x86_64-linux-gnu -lnetcdf -lnetcdff -lpnetcdf"     
       # Versions of all dependencies can be updated here
-      ESMF_VERSION: v8.6.0
+      ESMF_VERSION: v8.6.1
       PARALLELIO_VERSION: pio2_6_2
       CIME_MODEL: cesm
       CIME_DRIVER: nuopc
@@ -64,13 +64,13 @@ jobs:
         run: pip install -r requirements.txt
       # use the latest cesm main
       - name: cesm checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: ESCOMP/CESM
           path: cesm
       # this cmeps commit
       - name: cmeps checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           path: cesm/components/cmeps
           
@@ -79,7 +79,7 @@ jobs:
       - name: checkout externals
         run: |
           pushd cesm
-          ./manage_externals/checkout_externals ccs_config cdeps share mct cpl7 parallelio
+          ./bin/git-fleximod update ccs_config cdeps share mct parallelio
           cd ccs_config
           git checkout main 
           cd ../
@@ -94,72 +94,55 @@ jobs:
           git submodule update --init
           cd ../components/cdeps
           git checkout main
+          git submodule update --init
+          cd ../../share
+          git checkout main
           
       - name: Cache ESMF
         id: cache-esmf
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/ESMF
-          key: ${{ runner.os }}-${{ env.ESMF_VERSION }}-ESMF1
-      # - name: cache pnetcdf
-      #   id: cache-pnetcdf
-      #   uses: actions/cache@v3
-      #   with:
-      #     path: ~/pnetcdf
-      #     key: ${{ runner.os }}-${{ env.PNETCDF_VERSION}}-pnetcdf
-
-      # - name: Cache netcdf-fortran
-      #   id: cache-netcdf-fortran
-      #   uses: actions/cache@v3
-      #   with:
-      #     path: ~/netcdf-fortran
-      #     key: ${{ runner.os }}-${{ env.NETCDF_FORTRAN_VERSION }}-netcdf-fortran
+          key: ${{ runner.os }}-${{ env.ESMF_VERSION }}
 
       - name: Cache ParallelIO
         id: cache-ParallelIO
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
-          path: ~/pio
+          path: ${GITHUB_WORKSPACE}/pio
           key: ${{ runner.os }}-${{ env.PARALLELIO_VERSION }}.parallelio
+
       - name: Cache inputdata
         id: cache-inputdata
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: $HOME/cesm/inputdata
           key: inputdata
-      # - name: Build PNetCDF
-      #   if: steps.cache-pnetcdf.outputs.cache-hit != 'true'
-      #   uses: ESCOMP/CDEPS/.github/actions/buildpnetcdf@e06246b560d3132170bb1a5443fa3d65dfbd2040
-      #   with:
-      #     pnetcdf_version: ${{ env.PNETCDF_VERSION }}
-      #     install_prefix: $HOME/pnetcdf
-      # - name: Build NetCDF Fortran
-      #   if: steps.cache-netcdf-fortran.outputs.cache-hit != 'true'
-      #   uses: ESCOMP/CDEPS/.github/actions/buildnetcdff@e06246b560d3132170bb1a5443fa3d65dfbd2040
-      #   with:
-      #     netcdf_fortran_version: ${{ env.NETCDF_FORTRAN_VERSION }}
-      #     install_prefix: $HOME/netcdf-fortran
-      #     netcdf_c_path: /usr
+
       - name: Build ParallelIO
         if: steps.cache-PARALLELIO.outputs.cache-hit != 'true'
         uses: NCAR/ParallelIO/.github/actions/parallelio_cmake@05173a6556ea8d80eb34e3881a5014ea8f4b7543
         with:
           parallelio_version: ${{ env.ParallelIO_VERSION }}
           enable_fortran: True
-          install_prefix: /home/runner/pio
+          install_prefix: ${GITHUB_WORKSPACE}/pio
           
-      - name: Build ESMF
-        if: steps.cache-esmf.outputs.cache-hit != 'true'
-        uses: ESCOMP/CDEPS/.github/actions/buildesmf@e06246b560d3132170bb1a5443fa3d65dfbd2040
+      - name: Install ESMF
+        uses: esmf-org/install-esmf-action@v1
+        env:
+          ESMF_COMPILER: gfortran
+          ESMF_BOPT: g
+          ESMF_COMM: openmpi
+          ESMF_NETCDF: nc-config
+          ESMF_PNETCDF: pnetcdf-config
+          ESMF_INSTALL_PREFIX: ${GITHUB_WORKSPACE}/ESMF
+          ESMF_PIO: external
+          ESMF_PIO_INCLUDE: ${GITHUB_WORKSPACE}/pio/include
+          ESMF_PIO_LIBPATH: ${GITHUB_WORKSPACE}/pio/lib
         with:
-          esmf_version: ${{ env.ESMF_VERSION }}
-          esmf_bopt: g
-          esmf_comm: openmpi
-          install_prefix: ~/ESMF
-          netcdf_c_path: /usr
-          netcdf_fortran_path: /usr
-          pnetcdf_path: /usr
-          parallelio_path: ~/pio
+          version: ${{ env.ESMF_VERSION }}
+          esmpy: false
+          cache: true
 
 
       - name: PREP for scripts regression test
@@ -169,14 +152,13 @@ jobs:
           pushd $GITHUB_WORKSPACE/cesm/cime/CIME/tests
           export SRCROOT=$GITHUB_WORKSPACE/cesm/
           export CIME_TEST_PLATFORM=ubuntu-latest
-          export PIO_INCDIR=$HOME/pio/include
-          export PIO_LIBDIR=$HOME/pio/lib
+          export PIO_INCDIR=$GITHUB_WORKSPACE/pio/include
+          export PIO_LIBDIR=$GITHUB_WORKSPACE/pio/lib
           export PIO_VERSION_MAJOR=2
           export PIO_TYPENAME_VALID_VALUES="netcdf,pnetcdf"
           export NETCDF_PATH=/usr
           export PNETCDF_PATH=/usr
           export LD_LIBRARY_PATH=/usr/lib/libx86_64-linux-gnu/:$LD_LIBRARY_PATH
-          export ESMFMKFILE=$HOME/ESMF/lib/libg/Linux.gfortran.64.openmpi.default/esmf.mk
           cat <<EOF >> $GITHUB_WORKSPACE/cesm/ccs_config/machines/cmake_macros/ubuntu-latest.cmake
           set(NetCDF_Fortran_INCLUDE_DIR /usr/include)
           set(NetCDF_Fortran_LIBRARY /usr/lib/x86_64-gnu-Linux/libnetcdff.so)
