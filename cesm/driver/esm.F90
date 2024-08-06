@@ -877,6 +877,9 @@ contains
     character(len=5)               :: inst_suffix
     character(CL)                  :: cvalue
     logical                        :: found_comp
+#ifdef ESMF_AWARE_THREADING
+    integer                        :: cnt
+#endif
     integer :: rank, nprocs, ierr
     character(len=*), parameter    :: subname = "(esm_pelayout.F90:esm_init_pelayout)"
     !---------------------------------------
