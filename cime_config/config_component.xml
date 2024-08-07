@@ -2412,6 +2412,19 @@
  </entry>
 
   <!-- ===================================================================== -->
+  <!-- optionally connect the case to a remote git repository,               -->
+  <!-- the branch is the case name and must be unique in remote              -->
+  <!-- ===================================================================== -->
+
+ <entry id="CASE_GIT_REPOSITORY">
+   <type>char</type>
+   <default_value></default_value>
+   <group>case_git</group>
+   <file>env_build.xml</file>
+   <desc>Remote git repository used for this case</desc>
+ </entry>
+
+<!-- ===================================================================== -->
   <!-- Include the AOFLUX calculation for this compset -->
   <!-- ===================================================================== -->
 
