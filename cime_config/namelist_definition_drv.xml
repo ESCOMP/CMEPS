@@ -929,7 +929,8 @@
       default: ogrid
     </desc>
     <values>
-      <value>ogrid</value>
+      <value samegrid_atm_ocn='false'>xgrid</value>
+      <value samegrid_atm_ocn='true'>ogrid</value>
     </values>
   </entry>
   <entry id="ocn_surface_flux_scheme">
