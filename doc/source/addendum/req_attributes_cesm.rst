@@ -101,24 +101,19 @@ Mediator land-ice component attribtes
   Whether to renormalize the surface mass balance (smb) sent from lnd to glc so that the
   global integral on the glc grid agrees with the global integral on the lnd grid.
 
-  Unlike most fluxes, smb is remapped with bilinear rather than conservative mapping weights,
-  so this option is needed for conservation. However, conservation is not required in many
-  cases, since we often run glc as a diagnostic (one-way-coupled) component.
+  Unlike most fluxes, smb is remapped with bilinear rather than conservative mapping
+  weights, so this option is needed for conservation. However, this can be turned off in
+  non-fully-coupled configurations where conservation isn't important (e.g., glc-only
+  configurations - T compsets) to avoid the global correction that comes with this
+  renormalization.
 
   Allowable values are:
-  ``on``: always do this renormalization
+  ``on``: do this renormalization
 
-  ``off``: never do this renormalization (see WARNING below)
+  ``off``: do not do this renormalization; note that this will break conservation so
+  typically should not be used in fully-coupled cases
 
-  ``on_if_glc_coupled_fluxes``: Determine at runtime whether to do this renormalization.
-  Does the renormalization if we're running a two-way-coupled glc that sends fluxes
-  to other components (which is the case where we need conservation).
-  Does NOT do the renormalization if we're running a one-way-coupled glc, or if
-  we're running a glc-only compset (T compsets).
-  (In these cases, conservation is not important.)
-  Only used if running with a prognostic GLC component.
-  WARNING: Setting this to 'off' will break conservation when running with an
-  evolving, two-way-coupled glc.
+  Only used if running with a GLC component.
 
 **glc_avg_period**
   Period at which coupler averages fields sent to GLC (the land-ice component).
