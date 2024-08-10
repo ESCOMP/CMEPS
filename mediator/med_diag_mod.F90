@@ -1204,7 +1204,7 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if ( fldbun_fldchk(is_local%wrap%FBImp(comprof,comprof), 'Forr_rofl_glc', rc=rc)) then
-      call diag_rof(is_local%wrap%FBImp(comprof,comprof), 'Forr_rofi_glc' , f_watr_roff, ic, areas, budget_local, minus=.true., rc=rc)
+      call diag_rof(is_local%wrap%FBImp(comprof,comprof), 'Forr_rofl_glc' , f_watr_roff, ic, areas, budget_local, minus=.true., rc=rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
     if ( fldbun_fldchk(is_local%wrap%FBImp(comprof,comprof), 'Forr_rofi_glc', rc=rc)) then
