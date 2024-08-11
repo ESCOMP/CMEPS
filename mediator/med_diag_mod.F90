@@ -1361,21 +1361,6 @@ contains
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    ! TODO: will the following be correct if there is more than 1 ice sheet ???
-
-    !-------------------------------
-    ! from mediator to glc
-    !-------------------------------
-
-    ic = c_glc_send
-    ip = period_inst
-
-    do ns = 1,is_local%wrap%num_icesheets
-       areas => is_local%wrap%mesh_info(compglc(ns))%areas
-       call diag_glc(is_local%wrap%FBImp(compglc(ns),compglc(ns)), 'Flgl_qice', f_watr_ioff, ic, areas, budget_local, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    end do
-
     !-------------------------------
     ! from glc to mediator
     !-------------------------------
