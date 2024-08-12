@@ -72,6 +72,8 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     atm_mesh = case.get_value("ATM_DOMAIN_MESH")
     lnd_mesh = case.get_value("LND_DOMAIN_MESH")
     rof_mesh = case.get_value("ROF_DOMAIN_MESH")
+    ocn_mesh = case.get_value("OCN_DOMAIN_MESH")
+    wav_mesh = case.get_value("WAV_DOMAIN_MESH")
     config["samegrid_atm_lnd"] = (
         "true" if atm_mesh == case.get_value("LND_DOMAIN_MESH") else "false"
     )
@@ -85,6 +87,7 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
         "true" if atm_mesh == case.get_value("WAV_DOMAIN_MESH") else "false"
     )
     config["samegrid_lnd_rof"] = "true" if lnd_mesh == rof_mesh else "false"
+    config["samegrid_wav_ocn"] = "true" if ocn_mesh == wav_mesh else "false"
 
     # determine if need to set atm_domainfile
     scol_lon = float(case.get_value("PTS_LON"))
