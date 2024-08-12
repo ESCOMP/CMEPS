@@ -76,7 +76,7 @@ module esmFldsExchange_cesm_mod
   character(len=CX)   :: lnd2rof_map = 'unset'
 
   ! optional mapping files 
-  character(len=CX)   :: wav2ocn_smap ='unset'
+  character(len=CX)   :: wav2ocn_map ='unset'
   character(len=CX)   :: ocn2wav_map = 'unset'
   
   ! no mapping files (value is 'idmap' or 'unset')
@@ -204,12 +204,12 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        if (maintask) write(logunit, '(a)') trim(subname)//'rof2ocn_ice_rmapname = '// trim(rof2ocn_ice_rmap)
 
-       call NUOPC_CompAttributeGet(gcomp, name='wav2ocn_smapname', value=wav2ocn_smap,  rc=rc)
+       call NUOPC_CompAttributeGet(gcomp, name='wav2ocn_smapname', value=wav2ocn_map,  rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (maintask) write(logunit, '(a)') trim(subname)//'wav2ocn_smapname = '// trim(wav2ocn_smap)
-       call NUOPC_CompAttributeGet(gcomp, name='ocn2wav_smapname', value=ocn2wav_smap,  rc=rc)
+       if (maintask) write(logunit, '(a)') trim(subname)//'wav2ocn_smapname = '// trim(wav2ocn_map)
+       call NUOPC_CompAttributeGet(gcomp, name='ocn2wav_smapname', value=ocn2wav_map,  rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (maintask) write(logunit, '(a)') trim(subname)//'ocn2wav_smapname = '// trim(ocn2wav_smap)
+       if (maintask) write(logunit, '(a)') trim(subname)//'ocn2wav_smapname = '// trim(ocn2wav_map)
 
 
        ! uv cart3d mapping
@@ -2480,7 +2480,7 @@ contains
     else
        if ( fldchk(is_local%wrap%FBExp(compocn)         , 'Sw_lamult', rc=rc) .and. &
             fldchk(is_local%wrap%FBImp(compwav, compwav), 'Sw_lamult', rc=rc)) then
-          call addmap_from(compwav, 'Sw_lamult', compocn,  mapbilnr_nstod, 'one', wav2ocn_smap)
+          call addmap_from(compwav, 'Sw_lamult', compocn,  mapbilnr_nstod, 'one', wav2ocn_map)
           call addmrg_to(compocn, 'Sw_lamult', mrg_from=compwav, mrg_fld='Sw_lamult', mrg_type='copy')
        end if
     end if
@@ -2493,7 +2493,7 @@ contains
     else
        if ( fldchk(is_local%wrap%FBExp(compocn)         , 'Sw_ustokes', rc=rc) .and. &
             fldchk(is_local%wrap%FBImp(compwav, compwav), 'Sw_ustokes', rc=rc)) then
-          call addmap_from(compwav, 'Sw_ustokes', compocn,  mapbilnr_nstod, 'one', wav2ocn_smap)
+          call addmap_from(compwav, 'Sw_ustokes', compocn,  mapbilnr_nstod, 'one', wav2ocn_map)
           call addmrg_to(compocn, 'Sw_ustokes', mrg_from=compwav, mrg_fld='Sw_ustokes', mrg_type='copy')
        end if
     end if
@@ -2506,7 +2506,7 @@ contains
     else
        if ( fldchk(is_local%wrap%FBExp(compocn)         , 'Sw_vstokes', rc=rc) .and. &
             fldchk(is_local%wrap%FBImp(compwav, compwav), 'Sw_vstokes', rc=rc)) then
-          call addmap_from(compwav, 'Sw_vstokes', compocn,  mapbilnr_nstod, 'one', wav2ocn_smap)
+          call addmap_from(compwav, 'Sw_vstokes', compocn,  mapbilnr_nstod, 'one', wav2ocn_map)
           call addmrg_to(compocn, 'Sw_vstokes', mrg_from=compwav, mrg_fld='Sw_vstokes', mrg_type='copy')
        end if
     end if
@@ -2519,7 +2519,7 @@ contains
     else
        if ( fldchk(is_local%wrap%FBExp(compocn)         , 'Sw_hstokes', rc=rc) .and. &
             fldchk(is_local%wrap%FBImp(compwav, compwav), 'Sw_hstokes', rc=rc)) then
-          call addmap_from(compwav, 'Sw_hstokes', compocn,  mapbilnr_nstod, 'one', wav2ocn_smap)
+          call addmap_from(compwav, 'Sw_hstokes', compocn,  mapbilnr_nstod, 'one', wav2ocn_map)
           call addmrg_to(compocn, 'Sw_hstokes', mrg_from=compwav, mrg_fld='Sw_hstokes', mrg_type='copy')
        end if
     end if
@@ -2532,7 +2532,7 @@ contains
     else
        if ( fldchk(is_local%wrap%FBExp(compocn)         , 'Sw_pstokes_x', rc=rc) .and. &
             fldchk(is_local%wrap%FBImp(compwav, compwav), 'Sw_pstokes_x', rc=rc)) then
-          call addmap_from(compwav, 'Sw_pstokes_x', compocn,  mapbilnr_nstod, 'one', wav2ocn_smap)
+          call addmap_from(compwav, 'Sw_pstokes_x', compocn,  mapbilnr_nstod, 'one', wav2ocn_map)
           call addmrg_to(compocn, 'Sw_pstokes_x', mrg_from=compwav, mrg_fld='Sw_pstokes_x', mrg_type='copy')
        end if
     end if
@@ -2545,7 +2545,7 @@ contains
     else
        if ( fldchk(is_local%wrap%FBExp(compocn)         , 'Sw_pstokes_y', rc=rc) .and. &
             fldchk(is_local%wrap%FBImp(compwav, compwav), 'Sw_pstokes_y', rc=rc)) then
-          call addmap_from(compwav, 'Sw_pstokes_y', compocn,  mapbilnr_nstod, 'one', wav2ocn_smap)
+          call addmap_from(compwav, 'Sw_pstokes_y', compocn,  mapbilnr_nstod, 'one', wav2ocn_map)
           call addmrg_to(compocn, 'Sw_pstokes_y', mrg_from=compwav, mrg_fld='Sw_pstokes_y', mrg_type='copy')
        end if
     end if
@@ -2998,7 +2998,7 @@ contains
        else
           if ( fldchk(is_local%wrap%FBExp(compice)        , 'Sw_elevation_spectrum', rc=rc) .and. &
                fldchk(is_local%wrap%FBImp(compwav,compwav), 'Sw_elevation_spectrum', rc=rc)) then
-             call addmap_from(compwav, 'Sw_elevation_spectrum', compice, mapbilnr_nstod, 'one', wav2ocn_smap)
+             call addmap_from(compwav, 'Sw_elevation_spectrum', compice, mapbilnr_nstod, 'one', wav2ocn_map)
              call addmrg_to(compice, 'Sw_elevation_spectrum', &
                   mrg_from=compwav, mrg_fld='Sw_elevation_spectrum', mrg_type='copy')
           end if
