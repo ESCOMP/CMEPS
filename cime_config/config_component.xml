@@ -1405,6 +1405,22 @@
     <desc>rof2ocn runoff mapping file</desc>
   </entry>
 
+  <entry id="OCN2WAV_SMAPNAME">
+    <type>char</type>
+    <default_value>idmap</default_value>
+    <group>run_domain</group>
+    <file>env_run.xml</file>
+    <desc>ocn2wav state mapping file</desc>
+  </entry>
+
+  <entry id="WAV2OCN_SMAPNAME">
+    <type>char</type>
+    <default_value>idmap</default_value>
+    <group>run_domain</group>
+    <file>env_run.xml</file>
+    <desc>wav2ocn state mapping file</desc>
+  </entry>
+  
   <entry id="EPS_FRAC">
     <type>char</type>
     <default_value>1.0e-02</default_value>
