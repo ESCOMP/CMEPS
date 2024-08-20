@@ -2202,6 +2202,7 @@ contains
     ! ---------------------------------------------------------------------
     ! to ocn: enthalpy from atm rain, snow, evaporation
     ! to ocn: enthalpy from liquid and ice river runoff
+    ! to ocn: enthalpy from liquid and ice glacier runoff
     ! to ocn: enthalpy from ice melt
     ! ---------------------------------------------------------------------
     ! Note - do not need to add addmap or addmrg for the following since they
@@ -2213,23 +2214,8 @@ contains
        call addfld_to(compocn, 'Foxx_hcond')
        call addfld_to(compocn, 'Foxx_hrofl')
        call addfld_to(compocn, 'Foxx_hrofi')
-
-       call addfld_from(compatm, 'Faxa_hrain')
-       call addfld_from(compatm, 'Faxa_hsnow')
-       call addfld_from(compatm, 'Faxa_hevap')
-    else
-       if ( fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_hrain', rc=rc)) then
-          !            fldchk(is_local%wrap%FBExp(compocn)        , 'Foxx_hrain', rc=rc)) then
-          call addmap_from(compatm, 'Faxa_hrain', compocn, mapconsf, 'one', atm2ocn_map)
-       end if
-       if ( fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_hsnow', rc=rc)) then
-          !            fldchk(is_local%wrap%FBExp(compocn)        , 'Foxx_hsnow', rc=rc)) then
-          call addmap_from(compatm, 'Faxa_hsnow', compocn, mapconsf, 'one', atm2ocn_map)
-       end if
-       if ( fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_hevap', rc=rc)) then
-          !            fldchk(is_local%wrap%FBExp(compocn)        , 'Foxx_hevap', rc=rc)) then
-          call addmap_from(compatm, 'Faxa_hevap', compocn, mapconsf, 'one', atm2ocn_map)
-       end if
+       call addfld_to(compocn, 'Foxx_hrofl_glc')
+       call addfld_to(compocn, 'Foxx_hrofi_glc')
     end if
 
     ! ---------------------------------------------------------------------

@@ -2173,14 +2173,13 @@ contains
              end if
              is_local%wrap%nx(n1) = nint(real_nx)
              is_local%wrap%ny(n1) = nint(real_ny)
-          endif
-          if (is_local%wrap%comp_present(n1)) then
+
              write(msgString,'(3i8)') is_local%wrap%nx(n1), is_local%wrap%ny(n1), is_local%wrap%ntile(n1)
+             call ESMF_LogWrite(trim(subname)//":"//trim(compname(n1))//":"//trim(msgString), ESMF_LOGMSG_INFO)
              if (maintask) then
                 write(logunit,'(a)') 'global nx,ny,ntile sizes for '//trim(compname(n1))//":"//trim(msgString)
              end if
-             call ESMF_LogWrite(trim(subname)//":"//trim(compname(n1))//":"//trim(msgString), ESMF_LOGMSG_INFO)
-          endif
+          end if
        end do
        if (maintask) write(logunit,*)
 

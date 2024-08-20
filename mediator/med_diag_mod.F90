@@ -151,6 +151,8 @@ module med_diag_mod
   integer :: f_heat_cond     = unset_index ! heat : heat content of evaporation
   integer :: f_heat_rofl     = unset_index ! heat : heat content of liquid runoff
   integer :: f_heat_rofi     = unset_index ! heat : heat content of ice runoff
+  integer :: f_heat_rofl_glc = unset_index ! heat : heat content of liquid glc runoff
+  integer :: f_heat_rofi_glc = unset_index ! heat : heat content of ice glc runoff
 
   integer :: f_watr_frz      = unset_index ! water: freezing
   integer :: f_watr_melt     = unset_index ! water: melting
@@ -331,14 +333,16 @@ contains
        f_heat_beg = f_heat_frz      ! field  first index for heat
        f_heat_end = f_heat_sen      ! field  last  index for heat
     else if (trim(budget_table_version) == 'v1') then
-       call add_to_budget_diag(budget_diags%fields, f_heat_rain  ,'hrain'       ) ! field  heat : enthalpy of rain
-       call add_to_budget_diag(budget_diags%fields, f_heat_snow  ,'hsnow'       ) ! field  heat : enthalpy of snow
-       call add_to_budget_diag(budget_diags%fields, f_heat_evap  ,'hevap'       ) ! field  heat : enthalpy of evaporation
-       call add_to_budget_diag(budget_diags%fields, f_heat_cond  ,'hcond'       ) ! field  heat : enthalpy of evaporation
-       call add_to_budget_diag(budget_diags%fields, f_heat_rofl  ,'hrofl'       ) ! field  heat : enthalpy of liquid runoff
-       call add_to_budget_diag(budget_diags%fields, f_heat_rofi  ,'hrofi'       ) ! field  heat : enthalpy of ice runoff
+       call add_to_budget_diag(budget_diags%fields, f_heat_rain    ,'hrain'     ) ! field  heat : enthalpy of rain
+       call add_to_budget_diag(budget_diags%fields, f_heat_snow    ,'hsnow'     ) ! field  heat : enthalpy of snow
+       call add_to_budget_diag(budget_diags%fields, f_heat_evap    ,'hevap'     ) ! field  heat : enthalpy of evaporation
+       call add_to_budget_diag(budget_diags%fields, f_heat_cond    ,'hcond'     ) ! field  heat : enthalpy of evaporation
+       call add_to_budget_diag(budget_diags%fields, f_heat_rofl    ,'hrofl'     ) ! field  heat : enthalpy of liquid runoff
+       call add_to_budget_diag(budget_diags%fields, f_heat_rofi    ,'hrofi'     ) ! field  heat : enthalpy of ice runoff
+       call add_to_budget_diag(budget_diags%fields, f_heat_rofl_glc,'hrofl_glc' ) ! field  heat : enthalpy of liquid glc runoff
+       call add_to_budget_diag(budget_diags%fields, f_heat_rofi_glc,'hrofi_glc' ) ! field  heat : enthalpy of ice glc runoff
        f_heat_beg = f_heat_frz      ! field  first index for heat
-       f_heat_end = f_heat_rofi     ! field  last  index for heat
+       f_heat_end = f_heat_rofi_glc ! field  last  index for heat
     end if
 
     ! -----------------------------------------
@@ -1619,6 +1623,10 @@ contains
     call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_hrofl', f_heat_rofl , ic, areas, sfrac, budget_local, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_hrofi', f_heat_rofi , ic, areas, sfrac, budget_local, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_hrofl_glc', f_heat_rofl_glc, ic, areas, sfrac, budget_local, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_hrofi_glc', f_heat_rofi_glc , ic, areas, sfrac, budget_local, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     budget_local(f_heat_latf,ic,ip) = -budget_local(f_watr_snow,ic,ip)*shr_const_latice
