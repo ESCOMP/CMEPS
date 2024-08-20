@@ -20,13 +20,13 @@ jobs:
       CPPFLAGS: "-I/usr/include -I/usr/local/include"
 
       # Versions of all dependencies can be updated here
-      ESMF_VERSION: v8.6.0
+      ESMF_VERSION: v8.6.1
       PNETCDF_VERSION: checkpoint.1.12.3
       NETCDF_FORTRAN_VERSION: v4.6.1
       PIO_VERSION: pio2_6_2
-      CDEPS_VERSION: cdeps1.0.26
+      CDEPS_VERSION: cdeps1.0.36
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         # Build the ESMF library, if the cache contains a previous build
         # it will be used instead
       - id: load-env
@@ -40,13 +40,13 @@ jobs:
           sudo apt-get install pnetcdf-bin libpnetcdf-dev
           sudo apt-get install autotools-dev autoconf
       - id: cache-esmf
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/ESMF
           key: ${{ runner.os }}-${{ env.ESMF_VERSION }}-ESMF
       - name: Cache ParallelIO
         id: cache-ParallelIO
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/pio
           key: ${{ runner.os }}-${{ env.PIO_VERSION }}.pio
@@ -71,17 +71,21 @@ jobs:
           parallelio_path: $HOME/pio
       - name: Cache CDEPS
         id: cache-cdeps
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
-          path: $HOME/cdeps
-          key: ${{ runner.os }}-${{ env.CDEPS_VERSION }}.cdeps
+          path: /homme/runner/work/CMEPS/CMEPS/build-cdeps
+          key: ${{ runner.os }}-${{ env.CDEPS_VERSION }}.cdeps1
           
       - name: checkout CDEPS
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: ESCOMP/CDEPS
           path: cdeps-src
           ref: ${{ env.CDEPS_VERSION }}
+      - name: get genf90
+        run: |
+          cd cdeps-src
+          git submodule update --init 
       - name: Build CDEPS
         if: steps.cache-cdeps.outputs.cache-hit != 'true'
         uses: ESCOMP/CDEPS/.github/actions/buildcdeps@cdeps1.0.26
@@ -89,13 +93,13 @@ jobs:
           esmfmkfile: $HOME/ESMF/lib/libg/Linux.gfortran.64.openmpi.default/esmf.mk
           pio_path: $HOME/pio
           src_root: ${GITHUB_WORKSPACE}/cdeps-src
-          cmake_flags: " -Wno-dev -DCMAKE_BUILD_TYPE=DEBUG -DWERROR=ON  -DCMAKE_Fortran_FLAGS=\"-DCPRGNU -g -Wall \
+          cmake_flags: " -Wno-dev -DDISABLE_FoX=ON -DCMAKE_BUILD_TYPE=DEBUG -DWERROR=ON  -DCMAKE_Fortran_FLAGS=\"-DCPRGNU -g -Wall \
           -ffree-form -ffree-line-length-none -fallow-argument-mismatch \""
       
       - name: Build CMEPS
         run: |
-          export ESMFMKFILE=$HOME/ESMF/lib/libg/Linux.gfortran.64.openmpi.default/esmf.mk
           export PIO=$HOME/pio
+          export ESMFMKFILE=$HOME/ESMF/lib/libg/Linux.gfortran.64.openmpi.default/esmf.mk
           mkdir build-cmeps
           pushd build-cmeps
           cmake -DCMAKE_BUILD_TYPE=DEBUG -DCMAKE_Fortran_FLAGS="-g -Wall -Werror -ffree-form -ffree-line-length-none  -Wno-unused-dummy-argument -I /home/runner/work/CMEPS/CMEPS/build-cdeps/share" ../

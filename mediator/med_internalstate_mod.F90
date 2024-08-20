@@ -477,7 +477,7 @@ contains
             isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (isPresent .and. isSet) then
-       ! are multiple ocean depths for temperature and salinity sent from the ocn to glc?
+       ! multiple ocean depths for temperature and salinity sent from the ocn to glc
        read(cvalue,*) is_local%wrap%ocn2glc_coupling
     else
        is_local%wrap%ocn2glc_coupling = .false.
