@@ -35,7 +35,9 @@ def gen_runseq(case, coupling_times):
         runseq.add_action ("MED med_phases_prep_glc"        , med_to_glc)
         runseq.add_action ("MED -> GLC :remapMethod=redist" , med_to_glc)
         runseq.add_action ("GLC"                            , run_glc)
-        runseq.add_action ("GLC -> MED :remapMethod=redist" , run_glc)
+        # Need to do GLC -> MED even if not running GLC; otherwise, we get a
+        # failure in InitializeRealize ("Object being used before creation")
+        runseq.add_action ("GLC -> MED :remapMethod=redist" , med_to_glc)
         runseq.add_action ("MED med_phases_history_write"   , True)
 
         runseq.leave_time_loop(True)

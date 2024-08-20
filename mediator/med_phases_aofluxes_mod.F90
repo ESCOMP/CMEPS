@@ -78,6 +78,7 @@ module med_phases_aofluxes_mod
   logical :: compute_atm_dens
   logical :: compute_atm_thbot
   integer :: ocn_surface_flux_scheme ! use case
+  logical :: add_gusts
 
   character(len=CS), pointer :: fldnames_ocn_in(:)
   character(len=CS), pointer :: fldnames_atm_in(:)
@@ -125,6 +126,7 @@ module med_phases_aofluxes_mod
      real(R8) , pointer :: shum_HDO    (:) => null() ! atm HDO tracer
      real(R8) , pointer :: shum_18O    (:) => null() ! atm H218O tracer
      real(R8) , pointer :: lwdn        (:) => null() ! atm downward longwave heat flux
+     real(R8) , pointer :: rainc       (:) => null() ! convective rain flux
      ! local size and computational mask and area: on aoflux grid
      integer            :: lsize                     ! local size
      integer  , pointer :: mask        (:) => null() ! integer ocn domain mask: 0 <=> inactive cell
@@ -146,6 +148,9 @@ module med_phases_aofluxes_mod
      real(R8) , pointer :: qref        (:) => null() ! diagnostic: 2m ref Q
      real(R8) , pointer :: u10         (:) => null() ! diagnostic: 10m wind speed
      real(R8) , pointer :: duu10n      (:) => null() ! diagnostic: 10m wind speed squared
+     real(R8) , pointer :: ugust_out   (:) => null() ! diagnostic: gust wind added
+     real(R8) , pointer :: u10_withGust(:) => null() ! diagnostic: gust wind added
+     real(R8) , pointer :: u10res      (:) => null() ! diagnostic: no gust wind added
      real(R8) , pointer :: ustar       (:) => null() ! saved ustar
      real(R8) , pointer :: re          (:) => null() ! saved re
      real(R8) , pointer :: ssq         (:) => null() ! saved sq
@@ -401,6 +406,14 @@ contains
        write(logunit,'(a)') trim(subname)//' ocn_surface_flux_scheme is '//trim(cvalue)
     end if
 #endif
+
+    call NUOPC_CompAttributeGet(gcomp, name='add_gusts', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+       read(cvalue,*) add_gusts
+    else
+       add_gusts = .false.
+    end if
 
     ! bottom level potential temperature and/or botom level density
     ! will need to be computed if not received from the atm
@@ -1052,6 +1065,7 @@ contains
     call flux_atmocn (logunit=logunit, &
          nMax=aoflux_in%lsize, &
          zbot=aoflux_in%zbot, ubot=aoflux_in%ubot, vbot=aoflux_in%vbot, thbot=aoflux_in%thbot, qbot=aoflux_in%shum, &
+         rainc=aoflux_in%rainc, &
          s16O=aoflux_in%shum_16O, sHDO=aoflux_in%shum_HDO, s18O=aoflux_in%shum_18O, rbot=aoflux_in%dens, &
          tbot=aoflux_in%tbot, us=aoflux_in%uocn, vs=aoflux_in%vocn, pslv=aoflux_in%psfc, ts=aoflux_in%tocn, &
          mask=aoflux_in%mask, seq_flux_atmocn_minwind=0.5_r8, &
@@ -1060,7 +1074,11 @@ contains
          evap=aoflux_out%evap, evap_16O=aoflux_out%evap_16O, evap_HDO=aoflux_out%evap_HDO, evap_18O=aoflux_out%evap_18O, &
          taux=aoflux_out%taux, tauy=aoflux_out%tauy, tref=aoflux_out%tref, qref=aoflux_out%qref, &
          ocn_surface_flux_scheme=ocn_surface_flux_scheme, &
-         duu10n=aoflux_out%duu10n, ustar_sv=aoflux_out%ustar, re_sv=aoflux_out%re, ssq_sv=aoflux_out%ssq, &
+         add_gusts=add_gusts, &
+         duu10n=aoflux_out%duu10n, & 
+         ugust_out = aoflux_out%ugust_out, &
+         u10res = aoflux_out%u10res, & 
+         ustar_sv=aoflux_out%ustar, re_sv=aoflux_out%re, ssq_sv=aoflux_out%ssq, &
          missval=0.0_r8)
 
 #else
@@ -1084,7 +1102,8 @@ contains
             ocn_surface_flux_scheme=ocn_surface_flux_scheme, &
             sen=aoflux_out%sen, lat=aoflux_out%lat, lwup=aoflux_out%lwup, evap=aoflux_out%evap, &
             taux=aoflux_out%taux, tauy=aoflux_out%tauy, tref=aoflux_out%tref, qref=aoflux_out%qref, &
-            duu10n=aoflux_out%duu10n, missval=0.0_r8)
+            duu10n=aoflux_out%duu10n, & 
+            missval=0.0_r8)
 #ifdef UFS_AOFLUX
      end if
 #endif
@@ -1092,8 +1111,9 @@ contains
 #endif
 
     do n = 1,aoflux_in%lsize
-       if (aoflux_in%mask(n) /= 0) then
-          aoflux_out%u10(n) = sqrt(aoflux_out%duu10n(n))
+       if (aoflux_in%mask(n) /= 0) then   
+          aoflux_out%u10(n)          = aoflux_out%u10res(n)
+          aoflux_out%u10_withGust(n) = sqrt(aoflux_out%duu10n(n))
        end if
     enddo
 
@@ -1581,6 +1601,8 @@ end subroutine med_aofluxes_map_ogrid2xgrid_input
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        call fldbun_getfldptr(fldbun_a, 'Sa_shum', aoflux_in%shum, xgrid=xgrid, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call fldbun_getfldptr(fldbun_a, 'Faxa_rainc', aoflux_in%rainc, xgrid=xgrid, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
     end if
 
     ! extra fields for ufs.frac.aoflux
@@ -1692,6 +1714,13 @@ end subroutine med_aofluxes_map_ogrid2xgrid_input
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call fldbun_getfldptr(fldbun, 'So_duu10n', aoflux_out%duu10n, xgrid=xgrid, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    call fldbun_getfldptr(fldbun, 'So_ugustOut', aoflux_out%ugust_out, xgrid=xgrid, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call fldbun_getfldptr(fldbun, 'So_u10withGust', aoflux_out%u10_withGust, xgrid=xgrid, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call fldbun_getfldptr(fldbun, 'So_u10res', aoflux_out%u10res, xgrid=xgrid, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
     call fldbun_getfldptr(fldbun, 'Faox_taux', aoflux_out%taux, xgrid=xgrid, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call fldbun_getfldptr(fldbun, 'Faox_tauy', aoflux_out%tauy, xgrid=xgrid, rc=rc)
@@ -1704,6 +1733,7 @@ end subroutine med_aofluxes_map_ogrid2xgrid_input
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call fldbun_getfldptr(fldbun, 'Faox_lwup', aoflux_out%lwup, xgrid=xgrid, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
+
     if (flds_wiso) then
        call fldbun_getfldptr(fldbun, 'Faox_evap_16O', aoflux_out%evap_16O, xgrid=xgrid, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -1715,6 +1745,13 @@ end subroutine med_aofluxes_map_ogrid2xgrid_input
        allocate(aoflux_out%evap_16O(lsize)); aoflux_out%evap_16O(:) = 0._R8
        allocate(aoflux_out%evap_18O(lsize)); aoflux_out%evap_18O(:) = 0._R8
        allocate(aoflux_out%evap_HDO(lsize)); aoflux_out%evap_HDO(:) = 0._R8
+    end if
+
+    if (add_gusts) then
+       call fldbun_getfldptr(fldbun, 'So_ugustOut', aoflux_out%ugust_out, xgrid=xgrid, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+    else
+       allocate(aoflux_out%ugust_out(lsize)); aoflux_out%ugust_out(:) = 0._R8
     end if
 
   end subroutine set_aoflux_out_pointers
