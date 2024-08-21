@@ -24,7 +24,6 @@ module med_phases_history_mod
   use med_io_mod            , only : med_io_write, med_io_wopen, med_io_enddef, med_io_close
   use perf_mod              , only : t_startf, t_stopf
   use pio                   , only : file_desc_t
-  use nuopc_shr_methods, only : get_minimum_timestep
 
   implicit none
   private
@@ -128,7 +127,6 @@ module med_phases_history_mod
   character(CL) :: case_name = 'unset'  ! case name
   character(CS) :: inst_tag = 'unset'   ! instance tag
   logical       :: debug_alarms = .true.
-  character(len=*), parameter :: optNsteps = "nstep"
   character(*), parameter :: u_FILE_u  = &
        __FILE__
 
@@ -186,7 +184,7 @@ contains
     type(ESMF_TimeInterval) :: ringInterval
     integer                 :: ringInterval_length
     logical                 :: first_time = .true.
-    integer                 :: min_timestep = 0    ! used for nsteps option
+
     character(len=*), parameter :: subname='(med_phases_history_write)'
     !---------------------------------------
 
@@ -224,10 +222,6 @@ contains
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           call ESMF_ClockGet(mclock, startTime=starttime,  rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-          if (hist_option_all_inst(1:len(optnsteps)) == optnsteps) then
-             min_timestep = get_minimum_timestep(gcomp, rc=rc)
-          endif
           call alarmInit(mclock, alarm, option=hist_option_all_inst, opt_n=hist_n_all_inst, &
                reftime=starttime, alarmname=alarmname, rc=rc)
           call ESMF_AlarmSet(alarm, clock=mclock, rc=rc)
