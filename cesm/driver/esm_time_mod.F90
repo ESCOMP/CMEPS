@@ -25,15 +25,12 @@ module esm_time_mod
 
   public  :: esm_time_clockInit  ! initialize driver clock (assumes default calendar)
 
-!  private :: esm_time_timeInit
-!  private :: esm_time_alarmInit
   private :: esm_time_date2ymd
 
   ! Clock and alarm options
   character(len=*), private, parameter :: &
        optNONE           = "none"    , &
        optNever          = "never"   , &
-       optNSteps         = "nstep"   , &
        optNSeconds       = "nsecond" , &
        optNMinutes       = "nminute" , &
        optNHours         = "nhour"   , &
@@ -254,7 +251,7 @@ contains
     ! Create the clock
     clock = ESMF_ClockCreate(TimeStep, StartTime, refTime=RefTime, name='ESMF Driver Clock', rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    
+
     ! Advance the clock to the current time (in case of a restart)
     call ESMF_ClockGet(clock, currTime=clocktime, rc=rc )
     if (ChkErr(rc,__LINE__,u_FILE_u)) return

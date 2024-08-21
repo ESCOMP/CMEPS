@@ -5,7 +5,7 @@ module med_phases_restart_mod
   !-----------------------------------------------------------------------------
 
   use med_kind_mod            , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
-!  use med_constants_mod       , only : dbug_flag => med_constants_dbug_flag
+  use med_constants_mod       , only : dbug_flag => med_constants_dbug_flag
   use med_utils_mod           , only : chkerr    => med_utils_ChkErr
   use med_internalstate_mod   , only : maintask, logunit, InternalState
   use med_internalstate_mod   , only : ncomps, compname, compocn, complnd, compwav
@@ -25,7 +25,6 @@ module med_phases_restart_mod
   logical :: write_restart_at_endofrun = .false.
   logical :: whead(2) = (/.true. , .false./)
   logical :: wdata(2) = (/.false., .true. /)
-  integer, parameter:: dbug_flag = 2
   character(*), parameter :: u_FILE_u  = &
        __FILE__
 
@@ -302,7 +301,6 @@ contains
             trim(nexttimestr),'.nc'
 
        if (maintask) then
-!          restart_pfile = "rpointer.cpl"//trim(cpl_inst_tag)//'.'//trim(nexttimestr)
           restart_pfile = "rpointer.cpl"//trim(cpl_inst_tag)
           call ESMF_LogWrite(trim(subname)//" write rpointer file = "//trim(restart_pfile), ESMF_LOGMSG_INFO)
           open(newunit=unitn, file=restart_pfile, form='FORMATTED')
@@ -548,23 +546,10 @@ contains
     endif
 
     ! Get the restart file name from the pointer file
-!    restart_pfile = "rpointer.cpl"//trim(cpl_inst_tag)//'.'//trim(currtimestr)
     restart_pfile = "rpointer.cpl"//trim(cpl_inst_tag)
     if (maintask) then
        call ESMF_LogWrite(trim(subname)//" read rpointer file = "//trim(restart_pfile), ESMF_LOGMSG_INFO)
        open(newunit=unitn, file=restart_pfile, form='FORMATTED', status='old', iostat=ierr)
-
-       if (ierr < 0) then
-          ! try without currtimestr
-          restart_pfile = "rpointer.cpl"//trim(cpl_inst_tag)
-          call ESMF_LogWrite(trim(subname)//" read rpointer file = "//trim(restart_pfile), ESMF_LOGMSG_INFO)
-          open(newunit=unitn, file=restart_pfile, form='FORMATTED', status='old', iostat=ierr)
-          if(ierr < 0) then
-             call ESMF_LogWrite(trim(subname)//' rpointer file open returns error', ESMF_LOGMSG_INFO)
-             rc=ESMF_Failure
-             return
-          end if
-       end if
        read (unitn,'(a)', iostat=ierr) restart_file
        if (ierr < 0) then
           call ESMF_LogWrite(trim(subname)//' rpointer file read returns error', ESMF_LOGMSG_INFO)

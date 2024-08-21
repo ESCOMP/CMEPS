@@ -190,8 +190,6 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     # determine coupling intervals
     comps = case.get_values("COMP_CLASSES")
     mindt = basedt
-
-    
     coupling_times = {}
     for comp in comps:
         ncpl = case.get_value(comp.upper() + "_NCPL")
