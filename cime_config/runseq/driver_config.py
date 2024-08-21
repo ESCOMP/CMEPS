@@ -79,10 +79,12 @@ class DriverConfig(dict):
                     glc_coupling_time = 86400
         elif (comp_glc == 'dglc'):
             glc_coupling_time = coupling_times["glc_cpl_dt"]
-            stop_option = case.get_value('STOP_OPTION')
-            stop_n = case.get_value('STOP_N')
-            if stop_option == 'nsteps':
-                glc_coupling_time = stop_n*coupling_times["atm_cpl_dt"]
+            is_test = case.get_value("TEST")
+            if not is_test:
+                stop_option = case.get_value('STOP_OPTION')
+                if stop_option == 'nsteps':
+                    stop_n = case.get_value('STOP_N')
+                    glc_coupling_time = stop_n*coupling_times["atm_cpl_dt"]
         elif (comp_glc == 'xglc'):
             glc_coupling_time = coupling_times["glc_cpl_dt"]
         else:
