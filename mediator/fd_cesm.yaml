@@ -857,11 +857,23 @@
      #
      - standard_name: Faoo_fco2_ocn
        canonical_units: moles m-2 s-1
-       description: ocn import to med
+       description: ocn import to med - surface flux of CO2 (downward positive)
      #
-     - standard_name: Faoo_dms_ocn
+     - standard_name: Faoo_fdms_ocn
        canonical_units: moles m-2 s-1
        description: ocn import to med - surface flux of DMS (downward positive)
+     #
+     - standard_name: Faoo_fbrf_ocn
+       canonical_units: moles m-2 s-1
+       description: ocn import to med - surface flux of Bromoform (downward positive)
+     #
+     - standard_name: Faoo_fn2o_ocn
+       canonical_units: moles m-2 s-1
+       description: ocn import to med - surface flux of N2O (downward positive)
+     #
+     - standard_name: Faoo_fnh3_ocn
+       canonical_units: moles m-2 s-1
+       description: ocn import to med - surface flux of NH3 (downward positive)
      #
      - standard_name: So_anidf
        canonical_units: 1
@@ -1010,6 +1022,16 @@
        alias: heat_content_rofi
        canonical_units: W m-2
        description: med export to ocn heat content of ice runoff
+     #
+     - standard_name: Foxx_hrofl_glc
+       alias: heat_content_rofl_glc
+       canonical_units: W m-2
+       description: med export to ocn heat content of liquid glc runoff
+     #
+     - standard_name: Foxx_hrofi_glc
+       alias: heat_content_rofi_glc
+       canonical_units: W m-2
+       description: med export to ocn heat content of ice glc runoff
      #
      - standard_name: Foxx_evap
        alias: mean_evap_rate

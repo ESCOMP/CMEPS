@@ -302,7 +302,8 @@ contains
             trim(nexttimestr),'.nc'
 
        if (maintask) then
-          restart_pfile = "rpointer.cpl"//trim(cpl_inst_tag)//'.'//trim(nexttimestr)
+!          restart_pfile = "rpointer.cpl"//trim(cpl_inst_tag)//'.'//trim(nexttimestr)
+          restart_pfile = "rpointer.cpl"//trim(cpl_inst_tag)
           call ESMF_LogWrite(trim(subname)//" write rpointer file = "//trim(restart_pfile), ESMF_LOGMSG_INFO)
           open(newunit=unitn, file=restart_pfile, form='FORMATTED')
           write(unitn,'(a)') trim(restart_file)
@@ -547,7 +548,8 @@ contains
     endif
 
     ! Get the restart file name from the pointer file
-    restart_pfile = "rpointer.cpl"//trim(cpl_inst_tag)//'.'//trim(currtimestr)
+!    restart_pfile = "rpointer.cpl"//trim(cpl_inst_tag)//'.'//trim(currtimestr)
+    restart_pfile = "rpointer.cpl"//trim(cpl_inst_tag)
     if (maintask) then
        call ESMF_LogWrite(trim(subname)//" read rpointer file = "//trim(restart_pfile), ESMF_LOGMSG_INFO)
        open(newunit=unitn, file=restart_pfile, form='FORMATTED', status='old', iostat=ierr)

@@ -50,8 +50,9 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     config["continue_run"] = ".true." if case.get_value("CONTINUE_RUN") else ".false."
     config["flux_epbal"] = "ocn" if case.get_value("CPL_EPBAL") == "ocn" else "off"
     config["mask_grid"] = case.get_value("MASK_GRID")
-    config["rest_option"] = case.get_value("REST_OPTION")
-
+    for val in ("HIST", "REST", "STOP"):
+        config[val.lower()+"_option"] = case.get_value(val+"_OPTION")
+        
 
     config["comp_ocn"] = case.get_value("COMP_OCN")
 
@@ -100,7 +101,7 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     else:
         config["single_column"] = "false"
 
-    # needed for determining the run sequence as well as glc_renormalize_smb
+    # needed for determining the run sequence
     config["COMP_ATM"] = case.get_value("COMP_ATM")
     config["COMP_ICE"] = case.get_value("COMP_ICE")
     config["COMP_GLC"] = case.get_value("COMP_GLC")
@@ -189,6 +190,8 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     # determine coupling intervals
     comps = case.get_values("COMP_CLASSES")
     mindt = basedt
+
+    
     coupling_times = {}
     for comp in comps:
         ncpl = case.get_value(comp.upper() + "_NCPL")
@@ -201,6 +204,19 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
             coupling_times[comp.lower() + "_cpl_dt"] = cpl_dt
             mindt = min(mindt, cpl_dt)
 
+    # Here we convert "nsteps" to "nseconds", this simplifies the fortran
+    
+    for val in ("REST", "HIST", "STOP"):
+        if case.get_value(val+"_OPTION") == "nsteps":
+            nsteps = case.get_value(val+"_N")
+            if val == "REST":
+                nmlgen.set_value("restart_n", value=mindt*nsteps)
+            elif val == "HIST":
+                nmlgen.set_value("history_n", value=mindt*nsteps)
+            else:
+                nmlgen.set_value("stop_n", value=mindt*nsteps)
+
+            
     # sanity check
     comp_atm = case.get_value("COMP_ATM")
     if comp_atm is not None and comp_atm not in ("datm", "xatm", "satm"):
