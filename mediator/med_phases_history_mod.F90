@@ -1567,7 +1567,6 @@ contains
     type(ESMF_Time)         :: StartTime
     type(ESMF_TimeInterval) :: mtimestep, dtimestep
     integer                 :: msec, dsec
-    integer                 :: min_timestep
     character(len=*), parameter :: subname='(med_phases_history_init_histclock) '
     !---------------------------------------
 
