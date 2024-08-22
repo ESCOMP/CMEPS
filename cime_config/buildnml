@@ -50,7 +50,10 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     config["continue_run"] = ".true." if case.get_value("CONTINUE_RUN") else ".false."
     config["flux_epbal"] = "ocn" if case.get_value("CPL_EPBAL") == "ocn" else "off"
     config["mask_grid"] = case.get_value("MASK_GRID")
-    config["rest_option"] = case.get_value("REST_OPTION")
+    for val in ("HIST", "REST", "STOP"):
+        config[val.lower()+"_option"] = case.get_value(val+"_OPTION")
+        
+
     config["comp_ocn"] = case.get_value("COMP_OCN")
 
     atm_grid = case.get_value("ATM_GRID")
@@ -199,6 +202,19 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
             coupling_times[comp.lower() + "_cpl_dt"] = cpl_dt
             mindt = min(mindt, cpl_dt)
 
+    # Here we convert "nsteps" to "nseconds", this simplifies the fortran
+    
+    for val in ("REST", "HIST", "STOP"):
+        if case.get_value(val+"_OPTION") == "nsteps":
+            nsteps = case.get_value(val+"_N")
+            if val == "REST":
+                nmlgen.set_value("restart_n", value=mindt*nsteps)
+            elif val == "HIST":
+                nmlgen.set_value("history_n", value=mindt*nsteps)
+            else:
+                nmlgen.set_value("stop_n", value=mindt*nsteps)
+
+            
     # sanity check
     comp_atm = case.get_value("COMP_ATM")
     if comp_atm is not None and comp_atm not in ("datm", "xatm", "satm"):
@@ -305,7 +321,7 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
 
     for item in case.get_values("COMP_CLASSES"):
         comp = case.get_value("COMP_" + item)
-        if case.get_value(f"PIO_ASYNC_INTERFACE", {"compclass":item}):
+        if case.get_value("PIO_ASYNC_INTERFACE", {"compclass":item}):
             asyncio = True
 
         valid = True
@@ -608,8 +624,6 @@ def buildnml(case, caseroot, component):
     if component != "drv":
         raise AttributeError
 
-    #   Do a check here of ESMF VERSION, requires 8.1.0 or newer (8.2.0 or newer for esmf_aware_threading)
-    esmf_aware_threading = case.get_value("ESMF_AWARE_THREADING")
     esmfmkfile = os.getenv("ESMFMKFILE")
     expect(
         esmfmkfile and os.path.isfile(esmfmkfile),
@@ -623,7 +637,7 @@ def buildnml(case, caseroot, component):
                 major = line[-2] if "MAJOR" in line else major
                 minor = line[-2] if "MINOR" in line else minor
         logger.debug("ESMF version major {} minor {}".format(major, minor))
-        expect(int(major) >= 8 and int(minor) >=4, "ESMF version should be 8.4.1 or newer")
+        expect(int(major) >= 8 and int(minor) >=6, "ESMF version should be 8.6.1 or newer")
 
     confdir = os.path.join(case.get_value("CASEBUILD"), "cplconf")
     if not os.path.isdir(confdir):

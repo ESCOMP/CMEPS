@@ -25,7 +25,6 @@ module med_phases_restart_mod
   logical :: write_restart_at_endofrun = .false.
   logical :: whead(2) = (/.true. , .false./)
   logical :: wdata(2) = (/.false., .true. /)
-
   character(*), parameter :: u_FILE_u  = &
        __FILE__
 
@@ -47,7 +46,7 @@ contains
     use ESMF         , only : ESMF_SUCCESS, ESMF_FAILURE
     use NUOPC        , only : NUOPC_CompAttributeGet
     use NUOPC_Model  , only : NUOPC_ModelGet
-    use med_time_mod , only : med_time_AlarmInit
+    use nuopc_shr_methods, only : AlarmInit
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -83,8 +82,10 @@ contains
     ! Set alarm for instantaneous mediator restart output
     call ESMF_ClockGet(mclock, currTime=mCurrTime,  rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call med_time_alarmInit(mclock, alarm, option=restart_option, opt_n=restart_n, &
+
+    call alarmInit(mclock, alarm, option=restart_option, opt_n=restart_n, &
          reftime=mcurrTime, alarmname='alarm_restart', rc=rc)
+
     call ESMF_AlarmSet(alarm, clock=mclock, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
@@ -549,11 +550,6 @@ contains
     if (maintask) then
        call ESMF_LogWrite(trim(subname)//" read rpointer file = "//trim(restart_pfile), ESMF_LOGMSG_INFO)
        open(newunit=unitn, file=restart_pfile, form='FORMATTED', status='old', iostat=ierr)
-       if (ierr < 0) then
-          call ESMF_LogWrite(trim(subname)//' rpointer file open returns error', ESMF_LOGMSG_INFO)
-          rc=ESMF_Failure
-          return
-       end if
        read (unitn,'(a)', iostat=ierr) restart_file
        if (ierr < 0) then
           call ESMF_LogWrite(trim(subname)//' rpointer file read returns error', ESMF_LOGMSG_INFO)

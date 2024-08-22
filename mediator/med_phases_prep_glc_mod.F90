@@ -39,7 +39,7 @@ module med_phases_prep_glc_mod
   use med_methods_mod       , only : field_getdata1d  => med_methods_Field_getdata1d
   use med_methods_mod       , only : fldchk           => med_methods_FB_FldChk
   use med_utils_mod         , only : chkerr           => med_utils_ChkErr
-  use med_time_mod          , only : med_time_alarmInit
+  use nuopc_shr_methods     , only : alarmInit
   use glc_elevclass_mod     , only : glc_get_num_elevation_classes
   use glc_elevclass_mod     , only : glc_get_elevation_classes
   use glc_elevclass_mod     , only : glc_get_fractional_icecov
@@ -532,7 +532,7 @@ contains
        call NUOPC_CompAttributeGet(gcomp, name="glc_avg_period", value=glc_avg_period, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        if (trim(glc_avg_period) == 'yearly') then
-          call med_time_alarmInit(prepglc_clock, glc_avg_alarm, 'yearly', alarmname='alarm_glc_avg', rc=rc)
+          call alarmInit(prepglc_clock, glc_avg_alarm, 'yearly', alarmname='alarm_glc_avg', rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           if (maintask) then
              write(logunit,'(a,i10)') trim(subname)//&
@@ -542,7 +542,7 @@ contains
           call NUOPC_CompAttributeGet(gcomp, name="glc_cpl_dt", value=cvalue, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           read(cvalue,*) glc_cpl_dt
-          call med_time_alarmInit(prepglc_clock, glc_avg_alarm, 'nseconds', opt_n=glc_cpl_dt, alarmname='alarm_glc_avg', rc=rc)
+          call alarmInit(prepglc_clock, glc_avg_alarm, 'nseconds', opt_n=glc_cpl_dt, alarmname='alarm_glc_avg', rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           if (maintask) then
              write(logunit,'(a,i10)') trim(subname)//&
