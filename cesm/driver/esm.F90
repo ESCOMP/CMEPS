@@ -796,7 +796,6 @@ contains
 #ifndef NO_MPI2
     use mpi          , only : MPI_COMM_NULL, mpi_comm_size
 #endif
-    use m_MCTWorld   , only : mct_world_init => init
 
 #ifdef MED_PRESENT
     use med_internalstate_mod , only : med_id
@@ -878,6 +877,9 @@ contains
     character(len=5)               :: inst_suffix
     character(CL)                  :: cvalue
     logical                        :: found_comp
+#ifdef ESMF_AWARE_THREADING
+    integer                        :: cnt
+#endif
     integer :: rank, nprocs, ierr
     character(len=*), parameter    :: subname = "(esm_pelayout.F90:esm_init_pelayout)"
     !---------------------------------------
@@ -1163,9 +1165,6 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     enddo
-
-    call mct_world_init(componentCount+1, GLOBAL_COMM, comms, comps)
-
 
     deallocate(petlist, comms, comps, comp_iamin, comp_comm_iam)
 
