@@ -3233,7 +3233,7 @@ contains
     !-----------------------------
     ! to glc: from ocn
     !-----------------------------
-    if (is_local%wrap%ocn2glc_coupling) then
+    if (ocn2glc_coupling) then
        if (phase == 'advertise') then
           call addfld_from(compocn, 'So_t_depth')
           call addfld_from(compocn, 'So_s_depth')
