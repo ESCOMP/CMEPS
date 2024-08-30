@@ -95,6 +95,7 @@ contains
     logical                 :: isPresent
     logical                 :: inDriver
     logical, save           :: firsttime=.true.
+    logical                 :: exists
     character(len=*), parameter :: subname = '('//__FILE__//':esm_time_clockInit) '
     !-------------------------------------------------------------------------------
 
@@ -144,9 +145,17 @@ contains
                 inst_suffix = ""
              endif
 
-             restart_pfile = trim(restart_file)//inst_suffix
+             restart_pfile = replace_text(restart_file, ".cpl", ".cpl."//inst_suffix)
 
              if (maintask) then
+                print *,__FILE__,__LINE__,trim(restart_file)
+                inquire( file=trim(restart_file), exist=exists)
+                if (.not. exists) then
+                   restart_pfile = "rpointer.cpl"
+                   if (inst_suffix .ne. "") restart_pfile = trim(restart_pfile)//'.'//inst_suffix
+                endif
+                print *,__FILE__,__LINE__,trim(restart_file)
+                
                 call ESMF_LogWrite(trim(subname)//" read rpointer file = "//trim(restart_pfile), &
                      ESMF_LOGMSG_INFO)
                 open(newunit=unitn, file=restart_pfile, form='FORMATTED', status='old',iostat=ierr)
@@ -323,7 +332,20 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        firsttime = .false.
     endif
- end subroutine esm_time_clockInit
+  contains
+    FUNCTION Replace_Text (s,text,rep)  RESULT(outs)
+      CHARACTER(*)        :: s,text,rep
+      CHARACTER(LEN(s)+100) :: outs     ! provide outs with extra 100 char len
+      INTEGER             :: i, nt, nr
+      
+      outs = s ; nt = LEN_TRIM(text) ; nr = LEN_TRIM(rep)
+      DO
+         i = INDEX(outs,text(:nt)) ; IF (i == 0) EXIT
+         outs = outs(:i-1) // rep(:nr) // outs(i+nt:)
+      END DO
+    END FUNCTION Replace_Text
+    
+  end subroutine esm_time_clockInit
 
  !===============================================================================
 

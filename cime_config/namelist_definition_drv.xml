@@ -162,7 +162,7 @@
     </values>
   </entry>
 
- <entry id="drv_restart_pointer">
+  <entry id="drv_restart_pointer" modify_via_xml="DRV_RESTART_POINTER">
     <type>char</type>
     <category>expdef</category>
     <group>DRIVER_attributes</group>
@@ -170,7 +170,7 @@
       Driver restart pointer file to initialize time info
     </desc>
     <values>
-      <value>rpointer.cpl</value>
+      <value>$DRV_RESTART_POINTER</value>
     </values>
   </entry>
 
