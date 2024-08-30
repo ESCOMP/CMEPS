@@ -79,7 +79,7 @@ jobs:
       - name: checkout externals
         run: |
           pushd cesm
-          ./manage_externals/checkout_externals ccs_config cdeps share mct cpl7 parallelio
+          ./bin/git-fleximod update ccs_config cdeps share mct parallelio
           cd ccs_config
           git checkout main 
           cd ../
@@ -95,6 +95,8 @@ jobs:
           cd ../components/cdeps
           git checkout main
           git submodule update --init
+          cd ../../share
+          git checkout main
           
       - name: Cache ESMF
         id: cache-esmf
@@ -170,6 +172,6 @@ jobs:
           popd
 #     the following can be used by developers to login to the github server in case of errors
 #     see https://github.com/marketplace/actions/debugging-with-tmate for further details
-#      - name: Setup tmate session
-#        if: ${{ failure() }}
-#        uses: mxschmitt/action-tmate@v3
+      - name: Setup tmate session
+        if: ${{ failure() }}
+        uses: mxschmitt/action-tmate@v3

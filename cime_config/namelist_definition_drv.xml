@@ -872,6 +872,28 @@
       <value COMP_LND="xlnd">off</value>
     </values>
   </entry>
+  <entry id="remove_negative_runoff_lnd">
+    <type>logical</type>
+    <category>control</category>
+    <group>MED_attributes</group>
+    <desc>
+      If true, remove negative runoff generated from the land component by downweighting all positive runoff globally.
+    </desc>
+    <values>
+      <value>.true.</value>
+    </values>
+  </entry>
+  <entry id="remove_negative_runoff_glc">
+    <type>logical</type>
+    <category>control</category>
+    <group>MED_attributes</group>
+    <desc>
+      If true, remove negative runoff generated from the glc (ice sheet) component by downweighting all positive runoff globally.
+    </desc>
+    <values>
+      <value>.false.</value>
+    </values>
+  </entry>  
 
   <entry id="info_debug" modify_via_xml="INFO_DBUG">
     <type>integer</type>
@@ -2256,54 +2278,6 @@
     </values>
   </entry>
 
-  <entry id="glc2ocn_liq_rmapname"    modify_via_xml="GLC2OCN_LIQ_RMAPNAME">
-    <type>char</type>
-    <category>mapping</category>
-    <input_pathname>abs</input_pathname>
-    <group>MED_attributes</group>
-    <desc>
-      glc2ocn runoff mapping file for liquid runoff
-    </desc>
-    <values>
-      <value>$GLC2OCN_LIQ_RMAPNAME</value>
-    </values>
-  </entry>
-  <entry id="glc2ice_rmapname"    modify_via_xml="GLC2ICE_RMAPNAME">
-    <type>char</type>
-    <category>mapping</category>
-    <input_pathname>abs</input_pathname>
-    <group>MED_attributes</group>
-    <desc>
-      glc to ice runoff conservative mapping file
-    </desc>
-    <values>
-      <value>$GLC2ICE_RMAPNAME</value>
-    </values>
-  </entry>
-  <entry id="glc2ocn_ice_rmapname"    modify_via_xml="GLC2OCN_ICE_RMAPNAME">
-    <type>char</type>
-    <category>mapping</category>
-    <input_pathname>abs</input_pathname>
-    <group>MED_attributes</group>
-    <desc>
-      glc2ocn runoff mapping file for ice runoff
-    </desc>
-    <values>
-      <value>$GLC2OCN_ICE_RMAPNAME</value>
-    </values>
-  </entry>
-  <entry id="rof2ocn_fmapname"    modify_via_xml="ROF2OCN_FMAPNAME">
-    <type>char</type>
-    <category>mapping</category>
-    <input_pathname>abs</input_pathname>
-    <group>MED_attributes</group>
-    <desc>
-      runoff to ocn area overlap conservative mapping file
-    </desc>
-    <values>
-      <value>$ROF2OCN_FMAPNAME</value>
-    </values>
-  </entry>
   <entry id="rof2ocn_liq_rmapname"    modify_via_xml="ROF2OCN_LIQ_RMAPNAME">
     <type>char</type>
     <category>mapping</category>
@@ -2326,42 +2300,6 @@
     </desc>
     <values>
       <value>$ROF2OCN_ICE_RMAPNAME</value>
-    </values>
-  </entry>
-  <entry id="ocn2wav_smapname"    modify_via_xml="OCN2WAV_SMAPNAME">
-    <type>char</type>
-    <category>mapping</category>
-    <input_pathname>abs</input_pathname>
-    <group>MED_attributes</group>
-    <desc>
-      ocn to wav state mapping file for states
-    </desc>
-    <values>
-      <value>$OCN2WAV_SMAPNAME</value>
-    </values>
-  </entry>
-  <entry id="ice2wav_smapname"    modify_via_xml="ICE2WAV_SMAPNAME">
-    <type>char</type>
-    <category>mapping</category>
-    <input_pathname>abs</input_pathname>
-    <group>MED_attributes</group>
-    <desc>
-      ice to wav state mapping file for states
-    </desc>
-    <values>
-      <value>$ICE2WAV_SMAPNAME</value>
-    </values>
-  </entry>
-  <entry id="wav2ocn_smapname"    modify_via_xml="WAV2OCN_SMAPNAME">
-    <type>char</type>
-    <category>mapping</category>
-    <input_pathname>abs</input_pathname>
-    <group>MED_attributes</group>
-    <desc>
-      wav to ocn state mapping file for states
-    </desc>
-    <values>
-      <value>$WAV2OCN_SMAPNAME</value>
     </values>
   </entry>
 
@@ -2485,6 +2423,54 @@
     <values>
       <value>.false.</value>
       <value BGC_MODE="CO2C">.true.</value>
+    </values>
+  </entry>
+
+  <entry id="flds_dms" modify_via_xml="DMS_EMIS_OCN">
+    <type>logical</type>
+    <category>flds</category>
+    <group>ALLCOMP_attributes</group>
+    <desc>
+      Pass DMS from OCN to ATM component
+    </desc>
+    <values>
+      <value>.false.</value>
+    </values>
+  </entry>
+
+  <entry id="flds_brf" modify_via_xml="BRF_EMIS_OCN">
+    <type>logical</type>
+    <category>flds</category>
+    <group>ALLCOMP_attributes</group>
+    <desc>
+      Pass Bromoform from OCN to ATM component
+    </desc>
+    <values>
+      <value>.false.</value>
+    </values>
+  </entry>
+
+  <entry id="flds_n2o" modify_via_xml="N2O_EMIS_OCN">
+    <type>logical</type>
+    <category>flds</category>
+    <group>ALLCOMP_attributes</group>
+    <desc>
+      Pass N2O from OCN to ATM component
+    </desc>
+    <values>
+      <value>.false.</value>
+    </values>
+  </entry>
+
+  <entry id="flds_nh3" modify_via_xml="NH3_EMIS_OCN">
+    <type>logical</type>
+    <category>flds</category>
+    <group>ALLCOMP_attributes</group>
+    <desc>
+      Pass NH3 from OCN to ATM component
+    </desc>
+    <values>
+      <value>.false.</value>
     </values>
   </entry>
 

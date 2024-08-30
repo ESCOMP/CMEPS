@@ -1075,9 +1075,9 @@ contains
          taux=aoflux_out%taux, tauy=aoflux_out%tauy, tref=aoflux_out%tref, qref=aoflux_out%qref, &
          ocn_surface_flux_scheme=ocn_surface_flux_scheme, &
          add_gusts=add_gusts, &
-         duu10n=aoflux_out%duu10n, & 
+         duu10n=aoflux_out%duu10n, &
          ugust_out = aoflux_out%ugust_out, &
-         u10res = aoflux_out%u10res, & 
+         u10res = aoflux_out%u10res, &
          ustar_sv=aoflux_out%ustar, re_sv=aoflux_out%re, ssq_sv=aoflux_out%ssq, &
          missval=0.0_r8)
 
@@ -1102,7 +1102,7 @@ contains
             ocn_surface_flux_scheme=ocn_surface_flux_scheme, &
             sen=aoflux_out%sen, lat=aoflux_out%lat, lwup=aoflux_out%lwup, evap=aoflux_out%evap, &
             taux=aoflux_out%taux, tauy=aoflux_out%tauy, tref=aoflux_out%tref, qref=aoflux_out%qref, &
-            duu10n=aoflux_out%duu10n, & 
+            duu10n=aoflux_out%duu10n, &
             missval=0.0_r8)
 #ifdef UFS_AOFLUX
      end if
@@ -1111,7 +1111,7 @@ contains
 #endif
 
     do n = 1,aoflux_in%lsize
-       if (aoflux_in%mask(n) /= 0) then   
+       if (aoflux_in%mask(n) /= 0) then
           aoflux_out%u10(n)          = aoflux_out%u10res(n)
           aoflux_out%u10_withGust(n) = sqrt(aoflux_out%duu10n(n))
        end if
@@ -1601,8 +1601,14 @@ end subroutine med_aofluxes_map_ogrid2xgrid_input
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        call fldbun_getfldptr(fldbun_a, 'Sa_shum', aoflux_in%shum, xgrid=xgrid, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call fldbun_getfldptr(fldbun_a, 'Faxa_rainc', aoflux_in%rainc, xgrid=xgrid, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (add_gusts) then
+          call fldbun_getfldptr(fldbun_a, 'Faxa_rainc', aoflux_in%rainc, xgrid=xgrid, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+       else
+          ! rainc is not used without add_gusts but some compilers complain about the unallocated pointer
+          ! in the subroutine interface
+          allocate(aoflux_in%rainc(1))
+       end if
     end if
 
     ! extra fields for ufs.frac.aoflux
@@ -1715,8 +1721,6 @@ end subroutine med_aofluxes_map_ogrid2xgrid_input
     call fldbun_getfldptr(fldbun, 'So_duu10n', aoflux_out%duu10n, xgrid=xgrid, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    call fldbun_getfldptr(fldbun, 'So_ugustOut', aoflux_out%ugust_out, xgrid=xgrid, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
     call fldbun_getfldptr(fldbun, 'So_u10withGust', aoflux_out%u10_withGust, xgrid=xgrid, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call fldbun_getfldptr(fldbun, 'So_u10res', aoflux_out%u10res, xgrid=xgrid, rc=rc)
@@ -1746,7 +1750,6 @@ end subroutine med_aofluxes_map_ogrid2xgrid_input
        allocate(aoflux_out%evap_18O(lsize)); aoflux_out%evap_18O(:) = 0._R8
        allocate(aoflux_out%evap_HDO(lsize)); aoflux_out%evap_HDO(:) = 0._R8
     end if
-
     if (add_gusts) then
        call fldbun_getfldptr(fldbun, 'So_ugustOut', aoflux_out%ugust_out, xgrid=xgrid, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
