@@ -2202,6 +2202,7 @@ contains
     ! ---------------------------------------------------------------------
     ! to ocn: enthalpy from atm rain, snow, evaporation
     ! to ocn: enthalpy from liquid and ice river runoff
+    ! to ocn: enthalpy from liquid and ice glacier runoff
     ! to ocn: enthalpy from ice melt
     ! ---------------------------------------------------------------------
     ! Note - do not need to add addmap or addmrg for the following since they
@@ -2213,6 +2214,8 @@ contains
        call addfld_to(compocn, 'Foxx_hcond')
        call addfld_to(compocn, 'Foxx_hrofl')
        call addfld_to(compocn, 'Foxx_hrofi')
+       call addfld_to(compocn, 'Foxx_hrofl_glc')
+       call addfld_to(compocn, 'Foxx_hrofi_glc')
     end if
 
     ! ---------------------------------------------------------------------
@@ -3322,7 +3325,7 @@ contains
     !-----------------------------
     ! to glc: from ocn
     !-----------------------------
-    if (is_local%wrap%ocn2glc_coupling) then
+    if (ocn2glc_coupling) then
        if (phase == 'advertise') then
           call addfld_from(compocn, 'So_t_depth')
           call addfld_from(compocn, 'So_s_depth')

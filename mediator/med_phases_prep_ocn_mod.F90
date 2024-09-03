@@ -97,6 +97,8 @@ contains
     real(r8), pointer   :: hcond(:)
     real(r8), pointer   :: rofl(:), hrofl(:)
     real(r8), pointer   :: rofi(:), hrofi(:)
+    real(r8), pointer   :: rofl_glc(:), hrofl_glc(:)
+    real(r8), pointer   :: rofi_glc(:), hrofi_glc(:)
     real(r8), pointer   :: areas(:)
     real(r8), allocatable :: hcorr(:)
     type(med_fldlist_type), pointer :: fldList
@@ -156,20 +158,24 @@ contains
     !---------------------------------------
     !--- custom calculations
     !---------------------------------------
-    ! compute enthaly associated with rain, snow, condensation and liquid river runoff
+    ! compute enthalpy associated with rain, snow, condensation and liquid river & glc runoff
     ! the sea-ice model already accounts for the enthalpy flux (as part of melth), so
     ! enthalpy from meltw **is not** included below
-    if ( FB_fldchk(is_local%wrap%FBExp(compocn), 'Faxa_rain'  , rc=rc) .and. &
-         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hrain' , rc=rc) .and. &
-         FB_fldchk(is_local%wrap%FBExp(compocn), 'Faxa_snow'  , rc=rc) .and. &
-         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hsnow' , rc=rc) .and. &
-         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_evap'  , rc=rc) .and. &
-         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hevap' , rc=rc) .and. &
-         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hcond' , rc=rc) .and. &
-         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_rofl'  , rc=rc) .and. &
-         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hrofl' , rc=rc) .and. &
-         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_rofi'  , rc=rc) .and. &
-         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hrofi' , rc=rc)) then
+    if ( FB_fldchk(is_local%wrap%FBExp(compocn), 'Faxa_rain'      , rc=rc) .and. &
+         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hrain'     , rc=rc) .and. &
+         FB_fldchk(is_local%wrap%FBExp(compocn), 'Faxa_snow'      , rc=rc) .and. &
+         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hsnow'     , rc=rc) .and. &
+         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_evap'      , rc=rc) .and. &
+         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hevap'     , rc=rc) .and. &
+         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hcond'     , rc=rc) .and. &
+         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_rofl'      , rc=rc) .and. &
+         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hrofl'     , rc=rc) .and. &
+         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_rofi'      , rc=rc) .and. &
+         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hrofi'     , rc=rc) .and. &
+         FB_fldchk(is_local%wrap%FBExp(compocn), 'Forr_rofl_glc'  , rc=rc) .and. &
+         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hrofl_glc' , rc=rc) .and. &
+         FB_fldchk(is_local%wrap%FBExp(compocn), 'Forr_rofi_glc'  , rc=rc) .and. &
+         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hrofi_glc' , rc=rc)) then
 
        call FB_GetFldPtr(is_local%wrap%FBImp(compocn,compocn), 'So_t', tocn, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -201,6 +207,16 @@ contains
        call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Foxx_hrofi', hrofi, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+       call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Forr_rofl_glc' , rofl_glc, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Foxx_hrofl_glc', hrofl_glc, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Forr_rofi_glc' , rofi_glc, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Foxx_hrofi_glc', hrofi_glc, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
        do n = 1,size(tocn)
           ! Need max to ensure that will not have an enthalpy contribution if the water is below 0C
           hrain(n)  = max((tocn(n) - shr_const_tkfrz), 0._r8) * rain(n)  * shr_const_cpsw
@@ -209,6 +225,8 @@ contains
           hcond(n)  = max((tocn(n) - shr_const_tkfrz), 0._r8) * max(evap(n), 0._r8)  * shr_const_cpsw
           hrofl(n)  = max((tocn(n) - shr_const_tkfrz), 0._r8) * rofl(n)  * shr_const_cpsw
           hrofi(n)  = min((tocn(n) - shr_const_tkfrz), 0._r8) * rofi(n)  * shr_const_cpsw
+          hrofl_glc(n) = max((tocn(n) - shr_const_tkfrz), 0._r8) * rofl_glc(n)  * shr_const_cpsw
+          hrofi_glc(n) = min((tocn(n) - shr_const_tkfrz), 0._r8) * rofi_glc(n)  * shr_const_cpsw
        end do
 
        ! Determine enthalpy correction factor that will be added to the sensible heat flux sent to the atm
@@ -220,7 +238,7 @@ contains
           glob_area_inv = 1._r8 / (4._r8 * shr_const_pi)
           areas => is_local%wrap%mesh_info(compocn)%areas
           do n = 1,size(tocn)
-             hcorr(n) = (hrain(n) + hsnow(n) + hcond(n) + hevap(n) + hrofl(n) + hrofi(n)) * &
+             hcorr(n) = (hrain(n) + hsnow(n) + hcond(n) + hevap(n) + hrofl(n) + hrofi(n) + hrofl_glc(n) + hrofi_glc(n)) * &
                         areas(n) * glob_area_inv
           end do
           call med_phases_prep_atm_enthalpy_correction(gcomp, hcorr, rc)
@@ -266,6 +284,7 @@ contains
     ! local variables
     type(InternalState)        :: is_local
     integer                    :: ncnt
+    logical, save              :: first_call = .true.
     character(len=*),parameter :: subname='(med_phases_prep_ocn_avg)'
     !---------------------------------------
 
@@ -306,9 +325,10 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        ! Check for nans in fields export to ocn
-       call FB_check_for_nans(is_local%wrap%FBExp(compocn), maintask, logunit, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
+       if(.not. first_call) then
+          call FB_check_for_nans(is_local%wrap%FBExp(compocn), maintask, logunit, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       endif
        ! zero accumulator
        is_local%wrap%ExpAccumOcnCnt = 0
        call FB_reset(is_local%wrap%FBExpAccumOcn, value=czero, rc=rc)
@@ -320,6 +340,7 @@ contains
        call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
     end if
     call t_stopf('MED:'//subname)
+    first_call = .false.
 
   end subroutine med_phases_prep_ocn_avg
 
