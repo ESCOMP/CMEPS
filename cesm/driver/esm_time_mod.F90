@@ -131,7 +131,7 @@ contains
 
        if (read_restart) then
           
-          call NUOPC_CompAttributeGet(instance_driver, name='drv_restart_pointer', value=restart_file, rc=rc)
+          call NUOPC_CompAttributeGet(instance_driver, name='drv_restart_pointer', value=restart_pfile, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
           if (trim(restart_file) /= 'none') then
@@ -141,20 +141,17 @@ contains
              if(isPresent) then
                 call NUOPC_CompAttributeGet(instance_driver, name="inst_suffix", value=inst_suffix, rc=rc)
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
+                restart_pfile = replace_text(restart_file, ".cpl", ".cpl."//inst_suffix)
              else
                 inst_suffix = ""
              endif
-
-             restart_pfile = replace_text(restart_file, ".cpl", ".cpl."//inst_suffix)
-
              if (maintask) then
-                print *,__FILE__,__LINE__,trim(restart_file)
-                inquire( file=trim(restart_file), exist=exists)
+                inquire( file=trim(restart_pfile), exist=exists)
+                print *,__FILE__,__LINE__,trim(restart_pfile), exists
                 if (.not. exists) then
                    restart_pfile = "rpointer.cpl"
                    if (inst_suffix .ne. "") restart_pfile = trim(restart_pfile)//'.'//inst_suffix
                 endif
-                print *,__FILE__,__LINE__,trim(restart_file)
                 
                 call ESMF_LogWrite(trim(subname)//" read rpointer file = "//trim(restart_pfile), &
                      ESMF_LOGMSG_INFO)
@@ -334,7 +331,7 @@ contains
     endif
   contains
     FUNCTION Replace_Text (s,text,rep)  RESULT(outs)
-      CHARACTER(*)        :: s,text,rep
+      CHARACTER(len=*)      :: s,text,rep
       CHARACTER(LEN(s)+100) :: outs     ! provide outs with extra 100 char len
       INTEGER             :: i, nt, nr
       
