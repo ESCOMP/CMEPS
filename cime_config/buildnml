@@ -53,6 +53,7 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     config["rest_option"] = case.get_value("REST_OPTION")
     config["comp_ocn"] = case.get_value("COMP_OCN")
 
+
     atm_grid = case.get_value("ATM_GRID")
     lnd_grid = case.get_value("LND_GRID")
     ice_grid = case.get_value("ICE_GRID")
@@ -107,7 +108,7 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     config["COMP_ROF"] = case.get_value("COMP_ROF")
     config["COMP_WAV"] = case.get_value("COMP_WAV")
     config["CAMDEV"] = "True" if "CAM70" in case.get_value("COMPSET") else "False"
-    
+
     if (
         (
             case.get_value("COMP_ROF") == "mosart"
@@ -128,6 +129,12 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
         config["run_type"] = "branch"
 
     config['wav_ice_coupling'] = 'ww3' in config['COMP_WAV'] and config['COMP_ICE'] == 'cice'
+
+    if config["COMP_OCN"] == "blom":
+        if "ecosys" in case.get_value("BLOM_TRACER_MODULES"):
+            config["dms_from_ocn"] = "on"
+        else:
+            config["dms_from_ocn"] = "off"
 
     # ----------------------------------------------------
     # Initialize namelist defaults
@@ -150,7 +157,7 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     add_gusts = literal_to_python_value(nmlgen.get_value("add_gusts"), type_="logical")
     if add_gusts:
         expect("CAM70" in case.get_value("COMPSET"),"ERROR: add_gusts can only be set if CAM70 in compset {}".format(case.get_value("COMPSET")))
-            
+
     # --------------------------------
     # Overwrite: set component coupling frequencies
     # --------------------------------
@@ -665,7 +672,7 @@ def buildnml(case, caseroot, component):
     create_namelist_infile(case, user_nl_file, namelist_infile, infile_text)
     infile = [namelist_infile]
 
-    
+
     # create the files nuopc.runconfig, nuopc.runseq, drv_in and drv_flds_in
     _create_drv_namelists(case, infile, confdir, nmlgen, files)
 
