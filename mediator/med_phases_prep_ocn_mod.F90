@@ -78,7 +78,7 @@ contains
     use ESMF                    , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
     use ESMF                    , only : ESMF_FAILURE,  ESMF_LOGMSG_ERROR
     use med_enthalpy_mod        , only : med_compute_enthalpy, mediator_compute_enthalpy
-
+    use med_map_mod             , only : med_map_field_packed
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc

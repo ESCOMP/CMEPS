@@ -267,7 +267,7 @@ contains
 
     use ESMF            , only : ESMF_VMAllreduce, ESMF_GridCompGet, ESMF_REDUCE_SUM
     use ESMF            , only : ESMF_VM
-
+    use med_enthalpy_mod, only : global_htot_corr
     ! input/output variables
     type(ESMF_GridComp) , intent(in)  :: gcomp
     real(r8)            , intent(in)  :: hcorr(:)
