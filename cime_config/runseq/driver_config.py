@@ -64,7 +64,7 @@ class DriverConfig(dict):
         # However will still need to call the exchange at the end if the stop_option
         # is nsteps or days - or otherwise just every ndays
         # Note that nsteps is the minimum component coupling time
-        if (comp_glc == 'cism'):
+        if comp_glc == 'cism':
             glc_coupling_time = coupling_times["glc_cpl_dt"]
             if not case.get_value("CISM_EVOLVE"):
                 stop_option = case.get_value('STOP_OPTION')
@@ -77,15 +77,7 @@ class DriverConfig(dict):
                     glc_coupling_time = stop_n * 86400
                 else:
                     glc_coupling_time = 86400
-        elif (comp_glc == 'dglc'):
-            glc_coupling_time = coupling_times["glc_cpl_dt"]
-            is_test = case.get_value("TEST")
-            if not is_test:
-                stop_option = case.get_value('STOP_OPTION')
-                if stop_option == 'nsteps':
-                    stop_n = case.get_value('STOP_N')
-                    glc_coupling_time = stop_n*coupling_times["atm_cpl_dt"]
-        elif (comp_glc == 'xglc'):
+        elif comp_glc == 'dglc' or comp_glc == 'xglc':
             glc_coupling_time = coupling_times["glc_cpl_dt"]
         else:
             glc_coupling_time = 0

@@ -233,17 +233,15 @@
     </values>
   </entry>
 
-  <!-- =========================================== -->
-  <!-- All components orbital attributes           -->
-  <!-- =========================================== -->
-
+  <!-- not yet fully implemented, set to false -->
   <entry id="write_restart_at_endofrun">
     <type>logical</type>
     <category>nuopc</category>
     <group>ALLCOMP_attributes</group>
     <values>
       <value>.false.</value>
-      <value rest_option="end">.true.</value>
+      <value rest_option='none'>.false.</value>
+      <value rest_option='never'>.false.</value>
     </values>
   </entry>
 
@@ -255,6 +253,10 @@
       <value>$ESMF_PROFILING_LEVEL</value>
     </values>
   </entry>
+
+  <!-- =========================================== -->
+  <!-- All components orbital attributes           -->
+  <!-- =========================================== -->
 
   <entry id="orb_mode">
     <type>char</type>
@@ -1117,13 +1119,12 @@
     <type>char</type>
     <category>time</category>
     <group>ALLCOMP_attributes</group>
-    <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,nmonths,nyears,monthly,yearly,date,end</valid_values>
+    <valid_values>none,never,nseconds,nminutes,nhours,ndays,nmonths,nyears,monthly,yearly,date,end</valid_values>
     <desc>
       mediator history snapshot option (used with history_n and history_ymd)
       set by HIST_OPTION in env_run.xml.
       history_option alarms are:
       [none/never], turns option off
-      [nsteps]   , history snapshot every history_n nsteps  , relative to current run start time
       [nseconds] , history snapshot every history_n nseconds, relative to current run start time
       [nminutes] , history snapshot every history_n nminutes, relative to current run start time
       [nhours]   , history snapshot every history_n nhours  , relative to current run start time
@@ -1136,6 +1137,7 @@
     </desc>
     <values>
       <value>$HIST_OPTION</value>
+      <value hist_option="nsteps">nseconds</value>
     </values>
   </entry>
 
@@ -2721,12 +2723,11 @@
     <type>char</type>
     <category>time</category>
     <group>CLOCK_attributes</group>
-    <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,monthly,nmonths,nyears,date,end</valid_values>
+    <valid_values>none,never,nseconds,nminutes,nhours,ndays,monthly,nmonths,nyears,date,end</valid_values>
     <desc>
       sets the run length with stop_n and stop_ymd
       stop_option alarms are:
       [none/never] , turns option off
-      [nsteps]     , stops every stop_n nsteps  , relative to current run start time
       [nseconds]   , stops every stop_n nseconds, relative to current run start time
       [nminutes]   , stops every stop_n nminutes, relative to current run start time
       [nhours]     , stops every stop_n nhours  , relative to current run start time
@@ -2740,6 +2741,7 @@
     </desc>
     <values>
       <value>$STOP_OPTION</value>
+      <value stop_option='nsteps'>nseconds</value>
     </values>
   </entry>
 
@@ -2785,12 +2787,11 @@
     <type>char</type>
     <category>time</category>
     <group>CLOCK_attributes</group>
-    <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,nmonths,nyears,monthly,yearly,date,end</valid_values>
+    <valid_values>none,never,nseconds,nminutes,nhours,ndays,nmonths,nyears,monthly,yearly,date,end</valid_values>
     <desc>
       sets the restart frequency with restart_n and restart_ymd
       restart_option alarms are:
       [none/never], turns option off
-      [nsteps]   , restarts every restart_n nsteps  , relative to current run start time
       [nseconds] , restarts every restart_n nseconds, relative to current run start time
       [nminutes] , restarts every restart_n nminutes, relative to current run start time
       [nhours]   , restarts every restart_n nhours  , relative to current run start time
@@ -2804,6 +2805,7 @@
     </desc>
     <values>
       <value>$REST_OPTION</value>
+      <value rest_option="nsteps">nseconds</value>
     </values>
   </entry>
 
