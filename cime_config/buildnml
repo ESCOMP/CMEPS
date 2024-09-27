@@ -52,7 +52,7 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     config["mask_grid"] = case.get_value("MASK_GRID")
     for val in ("HIST", "REST", "STOP"):
         config[val.lower()+"_option"] = case.get_value(val+"_OPTION")
-        
+
 
     config["comp_ocn"] = case.get_value("COMP_OCN")
 
@@ -210,7 +210,7 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
             mindt = min(mindt, cpl_dt)
 
     # Here we convert "nsteps" to "nseconds", this simplifies the fortran
-    
+
     for val in ("REST", "HIST", "STOP"):
         if case.get_value(val+"_OPTION") == "nsteps":
             nsteps = case.get_value(val+"_N")
@@ -221,7 +221,7 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
             else:
                 nmlgen.set_value("stop_n", value=mindt*nsteps)
 
-            
+
     # sanity check
     comp_atm = case.get_value("COMP_ATM")
     if comp_atm is not None and comp_atm not in ("datm", "xatm", "satm"):
@@ -644,7 +644,7 @@ def buildnml(case, caseroot, component):
                 major = line[-2] if "MAJOR" in line else major
                 minor = line[-2] if "MINOR" in line else minor
         logger.debug("ESMF version major {} minor {}".format(major, minor))
-        expect(int(major) >= 8 and int(minor) >=6, "ESMF version should be 8.6.1 or newer")
+        expect(int(major) >= 8 and int(minor) >=4, "ESMF version should be 8.4.1 or newer")
 
     confdir = os.path.join(case.get_value("CASEBUILD"), "cplconf")
     if not os.path.isdir(confdir):
