@@ -95,6 +95,7 @@ module esmFldsExchange_cesm_mod
   logical             :: flds_co2c                      ! Pass CO2 from ATM to surface (OCN/LND) and back from them to ATM
   logical             :: flds_wiso                      ! Pass water isotop fields
   logical             :: flds_r2l_stream_channel_depths ! Pass channel depths from ROF to LND
+  logical             :: add_gusts                      ! Whether to include fields related to the gustiness parameterization
 
   character(*), parameter :: u_FILE_u = &
        __FILE__
@@ -232,6 +233,11 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        read(cvalue,*) flds_r2l_stream_channel_depths
 
+       ! are fields related to the gustiness parameterization enabled?
+       call NUOPC_CompAttributeGet(gcomp, name='add_gusts', value=cvalue, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       read(cvalue,*) add_gusts
+
        ! write diagnostic output
        if (maintask) then
           write(logunit,'(a)'   ) ' flds_co2a: prognostic and diagnostic CO2 at lowest atm level is sent to lnd and ocn'
@@ -246,6 +252,7 @@ contains
           write(logunit,'(a,l7)') trim(subname)//' flds_wiso                       = ',flds_wiso
           write(logunit,'(a,l7)') trim(subname)//' flds_i2o_per_cat                = ',flds_i2o_per_cat
           write(logunit,'(a,l7)') trim(subname)//' flds_r2l_stream_channel_depths  = ',flds_r2l_stream_channel_depths
+          write(logunit,'(a,l7)') trim(subname)//' add_gusts                       = ', add_gusts
           write(logunit,'(a,l7)') trim(subname)//' mapuv_with_cart3d               = ',mapuv_with_cart3d
        end if
 
@@ -1414,17 +1421,19 @@ contains
     ! ---------------------------------------------------------------------
     ! to atm: unmerged ugust_out from ocn
     ! ---------------------------------------------------------------------
-    if (phase == 'advertise') then
-       call addfld_aoflux('So_ugustOut')
-       call addfld_to(compatm, 'So_ugustOut')
-    else
-       if ( fldchk(is_local%wrap%FBexp(compatm), 'So_ugustOut', rc=rc)) then
-          if (fldchk(is_local%wrap%FBMed_aoflux_o, 'So_ugustOut', rc=rc)) then
-             if (trim(is_local%wrap%aoflux_grid) == 'ogrid') then
-                call addmap_aoflux('So_ugustOut', compatm, mapconsf, 'ofrac', ocn2atm_map)
+    if (add_gusts) then
+       if (phase == 'advertise') then
+          call addfld_aoflux('So_ugustOut')
+          call addfld_to(compatm, 'So_ugustOut')
+       else
+          if ( fldchk(is_local%wrap%FBexp(compatm), 'So_ugustOut', rc=rc)) then
+             if (fldchk(is_local%wrap%FBMed_aoflux_o, 'So_ugustOut', rc=rc)) then
+                if (trim(is_local%wrap%aoflux_grid) == 'ogrid') then
+                   call addmap_aoflux('So_ugustOut', compatm, mapconsf, 'ofrac', ocn2atm_map)
+                end if
+                call addmrg_to(compatm , 'So_ugustOut', &
+                     mrg_from=compmed, mrg_fld='So_ugustOut', mrg_type='merge', mrg_fracname='ofrac')
              end if
-             call addmrg_to(compatm , 'So_ugustOut', &
-                  mrg_from=compmed, mrg_fld='So_ugustOut', mrg_type='merge', mrg_fracname='ofrac')
           end if
        end if
     end if
@@ -1432,17 +1441,19 @@ contains
     ! ---------------------------------------------------------------------
     ! to atm: 10 m winds including/excluding gust component
     ! ---------------------------------------------------------------------
-    if (phase == 'advertise') then
-       call addfld_aoflux('So_u10withGust')
-       call addfld_to(compatm, 'So_u10withGust')
-    else
-       if ( fldchk(is_local%wrap%FBexp(compatm), 'So_u10withGust', rc=rc)) then
-          if (fldchk(is_local%wrap%FBMed_aoflux_o, 'So_u10withGust', rc=rc)) then
-             if (trim(is_local%wrap%aoflux_grid) == 'ogrid') then
-                call addmap_aoflux('So_u10withGust', compatm, mapconsf, 'ofrac', ocn2atm_map)
+    if (add_gusts) then
+       if (phase == 'advertise') then
+          call addfld_aoflux('So_u10withGust')
+          call addfld_to(compatm, 'So_u10withGust')
+       else
+          if ( fldchk(is_local%wrap%FBexp(compatm), 'So_u10withGust', rc=rc)) then
+             if (fldchk(is_local%wrap%FBMed_aoflux_o, 'So_u10withGust', rc=rc)) then
+                if (trim(is_local%wrap%aoflux_grid) == 'ogrid') then
+                   call addmap_aoflux('So_u10withGust', compatm, mapconsf, 'ofrac', ocn2atm_map)
+                end if
+                call addmrg_to(compatm , 'So_u10withGust', &
+                     mrg_from=compmed, mrg_fld='So_u10withGust', mrg_type='merge', mrg_fracname='ofrac')
              end if
-             call addmrg_to(compatm , 'So_u10withGust', &
-                  mrg_from=compmed, mrg_fld='So_u10withGust', mrg_type='merge', mrg_fracname='ofrac')
           end if
        end if
     end if
