@@ -75,6 +75,10 @@ module esmFldsExchange_cesm_mod
   character(len=CX)   :: rof2lnd_map = 'unset'
   character(len=CX)   :: lnd2rof_map = 'unset'
 
+  ! optional mapping files 
+  character(len=CX)   :: wav2ocn_map ='unset'
+  character(len=CX)   :: ocn2wav_map = 'unset'
+  
   ! no mapping files (value is 'idmap' or 'unset')
   character(len=CX)   :: atm2ice_map = 'unset'
   character(len=CX)   :: atm2ocn_map = 'unset'
@@ -84,9 +88,7 @@ module esmFldsExchange_cesm_mod
   character(len=CX)   :: ice2wav_map = 'unset'
   character(len=CX)   :: lnd2atm_map = 'unset'
   character(len=CX)   :: ocn2atm_map = 'unset'
-  character(len=CX)   :: ocn2wav_map = 'unset'
   character(len=CX)   :: rof2ocn_map = 'unset'
-  character(len=CX)   :: wav2ocn_map = 'unset'
 
   logical             :: mapuv_with_cart3d              ! Map U/V vector wind fields from ATM to OCN/ICE by rotating in Cartesian 3D space and then back
   logical             :: flds_i2o_per_cat               ! Ice thickness category fields passed to OCN
@@ -202,6 +204,14 @@ contains
        call NUOPC_CompAttributeGet(gcomp, name='rof2ocn_ice_rmapname', value=rof2ocn_ice_rmap,  rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        if (maintask) write(logunit, '(a)') trim(subname)//'rof2ocn_ice_rmapname = '// trim(rof2ocn_ice_rmap)
+
+       call NUOPC_CompAttributeGet(gcomp, name='wav2ocn_smapname', value=wav2ocn_map,  rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (maintask) write(logunit, '(a)') trim(subname)//'wav2ocn_smapname = '// trim(wav2ocn_map)
+       call NUOPC_CompAttributeGet(gcomp, name='ocn2wav_smapname', value=ocn2wav_map,  rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (maintask) write(logunit, '(a)') trim(subname)//'ocn2wav_smapname = '// trim(ocn2wav_map)
+
 
        ! uv cart3d mapping
        call NUOPC_CompAttributeGet(gcomp, name='mapuv_with_cart3d', value=cvalue,  rc=rc)
