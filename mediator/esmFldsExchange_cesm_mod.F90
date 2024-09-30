@@ -1721,7 +1721,7 @@ contains
     else
        if ( fldchk(is_local%wrap%FBImp(compocn,compocn), 'Faoo_fdms_ocn', rc=rc) .and. &
             fldchk(is_local%wrap%FBexp(compatm)        , 'Faoo_fdms_ocn', rc=rc)) then
-          call addmap_from(compocn, 'Faoo_fdms_ocn', compocn, mapconsd, 'one', ocn2atm_map)
+          call addmap_from(compocn, 'Faoo_fdms_ocn', compatm, mapconsd, 'one', ocn2atm_map)
           ! custom merge in med_phases_prep_atm
        end if
     end if
@@ -1735,7 +1735,7 @@ contains
     else
        if ( fldchk(is_local%wrap%FBImp(compocn,compocn), 'Faoo_fbrf_ocn', rc=rc) .and. &
             fldchk(is_local%wrap%FBexp(compatm)        , 'Faoo_fbrf_ocn', rc=rc)) then
-          call addmap_from(compocn, 'Faoo_fbrf_ocn', compocn, mapconsd, 'one', ocn2atm_map)
+          call addmap_from(compocn, 'Faoo_fbrf_ocn', compatm, mapconsd, 'one', ocn2atm_map)
           ! custom merge in med_phases_prep_atm
        end if
     end if
@@ -1749,7 +1749,7 @@ contains
     else
        if ( fldchk(is_local%wrap%FBImp(compocn,compocn), 'Faoo_fn2o_ocn', rc=rc) .and. &
             fldchk(is_local%wrap%FBexp(compatm)        , 'Faoo_fn2o_ocn', rc=rc)) then
-          call addmap_from(compocn, 'Faoo_fn2o_ocn', compocn, mapconsd, 'one', ocn2atm_map)
+          call addmap_from(compocn, 'Faoo_fn2o_ocn', compatm, mapconsd, 'one', ocn2atm_map)
           ! custom merge in med_phases_prep_atm
        end if
     end if
@@ -1763,7 +1763,7 @@ contains
     else
        if ( fldchk(is_local%wrap%FBImp(compocn,compocn), 'Faoo_fnh3_ocn', rc=rc) .and. &
             fldchk(is_local%wrap%FBexp(compatm)        , 'Faoo_fnh3_ocn', rc=rc)) then
-          call addmap_from(compocn, 'Faoo_fnh3_ocn', compocn, mapconsd, 'one', ocn2atm_map)
+          call addmap_from(compocn, 'Faoo_fnh3_ocn', compatm, mapconsd, 'one', ocn2atm_map)
           ! custom merge in med_phases_prep_atm
        end if
     end if
