@@ -25,7 +25,6 @@ module med_phases_restart_mod
   logical :: write_restart_at_endofrun = .false.
   logical :: whead(2) = (/.true. , .false./)
   logical :: wdata(2) = (/.false., .true. /)
-
   character(*), parameter :: u_FILE_u  = &
        __FILE__
 
@@ -47,7 +46,7 @@ contains
     use ESMF         , only : ESMF_SUCCESS, ESMF_FAILURE
     use NUOPC        , only : NUOPC_CompAttributeGet
     use NUOPC_Model  , only : NUOPC_ModelGet
-    use med_time_mod , only : med_time_AlarmInit
+    use nuopc_shr_methods, only : AlarmInit
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -83,8 +82,10 @@ contains
     ! Set alarm for instantaneous mediator restart output
     call ESMF_ClockGet(mclock, currTime=mCurrTime,  rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call med_time_alarmInit(mclock, alarm, option=restart_option, opt_n=restart_n, &
+
+    call alarmInit(mclock, alarm, option=restart_option, opt_n=restart_n, &
          reftime=mcurrTime, alarmname='alarm_restart', rc=rc)
+
     call ESMF_AlarmSet(alarm, clock=mclock, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
@@ -342,13 +343,14 @@ contains
           call med_io_write(io_file, next_tod , 'curr_tod' , whead(m), wdata(m), rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-          do n = 1,ncomps
+          do n = 2,ncomps
              if (is_local%wrap%comp_present(n)) then
-                nx = is_local%wrap%nx(n)
-                ny = is_local%wrap%ny(n)
                 if (is_local%wrap%ntile(n) > 0) then
                    nx = is_local%wrap%ntile(n)*is_local%wrap%ny(n)*is_local%wrap%nx(n)
                    ny = 1
+                else
+                   nx = is_local%wrap%nx(n)
+                   ny = is_local%wrap%ny(n)
                 end if
                 ! Write import field bundles
                 if (ESMF_FieldBundleIsCreated(is_local%wrap%FBimp(n,n),rc=rc)) then
@@ -548,11 +550,6 @@ contains
     if (maintask) then
        call ESMF_LogWrite(trim(subname)//" read rpointer file = "//trim(restart_pfile), ESMF_LOGMSG_INFO)
        open(newunit=unitn, file=restart_pfile, form='FORMATTED', status='old', iostat=ierr)
-       if (ierr < 0) then
-          call ESMF_LogWrite(trim(subname)//' rpointer file open returns error', ESMF_LOGMSG_INFO)
-          rc=ESMF_Failure
-          return
-       end if
        read (unitn,'(a)', iostat=ierr) restart_file
        if (ierr < 0) then
           call ESMF_LogWrite(trim(subname)//' rpointer file read returns error', ESMF_LOGMSG_INFO)

@@ -334,7 +334,7 @@
     <group>run_begin_stop_restart</group>
     <file>env_run.xml</file>
     <desc>
-      Run start time-of-day
+      Run start time-of-day, units are seconds with values from 0 to 86400.
     </desc>
   </entry>
 
@@ -1389,14 +1389,6 @@
     <desc>rof2lnd flux mapping file</desc>
   </entry>
 
-  <entry id="ROF2OCN_FMAPNAME">
-    <type>char</type>
-    <default_value>idmap</default_value>
-    <group>run_domain</group>
-    <file>env_run.xml</file>
-    <desc>rof2ocn flux mapping file</desc>
-  </entry>
-
   <entry id="ROF2OCN_LIQ_RMAPNAME">
     <type>char</type>
     <default_value>idmap</default_value>
@@ -1413,30 +1405,6 @@
     <desc>rof2ocn runoff mapping file</desc>
   </entry>
 
-  <entry id="GLC2ICE_RMAPNAME">
-    <type>char</type>
-    <default_value>idmap</default_value>
-    <group>run_domain</group>
-    <file>env_run.xml</file>
-    <desc>glc2ice runoff mapping file</desc>
-  </entry>
-
-  <entry id="GLC2OCN_LIQ_RMAPNAME">
-    <type>char</type>
-    <default_value>idmap</default_value>
-    <group>run_domain</group>
-    <file>env_run.xml</file>
-    <desc>glc2ocn runoff mapping file for liquid runoff</desc>
-  </entry>
-
-  <entry id="GLC2OCN_ICE_RMAPNAME">
-    <type>char</type>
-    <default_value>idmap</default_value>
-    <group>run_domain</group>
-    <file>env_run.xml</file>
-    <desc>glc2ocn runoff mapping file for ice runoff</desc>
-  </entry>
-
   <entry id="OCN2WAV_SMAPNAME">
     <type>char</type>
     <default_value>idmap</default_value>
@@ -1445,22 +1413,16 @@
     <desc>ocn2wav state mapping file</desc>
   </entry>
 
-  <entry id="ICE2WAV_SMAPNAME">
-    <type>char</type>
-    <default_value>idmap</default_value>
-    <group>run_domain</group>
-    <file>env_run.xml</file>
-    <desc>ice2wav state mapping file</desc>
-  </entry>
-
   <entry id="WAV2OCN_SMAPNAME">
     <type>char</type>
-    <default_value>idmap</default_value>
+    <values>
+      <value>unset</value>
+    </values>
     <group>run_domain</group>
     <file>env_run.xml</file>
     <desc>wav2ocn state mapping file</desc>
   </entry>
-
+  
   <entry id="EPS_FRAC">
     <type>char</type>
     <default_value>1.0e-02</default_value>
@@ -2042,15 +2004,15 @@
     https://www.unidata.ucar.edu/software/netcdf/docs/data_type.html
     </desc>
     <values>
-      <value compclass="ATM">64bit_offset</value>
-      <value compclass="CPL">64bit_offset</value>
-      <value compclass="OCN">64bit_offset</value>
-      <value compclass="WAV">64bit_offset</value>
-      <value compclass="GLC">64bit_offset</value>
-      <value compclass="ICE">64bit_offset</value>
-      <value compclass="ROF">64bit_offset</value>
-      <value compclass="LND">64bit_offset</value>
-      <value compclass="ESP">64bit_offset</value>
+      <value compclass="ATM">64bit_data</value>
+      <value compclass="CPL">64bit_data</value>
+      <value compclass="OCN">64bit_data</value>
+      <value compclass="WAV">64bit_data</value>
+      <value compclass="GLC">64bit_data</value>
+      <value compclass="ICE">64bit_data</value>
+      <value compclass="ROF">64bit_data</value>
+      <value compclass="LND">64bit_data</value>
+      <value compclass="ESP">64bit_data</value>
     </values>
   </entry>
 
@@ -2468,6 +2430,19 @@
  </entry>
 
   <!-- ===================================================================== -->
+  <!-- optionally connect the case to a remote git repository,               -->
+  <!-- the branch is the case name and must be unique in remote              -->
+  <!-- ===================================================================== -->
+
+ <entry id="CASE_GIT_REPOSITORY">
+   <type>char</type>
+   <default_value></default_value>
+   <group>case_git</group>
+   <file>env_build.xml</file>
+   <desc>Remote git repository used for this case</desc>
+ </entry>
+
+<!-- ===================================================================== -->
   <!-- Include the AOFLUX calculation for this compset -->
   <!-- ===================================================================== -->
 

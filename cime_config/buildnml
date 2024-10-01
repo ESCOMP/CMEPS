@@ -50,8 +50,12 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     config["continue_run"] = ".true." if case.get_value("CONTINUE_RUN") else ".false."
     config["flux_epbal"] = "ocn" if case.get_value("CPL_EPBAL") == "ocn" else "off"
     config["mask_grid"] = case.get_value("MASK_GRID")
-    config["rest_option"] = case.get_value("REST_OPTION")
+    for val in ("HIST", "REST", "STOP"):
+        config[val.lower()+"_option"] = case.get_value(val+"_OPTION")
+
+
     config["comp_ocn"] = case.get_value("COMP_OCN")
+
 
     atm_grid = case.get_value("ATM_GRID")
     lnd_grid = case.get_value("LND_GRID")
@@ -72,6 +76,8 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     atm_mesh = case.get_value("ATM_DOMAIN_MESH")
     lnd_mesh = case.get_value("LND_DOMAIN_MESH")
     rof_mesh = case.get_value("ROF_DOMAIN_MESH")
+    ocn_mesh = case.get_value("OCN_DOMAIN_MESH")
+    wav_mesh = case.get_value("WAV_DOMAIN_MESH")
     config["samegrid_atm_lnd"] = (
         "true" if atm_mesh == case.get_value("LND_DOMAIN_MESH") else "false"
     )
@@ -85,6 +91,7 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
         "true" if atm_mesh == case.get_value("WAV_DOMAIN_MESH") else "false"
     )
     config["samegrid_lnd_rof"] = "true" if lnd_mesh == rof_mesh else "false"
+    config["samegrid_wav_ocn"] = "true" if ocn_mesh == wav_mesh else "false"
 
     # determine if need to set atm_domainfile
     scol_lon = float(case.get_value("PTS_LON"))
@@ -98,7 +105,7 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     else:
         config["single_column"] = "false"
 
-    # needed for determining the run sequence as well as glc_renormalize_smb
+    # needed for determining the run sequence
     config["COMP_ATM"] = case.get_value("COMP_ATM")
     config["COMP_ICE"] = case.get_value("COMP_ICE")
     config["COMP_GLC"] = case.get_value("COMP_GLC")
@@ -106,8 +113,8 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     config["COMP_OCN"] = case.get_value("COMP_OCN")
     config["COMP_ROF"] = case.get_value("COMP_ROF")
     config["COMP_WAV"] = case.get_value("COMP_WAV")
-    config["CAMDEV"] = "True" if "CAM%DEV" in case.get_value("COMPSET") else "False"
-    
+    config["CAMDEV"] = "True" if "CAM70" in case.get_value("COMPSET") else "False"
+
     if (
         (
             case.get_value("COMP_ROF") == "mosart"
@@ -127,7 +134,13 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     elif case.get_value("RUN_TYPE") == "branch":
         config["run_type"] = "branch"
 
-    config['wav_ice_coupling'] = config['COMP_WAV'] == 'ww3dev' and config['COMP_ICE'] == 'cice'
+    config['wav_ice_coupling'] = 'ww3' in config['COMP_WAV'] and config['COMP_ICE'] == 'cice'
+
+    if config["COMP_OCN"] == "blom":
+        if "ecosys" in case.get_value("BLOM_TRACER_MODULES"):
+            config["dms_from_ocn"] = "on"
+        else:
+            config["dms_from_ocn"] = "off"
 
     # ----------------------------------------------------
     # Initialize namelist defaults
@@ -146,11 +159,11 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     if config["COMP_OCN"] == "docn" and "aqua" in case.get_value("DOCN_MODE"):
         nmlgen.set_value("aqua_planet", value=".true.")
 
-    # make sure that variable add_gusts is only set to true if compset includes cam_dev
+    # make sure that variable add_gusts is only set to true if compset includes cam7 physics
     add_gusts = literal_to_python_value(nmlgen.get_value("add_gusts"), type_="logical")
     if add_gusts:
-        expect("CAM%DEV" in case.get_value("COMPSET"),"ERROR: add_gusts can only be set if CAM%DEV in compset {}".format(case.get_value("COMPSET")))
-            
+        expect("CAM70" in case.get_value("COMPSET"),"ERROR: add_gusts can only be set if CAM70 in compset {}".format(case.get_value("COMPSET")))
+
     # --------------------------------
     # Overwrite: set component coupling frequencies
     # --------------------------------
@@ -198,6 +211,19 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
             nmlgen.add_default(comp.lower() + "_cpl_dt", value=cpl_dt)
             coupling_times[comp.lower() + "_cpl_dt"] = cpl_dt
             mindt = min(mindt, cpl_dt)
+
+    # Here we convert "nsteps" to "nseconds", this simplifies the fortran
+
+    for val in ("REST", "HIST", "STOP"):
+        if case.get_value(val+"_OPTION") == "nsteps":
+            nsteps = case.get_value(val+"_N")
+            if val == "REST":
+                nmlgen.set_value("restart_n", value=mindt*nsteps)
+            elif val == "HIST":
+                nmlgen.set_value("history_n", value=mindt*nsteps)
+            else:
+                nmlgen.set_value("stop_n", value=mindt*nsteps)
+
 
     # sanity check
     comp_atm = case.get_value("COMP_ATM")
@@ -305,7 +331,7 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
 
     for item in case.get_values("COMP_CLASSES"):
         comp = case.get_value("COMP_" + item)
-        if case.get_value(f"PIO_ASYNC_INTERFACE", {"compclass":item}):
+        if case.get_value("PIO_ASYNC_INTERFACE", {"compclass":item}):
             asyncio = True
 
         valid = True
@@ -608,8 +634,6 @@ def buildnml(case, caseroot, component):
     if component != "drv":
         raise AttributeError
 
-    #   Do a check here of ESMF VERSION, requires 8.1.0 or newer (8.2.0 or newer for esmf_aware_threading)
-    esmf_aware_threading = case.get_value("ESMF_AWARE_THREADING")
     esmfmkfile = os.getenv("ESMFMKFILE")
     expect(
         esmfmkfile and os.path.isfile(esmfmkfile),
@@ -665,7 +689,7 @@ def buildnml(case, caseroot, component):
     create_namelist_infile(case, user_nl_file, namelist_infile, infile_text)
     infile = [namelist_infile]
 
-    
+
     # create the files nuopc.runconfig, nuopc.runseq, drv_in and drv_flds_in
     _create_drv_namelists(case, infile, confdir, nmlgen, files)
 
