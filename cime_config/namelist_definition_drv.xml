@@ -2388,10 +2388,9 @@
     </desc>
     <values>
       <value>.false.</value>
-      <value BGC_MODE="CO2A.*">.true.</value>
+      <value BGC_MODE=".*CO2A.*">.true.</value>
     </values>
   </entry>
-
   <entry id="flds_co2b">
     <type>logical</type>
     <category>flds</category>
@@ -2403,10 +2402,9 @@
     </desc>
     <values>
       <value>.false.</value>
-      <value BGC_MODE="CO2B">.true.</value>
+      <value BGC_MODE=".*CO2B.*">.true.</value>
     </values>
   </entry>
-
   <entry id="flds_co2c">
     <type>logical</type>
     <category>flds</category>
@@ -2418,7 +2416,7 @@
     </desc>
     <values>
       <value>.false.</value>
-      <value BGC_MODE="CO2C">.true.</value>
+      <value BGC_MODE="BGC%.*CO2C.*">.true.</value>
     </values>
   </entry>
 
@@ -2484,7 +2482,6 @@
       <value BGC_MODE=".*_OI">.true.</value>
     </values>
   </entry>
-
 
   <entry  id="flds_wiso" modify_via_xml="FLDS_WISO">
     <type>logical</type>

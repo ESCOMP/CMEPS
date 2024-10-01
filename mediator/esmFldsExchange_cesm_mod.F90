@@ -1693,6 +1693,7 @@ contains
 
     !-----------------------------------------------------------------------------
     ! to atm: surface flux of dms from ocean
+
     !-----------------------------------------------------------------------------
     if (phase == 'advertise') then
        call addfld_from(compocn, 'Faoo_fdms_ocn')
@@ -1744,6 +1745,7 @@ contains
             fldchk(is_local%wrap%FBexp(compatm)        , 'Faoo_fnh3_ocn', rc=rc)) then
           call addmap_from(compocn, 'Faoo_fnh3_ocn', compatm, mapconsd, 'one', ocn2atm_map)
           ! custom merge in med_phases_prep_atm
+
        end if
     end if
 
