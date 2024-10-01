@@ -2299,6 +2299,34 @@
     </values>
   </entry>
 
+  <entry id="ocn2wav_smapname"    modify_via_xml="OCN2WAV_SMAPNAME">
+    <type>char</type>
+    <category>mapping</category>
+    <input_pathname>abs</input_pathname>
+    <group>MED_attributes</group>
+    <desc>
+      ocn to wav state mapping file for states
+    </desc>
+    <values>
+      <value samegrid_ocn_wav="true">idmap</value>
+      <value>$OCN2WAV_SMAPNAME</value>
+    </values>
+  </entry>
+
+  <entry id="wav2ocn_smapname"    modify_via_xml="WAV2OCN_SMAPNAME">
+    <type>char</type>
+    <category>mapping</category>
+    <input_pathname>abs</input_pathname>
+    <group>MED_attributes</group>
+    <desc>
+      wav to ocn state mapping file for states
+    </desc>
+    <values>
+      <value samegrid_ocn_wav="true">idmap</value>
+      <value>$WAV2OCN_SMAPNAME</value>
+    </values>
+  </entry>
+  
   <!-- =========================== -->
   <!-- ALLCOMP attributes          -->
   <!-- =========================== -->
@@ -2388,9 +2416,10 @@
     </desc>
     <values>
       <value>.false.</value>
-      <value BGC_MODE=".*CO2A.*">.true.</value>
+      <value BGC_MODE="CO2A.*">.true.</value>
     </values>
   </entry>
+
   <entry id="flds_co2b">
     <type>logical</type>
     <category>flds</category>
@@ -2402,9 +2431,10 @@
     </desc>
     <values>
       <value>.false.</value>
-      <value BGC_MODE=".*CO2B.*">.true.</value>
+      <value BGC_MODE="CO2B">.true.</value>
     </values>
   </entry>
+
   <entry id="flds_co2c">
     <type>logical</type>
     <category>flds</category>
@@ -2416,7 +2446,7 @@
     </desc>
     <values>
       <value>.false.</value>
-      <value BGC_MODE="BGC%.*CO2C.*">.true.</value>
+      <value BGC_MODE="CO2C">.true.</value>
     </values>
   </entry>
 
@@ -2482,6 +2512,7 @@
       <value BGC_MODE=".*_OI">.true.</value>
     </values>
   </entry>
+
 
   <entry  id="flds_wiso" modify_via_xml="FLDS_WISO">
     <type>logical</type>
