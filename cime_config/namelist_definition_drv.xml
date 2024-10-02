@@ -2308,7 +2308,7 @@
       ocn to wav state mapping file for states
     </desc>
     <values>
-      <value samegrid_ocn_wav="true">idmap</value>
+      <value samegrid_wav_ocn="true">idmap</value>
       <value>$OCN2WAV_SMAPNAME</value>
     </values>
   </entry>
@@ -2322,7 +2322,7 @@
       wav to ocn state mapping file for states
     </desc>
     <values>
-      <value samegrid_ocn_wav="true">idmap</value>
+      <value samegrid_wav_ocn="true">idmap</value>
       <value>$WAV2OCN_SMAPNAME</value>
     </values>
   </entry>
