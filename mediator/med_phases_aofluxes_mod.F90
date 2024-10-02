@@ -780,13 +780,15 @@ contains
     type(ESMF_Mesh)      :: xch_mesh
     real(r8), pointer    :: dataptr(:)
     integer              :: fieldcount
-    integer              :: stp ! srcTermProcessing is declared inout and must have variable not constant
+    integer              :: srcTermProcessing_Value ! srcTermProcessing is declared inout and must have variable not constant
     type(ESMF_CoordSys_Flag)           :: coordSys
     real(ESMF_KIND_R8)    ,allocatable :: garea(:)
     character(len=*),parameter :: subname=' (med_aofluxes_init_xgrid) '
     !-----------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
+
+    srcTermProcessing_Value = 0
 
     ! Get the internal state from the mediator Component.
     nullify(is_local%wrap)
@@ -877,23 +879,26 @@ contains
     dataptr(:) = 1.0_r8
 
     ! create agrid->xgrid route handles
-    call ESMF_FieldRegridStore(xgrid, field_a, field_x, routehandle=rh_agrid2xgrid, rc=rc)
+    call ESMF_FieldRegridStore(xgrid, field_a, field_x, routehandle=rh_agrid2xgrid, &
+         srcTermProcessing=srcTermProcessing_Value, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call ESMF_FieldRegridStore(xgrid, field_a, field_x, routehandle=rh_agrid2xgrid_2ndord, &
-         regridmethod=ESMF_REGRIDMETHOD_CONSERVE_2ND, rc=rc)
+         regridmethod=ESMF_REGRIDMETHOD_CONSERVE_2ND, srcTermProcessing=srcTermProcessing_Value, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     if (trim(coupling_mode) == 'cesm') then
-       stp = 1
        call ESMF_FieldRegridStore(field_a, field_x, routehandle=rh_agrid2xgrid_bilinr, &
-            regridmethod=ESMF_REGRIDMETHOD_BILINEAR, dstMaskValues=(/0/), srcTermProcessing=stp, rc=rc)
+            regridmethod=ESMF_REGRIDMETHOD_BILINEAR, dstMaskValues=(/0/), &
+            srcTermProcessing=srcTermProcessing_Value, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        call ESMF_FieldRegridStore(field_a, field_x, routehandle=rh_agrid2xgrid_patch, &
-            regridmethod=ESMF_REGRIDMETHOD_PATCH, dstMaskValues=(/0/), srcTermProcessing=stp, rc=rc)
+            regridmethod=ESMF_REGRIDMETHOD_PATCH, dstMaskValues=(/0/), &
+            srcTermProcessing=srcTermProcessing_Value, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     end if
 
     ! create xgrid->zgrid route handle
-    call ESMF_FieldRegridStore(xgrid, field_x, field_a, routehandle=rh_xgrid2agrid, rc=rc)
+    call ESMF_FieldRegridStore(xgrid, field_x, field_a, routehandle=rh_xgrid2agrid, &
+         srcTermProcessing=srcTermProcessing_Value, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! destroy temporary field
@@ -911,12 +916,14 @@ contains
     call ESMF_FieldGet(field_o, farrayptr=dataptr, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     dataptr(:) = 1.0_r8
-    call ESMF_FieldRegridStore(xgrid, field_o, field_x, routehandle=rh_ogrid2xgrid, rc=rc)
+    call ESMF_FieldRegridStore(xgrid, field_o, field_x, routehandle=rh_ogrid2xgrid, &
+         srcTermProcessing=srcTermProcessing_Value, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldRegridStore(xgrid, field_x, field_o, routehandle=rh_xgrid2ogrid, rc=rc)
+    call ESMF_FieldRegridStore(xgrid, field_x, field_o, routehandle=rh_xgrid2ogrid, &
+         srcTermProcessing=srcTermProcessing_Value, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     ! call ESMF_FieldRegridStore(xgrid, field_o, field_x, routehandle=rh_ogrid2xgrid_2ndord, &
-    !      regridmethod=ESMF_REGRIDMETHOD_CONSERVE_2ND, rc=rc)
+    !      regridmethod=ESMF_REGRIDMETHOD_CONSERVE_2ND, srcTermProcessing=srcTermProcessing_Value, rc=rc)
     ! if (chkerr(rc,__LINE__,u_FILE_u)) return
     call ESMF_FieldDestroy(field_o, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
