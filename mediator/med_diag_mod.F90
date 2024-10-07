@@ -27,7 +27,7 @@ module med_diag_mod
   use med_constants_mod     , only : shr_const_rearth, shr_const_pi, shr_const_latice, shr_const_latvap
   use med_constants_mod     , only : shr_const_ice_ref_sal, shr_const_ocn_ref_sal, shr_const_isspval
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
-  use med_internalstate_mod , only : InternalState, logunit, maintask, diagunit
+  use med_internalstate_mod , only : InternalState, logunit, maintask, diagunit, samegrid_atmlnd
   use med_methods_mod       , only : fldbun_getdata2d => med_methods_FB_getdata2d
   use med_methods_mod       , only : fldbun_getdata1d => med_methods_FB_getdata1d
   use med_methods_mod       , only : fldbun_fldChk    => med_methods_FB_FldChk
@@ -666,8 +666,13 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! Get fractions on atm mesh
-    call fldbun_getdata1d(is_local%wrap%FBfrac(compatm), 'lfrac', lfrac, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (samegrid_atmlnd) then
+      call fldbun_getdata1d(is_local%wrap%FBfrac(compatm), 'lfrac', lfrac, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    else
+      call fldbun_getdata1d(is_local%wrap%FBfrac(compatm), 'lfrin', lfrac, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    end if
     call fldbun_getdata1d(is_local%wrap%FBfrac(compatm), 'ifrac', ifrac, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call fldbun_getdata1d(is_local%wrap%FBfrac(compatm), 'ofrac', ofrac, rc=rc)
@@ -986,7 +991,7 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! get fractions on lnd mesh
-    call fldbun_getdata1d(is_local%wrap%FBfrac(complnd), 'lfrac', lfrac, rc=rc)
+    call fldbun_getdata1d(is_local%wrap%FBfrac(complnd), 'lfrin', lfrac, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     areas => is_local%wrap%mesh_info(complnd)%areas
@@ -1197,8 +1202,15 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call diag_rof(is_local%wrap%FBImp(comprof,comprof), 'Forr_rofi' , f_watr_ioff, ic, areas, budget_local, minus=.true., rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call diag_rof(is_local%wrap%FBImp(comprof,comprof), 'Firr_rofi' , f_watr_ioff, ic, areas, budget_local, minus=.true., rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    if ( fldbun_fldchk(is_local%wrap%FBImp(comprof,comprof), 'Forr_rofl_glc', rc=rc)) then
+      call diag_rof(is_local%wrap%FBImp(comprof,comprof), 'Forr_rofi_glc' , f_watr_roff, ic, areas, budget_local, minus=.true., rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    end if
+    if ( fldbun_fldchk(is_local%wrap%FBImp(comprof,comprof), 'Forr_rofi_glc', rc=rc)) then
+      call diag_rof(is_local%wrap%FBImp(comprof,comprof), 'Forr_rofi_glc' , f_watr_ioff, ic, areas, budget_local, minus=.true., rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    end if
 
     if (flds_wiso) then
        call diag_rof_wiso(is_local%wrap%FBExp(comprof), 'Forr_flood_wiso', &
@@ -1231,6 +1243,14 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call diag_rof(is_local%wrap%FBExp(comprof), 'Flrl_rofi'  , f_watr_ioff, ic, areas, budget_local, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (fldbun_fldchk(is_local%wrap%FBExp(comprof), 'Fgrg_rofl', rc=rc)) then
+      call diag_rof(is_local%wrap%FBExp(comprof), 'Fgrg_rofl'  , f_watr_roff, ic, areas, budget_local, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    end if
+    if (fldbun_fldchk(is_local%wrap%FBExp(comprof), 'Fgrg_rofi', rc=rc)) then
+      call diag_rof(is_local%wrap%FBExp(comprof), 'Fgrg_rofi'  , f_watr_ioff, ic, areas, budget_local, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    end if
 
     if (flds_wiso) then
        call diag_rof_wiso(is_local%wrap%FBExp(comprof), 'Flrl_rofl_wiso', &
@@ -1352,9 +1372,9 @@ contains
 
     do ns = 1,is_local%wrap%num_icesheets
        areas => is_local%wrap%mesh_info(compglc(ns))%areas
-       call diag_glc(is_local%wrap%FBImp(compglc(ns),compglc(ns)), 'Fogg_rofl', f_watr_roff, ic, areas, budget_local, minus=.true., rc=rc)
+       call diag_glc(is_local%wrap%FBImp(compglc(ns),compglc(ns)), 'Fgrg_rofl', f_watr_roff, ic, areas, budget_local, minus=.true., rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call diag_glc(is_local%wrap%FBImp(compglc(ns),compglc(ns)), 'Fogg_rofi', f_watr_ioff, ic, areas, budget_local, minus=.true., rc=rc)
+       call diag_glc(is_local%wrap%FBImp(compglc(ns),compglc(ns)), 'Fgrg_rofi', f_watr_ioff, ic, areas, budget_local, minus=.true., rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call diag_glc(is_local%wrap%FBImp(compglc(ns),compglc(ns)), 'Figg_rofi', f_watr_ioff, ic, areas, budget_local, minus=.true., rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -1533,10 +1553,20 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call diag_ocn(is_local%wrap%FBExp(compocn), 'Faxa_snow' , f_watr_snow   , ic, areas, sfrac, budget_local, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
     call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_rofl' , f_watr_roff   , ic, areas, sfrac, budget_local, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_rofi' , f_watr_ioff   , ic, areas, sfrac, budget_local, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    if ( fldbun_fldchk(is_local%wrap%FBExp(compocn), 'Forr_rofl_glc' , rc=rc)) then
+      call diag_ocn(is_local%wrap%FBExp(compocn), 'Forr_rofl_glc' , f_watr_roff   , ic, areas, sfrac, budget_local, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    end if
+    if ( fldbun_fldchk(is_local%wrap%FBExp(compocn), 'Forr_rofi_glc' , rc=rc)) then
+      call diag_ocn(is_local%wrap%FBExp(compocn), 'Forr_rofi_glc' , f_watr_ioff   , ic, areas, sfrac, budget_local, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    end if
 
     if (flds_wiso) then
        call diag_ocn_wiso(is_local%wrap%FBMed_aoflux_o, 'Faox_evap_wiso', &
@@ -1893,8 +1923,6 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call diag_ice_send(is_local%wrap%FBExp(compice), 'Faxa_snow', f_watr_snow, areas, lats, ifrac, budget_local, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call diag_ice_send(is_local%wrap%FBExp(compice), 'Fixx_rofi', f_watr_ioff, areas, lats, ifrac, budget_local, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if ( fldbun_fldchk(is_local%wrap%FBExp(compice), 'Fioo_q', rc=rc)) then
        call fldbun_getdata1d(is_local%wrap%FBExp(compice), 'Fioo_q', data, rc=rc)
@@ -1913,14 +1941,12 @@ contains
 
     ic = c_inh_send
     budget_local(f_heat_latf,ic,ip) = -budget_local(f_watr_snow,ic,ip)*shr_const_latice
-    budget_local(f_heat_ioff,ic,ip) = -budget_local(f_watr_ioff,ic,ip)*shr_const_latice
     if (trim(budget_table_version) == 'v0') then
        budget_local(f_watr_frz ,ic,ip) =  budget_local(f_heat_frz ,ic,ip)*HFLXtoWFLX
     end if
 
     ic = c_ish_send
     budget_local(f_heat_latf,ic,ip) = -budget_local(f_watr_snow,ic,ip)*shr_const_latice
-    budget_local(f_heat_ioff,ic,ip) = -budget_local(f_watr_ioff,ic,ip)*shr_const_latice
     if (trim(budget_table_version) == 'v0') then
        budget_local(f_watr_frz ,ic,ip) =  budget_local(f_heat_frz ,ic,ip)*HFLXtoWFLX
     end if
