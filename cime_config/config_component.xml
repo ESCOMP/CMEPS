@@ -1753,6 +1753,22 @@
     <desc>pes or cores per node for accounting purposes </desc>
   </entry>
 
+  <entry id="MEM_PER_TASK">
+    <type>integer</type>
+    <default_value>0</default_value>
+    <group>mach_pes_last</group>
+    <file>env_mach_pes.xml</file>
+    <desc>minimum memory request per node (currently only used on derecho)</desc>
+  </entry>
+
+  <entry id="MAX_MEM_PER_NODE">
+    <type>integer</type>
+    <default_value>0</default_value>
+    <group>mach_pes_last</group>
+    <file>env_mach_pes.xml</file>
+    <desc>maximum memory request per node (currently only used on derecho)</desc>
+  </entry>
+
   <entry id="MAX_CPUTASKS_PER_GPU_NODE">
     <type>integer</type>
     <default_value>0</default_value>
