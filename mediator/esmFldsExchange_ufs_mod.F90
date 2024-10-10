@@ -55,6 +55,9 @@ contains
     character(len=CS)   :: fldname
     character(len=CS), allocatable :: flds(:), oflds(:), aflds(:), iflds(:)
     character(len=*) , parameter   :: subname='(esmFldsExchange_ufs)'
+
+    ! component name
+    character(len=CS) :: lnd_name = ''    
     !--------------------------------------
 
     rc = ESMF_SUCCESS
@@ -75,6 +78,13 @@ contains
     end if
     write(msgString,'(A,i6,A)') trim(subname)//': maptype is ',maptype,', '//mapnames(maptype)
     call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
+
+    ! determine which land model is present
+    if (is_local%wrap%comp_present(complnd)) then
+       call NUOPC_CompAttributeGet(gcomp, name="LND_model", value=cvalue, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       lnd_name = trim(cvalue)
+    end if
 
     if (trim(coupling_mode) == 'ufs.nfrac.aoflux' .or. trim(coupling_mode) == 'ufs.frac.aoflux') then
        med_aoflux_to_ocn = .true.
@@ -772,6 +782,28 @@ contains
        end if
     end do
     deallocate(flds)
+
+
+    if (lnd_name == 'lm4') then
+       allocate(flds(4))
+       flds = (/'Faxa_swndr', 'Faxa_swndf', 'Faxa_swvdr', 'Faxa_swvdf' /)
+       do n = 1,size(flds)
+          fldname = trim(flds(n))
+          if (phase == 'advertise') then
+             if (is_local%wrap%comp_present(compatm) .and. is_local%wrap%comp_present(complnd)) then
+                call addfld_from(compatm , fldname)
+                call addfld_to(complnd   , fldname)
+             end if
+          else
+             if ( fldchk(is_local%wrap%FBexp(complnd)        , fldname, rc=rc) .and. &
+                  fldchk(is_local%wrap%FBImp(compatm,compatm), fldname, rc=rc)) then
+                call addmap_from(compatm, fldname, complnd, maptype, 'one', 'unset')
+                call addmrg_to(complnd, fldname, mrg_from=compatm, mrg_fld=fldname, mrg_type='copy')
+             end if
+          end if
+       end do 
+       deallocate(flds)       
+    end if ! lm4
 
   end subroutine esmFldsExchange_ufs
 
