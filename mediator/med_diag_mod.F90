@@ -31,7 +31,6 @@ module med_diag_mod
   use med_methods_mod       , only : fldbun_getdata2d => med_methods_FB_getdata2d
   use med_methods_mod       , only : fldbun_getdata1d => med_methods_FB_getdata1d
   use med_methods_mod       , only : fldbun_fldChk    => med_methods_FB_FldChk
-  use med_time_mod          , only : alarmInit        => med_time_alarmInit
   use med_utils_mod         , only : chkerr           => med_utils_ChkErr
   use perf_mod              , only : t_startf, t_stopf
 
@@ -1204,7 +1203,7 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if ( fldbun_fldchk(is_local%wrap%FBImp(comprof,comprof), 'Forr_rofl_glc', rc=rc)) then
-      call diag_rof(is_local%wrap%FBImp(comprof,comprof), 'Forr_rofi_glc' , f_watr_roff, ic, areas, budget_local, minus=.true., rc=rc)
+      call diag_rof(is_local%wrap%FBImp(comprof,comprof), 'Forr_rofl_glc' , f_watr_roff, ic, areas, budget_local, minus=.true., rc=rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
     if ( fldbun_fldchk(is_local%wrap%FBImp(comprof,comprof), 'Forr_rofi_glc', rc=rc)) then
@@ -1361,12 +1360,10 @@ contains
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-
     !-------------------------------
     ! from glc to mediator
     !-------------------------------
 
-    ! TODO: this will not be correct if there is more than 1 ice sheet
     ic = c_glc_recv
     ip = period_inst
 

@@ -233,17 +233,15 @@
     </values>
   </entry>
 
-  <!-- =========================================== -->
-  <!-- All components orbital attributes           -->
-  <!-- =========================================== -->
-
+  <!-- not yet fully implemented, set to false -->
   <entry id="write_restart_at_endofrun">
     <type>logical</type>
     <category>nuopc</category>
     <group>ALLCOMP_attributes</group>
     <values>
       <value>.false.</value>
-      <value rest_option="end">.true.</value>
+      <value rest_option='none'>.false.</value>
+      <value rest_option='never'>.false.</value>
     </values>
   </entry>
 
@@ -255,6 +253,10 @@
       <value>$ESMF_PROFILING_LEVEL</value>
     </values>
   </entry>
+
+  <!-- =========================================== -->
+  <!-- All components orbital attributes           -->
+  <!-- =========================================== -->
 
   <entry id="orb_mode">
     <type>char</type>
@@ -843,32 +845,26 @@
     <type>char</type>
     <category>control</category>
     <group>MED_attributes</group>
-    <valid_values>on,off,on_if_glc_coupled_fluxes</valid_values>
+    <valid_values>on,off</valid_values>
     <desc>
       Whether to renormalize the surface mass balance (smb) sent from lnd to glc so that the
       global integral on the glc grid agrees with the global integral on the lnd grid.
 
-      Unlike most fluxes, smb is remapped with bilinear rather than conservative mapping weights,
-      so this option is needed for conservation. However, conservation is not required in many
-      cases, since we often run glc as a diagnostic (one-way-coupled) component.
+      Unlike most fluxes, smb is remapped with bilinear rather than conservative mapping
+      weights, so this option is needed for conservation. However, this can be turned off
+      in non-fully-coupled configurations where conservation isn't important (e.g.,
+      glc-only configurations - T compsets) to avoid the global correction that comes with
+      this renormalization.
 
       Allowable values are:
-      'on': always do this renormalization
-      'off': never do this renormalization (see WARNING below)
-      'on_if_glc_coupled_fluxes': Determine at runtime whether to do this renormalization.
-         Does the renormalization if we're running a two-way-coupled glc that sends fluxes
-         to other components (which is the case where we need conservation).
-         Does NOT do the renormalization if we're running a one-way-coupled glc, or if
-         we're running a glc-only compset (T compsets).
-         (In these cases, conservation is not important.)
+      'on': do this renormalization
+      'off': do not do this renormalization; note that this will break conservation so
+         typically should not be used in fully-coupled cases
 
-      Only used if running with a prognostic GLC component.
-
-      WARNING: Setting this to 'off' will break conservation when running with an
-      evolving, two-way-coupled glc.
+      Only used if running with a GLC component.
     </desc>
     <values>
-      <value>on_if_glc_coupled_fluxes</value>
+      <value>on</value>
       <value COMP_LND="xlnd">off</value>
     </values>
   </entry>
@@ -1123,13 +1119,12 @@
     <type>char</type>
     <category>time</category>
     <group>ALLCOMP_attributes</group>
-    <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,nmonths,nyears,monthly,yearly,date,end</valid_values>
+    <valid_values>none,never,nseconds,nminutes,nhours,ndays,nmonths,nyears,monthly,yearly,date,end</valid_values>
     <desc>
       mediator history snapshot option (used with history_n and history_ymd)
       set by HIST_OPTION in env_run.xml.
       history_option alarms are:
       [none/never], turns option off
-      [nsteps]   , history snapshot every history_n nsteps  , relative to current run start time
       [nseconds] , history snapshot every history_n nseconds, relative to current run start time
       [nminutes] , history snapshot every history_n nminutes, relative to current run start time
       [nhours]   , history snapshot every history_n nhours  , relative to current run start time
@@ -1142,6 +1137,7 @@
     </desc>
     <values>
       <value>$HIST_OPTION</value>
+      <value hist_option="nsteps">nseconds</value>
     </values>
   </entry>
 
@@ -2726,12 +2722,11 @@
     <type>char</type>
     <category>time</category>
     <group>CLOCK_attributes</group>
-    <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,monthly,nmonths,nyears,date,end</valid_values>
+    <valid_values>none,never,nseconds,nminutes,nhours,ndays,monthly,nmonths,nyears,date,end</valid_values>
     <desc>
       sets the run length with stop_n and stop_ymd
       stop_option alarms are:
       [none/never] , turns option off
-      [nsteps]     , stops every stop_n nsteps  , relative to current run start time
       [nseconds]   , stops every stop_n nseconds, relative to current run start time
       [nminutes]   , stops every stop_n nminutes, relative to current run start time
       [nhours]     , stops every stop_n nhours  , relative to current run start time
@@ -2745,6 +2740,7 @@
     </desc>
     <values>
       <value>$STOP_OPTION</value>
+      <value stop_option='nsteps'>nseconds</value>
     </values>
   </entry>
 
@@ -2790,12 +2786,11 @@
     <type>char</type>
     <category>time</category>
     <group>CLOCK_attributes</group>
-    <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,nmonths,nyears,monthly,yearly,date,end</valid_values>
+    <valid_values>none,never,nseconds,nminutes,nhours,ndays,nmonths,nyears,monthly,yearly,date,end</valid_values>
     <desc>
       sets the restart frequency with restart_n and restart_ymd
       restart_option alarms are:
       [none/never], turns option off
-      [nsteps]   , restarts every restart_n nsteps  , relative to current run start time
       [nseconds] , restarts every restart_n nseconds, relative to current run start time
       [nminutes] , restarts every restart_n nminutes, relative to current run start time
       [nhours]   , restarts every restart_n nhours  , relative to current run start time
@@ -2809,6 +2804,7 @@
     </desc>
     <values>
       <value>$REST_OPTION</value>
+      <value rest_option="nsteps">nseconds</value>
     </values>
   </entry>
 

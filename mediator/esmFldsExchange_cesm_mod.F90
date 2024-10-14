@@ -2216,6 +2216,7 @@ contains
     ! ---------------------------------------------------------------------
     ! to ocn: enthalpy from atm rain, snow, evaporation
     ! to ocn: enthalpy from liquid and ice river runoff
+    ! to ocn: enthalpy from liquid and ice glacier runoff
     ! to ocn: enthalpy from ice melt
     ! ---------------------------------------------------------------------
     ! Note - do not need to add addmap or addmrg for the following since they
@@ -2227,6 +2228,8 @@ contains
        call addfld_to(compocn, 'Foxx_hcond')
        call addfld_to(compocn, 'Foxx_hrofl')
        call addfld_to(compocn, 'Foxx_hrofi')
+       call addfld_to(compocn, 'Foxx_hrofl_glc')
+       call addfld_to(compocn, 'Foxx_hrofi_glc')
     end if
 
     ! ---------------------------------------------------------------------
@@ -3043,16 +3046,14 @@ contains
     !----------------------------------------------------------
     ! to wav: ice thickness from ice
     !----------------------------------------------------------
-    if (wav_coupling_to_cice) then
-       if (phase == 'advertise') then
-          call addfld_from(compice, 'Si_thick')
-          call addfld_to(compwav, 'Si_thick')
-       else
-          if (fldchk(is_local%wrap%FBexp(compwav)         , 'Si_thick', rc=rc) .and. &
-              fldchk(is_local%wrap%FBImp(compice,compice ), 'Si_thick', rc=rc)) then
-             call addmap_from(compice, 'Si_thick', compwav, mapbilnr, 'one', ice2wav_map)
-             call addmrg_to(compwav, 'Si_thick', mrg_from=compice, mrg_fld='Si_thick', mrg_type='copy')
-          end if
+    if (phase == 'advertise') then
+       call addfld_from(compice, 'Si_thick')
+       call addfld_to(compwav, 'Si_thick')
+    else
+       if ( fldchk(is_local%wrap%FBexp(compwav)         , 'Si_thick', rc=rc) .and. &
+            fldchk(is_local%wrap%FBImp(compice,compice ), 'Si_thick', rc=rc)) then
+          call addmap_from(compice, 'Si_thick', compwav, mapbilnr, 'one', ice2wav_map)
+          call addmrg_to(compwav, 'Si_thick', mrg_from=compice, mrg_fld='Si_thick', mrg_type='copy')
        end if
     end if
     !----------------------------------------------------------

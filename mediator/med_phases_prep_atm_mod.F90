@@ -258,7 +258,8 @@ contains
     ! Note that this is only called if the following fields are in FBExp(compocn)
     ! 'Faxa_rain','Foxx_hrain','Faxa_snow' ,'Foxx_hsnow',
     ! 'Foxx_evap','Foxx_hevap','Foxx_hcond','Foxx_rofl',
-    ! 'Foxx_hrofl','Foxx_rofi','Foxx_hrofi'
+    ! 'Foxx_hrofl','Foxx_rofi','Foxx_hrofi','Foxx_rofl_glc',
+    ! 'Foxx_hrofl_glc','Foxx_rofi_glc','Foxx_hrofi_glc'
 
     use ESMF            , only : ESMF_VMAllreduce, ESMF_GridCompGet, ESMF_REDUCE_SUM
     use ESMF            , only : ESMF_VM
