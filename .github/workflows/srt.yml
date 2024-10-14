@@ -86,6 +86,7 @@ jobs:
           git checkout main 
           cd ../cime
           git checkout master
+          git status
           if [[ ! -e "${PWD}/.gitmodules.bak" ]]
              then
               echo "Converting git@github.com to https://github.com urls in ${PWD}/.gitmodules"

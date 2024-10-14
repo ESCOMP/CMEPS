@@ -233,18 +233,6 @@
     </values>
   </entry>
 
-  <!-- not yet fully implemented, set to false -->
-  <entry id="write_restart_at_endofrun">
-    <type>logical</type>
-    <category>nuopc</category>
-    <group>ALLCOMP_attributes</group>
-    <values>
-      <value>.false.</value>
-      <value rest_option='none'>.false.</value>
-      <value rest_option='never'>.false.</value>
-    </values>
-  </entry>
-
   <entry id="Profiling" modify_via_xml="ESMF_PROFILING_LEVEL">
     <type>char</type>
     <category>nuopc</category>
@@ -2862,7 +2850,7 @@
     </values>
   </entry>
 
-  <entry id="end_restart">
+  <entry id="write_restart_at_endofrun">
     <type>logical</type>
     <category>time</category>
     <group>CLOCK_attributes</group>
@@ -2874,7 +2862,9 @@
       default: false
     </desc>
     <values>
-      <value>.false.</value>
+      <value>.true.</value>
+      <value rest_option='none'>.false.</value>
+      <value rest_option='never'>.false.</value>
     </values>
   </entry>
 
