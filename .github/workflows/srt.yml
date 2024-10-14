@@ -81,7 +81,7 @@ jobs:
           git config --global user.name "${GITHUB_ACTOR}"
           git config --global user.email "${GITHUB_ACTOR_ID}+${GITHUB_ACTOR}@users.noreply.github.com"
           pushd cesm
-          ./bin/git-fleximod update ccs_config cdeps share mct parallelio cime
+          ./bin/git-fleximod update cime ccs_config cdeps share mct parallelio
           cd ccs_config
           git checkout main 
           cd ../cime
