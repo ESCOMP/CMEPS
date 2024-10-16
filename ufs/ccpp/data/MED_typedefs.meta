@@ -202,12 +202,28 @@
   units = flag
   dimensions = (horizontal_loop_extent)
   type = logical
-[use_flake]
-  standard_name = flag_for_using_flake
-  long_name = flag indicating lake points using flake model
+[lake_t2m]
+  standard_name =  temperature_at_2m_from_clm_lake
+  long_name = temperature at 2m from clm lake
+  units = K
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+  active = (control_for_lake_model_selection == 2)
+[lake_q2m]
+  standard_name =  specific_humidity_at_2m_from_clm_lake
+  long_name = specific humidity at 2m from clm lake
+  units = frac
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+  active = (control_for_lake_model_selection == 2)
+[use_lake_model]
+  standard_name = flag_for_using_lake_model
+  long_name = flag indicating lake points using a lake model
   units = flag
   dimensions = (horizontal_loop_extent)
-  type = logical
+  type = integer
 [wind]
   standard_name = wind_speed_at_lowest_model_layer
   long_name = wind speed at lowest model level
@@ -218,6 +234,12 @@
 [flag_iter]
   standard_name = flag_for_iteration
   long_name = flag for iteration
+  units = flag
+  dimensions = (horizontal_loop_extent)
+  type = logical
+[flag_lakefreeze]
+  standard_name = flag_for_lake_water_freeze
+  long_name = flag for lake water freeze
   units = flag
   dimensions = (horizontal_loop_extent)
   type = logical
@@ -817,9 +839,33 @@
   units = flag
   dimensions = ()
   type = integer
+[iopt_lake]
+  standard_name = control_for_lake_model_selection
+  long_name = control for lake model selection
+  units = 1
+  dimensions = ()
+  type = integer
+[iopt_lake_flake]
+  standard_name = flake_model_control_selection_value
+  long_name = value that indicates flake model in the control for lake model selection
+  units = 1
+  dimensions = ()
+  type = integer
+[iopt_lake_clm]
+  standard_name = clm_lake_model_control_selection_value
+  long_name = value that indicates clm lake model in the control for lake model selection
+  units = 1
+  dimensions = ()
+  type = integer
+[use_lake2m]
+  standard_name = use_2m_diagnostics_calculated_by_lake_model
+  long_name = model 2m diagnostics use the temperature and humidity calculated by the lake model
+  units = flag
+  dimensions = ()
+  type = logical
 [lkm]
-  standard_name = control_for_lake_surface_scheme
-  long_name = flag for lake surface model
+  standard_name = control_for_lake_model_execution_method
+  long_name = control for lake model execution: 0=no lake, 1=lake, 2=lake+nsst
   units = flag
   dimensions = ()
   type = integer
@@ -832,6 +878,12 @@
 [frac_grid]
   standard_name = flag_for_fractional_landmask
   long_name = flag for fractional grid
+  units = flag
+  dimensions = ()
+  type = logical
+[frac_ice]
+  standard_name = flag_for_fractional_ice_when_fractional_landmask_is_disabled
+  long_name = flag for fractional ice when fractional landmask is disabled
   units = flag
   dimensions = ()
   type = logical
@@ -859,6 +911,12 @@
   units = flag
   dimensions = ()
   type = logical
+[icplocn2atm]
+  standard_name = control_for_air_sea_flux_computation_over_water
+  long_name = air-sea flux option
+  units = 1
+  dimensions = ()
+  type = integer
 [kdt]
   standard_name = index_of_timestep
   long_name = current forecast iteration
@@ -924,6 +982,18 @@
   units = flag
   dimensions = ()
   type = integer
+[diag_flux]
+  standard_name = flag_for_flux_method_in_2m_diagnostics
+  long_name = flag for flux method in 2-m diagnostics
+  units = flag
+  dimensions = ()
+  type = logical
+[diag_log]
+  standard_name = flag_for_log_method_in_2m_diagnostics
+  long_name = flag for log method in 2-m diagnostics
+  units = flag
+  dimensions = ()
+  type = logical
 
 ########################################################################
 [ccpp-table-properties]
@@ -961,6 +1031,20 @@
   standard_name = cell_area
   long_name = area of the grid cell
   units = m2
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+[xlat_d]
+  standard_name = latitude_in_degree
+  long_name = latitude in degree north
+  units = degree_north
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+[xlon_d]
+  standard_name = longitude_in_degree
+  long_name = longitude in degree east
+  units = degree_east
   dimensions = (horizontal_loop_extent)
   type = real
   kind = kind_phys
@@ -1075,6 +1159,20 @@
   standard_name = sea_surface_temperature
   long_name = sea surface temperature
   units = K
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+[usfco]
+  standard_name = x_ocean_current
+  long_name = zonal current at ocean surface
+  units = m s-1
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+[vsfco]
+  standard_name = y_ocean_current
+  long_name = meridional current at ocean surface
+  units = m s-1
   dimensions = (horizontal_loop_extent)
   type = real
   kind = kind_phys
@@ -1228,12 +1326,19 @@
   dimensions = (horizontal_loop_extent)
   type = real
   kind = kind_phys
+[dpt2m]
+  standard_name = dewpoint_temperature_at_2m
+  long_name = 2 meter dewpoint temperature
+  units = K
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
 
 ########################################################################
 [ccpp-table-properties]
   name = MED_typedefs
   type = module
-  relative_path = ../../../../../FV3/ccpp/physics/physics
+  relative_path = ../../../../../FV3/ccpp/physics/physics/hooks
   dependencies = machine.F,physcons.F90
 
 [ccpp-arg-table]
@@ -1343,3 +1448,17 @@
   dimensions = ()
   type = real
   kind = kind_phys
+[con_rocp]
+  standard_name = ratio_of_gas_constant_dry_air_to_specific_heat_of_dry_air_at_constant_pressure
+  long_name = (rd/cp)
+  units = none
+  dimensions = ()
+  type = real
+  kind = kind_phys
+[karman]
+  standard_name = von_karman_constant
+  long_name = von karman constant
+  units = none
+  dimensions = ()
+  type = real
+

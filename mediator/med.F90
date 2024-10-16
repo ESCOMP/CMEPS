@@ -38,7 +38,6 @@ module MED
   use med_methods_mod          , only : FB_getFieldN       => med_methods_FB_getFieldN
   use med_methods_mod          , only : clock_timeprint    => med_methods_clock_timeprint
   use med_utils_mod            , only : memcheck           => med_memcheck
-  use med_time_mod             , only : med_time_alarmInit
   use med_internalstate_mod    , only : InternalState, med_internalstate_init, med_internalstate_coupling
   use med_internalstate_mod    , only : med_internalstate_defaultmasks, logunit, maintask
   use med_internalstate_mod    , only : ncomps, compname
@@ -48,7 +47,7 @@ module MED
   use esmFlds                  , only : med_fldList_GetNumFlds, med_fldList_GetFldNames, med_fldList_GetFldInfo
   use esmFlds                  , only : med_fldList_Document_Mapping, med_fldList_Document_Merging
   use esmFlds                  , only : med_fldList_GetfldListFr, med_fldList_GetfldListTo, med_fldList_Realize
-  use esmFldsExchange_nems_mod , only : esmFldsExchange_nems
+  use esmFldsExchange_ufs_mod  , only : esmFldsExchange_ufs
   use esmFldsExchange_cesm_mod , only : esmFldsExchange_cesm
   use esmFldsExchange_hafs_mod , only : esmFldsExchange_hafs
   use med_phases_profile_mod   , only : med_phases_profile_finalize
@@ -123,6 +122,9 @@ contains
     use med_diag_mod            , only: med_phases_diag_ice_ice2med, med_phases_diag_ice_med2ice
     use med_fraction_mod        , only: med_fraction_init, med_fraction_set
     use med_phases_profile_mod  , only: med_phases_profile
+#ifdef CDEPS_INLINE
+    use med_phases_cdeps_mod    , only: med_phases_cdeps_run
+#endif
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -505,6 +507,19 @@ contains
          specPhaselabel="med_phases_diag_print", specRoutine=NUOPC_NoOp, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+#ifdef CDEPS_INLINE
+    !------------------
+    ! phase routine for cdeps inline capability
+    !------------------
+
+    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
+         phaseLabelList=(/"med_phases_cdeps_run"/), userRoutine=mediator_routine_Run, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
+         specPhaseLabel="med_phases_cdeps_run", specRoutine=med_phases_cdeps_run, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+#endif
+
     !------------------
     ! attach specializing method(s)
     ! -> NUOPC specializes by default --->>> first need to remove the default
@@ -661,6 +676,7 @@ contains
     use NUOPC , only : NUOPC_CompAttributeGet, NUOPC_CompAttributeSet, NUOPC_CompAttributeAdd
     use esmFlds, only : med_fldlist_init1, med_fld_GetFldInfo, med_fldList_entry_type
     use med_phases_history_mod, only : med_phases_history_init
+    use med_methods_mod       , only : mediator_checkfornans
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -815,10 +831,10 @@ contains
     if (trim(coupling_mode) == 'cesm') then
        call esmFldsExchange_cesm(gcomp, phase='advertise', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    else if (trim(coupling_mode(1:4)) == 'nems') then
-       call esmFldsExchange_nems(gcomp, phase='advertise', rc=rc)
+    else if (coupling_mode(1:3) == 'ufs') then
+       call esmFldsExchange_ufs(gcomp, phase='advertise', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    else if (trim(coupling_mode(1:4)) == 'hafs') then
+    else if (coupling_mode(1:4) == 'hafs') then
        call esmFldsExchange_hafs(gcomp, phase='advertise', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     else
@@ -850,13 +866,22 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     read(cvalue,*) is_local%wrap%flds_scalar_index_ny
 
+    call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldIdxGridNTile", value=cvalue, &
+         isPresent=isPresent, isSet=isSet,rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+       read(cvalue,*) is_local%wrap%flds_scalar_index_ntile
+    else
+       is_local%wrap%flds_scalar_index_ntile = 0
+    end if
+
     call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldIdxNextSwCday", value=cvalue, &
          isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (isPresent .and. isSet) then
        read(cvalue,*) is_local%wrap%flds_scalar_index_nextsw_cday
     else
-       is_local%wrap%flds_scalar_index_nextsw_cday = spval
+       is_local%wrap%flds_scalar_index_nextsw_cday = 0
     end if
 
     call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldIdxPrecipFactor", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
@@ -915,6 +940,39 @@ contains
           end do
        end if
     end do ! end of ncomps loop
+
+    ! Should mediator check for NaNs?
+    call NUOPC_CompAttributeGet(gcomp, name="check_for_nans", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if(isPresent .and. isSet) then
+       read(cvalue, *) mediator_checkfornans
+    else
+       mediator_checkfornans = .false.
+    endif
+    if(maintask) then
+       write(logunit,*) ' check_for_nans is ',mediator_checkfornans
+       if(mediator_checkfornans) then
+          write(logunit,*) ' Fields will be checked for NaN values when passed from mediator to component'
+       else
+          write(logunit,*) ' Fields will NOT be checked for NaN values when passed from mediator to component'
+       endif
+    endif
+
+    ! Should target component use all data for first time step?
+    do ncomp = 1,ncomps
+       if (ncomp /= compmed) then
+          call NUOPC_CompAttributeGet(gcomp, name=trim(compname(ncomp))//"_use_data_first_import", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          if (isPresent .and. isSet) then
+             read(cvalue, *) is_local%wrap%med_data_force_first(ncomp)
+          else
+             is_local%wrap%med_data_force_first(ncomp) = .false.
+          endif
+          if (maintask) then
+             write(logunit,*) trim(compname(ncomp))//'_use_data_first_import is ', is_local%wrap%med_data_force_first(ncomp)
+          endif
+       end if
+    end do
 
     if (profile_memory) call ESMF_VMLogMemInfo("Leaving "//trim(subname))
     call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
@@ -1005,7 +1063,6 @@ contains
     type(InternalState) :: is_local
     integer :: n1
     character(len=*), parameter :: subname = '('//__FILE__//':ModifyDecompofMesh)'
-
     !-----------------------------------------------------------
 
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
@@ -1018,7 +1075,7 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !------------------
-    ! Recieve Grids
+    ! Receive Grids
     !------------------
 
     do n1 = 1,ncomps
@@ -1334,7 +1391,6 @@ contains
     type(InternalState) :: is_local
     integer             :: n1
     character(len=*), parameter :: subname = '('//__FILE__//':RealizeFieldsWithTransferAccept)'
-
     !-----------------------------------------------------------
 
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
@@ -1565,7 +1621,7 @@ contains
     use med_phases_post_lnd_mod , only : med_phases_post_lnd
     use med_phases_post_glc_mod , only : med_phases_post_glc
     use med_phases_post_ocn_mod , only : med_phases_post_ocn
-    use med_phases_post_rof_mod , only : med_phases_post_rof
+    use med_phases_post_rof_mod , only : med_phases_post_rof_init, med_phases_post_rof
     use med_phases_post_wav_mod , only : med_phases_post_wav
     use med_phases_ocnalb_mod   , only : med_phases_ocnalb_run
     use med_phases_aofluxes_mod , only : med_phases_aofluxes_init_fldbuns
@@ -1596,7 +1652,7 @@ contains
     logical                            :: read_restart
     logical                            :: allDone = .false.
     logical,save                       :: first_call = .true.
-    real(r8)                           :: real_nx, real_ny
+    real(r8)                           :: real_nx, real_ny, real_ntile
     character(len=CX)                  :: msgString
     character(len=*), parameter :: subname = '('//__FILE__//':DataInitialize)'
     !-----------------------------------------------------------
@@ -1756,7 +1812,7 @@ contains
       !---------------------------------------
 
       ! NOTE: this section must be done BEFORE the second call to esmFldsExchange
-      ! Create field bundles for mediator ocean albedo computation
+      ! Create field bundles for mediator atm/ocean flux computation
       fieldCount = med_fldList_GetNumFlds(med_fldList_getaofluxfldList())
       if ( fieldCount > 0 ) then
          if ( is_local%wrap%med_coupling_active(compocn,compatm) .or. &
@@ -1784,9 +1840,10 @@ contains
       if (trim(coupling_mode) == 'cesm') then
          call esmFldsExchange_cesm(gcomp, phase='initialize', rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-      else if (trim(coupling_mode(1:4)) == 'nems') then
-       call esmFldsExchange_nems(gcomp, phase='initialize', rc=rc)
-      else if (trim(coupling_mode) == 'hafs') then
+      else if (coupling_mode(1:3) == 'ufs') then
+         call esmFldsExchange_ufs(gcomp, phase='initialize', rc=rc)
+         if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      else if (coupling_mode(1:4) == 'hafs') then
          call esmFldsExchange_hafs(gcomp, phase='initialize', rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
       end if
@@ -1866,6 +1923,10 @@ contains
          call med_phases_prep_rof_init(gcomp, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
       end if
+      if (is_local%wrap%comp_present(comprof)) then
+         call med_phases_post_rof_init(gcomp, rc=rc)
+         if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      end if
       !---------------------------------------
       ! Set the data initialize flag to false
       !---------------------------------------
@@ -1920,14 +1981,12 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !----------------------------------------------------------
-    ! Initialize ocean albedos (this is needed for cesm and hafs)
+    ! Initialize ocean albedos
     !----------------------------------------------------------
 
-    if (trim(coupling_mode(1:5)) /= 'nems_') then
-       if (is_local%wrap%comp_present(compocn) .or. is_local%wrap%comp_present(compatm)) then
-          call med_phases_ocnalb_run(gcomp, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       end if
+    if (is_local%wrap%comp_present(compocn) .or. is_local%wrap%comp_present(compatm)) then
+       call med_phases_ocnalb_run(gcomp, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
     !---------------------------------------
@@ -2066,7 +2125,7 @@ contains
        do n1 = 1,ncomps
           if (maintask) then
              write(logunit,*)
-             write(logunit,'(a)') trim(subname)//" "//trim(compname(n1))
+             write(logunit,'(a,2L2)') trim(subname)//" "//trim(compname(n1)), is_local%wrap%comp_present(n1), ESMF_StateIsCreated(is_local%wrap%NStateImp(n1),rc=rc)
           end if
           if (is_local%wrap%comp_present(n1) .and. ESMF_StateIsCreated(is_local%wrap%NStateImp(n1),rc=rc)) then
              call State_GetScalar(scalar_value=real_nx, &
@@ -2081,13 +2140,25 @@ contains
                   flds_scalar_name=is_local%wrap%flds_scalar_name, &
                   flds_scalar_num=is_local%wrap%flds_scalar_num, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             if (is_local%wrap%flds_scalar_index_ntile > 0) then
+                call State_GetScalar(scalar_value=real_ntile, &
+                     scalar_id=is_local%wrap%flds_scalar_index_ntile, &
+                     state=is_local%wrap%NstateImp(n1), &
+                     flds_scalar_name=is_local%wrap%flds_scalar_name, &
+                     flds_scalar_num=is_local%wrap%flds_scalar_num, rc=rc)
+                if (ChkErr(rc,__LINE__,u_FILE_u)) return
+                is_local%wrap%ntile(n1) = nint(real_ntile)
+             else
+                is_local%wrap%ntile(n1) = 0
+             end if
              is_local%wrap%nx(n1) = nint(real_nx)
              is_local%wrap%ny(n1) = nint(real_ny)
-             write(msgString,'(2i8,2l4)') is_local%wrap%nx(n1), is_local%wrap%ny(n1)
-             if (maintask) then
-                write(logunit,'(a)') 'global nx,ny sizes for '//trim(compname(n1))//":"//trim(msgString)
-             end if
+
+             write(msgString,'(3i8)') is_local%wrap%nx(n1), is_local%wrap%ny(n1), is_local%wrap%ntile(n1)
              call ESMF_LogWrite(trim(subname)//":"//trim(compname(n1))//":"//trim(msgString), ESMF_LOGMSG_INFO)
+             if (maintask) then
+                write(logunit,'(a)') 'global nx,ny,ntile sizes for '//trim(compname(n1))//":"//trim(msgString)
+             end if
           end if
        end do
        if (maintask) write(logunit,*)
@@ -2189,7 +2260,9 @@ contains
     use ESMF                  , only : ESMF_ClockGetAlarmList
     use NUOPC                 , only : NUOPC_CompCheckSetClock, NUOPC_CompAttributeGet
     use NUOPC_Mediator        , only : NUOPC_MediatorGet
-
+    ! NUOPC_shr_methods is now in cesm_share and cdeps 
+    use nuopc_shr_methods, only : AlarmInit
+    
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc
@@ -2205,7 +2278,6 @@ contains
     integer                 :: stop_n, stop_ymd
     logical, save           :: stopalarmcreated=.false.
     character(len=*), parameter :: subname = '('//__FILE__//':SetRunClock)'
-
     !-----------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -2247,7 +2319,7 @@ contains
        call NUOPC_CompAttributeGet(gcomp, name="stop_ymd", value=cvalue, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        read(cvalue,*) stop_ymd
-       call med_time_alarmInit(mclock, stop_alarm, stop_option, opt_n=stop_n, opt_ymd=stop_ymd, &
+       call AlarmInit(mclock, stop_alarm, stop_option, opt_n=stop_n, opt_ymd=stop_ymd, &
             alarmname='alarm_stop', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        stopalarmcreated = .true.

@@ -19,7 +19,7 @@ module med_internalstate_mod
 
   integer, public :: logunit            ! logunit for mediator log output
   integer, public :: diagunit           ! diagunit for budget output (med main only)
-  logical, public :: maintask=.false. ! is this the maintask
+  logical, public :: maintask = .false. ! is this the maintask
   integer, public :: med_id             ! needed currently in med_io_mod and set in esm.F90
 
   ! Components
@@ -47,7 +47,7 @@ module med_internalstate_mod
   character(len=CS), public :: glc_name = ''
 
   ! Coupling mode
-  character(len=CS), public :: coupling_mode ! valid values are [cesm,nems_orig,nems_frac,nems_orig_data,hafs,nems_frac_aoflux,nems_frac_aoflux_sbs]
+  character(len=CS), public :: coupling_mode ! valid values are [cesm,ufs.nfrac,ufs.frac,ufs.nfrac.aoflux,ufs.frac.aoflux,hafs,hafs.mom6]
 
   ! Atmosphere-ocean flux algorithm
   character(len=CS), public :: aoflux_code   ! valid values are [cesm,ccpp]
@@ -115,14 +115,25 @@ module med_internalstate_mod
      real(r8), pointer :: lons(:) => null()
   end type mesh_info_type
 
+  logical          , public :: samegrid_atmlnd = .true. ! true=>atm and lnd are on the same grid
+  character(len=CS), public :: mrg_fracname_lnd2atm_state
+  character(len=CS), public :: mrg_fracname_lnd2atm_flux
+  character(len=CS), public :: map_fracname_lnd2atm
+  character(len=CS), public :: mrg_fracname_lnd2rof
+  character(len=CS), public :: map_fracname_lnd2rof
+  character(len=CS), public :: mrg_fracname_lnd2glc
+  character(len=CS), public :: map_fracname_lnd2glc
+
   ! private internal state to keep instance data
   type InternalStateStruct
 
     ! Present/allowed coupling/active coupling logical flags
-    logical, pointer :: comp_present(:)            ! comp present flag
-    logical, pointer :: med_coupling_active(:,:)   ! computes the active coupling
-    integer          :: num_icesheets              ! obtained from attribute
-    logical          :: ocn2glc_coupling = .false. ! obtained from attribute
+    logical, pointer :: comp_present(:)               ! comp present flag
+    logical, pointer :: med_coupling_active(:,:)      ! computes the active coupling
+    logical, pointer :: med_data_active(:,:)          ! uses stream data to provide background fill
+    logical, pointer :: med_data_force_first(:)       ! force to use stream data for first coupling timestep
+    integer          :: num_icesheets                 ! obtained from attribute
+    logical          :: ocn2glc_coupling = .false.    ! obtained from attribute
     logical          :: lnd2glc_coupling = .false.
     logical          :: accum_lnd2glc = .false.
 
@@ -131,12 +142,15 @@ module med_internalstate_mod
 
     ! Global nx,ny dimensions of input arrays (needed for mediator history output)
     integer, pointer   :: nx(:), ny(:)
+    ! Number of nx*ny domains (needed for cubed-sphere and regional domains)
+    integer, pointer   :: ntile(:)
 
     ! Import/Export Scalars
     character(len=CL) :: flds_scalar_name = ''
     integer           :: flds_scalar_num = 0
     integer           :: flds_scalar_index_nx = 0
     integer           :: flds_scalar_index_ny = 0
+    integer           :: flds_scalar_index_ntile = 0
     integer           :: flds_scalar_index_nextsw_cday = 0
     integer           :: flds_scalar_index_precip_factor = 0
     real(r8)          :: flds_scalar_precip_factor = 1._r8  ! actual value of precip factor from ocn
@@ -147,10 +161,10 @@ module med_internalstate_mod
     ! FBImp(n,n) = NState_Imp(n), copied in connector post phase
     ! FBImp(n,k) is the FBImp(n,n) interpolated to grid k
     ! Import/export States and field bundles (the field bundles have the scalar fields removed)
-    type(ESMF_State)       , pointer :: NStateImp(:) ! Import data from various component, on their grid
-    type(ESMF_State)       , pointer :: NStateExp(:) ! Export data to various component, on their grid
-    type(ESMF_FieldBundle) , pointer :: FBImp(:,:)   ! Import data from various components interpolated to various grids
-    type(ESMF_FieldBundle) , pointer :: FBExp(:)     ! Export data for various components, on their grid
+    type(ESMF_State)       , pointer :: NStateImp(:)   ! Import data from various component, on their grid
+    type(ESMF_State)       , pointer :: NStateExp(:)   ! Export data to various component, on their grid
+    type(ESMF_FieldBundle) , pointer :: FBImp(:,:)     ! Import data from various components interpolated to various grids
+    type(ESMF_FieldBundle) , pointer :: FBExp(:)       ! Export data for various components, on their grid
 
     ! Mediator field bundles for ocean albedo
     type(ESMF_FieldBundle) :: FBMed_ocnalb_o            ! Ocn albedo on ocn grid
@@ -173,6 +187,9 @@ module med_internalstate_mod
     ! Fractions
     type(ESMF_FieldBundle), pointer :: FBfrac(:)     ! Fraction data for various components, on their grid
 
+    ! Data
+    type(ESMF_FieldBundle) , pointer :: FBData(:)    ! Background data for various components, on their grid, provided by CDEPS inline
+
     ! Accumulators for export field bundles
     type(ESMF_FieldBundle) :: FBExpAccumOcn      ! Accumulator for Ocn export on Ocn grid
     integer                :: ExpAccumOcnCnt = 0 ! Accumulator counter for FBExpAccumOcn
@@ -183,11 +200,11 @@ module med_internalstate_mod
     type(mesh_info_type)   , pointer :: mesh_info(:)
     type(ESMF_FieldBundle) , pointer :: FBArea(:)     ! needed for mediator history writes
 
- end type InternalStateStruct
+  end type InternalStateStruct
 
- type, public :: InternalState
+  type, public :: InternalState
     type(InternalStateStruct), pointer :: wrap
- end type InternalState
+  end type InternalState
 
   character(len=*), parameter :: u_FILE_u  = &
        __FILE__
@@ -215,12 +232,63 @@ contains
     character(len=CX)          :: msgString
     character(len=3)           :: name
     integer                    :: num_icesheets
+    character(len=CL)          :: atm_mesh_name
+    character(len=CL)          :: lnd_mesh_name
+    logical                    :: isPresent_lnd, isSet_lnd
+    logical                    :: isPresent_atm, isSet_atm
     character(len=*),parameter :: subname=' (internalstate init) '
     !-----------------------------------------------------------
 
     nullify(is_local%wrap)
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    ! determine if atm and lnd have the same mesh
+    call NUOPC_CompAttributeGet(gcomp, name='mesh_atm', value=atm_mesh_name, &
+         isPresent=isPresent_atm, isSet=isSet_atm, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompAttributeGet(gcomp, name='mesh_lnd', value=lnd_mesh_name, &
+         isPresent=isPresent_lnd, isSet=isSet_lnd, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    if ((isPresent_lnd .and. isSet_lnd) .and. (isPresent_atm .and. isSet_atm)) then
+      if (trim(atm_mesh_name) == trim(lnd_mesh_name)) then
+        samegrid_atmlnd = .true.
+      else
+        samegrid_atmlnd = .false.
+      end if
+    else
+      samegrid_atmlnd = .true.
+    end if
+
+    ! See med_fraction_mod for the following definitions
+    if (samegrid_atmlnd) then
+      map_fracname_lnd2atm       = 'lfrin' ! in fraclist_a
+      mrg_fracname_lnd2atm_state = 'lfrac' ! in fraclist_a
+      mrg_fracname_lnd2atm_flux  = 'lfrac' ! in fraclist_a
+      map_fracname_lnd2rof       = 'lfrac' ! in fraclist_r
+      mrg_fracname_lnd2rof       = 'lfrac' ! in fraclist_r
+      map_fracname_lnd2glc       = 'lfrac' ! in fraclist_g
+      mrg_fracname_lnd2glc       = 'lfrac' ! in fraclist_g
+    else
+      map_fracname_lnd2atm       = 'lfrin' ! in fraclist_a
+      mrg_fracname_lnd2atm_state = 'lfrac' ! in fraclist_a
+      mrg_fracname_lnd2atm_flux  = 'lfrin' ! in fraclist_a
+      map_fracname_lnd2rof       = 'lfrin' ! in fraclist_r
+      mrg_fracname_lnd2rof       = 'lfrin' ! in fraclist_r
+      map_fracname_lnd2glc       = 'lfrin' ! in fraclist_g
+      mrg_fracname_lnd2rof       = 'lfrin' ! in fraclist_g
+    endif
+
+    if (maintask) then
+      write(logunit,'(a,i8)') trim(subname)//'      map_fracname_lnd2atm       = '//trim(map_fracname_lnd2atm)      //' in fraclist_a'
+      write(logunit,'(a,i8)') trim(subname)//'      mrg_fracname_lnd2atm_state = '//trim(mrg_fracname_lnd2atm_state)//' in fraclist_a'
+      write(logunit,'(a,i8)') trim(subname)//'      mrg_fracname_lnd2atm_flux  = '//trim(mrg_fracname_lnd2atm_flux) //' in fraclist_a'
+      write(logunit,'(a,i8)') trim(subname)//'      map_fracname_lnd2rof       = '//trim(map_fracname_lnd2rof)      //' in fraclist_r'
+      write(logunit,'(a,i8)') trim(subname)//'      mrg_fracname_lnd2rof       = '//trim(mrg_fracname_lnd2rof)      //' in fraclist_r'
+      write(logunit,'(a,i8)') trim(subname)//'      map_fracname_lnd2glc       = '//trim(map_fracname_lnd2glc)      //' in fraclist_g'
+      write(logunit,'(a,i8)') trim(subname)//'      mrg_fracname_lnd2rof       = '//trim(mrg_fracname_lnd2rof)      //' in fraclist_g'
+    end if
 
     ! Determine if glc is present
     call NUOPC_CompAttributeGet(gcomp, name='GLC_model', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
@@ -262,7 +330,6 @@ contains
        end do
     end if
     is_local%wrap%num_icesheets = num_icesheets
-
     call NUOPC_CompAttributeGet(gcomp, name='mediator_present', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (isPresent .and. isSet) then
@@ -304,8 +371,11 @@ contains
 
     ! Allocate memory now that ncomps is determined
     allocate(is_local%wrap%med_coupling_active(ncomps,ncomps))
+    allocate(is_local%wrap%med_data_active(ncomps,ncomps))
+    allocate(is_local%wrap%med_data_force_first(ncomps))
     allocate(is_local%wrap%nx(ncomps))
     allocate(is_local%wrap%ny(ncomps))
+    allocate(is_local%wrap%ntile(ncomps))
     allocate(is_local%wrap%NStateImp(ncomps))
     allocate(is_local%wrap%NStateExp(ncomps))
     allocate(is_local%wrap%FBImp(ncomps,ncomps))
@@ -317,6 +387,7 @@ contains
     allocate(is_local%wrap%packed_data(ncomps,ncomps,nmappers))
     allocate(is_local%wrap%FBfrac(ncomps))
     allocate(is_local%wrap%FBArea(ncomps))
+    allocate(is_local%wrap%FBData(ncomps))
     allocate(is_local%wrap%mesh_info(ncomps))
 
     ! Determine component names
@@ -364,6 +435,15 @@ contains
     if (isPresent .and. isSet) dststatus_print=(trim(cvalue) == "true")
     write(msgString,*) trim(subname)//': Mediator dststatus_print is ',dststatus_print
     call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
+
+    ! Initialize flag for background fill using data
+    is_local%wrap%med_data_active(:,:) = .false.
+    is_local%wrap%med_data_active(compocn,compatm) = .true.
+    is_local%wrap%med_data_active(compatm,compocn) = .true.
+    is_local%wrap%med_data_active(compatm,compwav) = .true.
+
+    ! Initialize flag to force using data in first coupling time step
+    is_local%wrap%med_data_force_first(:) = .false.
 
   end subroutine med_internalstate_init
 
@@ -431,9 +511,6 @@ contains
     med_coupling_allowed(compice,compocn) = .true.
     med_coupling_allowed(comprof,compocn) = .true.
     med_coupling_allowed(compwav,compocn) = .true.
-    do ns = 1,is_local%wrap%num_icesheets
-       med_coupling_allowed(compglc(ns),compocn) = .true.
-    end do
 
     ! to ice
     med_coupling_allowed(compatm,compice) = .true.
@@ -446,6 +523,9 @@ contains
 
     ! to river
     med_coupling_allowed(complnd,comprof) = .true.
+    do ns = 1,is_local%wrap%num_icesheets
+       med_coupling_allowed(compglc(ns),comprof) = .true.
+    end do
 
     ! to wave
     med_coupling_allowed(compatm,compwav) = .true.
@@ -457,7 +537,7 @@ contains
             isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (isPresent .and. isSet) then
-       ! are multiple ocean depths for temperature and salinity sent from the ocn to glc?
+       ! multiple ocean depths for temperature and salinity sent from the ocn to glc
        read(cvalue,*) is_local%wrap%ocn2glc_coupling
     else
        is_local%wrap%ocn2glc_coupling = .false.
@@ -585,7 +665,7 @@ contains
     if (is_local%wrap%comp_present(compocn)) defaultMasks(compocn,:) = 0
     if (is_local%wrap%comp_present(compice)) defaultMasks(compice,:) = 0
     if (is_local%wrap%comp_present(compwav)) defaultMasks(compwav,:) = 0
-    if ( trim(coupling_mode(1:4)) == 'nems') then
+    if ( coupling_mode(1:3) == 'ufs') then
        if (is_local%wrap%comp_present(compatm)) defaultMasks(compatm,:) = 1
     endif
     if ( trim(coupling_mode) == 'hafs') then

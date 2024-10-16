@@ -13,7 +13,7 @@ module med_io_mod
   use NUOPC                 , only : NUOPC_FieldDictionaryGetEntry
   use NUOPC                 , only : NUOPC_FieldDictionaryHasEntry
   use pio                   , only : file_desc_t, iosystem_desc_t
-  use med_internalstate_mod , only : logunit, med_id
+  use med_internalstate_mod , only : logunit, med_id, maintask
   use med_constants_mod     , only : dbug_flag    => med_constants_dbug_flag
   use med_methods_mod       , only : FB_getFieldN => med_methods_FB_getFieldN
   use med_methods_mod       , only : FB_getFldPtr => med_methods_FB_getFldPtr
@@ -75,7 +75,7 @@ module med_io_mod
   character(*),parameter         :: prefix    = "med_io_"
   character(*),parameter         :: modName   = "(med_io_mod) "
   character(*),parameter         :: version   = "cmeps0"
-  
+
   integer                        :: pio_iotype
   integer                        :: pio_ioformat
   type(iosystem_desc_t), pointer :: io_subsystem
@@ -698,7 +698,7 @@ contains
 
   !===============================================================================
   subroutine med_io_write_FB(io_file, FB, whead, wdata, nx, ny, nt, &
-       fillval, pre, flds, tavg, use_float, tilesize, rc)
+       fillval, pre, flds, tavg, use_float, ntile, rc)
 
     !---------------
     ! Write FB to netcdf file
@@ -728,7 +728,7 @@ contains
     character(len=*), optional , intent(in) :: flds(:)   ! specific fields to write out
     logical,          optional , intent(in) :: tavg      ! is this a tavg
     logical,          optional , intent(in) :: use_float ! write output as float rather than double
-    integer,          optional , intent(in) :: tilesize  ! if non-zero, write atm component on tiles
+    integer,          optional , intent(in) :: ntile     ! number of nx * ny tiles
     integer                    , intent(out):: rc
 
     ! local variables
@@ -754,7 +754,7 @@ contains
     character(CS)                 :: coordvarnames(2)   ! coordinate variable names
     character(CS)                 :: coordnames(2)      ! coordinate long names
     character(CS)                 :: coordunits(2)      ! coordinate units
-    integer                       :: lnx,lny
+    integer                       :: lnx,lny,lntile
     logical                       :: luse_float
     real(r8)                      :: lfillvalue
     integer, pointer              :: minIndexPTile(:,:)
@@ -770,8 +770,7 @@ contains
     integer                       :: rank
     integer                       :: ungriddedUBound(1) ! currently the size must equal 1 for rank 2 fields
     integer                       :: gridToFieldMap(1)  ! currently the size must equal 1 for rank 2 fields
-    logical                       :: atmtiles
-    integer                       :: ntiles = 1
+    logical                       :: tiles
     character(CL), allocatable    :: fieldNameList(:)
     character(*),parameter :: subName = '(med_io_write_FB) '
     !-------------------------------------------------------------------------------
@@ -785,9 +784,9 @@ contains
     luse_float = .false.
     if (present(use_float)) luse_float = use_float
 
-    atmtiles = .false.
-    if (present(tilesize)) then
-      if (tilesize > 0) atmtiles = .true.
+    tiles = .false.
+    if (present(ntile)) then
+      if (ntile > 0) tiles = .true.
     end if
 
     ! Error check
@@ -870,25 +869,29 @@ contains
     ! all the global grid values in the distgrid - e.g. CTSM
 
     ng = maxval(maxIndexPTile)
-    if (atmtiles) then
-      lnx = tilesize
-      lny = tilesize
-      ntiles = ng/(lnx*lny)
-      write(tmpstr,*) subname, 'ng,lnx,lny,ntiles = ',ng,lnx,lny,ntiles
-      call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
-      if (ntiles /= 6) then
-         call ESMF_LogWrite(trim(subname)//' ERROR: only cubed sphere atm tiles valid ', ESMF_LOGMSG_INFO)
-         call ESMF_Finalize(endflag=ESMF_END_ABORT)
-      endif
+    if (tiles) then
+       lnx = ng
+       lny = 1
+       lntile = 1
+       if (nx > 0) lnx = nx
+       if (ny > 0) lny = ny
+       if (ntile > 0) lntile = ntile
+       write(tmpstr,*) subname, 'ng,lnx,lny,lntile = ',ng,lnx,lny,lntile
+       call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
+       if (lnx*lny*lntile /= ng) then
+          write(tmpstr,*) subname,' ERROR: grid size not consistent ',ng,lnx,lny,lntile
+          call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
+          call ESMF_Finalize(endflag=ESMF_END_ABORT)
+       end if
     else
-      lnx = ng
-      lny = 1
-      if (nx > 0) lnx = nx
-      if (ny > 0) lny = ny
-      if (lnx*lny /= ng) then
-         write(tmpstr,*) subname,' WARNING: grid2d size not consistent ',ng,lnx,lny
-         call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
-      endif
+       lnx = ng
+       lny = 1
+       if (nx > 0) lnx = nx
+       if (ny > 0) lny = ny
+       if (lnx*lny /= ng) then
+          write(tmpstr,*) subname,' WARNING: grid2d size not consistent ',ng,lnx,lny
+          call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
+       endif
     end if
     deallocate(minIndexPTile, maxIndexPTile)
 
@@ -900,10 +903,10 @@ contains
 
     ! Write header
     if (whead) then
-      if (atmtiles) then
+      if (tiles) then
        rcode = pio_def_dim(io_file, trim(lpre)//'_nx', lnx, dimid3(1))
        rcode = pio_def_dim(io_file, trim(lpre)//'_ny', lny, dimid3(2))
-       rcode = pio_def_dim(io_file, trim(lpre)//'_ntiles', ntiles, dimid3(3))
+       rcode = pio_def_dim(io_file, trim(lpre)//'_ntile', lntile, dimid3(3))
        if (present(nt)) then
           dimid4(1:3) = dimid3
           rcode = pio_inq_dimid(io_file, 'time', dimid4(4))
@@ -1020,11 +1023,19 @@ contains
        call ESMF_DistGridGet(distgrid, localDE=0, seqIndexList=dof, rc=rc)
        write(tmpstr,*) subname,' dof = ',ns,size(dof),dof(1),dof(ns)  !,minval(dof),maxval(dof)
        call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
-       if (atmtiles) then
-          call pio_initdecomp(io_subsystem, pio_double, (/lnx,lny,ntiles/), dof, iodesc)
+       if (tiles) then
+          if (luse_float) then
+             call pio_initdecomp(io_subsystem, pio_real, (/lnx,lny,lntile/), dof, iodesc)
+          else
+             call pio_initdecomp(io_subsystem, pio_double, (/lnx,lny,lntile/), dof, iodesc)
+          end if
        else
-          call pio_initdecomp(io_subsystem, pio_double, (/lnx,lny/), dof, iodesc)
-         !call pio_writedof(lpre, (/lnx,lny/), int(dof,kind=PIO_OFFSET_KIND), mpicom)
+          if (luse_float) then
+             call pio_initdecomp(io_subsystem, pio_real, (/lnx,lny/), dof, iodesc)
+          else
+             call pio_initdecomp(io_subsystem, pio_double, (/lnx,lny/), dof, iodesc)
+          end if
+          !call pio_writedof(lpre, (/lnx,lny/), int(dof,kind=PIO_OFFSET_KIND), mpicom)
        end if
        deallocate(dof)
 
@@ -1057,10 +1068,18 @@ contains
                    rcode = pio_inq_varid(io_file, trim(name1), varid)
                    call pio_setframe(io_file,varid,frame)
 
-                   if (gridToFieldMap(1) == 1) then
-                      call pio_write_darray(io_file, varid, iodesc, fldptr2(:,n), rcode, fillval=lfillvalue)
-                   else if (gridToFieldMap(1) == 2) then
-                      call pio_write_darray(io_file, varid, iodesc, fldptr2(n,:), rcode, fillval=lfillvalue)
+                   if (luse_float) then
+                      if (gridToFieldMap(1) == 1) then
+                         call pio_write_darray(io_file, varid, iodesc, real(fldptr2(:,n),r4), rcode, fillval=real(lfillvalue,r4))
+                      else if (gridToFieldMap(1) == 2) then
+                         call pio_write_darray(io_file, varid, iodesc, real(fldptr2(n,:),r4), rcode, fillval=real(lfillvalue,r4))
+                      end if
+                   else
+                      if (gridToFieldMap(1) == 1) then
+                         call pio_write_darray(io_file, varid, iodesc, fldptr2(:,n), rcode, fillval=lfillvalue)
+                      else if (gridToFieldMap(1) == 2) then
+                         call pio_write_darray(io_file, varid, iodesc, fldptr2(n,:), rcode, fillval=lfillvalue)
+                      end if
                    end if
                 end do
              else if (rank == 1 .or. rank == 0) then
@@ -1069,7 +1088,11 @@ contains
                 call pio_setframe(io_file,varid,frame)
                 ! fix for writing data on exchange grid, which has no data in some PETs
                 if (rank == 0) nullify(fldptr1)
-                call pio_write_darray(io_file, varid, iodesc, fldptr1, rcode, fillval=lfillvalue)
+                if (luse_float) then
+                   call pio_write_darray(io_file, varid, iodesc, real(fldptr1,r4), rcode, fillval=real(lfillvalue,r4))
+                else
+                   call pio_write_darray(io_file, varid, iodesc, fldptr1, rcode, fillval=lfillvalue)
+                end if
              end if  ! end if rank is 2 or 1 or 0
 
           end if ! end if not "hgt"
@@ -1078,16 +1101,31 @@ contains
        ! Fill coordinate variables - why is this being done each time?
        rcode = pio_inq_varid(io_file, trim(coordvarnames(1)), varid)
        call pio_setframe(io_file,varid,frame)
-       call pio_write_darray(io_file, varid, iodesc, ownedElemCoords_x, rcode, fillval=lfillvalue)
+       if (luse_float) then
+          call pio_write_darray(io_file, varid, iodesc, real(ownedElemCoords_x,r4), rcode, fillval=real(lfillvalue,r4))
+       else
+          call pio_write_darray(io_file, varid, iodesc, ownedElemCoords_x, rcode, fillval=lfillvalue)
+       end if
 
        rcode = pio_inq_varid(io_file, trim(coordvarnames(2)), varid)
        call pio_setframe(io_file,varid,frame)
-       call pio_write_darray(io_file, varid, iodesc, ownedElemCoords_y, rcode, fillval=lfillvalue)
-
+       if (luse_float) then
+          call pio_write_darray(io_file, varid, iodesc, real(ownedElemCoords_y,r4), rcode, fillval=real(lfillvalue,r4))
+       else
+          call pio_write_darray(io_file, varid, iodesc, ownedElemCoords_y, rcode, fillval=lfillvalue)
+       end if
        call pio_syncfile(io_file)
        call pio_freedecomp(io_file, iodesc)
     endif
-    deallocate(ownedElemCoords, ownedElemCoords_x, ownedElemCoords_y)
+    if(allocated(ownedElemCoords)) then
+       deallocate(ownedElemCoords)
+    endif
+    if(allocated(ownedElemCoords_x)) then
+       deallocate(ownedElemCoords_x)
+    endif
+    if(allocated(ownedElemCoords_y)) then
+       deallocate(ownedElemCoords_y)
+    endif
 
     if (dbug_flag > 5) then
        call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
@@ -1579,8 +1617,8 @@ contains
           allocate(fldptr1_tmp(lsize))
 
           do n = 1,ungriddedUBound(1)
-             ! Creat a name for the 1d field on the mediator history or restart file based on the
-             ! ungridded dimension index of the field bundle 2d fiedl
+             ! Create a name for the 1d field on the mediator history or restart file based on the
+             ! ungridded dimension index of the field bundle 2d field
              write(cnumber,'(i0)') n
              name1 = trim(lpre)//'_'//trim(itemc)//trim(cnumber)
 
@@ -1737,7 +1775,10 @@ contains
        deallocate(dof)
 
        deallocate(minIndexPTile, maxIndexPTile)
-
+    else
+       if(maintask) write(logunit,'(a)') trim(subname)//' ERROR: '//trim(name1)//' is not present, aborting '
+       call ESMF_LogWrite(trim(subname)//' ERROR: '//trim(name1)//' is not present, aborting ', ESMF_LOGMSG_ERROR)
+       rc = ESMF_FAILURE
     end if ! end if rcode check
 
   end subroutine med_io_read_init_iodesc

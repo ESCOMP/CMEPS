@@ -334,7 +334,7 @@
     <group>run_begin_stop_restart</group>
     <file>env_run.xml</file>
     <desc>
-      Run start time-of-day
+      Run start time-of-day, units are seconds with values from 0 to 86400.
     </desc>
   </entry>
 
@@ -532,6 +532,15 @@
    <group>run_begin_stop_restart</group>
    <file>env_run.xml</file>
    <desc>List of job ids for most recent case.submit</desc>
+ </entry>
+
+ <entry id="JOB_PRIORITY">
+   <type>char</type>
+   <default_value>regular</default_value>
+   <valid_values>regular,premium,economy</valid_values>
+   <group>run_begin_stop_restart</group>
+   <file>env_run.xml</file>
+   <desc>job priority for systems supporting this option</desc>
  </entry>
 
   <!-- ===================================================================== -->
@@ -812,15 +821,6 @@
     different MPI ranks to different GPUs within the same compute node</desc>
   </entry>
 
-  <entry id="SMP_PRESENT">
-    <type>logical</type>
-    <valid_values>TRUE,FALSE</valid_values>
-    <default_value>FALSE</default_value>
-    <group>build_def</group>
-    <file>env_build.xml</file>
-    <desc>TRUE implies that at least one of the components is built threaded (DO NOT EDIT)</desc>
-  </entry>
-
   <entry id="ESMF_AWARE_THREADING">
     <type>logical</type>
     <valid_values>TRUE,FALSE</valid_values>
@@ -1024,23 +1024,6 @@
     <desc>Enables the papi hardware counters in gptl
     The papi library must be included in the build step for
     this to work.</desc>
-  </entry>
-
-  <entry id="ESMF_LOGFILE_KIND">
-    <type>char</type>
-    <valid_values>ESMF_LOGKIND_SINGLE,ESMF_LOGKIND_MULTI,ESMF_LOGKIND_NONE</valid_values>
-    <default_value>ESMF_LOGKIND_NONE</default_value>
-    <group>run_flags</group>
-    <file>env_run.xml</file>
-    <desc>
-      Determines what ESMF log files (if any) are generated when
-          USE_ESMF_LIB is TRUE.
-      ESMF_LOGKIND_SINGLE: Use a single log file, combining messages from
-          all of the PETs. Not supported on some platforms.
-      ESMF_LOGKIND_MULTI: Use multiple log files -- one per PET.
-      ESMF_LOGKIND_NONE: Do not issue messages to a log file.
-      By default, no ESMF log files are generated.
-    </desc>
   </entry>
 
   <entry id="ESMF_VERBOSITY_LEVEL">
@@ -1406,14 +1389,6 @@
     <desc>rof2lnd flux mapping file</desc>
   </entry>
 
-  <entry id="ROF2OCN_FMAPNAME">
-    <type>char</type>
-    <default_value>idmap</default_value>
-    <group>run_domain</group>
-    <file>env_run.xml</file>
-    <desc>rof2ocn flux mapping file</desc>
-  </entry>
-
   <entry id="ROF2OCN_LIQ_RMAPNAME">
     <type>char</type>
     <default_value>idmap</default_value>
@@ -1430,30 +1405,6 @@
     <desc>rof2ocn runoff mapping file</desc>
   </entry>
 
-  <entry id="GLC2ICE_RMAPNAME">
-    <type>char</type>
-    <default_value>idmap</default_value>
-    <group>run_domain</group>
-    <file>env_run.xml</file>
-    <desc>glc2ice runoff mapping file</desc>
-  </entry>
-
-  <entry id="GLC2OCN_LIQ_RMAPNAME">
-    <type>char</type>
-    <default_value>idmap</default_value>
-    <group>run_domain</group>
-    <file>env_run.xml</file>
-    <desc>glc2ocn runoff mapping file for liquid runoff</desc>
-  </entry>
-
-  <entry id="GLC2OCN_ICE_RMAPNAME">
-    <type>char</type>
-    <default_value>idmap</default_value>
-    <group>run_domain</group>
-    <file>env_run.xml</file>
-    <desc>glc2ocn runoff mapping file for ice runoff</desc>
-  </entry>
-
   <entry id="OCN2WAV_SMAPNAME">
     <type>char</type>
     <default_value>idmap</default_value>
@@ -1462,22 +1413,16 @@
     <desc>ocn2wav state mapping file</desc>
   </entry>
 
-  <entry id="ICE2WAV_SMAPNAME">
-    <type>char</type>
-    <default_value>idmap</default_value>
-    <group>run_domain</group>
-    <file>env_run.xml</file>
-    <desc>ice2wav state mapping file</desc>
-  </entry>
-
   <entry id="WAV2OCN_SMAPNAME">
     <type>char</type>
-    <default_value>idmap</default_value>
+    <values>
+      <value>unset</value>
+    </values>
     <group>run_domain</group>
     <file>env_run.xml</file>
     <desc>wav2ocn state mapping file</desc>
   </entry>
-
+  
   <entry id="EPS_FRAC">
     <type>char</type>
     <default_value>1.0e-02</default_value>
@@ -2059,15 +2004,15 @@
     https://www.unidata.ucar.edu/software/netcdf/docs/data_type.html
     </desc>
     <values>
-      <value compclass="ATM">64bit_offset</value>
-      <value compclass="CPL">64bit_offset</value>
-      <value compclass="OCN">64bit_offset</value>
-      <value compclass="WAV">64bit_offset</value>
-      <value compclass="GLC">64bit_offset</value>
-      <value compclass="ICE">64bit_offset</value>
-      <value compclass="ROF">64bit_offset</value>
-      <value compclass="LND">64bit_offset</value>
-      <value compclass="ESP">64bit_offset</value>
+      <value compclass="ATM">64bit_data</value>
+      <value compclass="CPL">64bit_data</value>
+      <value compclass="OCN">64bit_data</value>
+      <value compclass="WAV">64bit_data</value>
+      <value compclass="GLC">64bit_data</value>
+      <value compclass="ICE">64bit_data</value>
+      <value compclass="ROF">64bit_data</value>
+      <value compclass="LND">64bit_data</value>
+      <value compclass="ESP">64bit_data</value>
     </values>
   </entry>
 
@@ -2485,6 +2430,19 @@
  </entry>
 
   <!-- ===================================================================== -->
+  <!-- optionally connect the case to a remote git repository,               -->
+  <!-- the branch is the case name and must be unique in remote              -->
+  <!-- ===================================================================== -->
+
+ <entry id="CASE_GIT_REPOSITORY">
+   <type>char</type>
+   <default_value></default_value>
+   <group>case_git</group>
+   <file>env_build.xml</file>
+   <desc>Remote git repository used for this case</desc>
+ </entry>
+
+<!-- ===================================================================== -->
   <!-- Include the AOFLUX calculation for this compset -->
   <!-- ===================================================================== -->
 

@@ -18,24 +18,6 @@
     </values>
   </entry>
 
-  <entry id="esmf_logging" modify_via_xml="ESMF_LOGFILE_KIND">
-    <type>char</type>
-    <category>cime_pes</category>
-    <group>PELAYOUT_attributes</group>
-    <desc>
-      Determines what ESMF log files (if any) are generated when
-          USE_ESMF_LIB is TRUE.
-      ESMF_LOGKIND_SINGLE: Use a single log file, combining messages from
-          all of the PETs. Not supported on some platforms.
-      ESMF_LOGKIND_MULTI: Use multiple log files — one per PET.
-      ESMF_LOGKIND_NONE: Do not issue messages to a log file.
-      By default, no ESMF log files are generated.
-    </desc>
-    <values>
-      <value>$ESMF_LOGFILE_KIND</value>
-    </values>
-  </entry>
-
   <entry id="pio_asyncio_ntasks" modify_via_xml="PIO_ASYNCIO_NTASKS">
     <type>integer</type>
     <category>pio</category>
@@ -251,17 +233,15 @@
     </values>
   </entry>
 
-  <!-- =========================================== -->
-  <!-- All components orbital attributes           -->
-  <!-- =========================================== -->
-
+  <!-- not yet fully implemented, set to false -->
   <entry id="write_restart_at_endofrun">
     <type>logical</type>
     <category>nuopc</category>
     <group>ALLCOMP_attributes</group>
     <values>
       <value>.false.</value>
-      <value rest_option="end">.true.</value>
+      <value rest_option='none'>.false.</value>
+      <value rest_option='never'>.false.</value>
     </values>
   </entry>
 
@@ -273,6 +253,10 @@
       <value>$ESMF_PROFILING_LEVEL</value>
     </values>
   </entry>
+
+  <!-- =========================================== -->
+  <!-- All components orbital attributes           -->
+  <!-- =========================================== -->
 
   <entry id="orb_mode">
     <type>char</type>
@@ -638,19 +622,6 @@
     </values>
   </entry>
 
-  <entry id="ocn2glc_levels">
-    <type>char</type>
-    <category>flds</category>
-    <group>ALLCOMP_attributes</group>
-    <desc>
-      if the ocean component sends fields at multiple ocean levels to the
-      land-ice component, these are the colon deliminted level indices
-    </desc>
-    <values>
-      <value>1:10:19:26:30:33:35</value>
-    </values>
-  </entry>
-
   <entry id="tfreeze_option" modify_via_xml="TFREEZE_SALTWATER_OPTION">
     <type>char</type>
     <category>control</category>
@@ -874,33 +845,49 @@
     <type>char</type>
     <category>control</category>
     <group>MED_attributes</group>
-    <valid_values>on,off,on_if_glc_coupled_fluxes</valid_values>
+    <valid_values>on,off</valid_values>
     <desc>
       Whether to renormalize the surface mass balance (smb) sent from lnd to glc so that the
       global integral on the glc grid agrees with the global integral on the lnd grid.
 
-      Unlike most fluxes, smb is remapped with bilinear rather than conservative mapping weights,
-      so this option is needed for conservation. However, conservation is not required in many
-      cases, since we often run glc as a diagnostic (one-way-coupled) component.
+      Unlike most fluxes, smb is remapped with bilinear rather than conservative mapping
+      weights, so this option is needed for conservation. However, this can be turned off
+      in non-fully-coupled configurations where conservation isn't important (e.g.,
+      glc-only configurations - T compsets) to avoid the global correction that comes with
+      this renormalization.
 
       Allowable values are:
-      'on': always do this renormalization
-      'off': never do this renormalization (see WARNING below)
-      'on_if_glc_coupled_fluxes': Determine at runtime whether to do this renormalization.
-         Does the renormalization if we're running a two-way-coupled glc that sends fluxes
-         to other components (which is the case where we need conservation).
-         Does NOT do the renormalization if we're running a one-way-coupled glc, or if
-         we're running a glc-only compset (T compsets).
-         (In these cases, conservation is not important.)
+      'on': do this renormalization
+      'off': do not do this renormalization; note that this will break conservation so
+         typically should not be used in fully-coupled cases
 
-      Only used if running with a prognostic GLC component.
-
-      WARNING: Setting this to 'off' will break conservation when running with an
-      evolving, two-way-coupled glc.
+      Only used if running with a GLC component.
     </desc>
     <values>
-      <value>on_if_glc_coupled_fluxes</value>
+      <value>on</value>
       <value COMP_LND="xlnd">off</value>
+    </values>
+  </entry>
+  <entry id="remove_negative_runoff_lnd">
+    <type>logical</type>
+    <category>control</category>
+    <group>MED_attributes</group>
+    <desc>
+      If true, remove negative runoff generated from the land component by downweighting all positive runoff globally.
+    </desc>
+    <values>
+      <value>.true.</value>
+    </values>
+  </entry>
+  <entry id="remove_negative_runoff_glc">
+    <type>logical</type>
+    <category>control</category>
+    <group>MED_attributes</group>
+    <desc>
+      If true, remove negative runoff generated from the glc (ice sheet) component by downweighting all positive runoff globally.
+    </desc>
+    <values>
+      <value>.false.</value>
     </values>
   </entry>
 
@@ -961,6 +948,19 @@
     </desc>
     <values>
       <value>0.0D0</value>
+    </values>
+  </entry>
+
+  <entry id="add_gusts">
+    <type>logical</type>
+    <category>control</category>
+    <group>MED_attributes</group>
+    <desc>
+      add a wind gustiness factor
+    </desc>
+    <values>
+      <value CAMDEV="True">.true.</value>
+      <value CAMDEV="False">.false.</value>
     </values>
   </entry>
 
@@ -1119,13 +1119,12 @@
     <type>char</type>
     <category>time</category>
     <group>ALLCOMP_attributes</group>
-    <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,nmonths,nyears,monthly,yearly,date,end</valid_values>
+    <valid_values>none,never,nseconds,nminutes,nhours,ndays,nmonths,nyears,monthly,yearly,date,end</valid_values>
     <desc>
       mediator history snapshot option (used with history_n and history_ymd)
       set by HIST_OPTION in env_run.xml.
       history_option alarms are:
       [none/never], turns option off
-      [nsteps]   , history snapshot every history_n nsteps  , relative to current run start time
       [nseconds] , history snapshot every history_n nseconds, relative to current run start time
       [nminutes] , history snapshot every history_n nminutes, relative to current run start time
       [nhours]   , history snapshot every history_n nhours  , relative to current run start time
@@ -1138,6 +1137,7 @@
     </desc>
     <values>
       <value>$HIST_OPTION</value>
+      <value hist_option="nsteps">nseconds</value>
     </values>
   </entry>
 
@@ -2274,54 +2274,6 @@
     </values>
   </entry>
 
-  <entry id="glc2ocn_liq_rmapname"    modify_via_xml="GLC2OCN_LIQ_RMAPNAME">
-    <type>char</type>
-    <category>mapping</category>
-    <input_pathname>abs</input_pathname>
-    <group>MED_attributes</group>
-    <desc>
-      glc2ocn runoff mapping file for liquid runoff
-    </desc>
-    <values>
-      <value>$GLC2OCN_LIQ_RMAPNAME</value>
-    </values>
-  </entry>
-  <entry id="glc2ice_rmapname"    modify_via_xml="GLC2ICE_RMAPNAME">
-    <type>char</type>
-    <category>mapping</category>
-    <input_pathname>abs</input_pathname>
-    <group>MED_attributes</group>
-    <desc>
-      glc to ice runoff conservative mapping file
-    </desc>
-    <values>
-      <value>$GLC2ICE_RMAPNAME</value>
-    </values>
-  </entry>
-  <entry id="glc2ocn_ice_rmapname"    modify_via_xml="GLC2OCN_ICE_RMAPNAME">
-    <type>char</type>
-    <category>mapping</category>
-    <input_pathname>abs</input_pathname>
-    <group>MED_attributes</group>
-    <desc>
-      glc2ocn runoff mapping file for ice runoff
-    </desc>
-    <values>
-      <value>$GLC2OCN_ICE_RMAPNAME</value>
-    </values>
-  </entry>
-  <entry id="rof2ocn_fmapname"    modify_via_xml="ROF2OCN_FMAPNAME">
-    <type>char</type>
-    <category>mapping</category>
-    <input_pathname>abs</input_pathname>
-    <group>MED_attributes</group>
-    <desc>
-      runoff to ocn area overlap conservative mapping file
-    </desc>
-    <values>
-      <value>$ROF2OCN_FMAPNAME</value>
-    </values>
-  </entry>
   <entry id="rof2ocn_liq_rmapname"    modify_via_xml="ROF2OCN_LIQ_RMAPNAME">
     <type>char</type>
     <category>mapping</category>
@@ -2346,6 +2298,7 @@
       <value>$ROF2OCN_ICE_RMAPNAME</value>
     </values>
   </entry>
+
   <entry id="ocn2wav_smapname"    modify_via_xml="OCN2WAV_SMAPNAME">
     <type>char</type>
     <category>mapping</category>
@@ -2355,21 +2308,11 @@
       ocn to wav state mapping file for states
     </desc>
     <values>
+      <value samegrid_ocn_wav="true">idmap</value>
       <value>$OCN2WAV_SMAPNAME</value>
     </values>
   </entry>
-  <entry id="ice2wav_smapname"    modify_via_xml="ICE2WAV_SMAPNAME">
-    <type>char</type>
-    <category>mapping</category>
-    <input_pathname>abs</input_pathname>
-    <group>MED_attributes</group>
-    <desc>
-      ice to wav state mapping file for states
-    </desc>
-    <values>
-      <value>$ICE2WAV_SMAPNAME</value>
-    </values>
-  </entry>
+
   <entry id="wav2ocn_smapname"    modify_via_xml="WAV2OCN_SMAPNAME">
     <type>char</type>
     <category>mapping</category>
@@ -2379,10 +2322,11 @@
       wav to ocn state mapping file for states
     </desc>
     <values>
+      <value samegrid_ocn_wav="true">idmap</value>
       <value>$WAV2OCN_SMAPNAME</value>
     </values>
   </entry>
-
+  
   <!-- =========================== -->
   <!-- ALLCOMP attributes          -->
   <!-- =========================== -->
@@ -2472,9 +2416,10 @@
     </desc>
     <values>
       <value>.false.</value>
-      <value BGC_MODE=".*CO2A.*">.true.</value>
+      <value BGC_MODE="CO2A.*">.true.</value>
     </values>
   </entry>
+
   <entry id="flds_co2b">
     <type>logical</type>
     <category>flds</category>
@@ -2486,9 +2431,10 @@
     </desc>
     <values>
       <value>.false.</value>
-      <value BGC_MODE=".*CO2B.*">.true.</value>
+      <value BGC_MODE="CO2B">.true.</value>
     </values>
   </entry>
+
   <entry id="flds_co2c">
     <type>logical</type>
     <category>flds</category>
@@ -2500,23 +2446,56 @@
     </desc>
     <values>
       <value>.false.</value>
-      <value BGC_MODE="BGC%.*CO2C.*">.true.</value>
+      <value BGC_MODE="CO2C">.true.</value>
     </values>
   </entry>
 
-  <entry id="flds_dms_med">
+  <entry id="flds_dms">
     <type>logical</type>
     <category>flds</category>
     <group>ALLCOMP_attributes</group>
     <desc>
-      Pass DMS flux computed in MED to both ATM and OCN
-      Set this by setting the xml variable BGC_MODE.
-      If BGC_MODE has 'DMSmed', then DMSmed will be set to .true.
+      Pass DMS from OCN to ATM component
     </desc>
     <values>
       <value>.false.</value>
-      <value COMPSET="BGC%.*DMS.*">.true.</value>
-      <value COMPSET=".*_BLOM%ECO.*">.true.</value>
+      <value dms_from_ocn="on">.true.</value>
+    </values>
+  </entry>
+
+  <entry id="flds_brf">
+    <type>logical</type>
+    <category>flds</category>
+    <group>ALLCOMP_attributes</group>
+    <desc>
+      Pass Bromoform from OCN to ATM component
+    </desc>
+    <values>
+      <value>.false.</value>
+    </values>
+  </entry>
+
+  <entry id="flds_n2o" modify_via_xml="N2O_EMIS_OCN">
+    <type>logical</type>
+    <category>flds</category>
+    <group>ALLCOMP_attributes</group>
+    <desc>
+      Pass N2O from OCN to ATM component
+    </desc>
+    <values>
+      <value>.false.</value>
+    </values>
+  </entry>
+
+  <entry id="flds_nh3" modify_via_xml="NH3_EMIS_OCN">
+    <type>logical</type>
+    <category>flds</category>
+    <group>ALLCOMP_attributes</group>
+    <desc>
+      Pass NH3 from OCN to ATM component
+    </desc>
+    <values>
+      <value>.false.</value>
     </values>
   </entry>
 
@@ -2772,12 +2751,11 @@
     <type>char</type>
     <category>time</category>
     <group>CLOCK_attributes</group>
-    <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,monthly,nmonths,nyears,date,end</valid_values>
+    <valid_values>none,never,nseconds,nminutes,nhours,ndays,monthly,nmonths,nyears,date,end</valid_values>
     <desc>
       sets the run length with stop_n and stop_ymd
       stop_option alarms are:
       [none/never] , turns option off
-      [nsteps]     , stops every stop_n nsteps  , relative to current run start time
       [nseconds]   , stops every stop_n nseconds, relative to current run start time
       [nminutes]   , stops every stop_n nminutes, relative to current run start time
       [nhours]     , stops every stop_n nhours  , relative to current run start time
@@ -2791,6 +2769,7 @@
     </desc>
     <values>
       <value>$STOP_OPTION</value>
+      <value stop_option='nsteps'>nseconds</value>
     </values>
   </entry>
 
@@ -2836,12 +2815,11 @@
     <type>char</type>
     <category>time</category>
     <group>CLOCK_attributes</group>
-    <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,nmonths,nyears,monthly,yearly,date,end</valid_values>
+    <valid_values>none,never,nseconds,nminutes,nhours,ndays,nmonths,nyears,monthly,yearly,date,end</valid_values>
     <desc>
       sets the restart frequency with restart_n and restart_ymd
       restart_option alarms are:
       [none/never], turns option off
-      [nsteps]   , restarts every restart_n nsteps  , relative to current run start time
       [nseconds] , restarts every restart_n nseconds, relative to current run start time
       [nminutes] , restarts every restart_n nminutes, relative to current run start time
       [nhours]   , restarts every restart_n nhours  , relative to current run start time
@@ -2855,6 +2833,7 @@
     </desc>
     <values>
       <value>$REST_OPTION</value>
+      <value rest_option="nsteps">nseconds</value>
     </values>
   </entry>
 

@@ -65,13 +65,13 @@
     <file>env_run.xml</file>
     <desc>
     integer indicating maximum detail level to profile. This xml
-    variable is used to set the config variable
-    timing_detail_limit. This config variable is used by perf_mod
+    variable is used to set the namelist variable
+    timing_detail_limit. This namelist variable is used by perf_mod
     (in $CIMEROOT/src/share/timing/perf_mod.F90) to turn timers off
     and on depending on calls to the routine t_adj_detailf. If in the
     code a statement appears like t_adj_detailf(+1), then the current
     timer detail level is incremented by 1 and compared to the
-    time_detail_limit obtained from the config.  If the limit is
+    time_detail_limit obtained from the namelist.  If the limit is
     exceeded then the timer is turned off.
     </desc>
   </entry>
@@ -102,50 +102,90 @@
 
   <entry id="CCSM_BGC">
     <type>char</type>
-    <valid_values>none,CO2A,CO2B,CO2C,CO2C:DMS,CO2A:DMS</valid_values>
+    <valid_values>none,CO2A,CO2B,CO2C</valid_values>
     <default_value>none</default_value>
     <values match="last">
       <value compset="_CAM">CO2A</value>
       <value compset="_DATM">none</value>
       <value compset="_DATM%CPLHIST.+POP\d">CO2A</value>
       <value compset="_DATM%CPLHIST.+BLOM%ECO">CO2A</value>
-      <value compset="^OMIP_DATM%IAF.*_POP2%[^_]*ECO">CO2A</value>
-      <value compset="^OMIP_DATM%JRA.*_POP2%[^_]*ECO">CO2A</value>
+      <value compset="^OMIP_DATM%IAF.*_MOM6%[^_]*MARBL">CO2A</value>
+      <value compset="^OMIP_DATM%JRA.*_MOM6%[^_]*MARBL">CO2A</value>
       <value compset="HIST.*_DATM.*_CLM">CO2A</value>
       <value compset="SSP.*_DATM.*_CLM">CO2A</value>
-      <value compset="_BGC%CO2C:DMS">CO2C:DMS</value>
-      <value compset="_BGC%CO2A:DMS">CO2A:DMS</value>
-      <value compset="_BGC%DMS">DMS</value>
-      <value compset="HIST.*_DATM%(QIA|CRU)">CO2A</value>
-      <value compset="RCP.*_DATM%(QIA|CRU)" >CO2A</value>
-      <value compset="20TR_DATM%IAF.*_BLOM%ECO">CO2A</value>
-      <value compset="20TR_DATM%JRA.*_BLOM%ECO">CO2A</value>
-      <!-- The following two are here just for backwards compatibility -->
       <value compset="_BGC%BPRP">CO2C</value>
       <value compset="_BGC%BDRD">CO2C</value>
+      <value compset="20TR_DATM%IAF.*_BLOM%ECO">CO2A</value>
+      <value compset="20TR_DATM%JRA.*_BLOM%ECO">CO2A</value>
     </values>
     <group>run_coupling</group>
     <file>env_run.xml</file>
     <desc>Activates additional CO2-related fields to be exchanged between components. Possible values are:
 
-    CO2A: sets nuopc.runconfig variable flds_co2a = .true.; this adds
+    CO2A: sets the driver namelist variable flds_co2a = .true.; this adds
     prognostic CO2 and diagnostic CO2 at the lowest model level to be sent from
     the atmosphere to the land and ocean.
 
-    CO2B: sets nuopc.runconfig variable flds_co2b = .true.; this adds
+    CO2B: sets the driver namelist variable flds_co2b = .true.; this adds
     prognostic CO2 and diagnostic CO2 at the lowest model level to be sent from
     the atmosphere just to the land, and the surface upward flux of CO2 to be
     sent from the land back to the atmosphere
 
-    CO2C: sets nuopc.runconfig variable flds_co2c = .true.; this adds
+    CO2C: sets the driver namelist variable flds_co2c = .true.; this adds
     prognostic CO2 and diagnostic CO2 at the lowest model level to be sent from
     the atmosphere to the land and ocean, and the surface upward flux of CO2
     to be sent from the land and the open ocean back to the atmosphere.
 
-    DMS: sets nuopc.runconfig variable flds_dms_med = .true.; this adds
-    turns on the computation of DMS flux in the mediator and that flux is passed back to both the
-    ocean (if prognostic) and the atm (if prognostic)
+    The namelist variables flds_co2a, flds_co2b and flds_co2c are in the
+    namelist group cpl_flds_inparm.
+    </desc>
+  </entry>
 
+  <entry id="DMS_EMIS_OCN">
+    <type>logical</type>
+    <default_value>FALSE</default_value>
+    <valid_values>TRUE,FALSE</valid_values>
+    <group>run_coupling</group>
+    <file>env_run.xml</file>
+    <desc>
+      Activates DMS fluxes to be sent from ocn to atm.
+      Currently this is only available with BLOM ocean component.
+    </desc>
+  </entry>
+
+  <entry id="BRF_EMIS_OCN">
+    <type>logical</type>
+    <default_value>FALSE</default_value>
+    <valid_values>TRUE,FALSE</valid_values>
+    <group>run_coupling</group>
+    <file>env_run.xml</file>
+    <desc>
+      Activates Bromoform fluxes to be sent from ocn to atm.
+      Currently this is only available with BLOM ocean component.
+    </desc>
+  </entry>
+
+  <entry id="N2O_EMIS_OCN">
+    <type>logical</type>
+    <default_value>FALSE</default_value>
+    <valid_values>TRUE,FALSE</valid_values>
+    <group>run_coupling</group>
+    <file>env_run.xml</file>
+    <desc>
+      Activates N2O fluxes to be sent from ocn to atm.
+      Currently this is only available with BLOM ocean component.
+    </desc>
+  </entry>
+
+  <entry id="NH3_EMIS_OCN">
+    <type>logical</type>
+    <default_value>FALSE</default_value>
+    <valid_values>TRUE,FALSE</valid_values>
+    <group>run_coupling</group>
+    <file>env_run.xml</file>
+    <desc>
+      Activates NH3 fluxes to be sent from ocn to atm.
+      Currently this is only available with BLOM ocean component.
     </desc>
   </entry>
 
@@ -172,7 +212,7 @@
       <value compset="_MPAS"       >hour</value>
     </values>
     <desc>Base period associated with NCPL coupling frequency.
-    This xml variable is only used to set the driver config variables,
+    This xml variable is only used to set the driver namelist variables,
     atm_cpl_dt, lnd_cpl_dt, ocn_cpl_dt, ice_cpl_dt, glc_cpl_dt, rof_cpl_dt, wav_cpl_dt, and esp_dt.</desc>
   </entry>
 
@@ -196,16 +236,12 @@
       <!-- =================================================== -->
       <!-- C compsets -->
       <!-- =================================================== -->
-      <value compset="_DATM.*_DICE.*_POP2">24</value>
       <value compset="_DATM.*_DICE.*_MOM6">24</value>
       <value compset="_DATM.*_DICE.*_BLOM">24</value>
-      <!-- TODO: currently a NUOPC runseqence cannot be generated with the ATM_NCPL < OCN_NCPL - as is the case -->
-      <!-- with the POP2 C compset run sequence - for now will set these to be the same as MOM6 -->
+      <!-- NOTE: currently a NUOPC runseqence cannot be generated with the ATM_NCPL < OCN_NCPL -->
       <!-- =================================================== -->
       <!-- G compsets -->
       <!-- =================================================== -->
-      <value compset="_DATM.*_SLND.*_CICE.*_POP2">24</value>
-      <value compset="_DATM.*_SLND.*_CICE.*_POP2" grid="oi%tx0.1v3">144</value>
       <value compset="_DATM.*_SLND.*_CICE.*_MOM6">24</value>
       <value compset="_DATM.*_SLND.*_CICE.*_BLOM">24</value>
       <value compset="_DATM.*_CICE.*_DOCN">24</value>
@@ -215,6 +251,7 @@
       <value compset="_DATM.*_DOCN%US20">24</value>
       <value compset="_DATM%CPLHIST.+POP\d">48</value>
       <value compset="_DATM%CPLHIST.+MOM\d">48</value>
+      <value compset="_DATM%CPLHIST.+BLOM\d">48</value>
       <!-- =================================================== -->
       <!-- atm dependent resolutions (primarily CAM) -->
       <!-- =================================================== -->
@@ -246,23 +283,15 @@
       <!-- TODO: why is this here? -->
       <value compset="_DLND.*_CISM\d">1</value>
       <!-- =================================================== -->
-      <!-- High res BLOM -->
+      <!-- N compsets -->
       <!-- =================================================== -->
+      <value compset="_DATM.*_BLOM">24</value>
       <value compset="_BLOM" grid="oi%tnx0.25v">48</value>
-      <!-- =================================================== -->
-      <!-- WW3DEV Testing -->
-      <!-- This can be used for testing but is incompatible with many -->
-      <!-- coupled compsets (e.g., 1/2 degree needs 96, higher-top models -->
-      <!-- often need shorter intervals). I think this section should -->
-      <!-- (eventually) be expanded with more entries for different -->
-      <!-- atmosphere (and ocean) configurations and resolutions. -->
-      <!-- =================================================== -->
-      <value compset="_WW3DEV" grid="w%w025">72</value>
     </values>
     <group>run_coupling</group>
     <file>env_run.xml</file>
     <desc>Number of atm coupling intervals per NCPL_BASE_PERIOD.
-    This is used to set the driver config atm_cpl_dt, equal to basedt/ATM_NCPL,
+    This is used to set the driver namelist atm_cpl_dt, equal to basedt/ATM_NCPL,
     where basedt is equal to NCPL_BASE_PERIOD in seconds.</desc>
   </entry>
 
@@ -275,7 +304,7 @@
     <group>run_coupling</group>
     <file>env_run.xml</file>
     <desc>Number of land coupling intervals per NCPL_BASE_PERIOD.
-    This is used to set the driver config atm_cpl_dt, equal to basedt/LND_NCPL,
+    This is used to set the driver namelist atm_cpl_dt, equal to basedt/LND_NCPL,
     where basedt is equal to NCPL_BASE_PERIOD in seconds.</desc>
   </entry>
 
@@ -288,7 +317,7 @@
     <group>run_coupling</group>
     <file>env_run.xml</file>
     <desc>Number of ice coupling intervals per NCPL_BASE_PERIOD.
-    This is used to set the driver config ice_cpl_dt, equal to basedt/ICE_NCPL
+    This is used to set the driver namelist ice_cpl_dt, equal to basedt/ICE_NCPL
     where basedt is equal to NCPL_BASE_PERIOD in seconds.</desc>
   </entry>
 
@@ -297,20 +326,14 @@
     <default_value>$ATM_NCPL</default_value>
     <values match="last">
       <value compset="_MOM6">24</value>
-      <value compset="_POP2" grid="oi%gx3v7">1</value>
-      <value compset="_POP2" grid="oi%gx1v6">24</value>
-      <value compset="_POP2" grid="oi%gx1v7">24</value>
-      <value compset="_POP2" grid="oi%tx0.1v2">48</value>
-      <value compset="_POP2" grid="oi%tx0.1v3">48</value>
+      <value compset="_BLOM">24</value>
       <value compset="_DLND.*_CISM\d">1</value>
       <value compset="_NEMO">24</value>
-      <value compset="_BLOM">24</value>
-      <value compset="_BLOM" grid="oi%tnx0.25v">48</value>
     </values>
     <group>run_coupling</group>
     <file>env_run.xml</file>
     <desc>Number of ocn coupling intervals per NCPL_BASE_PERIOD.
-    Thisn is used to set the driver config ocn_cpl_dt, equal to basedt/OCN_NCPL
+    Thisn is used to set the driver namelist ocn_cpl_dt, equal to basedt/OCN_NCPL
     where basedt is equal to NCPL_BASE_PERIOD in seconds.</desc>
   </entry>
 
@@ -319,9 +342,11 @@
     <default_value>1</default_value>
     <values match="last">
       <value compset="_DLND.*_CISM\d">1</value>
+      <value compset="_DGLC">1</value>
       <value compset="_SGLC">$ATM_NCPL</value>
       <value compset="_XGLC">$ATM_NCPL</value>
       <value compset="_MOM6">1</value>
+      <value compset="_BLOM">1</value>
     </values>
     <group>run_coupling</group>
     <file>env_run.xml</file>
@@ -353,7 +378,6 @@
     <type>integer</type>
     <default_value>8</default_value>
     <values match="last">
-      <value compset="_DATM.*_POP2.*_DROF" grid="oi%gx3v7">1</value>
       <value compset="_DATM.*_MOM6.*_DROF"        >$ATM_NCPL</value>
       <value compset="_DATM.*_BLOM.*_DROF"        >$ATM_NCPL</value>
       <value compset="_DATM.*_DOCN%SOM"           >$ATM_NCPL</value>
@@ -361,7 +385,7 @@
       <value compset="_MIZUROUTE_"                >1</value>
       <value compset="_DATM%CPLHIST.+POP\d"       >8</value>
       <value compset="_DATM%CPLHIST.+MOM\d"       >8</value>
-      <value compset="_DATM%CPLHIST.+BLOM\d"       >8</value>
+      <value compset="_DATM%CPLHIST.+BLOM\d"      >8</value>
       <value compset="_XATM.*_XLND.*_XICE.*_XOCN" >$ATM_NCPL</value>
       <value compset="_DLND.*_CISM\d"             >1</value>
       <value compset="_XROF"                      >$ATM_NCPL</value>
@@ -369,7 +393,7 @@
     <group>run_coupling</group>
     <file>env_run.xml</file>
     <desc>Number of rof coupling intervals per NCPL_BASE_PERIOD.
-    This is used to set the driver config rof_cpl_dt, equal to basedt/ROF_NCPL
+    This is used to set the driver namelist rof_cpl_dt, equal to basedt/ROF_NCPL
     where basedt is equal to NCPL_BASE_PERIOD in seconds.</desc>
   </entry>
 
@@ -379,9 +403,10 @@
     <group>run_coupling</group>
     <file>env_run.xml</file>
     <desc>Number of wav coupling intervals per NCPL_BASE_PERIOD.
-    This is used to set the driver config wav_cpl_dt, equal to basedt/WAV_NCPL
+    This is used to set the driver namelist wav_cpl_dt, equal to basedt/WAV_NCPL
     where basedt is equal to NCPL_BASE_PERIOD in seconds.</desc>
   </entry>
+
 
   <!-- Logic for CPL_ALBAV should be reworked to depend on datm forcing rather
        than compset: see https://github.com/ESMCI/cime/issues/120 -->
@@ -392,13 +417,14 @@
     <values match="last">
       <value compset="DATM.+POP\d">TRUE</value>
       <value compset="DATM.+MOM\d">TRUE</value>
+      <value compset="DATM.+BLOM\d">TRUE</value>
       <value compset="DATM.+DOCN%IAF">TRUE</value>
       <value compset="DATM%CPLHIST.+POP\d">FALSE</value>
     </values>
     <group>run_component_cpl</group>
     <file>env_run.xml</file>
     <desc>
-      Only used for compsets with DATM and POP (currently C, G and J):
+      Only used for compsets with DATM and [POP or MOM] (currently C, G and J):
       If true, compute albedos to work with daily avg SW down
       If false (default), albedos are computed with the assumption that downward
       solar radiation from the atm component has a diurnal cycle and zenith-angle
@@ -439,15 +465,12 @@
     <valid_values>TIGHT,OPTION1,OPTION2</valid_values>
     <default_value>TIGHT</default_value>
     <values match="last">
-      <value compset="_DATM.*_DOCN%SOM"			>OPTION2</value>
-      <value compset="_POP2"				>OPTION2</value>
-      <value compset="_MOM6"				>OPTION1</value>
-      <value compset="_BLOM"				>OPTION1</value>
-      <value compset="_POP2" grid="oi%gx1v6"		>OPTION1</value>
-      <value compset="_POP2" grid="oi%gx1v7"		>OPTION1</value>
+      <value compset="_DATM.*_DOCN%SOM"               >OPTION2</value>
+      <value compset="_MOM6"                          >OPTION1</value>
+      <value compset="_BLOM"                          >OPTION1</value>
       <value compset="_DATM%NYF.*_SLND.*_DICE.*_DOCN"	>OPTION2</value>
-      <value compset="_XATM.*_XLND.*_XICE.*_XOCN"	>OPTION2</value>
-      <value compset="_SOCN"				>OPTION2</value>
+      <value compset="_XATM.*_XLND.*_XICE.*_XOCN"     >OPTION2</value>
+      <value compset="_SOCN"                          >OPTION2</value>
     </values>
     <group>run_coupling</group>
     <file>env_run.xml</file>
@@ -502,8 +525,10 @@
     <default_value>FALSE</default_value>
     <values match="last">
       <value compset="DATM.*_POP\d">TRUE</value>
-      <value compset="DATM.*_MOM\d">TRUE</value>
+      <value compset="DATM.*_MOM">TRUE</value>
+      <value compset="DATM.*_BLOM\d">TRUE</value>
       <value compset="CAM.*_MOM\d">TRUE</value>
+      <value compset="CAM.*_BLOM">TRUE</value>
       <value compset="CAM.*_POP\d">TRUE</value>
       <value compset="CAM.*_DOCN%SOM">TRUE</value>
     </values>
@@ -518,8 +543,7 @@
     <default_value>284.7</default_value>
     <values match="last">
       <value compset="^2000">367.0</value>
-      <value compset="DATM.*_POP2%[^_]*ECO">284.317</value>
-      <value compset="DATM.*_POP2%[^_]*ECOCESM20">284.7</value>
+      <value compset="DATM.*_MOM6%[^_]*MARBL">284.317</value>
     </values>
     <group>run_co2</group>
     <file>env_run.xml</file>
@@ -559,6 +583,7 @@
     <default_value>FALSE</default_value>
     <values match="last">
       <value compset="_CLM.+CISM\d">TRUE</value>
+      <value compset="_CLM.+DGLC%">TRUE</value>
       <!-- Turn on two-way coupling for TG compsets - even though there are no
            feedbacks for a TG compset, this will give us additional diagnostics -->
       <value compset="_DLND.+CISM\d">TRUE</value>
