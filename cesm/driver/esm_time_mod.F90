@@ -23,7 +23,7 @@ module esm_time_mod
   implicit none
   private    ! default private
 
-  public  :: esm_time_clockInit  ! initialize driver clock (assumes default calendar)
+  public  :: esm_time_clockinit  ! initialize driver clock (assumes default calendar)
 
   private :: esm_time_date2ymd
 
@@ -52,7 +52,7 @@ module esm_time_mod
 contains
 !===============================================================================
 
-  subroutine esm_time_clockInit(ensemble_driver, instance_driver, logunit, maintask, rc)
+  subroutine esm_time_clockinit(ensemble_driver, instance_driver, logunit, maintask, rc)
     use nuopc_shr_methods, only : get_minimum_timestep, dtime_drv
     ! input/output variables
     type(ESMF_GridComp)  :: ensemble_driver, instance_driver
@@ -95,6 +95,7 @@ contains
     logical                 :: isPresent
     logical                 :: inDriver
     logical, save           :: firsttime=.true.
+    logical                 :: exists
     character(len=*), parameter :: subname = '('//__FILE__//':esm_time_clockInit) '
     !-------------------------------------------------------------------------------
 
@@ -130,23 +131,20 @@ contains
 
        if (read_restart) then
           
-          call NUOPC_CompAttributeGet(instance_driver, name='drv_restart_pointer', value=restart_file, rc=rc)
+          call NUOPC_CompAttributeGet(instance_driver, name='drv_restart_pointer', value=restart_pfile, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-          if (trim(restart_file) /= 'none') then
-
-             call NUOPC_CompAttributeGet(instance_driver, name="inst_suffix", isPresent=isPresent, rc=rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             if(isPresent) then
-                call NUOPC_CompAttributeGet(instance_driver, name="inst_suffix", value=inst_suffix, rc=rc)
-                if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             else
-                inst_suffix = ""
-             endif
-
-             restart_pfile = trim(restart_file)//inst_suffix
+          if (trim(restart_pfile) /= 'none') then
 
              if (maintask) then
+                write(logunit,*) " read rpointer file = "//trim(restart_pfile)
+                inquire( file=trim(restart_pfile), exist=exists)
+                if (.not. exists) then
+                   rc = ESMF_FAILURE
+                   call ESMF_LogWrite(trim(subname)//' ERROR rpointer file '//trim(restart_pfile)//' not found', &
+                        ESMF_LOGMSG_ERROR, line=__LINE__, file=__FILE__)
+                   return
+                endif
                 call ESMF_LogWrite(trim(subname)//" read rpointer file = "//trim(restart_pfile), &
                      ESMF_LOGMSG_INFO)
                 open(newunit=unitn, file=restart_pfile, form='FORMATTED', status='old',iostat=ierr)
@@ -323,7 +321,7 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        firsttime = .false.
     endif
- end subroutine esm_time_clockInit
+  end subroutine esm_time_clockinit
 
  !===============================================================================
 
