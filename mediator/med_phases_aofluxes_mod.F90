@@ -1647,6 +1647,8 @@ end subroutine med_aofluxes_map_ogrid2xgrid_input
     if (FB_fldchk(fldbun_a, 'Sa_pslv', rc=rc)) then
        call fldbun_getfldptr(fldbun_a, 'Sa_pslv', aoflux_in%psfc, xgrid=xgrid, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
+    else
+       allocate(aoflux_in%psfc(lsize))
     end if
 
     ! if either density or potential temperature are computed, will need bottom level pressure
