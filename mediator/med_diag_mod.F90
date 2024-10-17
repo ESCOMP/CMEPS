@@ -2116,8 +2116,6 @@ contains
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           if (ESMF_AlarmIsRinging(stop_alarm, rc=rc)) then
              output_level = max(output_level, budget_print_ltend)
-             call ESMF_AlarmRingerOff( stop_alarm, rc=rc )
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
           endif
        endif
 
