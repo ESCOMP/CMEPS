@@ -1644,21 +1644,16 @@ end subroutine med_aofluxes_map_ogrid2xgrid_input
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     end if
 
-    if (FB_fldchk(fldbun_a, 'Sa_pslv', rc=rc)) then
+    if ((trim(coupling_mode) == 'cesm') .or. &
+         (trim(coupling_mode) == 'ufs.frac.aoflux' .and. trim(aoflux_code) == 'ccpp')) then
        call fldbun_getfldptr(fldbun_a, 'Sa_pslv', aoflux_in%psfc, xgrid=xgrid, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-    else
-       allocate(aoflux_in%psfc(lsize))
     end if
 
     ! if either density or potential temperature are computed, will need bottom level pressure
     if (compute_atm_dens .or. compute_atm_thbot) then
        call fldbun_getfldptr(fldbun_a, 'Sa_pbot', aoflux_in%pbot, xgrid=xgrid, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (trim(coupling_mode) == 'ufs.frac.aoflux') then
-          call fldbun_getfldptr(fldbun_a, 'Sa_pslv', aoflux_in%psfc, xgrid=xgrid, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-       end if
     end if
 
     if (flds_wiso) then
