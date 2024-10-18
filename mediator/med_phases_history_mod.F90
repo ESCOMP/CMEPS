@@ -21,7 +21,6 @@ module med_phases_history_mod
   use med_utils_mod         , only : chkerr => med_utils_ChkErr
   use med_internalstate_mod , only : ncomps, compname
   use med_internalstate_mod , only : InternalState, maintask, logunit
-  use med_time_mod          , only : med_time_alarmInit
   use med_io_mod            , only : med_io_write, med_io_wopen, med_io_enddef, med_io_close
   use perf_mod              , only : t_startf, t_stopf
   use pio                   , only : file_desc_t
@@ -153,6 +152,7 @@ contains
     use ESMF      , only : ESMF_Alarm, ESMF_AlarmSet
     use ESMF      , only : ESMF_FieldBundleIsCreated
     use med_internalstate_mod, only : compocn, compatm
+    use nuopc_shr_methods    , only : alarmInit
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -184,6 +184,7 @@ contains
     type(ESMF_TimeInterval) :: ringInterval
     integer                 :: ringInterval_length
     logical                 :: first_time = .true.
+
     character(len=*), parameter :: subname='(med_phases_history_write)'
     !---------------------------------------
 
@@ -221,7 +222,7 @@ contains
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           call ESMF_ClockGet(mclock, startTime=starttime,  rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          call med_time_alarmInit(mclock, alarm, option=hist_option_all_inst, opt_n=hist_n_all_inst, &
+          call alarmInit(mclock, alarm, option=hist_option_all_inst, opt_n=hist_n_all_inst, &
                reftime=starttime, alarmname=alarmname, rc=rc)
           call ESMF_AlarmSet(alarm, clock=mclock, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -357,11 +358,13 @@ contains
              end if
              if (ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_ocnalb_a,rc=rc)) then
                 call med_io_write(io_file, is_local%wrap%FBMed_ocnalb_a, whead(m), wdata(m), &
-                     is_local%wrap%nx(compatm), is_local%wrap%ny(compatm), nt=1, pre='Med_alb_atm', rc=rc)
+                     is_local%wrap%nx(compatm), is_local%wrap%ny(compatm), nt=1, pre='Med_alb_atm', &
+                     ntile=is_local%wrap%ntile(compatm), rc=rc)
              end if
              if (ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_aoflux_a,rc=rc)) then
                 call med_io_write(io_file, is_local%wrap%FBMed_aoflux_a, whead(m), wdata(m), &
-                     is_local%wrap%nx(compatm), is_local%wrap%ny(compatm), nt=1, pre='Med_aoflux_atm', rc=rc)
+                     is_local%wrap%nx(compatm), is_local%wrap%ny(compatm), nt=1, pre='Med_aoflux_atm', &
+                     ntile=is_local%wrap%ntile(compatm), rc=rc)
              end if
 
           end do ! end of loop over whead/wdata m index phases
@@ -495,7 +498,8 @@ contains
              end if
              if (ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_aoflux_a,rc=rc)) then
                 call med_io_write(instfiles(compmed)%io_file, is_local%wrap%FBMed_aoflux_a, whead(m), wdata(m), &
-                     is_local%wrap%nx(compatm), is_local%wrap%ny(compatm), nt=1, pre='Med_aoflux_atm', rc=rc)
+                     is_local%wrap%nx(compatm), is_local%wrap%ny(compatm), nt=1, pre='Med_aoflux_atm', &
+                     ntile=is_local%wrap%ntile(compatm), rc=rc)
              end if
 
              ! If appropriate - write ocn albedos computed in mediator
@@ -505,7 +509,8 @@ contains
              end if
              if (ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_ocnalb_a,rc=rc)) then
                 call med_io_write(instfiles(compmed)%io_file, is_local%wrap%FBMed_ocnalb_a, whead(m), wdata(m), &
-                     is_local%wrap%nx(compatm), is_local%wrap%ny(compatm), nt=1, pre='Med_alb_atm', rc=rc)
+                     is_local%wrap%nx(compatm), is_local%wrap%ny(compatm), nt=1, pre='Med_alb_atm', &
+                     ntile=is_local%wrap%ntile(compatm), rc=rc)
              end if
           end do ! end of loop over m
 
@@ -1058,6 +1063,7 @@ contains
     logical                 :: enable_auxfile
     character(CL)           :: time_units        ! units of time variable
     integer                 :: nx,ny             ! global grid size
+    integer                 :: ntile             ! number of tiles for tiled domain eg CSG
     logical                 :: write_now         ! if true, write time sample to file
     real(r8)                :: time_val          ! time coordinate output
     real(r8)                :: time_bnds(2)      ! time bounds output
@@ -1264,6 +1270,7 @@ contains
           ! Set shorthand variables
           nx = is_local%wrap%nx(compid)
           ny = is_local%wrap%ny(compid)
+          ntile = is_local%wrap%ntile(compid)
 
           ! Increment number of time samples on file
           auxcomp%files(nf)%nt = auxcomp%files(nf)%nt + 1
@@ -1299,7 +1306,7 @@ contains
              call med_io_write(auxcomp%files(nf)%io_file, is_local%wrap%FBimp(compid,compid), &
                   whead(1), wdata(1), nx, ny, nt=auxcomp%files(nf)%nt, &
                   pre=trim(compname(compid))//'Imp', flds=auxcomp%files(nf)%flds, &
-                  use_float=.true., rc=rc)
+                  use_float=.true., ntile=ntile, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
              ! end definition phase
@@ -1313,13 +1320,15 @@ contains
           ! Write data variables for time nt
           if (auxcomp%files(nf)%doavg) then
              call med_io_write(auxcomp%files(nf)%io_file, auxcomp%files(nf)%FBaccum, whead(2), wdata(2), nx, ny, &
-                  nt=auxcomp%files(nf)%nt, pre=trim(compname(compid))//'Imp', flds=auxcomp%files(nf)%flds, rc=rc)
+                  nt=auxcomp%files(nf)%nt, pre=trim(compname(compid))//'Imp', flds=auxcomp%files(nf)%flds, &
+                  use_float=.true., ntile=ntile, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
              call med_methods_FB_reset(auxcomp%files(nf)%FBaccum, value=czero, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           else
              call med_io_write(auxcomp%files(nf)%io_file, is_local%wrap%FBimp(compid,compid), whead(2), wdata(2), nx, ny, &
-                  nt=auxcomp%files(nf)%nt, pre=trim(compname(compid))//'Imp', flds=auxcomp%files(nf)%flds, rc=rc)
+                  nt=auxcomp%files(nf)%nt, pre=trim(compname(compid))//'Imp', flds=auxcomp%files(nf)%flds, &
+                  use_float=.true., ntile=ntile, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
 
@@ -1542,7 +1551,7 @@ contains
 
     use NUOPC_Mediator, only : NUOPC_MediatorGet
     use ESMF          , only : ESMF_ClockCreate, ESMF_ClockGet, ESMF_ClockSet
-    use med_time_mod  , only : med_time_alarmInit
+    use nuopc_shr_methods, only: AlarmInit
 
     ! input/output variables
     type(ESMF_GridComp) , intent(in)    :: gcomp
@@ -1585,9 +1594,7 @@ contains
     hclock = ESMF_ClockCreate(mclock, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    ! Initialize history alarm and advance history clock to trigger
-    ! alarms then reset history clock back to mcurrtime
-    call med_time_alarmInit(hclock, alarm, option=hist_option, opt_n=hist_n, &
+    call alarmInit(hclock, alarm, option=hist_option, opt_n=hist_n, &
          reftime=StartTime, alarmname=trim(alarmname), advance_clock=.true., rc=rc)
 
     ! Write diagnostic info

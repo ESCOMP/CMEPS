@@ -39,7 +39,7 @@ module med_phases_prep_glc_mod
   use med_methods_mod       , only : field_getdata1d  => med_methods_Field_getdata1d
   use med_methods_mod       , only : fldchk           => med_methods_FB_FldChk
   use med_utils_mod         , only : chkerr           => med_utils_ChkErr
-  use med_time_mod          , only : med_time_alarmInit
+  use nuopc_shr_methods     , only : alarmInit
   use glc_elevclass_mod     , only : glc_get_num_elevation_classes
   use glc_elevclass_mod     , only : glc_get_elevation_classes
   use glc_elevclass_mod     , only : glc_get_fractional_icecov
@@ -135,7 +135,6 @@ contains
     type(ESMF_Mesh)     :: mesh_o
     type(ESMF_Field)    :: lfield
     character(len=CS)   :: glc_renormalize_smb
-    logical             :: glc_coupled_fluxes
     integer             :: ungriddedUBound_output(1) ! currently the size must equal 1 for rank 2 fieldds
     character(len=*),parameter  :: subname=' (med_phases_prep_glc_init) '
     !---------------------------------------
@@ -234,25 +233,11 @@ contains
        call NUOPC_CompAttributeGet(gcomp, name='glc_renormalize_smb', value=glc_renormalize_smb, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-       ! TODO: talk to Bill Sacks to determine if this is the correct logic
-       glc_coupled_fluxes = is_local%wrap%med_coupling_active(compglc(1),complnd)
-       ! Note glc_coupled_fluxes should be false in the no_evolve cases
-       ! Goes back to the zero-gcm fluxes variable - if zero-gcm fluxes is true than do not renormalize
-       ! The user can set this to true in an evolve cases
-
        select case (glc_renormalize_smb)
        case ('on')
           smb_renormalize = .true.
        case ('off')
           smb_renormalize = .false.
-       case ('on_if_glc_coupled_fluxes')
-          if (.not. glc_coupled_fluxes) then
-             ! Do not renormalize if med_coupling_active is not true for compglc->complnd
-             ! In this case, conservation is not important
-             smb_renormalize = .false.
-          else
-             smb_renormalize = .true.
-          end if
        case default
           write(logunit,*) subname,' ERROR: unknown value for glc_renormalize_smb: ', trim(glc_renormalize_smb)
           call ESMF_LogWrite(trim(subname)//' ERROR: unknown value for glc_renormalize_smb: '// trim(glc_renormalize_smb), &
@@ -547,7 +532,7 @@ contains
        call NUOPC_CompAttributeGet(gcomp, name="glc_avg_period", value=glc_avg_period, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        if (trim(glc_avg_period) == 'yearly') then
-          call med_time_alarmInit(prepglc_clock, glc_avg_alarm, 'yearly', alarmname='alarm_glc_avg', rc=rc)
+          call alarmInit(prepglc_clock, glc_avg_alarm, 'yearly', alarmname='alarm_glc_avg', rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           if (maintask) then
              write(logunit,'(a,i10)') trim(subname)//&
@@ -557,7 +542,7 @@ contains
           call NUOPC_CompAttributeGet(gcomp, name="glc_cpl_dt", value=cvalue, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           read(cvalue,*) glc_cpl_dt
-          call med_time_alarmInit(prepglc_clock, glc_avg_alarm, 'nseconds', opt_n=glc_cpl_dt, alarmname='alarm_glc_avg', rc=rc)
+          call alarmInit(prepglc_clock, glc_avg_alarm, 'nseconds', opt_n=glc_cpl_dt, alarmname='alarm_glc_avg', rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           if (maintask) then
              write(logunit,'(a,i10)') trim(subname)//&
