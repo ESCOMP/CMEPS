@@ -1644,7 +1644,13 @@ end subroutine med_aofluxes_map_ogrid2xgrid_input
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     end if
 
-    if (FB_fldchk(fldbun_a, 'Sa_pslv', rc=rc)) then
+    ! The following conditional captures the cases where aoflux_in%psfc is needed in calls
+    ! to flux_atmocn / flux_atmocn_ccpp. Note that coupling_mode=='cesm' is equivalent to
+    ! the CESMCOUPLED CPP token, and coupling_mode(1:3)=='ufs' is roughly equivalent to
+    ! the UFS_AOFLUX CPP token (noting that we should only be in this subroutine if using
+    ! one of the aoflux variants of the ufs coupling_mode).
+    if ((trim(coupling_mode) == 'cesm') .or. &
+         (coupling_mode(1:3) == 'ufs' .and. trim(aoflux_code) == 'ccpp')) then
        call fldbun_getfldptr(fldbun_a, 'Sa_pslv', aoflux_in%psfc, xgrid=xgrid, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     end if
@@ -1653,10 +1659,6 @@ end subroutine med_aofluxes_map_ogrid2xgrid_input
     if (compute_atm_dens .or. compute_atm_thbot) then
        call fldbun_getfldptr(fldbun_a, 'Sa_pbot', aoflux_in%pbot, xgrid=xgrid, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (trim(coupling_mode) == 'ufs.frac.aoflux') then
-          call fldbun_getfldptr(fldbun_a, 'Sa_pslv', aoflux_in%psfc, xgrid=xgrid, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-       end if
     end if
 
     if (flds_wiso) then
