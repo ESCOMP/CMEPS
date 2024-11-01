@@ -1,9 +1,8 @@
 module shr_lnd2rof_tracers_mod
 
   !========================================================================
-  ! Module for handling nitrogen depostion of tracers.
-  ! This module is shared by land and atmosphere models for the computations of
-  ! dry deposition of tracers
+  ! read lnd2rof_tracers_inparm namelist and sets up driver list of fields for
+  ! lnd -> river communications
   !========================================================================
 
   use ESMF         , only : ESMF_VMGetCurrent, ESMF_VM, ESMF_VMGet
@@ -29,11 +28,6 @@ CONTAINS
 
   subroutine shr_lnd2rof_tracers_readnl(NLFilename, lnd2rof_tracer_list)
 
-    !========================================================================
-    ! reads lnd2rof_tracers_inparm namelist and sets up driver list of fields for
-    ! lnd -> river communications
-    !========================================================================
-
     ! input/output variables
     character(len=*), intent(in)  :: NLFilename          ! Namelist filename
     character(len=*), intent(out) :: lnd2rof_tracer_list ! Colon delimited string of liquid lnd2rof tracers
@@ -50,7 +44,6 @@ CONTAINS
     integer            :: logunit
     character(len=CS)  :: lnd2rof_tracers
     character(*),parameter :: subName = '(shr_lnd2rof_tracers_readnl) '
-    character(*),parameter :: F00   = "('(shr_lnd2rof_tracers_readnl) ',8a)"
     ! ------------------------------------------------------------------
 
     namelist /lnd2rof_tracers_inparm/ lnd2rof_tracers
@@ -69,6 +62,7 @@ CONTAINS
     call shr_log_getLogUnit(logunit)
 
     lnd2rof_tracers = ' '
+    lnd2rof_tracer_list = ' '
 
     call ESMF_VMGetCurrent(vm, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=__FILE__)) return
@@ -76,10 +70,9 @@ CONTAINS
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=__FILE__)) return
 
     if (localpet==0) then
-       inquire( file=trim(NLFileName), exist=exists)
+       inquire(file=trim(NLFileName), exist=exists)
        if ( exists ) then
           open(newunit=unitn, file=trim(NLFilename), status='old' )
-          write(logunit,F00) 'Read in lnd2rof_tracers_inparm namelist from: ', trim(NLFilename)
           call shr_nl_find_group_name(unitn, 'lnd2rof_tracers_inparm', ierr)
           if (ierr == 0) then
              ! Note that if ierr /= 0, no namelist is present.
@@ -93,7 +86,9 @@ CONTAINS
     end if
     call shr_mpi_bcast( lnd2rof_tracers, mpicom )
 
-    lnd2rof_tracer_list = trim(lnd2rof_tracers)
+    if (lnd2rof_tracers /= ' ') then
+       lnd2rof_tracer_list = trim(lnd2rof_tracers)
+    end if
 
   end subroutine shr_lnd2rof_tracers_readnl
 

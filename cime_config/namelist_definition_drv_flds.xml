@@ -142,6 +142,19 @@
   </entry>
 
   <!-- ========================================================================================  -->
+  <!-- Liquid tracers sent to river model                                                        -->
+  <!-- ========================================================================================  -->
+
+  <entry id="lnd2rof_tracers">
+	  <type>char</type>
+	  <category>lnd2rof_tracers</category>
+	  <group>lnd2rof_tracers_inparm</group>
+    <desc>
+      Liquid lnd2rof tracers (other than water)
+    </desc>
+  </entry>
+
+  <!-- ========================================================================================  -->
   <!-- Dust emission fields                                                                      -->
   <!-- ========================================================================================  -->
 
@@ -194,19 +207,6 @@
     <group>lightning_coupling_nl</group>
     <desc>
       If TRUE atmosphere model will provide prognosed lightning flash frequency (flashes per minute).
-    </desc>
-  </entry>
-
-  <!-- ========================================================================================  -->
-  <!-- Liquid tracers from land sent to river model                                              -->
-  <!-- ========================================================================================  -->
-
-  <entry id="lnd2rof_tracers">
-	  <type>char</type>
-	  <category>lnd2rof_tracers</category>
-	  <group>lnd2rof_tracers_inparm</group>
-    <desc>
-      Liquid lnd2rof tracers (other than water)
     </desc>
   </entry>
 
