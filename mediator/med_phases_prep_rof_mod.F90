@@ -136,9 +136,6 @@ contains
     allocate(lnd2rof_flds(n))
     lnd2rof_flds(1:n) = fldnames_temp(1:n)
     deallocate(fldnames_temp)
-    do n = 1,size(lnd2rof_flds)
-       write(6,*)'DEBUG: n,lnd2rof_fld = ',n,trim(lnd2rof_flds(n))
-    end do
 
     ! Get lnd and rof meshes
     call fldbun_getmesh(is_local%wrap%FBImp(complnd,complnd), mesh_l, rc)
