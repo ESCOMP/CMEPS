@@ -486,9 +486,17 @@ contains
        if (exists) then
           call ESMF_FieldBundleGet(FBlndAccum2rof_l, fieldName=trim(lnd2rof_flds(n)), field=lfield, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call field_getdata1d(lfield, dataptr_out, rc=rc)
+          call ESMF_FieldGet(lfield, rank=lrank, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
-          dataptr_out(:) = czero
+          if (lrank == 2) then
+             call field_getdata2d(lfield, dataptr2d_out, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+             dataptr2d_out(:,:) = czero
+          else
+             call field_getdata1d(lfield, dataptr_out, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+             dataptr_out(:) = czero
+          end if
        end if
     end do
 
