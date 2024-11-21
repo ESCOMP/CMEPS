@@ -3033,7 +3033,7 @@ contains
        if ( fldchk(is_local%wrap%FBexp(compwav)         , 'Si_ifrac', rc=rc) .and. &
             fldchk(is_local%wrap%FBImp(compice,compice ), 'Si_ifrac', rc=rc)) then
              ! By default will be using a custom map - but if one is not available, use a generated bilinear instead
-          call addmap_from(compice, 'Si_ifrac', compwav, mapbilnr, 'one', ice2wav_map)
+          call addmap_from(compice, 'Si_ifrac', compwav, mapbilnr_nstod, 'one', ice2wav_map)
           call addmrg_to(compwav, 'Si_ifrac', mrg_from=compice, mrg_fld='Si_ifrac', mrg_type='copy')
        end if
     end if
@@ -3046,7 +3046,7 @@ contains
     else
        if ( fldchk(is_local%wrap%FBexp(compwav)         , 'Si_thick', rc=rc) .and. &
             fldchk(is_local%wrap%FBImp(compice,compice ), 'Si_thick', rc=rc)) then
-          call addmap_from(compice, 'Si_thick', compwav, mapbilnr, 'one', ice2wav_map)
+          call addmap_from(compice, 'Si_thick', compwav, mapbilnr_nstod, 'one', ice2wav_map)
           call addmrg_to(compwav, 'Si_thick', mrg_from=compice, mrg_fld='Si_thick', mrg_type='copy')
        end if
     end if
@@ -3060,7 +3060,7 @@ contains
        else
           if (fldchk(is_local%wrap%FBexp(compwav)         , 'Si_floediam', rc=rc) .and. &
               fldchk(is_local%wrap%FBImp(compice,compice ), 'Si_floediam', rc=rc)) then
-             call addmap_from(compice, 'Si_floediam', compwav, mapbilnr, 'one', ice2wav_map)
+             call addmap_from(compice, 'Si_floediam', compwav, mapbilnr_nstod, 'one', ice2wav_map)
              call addmrg_to(compwav, 'Si_floediam', mrg_from=compice, mrg_fld='Si_floediam', mrg_type='copy')
           end if
        end if
