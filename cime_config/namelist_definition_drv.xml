@@ -925,7 +925,7 @@
       default: ogrid
     </desc>
     <values>
-      <value>xgrid</value>
+      <value>ogrid</value>
       <!-- xgrid introduces unnecessary cost and complexity if atm & ocn are on the same
       grid, so fall back to ogrid in that case -->
       <value samegrid_atm_ocn='true'>ogrid</value>
