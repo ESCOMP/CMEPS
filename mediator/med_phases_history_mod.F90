@@ -19,7 +19,7 @@ module med_phases_history_mod
   use NUOPC                 , only : NUOPC_CompAttributeGet
   use NUOPC_Model           , only : NUOPC_ModelGet
   use med_utils_mod         , only : chkerr => med_utils_ChkErr
-  use med_internalstate_mod , only : ncomps, compname
+  use med_internalstate_mod , only : ncomps, compname, compocn, complnd
   use med_internalstate_mod , only : InternalState, maintask, logunit
   use med_io_mod            , only : med_io_write, med_io_wopen, med_io_enddef, med_io_close
   use perf_mod              , only : t_startf, t_stopf
@@ -35,9 +35,13 @@ module med_phases_history_mod
   public :: med_phases_history_write         ! inst only - for all variables
 
   ! Public routines called from post phases
-  public :: med_phases_history_write_comp    ! inst, avg, aux for component
-  public :: med_phases_history_write_med     ! inst only, med aoflux and ocn albedoes
-  public :: med_phases_history_write_lnd2glc ! inst only, yearly average of lnd->glc data on lnd grid
+  public :: med_phases_history_write_comp       ! inst, avg, aux for component
+  public :: med_phases_history_write_med        ! inst only, med aoflux and ocn albedoes
+  public :: med_phases_history_write_data2glc   ! inst only, average (normally yearly) of
+                                                ! implnd->glc (on land grid),
+                                                ! impocn->glc (on ocn grid) and
+                                                ! inst only, average (normally yearly) of
+                                                ! export->glc  (on glc grid)
 
   ! Private routines
   private :: med_phases_history_write_comp_inst  ! write instantaneous file for a given component
@@ -524,20 +528,21 @@ contains
   end subroutine med_phases_history_write_med
 
   !===============================================================================
-  subroutine med_phases_history_write_lnd2glc(gcomp, fldbun_lnd, rc, fldbun_glc)
+  subroutine med_phases_history_write_data2glc(gcomp, fldbun_import, comp_import, fldbun_export, rc)
 
     ! Write yearly average of lnd -> glc fields on both land and glc grids
 
-    use med_internalstate_mod, only : complnd, compglc
-    use med_constants_mod , only : SecPerDay => med_constants_SecPerDay
-    use med_io_mod        , only : med_io_write_time, med_io_define_time
-    use med_io_mod        , only : med_io_date2yyyymmdd, med_io_sec2hms, med_io_ymd2date
+    use med_internalstate_mod , only : compglc
+    use med_constants_mod     , only : SecPerDay => med_constants_SecPerDay
+    use med_io_mod            , only : med_io_write_time, med_io_define_time
+    use med_io_mod            , only : med_io_date2yyyymmdd, med_io_sec2hms, med_io_ymd2date
 
     ! input/output variables
-    type(ESMF_GridComp)    , intent(in)  :: gcomp
-    type(ESMF_FieldBundle) , intent(in)  :: fldbun_lnd
-    integer                , intent(out) :: rc
-    type(ESMF_FieldBundle) , intent(in), optional :: fldbun_glc(:)
+    type(ESMF_GridComp)               , intent(in)  :: gcomp
+    type(ESMF_FieldBundle) , optional , intent(in)  :: fldbun_import    ! land or ocean import field bundle
+    integer                , optional , intent(in)  :: comp_import      ! either land or ocean component id
+    type(ESMF_FieldBundle) , optional , intent(in)  :: fldbun_export(:) ! export field bundle array
+    integer                           , intent(out) :: rc
 
     ! local variables
     type(file_desc_t)       :: io_file
@@ -609,15 +614,31 @@ contains
     call ESMF_TimeGet(nexttime, yy=yr, mm=mon, dd=day, s=sec, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     write(nexttime_str,'(i4.4,a,i2.2,a,i2.2,a,i5.5)') yr,'-',mon,'-',day,'-',sec
-    write(hist_file, "(6a)") trim(case_name),'.cpl',trim(inst_tag),'.hx.1yr2glc.',trim(nexttime_str),'.nc'
 
-    ! Create history file
+    if (present(comp_import)) then
+       if (.not. present(fldbun_import)) then
+          call ESMF_LogWrite(subname//'if comp_import is present, then fldbun_import must be present', ESMF_LOGMSG_ERROR)
+          rc = ESMF_FAILURE
+          if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=u_FILE_u)) then
+             call ESMF_Finalize(endflag=ESMF_END_ABORT)
+          end if
+       end if
+       if (comp_import == complnd) then
+          write(hist_file, "(6a)") trim(case_name),'.cpl',trim(inst_tag),'.hx.lnd2glc.',trim(nexttime_str),'.nc'
+       else if (comp_import == compocn) then
+          write(hist_file, "(6a)") trim(case_name),'.cpl',trim(inst_tag),'.hx.ocn2glc.',trim(nexttime_str),'.nc'
+       end if
+    else
+       write(hist_file, "(6a)") trim(case_name),'.cpl',trim(inst_tag),'.hx.exp2glc.',trim(nexttime_str),'.nc'
+    end if
+
+    ! Open output file
     call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call med_io_wopen(hist_file, io_file, vm, rc, clobber=.true.)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    ! Write data to history file
+    ! Write data to file
     do m = 1,2
        if (whead(m)) then
           call ESMF_ClockGet(clock, calendar=calendar, rc=rc)
@@ -630,18 +651,26 @@ contains
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
 
-       call med_io_write(io_file, fldbun_lnd, whead(m), wdata(m), &
-            is_local%wrap%nx(complnd), is_local%wrap%ny(complnd), &
-            nt=1, pre=trim(compname(complnd))//'Imp', rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-       if (present(fldbun_glc)) then
-          do n = 1,size(fldbun_glc)
-             call med_io_write(io_file, fldbun_glc(n), whead(m), wdata(m), &
+       if (present(fldbun_import)) then
+          ! import field bundle
+          call med_io_write(io_file, fldbun_import, whead(m), wdata(m), &
+               is_local%wrap%nx(comp_import), is_local%wrap%ny(comp_import), &
+               nt=1, pre=trim(compname(comp_import))//'Imp', rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       else if (present(fldbun_export)) then
+          ! export field bundle
+          do n = 1,size(fldbun_export)
+             call med_io_write(io_file, fldbun_export(n), whead(m), wdata(m), &
                   is_local%wrap%nx(compglc(n)), is_local%wrap%ny(compglc(n)), &
                   nt=1, pre=trim(compname(compglc(n)))//'Exp', rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end do
+       else
+          call ESMF_LogWrite(subname//'either fldbun_import or fldbun_export must be present as arguments')
+          rc = ESMF_FAILURE
+          if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=u_FILE_u)) then
+             call ESMF_Finalize(endflag=ESMF_END_ABORT)
+          end if
        end if
 
     end do ! end of loop over m
@@ -650,7 +679,7 @@ contains
     call med_io_close(io_file, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-  end subroutine med_phases_history_write_lnd2glc
+ end subroutine med_phases_history_write_data2glc
 
   !===============================================================================
   subroutine med_phases_history_write_comp(gcomp, compid, rc)
