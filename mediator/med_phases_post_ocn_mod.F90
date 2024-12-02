@@ -83,6 +83,7 @@ contains
 
     ! Accumulate ocn input for glc if there is ocn->glc coupling
     if (is_local%wrap%ocn2glc_coupling) then
+       call ESMF_LogWrite(subname//' DEBUG: calling med_phases_prep_glc_accum_ocn', ESMF_LOGMSG_INFO)
        call med_phases_prep_glc_accum_ocn(gcomp, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
