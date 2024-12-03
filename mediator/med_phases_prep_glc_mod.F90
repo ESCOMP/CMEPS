@@ -109,8 +109,6 @@ module med_phases_prep_glc_mod
   type(ESMF_DynamicMask)         :: dynamicOcnMask
   integer, parameter             :: num_ocndepths = 30
 
-  logical :: write_histaux_l2x1yrg
-
   type(ESMF_Clock)        :: prepglc_clock
   character(*), parameter :: u_FILE_u  = &
        __FILE__
@@ -138,8 +136,6 @@ contains
     type(ESMF_Field)    :: lfield
     character(len=CS)   :: glc_renormalize_smb
     integer             :: ungriddedUBound_output(1) ! currently the size must equal 1 for rank 2 fieldds
-    character(len=CS)   :: cvalue
-    logical             :: isPresent, isSet
     character(len=*),parameter  :: subname=' (med_phases_prep_glc_init) '
     !---------------------------------------
 
@@ -306,16 +302,6 @@ contains
              end if
           end do
        end if
-
-       ! Determine if auxiliary files to be written
-       write_histaux_l2x1yrg = .false.
-       call NUOPC_CompAttributeGet(gcomp, name="histaux_l2x1yrg", value=cvalue, &
-            isPresent=isPresent, isSet=isSet, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       if (isPresent .and. isSet) then
-          read(cvalue,*) write_histaux_l2x1yrg
-       end if
-
     end if
 
     ! -------------------------------
@@ -512,12 +498,13 @@ contains
     integer             :: yr_med, mon_med, day_med, sec_med
     integer             :: yr_prepglc, mon_prepglc, day_prepglc, sec_prepglc
     type(ESMF_Alarm)    :: alarm
-    integer             :: n, ns, i, nf
+    integer             :: n, ns
     real(r8), pointer   :: data2d(:,:)
     real(r8), pointer   :: data2d_import(:,:)
     character(len=CS)   :: cvalue
     logical             :: do_avg
     logical             :: isPresent, isSet
+    logical             :: write_histaux_l2x1yrg
     character(len=*) , parameter   :: subname=' (med_phases_prep_glc) '
 
     !---------------------------------------
@@ -618,13 +605,20 @@ contains
     ! Average and map data from land (and possibly ocean)
     ! ----------------------------------------------
 
+    ! Determine if auxiliary file will be written
+    write_histaux_l2x1yrg = .false.
+    if (lndAccum2glc_cnt > 0) then
+       call NUOPC_CompAttributeGet(gcomp, name="histaux_l2x1yrg", value=cvalue, &
+            isPresent=isPresent, isSet=isSet, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       if (isPresent .and. isSet) then
+          read(cvalue,*) write_histaux_l2x1yrg
+       end if
+    end if
+
     if (do_avg) then
 
-       ! ----------------------------------------------
-       ! land accumulation and mapping if appropriate
-       ! ----------------------------------------------
-
-       ! Average import from accumulated lnd import data
+       ! Always average import from accumulated land import data
        do n = 1, size(fldnames_fr_lnd)
           if (fldchk(FBlndAccum2glc_l, fldnames_fr_lnd(n), rc=rc)) then
              call fldbun_getdata2d(FBlndAccum2glc_l, fldnames_fr_lnd(n), data2d, rc)
@@ -642,38 +636,14 @@ contains
           end if
        end do
 
-       ! Write import auxiliary file for lnd if appropriate
-       if (write_histaux_l2x1yrg) then
-          call med_phases_history_write_data2glc(gcomp, fldbun_import=FBlndAccum2glc_l, comp_import=complnd, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       end if
-
-       if (is_local%wrap%lnd2glc_coupling) then
-          ! Map accumulated field bundle from land grid (with
-          ! elevation classes) to glc grid (without elevation classes)
-          ! and set FBExp(compglc(ns)) data
-          ! Zero land accumulator and accumulated field bundles on land grid
-          call med_phases_prep_glc_map_lnd2glc(gcomp, rc)
-          if (chkErr(rc,__LINE__,u_FILE_u)) return
-       end if
-
-       ! ----------------------------------------------
-       ! ocean accumulation and mapping if appropriate
-       ! ----------------------------------------------
-
-       ! Average import from accumulated ocn import data
-       do n = 1, size(fldnames_fr_ocn)
-          if (fldchk(FBocnAccum2glc_o, fldnames_fr_ocn(n), rc=rc)) then
+       if (is_local%wrap%ocn2glc_coupling) then
+          ! Average import from accumulated ocn import data
+          do n = 1, size(fldnames_fr_ocn)
              call fldbun_getdata2d(FBocnAccum2glc_o, fldnames_fr_ocn(n), data2d, rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
              if (ocnAccum2glc_cnt > 0) then
                 ! If accumulation count is greater than 0, do the averaging
                 data2d(:,:) = data2d(:,:) / real(ocnAccum2glc_cnt)
-                do nf = 1,size(data2d,dim=2)
-                   do i = 1,size(data2d,dim=1)
-                      if (data2d(i,n) > .9*1.e30) data2d(i,n) = 1.e30
-                   end do
-                end do
              else
                 ! If accumulation count is 0, then simply set the averaged field bundle values from the ocn
                 ! to the import field bundle values
@@ -681,22 +651,14 @@ contains
                 if (chkerr(rc,__LINE__,u_FILE_u)) return
                 data2d(:,:) = data2d_import(:,:)
              end if
+          end do
+          if (dbug_flag > 1) then
+             call fldbun_diagnose(FBocnAccum2glc_o, string=trim(subname)//' FBocnAccum for after avg for field bundle ', rc=rc)
+             if (chkErr(rc,__LINE__,u_FILE_u)) return
           end if
-       end do
-       if (dbug_flag > 1) then
-          call fldbun_diagnose(FBocnAccum2glc_o, string=trim(subname)//' FBocnAccum for after avg for field bundle ', rc=rc)
-          if (chkErr(rc,__LINE__,u_FILE_u)) return
-       end if
 
-       ! Write import auxiliary file for ocn if appropriate
-       if (write_histaux_l2x1yrg) then
-          call med_phases_history_write_data2glc(gcomp, fldbun_import=FBocnAccum2glc_o, comp_import=compocn, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       end if
-
-       if (is_local%wrap%ocn2glc_coupling) then
-          ! Map accumulated ocean field from ocean mesh to glc mesh(es) and set FBExp(compglc(ns)) data
-          ! Zero ocean accumulator and accumulated field bundles on ocean grid
+          ! Map accumulated ocean field from ocean mesh to land mesh and set FBExp(compglc(ns)) data
+          ! Zero land accumulator and accumulated field bundles on ocean grid
           do n = 1,size(fldnames_fr_ocn)
              call ESMF_FieldBundleGet(FBocnAccum2glc_o, fldnames_fr_ocn(n), field=lfield_src, rc=rc)
              if (chkErr(rc,__LINE__,u_FILE_u)) return
@@ -714,54 +676,56 @@ contains
                 where (data2d == 0._r8) data2d = shr_const_spval
              end do
           end do
-       end if ! end of if (is_local%wrap%ocn2glc_coupling)
 
-       if (dbug_flag > 1) then
-          do ns = 1,is_local%wrap%num_icesheets
-             call fldbun_diagnose(is_local%wrap%FBExp(compglc(ns)), string=trim(subname)//' FBexp(compglc) ', rc=rc)
-             if (chkErr(rc,__LINE__,u_FILE_u)) return
-          end do
-       endif
+          ! Write import auxiliary file for lnd if appropriate
+          if (write_histaux_l2x1yrg) then
+             call med_phases_history_write_data2glc(gcomp, fldbun_import=FBocnAccum2glc_o, comp_import=compocn, rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          end if
 
-       ! ----------------------------------------------
-       ! Write auxiliary history file if will export to glc
-       ! ----------------------------------------------
+          ocnAccum2glc_cnt = 0
+          call fldbun_reset(FBocnAccum2glc_o, value=czero, rc=rc)
+          if (chkErr(rc,__LINE__,u_FILE_u)) return
+       end if
 
-       if (is_local%wrap%lnd2glc_coupling .and. write_histaux_l2x1yrg) then
-          call med_phases_history_write_data2glc(gcomp, fldbun_export=is_local%wrap%FBExp(compglc(:)), rc=rc)
+       ! Write auxiliary history file if flag is set and accumulation is being done
+       if (is_local%wrap%lnd2glc_coupling) then
+          ! Map accumulated field bundle from land grid (with elevation classes) to glc grid (without elevation classes)
+          ! and set FBExp(compglc(ns)) data
+          ! Zero land accumulator and accumulated field bundles on land grid
+          call med_phases_prep_glc_map_lnd2glc(gcomp, rc)
+          if (chkErr(rc,__LINE__,u_FILE_u)) return
+
+          if (write_histaux_l2x1yrg) then
+             call med_phases_history_write_data2glc(gcomp, fldbun_export=is_local%wrap%FBExp(compglc(:)), rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          end if
+
+          if (dbug_flag > 1) then
+             do ns = 1,is_local%wrap%num_icesheets
+                call fldbun_diagnose(is_local%wrap%FBExp(compglc(ns)), string=trim(subname)//' FBexp(compglc) ', rc=rc)
+                if (chkErr(rc,__LINE__,u_FILE_u)) return
+             end do
+          endif
+       end if
+       if (write_histaux_l2x1yrg) then
+          call med_phases_history_write_data2glc(gcomp, fldbun_import=FBlndAccum2glc_l, comp_import=complnd, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
 
-       ! ----------------------------------------------
-       ! Reset accumulators
-       ! ----------------------------------------------
+       lndAccum2glc_cnt = 0
+       call fldbun_reset(FBlndAccum2glc_l, value=czero, rc=rc)
+       if (chkErr(rc,__LINE__,u_FILE_u)) return
 
-       if (do_avg) then
-          if (fldchk(FBlndAccum2glc_l, fldnames_fr_lnd(n), rc=rc)) then
-             lndAccum2glc_cnt = 0
-             call fldbun_reset(FBlndAccum2glc_l, value=czero, rc=rc)
-             if (chkErr(rc,__LINE__,u_FILE_u)) return
-          end if
-          if (fldchk(FBocnAccum2glc_o, fldnames_fr_ocn(n), rc=rc)) then
-             ocnAccum2glc_cnt = 0
-             call fldbun_reset(FBocnAccum2glc_o, value=czero, rc=rc)
-             if (chkErr(rc,__LINE__,u_FILE_u)) return
-          end if
-       end if
-
-       if (dbug_flag > 1) then
-          do ns = 1,is_local%wrap%num_icesheets
-             call fldbun_diagnose(is_local%wrap%FBExp(compglc(ns)), string=trim(subname)//' FBexp(compglc) ', rc=rc)
-             if (chkErr(rc,__LINE__,u_FILE_u)) return
-          end do
-       endif
-    end if
+    end if ! end of do_avg if-block
 
     ! Check for nans in fields export to glc
-    do ns = 1,is_local%wrap%num_icesheets
-       call FB_check_for_nans(is_local%wrap%FBExp(compglc(ns)), maintask, logunit, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    end do
+    if (is_local%wrap%lnd2glc_coupling) then
+       do ns = 1,is_local%wrap%num_icesheets
+          call FB_check_for_nans(is_local%wrap%FBExp(compglc(ns)), maintask, logunit, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       end do
+    end if
 
     if (dbug_flag > 5) then
        call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
