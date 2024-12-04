@@ -392,8 +392,6 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
         nmlgen.set_value(
             "component_list", value=valid_comps_string.replace("CPL", "MED")
         )
-    # the driver restart pointer will look like a mediator is present even if it is not
-    nmlgen.set_value("drv_restart_pointer", value="rpointer.cpl")
 
     logger.info("Writing nuopc_runconfig for components {}".format(valid_comps))
     nuopc_config_file = os.path.join(confdir, "nuopc.runconfig")

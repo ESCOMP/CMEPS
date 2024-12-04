@@ -162,7 +162,7 @@
     </values>
   </entry>
 
- <entry id="drv_restart_pointer">
+  <entry id="drv_restart_pointer" modify_via_xml="DRV_RESTART_POINTER">
     <type>char</type>
     <category>expdef</category>
     <group>DRIVER_attributes</group>
@@ -170,7 +170,7 @@
       Driver restart pointer file to initialize time info
     </desc>
     <values>
-      <value>rpointer.cpl</value>
+      <value>$DRV_RESTART_POINTER</value>
     </values>
   </entry>
 
@@ -230,18 +230,6 @@
     </desc>
     <values>
       <value>1.0D0</value>
-    </values>
-  </entry>
-
-  <!-- not yet fully implemented, set to false -->
-  <entry id="write_restart_at_endofrun">
-    <type>logical</type>
-    <category>nuopc</category>
-    <group>ALLCOMP_attributes</group>
-    <values>
-      <value>.false.</value>
-      <value rest_option='none'>.false.</value>
-      <value rest_option='never'>.false.</value>
     </values>
   </entry>
 
@@ -2865,7 +2853,7 @@
     </values>
   </entry>
 
-  <entry id="end_restart">
+  <entry id="write_restart_at_endofrun">
     <type>logical</type>
     <category>time</category>
     <group>CLOCK_attributes</group>
@@ -2877,7 +2865,9 @@
       default: false
     </desc>
     <values>
-      <value>.false.</value>
+      <value>.true.</value>
+      <value rest_option='none'>.false.</value>
+      <value rest_option='never'>.false.</value>
     </values>
   </entry>
 

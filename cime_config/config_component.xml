@@ -402,6 +402,17 @@
     </desc>
   </entry>
 
+  <entry id="DRV_RESTART_POINTER">
+    <type>char</type>
+    <default_value>rpointer.cpl</default_value>
+    <group>run_begin_stop_restart</group>
+    <file>env_run.xml</file>
+    <desc>
+      Name of the restart pointer file, this can be used to restart from an
+      intermediate restart by appending the restart date and time in format YYYY-MM-DD-SSSSS
+    </desc>
+  </entry>
+
   <entry id="PAUSE_OPTION">
     <type>char</type>
     <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,nmonths,nyears</valid_values>
