@@ -2862,12 +2862,13 @@
       forces a restart write at the end of the run in addition to any
       setting associated with rest_option.  default=true.  this setting
       will be set to false if restart_option is none or never.
-      default: false
+      default: true
     </desc>
     <values>
       <value>.true.</value>
       <value rest_option='none'>.false.</value>
       <value rest_option='never'>.false.</value>
+      <value TESTCASE='ERC'>.false.</value>
     </values>
   </entry>
 
