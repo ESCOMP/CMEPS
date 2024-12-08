@@ -331,7 +331,7 @@ contains
        ! create route handle if it has not been created
        do ns = 1,is_local%wrap%num_icesheets
           if (.not. med_map_RH_is_created(is_local%wrap%RH(compocn,compglc(ns),:),mapbilnr,rc=rc)) then
-             call ESMF_LogWrite(trim(subname)//" mapbilnr is not created for ocn->glc mapping", &
+             call ESMF_LogWrite(trim(subname)//" error: mapbilnr is not created for ocn->glc mapping", &
                   ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
              rc = ESMF_FAILURE
              return

@@ -15,8 +15,9 @@ logger = logging.getLogger(__name__)
 
 def gen_runseq(case, coupling_times):
 
-    rundir         = case.get_value("RUNDIR")
-    caseroot       = case.get_value("CASEROOT")
+    rundir   = case.get_value("RUNDIR")
+    caseroot = case.get_value("CASEROOT")
+    comp_ocn = case.get_value("COMP_OCN")
 
     driver_config = DriverConfig(case, coupling_times)
     run_glc, med_to_glc, glc_cpl_time = driver_config['glc']
@@ -32,9 +33,15 @@ def gen_runseq(case, coupling_times):
         runseq.add_action ("LND"                            , run_lnd)
         runseq.add_action ("LND -> MED :remapMethod=redist" , run_lnd)
         runseq.add_action ("MED med_phases_post_lnd"        , run_lnd)
+        if (comp_ocn == 'docn'):
+            runseq.add_action ("OCN"                            , run_lnd)
+            runseq.add_action ("OCN -> MED :remapMethod=redist" , run_lnd)
+            runseq.add_action ("MED med_phases_post_ocn"        , run_lnd)
         runseq.add_action ("MED med_phases_prep_glc"        , med_to_glc)
         runseq.add_action ("MED -> GLC :remapMethod=redist" , med_to_glc)
         runseq.add_action ("GLC"                            , run_glc)
+
+
         # Need to do GLC -> MED even if not running GLC; otherwise, we get a
         # failure in InitializeRealize ("Object being used before creation")
         runseq.add_action ("GLC -> MED :remapMethod=redist" , med_to_glc)
