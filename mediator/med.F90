@@ -2641,9 +2641,9 @@ contains
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
                 ! get mask Array
                 call ESMF_FieldGet(maskfield, array=maskarray, rc=rc)
-		if (ChkErr(rc,__LINE__,u_FILE_u)) return
+                if (ChkErr(rc,__LINE__,u_FILE_u)) return
                 call ESMF_MeshGet(mesh_dst, elemMaskArray=maskarray, rc=rc)
-		if (ChkErr(rc,__LINE__,u_FILE_u)) return
+                if (ChkErr(rc,__LINE__,u_FILE_u)) return
                 call ESMF_FieldGet(maskfield, localDe=0, farrayPtr=meshmask, rc=rc)
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
                 ! now create an R8 mask for writing
