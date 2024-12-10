@@ -2603,7 +2603,7 @@ contains
     type(ESMF_Array)     :: maskarray
     integer(I4), pointer :: meshmask(:)
     real(R8), pointer    :: r8ptr(:)
-    integer              :: m,n1,n2
+    integer              :: m,n2
     character(CL)        :: case_name, dststatusfile
     logical              :: elementMaskIsPresent
     logical              :: whead(2) = (/.true. , .false./)
