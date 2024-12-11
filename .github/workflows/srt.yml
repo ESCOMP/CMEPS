@@ -17,6 +17,7 @@ jobs:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         python-version: [ 3.8, 3.11, 3.x ]
     env:
