@@ -162,7 +162,7 @@
     </values>
   </entry>
 
- <entry id="drv_restart_pointer">
+  <entry id="drv_restart_pointer" modify_via_xml="DRV_RESTART_POINTER">
     <type>char</type>
     <category>expdef</category>
     <group>DRIVER_attributes</group>
@@ -170,7 +170,7 @@
       Driver restart pointer file to initialize time info
     </desc>
     <values>
-      <value>rpointer.cpl</value>
+      <value>$DRV_RESTART_POINTER</value>
     </values>
   </entry>
 
@@ -233,20 +233,6 @@
     </values>
   </entry>
 
-  <!-- =========================================== -->
-  <!-- All components orbital attributes           -->
-  <!-- =========================================== -->
-
-  <entry id="write_restart_at_endofrun">
-    <type>logical</type>
-    <category>nuopc</category>
-    <group>ALLCOMP_attributes</group>
-    <values>
-      <value>.false.</value>
-      <value rest_option="end">.true.</value>
-    </values>
-  </entry>
-
   <entry id="Profiling" modify_via_xml="ESMF_PROFILING_LEVEL">
     <type>char</type>
     <category>nuopc</category>
@@ -255,6 +241,10 @@
       <value>$ESMF_PROFILING_LEVEL</value>
     </values>
   </entry>
+
+  <!-- =========================================== -->
+  <!-- All components orbital attributes           -->
+  <!-- =========================================== -->
 
   <entry id="orb_mode">
     <type>char</type>
@@ -843,32 +833,26 @@
     <type>char</type>
     <category>control</category>
     <group>MED_attributes</group>
-    <valid_values>on,off,on_if_glc_coupled_fluxes</valid_values>
+    <valid_values>on,off</valid_values>
     <desc>
       Whether to renormalize the surface mass balance (smb) sent from lnd to glc so that the
       global integral on the glc grid agrees with the global integral on the lnd grid.
 
-      Unlike most fluxes, smb is remapped with bilinear rather than conservative mapping weights,
-      so this option is needed for conservation. However, conservation is not required in many
-      cases, since we often run glc as a diagnostic (one-way-coupled) component.
+      Unlike most fluxes, smb is remapped with bilinear rather than conservative mapping
+      weights, so this option is needed for conservation. However, this can be turned off
+      in non-fully-coupled configurations where conservation isn't important (e.g.,
+      glc-only configurations - T compsets) to avoid the global correction that comes with
+      this renormalization.
 
       Allowable values are:
-      'on': always do this renormalization
-      'off': never do this renormalization (see WARNING below)
-      'on_if_glc_coupled_fluxes': Determine at runtime whether to do this renormalization.
-         Does the renormalization if we're running a two-way-coupled glc that sends fluxes
-         to other components (which is the case where we need conservation).
-         Does NOT do the renormalization if we're running a one-way-coupled glc, or if
-         we're running a glc-only compset (T compsets).
-         (In these cases, conservation is not important.)
+      'on': do this renormalization
+      'off': do not do this renormalization; note that this will break conservation so
+         typically should not be used in fully-coupled cases
 
-      Only used if running with a prognostic GLC component.
-
-      WARNING: Setting this to 'off' will break conservation when running with an
-      evolving, two-way-coupled glc.
+      Only used if running with a GLC component.
     </desc>
     <values>
-      <value>on_if_glc_coupled_fluxes</value>
+      <value>on</value>
       <value COMP_LND="xlnd">off</value>
     </values>
   </entry>
@@ -893,7 +877,7 @@
     <values>
       <value>.false.</value>
     </values>
-  </entry>  
+  </entry>
 
   <entry id="info_debug" modify_via_xml="INFO_DBUG">
     <type>integer</type>
@@ -929,7 +913,10 @@
       default: ogrid
     </desc>
     <values>
-      <value>ogrid</value>
+      <value>xgrid</value>
+      <!-- xgrid introduces unnecessary cost and complexity if atm & ocn are on the same
+      grid, so fall back to ogrid in that case -->
+      <value samegrid_atm_ocn='true'>ogrid</value>
     </values>
   </entry>
   <entry id="ocn_surface_flux_scheme">
@@ -1123,13 +1110,12 @@
     <type>char</type>
     <category>time</category>
     <group>ALLCOMP_attributes</group>
-    <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,nmonths,nyears,monthly,yearly,date,end</valid_values>
+    <valid_values>none,never,nseconds,nminutes,nhours,ndays,nmonths,nyears,monthly,yearly,date,end</valid_values>
     <desc>
       mediator history snapshot option (used with history_n and history_ymd)
       set by HIST_OPTION in env_run.xml.
       history_option alarms are:
       [none/never], turns option off
-      [nsteps]   , history snapshot every history_n nsteps  , relative to current run start time
       [nseconds] , history snapshot every history_n nseconds, relative to current run start time
       [nminutes] , history snapshot every history_n nminutes, relative to current run start time
       [nhours]   , history snapshot every history_n nhours  , relative to current run start time
@@ -1142,6 +1128,7 @@
     </desc>
     <values>
       <value>$HIST_OPTION</value>
+      <value hist_option="nsteps">nseconds</value>
     </values>
   </entry>
 
@@ -2303,6 +2290,34 @@
     </values>
   </entry>
 
+  <entry id="ocn2wav_smapname"    modify_via_xml="OCN2WAV_SMAPNAME">
+    <type>char</type>
+    <category>mapping</category>
+    <input_pathname>abs</input_pathname>
+    <group>MED_attributes</group>
+    <desc>
+      ocn to wav state mapping file for states
+    </desc>
+    <values>
+      <value samegrid_wav_ocn="true">idmap</value>
+      <value>$OCN2WAV_SMAPNAME</value>
+    </values>
+  </entry>
+
+  <entry id="wav2ocn_smapname"    modify_via_xml="WAV2OCN_SMAPNAME">
+    <type>char</type>
+    <category>mapping</category>
+    <input_pathname>abs</input_pathname>
+    <group>MED_attributes</group>
+    <desc>
+      wav to ocn state mapping file for states
+    </desc>
+    <values>
+      <value samegrid_wav_ocn="true">idmap</value>
+      <value>$WAV2OCN_SMAPNAME</value>
+    </values>
+  </entry>
+  
   <!-- =========================== -->
   <!-- ALLCOMP attributes          -->
   <!-- =========================== -->
@@ -2426,7 +2441,7 @@
     </values>
   </entry>
 
-  <entry id="flds_dms" modify_via_xml="DMS_EMIS_OCN">
+  <entry id="flds_dms">
     <type>logical</type>
     <category>flds</category>
     <group>ALLCOMP_attributes</group>
@@ -2435,10 +2450,11 @@
     </desc>
     <values>
       <value>.false.</value>
+      <value dms_from_ocn="on">.true.</value>
     </values>
   </entry>
 
-  <entry id="flds_brf" modify_via_xml="BRF_EMIS_OCN">
+  <entry id="flds_brf">
     <type>logical</type>
     <category>flds</category>
     <group>ALLCOMP_attributes</group>
@@ -2726,12 +2742,11 @@
     <type>char</type>
     <category>time</category>
     <group>CLOCK_attributes</group>
-    <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,monthly,nmonths,nyears,date,end</valid_values>
+    <valid_values>none,never,nseconds,nminutes,nhours,ndays,monthly,nmonths,nyears,date,end</valid_values>
     <desc>
       sets the run length with stop_n and stop_ymd
       stop_option alarms are:
       [none/never] , turns option off
-      [nsteps]     , stops every stop_n nsteps  , relative to current run start time
       [nseconds]   , stops every stop_n nseconds, relative to current run start time
       [nminutes]   , stops every stop_n nminutes, relative to current run start time
       [nhours]     , stops every stop_n nhours  , relative to current run start time
@@ -2745,6 +2760,7 @@
     </desc>
     <values>
       <value>$STOP_OPTION</value>
+      <value stop_option='nsteps'>nseconds</value>
     </values>
   </entry>
 
@@ -2790,12 +2806,11 @@
     <type>char</type>
     <category>time</category>
     <group>CLOCK_attributes</group>
-    <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,nmonths,nyears,monthly,yearly,date,end</valid_values>
+    <valid_values>none,never,nseconds,nminutes,nhours,ndays,nmonths,nyears,monthly,yearly,date,end</valid_values>
     <desc>
       sets the restart frequency with restart_n and restart_ymd
       restart_option alarms are:
       [none/never], turns option off
-      [nsteps]   , restarts every restart_n nsteps  , relative to current run start time
       [nseconds] , restarts every restart_n nseconds, relative to current run start time
       [nminutes] , restarts every restart_n nminutes, relative to current run start time
       [nhours]   , restarts every restart_n nhours  , relative to current run start time
@@ -2809,6 +2824,7 @@
     </desc>
     <values>
       <value>$REST_OPTION</value>
+      <value rest_option="nsteps">nseconds</value>
     </values>
   </entry>
 
@@ -2837,7 +2853,7 @@
     </values>
   </entry>
 
-  <entry id="end_restart">
+  <entry id="write_restart_at_endofrun">
     <type>logical</type>
     <category>time</category>
     <group>CLOCK_attributes</group>
@@ -2846,10 +2862,15 @@
       forces a restart write at the end of the run in addition to any
       setting associated with rest_option.  default=true.  this setting
       will be set to false if restart_option is none or never.
-      default: false
+      default: true
     </desc>
     <values>
-      <value>.false.</value>
+      <value>.true.</value>
+      <value rest_option='none'>.false.</value>
+      <value rest_option='never'>.false.</value>
+      <value TESTCASE='ERC'>.false.</value>
+      <value TESTCASE='ERP'>.false.</value>
+      <value TESTCASE='ERI'>.false.</value>
     </values>
   </entry>
 
