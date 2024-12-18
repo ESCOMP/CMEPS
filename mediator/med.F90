@@ -2269,9 +2269,9 @@ contains
     use ESMF                  , only : ESMF_ClockGetAlarmList
     use NUOPC                 , only : NUOPC_CompCheckSetClock, NUOPC_CompAttributeGet
     use NUOPC_Mediator        , only : NUOPC_MediatorGet
-    ! NUOPC_shr_methods is now in cesm_share and cdeps 
+    ! NUOPC_shr_methods is now in cesm_share and cdeps
     use nuopc_shr_methods, only : AlarmInit
-    
+
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc
@@ -2603,7 +2603,7 @@ contains
     type(ESMF_Array)     :: maskarray
     integer(I4), pointer :: meshmask(:)
     real(R8), pointer    :: r8ptr(:)
-    integer              :: m,n1,n2
+    integer              :: m,n2
     character(CL)        :: case_name, dststatusfile
     logical              :: elementMaskIsPresent
     logical              :: whead(2) = (/.true. , .false./)
@@ -2641,9 +2641,9 @@ contains
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
                 ! get mask Array
                 call ESMF_FieldGet(maskfield, array=maskarray, rc=rc)
-		if (ChkErr(rc,__LINE__,u_FILE_u)) return
+                if (ChkErr(rc,__LINE__,u_FILE_u)) return
                 call ESMF_MeshGet(mesh_dst, elemMaskArray=maskarray, rc=rc)
-		if (ChkErr(rc,__LINE__,u_FILE_u)) return
+                if (ChkErr(rc,__LINE__,u_FILE_u)) return
                 call ESMF_FieldGet(maskfield, localDe=0, farrayPtr=meshmask, rc=rc)
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
                 ! now create an R8 mask for writing

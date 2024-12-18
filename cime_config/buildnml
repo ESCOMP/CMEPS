@@ -44,6 +44,8 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     config["MPILIB"] = case.get_value("MPILIB")
     config["OS"] = case.get_value("OS")
     config["TESTCASE"] = case.get_value("TESTCASE")
+    if not config["TESTCASE"]:
+        config["TESTCASE"] = "UNSET"
     config["glc_nec"] = (
         0 if case.get_value("GLC_NEC") == 0 else case.get_value("GLC_NEC")
     )
