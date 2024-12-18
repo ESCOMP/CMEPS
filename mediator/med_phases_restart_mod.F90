@@ -189,7 +189,9 @@ contains
     real(R8)                   :: tbnds(2)       ! CF1.0 time bounds
     logical                    :: isPresent
     logical                    :: first_time = .true.
+#ifndef CESMCOUPLED
     logical                    :: write_restartfh
+#endif
     character(len=*), parameter :: subname='(med_phases_restart_write)'
     !---------------------------------------
 
