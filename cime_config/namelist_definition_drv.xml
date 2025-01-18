@@ -21,11 +21,23 @@
   <entry id="rundir" modify_via_xml="RUNDIR">
     <type>char</type>
     <category>nuopc</category>
-    <group>DRIVER_attributes</group>
+    <!-- NOTE: This won't be output only used as an attribute in this file -->
+    <group>default_settings</group>
     <values>
       <value>$RUNDIR</value>
     </values>
   </entry>
+
+  <entry id="continue_run" modify_via_xml="CONTINUE_RUN">
+    <type>logical</type>
+    <category>nuopc</category>
+    <!-- NOTE: This won't be output only used as an attribute in this file -->
+    <group>default_settings</group>
+    <values>
+      <value>$CONTINUE_RUN</value>
+    </values>
+  </entry>
+
   <entry id="pio_asyncio_ntasks" modify_via_xml="PIO_ASYNCIO_NTASKS">
     <type>integer</type>
     <category>pio</category>
@@ -183,6 +195,7 @@
     <values>
       <value>none</value>
       <value run_type="branch">$DRV_RESTART_POINTER</value>
+      <value continue_run=".true.">$DRV_RESTART_POINTER</value>
     </values>
   </entry>
 
