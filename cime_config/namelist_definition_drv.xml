@@ -18,6 +18,14 @@
     </values>
   </entry>
 
+  <entry id="rundir" modify_via_xml="RUNDIR">
+    <type>char</type>
+    <category>nuopc</category>
+    <group>DRIVER_attributes</group>
+    <values>
+      <value>$RUNDIR</value>
+    </values>
+  </entry>
   <entry id="pio_asyncio_ntasks" modify_via_xml="PIO_ASYNCIO_NTASKS">
     <type>integer</type>
     <category>pio</category>
@@ -165,12 +173,16 @@
   <entry id="drv_restart_pointer" modify_via_xml="DRV_RESTART_POINTER">
     <type>char</type>
     <category>expdef</category>
+    <default_value>none</default_value>
+    <!-- IMPORTANT NOTE: The relative path option MUST be used with a version of cime that allows it cime PR#4739 allows this -->
+    <input_pathname>rel:rundir</input_pathname>
     <group>DRIVER_attributes</group>
     <desc>
       Driver restart pointer file to initialize time info
     </desc>
     <values>
-      <value>$DRV_RESTART_POINTER</value>
+      <value>none</value>
+      <value run_type="branch">$DRV_RESTART_POINTER</value>
     </values>
   </entry>
 
