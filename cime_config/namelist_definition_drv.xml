@@ -185,7 +185,7 @@
   <entry id="drv_restart_pointer" modify_via_xml="DRV_RESTART_POINTER">
     <type>char</type>
     <category>expdef</category>
-    <default_value>none</default_value>
+    <default_value>UNSET</default_value>
     <!-- IMPORTANT NOTE: The relative path option MUST be used with a version of cime that allows it cime PR#4739 allows this -->
     <input_pathname>rel:rundir</input_pathname>
     <group>DRIVER_attributes</group>
@@ -193,7 +193,7 @@
       Driver restart pointer file to initialize time info
     </desc>
     <values>
-      <value>none</value>
+      <value>UNSET</value>
       <value run_type="branch">$DRV_RESTART_POINTER</value>
       <value continue_run=".true.">$DRV_RESTART_POINTER</value>
     </values>
