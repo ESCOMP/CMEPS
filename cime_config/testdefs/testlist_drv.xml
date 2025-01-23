@@ -43,43 +43,10 @@
   </test>
 
   <!-- ======================================= -->
-  <!-- X compsets -->
-  <!-- ======================================= -->
-
-  <test compset="X" grid="f19_g17" name="SMS">
-    <machines>
-      <machine name="derecho" compiler="gnu" category="aux_cmeps"/>
-      <machine name="izumi" compiler="intel" category="aux_cmeps"/>
-    </machines>
-    <options>
-      <option name="wallclock"> 00:20:00 </option>
-    </options>
-  </test>
-  <test compset="X" grid="f19_g17" name="ERS_Ln9">
-    <machines>
-      <machine name="derecho" compiler="intel" category="aux_cmeps"/>
-      <machine name="izumi" compiler="intel" category="aux_cmeps"/>
-    </machines>
-    <options>
-      <option name="wallclock"> 00:40:00 </option>
-    </options>
-  </test>
-
-  <test compset="X" grid="f19_g17" name="ERS_D_Ln9" testmods="drv/aoflux_ogrid">
-    <machines>
-      <machine name="derecho" compiler="intel" category="aux_cmeps"/>
-    </machines>
-    <options>
-      <option name="wallclock"> 00:40:00 </option>
-      <option name="comment">The default aoflux_grid is now xgrid; include a debug test with different atm/ocn grids with aoflux_grid=ogrid to make sure that option continues to work.</option>
-    </options>
-  </test>
-
-  <!-- ======================================= -->
   <!-- B compsets -->
   <!-- ======================================= -->
 
-  <test compset="B1850MOM" grid="f09_t061" name="ERR_Ld5" testmods="allactive/defaultio">
+  <test compset="BMT1850" grid="ne30pg3_t232" name="ERR_Ld5" testmods="allactive/defaultio">
     <machines>
       <machine name="derecho" compiler="intel" category="aux_cmeps"/>
       <machine name="izumi" compiler="intel" category="aux_cmeps"/>
@@ -88,7 +55,7 @@
       <option name="wallclock"> 00:40:00 </option>
     </options>
   </test>
-  <test compset="BLT1850_v0c" grid="ne30pg3_t232" name="ERS_Ld5" testmods="allactive/defaultio">
+  <test compset="BLT1850" grid="ne30pg3_t232" name="ERS_Ld5" testmods="allactive/defaultio">
     <machines>
       <machine name="derecho" compiler="intel" category="aux_cmeps"/>
       <machine name="izumi" compiler="intel" category="aux_cmeps"/>
@@ -102,7 +69,7 @@
   <!-- C compsets -->
   <!-- ======================================= -->
 
-  <test compset="CMOM" grid="T62_g17" name="ERS_Ld5">
+  <test compset="C" grid="T62_g17" name="ERS_Ld5">
     <machines>
       <machine name="derecho" compiler="gnu" category="aux_cmeps"/>
       <machine name="izumi" compiler="intel" category="aux_cmeps"/>
@@ -111,7 +78,7 @@
       <option name="wallclock"> 00:40:00 </option>
     </options>
   </test>
-  <test compset="CMOM_JRA" grid="T62_t061" name="SMS_Ld5">
+  <test compset="C_JRA" grid="T62_t232" name="SMS_Ld5">
     <machines>
       <machine name="derecho" compiler="intel" category="aux_cmeps"/>
       <machine name="izumi" compiler="intel" category="aux_cmeps"/>
@@ -120,7 +87,7 @@
       <option name="wallclock"> 00:40:00 </option>
     </options>
   </test>
-  <test compset="CMOM" grid="T62_t061" name="ERS_Ld5">
+  <test compset="C" grid="T62_t232" name="ERS_Ld5">
     <machines>
       <machine name="derecho" compiler="intel" category="aux_cmeps"/>
       <machine name="izumi" compiler="intel" category="aux_cmeps"/>
@@ -134,7 +101,7 @@
   <!-- G compsets -->
   <!-- ======================================= -->
 
-  <test compset="GMOM_JRA" grid="T62_g17" name="ERS_Ld5">
+  <test compset="G_JRA" grid="T62_g17" name="ERS_Ld5">
     <machines>
       <machine name="derecho" compiler="nvhpc" category="aux_cmeps"/>
       <machine name="izumi" compiler="intel" category="aux_cmeps"/>
@@ -143,7 +110,7 @@
       <option name="wallclock"> 00:10:00 </option>
     </options>
   </test>
-  <test compset="GMOM" grid="T62_t061" name="SMS_Ld5">
+  <test compset="G" grid="T62_t232" name="SMS_Ld5">
     <machines>
       <machine name="derecho" compiler="gnu" category="aux_cmeps"/>
       <machine name="izumi" compiler="intel" category="aux_cmeps"/>
@@ -152,7 +119,7 @@
       <option name="wallclock"> 00:10:00 </option>
     </options>
   </test>
-  <test compset="GMOM" grid="T62_t061" name="ERS_Ld5">
+  <test compset="G" grid="T62_t232" name="ERS_Ld5">
     <machines>
       <machine name="derecho" compiler="intel" category="aux_cmeps"/>
       <machine name="izumi" compiler="intel" category="aux_cmeps"/>
@@ -210,7 +177,7 @@
   <!-- I compsets -->
   <!-- ======================================= -->
 
-  <test compset="I2000Clm51Bgc" grid="f19_g17" name="ERS_Ld5" testmods="clm/default">
+  <test compset="I2000Clm60Bgc" grid="f19_g17" name="ERS_Ld5" testmods="clm/default">
     <machines>
       <machine name="derecho" compiler="intel" category="aux_cmeps"/>
       <machine name="izumi" compiler="intel" category="aux_cmeps"/>
@@ -292,7 +259,7 @@
     </machines>
   </test>
 
-  <test name="ERS_Ld5" grid="ne30pg3_t061" compset="B1850MOM" testmods="allactive/defaultio--drv/asyncio1node">
+  <test name="ERS_Ld5" grid="ne30pg3_t232" compset="BLT1850" testmods="allactive/defaultio--drv/asyncio1node">
     <machines>
       <machine name="derecho" compiler="gnu" category="prealpha">
         <options>
