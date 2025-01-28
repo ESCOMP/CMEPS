@@ -11,6 +11,9 @@ module esmFldsExchange_ufs_mod
 
   public :: esmFldsExchange_ufs
 
+  integer :: atm2lnd_maptype
+  integer :: lnd2atm_maptype
+
   character(*), parameter :: u_FILE_u = &
        __FILE__
 
@@ -30,7 +33,7 @@ contains
     use med_internalstate_mod , only : mapbilnr, mapconsf, mapconsd, mappatch
     use med_internalstate_mod , only : mapfcopy, mapnstod, mapnstod_consd, mapnstod_consf
     use med_internalstate_mod , only : mapconsf_aofrac, mapbilnr_nstod
-    use med_internalstate_mod , only : coupling_mode, mapnames
+    use med_internalstate_mod , only : coupling_mode, mapnames, samegrid_atmlnd
     use esmFlds               , only : med_fldList_type
     use esmFlds               , only : addfld_to => med_fldList_addfld_to
     use esmFlds               , only : addmrg_to => med_fldList_addmrg_to
@@ -90,6 +93,16 @@ contains
        med_aoflux_to_ocn = .true.
     else
        med_aoflux_to_ocn = .false.
+    end if
+
+    ! determine if atm and lnd have the same mesh
+    if (phase == 'advertise') then
+       atm2lnd_maptype = maptype
+       lnd2atm_maptype = maptype
+       if (samegrid_atmlnd) then
+          atm2lnd_maptype = mapfcopy
+          lnd2atm_maptype = mapfcopy
+       end if
     end if
 
     !=====================================================================
@@ -258,7 +271,7 @@ contains
           do n = 1,size(flds)
              if ( fldchk(is_local%wrap%FBexp(compatm)        , 'Fall_'//trim(flds(n)), rc=rc) .and. &
                   fldchk(is_local%wrap%FBImp(complnd,complnd), 'Fall_'//trim(flds(n)), rc=rc)) then
-                call addmap_from(complnd, 'Fall_'//trim(flds(n)), compatm, maptype, 'lfrac', 'unset')
+                call addmap_from(complnd, 'Fall_'//trim(flds(n)), compatm, lnd2atm_maptype, 'lfrac', 'unset')
                 call addmrg_to(compatm, 'Fall_'//trim(flds(n)), mrg_from=complnd, mrg_fld='Fall_'//trim(flds(n)), mrg_type='copy')
              end if
           end do
@@ -279,7 +292,7 @@ contains
           do n = 1,size(flds)
              if ( fldchk(is_local%wrap%FBexp(compatm)        , 'Sl_'//trim(flds(n)), rc=rc) .and. &
                   fldchk(is_local%wrap%FBImp(complnd,complnd), 'Sl_'//trim(flds(n)), rc=rc)) then
-                call addmap_from(complnd, 'Sl_'//trim(flds(n)), compatm, maptype, 'lfrac', 'unset')
+                call addmap_from(complnd, 'Sl_'//trim(flds(n)), compatm, lnd2atm_maptype, 'lfrac', 'unset')
                 call addmrg_to(compatm, 'Sl_'//trim(flds(n)), mrg_from=complnd, mrg_fld='Sl_'//trim(flds(n)), mrg_type='copy')
              end if
           end do
@@ -776,7 +789,7 @@ contains
        else
           if ( fldchk(is_local%wrap%FBexp(complnd)        , fldname, rc=rc) .and. &
                fldchk(is_local%wrap%FBImp(compatm,compatm), fldname, rc=rc)) then
-             call addmap_from(compatm, fldname, complnd, maptype, 'one', 'unset')
+             call addmap_from(compatm, fldname, complnd, atm2lnd_maptype, 'one', 'unset')
              call addmrg_to(complnd, fldname, mrg_from=compatm, mrg_fld=fldname, mrg_type='copy')
           end if
        end if

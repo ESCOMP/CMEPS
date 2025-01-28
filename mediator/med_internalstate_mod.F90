@@ -263,6 +263,23 @@ contains
       samegrid_atmlnd = .true.
     end if
 
+    ! flexibility to overwrite samegrid_atmlnd option
+    call NUOPC_CompAttributeGet(gcomp, name='samegrid_atmlnd', value=cvalue, &
+         isPresent=isPresent, isSet=isSet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    if (isPresent .and. isSet) then
+       if (trim(cvalue) == '.true.' .or. trim(cvalue) == 'true') then
+          samegrid_atmlnd = .true.
+       else
+          samegrid_atmlnd = .false.
+       end if
+    end if
+
+    if (maintask) then
+       write(logunit,'(a,l)') trim(subname)//' atm and lnd is on same grid = ', samegrid_atmlnd
+    end if
+
     ! See med_fraction_mod for the following definitions
     if (samegrid_atmlnd) then
       map_fracname_lnd2atm       = 'lfrin' ! in fraclist_a
