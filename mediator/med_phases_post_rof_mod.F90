@@ -5,7 +5,7 @@ module med_phases_post_rof_mod
   use NUOPC_Mediator        , only : NUOPC_MediatorGet
   use NUOPC                 , only : NUOPC_CompAttributeGet
   use ESMF                  , only : ESMF_Clock, ESMF_ClockIsCreated
-  use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_LOGMSG_ERROR, ESMF_SUCCESS, ESMF_FAILURE
+  use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
   use ESMF                  , only : ESMF_GridComp, ESMF_GridCompGet
   use ESMF                  , only : ESMF_Mesh, ESMF_MESHLOC_ELEMENT, ESMF_TYPEKIND_R8
   use ESMF                  , only : ESMF_Field, ESMF_FieldCreate
