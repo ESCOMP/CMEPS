@@ -1555,9 +1555,7 @@ contains
         if (chkerr(rc,__LINE__,u_FILE_u)) return
         if (nnodes == 0 .and. nelements == 0) lrank = 0
       else
-         call ESMF_LogWrite(trim(subname)//": ERROR geomtype not supported ", ESMF_LOGMSG_INFO)
-        rc = ESMF_FAILURE
-        return
+         call shr_sys_abort(trim(subname)//": ERROR geomtype not supported ")
       endif ! geomtype
 
       if (lrank == 0) then
@@ -2125,8 +2123,7 @@ contains
         staggerloc = ESMF_STAGGERLOC_CORNER
         staggerstr = 'ESMF_STAGGERLOC_CORNER'
       else
-        rc = ESMF_FAILURE
-        call ESMF_LogWrite(trim(subname)//":staggerloc failure", ESMF_LOGMSG_INFO)
+         call shr_sys_abort(trim(subname)//":staggerloc failure")
       endif
       call ESMF_GridGetCoord(grid, staggerloc=staggerloc, isPresent=isPresent, rc=rc)
       if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -2248,7 +2245,7 @@ contains
     ! ----------------------------------------------
 
     use ESMF , only : ESMF_SUCCESS, ESMF_State, ESMF_StateGet, ESMF_Field, ESMF_FieldGet
-    use ESMF , only : ESMF_FAILURE, ESMF_LogFoundError, ESMF_LOGERR_PASSTHRU, ESMF_LogWrite
+    use ESMF , only : ESMF_LogFoundError, ESMF_LOGERR_PASSTHRU, ESMF_LogWrite
     use ESMF , only : ESMF_LOGMSG_INFO, ESMF_VM, ESMF_VMBroadCast, ESMF_VMGetCurrent
     use ESMF , only : ESMF_VMGet
 
@@ -2289,9 +2286,7 @@ contains
         call ESMF_FieldGet(field, farrayPtr = farrayptr, rc=rc)
         if (chkerr(rc,__LINE__,u_FILE_u)) return
         if (scalar_id < 0 .or. scalar_id > flds_scalar_num) then
-          call ESMF_LogWrite(trim(subname)//": ERROR in scalar_id", ESMF_LOGMSG_INFO, line=__LINE__, file=u_FILE_u)
-          rc = ESMF_FAILURE
-          if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=u_FILE_u)) return
+          call shr_sys_abort(trim(subname)//": ERROR in scalar_id", line=__LINE__, file=u_FILE_u)
         endif
         tmp(:) = farrayptr(scalar_id,:)
       endif
@@ -2347,9 +2342,7 @@ contains
       call ESMF_FieldGet(field, farrayPtr = farrayptr, rc=rc)
       if (chkerr(rc,__LINE__,u_FILE_u)) return
       if (scalar_id < 0 .or. scalar_id > flds_scalar_num) then
-        call ESMF_LogWrite(trim(subname)//": ERROR in scalar_id", ESMF_LOGMSG_INFO)
-        rc = ESMF_FAILURE
-        return
+        call shr_sys_abort(trim(subname)//": ERROR in scalar_id")
       endif
       farrayptr(scalar_id,1) = scalar_value
     endif
