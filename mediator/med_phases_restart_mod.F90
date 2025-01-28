@@ -125,7 +125,7 @@ contains
 
     use ESMF       , only : ESMF_GridComp, ESMF_VM, ESMF_Clock, ESMF_Time, ESMF_Alarm
     use ESMF       , only : ESMF_TimeInterval, ESMF_CalKind_Flag, ESMF_MAXSTR
-    use ESMF       , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_FAILURE
+    use ESMF       , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
     use ESMF       , only : operator(==), operator(-)
     use ESMF       , only : ESMF_GridCompGet, ESMF_ClockGet, ESMF_ClockGetNextTime
     use ESMF       , only : ESMF_TimeGet, ESMF_ClockGetAlarm, ESMF_ClockPrint, ESMF_TimeIntervalGet
@@ -546,9 +546,7 @@ contains
        open(newunit=unitn, file=restart_pfile, form='FORMATTED', status='old', iostat=ierr)
        read (unitn,'(a)', iostat=ierr) restart_file
        if (ierr < 0) then
-          call ESMF_LogWrite(trim(subname)//' rpointer file read returns error', ESMF_LOGMSG_INFO)
-          rc=ESMF_Failure
-          return
+          call shr_sys_abort(trim(subname)//' rpointer file read returns error')
        end if
        close(unitn)
        call ESMF_LogWrite(trim(subname)//' restart file from rpointer = '//trim(restart_file), ESMF_LOGMSG_INFO)
