@@ -572,7 +572,7 @@ contains
           write(logunit,*) trim(subname),' ERROR: invalid settings orb_mode =',trim(orb_mode)
           write(logunit,*) trim(subname),' ERROR: fixed_year settings = ',orb_iyear
           write (msgstr, *) ' ERROR: invalid settings for orb_mode '//trim(orb_mode)
-          call shr_sys_abort(sgstr, line=__LINE__, file=__FILE__)
+          call shr_sys_abort(msgstr, line=__LINE__, file=__FILE__)
        endif
     elseif (trim(orb_mode) == trim(orb_variable_year)) then
        orb_obliq = SHR_ORB_UNDEF_REAL
