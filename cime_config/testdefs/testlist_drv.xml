@@ -215,6 +215,39 @@
   </test>
 
   <!-- ======================================= -->
+  <!-- X compsets -->
+  <!-- ======================================= -->
+
+  <test compset="X" grid="f19_g17" name="SMS_D">
+    <machines>
+      <machine name="derecho" compiler="gnu" category="aux_cmeps"/>
+      <machine name="izumi" compiler="intel" category="aux_cmeps"/>
+    </machines>
+    <options>
+      <option name="wallclock"> 00:20:00 </option>
+    </options>
+  </test>
+  <test compset="X" grid="f19_g17" name="ERS_Ln9">
+    <machines>
+      <machine name="derecho" compiler="intel" category="aux_cmeps"/>
+      <machine name="izumi" compiler="intel" category="aux_cmeps"/>
+    </machines>
+    <options>
+      <option name="wallclock"> 00:40:00 </option>
+    </options>
+  </test>
+
+  <test compset="X" grid="f19_g17" name="ERS_D_Ln9" testmods="drv/aoflux_ogrid">
+    <machines>
+      <machine name="derecho" compiler="intel" category="aux_cmeps"/>
+    </machines>
+    <options>
+      <option name="wallclock"> 00:40:00 </option>
+      <option name="comment">The default aoflux_grid is now xgrid; include a debug test with different atm/ocn grids with aoflux_grid=ogrid to make sure that option continues to work.</option>
+    </options>
+  </test>
+
+  <!-- ======================================= -->
   <!-- TG compsets -->
   <!-- ======================================= -->
 
