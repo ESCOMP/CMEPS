@@ -2,14 +2,15 @@ module med_map_mod
 
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
   use med_kind_mod          , only : I4=>SHR_KIND_I4
-  use ESMF                  , only : ESMF_SUCCESS, ESMF_FAILURE
-  use ESMF                  , only : ESMF_LOGMSG_ERROR, ESMF_LOGMSG_INFO, ESMF_LogWrite
+  use ESMF                  , only : ESMF_SUCCESS
+  use ESMF                  , only : ESMF_LOGMSG_INFO, ESMF_LogWrite
   use ESMF                  , only : ESMF_Field
   use med_internalstate_mod , only : InternalState, logunit, maintask
   use med_constants_mod     , only : dbug_flag => med_constants_dbug_flag
   use med_utils_mod         , only : chkerr    => med_utils_ChkErr
   use perf_mod              , only : t_startf, t_stopf
-
+  use shr_sys_mod           , only : shr_sys_abort
+  
   implicit none
   private
 
@@ -144,10 +145,8 @@ contains
 
                 ! Check number of fields in source FB on destination mesh and get destination field
                 if (.not. ESMF_FieldBundleIsCreated(is_local%wrap%FBImp(n1,n2))) then
-                   call ESMF_LogWrite(trim(subname)//'FBImp('//trim(compname(n1))//','//trim(compname(n2))//')'// &
-                        ' has not been created', ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
-                   rc = ESMF_FAILURE
-                   return
+                   call shr_sys_abort(trim(subname)//'FBImp('//trim(compname(n1))//','//trim(compname(n2))//')'// &
+                        ' has not been created', line=__LINE__, file=u_FILE_u)
                 end if
                 call ESMF_FieldBundleGet(is_local%wrap%FBImp(n1,n2), fieldCount=fieldCount, rc=rc)
                 if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -583,13 +582,8 @@ contains
           if (chkerr(rc,__LINE__,u_FILE_u)) return
        end if
     else
-       if (maintask) then
-          write(logunit,'(A)') trim(subname)//' mapindex '//trim(mapname)//' not supported for '//trim(string)
-       end if
-       call ESMF_LogWrite(trim(subname)//' mapindex '//trim(mapname)//' not supported ', &
-            ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
-       rc = ESMF_FAILURE
-       return
+       call shr_sys_abort(trim(subname)//' mapindex '//trim(mapname)//' not supported for '//trim(string), &
+            line=__LINE__, file=u_FILE_u)
     end if
 
     ! consd_nstod method requires a second routehandle
@@ -816,8 +810,8 @@ contains
                         //',  mapnorm '//trim(mapnorm_mapindex) &
                         //' set; cannot set mapnorm to '//trim(packed_data(mapindex)%mapnorm) &
                         //'  '//trim(fieldnamelist(nf))
-                     call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_ERROR)
-                     call ESMF_Finalize(endflag=ESMF_END_ABORT)
+                     call shr_sys_abort(trim(tmpstr))
+
                    end if
                 end if
              end if
@@ -1372,7 +1366,7 @@ contains
     !---------------------------------------------------
 
     use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
-    use ESMF                  , only : ESMF_LOGMSG_ERROR, ESMF_FAILURE, ESMF_MAXSTR
+    use ESMF                  , only : ESMF_MAXSTR
     use ESMF                  , only : ESMF_Field, ESMF_FieldRegrid
     use ESMF                  , only : ESMF_TERMORDER_SRCSEQ, ESMF_Region_Flag
     use ESMF                  , only : ESMF_REGION_TOTAL, ESMF_REGION_SELECT

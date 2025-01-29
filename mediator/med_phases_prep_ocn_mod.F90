@@ -78,7 +78,6 @@ contains
 
     use ESMF                    , only : ESMF_GridComp, ESMF_FieldBundleGet
     use ESMF                    , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
-    use ESMF                    , only : ESMF_FAILURE,  ESMF_LOGMSG_ERROR
     use med_constants_mod       , only : shr_const_cpsw, shr_const_tkfrz, shr_const_pi
     use med_phases_prep_atm_mod , only : med_phases_prep_atm_enthalpy_correction
 
@@ -354,7 +353,6 @@ contains
     use ESMF , only : ESMF_GridComp, ESMF_StateGet, ESMF_Field, ESMF_FieldGet
     use ESMF , only : ESMF_VMBroadCast
     use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
-    use ESMF , only : ESMF_FAILURE,  ESMF_LOGMSG_ERROR
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp

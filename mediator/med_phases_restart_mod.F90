@@ -14,6 +14,7 @@ module med_phases_restart_mod
   use med_phases_prep_glc_mod , only : FBocnAccum2glc_o, ocnAccum2glc_cnt
   use med_phases_prep_rof_mod , only : FBlndAccum2rof_l, lndAccum2rof_cnt
   use pio                     , only : file_desc_t
+  use shr_sys_mod             , only : shr_sys_abort
   implicit none
   private
 
@@ -42,8 +43,8 @@ contains
     use ESMF         , only : ESMF_Clock, ESMF_ClockGet, ESMF_ClockAdvance, ESMF_ClockSet
     use ESMF         , only : ESMF_Time, ESMF_TimeInterval, ESMF_TimeIntervalGet
     use ESMF         , only : ESMF_Alarm, ESMF_AlarmSet
-    use ESMF         , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_LOGMSG_ERROR
-    use ESMF         , only : ESMF_SUCCESS, ESMF_FAILURE
+    use ESMF         , only : ESMF_LogWrite, ESMF_LOGMSG_INFO
+    use ESMF         , only : ESMF_SUCCESS
     use NUOPC        , only : NUOPC_CompAttributeGet
     use NUOPC_Model  , only : NUOPC_ModelGet
     use nuopc_shr_methods, only : AlarmInit
@@ -125,8 +126,8 @@ contains
 
     use ESMF       , only : ESMF_GridComp, ESMF_VM, ESMF_Clock, ESMF_Time, ESMF_Alarm
     use ESMF       , only : ESMF_TimeInterval, ESMF_CalKind_Flag, ESMF_MAXSTR
-    use ESMF       , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_FAILURE
-    use ESMF       , only : ESMF_LOGMSG_ERROR, operator(==), operator(-)
+    use ESMF       , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
+    use ESMF       , only : operator(==), operator(-)
     use ESMF       , only : ESMF_GridCompGet, ESMF_ClockGet, ESMF_ClockGetNextTime
     use ESMF       , only : ESMF_TimeGet, ESMF_ClockGetAlarm, ESMF_ClockPrint, ESMF_TimeIntervalGet
     use ESMF       , only : ESMF_AlarmIsRinging, ESMF_AlarmRingerOff, ESMF_FieldBundleIsCreated
@@ -481,8 +482,8 @@ contains
     ! Read mediator restart
 
     use ESMF             , only : ESMF_GridComp, ESMF_VM, ESMF_Clock, ESMF_Time, ESMF_MAXSTR
-    use ESMF             , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_FAILURE
-    use ESMF             , only : ESMF_LOGMSG_ERROR, ESMF_VMBroadCast
+    use ESMF             , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
+    use ESMF             , only : ESMF_VMBroadCast
     use ESMF             , only : ESMF_GridCompGet, ESMF_ClockGet, ESMF_ClockPrint
     use ESMF             , only : ESMF_FieldBundleIsCreated, ESMF_TimeGet
     use NUOPC            , only : NUOPC_CompAttributeGet
@@ -546,9 +547,7 @@ contains
        open(newunit=unitn, file=restart_pfile, form='FORMATTED', status='old', iostat=ierr)
        read (unitn,'(a)', iostat=ierr) restart_file
        if (ierr < 0) then
-          call ESMF_LogWrite(trim(subname)//' rpointer file read returns error', ESMF_LOGMSG_INFO)
-          rc=ESMF_Failure
-          return
+          call shr_sys_abort(trim(subname)//' rpointer file read returns error')
        end if
        close(unitn)
        call ESMF_LogWrite(trim(subname)//' restart file from rpointer = '//trim(restart_file), ESMF_LOGMSG_INFO)

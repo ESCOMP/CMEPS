@@ -22,7 +22,7 @@ module med_phases_aofluxes_mod
   use ESMF                  , only : ESMF_TERMORDER_SRCSEQ, ESMF_REGION_TOTAL, ESMF_MESHLOC_ELEMENT, ESMF_MAXSTR
   use ESMF                  , only : ESMF_XGRIDSIDE_B, ESMF_XGRIDSIDE_A, ESMF_END_ABORT, ESMF_LOGERR_PASSTHRU
   use ESMF                  , only : ESMF_Mesh, ESMF_MeshGet, ESMF_XGrid, ESMF_XGridCreate, ESMF_TYPEKIND_R8
-  use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_LOGMSG_ERROR, ESMF_FAILURE
+  use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
   use ESMF                  , only : ESMF_Finalize, ESMF_LogFoundError
   use ESMF                  , only : ESMF_XGridGet, ESMF_MeshCreate, ESMF_MeshWrite, ESMF_KIND_R8
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
@@ -39,7 +39,7 @@ module med_phases_aofluxes_mod
   use shr_const_mod         , only : rearth => SHR_CONST_REARTH
   use shr_const_mod         , only : pi => SHR_CONST_PI
 #endif
-
+  use shr_sys_mod           , only : shr_sys_abort
   implicit none
   private
 
@@ -667,11 +667,9 @@ contains
     else if (med_map_RH_is_created(is_local%wrap%RH(compocn,compatm,:), mapconsd, rc=rc)) then
        maptype = mapconsd
     else
-       call ESMF_LogWrite(trim(subname)//&
+       call shr_sys_abort(trim(subname)//&
             ": maptype for atm->ocn mapping of So_mask must be either mapfcopy or mapconsd", &
-            ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
-       rc = ESMF_FAILURE
-       return
+            line=__LINE__, file=u_FILE_u)
     end if
 
     ! ------------------------
@@ -1226,11 +1224,9 @@ contains
        else if (med_map_RH_is_created(is_local%wrap%RH(compocn,compatm,:), mapconsd, rc=rc)) then
           maptype = mapconsd
        else
-          call ESMF_LogWrite(trim(subname)//&
+          call shr_sys_abort(trim(subname)//&
                ": maptype for atm->ocn mapping of aofluxes from atm->ocn either mapfcopy or mapconsd", &
-               ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
-          rc = ESMF_FAILURE
-          return
+               line=__LINE__, file=u_FILE_u)
        end if
 
        ! Map ocn->atm conservatively without fractions
@@ -1425,11 +1421,9 @@ end subroutine med_aofluxes_map_ogrid2xgrid_input
        else if (med_map_RH_is_created(is_local%wrap%RH(compatm,compocn,:), mapconsf, rc=rc)) then
           maptype = mapconsf
        else
-          call ESMF_LogWrite(trim(subname)//&
+          call shr_sys_abort(trim(subname)//&
                ": maptype for atm->ocn mapping of aofluxes from atm->ocn either mapfcopy or mapconsf", &
-               ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
-          rc = ESMF_FAILURE
-          return
+               line=__LINE__, file=u_FILE_u)
        end if
        call ESMF_FieldRegrid(field_src, field_dst, &
             routehandle=is_local%wrap%RH(compatm, compocn, maptype), &
