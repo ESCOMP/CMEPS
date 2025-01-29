@@ -69,7 +69,7 @@
   <!-- C compsets -->
   <!-- ======================================= -->
 
-  <test compset="C" grid="T62_g17" name="ERS_Ld5">
+  <test compset="C" grid="T62_t232" name="ERS_Ld5">
     <machines>
       <machine name="derecho" compiler="gnu" category="aux_cmeps"/>
       <machine name="izumi" compiler="intel" category="aux_cmeps"/>
@@ -101,7 +101,7 @@
   <!-- G compsets -->
   <!-- ======================================= -->
 
-  <test compset="G_JRA" grid="T62_g17" name="ERS_Ld5">
+  <test compset="G_JRA" grid="T62_t232" name="ERS_Ld5">
     <machines>
       <machine name="derecho" compiler="nvhpc" category="aux_cmeps"/>
       <machine name="izumi" compiler="intel" category="aux_cmeps"/>
