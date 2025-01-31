@@ -567,7 +567,7 @@ contains
     use med_internalstate_mod, only : maintask, logunit, diagunit
 #ifdef CESMCOUPLED
     use nuopc_shr_methods, only : set_component_logging
-    use shr_log_mod, only : shr_log_unit, shr_log_error
+    use shr_log_mod, only : shr_log_unit
 #endif
     type(ESMF_GridComp)   :: gcomp
     type(ESMF_State)      :: importState, exportState

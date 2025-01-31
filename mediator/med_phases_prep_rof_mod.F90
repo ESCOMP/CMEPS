@@ -26,7 +26,7 @@ module med_phases_prep_rof_mod
   use med_methods_mod       , only : fldbun_fldchk    => med_methods_FB_fldchk
   use med_methods_mod       , only : FB_check_for_nans => med_methods_FB_check_for_nans
   use perf_mod              , only : t_startf, t_stopf
-  use shr_sys_mod           , only : shr_sys_abort
+  use shr_log_mod           , only : shr_log_error
   
   implicit none
   private
@@ -517,8 +517,9 @@ contains
     else if ( med_map_RH_is_created(is_local%wrap%RH(complnd,comprof,:),mapfcopy, rc=rc)) then
        maptype_lnd2rof = mapfcopy
     else
-       call shr_sys_abort(trim(subname)//&
-            ": ERROR conservative or redist route handles not created for lnd->rof mapping")
+       call shr_log_error(trim(subname)//&
+            ": ERROR conservative or redist route handles not created for lnd->rof mapping", rc=rc)
+       return
     end if
 
     if (med_map_RH_is_created(is_local%wrap%RH(comprof,complnd,:),mapconsf, rc=rc)) then
@@ -526,8 +527,9 @@ contains
     else if ( med_map_RH_is_created(is_local%wrap%RH(comprof,complnd,:),mapfcopy, rc=rc)) then
        maptype_rof2lnd = mapfcopy
     else
-       call shr_sys_abort(trim(subname)//&
-            ": ERROR conservative or redist route handles not created for rof->lnd mapping")
+       call shr_log_error(trim(subname)//&
+            ": ERROR conservative or redist route handles not created for rof->lnd mapping", rc=rc)
+       return
     end if
 
     ! ------------------------------------------------------------------------

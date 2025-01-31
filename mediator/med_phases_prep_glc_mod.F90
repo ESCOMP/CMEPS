@@ -44,7 +44,7 @@ module med_phases_prep_glc_mod
   use glc_elevclass_mod     , only : glc_get_elevation_classes
   use glc_elevclass_mod     , only : glc_get_fractional_icecov
   use perf_mod              , only : t_startf, t_stopf
-  use shr_sys_mod           , only : shr_sys_abort
+  use shr_log_mod           , only : shr_log_error
   
   implicit none
   private
@@ -223,8 +223,9 @@ contains
 
           ! create route handle if it has not been created
           if (.not. med_map_RH_is_created(is_local%wrap%RH(complnd,compglc(ns),:),mapbilnr,rc=rc)) then
-             call shr_sys_abort(trim(subname)//" mapbilnr is not created for lnd->glc mapping", &
-                  line=__LINE__, file=u_FILE_u)
+             call shr_log_error(trim(subname)//" mapbilnr is not created for lnd->glc mapping", &
+                  line=__LINE__, file=u_FILE_u, rc=rc)
+             return
           end if
        end do
 
@@ -238,8 +239,9 @@ contains
        case ('off')
           smb_renormalize = .false.
        case default
-          call shr_sys_abort(trim(subname)//' ERROR: unknown value for glc_renormalize_smb: '// trim(glc_renormalize_smb), &
-               line=__LINE__, file=__FILE__)
+          call shr_log_error(trim(subname)//' ERROR: unknown value for glc_renormalize_smb: '// trim(glc_renormalize_smb), &
+               line=__LINE__, file=__FILE__, rc=rc)
+          return
        end select
        if (maintask) then
           write(logunit,'(a,l4)') trim(subname)//' smb_renormalize is ',smb_renormalize
@@ -327,8 +329,9 @@ contains
        ! create route handle if it has not been created
        do ns = 1,is_local%wrap%num_icesheets
           if (.not. med_map_RH_is_created(is_local%wrap%RH(compocn,compglc(ns),:),mapbilnr,rc=rc)) then
-             call shr_sys_abort(trim(subname)//" mapbilnr is not created for ocn->glc mapping", &
-                  line=__LINE__, file=u_FILE_u)
+             call shr_log_error(trim(subname)//" mapbilnr is not created for ocn->glc mapping", &
+                  line=__LINE__, file=u_FILE_u, rc=rc)
+             return
           end if
        end do
 
