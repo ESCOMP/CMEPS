@@ -39,7 +39,7 @@ module med_phases_aofluxes_mod
   use shr_const_mod         , only : rearth => SHR_CONST_REARTH
   use shr_const_mod         , only : pi => SHR_CONST_PI
 #endif
-  use shr_sys_mod           , only : shr_sys_abort
+  use shr_log_mod           , only : shr_log_error
   implicit none
   private
 
@@ -667,9 +667,10 @@ contains
     else if (med_map_RH_is_created(is_local%wrap%RH(compocn,compatm,:), mapconsd, rc=rc)) then
        maptype = mapconsd
     else
-       call shr_sys_abort(trim(subname)//&
+       call shr_log_error(trim(subname)//&
             ": maptype for atm->ocn mapping of So_mask must be either mapfcopy or mapconsd", &
-            line=__LINE__, file=u_FILE_u)
+            line=__LINE__, file=u_FILE_u, rc=rc)
+       return
     end if
 
     ! ------------------------
@@ -1224,9 +1225,10 @@ contains
        else if (med_map_RH_is_created(is_local%wrap%RH(compocn,compatm,:), mapconsd, rc=rc)) then
           maptype = mapconsd
        else
-          call shr_sys_abort(trim(subname)//&
+          call shr_log_error(trim(subname)//&
                ": maptype for atm->ocn mapping of aofluxes from atm->ocn either mapfcopy or mapconsd", &
-               line=__LINE__, file=u_FILE_u)
+               line=__LINE__, file=u_FILE_u, rc=rc)
+          return
        end if
 
        ! Map ocn->atm conservatively without fractions
@@ -1421,9 +1423,10 @@ end subroutine med_aofluxes_map_ogrid2xgrid_input
        else if (med_map_RH_is_created(is_local%wrap%RH(compatm,compocn,:), mapconsf, rc=rc)) then
           maptype = mapconsf
        else
-          call shr_sys_abort(trim(subname)//&
+          call shr_log_error(trim(subname)//&
                ": maptype for atm->ocn mapping of aofluxes from atm->ocn either mapfcopy or mapconsf", &
-               line=__LINE__, file=u_FILE_u)
+               line=__LINE__, file=u_FILE_u, rc=rc)
+          return
        end if
        call ESMF_FieldRegrid(field_src, field_dst, &
             routehandle=is_local%wrap%RH(compatm, compocn, maptype), &

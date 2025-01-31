@@ -9,7 +9,7 @@ module med_map_mod
   use med_constants_mod     , only : dbug_flag => med_constants_dbug_flag
   use med_utils_mod         , only : chkerr    => med_utils_ChkErr
   use perf_mod              , only : t_startf, t_stopf
-  use shr_sys_mod           , only : shr_sys_abort
+  use shr_log_mod           , only : shr_log_error
   
   implicit none
   private
@@ -145,8 +145,9 @@ contains
 
                 ! Check number of fields in source FB on destination mesh and get destination field
                 if (.not. ESMF_FieldBundleIsCreated(is_local%wrap%FBImp(n1,n2))) then
-                   call shr_sys_abort(trim(subname)//'FBImp('//trim(compname(n1))//','//trim(compname(n2))//')'// &
-                        ' has not been created', line=__LINE__, file=u_FILE_u)
+                   call shr_log_error(trim(subname)//'FBImp('//trim(compname(n1))//','//trim(compname(n2))//')'// &
+                        ' has not been created', line=__LINE__, file=u_FILE_u, rc=rc)
+                   return
                 end if
                 call ESMF_FieldBundleGet(is_local%wrap%FBImp(n1,n2), fieldCount=fieldCount, rc=rc)
                 if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -582,8 +583,9 @@ contains
           if (chkerr(rc,__LINE__,u_FILE_u)) return
        end if
     else
-       call shr_sys_abort(trim(subname)//' mapindex '//trim(mapname)//' not supported for '//trim(string), &
-            line=__LINE__, file=u_FILE_u)
+       call shr_log_error(trim(subname)//' mapindex '//trim(mapname)//' not supported for '//trim(string), &
+            line=__LINE__, file=u_FILE_u, rc=rc)
+       return
     end if
 
     ! consd_nstod method requires a second routehandle
@@ -810,7 +812,8 @@ contains
                         //',  mapnorm '//trim(mapnorm_mapindex) &
                         //' set; cannot set mapnorm to '//trim(packed_data(mapindex)%mapnorm) &
                         //'  '//trim(fieldnamelist(nf))
-                     call shr_sys_abort(trim(tmpstr))
+                     call shr_log_error(trim(tmpstr), rc=rc)
+                     return
 
                    end if
                 end if

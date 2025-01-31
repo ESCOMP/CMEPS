@@ -6,8 +6,8 @@ module driver_pio_mod
   use pio         , only : pio_set_blocksize, pio_set_buffer_size_limit, pio_finalize
   use shr_pio_mod,  only : io_compname, pio_comp_settings, iosystems, io_compid, shr_pio_getindex
   use shr_kind_mod, only : CS=>shr_kind_CS, shr_kind_cl, shr_kind_in
-  use shr_log_mod,  only : shr_log_getLogUnit
-  use shr_sys_mod,  only : shr_sys_abort
+  use shr_log_mod,  only : shr_log_getLogUnit, shr_log_error
+
 #ifndef NO_MPI2
   use mpi, only : mpi_comm_null, mpi_comm_world, mpi_finalize
 #endif
@@ -424,7 +424,8 @@ contains
           call MPI_AllReduce(MPI_IN_PLACE, comp_proc_list(:,i), maxprocspercomp, MPI_INTEGER, MPI_MAX, Inst_comm, ierr)
        enddo
        if(asyncio_ntasks == 0) then
-          call shr_sys_abort(subname//' ERROR: ASYNC IO Requested but no IO PES assigned')
+          call shr_log_error(subname//' ERROR: ASYNC IO Requested but no IO PES assigned', rc=rc)
+          return
        endif
 
        allocate(async_iosystems(do_async_init))
@@ -440,7 +441,8 @@ contains
                    async_rearr = pio_comp_settings(i)%pio_rearranger
                 elseif(async_rearr .ne. pio_comp_settings(i)%pio_rearranger .and. pio_comp_settings(i)%pio_rearranger > 0) then
                    write(msgstr,*) i,async_rearr,pio_comp_settings(i)%pio_rearranger
-                   call shr_sys_abort(subname//' ERROR: all async component rearrangers must match '//msgstr)
+                   call shr_log_error( subname//' ERROR: all async component rearrangers must match '//msgstr, rc=rc)
+                   return
                 endif
              endif
           endif

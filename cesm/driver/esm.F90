@@ -5,12 +5,11 @@ module ESM
   !-----------------------------------------------------------------------------
 
   use shr_kind_mod , only : r8=>shr_kind_r8, cl=>shr_kind_cl, cs=>shr_kind_cs
-  use shr_sys_mod  , only : shr_sys_abort
   use shr_mpi_mod  , only : shr_mpi_bcast
   use shr_mem_mod  , only : shr_mem_init
-  use shr_log_mod  , only : shr_log_setLogunit
+  use shr_log_mod  , only : shr_log_setLogunit, shr_log_error
   use esm_utils_mod, only : logunit, maintask, dbug_flag, chkerr
-
+  use esmf         , only : ESMF_FAILURE
   implicit none
   private
 
@@ -490,10 +489,14 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     if (.not. shr_wv_sat_valid_idx(shr_wv_sat_get_scheme_idx(trim(wv_sat_scheme)))) then
-       call shr_sys_abort(subname//': "'//trim(wv_sat_scheme)//'" is not a recognized saturation vapor pressure scheme name')
+       call shr_log_error(subname//': "'//trim(wv_sat_scheme)//'" is not a recognized saturation vapor pressure scheme name')
+       rc = ESMF_FAILURE
+       return
     end if
     if (.not. shr_wv_sat_set_default(wv_sat_scheme)) then
-       call shr_sys_abort('Invalid wv_sat_scheme.')
+       call shr_log_error('Invalid wv_sat_scheme.')
+       rc = ESMF_FAILURE
+       return
     end if
 
     call NUOPC_CompAttributeGet(driver, name="wv_sat_transition_start", value=cvalue, rc=rc)
@@ -522,7 +525,9 @@ contains
 
     call shr_wv_sat_init(shr_const_tkfrz, shr_const_tktrip, wv_sat_transition_start, epsilo, errstring)
     if (errstring /= "") then
-       call shr_sys_abort('shr_wv_sat_init: '//trim(errstring))
+       call shr_log_error('shr_wv_sat_init: '//trim(errstring))
+       rc = ESMF_FAILURE
+       return
     end if
 
     ! The below produces internal lookup tables in the range 175-374K for
@@ -567,7 +572,9 @@ contains
     call NUOPC_CompAttributeGet(driver, name="cime_model", value=cime_model, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     if ( trim(cime_model) /= 'cesm' .and. trim(cime_model) /= 'ufs') then
-       call shr_sys_abort( subname//': cime_model must be set to cesm or ufs, aborting')
+       call shr_log_error( subname//': cime_model must be set to cesm or ufs, aborting')
+       rc = ESMF_FAILURE
+       return
     end if
 
     ! --- LogFile ending name -----
@@ -575,7 +582,9 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     if ( len_trim(logFilePostFix) == 0 ) then
-       call shr_sys_abort( subname//': logFilePostFix  must be set to something not blank' )
+       call shr_log_error( subname//': logFilePostFix  must be set to something not blank' )
+       rc = ESMF_FAILURE
+       return
     end if
 
     ! --- Output path root directory -----
@@ -583,10 +592,14 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     if ( len_trim(outPathRoot) == 0 ) then
-       call shr_sys_abort( subname//': outPathRoot  must be set' )
+       call shr_log_error( subname//': outPathRoot  must be set' )
+       rc = ESMF_FAILURE
+       return
     end if
     if ( index(outPathRoot, "/", back=.true.) /= len_trim(outPathRoot) ) then
-       call shr_sys_abort( subname//': outPathRoot must end with a slash' )
+       call shr_log_error( subname//': outPathRoot must end with a slash' )
+       rc = ESMF_FAILURE
+       return
     end if
 
   end subroutine CheckAttributes
@@ -1256,7 +1269,7 @@ contains
 
     if ( (scol_lon < scol_spval .and. scol_lat > scol_spval) .or. &
          (scol_lon > scol_spval .and. scol_lat < scol_spval)) then
-       call shr_sys_abort(subname//' ERROR: '//trim(compname)//' both scol_lon and scol_lat must be greater than -999 ')
+       call shr_log_error(subname//' ERROR: '//trim(compname)//' both scol_lon and scol_lat must be greater than -999 ')
     end if
 
     ! Set the special value for single column - if pts_lat or pts_lon are equal to the special value
@@ -1271,7 +1284,7 @@ contains
        ! ATM, LND, OCN and ICE components only
        ! verify that WAV and LND are not trying to use single column mode
        if (trim(compname) == 'WAV' .or. trim(compname) == 'ROF' .or. trim(compname) == 'GLC') then
-          call shr_sys_abort(subname//' ERROR: '//trim(compname)//' does not support single column mode ')
+          call shr_log_error(subname//' ERROR: '//trim(compname)//' does not support single column mode ')
        end if
 
        ! ensure that single column mode is only run on 1 pet
@@ -1280,7 +1293,7 @@ contains
        call ESMF_VMGet(vm, petcount=petcount, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        if (petcount > 1) then
-          call shr_sys_abort(subname//' ERROR: single column mode must be run on 1 pe')
+          call shr_log_error(subname//' ERROR: single column mode must be run on 1 pe')
        endif
 
        write(logunit,'(a,2(f10.5,2x))')trim(subname)//' single column point for '//trim(compname)//&
@@ -1304,27 +1317,27 @@ contains
           ! the closest point in the domin file to scol_lon and scol_lat
 
           status = nf90_open(single_column_lnd_domainfile, NF90_NOWRITE, ncid)
-          if (status /= nf90_noerr) call shr_sys_abort (trim(subname) //': opening '//&
+          if (status /= nf90_noerr) call shr_log_error (trim(subname) //': opening '//&
                trim(single_column_lnd_domainfile))
           status = nf90_inq_dimid (ncid, 'ni', dimid)
-          if (status /= nf90_noerr) call shr_sys_abort (trim(subname) //': inq_dimid ni')
+          if (status /= nf90_noerr) call shr_log_error (trim(subname) //': inq_dimid ni')
           status = nf90_inquire_dimension(ncid, dimid, len=ni)
-          if (status /= nf90_noerr) call shr_sys_abort (trim(subname) //': inquire_dimension ni')
+          if (status /= nf90_noerr) call shr_log_error (trim(subname) //': inquire_dimension ni')
           status = nf90_inq_dimid (ncid, 'nj', dimid)
-          if (status /= nf90_noerr) call shr_sys_abort (trim(subname) //': inq_dimid nj')
+          if (status /= nf90_noerr) call shr_log_error (trim(subname) //': inq_dimid nj')
           status = nf90_inquire_dimension(ncid, dimid, len=nj)
-          if (status /= nf90_noerr) call shr_sys_abort (trim(subname) //': inquire_dimension nj')
+          if (status /= nf90_noerr) call shr_log_error (trim(subname) //': inquire_dimension nj')
 
           status = nf90_inq_varid(ncid, 'xc' , varid_xc)
-          if (status /= nf90_noerr) call shr_sys_abort (subname//' inq_varid xc')
+          if (status /= nf90_noerr) call shr_log_error (subname//' inq_varid xc')
           status = nf90_inq_varid(ncid, 'yc' , varid_yc)
-          if (status /= nf90_noerr) call shr_sys_abort (subname//' inq_varid yc')
+          if (status /= nf90_noerr) call shr_log_error (subname//' inq_varid yc')
           status = nf90_inq_varid(ncid, 'area' , varid_area)
-          if (status /= nf90_noerr) call shr_sys_abort (subname//' inq_varid area')
+          if (status /= nf90_noerr) call shr_log_error (subname//' inq_varid area')
           status = nf90_inq_varid(ncid, 'mask' , varid_mask)
-          if (status /= nf90_noerr) call shr_sys_abort (subname//' inq_varid mask')
+          if (status /= nf90_noerr) call shr_log_error (subname//' inq_varid mask')
           status = nf90_inq_varid(ncid, 'frac' , varid_frac)
-          if (status /= nf90_noerr) call shr_sys_abort (subname//' inq_varid frac')
+          if (status /= nf90_noerr) call shr_log_error (subname//' inq_varid frac')
 
           ! Read in domain file for single column
           ! Check for unstructured data ni>1 and nj==1
@@ -1344,10 +1357,10 @@ contains
           start3=(/1,1,1/)
           count3=(/ni,nj,1/)
           status = nf90_get_var(ncid, varid_xc, glob_grid, start3, count3)
-          if (status /= nf90_noerr) call shr_sys_abort (subname//' get_var xc')
+          if (status /= nf90_noerr) call shr_log_error (subname//' get_var xc')
           lons(1:ni) = glob_grid(1:ni,1)
           status = nf90_get_var(ncid, varid_yc, glob_grid, start3, count3)
-          if (status /= nf90_noerr) call shr_sys_abort (subname//' get_var yc')
+          if (status /= nf90_noerr) call shr_log_error (subname//' get_var yc')
           if (unstructured) then
              lats(1:ni) = glob_grid(1:ni,1)
           else
@@ -1379,31 +1392,31 @@ contains
           ! read in value of nearest neighbor lon and RESET scol_lon and scol_lat
           ! also get area of gridcell, mask and frac
           status = nf90_get_var(ncid, varid_xc, scol_lon, start)
-          if (status /= nf90_noerr) call shr_sys_abort (subname//' get_var xc')
+          if (status /= nf90_noerr) call shr_log_error (subname//' get_var xc')
 
           status = nf90_get_var(ncid, varid_yc, scol_lat, start)
-          if (status /= nf90_noerr) call shr_sys_abort (subname//' get_var yc')
+          if (status /= nf90_noerr) call shr_log_error (subname//' get_var yc')
 
           status = nf90_get_var(ncid, varid_area, scol_area, start)
-          if (status /= nf90_noerr) call shr_sys_abort (subname//' get_var area')
+          if (status /= nf90_noerr) call shr_log_error (subname//' get_var area')
 
           status = nf90_get_var(ncid, varid_mask, iscol_data, start)
-          if (status /= nf90_noerr) call shr_sys_abort (subname//' get_var mask')
+          if (status /= nf90_noerr) call shr_log_error (subname//' get_var mask')
           scol_lndmask = iscol_data(1)
           scol_ocnmask = 1 - scol_lndmask
 
           status = nf90_get_var(ncid, varid_frac, scol_data, start)
-          if (status /= nf90_noerr) call shr_sys_abort (subname//' get_var frac')
+          if (status /= nf90_noerr) call shr_log_error (subname//' get_var frac')
           scol_lndfrac = scol_data(1)
           scol_ocnfrac = 1._r8 - scol_lndfrac
 
           if (scol_ocnmask == 0 .and. scol_lndmask == 0) then
-             call shr_sys_abort(trim(subname)//' in single column mode '&
+             call shr_log_error(trim(subname)//' in single column mode '&
                   //' ocean and land mask cannot both be zero')
           end if
 
           status = nf90_close(ncid)
-          if (status /= nf90_noerr) call shr_sys_abort (trim(subname) //': closing '//&
+          if (status /= nf90_noerr) call shr_log_error (trim(subname) //': closing '//&
                trim(single_column_lnd_domainfile))
 
           ! Now read in mesh file to get exact values of scol_lon and scol_lat that will be used

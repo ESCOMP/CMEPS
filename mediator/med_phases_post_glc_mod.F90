@@ -30,7 +30,7 @@ module med_phases_post_glc_mod
   use med_map_mod           , only : med_map_field_packed, med_map_field_normalized, med_map_field
   use glc_elevclass_mod     , only : glc_mean_elevation_virtual, glc_get_fractional_icecov
   use perf_mod              , only : t_startf, t_stopf
-  use shr_sys_mod           , only : shr_sys_abort
+  use shr_log_mod           , only : shr_log_error
   implicit none
   private
 
@@ -333,8 +333,8 @@ contains
 
     ! Currently cannot map hflx in multiple elevation classes from glc to land
     if (fldbun_fldchk(is_local%wrap%FBExp(complnd), trim(Flgg_hflx), rc=rc)) then
-       call shr_sys_abort(trim(subname)//'ERROR: Flgg_hflx to land has not been implemented yet', &
-            line=__LINE__, file=__FILE__)
+       call shr_log_error(trim(subname)//'ERROR: Flgg_hflx to land has not been implemented yet', &
+            line=__LINE__, file=__FILE__, rc=rc)
     end if
 
   end subroutine map_glc2lnd_init

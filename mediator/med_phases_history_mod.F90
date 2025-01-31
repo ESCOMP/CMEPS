@@ -23,7 +23,7 @@ module med_phases_history_mod
   use med_io_mod            , only : med_io_write, med_io_wopen, med_io_enddef, med_io_close
   use perf_mod              , only : t_startf, t_stopf
   use pio                   , only : file_desc_t
-  use shr_sys_mod           , only : shr_sys_abort
+  use shr_log_mod           , only : shr_log_error
   implicit none
   private
 
@@ -1207,7 +1207,8 @@ contains
                 call ESMF_FieldBundleGet(auxcomp%files(nfcnt)%FBAccum, fieldCount=nfld, rc=rc)
                 if (chkerr(rc,__LINE__,u_FILE_u)) return
                 if (nfld == 0) then
-                   call shr_sys_abort(subname//'FBAccum is zero for '//trim(auxcomp%files(nfcnt)%auxname))
+                   call shr_log_error(subname//'FBAccum is zero for '//trim(auxcomp%files(nfcnt)%auxname), rc=rc)
+                   return
                 end if
 
              end if
@@ -1370,7 +1371,8 @@ contains
          valid = .false.
       end if
       if (.not. valid) then
-         call shr_sys_abort("ERROR: invalid list = "//trim(str))
+         call shr_log_error("ERROR: invalid list = "//trim(str), rc=rc)
+         return
       end if
       ! get number of fields in a colon delimited string list
       nflds = 0
@@ -1453,8 +1455,9 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        if (ungriddedUBound(1) /= ungriddedUBound_accum(1)) then
-          call shr_sys_abort(" upper bounds for field and field_accum do not match", &
-               line=__LINE__, file=u_FILE_u)
+          call shr_log_error(" upper bounds for field and field_accum do not match", &
+               line=__LINE__, file=u_FILE_u, rc=rc)
+          return
        end if
 
        if (ungriddedUBound(1) > 0) then

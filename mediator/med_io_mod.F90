@@ -19,7 +19,7 @@ module med_io_mod
   use med_methods_mod       , only : FB_getFldPtr => med_methods_FB_getFldPtr
   use med_methods_mod       , only : FB_getNameN  => med_methods_FB_getNameN
   use med_utils_mod         , only : chkerr       => med_utils_ChkErr
-  use shr_sys_mod           , only : shr_sys_abort
+  use shr_log_mod           , only : shr_log_error
   implicit none
   private
 
@@ -195,7 +195,8 @@ contains
        else if (trim(cvalue) .eq. '64BIT_DATA') then
          pio_ioformat = PIO_64BIT_DATA
        else
-          call shr_sys_abort(trim(subname)//': need to provide valid option for pio_ioformat (CLASSIC|64BIT_OFFSET|64BIT_DATA)')
+          call shr_log_error(trim(subname)//': need to provide valid option for pio_ioformat (CLASSIC|64BIT_OFFSET|64BIT_DATA)', rc=rc)
+          return
        end if
     else
        cvalue = '64BIT_OFFSET'
@@ -218,7 +219,8 @@ contains
        else if (trim(cvalue) .eq. 'NETCDF4P') then
          pio_iotype = PIO_IOTYPE_NETCDF4P
        else
-         call shr_sys_abort(trim(subname)//': need to provide valid option for pio_typename (NETCDF|PNETCDF|NETCDF4C|NETCDF4P)')
+          call shr_log_error(trim(subname)//': need to provide valid option for pio_typename (NETCDF|PNETCDF|NETCDF4C|NETCDF4P)', rc=rc)
+          return
        end if
     else
        cvalue = 'NETCDF'
@@ -327,7 +329,8 @@ contains
        else if (trim(cvalue) .eq. 'SUBSET') then
          pio_rearranger = PIO_REARR_SUBSET
        else
-         call shr_sys_abort(trim(subname)//': need to provide valid option for pio_rearranger (BOX|SUBSET)')
+          call shr_log_error(trim(subname)//': need to provide valid option for pio_rearranger (BOX|SUBSET)', rc=rc)
+          return
        end if
     else
        cvalue = 'SUBSET'
@@ -348,7 +351,8 @@ contains
     if (isPresent .and. isSet) then
        read(cvalue,*) pio_debug_level
        if (pio_debug_level < 0 .or. pio_debug_level > 6) then
-         call shr_sys_abort(trim(subname)//': need to provide valid option for pio_debug_level (0-6)')
+          call shr_log_error(trim(subname)//': need to provide valid option for pio_debug_level (0-6)', rc=rc)
+          return
        end if
     else
        pio_debug_level = 0
@@ -370,7 +374,8 @@ contains
        else if (trim(cvalue) .eq. 'COLL') then
           pio_rearr_comm_type = PIO_REARR_COMM_COLL
        else
-         call shr_sys_abort(trim(subname)//': need to provide valid option for pio_rearr_comm_type (P2P|COLL)')
+          call shr_log_error(trim(subname)//': need to provide valid option for pio_rearr_comm_type (P2P|COLL)', rc=rc)
+          return
        end if
     else
        cvalue = 'P2P'
@@ -393,7 +398,8 @@ contains
        else if (trim(cvalue) .eq. '2DDISABLE') then
           pio_rearr_comm_fcd = PIO_REARR_COMM_FC_2D_DISABLE
        else
-         call shr_sys_abort(trim(subname)//': need to provide valid option for pio_rearr_comm_fcd (2DENABLE|IO2COMP|COMP2IO|2DDISABLE)')
+          call shr_log_error(trim(subname)//': need to provide valid option for pio_rearr_comm_fcd (2DENABLE|IO2COMP|COMP2IO|2DDISABLE)', rc=rc)
+          return
        end if
     else
        cvalue = '2DENABLE'
@@ -656,7 +662,8 @@ contains
     rc = ESMF_SUCCESS
 
     if (seconds < 0 .or. seconds > 86400) then
-       call shr_sys_abort('med_io_sec2hms: bad input seconds')
+       call shr_log_error('med_io_sec2hms: bad input seconds', rc=rc)
+       return
     end if
 
     hours   = seconds / 3600
@@ -665,12 +672,14 @@ contains
 
     if (minutes < 0 .or. minutes > 60) then
        write(msg,*)'med_io_sec2hms: bad minutes = ',minutes
-       call shr_sys_abort(msg)
+       call shr_log_error(msg, rc=rc)
+       return
     end if
 
     if (secs < 0 .or. secs > 60) then
        write(msg,*)'med_io_sec2hms: bad secs = ',secs
-       call shr_sys_abort(msg)
+       call shr_log_error(msg, rc=rc)
+       return
     end if
 
     write(med_io_sec2hms,80) hours, minutes, secs
@@ -862,7 +871,8 @@ contains
        call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
        if (lnx*lny*lntile /= ng) then
           write(tmpstr,*) subname,' ERROR: grid size not consistent ',ng,lnx,lny,lntile
-          call shr_sys_abort(trim(tmpstr))
+          call shr_log_error(trim(tmpstr), rc=rc)
+          return
        end if
     else
        lnx = ng
@@ -1378,8 +1388,9 @@ contains
     rc = ESMF_SUCCESS
 
     if (.not. ESMF_CalendarIsCreated(calendar)) then
-       call shr_sys_abort(trim(subname)//' ERROR: calendar is not created ', &
-            line=__LINE__, file=u_FILE_u)
+       call shr_log_error(trim(subname)//' ERROR: calendar is not created ', &
+            line=__LINE__, file=u_FILE_u, rc=rc)
+       return
     end if
 
     ! define time and add calendar attribute
@@ -1539,8 +1550,9 @@ contains
        call ESMF_LogWrite(trim(subname)//' open file '//trim(filename), ESMF_LOGMSG_INFO)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     else
-       call shr_sys_abort(trim(subname)//' ERROR: file invalid '//trim(filename), &
-            line=__LINE__, file=u_FILE_u)
+       call shr_log_error(trim(subname)//' ERROR: file invalid '//trim(filename), &
+            line=__LINE__, file=u_FILE_u, rc=rc)
+       return
     endif
 
     call pio_seterrorhandling(pioid, PIO_BCAST_ERROR)
@@ -1749,7 +1761,8 @@ contains
 
        deallocate(minIndexPTile, maxIndexPTile)
     else
-       call shr_sys_abort(trim(subname)//' ERROR: '//trim(name1)//' is not present, aborting ')
+       call shr_log_error(trim(subname)//' ERROR: '//trim(name1)//' is not present, aborting ', rc=rc)
+       return
     end if ! end if rcode check
 
   end subroutine med_io_read_init_iodesc
@@ -1822,7 +1835,8 @@ contains
        rcode = pio_get_att(pioid,pio_global,"file_version",lversion)
        call pio_seterrorhandling(pioid,PIO_INTERNAL_ERROR)
     else
-       call shr_sys_abort(trim(subname)//'ERROR: file invalid '//trim(filename)//' '//trim(dname))
+       call shr_log_error(trim(subname)//'ERROR: file invalid '//trim(filename)//' '//trim(dname), rc=rc)
+       return
     endif
 
     if (trim(lversion) == trim(version)) then
@@ -1904,7 +1918,8 @@ contains
        rcode = pio_get_att(pioid,pio_global,"file_version",lversion)
        call pio_seterrorhandling(pioid,PIO_INTERNAL_ERROR)
     else
-       call shr_sys_abort(trim(subname)//'ERROR: file invalid '//trim(filename)//' '//trim(dname))
+       call shr_log_error(trim(subname)//'ERROR: file invalid '//trim(filename)//' '//trim(dname), rc=rc)
+       return
     endif
 
     if (trim(lversion) == trim(version)) then
@@ -1961,7 +1976,8 @@ contains
        rcode = pio_get_att(pioid,pio_global,"file_version",lversion)
        call pio_seterrorhandling(pioid,PIO_INTERNAL_ERROR)
     else
-       call shr_sys_abort(trim(subname)//'ERROR: file invalid '//trim(filename)//' '//trim(dname))
+       call shr_log_error(trim(subname)//'ERROR: file invalid '//trim(filename)//' '//trim(dname), rc=rc)
+       return
     endif
 
     if (trim(lversion) == trim(version)) then

@@ -14,7 +14,7 @@ module med_phases_restart_mod
   use med_phases_prep_glc_mod , only : FBocnAccum2glc_o, ocnAccum2glc_cnt
   use med_phases_prep_rof_mod , only : FBlndAccum2rof_l, lndAccum2rof_cnt
   use pio                     , only : file_desc_t
-  use shr_sys_mod             , only : shr_sys_abort
+  use shr_log_mod             , only : shr_log_error
   implicit none
   private
 
@@ -547,7 +547,8 @@ contains
        open(newunit=unitn, file=restart_pfile, form='FORMATTED', status='old', iostat=ierr)
        read (unitn,'(a)', iostat=ierr) restart_file
        if (ierr < 0) then
-          call shr_sys_abort(trim(subname)//' rpointer file read returns error')
+          call shr_log_error(trim(subname)//' rpointer file read returns error', rc=rc)
+          return
        end if
        close(unitn)
        call ESMF_LogWrite(trim(subname)//' restart file from rpointer = '//trim(restart_file), ESMF_LOGMSG_INFO)

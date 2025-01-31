@@ -32,7 +32,7 @@ module med_diag_mod
   use med_methods_mod       , only : fldbun_fldChk    => med_methods_FB_FldChk
   use med_utils_mod         , only : chkerr           => med_utils_ChkErr
   use perf_mod              , only : t_startf, t_stopf
-  use shr_sys_mod           , only : shr_sys_abort
+  use shr_log_mod           , only : shr_log_error
   
   implicit none
   private
@@ -513,9 +513,9 @@ contains
        budget_counter(:,:,period_inst) = 0.0_r8
        budget_counter(:,:,period_inst+1:) = 1.0_r8
     else
-       call shr_sys_abort(trim(subname)//' mode '//trim(mode)//&
+       call shr_log_error(trim(subname)//' mode '//trim(mode)//&
             ' not recognized', &
-            line=__LINE__, file=u_FILE_u)
+            line=__LINE__, file=u_FILE_u, rc=rc)
     endif
   end subroutine med_diag_zero_mode
 
