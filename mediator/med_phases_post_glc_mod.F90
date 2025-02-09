@@ -7,7 +7,7 @@ module med_phases_post_glc_mod
 
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
   use NUOPC                 , only : NUOPC_CompAttributeGet
-  use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_LOGMSG_ERROR, ESMF_SUCCESS, ESMF_FAILURE
+  use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
   use ESMF                  , only : ESMF_FieldBundle, ESMF_FieldBundleGet
   use ESMF                  , only : ESMF_GridComp, ESMF_GridCompGet
   use ESMF                  , only : ESMF_StateGet, ESMF_StateItem_Flag
@@ -30,7 +30,7 @@ module med_phases_post_glc_mod
   use med_map_mod           , only : med_map_field_packed, med_map_field_normalized, med_map_field
   use glc_elevclass_mod     , only : glc_mean_elevation_virtual, glc_get_fractional_icecov
   use perf_mod              , only : t_startf, t_stopf
-
+  use shr_sys_mod           , only : shr_sys_abort
   implicit none
   private
 
@@ -68,7 +68,7 @@ module med_phases_post_glc_mod
 
   logical :: cism_evolve = .false.
   logical :: glc2lnd_coupling = .false.
-  logical :: glc2ocn_coupling = .false.
+  logical :: glc2rof_coupling = .false.
   logical :: glc2ice_coupling = .false.
 
   character(*) , parameter :: u_FILE_u = &
@@ -120,8 +120,8 @@ contains
        end do
        ! determine if there will be any glc to ocn coupling
        do ns = 1,is_local%wrap%num_icesheets
-          if (is_local%wrap%med_coupling_active(compglc(ns),compocn)) then
-             glc2ocn_coupling = .true.
+          if (is_local%wrap%med_coupling_active(compglc(ns),comprof)) then
+             glc2rof_coupling = .true.
              exit
           end if
        end do
@@ -134,7 +134,7 @@ contains
        end do
        if (maintask) then
           write(logunit,'(a,L1)') trim(subname) // 'glc2lnd_coupling is ',glc2lnd_coupling
-          write(logunit,'(a,L1)') trim(subname) // 'glc2ocn_coupling is ',glc2ocn_coupling
+          write(logunit,'(a,L1)') trim(subname) // 'glc2rof_coupling is ',glc2rof_coupling
           write(logunit,'(a,L1)') trim(subname) // 'glc2ice_coupling is ',glc2ice_coupling
        end if
 
@@ -152,19 +152,19 @@ contains
     end if
 
     !---------------------------------------
-    ! glc->ocn mapping
-    ! merging with rof->ocn fields is done in med_phases_prep_ocn
+    ! glc->rof mapping
     !---------------------------------------
-    if (glc2ocn_coupling) then
+
+    if (glc2rof_coupling) then
        do ns = 1,is_local%wrap%num_icesheets
-          if (is_local%wrap%med_coupling_active(compglc(ns),compocn)) then
+          if (is_local%wrap%med_coupling_active(compglc(ns),comprof)) then
              call med_map_field_packed( &
                   FBSrc=is_local%wrap%FBImp(compglc(ns),compglc(ns)), &
-                  FBDst=is_local%wrap%FBImp(compglc(ns),compocn), &
+                  FBDst=is_local%wrap%FBImp(compglc(ns),comprof), &
                   FBFracSrc=is_local%wrap%FBFrac(compglc(ns)), &
-                  field_normOne=is_local%wrap%field_normOne(compglc(ns),compocn,:), &
-                  packed_data=is_local%wrap%packed_data(compglc(ns),compocn,:), &
-                  routehandles=is_local%wrap%RH(compglc(ns),compocn,:), rc=rc)
+                  field_normOne=is_local%wrap%field_normOne(compglc(ns),comprof,:), &
+                  packed_data=is_local%wrap%packed_data(compglc(ns),comprof,:), &
+                  routehandles=is_local%wrap%RH(compglc(ns),comprof,:), rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
        end do
@@ -333,10 +333,8 @@ contains
 
     ! Currently cannot map hflx in multiple elevation classes from glc to land
     if (fldbun_fldchk(is_local%wrap%FBExp(complnd), trim(Flgg_hflx), rc=rc)) then
-       call ESMF_LogWrite(trim(subname)//'ERROR: Flgg_hflx to land has not been implemented yet', &
-            ESMF_LOGMSG_ERROR, line=__LINE__, file=__FILE__)
-       rc = ESMF_FAILURE
-       return
+       call shr_sys_abort(trim(subname)//'ERROR: Flgg_hflx to land has not been implemented yet', &
+            line=__LINE__, file=__FILE__)
     end if
 
   end subroutine map_glc2lnd_init

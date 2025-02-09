@@ -9,7 +9,7 @@ module med_phases_profile_mod
   use med_utils_mod         , only : med_utils_chkerr, med_memcheck
   use med_internalstate_mod , only : maintask, logunit
   use med_utils_mod         , only : chkerr    => med_utils_ChkErr
-  use med_time_mod          , only : alarmInit => med_time_alarmInit
+  use nuopc_shr_methods     , only : alarmInit
   use perf_mod              , only : t_startf, t_stopf
 #ifdef CESMCOUPLED
   use shr_mem_mod           , only : shr_mem_getusage
@@ -41,7 +41,7 @@ contains
     use ESMF  , only : ESMF_TimeInterval, ESMF_AlarmGet, ESMF_TimeIntervalGet
     use ESMF  , only : ESMF_ClockGetNextTime, ESMF_TimeGet, ESMF_ClockGet
     use ESMF  , only : ESMF_ClockAdvance, ESMF_ClockSet, ESMF_ClockIsStopTime
-    use ESMF  , only : operator(-)
+    use ESMF  , only : operator(-), ESMF_CALKIND_GREGORIAN
     use NUOPC , only : NUOPC_CompAttributeGet
 
     ! write profile output
@@ -53,7 +53,8 @@ contains
     ! local variables
     character(len=CS)       :: cpl_inst_tag
     type(ESMF_Clock)        :: clock
-    type(ESMF_Time)         :: wallclockTime, nextTime
+    type(ESMF_Time), save   :: wallclockTime
+    type(ESMF_Time)         :: nextTime
     type(ESMF_Time)         :: currTime
     type(ESMF_Time), save   :: prevTime
     type(ESMF_TimeInterval) :: ringInterval, timestep
@@ -119,6 +120,12 @@ contains
 
        call ESMF_TimeIntervalGet(timestep, d_r8=timestep_length, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+       ! use gregorian calendar for wallclocktime
+       ! The s=0 is just to avoid an internal /0 error in esmf
+       call ESMF_TimeSet(wallclockTime, calkindflag=ESMF_CALKIND_GREGORIAN, s=0, rc=rc)
+       if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
+
        iterations = 1
 
     else
@@ -170,12 +177,10 @@ contains
           call ESMF_TimeGet(nexttime, timestring=nexttimestr, rc=rc)
           if (med_utils_ChkErr(rc,__LINE__,u_FILE_u)) return
           ! get current wall clock time
-          call ESMF_TimeSet(wallclocktime, rc=rc)
-          if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
-          call ESMF_TimeSyncToRealTime(wallclocktime, rc=rc)
+          call ESMF_TimeSyncToRealTime(wallclockTime, rc=rc)
           if (med_utils_chkerr(rc,__LINE__,u_FILE_u)) return
 
-          call ESMF_TimeGet(wallclocktime,timeString=walltimestr, rc=rc)
+          call ESMF_TimeGet(wallclockTime,timeString=walltimestr, rc=rc)
           if (med_utils_ChkErr(rc,__LINE__,u_FILE_u)) return
 
           ! 1 model day/ x seconds = 1/365 yrs/ (wallclockelapsed s/86400spd
