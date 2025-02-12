@@ -22,7 +22,7 @@ module med_phases_post_rof_mod
   use med_methods_mod       , only : fldbun_getdata1d => med_methods_FB_getdata1d
   use med_methods_mod       , only : fldbun_getmesh   => med_methods_FB_getmesh
   use perf_mod              , only : t_startf, t_stopf
-  use shr_sys_mod           , only : shr_sys_abort
+  use shr_log_mod           , only : shr_log_error
 
   implicit none
   private
@@ -105,7 +105,8 @@ contains
        flds_wiso = .false.
     end if
     if ((remove_negative_runoff_lnd .or. remove_negative_runoff_glc) .and. flds_wiso) then
-      call shr_sys_abort('remove_negative_runoff_lnd and remove_negative_runoff_glc must be set to false when flds_wiso is true')
+       call shr_log_error('remove_negative_runoff_lnd and remove_negative_runoff_glc must be set to false when flds_wiso is true', rc=rc)
+       return
     end if
 
     if (maintask) then

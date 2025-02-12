@@ -16,7 +16,7 @@ module med_merge_mod
   use esmFlds               , only : med_fldList_entry_type
   use esmFlds               , only : med_fldList_findName
   use perf_mod              , only : t_startf, t_stopf
-  use shr_sys_mod           , only : shr_sys_abort
+  use shr_log_mod           , only : shr_log_error
   
   implicit none
   private
@@ -345,12 +345,14 @@ contains
 
     if (merge_type == 'copy_with_weights' .or. merge_type == 'merge') then
        if (trim(fldw) == 'unset') then
-          call shr_sys_abort(trim(subname)//": error required merge_fracname is not set", &
-               line=__LINE__, file=u_FILE_u)
+          call shr_log_error(trim(subname)//": error required merge_fracname is not set", &
+               line=__LINE__, file=u_FILE_u, rc=rc)
+          return
        end if
        if (.not. FB_FldChk(FBw, trim(fldw), rc=rc)) then
-          call shr_sys_abort(trim(subname)//": error "//trim(fldw)//"is not in FBw", &
-               line=__LINE__, file=u_FILE_u)
+          call shr_log_error(trim(subname)//": error "//trim(fldw)//"is not in FBw", &
+               line=__LINE__, file=u_FILE_u, rc=rc)
+          return
        end if
     end if
 
@@ -415,8 +417,9 @@ contains
           dp1(:) = dp1(:) + dpf1(:)
        endif
     else
-       call shr_sys_abort(trim(subname)//": merge type "//trim(merge_type)//" not supported", &
-            line=__LINE__, file=u_FILE_u)
+       call shr_log_error(trim(subname)//": merge type "//trim(merge_type)//" not supported", &
+            line=__LINE__, file=u_FILE_u, rc=rc)
+       return
     end if
 
   end subroutine med_merge_auto_field
@@ -470,8 +473,9 @@ contains
              call ESMF_FieldBundleGet(FBMed2, trim(merge_fldname), field=field_in, rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
           else
-             call shr_sys_abort(trim(subname)//": ERROR merge_fldname = "//trim(merge_fldname)//" not found", &
+             call shr_log_error(trim(subname)//": ERROR merge_fldname = "//trim(merge_fldname)//" not found", &
                   rc=rc)
+             return
           end if
        end if
     endif
@@ -486,7 +490,7 @@ contains
             ' for '//trim(merge_fldname), &
             ' not equal to output field ungriddedUbound ',ungriddedUbound_out,' for '//trim(fldname_out)
       
-       call shr_sys_abort(errmsg)
+       call shr_log_error(errmsg, rc=rc)
    endif
 
   end subroutine med_merge_auto_errcheck
@@ -547,8 +551,9 @@ contains
         (present(FBinC) .and. .not.present(fnameC)) .or. &
         (present(FBinD) .and. .not.present(fnameD)) .or. &
         (present(FBinE) .and. .not.present(fnameE))) then
-       call shr_sys_abort(trim(subname)//": ERROR fname not present with FBin", &
+       call shr_log_error(trim(subname)//": ERROR fname not present with FBin", &
             line=__LINE__, file=u_FILE_u, rc=dbrc)
+       return
     endif
 
     if (.not. FB_FldChk(FBout, trim(fnameout), rc=rc)) then
@@ -636,14 +641,16 @@ contains
 
        if (FBinfound) then
           if (lbound(dataPtr,1) /= lbound(dataOut,1) .or. ubound(dataPtr,1) /= ubound(dataOut,1)) then
-             call shr_sys_abort(trim(subname)//": ERROR FBin wrong size", &
+             call shr_log_error(trim(subname)//": ERROR FBin wrong size", &
                   line=__LINE__, file=u_FILE_u, rc=dbrc)
+             return
           endif
           if (wgtfound) then
              if (lbound(dataPtr,1) /= lbound(wgt,1) .or. ubound(dataPtr,1) /= ubound(wgt,1)) then
                 
-                call shr_sys_abort(trim(subname)//": ERROR wgt wrong size", &
+                call shr_log_error(trim(subname)//": ERROR wgt wrong size", &
                      line=__LINE__, file=u_FILE_u, rc=dbrc)
+                return
              endif
              do i = lb1,ub1
                 dataOut(i) = dataOut(i) + dataPtr(i) * wgt(i)
@@ -731,13 +738,15 @@ contains
        return
     end if
     if (.not. valid_list) then
-       call shr_sys_abort("ERROR: invalid list = "//trim(list))
+       call shr_log_error("ERROR: invalid list = "//trim(list), rc=rc)
+       return
     end if
 
     !--- check that this is a valid index ---
     kFlds = merge_listGetNum(list)
     if (k<1 .or. kFlds<k) then
-       call shr_sys_abort("ERROR: invalid index = "//trim(list))
+       call shr_log_error("ERROR: invalid index = "//trim(list), rc=rc)
+       return
     end if
 
     ! start with whole list, then remove fields before and after desired field ---

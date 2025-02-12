@@ -1,10 +1,10 @@
 module esm_time_mod
 
   use shr_kind_mod        , only : cx=>shr_kind_cx, cs=>shr_kind_cs, cl=>shr_kind_cl, r8=>shr_kind_r8
-  use shr_sys_mod         , only : shr_sys_abort
+  use shr_log_mod         , only : shr_log_error
   use ESMF                , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_GridCompSet
   use ESMF                , only : ESMF_Clock, ESMF_ClockCreate, ESMF_ClockGet, ESMF_ClockSet
-  use ESMF                , only : ESMF_ClockAdvance
+  use ESMF                , only : ESMF_ClockAdvance, ESMF_FAILURE
   use ESMF                , only : ESMF_Alarm, ESMF_AlarmCreate, ESMF_AlarmGet
   use ESMF                , only : ESMF_Calendar, ESMF_CalKind_Flag, ESMF_CalendarCreate
   use ESMF                , only : ESMF_CALKIND_NOLEAP, ESMF_CALKIND_GREGORIAN
@@ -141,20 +141,26 @@ contains
                 write(logunit,*) " read rpointer file = "//trim(restart_pfile)
                 inquire( file=trim(restart_pfile), exist=exists)
                 if (.not. exists) then
-                   call shr_sys_abort(trim(subname)//' ERROR rpointer file '//trim(restart_pfile)//' not found',&
+                   call shr_log_error( trim(subname)//' ERROR rpointer file '//trim(restart_pfile)//' not found',&
                         line=__LINE__, file=__FILE__)
+                   rc = ESMF_FAILURE
+                   return
                 endif
                 call ESMF_LogWrite(trim(subname)//" read rpointer file = "//trim(restart_pfile), &
                      ESMF_LOGMSG_INFO)
                 open(newunit=unitn, file=restart_pfile, form='FORMATTED', status='old',iostat=ierr)
                 if (ierr < 0) then
-                   call shr_sys_abort(trim(subname)//' ERROR rpointer file open returns error', &
+                   call shr_log_error( trim(subname)//' ERROR rpointer file open returns error', &
                         line=__LINE__, file=__FILE__)
+                   rc = ESMF_FAILURE
+                   return
                 end if
                 read(unitn,'(a)', iostat=ierr) restart_file
                 if (ierr < 0) then
-                   call shr_sys_abort(trim(subname)//' ERROR rpointer file read returns error', &
+                   call shr_log_error( trim(subname)//' ERROR rpointer file read returns error', &
                         line=__LINE__, file=__FILE__)
+                   rc = ESMF_FAILURE
+                   return
                 end if
                 close(unitn)
                 if (maintask) then
@@ -367,58 +373,78 @@ contains
    rc = ESMF_SUCCESS
    status = nf90_open(restart_file, NF90_NOWRITE, ncid)
    if (status /= nf90_NoErr) then
-      call shr_sys_abort(trim(subname)//' ERROR: nf90_open: '//trim(restart_file),&
+      call shr_log_error( trim(subname)//' ERROR: nf90_open: '//trim(restart_file),&
            file=__FILE__, line=__LINE__)
+      rc = ESMF_FAILURE
+      return
    endif
 
    status = nf90_inq_varid(ncid, 'start_ymd', varid)
    if (status /= nf90_NoErr) then
-      call shr_sys_abort(trim(subname)//' ERROR: nf90_inq_varid start_ymd', &
+      call shr_log_error( trim(subname)//' ERROR: nf90_inq_varid start_ymd', &
            file=__FILE__, line=__LINE__)
+      rc = ESMF_FAILURE
+      return
    end if
    status = nf90_get_var(ncid, varid, start_ymd)
    if (status /= nf90_NoErr) then
-      call shr_sys_abort(trim(subname)//' ERROR: nf90_get_var start_ymd', &
+      call shr_log_error( trim(subname)//' ERROR: nf90_get_var start_ymd', &
            file=__FILE__, line=__LINE__)
+      rc = ESMF_FAILURE
+      return
    end if
 
    status = nf90_inq_varid(ncid, 'start_tod', varid)
    if (status /= nf90_NoErr) then
-      call shr_sys_abort(trim(subname)//' ERROR: nf90_inq_varid start_tod', &
+      call shr_log_error( trim(subname)//' ERROR: nf90_inq_varid start_tod', &
            file=__FILE__, line=__LINE__)
+      rc = ESMF_FAILURE
+      return
    end if
    status = nf90_get_var(ncid, varid, start_tod)
    if (status /= nf90_NoErr) then
-      call shr_sys_abort(trim(subname)//' ERROR: nf90_get_var start_tod', &
+      call shr_log_error( trim(subname)//' ERROR: nf90_get_var start_tod', &
            file=__FILE__, line=__LINE__)
+      rc = ESMF_FAILURE
+      return
    end if
 
    status = nf90_inq_varid(ncid, 'curr_ymd', varid)
    if (status /= nf90_NoErr) then
-      call shr_sys_abort(trim(subname)//' ERROR: nf90_inq_varid curr_ymd', &
+      call shr_log_error( trim(subname)//' ERROR: nf90_inq_varid curr_ymd', &
            file=__FILE__, line=__LINE__)
+      rc = ESMF_FAILURE
+      return
    end if
    status = nf90_get_var(ncid, varid, curr_ymd)
    if (status /= nf90_NoErr) then
-      call shr_sys_abort(trim(subname)//' ERROR: nf90_get_var curr_ymd', &
+      call shr_log_error( trim(subname)//' ERROR: nf90_get_var curr_ymd', &
            file=__FILE__, line=__LINE__)
+      rc = ESMF_FAILURE
+      return
    end if
 
    status = nf90_inq_varid(ncid, 'curr_tod', varid)
    if (status /= nf90_NoErr) then
-      call shr_sys_abort(trim(subname)//' ERROR: nf90_inq_varid curr_tod', &
+      call shr_log_error( trim(subname)//' ERROR: nf90_inq_varid curr_tod', &
            file=__FILE__, line=__LINE__)
+      rc = ESMF_FAILURE
+      return
    end if
    status = nf90_get_var(ncid, varid, curr_tod)
    if (status /= nf90_NoErr) then
-      call shr_sys_abort(trim(subname)//' ERROR: nf90_get_var curr_tod', &
+      call shr_log_error( trim(subname)//' ERROR: nf90_get_var curr_tod', &
            file=__FILE__, line=__LINE__)
+      rc = ESMF_FAILURE
+      return
    end if
 
    status = nf90_close(ncid)
    if (status /= nf90_NoErr) then
-      call shr_sys_abort(trim(subname)//' ERROR: nf90_close', &
+      call shr_log_error( trim(subname)//' ERROR: nf90_close', &
            file=__FILE__, line=__LINE__)
+      rc = ESMF_FAILURE
+      return
    end if
 
    write(tmpstr,*) trim(subname)//" read start_ymd = ",start_ymd
