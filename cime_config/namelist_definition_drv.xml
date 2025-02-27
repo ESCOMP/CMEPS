@@ -910,7 +910,7 @@
     <valid_values>ogrid,agrid,xgrid</valid_values>
     <desc>
       Grid for atm ocn flux calc
-      default: ogrid
+      default: xgrid for fully coupled cases, ogrid for datm
     </desc>
     <values>
       <value>xgrid</value>
