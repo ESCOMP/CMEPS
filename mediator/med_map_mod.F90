@@ -423,6 +423,11 @@ contains
           srcMaskValue = ispval_mask
        end if
     end if
+    if (coupling_mode(1:5) == 'sofar') then
+       if (n1 == compatm .and. n2 == compwav) then
+          srcMaskValue = ispval_mask
+       end if
+    end if
     write(string,'(a,i10,a,i10)') trim(compname(n1))//' to '//trim(compname(n2))//' srcMask = ', &
                srcMaskValue,' dstMask = ',dstMaskValue
     call ESMF_LogWrite(trim(string), ESMF_LOGMSG_INFO)

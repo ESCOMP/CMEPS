@@ -12,7 +12,7 @@ module MED
   ! the run sequence provided by freeFormat, this loop becomes the driver
   ! loop level directly. Therefore, setting the timeStep or runDuration
   ! for the outer most time loop results in modifying the driver clock
-  ! itself. However, for cases with cocnatenated loops on the upper level
+  ! itself. However, for cases with concatenated loops on the upper level
   ! of the run sequence in freeFormat, a single outer loop is added
   ! automatically during ingestion, and the driver clock is used for this
   ! loop instead.

@@ -154,13 +154,13 @@ contains
     !----------------------------------------------------------
     ! from med: ocean albedos (not sent to the ATM in UFS).
     !----------------------------------------------------------
-    if (trim(coupling_mode(1:5)) == 'sofar') then
-       if (phase == 'advertise') then
+    if (sofar_attr%ocn_present) then
+      if (trim(coupling_mode(1:5)) == 'sofar') then
           call addfld_ocnalb('So_avsdr')
           call addfld_ocnalb('So_avsdf')
           call addfld_ocnalb('So_anidr')
           call addfld_ocnalb('So_anidf')
-       end if
+      end if
     end if
 
     !=====================================================================

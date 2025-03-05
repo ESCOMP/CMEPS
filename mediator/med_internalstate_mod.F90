@@ -671,6 +671,9 @@ contains
     if ( trim(coupling_mode) == 'hafs') then
        if (is_local%wrap%comp_present(compatm)) defaultMasks(compatm,1) = 1
     endif
+    if ( trim(coupling_mode(1:5)) == 'sofar') then
+       if (is_local%wrap%comp_present(compatm)) defaultMasks(compatm,1) = 1
+    endif
     if ( trim(coupling_mode) /= 'cesm') then
        if (is_local%wrap%comp_present(compatm) .and. trim(atm_name(1:4)) == 'datm') then
           defaultMasks(compatm,1) = 0
