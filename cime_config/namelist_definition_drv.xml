@@ -3935,7 +3935,7 @@
       Maximum allowed mesh error
     </desc>
     <values>
-      <value>0.01</value>
+      <value>0.1</value>
       <value ocn_grid="tnx2v1">0.15</value>
     </values>
   </entry>
