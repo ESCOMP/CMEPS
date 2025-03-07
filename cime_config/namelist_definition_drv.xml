@@ -3927,6 +3927,18 @@
       <value>$ICE_DOMAIN_MESH</value>
     </values>
   </entry>
+  <entry id="eps_imesh">
+    <type>real</type>
+    <category>mapping</category>
+    <group>ICE_attributes</group>
+    <desc>
+      Maximum allowed mesh error
+    </desc>
+    <values>
+      <value>0.1</value>
+      <value ocn_grid="tnx2v1">0.15</value>
+    </values>
+  </entry>
 
   <!-- ======================================== -->
   <!--  GLC attributes                          -->
