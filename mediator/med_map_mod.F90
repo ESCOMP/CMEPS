@@ -423,9 +423,15 @@ contains
           srcMaskValue = ispval_mask
        end if
     end if
+    ! For sofar atm-wav, override all masks to 1 
     if (coupling_mode(1:5) == 'sofar') then
        if (n1 == compatm .and. n2 == compwav) then
-          srcMaskValue = ispval_mask
+          srcMaskValue = 1
+          dstMaskValue = 1
+       end if
+       if (n1 == compwav .and. n2 == compatm) then
+          srcMaskValue = 1
+          dstMaskValue = 1
        end if
     end if
     write(string,'(a,i10,a,i10)') trim(compname(n1))//' to '//trim(compname(n2))//' srcMask = ', &
