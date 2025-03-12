@@ -826,9 +826,6 @@ contains
        write(logunit,*)
     end if
 
-    write(msgString,'(A,i6)') trim(subname)//': Mediator dbug_flag is ',dbug_flag
-    call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
-
     ! Get srcMask and dstMask for wave and atmosphere 
     if (coupling_mode(1:5) == 'sofar') then
        ! srcMaskAtm
