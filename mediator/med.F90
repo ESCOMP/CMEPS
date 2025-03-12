@@ -871,7 +871,7 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        if (isPresent .and. isSet) then
           call ESMF_LogWrite('srcMaskAtm = '// trim(cvalue), ESMF_LOGMSG_INFO)
-          read(trim(cvalue), '(i10)') srcMaskAtm
+          read(cvalue, '(i10)') srcMaskAtm
           if (maintask) then
              write(logunit,'(a)')trim(subname)//' srcMaskAtm is set to '//trim(cvalue)
           end if
@@ -882,7 +882,7 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        if (isPresent .and. isSet) then
           call ESMF_LogWrite('dstMaskAtm = '// trim(cvalue), ESMF_LOGMSG_INFO)
-          read(trim(cvalue), '(i10)') dstMaskAtm
+          read(cvalue, '(i10)') dstMaskAtm
           if (maintask) then
              write(logunit,'(a)')trim(subname)//' dstMaskAtm is set to '//trim(cvalue)
           end if
@@ -893,7 +893,7 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        if (isPresent .and. isSet) then
           call ESMF_LogWrite('srcMaskWav = '// trim(cvalue), ESMF_LOGMSG_INFO)
-          read(trim(cvalue), '(i10)') srcMaskWav
+          read(cvalue, '(i10)') srcMaskWav
           if (maintask) then
              write(logunit,'(a,i10)')trim(subname)//' srcMaskWav is set to ',srcMaskWav
           end if
@@ -904,7 +904,7 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        if (isPresent .and. isSet) then
           call ESMF_LogWrite('dstMaskWav = '// trim(cvalue), ESMF_LOGMSG_INFO)
-          read(trim(cvalue), '(i10)') dstMaskWav
+          read(cvalue, '(i10)') dstMaskWav
           if (maintask) then
              write(logunit,'(a)')trim(subname)//' dstMaskWav is set to '//trim(cvalue)
           end if
