@@ -693,6 +693,7 @@ contains
     character(len=CS)   :: transferOffer
     character(len=CS)   :: cvalue
     character(len=8)    :: cnum
+    character(len=CX)   :: msgString
     type(InternalState) :: is_local
     type(med_fldlist_type), pointer :: fldListFr, fldListTo
     type(med_fldList_entry_type), pointer :: fld
