@@ -835,7 +835,7 @@ contains
        if (.not. isPresent .and. .not. isSet) then
           call ESMF_LogWrite("srcMaskAtm is not present, and will be set to the default ispval_mask value", ESMF_LOGMSG_INFO)
        else
-          write(msgString,'(i6)') ': srcMaskAtm = ',srcMaskAtm
+          write(msgString,'(A,i6)') ': srcMaskAtm = ',srcMaskAtm
           call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
        end if
 
@@ -845,7 +845,7 @@ contains
        if (.not. isPresent .and. .not. isSet) then
           call ESMF_LogWrite("dstMaskAtm is not present, and will be set to the default ispval_mask value", ESMF_LOGMSG_INFO)
        else
-          write(msgString,'(i6)') ': dstMaskAtm = ',dstMaskAtm
+          write(msgString,'(A,i6)') ': dstMaskAtm = ',dstMaskAtm
           call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
        end if
 
@@ -855,7 +855,7 @@ contains
        if (.not. isPresent .and. .not. isSet) then
           call ESMF_LogWrite("srcMaskWav is not present, and will be set to the default ispval_mask value", ESMF_LOGMSG_INFO)
        else
-          write(msgString,'(i6)') ': srcMaskWav = ',srcMaskWav
+          write(msgString,'(A,i6)') ': srcMaskWav = ',srcMaskWav
           call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
        end if
 
@@ -865,7 +865,7 @@ contains
        if (.not. isPresent .and. .not. isSet) then
           call ESMF_LogWrite("dstMaskWav is not present, and will be set to the default ispval_mask value", ESMF_LOGMSG_INFO)
        else
-          write(msgString,'(i6)') ': dstMaskWav = ',dstMaskWav
+          write(msgString,'(A,i6)') ': dstMaskWav = ',dstMaskWav
           call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
        end if
 
