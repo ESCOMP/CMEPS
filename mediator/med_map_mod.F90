@@ -350,7 +350,7 @@ contains
     use med_internalstate_mod , only : mapfillv_bilnr, mapbilnr_nstod, mapconsf_aofrac
     use med_internalstate_mod , only : compocn, compwav, complnd, compname, compatm
     use med_internalstate_mod , only : coupling_mode, dststatus_print
-    use med_internalstate_mod , only : defaultMasks
+    use med_internalstate_mod , only : defaultMasks, srcMaskAtm, dstMaskAtm, srcMaskWav, dstMaskWav
     use med_constants_mod     , only : ispval_mask => med_constants_ispval_mask
 
     ! input/output variables
@@ -426,12 +426,12 @@ contains
     ! For sofar atm-wav, override all masks to 1 
     if (coupling_mode(1:5) == 'sofar') then
        if (n1 == compatm .and. n2 == compwav) then
-          srcMaskValue = 1
-          dstMaskValue = 1
+          srcMaskValue = srcMaskAtm
+          dstMaskValue = dstMaskAtm
        end if
        if (n1 == compwav .and. n2 == compatm) then
-          srcMaskValue = 1
-          dstMaskValue = 1
+          srcMaskValue = srcMaskWav
+          dstMaskValue = dstMaskWav
        end if
     end if
     write(string,'(a,i10,a,i10)') trim(compname(n1))//' to '//trim(compname(n2))//' srcMask = ', &

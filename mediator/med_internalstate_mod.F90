@@ -56,7 +56,11 @@ module med_internalstate_mod
   character(len=CL), public :: aoflux_ccpp_suite
 
   ! Default src and destination masks for mapping
-  integer, public, allocatable :: defaultMasks(:,:)
+  integer, public, allocatable :: defaultMasks(:,:)    ! defaultMasks are set to ispval_mask (defined in med_constants_mod.F90)
+  integer, public :: srcMaskAtm ! 0=sea, 1=land, 2=ice ! srcMaskValue for atmosphere
+  integer, public :: dstMaskAtm ! 0=sea, 1=land, 2=ice ! dstMaskValue for atmosphere
+  integer, public :: srcMaskWav ! 0=sea, 1=land        ! srcMaskValue for wave 
+  integer, public :: dstMaskWav ! 0=sea, 1=land        ! dstMaskValue for waves
 
   ! Mapping
   integer , public, parameter :: mapunset          = 0
@@ -671,10 +675,11 @@ contains
     if ( trim(coupling_mode) == 'hafs') then
        if (is_local%wrap%comp_present(compatm)) defaultMasks(compatm,1) = 1
     endif
-    if ( trim(coupling_mode(1:5)) == 'sofar') then
-       if (is_local%wrap%comp_present(compatm)) defaultMasks(compatm,1) = 1
-       if (is_local%wrap%comp_present(compwav)) defaultMasks(compwav,1) = 1
-    endif
+! comment this out, so that default masks are set to ispval if missing from esm_run.config
+!    if ( trim(coupling_mode(1:5)) == 'sofar') then
+!       if (is_local%wrap%comp_present(compatm)) defaultMasks(compatm,1) = 1
+!       if (is_local%wrap%comp_present(compwav)) defaultMasks(compwav,1) = 1
+!    endif
     if ( trim(coupling_mode) /= 'cesm') then
        if (is_local%wrap%comp_present(compatm) .and. trim(atm_name(1:4)) == 'datm') then
           defaultMasks(compatm,1) = 0

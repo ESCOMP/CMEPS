@@ -44,6 +44,7 @@ module MED
   use med_internalstate_mod    , only : ncomps, compname
   use med_internalstate_mod    , only : compmed, compatm, compocn, compice, complnd, comprof, compwav, compglc
   use med_internalstate_mod    , only : coupling_mode, aoflux_code, aoflux_ccpp_suite
+  use med_internalstate_mod    , only : srcMaskAtm, dstMaskAtm, srcMaskWav, dstMaskWav
   use esmFlds                  , only : med_fldList_GetocnalbfldList, med_fldList_type
   use esmFlds                  , only : med_fldList_GetNumFlds, med_fldList_GetFldNames, med_fldList_GetFldInfo
   use esmFlds                  , only : med_fldList_Document_Mapping, med_fldList_Document_Merging
@@ -823,6 +824,53 @@ contains
        write(logunit,'(a)')trim(subname)//' Mediator Coupling Mode is '//trim(coupling_mode)
        write(logunit,*) '========================================================'
        write(logunit,*)
+    end if
+
+    write(msgString,'(A,i6)') trim(subname)//': Mediator dbug_flag is ',dbug_flag
+    call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
+
+    ! Get srcMask and dstMask for wave and atmosphere 
+    if (coupling_mode(1:5) == 'sofar') then
+       ! srcMaskAtm
+       call NUOPC_CompAttributeGet(gcomp, name='srcMaskAtm', value=srcMaskAtm, isPresent=isPresent, isSet=isSet, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (.not. isPresent .and. .not. isSet) then
+          call ESMF_LogWrite("srcMaskAtm is not present, and will be set to the default ispval_mask value", ESMF_LOGMSG_INFO)
+       else
+          write(msgString,'(i6)') ': srcMaskAtm = ',srcMaskAtm
+          call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
+       end if
+
+       ! dstMaskAtm
+       call NUOPC_CompAttributeGet(gcomp, name='dstMaskAtm', value=dstMaskAtm, isPresent=isPresent, isSet=isSet, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (.not. isPresent .and. .not. isSet) then
+          call ESMF_LogWrite("dstMaskAtm is not present, and will be set to the default ispval_mask value", ESMF_LOGMSG_INFO)
+       else
+          write(msgString,'(i6)') ': dstMaskAtm = ',dstMaskAtm
+          call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
+       end if
+
+       ! srcMaskWav
+       call NUOPC_CompAttributeGet(gcomp, name='srcMaskWav', value=srcMaskWav, isPresent=isPresent, isSet=isSet, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (.not. isPresent .and. .not. isSet) then
+          call ESMF_LogWrite("srcMaskWav is not present, and will be set to the default ispval_mask value", ESMF_LOGMSG_INFO)
+       else
+          write(msgString,'(i6)') ': srcMaskWav = ',srcMaskWav
+          call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
+       end if
+
+       ! dstMaskWav
+       call NUOPC_CompAttributeGet(gcomp, name='dstMaskWav', value=dstMaskWav, isPresent=isPresent, isSet=isSet, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (.not. isPresent .and. .not. isSet) then
+          call ESMF_LogWrite("dstMaskWav is not present, and will be set to the default ispval_mask value", ESMF_LOGMSG_INFO)
+       else
+          write(msgString,'(i6)') ': dstMaskWav = ',dstMaskWav
+          call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
+       end if
+
     end if
 
     ! Initialize memory for fldlistTo and fldlistFr - this is need for the calls below for the
