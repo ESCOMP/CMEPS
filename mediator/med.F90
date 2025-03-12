@@ -654,42 +654,6 @@ contains
     write(msgString,'(A,i6)') trim(subname)//': Mediator dbug_flag is ',dbug_flag
     call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
 
-!    ! Obtain srcMaskAtm setting if present; otherwise use default value in med_constants
-!    call NUOPC_CompAttributeGet(gcomp, name='srcMaskAtm', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
-!    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-!    if (isPresent .and. isSet) then
-!     read(cvalue,*) srcMaskAtm
-!    end if
-!    write(msgString,'(A,i6)') trim(subname)//': srcMaskAtm is ',srcMaskAtm
-!    call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
-!
-!    ! Obtain dstMaskAtm setting if present; otherwise use default value in med_constants
-!    call NUOPC_CompAttributeGet(gcomp, name='dstMaskAtm', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
-!    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-!    if (isPresent .and. isSet) then
-!     read(cvalue,*) dstMaskAtm
-!    end if
-!    write(msgString,'(A,i6)') trim(subname)//': dstMaskAtm is ',dstMaskAtm
-!    call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
-!
-!    ! Obtain srcMaskWav setting if present; otherwise use default value in med_constants
-!    call NUOPC_CompAttributeGet(gcomp, name='srcMaskWav', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
-!    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-!    if (isPresent .and. isSet) then
-!     read(cvalue,*) srcMaskWav
-!    end if
-!    write(msgString,'(A,i6)') trim(subname)//': srcMaskWav is ',srcMaskWav
-!    call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
-!
-!    ! Obtain dstMaskWav setting if present; otherwise use default value in med_constants
-!    call NUOPC_CompAttributeGet(gcomp, name='dstMaskWav', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
-!    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-!    if (isPresent .and. isSet) then
-!     read(cvalue,*) dstMaskWav
-!    end if
-!    write(msgString,'(A,i6)') trim(subname)//': dstMaskWav is ',dstMaskWav
-!    call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
-
     ! Switch to IPDv03 by filtering all other phaseMap entries
     call NUOPC_CompFilterPhaseMap(gcomp, ESMF_METHOD_INITIALIZE, acceptStringList=(/"IPDv03p"/), rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -895,7 +859,7 @@ contains
           call ESMF_LogWrite('srcMaskWav = '// trim(cvalue), ESMF_LOGMSG_INFO)
           read(cvalue, '(i10)') srcMaskWav
           if (maintask) then
-             write(logunit,'(a,i10)')trim(subname)//' srcMaskWav is set to ',srcMaskWav
+             write(logunit,'(a)')trim(subname)//' srcMaskWav is set to '//trim(cvalue)
           end if
        end if
 
