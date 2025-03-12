@@ -654,6 +654,42 @@ contains
     write(msgString,'(A,i6)') trim(subname)//': Mediator dbug_flag is ',dbug_flag
     call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
 
+!    ! Obtain srcMaskAtm setting if present; otherwise use default value in med_constants
+!    call NUOPC_CompAttributeGet(gcomp, name='srcMaskAtm', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+!    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+!    if (isPresent .and. isSet) then
+!     read(cvalue,*) srcMaskAtm
+!    end if
+!    write(msgString,'(A,i6)') trim(subname)//': srcMaskAtm is ',srcMaskAtm
+!    call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
+!
+!    ! Obtain dstMaskAtm setting if present; otherwise use default value in med_constants
+!    call NUOPC_CompAttributeGet(gcomp, name='dstMaskAtm', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+!    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+!    if (isPresent .and. isSet) then
+!     read(cvalue,*) dstMaskAtm
+!    end if
+!    write(msgString,'(A,i6)') trim(subname)//': dstMaskAtm is ',dstMaskAtm
+!    call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
+!
+!    ! Obtain srcMaskWav setting if present; otherwise use default value in med_constants
+!    call NUOPC_CompAttributeGet(gcomp, name='srcMaskWav', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+!    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+!    if (isPresent .and. isSet) then
+!     read(cvalue,*) srcMaskWav
+!    end if
+!    write(msgString,'(A,i6)') trim(subname)//': srcMaskWav is ',srcMaskWav
+!    call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
+!
+!    ! Obtain dstMaskWav setting if present; otherwise use default value in med_constants
+!    call NUOPC_CompAttributeGet(gcomp, name='dstMaskWav', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+!    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+!    if (isPresent .and. isSet) then
+!     read(cvalue,*) dstMaskWav
+!    end if
+!    write(msgString,'(A,i6)') trim(subname)//': dstMaskWav is ',dstMaskWav
+!    call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
+
     ! Switch to IPDv03 by filtering all other phaseMap entries
     call NUOPC_CompFilterPhaseMap(gcomp, ESMF_METHOD_INITIALIZE, acceptStringList=(/"IPDv03p"/), rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -828,45 +864,50 @@ contains
     end if
 
     ! Get srcMask and dstMask for wave and atmosphere 
-    if (coupling_mode(1:5) == 'sofar') then
+    if (trim(coupling_mode) == 'sofar.aw') then
+
        ! srcMaskAtm
-       call NUOPC_CompAttributeGet(gcomp, name='srcMaskAtm', value=srcMaskAtm, isPresent=isPresent, isSet=isSet, rc=rc)
+       call NUOPC_CompAttributeGet(gcomp, name='srcMaskAtm', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (.not. isPresent .and. .not. isSet) then
-          call ESMF_LogWrite("srcMaskAtm is not present, and will be set to the default ispval_mask value", ESMF_LOGMSG_INFO)
-       else
-          write(msgString,'(A,i6)') ': srcMaskAtm = ',srcMaskAtm
-          call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
+       if (isPresent .and. isSet) then
+          call ESMF_LogWrite('srcMaskAtm = '// trim(cvalue), ESMF_LOGMSG_INFO)
+          read(trim(cvalue), '(i10)') srcMaskAtm
+          if (maintask) then
+             write(logunit,'(a)')trim(subname)//' srcMaskAtm is set to '//trim(cvalue)
+          end if
        end if
 
        ! dstMaskAtm
-       call NUOPC_CompAttributeGet(gcomp, name='dstMaskAtm', value=dstMaskAtm, isPresent=isPresent, isSet=isSet, rc=rc)
+       call NUOPC_CompAttributeGet(gcomp, name='dstMaskAtm', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (.not. isPresent .and. .not. isSet) then
-          call ESMF_LogWrite("dstMaskAtm is not present, and will be set to the default ispval_mask value", ESMF_LOGMSG_INFO)
-       else
-          write(msgString,'(A,i6)') ': dstMaskAtm = ',dstMaskAtm
-          call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
+       if (isPresent .and. isSet) then
+          call ESMF_LogWrite('dstMaskAtm = '// trim(cvalue), ESMF_LOGMSG_INFO)
+          read(trim(cvalue), '(i10)') dstMaskAtm
+          if (maintask) then
+             write(logunit,'(a)')trim(subname)//' dstMaskAtm is set to '//trim(cvalue)
+          end if
        end if
 
        ! srcMaskWav
-       call NUOPC_CompAttributeGet(gcomp, name='srcMaskWav', value=srcMaskWav, isPresent=isPresent, isSet=isSet, rc=rc)
+       call NUOPC_CompAttributeGet(gcomp, name='srcMaskWav', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (.not. isPresent .and. .not. isSet) then
-          call ESMF_LogWrite("srcMaskWav is not present, and will be set to the default ispval_mask value", ESMF_LOGMSG_INFO)
-       else
-          write(msgString,'(A,i6)') ': srcMaskWav = ',srcMaskWav
-          call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
+       if (isPresent .and. isSet) then
+          call ESMF_LogWrite('srcMaskWav = '// trim(cvalue), ESMF_LOGMSG_INFO)
+          read(trim(cvalue), '(i10)') srcMaskWav
+          if (maintask) then
+             write(logunit,'(a,i10)')trim(subname)//' srcMaskWav is set to ',srcMaskWav
+          end if
        end if
 
        ! dstMaskWav
-       call NUOPC_CompAttributeGet(gcomp, name='dstMaskWav', value=dstMaskWav, isPresent=isPresent, isSet=isSet, rc=rc)
+       call NUOPC_CompAttributeGet(gcomp, name='dstMaskWav', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (.not. isPresent .and. .not. isSet) then
-          call ESMF_LogWrite("dstMaskWav is not present, and will be set to the default ispval_mask value", ESMF_LOGMSG_INFO)
-       else
-          write(msgString,'(A,i6)') ': dstMaskWav = ',dstMaskWav
-          call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
+       if (isPresent .and. isSet) then
+          call ESMF_LogWrite('dstMaskWav = '// trim(cvalue), ESMF_LOGMSG_INFO)
+          read(trim(cvalue), '(i10)') dstMaskWav
+          if (maintask) then
+             write(logunit,'(a)')trim(subname)//' dstMaskWav is set to '//trim(cvalue)
+          end if
        end if
 
     end if
