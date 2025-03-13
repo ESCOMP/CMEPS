@@ -23,8 +23,8 @@ jobs:
       ESMF_VERSION: v8.8.0
       PNETCDF_VERSION: checkpoint.1.14.0
       NETCDF_FORTRAN_VERSION: v4.6.1
-      PIO_VERSION: pio2_6_4
-      CDEPS_VERSION: cdeps1.0.64
+      PIO_VERSION: pio2_6_5
+      CDEPS_VERSION: cdeps1.0.70
     steps:
       - uses: actions/checkout@v4
         # Build the ESMF library, if the cache contains a previous build
