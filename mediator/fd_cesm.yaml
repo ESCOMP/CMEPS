@@ -1023,6 +1023,16 @@
        canonical_units: W m-2
        description: med export to ocn heat content of ice runoff
      #
+     - standard_name: Foxx_hrofl_glc
+       alias: heat_content_rofl_glc
+       canonical_units: W m-2
+       description: med export to ocn heat content of liquid glc runoff
+     #
+     - standard_name: Foxx_hrofi_glc
+       alias: heat_content_rofi_glc
+       canonical_units: W m-2
+       description: med export to ocn heat content of ice glc runoff
+     #
      - standard_name: Foxx_evap
        alias: mean_evap_rate
        canonical_units: kg m-2 s-1

@@ -75,6 +75,10 @@ module esmFldsExchange_cesm_mod
   character(len=CX)   :: rof2lnd_map = 'unset'
   character(len=CX)   :: lnd2rof_map = 'unset'
 
+  ! optional mapping files 
+  character(len=CX)   :: wav2ocn_map ='unset'
+  character(len=CX)   :: ocn2wav_map = 'unset'
+  
   ! no mapping files (value is 'idmap' or 'unset')
   character(len=CX)   :: atm2ice_map = 'unset'
   character(len=CX)   :: atm2ocn_map = 'unset'
@@ -84,9 +88,7 @@ module esmFldsExchange_cesm_mod
   character(len=CX)   :: ice2wav_map = 'unset'
   character(len=CX)   :: lnd2atm_map = 'unset'
   character(len=CX)   :: ocn2atm_map = 'unset'
-  character(len=CX)   :: ocn2wav_map = 'unset'
   character(len=CX)   :: rof2ocn_map = 'unset'
-  character(len=CX)   :: wav2ocn_map = 'unset'
 
   logical             :: mapuv_with_cart3d              ! Map U/V vector wind fields from ATM to OCN/ICE by rotating in Cartesian 3D space and then back
   logical             :: flds_i2o_per_cat               ! Ice thickness category fields passed to OCN
@@ -95,6 +97,7 @@ module esmFldsExchange_cesm_mod
   logical             :: flds_co2c                      ! Pass CO2 from ATM to surface (OCN/LND) and back from them to ATM
   logical             :: flds_wiso                      ! Pass water isotop fields
   logical             :: flds_r2l_stream_channel_depths ! Pass channel depths from ROF to LND
+  logical             :: add_gusts                      ! Whether to include fields related to the gustiness parameterization
 
   character(*), parameter :: u_FILE_u = &
        __FILE__
@@ -202,6 +205,14 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        if (maintask) write(logunit, '(a)') trim(subname)//'rof2ocn_ice_rmapname = '// trim(rof2ocn_ice_rmap)
 
+       call NUOPC_CompAttributeGet(gcomp, name='wav2ocn_smapname', value=wav2ocn_map,  rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (maintask) write(logunit, '(a)') trim(subname)//'wav2ocn_smapname = '// trim(wav2ocn_map)
+       call NUOPC_CompAttributeGet(gcomp, name='ocn2wav_smapname', value=ocn2wav_map,  rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (maintask) write(logunit, '(a)') trim(subname)//'ocn2wav_smapname = '// trim(ocn2wav_map)
+
+
        ! uv cart3d mapping
        call NUOPC_CompAttributeGet(gcomp, name='mapuv_with_cart3d', value=cvalue,  rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -232,6 +243,11 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        read(cvalue,*) flds_r2l_stream_channel_depths
 
+       ! are fields related to the gustiness parameterization enabled?
+       call NUOPC_CompAttributeGet(gcomp, name='add_gusts', value=cvalue, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       read(cvalue,*) add_gusts
+
        ! write diagnostic output
        if (maintask) then
           write(logunit,'(a)'   ) ' flds_co2a: prognostic and diagnostic CO2 at lowest atm level is sent to lnd and ocn'
@@ -246,6 +262,7 @@ contains
           write(logunit,'(a,l7)') trim(subname)//' flds_wiso                       = ',flds_wiso
           write(logunit,'(a,l7)') trim(subname)//' flds_i2o_per_cat                = ',flds_i2o_per_cat
           write(logunit,'(a,l7)') trim(subname)//' flds_r2l_stream_channel_depths  = ',flds_r2l_stream_channel_depths
+          write(logunit,'(a,l7)') trim(subname)//' add_gusts                       = ', add_gusts
           write(logunit,'(a,l7)') trim(subname)//' mapuv_with_cart3d               = ',mapuv_with_cart3d
        end if
 
@@ -1414,17 +1431,19 @@ contains
     ! ---------------------------------------------------------------------
     ! to atm: unmerged ugust_out from ocn
     ! ---------------------------------------------------------------------
-    if (phase == 'advertise') then
-       call addfld_aoflux('So_ugustOut')
-       call addfld_to(compatm, 'So_ugustOut')
-    else
-       if ( fldchk(is_local%wrap%FBexp(compatm), 'So_ugustOut', rc=rc)) then
-          if (fldchk(is_local%wrap%FBMed_aoflux_o, 'So_ugustOut', rc=rc)) then
-             if (trim(is_local%wrap%aoflux_grid) == 'ogrid') then
-                call addmap_aoflux('So_ugustOut', compatm, mapconsf, 'ofrac', ocn2atm_map)
+    if (add_gusts) then
+       if (phase == 'advertise') then
+          call addfld_aoflux('So_ugustOut')
+          call addfld_to(compatm, 'So_ugustOut')
+       else
+          if ( fldchk(is_local%wrap%FBexp(compatm), 'So_ugustOut', rc=rc)) then
+             if (fldchk(is_local%wrap%FBMed_aoflux_o, 'So_ugustOut', rc=rc)) then
+                if (trim(is_local%wrap%aoflux_grid) == 'ogrid') then
+                   call addmap_aoflux('So_ugustOut', compatm, mapconsf, 'ofrac', ocn2atm_map)
+                end if
+                call addmrg_to(compatm , 'So_ugustOut', &
+                     mrg_from=compmed, mrg_fld='So_ugustOut', mrg_type='merge', mrg_fracname='ofrac')
              end if
-             call addmrg_to(compatm , 'So_ugustOut', &
-                  mrg_from=compmed, mrg_fld='So_ugustOut', mrg_type='merge', mrg_fracname='ofrac')
           end if
        end if
     end if
@@ -1432,17 +1451,19 @@ contains
     ! ---------------------------------------------------------------------
     ! to atm: 10 m winds including/excluding gust component
     ! ---------------------------------------------------------------------
-    if (phase == 'advertise') then
-       call addfld_aoflux('So_u10withGust')
-       call addfld_to(compatm, 'So_u10withGust')
-    else
-       if ( fldchk(is_local%wrap%FBexp(compatm), 'So_u10withGust', rc=rc)) then
-          if (fldchk(is_local%wrap%FBMed_aoflux_o, 'So_u10withGust', rc=rc)) then
-             if (trim(is_local%wrap%aoflux_grid) == 'ogrid') then
-                call addmap_aoflux('So_u10withGust', compatm, mapconsf, 'ofrac', ocn2atm_map)
+    if (add_gusts) then
+       if (phase == 'advertise') then
+          call addfld_aoflux('So_u10withGust')
+          call addfld_to(compatm, 'So_u10withGust')
+       else
+          if ( fldchk(is_local%wrap%FBexp(compatm), 'So_u10withGust', rc=rc)) then
+             if (fldchk(is_local%wrap%FBMed_aoflux_o, 'So_u10withGust', rc=rc)) then
+                if (trim(is_local%wrap%aoflux_grid) == 'ogrid') then
+                   call addmap_aoflux('So_u10withGust', compatm, mapconsf, 'ofrac', ocn2atm_map)
+                end if
+                call addmrg_to(compatm , 'So_u10withGust', &
+                     mrg_from=compmed, mrg_fld='So_u10withGust', mrg_type='merge', mrg_fracname='ofrac')
              end if
-             call addmrg_to(compatm , 'So_u10withGust', &
-                  mrg_from=compmed, mrg_fld='So_u10withGust', mrg_type='merge', mrg_fracname='ofrac')
           end if
        end if
     end if
@@ -1700,7 +1721,7 @@ contains
     else
        if ( fldchk(is_local%wrap%FBImp(compocn,compocn), 'Faoo_fdms_ocn', rc=rc) .and. &
             fldchk(is_local%wrap%FBexp(compatm)        , 'Faoo_fdms_ocn', rc=rc)) then
-          call addmap_from(compocn, 'Faoo_fdms_ocn', compocn, mapconsd, 'one', ocn2atm_map)
+          call addmap_from(compocn, 'Faoo_fdms_ocn', compatm, mapconsd, 'one', ocn2atm_map)
           ! custom merge in med_phases_prep_atm
        end if
     end if
@@ -1714,7 +1735,7 @@ contains
     else
        if ( fldchk(is_local%wrap%FBImp(compocn,compocn), 'Faoo_fbrf_ocn', rc=rc) .and. &
             fldchk(is_local%wrap%FBexp(compatm)        , 'Faoo_fbrf_ocn', rc=rc)) then
-          call addmap_from(compocn, 'Faoo_fbrf_ocn', compocn, mapconsd, 'one', ocn2atm_map)
+          call addmap_from(compocn, 'Faoo_fbrf_ocn', compatm, mapconsd, 'one', ocn2atm_map)
           ! custom merge in med_phases_prep_atm
        end if
     end if
@@ -1728,7 +1749,7 @@ contains
     else
        if ( fldchk(is_local%wrap%FBImp(compocn,compocn), 'Faoo_fn2o_ocn', rc=rc) .and. &
             fldchk(is_local%wrap%FBexp(compatm)        , 'Faoo_fn2o_ocn', rc=rc)) then
-          call addmap_from(compocn, 'Faoo_fn2o_ocn', compocn, mapconsd, 'one', ocn2atm_map)
+          call addmap_from(compocn, 'Faoo_fn2o_ocn', compatm, mapconsd, 'one', ocn2atm_map)
           ! custom merge in med_phases_prep_atm
        end if
     end if
@@ -1742,7 +1763,7 @@ contains
     else
        if ( fldchk(is_local%wrap%FBImp(compocn,compocn), 'Faoo_fnh3_ocn', rc=rc) .and. &
             fldchk(is_local%wrap%FBexp(compatm)        , 'Faoo_fnh3_ocn', rc=rc)) then
-          call addmap_from(compocn, 'Faoo_fnh3_ocn', compocn, mapconsd, 'one', ocn2atm_map)
+          call addmap_from(compocn, 'Faoo_fnh3_ocn', compatm, mapconsd, 'one', ocn2atm_map)
           ! custom merge in med_phases_prep_atm
        end if
     end if
@@ -2202,6 +2223,7 @@ contains
     ! ---------------------------------------------------------------------
     ! to ocn: enthalpy from atm rain, snow, evaporation
     ! to ocn: enthalpy from liquid and ice river runoff
+    ! to ocn: enthalpy from liquid and ice glacier runoff
     ! to ocn: enthalpy from ice melt
     ! ---------------------------------------------------------------------
     ! Note - do not need to add addmap or addmrg for the following since they
@@ -2213,6 +2235,8 @@ contains
        call addfld_to(compocn, 'Foxx_hcond')
        call addfld_to(compocn, 'Foxx_hrofl')
        call addfld_to(compocn, 'Foxx_hrofi')
+       call addfld_to(compocn, 'Foxx_hrofl_glc')
+       call addfld_to(compocn, 'Foxx_hrofi_glc')
     end if
 
     ! ---------------------------------------------------------------------
@@ -3009,23 +3033,21 @@ contains
        if ( fldchk(is_local%wrap%FBexp(compwav)         , 'Si_ifrac', rc=rc) .and. &
             fldchk(is_local%wrap%FBImp(compice,compice ), 'Si_ifrac', rc=rc)) then
              ! By default will be using a custom map - but if one is not available, use a generated bilinear instead
-          call addmap_from(compice, 'Si_ifrac', compwav, mapbilnr, 'one', ice2wav_map)
+          call addmap_from(compice, 'Si_ifrac', compwav, mapbilnr_nstod, 'one', ice2wav_map)
           call addmrg_to(compwav, 'Si_ifrac', mrg_from=compice, mrg_fld='Si_ifrac', mrg_type='copy')
        end if
     end if
     !----------------------------------------------------------
     ! to wav: ice thickness from ice
     !----------------------------------------------------------
-    if (wav_coupling_to_cice) then
-       if (phase == 'advertise') then
-          call addfld_from(compice, 'Si_thick')
-          call addfld_to(compwav, 'Si_thick')
-       else
-          if (fldchk(is_local%wrap%FBexp(compwav)         , 'Si_thick', rc=rc) .and. &
-              fldchk(is_local%wrap%FBImp(compice,compice ), 'Si_thick', rc=rc)) then
-             call addmap_from(compice, 'Si_thick', compwav, mapbilnr, 'one', ice2wav_map)
-             call addmrg_to(compwav, 'Si_thick', mrg_from=compice, mrg_fld='Si_thick', mrg_type='copy')
-          end if
+    if (phase == 'advertise') then
+       call addfld_from(compice, 'Si_thick')
+       call addfld_to(compwav, 'Si_thick')
+    else
+       if ( fldchk(is_local%wrap%FBexp(compwav)         , 'Si_thick', rc=rc) .and. &
+            fldchk(is_local%wrap%FBImp(compice,compice ), 'Si_thick', rc=rc)) then
+          call addmap_from(compice, 'Si_thick', compwav, mapbilnr_nstod, 'one', ice2wav_map)
+          call addmrg_to(compwav, 'Si_thick', mrg_from=compice, mrg_fld='Si_thick', mrg_type='copy')
        end if
     end if
     !----------------------------------------------------------
@@ -3038,7 +3060,7 @@ contains
        else
           if (fldchk(is_local%wrap%FBexp(compwav)         , 'Si_floediam', rc=rc) .and. &
               fldchk(is_local%wrap%FBImp(compice,compice ), 'Si_floediam', rc=rc)) then
-             call addmap_from(compice, 'Si_floediam', compwav, mapbilnr, 'one', ice2wav_map)
+             call addmap_from(compice, 'Si_floediam', compwav, mapbilnr_nstod, 'one', ice2wav_map)
              call addmrg_to(compwav, 'Si_floediam', mrg_from=compice, mrg_fld='Si_floediam', mrg_type='copy')
           end if
        end if

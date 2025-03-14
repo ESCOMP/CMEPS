@@ -7,8 +7,8 @@ module med_io_mod
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, I8=>SHR_KIND_I8, R8=>SHR_KIND_R8
   use med_kind_mod          , only : R4=>SHR_KIND_R4
   use med_constants_mod     , only : fillvalue => SHR_CONST_SPVAL
-  use ESMF                  , only : ESMF_VM, ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_LogFoundError, ESMF_LOGMSG_ERROR
-  use ESMF                  , only : ESMF_SUCCESS, ESMF_FAILURE, ESMF_END_ABORT, ESMF_LOGERR_PASSTHRU
+  use ESMF                  , only : ESMF_VM, ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_LogFoundError
+  use ESMF                  , only : ESMF_SUCCESS, ESMF_LOGERR_PASSTHRU
   use ESMF                  , only : ESMF_VMGetCurrent, ESMF_VMGet, ESMF_VMBroadCast, ESMF_Finalize
   use NUOPC                 , only : NUOPC_FieldDictionaryGetEntry
   use NUOPC                 , only : NUOPC_FieldDictionaryHasEntry
@@ -19,7 +19,7 @@ module med_io_mod
   use med_methods_mod       , only : FB_getFldPtr => med_methods_FB_getFldPtr
   use med_methods_mod       , only : FB_getNameN  => med_methods_FB_getNameN
   use med_utils_mod         , only : chkerr       => med_utils_ChkErr
-
+  use shr_log_mod           , only : shr_log_error
   implicit none
   private
 
@@ -195,9 +195,8 @@ contains
        else if (trim(cvalue) .eq. '64BIT_DATA') then
          pio_ioformat = PIO_64BIT_DATA
        else
-         call ESMF_LogWrite(trim(subname)//': need to provide valid option for pio_ioformat (CLASSIC|64BIT_OFFSET|64BIT_DATA)', ESMF_LOGMSG_ERROR)
-         rc = ESMF_FAILURE
-         return
+          call shr_log_error(trim(subname)//': need to provide valid option for pio_ioformat (CLASSIC|64BIT_OFFSET|64BIT_DATA)', rc=rc)
+          return
        end if
     else
        cvalue = '64BIT_OFFSET'
@@ -220,9 +219,8 @@ contains
        else if (trim(cvalue) .eq. 'NETCDF4P') then
          pio_iotype = PIO_IOTYPE_NETCDF4P
        else
-         call ESMF_LogWrite(trim(subname)//': need to provide valid option for pio_typename (NETCDF|PNETCDF|NETCDF4C|NETCDF4P)', ESMF_LOGMSG_ERROR)
-         rc = ESMF_FAILURE
-         return
+          call shr_log_error(trim(subname)//': need to provide valid option for pio_typename (NETCDF|PNETCDF|NETCDF4C|NETCDF4P)', rc=rc)
+          return
        end if
     else
        cvalue = 'NETCDF'
@@ -331,9 +329,8 @@ contains
        else if (trim(cvalue) .eq. 'SUBSET') then
          pio_rearranger = PIO_REARR_SUBSET
        else
-         call ESMF_LogWrite(trim(subname)//': need to provide valid option for pio_rearranger (BOX|SUBSET)', ESMF_LOGMSG_ERROR)
-         rc = ESMF_FAILURE
-         return
+          call shr_log_error(trim(subname)//': need to provide valid option for pio_rearranger (BOX|SUBSET)', rc=rc)
+          return
        end if
     else
        cvalue = 'SUBSET'
@@ -354,9 +351,8 @@ contains
     if (isPresent .and. isSet) then
        read(cvalue,*) pio_debug_level
        if (pio_debug_level < 0 .or. pio_debug_level > 6) then
-         call ESMF_LogWrite(trim(subname)//': need to provide valid option for pio_debug_level (0-6)', ESMF_LOGMSG_ERROR)
-         rc = ESMF_FAILURE
-         return
+          call shr_log_error(trim(subname)//': need to provide valid option for pio_debug_level (0-6)', rc=rc)
+          return
        end if
     else
        pio_debug_level = 0
@@ -378,9 +374,8 @@ contains
        else if (trim(cvalue) .eq. 'COLL') then
           pio_rearr_comm_type = PIO_REARR_COMM_COLL
        else
-         call ESMF_LogWrite(trim(subname)//': need to provide valid option for pio_rearr_comm_type (P2P|COLL)', ESMF_LOGMSG_ERROR)
-         rc = ESMF_FAILURE
-         return
+          call shr_log_error(trim(subname)//': need to provide valid option for pio_rearr_comm_type (P2P|COLL)', rc=rc)
+          return
        end if
     else
        cvalue = 'P2P'
@@ -403,9 +398,8 @@ contains
        else if (trim(cvalue) .eq. '2DDISABLE') then
           pio_rearr_comm_fcd = PIO_REARR_COMM_FC_2D_DISABLE
        else
-         call ESMF_LogWrite(trim(subname)//': need to provide valid option for pio_rearr_comm_fcd (2DENABLE|IO2COMP|COMP2IO|2DDISABLE)', ESMF_LOGMSG_ERROR)
-         rc = ESMF_FAILURE
-         return
+          call shr_log_error(trim(subname)//': need to provide valid option for pio_rearr_comm_fcd (2DENABLE|IO2COMP|COMP2IO|2DDISABLE)', rc=rc)
+          return
        end if
     else
        cvalue = '2DENABLE'
@@ -662,14 +656,13 @@ contains
     integer :: hours     ! hours of hh:mm:ss
     integer :: minutes   ! minutes of hh:mm:ss
     integer :: secs      ! seconds of hh:mm:ss
+    character(len=CS) :: msg
     !----------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
 
     if (seconds < 0 .or. seconds > 86400) then
-       write(logunit,*)'med_io_sec2hms: bad input seconds:', seconds
-       call ESMF_LogWrite('med_io_sec2hms: bad input seconds', ESMF_LOGMSG_INFO)
-       rc = ESMF_FAILURE
+       call shr_log_error('med_io_sec2hms: bad input seconds', rc=rc)
        return
     end if
 
@@ -678,16 +671,14 @@ contains
     secs    = (seconds - hours*3600 - minutes*60)
 
     if (minutes < 0 .or. minutes > 60) then
-       write(logunit,*)'med_io_sec2hms: bad minutes = ',minutes
-       call ESMF_LogWrite('med_io_sec2hms: bad minutes', ESMF_LOGMSG_INFO)
-       rc = ESMF_FAILURE
+       write(msg,*)'med_io_sec2hms: bad minutes = ',minutes
+       call shr_log_error(msg, rc=rc)
        return
     end if
 
     if (secs < 0 .or. secs > 60) then
-       write(logunit,*)'med_io_sec2hms: bad secs = ',secs
-       call ESMF_LogWrite('med_io_sec2hms: bad secs', ESMF_LOGMSG_INFO)
-       rc = ESMF_FAILURE
+       write(msg,*)'med_io_sec2hms: bad secs = ',secs
+       call shr_log_error(msg, rc=rc)
        return
     end if
 
@@ -705,7 +696,7 @@ contains
     !---------------
 
     use ESMF,  only : operator(==)
-    use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_FAILURE, ESMF_END_ABORT
+    use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
     use ESMF , only : ESMF_FieldBundleIsCreated, ESMF_FieldBundle, ESMF_Mesh, ESMF_DistGrid
     use ESMF , only : ESMF_FieldBundleGet, ESMF_FieldGet, ESMF_MeshGet, ESMF_DistGridGet
     use ESMF , only : ESMF_Field, ESMF_FieldGet, ESMF_AttributeGet
@@ -870,24 +861,28 @@ contains
 
     ng = maxval(maxIndexPTile)
     if (tiles) then
-      lnx = nx
-      lny = ny
-      lntile = ng/(lnx*lny)
-      write(tmpstr,*) subname, 'ng,lnx,lny,lntile = ',ng,lnx,lny,lntile
-      call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
-      if (lntile /= ntile) then
-         call ESMF_LogWrite(trim(subname)//' ERROR: grid2d size and ntile are not consistent ', ESMF_LOGMSG_INFO)
-         call ESMF_Finalize(endflag=ESMF_END_ABORT)
-      endif
+       lnx = ng
+       lny = 1
+       lntile = 1
+       if (nx > 0) lnx = nx
+       if (ny > 0) lny = ny
+       if (ntile > 0) lntile = ntile
+       write(tmpstr,*) subname, 'ng,lnx,lny,lntile = ',ng,lnx,lny,lntile
+       call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
+       if (lnx*lny*lntile /= ng) then
+          write(tmpstr,*) subname,' ERROR: grid size not consistent ',ng,lnx,lny,lntile
+          call shr_log_error(trim(tmpstr), rc=rc)
+          return
+       end if
     else
-      lnx = ng
-      lny = 1
-      if (nx > 0) lnx = nx
-      if (ny > 0) lny = ny
-      if (lnx*lny /= ng) then
-         write(tmpstr,*) subname,' WARNING: grid2d size not consistent ',ng,lnx,lny
-         call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
-      endif
+       lnx = ng
+       lny = 1
+       if (nx > 0) lnx = nx
+       if (ny > 0) lny = ny
+       if (lnx*lny /= ng) then
+          write(tmpstr,*) subname,' WARNING: grid2d size not consistent ',ng,lnx,lny
+          call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
+       endif
     end if
     deallocate(minIndexPTile, maxIndexPTile)
 
@@ -902,7 +897,7 @@ contains
       if (tiles) then
        rcode = pio_def_dim(io_file, trim(lpre)//'_nx', lnx, dimid3(1))
        rcode = pio_def_dim(io_file, trim(lpre)//'_ny', lny, dimid3(2))
-       rcode = pio_def_dim(io_file, trim(lpre)//'_ntile', ntile, dimid3(3))
+       rcode = pio_def_dim(io_file, trim(lpre)//'_ntile', lntile, dimid3(3))
        if (present(nt)) then
           dimid4(1:3) = dimid3
           rcode = pio_inq_dimid(io_file, 'time', dimid4(4))
@@ -1020,10 +1015,18 @@ contains
        write(tmpstr,*) subname,' dof = ',ns,size(dof),dof(1),dof(ns)  !,minval(dof),maxval(dof)
        call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
        if (tiles) then
-          call pio_initdecomp(io_subsystem, pio_double, (/lnx,lny,ntile/), dof, iodesc)
+          if (luse_float) then
+             call pio_initdecomp(io_subsystem, pio_real, (/lnx,lny,lntile/), dof, iodesc)
+          else
+             call pio_initdecomp(io_subsystem, pio_double, (/lnx,lny,lntile/), dof, iodesc)
+          end if
        else
-          call pio_initdecomp(io_subsystem, pio_double, (/lnx,lny/), dof, iodesc)
-         !call pio_writedof(lpre, (/lnx,lny/), int(dof,kind=PIO_OFFSET_KIND), mpicom)
+          if (luse_float) then
+             call pio_initdecomp(io_subsystem, pio_real, (/lnx,lny/), dof, iodesc)
+          else
+             call pio_initdecomp(io_subsystem, pio_double, (/lnx,lny/), dof, iodesc)
+          end if
+          !call pio_writedof(lpre, (/lnx,lny/), int(dof,kind=PIO_OFFSET_KIND), mpicom)
        end if
        deallocate(dof)
 
@@ -1056,10 +1059,18 @@ contains
                    rcode = pio_inq_varid(io_file, trim(name1), varid)
                    call pio_setframe(io_file,varid,frame)
 
-                   if (gridToFieldMap(1) == 1) then
-                      call pio_write_darray(io_file, varid, iodesc, fldptr2(:,n), rcode, fillval=lfillvalue)
-                   else if (gridToFieldMap(1) == 2) then
-                      call pio_write_darray(io_file, varid, iodesc, fldptr2(n,:), rcode, fillval=lfillvalue)
+                   if (luse_float) then
+                      if (gridToFieldMap(1) == 1) then
+                         call pio_write_darray(io_file, varid, iodesc, real(fldptr2(:,n),r4), rcode, fillval=real(lfillvalue,r4))
+                      else if (gridToFieldMap(1) == 2) then
+                         call pio_write_darray(io_file, varid, iodesc, real(fldptr2(n,:),r4), rcode, fillval=real(lfillvalue,r4))
+                      end if
+                   else
+                      if (gridToFieldMap(1) == 1) then
+                         call pio_write_darray(io_file, varid, iodesc, fldptr2(:,n), rcode, fillval=lfillvalue)
+                      else if (gridToFieldMap(1) == 2) then
+                         call pio_write_darray(io_file, varid, iodesc, fldptr2(n,:), rcode, fillval=lfillvalue)
+                      end if
                    end if
                 end do
              else if (rank == 1 .or. rank == 0) then
@@ -1068,7 +1079,11 @@ contains
                 call pio_setframe(io_file,varid,frame)
                 ! fix for writing data on exchange grid, which has no data in some PETs
                 if (rank == 0) nullify(fldptr1)
-                call pio_write_darray(io_file, varid, iodesc, fldptr1, rcode, fillval=lfillvalue)
+                if (luse_float) then
+                   call pio_write_darray(io_file, varid, iodesc, real(fldptr1,r4), rcode, fillval=real(lfillvalue,r4))
+                else
+                   call pio_write_darray(io_file, varid, iodesc, fldptr1, rcode, fillval=lfillvalue)
+                end if
              end if  ! end if rank is 2 or 1 or 0
 
           end if ! end if not "hgt"
@@ -1077,12 +1092,19 @@ contains
        ! Fill coordinate variables - why is this being done each time?
        rcode = pio_inq_varid(io_file, trim(coordvarnames(1)), varid)
        call pio_setframe(io_file,varid,frame)
-       call pio_write_darray(io_file, varid, iodesc, ownedElemCoords_x, rcode, fillval=lfillvalue)
+       if (luse_float) then
+          call pio_write_darray(io_file, varid, iodesc, real(ownedElemCoords_x,r4), rcode, fillval=real(lfillvalue,r4))
+       else
+          call pio_write_darray(io_file, varid, iodesc, ownedElemCoords_x, rcode, fillval=lfillvalue)
+       end if
 
        rcode = pio_inq_varid(io_file, trim(coordvarnames(2)), varid)
        call pio_setframe(io_file,varid,frame)
-       call pio_write_darray(io_file, varid, iodesc, ownedElemCoords_y, rcode, fillval=lfillvalue)
-
+       if (luse_float) then
+          call pio_write_darray(io_file, varid, iodesc, real(ownedElemCoords_y,r4), rcode, fillval=real(lfillvalue,r4))
+       else
+          call pio_write_darray(io_file, varid, iodesc, ownedElemCoords_y, rcode, fillval=lfillvalue)
+       end if
        call pio_syncfile(io_file)
        call pio_freedecomp(io_file, iodesc)
     endif
@@ -1344,7 +1366,6 @@ contains
     use ESMF, only : ESMF_CALKIND_360DAY, ESMF_CALKIND_GREGORIAN
     use ESMF, only : ESMF_CALKIND_JULIAN, ESMF_CALKIND_JULIANDAY, ESMF_CALKIND_MODJULIANDAY
     use ESMF, only : ESMF_CALKIND_NOCALENDAR, ESMF_CALKIND_NOLEAP
-    use ESMF, only : ESMF_LOGMSG_ERROR, ESMF_FAILURE
     use pio , only : var_desc_t, PIO_UNLIMITED
     use pio , only : pio_double, pio_def_dim, pio_def_var, pio_put_att
     use pio , only : pio_inq_varid, pio_put_var
@@ -1367,9 +1388,8 @@ contains
     rc = ESMF_SUCCESS
 
     if (.not. ESMF_CalendarIsCreated(calendar)) then
-       call ESMF_LogWrite(trim(subname)//' ERROR: calendar is not created ', &
-            ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
-       rc = ESMF_FAILURE
+       call shr_log_error(trim(subname)//' ERROR: calendar is not created ', &
+            line=__LINE__, file=u_FILE_u, rc=rc)
        return
     end if
 
@@ -1449,7 +1469,6 @@ contains
 
     use ESMF , only : ESMF_FieldBundle, ESMF_Field, ESMF_Mesh, ESMF_DistGrid
     use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
-    use ESMF , only : ESMF_LOGMSG_ERROR, ESMF_FAILURE
     use ESMF , only : ESMF_FieldBundleIsCreated, ESMF_FieldBundleGet
     use ESMF , only : ESMF_FieldGet, ESMF_MeshGet, ESMF_DistGridGet
     use pio  , only : file_desc_T, var_desc_t, io_desc_t, pio_nowrite, pio_openfile
@@ -1531,9 +1550,8 @@ contains
        call ESMF_LogWrite(trim(subname)//' open file '//trim(filename), ESMF_LOGMSG_INFO)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     else
-       call ESMF_LogWrite(trim(subname)//' ERROR: file invalid '//trim(filename), &
-            ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
-       rc = ESMF_FAILURE
+       call shr_log_error(trim(subname)//' ERROR: file invalid '//trim(filename), &
+            line=__LINE__, file=u_FILE_u, rc=rc)
        return
     endif
 
@@ -1652,7 +1670,7 @@ contains
   !===============================================================================
   subroutine med_io_read_init_iodesc(FB, name1, pioid, iodesc, rc)
 
-    use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_FAILURE
+    use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
     use ESMF , only : ESMF_FieldBundleIsCreated, ESMF_FieldBundle, ESMF_Mesh, ESMF_DistGrid
     use ESMF , only : ESMF_FieldBundleGet, ESMF_FieldGet, ESMF_MeshGet, ESMF_DistGridGet
     use ESMF , only : ESMF_Field, ESMF_FieldGet, ESMF_AttributeGet
@@ -1727,9 +1745,7 @@ contains
        if (ng > maxval(maxIndexPTile)) then
           write(tmpstr,*) subname,' WARNING: dimensions do not match', lnx, lny, maxval(maxIndexPTile)
           call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO)
-          !TODO: this should not be an error for say CTSM which does not send a global grid
-          !rc = ESMF_Failure
-          !return
+          ! This should not be an error for say CTSM which does not send a global grid
        endif
 
        call ESMF_DistGridGet(distgrid, localDE=0, elementCount=ns, rc=rc)
@@ -1745,9 +1761,8 @@ contains
 
        deallocate(minIndexPTile, maxIndexPTile)
     else
-       if(maintask) write(logunit,'(a)') trim(subname)//' ERROR: '//trim(name1)//' is not present, aborting '
-       call ESMF_LogWrite(trim(subname)//' ERROR: '//trim(name1)//' is not present, aborting ', ESMF_LOGMSG_ERROR)
-       rc = ESMF_FAILURE
+       call shr_log_error(trim(subname)//' ERROR: '//trim(name1)//' is not present, aborting ', rc=rc)
+       return
     end if ! end if rcode check
 
   end subroutine med_io_read_init_iodesc
@@ -1820,9 +1835,7 @@ contains
        rcode = pio_get_att(pioid,pio_global,"file_version",lversion)
        call pio_seterrorhandling(pioid,PIO_INTERNAL_ERROR)
     else
-       if(iam==0) write(logunit,*) subname,' ERROR: file invalid ',trim(filename),' ',trim(dname)
-       call ESMF_LogWrite(trim(subname)//'ERROR: file invalid '//trim(filename)//' '//trim(dname), ESMF_LOGMSG_INFO)
-       rc = ESMF_FAILURE
+       call shr_log_error(trim(subname)//'ERROR: file invalid '//trim(filename)//' '//trim(dname), rc=rc)
        return
     endif
 
@@ -1905,9 +1918,7 @@ contains
        rcode = pio_get_att(pioid,pio_global,"file_version",lversion)
        call pio_seterrorhandling(pioid,PIO_INTERNAL_ERROR)
     else
-       if(iam==0) write(logunit,*) subname,' ERROR: file invalid ',trim(filename),' ',trim(dname)
-       call ESMF_LogWrite(trim(subname)//'ERROR: file invalid '//trim(filename)//' '//trim(dname), ESMF_LOGMSG_INFO)
-       rc = ESMF_FAILURE
+       call shr_log_error(trim(subname)//'ERROR: file invalid '//trim(filename)//' '//trim(dname), rc=rc)
        return
     endif
 
@@ -1965,9 +1976,7 @@ contains
        rcode = pio_get_att(pioid,pio_global,"file_version",lversion)
        call pio_seterrorhandling(pioid,PIO_INTERNAL_ERROR)
     else
-       if(iam==0) write(logunit,*) subname,' ERROR: file invalid ',trim(filename),' ',trim(dname)
-       call ESMF_LogWrite(trim(subname)//'ERROR: file invalid '//trim(filename)//' '//trim(dname), ESMF_LOGMSG_INFO)
-       rc = ESMF_FAILURE
+       call shr_log_error(trim(subname)//'ERROR: file invalid '//trim(filename)//' '//trim(dname), rc=rc)
        return
     endif
 

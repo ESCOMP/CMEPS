@@ -82,7 +82,6 @@ contains
 
     use ESMF , only : ESMF_GridComp, ESMF_FieldBundleGet
     use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
-    use ESMF , only : ESMF_FAILURE,  ESMF_LOGMSG_ERROR
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
