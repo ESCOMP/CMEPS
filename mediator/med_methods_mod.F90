@@ -2319,12 +2319,8 @@ contains
         call ESMF_FieldGet(field, farrayPtr = farrayptr, rc=rc)
         if (chkerr(rc,__LINE__,u_FILE_u)) return
         if (scalar_id < 0 .or. scalar_id > flds_scalar_num) then
-          write (msgString,*) ": ERROR in scalar_id, must be between [0,flds_scalar_num]. However, scalar_id = ", scalar_id   ! Sofar added
-          call ESMF_LogWrite(trim(subname)//trim(msgString), ESMF_LOGMSG_INFO, line=__LINE__, file=u_FILE_u)
-          rc = ESMF_FAILURE
-          if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=u_FILE_u)) return
-!           call shr_log_error(trim(subname)//": ERROR in scalar_id", line=__LINE__, file=u_FILE_u, rc=rc)
-!           return
+           call shr_log_error(trim(subname)//": ERROR in scalar_id", line=__LINE__, file=u_FILE_u, rc=rc)
+           return
         endif
         tmp(:) = farrayptr(scalar_id,:)
       endif
