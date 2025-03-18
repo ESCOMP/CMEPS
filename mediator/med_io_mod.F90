@@ -19,7 +19,7 @@ module med_io_mod
   use med_methods_mod       , only : FB_getFldPtr => med_methods_FB_getFldPtr
   use med_methods_mod       , only : FB_getNameN  => med_methods_FB_getNameN
   use med_utils_mod         , only : chkerr       => med_utils_ChkErr
-  use shr_log_mod           , only : shr_log_error => shr_log_errMsg
+  use shr_log_mod           , only : shr_log_error
   implicit none
   private
 

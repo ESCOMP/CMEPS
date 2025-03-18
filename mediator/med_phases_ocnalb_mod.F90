@@ -10,8 +10,7 @@ module med_phases_ocnalb_mod
   use perf_mod              , only : t_startf, t_stopf
   use shr_orb_mod           , only : shr_orb_cosz, shr_orb_decl
   use shr_orb_mod           , only : shr_orb_params, SHR_ORB_UNDEF_INT, SHR_ORB_UNDEF_REAL
-  use shr_log_mod           , only : shr_log_unit
-  use shr_log_mod           , only : shr_log_error => shr_log_errMsg
+  use shr_log_mod           , only : shr_log_unit, shr_log_error
   implicit none
   private
 

@@ -53,7 +53,7 @@ module MED
   use esmFldsExchange_hafs_mod , only : esmFldsExchange_hafs
   use esmFldsExchange_sofar_mod, only : esmFldsExchange_sofar
   use med_phases_profile_mod   , only : med_phases_profile_finalize
-  use shr_log_mod              , only : shr_log_error => shr_log_errMsg
+  use shr_log_mod              , only : shr_log_error
   
   implicit none
   private

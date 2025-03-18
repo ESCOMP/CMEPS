@@ -44,7 +44,7 @@ module med_phases_prep_glc_mod
   use glc_elevclass_mod     , only : glc_get_elevation_classes
   use glc_elevclass_mod     , only : glc_get_fractional_icecov
   use perf_mod              , only : t_startf, t_stopf
-  use shr_log_mod           , only : shr_log_error => shr_log_errMsg
+  use shr_log_mod           , only : shr_log_error
   
   implicit none
   private

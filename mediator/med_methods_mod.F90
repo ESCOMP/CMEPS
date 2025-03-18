@@ -15,7 +15,7 @@ module med_methods_mod
   use med_constants_mod  , only : czero => med_constants_czero
   use med_constants_mod  , only : spval_init => med_constants_spval_init
   use med_utils_mod      , only : ChkErr => med_utils_ChkErr
-  use shr_log_mod        , only : shr_log_error => shr_log_errMsg
+  use shr_log_mod        , only : shr_log_error
   implicit none
   private
 

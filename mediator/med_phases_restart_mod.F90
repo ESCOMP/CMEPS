@@ -14,7 +14,7 @@ module med_phases_restart_mod
   use med_phases_prep_glc_mod , only : FBocnAccum2glc_o, ocnAccum2glc_cnt
   use med_phases_prep_rof_mod , only : FBlndAccum2rof_l, lndAccum2rof_cnt
   use pio                     , only : file_desc_t
-  use shr_log_mod             , only : shr_log_error => shr_log_errMsg
+  use shr_log_mod             , only : shr_log_error
   implicit none
   private
 

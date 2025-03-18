@@ -22,7 +22,7 @@ module med_phases_post_rof_mod
   use med_methods_mod       , only : fldbun_getdata1d => med_methods_FB_getdata1d
   use med_methods_mod       , only : fldbun_getmesh   => med_methods_FB_getmesh
   use perf_mod              , only : t_startf, t_stopf
-  use shr_log_mod           , only : shr_log_error => shr_log_errMsg
+  use shr_log_mod           , only : shr_log_error
 
   implicit none
   private
