@@ -26,7 +26,7 @@ module med_phases_prep_rof_mod
   use med_methods_mod       , only : fldbun_fldchk    => med_methods_FB_fldchk
   use med_methods_mod       , only : FB_check_for_nans => med_methods_FB_check_for_nans
   use perf_mod              , only : t_startf, t_stopf
-  use shr_log_mod           , only : shr_log_error
+  use shr_log_mod           , only : shr_log_error => shr_log_errMsg
   
   implicit none
   private

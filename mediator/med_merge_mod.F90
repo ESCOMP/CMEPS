@@ -16,7 +16,7 @@ module med_merge_mod
   use esmFlds               , only : med_fldList_entry_type
   use esmFlds               , only : med_fldList_findName
   use perf_mod              , only : t_startf, t_stopf
-  use shr_log_mod           , only : shr_log_error
+  use shr_log_mod           , only : shr_log_error => shr_log_errMsg
   
   implicit none
   private

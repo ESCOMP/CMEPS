@@ -39,7 +39,7 @@ module med_phases_aofluxes_mod
   use shr_const_mod         , only : rearth => SHR_CONST_REARTH
   use shr_const_mod         , only : pi => SHR_CONST_PI
 #endif
-  use shr_log_mod           , only : shr_log_error
+  use shr_log_mod           , only : shr_log_error => shr_log_errMsg
   implicit none
   private
 

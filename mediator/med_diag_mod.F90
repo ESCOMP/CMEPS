@@ -32,7 +32,7 @@ module med_diag_mod
   use med_methods_mod       , only : fldbun_fldChk    => med_methods_FB_FldChk
   use med_utils_mod         , only : chkerr           => med_utils_ChkErr
   use perf_mod              , only : t_startf, t_stopf
-  use shr_log_mod           , only : shr_log_error
+  use shr_log_mod           , only : shr_log_error => shr_log_errMsg
   
   implicit none
   private
