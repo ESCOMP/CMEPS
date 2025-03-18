@@ -16,7 +16,7 @@ module shr_log_mod
   use shr_kind_mod, only: shr_kind_in, shr_kind_cx
   use shr_strconvert_mod, only: toString
 
-  use, intrinsic :: iso_fortran_env, only: output_unit
+  use, intrinsic :: iso_fortran_env, only: output_unit, error_unit
 
   implicit none
   private
@@ -31,6 +31,7 @@ module shr_log_mod
   public :: shr_log_OOBMsg
   public :: shr_log_setLogUnit
   public :: shr_log_getLogUnit
+  public :: shr_log_error
 
 ! !PUBLIC DATA MEMBERS:
 
@@ -116,5 +117,50 @@ contains
      unit = shr_log_unit
 
   end subroutine shr_log_getLogUnit
+
+  subroutine shr_log_error(string, rc, line, file)
+    use esmf, only : ESMF_LOGWRITE, ESMF_LOGMSG_ERROR, ESMF_FINALIZE, ESMF_END_ABORT, ESMF_FAILURE, ESMF_SUCCESS
+    ! This routine prints error messages to shr_log_unit (which is standard output
+    ! for most tasks in CESM), to the ESMF PET files and to standard error if shr_log_unit is a
+    ! file.  Sets rc to ESMF_FAILURE on return.
+
+    !----- arguments -----
+    character(len=*)    , intent(in) :: string  ! error message string
+    integer(shr_kind_in), intent(inout), optional :: rc      ! error code
+    integer(shr_kind_in), intent(in), optional :: line
+    character(len=*), intent(in), optional :: file
+
+    ! Local version of the string.
+    ! (Gets a default value if string is not present.)
+    character(len=shr_kind_cx) :: local_string
+    integer, allocatable :: log_units(:)
+    integer :: i
+    !-------------------------------------------------------------------------------
+
+    local_string = trim(string)
+    if(present(rc)) then
+       if (rc /= ESMF_SUCCESS) then
+          write(local_string, *) trim(local_string), ' rc=',rc
+       endif
+       rc = ESMF_FAILURE
+    endif
+
+    call ESMF_LogWrite(local_string, ESMF_LOGMSG_ERROR, line=line, file=file)
+    if (shr_log_unit == output_unit .or. shr_log_unit == error_unit) then
+       ! If the log unit number is standard output or standard error, just
+       ! print to that.
+       allocate(log_units(1), source=[shr_log_unit])
+    else
+       ! Otherwise print the same message to both the log unit and standard
+       ! error.
+       allocate(log_units(2), source=[error_unit, shr_log_unit])
+    end if
+
+    do i = 1, size(log_units)
+       write(log_units(i),*) trim(local_string)
+       flush(log_units(i))
+    end do
+
+  end subroutine shr_log_error
 
 end module shr_log_mod

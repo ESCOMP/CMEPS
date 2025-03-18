@@ -16,5 +16,7 @@ MODULE shr_kind_mod
   integer,parameter :: SHR_KIND_CL = 256                    ! long char
   integer,parameter :: SHR_KIND_CX = 512                    ! extra-long char
   integer,parameter :: SHR_KIND_CXX= 4096                   ! extra-extra-long char
+  real(kind=shr_kind_r8),parameter :: tinyvalue = tiny(1._shr_kind_R8)     ! tiny value
+  real(kind=shr_kind_r8),parameter :: hugevalue = huge(1._shr_kind_r8)     ! huge value
 
 END MODULE shr_kind_mod

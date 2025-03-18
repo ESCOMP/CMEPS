@@ -7,10 +7,7 @@ module shr_abort_mod
   ! (shr_sys_abort, shr_sys_backtrace). (This is for consistency with older code, from
   ! when these routines were defined in shr_sys_mod.)
 
-  use, intrinsic :: iso_fortran_env, only: output_unit, error_unit
-  use ESMF,         only : ESMF_Finalize, ESMF_END_ABORT, ESMF_LOGMSG_ERROR, ESMF_LogWrite
   use shr_kind_mod, only : shr_kind_in, shr_kind_cx
-  use shr_log_mod , only : s_logunit => shr_log_Unit
 
 #ifdef CPRNAG
   ! NAG does not provide this as an intrinsic, but it does provide modules
@@ -34,18 +31,21 @@ module shr_abort_mod
 contains
 
   !===============================================================================
-  subroutine shr_abort_abort(string,rc)
+  subroutine shr_abort_abort(string,rc, line, file)
+    use esmf, only : ESMF_LOGWRITE, ESMF_LOGMSG_ERROR, ESMF_FINALIZE, ESMF_END_ABORT
+    use shr_log_mod, only : shr_log_error
     ! Consistent stopping mechanism
 
     !----- arguments -----
     character(len=*)    , intent(in), optional :: string  ! error message string
     integer(shr_kind_in), intent(in), optional :: rc      ! error code
-
-    !----- local -----
-
+    integer(shr_kind_in), intent(in), optional :: line
+    character(len=*), intent(in), optional :: file
+   
     ! Local version of the string.
     ! (Gets a default value if string is not present.)
     character(len=shr_kind_cx) :: local_string
+    integer :: lrc
     !-------------------------------------------------------------------------------
 
     if (present(string)) then
@@ -53,15 +53,17 @@ contains
     else
        local_string = "Unknown error submitted to shr_abort_abort."
     end if
-
-    call print_error_to_logs("ERROR", local_string)
-
-    call shr_abort_backtrace()
-
     if(present(rc)) then
        write(local_string, *) trim(local_string), ' rc=',rc
+       lrc = rc
+    else
+       lrc = 0
     endif
-    call ESMF_LogWrite(local_string, ESMF_LOGMSG_ERROR)
+
+    call shr_log_error(local_string, rc=lrc, line=line, file=file)
+    
+    call shr_abort_backtrace()
+
     call ESMF_Finalize(endflag=ESMF_END_ABORT)
 
     ! A compiler's abort method may print a backtrace or do other nice
@@ -118,41 +120,7 @@ contains
 
 #endif
 
-    flush(error_unit)
-
   end subroutine shr_abort_backtrace
-  !===============================================================================
-
-  !===============================================================================
-  subroutine print_error_to_logs(error_type, message)
-    ! This routine prints error messages to s_logunit (which is standard output
-    ! for most tasks in CESM) and also to standard error if s_logunit is a
-    ! file.
-    !
-    ! It also flushes these output units.
-
-    character(len=*), intent(in) :: error_type, message
-
-    integer, allocatable :: log_units(:)
-
-    integer :: i
-
-    if (s_logunit == output_unit .or. s_logunit == error_unit) then
-       ! If the log unit number is standard output or standard error, just
-       ! print to that.
-       allocate(log_units(1), source=[s_logunit])
-    else
-       ! Otherwise print the same message to both the log unit and standard
-       ! error.
-       allocate(log_units(2), source=[error_unit, s_logunit])
-    end if
-
-    do i = 1, size(log_units)
-       write(log_units(i),*) trim(error_type), ": ", trim(message)
-       flush(log_units(i))
-    end do
-
-  end subroutine print_error_to_logs
   !===============================================================================
 
 end module shr_abort_mod
