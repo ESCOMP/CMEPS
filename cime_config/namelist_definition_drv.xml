@@ -439,7 +439,7 @@
       Model version
     </desc>
     <values>
-      <value>unknown</value>
+      <value>$MODEL_VERSION</value>
     </values>
   </entry>
 
