@@ -431,7 +431,7 @@
     <desc>if true, mediator is present in run </desc>
   </entry>
 
-  <entry id="model_version">
+  <entry id="model_version" modify_via_xml="MODEL_VERSION">
     <type>char</type>
     <category>expdef</category>
     <group>ALLCOMP_attributes</group>
