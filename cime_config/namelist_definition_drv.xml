@@ -162,7 +162,7 @@
     </values>
   </entry>
 
- <entry id="drv_restart_pointer">
+  <entry id="drv_restart_pointer" modify_via_xml="DRV_RESTART_POINTER">
     <type>char</type>
     <category>expdef</category>
     <group>DRIVER_attributes</group>
@@ -170,7 +170,7 @@
       Driver restart pointer file to initialize time info
     </desc>
     <values>
-      <value>rpointer.cpl</value>
+      <value>$DRV_RESTART_POINTER</value>
     </values>
   </entry>
 
@@ -230,18 +230,6 @@
     </desc>
     <values>
       <value>1.0D0</value>
-    </values>
-  </entry>
-
-  <!-- not yet fully implemented, set to false -->
-  <entry id="write_restart_at_endofrun">
-    <type>logical</type>
-    <category>nuopc</category>
-    <group>ALLCOMP_attributes</group>
-    <values>
-      <value>.false.</value>
-      <value rest_option='none'>.false.</value>
-      <value rest_option='never'>.false.</value>
     </values>
   </entry>
 
@@ -922,10 +910,14 @@
     <valid_values>ogrid,agrid,xgrid</valid_values>
     <desc>
       Grid for atm ocn flux calc
-      default: ogrid
+      default: xgrid for fully coupled cases, ogrid for datm
     </desc>
     <values>
-      <value>ogrid</value>
+      <value>xgrid</value>
+      <!-- xgrid introduces unnecessary cost and complexity if atm & ocn are on the same
+      grid, so fall back to ogrid in that case -->
+      <value samegrid_atm_ocn='true'>ogrid</value>
+      <value COMP_ATM='datm'>ogrid</value>
     </values>
   </entry>
   <entry id="ocn_surface_flux_scheme">
@@ -2308,7 +2300,7 @@
       ocn to wav state mapping file for states
     </desc>
     <values>
-      <value samegrid_ocn_wav="true">idmap</value>
+      <value samegrid_wav_ocn="true">idmap</value>
       <value>$OCN2WAV_SMAPNAME</value>
     </values>
   </entry>
@@ -2322,7 +2314,7 @@
       wav to ocn state mapping file for states
     </desc>
     <values>
-      <value samegrid_ocn_wav="true">idmap</value>
+      <value samegrid_wav_ocn="true">idmap</value>
       <value>$WAV2OCN_SMAPNAME</value>
     </values>
   </entry>
@@ -2862,7 +2854,7 @@
     </values>
   </entry>
 
-  <entry id="end_restart">
+  <entry id="write_restart_at_endofrun">
     <type>logical</type>
     <category>time</category>
     <group>CLOCK_attributes</group>
@@ -2871,10 +2863,15 @@
       forces a restart write at the end of the run in addition to any
       setting associated with rest_option.  default=true.  this setting
       will be set to false if restart_option is none or never.
-      default: false
+      default: true
     </desc>
     <values>
-      <value>.false.</value>
+      <value>.true.</value>
+      <value rest_option='none'>.false.</value>
+      <value rest_option='never'>.false.</value>
+      <value TESTCASE='ERC'>.false.</value>
+      <value TESTCASE='ERP'>.false.</value>
+      <value TESTCASE='ERI'>.false.</value>
     </values>
   </entry>
 

@@ -5,9 +5,10 @@ module shr_flux_mod
   ! !USES:
 
   use shr_kind_mod, only : R8=>SHR_KIND_R8, IN=>SHR_KIND_IN ! shared kinds
-  use shr_const_mod ! shared constants
-  use shr_sys_mod   ! shared system routines
-
+  use shr_const_mod, only : shr_const_zvir, shr_const_cpdair, shr_const_cpvir, shr_const_karman, shr_const_g ! shared constants
+  use shr_const_mod, only : shr_const_latvap, shr_const_latice, shr_const_stebol, shr_const_tkfrz, shr_const_pi, shr_const_spval
+  use shr_const_mod, only : shr_const_ocn_ref_sal, shr_const_zsrflyr, shr_const_rgas
+  use shr_sys_mod, only : shr_sys_abort   ! shared system routines
   implicit none
 
   private ! default private

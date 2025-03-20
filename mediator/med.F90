@@ -42,7 +42,7 @@ module MED
   use med_internalstate_mod    , only : med_internalstate_defaultmasks, logunit, maintask
   use med_internalstate_mod    , only : ncomps, compname
   use med_internalstate_mod    , only : compmed, compatm, compocn, compice, complnd, comprof, compwav, compglc
-  use med_internalstate_mod    , only : coupling_mode, aoflux_code, aoflux_ccpp_suite
+  use med_internalstate_mod    , only : coupling_mode, aoflux_code, aoflux_ccpp_suite, write_dststatus
   use esmFlds                  , only : med_fldList_GetocnalbfldList, med_fldList_type
   use esmFlds                  , only : med_fldList_GetNumFlds, med_fldList_GetFldNames, med_fldList_GetFldInfo
   use esmFlds                  , only : med_fldList_Document_Mapping, med_fldList_Document_Merging
@@ -51,21 +51,23 @@ module MED
   use esmFldsExchange_cesm_mod , only : esmFldsExchange_cesm
   use esmFldsExchange_hafs_mod , only : esmFldsExchange_hafs
   use med_phases_profile_mod   , only : med_phases_profile_finalize
-
+  use shr_log_mod              , only : shr_log_error
+  
   implicit none
   private
 
   public  SetServices
   public  SetVM
   private InitializeP0
-  private AdvertiseFields ! advertise fields
+  private AdvertiseFields                   ! advertise fields
   private RealizeFieldsWithTransferProvided ! realize connected Fields with transfer action "provide"
-  private ModifyDecompofMesh ! optionally modify the decomp/distr of transferred Grid/Mesh
-  private RealizeFieldsWithTransferAccept ! realize all Fields with transfer action "accept"
-  private DataInitialize     ! finish initialization and resolve data dependencies
+  private ModifyDecompofMesh                ! optionally modify the decomp/distr of transferred Grid/Mesh
+  private RealizeFieldsWithTransferAccept   ! realize all Fields with transfer action "accept"
+  private DataInitialize                    ! finish initialization and resolve data dependencies
   private SetRunClock
   private med_meshinfo_create
   private med_grid_write
+  private med_dststatus_write
   private med_finalize
 
   character(len=*), parameter :: u_FILE_u  = &
@@ -671,7 +673,7 @@ contains
     use ESMF  , only : ESMF_GridComp, ESMF_State, ESMF_Clock, ESMF_SUCCESS, ESMF_LogFoundAllocError
     use ESMF  , only : ESMF_StateIsCreated
     use ESMF  , only : ESMF_LogMsg_Info, ESMF_LogWrite
-    use ESMF  , only : ESMF_END_ABORT, ESMF_Finalize, ESMF_MAXSTR
+    use ESMF  , only : ESMF_MAXSTR
     use NUOPC , only : NUOPC_AddNamespace, NUOPC_Advertise, NUOPC_AddNestedState
     use NUOPC , only : NUOPC_CompAttributeGet, NUOPC_CompAttributeSet, NUOPC_CompAttributeAdd
     use esmFlds, only : med_fldlist_init1, med_fld_GetFldInfo, med_fldList_entry_type
@@ -799,8 +801,8 @@ contains
        call NUOPC_CompAttributeGet(gcomp, name='aoflux_ccpp_suite', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        if (.not. isPresent .and. .not. isSet) then
-          call ESMF_LogWrite("aoflux_ccpp_suite need to be provided when aoflux_code is set to 'ccpp'", ESMF_LOGMSG_INFO)
-          call ESMF_Finalize(endflag=ESMF_END_ABORT)
+          call shr_log_error("aoflux_ccpp_suite need to be provided when aoflux_code is set to 'ccpp'", rc=rc)
+          return
        end if
        aoflux_ccpp_suite = trim(cvalue)
        if (maintask) then
@@ -838,8 +840,8 @@ contains
        call esmFldsExchange_hafs(gcomp, phase='advertise', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     else
-        call ESMF_LogWrite(trim(coupling_mode)//' is not a valid coupling_mode', ESMF_LOGMSG_INFO)
-        call ESMF_Finalize(endflag=ESMF_END_ABORT)
+       call shr_log_error(trim(coupling_mode)//' is not a valid coupling_mode', rc=rc)
+       return
     end if
 
     ! Set default masking for mapping
@@ -1102,7 +1104,7 @@ contains
       use ESMF , only : ESMF_MAXSTR, ESMF_FieldStatus_Flag, ESMF_GeomType_Flag, ESMF_StateGet
       use ESMF , only : ESMF_FieldGet, ESMF_DistGridGet, ESMF_GridCompGet
       use ESMF , only : ESMF_GeomType_Grid, ESMF_AttributeGet, ESMF_DistGridCreate, ESMF_FieldEmptySet
-      use ESMF , only : ESMF_GridCreate, ESMF_LogWrite, ESMF_LogMsg_Info, ESMF_GridGet, ESMF_Failure
+      use ESMF , only : ESMF_GridCreate, ESMF_LogWrite, ESMF_LogMsg_Info, ESMF_GridGet
       use ESMF , only : ESMF_LogMsg_Warning
       use ESMF , only : ESMF_FieldStatus_Empty, ESMF_FieldStatus_Complete, ESMF_FieldStatus_GridSet
       use ESMF , only : ESMF_GeomType_Mesh, ESMF_MeshGet, ESMF_Mesh, ESMF_MeshEmptyCreate
@@ -1327,9 +1329,7 @@ contains
                enddo
 
             else  ! geomtype
-
-               call ESMF_LogWrite(trim(subname)//": ERROR geomtype not supported ", ESMF_LOGMSG_INFO)
-               rc=ESMF_FAILURE
+               call shr_log_error(trim(subname)//": ERROR geomtype not supported ", rc=rc)
                return
 
             endif ! geomtype
@@ -1346,10 +1346,9 @@ contains
 
          else
 
-            call ESMF_LogWrite(trim(subname)//": ERROR fieldStatus not supported ", ESMF_LOGMSG_INFO)
-            rc=ESMF_FAILURE
+            call shr_log_error(trim(subname)//": ERROR fieldStatus not supported ", rc=rc)
             return
-
+            
          endif   ! fieldStatus
 
       enddo   ! nflds
@@ -1441,7 +1440,7 @@ contains
       use ESMF  , only : ESMF_SUCCESS, ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_FieldGet
       use ESMF  , only : ESMF_GeomType_Flag, ESMF_FieldCreate, ESMF_MeshCreate, ESMF_GEOMTYPE_GRID
       use ESMF  , only : ESMF_MeshLoc_Element, ESMF_TYPEKIND_R8, ESMF_FIELDSTATUS_GRIDSET
-      use ESMF  , only : ESMF_AttributeGet, ESMF_MeshWrite, ESMF_FAILURE
+      use ESMF  , only : ESMF_AttributeGet, ESMF_MeshWrite
       use NUOPC , only : NUOPC_getStateMemberLists, NUOPC_Realize
 
       ! input/output variables
@@ -1521,8 +1520,7 @@ contains
                call ESMF_FieldGet(meshField, status=fieldStatus, rc=rc)
                if (ChkErr(rc,__LINE__,u_FILE_u)) return
                if (fieldStatus == ESMF_FIELDSTATUS_GRIDSET ) then
-                 call ESMF_LogWrite(trim(subname)//": ERROR fieldStatus not complete ", ESMF_LOGMSG_INFO)
-                 rc = ESMF_FAILURE
+                 call shr_log_error(trim(subname)//": ERROR fieldStatus not complete ", rc=rc)
                  return
                end if
                call Field_GeomPrint(meshField, trim(subname)//':'//trim(fieldName), rc=rc)
@@ -2178,6 +2176,14 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        !---------------------------------------
+       ! write dstStatus fields if requested
+       !---------------------------------------
+       if (write_dststatus) then
+          call med_dststatus_write(gcomp, rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       end if
+
+       !---------------------------------------
        ! read mediator restarts
        !---------------------------------------
        call NUOPC_CompAttributeGet(gcomp, name="read_restart", value=cvalue, rc=rc)
@@ -2254,7 +2260,7 @@ contains
 
     use ESMF                  , only : ESMF_GridComp, ESMF_CLOCK, ESMF_Time, ESMF_TimeInterval
     use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_ClockGet, ESMF_ClockSet
-    use ESMF                  , only : ESMF_Success, ESMF_Failure
+    use ESMF                  , only : ESMF_Success
     use ESMF                  , only : ESMF_Alarm, ESMF_ALARMLIST_ALL, ESMF_ClockGetAlarmList
     use ESMF                  , only : ESMF_AlarmCreate, ESMF_AlarmSet, ESMF_ClockAdvance
     use ESMF                  , only : ESMF_ClockGetAlarmList
@@ -2344,7 +2350,7 @@ contains
     use ESMF , only : ESMF_Array, ESMF_ArrayCreate, ESMF_ArrayDestroy, ESMF_Field, ESMF_FieldGet
     use ESMF , only : ESMF_DistGrid, ESMF_FieldBundle, ESMF_FieldRegridGetArea, ESMF_FieldBundleGet
     use ESMF , only : ESMF_Mesh, ESMF_MeshGet, ESMF_MESHLOC_ELEMENT, ESMF_TYPEKIND_R8
-    use ESMF , only : ESMF_SUCCESS, ESMF_FAILURE, ESMF_LogWrite, ESMF_LOGMSG_INFO
+    use ESMF , only : ESMF_SUCCESS, ESMF_LogWrite, ESMF_LOGMSG_INFO
     use ESMF , only : ESMF_FieldCreate, ESMF_FieldBundleCreate, ESMF_FieldBundleAdd
     use med_internalstate_mod , only : mesh_info_type
 
@@ -2562,6 +2568,132 @@ contains
     end if
 
   end subroutine med_grid_write
+
+  !-----------------------------------------------------------------------------
+  subroutine med_dststatus_write (gcomp, rc)
+
+    use ESMF                  , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_SUCCESS, ESMF_VM
+    use ESMF                  , only : ESMF_FieldBundleIsCreated, ESMF_FieldBundleDestroy
+    use ESMF                  , only : ESMF_FieldBundleAdd, ESMF_Array, ESMF_Field, ESMF_MeshGet
+    use ESMF                  , only : ESMF_FieldGet, ESMF_FieldCreate, ESMF_FieldDestroy
+    use ESMF                  , only : ESMF_Mesh, ESMF_MESHLOC_ELEMENT, ESMF_TYPEKIND_R8, ESMF_TYPEKIND_I4
+    use ESMF                  , only : ESMF_LOGMSG_INFO, ESMF_LogWrite
+    use NUOPC                 , only : NUOPC_CompAttributeGet
+    use med_kind_mod          , only : I4=>SHR_KIND_I4, R8=>SHR_KIND_R8
+    use med_internalstate_mod , only : ncomps, compname
+    use med_io_mod            , only : med_io_write, med_io_wopen, med_io_enddef, med_io_close
+    use pio                   , only : file_desc_t
+    use med_methods_mod       , only : med_methods_FB_getFieldN
+
+
+    ! input/output variables
+    type(ESMF_GridComp)  :: gcomp
+    integer, intent(out) :: rc
+
+    ! local variables
+    type(file_desc_t)    :: io_file
+    type(InternalState)  :: is_local
+    type(ESMF_VM)        :: vm
+    type(ESMF_Mesh)      :: mesh_dst
+    type(ESMF_Field)     :: flddst, lfield
+    type(ESMF_Field)     :: maskfield
+    type(ESMF_Array)     :: maskarray
+    integer(I4), pointer :: meshmask(:)
+    real(R8), pointer    :: r8ptr(:)
+    integer              :: m,n2
+    character(CL)        :: case_name, dststatusfile
+    logical              :: elementMaskIsPresent
+    logical              :: whead(2) = (/.true. , .false./)
+    logical              :: wdata(2) = (/.false., .true. /)
+    character(len=*), parameter :: subname = '('//__FILE__//':med_dststatus_write)'
+    !-------------------------------------------------------------------------------
+
+    rc = ESMF_SUCCESS
+
+    ! Get the internal state
+    nullify(is_local%wrap)
+    call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    ! Create dststatus file
+    call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompAttributeGet(gcomp, name='case_name', value=case_name, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    dststatusfile = trim(case_name)//'.dststatus.nc'
+
+    ! add mesh masks for any destination component in the dststatusFB
+    do n2 = 2,ncomps
+       if (is_local%wrap%comp_present(n2)) then
+          if (ESMF_FieldBundleIsCreated(is_local%wrap%FBdststatus(n2),rc=rc)) then
+             call med_methods_FB_getFieldN(is_local%wrap%FBdststatus(n2), 1, flddst, rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             call ESMF_FieldGet(flddst, mesh=mesh_dst, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+             call ESMF_MeshGet(mesh_dst, elementMaskIsPresent=elementMaskIsPresent, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+             if (elementMaskIsPresent) then
+                maskfield = ESMF_FieldCreate(mesh_dst, ESMF_TYPEKIND_I4, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+                if (ChkErr(rc,__LINE__,u_FILE_u)) return
+                ! get mask Array
+                call ESMF_FieldGet(maskfield, array=maskarray, rc=rc)
+                if (ChkErr(rc,__LINE__,u_FILE_u)) return
+                call ESMF_MeshGet(mesh_dst, elemMaskArray=maskarray, rc=rc)
+                if (ChkErr(rc,__LINE__,u_FILE_u)) return
+                call ESMF_FieldGet(maskfield, localDe=0, farrayPtr=meshmask, rc=rc)
+                if (ChkErr(rc,__LINE__,u_FILE_u)) return
+                ! now create an R8 mask for writing
+                lfield = ESMF_FieldCreate(mesh_dst, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, &
+                     name=trim(compname(n2))//'mask', rc=rc)
+                if (ChkErr(rc,__LINE__,u_FILE_u)) return
+                call ESMF_FieldGet(lfield, farrayPtr=r8ptr, rc=rc)
+                if (ChkErr(rc,__LINE__,u_FILE_u)) return
+                r8ptr = real(meshmask,R8)
+                call ESMF_FieldBundleAdd(is_local%wrap%FBdststatus(n2), (/lfield/), rc=rc)
+                if (ChkErr(rc,__LINE__,u_FILE_u)) return
+                call ESMF_FieldDestroy(maskfield, rc=rc)
+                if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             end if
+          end if
+       end if
+    end do
+
+    ! write the FB
+    call med_io_wopen(trim(dststatusfile), io_file, vm, rc, clobber=.true.)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    ! Loop over whead/wdata phases
+    do m = 1,2
+       if (m == 2) then
+          call med_io_enddef(io_file)
+       end if
+
+       ! write dststatusfields for each dst component
+       do n2 = 2,ncomps
+          if (is_local%wrap%comp_present(n2)) then
+             if (ESMF_FieldBundleIsCreated(is_local%wrap%FBdststatus(n2),rc=rc)) then
+                call med_io_write(io_file, is_local%wrap%FBdststatus(n2), whead(m), wdata(m), &
+                     is_local%wrap%nx(n2), is_local%wrap%ny(n2), pre='dst'//trim(compname(n2)), &
+                     use_float=.true., ntile=is_local%wrap%ntile(n2), rc=rc)
+                if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             endif
+          end if
+       end do
+    end do ! do m = 1,2
+    ! Close file
+    call med_io_close(io_file, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    ! Destroy the dststatus FBs
+    do n2 = 2,ncomps
+       if (ESMF_FieldBundleIsCreated(is_local%wrap%FBdststatus(n2),rc=rc)) then
+          call ESMF_FieldBundleDestroy(is_local%wrap%FBdststatus(n2), rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+       end if
+    end do
+
+  end subroutine med_dststatus_write
 
   !-----------------------------------------------------------------------------
 

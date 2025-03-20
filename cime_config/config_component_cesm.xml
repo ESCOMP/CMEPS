@@ -287,6 +287,12 @@
       <!-- =================================================== -->
       <value compset="_DATM.*_BLOM">24</value>
       <value compset="_BLOM" grid="oi%tnx0.25v">48</value>
+      <!-- =================================================== -->
+      <!-- WW3Test compset -->
+      <!-- =================================================== -->
+      <value compset="_DATM.*_WW3" grid="w025">72</value>
+      <value compset="_DATM.*_WW3" grid="wtx0.66v1">72</value>
+      <!-- otherwise ww3 buildnml won't be happy. -->
     </values>
     <group>run_coupling</group>
     <file>env_run.xml</file>
