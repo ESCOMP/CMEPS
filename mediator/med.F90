@@ -2266,9 +2266,9 @@ contains
     use ESMF                  , only : ESMF_ClockGetAlarmList
     use NUOPC                 , only : NUOPC_CompCheckSetClock, NUOPC_CompAttributeGet
     use NUOPC_Mediator        , only : NUOPC_MediatorGet
-    ! NUOPC_shr_methods is now in cesm_share and cdeps 
+    ! NUOPC_shr_methods is now in cesm_share and cdeps
     use nuopc_shr_methods, only : AlarmInit
-    
+
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc

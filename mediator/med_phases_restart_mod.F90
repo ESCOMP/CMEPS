@@ -14,7 +14,11 @@ module med_phases_restart_mod
   use med_phases_prep_glc_mod , only : FBocnAccum2glc_o, ocnAccum2glc_cnt
   use med_phases_prep_rof_mod , only : FBlndAccum2rof_l, lndAccum2rof_cnt
   use pio                     , only : file_desc_t
+#ifndef CESMCOUPLED
+  use shr_is_restart_fh_mod, only : init_is_restart_fh, is_restart_fh, is_restart_fh_type
+#endif
   use shr_log_mod             , only : shr_log_error
+
   implicit none
   private
 
@@ -24,6 +28,9 @@ module med_phases_restart_mod
   private :: med_phases_restart_alarm_init
 
   logical :: write_restart_at_endofrun = .false.
+#ifndef CESMCOUPLED
+  type(is_restart_fh_type) :: restartfh_info ! For flexible restarts in UFS
+#endif
   logical :: whead(2) = (/.true. , .false./)
   logical :: wdata(2) = (/.false., .true. /)
   character(*), parameter :: u_FILE_u  = &
@@ -117,6 +124,10 @@ contains
        write(logunit,*)
     end if
 
+#ifndef CESMCOUPLED
+    call init_is_restart_fh(mcurrtime, timestep_length,maintask, restartfh_info)
+#endif
+
   end subroutine med_phases_restart_alarm_init
 
   !===============================================================================
@@ -180,6 +191,9 @@ contains
     real(R8)                   :: tbnds(2)       ! CF1.0 time bounds
     logical                    :: isPresent
     logical                    :: first_time = .true.
+#ifndef CESMCOUPLED
+    logical                    :: write_restartfh
+#endif
     character(len=*), parameter :: subname='(med_phases_restart_write)'
     !---------------------------------------
 
@@ -237,6 +251,11 @@ contains
           AlarmIsOn = .false.
        endif
     endif
+
+#ifndef CESMCOUPLED
+    call is_restart_fh(clock, restartfh_info, write_restartfh)
+    if (write_restartfh) alarmIsOn = .true.
+#endif
 
     if (alarmIsOn) then
        call ESMF_ClockGet(clock, currtime=currtime, starttime=starttime, rc=rc)
