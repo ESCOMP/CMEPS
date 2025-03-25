@@ -162,7 +162,7 @@
     </values>
   </entry>
 
- <entry id="drv_restart_pointer">
+  <entry id="drv_restart_pointer" modify_via_xml="DRV_RESTART_POINTER">
     <type>char</type>
     <category>expdef</category>
     <group>DRIVER_attributes</group>
@@ -170,7 +170,7 @@
       Driver restart pointer file to initialize time info
     </desc>
     <values>
-      <value>rpointer.cpl</value>
+      <value>$DRV_RESTART_POINTER</value>
     </values>
   </entry>
 
@@ -230,18 +230,6 @@
     </desc>
     <values>
       <value>1.0D0</value>
-    </values>
-  </entry>
-
-  <!-- not yet fully implemented, set to false -->
-  <entry id="write_restart_at_endofrun">
-    <type>logical</type>
-    <category>nuopc</category>
-    <group>ALLCOMP_attributes</group>
-    <values>
-      <value>.false.</value>
-      <value rest_option='none'>.false.</value>
-      <value rest_option='never'>.false.</value>
     </values>
   </entry>
 
@@ -889,7 +877,7 @@
     <values>
       <value>.false.</value>
     </values>
-  </entry>  
+  </entry>
 
   <entry id="info_debug" modify_via_xml="INFO_DBUG">
     <type>integer</type>
@@ -925,7 +913,10 @@
       default: ogrid
     </desc>
     <values>
-      <value>ogrid</value>
+      <value>xgrid</value>
+      <!-- xgrid introduces unnecessary cost and complexity if atm & ocn are on the same
+      grid, so fall back to ogrid in that case -->
+      <value samegrid_atm_ocn='true'>ogrid</value>
     </values>
   </entry>
   <entry id="ocn_surface_flux_scheme">
@@ -2299,6 +2290,34 @@
     </values>
   </entry>
 
+  <entry id="ocn2wav_smapname"    modify_via_xml="OCN2WAV_SMAPNAME">
+    <type>char</type>
+    <category>mapping</category>
+    <input_pathname>abs</input_pathname>
+    <group>MED_attributes</group>
+    <desc>
+      ocn to wav state mapping file for states
+    </desc>
+    <values>
+      <value samegrid_wav_ocn="true">idmap</value>
+      <value>$OCN2WAV_SMAPNAME</value>
+    </values>
+  </entry>
+
+  <entry id="wav2ocn_smapname"    modify_via_xml="WAV2OCN_SMAPNAME">
+    <type>char</type>
+    <category>mapping</category>
+    <input_pathname>abs</input_pathname>
+    <group>MED_attributes</group>
+    <desc>
+      wav to ocn state mapping file for states
+    </desc>
+    <values>
+      <value samegrid_wav_ocn="true">idmap</value>
+      <value>$WAV2OCN_SMAPNAME</value>
+    </values>
+  </entry>
+  
   <!-- =========================== -->
   <!-- ALLCOMP attributes          -->
   <!-- =========================== -->
@@ -2422,7 +2441,7 @@
     </values>
   </entry>
 
-  <entry id="flds_dms" modify_via_xml="DMS_EMIS_OCN">
+  <entry id="flds_dms">
     <type>logical</type>
     <category>flds</category>
     <group>ALLCOMP_attributes</group>
@@ -2431,10 +2450,11 @@
     </desc>
     <values>
       <value>.false.</value>
+      <value dms_from_ocn="on">.true.</value>
     </values>
   </entry>
 
-  <entry id="flds_brf" modify_via_xml="BRF_EMIS_OCN">
+  <entry id="flds_brf">
     <type>logical</type>
     <category>flds</category>
     <group>ALLCOMP_attributes</group>
@@ -2833,7 +2853,7 @@
     </values>
   </entry>
 
-  <entry id="end_restart">
+  <entry id="write_restart_at_endofrun">
     <type>logical</type>
     <category>time</category>
     <group>CLOCK_attributes</group>
@@ -2842,10 +2862,15 @@
       forces a restart write at the end of the run in addition to any
       setting associated with rest_option.  default=true.  this setting
       will be set to false if restart_option is none or never.
-      default: false
+      default: true
     </desc>
     <values>
-      <value>.false.</value>
+      <value>.true.</value>
+      <value rest_option='none'>.false.</value>
+      <value rest_option='never'>.false.</value>
+      <value TESTCASE='ERC'>.false.</value>
+      <value TESTCASE='ERP'>.false.</value>
+      <value TESTCASE='ERI'>.false.</value>
     </values>
   </entry>
 
