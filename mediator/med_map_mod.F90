@@ -474,7 +474,7 @@ contains
           call ESMF_FieldRegridStore(fldsrc, flddst, routehandle=routehandles(mapbilnr), &
                srcMaskValues=(/srcMaskValue/),            &
                dstMaskValues=(/dstMaskValue/),            &
-	       regridmethod=ESMF_REGRIDMETHOD_BILINEAR,   &
+               regridmethod=ESMF_REGRIDMETHOD_BILINEAR,   &
                polemethod=polemethod,                     &
                srcTermProcessing=srcTermProcessing_Value, &
                ignoreDegenerate=.true.,                   &
