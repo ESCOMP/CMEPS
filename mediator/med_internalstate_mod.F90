@@ -77,7 +77,8 @@ module med_internalstate_mod
   integer , public, parameter :: mapfillv_bilnr    = 15 ! fill value followed by bilinear
   integer , public, parameter :: mapbilnr_nstod    = 16 ! bilinear with nstod extrapolation
   integer , public, parameter :: mapconsf_aofrac   = 17 ! conservative with aofrac normalization (ufs only)
-  integer , public, parameter :: nmappers          = 17
+  integer , public, parameter :: mapconsf_uv3d     = 18 ! conservative with uv3d mapping
+  integer , public, parameter :: nmappers          = 18
   character(len=*) , public, parameter :: mapnames(nmappers) = &
        (/'bilnr       ',&
          'consf       ',&
@@ -95,7 +96,8 @@ module med_internalstate_mod
          'glc2ocn_liq ',&
          'fillv_bilnr ',&
          'bilnr_nstod ',&
-         'consf_aofrac'/)
+         'consf_aofrac',&
+         'consf_uv3d  '/)
 
   type, public :: packed_data_type
      integer, allocatable :: fldindex(:) ! size of number of packed fields
