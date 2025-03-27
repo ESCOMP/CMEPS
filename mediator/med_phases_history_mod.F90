@@ -268,14 +268,20 @@ contains
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
              call ESMF_TimeGet(currtime,yy=yr, mm=mon, dd=day, s=sec, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             write(currtimestr,'(i4.4,a,i2.2,a,i2.2,a,i5.5)') yr,'-',mon,'-',day,'-',sec
-
+             if(yr .le. 9999) then
+                write(currtimestr,'(i4.4,a,i2.2,a,i2.2,a,i5.5)') yr,'-',mon,'-',day,'-',sec
+             else
+                write(currtimestr,'(i6.6,a,i2.2,a,i2.2,a,i5.5)') yr,'-',mon,'-',day,'-',sec
+             endif
              call ESMF_ClockGetNextTime(mclock, nextTime=nexttime, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
              call ESMF_TimeGet(nexttime, yy=yr, mm=mon, dd=day, s=sec, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             write(nexttimestr,'(i4.4,a,i2.2,a,i2.2,a,i5.5)') yr,'-',mon,'-',day,'-',sec
-
+             if(yr .le. 9999) then
+                write(nexttimestr,'(i4.4,a,i2.2,a,i2.2,a,i5.5)') yr,'-',mon,'-',day,'-',sec
+             else
+                write(nexttimestr,'(i6.6,a,i2.2,a,i2.2,a,i5.5)') yr,'-',mon,'-',day,'-',sec
+             endif
              if (maintask) then
                 write(logunit,*)
                 write(logunit,'(a,i8)') trim(subname)//" : history alarmname "//trim(alarmname)//&
@@ -1781,8 +1787,11 @@ contains
 
     call ESMF_TimeGet(nexttime, yy=yr, mm=mon, dd=day, s=sec, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    write(nexttime_str,'(i4.4,a,i2.2,a,i2.2,a,i5.5)') yr,'-',mon,'-',day,'-',sec
-
+    if(yr .le. 9999) then
+       write(nexttime_str,'(i4.4,a,i2.2,a,i2.2,a,i5.5)') yr,'-',mon,'-',day,'-',sec
+    else
+       write(nexttime_str,'(i6.6,a,i2.2,a,i2.2,a,i5.5)') yr,'-',mon,'-',day,'-',sec
+    endif
     if (trim(case_name) == 'unset') then
        call NUOPC_CompAttributeGet(gcomp, name='case_name', value=case_name, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
