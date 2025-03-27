@@ -568,6 +568,16 @@
     If TRUE, short term archiving will be turned on.</desc>
   </entry>
 
+  <entry id="RUN_POSTPROCESSING">
+    <type>logical</type>
+    <valid_values>TRUE,FALSE</valid_values>
+    <default_value>FALSE</default_value>
+    <group>run_data_archive</group>
+    <file>env_run.xml</file>
+    <desc>Logical to run post-processing analysis tools.
+    If TRUE, post-processing scripts will be run</desc>
+  </entry>
+
   <entry id="SYSLOG_N">
     <type>integer</type>
     <default_value>900</default_value>

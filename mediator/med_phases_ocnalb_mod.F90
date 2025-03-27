@@ -10,8 +10,7 @@ module med_phases_ocnalb_mod
   use perf_mod              , only : t_startf, t_stopf
   use shr_orb_mod           , only : shr_orb_cosz, shr_orb_decl
   use shr_orb_mod           , only : shr_orb_params, SHR_ORB_UNDEF_INT, SHR_ORB_UNDEF_REAL
-  use shr_log_mod           , only : shr_log_unit
-
+  use shr_log_mod           , only : shr_log_unit, shr_log_error
   implicit none
   private
 
@@ -572,8 +571,8 @@ contains
           write(logunit,*) trim(subname),' ERROR: invalid settings orb_mode =',trim(orb_mode)
           write(logunit,*) trim(subname),' ERROR: fixed_year settings = ',orb_iyear
           write (msgstr, *) ' ERROR: invalid settings for orb_mode '//trim(orb_mode)
-          call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
-          return  ! bail out
+          call shr_log_error(msgstr, line=__LINE__, file=__FILE__, rc=rc)
+          return
        endif
     elseif (trim(orb_mode) == trim(orb_variable_year)) then
        orb_obliq = SHR_ORB_UNDEF_REAL
@@ -583,8 +582,8 @@ contains
           write(logunit,*) trim(subname),' ERROR: invalid settings orb_mode =',trim(orb_mode)
           write(logunit,*) trim(subname),' ERROR: variable_year settings = ',orb_iyear, orb_iyear_align
           write (msgstr, *) subname//' ERROR: invalid settings for orb_mode '//trim(orb_mode)
-          call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
-          return  ! bail out
+          call shr_log_error(msgstr, line=__LINE__, file=__FILE__, rc=rc)
+          return
        endif
     elseif (trim(orb_mode) == trim(orb_fixed_parameters)) then
        !-- force orb_iyear to undef to make sure shr_orb_params works properly
@@ -598,14 +597,13 @@ contains
           write(logunit,*) trim(subname),' ERROR: orb_obliq = ',orb_obliq
           write(logunit,*) trim(subname),' ERROR: orb_mvelp = ',orb_mvelp
           write (msgstr, *) subname//' ERROR: invalid settings for orb_mode '//trim(orb_mode)
-          call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
-          return  ! bail out
+          call shr_log_error(msgstr, line=__LINE__, file=__FILE__, rc=rc)
+          return
        endif
     else
        write (msgstr, *) subname//' ERROR: invalid orb_mode '//trim(orb_mode)
-       call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
-       rc = ESMF_FAILURE
-       return  ! bail out
+       call shr_log_error(msgstr, line=__LINE__, file=__FILE__, rc=rc)
+       return
     endif
   end subroutine med_phases_ocnalb_orbital_init
 
@@ -665,8 +663,8 @@ contains
     if ( eccen  == SHR_ORB_UNDEF_REAL .or. obliqr == SHR_ORB_UNDEF_REAL .or. &
          mvelpp == SHR_ORB_UNDEF_REAL .or. lambm0 == SHR_ORB_UNDEF_REAL) then
        write (msgstr, *) subname//' ERROR: orb params incorrect'
-       call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
-       return  ! bail out
+       call shr_log_error(msgstr, line=__LINE__, file=__FILE__, rc=rc)
+       return
     endif
 
   end subroutine med_phases_ocnalb_orbital_update

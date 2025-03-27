@@ -51,7 +51,8 @@ module MED
   use esmFldsExchange_cesm_mod , only : esmFldsExchange_cesm
   use esmFldsExchange_hafs_mod , only : esmFldsExchange_hafs
   use med_phases_profile_mod   , only : med_phases_profile_finalize
-
+  use shr_log_mod              , only : shr_log_error
+  
   implicit none
   private
 
@@ -672,7 +673,7 @@ contains
     use ESMF  , only : ESMF_GridComp, ESMF_State, ESMF_Clock, ESMF_SUCCESS, ESMF_LogFoundAllocError
     use ESMF  , only : ESMF_StateIsCreated
     use ESMF  , only : ESMF_LogMsg_Info, ESMF_LogWrite
-    use ESMF  , only : ESMF_END_ABORT, ESMF_Finalize, ESMF_MAXSTR
+    use ESMF  , only : ESMF_MAXSTR
     use NUOPC , only : NUOPC_AddNamespace, NUOPC_Advertise, NUOPC_AddNestedState
     use NUOPC , only : NUOPC_CompAttributeGet, NUOPC_CompAttributeSet, NUOPC_CompAttributeAdd
     use esmFlds, only : med_fldlist_init1, med_fld_GetFldInfo, med_fldList_entry_type
@@ -800,8 +801,8 @@ contains
        call NUOPC_CompAttributeGet(gcomp, name='aoflux_ccpp_suite', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        if (.not. isPresent .and. .not. isSet) then
-          call ESMF_LogWrite("aoflux_ccpp_suite need to be provided when aoflux_code is set to 'ccpp'", ESMF_LOGMSG_INFO)
-          call ESMF_Finalize(endflag=ESMF_END_ABORT)
+          call shr_log_error("aoflux_ccpp_suite need to be provided when aoflux_code is set to 'ccpp'", rc=rc)
+          return
        end if
        aoflux_ccpp_suite = trim(cvalue)
        if (maintask) then
@@ -839,8 +840,8 @@ contains
        call esmFldsExchange_hafs(gcomp, phase='advertise', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     else
-        call ESMF_LogWrite(trim(coupling_mode)//' is not a valid coupling_mode', ESMF_LOGMSG_INFO)
-        call ESMF_Finalize(endflag=ESMF_END_ABORT)
+       call shr_log_error(trim(coupling_mode)//' is not a valid coupling_mode', rc=rc)
+       return
     end if
 
     ! Set default masking for mapping
@@ -1103,7 +1104,7 @@ contains
       use ESMF , only : ESMF_MAXSTR, ESMF_FieldStatus_Flag, ESMF_GeomType_Flag, ESMF_StateGet
       use ESMF , only : ESMF_FieldGet, ESMF_DistGridGet, ESMF_GridCompGet
       use ESMF , only : ESMF_GeomType_Grid, ESMF_AttributeGet, ESMF_DistGridCreate, ESMF_FieldEmptySet
-      use ESMF , only : ESMF_GridCreate, ESMF_LogWrite, ESMF_LogMsg_Info, ESMF_GridGet, ESMF_Failure
+      use ESMF , only : ESMF_GridCreate, ESMF_LogWrite, ESMF_LogMsg_Info, ESMF_GridGet
       use ESMF , only : ESMF_LogMsg_Warning
       use ESMF , only : ESMF_FieldStatus_Empty, ESMF_FieldStatus_Complete, ESMF_FieldStatus_GridSet
       use ESMF , only : ESMF_GeomType_Mesh, ESMF_MeshGet, ESMF_Mesh, ESMF_MeshEmptyCreate
@@ -1328,9 +1329,7 @@ contains
                enddo
 
             else  ! geomtype
-
-               call ESMF_LogWrite(trim(subname)//": ERROR geomtype not supported ", ESMF_LOGMSG_INFO)
-               rc=ESMF_FAILURE
+               call shr_log_error(trim(subname)//": ERROR geomtype not supported ", rc=rc)
                return
 
             endif ! geomtype
@@ -1347,10 +1346,9 @@ contains
 
          else
 
-            call ESMF_LogWrite(trim(subname)//": ERROR fieldStatus not supported ", ESMF_LOGMSG_INFO)
-            rc=ESMF_FAILURE
+            call shr_log_error(trim(subname)//": ERROR fieldStatus not supported ", rc=rc)
             return
-
+            
          endif   ! fieldStatus
 
       enddo   ! nflds
@@ -1442,7 +1440,7 @@ contains
       use ESMF  , only : ESMF_SUCCESS, ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_FieldGet
       use ESMF  , only : ESMF_GeomType_Flag, ESMF_FieldCreate, ESMF_MeshCreate, ESMF_GEOMTYPE_GRID
       use ESMF  , only : ESMF_MeshLoc_Element, ESMF_TYPEKIND_R8, ESMF_FIELDSTATUS_GRIDSET
-      use ESMF  , only : ESMF_AttributeGet, ESMF_MeshWrite, ESMF_FAILURE
+      use ESMF  , only : ESMF_AttributeGet, ESMF_MeshWrite
       use NUOPC , only : NUOPC_getStateMemberLists, NUOPC_Realize
 
       ! input/output variables
@@ -1522,8 +1520,7 @@ contains
                call ESMF_FieldGet(meshField, status=fieldStatus, rc=rc)
                if (ChkErr(rc,__LINE__,u_FILE_u)) return
                if (fieldStatus == ESMF_FIELDSTATUS_GRIDSET ) then
-                 call ESMF_LogWrite(trim(subname)//": ERROR fieldStatus not complete ", ESMF_LOGMSG_INFO)
-                 rc = ESMF_FAILURE
+                 call shr_log_error(trim(subname)//": ERROR fieldStatus not complete ", rc=rc)
                  return
                end if
                call Field_GeomPrint(meshField, trim(subname)//':'//trim(fieldName), rc=rc)
@@ -2263,15 +2260,15 @@ contains
 
     use ESMF                  , only : ESMF_GridComp, ESMF_CLOCK, ESMF_Time, ESMF_TimeInterval
     use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_ClockGet, ESMF_ClockSet
-    use ESMF                  , only : ESMF_Success, ESMF_Failure
+    use ESMF                  , only : ESMF_Success
     use ESMF                  , only : ESMF_Alarm, ESMF_ALARMLIST_ALL, ESMF_ClockGetAlarmList
     use ESMF                  , only : ESMF_AlarmCreate, ESMF_AlarmSet, ESMF_ClockAdvance
     use ESMF                  , only : ESMF_ClockGetAlarmList
     use NUOPC                 , only : NUOPC_CompCheckSetClock, NUOPC_CompAttributeGet
     use NUOPC_Mediator        , only : NUOPC_MediatorGet
-    ! NUOPC_shr_methods is now in cesm_share and cdeps 
+    ! NUOPC_shr_methods is now in cesm_share and cdeps
     use nuopc_shr_methods, only : AlarmInit
-    
+
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc
@@ -2353,7 +2350,7 @@ contains
     use ESMF , only : ESMF_Array, ESMF_ArrayCreate, ESMF_ArrayDestroy, ESMF_Field, ESMF_FieldGet
     use ESMF , only : ESMF_DistGrid, ESMF_FieldBundle, ESMF_FieldRegridGetArea, ESMF_FieldBundleGet
     use ESMF , only : ESMF_Mesh, ESMF_MeshGet, ESMF_MESHLOC_ELEMENT, ESMF_TYPEKIND_R8
-    use ESMF , only : ESMF_SUCCESS, ESMF_FAILURE, ESMF_LogWrite, ESMF_LOGMSG_INFO
+    use ESMF , only : ESMF_SUCCESS, ESMF_LogWrite, ESMF_LOGMSG_INFO
     use ESMF , only : ESMF_FieldCreate, ESMF_FieldBundleCreate, ESMF_FieldBundleAdd
     use med_internalstate_mod , only : mesh_info_type
 
@@ -2603,7 +2600,7 @@ contains
     type(ESMF_Array)     :: maskarray
     integer(I4), pointer :: meshmask(:)
     real(R8), pointer    :: r8ptr(:)
-    integer              :: m,n1,n2
+    integer              :: m,n2
     character(CL)        :: case_name, dststatusfile
     logical              :: elementMaskIsPresent
     logical              :: whead(2) = (/.true. , .false./)
@@ -2641,9 +2638,9 @@ contains
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
                 ! get mask Array
                 call ESMF_FieldGet(maskfield, array=maskarray, rc=rc)
-		if (ChkErr(rc,__LINE__,u_FILE_u)) return
+                if (ChkErr(rc,__LINE__,u_FILE_u)) return
                 call ESMF_MeshGet(mesh_dst, elemMaskArray=maskarray, rc=rc)
-		if (ChkErr(rc,__LINE__,u_FILE_u)) return
+                if (ChkErr(rc,__LINE__,u_FILE_u)) return
                 call ESMF_FieldGet(maskfield, localDe=0, farrayPtr=meshmask, rc=rc)
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
                 ! now create an R8 mask for writing

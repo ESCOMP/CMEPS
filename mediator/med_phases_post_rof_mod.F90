@@ -5,7 +5,7 @@ module med_phases_post_rof_mod
   use NUOPC_Mediator        , only : NUOPC_MediatorGet
   use NUOPC                 , only : NUOPC_CompAttributeGet
   use ESMF                  , only : ESMF_Clock, ESMF_ClockIsCreated
-  use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_LOGMSG_ERROR, ESMF_SUCCESS, ESMF_FAILURE
+  use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
   use ESMF                  , only : ESMF_GridComp, ESMF_GridCompGet
   use ESMF                  , only : ESMF_Mesh, ESMF_MESHLOC_ELEMENT, ESMF_TYPEKIND_R8
   use ESMF                  , only : ESMF_Field, ESMF_FieldCreate
@@ -22,7 +22,7 @@ module med_phases_post_rof_mod
   use med_methods_mod       , only : fldbun_getdata1d => med_methods_FB_getdata1d
   use med_methods_mod       , only : fldbun_getmesh   => med_methods_FB_getmesh
   use perf_mod              , only : t_startf, t_stopf
-  use shr_sys_mod           , only : shr_sys_abort
+  use shr_log_mod           , only : shr_log_error
 
   implicit none
   private
@@ -105,7 +105,8 @@ contains
        flds_wiso = .false.
     end if
     if ((remove_negative_runoff_lnd .or. remove_negative_runoff_glc) .and. flds_wiso) then
-      call shr_sys_abort('remove_negative_runoff_lnd and remove_negative_runoff_glc must be set to false when flds_wiso is true')
+       call shr_log_error('remove_negative_runoff_lnd and remove_negative_runoff_glc must be set to false when flds_wiso is true', rc=rc)
+       return
     end if
 
     if (maintask) then

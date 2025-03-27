@@ -431,7 +431,7 @@
     <desc>if true, mediator is present in run </desc>
   </entry>
 
-  <entry id="model_version">
+  <entry id="model_version" modify_via_xml="MODEL_VERSION">
     <type>char</type>
     <category>expdef</category>
     <group>ALLCOMP_attributes</group>
@@ -439,7 +439,7 @@
       Model version
     </desc>
     <values>
-      <value>unknown</value>
+      <value>$MODEL_VERSION</value>
     </values>
   </entry>
 
@@ -910,13 +910,14 @@
     <valid_values>ogrid,agrid,xgrid</valid_values>
     <desc>
       Grid for atm ocn flux calc
-      default: ogrid
+      default: xgrid for fully coupled cases, ogrid for datm
     </desc>
     <values>
       <value>xgrid</value>
       <!-- xgrid introduces unnecessary cost and complexity if atm & ocn are on the same
       grid, so fall back to ogrid in that case -->
       <value samegrid_atm_ocn='true'>ogrid</value>
+      <value COMP_ATM='datm'>ogrid</value>
     </values>
   </entry>
   <entry id="ocn_surface_flux_scheme">
