@@ -17,8 +17,9 @@ jobs:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        python-version: [ 3.10.9 ]
+        python-version: [ 3.8, 3.11, 3.x ]
     env:
       CC: mpicc
       FC: mpifort
@@ -81,11 +82,12 @@ jobs:
           git config --global user.name "${GITHUB_ACTOR}"
           git config --global user.email "${GITHUB_ACTOR_ID}+${GITHUB_ACTOR}@users.noreply.github.com"
           pushd cesm
-          ./bin/git-fleximod update ccs_config cdeps share mct parallelio cime
+          ./bin/git-fleximod update cime ccs_config cdeps share mct parallelio
           cd ccs_config
           git checkout main 
           cd ../cime
           git checkout master
+          git status
           if [[ ! -e "${PWD}/.gitmodules.bak" ]]
              then
               echo "Converting git@github.com to https://github.com urls in ${PWD}/.gitmodules"
