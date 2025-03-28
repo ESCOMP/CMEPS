@@ -124,7 +124,7 @@ jobs:
 
       - name: Build ParallelIO
         if: steps.cache-PARALLELIO.outputs.cache-hit != 'true'
-        uses: NCAR/ParallelIO/.github/actions/parallelio_cmake@8f5cfc9
+        uses: NCAR/ParallelIO/.github/actions/parallelio_cmake@b38e34eeb9b75ce81ac94daf7c5245931de00b9d
         with:
           parallelio_version: ${{ env.ParallelIO_VERSION }}
           enable_fortran: True
