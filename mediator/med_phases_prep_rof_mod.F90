@@ -27,7 +27,8 @@ module med_phases_prep_rof_mod
   use med_methods_mod       , only : fldbun_fldchk    => med_methods_FB_fldchk
   use med_methods_mod       , only : FB_check_for_nans => med_methods_FB_check_for_nans
   use perf_mod              , only : t_startf, t_stopf
-
+  use shr_log_mod           , only : shr_log_error
+  
   implicit none
   private
 
@@ -535,7 +536,7 @@ contains
     use ESMF        , only : ESMF_FieldBundle, ESMF_FieldBundleGet, ESMF_FieldIsCreated
     use ESMF        , only : ESMF_Mesh, ESMF_TYPEKIND_R8, ESMF_MESHLOC_ELEMENT
     use ESMF        , only : ESMF_SUCCESS, ESMF_FAILURE
-    use ESMF        , only : ESMF_LOGMSG_INFO, ESMF_LogWrite, ESMF_LOGMSG_ERROR
+    use ESMF        , only : ESMF_LOGMSG_INFO, ESMF_LogWrite
     use med_map_mod , only : med_map_rh_is_created, med_map_field, med_map_field_normalized
 
     ! input/output variables
@@ -580,10 +581,8 @@ contains
     else if ( med_map_RH_is_created(is_local%wrap%RH(complnd,comprof,:),mapfcopy, rc=rc)) then
        maptype_lnd2rof = mapfcopy
     else
-       call ESMF_LogWrite(trim(subname)//&
-            ": ERROR conservative or redist route handles not created for lnd->rof mapping", &
-            ESMF_LOGMSG_ERROR)
-       rc = ESMF_FAILURE
+       call shr_log_error(trim(subname)//&
+            ": ERROR conservative or redist route handles not created for lnd->rof mapping", rc=rc)
        return
     end if
 
@@ -592,10 +591,8 @@ contains
     else if ( med_map_RH_is_created(is_local%wrap%RH(comprof,complnd,:),mapfcopy, rc=rc)) then
        maptype_rof2lnd = mapfcopy
     else
-       call ESMF_LogWrite(trim(subname)//&
-            ": ERROR conservative or redist route handles not created for rof->lnd mapping", &
-            ESMF_LOGMSG_ERROR)
-       rc = ESMF_FAILURE
+       call shr_log_error(trim(subname)//&
+            ": ERROR conservative or redist route handles not created for rof->lnd mapping", rc=rc)
        return
     end if
 

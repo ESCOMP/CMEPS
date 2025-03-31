@@ -292,7 +292,7 @@ CONTAINS
              ! Note that ierr /= 0, no namelist is present.
              read(unitn, drydep_inparm, iostat=ierr)
              if (ierr > 0) then
-                call shr_sys_abort( 'problem on read of drydep_inparm namelist in shr_drydep_readnl')
+                call shr_sys_abort( 'problem on read of drydep_inparm namelist in shr_drydep_readnl', rc=ierr)
              end if
           endif
           close( unitn )
@@ -374,19 +374,19 @@ CONTAINS
 
     if (localPet==0) then
        rc = nf90_open(path=trim(dep_data_file), mode=nf90_nowrite, ncid=fileid)
-       if (rc/=nf90_noerr) call shr_sys_abort(subName//' ERROR: not able to open file: '//trim(dep_data_file))
+       if (rc/=nf90_noerr) call shr_sys_abort(subName//' ERROR: not able to open file: '//trim(dep_data_file), rc=rc)
 
        rc = nf90_inq_dimid(fileid,'n_species_table',dimid)
-       if (rc/=nf90_noerr) call shr_sys_abort(subName//' ERROR: nf90_inq_dimid n_species_table')
+       if (rc/=nf90_noerr) call shr_sys_abort(subName//' ERROR: nf90_inq_dimid n_species_table', rc=rc)
 
        rc = nf90_inquire_dimension(fileid,dimid,len=bint(1))
-       if (rc/=nf90_noerr) call shr_sys_abort(subName//' ERROR: nf90_inquire_dimension n_species_table')
+       if (rc/=nf90_noerr) call shr_sys_abort(subName//' ERROR: nf90_inquire_dimension n_species_table', rc=rc)
 
        rc = nf90_inq_dimid(fileid,'NHen',dimid)
-       if (rc/=nf90_noerr) call shr_sys_abort(subName//' ERROR: nf90_inq_dimid NHen')
+       if (rc/=nf90_noerr) call shr_sys_abort(subName//' ERROR: nf90_inq_dimid NHen', rc=rc)
 
        rc = nf90_inquire_dimension(fileid,dimid,len=bint(2))
-       if (rc/=nf90_noerr) call shr_sys_abort(subName//' ERROR: nf90_inquire_dimension nHen')
+       if (rc/=nf90_noerr) call shr_sys_abort(subName//' ERROR: nf90_inquire_dimension nHen', rc=rc)
     endif
     write(msg,*) subname//' bcast n_species_table', localPet, bint
     call ESMF_LogWrite(msg, ESMF_LOGMSG_INFO)
@@ -404,27 +404,27 @@ CONTAINS
     dptr => dheff(:,1)
     if (localPet==0) then
        rc = nf90_inq_varid(fileid,'mol_wghts',varid)
-       if (rc/=nf90_noerr) call shr_sys_abort(subName//' ERROR: nf90_inq_varid mol_wghts')
+       if (rc/=nf90_noerr) call shr_sys_abort(subName//' ERROR: nf90_inq_varid mol_wghts', rc=rc)
        rc = nf90_get_var(fileid,varid,mol_wgts)
-       if (rc/=nf90_noerr) call shr_sys_abort(subName//' ERROR: nf90_get_var mol_wgts')
+       if (rc/=nf90_noerr) call shr_sys_abort(subName//' ERROR: nf90_get_var mol_wgts', rc=rc)
 
        rc = nf90_inq_varid(fileid,'dfoxd',varid)
-       if (rc/=nf90_noerr) call shr_sys_abort(subName//' ERROR: nf90_inq_varid dfoxd')
+       if (rc/=nf90_noerr) call shr_sys_abort(subName//' ERROR: nf90_inq_varid dfoxd', rc=rc)
        rc = nf90_get_var(fileid,varid,dfoxd)
-       if (rc/=nf90_noerr) call shr_sys_abort(subName//' ERROR: nf90_get_var dfoxd')
+       if (rc/=nf90_noerr) call shr_sys_abort(subName//' ERROR: nf90_get_var dfoxd', rc=rc)
 
        rc = nf90_inq_varid(fileid,'species_name_table',varid)
-       if (rc/=nf90_noerr) call shr_sys_abort(subName//' ERROR: nf90_inq_varid species_name_table')
+       if (rc/=nf90_noerr) call shr_sys_abort(subName//' ERROR: nf90_inq_varid species_name_table', rc=rc)
        rc = nf90_get_var(fileid,varid,species_name_table)
-       if (rc/=nf90_noerr) call shr_sys_abort(subName//' ERROR: nf90_get_var species_name_table')
+       if (rc/=nf90_noerr) call shr_sys_abort(subName//' ERROR: nf90_get_var species_name_table', rc=rc)
 
        rc = nf90_inq_varid(fileid,'dheff',varid)
-       if (rc/=nf90_noerr) call shr_sys_abort(subName//' ERROR: nf90_inq_varid dheff')
+       if (rc/=nf90_noerr) call shr_sys_abort(subName//' ERROR: nf90_inq_varid dheff', rc=rc)
        rc = nf90_get_var(fileid,varid,dheff)
-       if (rc/=nf90_noerr) call shr_sys_abort(subName//' ERROR: nf90_get_var dheff')
+       if (rc/=nf90_noerr) call shr_sys_abort(subName//' ERROR: nf90_get_var dheff', rc=rc)
 
        rc = nf90_close(fileid)
-       if (rc/=nf90_noerr) call shr_sys_abort(subName//' ERROR: nf90_close')
+       if (rc/=nf90_noerr) call shr_sys_abort(subName//' ERROR: nf90_close', rc=rc)
     end if
     call ESMF_LogWrite(subname//' bcast mol_wgts', ESMF_LOGMSG_INFO)
     call ESMF_VMBroadcast(vm,  mol_wgts, n_species_table, 0, rc=rc )
