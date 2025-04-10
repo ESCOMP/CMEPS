@@ -913,7 +913,7 @@
       default: xgrid for fully coupled cases, ogrid for datm
     </desc>
     <values>
-      <value>ogrid</value>
+      <value>xgrid</value>
       <!-- xgrid introduces unnecessary cost and complexity if atm & ocn are on the same
       grid, so fall back to ogrid in that case -->
       <value samegrid_atm_ocn='true'>ogrid</value>

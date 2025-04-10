@@ -562,7 +562,7 @@ contains
     character(len=CL)       :: hist_file
     integer                 :: m,n
     logical                 :: isPresent
-    character(len=*), parameter :: subname='(med_phases_history_write_lnd2glc)'
+    character(len=*), parameter :: subname='(med_phases_history_write_data2glc)'
     !---------------------------------------
 
     rc = ESMF_SUCCESS
