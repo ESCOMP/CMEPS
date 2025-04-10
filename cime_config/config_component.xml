@@ -402,6 +402,17 @@
     </desc>
   </entry>
 
+  <entry id="DRV_RESTART_POINTER">
+    <type>char</type>
+    <default_value>rpointer.cpl</default_value>
+    <group>run_begin_stop_restart</group>
+    <file>env_run.xml</file>
+    <desc>
+      Name of the restart pointer file, this can be used to restart from an
+      intermediate restart by appending the restart date and time in format YYYY-MM-DD-SSSSS
+    </desc>
+  </entry>
+
   <entry id="PAUSE_OPTION">
     <type>char</type>
     <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,nmonths,nyears</valid_values>
@@ -555,6 +566,16 @@
     <file>env_run.xml</file>
     <desc>Logical to turn on short term archiving.
     If TRUE, short term archiving will be turned on.</desc>
+  </entry>
+
+  <entry id="RUN_POSTPROCESSING">
+    <type>logical</type>
+    <valid_values>TRUE,FALSE</valid_values>
+    <default_value>FALSE</default_value>
+    <group>run_data_archive</group>
+    <file>env_run.xml</file>
+    <desc>Logical to run post-processing analysis tools.
+    If TRUE, post-processing scripts will be run</desc>
   </entry>
 
   <entry id="SYSLOG_N">
@@ -1787,6 +1808,22 @@
     <group>mach_pes_last</group>
     <file>env_mach_pes.xml</file>
     <desc>pes or cores per node for accounting purposes </desc>
+  </entry>
+
+  <entry id="MEM_PER_TASK">
+    <type>integer</type>
+    <default_value>0</default_value>
+    <group>mach_pes_last</group>
+    <file>env_mach_pes.xml</file>
+    <desc>minimum memory request per node (currently only used on derecho)</desc>
+  </entry>
+
+  <entry id="MAX_MEM_PER_NODE">
+    <type>integer</type>
+    <default_value>0</default_value>
+    <group>mach_pes_last</group>
+    <file>env_mach_pes.xml</file>
+    <desc>maximum memory request per node (currently only used on derecho)</desc>
   </entry>
 
   <entry id="MAX_CPUTASKS_PER_GPU_NODE">

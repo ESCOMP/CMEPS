@@ -17,8 +17,7 @@ module med_diag_mod
 
   use NUOPC                 , only : NUOPC_CompAttributeGet, NUOPC_CompAttributeSet, NUOPC_CompAttributeAdd
   use NUOPC_Mediator        , only : NUOPC_MediatorGet
-  use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
-  use ESMF                  , only : ESMF_FAILURE,  ESMF_LOGMSG_ERROR
+  use ESMF                  , only : ESMF_SUCCESS
   use ESMF                  , only : ESMF_GridComp, ESMF_Clock, ESMF_Time
   use ESMF                  , only : ESMF_VM, ESMF_VMReduce, ESMF_REDUCE_SUM
   use ESMF                  , only : ESMF_GridCompGet, ESMF_ClockGet, ESMF_TimeGet, ESMF_ClockGetNextTime
@@ -33,7 +32,8 @@ module med_diag_mod
   use med_methods_mod       , only : fldbun_fldChk    => med_methods_FB_FldChk
   use med_utils_mod         , only : chkerr           => med_utils_ChkErr
   use perf_mod              , only : t_startf, t_stopf
-
+  use shr_log_mod           , only : shr_log_error
+  
   implicit none
   private
 
@@ -513,11 +513,9 @@ contains
        budget_counter(:,:,period_inst) = 0.0_r8
        budget_counter(:,:,period_inst+1:) = 1.0_r8
     else
-       call ESMF_LogWrite(trim(subname)//' mode '//trim(mode)//&
+       call shr_log_error(trim(subname)//' mode '//trim(mode)//&
             ' not recognized', &
-            ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
-       rc = ESMF_FAILURE
-       return
+            line=__LINE__, file=u_FILE_u, rc=rc)
     endif
   end subroutine med_diag_zero_mode
 
@@ -2116,8 +2114,6 @@ contains
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           if (ESMF_AlarmIsRinging(stop_alarm, rc=rc)) then
              output_level = max(output_level, budget_print_ltend)
-             call ESMF_AlarmRingerOff( stop_alarm, rc=rc )
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
           endif
        endif
 

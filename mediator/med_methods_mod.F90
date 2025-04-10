@@ -8,14 +8,14 @@ module med_methods_mod
   use ESMF               , only : operator(<), operator(/=), operator(+), operator(-), operator(*) , operator(>=)
   use ESMF               , only : operator(<=), operator(>), operator(==)
   use ESMF               , only : ESMF_FieldStatus_Flag
-  use ESMF               , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_FAILURE
-  use ESMF               , only : ESMF_LOGERR_PASSTHRU, ESMF_LogFoundError, ESMF_LOGMSG_ERROR
+  use ESMF               , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
+  use ESMF               , only : ESMF_LOGERR_PASSTHRU, ESMF_LogFoundError
   use ESMF               , only : ESMF_MAXSTR, ESMF_LOGMSG_WARNING
   use med_constants_mod  , only : dbug_flag => med_constants_dbug_flag
   use med_constants_mod  , only : czero => med_constants_czero
   use med_constants_mod  , only : spval_init => med_constants_spval_init
   use med_utils_mod      , only : ChkErr => med_utils_ChkErr
-
+  use shr_log_mod        , only : shr_log_error
   implicit none
   private
 
@@ -167,9 +167,8 @@ contains
                   purpose="Instance", itemCount=ungriddedCount,  isPresent=isPresent, rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
              if (ungriddedCount /= 1) then
-                call ESMF_LogWrite(trim(subname)//": ERROR ungriddedCount for "// &
-                     trim(lfieldnamelist(n))//" must be 1 if rank is 2 ", ESMF_LOGMSG_INFO)
-                rc = ESMF_FAILURE
+                call shr_log_error(trim(subname)//": ERROR ungriddedCount for "// &
+                     trim(lfieldnamelist(n))//" must be 1 if rank is 2 ", rc=rc)
                 return
              end if
 
@@ -203,12 +202,8 @@ contains
              if (chkerr(rc,__LINE__,u_FILE_u)) return
 
           else
-
-             call ESMF_LogWrite(trim(subname)//": ERROR only rank1 and rank2 are supported for rank of fields ", &
-                  ESMF_LOGMSG_INFO)
-             rc = ESMF_FAILURE
+             call shr_log_error(trim(subname)//": ERROR only rank1 and rank2 are supported for rank of fields ", rc=rc)
              return
-
           end if
 
           ! Add new field to FBout
@@ -284,24 +279,18 @@ contains
     !---------------------------------
 
     if (present(fieldNameList) .and. present(FBflds) .and. present(STflds)) then
-      call ESMF_LogWrite(trim(subname)//": ERROR only fieldNameList, FBflds, or STflds can be an argument", &
-            ESMF_LOGMSG_INFO)
-      rc = ESMF_FAILURE
-      return
+       call shr_log_error(trim(subname)//": ERROR only fieldNameList, FBflds, or STflds can be an argument", rc=rc)
+       return
     endif
 
     if (present(FBgeom) .and. present(STgeom)) then
-       call ESMF_LogWrite(trim(subname)//": ERROR FBgeom and STgeom cannot both be arguments", &
-            ESMF_LOGMSG_INFO)
-      rc = ESMF_FAILURE
-      return
+       call shr_log_error(trim(subname)//": ERROR FBgeom and STgeom cannot both be arguments", rc=rc)
+       return
     endif
 
     if (.not.present(FBgeom) .and. .not.present(STgeom)) then
-       call ESMF_LogWrite(trim(subname)//": ERROR FBgeom or STgeom must be an argument", &
-            ESMF_LOGMSG_INFO)
-      rc = ESMF_FAILURE
-      return
+       call shr_log_error(trim(subname)//": ERROR FBgeom or STgeom must be an argument", rc=rc)
+       return
     endif
 
     if (present(FBgeom)) then
@@ -311,9 +300,8 @@ contains
       call ESMF_StateGet(STgeom, itemCount=fieldCountGeom, rc=rc)
       if (chkerr(rc,__LINE__,u_FILE_u)) return
     else
-      call ESMF_LogWrite(trim(subname)//": ERROR FBgeom or STgeom must be passed", ESMF_LOGMSG_INFO)
-      rc = ESMF_FAILURE
-      return
+       call shr_log_error(trim(subname)//": ERROR FBgeom or STgeom must be passed", rc=rc)
+       return
     endif
 
     !---------------------------------
@@ -364,10 +352,8 @@ contains
          call ESMF_LogWrite(trim(subname)//":"//trim(lname)//" fieldNameList from STgeom", ESMF_LOGMSG_INFO)
       end if
     else
-       call ESMF_LogWrite(trim(subname)//": ERROR fieldNameList, FBflds, STflds, FBgeom, or STgeom must be passed", &
-            ESMF_LOGMSG_INFO)
-      rc = ESMF_FAILURE
-      return
+       call shr_log_error(trim(subname)//": ERROR fieldNameList, FBflds, STflds, FBgeom, or STgeom must be passed", rc=rc)
+       return
     endif
 
     !---------------------------------
@@ -406,19 +392,17 @@ contains
            call ESMF_LogWrite(trim(subname)//":"//trim(lname)//" mesh from STgeom", ESMF_LOGMSG_INFO)
         end if
       else
-        call ESMF_LogWrite(trim(subname)//": ERROR FBgeom or STgeom must be passed", ESMF_LOGMSG_INFO)
-        rc = ESMF_FAILURE
-        return
+         call shr_log_error(trim(subname)//": ERROR FBgeom or STgeom must be passed", rc=rc)
+         return
       endif
 
-      ! Make sure the field is not empty - if it is return with an error
+      ! Make sure the field is not empty - if it is abort with an error
       call ESMF_FieldGet(lfield, status=status, rc=rc)
       if (chkerr(rc,__LINE__,u_FILE_u)) return
       if (status == ESMF_FIELDSTATUS_EMPTY) then
-         call ESMF_LogWrite(trim(subname)//":"//trim(lname)//": ERROR field does not have a geom yet ", &
-              ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
-        rc = ESMF_FAILURE
-        return
+         call shr_log_error(trim(subname)//":"//trim(lname)//": ERROR field does not have a geom yet ", &
+              line=__LINE__, file=u_FILE_u, rc=rc)
+         return
       endif
 
       ! Assume field is on mesh
@@ -450,9 +434,7 @@ contains
                 call ESMF_FieldBundleGet(FBflds, fieldName=lfieldnamelist(n), field=lfield, rc=rc)
                 if (chkerr(rc,__LINE__,u_FILE_u)) return
              elseif (present(STflds)) then
-                call med_methods_State_getNameN(STflds, n, lname, rc)
-                if (chkerr(rc,__LINE__,u_FILE_u)) return
-                call ESMF_StateGet(STflds, itemName=lname, field=lfield, rc=rc)
+                call ESMF_StateGet(STflds, itemName=trim(lfieldnamelist(n)), field=lfield, rc=rc)
                 if (chkerr(rc,__LINE__,u_FILE_u)) return
              end if
 
@@ -549,9 +531,8 @@ contains
     call ESMF_FieldBundleGet(FB, fieldCount=fieldCount, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     if (fieldnum > fieldCount) then
-      call ESMF_LogWrite(trim(subname)//": ERROR fieldnum > fieldCount ", ESMF_LOGMSG_ERROR)
-      rc = ESMF_FAILURE
-      return
+       call shr_log_error(trim(subname)//": ERROR fieldnum > fieldCount ", rc=rc)
+       return
     endif
     allocate(lfieldnamelist(fieldCount))
     call ESMF_FieldBundleGet(FB, fieldNameList=lfieldnamelist, rc=rc)
@@ -633,9 +614,8 @@ contains
     call ESMF_StateGet(State, itemCount=fieldCount, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     if (fieldnum > fieldCount) then
-      call ESMF_LogWrite(trim(subname)//": ERROR fieldnum > fieldCount ", ESMF_LOGMSG_ERROR)
-      rc = ESMF_FAILURE
-      return
+       call shr_log_error(trim(subname)//": ERROR fieldnum > fieldCount ", rc=rc)
+       return
     endif
     allocate(lfieldnamelist(fieldCount))
     call ESMF_StateGet(State, itemNameList=lfieldnamelist, rc=rc)
@@ -750,9 +730,8 @@ contains
        elseif (lrank == 2) then
           fldptr2 = lvalue
        else
-          call ESMF_LogWrite(trim(subname)//": ERROR in rank "//trim(lfieldnamelist(n)), &
-               ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
-          rc = ESMF_FAILURE
+          call shr_log_error(trim(subname)//": ERROR in rank "//trim(lfieldnamelist(n)), &
+               line=__LINE__, file=u_FILE_u, rc=rc)
           return
        endif
     enddo
@@ -822,9 +801,8 @@ contains
        elseif (lrank == 2) then
           fldptr2 = lvalue
        else
-          call ESMF_LogWrite(trim(subname)//": ERROR in rank "//trim(lfieldnamelist(n)), &
-               ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
-          rc = ESMF_FAILURE
+          call shr_log_error(trim(subname)//": ERROR in rank "//trim(lfieldnamelist(n)), &
+               line=__LINE__, file=u_FILE_u, rc=rc)
           return
        endif
     enddo
@@ -901,9 +879,8 @@ contains
           enddo
           enddo
         else
-          call ESMF_LogWrite(trim(subname)//": ERROR rank not supported ", ESMF_LOGMSG_ERROR)
-          rc = ESMF_FAILURE
-          return
+           call shr_log_error(trim(subname)//": ERROR rank not supported ", rc=rc)
+           return
         endif
       enddo
       deallocate(lfieldnamelist)
@@ -985,8 +962,7 @@ contains
           endif
 
        else
-          call ESMF_LogWrite(trim(subname)//": ERROR rank not supported ", ESMF_LOGMSG_ERROR)
-          rc = ESMF_FAILURE
+          call shr_log_error(trim(subname)//": ERROR rank not supported ", rc=rc)
           return
        endif
        call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
@@ -1052,8 +1028,7 @@ contains
           call ESMF_FieldWriteVTK(lfield, trim(lfieldnamelist(n))//'_'//trim(lstring), rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
        else
-          call ESMF_LogWrite(trim(subname)//": ERROR rank not supported ", ESMF_LOGMSG_ERROR)
-          rc = ESMF_FAILURE
+          call shr_log_error(trim(subname)//": ERROR rank not supported ", rc=rc)
           return
        endif
     end do
@@ -1179,8 +1154,7 @@ contains
                   " no data"
           endif
        else
-          call ESMF_LogWrite(trim(subname)//": ERROR rank not supported ", ESMF_LOGMSG_ERROR)
-          rc = ESMF_FAILURE
+          call shr_log_error(trim(subname)//": ERROR rank not supported ", rc=rc)
           return
        endif
 
@@ -1320,8 +1294,7 @@ contains
           write(msgString,'(A,a)') trim(subname)//' '//trim(lstring)//': '//trim(fieldname)," no data"
        endif
     else
-       call ESMF_LogWrite(trim(subname)//": ERROR rank not supported ", ESMF_LOGMSG_ERROR)
-       rc = ESMF_FAILURE
+       call shr_log_error(trim(subname)//": ERROR rank not supported ", rc=rc)
        return
     endif
     call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
@@ -1427,9 +1400,8 @@ contains
         elseif (lranki == 1 .and. lranko == 1) then
 
           if (.not.med_methods_FieldPtr_Compare(dataPtro1, dataPtri1, subname, rc)) then
-            call ESMF_LogWrite(trim(subname)//": ERROR in dataPtr1 size ", ESMF_LOGMSG_ERROR)
-            rc = ESMF_FAILURE
-            return
+             call shr_log_error(trim(subname)//": ERROR in dataPtr1 size ", rc=rc)
+             return
           endif
 
           if (lcopy) then
@@ -1445,9 +1417,8 @@ contains
         elseif (lranki == 2 .and. lranko == 2) then
 
           if (.not.med_methods_FieldPtr_Compare(dataPtro2, dataPtri2, subname, rc)) then
-            call ESMF_LogWrite(trim(subname)//": ERROR in dataPtr2 size ", ESMF_LOGMSG_ERROR)
-            rc = ESMF_FAILURE
-            return
+             call shr_log_error(trim(subname)//": ERROR in dataPtr2 size ", rc=rc)
+             return
           endif
 
           if (lcopy) then
@@ -1465,14 +1436,9 @@ contains
           endif
 
         else
-
           write(msgString,'(a,2i8)') trim(subname)//": ranki, ranko = ",lranki,lranko
-          call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_ERROR)
-          call ESMF_LogWrite(trim(subname)//": ERROR ranki ranko not supported "//trim(lfieldnamelist(n)), &
-               ESMF_LOGMSG_ERROR)
-          rc = ESMF_FAILURE
+          call shr_log_error(trim(subname)//": ERROR ranki ranko not supported "//trim(msgstring)//"\n"//trim(lfieldnamelist(n)), rc=rc)
           return
-
         endif
 
       endif
@@ -1522,8 +1488,7 @@ contains
 
     call ESMF_FieldBundleGet(FB, fieldName=trim(fldname), isPresent=isPresent, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) then
-       call ESMF_LogWrite(trim(subname)//" Error checking field: "//trim(fldname), &
-            ESMF_LOGMSG_ERROR)
+       call shr_log_error(string=trim(subname)//" Error checking field: "//trim(fldname), line=__LINE__,file=u_FILE_u, rc=rc)
        return
     endif
     if (isPresent) then
@@ -1571,10 +1536,9 @@ contains
     endif
 
     if (.not.present(rc)) then
-       call ESMF_LogWrite(trim(subname)//": ERROR rc not present ", &
-            ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
-      rc = ESMF_FAILURE
-      return
+       call shr_log_error(trim(subname)//": ERROR rc not present ", &
+            line=__LINE__, file=u_FILE_u, rc=rc)
+       return
     endif
 
     rc = ESMF_SUCCESS
@@ -1591,9 +1555,8 @@ contains
     if (status /= ESMF_FIELDSTATUS_COMPLETE) then
       lrank = 0
       if (labort) then
-        call ESMF_LogWrite(trim(subname)//": ERROR data not allocated ", ESMF_LOGMSG_INFO)
-        rc = ESMF_FAILURE
-        return
+         call shr_log_error(trim(subname)//": ERROR data not allocated ", rc=rc)
+         return
       else
         call ESMF_LogWrite(trim(subname)//": WARNING data not allocated ", ESMF_LOGMSG_INFO)
       endif
@@ -1614,9 +1577,8 @@ contains
         if (chkerr(rc,__LINE__,u_FILE_u)) return
         if (nnodes == 0 .and. nelements == 0) lrank = 0
       else
-         call ESMF_LogWrite(trim(subname)//": ERROR geomtype not supported ", ESMF_LOGMSG_INFO)
-        rc = ESMF_FAILURE
-        return
+         call shr_log_error(trim(subname)//": ERROR geomtype not supported ", rc=rc)
+         return
       endif ! geomtype
 
       if (lrank == 0) then
@@ -1625,29 +1587,26 @@ contains
 
       elseif (lrank == 1) then
         if (.not.present(fldptr1)) then
-           call ESMF_LogWrite(trim(subname)//": ERROR missing rank=1 array ", &
-                ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
-          rc = ESMF_FAILURE
-          return
+           call shr_log_error(trim(subname)//": ERROR missing rank=1 array ", &
+                line=__LINE__, file=u_FILE_u, rc=rc)
+           return
         endif
         call ESMF_FieldGet(field, farrayPtr=fldptr1, rc=rc)
         if (chkerr(rc,__LINE__,u_FILE_u)) return
 
       elseif (lrank == 2) then
         if (.not.present(fldptr2)) then
-           call ESMF_LogWrite(trim(subname)//": ERROR missing rank=2 array ", &
-                ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
-          rc = ESMF_FAILURE
-          return
+           call shr_log_error(trim(subname)//": ERROR missing rank=2 array ", &
+                line=__LINE__, file=u_FILE_u, rc=rc)
+           return
         endif
         call ESMF_FieldGet(field, farrayPtr=fldptr2, rc=rc)
         if (chkerr(rc,__LINE__,u_FILE_u)) return
 
       else
-         call ESMF_LogWrite(trim(subname)//": ERROR in rank ", &
-              ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
-        rc = ESMF_FAILURE
-        return
+         call shr_log_error(trim(subname)//": ERROR in rank ", &
+              line=__LINE__, file=u_FILE_u, rc=rc)
+         return
       endif
 
     endif  ! status
@@ -1691,19 +1650,17 @@ contains
     endif
 
     if (.not.present(rc)) then
-       call ESMF_LogWrite(trim(subname)//": ERROR rc not present "//trim(fldname), &
-            ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
-      rc = ESMF_FAILURE
-      return
+       call shr_log_error(trim(subname)//": ERROR rc not present "//trim(fldname), &
+            line=__LINE__, file=u_FILE_u, rc=rc)
+       return
     endif
 
     rc = ESMF_SUCCESS
 
     if (.not. med_methods_FB_FldChk(FB, trim(fldname), rc=rc)) then
-       call ESMF_LogWrite(trim(subname)//": ERROR field "//trim(fldname)//" not in FB ", &
-            ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
-      rc = ESMF_FAILURE
-      return
+       call shr_log_error(trim(subname)//": ERROR field "//trim(fldname)//" not in FB ", &
+            line=__LINE__, file=u_FILE_u, rc=rc)
+       return
     endif
 
     call ESMF_FieldBundleGet(FB, fieldName=trim(fldname), field=lfield, rc=rc)
@@ -1744,12 +1701,10 @@ contains
 
     med_methods_FieldPtr_Compare1 = .false.
     if (lbound(fldptr2,1) /= lbound(fldptr1,1) .or. ubound(fldptr2,1) /= ubound(fldptr1,1)) then
-      call ESMF_LogWrite(trim(subname)//": ERROR in data size "//trim(cstring), ESMF_LOGMSG_ERROR, rc=rc)
-      if (chkerr(rc,__LINE__,u_FILE_u)) return
-      write(msgString,*) trim(subname)//': fldptr1 ',lbound(fldptr1),ubound(fldptr1)
-      call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
-      write(msgString,*) trim(subname)//': fldptr2 ',lbound(fldptr2),ubound(fldptr2)
-      call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
+       write(msgString,*) trim(subname)//': fldptr1 ',lbound(fldptr1),ubound(fldptr1),"\n",&
+            trim(subname)//': fldptr2 ',lbound(fldptr2),ubound(fldptr2),": ERROR in data size "//trim(cstring)
+       call shr_log_error(msgstring,rc=rc)
+       return
     else
       med_methods_FieldPtr_Compare1 = .true.
     endif
@@ -1782,12 +1737,10 @@ contains
     med_methods_FieldPtr_Compare2 = .false.
     if (lbound(fldptr2,2) /= lbound(fldptr1,2) .or. lbound(fldptr2,1) /= lbound(fldptr1,1) .or. &
         ubound(fldptr2,2) /= ubound(fldptr1,2) .or. ubound(fldptr2,1) /= ubound(fldptr1,1)) then
-      call ESMF_LogWrite(trim(subname)//": ERROR in data size "//trim(cstring), ESMF_LOGMSG_ERROR, rc=rc)
-      if (chkerr(rc,__LINE__,u_FILE_u)) return
-      write(msgString,*) trim(subname)//': fldptr2 ',lbound(fldptr2),ubound(fldptr2)
-      call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
-      write(msgString,*) trim(subname)//': fldptr1 ',lbound(fldptr1),ubound(fldptr1)
-      call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
+      write(msgString,*) trim(subname)//': fldptr2 ',lbound(fldptr2),ubound(fldptr2),': fldptr1 ',lbound(fldptr1),ubound(fldptr1),&
+           ": ERROR in data size "//trim(cstring)
+      call shr_log_error(trim(msgString),rc=rc)
+      return
     else
       med_methods_FieldPtr_Compare2 = .true.
     endif
@@ -1910,10 +1863,9 @@ contains
     call ESMF_FieldGet(field, status=status, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     if (status == ESMF_FIELDSTATUS_EMPTY) then
-       call ESMF_LogWrite(trim(subname)//":"//trim(string)//": ERROR field does not have a geom yet ", &
-            ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
-      rc = ESMF_FAILURE
-      return
+       call shr_log_error(trim(subname)//":"//trim(string)//": ERROR field does not have a geom yet ", &
+            line=__LINE__, file=u_FILE_u, rc=rc)
+       return
     endif
 
     call ESMF_FieldGet(field, geomtype=geomtype, rc=rc)
@@ -1948,10 +1900,9 @@ contains
       ! means data allocation does not exist yet
       continue
     else
-       call ESMF_LogWrite(trim(subname)//": ERROR rank not supported ", &
-            ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
-      rc = ESMF_FAILURE
-      return
+       call shr_log_error(trim(subname)//": ERROR rank not supported ", &
+            line=__LINE__, file=u_FILE_u, rc=rc)
+       return
     endif
 
     if (dbug_flag > 10) then
@@ -2203,8 +2154,8 @@ contains
         staggerloc = ESMF_STAGGERLOC_CORNER
         staggerstr = 'ESMF_STAGGERLOC_CORNER'
       else
-        rc = ESMF_FAILURE
-        call ESMF_LogWrite(trim(subname)//":staggerloc failure", ESMF_LOGMSG_INFO)
+         call shr_log_error(trim(subname)//":staggerloc failure", rc=rc)
+         return
       endif
       call ESMF_GridGetCoord(grid, staggerloc=staggerloc, isPresent=isPresent, rc=rc)
       if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -2326,7 +2277,7 @@ contains
     ! ----------------------------------------------
 
     use ESMF , only : ESMF_SUCCESS, ESMF_State, ESMF_StateGet, ESMF_Field, ESMF_FieldGet
-    use ESMF , only : ESMF_FAILURE, ESMF_LogFoundError, ESMF_LOGERR_PASSTHRU, ESMF_LogWrite
+    use ESMF , only : ESMF_LogFoundError, ESMF_LOGERR_PASSTHRU, ESMF_LogWrite
     use ESMF , only : ESMF_LOGMSG_INFO, ESMF_VM, ESMF_VMBroadCast, ESMF_VMGetCurrent
     use ESMF , only : ESMF_VMGet
 
@@ -2367,9 +2318,8 @@ contains
         call ESMF_FieldGet(field, farrayPtr = farrayptr, rc=rc)
         if (chkerr(rc,__LINE__,u_FILE_u)) return
         if (scalar_id < 0 .or. scalar_id > flds_scalar_num) then
-          call ESMF_LogWrite(trim(subname)//": ERROR in scalar_id", ESMF_LOGMSG_INFO, line=__LINE__, file=u_FILE_u)
-          rc = ESMF_FAILURE
-          if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=u_FILE_u)) return
+           call shr_log_error(trim(subname)//": ERROR in scalar_id", line=__LINE__, file=u_FILE_u, rc=rc)
+           return
         endif
         tmp(:) = farrayptr(scalar_id,:)
       endif
@@ -2425,9 +2375,8 @@ contains
       call ESMF_FieldGet(field, farrayPtr = farrayptr, rc=rc)
       if (chkerr(rc,__LINE__,u_FILE_u)) return
       if (scalar_id < 0 .or. scalar_id > flds_scalar_num) then
-        call ESMF_LogWrite(trim(subname)//": ERROR in scalar_id", ESMF_LOGMSG_INFO)
-        rc = ESMF_FAILURE
-        return
+         call shr_log_error(trim(subname)//": ERROR in scalar_id", rc=rc)
+         return
       endif
       farrayptr(scalar_id,1) = scalar_value
     endif
@@ -2577,7 +2526,7 @@ contains
 
   !-----------------------------------------------------------------------------
   subroutine med_methods_FB_check_for_nans(FB, maintask, logunit, rc)
-    use ESMF, only  : ESMF_FieldBundle, ESMF_Field, ESMF_FieldBundleGet, ESMF_FieldGet
+    use ESMF, only  : ESMF_FieldBundle, ESMF_Field, ESMF_FieldBundleGet, ESMF_FieldGet, ESMF_LOGMSG_ERROR
     ! input/output variables
     type(ESMF_FieldBundle) , intent(in)    :: FB
     logical                , intent(in)    :: maintask
@@ -2626,13 +2575,13 @@ contains
        if (nancount > 0) then
           write(nancount_char, '(i0)') nancount
           msg_error = "ERROR: " // trim(nancount_char) //" nans found in "//trim(fieldname)
-          call ESMF_LogWrite(trim(msg_error), ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
           nanfound = .true.
+          call shr_log_error(trim(msg_error))
        end if
     end do
     if (nanfound) then
-       call ESMF_LogWrite('ABORTING JOB', ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
-       rc = ESMF_FAILURE
+       call shr_log_error('ABORTING JOB, see PET file for details', line=__LINE__, file=u_FILE_u, rc=rc)
+       return
     end if
     
   end subroutine med_methods_FB_check_for_nans

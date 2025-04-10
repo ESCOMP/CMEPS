@@ -12,9 +12,8 @@ module med_phases_history_mod
   use ESMF                  , only : ESMF_TimeInterval, ESMF_TimeIntervalGet, ESMF_TimeIntervalSet
   use ESMF                  , only : ESMF_Alarm, ESMF_AlarmIsRinging, ESMF_AlarmRingerOff, ESMF_AlarmGet
   use ESMF                  , only : ESMF_FieldBundle, ESMF_FieldBundleGet
-  use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_LOGMSG_ERROR, ESMF_LogFoundError
-  use ESMF                  , only : ESMF_SUCCESS, ESMF_FAILURE, ESMF_MAXSTR, ESMF_LOGERR_PASSTHRU, ESMF_END_ABORT
-  use ESMF                  , only : ESMF_Finalize
+  use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO
+  use ESMF                  , only : ESMF_SUCCESS, ESMF_MAXSTR, ESMF_LOGERR_PASSTHRU, ESMF_END_ABORT
   use ESMF                  , only : operator(-), operator(+)
   use NUOPC                 , only : NUOPC_CompAttributeGet
   use NUOPC_Model           , only : NUOPC_ModelGet
@@ -24,7 +23,7 @@ module med_phases_history_mod
   use med_io_mod            , only : med_io_write, med_io_wopen, med_io_enddef, med_io_close
   use perf_mod              , only : t_startf, t_stopf
   use pio                   , only : file_desc_t
-
+  use shr_log_mod           , only : shr_log_error
   implicit none
   private
 
@@ -1237,12 +1236,8 @@ contains
                 call ESMF_FieldBundleGet(auxcomp%files(nfcnt)%FBAccum, fieldCount=nfld, rc=rc)
                 if (chkerr(rc,__LINE__,u_FILE_u)) return
                 if (nfld == 0) then
-                   call ESMF_LogWrite(subname//'FBAccum is zero for '//trim(auxcomp%files(nfcnt)%auxname), &
-                        ESMF_LOGMSG_ERROR)
-                   rc = ESMF_FAILURE
-                   if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=u_FILE_u)) then
-                      call ESMF_Finalize(endflag=ESMF_END_ABORT)
-                   end if
+                   call shr_log_error(subname//'FBAccum is zero for '//trim(auxcomp%files(nfcnt)%auxname), rc=rc)
+                   return
                 end if
 
              end if
@@ -1405,9 +1400,7 @@ contains
          valid = .false.
       end if
       if (.not. valid) then
-         if (maintask) write(logunit,*) "ERROR: invalid list = ",trim(str)
-         call ESMF_LogWrite("ERROR: invalid list = "//trim(str), ESMF_LOGMSG_ERROR)
-         rc = ESMF_FAILURE
+         call shr_log_error("ERROR: invalid list = "//trim(str), rc=rc)
          return
       end if
       ! get number of fields in a colon delimited string list
@@ -1491,9 +1484,9 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        if (ungriddedUBound(1) /= ungriddedUBound_accum(1)) then
-          call ESMF_LogWrite(" upper bounds for field and field_accum do not match", &
-               ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
-          rc = ESMF_FAILURE
+          call shr_log_error(" upper bounds for field and field_accum do not match", &
+               line=__LINE__, file=u_FILE_u, rc=rc)
+          return
        end if
 
        if (ungriddedUBound(1) > 0) then
