@@ -144,6 +144,8 @@ contains
     character(len=CS)   :: mrgfld_source
     logical             :: wav_coupling_to_cice
     logical             :: ocn2glc_coupling
+    logical             :: forr_rofl_glc_merged_to_ocn
+    logical             :: forr_rofi_glc_merged_to_ocn
     character(len=*) , parameter   :: subname=' (esmFldsExchange_cesm) '
     !--------------------------------------
 
@@ -2419,12 +2421,21 @@ contains
       end if
 
       ! Liquid runoff from land and glc - merging
+      forr_rofl_glc_merged_to_ocn = .false.
+      if ( fldchk(is_local%wrap%FBExp(compocn), 'Forr_rofl_glc', rc=rc) .and. &
+           fldchk(is_local%wrap%FBImp(comprof, comprof), 'Forr_rofl_glc', rc=rc)) then
+        ! If the ocean is prepared to handle Forr_rofl_glc as a separate field, then keep
+        ! it as a separate field rather than merging it to Foxx_rofl
+        call addmrg_to(compocn, 'Forr_rofl_glc', mrg_from=comprof, mrg_fld='Forr_rofl_glc', mrg_type='copy')
+        forr_rofl_glc_merged_to_ocn = .true.
+      end if
       if ( fldchk(is_local%wrap%FBExp(compocn), 'Foxx_rofl' , rc=rc)) then
         mrgfld_source = 'Forr_rofl'
         if (fldchk(is_local%wrap%FBImp(comprof, comprof), 'Flrr_flood', rc=rc)) then
           mrgfld_source = trim(mrgfld_source) //':Flrr_flood'
         end if
-        if (fldchk(is_local%wrap%FBImp(comprof, comprof), 'Forr_rofl_glc', rc=rc)) then
+        if (fldchk(is_local%wrap%FBImp(comprof, comprof), 'Forr_rofl_glc', rc=rc) .and. &
+            .not. forr_rofl_glc_merged_to_ocn) then
           mrgfld_source = trim(mrgfld_source) //':Forr_rofl_glc'
         end if
         call addmrg_to(compocn, 'Foxx_rofl', mrg_from=comprof, mrg_fld=trim(mrgfld_source), mrg_type='sum')
@@ -2452,9 +2463,18 @@ contains
       end if
 
       ! Frozen runoff from land and glc - merging
+      forr_rofi_glc_merged_to_ocn = .false.
+      if ( fldchk(is_local%wrap%FBExp(compocn), 'Forr_rofi_glc', rc=rc) .and. &
+           fldchk(is_local%wrap%FBImp(comprof, comprof), 'Forr_rofi_glc', rc=rc)) then
+        ! If the ocean is prepared to handle Forr_rofi_glc as a separate field, then keep
+        ! it as a separate field rather than merging it to Foxx_rofi
+        call addmrg_to(compocn, 'Forr_rofi_glc', mrg_from=comprof, mrg_fld='Forr_rofi_glc', mrg_type='copy')
+        forr_rofi_glc_merged_to_ocn = .true.
+      end if
       if ( fldchk(is_local%wrap%FBExp(compocn), 'Foxx_rofi' , rc=rc)) then
         mrgfld_source = 'Forr_rofi'
-        if (fldchk(is_local%wrap%FBImp(comprof, comprof), 'Forr_rofi_glc', rc=rc)) then
+        if (fldchk(is_local%wrap%FBImp(comprof, comprof), 'Forr_rofi_glc', rc=rc) .and. &
+            .not. forr_rofi_glc_merged_to_ocn) then
           mrgfld_source = trim(mrgfld_source) //':Forr_rofi_glc'
         end if
         call addmrg_to(compocn, 'Foxx_rofi', mrg_from=comprof, mrg_fld=trim(mrgfld_source), mrg_type='sum')
