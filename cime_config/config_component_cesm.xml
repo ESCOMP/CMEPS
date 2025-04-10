@@ -379,7 +379,7 @@
     <type>integer</type>
     <default_value>8</default_value>
     <values match="last">
-      <value compset="_DATM.*_MOM6.*_DROF"        >$ATM_NCPL</value>
+      <value compset="_DATM.*_MOM6.*_DROF"        >$OCN_NCPL</value>
       <value compset="_DATM.*_BLOM.*_DROF"        >$ATM_NCPL</value>
       <value compset="_DATM.*_DOCN%SOM"           >$ATM_NCPL</value>
       <value compset="_DATM.*_SLND.*_DICE.*_DOCN" >$ATM_NCPL</value>
