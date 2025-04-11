@@ -13,7 +13,7 @@ module med_phases_history_mod
   use ESMF                  , only : ESMF_Alarm, ESMF_AlarmIsRinging, ESMF_AlarmRingerOff, ESMF_AlarmGet
   use ESMF                  , only : ESMF_FieldBundle, ESMF_FieldBundleGet
   use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO
-  use ESMF                  , only : ESMF_SUCCESS, ESMF_MAXSTR, ESMF_LOGERR_PASSTHRU, ESMF_END_ABORT
+  use ESMF                  , only : ESMF_SUCCESS, ESMF_MAXSTR, ESMF_LOGERR_PASSTHRU
   use ESMF                  , only : operator(-), operator(+)
   use NUOPC                 , only : NUOPC_CompAttributeGet
   use NUOPC_Model           , only : NUOPC_ModelGet
@@ -616,11 +616,8 @@ contains
 
     if (present(comp_import)) then
        if (.not. present(fldbun_import)) then
-          call ESMF_LogWrite(subname//'if comp_import is present, then fldbun_import must be present', ESMF_LOGMSG_ERROR)
-          rc = ESMF_FAILURE
-          if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=u_FILE_u)) then
-             call ESMF_Finalize(endflag=ESMF_END_ABORT)
-          end if
+          call shr_log_error(subname//'if comp_import is present, then fldbun_import must be present', rc=rc)
+          return
        end if
        if (comp_import == complnd) then
           write(hist_file, "(6a)") trim(case_name),'.cpl',trim(inst_tag),'.hx.lnd2glc.',trim(nexttime_str),'.nc'
@@ -665,11 +662,8 @@ contains
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end do
        else
-          call ESMF_LogWrite(subname//'either fldbun_import or fldbun_export must be present as arguments')
-          rc = ESMF_FAILURE
-          if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=u_FILE_u)) then
-             call ESMF_Finalize(endflag=ESMF_END_ABORT)
-          end if
+          call shr_log_error(subname//'either fldbun_import or fldbun_export must be present as arguments', rc=rc)
+          return
        end if
 
     end do ! end of loop over m
