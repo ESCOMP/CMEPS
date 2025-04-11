@@ -56,9 +56,11 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     for val in ("HIST", "REST", "STOP"):
         config[val.lower()+"_option"] = case.get_value(val+"_OPTION")
 
-
     config["comp_ocn"] = case.get_value("COMP_OCN")
 
+    config["set_histaux_l2x1yrg"] = (
+        ".true." if case.get_value("COMP_OCN") == 'blom' and case.get_value("COMP_LND") == 'clm' else ".false."
+    )
 
     atm_grid = case.get_value("ATM_GRID")
     lnd_grid = case.get_value("LND_GRID")
