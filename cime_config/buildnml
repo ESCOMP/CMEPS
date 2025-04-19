@@ -44,6 +44,8 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     config["MPILIB"] = case.get_value("MPILIB")
     config["OS"] = case.get_value("OS")
     config["TESTCASE"] = case.get_value("TESTCASE")
+    config["ocn_multilev"] = ".false."
+    config["set_histaux_l2x1yrg"] = ".false."
     if not config["TESTCASE"]:
         config["TESTCASE"] = "UNSET"
     config["glc_nec"] = (
@@ -60,6 +62,9 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
 
     config["set_histaux_l2x1yrg"] = (
         ".true." if case.get_value("COMP_OCN") == 'blom' and case.get_value("COMP_LND") == 'clm' else ".false."
+    )
+    config["ocn_multilev"] = (
+        ".true." if case.get_value("COMP_OCN") == 'blom' or 'DOCN%MULTILEV' in case.get_value("COMPSET") else ".false."
     )
 
     atm_grid = case.get_value("ATM_GRID")
@@ -155,8 +160,9 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     # ----------------------------------------------------
     # Error checks
     # ----------------------------------------------------
+    # double check if ocn2glc_coupling is set correctly
     ocn2glc_coupling = nmlgen.get_value("ocn2glc_coupling")
-    if "ocn2glc_coupling" == ".false.":
+    if "ocn2glc_coupling" == ".true.":
         expect(case.get_value("COMP_OCN") == 'blom' or 'DOCN%MULTILEV' in case.get_value("COMPSET"),
                "ocn2glc_coupling is only allowed currently if the ocean component is BLOM or if DOCN%MULTILEV is in the compset")
 
