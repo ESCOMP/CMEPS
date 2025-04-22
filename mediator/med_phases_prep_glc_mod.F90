@@ -45,7 +45,7 @@ module med_phases_prep_glc_mod
   use glc_elevclass_mod     , only : glc_get_fractional_icecov
   use perf_mod              , only : t_startf, t_stopf
   use shr_log_mod           , only : shr_log_error
-  
+
   implicit none
   private
 
@@ -476,7 +476,7 @@ contains
     ! Prepare the GLC export Fields from the mediator
     !---------------------------------------
 
-    use med_phases_history_mod, only :  med_phases_history_write_lnd2glc
+    use med_phases_history_mod, only :  med_phases_history_write_data2glc
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -598,8 +598,23 @@ contains
        call ESMF_LogWrite(trim(subname)//": glc_avg alarm is not ringing - returning", ESMF_LOGMSG_INFO)
     end if
 
+    ! ----------------------------------------------
     ! Average and map data from land (and possibly ocean)
+    ! ----------------------------------------------
+
+    ! Determine if auxiliary file will be written
+    write_histaux_l2x1yrg = .false.
+    if (lndAccum2glc_cnt > 0) then
+       call NUOPC_CompAttributeGet(gcomp, name="histaux_l2x1yrg", value=cvalue, &
+            isPresent=isPresent, isSet=isSet, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       if (isPresent .and. isSet) then
+          read(cvalue,*) write_histaux_l2x1yrg
+       end if
+    end if
+
     if (do_avg) then
+
        ! Always average import from accumulated land import data
        do n = 1, size(fldnames_fr_lnd)
           if (fldchk(FBlndAccum2glc_l, fldnames_fr_lnd(n), rc=rc)) then
@@ -658,20 +673,16 @@ contains
                 where (data2d == 0._r8) data2d = shr_const_spval
              end do
           end do
+
+          ! Write import auxiliary file for lnd if appropriate
+          if (write_histaux_l2x1yrg) then
+             call med_phases_history_write_data2glc(gcomp, fldbun_import=FBocnAccum2glc_o, comp_import=compocn, rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          end if
+
           ocnAccum2glc_cnt = 0
           call fldbun_reset(FBocnAccum2glc_o, value=czero, rc=rc)
           if (chkErr(rc,__LINE__,u_FILE_u)) return
-       end if
-
-       ! Determine if auxiliary file will be written
-       write_histaux_l2x1yrg = .false.
-       if (lndAccum2glc_cnt > 0) then
-          call NUOPC_CompAttributeGet(gcomp, name="histaux_l2x1yrg", value=cvalue, &
-               isPresent=isPresent, isSet=isSet, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          if (isPresent .and. isSet) then
-             read(cvalue,*) write_histaux_l2x1yrg
-          end if
        end if
 
        ! Write auxiliary history file if flag is set and accumulation is being done
@@ -683,34 +694,35 @@ contains
           if (chkErr(rc,__LINE__,u_FILE_u)) return
 
           if (write_histaux_l2x1yrg) then
-             call med_phases_history_write_lnd2glc(gcomp, FBlndAccum2glc_l, &
-                  fldbun_glc=is_local%wrap%FBExp(compglc(:)), rc=rc)
+             call med_phases_history_write_data2glc(gcomp, fldbun_export=is_local%wrap%FBExp(compglc(:)), rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
 
-          lndAccum2glc_cnt = 0
-          call fldbun_reset(FBlndAccum2glc_l, value=czero, rc=rc)
-          if (chkErr(rc,__LINE__,u_FILE_u)) return
-       else
-          if (write_histaux_l2x1yrg) then
-             call med_phases_history_write_lnd2glc(gcomp, FBlndAccum2glc_l, rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          end if
+          if (dbug_flag > 1) then
+             do ns = 1,is_local%wrap%num_icesheets
+                call fldbun_diagnose(is_local%wrap%FBExp(compglc(ns)), string=trim(subname)//' FBexp(compglc) ', rc=rc)
+                if (chkErr(rc,__LINE__,u_FILE_u)) return
+             end do
+          endif
+       end if
+       if (write_histaux_l2x1yrg) then
+          call med_phases_history_write_data2glc(gcomp, fldbun_import=FBlndAccum2glc_l, comp_import=complnd, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
 
-       if (dbug_flag > 1) then
-          do ns = 1,is_local%wrap%num_icesheets
-             call fldbun_diagnose(is_local%wrap%FBExp(compglc(ns)), string=trim(subname)//' FBexp(compglc) ', rc=rc)
-             if (chkErr(rc,__LINE__,u_FILE_u)) return
-          end do
-       endif
-    end if
+       lndAccum2glc_cnt = 0
+       call fldbun_reset(FBlndAccum2glc_l, value=czero, rc=rc)
+       if (chkErr(rc,__LINE__,u_FILE_u)) return
+
+    end if ! end of do_avg if-block
 
     ! Check for nans in fields export to glc
-    do ns = 1,is_local%wrap%num_icesheets
-       call FB_check_for_nans(is_local%wrap%FBExp(compglc(ns)), maintask, logunit, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    end do
+    if (is_local%wrap%lnd2glc_coupling) then
+       do ns = 1,is_local%wrap%num_icesheets
+          call FB_check_for_nans(is_local%wrap%FBExp(compglc(ns)), maintask, logunit, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       end do
+    end if
 
     if (dbug_flag > 5) then
        call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)

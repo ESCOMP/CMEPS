@@ -423,7 +423,7 @@ contains
              nx = is_local%wrap%nx(compocn)
              ny = is_local%wrap%ny(compocn)
              call med_io_write(io_file, FBocnAccum2glc_o, whead(m), wdata(m), nx, ny, &
-                  nt=1, pre='ocnImpAccum2glc_o', rc=rc)
+                  nt=1, pre='ocnImpAccum2glc', rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
              call med_io_write(io_file, ocnAccum2glc_cnt, 'ocnImpAccum2glc_cnt', whead(m), wdata(m), rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
