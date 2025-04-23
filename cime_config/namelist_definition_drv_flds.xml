@@ -123,7 +123,7 @@
     <category>Fire_emissions</category>
     <group>fire_emis_nl</group>
     <desc>
-      If ture fire emissions are input into atmosphere as elevated forcings.
+      If true, fire emissions are input into atmosphere as elevated forcings.
       Otherwise they are treated as surface emissions.
     </desc>
   </entry>
@@ -150,7 +150,7 @@
 	  <category>lnd2rof_tracers</category>
 	  <group>lnd2rof_tracers_inparm</group>
     <desc>
-      Liquid lnd2rof tracers (other than water)
+      Colon deliminted string of Liquid non-water tracers sent from land to river
     </desc>
   </entry>
 

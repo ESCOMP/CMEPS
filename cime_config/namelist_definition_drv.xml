@@ -1848,7 +1848,7 @@
     <group>MED_attributes</group>
     <desc>Auxiliary name identifier in history name</desc>
     <values>
-      <value>lnd.ncpl.inst</value>
+      <value>lnd2rof.24hr.avg</value>
     </values>
   </entry>
 
