@@ -1794,7 +1794,7 @@
     <type>logical</type>
     <category>aux_hist</category>
     <group>ALLCOMP_attributes</group>
-    <desc>Auxiliary mediator lnd2med fields every year</desc>
+    <desc>Turns on history stream for annual lnd to mediator glc forcing fields</desc>
     <values>
       <value>.false.</value>
     </values>
