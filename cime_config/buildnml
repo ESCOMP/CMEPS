@@ -578,6 +578,7 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
                 if 'lnd2rof_tracers' in  line and 'lnd2rof_tracers_inparm' not in line:
                     add_tracer_field = True
 
+        append_line = False
         if add_tracer_field:
             user_nl_cpl = os.path.join(caseroot, "user_nl_cpl")
             append_line = True
