@@ -859,7 +859,18 @@
     on linking to the PETSc library. Currently this is used by
     CLM. This is currently only supported for certain machines.</desc>
   </entry>
-
+ 
+ <entry id="USE_FTORCH">
+    <type>logical</type>
+    <valid_values>TRUE,FALSE</valid_values>
+    <default_value>FALSE</default_value>
+    <group>build_def</group>
+    <file>env_build.xml</file>
+    <desc> TRUE implies linking to the FTorch library to allow calls between
+    fortran and a PyTorch model that has been saved to TorchScript.
+    </desc>
+  </entry>
+  
   <entry id="USE_ALBANY">
     <type>logical</type>
     <valid_values>TRUE,FALSE</valid_values>
