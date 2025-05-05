@@ -519,7 +519,7 @@ contains
 
     use ESMF  , only : ESMF_GridComp, ESMF_GridCompGet
     use ESMF  , only : ESMF_LogWrite, ESMF_LogFoundError, ESMF_LogSetError
-    use ESMF  , only : ESMf_SUCCESS, ESMF_FAILURE, ESMF_LOGMSG_INFO, ESMF_RC_NOT_VALID
+    use ESMF  , only : ESMF_SUCCESS, ESMF_FAILURE, ESMF_LOGMSG_INFO, ESMF_RC_NOT_VALID
     use NUOPC , only : NUOPC_CompAttributeGet
 
     ! input/output variables

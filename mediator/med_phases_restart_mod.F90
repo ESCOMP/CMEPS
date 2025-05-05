@@ -267,13 +267,21 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call ESMF_TimeGet(currtime, yy=yr, mm=mon, dd=day, s=sec, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       write(currtimestr,'(i4.4,a,i2.2,a,i2.2,a,i5.5)') yr,'-',mon,'-',day,'-',sec
+       if(yr .le. 9999) then
+          write(currtimestr,'(i4.4,a,i2.2,a,i2.2,a,i5.5)') yr,'-',mon,'-',day,'-',sec
+       else
+          write(currtimestr,'(i6.6,a,i2.2,a,i2.2,a,i5.5)') yr,'-',mon,'-',day,'-',sec
+       endif
        if (dbug_flag > 1) then
           call ESMF_LogWrite(trim(subname)//": currtime = "//trim(currtimestr), ESMF_LOGMSG_INFO)
        endif
        call ESMF_TimeGet(nexttime, yy=yr, mm=mon, dd=day, s=sec, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       write(nexttimestr,'(i4.4,a,i2.2,a,i2.2,a,i5.5)') yr,'-',mon,'-',day,'-',sec
+       if(yr .le. 9999) then
+          write(nexttimestr,'(i4.4,a,i2.2,a,i2.2,a,i5.5)') yr,'-',mon,'-',day,'-',sec
+       else
+          write(nexttimestr,'(i6.6,a,i2.2,a,i2.2,a,i5.5)') yr,'-',mon,'-',day,'-',sec
+       endif
        if (dbug_flag > 1) then
           call ESMF_LogWrite(trim(subname)//": nexttime = "//trim(nexttimestr), ESMF_LOGMSG_INFO)
        endif
