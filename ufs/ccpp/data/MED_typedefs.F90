@@ -183,6 +183,7 @@ module MED_typedefs
     logical                       :: restart                   !< flag whether this is a coldstart (.false.) or a warmstart/restart (.true.)
     logical                       :: cplice                    !< default no cplice collection (used together with cplflx)
     logical                       :: cplflx                    !< flag controlling cplflx collection (default off)
+    logical                       :: cpl_fire                  !< flag controlling fire behavior collection (default off)
     integer                       :: kdt                       !< current forecast iteration
     real(kind=kind_phys)          :: min_lakeice               !< minimum lake ice value
     real(kind=kind_phys)          :: min_seaice                !< minimum sea ice value
@@ -262,7 +263,9 @@ module MED_typedefs
     real(kind=kind_phys), pointer :: ffhh(:)         => null()  !< Monin-Obukhov similarity function for heat
     real(kind=kind_phys), pointer :: ffmm(:)         => null()  !< Monin-Obukhov similarity function for momentum
     real(kind=kind_phys), pointer :: evap(:)         => null()  !< kinematic surface upward latent heat flux (kg kg-1 m s-1)
+    real(kind=kind_phys), pointer :: evap_fire(:)    => null()  !< kinematic surface upward latent heat flux of fire (kg kg-1 m s-1)
     real(kind=kind_phys), pointer :: hflx(:)         => null()  !< kinematic surface upward sensible heat flux (K m/s)
+    real(kind=kind_phys), pointer :: hflx_fire(:)    => null()  !< kinematic surface upward sensible heat flux of fire (K m/s)
     real(kind=kind_phys), pointer :: tiice(:,:)      => null()  !< sea ice internal temperature
     real(kind=kind_phys), pointer :: t2m(:)          => null()  !< temperature at 2 m
     real(kind=kind_phys), pointer :: q2m(:)          => null()  !< specific humidity at 2 m
@@ -655,6 +658,7 @@ module MED_typedefs
     model%restart = .false.
     model%cplice = .false.
     model%cplflx = .false.
+    model%cpl_fire = .false.
     model%kdt = 0 ! nint(Model%fhour*con_hr/Model%dtp)
     model%min_lakeice = 0.15d0
     model%min_seaice = 1.0d-11
@@ -767,8 +771,12 @@ module MED_typedefs
     sfcprop%ffmm = clear_val
     allocate(sfcprop%evap(im))
     sfcprop%evap = clear_val
+    allocate(sfcprop%evap_fire(im))
+    sfcprop%evap_fire = clear_val
     allocate(sfcprop%hflx(im))
     sfcprop%hflx = clear_val
+    allocate(sfcprop%hflx_fire(im))
+    sfcprop%hflx_fire = clear_val
     allocate(sfcprop%tiice(im,model%kice))
     sfcprop%tiice = clear_val
     allocate(sfcprop%t2m(im))
