@@ -406,9 +406,12 @@ contains
     use med_methods_mod       , only : fldchk => med_methods_FB_FldChk
     use med_internalstate_mod , only : InternalState
     use med_internalstate_mod , only : mapbilnr, mapconsf, mapconsd, mappatch
-    use med_internalstate_mod , only : mapfcopy, mapnstod, mapnstod_consd
+    use med_internalstate_mod , only : mapfcopy, mapnstod, mapnstod_consd, mapnstod_consf
     use med_internalstate_mod , only : mapfillv_bilnr
-    use med_internalstate_mod , only : mapnstod_consf
+    
+    ! Added 5/12/25, following esmFldsExchange_ufs_mod.F90
+    use med_internalstate_mod , only : mapconsf_aofrac, mapbilnr_nstod
+
     use esmFlds               , only : addmap_from => med_fldList_addmap_from
     use esmFlds               , only : addmrg_to   => med_fldList_addmrg_to
 
@@ -490,7 +493,7 @@ contains
                fldchk(is_local%wrap%FBImp(compocn,compocn),trim(fldname),rc=rc) &
                ) then
                call addmap_from(compocn, trim(fldname), compatm, &
-                     mapfillv_bilnr, sofar_attr%mapnorm, sofar_attr%ocn2atm_smap)
+                     mapbilnr_nstod, sofar_attr%mapnorm, sofar_attr%ocn2atm_smap)
                call addmrg_to(compatm, trim(fldname), &
                      mrg_from=compocn, mrg_fld=trim(fldname), mrg_type='copy')
            endif
@@ -515,7 +518,7 @@ contains
               fldchk(is_local%wrap%FBImp(compwav,compwav),trim(fldname),rc=rc) &
              ) then
              call addmap_from(compwav, trim(fldname), compatm, &
-                  mapfillv_bilnr, sofar_attr%mapnorm, sofar_attr%wav2atm_smap)
+                  mapbilnr_nstod, sofar_attr%mapnorm, sofar_attr%wav2atm_smap)
              call addmrg_to(compatm, trim(fldname), &
                   mrg_from=compwav, mrg_fld=trim(fldname), mrg_type='copy')
           endif
@@ -554,7 +557,7 @@ contains
                fldchk(is_local%wrap%FBImp(compatm,compatm),trim(fldname),rc=rc) &
                ) then
                call addmap_from(compatm, trim(fldname), compocn, &
-                     mapfillv_bilnr, sofar_attr%mapnorm, sofar_attr%atm2ocn_smap)
+                     mapbilnr_nstod, sofar_attr%mapnorm, sofar_attr%atm2ocn_smap)
                call addmrg_to(compocn, trim(fldname), &
                      mrg_from=compatm, mrg_fld=trim(fldname), mrg_type='copy')
            endif
@@ -599,7 +602,7 @@ contains
                fldchk(is_local%wrap%FBImp(compatm,compatm),trim(fldname1),rc=rc) &
                ) then
                call addmap_from(compatm, trim(fldname1), compocn, &
-                     mapfillv_bilnr, sofar_attr%mapnorm, sofar_attr%atm2ocn_smap)
+                     mapbilnr_nstod, sofar_attr%mapnorm, sofar_attr%atm2ocn_smap)
                call addmrg_to(compocn, trim(fldname2), &
                      mrg_from=compatm, mrg_fld=trim(fldname1), mrg_type='copy')
            endif
@@ -629,7 +632,7 @@ contains
             fldchk(is_local%wrap%FBImp(compatm,compatm), trim(fldname),rc=rc) &
            ) then
            call addmap_from(compatm, trim(fldname), compwav, &
-                mapfillv_bilnr, sofar_attr%mapnorm, sofar_attr%atm2wav_smap)
+                mapbilnr_nstod, sofar_attr%mapnorm, sofar_attr%atm2wav_smap)
            call addmrg_to(compwav, trim(fldname), &
                 mrg_from=compatm, mrg_fld=trim(fldname), mrg_type='copy')
         end if
