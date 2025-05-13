@@ -15,7 +15,7 @@ application specific and provide general functionality.
     component state in the mediator's InternalState
 
   * initializing the mediator component specific fields via a call to
-    ``esmFldsExchange_xxx_`` (where currently xxx can be ``cesm``, ``nems`` or ``hafs``).
+    ``esmFldsExchange_xxx_`` (where currently xxx can be ``cesm``, ``ufs`` or ``hafs``).
 
   * determining which components are present
 

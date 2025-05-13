@@ -139,7 +139,7 @@ program esmApp
   ! Call Run  for the ensemble driver
   !-----------------------------------------------------------------------------
   call ESMF_GridCompRun(ensemble_driver_comp, userRc=urc, rc=rc)
-  if (ESMF_LogFoundError(rcToCheck=urc, msg=ESMF_LOGERR_PASSTHRU, &
+  if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
        line=__LINE__, &
        file=__FILE__)) &
        call ESMF_Finalize(endflag=ESMF_END_ABORT)

@@ -259,7 +259,17 @@ contains
 
 
     qsat(Tk)   = 640380.0_R8 / exp(5107.4_R8/Tk)
-    cdn(Umps)  =   0.0027_R8 / Umps + 0.000142_R8 + 0.0000764_R8 * Umps
+
+    ! Large and Yeager 2009
+    cdn(Umps)  =  0.0027_R8 / min(33.0000_R8,Umps) + 0.000142_R8 + &
+         0.0000764_R8 * min(33.0000_R8,Umps) - 3.14807e-13_r8 * min(33.0000_R8,Umps)**6
+    ! Capped Large and Pond by wind
+    !   cdn(Umps)  =   0.0027_R8 / min(30.0_R8,Umps) + 0.000142_R8 + 0.0000764_R8 * min(30.0_R8,Umps) 
+    ! Capped Large and Pond by Cd
+    !   cdn(Umps) = min(0.0025_R8, (0.0027_R8 / Umps + 0.000142_R8 + 0.0000764_R8 * Umps ))
+    ! Large and Pond
+    !   cdn(Umps)  =   0.0027_R8 / Umps + 0.000142_R8 + 0.0000764_R8 * Umps
+
     psimhu(xd) = log((1.0_R8+xd*(2.0_R8+xd))*(1.0_R8+xd*xd)/8.0_R8) - 2.0_R8*atan(xd) + 1.571_R8
     psixhu(xd) = 2.0_R8 * log((1.0_R8 + xd*xd)/2.0_R8)
 
@@ -1445,7 +1455,8 @@ contains
        tSkin_night(:) = ts(:)
        cSkin_night(:) = 0.0_R8
     endif
-
+    u10n = 0.0_r8
+    stable = 0.0_r8
     DO n=1,nMax
 
        if (mask(n) /= 0) then

@@ -5,22 +5,22 @@ module shr_megan_mod
   ! MEGAN = Model of Emissions of Gases and Aerosols from Nature
   !
   ! This reads the megan_emis_nl namelist in drv_flds_in and makes the relavent
-  ! information available to CAM, CLM, and driver. 
-  ! - The driver sets up CLM to CAM communication for the  VOC flux fields. 
-  ! - CLM needs to know what specific VOC fluxes need to be passed to the coupler 
+  ! information available to CAM, CLM, and driver.
+  ! - The driver sets up CLM to CAM communication for the  VOC flux fields.
+  ! - CLM needs to know what specific VOC fluxes need to be passed to the coupler
   !   and how to assemble the fluxes.
   ! - CAM needs to know what specific VOC fluxes to expect from CLM.
   !================================================================================
 
   use ESMF                , only : ESMF_VMGetCurrent, ESMF_VM, ESMF_VMGet
-  use ESMF                , only : ESMF_LogFoundError, ESMF_LOGERR_PASSTHRU, ESMF_SUCCESS
-  use shr_kind_mod        , only : r8 => shr_kind_r8, cl=>shr_kind_cl, cx=>shr_kind_cx, cs=>shr_kind_cs
+  use ESMF                , only : ESMF_LogFoundError, ESMF_LOGERR_PASSTHRU
+  use shr_kind_mod        , only : r8 => shr_kind_r8, cl=>shr_kind_cl, cx=>shr_kind_cx
   use shr_sys_mod         , only : shr_sys_abort
-  use shr_log_mod         , only : logunit => shr_log_Unit
+  use shr_log_mod         , only : shr_log_getLogUnit
   use shr_mpi_mod         , only : shr_mpi_bcast
   use shr_nl_mod          , only : shr_nl_find_group_name
   use shr_expr_parser_mod , only : shr_exp_parse, shr_exp_item_t, shr_exp_list_destroy
-  
+
   implicit none
   private
 
@@ -68,6 +68,9 @@ module shr_megan_mod
   ! switch to use mapped emission factors
   logical :: shr_megan_mapped_emisfctrs = .false.
 
+  integer :: localPet = -huge(1)
+  integer :: logunit = -huge(1)
+
 !--------------------------------------------------------
 contains
 !--------------------------------------------------------
@@ -100,7 +103,8 @@ contains
     ! Example:
     ! &megan_emis_nl
     !  megan_specifier = 'ISOP = isoprene',
-    !     'C10H16 = myrcene + sabinene + limonene + carene_3 + ocimene_t_b + pinene_b + ...',
+    !     'C10H16 = myrcene + sabinene + limonene + carene_3 + ocimene_t_b + pinene_b + ',
+    !     ' thujene_a + bornene + 0.5*(terpineol_4 + terpineol_a + terpinyl_ACT_a + myrtenal) + ...',
     !     'CH3OH = methanol',
     !     'C2H5OH = ethanol',
     !     'CH2O = formaldehyde',
@@ -109,24 +113,22 @@ contains
     !  megan_factors_file = '$datapath/megan_emis_factors.nc'
     ! /
     !-------------------------------------------------------------------------
-    
+
     ! input/output variables
     character(len=*), intent(in)  :: NLFileName
     integer,          intent(out) :: megan_nflds
 
     ! local variables
     type(ESMF_VM)       :: vm
-    integer             :: localPet
     integer             :: mpicom
     integer             :: unitn            ! namelist unit number
     integer             :: ierr             ! error code
     logical             :: exists           ! if file exists or not
-    integer, parameter  :: maxspc = 100
-    character(len=2*CX) :: megan_specifier(maxspc) = ' '
+    integer, parameter  :: maxspc = 200
+    character(len=CX)   :: megan_specifier(maxspc) = ' '
     logical             :: megan_mapped_emisfctrs = .false.
     character(len=CL)   :: megan_factors_file = ' '
     integer             :: rc
-    integer             :: i, tmp(1)
     character(*), parameter :: F00   = "('(shr_megan_readnl) ',2a)"
     character(len=*), parameter :: subname='(shr_megan_readnl)'
     !--------------------------------------------------------------
@@ -139,12 +141,12 @@ contains
     end if
 
     call ESMF_VMGetCurrent(vm, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=__FILE__)) return 
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=__FILE__)) return
 
     call ESMF_VMGet(vm, localPet=localPet, mpiCommunicator=mpicom, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=__FILE__)) return 
-
-    ! Note the following still needs to be called on all processors since the mpi_bcast is a collective 
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=__FILE__)) return
+    call shr_log_getLogUnit(logunit)
+    ! Note the following still needs to be called on all processors since the mpi_bcast is a collective
     ! call on all the pes of mpicom
     if (localPet==0) then
        inquire( file=trim(NLFileName), exist=exists)
@@ -203,6 +205,8 @@ contains
     allocate(shr_megan_mechcomps(n_entries))
     shr_megan_mechcomps(:)%n_megan_comps = 0
 
+    if (localPet==0) write(logunit,*) 'MEGAN entries:'
+
     item => items_list
     i = 1
     do while(associated(item))
@@ -220,7 +224,9 @@ contains
        shr_megan_mechcomps(i)%n_megan_comps = item%n_terms
        allocate(shr_megan_mechcomps(i)%megan_comps(item%n_terms))
 
+       if (localPet==0) write(logunit,*) ' species : ', item%name
        do j = 1,item%n_terms
+          if (localPet==0) write(logunit,'(f12.4,a,a)')  item%coeffs(j),' * ', item%vars(j)
           shr_megan_mechcomps(i)%megan_comps(j)%ptr => add_megan_comp( item%vars(j), item%coeffs(j) )
        enddo
        shr_megan_mechcomps_n = shr_megan_mechcomps_n+1

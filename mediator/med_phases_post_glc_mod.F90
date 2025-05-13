@@ -16,8 +16,7 @@ module med_phases_post_glc_mod
   use ESMF                  , only : ESMF_RouteHandle, ESMF_RouteHandleIsCreated
   use med_internalstate_mod , only : compatm, compice, complnd, comprof, compocn, compname, compglc
   use med_internalstate_mod , only : mapbilnr, mapconsd, compname
-  use med_internalstate_mod , only : InternalState, mastertask, logunit
-  use esmFlds               , only : fldListTo
+  use med_internalstate_mod , only : InternalState, maintask, logunit
   use med_methods_mod       , only : fldbun_diagnose  => med_methods_FB_diagnose
   use med_methods_mod       , only : fldbun_fldchk    => med_methods_FB_fldchk
   use med_methods_mod       , only : fldbun_getmesh   => med_methods_FB_getmesh
@@ -91,10 +90,8 @@ contains
 
     ! local variables
     type(ESMF_Clock)          :: dClock
-    type(ESMF_StateItem_Flag) :: itemType
     type(InternalState)       :: is_local
-    integer                   :: n1,ncnt,ns
-    real(r8)                  :: nextsw_cday
+    integer                   :: ns
     logical                   :: first_call = .true.
     logical                   :: isPresent
     character(CL)             :: cvalue
@@ -135,7 +132,7 @@ contains
              exit
           end if
        end do
-       if (mastertask) then
+       if (maintask) then
           write(logunit,'(a,L1)') trim(subname) // 'glc2lnd_coupling is ',glc2lnd_coupling
           write(logunit,'(a,L1)') trim(subname) // 'glc2ocn_coupling is ',glc2ocn_coupling
           write(logunit,'(a,L1)') trim(subname) // 'glc2ice_coupling is ',glc2ice_coupling
@@ -148,7 +145,7 @@ contains
           call NUOPC_CompAttributeGet(gcomp, name="cism_evolve", value=cvalue, isPresent=isPresent, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           read (cvalue,*) cism_evolve
-          if (mastertask) then
+          if (maintask) then
              write(logunit,'(a,l7)') trim(subname)//' cism_evolve = ',cism_evolve
           end if
        end if
@@ -243,9 +240,7 @@ contains
     type(ESMF_Field)          :: lfield_l
     type(ESMF_Mesh)           :: mesh_l
     integer                   :: ungriddedUBound_output(1)
-    integer                   :: fieldCount
-    integer                   :: ns,n
-    type(ESMF_Field), pointer :: fieldlist(:)
+    integer                   :: ns
     character(len=*) , parameter   :: subname='(map_glc2lnd_init)'
     !---------------------------------------
 
@@ -361,10 +356,7 @@ contains
 
     ! local variables
     type(InternalState)   :: is_local
-    type(ESMF_Field)      :: lfield
-    type(ESMF_Field)      :: lfield_src
-    type(ESMF_Field)      :: lfield_dst
-    integer               :: ec, l, g, ns, n
+    integer               :: ec, l, ns
     real(r8)              :: topo_virtual
     real(r8), pointer     :: icemask_g(:)              ! glc ice mask field on glc grid
     real(r8), pointer     :: frac_g(:)                 ! total ice fraction in each glc cell
@@ -375,9 +367,7 @@ contains
     real(r8), pointer     :: frac_x_icemask_g_ec(:,:)  ! (glc fraction) x (icemask), on the glc grid
     real(r8), pointer     :: frac_x_icemask_l_ec(:,:)
     real(r8), pointer     :: topo_x_icemask_g_ec(:,:)
-    real(r8), pointer     :: topo_x_icemask_l_ec(:,:)
     real(r8), pointer     :: dataptr1d(:)
-    real(r8), pointer     :: dataptr2d(:,:)
     real(r8), pointer     :: frac_l_ec_sum(:,:)
     real(r8), pointer     :: topo_l_ec_sum(:,:)
     real(r8), pointer     :: dataptr1d_src(:)

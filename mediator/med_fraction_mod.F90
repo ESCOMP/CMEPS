@@ -152,7 +152,7 @@ contains
     use med_internalstate_mod , only : compatm, compocn, compice, complnd
     use med_internalstate_mod , only : comprof, compglc, compwav, compname
     use med_internalstate_mod , only : mapfcopy, mapconsd, mapnstod_consd
-    use med_internalstate_mod , only : InternalState, logunit, mastertask
+    use med_internalstate_mod , only : InternalState
     use med_map_mod           , only : med_map_routehandles_init, med_map_rh_is_created
     use med_methods_mod       , only : State_getNumFields => med_methods_State_getNumFields
     use perf_mod              , only : t_startf, t_stopf
@@ -165,7 +165,6 @@ contains
     type(InternalState) :: is_local
     type(ESMF_Field)    :: field_src
     type(ESMF_Field)    :: field_dst
-    type(ESMF_Field)    :: lfield
     real(R8), pointer   :: frac(:)
     real(R8), pointer   :: ofrac(:)
     real(R8), pointer   :: aofrac(:)
@@ -178,7 +177,7 @@ contains
     real(R8), pointer   :: Si_imask(:)
     real(R8), pointer   :: So_omask(:)
     real(R8), pointer   :: Sa_ofrac(:)
-    integer             :: i,j,n,n1,ns
+    integer             :: n,n1,ns
     integer             :: maptype
     integer             :: fieldCount
     logical, save       :: first_call = .true.
@@ -294,7 +293,7 @@ contains
           ! If ice and atm are on the same mesh - a redist route handle has already been created
           maptype = mapfcopy
        else
-          if (trim(coupling_mode) == 'nems_orig' ) then
+          if (trim(coupling_mode(1:9)) == 'ufs.nfrac' ) then
              maptype = mapnstod_consd
           else
              maptype = mapconsd
@@ -346,7 +345,7 @@ contains
           ! If ocn and atm are on the same mesh - a redist route handle has already been created
           maptype = mapfcopy
        else
-          if (trim(coupling_mode) == 'nems_orig' ) then
+          if (trim(coupling_mode(1:9)) == 'ufs.nfrac' ) then
              maptype = mapnstod_consd
           else
              maptype = mapconsd
@@ -366,11 +365,8 @@ contains
        call med_map_field(field_src, field_dst, is_local%wrap%RH(compocn,compatm,:), maptype, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-      ! Set 'aofrac' in FBfrac(compatm)
-       if (trim(coupling_mode) == 'nems_orig' .or. &
-           trim(coupling_mode) == 'nems_frac' .or. &
-           trim(coupling_mode) == 'nems_frac_aoflux' .or. &
-           trim(coupling_mode) == 'nems_frac_aoflux_sbs') then
+       ! Set 'aofrac' in FBfrac(compatm) if available
+       if ( fldbun_fldchk(is_local%wrap%FBImp(compatm,compatm), 'Sa_ofrac', rc=rc)) then
           call fldbun_getdata1d(is_local%wrap%FBImp(compatm,compatm), 'Sa_ofrac', Sa_ofrac, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           call fldbun_getdata1d(is_local%wrap%FBFrac(compatm), 'aofrac', aofrac, rc)
@@ -662,14 +658,12 @@ contains
 
     ! local variables
     type(InternalState)        :: is_local
-    real(r8), pointer          :: lfrac(:)
     real(r8), pointer          :: ifrac(:)
     real(r8), pointer          :: ofrac(:)
     real(r8), pointer          :: aofrac(:)
     real(r8), pointer          :: Si_ifrac(:)
     real(r8), pointer          :: Si_imask(:)
     real(r8), pointer          :: Sa_ofrac(:)
-    type(ESMF_Field)           :: lfield
     type(ESMF_Field)           :: field_src
     type(ESMF_Field)           :: field_dst
     integer                    :: n
@@ -762,7 +756,7 @@ contains
 
           call t_startf('MED:'//trim(subname)//' fbfrac(compatm)')
           ! Determine maptype
-          if (trim(coupling_mode) == 'nems_orig' ) then
+          if (trim(coupling_mode(1:9)) == 'ufs.nfrac' ) then
              maptype = mapnstod_consd
           else
              if (med_map_RH_is_created(is_local%wrap%RH(compice,compatm,:),mapfcopy, rc=rc)) then
@@ -791,11 +785,8 @@ contains
              call med_map_field(field_src, field_dst, is_local%wrap%RH(compice,compatm,:), maptype, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
-          ! Set 'aofrac' from FBImp(compatm) to FBfrac(compatm)
-          if (trim(coupling_mode) == 'nems_orig' .or. &
-              trim(coupling_mode) == 'nems_frac' .or. &
-              trim(coupling_mode) == 'nems_frac_aoflux' .or. &
-              trim(coupling_mode) == 'nems_frac_aoflux_sbs') then
+          ! Set 'aofrac' from FBImp(compatm) to FBfrac(compatm) if available
+          if ( fldbun_fldchk(is_local%wrap%FBImp(compatm,compatm), 'Sa_ofrac', rc=rc)) then
              call fldbun_getdata1d(is_local%wrap%FBImp(compatm,compatm), 'Sa_ofrac', Sa_ofrac, rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
              call fldbun_getdata1d(is_local%wrap%FBFrac(compatm), 'aofrac', aofrac, rc)

@@ -4,7 +4,7 @@ module med_phases_post_atm_mod
   ! Mediator phase for post atm calculations, maps atm->ice, atm->lnd, atm->ocn
   ! and atm->wav
   !-----------------------------------------------------------------------------
-
+ 
   implicit none
   private
 
@@ -28,7 +28,7 @@ contains
     use ESMF                  , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_FieldBundleGet
     use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
     use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
-    use med_internalstate_mod , only : InternalState, mastertask, logunit
+    use med_internalstate_mod , only : InternalState
     use med_phases_history_mod, only : med_phases_history_write_comp
     use med_map_mod           , only : med_map_field_packed
     use med_constants_mod     , only : dbug_flag => med_constants_dbug_flag

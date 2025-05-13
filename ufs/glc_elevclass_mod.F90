@@ -29,7 +29,7 @@ contains
   !-----------------------------------------------------------------------
   function glc_get_num_elevation_classes() result(num_elevation_classes)
     integer :: num_elevation_classes  ! function result
-    integer :: rc
+    num_elevation_classes = 0
   end function glc_get_num_elevation_classes
 
   !-----------------------------------------------------------------------
@@ -52,6 +52,7 @@ contains
     real(r8) :: mean_elevation  ! function result
     integer, intent(in) :: elevation_class
     integer, optional, intent(in) :: logunit
+    mean_elevation = 0.0_r8
   end function glc_mean_elevation_virtual
 
   !-----------------------------------------------------------------------

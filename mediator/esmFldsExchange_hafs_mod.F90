@@ -13,8 +13,6 @@ module esmFldsExchange_hafs_mod
   use med_internalstate_mod , only : compwav
   use med_internalstate_mod , only : ncomps
   use med_internalstate_mod , only : coupling_mode
-  use esmflds               , only : fldListTo
-  use esmflds               , only : fldListFr
 
   !---------------------------------------------------------------------
   ! This is a mediator specific routine that determines ALL possible
@@ -88,7 +86,8 @@ contains
 
   subroutine esmFldsExchange_hafs_advt(gcomp, phase, rc)
 
-    use esmFlds, only : addfld => med_fldList_AddFld
+    use esmFlds, only : addfld_to => med_fldList_addfld_to
+    use esmFlds, only : addfld_from => med_fldList_addfld_from
 
     ! input/output parameters:
     type(ESMF_GridComp)              :: gcomp
@@ -96,16 +95,14 @@ contains
     integer          , intent(inout) :: rc
 
     ! local variables:
-    integer             :: num, i, n
+    integer             :: n
     logical             :: isPresent
     character(len=CL)   :: cvalue
-    character(len=CS)   :: name, fldname
+    character(len=CS)   :: fldname
     character(len=CS)   :: fldname1, fldname2
     type(gcomp_attr)    :: hafs_attr
-    character(len=CS), allocatable :: flds(:)
     character(len=CS), allocatable :: S_flds(:)
     character(len=CS), allocatable :: F_flds(:,:)
-    character(len=CS), allocatable :: suffix(:)
     character(len=*) , parameter   :: subname='(esmFldsExchange_hafs_advt)'
     !--------------------------------------
 
@@ -124,8 +121,8 @@ contains
           value=cvalue, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        do n = 1,ncomps
-          call addfld(fldListFr(n)%flds, trim(cvalue))
-          call addfld(fldListTo(n)%flds, trim(cvalue))
+          call addfld_from(n, trim(cvalue))
+          call addfld_to(n, trim(cvalue))
        end do
     end if
 
@@ -142,12 +139,12 @@ contains
     !----------------------------------------------------------
     ! to med: masks from components
     !----------------------------------------------------------
-    call addfld(fldListFr(compocn)%flds, 'So_omask')
+    call addfld_from(compocn, 'So_omask')
 
     !----------------------------------------------------------
     ! to med: frac from components
     !----------------------------------------------------------
-    call addfld(fldListTo(compatm)%flds, 'So_ofrac')
+    call addfld_to(compatm, 'So_ofrac')
 
     !=====================================================================
     ! FIELDS TO ATMOSPHERE
@@ -161,8 +158,8 @@ contains
       S_flds = (/'So_t'/) ! sea_surface_temperature
       do n = 1,size(S_flds)
          fldname = trim(S_flds(n))
-         call addfld(fldListFr(compocn)%flds, trim(fldname))
-         call addfld(fldListTo(compatm)%flds, trim(fldname))
+         call addfld_from(compocn, trim(fldname))
+         call addfld_to(compatm, trim(fldname))
       end do
       deallocate(S_flds)
     end if
@@ -175,8 +172,8 @@ contains
       S_flds = (/'Sw_z0'/) ! wave_z0_roughness_length
       do n = 1,size(S_flds)
          fldname = trim(S_flds(n))
-         call addfld(fldListFr(compwav)%flds, trim(fldname))
-         call addfld(fldListTo(compatm)%flds, trim(fldname))
+         call addfld_from(compwav, trim(fldname))
+         call addfld_to(compatm, trim(fldname))
       end do
       deallocate(S_flds)
     end if
@@ -198,8 +195,8 @@ contains
                  'Sa_tskn' /) ! inst_temp_height_surface
       do n = 1,size(S_flds)
          fldname = trim(S_flds(n))
-         call addfld(fldListFr(compatm)%flds, trim(fldname))
-         call addfld(fldListTo(compocn)%flds, trim(fldname))
+         call addfld_from(compatm, trim(fldname))
+         call addfld_to(compocn, trim(fldname))
       end do
       deallocate(S_flds)
     end if
@@ -219,8 +216,8 @@ contains
       do n = 1,size(F_flds,1)
          fldname1 = trim(F_flds(n,1))
          fldname2 = trim(F_flds(n,2))
-         call addfld(fldListFr(compatm)%flds, trim(fldname1))
-         call addfld(fldListTo(compocn)%flds, trim(fldname2))
+         call addfld_from(compatm, trim(fldname1))
+         call addfld_to(compocn, trim(fldname2))
       end do
       deallocate(F_flds)
     end if
@@ -237,8 +234,8 @@ contains
       S_flds = (/'Sa_u10m', 'Sa_v10m'/)
       do n = 1,size(S_flds)
          fldname = trim(S_flds(n))
-         call addfld(fldListFr(compatm)%flds, trim(fldname))
-         call addfld(fldListTo(compwav)%flds, trim(fldname))
+         call addfld_from(compatm, trim(fldname))
+         call addfld_to(compwav, trim(fldname))
       end do
       deallocate(S_flds)
     end if
@@ -298,9 +295,8 @@ contains
     use med_internalstate_mod , only : mapfcopy, mapnstod, mapnstod_consd
     use med_internalstate_mod , only : mapfillv_bilnr
     use med_internalstate_mod , only : mapnstod_consf
-    use esmFlds               , only : med_fldList_type
-    use esmFlds               , only : addmap => med_fldList_AddMap
-    use esmFlds               , only : addmrg => med_fldList_AddMrg
+    use esmFlds               , only : addmap_from => med_fldList_addmap_from
+    use esmFlds               , only : addmrg_to   => med_fldList_addmrg_to
 
     ! input/output parameters:
     type(ESMF_GridComp)              :: gcomp
@@ -309,16 +305,12 @@ contains
 
     ! local variables:
     type(InternalState) :: is_local
-    integer             :: num, i, n
-    integer             :: n1, n2, n3, n4
-    character(len=CL)   :: cvalue
-    character(len=CS)   :: name, fldname
+    integer             :: n
+    character(len=CS)   :: fldname
     character(len=CS)   :: fldname1, fldname2
     type(gcomp_attr)    :: hafs_attr
-    character(len=CS), allocatable :: flds(:)
     character(len=CS), allocatable :: S_flds(:)
     character(len=CS), allocatable :: F_flds(:,:)
-    character(len=CS), allocatable :: suffix(:)
     character(len=*) , parameter   :: subname='(esmFldsExchange_hafs_init)'
     !--------------------------------------
 
@@ -371,9 +363,9 @@ contains
          if (fldchk(is_local%wrap%FBExp(compatm),trim(fldname),rc=rc) .and. &
              fldchk(is_local%wrap%FBImp(compocn,compocn),trim(fldname),rc=rc) &
             ) then
-            call addmap(fldListFr(compocn)%flds, trim(fldname), compatm, &
+            call addmap_from(compocn, trim(fldname), compatm, &
                  mapfillv_bilnr, hafs_attr%mapnorm, hafs_attr%ocn2atm_smap)
-            call addmrg(fldListTo(compatm)%flds, trim(fldname), &
+            call addmrg_to(compatm, trim(fldname), &
                  mrg_from=compocn, mrg_fld=trim(fldname), mrg_type='copy')
          end if
       end do
@@ -391,9 +383,9 @@ contains
          if (fldchk(is_local%wrap%FBExp(compatm),trim(fldname),rc=rc) .and. &
              fldchk(is_local%wrap%FBImp(compwav,compwav),trim(fldname),rc=rc) &
             ) then
-            call addmap(fldListFr(compwav)%flds, trim(fldname), compatm, &
+            call addmap_from(compwav, trim(fldname), compatm, &
                  mapfillv_bilnr, hafs_attr%mapnorm, hafs_attr%wav2atm_smap)
-            call addmrg(fldListTo(compatm)%flds, trim(fldname), &
+            call addmrg_to(compatm, trim(fldname), &
                  mrg_from=compwav, mrg_fld=trim(fldname), mrg_type='copy')
          end if
       end do
@@ -420,9 +412,9 @@ contains
          if (fldchk(is_local%wrap%FBExp(compocn),trim(fldname),rc=rc) .and. &
              fldchk(is_local%wrap%FBImp(compatm,compatm),trim(fldname),rc=rc) &
             ) then
-            call addmap(fldListFr(compatm)%flds, trim(fldname), compocn, &
+            call addmap_from(compatm, trim(fldname), compocn, &
                  mapfillv_bilnr, hafs_attr%mapnorm, hafs_attr%atm2ocn_smap)
-            call addmrg(fldListTo(compocn)%flds, trim(fldname), &
+            call addmrg_to(compocn, trim(fldname), &
                  mrg_from=compatm, mrg_fld=trim(fldname), mrg_type='copy')
          end if
       end do
@@ -447,9 +439,9 @@ contains
          if (fldchk(is_local%wrap%FBExp(compocn),trim(fldname2),rc=rc) .and. &
              fldchk(is_local%wrap%FBImp(compatm,compatm),trim(fldname1),rc=rc) &
            ) then
-            call addmap(fldListFr(compatm)%flds, trim(fldname1), compocn, &
+            call addmap_from(compatm, trim(fldname1), compocn, &
                  mapfillv_bilnr, hafs_attr%mapnorm, hafs_attr%atm2ocn_smap)
-            call addmrg(fldListTo(compocn)%flds, trim(fldname2), &
+            call addmrg_to(compocn, trim(fldname2), &
                  mrg_from=compatm, mrg_fld=trim(fldname1), mrg_type='copy')
          end if
       end do
@@ -471,9 +463,9 @@ contains
         if (fldchk(is_local%wrap%FBexp(compwav),trim(fldname),rc=rc) .and. &
             fldchk(is_local%wrap%FBImp(compatm,compatm), trim(fldname),rc=rc) &
            ) then
-           call addmap(fldListFr(compatm)%flds, trim(fldname), compwav, &
+           call addmap_from(compatm, trim(fldname), compwav, &
                 mapfillv_bilnr, hafs_attr%mapnorm, hafs_attr%atm2wav_smap)
-           call addmrg(fldListTo(compwav)%flds, trim(fldname), &
+           call addmrg_to(compwav, trim(fldname), &
                 mrg_from=compatm, mrg_fld=trim(fldname), mrg_type='copy')
         end if
       end do

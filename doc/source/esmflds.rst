@@ -14,8 +14,8 @@ For each supported application, CMEPS contains two specific files that determine
 Three application specific versions are currently contained within CMEPS:
 
 * for CESM: **esmFldsExchange_cesm_mod.F90** and **fd_cesm.yaml**
-* for UFS-S2S: **esmFldsExchange_nems_mod.F90** and **fd_nems.yaml**
-* for UFS-HAFS: **esmFldsExchange_hafs_mod.F90** and **fd_hafs.yaml**
+* for UFS-S2S: **esmFldsExchange_ufs_mod.F90** and **fd_ufs.yaml**
+* for UFS-HAFS: **esmFldsExchange_hafs_mod.F90** and **fd_ufs.yaml**
 
 CMEPS advertises **all possible fields** that can be imported to and
 exported by the mediator for the target coupled system. Not all of
@@ -23,10 +23,10 @@ these fields will be connected to the various components. The
 connections will be determined by what the components advertise in
 their respective advertise phase.
 
-Across applications, component-specific names for the same fields may vary. The field 
+Across applications, component-specific names for the same fields may vary. The field
 dictionary is used to define how the application or component-specific name relates
-to the name that the CMEPS mediator uses for that field. The mediator variable 
-names and their application specific aliases are found in the YAML field dictionary. 
+to the name that the CMEPS mediator uses for that field. The mediator variable
+names and their application specific aliases are found in the YAML field dictionary.
 
 Details of the naming conventions and API's of this file can be found
 in the description of the :ref:`exchange of fields in
@@ -38,7 +38,7 @@ Field Naming Convention
 The CMEPS field name convention in the YAML files is independent of the model components.
 The convention differentiates between variables that are state fields versus flux fields.
 The naming convention assumes the following one letter designation for the various components as
-well as the mediator. 
+well as the mediator.
 
 **import to mediator**::
 
@@ -58,30 +58,30 @@ well as the mediator.
 
   State variables have a 3 character prefix followed by the state
   name. The prefix has the form ``S[a,i,l,g,o,r,w,x]_`` and is followed by
-  the field name. 
-  
+  the field name.
+
   As an example, ``Sx_t`` is the merged surface
   temperature from land, ice and ocean sent to the atmosphere for CESM.
 
 **Flux variables**:
 
-  Flux variables specify both source and destination components and have a 
-  5 character prefix followed by an identifier name of the flux. The first 5 
-  characters of the flux prefix ``Flmn_`` indicate a flux between 
-  components l and m, computed by component n. The flux-prefix is followed 
-  by the relevant flux-name. 
-  
+  Flux variables specify both source and destination components and have a
+  5 character prefix followed by an identifier name of the flux. The first 5
+  characters of the flux prefix ``Flmn_`` indicate a flux between
+  components l and m, computed by component n. The flux-prefix is followed
+  by the relevant flux-name.
+
   **mediator import flux prefixes**::
-  
+
     Faxa_, atm flux computed by atm
     Fall_, lnd-atm flux computed by lnd
     Fioi_, ice-ocn flux computed by ice
     Faii_, ice_atm flux computed by ice
     Flrr_, lnd-rof flux computed by rof
     Firr_, rof-ice flux computed by rof
-	
+
   **mediator export flux prefixes**::
-  
+
     Faxx_, mediator merged fluxes sent to the atm
     Foxx_, mediator merged fluxes sent to the ocn
     Fixx_, mediator merged fluxes sent to the ice
@@ -122,7 +122,7 @@ The API for this call is:
 .. code-block:: Fortran
 
    call addfld(fldListFr(comp_index)%flds, 'field_name')
-   call addfld(fldListTo(comp_index)%flds, 'field_name')   
+   call addfld(fldListTo(comp_index)%flds, 'field_name')
 
 where:
 
@@ -206,7 +206,7 @@ fraction corrections are not required in other mappings to improve accuracy beca
    call addmap(fldListFr(compice)%flds, 'Si_snowh', compatm, mapconsf, 'ifrac', 'unset')
 
 This will create an entry in ``fldListFr(compatm)`` specifying that the ``Si_snowh`` field from the ice should be mapped conservatively to the atmosphere using
-fractional normalization where the ice fraction is obtained from ``FBFrac(compice)[snowh]``. The route handle for this mapping will be created at run time. 
+fractional normalization where the ice fraction is obtained from ``FBFrac(compice)[snowh]``. The route handle for this mapping will be created at run time.
 
 .. _addmrg:
 
