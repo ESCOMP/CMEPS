@@ -28,7 +28,7 @@ module med_phases_prep_rof_mod
   use med_methods_mod       , only : FB_check_for_nans => med_methods_FB_check_for_nans
   use perf_mod              , only : t_startf, t_stopf
   use shr_log_mod           , only : shr_log_error
-  
+
   implicit none
   private
 
@@ -198,7 +198,7 @@ contains
     lndAccum2rof_cnt = 0
 
     fldList => med_fldList_GetFldListFr(complnd)
-    ! Create packed mapping from rof->lnd
+    ! Create packed mapping from lnd to rof
 
     call med_map_packed_field_create(destcomp=comprof, &
          flds_scalar_name=is_local%wrap%flds_scalar_name, &
@@ -413,13 +413,14 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     end if
 
-    ! Reset the irrig_flux_field with the map_lnd2rof_irrig calculation below if appropriate
-    if ( NUOPC_IsConnected(is_local%wrap%NStateImp(complnd), fieldname=trim(irrig_flux_field))) then
+    if ( NUOPC_IsConnected(is_local%wrap%NStateImp(complnd), fieldname=trim(irrig_flux_field)) .and. &
+         is_local%wrap%med_coupling_active(comprof,complnd)) then
        call med_phases_prep_rof_irrig( gcomp, rc=rc )
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     else
        ! This will ensure that no irrig is sent from the land
        call fldbun_getdata1d(FBlndAccum2rof_r, irrig_flux_field, dataptr_out, rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
        dataptr_out(:) = czero
     end if
 
