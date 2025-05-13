@@ -25,7 +25,6 @@ module MED
   use med_constants_mod        , only : spval_init         => med_constants_spval_init
   use med_constants_mod        , only : spval              => med_constants_spval
   use med_constants_mod        , only : czero              => med_constants_czero
-  use med_constants_mod        , only : ispval_mask        => med_constants_ispval_mask
   use med_utils_mod            , only : chkerr             => med_utils_ChkErr
   use med_methods_mod          , only : Field_GeomPrint    => med_methods_Field_GeomPrint
   use med_methods_mod          , only : State_GeomPrint    => med_methods_State_GeomPrint
@@ -35,17 +34,16 @@ module MED
   use med_methods_mod          , only : FB_Init            => med_methods_FB_init
   use med_methods_mod          , only : FB_Init_pointer    => med_methods_FB_Init_pointer
   use med_methods_mod          , only : FB_Reset           => med_methods_FB_Reset
-  use med_methods_mod          , only : FB_FldChk          => med_methods_FB_FldChk
   use med_methods_mod          , only : FB_diagnose        => med_methods_FB_diagnose
   use med_methods_mod          , only : FB_getFieldN       => med_methods_FB_getFieldN
   use med_methods_mod          , only : clock_timeprint    => med_methods_clock_timeprint
   use med_utils_mod            , only : memcheck           => med_memcheck
   use med_time_mod             , only : med_time_alarmInit
   use med_internalstate_mod    , only : InternalState, med_internalstate_init, med_internalstate_coupling
-  use med_internalstate_mod    , only : logunit, mastertask
+  use med_internalstate_mod    , only : med_internalstate_defaultmasks, logunit, mastertask
   use med_internalstate_mod    , only : ncomps, compname
   use med_internalstate_mod    , only : compmed, compatm, compocn, compice, complnd, comprof, compwav, compglc
-  use med_internalstate_mod    , only : coupling_mode
+  use med_internalstate_mod    , only : coupling_mode, aoflux_code, aoflux_ccpp_suite
   use esmFlds                  , only : fldListMed_ocnalb
   use esmFlds                  , only : med_fldList_GetNumFlds, med_fldList_GetFldNames, med_fldList_GetFldInfo
   use esmFlds                  , only : med_fldList_Document_Mapping, med_fldList_Document_Merging
@@ -101,7 +99,8 @@ contains
     use med_phases_prep_atm_mod , only: med_phases_prep_atm
     use med_phases_prep_ice_mod , only: med_phases_prep_ice
     use med_phases_prep_lnd_mod , only: med_phases_prep_lnd
-    use med_phases_prep_wav_mod , only: med_phases_prep_wav
+    use med_phases_prep_wav_mod , only: med_phases_prep_wav_accum
+    use med_phases_prep_wav_mod , only: med_phases_prep_wav_avg
     use med_phases_prep_glc_mod , only: med_phases_prep_glc
     use med_phases_prep_rof_mod , only: med_phases_prep_rof
     use med_phases_prep_ocn_mod , only: med_phases_prep_ocn_accum
@@ -343,10 +342,20 @@ contains
     !------------------
 
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
-         phaseLabelList=(/"med_phases_prep_wav"/), userRoutine=mediator_routine_Run, rc=rc)
+         phaseLabelList=(/"med_phases_prep_wav_accum"/), userRoutine=mediator_routine_Run, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
-         specPhaseLabel="med_phases_prep_wav", specRoutine=med_phases_prep_wav, rc=rc)
+         specPhaseLabel="med_phases_prep_wav_accum", specRoutine=med_phases_prep_wav_accum, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_TimestampExport, &
+         specPhaselabel="med_phases_prep_wav_accum", specRoutine=NUOPC_NoOp, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
+         phaseLabelList=(/"med_phases_prep_wav_avg"/), userRoutine=mediator_routine_Run, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_Advance, &
+         specPhaseLabel="med_phases_prep_wav_avg", specRoutine=med_phases_prep_wav_avg, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
@@ -539,7 +548,9 @@ contains
     use ESMF  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_METHOD_INITIALIZE
     use NUOPC , only : NUOPC_CompFilterPhaseMap, NUOPC_CompAttributeGet
     use med_internalstate_mod, only : mastertask, logunit, diagunit
-
+#ifdef CESMCOUPLED
+    use nuopc_shr_methods, only : set_component_logging
+#endif
     type(ESMF_GridComp)   :: gcomp
     type(ESMF_State)      :: importState, exportState
     type(ESMF_Clock)      :: clock
@@ -550,6 +561,7 @@ contains
     character(len=CL) :: cvalue
     integer           :: localPet
     integer           :: i
+    integer           :: shrlogunit
     logical           :: isPresent, isSet
     character(len=CX) :: msgString
     character(len=CX) :: diro
@@ -580,8 +592,11 @@ contains
        if (.not. isPresent .and. .not. isSet) then
           logfile = 'mediator.log'
        end if
-       open(newunit=logunit, file=trim(diro)//"/"//trim(logfile))
-
+#ifdef CESMCOUPLED
+       call set_component_logging(gcomp, mastertask, logunit, shrlogunit, rc)
+#else
+       open(newunit=logunit,file=trim(diro)//"/"//trim(logfile))
+#endif
        call NUOPC_CompAttributeGet(gcomp, name="do_budgets", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        if (isPresent .and. isSet) then
@@ -645,6 +660,7 @@ contains
     use NUOPC , only : NUOPC_CompAttributeGet, NUOPC_CompAttributeSet, NUOPC_CompAttributeAdd
     use esmFlds, only : med_fldlist_init1
     use med_phases_history_mod, only : med_phases_history_init
+    use med_internalstate_mod , only : atm_name
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -746,6 +762,36 @@ contains
     end if
     is_local%wrap%aoflux_grid = trim(cvalue)
 
+    ! Determine aoflux scheme that will be used to compute atmosphere-ocean fluxes [cesm|ccpp]
+    ! TODO: If ccpp is not available it will be always run in cesm mode independent from aoflux_code option
+    call NUOPC_CompAttributeGet(gcomp, name='aoflux_code', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    if (.not. isPresent .and. .not. isSet) then
+       cvalue = 'cesm'
+    end if
+    aoflux_code = trim(cvalue)
+    if (mastertask) then
+       write(logunit,*) '========================================================'
+       write(logunit,'(a)')trim(subname)//' Mediator aoflux scheme is '//trim(aoflux_code)
+       write(logunit,*) '========================================================'
+    end if
+
+    ! Determine CCPP suite if aoflux scheme set to 'ccpp'
+    if (trim(aoflux_code) == 'ccpp') then
+       call NUOPC_CompAttributeGet(gcomp, name='aoflux_ccpp_suite', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (.not. isPresent .and. .not. isSet) then
+          call ESMF_LogWrite("aoflux_ccpp_suite need to be provided when aoflux_code is set to 'ccpp'", ESMF_LOGMSG_INFO)
+          call ESMF_Finalize(endflag=ESMF_END_ABORT)
+       end if
+       aoflux_ccpp_suite = trim(cvalue)
+       if (mastertask) then
+          write(logunit,*) '========================================================'
+          write(logunit,'(a)')trim(subname)//' Mediator aoflux CCPP suite is '//trim(aoflux_ccpp_suite)
+          write(logunit,*) '========================================================'
+       end if
+    end if
+
     !------------------
     ! Initialize mediator flds
     !------------------
@@ -767,8 +813,7 @@ contains
     if (trim(coupling_mode) == 'cesm') then
        call esmFldsExchange_cesm(gcomp, phase='advertise', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    else if (trim(coupling_mode) == 'nems_orig' .or. trim(coupling_mode) == 'nems_frac' &
-       .or. trim(coupling_mode) == 'nems_orig_data') then
+    else if (trim(coupling_mode(1:4)) == 'nems') then
        call esmFldsExchange_nems(gcomp, phase='advertise', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     else if (trim(coupling_mode(1:4)) == 'hafs') then
@@ -778,6 +823,10 @@ contains
         call ESMF_LogWrite(trim(coupling_mode)//' is not a valid coupling_mode', ESMF_LOGMSG_INFO)
         call ESMF_Finalize(endflag=ESMF_END_ABORT)
     end if
+
+    ! Set default masking for mapping
+    call med_internalstate_defaultmasks(gcomp, rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !------------------
     ! Determine component present indices
@@ -1498,6 +1547,7 @@ contains
     use med_fraction_mod        , only : med_fraction_init, med_fraction_set
     use med_phases_restart_mod  , only : med_phases_restart_read
     use med_phases_prep_ocn_mod , only : med_phases_prep_ocn_init
+    use med_phases_prep_wav_mod , only : med_phases_prep_wav_init
     use med_phases_prep_rof_mod , only : med_phases_prep_rof_init
     use med_phases_prep_glc_mod , only : med_phases_prep_glc_init
     use med_phases_prep_atm_mod , only : med_phases_prep_atm
@@ -1729,6 +1779,8 @@ contains
       if (trim(coupling_mode) == 'cesm') then
          call esmFldsExchange_cesm(gcomp, phase='initialize', rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      else if (trim(coupling_mode(1:4)) == 'nems') then
+       call esmFldsExchange_nems(gcomp, phase='initialize', rc=rc)
       else if (trim(coupling_mode) == 'hafs') then
          call esmFldsExchange_hafs(gcomp, phase='initialize', rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -1781,6 +1833,16 @@ contains
            ESMF_StateIsCreated(is_local%wrap%NStateImp(compocn),rc=rc) .and. &
            ESMF_StateIsCreated(is_local%wrap%NStateExp(compocn),rc=rc)) then
          call med_phases_prep_ocn_init(gcomp, rc)
+         if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      end if
+
+      !---------------------------------------
+      ! Initialize wav export accumulation field bundle
+      !---------------------------------------
+      if ( is_local%wrap%comp_present(compwav) .and. &
+           ESMF_StateIsCreated(is_local%wrap%NStateImp(compwav),rc=rc) .and. &
+           ESMF_StateIsCreated(is_local%wrap%NStateExp(compwav),rc=rc)) then
+         call med_phases_prep_wav_init(gcomp, rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
       end if
 
@@ -2059,12 +2121,12 @@ contains
        ! Call post routines as part of initialization
        !---------------------------------------
        if (is_local%wrap%comp_present(compatm)) then
-          ! map atm->ocn, atm->ice, atm->lnd
+          ! map atm->ocn, atm->ice, atm->lnd, atm->wav
           call med_phases_post_atm(gcomp, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
        if (is_local%wrap%comp_present(compice)) then
-          ! call set ice_frac and map ice->atm and ice->ocn
+          ! call set ice_frac and map ice->ocn and ice->wav
           call med_phases_post_ice(gcomp, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
@@ -2079,7 +2141,7 @@ contains
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
        if (is_local%wrap%comp_present(compocn)) then
-          ! map initial ocn->ice
+          ! map initial ocn->ice, ocn->wav
           call med_phases_post_ocn(gcomp, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
@@ -2089,7 +2151,7 @@ contains
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
        if (is_local%wrap%comp_present(compwav)) then
-          ! map initial wav->ocn and wav->ice
+          ! map initial wav->ocn, wav->ice, wav->atm
           call med_phases_post_wav(gcomp, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if

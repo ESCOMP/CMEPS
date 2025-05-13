@@ -894,7 +894,17 @@
       <value>ogrid</value>
     </values>
   </entry>
-
+  <entry id="ocn_surface_flux_scheme">
+    <type>integer</type>
+    <category>control</category>
+    <group>MED_attributes</group>
+    <desc>
+      atm/ocn flux calculation scheme
+    </desc>
+    <values>
+      <value>0</value>
+    </values>
+  </entry>
   <entry id="gust_fac">
     <type>real</type>
     <category>control</category>
@@ -1992,7 +2002,7 @@
     <group>MED_attributes</group>
     <desc>atm to ocn mapping, 'unset' or 'idmap' are normal possible values</desc>
     <values>
-      <value>unset</value> 
+      <value>unset</value>
       <value samegrid_atm_ocn='true'>idmap</value>
     </values>
   </entry>
@@ -2002,7 +2012,7 @@
     <group>MED_attributes</group>
     <desc>atm to ocn mapping, 'unset' or 'idmap' are normal possible values</desc>
     <values>
-      <value>unset</value> 
+      <value>unset</value>
       <value samegrid_atm_ice='true'>idmap</value>
     </values>
   </entry>
@@ -2012,7 +2022,7 @@
     <group>MED_attributes</group>
     <desc>atm to lnd mapping, 'unset' or 'idmap' are normal possible values</desc>
     <values>
-      <value>unset</value> 
+      <value>unset</value>
       <value samegrid_atm_lnd='true'>idmap</value>
     </values>
   </entry>
@@ -2022,7 +2032,7 @@
     <group>MED_attributes</group>
     <desc>ocn to atm mapping, 'unset' or 'idmap' are normal possible values</desc>
     <values>
-      <value>unset</value> 
+      <value>unset</value>
       <value samegrid_atm_ocn='true'>idmap</value>
     </values>
   </entry>
@@ -2032,7 +2042,7 @@
     <group>MED_attributes</group>
     <desc>ice to atm mapping, 'unset' or 'idmap' are normal possible values</desc>
     <values>
-      <value>unset</value> 
+      <value>unset</value>
       <value samegrid_atm_ice='true'>idmap</value>
     </values>
   </entry>
@@ -2042,7 +2052,7 @@
     <group>MED_attributes</group>
     <desc>lnd to atm mapping, 'unset' or 'idmap' are normal possible values</desc>
     <values>
-      <value>unset</value> 
+      <value>unset</value>
       <value samegrid_atm_lnd='true'>idmap</value>
     </values>
   </entry>
@@ -2053,7 +2063,7 @@
     <group>MED_attributes</group>
     <desc>lnd to rof mapping, 'unset' or 'idmap' are normal possible values</desc>
     <values>
-      <value>unset</value> 
+      <value>unset</value>
       <value samegrid_lnd_rof='true'>idmap</value>
     </values>
   </entry>
@@ -2064,7 +2074,7 @@
     <group>MED_attributes</group>
     <desc>rof to lnd mapping, 'unset' or 'idmap' are normal possible values</desc>
     <values>
-      <value>unset</value> 
+      <value>unset</value>
       <value samegrid_lnd_rof='true'>idmap</value>
     </values>
   </entry>
@@ -2074,7 +2084,7 @@
     <group>MED_attributes</group>
     <desc>atm to wav mapping, 'unset' or 'idmap' are normal possible values</desc>
     <values>
-      <value>unset</value> 
+      <value>unset</value>
       <value samegrid_atm_wav='true'>idmap</value>
     </values>
   </entry>
@@ -3537,28 +3547,13 @@
   </entry>
 
   <!-- ===========================   -->
-  <!-- namelist: pio_default_inparm  -->
+  <!-- namelist: DRIVER_attributes  -->
   <!-- ===========================   -->
-
-  <entry id="pio_async_interface">
-    <type>logical</type>
-    <category>pio</category>
-    <group>pio_default_inparm</group>
-    <desc>
-      future asynchronous IO capability (not currently supported).
-      If pio_async_interface is .true. or {component}_PIO_* variable is not set or set to -99
-      the component variable will be set using the pio_* value.
-      default: .false.
-    </desc>
-    <values>
-      <value>$PIO_ASYNC_INTERFACE</value>
-    </values>
-  </entry>
 
   <entry id="pio_debug_level" modify_via_xml="PIO_DEBUG_LEVEL">
     <type>integer</type>
     <category>pio</category>
-    <group>pio_default_inparm</group>
+    <group>DRIVER_attributes</group>
     <valid_values>0,1,2,3,4,5,6</valid_values>
     <desc>
       pio debug level
@@ -3572,7 +3567,7 @@
   <entry id="pio_blocksize" modify_via_xml="PIO_BLOCKSIZE">
     <type>integer</type>
     <category>pio</category>
-    <group>pio_default_inparm</group>
+    <group>DRIVER_attributes</group>
     <desc>
       blocksize for pio box rearranger
     </desc>
@@ -3584,7 +3579,7 @@
   <entry id="pio_buffer_size_limit" modify_via_xml="PIO_BUFFER_SIZE_LIMIT">
     <type>integer</type>
     <category>pio</category>
-    <group>pio_default_inparm</group>
+    <group>DRIVER_attributes</group>
     <desc>
       pio buffer size limit
     </desc>
@@ -3596,7 +3591,7 @@
   <entry id="pio_rearr_comm_type" modify_via_xml="PIO_REARR_COMM_TYPE">
     <type>char</type>
     <category>pio</category>
-    <group>pio_default_inparm</group>
+    <group>DRIVER_attributes</group>
     <valid_values>p2p,coll,default</valid_values>
     <desc>
       pio rearranger communication type.
@@ -3610,7 +3605,7 @@
   <entry id="pio_rearr_comm_fcd" modify_via_xml="PIO_REARR_COMM_FCD">
     <type>char</type>
     <category>pio</category>
-    <group>pio_default_inparm</group>
+    <group>DRIVER_attributes</group>
     <valid_values>2denable,io2comp,comp2io,disable,default</valid_values>
     <desc>
       pio rearranger communication flow control direction.
@@ -3623,7 +3618,7 @@
   <entry id="pio_rearr_comm_max_pend_req_comp2io" modify_via_xml=" PIO_REARR_COMM_MAX_PEND_REQ_COMP2IO">
     <type>integer</type>
     <category>pio</category>
-    <group>pio_default_inparm</group>
+    <group>DRIVER_attributes</group>
     <desc>
       pio rearranger communication max pending req (comp2io)
     </desc>
@@ -3635,7 +3630,7 @@
   <entry id="pio_rearr_comm_enable_hs_comp2io" modify_via_xml="PIO_REARR_COMM_ENABLE_HS_COMP2IO">
     <type>logical</type>
     <category>pio</category>
-    <group>pio_default_inparm</group>
+    <group>DRIVER_attributes</group>
     <desc>
       pio rearranger communication option: Enable handshake (comp2io)
     </desc>
@@ -3647,7 +3642,7 @@
   <entry id="pio_rearr_comm_enable_isend_comp2io"    modify_via_xml="PIO_REARR_COMM_ENABLE_ISEND_COMP2IO">
     <type>logical</type>
     <category>pio</category>
-    <group>pio_default_inparm</group>
+    <group>DRIVER_attributes</group>
     <desc>
       pio rearranger communication option: Enable isends (comp2io)
     </desc>
@@ -3659,7 +3654,7 @@
   <entry id="pio_rearr_comm_max_pend_req_io2comp"    modify_via_xml="PIO_REARR_COMM_MAX_PEND_REQ_IO2COMP">
     <type>integer</type>
     <category>pio</category>
-    <group>pio_default_inparm</group>
+    <group>DRIVER_attributes</group>
     <desc>
       pio rearranger communication max pending req (io2comp)
     </desc>
@@ -3671,7 +3666,7 @@
   <entry id="pio_rearr_comm_enable_hs_io2comp"    modify_via_xml="PIO_REARR_COMM_ENABLE_HS_IO2COMP">
     <type>logical</type>
     <category>pio</category>
-    <group>pio_default_inparm</group>
+    <group>DRIVER_attributes</group>
     <desc>
       pio rearranger communication option: Enable handshake (io2comp)
     </desc>
@@ -3683,7 +3678,7 @@
   <entry id="pio_rearr_comm_enable_isend_io2comp">
     <type>logical</type>
     <category>pio</category>
-    <group>pio_default_inparm</group>
+    <group>DRIVER_attributes</group>
     <desc>
       pio rearranger communication option: Enable isends (io2comp)
       default: .false.
@@ -3804,6 +3799,18 @@
   <!--   </values> -->
   <!-- </entry> -->
 
+  <entry id="wavice_coupling">
+    <type>logical</type>
+    <category>expdef</category>
+    <group>ALLCOMP_attributes</group>
+    <desc>
+      If true, wav-ice coupling is active
+    </desc>
+    <values>
+      <value>.false.</value>
+    </values>
+  </entry>
+
   <!-- ======================================== -->
   <!--  ATM attributes                          -->
   <!-- ======================================== -->
@@ -3821,13 +3828,12 @@
     <type>char</type>
     <category>mapping</category>
     <input_pathname>abs</input_pathname>
-    <group>ATM_attributes</group>
+    <group>ALLCOMP_attributes</group>
     <desc>
       MESH description of atm grid
     </desc>
     <values>
       <value>$ATM_DOMAIN_MESH</value>
-      <value single_column='true'>null</value>
     </values>
   </entry>
   <entry id="perpetual">
@@ -3881,13 +3887,12 @@
     <type>char</type>
     <category>mapping</category>
     <input_pathname>abs</input_pathname>
-    <group>ICE_attributes</group>
+    <group>ALLCOMP_attributes</group>
     <desc>
       MESH description of ice grid
     </desc>
     <values>
       <value>$ICE_DOMAIN_MESH</value>
-      <value single_column='true'>null</value>
     </values>
   </entry>
 
@@ -3914,7 +3919,6 @@
     </desc>
     <values>
       <value>$GLC_DOMAIN_MESH</value>
-      <value single_column='true'>null</value>
     </values>
   </entry>
 
@@ -3935,13 +3939,12 @@
     <type>char</type>
     <category>mapping</category>
     <input_pathname>abs</input_pathname>
-    <group>LND_attributes</group>
+    <group>ALLCOMP_attributes</group>
     <desc>
       MESH description of lnd grid
     </desc>
     <values>
       <value>$LND_DOMAIN_MESH</value>
-      <value single_column='true'>null</value>
     </values>
   </entry>
 
@@ -3962,13 +3965,12 @@
     <type>char</type>
     <category>mapping</category>
     <input_pathname>abs</input_pathname>
-    <group>OCN_attributes</group>
+    <group>ALLCOMP_attributes</group>
     <desc>
       MESH description of ocn grid
     </desc>
     <values>
       <value>$OCN_DOMAIN_MESH</value>
-      <value single_column='true'>null</value>
     </values>
   </entry>
 
@@ -3995,7 +3997,6 @@
     </desc>
     <values>
       <value>$ROF_DOMAIN_MESH</value>
-      <value single_column='true'>null</value>
     </values>
   </entry>
 
@@ -4022,8 +4023,179 @@
     </desc>
     <values>
       <value>$WAV_DOMAIN_MESH</value>
-      <value single_column='true'>null</value>
     </values>
   </entry>
 
+  <!-- =========================== -->
+  <!-- group modelio               -->
+  <!-- =========================== -->
+
+  <entry id="pio_async_interface">
+    <type>logical</type>
+    <category>pio</category>
+    <group>modelio</group>
+    <desc>
+      future asynchronous IO capability (not currently supported).
+      If pio_async_interface is .true. or {component}_PIO_* variable is not set or set to -99
+      the component variable will be set using the pio_* value.
+      default: .false.
+    </desc>
+    <values>
+    <value component="cpl">$CPL_PIO_ASYNC_INTERFACE</value>
+    <value component="atm">$ATM_PIO_ASYNC_INTERFACE</value>
+    <value component="lnd">$LND_PIO_ASYNC_INTERFACE</value>
+    <value component="ocn">$OCN_PIO_ASYNC_INTERFACE</value>
+    <value component="ice">$ICE_PIO_ASYNC_INTERFACE</value>
+    <value component="rof">$ROF_PIO_ASYNC_INTERFACE</value>
+    <value component="glc">$GLC_PIO_ASYNC_INTERFACE</value>
+    <value component="wav">$WAV_PIO_ASYNC_INTERFACE</value>
+    <value component="esp">.false.</value>
+    </values>
+  </entry>
+
+  <entry id="pio_stride" modify_via_xml="PIO_STRIDE">
+    <type>integer</type>
+    <category>pio</category>
+    <group>modelio</group>
+    <desc>
+      stride of tasks in pio used generically, component based value takes precedent.
+    </desc>
+    <values>
+    <value component="cpl">$CPL_PIO_STRIDE</value>
+    <value component="atm">$ATM_PIO_STRIDE</value>
+    <value component="lnd">$LND_PIO_STRIDE</value>
+    <value component="ocn">$OCN_PIO_STRIDE</value>
+    <value component="ice">$ICE_PIO_STRIDE</value>
+    <value component="rof">$ROF_PIO_STRIDE</value>
+    <value component="glc">$GLC_PIO_STRIDE</value>
+    <value component="wav">$WAV_PIO_STRIDE</value>
+    <value component="esp">-99</value>
+    </values>
+  </entry>
+
+  <entry id="pio_root" modify_via_xml="PIO_ROOT">
+    <type>integer</type>
+    <category>pio</category>
+    <group>modelio</group>
+    <desc>
+      io task root in pio used generically, component based value takes precedent.
+    </desc>
+    <values>
+    <value component="cpl">$CPL_PIO_ROOT</value>
+    <value component="atm">$ATM_PIO_ROOT</value>
+    <value component="lnd">$LND_PIO_ROOT</value>
+    <value component="ocn">$OCN_PIO_ROOT</value>
+    <value component="ice">$ICE_PIO_ROOT</value>
+    <value component="rof">$ROF_PIO_ROOT</value>
+    <value component="glc">$GLC_PIO_ROOT</value>
+    <value component="wav">$WAV_PIO_ROOT</value>
+    <value component="esp">-99</value>
+    </values>
+  </entry>
+
+  <entry id="pio_rearranger" modify_via_xml="PIO_REARRANGER">
+    <type>integer</type>
+    <category>pio</category>
+    <group>modelio</group>
+    <valid_values>-99,1,2</valid_values>
+    <desc>
+      Rearranger method for pio 1=box, 2=subset.
+    </desc>
+    <values>
+    <value component="cpl">$CPL_PIO_REARRANGER</value>
+    <value component="atm">$ATM_PIO_REARRANGER</value>
+    <value component="lnd">$LND_PIO_REARRANGER</value>
+    <value component="ocn">$OCN_PIO_REARRANGER</value>
+    <value component="ice">$ICE_PIO_REARRANGER</value>
+    <value component="rof">$ROF_PIO_REARRANGER</value>
+    <value component="glc">$GLC_PIO_REARRANGER</value>
+    <value component="wav">$WAV_PIO_REARRANGER</value>
+    <value component="esp">-99</value>
+    </values>
+  </entry>
+
+  <entry id="pio_numiotasks" modify_via_xml="PIO_NUMTASKS">
+    <type>integer</type>
+    <category>pio</category>
+    <group>modelio</group>
+    <desc>
+      number of io tasks in pio used generically, component based value takes precedent.
+    </desc>
+    <values>
+    <value component="cpl">$CPL_PIO_NUMTASKS</value>
+    <value component="atm">$ATM_PIO_NUMTASKS</value>
+    <value component="lnd">$LND_PIO_NUMTASKS</value>
+    <value component="ocn">$OCN_PIO_NUMTASKS</value>
+    <value component="ice">$ICE_PIO_NUMTASKS</value>
+    <value component="rof">$ROF_PIO_NUMTASKS</value>
+    <value component="glc">$GLC_PIO_NUMTASKS</value>
+    <value component="wav">$WAV_PIO_NUMTASKS</value>
+    <value component="esp">-99</value>
+    </values>
+  </entry>
+
+  <entry id="pio_typename" modify_via_xml="PIO_TYPENAME">
+    <type>char*64</type>
+    <category>pio</category>
+    <group>modelio</group>
+    <valid_values>netcdf,pnetcdf,netcdf4p,netcdf4c,default,nothing</valid_values>
+    <desc>
+      io type in pio used generically, component based value takes precedent.
+      valid values: netcdf, pnetcdf, netcdf4p, netcdf4c, default
+    </desc>
+    <values>
+    <value component="cpl">$CPL_PIO_TYPENAME</value>
+    <value component="atm">$ATM_PIO_TYPENAME</value>
+    <value component="lnd">$LND_PIO_TYPENAME</value>
+    <value component="ocn">$OCN_PIO_TYPENAME</value>
+    <value component="ice">$ICE_PIO_TYPENAME</value>
+    <value component="rof">$ROF_PIO_TYPENAME</value>
+    <value component="glc">$GLC_PIO_TYPENAME</value>
+    <value component="wav">$WAV_PIO_TYPENAME</value>
+    <value component="esp">nothing</value>
+    </values>
+  </entry>
+
+  <entry id="pio_netcdf_format" modify_via_xml="PIO_NETCDF_FORMAT">
+    <type>char*64</type>
+    <category>pio</category>
+    <group>modelio</group>
+    <valid_values>classic,64bit_offset,64bit_data</valid_values>
+    <desc>
+      format of netcdf files created by pio, ignored if
+      PIO_TYPENAME is netcdf4p or netcdf4c.  64bit_data only
+      supported in netcdf 4.4.0 or newer
+    </desc>
+    <values>
+    <value component="cpl">$CPL_PIO_NETCDF_FORMAT</value>
+    <value component="atm">$ATM_PIO_NETCDF_FORMAT</value>
+    <value component="lnd">$LND_PIO_NETCDF_FORMAT</value>
+    <value component="ocn">$OCN_PIO_NETCDF_FORMAT</value>
+    <value component="ice">$ICE_PIO_NETCDF_FORMAT</value>
+    <value component="rof">$ROF_PIO_NETCDF_FORMAT</value>
+    <value component="glc">$GLC_PIO_NETCDF_FORMAT</value>
+    <value component="wav">$WAV_PIO_NETCDF_FORMAT</value>
+    <value component="esp">$ESP_PIO_NETCDF_FORMAT</value>
+    </values>
+  </entry>
+
+  <entry id="diro">
+    <type>char*256</type>
+    <category>modelio</category>
+    <group>modelio</group>
+    <desc>directory for output log files</desc>
+    <values>
+      <value>UNSET</value>
+    </values>
+  </entry>
+
+  <entry id="logfile">
+    <type>char*256</type>
+    <category>modelio</category>
+    <group>modelio</group>
+    <desc>name of component output log file</desc>
+    <values>
+    <value>UNSET</value>
+    </values>
+  </entry>
 </entry_id>

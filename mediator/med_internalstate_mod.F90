@@ -5,7 +5,7 @@ module med_internalstate_mod
   !-----------------------------------------------------------------------------
 
   use ESMF         , only : ESMF_RouteHandle, ESMF_FieldBundle, ESMF_State, ESMF_Field, ESMF_VM
-  use ESMF         , only : ESMF_GridComp, ESMF_MAXSTR, ESMF_LOGMSG_INFO, ESMF_LOGWRITE
+  use ESMF         , only : ESMF_GridComp, ESMF_Mesh, ESMF_MAXSTR, ESMF_LOGMSG_INFO, ESMF_LOGWRITE
   use med_kind_mod , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
   use med_utils_mod, only : chkerr => med_utils_ChkErr
 
@@ -15,6 +15,7 @@ module med_internalstate_mod
   ! public routines
   public :: med_internalstate_init
   public :: med_internalstate_coupling
+  public :: med_internalstate_defaultmasks
 
   integer, public :: logunit            ! logunit for mediator log output
   integer, public :: diagunit           ! diagunit for budget output (med master only)
@@ -46,7 +47,16 @@ module med_internalstate_mod
   character(len=CS), public :: glc_name = ''
 
   ! Coupling mode
-  character(len=CS), public :: coupling_mode ! valid values are [cesm,nems_orig,nems_frac,nems_orig_data,hafs]
+  character(len=CS), public :: coupling_mode ! valid values are [cesm,nems_orig,nems_frac,nems_orig_data,hafs,nems_frac_aoflux,nems_frac_aoflux_sbs]
+
+  ! Atmosphere-ocean flux algorithm
+  character(len=CS), public :: aoflux_code   ! valid values are [cesm,ccpp]
+
+  ! Atmosphere-ocean CCPP suite name
+  character(len=CL), public :: aoflux_ccpp_suite
+
+  ! Default src and destination masks for mapping
+  integer, public, allocatable :: defaultMasks(:,:)
 
   ! Mapping
   integer , public, parameter :: mapunset          = 0
@@ -113,7 +123,7 @@ module med_internalstate_mod
     logical, pointer :: med_coupling_active(:,:)   ! computes the active coupling
     integer          :: num_icesheets              ! obtained from attribute
     logical          :: ocn2glc_coupling = .false. ! obtained from attribute
-    logical          :: lnd2glc_coupling = .false. 
+    logical          :: lnd2glc_coupling = .false.
     logical          :: accum_lnd2glc = .false.
 
     ! Mediator vm
@@ -149,6 +159,7 @@ module med_internalstate_mod
 
     ! Mediator field bundles and other info for atm/ocn flux computation
     character(len=CS)      :: aoflux_grid                        ! 'ogrid', 'agrid' or 'xgrid'
+    type(ESMF_Mesh)        :: aoflux_mesh                        ! Mesh used for atm/ocn flux computation
     type(ESMF_FieldBundle) :: FBMed_aoflux_a                     ! Ocn/Atm flux output fields on atm grid
     type(ESMF_FieldBundle) :: FBMed_aoflux_o                     ! Ocn/Atm flux output fields on ocn grid
     type(packed_data_type), pointer :: packed_data_aoflux_o2a(:) ! packed data for mapping ocn->atm
@@ -163,8 +174,10 @@ module med_internalstate_mod
     type(ESMF_FieldBundle), pointer :: FBfrac(:)     ! Fraction data for various components, on their grid
 
     ! Accumulators for export field bundles
-    type(ESMF_FieldBundle) :: FBExpAccumOcn      ! Accumulator for various components export on their grid
-    integer                :: ExpAccumOcnCnt = 0 ! Accumulator counter for each FBExpAccum
+    type(ESMF_FieldBundle) :: FBExpAccumOcn      ! Accumulator for Ocn export on Ocn grid
+    integer                :: ExpAccumOcnCnt = 0 ! Accumulator counter for FBExpAccumOcn
+    type(ESMF_FieldBundle) :: FBExpAccumWav      ! Accumulator for Wav export on Wav grid
+    integer                :: ExpAccumWavCnt = 0 ! Accumulator counter for FBExpAccumWav
 
     ! Component Mesh info
     type(mesh_info_type)   , pointer :: mesh_info(:)
@@ -185,8 +198,8 @@ contains
 
   subroutine med_internalstate_init(gcomp, rc)
 
-    use ESMF         , only : ESMF_LogFoundAllocError, ESMF_AttributeGet
-    use NUOPC_Comp   , only : NUOPC_CompAttributeGet
+    use ESMF              , only : ESMF_LogFoundAllocError, ESMF_AttributeGet
+    use NUOPC_Comp        , only : NUOPC_CompAttributeGet
 
     ! input/output variables
     type(ESMF_GridComp)            :: gcomp
@@ -203,7 +216,7 @@ contains
     character(len=CL)          :: cname
     character(len=ESMF_MAXSTR) :: mesh_glc
     character(len=CX)          :: msgString
-    character(len=3)           :: name 
+    character(len=3)           :: name
     integer                    :: num_icesheets
     character(len=*),parameter :: subname=' (internalstate init) '
     !-----------------------------------------------------------
@@ -327,7 +340,7 @@ contains
        ! Write out present flags
        write(logunit,*)
        do n1 = 1,ncomps
-          name = trim(compname(n1))  ! this trims the ice sheets index from the glc name 
+          name = trim(compname(n1))  ! this trims the ice sheets index from the glc name
           write(msgString,'(A,L4)') trim(subname)//' comp_present(comp'//name//') = ',&
                is_local%wrap%comp_present(n1)
           write(logunit,'(a)') trim(msgString)
@@ -351,7 +364,7 @@ contains
     ! Obtain dststatus_print setting if present
     call NUOPC_CompAttributeGet(gcomp, name='dststatus_print', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent .and. isSet) dststatus_print=(trim(cvalue)=="true")
+    if (isPresent .and. isSet) dststatus_print=(trim(cvalue) == "true")
     write(msgString,*) trim(subname)//': Mediator dststatus_print is ',dststatus_print
     call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
 
@@ -548,5 +561,45 @@ contains
     deallocate(med_coupling_allowed)
 
   end subroutine med_internalstate_coupling
+
+  subroutine med_internalstate_defaultmasks(gcomp, rc)
+
+    use med_constants_mod        , only : ispval_mask        => med_constants_ispval_mask
+
+    ! input/output variables
+    type(ESMF_GridComp)            :: gcomp
+    integer          , intent(out) :: rc
+
+    ! local variables
+    type(InternalState)        :: is_local
+
+    !----------------------------------------------------------
+    ! Default masking: for each component, the first element is
+    ! when it is the src and the second element is when it is
+    ! the destination
+    !----------------------------------------------------------
+
+    nullify(is_local%wrap)
+    call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    allocate(defaultMasks(ncomps,2))
+    defaultMasks(:,:) = ispval_mask
+    if (is_local%wrap%comp_present(compocn)) defaultMasks(compocn,:) = 0
+    if (is_local%wrap%comp_present(compice)) defaultMasks(compice,:) = 0
+    if (is_local%wrap%comp_present(compwav)) defaultMasks(compwav,:) = 0
+    if ( trim(coupling_mode(1:4)) == 'nems') then
+       if (is_local%wrap%comp_present(compatm)) defaultMasks(compatm,:) = 1
+    endif
+    if ( trim(coupling_mode) == 'hafs') then
+       if (is_local%wrap%comp_present(compatm)) defaultMasks(compatm,1) = 1
+    endif
+    if ( trim(coupling_mode) /= 'cesm') then
+       if (is_local%wrap%comp_present(compatm) .and. trim(atm_name(1:4)) == 'datm') then
+          defaultMasks(compatm,1) = 0
+       end if
+    end if
+
+  end subroutine med_internalstate_defaultmasks
 
 end module med_internalstate_mod
