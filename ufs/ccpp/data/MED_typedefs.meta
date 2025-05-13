@@ -237,6 +237,12 @@
   units = flag
   dimensions = (horizontal_loop_extent)
   type = logical
+[flag_lakefreeze]
+  standard_name = flag_for_lake_water_freeze
+  long_name = flag for lake water freeze
+  units = flag
+  dimensions = (horizontal_loop_extent)
+  type = logical
 [qss_water]
   standard_name = surface_specific_humidity_over_water
   long_name = surface air saturation specific humidity over water
@@ -856,7 +862,7 @@
   long_name = model 2m diagnostics use the temperature and humidity calculated by the lake model
   units = flag
   dimensions = ()
-  type = integer
+  type = logical
 [lkm]
   standard_name = control_for_lake_model_execution_method
   long_name = control for lake model execution: 0=no lake, 1=lake, 2=lake+nsst
@@ -905,6 +911,12 @@
   units = flag
   dimensions = ()
   type = logical
+[icplocn2atm]
+  standard_name = control_for_air_sea_flux_computation_over_water
+  long_name = air-sea flux option
+  units = 1
+  dimensions = ()
+  type = integer
 [kdt]
   standard_name = index_of_timestep
   long_name = current forecast iteration
@@ -1150,6 +1162,20 @@
   dimensions = (horizontal_loop_extent)
   type = real
   kind = kind_phys
+[usfco]
+  standard_name = x_ocean_current
+  long_name = zonal current at ocean surface
+  units = m s-1
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+[vsfco]
+  standard_name = y_ocean_current
+  long_name = meridional current at ocean surface
+  units = m s-1
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
 [uustar]
   standard_name = surface_friction_velocity
   long_name = boundary layer parameter
@@ -1312,7 +1338,7 @@
 [ccpp-table-properties]
   name = MED_typedefs
   type = module
-  relative_path = ../../../../../FV3/ccpp/physics/physics
+  relative_path = ../../../../../FV3/ccpp/physics/physics/hooks
   dependencies = machine.F,physcons.F90
 
 [ccpp-arg-table]
