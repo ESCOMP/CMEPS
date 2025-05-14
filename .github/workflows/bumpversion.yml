@@ -15,5 +15,5 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           create_annotated_tag: true
           default_bump: minor
-          dry_run: true
+          dry_run: false
           tag_prefix: cmeps
