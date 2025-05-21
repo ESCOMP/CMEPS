@@ -20,11 +20,11 @@ jobs:
       CPPFLAGS: "-I/usr/include -I/usr/local/include"
 
       # Versions of all dependencies can be updated here
-      ESMF_VERSION: v8.6.1
-      PNETCDF_VERSION: checkpoint.1.12.3
+      ESMF_VERSION: v8.8.0
+      PNETCDF_VERSION: checkpoint.1.14.0
       NETCDF_FORTRAN_VERSION: v4.6.1
-      PIO_VERSION: pio2_6_3
-      CDEPS_VERSION: cdeps1.0.49
+      PIO_VERSION: pio2_6_5
+      CDEPS_VERSION: cdeps1.0.72
     steps:
       - uses: actions/checkout@v4
         # Build the ESMF library, if the cache contains a previous build

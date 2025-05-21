@@ -1,9 +1,10 @@
 module esmflds
-  use ESMF, only                  : ESMF_SUCCESS, ESMF_FAILURE, ESMF_LOGMSG_ERROR, ESMF_LOGWRITE
+  use ESMF, only                  : ESMF_SUCCESS, ESMF_FAILURE, ESMF_LOGWRITE
   use med_kind_mod, only          : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
   use med_internalstate_mod, only : compname, compocn, compatm, compice, comprof
   use med_internalstate_mod, only : mapfcopy, mapnames, mapunset
   use med_utils_mod        , only : chkerr => med_utils_ChkErr
+  use shr_log_mod          , only : shr_log_error
   implicit none
   private
 
@@ -313,9 +314,7 @@ contains
   !================================================================================
 
   function med_fldList_GetFld(fields, fldname, rc) result(newfld)
-    use ESMF, only : ESMF_LogWrite, ESMF_LOGMSG_ERROR, ESMF_LOGMSG_INFO
-    use ESMF, only : ESMF_FINALIZE, ESMF_END_ABORT
-
+    use ESMF, only : ESMF_LogWrite, ESMF_LOGMSG_INFO
 
     type(med_fldList_entry_type) , intent(in), target :: fields
     character(len=*)                  , intent(in)    :: fldname
@@ -336,8 +335,8 @@ contains
           write(6,*) trim(subname)//' input flds entry is ',trim(newfld%stdname)
           newfld => newfld%next
        end do
-       call ESMF_LogWrite(subname // 'ERROR: fldname '// trim(fldname) // ' not found in input flds', ESMF_LOGMSG_ERROR)
-       call ESMF_Finalize(endflag=ESMF_END_ABORT)
+       call shr_log_error(subname // 'ERROR: fldname '// trim(fldname) // ' not found in input flds', rc=rc)
+       return
     endif
 
   end function med_fldList_GetFld
@@ -385,9 +384,6 @@ contains
   !================================================================================
 
   subroutine med_fldList_AddMap(fields, fldname, destcomp, maptype, mapnorm, mapfile)
-
-    use ESMF, only : ESMF_LOGMSG_ERROR, ESMF_FAILURE, ESMF_LogWrite, ESMF_LOGMSG_INFO
-
     ! intput/output variables
     type(med_fldList_entry_type) , intent(in), target :: fields
     character(len=*)                  , intent(in)    :: fldname
@@ -439,7 +435,7 @@ contains
     use ESMF              , only : ESMF_MeshLoc_Element, ESMF_FieldCreate, ESMF_TYPEKIND_R8
     use ESMF              , only : ESMF_MAXSTR, ESMF_Field, ESMF_State, ESMF_Grid, ESMF_Mesh
     use ESMF              , only : ESMF_StateGet, ESMF_LogFoundError
-    use ESMF              , only : ESMF_LogWrite, ESMF_LOGMSG_ERROR, ESMF_FAILURE, ESMF_LOGERR_PASSTHRU
+    use ESMF              , only : ESMF_LogWrite, ESMF_FAILURE, ESMF_LOGERR_PASSTHRU
     use ESMF              , only : ESMF_LOGMSG_INFO, ESMF_StateRemove, ESMF_SUCCESS
     use ESMF              , only : ESMF_STATEINTENT_IMPORT, ESMF_STATEINTENT_EXPORT, ESMF_StateIntent_Flag
     use ESMF              , only : ESMF_RC_ARG_BAD, ESMF_LogSetError, operator(==)
@@ -472,9 +468,8 @@ contains
     rc = ESMF_SUCCESS
 
     if (present(grid) .and. present(mesh)) then
-       call ESMF_LogWrite(trim(subname)//trim(tag)//": ERROR both grid and mesh not allowed", &
-            ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u, rc=rc)
-       rc = ESMF_FAILURE
+       call shr_log_error(trim(subname)//trim(tag)//": ERROR both grid and mesh not allowed", &
+            line=__LINE__, file=u_FILE_u, rc=rc)
        return
     endif
 
@@ -575,9 +570,8 @@ contains
                 field = ESMF_FieldCreate(mesh, ESMF_TYPEKIND_R8, name=shortname, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
                 if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=u_FILE_u)) return
              else
-                call ESMF_LogWrite(trim(subname)//trim(tag)//": ERROR grid or mesh expected", &
-                     ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
-                rc = ESMF_FAILURE
+                call shr_log_error(trim(subname)//trim(tag)//": ERROR grid or mesh expected", &
+                     line=__LINE__, file=u_FILE_u, rc=rc)
                 return
              endif
 
@@ -676,8 +670,7 @@ contains
        newfld => newfld%next
     enddo
     if( .not. associated(newfld)) then
-       call ESMF_LogWrite(subname//' No field found', ESMF_LOGMSG_ERROR)
-       if(present(rc)) rc = ESMF_FAILURE
+       call shr_log_error(subname//' No field found', rc=rc)
        return
     endif
     call med_fld_GetFldInfo(newfld, compsrc, stdname, shortname, mapindex, mapFile, mapnorm, merge_fields, merge_type, merge_fracname, rc)
@@ -719,39 +712,31 @@ contains
     endif
 
     if(present(mapindex)) then
-       if(lcompsrc < 0) call med_fldList_compsrcerror(lrc)
+       if(lcompsrc < 0) call shr_log_error("In med_fld_GetFldInfo mapindex requiring compsrc was requested but compsrc was not provided. ", rc=lrc)
        mapindex    = newfld%mapindex(lcompsrc)
     endif
     if(present(mapfile)) then
-       if(lcompsrc < 0) call med_fldList_compsrcerror(lrc)
+       if(lcompsrc < 0) call shr_log_error("In med_fld_GetFldInfo mapfile requiring compsrc was requested but compsrc was not provided. ", rc=lrc)
        mapfile    = newfld%mapfile(lcompsrc)
     endif
     if(present(mapnorm)) then
-       if(lcompsrc < 0) call med_fldList_compsrcerror(lrc)
+       if(lcompsrc < 0) call shr_log_error("In med_fld_GetFldInfo mapnorm requiring compsrc was requested but compsrc was not provided. ", rc=lrc)
        mapnorm    = newfld%mapnorm(lcompsrc)
     endif
     if(present(merge_fields)) then
-       if(lcompsrc < 0) call med_fldList_compsrcerror(lrc)
+       if(lcompsrc < 0) call shr_log_error("In med_fld_GetFldInfo merge_fields requiring compsrc was requested but compsrc was not provided. ", rc=lrc)
        merge_fields    = newfld%merge_fields(lcompsrc)
     endif
     if(present(merge_type)) then
-       if(lcompsrc < 0) call med_fldList_compsrcerror(lrc)
+       if(lcompsrc < 0) call shr_log_error("In med_fld_GetFldInfo merge_type requiring compsrc was requested but compsrc was not provided. ", rc=lrc)
        merge_type     = newfld%merge_types(lcompsrc)
     endif
     if(present(merge_fracname)) then
-       if(lcompsrc < 0) call med_fldList_compsrcerror(lrc)
+       if(lcompsrc < 0) call shr_log_error("In med_fld_GetFldInfo merge_fracname requiring compsrc was requested but compsrc was not provided. ", rc=lrc)
        merge_fracname = newfld%merge_fracnames(lcompsrc)
     endif
     if(present(rc)) rc=lrc
 
-  contains
-    subroutine med_fldList_compsrcerror(rc)
-      integer, intent(out) :: rc
-      call ESMF_LogWrite("In med_fld_GetFldInfo a field requiring compsrc was requested but compsrc was not provided. ", &
-           ESMF_LOGMSG_ERROR)
-      rc = ESMF_FAILURE
-      return
-    end subroutine med_fldList_compsrcerror
   end subroutine med_fld_GetFldInfo
 
   !================================================================================
@@ -778,7 +763,7 @@ contains
 
   subroutine med_fldList_GetFldNames(fields, fldnames, rc)
 
-    use ESMF, only : ESMF_LOGMSG_ERROR, ESMF_FAILURE, ESMF_SUCCESS, ESMF_LogWrite
+    use ESMF, only : ESMF_SUCCESS
 
     ! input/output variables
     type(med_fldList_entry_type) , intent(in), target     :: fields
@@ -794,8 +779,7 @@ contains
     if(present(rc)) rc = ESMF_SUCCESS
     if (.not. associated(fldnames) .or. .not. allocated(fields%mapindex)) then
        write(msg, *) "med_fldList_GetFldNames: ERROR either fields or fldnames have not been allocated. ",associated(fldnames), allocated(fields%mapindex)
-       call ESMF_LogWrite(msg, ESMF_LOGMSG_ERROR)
-       if(present(rc)) rc = ESMF_FAILURE
+       call shr_log_error(msg, rc=rc)
        return
     endif
     n = 0

@@ -402,6 +402,17 @@
     </desc>
   </entry>
 
+  <entry id="DRV_RESTART_POINTER">
+    <type>char</type>
+    <default_value>rpointer.cpl</default_value>
+    <group>run_begin_stop_restart</group>
+    <file>env_run.xml</file>
+    <desc>
+      Name of the restart pointer file, this can be used to restart from an
+      intermediate restart by appending the restart date and time in format YYYY-MM-DD-SSSSS
+    </desc>
+  </entry>
+
   <entry id="PAUSE_OPTION">
     <type>char</type>
     <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,nmonths,nyears</valid_values>
@@ -555,6 +566,16 @@
     <file>env_run.xml</file>
     <desc>Logical to turn on short term archiving.
     If TRUE, short term archiving will be turned on.</desc>
+  </entry>
+
+  <entry id="RUN_POSTPROCESSING">
+    <type>logical</type>
+    <valid_values>TRUE,FALSE</valid_values>
+    <default_value>FALSE</default_value>
+    <group>run_data_archive</group>
+    <file>env_run.xml</file>
+    <desc>Logical to run post-processing analysis tools.
+    If TRUE, post-processing scripts will be run</desc>
   </entry>
 
   <entry id="SYSLOG_N">
@@ -795,20 +816,38 @@
 
   <entry id="GPU_TYPE">
     <type>char</type>
-    <valid_values></valid_values>
-    <default_value></default_value>
+    <valid_values MACH="derecho">none,a100</valid_values>
+    <default_value>none</default_value>
     <group>build_def</group>
     <file>env_build.xml</file>
     <desc>If set will compile and submit with this gpu type enabled </desc>
   </entry>
 
-  <entry id="GPU_OFFLOAD">
-    <type>char</type>
-    <valid_values></valid_values>
-    <default_value></default_value>
+  <entry id="OPENACC_GPU_OFFLOAD">
+    <type>logical</type>
+    <valid_values>TRUE,FALSE</valid_values>
+    <default_value>FALSE</default_value>
     <group>build_def</group>
     <file>env_build.xml</file>
-    <desc>If set will compile and submit with this gpu offload method enabled </desc>
+    <desc>True=>compile the GPU code with OpenACC GPU flags </desc>
+  </entry>
+
+  <entry id="OPENMP_GPU_OFFLOAD">
+    <type>logical</type>
+    <valid_values>TRUE,FALSE</valid_values>
+    <default_value>FALSE</default_value>
+    <group>build_def</group>
+    <file>env_build.xml</file>
+    <desc>True=>compile the GPU code with OpenMP GPU flags </desc>
+  </entry>
+
+  <entry id="KOKKOS_GPU_OFFLOAD">
+    <type>logical</type>
+    <valid_values>TRUE,FALSE</valid_values>
+    <default_value>FALSE</default_value>
+    <group>build_def</group>
+    <file>env_build.xml</file>
+    <desc>True=>compile the GPU code with KOKKOS GPU target </desc>
   </entry>
 
   <entry id="MPI_GPU_WRAPPER_SCRIPT">
@@ -818,7 +857,7 @@
     <group>build_def</group>
     <file>env_build.xml</file>
     <desc>If set will attach this script to the MPI run command, mapping
-    different MPI ranks to different GPUs within the same compute node</desc>
+    different MPI ranks to different GPUs within the same compute node </desc>
   </entry>
 
   <entry id="ESMF_AWARE_THREADING">
@@ -1405,6 +1444,24 @@
     <desc>rof2ocn runoff mapping file</desc>
   </entry>
 
+  <entry id="OCN2WAV_SMAPNAME">
+    <type>char</type>
+    <default_value>idmap</default_value>
+    <group>run_domain</group>
+    <file>env_run.xml</file>
+    <desc>ocn2wav state mapping file</desc>
+  </entry>
+
+  <entry id="WAV2OCN_SMAPNAME">
+    <type>char</type>
+    <values>
+      <value>unset</value>
+    </values>
+    <group>run_domain</group>
+    <file>env_run.xml</file>
+    <desc>wav2ocn state mapping file</desc>
+  </entry>
+  
   <entry id="EPS_FRAC">
     <type>char</type>
     <default_value>1.0e-02</default_value>
@@ -1753,36 +1810,55 @@
     <desc>pes or cores per node for accounting purposes </desc>
   </entry>
 
+  <entry id="MEM_PER_TASK">
+    <type>integer</type>
+    <default_value>0</default_value>
+    <group>mach_pes_last</group>
+    <file>env_mach_pes.xml</file>
+    <desc>minimum memory request per node (currently only used on derecho)</desc>
+  </entry>
+
+  <entry id="MAX_MEM_PER_NODE">
+    <type>integer</type>
+    <default_value>0</default_value>
+    <group>mach_pes_last</group>
+    <file>env_mach_pes.xml</file>
+    <desc>maximum memory request per node (currently only used on derecho)</desc>
+  </entry>
+
   <entry id="MAX_CPUTASKS_PER_GPU_NODE">
     <type>integer</type>
     <default_value>0</default_value>
-    <values>
-      <value compiler="nvhpc">1</value>
-    </values>
     <group>mach_pes_last</group>
     <file>env_mach_pes.xml</file>
-    <desc> Number of CPU cores per GPU node used for simulation </desc>
+    <desc>Number of CPU cores per GPU node used for simulation </desc>
+  </entry>
+
+  <entry id="OVERSUBSCRIBE_GPU">
+    <type>logical</type>
+    <valid_values>TRUE,FALSE</valid_values>
+    <default_value>FALSE</default_value>
+    <group>mach_pes</group>
+    <file>env_mach_pes.xml</file>
+    <desc>False=>assign only one MPI task per GPU; True=>assign multiple MPI tasks per GPU </desc>
   </entry>
 
   <entry id="NGPUS_PER_NODE">
     <type>integer</type>
     <default_value>0</default_value>
-    <values>
-      <value compiler="nvhpc">1</value>
-    </values>
     <group>mach_pes</group>
     <file>env_mach_pes.xml</file>
-    <desc> Number of GPUs per node used for simulation </desc>
+    <desc>Number of GPUs per node used for simulation </desc>
   </entry>
-
+  
   <entry id="MAX_GPUS_PER_NODE">
     <type>integer</type>
     <default_value>0</default_value>
     <group>mach_pes_last</group>
     <file>env_mach_pes.xml</file>
-    <desc>maximum number of GPUs allowed per node </desc>
+    <desc>Maximum number of GPUs allowed per node </desc>
   </entry>
-
+  
   <entry id="COSTPES_PER_NODE">
     <type>integer</type>
     <default_value>$MAX_MPITASKS_PER_NODE</default_value>

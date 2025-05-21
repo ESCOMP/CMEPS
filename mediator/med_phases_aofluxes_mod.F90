@@ -22,7 +22,7 @@ module med_phases_aofluxes_mod
   use ESMF                  , only : ESMF_TERMORDER_SRCSEQ, ESMF_REGION_TOTAL, ESMF_MESHLOC_ELEMENT, ESMF_MAXSTR
   use ESMF                  , only : ESMF_XGRIDSIDE_B, ESMF_XGRIDSIDE_A, ESMF_END_ABORT, ESMF_LOGERR_PASSTHRU
   use ESMF                  , only : ESMF_Mesh, ESMF_MeshGet, ESMF_XGrid, ESMF_XGridCreate, ESMF_TYPEKIND_R8
-  use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_LOGMSG_ERROR, ESMF_FAILURE
+  use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
   use ESMF                  , only : ESMF_Finalize, ESMF_LogFoundError
   use ESMF                  , only : ESMF_XGridGet, ESMF_MeshCreate, ESMF_MeshWrite, ESMF_KIND_R8
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
@@ -39,7 +39,7 @@ module med_phases_aofluxes_mod
   use shr_const_mod         , only : rearth => SHR_CONST_REARTH
   use shr_const_mod         , only : pi => SHR_CONST_PI
 #endif
-
+  use shr_log_mod           , only : shr_log_error
   implicit none
   private
 
@@ -667,10 +667,9 @@ contains
     else if (med_map_RH_is_created(is_local%wrap%RH(compocn,compatm,:), mapconsd, rc=rc)) then
        maptype = mapconsd
     else
-       call ESMF_LogWrite(trim(subname)//&
+       call shr_log_error(trim(subname)//&
             ": maptype for atm->ocn mapping of So_mask must be either mapfcopy or mapconsd", &
-            ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
-       rc = ESMF_FAILURE
+            line=__LINE__, file=u_FILE_u, rc=rc)
        return
     end if
 
@@ -780,13 +779,15 @@ contains
     type(ESMF_Mesh)      :: xch_mesh
     real(r8), pointer    :: dataptr(:)
     integer              :: fieldcount
-    integer              :: stp ! srcTermProcessing is declared inout and must have variable not constant
+    integer              :: srcTermProcessing_Value ! srcTermProcessing is declared inout and must have variable not constant
     type(ESMF_CoordSys_Flag)           :: coordSys
     real(ESMF_KIND_R8)    ,allocatable :: garea(:)
     character(len=*),parameter :: subname=' (med_aofluxes_init_xgrid) '
     !-----------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
+
+    srcTermProcessing_Value = 0
 
     ! Get the internal state from the mediator Component.
     nullify(is_local%wrap)
@@ -877,23 +878,26 @@ contains
     dataptr(:) = 1.0_r8
 
     ! create agrid->xgrid route handles
-    call ESMF_FieldRegridStore(xgrid, field_a, field_x, routehandle=rh_agrid2xgrid, rc=rc)
+    call ESMF_FieldRegridStore(xgrid, field_a, field_x, routehandle=rh_agrid2xgrid, &
+         srcTermProcessing=srcTermProcessing_Value, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call ESMF_FieldRegridStore(xgrid, field_a, field_x, routehandle=rh_agrid2xgrid_2ndord, &
-         regridmethod=ESMF_REGRIDMETHOD_CONSERVE_2ND, rc=rc)
+         regridmethod=ESMF_REGRIDMETHOD_CONSERVE_2ND, srcTermProcessing=srcTermProcessing_Value, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     if (trim(coupling_mode) == 'cesm') then
-       stp = 1
        call ESMF_FieldRegridStore(field_a, field_x, routehandle=rh_agrid2xgrid_bilinr, &
-            regridmethod=ESMF_REGRIDMETHOD_BILINEAR, dstMaskValues=(/0/), srcTermProcessing=stp, rc=rc)
+            regridmethod=ESMF_REGRIDMETHOD_BILINEAR, dstMaskValues=(/0/), &
+            srcTermProcessing=srcTermProcessing_Value, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        call ESMF_FieldRegridStore(field_a, field_x, routehandle=rh_agrid2xgrid_patch, &
-            regridmethod=ESMF_REGRIDMETHOD_PATCH, dstMaskValues=(/0/), srcTermProcessing=stp, rc=rc)
+            regridmethod=ESMF_REGRIDMETHOD_PATCH, dstMaskValues=(/0/), &
+            srcTermProcessing=srcTermProcessing_Value, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     end if
 
     ! create xgrid->zgrid route handle
-    call ESMF_FieldRegridStore(xgrid, field_x, field_a, routehandle=rh_xgrid2agrid, rc=rc)
+    call ESMF_FieldRegridStore(xgrid, field_x, field_a, routehandle=rh_xgrid2agrid, &
+         srcTermProcessing=srcTermProcessing_Value, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! destroy temporary field
@@ -911,12 +915,14 @@ contains
     call ESMF_FieldGet(field_o, farrayptr=dataptr, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     dataptr(:) = 1.0_r8
-    call ESMF_FieldRegridStore(xgrid, field_o, field_x, routehandle=rh_ogrid2xgrid, rc=rc)
+    call ESMF_FieldRegridStore(xgrid, field_o, field_x, routehandle=rh_ogrid2xgrid, &
+         srcTermProcessing=srcTermProcessing_Value, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldRegridStore(xgrid, field_x, field_o, routehandle=rh_xgrid2ogrid, rc=rc)
+    call ESMF_FieldRegridStore(xgrid, field_x, field_o, routehandle=rh_xgrid2ogrid, &
+         srcTermProcessing=srcTermProcessing_Value, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     ! call ESMF_FieldRegridStore(xgrid, field_o, field_x, routehandle=rh_ogrid2xgrid_2ndord, &
-    !      regridmethod=ESMF_REGRIDMETHOD_CONSERVE_2ND, rc=rc)
+    !      regridmethod=ESMF_REGRIDMETHOD_CONSERVE_2ND, srcTermProcessing=srcTermProcessing_Value, rc=rc)
     ! if (chkerr(rc,__LINE__,u_FILE_u)) return
     call ESMF_FieldDestroy(field_o, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -1219,10 +1225,9 @@ contains
        else if (med_map_RH_is_created(is_local%wrap%RH(compocn,compatm,:), mapconsd, rc=rc)) then
           maptype = mapconsd
        else
-          call ESMF_LogWrite(trim(subname)//&
+          call shr_log_error(trim(subname)//&
                ": maptype for atm->ocn mapping of aofluxes from atm->ocn either mapfcopy or mapconsd", &
-               ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
-          rc = ESMF_FAILURE
+               line=__LINE__, file=u_FILE_u, rc=rc)
           return
        end if
 
@@ -1418,10 +1423,9 @@ end subroutine med_aofluxes_map_ogrid2xgrid_input
        else if (med_map_RH_is_created(is_local%wrap%RH(compatm,compocn,:), mapconsf, rc=rc)) then
           maptype = mapconsf
        else
-          call ESMF_LogWrite(trim(subname)//&
+          call shr_log_error(trim(subname)//&
                ": maptype for atm->ocn mapping of aofluxes from atm->ocn either mapfcopy or mapconsf", &
-               ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
-          rc = ESMF_FAILURE
+               line=__LINE__, file=u_FILE_u, rc=rc)
           return
        end if
        call ESMF_FieldRegrid(field_src, field_dst, &
@@ -1637,7 +1641,13 @@ end subroutine med_aofluxes_map_ogrid2xgrid_input
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     end if
 
-    if (FB_fldchk(fldbun_a, 'Sa_pslv', rc=rc)) then
+    ! The following conditional captures the cases where aoflux_in%psfc is needed in calls
+    ! to flux_atmocn / flux_atmocn_ccpp. Note that coupling_mode=='cesm' is equivalent to
+    ! the CESMCOUPLED CPP token, and coupling_mode(1:3)=='ufs' is roughly equivalent to
+    ! the UFS_AOFLUX CPP token (noting that we should only be in this subroutine if using
+    ! one of the aoflux variants of the ufs coupling_mode).
+    if ((trim(coupling_mode) == 'cesm') .or. &
+         (coupling_mode(1:3) == 'ufs' .and. trim(aoflux_code) == 'ccpp')) then
        call fldbun_getfldptr(fldbun_a, 'Sa_pslv', aoflux_in%psfc, xgrid=xgrid, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     end if
@@ -1646,10 +1656,6 @@ end subroutine med_aofluxes_map_ogrid2xgrid_input
     if (compute_atm_dens .or. compute_atm_thbot) then
        call fldbun_getfldptr(fldbun_a, 'Sa_pbot', aoflux_in%pbot, xgrid=xgrid, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (trim(coupling_mode) == 'ufs.frac.aoflux') then
-          call fldbun_getfldptr(fldbun_a, 'Sa_pslv', aoflux_in%psfc, xgrid=xgrid, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-       end if
     end if
 
     if (flds_wiso) then
