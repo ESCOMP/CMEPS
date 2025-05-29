@@ -286,6 +286,7 @@
       <!-- N compsets -->
       <!-- =================================================== -->
       <value compset="_DATM.*_BLOM">24</value>
+      <value compset="_DATM.*_BLOM" grid="o%tnx2">18</value>
       <value compset="_BLOM" grid="oi%tnx0.25v">48</value>
       <!-- =================================================== -->
       <!-- WW3Test compset -->
@@ -333,6 +334,7 @@
     <values match="last">
       <value compset="_MOM6">24</value>
       <value compset="_BLOM">24</value>
+      <value compset="_BLOM" grid="o%tnx2">18</value>
       <value compset="_DLND.*_CISM\d">1</value>
       <value compset="_NEMO">24</value>
     </values>
@@ -424,6 +426,8 @@
       <value compset="DATM.+POP\d">TRUE</value>
       <value compset="DATM.+MOM\d">TRUE</value>
       <value compset="DATM.+BLOM\d">TRUE</value>
+      <value compset="DATM%NYF.+BLOM">FALSE</value>
+      <value compset="DATM%IAF.+BLOM">FALSE</value>
       <value compset="DATM.+DOCN%IAF">TRUE</value>
       <value compset="DATM%CPLHIST.+POP\d">FALSE</value>
     </values>
