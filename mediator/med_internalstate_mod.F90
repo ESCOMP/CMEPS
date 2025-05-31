@@ -579,7 +579,7 @@ contains
     if (maintask) then
        write(logunit,*) ' '
        write(logunit,'(A)') trim(subname)//' Allowed coupling flags'
-       write(logunit,'(2x,A10,20(A5))') '|from to -> ',(compname(n2),n2=1,ncomps)
+       write(logunit,'(2x,A12,20(A5))') '|from to ->   ',(compname(n2),n2=1,ncomps)
        do n1 = 1,ncomps
           write(msgString,'(2x,a1,A,5x,20(L5))') '|',trim(compname(n1)), &
                (med_coupling_allowed(n1,n2),n2=1,ncomps)
@@ -591,7 +591,7 @@ contains
 
        write(logunit,*) ' '
        write(logunit,'(A)') subname//' Active coupling flags'
-       write(logunit,'(2x,A10,20(A5))') '|from to -> ',(compname(n2),n2=1,ncomps)
+       write(logunit,'(2x,A12,20(A5))') '|from to ->   ',(compname(n2),n2=1,ncomps)
        do n1 = 1,ncomps
           write(msgString,'(2x,a1,A,5x,20(L5))') '|',trim(compname(n1)), &
                (is_local%wrap%med_coupling_active(n1,n2),n2=1,ncomps)

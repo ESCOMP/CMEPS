@@ -1788,6 +1788,71 @@
     </values>
   </entry>
 
+  <!-- MED histaux lnd2med file 1 - all fields from land with instantaneous output-->
+  <entry id="histaux_lnd2med_file2_enabled">
+    <type>logical</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>Auxiliary mediator l2x fields every lnd coupling interval</desc>
+    <values>
+      <value>.false.</value>
+    </values>
+  </entry>
+  <entry id="histaux_lnd2med_file2_flds">
+    <type>char</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>Auxiliary mediator lnd2med output every lnd coupling interval</desc>
+    <values>
+      <value>'Flrl_rofsur:Flrl_rofi:Flrl_rofgwl:Flrl_rofsub'</value>
+    </values>
+  </entry>
+  <entry id="histaux_lnd2med_file2_history_option">
+    <type>char</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>history option type</desc>
+    <values>
+      <value>ndays</value>
+    </values>
+  </entry>
+  <entry id="histaux_lnd2med_file2_history_n">
+    <type>integer</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>history option type</desc>
+    <values>
+      <value>1</value>
+    </values>
+  </entry>
+  <entry id="histaux_lnd2med_file2_doavg">
+    <type>logical</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>If true, use time average for aux file output.</desc>
+    <values>
+      <value>.true.</value>
+    </values>
+  </entry>
+  <entry id="histaux_lnd2med_file2_ntperfile">
+    <type>integer</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>Number of time samples per file.</desc>
+    <values>
+      <value>365</value>
+    </values>
+  </entry>
+  <entry id="histaux_lnd2med_file2_auxname">
+    <type>char</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>Auxiliary name identifier in history name</desc>
+    <values>
+      <value>lnd2rof.24hr.avg</value>
+    </values>
+  </entry>
+
   <!-- MED histaux lnd2med accumulated fields from land needed as glc input specially treated-->
   <!-- note that the following is ALLCOMP attributes since CTSM needs access to this variable to determine -->
   <!-- if it needs to send lnd->glc data to the mediator even if there is no glc -->
@@ -3728,7 +3793,7 @@
       components that need to look at the same data.
     </desc>
     <values>
-      <value>Buildconf/camconf/drv_flds_in,Buildconf/clmconf/drv_flds_in,Buildconf/datmconf/drv_flds_in</value>
+      <value>Buildconf/camconf/drv_flds_in,Buildconf/clmconf/drv_flds_in,Buildconf/datmconf/drv_flds_in,Buildconf/dlndconf/drv_flds_in</value>
     </values>
   </entry>
 
