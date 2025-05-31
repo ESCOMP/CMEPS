@@ -425,9 +425,9 @@
     <values match="last">
       <value compset="DATM.+POP\d">TRUE</value>
       <value compset="DATM.+MOM\d">TRUE</value>
-      <value compset="DATM.+BLOM\d">TRUE</value>
-      <value compset="DATM%NYF.+BLOM">FALSE</value>
-      <value compset="DATM%IAF.+BLOM">FALSE</value>
+      <value compset="DATM.+BLOM">FALSE</value>
+      <value compset="DATM%NYF.+BLOM">TRUE</value>
+      <value compset="DATM%IAF.+BLOM">TRUE</value>
       <value compset="DATM.+DOCN%IAF">TRUE</value>
       <value compset="DATM%CPLHIST.+POP\d">FALSE</value>
     </values>
