@@ -932,24 +932,13 @@
       <value>0</value>
     </values>
   </entry>
-  <entry id="gust_fac">
-    <type>real</type>
-    <category>control</category>
-    <group>MED_attributes</group>
-    <desc>
-      wind gustiness factor
-    </desc>
-    <values>
-      <value>0.0D0</value>
-    </values>
-  </entry>
-
   <entry id="add_gusts">
     <type>logical</type>
     <category>control</category>
     <group>MED_attributes</group>
     <desc>
-      add a wind gustiness factor
+      Add a wind gustiness factor. This should be false for
+      ocn_surface_flux_scheme settings of 1 or 2.
     </desc>
     <values>
       <value CAMDEV="True">.true.</value>
