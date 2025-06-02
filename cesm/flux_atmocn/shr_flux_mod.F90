@@ -142,10 +142,10 @@ contains
        &               evap  ,evap_16O, evap_HDO, evap_18O, &
        &               taux  ,tauy  ,tref  ,qref  ,   &
        &               ocn_surface_flux_scheme, &
-       &               add_gusts, & 
-       &               duu10n, & 
+       &               add_gusts, &
+       &               duu10n, &
        &               ugust_out, &
-       &               u10res, & 
+       &               u10res, &
        &               ustar_sv ,re_sv ,ssq_sv,   &
        &               missval)
 
@@ -267,7 +267,7 @@ contains
     real(R8)    :: tdiff(nMax)               ! tbot - ts
     real(R8)    :: vscl
 
-    real(R8)    :: ugust      ! function: gustiness as a function of convective rainfall.  
+    real(R8)    :: ugust      ! function: gustiness as a function of convective rainfall.
     real(R8)    :: gprec   ! convective rainfall argument for ugust
 
     qsat(Tk)   = 640380.0_R8 / exp(5107.4_R8/Tk)
@@ -346,10 +346,10 @@ contains
           if (mask(n) /= 0) then
 
              !--- compute some needed quantities ---
-             if (add_gusts) then 
+             if (add_gusts) then
                 vmag   = max(seq_flux_atmocn_minwind, sqrt( (ubot(n)-us(n))**2 + (vbot(n)-vs(n))**2 + (1.0_R8*ugust(min(rainc(n),6.94444e-4_r8))**2)) )
                 ugust_out(n) = ugust(min(rainc(n),6.94444e-4_r8))
-             else 
+             else
                 vmag   = max(seq_flux_atmocn_minwind, sqrt( (ubot(n)-us(n))**2 + (vbot(n)-vs(n))**2) )
                 ugust_out(n) = 0.0_r8
              end if
@@ -496,7 +496,7 @@ contains
              qref  (n) = spval  !  2m reference height humidity (kg/kg)
              duu10n(n) = spval  ! 10m wind speed squared (m/s)^2
              ugust_out(n) = spval ! gustiness addition (m/s)
-             u10res(n) = spval ! 10m resolved wind (no gusts) (m/s) 
+             u10res(n) = spval ! 10m resolved wind (no gusts) (m/s)
 
              if (present(ustar_sv)) ustar_sv(n) = spval
              if (present(re_sv   )) re_sv   (n) = spval
@@ -576,6 +576,9 @@ contains
              if (present(re_sv   )) re_sv(n)    = re
              if (present(ssq_sv )) ssq_sv(n) = ssq
 
+             u10res(n) = sqrt(duu10n(n))
+             ugust_out(n) = 0._r8
+
           else
              !------------------------------------------------------------
              ! no valid data here -- out of domain
@@ -592,6 +595,9 @@ contains
              tref     (n) = spval  !  2m reference height temperature (K)
              qref     (n) = spval  !  2m reference height humidity (kg/kg)
              duu10n   (n) = spval  ! 10m wind speed squared (m/s)^2
+
+             u10res   (n) = spval
+             ugust_out(n) = spval
 
              if (present(ustar_sv)) ustar_sv(n) = spval
              if (present(re_sv   )) re_sv   (n) = spval
@@ -611,7 +617,15 @@ contains
                           taux, tauy, tref, qref, &
                           duu10n, ustar_sv, re_sv, ssq_sv, &
                           missval)
-
+       do n=1,nMax
+          if (mask(n) /= 0) then
+             u10res(n) = sqrt(duu10n(n))
+             ugust_out(n) = 0._r8
+          else
+             u10res   (n) = spval
+             ugust_out(n) = spval
+          end if
+       end do
     else
 
        call shr_sys_abort(subName//" subroutine flux_atmOcn requires ocn_surface_flux_scheme = 0, 1 or 2")
@@ -1051,7 +1065,6 @@ contains
           if (present(ssq_sv  )) ssq_sv(n)   = ssq
           if (present(re_sv   )) re_sv(n)    = re
 
-
        else
 
           !------------------------------------------------------------
@@ -1069,6 +1082,7 @@ contains
           tref  (n) = spval  !  2m reference height temperature (K)
           qref  (n) = spval  !  2m reference height humidity (kg/kg)
           duu10n(n) = spval  ! 10m wind speed squared (m/s)^2
+
           ! Optional diagnostics too:
           if (present(ustar_sv)) ustar_sv(n) = spval
           if (present(re_sv   )) re_sv   (n) = spval
