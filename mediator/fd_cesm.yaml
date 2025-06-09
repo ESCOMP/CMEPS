@@ -222,6 +222,10 @@
        canonical_units: kg m-2 s-1
        description: lnd export to river
      #
+     - standard_name: Flrl_rofsur_nonh2o
+       canonical_units: kg m-2 s-1
+       description: lnd export to river for non-water liquid tracers
+     #
      - standard_name: Sl_topo_elev
        canonical_units: m
        description: lnd import to med with elevation classes (1->glc_nec)
@@ -1204,11 +1208,19 @@
      #
      - standard_name: Forr_rofl
        canonical_units: kg m-2 s-1
-       description: river import to med - water flux due to runoff (liquid)
+       description: river import to med - liquid water flux due to runoff
+     #
+     - standard_name: Forr_rofl_nonh2o
+       canonical_units: kg m-2 s-1
+       description: river import to med - non-water flux due to runoff
      #
      - standard_name: Forr_rofl_glc
        canonical_units: kg m-2 s-1
        description: river import to med - water flux due to runoff originating from glc (liquid)
+     #
+     - standard_name: Forr_rofl_nonh2o
+       canonical_units: kg m-2 s-1
+       description: river import to med - non-water flux(es) due to runoff originating from lnd (liquid)
      #
      - standard_name: Forr_rofl_wiso
        canonical_units: kg m-2 s-1

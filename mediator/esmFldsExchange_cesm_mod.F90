@@ -75,10 +75,10 @@ module esmFldsExchange_cesm_mod
   character(len=CX)   :: rof2lnd_map = 'unset'
   character(len=CX)   :: lnd2rof_map = 'unset'
 
-  ! optional mapping files 
+  ! optional mapping files
   character(len=CX)   :: wav2ocn_map ='unset'
   character(len=CX)   :: ocn2wav_map = 'unset'
-  
+
   ! no mapping files (value is 'idmap' or 'unset')
   character(len=CX)   :: atm2ice_map = 'unset'
   character(len=CX)   :: atm2ocn_map = 'unset'
@@ -2383,11 +2383,13 @@ contains
        ! fldlistFr(comprof) in order to be mapped correctly to the ocean but the ocean
        ! does not receive it so it is advertised but it will not be connected
        call addfld_from(comprof, 'Forr_rofl')
+       call addfld_from(comprof, 'Forr_rofl_nonh2o')
        call addfld_from(comprof, 'Forr_rofi')
        call addfld_from(comprof, 'Forr_rofl_glc')
        call addfld_from(comprof, 'Forr_rofi_glc')
        call addfld_to(compocn, 'Foxx_rofl')
        call addfld_to(compocn, 'Foxx_rofi')
+       call addfld_to(compocn, 'Forr_rofl_nonh2o')
        call addfld_to(compocn, 'Forr_rofl_glc')
        call addfld_to(compocn, 'Forr_rofi_glc')
        call addfld_to(compocn, 'Flrr_flood')
@@ -2399,6 +2401,15 @@ contains
             call addmap_from(comprof, 'Forr_rofl', compocn, mapconsd, 'one', 'unset')
           else
             call addmap_from(comprof, 'Forr_rofl', compocn, map_rof2ocn_liq, 'none', rof2ocn_liq_rmap)
+          end if
+        end if
+      end if
+      if (fldchk(is_local%wrap%FBImp(comprof, comprof), 'Forr_rofl_nonh2o' , rc=rc)) then
+        if ( fldchk(is_local%wrap%FBExp(compocn), 'Forr_rofl_nonh2o' , rc=rc)) then
+          if (trim(rof2ocn_liq_rmap) == 'unset') then
+            call addmap_from(comprof, 'Forr_rofl_nonh2o', compocn, mapconsd, 'one', 'unset')
+          else
+            call addmap_from(comprof, 'Forr_rofl_nonh2o', compocn, map_rof2ocn_liq, 'none', rof2ocn_liq_rmap)
           end if
         end if
       end if
@@ -3240,6 +3251,21 @@ contains
           call addmap_from(complnd, 'Flrl_rofsur', comprof, mapconsf, map_fracname_lnd2rof, 'unset')
           call addmrg_to(comprof, 'Flrl_rofsur', &
                mrg_from=complnd, mrg_fld='Flrl_rofsur', mrg_type='copy_with_weights', mrg_fracname=mrg_fracname_lnd2rof)
+       end if
+    end if
+
+    ! ---------------------------------------------------------------------
+    ! to rof: non-water flux(es) from land (liquid surface)
+    ! ---------------------------------------------------------------------
+    if (phase == 'advertise') then
+       call addfld_from(complnd, 'Flrl_rofsur_nonh2o')
+       call addfld_to(comprof, 'Flrl_rofsur_nonh2o')
+    else
+       if ( fldchk(is_local%wrap%FBImp(complnd, complnd), 'Flrl_rofsur_nonh2o', rc=rc) .and. &
+            fldchk(is_local%wrap%FBExp(comprof)         , 'Flrl_rofsur_nonh2o', rc=rc)) then
+          call addmap_from(complnd, 'Flrl_rofsur_nonh2o', comprof, mapconsf, map_fracname_lnd2rof, 'unset')
+          call addmrg_to(comprof, 'Flrl_rofsur_nonh2o', &
+               mrg_from=complnd, mrg_fld='Flrl_rofsur_nonh2o', mrg_type='copy_with_weights', mrg_fracname=mrg_fracname_lnd2rof)
        end if
     end if
 
