@@ -82,10 +82,17 @@ contains
     end if
 
     ! Accumulate ocn input for glc if there is ocn->glc coupling
-    if (is_local%wrap%ocn2glc_coupling) then
-       call med_phases_prep_glc_accum_ocn(gcomp, rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    end if
+    ! Do this ONLY when the driver clock is created,
+    ! same as in med_prep_phases_post_lnd
+    ! If driver clock is created 
+    ! then we are in the run phase 
+    ! otherwise are in the initialization phase
+    if (ESMF_ClockIsCreated(dclock)) then
+      if (is_local%wrap%ocn2glc_coupling) then
+         call med_phases_prep_glc_accum_ocn(gcomp, rc)
+         if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      end if
+    endif
 
     ! Write ocn inst, avg or aux if requested in mediator attributes
     call NUOPC_MediatorGet(gcomp, driverClock=dClock, rc=rc)
