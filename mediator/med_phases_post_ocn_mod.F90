@@ -84,6 +84,9 @@ contains
     ! Accumulate ocn input for glc if there is ocn->glc coupling
     ! Do this ONLY when the driver clock is created,
     ! same as in med_prep_phases_post_lnd
+    ! If driver clock is created 
+    ! then we are in the run phase 
+    ! otherwise are in the initialization phase
     if (ESMF_ClockIsCreated(dclock)) then
       if (is_local%wrap%ocn2glc_coupling) then
          call med_phases_prep_glc_accum_ocn(gcomp, rc)
