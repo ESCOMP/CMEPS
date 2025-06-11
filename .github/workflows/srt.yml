@@ -27,8 +27,8 @@ jobs:
       CPPFLAGS: "-I/usr/include -I/usr/local/include "
       LDFLAGS: "-L/usr/lib/x86_64-linux-gnu -lnetcdf -lnetcdff -lpnetcdf"     
       # Versions of all dependencies can be updated here
-      ESMF_VERSION: v8.6.1
-      PARALLELIO_VERSION: pio2_6_3
+      ESMF_VERSION: v8.8.0
+      PARALLELIO_VERSION: pio2_6_5
       CIME_MODEL: cesm
       CIME_DRIVER: nuopc
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -124,7 +124,7 @@ jobs:
 
       - name: Build ParallelIO
         if: steps.cache-PARALLELIO.outputs.cache-hit != 'true'
-        uses: NCAR/ParallelIO/.github/actions/parallelio_cmake@05173a6556ea8d80eb34e3881a5014ea8f4b7543
+        uses: NCAR/ParallelIO/.github/actions/parallelio_cmake@b38e34eeb9b75ce81ac94daf7c5245931de00b9d
         with:
           parallelio_version: ${{ env.ParallelIO_VERSION }}
           enable_fortran: True

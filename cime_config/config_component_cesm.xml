@@ -269,6 +269,7 @@
       <value compset=".+" grid="a%ne0np4CONUS.ne30x8"       >384</value>
       <value compset=".+" grid="a%ne0np4.ARCTIC.ne30x4"     >192</value>
       <value compset=".+" grid="a%ne0np4.ARCTICGRIS.ne30x8" >384</value>
+      <value compset=".+" grid="a%ne0np4.POLARCAP.ne30x4"   >192</value>
       <value compset=".+" grid="a%C24"                      >48</value>
       <value compset=".+" grid="a%C48"                      >48</value>
       <value compset=".+" grid="a%C96"                      >48</value>
