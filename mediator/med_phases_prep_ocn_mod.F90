@@ -33,6 +33,9 @@ module med_phases_prep_ocn_mod
 
   private :: med_phases_prep_ocn_custom
 
+ !+tht ocean surface enthalpy flux correction
+  real(r8), public :: ocean_htot_corr(1)=0._r8, ocean_atot_corr(1)=0._r8, oa_htot(1)=0._r8 
+
   character(*), parameter :: u_FILE_u  = &
        __FILE__
 
@@ -78,8 +81,9 @@ contains
 
     use ESMF                    , only : ESMF_GridComp, ESMF_FieldBundleGet
     use ESMF                    , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
-    use med_constants_mod       , only : shr_const_cpsw, shr_const_tkfrz, shr_const_pi
+    use med_constants_mod       , only : shr_const_cpsw, shr_const_cpfw, shr_const_cpice, shr_const_tkfrz, shr_const_pi
     use med_phases_prep_atm_mod , only : med_phases_prep_atm_enthalpy_correction
+    use med_phases_prep_atm_mod , only : med_phases_prep_atm_enthalpy_runoff
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -98,8 +102,19 @@ contains
     real(r8), pointer   :: rofi(:), hrofi(:)
     real(r8), pointer   :: rofl_glc(:), hrofl_glc(:)
     real(r8), pointer   :: rofi_glc(:), hrofi_glc(:)
+    real(r8), allocatable :: hcorr(:), hrof(:)
+!+tht
     real(r8), pointer   :: areas(:)
-    real(r8), allocatable :: hcorr(:)
+    real(R8), pointer   :: dataptr(:)
+    real(R8), pointer   :: Faxa_hmat (:)
+    real(R8), pointer   :: Faxa_hlat (:)
+! if SEPARATE_VARLAT is T then
+! do gl.oc.avg for hmat_oa only for the net-mass part, 
+! and pass in hmat only local variable latent heat correction part 
+   !logical, parameter :: separate_varlat=.true.
+    logical, parameter :: separate_varlat=.false. ! set to F to regress to 20250609
+    real(r8), allocatable :: acorr(:)
+!-tht
     type(med_fldlist_type), pointer :: fldList
     character(len=*), parameter    :: subname='(med_phases_prep_ocn_accum)'
     !---------------------------------------
@@ -160,62 +175,54 @@ contains
     ! compute enthalpy associated with rain, snow, condensation and liquid river & glc runoff
     ! the sea-ice model already accounts for the enthalpy flux (as part of melth), so
     ! enthalpy from meltw **is not** included below
-    if ( FB_fldchk(is_local%wrap%FBExp(compocn), 'Faxa_rain'      , rc=rc) .and. &
-         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hrain'     , rc=rc) .and. &
-         FB_fldchk(is_local%wrap%FBExp(compocn), 'Faxa_snow'      , rc=rc) .and. &
-         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hsnow'     , rc=rc) .and. &
-         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_evap'      , rc=rc) .and. &
-         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hevap'     , rc=rc) .and. &
-         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hcond'     , rc=rc) .and. &
-         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_rofl'      , rc=rc) .and. &
-         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hrofl'     , rc=rc) .and. &
-         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_rofi'      , rc=rc) .and. &
-         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hrofi'     , rc=rc) .and. &
-         FB_fldchk(is_local%wrap%FBExp(compocn), 'Forr_rofl_glc'  , rc=rc) .and. &
-         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hrofl_glc' , rc=rc) .and. &
-         FB_fldchk(is_local%wrap%FBExp(compocn), 'Forr_rofi_glc'  , rc=rc) .and. &
-         FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hrofi_glc' , rc=rc)) then
-
+    if(FB_fldchk(is_local%wrap%FBExp(compocn), 'Faxa_rain'      , rc=rc) .and. &
+       FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hrain'     , rc=rc) .and. &
+       FB_fldchk(is_local%wrap%FBExp(compocn), 'Faxa_snow'      , rc=rc) .and. &
+       FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hsnow'     , rc=rc) .and. &
+       FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_evap'      , rc=rc) .and. &
+       FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hevap'     , rc=rc) .and. &
+       FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hcond'     , rc=rc) .and. &
+       FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_rofl'      , rc=rc) .and. &
+       FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hrofl'     , rc=rc) .and. &
+       FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_rofi'      , rc=rc) .and. &
+       FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hrofi'     , rc=rc) .and. &
+       FB_fldchk(is_local%wrap%FBExp(compocn), 'Forr_rofl_glc'  , rc=rc) .and. &
+       FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hrofl_glc' , rc=rc) .and. &
+       FB_fldchk(is_local%wrap%FBExp(compocn), 'Forr_rofi_glc'  , rc=rc) .and. &
+       FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hrofi_glc' , rc=rc)       &
+      ) then
        call FB_GetFldPtr(is_local%wrap%FBImp(compocn,compocn), 'So_t', tocn, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
        call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Faxa_rain' , rain, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Foxx_hrain', hrain, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
        call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Foxx_evap' , evap, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Foxx_hevap', hevap, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Foxx_hcond', hcond, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
        call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Faxa_snow' , snow, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Foxx_hsnow', hsnow, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
        call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Foxx_rofl' , rofl, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Foxx_hrofl', hrofl, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
        call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Foxx_rofi' , rofi, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Foxx_hrofi', hrofi, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
        call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Forr_rofl_glc' , rofl_glc, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Foxx_hrofl_glc', hrofl_glc, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
        call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Forr_rofi_glc' , rofi_glc, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Foxx_hrofi_glc', hrofi_glc, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
        do n = 1,size(tocn)
           ! Need max to ensure that will not have an enthalpy contribution if the water is below 0C
           hrain(n)  = max((tocn(n) - shr_const_tkfrz), 0._r8) * rain(n)  * shr_const_cpsw
@@ -227,12 +234,10 @@ contains
           hrofl_glc(n) = max((tocn(n) - shr_const_tkfrz), 0._r8) * rofl_glc(n)  * shr_const_cpsw
           hrofi_glc(n) = min((tocn(n) - shr_const_tkfrz), 0._r8) * rofi_glc(n)  * shr_const_cpsw
        end do
-
        ! Determine enthalpy correction factor that will be added to the sensible heat flux sent to the atm
        ! Areas here in radians**2 - this is an instantaneous snapshot that will be sent to the atm - only
        ! need to calculate this if data is sent back to the atm
-
-       if (FB_fldchk(is_local%wrap%FBExp(compatm), 'Faxx_sen', rc=rc)) then
+       if (FB_fldchk(is_local%wrap%FBExp(compatm), 'Faxx_goef', rc=rc)) then !+tht goef
           allocate(hcorr(size(tocn)))
           glob_area_inv = 1._r8 / (4._r8 * shr_const_pi)
           areas => is_local%wrap%mesh_info(compocn)%areas
@@ -244,8 +249,97 @@ contains
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           deallocate(hcorr)
        end if
-
     end if
+
+!+tht
+    if(FB_fldchk(is_local%wrap%FBExp(compocn), 'Faxa_hmat', rc=rc)     &
+  .and.FB_fldchk(is_local%wrap%FBExp(compocn), 'Faxa_hlat', rc=rc)) then
+       call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Faxa_hmat', Faxa_hmat, rc=rc)
+       call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Faxa_hlat', Faxa_hlat, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call FB_GetFldPtr(is_local%wrap%FBImp(compocn,compocn), 'So_t', tocn, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       areas => is_local%wrap%mesh_info(compocn)%areas
+       allocate(hcorr(size(tocn)))
+       allocate(acorr(size(tocn)))
+       allocate(hrof (size(tocn)))
+if(separate_varlat) then
+       if(FB_fldchk(is_local%wrap%FBExp(compocn),'Foxx_rofl'    ,rc=rc) .and. &
+          FB_fldchk(is_local%wrap%FBExp(compocn),'Foxx_rofi'    ,rc=rc) .and. &
+          FB_fldchk(is_local%wrap%FBExp(compocn),'Forr_rofl_glc',rc=rc) .and. &
+          FB_fldchk(is_local%wrap%FBExp(compocn),'Forr_rofi_glc',rc=rc)       &
+         ) then
+         call FB_GetFldPtr(is_local%wrap%FBExp(compocn),'Foxx_rofl'    , rofl    ,rc=rc)
+         if (ChkErr(rc,__LINE__,u_FILE_u)) return
+         call FB_GetFldPtr(is_local%wrap%FBExp(compocn),'Foxx_rofi'    , rofi    ,rc=rc)
+         if (ChkErr(rc,__LINE__,u_FILE_u)) return
+         call FB_GetFldPtr(is_local%wrap%FBExp(compocn),'Forr_rofl_glc', rofl_glc,rc=rc)
+         if (ChkErr(rc,__LINE__,u_FILE_u)) return
+         call FB_GetFldPtr(is_local%wrap%FBExp(compocn),'Forr_rofi_glc', rofi_glc,rc=rc)
+         if (ChkErr(rc,__LINE__,u_FILE_u)) return
+         do n = 1,size(tocn)
+           hrof(n) = shr_const_cpfw  * (tocn(n) - shr_const_tkfrz) * rofl    (n) &
+                   + shr_const_cpice * (tocn(n) - shr_const_tkfrz) * rofi    (n) &
+                   + shr_const_cpfw  * (tocn(n) - shr_const_tkfrz) * rofl_glc(n) &
+                   + shr_const_cpice * (tocn(n) - shr_const_tkfrz) * rofi_glc(n)
+         enddo
+       else
+         do n = 1,size(tocn)
+           hrof(n) = 0._r8
+         enddo
+       endif
+       do n = 1,size(tocn)
+!hrof(n)=0._r8 ! sanity check (regression to blomfx02, no run-off contributions -> OK)
+         hcorr(n) = areas(n) *(Faxa_hmat(n)-Faxa_hlat(n)+hrof(n))
+         acorr(n) = areas(n)
+       end do
+       if (FB_fldchk(is_local%wrap%FBExp(compatm), 'Faxx_hrof', rc=rc)) then !+tht goef
+          hrof(:) = hrof(:)*areas(:) / (4._r8 * shr_const_pi)
+          call med_phases_prep_atm_enthalpy_runoff(gcomp, hrof, rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          deallocate(hrof)
+       end if
+else
+       do n = 1,size(tocn)
+          hcorr(n) = areas(n) * Faxa_hmat(n)
+          acorr(n) = areas(n)
+       end do
+endif
+       call med_oa_integral(gcomp, hcorr, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       ocean_htot_corr(1)=oa_htot(1)
+       oa_htot(1)=0._r8
+       call med_oa_integral(gcomp, acorr, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       ocean_atot_corr(1)=oa_htot(1)
+      !oa_hrof(1)=0._r8
+      !call med_oa_integral(gcomp, hrof , rc)
+      !if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      !ocean_hrof_corr(1)=oa_hrof(1)
+      !deallocate(hrof )
+       deallocate(hcorr)
+       deallocate(acorr)
+       call FB_getfldptr(is_local%wrap%FBExp(compocn), 'Faxa_hmat_oa', dataptr, rc=rc)
+       if(ocean_atot_corr(1).gt.0._r8) &
+         dataptr(:) = ocean_htot_corr(1)/ocean_atot_corr(1)
+!print*,'global ocn htflx corr:',dataptr(1)
+!!!!!!! if(FB_fldchk(is_local%wrap%FBExp(compatm),'Foxx_ihrof',rc=rc) &
+!!!!!!!  call FB_getfldptr(is_local%wrap%FBExp(compatm), 'Foxx_hrof'  , dataptr, rc=rc)
+!!!!!!! dataptr(:) = ocean_rof_corr(1)/(4._r8*shr_const_pi)
+!!!!!!!print*,'glob.avg. hrof to atm:',dataptr(1)
+! hack: replace full mat.enth.flux with variable lat.heats part only in pointer to ocean export
+! might add another coupling field later but may not be strictly necessary
+if(separate_varlat) then
+       do n = 1,size(tocn)
+          Faxa_hmat(n)=Faxa_hlat(n)
+       end do
+else
+       do n = 1,size(tocn)
+          Faxa_hmat(n)=0._r8 ! avoid applying twice in BLOM
+       end do
+endif
+    endif
+!-tht
 
     ! custom merges to ocean
     call med_phases_prep_ocn_custom(gcomp, rc)
@@ -656,5 +750,34 @@ contains
     call t_stopf('MED:'//subname)
 
   end subroutine med_phases_prep_ocn_custom
+
+  subroutine med_oa_integral (gcomp, hcorr, rc)
+    use ESMF            , only : ESMF_VMAllreduce, ESMF_GridComp, ESMF_GridCompGet, ESMF_REDUCE_SUM, ESMF_SUCCESS
+    use ESMF            , only : ESMF_VM
+    ! input/output variables
+    type(ESMF_GridComp) , intent(in)  :: gcomp
+    real(r8)            , intent(in)  :: hcorr(:)
+    integer             , intent(out) :: rc
+    ! local variables
+    type(InternalState) :: is_local
+    integer             :: n
+    real(r8)            :: local_htot(1)
+    type(ESMF_VM)       :: vm
+    !---------------------------------------
+    rc = ESMF_SUCCESS
+    nullify(is_local%wrap)
+    call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
+    if (chkErr(rc,__LINE__,u_FILE_u)) return
+    ! sum contributions to integral
+    local_htot(1) = 0._r8
+    do n = 1,size(hcorr)
+       local_htot(1) = local_htot(1) + hcorr(n)
+    end do
+    call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_VMAllreduce(vm, senddata=local_htot, recvdata=oa_htot, count=1, &
+         reduceflag=ESMF_REDUCE_SUM, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+  end subroutine med_oa_integral
 
 end module med_phases_prep_ocn_mod

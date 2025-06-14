@@ -33,7 +33,7 @@ module med_diag_mod
   use med_utils_mod         , only : chkerr           => med_utils_ChkErr
   use perf_mod              , only : t_startf, t_stopf
   use shr_log_mod           , only : shr_log_error
-  
+
   implicit none
   private
 
@@ -143,6 +143,10 @@ module med_diag_mod
   integer :: f_heat_latf     = unset_index ! heat : latent, fusion, snow
   integer :: f_heat_ioff     = unset_index ! heat : latent, fusion, frozen runoff
   integer :: f_heat_sen      = unset_index ! heat : sensible
+!+tht
+  integer :: f_heat_goef     = unset_index ! heat : bad global ocean enthalpy fixer
+  integer :: f_heat_hmat     = unset_index ! heat : surface material enthalpy flux
+!-tht
   integer :: f_heat_rain     = unset_index ! heat : heat content of rain
   integer :: f_heat_snow     = unset_index ! heat : heat content of snow
   integer :: f_heat_evap     = unset_index ! heat : heat content of evaporation
@@ -325,14 +329,23 @@ contains
     call add_to_budget_diag(budget_diags%fields, f_heat_latf     ,'hlatfus'     ) ! field  heat : latent, fusion, snow
     call add_to_budget_diag(budget_diags%fields, f_heat_ioff     ,'hiroff'      ) ! field  heat : latent, fusion, frozen runoff
     call add_to_budget_diag(budget_diags%fields, f_heat_sen      ,'hsen'        ) ! field  heat : sensible
+!+tht N.B. HMAT from atmo, GOEF from med; they shouldn't be both /=0.
+    call add_to_budget_diag(budget_diags%fields, f_heat_goef     ,'goef'        ) ! field  heat : bad gl. ocn enth. fixer
+    call add_to_budget_diag(budget_diags%fields, f_heat_hmat     ,'hmat'        ) ! field  heat : surf. mat. enthalpy flux
+!-tht
     if (trim(budget_table_version) == 'v0') then
        f_heat_beg = f_heat_frz      ! field  first index for heat
-       f_heat_end = f_heat_sen      ! field  last  index for heat
+!+tht
+      !f_heat_end = f_heat_sen      ! field  last  index for heat
+       f_heat_end = f_heat_hmat     ! field  last  index for heat
+!-tht
     else if (trim(budget_table_version) == 'v1') then
        call add_to_budget_diag(budget_diags%fields, f_heat_rain  ,'hrain'       ) ! field  heat : enthalpy of rain
        call add_to_budget_diag(budget_diags%fields, f_heat_snow  ,'hsnow'       ) ! field  heat : enthalpy of snow
        call add_to_budget_diag(budget_diags%fields, f_heat_evap  ,'hevap'       ) ! field  heat : enthalpy of evaporation
        call add_to_budget_diag(budget_diags%fields, f_heat_cond  ,'hcond'       ) ! field  heat : enthalpy of evaporation
+!tht: N.B. if hmat/=0, all other terms here must be zero.
+       call add_to_budget_diag(budget_diags%fields, f_heat_hmat  ,'hmat'        ) !+tht: f.heat : surf. mat. enthalpy flux
        call add_to_budget_diag(budget_diags%fields, f_heat_rofl  ,'hrofl'       ) ! field  heat : enthalpy of liquid runoff
        call add_to_budget_diag(budget_diags%fields, f_heat_rofi  ,'hrofi'       ) ! field  heat : enthalpy of ice runoff
        f_heat_beg = f_heat_frz      ! field  first index for heat
@@ -516,6 +529,7 @@ contains
        call shr_log_error(trim(subname)//' mode '//trim(mode)//&
             ' not recognized', &
             line=__LINE__, file=u_FILE_u, rc=rc)
+       return
     endif
   end subroutine med_diag_zero_mode
 
@@ -761,6 +775,15 @@ contains
     call diag_atm_send(is_local%wrap%FBExp(compatm), 'Faxx_sen', f_heat_sen, &
          areas, lats, afrac, lfrac, ofrac, ifrac, budget_local, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+!+tht
+    call diag_atm_send(is_local%wrap%FBExp(compatm), 'Faxx_goef', f_heat_goef, &
+         areas, lats, afrac, lfrac, ofrac, ifrac, budget_local, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+  !not sure about this
+   !call diag_atm_send(is_local%wrap%FBExp(compatm), 'Faxa_hmat', f_heat_hmat, &
+   !     areas, lats, afrac, lfrac, ofrac, ifrac, budget_local, rc=rc)
+   !if (ChkErr(rc,__LINE__,u_FILE_u)) return
+!-tht
     call diag_atm_send(is_local%wrap%FBExp(compatm), 'Faxx_evap', f_watr_evap, &
          areas, lats, afrac, lfrac, ofrac, ifrac, budget_local, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -1584,6 +1607,8 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
+!tht: some logic and code is required here to set correct ocn budget using surface material enthalpy
+!     fluxes computed in atmosphere and passed to med (Faxa_hmat) or its global-ocean average (Faxa_hmat_oa)
     call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_hrain', f_heat_rain , ic, areas, sfrac, budget_local, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_hsnow', f_heat_snow , ic, areas, sfrac, budget_local, rc=rc)
@@ -1596,6 +1621,10 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_hrofi', f_heat_rofi , ic, areas, sfrac, budget_local, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+  !I'm putting a placeholder here as a reminder -- for now as don't know how it's/should be used this is c'd out
+   !call diag_ocn(is_local%wrap%FBImp(compatm,compocn), 'Faxa_hmat', f_heat_hmat, ic, areas, ofrac, budget_local, rc=rc)
+   !if (ChkErr(rc,__LINE__,u_FILE_u)) return
+!-tht
 
     budget_local(f_heat_latf,ic,ip) = -budget_local(f_watr_snow,ic,ip)*shr_const_latice
     budget_local(f_heat_ioff,ic,ip) = -budget_local(f_watr_ioff,ic,ip)*shr_const_latice
