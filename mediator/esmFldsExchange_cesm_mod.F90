@@ -2547,10 +2547,10 @@ contains
           call addmrg_to(compocn, 'Sw_lamult', mrg_from=compwav, mrg_fld='Sw_lamult', mrg_type='copy')
        end if
     end if
-    !-----------------------------
-    ! to ocn: 
-    !-----------------------------
     if (ocn_name == 'mpaso') then
+      !-----------------------------
+      ! to ocn: 
+      !-----------------------------
       if (phase == 'advertise') then
          call addfld_from(compwav, 'Sw_Hs')
          call addfld_to(compocn, 'Sw_Hs')
@@ -2561,11 +2561,9 @@ contains
             call addmrg_to(compocn, 'Sw_Hs', mrg_from=compwav, mrg_fld='Sw_hs', mrg_type='copy')
          end if
       end if
-    end if
-    !-----------------------------
-    ! to ocn: 
-    !-----------------------------
-    if (ocn_name == 'mpaso') then
+      !-----------------------------
+      ! to ocn: 
+      !-----------------------------
       if (phase == 'advertise') then
          call addfld_from(compwav, 'Sw_Fp')
          call addfld_to(compocn, 'Sw_Fp')
@@ -2576,11 +2574,9 @@ contains
             call addmrg_to(compocn, 'Sw_Fp', mrg_from=compwav, mrg_fld='Sw_Fp', mrg_type='copy')
          end if
       end if
-    end if
-    !-----------------------------
-    ! to ocn: 
-    !-----------------------------
-    if (ocn_name == 'mpaso') then
+      !-----------------------------
+      ! to ocn: 
+      !-----------------------------
       if (phase == 'advertise') then
          call addfld_from(compwav, 'Sw_ustokes_wavenumber_1')
          call addfld_to(compocn, 'Sw_ustokes_wavenumber_1')
@@ -2591,11 +2587,9 @@ contains
             call addmrg_to(compocn, 'Sw_ustokes_wavenumber_1', mrg_from=compwav, mrg_fld='Sw_ustokes_wavenumber_1', mrg_type='copy')
          end if
       end if
-    end if
-    !-----------------------------
-    ! to ocn: 
-    !-----------------------------
-    if (ocn_name == 'mpaso') then
+      !-----------------------------
+      ! to ocn: 
+      !-----------------------------
       if (phase == 'advertise') then
          call addfld_from(compwav, 'Sw_vstokes_wavenumber_1')
          call addfld_to(compocn, 'Sw_vstokes_wavenumber_1')
@@ -2606,11 +2600,9 @@ contains
             call addmrg_to(compocn, 'Sw_vstokes_wavenumber_1', mrg_from=compwav, mrg_fld='Sw_lamult', mrg_type='copy')
          end if
       end if
-    end if
-    !-----------------------------
-    ! to ocn: 
-    !-----------------------------
-    if (ocn_name == 'mpaso') then
+      !-----------------------------
+      ! to ocn: 
+      !-----------------------------
       if (phase == 'advertise') then
          call addfld_from(compwav, 'Sw_ustokes_wavenumber_2')
          call addfld_to(compocn, 'Sw_ustokes_wavenumber_2')
@@ -2621,26 +2613,22 @@ contains
             call addmrg_to(compocn, 'Sw_ustokes_wavenumber_2', mrg_from=compwav, mrg_fld='Sw_ustokes_wavenumber_2', mrg_type='copy')
          end if
       end if
-    end if
-    !-----------------------------
-    ! to ocn: 
-    !-----------------------------
-    if (ocn_name == 'mpaso') then
-     if (phase == 'advertise') then
-        call addfld_from(compwav, 'Sw_vstokes_wavenumber_2')
-        call addfld_to(compocn, 'Sw_vstokes_wavenumber_2')
-     else
-        if ( fldchk(is_local%wrap%FBExp(compocn)         , 'Sw_vstokes_wavenumber_2', rc=rc) .and. &
-             fldchk(is_local%wrap%FBImp(compwav, compwav), 'Sw_vstokes_wavenumber_2', rc=rc)) then
-           call addmap_from(compwav, 'Sw_vstokes_wavenumber_2', compocn,  mapbilnr_nstod, 'one', wav2ocn_map)
-           call addmrg_to(compocn, 'Sw_vstokes_wavenumber_2', mrg_from=compwav, mrg_fld='Sw_lamult', mrg_type='copy')
-        end if
-     end if
-    end if
-    !-----------------------------
-    ! to ocn: 
-    !-----------------------------
-    if (ocn_name == 'mpaso') then
+      !-----------------------------
+      ! to ocn: 
+      !-----------------------------
+      if (phase == 'advertise') then
+         call addfld_from(compwav, 'Sw_vstokes_wavenumber_2')
+         call addfld_to(compocn, 'Sw_vstokes_wavenumber_2')
+      else
+         if ( fldchk(is_local%wrap%FBExp(compocn)         , 'Sw_vstokes_wavenumber_2', rc=rc) .and. &
+              fldchk(is_local%wrap%FBImp(compwav, compwav), 'Sw_vstokes_wavenumber_2', rc=rc)) then
+            call addmap_from(compwav, 'Sw_vstokes_wavenumber_2', compocn,  mapbilnr_nstod, 'one', wav2ocn_map)
+            call addmrg_to(compocn, 'Sw_vstokes_wavenumber_2', mrg_from=compwav, mrg_fld='Sw_lamult', mrg_type='copy')
+         end if
+      end if
+      !-----------------------------
+      ! to ocn: 
+      !-----------------------------
       if (phase == 'advertise') then
          call addfld_from(compwav, 'Sw_ustokes_wavenumber_3')
          call addfld_to(compocn, 'Sw_ustokes_wavenumber_3')
@@ -2651,11 +2639,9 @@ contains
             call addmrg_to(compocn, 'Sw_ustokes_wavenumber_3', mrg_from=compwav, mrg_fld='Sw_ustokes_wavenumber_3', mrg_type='copy')
          end if
       end if
-    end if
-    !-----------------------------
-    ! to ocn: 
-    !-----------------------------
-    if (ocn_name == 'mpaso') then
+      !-----------------------------
+      ! to ocn: 
+      !-----------------------------
       if (phase == 'advertise') then
          call addfld_from(compwav, 'Sw_vstokes_wavenumber_3')
          call addfld_to(compocn, 'Sw_vstokes_wavenumber_3')
@@ -2666,11 +2652,9 @@ contains
             call addmrg_to(compocn, 'Sw_vstokes_wavenumber_3', mrg_from=compwav, mrg_fld='Sw_lamult', mrg_type='copy')
          end if
       end if
-    end if
-    !-----------------------------
-    ! to ocn: 
-    !-----------------------------
-    if (ocn_name == 'mpaso') then
+      !-----------------------------
+      ! to ocn: 
+      !-----------------------------
       if (phase == 'advertise') then
          call addfld_from(compwav, 'Sw_ustokes_wavenumber_4')
          call addfld_to(compocn, 'Sw_ustokes_wavenumber_4')
@@ -2681,11 +2665,9 @@ contains
             call addmrg_to(compocn, 'Sw_ustokes_wavenumber_4', mrg_from=compwav, mrg_fld='Sw_ustokes_wavenumber_4', mrg_type='copy')
          end if
       end if
-    end if
-    !-----------------------------
-    ! to ocn: 
-    !-----------------------------
-    if (ocn_name == 'mpaso') then
+      !-----------------------------
+      ! to ocn: 
+      !-----------------------------
       if (phase == 'advertise') then
          call addfld_from(compwav, 'Sw_vstokes_wavenumber_4')
          call addfld_to(compocn, 'Sw_vstokes_wavenumber_4')
@@ -2696,11 +2678,9 @@ contains
             call addmrg_to(compocn, 'Sw_vstokes_wavenumber_4', mrg_from=compwav, mrg_fld='Sw_lamult', mrg_type='copy')
          end if
       end if
-    end if
-    !-----------------------------
-    ! to ocn: 
-    !-----------------------------
-    if (ocn_name == 'mpaso') then
+      !-----------------------------
+      ! to ocn: 
+      !-----------------------------
       if (phase == 'advertise') then
          call addfld_from(compwav, 'Sw_ustokes_wavenumber_5')
          call addfld_to(compocn, 'Sw_ustokes_wavenumber_5')
@@ -2711,11 +2691,9 @@ contains
             call addmrg_to(compocn, 'Sw_ustokes_wavenumber_5', mrg_from=compwav, mrg_fld='Sw_ustokes_wavenumber_5', mrg_type='copy')
          end if
       end if
-    end if
-    !-----------------------------
-    ! to ocn: 
-    !-----------------------------
-    if (ocn_name == 'mpaso') then
+      !-----------------------------
+      ! to ocn: 
+      !-----------------------------
       if (phase == 'advertise') then
          call addfld_from(compwav, 'Sw_vstokes_wavenumber_5')
          call addfld_to(compocn, 'Sw_vstokes_wavenumber_5')
@@ -2726,11 +2704,9 @@ contains
             call addmrg_to(compocn, 'Sw_vstokes_wavenumber_5', mrg_from=compwav, mrg_fld='Sw_lamult', mrg_type='copy')
          end if
       end if
-    end if
-    !-----------------------------
-    ! to ocn: 
-    !-----------------------------
-    if (ocn_name == 'mpaso') then
+      !-----------------------------
+      ! to ocn: 
+      !-----------------------------
       if (phase == 'advertise') then
          call addfld_from(compwav, 'Sw_ustokes_wavenumber_6')
          call addfld_to(compocn, 'Sw_ustokes_wavenumber_6')
@@ -2741,11 +2717,9 @@ contains
             call addmrg_to(compocn, 'Sw_ustokes_wavenumber_6', mrg_from=compwav, mrg_fld='Sw_ustokes_wavenumber_6', mrg_type='copy')
          end if
       end if
-    end if
-    !-----------------------------
-    ! to ocn: 
-    !-----------------------------
-    if (ocn_name == 'mpaso') then
+      !-----------------------------
+      ! to ocn: 
+      !-----------------------------
       if (phase == 'advertise') then
          call addfld_from(compwav, 'Sw_vstokes_wavenumber_6')
          call addfld_to(compocn, 'Sw_vstokes_wavenumber_6')
@@ -2756,11 +2730,9 @@ contains
             call addmrg_to(compocn, 'Sw_vstokes_wavenumber_6', mrg_from=compwav, mrg_fld='Sw_lamult', mrg_type='copy')
          end if
       end if
-    end if
-    !-----------------------------
-    ! to ocn: 
-    !-----------------------------
-    if (ocn_name == 'mpaso') then
+      !-----------------------------
+      ! to ocn: 
+      !-----------------------------
       if (phase == 'advertise') then
          call addfld_from(compwav, 'Sw_ustokes_wavenumber_6')
          call addfld_to(compocn, 'Sw_ustokes_wavenumber_6')
@@ -2771,11 +2743,9 @@ contains
             call addmrg_to(compocn, 'Sw_ustokes_wavenumber_6', mrg_from=compwav, mrg_fld='Sw_ustokes_wavenumber_6', mrg_type='copy')
          end if
       end if
-    end if
-    !-----------------------------
-    ! to ocn: 
-    !-----------------------------
-    if (ocn_name == 'mpaso') then
+      !-----------------------------
+      ! to ocn: 
+      !-----------------------------
       if (phase == 'advertise') then
          call addfld_from(compwav, 'Sw_vstokes_wavenumber_6')
          call addfld_to(compocn, 'Sw_vstokes_wavenumber_6')
@@ -2786,13 +2756,9 @@ contains
             call addmrg_to(compocn, 'Sw_vstokes_wavenumber_6', mrg_from=compwav, mrg_fld='Sw_lamult', mrg_type='copy')
          end if
       end if
-    end if
-
-
-    !-----------------------------
-    ! to ocn:
-    !-----------------------------
-    if (ocn_name == 'mpaso') then
+      !-----------------------------
+      ! to ocn:
+      !-----------------------------
       if (phase == 'advertise') then
          call addfld_from(compwav, 'Sw_Dp')
          call addfld_to(compocn, 'Sw_Dp')
