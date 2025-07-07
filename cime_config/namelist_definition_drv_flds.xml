@@ -58,6 +58,24 @@
     </desc>
   </entry>
 
+  <entry id="megan_use_gamma_sm">
+    <type>logical</type>
+    <category>drv_flds_in</category>
+    <group>megan_emis_nl</group>
+    <desc>
+      If TRUE, use activity factor for soil moisture for MEGAN isoprene emissions.
+    </desc>
+  </entry>
+
+  <entry id="megan_min_gamma_sm">
+    <type>real</type>
+    <category>drv_flds_in</category>
+    <group>megan_emis_nl</group>
+    <desc>
+       Minimum activity factor for soil moisture for MEGAN isoprene emissions.
+    </desc>
+  </entry>
+
   <!-- ========================================================================================  -->
   <!-- drydep Namelists                                                                          -->
   <!-- ========================================================================================  -->

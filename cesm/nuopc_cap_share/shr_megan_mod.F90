@@ -33,6 +33,11 @@ module shr_megan_mod
   public :: shr_megan_linkedlist       ! points to linked list of shr_megan_comp_t objects
   public :: shr_megan_mapped_emisfctrs ! switch to use mapped emission factors
   public :: shr_megan_comp_ptr
+  public :: shr_megan_use_gamma_sm
+  public :: shr_megan_min_gamma_sm
+
+  logical :: shr_megan_use_gamma_sm = .true.
+  real(r8) :: shr_megan_min_gamma_sm = 0._r8
 
   logical          , public :: megan_initialized       = .false. ! true => shr_megan_readnl alreay called
   character(len=CL), public :: shr_megan_factors_file  = ''
@@ -129,11 +134,16 @@ contains
     logical             :: megan_mapped_emisfctrs = .false.
     character(len=CL)   :: megan_factors_file = ' '
     integer             :: rc
+    logical             :: megan_use_gamma_sm = .true.
+    real(r8)            :: megan_min_gamma_sm = 0._r8
+
     character(*), parameter :: F00   = "('(shr_megan_readnl) ',2a)"
     character(len=*), parameter :: subname='(shr_megan_readnl)'
     !--------------------------------------------------------------
 
     namelist /megan_emis_nl/ megan_specifier, megan_factors_file, megan_mapped_emisfctrs
+    namelist /megan_emis_nl/ megan_specifier, megan_factors_file, megan_mapped_emisfctrs
+    namelist /megan_emis_nl/ megan_use_gamma_sm, megan_min_gamma_sm
 
     !--- Open and read namelist ---
     if ( len_trim(NLFilename) == 0 ) then
@@ -167,9 +177,14 @@ contains
     call shr_mpi_bcast( megan_specifier        , mpicom )
     call shr_mpi_bcast( megan_factors_file     , mpicom )
     call shr_mpi_bcast( megan_mapped_emisfctrs , mpicom )
+    call shr_mpi_bcast( megan_use_gamma_sm     , mpicom )
+    call shr_mpi_bcast( megan_min_gamma_sm     , mpicom )
 
     shr_megan_factors_file = megan_factors_file
     shr_megan_mapped_emisfctrs = megan_mapped_emisfctrs
+
+    shr_megan_use_gamma_sm = megan_use_gamma_sm
+    shr_megan_min_gamma_sm = megan_min_gamma_sm
 
     ! parse the namelist info and initialize the module data - only if it has not been initialized
     if (.not. megan_initialized) then
