@@ -1487,10 +1487,12 @@ contains
   !================================================================================
   subroutine med_map_uv_cart3d(FBsrc, FBdst, routehandles, mapindex, map_stress, rc)
 
-    use ESMF          , only : ESMF_Mesh, ESMF_MeshGet, ESMF_MESHLOC_ELEMENT, ESMF_TYPEKIND_R8
-    use ESMF          , only : ESMF_Field, ESMF_FieldCreate, ESMF_FieldGet
-    use ESMF          , only : ESMF_FieldBundle, ESMF_FieldBundleGet
-    use ESMF          , only : ESMF_RouteHandle
+    use ESMF , only : operator(==)
+    use ESMF , only : ESMF_Mesh, ESMF_MeshGet, ESMF_MESHLOC_ELEMENT, ESMF_TYPEKIND_R8
+    use ESMF , only : ESMF_Field, ESMF_FieldCreate, ESMF_FieldGet
+    use ESMF , only : ESMF_FieldBundle, ESMF_FieldBundleGet
+    use ESMF , only : ESMF_RouteHandle
+    use ESMF , only : ESMF_CoordSys_Flag, ESMF_COORDSYS_SPH_DEG, ESMF_COORDSYS_SPH_RAD
     use med_constants_mod , only : shr_const_pi
 
     ! input/output variables
@@ -1502,31 +1504,33 @@ contains
     integer                , intent(out)   :: rc
 
     ! local variables
-    type(ESMF_Field)    :: usrc
-    type(ESMF_Field)    :: vsrc
-    type(ESMF_Field)    :: udst
-    type(ESMF_Field)    :: vdst
-    integer             :: n
-    real(r8)            :: lon,lat
-    real(r8)            :: coslon,coslat
-    real(r8)            :: sinlon,sinlat
-    real(r8)            :: ux,uy,uz
-    type(ESMF_Mesh)     :: lmesh_src
-    type(ESMF_Mesh)     :: lmesh_dst
-    real(r8), pointer   :: data_u_src(:)
-    real(r8), pointer   :: data_u_dst(:)
-    real(r8), pointer   :: data_v_src(:)
-    real(r8), pointer   :: data_v_dst(:)
-    real(r8), pointer   :: data2d_src(:,:)
-    real(r8), pointer   :: data2d_dst(:,:)
-    real(r8), pointer   :: ownedElemCoords_src(:)
-    real(r8), pointer   :: ownedElemCoords_dst(:)
-    integer             :: numOwnedElements
-    integer             :: spatialDim
-    real(r8), parameter :: deg2rad = shr_const_pi/180.0_R8  ! deg to rads
-    logical             :: first_time = .true.
-    logical             :: lmap_stress
-    character(len=CS)   :: uname, vname
+    type(ESMF_Field)         :: usrc
+    type(ESMF_Field)         :: vsrc
+    type(ESMF_Field)         :: udst
+    type(ESMF_Field)         :: vdst
+    type(ESMF_CoordSys_Flag) :: coordsys_src
+    type(ESMF_CoordSys_Flag) :: coordsys_dst
+    integer                  :: n
+    real(r8)                 :: lon,lat
+    real(r8)                 :: coslon,coslat
+    real(r8)                 :: sinlon,sinlat
+    real(r8)                 :: ux,uy,uz
+    type(ESMF_Mesh)          :: lmesh_src
+    type(ESMF_Mesh)          :: lmesh_dst
+    real(r8), pointer        :: data_u_src(:)
+    real(r8), pointer        :: data_u_dst(:)
+    real(r8), pointer        :: data_v_src(:)
+    real(r8), pointer        :: data_v_dst(:)
+    real(r8), pointer        :: data2d_src(:,:)
+    real(r8), pointer        :: data2d_dst(:,:)
+    real(r8), pointer        :: ownedElemCoords_src(:)
+    real(r8), pointer        :: ownedElemCoords_dst(:)
+    integer                  :: numOwnedElements
+    integer                  :: spatialDim
+    real(r8), parameter      :: deg2rad = shr_const_pi/180.0_R8  ! deg to rads
+    logical                  :: first_time = .true.
+    logical                  :: lmap_stress
+    character(len=CS)        :: uname, vname
     character(len=*), parameter :: subname=' (med_map_mod:med_map_uv_cart3d) '
     !-------------------------------------------------------------------------------
 
@@ -1573,19 +1577,19 @@ contains
     ! Get source mesh and coordinates
     call ESMF_FieldGet(usrc, mesh=lmesh_src, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_MeshGet(lmesh_src, spatialDim=spatialDim, numOwnedElements=numOwnedElements, rc=rc)
+    call ESMF_MeshGet(lmesh_src, spatialDim=spatialDim, numOwnedElements=numOwnedElements, coordSys=coordsys_src, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     allocate(ownedElemCoords_src(spatialDim*numOwnedElements))
-    call ESMF_MeshGet(lmesh_src, ownedElemCoords=ownedElemCoords_src)
+    call ESMF_MeshGet(lmesh_src, ownedElemCoords=ownedElemCoords_src, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! Get destination mesh and coordinates
     call ESMF_FieldGet(udst, mesh=lmesh_dst, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_MeshGet(lmesh_dst, spatialDim=spatialDim, numOwnedElements=numOwnedElements, rc=rc)
+    call ESMF_MeshGet(lmesh_dst, spatialDim=spatialDim, numOwnedElements=numOwnedElements, coordSys=coordsys_dst, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     allocate(ownedElemCoords_dst(spatialDim*numOwnedElements))
-    call ESMF_MeshGet(lmesh_dst, ownedElemCoords=ownedElemCoords_dst)
+    call ESMF_MeshGet(lmesh_dst, ownedElemCoords=ownedElemCoords_dst, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     if (first_time) then
@@ -1610,12 +1614,17 @@ contains
 
     ! Rotate Source data to cart3d
     do n = 1,size(data_u_src)
-       lon = ownedElemCoords_src(2*n-1)
-       lat = ownedElemCoords_src(2*n)
-       sinlon = sin(lon*deg2rad)
-       coslon = cos(lon*deg2rad)
-       sinlat = sin(lat*deg2rad)
-       coslat = cos(lat*deg2rad)
+       if (coordsys_src == ESMF_COORDSYS_SPH_DEG) then
+          lon = deg2rad*ownedElemCoords_src(2*n-1)
+          lat = deg2rad*ownedElemCoords_src(2*n)
+       else
+          lon = ownedElemCoords_src(2*n-1)
+          lat = ownedElemCoords_src(2*n)
+       end if
+       sinlon = sin(lon)
+       coslon = cos(lon)
+       sinlat = sin(lat)
+       coslat = cos(lat)
        data2d_src(1,n) = -coslon*sinlat*data_v_src(n) - sinlon*data_u_src(n) ! x
        data2d_src(2,n) = -sinlon*sinlat*data_v_src(n) + coslon*data_u_src(n) ! y
        data2d_src(3,n) =  coslat*data_v_src(n)                               ! z
@@ -1628,12 +1637,17 @@ contains
 
     ! Rotate destination data back from cart3d to original
     do n = 1,size(data_u_dst)
-       lon = ownedElemCoords_dst(2*n-1)
-       lat = ownedElemCoords_dst(2*n)
-       sinlon = sin(lon*deg2rad)
-       coslon = cos(lon*deg2rad)
-       sinlat = sin(lat*deg2rad)
-       coslat = cos(lat*deg2rad)
+       if (coordsys_dst == ESMF_COORDSYS_SPH_DEG) then
+          lon = deg2rad*ownedElemCoords_dst(2*n-1)
+          lat = deg2rad*ownedElemCoords_dst(2*n)
+       else
+          lon = ownedElemCoords_dst(2*n-1)
+          lat = ownedElemCoords_dst(2*n)
+       end if
+       sinlon = sin(lon)
+       coslon = cos(lon)
+       sinlat = sin(lat)
+       coslat = cos(lat)
        ux = data2d_dst(1,n)
        uy = data2d_dst(2,n)
        uz = data2d_dst(3,n)
