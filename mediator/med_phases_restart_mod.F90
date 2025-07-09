@@ -492,8 +492,10 @@ contains
        call med_io_close(io_file, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 #ifndef CESMCOUPLED
-       call log_restart_fh(nextTime, startTime, 'cmeps', rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       if (maintask) then
+         call log_restart_fh(nextTime, startTime, 'cmeps', rc=rc)
+         if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       endif
 #endif
     endif
 
