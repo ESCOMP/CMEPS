@@ -17,8 +17,9 @@ jobs:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        python-version: [ 3.10.9 ]
+        python-version: [ 3.8, 3.11, 3.x ]
     env:
       CC: mpicc
       FC: mpifort
@@ -26,8 +27,8 @@ jobs:
       CPPFLAGS: "-I/usr/include -I/usr/local/include "
       LDFLAGS: "-L/usr/lib/x86_64-linux-gnu -lnetcdf -lnetcdff -lpnetcdf"     
       # Versions of all dependencies can be updated here
-      ESMF_VERSION: v8.6.1
-      PARALLELIO_VERSION: pio2_6_2
+      ESMF_VERSION: v8.8.0
+      PARALLELIO_VERSION: pio2_6_5
       CIME_MODEL: cesm
       CIME_DRIVER: nuopc
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -78,13 +79,15 @@ jobs:
       # cpl7 is needed - i think that's a bug
       - name: checkout externals
         run: |
+          git config --global user.name "${GITHUB_ACTOR}"
+          git config --global user.email "${GITHUB_ACTOR_ID}+${GITHUB_ACTOR}@users.noreply.github.com"
           pushd cesm
-          ./bin/git-fleximod update ccs_config cdeps share mct parallelio
+          ./bin/git-fleximod update cime ccs_config cdeps share mct parallelio
           cd ccs_config
           git checkout main 
-          cd ../
-          git clone https://github.com/ESMCI/cime
-          cd cime
+          cd ../cime
+          git checkout master
+          git status
           if [[ ! -e "${PWD}/.gitmodules.bak" ]]
              then
               echo "Converting git@github.com to https://github.com urls in ${PWD}/.gitmodules"
@@ -121,7 +124,7 @@ jobs:
 
       - name: Build ParallelIO
         if: steps.cache-PARALLELIO.outputs.cache-hit != 'true'
-        uses: NCAR/ParallelIO/.github/actions/parallelio_cmake@05173a6556ea8d80eb34e3881a5014ea8f4b7543
+        uses: NCAR/ParallelIO/.github/actions/parallelio_cmake@b38e34eeb9b75ce81ac94daf7c5245931de00b9d
         with:
           parallelio_version: ${{ env.ParallelIO_VERSION }}
           enable_fortran: True

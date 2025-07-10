@@ -77,7 +77,8 @@ module med_internalstate_mod
   integer , public, parameter :: mapfillv_bilnr    = 15 ! fill value followed by bilinear
   integer , public, parameter :: mapbilnr_nstod    = 16 ! bilinear with nstod extrapolation
   integer , public, parameter :: mapconsf_aofrac   = 17 ! conservative with aofrac normalization (ufs only)
-  integer , public, parameter :: nmappers          = 17
+  integer , public, parameter :: mapconsf_uv3d     = 18 ! conservative with uv3d mapping
+  integer , public, parameter :: nmappers          = 18
   character(len=*) , public, parameter :: mapnames(nmappers) = &
        (/'bilnr       ',&
          'consf       ',&
@@ -95,7 +96,8 @@ module med_internalstate_mod
          'glc2ocn_liq ',&
          'fillv_bilnr ',&
          'bilnr_nstod ',&
-         'consf_aofrac'/)
+         'consf_aofrac',&
+         'consf_uv3d  '/)
 
   type, public :: packed_data_type
      integer, allocatable :: fldindex(:) ! size of number of packed fields
@@ -106,7 +108,7 @@ module med_internalstate_mod
      type(ESMF_Field)     :: field_fracdst
   end type packed_data_type
 
-  logical, public :: dststatus_print = .false.
+  logical, public :: write_dststatus = .false.
 
   ! Mesh info
   type, public ::  mesh_info_type
@@ -190,6 +192,8 @@ module med_internalstate_mod
 
     ! Data
     type(ESMF_FieldBundle) , pointer :: FBData(:)    ! Background data for various components, on their grid, provided by CDEPS inline
+    ! DstStatus
+    type(ESMF_FieldBundle) , pointer :: FBDstStatus(:) ! DstStatus fields for components for each source component and maptype
 
     ! Accumulators for export field bundles
     type(ESMF_FieldBundle) :: FBExpAccumOcn      ! Accumulator for Ocn export on Ocn grid
@@ -432,12 +436,15 @@ contains
        write(logunit,*)
     end if
 
-    ! Obtain dststatus_print setting if present
-    call NUOPC_CompAttributeGet(gcomp, name='dststatus_print', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    ! Allocate dststatus FB if needed
+    call NUOPC_CompAttributeGet(gcomp, name='write_dststatus', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent .and. isSet) dststatus_print=(trim(cvalue) == "true")
-    write(msgString,*) trim(subname)//': Mediator dststatus_print is ',dststatus_print
+    if (isPresent .and. isSet) write_dststatus=(trim(cvalue) == "true")
+    write(msgString,*) trim(subname)//': Mediator write_dststatus is ',write_dststatus
     call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
+    if (write_dststatus) then
+       allocate(is_local%wrap%FBDstStatus(ncomps))
+    end if
 
     ! Initialize flag for background fill using data
     is_local%wrap%med_data_active(:,:) = .false.

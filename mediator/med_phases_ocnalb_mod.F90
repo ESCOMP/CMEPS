@@ -10,8 +10,7 @@ module med_phases_ocnalb_mod
   use perf_mod              , only : t_startf, t_stopf
   use shr_orb_mod           , only : shr_orb_cosz, shr_orb_decl
   use shr_orb_mod           , only : shr_orb_params, SHR_ORB_UNDEF_INT, SHR_ORB_UNDEF_REAL
-  use shr_log_mod           , only : shr_log_unit
-
+  use shr_log_mod           , only : shr_log_unit, shr_log_error
   implicit none
   private
 
@@ -520,7 +519,7 @@ contains
 
     use ESMF  , only : ESMF_GridComp, ESMF_GridCompGet
     use ESMF  , only : ESMF_LogWrite, ESMF_LogFoundError, ESMF_LogSetError
-    use ESMF  , only : ESMf_SUCCESS, ESMF_FAILURE, ESMF_LOGMSG_INFO, ESMF_RC_NOT_VALID
+    use ESMF  , only : ESMF_SUCCESS, ESMF_FAILURE, ESMF_LOGMSG_INFO, ESMF_RC_NOT_VALID
     use NUOPC , only : NUOPC_CompAttributeGet
 
     ! input/output variables
@@ -572,8 +571,8 @@ contains
           write(logunit,*) trim(subname),' ERROR: invalid settings orb_mode =',trim(orb_mode)
           write(logunit,*) trim(subname),' ERROR: fixed_year settings = ',orb_iyear
           write (msgstr, *) ' ERROR: invalid settings for orb_mode '//trim(orb_mode)
-          call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
-          return  ! bail out
+          call shr_log_error(msgstr, line=__LINE__, file=__FILE__, rc=rc)
+          return
        endif
     elseif (trim(orb_mode) == trim(orb_variable_year)) then
        orb_obliq = SHR_ORB_UNDEF_REAL
@@ -583,8 +582,8 @@ contains
           write(logunit,*) trim(subname),' ERROR: invalid settings orb_mode =',trim(orb_mode)
           write(logunit,*) trim(subname),' ERROR: variable_year settings = ',orb_iyear, orb_iyear_align
           write (msgstr, *) subname//' ERROR: invalid settings for orb_mode '//trim(orb_mode)
-          call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
-          return  ! bail out
+          call shr_log_error(msgstr, line=__LINE__, file=__FILE__, rc=rc)
+          return
        endif
     elseif (trim(orb_mode) == trim(orb_fixed_parameters)) then
        !-- force orb_iyear to undef to make sure shr_orb_params works properly
@@ -598,14 +597,13 @@ contains
           write(logunit,*) trim(subname),' ERROR: orb_obliq = ',orb_obliq
           write(logunit,*) trim(subname),' ERROR: orb_mvelp = ',orb_mvelp
           write (msgstr, *) subname//' ERROR: invalid settings for orb_mode '//trim(orb_mode)
-          call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
-          return  ! bail out
+          call shr_log_error(msgstr, line=__LINE__, file=__FILE__, rc=rc)
+          return
        endif
     else
        write (msgstr, *) subname//' ERROR: invalid orb_mode '//trim(orb_mode)
-       call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
-       rc = ESMF_FAILURE
-       return  ! bail out
+       call shr_log_error(msgstr, line=__LINE__, file=__FILE__, rc=rc)
+       return
     endif
   end subroutine med_phases_ocnalb_orbital_init
 
@@ -634,9 +632,9 @@ contains
     type(ESMF_Time)   :: CurrTime ! current time
     integer           :: year     ! model year at current time
     integer           :: orb_year ! orbital year for current orbital computation
+    integer, save     :: prev_orb_year=0
     character(len=CL) :: msgstr   ! temporary
     logical           :: lprint
-    logical, save     :: first_time = .true.
     character(len=*) , parameter :: subname = "(med_phases_ocnalb_orbital_update)"
     !-------------------------------------------
 
@@ -648,22 +646,26 @@ contains
        call ESMF_TimeGet(CurrTime, yy=year, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        orb_year = orb_iyear + (year - orb_iyear_align)
-       if(first_time) lprint = maintask
     else
        orb_year = orb_iyear
-       if(first_time) lprint = maintask
     end if
     first_time = .false.
 
     eccen = orb_eccen
     shr_log_unit = logunit
+
+    if(orb_year .ne. prev_orb_year) then
+       prev_orb_year = orb_year
+       lprint = maintask
+    end if
+
     call shr_orb_params(orb_year, eccen, orb_obliq, orb_mvelp, obliqr, lambm0, mvelpp, lprint)
 
     if ( eccen  == SHR_ORB_UNDEF_REAL .or. obliqr == SHR_ORB_UNDEF_REAL .or. &
          mvelpp == SHR_ORB_UNDEF_REAL .or. lambm0 == SHR_ORB_UNDEF_REAL) then
        write (msgstr, *) subname//' ERROR: orb params incorrect'
-       call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
-       return  ! bail out
+       call shr_log_error(msgstr, line=__LINE__, file=__FILE__, rc=rc)
+       return
     endif
 
   end subroutine med_phases_ocnalb_orbital_update

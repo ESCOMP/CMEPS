@@ -17,8 +17,7 @@ module med_diag_mod
 
   use NUOPC                 , only : NUOPC_CompAttributeGet, NUOPC_CompAttributeSet, NUOPC_CompAttributeAdd
   use NUOPC_Mediator        , only : NUOPC_MediatorGet
-  use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
-  use ESMF                  , only : ESMF_FAILURE,  ESMF_LOGMSG_ERROR
+  use ESMF                  , only : ESMF_SUCCESS
   use ESMF                  , only : ESMF_GridComp, ESMF_Clock, ESMF_Time
   use ESMF                  , only : ESMF_VM, ESMF_VMReduce, ESMF_REDUCE_SUM
   use ESMF                  , only : ESMF_GridCompGet, ESMF_ClockGet, ESMF_TimeGet, ESMF_ClockGetNextTime
@@ -31,10 +30,10 @@ module med_diag_mod
   use med_methods_mod       , only : fldbun_getdata2d => med_methods_FB_getdata2d
   use med_methods_mod       , only : fldbun_getdata1d => med_methods_FB_getdata1d
   use med_methods_mod       , only : fldbun_fldChk    => med_methods_FB_FldChk
-  use med_time_mod          , only : alarmInit        => med_time_alarmInit
   use med_utils_mod         , only : chkerr           => med_utils_ChkErr
   use perf_mod              , only : t_startf, t_stopf
-
+  use shr_log_mod           , only : shr_log_error
+  
   implicit none
   private
 
@@ -143,6 +142,7 @@ module med_diag_mod
   integer :: f_heat_latvap   = unset_index ! heat : latent, vaporization
   integer :: f_heat_latf     = unset_index ! heat : latent, fusion, snow
   integer :: f_heat_ioff     = unset_index ! heat : latent, fusion, frozen runoff
+  integer :: f_heat_ioff_glc = unset_index ! heat : latent, fusion, frozen runoff from glc
   integer :: f_heat_sen      = unset_index ! heat : sensible
 
   integer :: f_heat_rain     = unset_index ! heat : heat content of rain
@@ -150,9 +150,9 @@ module med_diag_mod
   integer :: f_heat_evap     = unset_index ! heat : heat content of evaporation
   integer :: f_heat_cond     = unset_index ! heat : heat content of evaporation
   integer :: f_heat_rofl     = unset_index ! heat : heat content of liquid runoff
+  integer :: f_heat_rofl_glc = unset_index ! heat : heat content of liquid runoff from glc
   integer :: f_heat_rofi     = unset_index ! heat : heat content of ice runoff
-  integer :: f_heat_rofl_glc = unset_index ! heat : heat content of liquid glc runoff
-  integer :: f_heat_rofi_glc = unset_index ! heat : heat content of ice glc runoff
+  integer :: f_heat_rofi_glc = unset_index ! heat : heat content of ice runoff from glc
 
   integer :: f_watr_frz      = unset_index ! water: freezing
   integer :: f_watr_melt     = unset_index ! water: melting
@@ -161,7 +161,9 @@ module med_diag_mod
   integer :: f_watr_evap     = unset_index ! water: evaporation
   integer :: f_watr_salt     = unset_index ! water: water equivalent of salt flux
   integer :: f_watr_roff     = unset_index ! water: runoff/flood
+  integer :: f_watr_roff_glc = unset_index ! water: runoff/flood from glc
   integer :: f_watr_ioff     = unset_index ! water: frozen runoff
+  integer :: f_watr_ioff_glc = unset_index ! water: frozen runoff from glc
   integer :: f_watr_frz_16O  = unset_index ! water isotope: freezing
   integer :: f_watr_melt_16O = unset_index ! water isotope: melting
   integer :: f_watr_rain_16O = unset_index ! water isotope: precip, liquid
@@ -328,19 +330,20 @@ contains
     call add_to_budget_diag(budget_diags%fields, f_heat_latvap   ,'hlatvap'     ) ! field  heat : latent, vaporization
     call add_to_budget_diag(budget_diags%fields, f_heat_latf     ,'hlatfus'     ) ! field  heat : latent, fusion, snow
     call add_to_budget_diag(budget_diags%fields, f_heat_ioff     ,'hiroff'      ) ! field  heat : latent, fusion, frozen runoff
+    call add_to_budget_diag(budget_diags%fields, f_heat_ioff_glc ,'hiroff_glc'  ) ! field  heat : latent, fusion, frozen runoff from glc
     call add_to_budget_diag(budget_diags%fields, f_heat_sen      ,'hsen'        ) ! field  heat : sensible
     if (trim(budget_table_version) == 'v0') then
        f_heat_beg = f_heat_frz      ! field  first index for heat
        f_heat_end = f_heat_sen      ! field  last  index for heat
     else if (trim(budget_table_version) == 'v1') then
-       call add_to_budget_diag(budget_diags%fields, f_heat_rain    ,'hrain'     ) ! field  heat : enthalpy of rain
-       call add_to_budget_diag(budget_diags%fields, f_heat_snow    ,'hsnow'     ) ! field  heat : enthalpy of snow
-       call add_to_budget_diag(budget_diags%fields, f_heat_evap    ,'hevap'     ) ! field  heat : enthalpy of evaporation
-       call add_to_budget_diag(budget_diags%fields, f_heat_cond    ,'hcond'     ) ! field  heat : enthalpy of evaporation
-       call add_to_budget_diag(budget_diags%fields, f_heat_rofl    ,'hrofl'     ) ! field  heat : enthalpy of liquid runoff
-       call add_to_budget_diag(budget_diags%fields, f_heat_rofi    ,'hrofi'     ) ! field  heat : enthalpy of ice runoff
-       call add_to_budget_diag(budget_diags%fields, f_heat_rofl_glc,'hrofl_glc' ) ! field  heat : enthalpy of liquid glc runoff
-       call add_to_budget_diag(budget_diags%fields, f_heat_rofi_glc,'hrofi_glc' ) ! field  heat : enthalpy of ice glc runoff
+       call add_to_budget_diag(budget_diags%fields, f_heat_rain  ,'hrain'       ) ! field  heat : enthalpy of rain
+       call add_to_budget_diag(budget_diags%fields, f_heat_snow  ,'hsnow'       ) ! field  heat : enthalpy of snow
+       call add_to_budget_diag(budget_diags%fields, f_heat_evap  ,'hevap'       ) ! field  heat : enthalpy of evaporation
+       call add_to_budget_diag(budget_diags%fields, f_heat_cond  ,'hcond'       ) ! field  heat : enthalpy of evaporation
+       call add_to_budget_diag(budget_diags%fields, f_heat_rofl  ,'hrofl'       ) ! field  heat : enthalpy of liquid runoff
+       call add_to_budget_diag(budget_diags%fields, f_heat_rofl_glc ,'hrofl_glc') ! field  heat : enthalpy of liquid runoff from glc
+       call add_to_budget_diag(budget_diags%fields, f_heat_rofi  ,'hrofi'       ) ! field  heat : enthalpy of ice runoff
+       call add_to_budget_diag(budget_diags%fields, f_heat_rofi_glc ,'hrofi_glc') ! field  heat : enthalpy of ice runoff from glc
        f_heat_beg = f_heat_frz      ! field  first index for heat
        f_heat_end = f_heat_rofi_glc ! field  last  index for heat
     end if
@@ -361,13 +364,15 @@ contains
        call add_to_budget_diag(budget_diags%fields, f_watr_salt  ,'weqsaltf'    ) ! field  water: water equivalent of salt flux
     endif
     call add_to_budget_diag(budget_diags%fields, f_watr_roff     ,'wrunoff'     ) ! field  water: runoff/flood
+    call add_to_budget_diag(budget_diags%fields, f_watr_roff_glc ,'wrunoff_glc' ) ! field  water: runoff/flood from glc
     call add_to_budget_diag(budget_diags%fields, f_watr_ioff     ,'wfrzrof'     ) ! field  water: frozen runoff
+    call add_to_budget_diag(budget_diags%fields, f_watr_ioff_glc ,'wfrzrof_glc' ) ! field  water: frozen runoff from glc
     if (trim(budget_table_version) == 'v0') then
        f_watr_beg = f_watr_frz  ! field  firs  index for water
     else
        f_watr_beg = f_watr_melt ! field  firs  index for water
     end if
-    f_watr_end = f_watr_ioff    ! field  last  index for water
+    f_watr_end = f_watr_ioff_glc ! field  last  index for water
 
     if (flds_wiso) then
        call add_to_budget_diag(budget_diags%fields, f_watr_frz_16O  ,'wfreeze_16O' ) ! field  water isotope: freezing
@@ -518,11 +523,9 @@ contains
        budget_counter(:,:,period_inst) = 0.0_r8
        budget_counter(:,:,period_inst+1:) = 1.0_r8
     else
-       call ESMF_LogWrite(trim(subname)//' mode '//trim(mode)//&
+       call shr_log_error(trim(subname)//' mode '//trim(mode)//&
             ' not recognized', &
-            ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
-       rc = ESMF_FAILURE
-       return
+            line=__LINE__, file=u_FILE_u, rc=rc)
     endif
   end subroutine med_diag_zero_mode
 
@@ -1227,11 +1230,13 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if ( fldbun_fldchk(is_local%wrap%FBImp(comprof,comprof), 'Forr_rofl_glc', rc=rc)) then
-      call diag_rof(is_local%wrap%FBImp(comprof,comprof), 'Forr_rofi_glc' , f_watr_roff, ic, areas, budget_local, minus=.true., rc=rc)
+      call diag_rof(is_local%wrap%FBImp(comprof,comprof), 'Forr_rofl_glc' , f_watr_roff_glc, &
+           ic, areas, budget_local, minus=.true., rc=rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
     if ( fldbun_fldchk(is_local%wrap%FBImp(comprof,comprof), 'Forr_rofi_glc', rc=rc)) then
-      call diag_rof(is_local%wrap%FBImp(comprof,comprof), 'Forr_rofi_glc' , f_watr_ioff, ic, areas, budget_local, minus=.true., rc=rc)
+      call diag_rof(is_local%wrap%FBImp(comprof,comprof), 'Forr_rofi_glc' , f_watr_ioff_glc, &
+           ic, areas, budget_local, minus=.true., rc=rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
@@ -1248,6 +1253,7 @@ contains
     end if
 
     budget_local(f_heat_ioff,ic,ip) = -budget_local(f_watr_ioff,ic,ip)*shr_const_latice
+    budget_local(f_heat_ioff_glc,ic,ip) = -budget_local(f_watr_ioff_glc,ic,ip)*shr_const_latice
 
     !-------------------------------
     ! to river from mediator
@@ -1267,11 +1273,11 @@ contains
     call diag_rof(is_local%wrap%FBExp(comprof), 'Flrl_rofi'  , f_watr_ioff, ic, areas, budget_local, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (fldbun_fldchk(is_local%wrap%FBExp(comprof), 'Fgrg_rofl', rc=rc)) then
-      call diag_rof(is_local%wrap%FBExp(comprof), 'Fgrg_rofl'  , f_watr_roff, ic, areas, budget_local, rc=rc)
+      call diag_rof(is_local%wrap%FBExp(comprof), 'Fgrg_rofl'  , f_watr_roff_glc, ic, areas, budget_local, rc=rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
     if (fldbun_fldchk(is_local%wrap%FBExp(comprof), 'Fgrg_rofi', rc=rc)) then
-      call diag_rof(is_local%wrap%FBExp(comprof), 'Fgrg_rofi'  , f_watr_ioff, ic, areas, budget_local, rc=rc)
+      call diag_rof(is_local%wrap%FBExp(comprof), 'Fgrg_rofi'  , f_watr_ioff_glc, ic, areas, budget_local, rc=rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
@@ -1285,6 +1291,7 @@ contains
     end if
 
     budget_local(f_heat_ioff,ic,ip) = -budget_local(f_watr_ioff,ic,ip)*shr_const_latice
+    budget_local(f_heat_ioff_glc,ic,ip) = -budget_local(f_watr_ioff_glc,ic,ip)*shr_const_latice
 
     call t_stopf('MED:'//subname)
   end subroutine med_phases_diag_rof
@@ -1384,26 +1391,24 @@ contains
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-
     !-------------------------------
     ! from glc to mediator
     !-------------------------------
 
-    ! TODO: this will not be correct if there is more than 1 ice sheet
     ic = c_glc_recv
     ip = period_inst
 
     do ns = 1,is_local%wrap%num_icesheets
        areas => is_local%wrap%mesh_info(compglc(ns))%areas
-       call diag_glc(is_local%wrap%FBImp(compglc(ns),compglc(ns)), 'Fgrg_rofl', f_watr_roff, ic, areas, budget_local, minus=.true., rc=rc)
+       call diag_glc(is_local%wrap%FBImp(compglc(ns),compglc(ns)), 'Fgrg_rofl', f_watr_roff_glc, ic, areas, budget_local, minus=.true., rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call diag_glc(is_local%wrap%FBImp(compglc(ns),compglc(ns)), 'Fgrg_rofi', f_watr_ioff, ic, areas, budget_local, minus=.true., rc=rc)
+       call diag_glc(is_local%wrap%FBImp(compglc(ns),compglc(ns)), 'Fgrg_rofi', f_watr_ioff_glc, ic, areas, budget_local, minus=.true., rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call diag_glc(is_local%wrap%FBImp(compglc(ns),compglc(ns)), 'Figg_rofi', f_watr_ioff, ic, areas, budget_local, minus=.true., rc=rc)
+       call diag_glc(is_local%wrap%FBImp(compglc(ns),compglc(ns)), 'Figg_rofi', f_watr_ioff_glc, ic, areas, budget_local, minus=.true., rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end do
 
-    budget_local(f_heat_ioff,ic,ip) = -budget_local(f_watr_ioff,ic,ip)*shr_const_latice
+    budget_local(f_heat_ioff_glc,ic,ip) = -budget_local(f_watr_ioff_glc,ic,ip)*shr_const_latice
 
     call t_stopf('MED:'//subname)
   end subroutine med_phases_diag_glc
@@ -1583,11 +1588,11 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if ( fldbun_fldchk(is_local%wrap%FBExp(compocn), 'Forr_rofl_glc' , rc=rc)) then
-      call diag_ocn(is_local%wrap%FBExp(compocn), 'Forr_rofl_glc' , f_watr_roff   , ic, areas, sfrac, budget_local, rc=rc)
+      call diag_ocn(is_local%wrap%FBExp(compocn), 'Forr_rofl_glc' , f_watr_roff_glc, ic, areas, sfrac, budget_local, rc=rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
     if ( fldbun_fldchk(is_local%wrap%FBExp(compocn), 'Forr_rofi_glc' , rc=rc)) then
-      call diag_ocn(is_local%wrap%FBExp(compocn), 'Forr_rofi_glc' , f_watr_ioff   , ic, areas, sfrac, budget_local, rc=rc)
+      call diag_ocn(is_local%wrap%FBExp(compocn), 'Forr_rofi_glc' , f_watr_ioff_glc, ic, areas, sfrac, budget_local, rc=rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
@@ -1622,15 +1627,16 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_hrofl', f_heat_rofl , ic, areas, sfrac, budget_local, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_hrofi', f_heat_rofi , ic, areas, sfrac, budget_local, rc=rc)
+    call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_hrofl_glc', f_heat_rofl_glc , ic, areas, sfrac, budget_local, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_hrofl_glc', f_heat_rofl_glc, ic, areas, sfrac, budget_local, rc=rc)
+    call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_hrofi', f_heat_rofi , ic, areas, sfrac, budget_local, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_hrofi_glc', f_heat_rofi_glc , ic, areas, sfrac, budget_local, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     budget_local(f_heat_latf,ic,ip) = -budget_local(f_watr_snow,ic,ip)*shr_const_latice
     budget_local(f_heat_ioff,ic,ip) = -budget_local(f_watr_ioff,ic,ip)*shr_const_latice
+    budget_local(f_heat_ioff_glc,ic,ip) = -budget_local(f_watr_ioff_glc,ic,ip)*shr_const_latice
 
     deallocate(sfrac)
     call t_stopf('MED:'//subname)
@@ -2146,8 +2152,6 @@ contains
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           if (ESMF_AlarmIsRinging(stop_alarm, rc=rc)) then
              output_level = max(output_level, budget_print_ltend)
-             call ESMF_AlarmRingerOff( stop_alarm, rc=rc )
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
           endif
        endif
 

@@ -16,7 +16,8 @@ module med_merge_mod
   use esmFlds               , only : med_fldList_entry_type
   use esmFlds               , only : med_fldList_findName
   use perf_mod              , only : t_startf, t_stopf
-
+  use shr_log_mod           , only : shr_log_error
+  
   implicit none
   private
 
@@ -45,8 +46,8 @@ contains
 
     use ESMF , only : ESMF_FieldBundle, ESMF_FieldBundleIsCreated, ESMF_FieldBundleGet
     use ESMF , only : ESMF_Field, ESMF_FieldGet
-    use ESMF , only : ESMF_SUCCESS, ESMF_FAILURE
-    use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_LOGMSG_ERROR, ESMF_LogSetError
+    use ESMF , only : ESMF_SUCCESS
+    use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_LogSetError
 
     ! ----------------------------------------------
     ! Auto merge based on fldListTo info
@@ -203,8 +204,8 @@ contains
 
     use ESMF , only : ESMF_FieldBundle, ESMF_FieldBundleIsCreated, ESMF_FieldBundleGet
     use ESMF , only : ESMF_Field, ESMF_FieldGet
-    use ESMF , only : ESMF_SUCCESS, ESMF_FAILURE
-    use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_LOGMSG_ERROR
+    use ESMF , only : ESMF_SUCCESS
+    use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_INFO
     use ESMF , only : ESMF_LogSetError
     ! input/output variables
     integer                , intent(in)    :: compsrc
@@ -309,7 +310,7 @@ contains
   subroutine med_merge_auto_field(merge_type, field_out, ungriddedUBound_out,  &
        FB, FBfld, FBw, fldw, rc)
 
-    use ESMF , only : ESMF_SUCCESS, ESMF_FAILURE, ESMF_LogMsg_Error
+    use ESMF , only : ESMF_SUCCESS
     use ESMF , only : ESMF_FieldBundle, ESMF_FieldBundleGet
     use ESMF , only : ESMF_LogWrite, ESMF_LogMsg_Info
     use ESMF , only : ESMF_FieldGet, ESMF_Field
@@ -344,15 +345,13 @@ contains
 
     if (merge_type == 'copy_with_weights' .or. merge_type == 'merge') then
        if (trim(fldw) == 'unset') then
-          call ESMF_LogWrite(trim(subname)//": error required merge_fracname is not set", &
-               ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
-          rc = ESMF_FAILURE
+          call shr_log_error(trim(subname)//": error required merge_fracname is not set", &
+               line=__LINE__, file=u_FILE_u, rc=rc)
           return
        end if
        if (.not. FB_FldChk(FBw, trim(fldw), rc=rc)) then
-          call ESMF_LogWrite(trim(subname)//": error "//trim(fldw)//"is not in FBw", &
-               ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
-          rc = ESMF_FAILURE
+          call shr_log_error(trim(subname)//": error "//trim(fldw)//"is not in FBw", &
+               line=__LINE__, file=u_FILE_u, rc=rc)
           return
        end if
     end if
@@ -418,9 +417,8 @@ contains
           dp1(:) = dp1(:) + dpf1(:)
        endif
     else
-       call ESMF_LogWrite(trim(subname)//": merge type "//trim(merge_type)//" not supported", &
-            ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
-       rc = ESMF_FAILURE
+       call shr_log_error(trim(subname)//": merge type "//trim(merge_type)//" not supported", &
+            line=__LINE__, file=u_FILE_u, rc=rc)
        return
     end if
 
@@ -432,8 +430,8 @@ contains
 
     use ESMF , only : ESMF_FieldBundle, ESMF_FieldBundleIsCreated, ESMF_FieldBundleGet
     use ESMF , only : ESMF_Field, ESMF_FieldGet
-    use ESMF , only : ESMF_SUCCESS, ESMF_FAILURE
-    use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_LOGMSG_ERROR
+    use ESMF , only : ESMF_SUCCESS
+    use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_INFO
     use ESMF , only : ESMF_LogSetError, ESMF_RC_OBJ_NOT_CREATED
 
     ! input/output variables
@@ -475,10 +473,9 @@ contains
              call ESMF_FieldBundleGet(FBMed2, trim(merge_fldname), field=field_in, rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
           else
-             call ESMF_LogWrite(trim(subname)//": ERROR merge_fldname = "//trim(merge_fldname)//" not found", &
-                  ESMF_LOGMSG_ERROR, rc=rc)
-             rc = ESMF_FAILURE
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             call shr_log_error(trim(subname)//": ERROR merge_fldname = "//trim(merge_fldname)//" not found", &
+                  rc=rc)
+             return
           end if
        end if
     endif
@@ -492,9 +489,8 @@ contains
        write(errmsg,*) trim(subname),' input field ungriddedUbound ',ungriddedUbound_in(1),&
             ' for '//trim(merge_fldname), &
             ' not equal to output field ungriddedUbound ',ungriddedUbound_out,' for '//trim(fldname_out)
-       call ESMF_LogWrite(errmsg, ESMF_LOGMSG_ERROR)
-       rc = ESMF_FAILURE
-       return
+      
+       call shr_log_error(errmsg, rc=rc)
    endif
 
   end subroutine med_merge_auto_errcheck
@@ -508,7 +504,7 @@ contains
                                 FBinE, fnameE, wgtE, rc)
 
     use ESMF , only : ESMF_FieldBundle, ESMF_LogWrite
-    use ESMF , only : ESMF_SUCCESS, ESMF_FAILURE, ESMF_LOGMSG_ERROR
+    use ESMF , only : ESMF_SUCCESS
     use ESMF , only : ESMF_LOGMSG_WARNING, ESMF_LOGMSG_INFO
 
     ! ----------------------------------------------
@@ -555,10 +551,8 @@ contains
         (present(FBinC) .and. .not.present(fnameC)) .or. &
         (present(FBinD) .and. .not.present(fnameD)) .or. &
         (present(FBinE) .and. .not.present(fnameE))) then
-
-       call ESMF_LogWrite(trim(subname)//": ERROR fname not present with FBin", &
-            ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u, rc=dbrc)
-       rc = ESMF_FAILURE
+       call shr_log_error(trim(subname)//": ERROR fname not present with FBin", &
+            line=__LINE__, file=u_FILE_u, rc=dbrc)
        return
     endif
 
@@ -647,16 +641,15 @@ contains
 
        if (FBinfound) then
           if (lbound(dataPtr,1) /= lbound(dataOut,1) .or. ubound(dataPtr,1) /= ubound(dataOut,1)) then
-             call ESMF_LogWrite(trim(subname)//": ERROR FBin wrong size", &
-                  ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u, rc=dbrc)
-             rc = ESMF_FAILURE
+             call shr_log_error(trim(subname)//": ERROR FBin wrong size", &
+                  line=__LINE__, file=u_FILE_u, rc=dbrc)
              return
           endif
           if (wgtfound) then
              if (lbound(dataPtr,1) /= lbound(wgt,1) .or. ubound(dataPtr,1) /= ubound(wgt,1)) then
-                call ESMF_LogWrite(trim(subname)//": ERROR wgt wrong size", &
-                     ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u, rc=dbrc)
-                rc = ESMF_FAILURE
+                
+                call shr_log_error(trim(subname)//": ERROR wgt wrong size", &
+                     line=__LINE__, file=u_FILE_u, rc=dbrc)
                 return
              endif
              do i = lb1,ub1
@@ -707,7 +700,7 @@ contains
 
     ! Get name of k-th field in colon deliminted list
 
-    use ESMF, only : ESMF_SUCCESS, ESMF_FAILURE, ESMF_LogWrite, ESMF_LOGMSG_INFO
+    use ESMF, only : ESMF_SUCCESS, ESMF_LogWrite, ESMF_LOGMSG_INFO
 
     ! input/output variables
     character(len=*)  ,intent(in)  :: list    ! list/string
@@ -745,19 +738,14 @@ contains
        return
     end if
     if (.not. valid_list) then
-       write(logunit,*) "ERROR: invalid list = ",trim(list)
-       call ESMF_LogWrite("ERROR: invalid list = "//trim(list), ESMF_LOGMSG_INFO)
-       rc = ESMF_FAILURE
+       call shr_log_error("ERROR: invalid list = "//trim(list), rc=rc)
        return
     end if
 
     !--- check that this is a valid index ---
     kFlds = merge_listGetNum(list)
     if (k<1 .or. kFlds<k) then
-       write(logunit,*) "ERROR: invalid index = ",k
-       write(logunit,*) "ERROR:          list = ",trim(list)
-       call ESMF_LogWrite("ERROR: invalid index = "//trim(list), ESMF_LOGMSG_INFO)
-       rc = ESMF_FAILURE
+       call shr_log_error("ERROR: invalid index = "//trim(list), rc=rc)
        return
     end if
 

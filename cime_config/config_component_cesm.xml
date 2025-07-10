@@ -269,6 +269,8 @@
       <value compset=".+" grid="a%ne0np4CONUS.ne30x8"       >384</value>
       <value compset=".+" grid="a%ne0np4.ARCTIC.ne30x4"     >192</value>
       <value compset=".+" grid="a%ne0np4.ARCTICGRIS.ne30x8" >384</value>
+      <value compset=".+" grid="a%ne0np4.POLARCAP.ne30x4"   >192</value>
+      <value compset=".+" grid="a%ne0np4.NATL.ne30x8"       >384</value>
       <value compset=".+" grid="a%C24"                      >48</value>
       <value compset=".+" grid="a%C48"                      >48</value>
       <value compset=".+" grid="a%C96"                      >48</value>
@@ -287,6 +289,22 @@
       <!-- =================================================== -->
       <value compset="_DATM.*_BLOM">24</value>
       <value compset="_BLOM" grid="oi%tnx0.25v">48</value>
+      <value compset=".+" grid="a%mpasa480"                   >48</value>
+      <value compset=".+" grid="a%mpasa240"                   >48</value>
+      <value compset=".+" grid="a%mpasa120"                   >48</value>
+      <value compset=".+" grid="a%mpasa60"                    >96</value>
+      <value compset=".+" grid="a%mpasa30"                    >192</value>
+      <value compset=".+" grid="a%mpasa15"                    >360</value>
+      <value compset=".+" grid="a%mpasa7p5"                   >720</value>
+      <value compset=".+" grid="a%mpasa3p75"                  >1440</value>
+      <value compset="_MPAS" grid="a%mpasa480"                >2</value>
+      <value compset="_MPAS" grid="a%mpasa240"                >2</value>
+      <value compset="_MPAS" grid="a%mpasa120"                >2</value>
+      <value compset="_MPAS" grid="a%mpasa60"                 >4</value>
+      <value compset="_MPAS" grid="a%mpasa30"                 >8</value>
+      <value compset="_MPAS" grid="a%mpasa15"                 >15</value>
+      <value compset="_MPAS" grid="a%mpasa7p5"                >30</value>
+      <value compset="_MPAS" grid="a%mpasa3p75"               >60</value>
     </values>
     <group>run_coupling</group>
     <file>env_run.xml</file>
@@ -379,6 +397,8 @@
     <default_value>8</default_value>
     <values match="last">
       <value compset="_DATM.*_MOM6.*_DROF"        >$ATM_NCPL</value>
+      <value compset="_DATM.*_MPASO.*_DROF"        >$ATM_NCPL</value>
+      <value compset="_DATM.*_MOM6.*_DROF"        >$OCN_NCPL</value>
       <value compset="_DATM.*_BLOM.*_DROF"        >$ATM_NCPL</value>
       <value compset="_DATM.*_DOCN%SOM"           >$ATM_NCPL</value>
       <value compset="_DATM.*_SLND.*_DICE.*_DOCN" >$ATM_NCPL</value>
@@ -389,6 +409,7 @@
       <value compset="_XATM.*_XLND.*_XICE.*_XOCN" >$ATM_NCPL</value>
       <value compset="_DLND.*_CISM\d"             >1</value>
       <value compset="_XROF"                      >$ATM_NCPL</value>
+      <value compset="_MPAS"                      >$ATM_NCPL</value>
     </values>
     <group>run_coupling</group>
     <file>env_run.xml</file>
@@ -417,6 +438,7 @@
     <values match="last">
       <value compset="DATM.+POP\d">TRUE</value>
       <value compset="DATM.+MOM\d">TRUE</value>
+      <value compset="DATM.+MPASO">TRUE</value>
       <value compset="DATM.+BLOM\d">TRUE</value>
       <value compset="DATM.+DOCN%IAF">TRUE</value>
       <value compset="DATM%CPLHIST.+POP\d">FALSE</value>
@@ -525,10 +547,10 @@
     <default_value>FALSE</default_value>
     <values match="last">
       <value compset="DATM.*_POP\d">TRUE</value>
-      <value compset="DATM.*_MOM\d">TRUE</value>
+      <value compset="DATM.*_MOM">TRUE</value>
       <value compset="DATM.*_BLOM\d">TRUE</value>
       <value compset="CAM.*_MOM\d">TRUE</value>
-      <value compset="CAM.*_BLOM\d">TRUE</value>
+      <value compset="CAM.*_BLOM">TRUE</value>
       <value compset="CAM.*_POP\d">TRUE</value>
       <value compset="CAM.*_DOCN%SOM">TRUE</value>
     </values>
