@@ -29,7 +29,8 @@ module med_phases_prep_atm_mod
   private
 
   public :: med_phases_prep_atm
-
+  public :: med_phases_prep_atm_enthalpy_correction   
+  
   character(len=13) :: fldnames_from_ocn(5) = (/'Faoo_fbrf_ocn','Faoo_fdms_ocn','Faoo_fco2_ocn',&
                                                 'Faoo_fn2o_ocn','Faoo_fnh3_ocn'/)
 
@@ -229,7 +230,7 @@ contains
     end do
 
     ! Add enthalpy correction to sensible heat if appropriate
-    if (Mediator_compute_enthalpy) then
+    if (mediator_compute_enthalpy) then
        call FB_getfldptr(is_local%wrap%FBExp(compatm), 'Faxx_sen', dataptr1, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 

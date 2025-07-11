@@ -42,7 +42,7 @@ contains
 
     use ESMF            , only : ESMF_GridComp, ESMF_SUCCESS
     use med_methods_mod , only : FB_Init  => med_methods_FB_init
-
+    
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc
@@ -78,7 +78,9 @@ contains
     use ESMF                    , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
     use med_constants_mod       , only : shr_const_cpsw, shr_const_tkfrz, shr_const_pi
     use med_phases_prep_atm_mod , only : med_phases_prep_atm_enthalpy_correction
-
+    use med_map_mod             , only : med_map_field_packed
+    use med_enthalpy_mod        , only : mediator_compute_enthalpy, med_compute_enthalpy
+    
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc

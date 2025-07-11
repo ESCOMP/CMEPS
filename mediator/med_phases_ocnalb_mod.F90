@@ -649,7 +649,6 @@ contains
     else
        orb_year = orb_iyear
     end if
-    first_time = .false.
 
     eccen = orb_eccen
     shr_log_unit = logunit
