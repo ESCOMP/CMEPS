@@ -1040,6 +1040,8 @@ contains
              call med_map_uv_cart3d(FBsrc, FBdst, routehandles, mapbilnr_uv3d, rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
 
+          else if (mapindex == mapconsf_uv3d) then
+
              ! For  mapconsf_uv3d do not use packed field bundles
              call med_map_uv_cart3d(FBsrc, FBdst, routehandles, mapconsf_uv3d, map_stress=.true., rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return

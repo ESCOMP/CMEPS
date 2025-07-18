@@ -270,6 +270,7 @@
       <value compset=".+" grid="a%ne0np4.ARCTIC.ne30x4"     >192</value>
       <value compset=".+" grid="a%ne0np4.ARCTICGRIS.ne30x8" >384</value>
       <value compset=".+" grid="a%ne0np4.POLARCAP.ne30x4"   >192</value>
+      <value compset=".+" grid="a%ne0np4.NATL.ne30x8"       >384</value>
       <value compset=".+" grid="a%C24"                      >48</value>
       <value compset=".+" grid="a%C48"                      >48</value>
       <value compset=".+" grid="a%C96"                      >48</value>
@@ -398,8 +399,8 @@
     <type>integer</type>
     <default_value>8</default_value>
     <values match="last">
-      <value compset="_DATM.*_MPASO.*_DROF"       >$ATM_NCPL</value>
-      <value compset="_DATM.*_MOM6.*_DROF"        >$ATM_NCPL</value>
+      <value compset="_DATM.*_MPASO.*_DROF"       >$OCN_NCPL</value>
+      <value compset="_DATM.*_MOM6.*_DROF"        >$OCN_NCPL</value>
       <value compset="_DATM.*_BLOM.*_DROF"        >$ATM_NCPL</value>
       <value compset="_DATM.*_DOCN%SOM"           >$ATM_NCPL</value>
       <value compset="_DATM.*_SLND.*_DICE.*_DOCN" >$ATM_NCPL</value>
