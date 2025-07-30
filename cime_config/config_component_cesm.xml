@@ -279,6 +279,23 @@
       <value compset=".+" grid="a%T42"                      >72</value>
       <value compset=".+" grid="a%T85"                      >144</value>
       <value compset=".+" grid="a%T341"                     >288</value>
+      <value compset=".+" grid="a%mpasa480"                   >48</value>
+      <value compset=".+" grid="a%mpasa240"                   >48</value>
+      <value compset=".+" grid="a%mpasa120"                   >48</value>
+      <value compset=".+" grid="a%mpasa60"                    >96</value>
+      <value compset=".+" grid="a%mpasa30"                    >192</value>
+      <value compset=".+" grid="a%mpasa15"                    >360</value>
+      <value compset=".+" grid="a%mpasa7p5"                   >720</value>
+      <value compset=".+" grid="a%mpasa3p75"                  >1440</value>
+      <!-- _MPAS compsets get NCPL_BASE_PERIOD=hour above, these settings are equivalent to the mpasa grids above -->
+      <value compset="_MPAS" grid="a%mpasa480"                >2</value>
+      <value compset="_MPAS" grid="a%mpasa240"                >2</value>
+      <value compset="_MPAS" grid="a%mpasa120"                >2</value>
+      <value compset="_MPAS" grid="a%mpasa60"                 >4</value>
+      <value compset="_MPAS" grid="a%mpasa30"                 >8</value>
+      <value compset="_MPAS" grid="a%mpasa15"                 >15</value>
+      <value compset="_MPAS" grid="a%mpasa7p5"                >30</value>
+      <value compset="_MPAS" grid="a%mpasa3p75"               >60</value>
       <!-- =================================================== -->
       <!-- TG compsets -->
       <!-- =================================================== -->
@@ -289,22 +306,6 @@
       <!-- =================================================== -->
       <value compset="_DATM.*_BLOM">24</value>
       <value compset="_BLOM" grid="oi%tnx0.25v">48</value>
-      <value compset=".+" grid="a%mpasa480"                   >48</value>
-      <value compset=".+" grid="a%mpasa240"                   >48</value>
-      <value compset=".+" grid="a%mpasa120"                   >48</value>
-      <value compset=".+" grid="a%mpasa60"                    >96</value>
-      <value compset=".+" grid="a%mpasa30"                    >192</value>
-      <value compset=".+" grid="a%mpasa15"                    >360</value>
-      <value compset=".+" grid="a%mpasa7p5"                   >720</value>
-      <value compset=".+" grid="a%mpasa3p75"                  >1440</value>
-      <value compset="_MPAS" grid="a%mpasa480"                >2</value>
-      <value compset="_MPAS" grid="a%mpasa240"                >2</value>
-      <value compset="_MPAS" grid="a%mpasa120"                >2</value>
-      <value compset="_MPAS" grid="a%mpasa60"                 >4</value>
-      <value compset="_MPAS" grid="a%mpasa30"                 >8</value>
-      <value compset="_MPAS" grid="a%mpasa15"                 >15</value>
-      <value compset="_MPAS" grid="a%mpasa7p5"                >30</value>
-      <value compset="_MPAS" grid="a%mpasa3p75"               >60</value>
     </values>
     <group>run_coupling</group>
     <file>env_run.xml</file>
