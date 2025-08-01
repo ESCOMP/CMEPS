@@ -817,6 +817,8 @@
   <entry id="GPU_TYPE">
     <type>char</type>
     <valid_values MACH="derecho">none,a100</valid_values>
+    <valid_values MACH="cirrus">none,a10,a2</valid_values>
+    <valid_values MACH="casper">none,v100,a100,h100</valid_values>
     <default_value>none</default_value>
     <group>build_def</group>
     <file>env_build.xml</file>
