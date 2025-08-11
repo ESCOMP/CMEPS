@@ -1705,8 +1705,8 @@ contains
        call addfld_from(complnd, 'Fall_fco2_lnd')
        call addfld_to(compatm, 'Fall_fco2_lnd')
     else
-       if ( fldchk(is_local%wrap%FBImp(compocn,compocn), 'Faoo_co2_lnd', rc=rc) .and. &
-            fldchk(is_local%wrap%FBexp(compatm)        , 'Faoo_co2_lnd', rc=rc)) then
+       if ( fldchk(is_local%wrap%FBImp(complnd,complnd), 'Fall_fco2_lnd', rc=rc) .and. &
+            fldchk(is_local%wrap%FBexp(compatm)        , 'Fall_fco2_lnd', rc=rc)) then
           call addmap_from(complnd, 'Fall_fco2_lnd', compatm, mapconsf, 'one', lnd2atm_map)
           call addmrg_to(compatm, 'Fall_fco2_lnd', &
                mrg_from=complnd, mrg_fld='Fall_fco2_lnd', mrg_type='copy_with_weights', mrg_fracname=mrg_fracname_lnd2atm_flux)
