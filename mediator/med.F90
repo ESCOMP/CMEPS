@@ -52,7 +52,8 @@ module MED
   use esmFldsExchange_hafs_mod , only : esmFldsExchange_hafs
   use med_phases_profile_mod   , only : med_phases_profile_finalize
   use shr_log_mod              , only : shr_log_error
-  
+
+
   implicit none
   private
 
@@ -1348,7 +1349,7 @@ contains
 
             call shr_log_error(trim(subname)//": ERROR fieldStatus not supported ", rc=rc)
             return
-            
+
          endif   ! fieldStatus
 
       enddo   ! nflds

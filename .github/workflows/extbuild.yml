@@ -24,7 +24,7 @@ jobs:
       PNETCDF_VERSION: checkpoint.1.14.0
       NETCDF_FORTRAN_VERSION: v4.6.1
       PIO_VERSION: pio2_6_5
-      CDEPS_VERSION: cdeps1.0.72
+      CDEPS_VERSION: cdeps1.0.80
     steps:
       - uses: actions/checkout@v4
         # Build the ESMF library, if the cache contains a previous build
@@ -75,7 +75,7 @@ jobs:
         with:
           path: /homme/runner/work/CMEPS/CMEPS/build-cdeps
           key: ${{ runner.os }}-${{ env.CDEPS_VERSION }}.cdeps1
-          
+
       - name: checkout CDEPS
         uses: actions/checkout@v4
         with:
@@ -85,7 +85,7 @@ jobs:
       - name: get genf90
         run: |
           cd cdeps-src
-          git submodule update --init 
+          git submodule update --init
       - name: Build CDEPS
         if: steps.cache-cdeps.outputs.cache-hit != 'true'
         uses: ESCOMP/CDEPS/.github/actions/buildcdeps@cdeps1.0.26
@@ -95,7 +95,7 @@ jobs:
           src_root: ${GITHUB_WORKSPACE}/cdeps-src
           cmake_flags: " -Wno-dev -DDISABLE_FoX=ON -DCMAKE_BUILD_TYPE=DEBUG -DWERROR=ON  -DCMAKE_Fortran_FLAGS=\"-DCPRGNU -g -Wall \
           -ffree-form -ffree-line-length-none -fallow-argument-mismatch \""
-      
+
       - name: Build CMEPS
         run: |
           export PIO=$HOME/pio

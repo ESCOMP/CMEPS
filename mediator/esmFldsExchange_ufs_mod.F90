@@ -11,12 +11,15 @@ module esmFldsExchange_ufs_mod
 
   public :: esmFldsExchange_ufs
 
+  integer :: atm2lnd_maptype
+  integer :: lnd2atm_maptype
+
   character(*), parameter :: u_FILE_u = &
        __FILE__
 
-!================================================================================
+  !================================================================================
 contains
-!================================================================================
+  !================================================================================
 
   subroutine esmFldsExchange_ufs(gcomp, phase, rc)
 
@@ -27,10 +30,10 @@ contains
     use med_methods_mod       , only : fldchk => med_methods_FB_FldChk
     use med_internalstate_mod , only : InternalState
     use med_internalstate_mod , only : compmed, compatm, compocn, compice, complnd, compwav, ncomps
-    use med_internalstate_mod , only : mapbilnr, mapconsf, mapconsd, mappatch
+    use med_internalstate_mod , only : mapbilnr, mapconsf, mapconsd, mappatch, mappatch_uv3d
     use med_internalstate_mod , only : mapfcopy, mapnstod, mapnstod_consd, mapnstod_consf
-    use med_internalstate_mod , only : mapconsf_aofrac, mapbilnr_nstod
-    use med_internalstate_mod , only : coupling_mode, mapnames
+    use med_internalstate_mod , only : mapconsf_aofrac, mapbilnr_nstod, mapconsf_uv3d
+    use med_internalstate_mod , only : coupling_mode, mapnames, samegrid_atmlnd
     use esmFlds               , only : med_fldList_type
     use esmFlds               , only : addfld_to => med_fldList_addfld_to
     use esmFlds               , only : addmrg_to => med_fldList_addmrg_to
@@ -50,6 +53,8 @@ contains
     type(InternalState) :: is_local
     integer             :: n, maptype
     logical             :: med_aoflux_to_ocn
+    logical             :: mapuv_with_cart3d
+    logical             :: isPresent, isSet
     character(len=CX)   :: msgString
     character(len=CL)   :: cvalue
     character(len=CS)   :: fldname
@@ -57,7 +62,7 @@ contains
     character(len=*) , parameter   :: subname='(esmFldsExchange_ufs)'
 
     ! component name
-    character(len=CS) :: lnd_name = ''    
+    character(len=CS) :: lnd_name = ''
     !--------------------------------------
 
     rc = ESMF_SUCCESS
@@ -72,9 +77,9 @@ contains
 
     ! Set maptype according to coupling_mode
     if (trim(coupling_mode) == 'ufs.nfrac' .or. trim(coupling_mode) == 'ufs.nfrac.aoflux') then
-      maptype = mapnstod_consf
+       maptype = mapnstod_consf
     else
-      maptype = mapconsf
+       maptype = mapconsf
     end if
     write(msgString,'(A,i6,A)') trim(subname)//': maptype is ',maptype,', '//mapnames(maptype)
     call ESMF_LogWrite(trim(msgString), ESMF_LOGMSG_INFO)
@@ -86,10 +91,30 @@ contains
        lnd_name = trim(cvalue)
     end if
 
+    ! uv cart3d mapping, default is true
+    mapuv_with_cart3d = .true.
+    call NUOPC_CompAttributeGet(gcomp, name='mapuv_with_cart3d', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+       if (trim(cvalue) == 'false') then
+          mapuv_with_cart3d = .false.
+       end if
+    end if
+
     if (trim(coupling_mode) == 'ufs.nfrac.aoflux' .or. trim(coupling_mode) == 'ufs.frac.aoflux') then
        med_aoflux_to_ocn = .true.
     else
        med_aoflux_to_ocn = .false.
+    end if
+
+    ! determine if atm and lnd have the same mesh
+    if (phase == 'advertise') then
+       atm2lnd_maptype = maptype
+       lnd2atm_maptype = maptype
+       if (samegrid_atmlnd) then
+          atm2lnd_maptype = mapfcopy
+          lnd2atm_maptype = mapfcopy
+       end if
     end if
 
     !=====================================================================
@@ -134,7 +159,7 @@ contains
              call addfld_from(compatm , fldname)
           else
              if ( fldchk(is_local%wrap%FBImp(compatm,compatm), fldname, rc=rc)) then
-                call addmap_from(compatm, fldname, compocn, maptype, 'one', 'unset')
+                call addmap_from(compatm, fldname, compocn, mapbilnr, 'one', 'unset')
              end if
           end if
        end do
@@ -258,7 +283,7 @@ contains
           do n = 1,size(flds)
              if ( fldchk(is_local%wrap%FBexp(compatm)        , 'Fall_'//trim(flds(n)), rc=rc) .and. &
                   fldchk(is_local%wrap%FBImp(complnd,complnd), 'Fall_'//trim(flds(n)), rc=rc)) then
-                call addmap_from(complnd, 'Fall_'//trim(flds(n)), compatm, maptype, 'lfrac', 'unset')
+                call addmap_from(complnd, 'Fall_'//trim(flds(n)), compatm, lnd2atm_maptype, 'lfrac', 'unset')
                 call addmrg_to(compatm, 'Fall_'//trim(flds(n)), mrg_from=complnd, mrg_fld='Fall_'//trim(flds(n)), mrg_type='copy')
              end if
           end do
@@ -279,7 +304,7 @@ contains
           do n = 1,size(flds)
              if ( fldchk(is_local%wrap%FBexp(compatm)        , 'Sl_'//trim(flds(n)), rc=rc) .and. &
                   fldchk(is_local%wrap%FBImp(complnd,complnd), 'Sl_'//trim(flds(n)), rc=rc)) then
-                call addmap_from(complnd, 'Sl_'//trim(flds(n)), compatm, maptype, 'lfrac', 'unset')
+                call addmap_from(complnd, 'Sl_'//trim(flds(n)), compatm, lnd2atm_maptype, 'lfrac', 'unset')
                 call addmrg_to(compatm, 'Sl_'//trim(flds(n)), mrg_from=complnd, mrg_fld='Sl_'//trim(flds(n)), mrg_type='copy')
              end if
           end do
@@ -443,7 +468,11 @@ contains
                   fldchk(is_local%wrap%FBImp(compice,compice), 'Fioi_'//fldname, rc=rc) .and. &
                   fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_'//fldname, rc=rc)) then
                 call addmap_from(compice, 'Fioi_'//fldname, compocn, mapfcopy, 'unset', 'unset')
-                call addmap_from(compatm, 'Faxa_'//fldname, compocn, mapconsf_aofrac, 'aofrac', 'unset')
+                if (mapuv_with_cart3d) then
+                   call addmap_from(compatm, 'Faxa_'//fldname, compocn, mapconsf_uv3d, 'aofrac', 'unset')
+                else
+                   call addmap_from(compatm, 'Faxa_'//fldname, compocn, mapconsf_aofrac, 'aofrac', 'unset')
+                end if
                 call addmrg_to(compocn, 'Foxx_'//fldname, &
                      mrg_from=compice, mrg_fld='Fioi_'//fldname, mrg_type='merge', mrg_fracname='ifrac')
                 call addmrg_to(compocn, 'Foxx_'//fldname, &
@@ -451,7 +480,7 @@ contains
              end if
           end if
        end if
-       end do
+    end do
     deallocate(flds)
 
     ! to ocn: net long wave via auto merge
@@ -615,8 +644,8 @@ contains
     ! - zonal wind at the lowest model level from atm
     ! - meridional wind at the lowest model level from atm
     ! - specific humidity at the lowest model level from atm
-    allocate(flds(6))
-    flds = (/'Sa_u   ', 'Sa_v   ', 'Sa_z   ', 'Sa_tbot', 'Sa_pbot', 'Sa_shum'/)
+    allocate(flds(4))
+    flds = (/'Sa_z   ', 'Sa_tbot', 'Sa_pbot', 'Sa_shum'/)
     do n = 1,size(flds)
        fldname = trim(flds(n))
        if (phase == 'advertise') then
@@ -627,12 +656,36 @@ contains
        else
           if ( fldchk(is_local%wrap%FBexp(compice)        , fldname, rc=rc) .and. &
                fldchk(is_local%wrap%FBImp(compatm,compatm), fldname, rc=rc)) then
-             call addmap_from(compatm, fldname, compice, maptype, 'one', 'unset')
+             call addmap_from(compatm, fldname, compice, mapbilnr, 'one', 'unset')
              call addmrg_to(compice, fldname, mrg_from=compatm, mrg_fld=fldname, mrg_type='copy')
           end if
        end if
     end do
     deallocate(flds)
+
+    allocate(flds(2))
+    flds = (/'Sa_u', 'Sa_v'/)
+    do n = 1,size(flds)
+       fldname = trim(flds(n))
+       if (phase == 'advertise') then
+          if (is_local%wrap%comp_present(compatm) .and. is_local%wrap%comp_present(compice)) then
+             call addfld_from(compatm , fldname)
+             call addfld_to(compice   , fldname)
+          endif
+       else
+          if ( fldchk(is_local%wrap%FBexp(compice)        , fldname, rc=rc) .and. &
+               fldchk(is_local%wrap%FBImp(compatm,compatm), fldname, rc=rc)) then
+             if (mapuv_with_cart3d) then
+                call addmap_from(compatm, fldname, compice, mappatch_uv3d, 'one', 'unset')
+             else
+                call addmap_from(compatm, fldname, compice, mappatch, 'one', 'unset')
+             end if
+             call addmrg_to(compice, fldname, mrg_from=compatm, mrg_fld=fldname, mrg_type='copy')
+          end if
+       end if
+    end do
+    deallocate(flds)
+
 
     ! to ice: states and fluxes from ocn
     ! - sea surface temperature from ocn
@@ -694,58 +747,58 @@ contains
        else
           if ( fldchk(is_local%wrap%FBexp(compwav)        , fldname, rc=rc) .and. &
                fldchk(is_local%wrap%FBImp(compatm,compatm), fldname, rc=rc)) then
-             call addmap_from(compatm, fldname, compwav, mapbilnr_nstod, 'one', 'unset')
+             call addmap_from(compatm, fldname, compwav, mapbilnr, 'one', 'unset')
              call addmrg_to(compwav, fldname, mrg_from=compatm, mrg_fld=fldname, mrg_type='copy')
           end if
        end if
-     end do
-     deallocate(flds)
+    end do
+    deallocate(flds)
 
-     ! to wav: states from ice
-     ! - sea ice fraction
-     ! - sea ice thickness
-     ! - sea ice floe diameter
-     allocate(flds(3))
-     flds = (/'Si_ifrac   ', 'Si_floediam', 'Si_thick   '/)
-     do n = 1,size(flds)
-        fldname = trim(flds(n))
-        if (phase == 'advertise') then
-           if (is_local%wrap%comp_present(compice) .and. is_local%wrap%comp_present(compwav)) then
-              call addfld_from(compice , fldname)
-              call addfld_to(compwav   , fldname)
-        end if
-        else
-           if ( fldchk(is_local%wrap%FBexp(compwav)        , fldname, rc=rc) .and. &
-                fldchk(is_local%wrap%FBImp(compice,compice), fldname, rc=rc)) then
-              call addmap_from(compice, fldname, compwav, mapbilnr_nstod , 'one', 'unset')
-              call addmrg_to(compwav, fldname, mrg_from=compice, mrg_fld=fldname, mrg_type='copy')
-           end if
-        end if
-      end do
-      deallocate(flds)
+    ! to wav: states from ice
+    ! - sea ice fraction
+    ! - sea ice thickness
+    ! - sea ice floe diameter
+    allocate(flds(3))
+    flds = (/'Si_ifrac   ', 'Si_floediam', 'Si_thick   '/)
+    do n = 1,size(flds)
+       fldname = trim(flds(n))
+       if (phase == 'advertise') then
+          if (is_local%wrap%comp_present(compice) .and. is_local%wrap%comp_present(compwav)) then
+             call addfld_from(compice , fldname)
+             call addfld_to(compwav   , fldname)
+          end if
+       else
+          if ( fldchk(is_local%wrap%FBexp(compwav)        , fldname, rc=rc) .and. &
+               fldchk(is_local%wrap%FBImp(compice,compice), fldname, rc=rc)) then
+             call addmap_from(compice, fldname, compwav, mapbilnr_nstod , 'one', 'unset')
+             call addmrg_to(compwav, fldname, mrg_from=compice, mrg_fld=fldname, mrg_type='copy')
+          end if
+       end if
+    end do
+    deallocate(flds)
 
-      ! to wav: states from ocn
-      ! - zonal sea water velocity from ocn
-      ! - meridional sea water velocity from ocn
-      ! - surface temperature from ocn
-      allocate(flds(3))
-      flds = (/'So_u', 'So_v', 'So_t'/)
-      do n = 1,size(flds)
-         fldname = trim(flds(n))
-         if (phase == 'advertise') then
-            if (is_local%wrap%comp_present(compocn) .and. is_local%wrap%comp_present(compwav)) then
-               call addfld_from(compocn , fldname)
-               call addfld_to(compwav   , fldname)
-            end if
-         else
-            if ( fldchk(is_local%wrap%FBexp(compwav)        , fldname, rc=rc) .and. &
-                 fldchk(is_local%wrap%FBImp(compocn,compocn), fldname, rc=rc)) then
-               call addmap_from(compocn, fldname, compwav, mapbilnr_nstod , 'one', 'unset')
-              call addmrg_to(compwav, fldname, mrg_from=compocn, mrg_fld=fldname, mrg_type='copy')
-           end if
-        end if
-     end do
-     deallocate(flds)
+    ! to wav: states from ocn
+    ! - zonal sea water velocity from ocn
+    ! - meridional sea water velocity from ocn
+    ! - surface temperature from ocn
+    allocate(flds(3))
+    flds = (/'So_u', 'So_v', 'So_t'/)
+    do n = 1,size(flds)
+       fldname = trim(flds(n))
+       if (phase == 'advertise') then
+          if (is_local%wrap%comp_present(compocn) .and. is_local%wrap%comp_present(compwav)) then
+             call addfld_from(compocn , fldname)
+             call addfld_to(compwav   , fldname)
+          end if
+       else
+          if ( fldchk(is_local%wrap%FBexp(compwav)        , fldname, rc=rc) .and. &
+               fldchk(is_local%wrap%FBImp(compocn,compocn), fldname, rc=rc)) then
+             call addmap_from(compocn, fldname, compwav, mapbilnr_nstod , 'one', 'unset')
+             call addmrg_to(compwav, fldname, mrg_from=compocn, mrg_fld=fldname, mrg_type='copy')
+          end if
+       end if
+    end do
+    deallocate(flds)
 
     !=====================================================================
     ! FIELDS TO LAND (complnd)
@@ -776,7 +829,7 @@ contains
        else
           if ( fldchk(is_local%wrap%FBexp(complnd)        , fldname, rc=rc) .and. &
                fldchk(is_local%wrap%FBImp(compatm,compatm), fldname, rc=rc)) then
-             call addmap_from(compatm, fldname, complnd, maptype, 'one', 'unset')
+             call addmap_from(compatm, fldname, complnd, atm2lnd_maptype, 'one', 'unset')
              call addmrg_to(complnd, fldname, mrg_from=compatm, mrg_fld=fldname, mrg_type='copy')
           end if
        end if
@@ -801,8 +854,8 @@ contains
                 call addmrg_to(complnd, fldname, mrg_from=compatm, mrg_fld=fldname, mrg_type='copy')
              end if
           end if
-       end do 
-       deallocate(flds)       
+       end do
+       deallocate(flds)
     end if ! lm4
 
   end subroutine esmFldsExchange_ufs

@@ -265,6 +265,23 @@ contains
       samegrid_atmlnd = .true.
     end if
 
+    ! flexibility to overwrite samegrid_atmlnd option
+    call NUOPC_CompAttributeGet(gcomp, name='samegrid_atmlnd', value=cvalue, &
+         isPresent=isPresent, isSet=isSet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    if (isPresent .and. isSet) then
+       if (trim(cvalue) == '.true.' .or. trim(cvalue) == 'true') then
+          samegrid_atmlnd = .true.
+       else
+          samegrid_atmlnd = .false.
+       end if
+    end if
+
+    if (maintask) then
+       write(logunit,'(a,l)') trim(subname)//' atm and lnd is on same grid = ', samegrid_atmlnd
+    end if
+
     ! See med_fraction_mod for the following definitions
     if (samegrid_atmlnd) then
       map_fracname_lnd2atm       = 'lfrin' ! in fraclist_a
@@ -673,17 +690,16 @@ contains
     if (is_local%wrap%comp_present(compice)) defaultMasks(compice,:) = 0
     if (is_local%wrap%comp_present(compwav)) defaultMasks(compwav,:) = 0
     if ( coupling_mode(1:3) == 'ufs') then
-       if (is_local%wrap%comp_present(compatm)) defaultMasks(compatm,:) = 1
+       if (is_local%wrap%comp_present(compatm)) defaultMasks(compatm,2) = 1
     endif
-    if ( trim(coupling_mode) == 'hafs') then
+    if ( trim(coupling_mode) == 'hafs') then  ! not hafs.mom6
        if (is_local%wrap%comp_present(compatm)) defaultMasks(compatm,1) = 1
     endif
-    if ( trim(coupling_mode) /= 'cesm') then
-       if (is_local%wrap%comp_present(compatm) .and. trim(atm_name(1:4)) == 'datm') then
+    if ( coupling_mode /= 'cesm') then
+       if (is_local%wrap%comp_present(compatm) .and. atm_name(1:4) == 'datm') then
           defaultMasks(compatm,1) = 0
        end if
     end if
-
   end subroutine med_internalstate_defaultmasks
 
 end module med_internalstate_mod
