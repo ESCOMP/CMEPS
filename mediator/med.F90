@@ -52,7 +52,7 @@ module MED
   use esmFldsExchange_hafs_mod , only : esmFldsExchange_hafs
   use med_phases_profile_mod   , only : med_phases_profile_finalize
   use shr_log_mod              , only : shr_log_error
-  
+
   implicit none
   private
 
@@ -1348,7 +1348,7 @@ contains
 
             call shr_log_error(trim(subname)//": ERROR fieldStatus not supported ", rc=rc)
             return
-            
+
          endif   ! fieldStatus
 
       enddo   ! nflds
@@ -1917,7 +1917,7 @@ contains
       !---------------------------------------
       ! Initialize rof module field bundles here if appropriate
       !---------------------------------------
-      if (is_local%wrap%med_coupling_active(comprof,complnd)) then
+      if (is_local%wrap%med_coupling_active(complnd,comprof)) then
          call med_phases_prep_rof_init(gcomp, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
       end if
@@ -2266,9 +2266,9 @@ contains
     use ESMF                  , only : ESMF_ClockGetAlarmList
     use NUOPC                 , only : NUOPC_CompCheckSetClock, NUOPC_CompAttributeGet
     use NUOPC_Mediator        , only : NUOPC_MediatorGet
-    ! NUOPC_shr_methods is now in cesm_share and cdeps 
+    ! NUOPC_shr_methods is now in cesm_share and cdeps
     use nuopc_shr_methods, only : AlarmInit
-    
+
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc

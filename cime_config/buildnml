@@ -570,6 +570,27 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
         drv_flds_in = os.path.join(caseroot, "CaseDocs", "drv_flds_in")
         nmlgen.write_output_file(drv_flds_in)
 
+        # now read drv_flds_in and determine if lnd sends extra
+        # non-water tracers to runoff component
+        add_tracer_field = False
+        with open(drv_flds_in, "r", encoding="utf-8") as namelist_file:
+            for line in namelist_file.readlines():
+                if 'lnd2rof_tracers' in  line and 'lnd2rof_tracers_inparm' not in line:
+                    add_tracer_field = True
+
+        append_line = False
+        if add_tracer_field:
+            user_nl_cpl = os.path.join(caseroot, "user_nl_cpl")
+            append_line = True
+            with open(user_nl_cpl) as user_file:
+                for line in user_file.readlines():
+                    if 'Flrl_rofsur_nonh2o' in line:
+                        append_line = False
+        if append_line:
+            print("NOTE: Adding the following line to user_nl_cpl")
+            print(   "histaux_lnd2med_file2_flds = \'Flrl_rofsur:Flrl_rofi:Flrl_rofgwl:Flrl_rofsub:Flrl_rofsur_nonh2o\'\n")
+            with open(user_nl_cpl, 'a') as user_file:
+                user_file.write("histaux_lnd2med_file2_flds = \'Flrl_rofsur:Flrl_rofi:Flrl_rofgwl:Flrl_rofsub:Flrl_rofsur_nonh2o\'\n")
 
 ###############################################################################
 def _create_runseq(case, coupling_times, valid_comps):
