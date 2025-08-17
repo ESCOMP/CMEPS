@@ -31,8 +31,8 @@ module med_phases_prep_atm_mod
   public :: med_phases_prep_atm_enthalpy_correction
   public :: med_phases_prep_atm_enthalpy_runoff
 
-  real(r8), public :: global_htot_corr(1) = 0._r8  ! enthalpy correction from med_phases_prep_ocn
-  real(r8), public :: global_hrof_corr(1) = 0._r8  ! enthalpy of run-off from med_phases_prep_ocn
+  real(r8) :: global_htot_corr(1) = 0._r8  ! enthalpy correction from med_phases_prep_ocn
+  real(r8) :: global_hrof_corr(1) = 0._r8  ! enthalpy of run-off from med_phases_prep_ocn
 
   character(len=13) :: fldnames_from_ocn(5) = (/'Faoo_fbrf_ocn','Faoo_fdms_ocn','Faoo_fco2_ocn',&
                                                 'Faoo_fn2o_ocn','Faoo_fnh3_ocn'/)
@@ -232,20 +232,14 @@ contains
       end if
     end do
 
-!+tht: Adding enthalpy correction to sensible heat is never appropriate
-   !if (FB_FldChk(is_local%wrap%FBExp(compatm), 'Faxx_sen', rc=rc)) then
-   !   call FB_getfldptr(is_local%wrap%FBExp(compatm), 'Faxx_sen', dataptr1, rc=rc)
-   !   if (ChkErr(rc,__LINE__,u_FILE_u)) return
-   !   do n = 1,size(dataptr1)
-   !      dataptr1(n) = dataptr1(n) + global_htot_corr(1)
-   !   end do
-   !end if
-  ! instead, pass extra coupling fiels to atmosphere and decide there to use it (NCAR code) or not (best)
-    if (FB_FldChk(is_local%wrap%FBExp(compatm), 'Faxx_goef', rc=rc)) then
-       call FB_getfldptr(is_local%wrap%FBExp(compatm), 'Faxx_goef', dataptr1, rc=rc)
+    ! Only do the following correction if the mediator is computing the enthalpy to be sent to the ocean
+    ! from rain, snow, etc.
+    if (       FB_FldChk(is_local%wrap%FBExp(compatm), 'Faxx_sen' , rc=rc) .and. &
+         .not. FB_fldchk(is_local%wrap%FBExp(compocn), 'Faxa_hmat', rc=rc)) then
+       call FB_getfldptr(is_local%wrap%FBExp(compatm), 'Faxx_sen', dataptr1, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        do n = 1,size(dataptr1)
-          dataptr1(n) = global_htot_corr(1)
+          dataptr1(n) = dataptr1(n) + global_htot_corr(1)
        end do
     end if
     if (FB_FldChk(is_local%wrap%FBExp(compatm), 'Faxx_hrof', rc=rc)) then
@@ -255,7 +249,6 @@ contains
           dataptr1(n) = global_hrof_corr(1)
        end do
     end if
-!-tht
 
     ! Check for nans in fields export to atm
     call FB_check_for_nans(is_local%wrap%FBExp(compatm), maintask, logunit, rc=rc)
@@ -315,7 +308,7 @@ contains
   end subroutine med_phases_prep_atm_enthalpy_correction
 
   !-----------------------------------------------------------------------------
-  subroutine med_phases_prep_atm_enthalpy_runoff     (gcomp, hcorr, rc)
+  subroutine med_phases_prep_atm_enthalpy_runoff(gcomp, hcorr, rc)
 
     use ESMF            , only : ESMF_VMAllreduce, ESMF_GridCompGet, ESMF_REDUCE_SUM
     use ESMF            , only : ESMF_VM

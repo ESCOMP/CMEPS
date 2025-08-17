@@ -664,6 +664,37 @@
   </entry>
 
   <!-- =========================================== -->
+  <!-- MED enthalpy computation                    -->
+  <!-- =========================================== -->
+
+  <entry id="med_computes_enthalpy_flux">
+    <type>logical</type>
+    <category>control</category>
+    <group>ALLCOMP_attributes</group>
+    <desc>
+      if true, the mediator computes enthalpy associated with rain,
+      snow, etc to send to ocn (in this case MOM6)
+    </desc>
+    <values>
+      <value>.false.</value>
+      <value comp_ocn="mom6" comp_atm="cam">.true.</value>
+    </values>
+  </entry>
+
+  <entry id="atm_computes_enthalpy_flux">
+    <type>logical</type>
+    <category>control</category>
+    <group>ALLCOMP_attributes</group>
+    <desc>
+      if true, the atm (in this case cam) computes enthalpy to send to the ocn (in this case BLOM)
+    </desc>
+    <values>
+      <value>.true.</value>
+      <value comp_ocn="blom" comp_atm="cam">.true.</value>
+    </values>
+  </entry>
+
+  <!-- =========================================== -->
   <!-- MED general attributes                      -->
   <!-- =========================================== -->
 
@@ -962,12 +993,13 @@
     <type>char</type>
     <category>budget</category>
     <group>MED_attributes</group>
-    <valid_values>v0,v1</valid_values>
+    <valid_values>v0,v1,v2</valid_values>
     <desc>
       currently v0 refers to budgets using POP and v1 refers to budgets using MOM6
     </desc>
     <values>
       <value>v0</value>
+      <value comp_ocn="blom">v2</value>
       <value comp_ocn="mom">v1</value>
       <value comp_ocn="pop">v0</value>
     </values>
