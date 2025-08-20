@@ -628,6 +628,35 @@ def compare_drv_flds_in(first, second, infile1, infile2):
                 % (infile1, infile2),
             )
 
+def cmeps_lib_list(case):
+    ufs_driver = os.environ.get("UFS_DRIVER")
+    mpilib = case.get_value("MPILIB")
+    if ufs_driver:
+        logger.info("UFS_DRIVER is set to {}".format(ufs_driver))
+    if ufs_driver and ufs_driver == "nems" and not cpl_in_complist:
+        libs = []
+    elif case.get_value("MODEL") == "cesm":
+        libs = ["gptl", "pio", "csm_share"]
+    elif case.get_value("MODEL") == "e3sm":
+        libs = ["gptl", "mct", "spio", "csm_share"]
+    else:
+        libs = ["gptl", "mct", "pio", "csm_share"]
+
+    libs.append("FTorch")
+
+    if mpilib == "mpi-serial":
+        libs.insert(0, mpilib)
+
+    # Build shared code of CDEPS nuopc data models
+    if not ufs_driver or ufs_driver != "nems":
+        libs.append("CDEPS")
+        
+    ocn_model = case.get_value("COMP_OCN")
+    
+    atm_dycore = case.get_value("CAM_DYCORE")
+    if ocn_model == "mom" or (atm_dycore and atm_dycore == "fv3"):
+        libs.append("FMS")
+    return libs
 
 ###############################################################################
 def buildnml(case, caseroot, component):
@@ -635,6 +664,9 @@ def buildnml(case, caseroot, component):
     if component != "drv":
         raise AttributeError
 
+    libs = cmeps_lib_list(case)
+    case.set_value("CASE_SUPPORT_LIBRARIES", ",".join(libs))
+    
     esmfmkfile = os.getenv("ESMFMKFILE")
     expect(
         esmfmkfile and os.path.isfile(esmfmkfile),
@@ -725,7 +757,7 @@ def buildnml(case, caseroot, component):
 def _main_func():
     caseroot = parse_input(sys.argv)
 
-    with Case(caseroot) as case:
+    with Case(caseroot, read_only=False) as case:
         buildnml(case, caseroot, "drv")
 
 
