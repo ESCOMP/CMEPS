@@ -7,7 +7,7 @@ _CIMEROOT = os.environ.get("CIMEROOT")
 if _CIMEROOT is None:
     raise SystemExit("ERROR: must set CIMEROOT environment variable")
 
-sys.path.append(os.path.join(_CIMEROOT, "scripts", "Tools"))
+sys.path.append(os.path.join(_CIMEROOT, "CIME", "Tools"))
 
 import shutil, glob, itertools
 from standard_script_setup import *
@@ -629,18 +629,22 @@ def compare_drv_flds_in(first, second, infile1, infile2):
             )
 
 def cmeps_lib_list(case):
+    # provide a list of support libs that must be built for this case
+    # should be ordered with dependent libraries listed after those depended on
     ufs_driver = os.environ.get("UFS_DRIVER")
     mpilib = case.get_value("MPILIB")
     if ufs_driver:
         logger.info("UFS_DRIVER is set to {}".format(ufs_driver))
+    # allows for some libs to have been previously set
+    libs = case.get_values("CASE_SUPPORT_LIBRARIES")
     if ufs_driver and ufs_driver == "nems" and not cpl_in_complist:
-        libs = []
+        pass
     elif case.get_value("MODEL") == "cesm":
-        libs = ["gptl", "pio", "csm_share"]
+        libs.extend(["gptl", "pio", "csm_share"])
     elif case.get_value("MODEL") == "e3sm":
-        libs = ["gptl", "mct", "spio", "csm_share"]
+        libs.extend(["gptl", "mct", "spio", "csm_share"])
     else:
-        libs = ["gptl", "mct", "pio", "csm_share"]
+        libs.extend(["gptl", "mct", "pio", "csm_share"])
 
     libs.append("FTorch")
 
