@@ -3836,8 +3836,7 @@
     </desc>
     <values>
       <value>.false.</value>
-      <!-- The following is not set as a default for now -->
-      <!-- <value wav_coupling_to_cice='on'>.true.</value>    -->
+      <value wav_ice_coupling="on">.true.</value>
     </values>
   </entry>
 
