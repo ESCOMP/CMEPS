@@ -631,6 +631,7 @@ def compare_drv_flds_in(first, second, infile1, infile2):
 def cmeps_lib_list(case):
     # provide a list of support libs that must be built for this case
     # should be ordered with dependent libraries listed after those depended on
+    # the library names should match the keys in variable BUILD_LIB_FILE from config_files.xml
     ufs_driver = os.environ.get("UFS_DRIVER")
     mpilib = case.get_value("MPILIB")
     if ufs_driver:
