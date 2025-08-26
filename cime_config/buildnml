@@ -638,23 +638,9 @@ def cmeps_lib_list(case):
         logger.info("UFS_DRIVER is set to {}".format(ufs_driver))
     # allows for some libs to have been previously set
     libs = case.get_values("CASE_SUPPORT_LIBRARIES")
-    if ufs_driver and ufs_driver == "nems" and not cpl_in_complist:
-        pass
-    elif case.get_value("MODEL") == "cesm":
-        libs.extend(["gptl", "pio", "csm_share"])
-    elif case.get_value("MODEL") == "e3sm":
-        libs.extend(["gptl", "mct", "spio", "csm_share"])
-    else:
-        libs.extend(["gptl", "mct", "pio", "csm_share"])
-
-    libs.append("FTorch")
 
     if mpilib == "mpi-serial":
         libs.insert(0, mpilib)
-
-    # Build shared code of CDEPS nuopc data models
-    if not ufs_driver or ufs_driver != "nems":
-        libs.append("CDEPS")
         
     ocn_model = case.get_value("COMP_OCN")
     
