@@ -633,12 +633,12 @@ def cmeps_lib_list(case):
     # should be ordered with dependent libraries listed after those depended on
     # the library names should match the keys in variable BUILD_LIB_FILE from config_files.xml
     ufs_driver = os.environ.get("UFS_DRIVER")
-    mpilib = case.get_value("MPILIB")
     if ufs_driver:
         logger.info("UFS_DRIVER is set to {}".format(ufs_driver))
-    # allows for some libs to have been previously set
+
     libs = case.get_values("CASE_SUPPORT_LIBRARIES")
 
+    mpilib = case.get_value("MPILIB")
     if mpilib == "mpi-serial":
         libs.insert(0, mpilib)
         
