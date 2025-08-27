@@ -279,7 +279,7 @@ contains
     end if
 
     if (maintask) then
-       write(logunit,'(a,l)') trim(subname)//' atm and lnd is on same grid = ', samegrid_atmlnd
+       write(logunit,'(a,l2)') trim(subname)//' atm and lnd is on same grid = ', samegrid_atmlnd
     end if
 
     ! See med_fraction_mod for the following definitions
