@@ -643,9 +643,9 @@ def cmeps_lib_list(case):
         libs.insert(0, mpilib)
         
     ocn_model = case.get_value("COMP_OCN")
-    
+    # These will be handeled by MOM and CAM, included here for backward compatibility.  
     atm_dycore = case.get_value("CAM_DYCORE")
-    if ocn_model == "mom" or (atm_dycore and atm_dycore == "fv3"):
+    if ocn_model == "mom" or (atm_dycore and atm_dycore == "fv3") and "FMS" not in libs:
         libs.append("FMS")
     return libs
 
