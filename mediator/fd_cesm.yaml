@@ -72,6 +72,21 @@
        canonical_units: N m-2
        description: med export - atm/ocn meridional surface stress computed in medidator
      #
+
+     - standard_name: Faox_tauxa
+       alias: stress_on_air_ocn_zonal (atm)
+       canonical_units: N m-2
+       description: mediator export
+     #
+     - standard_name: Faox_tauya
+       alias: stress_on_air_ocn_merid (atm)
+       canonical_units: N m-2
+       description: mediator export
+     #
+     - standard_name: area
+       canonical_units: radians**2
+       description: mediator area for component
+
      - standard_name: Fwxx_taux
        alias: mean_zonal_moment_flx
        canonical_units: N m-2
@@ -81,6 +96,7 @@
        alias: mean_merid_moment_flx
        canonical_units: N m-2
        description: wave import to med - meridional surface stress
+
      #
      #-----------------------------------
      # section: lnd import to med
@@ -298,6 +314,16 @@
        description: atm import to med
          mean downward SW heat flux
      #
+     - standard_name: Faxa_wsxadj
+       canonical_units: Pa
+       description: (from) atmosphere export to flux_atmocn (for now)
+         mean wind-stess correction due to PBL iteration, zonal component
+     #
+     - standard_name: Faxa_wsyadj
+       canonical_units: Pa
+       description: (from) atmosphere export to flux_atmocn (for now)
+         mean wind-stess correction due to PBL iteration, meridional component
+     #
      - standard_name: Faxa_ndep
        canonical_units: kg(N)/m2/sec
        description: atm import to med - currently nhx and noy
@@ -330,7 +356,12 @@
      #
      - standard_name: Faxa_rainl_wiso
        canonical_units: kg m-2 s-1
-       description: atm import to med
+       description: atmosphere export
+     # 
+     - standard_name: Faxa_hrain
+       alias: mean_matentf_of_rain
+       canonical_units: W m-2 
+       description: atmosphere export
      #
      - standard_name: Faxa_snow
        alias: mean_fprec_rate
@@ -355,6 +386,11 @@
      #
      - standard_name: Faxa_snowl_wiso
        canonical_units: kg m-2 s-1
+       description: atmosphere export
+     # 
+     - standard_name: Faxa_hsnow
+       alias: mean_matentf_of_snow
+       canonical_units: W m-2 
        description: atm import to med
      #
      - standard_name: Faxa_swnet
@@ -486,7 +522,13 @@
      - standard_name: Faxa_lat
        alias: mean_laten_heat_flx_atm
        canonical_units: W m-2
+       description: atmosphere export
+     # 
+     - standard_name: Faxa_hevap
+       alias: mean_matentf_of_vapour
+       canonical_units: W m-2
        description: atm import to med
+
      #
      - standard_name: Faxa_sen
        alias: mean_sensi_heat_flx_atm
@@ -1321,6 +1363,9 @@
        canonical_units: m2/s
        description: wave elevation spectrum
      #
+     #-----------------------------------
+     # section: wave import
+     # -----------------------------------
      - standard_name: Sw_ustokes_avg
        canonical_units: m/s
        description: Daily averaged stokes drift u component (only needed for med history output)
