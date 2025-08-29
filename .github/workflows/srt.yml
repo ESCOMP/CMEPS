@@ -182,7 +182,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: test-logs-${{ matrix.python-version }}
-          path: test-logs-${{ matrix.python-version }}.tar.gz
+          path: $GITHUB_WORKSPACE/cesm/cime/CIME/tests 
           retention-days: 4
 #     the following can be used by developers to login to the github server in case of errors
 #     see https://github.com/marketplace/actions/debugging-with-tmate for further details
