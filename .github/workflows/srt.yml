@@ -177,19 +177,19 @@ jobs:
       # How to download artifacts:
       # https://docs.github.com/en/actions/managing-workflow-runs/downloading-workflow-artifacts
 
-      - name: Upload test logs
-        if: ${{ failure() }}
-        steps:
-        - name: Tar test logs
-          run: tar zcf scratch-${{ matrix.python-version }}.tar.gz /home/runner/cesm/scratch
-        - name: save artifact
-          uses: actions/upload-artifact@v4
-          with:
-            name: test-logs-${{ matrix.python-version }}
-            path: scratch-${{ matrix.python-version }}.tar.gz
-            retention-days: 4
+#      - name: Upload test logs
+#        if: ${{ failure() }}
+#        steps:
+#        - name: Tar test logs
+#          run: tar zcf scratch-${{ matrix.python-version }}.tar.gz /home/runner/cesm/scratch
+#        - name: save artifact
+#          uses: actions/upload-artifact@v4
+#          with:
+#            name: test-logs-${{ matrix.python-version }}
+#            path: scratch-${{ matrix.python-version }}.tar.gz
+#            retention-days: 4
 #     the following can be used by developers to login to the github server in case of errors
 #     see https://github.com/marketplace/actions/debugging-with-tmate for further details
-#      - name: Setup tmate session
-#        if: ${{ failure() }}
-#        uses: mxschmitt/action-tmate@v3
+      - name: Setup tmate session
+        if: ${{ failure() }}
+        uses: mxschmitt/action-tmate@v3
