@@ -2522,10 +2522,22 @@
    <desc>Remote git repository used for this case</desc>
  </entry>
 
-<!-- ===================================================================== -->
-  <!-- Include the AOFLUX calculation for this compset -->
-  <!-- ===================================================================== -->
+ <entry id="CASE_SUPPORT_LIBRARIES">
+   <type>char</type>
+   <default_value></default_value>
+   <values>
+     <value cime_model="cesm">gptl,pio,csm_share,FTorch,CDEPS</value>
+   </values>
+   <group>build_def</group>
+   <file>env_build.xml</file>
+   <desc>Support libraries required</desc>
+ </entry>
 
+ 
+ <!-- ===================================================================== -->
+ <!-- Include the AOFLUX calculation for this compset -->
+ <!-- ===================================================================== -->
+ 
  <entry id="ADD_AOFLUX_TO_RUNSEQ">
    <type>logical</type>
    <valid_values>TRUE,FALSE</valid_values>

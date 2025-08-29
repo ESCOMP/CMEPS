@@ -7,7 +7,7 @@ _CIMEROOT = os.environ.get("CIMEROOT")
 if _CIMEROOT is None:
     raise SystemExit("ERROR: must set CIMEROOT environment variable")
 
-sys.path.append(os.path.join(_CIMEROOT, "scripts", "Tools"))
+sys.path.append(os.path.join(_CIMEROOT, "CIME", "Tools"))
 
 import shutil, glob, itertools
 from standard_script_setup import *
@@ -629,6 +629,26 @@ def compare_drv_flds_in(first, second, infile1, infile2):
                 % (infile1, infile2),
             )
 
+def cmeps_lib_list(case):
+    # provide a list of support libs that must be built for this case
+    # should be ordered with dependent libraries listed after those depended on
+    # the library names should match the keys in variable BUILD_LIB_FILE from config_files.xml
+    ufs_driver = os.environ.get("UFS_DRIVER")
+    if ufs_driver:
+        logger.info("UFS_DRIVER is set to {}".format(ufs_driver))
+
+    libs = case.get_values("CASE_SUPPORT_LIBRARIES")
+
+    mpilib = case.get_value("MPILIB")
+    if mpilib == "mpi-serial":
+        libs.insert(0, mpilib)
+        
+    ocn_model = case.get_value("COMP_OCN")
+    # These will be handled by MOM and CAM, included here for backward compatibility.  
+    atm_dycore = case.get_value("CAM_DYCORE")
+    if (ocn_model == "mom" or (atm_dycore and atm_dycore == "fv3")) and "FMS" not in libs:
+        libs.append("FMS")
+    return libs
 
 ###############################################################################
 def buildnml(case, caseroot, component):
@@ -636,6 +656,9 @@ def buildnml(case, caseroot, component):
     if component != "drv":
         raise AttributeError
 
+    libs = cmeps_lib_list(case)
+    case.set_value("CASE_SUPPORT_LIBRARIES", ",".join(libs))
+    
     esmfmkfile = os.getenv("ESMFMKFILE")
     expect(
         esmfmkfile and os.path.isfile(esmfmkfile),
@@ -726,7 +749,7 @@ def buildnml(case, caseroot, component):
 def _main_func():
     caseroot = parse_input(sys.argv)
 
-    with Case(caseroot) as case:
+    with Case(caseroot, read_only=False) as case:
         buildnml(case, caseroot, "drv")
 
 
