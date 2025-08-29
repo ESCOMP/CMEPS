@@ -312,7 +312,7 @@ contains
        deallocate(flds)
     end if
 
-    ! to atm: unmerged from mediator, merge will be done under FV3/CCPP composite step
+    ! to atm: unmerged from mediator, merge will be done under UFSATM/CCPP composite step
     ! - zonal surface stress, meridional surface stress
     ! - surface latent heat flux,
     ! - surface sensible heat flux
