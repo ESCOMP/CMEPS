@@ -143,13 +143,14 @@ module med_diag_mod
   integer :: f_heat_latf     = unset_index ! heat : latent, fusion, snow
   integer :: f_heat_ioff     = unset_index ! heat : latent, fusion, frozen runoff
   integer :: f_heat_sen      = unset_index ! heat : sensible
-  integer :: f_heat_hmat     = unset_index ! heat : surface material enthalpy flux
   integer :: f_heat_rain     = unset_index ! heat : heat content of rain
   integer :: f_heat_snow     = unset_index ! heat : heat content of snow
   integer :: f_heat_evap     = unset_index ! heat : heat content of evaporation
   integer :: f_heat_cond     = unset_index ! heat : heat content of evaporation
   integer :: f_heat_rofl     = unset_index ! heat : heat content of liquid runoff
   integer :: f_heat_rofi     = unset_index ! heat : heat content of ice runoff
+  integer :: f_heat_rofa     = unset_index ! heat : total heat content of runoff to atm (v2)
+  integer :: f_heat_hmat     = unset_index ! heat : surface material enthalpy flux (v2)
 
   integer :: f_watr_frz      = unset_index ! water: freezing
   integer :: f_watr_melt     = unset_index ! water: melting
@@ -339,6 +340,7 @@ contains
        f_heat_beg = f_heat_frz      ! field  first index for heat
        f_heat_end = f_heat_rofi     ! field  last  index for heat
     else if (trim(budget_table_version) == 'v2') then
+       call add_to_budget_diag(budget_diags%fields, f_heat_rofa  ,'hrofa'       ) ! field  heat : total enthalpy of runoff to atm
        call add_to_budget_diag(budget_diags%fields, f_heat_hmat  ,'hmat'        ) ! field  heat : surf. mat. enthalpy flux
        f_heat_beg = f_heat_frz      ! field  first index for heat
        f_heat_end = f_heat_hmat     ! field  last  index for heat
@@ -724,6 +726,7 @@ contains
     call diag_atm_recv(is_local%wrap%FBImp(compatm,compatm), 'Faxa_snowl', f_watr_snow, &
          areas, lats, afrac, lfrac, ofrac, ifrac, budget_local, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
     if (trim(budget_table_version) == 'v2') then
        call diag_atm_recv(is_local%wrap%FBImp(compatm,compatm), 'Faxa_hmat', f_heat_hmat, &
             areas, lats, afrac, lfrac, ofrac, ifrac, budget_local, rc=rc)
@@ -764,17 +767,23 @@ contains
     end do
 
     call diag_atm_send(is_local%wrap%FBExp(compatm), 'Faxx_lwup', f_heat_lwup, &
-         areas, lats, afrac, lfrac, ofrac, ifrac, budget_local, rc=rc)
+         areas, lats, afrac, lfrac, ofrac, ifrac, budget_local, component_contribution=.true., rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call diag_atm_send(is_local%wrap%FBExp(compatm), 'Faxx_lat', f_heat_latvap, &
-         areas, lats, afrac, lfrac, ofrac, ifrac, budget_local, rc=rc)
+         areas, lats, afrac, lfrac, ofrac, ifrac, budget_local, component_contribution=.true., rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call diag_atm_send(is_local%wrap%FBExp(compatm), 'Faxx_sen', f_heat_sen, &
-         areas, lats, afrac, lfrac, ofrac, ifrac, budget_local, rc=rc)
+         areas, lats, afrac, lfrac, ofrac, ifrac, budget_local, component_contribution=.true., rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call diag_atm_send(is_local%wrap%FBExp(compatm), 'Faxx_evap', f_watr_evap, &
-         areas, lats, afrac, lfrac, ofrac, ifrac, budget_local, rc=rc)
+         areas, lats, afrac, lfrac, ofrac, ifrac, budget_local, component_contribution=.true., rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    if (trim(budget_table_version) == 'v2') then
+       call diag_atm_send(is_local%wrap%FBExp(compatm), 'Faxx_hrof', f_heat_rofa, &
+            areas, lats, afrac, lfrac, ofrac, ifrac, budget_local, component_contribution=.false., rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    end if
 
     ! water isotopes
     if (flds_wiso) then
@@ -823,7 +832,8 @@ contains
     end if
   end subroutine diag_atm_recv
 
-  subroutine diag_atm_send(FB, fldname, nf, areas, lats, afrac, lfrac, ofrac, ifrac, budget, rc)
+  subroutine diag_atm_send(FB, fldname, nf, areas, lats, afrac, lfrac, ofrac, ifrac, budget, &
+       component_contribution, rc)
     ! input/output variables
     type(ESMF_FieldBundle) , intent(in)    :: FB
     character(len=*)       , intent(in)    :: fldname
@@ -835,6 +845,7 @@ contains
     real(r8)               , intent(in)    :: ofrac(:)
     real(r8)               , intent(in)    :: ifrac(:)
     real(r8)               , intent(inout) :: budget(:,:,:)
+    logical                , intent(in)    :: component_contribution
     integer                , intent(out)   :: rc
     ! local variables
     integer           :: n, ip
@@ -847,14 +858,18 @@ contains
        ip = period_inst
        do n = 1,size(data)
           budget(nf,c_atm_send,ip)  = budget(nf,c_atm_send,ip)  - areas(n)*data(n)*afrac(n)
-          budget(nf,c_lnd_asend,ip) = budget(nf,c_lnd_asend,ip) + areas(n)*data(n)*lfrac(n)
-          budget(nf,c_ocn_asend,ip) = budget(nf,c_ocn_asend,ip) + areas(n)*data(n)*ofrac(n)
-          if (lats(n) > 0.0_r8) then
-             budget(nf,c_inh_asend,ip) = budget(nf,c_inh_asend,ip) + areas(n)*data(n)*ifrac(n)
-          else
-             budget(nf,c_ish_asend,ip) = budget(nf,c_ish_asend,ip) + areas(n)*data(n)*ifrac(n)
-          end if
        end do
+       if (component_contribution) then
+          do n = 1,size(data)
+             budget(nf,c_lnd_asend,ip) = budget(nf,c_lnd_asend,ip) + areas(n)*data(n)*lfrac(n)
+             budget(nf,c_ocn_asend,ip) = budget(nf,c_ocn_asend,ip) + areas(n)*data(n)*ofrac(n)
+             if (lats(n) > 0.0_r8) then
+                budget(nf,c_inh_asend,ip) = budget(nf,c_inh_asend,ip) + areas(n)*data(n)*ifrac(n)
+             else
+                budget(nf,c_ish_asend,ip) = budget(nf,c_ish_asend,ip) + areas(n)*data(n)*ifrac(n)
+             end if
+          end do
+       end if
     end if
   end subroutine diag_atm_send
 
