@@ -640,7 +640,7 @@ def cmeps_lib_list(case):
     libs = case.get_values("CASE_SUPPORT_LIBRARIES")
 
     mpilib = case.get_value("MPILIB")
-    if mpilib == "mpi-serial":
+    if mpilib == "mpi-serial" and "mpi-serial" not in libs:
         libs.insert(0, mpilib)
         
     ocn_model = case.get_value("COMP_OCN")
