@@ -46,7 +46,7 @@
   <!-- B compsets -->
   <!-- ======================================= -->
 
-  <test compset="B1850C_MTso" grid="ne30pg3_t232" name="ERR_Ld5" testmods="allactive/defaultio">
+  <test compset="B1850C_MTt4s" grid="ne30pg3_t232" name="ERR_Ld5" testmods="allactive/defaultio">
     <machines>
       <machine name="derecho" compiler="intel" category="aux_cmeps"/>
       <machine name="izumi" compiler="intel" category="aux_cmeps"/>
