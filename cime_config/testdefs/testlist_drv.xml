@@ -46,7 +46,7 @@
   <!-- B compsets -->
   <!-- ======================================= -->
 
-  <test compset="BMT1850" grid="ne30pg3_t232" name="ERR_Ld5" testmods="allactive/defaultio">
+  <test compset="B1850C_MTso" grid="ne30pg3_t232" name="ERR_Ld5" testmods="allactive/defaultio">
     <machines>
       <machine name="derecho" compiler="intel" category="aux_cmeps"/>
       <machine name="izumi" compiler="intel" category="aux_cmeps"/>
@@ -55,7 +55,7 @@
       <option name="wallclock"> 00:40:00 </option>
     </options>
   </test>
-  <test compset="BLT1850" grid="ne30pg3_t232" name="ERS_Ld5" testmods="allactive/defaultio">
+  <test compset="B1850C_LTso" grid="ne30pg3_t232" name="ERS_Ld5" testmods="allactive/defaultio">
     <machines>
       <machine name="derecho" compiler="intel" category="aux_cmeps"/>
       <machine name="izumi" compiler="intel" category="aux_cmeps"/>
@@ -292,7 +292,7 @@
     </machines>
   </test>
 
-  <test name="ERS_Ld5" grid="ne30pg3_t232" compset="BLT1850" testmods="allactive/defaultio--drv/asyncio1node">
+  <test name="ERS_Ld5" grid="ne30pg3_t232" compset="B1850C_LTso" testmods="allactive/defaultio--drv/asyncio1node">
     <machines>
       <machine name="derecho" compiler="gnu" category="prealpha">
         <options>
