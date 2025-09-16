@@ -341,7 +341,7 @@ contains
        f_heat_end = f_heat_rofi     ! field  last  index for heat
     else if (trim(budget_table_version) == 'v2') then
        call add_to_budget_diag(budget_diags%fields, f_heat_rofa  ,'hrofa'       ) ! field  heat : total enthalpy of runoff to atm
-       call add_to_budget_diag(budget_diags%fields, f_heat_hmat  ,'hmat'        ) ! field  heat : surf. mat. enthalpy flux
+       call add_to_budget_diag(budget_diags%fields, f_heat_hmat  ,'hmat'        ) ! field  heat : surface material enthalpy flux
        f_heat_beg = f_heat_frz      ! field  first index for heat
        f_heat_end = f_heat_hmat     ! field  last  index for heat
     end if
@@ -660,6 +660,7 @@ contains
     real(r8), pointer   :: ofrac(:)
     real(r8), pointer   :: areas(:)
     real(r8), pointer   :: lats(:)
+    real(r8), pointer   :: data(:)
     character(*), parameter :: subName = '(med_phases_diag_atm) '
     !-------------------------------------------------------------------------------
 
@@ -728,9 +729,17 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if (trim(budget_table_version) == 'v2') then
-       call diag_atm_recv(is_local%wrap%FBImp(compatm,compatm), 'Faxa_hmat', f_heat_hmat, &
-            areas, lats, afrac, lfrac, ofrac, ifrac, budget_local, rc=rc)
+       ! call diag_atm_recv(is_local%wrap%FBImp(compatm,compatm), 'Faxa_hmat', f_heat_hmat, &
+       !      areas, lats, afrac, lfrac, ofrac, ifrac, budget_local, rc=rc)
+       ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       call fldbun_getdata1d(is_local%wrap%FBImp(compatm,compatm), 'Faxa_hmat', data, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       nf = f_heat_hmat
+       do n = 1,size(data)
+          !budget_local(nf,c_atm_recv,ip) = budget_local(nf,c_atm_recv,ip) - areas(n)*data(n)*(ofrac(n)+ifrac(n))
+          budget_local(nf,c_atm_recv,ip) = budget_local(nf,c_atm_recv,ip) - areas(n)*data(n)*ofrac(n)
+       end do
     end if
 
     if (flds_wiso) then
