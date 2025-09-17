@@ -958,9 +958,13 @@
     <group>MED_attributes</group>
     <desc>
       atm/ocn flux calculation scheme
+      0 : LARGE algorithm
+      1 : COARE algorithm
+      2 : UA algorithm
     </desc>
     <values>
       <value>0</value>
+      <value COMP_OCN="blom" COMP_ATM="cam">1</value>
     </values>
   </entry>
   <entry id="add_gusts">

@@ -335,6 +335,8 @@
       <value compset="_MOM6">24</value>
       <value compset="_BLOM">24</value>
       <value compset="_BLOM" grid="oi%tnx2">18</value>
+      <!-- quick fix for coupled with 2 deg ocn-->
+      <value compset="_BLOM.*_MOSART" grid="oi%tnx2">24</value>
       <value compset="_DLND.*_CISM\d">1</value>
       <value compset="_NEMO">24</value>
     </values>
