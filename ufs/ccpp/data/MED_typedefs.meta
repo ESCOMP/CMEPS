@@ -911,12 +911,12 @@
   units = flag
   dimensions = ()
   type = logical
-[icplocn2atm]
-  standard_name = control_for_air_sea_flux_computation_over_water
+[use_oceanuv]
+  standard_name = do_air_sea_flux_computation_over_water
   long_name = air-sea flux option
-  units = 1
+  units = flag
   dimensions = ()
-  type = integer
+  type = logical
 [cpl_fire]
   standard_name = do_fire_coupling
   long_name = flag controlling fire_behavior collection (default off)
@@ -1481,4 +1481,3 @@
   units = none
   dimensions = ()
   type = real
-

@@ -5,7 +5,7 @@ module MED_typedefs
 !!
   use machine,  only: kind_phys
   use physcons, only: con_hvap, con_cp, con_rd, con_eps, con_rocp
-  use physcons, only: con_epsm1, con_fvirt, con_g 
+  use physcons, only: con_epsm1, con_fvirt, con_g
   use physcons, only: con_tice, karman
 
   implicit none
@@ -69,7 +69,7 @@ module MED_typedefs
     real(kind=kind_phys), pointer :: prslki(:)       => null() !< Exner function ratio bt midlayer and interface at 1st layer
     logical,              pointer :: wet(:)          => null() !< flag indicating presence of some ocean or lake surface area fraction
     integer,              pointer :: use_lake_model(:)=>null() !< 0 for points that don't use a lake model, lkm for points that do
-    real (kind=kind_phys),pointer :: lake_t2m (:)    => null() !< 2 meter temperature from CLM Lake model 
+    real (kind=kind_phys),pointer :: lake_t2m (:)    => null() !< 2 meter temperature from CLM Lake model
     real (kind=kind_phys),pointer :: lake_q2m (:)    => null() !< 2 meter humidity from CLM Lake model
     real(kind=kind_phys), pointer :: wind(:)         => null() !< wind speed at lowest model level (m/s)
     logical,              pointer :: flag_iter(:)    => null() !< flag for iteration
@@ -83,7 +83,7 @@ module MED_typedefs
     real(kind=kind_phys), pointer :: ep1d_water(:)   => null() !< surface upward potential latent heat flux over water (W/m2)
     real(kind=kind_phys), pointer :: tsurf_water(:)  => null() !< surface skin temperature after iteration over water (K)
     real(kind=kind_phys), pointer :: uustar_water(:) => null() !< surface friction velocity over water (m/s)
-    real(kind=kind_phys), pointer :: rb_water(:)     => null() !< bulk Richardson number at the surface over water 
+    real(kind=kind_phys), pointer :: rb_water(:)     => null() !< bulk Richardson number at the surface over water
     real(kind=kind_phys), pointer :: stress_water(:) => null() !< surface wind stress over water
     real(kind=kind_phys), pointer :: ffhh_water(:)   => null() !< Monin-Obukhov similarity function for heat over water
     real(kind=kind_phys), pointer :: fh2_water(:)    => null() !< Monin-Obukhov similarity parameter for heat at 2m over water
@@ -96,13 +96,13 @@ module MED_typedefs
     real(kind=kind_phys), pointer :: sigmaf(:)       => null() !< areal fractional cover of green vegetation bounded on the bottom
     logical,              pointer :: dry(:)          => null() !< flag indicating presence of some land surface area fraction
     real(kind=kind_phys), pointer :: tsfcl(:)        => null() !< surface skin temperature over land (K)
-    real(kind=kind_phys), pointer :: tsurf_land(:)   => null() !< surface skin temperature after iteration over land (K) 
+    real(kind=kind_phys), pointer :: tsurf_land(:)   => null() !< surface skin temperature after iteration over land (K)
     real(kind=kind_phys), pointer :: uustar_land(:)  => null() !< surface friction velocity over land (m/s)
-    real(kind=kind_phys), pointer :: cd_land(:)      => null() !< surface exchange coeff for momentum over land 
-    real(kind=kind_phys), pointer :: cdq_land(:)     => null() !< surface exchange coeff heat surface exchange coeff heat & moisture over ocean moisture over land 
+    real(kind=kind_phys), pointer :: cd_land(:)      => null() !< surface exchange coeff for momentum over land
+    real(kind=kind_phys), pointer :: cdq_land(:)     => null() !< surface exchange coeff heat surface exchange coeff heat & moisture over ocean moisture over land
     real(kind=kind_phys), pointer :: rb_land(:)      => null() !< bulk Richardson number at the surface over land
-    real(kind=kind_phys), pointer :: stress_land(:)  => null() !< surface wind stress over land 
-    real(kind=kind_phys), pointer :: ffmm_land(:)    => null() !< Monin-Obukhov similarity function for momentum over land 
+    real(kind=kind_phys), pointer :: stress_land(:)  => null() !< surface wind stress over land
+    real(kind=kind_phys), pointer :: ffmm_land(:)    => null() !< Monin-Obukhov similarity function for momentum over land
     real(kind=kind_phys), pointer :: ffhh_land(:)    => null() !< Monin-Obukhov similarity function for heat over land
     real(kind=kind_phys), pointer :: fm10_land(:)    => null() !< Monin-Obukhov similarity parameter for momentum at 10m over land
     real(kind=kind_phys), pointer :: fh2_land(:)     => null() !< Monin-Obukhov similarity parameter for heat at 2m over land
@@ -121,10 +121,10 @@ module MED_typedefs
     ! ice, not used to calculate aofluxes
     logical,              pointer :: icy(:)          => null() !< flag indicating presence of some sea ice surface area fraction
     real(kind=kind_phys), pointer :: tisfc(:)        => null() !< surface skin temperature over ice (K)
-    real(kind=kind_phys), pointer :: tsurf_ice(:)    => null() !< surface skin temperature after iteration over ice (K) 
+    real(kind=kind_phys), pointer :: tsurf_ice(:)    => null() !< surface skin temperature after iteration over ice (K)
     real(kind=kind_phys), pointer :: uustar_ice(:)   => null() !< surface friction velocity over ice (m/s)
-    real(kind=kind_phys), pointer :: cd_ice(:)       => null() !< surface exchange coeff for momentum over ice 
-    real(kind=kind_phys), pointer :: cdq_ice(:)      => null() !< surface exchange coeff heat surface exchange coeff heat & moisture over ocean moisture over ice 
+    real(kind=kind_phys), pointer :: cd_ice(:)       => null() !< surface exchange coeff for momentum over ice
+    real(kind=kind_phys), pointer :: cdq_ice(:)      => null() !< surface exchange coeff heat surface exchange coeff heat & moisture over ocean moisture over ice
     real(kind=kind_phys), pointer :: rb_ice(:)       => null() !< bulk Richardson number at the surface over ice
     real(kind=kind_phys), pointer :: stress_ice(:)   => null() !< surface wind stress over ice
     real(kind=kind_phys), pointer :: ffmm_ice(:)     => null() !< Monin-Obukhov similarity function for momentum over ice
@@ -173,7 +173,7 @@ module MED_typedefs
     integer                       :: lsm_noahmp                !< flag for NOAH MP land surface model
     logical                       :: redrag                    !< flag for reduced drag coeff. over sea
     integer                       :: sfc_z0_type               !< surface roughness options over water
-    integer                       :: icplocn2atm               !< flag controlling whether to consider ocean current in air-sea flux calculation 
+    logical                       :: use_oceanuv               !< flag controlling whether to consider ocean current in air-sea flux calculation
     logical                       :: thsfc_loc                 !< flag for reference pressure in theta calculation
     integer                       :: nstf_name(5)              !< NSSTM flag: off/uncoupled/coupled=0/1/2
     integer                       :: lkm                       !< 0 = no lake model, 1 = lake model, 2 = lake & nsst on lake points
@@ -251,7 +251,7 @@ module MED_typedefs
     real(kind=kind_phys), pointer :: fice(:)         => null()  !< ice fraction over open water
     real(kind=kind_phys), pointer :: hice(:)         => null()  !< sea ice thickness (m)
     real(kind=kind_phys), pointer :: tsfco(:)        => null()  !< sea surface temperature
-    real(kind=kind_phys), pointer :: usfco(:)        => null()  !< sea surface ocean current (zonal) 
+    real(kind=kind_phys), pointer :: usfco(:)        => null()  !< sea surface ocean current (zonal)
     real(kind=kind_phys), pointer :: vsfco(:)        => null()  !< sea surface ocean current (merdional)
     real(kind=kind_phys), pointer :: uustar(:)       => null()  !< boundary layer parameter
     real(kind=kind_phys), pointer :: tsfc(:)         => null()  !< surface skin temperature
@@ -646,7 +646,7 @@ module MED_typedefs
     model%ivegsrc = 2
     model%redrag = .false.
     model%sfc_z0_type = 0
-    model%icplocn2atm = 0
+    model%use_oceanuv = .false.
     model%thsfc_loc = .true.
     model%lsm = 1
     model%lsm_noahmp = 2
