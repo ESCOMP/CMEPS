@@ -77,7 +77,7 @@ contains
     ! All input field bundles are ASSUMED to be on the ocean grid
     !-----------------------------------------------------------------------
 
-    use ESMF  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_FAILURE
+    use ESMF  , only : ESMF_LogWrite, ESMF_LogSetError, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_FAILURE
     use ESMF  , only : ESMF_VM, ESMF_VMGet, ESMF_Mesh, ESMF_MeshGet
     use ESMF  , only : ESMF_GridComp, ESMF_GridCompGet
     use ESMF  , only : ESMF_FieldBundleGet, ESMF_Field, ESMF_FieldGet
@@ -242,26 +242,25 @@ contains
        ocean_albedo_scheme = 0
     end if
 
-    if (flux_albav) then
-       write(msg,'(2(A,f8.2))') trim(subname)//': mean albedos set: albdif = ',albdif,', albdir = ',albdir
-       call ESMF_LogWrite(trim(msg), ESMF_LOGMSG_INFO)
-    else
-       if (use_min_albedo) then
-          write(msg,'(A,f8.2)') trim(subname)//': min_albedo setting = ',min_albedo
-          call ESMF_LogWrite(trim(msg), ESMF_LOGMSG_INFO)
+    if (maintask) then
+       if (flux_albav) then
+          write(logunit,'(2(A,f8.2))') trim(subname)//': mean albedos set: albdif = ',albdif,', albdir = ',albdir
+       else
+          if (use_min_albedo) then
+             write(logunit,'(A,f8.2)') trim(subname)//': min_albedo setting = ',min_albedo
+          end if
        end if
+       write(logunit,'(A,l1)') trim(subname)//': use_nextswcday setting is ',use_nextswcday
+       write(logunit,'(A,i1)') trim(subname)//': ocean_albedo_scheme setting is ',ocean_albedo_scheme
     end if
-    write(msg,'(A,l1)') trim(subname)//': use_nextswcday setting is ',use_nextswcday
-    call ESMF_LogWrite(trim(msg), ESMF_LOGMSG_INFO)
-    write(msg,'(A,l1)') trim(subname)//': ocean_albedo_scheme setting is ',ocean_albedo_scheme
-    call ESMF_LogWrite(trim(msg), ESMF_LOGMSG_INFO)
     if     (ocean_albedo_scheme == 0) then
        use_briegleb = .true.
     elseif (ocean_albedo_scheme == 1 ) then
        use_briegleb = .false.
     else
-       call ESMF_LogWrite( subname//' ERROR: unknown ocean_albedo_scheme', ESMF_LOGMSG_INFO)
-       rc = ESMF_FAILURE
+       call ESMF_LogSetError(ESMF_FAILURE, &
+          msg=trim(subname)//": ERROR: unknown ocean_albedo_scheme", &
+          line=__LINE__, file=__FILE__, rcToReturn=rc)
        return
     end if
 
