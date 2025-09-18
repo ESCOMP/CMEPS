@@ -904,6 +904,20 @@
     </values>
   </entry>
 
+  <entry id="ocean_albedo_scheme">
+    <type>integer</type>
+    <category>control</category>
+    <group>MED_attributes</group>
+    <desc>
+      Ocean albedo scheme
+      0 : Briegleb et al. (1986)
+      1 : Taylor et al. (1996)
+    </desc>
+    <values>
+      <value>0</value>
+    </values>
+  </entry>
+
   <entry id="aoflux_grid">
     <type>char</type>
     <category>mapping</category>

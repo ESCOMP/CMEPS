@@ -57,12 +57,14 @@ module med_phases_ocnalb_mod
   character(len=*) , parameter :: orb_fixed_parameters = 'fixed_parameters'
 
   ! used, reused in module
-  logical  :: flux_albav      ! use average dif and dir albedos
-  logical  :: use_nextswcday  ! use the scalar field for next time (otherwise, will be set using clock)
-  logical  :: use_min_albedo  ! apply minimum value of albedo for direct vis, nir
-  real(R8) :: min_albedo      ! minimum value of albedo for direct vis, nir
-  real(R8) :: albdif          ! 60 deg reference albedo, diffuse
-  real(R8) :: albdir          ! 60 deg reference albedo, direct
+  logical  :: flux_albav          ! use average dif and dir albedos
+  logical  :: use_nextswcday      ! use the scalar field for next time (otherwise, will be set using clock)
+  logical  :: use_min_albedo      ! apply minimum value of albedo for direct vis, nir
+  logical  :: use_briegleb        ! use Briegleb et al. (1986) ocean albedo scheme
+  real(R8) :: min_albedo          ! minimum value of albedo for direct vis, nir
+  real(R8) :: albdif              ! 60 deg reference albedo, diffuse
+  real(R8) :: albdir              ! 60 deg reference albedo, direct
+  integer  :: ocean_albedo_scheme ! 0: Briegleb et al. (1986); 1: Taylor et al. (1996)
 !===============================================================================
 contains
 !===============================================================================
@@ -75,7 +77,7 @@ contains
     ! All input field bundles are ASSUMED to be on the ocean grid
     !-----------------------------------------------------------------------
 
-    use ESMF  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_FAILURE
+    use ESMF  , only : ESMF_LogWrite, ESMF_LogSetError, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_FAILURE
     use ESMF  , only : ESMF_VM, ESMF_VMGet, ESMF_Mesh, ESMF_MeshGet
     use ESMF  , only : ESMF_GridComp, ESMF_GridCompGet
     use ESMF  , only : ESMF_FieldBundleGet, ESMF_Field, ESMF_FieldGet
@@ -231,18 +233,36 @@ contains
     if (.not. isPresent ) then
        use_nextswcday = .false.
     endif
-
-    if (flux_albav) then
-       write(msg,'(2(A,f8.2))') trim(subname)//': mean albedos set: albdif = ',albdif,', albdir = ',albdir
-       call ESMF_LogWrite(trim(msg), ESMF_LOGMSG_INFO)
+    ! Determine ocean albedo scheme
+    call NUOPC_CompAttributeGet(gcomp, name='ocean_albedo_scheme', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+       read(cvalue,*) ocean_albedo_scheme
     else
-       if (use_min_albedo) then
-          write(msg,'(A,f8.2)') trim(subname)//': min_albedo setting = ',min_albedo
-          call ESMF_LogWrite(trim(msg), ESMF_LOGMSG_INFO)
-       end if
+       ocean_albedo_scheme = 0
     end if
-    write(msg,'(A,l1)') trim(subname)//': use_nextswcday setting is ',use_nextswcday
-    call ESMF_LogWrite(trim(msg), ESMF_LOGMSG_INFO)
+
+    if (maintask) then
+       if (flux_albav) then
+          write(logunit,'(2(A,f8.2))') trim(subname)//': mean albedos set: albdif = ',albdif,', albdir = ',albdir
+       else
+          if (use_min_albedo) then
+             write(logunit,'(A,f8.2)') trim(subname)//': min_albedo setting = ',min_albedo
+          end if
+       end if
+       write(logunit,'(A,l1)') trim(subname)//': use_nextswcday setting is ',use_nextswcday
+       write(logunit,'(A,i1)') trim(subname)//': ocean_albedo_scheme setting is ',ocean_albedo_scheme
+    end if
+    if     (ocean_albedo_scheme == 0) then
+       use_briegleb = .true.
+    elseif (ocean_albedo_scheme == 1 ) then
+       use_briegleb = .false.
+    else
+       call ESMF_LogSetError(ESMF_FAILURE, &
+          msg=trim(subname)//": ERROR: unknown ocean_albedo_scheme", &
+          line=__LINE__, file=__FILE__, rcToReturn=rc)
+       return
+    end if
 
     if (dbug_flag > 5) then
       call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
@@ -449,9 +469,15 @@ contains
              rlon = const_deg2rad * ocnalb%lons(n)
              cosz = shr_orb_cosz( nextsw_cday, rlat, rlon, delta )
              if (cosz  >  0.0_r8) then !--- sun hit --
-                ocnalb%anidr(n) = (.026_r8/(cosz**1.7_r8 + 0.065_r8)) +   &
-                                  (.150_r8*(cosz         - 0.100_r8 ) *   &
-                                  (cosz - 0.500_r8 ) * (cosz - 1.000_r8 )  )
+                if (use_briegleb) then
+                   ! Briegleb et al. (1986) scheme
+                   ocnalb%anidr(n) = (.026_r8/(cosz**1.7_r8 + 0.065_r8)) +   &
+                                     (.150_r8*(cosz         - 0.100_r8 ) *   &
+                                     (cosz - 0.500_r8 ) * (cosz - 1.000_r8 )  )
+                else
+                   ! Taylor et al. (1996) scheme
+                   ocnalb%anidr(n) = 0.037_r8/(1.1_r8*cosz**1.4_r8 + 0.15_r8)
+                endif
                 if (use_min_albedo) then
                    ocnalb%anidr(n) = max (ocnalb%anidr(n), min_albedo)
                 end if
