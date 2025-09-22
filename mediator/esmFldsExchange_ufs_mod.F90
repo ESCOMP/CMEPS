@@ -256,19 +256,25 @@ contains
     end do
     deallocate(flds)
 
-    ! to atm: unmerged surface temperatures from ocn
-    if (phase == 'advertise') then
-       if (is_local%wrap%comp_present(compocn) .and. is_local%wrap%comp_present(compatm)) then
-          call addfld_from(compocn , 'So_t')
-          call addfld_to(compatm   , 'So_t')
+    ! to atm: unmerged surface temperatures and currents from ocn
+    allocate(flds(3))
+    flds = (/'So_t', 'So_u', 'So_v'/)
+    do n = 1,size(flds)
+       fldname = trim(flds(n))
+       if (phase == 'advertise') then
+          if (is_local%wrap%comp_present(compocn) .and. is_local%wrap%comp_present(compatm)) then
+             call addfld_from(compocn , fldname)
+             call addfld_to(compatm   , fldname)
+          end if
+       else
+          if ( fldchk(is_local%wrap%FBexp(compatm)        , fldname, rc=rc) .and. &
+               fldchk(is_local%wrap%FBImp(compocn,compocn), fldname, rc=rc)) then
+             call addmap_from(compocn, fldname, compatm, maptype, 'ofrac', 'unset')
+             call addmrg_to(compatm, fldname, mrg_from=compocn, mrg_fld=fldname, mrg_type='copy')
+          end if
        end if
-    else
-       if ( fldchk(is_local%wrap%FBexp(compatm)        , 'So_t', rc=rc) .and. &
-            fldchk(is_local%wrap%FBImp(compocn,compocn), 'So_t', rc=rc)) then
-          call addmap_from(compocn, 'So_t', compatm, maptype, 'ofrac', 'unset')
-          call addmrg_to(compatm, 'So_t', mrg_from=compocn, mrg_fld='So_t', mrg_type='copy')
-       end if
-    end if
+    end do
+    deallocate(flds)
 
     ! to atm: unmerged flux components from lnd
     if (is_local%wrap%comp_present(complnd) .and. is_local%wrap%comp_present(compatm)) then
