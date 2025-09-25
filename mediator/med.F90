@@ -680,7 +680,8 @@ contains
     use esmFlds, only : med_fldlist_init1, med_fld_GetFldInfo, med_fldList_entry_type
     use med_phases_history_mod, only : med_phases_history_init
     use med_methods_mod       , only : mediator_checkfornans
-
+    use med_enthalpy_mod      , only : mediator_compute_enthalpy
+    
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
     type(ESMF_State)     :: importState, exportState
@@ -958,6 +959,24 @@ contains
           write(logunit,*) ' Fields will be checked for NaN values when passed from mediator to component'
        else
           write(logunit,*) ' Fields will NOT be checked for NaN values when passed from mediator to component'
+       endif
+    endif
+
+
+    ! Should enthalpy be calculated
+    call NUOPC_CompAttributeGet(gcomp, name="compute_enthalpy", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if(isPresent .and. isSet) then
+       read(cvalue, *) mediator_compute_enthalpy
+    else
+       mediator_compute_enthalpy = .false.
+    endif
+    if(maintask) then
+       write(logunit,*) ' compute_enthalpy is ',mediator_compute_enthalpy
+       if(mediator_compute_enthalpy) then
+          write(logunit,*) ' Enthalpy calculation is ON'
+       else
+          write(logunit,*) ' Enthalpy calculation is OFF'
        endif
     endif
 

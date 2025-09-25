@@ -2258,7 +2258,7 @@ contains
     ! to ocn: enthalpy from ice melt
     ! ---------------------------------------------------------------------
     ! Note - do not need to add addmap or addmrg for the following since they
-    ! will be computed directly in med_phases_prep_ocn
+    ! will be computed directly in med_enthalpy_mod
     if (phase == 'advertise') then
        call addfld_to(compocn, 'Foxx_hrain')
        call addfld_to(compocn, 'Foxx_hsnow')
