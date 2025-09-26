@@ -413,6 +413,65 @@
     </desc>
   </entry>
 
+  <entry id="PAUSE_OPTION">
+    <type>char</type>
+    <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,nmonths,nyears</valid_values>
+    <default_value>never</default_value>
+    <group>run_begin_stop_restart</group>
+    <file>env_run.xml</file>
+    <desc>
+      Sets the pause frequency along with PAUSE_N
+    </desc>
+  </entry>
+
+  <entry id="PAUSE_N">
+    <type>integer</type>
+    <default_value>0</default_value>
+    <group>run_begin_stop_restart</group>
+    <file>env_run.xml</file>
+    <desc>
+      Provides a numerical count for $PAUSE_OPTION.
+    </desc>
+  </entry>
+
+  <entry id="PAUSE_ACTIVE">
+    <type>logical</type>
+    <valid_values>TRUE,FALSE</valid_values>
+    <group>run_begin_stop_restart</group>
+    <file>env_run.xml</file>
+    <desc>
+      Pause the model at times specified by PAUSE_OPTION and PAUSE_N.
+      Components 'pause' by writing a restart file.
+    </desc>
+    <values>
+      <value compclass="ATM">FALSE</value>
+      <value compclass="CPL">FALSE</value>
+      <value compclass="OCN">FALSE</value>
+      <value compclass="WAV">FALSE</value>
+      <value compclass="GLC">FALSE</value>
+      <value compclass="ICE">FALSE</value>
+      <value compclass="ROF">FALSE</value>
+      <value compclass="LND">FALSE</value>
+    </values>
+  </entry>
+
+  <entry id="ESP_RUN_ON_PAUSE">
+    <type>logical</type>
+    <valid_values>TRUE,FALSE</valid_values>
+    <default_value>FALSE</default_value>
+    <group>run_begin_stop_restart</group>
+    <file>env_run.xml</file>
+    <desc>
+      ESP component runs after driver 'pause cycle' If any component
+      'pauses' (see PAUSE_OPTION,
+      PAUSE_N and PAUSE_ACTIVE_XXX XML variables),
+      the ESP component (if present) will be run to process the
+      component 'pause' (restart) files and set any required 'resume'
+      signals.  If true, esp_cpl_dt and esp_cpl_offset settings are
+      ignored.  default: false
+    </desc>
+  </entry>
+
   <entry id="CONTINUE_RUN">
     <type>logical</type>
     <valid_values>TRUE,FALSE</valid_values>
@@ -429,7 +488,6 @@
       Set to TRUE when continuing a run.
     </desc>
   </entry>
-
 
   <entry id="RESUBMIT">
     <type>integer</type>
