@@ -413,65 +413,6 @@
     </desc>
   </entry>
 
-  <entry id="PAUSE_OPTION">
-    <type>char</type>
-    <valid_values>none,never,nsteps,nseconds,nminutes,nhours,ndays,nmonths,nyears</valid_values>
-    <default_value>never</default_value>
-    <group>run_begin_stop_restart</group>
-    <file>env_run.xml</file>
-    <desc>
-      Sets the pause frequency along with PAUSE_N
-    </desc>
-  </entry>
-
-  <entry id="PAUSE_N">
-    <type>integer</type>
-    <default_value>0</default_value>
-    <group>run_begin_stop_restart</group>
-    <file>env_run.xml</file>
-    <desc>
-      Provides a numerical count for $PAUSE_OPTION.
-    </desc>
-  </entry>
-
-  <entry id="PAUSE_ACTIVE">
-    <type>logical</type>
-    <valid_values>TRUE,FALSE</valid_values>
-    <group>run_begin_stop_restart</group>
-    <file>env_run.xml</file>
-    <desc>
-      Pause the model at times specified by PAUSE_OPTION and PAUSE_N.
-      Components 'pause' by writing a restart file.
-    </desc>
-    <values>
-      <value compclass="ATM">FALSE</value>
-      <value compclass="CPL">FALSE</value>
-      <value compclass="OCN">FALSE</value>
-      <value compclass="WAV">FALSE</value>
-      <value compclass="GLC">FALSE</value>
-      <value compclass="ICE">FALSE</value>
-      <value compclass="ROF">FALSE</value>
-      <value compclass="LND">FALSE</value>
-    </values>
-  </entry>
-
-  <entry id="ESP_RUN_ON_PAUSE">
-    <type>logical</type>
-    <valid_values>TRUE,FALSE</valid_values>
-    <default_value>FALSE</default_value>
-    <group>run_begin_stop_restart</group>
-    <file>env_run.xml</file>
-    <desc>
-      ESP component runs after driver 'pause cycle' If any component
-      'pauses' (see PAUSE_OPTION,
-      PAUSE_N and PAUSE_ACTIVE_XXX XML variables),
-      the ESP component (if present) will be run to process the
-      component 'pause' (restart) files and set any required 'resume'
-      signals.  If true, esp_cpl_dt and esp_cpl_offset settings are
-      ignored.  default: false
-    </desc>
-  </entry>
-
   <entry id="CONTINUE_RUN">
     <type>logical</type>
     <valid_values>TRUE,FALSE</valid_values>
@@ -489,16 +430,6 @@
     </desc>
   </entry>
 
-  <entry id="MEDIATOR_READ_RESTART">
-    <type>logical</type>
-    <valid_values>TRUE,FALSE</valid_values>
-    <default_value>FALSE</default_value>
-    <group>run_begin_stop_restart</group>
-    <file>env_run.xml</file>
-    <desc>
-      A setting of TRUE implies a continuation run for mediator only
-    </desc>
-  </entry>
 
   <entry id="RESUBMIT">
     <type>integer</type>
@@ -915,21 +846,6 @@
     variable to TRUE will involve the inclusion of C++ code in the
     MPASLI executable. This is currently only supported for certain
     machines.</desc>
-  </entry>
-
-  <entry id="CLM_USE_PETSC">
-    <type>logical</type>
-    <valid_values>TRUE,FALSE</valid_values>
-    <default_value>FALSE</default_value>
-    <group>build_component_clm</group>
-    <file>env_build.xml</file>
-    <desc>TRUE implies CLM is built with support for the PETSc
-      library. The Variably Saturated Flow Model (VSFM) solver in CLM
-      uses the PETSc library. In order to use the VSFM solver, CLM
-      must be built with PETSc support and linking to PETSc must occur
-      when building the ACME executable. This occurs if this variable
-      is set to TRUE. Note that is only available on a limited set of
-      machines/compilers.</desc>
   </entry>
 
   <entry id="USE_MOAB">
@@ -2533,11 +2449,11 @@
    <desc>Support libraries required</desc>
  </entry>
 
- 
+
  <!-- ===================================================================== -->
  <!-- Include the AOFLUX calculation for this compset -->
  <!-- ===================================================================== -->
- 
+
  <entry id="ADD_AOFLUX_TO_RUNSEQ">
    <type>logical</type>
    <valid_values>TRUE,FALSE</valid_values>

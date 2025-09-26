@@ -107,7 +107,6 @@
     <values match="last">
       <value compset="_CAM">CO2A</value>
       <value compset="_DATM">none</value>
-      <value compset="_DATM%CPLHIST.+POP\d">CO2A</value>
       <value compset="_DATM%CPLHIST.+BLOM%ECO">CO2A</value>
       <value compset="^OMIP_DATM%IAF.*_MOM6%[^_]*MARBL">CO2A</value>
       <value compset="^OMIP_DATM%JRA.*_MOM6%[^_]*MARBL">CO2A</value>
@@ -232,8 +231,6 @@
       <value compset=".+" grid="1x1_urbanc">48</value>
       <value compset=".+" grid="1x1_mexico">24</value>
       <value compset=".+" grid="1x1_vancou">24</value>
-      <!-- TODO: in CDEPS there is no copyall mode - so what is this? -->
-      <value compset="_DATM%COPYALL_NPS"   >72</value>
       <!-- =================================================== -->
       <!-- C compsets -->
       <!-- =================================================== -->
@@ -249,8 +246,6 @@
       <!-- =================================================== -->
       <!-- C/G compsets -->
       <!-- =================================================== -->
-      <value compset="_DATM.*_DOCN%US20">24</value>
-      <value compset="_DATM%CPLHIST.+POP\d">48</value>
       <value compset="_DATM%CPLHIST.+MOM\d">48</value>
       <value compset="_DATM%CPLHIST.+BLOM\d">48</value>
       <!-- =================================================== -->
@@ -405,7 +400,6 @@
       <value compset="_DATM.*_DOCN%SOM"           >$ATM_NCPL</value>
       <value compset="_DATM.*_SLND.*_DICE.*_DOCN" >$ATM_NCPL</value>
       <value compset="_MIZUROUTE_"                >1</value>
-      <value compset="_DATM%CPLHIST.+POP\d"       >8</value>
       <value compset="_DATM%CPLHIST.+MOM\d"       >8</value>
       <value compset="_DATM%CPLHIST.+BLOM\d"      >8</value>
       <value compset="_XATM.*_XLND.*_XICE.*_XOCN" >$ATM_NCPL</value>
@@ -431,56 +425,23 @@
   </entry>
 
 
-  <!-- Logic for CPL_ALBAV should be reworked to depend on datm forcing rather
-       than compset: see https://github.com/ESMCI/cime/issues/120 -->
   <entry id="CPL_ALBAV">
     <type>logical</type>
     <valid_values>TRUE,FALSE</valid_values>
     <default_value>FALSE</default_value>
     <values match="last">
-      <value compset="DATM.+POP\d">TRUE</value>
-      <value compset="DATM.+MOM\d">TRUE</value>
-      <value compset="DATM.+MPASO">TRUE</value>
-      <value compset="DATM.+BLOM\d">TRUE</value>
-      <value compset="DATM.+DOCN%IAF">TRUE</value>
-      <value compset="DATM%CPLHIST.+POP\d">FALSE</value>
+      <value compset="DATM%NYF">TRUE</value>
+      <value compset="DATM%IAF">TRUE</value>
     </values>
     <group>run_component_cpl</group>
     <file>env_run.xml</file>
     <desc>
-      Only used for compsets with DATM and [POP or MOM] (currently C, G and J):
-      If true, compute albedos to work with daily avg SW down
-      If false (default), albedos are computed with the assumption that downward
+      If FALSE (default), albedos are computed with the assumption that downward
       solar radiation from the atm component has a diurnal cycle and zenith-angle
-      dependence. This is normally the case when using an active atm component
-      If true, albedos are computed with the assumption that downward
+      dependence.
+      If TRUE, albedos are computed with the assumption that downward
       solar radiation from the atm component is a daily average quantity and
-      does not have a zenith-angle dependence. This is often the case when
-      using a data atm component. Only used for compsets with DATM and POP (currently C, G and J).
-      NOTE: This should really depend on the datm forcing and not the compset per se.
-      So, for example, whether it is set in a J compset should depend on
-      what datm forcing is used.
-    </desc>
-  </entry>
-
-  <entry id="CPL_EPBAL">
-    <type>char</type>
-    <valid_values>off,ocn</valid_values>
-    <default_value>off</default_value>
-    <values match="last">
-      <value compset="DATM.+POP\d">ocn</value>
-      <value compset="DATM%CPLHIST.+POP\d">off</value>
-    </values>
-    <group>run_component_cpl</group>
-    <file>env_run.xml</file>
-    <desc>
-      Only used for compsets with DATM and POP (currently C, G and J):
-      If ocn, ocn provides EP balance factor for precipitation.
-      Provides EP balance factor for precip for POP. A factor computed by
-      POP is applied to precipitation so that precipitation balances
-      evaporation and ocn global salinity does not drift. This is intended
-      for use when coupling POP to a DATM. Only used for C, G and J compsets.
-      Default is off
+      does not have a zenith-angle dependence.
     </desc>
   </entry>
 
@@ -548,12 +509,10 @@
     <valid_values>TRUE,FALSE</valid_values>
     <default_value>FALSE</default_value>
     <values match="last">
-      <value compset="DATM.*_POP\d">TRUE</value>
       <value compset="DATM.*_MOM">TRUE</value>
       <value compset="DATM.*_BLOM\d">TRUE</value>
       <value compset="CAM.*_MOM\d">TRUE</value>
       <value compset="CAM.*_BLOM">TRUE</value>
-      <value compset="CAM.*_POP\d">TRUE</value>
       <value compset="CAM.*_DOCN%SOM">TRUE</value>
     </values>
     <group>run_budgets</group>
@@ -574,7 +533,6 @@
     <desc>
       Mechanism for setting the CO2 value in ppmv for
       CLM if CLM_CO2_TYPE is constant or for
-      POP if OCN_CO2_TYPE is constant.
     </desc>
   </entry>
 
