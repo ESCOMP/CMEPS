@@ -431,7 +431,7 @@
     <desc>if true, mediator is present in run </desc>
   </entry>
 
-  <entry id="model_version" modify_via_xml="MODEL_VERSION">
+  <entry id="model_version">
     <type>char</type>
     <category>expdef</category>
     <group>ALLCOMP_attributes</group>
@@ -439,7 +439,7 @@
       Model version
     </desc>
     <values>
-      <value>$MODEL_VERSION</value>
+      <value>unknown</value>
     </values>
   </entry>
 
@@ -606,7 +606,8 @@
       .true. if ocean sends fields at multiple ocean levels to the land-ice component
     </desc>
     <values>
-      <value>.false.</value>
+      <value ocn_multilev=".false.">.false.</value>
+      <value ocn_multilev=".true.">.true.</value>
     </values>
   </entry>
 
@@ -931,24 +932,13 @@
       <value>0</value>
     </values>
   </entry>
-  <entry id="gust_fac">
-    <type>real</type>
-    <category>control</category>
-    <group>MED_attributes</group>
-    <desc>
-      wind gustiness factor
-    </desc>
-    <values>
-      <value>0.0D0</value>
-    </values>
-  </entry>
-
   <entry id="add_gusts">
     <type>logical</type>
     <category>control</category>
     <group>MED_attributes</group>
     <desc>
-      add a wind gustiness factor
+      Add a wind gustiness factor. This should be false for
+      ocn_surface_flux_scheme settings of 1 or 2.
     </desc>
     <values>
       <value CAMDEV="True">.true.</value>
@@ -1787,6 +1777,71 @@
     </values>
   </entry>
 
+  <!-- MED histaux lnd2med file 1 - all fields from land with instantaneous output-->
+  <entry id="histaux_lnd2med_file2_enabled">
+    <type>logical</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>Auxiliary mediator l2x fields every lnd coupling interval</desc>
+    <values>
+      <value>.false.</value>
+    </values>
+  </entry>
+  <entry id="histaux_lnd2med_file2_flds">
+    <type>char</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>Auxiliary mediator lnd2med output every lnd coupling interval</desc>
+    <values>
+      <value>'Flrl_rofsur:Flrl_rofi:Flrl_rofgwl:Flrl_rofsub'</value>
+    </values>
+  </entry>
+  <entry id="histaux_lnd2med_file2_history_option">
+    <type>char</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>history option type</desc>
+    <values>
+      <value>ndays</value>
+    </values>
+  </entry>
+  <entry id="histaux_lnd2med_file2_history_n">
+    <type>integer</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>history option type</desc>
+    <values>
+      <value>1</value>
+    </values>
+  </entry>
+  <entry id="histaux_lnd2med_file2_doavg">
+    <type>logical</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>If true, use time average for aux file output.</desc>
+    <values>
+      <value>.true.</value>
+    </values>
+  </entry>
+  <entry id="histaux_lnd2med_file2_ntperfile">
+    <type>integer</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>Number of time samples per file.</desc>
+    <values>
+      <value>365</value>
+    </values>
+  </entry>
+  <entry id="histaux_lnd2med_file2_auxname">
+    <type>char</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>Auxiliary name identifier in history name</desc>
+    <values>
+      <value>lnd2rof.24hr.avg</value>
+    </values>
+  </entry>
+
   <!-- MED histaux lnd2med accumulated fields from land needed as glc input specially treated-->
   <!-- note that the following is ALLCOMP attributes since CTSM needs access to this variable to determine -->
   <!-- if it needs to send lnd->glc data to the mediator even if there is no glc -->
@@ -1794,9 +1849,10 @@
     <type>logical</type>
     <category>aux_hist</category>
     <group>ALLCOMP_attributes</group>
-    <desc>Turns on history stream for annual lnd to mediator glc forcing fields</desc>
+    <desc>Auxiliary mediator lnd2med fields every year</desc>
     <values>
-      <value>.false.</value>
+      <value set_histaux_l2x1yrg=".true." >.true.</value>
+      <value set_histaux_l2x1yrg=".false.">.false.</value>
     </values>
   </entry>
 
@@ -2318,7 +2374,7 @@
       <value>$WAV2OCN_SMAPNAME</value>
     </values>
   </entry>
-  
+
   <!-- =========================== -->
   <!-- ALLCOMP attributes          -->
   <!-- =========================== -->
@@ -2872,7 +2928,6 @@
       <value TESTCASE='ERC'>.false.</value>
       <value TESTCASE='ERP'>.false.</value>
       <value TESTCASE='ERI'>.false.</value>
-      <value TESTCASE='ERR'>.false.</value>
     </values>
   </entry>
 
@@ -3727,7 +3782,7 @@
       components that need to look at the same data.
     </desc>
     <values>
-      <value>Buildconf/camconf/drv_flds_in,Buildconf/clmconf/drv_flds_in,Buildconf/datmconf/drv_flds_in</value>
+      <value>Buildconf/camconf/drv_flds_in,Buildconf/clmconf/drv_flds_in,Buildconf/datmconf/drv_flds_in,Buildconf/dlndconf/drv_flds_in</value>
     </values>
   </entry>
 
@@ -3836,7 +3891,8 @@
     </desc>
     <values>
       <value>.false.</value>
-      <value wav_ice_coupling="on">.true.</value>
+      <!-- The following is not set as a default for now -->
+      <!-- <value wav_coupling_to_cice='on'>.true.</value>    -->
     </values>
   </entry>
 
@@ -3922,6 +3978,18 @@
     </desc>
     <values>
       <value>$ICE_DOMAIN_MESH</value>
+    </values>
+  </entry>
+  <entry id="eps_imesh">
+    <type>real</type>
+    <category>mapping</category>
+    <group>ICE_attributes</group>
+    <desc>
+      Maximum allowed mesh error
+    </desc>
+    <values>
+      <value>0.1</value>
+      <value ocn_grid="tnx2v1">0.15</value>
     </values>
   </entry>
 
