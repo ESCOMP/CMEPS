@@ -9,6 +9,7 @@ module shr_flux_mod
   use shr_const_mod, only : shr_const_latvap, shr_const_latice, shr_const_stebol, shr_const_tkfrz, shr_const_pi, shr_const_spval
   use shr_const_mod, only : shr_const_ocn_ref_sal, shr_const_zsrflyr, shr_const_rgas
   use shr_sys_mod, only : shr_sys_abort   ! shared system routines
+  use shr_wv_sat_mod, only: shr_wv_sat_qsat_liquid ! use saturation calculation consistent with CAM
   implicit none
 
   private ! default private
@@ -368,8 +369,8 @@ contains
                    wind0=wind0*vscl
                 endif
              endif
-
-             ssq    = 0.98_R8 * qsat(ts(n)) / rbot(n)   ! sea surf hum (kg/kg)
+             call shr_wv_sat_qsat_liquid(ts(n), pslv(n), qsat, ssq)
+             ssq    = 0.98_R8 * ssq                     ! sea surf hum (kg/kg)
              delt   = thbot(n) - ts(n)                  ! pot temp diff (K)
              delq   = qbot(n) - ssq                     ! spec hum dif (kg/kg)
              alz    = log(zbot(n)/zref)
@@ -526,7 +527,8 @@ contains
                    vmag=vmag*vscl
                 endif
              endif
-             ssq    = 0.98_R8 * qsat(ts(n)) / rbot(n)   ! sea surf hum (kg/kg)
+             call shr_wv_sat_qsat_liquid(ts(n), pslv(n), qsat, ssq)
+             ssq = 0.98_R8 * ssq                                ! sea surf hum (kg/kg)
 
              call cor30a(ubot(n),vbot(n),tbot(n),qbot(n),rbot(n) &  ! in atm params
                   & ,us(n),vs(n),ts(n),ssq                   &  ! in surf params
@@ -1427,6 +1429,7 @@ contains
     real(R8)    :: tdiff(nMax)               ! tbot - ts
     real(R8)    :: vscl
 
+    ! note: this should use the shr_wv_sat_qsat_liquid as above if this routine is ever used in production
     qsat(Tk)   = 640380.0_R8 / exp(5107.4_R8/Tk)
     cdn(Umps)  =   0.0027_R8 / Umps + 0.000142_R8 + 0.0000764_R8 * Umps
     psimhu(xd) = log((1.0_R8+xd*(2.0_R8+xd))*(1.0_R8+xd*xd)/8.0_R8) - 2.0_R8*atan(xd) + 1.571_R8
@@ -1566,8 +1569,11 @@ contains
              salt(n)    = 0.0_R8
              speed(n)   = 0.0_R8
           endif
+          ! This should be changed to use the subroutine below
+          ssq = 0.98_R8 * qsat(tBulk(n)) / rbot(n) ! sea surf hum (kg/kg)
+          !          call shr_wv_sat_qsat_liquid(tBulk(n), pslv(n), qsat, ssq)
+          !          ssq    = 0.98_R8 * ssq                        ! sea surf hum (kg/kg)   
 
-          ssq    = 0.98_R8 * qsat(tBulk(n)) / rbot(n)   ! sea surf hum (kg/kg)
           delt   = thbot(n) - tBulk(n)                  ! pot temp diff (K)
           delq   = qbot(n) - ssq                     ! spec hum dif (kg/kg)
           cp     = shr_const_cpdair*(1.0_R8 + shr_const_cpvir*ssq)
@@ -1710,7 +1716,11 @@ contains
 
              !--need to update ssq,delt,delq as function of tBulk ----
 
-             ssq    = 0.98_R8 * qsat(tBulk(n)) / rbot(n)   ! sea surf hum (kg/kg)
+             ! This should be changed to use the subroutine below
+             ssq = 0.98_R8 * qsat(tBulk(n)) / rbot(n) ! sea surf hum (kg/kg)
+             !          call shr_wv_sat_qsat_liquid(tBulk(n), pslv(n), qsat, ssq)
+             !          ssq    = 0.98_R8 * ssq                        ! sea surf hum (kg/kg)   
+
              delt   = thbot(n) - tBulk(n)                  ! pot temp diff (K)
              delq   = qbot(n) - ssq                        ! spec hum dif (kg/kg)
 
