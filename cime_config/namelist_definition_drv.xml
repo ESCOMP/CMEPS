@@ -431,7 +431,7 @@
     <desc>if true, mediator is present in run </desc>
   </entry>
 
-  <entry id="model_version">
+  <entry id="model_version" modify_via_xml="MODEL_VERSION">
     <type>char</type>
     <category>expdef</category>
     <group>ALLCOMP_attributes</group>
@@ -439,7 +439,7 @@
       Model version
     </desc>
     <values>
-      <value>unknown</value>
+      <value>$MODEL_VERSION</value>
     </values>
   </entry>
 
@@ -606,8 +606,7 @@
       .true. if ocean sends fields at multiple ocean levels to the land-ice component
     </desc>
     <values>
-      <value ocn_multilev=".false.">.false.</value>
-      <value ocn_multilev=".true.">.true.</value>
+      <value>.false.</value>
     </values>
   </entry>
 
@@ -3891,8 +3890,7 @@
     </desc>
     <values>
       <value>.false.</value>
-      <!-- The following is not set as a default for now -->
-      <!-- <value wav_coupling_to_cice='on'>.true.</value>    -->
+      <value wav_ice_coupling='on'>.true.</value>
     </values>
   </entry>
 
@@ -3978,18 +3976,6 @@
     </desc>
     <values>
       <value>$ICE_DOMAIN_MESH</value>
-    </values>
-  </entry>
-  <entry id="eps_imesh">
-    <type>real</type>
-    <category>mapping</category>
-    <group>ICE_attributes</group>
-    <desc>
-      Maximum allowed mesh error
-    </desc>
-    <values>
-      <value>0.1</value>
-      <value ocn_grid="tnx2v1">0.15</value>
     </values>
   </entry>
 
