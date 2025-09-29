@@ -9,7 +9,7 @@ module shr_flux_mod
   use shr_const_mod, only : shr_const_latvap, shr_const_latice, shr_const_stebol, shr_const_tkfrz, shr_const_pi, shr_const_spval
   use shr_const_mod, only : shr_const_ocn_ref_sal, shr_const_zsrflyr, shr_const_rgas
   use shr_sys_mod, only : shr_sys_abort   ! shared system routines
-  use shr_wv_sat_mod, only: shr_wv_sat_qsat_liquid  ! use saturation calculation consistent with CAM
+  use shr_wv_sat_mod, only: shr_wv_sat_qsat_liquid ! use saturation calculation consistent with CAM
   implicit none
 
   private ! default private
@@ -143,10 +143,10 @@ contains
        &               evap  ,evap_16O, evap_HDO, evap_18O, &
        &               taux  ,tauy  ,tref  ,qref  ,   &
        &               ocn_surface_flux_scheme, &
-       &               add_gusts, & 
-       &               duu10n, & 
+       &               add_gusts, &
+       &               duu10n, &
        &               ugust_out, &
-       &               u10res, & 
+       &               u10res, &
        &               ustar_sv ,re_sv ,ssq_sv,   &
        &               missval)
 
@@ -268,7 +268,7 @@ contains
     real(R8)    :: tdiff(nMax)               ! tbot - ts
     real(R8)    :: vscl
 
-    real(R8)    :: ugust      ! function: gustiness as a function of convective rainfall.  
+    real(R8)    :: ugust      ! function: gustiness as a function of convective rainfall.
     real(R8)    :: gprec   ! convective rainfall argument for ugust
 
     ! Large and Yeager 2009
@@ -345,10 +345,10 @@ contains
           if (mask(n) /= 0) then
 
              !--- compute some needed quantities ---
-             if (add_gusts) then 
+             if (add_gusts) then
                 vmag   = max(seq_flux_atmocn_minwind, sqrt( (ubot(n)-us(n))**2 + (vbot(n)-vs(n))**2 + (1.0_R8*ugust(min(rainc(n),6.94444e-4_r8))**2)) )
                 ugust_out(n) = ugust(min(rainc(n),6.94444e-4_r8))
-             else 
+             else
                 vmag   = max(seq_flux_atmocn_minwind, sqrt( (ubot(n)-us(n))**2 + (vbot(n)-vs(n))**2) )
                 ugust_out(n) = 0.0_r8
              end if
@@ -367,7 +367,6 @@ contains
                    wind0=wind0*vscl
                 endif
              endif
-
              call shr_wv_sat_qsat_liquid(ts(n), pslv(n), qsat, ssq)
              ssq    = 0.98_R8 * ssq                     ! sea surf hum (kg/kg)
              delt   = thbot(n) - ts(n)                  ! pot temp diff (K)
@@ -496,7 +495,7 @@ contains
              qref  (n) = spval  !  2m reference height humidity (kg/kg)
              duu10n(n) = spval  ! 10m wind speed squared (m/s)^2
              ugust_out(n) = spval ! gustiness addition (m/s)
-             u10res(n) = spval ! 10m resolved wind (no gusts) (m/s) 
+             u10res(n) = spval ! 10m resolved wind (no gusts) (m/s)
 
              if (present(ustar_sv)) ustar_sv(n) = spval
              if (present(re_sv   )) re_sv   (n) = spval
@@ -577,6 +576,9 @@ contains
              if (present(re_sv   )) re_sv(n)    = re
              if (present(ssq_sv )) ssq_sv(n) = ssq
 
+             u10res(n) = sqrt(duu10n(n))
+             ugust_out(n) = 0._r8
+
           else
              !------------------------------------------------------------
              ! no valid data here -- out of domain
@@ -593,6 +595,9 @@ contains
              tref     (n) = spval  !  2m reference height temperature (K)
              qref     (n) = spval  !  2m reference height humidity (kg/kg)
              duu10n   (n) = spval  ! 10m wind speed squared (m/s)^2
+
+             u10res   (n) = spval
+             ugust_out(n) = spval
 
              if (present(ustar_sv)) ustar_sv(n) = spval
              if (present(re_sv   )) re_sv   (n) = spval
@@ -612,7 +617,15 @@ contains
                           taux, tauy, tref, qref, &
                           duu10n, ustar_sv, re_sv, ssq_sv, &
                           missval)
-
+       do n=1,nMax
+          if (mask(n) /= 0) then
+             u10res(n) = sqrt(duu10n(n))
+             ugust_out(n) = 0._r8
+          else
+             u10res   (n) = spval
+             ugust_out(n) = spval
+          end if
+       end do
     else
 
        call shr_sys_abort(subName//" subroutine flux_atmOcn requires ocn_surface_flux_scheme = 0, 1 or 2")
@@ -1052,7 +1065,6 @@ contains
           if (present(ssq_sv  )) ssq_sv(n)   = ssq
           if (present(re_sv   )) re_sv(n)    = re
 
-
        else
 
           !------------------------------------------------------------
@@ -1070,6 +1082,7 @@ contains
           tref  (n) = spval  !  2m reference height temperature (K)
           qref  (n) = spval  !  2m reference height humidity (kg/kg)
           duu10n(n) = spval  ! 10m wind speed squared (m/s)^2
+
           ! Optional diagnostics too:
           if (present(ustar_sv)) ustar_sv(n) = spval
           if (present(re_sv   )) re_sv   (n) = spval
@@ -1415,7 +1428,7 @@ contains
     real(R8)    :: vscl
 
     ! note: this should use the shr_wv_sat_qsat_liquid as above if this routine is ever used in production
-    qsat(Tk) = 640380.0_R8 / exp(5107.4_R8/Tk)
+    qsat(Tk)   = 640380.0_R8 / exp(5107.4_R8/Tk)
     cdn(Umps)  =   0.0027_R8 / Umps + 0.000142_R8 + 0.0000764_R8 * Umps
     psimhu(xd) = log((1.0_R8+xd*(2.0_R8+xd))*(1.0_R8+xd*xd)/8.0_R8) - 2.0_R8*atan(xd) + 1.571_R8
     psixhu(xd) = 2.0_R8 * log((1.0_R8 + xd*xd)/2.0_R8)
@@ -1554,10 +1567,11 @@ contains
              salt(n)    = 0.0_R8
              speed(n)   = 0.0_R8
           endif
-! This should be changed to use the subroutine below
+          ! This should be changed to use the subroutine below
           ssq = 0.98_R8 * qsat(tBulk(n)) / rbot(n) ! sea surf hum (kg/kg)
-!          call shr_wv_sat_qsat_liquid(tBulk(n), pslv(n), qsat, ssq)
-!          ssq    = 0.98_R8 * ssq                        ! sea surf hum (kg/kg)   
+          !          call shr_wv_sat_qsat_liquid(tBulk(n), pslv(n), qsat, ssq)
+          !          ssq    = 0.98_R8 * ssq                        ! sea surf hum (kg/kg)   
+
           delt   = thbot(n) - tBulk(n)                  ! pot temp diff (K)
           delq   = qbot(n) - ssq                     ! spec hum dif (kg/kg)
           cp     = shr_const_cpdair*(1.0_R8 + shr_const_cpvir*ssq)
@@ -1699,10 +1713,12 @@ contains
              tSkin(n) = tBulk(n) + cskin(n)
 
              !--need to update ssq,delt,delq as function of tBulk ----
-             ! qsat should be calculated in share code
-             ssq = 0.98_R8 * qsat(tBulk(n)) / rbot(n)
-!             call shr_wv_sat_qsat_liquid(tBulk(n), pslv(n), qsat, ssq)
-!             ssq    = 0.98_R8 * ssq                        ! sea surf hum (kg/kg)   
+
+             ! This should be changed to use the subroutine below
+             ssq = 0.98_R8 * qsat(tBulk(n)) / rbot(n) ! sea surf hum (kg/kg)
+             !          call shr_wv_sat_qsat_liquid(tBulk(n), pslv(n), qsat, ssq)
+             !          ssq    = 0.98_R8 * ssq                        ! sea surf hum (kg/kg)   
+
              delt   = thbot(n) - tBulk(n)                  ! pot temp diff (K)
              delq   = qbot(n) - ssq                        ! spec hum dif (kg/kg)
 
