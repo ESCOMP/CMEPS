@@ -1786,8 +1786,7 @@
     <group>ALLCOMP_attributes</group>
     <desc>Auxiliary mediator lnd2med fields every year</desc>
     <values>
-      <value set_histaux_l2x1yrg=".true." >.true.</value>
-      <value set_histaux_l2x1yrg=".false.">.false.</value>
+      <value>.false.</value>
     </values>
   </entry>
 
