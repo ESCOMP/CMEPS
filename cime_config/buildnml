@@ -37,7 +37,6 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     config["CPL_I2O_PER_CAT"] = case.get_value("CPL_I2O_PER_CAT")
     config["DRV_THREADING"] = case.get_value("DRV_THREADING")
     config["CPL_ALBAV"] = case.get_value("CPL_ALBAV")
-    config["CPL_EPBAL"] = case.get_value("CPL_EPBAL")
     config["FLDS_WISO"] = case.get_value("FLDS_WISO")
     config["BUDGETS"] = case.get_value("BUDGETS")
     config["MACH"] = case.get_value("MACH")
@@ -51,7 +50,6 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     )
     config["timer_level"] = "pos" if case.get_value("TIMER_LEVEL") >= 1 else "neg"
     config["continue_run"] = ".true." if case.get_value("CONTINUE_RUN") else ".false."
-    config["flux_epbal"] = "ocn" if case.get_value("CPL_EPBAL") == "ocn" else "off"
     config["mask_grid"] = case.get_value("MASK_GRID")
     for val in ("HIST", "REST", "STOP"):
         config[val.lower()+"_option"] = case.get_value(val+"_OPTION")
@@ -642,9 +640,9 @@ def cmeps_lib_list(case):
     mpilib = case.get_value("MPILIB")
     if mpilib == "mpi-serial" and "mpi-serial" not in libs:
         libs.insert(0, mpilib)
-        
+
     ocn_model = case.get_value("COMP_OCN")
-    # These will be handled by MOM and CAM, included here for backward compatibility.  
+    # These will be handled by MOM and CAM, included here for backward compatibility.
     atm_dycore = case.get_value("CAM_DYCORE")
     if (ocn_model == "mom" or (atm_dycore and atm_dycore == "fv3")) and "FMS" not in libs:
         libs.append("FMS")
@@ -658,7 +656,7 @@ def buildnml(case, caseroot, component):
 
     libs = cmeps_lib_list(case)
     case.set_value("CASE_SUPPORT_LIBRARIES", ",".join(libs))
-    
+
     esmfmkfile = os.getenv("ESMFMKFILE")
     expect(
         esmfmkfile and os.path.isfile(esmfmkfile),
