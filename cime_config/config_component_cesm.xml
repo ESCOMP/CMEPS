@@ -532,7 +532,8 @@
     <file>env_run.xml</file>
     <desc>
       Mechanism for setting the CO2 value in ppmv for
-      CLM if CLM_CO2_TYPE is constant or for
+      CLM if CLM_CO2_TYPE is constant or
+      MOM6 if OCN_CO2_TYPE is constant.
     </desc>
   </entry>
 
