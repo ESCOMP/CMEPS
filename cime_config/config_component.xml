@@ -2307,7 +2307,7 @@
     <default_value>FALSE</default_value>
     <group>run_coupling</group>
     <file>env_run.xml</file>
-    <desc>determine if per ice thickness category fields are passed from ice to ocean - DO NOT EDIT (set by POP build-namelist)</desc>
+    <desc>determine if per ice thickness category fields are passed from ice to ocean - DO NOT EDIT (set by MOM6)</desc>
   </entry>
 
   <entry id="INFO_DBUG">
