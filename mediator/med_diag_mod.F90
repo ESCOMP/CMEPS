@@ -351,19 +351,19 @@ contains
     ! -----------------------------------------
 
     ! Note that this order is important here to determine f_watr_beg and f_watr_end
-    if (trim(budget_table_version) == 'v0') then
+    if (trim(budget_table_version) == 'v0' .or. trim(budget_table_version) == 'v2') then !BLOM for v2
        call add_to_budget_diag(budget_diags%fields, f_watr_frz   ,'wfreeze'     ) ! field  water: freezing
     end if
     call add_to_budget_diag(budget_diags%fields, f_watr_melt     ,'wmelt'       ) ! field  water: melting
     call add_to_budget_diag(budget_diags%fields, f_watr_rain     ,'wrain'       ) ! field  water: precip, liquid
     call add_to_budget_diag(budget_diags%fields, f_watr_snow     ,'wsnow'       ) ! field  water: precip, frozen
     call add_to_budget_diag(budget_diags%fields, f_watr_evap     ,'wevap'       ) ! field  water: evaporation
-    if (trim(budget_table_version) == 'v0') then
+    if (trim(budget_table_version) == 'v0' .or. trim(budget_table_version) == 'v2') then !BLOM for v2
        call add_to_budget_diag(budget_diags%fields, f_watr_salt  ,'weqsaltf'    ) ! field  water: water equivalent of salt flux
     endif
     call add_to_budget_diag(budget_diags%fields, f_watr_roff     ,'wrunoff'     ) ! field  water: runoff/flood
     call add_to_budget_diag(budget_diags%fields, f_watr_ioff     ,'wfrzrof'     ) ! field  water: frozen runoff
-    if (trim(budget_table_version) == 'v0') then
+    if (trim(budget_table_version) == 'v0' .or. trim(budget_table_version) == 'v2') then
        f_watr_beg = f_watr_frz  ! field  firs  index for water
     else
        f_watr_beg = f_watr_melt ! field  firs  index for water
@@ -1527,7 +1527,7 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call diag_ocn(is_local%wrap%FBImp(compatm,compocn), 'Faxa_lwdn', f_heat_lwdn, ic, areas, ofrac, budget_local, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    else ! POP
+    else ! BLOM
        call diag_ocn(is_local%wrap%FBMed_aoflux_o, 'Faox_lwup' , f_heat_lwup   , ic, areas, ofrac, budget_local, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call diag_ocn(is_local%wrap%FBExp(compocn), 'Faxa_lwdn' , f_heat_lwdn   , ic, areas, sfrac, budget_local, rc=rc)
@@ -1539,7 +1539,7 @@ contains
     call diag_ocn(is_local%wrap%FBMed_aoflux_o, 'Faox_evap', f_watr_evap   , ic, areas, ofrac, budget_local, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    if (fldbun_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_lat', rc=rc)) then ! POP
+    if (fldbun_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_lat', rc=rc)) then ! BLOM
        call diag_ocn(is_local%wrap%FBMed_aoflux_o, 'Faox_lat'  , f_heat_latvap , ic, areas, ofrac, budget_local, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     else ! MOM6
@@ -1982,13 +1982,13 @@ contains
 
     ic = c_inh_send
     budget_local(f_heat_latf,ic,ip) = -budget_local(f_watr_snow,ic,ip)*shr_const_latice
-    if (trim(budget_table_version) == 'v0') then
+    if (trim(budget_table_version) == 'v0' .or. trim(budget_table_version) == 'v2') then !BLOM for v2
        budget_local(f_watr_frz ,ic,ip) =  budget_local(f_heat_frz ,ic,ip)*HFLXtoWFLX
     end if
 
     ic = c_ish_send
     budget_local(f_heat_latf,ic,ip) = -budget_local(f_watr_snow,ic,ip)*shr_const_latice
-    if (trim(budget_table_version) == 'v0') then
+    if (trim(budget_table_version) == 'v0' .or. trim(budget_table_version) == 'v2') then !BLOM for v2
        budget_local(f_watr_frz ,ic,ip) =  budget_local(f_heat_frz ,ic,ip)*HFLXtoWFLX
     end if
 
