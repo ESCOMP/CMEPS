@@ -217,7 +217,8 @@ contains
       ) then
        ! Error check
        if ( .not. med_computes_enthalpy_flux) then
-          call shr_log_error(trim(subname)//' ERROR: med_computes_enthalpy_flux must be true, aborting ', rc=rc)
+          call shr_log_error(trim(subname)//' ERROR: med_computes_enthalpy_flux must be true', rc=rc)
+          return
        end if
        call FB_GetFldPtr(is_local%wrap%FBImp(compocn,compocn), 'So_t', tocn, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -283,7 +284,8 @@ contains
     if( FB_fldchk(is_local%wrap%FBExp(compocn), 'Faxa_hmat', rc=rc) .and.  &
         FB_fldchk(is_local%wrap%FBExp(compocn), 'Faxa_hlat', rc=rc)) then
        if ( .not. atm_computes_enthalpy_flux) then
-          call shr_log_error(trim(subname)//' ERROR: atm_computes_enthalpy_flux must be true, aborting ', rc=rc)
+          call shr_log_error(trim(subname)//' ERROR: atm_computes_enthalpy_flux must be true', rc=rc)
+          return
        end if
        call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Faxa_hmat', Faxa_hmat, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return

@@ -363,7 +363,7 @@ contains
     endif
     call add_to_budget_diag(budget_diags%fields, f_watr_roff     ,'wrunoff'     ) ! field  water: runoff/flood
     call add_to_budget_diag(budget_diags%fields, f_watr_ioff     ,'wfrzrof'     ) ! field  water: frozen runoff
-    if (trim(budget_table_version) == 'v0' .or. trim(budget_table_version) == 'v2') then
+    if (trim(budget_table_version) == 'v0' .or. trim(budget_table_version) == 'v2') then !BLOM for v2
        f_watr_beg = f_watr_frz  ! field  firs  index for water
     else
        f_watr_beg = f_watr_melt ! field  firs  index for water
