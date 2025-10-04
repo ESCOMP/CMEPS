@@ -262,6 +262,13 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     nmlgen.set_value("start_ymd", value=run_startdate)
 
     # --------------------------------
+    # Overwrite: budget_table_version if atm computes enthalpy
+    # --------------------------------
+    atm_computes_enthalpy_flux = nmlgen.get_value("atm_computes_enthalpy_flux")
+    if atm_computes_enthalpy_flux:
+        nmlgen.set_value("budget_table_version", value="v2")
+
+    # --------------------------------
     # Overwrite: set tprof_option and tprof_n - if tprof_total is > 0
     # --------------------------------
     # This would be better handled inside the alarm logic in the driver routines.
