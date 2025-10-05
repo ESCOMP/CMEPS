@@ -242,6 +242,8 @@ contains
           dataptr1(n) = dataptr1(n) + global_htot_corr(1)
        end do
     end if
+    ! Only do the following if the atmosphere is computing the enthalpy to be sent to the ocean
+    ! from rain, snow, etc.
     if (FB_FldChk(is_local%wrap%FBExp(compatm), 'Faxx_hrof', rc=rc)) then
        call FB_getfldptr(is_local%wrap%FBExp(compatm), 'Faxx_hrof', dataptr1, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
