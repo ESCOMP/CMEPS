@@ -655,8 +655,9 @@ def buildnml(case, caseroot, component):
         raise AttributeError
 
     libs = cmeps_lib_list(case)
-    case.set_value("CASE_SUPPORT_LIBRARIES", ",".join(libs))
-
+    with Case(case.get_value("CASEROOT"), read_only=False) as case_tmp:
+        case_tmp.set_value("CASE_SUPPORT_LIBRARIES", ",".join(libs))
+    
     esmfmkfile = os.getenv("ESMFMKFILE")
     expect(
         esmfmkfile and os.path.isfile(esmfmkfile),
