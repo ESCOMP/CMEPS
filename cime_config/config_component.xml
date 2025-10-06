@@ -489,17 +489,6 @@
     </desc>
   </entry>
 
-  <entry id="MEDIATOR_READ_RESTART">
-    <type>logical</type>
-    <valid_values>TRUE,FALSE</valid_values>
-    <default_value>FALSE</default_value>
-    <group>run_begin_stop_restart</group>
-    <file>env_run.xml</file>
-    <desc>
-      A setting of TRUE implies a continuation run for mediator only
-    </desc>
-  </entry>
-
   <entry id="RESUBMIT">
     <type>integer</type>
     <default_value>0</default_value>
@@ -915,21 +904,6 @@
     variable to TRUE will involve the inclusion of C++ code in the
     MPASLI executable. This is currently only supported for certain
     machines.</desc>
-  </entry>
-
-  <entry id="CLM_USE_PETSC">
-    <type>logical</type>
-    <valid_values>TRUE,FALSE</valid_values>
-    <default_value>FALSE</default_value>
-    <group>build_component_clm</group>
-    <file>env_build.xml</file>
-    <desc>TRUE implies CLM is built with support for the PETSc
-      library. The Variably Saturated Flow Model (VSFM) solver in CLM
-      uses the PETSc library. In order to use the VSFM solver, CLM
-      must be built with PETSc support and linking to PETSc must occur
-      when building the ACME executable. This occurs if this variable
-      is set to TRUE. Note that is only available on a limited set of
-      machines/compilers.</desc>
   </entry>
 
   <entry id="USE_MOAB">
@@ -2333,7 +2307,7 @@
     <default_value>FALSE</default_value>
     <group>run_coupling</group>
     <file>env_run.xml</file>
-    <desc>determine if per ice thickness category fields are passed from ice to ocean - DO NOT EDIT (set by POP build-namelist)</desc>
+    <desc>determine if per ice thickness category fields are passed from ice to ocean - DO NOT EDIT (set by MOM6)</desc>
   </entry>
 
   <entry id="INFO_DBUG">
@@ -2533,11 +2507,11 @@
    <desc>Support libraries required</desc>
  </entry>
 
- 
+
  <!-- ===================================================================== -->
  <!-- Include the AOFLUX calculation for this compset -->
  <!-- ===================================================================== -->
- 
+
  <entry id="ADD_AOFLUX_TO_RUNSEQ">
    <type>logical</type>
    <valid_values>TRUE,FALSE</valid_values>

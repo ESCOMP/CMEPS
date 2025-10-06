@@ -931,24 +931,13 @@
       <value>0</value>
     </values>
   </entry>
-  <entry id="gust_fac">
-    <type>real</type>
-    <category>control</category>
-    <group>MED_attributes</group>
-    <desc>
-      wind gustiness factor
-    </desc>
-    <values>
-      <value>0.0D0</value>
-    </values>
-  </entry>
-
   <entry id="add_gusts">
     <type>logical</type>
     <category>control</category>
     <group>MED_attributes</group>
     <desc>
-      add a wind gustiness factor
+      Add a wind gustiness factor. This should be false for
+      ocn_surface_flux_scheme settings of 1 or 2.
     </desc>
     <values>
       <value CAMDEV="True">.true.</value>
@@ -1787,6 +1776,7 @@
     </values>
   </entry>
 
+  
   <!-- MED histaux lnd2med accumulated fields from land needed as glc input specially treated-->
   <!-- note that the following is ALLCOMP attributes since CTSM needs access to this variable to determine -->
   <!-- if it needs to send lnd->glc data to the mediator even if there is no glc -->
@@ -1794,7 +1784,7 @@
     <type>logical</type>
     <category>aux_hist</category>
     <group>ALLCOMP_attributes</group>
-    <desc>Turns on history stream for annual lnd to mediator glc forcing fields</desc>
+    <desc>Auxiliary mediator lnd2med fields every year</desc>
     <values>
       <value>.false.</value>
     </values>
@@ -2318,7 +2308,7 @@
       <value>$WAV2OCN_SMAPNAME</value>
     </values>
   </entry>
-  
+
   <!-- =========================== -->
   <!-- ALLCOMP attributes          -->
   <!-- =========================== -->
@@ -2872,7 +2862,6 @@
       <value TESTCASE='ERC'>.false.</value>
       <value TESTCASE='ERP'>.false.</value>
       <value TESTCASE='ERI'>.false.</value>
-      <value TESTCASE='ERR'>.false.</value>
     </values>
   </entry>
 
@@ -3727,7 +3716,7 @@
       components that need to look at the same data.
     </desc>
     <values>
-      <value>Buildconf/camconf/drv_flds_in,Buildconf/clmconf/drv_flds_in,Buildconf/datmconf/drv_flds_in</value>
+      <value>Buildconf/camconf/drv_flds_in,Buildconf/clmconf/drv_flds_in,Buildconf/datmconf/drv_flds_in,Buildconf/dlndconf/drv_flds_in</value>
     </values>
   </entry>
 
@@ -3836,7 +3825,7 @@
     </desc>
     <values>
       <value>.false.</value>
-      <value wav_ice_coupling="on">.true.</value>
+      <value wav_ice_coupling='on'>.true.</value>
     </values>
   </entry>
 
