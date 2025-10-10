@@ -34,8 +34,7 @@ module med_phases_prep_ocn_mod
 
   private :: med_phases_prep_ocn_custom
 
-  logical :: med_computes_enthalpy_flux
-  logical :: atm_computes_enthalpy_flux
+  character(len=CS) :: component_computes_enthalpy_flux
 
   character(*), parameter :: u_FILE_u  = &
        __FILE__
@@ -78,22 +77,13 @@ contains
     call FB_reset(is_local%wrap%FBExpAccumOcn, value=czero, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call NUOPC_CompAttributeGet(gcomp, name="med_computes_enthalpy_flux", value=cvalue, &
+    call NUOPC_CompAttributeGet(gcomp, name="component_computes_enthalpy_flux", value=cvalue, &
          isPresent=isPresent, isSet=isSet, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     if (isPresent .and. isSet) then
-       read(cvalue,*) med_computes_enthalpy_flux
+       component_computes_enthalpy_flux = trim(cvalue)
     else
-       med_computes_enthalpy_flux = .false.
-    end if
-
-    call NUOPC_CompAttributeGet(gcomp, name="atm_computes_enthalpy_flux", value=cvalue, &
-         isPresent=isPresent, isSet=isSet, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent .and. isSet) then
-       read(cvalue,*) atm_computes_enthalpy_flux
-    else
-       atm_computes_enthalpy_flux = .false.
+       component_computes_enthalpy_flux = 'none'
     end if
 
   end subroutine med_phases_prep_ocn_init
@@ -194,7 +184,7 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !---------------------------------------
-    !--- custom calculations
+    !--- custom calculation - enthalpy flux computed in mediator
     !---------------------------------------
     ! compute enthalpy associated with rain, snow, condensation and liquid river & glc runoff
     ! the sea-ice model already accounts for the enthalpy flux (as part of melth), so
@@ -216,8 +206,8 @@ contains
        FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hrofi_glc' , rc=rc)       &
       ) then
        ! Error check
-       if ( .not. med_computes_enthalpy_flux) then
-          call shr_log_error(trim(subname)//' ERROR: med_computes_enthalpy_flux must be true', rc=rc)
+       if (trim(component_computes_enthalpy_flux) /= 'med') then
+          call shr_log_error(trim(subname)//' ERROR: component_computes_enthalpy_flux must be set to med', rc=rc)
           return
        end if
        call FB_GetFldPtr(is_local%wrap%FBImp(compocn,compocn), 'So_t', tocn, rc=rc)
@@ -280,11 +270,13 @@ contains
        end if
     end if ! condition for using global energy fixer
 
-    ! Newer enthalpy terms from atm
+    !---------------------------------------
+    !--- custom calculation - enthalpy flux obtained from atm
+    !---------------------------------------
     if( FB_fldchk(is_local%wrap%FBExp(compocn), 'Faxa_hmat', rc=rc) .and.  &
         FB_fldchk(is_local%wrap%FBExp(compocn), 'Faxa_hlat', rc=rc)) then
-       if ( .not. atm_computes_enthalpy_flux) then
-          call shr_log_error(trim(subname)//' ERROR: atm_computes_enthalpy_flux must be true', rc=rc)
+       if (trim(component_computes_enthalpy_flux) /= 'atm') then
+          call shr_log_error(trim(subname)//' ERROR: component_computes_enthalpy_flux must be set to atm', rc=rc)
           return
        end if
        call FB_GetFldPtr(is_local%wrap%FBExp(compocn), 'Faxa_hmat', Faxa_hmat, rc=rc)
@@ -342,7 +334,6 @@ contains
        !-----------------------
        ! Compute Faxa_hmat_oa
        !-----------------------
-
        ! Determine hcorr and acorr
        allocate(hcorr(size(tocn)))
        allocate(acorr(size(tocn)))
@@ -393,7 +384,9 @@ contains
 
     endif
 
-    ! custom merges to ocean
+    !---------------------------------------
+    !--- custom merges to ocean
+    !---------------------------------------
     call med_phases_prep_ocn_custom(gcomp, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 

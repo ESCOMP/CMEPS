@@ -664,32 +664,22 @@
   </entry>
 
   <!-- =========================================== -->
-  <!-- MED enthalpy computation                    -->
+  <!-- All components enthalpy computation         -->
   <!-- =========================================== -->
 
-  <entry id="med_computes_enthalpy_flux">
-    <type>logical</type>
+  <entry id="component_computes_enthalpy_flux">
+    <type>char</type>
     <category>control</category>
     <group>ALLCOMP_attributes</group>
+    <valid_values>none,atm,med</valid_values>
     <desc>
-      if true, the mediator computes enthalpy associated with rain,
-      snow, etc to send to ocn (in this case MOM6)
+    if none, no enthaply flux is computed to send to the ocean,
+    if atm, the atm (in this case cam) computes enthalpy to send to the ocn (in this case BLOM)
+    if med, the mediator computes computes enthalpy to send to the ocn (in this case MOM6)
     </desc>
     <values>
-      <value>.false.</value>
-      <value comp_ocn="mom6" comp_atm="cam">.true.</value>
-    </values>
-  </entry>
-
-  <entry id="atm_computes_enthalpy_flux">
-    <type>logical</type>
-    <category>control</category>
-    <group>ALLCOMP_attributes</group>
-    <desc>
-      if true, the atm (in this case cam) computes enthalpy to send to the ocn (in this case BLOM)
-    </desc>
-    <values>
-      <value>.false.</value>
+      <value>none</value>
+      <value comp_ocn="mom6" comp_atm="cam">med</value>
     </values>
   </entry>
 

@@ -264,8 +264,8 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     # --------------------------------
     # Overwrite: budget_table_version if atm computes enthalpy
     # --------------------------------
-    atm_computes_enthalpy_flux = nmlgen.get_value("atm_computes_enthalpy_flux")
-    if atm_computes_enthalpy_flux:
+    component_computes_enthalpy_flux = nmlgen.get_value("component_computes_enthalpy_flux")
+    if 'atm' in component_computes_enthalpy_flux:
         nmlgen.set_value("budget_table_version", value="v2")
 
     # --------------------------------

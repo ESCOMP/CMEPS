@@ -720,7 +720,7 @@ contains
     call diag_atm_recv(is_local%wrap%FBImp(compatm,compatm), 'Faxa_rainl', f_watr_rain, &
          areas, lats, afrac, lfrac, ofrac, ifrac, budget_local, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    ! Note that passing f_watr_rain twice will just add up contributions from Faxa_snowc and Faxa_snowl
+    ! Note that passing f_watr_snow twice will just add up contributions from Faxa_snowc and Faxa_snowl
     call diag_atm_recv(is_local%wrap%FBImp(compatm,compatm), 'Faxa_snowc', f_watr_snow, &
          areas, lats, afrac, lfrac, ofrac, ifrac, budget_local, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -729,15 +729,10 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if (trim(budget_table_version) == 'v2') then
-       ! call diag_atm_recv(is_local%wrap%FBImp(compatm,compatm), 'Faxa_hmat', f_heat_hmat, &
-       !      areas, lats, afrac, lfrac, ofrac, ifrac, budget_local, rc=rc)
-       ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
        call fldbun_getdata1d(is_local%wrap%FBImp(compatm,compatm), 'Faxa_hmat', data, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        nf = f_heat_hmat
        do n = 1,size(data)
-          !budget_local(nf,c_atm_recv,ip) = budget_local(nf,c_atm_recv,ip) - areas(n)*data(n)*(ofrac(n)+ifrac(n))
           budget_local(nf,c_atm_recv,ip) = budget_local(nf,c_atm_recv,ip) - areas(n)*data(n)*ofrac(n)
        end do
     end if
