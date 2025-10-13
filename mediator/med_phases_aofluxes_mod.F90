@@ -972,7 +972,7 @@ contains
     use med_methods_mod, only : FB_fldchk => med_methods_FB_fldchk
     use med_methods_mod, only : FB_diagnose  => med_methods_FB_diagnose
 #ifdef CESMCOUPLED
-    use shr_flux_mod   , only : flux_atmocn
+    use shr_flux_mod   , only : flux_atmocn_driver
 #else
     use flux_atmocn_mod, only : flux_atmocn
 #endif
@@ -1068,7 +1068,7 @@ contains
     !----------------------------------
 
 #ifdef CESMCOUPLED
-    call flux_atmocn (logunit=logunit, &
+    call flux_atmocn_driver (logunit=logunit, &
          nMax=aoflux_in%lsize, &
          zbot=aoflux_in%zbot, ubot=aoflux_in%ubot, vbot=aoflux_in%vbot, thbot=aoflux_in%thbot, qbot=aoflux_in%shum, &
          rainc=aoflux_in%rainc, &
