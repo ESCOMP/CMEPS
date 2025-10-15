@@ -162,7 +162,7 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     # ----------------------------------------------------
     # double check if ocn2glc_coupling is set correctly
     ocn2glc_coupling = nmlgen.get_value("ocn2glc_coupling")
-    if "ocn2glc_coupling" == ".true.":
+    if ocn2glc_coupling == ".true.":
         expect(case.get_value("COMP_OCN") == 'blom' or 'DOCN%MULTILEV' in case.get_value("COMPSET"),
                "ocn2glc_coupling is only allowed currently if the ocean component is BLOM or if DOCN%MULTILEV is in the compset")
 
