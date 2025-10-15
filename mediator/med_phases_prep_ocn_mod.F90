@@ -189,22 +189,22 @@ contains
     ! compute enthalpy associated with rain, snow, condensation and liquid river & glc runoff
     ! the sea-ice model already accounts for the enthalpy flux (as part of melth), so
     ! enthalpy from meltw **is not** included below
-    if(FB_fldchk(is_local%wrap%FBExp(compocn), 'Faxa_rain'      , rc=rc) .and. &
-       FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hrain'     , rc=rc) .and. &
-       FB_fldchk(is_local%wrap%FBExp(compocn), 'Faxa_snow'      , rc=rc) .and. &
-       FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hsnow'     , rc=rc) .and. &
-       FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_evap'      , rc=rc) .and. &
-       FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hevap'     , rc=rc) .and. &
-       FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hcond'     , rc=rc) .and. &
-       FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_rofl'      , rc=rc) .and. &
-       FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hrofl'     , rc=rc) .and. &
-       FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_rofi'      , rc=rc) .and. &
-       FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hrofi'     , rc=rc) .and. &
-       FB_fldchk(is_local%wrap%FBExp(compocn), 'Forr_rofl_glc'  , rc=rc) .and. &
-       FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hrofl_glc' , rc=rc) .and. &
-       FB_fldchk(is_local%wrap%FBExp(compocn), 'Forr_rofi_glc'  , rc=rc) .and. &
-       FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hrofi_glc' , rc=rc)       &
-      ) then
+    if (FB_fldchk(is_local%wrap%FBExp(compocn), 'Faxa_rain'      , rc=rc) .and. &
+        FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hrain'     , rc=rc) .and. &
+        FB_fldchk(is_local%wrap%FBExp(compocn), 'Faxa_snow'      , rc=rc) .and. &
+        FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hsnow'     , rc=rc) .and. &
+        FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_evap'      , rc=rc) .and. &
+        FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hevap'     , rc=rc) .and. &
+        FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hcond'     , rc=rc) .and. &
+        FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_rofl'      , rc=rc) .and. &
+        FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hrofl'     , rc=rc) .and. &
+        FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_rofi'      , rc=rc) .and. &
+        FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hrofi'     , rc=rc) .and. &
+        FB_fldchk(is_local%wrap%FBExp(compocn), 'Forr_rofl_glc'  , rc=rc) .and. &
+        FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hrofl_glc' , rc=rc) .and. &
+        FB_fldchk(is_local%wrap%FBExp(compocn), 'Forr_rofi_glc'  , rc=rc) .and. &
+        FB_fldchk(is_local%wrap%FBExp(compocn), 'Foxx_hrofi_glc' , rc=rc)       &
+       ) then
        ! Error check
        if (trim(component_computes_enthalpy_flux) /= 'med') then
           call shr_log_error(trim(subname)//' ERROR: component_computes_enthalpy_flux must be set to med', rc=rc)

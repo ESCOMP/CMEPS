@@ -273,6 +273,8 @@ contains
     ! 'Foxx_evap','Foxx_hevap','Foxx_hcond','Foxx_rofl',
     ! 'Foxx_hrofl','Foxx_rofi','Foxx_hrofi','Foxx_rofl_glc',
     ! 'Foxx_hrofl_glc','Foxx_rofi_glc','Foxx_hrofi_glc'
+    ! The result is added as a correction to the sensible heat flux sent back to the atm
+    ! in subroutine med_phases_prep_atm
 
     use ESMF            , only : ESMF_VMAllreduce, ESMF_GridCompGet, ESMF_REDUCE_SUM
     use ESMF            , only : ESMF_VM
@@ -312,8 +314,14 @@ contains
   !-----------------------------------------------------------------------------
   subroutine med_phases_prep_atm_enthalpy_runoff(gcomp, hcorr, rc)
 
-    use ESMF            , only : ESMF_VMAllreduce, ESMF_GridCompGet, ESMF_REDUCE_SUM
-    use ESMF            , only : ESMF_VM
+    use ESMF , only : ESMF_VMAllreduce, ESMF_GridCompGet, ESMF_REDUCE_SUM
+    use ESMF , only : ESMF_VM
+
+    ! Enthalpy of runoff calculated called by med_phases_prep_ocn_accum in
+    ! med_phases_prep_ocn_mod
+    ! Note that this is only called if the following fields are in FBExp(compocn)
+    ! - Faxa_hmat, Faxa_hlat
+    ! The result (Faxx_hrof) is sent back to the atm in subroutine med_phases_prep_atm
 
     ! input/output variables
     type(ESMF_GridComp) , intent(in)  :: gcomp
