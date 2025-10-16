@@ -22,15 +22,15 @@ module flux_atmocn_COARE_mod
 
   use shr_flux_mod,   only : td0, maxscl, alpha
   use shr_flux_mod,   only : use_coldair_outbreak_mod
-  use water_isotopes, only: wiso_flxoce !subroutine used to calculate water isotope fluxes.
+  use water_isotopes, only : wiso_flxoce !subroutine used to calculate water isotope fluxes.
 
   implicit none
   private
 
-  public :: flux_atmOcn_COARE
-  public :: cor30a
+  public  :: flux_atmOcn_COARE
+  private :: cor30a
   
-  integer, parameter :: debug = 0 ! internal debug level
+  integer :: debug = 0 ! internal debug level
 
 contains
 
@@ -165,27 +165,27 @@ contains
           endif
           ssq = 0.98_R8 * qsat(ts(n)) / rbot(n)   ! sea surf hum (kg/kg)
 
-          call cor30a(ubot(n),vbot(n),tbot(n),qbot(n),rbot(n) &  ! in atm params
-               & ,us(n),vs(n),ts(n),ssq                   &  ! in surf params
-               & ,zpbl,zbot(n),zbot(n),zref,ztref,ztref   &  ! in heights
-               & ,tau,hsb,hlb                             &  ! out: fluxes
-               & ,zo,zot,zoq,hol,ustar,tstar,qstar        &  ! out: ss scales
-               & ,rd,rh,re                                &  ! out: exch. coeffs
-               & ,trf,qrf,urf,vrf) ! out: reference-height params
+          call cor30a(ubot(n),vbot(n),tbot(n),qbot(n),rbot(n), & ! in atm params
+               us(n),vs(n),ts(n),ssq,                          & ! in surf params
+               zpbl,zbot(n),zbot(n),zref,ztref,ztref,          & ! in heights
+               tau,hsb,hlb,                                    & ! out: fluxes
+               zo,zot,zoq,hol,ustar,tstar,qstar,               & ! out: ss scales
+               rd,rh,re,                                       & ! out: exch. coeffs
+               trf,qrf,urf,vrf)                                  ! out: reference-height params
 
           ! for the sake of maintaining same defs
-          hol=zbot(n)/hol
-          rd=sqrt(rd)
-          rh=sqrt(rh)
-          re=sqrt(re)
+          hol = zbot(n)/hol
+          rd = sqrt(rd)
+          rh = sqrt(rh)
+          re = sqrt(re)
 
           !--- momentum flux ---
           taux(n) = tau * (ubot(n)-us(n)) / vmag
           tauy(n) = tau * (vbot(n)-vs(n)) / vmag
 
           !--- heat flux ---
-          sen (n) =  hsb
-          lat (n) =  hlb
+          sen (n) = hsb
+          lat (n) = hlb
           lwup(n) = -shr_const_stebol * ts(n)**4
 
           !--- water flux ---
@@ -210,13 +210,14 @@ contains
           ! optional diagnostics, needed for water tracer fluxes (dcn)
           !------------------------------------------------------------
           if (present(ustar_sv)) ustar_sv(n) = ustar
-          if (present(re_sv   )) re_sv(n)    = re
+          if (present(re_sv   )) re_sv(n) = re
           if (present(ssq_sv )) ssq_sv(n) = ssq
 
           u10res(n) = sqrt(duu10n(n))
           ugust_out(n) = 0._r8
 
        else
+
           !------------------------------------------------------------
           ! no valid data here -- out of domain
           !------------------------------------------------------------
@@ -255,10 +256,13 @@ contains
         trf,qrf,urf,vrf)                      ! out: reference-height params
 
     ! Arguments
-    real(R8),intent(in) :: ubt,vbt,tbt,qbt,rbt,uss,vss,tss,qss
-    real(R8),intent(in) :: zbl,zbu,zbt,zrfu,zrfq,zrft
-    real(R8),intent(out):: tau,hsb,hlb,zo,zot,zoq,L,usr,tsr,qsr,Cd,Ch,Ce, &
-                           trf,qrf,urf,vrf
+    real(R8), intent(in)  :: ubt,vbt,tbt,qbt,rbt
+    real(R8), intent(in)  :: uss,vss,tss,qss
+    real(R8), intent(in)  :: zbl,zbu,zbt,zrfu,zrfq,zrft
+    real(R8), intent(out) :: tau,hsb,hlb
+    real(R8), intent(out) :: zo,zot,zoq,L,usr,tsr,qsr
+    real(R8), intent(out) :: Cd,Ch,Ce
+    real(R8), intent(out) :: trf,qrf,urf,vrf
 
     ! Local variables
     real(R8):: ua,va,ta,q,rb,us,vs,ts,qs,zi,zu,zt,zq,zru,zrq,zrt ! internal vars

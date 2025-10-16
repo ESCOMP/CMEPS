@@ -22,25 +22,28 @@ module flux_atmocn_UA_mod
   !===============================================================================
 
   implicit none
-  public
+  private
+
+  public :: flux_atmOcn_UA
 
   ! private member functions:
   private :: psi_ua
   private :: qsat_ua
   private :: rough_ua
 
+  integer, private :: debug = 0
+
 contains
 
-  subroutine flux_atmOcn_UA(                 &
-       logunit,                             &  
-       nMax  ,zbot  ,ubot  ,vbot  ,thbot ,  &
-       qbot  ,s16O  ,sHDO  ,s18O  ,rbot  ,  &
-       tbot  , pslv ,us    , vs   ,         &
-       ts    ,mask  ,sen   ,lat   ,lwup  ,  &
-       r16O, rhdo, r18O,                    &
-       evap  ,evap_16O, evap_HDO, evap_18O, &
-       taux  ,tauy  ,tref  ,qref  ,         &
-       duu10n,  ustar_sv   ,re_sv ,ssq_sv,  &
+  subroutine flux_atmOcn_UA(                    &
+       logunit,  nMax, zbot, ubot, vbot, thbot, &
+       qbot, s16O, sHDO, s18O, rbot,            &
+       tbot, us, vs, pslv,                      &
+       ts, mask, sen, lat, lwup,                &
+       r16O, rhdo, r18O,                        &
+       evap, evap_16O,  evap_HDO, evap_18O,     &
+       taux, tauy, tref, qref,                  &
+       duu10n,  ustar_sv, re_sv, ssq_sv,        &
        missval)
 
     ! uses:
@@ -69,18 +72,18 @@ contains
     real(R8)   ,intent(in) :: ts   (nMax) ! ocn temperature       (K)
 
     !--- output arguments -------------------------------
-    real(R8),intent(out)  ::  sen  (nMax) ! heat flux: sensible    (W/m^2)
-    real(R8),intent(out)  ::  lat  (nMax) ! heat flux: latent      (W/m^2)
-    real(R8),intent(out)  ::  lwup (nMax) ! heat flux: lw upward   (W/m^2)
-    real(R8),intent(out)  ::  evap (nMax) ! water flux: evap  ((kg/s)/m^2)
+    real(R8),intent(out)  ::  sen  (nMax)     ! heat flux: sensible    (W/m^2)
+    real(R8),intent(out)  ::  lat  (nMax)     ! heat flux: latent      (W/m^2)
+    real(R8),intent(out)  ::  lwup (nMax)     ! heat flux: lw upward   (W/m^2)
+    real(R8),intent(out)  ::  evap (nMax)     ! water flux: evap  ((kg/s)/m^2)
     real(R8),intent(out)  ::  evap_16O (nMax) ! water flux: evap ((kg/s/m^2)
     real(R8),intent(out)  ::  evap_HDO (nMax) ! water flux: evap ((kg/s)/m^2)
     real(R8),intent(out)  ::  evap_18O (nMax) ! water flux: evap ((kg/s/m^2)
-    real(R8),intent(out)  ::  taux (nMax) ! surface stress, zonal      (N)
-    real(R8),intent(out)  ::  tauy (nMax) ! surface stress, maridional (N)
-    real(R8),intent(out)  ::  tref (nMax) ! diag:  2m ref height T     (K)
-    real(R8),intent(out)  ::  qref (nMax) ! diag:  2m ref humidity (kg/kg)
-    real(R8),intent(out)  :: duu10n(nMax) ! diag: 10m wind speed squared (m/s)^2
+    real(R8),intent(out)  ::  taux (nMax)     ! surface stress, zonal      (N)
+    real(R8),intent(out)  ::  tauy (nMax)     ! surface stress, maridional (N)
+    real(R8),intent(out)  ::  tref (nMax)     ! diag:  2m ref height T     (K)
+    real(R8),intent(out)  ::  qref (nMax)     ! diag:  2m ref humidity (kg/kg)
+    real(R8),intent(out)  :: duu10n(nMax)     ! diag: 10m wind speed squared (m/s)^2
 
     real(R8),intent(out),optional :: ustar_sv(nMax) ! diag: ustar
     real(R8),intent(out),optional :: re_sv   (nMax) ! diag: sqrt of exchange coefficient (water)
@@ -103,8 +106,7 @@ contains
     integer(IN) :: n          ! vector loop index
     integer(IN) :: i          ! iteration loop index
     real(R8)    :: vmag_abs   ! surface wind magnitude   (m s-1)
-    real(R8)    :: vmag_rel   ! surface wind magnitude relative to
-    ! surface current   (m s-1)
+    real(R8)    :: vmag_rel   ! surface wind magnitude relative to surface current (m s-1)
     real(R8)    :: vmag       ! surface wind magnitude with large
     ! eddy correction and minimum value (m s-1)
     ! (This can change on each iteration.)

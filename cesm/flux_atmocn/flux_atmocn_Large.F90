@@ -28,6 +28,8 @@ module flux_atmOcn_large_mod
   implicit none
   public
 
+  integer, private :: debug = 0
+
 contains
 
   subroutine flux_atmOcn_large(                     &
@@ -72,36 +74,33 @@ contains
     real(R8)   ,intent(in) :: seq_flux_atmocn_minwind        ! minimum wind speed for atmocn      (m/s)
 
     !--- output arguments -------------------------------
-    real(R8),intent(out)  ::  sen  (nMax) ! heat flux: sensible    (W/m^2)
-    real(R8),intent(out)  ::  lat  (nMax) ! heat flux: latent      (W/m^2)
-    real(R8),intent(out)  ::  lwup (nMax) ! heat flux: lw upward   (W/m^2)
-    real(R8),intent(out)  ::  evap (nMax) ! water flux: evap  ((kg/s)/m^2)
+    real(R8),intent(out)  ::  sen  (nMax)     ! heat flux: sensible    (W/m^2)
+    real(R8),intent(out)  ::  lat  (nMax)     ! heat flux: latent      (W/m^2)
+    real(R8),intent(out)  ::  lwup (nMax)     ! heat flux: lw upward   (W/m^2)
+    real(R8),intent(out)  ::  evap (nMax)     ! water flux: evap  ((kg/s)/m^2)
     real(R8),intent(out)  ::  evap_16O (nMax) ! water flux: evap ((kg/s/m^2)
     real(R8),intent(out)  ::  evap_HDO (nMax) ! water flux: evap ((kg/s)/m^2)
     real(R8),intent(out)  ::  evap_18O (nMax) ! water flux: evap ((kg/s/m^2)
-    real(R8),intent(out)  ::  taux (nMax) ! surface stress, zonal      (N)
-    real(R8),intent(out)  ::  tauy (nMax) ! surface stress, maridional (N)
-    real(R8),intent(out)  ::  tref (nMax) ! diag:  2m ref height T     (K)
-    real(R8),intent(out)  ::  qref (nMax) ! diag:  2m ref humidity (kg/kg)
-    real(R8),intent(out)  :: duu10n(nMax) ! diag: 10m wind speed squared (m/s)^2
-    real(R8),intent(out)  :: ugust_out(nMax) ! diag: gustiness addition to U10 (m/s)
-    real(R8),intent(out)  :: u10res(nMax) ! diag: gustiness addition to U10 (m/s)
+    real(R8),intent(out)  ::  taux (nMax)     ! surface stress, zonal      (N)
+    real(R8),intent(out)  ::  tauy (nMax)     ! surface stress, maridional (N)
+    real(R8),intent(out)  ::  tref (nMax)     ! diag:  2m ref height T     (K)
+    real(R8),intent(out)  ::  qref (nMax)     ! diag:  2m ref humidity (kg/kg)
+    real(R8),intent(out)  :: duu10n(nMax)     ! diag: 10m wind speed squared (m/s)^2
+    real(R8),intent(out)  :: ugust_out(nMax)  ! diag: gustiness addition to U10 (m/s)
+    real(R8),intent(out)  :: u10res(nMax)     ! diag: gustiness addition to U10 (m/s)
 
     real(R8),intent(out),optional :: ustar_sv(nMax) ! diag: ustar
     real(R8),intent(out),optional :: re_sv   (nMax) ! diag: sqrt of exchange coefficient (water)
     real(R8),intent(out),optional :: ssq_sv  (nMax) ! diag: sea surface humidity  (kg/kg)
-
-    real(R8),intent(in) ,optional :: missval ! masked value
+    real(R8),intent(in) ,optional :: missval        ! masked value
 
     !--- local constants --------------------------------
     real(R8),parameter :: zref  = 10.0_R8 ! reference height           (m)
     real(R8),parameter :: ztref =  2.0_R8 ! reference height for air T (m)
-    !!++ Large only
+
     !real(R8),parameter :: cexcd  = 0.0346_R8 ! ratio Ch(water)/CD
     !real(R8),parameter :: chxcds = 0.018_R8  ! ratio Ch(heat)/CD for stable case
     !real(R8),parameter :: chxcdu = 0.0327_R8 ! ratio Ch(heat)/CD for unstable case
-    !!++ COARE only
-    real(R8),parameter :: zpbl =700.0_R8 ! PBL depth [m] for gustiness parametriz.
 
     !--- local variables --------------------------------
     integer(IN) :: n      ! vector loop index
@@ -136,11 +135,10 @@ contains
     real(R8)    :: spval  ! local missing value
     real(R8)    :: wind0  ! resolved large-scale 10m wind (no gust added)
 
-
     !--- local functions --------------------------------
     real(R8)    :: qsat   ! function: the saturation humididty of air (kg/m^3)
 
-    !Large only (formula v*=[c4/U10+c5+c6*U10]*U10 in Large et al. 1994)
+    ! (formula v*=[c4/U10+c5+c6*U10]*U10 in Large et al. 1994)
     real(R8)    :: cdn    ! function: neutral drag coeff at 10m
 
     ! Large only (stability functions)
@@ -154,14 +152,16 @@ contains
     real(R8)    :: tdiff(nMax) ! tbot - ts
     real(R8)    :: vscl
 
-    real(R8)    :: ugust      ! function: gustiness as a function of convective rainfall.
-    real(R8)    :: gprec   ! convective rainfall argument for ugust
+    real(R8)    :: ugust ! function: gustiness as a function of convective rainfall.
+    real(R8)    :: gprec ! convective rainfall argument for ugust
+    ! -------------------------------------------------------------------------
 
     qsat(Tk)   = 640380.0_R8 / exp(5107.4_R8/Tk)
 
     ! Large and Yeager 2009
     cdn(Umps)  =  0.0027_R8 / min(33.0000_R8,Umps) + 0.000142_R8 + &
          0.0000764_R8 * min(33.0000_R8,Umps) - 3.14807e-13_r8 * min(33.0000_R8,Umps)**6
+
     ! Capped Large and Pond by wind
     !   cdn(Umps)  =   0.0027_R8 / min(30.0_R8,Umps) + 0.000142_R8 + 0.0000764_R8 * min(30.0_R8,Umps)
     ! Capped Large and Pond by Cd
@@ -182,6 +182,7 @@ contains
     !--- formats ----------------------------------------
     character(*),parameter :: subName = '(flux_atmOcn) '
     character(*),parameter ::   F00 = "('(flux_atmOcn) ',4a)"
+    ! --------------------------------------------------------------------------
 
     if (debug > 0) write(logunit,F00) "enter"
 
@@ -198,14 +199,15 @@ contains
     !--- for cold air outbreak calc --------------------------------
     tdiff= tbot - ts
 
-
     al2 = log(zref/ztref)
+
     DO n=1,nMax
        if (mask(n) /= 0) then
 
           !--- compute some needed quantities ---
           if (add_gusts) then
-             vmag   = max(seq_flux_atmocn_minwind, sqrt( (ubot(n)-us(n))**2 + (vbot(n)-vs(n))**2 + (1.0_R8*ugust(min(rainc(n),6.94444e-4_r8))**2)) )
+             vmag   = max(seq_flux_atmocn_minwind, &
+                          sqrt( (ubot(n)-us(n))**2 + (vbot(n)-vs(n))**2 + (1.0_R8*ugust(min(rainc(n),6.94444e-4_r8))**2)) )
              ugust_out(n) = ugust(min(rainc(n),6.94444e-4_r8))
           else
              vmag   = max(seq_flux_atmocn_minwind, sqrt( (ubot(n)-us(n))**2 + (vbot(n)-vs(n))**2) )
@@ -232,9 +234,11 @@ contains
           delq   = qbot(n) - ssq                     ! spec hum dif (kg/kg)
           alz    = log(zbot(n)/zref)
           cp     = loc_cpdair*(1.0_R8 + loc_cpvir*ssq)
+
           !------------------------------------------------------------
           ! first estimate of Z/L and ustar, tstar and qstar
           !------------------------------------------------------------
+
           !--- neutral coefficients, z/L = 0.0 ---
           stable = 0.5_R8 + sign(0.5_R8 , delt)
           rdn    = sqrt(cdn(vmag))

@@ -1,5 +1,8 @@
 module flux_atmocn_driver_mod.F90
 
+  implicit none
+  public
+
 contains
 
   subroutine flux_atmOcn_driver(logunit, nMax  ,zbot  ,ubot  ,vbot  ,thbot ,   &
@@ -18,66 +21,109 @@ contains
        &               ustar_sv ,re_sv ,ssq_sv,   &
        &               missval)
 
+    !--- input arguments --------------------------------
+    integer  , intent(in) :: logunit
+    integer  , intent(in) :: nMax        ! data vector length
+    integer  , intent(in) :: mask (nMax) ! ocn domain mask       0 <=> out of domain
+    logical  , intent(in) :: add_gusts
+    real(R8) , intent(in) :: zbot (nMax) ! atm level height (m)
+    real(R8) , intent(in) :: ubot (nMax) ! atm u wind (m/s)
+    real(R8) , intent(in) :: vbot (nMax) ! atm v wind (m/s)
+    real(R8) , intent(in) :: thbot(nMax) ! atm potential T (K)
+    real(R8) , intent(in) :: qbot (nMax) ! atm specific humidity (kg/kg)
+    real(R8) , intent(in) :: rainc(nMax) ! atm precip for convective gustiness (kg/m^3) - RBN 24Nov2008/MDF 31Jan2022
+    real(R8) , intent(in) :: s16O (nMax) ! atm H216O tracer conc. (kg/kg)
+    real(R8) , intent(in) :: sHDO (nMax) ! atm HDO tracer conc. (kg/kg)
+    real(R8) , intent(in) :: s18O (nMax) ! atm H218O tracer conc. (kg/kg)
+    real(R8) , intent(in) :: r16O (nMax) ! ocn H216O tracer ratio/Rstd
+    real(R8) , intent(in) :: rHDO (nMax) ! ocn HDO tracer ratio/Rstd
+    real(R8) , intent(in) :: r18O (nMax) ! ocn H218O tracer ratio/Rstd
+    real(R8) , intent(in) :: rbot (nMax) ! atm air density (kg/m^3)
+    real(R8) , intent(in) :: tbot (nMax) ! atm T (K)
+    real(R8) , intent(in) :: pslv (nMax) ! atm sea level pressure(Pa)
+    real(R8) , intent(in) :: us   (nMax) ! ocn u-velocity (m/s)
+    real(R8) , intent(in) :: vs   (nMax) ! ocn v-velocity (m/s)
+    real(R8) , intent(in) :: ts   (nMax) ! ocn temperature (K)
+    real(R8) , intent(in) :: seq_flux_atmocn_minwind        ! minimum wind speed for atmocn (m/s)
+    integer  , intent(in) :: ocn_surface_flux_scheme
+
+    !--- output arguments -------------------------------
+    real(R8),intent(out)  ::  sen  (nMax)     ! heat flux: sensible (W/m^2)
+    real(R8),intent(out)  ::  lat  (nMax)     ! heat flux: latent (W/m^2)
+    real(R8),intent(out)  ::  lwup (nMax)     ! heat flux: lw upward (W/m^2)
+    real(R8),intent(out)  ::  evap (nMax)     ! water flux: evap ((kg/s)/m^2)
+    real(R8),intent(out)  ::  evap_16O (nMax) ! water flux: evap ((kg/s/m^2)
+    real(R8),intent(out)  ::  evap_HDO (nMax) ! water flux: evap ((kg/s)/m^2)
+    real(R8),intent(out)  ::  evap_18O (nMax) ! water flux: evap ((kg/s/m^2)
+    real(R8),intent(out)  ::  taux (nMax)     ! surface stress, zonal (N)
+    real(R8),intent(out)  ::  tauy (nMax)     ! surface stress, maridional (N)
+    real(R8),intent(out)  ::  tref (nMax)     ! diag:  2m ref height T (K)
+    real(R8),intent(out)  ::  qref (nMax)     ! diag:  2m ref humidity (kg/kg)
+    real(R8),intent(out)  :: duu10n(nMax)     ! diag: 10m wind speed squared (m/s)^2
+    real(R8),intent(out)  :: ugust_out(nMax)  ! diag: gustiness addition to U10 (m/s)
+    real(R8),intent(out)  :: u10res(nMax)     ! diag: gustiness addition to U10 (m/s)
+
+    real(R8),intent(out),optional :: ustar_sv(nMax) ! diag: ustar
+    real(R8),intent(out),optional :: re_sv   (nMax) ! diag: sqrt of exchange coefficient (water)
+    real(R8),intent(out),optional :: ssq_sv  (nMax) ! diag: sea surface humidity (kg/kg)
+    real(R8),intent(out),optional :: z0(nMax)       ! roughness length
+    real(R8),intent(in) ,optional :: missval        ! masked value
+    !--------------------------------------------------------------------------------
+
     !!.................................................................
-    !! ocn_surface_flux_scheme = 0 : Default CESM1.2
+    !! ocn_surface_flux_scheme = 0 : Large and Pond
     !!                         = 1 : COARE algorithm
-    !!                         = 2 : UA algorithm (separate subroutine)
+    !!                         = 2 : UA algorithm
     !!.................................................................
 
     ! Default flux scheme.
     if (ocn_surface_flux_scheme == 0) then
 
-       call flux_atmOcn_large(&
+       call flux_atmOcn_Large(                             &
             logunit, nMax  ,zbot  ,ubot  ,vbot  ,thbot ,   &
-            qbot,  rainc ,s16O  ,sHDO  ,s18O  ,rbot,  &
-            tbot  ,us    ,vs,  pslv,  &
-            ts    ,mask  , seq_flux_atmocn_minwind, &
-            sen   ,lat   ,lwup  ,   &
-            r16O, rhdo, r18O, &
-            evap  ,evap_16O, evap_HDO, evap_18O, &
-            taux  ,tauy  ,tref  ,qref  ,   &
-            add_gusts, &
-            duu10n, &
-            ugust_out, &
-            u10res, &
-            ustar_sv ,re_sv ,ssq_sv,   &
+            qbot,  rainc ,s16O  ,sHDO  ,s18O  ,rbot,       &
+            tbot  ,us    ,vs,  pslv,                       &
+            ts    ,mask  , seq_flux_atmocn_minwind,        &
+            sen   ,lat   ,lwup  ,                          &
+            r16O, rhdo, r18O,                              &
+            evap  ,evap_16O, evap_HDO, evap_18O,           &
+            taux  ,tauy  ,tref  ,qref  ,                   &
+            add_gusts,                                     &
+            duu10n,                                        &
+            ugust_out,                                     &
+            u10res,                                        &
+            ustar_sv=ustar_sv, re_sv=re_sv, ssq_sv=ssq_sv, &
             missval)
 
     else if (ocn_surface_flux_scheme == 1) then
 
-       call flux_atmOcn_COARE(&
+       call flux_atmOcn_COARE(                             &
             logunit, nMax  ,zbot  ,ubot  ,vbot  ,thbot ,   &
-            qbot,  rainc ,s16O  ,sHDO  ,s18O  ,rbot,  &
-            tbot  ,us    ,vs,  pslv,  &
-            ts    ,mask  , seq_flux_atmocn_minwind, &
-            sen   ,lat   ,lwup  ,   &
-            r16O, rhdo, r18O, &
-            evap  ,evap_16O, evap_HDO, evap_18O, &
-            taux  ,tauy  ,tref  ,qref  ,   &
-            add_gusts, &
-            duu10n, &
-            ugust_out, &
-            u10res, &
-            ustar_sv ,re_sv ,ssq_sv,   &
-            missval)
+            qbot,  rainc ,s16O  ,sHDO  ,s18O  ,rbot,       &
+            tbot  ,us    ,vs,  pslv,                       &
+            ts    ,mask  , seq_flux_atmocn_minwind,        &
+            sen   ,lat   ,lwup  ,                          &
+            r16O, rhdo, r18O,                              &
+            evap  ,evap_16O, evap_HDO, evap_18O,           &
+            taux  ,tauy  ,tref  ,qref  ,                   &
+            duu10n,                                        &
+            ugust_out,                                     &
+            u10res,                                        &
+            ustar_sv=ustar_sv ,re_sv=re_sv ,ssq_sv=ssq_sv, &
+            missval=missval)
 
     else if (ocn_surface_flux_scheme == 2) then
 
-       call flux_atmOcn_UA(&
-            logunit, nMax  ,zbot  ,ubot  ,vbot  ,thbot ,   &
-            qbot,  rainc ,s16O  ,sHDO  ,s18O  ,rbot,  &
-            tbot  ,us    ,vs,  pslv,  &
-            ts    ,mask  , seq_flux_atmocn_minwind, &
-            sen   ,lat   ,lwup  ,   &
-            r16O, rhdo, r18O, &
-            evap  ,evap_16O, evap_HDO, evap_18O, &
-            taux  ,tauy  ,tref  ,qref  ,   &
-            add_gusts, &
-            duu10n, &
-            ugust_out, &
-            u10res, &
-            ustar_sv ,re_sv ,ssq_sv,   &
-            missval)
+       call flux_atmOcn_UA(                                        &
+            logunit, nMax, zbot, ubot, vbot, thbot,                &
+            qbot, rainc, s16O, sHDO, s18O, rbot,                   &
+            tbot, us, vs, pslv,                                    &
+            ts, mask, sen, lat, lwup,                              &
+            r16O, rhdo, r18O,                                      &
+            evap, evap_16O, evap_HDO, evap_18O,                    &
+            taux, tauy, tref, qref,                                &
+            duu10n, ustar_sv=ustar_sv, re_sv=re_sv, ssq_sv=ssq_sv, &
+            missval=missval)
 
        do n=1,nMax
           if (mask(n) /= 0) then
