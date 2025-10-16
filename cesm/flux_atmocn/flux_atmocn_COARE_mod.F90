@@ -21,6 +21,8 @@ module flux_atmocn_COARE_mod
   !-------------------------------------------------------------------------------
 
   use shr_kind_mod,   only : R8=>SHR_KIND_R8, IN=>SHR_KIND_IN ! shared kinds
+  use shr_const_mod,  only : shr_const_stebol, shr_const_latvap, shr_const_g
+  use shr_const_mod,  only : shr_const_rgas, shr_const_cpdair
   use shr_flux_mod,   only : td0, maxscl, alpha
   use shr_flux_mod,   only : use_coldair_outbreak_mod
   use water_isotopes, only : wiso_flxoce !subroutine used to calculate water isotope fluxes.
@@ -30,6 +32,9 @@ module flux_atmocn_COARE_mod
 
   public :: flux_atmOcn_COARE
   public :: cor30a
+
+  private :: psiuo
+  private :: psit_30
 
   integer :: debug = 0 ! internal debug level
 
@@ -115,6 +120,7 @@ contains
     real(R8)    :: hol             ! H (at zbot) over L
     real(R8)    :: zo,zot,zoq      ! roughness lengths
     real(R8)    :: hsb,hlb         ! sens & lat heat flxs at zbot
+    real(R8)    :: tau             ! stress at zbot
     real(R8)    :: trf,qrf,urf,vrf ! reference-height quantities
 
     !--- local functions --------------------------------
@@ -436,5 +442,72 @@ contains
     trf=trf+.0098_R8*zrt
 
   end subroutine cor30a
+
+  !===============================================================================
+
+  real (R8) function psiuo(zet)
+     !======================================================================
+     !   momentum stability functions adopted in COARE v3.0 parametrisation.
+     !   Chris Fairall's code (see cor30a)
+     !
+     ! !REVISION HISTORY:
+     !   22/11/2013: Thomas Toniazzo: comments added
+     !======================================================================
+
+    ! !INPUT/OUTPUT PARAMETERS:
+    real(R8),intent(in)  :: zet
+    real(R8) ::c,x,psik,psic,f
+    !-----------------------------------------------------------------
+    ! N.B.: z0/L always neglected compared to z/L and to 1
+    !-----------------------------------------------------------------
+    if(zet>0.0_R8)then
+       ! Beljaars & Holtslag (1991)
+       c=min(50._R8,.35_R8*zet)
+       psiuo=-((1.0_R8+1.0_R8*zet)**1.0_R8+.667_R8*(zet-14.28_R8)/exp(c)+8.525_R8)
+    else
+       ! Dyer & Hicks (1974) for weak instability
+       x=(1.0_R8-15.0_R8*zet)**.25_R8                   ! 15 instead of 16
+       psik=2.0_R8*log((1.0_R8+x)/2.0_R8)+log((1.0_R8+x*x)/2.0_R8)-2.0_R8*atan(x)+2.0_R8*atan(1.0_R8)
+       ! Fairall et al. (1996) for strong instability (Eq.(13))
+       x=(1.0_R8-10.15_R8*zet)**.3333_R8
+       psic= 1.5_R8*log((1.0_R8+x+x*x)/3.0_R8)-sqrt(3.0_R8)*atan((1.0_R8+2.0_R8*x)/sqrt(3.0_R8)) &
+            & +4.0_R8*atan(1.0_R8)/sqrt(3.0_R8)
+       f=zet*zet/(1.0_R8+zet*zet)
+       psiuo=(1.0_R8-f)*psik+f*psic
+    endif
+  END FUNCTION psiuo
+
+  real (R8) function psit_30(zet)
+     !===============================================================================
+     !   momentum stability functions adopted in COARE v3.0 parametrisation.
+     !   Chris Fairall's code (see cor30a)
+     !
+     ! !REVISION HISTORY:
+     !   22/11/2013: Thomas Toniazzo: comments added
+     !===============================================================================
+
+    ! !INPUT/OUTPUT PARAMETERS:
+    real(R8),intent(in)  :: zet
+    ! !EOP
+    real(R8) ::c,x,psik,psic,f
+    !-----------------------------------------------------------------
+    ! N.B.: z0/L always neglected compared to z/L and to 1
+    !-----------------------------------------------------------------
+    if(zet>0.0_R8)then
+       ! Beljaars & Holtslag (1991)
+       c=min(50._R8,.35_R8*zet)
+       psit_30=-((1.0_R8+2.0_R8/3.0_R8*zet)**1.5_R8+.667_R8*(zet-14.28_R8)/exp(c)+8.525_R8)
+    else
+       ! Dyer & Hicks (1974) for weak instability
+       x=(1.0_R8-15.0_R8*zet)**.5_R8                    ! 15 instead of 16
+       psik=2.0_R8*log((1.0_R8+x)/2.0_R8)
+       ! Fairall et al. (1996) for strong instability
+       x=(1.0_R8-(34.15_R8*zet))**.3333_R8
+       psic= 1.5_R8*log((1.0_R8+x+x*x)/3.0_R8)-sqrt(3.0_R8)*atan((1.0_R8+2.0_R8*x)/sqrt(3.0_R8)) &
+            & +4.0_R8*atan(1.0_R8)/sqrt(3.0_R8)
+       f=zet*zet/(1.0_R8+zet*zet)
+       psit_30=(1.0_R8-f)*psik+f*psic
+    endif
+  end FUNCTION psit_30
 
 end module flux_atmocn_COARE_mod

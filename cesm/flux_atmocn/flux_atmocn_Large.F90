@@ -20,10 +20,10 @@ module flux_atmOcn_large_mod
   !-------------------------------------------------------------------------------
 
   use shr_kind_mod,   only: R8=>SHR_KIND_R8, IN=>SHR_KIND_IN ! shared kinds
-  use shr_flux_mod,   only: loc_cpair, loc_cpvir, loc_karman, loc_g, loc_zvir
+  use shr_flux_mod,   only: loc_cpdair, loc_cpvir, loc_karman, loc_g, loc_zvir
   use shr_flux_mod,   only: loc_latvap, loc_stebol, use_coldair_outbreak_mod
   use shr_flux_mod,   only: flux_con_tol, flux_con_max_iter
-  use shr_flux_mod,   only: alpha, maxscl, tc0
+  use shr_flux_mod,   only: alpha, maxscl, td0
   use water_isotopes, only: wiso_flxoce !subroutine used to calculate water isotope fluxes.
 
   implicit none
@@ -43,10 +43,7 @@ contains
        r16O, rhdo, r18O,                     &
        evap, evap_16O, evap_HDO, evap_18O,   &
        taux, tauy, tref, qref,               &
-       add_gusts,                            &
-       duu10n,                               &
-       ugust_out,                            &
-       u10res,                               &
+       add_gusts, duu10n, ugust_out, u10res, &
        ustar_sv, re_sv, ssq_sv)
 
     !--- input arguments --------------------------------

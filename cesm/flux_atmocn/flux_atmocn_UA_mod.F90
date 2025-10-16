@@ -23,7 +23,8 @@ module flux_atmocn_UA_mod
 
   use shr_kind_mod,   only : R8=>SHR_KIND_R8, IN=>SHR_KIND_IN ! shared kinds
   use shr_flux_mod,   only : td0, maxscl, alpha
-  use shr_flux_mod,   only : use_coldair_outbreak_mod
+  use shr_flux_mod,   only : loc_zvir, loc_tkfrz, loc_cpdair, loc_cpvir, loc_g
+  use shr_flux_mod,   only : use_coldair_outbreak_mod, loc_karman, loc_stebol
   use water_isotopes, only : wiso_flxoce !subroutine used to calculate water isotope fluxes.
 
   implicit none
@@ -41,7 +42,7 @@ module flux_atmocn_UA_mod
 contains
 
   subroutine flux_atmOcn_UA(                &
-       logunit,  nMax, spval,               &
+       logunit,  spval, nMax,               &
        zbot, ubot, vbot, thbot,             &
        qbot, s16O, sHDO, s18O, rbot,        &
        tbot, us, vs, pslv,                  &
@@ -53,7 +54,7 @@ contains
 
     !--- input arguments --------------------------------
     integer    ,intent(in) :: logunit
-    real(R8)   ,intent(in) :: spval 
+    real(R8)   ,intent(in) :: spval
     integer    ,intent(in) :: nMax        ! data vector length
     integer    ,intent(in) :: mask (nMax) ! ocn domain mask       0 <=> out of domain
     real(R8)   ,intent(in) :: zbot (nMax) ! atm level height (m)
@@ -147,13 +148,6 @@ contains
     !-----
     ! Straight from original subroutine.
     if (debug > 0) write(logunit,F00) "enter"
-
-    if (present(missval)) then
-       spval = missval
-    else
-       spval = shr_const_spval
-    endif
-    !-----
 
     ! Evaluate loc_epsilon.
     loc_epsilon = 1.0_R8 / (1.0_R8 + loc_zvir)

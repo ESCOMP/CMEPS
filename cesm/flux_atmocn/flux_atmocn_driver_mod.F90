@@ -72,7 +72,6 @@ contains
     real(R8),intent(out),optional :: ustar_sv(nMax) ! diag: ustar
     real(R8),intent(out),optional :: re_sv   (nMax) ! diag: sqrt of exchange coefficient (water)
     real(R8),intent(out),optional :: ssq_sv  (nMax) ! diag: sea surface humidity (kg/kg)
-    real(R8),intent(out),optional :: z0(nMax)       ! roughness length
     real(R8),intent(in) ,optional :: missval        ! masked value
 
     !--- local variables --------------------------------
@@ -105,11 +104,7 @@ contains
             r16O, rhdo, r18O,                        &
             evap  ,evap_16O, evap_HDO, evap_18O,     &
             taux  ,tauy  ,tref  ,qref  ,             &
-            add_gusts,                               &
-            duu10n,                                  &
-            ugust_out,                               &
-            u10res,                                  &
-            spval,                                   &
+            add_gusts, duu10n, ugust_out, u10res,    &
             ustar_sv=ustar_sv, re_sv=re_sv, ssq_sv=ssq_sv)
 
     else if (ocn_surface_flux_scheme == 1) then
@@ -134,7 +129,7 @@ contains
        call flux_atmOcn_UA(                      &
             logunit, spval, nMax,                &
             zbot, ubot, vbot, thbot,             &
-            qbot, rainc, s16O, sHDO, s18O, rbot, &
+            qbot, s16O, sHDO, s18O, rbot,        &
             tbot, us, vs, pslv,                  &
             ts, mask, sen, lat, lwup,            &
             r16O, rhdo, r18O,                    &
