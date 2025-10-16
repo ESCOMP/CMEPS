@@ -36,7 +36,8 @@ contains
   subroutine flux_atmOcn_large(              &
        logunit, spval, nMax,                 &
        zbot, ubot, vbot, thbot,              &
-       qbot,  rainc, tbot, us, vs,  pslv,    &
+       qbot, rainc, rbot,                    &
+       tbot, us, vs,  pslv,                  &
        ts, mask,  seq_flux_atmocn_minwind,   &
        sen, lat, lwup, evap,                 &
        taux, tauy, tref, qref,               &
@@ -318,9 +319,6 @@ contains
           lat (n)      = spval ! latent           heat flux (W/m^2)
           lwup (n)     = spval ! long-wave upward heat flux (W/m^2)
           evap (n)     = spval ! evaporative water flux ((kg/s)/m^2)
-          evap_16O (n) = spval ! water tracer flux (kg/s)/m^2)
-          evap_HDO (n) = spval ! HDO tracer flux (kg/s)/m^2)
-          evap_18O (n) = spval ! H218O tracer flux (kg/s)/m^2)
           taux (n)     = spval ! x surface stress (N)
           tauy (n)     = spval ! y surface stress (N)
           tref (n)     = spval ! 2m reference height temperature (K)
