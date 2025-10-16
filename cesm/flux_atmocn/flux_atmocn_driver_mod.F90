@@ -11,21 +11,16 @@ module flux_atmocn_driver_mod
 
 contains
 
-  subroutine flux_atmOcn_driver(logunit, nMax  ,zbot  ,ubot  ,vbot  ,thbot ,   &
-       &               qbot,  rainc ,s16O  ,sHDO  ,s18O  ,rbot,  &
-       &               tbot  ,us    ,vs,  pslv,  &
-       &               ts    ,mask  , seq_flux_atmocn_minwind, &
-       &               sen   ,lat   ,lwup  ,   &
-       &               r16O, rhdo, r18O, &
-       &               evap  ,evap_16O, evap_HDO, evap_18O, &
-       &               taux  ,tauy  ,tref  ,qref  ,   &
-       &               ocn_surface_flux_scheme, &
-       &               add_gusts, &
-       &               duu10n, &
-       &               ugust_out, &
-       &               u10res, &
-       &               ustar_sv ,re_sv ,ssq_sv,   &
-       &               missval)
+  subroutine flux_atmOcn_driver(logunit, nMax, &
+       zbot, ubot, vbot, thbot,                &
+       qbot,  rainc, rbot,                     &
+       tbot, us, vs, pslv,                     &
+       ts, mask,  seq_flux_atmocn_minwind,     &
+       sen, lat, lwup, evap,                   &
+       taux, tauy, tref, qref,                 &
+       ocn_surface_flux_scheme,                &
+       add_gusts, duu10n, ugust_out, u10res,   &
+       ustar_sv, re_sv, ssq_sv, missval)
 
     !--- input arguments --------------------------------
     integer  , intent(in) :: logunit
@@ -94,47 +89,38 @@ contains
     ! Default flux scheme.
     if (ocn_surface_flux_scheme == 0) then
 
-       call flux_atmOcn_Large(                       &
-            logunit, spval, nMax  ,                  &
-            zbot  ,ubot  ,vbot  ,thbot ,             &
-            qbot,  rainc ,s16O  ,sHDO  ,s18O  ,rbot, &
-            tbot  ,us    ,vs,  pslv,                 &
-            ts    ,mask  , seq_flux_atmocn_minwind,  &
-            sen   ,lat   ,lwup  ,                    &
-            r16O, rhdo, r18O,                        &
-            evap  ,evap_16O, evap_HDO, evap_18O,     &
-            taux  ,tauy  ,tref  ,qref  ,             &
-            add_gusts, duu10n, ugust_out, u10res,    &
+       call flux_atmOcn_Large(                    &
+            logunit, spval, nMax,                 &
+            zbot, ubot, vbot, thbot,              &
+            qbot,  rainc,  rbot,                  &
+            tbot, us, vs,  pslv,                  &
+            ts, mask,  seq_flux_atmocn_minwind,   &
+            sen, lat, lwup,  evap,                &
+            taux, tauy, tref, qref,               &
+            add_gusts, duu10n, ugust_out, u10res, &
             ustar_sv=ustar_sv, re_sv=re_sv, ssq_sv=ssq_sv)
 
     else if (ocn_surface_flux_scheme == 1) then
 
-       call flux_atmOcn_COARE(                       &
-            logunit, spval, nMax  ,                  &
-            zbot  ,ubot  ,vbot  ,thbot ,             &
-            qbot,  rainc ,s16O  ,sHDO  ,s18O  ,rbot, &
-            tbot  ,us    ,vs,  pslv,                 &
-            ts    ,mask  , seq_flux_atmocn_minwind,  &
-            sen   ,lat   ,lwup  ,                    &
-            r16O, rhdo, r18O,                        &
-            evap  ,evap_16O, evap_HDO, evap_18O,     &
-            taux  ,tauy  ,tref  ,qref  ,             &
-            duu10n,                                  &
-            ugust_out,                               &
-            u10res,                                  &
-            ustar_sv=ustar_sv ,re_sv=re_sv ,ssq_sv=ssq_sv)
+       call flux_atmOcn_COARE(                  &
+            logunit, spval, nMax,               &
+            zbot, ubot, vbot, thbot,            &
+            qbot,  rainc, rbot,                 &
+            tbot, us, vs,  pslv,                &
+            ts, mask,  seq_flux_atmocn_minwind, &
+            sen, lat, lwup, evap,               &
+            taux, tauy, tref, qref,             &
+            duu10n, ugust_out, u10res,          &
+            ustar_sv=ustar_sv, re_sv=re_sv, ssq_sv=ssq_sv)
 
     else if (ocn_surface_flux_scheme == 2) then
 
-       call flux_atmOcn_UA(                      &
-            logunit, spval, nMax,                &
-            zbot, ubot, vbot, thbot,             &
-            qbot, s16O, sHDO, s18O, rbot,        &
-            tbot, us, vs, pslv,                  &
-            ts, mask, sen, lat, lwup,            &
-            r16O, rhdo, r18O,                    &
-            evap, evap_16O, evap_HDO, evap_18O,  &
-            taux, tauy, tref, qref,              &
+       call flux_atmOcn_UA(                 &
+            logunit, spval, nMax,           &
+            zbot, ubot, vbot, thbot,        &
+            qbot, rbot, tbot, us, vs, pslv, &
+            ts, mask, sen, lat, lwup, evap, &
+            taux, tauy, tref, qref,         &
             duu10n, ustar_sv=ustar_sv, re_sv=re_sv, ssq_sv=ssq_sv)
 
        do n = 1,nMax

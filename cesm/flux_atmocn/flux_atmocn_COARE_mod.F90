@@ -25,7 +25,6 @@ module flux_atmocn_COARE_mod
   use shr_const_mod,  only : shr_const_rgas, shr_const_cpdair
   use shr_flux_mod,   only : td0, maxscl, alpha
   use shr_flux_mod,   only : use_coldair_outbreak_mod
-  use water_isotopes, only : wiso_flxoce !subroutine used to calculate water isotope fluxes.
 
   implicit none
   private
@@ -40,19 +39,14 @@ module flux_atmocn_COARE_mod
 
 contains
 
-  subroutine flux_atmOcn_COARE(                            &
-       logunit, spval, nMax  ,zbot  ,ubot  ,vbot  ,thbot , &
-       qbot,  rainc ,s16O  ,sHDO  ,s18O  ,rbot,            &
-       tbot  ,us    ,vs,  pslv,                            &
-       ts    ,mask  , seq_flux_atmocn_minwind,             &
-       sen   ,lat   ,lwup  ,                               &
-       r16O, rhdo, r18O,                                   &
-       evap  ,evap_16O, evap_HDO, evap_18O,                &
-       taux  ,tauy  ,tref  ,qref  ,                        &
-       duu10n,                                             &
-       ugust_out,                                          &
-       u10res,                                             &
-       ustar_sv ,re_sv ,ssq_sv)
+  subroutine flux_atmOcn_COARE(                       &
+       logunit, spval, nMax, zbot, ubot, vbot, thbot, &
+       qbot,  rainc, rbot, tbot ,us ,vs,  pslv,       &
+       ts, mask, seq_flux_atmocn_minwind,             &
+       sen, lat, lwup, evap,                          &   
+       taux ,tauy, tref, qref,                        &
+       duu10n, ugust_out, u10res,                     &
+       ustar_sv, re_sv, ssq_sv)
 
     !--- input arguments --------------------------------
     integer  , intent(in) :: logunit
@@ -65,12 +59,6 @@ contains
     real(R8) , intent(in) :: thbot(nMax) ! atm potential T       (K)
     real(R8) , intent(in) :: qbot (nMax) ! atm specific humidity (kg/kg)
     real(R8) , intent(in) :: rainc(nMax) ! atm precip for convective gustiness (kg/m^3) - RBN 24Nov2008/MDF 31Jan2022
-    real(R8) , intent(in) :: s16O (nMax) ! atm H216O tracer conc. (kg/kg)
-    real(R8) , intent(in) :: sHDO (nMax) ! atm HDO tracer conc.  (kg/kg)
-    real(R8) , intent(in) :: s18O (nMax) ! atm H218O tracer conc. (kg/kg)
-    real(R8) , intent(in) :: r16O (nMax) ! ocn H216O tracer ratio/Rstd
-    real(R8) , intent(in) :: rHDO (nMax) ! ocn HDO tracer ratio/Rstd
-    real(R8) , intent(in) :: r18O (nMax) ! ocn H218O tracer ratio/Rstd
     real(R8) , intent(in) :: rbot (nMax) ! atm air density       (kg/m^3)
     real(R8) , intent(in) :: tbot (nMax) ! atm T                 (K)
     real(R8) , intent(in) :: pslv (nMax) ! atm sea level pressure(Pa)
@@ -84,9 +72,6 @@ contains
     real(R8),intent(out)  ::  lat  (nMax) ! heat flux: latent      (W/m^2)
     real(R8),intent(out)  ::  lwup (nMax) ! heat flux: lw upward   (W/m^2)
     real(R8),intent(out)  ::  evap (nMax) ! water flux: evap  ((kg/s)/m^2)
-    real(R8),intent(out)  ::  evap_16O (nMax) ! water flux: evap ((kg/s/m^2)
-    real(R8),intent(out)  ::  evap_HDO (nMax) ! water flux: evap ((kg/s)/m^2)
-    real(R8),intent(out)  ::  evap_18O (nMax) ! water flux: evap ((kg/s/m^2)
     real(R8),intent(out)  ::  taux (nMax) ! surface stress, zonal      (N)
     real(R8),intent(out)  ::  tauy (nMax) ! surface stress, maridional (N)
     real(R8),intent(out)  ::  tref (nMax) ! diag:  2m ref height T     (K)
@@ -190,14 +175,6 @@ contains
           !--- water flux ---
           evap(n) = lat(n)/shr_const_latvap
 
-          !---water isotope flux ---
-          call wiso_flxoce(2,rbot(n),zbot(n),s16O(n),ts(n),r16O(n),ustar,re,ssq, evap_16O(n), &
-               qbot(n),evap(n))
-          call wiso_flxoce(3,rbot(n),zbot(n),sHDO(n),ts(n),rHDO(n),ustar,re,ssq, evap_HDO(n),&
-               qbot(n),evap(n))
-          call wiso_flxoce(4,rbot(n),zbot(n),s18O(n),ts(n),r18O(n),ustar,re,ssq, evap_18O(n), &
-               qbot(n),evap(n))
-
           !------------------------------------------------------------
           ! compute diagnositcs: 2m ref T & Q, 10m wind speed squared
           !------------------------------------------------------------
@@ -224,9 +201,6 @@ contains
           lat      (n) = spval  ! latent           heat flux  (W/m^2)
           lwup     (n) = spval  ! long-wave upward heat flux  (W/m^2)
           evap     (n) = spval  ! evaporative water flux ((kg/s)/m^2)
-          evap_16O (n) = spval  ! water tracer flux (kg/s)/m^2)
-          evap_HDO (n) = spval  ! HDO tracer flux  (kg/s)/m^2)
-          evap_18O (n) = spval  ! H218O tracer flux (kg/s)/m^2)
           taux     (n) = spval  ! x surface stress (N)
           tauy     (n) = spval  ! y surface stress (N)
           tref     (n) = spval  !  2m reference height temperature (K)
@@ -307,18 +281,20 @@ contains
 
     !*** physical parameters
     Le  = SHR_CONST_LATVAP -.00237e6_R8*(ts-273.16_R8)
-    !   cpv = shr_const_cpdair*(1.0_R8 + shr_const_cpvir*Qs) ! form in NCAR code
+
+    ! cpv = shr_const_cpdair*(1.0_R8 + shr_const_cpvir*Qs) ! form in NCAR code
     cpv = cpa*(1.0_R8+0.84_R8*Q)
-    !   rhoa= P/(Rgas*ta*(1+0.61*Q)) ! if input were pressure
+
+    ! rhoa= P/(Rgas*ta*(1+0.61*Q)) ! if input were pressure
     rhoa= rb
 
     ! parametrisation for air kinematic viscosity (Andreas 1989,p.31)
-    t   = ta-273.16_R8
+    t = ta-273.16_R8
     visa= 1.326e-5_R8*(1.0_R8+6.542e-3_R8*t+8.301e-6_R8*t*t-4.84e-9_R8*t*t*t)
 
-    du  = sqrt((ua-us)**2+(va-vs)**2)
-    dt  = ts-ta -.0098_R8*zt
-    dq  = Qs-Q
+    du = sqrt((ua-us)**2+(va-vs)**2)
+    dt = ts-ta -.0098_R8*zt
+    dq = Qs-Q
 
     !*** don't use cool-skin params for now, but assign values to Ter and Qer
     jcool=0_IN

@@ -25,7 +25,6 @@ module flux_atmocn_UA_mod
   use shr_flux_mod,   only : td0, maxscl, alpha
   use shr_flux_mod,   only : loc_zvir, loc_tkfrz, loc_cpdair, loc_cpvir, loc_g
   use shr_flux_mod,   only : use_coldair_outbreak_mod, loc_karman, loc_stebol
-  use water_isotopes, only : wiso_flxoce !subroutine used to calculate water isotope fluxes.
 
   implicit none
   private
@@ -44,11 +43,8 @@ contains
   subroutine flux_atmOcn_UA(                &
        logunit,  spval, nMax,               &
        zbot, ubot, vbot, thbot,             &
-       qbot, s16O, sHDO, s18O, rbot,        &
-       tbot, us, vs, pslv,                  &
-       ts, mask, sen, lat, lwup,            &
-       r16O, rhdo, r18O,                    &
-       evap, evap_16O,  evap_HDO, evap_18O, &
+       qbot, rbot, tbot, us, vs, pslv,      &
+       ts, mask, sen, lat, lwup, evap,      &
        taux, tauy, tref, qref,              &
        duu10n,  ustar_sv, re_sv, ssq_sv)
 
@@ -62,12 +58,6 @@ contains
     real(R8)   ,intent(in) :: vbot (nMax) ! atm v wind (m/s)
     real(R8)   ,intent(in) :: thbot(nMax) ! atm potential T (K)
     real(R8)   ,intent(in) :: qbot (nMax) ! atm specific humidity (kg/kg)
-    real(R8)   ,intent(in) :: s16O (nMax) ! atm H216O tracer conc. (kg/kg)
-    real(R8)   ,intent(in) :: sHDO (nMax) ! atm HDO tracer conc. (kg/kg)
-    real(R8)   ,intent(in) :: s18O (nMax) ! atm H218O tracer conc. (kg/kg)
-    real(R8)   ,intent(in) :: r16O (nMax) ! ocn H216O tracer ratio/Rstd
-    real(R8)   ,intent(in) :: rHDO (nMax) ! ocn HDO tracer ratio/Rstd
-    real(R8)   ,intent(in) :: r18O (nMax) ! ocn H218O tracer ratio/Rstd
     real(R8)   ,intent(in) :: rbot (nMax) ! atm air density (kg/m^3)
     real(R8)   ,intent(in) :: tbot (nMax) ! atm T (K)
     real(R8)   ,intent(in) :: pslv (nMax) ! sea level pressure (Pa)
@@ -80,9 +70,6 @@ contains
     real(R8),intent(out)  ::  lat (nMax)     ! heat flux: latent (W/m^2)
     real(R8),intent(out)  ::  lwup (nMax)     ! heat flux: lw upward (W/m^2)
     real(R8),intent(out)  ::  evap (nMax)     ! water flux: evap ((kg/s)/m^2)
-    real(R8),intent(out)  ::  evap_16O (nMax) ! water flux: evap ((kg/s/m^2)
-    real(R8),intent(out)  ::  evap_HDO (nMax) ! water flux: evap ((kg/s)/m^2)
-    real(R8),intent(out)  ::  evap_18O (nMax) ! water flux: evap ((kg/s/m^2)
     real(R8),intent(out)  ::  taux (nMax)     ! surface stress, zonal (N)
     real(R8),intent(out)  ::  tauy (nMax)     ! surface stress, maridional (N)
     real(R8),intent(out)  ::  tref (nMax)     ! diag:  2m ref height T (K)
@@ -355,14 +342,6 @@ contains
 
           !--- water flux ---
           evap(n) = lat(n)/xlv
-
-          !---water isotope flux ---
-          call wiso_flxoce(2,rbot(n),zbot(n),s16O(n),ts(n),r16O(n),ustar,re,ssq,evap_16O(n), &
-               qbot(n),evap(n))
-          call wiso_flxoce(3,rbot(n),zbot(n),sHDO(n),ts(n),rHDO(n),ustar,re,ssq, evap_HDO(n),&
-               qbot(n),evap(n))
-          call wiso_flxoce(4,rbot(n),zbot(n),s18O(n),ts(n),r18O(n),ustar,re,ssq, evap_18O(n), &
-               qbot(n),evap(n))
 
           !------------------------------------------------------------
           ! compute diagnositcs: 2m ref T & Q, 10m wind speed squared
