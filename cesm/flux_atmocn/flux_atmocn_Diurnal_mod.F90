@@ -22,6 +22,10 @@ module flux_atmocn_diurnal_mod
   use shr_flux_mod,          only : td0, maxscl, alpha, debug
   use shr_flux_mod,          only : zvir, cpair, cpvir, karman
   use shr_flux_mod,          only : latvap, stebol, use_coldair_outbreak_mod
+  use shr_const_mod,         only : shr_const_zvir, shr_const_cpdair, shr_const_cpvir, shr_const_karman, shr_const_g
+  use shr_const_mod,         only : shr_const_latvap, shr_const_latice, shr_const_stebol, shr_const_tkfrz
+  use shr_const_mod,         only : shr_const_pi, shr_const_spval
+  use shr_const_mod,         only : shr_const_ocn_ref_sal, shr_const_zsrflyr, shr_const_rgas
   use atmocn_flux_COARE_mod, only : cor30a
   use water_isotopes,        only : wiso_flxoce !subroutine used to calculate water isotope fluxes.
 

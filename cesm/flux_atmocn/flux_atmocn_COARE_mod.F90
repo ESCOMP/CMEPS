@@ -28,8 +28,8 @@ module flux_atmocn_COARE_mod
   implicit none
   private
 
-  public  :: flux_atmOcn_COARE
-  private :: cor30a
+  public :: flux_atmOcn_COARE
+  public :: cor30a
 
   integer :: debug = 0 ! internal debug level
 

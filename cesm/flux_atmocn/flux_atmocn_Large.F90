@@ -358,7 +358,6 @@ contains
        endif
     enddo
 
-
-  end subroutine flux_atmOcn
+  end subroutine flux_atmOcn_large
 
 end module flux_atmOcn_large_mod
