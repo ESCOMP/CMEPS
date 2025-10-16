@@ -270,13 +270,13 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
         expect(
             case.get_value("COMP_ATM") != "cam" and
             case.get_value("COMP_OCN") == "mom6",
-            "Only CAM and BLOM are currently allowed if cam computes enthalpy  flux"
+            "Only CAM and BLOM are currently allowed if cam computes enthalpy fluxes"
             )
     elif component_computes_enthalpy_flux == "med":
             expect(
             case.get_value("COMP_ATM") != "cam" and
             case.get_value("COMP_OCN") != "mom6",
-            "Only CAM and MOM6 are currently allowed if medediator computes enthalpy  flux"
+            "Only CAM and MOM6 are currently allowed if mediator computes enthalpy fluxes"
             )
 
     # --------------------------------
