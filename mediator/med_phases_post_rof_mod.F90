@@ -64,7 +64,6 @@ contains
     ! local variables
     character(CL) :: cvalue
     logical       :: isPresent, isSet
-    logical       :: flds_wiso
 
     character(len=*), parameter :: subname='(med_phases_post_rof_init)'
     !---------------------------------------
@@ -93,20 +92,6 @@ contains
       read(cvalue,*) remove_negative_runoff_glc
     else
       remove_negative_runoff_glc = .false.
-    end if
-
-    ! remove_negative_runoff isn't yet set up to handle isotope fields, so ensure that
-    ! this isn't set along with flds_wiso
-    call NUOPC_CompAttributeGet(gcomp, name='flds_wiso', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent .and. isSet) then
-       read(cvalue,*) flds_wiso
-    else
-       flds_wiso = .false.
-    end if
-    if ((remove_negative_runoff_lnd .or. remove_negative_runoff_glc) .and. flds_wiso) then
-       call shr_log_error('remove_negative_runoff_lnd and remove_negative_runoff_glc must be set to false when flds_wiso is true', rc=rc)
-       return
     end if
 
     if (maintask) then
