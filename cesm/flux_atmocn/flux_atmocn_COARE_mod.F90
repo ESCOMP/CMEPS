@@ -25,6 +25,7 @@ module flux_atmocn_COARE_mod
   use shr_const_mod,  only : shr_const_rgas, shr_const_cpdair
   use shr_flux_mod,   only : td0, maxscl, alpha
   use shr_flux_mod,   only : use_coldair_outbreak_mod
+  use shr_wv_sat_mod, only : shr_wv_sat_qsat_liquid ! use saturation calculation consistent with CAM
 
   implicit none
   private
@@ -43,7 +44,7 @@ contains
        logunit, spval, nMax, zbot, ubot, vbot, thbot, &
        qbot,  rainc, rbot, tbot ,us ,vs,  pslv,       &
        ts, mask, seq_flux_atmocn_minwind,             &
-       sen, lat, lwup, evap,                          &   
+       sen, lat, lwup, evap,                          &
        taux ,tauy, tref, qref,                        &
        duu10n, ugust_out, u10res,                     &
        ustar_sv, re_sv, ssq_sv)
@@ -147,7 +148,9 @@ contains
                 vmag=vmag*vscl
              endif
           endif
-          ssq = 0.98_R8 * qsat(ts(n)) / rbot(n)   ! sea surf hum (kg/kg)
+
+          call shr_wv_sat_qsat_liquid(ts(n), pslv(n), qsat, ssq)
+          ssq = 0.98_R8 * ssq   ! sea surf hum (kg/kg)
 
           call cor30a(ubot(n),vbot(n),tbot(n),qbot(n),rbot(n), & ! in atm params
                us(n),vs(n),ts(n),ssq,                          & ! in surf params

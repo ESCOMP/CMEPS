@@ -25,6 +25,7 @@ module flux_atmOcn_large_mod
   use shr_flux_mod,   only: flux_con_tol, flux_con_max_iter
   use shr_flux_mod,   only: alpha, maxscl, td0
   use shr_sys_mod,    only: shr_sys_abort
+  use shr_wv_sat_mod, only: shr_wv_sat_qsat_liquid ! use saturation calculation consistent with CAM
 
   implicit none
   public
@@ -209,7 +210,8 @@ contains
              endif
           endif
 
-          ssq    = 0.98_R8 * qsat(ts(n)) / rbot(n)   ! sea surf hum (kg/kg)
+          call shr_wv_sat_qsat_liquid(ts(n), pslv(n), qsat, ssq)
+          ssq    = 0.98_R8 * ssq                     ! sea surf hum (kg/kg)
           delt   = thbot(n) - ts(n)                  ! pot temp diff (K)
           delq   = qbot(n) - ssq                     ! spec hum dif (kg/kg)
           alz    = log(zbot(n)/zref)
