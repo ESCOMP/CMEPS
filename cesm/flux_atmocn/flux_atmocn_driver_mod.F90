@@ -1,6 +1,10 @@
 module flux_atmocn_driver_mod
 
-  use shr_kind_mod,  only : R8=>SHR_KIND_R8, IN=>SHR_KIND_IN ! shared kinds
+  use shr_kind_mod,          only : R8=>SHR_KIND_R8, IN=>SHR_KIND_IN ! shared kinds
+  use shr_const_mod,         only : shr_const_spval
+  use flux_atmocn_Large_mod, only : flux_atmocn_Large
+  use flux_atmocn_COARE_mod, only : flux_atmocn_COARE
+  use flux_atmocn_UA_mod,    only : flux_atmocn_UA
 
   implicit none
   public
