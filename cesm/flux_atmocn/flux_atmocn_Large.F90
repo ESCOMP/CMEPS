@@ -24,6 +24,7 @@ module flux_atmOcn_large_mod
   use shr_flux_mod,   only: loc_latvap, loc_stebol, use_coldair_outbreak_mod
   use shr_flux_mod,   only: flux_con_tol, flux_con_max_iter
   use shr_flux_mod,   only: alpha, maxscl, td0
+  use shr_sys_mod,    only: shr_sys_abort
   use water_isotopes, only: wiso_flxoce !subroutine used to calculate water isotope fluxes.
 
   implicit none

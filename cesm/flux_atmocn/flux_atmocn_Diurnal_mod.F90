@@ -24,6 +24,7 @@ module flux_atmocn_diurnal_mod
    use shr_const_mod,         only : shr_const_latvap, shr_const_latice, shr_const_stebol, shr_const_tkfrz
    use shr_const_mod,         only : shr_const_pi, shr_const_spval, shr_const_cpvir
    use shr_const_mod,         only : shr_const_ocn_ref_sal, shr_const_zsrflyr, shr_const_rgas
+   use shr_sys_mod,           only : shr_sys_abort
    use flux_atmocn_COARE_mod, only : cor30a
    use water_isotopes,        only : wiso_flxoce !subroutine used to calculate water isotope fluxes.
 
