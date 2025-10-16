@@ -21,6 +21,11 @@ module flux_atmocn_UA_mod
   !                   and add cold air outbreak modification.
   !===============================================================================
 
+  use shr_kind_mod,   only : R8=>SHR_KIND_R8, IN=>SHR_KIND_IN ! shared kinds
+  use shr_flux_mod,   only : td0, maxscl, alpha
+  use shr_flux_mod,   only : use_coldair_outbreak_mod
+  use water_isotopes, only : wiso_flxoce !subroutine used to calculate water isotope fluxes.
+
   implicit none
   private
 
@@ -345,7 +350,7 @@ contains
 
 
           !-----Calculate fluxes and wind stress.---------------------
-          
+
           !--- momentum flux ---
           ! This should ensure zero wind stress when (relative) wind speed is zero,
           ! components are consistent with total, and we don't ever divide by zero.

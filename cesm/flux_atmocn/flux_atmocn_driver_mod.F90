@@ -1,4 +1,6 @@
-module flux_atmocn_driver_mod.F90
+module flux_atmocn_driver_mod
+
+  use shr_kind_mod,  only : R8=>SHR_KIND_R8, IN=>SHR_KIND_IN ! shared kinds
 
   implicit none
   public
@@ -68,6 +70,10 @@ contains
     real(R8),intent(out),optional :: ssq_sv  (nMax) ! diag: sea surface humidity (kg/kg)
     real(R8),intent(out),optional :: z0(nMax)       ! roughness length
     real(R8),intent(in) ,optional :: missval        ! masked value
+
+    !--- local variables --------------------------------
+    integer  :: n
+    real(R8) :: spval  ! local missing value
     !--------------------------------------------------------------------------------
 
     !!.................................................................
@@ -93,7 +99,7 @@ contains
             ugust_out,                                     &
             u10res,                                        &
             ustar_sv=ustar_sv, re_sv=re_sv, ssq_sv=ssq_sv, &
-            missval)
+            missval=missval)
 
     else if (ocn_surface_flux_scheme == 1) then
 
@@ -125,7 +131,13 @@ contains
             duu10n, ustar_sv=ustar_sv, re_sv=re_sv, ssq_sv=ssq_sv, &
             missval=missval)
 
-       do n=1,nMax
+       if (present(missval)) then
+          spval = missval
+       else
+          spval = shr_const_spval
+       endif
+
+       do n = 1,nMax
           if (mask(n) /= 0) then
              u10res(n) = sqrt(duu10n(n))
              ugust_out(n) = 0._r8

@@ -20,6 +20,7 @@ module flux_atmocn_COARE_mod
   !     * added diagnostics, comments and references
   !-------------------------------------------------------------------------------
 
+  use shr_kind_mod,   only : R8=>SHR_KIND_R8, IN=>SHR_KIND_IN ! shared kinds
   use shr_flux_mod,   only : td0, maxscl, alpha
   use shr_flux_mod,   only : use_coldair_outbreak_mod
   use water_isotopes, only : wiso_flxoce !subroutine used to calculate water isotope fluxes.
@@ -29,7 +30,7 @@ module flux_atmocn_COARE_mod
 
   public  :: flux_atmOcn_COARE
   private :: cor30a
-  
+
   integer :: debug = 0 ! internal debug level
 
 contains

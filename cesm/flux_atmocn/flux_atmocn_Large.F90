@@ -2,7 +2,7 @@ module flux_atmOcn_large_mod
 
   !-------------------------------------------------------------------------------
   ! PURPOSE:
-  !   computes atm/ocn surface fluxes using Large and Pond 
+  !   computes atm/ocn surface fluxes using Large and Pond
   !
   ! NOTES:
   !   o all fluxes are positive downward
@@ -18,12 +18,13 @@ module flux_atmOcn_large_mod
   !   o Neutral 10m dalton number:  cen = .0346 sqrt(cdn)
   !   o The saturation humidity of air at T(K): qsat(T)  (kg/m^3)
   !-------------------------------------------------------------------------------
-  
-  use water_isotopes, only: wiso_flxoce !subroutine used to calculate water isotope fluxes.
+
+  use shr_kind_mod,   only: R8=>SHR_KIND_R8, IN=>SHR_KIND_IN ! shared kinds
   use shr_flux_mod,   only: loc_cpair, loc_cpvir, loc_karman, loc_g, loc_zvir
   use shr_flux_mod,   only: loc_latvap, loc_stebol, use_coldair_outbreak_mod
   use shr_flux_mod,   only: flux_con_tol, flux_con_max_iter
   use shr_flux_mod,   only: alpha, maxscl, tc0
+  use water_isotopes, only: wiso_flxoce !subroutine used to calculate water isotope fluxes.
 
   implicit none
   public

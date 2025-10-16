@@ -18,12 +18,13 @@ module flux_atmocn_diurnal_mod
   !   o The saturation humidity of air at T(K): qsat(T)  (kg/m^3)
   !-------------------------------------------------------------------------------
 
+  use shr_kind_mod,          only : R8=>SHR_KIND_R8, IN=>SHR_KIND_IN ! shared kinds
   use shr_flux_mod,          only : td0, maxscl, alpha, debug
   use shr_flux_mod,          only : zvir, cpair, cpvir, karman
   use shr_flux_mod,          only : latvap, stebol, use_coldair_outbreak_mod
   use atmocn_flux_COARE_mod, only : cor30a
   use water_isotopes,        only : wiso_flxoce !subroutine used to calculate water isotope fluxes.
-  
+
   implicit none
   public
 
@@ -31,7 +32,7 @@ module flux_atmocn_diurnal_mod
 
   integer, private :: flux_con_max_iter = 2
 
-contains   
+contains
 
   subroutine flux_atmOcn_diurnal                       &
        (logunit, ocn_surface_flux_scheme,              &
@@ -678,24 +679,24 @@ contains
              !------------------------------------------------------------
              ! no valid data here -- out of domain
              !------------------------------------------------------------
-             warm       (n) = spval 
-             salt       (n) = spval 
-             speed      (n) = spval 
-             regime     (n) = spval 
-             tBulk      (n) = spval 
-             tSkin      (n) = spval 
-             tSkin_night(n) = spval 
-             tSkin_day  (n) = spval 
-             cSkin      (n) = spval 
-             cSkin_night(n) = spval 
-             warmMax    (n) = spval 
-             windMax    (n) = spval 
-             qSolAvg    (n) = spval 
-             windAvg    (n) = spval 
-             warmMaxInc (n) = spval 
-             windMaxInc (n) = spval 
-             qSolInc    (n) = spval 
-             windInc    (n) = spval 
+             warm       (n) = spval
+             salt       (n) = spval
+             speed      (n) = spval
+             regime     (n) = spval
+             tBulk      (n) = spval
+             tSkin      (n) = spval
+             tSkin_night(n) = spval
+             tSkin_day  (n) = spval
+             cSkin      (n) = spval
+             cSkin_night(n) = spval
+             warmMax    (n) = spval
+             windMax    (n) = spval
+             qSolAvg    (n) = spval
+             windAvg    (n) = spval
+             warmMaxInc (n) = spval
+             windMaxInc (n) = spval
+             qSolInc    (n) = spval
+             windInc    (n) = spval
              nInc       (n) = 0.0_R8
 
              sen   (n)    = spval  ! sensible         heat flux  (W/m^2)
