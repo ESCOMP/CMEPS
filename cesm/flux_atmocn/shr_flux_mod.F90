@@ -49,7 +49,9 @@ contains
 
   subroutine shr_flux_adjust_constants( &
        zvir, cpair, cpvir, karman, gravit, &
-       latvap, latice, stebol, flux_convergence_tolerance, &
+       latvap, latice, stebol, &
+       flux_convergence_tolerance, &
+       flux_convergence_max_iteration, &
        coldair_outbreak_mod)
 
     ! Adjust local constants.  Used to support simple models.
