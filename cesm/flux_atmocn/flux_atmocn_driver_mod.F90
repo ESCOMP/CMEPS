@@ -82,60 +82,61 @@ contains
     !!                         = 2 : UA algorithm
     !!.................................................................
 
+    if (present(missval)) then
+       spval = missval
+    else
+       spval = shr_const_spval
+    endif
+
     ! Default flux scheme.
     if (ocn_surface_flux_scheme == 0) then
 
-       call flux_atmOcn_Large(                             &
-            logunit, nMax  ,zbot  ,ubot  ,vbot  ,thbot ,   &
-            qbot,  rainc ,s16O  ,sHDO  ,s18O  ,rbot,       &
-            tbot  ,us    ,vs,  pslv,                       &
-            ts    ,mask  , seq_flux_atmocn_minwind,        &
-            sen   ,lat   ,lwup  ,                          &
-            r16O, rhdo, r18O,                              &
-            evap  ,evap_16O, evap_HDO, evap_18O,           &
-            taux  ,tauy  ,tref  ,qref  ,                   &
-            add_gusts,                                     &
-            duu10n,                                        &
-            ugust_out,                                     &
-            u10res,                                        &
-            ustar_sv=ustar_sv, re_sv=re_sv, ssq_sv=ssq_sv, &
-            missval=missval)
+       call flux_atmOcn_Large(                       &
+            logunit, spval, nMax  ,                  &
+            zbot  ,ubot  ,vbot  ,thbot ,             &
+            qbot,  rainc ,s16O  ,sHDO  ,s18O  ,rbot, &
+            tbot  ,us    ,vs,  pslv,                 &
+            ts    ,mask  , seq_flux_atmocn_minwind,  &
+            sen   ,lat   ,lwup  ,                    &
+            r16O, rhdo, r18O,                        &
+            evap  ,evap_16O, evap_HDO, evap_18O,     &
+            taux  ,tauy  ,tref  ,qref  ,             &
+            add_gusts,                               &
+            duu10n,                                  &
+            ugust_out,                               &
+            u10res,                                  &
+            spval,                                   &
+            ustar_sv=ustar_sv, re_sv=re_sv, ssq_sv=ssq_sv)
 
     else if (ocn_surface_flux_scheme == 1) then
 
-       call flux_atmOcn_COARE(                             &
-            logunit, nMax  ,zbot  ,ubot  ,vbot  ,thbot ,   &
-            qbot,  rainc ,s16O  ,sHDO  ,s18O  ,rbot,       &
-            tbot  ,us    ,vs,  pslv,                       &
-            ts    ,mask  , seq_flux_atmocn_minwind,        &
-            sen   ,lat   ,lwup  ,                          &
-            r16O, rhdo, r18O,                              &
-            evap  ,evap_16O, evap_HDO, evap_18O,           &
-            taux  ,tauy  ,tref  ,qref  ,                   &
-            duu10n,                                        &
-            ugust_out,                                     &
-            u10res,                                        &
-            ustar_sv=ustar_sv ,re_sv=re_sv ,ssq_sv=ssq_sv, &
-            missval=missval)
+       call flux_atmOcn_COARE(                       &
+            logunit, spval, nMax  ,                  &
+            zbot  ,ubot  ,vbot  ,thbot ,             &
+            qbot,  rainc ,s16O  ,sHDO  ,s18O  ,rbot, &
+            tbot  ,us    ,vs,  pslv,                 &
+            ts    ,mask  , seq_flux_atmocn_minwind,  &
+            sen   ,lat   ,lwup  ,                    &
+            r16O, rhdo, r18O,                        &
+            evap  ,evap_16O, evap_HDO, evap_18O,     &
+            taux  ,tauy  ,tref  ,qref  ,             &
+            duu10n,                                  &
+            ugust_out,                               &
+            u10res,                                  &
+            ustar_sv=ustar_sv ,re_sv=re_sv ,ssq_sv=ssq_sv)
 
     else if (ocn_surface_flux_scheme == 2) then
 
-       call flux_atmOcn_UA(                                        &
-            logunit, nMax, zbot, ubot, vbot, thbot,                &
-            qbot, rainc, s16O, sHDO, s18O, rbot,                   &
-            tbot, us, vs, pslv,                                    &
-            ts, mask, sen, lat, lwup,                              &
-            r16O, rhdo, r18O,                                      &
-            evap, evap_16O, evap_HDO, evap_18O,                    &
-            taux, tauy, tref, qref,                                &
-            duu10n, ustar_sv=ustar_sv, re_sv=re_sv, ssq_sv=ssq_sv, &
-            missval=missval)
-
-       if (present(missval)) then
-          spval = missval
-       else
-          spval = shr_const_spval
-       endif
+       call flux_atmOcn_UA(                      &
+            logunit, spval, nMax,                &
+            zbot, ubot, vbot, thbot,             &
+            qbot, rainc, s16O, sHDO, s18O, rbot, &
+            tbot, us, vs, pslv,                  &
+            ts, mask, sen, lat, lwup,            &
+            r16O, rhdo, r18O,                    &
+            evap, evap_16O, evap_HDO, evap_18O,  &
+            taux, tauy, tref, qref,              &
+            duu10n, ustar_sv=ustar_sv, re_sv=re_sv, ssq_sv=ssq_sv)
 
        do n = 1,nMax
           if (mask(n) /= 0) then

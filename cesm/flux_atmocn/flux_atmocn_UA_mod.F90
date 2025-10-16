@@ -40,67 +40,63 @@ module flux_atmocn_UA_mod
 
 contains
 
-  subroutine flux_atmOcn_UA(                    &
-       logunit,  nMax, zbot, ubot, vbot, thbot, &
-       qbot, s16O, sHDO, s18O, rbot,            &
-       tbot, us, vs, pslv,                      &
-       ts, mask, sen, lat, lwup,                &
-       r16O, rhdo, r18O,                        &
-       evap, evap_16O,  evap_HDO, evap_18O,     &
-       taux, tauy, tref, qref,                  &
-       duu10n,  ustar_sv, re_sv, ssq_sv,        &
-       missval)
-
-    ! uses:
-    use water_isotopes, only: wiso_flxoce !subroutine used to calculate water isotope fluxes.
+  subroutine flux_atmOcn_UA(                &
+       logunit,  nMax, spval,               &
+       zbot, ubot, vbot, thbot,             &
+       qbot, s16O, sHDO, s18O, rbot,        &
+       tbot, us, vs, pslv,                  &
+       ts, mask, sen, lat, lwup,            &
+       r16O, rhdo, r18O,                    &
+       evap, evap_16O,  evap_HDO, evap_18O, &
+       taux, tauy, tref, qref,              &
+       duu10n,  ustar_sv, re_sv, ssq_sv)
 
     !--- input arguments --------------------------------
     integer    ,intent(in) :: logunit
+    real(R8)   ,intent(in) :: spval 
     integer    ,intent(in) :: nMax        ! data vector length
     integer    ,intent(in) :: mask (nMax) ! ocn domain mask       0 <=> out of domain
-    real(R8)   ,intent(in) :: zbot (nMax) ! atm level height      (m)
-    real(R8)   ,intent(in) :: ubot (nMax) ! atm u wind            (m/s)
-    real(R8)   ,intent(in) :: vbot (nMax) ! atm v wind            (m/s)
-    real(R8)   ,intent(in) :: thbot(nMax) ! atm potential T       (K)
+    real(R8)   ,intent(in) :: zbot (nMax) ! atm level height (m)
+    real(R8)   ,intent(in) :: ubot (nMax) ! atm u wind (m/s)
+    real(R8)   ,intent(in) :: vbot (nMax) ! atm v wind (m/s)
+    real(R8)   ,intent(in) :: thbot(nMax) ! atm potential T (K)
     real(R8)   ,intent(in) :: qbot (nMax) ! atm specific humidity (kg/kg)
     real(R8)   ,intent(in) :: s16O (nMax) ! atm H216O tracer conc. (kg/kg)
-    real(R8)   ,intent(in) :: sHDO (nMax) ! atm HDO tracer conc.  (kg/kg)
+    real(R8)   ,intent(in) :: sHDO (nMax) ! atm HDO tracer conc. (kg/kg)
     real(R8)   ,intent(in) :: s18O (nMax) ! atm H218O tracer conc. (kg/kg)
     real(R8)   ,intent(in) :: r16O (nMax) ! ocn H216O tracer ratio/Rstd
     real(R8)   ,intent(in) :: rHDO (nMax) ! ocn HDO tracer ratio/Rstd
     real(R8)   ,intent(in) :: r18O (nMax) ! ocn H218O tracer ratio/Rstd
-    real(R8)   ,intent(in) :: rbot (nMax) ! atm air density       (kg/m^3)
-    real(R8)   ,intent(in) :: tbot (nMax) ! atm T                 (K)
-    real(R8)   ,intent(in) :: pslv (nMax) ! sea level pressure    (Pa)
-    real(R8)   ,intent(in) :: us   (nMax) ! ocn u-velocity        (m/s)
-    real(R8)   ,intent(in) :: vs   (nMax) ! ocn v-velocity        (m/s)
-    real(R8)   ,intent(in) :: ts   (nMax) ! ocn temperature       (K)
+    real(R8)   ,intent(in) :: rbot (nMax) ! atm air density (kg/m^3)
+    real(R8)   ,intent(in) :: tbot (nMax) ! atm T (K)
+    real(R8)   ,intent(in) :: pslv (nMax) ! sea level pressure (Pa)
+    real(R8)   ,intent(in) :: us (nMax) ! ocn u-velocity (m/s)
+    real(R8)   ,intent(in) :: vs (nMax) ! ocn v-velocity (m/s)
+    real(R8)   ,intent(in) :: ts (nMax) ! ocn temperature (K)
 
     !--- output arguments -------------------------------
-    real(R8),intent(out)  ::  sen  (nMax)     ! heat flux: sensible    (W/m^2)
-    real(R8),intent(out)  ::  lat  (nMax)     ! heat flux: latent      (W/m^2)
-    real(R8),intent(out)  ::  lwup (nMax)     ! heat flux: lw upward   (W/m^2)
-    real(R8),intent(out)  ::  evap (nMax)     ! water flux: evap  ((kg/s)/m^2)
+    real(R8),intent(out)  ::  sen (nMax)     ! heat flux: sensible (W/m^2)
+    real(R8),intent(out)  ::  lat (nMax)     ! heat flux: latent (W/m^2)
+    real(R8),intent(out)  ::  lwup (nMax)     ! heat flux: lw upward (W/m^2)
+    real(R8),intent(out)  ::  evap (nMax)     ! water flux: evap ((kg/s)/m^2)
     real(R8),intent(out)  ::  evap_16O (nMax) ! water flux: evap ((kg/s/m^2)
     real(R8),intent(out)  ::  evap_HDO (nMax) ! water flux: evap ((kg/s)/m^2)
     real(R8),intent(out)  ::  evap_18O (nMax) ! water flux: evap ((kg/s/m^2)
-    real(R8),intent(out)  ::  taux (nMax)     ! surface stress, zonal      (N)
+    real(R8),intent(out)  ::  taux (nMax)     ! surface stress, zonal (N)
     real(R8),intent(out)  ::  tauy (nMax)     ! surface stress, maridional (N)
-    real(R8),intent(out)  ::  tref (nMax)     ! diag:  2m ref height T     (K)
+    real(R8),intent(out)  ::  tref (nMax)     ! diag:  2m ref height T (K)
     real(R8),intent(out)  ::  qref (nMax)     ! diag:  2m ref humidity (kg/kg)
     real(R8),intent(out)  :: duu10n(nMax)     ! diag: 10m wind speed squared (m/s)^2
 
     real(R8),intent(out),optional :: ustar_sv(nMax) ! diag: ustar
-    real(R8),intent(out),optional :: re_sv   (nMax) ! diag: sqrt of exchange coefficient (water)
-    real(R8),intent(out),optional :: ssq_sv  (nMax) ! diag: sea surface humidity  (kg/kg)
-
-    real(R8),intent(in) ,optional :: missval        ! masked value
+    real(R8),intent(out),optional :: re_sv (nMax) ! diag: sqrt of exchange coefficient (water)
+    real(R8),intent(out),optional :: ssq_sv (nMax) ! diag: sea surface humidity (kg/kg)
 
     !--- local constants --------------------------------
     real(R8),parameter :: zetam = -1.574_R8 ! Very unstable zeta cutoff for momentum (-)
     real(R8),parameter :: zetat = -0.465_R8 ! Very unstable zeta cutoff for T/q (-)
-    real(R8),parameter :: umin  = 0.1_R8    ! minimum wind speed       (m/s)
-    real(R8),parameter :: zref  = 10.0_R8   ! reference height           (m)
+    real(R8),parameter :: umin  = 0.1_R8    ! minimum wind speed (m/s)
+    real(R8),parameter :: zref  = 10.0_R8   ! reference height (m)
     real(R8),parameter :: ztref = 2.0_R8    ! reference height for air T (m)
     real(R8),parameter :: beta = 1.0_R8     ! constant used in W* calculation (-)
     real(R8),parameter :: zpbl = 1000.0_R8  ! PBL height used in W* calculation (m)
@@ -108,39 +104,36 @@ contains
     real(R8),parameter :: onethird = 1.0_R8/3.0_R8  ! Used repeatedly.
 
     !--- local variables --------------------------------
-    integer(IN) :: n          ! vector loop index
-    integer(IN) :: i          ! iteration loop index
-    real(R8)    :: vmag_abs   ! surface wind magnitude   (m s-1)
-    real(R8)    :: vmag_rel   ! surface wind magnitude relative to surface current (m s-1)
-    real(R8)    :: vmag       ! surface wind magnitude with large
-    ! eddy correction and minimum value (m s-1)
-    ! (This can change on each iteration.)
-    real(R8)    :: thv        ! virtual temperature      (K)
-    real(R8)    :: ssq        ! sea surface humidity     (kg/kg)
-    real(R8)    :: delth      ! potential T difference   (K)
-    real(R8)    :: delthv     ! virtual potential T difference   (K)
-    real(R8)    :: delq       ! humidity difference      (kg/kg)
-    real(R8)    :: ustar      ! friction velocity (m s-1)
-    real(R8)    :: qstar      ! humidity scaling parameter (kg/kg)
-    real(R8)    :: tstar      ! temperature scaling parameter (K)
-    real(R8)    :: thvstar    ! virtual temperature scaling parameter (K)
-    real(R8)    :: wstar      ! convective velocity scale (m s-1)
-    real(R8)    :: zeta       ! dimensionless height (z / Obukhov length)
-    real(R8)    :: obu        ! Obukhov length (m)
-    real(R8)    :: tau        ! magnitude of wind stress (N m-2)
-    real(R8)    :: cp         ! specific heat of moist air (J kg-1 K-1)
-    real(R8)    :: xlv        ! Latent heat of vaporization (J kg-1)
-    real(R8)    :: visa       ! Kinematic viscosity of dry air (m2 s-1)
-    real(R8)    :: tbot_oC    ! Temperature used in visa (deg C)
-    real(R8)    :: rb         ! Bulk Richardson number (-)
-    real(R8)    :: zo         ! Roughness length for momentum (m)
-    real(R8)    :: zoq        ! Roughness length for moisture (m)
-    real(R8)    :: zot        ! Roughness length for heat (m)
-    real(R8)    :: u10        ! 10-metre wind speed (m s-1)
-    real(R8)    :: re         ! Moisture exchange coefficient for compatibility
-    ! with default algorithm.
-    real(R8)    :: spval      ! local missing value
-    real(R8)    :: loc_epsilon  ! Ratio of gas constants (-)
+    integer  :: n           ! vector loop index
+    integer  :: i           ! iteration loop index
+    real(R8) :: vmag_abs    ! surface wind magnitude (m s-1)
+    real(R8) :: vmag_rel    ! surface wind magnitude relative to surface current (m s-1)
+    real(R8) :: vmag        ! surface wind magnitude with large eddy correction and minimum value (m s-1)
+                            ! (This can change on each iteration.)
+    real(R8) :: thv         ! virtual temperature (K)
+    real(R8) :: ssq         ! sea surface humidity (kg/kg)
+    real(R8) :: delth       ! potential T difference (K)
+    real(R8) :: delthv      ! virtual potential T difference (K)
+    real(R8) :: delq        ! humidity difference (kg/kg)
+    real(R8) :: ustar       ! friction velocity (m s-1)
+    real(R8) :: qstar       ! humidity scaling parameter (kg/kg)
+    real(R8) :: tstar       ! temperature scaling parameter (K)
+    real(R8) :: thvstar     ! virtual temperature scaling parameter (K)
+    real(R8) :: wstar       ! convective velocity scale (m s-1)
+    real(R8) :: zeta        ! dimensionless height (z / Obukhov length)
+    real(R8) :: obu         ! Obukhov length (m)
+    real(R8) :: tau         ! magnitude of wind stress (N m-2)
+    real(R8) :: cp          ! specific heat of moist air (J kg-1 K-1)
+    real(R8) :: xlv         ! Latent heat of vaporization (J kg-1)
+    real(R8) :: visa        ! Kinematic viscosity of dry air (m2 s-1)
+    real(R8) :: tbot_oC     ! Temperature used in visa (deg C)
+    real(R8) :: rb          ! Bulk Richardson number (-)
+    real(R8) :: zo          ! Roughness length for momentum (m)
+    real(R8) :: zoq         ! Roughness length for moisture (m)
+    real(R8) :: zot         ! Roughness length for heat (m)
+    real(R8) :: u10         ! 10-metre wind speed (m s-1)
+    real(R8) :: re          ! Moisture exchange coefficient for compatibility with default algorithm.
+    real(R8) :: loc_epsilon ! Ratio of gas constants (-)
 
     !--- for cold air outbreak calc --------------------------------
     real(R8)    :: tdiff(nMax)  ! tbot - ts
@@ -149,6 +142,7 @@ contains
     !--- formats ----------------------------------------
     character(*),parameter :: subName = '(flux_atmOcn) '
     character(*),parameter ::   F00 = "('(flux_atmOcn) ',4a)"
+    !---------------------------------------------------------------------------
 
     !-----
     ! Straight from original subroutine.

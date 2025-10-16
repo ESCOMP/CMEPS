@@ -34,8 +34,8 @@ module flux_atmocn_diurnal_mod
 
 contains
 
-  subroutine flux_atmOcn_diurnal                       &
-       (logunit, ocn_surface_flux_scheme,              &
+  subroutine flux_atmOcn_diurnal(                      &
+       logunit, spval, ocn_surface_flux_scheme,        &
        nMax  ,zbot  ,ubot  ,vbot  ,thbot ,             &
        qbot  ,s16O  ,sHDO  ,s18O  ,rbot  ,             &
        tbot  ,us    ,vs    ,                           &
@@ -52,11 +52,12 @@ contains
        tBulk, tSkin, tSkin_day, tSkin_night,           &
        cSkin, cSkin_night, secs ,dt,                   &
        duu10n,  ustar_sv   ,re_sv ,ssq_sv,             &
-       missval, cold_start    )
+       cold_start)
 
 
     !--- input arguments --------------------------------
     integer    ,intent(in)  :: logunit
+    real(r8)   ,intent(in)  :: spval
     integer(IN) ,intent(in) :: ocn_surface_flux_scheme
     integer(IN),intent(in)  :: nMax        ! data vector length
     integer(IN),intent(in)  :: mask (nMax) ! ocn domain mask 0 <=> out of domain
@@ -112,8 +113,6 @@ contains
     integer(IN),intent(in) :: dt                 ! NEW
     logical ,intent(in)    :: cold_start         ! cold start flag
     real(R8),intent(in)    :: seq_flux_atmocn_minwind   ! minimum wind speed for atmocn      (m/s)
-
-    real(R8),intent(in) ,optional :: missval     ! masked value
 
     !--- output arguments -------------------------------
     real(R8),intent(out)  ::  sen  (nMax) ! heat flux: sensible    (W/m^2)
@@ -230,7 +229,6 @@ contains
     real(R8)    :: AMP    ! eqn 18
     real(R8)    :: dif3
     real(R8)    :: phid
-    real(R8)    :: spval
 
     !!++ COARE only
     real(R8)    :: zo,zot,zoq      ! roughness lengths
@@ -265,12 +263,12 @@ contains
 
     if (debug > 0) write(logunit,F00) "enter"
 
-    spval = shr_const_spval
     rh = spval
     dviter = spval
     dtiter = spval
     dsiter = spval
     al2 = log(zref/ztref)
+
     !--- for cold air outbreak calc --------------------------------
     tdiff= tbot - ts
 

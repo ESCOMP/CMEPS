@@ -35,44 +35,44 @@ module flux_atmocn_COARE_mod
 
 contains
 
-  subroutine flux_atmOcn_COARE(                     &
-       logunit, nMax  ,zbot  ,ubot  ,vbot  ,thbot , &
-       qbot,  rainc ,s16O  ,sHDO  ,s18O  ,rbot,     &
-       tbot  ,us    ,vs,  pslv,                     &
-       ts    ,mask  , seq_flux_atmocn_minwind,      &
-       sen   ,lat   ,lwup  ,                        &
-       r16O, rhdo, r18O,                            &
-       evap  ,evap_16O, evap_HDO, evap_18O,         &
-       taux  ,tauy  ,tref  ,qref  ,                 &
-       duu10n,                                      &
-       ugust_out,                                   &
-       u10res,                                      &
-       ustar_sv ,re_sv ,ssq_sv,                     &
-       missval)
+  subroutine flux_atmOcn_COARE(                            &
+       logunit, spval, nMax  ,zbot  ,ubot  ,vbot  ,thbot , &
+       qbot,  rainc ,s16O  ,sHDO  ,s18O  ,rbot,            &
+       tbot  ,us    ,vs,  pslv,                            &
+       ts    ,mask  , seq_flux_atmocn_minwind,             &
+       sen   ,lat   ,lwup  ,                               &
+       r16O, rhdo, r18O,                                   &
+       evap  ,evap_16O, evap_HDO, evap_18O,                &
+       taux  ,tauy  ,tref  ,qref  ,                        &
+       duu10n,                                             &
+       ugust_out,                                          &
+       u10res,                                             &
+       ustar_sv ,re_sv ,ssq_sv)
 
     !--- input arguments --------------------------------
-    integer    ,intent(in) :: logunit
-    integer(IN),intent(in) :: nMax        ! data vector length
-    integer(IN),intent(in) :: mask (nMax) ! ocn domain mask       0 <=> out of domain
-    real(R8)   ,intent(in) :: zbot (nMax) ! atm level height      (m)
-    real(R8)   ,intent(in) :: ubot (nMax) ! atm u wind            (m/s)
-    real(R8)   ,intent(in) :: vbot (nMax) ! atm v wind            (m/s)
-    real(R8)   ,intent(in) :: thbot(nMax) ! atm potential T       (K)
-    real(R8)   ,intent(in) :: qbot (nMax) ! atm specific humidity (kg/kg)
-    real(R8)   ,intent(in) :: rainc(nMax) ! atm precip for convective gustiness (kg/m^3) - RBN 24Nov2008/MDF 31Jan2022
-    real(R8)   ,intent(in) :: s16O (nMax) ! atm H216O tracer conc. (kg/kg)
-    real(R8)   ,intent(in) :: sHDO (nMax) ! atm HDO tracer conc.  (kg/kg)
-    real(R8)   ,intent(in) :: s18O (nMax) ! atm H218O tracer conc. (kg/kg)
-    real(R8)   ,intent(in) :: r16O (nMax) ! ocn H216O tracer ratio/Rstd
-    real(R8)   ,intent(in) :: rHDO (nMax) ! ocn HDO tracer ratio/Rstd
-    real(R8)   ,intent(in) :: r18O (nMax) ! ocn H218O tracer ratio/Rstd
-    real(R8)   ,intent(in) :: rbot (nMax) ! atm air density       (kg/m^3)
-    real(R8)   ,intent(in) :: tbot (nMax) ! atm T                 (K)
-    real(R8)   ,intent(in) :: pslv (nMax) ! atm sea level pressure(Pa)
-    real(R8)   ,intent(in) :: us   (nMax) ! ocn u-velocity        (m/s)
-    real(R8)   ,intent(in) :: vs   (nMax) ! ocn v-velocity        (m/s)
-    real(R8)   ,intent(in) :: ts   (nMax) ! ocn temperature       (K)
-    real(R8)   ,intent(in) :: seq_flux_atmocn_minwind        ! minimum wind speed for atmocn      (m/s)
+    integer  , intent(in) :: logunit
+    real(R8) , intent(in) :: spval
+    integer  , intent(in) :: nMax        ! data vector length
+    integer  , intent(in) :: mask (nMax) ! ocn domain mask       0 <=> out of domain
+    real(R8) , intent(in) :: zbot (nMax) ! atm level height      (m)
+    real(R8) , intent(in) :: ubot (nMax) ! atm u wind            (m/s)
+    real(R8) , intent(in) :: vbot (nMax) ! atm v wind            (m/s)
+    real(R8) , intent(in) :: thbot(nMax) ! atm potential T       (K)
+    real(R8) , intent(in) :: qbot (nMax) ! atm specific humidity (kg/kg)
+    real(R8) , intent(in) :: rainc(nMax) ! atm precip for convective gustiness (kg/m^3) - RBN 24Nov2008/MDF 31Jan2022
+    real(R8) , intent(in) :: s16O (nMax) ! atm H216O tracer conc. (kg/kg)
+    real(R8) , intent(in) :: sHDO (nMax) ! atm HDO tracer conc.  (kg/kg)
+    real(R8) , intent(in) :: s18O (nMax) ! atm H218O tracer conc. (kg/kg)
+    real(R8) , intent(in) :: r16O (nMax) ! ocn H216O tracer ratio/Rstd
+    real(R8) , intent(in) :: rHDO (nMax) ! ocn HDO tracer ratio/Rstd
+    real(R8) , intent(in) :: r18O (nMax) ! ocn H218O tracer ratio/Rstd
+    real(R8) , intent(in) :: rbot (nMax) ! atm air density       (kg/m^3)
+    real(R8) , intent(in) :: tbot (nMax) ! atm T                 (K)
+    real(R8) , intent(in) :: pslv (nMax) ! atm sea level pressure(Pa)
+    real(R8) , intent(in) :: us   (nMax) ! ocn u-velocity        (m/s)
+    real(R8) , intent(in) :: vs   (nMax) ! ocn v-velocity        (m/s)
+    real(R8) , intent(in) :: ts   (nMax) ! ocn temperature       (K)
+    real(R8) , intent(in) :: seq_flux_atmocn_minwind        ! minimum wind speed for atmocn      (m/s)
 
     !--- output arguments -------------------------------
     real(R8),intent(out)  ::  sen  (nMax) ! heat flux: sensible    (W/m^2)
@@ -93,8 +93,6 @@ contains
     real(R8),intent(out),optional :: ustar_sv(nMax) ! diag: ustar
     real(R8),intent(out),optional :: re_sv   (nMax) ! diag: sqrt of exchange coefficient (water)
     real(R8),intent(out),optional :: ssq_sv  (nMax) ! diag: sea surface humidity  (kg/kg)
-
-    real(R8),intent(in) ,optional :: missval ! masked value
 
     !--- local constants --------------------------------
     real(R8),parameter :: zref  = 10.0_R8 ! reference height           (m)
@@ -136,14 +134,8 @@ contains
 
     if (debug > 0) write(logunit,F00) "enter"
 
-    if (present(missval)) then
-       spval = missval
-    else
-       spval = shr_const_spval
-    endif
-    u10n = spval
     rh = spval
-    hol=spval
+    hol= spval
 
     !--- for cold air outbreak calc --------------------------------
     tdiff= tbot - ts
