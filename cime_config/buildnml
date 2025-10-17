@@ -37,7 +37,6 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     config["CPL_I2O_PER_CAT"] = case.get_value("CPL_I2O_PER_CAT")
     config["DRV_THREADING"] = case.get_value("DRV_THREADING")
     config["CPL_ALBAV"] = case.get_value("CPL_ALBAV")
-    config["FLDS_WISO"] = case.get_value("FLDS_WISO")
     config["BUDGETS"] = case.get_value("BUDGETS")
     config["MACH"] = case.get_value("MACH")
     config["MPILIB"] = case.get_value("MPILIB")
@@ -657,7 +656,7 @@ def buildnml(case, caseroot, component):
     libs = cmeps_lib_list(case)
     with Case(case.get_value("CASEROOT"), read_only=False) as case_tmp:
         case_tmp.set_value("CASE_SUPPORT_LIBRARIES", ",".join(libs))
-    
+
     esmfmkfile = os.getenv("ESMFMKFILE")
     expect(
         esmfmkfile and os.path.isfile(esmfmkfile),

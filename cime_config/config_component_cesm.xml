@@ -537,19 +537,6 @@
     </desc>
   </entry>
 
-  <entry id="FLDS_WISO">
-    <type>logical</type>
-    <valid_values>TRUE,FALSE</valid_values>
-    <default_value>FALSE</default_value>
-    <values match="last">
-      <value compset="%WISO">TRUE</value>
-      <value compset="%ISO">TRUE</value>
-    </values>
-    <group>run_flags</group>
-    <file>env_run.xml</file>
-    <desc>Turn on the passing of water isotope fields through the coupler</desc>
-  </entry>
-
   <entry id="GLC_NEC">
     <type>integer</type>
     <valid_values>1,3,5,10,36</valid_values>
