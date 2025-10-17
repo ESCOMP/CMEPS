@@ -162,6 +162,7 @@ module med_diag_mod
   integer :: f_watr_roff     = unset_index ! water: runoff/flood
   integer :: f_watr_roff_glc = unset_index ! water: runoff/flood from glc
   integer :: f_watr_ioff     = unset_index ! water: frozen runoff
+  integer :: f_watr_ioff_glc = unset_index ! water: frozen runoff from glc
 
   integer :: f_heat_beg      = unset_index ! 1st index  for heat
   integer :: f_heat_end      = unset_index ! Last index for heat
