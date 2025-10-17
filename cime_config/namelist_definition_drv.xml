@@ -664,6 +664,26 @@
   </entry>
 
   <!-- =========================================== -->
+  <!-- All components enthalpy computation         -->
+  <!-- =========================================== -->
+
+  <entry id="component_computes_enthalpy_flux">
+    <type>char</type>
+    <category>control</category>
+    <group>ALLCOMP_attributes</group>
+    <valid_values>none,atm,med</valid_values>
+    <desc>
+    if none, no enthaply flux is computed to send to the ocean,
+    if atm, the atm (in this case cam) computes enthalpy to send to the ocn (in this case BLOM)
+    if med, the mediator computes computes enthalpy to send to the ocn (in this case MOM6)
+    </desc>
+    <values>
+      <value>none</value>
+      <value comp_ocn="mom6" comp_atm="cam">med</value>
+    </values>
+  </entry>
+
+  <!-- =========================================== -->
   <!-- MED general attributes                      -->
   <!-- =========================================== -->
 
@@ -980,14 +1000,13 @@
     <type>char</type>
     <category>budget</category>
     <group>MED_attributes</group>
-    <valid_values>v0,v1</valid_values>
+    <valid_values>v0,v1,v2</valid_values>
     <desc>
-      currently v0 refers to budgets using POP and v1 refers to budgets using MOM6
+      currently v0 refers to budgets using BLOM and v1 refers to budgets using MOM6
     </desc>
     <values>
       <value>v0</value>
       <value comp_ocn="mom">v1</value>
-      <value comp_ocn="pop">v0</value>
     </values>
   </entry>
 
@@ -2462,10 +2481,9 @@
     <category>expdef</category>
     <group>ALLCOMP_attributes</group>
     <desc>
-      index of scalar containing epbal precipitation factor from ocn (only for POP)
+      index of scalar containing epbal precipitation factor from ocn (only for BLOM)
     </desc>
     <values>
-      <value COMP_OCN="pop">4</value>
       <value COMP_OCN="blom">4</value>
       <value>0</value>
     </values>

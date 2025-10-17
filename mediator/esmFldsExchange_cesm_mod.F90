@@ -1315,9 +1315,10 @@ contains
 
     if (phase == 'advertise') then
        call addfld_to(compatm, 'Faxx_evap')
+       call addfld_to(compatm, 'Faox_evap')
        call addfld_from(complnd, 'Fall_evap')
        call addfld_from(compice, 'Faii_evap')
-       call addfld_aoflux( 'Faox_evap')
+       call addfld_aoflux('Faox_evap')
     else
        if (fldchk(is_local%wrap%FBexp(compatm), 'Faxx_evap', rc=rc)) then
           if ( fldchk(is_local%wrap%FBImp(complnd,complnd), 'Fall_evap', rc=rc)) then
@@ -1336,6 +1337,8 @@ contains
              end if
              call addmrg_to(compatm , 'Faxx_evap', &
                   mrg_from=compmed, mrg_fld='Faox_evap', mrg_type='merge', mrg_fracname='ofrac')
+             ! unmerged aoflux-only for correct hevap to ocean in cam_out
+             call addmrg_to(compatm, 'Faox_evap', mrg_from=compmed, mrg_fld='Faox_evap', mrg_type='copy')
           end if
        end if
     end if
@@ -1892,6 +1895,33 @@ contains
                mrg_from=compatm, mrg_fld='Faxa_swdn', mrg_type='copy')
        end if
     end if
+    !----------------------------------------------------------------------
+    ! to ocn: downward material enthalpy flux from atm
+    ! ---------------------------------------------------------------------
+    if (phase == 'advertise') then
+       call addfld_from(compatm, 'Faxa_hmat')
+       call addfld_to  (compocn, 'Faxa_hmat')
+       call addfld_to  (compocn, 'Faxa_hmat_oa') ! handled in prep_ocn
+       call addfld_from(compatm, 'Faxa_hlat')
+       call addfld_to  (compocn, 'Faxa_hlat')
+       call addfld_to  (compatm, 'Faxx_hrof')   ! enthalpy of runoff, computed in med_phases_prep_ocn
+    else
+       if (fldchk(is_local%wrap%FBImp(compatm, compatm), 'Faxa_hmat', rc=rc) .and. &
+           fldchk(is_local%wrap%FBExp(compocn)         , 'Faxa_hmat', rc=rc)) then
+          call addmap_from(compatm, 'Faxa_hmat', compocn, mapconsf, 'one', atm2ocn_map)
+          call addmrg_to  (compocn, 'Faxa_hmat', mrg_from=compatm ,mrg_fld='Faxa_hmat' &
+                                  , mrg_type='copy_with_weights', mrg_fracname='ofrac')
+       end if
+       if (fldchk(is_local%wrap%FBImp(compatm, compatm), 'Faxa_hlat', rc=rc) .and. &
+           fldchk(is_local%wrap%FBExp(compocn)         , 'Faxa_hlat', rc=rc)) then
+          call addmap_from(compatm, 'Faxa_hlat', compocn, mapconsf, 'one', atm2ocn_map)
+          call addmrg_to  (compocn, 'Faxa_hlat', mrg_from=compatm ,mrg_fld='Faxa_hlat' &
+                                  , mrg_type='copy_with_weights', mrg_fracname='ofrac')
+       end if
+      !if (fldchk(is_local%wrap%FBExp(compatm),'Faxx_hrof', rc=rc)) &
+      !   call addmap_from(compocn, 'Faxx_hrof', compatm, mapconsf, 'one', atm2ocn_map)
+    end if
+
     ! ---------------------------------------------------------------------
     ! to ocn: net shortwave radiation from med
     ! ---------------------------------------------------------------------
@@ -1932,15 +1962,15 @@ contains
        end if
 
        ! import sw from atm by bands
-       if ( fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_swvdr', rc=rc) .and. &
+       if ((fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_swvdr', rc=rc) .and. &
             fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_swvdf', rc=rc) .and. &
             fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_swndr', rc=rc) .and. &
             fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_swndr', rc=rc) .and. &
-            (fldchk(is_local%wrap%FBExp(compocn), 'Foxx_swnet'    , rc=rc)) .or. &
-            (fldchk(is_local%wrap%FBExp(compocn), 'Foxx_swnet_vdr', rc=rc) .and. &
-             fldchk(is_local%wrap%FBExp(compocn), 'Foxx_swnet_vdf', rc=rc) .and. &
-             fldchk(is_local%wrap%FBExp(compocn), 'Foxx_swnet_idr', rc=rc) .and. &
-             fldchk(is_local%wrap%FBExp(compocn), 'Foxx_swnet_idf', rc=rc))) then
+            fldchk(is_local%wrap%FBExp(compocn)        , 'Foxx_swnet', rc=rc)) .or. &
+           (fldchk(is_local%wrap%FBExp(compocn), 'Foxx_swnet_vdr', rc=rc) .and. &
+            fldchk(is_local%wrap%FBExp(compocn), 'Foxx_swnet_vdf', rc=rc) .and. &
+            fldchk(is_local%wrap%FBExp(compocn), 'Foxx_swnet_idr', rc=rc) .and. &
+            fldchk(is_local%wrap%FBExp(compocn), 'Foxx_swnet_idf', rc=rc))) then
           call addmap_from(compatm, 'Faxa_swvdr', compocn, mapconsf, 'one', atm2ocn_map)
           call addmap_from(compatm, 'Faxa_swvdf', compocn, mapconsf, 'one', atm2ocn_map)
           call addmap_from(compatm, 'Faxa_swndr', compocn, mapconsf, 'one', atm2ocn_map)
