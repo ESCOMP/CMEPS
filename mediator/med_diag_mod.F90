@@ -1729,7 +1729,7 @@ contains
     integer , intent(in) :: tod
 
     ! local variables
-    integer           :: ic,nf,is ! data array indicies
+    integer           :: ic,nf ! data array indicies
     integer           :: ica,icl
     integer           :: icn,ics,ico
     character(len=40) :: str         ! string
@@ -1851,7 +1851,7 @@ contains
     integer , intent(in) :: tod
 
     ! local variables
-    integer           :: ic,nf,is ! data array indicies
+    integer           :: ic,nf ! data array indicies
     integer           :: icar,icas
     integer           :: icxs,icxr
     character(len=40) :: str      ! string
@@ -1958,7 +1958,7 @@ contains
     integer , intent(in) :: tod
 
     ! local variables
-    integer  :: nf,is ! data array indicies
+    integer  :: nf ! data array indicies
     real(r8) :: atm_area, lnd_area, ocn_area
     real(r8) :: ice_area_nh, ice_area_sh
     real(r8) :: sum_area
