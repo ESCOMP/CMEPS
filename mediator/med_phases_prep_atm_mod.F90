@@ -29,8 +29,10 @@ module med_phases_prep_atm_mod
 
   public :: med_phases_prep_atm
   public :: med_phases_prep_atm_enthalpy_correction
+  public :: med_phases_prep_atm_enthalpy_runoff
 
-  real(r8), public :: global_htot_corr(1) = 0._r8  ! enthalpy correction from med_phases_prep_ocn
+  real(r8) :: global_htot_corr(1) = 0._r8  ! enthalpy correction from med_phases_prep_ocn
+  real(r8) :: global_hrof_corr(1) = 0._r8  ! enthalpy of run-off from med_phases_prep_ocn
 
   character(len=13) :: fldnames_from_ocn(5) = (/'Faoo_fbrf_ocn','Faoo_fdms_ocn','Faoo_fco2_ocn',&
                                                 'Faoo_fn2o_ocn','Faoo_fnh3_ocn'/)
@@ -230,12 +232,23 @@ contains
       end if
     end do
 
-    ! Add enthalpy correction to sensible heat if appropriate
-    if (FB_FldChk(is_local%wrap%FBExp(compatm), 'Faxx_sen', rc=rc)) then
+    ! Only do the following correction if the mediator is computing the enthalpy to be sent to the ocean
+    ! from rain, snow, etc.
+    if (       FB_FldChk(is_local%wrap%FBExp(compatm), 'Faxx_sen' , rc=rc) .and. &
+         .not. FB_fldchk(is_local%wrap%FBExp(compocn), 'Faxa_hmat', rc=rc)) then
        call FB_getfldptr(is_local%wrap%FBExp(compatm), 'Faxx_sen', dataptr1, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        do n = 1,size(dataptr1)
           dataptr1(n) = dataptr1(n) + global_htot_corr(1)
+       end do
+    end if
+    ! Only do the following if the atmosphere is computing the enthalpy to be sent to the ocean
+    ! from rain, snow, etc.
+    if (FB_FldChk(is_local%wrap%FBExp(compatm), 'Faxx_hrof', rc=rc)) then
+       call FB_getfldptr(is_local%wrap%FBExp(compatm), 'Faxx_hrof', dataptr1, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       do n = 1,size(dataptr1)
+          dataptr1(n) = global_hrof_corr(1)
        end do
     end if
 
@@ -260,6 +273,8 @@ contains
     ! 'Foxx_evap','Foxx_hevap','Foxx_hcond','Foxx_rofl',
     ! 'Foxx_hrofl','Foxx_rofi','Foxx_hrofi','Foxx_rofl_glc',
     ! 'Foxx_hrofl_glc','Foxx_rofi_glc','Foxx_hrofi_glc'
+    ! The result is added as a correction to the sensible heat flux sent back to the atm
+    ! in subroutine med_phases_prep_atm
 
     use ESMF            , only : ESMF_VMAllreduce, ESMF_GridCompGet, ESMF_REDUCE_SUM
     use ESMF            , only : ESMF_VM
@@ -273,6 +288,7 @@ contains
     type(InternalState) :: is_local
     integer             :: n
     real(r8)            :: local_htot_corr(1)
+    real(r8)            :: local_hrof_corr(1)
     type(ESMF_VM)       :: vm
     !---------------------------------------
 
@@ -294,5 +310,48 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
   end subroutine med_phases_prep_atm_enthalpy_correction
+
+  !-----------------------------------------------------------------------------
+  subroutine med_phases_prep_atm_enthalpy_runoff(gcomp, hcorr, rc)
+
+    use ESMF , only : ESMF_VMAllreduce, ESMF_GridCompGet, ESMF_REDUCE_SUM
+    use ESMF , only : ESMF_VM
+
+    ! Enthalpy of runoff calculated called by med_phases_prep_ocn_accum in
+    ! med_phases_prep_ocn_mod
+    ! Note that this is only called if the following fields are in FBExp(compocn)
+    ! - Faxa_hmat, Faxa_hlat
+    ! The result (Faxx_hrof) is sent back to the atm in subroutine med_phases_prep_atm
+
+    ! input/output variables
+    type(ESMF_GridComp) , intent(in)  :: gcomp
+    real(r8)            , intent(in)  :: hcorr(:)
+    integer             , intent(out) :: rc
+
+    ! local variables
+    type(InternalState) :: is_local
+    integer             :: n
+    real(r8)            :: local_hrof_corr(1)
+    type(ESMF_VM)       :: vm
+    !---------------------------------------
+
+    rc = ESMF_SUCCESS
+
+    nullify(is_local%wrap)
+    call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
+    if (chkErr(rc,__LINE__,u_FILE_u)) return
+
+    ! Determine sum of enthalpy correction for each hcorr index locally
+    local_hrof_corr(1) = 0._r8
+    do n = 1,size(hcorr)
+       local_hrof_corr(1) = local_hrof_corr(1) + hcorr(n)
+    end do
+    call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_VMAllreduce(vm, senddata=local_hrof_corr, recvdata=global_hrof_corr, count=1, &
+         reduceflag=ESMF_REDUCE_SUM, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+  end subroutine med_phases_prep_atm_enthalpy_runoff
 
 end module med_phases_prep_atm_mod

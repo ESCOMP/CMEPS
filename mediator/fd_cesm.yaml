@@ -284,7 +284,25 @@
        alias: mean_down_lw_flx
        canonical_units: W m-2
        description: atm import to med
-         mean downward SW heat flux
+         mean downward LW heat flux
+     #
+     - standard_name: Faxa_hmat
+       alias: mean_down_hmat
+       canonical_units: W m-2
+       description: atm import to med
+         mean downward material enthalpy flux
+     #
+     - standard_name: Faxa_hlat
+       alias: mean_down_hlat
+       canonical_units: W m-2
+       description: atm import to med
+         variable latent heat part of mat.enth.flx
+     #
+     - standard_name: Faxa_hmat_oa
+       alias: mean_down_hmat_oa
+       canonical_units: W m-2
+       description: med export to ocn
+         mean downw. mat. enth. flux, ocean average
      #
      - standard_name: Faxa_ndep
        canonical_units: kg(N)/m2/sec
@@ -913,6 +931,11 @@
        alias: heat_content_cond
        canonical_units: W m-2
        description: med export to ocn heat content of condensation
+     #
+     - standard_name: Faxx_hrof
+       alias: heat_content_rof
+       canonical_units: W m-2
+       description: med export to atm gl.avg. of mat.enthalpy of runoff
      #
      - standard_name: Foxx_hrofl
        alias: heat_content_rofl
