@@ -115,9 +115,6 @@ contains
     real(R8)    :: tdiff(nMax) ! tbot - ts
     real(R8)    :: vscl
 
-    !--- functions ---
-    qsat(Tk)   = 640380.0_R8 / exp(5107.4_R8/Tk)
-
     !--- formats ----------------------------------------
     character(*),parameter :: subName = '(flux_atmOcn_COARE) '
     character(*),parameter ::   F00 = "('(flux_atmOcn_COARE) ',4a)"

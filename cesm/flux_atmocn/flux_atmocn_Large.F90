@@ -143,8 +143,6 @@ contains
     real(R8) :: gprec ! convective rainfall argument for ugust
     ! -------------------------------------------------------------------------
 
-    qsat(Tk)   = 640380.0_R8 / exp(5107.4_R8/Tk)
-
     ! Large and Yeager 2009
     cdn(Umps)  =  0.0027_R8 / min(33.0000_R8,Umps) + 0.000142_R8 + &
          0.0000764_R8 * min(33.0000_R8,Umps) - 3.14807e-13_r8 * min(33.0000_R8,Umps)**6
