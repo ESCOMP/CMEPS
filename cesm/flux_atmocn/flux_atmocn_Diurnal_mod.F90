@@ -48,7 +48,7 @@ contains
        ts, mask,  seq_flux_atmocn_minwind,             &
        sen, lat, lwup,                                 &
        evap,  taux, tauy, tref, qref,                  &
-       uGust, lwdn,  swdn,  swup, prec,                &
+       lwdn,  swdn,  swup, prec,                       &
        swpen, ocnsal, ocn_prognostic,                  &
        latt, long,  warm,  salt,  speed, regime,       &
        warmMax, windMax, qSolAvg, windAvg,             &
@@ -63,6 +63,9 @@ contains
     real(r8) ,intent(in)    :: spval
     integer  ,intent(in)    :: ocn_surface_flux_scheme
     integer  ,intent(in)    :: nMax                    ! data vector length
+    integer  ,intent(in)    :: secs                    ! NEW  elsapsed seconds in day (GMT)
+    integer  ,intent(in)    :: dt                      ! NEW
+    logical  ,intent(in)    :: cold_start              ! NEW cold start flag
     integer  ,intent(in)    :: mask (nMax)             ! ocn domain mask 0 <=> out of domain
     real(R8) ,intent(in)    :: zbot (nMax)             ! atm level height(m)
     real(R8) ,intent(in)    :: ubot (nMax)             ! atm u wind(m/s)
@@ -74,7 +77,7 @@ contains
     real(R8) ,intent(in)    :: us   (nMax)             ! ocn u-velocity (m/s)
     real(R8) ,intent(in)    :: vs   (nMax)             ! ocn v-velocity (m/s)
     real(R8) ,intent(in)    :: ts   (nMax)             ! ocn temperature(K)
-    real(R8) ,intent(in)    :: uGust (nMax)            ! NEW not used
+    real(R8) ,intent(in)    :: seq_flux_atmocn_minwind ! minimum wind speed for atmocn (m/s)
     real(R8) ,intent(in)    :: lwdn  (nMax)            ! NEW
     real(R8) ,intent(in)    :: swdn  (nMax)            ! NEW
     real(R8) ,intent(in)    :: swup  (nMax)            ! NEW
@@ -82,16 +85,12 @@ contains
     real(R8) ,intent(in)    :: latt  (nMax)            ! NEW
     real(R8) ,intent(in)    :: long  (nMax)            ! NEW
     logical  ,intent(in)    :: ocn_prognostic          ! NEW
-    integer  ,intent(in)    :: secs                    ! NEW  elsapsed seconds in day (GMT)
-    integer  ,intent(in)    :: dt                      ! NEW
     real(R8) ,intent(inout) :: swpen (nMax)            ! NEW
     real(R8) ,intent(inout) :: ocnsal(nMax)            ! NEW (kg/kg)
     real(R8) ,intent(inout) :: warm  (nMax)            ! NEW
     real(R8) ,intent(inout) :: salt  (nMax)            ! NEW
     real(R8) ,intent(inout) :: speed (nMax)            ! NEW
     real(R8) ,intent(inout) :: regime(nMax)            ! NEW
-    real(R8) ,intent(out)   :: warmMax(nMax)           ! NEW
-    real(R8) ,intent(out)   :: windMax(nMax)           ! NEW
     real(R8) ,intent(inout) :: qSolAvg(nMax)           ! NEW
     real(R8) ,intent(inout) :: windAvg(nMax)           ! NEW
     real(R8) ,intent(inout) :: warmMaxInc(nMax)        ! NEW
@@ -99,14 +98,14 @@ contains
     real(R8) ,intent(inout) :: qSolInc(nMax)           ! NEW
     real(R8) ,intent(inout) :: windInc(nMax)           ! NEW
     real(R8) ,intent(inout) :: nInc(nMax)              ! NEW
+    real(R8) ,intent(out)   :: warmMax(nMax)           ! NEW
+    real(R8) ,intent(out)   :: windMax(nMax)           ! NEW
     real(R8) ,intent(out)   :: tBulk (nMax)            ! NEW
     real(R8) ,intent(out)   :: tSkin (nMax)            ! NEW
     real(R8) ,intent(out)   :: tSkin_day (nMax)        ! NEW
     real(R8) ,intent(out)   :: tSkin_night (nMax)      ! NEW
     real(R8) ,intent(out)   :: cSkin (nMax)            ! NEW
     real(R8) ,intent(out)   :: cSkin_night (nMax)      ! NEW
-    logical  ,intent(in)    :: cold_start              ! cold start flag
-    real(R8) ,intent(in)    :: seq_flux_atmocn_minwind ! minimum wind speed for atmocn      (m/s)
     real(R8) ,intent(out)   :: sen  (nMax)             ! heat flux: sensible    (W/m^2)
     real(R8) ,intent(out)   :: lat  (nMax)             ! heat flux: latent      (W/m^2)
     real(R8) ,intent(out)   :: lwup (nMax)             ! heat flux: lw upward   (W/m^2)

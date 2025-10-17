@@ -20,12 +20,10 @@ module flux_atmocn_COARE_mod
   !     * added diagnostics, comments and references
   !-------------------------------------------------------------------------------
 
-  use shr_kind_mod,   only : R8=>SHR_KIND_R8, IN=>SHR_KIND_IN ! shared kinds
-  use shr_const_mod,  only : shr_const_stebol, shr_const_latvap, shr_const_g
-  use shr_const_mod,  only : shr_const_rgas, shr_const_cpdair
-  use shr_flux_mod,   only : td0, maxscl, alpha
-  use shr_flux_mod,   only : use_coldair_outbreak_mod
-  use shr_wv_sat_mod, only : shr_wv_sat_qsat_liquid ! use saturation calculation consistent with CAM
+  use shr_kind_mod,  only : R8=>SHR_KIND_R8, IN=>SHR_KIND_IN ! shared kinds
+  use shr_flux_mod,  only : loc_stebol, loc_latvap, loc_g, loc_cpdair
+  use shr_flux_mod,  only : td0, maxscl, alpha, use_coldair_outbreak_mod
+  use shr_const_mod, only : shr_const_rgas
 
   implicit none
   private
@@ -91,7 +89,7 @@ contains
     real(R8),parameter :: zpbl =700.0_R8 ! PBL depth [m] for gustiness parametriz.
 
     !--- local variables --------------------------------
-    integer(IN) :: n               ! vector loop index
+    integer     :: n               ! vector loop index
     real(R8)    :: vmag            ! surface wind magnitude   (m/s)
     real(R8)    :: ssq             ! sea surface humidity     (kg/kg)
     real(R8)    :: delt            ! potential T difference   (K)
@@ -173,10 +171,10 @@ contains
           !--- heat flux ---
           sen (n) = hsb
           lat (n) = hlb
-          lwup(n) = -shr_const_stebol * ts(n)**4
+          lwup(n) = -loc_stebol * ts(n)**4
 
           !--- water flux ---
-          evap(n) = lat(n)/shr_const_latvap
+          evap(n) = lat(n)/loc_latvap
 
           !------------------------------------------------------------
           ! compute diagnositcs: 2m ref T & Q, 10m wind speed squared
@@ -241,20 +239,16 @@ contains
     real(R8), intent(out) :: trf,qrf,urf,vrf
 
     ! Local variables
-    real(R8):: ua,va,ta,q,rb,us,vs,ts,qs,zi,zu,zt,zq,zru,zrq,zrt ! internal vars
-
-    real(R8):: cpa,rgas,grav,pi,von,beta ! phys. params
-    real(R8):: le,rhoa,cpv               ! derived phys. params
-    real(R8):: t,visa,du,dq,dt           ! params of problem
-
-    real(R8):: u10,zo10,zot10,cd10,ch10,ct10,ct,cc,ribu,zetu,l10,charn ! init vars
-    real(R8):: zet,rr,bf,ug,ut     ! loop iter vars
-    real(R8):: cdn_10,chn_10,cen_10  ! aux. output vars
-
-    integer(IN):: i,nits ! iter loop counters
-
-    integer(IN):: jcool                  ! aux. cool-skin vars
-    real(R8)   :: dter,wetc,dqer
+    real(R8) :: ua,va,ta,q,rb,us,vs,ts,qs,zi,zu,zt,zq,zru,zrq,zrt       ! internal vars
+    real(R8) :: cpa,rgas,grav,pi,von,beta                               ! phys. params
+    real(R8) :: le,rhoa,cpv                                             ! derived phys. params
+    real(R8) :: t,visa,du,dq,dt                                         ! params of problem
+    real(R8) :: u10,zo10,zot10,cd10,ch10,ct10,ct,cc,ribu,zetu,l10,charn ! init vars
+    real(R8) :: zet,rr,bf,ug,ut                                         ! loop iter vars
+    real(R8) :: cdn_10,chn_10,cen_10                                    ! aux. output vars
+    integer  :: i,nits                                                  ! iter loop counters
+    integer  :: jcool                                                   ! aux. cool-skin vars
+    real(R8) :: dter,wetc,dqer
     !----------------------------------------------------------------
 
     ua  = ubt  !wind components (m/s) at height zu (m)
@@ -278,14 +272,14 @@ contains
     Beta= 1.2_R8
     von = 0.4_R8
     pi  = 3.141593_R8
-    grav= SHR_CONST_G
-    Rgas= SHR_CONST_RGAS
-    cpa = SHR_CONST_CPDAIR
+    grav= loc_g
+    Rgas= shr_const_rgas
+    cpa = loc_cpdair
 
     !*** physical parameters
-    Le  = SHR_CONST_LATVAP -.00237e6_R8*(ts-273.16_R8)
+    Le  = loc_latvap -.00237e6_R8*(ts-273.16_R8)
 
-    ! cpv = shr_const_cpdair*(1.0_R8 + shr_const_cpvir*Qs) ! form in NCAR code
+    ! cpv = loc_cpdair*(1.0_R8 + loc_cpvir*Qs) ! form in NCAR code
     cpv = cpa*(1.0_R8+0.84_R8*Q)
 
     ! rhoa= P/(Rgas*ta*(1+0.61*Q)) ! if input were pressure
