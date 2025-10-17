@@ -1047,7 +1047,7 @@ contains
     !----------------------------------
 
 #ifdef CESMCOUPLED
-    call flux_atmocn (logunit=logunit, &
+    call flux_atmocn_driver (logunit=logunit, &
          nMax=aoflux_in%lsize, &
          zbot=aoflux_in%zbot, ubot=aoflux_in%ubot, vbot=aoflux_in%vbot, thbot=aoflux_in%thbot, &
          qbot=aoflux_in%shum, rainc=aoflux_in%rainc, rbot=aoflux_in%dens, &
