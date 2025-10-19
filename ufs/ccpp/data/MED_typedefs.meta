@@ -917,6 +917,12 @@
   units = 1
   dimensions = ()
   type = integer
+[cpl_fire]
+  standard_name = do_fire_coupling
+  long_name = flag controlling fire_behavior collection (default off)
+  units = flag
+  dimensions = ()
+  type = logical
 [kdt]
   standard_name = index_of_timestep
   long_name = current forecast iteration
@@ -1267,9 +1273,23 @@
   dimensions = (horizontal_loop_extent)
   type = real
   kind = kind_phys
+[evap_fire]
+  standard_name = surface_upward_specific_humidity_flux_of_fire
+  long_name = kinematic surface upward latent heat flux of fire
+  units = kg kg-1 m s-1
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
 [hflx]
   standard_name = surface_upward_temperature_flux
   long_name = kinematic surface upward sensible heat flux
+  units = K m s-1
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+[hflx_fire]
+  standard_name = kinematic_surface_upward_sensible_heat_flux_of_fire
+  long_name = kinematic surface upward sensible heat flux of fire
   units = K m s-1
   dimensions = (horizontal_loop_extent)
   type = real

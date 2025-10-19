@@ -280,6 +280,18 @@ contains
        end if
     end if
 
+    ! to ocn: partitioned stokes drift from wav
+    if (hafs_attr%wav_present .and. hafs_attr%ocn_present) then
+      allocate(S_flds(2))
+      S_flds = (/'Sw_pstokes_x', 'Sw_pstokes_y'/)
+      do n = 1,size(S_flds)
+         fldname = trim(S_flds(n))
+         call addfld_from(compwav , fldname)
+         call addfld_to(compocn   , fldname)
+      end do
+      deallocate(S_flds)
+    end if
+
     !=====================================================================
     ! FIELDS TO WAVE (compwav)
     !=====================================================================
@@ -294,6 +306,22 @@ contains
           fldname = trim(S_flds(n))
           call addfld_from(compatm, trim(fldname))
           call addfld_to(compwav, trim(fldname))
+       end do
+       deallocate(S_flds)
+    end if
+
+    ! ---------------------------------------------------------------------
+    ! to wav: states from ocn
+    ! - zonal sea water velocity from ocn
+    ! - meridional sea water velocity from ocn
+    ! ---------------------------------------------------------------------
+    if (hafs_attr%ocn_present .and. hafs_attr%wav_present) then
+       allocate(S_flds(2))
+       S_flds = (/'So_u', 'So_v'/)
+       do n = 1,size(S_flds)
+          fldname = trim(S_flds(n))
+          call addfld_from(compocn , fldname)
+          call addfld_to(compwav   , fldname)
        end do
        deallocate(S_flds)
     end if
@@ -569,6 +597,22 @@ contains
        end if
     end if
 
+    ! ---------------------------------------------------------------------
+    ! to ocn: partitioned stokes drift from wav
+    ! ---------------------------------------------------------------------
+    allocate(S_flds(2))
+    S_flds = (/'Sw_pstokes_x', 'Sw_pstokes_y'/)
+    do n = 1,size(S_flds)
+       fldname = trim(S_flds(n))
+       if ( fldchk(is_local%wrap%FBexp(compocn)        , fldname, rc=rc) .and. &
+            fldchk(is_local%wrap%FBImp(compwav,compwav), fldname, rc=rc)) then
+           call addmap_from(compwav, fldname, compocn, mapfillv_bilnr, &
+                hafs_attr%mapnorm, 'unset')
+           call addmrg_to(compocn, fldname, mrg_from=compwav, mrg_fld=fldname, mrg_type='copy')
+       end if
+    end do
+    deallocate(S_flds)
+
     !=====================================================================
     ! FIELDS TO WAVE (compwav)
     !=====================================================================
@@ -581,7 +625,7 @@ contains
       S_flds = (/'Sa_u10m', 'Sa_v10m'/)
       do n = 1,size(S_flds)
         fldname = trim(S_flds(n))
-        if (fldchk(is_local%wrap%FBexp(compwav),trim(fldname),rc=rc) .and. &
+        if (fldchk(is_local%wrap%FBexp(compwav), trim(fldname),rc=rc) .and. &
             fldchk(is_local%wrap%FBImp(compatm,compatm), trim(fldname),rc=rc) &
            ) then
            call addmap_from(compatm, trim(fldname), compwav, &
@@ -592,6 +636,24 @@ contains
       end do
       deallocate(S_flds)
     end if
+
+    ! ---------------------------------------------------------------------
+    ! to wav: states from ocn
+    ! - zonal sea water velocity from ocn
+    ! - meridional sea water velocity from ocn
+    ! ---------------------------------------------------------------------
+    allocate(S_flds(2))
+    S_flds = (/'So_u', 'So_v'/)
+    do n = 1,size(S_flds)
+       fldname = trim(S_flds(n))
+       if ( fldchk(is_local%wrap%FBexp(compwav)        , fldname, rc=rc) .and. &
+            fldchk(is_local%wrap%FBImp(compocn,compocn), fldname, rc=rc)) then
+          call addmap_from(compocn, fldname, compwav, mapfillv_bilnr, &
+               hafs_attr%mapnorm, 'unset')
+          call addmrg_to(compwav, fldname, mrg_from=compocn, mrg_fld=fldname, mrg_type='copy')
+       end if
+    end do
+    deallocate(S_flds)
 
     call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
 
