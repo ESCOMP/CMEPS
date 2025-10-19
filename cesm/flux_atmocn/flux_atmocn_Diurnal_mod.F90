@@ -26,6 +26,7 @@ module flux_atmocn_diurnal_mod
    use shr_const_mod,         only : shr_const_ocn_ref_sal, shr_const_zsrflyr, shr_const_rgas
    use shr_sys_mod,           only : shr_sys_abort
    use flux_atmocn_COARE_mod, only : cor30a
+   use shr_wv_sat_mod,        only : shr_wv_sat_qsat_liquid ! use saturation calculation consistent with CAM
 
    implicit none
    private
@@ -235,6 +236,7 @@ contains
     real(R8)    :: tdiff(nMax)               ! tbot - ts
     real(R8)    :: vscl
 
+    ! NOTE: this should use the shr_wv_sat_qsat_liquid if this routine is ever used in production
     qsat(Tk)   = 640380.0_R8 / exp(5107.4_R8/Tk)
     cdn(Umps)  =   0.0027_R8 / Umps + 0.000142_R8 + 0.0000764_R8 * Umps
     psimhu(xd) = log((1.0_R8+xd*(2.0_R8+xd))*(1.0_R8+xd*xd)/8.0_R8) - 2.0_R8*atan(xd) + 1.571_R8
@@ -264,7 +266,7 @@ contains
     if (.not. ocn_prognostic) then
        ! Set swpen and ocean salinity from following analytic expressions
        swpen(:) = 0.67_R8*(exp((-1._R8*shr_const_zsrflyr)/1.0_R8)) + &
-                   0.33_R8*exp((-1._R8*shr_const_zsrflyr)/17.0_R8)
+            0.33_R8*exp((-1._R8*shr_const_zsrflyr)/17.0_R8)
        ocnsal(:) = shr_const_ocn_ref_sal/1000.0_R8
     else
        ! use swpen and ocnsal from input argument
@@ -346,27 +348,31 @@ contains
           nsum = nint(nInc(n))
 
           if ( lmidnight ) then
-             Regime(n)  = 1.0_R8  !  RESET DIURNAL
+             Regime(n)  = 1.0_R8               !  RESET DIURNAL
              warm(n)    = 0.0_R8
              salt(n)    = 0.0_R8
              speed(n)   = 0.0_R8
           endif
 
-          ssq   = 0.98_R8 * qsat(tBulk(n)) / rbot(n) ! sea surf hum (kg/kg)
-          delt  = thbot(n) - tBulk(n)                ! pot temp diff (K)
-          delq  = qbot(n) - ssq                      ! spec hum dif (kg/kg)
-          cp    = shr_const_cpdair*(1.0_R8 + shr_const_cpvir*ssq)
+          ! This should be changed to use the subroutine below
+          ssq = 0.98_R8 * qsat(tBulk(n)) / rbot(n)   ! sea surf hum (kg/kg)
+          ! call shr_wv_sat_qsat_liquid(tBulk(n), pslv(n), qsat, ssq)
+          ! ssq    = 0.98_R8 * ssq                   ! sea surf hum (kg/kg)
+
+          delt   = thbot(n) - tBulk(n)               ! pot temp diff (K)
+          delq   = qbot(n) - ssq                     ! spec hum dif (kg/kg)
+          cp     = shr_const_cpdair*(1.0_R8 + shr_const_cpvir*ssq)
 
           !!.................................................................
           !! ocn_surface_flux_scheme = 0 : Default E3SMv1
           !!                         = 1 : COARE algorithm
           !!.................................................................
-
           if (ocn_surface_flux_scheme .eq. 0) then! use Large algorithm
-
              stable = 0.5_R8 + sign(0.5_R8 , delt)
 
+
              !--- shift wind speed using old coefficient  and stability function
+
              rd   = rdn / (1.0_R8 + rdn/shr_const_karman*(alz-psimh))
              u10n = vmag * rd / rdn
 
@@ -382,13 +388,13 @@ contains
 
           else if (ocn_surface_flux_scheme .eq. 1) then! use COARE algorithm
 
-             call cor30a(ubot(n), vbot(n), tbot(n), qbot(n), rbot(n), & ! in atm params
-                  us(n), vs(n), tBulk(n), ssq,                        & ! in surf params (NB ts -> tBulk)
-                  zpbl, zbot(n), zbot(n), zref, ztref, ztref,         & ! in heights
-                  tau, hsb, hlb,                                      & ! out: fluxes
-                  zo, zot, zoq, hol, ustar, tstar, qstar,             & ! out: ss scales
-                  rd, rh, re,                                         & ! out: exch. coeffs
-                  trf, qrf, urf, vrf)                                   ! out: reference-height params
+             call cor30a(ubot(n),vbot(n),tbot(n),qbot(n),rbot(n) &  ! in atm params
+                  & ,us(n),vs(n),tBulk(n),ssq                &  ! in surf params (NB ts -> tBulk)
+                  & ,zpbl,zbot(n),zbot(n),zref,ztref,ztref   &  ! in heights
+                  & ,tau,hsb,hlb                             &  ! out: fluxes
+                  & ,zo,zot,zoq,hol,ustar,tstar,qstar        &  ! out: ss scales
+                  & ,rd,rh,re                                &  ! out: exch. coeffs
+                  & ,trf,qrf,urf,vrf)                             ! out: reference-height params
 
              ! for the sake of maintaining same defs
              hol=zbot(n)/hol
@@ -396,20 +402,18 @@ contains
              rh=sqrt(rh)
              re=sqrt(re)
 
-          else  ! N.B.: *no* valid ocn_surface_flux_scheme=2 option if diurnal=.true.
+          ELSE  ! N.B.: *no* valid ocn_surface_flux_scheme=2 option if diurnal=.true.
 
              call shr_sys_abort(subName//" flux_atmOcn_diurnal requires ocn_surface_flux_scheme = 0 or 1")
 
-          endif
+          ENDIF
 
           ustar_prev = ustar * 2.0_R8
           iter = 0
-
           ! --- iterate ---
           ! Originally this code did three iterations while the non-diurnal version did two
           ! So in the new loop this is <= flux_con_max_iter instead of < so that the same defaults
           ! will give the same answers in both cases.
-
           do while( abs((ustar - ustar_prev)/ustar) > flux_con_tol .and. iter <= flux_con_max_iter)
              iter = iter + 1
              ustar_prev = ustar
@@ -423,24 +427,27 @@ contains
              Kvisc = 0.0_R8
              dif3 = 0.0_R8
 
-             ustarw = ustar*sqrt(max(tiny,rbot(n)/rhocn))
-             Qnsol  = lwdn(n) - shr_const_stebol*(tSkin(n))**4 + rbot(n)*ustar*(cp*tstar + shr_const_latvap*qstar)
-             Hd     = (Qnsol   + Qsol*(1.0_R8-swpen(n)) ) / rcpocn
-             Fd     = (prec(n) + rbot(n)*ustar*qstar ) * SSS / rhocn
+             ustarw  = ustar*sqrt(max(tiny,rbot(n)/rhocn))
+             Qnsol   = lwdn(n) - shr_const_stebol*(tSkin(n))**4 + &
+                  rbot(n)*ustar*(cp*tstar + shr_const_latvap*qstar)
+             Hd      = (Qnsol   + Qsol*(1.0_R8-swpen(n)) ) / rcpocn
+             Fd      = (prec(n) + rbot(n)*ustar*qstar ) * SSS / rhocn
 
              !--- COOL SKIN EFFECT ---
              Dcool  = lambdaV*molvisc(tBulk(n)) / ustarw
-             Qdel   = Qnsol + Qsol * (0.137_R8 + 11.0_R8*Dcool - 6.6e-5/Dcool *(1.0_R8 - exp((-1.0_R8*Dcool)/8.0e-4)))
+             Qdel   = Qnsol + Qsol * &
+                  (0.137_R8 + 11.0_R8*Dcool - 6.6e-5/Dcool *(1.0_R8 - exp((-1.0_R8*Dcool)/8.0e-4)))
              Hb = (Qdel/rcpocn)+(Fd*betaS/alphaT)
              Hb = min(Hb , 0.0_R8)
 
-             ! lambdaV = lambdaC*(1.0_R8 + ( (0.0_R8-Hb)*16.0_R8*molvisc(tBulk(n))* &
-             !           shr_const_g*alphaT*molPr(tBulk(n))**2/ustarw**4)**0.75)**(-1._R8/3._R8)
+             !            lambdaV = lambdaC*(1.0_R8 + ( (0.0_R8-Hb)*16.0_R8*molvisc(tBulk(n))* &
+             !                 shr_const_g*alphaT*molPr(tBulk(n))**2/ustarw**4)**0.75)**(-1._R8/3._R8)
              lambdaV = 6.5_R8
              cSkin(n) =  MIN(0.0_R8, lambdaV * molPr(tBulk(n)) * Qdel / ustarw / rcpocn )
 
              !--- REGIME ---
-             doL = shr_const_zsrflyr * shr_const_karman*shr_const_g * (alphaT*Hd + betaS*Fd ) / ustarw**3
+             doL = shr_const_zsrflyr*shr_const_karman*shr_const_g* &
+                  (alphaT*Hd + betaS*Fd ) / ustarw**3
              Rid = MAX(0.0_R8,Rid)
              Smult = dt * (pwr+1.0_R8) / (shr_const_zsrflyr*pwr)
              Sfact = dt * (pwr+1.0_R8) / (shr_const_zsrflyr)**2
@@ -481,13 +488,14 @@ contains
 
              !--- IMPLICIT INTEGRATION ---
 
-             DTiter = (warm(n)  +(Smult*Hd))           /(1.+ Sfact*Kdiff)
-             DSiter = (salt(n)  -(Smult*Fd))           /(1.+ Sfact*Kdiff)
-             DViter = (speed(n) +(Smult*ustarw*ustarw))/(1.+ Sfact*Kvisc)
+             DTiter = (warm(n)  +(Smult*Hd))               /(1.+ Sfact*Kdiff)
+             DSiter = (salt(n)  -(Smult*Fd))               /(1.+ Sfact*Kdiff)
+             DViter = (speed(n) +(Smult*ustarw*ustarw))    /(1.+ Sfact*Kvisc)
              DTiter = MAX( 0.0_R8, DTiter)
              DViter = MAX( 0.0_R8, DViter)
 
-             Rid = (shr_const_g*(alphaT*DTiter-betaS*DSiter)*pwr*shr_const_zsrflyr)  / (pwr*MAX(tiny,DViter))**2
+             Rid =(shr_const_g*(alphaT*DTiter-betaS*DSiter)*pwr*shr_const_zsrflyr)  / &
+                  (pwr*MAX(tiny,DViter))**2
              Ribulk = Rid * pwr
              Ribulk = 0.0_R8
              tBulk(n) = ts(n) + DTiter
@@ -495,7 +503,11 @@ contains
 
              !--need to update ssq,delt,delq as function of tBulk ----
 
-             ssq    = 0.98_R8 * qsat(tBulk(n)) / rbot(n)   ! sea surf hum (kg/kg)
+             ! This should be changed to use the subroutine below
+             ssq = 0.98_R8 * qsat(tBulk(n)) / rbot(n)      ! sea surf hum (kg/kg)
+             ! call shr_wv_sat_qsat_liquid(tBulk(n), pslv(n), qsat, ssq)
+             ! ssq    = 0.98_R8 * ssq                      ! sea surf hum (kg/kg)
+
              delt   = thbot(n) - tBulk(n)                  ! pot temp diff (K)
              delq   = qbot(n) - ssq                        ! spec hum dif (kg/kg)
 
@@ -505,7 +517,6 @@ contains
              !! ocn_surface_flux_scheme = 0 : Default CESM1.2
              !!                         = 1 : COARE algorithm
              !!.................................................................
-
              if (ocn_surface_flux_scheme .eq. 0) then! use Large algorithm
 
                 !--- compute stability & evaluate all stability functions ---
@@ -536,10 +547,11 @@ contains
                 tstar = rh * delt
                 qstar = re * delq
 
-                !--- heat fluxes ---
-                tau    = rbot(n) * ustar * ustar
-                sen(n) = cp * tau * tstar / ustar
-                lat(n) = shr_const_latvap * tau * qstar / ustar
+                !--- heat flux ---
+
+                tau     = rbot(n) * ustar * ustar
+                sen (n) =                cp * tau * tstar / ustar
+                lat (n) = shr_const_latvap * tau * qstar / ustar
 
              else if (ocn_surface_flux_scheme .eq. 1) then! use COARE algorithm
 
@@ -552,14 +564,14 @@ contains
                      & ,trf,qrf,urf,vrf)                               ! out: reference-height params
 
                 ! for the sake of maintaining same defs
-                hol = zbot(n)/hol
-                rd = sqrt(rd)
-                rh = sqrt(rh)
-                re = sqrt(re)
+                hol=zbot(n)/hol
+                rd=sqrt(rd)
+                rh=sqrt(rh)
+                re=sqrt(re)
 
-                !--- heat fluxes ---
-                sen(n) =  hsb
-                lat(n) =  hlb
+                !--- heat flux ---
+                sen (n) =  hsb
+                lat (n) =  hlb
 
              else ! N.B.: NO ocn_surface_flux_scheme=2 option
                 call shr_sys_abort(subName//", flux_diurnal requires ocn_surface_flux_scheme = 0 or 1")
@@ -569,6 +581,8 @@ contains
           if (iter < 1) then
              call shr_sys_abort('No iterations performed ')
           end if
+
+          !--- COMPUTE FLUXES TO ATMOSPHERE AND OCEAN ---
 
           !--- momentum flux ---
           taux(n) = tau * (ubot(n)-us(n)) / vmag
@@ -595,6 +609,7 @@ contains
              tref(n) = tref(n) - 0.01_R8*ztref   ! pot temp to temp correction
              fac     = (re/shr_const_karman) * (alz + al2 - psixh + psix2 )
              qref(n) =  qbot(n) - delq*fac
+
              duu10n(n) = u10n*u10n ! 10m wind speed squared
 
           else if (ocn_surface_flux_scheme .eq. 1) then! use COARE algorithm
@@ -603,7 +618,6 @@ contains
              qref(n) = qrf
              duu10n(n) = urf**2+vrf**2
              u10n = sqrt(duu10n(n))
-
           endif
 
           !------------------------------------------------------------
