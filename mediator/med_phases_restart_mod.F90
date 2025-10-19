@@ -457,7 +457,7 @@ contains
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
 
-          ! Write ocn albedo field bundle (CESM only)
+          ! Write ocn albedo field bundle (CESM/NorESM only)
           if (ESMF_FieldBundleIsCreated(is_local%wrap%FBMed_ocnalb_o,rc=rc)) then
              nx = is_local%wrap%nx(compocn)
              ny = is_local%wrap%ny(compocn)
