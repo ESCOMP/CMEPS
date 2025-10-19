@@ -2,12 +2,18 @@ module flux_atmocn_driver_mod
 
   use shr_kind_mod,          only : R8=>SHR_KIND_R8, IN=>SHR_KIND_IN ! shared kinds
   use shr_const_mod,         only : shr_const_spval
+  use shr_sys_mod,           only : shr_sys_abort
+  use shr_strconvert_mod,    only : toString
   use flux_atmocn_Large_mod, only : flux_atmocn_Large
   use flux_atmocn_COARE_mod, only : flux_atmocn_COARE
   use flux_atmocn_UA_mod,    only : flux_atmocn_UA
 
   implicit none
   public
+
+  integer, private, parameter :: ocn_flux_scheme_large_and_pond = 0
+  integer, private, parameter :: ocn_flux_scheme_coare = 1
+  integer, private, parameter :: ocn_flux_scheme_ua = 2
 
 contains
 
@@ -65,20 +71,20 @@ contains
     real(R8) :: spval  ! local missing value
     !--------------------------------------------------------------------------------
 
-    !!.................................................................
-    !! ocn_surface_flux_scheme = 0 : Large and Pond
-    !!                         = 1 : COARE algorithm
-    !!                         = 2 : UA algorithm
-    !!.................................................................
-
     if (present(missval)) then
        spval = missval
     else
        spval = shr_const_spval
     endif
 
+    !!.................................................................
+    !! ocn_surface_flux_scheme = 0 : Large and Pond
+    !!                         = 1 : COARE algorithm
+    !!                         = 2 : UA algorithm
+    !!.................................................................
+
     ! Default flux scheme.
-    if (ocn_surface_flux_scheme == 0) then
+    if (ocn_surface_flux_scheme == ocn_flux_scheme_large_and_pond) then
 
        call flux_atmOcn_Large(                    &
             logunit, spval, nMax,                 &
@@ -91,7 +97,7 @@ contains
             add_gusts, duu10n, ugust_out, u10res, &
             ustar_sv=ustar_sv, re_sv=re_sv, ssq_sv=ssq_sv)
 
-    else if (ocn_surface_flux_scheme == 1) then
+    else if (ocn_surface_flux_scheme == ocn_flux_scheme_coare) then
 
        call flux_atmOcn_COARE(                  &
             logunit, spval, nMax,               &
@@ -104,7 +110,7 @@ contains
             duu10n, ugust_out, u10res,          &
             ustar_sv=ustar_sv, re_sv=re_sv, ssq_sv=ssq_sv)
 
-    else if (ocn_surface_flux_scheme == 2) then
+    else if (ocn_surface_flux_scheme == ocn_flux_scheme_ua) then
 
        call flux_atmOcn_UA(                 &
             logunit, spval, nMax,           &
@@ -123,6 +129,10 @@ contains
              ugust_out(n) = spval
           end if
        end do
+
+    else
+
+       call shr_sys_abort("ocn_srfuace_flux_scheme = "// toString(ocn_surface_flux_scheme)//" is not supported")
 
     end if
 
