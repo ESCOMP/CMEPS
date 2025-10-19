@@ -54,7 +54,7 @@ contains
     real(R8),intent(out)  ::  lwup (nMax)     ! heat flux: lw upward (W/m^2)
     real(R8),intent(out)  ::  evap (nMax)     ! water flux: evap ((kg/s)/m^2)
     real(R8),intent(out)  ::  taux (nMax)     ! surface stress, zonal (N)
-    real(R8),intent(out)  ::  tauy (nMax)     ! surface stress, maridional (N)
+    real(R8),intent(out)  ::  tauy (nMax)     ! surface stress, meridional (N)
     real(R8),intent(out)  ::  tref (nMax)     ! diag:  2m ref height T (K)
     real(R8),intent(out)  ::  qref (nMax)     ! diag:  2m ref humidity (kg/kg)
     real(R8),intent(out)  :: duu10n(nMax)     ! diag: 10m wind speed squared (m/s)^2
