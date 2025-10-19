@@ -144,6 +144,7 @@ contains
                 vmag=vmag*vscl
              endif
           endif
+
           call shr_wv_sat_qsat_liquid(ts(n), pslv(n), qsat, ssq)
           ssq = 0.98_R8 * ssq   ! sea surf hum (kg/kg)
 
