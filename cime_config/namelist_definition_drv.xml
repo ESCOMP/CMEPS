@@ -2597,7 +2597,6 @@
     </values>
   </entry>
 
-
   <entry  id="flds_wiso" modify_via_xml="FLDS_WISO">
     <type>logical</type>
     <category>flds</category>
@@ -2606,7 +2605,7 @@
       Pass water isotopes between components
     </desc>
     <values>
-      <value>$FLDS_WISO</value>
+      <value>.false.</value>
     </values>
   </entry>
 
