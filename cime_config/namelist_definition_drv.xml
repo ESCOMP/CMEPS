@@ -2558,6 +2558,52 @@
     </values>
   </entry>
 
+  <entry id="water_tracer_names" modify_via_xml="WATER_TRACERS" skip_default_entry="true">
+   <type>char</type>
+   <category>water_tracers</category>
+   <group>ALLCOMP_attributes</group>
+   <desc>
+      Colon-delimited list of names of water tracers in this run.
+   </desc>
+   <values>
+      <value></value>
+   </values>
+  </entry>
+
+  <entry id="water_tracer_species" modify_via_xml="WATER_TRACERS" skip_default_entry="true">
+   <type>char</type>
+   <category>water_tracers</category>
+   <group>ALLCOMP_attributes</group>
+   <desc>
+      Colon-delimited list of species of water tracers in this run.
+
+      Each element in the list corresponds to an element in water_tracer_names. An empty
+      string for a given element indicates a standard water tracer (i.e., a tracer of bulk
+      water).
+   </desc>
+   <values>
+      <value></value>
+   </values>
+  </entry>
+
+  <entry id="water_tracer_initial_ratios" skip_default_entry="true">
+   <type>char</type>
+   <category>water_tracers</category>
+   <group>ALLCOMP_attributes</group>
+   <desc>
+      Colon-delimited list of initial water tracer ratios (as a fraction of total water).
+
+      Each element in the list corresponds to an element in water_tracer_names.
+
+      For water isotopes, this ratio is typically set to 1 for numerical reasons; the
+      actual isotopic ratios can then be determined via reference to standard global
+      ratios.
+   </desc>
+   <values>
+      <value></value>
+   </values>
+  </entry>
+
   <!-- =========================== -->
   <!-- CLOCK Attributes            -->
   <!-- =========================== -->
