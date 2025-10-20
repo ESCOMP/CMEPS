@@ -9,7 +9,7 @@ module ESM
   use shr_mem_mod  , only : shr_mem_init
   use shr_log_mod  , only : shr_log_setLogunit, shr_log_error
   use esm_utils_mod, only : logunit, maintask, dbug_flag, chkerr
-  use esmf         , only : ESMF_FAILURE
+  use esmf         , only : ESMF_FAILURE, ESMF_VMBARRIER
   implicit none
   private
 
@@ -1555,6 +1555,9 @@ contains
     call ESMF_GridCompGet(driver, vm=vm, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call ESMF_VMGet(vm, mpiCommunicator=mpicomm, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    call ESMF_VMBarrier(vm, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     call NUOPC_CompAttributeGet(driver, name="timing_dir",value=timing_dir, rc=rc)
