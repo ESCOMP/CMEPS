@@ -74,7 +74,6 @@ module med_phases_aofluxes_mod
   ! Private data
   !--------------------------------------------------------------------------
 
-  logical :: flds_wiso  ! use case
   logical :: compute_atm_dens
   logical :: compute_atm_thbot
   integer :: ocn_surface_flux_scheme ! use case
@@ -107,9 +106,7 @@ module med_phases_aofluxes_mod
      real(R8) , pointer :: uocn        (:) => null() ! ocn velocity, zonal
      real(R8) , pointer :: vocn        (:) => null() ! ocn velocity, meridional
      real(R8) , pointer :: tocn        (:) => null() ! ocean temperature
-     real(R8) , pointer :: roce_16O    (:) => null() ! ocn H2O ratio
-     real(R8) , pointer :: roce_HDO    (:) => null() ! ocn HDO ratio
-     real(R8) , pointer :: roce_18O    (:) => null() ! ocn H218O ratio
+
      ! input: atm
      real(R8) , pointer :: zbot        (:) => null() ! atm level height
      real(R8) , pointer :: ubot        (:) => null() ! atm velocity, zonal
@@ -122,9 +119,6 @@ module med_phases_aofluxes_mod
      real(R8) , pointer :: psfc        (:) => null() ! atm surface pressure
      real(R8) , pointer :: dens        (:) => null() ! atm bottom density
      real(R8) , pointer :: tbot        (:) => null() ! atm bottom surface T
-     real(R8) , pointer :: shum_16O    (:) => null() ! atm H2O tracer
-     real(R8) , pointer :: shum_HDO    (:) => null() ! atm HDO tracer
-     real(R8) , pointer :: shum_18O    (:) => null() ! atm H218O tracer
      real(R8) , pointer :: lwdn        (:) => null() ! atm downward longwave heat flux
      real(R8) , pointer :: rainc       (:) => null() ! convective rain flux
      ! local size and computational mask and area: on aoflux grid
@@ -139,9 +133,6 @@ module med_phases_aofluxes_mod
      real(R8) , pointer :: lat         (:) => null() ! heat flux: latent
      real(R8) , pointer :: lwup        (:) => null() ! lwup over ocean
      real(R8) , pointer :: evap        (:) => null() ! water flux: evaporation
-     real(R8) , pointer :: evap_16O    (:) => null() ! H2O flux: evaporation
-     real(R8) , pointer :: evap_HDO    (:) => null() ! HDO flux: evaporation
-     real(R8) , pointer :: evap_18O    (:) => null() ! H218O flux: evaporation
      real(R8) , pointer :: taux        (:) => null() ! wind stress, zonal
      real(R8) , pointer :: tauy        (:) => null() ! wind stress, meridional
      real(R8) , pointer :: tref        (:) => null() ! diagnostic: 2m ref T
@@ -386,13 +377,6 @@ contains
     ! Initialize module variables
     !----------------------------------
 
-    call NUOPC_CompAttributeGet(gcomp, name='flds_wiso', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent .and. isSet) then
-       read(cvalue,*) flds_wiso
-    else
-       flds_wiso = .false.
-    end if
     call NUOPC_CompAttributeGet(gcomp, name='ocn_surface_flux_scheme', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     if (isPresent .and. isSet) then
@@ -637,13 +621,8 @@ contains
     ! input fields from atm and ocn on atm grid
     ! ------------------------
 
-    if (flds_wiso) then
-       allocate(fldnames_ocn_in(5))
-       fldnames_ocn_in = (/'So_omask    ','So_t        ','So_u        ','So_v        ','So_roce_wiso' /)
-    else
-       allocate(fldnames_ocn_in(4))
-       fldnames_ocn_in = (/'So_omask','So_t    ','So_u    ','So_v    '/)
-    end if
+    allocate(fldnames_ocn_in(4))
+    fldnames_ocn_in = (/'So_omask','So_t    ','So_u    ','So_v    '/)
     call FB_init(FBocn_a, is_local%wrap%flds_scalar_name, &
          FBgeom=is_local%wrap%FBImp(compatm,compatm), fieldnamelist=fldnames_ocn_in, name='FBocn_a', rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -972,7 +951,7 @@ contains
     use med_methods_mod, only : FB_fldchk => med_methods_FB_fldchk
     use med_methods_mod, only : FB_diagnose  => med_methods_FB_diagnose
 #ifdef CESMCOUPLED
-    use shr_flux_mod   , only : flux_atmocn
+    use flux_atmocn_driver_mod, only : flux_atmocn_driver
 #else
     use flux_atmocn_mod, only : flux_atmocn
 #endif
@@ -1068,24 +1047,17 @@ contains
     !----------------------------------
 
 #ifdef CESMCOUPLED
-    call flux_atmocn (logunit=logunit, &
+    call flux_atmocn_driver (logunit=logunit, &
          nMax=aoflux_in%lsize, &
-         zbot=aoflux_in%zbot, ubot=aoflux_in%ubot, vbot=aoflux_in%vbot, thbot=aoflux_in%thbot, qbot=aoflux_in%shum, &
-         rainc=aoflux_in%rainc, &
-         s16O=aoflux_in%shum_16O, sHDO=aoflux_in%shum_HDO, s18O=aoflux_in%shum_18O, rbot=aoflux_in%dens, &
-         tbot=aoflux_in%tbot, us=aoflux_in%uocn, vs=aoflux_in%vocn, pslv=aoflux_in%psfc, ts=aoflux_in%tocn, &
-         mask=aoflux_in%mask, seq_flux_atmocn_minwind=0.5_r8, &
-         sen=aoflux_out%sen, lat=aoflux_out%lat, lwup=aoflux_out%lwup, &
-         r16O=aoflux_in%roce_16O, rhdo=aoflux_in%roce_HDO, r18O=aoflux_in%roce_18O, &
-         evap=aoflux_out%evap, evap_16O=aoflux_out%evap_16O, evap_HDO=aoflux_out%evap_HDO, evap_18O=aoflux_out%evap_18O, &
+         zbot=aoflux_in%zbot, ubot=aoflux_in%ubot, vbot=aoflux_in%vbot, thbot=aoflux_in%thbot, &
+         qbot=aoflux_in%shum, rainc=aoflux_in%rainc, rbot=aoflux_in%dens, &
+         tbot=aoflux_in%tbot, us=aoflux_in%uocn, vs=aoflux_in%vocn, pslv=aoflux_in%psfc, &
+         ts=aoflux_in%tocn, mask=aoflux_in%mask, seq_flux_atmocn_minwind=0.5_r8, &
+         sen=aoflux_out%sen, lat=aoflux_out%lat, lwup=aoflux_out%lwup, evap=aoflux_out%evap, &
          taux=aoflux_out%taux, tauy=aoflux_out%tauy, tref=aoflux_out%tref, qref=aoflux_out%qref, &
          ocn_surface_flux_scheme=ocn_surface_flux_scheme, &
-         add_gusts=add_gusts, &
-         duu10n=aoflux_out%duu10n, &
-         ugust_out = aoflux_out%ugust_out, &
-         u10res = aoflux_out%u10res, &
-         ustar_sv=aoflux_out%ustar, re_sv=aoflux_out%re, ssq_sv=aoflux_out%ssq, &
-         missval=0.0_r8)
+         add_gusts=add_gusts, duu10n=aoflux_out%duu10n, ugust_out = aoflux_out%ugust_out, u10res = aoflux_out%u10res, &
+         ustar_sv=aoflux_out%ustar, re_sv=aoflux_out%re, ssq_sv=aoflux_out%ssq, missval=0.0_r8)
 
 #else
 #ifdef UFS_AOFLUX
@@ -1658,19 +1630,6 @@ end subroutine med_aofluxes_map_ogrid2xgrid_input
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     end if
 
-    if (flds_wiso) then
-       call fldbun_getfldptr(fldbun_a, 'Sa_shum_16O', aoflux_in%shum_16O, xgrid=xgrid, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call fldbun_getfldptr(fldbun_a, 'Sa_shum_18O', aoflux_in%shum_18O, xgrid=xgrid, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call fldbun_getfldptr(fldbun_a, 'Sa_shum_HDO', aoflux_in%shum_HDO, xgrid=xgrid, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-    else
-       allocate(aoflux_in%shum_16O(lsize)); aoflux_in%shum_16O(:) = 0._R8
-       allocate(aoflux_in%shum_18O(lsize)); aoflux_in%shum_18O(:) = 0._R8
-       allocate(aoflux_in%shum_HDO(lsize)); aoflux_in%shum_HDO(:) = 0._R8
-    end if
-
     ! ------------------------
     ! input fields from ocn on aoflux_grid
     ! ------------------------
@@ -1684,18 +1643,6 @@ end subroutine med_aofluxes_map_ogrid2xgrid_input
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call fldbun_getfldptr(fldbun_o, 'So_v', aoflux_in%vocn, xgrid=xgrid, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (flds_wiso) then
-       call fldbun_getfldptr(fldbun_o, 'So_roce_16O', aoflux_in%roce_16O, xgrid=xgrid, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call fldbun_getfldptr(fldbun_o, 'So_roce_18O', aoflux_in%roce_18O, xgrid=xgrid, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call fldbun_getfldptr(fldbun_o, 'So_roce_HDO', aoflux_in%roce_HDO, xgrid=xgrid, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-    else
-       allocate(aoflux_in%roce_16O(aoflux_in%lsize)); aoflux_in%roce_16O(:) = 0._R8
-       allocate(aoflux_in%roce_18O(aoflux_in%lsize)); aoflux_in%roce_18O(:) = 0._R8
-       allocate(aoflux_in%roce_HDO(aoflux_in%lsize)); aoflux_in%roce_HDO(:) = 0._R8
-    end if
 
   end subroutine set_aoflux_in_pointers
 
@@ -1741,18 +1688,6 @@ end subroutine med_aofluxes_map_ogrid2xgrid_input
     call fldbun_getfldptr(fldbun, 'Faox_lwup', aoflux_out%lwup, xgrid=xgrid, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    if (flds_wiso) then
-       call fldbun_getfldptr(fldbun, 'Faox_evap_16O', aoflux_out%evap_16O, xgrid=xgrid, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call fldbun_getfldptr(fldbun, 'Faox_evap_18O', aoflux_out%evap_18O, xgrid=xgrid, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call fldbun_getfldptr(fldbun, 'Faox_evap_HDO', aoflux_out%evap_HDO, xgrid=xgrid, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-    else
-       allocate(aoflux_out%evap_16O(lsize)); aoflux_out%evap_16O(:) = 0._R8
-       allocate(aoflux_out%evap_18O(lsize)); aoflux_out%evap_18O(:) = 0._R8
-       allocate(aoflux_out%evap_HDO(lsize)); aoflux_out%evap_HDO(:) = 0._R8
-    end if
     if (add_gusts) then
        call fldbun_getfldptr(fldbun, 'So_ugustOut', aoflux_out%ugust_out, xgrid=xgrid, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return

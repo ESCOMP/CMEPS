@@ -43,10 +43,6 @@
        canonical_units: kg m-2 s-1
        description: med export - atm/ocn evaporation water flux computed in medidator
      #
-     - standard_name: Faox_evap_wiso
-       canonical_units: kg m-2 s-1
-       description: med export - atm/ocn evaporation water flux 16O, 18O, HDO computed in medidator
-     #
      - standard_name: Faox_lat
        alias: mean_laten_heat_flx_atm_into_ocn
        canonical_units: W m-2
@@ -87,10 +83,6 @@
      #-----------------------------------
      #
      - standard_name: Fall_evap
-       canonical_units: kg m-2 s-1
-       description: lnd import to med
-     #
-     - standard_name: Fall_evap_wiso
        canonical_units: kg m-2 s-1
        description: lnd import to med
      #
@@ -174,19 +166,11 @@
        canonical_units: kg kg-1
        description: lnd import to med
      #
-     - standard_name: Sl_qref_wiso
-       canonical_units: kg kg-1
-       description: lnd import to med
-     #
      - standard_name: Sl_ram1
        canonical_units: s/m
        description: lnd import to med
      #
      - standard_name: Sl_snowh
-       canonical_units: m
-       description: lnd import to med
-     #
-     - standard_name: Sl_snowh_wiso
        canonical_units: m
        description: lnd import to med
      #
@@ -302,17 +286,8 @@
        canonical_units: kg(N)/m2/sec
        description: atm import to med - currently nhx and noy
      #
-     - standard_name: Faxa_prec_wiso
-       canonical_units: kg m-2 s-1
-       description: atm import to med
-     #
      - standard_name: Faxa_rain
        alias: mean_prec_rate
-       canonical_units: kg m-2 s-1
-       description: atm import to med
-     #
-     - standard_name: Faxa_rain_wiso
-       alias: mean_prec_rate_wiso
        canonical_units: kg m-2 s-1
        description: atm import to med
      #
@@ -320,15 +295,7 @@
        canonical_units: kg m-2 s-1
        description: atm import to med
      #
-     - standard_name: Faxa_rainc_wiso
-       canonical_units: kg m-2 s-1
-       description: atm import to med
-     #
      - standard_name: Faxa_rainl
-       canonical_units: kg m-2 s-1
-       description: atm import to med
-     #
-     - standard_name: Faxa_rainl_wiso
        canonical_units: kg m-2 s-1
        description: atm import to med
      #
@@ -337,23 +304,11 @@
        canonical_units: kg m-2 s-1
        description: atm import to med
      #
-     - standard_name: Faxa_snow_wiso
-       canonical_units: kg m-2 s-1
-       description: atm import to med
-     #
      - standard_name: Faxa_snowc
        canonical_units: kg m-2 s-1
        description: atm import to med
      #
-     - standard_name: Faxa_snowc_wiso
-       canonical_units: kg m-2 s-1
-       description: atm import to med
-     #
      - standard_name: Faxa_snowl
-       canonical_units: kg m-2 s-1
-       description: atm import to med
-     #
-     - standard_name: Faxa_snowl_wiso
        canonical_units: kg m-2 s-1
        description: atm import to med
      #
@@ -430,11 +385,6 @@
        canonical_units: kg kg-1
        description: atm import to med - bottom layer specific humidiaty
      #
-     - standard_name: Sa_shum_wiso
-       alias: inst_spec_humid_height_lowest_wiso
-       canonical_units: kg kg-1
-       description: atm import to med - bottom layer specific humidity 16O, 18O, HDO
-     #
      - standard_name: Sa_tbot
        alias: inst_temp_height_lowest
        canonical_units: K
@@ -501,10 +451,6 @@
        canonical_units: kg m-2 s-1
        description: atm export from meditor - merged water evaporation flux
      #
-     - standard_name: Faxx_evap_wiso
-       canonical_units: kg m-2 s-1
-       description: atm export from med - merged water evaporation flux for 16O, 18O and HDO
-     #
      - standard_name: Faxx_lat
        alias: mean_laten_heat_flx
        canonical_units: W m-2
@@ -549,10 +495,6 @@
        canonical_units: kg kg-1
        description: atm export from med
      #
-     - standard_name: Sx_qref_wiso
-       canonical_units: kg kg-1
-       description: atm export from med
-     #
      - standard_name: Sx_t
        alias: surface_temperature
        canonical_units: K
@@ -589,25 +531,13 @@
        canonical_units: kg m-2 s-1
        description: glc import tomed - glacier frozen_runoff_flux_to_ocean
      #
-     - standard_name: Fgrg_rofi_wiso
-       canonical_units: kg m-2 s-1
-       description: glc import to med - glacier_frozen_runoff_flux_to_ocean for 16O, 18O, HDO
-     #
      - standard_name: Fgrg_rofl
        canonical_units: kg m-2 s-1
        description: glc import to med - glacier liquid runoff flux to ocean
      #
-     - standard_name: Fgrg_rofl_wiso
-       canonical_units: kg m-2 s-1
-       description: glc import to med - glacier_frozen_runoff_flux_to_ocean for 16O, 18O, HDO
-     #
      - standard_name: Figg_rofi
        canonical_units: kg m-2 s-1
        description: glc import to med - glc frozen runoff_iceberg flux to ice
-     #
-     - standard_name: Figg_rofi_wiso
-       canonical_units: kg m-2 s-1
-       description: glc import to med - glc frozen runoff_iceberg flux to ice for 16O, 18O, HDO
      #
      - standard_name: Flgg_hflx
        canonical_units: W m-2
@@ -660,10 +590,6 @@
        canonical_units: kg m-2 s-1
        description: ice import to med
      #
-     - standard_name: Faii_evap_wiso
-       canonical_units: kg m-2 s-1
-       description: ice import to med for 16O, 18O, HDO
-     #
      - standard_name: Faii_lat
        alias: mean_laten_heat_flx_atm_into_ice
        canonical_units: W m-2
@@ -710,23 +636,10 @@
        canonical_units: W m-2
        description: ice import to med to ocean - net heat flux to ocean
      #
-     - standard_name: Fioi_melth_wiso
-       canonical_units: kg m-2 s-1
-       description: ice import to med to ocean - isotope head flux to ocean for 16O, 18O, HDO
-     #
-     - standard_name: Fioi_melth_HDO
-       canonical_units: kg m-2 s-1
-       description: ice import to med to ocean - isotope head flux to ocean
-     #
      - standard_name: Fioi_meltw
        alias: mean_fresh_water_to_ocean_rate
        canonical_units: kg m-2 s-1
        description: ice import to med to ocean - fresh water to ocean (h2o flux from melting)
-     #
-     - standard_name: Fioi_meltw_wiso
-       alias: mean_fresh_water_to_ocean_rate_wiso
-       canonical_units: kg m-2 s-1
-       description: ice import to med to ocean - fresh water to ocean (h2o flux from melting) for 16O, 18O, HDO
      #
      - standard_name: Fioi_salt
        alias: mean_salt_rate
@@ -804,10 +717,6 @@
        description: ice import to med - ice mask
      #
      - standard_name: Si_qref
-       canonical_units: kg kg-1
-       description: ice import to med
-     #
-     - standard_name: Si_qref_wiso
        canonical_units: kg kg-1
        description: ice import to med
      #
@@ -941,20 +850,8 @@
        canonical_units: kg kg-1
        description: ocn import to med
      #
-     - standard_name: So_qref_wiso
-       canonical_units: kg kg-1
-       description: ocn import to med
-     #
      - standard_name: So_re
        canonical_units: 1
-       description: ocn import to med
-     #
-     - standard_name: So_qref_wiso
-       canonical_units: kg kg-1
-       description: ocn import to med
-     #
-     - standard_name: So_roce_wiso
-       canonical_units: unitless
        description: ocn import to med
      #
      - standard_name: So_s
@@ -1052,18 +949,9 @@
        canonical_units: kg m-2 s-1
        description: med export to ocn - specific humidity flux
      #
-     - standard_name: Foxx_evap_wiso
-       alias: mean_evap_rate_wiso
-       canonical_units: kg m-2 s-1
-       description: med export to ocn - specific humidity flux 16O, 18O, HDO
-     #
      - standard_name: Foxx_lat
        canonical_units: W m-2
        description: med export to ocn - latent heat flux into ocean
-     #
-     - standard_name: Foxx_lat_wiso
-       canonical_units: W m-2
-       description: med export to ocn - latent heat flux into ocean for 16O, 18O, HDO
      #
      - standard_name: Foxx_lat
        canonical_units: W m-2
@@ -1103,18 +991,10 @@
        canonical_units: kg m-2 s-1
        description: med export to ocn - water flux due to runoff (frozen)
      #
-     - standard_name: Foxx_rofi_wiso
-       canonical_units: kg m-2 s-1
-       description: med export to ocn - water flux due to runoff (frozen) for 16O, 18O, HDO
-     #
      - standard_name: Foxx_rofl
        alias: mean_runoff_rate
        canonical_units: kg m-2 s-1
        description: med export to ocn - water flux due to runoff (liquid)
-     #
-     - standard_name: Foxx_rofl_wiso
-       canonical_units: kg m-2 s-1
-       description: med export to ocn - water flux due to runoff (liquid) for 16O, 18O, HDO
      #
      - standard_name: Foxx_swnet
        alias: mean_net_sw_flx
@@ -1176,25 +1056,13 @@
        canonical_units: kg m-2 s-1
        description: river import to med - water flux due to flooding
      #
-     - standard_name: Flrr_flood_wiso
-       canonical_units: kg m-2 s-1
-       description: river import to med - water flux due to flooding for 16O, 18O, HDO
-     #
      - standard_name: Flrr_volr
        canonical_units: m
        description: river import to med - river channel total water volume
      #
-     - standard_name: Flrr_volr_wiso
-       canonical_units: m
-       description: river import to med - river channel total water volume from 16O, 18O, HDO
-     #
      - standard_name: Flrr_volrmch
        canonical_units: m
        description: river import to med - river channel main channel water volume
-     #
-     - standard_name: Flrr_volrmch_wiso
-       canonical_units: m
-       description: river import to med - river channel main channel water volume from 16O, 18O, HDO
      #
      - standard_name: Sr_tdepth
        canonical_units: m
@@ -1212,10 +1080,6 @@
        canonical_units: kg m-2 s-1
        description: river export to ocean - water flux due to runoff originating from glc (frozen)
      #
-     - standard_name: Forr_rofi_wiso
-       canonical_units: kg m-2 s-1
-       description: river import to med - water flux due to runoff (frozen) for 16O, 18O, HDO
-     #
      - standard_name: Forr_rofl
        canonical_units: kg m-2 s-1
        description: river import to med - water flux due to runoff (liquid)
@@ -1223,10 +1087,6 @@
      - standard_name: Forr_rofl_glc
        canonical_units: kg m-2 s-1
        description: river import to med - water flux due to runoff originating from glc (liquid)
-     #
-     - standard_name: Forr_rofl_wiso
-       canonical_units: kg m-2 s-1
-       description: river import to med - water flux due to runoff (frozen) for 16O, 18O, HDO
      #
      #-----------------------------------
      # section: wav import to med
