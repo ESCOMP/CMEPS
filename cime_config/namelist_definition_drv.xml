@@ -2861,6 +2861,7 @@
       <value TESTCASE='ERC'>.false.</value>
       <value TESTCASE='ERP'>.false.</value>
       <value TESTCASE='ERI'>.false.</value>
+      <value TESTCASE='ERR'>.false.</value>
     </values>
   </entry>
 
