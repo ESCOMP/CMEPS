@@ -24,7 +24,6 @@ module flux_atmocn_COARE_mod
   use shr_flux_mod,  only : loc_stebol, loc_latvap, loc_g, loc_cpdair
   use shr_flux_mod,  only : td0, maxscl, alpha, use_coldair_outbreak_mod
   use shr_const_mod, only : shr_const_rgas
-  use shr_wv_sat_mod, only: shr_wv_sat_qsat_liquid ! use saturation calculation consistent with CAM
 
   implicit none
   private
@@ -116,6 +115,9 @@ contains
     real(R8)    :: tdiff(nMax) ! tbot - ts
     real(R8)    :: vscl
 
+    !--- functions ---
+    qsat(Tk)   = 640380.0_R8 / exp(5107.4_R8/Tk)
+
     !--- formats ----------------------------------------
     character(*),parameter :: subName = '(flux_atmOcn_COARE) '
     character(*),parameter ::   F00 = "('(flux_atmOcn_COARE) ',4a)"
@@ -144,9 +146,7 @@ contains
                 vmag=vmag*vscl
              endif
           endif
-
-          call shr_wv_sat_qsat_liquid(ts(n), pslv(n), qsat, ssq)
-          ssq = 0.98_R8 * ssq   ! sea surf hum (kg/kg)
+          ssq = 0.98_R8 * qsat(ts(n)) / rbot(n)   ! sea surf hum (kg/kg)
 
           call cor30a(ubot(n),vbot(n),tbot(n),qbot(n),rbot(n), & ! in atm params
                us(n),vs(n),ts(n),ssq,                          & ! in surf params
