@@ -105,7 +105,6 @@ contains
     logical                  :: use_min_ocnalb
     logical                  :: isPresent, isSet
     integer                  :: fieldCount
-    character(CL)            :: msg
     type(ESMF_Field), pointer :: fieldlist(:)
     character(*), parameter  :: subname = '(med_phases_ocnalb_init) '
     !-----------------------------------------------------------------------
