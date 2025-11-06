@@ -586,7 +586,7 @@ def _add_water_tracers(water_tracers_xml, nmlgen):
             # make it more difficult to add new species later. So we're deferring this
             # check to runtime.
         else:
-            tracer_species.append("")
+            tracer_species.append("-")
         tracer_initial_ratios.append("1.0")
 
     nmlgen.add_default("water_tracer_names", ":".join(tracer_names))
