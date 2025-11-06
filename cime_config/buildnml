@@ -563,7 +563,10 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
 def _add_water_tracers(water_tracers_xml, nmlgen):
     ###############################################################################
 
-    water_tracers = water_tracers_xml.split(":")
+    if not water_tracers_xml.strip():
+        water_tracers = []
+    else:
+        water_tracers = water_tracers_xml.split(":")
     tracer_names = []
     tracer_species = []
     tracer_initial_ratios = []
