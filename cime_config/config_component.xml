@@ -492,17 +492,6 @@
     </desc>
   </entry>
 
-  <entry id="MEDIATOR_READ_RESTART">
-    <type>logical</type>
-    <valid_values>TRUE,FALSE</valid_values>
-    <default_value>FALSE</default_value>
-    <group>run_begin_stop_restart</group>
-    <file>env_run.xml</file>
-    <desc>
-      A setting of TRUE implies a continuation run for mediator only
-    </desc>
-  </entry>
-
   <entry id="RESUBMIT">
     <type>integer</type>
     <default_value>0</default_value>
@@ -569,6 +558,16 @@
     <file>env_run.xml</file>
     <desc>Logical to turn on short term archiving.
     If TRUE, short term archiving will be turned on.</desc>
+  </entry>
+
+  <entry id="RUN_POSTPROCESSING">
+    <type>logical</type>
+    <valid_values>TRUE,FALSE</valid_values>
+    <default_value>FALSE</default_value>
+    <group>run_data_archive</group>
+    <file>env_run.xml</file>
+    <desc>Logical to run post-processing analysis tools.
+    If TRUE, post-processing scripts will be run</desc>
   </entry>
 
   <entry id="SYSLOG_N">
@@ -810,6 +809,8 @@
   <entry id="GPU_TYPE">
     <type>char</type>
     <valid_values MACH="derecho">none,a100</valid_values>
+    <valid_values MACH="cirrus">none,a10,a2</valid_values>
+    <valid_values MACH="casper">none,v100,a100,h100,mi300a</valid_values>
     <default_value>none</default_value>
     <group>build_def</group>
     <file>env_build.xml</file>
@@ -874,6 +875,25 @@
     CLM. This is currently only supported for certain machines.</desc>
   </entry>
 
+ <entry id="USE_FTORCH">
+    <type>logical</type>
+    <valid_values>TRUE,FALSE</valid_values>
+    <default_value>FALSE</default_value>
+    <group>build_def</group>
+    <file>env_build.xml</file>
+    <desc> TRUE implies linking to the FTorch library to allow calls between
+    fortran and a PyTorch model that has been saved to TorchScript.
+    </desc>
+  </entry>
+
+  <entry id="TORCH_DIR">
+    <type>char</type>
+    <default_value></default_value>
+    <group>build_def</group>
+    <file>env_build.xml</file>
+    <desc>location of libtorch and supporting libraries, may be supplied by ftorch interface if not present</desc>
+  </entry>
+
   <entry id="USE_ALBANY">
     <type>logical</type>
     <valid_values>TRUE,FALSE</valid_values>
@@ -887,21 +907,6 @@
     variable to TRUE will involve the inclusion of C++ code in the
     MPASLI executable. This is currently only supported for certain
     machines.</desc>
-  </entry>
-
-  <entry id="CLM_USE_PETSC">
-    <type>logical</type>
-    <valid_values>TRUE,FALSE</valid_values>
-    <default_value>FALSE</default_value>
-    <group>build_component_clm</group>
-    <file>env_build.xml</file>
-    <desc>TRUE implies CLM is built with support for the PETSc
-      library. The Variably Saturated Flow Model (VSFM) solver in CLM
-      uses the PETSc library. In order to use the VSFM solver, CLM
-      must be built with PETSc support and linking to PETSc must occur
-      when building the ACME executable. This occurs if this variable
-      is set to TRUE. Note that is only available on a limited set of
-      machines/compilers.</desc>
   </entry>
 
   <entry id="USE_MOAB">
@@ -1454,7 +1459,7 @@
     <file>env_run.xml</file>
     <desc>wav2ocn state mapping file</desc>
   </entry>
-  
+
   <entry id="EPS_FRAC">
     <type>char</type>
     <default_value>1.0e-02</default_value>
@@ -1739,6 +1744,7 @@
     <file>env_mach_pes.xml</file>
     <desc>ROOTPE (mpi task in MPI_COMM_WORLD) for each component</desc>
   </entry>
+
   <entry id="MULTI_DRIVER">
     <type>logical</type>
     <default_value>TRUE</default_value>
@@ -1843,7 +1849,7 @@
     <file>env_mach_pes.xml</file>
     <desc>Number of GPUs per node used for simulation </desc>
   </entry>
-  
+
   <entry id="MAX_GPUS_PER_NODE">
     <type>integer</type>
     <default_value>0</default_value>
@@ -1851,7 +1857,7 @@
     <file>env_mach_pes.xml</file>
     <desc>Maximum number of GPUs allowed per node </desc>
   </entry>
-  
+
   <entry id="COSTPES_PER_NODE">
     <type>integer</type>
     <default_value>$MAX_MPITASKS_PER_NODE</default_value>
@@ -2304,7 +2310,7 @@
     <default_value>FALSE</default_value>
     <group>run_coupling</group>
     <file>env_run.xml</file>
-    <desc>determine if per ice thickness category fields are passed from ice to ocean - DO NOT EDIT (set by POP build-namelist)</desc>
+    <desc>determine if per ice thickness category fields are passed from ice to ocean - DO NOT EDIT (set by MOM6)</desc>
   </entry>
 
   <entry id="INFO_DBUG">
@@ -2493,9 +2499,21 @@
    <desc>Remote git repository used for this case</desc>
  </entry>
 
-<!-- ===================================================================== -->
-  <!-- Include the AOFLUX calculation for this compset -->
-  <!-- ===================================================================== -->
+ <entry id="CASE_SUPPORT_LIBRARIES">
+   <type>char</type>
+   <default_value></default_value>
+   <values>
+     <value cime_model="cesm">gptl,pio,csm_share,FTorch,CDEPS</value>
+   </values>
+   <group>build_def</group>
+   <file>env_build.xml</file>
+   <desc>Support libraries required</desc>
+ </entry>
+
+
+ <!-- ===================================================================== -->
+ <!-- Include the AOFLUX calculation for this compset -->
+ <!-- ===================================================================== -->
 
  <entry id="ADD_AOFLUX_TO_RUNSEQ">
    <type>logical</type>

@@ -166,9 +166,8 @@ contains
 
     ! Initialize FBFrac(:) field bundles
 
-    use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_LOGMSG_ERROR
-    use ESMF                  , only : ESMF_SUCCESS, ESMF_FAILURE
-    use ESMF                  , only : ESMF_LogSetError, ESMF_RC_NOT_VALID
+    use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO
+    use ESMF                  , only : ESMF_SUCCESS
     use ESMF                  , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_StateIsCreated
     use ESMF                  , only : ESMF_FieldBundle, ESMF_FieldBundleIsCreated, ESMF_FieldBundleDestroy
     use ESMF                  , only : ESMF_FieldBundleGet
