@@ -22,6 +22,7 @@ module MED_typedefs
 !!
   type MED_init_type
     integer                       :: im                     !< horizontal loop extent
+    integer                       :: nCol                   !< horizontal dimension 
   end type MED_init_type
 
 !! \section arg_table_MED_statein_type
