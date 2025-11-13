@@ -202,14 +202,6 @@
        canonical_units: kg m-2 s-1
        description: lnd export to river
      #
-     - standard_name: Flrl_rofdto
-       canonical_units: kg m-2 s-1
-       description: lnd export to river
-     #
-     - standard_name: Flrl_rofdto_wtracers
-       canonical_units: kg m-2 s-1
-       description: lnd export to river
-     #
      - standard_name: Flrl_rofgwl
        canonical_units: kg m-2 s-1
        description: lnd export to river
@@ -621,14 +613,6 @@
      - standard_name: Fgrg_rofl_wtracers
        canonical_units: kg m-2 s-1
        description: glc import to med - glacier liquid runoff tracer flux to ocean
-     #
-     - standard_name: Figg_rofi
-       canonical_units: kg m-2 s-1
-       description: glc import to med - glc frozen runoff iceberg flux to ice
-     #
-     - standard_name: Figg_rofi_wtracers
-       canonical_units: kg m-2 s-1
-       description: glc import to med - glc frozen runoff iceberg tracer flux to ice
      #
      - standard_name: Flgg_hflx
        canonical_units: W m-2
