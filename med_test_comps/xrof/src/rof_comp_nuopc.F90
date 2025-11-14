@@ -204,7 +204,6 @@ contains
        call fld_list_add(fldsToRof_num, fldsToRof, 'Flrl_rofsur')
        call fld_list_add(fldsToRof_num, fldsToRof, 'Flrl_rofgwl')
        call fld_list_add(fldsToRof_num, fldsToRof, 'Flrl_rofsub')
-       call fld_list_add(fldsToRof_num, fldsToRof, 'Flrl_rofdto')
        call fld_list_add(fldsToRof_num, fldsToRof, 'Flrl_rofi')
        call fld_list_add(fldsToRof_num, fldsToRof, 'Flrl_irrig')
 
