@@ -879,18 +879,6 @@
     </values>
   </entry>
 
-  <entry id="info_debug" modify_via_xml="INFO_DBUG">
-    <type>integer</type>
-    <category>expdef</category>
-    <group>MED_attributes</group>
-    <desc>
-      Level of debug output, 0=minimum, 1=normal, 2=more, 3=too much (default: 1)
-    </desc>
-    <values>
-      <value>$INFO_DBUG</value>
-    </values>
-  </entry>
-
   <entry id="flux_albav" modify_via_xml="CPL_ALBAV">
     <type>logical</type>
     <category>control</category>
