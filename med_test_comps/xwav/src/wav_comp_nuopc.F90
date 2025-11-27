@@ -349,8 +349,8 @@ contains
     integer          , intent(out)   :: rc
 
     ! local variables
-    integer           :: nfstart, ubound
-    integer           :: n, nf, nind
+    integer           :: ubound
+    integer           :: n, nf, nind, field_num
     real(r8), pointer :: lat(:)
     real(r8), pointer :: lon(:)
     integer           :: spatialDim
@@ -373,18 +373,19 @@ contains
        lat(n) = ownedElemCoords(2*n)
     end do
 
-    nfstart = 0 ! for fields that have ubound > 0
+    field_num = 1
     do nf = 2,fldsFrWav_num ! Start from index 2 in order to skip the scalar field
        ubound = fldsFrWav(nf)%ungridded_ubound
        if (ubound == 0) then
-          call field_setexport(exportState, trim(fldsFrWav(nf)%stdname), lon, lat, nf=nf, rc=rc)
+          call field_setexport(exportState, trim(fldsFrWav(nf)%stdname), lon, lat, nf=field_num, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
+          field_num = field_num + 1
        else
-          nfstart = nfstart + nf + ubound - 1
           do nind = 1,ubound
-             call field_setexport(exportState, trim(fldsFrWav(nf)%stdname), lon, lat, nf=nfstart+nind-1, &
+             call field_setexport(exportState, trim(fldsFrWav(nf)%stdname), lon, lat, nf=field_num, &
                   ungridded_index=nind, rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
+             field_num = field_num + 1
           end do
        end if
     end do

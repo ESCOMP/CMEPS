@@ -328,7 +328,7 @@ contains
     integer, intent(out) :: rc
 
     ! local variables
-    integer           :: n, nf, nind, ns
+    integer           :: n, nf, nind, ns, field_num
     real(r8), pointer :: lat(:)
     real(r8), pointer :: lon(:)
     integer           :: spatialDim
@@ -351,17 +351,20 @@ contains
        lat(n) = ownedElemCoords(2*n)
     end do
 
+    field_num = 1
     ! Start from index 2 in order to skip the scalar field
     do ns = 1,num_icesheets
        do nf = 2,fldsFrGlc_num
           if (fldsFrGlc(nf)%ungridded_ubound == 0) then
-             call field_setexport(NStateExp(ns), trim(fldsFrGlc(nf)%stdname), lon, lat, nf=nf, rc=rc)
+             call field_setexport(NStateExp(ns), trim(fldsFrGlc(nf)%stdname), lon, lat, nf=field_num, rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
+             field_num = field_num + 1
           else
              do nind = 1,fldsFrGlc(nf)%ungridded_ubound
-                call field_setexport(NStateExp(ns), trim(fldsFrGlc(nf)%stdname), lon, lat, nf=nf+nind-1, &
+                call field_setexport(NStateExp(ns), trim(fldsFrGlc(nf)%stdname), lon, lat, nf=field_num, &
                      ungridded_index=nind, rc=rc)
                 if (chkerr(rc,__LINE__,u_FILE_u)) return
+                field_num = field_num + 1
              end do
           end if
        end do
