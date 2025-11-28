@@ -1045,6 +1045,7 @@ contains
              ! For  mapconsf_uv3d do not use packed field bundles
              call med_map_uv_cart3d(FBsrc, FBdst, routehandles, mapconsf_uv3d, map_stress=.true., rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
+
           else
 
              ! -----------------------------------
@@ -1314,6 +1315,7 @@ contains
     character(len=*), parameter  :: subname=' (med_map_mod:med_map_field_normalized) '
     !-----------------------------------------------------------
 
+    call t_startf('MED:'//subname)
     rc = ESMF_SUCCESS
 
     ! get a pointer (data_fracsrc) to the normalization array
@@ -1390,6 +1392,8 @@ contains
           end if
        end do
     end if
+
+    call t_stopf('MED:'//subname)
   end subroutine med_map_field_normalized
 
   !================================================================================
@@ -1534,6 +1538,7 @@ contains
     character(len=*), parameter :: subname=' (med_map_mod:med_map_uv_cart3d) '
     !-------------------------------------------------------------------------------
 
+    call t_startf('MED:'//subname)
     rc = ESMF_SUCCESS
 
     lmap_stress = .false.
@@ -1659,6 +1664,7 @@ contains
     deallocate(ownedElemCoords_src)
     deallocate(ownedElemCoords_dst)
 
+    call t_stopf('MED:'//subname)
   end subroutine med_map_uv_cart3d
 
 end module med_map_mod
