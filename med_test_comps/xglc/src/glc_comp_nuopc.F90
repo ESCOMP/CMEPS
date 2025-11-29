@@ -19,6 +19,7 @@ module glc_comp_nuopc
   use dead_methods_mod , only : set_component_logging, get_component_instance, log_clock_advance
   use dead_nuopc_mod   , only : dead_read_inparms, ModelInitPhase, ModelSetRunClock
   use dead_nuopc_mod   , only : fld_list_add, fld_list_realize, fldsMax, fld_list_type
+  use dead_nuopc_mod   , only : set_all_export_fields
 
   implicit none
   private ! except
@@ -328,7 +329,7 @@ contains
     integer, intent(out) :: rc
 
     ! local variables
-    integer           :: n, nf, nind, ns, field_num
+    integer           :: n, ns, fld_num_save
     real(r8), pointer :: lat(:)
     real(r8), pointer :: lon(:)
     integer           :: spatialDim
@@ -351,23 +352,22 @@ contains
        lat(n) = ownedElemCoords(2*n)
     end do
 
-    field_num = 1
-    ! Start from index 2 in order to skip the scalar field
+    fld_num_save = 1
     do ns = 1,num_icesheets
-       do nf = 2,fldsFrGlc_num
-          if (fldsFrGlc(nf)%ungridded_ubound == 0) then
-             call field_setexport(NStateExp(ns), trim(fldsFrGlc(nf)%stdname), lon, lat, nf=field_num, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-             field_num = field_num + 1
-          else
-             do nind = 1,fldsFrGlc(nf)%ungridded_ubound
-                call field_setexport(NStateExp(ns), trim(fldsFrGlc(nf)%stdname), lon, lat, nf=field_num, &
-                     ungridded_index=nind, rc=rc)
-                if (chkerr(rc,__LINE__,u_FILE_u)) return
-                field_num = field_num + 1
-             end do
-          end if
-       end do
+       call set_all_export_fields( &
+            exportState = NStateExp(ns), &
+            flds = fldsFrGlc, &
+            fld_min = 2, &  ! Start from index 2 in order to skip the scalar field here
+            fld_max = fldsFrGlc_num, &
+            lon = lon, &
+            lat = lat, &
+            field_setexport = field_setexport, &
+            rc = rc, &
+            ! Save fld_num to continue to increment it for ice sheets beyond the first (so
+            ! different ice sheets will have different field values)
+            fld_num_save = fld_num_save)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
        if (dbug > 1) then
           call State_diagnose(NStateExp(ns), trim(subname)//':ES',rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return

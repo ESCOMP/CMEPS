@@ -20,6 +20,7 @@ module dead_nuopc_mod
   public :: ModelSetRunClock
   public :: fld_list_add
   public :: fld_list_realize
+  public :: set_all_export_fields
 
   ! !PUBLIC DATA MEMBERS:
   type fld_list_type
@@ -229,6 +230,80 @@ contains
     end subroutine SetScalarField
 
   end subroutine fld_list_realize
+
+  !================================================================================
+  subroutine set_all_export_fields(exportState, flds, fld_min, fld_max, lon, lat, field_setexport, rc, fld_num_save)
+
+    ! ----------------------------------------------
+    ! Set all export fields for a given component's state
+    !
+    ! This accepts a procedure argument for the subroutine that does the actual setting
+    ! for each field, since this procedure can differ between different xcomps.
+    ! ----------------------------------------------
+
+    ! input/output arguments
+    type(ESMF_State), intent(inout)  :: exportState
+    type(fld_list_type), intent(in)  :: flds(:)
+    integer, intent(in)              :: fld_min  ! first index in flds to set
+    integer, intent(in)              :: fld_max  ! last index in flds to set
+    real(r8), intent(in)             :: lon(:)
+    real(r8), intent(in)             :: lat(:)
+    integer, intent(out)             :: rc
+
+    ! fld_num_save can be provided to continue where we left off from the last call.
+    ! This is useful for multiple ice sheets, for example, where we want different field
+    ! values for each ice sheet. It should generally be set to 1 for the initial call from
+    ! a component (but could be set to some other value if desired).
+    integer, optional, intent(inout) :: fld_num_save
+
+    interface
+       subroutine field_setexport(exportState, fldname, lon, lat, nf, ungridded_index, rc)
+          import :: ESMF_State
+          import :: r8
+
+          type(ESMF_State), intent(inout) :: exportState
+          character(len=*), intent(in)    :: fldname
+          real(r8), intent(in)            :: lon(:)
+          real(r8), intent(in)            :: lat(:)
+          integer, intent(in)             :: nf
+          integer, optional, intent(in)   :: ungridded_index
+          integer, intent(out)            :: rc
+       end subroutine field_setexport
+    end interface
+
+    ! local variables
+    integer :: nf, nind, fld_num
+    character(len=*), parameter :: subname='(set_all_export_fields)'
+    ! ----------------------------------------------
+
+    rc = ESMF_SUCCESS
+
+    if (present(fld_num_save)) then
+       fld_num = fld_num_save
+    else
+       fld_num = 1
+    end if
+
+    do nf = fld_min,fld_max
+       if (flds(nf)%ungridded_ubound == 0) then
+          call field_setexport(exportState, trim(flds(nf)%stdname), lon, lat, nf=fld_num, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          fld_num = fld_num + 1
+       else
+          do nind = 1,flds(nf)%ungridded_ubound
+             call field_setexport(exportState, trim(flds(nf)%stdname), lon, lat, nf=fld_num, &
+                  ungridded_index=nind, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+             fld_num = fld_num + 1
+          end do
+       end if
+    end do
+
+    if (present(fld_num_save)) then
+       fld_num_save = fld_num
+    end if
+
+  end subroutine set_all_export_fields
 
   !===============================================================================
   subroutine ModelInitPhase(gcomp, importState, exportState, clock, rc)
