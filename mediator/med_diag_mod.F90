@@ -17,8 +17,7 @@ module med_diag_mod
 
   use NUOPC                 , only : NUOPC_CompAttributeGet, NUOPC_CompAttributeSet, NUOPC_CompAttributeAdd
   use NUOPC_Mediator        , only : NUOPC_MediatorGet
-  use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
-  use ESMF                  , only : ESMF_FAILURE,  ESMF_LOGMSG_ERROR
+  use ESMF                  , only : ESMF_SUCCESS
   use ESMF                  , only : ESMF_GridComp, ESMF_Clock, ESMF_Time
   use ESMF                  , only : ESMF_VM, ESMF_VMReduce, ESMF_REDUCE_SUM
   use ESMF                  , only : ESMF_GridCompGet, ESMF_ClockGet, ESMF_TimeGet, ESMF_ClockGetNextTime
@@ -33,6 +32,7 @@ module med_diag_mod
   use med_methods_mod       , only : fldbun_fldChk    => med_methods_FB_FldChk
   use med_utils_mod         , only : chkerr           => med_utils_ChkErr
   use perf_mod              , only : t_startf, t_stopf
+  use shr_log_mod           , only : shr_log_error
 
   implicit none
   private
@@ -142,13 +142,16 @@ module med_diag_mod
   integer :: f_heat_latvap   = unset_index ! heat : latent, vaporization
   integer :: f_heat_latf     = unset_index ! heat : latent, fusion, snow
   integer :: f_heat_ioff     = unset_index ! heat : latent, fusion, frozen runoff
+  integer :: f_heat_ioff_glc = unset_index ! heat : latent, fusion, frozen runoff from glc
   integer :: f_heat_sen      = unset_index ! heat : sensible
   integer :: f_heat_rain     = unset_index ! heat : heat content of rain
   integer :: f_heat_snow     = unset_index ! heat : heat content of snow
   integer :: f_heat_evap     = unset_index ! heat : heat content of evaporation
   integer :: f_heat_cond     = unset_index ! heat : heat content of evaporation
   integer :: f_heat_rofl     = unset_index ! heat : heat content of liquid runoff
+  integer :: f_heat_rofl_glc = unset_index ! heat : heat content of liquid runoff from glc
   integer :: f_heat_rofi     = unset_index ! heat : heat content of ice runoff
+  integer :: f_heat_rofi_glc = unset_index ! heat : heat content of ice runoff from glc
 
   integer :: f_watr_frz      = unset_index ! water: freezing
   integer :: f_watr_melt     = unset_index ! water: melting
@@ -157,28 +160,9 @@ module med_diag_mod
   integer :: f_watr_evap     = unset_index ! water: evaporation
   integer :: f_watr_salt     = unset_index ! water: water equivalent of salt flux
   integer :: f_watr_roff     = unset_index ! water: runoff/flood
+  integer :: f_watr_roff_glc = unset_index ! water: runoff/flood from glc
   integer :: f_watr_ioff     = unset_index ! water: frozen runoff
-  integer :: f_watr_frz_16O  = unset_index ! water isotope: freezing
-  integer :: f_watr_melt_16O = unset_index ! water isotope: melting
-  integer :: f_watr_rain_16O = unset_index ! water isotope: precip, liquid
-  integer :: f_watr_snow_16O = unset_index ! water isotope: prcip, frozen
-  integer :: f_watr_evap_16O = unset_index ! water isotope: evaporation
-  integer :: f_watr_roff_16O = unset_index ! water isotope: runoff/flood
-  integer :: f_watr_ioff_16O = unset_index ! water isotope: frozen runoff
-  integer :: f_watr_frz_18O  = unset_index ! water isotope: freezing
-  integer :: f_watr_melt_18O = unset_index ! water isotope: melting
-  integer :: f_watr_rain_18O = unset_index ! water isotope: precip, liquid
-  integer :: f_watr_snow_18O = unset_index ! water isotope: precip, frozen
-  integer :: f_watr_evap_18O = unset_index ! water isotope: evaporation
-  integer :: f_watr_roff_18O = unset_index ! water isotope: runoff/flood
-  integer :: f_watr_ioff_18O = unset_index ! water isotope: frozen runoff
-  integer :: f_watr_frz_HDO  = unset_index ! water isotope: freezing
-  integer :: f_watr_melt_HDO = unset_index ! water isotope: melting
-  integer :: f_watr_rain_HDO = unset_index ! water isotope: precip, liquid
-  integer :: f_watr_snow_HDO = unset_index ! water isotope: precip, frozen
-  integer :: f_watr_evap_HDO = unset_index ! water isotope: evaporation
-  integer :: f_watr_roff_HDO = unset_index ! water isotope: runoff/flood
-  integer :: f_watr_ioff_HDO = unset_index ! water isotope: frozen runoff
+  integer :: f_watr_ioff_glc = unset_index ! water: frozen runoff from glc
 
   integer :: f_heat_beg      = unset_index ! 1st index  for heat
   integer :: f_heat_end      = unset_index ! Last index for heat
@@ -186,25 +170,6 @@ module med_diag_mod
   integer :: f_watr_end      = unset_index ! Last index for water
   integer :: f_salt_beg      = unset_index ! 1st index  for salt
   integer :: f_salt_end      = unset_index ! Last index for salt
-
-  integer :: f_16O_beg       = unset_index ! 1st index  for 16O water isotope
-  integer :: f_16O_end       = unset_index ! Last index for 16O water isotope
-  integer :: f_18O_beg       = unset_index ! 1st index  for 18O water isotope
-  integer :: f_18O_end       = unset_index ! Last index for 18O water isotope
-  integer :: f_HDO_beg       = unset_index ! 1st index  for HDO water isotope
-  integer :: f_HDO_end       = unset_index ! Last index for HDO water isotope
-
-  ! ---------------------------------
-  ! water isotopes names and indices
-  ! ---------------------------------
-
-  logical :: flds_wiso  = .false.! If water isotope fields are active -
-  ! TODO: for now set to .false. - but this needs to be set in an initialization phase
-
-  integer, parameter :: nisotopes = 3
-  integer :: iso0(nisotopes)
-  integer :: isof(nisotopes)
-  character(len=5) :: isoname(nisotopes)
 
   ! ---------------------------------
   ! P for period
@@ -324,6 +289,7 @@ contains
     call add_to_budget_diag(budget_diags%fields, f_heat_latvap   ,'hlatvap'     ) ! field  heat : latent, vaporization
     call add_to_budget_diag(budget_diags%fields, f_heat_latf     ,'hlatfus'     ) ! field  heat : latent, fusion, snow
     call add_to_budget_diag(budget_diags%fields, f_heat_ioff     ,'hiroff'      ) ! field  heat : latent, fusion, frozen runoff
+    call add_to_budget_diag(budget_diags%fields, f_heat_ioff_glc ,'hiroff_glc'  ) ! field  heat : latent, fusion, frozen runoff from glc
     call add_to_budget_diag(budget_diags%fields, f_heat_sen      ,'hsen'        ) ! field  heat : sensible
     if (trim(budget_table_version) == 'v0') then
        f_heat_beg = f_heat_frz      ! field  first index for heat
@@ -334,9 +300,11 @@ contains
        call add_to_budget_diag(budget_diags%fields, f_heat_evap  ,'hevap'       ) ! field  heat : enthalpy of evaporation
        call add_to_budget_diag(budget_diags%fields, f_heat_cond  ,'hcond'       ) ! field  heat : enthalpy of evaporation
        call add_to_budget_diag(budget_diags%fields, f_heat_rofl  ,'hrofl'       ) ! field  heat : enthalpy of liquid runoff
+       call add_to_budget_diag(budget_diags%fields, f_heat_rofl_glc ,'hrofl_glc') ! field  heat : enthalpy of liquid runoff from glc
        call add_to_budget_diag(budget_diags%fields, f_heat_rofi  ,'hrofi'       ) ! field  heat : enthalpy of ice runoff
+       call add_to_budget_diag(budget_diags%fields, f_heat_rofi_glc ,'hrofi_glc') ! field  heat : enthalpy of ice runoff from glc
        f_heat_beg = f_heat_frz      ! field  first index for heat
-       f_heat_end = f_heat_rofi     ! field  last  index for heat
+       f_heat_end = f_heat_rofi_glc ! field  last  index for heat
     end if
 
     ! -----------------------------------------
@@ -355,50 +323,15 @@ contains
        call add_to_budget_diag(budget_diags%fields, f_watr_salt  ,'weqsaltf'    ) ! field  water: water equivalent of salt flux
     endif
     call add_to_budget_diag(budget_diags%fields, f_watr_roff     ,'wrunoff'     ) ! field  water: runoff/flood
+    call add_to_budget_diag(budget_diags%fields, f_watr_roff_glc ,'wrunoff_glc' ) ! field  water: runoff/flood from glc
     call add_to_budget_diag(budget_diags%fields, f_watr_ioff     ,'wfrzrof'     ) ! field  water: frozen runoff
+    call add_to_budget_diag(budget_diags%fields, f_watr_ioff_glc ,'wfrzrof_glc' ) ! field  water: frozen runoff from glc
     if (trim(budget_table_version) == 'v0') then
        f_watr_beg = f_watr_frz  ! field  firs  index for water
     else
        f_watr_beg = f_watr_melt ! field  firs  index for water
     end if
-    f_watr_end = f_watr_ioff    ! field  last  index for water
-
-    if (flds_wiso) then
-       call add_to_budget_diag(budget_diags%fields, f_watr_frz_16O  ,'wfreeze_16O' ) ! field  water isotope: freezing
-       call add_to_budget_diag(budget_diags%fields, f_watr_melt_16O ,'wmelt_16O'   ) ! field  water isotope: melting
-       call add_to_budget_diag(budget_diags%fields, f_watr_rain_16O ,'wrain_16O'   ) ! field  water isotope: precip, liquid
-       call add_to_budget_diag(budget_diags%fields, f_watr_snow_16O ,'wsnow_16O'   ) ! field  water isotope: prcip, frozen
-       call add_to_budget_diag(budget_diags%fields, f_watr_evap_16O ,'wevap_16O'   ) ! field  water isotope: evaporation
-       call add_to_budget_diag(budget_diags%fields, f_watr_roff_16O ,'wrunoff_16O' ) ! field  water isotope: runoff/flood
-       call add_to_budget_diag(budget_diags%fields, f_watr_ioff_16O ,'wfrzrof_16O' ) ! field  water isotope: frozen runoff
-       f_16O_beg  = f_watr_frz_16O  ! field 1st  index for 16O water isotope
-       f_16O_end  = f_watr_ioff_16O ! field Last index for 16O water isotope
-
-       call add_to_budget_diag(budget_diags%fields, f_watr_frz_18O  ,'wfreeze_18O' ) ! field  water isotope: freezing
-       call add_to_budget_diag(budget_diags%fields, f_watr_melt_18O ,'wmelt_18O'   ) ! field  water isotope: melting
-       call add_to_budget_diag(budget_diags%fields, f_watr_rain_18O ,'wrain_18O'   ) ! field  water isotope: precip, liquid
-       call add_to_budget_diag(budget_diags%fields, f_watr_snow_18O ,'wsnow_18O'   ) ! field  water isotope: precip, frozen
-       call add_to_budget_diag(budget_diags%fields, f_watr_evap_18O ,'wevap_18O'   ) ! field  water isotope: evaporation
-       call add_to_budget_diag(budget_diags%fields, f_watr_roff_18O ,'wrunoff_18O' ) ! field  water isotope: runoff/flood
-       call add_to_budget_diag(budget_diags%fields, f_watr_ioff_18O ,'wfrzrof_18O' ) ! field  water isotope: frozen runoff
-       f_18O_beg  = f_watr_frz_18O  ! field 1st  index for 18O water isotope
-       f_18O_end  = f_watr_ioff_18O ! field Last index for 18O water isotope
-
-       call add_to_budget_diag(budget_diags%fields, f_watr_frz_HDO  ,'wfreeze_HDO' ) ! field  water isotope: freezing
-       call add_to_budget_diag(budget_diags%fields, f_watr_melt_HDO ,'wmelt_HDO'   ) ! field  water isotope: melting
-       call add_to_budget_diag(budget_diags%fields, f_watr_rain_HDO ,'wrain_HDO'   ) ! field  water isotope: precip, liquid
-       call add_to_budget_diag(budget_diags%fields, f_watr_snow_HDO ,'wsnow_HDO'   ) ! field  water isotope: precip, frozen
-       call add_to_budget_diag(budget_diags%fields, f_watr_evap_HDO ,'wevap_HDO'   ) ! field  water isotope: evaporation
-       call add_to_budget_diag(budget_diags%fields, f_watr_roff_HDO ,'wrunoff_HDO' ) ! field  water isotope: runoff/flood
-       call add_to_budget_diag(budget_diags%fields, f_watr_ioff_HDO ,'wfrzrof_HDO' ) ! field  water isotope: frozen runoff
-       f_HDO_beg  = f_watr_frz_HDO  ! field 1st  index for HDO water isotope
-       f_HDO_end  = f_watr_ioff_HDO ! field Last index for HDO water isotope
-
-       ! water isotopes
-       iso0(:)    = (/ f_16O_beg, f_18O_beg, f_hdO_beg /)
-       isof(:)    = (/ f_16O_end, f_18O_end, f_hdO_end /)
-       isoname(:) = (/ 'H216O',   'H218O',   '  HDO'   /)
-    end if
+    f_watr_end = f_watr_ioff_glc ! field  last  index for water
 
     ! -----------------------------------------
     ! Salt fluxes budget terms (for v1 only)
@@ -513,11 +446,9 @@ contains
        budget_counter(:,:,period_inst) = 0.0_r8
        budget_counter(:,:,period_inst+1:) = 1.0_r8
     else
-       call ESMF_LogWrite(trim(subname)//' mode '//trim(mode)//&
+       call shr_log_error(trim(subname)//' mode '//trim(mode)//&
             ' not recognized', &
-            ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
-       rc = ESMF_FAILURE
-       return
+            line=__LINE__, file=u_FILE_u, rc=rc)
     endif
   end subroutine med_diag_zero_mode
 
@@ -721,15 +652,6 @@ contains
          areas, lats, afrac, lfrac, ofrac, ifrac, budget_local, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    if (flds_wiso) then
-       call diag_atm_wiso_recv(is_local%wrap%FBImp(compatm,compatm), 'Faxa_rainc_wiso', &
-            f_watr_rain_16O, f_watr_rain_18O, f_watr_rain_HDO, areas, lats, afrac, lfrac, ofrac, ifrac, budget_local, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call diag_atm_wiso_recv(is_local%wrap%FBImp(compatm,compatm), 'Faxa_rainl_wiso', &
-            f_watr_rain_16O, f_watr_rain_18O, f_watr_rain_HDO, areas, lats, afrac, lfrac, ofrac, ifrac, budget_local, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    end if
-
     ! heat implied by snow flux from atm to mediator
     budget_local(f_heat_latf,c_atm_recv ,ip) = -budget_local(f_watr_snow,c_atm_recv ,ip)*shr_const_latice
     budget_local(f_heat_latf,c_lnd_arecv,ip) = -budget_local(f_watr_snow,c_lnd_arecv,ip)*shr_const_latice
@@ -766,14 +688,6 @@ contains
     call diag_atm_send(is_local%wrap%FBExp(compatm), 'Faxx_evap', f_watr_evap, &
          areas, lats, afrac, lfrac, ofrac, ifrac, budget_local, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    ! water isotopes
-    if (flds_wiso) then
-       call diag_atm_wiso_send(is_local%wrap%FBImp(compatm,compatm), 'Faxa_evap_wiso', &
-            f_watr_evap_16O, f_watr_evap_18O, f_watr_evap_HDO, &
-            areas, lats, afrac, lfrac, ofrac, ifrac, budget_local, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    end if
 
     deallocate(afrac)
     call t_stopf('MED:'//subname)
@@ -849,118 +763,6 @@ contains
     end if
   end subroutine diag_atm_send
 
-  subroutine diag_atm_wiso_recv(FB, fldname, nf_16O, nf_18O, nf_HDO, areas, lats, &
-       afrac, lfrac, ofrac, ifrac, budget, rc)
-    ! input/output variables
-    type(ESMF_FieldBundle) , intent(in)    :: FB
-    character(len=*)       , intent(in)    :: fldname
-    integer                , intent(in)    :: nf_16O
-    integer                , intent(in)    :: nf_18O
-    integer                , intent(in)    :: nf_HDO
-    real(r8)               , intent(in)    :: areas(:)
-    real(r8)               , intent(in)    :: lats(:)
-    real(r8)               , intent(in)    :: afrac(:)
-    real(r8)               , intent(in)    :: lfrac(:)
-    real(r8)               , intent(in)    :: ofrac(:)
-    real(r8)               , intent(in)    :: ifrac(:)
-    real(r8)               , intent(inout) :: budget(:,:,:)
-    integer                , intent(out)   :: rc
-    ! local variables
-    integer           :: n, ip
-    real(r8), pointer :: data(:,:)
-    ! ------------------------------------------------------------------
-    rc = ESMF_SUCCESS
-    if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
-       call fldbun_getdata2d(FB, trim(fldname), data, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       ip = period_inst
-       do n = 1,size(data, dim=2)
-          budget(nf_16O,c_atm_recv,ip) = budget(nf_16O,c_atm_recv,ip) - areas(n)*afrac(n)*data(1,n)
-          budget(nf_16O,c_lnd_arecv,ip) = budget(nf_16O,c_lnd_arecv,ip) + areas(n)*lfrac(n)*data(1,n)
-          budget(nf_16O,c_ocn_arecv,ip) = budget(nf_16O,c_ocn_arecv,ip) + areas(n)*ofrac(n)*data(1,n)
-          if (lats(n) > 0.0_r8) then
-             budget(nf_16O,c_inh_arecv,ip) = budget(nf_16O,c_inh_arecv,ip) + areas(n)*ifrac(n)*data(1,n)
-          else
-             budget(nf_16O,c_ish_arecv,ip) = budget(nf_16O,c_ish_arecv,ip) + areas(n)*ifrac(n)*data(1,n)
-          end if
-
-          budget(nf_18O,c_atm_recv,ip) = budget(nf_18O,c_atm_recv,ip) - areas(n)*afrac(n)*data(2,n)
-          budget(nf_18O,c_lnd_arecv,ip) = budget(nf_18O,c_lnd_arecv,ip) + areas(n)*lfrac(n)*data(2,n)
-          budget(nf_18O,c_ocn_arecv,ip) = budget(nf_18O,c_ocn_arecv,ip) + areas(n)*ofrac(n)*data(2,n)
-          if (lats(n) > 0.0_r8) then
-             budget(nf_18O,c_inh_arecv,ip) = budget(nf_18O,c_inh_arecv,ip) + areas(n)*ifrac(n)*data(2,n)
-          else
-             budget(nf_18O,c_ish_arecv,ip) = budget(nf_18O,c_ish_arecv,ip) + areas(n)*ifrac(n)*data(2,n)
-          end if
-
-          budget(nf_HDO,c_atm_recv,ip) = budget(nf_HDO,c_atm_recv,ip) - areas(n)*afrac(n)*data(3,n)
-          budget(nf_HDO,c_lnd_arecv,ip) = budget(nf_HDO,c_lnd_arecv,ip) + areas(n)*lfrac(n)*data(3,n)
-          budget(nf_HDO,c_ocn_arecv,ip) = budget(nf_HDO,c_ocn_arecv,ip) + areas(n)*ofrac(n)*data(3,n)
-          if (lats(n) > 0.0_r8) then
-             budget(nf_HDO,c_inh_arecv,ip) = budget(nf_HDO,c_inh_arecv,ip) + areas(n)*ifrac(n)*data(3,n)
-          else
-             budget(nf_HDO,c_ish_arecv,ip) = budget(nf_HDO,c_ish_arecv,ip) + areas(n)*ifrac(n)*data(3,n)
-          end if
-       end do
-    end if
-  end subroutine diag_atm_wiso_recv
-
-  subroutine diag_atm_wiso_send(FB, fldname, nf_16O, nf_18O, nf_HDO, areas, lats, &
-       afrac, lfrac, ofrac, ifrac, budget, rc)
-    ! input/output variables
-    type(ESMF_FieldBundle) , intent(in)    :: FB
-    character(len=*)       , intent(in)    :: fldname
-    integer                , intent(in)    :: nf_16O
-    integer                , intent(in)    :: nf_18O
-    integer                , intent(in)    :: nf_HDO
-    real(r8)               , intent(in)    :: areas(:)
-    real(r8)               , intent(in)    :: lats(:)
-    real(r8)               , intent(in)    :: afrac(:)
-    real(r8)               , intent(in)    :: lfrac(:)
-    real(r8)               , intent(in)    :: ofrac(:)
-    real(r8)               , intent(in)    :: ifrac(:)
-    real(r8)               , intent(inout) :: budget(:,:,:)
-    integer                , intent(out)   :: rc
-    ! local variables
-    integer           :: n, ip
-    real(r8), pointer :: data(:,:)
-    ! ------------------------------------------------------------------
-    rc = ESMF_SUCCESS
-    if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
-       call fldbun_getdata2d(FB, trim(fldname), data, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       ip = period_inst
-       do n = 1,size(data, dim=2)
-          budget(nf_16O,c_atm_send,ip) = budget(nf_16O,c_atm_send,ip) - areas(n)*afrac(n)*data(1,n)
-          budget(nf_16O,c_lnd_asend,ip) = budget(nf_16O,c_lnd_asend,ip) + areas(n)*lfrac(n)*data(1,n)
-          budget(nf_16O,c_ocn_asend,ip) = budget(nf_16O,c_ocn_asend,ip) + areas(n)*ofrac(n)*data(1,n)
-          if (lats(n) > 0.0_r8) then
-             budget(nf_16O,c_inh_asend,ip) = budget(nf_16O,c_inh_asend,ip) + areas(n)*ifrac(n)*data(1,n)
-          else
-             budget(nf_16O,c_ish_asend,ip) = budget(nf_16O,c_ish_asend,ip) + areas(n)*ifrac(n)*data(1,n)
-          end if
-
-          budget(nf_18O,c_atm_send,ip) = budget(nf_18O,c_atm_send,ip) - areas(n)*afrac(n)*data(2,n)
-          budget(nf_18O,c_lnd_asend,ip) = budget(nf_18O,c_lnd_asend,ip) + areas(n)*lfrac(n)*data(2,n)
-          budget(nf_18O,c_ocn_asend,ip) = budget(nf_18O,c_ocn_asend,ip) + areas(n)*ofrac(n)*data(2,n)
-          if (lats(n) > 0.0_r8) then
-             budget(nf_18O,c_inh_asend,ip) = budget(nf_18O,c_inh_asend,ip) + areas(n)*ifrac(n)*data(2,n)
-          else
-             budget(nf_18O,c_ish_asend,ip) = budget(nf_18O,c_ish_asend,ip) + areas(n)*ifrac(n)*data(2,n)
-          end if
-
-          budget(nf_HDO,c_atm_send,ip) = budget(nf_HDO,c_atm_send,ip) - areas(n)*afrac(n)*data(3,n)
-          budget(nf_HDO,c_lnd_asend,ip) = budget(nf_HDO,c_lnd_asend,ip) + areas(n)*lfrac(n)*data(3,n)
-          budget(nf_HDO,c_ocn_asend,ip) = budget(nf_HDO,c_ocn_asend,ip) + areas(n)*ofrac(n)*data(3,n)
-          if (lats(n) > 0.0_r8) then
-             budget(nf_HDO,c_inh_asend,ip) = budget(nf_HDO,c_inh_asend,ip) + areas(n)*ifrac(n)*data(3,n)
-          else
-             budget(nf_HDO,c_ish_asend,ip) = budget(nf_HDO,c_ish_asend,ip) + areas(n)*ifrac(n)*data(3,n)
-          end if
-       end do
-    end if
-  end subroutine diag_atm_wiso_send
-
   !===============================================================================
   subroutine med_phases_diag_lnd( gcomp, rc)
 
@@ -1032,18 +834,6 @@ contains
          areas, lfrac, budget_local, minus=.true., rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    if (flds_wiso) then
-       call diag_lnd_wiso(is_local%wrap%FBImp(complnd,complnd), 'Flrl_evap_wiso', &
-            f_watr_evap_16O, f_watr_evap_18O, f_watr_evap_HDO, ic, areas, lfrac, budget_local, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call diag_lnd_wiso(is_local%wrap%FBImp(complnd,complnd), 'Flrl_rofl_wiso', &
-            f_watr_roff_16O, f_watr_roff_18O, f_watr_roff_HDO, ic, areas, lfrac, budget_local, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call diag_lnd_wiso(is_local%wrap%FBImp(complnd,complnd), 'Flrl_rofi_wiso', &
-            f_watr_ioff_16O, f_watr_ioff_18O, f_watr_ioff_HDO, ic, areas, lfrac, budget_local, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    end if
-
     budget_local(f_heat_ioff,ic,ip) = -budget_local(f_watr_ioff,ic,ip)*shr_const_latice
 
     !-------------------------------
@@ -1068,23 +858,6 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call diag_lnd(is_local%wrap%FBExp(complnd), 'Flrl_flood', f_watr_roff, ic, areas, lfrac, budget_local, minus=.true., rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    if (flds_wiso) then
-       call diag_lnd_wiso(is_local%wrap%FBExp(complnd), 'Faxa_rainc_wiso', &
-            f_watr_rain_16O, f_watr_rain_18O, f_watr_rain_HDO, ic, areas, lfrac, budget_local, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call diag_lnd_wiso(is_local%wrap%FBExp(complnd), 'Faxa_rainl_wiso', &
-            f_watr_rain_16O, f_watr_rain_18O, f_watr_rain_HDO, ic, areas, lfrac, budget_local, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call diag_lnd_wiso(is_local%wrap%FBExp(complnd), 'Faxa_snowc_wiso', &
-            f_watr_snow_16O, f_watr_snow_18O, f_watr_snow_HDO, ic, areas, lfrac, budget_local, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call diag_lnd_wiso(is_local%wrap%FBExp(complnd), 'Faxa_snowl_wiso', &
-            f_watr_snow_16O, f_watr_snow_18O, f_watr_snow_HDO, ic, areas, lfrac, budget_local, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call diag_lnd_wiso(is_local%wrap%FBExp(complnd), 'Flrl_flood_wiso', &
-            f_watr_roff_16O, f_watr_roff_18O, f_watr_roff_HDO, ic, areas, lfrac, budget_local, minus=.true., rc=rc)
-    end if
 
     budget_local(f_heat_latf,ic,ip) = -budget_local(f_watr_snow,ic,ip)*shr_const_latice
 
@@ -1121,43 +894,6 @@ contains
        end do
     end if
   end subroutine diag_lnd
-
-  subroutine diag_lnd_wiso(FB, fldname, nf_16O, nf_18O, nf_HDO, ic, areas, lfrac, budget, minus, rc)
-    ! input/output variables
-    type(ESMF_FieldBundle) , intent(in)    :: FB
-    character(len=*)       , intent(in)    :: fldname
-    integer                , intent(in)    :: nf_16O
-    integer                , intent(in)    :: nf_18O
-    integer                , intent(in)    :: nf_HDO
-    integer                , intent(in)    :: ic
-    real(r8)               , intent(in)    :: areas(:)
-    real(r8)               , intent(in)    :: lfrac(:)
-    real(r8)               , intent(inout) :: budget(:,:,:)
-    logical, optional      , intent(in)    :: minus
-    integer                , intent(out)   :: rc
-    ! local variables
-    integer           :: n, ip
-    real(r8), pointer :: data(:,:)
-    ! ------------------------------------------------------------------
-    rc = ESMF_SUCCESS
-
-    if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
-       call fldbun_getdata2d(FB, trim(fldname), data, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       ip = period_inst
-       do n = 1, size(data, dim=2)
-          if (present(minus)) then
-             budget(nf_16O,ic,ip) = budget(nf_16O,ic,ip) - areas(n)*lfrac(n)*data(1,n)
-             budget(nf_18O,ic,ip) = budget(nf_18O,ic,ip) - areas(n)*lfrac(n)*data(2,n)
-             budget(nf_HDO,ic,ip) = budget(nf_HDO,ic,ip) - areas(n)*lfrac(n)*data(3,n)
-          else
-             budget(nf_16O,ic,ip) = budget(nf_16O,ic,ip) + areas(n)*lfrac(n)*data(1,n)
-             budget(nf_18O,ic,ip) = budget(nf_18O,ic,ip) + areas(n)*lfrac(n)*data(2,n)
-             budget(nf_HDO,ic,ip) = budget(nf_HDO,ic,ip) + areas(n)*lfrac(n)*data(3,n)
-          end if
-       end do
-    end if
-  end subroutine diag_lnd_wiso
 
   !===============================================================================
   subroutine med_phases_diag_rof( gcomp, rc)
@@ -1203,27 +939,18 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if ( fldbun_fldchk(is_local%wrap%FBImp(comprof,comprof), 'Forr_rofl_glc', rc=rc)) then
-      call diag_rof(is_local%wrap%FBImp(comprof,comprof), 'Forr_rofl_glc' , f_watr_roff, ic, areas, budget_local, minus=.true., rc=rc)
+      call diag_rof(is_local%wrap%FBImp(comprof,comprof), 'Forr_rofl_glc' , f_watr_roff_glc, &
+           ic, areas, budget_local, minus=.true., rc=rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
     if ( fldbun_fldchk(is_local%wrap%FBImp(comprof,comprof), 'Forr_rofi_glc', rc=rc)) then
-      call diag_rof(is_local%wrap%FBImp(comprof,comprof), 'Forr_rofi_glc' , f_watr_ioff, ic, areas, budget_local, minus=.true., rc=rc)
+      call diag_rof(is_local%wrap%FBImp(comprof,comprof), 'Forr_rofi_glc' , f_watr_ioff_glc, &
+           ic, areas, budget_local, minus=.true., rc=rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
-    if (flds_wiso) then
-       call diag_rof_wiso(is_local%wrap%FBExp(comprof), 'Forr_flood_wiso', &
-            f_watr_ioff_16O, f_watr_ioff_18O, f_watr_ioff_HDO, ic, areas, budget_local, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call diag_rof_wiso(is_local%wrap%FBExp(comprof), 'Forr_rofl_wiso', &
-            f_watr_roff_16O, f_watr_roff_18O, f_watr_roff_HDO, ic, areas, budget_local, minus=.true., rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call diag_rof_wiso(is_local%wrap%FBExp(comprof), 'Forr_rofi_wiso', &
-            f_watr_ioff_16O, f_watr_ioff_18O, f_watr_ioff_HDO, ic, areas, budget_local, minus=.true., rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    end if
-
     budget_local(f_heat_ioff,ic,ip) = -budget_local(f_watr_ioff,ic,ip)*shr_const_latice
+    budget_local(f_heat_ioff_glc,ic,ip) = -budget_local(f_watr_ioff_glc,ic,ip)*shr_const_latice
 
     !-------------------------------
     ! to river from mediator
@@ -1243,24 +970,16 @@ contains
     call diag_rof(is_local%wrap%FBExp(comprof), 'Flrl_rofi'  , f_watr_ioff, ic, areas, budget_local, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (fldbun_fldchk(is_local%wrap%FBExp(comprof), 'Fgrg_rofl', rc=rc)) then
-      call diag_rof(is_local%wrap%FBExp(comprof), 'Fgrg_rofl'  , f_watr_roff, ic, areas, budget_local, rc=rc)
+      call diag_rof(is_local%wrap%FBExp(comprof), 'Fgrg_rofl'  , f_watr_roff_glc, ic, areas, budget_local, rc=rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
     if (fldbun_fldchk(is_local%wrap%FBExp(comprof), 'Fgrg_rofi', rc=rc)) then
-      call diag_rof(is_local%wrap%FBExp(comprof), 'Fgrg_rofi'  , f_watr_ioff, ic, areas, budget_local, rc=rc)
+      call diag_rof(is_local%wrap%FBExp(comprof), 'Fgrg_rofi'  , f_watr_ioff_glc, ic, areas, budget_local, rc=rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
-    if (flds_wiso) then
-       call diag_rof_wiso(is_local%wrap%FBExp(comprof), 'Flrl_rofl_wiso', &
-            f_watr_roff_16O, f_watr_roff_18O, f_watr_roff_HDO, ic, areas, budget_local, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call diag_rof_wiso(is_local%wrap%FBExp(comprof), 'Flrl_rofi_wiso', &
-         f_watr_ioff_16O, f_watr_ioff_18O, f_watr_ioff_HDO, ic, areas, budget_local, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    end if
-
     budget_local(f_heat_ioff,ic,ip) = -budget_local(f_watr_ioff,ic,ip)*shr_const_latice
+    budget_local(f_heat_ioff_glc,ic,ip) = -budget_local(f_watr_ioff_glc,ic,ip)*shr_const_latice
 
     call t_stopf('MED:'//subname)
   end subroutine med_phases_diag_rof
@@ -1295,43 +1014,6 @@ contains
        end do
     end if
   end subroutine diag_rof
-
-  subroutine diag_rof_wiso(FB, fldname, nf_16O, nf_18O, nf_HDO, ic, areas, budget, minus, rc)
-    ! input/output variables
-    type(ESMF_FieldBundle) , intent(in)    :: FB
-    character(len=*)       , intent(in)    :: fldname
-    integer                , intent(in)    :: nf_16O
-    integer                , intent(in)    :: nf_18O
-    integer                , intent(in)    :: nf_HDO
-    integer                , intent(in)    :: ic
-    real(r8)               , intent(in)    :: areas(:)
-    real(r8)               , intent(inout) :: budget(:,:,:)
-    logical, optional      , intent(in)    :: minus
-    integer                , intent(out)   :: rc
-
-    ! local variables
-    integer           :: n, ip
-    real(r8), pointer :: data(:,:)
-    ! ------------------------------------------------------------------
-    rc = ESMF_SUCCESS
-
-    if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
-       call fldbun_getdata2d(FB, trim(fldname), data, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       ip = period_inst
-       do n = 1, size(data, dim=2)
-          if (present(minus)) then
-             budget(nf_16O,ic,ip) = budget(nf_16O,ic,ip) - areas(n)*data(1,n)
-             budget(nf_18O,ic,ip) = budget(nf_18O,ic,ip) - areas(n)*data(2,n)
-             budget(nf_HDO,ic,ip) = budget(nf_HDO,ic,ip) - areas(n)*data(3,n)
-          else
-             budget(nf_16O,ic,ip) = budget(nf_16O,ic,ip) + areas(n)*data(1,n)
-             budget(nf_18O,ic,ip) = budget(nf_18O,ic,ip) + areas(n)*data(2,n)
-             budget(nf_HDO,ic,ip) = budget(nf_HDO,ic,ip) + areas(n)*data(3,n)
-          end if
-       end do
-    end if
-  end subroutine diag_rof_wiso
 
   !===============================================================================
   subroutine med_phases_diag_glc( gcomp, rc)
@@ -1369,15 +1051,15 @@ contains
 
     do ns = 1,is_local%wrap%num_icesheets
        areas => is_local%wrap%mesh_info(compglc(ns))%areas
-       call diag_glc(is_local%wrap%FBImp(compglc(ns),compglc(ns)), 'Fgrg_rofl', f_watr_roff, ic, areas, budget_local, minus=.true., rc=rc)
+       call diag_glc(is_local%wrap%FBImp(compglc(ns),compglc(ns)), 'Fgrg_rofl', f_watr_roff_glc, ic, areas, budget_local, minus=.true., rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call diag_glc(is_local%wrap%FBImp(compglc(ns),compglc(ns)), 'Fgrg_rofi', f_watr_ioff, ic, areas, budget_local, minus=.true., rc=rc)
+       call diag_glc(is_local%wrap%FBImp(compglc(ns),compglc(ns)), 'Fgrg_rofi', f_watr_ioff_glc, ic, areas, budget_local, minus=.true., rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call diag_glc(is_local%wrap%FBImp(compglc(ns),compglc(ns)), 'Figg_rofi', f_watr_ioff, ic, areas, budget_local, minus=.true., rc=rc)
+       call diag_glc(is_local%wrap%FBImp(compglc(ns),compglc(ns)), 'Figg_rofi', f_watr_ioff_glc, ic, areas, budget_local, minus=.true., rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end do
 
-    budget_local(f_heat_ioff,ic,ip) = -budget_local(f_watr_ioff,ic,ip)*shr_const_latice
+    budget_local(f_heat_ioff_glc,ic,ip) = -budget_local(f_watr_ioff_glc,ic,ip)*shr_const_latice
 
     call t_stopf('MED:'//subname)
   end subroutine med_phases_diag_glc
@@ -1557,33 +1239,12 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if ( fldbun_fldchk(is_local%wrap%FBExp(compocn), 'Forr_rofl_glc' , rc=rc)) then
-      call diag_ocn(is_local%wrap%FBExp(compocn), 'Forr_rofl_glc' , f_watr_roff   , ic, areas, sfrac, budget_local, rc=rc)
+      call diag_ocn(is_local%wrap%FBExp(compocn), 'Forr_rofl_glc' , f_watr_roff_glc, ic, areas, sfrac, budget_local, rc=rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
     if ( fldbun_fldchk(is_local%wrap%FBExp(compocn), 'Forr_rofi_glc' , rc=rc)) then
-      call diag_ocn(is_local%wrap%FBExp(compocn), 'Forr_rofi_glc' , f_watr_ioff   , ic, areas, sfrac, budget_local, rc=rc)
+      call diag_ocn(is_local%wrap%FBExp(compocn), 'Forr_rofi_glc' , f_watr_ioff_glc, ic, areas, sfrac, budget_local, rc=rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    end if
-
-    if (flds_wiso) then
-       call diag_ocn_wiso(is_local%wrap%FBMed_aoflux_o, 'Faox_evap_wiso', &
-            f_watr_evap_16O, f_watr_evap_18O, f_watr_evap_HDO, ic, areas, ofrac, budget_local, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call diag_ocn_wiso(is_local%wrap%FBExp(compocn), 'Fioi_meltw_wiso', &
-            f_watr_melt_16O, f_watr_melt_HDO, f_watr_melt_HDO, ic, areas, sfrac, budget_local, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call diag_ocn_wiso(is_local%wrap%FBExp(compocn), 'Fioi_rain_wiso' , &
-            f_watr_rain_16O, f_watr_rain_HDO, f_watr_rain_HDO, ic, areas, sfrac, budget_local, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call diag_ocn_wiso(is_local%wrap%FBExp(compocn), 'Fioi_snow_wiso' , &
-            f_watr_snow_16O, f_watr_snow_HDO, f_watr_snow_HDO, ic,  areas, sfrac, budget_local, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call diag_ocn_wiso(is_local%wrap%FBExp(compocn), 'Foxx_rofl_wiso' , &
-            f_watr_roff_16O, f_watr_roff_HDO, f_watr_roff_HDO, ic,  areas, sfrac, budget_local, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call diag_ocn_wiso(is_local%wrap%FBExp(compocn), 'Foxx_rofi_wiso' , &
-            f_watr_ioff_16O, f_watr_ioff_HDO, f_watr_ioff_HDO, ic,  areas, sfrac, budget_local, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
     call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_hrain', f_heat_rain , ic, areas, sfrac, budget_local, rc=rc)
@@ -1596,11 +1257,16 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_hrofl', f_heat_rofl , ic, areas, sfrac, budget_local, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_hrofl_glc', f_heat_rofl_glc , ic, areas, sfrac, budget_local, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_hrofi', f_heat_rofi , ic, areas, sfrac, budget_local, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_hrofi_glc', f_heat_rofi_glc , ic, areas, sfrac, budget_local, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     budget_local(f_heat_latf,ic,ip) = -budget_local(f_watr_snow,ic,ip)*shr_const_latice
     budget_local(f_heat_ioff,ic,ip) = -budget_local(f_watr_ioff,ic,ip)*shr_const_latice
+    budget_local(f_heat_ioff_glc,ic,ip) = -budget_local(f_watr_ioff_glc,ic,ip)*shr_const_latice
 
     deallocate(sfrac)
     call t_stopf('MED:'//subname)
@@ -1637,36 +1303,6 @@ contains
        end do
     end if
   end subroutine diag_ocn
-
-  subroutine diag_ocn_wiso(FB, fldname, nf_16O, nf_18O, nf_HDO, ic, areas, frac, budget, rc)
-    ! input/output variables
-    type(ESMF_FieldBundle) , intent(in)    :: FB
-    character(len=*)       , intent(in)    :: fldname
-    integer                , intent(in)    :: nf_16O
-    integer                , intent(in)    :: nf_18O
-    integer                , intent(in)    :: nf_HDO
-    integer                , intent(in)    :: ic
-    real(r8)               , intent(in)    :: areas(:)
-    real(r8)               , intent(in)    :: frac(:)
-    real(r8)               , intent(inout) :: budget(:,:,:)
-    integer                , intent(out)   :: rc
-
-    ! local variables
-    integer           :: n, ip
-    real(r8), pointer :: data(:,:)
-    ! ------------------------------------------------------------------
-    rc = ESMF_SUCCESS
-    if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
-       call fldbun_getdata2d(FB, trim(fldname), data, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       ip = period_inst
-       do n = 1, size(data, dim=2)
-          budget(nf_16O,ic,ip) = budget(nf_16O,ic,ip) + areas(n)*frac(n)*data(1,n)
-          budget(nf_18O,ic,ip) = budget(nf_18O,ic,ip) + areas(n)*frac(n)*data(2,n)
-          budget(nf_HDO,ic,ip) = budget(nf_HDO,ic,ip) + areas(n)*frac(n)*data(3,n)
-       end do
-    end if
-  end subroutine diag_ocn_wiso
 
   !===============================================================================
   subroutine med_phases_diag_ice_ice2med( gcomp, rc)
@@ -1765,15 +1401,6 @@ contains
          areas, lats, ifrac, budget_local, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    if (flds_wiso) then
-       call diag_ice_recv_wiso(is_local%wrap%FBImp(compice,compice), 'Fioi_meltw_wiso', &
-            f_watr_melt_16O, f_watr_melt_18O, f_watr_melt_HDO, areas, lats, ifrac, budget_local, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call diag_ice_recv_wiso(is_local%wrap%FBImp(compice,compice), 'Faii_evap_wiso', &
-            f_watr_evap_16O, f_watr_evap_18O, f_watr_evap_HDO, areas, lats, ifrac, budget_local, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    end if
-
     call t_stopf('MED:'//subname)
   end subroutine med_phases_diag_ice_ice2med
 
@@ -1821,47 +1448,6 @@ contains
     end if
   end subroutine diag_ice_recv
 
-  subroutine diag_ice_recv_wiso(FB, fldname, nf_16O, nf_18O, nf_HDO, areas, lats, ifrac, budget, minus, rc)
-    ! input/output variables
-    type(ESMF_FieldBundle) , intent(in)    :: FB
-    character(len=*)       , intent(in)    :: fldname
-    integer                , intent(in)    :: nf_16O
-    integer                , intent(in)    :: nf_18O
-    integer                , intent(in)    :: nf_HDO
-    real(r8)               , intent(in)    :: areas(:)
-    real(r8)               , intent(in)    :: lats(:)
-    real(r8)               , intent(in)    :: ifrac(:)
-    real(r8)               , intent(inout) :: budget(:,:,:)
-    logical, optional      , intent(in)    :: minus
-    integer                , intent(out)   :: rc
-    ! local variables
-    integer           :: n, ic, ip
-    real(r8), pointer :: data(:,:)
-    ! ------------------------------------------------------------------
-    rc = ESMF_SUCCESS
-
-    if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
-       call fldbun_getdata2d(FB, trim(fldname), data, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       ip = period_inst
-       do n = 1, size(data, dim=2)
-          if (lats(n) > 0.0_r8) then
-             ic = c_inh_recv
-          else
-             ic = c_ish_recv
-          endif
-          if (present(minus)) then
-             budget(nf_16O,ic,ip) = budget(nf_16O,ic,ip) - areas(n)*ifrac(n)*data(1,n)
-             budget(nf_18O,ic,ip) = budget(nf_18O,ic,ip) - areas(n)*ifrac(n)*data(2,n)
-             budget(nf_HDO,ic,ip) = budget(nf_HDO,ic,ip) - areas(n)*ifrac(n)*data(3,n)
-          else
-             budget(nf_16O,ic,ip) = budget(nf_16O,ic,ip) + areas(n)*ifrac(n)*data(1,n)
-             budget(nf_18O,ic,ip) = budget(nf_18O,ic,ip) + areas(n)*ifrac(n)*data(2,n)
-             budget(nf_HDO,ic,ip) = budget(nf_HDO,ic,ip) + areas(n)*ifrac(n)*data(3,n)
-          end if
-       end do
-    end if
-  end subroutine diag_ice_recv_wiso
 
   !===============================================================================
   subroutine med_phases_diag_ice_med2ice( gcomp, rc)
@@ -1948,15 +1534,6 @@ contains
        budget_local(f_watr_frz ,ic,ip) =  budget_local(f_heat_frz ,ic,ip)*HFLXtoWFLX
     end if
 
-    if (flds_wiso) then
-       call diag_ice_send_wiso(is_local%wrap%FBExp(compice), 'Faxa_rain_wiso', &
-            f_watr_rain_16O, f_watr_rain_18O, f_watr_rain_HDO, areas, lats, ifrac, budget_local, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call diag_ice_send_wiso(is_local%wrap%FBExp(compice), 'Faxa_snow_wiso', &
-            f_watr_snow_16O, f_watr_snow_18O, f_watr_snow_HDO, areas, lats, ifrac, budget_local, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    end if
-
     call t_stopf('MED:'//subname)
   end subroutine med_phases_diag_ice_med2ice
 
@@ -1989,41 +1566,6 @@ contains
        end do
     end if
   end subroutine diag_ice_send
-
-  subroutine diag_ice_send_wiso(FB, fldname, nf_16O, nf_18O, nf_HDO, areas, lats, ifrac, budget, rc)
-    ! input/output variables
-    type(ESMF_FieldBundle) , intent(in)    :: FB
-    character(len=*)       , intent(in)    :: fldname
-    integer                , intent(in)    :: nf_16O
-    integer                , intent(in)    :: nf_18O
-    integer                , intent(in)    :: nf_HDO
-    real(r8)               , intent(in)    :: areas(:)
-    real(r8)               , intent(in)    :: lats(:)
-    real(r8)               , intent(in)    :: ifrac(:)
-    real(r8)               , intent(inout) :: budget(:,:,:)
-    integer                , intent(out)   :: rc
-
-    ! local variables
-    integer           :: n, ic, ip
-    real(r8), pointer :: data(:,:)
-    ! ------------------------------------------------------------------
-    rc = ESMF_SUCCESS
-    if ( fldbun_fldchk(FB, trim(fldname), rc=rc)) then
-       call fldbun_getdata2d(FB, trim(fldname), data, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       ip = period_inst
-       do n = 1, size(data, dim=2)
-          if (lats(n) > 0.0_r8) then
-             ic = c_inh_send
-          else
-             ic = c_ish_send
-          endif
-          budget(nf_16O,ic,ip) = budget(nf_16O,ic,ip) + areas(n)*ifrac(n)*data(1,n)
-          budget(nf_18O,ic,ip) = budget(nf_18O,ic,ip) + areas(n)*ifrac(n)*data(2,n)
-          budget(nf_HDO,ic,ip) = budget(nf_HDO,ic,ip) + areas(n)*ifrac(n)*data(3,n)
-       end do
-    end if
-  end subroutine diag_ice_send_wiso
 
   !===============================================================================
   subroutine med_phases_diag_print(gcomp, rc)
@@ -2142,9 +1684,6 @@ contains
              ! budget normalizations (global area and 1e6 for water)
              datagpr = datagpr/(4.0_r8*shr_const_pi)
              datagpr(f_watr_beg:f_watr_end,:,:) = datagpr(f_watr_beg:f_watr_end,:,:) * 1.0e6_r8
-             if ( flds_wiso ) then
-                datagpr(iso0(1):isof(nisotopes),:,:) = datagpr(iso0(1):isof(nisotopes),:,:) * 1.0e6_r8
-             end if
              datagpr(:,:,:) = datagpr(:,:,:)/budget_counter(:,:,:)
 
              ! Write diagnostic tables to logunit (maintask only)
@@ -2190,7 +1729,7 @@ contains
     integer , intent(in) :: tod
 
     ! local variables
-    integer           :: ic,nf,is ! data array indicies
+    integer           :: ic,nf ! data array indicies
     integer           :: ica,icl
     integer           :: icn,ics,ico
     character(len=40) :: str         ! string
@@ -2294,38 +1833,6 @@ contains
             sum(data(f_watr_beg:f_watr_end,icn,ip)) + sum(data(f_watr_beg:f_watr_end,ics,ip)) + &
             sum(data(f_watr_beg:f_watr_end,ico,ip))
 
-       if ( flds_wiso ) then
-          do is = 1, nisotopes
-             write(diagunit,*) ' '
-             write(diagunit,FAH) subname,trim(str)//' '//isoname(is)//' WATER BUDGET (kg/m2s*1e6): period = ', &
-                  trim(budget_diags%periods(ip)%name),': date = ',date,tod
-             write(diagunit,FA0) &
-                  budget_diags%comps(ica)%name,&
-                  budget_diags%comps(icl)%name,&
-                  budget_diags%comps(icn)%name,&
-                  budget_diags%comps(ics)%name,&
-                  budget_diags%comps(ico)%name,' *SUM*  '
-             do nf = iso0(is), isof(is)
-                write(diagunit,FA1) budget_diags%fields(nf)%name,&
-                     data(nf,ica,ip), &
-                     data(nf,icl,ip), &
-                     data(nf,icn,ip), &
-                     data(nf,ics,ip), &
-                     data(nf,ico,ip), &
-                     data(nf,ica,ip) + data(nf,icl,ip) + data(nf,icn,ip) + data(nf,ics,ip) + data(nf,ico,ip)
-             enddo
-             write(diagunit,FA1)    '   *SUM*', &
-                  sum(data(iso0(is):isof(is),ica,ip)), &
-                  sum(data(iso0(is):isof(is),icl,ip)), &
-                  sum(data(iso0(is):isof(is),icn,ip)), &
-                  sum(data(iso0(is):isof(is),ics,ip)), &
-                  sum(data(iso0(is):isof(is),ico,ip)), &
-                  sum(data(iso0(is):isof(is),ica,ip)) + sum(data(iso0(is):isof(is),icl,ip)) + &
-                  sum(data(iso0(is):isof(is),icn,ip)) + sum(data(iso0(is):isof(is),ics,ip)) + &
-                  sum(data(iso0(is):isof(is),ico,ip))
-          end do
-       end if
-
     enddo
 
   end subroutine med_diag_print_atm
@@ -2344,7 +1851,7 @@ contains
     integer , intent(in) :: tod
 
     ! local variables
-    integer           :: ic,nf,is ! data array indicies
+    integer           :: ic,nf ! data array indicies
     integer           :: icar,icas
     integer           :: icxs,icxr
     character(len=40) :: str      ! string
@@ -2433,65 +1940,6 @@ contains
             -sum(data(f_watr_beg:f_watr_end,icas,ip)), &
             -sum(data(f_watr_beg:f_watr_end,icar,ip)) + sum(data(f_watr_beg:f_watr_end,icxs,ip)) + &
              sum(data(f_watr_beg:f_watr_end,icxr,ip)) - sum(data(f_watr_beg:f_watr_end,icas,ip))
-
-       if ( flds_wiso ) then
-          do is = 1, nisotopes
-
-            ! heat budgets atm<->lnd, atm<->ocn, atm<->ice_nh, atm<->ice_sh for water isotopes
-
-             write(diagunit,*) ' '
-             write(diagunit,FAH) subname,trim(str)//isoname(is)//' WATER BUDGET (kg/m2s*1e6): period = ',&
-                  trim(budget_diags%periods(ip)%name), &
-                  ': date = ',date,tod
-             write(diagunit,FA0) &
-                  budget_diags%comps(icar)%name,&
-                  budget_diags%comps(icxs)%name,&
-                  budget_diags%comps(icxr)%name,&
-                  budget_diags%comps(icas)%name,' *SUM*  '
-             do nf = iso0(is), isof(is)
-                write(diagunit,FA1) budget_diags%fields(nf)%name,&
-                     -data(nf,icar,ip), &
-                      data(nf,icxs,ip), &
-                      data(nf,icxr,ip), &
-                     -data(nf,icas,ip), &
-                     -data(nf,icar,ip) + data(nf,icxs,ip) + data(nf,icxr,ip) - data(nf,icas,ip)
-             enddo
-             write(diagunit,FA1)    '   *SUM*',&
-                  -sum(data(iso0(is):isof(is),icar,ip)),&
-                   sum(data(iso0(is):isof(is),icxs,ip)), &
-                   sum(data(iso0(is):isof(is),icxr,ip)), &
-                  -sum(data(iso0(is):isof(is),icas,ip)), &
-                  -sum(data(iso0(is):isof(is),icar,ip)) + sum(data(iso0(is):isof(is),icxs,ip)) + &
-                   sum(data(iso0(is):isof(is),icxr,ip)) - sum(data(iso0(is):isof(is),icas,ip))
-
-             ! water budgets atm<->lnd, atm<->ocn, atm<->ice_nh, atm<->ice_sh for water isotopes
-
-             write(diagunit,*) ' '
-             write(diagunit,FAH) subname,trim(str)//isoname(is)//' WATER BUDGET (kg/m2s*1e6): period = ',&
-                  trim(budget_diags%periods(ip)%name),&
-                  ': date = ',date,tod
-             write(diagunit,FA0) &
-                  budget_diags%comps(icar)%name,&
-                  budget_diags%comps(icxs)%name,&
-                  budget_diags%comps(icxr)%name,&
-                  budget_diags%comps(icas)%name,' *SUM*  '
-             do nf = iso0(is), isof(is)
-                write(diagunit,FA1) budget_diags%fields(nf)%name,&
-                     -data(nf,icar,ip), &
-                      data(nf,icxs,ip), &
-                      data(nf,icxr,ip), &
-                     -data(nf,icas,ip), &
-                     -data(nf,icar,ip) + data(nf,icxs,ip) + data(nf,icxr,ip) - data(nf,icas,ip)
-             enddo
-             write(diagunit,FA1)    '   *SUM*',                &
-                  -sum(data(iso0(is):isof(is), icar, ip)), &
-                   sum(data(iso0(is):isof(is), icxs, ip)), &
-                   sum(data(iso0(is):isof(is), icxr, ip)), &
-                  -sum(data(iso0(is):isof(is), icas, ip)), &
-                  -sum(data(iso0(is):isof(is), icar, ip)) + sum(data(iso0(is):isof(is), icxs, ip)) + &
-                   sum(data(iso0(is):isof(is), icxr, ip)) - sum(data(iso0(is):isof(is), icas, ip))
-          end do
-       end if
     enddo
 
   end subroutine med_diag_print_lnd_ice_ocn
@@ -2510,7 +1958,7 @@ contains
     integer , intent(in) :: tod
 
     ! local variables
-    integer  :: nf,is ! data array indicies
+    integer  :: nf ! data array indicies
     real(r8) :: atm_area, lnd_area, ocn_area
     real(r8) :: ice_area_nh, ice_area_sh
     real(r8) :: sum_area
@@ -2648,55 +2096,6 @@ contains
     write(diagunit,FA1r)'   *SUM*',&
          sum_net_water_atm, sum_net_water_lnd, sum_net_water_rof, sum_net_water_ocn, &
          sum_net_water_ice_nh, sum_net_water_ice_sh, sum_net_water_glc, sum_net_water_tot
-
-    ! write out net water water-isoptope budgets
-
-    if ( flds_wiso ) then
-
-       do is = 1, nisotopes
-          write(diagunit,*) ' '
-          write(diagunit,FAH) subname,'NET '//isoname(is)//' WATER BUDGET (kg/m2s*1e6): period = ', &
-               trim(budget_diags%periods(ip)%name),': date = ',date,tod
-          write(diagunit,FA0r) '     atm','     lnd','     rof','     ocn','  ice nh','  ice sh','     glc',' *SUM*  '
-          do nf = iso0(is), isof(is)
-             net_water_atm    = data(nf, c_atm_recv, ip) + data(nf, c_atm_send, ip)
-             net_water_lnd    = data(nf, c_lnd_recv, ip) + data(nf, c_lnd_send, ip)
-             net_water_rof    = data(nf, c_rof_recv, ip) + data(nf, c_rof_send, ip)
-             net_water_ocn    = data(nf, c_ocn_recv, ip) + data(nf, c_ocn_send, ip)
-             net_water_ice_nh = data(nf, c_inh_recv, ip) + data(nf, c_inh_send, ip)
-             net_water_ice_sh = data(nf, c_ish_recv, ip) + data(nf, c_ish_send, ip)
-             net_water_glc    = data(nf, c_glc_recv, ip) + data(nf, c_glc_send, ip)
-             net_water_tot    = net_water_atm + net_water_lnd + net_water_rof + net_water_ocn + &
-                                net_water_ice_nh + net_water_ice_sh + net_water_glc
-
-             write(diagunit,FA1r) budget_diags%fields(nf)%name,&
-                  net_water_atm, net_water_lnd, net_water_rof, net_water_ocn, &
-                  net_water_ice_nh, net_water_ice_sh, net_water_glc, net_water_tot
-          enddo
-
-          sum_net_water_atm    = sum(data(iso0(is):isof(is), c_atm_recv, ip)) + &
-                                 sum(data(iso0(is):isof(is), c_atm_send, ip))
-          sum_net_water_lnd    = sum(data(iso0(is):isof(is), c_lnd_recv, ip)) + &
-                                 sum(data(iso0(is):isof(is), c_lnd_send, ip))
-          sum_net_water_rof    = sum(data(iso0(is):isof(is), c_rof_recv, ip)) + &
-                                 sum(data(iso0(is):isof(is), c_rof_send, ip))
-          sum_net_water_ocn    = sum(data(iso0(is):isof(is), c_ocn_recv, ip)) + &
-                                 sum(data(iso0(is):isof(is), c_ocn_send, ip))
-          sum_net_water_ice_nh = sum(data(iso0(is):isof(is), c_inh_recv, ip)) + &
-                                 sum(data(iso0(is):isof(is), c_inh_send, ip))
-          sum_net_water_ice_sh = sum(data(iso0(is):isof(is), c_ish_recv, ip)) + &
-                                 sum(data(iso0(is):isof(is), c_ish_send, ip))
-          sum_net_water_glc    = sum(data(iso0(is):isof(is), c_glc_recv, ip)) + &
-                                 sum(data(iso0(is):isof(is), c_glc_send, ip))
-          sum_net_water_tot    = sum_net_water_atm + sum_net_water_lnd + sum_net_water_rof + &
-                                 sum_net_water_ocn + sum_net_water_ice_nh + sum_net_water_ice_sh + &
-                                 sum_net_water_glc
-
-          write(diagunit,FA1r)'   *SUM*',&
-               sum_net_water_atm, sum_net_water_lnd, sum_net_water_rof, sum_net_water_ocn, &
-               sum_net_water_ice_nh, sum_net_water_ice_sh, sum_net_water_glc, sum_net_water_tot
-       end do
-    end if
 
     ! -----------------------------
     ! write out net salt budgets

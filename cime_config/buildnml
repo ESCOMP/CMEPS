@@ -7,7 +7,7 @@ _CIMEROOT = os.environ.get("CIMEROOT")
 if _CIMEROOT is None:
     raise SystemExit("ERROR: must set CIMEROOT environment variable")
 
-sys.path.append(os.path.join(_CIMEROOT, "scripts", "Tools"))
+sys.path.append(os.path.join(_CIMEROOT, "CIME", "Tools"))
 
 import shutil, glob, itertools
 from standard_script_setup import *
@@ -37,8 +37,6 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     config["CPL_I2O_PER_CAT"] = case.get_value("CPL_I2O_PER_CAT")
     config["DRV_THREADING"] = case.get_value("DRV_THREADING")
     config["CPL_ALBAV"] = case.get_value("CPL_ALBAV")
-    config["CPL_EPBAL"] = case.get_value("CPL_EPBAL")
-    config["FLDS_WISO"] = case.get_value("FLDS_WISO")
     config["BUDGETS"] = case.get_value("BUDGETS")
     config["MACH"] = case.get_value("MACH")
     config["MPILIB"] = case.get_value("MPILIB")
@@ -51,7 +49,6 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     )
     config["timer_level"] = "pos" if case.get_value("TIMER_LEVEL") >= 1 else "neg"
     config["continue_run"] = ".true." if case.get_value("CONTINUE_RUN") else ".false."
-    config["flux_epbal"] = "ocn" if case.get_value("CPL_EPBAL") == "ocn" else "off"
     config["mask_grid"] = case.get_value("MASK_GRID")
     for val in ("HIST", "REST", "STOP"):
         config[val.lower()+"_option"] = case.get_value(val+"_OPTION")
@@ -137,7 +134,8 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     elif case.get_value("RUN_TYPE") == "branch":
         config["run_type"] = "branch"
 
-    config['wav_ice_coupling'] = 'ww3' in config['COMP_WAV'] and config['COMP_ICE'] == 'cice'
+    if config['COMP_WAV'] == 'ww3' and config['COMP_ICE'] == 'cice':
+        config["wav_ice_coupling"] = "on"
 
     if config["COMP_OCN"] == "blom":
         if "ecosys" in case.get_value("BLOM_TRACER_MODULES"):
@@ -320,7 +318,9 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     # Write namelist file drv_in and initial input dataset list.
     # --------------------------------
     namelist_file = os.path.join(confdir, "drv_in")
-    drv_namelist_groups = ["DRIVER_attributes", "MED_attributes", "ALLCOMP_attributes", "ROF_attributes", "WAV_attributes"]
+    drv_namelist_groups = ["debug_inparm", "DRIVER_attributes", "MED_attributes", "ALLCOMP_attributes", "CLOCK_attributes", "PELAYOUT_attributes"]
+    # Add optional namelista that the GPTL library can read (from CIME or ESMF)
+    drv_namelist_groups.extend(  ["prof_inparm", "papi_inparm"] )
     nmlgen.write_output_file(
         namelist_file, data_list_path=data_list_path, groups=drv_namelist_groups
     )
@@ -628,12 +628,36 @@ def compare_drv_flds_in(first, second, infile1, infile2):
                 % (infile1, infile2),
             )
 
+def cmeps_lib_list(case):
+    # provide a list of support libs that must be built for this case
+    # should be ordered with dependent libraries listed after those depended on
+    # the library names should match the keys in variable BUILD_LIB_FILE from config_files.xml
+    ufs_driver = os.environ.get("UFS_DRIVER")
+    if ufs_driver:
+        logger.info("UFS_DRIVER is set to {}".format(ufs_driver))
+
+    libs = case.get_values("CASE_SUPPORT_LIBRARIES")
+
+    mpilib = case.get_value("MPILIB")
+    if mpilib == "mpi-serial" and "mpi-serial" not in libs:
+        libs.insert(0, mpilib)
+
+    ocn_model = case.get_value("COMP_OCN")
+    # These will be handled by MOM and CAM, included here for backward compatibility.
+    atm_dycore = case.get_value("CAM_DYCORE")
+    if (ocn_model == "mom" or (atm_dycore and atm_dycore == "fv3")) and "FMS" not in libs:
+        libs.append("FMS")
+    return libs
 
 ###############################################################################
 def buildnml(case, caseroot, component):
     ###############################################################################
     if component != "drv":
         raise AttributeError
+
+    libs = cmeps_lib_list(case)
+    with Case(case.get_value("CASEROOT"), read_only=False) as case_tmp:
+        case_tmp.set_value("CASE_SUPPORT_LIBRARIES", ",".join(libs))
 
     esmfmkfile = os.getenv("ESMFMKFILE")
     expect(
@@ -725,7 +749,7 @@ def buildnml(case, caseroot, component):
 def _main_func():
     caseroot = parse_input(sys.argv)
 
-    with Case(caseroot) as case:
+    with Case(caseroot, read_only=False) as case:
         buildnml(case, caseroot, "drv")
 
 

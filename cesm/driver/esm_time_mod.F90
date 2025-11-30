@@ -1,15 +1,16 @@
 module esm_time_mod
 
   use shr_kind_mod        , only : cx=>shr_kind_cx, cs=>shr_kind_cs, cl=>shr_kind_cl, r8=>shr_kind_r8
+  use shr_log_mod         , only : shr_log_error
   use ESMF                , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_GridCompSet
   use ESMF                , only : ESMF_Clock, ESMF_ClockCreate, ESMF_ClockGet, ESMF_ClockSet
-  use ESMF                , only : ESMF_ClockAdvance
+  use ESMF                , only : ESMF_ClockAdvance, ESMF_FAILURE
   use ESMF                , only : ESMF_Alarm, ESMF_AlarmCreate, ESMF_AlarmGet
   use ESMF                , only : ESMF_Calendar, ESMF_CalKind_Flag, ESMF_CalendarCreate
   use ESMF                , only : ESMF_CALKIND_NOLEAP, ESMF_CALKIND_GREGORIAN
   use ESMF                , only : ESMF_Time, ESMF_TimeGet, ESMF_TimeSet
   use ESMF                , only : ESMF_TimeInterval, ESMF_TimeIntervalSet, ESMF_TimeIntervalGet
-  use ESMF                , only : ESMF_SUCCESS, ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_FAILURE, ESMF_LOGMSG_ERROR
+  use ESMF                , only : ESMF_SUCCESS, ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_FAILURE
   use ESMF                , only : ESMF_VM, ESMF_VMGet, ESMF_VMBroadcast
   use ESMF                , only : ESMF_VMAllReduce, ESMF_REDUCE_MAX, ESMF_ClockGetAlarm
   use ESMF                , only : ESMF_LOGMSG_INFO, ESMF_FAILURE, ESMF_GridCompIsPetLocal
@@ -140,28 +141,28 @@ contains
                 write(logunit,*) " read rpointer file = "//trim(restart_pfile)
                 inquire( file=trim(restart_pfile), exist=exists)
                 if (.not. exists) then
-                   rc = ESMF_FAILURE
                    write(logunit,*) " drv_restart_pointer file does NOT exist, correct this and rerun = "//trim(restart_pfile)
-                   call ESMF_LogWrite(trim(subname)//' ERROR rpointer file '//trim(restart_pfile)//' not found', &
-                        ESMF_LOGMSG_ERROR, line=__LINE__, file=__FILE__)
+                   call shr_log_error( trim(subname)//' ERROR rpointer file '//trim(restart_pfile)//' not found',&
+                        line=__LINE__, file=__FILE__)
+                   rc = ESMF_FAILURE
                    return
                 endif
                 call ESMF_LogWrite(trim(subname)//" read rpointer file = "//trim(restart_pfile), &
                      ESMF_LOGMSG_INFO)
                 open(newunit=unitn, file=restart_pfile, form='FORMATTED', status='old',iostat=ierr)
                 if (ierr < 0) then
-                   rc = ESMF_FAILURE
                    write(logunit,*) " error opening rpointer file "
-                   call ESMF_LogWrite(trim(subname)//' ERROR rpointer file open returns error', &
-                        ESMF_LOGMSG_ERROR, line=__LINE__, file=__FILE__)
+                   call shr_log_error( trim(subname)//' ERROR rpointer file open returns error', &
+                        line=__LINE__, file=__FILE__)
+                   rc = ESMF_FAILURE
                    return
                 end if
                 read(unitn,'(a)', iostat=ierr) restart_file
                 if (ierr < 0) then
-                   rc = ESMF_FAILURE
                    write(logunit,*) " error in read of rpointer file "
-                   call ESMF_LogWrite(trim(subname)//' ERROR rpointer file read returns error', &
-                        ESMF_LOGMSG_INFO, line=__LINE__, file=__FILE__)
+                   call shr_log_error( trim(subname)//' ERROR rpointer file read returns error', &
+                        line=__LINE__, file=__FILE__)
+                   rc = ESMF_FAILURE
                    return
                 end if
                 close(unitn)
@@ -375,66 +376,76 @@ contains
    rc = ESMF_SUCCESS
    status = nf90_open(restart_file, NF90_NOWRITE, ncid)
    if (status /= nf90_NoErr) then
-      call ESMF_LogWrite(trim(subname)//' ERROR: nf90_open: '//trim(restart_file), ESMF_LOGMSG_ERROR)
+      call shr_log_error( trim(subname)//' ERROR: nf90_open: '//trim(restart_file),&
+           file=__FILE__, line=__LINE__)
       rc = ESMF_FAILURE
       return
    endif
 
    status = nf90_inq_varid(ncid, 'start_ymd', varid)
    if (status /= nf90_NoErr) then
-      call ESMF_LogWrite(trim(subname)//' ERROR: nf90_inq_varid start_ymd', ESMF_LOGMSG_ERROR)
+      call shr_log_error( trim(subname)//' ERROR: nf90_inq_varid start_ymd', &
+           file=__FILE__, line=__LINE__)
       rc = ESMF_FAILURE
       return
    end if
    status = nf90_get_var(ncid, varid, start_ymd)
    if (status /= nf90_NoErr) then
-      call ESMF_LogWrite(trim(subname)//' ERROR: nf90_get_var start_ymd', ESMF_LOGMSG_ERROR)
+      call shr_log_error( trim(subname)//' ERROR: nf90_get_var start_ymd', &
+           file=__FILE__, line=__LINE__)
       rc = ESMF_FAILURE
       return
    end if
 
    status = nf90_inq_varid(ncid, 'start_tod', varid)
    if (status /= nf90_NoErr) then
-      call ESMF_LogWrite(trim(subname)//' ERROR: nf90_inq_varid start_tod', ESMF_LOGMSG_ERROR)
+      call shr_log_error( trim(subname)//' ERROR: nf90_inq_varid start_tod', &
+           file=__FILE__, line=__LINE__)
       rc = ESMF_FAILURE
       return
    end if
    status = nf90_get_var(ncid, varid, start_tod)
    if (status /= nf90_NoErr) then
-      call ESMF_LogWrite(trim(subname)//' ERROR: nf90_get_var start_tod', ESMF_LOGMSG_ERROR)
+      call shr_log_error( trim(subname)//' ERROR: nf90_get_var start_tod', &
+           file=__FILE__, line=__LINE__)
       rc = ESMF_FAILURE
       return
    end if
 
    status = nf90_inq_varid(ncid, 'curr_ymd', varid)
    if (status /= nf90_NoErr) then
-      call ESMF_LogWrite(trim(subname)//' ERROR: nf90_inq_varid curr_ymd', ESMF_LOGMSG_ERROR)
+      call shr_log_error( trim(subname)//' ERROR: nf90_inq_varid curr_ymd', &
+           file=__FILE__, line=__LINE__)
       rc = ESMF_FAILURE
       return
    end if
    status = nf90_get_var(ncid, varid, curr_ymd)
    if (status /= nf90_NoErr) then
-      call ESMF_LogWrite(trim(subname)//' ERROR: nf90_get_var curr_ymd', ESMF_LOGMSG_ERROR)
+      call shr_log_error( trim(subname)//' ERROR: nf90_get_var curr_ymd', &
+           file=__FILE__, line=__LINE__)
       rc = ESMF_FAILURE
       return
    end if
 
    status = nf90_inq_varid(ncid, 'curr_tod', varid)
    if (status /= nf90_NoErr) then
-      call ESMF_LogWrite(trim(subname)//' ERROR: nf90_inq_varid curr_tod', ESMF_LOGMSG_ERROR)
+      call shr_log_error( trim(subname)//' ERROR: nf90_inq_varid curr_tod', &
+           file=__FILE__, line=__LINE__)
       rc = ESMF_FAILURE
       return
    end if
    status = nf90_get_var(ncid, varid, curr_tod)
    if (status /= nf90_NoErr) then
-      call ESMF_LogWrite(trim(subname)//' ERROR: nf90_get_var curr_tod', ESMF_LOGMSG_ERROR)
+      call shr_log_error( trim(subname)//' ERROR: nf90_get_var curr_tod', &
+           file=__FILE__, line=__LINE__)
       rc = ESMF_FAILURE
       return
    end if
 
    status = nf90_close(ncid)
    if (status /= nf90_NoErr) then
-      call ESMF_LogWrite(trim(subname)//' ERROR: nf90_close', ESMF_LOGMSG_ERROR)
+      call shr_log_error( trim(subname)//' ERROR: nf90_close', &
+           file=__FILE__, line=__LINE__)
       rc = ESMF_FAILURE
       return
    end if

@@ -7,7 +7,7 @@ module med_phases_post_glc_mod
 
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
   use NUOPC                 , only : NUOPC_CompAttributeGet
-  use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_LOGMSG_ERROR, ESMF_SUCCESS, ESMF_FAILURE
+  use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
   use ESMF                  , only : ESMF_FieldBundle, ESMF_FieldBundleGet
   use ESMF                  , only : ESMF_GridComp, ESMF_GridCompGet
   use ESMF                  , only : ESMF_StateGet, ESMF_StateItem_Flag
@@ -30,7 +30,7 @@ module med_phases_post_glc_mod
   use med_map_mod           , only : med_map_field_packed, med_map_field_normalized, med_map_field
   use glc_elevclass_mod     , only : glc_mean_elevation_virtual, glc_get_fractional_icecov
   use perf_mod              , only : t_startf, t_stopf
-
+  use shr_log_mod           , only : shr_log_error
   implicit none
   private
 
@@ -333,10 +333,8 @@ contains
 
     ! Currently cannot map hflx in multiple elevation classes from glc to land
     if (fldbun_fldchk(is_local%wrap%FBExp(complnd), trim(Flgg_hflx), rc=rc)) then
-       call ESMF_LogWrite(trim(subname)//'ERROR: Flgg_hflx to land has not been implemented yet', &
-            ESMF_LOGMSG_ERROR, line=__LINE__, file=__FILE__)
-       rc = ESMF_FAILURE
-       return
+       call shr_log_error(trim(subname)//'ERROR: Flgg_hflx to land has not been implemented yet', &
+            line=__LINE__, file=__FILE__, rc=rc)
     end if
 
   end subroutine map_glc2lnd_init
