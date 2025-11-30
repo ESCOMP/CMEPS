@@ -3419,6 +3419,8 @@
   <!-- =========================== -->
   <!-- group prof_inparm           -->
   <!--  in perf_mod.F90            -->
+  <!--  (perf_mod is in CIME)      -->
+  <!--  (can also be in ESMF)      -->
   <!-- =========================== -->
 
   <entry id="profile_global_stats">
@@ -3553,6 +3555,8 @@
   <!-- ===========================            -->
   <!-- namelist group papi_inparm             -->
   <!--  in file drv_in (used in perf_mod.F90) -->
+  <!--  (perf_mod is currently in CIME)       -->
+  <!--  (can also be in ESMF)                 -->
   <!-- ===========================            -->
 
   <entry id="papi_ctr1_str">

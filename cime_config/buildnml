@@ -319,6 +319,8 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     # --------------------------------
     namelist_file = os.path.join(confdir, "drv_in")
     drv_namelist_groups = ["debug_inparm", "DRIVER_attributes", "MED_attributes", "ALLCOMP_attributes", "ROF_attributes", "WAV_attributes"]
+    # Add optional namelista that the GPTL library can read (from CIME or ESMF)
+    drv_namelist_groups.extend(  ["prof_inparm", "papi_inparm"] )
     nmlgen.write_output_file(
         namelist_file, data_list_path=data_list_path, groups=drv_namelist_groups
     )
