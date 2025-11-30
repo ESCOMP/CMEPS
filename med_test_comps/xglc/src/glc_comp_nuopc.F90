@@ -39,7 +39,6 @@ module glc_comp_nuopc
   integer                :: fldsFrGlc_num = 0
   type (fld_list_type)   :: fldsToGlc(fldsMax)
   type (fld_list_type)   :: fldsFrGlc(fldsMax)
-  integer, parameter     :: gridTofieldMap = 2 ! ungridded dimension is innermost
 
   type(ESMF_Mesh)        :: mesh
   integer                :: nxg                  ! global dim i-direction
@@ -399,6 +398,7 @@ contains
     type(ESMF_Field)  :: lfield
     real(r8), pointer :: data1d(:)
     real(r8), pointer :: data2d(:,:)
+    integer, parameter :: gridTofieldMap = 2 ! ungridded dimension is innermost
     !--------------------------------------------------
 
     rc = ESMF_SUCCESS

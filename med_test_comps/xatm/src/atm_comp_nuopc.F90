@@ -40,7 +40,6 @@ module atm_comp_nuopc
   integer                :: fldsFrAtm_num = 0
   type (fld_list_type)   :: fldsToAtm(fldsMax)
   type (fld_list_type)   :: fldsFrAtm(fldsMax)
-  integer, parameter     :: gridTofieldMap = 2 ! ungridded dimension is innermost
 
   type(ESMF_Mesh)        :: mesh
   integer                :: nxg         ! global dim i-direction
@@ -476,6 +475,7 @@ contains
     type(ESMF_Field)  :: lfield
     real(r8), pointer :: data1d(:)
     real(r8), pointer :: data2d(:,:)
+    integer, parameter :: gridTofieldMap = 2 ! ungridded dimension is innermost
     !--------------------------------------------------
 
     rc = ESMF_SUCCESS

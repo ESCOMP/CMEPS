@@ -40,7 +40,6 @@ module wav_comp_nuopc
   integer                :: fldsFrWav_num = 0
   type (fld_list_type)   :: fldsToWav(fldsMax)
   type (fld_list_type)   :: fldsFrWav(fldsMax)
-  integer, parameter     :: gridTofieldMap = 2 ! ungridded dimension is innermost
 
   type(ESMF_Mesh)        :: mesh
   integer                :: nxg                  ! global dim i-direction
@@ -410,6 +409,7 @@ contains
     type(ESMF_Field)  :: lfield
     real(r8), pointer :: data1d(:)
     real(r8), pointer :: data2d(:,:)
+    integer, parameter :: gridTofieldMap = 2 ! ungridded dimension is innermost
     !--------------------------------------------------
 
     rc = ESMF_SUCCESS
