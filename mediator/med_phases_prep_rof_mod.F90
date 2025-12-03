@@ -25,6 +25,7 @@ module med_phases_prep_rof_mod
   use med_methods_mod       , only : field_getdata1d  => med_methods_Field_getdata1d
   use med_methods_mod       , only : fldbun_fldchk    => med_methods_FB_fldchk
   use med_methods_mod       , only : FB_check_for_nans => med_methods_FB_check_for_nans
+  use med_methods_mod       , only : med_methods_FB_check_wtracers
   use perf_mod              , only : t_startf, t_stopf
   use shr_log_mod           , only : shr_log_error
   
@@ -415,6 +416,11 @@ contains
             string=trim(subname)//' FBexp(comprof) ', rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     end if
+
+    ! Check water tracers (if there are no water tracers or these checks aren't enabled,
+    ! this will return without doing anything)
+    call med_methods_FB_check_wtracers(is_local%wrap%FBExp(comprof), rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     !---------------------------------------
     ! zero accumulator and FBAccum

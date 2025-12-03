@@ -2603,6 +2603,20 @@
    </values>
   </entry>
 
+  <entry id="water_tracers_do_checks">
+   <type>logical</type>
+   <category>water_tracers</category>
+   <group>ALLCOMP_attributes</group>
+   <desc>
+      Check consistency between water tracer fields and their corresponding bulk fields.
+
+      This should only be used with artificial tracers that maintain a fixed ratio.
+   </desc>
+   <values>
+      <value>.false.</value>
+   </values>
+  </entry>
+
   <!-- =========================== -->
   <!-- CLOCK Attributes            -->
   <!-- =========================== -->

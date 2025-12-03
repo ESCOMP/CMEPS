@@ -30,7 +30,8 @@ module med_methods_mod
   end interface med_methods_check_for_nans
 
   ! used/reused in module
-  logical, public               :: mediator_checkfornans  ! set in med.F90 AdvertiseFields
+  logical, public               :: mediator_checkfornans   ! set in med.F90 AdvertiseFields
+  logical, public               :: water_tracers_do_checks ! set in med.F90 AdvertiseFields
   logical                       :: isPresent
   character(len=1024)           :: msgString
   type(ESMF_FieldStatus_Flag)   :: status
@@ -56,6 +57,7 @@ module med_methods_mod
   public med_methods_FB_getdata1d
   public med_methods_FB_getmesh
   public med_methods_FB_check_for_nans
+  public med_methods_FB_check_wtracers
 
   public med_methods_State_reset
   public med_methods_State_diagnose
@@ -2620,5 +2622,87 @@ contains
        end do
     end do
   end subroutine med_methods_check_for_nans_2d
+
+  !-----------------------------------------------------------------------------
+  subroutine med_methods_FB_check_wtracers(FB, rc)
+
+    ! ----------------------------------------------
+    ! Check all water tracer fields in FB for consistency with their non-water-tracer
+    ! counterparts
+    !
+    ! Aborts if any inconsistencies are found
+    !
+    ! Should only be called in simulations set up to maintain constant water tracer
+    ! ratios: in general, water tracers will deviate from their initial, fixed ratios, and
+    ! so it makes no sense to perform these checks since they will always fail.
+    ! ----------------------------------------------
+
+    use shr_string_mod, only : shr_string_withoutSuffix
+    use shr_wtracers_mod, only : WTRACERS_SUFFIX, shr_wtracers_check_tracer_ratios
+    use ESMF, only : ESMF_FieldBundle, ESMF_Field
+    use ESMF, only : ESMF_FieldBundleGet, ESMF_FieldGet
+
+    ! input/output arguments
+    type(ESMF_FieldBundle), intent(in) :: FB
+    integer, intent(out) :: rc
+
+    ! local variables
+    integer :: fieldCount
+    character(ESMF_MAXSTR), allocatable :: fieldNameList(:)
+    character(ESMF_MAXSTR) :: fieldNameNonTracer
+    character(ESMF_MAXSTR) :: FBName
+    integer :: n
+    logical :: hasSuffix
+    integer :: localrc
+    type(ESMF_Field) :: fieldTracers
+    type(ESMF_Field) :: fieldNonTracer
+    real(r8), pointer :: dataTracers(:,:)  ! dimensioned [tracerNum, gridcell]
+    real(r8), pointer :: dataNonTracer(:)
+    character(len=*), parameter :: subname='(med_methods_FB_check_wtracers)'
+    ! ----------------------------------------------
+    rc = ESMF_SUCCESS
+
+    if (.not. water_tracers_do_checks) return
+
+    call ESMF_FieldBundleGet(FB, name=FBName, fieldCount=fieldCount, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    allocate(fieldNameList(fieldCount))
+    call ESMF_FieldBundleGet(FB, fieldNameList=fieldNameList, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    if (dbug_flag > 5) then
+       call ESMF_LogWrite(trim(subname)//": Checking FB: "//trim(FBName), ESMF_LOGMSG_INFO)
+    end if
+
+    do n = 1, fieldCount
+       call shr_string_withoutSuffix(in_str=fieldNameList(n), suffix=WTRACERS_SUFFIX, &
+            has_suffix=hasSuffix, out_str=fieldNameNonTracer, rc=localrc)
+       if (localrc /= 0) then
+          call shr_log_error(subname//": error in shr_string_withoutSuffix", rc=rc)
+          return
+       end if
+       if (hasSuffix) then
+          if (dbug_flag > 5) then
+             call ESMF_LogWrite(trim(subname)//": Checking <" // trim(fieldNameList(n)) // &
+                  "> against <" // trim(fieldNameNonTracer) // ">", &
+                  ESMF_LOGMSG_INFO)
+          end if
+
+          call ESMF_FieldBundleGet(FB, fieldName=fieldNameList(n), field=fieldTracers, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_FieldGet(fieldTracers, farrayPtr=dataTracers, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+          call ESMF_FieldBundleGet(FB, fieldName=fieldNameNonTracer, field=fieldNonTracer, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_FieldGet(fieldNonTracer, farrayPtr=dataNonTracer, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+          call shr_wtracers_check_tracer_ratios(dataTracers, dataNonTracer, &
+               trim(FBName)//":"//trim(fieldNameList(n)))
+       end if
+    end do
+
+  end subroutine med_methods_FB_check_wtracers
 
 end module med_methods_mod

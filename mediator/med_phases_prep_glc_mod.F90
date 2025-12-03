@@ -38,6 +38,7 @@ module med_phases_prep_glc_mod
   use med_methods_mod       , only : field_getdata2d  => med_methods_Field_getdata2d
   use med_methods_mod       , only : field_getdata1d  => med_methods_Field_getdata1d
   use med_methods_mod       , only : fldchk           => med_methods_FB_FldChk
+  use med_methods_mod       , only : med_methods_FB_check_wtracers
   use med_utils_mod         , only : chkerr           => med_utils_ChkErr
   use nuopc_shr_methods     , only : alarmInit
   use glc_elevclass_mod     , only : glc_get_num_elevation_classes
@@ -710,6 +711,13 @@ contains
     do ns = 1,is_local%wrap%num_icesheets
        call FB_check_for_nans(is_local%wrap%FBExp(compglc(ns)), maintask, logunit, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    end do
+
+    ! Check water tracers (if there are no water tracers or these checks aren't enabled,
+    ! this will return without doing anything)
+    do ns = 1,is_local%wrap%num_icesheets
+       call med_methods_FB_check_wtracers(is_local%wrap%FBExp(compglc(ns)), rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
     end do
 
     if (dbug_flag > 5) then
