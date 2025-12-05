@@ -223,11 +223,12 @@ contains
 
   !-----------------------------------------------------------------------------
 
-  subroutine med_methods_FB_init(FBout, flds_scalar_name, fieldNameList, FBgeom, STgeom, FBflds, STflds, name, rc)
+  subroutine med_methods_FB_init(FBout, flds_scalar_name, fieldNameList, FBgeom, STgeom, STflds, name, rc)
 
     ! ----------------------------------------------
-    ! Create FBout from fieldNameList, FBflds, STflds, FBgeom or STgeom in that order or priority
-    ! Pass in FBgeom OR STgeom, get mesh from that object
+    ! Create FBout from fieldNameList or STflds (one of those must be present, but not both)
+    !
+    ! Mesh is retrieved from either FBgeom or STgeom (one of those must be present, but not both)
     ! ----------------------------------------------
 
     use ESMF , only : ESMF_Field, ESMF_FieldBundle, ESMF_FieldBundleCreate, ESMF_FieldBundleGet
@@ -241,7 +242,6 @@ contains
     character(len=*)      , intent(in), optional :: fieldNameList(:) ! names of fields to use in output field bundle
     type(ESMF_FieldBundle), intent(in), optional :: FBgeom           ! input field bundle geometry to use
     type(ESMF_State)      , intent(in), optional :: STgeom           ! input state geometry to use
-    type(ESMF_FieldBundle), intent(in), optional :: FBflds           ! input field bundle fields
     type(ESMF_State)      , intent(in), optional :: STflds           ! input state fields
     character(len=*)      , intent(in), optional :: name             ! name to use for output field bundle
     integer               , intent(out)          :: rc
@@ -278,8 +278,8 @@ contains
     ! verify that geom argument has a field
     !---------------------------------
 
-    if (present(fieldNameList) .and. present(FBflds) .and. present(STflds)) then
-       call shr_log_error(trim(subname)//": ERROR only fieldNameList, FBflds, or STflds can be an argument", rc=rc)
+    if (present(fieldNameList) .and. present(STflds)) then
+       call shr_log_error(trim(subname)//": ERROR only one of fieldNameList or STflds can be an argument", rc=rc)
        return
     endif
 
@@ -315,15 +315,6 @@ contains
       if (dbug_flag > 5) then
          call ESMF_LogWrite(trim(subname)//":"//trim(lname)//" fieldNameList from argument", ESMF_LOGMSG_INFO)
       end if
-    elseif (present(FBflds)) then
-      call ESMF_FieldBundleGet(FBflds, fieldCount=fieldCount, rc=rc)
-      if (chkerr(rc,__LINE__,u_FILE_u)) return
-      allocate(lfieldNameList(fieldCount))
-      call ESMF_FieldBundleGet(FBflds, fieldNameList=lfieldNameList, rc=rc)
-      if (chkerr(rc,__LINE__,u_FILE_u)) return
-      if (dbug_flag > 5) then
-         call ESMF_LogWrite(trim(subname)//":"//trim(lname)//" fieldNameList from FBflds", ESMF_LOGMSG_INFO)
-      end if
     elseif (present(STflds)) then
       call ESMF_StateGet(STflds, itemCount=fieldCount, rc=rc)
       if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -333,26 +324,8 @@ contains
       if (dbug_flag > 5) then
          call ESMF_LogWrite(trim(subname)//":"//trim(lname)//" fieldNameList from STflds", ESMF_LOGMSG_INFO)
       end if
-    elseif (present(FBgeom)) then
-      call ESMF_FieldBundleGet(FBgeom, fieldCount=fieldCount, rc=rc)
-      if (chkerr(rc,__LINE__,u_FILE_u)) return
-      allocate(lfieldNameList(fieldCount))
-      call ESMF_FieldBundleGet(FBgeom, fieldNameList=lfieldNameList, rc=rc)
-      if (chkerr(rc,__LINE__,u_FILE_u)) return
-      if (dbug_flag > 5) then
-         call ESMF_LogWrite(trim(subname)//":"//trim(lname)//" fieldNameList from FBgeom", ESMF_LOGMSG_INFO)
-      end if
-    elseif (present(STgeom)) then
-      call ESMF_StateGet(STgeom, itemCount=fieldCount, rc=rc)
-      if (chkerr(rc,__LINE__,u_FILE_u)) return
-      allocate(lfieldNameList(fieldCount))
-      call ESMF_StateGet(STgeom, itemNameList=lfieldNameList, rc=rc)
-      if (chkerr(rc,__LINE__,u_FILE_u)) return
-      if (dbug_flag > 5) then
-         call ESMF_LogWrite(trim(subname)//":"//trim(lname)//" fieldNameList from STgeom", ESMF_LOGMSG_INFO)
-      end if
     else
-       call shr_log_error(trim(subname)//": ERROR fieldNameList, FBflds, STflds, FBgeom, or STgeom must be passed", rc=rc)
+       call shr_log_error(trim(subname)//": ERROR fieldNameList or STflds must be passed", rc=rc)
        return
     endif
 
@@ -426,17 +399,12 @@ contains
        ! Now loop over all the fields in the field name list
        do n = 1, fieldCount
 
-          ! Note that input fields come from ONE of FBFlds, STflds, or fieldNamelist input argument
-          if (present(FBFlds) .or. present(STflds)) then
+          ! Note that input fields come from ONE of STflds or fieldNamelist input argument
+          if (present(STflds)) then
 
-             ! ungridded dimensions might be present in the input states or field bundles
-             if (present(FBflds)) then
-                call ESMF_FieldBundleGet(FBflds, fieldName=lfieldnamelist(n), field=lfield, rc=rc)
-                if (chkerr(rc,__LINE__,u_FILE_u)) return
-             elseif (present(STflds)) then
-                call ESMF_StateGet(STflds, itemName=trim(lfieldnamelist(n)), field=lfield, rc=rc)
-                if (chkerr(rc,__LINE__,u_FILE_u)) return
-             end if
+             ! ungridded dimensions might be present in the input states
+             call ESMF_StateGet(STflds, itemName=trim(lfieldnamelist(n)), field=lfield, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
 
              ! Determine ungridded lower and upper bounds for lfield
              call ESMF_AttributeGet(lfield, name="UngriddedUBound", convention="NUOPC", &
