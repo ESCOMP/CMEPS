@@ -1,3 +1,5 @@
+! This is a test
+
 module flux_atmocn_driver_mod
 
   use shr_kind_mod,          only : R8=>SHR_KIND_R8, IN=>SHR_KIND_IN ! shared kinds
