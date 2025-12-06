@@ -1,0 +1,2 @@
+# use this with the ERR test to test the interim restart capability
+./xmlchange REST_N=2

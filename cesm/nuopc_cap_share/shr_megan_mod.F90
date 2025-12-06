@@ -43,13 +43,13 @@ module shr_megan_mod
      integer               :: index
      real(r8), pointer     :: emis_factors(:) ! function of plant-function-type (PFT)
      integer               :: class_number    ! MEGAN class number
-     real(r8)              :: coeff           ! emissions component coeffecient
      real(r8)              :: molec_weight    ! molecular weight of the MEGAN compound (g/mole)
      type(shr_megan_megcomp_t), pointer :: next_megcomp ! points to next member in the linked list
   endtype shr_megan_megcomp_t
 
   type shr_megan_comp_ptr
-    type(shr_megan_megcomp_t), pointer :: ptr
+     type(shr_megan_megcomp_t), pointer :: ptr
+     real(r8) :: coeff           ! emissions component coeffecient
   endtype shr_megan_comp_ptr
 
   ! chemical compound in CAM mechanism that has MEGAN emissions
@@ -227,7 +227,8 @@ contains
        if (localPet==0) write(logunit,*) ' species : ', item%name
        do j = 1,item%n_terms
           if (localPet==0) write(logunit,'(f12.4,a,a)')  item%coeffs(j),' * ', item%vars(j)
-          shr_megan_mechcomps(i)%megan_comps(j)%ptr => add_megan_comp( item%vars(j), item%coeffs(j) )
+          shr_megan_mechcomps(i)%megan_comps(j)%ptr => add_megan_comp( item%vars(j) )
+          shr_megan_mechcomps(i)%megan_comps(j)%coeff = item%coeffs(j)
        enddo
        shr_megan_mechcomps_n = shr_megan_mechcomps_n+1
 
@@ -243,10 +244,9 @@ contains
 
   !-------------------------------------------------------------------------
 
-  function add_megan_comp( name, coeff ) result(megan_comp)
+  function add_megan_comp( name ) result(megan_comp)
 
     character(len=16), intent(in) :: name
-    real(r8),          intent(in) :: coeff
     type(shr_megan_megcomp_t), pointer :: megan_comp
 
     megan_comp => get_megan_comp_by_name(shr_megan_linkedlist, name)
@@ -264,7 +264,7 @@ contains
     megan_comp%index = shr_megan_megcomps_n+1
 
     megan_comp%name = trim(name)
-    megan_comp%coeff = coeff
+
     nullify(megan_comp%next_megcomp)
 
     call add_megan_comp_to_list(megan_comp)

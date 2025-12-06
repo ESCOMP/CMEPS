@@ -288,7 +288,6 @@ contains
     type(InternalState) :: is_local
     integer             :: n
     real(r8)            :: local_htot_corr(1)
-    real(r8)            :: local_hrof_corr(1)
     type(ESMF_VM)       :: vm
     !---------------------------------------
 
