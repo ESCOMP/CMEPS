@@ -1769,7 +1769,7 @@ contains
        timediff(1) = nexttime - starttime - ringinterval
        call ESMF_TimeIntervalGet(timediff(2), d_r8=time_bnds(2), rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_TimeIntervalGet(timediff(1), starttime, d_r8=time_bnds(1), rc=rc)
+       call ESMF_TimeIntervalGet(timediff(1), startTimeIn=starttime, d_r8=time_bnds(1), rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        time_val = 0.5_r8 * (time_bnds(1) + time_bnds(2))
     else
