@@ -1364,7 +1364,7 @@
 [ccpp-table-properties]
   name = MED_typedefs
   type = module
-  relative_path = ../../../../../UFSATM/ccpp/physics/physics/hooks
+  dependencies_path = ../../../../../UFSATM/ccpp/physics/physics/hooks
   dependencies = machine.F,physcons.F90
 
 [ccpp-arg-table]
