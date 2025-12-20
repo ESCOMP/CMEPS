@@ -5,7 +5,7 @@ module shr_lnd2rof_tracers_mod
   ! lnd -> river communications
   !========================================================================
 
-  use ESMF         , only : ESMF_VMGetCurrent, ESMF_VM, ESMF_VMGet
+  use ESMF         , only : ESMF_VMGetCurrent, ESMF_VM, ESMF_VMGet, ESMF_VMBroadcast
   use ESMF         , only : ESMF_LogFoundError, ESMF_LOGERR_PASSTHRU, ESMF_SUCCESS
   use shr_sys_mod  , only : shr_sys_abort
   use shr_log_mod  , only : shr_log_getLogUnit
@@ -33,7 +33,6 @@ CONTAINS
 
     !----- local -----
     type(ESMF_VM)      :: vm
-    integer            :: i                      ! Indices
     integer            :: unitn                  ! namelist unit number
     integer            :: ierr                   ! error code
     logical            :: exists                 ! if file exists or not
