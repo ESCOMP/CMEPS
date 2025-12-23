@@ -135,6 +135,8 @@ module med_fraction_mod
   use med_methods_mod       , only : fldbun_reset     => med_methods_FB_reset
   use med_map_mod           , only : med_map_field
   use med_internalstate_mod , only : ncomps, samegrid_atmlnd
+  use med_field_info_mod    , only : med_field_info_type
+  use med_field_info_mod    , only : med_field_info_array_from_names_wtracers_ungridded, med_field_info_array_from_state
 
   implicit none
   private
@@ -189,6 +191,7 @@ contains
     type(InternalState) :: is_local
     type(ESMF_Field)    :: field_src
     type(ESMF_Field)    :: field_dst
+    type(med_field_info_type), allocatable :: field_info_array(:)
     real(R8), pointer   :: frac(:)
     real(R8), pointer   :: ofrac(:)
     real(R8), pointer   :: aofrac(:)
@@ -255,13 +258,18 @@ contains
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
              ! create FBFrac
+             call med_field_info_array_from_names_wtracers_ungridded( &
+                  field_names = fraclist(:,n1), &
+                  field_info_array = field_info_array, &
+                  rc = rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
              if (fieldCount == 0) then
                call fldbun_init(is_local%wrap%FBfrac(n1), is_local%wrap%flds_scalar_name, &
-                    STgeom=is_local%wrap%NStateExp(n1), fieldNameList=fraclist(:,n1), &
+                    field_info_array=field_info_array, STgeom=is_local%wrap%NStateExp(n1), &
                     name='FBfrac'//trim(compname(n1)), rc=rc)
              else
                call fldbun_init(is_local%wrap%FBfrac(n1), is_local%wrap%flds_scalar_name, &
-                    STgeom=is_local%wrap%NStateImp(n1), fieldNameList=fraclist(:,n1), &
+                    field_info_array=field_info_array, STgeom=is_local%wrap%NStateImp(n1), &
                     name='FBfrac'//trim(compname(n1)), rc=rc)
              end if
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -673,9 +681,14 @@ contains
     if (is_local%wrap%comp_present(compice) .and. is_local%wrap%comp_present(compocn)) then
        if (.not. med_map_RH_is_created(is_local%wrap%RH(compice,compocn,:),mapfcopy, rc=rc)) then
           if (.not. ESMF_FieldBundleIsCreated(is_local%wrap%FBImp(compice,compocn))) then
+             call med_field_info_array_from_state( &
+                  state = is_local%wrap%NStateImp(compice), &
+                  field_info_array = field_info_array, &
+                  rc = rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
              call fldbun_init(is_local%wrap%FBImp(compice,compocn), is_local%wrap%flds_scalar_name, &
+                  field_info_array=field_info_array, &
                   STgeom=is_local%wrap%NStateImp(compocn), &
-                  STflds=is_local%wrap%NStateImp(compice), &
                   name='FBImp'//trim(compname(compice))//'_'//trim(compname(compocn)), rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
@@ -687,9 +700,14 @@ contains
        end if
        if (.not. med_map_RH_is_created(is_local%wrap%RH(compocn,compice,:),mapfcopy, rc=rc)) then
           if (.not. ESMF_FieldBundleIsCreated(is_local%wrap%FBImp(compocn,compice))) then
+             call med_field_info_array_from_state( &
+                  state = is_local%wrap%NStateImp(compocn), &
+                  field_info_array = field_info_array, &
+                  rc = rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
              call fldbun_init(is_local%wrap%FBImp(compocn,compice), is_local%wrap%flds_scalar_name, &
+                  field_info_array = field_info_array, &
                   STgeom=is_local%wrap%NStateImp(compice), &
-                  STflds=is_local%wrap%NStateImp(compocn), &
                   name='FBImp'//trim(compname(compocn))//'_'//trim(compname(compice)), rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if

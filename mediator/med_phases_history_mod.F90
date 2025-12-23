@@ -21,6 +21,7 @@ module med_phases_history_mod
   use med_internalstate_mod , only : ncomps, compname
   use med_internalstate_mod , only : InternalState, maintask, logunit
   use med_io_mod            , only : med_io_write, med_io_wopen, med_io_enddef, med_io_close
+  use med_field_info_mod    , only : med_field_info_type, med_field_info_array_from_state
   use perf_mod              , only : t_startf, t_stopf
   use pio                   , only : file_desc_t
   use shr_log_mod           , only : shr_log_error
@@ -843,6 +844,7 @@ contains
 
     ! local variables
     type(InternalState)     :: is_local
+    type(med_field_info_type), allocatable :: field_info_array(:)
     character(CL)           :: cvalue        ! attribute string
     character(CL)           :: hist_option   ! freq_option setting (ndays, nsteps, etc)
     integer                 :: hist_n        ! freq_n setting relative to freq_option
@@ -907,8 +909,13 @@ contains
           scalar_name = trim(is_local%wrap%flds_scalar_name)
           if ( ESMF_FieldBundleIsCreated(is_local%wrap%FBimp(compid,compid)) .and. .not. &
                ESMF_FieldBundleIsCreated(avgfile%FBaccum_import)) then
+             call med_field_info_array_from_state( &
+                  state = is_local%wrap%NStateImp(compid), &
+                  field_info_array = field_info_array, &
+                  rc = rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
              call med_methods_FB_init(avgfile%FBaccum_import, scalar_name, &
-                  STgeom=is_local%wrap%NStateImp(compid), STflds=is_local%wrap%NStateImp(compid), rc=rc)
+                  field_info_array=field_info_array, STgeom=is_local%wrap%NStateImp(compid), rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
              call med_methods_FB_reset(avgfile%FBaccum_import, czero, rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -916,8 +923,13 @@ contains
           end if
           if ( ESMF_FieldBundleIsCreated(is_local%wrap%FBexp(compid)) .and. .not. &
                ESMF_FieldBundleIsCreated(avgfile%FBaccum_export)) then
+             call med_field_info_array_from_state( &
+                  state = is_local%wrap%NStateExp(compid), &
+                  field_info_array = field_info_array, &
+                  rc = rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
              call med_methods_FB_init(avgfile%FBaccum_export, scalar_name, &
-                  STgeom=is_local%wrap%NStateExp(compid), STflds=is_local%wrap%NStateExp(compid), rc=rc)
+                  field_info_array=field_info_array, STgeom=is_local%wrap%NStateExp(compid), rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
              call med_methods_FB_reset(avgfile%FBaccum_export, czero, rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -1050,6 +1062,7 @@ contains
 
     ! local variables
     type(InternalState)     :: is_local
+    type(med_field_info_type), allocatable :: field_info_array(:)
     type(ESMF_VM)           :: vm
     type(ESMF_Calendar)     :: calendar    ! calendar type
     logical                 :: isPresent   ! is attribute present
@@ -1179,8 +1192,13 @@ contains
                 call ESMF_LogWrite(trim(subname)// ": initializing FBaccum(compid)", ESMF_LOGMSG_INFO)
                 if ( ESMF_FieldBundleIsCreated(is_local%wrap%FBImp(compid,compid)) .and. .not. &
                      ESMF_FieldBundleIsCreated(auxcomp%files(nfcnt)%FBaccum)) then
+                   call med_field_info_array_from_state( &
+                        state = is_local%wrap%NStateImp(compid), &
+                        field_info_array = field_info_array, &
+                        rc = rc)
+                   if (chkerr(rc,__LINE__,u_FILE_u)) return
                    call med_methods_FB_init(auxcomp%files(nfcnt)%FBaccum, is_local%wrap%flds_scalar_name, &
-                        STgeom=is_local%wrap%NStateImp(compid), STflds=is_local%wrap%NStateImp(compid), &
+                        field_info_array=field_info_array, STgeom=is_local%wrap%NStateImp(compid), &
                         rc=rc)
                    if (chkerr(rc,__LINE__,u_FILE_u)) return
                    call med_methods_FB_reset(auxcomp%files(nfcnt)%FBaccum, czero, rc=rc)
