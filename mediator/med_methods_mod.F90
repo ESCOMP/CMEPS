@@ -15,6 +15,7 @@ module med_methods_mod
   use med_constants_mod  , only : czero => med_constants_czero
   use med_constants_mod  , only : spval_init => med_constants_spval_init
   use med_utils_mod      , only : ChkErr => med_utils_ChkErr
+  use med_field_info_mod , only : med_field_info_type
   use shr_log_mod        , only : shr_log_error
   implicit none
   private
@@ -223,12 +224,14 @@ contains
 
   !-----------------------------------------------------------------------------
 
-  subroutine med_methods_FB_init(FBout, flds_scalar_name, fieldNameList, FBgeom, STgeom, STflds, name, rc)
+  subroutine med_methods_FB_init(FBout, flds_scalar_name, field_info_array, FBgeom, STgeom, name, rc)
 
     ! ----------------------------------------------
-    ! Create FBout from fieldNameList or STflds (one of those must be present, but not both)
+    ! Create FBout from field_info_array (see med_field_info_mod for some convenience
+    ! functions for creating a field_info array from field names or an ESMF State)
     !
-    ! Mesh is retrieved from either FBgeom or STgeom (one of those must be present, but not both)
+    ! Mesh is retrieved from either FBgeom or STgeom (one of those must be present, but
+    ! not both)
     ! ----------------------------------------------
 
     use ESMF , only : ESMF_Field, ESMF_FieldBundle, ESMF_FieldBundleCreate, ESMF_FieldBundleGet
@@ -239,26 +242,19 @@ contains
     ! input/output variables
     type(ESMF_FieldBundle), intent(inout)        :: FBout            ! output field bundle
     character(len=*)      , intent(in)           :: flds_scalar_name ! name of scalar fields
-    character(len=*)      , intent(in), optional :: fieldNameList(:) ! names of fields to use in output field bundle
+    type(med_field_info_type), intent(in)        :: field_info_array(:) ! info on the fields to put in the output FieldBundle
     type(ESMF_FieldBundle), intent(in), optional :: FBgeom           ! input field bundle geometry to use
     type(ESMF_State)      , intent(in), optional :: STgeom           ! input state geometry to use
-    type(ESMF_State)      , intent(in), optional :: STflds           ! input state fields
     character(len=*)      , intent(in), optional :: name             ! name to use for output field bundle
     integer               , intent(out)          :: rc
 
     ! local variables
-    integer                :: n,n1
+    integer                :: n
     integer                :: fieldCount,fieldCountgeom
     character(ESMF_MAXSTR) :: lname
     type(ESMF_Field)       :: field,lfield
     type(ESMF_Mesh)        :: lmesh
     type(ESMF_MeshLoc)     :: meshloc
-    integer                :: ungriddedCount
-    integer                :: ungriddedCount_in
-    integer, allocatable   :: ungriddedLBound(:)
-    integer, allocatable   :: ungriddedUBound(:)
-    logical                :: isPresent
-    character(ESMF_MAXSTR), allocatable :: lfieldNameList(:)
     character(len=*), parameter :: subname='(med_methods_FB_init)'
     ! ----------------------------------------------
 
@@ -277,11 +273,6 @@ contains
     ! check argument consistency and
     ! verify that geom argument has a field
     !---------------------------------
-
-    if (present(fieldNameList) .and. present(STflds)) then
-       call shr_log_error(trim(subname)//": ERROR only one of fieldNameList or STflds can be an argument", rc=rc)
-       return
-    endif
 
     if (present(FBgeom) .and. present(STgeom)) then
        call shr_log_error(trim(subname)//": ERROR FBgeom and STgeom cannot both be arguments", rc=rc)
@@ -305,43 +296,12 @@ contains
     endif
 
     !---------------------------------
-    ! determine the names of fields that will be in FBout
+    ! Determine number of fields
+    !
+    ! Note that scalars and blank fields will be removed later
     !---------------------------------
 
-    if (present(fieldNameList)) then
-      fieldcount = size(fieldNameList)
-      allocate(lfieldNameList(fieldcount))
-      lfieldNameList = fieldNameList
-      if (dbug_flag > 5) then
-         call ESMF_LogWrite(trim(subname)//":"//trim(lname)//" fieldNameList from argument", ESMF_LOGMSG_INFO)
-      end if
-    elseif (present(STflds)) then
-      call ESMF_StateGet(STflds, itemCount=fieldCount, rc=rc)
-      if (chkerr(rc,__LINE__,u_FILE_u)) return
-      allocate(lfieldNameList(fieldCount))
-      call ESMF_StateGet(STflds, itemNameList=lfieldNameList, rc=rc)
-      if (chkerr(rc,__LINE__,u_FILE_u)) return
-      if (dbug_flag > 5) then
-         call ESMF_LogWrite(trim(subname)//":"//trim(lname)//" fieldNameList from STflds", ESMF_LOGMSG_INFO)
-      end if
-    else
-       call shr_log_error(trim(subname)//": ERROR fieldNameList or STflds must be passed", rc=rc)
-       return
-    endif
-
-    !---------------------------------
-    ! remove scalar field and blank fields from field bundle
-    !---------------------------------
-
-    do n = 1, fieldCount
-      if (trim(lfieldnamelist(n)) == trim(flds_scalar_name) .or. &
-          trim(lfieldnamelist(n)) == '') then
-        do n1 = n, fieldCount-1
-           lfieldnamelist(n1) = lfieldnamelist(n1+1)
-        enddo
-        fieldCount = fieldCount - 1
-      endif
-    enddo  ! n
+    fieldCount = size(field_info_array)
 
     !---------------------------------
     ! create the mesh(lmesh) that will be used for FBout fields
@@ -399,56 +359,31 @@ contains
        ! Now loop over all the fields in the field name list
        do n = 1, fieldCount
 
-          ! Note that input fields come from ONE of STflds or fieldNamelist input argument
-          if (present(STflds)) then
-
-             ! ungridded dimensions might be present in the input states
-             call ESMF_StateGet(STflds, itemName=trim(lfieldnamelist(n)), field=lfield, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-             ! Determine ungridded lower and upper bounds for lfield
-             call ESMF_AttributeGet(lfield, name="UngriddedUBound", convention="NUOPC", &
-                  purpose="Instance", itemCount=ungriddedCount_in,  isPresent=isPresent, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-             if (isPresent) then
-                ungriddedCount = ungriddedCount_in
-             else
-                ungriddedCount=0  ! initialize in case it was not set
-             end if
-
-             ! Create the field on a lmesh
-             if (ungriddedCount > 0) then
-                ! ungridded dimensions in field
-                allocate(ungriddedLBound(ungriddedCount), ungriddedUBound(ungriddedCount))
-                call ESMF_AttributeGet(lfield, name="UngriddedLBound", convention="NUOPC", &
-                     purpose="Instance", valueList=ungriddedLBound, rc=rc)
-                if (chkerr(rc,__LINE__,u_FILE_u)) return
-                call ESMF_AttributeGet(lfield, name="UngriddedUBound", convention="NUOPC", &
-                     purpose="Instance", valueList=ungriddedUBound, rc=rc)
-                if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-                field = ESMF_FieldCreate(lmesh, ESMF_TYPEKIND_R8, meshloc=meshloc, name=lfieldNameList(n), &
-                     ungriddedLbound=ungriddedLbound, ungriddedUbound=ungriddedUbound, gridToFieldMap=(/2/))
-                if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-                deallocate( ungriddedLbound, ungriddedUbound)
-             else
-                ! No ungridded dimensions in field
-                field = ESMF_FieldCreate(lmesh, ESMF_TYPEKIND_R8, meshloc=meshloc, name=lfieldNameList(n), rc=rc)
-                if (chkerr(rc,__LINE__,u_FILE_u)) return
-             end if
-
-          else if (present(fieldNameList)) then
-
-             ! Assume no ungridded dimensions if just the field name list is give
-             field = ESMF_FieldCreate(lmesh, ESMF_TYPEKIND_R8, meshloc=meshloc, name=lfieldNameList(n), rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-
+          ! Don't add scalar field or blank fields to field bundle
+          if (field_info_array(n)%name == flds_scalar_name .or. &
+              len_trim(field_info_array(n)%name) == 0) then
+             cycle
           end if
 
-          ! Add the created field bundle FBout
+          ! Create the field
+          if (field_info_array(n)%n_ungridded > 0) then
+             field = ESMF_FieldCreate(lmesh, ESMF_TYPEKIND_R8, meshloc=meshloc, &
+                  name=field_info_array(n)%name, &
+                  ungriddedLbound=field_info_array(n)%ungridded_lbound, &
+                  ungriddedUbound=field_info_array(n)%ungridded_ubound, &
+                  gridToFieldMap=[field_info_array(n)%n_ungridded+1], &
+                  rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+          else
+             field = ESMF_FieldCreate(lmesh, ESMF_TYPEKIND_R8, meshloc=meshloc, &
+                  name=field_info_array(n)%name, &
+                  rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+          end if
+
+          ! Add the created field to field bundle FBout
           if (dbug_flag > 1) then
-             call ESMF_LogWrite(trim(subname)//":"//trim(lname)//" adding field "//trim(lfieldNameList(n)), &
+             call ESMF_LogWrite(trim(subname)//":"//trim(lname)//" adding field "//trim(field_info_array(n)%name), &
                   ESMF_LOGMSG_INFO)
           end if
           call ESMF_FieldBundleAdd(FBout, (/field/), rc=rc)
@@ -456,8 +391,6 @@ contains
 
        enddo  ! fieldCount
     endif  ! fieldcountgeom
-
-    deallocate(lfieldNameList)
 
     call med_methods_FB_reset(FBout, value=spval_init, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return

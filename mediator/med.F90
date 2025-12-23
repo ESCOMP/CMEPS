@@ -37,6 +37,8 @@ module MED
   use med_methods_mod          , only : FB_diagnose        => med_methods_FB_diagnose
   use med_methods_mod          , only : FB_getFieldN       => med_methods_FB_getFieldN
   use med_methods_mod          , only : clock_timeprint    => med_methods_clock_timeprint
+  use med_field_info_mod       , only : med_field_info_type
+  use med_field_info_mod       , only : med_field_info_array_from_names_wtracers_ungridded, med_field_info_array_from_state
   use med_utils_mod            , only : memcheck           => med_memcheck
   use med_internalstate_mod    , only : InternalState, med_internalstate_init, med_internalstate_coupling
   use med_internalstate_mod    , only : med_internalstate_defaultmasks, logunit, maintask
@@ -1636,6 +1638,7 @@ contains
 
     ! local variables
     type(InternalState)                :: is_local
+    type(med_field_info_type), allocatable :: field_info_array(:)
     type(ESMF_Clock)                   :: clock
     type(ESMF_State)                   :: importState, exportState
     type(ESMF_Time)                    :: time
@@ -1749,19 +1752,25 @@ contains
                        trim(compname(n1))//'_'//trim(compname(n2))
                end if
 
+               call med_field_info_array_from_state( &
+                    state = is_local%wrap%NStateImp(n1), &
+                    field_info_array = field_info_array, &
+                    rc = rc)
+               if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
                ! Check import FB, if there is no field in it then use export FB
                ! to provide mesh information
                call State_GetNumFields(is_local%wrap%NStateImp(n2), fieldCount, rc=rc)
                if (ChkErr(rc,__LINE__,u_FILE_u)) return
                if (fieldCount == 0) then
                  call FB_init(is_local%wrap%FBImp(n1,n2), is_local%wrap%flds_scalar_name, &
+                      field_info_array=field_info_array, &
                       STgeom=is_local%wrap%NStateExp(n2), &
-                      STflds=is_local%wrap%NStateImp(n1), &
                       name='FBImp'//trim(compname(n1))//'_'//trim(compname(n2)), rc=rc)
                else
                  call FB_init(is_local%wrap%FBImp(n1,n2), is_local%wrap%flds_scalar_name, &
+                      field_info_array=field_info_array, &
                       STgeom=is_local%wrap%NStateImp(n2), &
-                      STflds=is_local%wrap%NStateImp(n1), &
                       name='FBImp'//trim(compname(n1))//'_'//trim(compname(n2)), rc=rc)
                end if
                if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -1789,14 +1798,19 @@ contains
             allocate(fldnames(fieldCount))
             call med_fldList_getfldnames(fldListMed_ocnalb%fields, fldnames, rc=rc)
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+            call med_field_info_array_from_names_wtracers_ungridded( &
+                 field_names = fldnames, &
+                 field_info_array = field_info_array, &
+                 rc = rc)
+            if (ChkErr(rc,__LINE__,u_FILE_u)) return
             call FB_init(is_local%wrap%FBMed_ocnalb_a, is_local%wrap%flds_scalar_name, &
-                 STgeom=is_local%wrap%NStateImp(compatm), fieldnamelist=fldnames, name='FBMed_ocnalb_a', rc=rc)
+                 field_info_array=field_info_array, STgeom=is_local%wrap%NStateImp(compatm), name='FBMed_ocnalb_a', rc=rc)
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
             if (maintask) then
                write(logunit,'(a)') trim(subname)//' initializing FB FBMed_ocnalb_a'
             end if
             call FB_init(is_local%wrap%FBMed_ocnalb_o, is_local%wrap%flds_scalar_name, &
-                 STgeom=is_local%wrap%NStateImp(compocn), fieldnamelist=fldnames, name='FBMed_ocnalb_o', rc=rc)
+                 field_info_array = field_info_array, STgeom=is_local%wrap%NStateImp(compocn), name='FBMed_ocnalb_o', rc=rc)
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
             if (maintask) then
                write(logunit,'(a)') trim(subname)//' initializing FB FBMed_ocnalb_o'
