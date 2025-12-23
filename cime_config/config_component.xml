@@ -2310,15 +2310,6 @@
     <desc>determine if per ice thickness category fields are passed from ice to ocean - DO NOT EDIT (set by MOM6)</desc>
   </entry>
 
-  <entry id="INFO_DBUG">
-    <type>integer</type>
-    <valid_values>0,1,2,3,4,5,6,7,8,9</valid_values>
-    <default_value>1</default_value>
-    <group>run_flags</group>
-    <file>env_run.xml</file>
-    <desc>level of debug output, 0=minimum, 1=normal, 2=more, 3=too much</desc>
-  </entry>
-
   <!-- Prerun/postrun custom script options -->
 
   <entry id="PRERUN_SCRIPT">
