@@ -10,7 +10,7 @@ module med_field_info_mod
   use med_utils_mod, only : ChkErr => med_utils_ChkErr
   use shr_log_mod, only : shr_log_error
   use shr_string_mod, only : shr_string_withoutSuffix
-  use shr_wtracers_mod, only : WTRACERS_SUFFIX, shr_wtracers_get_num_tracers
+  use shr_wtracers_mod, only : WTRACERS_SUFFIX
 
   implicit none
   private
@@ -119,7 +119,9 @@ contains
 
     n_fields = size(field_names)
     allocate(field_info_array(n_fields))
-    n_tracers = shr_wtracers_get_num_tracers()
+    ! For now, hard-code n_tracers, since we haven't set up the tracer information; we'll
+    ! fix this in an upcoming set of changes
+    n_tracers = 0
 
     do i = 1, n_fields
        call shr_string_withoutSuffix( &
