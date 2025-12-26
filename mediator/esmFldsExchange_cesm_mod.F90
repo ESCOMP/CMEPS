@@ -95,6 +95,7 @@ module esmFldsExchange_cesm_mod
   logical             :: flds_co2a                      ! Pass CO2 from ATM to surface components
   logical             :: flds_co2b                      ! Pass CO2 from ATM to LND and back from LND to ATM
   logical             :: flds_co2c                      ! Pass CO2 from ATM to surface (OCN/LND) and back from them to ATM
+  logical             :: flds_wtracers                  ! Pass water tracer fields
   logical             :: flds_r2l_stream_channel_depths ! Pass channel depths from ROF to LND
   logical             :: add_gusts                      ! Whether to include fields related to the gustiness parameterization
 
@@ -127,6 +128,8 @@ contains
     use esmFlds               , only : addfld_from => med_fldList_addfld_from
     use esmFlds               , only : addmap_from => med_fldList_addmap_from
     use esmFlds               , only : addmrg_to => med_fldList_addmrg_to
+    use shr_wtracers_mod      , only : shr_wtracers_present
+    use shr_wtracers_mod      , only : WTRACERS_SUFFIX
 
     ! input/output parameters:
     type(ESMF_GridComp)              :: gcomp
@@ -235,6 +238,8 @@ contains
        call NUOPC_CompAttributeGet(gcomp, name='flds_i2o_per_cat', value=cvalue, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        read(cvalue,*) flds_i2o_per_cat
+
+       flds_wtracers = shr_wtracers_present()
 
        call NUOPC_CompAttributeGet(gcomp, name='flds_r2l_stream_channel_depths', value=cvalue, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -1223,6 +1228,34 @@ contains
           end if
        end if
     end if
+    if (flds_wtracers) then
+       if (phase == 'advertise') then
+          call addfld_to(compatm, 'Faxx_evap'//WTRACERS_SUFFIX)
+          call addfld_from(complnd, 'Fall_evap'//WTRACERS_SUFFIX)
+          call addfld_from(compice, 'Faii_evap'//WTRACERS_SUFFIX)
+          call addfld_aoflux( 'Faox_evap'//WTRACERS_SUFFIX)
+       else
+          if (fldchk(is_local%wrap%FBexp(compatm), 'Faxx_evap'//WTRACERS_SUFFIX, rc=rc)) then
+             if ( fldchk(is_local%wrap%FBImp(complnd,complnd), 'Fall_evap'//WTRACERS_SUFFIX, rc=rc)) then
+                call addmap_from(complnd , 'Fall_evap'//WTRACERS_SUFFIX, compatm, mapconsf, map_fracname_lnd2atm, lnd2atm_map)
+                call addmrg_to(compatm , 'Faxx_evap'//WTRACERS_SUFFIX, &
+                     mrg_from=complnd, mrg_fld='Fall_evap'//WTRACERS_SUFFIX, mrg_type='merge', mrg_fracname=mrg_fracname_lnd2atm_flux)
+             end if
+             if (fldchk(is_local%wrap%FBImp(compice,compice), 'Faii_evap'//WTRACERS_SUFFIX, rc=rc)) then
+                call addmap_from(compice , 'Faii_evap'//WTRACERS_SUFFIX, compatm, mapconsf, 'ifrac', ice2atm_map)
+                call addmrg_to(compatm , 'Faxx_evap'//WTRACERS_SUFFIX, &
+                     mrg_from=compice, mrg_fld='Faii_evap'//WTRACERS_SUFFIX, mrg_type='merge', mrg_fracname='ifrac')
+             end if
+             if (fldchk(is_local%wrap%FBMed_aoflux_o, 'Faox_evap'//WTRACERS_SUFFIX, rc=rc)) then
+                if (trim(is_local%wrap%aoflux_grid) == 'ogrid') then
+                   call addmap_aoflux('Faox_evap'//WTRACERS_SUFFIX, compatm, mapconsf, 'ofrac', ocn2atm_map)
+                end if
+                call addmrg_to(compatm , 'Faxx_evap'//WTRACERS_SUFFIX, &
+                     mrg_from=compmed, mrg_fld='Faox_evap'//WTRACERS_SUFFIX, mrg_type='merge', mrg_fracname='ofrac')
+             end if
+          end if
+       end if
+    end if
 
     if (phase == 'advertise') then
        call addfld_to(compatm, 'Faxx_lwup')
@@ -1930,6 +1963,17 @@ contains
        if ( fldchk(is_local%wrap%FBExp(compocn), 'Foxx_evap', rc=rc)) then
           call addmrg_to(compocn, 'Foxx_evap', &
                mrg_from=compmed, mrg_fld='Faox_evap', mrg_type='merge', mrg_fracname='ofrac')
+       end if
+    end if
+    if (flds_wtracers) then
+       if (phase == 'advertise') then
+          call addfld_aoflux( 'Faox_evap'//WTRACERS_SUFFIX)
+          call addfld_to(compocn, 'Foxx_evap'//WTRACERS_SUFFIX)
+       else
+          if ( fldchk(is_local%wrap%FBExp(compocn), 'Foxx_evap'//WTRACERS_SUFFIX, rc=rc)) then
+             call addmrg_to(compocn, 'Foxx_evap'//WTRACERS_SUFFIX, &
+                  mrg_from=compmed, mrg_fld='Faox_evap'//WTRACERS_SUFFIX, mrg_type='merge', mrg_fracname='ofrac')
+          end if
        end if
     end if
 
