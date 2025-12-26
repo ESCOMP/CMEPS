@@ -112,7 +112,7 @@ contains
   end subroutine dead_read_inparms
 
   !===============================================================================
-  subroutine fld_list_add(num, fldlist, stdname, ungridded_lbound, ungridded_ubound)
+  subroutine fld_list_add(num, fldlist, stdname, ungridded_lbound, ungridded_ubound, num_wtracers)
 
     ! input/output variables
     integer                    , intent(inout) :: num
@@ -120,6 +120,10 @@ contains
     character(len=*)           , intent(in)    :: stdname
     integer,          optional , intent(in)    :: ungridded_lbound
     integer,          optional , intent(in)    :: ungridded_ubound
+
+    ! For water tracers, use num_wtracers instead of ungridded_lbound / ungridded_ubound
+    ! for the water tracer dimension:
+    integer,          optional , intent(in)    :: num_wtracers
 
     ! local variables
     character(len=*), parameter :: subname='(dead_nuopc_mod:fld_list_add)'
@@ -137,6 +141,10 @@ contains
     if (present(ungridded_lbound) .and. present(ungridded_ubound)) then
        fldlist(num)%ungridded_lbound = ungridded_lbound
        fldlist(num)%ungridded_ubound = ungridded_ubound
+    end if
+
+    if (present(num_wtracers)) then
+       fldlist(num)%num_wtracers = num_wtracers
     end if
 
   end subroutine fld_list_add

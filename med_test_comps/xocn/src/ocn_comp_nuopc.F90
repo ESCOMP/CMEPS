@@ -15,6 +15,8 @@ module ocn_comp_nuopc
   use shr_sys_mod      , only : shr_sys_abort
   use shr_kind_mod     , only : r8=>shr_kind_r8, i8=>shr_kind_i8, cl=>shr_kind_cl, cs=>shr_kind_cs
   use shr_log_mod     , only : shr_log_getlogunit, shr_log_setlogunit
+  use shr_wtracers_mod , only : WTRACERS_SUFFIX
+  use shr_wtracers_mod , only : shr_wtracers_present, shr_wtracers_get_num_tracers
   use dead_methods_mod , only : chkerr, state_setscalar,  state_diagnose, alarmInit, memcheck
   use dead_methods_mod , only : set_component_logging, get_component_instance, log_clock_advance
   use dead_nuopc_mod   , only : dead_read_inparms, ModelInitPhase, ModelSetRunClock
@@ -123,6 +125,8 @@ contains
     character(CL)     :: cvalue
     character(len=CL) :: logmsg
     logical           :: isPresent, isSet
+    logical           :: flds_wtracers
+    integer           :: num_wtracers
     character(len=*),parameter :: subname=trim(modName)//':(InitializeAdvertise) '
     !-------------------------------------------------------------------------------
 
@@ -192,6 +196,9 @@ contains
 
     if (nxg /= 0 .and. nyg /= 0) then
 
+       flds_wtracers = shr_wtracers_present()
+       num_wtracers = shr_wtracers_get_num_tracers()
+
        call fld_list_add(fldsFrOcn_num, fldsFrOcn, trim(flds_scalar_name))
        call fld_list_add(fldsFrOcn_num, fldsFrOcn, "So_omask"      )
        call fld_list_add(fldsFrOcn_num, fldsFrOcn, "So_t"          )
@@ -217,6 +224,10 @@ contains
        call fld_list_add(fldsToOcn_num, fldsToOcn, "Foxx_lat"      )
        call fld_list_add(fldsToOcn_num, fldsToOcn, "Foxx_lwup"     )
        call fld_list_add(fldsToOcn_num, fldsToOcn, "Foxx_evap"     )
+       if (flds_wtracers) then
+          call fld_list_add(fldsToOcn_num, fldsToOcn, "Foxx_evap"//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+       end if
        call fld_list_add(fldsToOcn_num, fldsToOcn, "Fioi_salt"     )
        call fld_list_add(fldsToOcn_num, fldsToOcn, "Foxx_rofl"     )
        call fld_list_add(fldsToOcn_num, fldsToOcn, "Foxx_rofi"     )

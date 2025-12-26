@@ -15,6 +15,8 @@ module lnd_comp_nuopc
   use shr_sys_mod      , only : shr_sys_abort
   use shr_kind_mod     , only : r8=>shr_kind_r8, i8=>shr_kind_i8, cl=>shr_kind_cl, cs=>shr_kind_cs
   use shr_log_mod     , only : shr_log_getlogunit, shr_log_setlogunit
+  use shr_wtracers_mod, only : WTRACERS_SUFFIX
+  use shr_wtracers_mod, only : shr_wtracers_present, shr_wtracers_get_num_tracers
   use dead_methods_mod , only : chkerr, state_setscalar,  state_diagnose, alarmInit, memcheck
   use dead_methods_mod , only : set_component_logging, get_component_instance, log_clock_advance
   use dead_nuopc_mod   , only : dead_read_inparms, ModelInitPhase, ModelSetRunClock
@@ -124,6 +126,8 @@ contains
     character(CL)     :: cvalue
     character(CL)     :: logmsg
     logical           :: isPresent, isSet
+    logical           :: flds_wtracers
+    integer           :: num_wtracers
     character(len=*),parameter :: subname=trim(modName)//':(InitializeAdvertise) '
     !-------------------------------------------------------------------------------
 
@@ -212,6 +216,9 @@ contains
        read(cvalue,*) glc_nec
        call ESMF_LogWrite('glc_nec = '// trim(cvalue), ESMF_LOGMSG_INFO)
 
+       flds_wtracers = shr_wtracers_present()
+       num_wtracers = shr_wtracers_get_num_tracers()
+
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, trim(flds_scalar_name))
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Sl_lfrin'      )
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Sl_t'          )
@@ -236,6 +243,10 @@ contains
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Fall_sen'      )
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Fall_lwup'     )
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Fall_evap'     )
+       if (flds_wtracers) then
+          call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Fall_evap'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+       end if
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Fall_swnet'    )
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Fall_flxdst'   , ungridded_lbound=1, ungridded_ubound=4)
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Flgl_qice_elev', ungridded_lbound=1, ungridded_ubound=glc_nec+1)
