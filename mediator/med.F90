@@ -38,7 +38,7 @@ module MED
   use med_methods_mod          , only : FB_getFieldN       => med_methods_FB_getFieldN
   use med_methods_mod          , only : clock_timeprint    => med_methods_clock_timeprint
   use med_field_info_mod       , only : med_field_info_type
-  use med_field_info_mod       , only : med_field_info_array_from_names_wtracers_ungridded, med_field_info_array_from_state
+  use med_field_info_mod       , only : med_field_info_array_from_names_wtracers, med_field_info_array_from_state
   use med_utils_mod            , only : memcheck           => med_memcheck
   use med_internalstate_mod    , only : InternalState, med_internalstate_init, med_internalstate_coupling
   use med_internalstate_mod    , only : med_internalstate_defaultmasks, logunit, maintask
@@ -1798,7 +1798,7 @@ contains
             allocate(fldnames(fieldCount))
             call med_fldList_getfldnames(fldListMed_ocnalb%fields, fldnames, rc=rc)
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-            call med_field_info_array_from_names_wtracers_ungridded( &
+            call med_field_info_array_from_names_wtracers( &
                  field_names = fldnames, &
                  field_info_array = field_info_array, &
                  rc = rc)

@@ -23,8 +23,8 @@ module med_field_info_mod
   public :: med_field_info_create
 
   ! Create an array of field_info objects based on an array of names, where water tracers
-  ! are given an ungridded dimension
-  public :: med_field_info_array_from_names_wtracers_ungridded
+  ! are treated specially (being given an ungridded dimension)
+  public :: med_field_info_array_from_names_wtracers
 
   ! Create an array of field_info objects based on the fields in an ESMF State
   public :: med_field_info_array_from_state
@@ -100,9 +100,9 @@ contains
 
   !-----------------------------------------------------------------------------
 
-  subroutine med_field_info_array_from_names_wtracers_ungridded(field_names, field_info_array, rc)
+  subroutine med_field_info_array_from_names_wtracers(field_names, field_info_array, rc)
     ! Create an array of field_info objects based on an array of names, where water
-    ! tracers are given an ungridded dimension.
+    ! tracers are treated specially (being given an ungridded dimension).
     !
     ! It is assumed that fields generally have no ungridded dimensions. However, for
     ! fields ending with the water tracer suffix, it is instead assumed that they have a
@@ -120,7 +120,7 @@ contains
     logical :: is_tracer
     integer :: n_tracers
     integer :: localrc
-    character(len=*), parameter :: subname = '(med_field_info_array_from_names_wtracers_ungridded)'
+    character(len=*), parameter :: subname = '(med_field_info_array_from_names_wtracers)'
     ! ----------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -159,7 +159,7 @@ contains
        end if
     end do
 
-  end subroutine med_field_info_array_from_names_wtracers_ungridded
+  end subroutine med_field_info_array_from_names_wtracers
 
   !-----------------------------------------------------------------------------
 
