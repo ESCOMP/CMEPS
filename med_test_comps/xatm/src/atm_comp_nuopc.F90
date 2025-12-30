@@ -217,6 +217,10 @@ contains
        call fld_list_add(fldsFrAtm_num, fldsFrAtm, 'Sa_tbot'       )
        call fld_list_add(fldsFrAtm_num, fldsFrAtm, 'Sa_ptem'       )
        call fld_list_add(fldsFrAtm_num, fldsFrAtm, 'Sa_shum'       )
+       if (flds_wtracers) then
+          call fld_list_add(fldsFrAtm_num, fldsFrAtm, 'Sa_shum'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+       end if
        call fld_list_add(fldsFrAtm_num, fldsFrAtm, 'Sa_pbot'       )
        call fld_list_add(fldsFrAtm_num, fldsFrAtm, 'Sa_dens'       )
        call fld_list_add(fldsFrAtm_num, fldsFrAtm, 'Sa_pslv'       )

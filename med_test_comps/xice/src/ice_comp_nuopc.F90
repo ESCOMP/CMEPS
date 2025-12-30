@@ -260,6 +260,10 @@ contains
        call fld_list_add(fldsToIce_num, fldsToIce, 'Sa_v'          )
        call fld_list_add(fldsToIce_num, fldsToIce, 'Sa_ptem'       )
        call fld_list_add(fldsToIce_num, fldsToIce, 'Sa_shum'       )
+       if (flds_wtracers) then
+          call fld_list_add(fldsToIce_num, fldsToIce, 'Sa_shum'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+       end if
        call fld_list_add(fldsToIce_num, fldsToIce, 'Sa_dens'       )
        call fld_list_add(fldsToIce_num, fldsToIce, 'Sa_tbot'       )
        call fld_list_add(fldsToIce_num, fldsToIce, 'Faxa_swvdr'    )
