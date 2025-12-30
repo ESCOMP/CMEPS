@@ -2095,6 +2095,7 @@
     <group>ALLCOMP_attributes</group>
     <values>
       <value>.false.</value>
+      <value COMP_WAV='ww3'>.true.</value>
     </values>
     <desc>Auxiliary mediator wav2med average history output every day.
     Note that ww3dev will use this configuration variable and send
@@ -2106,6 +2107,7 @@
     <group>MED_attributes</group>
     <values>
       <value>Sw_hs_avg:Sw_Tm1_avg:Sw_thm_avg:Sw_u_avg:Sw_v_avg:Sw_ustokes_avg:Sw_vstokes_avg:Sw_tusx_avg:Sw_tusy_avg:Sw_thp0_avg:Sw_fp0_avg:Sw_phs0_avg:Sw_phs1_avg:Sw_pdir0_avg:Sw_pdir1_avg:Sw_pTm10_avg:Sw_pTm11_avg</value>
+      <value COMP_WAV='ww3'>Sw_Hs:Sw_t01:Sw_t0m1:Sw_thm:Sw_lamult:Sw_ustokes:Sw_vstokes</value>
     </values>
     <desc>Auxiliary mediator wav2med file1 colon delimited output
     fields. NOTE: these are assumed to be time averaged over a day in
@@ -2137,6 +2139,7 @@
     <group>MED_attributes</group>
     <values>
       <value>.false.</value>
+      <value COMP_WAV='ww3'>.true.</value>
     </values>
     <desc>Auxiliary mediator wav2med file1 time averaged flag for file output.
     If this flag is set to .false. only instantaneous output will be created in the auxiliary file.</desc>
@@ -2147,6 +2150,7 @@
     <group>MED_attributes</group>
     <values>
       <value>wav.24h.avg</value>
+      <value COMP_WAV='ww3'>ww3</value>
     </values>
   </entry>
   <entry id="histaux_wav2med_file1_ntperfile">
