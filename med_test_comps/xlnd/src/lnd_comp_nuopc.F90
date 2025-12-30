@@ -224,6 +224,10 @@ contains
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Sl_t'          )
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Sl_tref'       )
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Sl_qref'       )
+       if (flds_wtracers) then
+          call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Sl_qref'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+       end if
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Sl_avsdr'      )
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Sl_anidr'      )
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Sl_avsdf'      )

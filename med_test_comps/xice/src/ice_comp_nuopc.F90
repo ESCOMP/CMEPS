@@ -216,6 +216,10 @@ contains
        call fld_list_add(fldsFrIce_num, fldsFrIce, 'Si_t'          )
        call fld_list_add(fldsFrIce_num, fldsFrIce, 'Si_tref'       )
        call fld_list_add(fldsFrIce_num, fldsFrIce, 'Si_qref'       )
+       if (flds_wtracers) then
+          call fld_list_add(fldsFrIce_num, fldsFrIce, 'Si_qref'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+       end if
        call fld_list_add(fldsFrIce_num, fldsFrIce, 'Si_snowh'      )
        call fld_list_add(fldsFrIce_num, fldsFrIce, 'Si_u10'        )
        call fld_list_add(fldsFrIce_num, fldsFrIce, 'Si_avsdr'      )

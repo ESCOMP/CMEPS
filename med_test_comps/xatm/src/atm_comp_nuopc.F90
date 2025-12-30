@@ -245,6 +245,10 @@ contains
        call fld_list_add(fldsToAtm_num, fldsToAtm, 'So_ofrac'  )
        call fld_list_add(fldsToAtm_num, fldsToAtm, 'Sx_tref'   )
        call fld_list_add(fldsToAtm_num, fldsToAtm, 'Sx_qref'   )
+       if (flds_wtracers) then
+          call fld_list_add(fldsToAtm_num, fldsToAtm, 'Sx_qref'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+       end if
        call fld_list_add(fldsToAtm_num, fldsToAtm, 'Sx_t'      )
        call fld_list_add(fldsToAtm_num, fldsToAtm, 'So_t'      )
        call fld_list_add(fldsToAtm_num, fldsToAtm, 'Sl_fv'     )
