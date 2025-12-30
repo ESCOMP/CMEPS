@@ -310,6 +310,9 @@ contains
        call addfld_from(compatm, 'Sa_tbot')
        call addfld_from(compatm, 'Sa_pbot')
        call addfld_from(compatm, 'Sa_shum')
+       if (flds_wtracers) then
+          call addfld_from(compatm, 'Sa_shum'//WTRACERS_SUFFIX)
+       end if
        call addfld_from(compatm, 'Sa_ptem')
        call addfld_from(compatm, 'Sa_dens')
        call addfld_from(compatm, 'Faxa_rainc')
@@ -327,6 +330,9 @@ contains
           call addmap_from(compatm, 'Sa_tbot', compocn, mapbilnr, 'one', atm2ocn_map)
           call addmap_from(compatm, 'Sa_pbot', compocn, mapbilnr, 'one', atm2ocn_map)
           call addmap_from(compatm, 'Sa_shum', compocn, mapbilnr, 'one', atm2ocn_map)
+          if (flds_wtracers) then
+             call addmap_from(compatm, 'Sa_shum'//WTRACERS_SUFFIX, compocn, mapbilnr, 'one', atm2ocn_map)
+          end if
           call addmap_from(compatm, 'Sa_ptem', compocn, mapbilnr, 'one', atm2ocn_map)
           call addmap_from(compatm, 'Sa_dens', compocn, mapbilnr, 'one', atm2ocn_map)
           call addmap_from(compatm, 'Sa_pslv', compocn, mapbilnr, 'one', atm2ocn_map)
@@ -480,6 +486,19 @@ contains
             fldchk(is_local%wrap%FBImp(compatm,compatm ), 'Sa_shum', rc=rc)) then
           call addmap_from(compatm, 'Sa_shum', complnd, mapbilnr, 'one', atm2lnd_map)
           call addmrg_to(complnd, 'Sa_shum', mrg_from=compatm, mrg_fld='Sa_shum', mrg_type='copy')
+       end if
+    end if
+    if (flds_wtracers) then
+       if (phase == 'advertise') then
+          call addfld_from(compatm, 'Sa_shum'//WTRACERS_SUFFIX)
+          call addfld_to(complnd, 'Sa_shum'//WTRACERS_SUFFIX)
+       else
+          if ( fldchk(is_local%wrap%FBexp(complnd)         , 'Sa_shum'//WTRACERS_SUFFIX, rc=rc) .and. &
+               fldchk(is_local%wrap%FBImp(compatm,compatm ), 'Sa_shum'//WTRACERS_SUFFIX, rc=rc)) then
+             call addmap_from(compatm, 'Sa_shum'//WTRACERS_SUFFIX, complnd, mapbilnr, 'one', atm2lnd_map)
+             call addmrg_to(complnd, 'Sa_shum'//WTRACERS_SUFFIX, &
+                            mrg_from=compatm, mrg_fld='Sa_shum'//WTRACERS_SUFFIX, mrg_type='copy')
+          end if
        end if
     end if
     ! ---------------------------------------------------------------------
@@ -2895,6 +2914,19 @@ contains
             fldchk(is_local%wrap%FBImp(compatm,compatm ), 'Sa_shum', rc=rc)) then
           call addmap_from(compatm, 'Sa_shum', compice, mapbilnr, 'one', atm2ice_map)
           call addmrg_to(compice, 'Sa_shum', mrg_from=compatm, mrg_fld='Sa_shum', mrg_type='copy')
+       end if
+    end if
+    if (flds_wtracers) then
+       if (phase == 'advertise') then
+          call addfld_from(compatm, 'Sa_shum'//WTRACERS_SUFFIX)
+          call addfld_to(compice, 'Sa_shum'//WTRACERS_SUFFIX)
+       else
+          if ( fldchk(is_local%wrap%FBexp(compice)         , 'Sa_shum'//WTRACERS_SUFFIX, rc=rc) .and. &
+               fldchk(is_local%wrap%FBImp(compatm,compatm ), 'Sa_shum'//WTRACERS_SUFFIX, rc=rc)) then
+             call addmap_from(compatm, 'Sa_shum'//WTRACERS_SUFFIX, compice, mapbilnr, 'one', atm2ice_map)
+             call addmrg_to(compice, 'Sa_shum'//WTRACERS_SUFFIX, &
+                            mrg_from=compatm, mrg_fld='Sa_shum'//WTRACERS_SUFFIX, mrg_type='copy')
+          end if
        end if
     end if
     ! ---------------------------------------------------------------------
