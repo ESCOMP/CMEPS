@@ -136,7 +136,7 @@ module med_fraction_mod
   use med_map_mod           , only : med_map_field
   use med_internalstate_mod , only : ncomps, samegrid_atmlnd
   use med_field_info_mod    , only : med_field_info_type
-  use med_field_info_mod    , only : med_field_info_array_from_names_wtracers_ungridded, med_field_info_array_from_state
+  use med_field_info_mod    , only : med_field_info_array_from_names_wtracers, med_field_info_array_from_state
 
   implicit none
   private
@@ -258,7 +258,7 @@ contains
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
              ! create FBFrac
-             call med_field_info_array_from_names_wtracers_ungridded( &
+             call med_field_info_array_from_names_wtracers( &
                   field_names = fraclist(:,n1), &
                   field_info_array = field_info_array, &
                   rc = rc)

@@ -32,7 +32,7 @@ module med_phases_aofluxes_mod
   use med_utils_mod         , only : memcheck     => med_memcheck
   use med_utils_mod         , only : chkerr       => med_utils_chkerr
   use med_field_info_mod    , only : med_field_info_type
-  use med_field_info_mod    , only : med_field_info_array_from_names_wtracers_ungridded, med_field_info_array_from_state
+  use med_field_info_mod    , only : med_field_info_array_from_names_wtracers, med_field_info_array_from_state
   use perf_mod              , only : t_startf, t_stopf
 #ifndef CESMCOUPLED
   use ufs_const_mod         , only : rearth => SHR_CONST_REARTH
@@ -194,7 +194,7 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! Create field_info_array for FBMed_aoflux_a and FBMed_aoflux_o
-    call med_field_info_array_from_names_wtracers_ungridded( &
+    call med_field_info_array_from_names_wtracers( &
          field_names = fldnames_aof_out, &
          field_info_array = field_info_array, &
          rc = rc)
@@ -644,7 +644,7 @@ contains
 
     allocate(fldnames_ocn_in(4))
     fldnames_ocn_in = (/'So_omask','So_t    ','So_u    ','So_v    '/)
-    call med_field_info_array_from_names_wtracers_ungridded( &
+    call med_field_info_array_from_names_wtracers( &
          field_names = fldnames_ocn_in, &
          field_info_array = field_info_array, &
          rc = rc)
