@@ -5,11 +5,11 @@ module med_field_info_mod
   ! used to create an ESMF FieldBundle.
   !-----------------------------------------------------------------------------
 
-  use ESMF, only : ESMF_MAXSTR, ESMF_SUCCESS
-  use ESMF, only : ESMF_Field, ESMF_State, ESMF_AttributeGet, ESMF_StateGet
-  use med_utils_mod, only : ChkErr => med_utils_ChkErr
-  use shr_log_mod, only : shr_log_error
-  use shr_string_mod, only : shr_string_withoutSuffix
+  use ESMF            , only : ESMF_MAXSTR, ESMF_SUCCESS
+  use ESMF            , only : ESMF_Field, ESMF_State, ESMF_AttributeGet, ESMF_StateGet
+  use med_utils_mod   , only : ChkErr => med_utils_ChkErr
+  use shr_log_mod     , only : shr_log_error
+  use shr_string_mod  , only : shr_string_withoutSuffix
   use shr_wtracers_mod, only : WTRACERS_SUFFIX
 
   implicit none
@@ -19,9 +19,15 @@ module med_field_info_mod
   ! Public methods
   !-----------------------------------------------
 
-  public :: med_field_info_create  ! Create a single field
-  public :: med_field_info_array_from_names_wtracers_ungridded  ! Create an array of field_info objects based on an array of names, where water tracers are given an ungridded dimension
-  public :: med_field_info_array_from_state  ! Create an array of field_info objects based on the fields in an ESMF State
+  ! Create a single field
+  public :: med_field_info_create
+
+  ! Create an array of field_info objects based on an array of names, where water tracers
+  ! are given an ungridded dimension
+  public :: med_field_info_array_from_names_wtracers_ungridded
+
+  ! Create an array of field_info objects based on the fields in an ESMF State
+  public :: med_field_info_array_from_state
 
   !-----------------------------------------------
   ! Types
@@ -101,6 +107,8 @@ contains
     ! It is assumed that fields generally have no ungridded dimensions. However, for
     ! fields ending with the water tracer suffix, it is instead assumed that they have a
     ! single ungridded dimension of size given by shr_wtracers_get_num_tracers.
+    !
+    ! field_info_array is allocated here
 
     ! input/output variables
     character(len=*), intent(in) :: field_names(:)
@@ -153,8 +161,12 @@ contains
 
   end subroutine med_field_info_array_from_names_wtracers_ungridded
 
+  !-----------------------------------------------------------------------------
+
   subroutine med_field_info_array_from_state(state, field_info_array, rc)
     ! Create an array of field_info objects based on the Fields in an ESMF State
+    !
+    ! field_info_array is allocated here
 
     ! input/output variables
     type(ESMF_State), intent(in) :: state
