@@ -998,6 +998,37 @@ contains
           end if
        end if
     end if
+    if (flds_wtracers) then
+       if (phase == 'advertise') then
+          call addfld_from(complnd , 'Sl_qref'//WTRACERS_SUFFIX)
+          call addfld_from(compice , 'Si_qref'//WTRACERS_SUFFIX)
+          call addfld_aoflux('So_qref'//WTRACERS_SUFFIX)
+          call addfld_to(compatm , 'Sx_qref'//WTRACERS_SUFFIX)
+       else
+          if ( fldchk(is_local%wrap%FBexp(compatm), 'Sx_qref'//WTRACERS_SUFFIX, rc=rc)) then
+             if (fldchk(is_local%wrap%FBImp(complnd,complnd ), 'Sl_qref'//WTRACERS_SUFFIX, rc=rc)) then
+                call addmap_from(complnd , 'Sl_qref'//WTRACERS_SUFFIX, compatm, mapconsf, map_fracname_lnd2atm, lnd2atm_map)
+                call addmrg_to(compatm , 'Sx_qref'//WTRACERS_SUFFIX, &
+                     mrg_from=complnd, mrg_fld='Sl_qref'//WTRACERS_SUFFIX, mrg_type='merge', &
+                     mrg_fracname=mrg_fracname_lnd2atm_state)
+             end if
+             if (fldchk(is_local%wrap%FBImp(compice,compice ), 'Si_qref'//WTRACERS_SUFFIX, rc=rc)) then
+                call addmap_from(compice , 'Si_qref'//WTRACERS_SUFFIX, compatm, mapconsf, 'ifrac', ice2atm_map)
+                call addmrg_to(compatm , 'Sx_qref'//WTRACERS_SUFFIX, &
+                     mrg_from=compice, mrg_fld='Si_qref'//WTRACERS_SUFFIX, mrg_type='merge', &
+                     mrg_fracname='ifrac')
+             end if
+             if (fldchk(is_local%wrap%FBMed_aoflux_o, 'So_qref'//WTRACERS_SUFFIX, rc=rc)) then
+                if (trim(is_local%wrap%aoflux_grid) == 'ogrid') then
+                   call addmap_aoflux('So_qref'//WTRACERS_SUFFIX, compatm, mapconsf, 'ofrac', ocn2atm_map)
+                end if
+                call addmrg_to(compatm , 'Sx_qref'//WTRACERS_SUFFIX, &
+                     mrg_from=compmed, mrg_fld='So_qref'//WTRACERS_SUFFIX, mrg_type='merge', &
+                     mrg_fracname='ofrac')
+             end if
+          end if
+       end if
+    end if
 
     ! ---------------------------------------------------------------------
     ! to atm: merged zonal surface stress
