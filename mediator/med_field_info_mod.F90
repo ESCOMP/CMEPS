@@ -107,7 +107,8 @@ contains
     ! fields ending with the water tracer suffix, it is instead assumed that they have a
     ! single ungridded dimension of size given by shr_wtracers_get_num_tracers.
     !
-    ! field_info_array is allocated here
+    ! field_info_array is allocated here (and, since it has intent(out), it is
+    ! automatically deallocated if it is already allocated on entry to this subroutine)
 
     ! input/output variables
     character(len=*), intent(in) :: field_names(:)
@@ -156,7 +157,8 @@ contains
   subroutine med_field_info_array_from_state(state, field_info_array, rc)
     ! Create an array of field_info objects based on the Fields in an ESMF State
     !
-    ! field_info_array is allocated here
+    ! field_info_array is allocated here (and, since it has intent(out), it is
+    ! automatically deallocated if it is already allocated on entry to this subroutine)
 
     ! input/output variables
     type(ESMF_State), intent(in) :: state
