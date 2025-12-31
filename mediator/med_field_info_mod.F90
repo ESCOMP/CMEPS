@@ -119,7 +119,6 @@ contains
     integer :: i, n_fields
     logical :: is_tracer
     integer :: n_tracers
-    integer :: localrc
     character(len=*), parameter :: subname = '(med_field_info_array_from_names_wtracers)'
     ! ----------------------------------------------
 
