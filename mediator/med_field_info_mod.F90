@@ -127,7 +127,6 @@ contains
 
     n_fields = size(field_names)
     allocate(field_info_array(n_fields))
-    n_tracers = shr_wtracers_get_num_tracers()
 
     do i = 1, n_fields
        call shr_string_withoutSuffix( &
@@ -142,6 +141,7 @@ contains
 
        if (is_tracer) then
           ! Field is a water tracer; assume a single ungridded dimension
+          n_tracers = shr_wtracers_get_num_tracers()
           field_info_array(i) = med_field_info_create( &
                name=field_names(i), &
                ungridded_lbound=[1], &
