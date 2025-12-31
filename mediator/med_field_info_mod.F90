@@ -9,7 +9,7 @@ module med_field_info_mod
   use ESMF            , only : ESMF_Field, ESMF_State, ESMF_AttributeGet, ESMF_StateGet
   use med_utils_mod   , only : ChkErr => med_utils_ChkErr
   use shr_log_mod     , only : shr_log_error
-  use shr_wtracers_mod, only : shr_wtracers_is_wtracer_field
+  use wtracers_mod    , only : wtracers_is_wtracer_field
 
   implicit none
   private
@@ -132,7 +132,7 @@ contains
     n_tracers = 0
 
     do i = 1, n_fields
-       is_tracer = shr_wtracers_is_wtracer_field(field_names(i))
+       is_tracer = wtracers_is_wtracer_field(field_names(i))
        if (is_tracer) then
           ! Field is a water tracer; assume a single ungridded dimension
           field_info_array(i) = med_field_info_create( &
