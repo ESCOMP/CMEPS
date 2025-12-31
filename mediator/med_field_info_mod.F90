@@ -9,8 +9,7 @@ module med_field_info_mod
   use ESMF            , only : ESMF_Field, ESMF_State, ESMF_AttributeGet, ESMF_StateGet
   use med_utils_mod   , only : ChkErr => med_utils_ChkErr
   use shr_log_mod     , only : shr_log_error
-  use shr_string_mod  , only : shr_string_withoutSuffix
-  use shr_wtracers_mod, only : WTRACERS_SUFFIX
+  use shr_wtracers_mod, only : shr_wtracers_is_wtracer_field
 
   implicit none
   private
@@ -132,16 +131,7 @@ contains
     n_tracers = 0
 
     do i = 1, n_fields
-       call shr_string_withoutSuffix( &
-            in_str = field_names(i), &
-            suffix = WTRACERS_SUFFIX, &
-            has_suffix = is_tracer, &
-            rc = localrc)
-       if (localrc /= 0) then
-          call shr_log_error(subname//": ERROR in shr_string_withoutSuffix", rc=rc)
-          return
-       end if
-
+       is_tracer = shr_wtracers_is_wtracer_field(field_names(i))
        if (is_tracer) then
           ! Field is a water tracer; assume a single ungridded dimension
           field_info_array(i) = med_field_info_create( &
