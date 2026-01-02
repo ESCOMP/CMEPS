@@ -20,7 +20,6 @@ module med_phases_cdeps_mod
   use med_methods_mod      , only: FB_FldChk => med_methods_FB_FldChk 
   use med_methods_mod      , only: FB_getFieldN => med_methods_FB_getFieldN
   use med_methods_mod      , only: FB_getNumflds => med_methods_FB_getNumflds 
-  use med_methods_mod      , only: FB_init => med_methods_FB_Init
   use med_methods_mod      , only: FB_diagnose => med_methods_FB_diagnose
   use med_methods_mod      , only: FB_write => med_methods_FB_write
   use med_methods_mod      , only: FB_GetFldPtr => med_methods_FB_GetFldPtr

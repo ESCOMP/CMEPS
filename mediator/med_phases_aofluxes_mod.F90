@@ -31,6 +31,8 @@ module med_phases_aofluxes_mod
   use med_constants_mod     , only : dbug_flag    => med_constants_dbug_flag
   use med_utils_mod         , only : memcheck     => med_memcheck
   use med_utils_mod         , only : chkerr       => med_utils_chkerr
+  use med_field_info_mod    , only : med_field_info_type
+  use med_field_info_mod    , only : med_field_info_array_from_names_wtracers, med_field_info_array_from_state
   use perf_mod              , only : t_startf, t_stopf
 #ifndef CESMCOUPLED
   use ufs_const_mod         , only : rearth => SHR_CONST_REARTH
@@ -173,6 +175,7 @@ contains
     integer             :: fieldcount
     type(med_fldList_type), pointer :: fldListMed_aoflux
     type(InternalState) :: is_local
+    type(med_field_info_type), allocatable :: field_info_array(:)
     character(len=*),parameter :: subname=' (med_phases_aofluxes_init_fldbuns) '
     !---------------------------------------
 
@@ -190,9 +193,16 @@ contains
     call med_fldList_getfldnames(fldListMed_aoflux%fields, fldnames_aof_out, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+    ! Create field_info_array for FBMed_aoflux_a and FBMed_aoflux_o
+    call med_field_info_array_from_names_wtracers( &
+         field_names = fldnames_aof_out, &
+         field_info_array = field_info_array, &
+         rc = rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
     ! Initialize FBMed_aoflux_a
     call FB_init(is_local%wrap%FBMed_aoflux_a, is_local%wrap%flds_scalar_name, &
-         STgeom=is_local%wrap%NStateImp(compatm), fieldnamelist=fldnames_aof_out, name='FBMed_aoflux_a', rc=rc)
+         field_info_array=field_info_array, STgeom=is_local%wrap%NStateImp(compatm), name='FBMed_aoflux_a', rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (maintask) then
        write(logunit,*)
@@ -201,7 +211,7 @@ contains
 
     ! Initialize FBMed_aoflux_o
     call FB_init(is_local%wrap%FBMed_aoflux_o, is_local%wrap%flds_scalar_name, &
-         STgeom=is_local%wrap%NStateImp(compocn), fieldnamelist=fldnames_aof_out, name='FBMed_aoflux_o', rc=rc)
+         field_info_array=field_info_array, STgeom=is_local%wrap%NStateImp(compocn), name='FBMed_aoflux_o', rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (maintask) then
        write(logunit,'(a)') trim(subname)//' initialized FB FBMed_aoflux_o'
@@ -219,8 +229,13 @@ contains
           if (maintask) then
              write(logunit,'(a)') trim(subname)//' creating field bundle FBImp(compatm,compocn)'
           end if
+          call med_field_info_array_from_state( &
+               state = is_local%wrap%NStateImp(compatm), &
+               field_info_array = field_info_array, &
+               rc = rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
           call FB_init(is_local%wrap%FBImp(compatm,compocn), is_local%wrap%flds_scalar_name, &
-               STgeom=is_local%wrap%NStateImp(compocn), STflds=is_local%wrap%NStateImp(compatm), &
+               field_info_array=field_info_array, STgeom=is_local%wrap%NStateImp(compocn), &
                name='FBImp'//trim(compname(compatm))//'_'//trim(compname(compocn)), rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
@@ -234,8 +249,13 @@ contains
           if (maintask) then
              write(logunit,'(a)') trim(subname)//' creating field bundle FBImp(compocn,compatm)'
           end if
+          call med_field_info_array_from_state( &
+               state = is_local%wrap%NStateImp(compocn), &
+               field_info_array = field_info_array, &
+               rc = rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
           call FB_init(is_local%wrap%FBImp(compocn,compatm), is_local%wrap%flds_scalar_name, &
-               STgeom=is_local%wrap%NStateImp(compatm), STflds=is_local%wrap%NStateImp(compocn), &
+               field_info_array = field_info_array, STgeom=is_local%wrap%NStateImp(compatm), &
                name='FBImp'//trim(compname(compocn))//'_'//trim(compname(compatm)), rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
@@ -606,6 +626,7 @@ contains
     integer             :: maptype
     type(ESMF_Field)    :: lfield
     type(ESMF_Mesh)     :: lmesh
+    type(med_field_info_type), allocatable :: field_info_array(:)
     real(R8), pointer   :: garea(:) => null()
     type(ESMF_CoordSys_Flag)   :: coordSys
     character(len=*),parameter :: subname=' (med_aofluxes_init_atmgrid) '
@@ -623,8 +644,13 @@ contains
 
     allocate(fldnames_ocn_in(4))
     fldnames_ocn_in = (/'So_omask','So_t    ','So_u    ','So_v    '/)
+    call med_field_info_array_from_names_wtracers( &
+         field_names = fldnames_ocn_in, &
+         field_info_array = field_info_array, &
+         rc = rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
     call FB_init(FBocn_a, is_local%wrap%flds_scalar_name, &
-         FBgeom=is_local%wrap%FBImp(compatm,compatm), fieldnamelist=fldnames_ocn_in, name='FBocn_a', rc=rc)
+         field_info_array=field_info_array, FBgeom=is_local%wrap%FBImp(compatm,compatm), name='FBocn_a', rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     call set_aoflux_in_pointers(is_local%wrap%FBImp(compatm,compatm), FBocn_a, aoflux_in, lsize, rc=rc)
