@@ -45,6 +45,7 @@ contains
        ts, mask, seq_flux_atmocn_minwind,             &
        sen, lat, lwup, evap,                          &
        taux ,tauy, tref, qref,                        &
+       aofluxes_use_shr_wv_sat,                       &
        duu10n, ugust_out, u10res,                     &
        ustar_sv, re_sv, ssq_sv)
 
@@ -53,6 +54,7 @@ contains
     real(R8) , intent(in) :: spval
     integer  , intent(in) :: nMax        ! data vector length
     integer  , intent(in) :: mask (nMax) ! ocn domain mask       0 <=> out of domain
+    logical  , intent(in) :: aofluxes_use_shr_wv_sat ! use shr_wv_sat_mod to calculate qsat for atm-ocn flux calculations
     real(R8) , intent(in) :: zbot (nMax) ! atm level height      (m)
     real(R8) , intent(in) :: ubot (nMax) ! atm u wind            (m/s)
     real(R8) , intent(in) :: vbot (nMax) ! atm v wind            (m/s)
