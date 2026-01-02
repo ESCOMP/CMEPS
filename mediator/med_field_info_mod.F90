@@ -9,8 +9,8 @@ module med_field_info_mod
   use ESMF            , only : ESMF_Field, ESMF_State, ESMF_AttributeGet, ESMF_StateGet
   use med_utils_mod   , only : ChkErr => med_utils_ChkErr
   use shr_log_mod     , only : shr_log_error
-  use shr_string_mod  , only : shr_string_withoutSuffix
-  use shr_wtracers_mod, only : WTRACERS_SUFFIX, shr_wtracers_get_num_tracers
+  use wtracers_mod    , only : wtracers_is_wtracer_field
+  use shr_wtracers_mod, only : shr_wtracers_get_num_tracers
 
   implicit none
   private
@@ -108,7 +108,8 @@ contains
     ! fields ending with the water tracer suffix, it is instead assumed that they have a
     ! single ungridded dimension of size given by shr_wtracers_get_num_tracers.
     !
-    ! field_info_array is allocated here
+    ! field_info_array is allocated here (and, since it has intent(out), it is
+    ! automatically deallocated if it is already allocated on entry to this subroutine)
 
     ! input/output variables
     character(len=*), intent(in) :: field_names(:)
@@ -119,7 +120,6 @@ contains
     integer :: i, n_fields
     logical :: is_tracer
     integer :: n_tracers
-    integer :: localrc
     character(len=*), parameter :: subname = '(med_field_info_array_from_names_wtracers)'
     ! ----------------------------------------------
 
@@ -129,16 +129,7 @@ contains
     allocate(field_info_array(n_fields))
 
     do i = 1, n_fields
-       call shr_string_withoutSuffix( &
-            in_str = field_names(i), &
-            suffix = WTRACERS_SUFFIX, &
-            has_suffix = is_tracer, &
-            rc = localrc)
-       if (localrc /= 0) then
-          call shr_log_error(subname//": ERROR in shr_string_withoutSuffix", rc=rc)
-          return
-       end if
-
+       is_tracer = wtracers_is_wtracer_field(field_names(i))
        if (is_tracer) then
           ! Field is a water tracer; assume a single ungridded dimension
           n_tracers = shr_wtracers_get_num_tracers()
@@ -164,7 +155,8 @@ contains
   subroutine med_field_info_array_from_state(state, field_info_array, rc)
     ! Create an array of field_info objects based on the Fields in an ESMF State
     !
-    ! field_info_array is allocated here
+    ! field_info_array is allocated here (and, since it has intent(out), it is
+    ! automatically deallocated if it is already allocated on entry to this subroutine)
 
     ! input/output variables
     type(ESMF_State), intent(in) :: state
