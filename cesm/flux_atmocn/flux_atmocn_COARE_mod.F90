@@ -109,6 +109,8 @@ contains
     real(R8)    :: hsb,hlb         ! sens & lat heat flxs at zbot
     real(R8)    :: tau             ! stress at zbot
     real(R8)    :: trf,qrf,urf,vrf ! reference-height quantities
+    real(r8)    :: esat_val        ! value of esat (saturation vapor pressure) at this point
+    real(r8)    :: qsat_val        ! value of qsat (saturation specific humidity) at this point
 
     !--- local functions --------------------------------
     real(R8)    :: qsat   ! function: the saturation humididty of air (kg/m^3)
@@ -147,8 +149,8 @@ contains
              endif
           endif
 
-          call shr_wv_sat_qsat_liquid(ts(n), pslv(n), qsat, ssq)
-          ssq = 0.98_R8 * ssq   ! sea surf hum (kg/kg)
+          call shr_wv_sat_qsat_liquid(ts(n), pslv(n), esat_val, qsat_val)
+          ssq = 0.98_R8 * qsat_val   ! sea surf hum (kg/kg)
 
           call cor30a(ubot(n),vbot(n),tbot(n),qbot(n),rbot(n), & ! in atm params
                us(n),vs(n),ts(n),ssq,                          & ! in surf params

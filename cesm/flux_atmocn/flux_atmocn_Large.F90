@@ -123,6 +123,8 @@ contains
     real(R8) :: cp     ! specific heat of moist air
     real(R8) :: fac    ! vertical interpolation factor
     real(R8) :: wind0  ! resolved large-scale 10m wind (no gust added)
+    real(r8) :: esat_val ! value of esat (saturation vapor pressure) at this point
+    real(r8) :: qsat_val ! value of qsat (saturation specific humidity) at this point
 
     !--- local functions --------------------------------
     real(R8) :: qsat   ! function: the saturation humididty of air (kg/m^3)
@@ -210,8 +212,8 @@ contains
              endif
           endif
 
-          call shr_wv_sat_qsat_liquid(ts(n), pslv(n), qsat, ssq)
-          ssq    = 0.98_R8 * ssq                     ! sea surf hum (kg/kg)
+          call shr_wv_sat_qsat_liquid(ts(n), pslv(n), esat_val, qsat_val)
+          ssq    = 0.98_R8 * qsat_val                ! sea surf hum (kg/kg)
           delt   = thbot(n) - ts(n)                  ! pot temp diff (K)
           delq   = qbot(n) - ssq                     ! spec hum dif (kg/kg)
           alz    = log(zbot(n)/zref)
