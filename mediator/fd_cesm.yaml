@@ -1104,6 +1104,18 @@
        canonical_units: m
        description: ocean import - Significant wave height
      #
+     - standard_name: Sw_t0m1
+       canonical_units: s
+       description: Wind sea mean wave period (Tm0,-1)
+     #
+     - standard_name: Sw_t01
+       canonical_units: s
+       description: Wind sea mean wave period (Tm0,1)
+     #
+     - standard_name: Sw_thm
+       canonical_units: radians
+       description: Mean wave direction
+     #
      - standard_name: Sw_Fp
        canonical_units: 1
        description: ocean import - Peak wave frequency
