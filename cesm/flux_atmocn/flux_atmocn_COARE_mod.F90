@@ -120,6 +120,9 @@ contains
     real(R8)    :: tdiff(nMax) ! tbot - ts
     real(R8)    :: vscl
 
+    !--- functions ---
+    qsat(Tk)   = 640380.0_R8 / exp(5107.4_R8/Tk)
+
     !--- formats ----------------------------------------
     character(*),parameter :: subName = '(flux_atmOcn_COARE) '
     character(*),parameter ::   F00 = "('(flux_atmOcn_COARE) ',4a)"
@@ -149,8 +152,12 @@ contains
              endif
           endif
 
-          call shr_wv_sat_qsat_liquid(ts(n), pslv(n), esat_val, qsat_val)
-          ssq = 0.98_R8 * qsat_val   ! sea surf hum (kg/kg)
+          if (aofluxes_use_shr_wv_sat) then
+             call shr_wv_sat_qsat_liquid(ts(n), pslv(n), esat_val, qsat_val)
+             ssq = 0.98_R8 * qsat_val   ! sea surf hum (kg/kg)
+          else
+             ssq = 0.98_R8 * qsat(ts(n)) / rbot(n)   ! sea surf hum (kg/kg)
+          end if
 
           call cor30a(ubot(n),vbot(n),tbot(n),qbot(n),rbot(n), & ! in atm params
                us(n),vs(n),ts(n),ssq,                          & ! in surf params

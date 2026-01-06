@@ -147,6 +147,8 @@ contains
     real(R8) :: gprec ! convective rainfall argument for ugust
     ! -------------------------------------------------------------------------
 
+    qsat(Tk)   = 640380.0_R8 / exp(5107.4_R8/Tk)
+
     ! Large and Yeager 2009
     cdn(Umps)  =  0.0027_R8 / min(33.0000_R8,Umps) + 0.000142_R8 + &
          0.0000764_R8 * min(33.0000_R8,Umps) - 3.14807e-13_r8 * min(33.0000_R8,Umps)**6
@@ -212,8 +214,12 @@ contains
              endif
           endif
 
-          call shr_wv_sat_qsat_liquid(ts(n), pslv(n), esat_val, qsat_val)
-          ssq    = 0.98_R8 * qsat_val                ! sea surf hum (kg/kg)
+          if (aofluxes_use_shr_wv_sat) then
+             call shr_wv_sat_qsat_liquid(ts(n), pslv(n), esat_val, qsat_val)
+             ssq    = 0.98_R8 * qsat_val                ! sea surf hum (kg/kg)
+          else
+             ssq    = 0.98_R8 * qsat(ts(n)) / rbot(n)   ! sea surf hum (kg/kg)
+          end if
           delt   = thbot(n) - ts(n)                  ! pot temp diff (K)
           delq   = qbot(n) - ssq                     ! spec hum dif (kg/kg)
           alz    = log(zbot(n)/zref)
