@@ -80,6 +80,7 @@ module med_phases_aofluxes_mod
   logical :: compute_atm_thbot
   integer :: ocn_surface_flux_scheme ! use case
   logical :: add_gusts
+  logical :: aofluxes_use_shr_wv_sat ! use shr_wv_sat_mod to calculate qsat for atm-ocn flux calculations
 
   character(len=CS), pointer :: fldnames_ocn_in(:)
   character(len=CS), pointer :: fldnames_atm_in(:)
@@ -417,6 +418,14 @@ contains
        read(cvalue,*) add_gusts
     else
        add_gusts = .false.
+    end if
+
+    call NUOPC_CompAttributeGet(gcomp, name='aofluxes_use_shr_wv_sat', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+       read(cvalue,*) aofluxes_use_shr_wv_sat
+    else
+       aofluxes_use_shr_wv_sat = .false.
     end if
 
     ! bottom level potential temperature and/or botom level density
@@ -1082,7 +1091,8 @@ contains
          sen=aoflux_out%sen, lat=aoflux_out%lat, lwup=aoflux_out%lwup, evap=aoflux_out%evap, &
          taux=aoflux_out%taux, tauy=aoflux_out%tauy, tref=aoflux_out%tref, qref=aoflux_out%qref, &
          ocn_surface_flux_scheme=ocn_surface_flux_scheme, &
-         add_gusts=add_gusts, duu10n=aoflux_out%duu10n, ugust_out = aoflux_out%ugust_out, u10res = aoflux_out%u10res, &
+         add_gusts=add_gusts, aofluxes_use_shr_wv_sat=aofluxes_use_shr_wv_sat, &
+         duu10n=aoflux_out%duu10n, ugust_out = aoflux_out%ugust_out, u10res = aoflux_out%u10res, &
          ustar_sv=aoflux_out%ustar, re_sv=aoflux_out%re, ssq_sv=aoflux_out%ssq, missval=0.0_r8)
 
 #else
