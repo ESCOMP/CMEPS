@@ -44,6 +44,7 @@ contains
        ts, mask, seq_flux_atmocn_minwind,             &
        sen, lat, lwup, evap,                          &
        taux ,tauy, tref, qref,                        &
+       aofluxes_use_shr_wv_sat,                       &
        duu10n, ugust_out, u10res,                     &
        ustar_sv, re_sv, ssq_sv)
 
@@ -52,6 +53,7 @@ contains
     real(R8) , intent(in) :: spval
     integer  , intent(in) :: nMax        ! data vector length
     integer  , intent(in) :: mask (nMax) ! ocn domain mask       0 <=> out of domain
+    logical  , intent(in) :: aofluxes_use_shr_wv_sat ! use shr_wv_sat_mod to calculate qsat for atm-ocn flux calculations
     real(R8) , intent(in) :: zbot (nMax) ! atm level height      (m)
     real(R8) , intent(in) :: ubot (nMax) ! atm u wind            (m/s)
     real(R8) , intent(in) :: vbot (nMax) ! atm v wind            (m/s)
@@ -106,6 +108,8 @@ contains
     real(R8)    :: hsb,hlb         ! sens & lat heat flxs at zbot
     real(R8)    :: tau             ! stress at zbot
     real(R8)    :: trf,qrf,urf,vrf ! reference-height quantities
+    real(r8)    :: esat_val        ! value of esat (saturation vapor pressure) at this point
+    real(r8)    :: qsat_val        ! value of qsat (saturation specific humidity) at this point
 
     !--- local functions --------------------------------
     real(R8)    :: qsat   ! function: the saturation humididty of air (kg/m^3)
@@ -146,7 +150,13 @@ contains
                 vmag=vmag*vscl
              endif
           endif
-          ssq = 0.98_R8 * qsat(ts(n)) / rbot(n)   ! sea surf hum (kg/kg)
+
+          if (aofluxes_use_shr_wv_sat) then
+             call shr_wv_sat_qsat_liquid(ts(n), pslv(n), esat_val, qsat_val)
+             ssq = 0.98_R8 * qsat_val   ! sea surf hum (kg/kg)
+          else
+             ssq = 0.98_R8 * qsat(ts(n)) / rbot(n)   ! sea surf hum (kg/kg)
+          end if
 
           call cor30a(ubot(n),vbot(n),tbot(n),qbot(n),rbot(n), & ! in atm params
                us(n),vs(n),ts(n),ssq,                          & ! in surf params
