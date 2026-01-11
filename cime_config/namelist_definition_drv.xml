@@ -18,6 +18,26 @@
     </values>
   </entry>
 
+  <entry id="rundir" modify_via_xml="RUNDIR">
+    <type>char</type>
+    <category>nuopc</category>
+    <!-- NOTE: This won't be output only used as an attribute in this file -->
+    <group>default_settings</group>
+    <values>
+      <value>$RUNDIR</value>
+    </values>
+  </entry>
+
+  <entry id="continue_run" modify_via_xml="CONTINUE_RUN">
+    <type>logical</type>
+    <category>nuopc</category>
+    <!-- NOTE: This won't be output only used as an attribute in this file -->
+    <group>default_settings</group>
+    <values>
+      <value>$CONTINUE_RUN</value>
+    </values>
+  </entry>
+
   <entry id="pio_asyncio_ntasks" modify_via_xml="PIO_ASYNCIO_NTASKS">
     <type>integer</type>
     <category>pio</category>
@@ -165,12 +185,17 @@
   <entry id="drv_restart_pointer" modify_via_xml="DRV_RESTART_POINTER">
     <type>char</type>
     <category>expdef</category>
+    <default_value>UNSET</default_value>
+    <!-- IMPORTANT NOTE: The relative path option MUST be used with a version of cime that allows it cime PR#4739 allows this -->
+    <input_pathname>rel:rundir</input_pathname>
     <group>DRIVER_attributes</group>
     <desc>
       Driver restart pointer file to initialize time info
     </desc>
     <values>
-      <value>$DRV_RESTART_POINTER</value>
+      <value>UNSET</value>
+      <value run_type="branch">$DRV_RESTART_POINTER</value>
+      <value continue_run=".true.">$DRV_RESTART_POINTER</value>
     </values>
   </entry>
 
@@ -3394,6 +3419,8 @@
   <!-- =========================== -->
   <!-- group prof_inparm           -->
   <!--  in perf_mod.F90            -->
+  <!--  (perf_mod is in CIME)      -->
+  <!--  (can also be in ESMF)      -->
   <!-- =========================== -->
 
   <entry id="profile_global_stats">
@@ -3528,6 +3555,8 @@
   <!-- ===========================            -->
   <!-- namelist group papi_inparm             -->
   <!--  in file drv_in (used in perf_mod.F90) -->
+  <!--  (perf_mod is currently in CIME)       -->
+  <!--  (can also be in ESMF)                 -->
   <!-- ===========================            -->
 
   <entry id="papi_ctr1_str">
