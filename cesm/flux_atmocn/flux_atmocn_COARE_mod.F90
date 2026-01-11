@@ -24,6 +24,7 @@ module flux_atmocn_COARE_mod
   use shr_flux_mod,  only : loc_stebol, loc_latvap, loc_g, loc_cpdair
   use shr_flux_mod,  only : td0, maxscl, alpha, use_coldair_outbreak_mod
   use shr_const_mod, only : shr_const_rgas
+  use shr_wv_sat_mod, only: shr_wv_sat_qsat_liquid ! use saturation calculation consistent with CAM
 
   implicit none
   private

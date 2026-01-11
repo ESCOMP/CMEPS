@@ -25,6 +25,7 @@ module flux_atmOcn_large_mod
   use shr_flux_mod,   only: flux_con_tol, flux_con_max_iter
   use shr_flux_mod,   only: alpha, maxscl, td0
   use shr_sys_mod,    only: shr_sys_abort
+  use shr_wv_sat_mod, only: shr_wv_sat_qsat_liquid ! use saturation calculation consistent with CAM
 
   implicit none
   public
