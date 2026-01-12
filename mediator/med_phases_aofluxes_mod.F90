@@ -427,6 +427,12 @@ contains
     else
        aofluxes_use_shr_wv_sat = .false.
     end if
+#ifdef CESMCOUPLED
+    if (maintask) then
+       write(logunit,*)
+       write(logunit,'(a,l7)') trim(subname)//' aofluxes_use_shr_wv_sat = ', aofluxes_use_shr_wv_sat
+    end if
+#endif
 
     ! bottom level potential temperature and/or botom level density
     ! will need to be computed if not received from the atm
