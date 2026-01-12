@@ -153,9 +153,12 @@ contains
           endif
 
           if (aofluxes_use_shr_wv_sat) then
+             ! This version uses a qsat calculation method consistent with what's used in CAM
              call shr_wv_sat_qsat_liquid(ts(n), pslv(n), esat_val, qsat_val)
              ssq = 0.98_R8 * qsat_val   ! sea surf hum (kg/kg)
           else
+             ! This version uses the qsat calculation method that was used for many years,
+             ! prior to Aug 2025, and which is still being used by default in NorESM
              ssq = 0.98_R8 * qsat(ts(n)) / rbot(n)   ! sea surf hum (kg/kg)
           end if
 
