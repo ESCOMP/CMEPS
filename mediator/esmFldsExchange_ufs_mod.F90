@@ -370,7 +370,7 @@ contains
     else
        if ( fldchk(is_local%wrap%FBexp(compocn)        , 'Sa_pslv', rc=rc) .and. &
             fldchk(is_local%wrap%FBImp(compatm,compatm), 'Sa_pslv', rc=rc)) then
-          call addmap_from(compatm, 'Sa_pslv', compocn, maptype, 'one', 'unset')
+          call addmap_from(compatm, 'Sa_pslv', compocn, mapbilnr, 'one', 'unset')
           call addmrg_to(compocn, 'Sa_pslv', mrg_from=compatm, mrg_fld='Sa_pslv', mrg_type='copy')
        end if
     end if

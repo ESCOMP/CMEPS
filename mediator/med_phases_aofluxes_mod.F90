@@ -1558,8 +1558,8 @@ end subroutine med_aofluxes_map_ogrid2xgrid_input
     lsize = size(aoflux_in%zbot)
     aoflux_in%lsize = lsize
 
-    ! bulk formula quantities for ufs non-frac with med-aoflux
-    if (trim(coupling_mode) == 'ufs.nfrac.aoflux' .and. ocn_surface_flux_scheme == -1) then
+    ! note the ocn_surface_flux_scheme -1 will be deprecated in the future
+    if (ocn_surface_flux_scheme == -1) then
        call fldbun_getfldptr(fldbun_a, 'Sa_u10m', aoflux_in%ubot, xgrid=xgrid, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        call fldbun_getfldptr(fldbun_a, 'Sa_v10m', aoflux_in%vbot, xgrid=xgrid, rc=rc)
@@ -1587,8 +1587,8 @@ end subroutine med_aofluxes_map_ogrid2xgrid_input
        end if
     end if
 
-    ! extra fields for ufs.frac.aoflux
-    if (trim(coupling_mode) == 'ufs.frac.aoflux') then
+    ! extra fields for CCPP aoflux
+    if (trim(aoflux_code) == 'ccpp') then
        call fldbun_getfldptr(fldbun_a, 'Sa_u10m', aoflux_in%usfc, xgrid=xgrid, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        call fldbun_getfldptr(fldbun_a, 'Sa_v10m', aoflux_in%vsfc, xgrid=xgrid, rc=rc)
