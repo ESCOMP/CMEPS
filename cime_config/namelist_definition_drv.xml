@@ -938,9 +938,31 @@
     <group>MED_attributes</group>
     <desc>
       atm/ocn flux calculation scheme
+
+      0: Large and Pond
+      1: COARE algorithm
+      2: UA algorithm
     </desc>
     <values>
       <value>0</value>
+    </values>
+  </entry>
+  <entry id="aofluxes_use_shr_wv_sat">
+    <type>logical</type>
+    <category>control</category>
+    <group>MED_attributes</group>
+    <desc>
+      If true, use shr_wv_sat_mod to calculate qsat for atm-ocn flux calculations.
+
+      If false, use the older inline calculation of qsat, which uses a different
+      formulation.
+
+      (Currently only relevant for ocn_surface_flux_scheme = 0 or 1.)
+    </desc>
+    <values>
+      <!-- Once CIME_MODEL distinguishes between NorESM and CESM, this value will differ
+      between these two. -->
+      <value>.true.</value>
     </values>
   </entry>
   <entry id="add_gusts">

@@ -42,7 +42,8 @@ contains
        ts, mask,  seq_flux_atmocn_minwind,   &
        sen, lat, lwup, evap,                 &
        taux, tauy, tref, qref,               &
-       add_gusts, duu10n, ugust_out, u10res, &
+       add_gusts, aofluxes_use_shr_wv_sat,   &
+       duu10n, ugust_out, u10res, &
        ustar_sv, re_sv, ssq_sv)
 
     !--- input arguments --------------------------------
@@ -51,6 +52,7 @@ contains
     integer  ,intent(in) :: nMax        ! data vector length
     integer  ,intent(in) :: mask (nMax) ! ocn domain mask       0 <=> out of domain
     logical  ,intent(in) :: add_gusts
+    logical  ,intent(in) :: aofluxes_use_shr_wv_sat ! use shr_wv_sat_mod to calculate qsat for atm-ocn flux calculations
     real(R8) ,intent(in) :: zbot (nMax) ! atm level height (m)
     real(R8) ,intent(in) :: ubot (nMax) ! atm u wind (m/s)
     real(R8) ,intent(in) :: vbot (nMax) ! atm v wind (m/s)
@@ -121,6 +123,8 @@ contains
     real(R8) :: cp     ! specific heat of moist air
     real(R8) :: fac    ! vertical interpolation factor
     real(R8) :: wind0  ! resolved large-scale 10m wind (no gust added)
+    real(r8) :: esat_val ! value of esat (saturation vapor pressure) at this point
+    real(r8) :: qsat_val ! value of qsat (saturation specific humidity) at this point
 
     !--- local functions --------------------------------
     real(R8) :: qsat   ! function: the saturation humididty of air (kg/m^3)
@@ -142,6 +146,8 @@ contains
     real(R8) :: ugust ! function: gustiness as a function of convective rainfall.
     real(R8) :: gprec ! convective rainfall argument for ugust
     ! -------------------------------------------------------------------------
+
+    qsat(Tk)   = 640380.0_R8 / exp(5107.4_R8/Tk)
 
     ! Large and Yeager 2009
     cdn(Umps)  =  0.0027_R8 / min(33.0000_R8,Umps) + 0.000142_R8 + &
@@ -208,8 +214,15 @@ contains
              endif
           endif
 
-          call shr_wv_sat_qsat_liquid(ts(n), pslv(n), qsat, ssq)
-          ssq    = 0.98_R8 * ssq                     ! sea surf hum (kg/kg)
+          if (aofluxes_use_shr_wv_sat) then
+             ! This version uses a qsat calculation method consistent with what's used in CAM
+             call shr_wv_sat_qsat_liquid(ts(n), pslv(n), esat_val, qsat_val)
+             ssq    = 0.98_R8 * qsat_val                ! sea surf hum (kg/kg)
+          else
+             ! This version uses the qsat calculation method that was used for many years,
+             ! prior to Aug 2025, and which is still being used by default in NorESM
+             ssq    = 0.98_R8 * qsat(ts(n)) / rbot(n)   ! sea surf hum (kg/kg)
+          end if
           delt   = thbot(n) - ts(n)                  ! pot temp diff (K)
           delq   = qbot(n) - ssq                     ! spec hum dif (kg/kg)
           alz    = log(zbot(n)/zref)
