@@ -169,6 +169,7 @@ module MED_typedefs
   type MED_control_type
     logical                       :: lseaspray                 !< flag for sea spray parameterization
     logical                       :: use_med_flux              !< flag for using atmosphere-ocean fluxes form mediator
+    logical                       :: use_cdeps_inline          !< default no data from cdeps inline
     integer                       :: ivegsrc                   !< land use dataset choice 0 => USGS, 1 => IGBP, 2 => UMD
     integer                       :: lsm                       !< flag for land surface model
     integer                       :: lsm_noahmp                !< flag for NOAH MP land surface model
@@ -215,6 +216,12 @@ module MED_typedefs
   type MED_coupling_type
     real(kind=kind_phys), pointer :: dtsfcin_med(:) => null() !< sfc latent heat flux over ocean
     real(kind=kind_phys), pointer :: dqsfcin_med(:) => null() !< sfc sensible heat flux over ocean
+    !-- lake surface temperature from cdeps inline
+    real(kind=kind_phys), pointer :: mask_dat   (:) => null()   !< land-sea mask from cdeps inline  
+    real(kind=kind_phys), pointer :: tsfco_dat  (:) => null()   !< sfc temperature from cdeps inline
+    real(kind=kind_phys), pointer :: tice_dat   (:) => null()   !< sfc temperature over ice from cdeps inline
+    real(kind=kind_phys), pointer :: hice_dat   (:) => null()   !< sfc ice thickness from cdeps inline
+    real(kind=kind_phys), pointer :: fice_dat   (:) => null()   !< sfc ice fraction from cdeps inline
     contains
       procedure :: create  => coupling_create !< allocate array data
   end type MED_coupling_type
@@ -644,6 +651,7 @@ module MED_typedefs
 
     model%lseaspray = .false.
     model%use_med_flux = .false.
+    model%use_cdeps_inline = .false.
     model%ivegsrc = 2
     model%redrag = .false.
     model%sfc_z0_type = 0
@@ -680,15 +688,29 @@ module MED_typedefs
 
   end subroutine control_initialize
 
-  subroutine coupling_create(coupling, im)
+  subroutine coupling_create(coupling, im, model)
     implicit none
     class(MED_coupling_type) :: coupling
     integer, intent(in)      :: im
+    type(MED_control_type), intent(in) :: model
 
     allocate(coupling%dtsfcin_med(im))
     coupling%dtsfcin_med = clear_val
     allocate(coupling%dqsfcin_med(im))
     coupling%dqsfcin_med = clear_val
+    
+    if (model%use_cdeps_inline) then
+      allocate (coupling%tsfco_dat(im))
+      coupling%tsfco_dat = clear_val
+      allocate (coupling%mask_dat(im))
+      coupling%mask_dat = clear_val
+      allocate (coupling%tice_dat(im))
+      coupling%tice_dat = clear_val
+      allocate (coupling%hice_dat(im))
+      coupling%hice_dat = clear_val
+      allocate (coupling%fice_dat(im))
+      coupling%fice_dat = clear_val
+    endif
 
   end subroutine coupling_create
 
