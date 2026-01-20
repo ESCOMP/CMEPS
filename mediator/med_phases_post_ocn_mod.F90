@@ -26,11 +26,12 @@ contains
     use med_utils_mod           , only : chkerr      => med_utils_ChkErr
     use med_constants_mod       , only : dbug_flag   => med_constants_dbug_flag
     use med_map_mod             , only : med_map_field_packed
-    use med_internalstate_mod   , only : InternalState
+    use med_internalstate_mod   , only : InternalState, maintask
     use med_internalstate_mod   , only : compice, compocn, compwav
     use med_phases_history_mod  , only : med_phases_history_write_comp
     use med_phases_prep_glc_mod , only : med_phases_prep_glc_accum_ocn
     use perf_mod                , only : t_startf, t_stopf
+    use med_ufs_trace_wrapper_mod, only : ufs_trace_wrapper
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -43,6 +44,7 @@ contains
     !---------------------------------------
 
     rc = ESMF_SUCCESS
+    if (maintask) call ufs_trace_wrapper("cmeps", "med_phases_post_ocn", "B")
 
     call t_startf('MED:'//subname)
     if (dbug_flag > 20) then
@@ -101,6 +103,7 @@ contains
     end if
     call t_stopf('MED:'//subname)
 
+    if (maintask) call ufs_trace_wrapper("cmeps", "med_phases_post_ocn", "E")
   end subroutine med_phases_post_ocn
 
 end module med_phases_post_ocn_mod

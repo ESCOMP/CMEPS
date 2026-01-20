@@ -52,7 +52,7 @@ module MED
   use esmFldsExchange_hafs_mod , only : esmFldsExchange_hafs
   use med_phases_profile_mod   , only : med_phases_profile_finalize
   use shr_log_mod              , only : shr_log_error
-
+  use med_ufs_trace_wrapper_mod, only : ufs_trace_init_wrapper, ufs_trace_wrapper, ufs_trace_finalize_wrapper
 
   implicit none
   private
@@ -87,6 +87,7 @@ contains
     use ESMF                    , only: ESMF_SUCCESS, ESMF_GridCompSetEntryPoint
     use ESMF                    , only: ESMF_METHOD_INITIALIZE, ESMF_METHOD_RUN
     use ESMF                    , only: ESMF_GridComp, ESMF_MethodRemove
+    use ESMF                    , only: ESMF_VM, ESMF_VMGet, ESMF_GridCompGet
     use NUOPC                   , only: NUOPC_CompDerive, NUOPC_CompSetEntryPoint, NUOPC_CompSpecialize, NUOPC_NoOP
     use NUOPC_Mediator          , only: mediator_routine_SS             => SetServices
     use NUOPC_Mediator          , only: mediator_routine_Run            => routine_Run
@@ -133,12 +134,23 @@ contains
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc
 
+    type(ESMF_VM)        :: vm
+    integer              :: localPet
     ! local variables
     character(len=*), parameter :: subname = '('//__FILE__//':SetServices)'
     !-----------------------------------------------------------
 
     rc = ESMF_SUCCESS
     if (profile_memory) call ESMF_VMLogMemInfo("Entering "//trim(subname))
+
+    call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_VMGet(vm, localPet=localPet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    maintask = .false.
+    if (localPet == 0) maintask=.true.
+    if (maintask) call ufs_trace_init_wrapper()
+    if (maintask) call ufs_trace_wrapper("cmeps", "SetServices", "B")
 
     !------------------
     ! the NUOPC model component mediator_routine_SS will register the generic methods
@@ -555,6 +567,7 @@ contains
 
     if (profile_memory) call ESMF_VMLogMemInfo("Leaving "//trim(subname))
 
+    if (maintask) call ufs_trace_wrapper("cmeps", "SetServices", "E")
   end subroutine SetServices
 
   !-----------------------------------------------------------------------------
@@ -592,6 +605,7 @@ contains
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
 
     if (profile_memory) call ESMF_VMLogMemInfo("Entering "//trim(subname))
+    if (maintask) call ufs_trace_wrapper("cmeps", "InitializeP0", "B")
     call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call ESMF_VMGet(vm, localPet=localPet, rc=rc)
@@ -662,6 +676,8 @@ contains
     if (profile_memory) call ESMF_VMLogMemInfo("Leaving "//trim(subname))
     call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
 
+    if (maintask) call ufs_trace_wrapper("cmeps", "InitializeP0", "E")
+
   end subroutine InitializeP0
 
   !-----------------------------------------------------------------------
@@ -701,6 +717,7 @@ contains
     character(len=*), parameter :: subname = '('//__FILE__//':AdvertiseFields)'
     !-----------------------------------------------------------
 
+    if (maintask) call ufs_trace_wrapper("cmeps", "AdvertiseFields", "B")
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
     rc = ESMF_SUCCESS
     if (profile_memory) call ESMF_VMLogMemInfo("Entering "//trim(subname))
@@ -980,6 +997,7 @@ contains
     if (profile_memory) call ESMF_VMLogMemInfo("Leaving "//trim(subname))
     call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
 
+    if (maintask) call ufs_trace_wrapper("cmeps", "AdvertiseFields", "E")
   end subroutine AdvertiseFields
 
   !-----------------------------------------------------------------------------
@@ -1006,6 +1024,7 @@ contains
     integer                    :: n
     character(len=*), parameter :: subname = '('//__FILE__//':RealizeFieldsWithTransferProvided)'
     !-----------------------------------------------------------
+    if (maintask) call ufs_trace_wrapper("cmeps", "RealizeFieldsWithTransferProvided", "B")
 
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
     rc = ESMF_SUCCESS
@@ -1043,6 +1062,7 @@ contains
 
     if (profile_memory) call ESMF_VMLogMemInfo("Leaving "//trim(subname))
     call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
+    if (maintask) call ufs_trace_wrapper("cmeps", "RealizeFieldsWithTransferProvided", "E")
 
   end subroutine RealizeFieldsWithTransferProvided
 
@@ -1067,6 +1087,7 @@ contains
     integer :: n1
     character(len=*), parameter :: subname = '('//__FILE__//':ModifyDecompofMesh)'
     !-----------------------------------------------------------
+    if (maintask) call ufs_trace_wrapper("cmeps", "ModifyDecompofMesh", "B")
 
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
     rc = ESMF_SUCCESS
@@ -1095,6 +1116,7 @@ contains
     enddo
     if (profile_memory) call ESMF_VMLogMemInfo("Leaving "//trim(subname))
     call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
+    if (maintask) call ufs_trace_wrapper("cmeps", "ModifyDecompofMesh", "E")
 
   contains  !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -1392,6 +1414,7 @@ contains
     integer             :: n1
     character(len=*), parameter :: subname = '('//__FILE__//':RealizeFieldsWithTransferAccept)'
     !-----------------------------------------------------------
+    if (maintask) call ufs_trace_wrapper("cmeps", "RealizeFieldsWithTransferAccept", "B")
 
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
 
@@ -1431,6 +1454,7 @@ contains
 
     if (profile_memory) call ESMF_VMLogMemInfo("Leaving "//trim(subname))
     call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
+    if (maintask) call ufs_trace_wrapper("cmeps", "RealizeFieldsWithTransferAccept", "E")
 
   contains  !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -1655,6 +1679,7 @@ contains
     character(len=CX)                  :: msgString
     character(len=*), parameter :: subname = '('//__FILE__//':DataInitialize)'
     !-----------------------------------------------------------
+    if (maintask) call ufs_trace_wrapper("cmeps", "DataInitialize", "B")
 
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
     rc = ESMF_SUCCESS
@@ -1963,6 +1988,7 @@ contains
       ! the correct timestamps, which also indicates that the actual
       ! data has been transferred reliably, and CMEPS can safely use it.
 
+      if (maintask) call ufs_trace_wrapper("cmeps", "DataInitialize", "E")
       RETURN
 
     endif  ! end first_call if-block
@@ -2254,6 +2280,7 @@ contains
       call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
     endif
 
+    if (maintask) call ufs_trace_wrapper("cmeps", "DataInitialize", "E")
   end subroutine DataInitialize
 
   !-----------------------------------------------------------------------------

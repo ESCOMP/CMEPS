@@ -16,7 +16,8 @@ set(SRCFILES esmFldsExchange_cesm_mod.F90 med_fraction_mod.F90
               med_phases_post_ocn_mod.F90  med_phases_ocnalb_mod.F90
               med_phases_post_atm_mod.F90 med_phases_post_ice_mod.F90
               med_phases_post_lnd_mod.F90 med_phases_post_glc_mod.F90
-              med_phases_post_rof_mod.F90 med_phases_post_wav_mod.F90)
+              med_phases_post_rof_mod.F90 med_phases_post_wav_mod.F90
+              med_ufs_trace_wrapper.F90)
 
 foreach(FILE ${SRCFILES})
   if(EXISTS "${CASEROOT}/SourceMods/src.cmeps/${FILE}")

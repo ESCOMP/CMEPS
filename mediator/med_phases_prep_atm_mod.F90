@@ -23,6 +23,7 @@ module med_phases_prep_atm_mod
   use perf_mod              , only : t_startf, t_stopf
   use med_phases_aofluxes_mod, only : med_aofluxes_map_xgrid2agrid_output
   use med_phases_aofluxes_mod, only : med_aofluxes_map_ogrid2agrid_output
+  use med_ufs_trace_wrapper_mod, only : ufs_trace_wrapper
 
   implicit none
   private
@@ -60,6 +61,7 @@ contains
     character(len=*),parameter :: subname='(med_phases_prep_atm)'
     !-------------------------------------------------------------------------------
 
+    if (maintask) call ufs_trace_wrapper("cmeps", "med_phases_prep_atm", "B")
     call t_startf('MED:'//subname)
     rc = ESMF_SUCCESS
 
@@ -248,6 +250,7 @@ contains
     end if
     call t_stopf('MED:'//subname)
 
+    if (maintask) call ufs_trace_wrapper("cmeps", "med_phases_prep_atm", "E")
   end subroutine med_phases_prep_atm
 
   !-----------------------------------------------------------------------------
