@@ -2538,8 +2538,7 @@ contains
     ! so it makes no sense to perform these checks since they will always fail.
     ! ----------------------------------------------
 
-    use shr_string_mod, only : shr_string_withoutSuffix
-    use shr_wtracers_mod, only : WTRACERS_SUFFIX, shr_wtracers_check_tracer_ratios
+    use wtracers_mod, only : wtracers_get_bulk_fieldname, wtracers_check_tracer_ratios
     use ESMF, only : ESMF_FieldBundle, ESMF_Field
     use ESMF, only : ESMF_FieldBundleGet, ESMF_FieldGet
 
@@ -2576,12 +2575,10 @@ contains
     end if
 
     do n = 1, fieldCount
-       call shr_string_withoutSuffix(in_str=fieldNameList(n), suffix=WTRACERS_SUFFIX, &
-            has_suffix=hasSuffix, out_str=fieldNameNonTracer, rc=localrc)
-       if (localrc /= 0) then
-          call shr_log_error(subname//": error in shr_string_withoutSuffix", rc=rc)
-          return
-       end if
+       call wtracers_get_bulk_fieldname( &
+            fieldname=fieldNameList(n), &
+            is_wtracer_field=hasSuffix, &
+            bulk_fieldname=fieldNameNonTracer)
        if (hasSuffix) then
           if (dbug_flag > 5) then
              call ESMF_LogWrite(trim(subname)//": Checking <" // trim(fieldNameList(n)) // &
@@ -2599,7 +2596,7 @@ contains
           call ESMF_FieldGet(fieldNonTracer, farrayPtr=dataNonTracer, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-          call shr_wtracers_check_tracer_ratios(dataTracers, dataNonTracer, &
+          call wtracers_check_tracer_ratios(dataTracers, dataNonTracer, &
                trim(FBName)//":"//trim(fieldNameList(n)))
        end if
     end do

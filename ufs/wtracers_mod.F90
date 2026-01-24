@@ -8,11 +8,15 @@ module wtracers_mod
    ! the CESM_share library.
    !-----------------------------------------------------------------------------
 
+   use shr_kind_mod      , only : r8=>SHR_KIND_R8
+
    implicit none
    private
 
-   public :: wtracers_get_num_tracers   ! get number of water tracers in this simulation
-   public :: wtracers_is_wtracer_field  ! return true if the given field name is a water tracer field
+   public :: wtracers_get_num_tracers     ! get number of water tracers in this simulation
+   public :: wtracers_is_wtracer_field    ! return true if the given field name is a water tracer field
+   public :: wtracers_get_bulk_fieldname  ! return the name of the equivalent bulk field corresponding to a water tracer field
+   public :: wtracers_check_tracer_ratios ! check tracer ratios against expectations
 
 contains
 
@@ -46,5 +50,40 @@ contains
       !-----------------------------------------------------------------------
       wtracers_is_wtracer_field = .false.
    end function wtracers_is_wtracer_field
+
+   !-----------------------------------------------------------------------
+   subroutine wtracers_get_bulk_fieldname(fieldname, is_wtracer_field, bulk_fieldname)
+      !
+      ! !DESCRIPTION:
+      ! Return the name of the equivalent bulk field corresponding to a water tracer field
+      !
+      ! In this stub implementation, we always return false for is_wtracer_field, and set
+      ! bulk_fieldname equal to fieldname, since water tracers are not implemented here.
+      !
+      ! !ARGUMENTS
+      character(len=*), intent(in)  :: fieldname
+      logical         , intent(out) :: is_wtracer_field
+      character(len=*), intent(out) :: bulk_fieldname
+      !-----------------------------------------------------------------------
+      is_wtracer_field = .false.
+      bulk_fieldname = fieldname
+   end subroutine wtracers_get_bulk_fieldname
+
+   !-----------------------------------------------------------------------
+   subroutine wtracers_check_tracer_ratios(tracers, bulk, name)
+      !
+      ! !DESCRIPTION:
+      ! Check tracer ratios (tracer/bulk) against expectations
+      !
+      ! In this stub implementation, we simply return without doing anything
+      !
+      ! !ARGUMENTS
+      real(r8), intent(in) :: tracers(:,:)  ! dimensioned [tracerNum, gridcell]
+      real(r8), intent(in) :: bulk(:)
+      character(len=*), intent(in) :: name  ! for diagnostic output
+      !-----------------------------------------------------------------------
+
+      ! Do nothing
+   end subroutine wtracers_check_tracer_ratios
 
 end module wtracers_mod
