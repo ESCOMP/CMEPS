@@ -1478,7 +1478,7 @@
       Auxiliary mediator a2x dynamic, radiation, and precipitation fields history output every 3 hours
     </desc>
     <values>
-      <value>Sa_z:Sa_topo:Sa_u:Sa_v:Sa_tbot:Sa_ptem:Sa_shum:Sa_dens:Sa_pbot:Sa_pslv:Faxa_lwdn:Faxa_rainc:Faxa_rainl:Faxa_snowc:Faxa_snowl:Faxa_swndr:Faxa_swvdr:Faxa_swndf:Faxa_swvdf:Sa_co2diag:Sa_co2prog</value>
+      <value>Sa_z:Sa_topo:Sa_u:Sa_v:Sa_tbot:Sa_ptem:Sa_shum:Sa_dens:Sa_pbot:Sa_pslv:Faxa_lwdn:Faxa_rainc:Faxa_rainl:Faxa_snowc:Faxa_snowl:Faxa_swndr:Faxa_swvdr:Faxa_swndf:Faxa_swvdf:Sa_co2prog</value>
     </values>
   </entry>
   <entry id="histaux_atm2med_file4_history_option">
@@ -1543,7 +1543,7 @@
     <group>MED_attributes</group>
     <desc>Auxiliary mediator a2x aerosol and ghg history output daily or endofrun</desc>
     <values>
-      <value>Faxa_bcph:Faxa_ocph:Faxa_dstwet:Faxa_dstdry:Sa_co2prog:Sa_co2diag</value>
+      <value>Faxa_bcph:Faxa_ocph:Faxa_dstwet:Faxa_dstdry:Sa_co2diag</value>
     </values>
   </entry>
   <entry id="histaux_atm2med_file5_history_option">
