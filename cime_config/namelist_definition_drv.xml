@@ -1552,7 +1552,7 @@
     <group>MED_attributes</group>
     <desc>history option type</desc>
     <values>
-      <value>nhours</value>
+      <value>ndays</value>
     </values>
   </entry>
   <entry id="histaux_atm2med_file5_history_n">
@@ -1561,7 +1561,7 @@
     <group>MED_attributes</group>
     <desc>history option span</desc>
     <values>
-      <value>3</value>
+      <value>1</value>
     </values>
   </entry>
   <entry id="histaux_atm2med_file5_doavg">
@@ -1579,7 +1579,7 @@
     <group>MED_attributes</group>
     <desc>Number of time samples per file.</desc>
     <values>
-      <value>2</value>
+      <value>1</value>
     </values>
   </entry>
   <entry id="histaux_atm2med_file5_auxname">
