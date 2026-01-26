@@ -1543,7 +1543,7 @@
     <group>MED_attributes</group>
     <desc>Auxiliary mediator a2x aerosol and ghg history output daily or endofrun</desc>
     <values>
-      <value>Faxa_bcph:Faxa_ocph:Faxa_dstwet:Faxa_dstdry:Sa_co2diag</value>
+      <value>Faxa_bcph:Faxa_ocph:Faxa_dstwet:Faxa_dstdry:Faxa_ndep:Sa_co2diag</value>
     </values>
   </entry>
   <entry id="histaux_atm2med_file5_history_option">
