@@ -63,11 +63,16 @@ module esmFldsExchange_cesm_mod
   use med_internalstate_mod , only : mrg_fracname_lnd2atm_state, mrg_fracname_lnd2atm_flux, map_fracname_lnd2atm
   use med_internalstate_mod , only : mrg_fracname_lnd2rof, map_fracname_lnd2rof
   use med_internalstate_mod , only : mrg_fracname_lnd2glc, map_fracname_lnd2glc
+  use shr_log_mod           , only : shr_log_error
+  use shr_wtracers_mod      , only : shr_wtracers_present
+  use shr_wtracers_mod      , only : WTRACERS_SUFFIX
 
   implicit none
   public
 
   public :: esmFldsExchange_cesm
+
+  private :: set_suffix_for_water_bulk_or_tracers
 
   ! currently required mapping files
   character(len=CX)   :: rof2ocn_ice_rmap ='unset'
@@ -96,8 +101,13 @@ module esmFldsExchange_cesm_mod
   logical             :: flds_co2b                      ! Pass CO2 from ATM to LND and back from LND to ATM
   logical             :: flds_co2c                      ! Pass CO2 from ATM to surface (OCN/LND) and back from them to ATM
   logical             :: flds_wtracers                  ! Pass water tracer fields
+  integer             :: water_bulk_or_tracers_max      ! 2 if running with water tracers, 1 otherwise
   logical             :: flds_r2l_stream_channel_depths ! Pass channel depths from ROF to LND
   logical             :: add_gusts                      ! Whether to include fields related to the gustiness parameterization
+
+  ! Possible values for water_bulk_or_tracers index
+  integer, parameter :: water_bulk    = 1
+  integer, parameter :: water_tracers = 2
 
   character(*), parameter :: u_FILE_u = &
        __FILE__
@@ -128,8 +138,6 @@ contains
     use esmFlds               , only : addfld_from => med_fldList_addfld_from
     use esmFlds               , only : addmap_from => med_fldList_addmap_from
     use esmFlds               , only : addmrg_to => med_fldList_addmrg_to
-    use shr_wtracers_mod      , only : shr_wtracers_present
-    use shr_wtracers_mod      , only : WTRACERS_SUFFIX
 
     ! input/output parameters:
     type(ESMF_GridComp)              :: gcomp
@@ -139,6 +147,8 @@ contains
     ! local variables:
     type(InternalState) :: is_local
     integer             :: n, ns
+    integer             :: water_bulk_or_tracers     ! 1 = bulk, 2 = tracers
+    character(len=len(WTRACERS_SUFFIX)) :: suffix    ! WTRACERS_SUFFIX for tracers, blank for bulk
     character(len=CL)   :: atm_mesh_name
     character(len=CL)   :: lnd_mesh_name
     character(len=CL)   :: ice_mesh_name
@@ -240,6 +250,11 @@ contains
        read(cvalue,*) flds_i2o_per_cat
 
        flds_wtracers = shr_wtracers_present()
+       if (flds_wtracers) then
+          water_bulk_or_tracers_max = water_tracers
+       else
+          water_bulk_or_tracers_max = water_bulk
+       end if
 
        call NUOPC_CompAttributeGet(gcomp, name='flds_r2l_stream_channel_depths', value=cvalue, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -309,10 +324,6 @@ contains
        call addfld_from(compatm, 'Sa_z')
        call addfld_from(compatm, 'Sa_tbot')
        call addfld_from(compatm, 'Sa_pbot')
-       call addfld_from(compatm, 'Sa_shum')
-       if (flds_wtracers) then
-          call addfld_from(compatm, 'Sa_shum'//WTRACERS_SUFFIX)
-       end if
        call addfld_from(compatm, 'Sa_ptem')
        call addfld_from(compatm, 'Sa_dens')
        call addfld_from(compatm, 'Faxa_rainc')
@@ -329,15 +340,23 @@ contains
           call addmap_from(compatm, 'Sa_z'   , compocn, mapbilnr, 'one', atm2ocn_map)
           call addmap_from(compatm, 'Sa_tbot', compocn, mapbilnr, 'one', atm2ocn_map)
           call addmap_from(compatm, 'Sa_pbot', compocn, mapbilnr, 'one', atm2ocn_map)
-          call addmap_from(compatm, 'Sa_shum', compocn, mapbilnr, 'one', atm2ocn_map)
-          if (flds_wtracers) then
-             call addmap_from(compatm, 'Sa_shum'//WTRACERS_SUFFIX, compocn, mapbilnr, 'one', atm2ocn_map)
-          end if
           call addmap_from(compatm, 'Sa_ptem', compocn, mapbilnr, 'one', atm2ocn_map)
           call addmap_from(compatm, 'Sa_dens', compocn, mapbilnr, 'one', atm2ocn_map)
           call addmap_from(compatm, 'Sa_pslv', compocn, mapbilnr, 'one', atm2ocn_map)
        end if
     end if
+    do water_bulk_or_tracers = 1, water_bulk_or_tracers_max
+       call set_suffix_for_water_bulk_or_tracers(water_bulk_or_tracers, suffix, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       if (phase == 'advertise') then
+          call addfld_from(compatm, 'Sa_shum'//trim(suffix))
+       else
+          if (is_local%wrap%aoflux_grid == 'ogrid') then
+             call addmap_from(compatm, 'Sa_shum'//trim(suffix), compocn, mapbilnr, 'one', atm2ocn_map)
+          end if
+       end if
+    end do
 
     ! ---------------------------------------------------------------------
     ! to med: swnet fluxes used for budget calculation
@@ -478,29 +497,22 @@ contains
     ! ---------------------------------------------------------------------
     ! to lnd: specific humidity at the lowest model level from atm
     ! ---------------------------------------------------------------------
-    if (phase == 'advertise') then
-       call addfld_from(compatm, 'Sa_shum')
-       call addfld_to(complnd, 'Sa_shum')
-    else
-       if ( fldchk(is_local%wrap%FBexp(complnd)         , 'Sa_shum', rc=rc) .and. &
-            fldchk(is_local%wrap%FBImp(compatm,compatm ), 'Sa_shum', rc=rc)) then
-          call addmap_from(compatm, 'Sa_shum', complnd, mapbilnr, 'one', atm2lnd_map)
-          call addmrg_to(complnd, 'Sa_shum', mrg_from=compatm, mrg_fld='Sa_shum', mrg_type='copy')
-       end if
-    end if
-    if (flds_wtracers) then
+    do water_bulk_or_tracers = 1, water_bulk_or_tracers_max
+       call set_suffix_for_water_bulk_or_tracers(water_bulk_or_tracers, suffix, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
        if (phase == 'advertise') then
-          call addfld_from(compatm, 'Sa_shum'//WTRACERS_SUFFIX)
-          call addfld_to(complnd, 'Sa_shum'//WTRACERS_SUFFIX)
+          call addfld_from(compatm, 'Sa_shum'//trim(suffix))
+          call addfld_to(complnd, 'Sa_shum'//trim(suffix))
        else
-          if ( fldchk(is_local%wrap%FBexp(complnd)         , 'Sa_shum'//WTRACERS_SUFFIX, rc=rc) .and. &
-               fldchk(is_local%wrap%FBImp(compatm,compatm ), 'Sa_shum'//WTRACERS_SUFFIX, rc=rc)) then
-             call addmap_from(compatm, 'Sa_shum'//WTRACERS_SUFFIX, complnd, mapbilnr, 'one', atm2lnd_map)
-             call addmrg_to(complnd, 'Sa_shum'//WTRACERS_SUFFIX, &
-                            mrg_from=compatm, mrg_fld='Sa_shum'//WTRACERS_SUFFIX, mrg_type='copy')
+          if ( fldchk(is_local%wrap%FBexp(complnd)         , 'Sa_shum'//trim(suffix), rc=rc) .and. &
+               fldchk(is_local%wrap%FBImp(compatm,compatm ), 'Sa_shum'//trim(suffix), rc=rc)) then
+             call addmap_from(compatm, 'Sa_shum'//trim(suffix), complnd, mapbilnr, 'one', atm2lnd_map)
+             call addmrg_to(complnd, 'Sa_shum'//trim(suffix), &
+                            mrg_from=compatm, mrg_fld='Sa_shum'//trim(suffix), mrg_type='copy')
           end if
        end if
-    end if
+    end do
     ! ---------------------------------------------------------------------
     ! to lnd: prognostic CO2 at the lowest atm model level
     ! ---------------------------------------------------------------------
@@ -991,63 +1003,40 @@ contains
        end if
     end if
 
-    if (phase == 'advertise') then
-       call addfld_from(complnd , 'Sl_qref')
-       call addfld_from(compice , 'Si_qref')
-       call addfld_aoflux('So_qref')
-       call addfld_to(compatm , 'Sx_qref')
-    else
-       if ( fldchk(is_local%wrap%FBexp(compatm), 'Sx_qref', rc=rc)) then
-          if (fldchk(is_local%wrap%FBImp(complnd,complnd ), 'Sl_qref', rc=rc)) then
-             call addmap_from(complnd , 'Sl_qref', compatm, mapconsf, map_fracname_lnd2atm, lnd2atm_map)
-             call addmrg_to(compatm , 'Sx_qref', &
-                  mrg_from=complnd, mrg_fld='Sl_qref', mrg_type='merge', mrg_fracname=mrg_fracname_lnd2atm_state)
-          end if
-          if (fldchk(is_local%wrap%FBImp(compice,compice ), 'Si_qref', rc=rc)) then
-             call addmap_from(compice , 'Si_qref', compatm, mapconsf, 'ifrac', ice2atm_map)
-             call addmrg_to(compatm , 'Sx_qref', &
-                  mrg_from=compice, mrg_fld='Si_qref', mrg_type='merge', mrg_fracname='ifrac')
-          end if
-          if (fldchk(is_local%wrap%FBMed_aoflux_o, 'So_qref', rc=rc)) then
-             if (trim(is_local%wrap%aoflux_grid) == 'ogrid') then
-                call addmap_aoflux('So_qref', compatm, mapconsf, 'ofrac', ocn2atm_map)
-             end if
-             call addmrg_to(compatm , 'Sx_qref', &
-                  mrg_from=compmed, mrg_fld='So_qref', mrg_type='merge', mrg_fracname='ofrac')
-          end if
-       end if
-    end if
-    if (flds_wtracers) then
+    do water_bulk_or_tracers = 1, water_bulk_or_tracers_max
+       call set_suffix_for_water_bulk_or_tracers(water_bulk_or_tracers, suffix, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
        if (phase == 'advertise') then
-          call addfld_from(complnd , 'Sl_qref'//WTRACERS_SUFFIX)
-          call addfld_from(compice , 'Si_qref'//WTRACERS_SUFFIX)
-          call addfld_aoflux('So_qref'//WTRACERS_SUFFIX)
-          call addfld_to(compatm , 'Sx_qref'//WTRACERS_SUFFIX)
+          call addfld_from(complnd , 'Sl_qref'//trim(suffix))
+          call addfld_from(compice , 'Si_qref'//trim(suffix))
+          call addfld_aoflux('So_qref'//trim(suffix))
+          call addfld_to(compatm , 'Sx_qref'//trim(suffix))
        else
-          if ( fldchk(is_local%wrap%FBexp(compatm), 'Sx_qref'//WTRACERS_SUFFIX, rc=rc)) then
-             if (fldchk(is_local%wrap%FBImp(complnd,complnd ), 'Sl_qref'//WTRACERS_SUFFIX, rc=rc)) then
-                call addmap_from(complnd , 'Sl_qref'//WTRACERS_SUFFIX, compatm, mapconsf, map_fracname_lnd2atm, lnd2atm_map)
-                call addmrg_to(compatm , 'Sx_qref'//WTRACERS_SUFFIX, &
-                     mrg_from=complnd, mrg_fld='Sl_qref'//WTRACERS_SUFFIX, mrg_type='merge', &
+          if ( fldchk(is_local%wrap%FBexp(compatm), 'Sx_qref'//trim(suffix), rc=rc)) then
+             if (fldchk(is_local%wrap%FBImp(complnd,complnd ), 'Sl_qref'//trim(suffix), rc=rc)) then
+                call addmap_from(complnd , 'Sl_qref'//trim(suffix), compatm, mapconsf, map_fracname_lnd2atm, lnd2atm_map)
+                call addmrg_to(compatm , 'Sx_qref'//trim(suffix), &
+                     mrg_from=complnd, mrg_fld='Sl_qref'//trim(suffix), mrg_type='merge', &
                      mrg_fracname=mrg_fracname_lnd2atm_state)
              end if
-             if (fldchk(is_local%wrap%FBImp(compice,compice ), 'Si_qref'//WTRACERS_SUFFIX, rc=rc)) then
-                call addmap_from(compice , 'Si_qref'//WTRACERS_SUFFIX, compatm, mapconsf, 'ifrac', ice2atm_map)
-                call addmrg_to(compatm , 'Sx_qref'//WTRACERS_SUFFIX, &
-                     mrg_from=compice, mrg_fld='Si_qref'//WTRACERS_SUFFIX, mrg_type='merge', &
+             if (fldchk(is_local%wrap%FBImp(compice,compice ), 'Si_qref'//trim(suffix), rc=rc)) then
+                call addmap_from(compice , 'Si_qref'//trim(suffix), compatm, mapconsf, 'ifrac', ice2atm_map)
+                call addmrg_to(compatm , 'Sx_qref'//trim(suffix), &
+                     mrg_from=compice, mrg_fld='Si_qref'//trim(suffix), mrg_type='merge', &
                      mrg_fracname='ifrac')
              end if
-             if (fldchk(is_local%wrap%FBMed_aoflux_o, 'So_qref'//WTRACERS_SUFFIX, rc=rc)) then
+             if (fldchk(is_local%wrap%FBMed_aoflux_o, 'So_qref'//trim(suffix), rc=rc)) then
                 if (trim(is_local%wrap%aoflux_grid) == 'ogrid') then
-                   call addmap_aoflux('So_qref'//WTRACERS_SUFFIX, compatm, mapconsf, 'ofrac', ocn2atm_map)
+                   call addmap_aoflux('So_qref'//trim(suffix), compatm, mapconsf, 'ofrac', ocn2atm_map)
                 end if
-                call addmrg_to(compatm , 'Sx_qref'//WTRACERS_SUFFIX, &
-                     mrg_from=compmed, mrg_fld='So_qref'//WTRACERS_SUFFIX, mrg_type='merge', &
+                call addmrg_to(compatm , 'Sx_qref'//trim(suffix), &
+                     mrg_from=compmed, mrg_fld='So_qref'//trim(suffix), mrg_type='merge', &
                      mrg_fracname='ofrac')
              end if
           end if
        end if
-    end if
+    end do
 
     ! ---------------------------------------------------------------------
     ! to atm: merged zonal surface stress
@@ -1165,60 +1154,37 @@ contains
        end if
     end if
 
-    if (phase == 'advertise') then
-       call addfld_to(compatm, 'Faxx_evap')
-       call addfld_from(complnd, 'Fall_evap')
-       call addfld_from(compice, 'Faii_evap')
-       call addfld_aoflux( 'Faox_evap')
-    else
-       if (fldchk(is_local%wrap%FBexp(compatm), 'Faxx_evap', rc=rc)) then
-          if ( fldchk(is_local%wrap%FBImp(complnd,complnd), 'Fall_evap', rc=rc)) then
-             call addmap_from(complnd , 'Fall_evap', compatm, mapconsf, map_fracname_lnd2atm, lnd2atm_map)
-             call addmrg_to(compatm , 'Faxx_evap', &
-                  mrg_from=complnd, mrg_fld='Fall_evap', mrg_type='merge', mrg_fracname=mrg_fracname_lnd2atm_flux)
-          end if
-          if (fldchk(is_local%wrap%FBImp(compice,compice), 'Faii_evap', rc=rc)) then
-             call addmap_from(compice , 'Faii_evap', compatm, mapconsf, 'ifrac', ice2atm_map)
-             call addmrg_to(compatm , 'Faxx_evap', &
-                  mrg_from=compice, mrg_fld='Faii_evap', mrg_type='merge', mrg_fracname='ifrac')
-          end if
-          if (fldchk(is_local%wrap%FBMed_aoflux_o, 'Faox_evap', rc=rc)) then
-             if (trim(is_local%wrap%aoflux_grid) == 'ogrid') then
-                call addmap_aoflux('Faox_evap', compatm, mapconsf, 'ofrac', ocn2atm_map)
-             end if
-             call addmrg_to(compatm , 'Faxx_evap', &
-                  mrg_from=compmed, mrg_fld='Faox_evap', mrg_type='merge', mrg_fracname='ofrac')
-          end if
-       end if
-    end if
-    if (flds_wtracers) then
+    do water_bulk_or_tracers = 1, water_bulk_or_tracers_max
+       call set_suffix_for_water_bulk_or_tracers(water_bulk_or_tracers, suffix, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
        if (phase == 'advertise') then
-          call addfld_to(compatm, 'Faxx_evap'//WTRACERS_SUFFIX)
-          call addfld_from(complnd, 'Fall_evap'//WTRACERS_SUFFIX)
-          call addfld_from(compice, 'Faii_evap'//WTRACERS_SUFFIX)
-          call addfld_aoflux( 'Faox_evap'//WTRACERS_SUFFIX)
+          call addfld_to(compatm, 'Faxx_evap'//trim(suffix))
+          call addfld_from(complnd, 'Fall_evap'//trim(suffix))
+          call addfld_from(compice, 'Faii_evap'//trim(suffix))
+          call addfld_aoflux( 'Faox_evap'//trim(suffix))
        else
-          if (fldchk(is_local%wrap%FBexp(compatm), 'Faxx_evap'//WTRACERS_SUFFIX, rc=rc)) then
-             if ( fldchk(is_local%wrap%FBImp(complnd,complnd), 'Fall_evap'//WTRACERS_SUFFIX, rc=rc)) then
-                call addmap_from(complnd , 'Fall_evap'//WTRACERS_SUFFIX, compatm, mapconsf, map_fracname_lnd2atm, lnd2atm_map)
-                call addmrg_to(compatm , 'Faxx_evap'//WTRACERS_SUFFIX, &
-                     mrg_from=complnd, mrg_fld='Fall_evap'//WTRACERS_SUFFIX, mrg_type='merge', mrg_fracname=mrg_fracname_lnd2atm_flux)
+          if (fldchk(is_local%wrap%FBexp(compatm), 'Faxx_evap'//trim(suffix), rc=rc)) then
+             if ( fldchk(is_local%wrap%FBImp(complnd,complnd), 'Fall_evap'//trim(suffix), rc=rc)) then
+                call addmap_from(complnd , 'Fall_evap'//trim(suffix), compatm, mapconsf, map_fracname_lnd2atm, lnd2atm_map)
+                call addmrg_to(compatm , 'Faxx_evap'//trim(suffix), &
+                     mrg_from=complnd, mrg_fld='Fall_evap'//trim(suffix), mrg_type='merge', mrg_fracname=mrg_fracname_lnd2atm_flux)
              end if
-             if (fldchk(is_local%wrap%FBImp(compice,compice), 'Faii_evap'//WTRACERS_SUFFIX, rc=rc)) then
-                call addmap_from(compice , 'Faii_evap'//WTRACERS_SUFFIX, compatm, mapconsf, 'ifrac', ice2atm_map)
-                call addmrg_to(compatm , 'Faxx_evap'//WTRACERS_SUFFIX, &
-                     mrg_from=compice, mrg_fld='Faii_evap'//WTRACERS_SUFFIX, mrg_type='merge', mrg_fracname='ifrac')
+             if (fldchk(is_local%wrap%FBImp(compice,compice), 'Faii_evap'//trim(suffix), rc=rc)) then
+                call addmap_from(compice , 'Faii_evap'//trim(suffix), compatm, mapconsf, 'ifrac', ice2atm_map)
+                call addmrg_to(compatm , 'Faxx_evap'//trim(suffix), &
+                     mrg_from=compice, mrg_fld='Faii_evap'//trim(suffix), mrg_type='merge', mrg_fracname='ifrac')
              end if
-             if (fldchk(is_local%wrap%FBMed_aoflux_o, 'Faox_evap'//WTRACERS_SUFFIX, rc=rc)) then
+             if (fldchk(is_local%wrap%FBMed_aoflux_o, 'Faox_evap'//trim(suffix), rc=rc)) then
                 if (trim(is_local%wrap%aoflux_grid) == 'ogrid') then
-                   call addmap_aoflux('Faox_evap'//WTRACERS_SUFFIX, compatm, mapconsf, 'ofrac', ocn2atm_map)
+                   call addmap_aoflux('Faox_evap'//trim(suffix), compatm, mapconsf, 'ofrac', ocn2atm_map)
                 end if
-                call addmrg_to(compatm , 'Faxx_evap'//WTRACERS_SUFFIX, &
-                     mrg_from=compmed, mrg_fld='Faox_evap'//WTRACERS_SUFFIX, mrg_type='merge', mrg_fracname='ofrac')
+                call addmrg_to(compatm , 'Faxx_evap'//trim(suffix), &
+                     mrg_from=compmed, mrg_fld='Faox_evap'//trim(suffix), mrg_type='merge', mrg_fracname='ofrac')
              end if
           end if
        end if
-    end if
+    end do
 
     if (phase == 'advertise') then
        call addfld_to(compatm, 'Faxx_lwup')
@@ -1915,30 +1881,27 @@ contains
     if (phase == 'advertise') then
        call addfld_from(compatm, 'Faxa_lat' )
        call addfld_aoflux( 'Faox_lat' )
-       call addfld_aoflux( 'Faox_evap')
        call addfld_to(compocn, 'Foxx_lat' )
-       call addfld_to(compocn, 'Foxx_evap')
     else
        if ( fldchk(is_local%wrap%FBexp(compocn), 'Foxx_lat', rc=rc)) then
           call addmrg_to(compocn, 'Foxx_lat', &
                mrg_from=compmed, mrg_fld='Faox_lat', mrg_type='merge', mrg_fracname='ofrac')
        end if
-       if ( fldchk(is_local%wrap%FBExp(compocn), 'Foxx_evap', rc=rc)) then
-          call addmrg_to(compocn, 'Foxx_evap', &
-               mrg_from=compmed, mrg_fld='Faox_evap', mrg_type='merge', mrg_fracname='ofrac')
-       end if
     end if
-    if (flds_wtracers) then
+    do water_bulk_or_tracers = 1, water_bulk_or_tracers_max
+       call set_suffix_for_water_bulk_or_tracers(water_bulk_or_tracers, suffix, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
        if (phase == 'advertise') then
-          call addfld_aoflux( 'Faox_evap'//WTRACERS_SUFFIX)
-          call addfld_to(compocn, 'Foxx_evap'//WTRACERS_SUFFIX)
+          call addfld_aoflux( 'Faox_evap'//trim(suffix))
+          call addfld_to(compocn, 'Foxx_evap'//trim(suffix))
        else
-          if ( fldchk(is_local%wrap%FBExp(compocn), 'Foxx_evap'//WTRACERS_SUFFIX, rc=rc)) then
-             call addmrg_to(compocn, 'Foxx_evap'//WTRACERS_SUFFIX, &
-                  mrg_from=compmed, mrg_fld='Faox_evap'//WTRACERS_SUFFIX, mrg_type='merge', mrg_fracname='ofrac')
+          if ( fldchk(is_local%wrap%FBExp(compocn), 'Foxx_evap'//trim(suffix), rc=rc)) then
+             call addmrg_to(compocn, 'Foxx_evap'//trim(suffix), &
+                  mrg_from=compmed, mrg_fld='Faox_evap'//trim(suffix), mrg_type='merge', mrg_fracname='ofrac')
           end if
        end if
-    end if
+    end do
 
     ! ---------------------------------------------------------------------
     ! to ocn: wind speed squared at 10 meters from med
@@ -2945,29 +2908,22 @@ contains
     ! ---------------------------------------------------------------------
     ! to ice: specific humidity at the lowest model level from atm
     ! ---------------------------------------------------------------------
-    if (phase == 'advertise') then
-       call addfld_from(compatm, 'Sa_shum')
-       call addfld_to(compice, 'Sa_shum')
-    else
-       if ( fldchk(is_local%wrap%FBexp(compice)         , 'Sa_shum', rc=rc) .and. &
-            fldchk(is_local%wrap%FBImp(compatm,compatm ), 'Sa_shum', rc=rc)) then
-          call addmap_from(compatm, 'Sa_shum', compice, mapbilnr, 'one', atm2ice_map)
-          call addmrg_to(compice, 'Sa_shum', mrg_from=compatm, mrg_fld='Sa_shum', mrg_type='copy')
-       end if
-    end if
-    if (flds_wtracers) then
+    do water_bulk_or_tracers = 1, water_bulk_or_tracers_max
+       call set_suffix_for_water_bulk_or_tracers(water_bulk_or_tracers, suffix, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
        if (phase == 'advertise') then
-          call addfld_from(compatm, 'Sa_shum'//WTRACERS_SUFFIX)
-          call addfld_to(compice, 'Sa_shum'//WTRACERS_SUFFIX)
+          call addfld_from(compatm, 'Sa_shum'//trim(suffix))
+          call addfld_to(compice, 'Sa_shum'//trim(suffix))
        else
-          if ( fldchk(is_local%wrap%FBexp(compice)         , 'Sa_shum'//WTRACERS_SUFFIX, rc=rc) .and. &
-               fldchk(is_local%wrap%FBImp(compatm,compatm ), 'Sa_shum'//WTRACERS_SUFFIX, rc=rc)) then
-             call addmap_from(compatm, 'Sa_shum'//WTRACERS_SUFFIX, compice, mapbilnr, 'one', atm2ice_map)
-             call addmrg_to(compice, 'Sa_shum'//WTRACERS_SUFFIX, &
-                            mrg_from=compatm, mrg_fld='Sa_shum'//WTRACERS_SUFFIX, mrg_type='copy')
+          if ( fldchk(is_local%wrap%FBexp(compice)         , 'Sa_shum'//trim(suffix), rc=rc) .and. &
+               fldchk(is_local%wrap%FBImp(compatm,compatm ), 'Sa_shum'//trim(suffix), rc=rc)) then
+             call addmap_from(compatm, 'Sa_shum'//trim(suffix), compice, mapbilnr, 'one', atm2ice_map)
+             call addmrg_to(compice, 'Sa_shum'//trim(suffix), &
+                            mrg_from=compatm, mrg_fld='Sa_shum'//trim(suffix), mrg_type='copy')
           end if
        end if
-    end if
+    end do
     ! ---------------------------------------------------------------------
     ! to ice: sea surface temperature from ocn
     ! ---------------------------------------------------------------------
@@ -3414,5 +3370,34 @@ contains
     end if
 
   end subroutine esmFldsExchange_cesm
+
+  !-----------------------------------------------------------------------------
+  subroutine set_suffix_for_water_bulk_or_tracers(water_bulk_or_tracers, suffix, rc)
+
+     ! Set suffix for water fields based on whether water_bulk_or_tracers is the index for
+     ! bulk (1) or tracers (2). For tracers, the suffix will be WTRACERS_SUFFIX; for bulk,
+     ! the suffix will be blank.
+
+     use ESMF, only : ESMF_SUCCESS
+
+     ! input/output arguments
+     integer, intent(in) :: water_bulk_or_tracers  ! 1 = bulk, 2 = tracers
+     character(len=*), intent(out) :: suffix
+     integer, intent(out) :: rc
+
+     character(len=*), parameter :: subname='(set_suffix_for_water_bulk_or_tracers)'
+     ! ----------------------------------------------
+
+     rc = ESMF_SUCCESS
+
+     select case (water_bulk_or_tracers)
+     case (water_bulk)
+        suffix = " "
+     case (water_tracers)
+        suffix = WTRACERS_SUFFIX
+     case default
+        call shr_log_error(subname//" ERROR: unexpected value for water_bulk_or_tracers", rc=rc)
+     end select
+  end subroutine set_suffix_for_water_bulk_or_tracers
 
 end module esmFldsExchange_cesm_mod
