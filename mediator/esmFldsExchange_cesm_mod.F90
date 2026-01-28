@@ -326,7 +326,6 @@ contains
        call addfld_from(compatm, 'Sa_pbot')
        call addfld_from(compatm, 'Sa_ptem')
        call addfld_from(compatm, 'Sa_dens')
-       call addfld_from(compatm, 'Faxa_rainc')
     else
        if (is_local%wrap%aoflux_grid == 'ogrid') then
           if (mapuv_with_cart3d) then
@@ -336,7 +335,6 @@ contains
              call addmap_from(compatm, 'Sa_u' , compocn, mappatch, 'one', atm2ocn_map)
              call addmap_from(compatm, 'Sa_v' , compocn, mappatch, 'one', atm2ocn_map)
           end if
-          call addmap_from(compatm, 'Faxa_rainc', compocn, mapconsf, 'one', atm2ocn_map)
           call addmap_from(compatm, 'Sa_z'   , compocn, mapbilnr, 'one', atm2ocn_map)
           call addmap_from(compatm, 'Sa_tbot', compocn, mapbilnr, 'one', atm2ocn_map)
           call addmap_from(compatm, 'Sa_pbot', compocn, mapbilnr, 'one', atm2ocn_map)
@@ -351,9 +349,11 @@ contains
 
        if (phase == 'advertise') then
           call addfld_from(compatm, 'Sa_shum'//trim(suffix))
+          call addfld_from(compatm, 'Faxa_rainc'//trim(suffix))
        else
           if (is_local%wrap%aoflux_grid == 'ogrid') then
-             call addmap_from(compatm, 'Sa_shum'//trim(suffix), compocn, mapbilnr, 'one', atm2ocn_map)
+            call addmap_from(compatm, 'Sa_shum'//trim(suffix), compocn, mapbilnr, 'one', atm2ocn_map)
+            call addmap_from(compatm, 'Faxa_rainc'//trim(suffix), compocn, mapconsf, 'one', atm2ocn_map)
           end if
        end if
     end do
@@ -542,49 +542,63 @@ contains
     ! ---------------------------------------------------------------------
     ! to lnd: convective and large scale precipitation rate water equivalent from atm
     ! ---------------------------------------------------------------------
-    if (phase == 'advertise') then
-       call addfld_from(compatm, 'Faxa_rainc')
-       call addfld_to(complnd, 'Faxa_rainc')
-    else
-       if ( fldchk(is_local%wrap%FBexp(complnd)         , 'Faxa_rainc', rc=rc) .and. &
-            fldchk(is_local%wrap%FBImp(compatm,compatm ), 'Faxa_rainc', rc=rc)) then
-          call addmap_from(compatm, 'Faxa_rainc', complnd, mapconsf, 'one', atm2lnd_map)
-          call addmrg_to(complnd, 'Faxa_rainc', mrg_from=compatm, mrg_fld='Faxa_rainc', mrg_type='copy')
+    do water_bulk_or_tracers_index = 1, water_bulk_or_tracers_max
+       call set_suffix_for_water_bulk_or_tracers(water_bulk_or_tracers_index, suffix, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       if (phase == 'advertise') then
+          call addfld_from(compatm, 'Faxa_rainc'//trim(suffix))
+          call addfld_to(complnd, 'Faxa_rainc'//trim(suffix))
+       else
+          if ( fldchk(is_local%wrap%FBexp(complnd)         , 'Faxa_rainc'//trim(suffix), rc=rc) .and. &
+               fldchk(is_local%wrap%FBImp(compatm,compatm ), 'Faxa_rainc'//trim(suffix), rc=rc)) then
+             call addmap_from(compatm, 'Faxa_rainc'//trim(suffix), complnd, mapconsf, 'one', atm2lnd_map)
+             call addmrg_to(complnd, 'Faxa_rainc'//trim(suffix), mrg_from=compatm, &
+                  mrg_fld='Faxa_rainc'//trim(suffix), mrg_type='copy')
+          end if
        end if
-    end if
-    if (phase == 'advertise') then
-       call addfld_from(compatm, 'Faxa_rainl')
-       call addfld_to(complnd, 'Faxa_rainl')
-    else
-       if ( fldchk(is_local%wrap%FBexp(complnd)         , 'Faxa_rainl', rc=rc) .and. &
-            fldchk(is_local%wrap%FBImp(compatm,compatm ), 'Faxa_rainl', rc=rc)) then
-          call addmap_from(compatm, 'Faxa_rainl', complnd, mapconsf, 'one', atm2lnd_map)
-          call addmrg_to(complnd, 'Faxa_rainl', mrg_from=compatm, mrg_fld='Faxa_rainl', mrg_type='copy')
+       if (phase == 'advertise') then
+          call addfld_from(compatm, 'Faxa_rainl'//trim(suffix))
+          call addfld_to(complnd, 'Faxa_rainl'//trim(suffix))
+       else
+          if ( fldchk(is_local%wrap%FBexp(complnd)         , 'Faxa_rainl'//trim(suffix), rc=rc) .and. &
+               fldchk(is_local%wrap%FBImp(compatm,compatm ), 'Faxa_rainl'//trim(suffix), rc=rc)) then
+             call addmap_from(compatm, 'Faxa_rainl'//trim(suffix), complnd, mapconsf, 'one', atm2lnd_map)
+             call addmrg_to(complnd, 'Faxa_rainl'//trim(suffix), mrg_from=compatm, &
+                  mrg_fld='Faxa_rainl'//trim(suffix), mrg_type='copy')
+          end if
        end if
-    end if
+    end do
     ! ---------------------------------------------------------------------
     ! to lnd: convective and large-scale (stable) snow rate from atm
     ! ---------------------------------------------------------------------
-    if (phase == 'advertise') then
-       call addfld_from(compatm, 'Faxa_snowc')
-       call addfld_to(complnd, 'Faxa_snowc')
-    else
-       if ( fldchk(is_local%wrap%FBexp(complnd)         , 'Faxa_snowc', rc=rc) .and. &
-            fldchk(is_local%wrap%FBImp(compatm,compatm ), 'Faxa_snowc', rc=rc)) then
-          call addmap_from(compatm, 'Faxa_snowc', complnd, mapconsf, 'one', atm2lnd_map)
-          call addmrg_to(complnd, 'Faxa_snowc', mrg_from=compatm, mrg_fld='Faxa_snowc', mrg_type='copy')
+    do water_bulk_or_tracers_index = 1, water_bulk_or_tracers_max
+       call set_suffix_for_water_bulk_or_tracers(water_bulk_or_tracers_index, suffix, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       if (phase == 'advertise') then
+          call addfld_from(compatm, 'Faxa_snowc'//trim(suffix))
+          call addfld_to(complnd, 'Faxa_snowc'//trim(suffix))
+       else
+          if ( fldchk(is_local%wrap%FBexp(complnd)         , 'Faxa_snowc'//trim(suffix), rc=rc) .and. &
+               fldchk(is_local%wrap%FBImp(compatm,compatm ), 'Faxa_snowc'//trim(suffix), rc=rc)) then
+             call addmap_from(compatm, 'Faxa_snowc'//trim(suffix), complnd, mapconsf, 'one', atm2lnd_map)
+             call addmrg_to(complnd, 'Faxa_snowc'//trim(suffix), mrg_from=compatm, &
+                  mrg_fld='Faxa_snowc'//trim(suffix), mrg_type='copy')
+          end if
        end if
-    end if
-    if (phase == 'advertise') then
-       call addfld_from(compatm, 'Faxa_snowl')
-       call addfld_to(complnd, 'Faxa_snowl')
-    else
-       if ( fldchk(is_local%wrap%FBexp(complnd)         , 'Faxa_snowl', rc=rc) .and. &
-            fldchk(is_local%wrap%FBImp(compatm,compatm ), 'Faxa_snowl', rc=rc)) then
-          call addmap_from(compatm, 'Faxa_snowl', complnd, mapconsf, 'one', atm2lnd_map)
-          call addmrg_to(complnd, 'Faxa_snowl', mrg_from=compatm, mrg_fld='Faxa_snowl', mrg_type='copy')
+       if (phase == 'advertise') then
+          call addfld_from(compatm, 'Faxa_snowl'//trim(suffix))
+          call addfld_to(complnd, 'Faxa_snowl'//trim(suffix))
+       else
+          if ( fldchk(is_local%wrap%FBexp(complnd)         , 'Faxa_snowl'//trim(suffix), rc=rc) .and. &
+               fldchk(is_local%wrap%FBImp(compatm,compatm ), 'Faxa_snowl'//trim(suffix), rc=rc)) then
+             call addmap_from(compatm, 'Faxa_snowl'//trim(suffix), complnd, mapconsf, 'one', atm2lnd_map)
+             call addmrg_to(complnd, 'Faxa_snowl'//trim(suffix), mrg_from=compatm, &
+                  mrg_fld='Faxa_snowl'//trim(suffix), mrg_type='copy')
+          end if
        end if
-    end if
+    end do
     ! ---------------------------------------------------------------------
     ! to lnd: downward longwave heat flux from atm
     ! ---------------------------------------------------------------------
@@ -1830,34 +1844,41 @@ contains
     !  to ocn: snow rate water equivalent from atm
     ! ---------------------------------------------------------------------
 
-    if (phase == 'advertise') then
-       call addfld_from(compatm, 'Faxa_rainc')
-       call addfld_from(compatm, 'Faxa_rainl')
-       call addfld_to(compocn, 'Faxa_rain' )
-       call addfld_from(compatm, 'Faxa_snowc')
-       call addfld_from(compatm, 'Faxa_snowl')
-       call addfld_to(compocn, 'Faxa_snow' )
-    else
-       ! TODO: why are we not merging Faxa_rain and Faxa_snow if they are sent from atm with ofrac
-       ! Note that the mediator atm/ocn flux calculation needs Faxa_rainc for the gustiness parameterization
-       ! which by default is not actually used
-       if ( fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_rainl', rc=rc) .and. &
-            fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_rainc', rc=rc) .and. &
-            fldchk(is_local%wrap%FBExp(compocn)        , 'Faxa_rain' , rc=rc)) then
-          call addmap_from(compatm, 'Faxa_rainl', compocn, mapconsf, 'one', atm2ocn_map)
-          call addmap_from(compatm, 'Faxa_rainc', compocn, mapconsf, 'one', atm2ocn_map)
-          call addmrg_to(compocn, 'Faxa_rain' , mrg_from=compatm, mrg_fld='Faxa_rainc:Faxa_rainl', &
-               mrg_type='sum_with_weights', mrg_fracname='ofrac')
+    do water_bulk_or_tracers_index = 1, water_bulk_or_tracers_max
+       call set_suffix_for_water_bulk_or_tracers(water_bulk_or_tracers_index, suffix, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       if (phase == 'advertise') then
+          call addfld_from(compatm, 'Faxa_rainc'//trim(suffix))
+          call addfld_from(compatm, 'Faxa_rainl'//trim(suffix))
+          call addfld_to(compocn, 'Faxa_rain'//trim(suffix))
+          call addfld_from(compatm, 'Faxa_snowc'//trim(suffix))
+          call addfld_from(compatm, 'Faxa_snowl'//trim(suffix))
+          call addfld_to(compocn, 'Faxa_snow'//trim(suffix))
+       else
+          ! TODO: why are we not merging Faxa_rain and Faxa_snow if they are sent from atm with ofrac
+          ! Note that the mediator atm/ocn flux calculation needs Faxa_rainc for the gustiness parameterization
+          ! which by default is not actually used
+          if ( fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_rainl'//trim(suffix), rc=rc) .and. &
+               fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_rainc'//trim(suffix), rc=rc) .and. &
+               fldchk(is_local%wrap%FBExp(compocn)        , 'Faxa_rain'//trim(suffix), rc=rc)) then
+             call addmap_from(compatm, 'Faxa_rainl'//trim(suffix), compocn, mapconsf, 'one', atm2ocn_map)
+             call addmap_from(compatm, 'Faxa_rainc'//trim(suffix), compocn, mapconsf, 'one', atm2ocn_map)
+             call addmrg_to(compocn, 'Faxa_rain'//trim(suffix), mrg_from=compatm, &
+                  mrg_fld='Faxa_rainc'//trim(suffix)//':Faxa_rainl'//trim(suffix), &
+                  mrg_type='sum_with_weights', mrg_fracname='ofrac')
+          end if
+          if ( fldchk(is_local%wrap%FBExp(compocn)        , 'Faxa_snow'//trim(suffix), rc=rc) .and. &
+               fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_snowl'//trim(suffix), rc=rc) .and. &
+               fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_snowc'//trim(suffix), rc=rc)) then
+             call addmap_from(compatm, 'Faxa_snowl'//trim(suffix), compocn, mapconsf, 'one', atm2ocn_map)
+             call addmap_from(compatm, 'Faxa_snowc'//trim(suffix), compocn, mapconsf, 'one', atm2ocn_map)
+             call addmrg_to(compocn, 'Faxa_snow'//trim(suffix), mrg_from=compatm, &
+                  mrg_fld='Faxa_snowc'//trim(suffix)//':Faxa_snowl'//trim(suffix), &
+                  mrg_type='sum_with_weights', mrg_fracname='ofrac')
+          end if
        end if
-       if ( fldchk(is_local%wrap%FBExp(compocn)        , 'Faxa_snow' , rc=rc) .and. &
-            fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_snowl', rc=rc) .and. &
-            fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_snowc', rc=rc)) then
-          call addmap_from(compatm, 'Faxa_snowl', compocn, mapconsf, 'one', atm2ocn_map)
-          call addmap_from(compatm, 'Faxa_snowc', compocn, mapconsf, 'one', atm2ocn_map)
-          call addmrg_to(compocn, 'Faxa_snow'  , &
-               mrg_from=compatm, mrg_fld='Faxa_snowc:Faxa_snowl', mrg_type='sum_with_weights', mrg_fracname='ofrac')
-       end if
-    end if
+    end do
 
     ! ---------------------------------------------------------------------
     ! to ocn: merged sensible heat flux
@@ -2769,44 +2790,53 @@ contains
     ! to ice: convective and large scale precipitation rate water equivalent from atm
     ! to ice: rain and snow rate from atm
     ! ---------------------------------------------------------------------
-    if (phase == 'advertise') then
-       call addfld_from(compatm, 'Faxa_rainc')
-       call addfld_from(compatm, 'Faxa_rainl')
-       call addfld_from(compatm, 'Faxa_rain' )
-       call addfld_to(compice, 'Faxa_rain' )
-    else
-       if ( fldchk(is_local%wrap%FBexp(compice)        , 'Faxa_rain' , rc=rc) .and. &
-            fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_rainl', rc=rc) .and. &
-            fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_rainc', rc=rc)) then
-          call addmap_from(compatm, 'Faxa_rainc', compice, mapconsf, 'one', atm2ice_map)
-          call addmap_from(compatm, 'Faxa_rainl', compice, mapconsf, 'one', atm2ice_map)
-          call addmrg_to(compice, 'Faxa_rain' , mrg_from=compatm, mrg_fld='Faxa_rainc:Faxa_rainl', mrg_type='sum')
-       else if ( fldchk(is_local%wrap%FBexp(compice)        , 'Faxa_rain', rc=rc) .and. &
-                 fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_rain', rc=rc)) then
-          call addmap_from(compatm, 'Faxa_rain', compice, mapconsf, 'one', atm2ice_map)
-          call addmrg_to(compice, 'Faxa_rain', mrg_from=compatm, mrg_fld='Faxa_rain', mrg_type='copy')
+    do water_bulk_or_tracers_index = 1, water_bulk_or_tracers_max
+       call set_suffix_for_water_bulk_or_tracers(water_bulk_or_tracers_index, suffix, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       if (phase == 'advertise') then
+          call addfld_from(compatm, 'Faxa_rainc'//trim(suffix))
+          call addfld_from(compatm, 'Faxa_rainl'//trim(suffix))
+          call addfld_from(compatm, 'Faxa_rain'//trim(suffix))
+          call addfld_to(compice, 'Faxa_rain'//trim(suffix))
+       else
+          if ( fldchk(is_local%wrap%FBexp(compice)        , 'Faxa_rain'//trim(suffix), rc=rc) .and. &
+               fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_rainl'//trim(suffix), rc=rc) .and. &
+               fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_rainc'//trim(suffix), rc=rc)) then
+             call addmap_from(compatm, 'Faxa_rainc'//trim(suffix), compice, mapconsf, 'one', atm2ice_map)
+             call addmap_from(compatm, 'Faxa_rainl'//trim(suffix), compice, mapconsf, 'one', atm2ice_map)
+             call addmrg_to(compice, 'Faxa_rain'//trim(suffix), mrg_from=compatm, &
+                  mrg_fld='Faxa_rainc'//trim(suffix)//':Faxa_rainl'//trim(suffix), &
+                  mrg_type='sum')
+          else if ( fldchk(is_local%wrap%FBexp(compice)        , 'Faxa_rain'//trim(suffix), rc=rc) .and. &
+                    fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_rain'//trim(suffix), rc=rc)) then
+             call addmap_from(compatm, 'Faxa_rain'//trim(suffix), compice, mapconsf, 'one', atm2ice_map)
+             call addmrg_to(compice, 'Faxa_rain'//trim(suffix), mrg_from=compatm, &
+                  mrg_fld='Faxa_rain'//trim(suffix), mrg_type='copy')
+          end if
        end if
-    end if
-    if (phase == 'advertise') then
-       call addfld_from(compatm, 'Faxa_snowc')
-       call addfld_from(compatm, 'Faxa_snowl')
-       call addfld_from(compatm, 'Faxa_snow' )
-       call addfld_to(compice, 'Faxa_snow' )
-    else
-       if ( fldchk(is_local%wrap%FBexp(compice)        , 'Faxa_snow' , rc=rc) .and. &
-            fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_snowl', rc=rc) .and. &
-            fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_snowc', rc=rc)) then
-          call addmap_from(compatm, 'Faxa_snowc', compice, mapconsf, 'one', atm2ice_map)
-          call addmap_from(compatm, 'Faxa_snowl', compice, mapconsf, 'one', atm2ice_map)
-          call addmrg_to(compice, 'Faxa_snow' , &
-               mrg_from=compatm, mrg_fld='Faxa_snowc:Faxa_snowl', mrg_type='sum')
-       else if ( fldchk(is_local%wrap%FBexp(compice)        , 'Faxa_snow', rc=rc) .and. &
-                 fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_snow', rc=rc)) then
-          call addmap_from(compatm, 'Faxa_snow', compice, mapconsf, 'one', atm2ice_map)
-          call addmrg_to(compice, 'Faxa_snow', &
-               mrg_from=compatm, mrg_fld='Faxa_snow', mrg_type='copy')
+       if (phase == 'advertise') then
+          call addfld_from(compatm, 'Faxa_snowc'//trim(suffix))
+          call addfld_from(compatm, 'Faxa_snowl'//trim(suffix))
+          call addfld_from(compatm, 'Faxa_snow'//trim(suffix))
+          call addfld_to(compice, 'Faxa_snow'//trim(suffix))
+       else
+          if ( fldchk(is_local%wrap%FBexp(compice)        , 'Faxa_snow'//trim(suffix), rc=rc) .and. &
+               fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_snowl'//trim(suffix), rc=rc) .and. &
+               fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_snowc'//trim(suffix), rc=rc)) then
+             call addmap_from(compatm, 'Faxa_snowc'//trim(suffix), compice, mapconsf, 'one', atm2ice_map)
+             call addmap_from(compatm, 'Faxa_snowl'//trim(suffix), compice, mapconsf, 'one', atm2ice_map)
+             call addmrg_to(compice, 'Faxa_snow'//trim(suffix), mrg_from=compatm, &
+                  mrg_fld='Faxa_snowc'//trim(suffix)//':Faxa_snowl'//trim(suffix), &
+                  mrg_type='sum')
+          else if ( fldchk(is_local%wrap%FBexp(compice)        , 'Faxa_snow'//trim(suffix), rc=rc) .and. &
+                    fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_snow'//trim(suffix), rc=rc)) then
+             call addmap_from(compatm, 'Faxa_snow'//trim(suffix), compice, mapconsf, 'one', atm2ice_map)
+             call addmrg_to(compice, 'Faxa_snow'//trim(suffix), mrg_from=compatm, &
+                  mrg_fld='Faxa_snow'//trim(suffix), mrg_type='copy')
+          end if
        end if
-    end if
+    end do
 
     ! ---------------------------------------------------------------------
     ! to ice: height at the lowest model level from atm
