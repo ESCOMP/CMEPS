@@ -15,6 +15,8 @@ module rof_comp_nuopc
   use shr_sys_mod       , only : shr_sys_abort
   use shr_kind_mod      , only : r8=>shr_kind_r8, i8=>shr_kind_i8, cl=>shr_kind_cl, cs=>shr_kind_cs
   use shr_log_mod      , only : shr_log_getlogunit, shr_log_setlogunit
+  use shr_wtracers_mod, only : WTRACERS_SUFFIX
+  use shr_wtracers_mod, only : shr_wtracers_present, shr_wtracers_get_num_tracers
   use dead_methods_mod  , only : chkerr, state_setscalar, state_diagnose, alarmInit, memcheck
   use dead_methods_mod  , only : set_component_logging, get_component_instance, log_clock_advance
   use dead_nuopc_mod    , only : dead_read_inparms, ModelInitPhase, ModelSetRunClock
@@ -122,6 +124,8 @@ contains
     character(CL)     :: cvalue
     character(len=CL) :: logmsg
     logical           :: isPresent, isSet
+    logical           :: flds_wtracers
+    integer           :: num_wtracers
     character(len=*),parameter :: subname=trim(modName)//':(InitializeAdvertise) '
     !-------------------------------------------------------------------------------
 
@@ -193,6 +197,9 @@ contains
 
     if (nxg /= 0 .and. nyg /= 0) then
 
+       flds_wtracers = shr_wtracers_present()
+       num_wtracers = shr_wtracers_get_num_tracers()
+
        call fld_list_add(fldsFrRof_num, fldsFrRof, trim(flds_scalar_name))
        call fld_list_add(fldsFrRof_num, fldsFrRof, 'Forr_rofl')
        call fld_list_add(fldsFrRof_num, fldsFrRof, 'Forr_rofi')
@@ -206,6 +213,10 @@ contains
        call fld_list_add(fldsToRof_num, fldsToRof, 'Flrl_rofsub')
        call fld_list_add(fldsToRof_num, fldsToRof, 'Flrl_rofi')
        call fld_list_add(fldsToRof_num, fldsToRof, 'Flrl_irrig')
+       if (flds_wtracers) then
+          call fld_list_add(fldsToRof_num, fldsToRof, 'Flrl_irrig'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+       end if
 
        do n = 1,fldsFrRof_num
           if(mastertask) write(logunit,*)'Advertising From Xrof ',trim(fldsFrRof(n)%stdname)

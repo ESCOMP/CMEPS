@@ -241,6 +241,10 @@ contains
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Flrl_rofsub'   )
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Flrl_rofi'     )
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Flrl_irrig'    )
+       if (flds_wtracers) then
+          call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Flrl_irrig'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+       end if
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Fall_taux'     )
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Fall_tauy'     )
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Fall_lat'      )
