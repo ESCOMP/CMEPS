@@ -3026,6 +3026,25 @@ contains
          end if
       end if
     end if
+    !-----------------------------
+    ! to ice: Ratio of ocean surface level abund. H2_16O/H2O/Rstd from ocean
+    !-----------------------------
+    ! Note that this field is JUST for water tracers, NOT for bulk - so we start the loop at water_tracers_index
+    do water_bulk_or_tracers_index = water_tracers_index, water_bulk_or_tracers_max
+       call set_suffix_for_water_bulk_or_tracers(water_bulk_or_tracers_index, suffix, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       if (phase == 'advertise') then
+          call addfld_from(compocn, 'So_roce'//trim(suffix))
+          call addfld_to(compice, 'So_roce'//trim(suffix))
+       else
+          if ( fldchk(is_local%wrap%FBImp(compocn, compocn), 'So_roce'//trim(suffix), rc=rc) .and. &
+               fldchk(is_local%wrap%FBExp(compice)         , 'So_roce'//trim(suffix), rc=rc)) then
+             call addmap_from(compocn, 'So_roce'//trim(suffix), compice,  mapfcopy, 'unset', 'unset')
+             call addmrg_to(compice, 'So_roce'//trim(suffix), mrg_from=compocn, mrg_fld='So_roce'//trim(suffix), mrg_type='copy')
+          end if
+       end if
+    end do
     ! ---------------------------------------------------------------------
     ! to ice: wave elevation spectrum (field with ungridded dimensions)
     ! ---------------------------------------------------------------------

@@ -2553,6 +2553,7 @@ contains
     character(ESMF_MAXSTR) :: FBName
     integer :: n
     logical :: hasSuffix
+    logical :: isPresentNonTracer
     integer :: localrc
     type(ESMF_Field) :: fieldTracers
     type(ESMF_Field) :: fieldNonTracer
@@ -2580,24 +2581,35 @@ contains
             is_wtracer_field=hasSuffix, &
             bulk_fieldname=fieldNameNonTracer)
        if (hasSuffix) then
-          if (dbug_flag > 5) then
-             call ESMF_LogWrite(trim(subname)//": Checking <" // trim(fieldNameList(n)) // &
-                  "> against <" // trim(fieldNameNonTracer) // ">", &
-                  ESMF_LOGMSG_INFO)
+          call ESMF_FieldBundleGet(FB, fieldName=fieldNameNonTracer, isPresent=isPresentNonTracer, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          if (isPresentNonTracer) then
+             if (dbug_flag > 5) then
+                call ESMF_LogWrite(trim(subname)//": Checking <" // trim(fieldNameList(n)) // &
+                     "> against <" // trim(fieldNameNonTracer) // ">", &
+                     ESMF_LOGMSG_INFO)
+             end if
+
+             call ESMF_FieldBundleGet(FB, fieldName=fieldNameList(n), field=fieldTracers, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+             call ESMF_FieldGet(fieldTracers, farrayPtr=dataTracers, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+             call ESMF_FieldBundleGet(FB, fieldName=fieldNameNonTracer, field=fieldNonTracer, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+             call ESMF_FieldGet(fieldNonTracer, farrayPtr=dataNonTracer, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+             call wtracers_check_tracer_ratios(dataTracers, dataNonTracer, &
+                  trim(FBName)//":"//trim(fieldNameList(n)))
+          else
+             ! This is the situation for a small number of fields where we have a tracer
+             ! field without a corresponding non-tracer field.
+             if (dbug_flag > 5) then
+                call ESMF_LogWrite(trim(subname)//": Skipping check for <" // trim(fieldNameList(n)) // &
+                     "> which has no corresponding non-tracer field", ESMF_LOGMSG_INFO)
+             end if
           end if
-
-          call ESMF_FieldBundleGet(FB, fieldName=fieldNameList(n), field=fieldTracers, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call ESMF_FieldGet(fieldTracers, farrayPtr=dataTracers, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-          call ESMF_FieldBundleGet(FB, fieldName=fieldNameNonTracer, field=fieldNonTracer, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call ESMF_FieldGet(fieldNonTracer, farrayPtr=dataNonTracer, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-          call wtracers_check_tracer_ratios(dataTracers, dataNonTracer, &
-               trim(FBName)//":"//trim(fieldNameList(n)))
        end if
     end do
 
