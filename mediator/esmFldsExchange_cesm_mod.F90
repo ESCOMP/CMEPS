@@ -100,14 +100,14 @@ module esmFldsExchange_cesm_mod
   logical             :: flds_co2a                      ! Pass CO2 from ATM to surface components
   logical             :: flds_co2b                      ! Pass CO2 from ATM to LND and back from LND to ATM
   logical             :: flds_co2c                      ! Pass CO2 from ATM to surface (OCN/LND) and back from them to ATM
-  logical             :: flds_wtracers                  ! Pass water tracer fields
-  integer             :: water_bulk_or_tracers_max      ! 2 if running with water tracers, 1 otherwise
+  logical, private    :: flds_wtracers                  ! Pass water tracer fields
+  integer, private    :: water_bulk_or_tracers_max      ! 2 if running with water tracers, 1 otherwise
   logical             :: flds_r2l_stream_channel_depths ! Pass channel depths from ROF to LND
   logical             :: add_gusts                      ! Whether to include fields related to the gustiness parameterization
 
   ! Possible values for water_bulk_or_tracers index
-  integer, parameter :: water_bulk_index    = 1
-  integer, parameter :: water_tracers_index = 2
+  integer, parameter, private :: water_bulk_index    = 1
+  integer, parameter, private :: water_tracers_index = 2
 
   character(*), parameter :: u_FILE_u = &
        __FILE__
