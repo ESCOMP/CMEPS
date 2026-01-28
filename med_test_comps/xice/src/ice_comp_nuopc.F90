@@ -277,6 +277,11 @@ contains
        call fld_list_add(fldsToIce_num, fldsToIce, 'Faxa_ocph'  , ungridded_lbound=1, ungridded_ubound=3)
        call fld_list_add(fldsToIce_num, fldsToIce, 'Faxa_dstwet', ungridded_lbound=1, ungridded_ubound=4)
        call fld_list_add(fldsToIce_num, fldsToIce, 'Faxa_dstdry', ungridded_lbound=1, ungridded_ubound=4)
+       if (flds_wtracers) then
+          ! Note that this field only exists for tracers, not bulk
+          call fld_list_add(fldsToIce_num, fldsToIce, 'So_roce'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+       end if
 
        do n = 1,fldsFrIce_num
           if(mastertask) write(logunit,*)'Advertising From Xice ',trim(fldsFrIce(n)%stdname)

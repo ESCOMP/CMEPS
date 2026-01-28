@@ -209,6 +209,11 @@ contains
        call fld_list_add(fldsFrOcn_num, fldsFrOcn, "So_dhdy"       )
        call fld_list_add(fldsFrOcn_num, fldsFrOcn, "So_bldepth"    )
        call fld_list_add(fldsFrOcn_num, fldsFrOcn, "Fioo_q"        )
+       if (flds_wtracers) then
+          ! Note that this field only exists for tracers, not bulk
+          call fld_list_add(fldsFrOcn_num, fldsFrOcn, "So_roce"//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+       end if
 
        call fld_list_add(fldsToOcn_num, fldsToOcn, trim(flds_scalar_name))
        call fld_list_add(fldsToOcn_num, fldsToOcn, "Faxa_rain"     )

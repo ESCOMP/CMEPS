@@ -1,6 +1,7 @@
 module dead_nuopc_mod
 
   use ESMF              , only : ESMF_Gridcomp, ESMF_State, ESMF_StateGet
+  use ESMF              , only : ESMF_StateItem_Flag, ESMF_STATEITEM_NOTFOUND
   use ESMF              , only : ESMF_Field, ESMF_FieldGet
   use ESMF              , only : ESMF_Clock, ESMF_Time, ESMF_TimeInterval, ESMF_Alarm
   use ESMF              , only : ESMF_GridCompGet, ESMF_ClockGet, ESMF_ClockSet, ESMF_ClockAdvance, ESMF_AlarmSet
@@ -385,6 +386,7 @@ contains
 
     ! local variables
     logical :: has_suffix
+    type(ESMF_StateItem_Flag) :: bulk_item_flag
     character(len=fldname_maxlen) :: wtracer_bulk_fldname
 
     type(ESMF_Field) :: field_wtracers
@@ -422,33 +424,62 @@ contains
 
     call ESMF_StateGet(exportState, itemName=trim(fld%stdname), field=field_wtracers, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_StateGet(exportState, itemName=trim(wtracer_bulk_fldname), field=field_bulk, rc=rc)
+    call ESMF_StateGet(exportState, itemName=trim(wtracer_bulk_fldname), itemType=bulk_item_flag, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    if (fld%ungridded_lbound > 0 .and. fld%ungridded_ubound > 0) then
-       ! There is an additional ungridded dimension in addition to the water tracer
-       ! dimension. Note that we assume that the bulk field matches the tracer field in
-       ! terms of the size of this ungridded dimension.
-       call ESMF_FieldGet(field_wtracers, farrayPtr=data_wtracers_3d, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_FieldGet(field_bulk, farrayPtr=data_bulk_2d, rc=rc)
+    if (bulk_item_flag /= ESMF_STATEITEM_NOTFOUND) then
+       call ESMF_StateGet(exportState, itemName=trim(wtracer_bulk_fldname), field=field_bulk, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-       do n = 1, fld%num_wtracers
-          data_wtracers_3d(n,:,:) = data_bulk_2d(:,:) * shr_wtracers_get_initial_ratio(n)
-       end do
+       if (fld%ungridded_lbound > 0 .and. fld%ungridded_ubound > 0) then
+          ! There is an additional ungridded dimension in addition to the water tracer
+          ! dimension. Note that we assume that the bulk field matches the tracer field in
+          ! terms of the size of this ungridded dimension.
+          call ESMF_FieldGet(field_wtracers, farrayPtr=data_wtracers_3d, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_FieldGet(field_bulk, farrayPtr=data_bulk_2d, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+          do n = 1, fld%num_wtracers
+             data_wtracers_3d(n,:,:) = data_bulk_2d(:,:) * shr_wtracers_get_initial_ratio(n)
+          end do
+       else
+          ! No additional ungridded dimension
+          call ESMF_FieldGet(field_wtracers, farrayPtr=data_wtracers_2d, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_FieldGet(field_bulk, farrayPtr=data_bulk_1d, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+          do n = 1, fld%num_wtracers
+             data_wtracers_2d(n,:) = data_bulk_1d(:) * shr_wtracers_get_initial_ratio(n)
+          end do
+       end if
     else
-       ! No additional ungridded dimension
-       call ESMF_FieldGet(field_wtracers, farrayPtr=data_wtracers_2d, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_FieldGet(field_bulk, farrayPtr=data_bulk_1d, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       ! Corresponding bulk item not found. This is the case for a small number of fields
+       ! where we have a water tracer field but no corresponding bulk field. In this
+       ! situation, set the tracer field to the initial ratio everywhere. (It would be
+       ! ideal to give it some spatial pattern, but for now we just use a constant field
+       ! for simplicity.)
 
-       do n = 1, fld%num_wtracers
-          data_wtracers_2d(n,:) = data_bulk_1d(:) * shr_wtracers_get_initial_ratio(n)
-       end do
+       if (fld%ungridded_lbound > 0 .and. fld%ungridded_ubound > 0) then
+          ! There is an additional ungridded dimension in addition to the water tracer
+          ! dimension.
+          call ESMF_FieldGet(field_wtracers, farrayPtr=data_wtracers_3d, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+          do n = 1, fld%num_wtracers
+             data_wtracers_3d(n,:,:) = shr_wtracers_get_initial_ratio(n)
+          end do
+       else
+          ! No additional ungridded dimension
+          call ESMF_FieldGet(field_wtracers, farrayPtr=data_wtracers_2d, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+          do n = 1, fld%num_wtracers
+             data_wtracers_2d(n,:) = shr_wtracers_get_initial_ratio(n)
+          end do
+       end if
     end if
-
   end subroutine set_wtracer_field
 
   !===============================================================================
