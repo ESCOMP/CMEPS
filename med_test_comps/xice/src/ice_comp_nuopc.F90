@@ -273,6 +273,12 @@ contains
        call fld_list_add(fldsToIce_num, fldsToIce, 'Faxa_lwdn'     )
        call fld_list_add(fldsToIce_num, fldsToIce, 'Faxa_rain'     )
        call fld_list_add(fldsToIce_num, fldsToIce, 'Faxa_snow'     )
+       if (flds_wtracers) then
+          call fld_list_add(fldsToIce_num, fldsToIce, 'Faxa_rain'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+          call fld_list_add(fldsToIce_num, fldsToIce, 'Faxa_snow'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+       end if
        call fld_list_add(fldsToIce_num, fldsToIce, 'Faxa_bcph'  , ungridded_lbound=1, ungridded_ubound=3)
        call fld_list_add(fldsToIce_num, fldsToIce, 'Faxa_ocph'  , ungridded_lbound=1, ungridded_ubound=3)
        call fld_list_add(fldsToIce_num, fldsToIce, 'Faxa_dstwet', ungridded_lbound=1, ungridded_ubound=4)

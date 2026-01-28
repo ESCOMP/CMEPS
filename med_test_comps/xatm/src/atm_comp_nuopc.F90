@@ -228,6 +228,16 @@ contains
        call fld_list_add(fldsFrAtm_num, fldsFrAtm, 'Faxa_rainl'    )
        call fld_list_add(fldsFrAtm_num, fldsFrAtm, 'Faxa_snowc'    )
        call fld_list_add(fldsFrAtm_num, fldsFrAtm, 'Faxa_snowl'    )
+       if (flds_wtracers) then
+          call fld_list_add(fldsFrAtm_num, fldsFrAtm, 'Faxa_rainc'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+          call fld_list_add(fldsFrAtm_num, fldsFrAtm, 'Faxa_rainl'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+          call fld_list_add(fldsFrAtm_num, fldsFrAtm, 'Faxa_snowc'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+          call fld_list_add(fldsFrAtm_num, fldsFrAtm, 'Faxa_snowl'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+       end if
        call fld_list_add(fldsFrAtm_num, fldsFrAtm, 'Faxa_lwdn'     )
        call fld_list_add(fldsFrAtm_num, fldsFrAtm, 'Faxa_swndr'    )
        call fld_list_add(fldsFrAtm_num, fldsFrAtm, 'Faxa_swvdr'    )

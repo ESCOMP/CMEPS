@@ -218,6 +218,12 @@ contains
        call fld_list_add(fldsToOcn_num, fldsToOcn, trim(flds_scalar_name))
        call fld_list_add(fldsToOcn_num, fldsToOcn, "Faxa_rain"     )
        call fld_list_add(fldsToOcn_num, fldsToOcn, "Faxa_snow"     )
+       if (flds_wtracers) then
+          call fld_list_add(fldsToOcn_num, fldsToOcn, "Faxa_rain"//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+          call fld_list_add(fldsToOcn_num, fldsToOcn, "Faxa_snow"//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+       end if
        call fld_list_add(fldsToOcn_num, fldsToOcn, "Faxa_lwdn"     )
        call fld_list_add(fldsToOcn_num, fldsToOcn, "Faxa_swndr"    )
        call fld_list_add(fldsToOcn_num, fldsToOcn, "Faxa_swvdr"    )
