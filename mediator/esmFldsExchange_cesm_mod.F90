@@ -2105,17 +2105,22 @@ contains
     ! ---------------------------------------------------------------------
     ! to ocn: water flux due to melting ice from ice
     ! ---------------------------------------------------------------------
-    if (phase == 'advertise') then
-       call addfld_from(compice , 'Fioi_meltw')
-       call addfld_to(compocn , 'Fioi_meltw')
-    else
-       if ( fldchk(is_local%wrap%FBexp(compocn)         , 'Fioi_meltw', rc=rc) .and. &
-            fldchk(is_local%wrap%FBImp(compice, compice), 'Fioi_meltw', rc=rc)) then
-          call addmap_from(compice, 'Fioi_meltw',    compocn,  mapfcopy, 'unset', 'unset')
-          call addmrg_to(compocn, 'Fioi_meltw', &
-               mrg_from=compice, mrg_fld='Fioi_meltw', mrg_type='copy_with_weights', mrg_fracname='ifrac')
+    do water_bulk_or_tracers_index = 1, water_bulk_or_tracers_max
+       call set_suffix_for_water_bulk_or_tracers(water_bulk_or_tracers_index, suffix, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       if (phase == 'advertise') then
+          call addfld_from(compice , 'Fioi_meltw'//trim(suffix))
+          call addfld_to(compocn , 'Fioi_meltw'//trim(suffix))
+       else
+          if ( fldchk(is_local%wrap%FBexp(compocn)         , 'Fioi_meltw'//trim(suffix), rc=rc) .and. &
+               fldchk(is_local%wrap%FBImp(compice, compice), 'Fioi_meltw'//trim(suffix), rc=rc)) then
+             call addmap_from(compice, 'Fioi_meltw'//trim(suffix),    compocn,  mapfcopy, 'unset', 'unset')
+             call addmrg_to(compocn, 'Fioi_meltw'//trim(suffix), &
+                  mrg_from=compice, mrg_fld='Fioi_meltw'//trim(suffix), mrg_type='copy_with_weights', mrg_fracname='ifrac')
+          end if
        end if
-    end if
+    end do
     ! ---------------------------------------------------------------------
     ! to ocn: heat flux from melting ice from ice
     ! ---------------------------------------------------------------------
