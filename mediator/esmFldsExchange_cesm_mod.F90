@@ -106,8 +106,8 @@ module esmFldsExchange_cesm_mod
   logical             :: add_gusts                      ! Whether to include fields related to the gustiness parameterization
 
   ! Possible values for water_bulk_or_tracers index
-  integer, parameter :: water_bulk    = 1
-  integer, parameter :: water_tracers = 2
+  integer, parameter :: water_bulk_index    = 1
+  integer, parameter :: water_tracers_index = 2
 
   character(*), parameter :: u_FILE_u = &
        __FILE__
@@ -147,8 +147,8 @@ contains
     ! local variables:
     type(InternalState) :: is_local
     integer             :: n, ns
-    integer             :: water_bulk_or_tracers     ! 1 = bulk, 2 = tracers
-    character(len=len(WTRACERS_SUFFIX)) :: suffix    ! WTRACERS_SUFFIX for tracers, blank for bulk
+    integer             :: water_bulk_or_tracers_index  ! 1 = bulk, 2 = tracers
+    character(len=len(WTRACERS_SUFFIX)) :: suffix       ! WTRACERS_SUFFIX for tracers, blank for bulk
     character(len=CL)   :: atm_mesh_name
     character(len=CL)   :: lnd_mesh_name
     character(len=CL)   :: ice_mesh_name
@@ -251,9 +251,9 @@ contains
 
        flds_wtracers = shr_wtracers_present()
        if (flds_wtracers) then
-          water_bulk_or_tracers_max = water_tracers
+          water_bulk_or_tracers_max = water_tracers_index
        else
-          water_bulk_or_tracers_max = water_bulk
+          water_bulk_or_tracers_max = water_bulk_index
        end if
 
        call NUOPC_CompAttributeGet(gcomp, name='flds_r2l_stream_channel_depths', value=cvalue, rc=rc)
@@ -345,8 +345,8 @@ contains
           call addmap_from(compatm, 'Sa_pslv', compocn, mapbilnr, 'one', atm2ocn_map)
        end if
     end if
-    do water_bulk_or_tracers = 1, water_bulk_or_tracers_max
-       call set_suffix_for_water_bulk_or_tracers(water_bulk_or_tracers, suffix, rc)
+    do water_bulk_or_tracers_index = 1, water_bulk_or_tracers_max
+       call set_suffix_for_water_bulk_or_tracers(water_bulk_or_tracers_index, suffix, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        if (phase == 'advertise') then
@@ -497,8 +497,8 @@ contains
     ! ---------------------------------------------------------------------
     ! to lnd: specific humidity at the lowest model level from atm
     ! ---------------------------------------------------------------------
-    do water_bulk_or_tracers = 1, water_bulk_or_tracers_max
-       call set_suffix_for_water_bulk_or_tracers(water_bulk_or_tracers, suffix, rc)
+    do water_bulk_or_tracers_index = 1, water_bulk_or_tracers_max
+       call set_suffix_for_water_bulk_or_tracers(water_bulk_or_tracers_index, suffix, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        if (phase == 'advertise') then
@@ -1003,8 +1003,8 @@ contains
        end if
     end if
 
-    do water_bulk_or_tracers = 1, water_bulk_or_tracers_max
-       call set_suffix_for_water_bulk_or_tracers(water_bulk_or_tracers, suffix, rc)
+    do water_bulk_or_tracers_index = 1, water_bulk_or_tracers_max
+       call set_suffix_for_water_bulk_or_tracers(water_bulk_or_tracers_index, suffix, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        if (phase == 'advertise') then
@@ -1154,8 +1154,8 @@ contains
        end if
     end if
 
-    do water_bulk_or_tracers = 1, water_bulk_or_tracers_max
-       call set_suffix_for_water_bulk_or_tracers(water_bulk_or_tracers, suffix, rc)
+    do water_bulk_or_tracers_index = 1, water_bulk_or_tracers_max
+       call set_suffix_for_water_bulk_or_tracers(water_bulk_or_tracers_index, suffix, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        if (phase == 'advertise') then
@@ -1888,8 +1888,8 @@ contains
                mrg_from=compmed, mrg_fld='Faox_lat', mrg_type='merge', mrg_fracname='ofrac')
        end if
     end if
-    do water_bulk_or_tracers = 1, water_bulk_or_tracers_max
-       call set_suffix_for_water_bulk_or_tracers(water_bulk_or_tracers, suffix, rc)
+    do water_bulk_or_tracers_index = 1, water_bulk_or_tracers_max
+       call set_suffix_for_water_bulk_or_tracers(water_bulk_or_tracers_index, suffix, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        if (phase == 'advertise') then
@@ -2908,8 +2908,8 @@ contains
     ! ---------------------------------------------------------------------
     ! to ice: specific humidity at the lowest model level from atm
     ! ---------------------------------------------------------------------
-    do water_bulk_or_tracers = 1, water_bulk_or_tracers_max
-       call set_suffix_for_water_bulk_or_tracers(water_bulk_or_tracers, suffix, rc)
+    do water_bulk_or_tracers_index = 1, water_bulk_or_tracers_max
+       call set_suffix_for_water_bulk_or_tracers(water_bulk_or_tracers_index, suffix, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        if (phase == 'advertise') then
@@ -3372,16 +3372,16 @@ contains
   end subroutine esmFldsExchange_cesm
 
   !-----------------------------------------------------------------------------
-  subroutine set_suffix_for_water_bulk_or_tracers(water_bulk_or_tracers, suffix, rc)
+  subroutine set_suffix_for_water_bulk_or_tracers(water_bulk_or_tracers_index, suffix, rc)
 
-     ! Set suffix for water fields based on whether water_bulk_or_tracers is the index for
-     ! bulk (1) or tracers (2). For tracers, the suffix will be WTRACERS_SUFFIX; for bulk,
-     ! the suffix will be blank.
+     ! Set suffix for water fields based on whether water_bulk_or_tracers_index is the
+     ! index for bulk (1) or tracers (2). For tracers, the suffix will be WTRACERS_SUFFIX;
+     ! for bulk, the suffix will be blank.
 
      use ESMF, only : ESMF_SUCCESS
 
      ! input/output arguments
-     integer, intent(in) :: water_bulk_or_tracers  ! 1 = bulk, 2 = tracers
+     integer, intent(in) :: water_bulk_or_tracers_index  ! 1 = bulk, 2 = tracers
      character(len=*), intent(out) :: suffix
      integer, intent(out) :: rc
 
@@ -3390,13 +3390,13 @@ contains
 
      rc = ESMF_SUCCESS
 
-     select case (water_bulk_or_tracers)
-     case (water_bulk)
+     select case (water_bulk_or_tracers_index)
+     case (water_bulk_index)
         suffix = " "
-     case (water_tracers)
+     case (water_tracers_index)
         suffix = WTRACERS_SUFFIX
      case default
-        call shr_log_error(subname//" ERROR: unexpected value for water_bulk_or_tracers", rc=rc)
+        call shr_log_error(subname//" ERROR: unexpected value for water_bulk_or_tracers_index", rc=rc)
      end select
   end subroutine set_suffix_for_water_bulk_or_tracers
 
