@@ -3348,17 +3348,23 @@ contains
     ! ---------------------------------------------------------------------
     ! to rof: irrigation flux from land (withdrawal from rivers)
     ! ---------------------------------------------------------------------
-    if (phase == 'advertise') then
-       call addfld_from(complnd, 'Flrl_irrig')
-       call addfld_to(comprof, 'Flrl_irrig')
-    else
-       if ( fldchk(is_local%wrap%FBImp(complnd, complnd), 'Flrl_irrig', rc=rc) .and. &
-            fldchk(is_local%wrap%FBExp(comprof)         , 'Flrl_irrig', rc=rc)) then
-          call addmap_from(complnd, 'Flrl_irrig', comprof, mapconsf, map_fracname_lnd2rof, 'unset')
-          call addmrg_to(comprof, 'Flrl_irrig', &
-               mrg_from=complnd, mrg_fld='Flrl_irrig', mrg_type='copy_with_weights', mrg_fracname=mrg_fracname_lnd2rof)
+    do water_bulk_or_tracers_index = 1, water_bulk_or_tracers_max
+       call set_suffix_for_water_bulk_or_tracers(water_bulk_or_tracers_index, suffix, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       if (phase == 'advertise') then
+          call addfld_from(complnd, 'Flrl_irrig'//trim(suffix))
+          call addfld_to(comprof, 'Flrl_irrig'//trim(suffix))
+       else
+          if ( fldchk(is_local%wrap%FBImp(complnd, complnd), 'Flrl_irrig'//trim(suffix), rc=rc) .and. &
+               fldchk(is_local%wrap%FBExp(comprof)         , 'Flrl_irrig'//trim(suffix), rc=rc)) then
+             call addmap_from(complnd, 'Flrl_irrig'//trim(suffix), comprof, mapconsf, map_fracname_lnd2rof, 'unset')
+             call addmrg_to(comprof, 'Flrl_irrig'//trim(suffix), &
+                  mrg_from=complnd, mrg_fld='Flrl_irrig'//trim(suffix), &
+                  mrg_type='copy_with_weights', mrg_fracname=mrg_fracname_lnd2rof)
+          end if
        end if
-    end if
+    end do
 
     !=====================================================================
     ! FIELDS TO LAND-ICE (compglc)
