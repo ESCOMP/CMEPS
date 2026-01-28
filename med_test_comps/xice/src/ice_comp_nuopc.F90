@@ -240,6 +240,10 @@ contains
        call fld_list_add(fldsFrIce_num, fldsFrIce, 'Fioi_melth'    )
        call fld_list_add(fldsFrIce_num, fldsFrIce, 'Fioi_swpen'    )
        call fld_list_add(fldsFrIce_num, fldsFrIce, 'Fioi_meltw'    )
+       if (flds_wtracers) then
+          call fld_list_add(fldsFrIce_num, fldsFrIce, 'Fioi_meltw'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+       end if
        call fld_list_add(fldsFrIce_num, fldsFrIce, 'Fioi_salt'     )
        call fld_list_add(fldsFrIce_num, fldsFrIce, 'Fioi_taux'     )
        call fld_list_add(fldsFrIce_num, fldsFrIce, 'Fioi_tauy'     )
