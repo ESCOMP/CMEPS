@@ -6,9 +6,9 @@ module med_field_info_mod
   !-----------------------------------------------------------------------------
 
   use ESMF            , only : ESMF_MAXSTR, ESMF_SUCCESS, ESMF_TYPEKIND_R8
-  use ESMF            , only : ESMF_Field, ESMF_State, ESMF_AttributeGet, ESMF_StateGet
+  use ESMF            , only : ESMF_Field, ESMF_State, ESMF_StateGet
   use ESMF            , only : ESMF_Mesh, ESMF_MeshLoc
-  use ESMF            , only : ESMF_FieldCreate
+  use ESMF            , only : ESMF_FieldCreate, ESMF_FieldGet
   use med_utils_mod   , only : ChkErr => med_utils_ChkErr
   use shr_log_mod     , only : shr_log_error
   use wtracers_mod    , only : wtracers_is_wtracer_field
@@ -125,7 +125,6 @@ contains
     type(med_field_info_type) :: field_info  ! function result
 
     ! local variables
-    logical :: is_present
     integer :: n_ungridded
     integer, allocatable :: ungridded_lbound(:)
     integer, allocatable :: ungridded_ubound(:)
@@ -135,12 +134,8 @@ contains
 
     rc = ESMF_SUCCESS
 
-    call ESMF_AttributeGet(field, name="UngriddedUBound", convention="NUOPC", &
-         purpose="Instance", itemCount=n_ungridded,  isPresent=is_present, rc=rc)
+    call ESMF_FieldGet(field, ungriddedDimCount=n_ungridded, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (.not. is_present) then
-       n_ungridded = 0
-    end if
 
     if (n_ungridded == 0) then
        field_info = med_field_info_create_directly( &
@@ -150,11 +145,8 @@ contains
     else
        allocate(ungridded_lbound(n_ungridded))
        allocate(ungridded_ubound(n_ungridded))
-       call ESMF_AttributeGet(field, name="UngriddedLBound", convention="NUOPC", &
-            purpose="Instance", valueList=ungridded_lbound, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_AttributeGet(field, name="UngriddedUBound", convention="NUOPC", &
-            purpose="Instance", valueList=ungridded_ubound, rc=rc)
+       call ESMF_FieldGet(field, &
+            ungriddedLBound=ungridded_lbound, ungriddedUBound=ungridded_ubound, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        field_info = med_field_info_create_directly( &
             name=name, &
