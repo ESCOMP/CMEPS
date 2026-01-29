@@ -5,8 +5,10 @@ module med_field_info_mod
   ! used to create an ESMF FieldBundle.
   !-----------------------------------------------------------------------------
 
-  use ESMF            , only : ESMF_MAXSTR, ESMF_SUCCESS
+  use ESMF            , only : ESMF_MAXSTR, ESMF_SUCCESS, ESMF_TYPEKIND_R8
   use ESMF            , only : ESMF_Field, ESMF_State, ESMF_AttributeGet, ESMF_StateGet
+  use ESMF            , only : ESMF_Mesh, ESMF_MeshLoc
+  use ESMF            , only : ESMF_FieldCreate
   use med_utils_mod   , only : ChkErr => med_utils_ChkErr
   use shr_log_mod     , only : shr_log_error
   use wtracers_mod    , only : wtracers_is_wtracer_field
@@ -18,8 +20,11 @@ module med_field_info_mod
   ! Public methods
   !-----------------------------------------------
 
-  ! Create a single field
-  public :: med_field_info_create
+  ! Create a single field_info object from direct specification of values
+  public :: med_field_info_create_directly
+
+  ! Create a single field_info object from information in an ESMF_Field
+  public :: med_field_info_create_from_field
 
   ! Create an array of field_info objects based on an array of names, where water tracers
   ! are treated specially (being given an ungridded dimension)
@@ -27,6 +32,9 @@ module med_field_info_mod
 
   ! Create an array of field_info objects based on the fields in an ESMF State
   public :: med_field_info_array_from_state
+
+  ! Create an ESMF Field (using ESMF_FieldCreate) based on a field_info object
+  public :: med_field_info_esmf_fieldcreate
 
   !-----------------------------------------------
   ! Types
@@ -48,8 +56,8 @@ module med_field_info_mod
 contains
 !================================================================================
 
-  function med_field_info_create(name, ungridded_lbound, ungridded_ubound, rc) result(field_info)
-    ! Create a single field
+  function med_field_info_create_directly(name, ungridded_lbound, ungridded_ubound, rc) result(field_info)
+    ! Create a single field_info object from direct specification of values
 
     ! input/output variables
     character(len=*), intent(in) :: name
@@ -64,7 +72,7 @@ contains
 
     ! local variables
     integer :: n_ungridded
-    character(len=*), parameter :: subname = '(med_field_info_create)'
+    character(len=*), parameter :: subname = '(med_field_info_create_directly)'
     ! ----------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -95,7 +103,69 @@ contains
        field_info%n_ungridded = 0
     end if
 
-  end function med_field_info_create
+  end function med_field_info_create_directly
+
+  !-----------------------------------------------------------------------------
+
+  function med_field_info_create_from_field(field, name, rc) result(field_info)
+    ! Create a single field_info object from information in an ESMF_Field
+
+    ! input/output variables
+    ! We get information other than the name from this ESMF_Field object
+    type(ESMF_Field), intent(in) :: field
+
+    ! We should be able to get the name from the field, but in all current uses of this
+    ! function, we already have the name available, so it's easy enough to just pass it in
+    ! rather than making this function query it again. If future users did not already
+    ! have the name readily available, we could either change this to optional or remove
+    ! it entirely and just always get the name from querying the field.
+    character(len=*), intent(in) :: name
+
+    integer, intent(out) :: rc
+    type(med_field_info_type) :: field_info  ! function result
+
+    ! local variables
+    logical :: is_present
+    integer :: n_ungridded
+    integer, allocatable :: ungridded_lbound(:)
+    integer, allocatable :: ungridded_ubound(:)
+
+    character(len=*), parameter :: subname = '(med_field_info_create_from_field)'
+    ! ----------------------------------------------
+
+    rc = ESMF_SUCCESS
+
+    call ESMF_AttributeGet(field, name="UngriddedUBound", convention="NUOPC", &
+         purpose="Instance", itemCount=n_ungridded,  isPresent=is_present, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    if (.not. is_present) then
+       n_ungridded = 0
+    end if
+
+    if (n_ungridded == 0) then
+       field_info = med_field_info_create_directly( &
+            name=name, &
+            rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+    else
+       allocate(ungridded_lbound(n_ungridded))
+       allocate(ungridded_ubound(n_ungridded))
+       call ESMF_AttributeGet(field, name="UngriddedLBound", convention="NUOPC", &
+            purpose="Instance", valueList=ungridded_lbound, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_AttributeGet(field, name="UngriddedUBound", convention="NUOPC", &
+            purpose="Instance", valueList=ungridded_ubound, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       field_info = med_field_info_create_directly( &
+            name=name, &
+            ungridded_lbound=ungridded_lbound, &
+            ungridded_ubound=ungridded_ubound, &
+            rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       deallocate(ungridded_lbound)
+       deallocate(ungridded_ubound)
+    end if
+  end function med_field_info_create_from_field
 
   !-----------------------------------------------------------------------------
 
@@ -134,7 +204,7 @@ contains
        is_tracer = wtracers_is_wtracer_field(field_names(i))
        if (is_tracer) then
           ! Field is a water tracer; assume a single ungridded dimension
-          field_info_array(i) = med_field_info_create( &
+          field_info_array(i) = med_field_info_create_directly( &
                name=field_names(i), &
                ungridded_lbound=[1], &
                ungridded_ubound=[n_tracers], &
@@ -142,7 +212,7 @@ contains
           if (chkerr(rc,__LINE__,u_FILE_u)) return
        else
           ! Not a water tracer; assume no ungridded dimensions
-          field_info_array(i) = med_field_info_create( &
+          field_info_array(i) = med_field_info_create_directly( &
                name=field_names(i), &
                rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -168,10 +238,6 @@ contains
     integer :: i, n_fields
     character(ESMF_MAXSTR), allocatable :: field_names(:)
     type(ESMF_Field) :: field
-    logical :: is_present
-    integer :: n_ungridded
-    integer, allocatable :: ungridded_lbound(:)
-    integer, allocatable :: ungridded_ubound(:)
     character(len=*), parameter :: subname = '(med_field_info_array_from_state)'
     ! ----------------------------------------------
 
@@ -188,38 +254,48 @@ contains
        call ESMF_StateGet(state, itemName=trim(field_names(i)), field=field, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-       call ESMF_AttributeGet(field, name="UngriddedUBound", convention="NUOPC", &
-            purpose="Instance", itemCount=n_ungridded,  isPresent=is_present, rc=rc)
+       field_info_array(i) = med_field_info_create_from_field( &
+            field=field, &
+            name=field_names(i), &
+            rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (.not. is_present) then
-          n_ungridded = 0
-       end if
-
-       if (n_ungridded == 0) then
-          field_info_array(i) = med_field_info_create( &
-               name=field_names(i), &
-               rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-       else
-          allocate(ungridded_lbound(n_ungridded))
-          allocate(ungridded_ubound(n_ungridded))
-          call ESMF_AttributeGet(field, name="UngriddedLBound", convention="NUOPC", &
-               purpose="Instance", valueList=ungridded_lbound, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call ESMF_AttributeGet(field, name="UngriddedUBound", convention="NUOPC", &
-               purpose="Instance", valueList=ungridded_ubound, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          field_info_array(i) = med_field_info_create( &
-               name=field_names(i), &
-               ungridded_lbound=ungridded_lbound, &
-               ungridded_ubound=ungridded_ubound, &
-               rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          deallocate(ungridded_lbound)
-          deallocate(ungridded_ubound)
-       end if
     end do
 
   end subroutine med_field_info_array_from_state
+
+  !-----------------------------------------------------------------------------
+
+  subroutine med_field_info_esmf_fieldcreate(field_info, mesh, meshloc, field, rc)
+    ! Create an ESMF Field (using ESMF_FieldCreate) based on a field_info object
+
+    ! input/output variables
+    type(med_field_info_type), intent(in) :: field_info
+    type(ESMF_Mesh), intent(in) :: mesh
+    type(ESMF_MeshLoc), intent(in) :: meshloc
+    type(ESMF_Field), intent(out) :: field
+    integer, intent(out) :: rc
+
+    ! local variables
+    character(len=*), parameter :: subname = '(med_field_info_esmf_fieldcreate)'
+    ! ----------------------------------------------
+
+    rc = ESMF_SUCCESS
+
+    if (field_info%n_ungridded > 0) then
+       field = ESMF_FieldCreate(mesh, ESMF_TYPEKIND_R8, meshloc=meshloc, &
+            name=field_info%name, &
+            ungriddedLbound=field_info%ungridded_lbound, &
+            ungriddedUbound=field_info%ungridded_ubound, &
+            gridToFieldMap=[field_info%n_ungridded+1], &
+            rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+    else
+       field = ESMF_FieldCreate(mesh, ESMF_TYPEKIND_R8, meshloc=meshloc, &
+            name=field_info%name, &
+            rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+    end if
+
+  end subroutine med_field_info_esmf_fieldcreate
 
 end module med_field_info_mod
