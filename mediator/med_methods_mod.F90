@@ -708,7 +708,8 @@ contains
   subroutine med_methods_FB_average(FB, count, rc)
 
     ! ----------------------------------------------
-    ! Set all fields to zero in FB
+    ! Divide all fields in FB by count
+    ! If count is 0, nothing is done
     ! ----------------------------------------------
 
     use ESMF, only : ESMF_FieldBundle, ESMF_FieldBundleGet, ESMF_Field
@@ -1228,7 +1229,9 @@ contains
 
     ! ----------------------------------------------
     ! Accumulate common field names from FBin to FBout
-    ! If copy is passed in and true, the this is a copy
+    !
+    ! If copy is passed in and true, then data is copied from FBin to FBout, overwriting
+    ! values in FBout, rather than accumulating
     ! ----------------------------------------------
 
     use ESMF , only : ESMF_FieldBundle, ESMF_FieldBundleGet, ESMF_Field
