@@ -15,7 +15,7 @@ module med_methods_mod
   use med_constants_mod  , only : czero => med_constants_czero
   use med_constants_mod  , only : spval_init => med_constants_spval_init
   use med_utils_mod      , only : ChkErr => med_utils_ChkErr
-  use med_field_info_mod , only : med_field_info_type
+  use med_field_info_mod , only : med_field_info_type, med_field_info_esmf_fieldcreate
   use shr_log_mod        , only : shr_log_error
   implicit none
   private
@@ -237,7 +237,7 @@ contains
     use ESMF , only : ESMF_Field, ESMF_FieldBundle, ESMF_FieldBundleCreate, ESMF_FieldBundleGet
     use ESMF , only : ESMF_State, ESMF_Mesh, ESMF_StaggerLoc, ESMF_MeshLoc
     use ESMF , only : ESMF_StateGet, ESMF_FieldGet, ESMF_FieldBundleAdd, ESMF_FieldCreate
-    use ESMF , only : ESMF_TYPEKIND_R8, ESMF_FIELDSTATUS_EMPTY, ESMF_AttributeGet
+    use ESMF , only : ESMF_FIELDSTATUS_EMPTY, ESMF_AttributeGet
 
     ! input/output variables
     type(ESMF_FieldBundle), intent(inout)        :: FBout            ! output field bundle
@@ -366,20 +366,8 @@ contains
           end if
 
           ! Create the field
-          if (field_info_array(n)%n_ungridded > 0) then
-             field = ESMF_FieldCreate(lmesh, ESMF_TYPEKIND_R8, meshloc=meshloc, &
-                  name=field_info_array(n)%name, &
-                  ungriddedLbound=field_info_array(n)%ungridded_lbound, &
-                  ungriddedUbound=field_info_array(n)%ungridded_ubound, &
-                  gridToFieldMap=[field_info_array(n)%n_ungridded+1], &
-                  rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-          else
-             field = ESMF_FieldCreate(lmesh, ESMF_TYPEKIND_R8, meshloc=meshloc, &
-                  name=field_info_array(n)%name, &
-                  rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-          end if
+          call med_field_info_esmf_fieldcreate(field_info_array(n), lmesh, meshloc, field, rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
 
           ! Add the created field to field bundle FBout
           if (dbug_flag > 1) then
@@ -720,7 +708,8 @@ contains
   subroutine med_methods_FB_average(FB, count, rc)
 
     ! ----------------------------------------------
-    ! Set all fields to zero in FB
+    ! Divide all fields in FB by count
+    ! If count is 0, nothing is done
     ! ----------------------------------------------
 
     use ESMF, only : ESMF_FieldBundle, ESMF_FieldBundleGet, ESMF_Field
@@ -1240,7 +1229,9 @@ contains
 
     ! ----------------------------------------------
     ! Accumulate common field names from FBin to FBout
-    ! If copy is passed in and true, the this is a copy
+    !
+    ! If copy is passed in and true, then data is copied from FBin to FBout, overwriting
+    ! values in FBout, rather than accumulating
     ! ----------------------------------------------
 
     use ESMF , only : ESMF_FieldBundle, ESMF_FieldBundleGet, ESMF_Field
