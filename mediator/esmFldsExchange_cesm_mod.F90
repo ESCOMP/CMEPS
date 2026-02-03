@@ -3288,62 +3288,86 @@ contains
     ! ---------------------------------------------------------------------
     ! to rof: water flux from land (liquid surface)
     ! ---------------------------------------------------------------------
-    if (phase == 'advertise') then
-       call addfld_from(complnd, 'Flrl_rofsur')
-       call addfld_to(comprof, 'Flrl_rofsur')
-    else
-       if ( fldchk(is_local%wrap%FBImp(complnd, complnd), 'Flrl_rofsur', rc=rc) .and. &
-            fldchk(is_local%wrap%FBExp(comprof)         , 'Flrl_rofsur', rc=rc)) then
-          call addmap_from(complnd, 'Flrl_rofsur', comprof, mapconsf, map_fracname_lnd2rof, 'unset')
-          call addmrg_to(comprof, 'Flrl_rofsur', &
-               mrg_from=complnd, mrg_fld='Flrl_rofsur', mrg_type='copy_with_weights', mrg_fracname=mrg_fracname_lnd2rof)
+    do water_bulk_or_tracers_index = 1, water_bulk_or_tracers_max
+       call set_suffix_for_water_bulk_or_tracers(water_bulk_or_tracers_index, suffix, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       if (phase == 'advertise') then
+          call addfld_from(complnd, 'Flrl_rofsur'//trim(suffix))
+          call addfld_to(comprof, 'Flrl_rofsur'//trim(suffix))
+       else
+          if ( fldchk(is_local%wrap%FBImp(complnd, complnd), 'Flrl_rofsur'//trim(suffix), rc=rc) .and. &
+               fldchk(is_local%wrap%FBExp(comprof)         , 'Flrl_rofsur'//trim(suffix), rc=rc)) then
+             call addmap_from(complnd, 'Flrl_rofsur'//trim(suffix), comprof, mapconsf, map_fracname_lnd2rof, 'unset')
+             call addmrg_to(comprof, 'Flrl_rofsur'//trim(suffix), &
+                  mrg_from=complnd, mrg_fld='Flrl_rofsur'//trim(suffix), &
+                  mrg_type='copy_with_weights', mrg_fracname=mrg_fracname_lnd2rof)
+          end if
        end if
-    end if
+    end do
 
     ! ---------------------------------------------------------------------
     ! to rof: water flux from land (ice surface)
     ! ---------------------------------------------------------------------
-    if (phase == 'advertise') then
-       call addfld_from(complnd, 'Flrl_rofi')
-       call addfld_to(comprof, 'Flrl_rofi')
-    else
-       if ( fldchk(is_local%wrap%FBImp(complnd, complnd), 'Flrl_rofi', rc=rc) .and. &
-            fldchk(is_local%wrap%FBExp(comprof)         , 'Flrl_rofi', rc=rc)) then
-          call addmap_from(complnd, 'Flrl_rofi', comprof, mapconsf, map_fracname_lnd2rof, 'unset')
-          call addmrg_to(comprof, 'Flrl_rofi', &
-               mrg_from=complnd, mrg_fld='Flrl_rofi', mrg_type='copy_with_weights', mrg_fracname=mrg_fracname_lnd2rof)
+    do water_bulk_or_tracers_index = 1, water_bulk_or_tracers_max
+       call set_suffix_for_water_bulk_or_tracers(water_bulk_or_tracers_index, suffix, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       if (phase == 'advertise') then
+          call addfld_from(complnd, 'Flrl_rofi'//trim(suffix))
+          call addfld_to(comprof, 'Flrl_rofi'//trim(suffix))
+       else
+          if ( fldchk(is_local%wrap%FBImp(complnd, complnd), 'Flrl_rofi'//trim(suffix), rc=rc) .and. &
+               fldchk(is_local%wrap%FBExp(comprof)         , 'Flrl_rofi'//trim(suffix), rc=rc)) then
+             call addmap_from(complnd, 'Flrl_rofi'//trim(suffix), comprof, mapconsf, map_fracname_lnd2rof, 'unset')
+             call addmrg_to(comprof, 'Flrl_rofi'//trim(suffix), &
+                  mrg_from=complnd, mrg_fld='Flrl_rofi'//trim(suffix), &
+                  mrg_type='copy_with_weights', mrg_fracname=mrg_fracname_lnd2rof)
+          end if
        end if
-    end if
+    end do
 
     ! ---------------------------------------------------------------------
     ! to rof: water flux from land (liquid glacier, wetland, and lake)
     ! ---------------------------------------------------------------------
-    if (phase == 'advertise') then
-       call addfld_from(complnd, 'Flrl_rofgwl')
-       call addfld_to(comprof, 'Flrl_rofgwl')
-    else
-       if ( fldchk(is_local%wrap%FBImp(complnd, complnd), 'Flrl_rofgwl', rc=rc) .and. &
-            fldchk(is_local%wrap%FBExp(comprof)         , 'Flrl_rofgwl', rc=rc)) then
-          call addmap_from(complnd, 'Flrl_rofgwl', comprof, mapconsf, map_fracname_lnd2rof, 'unset')
-          call addmrg_to(comprof, 'Flrl_rofgwl', &
-               mrg_from=complnd, mrg_fld='Flrl_rofgwl', mrg_type='copy_with_weights', mrg_fracname=mrg_fracname_lnd2rof)
+    do water_bulk_or_tracers_index = 1, water_bulk_or_tracers_max
+       call set_suffix_for_water_bulk_or_tracers(water_bulk_or_tracers_index, suffix, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       if (phase == 'advertise') then
+          call addfld_from(complnd, 'Flrl_rofgwl'//trim(suffix))
+          call addfld_to(comprof, 'Flrl_rofgwl'//trim(suffix))
+       else
+          if ( fldchk(is_local%wrap%FBImp(complnd, complnd), 'Flrl_rofgwl'//trim(suffix), rc=rc) .and. &
+               fldchk(is_local%wrap%FBExp(comprof)         , 'Flrl_rofgwl'//trim(suffix), rc=rc)) then
+             call addmap_from(complnd, 'Flrl_rofgwl'//trim(suffix), comprof, mapconsf, map_fracname_lnd2rof, 'unset')
+             call addmrg_to(comprof, 'Flrl_rofgwl'//trim(suffix), &
+                  mrg_from=complnd, mrg_fld='Flrl_rofgwl'//trim(suffix), &
+                  mrg_type='copy_with_weights', mrg_fracname=mrg_fracname_lnd2rof)
+          end if
        end if
-    end if
+    end do
 
     ! ---------------------------------------------------------------------
     ! to rof: water flux from land (liquid subsurface)
     ! ---------------------------------------------------------------------
-    if (phase == 'advertise') then
-       call addfld_from(complnd, 'Flrl_rofsub')
-       call addfld_to(comprof, 'Flrl_rofsub')
-    else
-       if ( fldchk(is_local%wrap%FBImp(complnd, complnd), 'Flrl_rofsub', rc=rc) .and. &
-            fldchk(is_local%wrap%FBExp(comprof)         , 'Flrl_rofsub', rc=rc)) then
-          call addmap_from(complnd, 'Flrl_rofsub', comprof, mapconsf, map_fracname_lnd2rof, 'unset')
-          call addmrg_to(comprof, 'Flrl_rofsub', &
-               mrg_from=complnd, mrg_fld='Flrl_rofsub', mrg_type='copy_with_weights', mrg_fracname=mrg_fracname_lnd2rof)
+    do water_bulk_or_tracers_index = 1, water_bulk_or_tracers_max
+       call set_suffix_for_water_bulk_or_tracers(water_bulk_or_tracers_index, suffix, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       if (phase == 'advertise') then
+          call addfld_from(complnd, 'Flrl_rofsub'//trim(suffix))
+          call addfld_to(comprof, 'Flrl_rofsub'//trim(suffix))
+       else
+          if ( fldchk(is_local%wrap%FBImp(complnd, complnd), 'Flrl_rofsub'//trim(suffix), rc=rc) .and. &
+               fldchk(is_local%wrap%FBExp(comprof)         , 'Flrl_rofsub'//trim(suffix), rc=rc)) then
+             call addmap_from(complnd, 'Flrl_rofsub'//trim(suffix), comprof, mapconsf, map_fracname_lnd2rof, 'unset')
+             call addmrg_to(comprof, 'Flrl_rofsub'//trim(suffix), &
+                  mrg_from=complnd, mrg_fld='Flrl_rofsub'//trim(suffix), &
+                  mrg_type='copy_with_weights', mrg_fracname=mrg_fracname_lnd2rof)
+          end if
        end if
-    end if
+    end do
 
     ! ---------------------------------------------------------------------
     ! to rof: irrigation flux from land (withdrawal from rivers)
