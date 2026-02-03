@@ -239,6 +239,11 @@ contains
           call fld_list_add(fldsToOcn_num, fldsToOcn, "Foxx_evap"//WTRACERS_SUFFIX, &
                num_wtracers=num_wtracers)
        end if
+       call fld_list_add(fldsToOcn_num, fldsToOcn, "Fioi_meltw"    )
+       if (flds_wtracers) then
+          call fld_list_add(fldsToOcn_num, fldsToOcn, "Fioi_meltw"//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+       end if
        call fld_list_add(fldsToOcn_num, fldsToOcn, "Fioi_salt"     )
        call fld_list_add(fldsToOcn_num, fldsToOcn, "Foxx_rofl"     )
        call fld_list_add(fldsToOcn_num, fldsToOcn, "Foxx_rofi"     )
