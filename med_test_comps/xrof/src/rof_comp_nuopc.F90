@@ -208,12 +208,21 @@ contains
        call fld_list_add(fldsFrRof_num, fldsFrRof, 'Flrr_volrmch')
 
        call fld_list_add(fldsToRof_num, fldsToRof, trim(flds_scalar_name))
+
        call fld_list_add(fldsToRof_num, fldsToRof, 'Flrl_rofsur')
        call fld_list_add(fldsToRof_num, fldsToRof, 'Flrl_rofgwl')
        call fld_list_add(fldsToRof_num, fldsToRof, 'Flrl_rofsub')
        call fld_list_add(fldsToRof_num, fldsToRof, 'Flrl_rofi')
        call fld_list_add(fldsToRof_num, fldsToRof, 'Flrl_irrig')
        if (flds_wtracers) then
+          call fld_list_add(fldsToRof_num, fldsToRof, 'Flrl_rofsur'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+          call fld_list_add(fldsToRof_num, fldsToRof, 'Flrl_rofgwl'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+          call fld_list_add(fldsToRof_num, fldsToRof, 'Flrl_rofsub'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+          call fld_list_add(fldsToRof_num, fldsToRof, 'Flrl_rofi'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
           call fld_list_add(fldsToRof_num, fldsToRof, 'Flrl_irrig'//WTRACERS_SUFFIX, &
                num_wtracers=num_wtracers)
        end if
