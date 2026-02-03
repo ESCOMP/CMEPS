@@ -214,6 +214,8 @@ contains
        call fld_list_add(fldsToRof_num, fldsToRof, 'Flrl_rofsub')
        call fld_list_add(fldsToRof_num, fldsToRof, 'Flrl_rofi')
        call fld_list_add(fldsToRof_num, fldsToRof, 'Flrl_irrig')
+       call fld_list_add(fldsToRof_num, fldsToRof, 'Fgrg_rofi')
+       call fld_list_add(fldsToRof_num, fldsToRof, 'Fgrg_rofl')
        if (flds_wtracers) then
           call fld_list_add(fldsToRof_num, fldsToRof, 'Flrl_rofsur'//WTRACERS_SUFFIX, &
                num_wtracers=num_wtracers)
@@ -224,6 +226,10 @@ contains
           call fld_list_add(fldsToRof_num, fldsToRof, 'Flrl_rofi'//WTRACERS_SUFFIX, &
                num_wtracers=num_wtracers)
           call fld_list_add(fldsToRof_num, fldsToRof, 'Flrl_irrig'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+          call fld_list_add(fldsToRof_num, fldsToRof, 'Fgrg_rofi'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+          call fld_list_add(fldsToRof_num, fldsToRof, 'Fgrg_rofl'//WTRACERS_SUFFIX, &
                num_wtracers=num_wtracers)
        end if
 

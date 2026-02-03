@@ -15,6 +15,8 @@ module glc_comp_nuopc
   use shr_sys_mod      , only : shr_sys_abort
   use shr_kind_mod     , only : r8=>shr_kind_r8, i8=>shr_kind_i8, cl=>shr_kind_cl, cs=>shr_kind_cs
   use shr_log_mod     , only : shr_log_getlogunit, shr_log_setlogunit
+  use shr_wtracers_mod, only : WTRACERS_SUFFIX
+  use shr_wtracers_mod, only : shr_wtracers_present, shr_wtracers_get_num_tracers
   use dead_methods_mod , only : chkerr, state_setscalar,  state_diagnose, alarmInit, memcheck
   use dead_methods_mod , only : set_component_logging, get_component_instance, log_clock_advance
   use dead_nuopc_mod   , only : dead_read_inparms, ModelInitPhase, ModelSetRunClock
@@ -128,6 +130,8 @@ contains
     character(len=CL) :: logmsg
     character(len=CS) :: cnum
     logical           :: isPresent, isSet
+    logical           :: flds_wtracers
+    integer           :: num_wtracers
     character(len=*),parameter :: subname=trim(modName)//':(InitializeAdvertise) '
     !-------------------------------------------------------------------------------
 
@@ -207,12 +211,24 @@ contains
 
     if (nxg /= 0 .and. nyg /= 0) then
 
+       flds_wtracers = shr_wtracers_present()
+       num_wtracers = shr_wtracers_get_num_tracers()
+
        call fld_list_add(fldsFrGlc_num, fldsFrGlc, trim(flds_scalar_name))
        call fld_list_add(fldsFrGlc_num, fldsFrGlc, 'Sg_icemask'                )
        call fld_list_add(fldsFrGlc_num, fldsFrGlc, 'Sg_icemask_coupled_fluxes' )
        call fld_list_add(fldsFrGlc_num, fldsFrGlc, 'Sg_ice_covered'            )
        call fld_list_add(fldsFrGlc_num, fldsFrGlc, 'Sg_topo'                   )
        call fld_list_add(fldsFrGlc_num, fldsFrGlc, 'Flgg_hflx'                 )
+
+       call fld_list_add(fldsFrGlc_num, fldsFrGlc, 'Fgrg_rofi'                 )
+       call fld_list_add(fldsFrGlc_num, fldsFrGlc, 'Fgrg_rofl'                 )
+       if (flds_wtracers) then
+          call fld_list_add(fldsFrGlc_num, fldsFrGlc, 'Fgrg_rofi'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+          call fld_list_add(fldsFrGlc_num, fldsFrGlc, 'Fgrg_rofl'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+       end if
 
        call fld_list_add(fldsToGlc_num, fldsToGlc, trim(flds_scalar_name))
        call fld_list_add(fldsToGlc_num, fldsToGlc, 'Sl_tsrf')
