@@ -3264,25 +3264,30 @@ contains
     ! ---------------------------------------------------------------------
     ! to rof: liquid and ice from glc
     ! ---------------------------------------------------------------------
-    do ns = 1, is_local%wrap%num_icesheets
-       if (phase == 'advertise') then
-          call addfld_from(compglc(ns), 'Fgrg_rofl')
-          call addfld_from(compglc(ns), 'Fgrg_rofi')
-          call addfld_to(comprof, 'Fgrg_rofl')
-          call addfld_to(comprof, 'Fgrg_rofi')
-       else
-          ! Note: we are assuming that the rof mesh has a mask of one everywhere
-          if ( fldchk(is_local%wrap%FBImp(compglc(ns), compglc(ns)), 'Fgrg_rofl', rc=rc) .and. &
-               fldchk(is_local%wrap%FBExp(comprof)                 , 'Fgrg_rofl', rc=rc)) then
-             call addmap_from(compglc(ns), 'Fgrg_rofl', comprof, mapconsd, 'gfrac' , 'unset')
-             ! Custom merge in med_phases_prep_rof
+    do water_bulk_or_tracers_index = 1, water_bulk_or_tracers_max
+       call set_suffix_for_water_bulk_or_tracers(water_bulk_or_tracers_index, suffix, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       do ns = 1, is_local%wrap%num_icesheets
+          if (phase == 'advertise') then
+             call addfld_from(compglc(ns), 'Fgrg_rofl'//trim(suffix))
+             call addfld_from(compglc(ns), 'Fgrg_rofi'//trim(suffix))
+             call addfld_to(comprof, 'Fgrg_rofl'//trim(suffix))
+             call addfld_to(comprof, 'Fgrg_rofi'//trim(suffix))
+          else
+             ! Note: we are assuming that the rof mesh has a mask of one everywhere
+             if ( fldchk(is_local%wrap%FBImp(compglc(ns), compglc(ns)), 'Fgrg_rofl'//trim(suffix), rc=rc) .and. &
+                  fldchk(is_local%wrap%FBExp(comprof)                 , 'Fgrg_rofl'//trim(suffix), rc=rc)) then
+                call addmap_from(compglc(ns), 'Fgrg_rofl'//trim(suffix), comprof, mapconsd, 'gfrac' , 'unset')
+                ! Custom merge in med_phases_prep_rof
+             end if
+             if (fldchk(is_local%wrap%FBImp(compglc(ns), compglc(ns)), 'Fgrg_rofi'//trim(suffix), rc=rc) .and. &
+                 fldchk(is_local%wrap%FBExp(comprof)                 , 'Fgrg_rofi'//trim(suffix), rc=rc)) then
+                call addmap_from(compglc(ns), 'Fgrg_rofi'//trim(suffix), comprof, mapconsd, 'gfrac', 'unset')
+                ! Custom merge in med_phases_prep_rof
+             end if
           end if
-          if (fldchk(is_local%wrap%FBImp(compglc(ns), compglc(ns)), 'Fgrg_rofi', rc=rc) .and. &
-              fldchk(is_local%wrap%FBExp(comprof)                 , 'Fgrg_rofi', rc=rc)) then
-             call addmap_from(compglc(ns), 'Fgrg_rofi', comprof, mapconsd, 'gfrac', 'unset')
-             ! Custom merge in med_phases_prep_rof
-          end if
-       end if
+       end do
     end do
 
     ! ---------------------------------------------------------------------
