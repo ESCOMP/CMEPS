@@ -286,6 +286,11 @@ contains
        end if
        call fld_list_add(fldsToLnd_num, fldsToLnd, 'Flrr_volr'    )
        call fld_list_add(fldsToLnd_num, fldsToLnd, 'Flrr_volrmch' )
+       call fld_list_add(fldsToLnd_num, fldsToLnd, 'Flrr_flood'   )
+       if (flds_wtracers) then
+          call fld_list_add(fldsToLnd_num, fldsToLnd, 'Flrr_flood'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+       end if
        call fld_list_add(fldsToLnd_num, fldsToLnd, 'Faxa_lwdn'    )
        call fld_list_add(fldsToLnd_num, fldsToLnd, 'Faxa_rainc'   )
        call fld_list_add(fldsToLnd_num, fldsToLnd, 'Faxa_rainl'   )

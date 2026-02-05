@@ -204,6 +204,10 @@ contains
        call fld_list_add(fldsFrRof_num, fldsFrRof, 'Forr_rofl')
        call fld_list_add(fldsFrRof_num, fldsFrRof, 'Forr_rofi')
        call fld_list_add(fldsFrRof_num, fldsFrRof, 'Flrr_flood')
+       if (flds_wtracers) then
+          call fld_list_add(fldsFrRof_num, fldsFrRof, 'Flrr_flood'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+       end if
        call fld_list_add(fldsFrRof_num, fldsFrRof, 'Flrr_volr')
        call fld_list_add(fldsFrRof_num, fldsFrRof, 'Flrr_volrmch')
 
