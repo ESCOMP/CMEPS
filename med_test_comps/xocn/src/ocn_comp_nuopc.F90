@@ -247,6 +247,18 @@ contains
        call fld_list_add(fldsToOcn_num, fldsToOcn, "Fioi_salt"     )
        call fld_list_add(fldsToOcn_num, fldsToOcn, "Foxx_rofl"     )
        call fld_list_add(fldsToOcn_num, fldsToOcn, "Foxx_rofi"     )
+       call fld_list_add(fldsToOcn_num, fldsToOcn, "Forr_rofl_glc" )
+       call fld_list_add(fldsToOcn_num, fldsToOcn, "Forr_rofi_glc" )
+       if (flds_wtracers) then
+          call fld_list_add(fldsToOcn_num, fldsToOcn, "Foxx_rofl"//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+          call fld_list_add(fldsToOcn_num, fldsToOcn, "Foxx_rofi"//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+          call fld_list_add(fldsToOcn_num, fldsToOcn, "Forr_rofl_glc"//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+          call fld_list_add(fldsToOcn_num, fldsToOcn, "Forr_rofi_glc"//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+       end if
        call fld_list_add(fldsToOcn_num, fldsToOcn, "Sa_pslv"       )
 
        do n = 1,fldsFrOcn_num
