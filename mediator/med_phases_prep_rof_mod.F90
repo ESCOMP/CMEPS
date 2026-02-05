@@ -384,6 +384,16 @@ contains
     ! glc->rof is mapped in med_phases_post_glc
     do ns = 1,is_local%wrap%num_icesheets
        if (is_local%wrap%med_coupling_active(compglc(ns),comprof)) then
+          ! This fldbun_accum call is used to sum the inputs from each ice sheet - so it
+          ! is an accumulation in space (as opposed to the accumulation in time done in
+          ! med_phases_prep_rof_accum). This accumulation acts over all of the fields that
+          ! are common to FBExp(comprof) and FBImp(compglc(ns),comprof), which is the set
+          ! of fields sent from glc to rof. Note that the 'copy' argument is set to true
+          ! for the first loop iteration and false for subsequent loop iterations; this
+          ! serves to initialize the export field bundle in the first loop iteration
+          ! (simply copying the import fields to the export) and then iteratively
+          ! accumulating the imports from the other ice sheets in subsequent loop
+          ! iterations.
           call fldbun_accum( &
                FBout=is_local%wrap%FBExp(comprof), &
                FBin=is_local%wrap%FBImp(compglc(ns),comprof), &
