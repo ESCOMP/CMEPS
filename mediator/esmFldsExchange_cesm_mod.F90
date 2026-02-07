@@ -733,26 +733,30 @@ contains
     ! to lnd: tributary water depth
     ! to lnd: tributary channel depth
     ! ---------------------------------------------------------------------
-    if (phase == 'advertise') then
-       call addfld_from(comprof, 'Flrr_volr')
-       call addfld_to(complnd, 'Flrr_volr')
-    else
-       if ( fldchk(is_local%wrap%FBExp(complnd)         , 'Flrr_volr', rc=rc) .and. &
-            fldchk(is_local%wrap%FBImp(comprof, comprof), 'Flrr_volr', rc=rc)) then
-          call addmap_from(comprof, 'Flrr_volr', complnd, mapconsf, 'one', rof2lnd_map)
-          call addmrg_to(complnd, 'Flrr_volr', mrg_from=comprof, mrg_fld='Flrr_volr', mrg_type='copy')
+    do water_bulk_or_tracers_index = 1, water_bulk_or_tracers_max
+       call set_suffix_for_water_bulk_or_tracers(water_bulk_or_tracers_index, suffix, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       if (phase == 'advertise') then
+          call addfld_from(comprof, 'Flrr_volr'//trim(suffix))
+          call addfld_from(comprof, 'Flrr_volrmch'//trim(suffix))
+          call addfld_to(complnd, 'Flrr_volr'//trim(suffix))
+          call addfld_to(complnd, 'Flrr_volrmch'//trim(suffix))
+       else
+          if ( fldchk(is_local%wrap%FBExp(complnd)         , 'Flrr_volr'//trim(suffix), rc=rc) .and. &
+               fldchk(is_local%wrap%FBImp(comprof, comprof), 'Flrr_volr'//trim(suffix), rc=rc)) then
+             call addmap_from(comprof, 'Flrr_volr'//trim(suffix), complnd, mapconsf, 'one', rof2lnd_map)
+             call addmrg_to(complnd, 'Flrr_volr'//trim(suffix), mrg_from=comprof, &
+                  mrg_fld='Flrr_volr'//trim(suffix), mrg_type='copy')
+          end if
+          if ( fldchk(is_local%wrap%FBExp(complnd)         , 'Flrr_volrmch'//trim(suffix), rc=rc) .and. &
+               fldchk(is_local%wrap%FBImp(comprof, comprof), 'Flrr_volrmch'//trim(suffix), rc=rc)) then
+             call addmap_from(comprof, 'Flrr_volrmch'//trim(suffix), complnd, mapconsf, 'one', rof2lnd_map)
+             call addmrg_to(complnd, 'Flrr_volrmch'//trim(suffix), mrg_from=comprof, &
+                  mrg_fld='Flrr_volrmch'//trim(suffix), mrg_type='copy')
+          end if
        end if
-    end if
-    if (phase == 'advertise') then
-       call addfld_from(comprof, 'Flrr_volrmch')
-       call addfld_to(complnd, 'Flrr_volrmch')
-    else
-       if ( fldchk(is_local%wrap%FBExp(complnd)         , 'Flrr_volrmch', rc=rc) .and. &
-            fldchk(is_local%wrap%FBImp(comprof, comprof), 'Flrr_volrmch', rc=rc)) then
-          call addmap_from(comprof, 'Flrr_volrmch', complnd, mapconsf, 'one', rof2lnd_map)
-          call addmrg_to(complnd, 'Flrr_volrmch', mrg_from=comprof, mrg_fld='Flrr_volrmch', mrg_type='copy')
-       end if
-    end if
+    end do
 
     do water_bulk_or_tracers_index = 1, water_bulk_or_tracers_max
        call set_suffix_for_water_bulk_or_tracers(water_bulk_or_tracers_index, suffix, rc)
