@@ -288,6 +288,10 @@ contains
        call fld_list_add(fldsToLnd_num, fldsToLnd, 'Flrr_volrmch' )
        call fld_list_add(fldsToLnd_num, fldsToLnd, 'Flrr_flood'   )
        if (flds_wtracers) then
+          call fld_list_add(fldsToLnd_num, fldsToLnd, 'Flrr_volr'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+          call fld_list_add(fldsToLnd_num, fldsToLnd, 'Flrr_volrmch'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
           call fld_list_add(fldsToLnd_num, fldsToLnd, 'Flrr_flood'//WTRACERS_SUFFIX, &
                num_wtracers=num_wtracers)
        end if

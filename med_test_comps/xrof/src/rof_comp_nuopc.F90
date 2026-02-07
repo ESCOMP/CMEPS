@@ -206,6 +206,8 @@ contains
        call fld_list_add(fldsFrRof_num, fldsFrRof, 'Forr_rofl_glc')
        call fld_list_add(fldsFrRof_num, fldsFrRof, 'Forr_rofi_glc')
        call fld_list_add(fldsFrRof_num, fldsFrRof, 'Flrr_flood')
+       call fld_list_add(fldsFrRof_num, fldsFrRof, 'Flrr_volr')
+       call fld_list_add(fldsFrRof_num, fldsFrRof, 'Flrr_volrmch')
        if (flds_wtracers) then
           call fld_list_add(fldsFrRof_num, fldsFrRof, 'Forr_rofl'//WTRACERS_SUFFIX, &
                num_wtracers=num_wtracers)
@@ -217,9 +219,11 @@ contains
                num_wtracers=num_wtracers)
           call fld_list_add(fldsFrRof_num, fldsFrRof, 'Flrr_flood'//WTRACERS_SUFFIX, &
                num_wtracers=num_wtracers)
+          call fld_list_add(fldsFrRof_num, fldsFrRof, 'Flrr_volr'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+          call fld_list_add(fldsFrRof_num, fldsFrRof, 'Flrr_volrmch'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
        end if
-       call fld_list_add(fldsFrRof_num, fldsFrRof, 'Flrr_volr')
-       call fld_list_add(fldsFrRof_num, fldsFrRof, 'Flrr_volrmch')
 
        call fld_list_add(fldsToRof_num, fldsToRof, trim(flds_scalar_name))
 
