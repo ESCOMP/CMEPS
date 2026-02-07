@@ -233,6 +233,10 @@ contains
        call fld_list_add(fldsToGlc_num, fldsToGlc, trim(flds_scalar_name))
        call fld_list_add(fldsToGlc_num, fldsToGlc, 'Sl_tsrf')
        call fld_list_add(fldsToGlc_num, fldsToGlc, 'Flgl_qice')
+       if (flds_wtracers) then
+          call fld_list_add(fldsToGlc_num, fldsToGlc, 'Flgl_qice'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+       end if
 
        ! Now advertise import and export fields fields
        do ns = 1,num_icesheets

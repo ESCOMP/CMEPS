@@ -268,6 +268,10 @@ contains
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Fall_swnet'    )
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Fall_flxdst'   , ungridded_lbound=1, ungridded_ubound=4)
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Flgl_qice_elev', ungridded_lbound=1, ungridded_ubound=glc_nec+1)
+       if (flds_wtracers) then
+          call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Flgl_qice_elev'//WTRACERS_SUFFIX, &
+               ungridded_lbound=1, ungridded_ubound=glc_nec+1, num_wtracers=num_wtracers)
+       end if
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Sl_tsrf_elev'  , ungridded_lbound=1, ungridded_ubound=glc_nec+1)
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Sl_topo_elev'  , ungridded_lbound=1, ungridded_ubound=glc_nec+1)
 
