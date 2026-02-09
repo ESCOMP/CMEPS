@@ -3431,17 +3431,12 @@ contains
     if (phase == 'advertise') then
        call addfld_from(complnd, 'Sl_tsrf_elev')   ! surface temperature of glacier (1->glc_nec+1)
        call addfld_from(complnd, 'Sl_topo_elev')   ! surface heights of glacier     (1->glc_nec+1)
-       call addfld_from(complnd, 'Flgl_qice_elev') ! glacier ice flux               (1->glc_nec+1)
        do ns = 1,is_local%wrap%num_icesheets
           call addfld_to(compglc(ns), 'Sl_tsrf')
-          call addfld_to(compglc(ns), 'Flgl_qice')
        end do
     else
        ! custom mapping, accumulation and merging will be done in prep_glc_mod.F90
        do ns = 1,is_local%wrap%num_icesheets
-          if ( fldchk(is_local%wrap%FBImp(complnd,complnd) , 'Flgl_qice_elev', rc=rc)) then
-             call addmap_from(complnd, 'Flgl_qice_elev', compglc(ns), mapbilnr, map_fracname_lnd2glc, 'unset')
-          end if
           if ( fldchk(is_local%wrap%FBImp(complnd,complnd) , 'Sl_tsrf_elev'  , rc=rc)) then
              call addmap_from(complnd, 'Sl_tsrf_elev', compglc(ns), mapbilnr, map_fracname_lnd2glc, 'unset')
           end if
@@ -3451,6 +3446,25 @@ contains
           end if
        end do
     end if
+    do water_bulk_or_tracers_index = 1, water_bulk_or_tracers_max
+       call set_suffix_for_water_bulk_or_tracers(water_bulk_or_tracers_index, suffix, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       if (phase == 'advertise') then
+          call addfld_from(complnd, 'Flgl_qice_elev'//trim(suffix)) ! glacier ice flux (1->glc_nec+1)
+          do ns = 1,is_local%wrap%num_icesheets
+             call addfld_to(compglc(ns), 'Flgl_qice'//trim(suffix))
+          end do
+       else
+          ! custom mapping, accumulation and merging will be done in prep_glc_mod.F90
+          do ns = 1,is_local%wrap%num_icesheets
+             if ( fldchk(is_local%wrap%FBImp(complnd,complnd) , 'Flgl_qice_elev'//trim(suffix), rc=rc)) then
+                call addmap_from(complnd, 'Flgl_qice_elev'//trim(suffix), compglc(ns), &
+                     mapbilnr, map_fracname_lnd2glc, 'unset')
+             end if
+          end do
+       end if
+    end do
 
     !-----------------------------
     ! to glc: from ocn
