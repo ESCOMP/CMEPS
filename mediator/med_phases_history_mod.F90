@@ -126,7 +126,7 @@ module med_phases_history_mod
 
   character(CL) :: case_name = 'unset'  ! case name
   character(CS) :: inst_tag = 'unset'   ! instance tag
-  logical       :: debug_alarms = .true.
+  logical       :: debug_alarms = .false.
   character(*), parameter :: u_FILE_u  = &
        __FILE__
 
