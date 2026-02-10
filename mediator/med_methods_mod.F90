@@ -2726,12 +2726,12 @@ contains
     real(r8) , intent(in)  :: dataptr(:,:)
     integer  , intent(out) :: nancount
     ! local variables
-    integer :: n,k
+    integer :: i,j
 
     nancount = 0
-    do k = 1,size(dataptr, dim=1)
-       do n = 1,size(dataptr, dim=2)
-          if (shr_infnan_isnan(dataptr(k,n))) then
+    do j = 1,size(dataptr, dim=2)
+       do i = 1,size(dataptr, dim=1)
+          if (shr_infnan_isnan(dataptr(i,j))) then
              nancount = nancount + 1
           end if
        end do
