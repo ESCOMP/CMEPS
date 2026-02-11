@@ -18,6 +18,11 @@ module wtracers_mod
    public :: wtracers_get_bulk_fieldname  ! return the name of the equivalent bulk field corresponding to a water tracer field
    public :: wtracers_check_tracer_ratios ! check tracer ratios against expectations
 
+   interface wtracers_check_tracer_ratios
+      module procedure wtracers_check_tracer_ratios_1d
+      module procedure wtracers_check_tracer_ratios_2d
+   end interface wtracers_check_tracer_ratios
+
 contains
 
    !-----------------------------------------------------------------------
@@ -70,7 +75,7 @@ contains
    end subroutine wtracers_get_bulk_fieldname
 
    !-----------------------------------------------------------------------
-   subroutine wtracers_check_tracer_ratios(tracers, bulk, name)
+   subroutine wtracers_check_tracer_ratios_1d(tracers, bulk, name)
       !
       ! !DESCRIPTION:
       ! Check tracer ratios (tracer/bulk) against expectations
@@ -84,6 +89,23 @@ contains
       !-----------------------------------------------------------------------
 
       ! Do nothing
-   end subroutine wtracers_check_tracer_ratios
+   end subroutine wtracers_check_tracer_ratios_1d
+
+   !-----------------------------------------------------------------------
+   subroutine wtracers_check_tracer_ratios_2d(tracers, bulk, name)
+      !
+      ! !DESCRIPTION:
+      ! Check tracer ratios (tracer/bulk) against expectations for 2-d bulk arrays
+      !
+      ! In this stub implementation, we simply return without doing anything
+      !
+      ! !ARGUMENTS
+      real(r8), intent(in) :: tracers(:,:,:)  ! dimensioned [tracerNum, ungriddedDim, gridcell]
+      real(r8), intent(in) :: bulk(:,:)       ! dimensioned [ungriddedDim, gridcell]
+      character(len=*), intent(in) :: name  ! for diagnostic output
+      !-----------------------------------------------------------------------
+
+      ! Do nothing
+   end subroutine wtracers_check_tracer_ratios_2d
 
 end module wtracers_mod

@@ -2543,13 +2543,21 @@ contains
     character(ESMF_MAXSTR) :: fieldNameNonTracer
     character(ESMF_MAXSTR) :: FBName
     integer :: n
+    integer :: fieldrank
     logical :: hasSuffix
     logical :: isPresentNonTracer
     integer :: localrc
     type(ESMF_Field) :: fieldTracers
     type(ESMF_Field) :: fieldNonTracer
-    real(r8), pointer :: dataTracers(:,:)  ! dimensioned [tracerNum, gridcell]
-    real(r8), pointer :: dataNonTracer(:)
+
+    ! For 1-d bulk arrays:
+    real(r8), pointer :: dataTracers2d(:,:)  ! dimensioned [tracerNum, gridcell]
+    real(r8), pointer :: dataNonTracer1d(:)  ! dimensioned [gridcell]
+
+    ! For 2-d bulk arrays:
+    real(r8), pointer :: dataTracers3d(:,:,:) ! dimensioned [tracerNum, ungriddedDim, gridcell]
+    real(r8), pointer :: dataNonTracer2d(:,:) ! dimensioned [ungriddedDim, gridcell]
+
     character(len=*), parameter :: subname='(med_methods_FB_check_wtracers)'
     ! ----------------------------------------------
     rc = ESMF_SUCCESS
@@ -2583,16 +2591,31 @@ contains
 
              call ESMF_FieldBundleGet(FB, fieldName=fieldNameList(n), field=fieldTracers, rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
-             call ESMF_FieldGet(fieldTracers, farrayPtr=dataTracers, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-
              call ESMF_FieldBundleGet(FB, fieldName=fieldNameNonTracer, field=fieldNonTracer, rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
-             call ESMF_FieldGet(fieldNonTracer, farrayPtr=dataNonTracer, rc=rc)
+
+             call ESMF_FieldGet(fieldNonTracer, rank=fieldrank, rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-             call wtracers_check_tracer_ratios(dataTracers, dataNonTracer, &
-                  trim(FBName)//":"//trim(fieldNameList(n)))
+             if (fieldrank == 1) then
+                call ESMF_FieldGet(fieldTracers, farrayPtr=dataTracers2d, rc=rc)
+                if (chkerr(rc,__LINE__,u_FILE_u)) return
+                call ESMF_FieldGet(fieldNonTracer, farrayPtr=dataNonTracer1d, rc=rc)
+                if (chkerr(rc,__LINE__,u_FILE_u)) return
+                call wtracers_check_tracer_ratios(dataTracers2d, dataNonTracer1d, &
+                     trim(FBName)//":"//trim(fieldNameList(n)))
+             else if (fieldrank == 2) then
+                call ESMF_FieldGet(fieldTracers, farrayPtr=dataTracers3d, rc=rc)
+                if (chkerr(rc,__LINE__,u_FILE_u)) return
+                call ESMF_FieldGet(fieldNonTracer, farrayPtr=dataNonTracer2d, rc=rc)
+                if (chkerr(rc,__LINE__,u_FILE_u)) return
+                call wtracers_check_tracer_ratios(dataTracers3d, dataNonTracer2d, &
+                     trim(FBName)//":"//trim(fieldNameList(n)))
+             else
+                call shr_log_error(subname//": ERROR: unhandled field rank", &
+                     line=__LINE__, file=u_FILE_u, rc=rc)
+                return
+             end if
           else
              ! This is the situation for a small number of fields where we have a tracer
              ! field without a corresponding non-tracer field.
