@@ -967,7 +967,7 @@ contains
                       if (NUOPC_FieldDictionaryHasEntry(trim(itemc))) then
                          call NUOPC_FieldDictionaryGetEntry(itemc, canonicalUnits=cunit, rc=rc)
                          if (chkerr(rc,__LINE__,u_FILE_u)) return
-                         rcode = pio_put_att(io_file, varid, "units"        , trim(cunit))
+                         rcode = pio_put_att(io_file, varid, "units", trim(cunit))
                       end if
                       rcode = pio_put_att(io_file, varid, "standard_name", trim(name1))
                       if (present(tavg)) then
@@ -1000,7 +1000,7 @@ contains
                       if (NUOPC_FieldDictionaryHasEntry(trim(itemc))) then
                          call NUOPC_FieldDictionaryGetEntry(itemc, canonicalUnits=cunit, rc=rc)
                          if (chkerr(rc,__LINE__,u_FILE_u)) return
-                         rcode = pio_put_att(io_file, varid, "units"        , trim(cunit))
+                         rcode = pio_put_att(io_file, varid, "units", trim(cunit))
                       end if
                       rcode = pio_put_att(io_file, varid, "standard_name", trim(name1))
                       if (present(tavg)) then
@@ -1010,15 +1010,15 @@ contains
                       endif
                    end if
                 end do
-             else
+             else if (rank == 1) then
                 name1 = trim(lpre)//'_'//trim(itemc)
-                call ESMF_LogWrite(trim(subname)//':'//trim(itemc)//':'//trim(name1),ESMF_LOGMSG_INFO)
+                call ESMF_LogWrite(trim(subname)//': defining '//trim(name1), ESMF_LOGMSG_INFO)
                 if (luse_float) then
                    rcode = pio_def_var(io_file, trim(name1), PIO_REAL, dimid, varid)
-                   rcode = pio_put_att(io_file, varid, "_FillValue", real(lfillvalue, r4))
+                   rcode = pio_put_att(io_file, varid,"_FillValue",real(lfillvalue,r4))
                 else
                    rcode = pio_def_var(io_file, trim(name1), PIO_DOUBLE, dimid, varid)
-                   rcode = pio_put_att(io_file, varid, "_FillValue", lfillvalue)
+                   rcode = pio_put_att(io_file,varid,"_FillValue",lfillvalue)
                 end if
                 if (NUOPC_FieldDictionaryHasEntry(trim(itemc))) then
                    call NUOPC_FieldDictionaryGetEntry(itemc, canonicalUnits=cunit, rc=rc)
@@ -1030,7 +1030,10 @@ contains
                    if (tavg) then
                       rcode = pio_put_att(io_file, varid, "cell_methods", "time: mean")
                    endif
-                end if
+                endif
+             else
+                call shr_log_error(subname//' ERROR: unhandled rank', line=__LINE__, file=u_FILE_u, rc=rc)
+                return
              end if
           end if
        end do
