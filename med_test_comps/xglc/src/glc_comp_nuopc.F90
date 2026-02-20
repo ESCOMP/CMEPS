@@ -419,6 +419,11 @@ contains
     real(r8), pointer :: data1d(:)
     real(r8), pointer :: data2d(:,:)
     integer, parameter :: gridTofieldMap = 2 ! ungridded dimension is innermost
+    type(ESMF_VM)     :: vm
+    real(r8)          :: lat_min_l(1), lat_max_l(1), lat_min_g(1), lat_max_g(1)
+    real(r8)          :: lon_min_l(1), lon_max_l(1), lon_min_g(1), lon_max_g(1)
+    real(r8)          :: lon_mid
+    real(r8)          :: lon_180(size(lon))  ! longitude with a -180 to 180 convention
     !--------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -448,8 +453,47 @@ contains
     else
        call ESMF_FieldGet(lfield, farrayPtr=data1d, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (fldname == 'Sg_icemask' .or.  fldname == 'Sg_icemask_coupled_fluxes' .or. fldname == 'Sg_ice_covered') then
+       if (fldname == 'Sg_icemask' .or.  fldname == 'Sg_icemask_coupled_fluxes') then
           data1d(:) = 1._r8
+       else if (fldname == 'Sg_ice_covered') then
+          ! Split domain into ice-covered (1) and not (0) at the midpoint of the
+          ! longitude range. We convert to [-180, 180) so that data crossing 0
+          ! degrees (the common case for ice sheet grids) is handled correctly.
+          call ESMF_VMGetCurrent(vm, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+          ! Convert longitudes to -180 to 180 convention. Note that if they already were
+          ! specified as -180 to 180, the following will lead lon_180 to be the same as
+          ! lon.
+          where (lon > 180.0_R8)
+             lon_180 = lon - 360.0_R8
+          elsewhere
+             lon_180 = lon
+          end where
+
+          lon_min_l(1) = minval(lon_180)
+          lon_max_l(1) = maxval(lon_180)
+          call ESMF_VMAllReduce(vm, lon_min_l, lon_min_g, 1, ESMF_REDUCE_MIN, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_VMAllReduce(vm, lon_max_l, lon_max_g, 1, ESMF_REDUCE_MAX, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          lon_mid = (lon_min_g(1) + lon_max_g(1)) * 0.5_R8
+          do i = 1, size(data1d)
+             data1d(i) = merge(1.0_R8, 0.0_R8, lon_180(i) > lon_mid)
+          end do
+       else if (fldname == 'Sg_topo') then
+          ! Use topo values ranging from 0 to 3000 based on a latitude gradient
+          call ESMF_VMGetCurrent(vm, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          lat_min_l(1) = minval(lat)
+          lat_max_l(1) = maxval(lat)
+          call ESMF_VMAllReduce(vm, lat_min_l, lat_min_g, 1, ESMF_REDUCE_MIN, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_VMAllReduce(vm, lat_max_l, lat_max_g, 1, ESMF_REDUCE_MAX, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          do i = 1, size(data1d)
+             data1d(i) = (lat(i) - lat_min_g(1)) / (lat_max_g(1) - lat_min_g(1)) * 3000.0_R8
+          end do
        else
           do i = 1,size(data1d)
              data1d(i) = (nf*100) &
