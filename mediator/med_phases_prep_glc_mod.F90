@@ -752,7 +752,6 @@ contains
     type(InternalState) :: is_local
     real(r8), pointer   :: topolnd_g_ec(:,:)      ! topo in elevation classes
     real(r8), pointer   :: topoglc_g(:)           ! ice topographic height on the glc grid extracted from glc import
-    real(r8), pointer   :: data_ice_covered_g(:)  ! data for ice-covered regions on the GLC grid
     real(r8), pointer   :: ice_covered_g(:)       ! if points on the glc grid is ice-covered (1) or ice-free (0)
     integer , pointer   :: elevclass_g(:)         ! elevation classes glc grid
     real(r8), pointer   :: dataexp_g(:)           ! pointer into
@@ -760,6 +759,10 @@ contains
     real(r8)            :: elev_l, elev_u         ! lower and upper elevations in interpolation range
     real(r8)            :: d_elev                 ! elev_u - elev_l
     integer             :: nfld, ec
+    integer,  allocatable :: index_lower(:)   ! lower EC index for vertical interpolation, per glc gridcell
+    integer,  allocatable :: index_upper(:)   ! upper EC index for vertical interpolation, per glc gridcell
+    real(r8), allocatable :: weight_lower(:)  ! weight for lower EC, per glc gridcell
+    real(r8), allocatable :: weight_upper(:)  ! weight for upper EC, per glc gridcell
     integer             :: n,lsize_g,ns
     type(ESMF_Field)    :: field_lfrac_l
     integer             :: fieldCount
@@ -867,6 +870,60 @@ contains
        if (chkErr(rc,__LINE__,u_FILE_u)) return
 
        ! ------------------------------------------------------------------------
+       ! Pre-compute vertical interpolation indices and weights for each glc gridcell.
+       ! These depend only on topography (not on the field being interpolated), so we
+       ! compute them once here and reuse them for each field below.
+       ! ------------------------------------------------------------------------
+
+       allocate(index_lower(lsize_g))
+       allocate(index_upper(lsize_g))
+       allocate(weight_lower(lsize_g))
+       allocate(weight_upper(lsize_g))
+
+       do n = 1, lsize_g
+          if (topoglc_g(n) < topolnd_g_ec(2,n)) then
+             ! lower than lowest mean EC elevation: use lowest EC value
+             ! (note that index 1 is bare land, so index 2 is lowest EC)
+             index_lower(n) = 2
+             index_upper(n) = 2
+             weight_lower(n) = 0._r8
+             weight_upper(n) = 1._r8
+          else if (topoglc_g(n) >= topolnd_g_ec(ungriddedCount,n)) then
+             ! higher than highest mean EC elevation: use highest EC value
+             index_lower(n) = ungriddedCount
+             index_upper(n) = ungriddedCount
+             weight_lower(n) = 1._r8
+             weight_upper(n) = 0._r8
+          else
+             ! find bounding ECs and linearly interpolate
+             do ec = 3, ungriddedCount
+                if (topoglc_g(n) < topolnd_g_ec(ec,n)) then
+                   elev_l = topolnd_g_ec(ec-1,n)
+                   elev_u = topolnd_g_ec(ec  ,n)
+                   d_elev = elev_u - elev_l
+                   index_lower(n) = ec-1
+                   index_upper(n) = ec
+                   if (d_elev <= 0._r8) then
+                      ! This shouldn't happen, but handle it in case it does. In this case,
+                      ! let's arbitrarily use the mean of the two elevation classes, rather
+                      ! than the weighted mean.
+                      write(logunit,*) subname//' WARNING: topo diff between elevation classes <= 0'
+                      write(logunit,*) 'n, ec, elev_l, elev_u = ', n, ec, elev_l, elev_u
+                      write(logunit,*) 'Simply using mean of the two elevation classes,'
+                      write(logunit,*) 'rather than the weighted mean.'
+                      weight_lower(n) = 0.5_r8
+                      weight_upper(n) = 0.5_r8
+                   else
+                      weight_lower(n) = (elev_u - topoglc_g(n)) / d_elev
+                      weight_upper(n) = (topoglc_g(n) - elev_l) / d_elev
+                   end if
+                   exit
+                end if
+             end do
+          end if
+       end do
+
+       ! ------------------------------------------------------------------------
        ! Loop over fields in export field bundle to glc for ice sheet ns and
        ! perform vertical interpolation of data onto ice sheet topography
        ! This maps all of the input elevation classes into an export to glc without elevation classes
@@ -877,7 +934,6 @@ contains
        ! current glint implementation, which sets acab and artm to 0 over ocean (although
        ! notes that this could lead to a loss of conservation). Figure out how to handle this case.
 
-       allocate(data_ice_covered_g(lsize_g))
        do nfld = 1, size(fldnames_to_glc)
 
           ! Get a pointer to the land data in multiple elevation classes on the glc grid
@@ -888,58 +944,16 @@ contains
           call fldbun_getdata1d(is_local%wrap%FBExp(compglc(ns)), fldnames_to_glc(nfld), dataexp_g, rc)
           if (chkErr(rc,__LINE__,u_FILE_u)) return
 
-          ! First set data_ice_covered_g to bare land everywehre
-          data_ice_covered_g(:) = 0._r8
-
-          ! Loop over land points and overwrite with valid values
+          ! Apply pre-computed vertical interpolation indices and weights
           do n = 1, lsize_g
-
-             ! For each ice sheet point, find bounding EC values...
-             if (topoglc_g(n) < topolnd_g_ec(2,n)) then
-
-                ! lower than lowest mean EC elevation value
-                data_ice_covered_g(n) = dataptr2d(2,n)
-
-             else if (topoglc_g(n) >= topolnd_g_ec(ungriddedCount, n)) then
-
-                ! higher than highest mean EC elevation value
-                data_ice_covered_g(n) = dataptr2d(ungriddedCount,n)
-
-             else
-
-                ! do linear interpolation of data in the vertical
-                do ec = 3, ungriddedCount
-                   if (topoglc_g(n) < topolnd_g_EC(ec,n)) then
-                      elev_l = topolnd_g_EC(ec-1,n)
-                      elev_u = topolnd_g_EC(ec  ,n)
-                      d_elev = elev_u - elev_l
-                      if (d_elev <= 0) then
-                         ! This shouldn't happen, but handle it in case it does. In this case,
-                         ! let's arbitrarily use the mean of the two elevation classes, rather
-                         ! than the weighted mean.
-                         write(logunit,*) subname//' WARNING: topo diff between elevation classes <= 0'
-                         write(logunit,*) 'n, ec, elev_l, elev_u = ', n, ec, elev_l, elev_u
-                         write(logunit,*) 'Simply using mean of the two elevation classes,'
-                         write(logunit,*) 'rather than the weighted mean.'
-                         data_ice_covered_g(n) = dataptr2d(ec-1,n) * 0.5_r8 &
-                              + dataptr2d(ec  ,n) * 0.5_r8
-                      else
-                         data_ice_covered_g(n) =  dataptr2d(ec-1,n) * (elev_u - topoglc_g(n)) / d_elev  &
-                              + dataptr2d(ec  ,n) * (topoglc_g(n) - elev_l) / d_elev
-                      end if
-                      exit
-                   end if
-                end do
-             end if  ! topoglc_g(n)
-
              if (elevclass_g(n) /= 0) then
-                ! ice-covered cells have interpolated values
-                dataexp_g(n) = data_ice_covered_g(n)
+                ! ice-covered cells: vertically interpolate between bounding ECs
+                dataexp_g(n) = dataptr2d(index_lower(n), n) * weight_lower(n) &
+                             + dataptr2d(index_upper(n), n) * weight_upper(n)
              else
-                ! non ice-covered cells have bare land value
-                dataexp_g(n) = real(dataptr2d(1,n))
+                ! non ice-covered cells: use bare land value (EC index 1)
+                dataexp_g(n) = dataptr2d(1, n)
              end if
-
           end do  ! end of loop over land points
 
        end do ! end loop over fields (nflds)
@@ -961,7 +975,10 @@ contains
 
        ! clean up memory that is ice sheet dependent
        deallocate(elevclass_g)
-       deallocate(data_ice_covered_g)
+       deallocate(index_lower)
+       deallocate(index_upper)
+       deallocate(weight_lower)
+       deallocate(weight_upper)
 
     end do ! end of loop over ice sheets
 
