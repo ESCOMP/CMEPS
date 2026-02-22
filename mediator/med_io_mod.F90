@@ -729,7 +729,7 @@ contains
     type(ESMF_CoordSys_Flag)      :: coordsys
     integer                       :: rcode
     integer                       :: nf,ns,ng
-    integer                       :: k,n
+    integer                       :: k,n,n2
     integer                       :: ndims, nelements
     integer    ,target            :: dimid2(2)
     integer    ,target            :: dimid3(3)
@@ -754,15 +754,22 @@ contains
     integer, pointer              :: Dof(:)
     real(r8), pointer             :: fldptr1(:)
     real(r8), pointer             :: fldptr2(:,:)
+    real(r8), pointer             :: fldptr3(:,:,:)
     real(r8), allocatable         :: ownedElemCoords(:), ownedElemCoords_x(:), ownedElemCoords_y(:)
     character(CS)                 :: cnumber
+    character(CS)                 :: cnumber2
     character(CL)                 :: tmpstr
     type(ESMF_Field)              :: lfield
     integer                       :: rank
-    integer                       :: ungriddedUBound(1) ! currently the size must equal 1 for rank 2 fields
-    integer                       :: gridToFieldMap(1)  ! currently the size must equal 1 for rank 2 fields
     logical                       :: tiles
     character(CL), allocatable    :: fieldNameList(:)
+
+    ! For a single ungridded dimension, there will be 1 element in ungriddedUBound and 1
+    ! element in gridToFieldMap; for two ungridded dimensions, there will be 2 elements in
+    ! ungriddedUBound but still 1 element in gridToFieldMap.
+    integer                       :: ungriddedUBound(2)
+    integer                       :: gridToFieldMap(1)
+
     character(*),parameter :: subName = '(med_io_write_FB) '
     !-------------------------------------------------------------------------------
 
@@ -935,12 +942,47 @@ contains
 
           ! TODO (mvertens, 2019-03-13): this is a temporary mod to NOT write hgt
           if (trim(itemc) /= "hgt") then
-             if (rank == 2) then
+             if (rank == 3) then
+                call ESMF_FieldGet(lfield, ungriddedUBound=ungriddedUBound, rc=rc)
+                if (chkerr(rc,__LINE__,u_FILE_u)) return
+                write(cnumber,'(i0)') ungriddedUbound(1)
+                write(cnumber2,'(i0)') ungriddedUbound(2)
+                call ESMF_LogWrite(trim(subname)//':'//'field '//trim(itemc)// &
+                     ' has an ungriddedUBound of  '//trim(cnumber)//' x '//trim(cnumber2), ESMF_LOGMSG_INFO)
+
+                ! Create a new output variable for each element of the 2 ungridded dimensions
+                do n2 = 1,ungriddedUBound(2)
+                   do n = 1,ungriddedUBound(1)
+                      write(cnumber,'(i0)') n
+                      write(cnumber2,'(i0)') n2
+                      name1 = trim(lpre)//'_'//trim(itemc)//trim(cnumber)//'_'//trim(cnumber2)
+                      call ESMF_LogWrite(trim(subname)//': defining '//trim(name1), ESMF_LOGMSG_INFO)
+                      if (luse_float) then
+                         rcode = pio_def_var(io_file, trim(name1), PIO_REAL, dimid, varid)
+                         rcode = pio_put_att(io_file, varid,"_FillValue",real(lfillvalue,r4))
+                      else
+                         rcode = pio_def_var(io_file, trim(name1), PIO_DOUBLE, dimid, varid)
+                         rcode = pio_put_att(io_file,varid,"_FillValue",lfillvalue)
+                      end if
+                      if (NUOPC_FieldDictionaryHasEntry(trim(itemc))) then
+                         call NUOPC_FieldDictionaryGetEntry(itemc, canonicalUnits=cunit, rc=rc)
+                         if (chkerr(rc,__LINE__,u_FILE_u)) return
+                         rcode = pio_put_att(io_file, varid, "units", trim(cunit))
+                      end if
+                      rcode = pio_put_att(io_file, varid, "standard_name", trim(name1))
+                      if (present(tavg)) then
+                         if (tavg) then
+                            rcode = pio_put_att(io_file, varid, "cell_methods", "time: mean")
+                         endif
+                      endif
+                   end do
+                end do
+             else if (rank == 2) then
                 call ESMF_FieldGet(lfield, ungriddedUBound=ungriddedUBound, rc=rc)
                 if (chkerr(rc,__LINE__,u_FILE_u)) return
                 write(cnumber,'(i0)') ungriddedUbound(1)
                 call ESMF_LogWrite(trim(subname)//':'//'field '//trim(itemc)// &
-                     ' has an griddedUBound of  '//trim(cnumber), ESMF_LOGMSG_INFO)
+                     ' has an ungriddedUBound of  '//trim(cnumber), ESMF_LOGMSG_INFO)
 
                 ! Create a new output variable for each element of the undistributed dimension
                 do n = 1,ungriddedUBound(1)
@@ -958,7 +1000,7 @@ contains
                       if (NUOPC_FieldDictionaryHasEntry(trim(itemc))) then
                          call NUOPC_FieldDictionaryGetEntry(itemc, canonicalUnits=cunit, rc=rc)
                          if (chkerr(rc,__LINE__,u_FILE_u)) return
-                         rcode = pio_put_att(io_file, varid, "units"        , trim(cunit))
+                         rcode = pio_put_att(io_file, varid, "units", trim(cunit))
                       end if
                       rcode = pio_put_att(io_file, varid, "standard_name", trim(name1))
                       if (present(tavg)) then
@@ -968,15 +1010,15 @@ contains
                       endif
                    end if
                 end do
-             else
+             else if (rank == 1) then
                 name1 = trim(lpre)//'_'//trim(itemc)
-                call ESMF_LogWrite(trim(subname)//':'//trim(itemc)//':'//trim(name1),ESMF_LOGMSG_INFO)
+                call ESMF_LogWrite(trim(subname)//': defining '//trim(name1), ESMF_LOGMSG_INFO)
                 if (luse_float) then
                    rcode = pio_def_var(io_file, trim(name1), PIO_REAL, dimid, varid)
-                   rcode = pio_put_att(io_file, varid, "_FillValue", real(lfillvalue, r4))
+                   rcode = pio_put_att(io_file, varid,"_FillValue",real(lfillvalue,r4))
                 else
                    rcode = pio_def_var(io_file, trim(name1), PIO_DOUBLE, dimid, varid)
-                   rcode = pio_put_att(io_file, varid, "_FillValue", lfillvalue)
+                   rcode = pio_put_att(io_file,varid,"_FillValue",lfillvalue)
                 end if
                 if (NUOPC_FieldDictionaryHasEntry(trim(itemc))) then
                    call NUOPC_FieldDictionaryGetEntry(itemc, canonicalUnits=cunit, rc=rc)
@@ -988,7 +1030,10 @@ contains
                    if (tavg) then
                       rcode = pio_put_att(io_file, varid, "cell_methods", "time: mean")
                    endif
-                end if
+                endif
+             else
+                call shr_log_error(subname//' ERROR: unhandled rank', line=__LINE__, file=u_FILE_u, rc=rc)
+                return
              end if
           end if
        end do
@@ -1039,12 +1084,43 @@ contains
           end if
 
           call FB_getFldPtr(FB, itemc, &
-               fldptr1=fldptr1, fldptr2=fldptr2, rank=rank, rc=rc)
+               fldptr1=fldptr1, fldptr2=fldptr2, fldptr3=fldptr3, rank=rank, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
 
           ! TODO (mvertens, 2019-03-13): this is a temporary mod to NOT write hgt
           if (trim(itemc) /= "hgt") then
-             if (rank == 2) then
+             if (rank == 3) then
+
+                ! Determine the size of the ungridded dimensions and the index where the distributed dimension is located
+                call ESMF_FieldBundleGet(FB, itemc,  field=lfield, rc=rc)
+                if (chkerr(rc,__LINE__,u_FILE_u)) return
+                call ESMF_FieldGet(lfield, ungriddedUBound=ungriddedUBound, gridToFieldMap=gridToFieldMap, rc=rc)
+                if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+                if (gridToFieldMap(1) /= 3) then
+                   call shr_log_error( &
+                        subname//' ERROR: For rank-3 fields, currently only gridToFieldMap(1)==3 is supported', &
+                        line=__LINE__, file=u_FILE_u, rc=rc)
+                   return
+                end if
+
+                ! Output for each combination of ungriddedUbound indices
+                do n2 = 1,ungriddedUBound(2)
+                   do n = 1,ungriddedUBound(1)
+                      write(cnumber,'(i0)') n
+                      write(cnumber2,'(i0)') n2
+                      name1 = trim(lpre)//'_'//trim(itemc)//trim(cnumber)//'_'//trim(cnumber2)
+                      rcode = pio_inq_varid(io_file, trim(name1), varid)
+                      call pio_setframe(io_file,varid,frame)
+
+                      if (luse_float) then
+                         call pio_write_darray(io_file, varid, iodesc, real(fldptr3(n,n2,:),r4), rcode, fillval=real(lfillvalue,r4))
+                      else
+                         call pio_write_darray(io_file, varid, iodesc, fldptr3(n,n2,:), rcode, fillval=lfillvalue)
+                      end if
+                   end do
+                end do
+             else if (rank == 2) then
 
                 ! Determine the size of the ungridded dimension and the index where the undistributed dimension is located
                 call ESMF_FieldBundleGet(FB, itemc,  field=lfield, rc=rc)
@@ -1489,7 +1565,7 @@ contains
     type(ESMF_Field)              :: lfield
     integer                       :: rcode
     integer                       :: nf
-    integer                       :: k,n,l
+    integer                       :: k,n,n2,l
     type(file_desc_t)             :: pioid
     type(var_desc_t)              :: varid
     type(io_desc_t)               :: iodesc
@@ -1500,11 +1576,18 @@ contains
     integer                       :: rank, lsize
     real(r8), pointer             :: fldptr1(:), fldptr1_tmp(:)
     real(r8), pointer             :: fldptr2(:,:)
+    real(r8), pointer             :: fldptr3(:,:,:)
     character(CL)                 :: tmpstr
     character(len=16)             :: cnumber
+    character(len=16)             :: cnumber2
     integer(kind=Pio_Offset_Kind) :: lframe
-    integer                       :: ungriddedUBound(1) ! currently the size must equal 1 for rank 2 fieldds
-    integer                       :: gridToFieldMap(1)  ! currently the size must equal 1 for rank 2 fieldds
+
+    ! For a single ungridded dimension, there will be 1 element in ungriddedUBound and 1
+    ! element in gridToFieldMap; for two ungridded dimensions, there will be 2 elements in
+    ! ungriddedUBound but still 1 element in gridToFieldMap.
+    integer                       :: ungriddedUBound(2)
+    integer                       :: gridToFieldMap(1)
+
     character(*),parameter :: subName = '(med_io_read_FB) '
     !-------------------------------------------------------------------------------
     rc = ESMF_Success
@@ -1569,7 +1652,9 @@ contains
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           call ESMF_FieldGet(lfield, rank=rank, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
-          if (rank == 2) then
+          if (rank == 3) then
+             name1 = trim(lpre)//'_'//trim(itemc)//'1_1'
+          else if (rank == 2) then
              name1 = trim(lpre)//'_'//trim(itemc)//'1'
           else if (rank == 1) then
              name1 = trim(lpre)//'_'//trim(itemc)
@@ -1582,12 +1667,61 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        ! Get pointer to field bundle field
-       ! Field bundle might be 2d or 1d - but field on mediator history or restart file will always be 1d
+       ! Field bundle might be 3d, 2d or 1d - but field on mediator history or restart file will always be 1d
        call FB_getFldPtr(FB, itemc, &
-            fldptr1=fldptr1, fldptr2=fldptr2, rank=rank, rc=rc)
+            fldptr1=fldptr1, fldptr2=fldptr2, fldptr3=fldptr3, rank=rank, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-       if (rank == 2) then
+       if (rank == 3) then
+
+          ! Determine the size of the ungridded dimensions and the
+          ! index where the distributed dimension is located
+          call ESMF_FieldBundleGet(FB, itemc,  field=lfield, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_FieldGet(lfield, ungriddedUBound=ungriddedUBound, gridToFieldMap=gridToFieldMap, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+          if (gridToFieldMap(1) /= 3) then
+             call shr_log_error( &
+                  subname//' ERROR: For rank-3 fields, currently only gridToFieldMap(1)==3 is supported', &
+                  line=__LINE__, file=u_FILE_u, rc=rc)
+             return
+          end if
+
+          lsize = size(fldptr3, dim=3)
+          allocate(fldptr1_tmp(lsize))
+
+          do n2 = 1,ungriddedUBound(2)
+             do n = 1,ungriddedUBound(1)
+                ! Create a name for the 1d field on the mediator history or restart file based on the
+                ! ungridded dimension indices of the field bundle 3d field
+                write(cnumber,'(i0)') n
+                write(cnumber2,'(i0)') n2
+                name1 = trim(lpre)//'_'//trim(itemc)//trim(cnumber)//'_'//trim(cnumber2)
+
+                rcode = pio_inq_varid(pioid, trim(name1), varid)
+                if (rcode == pio_noerr) then
+                   call ESMF_LogWrite(trim(subname)//' read field '//trim(name1), ESMF_LOGMSG_INFO)
+                   if (chkerr(rc,__LINE__,u_FILE_u)) return
+                   call pio_setframe(pioid, varid, lframe)
+                   call pio_read_darray(pioid, varid, iodesc, fldptr1_tmp, rcode)
+                   rcode = pio_get_att(pioid, varid, "_FillValue", lfillvalue)
+                   if (rcode /= pio_noerr) then
+                      lfillvalue = fillvalue
+                   endif
+                   do l = 1,size(fldptr1_tmp)
+                      if (fldptr1_tmp(l) == lfillvalue) fldptr1_tmp(l) = 0.0_r8
+                   enddo
+                else
+                   fldptr1_tmp = 0.0_r8
+                endif
+                fldptr3(n,n2,:) = fldptr1_tmp(:)
+             end do
+          end do
+
+          deallocate(fldptr1_tmp)
+
+       else if (rank == 2) then
 
           ! Determine the size of the ungridded dimension and the
           ! index where the undistributed dimension is located
