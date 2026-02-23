@@ -924,8 +924,8 @@ contains
                          data_ice_covered_g(n) = dataptr2d(ec-1,n) * 0.5_r8 &
                               + dataptr2d(ec  ,n) * 0.5_r8
                       else
-                         data_ice_covered_g(n) =  dataptr2d(ec-1,n) * (elev_u - topoglc_g(n)) / d_elev  &
-                              + dataptr2d(ec  ,n) * (topoglc_g(n) - elev_l) / d_elev
+                         data_ice_covered_g(n) =  dataptr2d(ec-1,n) * ((elev_u - topoglc_g(n)) / d_elev)  &
+                              + dataptr2d(ec  ,n) * ((topoglc_g(n) - elev_l) / d_elev)
                       end if
                       exit
                    end if
