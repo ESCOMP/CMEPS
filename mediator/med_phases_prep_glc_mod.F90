@@ -937,7 +937,7 @@ contains
                 dataexp_g(n) = data_ice_covered_g(n)
              else
                 ! non ice-covered cells have bare land value
-                dataexp_g(n) = real(dataptr2d(1,n))
+                dataexp_g(n) = dataptr2d(1,n)
              end if
 
           end do  ! end of loop over land points
