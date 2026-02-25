@@ -35,6 +35,8 @@ module med_phases_prep_glc_mod
   use med_methods_mod       , only : fldbun_reset     => med_methods_FB_reset
   use med_methods_mod       , only : fldbun_init      => med_methods_FB_init
   use med_methods_mod       , only : fldbun_accum     => med_methods_FB_accum
+  use med_methods_mod       , only : fldbun_average   => med_methods_FB_average
+  use med_methods_mod       , only : fldbun_copy      => med_methods_FB_copy
   use med_methods_mod       , only : FB_check_for_nans => med_methods_FB_check_for_nans
   use med_methods_mod       , only : field_getdata2d  => med_methods_Field_getdata2d
   use med_methods_mod       , only : field_getdata1d  => med_methods_Field_getdata1d
@@ -599,22 +601,16 @@ contains
     ! Average and map data from land (and possibly ocean)
     if (do_avg) then
        ! Always average import from accumulated land import data
-       do n = 1, size(fldnames_fr_lnd)
-          if (fldchk(FBlndAccum2glc_l, fldnames_fr_lnd(n), rc=rc)) then
-             call fldbun_getdata2d(FBlndAccum2glc_l, fldnames_fr_lnd(n), data2d, rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
              if (lndAccum2glc_cnt > 0) then
                 ! If accumulation count is greater than 0, do the averaging
-                data2d(:,:) = data2d(:,:) / real(lndAccum2glc_cnt)
+          call fldbun_average(FB=FBlndAccum2glc_l, count=lndAccum2glc_cnt, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
              else
                 ! If accumulation count is 0, then simply set the averaged field bundle values from the land
                 ! to the import field bundle values
-                call fldbun_getdata2d(is_local%wrap%FBImp(complnd,complnd), fldnames_fr_lnd(n), data2d_import, rc)
+          call fldbun_copy(FBout=FBlndAccum2glc_l, FBin=is_local%wrap%FBImp(complnd,complnd), rc=rc)
                 if (chkerr(rc,__LINE__,u_FILE_u)) return
-                data2d(:,:) = data2d_import(:,:)
              end if
-          end if
-       end do
 
        if (is_local%wrap%ocn2glc_coupling) then
           ! Average import from accumulated ocn import data
