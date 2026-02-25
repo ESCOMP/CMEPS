@@ -13,6 +13,7 @@ module wtracers_mod
    implicit none
    private
 
+   public :: wtracers_present             ! return true if there are water tracers in this simulation
    public :: wtracers_get_num_tracers     ! get number of water tracers in this simulation
    public :: wtracers_is_wtracer_field    ! return true if the given field name is a water tracer field
    public :: wtracers_get_bulk_fieldname  ! return the name of the equivalent bulk field corresponding to a water tracer field
@@ -23,7 +24,25 @@ module wtracers_mod
       module procedure wtracers_check_tracer_ratios_2d
    end interface wtracers_check_tracer_ratios
 
+   ! Suffix for water tracer field names
+   character(len=*), parameter, public :: WTRACERS_SUFFIX = "_wtracers"
+
 contains
+
+   !-----------------------------------------------------------------------
+   function wtracers_present()
+      !
+      ! !DESCRIPTION:
+      ! Return true if there are water tracers in this simulation
+      !
+      ! In this stub implementation, we always return false, since water tracers are not
+      ! implemented here.
+      !
+      ! !ARGUMENTS
+      logical :: wtracers_present  ! function result
+      !-----------------------------------------------------------------------
+      wtracers_present = .false.
+   end function wtracers_present
 
    !-----------------------------------------------------------------------
    function wtracers_get_num_tracers()
