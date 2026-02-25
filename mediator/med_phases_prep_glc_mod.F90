@@ -790,12 +790,6 @@ contains
     ! to the glc grid (in multiple elevation classes) using bilinear interpolation
     ! ------------------------------------------------------------------------
 
-    ! Initialize accumulated field bundle on the glc grid to zero before doing the mapping
-    do ns = 1,is_local%wrap%num_icesheets
-       call fldbun_reset(toglc_frlnd(ns)%FBlndAccum2glc_g, value=0.0_r8, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-    end do
-
     ! TODO(wjs, 2015-01-20) This implies that we pass data to CISM even in places that
     ! CISM says is ocean (so CISM will ignore the incoming value). This differs from the
     ! current glint implementation, which sets acab and artm to 0 over ocean (although
@@ -814,12 +808,10 @@ contains
     call ESMF_FieldBundleGet(is_local%wrap%FBFrac(complnd), fieldName=map_fracname_lnd2glc, field=field_lfrac_l, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    ! map accumlated land fields to each ice sheet (normalize by the land fraction in the mapping)
+    ! map accumulated land fields to each ice sheet (normalize by the land fraction in the mapping)
     do ns = 1,is_local%wrap%num_icesheets
        call fldbun_reset(toglc_frlnd(ns)%FBlndAccum2glc_g, value=0.0_r8, rc=rc)
        if (chkErr(rc,__LINE__,u_FILE_u)) return
-    end do
-    do ns = 1,is_local%wrap%num_icesheets
        call ESMF_FieldBundleGet(toglc_frlnd(ns)%FBlndAccum2glc_g, fieldlist=fieldlist_glc, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        do nfld = 1,fieldcount
