@@ -34,6 +34,7 @@ module med_phases_prep_glc_mod
   use med_methods_mod       , only : fldbun_diagnose  => med_methods_FB_diagnose
   use med_methods_mod       , only : fldbun_reset     => med_methods_FB_reset
   use med_methods_mod       , only : fldbun_init      => med_methods_FB_init
+  use med_methods_mod       , only : fldbun_accum     => med_methods_FB_accum
   use med_methods_mod       , only : FB_check_for_nans => med_methods_FB_check_for_nans
   use med_methods_mod       , only : field_getdata2d  => med_methods_Field_getdata2d
   use med_methods_mod       , only : field_getdata1d  => med_methods_Field_getdata1d
@@ -376,9 +377,6 @@ contains
 
     ! local variables
     type(InternalState) :: is_local
-    integer             :: i,n
-    real(r8), pointer   :: data2d_in(:,:)
-    real(r8), pointer   :: data2d_out(:,:)
     character(len=*),parameter :: subname=' (med_phases_prep_glc_accum) '
     !---------------------------------------
 
@@ -395,15 +393,8 @@ contains
     if (chkErr(rc,__LINE__,u_FILE_u)) return
 
     ! Accumulate fields from land on land mesh that will be sent to glc
-    do n = 1, size(fldnames_fr_lnd)
-       call fldbun_getdata2d(is_local%wrap%FBImp(complnd,complnd), fldnames_fr_lnd(n), data2d_in, rc)
+    call fldbun_accum(FBout=FBlndAccum2glc_l, FBin=is_local%wrap%FBImp(complnd,complnd), rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call fldbun_getdata2d(FBlndAccum2glc_l, fldnames_fr_lnd(n), data2d_out, rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       do i = 1,size(data2d_out, dim=2)
-          data2d_out(:,i) = data2d_out(:,i) + data2d_in(:,i)
-       end do
-    end do
     lndAccum2glc_cnt = lndAccum2glc_cnt + 1
     if (dbug_flag > 1) then
        call fldbun_diagnose(FBlndAccum2glc_l, string=trim(subname)// ' FBlndAccum2glc_l ',  rc=rc)
