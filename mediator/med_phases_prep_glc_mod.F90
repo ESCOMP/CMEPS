@@ -924,8 +924,8 @@ contains
                          data_ice_covered_g(n) = dataptr2d(ec-1,n) * 0.5_r8 &
                               + dataptr2d(ec  ,n) * 0.5_r8
                       else
-                         data_ice_covered_g(n) =  dataptr2d(ec-1,n) * (elev_u - topoglc_g(n)) / d_elev  &
-                              + dataptr2d(ec  ,n) * (topoglc_g(n) - elev_l) / d_elev
+                         data_ice_covered_g(n) =  dataptr2d(ec-1,n) * ((elev_u - topoglc_g(n)) / d_elev)  &
+                              + dataptr2d(ec  ,n) * ((topoglc_g(n) - elev_l) / d_elev)
                       end if
                       exit
                    end if
@@ -937,7 +937,7 @@ contains
                 dataexp_g(n) = data_ice_covered_g(n)
              else
                 ! non ice-covered cells have bare land value
-                dataexp_g(n) = real(dataptr2d(1,n))
+                dataexp_g(n) = dataptr2d(1,n)
              end if
 
           end do  ! end of loop over land points
