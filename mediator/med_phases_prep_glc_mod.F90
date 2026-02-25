@@ -613,7 +613,7 @@ contains
              if (chkerr(rc,__LINE__,u_FILE_u)) return
              if (lndAccum2glc_cnt > 0) then
                 ! If accumulation count is greater than 0, do the averaging
-                data2d(:,:) = data2d(:,:) / real(lndAccum2glc_cnt)
+                data2d(:,:) = data2d(:,:) / real(lndAccum2glc_cnt, R8)
              else
                 ! If accumulation count is 0, then simply set the averaged field bundle values from the land
                 ! to the import field bundle values
@@ -631,7 +631,7 @@ contains
              if (chkerr(rc,__LINE__,u_FILE_u)) return
              if (ocnAccum2glc_cnt > 0) then
                 ! If accumulation count is greater than 0, do the averaging
-                data2d(:,:) = data2d(:,:) / real(ocnAccum2glc_cnt)
+                data2d(:,:) = data2d(:,:) / real(ocnAccum2glc_cnt, R8)
              else
                 ! If accumulation count is 0, then simply set the averaged field bundle values from the ocn
                 ! to the import field bundle values
