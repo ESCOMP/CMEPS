@@ -207,8 +207,8 @@ contains
        if (has_wtracers) then
           lfield = ESMF_FieldCreate(mesh_l, ESMF_TYPEKIND_R8, name=qice_elev_wtracers_fieldname, &
                meshloc=ESMF_MESHLOC_ELEMENT, &
-               ! Note the assumption of dimension ordering here: [wtracer, elev, gridcell]
-               ungriddedLbound=(/1,1/), ungriddedUbound=(/num_wtracers, ungriddedCount/), gridToFieldMap=(/3/), &
+               ! Note the assumption of dimension ordering here: [elev, wtracer, gridcell]
+               ungriddedLbound=(/1,1/), ungriddedUbound=(/ungriddedCount, num_wtracers/), gridToFieldMap=(/3/), &
                rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           call ESMF_FieldBundleAdd(FBlndAccum2glc_l, (/lfield/), rc=rc)
@@ -247,8 +247,8 @@ contains
           if (has_wtracers) then
              lfield = ESMF_FieldCreate(toglc_frlnd(ns)%mesh_g, ESMF_TYPEKIND_R8, name=qice_elev_wtracers_fieldname, &
                   meshloc=ESMF_MESHLOC_ELEMENT, &
-                  ! Note the assumption of dimension ordering here: [wtracer, elev, gridcell]
-                  ungriddedLbound=(/1,1/), ungriddedUbound=(/num_wtracers, ungriddedCount/), gridToFieldMap=(/3/), &
+                  ! Note the assumption of dimension ordering here: [elev, wtracer, gridcell]
+                  ungriddedLbound=(/1,1/), ungriddedUbound=(/ungriddedCount, num_wtracers/), gridToFieldMap=(/3/), &
                   rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
              call ESMF_FieldBundleAdd(toglc_frlnd(ns)%FBlndAccum2glc_g, (/lfield/), rc=rc)
@@ -984,7 +984,7 @@ contains
 
        ! ------------------------------------------------------------------------
        ! Now do an equivalent vertical interpolation for the qice water tracer field. This
-       ! needs to be handled separately from the above loop because there is ana extra
+       ! needs to be handled separately from the above loop because there is an extra
        ! dimension in this field.
        ! ------------------------------------------------------------------------
 
@@ -1003,13 +1003,13 @@ contains
              if (elevclass_g(n) /= 0) then
                 ! ice-covered cells: vertically interpolate between bounding ECs
                 do t = 1, num_wtracers
-                   dataexp2d_g(t, n) = dataptr3d(t, index_lower(n), n) * weight_lower(n) &
-                                     + dataptr3d(t, index_upper(n), n) * weight_upper(n)
+                   dataexp2d_g(t, n) = dataptr3d(index_lower(n), t, n) * weight_lower(n) &
+                                     + dataptr3d(index_upper(n), t, n) * weight_upper(n)
                 end do
              else
                 ! non ice-covered cells: use bare land value (EC index 1)
                 do t = 1, num_wtracers
-                   dataexp2d_g(t, n) = dataptr3d(t, 1, n)
+                   dataexp2d_g(t, n) = dataptr3d(1, t, n)
                 end do
              end if
           end do

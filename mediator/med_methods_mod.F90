@@ -2800,7 +2800,7 @@ contains
     real(r8), pointer :: dataNonTracer1d(:)  ! dimensioned [gridcell]
 
     ! For 2-d bulk arrays:
-    real(r8), pointer :: dataTracers3d(:,:,:) ! dimensioned [tracerNum, ungriddedDim, gridcell]
+    real(r8), pointer :: dataTracers3d(:,:,:) ! dimensioned [ungriddedDim, tracerNum, gridcell]
     real(r8), pointer :: dataNonTracer2d(:,:) ! dimensioned [ungriddedDim, gridcell]
 
     character(len=*), parameter :: subname='(med_methods_FB_check_wtracers)'

@@ -119,7 +119,7 @@ contains
       ! In this stub implementation, we simply return without doing anything
       !
       ! !ARGUMENTS
-      real(r8), intent(in) :: tracers(:,:,:)  ! dimensioned [tracerNum, ungriddedDim, gridcell]
+      real(r8), intent(in) :: tracers(:,:,:)  ! dimensioned [ungriddedDim, tracerNum, gridcell]
       real(r8), intent(in) :: bulk(:,:)       ! dimensioned [ungriddedDim, gridcell]
       character(len=*), intent(in) :: name  ! for diagnostic output
       !-----------------------------------------------------------------------
