@@ -194,11 +194,11 @@ contains
                  fldlist(n)%ungridded_ubound > 0 .and. &
                  fldlist(n)%num_wtracers > 0) then
                 ! This field has two ungridded dimensions: one for water tracers and one
-                ! for some other purpose. The first ungridded dimension will be for water
+                ! for some other purpose. The second ungridded dimension will be for water
                 ! tracers.
                 field = ESMF_FieldCreate(mesh, ESMF_TYPEKIND_R8, name=stdname, meshloc=ESMF_MESHLOC_ELEMENT, &
-                     ungriddedLbound=(/1, fldlist(n)%ungridded_lbound/), &
-                     ungriddedUbound=(/fldlist(n)%num_wtracers, fldlist(n)%ungridded_ubound/), &
+                     ungriddedLbound=(/fldlist(n)%ungridded_lbound, 1/), &
+                     ungriddedUbound=(/fldlist(n)%ungridded_ubound, fldlist(n)%num_wtracers/), &
                      gridToFieldMap=(/3/), rc=rc)
                 if (chkerr(rc,__LINE__,u_FILE_u)) return
              else if (fldlist(n)%ungridded_lbound > 0 .and. &
@@ -441,7 +441,7 @@ contains
           if (chkerr(rc,__LINE__,u_FILE_u)) return
 
           do n = 1, fld%num_wtracers
-             data_wtracers_3d(n,:,:) = data_bulk_2d(:,:) * shr_wtracers_get_initial_ratio(n)
+             data_wtracers_3d(:,n,:) = data_bulk_2d(:,:) * shr_wtracers_get_initial_ratio(n)
           end do
        else
           ! No additional ungridded dimension
@@ -468,7 +468,7 @@ contains
           if (chkerr(rc,__LINE__,u_FILE_u)) return
 
           do n = 1, fld%num_wtracers
-             data_wtracers_3d(n,:,:) = shr_wtracers_get_initial_ratio(n)
+             data_wtracers_3d(:,n,:) = shr_wtracers_get_initial_ratio(n)
           end do
        else
           ! No additional ungridded dimension
