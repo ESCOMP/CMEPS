@@ -853,7 +853,6 @@
     </desc>
     <values>
       <value>on</value>
-      <value COMP_LND="xlnd">off</value>
     </values>
   </entry>
   <entry id="remove_negative_runoff_lnd">
