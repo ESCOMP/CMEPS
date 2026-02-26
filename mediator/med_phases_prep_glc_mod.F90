@@ -29,6 +29,7 @@ module med_phases_prep_glc_mod
   use med_constants_mod     , only : czero            => med_constants_czero
   use med_constants_mod     , only : shr_const_pi, shr_const_spval
   use med_methods_mod       , only : fldbun_getmesh   => med_methods_FB_getmesh
+  use med_methods_mod       , only : fldbun_getdata3d => med_methods_FB_getdata3d
   use med_methods_mod       , only : fldbun_getdata2d => med_methods_FB_getdata2d
   use med_methods_mod       , only : fldbun_getdata1d => med_methods_FB_getdata1d
   use med_methods_mod       , only : fldbun_diagnose  => med_methods_FB_diagnose
@@ -48,6 +49,7 @@ module med_phases_prep_glc_mod
   use glc_elevclass_mod     , only : glc_get_num_elevation_classes
   use glc_elevclass_mod     , only : glc_get_elevation_classes
   use glc_elevclass_mod     , only : glc_get_fractional_icecov
+  use wtracers_mod          , only : wtracers_present, wtracers_get_num_tracers, WTRACERS_SUFFIX
   use perf_mod              , only : t_startf, t_stopf
   use shr_log_mod           , only : shr_log_error
   
@@ -100,10 +102,15 @@ module med_phases_prep_glc_mod
   type(ESMF_Field)               :: field_frac_l_ec
 
   character(len=*), parameter    :: qice_fieldname       = 'Flgl_qice' ! Name of flux field giving surface mass balance
+  character(len=*), parameter    :: qice_elev_fieldname  = 'Flgl_qice_elev' ! Name of flux field giving surface mass balance, separated by elevation class
+  character(len=*), parameter    :: qice_wtracers_fieldname = qice_fieldname//WTRACERS_SUFFIX
+  character(len=*), parameter    :: qice_elev_wtracers_fieldname = qice_elev_fieldname//WTRACERS_SUFFIX
   character(len=*), parameter    :: Sg_frac_fieldname    = 'Sg_ice_covered'
   character(len=*), parameter    :: Sg_topo_fieldname    = 'Sg_topo'
   character(len=*), parameter    :: Sg_icemask_fieldname = 'Sg_icemask'
   integer                        :: ungriddedCount ! this equals the number of elevation classes + 1 (for bare land)
+  logical                        :: has_wtracers ! true if this simulation has water tracers
+  integer                        :: num_wtracers ! number of water tracers in this simulation
 
   ! -----------------
   ! ocn -> glc
@@ -161,6 +168,12 @@ contains
     ! allocate module variables
     allocate(toglc_frlnd(is_local%wrap%num_icesheets))
 
+    ! Check whether this simulation has water tracers
+    has_wtracers = wtracers_present()
+    if (has_wtracers) then
+       num_wtracers = wtracers_get_num_tracers()
+    end if
+
     ! -------------------------------
     ! If will accumulate lnd2glc input on land grid
     ! -------------------------------
@@ -191,6 +204,18 @@ contains
           call ESMF_LogWrite(trim(subname)//' adding field '//trim(fldnames_fr_lnd(n))//' to FBLndAccum_l', &
                ESMF_LOGMSG_INFO)
        end do
+       if (has_wtracers) then
+          lfield = ESMF_FieldCreate(mesh_l, ESMF_TYPEKIND_R8, name=qice_elev_wtracers_fieldname, &
+               meshloc=ESMF_MESHLOC_ELEMENT, &
+               ! Note the assumption of dimension ordering here: [wtracer, elev, gridcell]
+               ungriddedLbound=(/1,1/), ungriddedUbound=(/num_wtracers, ungriddedCount/), gridToFieldMap=(/3/), &
+               rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_FieldBundleAdd(FBlndAccum2glc_l, (/lfield/), rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_LogWrite(trim(subname)//' adding field '//qice_elev_wtracers_fieldname//' to FBLndAccum_l', &
+               ESMF_LOGMSG_INFO)
+       end if
        call fldbun_reset(FBlndAccum2glc_l, value=0.0_r8, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     end if
@@ -219,6 +244,16 @@ contains
              call ESMF_FieldBundleAdd(toglc_frlnd(ns)%FBlndAccum2glc_g, (/lfield/), rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
           end do
+          if (has_wtracers) then
+             lfield = ESMF_FieldCreate(toglc_frlnd(ns)%mesh_g, ESMF_TYPEKIND_R8, name=qice_elev_wtracers_fieldname, &
+                  meshloc=ESMF_MESHLOC_ELEMENT, &
+                  ! Note the assumption of dimension ordering here: [wtracer, elev, gridcell]
+                  ungriddedLbound=(/1,1/), ungriddedUbound=(/num_wtracers, ungriddedCount/), gridToFieldMap=(/3/), &
+                  rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+             call ESMF_FieldBundleAdd(toglc_frlnd(ns)%FBlndAccum2glc_g, (/lfield/), rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+          end if
           call fldbun_reset(toglc_frlnd(ns)%FBlndAccum2glc_g, value=0.0_r8, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
 
@@ -396,7 +431,7 @@ contains
 
     ! Accumulate fields from land on land mesh that will be sent to glc
     call fldbun_accum(FBout=FBlndAccum2glc_l, FBin=is_local%wrap%FBImp(complnd,complnd), rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
     lndAccum2glc_cnt = lndAccum2glc_cnt + 1
     if (dbug_flag > 1) then
        call fldbun_diagnose(FBlndAccum2glc_l, string=trim(subname)// ' FBlndAccum2glc_l ',  rc=rc)
@@ -601,16 +636,16 @@ contains
     ! Average and map data from land (and possibly ocean)
     if (do_avg) then
        ! Always average import from accumulated land import data
-             if (lndAccum2glc_cnt > 0) then
-                ! If accumulation count is greater than 0, do the averaging
+       if (lndAccum2glc_cnt > 0) then
+          ! If accumulation count is greater than 0, do the averaging
           call fldbun_average(FB=FBlndAccum2glc_l, count=lndAccum2glc_cnt, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
-             else
-                ! If accumulation count is 0, then simply set the averaged field bundle values from the land
-                ! to the import field bundle values
+       else
+          ! If accumulation count is 0, then simply set the averaged field bundle values from the land
+          ! to the import field bundle values
           call fldbun_copy(FBout=FBlndAccum2glc_l, FBin=is_local%wrap%FBImp(complnd,complnd), rc=rc)
-                if (chkerr(rc,__LINE__,u_FILE_u)) return
-             end if
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+       end if
 
        if (is_local%wrap%ocn2glc_coupling) then
           ! Average import from accumulated ocn import data
@@ -749,8 +784,10 @@ contains
     real(r8), pointer   :: topoglc_g(:)           ! ice topographic height on the glc grid extracted from glc import
     real(r8), pointer   :: ice_covered_g(:)       ! if points on the glc grid is ice-covered (1) or ice-free (0)
     integer , pointer   :: elevclass_g(:)         ! elevation classes glc grid
-    real(r8), pointer   :: dataexp_g(:)           ! pointer into
+    real(r8), pointer   :: dataexp1d_g(:)
+    real(r8), pointer   :: dataexp2d_g(:,:)
     real(r8), pointer   :: dataptr2d(:,:)
+    real(r8), pointer   :: dataptr3d(:,:,:)
     real(r8)            :: elev_l, elev_u         ! lower and upper elevations in interpolation range
     real(r8)            :: d_elev                 ! elev_u - elev_l
     integer             :: nfld, ec
@@ -758,7 +795,7 @@ contains
     integer,  allocatable :: index_upper(:)   ! upper EC index for vertical interpolation, per glc gridcell
     real(r8), allocatable :: weight_lower(:)  ! weight for lower EC, per glc gridcell
     real(r8), allocatable :: weight_upper(:)  ! weight for upper EC, per glc gridcell
-    integer             :: n,lsize_g,ns
+    integer             :: n,lsize_g,ns,t
     type(ESMF_Field)    :: field_lfrac_l
     integer             :: fieldCount
     character(len=3)    :: cnum
@@ -773,7 +810,7 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! ------------------------------------------------------------------------
-    ! Map the accumulate land field from the land grid (in multiple elevation classes)
+    ! Map the accumulated land field from the land grid (in multiple elevation classes)
     ! to the glc grid (in multiple elevation classes) using bilinear interpolation
     ! ------------------------------------------------------------------------
 
@@ -928,26 +965,60 @@ contains
           if (chkErr(rc,__LINE__,u_FILE_u)) return
 
           ! Get a pointer to the data for the field that will be sent to glc (without elevation classes)
-          call fldbun_getdata1d(is_local%wrap%FBExp(compglc(ns)), fldnames_to_glc(nfld), dataexp_g, rc)
+          call fldbun_getdata1d(is_local%wrap%FBExp(compglc(ns)), fldnames_to_glc(nfld), dataexp1d_g, rc)
           if (chkErr(rc,__LINE__,u_FILE_u)) return
 
           ! Apply pre-computed vertical interpolation indices and weights
           do n = 1, lsize_g
              if (elevclass_g(n) /= 0) then
                 ! ice-covered cells: vertically interpolate between bounding ECs
-                dataexp_g(n) = dataptr2d(index_lower(n), n) * weight_lower(n) &
-                             + dataptr2d(index_upper(n), n) * weight_upper(n)
+                dataexp1d_g(n) = dataptr2d(index_lower(n), n) * weight_lower(n) &
+                               + dataptr2d(index_upper(n), n) * weight_upper(n)
              else
                 ! non ice-covered cells: use bare land value (EC index 1)
-                dataexp_g(n) = dataptr2d(1, n)
+                dataexp1d_g(n) = dataptr2d(1, n)
              end if
-          end do  ! end of loop over land points
+          end do
 
        end do ! end loop over fields (nflds)
 
        ! ------------------------------------------------------------------------
-       ! Renormalize surface mass balance (smb, here named dataexp_g) so that the global
-       ! integral on the glc grid is equal to the global integral on the land grid.
+       ! Now do an equivalent vertical interpolation for the qice water tracer field. This
+       ! needs to be handled separately from the above loop because there is ana extra
+       ! dimension in this field.
+       ! ------------------------------------------------------------------------
+
+       if (has_wtracers) then
+
+          ! Get a pointer to the land data in multiple elevation classes on the glc grid
+          call fldbun_getdata3d(toglc_frlnd(ns)%FBlndAccum2glc_g, qice_elev_wtracers_fieldname, dataptr3d, rc)
+          if (chkErr(rc,__LINE__,u_FILE_u)) return
+
+          ! Get a pointer to the data for the field that will be sent to glc (without elevation classes)
+          call fldbun_getdata2d(is_local%wrap%FBExp(compglc(ns)), qice_wtracers_fieldname, dataexp2d_g, rc)
+          if (chkErr(rc,__LINE__,u_FILE_u)) return
+
+          ! Apply pre-computed vertical interpolation indices and weights
+          do n = 1, lsize_g
+             if (elevclass_g(n) /= 0) then
+                ! ice-covered cells: vertically interpolate between bounding ECs
+                do t = 1, num_wtracers
+                   dataexp2d_g(t, n) = dataptr3d(t, index_lower(n), n) * weight_lower(n) &
+                                     + dataptr3d(t, index_upper(n), n) * weight_upper(n)
+                end do
+             else
+                ! non ice-covered cells: use bare land value (EC index 1)
+                do t = 1, num_wtracers
+                   dataexp2d_g(t, n) = dataptr3d(t, 1, n)
+                end do
+             end if
+          end do
+
+       end if
+
+       ! ------------------------------------------------------------------------
+       ! Renormalize surface mass balance (smb) so that the global integral on the glc
+       ! grid is equal to the global integral on the land grid.
        ! ------------------------------------------------------------------------
 
        ! No longer need to make a preemptive adjustment to qice_g to account for area differences
@@ -1143,7 +1214,7 @@ contains
     if (chkErr(rc,__LINE__,u_FILE_u)) return
 
     ! get qice_l_ec
-    call fldbun_getdata2d(FBlndAccum2glc_l, trim(qice_fieldname)//'_elev', qice_l_ec, rc)
+    call fldbun_getdata2d(FBlndAccum2glc_l, trim(qice_elev_fieldname), qice_l_ec, rc)
     if (chkErr(rc,__LINE__,u_FILE_u)) return
 
     local_accum_lnd(1) = 0.0_r8
