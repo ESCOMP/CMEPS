@@ -230,6 +230,9 @@ contains
                num_wtracers=num_wtracers)
        end if
 
+       ! This is needed for the smb renormalization
+       call fld_list_add(fldsFrGlc_num, fldsFrGlc, 'Sg_area')
+
        call fld_list_add(fldsToGlc_num, fldsToGlc, trim(flds_scalar_name))
        call fld_list_add(fldsToGlc_num, fldsToGlc, 'Sl_tsrf')
        call fld_list_add(fldsToGlc_num, fldsToGlc, 'Flgl_qice')
@@ -455,6 +458,9 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        if (fldname == 'Sg_icemask' .or.  fldname == 'Sg_icemask_coupled_fluxes') then
           data1d(:) = 1._r8
+       else if (fldname == 'Sg_area') then
+          ! These are not actual areas, but they'll do well enough to have some variation in area
+          data1d(:) = lat(:)/90._r8
        else if (fldname == 'Sg_ice_covered') then
           ! Split domain into ice-covered (1) and not (0) at the midpoint of the
           ! longitude range. We convert to [-180, 180) so that data crossing 0
