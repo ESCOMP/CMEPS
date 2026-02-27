@@ -64,6 +64,8 @@ module med_phases_prep_glc_mod
 
   private :: med_phases_prep_glc_map_lnd2glc
   private :: med_phases_prep_glc_renormalize_smb
+  private :: renormalize_smb_accumulate_sums_l
+  private :: renormalize_smb_accumulate_sums_g
 
   ! -----------------
   ! lnd -> glc
@@ -1129,7 +1131,7 @@ contains
     ! renormalization factors (should be close to 1, e.g. in range 0.95 to 1.05)
     real(r8) :: accum_renorm_factor ! ratio between global accumulation on the two grids
     real(r8) :: ablat_renorm_factor ! ratio between global ablation on the two grids
-    real(r8) :: effective_area      ! grid cell area multiplied by min(lndfrac,icemask_l).
+    real(r8), allocatable :: effective_area_l(:) ! effective areas on the land grid: grid cell area multiplied by min(lndfrac,icemask_l).
     real(r8), pointer :: area_g(:)  ! areas on glc grid
     character(len=*), parameter  :: subname=' (renormalize_smb) '
     !---------------------------------------------------------------
@@ -1213,25 +1215,19 @@ contains
     call fldbun_getdata1d(is_local%wrap%FBFrac(complnd), map_fracname_lnd2glc, lndfrac, rc)
     if (chkErr(rc,__LINE__,u_FILE_u)) return
 
+    allocate(effective_area_l(size(lndfrac)))
+    do n = 1, size(lndfrac)
+       effective_area_l(n) = min(lndfrac(n), icemask_l(n)) * is_local%wrap%mesh_info(complnd)%areas(n)
+    end do
+
     ! get qice_l_ec
     call fldbun_getdata2d(FBlndAccum2glc_l, trim(qice_elev_fieldname), qice_l_ec, rc)
     if (chkErr(rc,__LINE__,u_FILE_u)) return
 
-    local_accum_lnd(1) = 0.0_r8
-    local_ablat_lnd(1) = 0.0_r8
-    do n = 1, size(lndfrac)
-       ! Calculate effective area for sum -  need the mapped icemask_l
-       effective_area = min(lndfrac(n), icemask_l(n)) * is_local%wrap%mesh_info(complnd)%areas(n)
-       if (effective_area > 0.0_r8) then
-          do ec = 1, ungriddedCount
-             if (qice_l_ec(ec,n) >= 0.0_r8) then
-                local_accum_lnd(1) = local_accum_lnd(1) + effective_area * frac_l_ec(ec,n) * qice_l_ec(ec,n)
-             else
-                local_ablat_lnd(1) = local_ablat_lnd(1) + effective_area * frac_l_ec(ec,n) * qice_l_ec(ec,n)
-             endif
-          end do ! ec
-       end if ! if landmaks > 0
-    enddo  ! n
+    call renormalize_smb_accumulate_sums_l(effective_area_l, frac_l_ec, qice_l_ec, &
+         local_accum_lnd(1), local_ablat_lnd(1))
+
+    deallocate(effective_area_l)
 
     call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -1258,15 +1254,8 @@ contains
     call fldbun_getdata1d(is_local%wrap%FBImp(compglc(ns),compglc(ns)), 'Sg_area', area_g, rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    local_accum_glc(1) = 0.0_r8
-    local_ablat_glc(1) = 0.0_r8
-    do n = 1, size(qice_g)
-       if (qice_g(n) >= 0.0_r8) then
-          local_accum_glc(1) = local_accum_glc(1) + icemask_g(n) * area_g(n) * qice_g(n)
-       else
-          local_ablat_glc(1) = local_ablat_glc(1) + icemask_g(n) * area_g(n) * qice_g(n)
-       endif
-    enddo  ! n
+    call renormalize_smb_accumulate_sums_g(qice_g, icemask_g, area_g, &
+         local_accum_glc(1), local_ablat_glc(1))
     call ESMF_VMAllreduce(vm, senddata=local_accum_glc, recvdata=global_accum_glc, count=1, &
          reduceflag=ESMF_REDUCE_SUM, rc=rc)
     call ESMF_VMAllreduce(vm, senddata=local_ablat_glc, recvdata=global_ablat_glc, count=1, &
@@ -1303,6 +1292,68 @@ contains
     call t_stopf('MED:'//subname)
 
   end subroutine med_phases_prep_glc_renormalize_smb
+
+  !================================================================================================
+  subroutine renormalize_smb_accumulate_sums_l(effective_area_l, frac_l_ec, qice_l_ec, &
+       accum_l, ablat_l)
+
+    ! Compute local accumulation and ablation sums on land grid
+
+    ! input/output variables
+    real(r8), intent(in)  :: effective_area_l(:)
+    real(r8), intent(in)  :: frac_l_ec(:,:)
+    real(r8), intent(in)  :: qice_l_ec(:,:)
+    real(r8), intent(out) :: accum_l
+    real(r8), intent(out) :: ablat_l
+
+    ! local variables
+    integer :: n, ec
+    !---------------------------------------------------------------
+
+    accum_l = 0.0_r8
+    ablat_l = 0.0_r8
+    do n = 1, size(effective_area_l)
+       if (effective_area_l(n) > 0.0_r8) then
+          do ec = 1, ungriddedCount
+             if (qice_l_ec(ec,n) >= 0.0_r8) then
+                accum_l = accum_l + effective_area_l(n) * frac_l_ec(ec,n) * qice_l_ec(ec,n)
+             else
+                ablat_l = ablat_l + effective_area_l(n) * frac_l_ec(ec,n) * qice_l_ec(ec,n)
+             end if
+          end do
+       end if
+    end do
+
+  end subroutine renormalize_smb_accumulate_sums_l
+
+  !================================================================================================
+  subroutine renormalize_smb_accumulate_sums_g(qice_g, icemask_g, area_g, &
+       accum_g, ablat_g)
+
+    ! Compute local accumulation and ablation sums on glc grid
+
+    ! input/output variables
+    real(r8), intent(in)  :: qice_g(:)
+    real(r8), intent(in)  :: icemask_g(:)
+    real(r8), intent(in)  :: area_g(:)
+    real(r8), intent(out) :: accum_g
+    real(r8), intent(out) :: ablat_g
+
+    ! local variables
+    integer :: n
+    !---------------------------------------------------------------
+
+    accum_g = 0.0_r8
+    ablat_g = 0.0_r8
+    do n = 1, size(qice_g)
+       if (qice_g(n) >= 0.0_r8) then
+          accum_g = accum_g + icemask_g(n) * area_g(n) * qice_g(n)
+       else
+          ablat_g = ablat_g + icemask_g(n) * area_g(n) * qice_g(n)
+       end if
+    end do
+
+  end subroutine renormalize_smb_accumulate_sums_g
 
   !================================================================================================
   subroutine dynOcnMaskProc(dynamicMaskList, dynamicSrcMaskValue, dynamicDstMaskValue, rc)
