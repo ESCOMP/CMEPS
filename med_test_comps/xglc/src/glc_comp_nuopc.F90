@@ -459,8 +459,13 @@ contains
        if (fldname == 'Sg_icemask' .or.  fldname == 'Sg_icemask_coupled_fluxes') then
           data1d(:) = 1._r8
        else if (fldname == 'Sg_area') then
-          ! These are not actual areas, but they'll do well enough to have some variation in area
-          data1d(:) = lat(:)/90._r8
+          ! These are not actual areas, but they'll do well enough to have some variation
+          ! in area. Note that deviations from the actual areas will lead to compensations
+          ! in the SMB renormalization. Here we set the areas to a typical order of
+          ! magnitude of actual areas on the GLC grid, but don't worry about getting the
+          ! actual areas right, just allowing this renormalization to have
+          ! bigger-than-typical correction factors.
+          data1d(:) = 1.e-6_r8 * lat(:)/90._r8
        else if (fldname == 'Sg_ice_covered') then
           ! Split domain into ice-covered (1) and not (0) at the midpoint of the
           ! longitude range. We convert to [-180, 180) so that data crossing 0

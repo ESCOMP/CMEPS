@@ -17,6 +17,7 @@ module lnd_comp_nuopc
   use shr_log_mod     , only : shr_log_getlogunit, shr_log_setlogunit
   use shr_wtracers_mod, only : WTRACERS_SUFFIX
   use shr_wtracers_mod, only : shr_wtracers_present, shr_wtracers_get_num_tracers
+  use glc_elevclass_mod, only : glc_get_elevclass_bounds
   use dead_methods_mod , only : chkerr, state_setscalar,  state_diagnose, alarmInit, memcheck
   use dead_methods_mod , only : set_component_logging, get_component_instance, log_clock_advance
   use dead_nuopc_mod   , only : dead_read_inparms, ModelInitPhase, ModelSetRunClock
@@ -562,7 +563,13 @@ contains
     type(ESMF_Field)  :: lfield
     real(r8), pointer :: data1d(:)
     real(r8), pointer :: data2d(:,:)
+    real(r8)          :: glc_elevclass_bounds(0:glc_nec)
+    integer           :: glc_elevclass
+    real(r8)          :: topo_min, topo_max
+    real(r8)          :: sign
     integer, parameter :: gridTofieldMap = 2 ! ungridded dimension is innermost
+
+    character(len=*), parameter :: subname = trim(modName)//':(field_setexport) '
     !--------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -574,16 +581,48 @@ contains
     if (present(ungridded_index)) then
        call ESMF_FieldGet(lfield, farrayPtr=data2d, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (gridToFieldMap == 1) then
-          do i = 1,size(data2d, dim=1)
-             data2d(i,ungridded_index) = (nf*100) * cos(pi*lat(i)/180.0_R8) * &
-                  sin((pi*lon(i)/180.0_R8) - (ncomp-1)*(pi/3.0_R8) ) + (ncomp*10.0_R8)
+
+       if (fldname == 'Sl_topo_elev') then
+          ! Note that index 1 is bare ground, so need to subtract 1 from the ungridded index to get the elevation class
+          glc_elevclass = ungridded_index - 1
+          if (glc_elevclass < 0 .or. glc_elevclass > glc_nec) then
+             call shr_sys_abort(subname//'For Sl_topo_elev, ungridded_index outside glc elevclass bounds')
+          end if
+          if (glc_elevclass == 0) then
+             ! Arbitrarily set topo_min and topo_max for bare ground
+             topo_min = 0._r8
+             topo_max = 3000._r8
+          else
+             glc_elevclass_bounds = glc_get_elevclass_bounds()
+             topo_min = glc_elevclass_bounds(glc_elevclass - 1)
+             topo_max = glc_elevclass_bounds(glc_elevclass)
+          end if
+          do i = 1, size(data2d, dim=2)
+             ! Make topo vary spatially, ranging from topo_min to topo_max
+             data2d(ungridded_index,i) = topo_min + (topo_max - topo_min) * &
+                  (0.5_r8 + 0.5_r8 * cos(pi*lat(i)/180.0_R8) * sin((pi*lon(i)/180.0_R8) - (ncomp-1)*(pi/3.0_R8) ))
           end do
-       else if (gridToFieldMap == 2) then
-          do i = 1,size(data2d, dim=2)
-             data2d(ungridded_index,i) = (nf*100) * cos(pi*lat(i)/180.0_R8) * &
-                  sin((pi*lon(i)/180.0_R8) - (ncomp-1)*(pi/3.0_R8) ) + (ncomp*10.0_R8)
-          end do
+
+       else
+          ! For qice, ensure that we have a mix of positive and negative values (even for
+          ! limited ranges of lat and lon) to better exercise the SMB renormalization code in
+          ! CMEPS
+          sign = 1._r8
+          if (fldname == 'Flgl_qice_elev') then
+             if (mod(ungridded_index,2) == 0) sign = -1._r8
+          end if
+
+          if (gridToFieldMap == 1) then
+             do i = 1,size(data2d, dim=1)
+                data2d(i,ungridded_index) = sign * ((nf*100) * cos(pi*lat(i)/180.0_R8) * &
+                     sin((pi*lon(i)/180.0_R8) - (ncomp-1)*(pi/3.0_R8) ) + (ncomp*10.0_R8))
+             end do
+          else if (gridToFieldMap == 2) then
+             do i = 1,size(data2d, dim=2)
+                data2d(ungridded_index,i) = sign * ((nf*100) * cos(pi*lat(i)/180.0_R8) * &
+                     sin((pi*lon(i)/180.0_R8) - (ncomp-1)*(pi/3.0_R8) ) + (ncomp*10.0_R8))
+             end do
+          end if
        end if
     else
        call ESMF_FieldGet(lfield, farrayPtr=data1d, rc=rc)
