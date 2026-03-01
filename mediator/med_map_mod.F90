@@ -1300,6 +1300,9 @@ contains
 
     ! local variables
     integer           :: n
+    real(r8), pointer :: data_src3d(:,:,:)
+    real(r8), pointer :: data_dst3d(:,:,:)
+    real(r8), pointer :: data_srctmp3d(:,:,:)
     real(r8), pointer :: data_src2d(:,:)
     real(r8), pointer :: data_dst2d(:,:)
     real(r8), pointer :: data_srctmp2d(:,:)
@@ -1308,7 +1311,7 @@ contains
     real(r8), pointer :: data_srctmp1d(:)
     real(r8), pointer :: data_normsrc(:)
     real(r8), pointer :: data_normdst(:)
-    integer           :: ungriddedUBound(1)     ! currently the size must equal 1 for rank 2 fields
+    integer           :: fieldrank
     integer           :: lsize_src
     integer           :: lsize_dst
     character(len=*), parameter  :: subname=' (med_map_mod:med_map_field_normalized) '
@@ -1316,19 +1319,24 @@ contains
 
     rc = ESMF_SUCCESS
 
-    ! get a pointer (data_fracsrc) to the normalization array
-    ! get a pointer (data_src) to source field data in FBSrc
-    ! copy data_src to data_srctmp
-
-    ! normalize data_src by data_fracsrc
-
     call ESMF_FieldGet(field_normsrc, farrayPtr=data_normsrc, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     lsize_src = size(data_normsrc)
 
-    call ESMF_FieldGet(field_src, ungriddedUBound=ungriddedUBound, rc=rc)
+    call ESMF_FieldGet(field_src, rank=fieldrank, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (ungriddedUbound(1) > 0) then
+
+    ! Pre-normalization: multiply source data by the normalization field,
+    ! saving a copy so the source can be restored after regridding.
+    if (fieldrank == 3) then
+       call ESMF_FieldGet(field_src, farrayPtr=data_src3d, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       allocate(data_srctmp3d(size(data_src3d,dim=1), size(data_src3d,dim=2), lsize_src))
+       data_srctmp3d(:,:,:) = data_src3d(:,:,:)
+       do n = 1,lsize_src
+          data_src3d(:,:,n) = data_src3d(:,:,n) * data_normsrc(n)
+       end do
+    else if (fieldrank == 2) then
        call ESMF_FieldGet(field_src, farrayPtr=data_src2d, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        allocate(data_srctmp2d(size(data_src2d,dim=1), lsize_src))
@@ -1336,7 +1344,7 @@ contains
        do n = 1,lsize_src
           data_src2d(:,n) = data_src2d(:,n) * data_normsrc(n)
        end do
-    else
+    else if (fieldrank == 1) then
        call ESMF_FieldGet(field_src, farrayPtr=data_src1d, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        allocate(data_srctmp1d(lsize_src))
@@ -1344,32 +1352,52 @@ contains
        do n = 1,lsize_src
           data_src1d(n) = data_src1d(n) * data_normsrc(n)
        end do
+    else
+       call shr_log_error(subname//' ERROR: only ranks 1, 2, and 3 are supported', &
+            line=__LINE__, file=u_FILE_u, rc=rc)
+       return
     end if
 
-    ! regrid normalized packed source field
+    ! Regrid normalized source field to destination
     call med_map_field (field_src=field_src, field_dst=field_dst, routehandles=routehandles, maptype=maptype, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    ! restore original value to packed source field
-    if (ungriddedUbound(1) > 0) then
+    ! Restore original values to source field
+    if (fieldrank == 3) then
+       data_src3d(:,:,:) = data_srctmp3d(:,:,:)
+       deallocate(data_srctmp3d)
+    else if (fieldrank == 2) then
        data_src2d(:,:) = data_srctmp2d(:,:)
        deallocate(data_srctmp2d)
-    else
+    else if (fieldrank == 1) then
        data_src1d(:) = data_srctmp1d(:)
        deallocate(data_srctmp1d)
+    else
+       call shr_log_error(subname//' ERROR: only ranks 1, 2, and 3 are supported', &
+            line=__LINE__, file=u_FILE_u, rc=rc)
+       return
     end if
 
-    ! regrid normalization field from source to destination
+    ! Regrid normalization field from source to destination
     call med_map_field(field_src=field_normsrc, field_dst=field_normdst, routehandles=routehandles, maptype=maptype, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    ! get pointer to mapped fraction and normalize
-    ! destination mapped values by the reciprocal of the mapped fraction
+    ! Post-normalization: divide destination data by the mapped normalization field
     call ESMF_FieldGet(field_normdst, farrayPtr=data_normdst, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     lsize_dst = size(data_normdst)
 
-    if (ungriddedUbound(1) > 0) then
+    if (fieldrank == 3) then
+       call ESMF_FieldGet(field_dst, farrayPtr=data_dst3d, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       do n = 1,lsize_dst
+          if (data_normdst(n) == 0.0_r8) then
+             data_dst3d(:,:,n) = 0.0_r8
+          else
+             data_dst3d(:,:,n) = data_dst3d(:,:,n)/data_normdst(n)
+          end if
+       end do
+    else if (fieldrank == 2) then
        call ESMF_FieldGet(field_dst, farrayPtr=data_dst2d, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        do n = 1,lsize_dst
@@ -1379,7 +1407,7 @@ contains
              data_dst2d(:,n) = data_dst2d(:,n)/data_normdst(n)
           end if
        end do
-    else
+    else if (fieldrank == 1) then
        call ESMF_FieldGet(field_dst, farrayPtr=data_dst1d, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        do n = 1,lsize_dst
@@ -1389,6 +1417,10 @@ contains
              data_dst1d(n) = data_dst1d(n)/data_normdst(n)
           end if
        end do
+    else
+       call shr_log_error(subname//' ERROR: only ranks 1, 2, and 3 are supported', &
+            line=__LINE__, file=u_FILE_u, rc=rc)
+       return
     end if
   end subroutine med_map_field_normalized
 
