@@ -306,6 +306,11 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     # End if pause is active
 
     # --------------------------------
+    # Overwrite: set water tracers
+    # --------------------------------
+    _add_water_tracers(case.get_value("WATER_TRACERS"), nmlgen)
+
+    # --------------------------------
     # Specify input data list file
     # --------------------------------
     data_list_path = os.path.join(
@@ -551,6 +556,44 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
         nmlgen.init_defaults(infiles, config, skip_entry_loop=skip_entry_loop)
         drv_flds_in = os.path.join(caseroot, "CaseDocs", "drv_flds_in")
         nmlgen.write_output_file(drv_flds_in)
+
+
+###############################################################################
+def _add_water_tracers(water_tracers_xml, nmlgen):
+    ###############################################################################
+
+    if not water_tracers_xml.strip():
+        water_tracers = []
+    else:
+        water_tracers = water_tracers_xml.split(":")
+    tracer_names = []
+    tracer_species = []
+    tracer_initial_ratios = []
+
+    for tracer in water_tracers:
+        # Each item in the list consists of a name and then, optionally, a '%' followed by
+        # the isotope species for this tracer. For standard water tracers (i.e., tracers
+        # of bulk water), the list item will only contain the name (without a '%').
+        expect(
+            tracer.count("%") <= 1,
+            f"Invalid WATER_TRACERS element, '{tracer}': Each element of WATER_TRACERS must contain at most 1 '%' separator",
+        )
+        parts = tracer.split("%")
+        tracer_names.append(parts[0])
+        if len(parts) > 1:
+            tracer_species.append(parts[1])
+            # We could check the validity of the species name here (confirming that it's
+            # one of the handled species), but that would lead to this allowed list being
+            # replicated in multiple places (here as well as in the Fortran), which would
+            # make it more difficult to add new species later. So we're deferring this
+            # check to runtime.
+        else:
+            tracer_species.append("-")
+        tracer_initial_ratios.append("1.0")
+
+    nmlgen.add_default("water_tracer_names", ":".join(tracer_names))
+    nmlgen.add_default("water_tracer_species", ":".join(tracer_species))
+    nmlgen.add_default("water_tracer_initial_ratios", ":".join(tracer_initial_ratios))
 
 
 ###############################################################################

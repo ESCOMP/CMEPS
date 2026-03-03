@@ -501,7 +501,7 @@
   </entry>
 
   <!-- ===================================================================== -->
-  <!-- averaged history frequencies -->
+  <!-- controls over various other options -->
   <!-- ===================================================================== -->
 
   <entry id="BUDGETS">
@@ -579,6 +579,31 @@
     <group>run_physics</group>
     <file>env_run.xml</file>
     <desc>Freezing point calculation for salt water.</desc>
+  </entry>
+
+  <entry id="WATER_TRACERS">
+   <type>char</type>
+   <default_value></default_value>
+   <group>run_coupling</group>
+   <file>env_run.xml</file>
+   <desc>
+      Colon-delimited list of water tracers enabled in this run.
+
+      Each item in the list consists of a name and then, optionally, a '%' followed by the
+      isotope species for this tracer. For standard water tracers (i.e., tracers of bulk
+      water), the list item will only contain the name (without a '%'). The name can be
+      anything; if an isotope species is specified, it must match one of the implemented
+      water isotopes: H218O, H217O or HDO. By convention, a tracer that is the full
+      quantity of a given isotope will have a name that is identical to the species (e.g.,
+      H218O:H218O).
+
+      For example, this list could be:
+      MyRegularTracer:HDO%HDO:H218O%H218O:SomeOtherTracer:MyHdoTracer%HDO:YetAnotherTracer
+
+      This specifies three standard (bulk water) tracers (MyRegularTracer, SomeOtherTracer
+      and YetAnotherTracer), two isotopes (HDO and H218O), and a tracer that is a subset
+      of HDO (MyHdoTracer). (Note that the ordering in the list is not important.)
+   </desc>
   </entry>
 
 

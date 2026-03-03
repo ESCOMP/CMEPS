@@ -15,10 +15,13 @@ module ice_comp_nuopc
   use shr_sys_mod       , only : shr_sys_abort
   use shr_kind_mod      , only : r8=>shr_kind_r8, i8=>shr_kind_i8, cl=>shr_kind_cl, cs=>shr_kind_cs
   use shr_log_mod      , only : shr_log_getlogunit, shr_log_setlogunit
+  use shr_wtracers_mod , only : WTRACERS_SUFFIX
+  use shr_wtracers_mod , only : shr_wtracers_present, shr_wtracers_get_num_tracers
   use dead_methods_mod  , only : chkerr, state_setscalar,  state_diagnose, alarmInit, memcheck
   use dead_methods_mod  , only : set_component_logging, get_component_instance, log_clock_advance
   use dead_nuopc_mod    , only : dead_read_inparms, ModelInitPhase, ModelSetRunClock
   use dead_nuopc_mod    , only : fld_list_add, fld_list_realize, fldsMax, fld_list_type
+  use dead_nuopc_mod    , only : set_all_export_fields
 
   implicit none
   private ! except
@@ -38,7 +41,6 @@ module ice_comp_nuopc
   integer                :: fldsFrIce_num = 0
   type (fld_list_type)   :: fldsToIce(fldsMax)
   type (fld_list_type)   :: fldsFrIce(fldsMax)
-  integer, parameter     :: gridTofieldMap = 2 ! ungridded dimension is innermost
 
   type(ESMF_Mesh)        :: mesh
   integer                :: nxg                  ! global dim i-direction
@@ -120,6 +122,8 @@ contains
     integer            :: shrlogunit  ! original log unit
     character(len=CL)  :: logmsg
     logical            :: isPresent, isSet
+    logical            :: flds_wtracers
+    integer            :: num_wtracers
     character(len=*),parameter :: subname=trim(modName)//':(InitializeAdvertise) '
     !-------------------------------------------------------------------------------
 
@@ -203,12 +207,19 @@ contains
 
     if (nxg /= 0 .and. nyg /= 0) then
 
+       flds_wtracers = shr_wtracers_present()
+       num_wtracers = shr_wtracers_get_num_tracers()
+
        call fld_list_add(fldsFrIce_num, fldsFrIce, trim(flds_scalar_name))
        call fld_list_add(fldsFrIce_num, fldsFrIce, 'Si_imask'      )
        call fld_list_add(fldsFrIce_num, fldsFrIce, 'Si_ifrac'      )
        call fld_list_add(fldsFrIce_num, fldsFrIce, 'Si_t'          )
        call fld_list_add(fldsFrIce_num, fldsFrIce, 'Si_tref'       )
        call fld_list_add(fldsFrIce_num, fldsFrIce, 'Si_qref'       )
+       if (flds_wtracers) then
+          call fld_list_add(fldsFrIce_num, fldsFrIce, 'Si_qref'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+       end if
        call fld_list_add(fldsFrIce_num, fldsFrIce, 'Si_snowh'      )
        call fld_list_add(fldsFrIce_num, fldsFrIce, 'Si_u10'        )
        call fld_list_add(fldsFrIce_num, fldsFrIce, 'Si_avsdr'      )
@@ -221,10 +232,18 @@ contains
        call fld_list_add(fldsFrIce_num, fldsFrIce, 'Faii_sen'      )
        call fld_list_add(fldsFrIce_num, fldsFrIce, 'Faii_lwup'     )
        call fld_list_add(fldsFrIce_num, fldsFrIce, 'Faii_evap'     )
+       if (flds_wtracers) then
+          call fld_list_add(fldsFrIce_num, fldsFrIce, 'Faii_evap'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+       end if
        call fld_list_add(fldsFrIce_num, fldsFrIce, 'Faii_swnet'    )
        call fld_list_add(fldsFrIce_num, fldsFrIce, 'Fioi_melth'    )
        call fld_list_add(fldsFrIce_num, fldsFrIce, 'Fioi_swpen'    )
        call fld_list_add(fldsFrIce_num, fldsFrIce, 'Fioi_meltw'    )
+       if (flds_wtracers) then
+          call fld_list_add(fldsFrIce_num, fldsFrIce, 'Fioi_meltw'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+       end if
        call fld_list_add(fldsFrIce_num, fldsFrIce, 'Fioi_salt'     )
        call fld_list_add(fldsFrIce_num, fldsFrIce, 'Fioi_taux'     )
        call fld_list_add(fldsFrIce_num, fldsFrIce, 'Fioi_tauy'     )
@@ -245,6 +264,10 @@ contains
        call fld_list_add(fldsToIce_num, fldsToIce, 'Sa_v'          )
        call fld_list_add(fldsToIce_num, fldsToIce, 'Sa_ptem'       )
        call fld_list_add(fldsToIce_num, fldsToIce, 'Sa_shum'       )
+       if (flds_wtracers) then
+          call fld_list_add(fldsToIce_num, fldsToIce, 'Sa_shum'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+       end if
        call fld_list_add(fldsToIce_num, fldsToIce, 'Sa_dens'       )
        call fld_list_add(fldsToIce_num, fldsToIce, 'Sa_tbot'       )
        call fld_list_add(fldsToIce_num, fldsToIce, 'Faxa_swvdr'    )
@@ -254,10 +277,21 @@ contains
        call fld_list_add(fldsToIce_num, fldsToIce, 'Faxa_lwdn'     )
        call fld_list_add(fldsToIce_num, fldsToIce, 'Faxa_rain'     )
        call fld_list_add(fldsToIce_num, fldsToIce, 'Faxa_snow'     )
+       if (flds_wtracers) then
+          call fld_list_add(fldsToIce_num, fldsToIce, 'Faxa_rain'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+          call fld_list_add(fldsToIce_num, fldsToIce, 'Faxa_snow'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+       end if
        call fld_list_add(fldsToIce_num, fldsToIce, 'Faxa_bcph'  , ungridded_lbound=1, ungridded_ubound=3)
        call fld_list_add(fldsToIce_num, fldsToIce, 'Faxa_ocph'  , ungridded_lbound=1, ungridded_ubound=3)
        call fld_list_add(fldsToIce_num, fldsToIce, 'Faxa_dstwet', ungridded_lbound=1, ungridded_ubound=4)
        call fld_list_add(fldsToIce_num, fldsToIce, 'Faxa_dstdry', ungridded_lbound=1, ungridded_ubound=4)
+       if (flds_wtracers) then
+          ! Note that this field only exists for tracers, not bulk
+          call fld_list_add(fldsToIce_num, fldsToIce, 'So_roce'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+       end if
 
        do n = 1,fldsFrIce_num
           if(mastertask) write(logunit,*)'Advertising From Xice ',trim(fldsFrIce(n)%stdname)
@@ -430,7 +464,7 @@ contains
     integer, intent(out) :: rc
 
     ! local variables
-    integer           :: n, nf, nind
+    integer           :: n
     real(r8), pointer :: lat(:)
     real(r8), pointer :: lon(:)
     integer           :: spatialDim
@@ -453,19 +487,16 @@ contains
        lat(n) = ownedElemCoords(2*n)
     end do
 
-    ! Start from index 2 in order to skip the scalar field
-    do nf = 2,fldsFrIce_num
-       if (fldsFrIce(nf)%ungridded_ubound == 0) then
-          call field_setexport(exportState, trim(fldsFrIce(nf)%stdname), lon, lat, nf=nf, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-       else
-          do nind = 1,fldsFrIce(nf)%ungridded_ubound
-             call field_setexport(exportState, trim(fldsFrIce(nf)%stdname), lon, lat, nf=nf+nind-1, &
-                  ungridded_index=nind, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-          end do
-       end if
-    end do
+    call set_all_export_fields( &
+         exportState = exportState, &
+         flds = fldsFrIce, &
+         fld_min = 2, &  ! Start from index 2 in order to skip the scalar field here
+         fld_max = fldsFrIce_num, &
+         lon = lon, &
+         lat = lat, &
+         field_setexport = field_setexport, &
+         rc = rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     deallocate(lon)
     deallocate(lat)
@@ -491,6 +522,7 @@ contains
     type(ESMF_Field)  :: lfield
     real(r8), pointer :: data1d(:)
     real(r8), pointer :: data2d(:,:)
+    integer, parameter :: gridTofieldMap = 2 ! ungridded dimension is innermost
     !--------------------------------------------------
 
     rc = ESMF_SUCCESS

@@ -15,10 +15,13 @@ module glc_comp_nuopc
   use shr_sys_mod      , only : shr_sys_abort
   use shr_kind_mod     , only : r8=>shr_kind_r8, i8=>shr_kind_i8, cl=>shr_kind_cl, cs=>shr_kind_cs
   use shr_log_mod     , only : shr_log_getlogunit, shr_log_setlogunit
+  use shr_wtracers_mod, only : WTRACERS_SUFFIX
+  use shr_wtracers_mod, only : shr_wtracers_present, shr_wtracers_get_num_tracers
   use dead_methods_mod , only : chkerr, state_setscalar,  state_diagnose, alarmInit, memcheck
   use dead_methods_mod , only : set_component_logging, get_component_instance, log_clock_advance
   use dead_nuopc_mod   , only : dead_read_inparms, ModelInitPhase, ModelSetRunClock
   use dead_nuopc_mod   , only : fld_list_add, fld_list_realize, fldsMax, fld_list_type
+  use dead_nuopc_mod   , only : set_all_export_fields
 
   implicit none
   private ! except
@@ -38,7 +41,6 @@ module glc_comp_nuopc
   integer                :: fldsFrGlc_num = 0
   type (fld_list_type)   :: fldsToGlc(fldsMax)
   type (fld_list_type)   :: fldsFrGlc(fldsMax)
-  integer, parameter     :: gridTofieldMap = 2 ! ungridded dimension is innermost
 
   type(ESMF_Mesh)        :: mesh
   integer                :: nxg                  ! global dim i-direction
@@ -128,6 +130,8 @@ contains
     character(len=CL) :: logmsg
     character(len=CS) :: cnum
     logical           :: isPresent, isSet
+    logical           :: flds_wtracers
+    integer           :: num_wtracers
     character(len=*),parameter :: subname=trim(modName)//':(InitializeAdvertise) '
     !-------------------------------------------------------------------------------
 
@@ -207,6 +211,9 @@ contains
 
     if (nxg /= 0 .and. nyg /= 0) then
 
+       flds_wtracers = shr_wtracers_present()
+       num_wtracers = shr_wtracers_get_num_tracers()
+
        call fld_list_add(fldsFrGlc_num, fldsFrGlc, trim(flds_scalar_name))
        call fld_list_add(fldsFrGlc_num, fldsFrGlc, 'Sg_icemask'                )
        call fld_list_add(fldsFrGlc_num, fldsFrGlc, 'Sg_icemask_coupled_fluxes' )
@@ -214,9 +221,25 @@ contains
        call fld_list_add(fldsFrGlc_num, fldsFrGlc, 'Sg_topo'                   )
        call fld_list_add(fldsFrGlc_num, fldsFrGlc, 'Flgg_hflx'                 )
 
+       call fld_list_add(fldsFrGlc_num, fldsFrGlc, 'Fgrg_rofi'                 )
+       call fld_list_add(fldsFrGlc_num, fldsFrGlc, 'Fgrg_rofl'                 )
+       if (flds_wtracers) then
+          call fld_list_add(fldsFrGlc_num, fldsFrGlc, 'Fgrg_rofi'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+          call fld_list_add(fldsFrGlc_num, fldsFrGlc, 'Fgrg_rofl'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+       end if
+
+       ! This is needed for the smb renormalization
+       call fld_list_add(fldsFrGlc_num, fldsFrGlc, 'Sg_area')
+
        call fld_list_add(fldsToGlc_num, fldsToGlc, trim(flds_scalar_name))
        call fld_list_add(fldsToGlc_num, fldsToGlc, 'Sl_tsrf')
        call fld_list_add(fldsToGlc_num, fldsToGlc, 'Flgl_qice')
+       if (flds_wtracers) then
+          call fld_list_add(fldsToGlc_num, fldsToGlc, 'Flgl_qice'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+       end if
 
        ! Now advertise import and export fields fields
        do ns = 1,num_icesheets
@@ -328,7 +351,7 @@ contains
     integer, intent(out) :: rc
 
     ! local variables
-    integer           :: n, nf, nind, ns
+    integer           :: n, ns, fld_num_save
     real(r8), pointer :: lat(:)
     real(r8), pointer :: lon(:)
     integer           :: spatialDim
@@ -351,20 +374,22 @@ contains
        lat(n) = ownedElemCoords(2*n)
     end do
 
-    ! Start from index 2 in order to skip the scalar field
+    fld_num_save = 1
     do ns = 1,num_icesheets
-       do nf = 2,fldsFrGlc_num
-          if (fldsFrGlc(nf)%ungridded_ubound == 0) then
-             call field_setexport(NStateExp(ns), trim(fldsFrGlc(nf)%stdname), lon, lat, nf=nf, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-          else
-             do nind = 1,fldsFrGlc(nf)%ungridded_ubound
-                call field_setexport(NStateExp(ns), trim(fldsFrGlc(nf)%stdname), lon, lat, nf=nf+nind-1, &
-                     ungridded_index=nind, rc=rc)
-                if (chkerr(rc,__LINE__,u_FILE_u)) return
-             end do
-          end if
-       end do
+       call set_all_export_fields( &
+            exportState = NStateExp(ns), &
+            flds = fldsFrGlc, &
+            fld_min = 2, &  ! Start from index 2 in order to skip the scalar field here
+            fld_max = fldsFrGlc_num, &
+            lon = lon, &
+            lat = lat, &
+            field_setexport = field_setexport, &
+            rc = rc, &
+            ! Save fld_num to continue to increment it for ice sheets beyond the first (so
+            ! different ice sheets will have different field values)
+            fld_num_save = fld_num_save)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
        if (dbug > 1) then
           call State_diagnose(NStateExp(ns), trim(subname)//':ES',rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -396,6 +421,12 @@ contains
     type(ESMF_Field)  :: lfield
     real(r8), pointer :: data1d(:)
     real(r8), pointer :: data2d(:,:)
+    integer, parameter :: gridTofieldMap = 2 ! ungridded dimension is innermost
+    type(ESMF_VM)     :: vm
+    real(r8)          :: lat_min_l(1), lat_max_l(1), lat_min_g(1), lat_max_g(1)
+    real(r8)          :: lon_min_l(1), lon_max_l(1), lon_min_g(1), lon_max_g(1)
+    real(r8)          :: lon_mid
+    real(r8)          :: lon_180(size(lon))  ! longitude with a -180 to 180 convention
     !--------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -425,8 +456,55 @@ contains
     else
        call ESMF_FieldGet(lfield, farrayPtr=data1d, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (fldname == 'Sg_icemask' .or.  fldname == 'Sg_icemask_coupled_fluxes' .or. fldname == 'Sg_ice_covered') then
+       if (fldname == 'Sg_icemask' .or.  fldname == 'Sg_icemask_coupled_fluxes') then
           data1d(:) = 1._r8
+       else if (fldname == 'Sg_area') then
+          ! These are not actual areas, but they'll do well enough to have some variation
+          ! in area. Note that deviations from the actual areas will lead to compensations
+          ! in the SMB renormalization. Here we set the areas to a typical order of
+          ! magnitude of actual areas on the GLC grid, but don't worry about getting the
+          ! actual areas right, just allowing this renormalization to have
+          ! bigger-than-typical correction factors.
+          data1d(:) = 1.e-6_r8 * lat(:)/90._r8
+       else if (fldname == 'Sg_ice_covered') then
+          ! Split domain into ice-covered (1) and not (0) at the midpoint of the
+          ! longitude range. We convert to [-180, 180) so that data crossing 0
+          ! degrees (the common case for ice sheet grids) is handled correctly.
+          call ESMF_VMGetCurrent(vm, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+          ! Convert longitudes to -180 to 180 convention. Note that if they already were
+          ! specified as -180 to 180, the following will lead lon_180 to be the same as
+          ! lon.
+          where (lon > 180.0_R8)
+             lon_180 = lon - 360.0_R8
+          elsewhere
+             lon_180 = lon
+          end where
+
+          lon_min_l(1) = minval(lon_180)
+          lon_max_l(1) = maxval(lon_180)
+          call ESMF_VMAllReduce(vm, lon_min_l, lon_min_g, 1, ESMF_REDUCE_MIN, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_VMAllReduce(vm, lon_max_l, lon_max_g, 1, ESMF_REDUCE_MAX, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          lon_mid = (lon_min_g(1) + lon_max_g(1)) * 0.5_R8
+          do i = 1, size(data1d)
+             data1d(i) = merge(1.0_R8, 0.0_R8, lon_180(i) > lon_mid)
+          end do
+       else if (fldname == 'Sg_topo') then
+          ! Use topo values ranging from 0 to 3000 based on a latitude gradient
+          call ESMF_VMGetCurrent(vm, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          lat_min_l(1) = minval(lat)
+          lat_max_l(1) = maxval(lat)
+          call ESMF_VMAllReduce(vm, lat_min_l, lat_min_g, 1, ESMF_REDUCE_MIN, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_VMAllReduce(vm, lat_max_l, lat_max_g, 1, ESMF_REDUCE_MAX, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          do i = 1, size(data1d)
+             data1d(i) = (lat(i) - lat_min_g(1)) / (lat_max_g(1) - lat_min_g(1)) * 3000.0_R8
+          end do
        else
           do i = 1,size(data1d)
              data1d(i) = (nf*100) &

@@ -15,10 +15,14 @@ module lnd_comp_nuopc
   use shr_sys_mod      , only : shr_sys_abort
   use shr_kind_mod     , only : r8=>shr_kind_r8, i8=>shr_kind_i8, cl=>shr_kind_cl, cs=>shr_kind_cs
   use shr_log_mod     , only : shr_log_getlogunit, shr_log_setlogunit
+  use shr_wtracers_mod, only : WTRACERS_SUFFIX
+  use shr_wtracers_mod, only : shr_wtracers_present, shr_wtracers_get_num_tracers
+  use glc_elevclass_mod, only : glc_get_elevclass_bounds
   use dead_methods_mod , only : chkerr, state_setscalar,  state_diagnose, alarmInit, memcheck
   use dead_methods_mod , only : set_component_logging, get_component_instance, log_clock_advance
   use dead_nuopc_mod   , only : dead_read_inparms, ModelInitPhase, ModelSetRunClock
   use dead_nuopc_mod   , only : fld_list_add, fld_list_realize, fldsMax, fld_list_type
+  use dead_nuopc_mod   , only : set_all_export_fields
 
   implicit none
   private ! except
@@ -39,7 +43,6 @@ module lnd_comp_nuopc
   integer                :: fldsFrLnd_num = 0
   type (fld_list_type)   :: fldsToLnd(fldsMax)
   type (fld_list_type)   :: fldsFrLnd(fldsMax)
-  integer, parameter     :: gridTofieldMap = 2 ! ungridded dimension is innermost
   integer                :: glc_nec
 
   type(ESMF_Mesh)        :: mesh
@@ -124,6 +127,8 @@ contains
     character(CL)     :: cvalue
     character(CL)     :: logmsg
     logical           :: isPresent, isSet
+    logical           :: flds_wtracers
+    integer           :: num_wtracers
     character(len=*),parameter :: subname=trim(modName)//':(InitializeAdvertise) '
     !-------------------------------------------------------------------------------
 
@@ -212,11 +217,18 @@ contains
        read(cvalue,*) glc_nec
        call ESMF_LogWrite('glc_nec = '// trim(cvalue), ESMF_LOGMSG_INFO)
 
+       flds_wtracers = shr_wtracers_present()
+       num_wtracers = shr_wtracers_get_num_tracers()
+
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, trim(flds_scalar_name))
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Sl_lfrin'      )
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Sl_t'          )
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Sl_tref'       )
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Sl_qref'       )
+       if (flds_wtracers) then
+          call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Sl_qref'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+       end if
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Sl_avsdr'      )
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Sl_anidr'      )
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Sl_avsdf'      )
@@ -225,20 +237,42 @@ contains
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Sl_u10'        )
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Sl_fv'         )
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Sl_ram1'       )
+
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Flrl_rofsur'   )
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Flrl_rofgwl'   )
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Flrl_rofsub'   )
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Flrl_rofi'     )
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Flrl_irrig'    )
+       if (flds_wtracers) then
+          call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Flrl_rofsur'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+          call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Flrl_rofgwl'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+          call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Flrl_rofsub'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+          call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Flrl_rofi'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+          call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Flrl_irrig'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+       end if
+
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Fall_taux'     )
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Fall_tauy'     )
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Fall_lat'      )
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Fall_sen'      )
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Fall_lwup'     )
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Fall_evap'     )
+       if (flds_wtracers) then
+          call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Fall_evap'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+       end if
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Fall_swnet'    )
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Fall_flxdst'   , ungridded_lbound=1, ungridded_ubound=4)
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Flgl_qice_elev', ungridded_lbound=1, ungridded_ubound=glc_nec+1)
+       if (flds_wtracers) then
+          call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Flgl_qice_elev'//WTRACERS_SUFFIX, &
+               ungridded_lbound=1, ungridded_ubound=glc_nec+1, num_wtracers=num_wtracers)
+       end if
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Sl_tsrf_elev'  , ungridded_lbound=1, ungridded_ubound=glc_nec+1)
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Sl_topo_elev'  , ungridded_lbound=1, ungridded_ubound=glc_nec+1)
 
@@ -251,13 +285,36 @@ contains
        call fld_list_add(fldsToLnd_num, fldsToLnd, 'Sa_pbot'      )
        call fld_list_add(fldsToLnd_num, fldsToLnd, 'Sa_tbot'      )
        call fld_list_add(fldsToLnd_num, fldsToLnd, 'Sa_shum'      )
+       if (flds_wtracers) then
+          call fld_list_add(fldsToLnd_num, fldsToLnd, 'Sa_shum'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+       end if
        call fld_list_add(fldsToLnd_num, fldsToLnd, 'Flrr_volr'    )
        call fld_list_add(fldsToLnd_num, fldsToLnd, 'Flrr_volrmch' )
+       call fld_list_add(fldsToLnd_num, fldsToLnd, 'Flrr_flood'   )
+       if (flds_wtracers) then
+          call fld_list_add(fldsToLnd_num, fldsToLnd, 'Flrr_volr'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+          call fld_list_add(fldsToLnd_num, fldsToLnd, 'Flrr_volrmch'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+          call fld_list_add(fldsToLnd_num, fldsToLnd, 'Flrr_flood'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+       end if
        call fld_list_add(fldsToLnd_num, fldsToLnd, 'Faxa_lwdn'    )
        call fld_list_add(fldsToLnd_num, fldsToLnd, 'Faxa_rainc'   )
        call fld_list_add(fldsToLnd_num, fldsToLnd, 'Faxa_rainl'   )
        call fld_list_add(fldsToLnd_num, fldsToLnd, 'Faxa_snowc'   )
        call fld_list_add(fldsToLnd_num, fldsToLnd, 'Faxa_snowl'   )
+       if (flds_wtracers) then
+          call fld_list_add(fldsToLnd_num, fldsToLnd, 'Faxa_rainc'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+          call fld_list_add(fldsToLnd_num, fldsToLnd, 'Faxa_rainl'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+          call fld_list_add(fldsToLnd_num, fldsToLnd, 'Faxa_snowc'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+          call fld_list_add(fldsToLnd_num, fldsToLnd, 'Faxa_snowl'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+       end if
        call fld_list_add(fldsToLnd_num, fldsToLnd, 'Faxa_swndr'   )
        call fld_list_add(fldsToLnd_num, fldsToLnd, 'Faxa_swvdr'   )
        call fld_list_add(fldsToLnd_num, fldsToLnd, 'Faxa_swndf'   )
@@ -447,7 +504,7 @@ contains
     integer, intent(out) :: rc
 
     ! local variables
-    integer           :: n, nf, nind
+    integer           :: n
     real(r8), pointer :: lat(:)
     real(r8), pointer :: lon(:)
     integer           :: spatialDim
@@ -470,19 +527,16 @@ contains
        lat(n) = ownedElemCoords(2*n)
     end do
 
-    ! Start from index 2 in order to Skip the scalar field here
-    do nf = 2,fldsFrLnd_num
-       if (fldsFrLnd(nf)%ungridded_ubound == 0) then
-          call field_setexport(exportState, trim(fldsFrLnd(nf)%stdname), lon, lat, nf=nf, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-       else
-          do nind = 1,fldsFrLnd(nf)%ungridded_ubound
-             call field_setexport(exportState, trim(fldsFrLnd(nf)%stdname), lon, lat, nf=nf+nind-1, &
-                  ungridded_index=nind, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-          end do
-       end if
-    end do
+    call set_all_export_fields( &
+         exportState = exportState, &
+         flds = fldsFrLnd, &
+         fld_min = 2, &  ! Start from index 2 in order to skip the scalar field here
+         fld_max = fldsFrLnd_num, &
+         lon = lon, &
+         lat = lat, &
+         field_setexport = field_setexport, &
+         rc = rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     deallocate(lon)
     deallocate(lat)
@@ -509,6 +563,13 @@ contains
     type(ESMF_Field)  :: lfield
     real(r8), pointer :: data1d(:)
     real(r8), pointer :: data2d(:,:)
+    real(r8)          :: glc_elevclass_bounds(0:glc_nec)
+    integer           :: glc_elevclass
+    real(r8)          :: topo_min, topo_max
+    real(r8)          :: sign
+    integer, parameter :: gridTofieldMap = 2 ! ungridded dimension is innermost
+
+    character(len=*), parameter :: subname = trim(modName)//':(field_setexport) '
     !--------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -520,16 +581,48 @@ contains
     if (present(ungridded_index)) then
        call ESMF_FieldGet(lfield, farrayPtr=data2d, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (gridToFieldMap == 1) then
-          do i = 1,size(data2d, dim=1)
-             data2d(i,ungridded_index) = (nf*100) * cos(pi*lat(i)/180.0_R8) * &
-                  sin((pi*lon(i)/180.0_R8) - (ncomp-1)*(pi/3.0_R8) ) + (ncomp*10.0_R8)
+
+       if (fldname == 'Sl_topo_elev') then
+          ! Note that index 1 is bare ground, so need to subtract 1 from the ungridded index to get the elevation class
+          glc_elevclass = ungridded_index - 1
+          if (glc_elevclass < 0 .or. glc_elevclass > glc_nec) then
+             call shr_sys_abort(subname//'For Sl_topo_elev, ungridded_index outside glc elevclass bounds')
+          end if
+          if (glc_elevclass == 0) then
+             ! Arbitrarily set topo_min and topo_max for bare ground
+             topo_min = 0._r8
+             topo_max = 3000._r8
+          else
+             glc_elevclass_bounds = glc_get_elevclass_bounds()
+             topo_min = glc_elevclass_bounds(glc_elevclass - 1)
+             topo_max = glc_elevclass_bounds(glc_elevclass)
+          end if
+          do i = 1, size(data2d, dim=2)
+             ! Make topo vary spatially, ranging from topo_min to topo_max
+             data2d(ungridded_index,i) = topo_min + (topo_max - topo_min) * &
+                  (0.5_r8 + 0.5_r8 * cos(pi*lat(i)/180.0_R8) * sin((pi*lon(i)/180.0_R8) - (ncomp-1)*(pi/3.0_R8) ))
           end do
-       else if (gridToFieldMap == 2) then
-          do i = 1,size(data2d, dim=2)
-             data2d(ungridded_index,i) = (nf*100) * cos(pi*lat(i)/180.0_R8) * &
-                  sin((pi*lon(i)/180.0_R8) - (ncomp-1)*(pi/3.0_R8) ) + (ncomp*10.0_R8)
-          end do
+
+       else
+          ! For qice, ensure that we have a mix of positive and negative values (even for
+          ! limited ranges of lat and lon) to better exercise the SMB renormalization code in
+          ! CMEPS
+          sign = 1._r8
+          if (fldname == 'Flgl_qice_elev') then
+             if (mod(ungridded_index,2) == 0) sign = -1._r8
+          end if
+
+          if (gridToFieldMap == 1) then
+             do i = 1,size(data2d, dim=1)
+                data2d(i,ungridded_index) = sign * ((nf*100) * cos(pi*lat(i)/180.0_R8) * &
+                     sin((pi*lon(i)/180.0_R8) - (ncomp-1)*(pi/3.0_R8) ) + (ncomp*10.0_R8))
+             end do
+          else if (gridToFieldMap == 2) then
+             do i = 1,size(data2d, dim=2)
+                data2d(ungridded_index,i) = sign * ((nf*100) * cos(pi*lat(i)/180.0_R8) * &
+                     sin((pi*lon(i)/180.0_R8) - (ncomp-1)*(pi/3.0_R8) ) + (ncomp*10.0_R8))
+             end do
+          end if
        end if
     else
        call ESMF_FieldGet(lfield, farrayPtr=data1d, rc=rc)

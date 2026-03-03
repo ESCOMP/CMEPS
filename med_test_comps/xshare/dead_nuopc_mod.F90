@@ -1,6 +1,8 @@
 module dead_nuopc_mod
 
   use ESMF              , only : ESMF_Gridcomp, ESMF_State, ESMF_StateGet
+  use ESMF              , only : ESMF_StateItem_Flag, ESMF_STATEITEM_NOTFOUND
+  use ESMF              , only : ESMF_Field, ESMF_FieldGet
   use ESMF              , only : ESMF_Clock, ESMF_Time, ESMF_TimeInterval, ESMF_Alarm
   use ESMF              , only : ESMF_GridCompGet, ESMF_ClockGet, ESMF_ClockSet, ESMF_ClockAdvance, ESMF_AlarmSet
   use ESMF              , only : ESMF_SUCCESS, ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_METHOD_INITIALIZE
@@ -10,6 +12,8 @@ module dead_nuopc_mod
   use ESMF              , only : operator(/=), operator(==), operator(+)
   use shr_kind_mod      , only : r8=>shr_kind_r8, i8=>shr_kind_i8, cl=>shr_kind_cl, cs=>shr_kind_cs
   use shr_sys_mod       , only : shr_sys_abort
+  use shr_string_mod    , only : shr_string_withoutSuffix
+  use shr_wtracers_mod  , only : WTRACERS_SUFFIX, shr_wtracers_get_initial_ratio
   use dead_methods_mod  , only : chkerr, alarmInit
 
   implicit none
@@ -20,12 +24,25 @@ module dead_nuopc_mod
   public :: ModelSetRunClock
   public :: fld_list_add
   public :: fld_list_realize
+  public :: set_all_export_fields
+
+  private :: set_wtracer_field
 
   ! !PUBLIC DATA MEMBERS:
+  integer, parameter, public :: fldname_maxlen = 128
+
   type fld_list_type
-    character(len=128) :: stdname
+     character(len=fldname_maxlen) :: stdname
      integer :: ungridded_lbound = 0
      integer :: ungridded_ubound = 0
+
+     ! Water tracer fields are handled via ungridded dimensions, but we track the size of
+     ! this dimension separately to better distinguish between the ungridded dimension
+     ! used for water tracers vs. the ungridded dimension used for other purposes -
+     ! particularly for the case of fields that have both. For fields that are not water
+     ! tracer fields, num_wtracers will be 0; for fields that are water tracer fields,
+     ! num_wtracers will be the number of water tracers in this simulation.
+     integer :: num_wtracers = 0
   end type fld_list_type
   public :: fld_list_type
 
@@ -96,7 +113,7 @@ contains
   end subroutine dead_read_inparms
 
   !===============================================================================
-  subroutine fld_list_add(num, fldlist, stdname, ungridded_lbound, ungridded_ubound)
+  subroutine fld_list_add(num, fldlist, stdname, ungridded_lbound, ungridded_ubound, num_wtracers)
 
     ! input/output variables
     integer                    , intent(inout) :: num
@@ -104,6 +121,10 @@ contains
     character(len=*)           , intent(in)    :: stdname
     integer,          optional , intent(in)    :: ungridded_lbound
     integer,          optional , intent(in)    :: ungridded_ubound
+
+    ! For water tracers, use num_wtracers instead of ungridded_lbound / ungridded_ubound
+    ! for the water tracer dimension:
+    integer,          optional , intent(in)    :: num_wtracers
 
     ! local variables
     character(len=*), parameter :: subname='(dead_nuopc_mod:fld_list_add)'
@@ -123,6 +144,10 @@ contains
        fldlist(num)%ungridded_ubound = ungridded_ubound
     end if
 
+    if (present(num_wtracers)) then
+       fldlist(num)%num_wtracers = num_wtracers
+    end if
+
   end subroutine fld_list_add
 
   !===============================================================================
@@ -130,7 +155,7 @@ contains
 
     use NUOPC , only : NUOPC_IsConnected, NUOPC_Realize
     use ESMF  , only : ESMF_MeshLoc_Element, ESMF_FieldCreate, ESMF_TYPEKIND_R8
-    use ESMF  , only : ESMF_MAXSTR, ESMF_Field, ESMF_State, ESMF_Mesh, ESMF_StateRemove
+    use ESMF  , only : ESMF_MAXSTR, ESMF_State, ESMF_Mesh, ESMF_StateRemove
     use ESMF  , only : ESMF_LogFoundError, ESMF_LOGMSG_INFO, ESMF_SUCCESS
     use ESMF  , only : ESMF_LogWrite, ESMF_LOGMSG_ERROR, ESMF_LOGERR_PASSTHRU
 
@@ -147,7 +172,6 @@ contains
     integer           :: n
     type(ESMF_Field)  :: field
     character(len=80) :: stdname
-    integer           :: gridtoFieldMap=2
     character(len=*),parameter  :: subname='(dead_nuopc_mod:fld_list_realize)'
     ! ----------------------------------------------
 
@@ -166,13 +190,34 @@ contains
              call ESMF_LogWrite(trim(subname)//trim(tag)//" Field = "//trim(stdname)//" is connected using mesh", &
                   ESMF_LOGMSG_INFO)
              ! Create the field
-             if (fldlist(n)%ungridded_lbound > 0 .and. fldlist(n)%ungridded_ubound > 0) then
+             if (fldlist(n)%ungridded_lbound > 0 .and. &
+                 fldlist(n)%ungridded_ubound > 0 .and. &
+                 fldlist(n)%num_wtracers > 0) then
+                ! This field has two ungridded dimensions: one for water tracers and one
+                ! for some other purpose. The second ungridded dimension will be for water
+                ! tracers.
+                field = ESMF_FieldCreate(mesh, ESMF_TYPEKIND_R8, name=stdname, meshloc=ESMF_MESHLOC_ELEMENT, &
+                     ungriddedLbound=(/fldlist(n)%ungridded_lbound, 1/), &
+                     ungriddedUbound=(/fldlist(n)%ungridded_ubound, fldlist(n)%num_wtracers/), &
+                     gridToFieldMap=(/3/), rc=rc)
+                if (chkerr(rc,__LINE__,u_FILE_u)) return
+             else if (fldlist(n)%ungridded_lbound > 0 .and. &
+                      fldlist(n)%ungridded_ubound > 0) then
+                ! This field has one ungridded dimension
                 field = ESMF_FieldCreate(mesh, ESMF_TYPEKIND_R8, name=stdname, meshloc=ESMF_MESHLOC_ELEMENT, &
                      ungriddedLbound=(/fldlist(n)%ungridded_lbound/), &
                      ungriddedUbound=(/fldlist(n)%ungridded_ubound/), &
-                     gridToFieldMap=(/gridToFieldMap/), rc=rc)
+                     gridToFieldMap=(/2/), rc=rc)
+                if (chkerr(rc,__LINE__,u_FILE_u)) return
+             else if (fldlist(n)%num_wtracers > 0) then
+                ! This field has one ungridded dimension, for water tracers
+                field = ESMF_FieldCreate(mesh, ESMF_TYPEKIND_R8, name=stdname, meshloc=ESMF_MESHLOC_ELEMENT, &
+                     ungriddedLbound=(/1/), &
+                     ungriddedUbound=(/fldlist(n)%num_wtracers/), &
+                     gridToFieldMap=(/2/), rc=rc)
                 if (chkerr(rc,__LINE__,u_FILE_u)) return
              else
+                ! This field has no ungridded dimensions
                 field = ESMF_FieldCreate(mesh, ESMF_TYPEKIND_R8, name=stdname, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
                 if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=u_FILE_u)) return
              end if
@@ -198,7 +243,7 @@ contains
       ! create a field with scalar data on the root pe
       ! ----------------------------------------------
 
-      use ESMF, only : ESMF_Field, ESMF_DistGrid, ESMF_Grid
+      use ESMF, only : ESMF_DistGrid, ESMF_Grid
       use ESMF, only : ESMF_DistGridCreate, ESMF_GridCreate, ESMF_LogFoundError, ESMF_LOGERR_PASSTHRU
       use ESMF, only : ESMF_FieldCreate, ESMF_GridCreate, ESMF_TYPEKIND_R8
 
@@ -229,6 +274,213 @@ contains
     end subroutine SetScalarField
 
   end subroutine fld_list_realize
+
+  !================================================================================
+  subroutine set_all_export_fields(exportState, flds, fld_min, fld_max, lon, lat, field_setexport, rc, fld_num_save)
+
+    ! ----------------------------------------------
+    ! Set all export fields for a given component's state
+    !
+    ! This accepts a procedure argument for the subroutine that does the actual setting
+    ! for each field, since this procedure can differ between different xcomps.
+    !
+    ! Water tracer fields are handled specially: these are set equal to the corresponding
+    ! bulk field times the initial ratio for this tracer.
+    ! ----------------------------------------------
+
+    ! input/output arguments
+    type(ESMF_State), intent(inout)  :: exportState
+    type(fld_list_type), intent(in)  :: flds(:)
+    integer, intent(in)              :: fld_min  ! first index in flds to set
+    integer, intent(in)              :: fld_max  ! last index in flds to set
+    real(r8), intent(in)             :: lon(:)
+    real(r8), intent(in)             :: lat(:)
+    integer, intent(out)             :: rc
+
+    ! fld_num_save can be provided to continue where we left off from the last call.
+    ! This is useful for multiple ice sheets, for example, where we want different field
+    ! values for each ice sheet. It should generally be set to 1 for the initial call from
+    ! a component (but could be set to some other value if desired).
+    integer, optional, intent(inout) :: fld_num_save
+
+    interface
+       subroutine field_setexport(exportState, fldname, lon, lat, nf, ungridded_index, rc)
+          import :: ESMF_State
+          import :: r8
+
+          type(ESMF_State), intent(inout) :: exportState
+          character(len=*), intent(in)    :: fldname
+          real(r8), intent(in)            :: lon(:)
+          real(r8), intent(in)            :: lat(:)
+          integer, intent(in)             :: nf
+          integer, optional, intent(in)   :: ungridded_index
+          integer, intent(out)            :: rc
+       end subroutine field_setexport
+    end interface
+
+    ! local variables
+    integer :: nf, nind, fld_num
+    character(len=*), parameter :: subname='(dead_nuopc_mod:set_all_export_fields)'
+    ! ----------------------------------------------
+
+    rc = ESMF_SUCCESS
+
+    if (present(fld_num_save)) then
+       fld_num = fld_num_save
+    else
+       fld_num = 1
+    end if
+
+    do nf = fld_min,fld_max
+       if (flds(nf)%num_wtracers > 0) then
+          ! We'll handle water tracers specially, below. A few notes about this:
+          ! - We handle water tracers after we are done setting all non-water tracer
+          !   fields, because the setting of water tracer fields depends on the
+          !   corresponding non-tracer fields.
+          ! - We do *not* increment fld_num for the water tracer fields. This ensures that
+          !   values put in the non-tracer fields remain the same even when introducing
+          !   water tracers.
+          cycle
+       end if
+
+       if (flds(nf)%ungridded_ubound == 0) then
+          call field_setexport(exportState, trim(flds(nf)%stdname), lon, lat, nf=fld_num, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          fld_num = fld_num + 1
+       else
+          do nind = 1,flds(nf)%ungridded_ubound
+             call field_setexport(exportState, trim(flds(nf)%stdname), lon, lat, nf=fld_num, &
+                  ungridded_index=nind, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+             fld_num = fld_num + 1
+          end do
+       end if
+    end do
+
+    ! Now handle water tracers.
+    do nf = fld_min,fld_max
+       if (flds(nf)%num_wtracers > 0) then
+          call set_wtracer_field(exportState, flds(nf), rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+       end if
+    end do
+
+    if (present(fld_num_save)) then
+       fld_num_save = fld_num
+    end if
+
+  end subroutine set_all_export_fields
+
+  !================================================================================
+  subroutine set_wtracer_field(exportState, fld, rc)
+
+    ! ----------------------------------------------
+    ! Sets a single water tracer field (for all tracers), based on the corresponding bulk
+    ! field and the initial ratio of this tracer.
+    ! ----------------------------------------------
+
+    ! input/output arguments
+    type(ESMF_State), intent(inout) :: exportState
+    type(fld_list_type), intent(in) :: fld
+    integer, intent(out)            :: rc
+
+    ! local variables
+    logical :: has_suffix
+    type(ESMF_StateItem_Flag) :: bulk_item_flag
+    character(len=fldname_maxlen) :: wtracer_bulk_fldname
+
+    type(ESMF_Field) :: field_wtracers
+    type(ESMF_Field) :: field_bulk
+
+    ! If there is no ungridded dimension other than the water tracer dimension, we'll use
+    ! these variables:
+    real(r8), pointer :: data_bulk_1d(:)
+    real(r8), pointer :: data_wtracers_2d(:,:)
+
+    ! If there is an additional ungridded dimension in addition to the water tracer
+    ! dimension, we'll use these variables:
+    real(r8), pointer :: data_bulk_2d(:,:)
+    real(r8), pointer :: data_wtracers_3d(:,:,:)
+
+    integer :: n
+
+    character(len=*), parameter :: subname='(dead_nuopc_mod:set_wtracer_field)'
+    ! ----------------------------------------------
+
+    rc = ESMF_SUCCESS
+
+    call shr_string_withoutSuffix( &
+         in_str = fld%stdname, &
+         suffix = WTRACERS_SUFFIX, &
+         has_suffix = has_suffix, &
+         out_str = wtracer_bulk_fldname)
+    if (.not. has_suffix) then
+       call ESMF_LogWrite(subname//": ERROR: "//trim(fld%stdname)// &
+            " does not end with the expected suffix for a water tracer field", &
+            ESMF_LOGMSG_ERROR)
+       rc = ESMF_FAILURE
+       return
+    end if
+
+    call ESMF_StateGet(exportState, itemName=trim(fld%stdname), field=field_wtracers, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_StateGet(exportState, itemName=trim(wtracer_bulk_fldname), itemType=bulk_item_flag, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    if (bulk_item_flag /= ESMF_STATEITEM_NOTFOUND) then
+       call ESMF_StateGet(exportState, itemName=trim(wtracer_bulk_fldname), field=field_bulk, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+       if (fld%ungridded_lbound > 0 .and. fld%ungridded_ubound > 0) then
+          ! There is an additional ungridded dimension in addition to the water tracer
+          ! dimension. Note that we assume that the bulk field matches the tracer field in
+          ! terms of the size of this ungridded dimension.
+          call ESMF_FieldGet(field_wtracers, farrayPtr=data_wtracers_3d, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_FieldGet(field_bulk, farrayPtr=data_bulk_2d, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+          do n = 1, fld%num_wtracers
+             data_wtracers_3d(:,n,:) = data_bulk_2d(:,:) * shr_wtracers_get_initial_ratio(n)
+          end do
+       else
+          ! No additional ungridded dimension
+          call ESMF_FieldGet(field_wtracers, farrayPtr=data_wtracers_2d, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_FieldGet(field_bulk, farrayPtr=data_bulk_1d, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+          do n = 1, fld%num_wtracers
+             data_wtracers_2d(n,:) = data_bulk_1d(:) * shr_wtracers_get_initial_ratio(n)
+          end do
+       end if
+    else
+       ! Corresponding bulk item not found. This is the case for a small number of fields
+       ! where we have a water tracer field but no corresponding bulk field. In this
+       ! situation, set the tracer field to the initial ratio everywhere. (It would be
+       ! ideal to give it some spatial pattern, but for now we just use a constant field
+       ! for simplicity.)
+
+       if (fld%ungridded_lbound > 0 .and. fld%ungridded_ubound > 0) then
+          ! There is an additional ungridded dimension in addition to the water tracer
+          ! dimension.
+          call ESMF_FieldGet(field_wtracers, farrayPtr=data_wtracers_3d, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+          do n = 1, fld%num_wtracers
+             data_wtracers_3d(:,n,:) = shr_wtracers_get_initial_ratio(n)
+          end do
+       else
+          ! No additional ungridded dimension
+          call ESMF_FieldGet(field_wtracers, farrayPtr=data_wtracers_2d, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+          do n = 1, fld%num_wtracers
+             data_wtracers_2d(n,:) = shr_wtracers_get_initial_ratio(n)
+          end do
+       end if
+    end if
+  end subroutine set_wtracer_field
 
   !===============================================================================
   subroutine ModelInitPhase(gcomp, importState, exportState, clock, rc)
