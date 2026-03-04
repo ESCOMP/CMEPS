@@ -38,6 +38,7 @@ module med_phases_prep_glc_mod
   use med_methods_mod       , only : field_getdata2d  => med_methods_Field_getdata2d
   use med_methods_mod       , only : field_getdata1d  => med_methods_Field_getdata1d
   use med_methods_mod       , only : fldchk           => med_methods_FB_FldChk
+  use med_field_info_mod    , only : med_field_info_type, med_field_info_array_from_state
   use med_utils_mod         , only : chkerr           => med_utils_ChkErr
   use nuopc_shr_methods     , only : alarmInit
   use glc_elevclass_mod     , only : glc_get_num_elevation_classes
@@ -131,6 +132,7 @@ contains
 
     ! local variables
     type(InternalState) :: is_local
+    type(med_field_info_type), allocatable :: field_info_array(:)
     integer             :: n,ns,nf
     type(ESMF_Mesh)     :: mesh_l
     type(ESMF_Mesh)     :: mesh_o
@@ -286,9 +288,13 @@ contains
              ! Create route handle if it has not been created - this will be needed to map the fractions
              if (.not. med_map_RH_is_created(is_local%wrap%RH(compglc(ns),complnd,:),mapconsd, rc=rc)) then
                 if (.not. ESMF_FieldBundleIsCreated(is_local%wrap%FBImp(compglc(ns),complnd))) then
+                 call med_field_info_array_from_state( &
+                      state = is_local%wrap%NStateImp(compglc(ns)), &
+                      field_info_array = field_info_array, &
+                      rc = rc)
+                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
                  call fldbun_init(is_local%wrap%FBImp(compglc(ns),complnd), is_local%wrap%flds_scalar_name, &
-                      STgeom=is_local%wrap%NStateImp(complnd), &
-                      STflds=is_local%wrap%NStateImp(compglc(ns)), &
+                      field_info_array=field_info_array, STgeom=is_local%wrap%NStateImp(complnd), &
                       name='FBImp'//trim(compname(compglc(ns)))//'_'//trim(compname(complnd)), rc=rc)
                 end if
                 call med_map_routehandles_init( compglc(ns), complnd, &

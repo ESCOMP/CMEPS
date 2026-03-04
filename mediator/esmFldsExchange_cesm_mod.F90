@@ -995,93 +995,6 @@ contains
     end if
 
     ! ---------------------------------------------------------------------
-    ! to atm: merged reference temperature at 2 meters
-    ! to atm: merged 10m wind speed
-    ! to atm: merged reference specific humidity at 2 meters
-    ! to atm: merged reference specific water isoptope humidity at 2 meters
-    ! ---------------------------------------------------------------------
-    if (phase == 'advertise') then
-       call addfld_from(complnd , 'Sl_tref')
-       call addfld_from(compice , 'Si_tref')
-       call addfld_aoflux('So_tref')
-       call addfld_to(compatm , 'Sx_tref')
-    else
-       if ( fldchk(is_local%wrap%FBexp(compatm), 'Sx_tref', rc=rc)) then
-          if (fldchk(is_local%wrap%FBImp(complnd,complnd ), 'Sl_tref', rc=rc)) then
-             call addmap_from(complnd , 'Sl_tref', compatm, mapconsf, map_fracname_lnd2atm, lnd2atm_map)
-             call addmrg_to(compatm , 'Sx_tref', &
-                  mrg_from=complnd, mrg_fld='Sl_tref', mrg_type='merge', mrg_fracname=mrg_fracname_lnd2atm_state)
-          end if
-          if (fldchk(is_local%wrap%FBImp(compice,compice ), 'Si_tref', rc=rc)) then
-             call addmap_from(compice , 'Si_tref', compatm, mapconsf, 'ifrac', ice2atm_map)
-             call addmrg_to(compatm , 'Sx_tref', &
-                  mrg_from=compice, mrg_fld='Si_tref', mrg_type='merge', mrg_fracname='ifrac')
-          end if
-          if (fldchk(is_local%wrap%FBMed_aoflux_o, 'So_tref', rc=rc)) then
-             if (trim(is_local%wrap%aoflux_grid) == 'ogrid') then
-                call addmap_aoflux('So_tref', compatm, mapconsf, 'ofrac', ocn2atm_map)
-             end if
-             call addmrg_to(compatm , 'Sx_tref', &
-                  mrg_from=compmed, mrg_fld='So_tref', mrg_type='merge', mrg_fracname='ofrac')
-          end if
-       end if
-    end if
-
-    if (phase == 'advertise') then
-       call addfld_from(complnd , 'Sl_u10')
-       call addfld_from(compice , 'Si_u10')
-       call addfld_aoflux('So_u10')
-       call addfld_to(compatm , 'Sx_u10')
-    else
-       if ( fldchk(is_local%wrap%FBexp(compatm), 'Sx_u10', rc=rc)) then
-          if (fldchk(is_local%wrap%FBImp(complnd,complnd ), 'Sl_u10', rc=rc)) then
-             call addmap_from(complnd , 'Sl_u10', compatm, mapconsf, map_fracname_lnd2atm, lnd2atm_map)
-             call addmrg_to(compatm , 'Sx_u10', &
-                  mrg_from=complnd, mrg_fld='Sl_u10', mrg_type='merge', mrg_fracname=mrg_fracname_lnd2atm_state)
-          end if
-          if (fldchk(is_local%wrap%FBImp(compice,compice ), 'Si_u10', rc=rc)) then
-             call addmap_from(compice , 'Si_u10', compatm, mapconsf, 'ifrac', ice2atm_map)
-             call addmrg_to(compatm , 'Sx_u10', &
-                  mrg_from=compice, mrg_fld='Si_u10', mrg_type='merge', mrg_fracname='ifrac')
-          end if
-          if (fldchk(is_local%wrap%FBMed_aoflux_o, 'So_u10', rc=rc)) then
-             if (trim(is_local%wrap%aoflux_grid) == 'ogrid') then
-                call addmap_aoflux('So_u10', compatm, mapconsf, 'ofrac', ocn2atm_map)
-             end if
-             call addmrg_to(compatm , 'Sx_u10', &
-                  mrg_from=compmed, mrg_fld='So_u10', mrg_type='merge', mrg_fracname='ofrac')
-          end if
-       end if
-    end if
-
-    if (phase == 'advertise') then
-       call addfld_from(complnd , 'Sl_qref')
-       call addfld_from(compice , 'Si_qref')
-       call addfld_aoflux('So_qref')
-       call addfld_to(compatm , 'Sx_qref')
-    else
-       if ( fldchk(is_local%wrap%FBexp(compatm), 'Sx_qref', rc=rc)) then
-          if (fldchk(is_local%wrap%FBImp(complnd,complnd ), 'Sl_qref', rc=rc)) then
-             call addmap_from(complnd , 'Sl_qref', compatm, mapconsf, map_fracname_lnd2atm, lnd2atm_map)
-             call addmrg_to(compatm , 'Sx_qref', &
-                  mrg_from=complnd, mrg_fld='Sl_qref', mrg_type='merge', mrg_fracname=mrg_fracname_lnd2atm_state)
-          end if
-          if (fldchk(is_local%wrap%FBImp(compice,compice ), 'Si_qref', rc=rc)) then
-             call addmap_from(compice , 'Si_qref', compatm, mapconsf, 'ifrac', ice2atm_map)
-             call addmrg_to(compatm , 'Sx_qref', &
-                  mrg_from=compice, mrg_fld='Si_qref', mrg_type='merge', mrg_fracname='ifrac')
-          end if
-          if (fldchk(is_local%wrap%FBMed_aoflux_o, 'So_qref', rc=rc)) then
-             if (trim(is_local%wrap%aoflux_grid) == 'ogrid') then
-                call addmap_aoflux('So_qref', compatm, mapconsf, 'ofrac', ocn2atm_map)
-             end if
-             call addmrg_to(compatm , 'Sx_qref', &
-                  mrg_from=compmed, mrg_fld='So_qref', mrg_type='merge', mrg_fracname='ofrac')
-          end if
-       end if
-    end if
-
-    ! ---------------------------------------------------------------------
     ! to atm: merged zonal surface stress
     ! to atm: merged meridional surface stress
     ! to atm: merged surface latent heat flux
@@ -2342,7 +2255,7 @@ contains
           call addmrg_to(compocn, 'Sw_lamult', mrg_from=compwav, mrg_fld='Sw_lamult', mrg_type='copy')
        end if
     end if
-    if (ocn_name == 'mpaso') then
+    if (ocn_name == 'mpaso' .or. ocn_name == 'mom') then
       !-----------------------------
       ! to ocn:
       !-----------------------------
@@ -2369,6 +2282,45 @@ contains
             call addmrg_to(compocn, 'Sw_Fp', mrg_from=compwav, mrg_fld='Sw_Fp', mrg_type='copy')
          end if
       end if
+      !-----------------------------
+      ! to ocn:
+      !-----------------------------
+      if (phase == 'advertise') then
+         call addfld_from(compwav, 'Sw_t0m1')
+         call addfld_to(compocn, 'Sw_t0m1')
+      else
+         if ( fldchk(is_local%wrap%FBExp(compocn)         , 'Sw_t0m1', rc=rc) .and. &
+              fldchk(is_local%wrap%FBImp(compwav, compwav), 'Sw_t0m1', rc=rc)) then
+            call addmap_from(compwav, 'Sw_t0m1', compocn,  mapbilnr_nstod, 'one', wav2ocn_map)
+            call addmrg_to(compocn, 'Sw_t0m1', mrg_from=compwav, mrg_fld='Sw_t0m1', mrg_type='copy')
+         end if
+      end if    
+      !-----------------------------
+      ! to ocn:
+      !-----------------------------
+      if (phase == 'advertise') then
+         call addfld_from(compwav, 'Sw_t01')
+         call addfld_to(compocn, 'Sw_t01')
+      else
+         if ( fldchk(is_local%wrap%FBExp(compocn)         , 'Sw_t01', rc=rc) .and. &
+              fldchk(is_local%wrap%FBImp(compwav, compwav), 'Sw_t01', rc=rc)) then
+            call addmap_from(compwav, 'Sw_t01', compocn,  mapbilnr_nstod, 'one', wav2ocn_map)
+            call addmrg_to(compocn, 'Sw_t01', mrg_from=compwav, mrg_fld='Sw_t01', mrg_type='copy')
+         end if
+      end if      
+      !-----------------------------
+      ! to ocn:
+      !-----------------------------
+      if (phase == 'advertise') then
+         call addfld_from(compwav, 'Sw_thm')
+         call addfld_to(compocn, 'Sw_thm')
+      else
+         if ( fldchk(is_local%wrap%FBExp(compocn)         , 'Sw_thm', rc=rc) .and. &
+              fldchk(is_local%wrap%FBImp(compwav, compwav), 'Sw_thm', rc=rc)) then
+            call addmap_from(compwav, 'Sw_thm', compocn,  mapbilnr_nstod, 'one', wav2ocn_map)
+            call addmrg_to(compocn, 'Sw_thm', mrg_from=compwav, mrg_fld='Sw_thm', mrg_type='copy')
+         end if
+      end if      
       !-----------------------------
       ! to ocn:
       !-----------------------------
