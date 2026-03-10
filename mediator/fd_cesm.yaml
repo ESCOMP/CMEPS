@@ -43,6 +43,10 @@
        canonical_units: kg m-2 s-1
        description: med export - atm/ocn evaporation water flux computed in medidator
      #
+     - standard_name: Faox_evap_wtracers
+       canonical_units: kg m-2 s-1
+       description: med export - atm/ocn evaporation water tracer flux computed in medidator
+     #
      - standard_name: Faox_lat
        alias: mean_laten_heat_flx_atm_into_ocn
        canonical_units: W m-2
@@ -83,6 +87,10 @@
      #-----------------------------------
      #
      - standard_name: Fall_evap
+       canonical_units: kg m-2 s-1
+       description: lnd import to med
+     #
+     - standard_name: Fall_evap_wtracers
        canonical_units: kg m-2 s-1
        description: lnd import to med
      #
@@ -166,6 +174,10 @@
        canonical_units: kg kg-1
        description: lnd import to med
      #
+     - standard_name: Sl_qref_wtracers
+       canonical_units: kg kg-1
+       description: lnd import to med
+     #
      - standard_name: Sl_ram1
        canonical_units: s/m
        description: lnd import to med
@@ -186,7 +198,7 @@
        canonical_units: kg m-2 s-1
        description: lnd export to river
      #
-     - standard_name: Flrl_rofdto
+     - standard_name: Flrl_irrig_wtracers
        canonical_units: kg m-2 s-1
        description: lnd export to river
      #
@@ -194,7 +206,15 @@
        canonical_units: kg m-2 s-1
        description: lnd export to river
      #
+     - standard_name: Flrl_rofgwl_wtracers
+       canonical_units: kg m-2 s-1
+       description: lnd export to river
+     #
      - standard_name: Flrl_rofi
+       canonical_units: kg m-2 s-1
+       description: lnd export to river
+     #
+     - standard_name: Flrl_rofi_wtracers
        canonical_units: kg m-2 s-1
        description: lnd export to river
      #
@@ -202,7 +222,15 @@
        canonical_units: kg m-2 s-1
        description: lnd export to river
      #
+     - standard_name: Flrl_rofsub_wtracers
+       canonical_units: kg m-2 s-1
+       description: lnd export to river
+     #
      - standard_name: Flrl_rofsur
+       canonical_units: kg m-2 s-1
+       description: lnd export to river
+     #
+     - standard_name: Flrl_rofsur_wtracers
        canonical_units: kg m-2 s-1
        description: lnd export to river
      #
@@ -215,6 +243,10 @@
        description: lnd import to med with elevation classes (1->glc_nec)
      #
      - standard_name: Flgl_qice_elev
+       canonical_units: kg m-2 s-1
+       description: lnd import to med in elevation classes (1->glc_nec)
+     #
+     - standard_name: Flgl_qice_elev_wtracers
        canonical_units: kg m-2 s-1
        description: lnd import to med in elevation classes (1->glc_nec)
      #
@@ -242,6 +274,9 @@
        canonical_units: kg m-2 s-1
        description: lnd export to med no elevation classes (computed in med)
      #
+     - standard_name: Flgl_qice_wtracers
+       canonical_units: kg m-2 s-1
+       description: lnd export to med no elevation classes (computed in med)     #
      #-----------------------------------
      # section: atm import to med
      #-----------------------------------
@@ -291,11 +326,23 @@
        canonical_units: kg m-2 s-1
        description: atm import to med
      #
+     - standard_name: Faxa_rain_wtracers
+       canonical_units: kg m-2 s-1
+       description: atm import to med
+     #
      - standard_name: Faxa_rainc
        canonical_units: kg m-2 s-1
        description: atm import to med
      #
+     - standard_name: Faxa_rainc_wtracers
+       canonical_units: kg m-2 s-1
+       description: atm import to med
+     #
      - standard_name: Faxa_rainl
+       canonical_units: kg m-2 s-1
+       description: atm import to med
+     #
+     - standard_name: Faxa_rainl_wtracers
        canonical_units: kg m-2 s-1
        description: atm import to med
      #
@@ -304,11 +351,23 @@
        canonical_units: kg m-2 s-1
        description: atm import to med
      #
+     - standard_name: Faxa_snow_wtracers
+       canonical_units: kg m-2 s-1
+       description: atm import to med
+     #
      - standard_name: Faxa_snowc
        canonical_units: kg m-2 s-1
        description: atm import to med
      #
+     - standard_name: Faxa_snowc_wtracers
+       canonical_units: kg m-2 s-1
+       description: atm import to med
+     #
      - standard_name: Faxa_snowl
+       canonical_units: kg m-2 s-1
+       description: atm import to med
+     #
+     - standard_name: Faxa_snowl_wtracers
        canonical_units: kg m-2 s-1
        description: atm import to med
      #
@@ -383,7 +442,11 @@
      - standard_name: Sa_shum
        alias: inst_spec_humid_height_lowest
        canonical_units: kg kg-1
-       description: atm import to med - bottom layer specific humidiaty
+       description: atm import to med - bottom layer specific humidity
+     #
+     - standard_name: Sa_shum_wtracers
+       canonical_units: kg kg-1
+       description: atm import to med - bottom layer tracer specific humidity
      #
      - standard_name: Sa_tbot
        alias: inst_temp_height_lowest
@@ -449,7 +512,11 @@
      #
      - standard_name: Faxx_evap
        canonical_units: kg m-2 s-1
-       description: atm export from meditor - merged water evaporation flux
+       description: atm export from med - merged water evaporation flux
+     #
+     - standard_name: Faxx_evap_wtracers
+       canonical_units: kg m-2 s-1
+       description: atm export from med - merged water tracer evaporation flux
      #
      - standard_name: Faxx_lat
        alias: mean_laten_heat_flx
@@ -495,6 +562,10 @@
        canonical_units: kg kg-1
        description: atm export from med
      #
+     - standard_name: Sx_qref_wtracers
+       canonical_units: kg kg-1
+       description: atm export from med
+     #
      - standard_name: Sx_t
        alias: surface_temperature
        canonical_units: K
@@ -529,15 +600,19 @@
      #
      - standard_name: Fgrg_rofi
        canonical_units: kg m-2 s-1
-       description: glc import tomed - glacier frozen_runoff_flux_to_ocean
+       description: glc import to med - glacier frozen runoff flux to ocean
+     #
+     - standard_name: Fgrg_rofi_wtracers
+       canonical_units: kg m-2 s-1
+       description: glc import to med - glacier frozen runoff tracer flux to ocean
      #
      - standard_name: Fgrg_rofl
        canonical_units: kg m-2 s-1
        description: glc import to med - glacier liquid runoff flux to ocean
      #
-     - standard_name: Figg_rofi
+     - standard_name: Fgrg_rofl_wtracers
        canonical_units: kg m-2 s-1
-       description: glc import to med - glc frozen runoff_iceberg flux to ice
+       description: glc import to med - glacier liquid runoff tracer flux to ocean
      #
      - standard_name: Flgg_hflx
        canonical_units: W m-2
@@ -587,6 +662,10 @@
      #
      - standard_name: Faii_evap
        alias: mean_evap_rate_atm_into_ice
+       canonical_units: kg m-2 s-1
+       description: ice import to med
+     #
+     - standard_name: Faii_evap_wtracers
        canonical_units: kg m-2 s-1
        description: ice import to med
      #
@@ -640,6 +719,10 @@
        alias: mean_fresh_water_to_ocean_rate
        canonical_units: kg m-2 s-1
        description: ice import to med to ocean - fresh water to ocean (h2o flux from melting)
+     #
+     - standard_name: Fioi_meltw_wtracers
+       canonical_units: kg m-2 s-1
+       description: ice import to med to ocean - fresh water tracer flux to ocean (h2o flux from melting)
      #
      - standard_name: Fioi_salt
        alias: mean_salt_rate
@@ -717,6 +800,10 @@
        description: ice import to med - ice mask
      #
      - standard_name: Si_qref
+       canonical_units: kg kg-1
+       description: ice import to med
+     #
+     - standard_name: Si_qref_wtracers
        canonical_units: kg kg-1
        description: ice import to med
      #
@@ -850,6 +937,14 @@
        canonical_units: kg kg-1
        description: ocn import to med
      #
+     - standard_name: So_qref_wtracers
+       canonical_units: kg kg-1
+       description: ocn import to med
+     #
+     - standard_name: So_roce_wtracers
+       canonical_units: unitless
+       description: ocn import to med
+     #
      - standard_name: So_re
        canonical_units: 1
        description: ocn import to med
@@ -947,15 +1042,15 @@
      - standard_name: Foxx_evap
        alias: mean_evap_rate
        canonical_units: kg m-2 s-1
-       description: med export to ocn - specific humidity flux
+       description: med export to ocn - evaporation flux
+     #
+     - standard_name: Foxx_evap_wtracers
+       canonical_units: kg m-2 s-1
+       description: med export to ocn - tracer evaporation flux
      #
      - standard_name: Foxx_lat
        canonical_units: W m-2
        description: med export to ocn - latent heat flux into ocean
-     #
-     - standard_name: Foxx_lat
-       canonical_units: W m-2
-       description: med export to ocn - latent heat flux into ocean for HDO
      #
      - standard_name: Foxx_sen
        alias: mean_sensi_heat_flx
@@ -991,10 +1086,19 @@
        canonical_units: kg m-2 s-1
        description: med export to ocn - water flux due to runoff (frozen)
      #
+     - standard_name: Foxx_rofi_wtracers
+       canonical_units: kg m-2 s-1
+       description: med export to ocn - water tracer flux due to runoff (frozen)
+     #
      - standard_name: Foxx_rofl
        alias: mean_runoff_rate
        canonical_units: kg m-2 s-1
        description: med export to ocn - water flux due to runoff (liquid)
+     #
+     - standard_name: Foxx_rofl_wtracers
+       alias: mean_runoff_rate
+       canonical_units: kg m-2 s-1
+       description: med export to ocn - water tracer flux due to runoff (liquid)
      #
      - standard_name: Foxx_swnet
        alias: mean_net_sw_flx
@@ -1056,13 +1160,25 @@
        canonical_units: kg m-2 s-1
        description: river import to med - water flux due to flooding
      #
+     - standard_name: Flrr_flood_wtracers
+       canonical_units: kg m-2 s-1
+       description: river import to med - water tracer flux due to flooding
+     #
      - standard_name: Flrr_volr
        canonical_units: m
        description: river import to med - river channel total water volume
      #
+     - standard_name: Flrr_volr_wtracers
+       canonical_units: m
+       description: river import to med - river channel total water volume of tracers
+     #
      - standard_name: Flrr_volrmch
        canonical_units: m
        description: river import to med - river channel main channel water volume
+     #
+     - standard_name: Flrr_volrmch_wtracers
+       canonical_units: m
+       description: river import to med - river channel main channel water volume of tracers
      #
      - standard_name: Sr_tdepth
        canonical_units: m
@@ -1076,17 +1192,33 @@
        canonical_units: kg m-2 s-1
        description: river export to ocean - water flux due to runoff (frozen)
      #
+     - standard_name: Forr_rofi_wtracers
+       canonical_units: kg m-2 s-1
+       description: river export to ocean - water tracer flux due to runoff (frozen)
+     #
      - standard_name: Forr_rofi_glc
        canonical_units: kg m-2 s-1
        description: river export to ocean - water flux due to runoff originating from glc (frozen)
+     #
+     - standard_name: Forr_rofi_glc_wtracers
+       canonical_units: kg m-2 s-1
+       description: river export to ocean - water tracer flux due to runoff originating from glc (frozen)
      #
      - standard_name: Forr_rofl
        canonical_units: kg m-2 s-1
        description: river import to med - water flux due to runoff (liquid)
      #
+     - standard_name: Forr_rofl_wtracers
+       canonical_units: kg m-2 s-1
+       description: river import to med - water tracer flux due to runoff (liquid)
+     #
      - standard_name: Forr_rofl_glc
        canonical_units: kg m-2 s-1
        description: river import to med - water flux due to runoff originating from glc (liquid)
+     #
+     - standard_name: Forr_rofl_glc_wtracers
+       canonical_units: kg m-2 s-1
+       description: river import to med - water tracer flux due to runoff originating from glc (liquid)
      #
      #-----------------------------------
      # section: wav import to med

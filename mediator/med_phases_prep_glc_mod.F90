@@ -29,21 +29,27 @@ module med_phases_prep_glc_mod
   use med_constants_mod     , only : czero            => med_constants_czero
   use med_constants_mod     , only : shr_const_pi, shr_const_spval
   use med_methods_mod       , only : fldbun_getmesh   => med_methods_FB_getmesh
+  use med_methods_mod       , only : fldbun_getdata3d => med_methods_FB_getdata3d
   use med_methods_mod       , only : fldbun_getdata2d => med_methods_FB_getdata2d
   use med_methods_mod       , only : fldbun_getdata1d => med_methods_FB_getdata1d
   use med_methods_mod       , only : fldbun_diagnose  => med_methods_FB_diagnose
   use med_methods_mod       , only : fldbun_reset     => med_methods_FB_reset
   use med_methods_mod       , only : fldbun_init      => med_methods_FB_init
+  use med_methods_mod       , only : fldbun_accum     => med_methods_FB_accum
+  use med_methods_mod       , only : fldbun_average   => med_methods_FB_average
+  use med_methods_mod       , only : fldbun_copy      => med_methods_FB_copy
   use med_methods_mod       , only : FB_check_for_nans => med_methods_FB_check_for_nans
   use med_methods_mod       , only : field_getdata2d  => med_methods_Field_getdata2d
   use med_methods_mod       , only : field_getdata1d  => med_methods_Field_getdata1d
   use med_methods_mod       , only : fldchk           => med_methods_FB_FldChk
+  use med_methods_mod       , only : med_methods_FB_check_wtracers
   use med_field_info_mod    , only : med_field_info_type, med_field_info_array_from_state
   use med_utils_mod         , only : chkerr           => med_utils_ChkErr
   use nuopc_shr_methods     , only : alarmInit
   use glc_elevclass_mod     , only : glc_get_num_elevation_classes
   use glc_elevclass_mod     , only : glc_get_elevation_classes
   use glc_elevclass_mod     , only : glc_get_fractional_icecov
+  use wtracers_mod          , only : wtracers_present, wtracers_get_num_tracers, WTRACERS_SUFFIX
   use perf_mod              , only : t_startf, t_stopf
   use shr_log_mod           , only : shr_log_error
   
@@ -58,6 +64,9 @@ module med_phases_prep_glc_mod
 
   private :: med_phases_prep_glc_map_lnd2glc
   private :: med_phases_prep_glc_renormalize_smb
+  private :: renormalize_smb_accumulate_sums_l
+  private :: renormalize_smb_accumulate_sums_g
+  private :: renormalize_smb_do_renormalization
 
   ! -----------------
   ! lnd -> glc
@@ -96,10 +105,15 @@ module med_phases_prep_glc_mod
   type(ESMF_Field)               :: field_frac_l_ec
 
   character(len=*), parameter    :: qice_fieldname       = 'Flgl_qice' ! Name of flux field giving surface mass balance
+  character(len=*), parameter    :: qice_elev_fieldname  = 'Flgl_qice_elev' ! Name of flux field giving surface mass balance, separated by elevation class
+  character(len=*), parameter    :: qice_wtracers_fieldname = qice_fieldname//WTRACERS_SUFFIX
+  character(len=*), parameter    :: qice_elev_wtracers_fieldname = qice_elev_fieldname//WTRACERS_SUFFIX
   character(len=*), parameter    :: Sg_frac_fieldname    = 'Sg_ice_covered'
   character(len=*), parameter    :: Sg_topo_fieldname    = 'Sg_topo'
   character(len=*), parameter    :: Sg_icemask_fieldname = 'Sg_icemask'
   integer                        :: ungriddedCount ! this equals the number of elevation classes + 1 (for bare land)
+  logical                        :: has_wtracers ! true if this simulation has water tracers
+  integer                        :: num_wtracers ! number of water tracers in this simulation
 
   ! -----------------
   ! ocn -> glc
@@ -157,6 +171,14 @@ contains
     ! allocate module variables
     allocate(toglc_frlnd(is_local%wrap%num_icesheets))
 
+    ! Check whether this simulation has water tracers
+    has_wtracers = wtracers_present()
+    if (has_wtracers) then
+       num_wtracers = wtracers_get_num_tracers()
+    else
+       num_wtracers = 0
+    end if
+
     ! -------------------------------
     ! If will accumulate lnd2glc input on land grid
     ! -------------------------------
@@ -187,6 +209,18 @@ contains
           call ESMF_LogWrite(trim(subname)//' adding field '//trim(fldnames_fr_lnd(n))//' to FBLndAccum_l', &
                ESMF_LOGMSG_INFO)
        end do
+       if (has_wtracers) then
+          lfield = ESMF_FieldCreate(mesh_l, ESMF_TYPEKIND_R8, name=qice_elev_wtracers_fieldname, &
+               meshloc=ESMF_MESHLOC_ELEMENT, &
+               ! Note the assumption of dimension ordering here: [elev, wtracer, gridcell]
+               ungriddedLbound=(/1,1/), ungriddedUbound=(/ungriddedCount, num_wtracers/), gridToFieldMap=(/3/), &
+               rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_FieldBundleAdd(FBlndAccum2glc_l, (/lfield/), rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_LogWrite(trim(subname)//' adding field '//qice_elev_wtracers_fieldname//' to FBLndAccum_l', &
+               ESMF_LOGMSG_INFO)
+       end if
        call fldbun_reset(FBlndAccum2glc_l, value=0.0_r8, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     end if
@@ -215,6 +249,16 @@ contains
              call ESMF_FieldBundleAdd(toglc_frlnd(ns)%FBlndAccum2glc_g, (/lfield/), rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
           end do
+          if (has_wtracers) then
+             lfield = ESMF_FieldCreate(toglc_frlnd(ns)%mesh_g, ESMF_TYPEKIND_R8, name=qice_elev_wtracers_fieldname, &
+                  meshloc=ESMF_MESHLOC_ELEMENT, &
+                  ! Note the assumption of dimension ordering here: [elev, wtracer, gridcell]
+                  ungriddedLbound=(/1,1/), ungriddedUbound=(/ungriddedCount, num_wtracers/), gridToFieldMap=(/3/), &
+                  rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+             call ESMF_FieldBundleAdd(toglc_frlnd(ns)%FBlndAccum2glc_g, (/lfield/), rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+          end if
           call fldbun_reset(toglc_frlnd(ns)%FBlndAccum2glc_g, value=0.0_r8, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
 
@@ -375,9 +419,6 @@ contains
 
     ! local variables
     type(InternalState) :: is_local
-    integer             :: i,n
-    real(r8), pointer   :: data2d_in(:,:)
-    real(r8), pointer   :: data2d_out(:,:)
     character(len=*),parameter :: subname=' (med_phases_prep_glc_accum) '
     !---------------------------------------
 
@@ -394,15 +435,8 @@ contains
     if (chkErr(rc,__LINE__,u_FILE_u)) return
 
     ! Accumulate fields from land on land mesh that will be sent to glc
-    do n = 1, size(fldnames_fr_lnd)
-       call fldbun_getdata2d(is_local%wrap%FBImp(complnd,complnd), fldnames_fr_lnd(n), data2d_in, rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call fldbun_getdata2d(FBlndAccum2glc_l, fldnames_fr_lnd(n), data2d_out, rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       do i = 1,size(data2d_out, dim=2)
-          data2d_out(:,i) = data2d_out(:,i) + data2d_in(:,i)
-       end do
-    end do
+    call fldbun_accum(FBout=FBlndAccum2glc_l, FBin=is_local%wrap%FBImp(complnd,complnd), rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
     lndAccum2glc_cnt = lndAccum2glc_cnt + 1
     if (dbug_flag > 1) then
        call fldbun_diagnose(FBlndAccum2glc_l, string=trim(subname)// ' FBlndAccum2glc_l ',  rc=rc)
@@ -607,22 +641,16 @@ contains
     ! Average and map data from land (and possibly ocean)
     if (do_avg) then
        ! Always average import from accumulated land import data
-       do n = 1, size(fldnames_fr_lnd)
-          if (fldchk(FBlndAccum2glc_l, fldnames_fr_lnd(n), rc=rc)) then
-             call fldbun_getdata2d(FBlndAccum2glc_l, fldnames_fr_lnd(n), data2d, rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-             if (lndAccum2glc_cnt > 0) then
-                ! If accumulation count is greater than 0, do the averaging
-                data2d(:,:) = data2d(:,:) / real(lndAccum2glc_cnt, R8)
-             else
-                ! If accumulation count is 0, then simply set the averaged field bundle values from the land
-                ! to the import field bundle values
-                call fldbun_getdata2d(is_local%wrap%FBImp(complnd,complnd), fldnames_fr_lnd(n), data2d_import, rc)
-                if (chkerr(rc,__LINE__,u_FILE_u)) return
-                data2d(:,:) = data2d_import(:,:)
-             end if
-          end if
-       end do
+       if (lndAccum2glc_cnt > 0) then
+          ! If accumulation count is greater than 0, do the averaging
+          call fldbun_average(FB=FBlndAccum2glc_l, count=lndAccum2glc_cnt, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+       else
+          ! If accumulation count is 0, then simply set the averaged field bundle values from the land
+          ! to the import field bundle values
+          call fldbun_copy(FBout=FBlndAccum2glc_l, FBin=is_local%wrap%FBImp(complnd,complnd), rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+       end if
 
        if (is_local%wrap%ocn2glc_coupling) then
           ! Average import from accumulated ocn import data
@@ -718,6 +746,13 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end do
 
+    ! Check water tracers (if there are no water tracers or these checks aren't enabled,
+    ! this will return without doing anything)
+    do ns = 1,is_local%wrap%num_icesheets
+       call med_methods_FB_check_wtracers(is_local%wrap%FBExp(compglc(ns)), rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+    end do
+
     if (dbug_flag > 5) then
        call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
     endif
@@ -754,8 +789,10 @@ contains
     real(r8), pointer   :: topoglc_g(:)           ! ice topographic height on the glc grid extracted from glc import
     real(r8), pointer   :: ice_covered_g(:)       ! if points on the glc grid is ice-covered (1) or ice-free (0)
     integer , pointer   :: elevclass_g(:)         ! elevation classes glc grid
-    real(r8), pointer   :: dataexp_g(:)           ! pointer into
+    real(r8), pointer   :: dataexp1d_g(:)
+    real(r8), pointer   :: dataexp2d_g(:,:)
     real(r8), pointer   :: dataptr2d(:,:)
+    real(r8), pointer   :: dataptr3d(:,:,:)
     real(r8)            :: elev_l, elev_u         ! lower and upper elevations in interpolation range
     real(r8)            :: d_elev                 ! elev_u - elev_l
     integer             :: nfld, ec
@@ -763,7 +800,7 @@ contains
     integer,  allocatable :: index_upper(:)   ! upper EC index for vertical interpolation, per glc gridcell
     real(r8), allocatable :: weight_lower(:)  ! weight for lower EC, per glc gridcell
     real(r8), allocatable :: weight_upper(:)  ! weight for upper EC, per glc gridcell
-    integer             :: n,lsize_g,ns
+    integer             :: n,lsize_g,ns,t
     type(ESMF_Field)    :: field_lfrac_l
     integer             :: fieldCount
     character(len=3)    :: cnum
@@ -778,15 +815,9 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! ------------------------------------------------------------------------
-    ! Map the accumulate land field from the land grid (in multiple elevation classes)
+    ! Map the accumulated land field from the land grid (in multiple elevation classes)
     ! to the glc grid (in multiple elevation classes) using bilinear interpolation
     ! ------------------------------------------------------------------------
-
-    ! Initialize accumulated field bundle on the glc grid to zero before doing the mapping
-    do ns = 1,is_local%wrap%num_icesheets
-       call fldbun_reset(toglc_frlnd(ns)%FBlndAccum2glc_g, value=0.0_r8, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-    end do
 
     ! TODO(wjs, 2015-01-20) This implies that we pass data to CISM even in places that
     ! CISM says is ocean (so CISM will ignore the incoming value). This differs from the
@@ -806,12 +837,10 @@ contains
     call ESMF_FieldBundleGet(is_local%wrap%FBFrac(complnd), fieldName=map_fracname_lnd2glc, field=field_lfrac_l, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    ! map accumlated land fields to each ice sheet (normalize by the land fraction in the mapping)
+    ! map accumulated land fields to each ice sheet (normalize by the land fraction in the mapping)
     do ns = 1,is_local%wrap%num_icesheets
        call fldbun_reset(toglc_frlnd(ns)%FBlndAccum2glc_g, value=0.0_r8, rc=rc)
        if (chkErr(rc,__LINE__,u_FILE_u)) return
-    end do
-    do ns = 1,is_local%wrap%num_icesheets
        call ESMF_FieldBundleGet(toglc_frlnd(ns)%FBlndAccum2glc_g, fieldlist=fieldlist_glc, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        do nfld = 1,fieldcount
@@ -941,26 +970,60 @@ contains
           if (chkErr(rc,__LINE__,u_FILE_u)) return
 
           ! Get a pointer to the data for the field that will be sent to glc (without elevation classes)
-          call fldbun_getdata1d(is_local%wrap%FBExp(compglc(ns)), fldnames_to_glc(nfld), dataexp_g, rc)
+          call fldbun_getdata1d(is_local%wrap%FBExp(compglc(ns)), fldnames_to_glc(nfld), dataexp1d_g, rc)
           if (chkErr(rc,__LINE__,u_FILE_u)) return
 
           ! Apply pre-computed vertical interpolation indices and weights
           do n = 1, lsize_g
              if (elevclass_g(n) /= 0) then
                 ! ice-covered cells: vertically interpolate between bounding ECs
-                dataexp_g(n) = dataptr2d(index_lower(n), n) * weight_lower(n) &
-                             + dataptr2d(index_upper(n), n) * weight_upper(n)
+                dataexp1d_g(n) = dataptr2d(index_lower(n), n) * weight_lower(n) &
+                               + dataptr2d(index_upper(n), n) * weight_upper(n)
              else
                 ! non ice-covered cells: use bare land value (EC index 1)
-                dataexp_g(n) = dataptr2d(1, n)
+                dataexp1d_g(n) = dataptr2d(1, n)
              end if
-          end do  ! end of loop over land points
+          end do
 
        end do ! end loop over fields (nflds)
 
        ! ------------------------------------------------------------------------
-       ! Renormalize surface mass balance (smb, here named dataexp_g) so that the global
-       ! integral on the glc grid is equal to the global integral on the land grid.
+       ! Now do an equivalent vertical interpolation for the qice water tracer field. This
+       ! needs to be handled separately from the above loop because there is an extra
+       ! dimension in this field.
+       ! ------------------------------------------------------------------------
+
+       if (has_wtracers) then
+
+          ! Get a pointer to the land data in multiple elevation classes on the glc grid
+          call fldbun_getdata3d(toglc_frlnd(ns)%FBlndAccum2glc_g, qice_elev_wtracers_fieldname, dataptr3d, rc)
+          if (chkErr(rc,__LINE__,u_FILE_u)) return
+
+          ! Get a pointer to the data for the field that will be sent to glc (without elevation classes)
+          call fldbun_getdata2d(is_local%wrap%FBExp(compglc(ns)), qice_wtracers_fieldname, dataexp2d_g, rc)
+          if (chkErr(rc,__LINE__,u_FILE_u)) return
+
+          ! Apply pre-computed vertical interpolation indices and weights
+          do n = 1, lsize_g
+             if (elevclass_g(n) /= 0) then
+                ! ice-covered cells: vertically interpolate between bounding ECs
+                do t = 1, num_wtracers
+                   dataexp2d_g(t, n) = dataptr3d(index_lower(n), t, n) * weight_lower(n) &
+                                     + dataptr3d(index_upper(n), t, n) * weight_upper(n)
+                end do
+             else
+                ! non ice-covered cells: use bare land value (EC index 1)
+                do t = 1, num_wtracers
+                   dataexp2d_g(t, n) = dataptr3d(1, t, n)
+                end do
+             end if
+          end do
+
+       end if
+
+       ! ------------------------------------------------------------------------
+       ! Renormalize surface mass balance (smb) so that the global integral on the glc
+       ! grid is equal to the global integral on the land grid.
        ! ------------------------------------------------------------------------
 
        ! No longer need to make a preemptive adjustment to qice_g to account for area differences
@@ -1050,7 +1113,9 @@ contains
     type(InternalState) :: is_local
     type(ESMF_VM)       :: vm
     real(r8) , pointer  :: qice_g(:)       ! SMB (Flgl_qice) on glc grid without elev classes
-    real(r8) , pointer  :: qice_l_ec(:,:)  ! SMB (Flgl_qice) on land grid with elev classes
+    real(r8) , pointer  :: qice_l_ec(:,:)  ! SMB (Flgl_qice_elev) on land grid with elev classes
+    real(r8) , pointer  :: qice_g_wtracers(:,:) ! SMB water tracers (Flgl_qice_wtracers) on glc grid without elev classes
+    real(r8) , pointer  :: qice_l_ec_wtracers(:,:,:) ! SMB water tracers (Flgl_qice_elev_wtracers) on land grid with elev classes
     real(r8) , pointer  :: topo_g(:)       ! ice topographic height on the glc grid cell
     real(r8) , pointer  :: frac_g(:)       ! total ice fraction in each glc cell
     real(r8) , pointer  :: frac_g_ec(:,:)  ! total ice fraction in each glc cell
@@ -1060,18 +1125,19 @@ contains
     real(r8) , pointer  :: lndfrac(:)      ! land fraction on land grid
     real(r8) , pointer  :: dataptr1d(:)    ! temporary 1d pointer
     integer             :: ec              ! loop index over elevation classes
-    integer             :: n
+    integer             :: n, t
 
     ! local and global sums of accumulation and ablation; used to compute renormalization factors
-    real(r8) :: local_accum_lnd(1), global_accum_lnd(1)
-    real(r8) :: local_accum_glc(1), global_accum_glc(1)
-    real(r8) :: local_ablat_lnd(1), global_ablat_lnd(1)
-    real(r8) :: local_ablat_glc(1), global_ablat_glc(1)
+    ! the first element of each of these is for bulk water; the remaining elements are for water tracers
+    real(r8) :: local_accum_lnd(1+num_wtracers), global_accum_lnd(1+num_wtracers)
+    real(r8) :: local_accum_glc(1+num_wtracers), global_accum_glc(1+num_wtracers)
+    real(r8) :: local_ablat_lnd(1+num_wtracers), global_ablat_lnd(1+num_wtracers)
+    real(r8) :: local_ablat_glc(1+num_wtracers), global_ablat_glc(1+num_wtracers)
 
     ! renormalization factors (should be close to 1, e.g. in range 0.95 to 1.05)
     real(r8) :: accum_renorm_factor ! ratio between global accumulation on the two grids
     real(r8) :: ablat_renorm_factor ! ratio between global ablation on the two grids
-    real(r8) :: effective_area      ! grid cell area multiplied by min(lndfrac,icemask_l).
+    real(r8), allocatable :: effective_area_l(:) ! effective areas on the land grid: grid cell area multiplied by min(lndfrac,icemask_l).
     real(r8), pointer :: area_g(:)  ! areas on glc grid
     character(len=*), parameter  :: subname=' (renormalize_smb) '
     !---------------------------------------------------------------
@@ -1155,83 +1221,205 @@ contains
     call fldbun_getdata1d(is_local%wrap%FBFrac(complnd), map_fracname_lnd2glc, lndfrac, rc)
     if (chkErr(rc,__LINE__,u_FILE_u)) return
 
-    ! get qice_l_ec
-    call fldbun_getdata2d(FBlndAccum2glc_l, trim(qice_fieldname)//'_elev', qice_l_ec, rc)
-    if (chkErr(rc,__LINE__,u_FILE_u)) return
-
-    local_accum_lnd(1) = 0.0_r8
-    local_ablat_lnd(1) = 0.0_r8
+    allocate(effective_area_l(size(lndfrac)))
     do n = 1, size(lndfrac)
-       ! Calculate effective area for sum -  need the mapped icemask_l
-       effective_area = min(lndfrac(n), icemask_l(n)) * is_local%wrap%mesh_info(complnd)%areas(n)
-       if (effective_area > 0.0_r8) then
-          do ec = 1, ungriddedCount
-             if (qice_l_ec(ec,n) >= 0.0_r8) then
-                local_accum_lnd(1) = local_accum_lnd(1) + effective_area * frac_l_ec(ec,n) * qice_l_ec(ec,n)
-             else
-                local_ablat_lnd(1) = local_ablat_lnd(1) + effective_area * frac_l_ec(ec,n) * qice_l_ec(ec,n)
-             endif
-          end do ! ec
-       end if ! if landmaks > 0
-    enddo  ! n
+       effective_area_l(n) = min(lndfrac(n), icemask_l(n)) * is_local%wrap%mesh_info(complnd)%areas(n)
+    end do
 
+    ! determine accumulation and ablation sums for qice on the land grid
+    call fldbun_getdata2d(FBlndAccum2glc_l, trim(qice_elev_fieldname), qice_l_ec, rc)
+    if (chkErr(rc,__LINE__,u_FILE_u)) return
+    call renormalize_smb_accumulate_sums_l(qice_l_ec, effective_area_l, frac_l_ec, &
+         local_accum_lnd(1), local_ablat_lnd(1))
+
+    ! and, similarly, determine accumulation and ablation sums for qice water tracers on the land grid
+    if (has_wtracers) then
+       call fldbun_getdata3d(FBlndAccum2glc_l, trim(qice_elev_wtracers_fieldname), qice_l_ec_wtracers, rc)
+       if (chkErr(rc,__LINE__,u_FILE_u)) return
+       do t = 1, num_wtracers
+          call renormalize_smb_accumulate_sums_l(qice_l_ec_wtracers(:,t,:), effective_area_l, frac_l_ec, &
+               local_accum_lnd(1+t), local_ablat_lnd(1+t))
+       end do
+    end if
+
+    deallocate(effective_area_l)
+
+    ! determine global accum/ablat on the land grid
     call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_VMAllreduce(vm, senddata=local_accum_lnd, recvdata=global_accum_lnd, count=1, &
+    call ESMF_VMAllreduce(vm, senddata=local_accum_lnd, recvdata=global_accum_lnd, count=1+num_wtracers, &
          reduceflag=ESMF_REDUCE_SUM, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_VMAllreduce(vm, senddata=local_ablat_lnd, recvdata=global_ablat_lnd, count=1, &
+    call ESMF_VMAllreduce(vm, senddata=local_ablat_lnd, recvdata=global_ablat_lnd, count=1+num_wtracers, &
          reduceflag=ESMF_REDUCE_SUM, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (maintask) then
-       write(logunit,'(a,d21.10)') trim(subname)//'global_accum_lnd = ', global_accum_lnd
-       write(logunit,'(a,d21.10)') trim(subname)//'global_ablat_lnd = ', global_ablat_lnd
+       write(logunit,'(a,d21.10)') trim(subname)//'global_accum_lnd = ', global_accum_lnd(1)
+       write(logunit,'(a,d21.10)') trim(subname)//'global_ablat_lnd = ', global_ablat_lnd(1)
+       do t = 1, num_wtracers
+          write(logunit,'(a,i0,a,d21.10)') trim(subname)//'tracer #', t, &
+               ': global_accum_lnd = ', global_accum_lnd(1+t)
+          write(logunit,'(a,i0,a,d21.10)') trim(subname)//'tracer #', t, &
+               ': global_ablat_lnd = ', global_ablat_lnd(1+t)
+       end do
     endif
 
     !---------------------------------------
     ! Sum qice_g over local glc grid cells.
     !---------------------------------------
 
-    ! determine qice_g
-    call fldbun_getdata1d(is_local%wrap%FBExp(compglc(ns)), qice_fieldname, qice_g, rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
     ! get areas internal to glc grid
     call fldbun_getdata1d(is_local%wrap%FBImp(compglc(ns),compglc(ns)), 'Sg_area', area_g, rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    local_accum_glc(1) = 0.0_r8
-    local_ablat_glc(1) = 0.0_r8
-    do n = 1, size(qice_g)
-       if (qice_g(n) >= 0.0_r8) then
-          local_accum_glc(1) = local_accum_glc(1) + icemask_g(n) * area_g(n) * qice_g(n)
-       else
-          local_ablat_glc(1) = local_ablat_glc(1) + icemask_g(n) * area_g(n) * qice_g(n)
-       endif
-    enddo  ! n
-    call ESMF_VMAllreduce(vm, senddata=local_accum_glc, recvdata=global_accum_glc, count=1, &
+    ! determine accumulation and ablation sums for qice on the glc grid
+    call fldbun_getdata1d(is_local%wrap%FBExp(compglc(ns)), qice_fieldname, qice_g, rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call renormalize_smb_accumulate_sums_g(qice_g, icemask_g, area_g, &
+         local_accum_glc(1), local_ablat_glc(1))
+
+    ! and, similarly, determine accumulation and ablation sums for qice water tracers on the glc grid
+    if (has_wtracers) then
+       call fldbun_getdata2d(is_local%wrap%FBExp(compglc(ns)), qice_wtracers_fieldname, qice_g_wtracers, rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       do t = 1, num_wtracers
+          call renormalize_smb_accumulate_sums_g(qice_g_wtracers(t,:), icemask_g, area_g, &
+               local_accum_glc(1+t), local_ablat_glc(1+t))
+       end do
+    end if
+
+    ! determine global accum/ablat on the glc grid
+    call ESMF_VMAllreduce(vm, senddata=local_accum_glc, recvdata=global_accum_glc, count=1+num_wtracers, &
          reduceflag=ESMF_REDUCE_SUM, rc=rc)
-    call ESMF_VMAllreduce(vm, senddata=local_ablat_glc, recvdata=global_ablat_glc, count=1, &
+    call ESMF_VMAllreduce(vm, senddata=local_ablat_glc, recvdata=global_ablat_glc, count=1+num_wtracers, &
          reduceflag=ESMF_REDUCE_SUM, rc=rc)
     if (maintask) then
-       write(logunit,'(a,d21.10)') trim(subname)//'global_accum_glc = ', global_accum_glc
-       write(logunit,'(a,d21.10)') trim(subname)//'global_ablat_glc = ', global_ablat_glc
+       write(logunit,'(a,d21.10)') trim(subname)//'global_accum_glc = ', global_accum_glc(1)
+       write(logunit,'(a,d21.10)') trim(subname)//'global_ablat_glc = ', global_ablat_glc(1)
+       do t = 1, num_wtracers
+          write(logunit,'(a,i0,a,d21.10)') trim(subname)//'tracer #', t, &
+               ': global_accum_glc = ', global_accum_glc(1+t)
+          write(logunit,'(a,i0,a,d21.10)') trim(subname)//'tracer #', t, &
+               ': global_ablat_glc = ', global_ablat_glc(1+t)
+       end do
     endif
 
-    ! Renormalize
-    if (global_accum_glc(1) > 0.0_r8) then
-       accum_renorm_factor = global_accum_lnd(1) / global_accum_glc(1)
+    ! finally, do the actual renormalization
+    call renormalize_smb_do_renormalization(global_accum_lnd(1), global_ablat_lnd(1), &
+         global_accum_glc(1), global_ablat_glc(1), subname, qice_g)
+    do t = 1, num_wtracers
+       call renormalize_smb_do_renormalization(global_accum_lnd(1+t), global_ablat_lnd(1+t), &
+            global_accum_glc(1+t), global_ablat_glc(1+t), subname, qice_g_wtracers(t,:), &
+            tracer_num=t)
+    end do
+
+    call t_stopf('MED:'//subname)
+
+  end subroutine med_phases_prep_glc_renormalize_smb
+
+  !================================================================================================
+  subroutine renormalize_smb_accumulate_sums_l(qice_l_ec, effective_area_l, frac_l_ec, &
+       accum_l, ablat_l)
+
+    ! Compute local accumulation and ablation sums on land grid
+
+    ! input/output variables
+    real(r8), intent(in)  :: qice_l_ec(:,:)
+    real(r8), intent(in)  :: effective_area_l(:)
+    real(r8), intent(in)  :: frac_l_ec(:,:)
+    real(r8), intent(out) :: accum_l
+    real(r8), intent(out) :: ablat_l
+
+    ! local variables
+    integer :: n, ec
+    !---------------------------------------------------------------
+
+    accum_l = 0.0_r8
+    ablat_l = 0.0_r8
+    do n = 1, size(effective_area_l)
+       if (effective_area_l(n) > 0.0_r8) then
+          do ec = 1, ungriddedCount
+             if (qice_l_ec(ec,n) >= 0.0_r8) then
+                accum_l = accum_l + effective_area_l(n) * frac_l_ec(ec,n) * qice_l_ec(ec,n)
+             else
+                ablat_l = ablat_l + effective_area_l(n) * frac_l_ec(ec,n) * qice_l_ec(ec,n)
+             end if
+          end do
+       end if
+    end do
+
+  end subroutine renormalize_smb_accumulate_sums_l
+
+  !================================================================================================
+  subroutine renormalize_smb_accumulate_sums_g(qice_g, icemask_g, area_g, &
+       accum_g, ablat_g)
+
+    ! Compute local accumulation and ablation sums on glc grid
+
+    ! input/output variables
+    real(r8), intent(in)  :: qice_g(:)
+    real(r8), intent(in)  :: icemask_g(:)
+    real(r8), intent(in)  :: area_g(:)
+    real(r8), intent(out) :: accum_g
+    real(r8), intent(out) :: ablat_g
+
+    ! local variables
+    integer :: n
+    !---------------------------------------------------------------
+
+    accum_g = 0.0_r8
+    ablat_g = 0.0_r8
+    do n = 1, size(qice_g)
+       if (qice_g(n) >= 0.0_r8) then
+          accum_g = accum_g + icemask_g(n) * area_g(n) * qice_g(n)
+       else
+          ablat_g = ablat_g + icemask_g(n) * area_g(n) * qice_g(n)
+       end if
+    end do
+
+  end subroutine renormalize_smb_accumulate_sums_g
+
+  !================================================================================================
+  subroutine renormalize_smb_do_renormalization(global_accum_lnd, global_ablat_lnd, &
+       global_accum_glc, global_ablat_glc, caller_subname, qice_g, tracer_num)
+
+    ! Perform renormalization of qice_g using global sums
+
+    ! input/output variables
+    real(r8), intent(in)    :: global_accum_lnd
+    real(r8), intent(in)    :: global_ablat_lnd
+    real(r8), intent(in)    :: global_accum_glc
+    real(r8), intent(in)    :: global_ablat_glc
+    character(len=*), intent(in) :: caller_subname ! for diagnostic output
+    real(r8), intent(inout) :: qice_g(:)
+    integer, intent(in), optional :: tracer_num ! for diagnostic output
+
+    ! local variables
+    real(r8) :: accum_renorm_factor, ablat_renorm_factor
+    integer :: n
+
+    !---------------------------------------------------------------
+
+    if (global_accum_glc > 0.0_r8) then
+       accum_renorm_factor = global_accum_lnd / global_accum_glc
     else
        accum_renorm_factor = 0.0_r8
     endif
-    if (global_ablat_glc(1) < 0.0_r8) then  ! negative by definition
-       ablat_renorm_factor = global_ablat_lnd(1) / global_ablat_glc(1)
+    if (global_ablat_glc < 0.0_r8) then  ! negative by definition
+       ablat_renorm_factor = global_ablat_lnd / global_ablat_glc
     else
        ablat_renorm_factor = 0.0_r8
     endif
     if (maintask) then
-       write(logunit,'(a,d21.10)') trim(subname)//'accum_renorm_factor = ', accum_renorm_factor
-       write(logunit,'(a,d21.10)') trim(subname)//'ablat_renorm_factor = ', ablat_renorm_factor
+       if (present(tracer_num)) then
+          write(logunit,'(a,i0,a,d21.10)') trim(caller_subname)//'tracer #', tracer_num, &
+               ': accum_renorm_factor = ', accum_renorm_factor
+          write(logunit,'(a,i0,a,d21.10)') trim(caller_subname)//'tracer #', tracer_num, &
+               ': ablat_renorm_factor = ', ablat_renorm_factor
+       else
+          write(logunit,'(a,d21.10)') trim(caller_subname)//'accum_renorm_factor = ', accum_renorm_factor
+          write(logunit,'(a,d21.10)') trim(caller_subname)//'ablat_renorm_factor = ', ablat_renorm_factor
+       endif
     endif
 
     do n = 1, size(qice_g)
@@ -1240,11 +1428,9 @@ contains
        else
           qice_g(n) = qice_g(n) * ablat_renorm_factor
        endif
-    enddo
+    end do
 
-    call t_stopf('MED:'//subname)
-
-  end subroutine med_phases_prep_glc_renormalize_smb
+  end subroutine renormalize_smb_do_renormalization
 
   !================================================================================================
   subroutine dynOcnMaskProc(dynamicMaskList, dynamicSrcMaskValue, dynamicDstMaskValue, rc)

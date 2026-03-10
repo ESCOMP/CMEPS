@@ -15,10 +15,13 @@ module ocn_comp_nuopc
   use shr_sys_mod      , only : shr_sys_abort
   use shr_kind_mod     , only : r8=>shr_kind_r8, i8=>shr_kind_i8, cl=>shr_kind_cl, cs=>shr_kind_cs
   use shr_log_mod     , only : shr_log_getlogunit, shr_log_setlogunit
+  use shr_wtracers_mod , only : WTRACERS_SUFFIX
+  use shr_wtracers_mod , only : shr_wtracers_present, shr_wtracers_get_num_tracers
   use dead_methods_mod , only : chkerr, state_setscalar,  state_diagnose, alarmInit, memcheck
   use dead_methods_mod , only : set_component_logging, get_component_instance, log_clock_advance
   use dead_nuopc_mod   , only : dead_read_inparms, ModelInitPhase, ModelSetRunClock
   use dead_nuopc_mod   , only : fld_list_add, fld_list_realize, fldsMax, fld_list_type
+  use dead_nuopc_mod   , only : set_all_export_fields
 
   implicit none
   private ! except
@@ -39,7 +42,6 @@ module ocn_comp_nuopc
   integer                :: fldsFrOcn_num = 0
   type (fld_list_type)   :: fldsToOcn(fldsMax)
   type (fld_list_type)   :: fldsFrOcn(fldsMax)
-  integer, parameter     :: gridTofieldMap = 2 ! ungridded dimension is innermost
 
   type(ESMF_Mesh)        :: mesh
   integer                :: nxg                  ! global dim i-direction
@@ -123,6 +125,8 @@ contains
     character(CL)     :: cvalue
     character(len=CL) :: logmsg
     logical           :: isPresent, isSet
+    logical           :: flds_wtracers
+    integer           :: num_wtracers
     character(len=*),parameter :: subname=trim(modName)//':(InitializeAdvertise) '
     !-------------------------------------------------------------------------------
 
@@ -192,6 +196,9 @@ contains
 
     if (nxg /= 0 .and. nyg /= 0) then
 
+       flds_wtracers = shr_wtracers_present()
+       num_wtracers = shr_wtracers_get_num_tracers()
+
        call fld_list_add(fldsFrOcn_num, fldsFrOcn, trim(flds_scalar_name))
        call fld_list_add(fldsFrOcn_num, fldsFrOcn, "So_omask"      )
        call fld_list_add(fldsFrOcn_num, fldsFrOcn, "So_t"          )
@@ -202,10 +209,21 @@ contains
        call fld_list_add(fldsFrOcn_num, fldsFrOcn, "So_dhdy"       )
        call fld_list_add(fldsFrOcn_num, fldsFrOcn, "So_bldepth"    )
        call fld_list_add(fldsFrOcn_num, fldsFrOcn, "Fioo_q"        )
+       if (flds_wtracers) then
+          ! Note that this field only exists for tracers, not bulk
+          call fld_list_add(fldsFrOcn_num, fldsFrOcn, "So_roce"//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+       end if
 
        call fld_list_add(fldsToOcn_num, fldsToOcn, trim(flds_scalar_name))
        call fld_list_add(fldsToOcn_num, fldsToOcn, "Faxa_rain"     )
        call fld_list_add(fldsToOcn_num, fldsToOcn, "Faxa_snow"     )
+       if (flds_wtracers) then
+          call fld_list_add(fldsToOcn_num, fldsToOcn, "Faxa_rain"//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+          call fld_list_add(fldsToOcn_num, fldsToOcn, "Faxa_snow"//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+       end if
        call fld_list_add(fldsToOcn_num, fldsToOcn, "Faxa_lwdn"     )
        call fld_list_add(fldsToOcn_num, fldsToOcn, "Faxa_swndr"    )
        call fld_list_add(fldsToOcn_num, fldsToOcn, "Faxa_swvdr"    )
@@ -217,9 +235,30 @@ contains
        call fld_list_add(fldsToOcn_num, fldsToOcn, "Foxx_lat"      )
        call fld_list_add(fldsToOcn_num, fldsToOcn, "Foxx_lwup"     )
        call fld_list_add(fldsToOcn_num, fldsToOcn, "Foxx_evap"     )
+       if (flds_wtracers) then
+          call fld_list_add(fldsToOcn_num, fldsToOcn, "Foxx_evap"//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+       end if
+       call fld_list_add(fldsToOcn_num, fldsToOcn, "Fioi_meltw"    )
+       if (flds_wtracers) then
+          call fld_list_add(fldsToOcn_num, fldsToOcn, "Fioi_meltw"//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+       end if
        call fld_list_add(fldsToOcn_num, fldsToOcn, "Fioi_salt"     )
        call fld_list_add(fldsToOcn_num, fldsToOcn, "Foxx_rofl"     )
        call fld_list_add(fldsToOcn_num, fldsToOcn, "Foxx_rofi"     )
+       call fld_list_add(fldsToOcn_num, fldsToOcn, "Forr_rofl_glc" )
+       call fld_list_add(fldsToOcn_num, fldsToOcn, "Forr_rofi_glc" )
+       if (flds_wtracers) then
+          call fld_list_add(fldsToOcn_num, fldsToOcn, "Foxx_rofl"//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+          call fld_list_add(fldsToOcn_num, fldsToOcn, "Foxx_rofi"//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+          call fld_list_add(fldsToOcn_num, fldsToOcn, "Forr_rofl_glc"//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+          call fld_list_add(fldsToOcn_num, fldsToOcn, "Forr_rofi_glc"//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+       end if
        call fld_list_add(fldsToOcn_num, fldsToOcn, "Sa_pslv"       )
 
        do n = 1,fldsFrOcn_num
@@ -355,7 +394,7 @@ contains
     integer, intent(out) :: rc
 
     ! local variables
-    integer           :: n, nf, nind
+    integer           :: n
     real(r8), pointer :: lat(:)
     real(r8), pointer :: lon(:)
     integer           :: spatialDim
@@ -378,19 +417,16 @@ contains
        lat(n) = ownedElemCoords(2*n)
     end do
 
-    ! Start from index 2 in order to Skip the scalar field here
-    do nf = 2,fldsFrOcn_num
-       if (fldsFrOcn(nf)%ungridded_ubound == 0) then
-          call field_setexport(exportState, trim(fldsFrOcn(nf)%stdname), lon, lat, nf=nf, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-       else
-          do nind = 1,fldsFrOcn(nf)%ungridded_ubound
-             call field_setexport(exportState, trim(fldsFrOcn(nf)%stdname), lon, lat, nf=nf, &
-                  ungridded_index=nind, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-          end do
-       end if
-    end do
+    call set_all_export_fields( &
+         exportState = exportState, &
+         flds = fldsFrOcn, &
+         fld_min = 2, &  ! Start from index 2 in order to skip the scalar field here
+         fld_max = fldsFrOcn_num, &
+         lon = lon, &
+         lat = lat, &
+         field_setexport = field_setexport, &
+         rc = rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     deallocate(lon)
     deallocate(lat)
@@ -417,6 +453,7 @@ contains
     type(ESMF_Field)  :: lfield
     real(r8), pointer :: data1d(:)
     real(r8), pointer :: data2d(:,:)
+    integer, parameter :: gridTofieldMap = 2 ! ungridded dimension is innermost
     !--------------------------------------------------
 
     rc = ESMF_SUCCESS
