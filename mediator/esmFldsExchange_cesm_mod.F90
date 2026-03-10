@@ -147,7 +147,7 @@ contains
     ! local variables:
     type(InternalState) :: is_local
     integer             :: n, ns
-    integer             :: water_bulk_or_tracers_index  ! 1 = bulk, 2 = tracers
+    integer             :: water_bulk_or_tracers_index  ! 1 = bulk, 2 = tracers (note that a single index covers all tracers - NOT one index per tracer)
     character(len=len(WTRACERS_SUFFIX)) :: suffix       ! WTRACERS_SUFFIX for tracers, blank for bulk
     character(len=CL)   :: atm_mesh_name
     character(len=CL)   :: lnd_mesh_name
