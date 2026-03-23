@@ -900,15 +900,27 @@
     </values>
   </entry>
 
-  <entry id="info_debug" modify_via_xml="INFO_DBUG">
+  <entry id="dbug_flag">
     <type>integer</type>
     <category>expdef</category>
     <group>MED_attributes</group>
     <desc>
-      Level of debug output, 0=minimum, 1=normal, 2=more, 3=too much (default: 1)
+      Level of debug output; higher values give progressively more output
+
+      Some example values (other values are also accepted)
+      - 0: no extra debug output
+      - 1: a bit of debug output
+      - 2: a bit more debug output
+      - 6: a moderate amount of debug output
+      - 11: a lot of debug output
+      - 21: a huge amount of debug output
+
+      Note that setting this to moderate - high values can lead to overwhelming amounts of output.
+
+      (Default: 0)
     </desc>
     <values>
-      <value>$INFO_DBUG</value>
+      <value>0</value>
     </values>
   </entry>
 
@@ -961,13 +973,32 @@
     <group>MED_attributes</group>
     <desc>
       atm/ocn flux calculation scheme
-      0 : LARGE algorithm
-      1 : COARE algorithm
-      2 : UA algorithm
+
+      0: Large and Pond
+      1: COARE algorithm
+      2: UA algorithm
     </desc>
     <values>
       <value>0</value>
       <value COMP_OCN="blom" COMP_ATM="cam">1</value>
+    </values>
+  </entry>
+  <entry id="aofluxes_use_shr_wv_sat">
+    <type>logical</type>
+    <category>control</category>
+    <group>MED_attributes</group>
+    <desc>
+      If true, use shr_wv_sat_mod to calculate qsat for atm-ocn flux calculations.
+
+      If false, use the older inline calculation of qsat, which uses a different
+      formulation.
+
+      (Currently only relevant for ocn_surface_flux_scheme = 0 or 1.)
+    </desc>
+    <values>
+      <!-- Once CIME_MODEL distinguishes between NorESM and CESM, this value will differ
+      between these two. -->
+      <value>.false.</value>
     </values>
   </entry>
   <entry id="add_gusts">

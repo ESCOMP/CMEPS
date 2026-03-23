@@ -18,6 +18,7 @@ module med_phases_prep_wav_mod
   use med_methods_mod       , only : FB_copy       => med_methods_FB_copy
   use med_methods_mod       , only : FB_reset      => med_methods_FB_reset
   use med_methods_mod       , only : FB_check_for_nans => med_methods_FB_check_for_nans
+  use med_field_info_mod    , only : med_field_info_type, med_field_info_array_from_state
   use esmFlds               , only : med_fldList_GetfldListTo
   use med_internalstate_mod , only : compatm, compwav
   use perf_mod              , only : t_startf, t_stopf
@@ -47,6 +48,7 @@ contains
 
     ! local variables
     type(InternalState) :: is_local
+    type(med_field_info_type), allocatable :: field_info_array(:)
     character(len=*),parameter  :: subname=' (med_phases_prep_wav_init) '
     !---------------------------------------
 
@@ -60,8 +62,13 @@ contains
     if (maintask) then
        write(logunit,'(a)') trim(subname)//' initializing wave export accumulation FB for '
     end if
+    call med_field_info_array_from_state( &
+         state = is_local%wrap%NStateExp(compwav), &
+         field_info_array = field_info_array, &
+         rc = rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call FB_Init(is_local%wrap%FBExpAccumWav, is_local%wrap%flds_scalar_name, &
-         STgeom=is_local%wrap%NStateExp(compwav), STflds=is_local%wrap%NStateExp(compwav), &
+         field_info_array = field_info_array, STgeom=is_local%wrap%NStateExp(compwav), &
          name='FBExpAccumWav', rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call FB_reset(is_local%wrap%FBExpAccumWav, value=czero, rc=rc)
