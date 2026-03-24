@@ -8,7 +8,7 @@ module med_phases_post_rof_mod
   use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
   use ESMF                  , only : ESMF_GridComp, ESMF_GridCompGet
   use ESMF                  , only : ESMF_Mesh, ESMF_MESHLOC_ELEMENT, ESMF_TYPEKIND_R8
-  use ESMF                  , only : ESMF_Field, ESMF_FieldCreate, ESMF_FieldGet
+  use ESMF                  , only : ESMF_Field
   use ESMF                  , only : ESMF_FieldBundle, ESMF_FieldBundleCreate
   use ESMF                  , only : ESMF_FieldBundleGet, ESMF_FieldBundleAdd
   use ESMF                  , only : ESMF_VM, ESMF_VMAllreduce, ESMF_REDUCE_SUM
@@ -19,9 +19,11 @@ module med_phases_post_rof_mod
   use med_constants_mod     , only : dbug_flag => med_constants_dbug_flag
   use med_phases_history_mod, only : med_phases_history_write_comp
   use med_map_mod           , only : med_map_field_packed
-  use med_methods_mod       , only : fldbun_getdata2d => med_methods_FB_getdata2d
+  use med_methods_mod       , only : fldbun_copy => med_methods_FB_copy
   use med_methods_mod       , only : fldbun_getdata1d => med_methods_FB_getdata1d
   use med_methods_mod       , only : fldbun_getmesh   => med_methods_FB_getmesh
+  use med_field_info_mod    , only : med_field_info_type, med_field_info_create_from_field
+  use med_field_info_mod    , only : med_field_info_esmf_fieldcreate
   use perf_mod              , only : t_startf, t_stopf
   use shr_log_mod           , only : shr_log_error
 
@@ -119,11 +121,6 @@ contains
     ! local variables
     type(InternalState) :: is_local
     type(ESMF_Clock)    :: dClock
-    type(ESMF_field)    :: lfield
-    real(r8), pointer   :: data_orig(:)
-    real(r8), pointer   :: data_copy(:)
-    real(r8), pointer   :: data_orig2d(:,:)
-    real(r8), pointer   :: data_copy2d(:,:)
     integer             :: n
     logical             :: exists
     integer             :: ungriddedUBound(1)
@@ -142,23 +139,8 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     do n = 1, num_rof_fields
-      call ESMF_FieldBundleGet(is_local%wrap%FBImp(comprof,comprof), rof_field_names(n), field=lfield, rc=rc)
+      call fldbun_copy(FBrof_r, is_local%wrap%FBImp(comprof,comprof), rc=rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-      call ESMF_FieldGet(lfield, ungriddedUBound=ungriddedUBound, rc=rc)
-      if (ChkErr(rc,__LINE__,u_FILE_u)) return
-      if (ungriddedUBound(1) > 0) then
-         call fldbun_getdata2d(is_local%wrap%FBImp(comprof,comprof), trim(rof_field_names(n)), data_orig2d, rc=rc)
-         if (ChkErr(rc,__LINE__,u_FILE_u)) return
-         call fldbun_getdata2d(FBrof_r, trim(rof_field_names(n)), data_copy2d, rc=rc)
-         if (ChkErr(rc,__LINE__,u_FILE_u)) return
-         data_copy2d(:,:) = data_orig2d(:,:)
-      else
-         call fldbun_getdata1d(is_local%wrap%FBImp(comprof,comprof), trim(rof_field_names(n)), data_orig, rc=rc)
-         if (ChkErr(rc,__LINE__,u_FILE_u)) return
-         call fldbun_getdata1d(FBrof_r, trim(rof_field_names(n)), data_copy, rc=rc)
-         if (ChkErr(rc,__LINE__,u_FILE_u)) return
-         data_copy(:) = data_orig(:)
-      end if
     end do
 
     if (remove_negative_runoff_lnd) then
@@ -249,10 +231,11 @@ contains
 
     ! local variables
     type(InternalState) :: is_local
-    integer             :: n
-    type(ESMF_Mesh)     :: mesh
-    type(ESMF_Field)    :: field
-    integer             :: ungriddedUBound(1)
+    integer :: n
+    type(ESMF_Mesh)  :: mesh
+    type(ESMF_Field) :: field_template
+    type(ESMF_Field) :: field
+    type(med_field_info_type) :: field_info
     integer, parameter :: dbug_threshold = 20 ! threshold for writing debug information in this subroutine
     character(len=*), parameter :: subname='(med_phases_post_rof_mod: med_phases_post_rof_create_rof_field_bundle)'
     !---------------------------------------
@@ -282,7 +265,20 @@ contains
     FBrof_r = ESMF_FieldBundleCreate(name='FBrof_r', rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     do n = 1, num_rof_fields
-      call ESMF_FieldBundleGet(is_local%wrap%FBImp(comprof,comprof), rof_field_names(n), field=field, rc=rc)
+      ! Add a Field to FBrof_r that matches the equivalent Field in
+      ! is_local%wrap%FBImp(comprof,comprof), particularly in terms of the sizes of any
+      ! ungridded dimensions.
+      call ESMF_FieldBundleGet(is_local%wrap%FBImp(comprof,comprof), &
+           fieldName=rof_field_names(n), &
+           field=field_template, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      field_info = med_field_info_create_from_field( &
+           field=field_template, &
+           name=rof_field_names(n), &
+           rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      call med_field_info_esmf_fieldcreate(field_info=field_info, &
+           mesh=mesh, meshloc=ESMF_MESHLOC_ELEMENT, field=field, rc=rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
       call ESMF_FieldGet(field, ungriddedUBound=ungriddedUBound, rc=rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
