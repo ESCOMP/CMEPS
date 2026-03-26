@@ -12,8 +12,8 @@ module dead_nuopc_mod
   use ESMF              , only : operator(/=), operator(==), operator(+)
   use shr_kind_mod      , only : r8=>shr_kind_r8, i8=>shr_kind_i8, cl=>shr_kind_cl, cs=>shr_kind_cs
   use shr_sys_mod       , only : shr_sys_abort
-  use shr_string_mod    , only : shr_string_withoutSuffix
-  use shr_wtracers_mod  , only : WTRACERS_SUFFIX, shr_wtracers_get_initial_ratio
+  use shr_wtracers_mod  , only : shr_wtracers_get_initial_ratio
+  use shr_wtracers_mod  , only : shr_wtracers_get_bulk_fieldname
   use dead_methods_mod  , only : chkerr, alarmInit
 
   implicit none
@@ -385,7 +385,7 @@ contains
     integer, intent(out)            :: rc
 
     ! local variables
-    logical :: has_suffix
+    logical :: is_wtracer_field
     type(ESMF_StateItem_Flag) :: bulk_item_flag
     character(len=fldname_maxlen) :: wtracer_bulk_fldname
 
@@ -409,12 +409,11 @@ contains
 
     rc = ESMF_SUCCESS
 
-    call shr_string_withoutSuffix( &
-         in_str = fld%stdname, &
-         suffix = WTRACERS_SUFFIX, &
-         has_suffix = has_suffix, &
-         out_str = wtracer_bulk_fldname)
-    if (.not. has_suffix) then
+    call shr_wtracers_get_bulk_fieldname( &
+         fieldname = fld%stdname, &
+         is_wtracer_field = is_wtracer_field, &
+         bulk_fieldname = wtracer_bulk_fldname)
+    if (.not. is_wtracer_field) then
        call ESMF_LogWrite(subname//": ERROR: "//trim(fld%stdname)// &
             " does not end with the expected suffix for a water tracer field", &
             ESMF_LOGMSG_ERROR)
