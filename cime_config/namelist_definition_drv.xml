@@ -2613,8 +2613,8 @@
    <desc>
       Colon-delimited list of species of water tracers in this run.
 
-      Each element in the list corresponds to an element in water_tracer_names. An empty
-      string for a given element indicates a standard water tracer (i.e., a tracer of bulk
+      Each element in the list corresponds to an element in water_tracer_names. A value of
+      '-' for a given element indicates a standard water tracer (i.e., a tracer of bulk
       water).
    </desc>
    <values>
