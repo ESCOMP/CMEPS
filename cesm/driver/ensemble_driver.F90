@@ -254,12 +254,13 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ntasks_per_member = PetCount/number_of_members - pio_asyncio_ntasks
-    if(modulo(PetCount-pio_asyncio_ntasks*number_of_members, number_of_members) .ne. 0) then
-       write (msgstr,'(a,i5,a,i3,a,i3,a)') &
-            "PetCount (",PetCount,") - Async IOtasks (",pio_asyncio_ntasks*number_of_members,") must be evenly divisable by number of members (",number_of_members,")"
-       call ESMF_LogSetError(ESMF_RC_ARG_BAD, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
-       return
-    endif
+!     if(modulo(PetCount-pio_asyncio_ntasks*number_of_members, number_of_members) .ne. 0) then
+!        write (msgstr,'(a,i5,a,i3,a,i3,a)') &
+!             "PetCount (",PetCount,") - Async IOtasks (",pio_asyncio_ntasks*number_of_members, &
+!             ") must be evenly divisable by number of members (",number_of_members,")"
+!        call ESMF_LogSetError(ESMF_RC_ARG_BAD, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
+!        return
+!     endif
 
     !-------------------------------------------
     ! Loop over number of ensemblel members
@@ -280,7 +281,7 @@ contains
        asyncio_task = .false.
        ! Determine pet list for driver instance
        if(pio_asyncio_ntasks > 0) then
-          do n=pio_asyncio_rootpe,pio_asyncio_rootpe+pio_asyncio_stride*(pio_asyncio_ntasks-1),pio_asyncio_stride
+          do n= pio_asyncio_rootpe, pio_asyncio_rootpe+pio_asyncio_stride*(pio_asyncio_ntasks-1), pio_asyncio_stride
              asyncio_petlist(iopetcnt) = (inst-1)*(ntasks_per_member+pio_asyncio_ntasks) + n
              if(asyncio_petlist(iopetcnt) == localPet) asyncio_task = .true.
              iopetcnt = iopetcnt+1
