@@ -109,7 +109,6 @@ contains
   end subroutine med_phases_post_rof_init
 
   !================================================================================================
-
   subroutine med_phases_post_rof(gcomp, rc)
     !---------------------------------------------------------------
     ! Post runoff phase
@@ -123,7 +122,6 @@ contains
     type(ESMF_Clock)    :: dClock
     integer             :: n
     logical             :: exists
-    integer             :: ungriddedUBound(1)
     character(len=*), parameter :: subname='(med_phases_post_rof)'
     !---------------------------------------
 
@@ -220,7 +218,6 @@ contains
   end subroutine med_phases_post_rof
 
   !================================================================================================
-
   subroutine med_phases_post_rof_create_rof_field_bundle(gcomp, rc)
     !---------------------------------------------------------------
     ! Create FBrof_r
@@ -280,16 +277,6 @@ contains
       call med_field_info_esmf_fieldcreate(field_info=field_info, &
            mesh=mesh, meshloc=ESMF_MESHLOC_ELEMENT, field=field, rc=rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-      call ESMF_FieldGet(field, ungriddedUBound=ungriddedUBound, rc=rc)
-      if (ChkErr(rc,__LINE__,u_FILE_u)) return
-      if (ungriddedUBound(1) > 0) then
-         field = ESMF_FieldCreate(mesh, ESMF_TYPEKIND_R8, name=rof_field_names(n), meshloc=ESMF_MESHLOC_ELEMENT, &
-              ungriddedLbound=(/1/), ungriddedUbound=ungriddedUBound, gridToFieldMap=(/2/), rc=rc)
-         if (ChkErr(rc,__LINE__,u_FILE_u)) return
-      else
-         field = ESMF_FieldCreate(mesh, ESMF_TYPEKIND_R8, name=rof_field_names(n), meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
-         if (ChkErr(rc,__LINE__,u_FILE_u)) return
-      end if
       call ESMF_FieldBundleAdd(FBrof_r, (/field/), rc=rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end do
@@ -302,7 +289,6 @@ contains
   end subroutine med_phases_post_rof_create_rof_field_bundle
 
   !================================================================================================
-
   subroutine med_phases_post_rof_remove_negative_runoff(gcomp, field_name, rc)
     !---------------------------------------------------------------
     ! For one runoff field, remove negative runoff by downweighting all positive runoff to

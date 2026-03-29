@@ -23,6 +23,7 @@ module med_phases_prep_rof_mod
   use med_methods_mod       , only : fldbun_reset     => med_methods_FB_reset
   use med_methods_mod       , only : fldbun_accum     => med_methods_FB_accum
   use med_methods_mod       , only : fldbun_average   => med_methods_FB_average
+  use med_methods_mod       , only : fldbun_fldChk    => med_methods_FB_FldChk
   use med_methods_mod       , only : field_getdata1d  => med_methods_Field_getdata1d
   use med_methods_mod       , only : FB_check_for_nans => med_methods_FB_check_for_nans
   use med_field_info_mod    , only : med_field_info_type
@@ -96,7 +97,6 @@ contains
 
     ! local variables
     type(InternalState) :: is_local
-    integer             :: lrank
     integer             :: n, nflds
     logical             :: is_present
     type(ESMF_Mesh)     :: mesh_l
@@ -187,21 +187,6 @@ contains
             mesh=mesh_l, meshloc=ESMF_MESHLOC_ELEMENT, &
             field=lfield, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_FieldGet(lfield, rank=lrank, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (lrank == 2) then
-          call ESMF_FieldGet(lfield, ungriddedUBound=ungriddedUBound, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-       end if
-
-       if (lrank == 2) then
-          lfield = ESMF_FieldCreate(mesh_l, ESMF_TYPEKIND_R8, name=lnd2rof_flds(n), meshloc=ESMF_MESHLOC_ELEMENT, &
-               ungriddedLbound=(/1/), ungriddedUbound=ungriddedUBound, gridToFieldMap=(/2/), rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-       else
-          lfield = ESMF_FieldCreate(mesh_l, ESMF_TYPEKIND_R8, name=lnd2rof_flds(n), meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-       end if
        call ESMF_FieldBundleAdd(FBlndAccum2rof_l, (/lfield/), rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        call ESMF_LogWrite(trim(subname)//' adding field '//trim(lnd2rof_flds(n))//' to FBLndAccum2rof_l', &
