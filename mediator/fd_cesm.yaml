@@ -614,6 +614,18 @@
        canonical_units: kg m-2 s-1
        description: glc import to med - glacier liquid runoff tracer flux to ocean
      #
+     # Note that Figg_rofi isn't currently implemented in CMEPS, but it is advertised in
+     # CISM, so we still need to include it here. (The intent when this was first
+     # implemented was that this would be an optional, alternative routing of ice runoff
+     # from GLC - a direct creation of icebergs in the ICE model.)
+     - standard_name: Figg_rofi
+       canonical_units: kg m-2 s-1
+       description: glc import to med - glc frozen runoff iceberg flux to ice
+     #
+     - standard_name: Figg_rofi_wtracers
+       canonical_units: kg m-2 s-1
+       description: glc import to med - glc frozen runoff iceberg tracer flux to ice
+     #
      - standard_name: Flgg_hflx
        canonical_units: W m-2
        description: glc import to med to med (no elevation classes)
