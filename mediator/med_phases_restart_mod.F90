@@ -348,7 +348,7 @@ contains
              call med_io_enddef(io_file)
           end if
 
-          tbnds = days_since
+          tbnds = (/days_since,days_since/)
           call ESMF_LogWrite(trim(subname)//": time "//trim(time_units), ESMF_LOGMSG_INFO)
           if (whead(m)) then
              call ESMF_ClockGet(clock, calendar=calendar, rc=rc)
@@ -356,7 +356,7 @@ contains
              call med_io_define_time(io_file, time_units, calendar, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           else
-             call med_io_write_time(io_file, days_since, tbnds=(/days_since,days_since/), nt=1, rc=rc)
+             call med_io_write_time(io_file, days_since, tbnds=tbnds, nt=1, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
 
