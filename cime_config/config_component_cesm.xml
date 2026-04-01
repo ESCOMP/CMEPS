@@ -122,7 +122,7 @@
     <desc>Activates additional CO2-related fields to be exchanged between components. Possible values are:
 
     CO2A: sets the driver namelist variable flds_co2a = .true.; this adds
-    prognostic CO2 and diagnostic CO2 at the lowest model level to be sent from
+    diagnostic CO2 at the lowest model level to be sent from
     the atmosphere to the land and ocean.
 
     CO2B: sets the driver namelist variable flds_co2b = .true.; this adds
