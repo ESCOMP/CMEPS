@@ -36,28 +36,28 @@
   type = real
   kind = kind_phys
 [ugrs]
-  standard_name = x_wind_at_surface_adjacent_layer
+  standard_name = physics_timestep_initial_x_wind_at_surface_adjacent_layer
   long_name = zonal wind at lowest model layer
   units = m s-1
   dimensions = (horizontal_dimension)
   type = real
   kind = kind_phys
 [vgrs]
-  standard_name = y_wind_at_surface_adjacent_layer
+  standard_name = physics_timestep_initial_y_wind_at_surface_adjacent_layer
   long_name = meridional wind at lowest model layer
   units = m s-1
   dimensions = (horizontal_dimension)
   type = real
   kind = kind_phys
 [tgrs]
-  standard_name = air_temperature_at_surface_adjacent_layer
+  standard_name = physics_timestep_initial_air_temperature_at_surface_adjacent_layer
   long_name = mean temperature at lowest model layer
   units = K
   dimensions = (horizontal_dimension)
   type = real
   kind = kind_phys
 [qgrs]
-  standard_name = specific_humidity_at_surface_adjacent_layer
+  standard_name = physics_timestep_initial_specific_humidity_at_surface_adjacent_layer
   long_name = water vapor specific humidity at lowest model layer
   units = kg kg-1
   dimensions = (horizontal_dimension)
@@ -123,28 +123,28 @@
   name = MED_stateout_type
   type = ddt
 [gu0]
-  standard_name = x_wind_of_new_state_at_surface_adjacent_layer
+  standard_name = x_wind_at_surface_adjacent_layer
   long_name = zonal wind at lowest model layer updated by physics
   units = m s-1
   dimensions = (horizontal_dimension)
   type = real
   kind = kind_phys
 [gv0]
-  standard_name = y_wind_of_new_state_at_surface_adjacent_layer
+  standard_name = y_wind_at_surface_adjacent_layer
   long_name = meridional wind at lowest model layer updated by physics
   units = m s-1
   dimensions = (horizontal_dimension)
   type = real
   kind = kind_phys
 [gt0]
-  standard_name = air_temperature_of_new_state_at_surface_adjacent_layer
+  standard_name = air_temperature_at_surface_adjacent_layer
   long_name = temperature at lowest model layer updated by physics
   units = K
   dimensions = (horizontal_dimension)
   type = real
   kind = kind_phys
 [gq0]
-  standard_name = specific_humidity_of_new_state_at_surface_adjacent_layer
+  standard_name = specific_humidity_at_surface_adjacent_layer
   long_name = water vapor specific humidity at lowest model layer updated by physics
   units = kg kg-1
   dimensions = (horizontal_dimension)
