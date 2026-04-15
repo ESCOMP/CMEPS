@@ -433,16 +433,6 @@
        canonical_units: N m-2
        description: atm import to med - meridional component of momentum flux
      #
-     - standard_name: Faxa_lat
-       alias: mean_laten_heat_flx_atm
-       canonical_units: W m-2
-       description: atm import to med
-     #
-     - standard_name: Faxa_sen
-       alias: mean_sensi_heat_flx_atm
-       canonical_units: W m-2
-       description: atm import to med
-     #
      #-----------------------------------
      # section: atm export from med (computed in med)
      #-----------------------------------
