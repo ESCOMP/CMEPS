@@ -1814,7 +1814,6 @@ contains
     ! to ocn: merged sensible heat flux
     ! ---------------------------------------------------------------------
     if (phase == 'advertise') then
-       call addfld_from(compatm , 'Faxa_sen')
        call addfld_aoflux('Faox_sen')
        call addfld_from(compice , 'Fioi_melth')
        call addfld_to(compocn , 'Foxx_sen')
@@ -1830,7 +1829,6 @@ contains
     ! to ocn: surface latent heat flux and evaporation water flux
     ! ---------------------------------------------------------------------
     if (phase == 'advertise') then
-       call addfld_from(compatm, 'Faxa_lat' )
        call addfld_aoflux( 'Faox_lat' )
        call addfld_aoflux( 'Faox_evap')
        call addfld_to(compocn, 'Foxx_lat' )
