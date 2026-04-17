@@ -276,7 +276,8 @@
      #
      - standard_name: Flgl_qice_wtracers
        canonical_units: kg m-2 s-1
-       description: lnd export to med no elevation classes (computed in med)     #
+       description: lnd export to med no elevation classes (computed in med)
+     #
      #-----------------------------------
      # section: atm import to med
      #-----------------------------------
