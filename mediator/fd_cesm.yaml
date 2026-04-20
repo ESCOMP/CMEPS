@@ -41,36 +41,36 @@
      - standard_name: Faox_evap
        alias: mean_evap_rate_atm_into_ocn
        canonical_units: kg m-2 s-1
-       description: med export - atm/ocn evaporation water flux computed in medidator
+       description: med export - atm/ocn evaporation water flux computed in mediator
      #
      - standard_name: Faox_evap_wtracers
        canonical_units: kg m-2 s-1
-       description: med export - atm/ocn evaporation water tracer flux computed in medidator
+       description: med export - atm/ocn evaporation water tracer flux computed in mediator
      #
      - standard_name: Faox_lat
        alias: mean_laten_heat_flx_atm_into_ocn
        canonical_units: W m-2
-       description: med export - atm/ocn surface latent heat flux computed in medidator
+       description: med export - atm/ocn surface latent heat flux computed in mediator
      #
      - standard_name: Faox_sen
        alias: mean_sensi_heat_flx_atm_into_ocn
        canonical_units: W m-2
-       description: med export - atm/ocn surface sensible heat flux computed in medidator
+       description: med export - atm/ocn surface sensible heat flux computed in mediator
      #
      - standard_name: Faox_lwup
        alias: mean_up_lw_flx_ocn
        canonical_units: W m-2
-       description: med export - ocn long wave radiation flux over the ocean computed in medidator
+       description: med export - ocn long wave radiation flux over the ocean computed in mediator
      #
      - standard_name: Faox_taux
        alias: stress_on_air_ocn_zonal
        canonical_units: N m-2
-       description: med export - atm/ocn zonal surface stress computed in medidator
+       description: med export - atm/ocn zonal surface stress computed in mediator
      #
      - standard_name: Faox_tauy
        alias: stress_on_air_ocn_merid
        canonical_units: N m-2
-       description: med export - atm/ocn meridional surface stress computed in medidator
+       description: med export - atm/ocn meridional surface stress computed in mediator
      #
      - standard_name: Fwxx_taux
        alias: mean_zonal_moment_flx
