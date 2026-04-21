@@ -2182,6 +2182,8 @@
     <desc>Number of time samples per file.</desc>
     <values>
       <value>30</value>
+      <value TESTCASE='ERS'>1</value>
+      <value TESTCASE='ERI'>1</value>
     </values>
   </entry>
 
