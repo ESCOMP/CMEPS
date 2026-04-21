@@ -681,7 +681,7 @@ contains
     use NUOPC , only : NUOPC_CompAttributeGet, NUOPC_CompAttributeSet, NUOPC_CompAttributeAdd
     use esmFlds, only : med_fldlist_init1, med_fld_GetFldInfo, med_fldList_entry_type
     use med_phases_history_mod, only : med_phases_history_init
-    use med_methods_mod       , only : mediator_checkfornans
+    use med_methods_mod       , only : mediator_checkfornans, water_tracers_do_checks
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -962,6 +962,19 @@ contains
           write(logunit,*) ' Fields will NOT be checked for NaN values when passed from mediator to component'
        endif
     endif
+
+    ! Should mediator check water tracer consistency?
+    call NUOPC_CompAttributeGet(gcomp, name="water_tracers_do_checks", value=cvalue, &
+         isPresent=isPresent, isSet=isSet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+       read(cvalue, *) water_tracers_do_checks
+    else
+       water_tracers_do_checks = .false.
+    endif
+    if(maintask) then
+       write(logunit,*) ' water_tracers_do_checks is ',water_tracers_do_checks
+    end if
 
     ! Should target component use all data for first time step?
     do ncomp = 1,ncomps

@@ -15,10 +15,13 @@ module rof_comp_nuopc
   use shr_sys_mod       , only : shr_sys_abort
   use shr_kind_mod      , only : r8=>shr_kind_r8, i8=>shr_kind_i8, cl=>shr_kind_cl, cs=>shr_kind_cs
   use shr_log_mod      , only : shr_log_getlogunit, shr_log_setlogunit
+  use shr_wtracers_mod, only : WTRACERS_SUFFIX
+  use shr_wtracers_mod, only : shr_wtracers_present, shr_wtracers_get_num_tracers
   use dead_methods_mod  , only : chkerr, state_setscalar, state_diagnose, alarmInit, memcheck
   use dead_methods_mod  , only : set_component_logging, get_component_instance, log_clock_advance
   use dead_nuopc_mod    , only : dead_read_inparms, ModelInitPhase, ModelSetRunClock
   use dead_nuopc_mod    , only : fld_list_add, fld_list_realize, fldsMax, fld_list_type
+  use dead_nuopc_mod    , only : set_all_export_fields
 
   implicit none
   private ! except
@@ -39,7 +42,6 @@ module rof_comp_nuopc
   integer                :: fldsFrRof_num = 0
   type (fld_list_type)   :: fldsToRof(fldsMax)
   type (fld_list_type)   :: fldsFrRof(fldsMax)
-  integer, parameter     :: gridTofieldMap = 2 ! ungridded dimension is innermost
 
   type(ESMF_Mesh)        :: mesh
   integer                :: nxg                  ! global dim i-direction
@@ -122,6 +124,8 @@ contains
     character(CL)     :: cvalue
     character(len=CL) :: logmsg
     logical           :: isPresent, isSet
+    logical           :: flds_wtracers
+    integer           :: num_wtracers
     character(len=*),parameter :: subname=trim(modName)//':(InitializeAdvertise) '
     !-------------------------------------------------------------------------------
 
@@ -193,20 +197,59 @@ contains
 
     if (nxg /= 0 .and. nyg /= 0) then
 
+       flds_wtracers = shr_wtracers_present()
+       num_wtracers = shr_wtracers_get_num_tracers()
+
        call fld_list_add(fldsFrRof_num, fldsFrRof, trim(flds_scalar_name))
        call fld_list_add(fldsFrRof_num, fldsFrRof, 'Forr_rofl')
        call fld_list_add(fldsFrRof_num, fldsFrRof, 'Forr_rofi')
+       call fld_list_add(fldsFrRof_num, fldsFrRof, 'Forr_rofl_glc')
+       call fld_list_add(fldsFrRof_num, fldsFrRof, 'Forr_rofi_glc')
        call fld_list_add(fldsFrRof_num, fldsFrRof, 'Flrr_flood')
        call fld_list_add(fldsFrRof_num, fldsFrRof, 'Flrr_volr')
        call fld_list_add(fldsFrRof_num, fldsFrRof, 'Flrr_volrmch')
+       if (flds_wtracers) then
+          call fld_list_add(fldsFrRof_num, fldsFrRof, 'Forr_rofl'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+          call fld_list_add(fldsFrRof_num, fldsFrRof, 'Forr_rofi'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+          call fld_list_add(fldsFrRof_num, fldsFrRof, 'Forr_rofl_glc'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+          call fld_list_add(fldsFrRof_num, fldsFrRof, 'Forr_rofi_glc'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+          call fld_list_add(fldsFrRof_num, fldsFrRof, 'Flrr_flood'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+          call fld_list_add(fldsFrRof_num, fldsFrRof, 'Flrr_volr'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+          call fld_list_add(fldsFrRof_num, fldsFrRof, 'Flrr_volrmch'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+       end if
 
        call fld_list_add(fldsToRof_num, fldsToRof, trim(flds_scalar_name))
+
        call fld_list_add(fldsToRof_num, fldsToRof, 'Flrl_rofsur')
        call fld_list_add(fldsToRof_num, fldsToRof, 'Flrl_rofgwl')
        call fld_list_add(fldsToRof_num, fldsToRof, 'Flrl_rofsub')
-       call fld_list_add(fldsToRof_num, fldsToRof, 'Flrl_rofdto')
        call fld_list_add(fldsToRof_num, fldsToRof, 'Flrl_rofi')
        call fld_list_add(fldsToRof_num, fldsToRof, 'Flrl_irrig')
+       call fld_list_add(fldsToRof_num, fldsToRof, 'Fgrg_rofi')
+       call fld_list_add(fldsToRof_num, fldsToRof, 'Fgrg_rofl')
+       if (flds_wtracers) then
+          call fld_list_add(fldsToRof_num, fldsToRof, 'Flrl_rofsur'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+          call fld_list_add(fldsToRof_num, fldsToRof, 'Flrl_rofgwl'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+          call fld_list_add(fldsToRof_num, fldsToRof, 'Flrl_rofsub'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+          call fld_list_add(fldsToRof_num, fldsToRof, 'Flrl_rofi'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+          call fld_list_add(fldsToRof_num, fldsToRof, 'Flrl_irrig'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+          call fld_list_add(fldsToRof_num, fldsToRof, 'Fgrg_rofi'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+          call fld_list_add(fldsToRof_num, fldsToRof, 'Fgrg_rofl'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+       end if
 
        do n = 1,fldsFrRof_num
           if(mastertask) write(logunit,*)'Advertising From Xrof ',trim(fldsFrRof(n)%stdname)
@@ -364,7 +407,7 @@ contains
     integer, intent(out) :: rc
 
     ! local variables
-    integer           :: n, nf, nind
+    integer           :: n
     real(r8), pointer :: lat(:)
     real(r8), pointer :: lon(:)
     integer           :: spatialDim
@@ -387,19 +430,16 @@ contains
        lat(n) = ownedElemCoords(2*n)
     end do
 
-    ! Start from index 2 in order to skip the scalar field
-    do nf = 2,fldsFrRof_num
-       if (fldsFrRof(nf)%ungridded_ubound == 0) then
-          call field_setexport(exportState, trim(fldsFrRof(nf)%stdname), lon, lat, nf=nf, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-       else
-          do nind = 1,fldsFrRof(nf)%ungridded_ubound
-             call field_setexport(exportState, trim(fldsFrRof(nf)%stdname), lon, lat, nf=nf+nind-1, &
-                  ungridded_index=nind, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-          end do
-       end if
-    end do
+    call set_all_export_fields( &
+         exportState = exportState, &
+         flds = fldsFrRof, &
+         fld_min = 2, &  ! Start from index 2 in order to skip the scalar field here
+         fld_max = fldsFrRof_num, &
+         lon = lon, &
+         lat = lat, &
+         field_setexport = field_setexport, &
+         rc = rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     deallocate(lon)
     deallocate(lat)
@@ -425,6 +465,7 @@ contains
     type(ESMF_Field)  :: lfield
     real(r8), pointer :: data1d(:)
     real(r8), pointer :: data2d(:,:)
+    integer, parameter :: gridTofieldMap = 2 ! ungridded dimension is innermost
     !--------------------------------------------------
 
     rc = ESMF_SUCCESS

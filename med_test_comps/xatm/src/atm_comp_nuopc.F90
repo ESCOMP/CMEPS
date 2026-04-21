@@ -15,10 +15,13 @@ module atm_comp_nuopc
   use shr_sys_mod       , only : shr_sys_abort
   use shr_kind_mod      , only : r8=>shr_kind_r8, i8=>shr_kind_i8, cl=>shr_kind_cl, cs=>shr_kind_cs
   use shr_log_mod      , only : shr_log_getlogunit, shr_log_setlogunit
+  use shr_wtracers_mod , only : WTRACERS_SUFFIX
+  use shr_wtracers_mod , only : shr_wtracers_present, shr_wtracers_get_num_tracers
   use dead_methods_mod  , only : chkerr, state_setscalar,  state_diagnose, alarmInit, memcheck
   use dead_methods_mod  , only : set_component_logging, get_component_instance, log_clock_advance
   use dead_nuopc_mod    , only : dead_read_inparms, ModelInitPhase, ModelSetRunClock
   use dead_nuopc_mod    , only : fld_list_add, fld_list_realize, fldsMax, fld_list_type
+  use dead_nuopc_mod    , only : set_all_export_fields
 
   implicit none
   private ! except
@@ -39,7 +42,6 @@ module atm_comp_nuopc
   integer                :: fldsFrAtm_num = 0
   type (fld_list_type)   :: fldsToAtm(fldsMax)
   type (fld_list_type)   :: fldsFrAtm(fldsMax)
-  integer, parameter     :: gridTofieldMap = 2 ! ungridded dimension is innermost
 
   type(ESMF_Mesh)        :: mesh
   integer                :: nxg         ! global dim i-direction
@@ -121,6 +123,8 @@ contains
     character(CL)     :: cvalue
     character(len=CL) :: logmsg
     logical           :: isPresent, isSet
+    logical           :: flds_wtracers
+    integer           :: num_wtracers
     character(len=*),parameter :: subname=trim(modName)//':(InitializeAdvertise) '
     !-------------------------------------------------------------------------------
 
@@ -202,6 +206,9 @@ contains
 
     if (nxg /= 0 .and. nyg /= 0) then
 
+       flds_wtracers = shr_wtracers_present()
+       num_wtracers = shr_wtracers_get_num_tracers()
+
        call fld_list_add(fldsFrAtm_num, fldsFrAtm, trim(flds_scalar_name))
        call fld_list_add(fldsFrAtm_num, fldsFrAtm, 'Sa_topo'       )
        call fld_list_add(fldsFrAtm_num, fldsFrAtm, 'Sa_z'          )
@@ -210,6 +217,10 @@ contains
        call fld_list_add(fldsFrAtm_num, fldsFrAtm, 'Sa_tbot'       )
        call fld_list_add(fldsFrAtm_num, fldsFrAtm, 'Sa_ptem'       )
        call fld_list_add(fldsFrAtm_num, fldsFrAtm, 'Sa_shum'       )
+       if (flds_wtracers) then
+          call fld_list_add(fldsFrAtm_num, fldsFrAtm, 'Sa_shum'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+       end if
        call fld_list_add(fldsFrAtm_num, fldsFrAtm, 'Sa_pbot'       )
        call fld_list_add(fldsFrAtm_num, fldsFrAtm, 'Sa_dens'       )
        call fld_list_add(fldsFrAtm_num, fldsFrAtm, 'Sa_pslv'       )
@@ -217,6 +228,16 @@ contains
        call fld_list_add(fldsFrAtm_num, fldsFrAtm, 'Faxa_rainl'    )
        call fld_list_add(fldsFrAtm_num, fldsFrAtm, 'Faxa_snowc'    )
        call fld_list_add(fldsFrAtm_num, fldsFrAtm, 'Faxa_snowl'    )
+       if (flds_wtracers) then
+          call fld_list_add(fldsFrAtm_num, fldsFrAtm, 'Faxa_rainc'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+          call fld_list_add(fldsFrAtm_num, fldsFrAtm, 'Faxa_rainl'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+          call fld_list_add(fldsFrAtm_num, fldsFrAtm, 'Faxa_snowc'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+          call fld_list_add(fldsFrAtm_num, fldsFrAtm, 'Faxa_snowl'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+       end if
        call fld_list_add(fldsFrAtm_num, fldsFrAtm, 'Faxa_lwdn'     )
        call fld_list_add(fldsFrAtm_num, fldsFrAtm, 'Faxa_swndr'    )
        call fld_list_add(fldsFrAtm_num, fldsFrAtm, 'Faxa_swvdr'    )
@@ -238,6 +259,10 @@ contains
        call fld_list_add(fldsToAtm_num, fldsToAtm, 'So_ofrac'  )
        call fld_list_add(fldsToAtm_num, fldsToAtm, 'Sx_tref'   )
        call fld_list_add(fldsToAtm_num, fldsToAtm, 'Sx_qref'   )
+       if (flds_wtracers) then
+          call fld_list_add(fldsToAtm_num, fldsToAtm, 'Sx_qref'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+       end if
        call fld_list_add(fldsToAtm_num, fldsToAtm, 'Sx_t'      )
        call fld_list_add(fldsToAtm_num, fldsToAtm, 'So_t'      )
        call fld_list_add(fldsToAtm_num, fldsToAtm, 'Sl_fv'     )
@@ -253,6 +278,10 @@ contains
        call fld_list_add(fldsToAtm_num, fldsToAtm, 'Faxx_sen'  )
        call fld_list_add(fldsToAtm_num, fldsToAtm, 'Faxx_lwup' )
        call fld_list_add(fldsToAtm_num, fldsToAtm, 'Faxx_evap' )
+       if (flds_wtracers) then
+          call fld_list_add(fldsToAtm_num, fldsToAtm, 'Faxx_evap'//WTRACERS_SUFFIX, &
+               num_wtracers=num_wtracers)
+       end if
 
        do n = 1,fldsFrAtm_num
           if(mastertask) write(logunit,*)'Advertising From Xatm ',trim(fldsFrAtm(n)%stdname)
@@ -417,7 +446,7 @@ contains
     integer, intent(out) :: rc
 
     ! local variables
-    integer           :: n, nf, nind
+    integer           :: n
     real(r8), pointer :: lat(:)
     real(r8), pointer :: lon(:)
     integer           :: spatialDim
@@ -440,19 +469,16 @@ contains
        lat(n) = ownedElemCoords(2*n)
     end do
 
-    ! Start from index 2 in order to Skip the scalar field here
-    do nf = 2,fldsFrAtm_num
-       if (fldsFrAtm(nf)%ungridded_ubound == 0) then
-          call field_setexport(exportState, trim(fldsFrAtm(nf)%stdname), lon, lat, nf=nf, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-       else
-          do nind = 1,fldsFrAtm(nf)%ungridded_ubound
-             call field_setexport(exportState, trim(fldsFrAtm(nf)%stdname), lon, lat, nf=nf+nind-1, &
-                  ungridded_index=nind, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-          end do
-       end if
-    end do
+    call set_all_export_fields( &
+         exportState = exportState, &
+         flds = fldsFrAtm, &
+         fld_min = 2, &  ! Start from index 2 in order to skip the scalar field here
+         fld_max = fldsFrAtm_num, &
+         lon = lon, &
+         lat = lat, &
+         field_setexport = field_setexport, &
+         rc = rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     deallocate(lon)
     deallocate(lat)
@@ -478,6 +504,7 @@ contains
     type(ESMF_Field)  :: lfield
     real(r8), pointer :: data1d(:)
     real(r8), pointer :: data2d(:,:)
+    integer, parameter :: gridTofieldMap = 2 ! ungridded dimension is innermost
     !--------------------------------------------------
 
     rc = ESMF_SUCCESS
