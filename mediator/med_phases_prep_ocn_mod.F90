@@ -634,7 +634,7 @@ contains
        end do
        ! Compute sw export to ocean bands if required
        if (export_swnet_by_bands) then
-          if (trim(coupling_mode) == 'cesm') then
+          if (trim(coupling_mode) == 'cesm' .or. trim(coupling_mode == 'noresm')) then
              c1 = 0.285; c2 = 0.285; c3 = 0.215; c4 = 0.215
              Foxx_swnet_vdr(:) = c1 * Foxx_swnet(:)
              Foxx_swnet_vdf(:) = c2 * Foxx_swnet(:)

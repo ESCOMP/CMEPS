@@ -2276,11 +2276,22 @@ contains
        call addfld_from(compwav, 'Sw_Tm1_avg')
        call addfld_from(compwav, 'Sw_thm_avg')
        call addfld_from(compwav, 'Sw_thp0_avg')
+       call addfld_from(compwav, 'Sw_faw_avg')
        call addfld_from(compwav, 'Sw_fp0_avg')
        call addfld_from(compwav, 'Sw_u_avg')
        call addfld_from(compwav, 'Sw_v_avg')
+       call addfld_from(compwav, 'Sw_cu_avg')
+       call addfld_from(compwav, 'Sw_cv_avg')
        call addfld_from(compwav, 'Sw_tusx_avg')
        call addfld_from(compwav, 'Sw_tusy_avg')
+       call addfld_from(compwav, 'Sw_lamult_avg')
+       call addfld_from(compwav, 'Sw_charn_avg')
+       call addfld_from(compwav, 'Sw_tm02_avg')
+       call addfld_from(compwav, 'Sw_foc_avg')
+       call addfld_from(compwav, 'Sw_ifrac_avg')
+       call addfld_from(compwav, 'Sw_thick_avg')
+       call addfld_from(compwav, 'Sw_tauicex_avg')
+       call addfld_from(compwav, 'Sw_tauicey_avg')
     end if
 
     !-----------------------------
@@ -2335,7 +2346,7 @@ contains
             call addmap_from(compwav, 'Sw_t0m1', compocn,  mapbilnr_nstod, 'one', wav2ocn_map)
             call addmrg_to(compocn, 'Sw_t0m1', mrg_from=compwav, mrg_fld='Sw_t0m1', mrg_type='copy')
          end if
-      end if    
+      end if
       !-----------------------------
       ! to ocn:
       !-----------------------------
@@ -2348,7 +2359,7 @@ contains
             call addmap_from(compwav, 'Sw_t01', compocn,  mapbilnr_nstod, 'one', wav2ocn_map)
             call addmrg_to(compocn, 'Sw_t01', mrg_from=compwav, mrg_fld='Sw_t01', mrg_type='copy')
          end if
-      end if      
+      end if
       !-----------------------------
       ! to ocn:
       !-----------------------------
@@ -2361,7 +2372,7 @@ contains
             call addmap_from(compwav, 'Sw_thm', compocn,  mapbilnr_nstod, 'one', wav2ocn_map)
             call addmrg_to(compocn, 'Sw_thm', mrg_from=compwav, mrg_fld='Sw_thm', mrg_type='copy')
          end if
-      end if      
+      end if
       !-----------------------------
       ! to ocn:
       !-----------------------------

@@ -5,6 +5,7 @@ module med_phases_history_mod
   !-----------------------------------------------------------------------------
 
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
+  use med_kind_mod          , only : CXX=>SHR_KIND_CXX
   use ESMF                  , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_VM
   use ESMF                  , only : ESMF_Clock, ESMF_ClockGet, ESMF_ClockSet, ESMF_ClockAdvance
   use ESMF                  , only : ESMF_ClockGetNextTime, ESMF_ClockGetAlarm, ESMF_ClockIsCreated
@@ -1092,7 +1093,7 @@ contains
     integer                 :: n,n1,nf
     character(CL)           :: prefix
     character(CL)           :: cvalue
-    character(CL)           :: auxflds
+    character(CXX)          :: auxflds
     integer                 :: fieldCount
     logical                 :: found
     logical                 :: enable_auxfile
