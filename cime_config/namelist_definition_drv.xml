@@ -2182,6 +2182,10 @@
     <desc>Number of time samples per file.</desc>
     <values>
       <value>30</value>
+      <!-- Generate daily WW3 hist files for ERS/ERI tests to prevent mismatched filenames
+        and contents between initial and restart runs.-->
+      <value TESTCASE='ERS'>1</value>
+      <value TESTCASE='ERI'>1</value>
     </values>
   </entry>
 
