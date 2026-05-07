@@ -86,6 +86,7 @@ contains
     use ESMF                    , only : ESMF_GridComp, ESMF_FieldBundleGet
     use ESMF                    , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
     use med_constants_mod       , only : shr_const_cpsw, shr_const_tkfrz, shr_const_pi
+    use med_constants_mod       , only : shr_const_cpice
     use med_phases_prep_atm_mod , only : med_phases_prep_atm_enthalpy_correction
 
     ! input/output variables
@@ -230,9 +231,10 @@ contains
           hevap(n)  = (tocn(n) - shr_const_tkfrz) * min(evap(n), 0._r8)   * shr_const_cpsw
           hcond(n)  = max((tocn(n) - shr_const_tkfrz), 0._r8) * max(evap(n), 0._r8)  * shr_const_cpsw
           hrofl(n)  = max((tocn(n) - shr_const_tkfrz), 0._r8) * rofl(n)  * shr_const_cpsw
-          hrofi(n)  = min((tocn(n) - shr_const_tkfrz), 0._r8) * rofi(n)  * shr_const_cpsw
           hrofl_glc(n) = max((tocn(n) - shr_const_tkfrz), 0._r8) * rofl_glc(n)  * shr_const_cpsw
-          hrofi_glc(n) = min((tocn(n) - shr_const_tkfrz), 0._r8) * rofi_glc(n)  * shr_const_cpsw
+          ! −10 C is a reasonable bulk temperature assumption for iceberg/land-ice runoff
+          hrofi(n)  = -10._r8 * rofi(n)  * shr_const_cpice
+          hrofi_glc(n) = -10._r8 * rofi_glc(n)  * shr_const_cpice
        end do
 
        ! Determine enthalpy correction factor that will be added to the sensible heat flux sent to the atm
