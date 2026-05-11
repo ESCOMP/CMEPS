@@ -69,7 +69,7 @@ jobs:
         with:
           repository: NorESMhub/NorESM
           path: noresm
-	  ref: noresm_develop
+          ref: noresm_develop
       # this cmeps commit
       - name: cmeps checkout
         uses: actions/checkout@v4
