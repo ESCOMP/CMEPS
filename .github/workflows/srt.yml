@@ -63,6 +63,8 @@ jobs:
       - run: echo "PyYAML" > requirements.txt
       - name: Install PyYAML
         run: pip install -r requirements.txt
+      - name: Install git-fleximod
+        run: pip install git-fleximod
       # use the latest noresm main
       - name: noresm checkout
         uses: actions/checkout@v4
@@ -82,7 +84,7 @@ jobs:
           git config --global user.name "${GITHUB_ACTOR}"
           git config --global user.email "${GITHUB_ACTOR_ID}+${GITHUB_ACTOR}@users.noreply.github.com"
           pushd noresm
-          ./bin/git-fleximod update cime ccs_config cdeps share mct parallelio
+          git-fleximod update cime ccs_config cdeps share mct parallelio
           cd ccs_config
           git checkout noresm
           cd ../cime
@@ -123,10 +125,10 @@ jobs:
           key: inputdata
 
       - name: Build ParallelIO
-        if: steps.cache-PARALLELIO.outputs.cache-hit != 'true'
+        if: steps.cache-ParallelIO.outputs.cache-hit != 'true'
         uses: NCAR/ParallelIO/.github/actions/parallelio_cmake@b38e34eeb9b75ce81ac94daf7c5245931de00b9d
         with:
-          parallelio_version: ${{ env.ParallelIO_VERSION }}
+          parallelio_version: ${{ env.PARALLELIO_VERSION }}
           enable_fortran: True
           install_prefix: ${GITHUB_WORKSPACE}/pio
 
