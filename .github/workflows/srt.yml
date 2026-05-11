@@ -83,11 +83,9 @@ jobs:
           git config --global user.name "${GITHUB_ACTOR}"
           git config --global user.email "${GITHUB_ACTOR_ID}+${GITHUB_ACTOR}@users.noreply.github.com"
           pushd noresm
-          ./bin/git-fleximod update cime ccs_config cdeps share mct parallelio
+          ./bin/git-fleximod update cime ccs_config cdeps share mct parallelio -v
           cd ccs_config
-          git checkout noresm
           cd ../cime
-          git checkout noresm
           git status
           if [[ ! -e "${PWD}/.gitmodules.bak" ]]
              then
