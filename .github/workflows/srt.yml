@@ -63,8 +63,6 @@ jobs:
       - run: echo "PyYAML" > requirements.txt
       - name: Install PyYAML
         run: pip install -r requirements.txt
-      - name: Install git-fleximod
-        run: pip install git-fleximod
       # use the latest noresm main
       - name: noresm checkout
         uses: actions/checkout@v4
@@ -84,7 +82,7 @@ jobs:
           git config --global user.name "${GITHUB_ACTOR}"
           git config --global user.email "${GITHUB_ACTOR_ID}+${GITHUB_ACTOR}@users.noreply.github.com"
           pushd noresm
-          git-fleximod update cime ccs_config cdeps share mct parallelio
+          ./bin/git-fleximod update cime ccs_config cdeps share mct parallelio
           cd ccs_config
           git checkout noresm
           cd ../cime
