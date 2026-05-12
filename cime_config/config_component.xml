@@ -37,8 +37,8 @@
 
   <entry id="COUPLING_MODE">
     <type>char</type>
-    <valid_values>cesm</valid_values>
-    <default_value>cesm</default_value>
+    <valid_values>cesm,noresm</valid_values>
+    <default_value>noresm</default_value>
     <group>run_coupling</group>
     <file>env_run.xml</file>
     <desc>coupling mode</desc>
