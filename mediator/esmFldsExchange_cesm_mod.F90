@@ -64,8 +64,8 @@ module esmFldsExchange_cesm_mod
   use med_internalstate_mod , only : mrg_fracname_lnd2rof, map_fracname_lnd2rof
   use med_internalstate_mod , only : mrg_fracname_lnd2glc, map_fracname_lnd2glc
   use shr_log_mod           , only : shr_log_error
-  use shr_wtracers_mod      , only : shr_wtracers_present
-  use shr_wtracers_mod      , only : WTRACERS_SUFFIX
+  use wtracers_mod          , only : wtracers_present
+  use wtracers_mod          , only : WTRACERS_SUFFIX
 
   implicit none
   public
@@ -249,7 +249,7 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        read(cvalue,*) flds_i2o_per_cat
 
-       has_wtracers = shr_wtracers_present()
+       has_wtracers = wtracers_present()
        if (has_wtracers) then
           water_bulk_or_tracers_max = water_tracers_index
        else
