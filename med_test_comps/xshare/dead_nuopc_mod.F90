@@ -14,6 +14,7 @@ module dead_nuopc_mod
   use shr_sys_mod       , only : shr_sys_abort
   use shr_wtracers_mod  , only : shr_wtracers_get_initial_ratio
   use shr_wtracers_mod  , only : shr_wtracers_get_bulk_fieldname
+  use shr_wtracers_mod  , only : WTRACERS_SUFFIX
   use dead_methods_mod  , only : chkerr, alarmInit
 
   implicit none
@@ -415,7 +416,7 @@ contains
          bulk_fieldname = wtracer_bulk_fldname)
     if (.not. is_wtracer_field) then
        call ESMF_LogWrite(subname//": ERROR: "//trim(fld%stdname)// &
-            " does not end with the expected suffix for a water tracer field", &
+            " does not end with the expected suffix ('"//WTRACERS_SUFFIX//"') for a water tracer field", &
             ESMF_LOGMSG_ERROR)
        rc = ESMF_FAILURE
        return
