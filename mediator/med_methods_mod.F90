@@ -2795,7 +2795,6 @@ contains
     integer :: fieldrank
     logical :: hasSuffix
     logical :: isPresentNonTracer
-    integer :: localrc
     type(ESMF_Field) :: fieldTracers
     type(ESMF_Field) :: fieldNonTracer
 
