@@ -1124,7 +1124,6 @@ contains
     real(r8) , pointer  :: icemask_l(:)    ! icemask on land grid
     real(r8) , pointer  :: lndfrac(:)      ! land fraction on land grid
     real(r8) , pointer  :: dataptr1d(:)    ! temporary 1d pointer
-    integer             :: ec              ! loop index over elevation classes
     integer             :: n, t
 
     ! local and global sums of accumulation and ablation; used to compute renormalization factors
@@ -1134,9 +1133,7 @@ contains
     real(r8) :: local_ablat_lnd(1+num_wtracers), global_ablat_lnd(1+num_wtracers)
     real(r8) :: local_ablat_glc(1+num_wtracers), global_ablat_glc(1+num_wtracers)
 
-    ! renormalization factors (should be close to 1, e.g. in range 0.95 to 1.05)
-    real(r8) :: accum_renorm_factor ! ratio between global accumulation on the two grids
-    real(r8) :: ablat_renorm_factor ! ratio between global ablation on the two grids
+    ! areas
     real(r8), allocatable :: effective_area_l(:) ! effective areas on the land grid: grid cell area multiplied by min(lndfrac,icemask_l).
     real(r8), pointer :: area_g(:)  ! areas on glc grid
     character(len=*), parameter  :: subname=' (renormalize_smb) '
@@ -1395,8 +1392,11 @@ contains
     integer, intent(in), optional :: tracer_num ! for diagnostic output
 
     ! local variables
-    real(r8) :: accum_renorm_factor, ablat_renorm_factor
     integer :: n
+
+    ! renormalization factors (should be close to 1, e.g. in range 0.95 to 1.05)
+    real(r8) :: accum_renorm_factor ! ratio between global accumulation on the two grids
+    real(r8) :: ablat_renorm_factor ! ratio between global ablation on the two grids
 
     !---------------------------------------------------------------
 
