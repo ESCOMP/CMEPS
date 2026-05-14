@@ -1149,6 +1149,7 @@ contains
 
     ! local variables
     character(len=CS) :: lstring
+    character(len=CL) :: msg
     real(R8), pointer :: dataPtr1d(:)
     real(R8), pointer :: dataPtr2d(:,:)
     real(R8), pointer :: dataPtr3d(:,:,:)
@@ -1199,7 +1200,8 @@ contains
           write(msgString,'(A,a)') trim(subname)//' '//trim(lstring)//': '//trim(fieldname)," no data"
        endif
     else
-       call shr_log_error(subname//": ERROR: unhandled field rank", &
+       write(msg,'(a,i0)') subname//": ERROR: unhandled field rank ", fieldrank
+       call shr_log_error(msg, &
             line=__LINE__, file=u_FILE_u, rc=rc)
        return
     end if
@@ -2655,6 +2657,7 @@ contains
     integer                     :: nancount
     character(len=CS)           :: nancount_char
     character(len=CL)           :: msg_error
+    character(len=CL)           :: msg
     logical                     :: nanfound
     character(len=*), parameter :: subname='(med_methods_FB_check_for_nans)'
     ! ----------------------------------------------
@@ -2687,7 +2690,8 @@ contains
           if (chkerr(rc,__LINE__,u_FILE_u)) return
           call med_methods_check_for_nans(dataptr3d, nancount)
        else
-          call shr_log_error(subname//": ERROR: unhandled field rank", &
+          write(msg,'(a,i0)') subname//": ERROR: unhandled field rank ", fieldrank
+          call shr_log_error(msg, &
                line=__LINE__, file=u_FILE_u, rc=rc)
           return
        end if
@@ -2803,6 +2807,7 @@ contains
     real(r8), pointer :: dataTracers3d(:,:,:) ! dimensioned [ungriddedDim, tracerNum, gridcell]
     real(r8), pointer :: dataNonTracer2d(:,:) ! dimensioned [ungriddedDim, gridcell]
 
+    character(len=CL) :: msg
     character(len=*), parameter :: subname='(med_methods_FB_check_wtracers)'
     ! ----------------------------------------------
     rc = ESMF_SUCCESS
@@ -2857,7 +2862,8 @@ contains
                 call wtracers_check_tracer_ratios(dataTracers3d, dataNonTracer2d, &
                      trim(FBName)//":"//trim(fieldNameList(n)))
              else
-                call shr_log_error(subname//": ERROR: unhandled field rank", &
+                write(msg,'(a,i0)') subname//": ERROR: unhandled field rank ", fieldrank
+                call shr_log_error(msg, &
                      line=__LINE__, file=u_FILE_u, rc=rc)
                 return
              end if
