@@ -130,7 +130,7 @@ contains
     character(len=CL) :: logmsg
     character(len=CS) :: cnum
     logical           :: isPresent, isSet
-    logical           :: flds_wtracers
+    logical           :: has_wtracers
     integer           :: num_wtracers
     character(len=*),parameter :: subname=trim(modName)//':(InitializeAdvertise) '
     !-------------------------------------------------------------------------------
@@ -211,7 +211,7 @@ contains
 
     if (nxg /= 0 .and. nyg /= 0) then
 
-       flds_wtracers = shr_wtracers_present()
+       has_wtracers = shr_wtracers_present()
        num_wtracers = shr_wtracers_get_num_tracers()
 
        call fld_list_add(fldsFrGlc_num, fldsFrGlc, trim(flds_scalar_name))
@@ -223,7 +223,7 @@ contains
 
        call fld_list_add(fldsFrGlc_num, fldsFrGlc, 'Fgrg_rofi'                 )
        call fld_list_add(fldsFrGlc_num, fldsFrGlc, 'Fgrg_rofl'                 )
-       if (flds_wtracers) then
+       if (has_wtracers) then
           call fld_list_add(fldsFrGlc_num, fldsFrGlc, 'Fgrg_rofi'//WTRACERS_SUFFIX, &
                num_wtracers=num_wtracers)
           call fld_list_add(fldsFrGlc_num, fldsFrGlc, 'Fgrg_rofl'//WTRACERS_SUFFIX, &
@@ -236,7 +236,7 @@ contains
        call fld_list_add(fldsToGlc_num, fldsToGlc, trim(flds_scalar_name))
        call fld_list_add(fldsToGlc_num, fldsToGlc, 'Sl_tsrf')
        call fld_list_add(fldsToGlc_num, fldsToGlc, 'Flgl_qice')
-       if (flds_wtracers) then
+       if (has_wtracers) then
           call fld_list_add(fldsToGlc_num, fldsToGlc, 'Flgl_qice'//WTRACERS_SUFFIX, &
                num_wtracers=num_wtracers)
        end if

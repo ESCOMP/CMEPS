@@ -124,7 +124,7 @@ contains
     character(CL)     :: cvalue
     character(len=CL) :: logmsg
     logical           :: isPresent, isSet
-    logical           :: flds_wtracers
+    logical           :: has_wtracers
     integer           :: num_wtracers
     character(len=*),parameter :: subname=trim(modName)//':(InitializeAdvertise) '
     !-------------------------------------------------------------------------------
@@ -197,7 +197,7 @@ contains
 
     if (nxg /= 0 .and. nyg /= 0) then
 
-       flds_wtracers = shr_wtracers_present()
+       has_wtracers = shr_wtracers_present()
        num_wtracers = shr_wtracers_get_num_tracers()
 
        call fld_list_add(fldsFrRof_num, fldsFrRof, trim(flds_scalar_name))
@@ -208,7 +208,7 @@ contains
        call fld_list_add(fldsFrRof_num, fldsFrRof, 'Flrr_flood')
        call fld_list_add(fldsFrRof_num, fldsFrRof, 'Flrr_volr')
        call fld_list_add(fldsFrRof_num, fldsFrRof, 'Flrr_volrmch')
-       if (flds_wtracers) then
+       if (has_wtracers) then
           call fld_list_add(fldsFrRof_num, fldsFrRof, 'Forr_rofl'//WTRACERS_SUFFIX, &
                num_wtracers=num_wtracers)
           call fld_list_add(fldsFrRof_num, fldsFrRof, 'Forr_rofi'//WTRACERS_SUFFIX, &
@@ -234,7 +234,7 @@ contains
        call fld_list_add(fldsToRof_num, fldsToRof, 'Flrl_irrig')
        call fld_list_add(fldsToRof_num, fldsToRof, 'Fgrg_rofi')
        call fld_list_add(fldsToRof_num, fldsToRof, 'Fgrg_rofl')
-       if (flds_wtracers) then
+       if (has_wtracers) then
           call fld_list_add(fldsToRof_num, fldsToRof, 'Flrl_rofsur'//WTRACERS_SUFFIX, &
                num_wtracers=num_wtracers)
           call fld_list_add(fldsToRof_num, fldsToRof, 'Flrl_rofgwl'//WTRACERS_SUFFIX, &

@@ -122,7 +122,7 @@ contains
     integer            :: shrlogunit  ! original log unit
     character(len=CL)  :: logmsg
     logical            :: isPresent, isSet
-    logical            :: flds_wtracers
+    logical            :: has_wtracers
     integer            :: num_wtracers
     character(len=*),parameter :: subname=trim(modName)//':(InitializeAdvertise) '
     !-------------------------------------------------------------------------------
@@ -207,7 +207,7 @@ contains
 
     if (nxg /= 0 .and. nyg /= 0) then
 
-       flds_wtracers = shr_wtracers_present()
+       has_wtracers = shr_wtracers_present()
        num_wtracers = shr_wtracers_get_num_tracers()
 
        call fld_list_add(fldsFrIce_num, fldsFrIce, trim(flds_scalar_name))
@@ -216,7 +216,7 @@ contains
        call fld_list_add(fldsFrIce_num, fldsFrIce, 'Si_t'          )
        call fld_list_add(fldsFrIce_num, fldsFrIce, 'Si_tref'       )
        call fld_list_add(fldsFrIce_num, fldsFrIce, 'Si_qref'       )
-       if (flds_wtracers) then
+       if (has_wtracers) then
           call fld_list_add(fldsFrIce_num, fldsFrIce, 'Si_qref'//WTRACERS_SUFFIX, &
                num_wtracers=num_wtracers)
        end if
@@ -232,7 +232,7 @@ contains
        call fld_list_add(fldsFrIce_num, fldsFrIce, 'Faii_sen'      )
        call fld_list_add(fldsFrIce_num, fldsFrIce, 'Faii_lwup'     )
        call fld_list_add(fldsFrIce_num, fldsFrIce, 'Faii_evap'     )
-       if (flds_wtracers) then
+       if (has_wtracers) then
           call fld_list_add(fldsFrIce_num, fldsFrIce, 'Faii_evap'//WTRACERS_SUFFIX, &
                num_wtracers=num_wtracers)
        end if
@@ -240,7 +240,7 @@ contains
        call fld_list_add(fldsFrIce_num, fldsFrIce, 'Fioi_melth'    )
        call fld_list_add(fldsFrIce_num, fldsFrIce, 'Fioi_swpen'    )
        call fld_list_add(fldsFrIce_num, fldsFrIce, 'Fioi_meltw'    )
-       if (flds_wtracers) then
+       if (has_wtracers) then
           call fld_list_add(fldsFrIce_num, fldsFrIce, 'Fioi_meltw'//WTRACERS_SUFFIX, &
                num_wtracers=num_wtracers)
        end if
@@ -264,7 +264,7 @@ contains
        call fld_list_add(fldsToIce_num, fldsToIce, 'Sa_v'          )
        call fld_list_add(fldsToIce_num, fldsToIce, 'Sa_ptem'       )
        call fld_list_add(fldsToIce_num, fldsToIce, 'Sa_shum'       )
-       if (flds_wtracers) then
+       if (has_wtracers) then
           call fld_list_add(fldsToIce_num, fldsToIce, 'Sa_shum'//WTRACERS_SUFFIX, &
                num_wtracers=num_wtracers)
        end if
@@ -277,7 +277,7 @@ contains
        call fld_list_add(fldsToIce_num, fldsToIce, 'Faxa_lwdn'     )
        call fld_list_add(fldsToIce_num, fldsToIce, 'Faxa_rain'     )
        call fld_list_add(fldsToIce_num, fldsToIce, 'Faxa_snow'     )
-       if (flds_wtracers) then
+       if (has_wtracers) then
           call fld_list_add(fldsToIce_num, fldsToIce, 'Faxa_rain'//WTRACERS_SUFFIX, &
                num_wtracers=num_wtracers)
           call fld_list_add(fldsToIce_num, fldsToIce, 'Faxa_snow'//WTRACERS_SUFFIX, &
@@ -287,7 +287,7 @@ contains
        call fld_list_add(fldsToIce_num, fldsToIce, 'Faxa_ocph'  , ungridded_lbound=1, ungridded_ubound=3)
        call fld_list_add(fldsToIce_num, fldsToIce, 'Faxa_dstwet', ungridded_lbound=1, ungridded_ubound=4)
        call fld_list_add(fldsToIce_num, fldsToIce, 'Faxa_dstdry', ungridded_lbound=1, ungridded_ubound=4)
-       if (flds_wtracers) then
+       if (has_wtracers) then
           ! Note that this field only exists for tracers, not bulk
           call fld_list_add(fldsToIce_num, fldsToIce, 'So_roce'//WTRACERS_SUFFIX, &
                num_wtracers=num_wtracers)

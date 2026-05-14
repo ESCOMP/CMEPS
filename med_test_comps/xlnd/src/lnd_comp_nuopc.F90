@@ -127,7 +127,7 @@ contains
     character(CL)     :: cvalue
     character(CL)     :: logmsg
     logical           :: isPresent, isSet
-    logical           :: flds_wtracers
+    logical           :: has_wtracers
     integer           :: num_wtracers
     character(len=*),parameter :: subname=trim(modName)//':(InitializeAdvertise) '
     !-------------------------------------------------------------------------------
@@ -217,7 +217,7 @@ contains
        read(cvalue,*) glc_nec
        call ESMF_LogWrite('glc_nec = '// trim(cvalue), ESMF_LOGMSG_INFO)
 
-       flds_wtracers = shr_wtracers_present()
+       has_wtracers = shr_wtracers_present()
        num_wtracers = shr_wtracers_get_num_tracers()
 
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, trim(flds_scalar_name))
@@ -225,7 +225,7 @@ contains
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Sl_t'          )
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Sl_tref'       )
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Sl_qref'       )
-       if (flds_wtracers) then
+       if (has_wtracers) then
           call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Sl_qref'//WTRACERS_SUFFIX, &
                num_wtracers=num_wtracers)
        end if
@@ -243,7 +243,7 @@ contains
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Flrl_rofsub'   )
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Flrl_rofi'     )
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Flrl_irrig'    )
-       if (flds_wtracers) then
+       if (has_wtracers) then
           call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Flrl_rofsur'//WTRACERS_SUFFIX, &
                num_wtracers=num_wtracers)
           call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Flrl_rofgwl'//WTRACERS_SUFFIX, &
@@ -262,14 +262,14 @@ contains
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Fall_sen'      )
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Fall_lwup'     )
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Fall_evap'     )
-       if (flds_wtracers) then
+       if (has_wtracers) then
           call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Fall_evap'//WTRACERS_SUFFIX, &
                num_wtracers=num_wtracers)
        end if
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Fall_swnet'    )
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Fall_flxdst'   , ungridded_lbound=1, ungridded_ubound=4)
        call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Flgl_qice_elev', ungridded_lbound=1, ungridded_ubound=glc_nec+1)
-       if (flds_wtracers) then
+       if (has_wtracers) then
           call fld_list_add(fldsFrLnd_num, fldsFrlnd, 'Flgl_qice_elev'//WTRACERS_SUFFIX, &
                ungridded_lbound=1, ungridded_ubound=glc_nec+1, num_wtracers=num_wtracers)
        end if
@@ -285,14 +285,14 @@ contains
        call fld_list_add(fldsToLnd_num, fldsToLnd, 'Sa_pbot'      )
        call fld_list_add(fldsToLnd_num, fldsToLnd, 'Sa_tbot'      )
        call fld_list_add(fldsToLnd_num, fldsToLnd, 'Sa_shum'      )
-       if (flds_wtracers) then
+       if (has_wtracers) then
           call fld_list_add(fldsToLnd_num, fldsToLnd, 'Sa_shum'//WTRACERS_SUFFIX, &
                num_wtracers=num_wtracers)
        end if
        call fld_list_add(fldsToLnd_num, fldsToLnd, 'Flrr_volr'    )
        call fld_list_add(fldsToLnd_num, fldsToLnd, 'Flrr_volrmch' )
        call fld_list_add(fldsToLnd_num, fldsToLnd, 'Flrr_flood'   )
-       if (flds_wtracers) then
+       if (has_wtracers) then
           call fld_list_add(fldsToLnd_num, fldsToLnd, 'Flrr_volr'//WTRACERS_SUFFIX, &
                num_wtracers=num_wtracers)
           call fld_list_add(fldsToLnd_num, fldsToLnd, 'Flrr_volrmch'//WTRACERS_SUFFIX, &
@@ -305,7 +305,7 @@ contains
        call fld_list_add(fldsToLnd_num, fldsToLnd, 'Faxa_rainl'   )
        call fld_list_add(fldsToLnd_num, fldsToLnd, 'Faxa_snowc'   )
        call fld_list_add(fldsToLnd_num, fldsToLnd, 'Faxa_snowl'   )
-       if (flds_wtracers) then
+       if (has_wtracers) then
           call fld_list_add(fldsToLnd_num, fldsToLnd, 'Faxa_rainc'//WTRACERS_SUFFIX, &
                num_wtracers=num_wtracers)
           call fld_list_add(fldsToLnd_num, fldsToLnd, 'Faxa_rainl'//WTRACERS_SUFFIX, &

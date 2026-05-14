@@ -123,7 +123,7 @@ contains
     character(CL)     :: cvalue
     character(len=CL) :: logmsg
     logical           :: isPresent, isSet
-    logical           :: flds_wtracers
+    logical           :: has_wtracers
     integer           :: num_wtracers
     character(len=*),parameter :: subname=trim(modName)//':(InitializeAdvertise) '
     !-------------------------------------------------------------------------------
@@ -206,7 +206,7 @@ contains
 
     if (nxg /= 0 .and. nyg /= 0) then
 
-       flds_wtracers = shr_wtracers_present()
+       has_wtracers = shr_wtracers_present()
        num_wtracers = shr_wtracers_get_num_tracers()
 
        call fld_list_add(fldsFrAtm_num, fldsFrAtm, trim(flds_scalar_name))
@@ -217,7 +217,7 @@ contains
        call fld_list_add(fldsFrAtm_num, fldsFrAtm, 'Sa_tbot'       )
        call fld_list_add(fldsFrAtm_num, fldsFrAtm, 'Sa_ptem'       )
        call fld_list_add(fldsFrAtm_num, fldsFrAtm, 'Sa_shum'       )
-       if (flds_wtracers) then
+       if (has_wtracers) then
           call fld_list_add(fldsFrAtm_num, fldsFrAtm, 'Sa_shum'//WTRACERS_SUFFIX, &
                num_wtracers=num_wtracers)
        end if
@@ -228,7 +228,7 @@ contains
        call fld_list_add(fldsFrAtm_num, fldsFrAtm, 'Faxa_rainl'    )
        call fld_list_add(fldsFrAtm_num, fldsFrAtm, 'Faxa_snowc'    )
        call fld_list_add(fldsFrAtm_num, fldsFrAtm, 'Faxa_snowl'    )
-       if (flds_wtracers) then
+       if (has_wtracers) then
           call fld_list_add(fldsFrAtm_num, fldsFrAtm, 'Faxa_rainc'//WTRACERS_SUFFIX, &
                num_wtracers=num_wtracers)
           call fld_list_add(fldsFrAtm_num, fldsFrAtm, 'Faxa_rainl'//WTRACERS_SUFFIX, &
@@ -259,7 +259,7 @@ contains
        call fld_list_add(fldsToAtm_num, fldsToAtm, 'So_ofrac'  )
        call fld_list_add(fldsToAtm_num, fldsToAtm, 'Sx_tref'   )
        call fld_list_add(fldsToAtm_num, fldsToAtm, 'Sx_qref'   )
-       if (flds_wtracers) then
+       if (has_wtracers) then
           call fld_list_add(fldsToAtm_num, fldsToAtm, 'Sx_qref'//WTRACERS_SUFFIX, &
                num_wtracers=num_wtracers)
        end if
@@ -278,7 +278,7 @@ contains
        call fld_list_add(fldsToAtm_num, fldsToAtm, 'Faxx_sen'  )
        call fld_list_add(fldsToAtm_num, fldsToAtm, 'Faxx_lwup' )
        call fld_list_add(fldsToAtm_num, fldsToAtm, 'Faxx_evap' )
-       if (flds_wtracers) then
+       if (has_wtracers) then
           call fld_list_add(fldsToAtm_num, fldsToAtm, 'Faxx_evap'//WTRACERS_SUFFIX, &
                num_wtracers=num_wtracers)
        end if

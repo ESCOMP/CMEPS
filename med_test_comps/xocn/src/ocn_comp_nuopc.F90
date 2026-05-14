@@ -125,7 +125,7 @@ contains
     character(CL)     :: cvalue
     character(len=CL) :: logmsg
     logical           :: isPresent, isSet
-    logical           :: flds_wtracers
+    logical           :: has_wtracers
     integer           :: num_wtracers
     character(len=*),parameter :: subname=trim(modName)//':(InitializeAdvertise) '
     !-------------------------------------------------------------------------------
@@ -196,7 +196,7 @@ contains
 
     if (nxg /= 0 .and. nyg /= 0) then
 
-       flds_wtracers = shr_wtracers_present()
+       has_wtracers = shr_wtracers_present()
        num_wtracers = shr_wtracers_get_num_tracers()
 
        call fld_list_add(fldsFrOcn_num, fldsFrOcn, trim(flds_scalar_name))
@@ -209,7 +209,7 @@ contains
        call fld_list_add(fldsFrOcn_num, fldsFrOcn, "So_dhdy"       )
        call fld_list_add(fldsFrOcn_num, fldsFrOcn, "So_bldepth"    )
        call fld_list_add(fldsFrOcn_num, fldsFrOcn, "Fioo_q"        )
-       if (flds_wtracers) then
+       if (has_wtracers) then
           ! Note that this field only exists for tracers, not bulk
           call fld_list_add(fldsFrOcn_num, fldsFrOcn, "So_roce"//WTRACERS_SUFFIX, &
                num_wtracers=num_wtracers)
@@ -218,7 +218,7 @@ contains
        call fld_list_add(fldsToOcn_num, fldsToOcn, trim(flds_scalar_name))
        call fld_list_add(fldsToOcn_num, fldsToOcn, "Faxa_rain"     )
        call fld_list_add(fldsToOcn_num, fldsToOcn, "Faxa_snow"     )
-       if (flds_wtracers) then
+       if (has_wtracers) then
           call fld_list_add(fldsToOcn_num, fldsToOcn, "Faxa_rain"//WTRACERS_SUFFIX, &
                num_wtracers=num_wtracers)
           call fld_list_add(fldsToOcn_num, fldsToOcn, "Faxa_snow"//WTRACERS_SUFFIX, &
@@ -235,12 +235,12 @@ contains
        call fld_list_add(fldsToOcn_num, fldsToOcn, "Foxx_lat"      )
        call fld_list_add(fldsToOcn_num, fldsToOcn, "Foxx_lwup"     )
        call fld_list_add(fldsToOcn_num, fldsToOcn, "Foxx_evap"     )
-       if (flds_wtracers) then
+       if (has_wtracers) then
           call fld_list_add(fldsToOcn_num, fldsToOcn, "Foxx_evap"//WTRACERS_SUFFIX, &
                num_wtracers=num_wtracers)
        end if
        call fld_list_add(fldsToOcn_num, fldsToOcn, "Fioi_meltw"    )
-       if (flds_wtracers) then
+       if (has_wtracers) then
           call fld_list_add(fldsToOcn_num, fldsToOcn, "Fioi_meltw"//WTRACERS_SUFFIX, &
                num_wtracers=num_wtracers)
        end if
@@ -249,7 +249,7 @@ contains
        call fld_list_add(fldsToOcn_num, fldsToOcn, "Foxx_rofi"     )
        call fld_list_add(fldsToOcn_num, fldsToOcn, "Forr_rofl_glc" )
        call fld_list_add(fldsToOcn_num, fldsToOcn, "Forr_rofi_glc" )
-       if (flds_wtracers) then
+       if (has_wtracers) then
           call fld_list_add(fldsToOcn_num, fldsToOcn, "Foxx_rofl"//WTRACERS_SUFFIX, &
                num_wtracers=num_wtracers)
           call fld_list_add(fldsToOcn_num, fldsToOcn, "Foxx_rofi"//WTRACERS_SUFFIX, &
