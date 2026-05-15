@@ -30,6 +30,7 @@ contains
     use esmFlds               , only : med_fldList_GetFldListTo, med_fldList_type
     use med_methods_mod       , only : fldbun_diagnose  => med_methods_FB_diagnose
     use med_methods_mod       , only : FB_check_for_nans => med_methods_FB_check_for_nans
+    use med_methods_mod       , only : med_methods_FB_check_wtracers
     use med_utils_mod         , only : chkerr           => med_utils_ChkErr
     use med_constants_mod     , only : dbug_flag        => med_constants_dbug_flag
     use med_internalstate_mod , only : complnd, compatm
@@ -131,6 +132,11 @@ contains
     ! Check for nans in fields export to lnd
     call FB_check_for_nans(is_local%wrap%FBExp(complnd), maintask, logunit, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    ! Check water tracers (if there are no water tracers or these checks aren't enabled,
+    ! this will return without doing anything)
+    call med_methods_FB_check_wtracers(is_local%wrap%FBExp(complnd), rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     if (dbug_flag > 5) then
        call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)

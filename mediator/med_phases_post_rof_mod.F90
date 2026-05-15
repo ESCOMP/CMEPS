@@ -22,6 +22,7 @@ module med_phases_post_rof_mod
   use med_methods_mod       , only : fldbun_copy => med_methods_FB_copy
   use med_methods_mod       , only : fldbun_getdata1d => med_methods_FB_getdata1d
   use med_methods_mod       , only : fldbun_getmesh   => med_methods_FB_getmesh
+  use med_methods_mod       , only : med_methods_FB_check_wtracers
   use med_field_info_mod    , only : med_field_info_type, med_field_info_create_from_field
   use med_field_info_mod    , only : med_field_info_esmf_fieldcreate
   use perf_mod              , only : t_startf, t_stopf
@@ -132,6 +133,11 @@ contains
     nullify(is_local%wrap)
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    ! Check water tracers (if there are no water tracers or these checks aren't enabled,
+    ! this will return without doing anything)
+    call med_methods_FB_check_wtracers(is_local%wrap%FBImp(comprof,comprof), rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     do n = 1, num_rof_fields
       call fldbun_copy(FBrof_r, is_local%wrap%FBImp(comprof,comprof), rc=rc)

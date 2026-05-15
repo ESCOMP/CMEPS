@@ -19,6 +19,7 @@ module wav_comp_nuopc
   use dead_methods_mod  , only : set_component_logging, get_component_instance, log_clock_advance
   use dead_nuopc_mod    , only : dead_read_inparms, ModelInitPhase, ModelSetRunClock
   use dead_nuopc_mod    , only : fld_list_add, fld_list_realize, fldsMax, fld_list_type
+  use dead_nuopc_mod    , only : set_all_export_fields
 
   implicit none
   private ! except
@@ -39,7 +40,6 @@ module wav_comp_nuopc
   integer                :: fldsFrWav_num = 0
   type (fld_list_type)   :: fldsToWav(fldsMax)
   type (fld_list_type)   :: fldsFrWav(fldsMax)
-  integer, parameter     :: gridTofieldMap = 2 ! ungridded dimension is innermost
 
   type(ESMF_Mesh)        :: mesh
   integer                :: nxg                  ! global dim i-direction
@@ -349,8 +349,8 @@ contains
     integer          , intent(out)   :: rc
 
     ! local variables
-    integer           :: nfstart, ubound
-    integer           :: n, nf, nind
+    integer           :: ubound
+    integer           :: n
     real(r8), pointer :: lat(:)
     real(r8), pointer :: lon(:)
     integer           :: spatialDim
@@ -373,21 +373,16 @@ contains
        lat(n) = ownedElemCoords(2*n)
     end do
 
-    nfstart = 0 ! for fields that have ubound > 0
-    do nf = 2,fldsFrWav_num ! Start from index 2 in order to skip the scalar field
-       ubound = fldsFrWav(nf)%ungridded_ubound
-       if (ubound == 0) then
-          call field_setexport(exportState, trim(fldsFrWav(nf)%stdname), lon, lat, nf=nf, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-       else
-          nfstart = nfstart + nf + ubound - 1
-          do nind = 1,ubound
-             call field_setexport(exportState, trim(fldsFrWav(nf)%stdname), lon, lat, nf=nfstart+nind-1, &
-                  ungridded_index=nind, rc=rc)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-          end do
-       end if
-    end do
+    call set_all_export_fields( &
+         exportState = exportState, &
+         flds = fldsFrWav, &
+         fld_min = 2, &  ! Start from index 2 in order to skip the scalar field here
+         fld_max = fldsFrWav_num, &
+         lon = lon, &
+         lat = lat, &
+         field_setexport = field_setexport, &
+         rc = rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     deallocate(lon)
     deallocate(lat)
@@ -414,6 +409,7 @@ contains
     type(ESMF_Field)  :: lfield
     real(r8), pointer :: data1d(:)
     real(r8), pointer :: data2d(:,:)
+    integer, parameter :: gridTofieldMap = 2 ! ungridded dimension is innermost
     !--------------------------------------------------
 
     rc = ESMF_SUCCESS
