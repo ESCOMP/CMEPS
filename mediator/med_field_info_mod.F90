@@ -192,7 +192,13 @@ contains
     do i = 1, n_fields
        is_tracer = wtracers_is_wtracer_field(field_names(i))
        if (is_tracer) then
-          ! Field is a water tracer; assume a single ungridded dimension
+          ! Field is a water tracer; assume a single ungridded dimension.
+          !
+          ! Note that wtracers_get_num_tracers will return the same value for all water
+          ! tracers. However, we call this inside the loop - and in particular, inside the
+          ! is_tracer conditional - to avoid trying to retrieve this value in the
+          ! situation where there aren't any water tracers and the water tracer module
+          ! hasn't been initialized. (This may never occur in practice, but it might.)
           n_tracers = wtracers_get_num_tracers()
           field_info_array(i) = med_field_info_create_directly( &
                name=field_names(i), &
