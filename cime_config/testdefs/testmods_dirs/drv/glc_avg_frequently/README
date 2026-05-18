@@ -1,0 +1,2 @@
+This testmod turns on more frequent averaging of the fields sent to glc so that the
+mapping of these fields can be tested in a run shorter than a year.

@@ -853,7 +853,6 @@
     </desc>
     <values>
       <value>on</value>
-      <value COMP_LND="xlnd">off</value>
     </values>
   </entry>
   <entry id="remove_negative_runoff_lnd">
@@ -1478,7 +1477,7 @@
       Auxiliary mediator a2x dynamic, radiation, and precipitation fields history output every 3 hours
     </desc>
     <values>
-      <value>Sa_z:Sa_topo:Sa_u:Sa_v:Sa_tbot:Sa_ptem:Sa_shum:Sa_dens:Sa_pbot:Sa_pslv:Faxa_lwdn:Faxa_rainc:Faxa_rainl:Faxa_snowc:Faxa_snowl:Faxa_swndr:Faxa_swvdr:Faxa_swndf:Faxa_swvdf:Sa_co2diag:Sa_co2prog</value>
+      <value>Sa_z:Sa_topo:Sa_u:Sa_v:Sa_tbot:Sa_ptem:Sa_shum:Sa_dens:Sa_pbot:Sa_pslv:Faxa_lwdn:Faxa_rainc:Faxa_rainl:Faxa_snowc:Faxa_snowl:Faxa_swndr:Faxa_swvdr:Faxa_swndf:Faxa_swvdf:Sa_co2prog</value>
     </values>
   </entry>
   <entry id="histaux_atm2med_file4_history_option">
@@ -1543,7 +1542,7 @@
     <group>MED_attributes</group>
     <desc>Auxiliary mediator a2x aerosol and ghg history output daily or endofrun</desc>
     <values>
-      <value>Faxa_bcph:Faxa_ocph:Faxa_dstwet:Faxa_dstdry:Sa_co2prog:Sa_co2diag</value>
+      <value>Faxa_bcph:Faxa_ocph:Faxa_dstwet:Faxa_dstdry:Faxa_ndep:Sa_co2diag</value>
     </values>
   </entry>
   <entry id="histaux_atm2med_file5_history_option">
@@ -1552,7 +1551,7 @@
     <group>MED_attributes</group>
     <desc>history option type</desc>
     <values>
-      <value>nhours</value>
+      <value>ndays</value>
     </values>
   </entry>
   <entry id="histaux_atm2med_file5_history_n">
@@ -1561,7 +1560,7 @@
     <group>MED_attributes</group>
     <desc>history option span</desc>
     <values>
-      <value>3</value>
+      <value>1</value>
     </values>
   </entry>
   <entry id="histaux_atm2med_file5_doavg">
@@ -1579,7 +1578,7 @@
     <group>MED_attributes</group>
     <desc>Number of time samples per file.</desc>
     <values>
-      <value>2</value>
+      <value>1</value>
     </values>
   </entry>
   <entry id="histaux_atm2med_file5_auxname">
@@ -2182,6 +2181,10 @@
     <desc>Number of time samples per file.</desc>
     <values>
       <value>30</value>
+      <!-- Generate daily WW3 hist files for ERS/ERI tests to prevent mismatched filenames
+        and contents between initial and restart runs.-->
+      <value TESTCASE='ERS'>1</value>
+      <value TESTCASE='ERI'>1</value>
     </values>
   </entry>
 
@@ -2533,18 +2536,6 @@
     </values>
   </entry>
 
-  <entry  id="flds_wiso" modify_via_xml="FLDS_WISO">
-    <type>logical</type>
-    <category>flds</category>
-    <group>ALLCOMP_attributes</group>
-    <desc>
-      Pass water isotopes between components
-    </desc>
-    <values>
-      <value>.false.</value>
-    </values>
-  </entry>
-
   <entry id="flds_r2l_stream_channel_depths">
     <type>logical</type>
     <category>flds</category>
@@ -2593,6 +2584,66 @@
      <value>.false.</value>
      <value COMP_GLC="cism">$CISM_EVOLVE</value>
     </values>
+  </entry>
+
+  <entry id="water_tracer_names" modify_via_xml="WATER_TRACERS" skip_default_entry="true">
+   <type>char</type>
+   <category>water_tracers</category>
+   <group>ALLCOMP_attributes</group>
+   <desc>
+      Colon-delimited list of names of water tracers in this run.
+   </desc>
+   <values>
+      <value></value>
+   </values>
+  </entry>
+
+  <entry id="water_tracer_species" modify_via_xml="WATER_TRACERS" skip_default_entry="true">
+   <type>char</type>
+   <category>water_tracers</category>
+   <group>ALLCOMP_attributes</group>
+   <desc>
+      Colon-delimited list of species of water tracers in this run.
+
+      Each element in the list corresponds to an element in water_tracer_names. A value of
+      '-' for a given element indicates a standard water tracer (i.e., a tracer of bulk
+      water).
+   </desc>
+   <values>
+      <value></value>
+   </values>
+  </entry>
+
+  <entry id="water_tracer_initial_ratios" skip_default_entry="true">
+   <type>char</type>
+   <category>water_tracers</category>
+   <group>ALLCOMP_attributes</group>
+   <desc>
+      Colon-delimited list of initial water tracer ratios (as a fraction of total water).
+
+      Each element in the list corresponds to an element in water_tracer_names.
+
+      For water isotopes, this ratio is typically set to 1 for numerical reasons; the
+      actual isotopic ratios can then be determined via reference to standard global
+      ratios.
+   </desc>
+   <values>
+      <value></value>
+   </values>
+  </entry>
+
+  <entry id="water_tracers_do_checks">
+   <type>logical</type>
+   <category>water_tracers</category>
+   <group>ALLCOMP_attributes</group>
+   <desc>
+      Check consistency between water tracer fields and their corresponding bulk fields.
+
+      This should only be used with artificial tracers that maintain a fixed ratio.
+   </desc>
+   <values>
+      <value>.false.</value>
+   </values>
   </entry>
 
   <!-- =========================== -->
