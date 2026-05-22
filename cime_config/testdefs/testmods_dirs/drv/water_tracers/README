@@ -1,0 +1,3 @@
+This testmod turns on multiple water tracers along with checks to ensure that they
+maintain their correct ratio over time. (These checks will only pass if the water tracers
+used in the test do not invoke any physics that would cause a change in their ratios.)

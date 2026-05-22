@@ -1,0 +1,2 @@
+water_tracer_initial_ratios = "0.1:2"
+water_tracers_do_checks = .true.

@@ -33,6 +33,7 @@ contains
     use med_map_mod           , only : med_map_field_packed
     use med_constants_mod     , only : dbug_flag => med_constants_dbug_flag
     use med_utils_mod         , only : chkerr    => med_utils_ChkErr
+    use med_methods_mod       , only : med_methods_FB_check_wtracers
     use med_internalstate_mod , only : compocn, compatm, compice, complnd, compwav
     use perf_mod              , only : t_startf, t_stopf
 
@@ -57,6 +58,11 @@ contains
     nullify(is_local%wrap)
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    ! Check water tracers (if there are no water tracers or these checks aren't enabled,
+    ! this will return without doing anything)
+    call med_methods_FB_check_wtracers(is_local%wrap%FBImp(compatm,compatm), rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! map atm to ocn
     if (is_local%wrap%med_coupling_active(compatm,compocn)) then

@@ -11,7 +11,7 @@ module med_field_info_mod
   use ESMF            , only : ESMF_FieldCreate, ESMF_FieldGet
   use med_utils_mod   , only : ChkErr => med_utils_ChkErr
   use shr_log_mod     , only : shr_log_error
-  use wtracers_mod    , only : wtracers_is_wtracer_field
+  use wtracers_mod    , only : wtracers_is_wtracer_field, wtracers_get_num_tracers
 
   implicit none
   private
@@ -167,7 +167,7 @@ contains
     !
     ! It is assumed that fields generally have no ungridded dimensions. However, for
     ! fields ending with the water tracer suffix, it is instead assumed that they have a
-    ! single ungridded dimension of size given by shr_wtracers_get_num_tracers.
+    ! single ungridded dimension of size given by wtracers_get_num_tracers.
     !
     ! field_info_array is allocated here (and, since it has intent(out), it is
     ! automatically deallocated if it is already allocated on entry to this subroutine)
@@ -188,14 +188,18 @@ contains
 
     n_fields = size(field_names)
     allocate(field_info_array(n_fields))
-    ! For now, hard-code n_tracers, since we haven't set up the tracer information; we'll
-    ! fix this in an upcoming set of changes
-    n_tracers = 0
 
     do i = 1, n_fields
        is_tracer = wtracers_is_wtracer_field(field_names(i))
        if (is_tracer) then
-          ! Field is a water tracer; assume a single ungridded dimension
+          ! Field is a water tracer; assume a single ungridded dimension.
+          !
+          ! Note that wtracers_get_num_tracers will return the same value for all water
+          ! tracers. However, we call this inside the loop - and in particular, inside the
+          ! is_tracer conditional - to avoid trying to retrieve this value in the
+          ! situation where there aren't any water tracers and the water tracer module
+          ! hasn't been initialized. (This may never occur in practice, but it might.)
+          n_tracers = wtracers_get_num_tracers()
           field_info_array(i) = med_field_info_create_directly( &
                name=field_names(i), &
                ungridded_lbound=[1], &
