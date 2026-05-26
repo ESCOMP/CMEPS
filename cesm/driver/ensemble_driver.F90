@@ -281,7 +281,7 @@ contains
        asyncio_task = .false.
        ! Determine pet list for driver instance
        if(pio_asyncio_ntasks > 0) then
-          do n= pio_asyncio_rootpe, pio_asyncio_rootpe+pio_asyncio_stride*(pio_asyncio_ntasks-1), pio_asyncio_stride
+          do n=pio_asyncio_rootpe,pio_asyncio_rootpe+pio_asyncio_stride*(pio_asyncio_ntasks-1),pio_asyncio_stride
              asyncio_petlist(iopetcnt) = (inst-1)*(ntasks_per_member+pio_asyncio_ntasks) + n
              if(asyncio_petlist(iopetcnt) == localPet) asyncio_task = .true.
              iopetcnt = iopetcnt+1
