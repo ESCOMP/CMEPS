@@ -114,6 +114,7 @@
       <value compset="SSP.*_DATM.*_CLM">CO2A</value>
       <value compset="_BGC%BPRP">CO2C</value>
       <value compset="_BGC%BDRD">CO2C</value>
+      <value compset="E_CAM70">CO2C</value>
       <value compset="20TR_DATM%IAF.*_BLOM%ECO">CO2A</value>
       <value compset="20TR_DATM%JRA.*_BLOM%ECO">CO2A</value>
     </values>
