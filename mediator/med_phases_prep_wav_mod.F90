@@ -18,6 +18,7 @@ module med_phases_prep_wav_mod
   use med_methods_mod       , only : FB_copy       => med_methods_FB_copy
   use med_methods_mod       , only : FB_reset      => med_methods_FB_reset
   use med_methods_mod       , only : FB_check_for_nans => med_methods_FB_check_for_nans
+  use med_methods_mod       , only : med_methods_FB_check_wtracers
   use med_field_info_mod    , only : med_field_info_type, med_field_info_array_from_state
   use esmFlds               , only : med_fldList_GetfldListTo
   use med_internalstate_mod , only : compatm, compwav
@@ -131,7 +132,7 @@ contains
     end if
 
     !---------------------------------------
-    !--- merge all fields to wav 
+    !--- merge all fields to wav
     !---------------------------------------
     call med_merge_auto(&
          is_local%wrap%med_coupling_active(:,compwav), &
@@ -217,6 +218,11 @@ contains
        ! Check for nans in fields export to wav
        call FB_check_for_nans(is_local%wrap%FBExp(compwav), maintask, logunit, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       ! Check water tracers (if there are no water tracers or these checks aren't enabled,
+       ! this will return without doing anything)
+       call med_methods_FB_check_wtracers(is_local%wrap%FBExp(compwav), rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        ! zero accumulator
        is_local%wrap%ExpAccumWavCnt = 0
