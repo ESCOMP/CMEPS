@@ -30,6 +30,7 @@ contains
     use med_internalstate_mod   , only : compice, compocn, compwav
     use med_phases_history_mod  , only : med_phases_history_write_comp
     use med_phases_prep_glc_mod , only : med_phases_prep_glc_accum_ocn
+    use med_methods_mod         , only : med_methods_FB_check_wtracers
     use perf_mod                , only : t_startf, t_stopf
 
     ! input/output variables
@@ -53,6 +54,11 @@ contains
     nullify(is_local%wrap)
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    ! Check water tracers (if there are no water tracers or these checks aren't enabled,
+    ! this will return without doing anything)
+    call med_methods_FB_check_wtracers(is_local%wrap%FBImp(compocn,compocn), rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! Map ocn->ice
     if (is_local%wrap%med_coupling_active(compocn,compice)) then

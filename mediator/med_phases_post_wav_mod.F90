@@ -22,6 +22,7 @@ contains
     use med_constants_mod     , only : dbug_flag   => med_constants_dbug_flag
     use med_utils_mod         , only : chkerr      => med_utils_ChkErr
     use med_methods_mod       , only : FB_diagnose => med_methods_FB_diagnose
+    use med_methods_mod       , only : med_methods_FB_check_wtracers
     use med_map_mod           , only : med_map_field_packed
     use med_internalstate_mod , only : InternalState
     use med_internalstate_mod , only : compwav, compatm, compocn, compice
@@ -49,6 +50,11 @@ contains
     nullify(is_local%wrap)
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    ! Check water tracers (if there are no water tracers or these checks aren't enabled,
+    ! this will return without doing anything)
+    call med_methods_FB_check_wtracers(is_local%wrap%FBImp(compwav,compwav), rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! map wav to atm
     if (is_local%wrap%med_coupling_active(compwav,compatm)) then

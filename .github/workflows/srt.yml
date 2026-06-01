@@ -2,13 +2,11 @@
 
 name: scripts regression tests
 
-# Controls when the action will run. Triggers the workflow on push or pull request
-# events but only for the main branch
+# Controls when the action will run. Only runs when manually triggered. (See
+# https://github.com/escomp/cmeps/issues/646 for discussion regarding why we don't run
+# this automatically.)
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+  workflow_dispatch:
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -178,17 +176,17 @@ jobs:
       # How to download artifacts:
       # https://docs.github.com/en/actions/managing-workflow-runs/downloading-workflow-artifacts
 
-      - name: Upload test logs
-        if: ${{ failure() }}
-        steps:
-        - name: Tar test logs
-          run: tar zcf scratch-${{ matrix.python-version }}.tar.gz /home/runner/noresm/scratch
-        - name: save artifact
-          uses: actions/upload-artifact@v4
-          with:
-            name: test-logs-${{ matrix.python-version }}
-            path: scratch-${{ matrix.python-version }}.tar.gz
-            retention-days: 4
+      # - name: Upload test logs
+      #   if: ${{ failure() }}
+      #   steps:
+      #   - name: Tar test logs
+      #     run: tar zcf scratch-${{ matrix.python-version }}.tar.gz /home/runner/noresm/scratch
+      #   - name: save artifact
+      #     uses: actions/upload-artifact@v4
+      #     with:
+      #       name: test-logs-${{ matrix.python-version }}
+      #       path: scratch-${{ matrix.python-version }}.tar.gz
+      #       retention-days: 4
 #     the following can be used by developers to login to the github server in case of errors
 #     see https://github.com/marketplace/actions/debugging-with-tmate for further details
 #      - name: Setup tmate session

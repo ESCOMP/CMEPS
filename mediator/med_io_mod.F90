@@ -40,6 +40,8 @@ module med_io_mod
 
   ! private member functions
   private :: med_io_file_exists
+  private :: med_io_def_var_with_atts
+  private :: med_io_read_1d_var
 
   ! public data members:
   interface med_io_read
@@ -740,7 +742,6 @@ contains
     integer(kind=Pio_Offset_Kind) :: frame
     character(CL)                 :: itemc       ! string converted to char
     character(CL)                 :: name1       ! var name
-    character(CL)                 :: cunit       ! var units
     character(CL)                 :: lpre        ! local prefix
     character(CS)                 :: coordvarnames(2)   ! coordinate variable names
     character(CS)                 :: coordnames(2)      ! coordinate long names
@@ -762,6 +763,7 @@ contains
     type(ESMF_Field)              :: lfield
     integer                       :: rank
     logical                       :: tiles
+    logical                       :: ltavg
     character(CL), allocatable    :: fieldNameList(:)
 
     ! For a single ungridded dimension, there will be 1 element in ungriddedUBound and 1
@@ -781,6 +783,8 @@ contains
     if (present(pre)) lpre = trim(pre)
     luse_float = .false.
     if (present(use_float)) luse_float = use_float
+    ltavg = .false.
+    if (present(tavg)) ltavg = tavg
 
     tiles = .false.
     if (present(ntile)) then
@@ -956,25 +960,8 @@ contains
                       write(cnumber,'(i0)') n
                       write(cnumber2,'(i0)') n2
                       name1 = trim(lpre)//'_'//trim(itemc)//trim(cnumber)//'_'//trim(cnumber2)
-                      call ESMF_LogWrite(trim(subname)//': defining '//trim(name1), ESMF_LOGMSG_INFO)
-                      if (luse_float) then
-                         rcode = pio_def_var(io_file, trim(name1), PIO_REAL, dimid, varid)
-                         rcode = pio_put_att(io_file, varid,"_FillValue",real(lfillvalue,r4))
-                      else
-                         rcode = pio_def_var(io_file, trim(name1), PIO_DOUBLE, dimid, varid)
-                         rcode = pio_put_att(io_file,varid,"_FillValue",lfillvalue)
-                      end if
-                      if (NUOPC_FieldDictionaryHasEntry(trim(itemc))) then
-                         call NUOPC_FieldDictionaryGetEntry(itemc, canonicalUnits=cunit, rc=rc)
-                         if (chkerr(rc,__LINE__,u_FILE_u)) return
-                         rcode = pio_put_att(io_file, varid, "units", trim(cunit))
-                      end if
-                      rcode = pio_put_att(io_file, varid, "standard_name", trim(name1))
-                      if (present(tavg)) then
-                         if (tavg) then
-                            rcode = pio_put_att(io_file, varid, "cell_methods", "time: mean")
-                         endif
-                      endif
+                      call med_io_def_var_with_atts(io_file, name1, itemc, dimid, luse_float, lfillvalue, ltavg, rc)
+                      if (chkerr(rc,__LINE__,u_FILE_u)) return
                    end do
                 end do
              else if (rank == 2) then
@@ -989,48 +976,14 @@ contains
                    if (trim(itemc) /= "hgt") then
                       write(cnumber,'(i0)') n
                       name1 = trim(lpre)//'_'//trim(itemc)//trim(cnumber)
-                      call ESMF_LogWrite(trim(subname)//': defining '//trim(name1), ESMF_LOGMSG_INFO)
-                      if (luse_float) then
-                         rcode = pio_def_var(io_file, trim(name1), PIO_REAL, dimid, varid)
-                         rcode = pio_put_att(io_file, varid,"_FillValue",real(lfillvalue,r4))
-                      else
-                         rcode = pio_def_var(io_file, trim(name1), PIO_DOUBLE, dimid, varid)
-                         rcode = pio_put_att(io_file,varid,"_FillValue",lfillvalue)
-                      end if
-                      if (NUOPC_FieldDictionaryHasEntry(trim(itemc))) then
-                         call NUOPC_FieldDictionaryGetEntry(itemc, canonicalUnits=cunit, rc=rc)
-                         if (chkerr(rc,__LINE__,u_FILE_u)) return
-                         rcode = pio_put_att(io_file, varid, "units", trim(cunit))
-                      end if
-                      rcode = pio_put_att(io_file, varid, "standard_name", trim(name1))
-                      if (present(tavg)) then
-                         if (tavg) then
-                            rcode = pio_put_att(io_file, varid, "cell_methods", "time: mean")
-                         endif
-                      endif
+                      call med_io_def_var_with_atts(io_file, name1, itemc, dimid, luse_float, lfillvalue, ltavg, rc)
+                      if (chkerr(rc,__LINE__,u_FILE_u)) return
                    end if
                 end do
              else if (rank == 1) then
                 name1 = trim(lpre)//'_'//trim(itemc)
-                call ESMF_LogWrite(trim(subname)//': defining '//trim(name1), ESMF_LOGMSG_INFO)
-                if (luse_float) then
-                   rcode = pio_def_var(io_file, trim(name1), PIO_REAL, dimid, varid)
-                   rcode = pio_put_att(io_file, varid,"_FillValue",real(lfillvalue,r4))
-                else
-                   rcode = pio_def_var(io_file, trim(name1), PIO_DOUBLE, dimid, varid)
-                   rcode = pio_put_att(io_file,varid,"_FillValue",lfillvalue)
-                end if
-                if (NUOPC_FieldDictionaryHasEntry(trim(itemc))) then
-                   call NUOPC_FieldDictionaryGetEntry(itemc, canonicalUnits=cunit, rc=rc)
-                   if (chkerr(rc,__LINE__,u_FILE_u)) return
-                   rcode = pio_put_att(io_file, varid, "units", trim(cunit))
-                end if
-                rcode = pio_put_att(io_file, varid, "standard_name", trim(name1))
-                if (present(tavg)) then
-                   if (tavg) then
-                      rcode = pio_put_att(io_file, varid, "cell_methods", "time: mean")
-                   endif
-                endif
+                call med_io_def_var_with_atts(io_file, name1, itemc, dimid, luse_float, lfillvalue, ltavg, rc)
+                if (chkerr(rc,__LINE__,u_FILE_u)) return
              else
                 call shr_log_error(subname//' ERROR: unhandled rank', line=__LINE__, file=u_FILE_u, rc=rc)
                 return
@@ -1547,11 +1500,10 @@ contains
     use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
     use ESMF , only : ESMF_FieldBundleIsCreated, ESMF_FieldBundleGet
     use ESMF , only : ESMF_FieldGet, ESMF_MeshGet, ESMF_DistGridGet
-    use pio  , only : file_desc_T, var_desc_t, io_desc_t, pio_nowrite, pio_openfile
-    use pio  , only : pio_noerr, PIO_BCAST_ERROR, PIO_INTERNAL_ERROR
-    use pio  , only : pio_inq_varid
-    use pio  , only : pio_double, pio_get_att, pio_seterrorhandling, pio_freedecomp, pio_closefile
-    use pio  , only : pio_read_darray, pio_offset_kind, pio_setframe
+    use pio  , only : file_desc_T, io_desc_t, pio_nowrite, pio_openfile
+    use pio  , only : PIO_BCAST_ERROR, PIO_INTERNAL_ERROR
+    use pio  , only : pio_seterrorhandling, pio_freedecomp, pio_closefile
+    use pio  , only : pio_offset_kind
 
     ! input/output arguments
     character(len=*)                        ,intent(in)  :: filename
@@ -1565,14 +1517,12 @@ contains
     type(ESMF_Field)              :: lfield
     integer                       :: rcode
     integer                       :: nf
-    integer                       :: k,n,n2,l
+    integer                       :: k,n,n2
     type(file_desc_t)             :: pioid
-    type(var_desc_t)              :: varid
     type(io_desc_t)               :: iodesc
     character(CL)                 :: itemc       ! string converted to char
     character(CL)                 :: name1       ! var name
     character(CL)                 :: lpre        ! local prefix
-    real(r8)                      :: lfillvalue
     integer                       :: rank, lsize
     real(r8), pointer             :: fldptr1(:), fldptr1_tmp(:)
     real(r8), pointer             :: fldptr2(:,:)
@@ -1698,23 +1648,8 @@ contains
                 write(cnumber,'(i0)') n
                 write(cnumber2,'(i0)') n2
                 name1 = trim(lpre)//'_'//trim(itemc)//trim(cnumber)//'_'//trim(cnumber2)
-
-                rcode = pio_inq_varid(pioid, trim(name1), varid)
-                if (rcode == pio_noerr) then
-                   call ESMF_LogWrite(trim(subname)//' read field '//trim(name1), ESMF_LOGMSG_INFO)
-                   if (chkerr(rc,__LINE__,u_FILE_u)) return
-                   call pio_setframe(pioid, varid, lframe)
-                   call pio_read_darray(pioid, varid, iodesc, fldptr1_tmp, rcode)
-                   rcode = pio_get_att(pioid, varid, "_FillValue", lfillvalue)
-                   if (rcode /= pio_noerr) then
-                      lfillvalue = fillvalue
-                   endif
-                   do l = 1,size(fldptr1_tmp)
-                      if (fldptr1_tmp(l) == lfillvalue) fldptr1_tmp(l) = 0.0_r8
-                   enddo
-                else
-                   fldptr1_tmp = 0.0_r8
-                endif
+                call med_io_read_1d_var(pioid, name1, iodesc, lframe, fldptr1_tmp, rc)
+                if (chkerr(rc,__LINE__,u_FILE_u)) return
                 fldptr3(n,n2,:) = fldptr1_tmp(:)
              end do
           end do
@@ -1742,23 +1677,8 @@ contains
              ! ungridded dimension index of the field bundle 2d field
              write(cnumber,'(i0)') n
              name1 = trim(lpre)//'_'//trim(itemc)//trim(cnumber)
-
-             rcode = pio_inq_varid(pioid, trim(name1), varid)
-             if (rcode == pio_noerr) then
-                call ESMF_LogWrite(trim(subname)//' read field '//trim(name1), ESMF_LOGMSG_INFO)
-                if (chkerr(rc,__LINE__,u_FILE_u)) return
-                call pio_setframe(pioid, varid, lframe)
-                call pio_read_darray(pioid, varid, iodesc, fldptr1_tmp, rcode)
-                rcode = pio_get_att(pioid, varid, "_FillValue", lfillvalue)
-                if (rcode /= pio_noerr) then
-                   lfillvalue = fillvalue
-                endif
-                do l = 1,size(fldptr1_tmp)
-                   if (fldptr1_tmp(l) == lfillvalue) fldptr1_tmp(l) = 0.0_r8
-                enddo
-             else
-                fldptr1_tmp = 0.0_r8
-             endif
+             call med_io_read_1d_var(pioid, name1, iodesc, lframe, fldptr1_tmp, rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
              if (gridToFieldMap(1) == 1) then
                 fldptr2(:,n) = fldptr1_tmp(:)
              else if (gridToFieldMap(1) == 2) then
@@ -1770,23 +1690,8 @@ contains
 
        else if (rank == 1) then
           name1 = trim(lpre)//'_'//trim(itemc)
-
-          rcode = pio_inq_varid(pioid, trim(name1), varid)
-          if (rcode == pio_noerr) then
-             call ESMF_LogWrite(trim(subname)//' read field '//trim(name1), ESMF_LOGMSG_INFO)
-             if (chkerr(rc,__LINE__,u_FILE_u)) return
-             call pio_setframe(pioid,varid,lframe)
-             call pio_read_darray(pioid, varid, iodesc, fldptr1, rcode)
-             rcode = pio_get_att(pioid,varid,"_FillValue",lfillvalue)
-             if (rcode /= pio_noerr) then
-                lfillvalue = fillvalue
-             endif
-             do n = 1,size(fldptr1)
-                if (fldptr1(n) == lfillvalue) fldptr1(n) = 0.0_r8
-             enddo
-          else
-             fldptr1 = 0.0_r8
-          endif
+          call med_io_read_1d_var(pioid, name1, iodesc, lframe, fldptr1, rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
        end if
 
     enddo ! end of loop over fields
@@ -2261,5 +2166,101 @@ contains
     date = abs(year)*10000_I8 + month*100 + day  ! coded calendar date
     if (year < 0) date = -date
   end subroutine med_io_ymd2date_long
+
+  !===============================================================================
+  subroutine med_io_def_var_with_atts(io_file, name1, itemc, dimid, luse_float, lfillvalue, ltavg, rc)
+
+    !---------------
+    ! Define a netcdf variable and set its standard attributes
+    !---------------
+
+    use pio  , only : var_desc_t, pio_real, pio_double, pio_def_var, pio_put_att
+
+    ! input/output variables
+    type(file_desc_t)          , intent(inout) :: io_file
+    character(len=*)           , intent(in)    :: name1
+    character(len=*)           , intent(in)    :: itemc
+    integer, pointer           , intent(in)    :: dimid(:)
+    logical                    , intent(in)    :: luse_float
+    real(r8)                   , intent(in)    :: lfillvalue
+    logical                    , intent(in)    :: ltavg
+    integer                    , intent(out)   :: rc
+
+    ! local variables
+    type(var_desc_t) :: varid
+    integer          :: rcode
+    character(CL)    :: cunit  ! var units
+    character(*),parameter :: subName = '(med_io_def_var_with_atts) '
+    !-------------------------------------------------------------------------------
+
+    rc = ESMF_SUCCESS
+
+    call ESMF_LogWrite(trim(subname)//': defining '//trim(name1), ESMF_LOGMSG_INFO)
+    if (luse_float) then
+       rcode = pio_def_var(io_file, trim(name1), PIO_REAL, dimid, varid)
+       rcode = pio_put_att(io_file, varid, "_FillValue", real(lfillvalue, r4))
+    else
+       rcode = pio_def_var(io_file, trim(name1), PIO_DOUBLE, dimid, varid)
+       rcode = pio_put_att(io_file, varid, "_FillValue", lfillvalue)
+    end if
+    if (NUOPC_FieldDictionaryHasEntry(trim(itemc))) then
+       call NUOPC_FieldDictionaryGetEntry(itemc, canonicalUnits=cunit, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       rcode = pio_put_att(io_file, varid, "units", trim(cunit))
+    end if
+    rcode = pio_put_att(io_file, varid, "standard_name", trim(name1))
+    if (ltavg) then
+       rcode = pio_put_att(io_file, varid, "cell_methods", "time: mean")
+    end if
+
+  end subroutine med_io_def_var_with_atts
+
+  !===============================================================================
+  subroutine med_io_read_1d_var(pioid, name1, iodesc, lframe, fldptr, rc)
+
+    !---------------
+    ! Read a 1-d variable from a netcdf file, replacing fill values with 0.
+    ! If the variable is not found, the array is zeroed.
+    !---------------
+
+    use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
+    use pio  , only : var_desc_t, io_desc_t, pio_noerr, pio_offset_kind
+    use pio  , only : pio_inq_varid, pio_setframe, pio_read_darray, pio_get_att
+
+    ! input/output variables
+    type(file_desc_t)             , intent(inout) :: pioid
+    character(len=*)              , intent(in)    :: name1
+    type(io_desc_t)               , intent(inout) :: iodesc
+    integer(kind=PIO_OFFSET_KIND) , intent(in)    :: lframe
+    real(r8)                      , intent(inout) :: fldptr(:)
+    integer                       , intent(out)   :: rc
+
+    ! local variables
+    type(var_desc_t) :: varid
+    integer          :: rcode, l
+    real(r8)         :: lfillvalue
+    character(*),parameter :: subName = '(med_io_read_1d_var) '
+    !-------------------------------------------------------------------------------
+
+    rc = ESMF_SUCCESS
+
+    rcode = pio_inq_varid(pioid, trim(name1), varid)
+    if (rcode == pio_noerr) then
+       call ESMF_LogWrite(trim(subname)//' read field '//trim(name1), ESMF_LOGMSG_INFO)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call pio_setframe(pioid, varid, lframe)
+       call pio_read_darray(pioid, varid, iodesc, fldptr, rcode)
+       rcode = pio_get_att(pioid, varid, "_FillValue", lfillvalue)
+       if (rcode /= pio_noerr) then
+          lfillvalue = fillvalue
+       endif
+       do l = 1,size(fldptr)
+          if (fldptr(l) == lfillvalue) fldptr(l) = 0.0_r8
+       enddo
+    else
+       fldptr = 0.0_r8
+    endif
+
+  end subroutine med_io_read_1d_var
 
 end module med_io_mod
