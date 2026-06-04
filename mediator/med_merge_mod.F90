@@ -17,7 +17,7 @@ module med_merge_mod
   use esmFlds               , only : med_fldList_findName
   use perf_mod              , only : t_startf, t_stopf
   use shr_log_mod           , only : shr_log_error
-  
+
   implicit none
   private
 
@@ -128,7 +128,7 @@ contains
              call med_fld_GetFldInfo(fldptr, compsrc=compsrc, merge_fields=merge_fields, merge_type=merge_type, merge_fracname=merge_fracname, rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-             if (merge_type /= 'unset' .and. merge_field /= 'unset') then
+             if (merge_type /= 'unset' .and. merge_fields /= 'unset') then
                    ! If merge_field is a colon delimited string then cycle through every field - otherwise by default nm
                    ! will only equal 1
                 num_merge_colon_fields = merge_listGetNum(merge_fields)
@@ -489,7 +489,7 @@ contains
        write(errmsg,*) trim(subname),' input field ungriddedUbound ',ungriddedUbound_in(1),&
             ' for '//trim(merge_fldname), &
             ' not equal to output field ungriddedUbound ',ungriddedUbound_out,' for '//trim(fldname_out)
-      
+
        call shr_log_error(errmsg, rc=rc)
    endif
 
@@ -647,7 +647,7 @@ contains
           endif
           if (wgtfound) then
              if (lbound(dataPtr,1) /= lbound(wgt,1) .or. ubound(dataPtr,1) /= ubound(wgt,1)) then
-                
+
                 call shr_log_error(trim(subname)//": ERROR wgt wrong size", &
                      line=__LINE__, file=u_FILE_u, rc=dbrc)
                 return
