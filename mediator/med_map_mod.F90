@@ -431,7 +431,7 @@ contains
           dstMaskValue = ispval_mask
        end if
     end if
-    if (coupling_mode(1:4) == 'hafs') then
+    if (trim(coupling_mode) == 'hafs') then
        if (n1 == compatm .and. n2 == compwav) then
           srcMaskValue = ispval_mask
        end if
@@ -446,7 +446,7 @@ contains
          polemethod = ESMF_POLEMETHOD_NONE ! todo: remove this when ESMF tripolar mapping fix is in place.
        endif
     end if
-    if (trim(coupling_mode) == 'hafs.mom6') then
+    if (trim(coupling_mode) == 'hafs') then
        polemethod = ESMF_POLEMETHOD_NONE
     endif
 

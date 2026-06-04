@@ -52,7 +52,7 @@ module med_phases_prep_glc_mod
   use wtracers_mod          , only : wtracers_present, wtracers_get_num_tracers, WTRACERS_SUFFIX
   use perf_mod              , only : t_startf, t_stopf
   use shr_log_mod           , only : shr_log_error
-  
+
   implicit none
   private
 
