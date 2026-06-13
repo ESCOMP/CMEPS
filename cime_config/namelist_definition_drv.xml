@@ -2275,6 +2275,16 @@
       <value samegrid_lnd_rof='true'>idmap</value>
     </values>
   </entry>
+  <entry id="lnd2rof_fmap" modify_via_xml="LND2ROF_FRAC_FMAPNAME">
+    <type>char</type>
+    <category>mapping</category>
+    <group>MED_attributes</group>
+    <desc>lnd to rof conservative destarea ('consd') fraction mapping file read by the mediator
+    fraction init (med_fraction_mod); 'unset' computes the weights online</desc>
+    <values>
+      <value>$LND2ROF_FRAC_FMAPNAME</value>
+    </values>
+  </entry>
   <entry id="rof2lnd_map" modify_via_xml="ROF2LND_FMAPNAME">
     <type>char</type>
     <category>mapping</category>
