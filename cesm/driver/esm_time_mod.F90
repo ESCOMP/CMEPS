@@ -141,6 +141,7 @@ contains
                 write(logunit,*) " read rpointer file = "//trim(restart_pfile)
                 inquire( file=trim(restart_pfile), exist=exists)
                 if (.not. exists) then
+                   write(logunit,*) " drv_restart_pointer file does NOT exist, correct this and rerun = "//trim(restart_pfile)
                    call shr_log_error( trim(subname)//' ERROR rpointer file '//trim(restart_pfile)//' not found',&
                         line=__LINE__, file=__FILE__)
                    rc = ESMF_FAILURE
@@ -150,6 +151,7 @@ contains
                      ESMF_LOGMSG_INFO)
                 open(newunit=unitn, file=restart_pfile, form='FORMATTED', status='old',iostat=ierr)
                 if (ierr < 0) then
+                   write(logunit,*) " error opening rpointer file "
                    call shr_log_error( trim(subname)//' ERROR rpointer file open returns error', &
                         line=__LINE__, file=__FILE__)
                    rc = ESMF_FAILURE
@@ -157,6 +159,7 @@ contains
                 end if
                 read(unitn,'(a)', iostat=ierr) restart_file
                 if (ierr < 0) then
+                   write(logunit,*) " error in read of rpointer file "
                    call shr_log_error( trim(subname)//' ERROR rpointer file read returns error', &
                         line=__LINE__, file=__FILE__)
                    rc = ESMF_FAILURE
