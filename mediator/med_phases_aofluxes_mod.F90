@@ -582,7 +582,10 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call ESMF_FieldGet(lfield, mesh=lmesh, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    is_local%wrap%aoflux_mesh = ESMF_MeshCreate(lmesh, rc=rc)
+    ! Reuse the ocean field's mesh directly rather than building a duplicate full
+    ! ESMF mesh (ne1024pg2) per rank. lmesh persists in FBArea(compocn) and
+    ! aoflux_mesh is never destroyed, so sharing the handle is safe (ogrid path).
+    is_local%wrap%aoflux_mesh = lmesh
     call ESMF_MeshGet(lmesh, coordSys=coordSys, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     if (coordSys /= ESMF_COORDSYS_CART) then
