@@ -2269,7 +2269,8 @@
     <category>mapping</category>
     <input_pathname>abs</input_pathname>
     <group>MED_attributes</group>
-    <desc>lnd to rof mapping, 'unset' or 'idmap' are normal possible values (mapping file given for mizuRoute grids)</desc>
+    <desc>lnd to rof flux mapping (conservative, conserve/fraction 'consf' mapping); 'unset' or 'idmap'
+    are normal possible values (mapping file given for mizuRoute grids)</desc>
     <values>
       <value>$LND2ROF_FMAPNAME</value>
       <value samegrid_lnd_rof='true'>idmap</value>

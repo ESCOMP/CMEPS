@@ -169,7 +169,7 @@ contains
     ! Initialize FBFrac(:) field bundles
 
     use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO
-    use ESMF                  , only : ESMF_SUCCESS
+    use ESMF                  , only : ESMF_SUCCESS, ESMF_FAILURE, ESMF_LogSetError
     use ESMF                  , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_StateIsCreated
     use ESMF                  , only : ESMF_FieldBundle, ESMF_FieldBundleIsCreated, ESMF_FieldBundleDestroy
     use ESMF                  , only : ESMF_FieldBundleGet
@@ -209,8 +209,8 @@ contains
     integer             :: n,n1,ns
     integer             :: maptype
     integer             :: fieldCount
-    logical             :: isPresent, isSet, lexist     ! lnd2rof_fmap attribute presence / weight-file check
-    character(len=CX)   :: lnd2rof_fmap                 ! consd (destarea) lnd->rof fraction-map file ($LND2ROF_FRAC_FMAPNAME)
+    logical             :: isPresent, isSet, lexist
+    character(len=CX)   :: lnd2rof_fmap                 ! consd (destarea) lnd->rof fraction-map file
     logical, save       :: first_call = .true.
     character(len=*),parameter :: subname=' (med_fraction_init)'
     !---------------------------------------
@@ -587,22 +587,23 @@ contains
        if (is_local%wrap%comp_present(complnd)) then
           maptype = mapconsd
           if (.not. med_map_RH_is_created(is_local%wrap%RH(complnd,comprof,:),maptype, rc=rc)) then
-             ! At ne1024pg2 resolution: the lnd->rof fraction map is the only grid-crossing
-             ! conservative coupling map; building it online (ESMF_FieldRegridStore ->
-             ! GeomRendezvous -> Zoltan_RCB) OOM-kills the job during DataInitialize.
-             ! Read offline consd (conserve/destarea) fraction weights from the file named by the
-             ! 'lnd2rof_fmap' attribute (xmlchange LND2ROF_FRAC_FMAPNAME=<file>) when it is set
-             ! and present; otherwise fall back to the online path (no behavior change).
-             lnd2rof_fmap = 'unset'
+             ! The lnd->rof fraction map may be the only grid-crossing conservative coupling
+             ! map in a configuration, and computing its weights online (ESMF_FieldRegridStore)
+             ! can be prohibitively memory-heavy at high resolution. If the 'lnd2rof_fmap'
+             ! attribute names a file of offline consd (conserve/destarea) fraction weights,
+             ! read the weights from that file; otherwise compute them online.
              call NUOPC_CompAttributeGet(gcomp, name='lnd2rof_fmap', value=lnd2rof_fmap, &
                   isPresent=isPresent, isSet=isSet, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
              if (.not. (isPresent .and. isSet)) lnd2rof_fmap = 'unset'
-             if (trim(lnd2rof_fmap) /= 'unset') then
-                inquire(file=trim(lnd2rof_fmap), exist=lexist)
-                if (.not. lexist) lnd2rof_fmap = 'unset'
-             end if
-             if (trim(lnd2rof_fmap) /= 'unset') then
+             if (lnd2rof_fmap /= 'unset') then
+                inquire(file=lnd2rof_fmap, exist=lexist)
+                if (.not. lexist) then
+                   call ESMF_LogSetError(ESMF_FAILURE, &
+                        msg=trim(subname)//': lnd2rof_fmap weight file not found: '//trim(lnd2rof_fmap), &
+                        line=__LINE__, file=u_FILE_u, rcToReturn=rc)
+                   return
+                end if
                 call med_map_routehandles_init( complnd, comprof, &
                      FBSrc=is_local%wrap%FBImp(complnd,complnd), &
                      FBDst=is_local%wrap%FBImp(complnd,comprof), &

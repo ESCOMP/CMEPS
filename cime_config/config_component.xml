@@ -1412,15 +1412,7 @@
     <default_value>idmap</default_value>
     <group>run_domain</group>
     <file>env_run.xml</file>
-    <desc>lnd2rof flux mapping file</desc>
-  </entry>
-
-  <entry id="ROF2LND_FMAPNAME">
-    <type>char</type>
-    <default_value>idmap</default_value>
-    <group>run_domain</group>
-    <file>env_run.xml</file>
-    <desc>rof2lnd flux mapping file</desc>
+    <desc>lnd2rof flux mapping file (conservative, conserve/fraction 'consf' mapping)</desc>
   </entry>
 
   <entry id="LND2ROF_FRAC_FMAPNAME">
@@ -1430,6 +1422,14 @@
     <file>env_run.xml</file>
     <desc>lnd2rof conservative (destarea, 'consd') fraction mapping file used by the mediator
     fraction init; 'unset' computes the weights online (memory-heavy at high resolution)</desc>
+  </entry>
+
+  <entry id="ROF2LND_FMAPNAME">
+    <type>char</type>
+    <default_value>idmap</default_value>
+    <group>run_domain</group>
+    <file>env_run.xml</file>
+    <desc>rof2lnd flux mapping file</desc>
   </entry>
 
   <entry id="ROF2OCN_LIQ_RMAPNAME">
