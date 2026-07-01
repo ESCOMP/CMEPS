@@ -195,22 +195,38 @@
       <option name="wallclock"> 00:20:00 </option>
     </options>
   </test>
-  <test compset="I1850Clm50SpG" grid="f10_f10_mg37" name="ERS_Lm13_P32">
+  <test compset="I1850Clm50SpG" grid="f10_f10_mg37" name="ERS_Lm13">
     <machines>
       <machine name="derecho" compiler="nvhpc" category="aux_cmeps"/>
       <machine name="izumi" compiler="intel" category="aux_cmeps"/>
     </machines>
     <options>
       <option name="wallclock"> 00:20:00 </option>
+      <option name="comment">Multi month restart test with CLM-SP and active GLC model CISM"</option>
     </options>
   </test>
-  <test compset="I2000Clm50BgcCropRtm" grid="f10_f10_mg37" name="SMS_D_Ld5_P32" testmods="rtm/default">
+  <test compset="I2000Clm50BgcCropRtm" grid="f10_f10_mg37" name="SMS_D_Ld5" testmods="rtm/default">
     <machines>
       <machine name="derecho" compiler="gnu" category="aux_cmeps"/>
+      <machine name="derecho" compiler="intel" category="aux_cmeps"/>
+      <machine name="derecho" compiler="nvhpc" category="aux_cmeps"/>
       <machine name="izumi" compiler="nag" category="aux_cmeps"/>
     </machines>
     <options>
       <option name="wallclock"> 00:20:00 </option>
+      <option name="comment">DEBUG full CLM BGC-Crop case using RTM with extra RTM output, most compilers"</option>
+    </options>
+  </test>
+  <test compset="I2000Clm60FatesSpRsGs" grid="f45_f45_mg37" name="SMS" testmods="clm-FatesColdSatPhen">
+    <machines>
+      <machine name="derecho" compiler="gnu" category="aux_cmeps"/>
+      <machine name="derecho" compiler="intel" category="aux_cmeps"/>
+      <machine name="derecho" compiler="nvhpc" category="aux_cmeps"/>
+      <machine name="izumi" compiler="nag" category="aux_cmeps"/>
+    </machines>
+    <options>
+      <option name="wallclock"> 00:20:00 </option>
+      <option name="comment">Test of FATES-SP without DEBUG on for most compilers</option>
     </options>
   </test>
 
