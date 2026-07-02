@@ -47,8 +47,7 @@ module med_internalstate_mod
   character(len=CS), public :: glc_name = ''
 
   ! Coupling mode
-  ! valid values are [cesm,noresm,ufs.nfrac,ufs.frac,ufs.nfrac.aoflux,ufs.frac.aoflux,hafs,hafs.mom6]
-  character(len=CS), public :: coupling_mode
+  character(len=CS), public :: coupling_mode ! valid values are [cesm,ufs.nfrac,ufs.frac,ufs.nfrac.aoflux,ufs.frac.aoflux,hafs]
 
   ! Atmosphere-ocean flux algorithm
   character(len=CS), public :: aoflux_code   ! valid values are [cesm,ccpp]
@@ -599,7 +598,7 @@ contains
     if (maintask) then
        write(logunit,*) ' '
        write(logunit,'(A)') trim(subname)//' Allowed coupling flags'
-       write(logunit,'(2x,A12,20(A5))') '|from to ->   ',(compname(n2),n2=1,ncomps)
+       write(logunit,'(2x,A10,20(A5))') '|from to -> ',(compname(n2),n2=1,ncomps)
        do n1 = 1,ncomps
           write(msgString,'(2x,a1,A,5x,20(L5))') '|',trim(compname(n1)), &
                (med_coupling_allowed(n1,n2),n2=1,ncomps)
@@ -611,7 +610,7 @@ contains
 
        write(logunit,*) ' '
        write(logunit,'(A)') subname//' Active coupling flags'
-       write(logunit,'(2x,A12,20(A5))') '|from to ->   ',(compname(n2),n2=1,ncomps)
+       write(logunit,'(2x,A10,20(A5))') '|from to -> ',(compname(n2),n2=1,ncomps)
        do n1 = 1,ncomps
           write(msgString,'(2x,a1,A,5x,20(L5))') '|',trim(compname(n1)), &
                (is_local%wrap%med_coupling_active(n1,n2),n2=1,ncomps)
@@ -693,10 +692,7 @@ contains
     if ( coupling_mode(1:3) == 'ufs') then
        if (is_local%wrap%comp_present(compatm)) defaultMasks(compatm,2) = 1
     endif
-    if ( trim(coupling_mode) == 'hafs') then  ! not hafs.mom6
-       if (is_local%wrap%comp_present(compatm)) defaultMasks(compatm,1) = 1
-    endif
-    if ( trim(coupling_mode) /= 'cesm' .and. trim(coupling_mode) /= 'noresm' ) then
+    if ( coupling_mode /= 'cesm') then
        if (is_local%wrap%comp_present(compatm) .and. atm_name(1:4) == 'datm') then
           defaultMasks(compatm,1) = 0
        end if
