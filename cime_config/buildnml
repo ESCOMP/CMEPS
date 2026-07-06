@@ -145,7 +145,7 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     # determine coupling mode
     config["coupling_mode"] = case.get_value("COUPLING_MODE")
 
-    if config["coupling_mode"] == "cesm" and config['COMP_WAV'] == 'ww3' and config['COMP_ICE'] == 'cice':
+    if config['COMP_WAV'] == 'ww3' and config['COMP_ICE'] == 'cice':
         config["wav_ice_coupling"] = "on"
 
     if config["COMP_OCN"] == "blom":
