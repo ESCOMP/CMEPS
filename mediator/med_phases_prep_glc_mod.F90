@@ -41,7 +41,6 @@ module med_phases_prep_glc_mod
   use med_methods_mod       , only : FB_check_for_nans => med_methods_FB_check_for_nans
   use med_methods_mod       , only : field_getdata2d  => med_methods_Field_getdata2d
   use med_methods_mod       , only : field_getdata1d  => med_methods_Field_getdata1d
-  use med_methods_mod       , only : fldchk           => med_methods_FB_FldChk
   use med_methods_mod       , only : med_methods_FB_check_wtracers
   use med_field_info_mod    , only : med_field_info_type, med_field_info_array_from_state
   use med_utils_mod         , only : chkerr           => med_utils_ChkErr
@@ -52,7 +51,7 @@ module med_phases_prep_glc_mod
   use wtracers_mod          , only : wtracers_present, wtracers_get_num_tracers, WTRACERS_SUFFIX
   use perf_mod              , only : t_startf, t_stopf
   use shr_log_mod           , only : shr_log_error
-  
+
   implicit none
   private
 
@@ -640,16 +639,20 @@ contains
 
     ! Average and map data from land (and possibly ocean)
     if (do_avg) then
-       ! Always average import from accumulated land import data
-       if (lndAccum2glc_cnt > 0) then
-          ! If accumulation count is greater than 0, do the averaging
-          call fldbun_average(FB=FBlndAccum2glc_l, count=lndAccum2glc_cnt, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-       else
-          ! If accumulation count is 0, then simply set the averaged field bundle values from the land
-          ! to the import field bundle values
-          call fldbun_copy(FBout=FBlndAccum2glc_l, FBin=is_local%wrap%FBImp(complnd,complnd), rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (ESMF_FieldBundleIsCreated(FBlndAccum2glc_l)) then
+          ! Average import from accumulated land import data as long as the accumulator has
+          ! been created (if accum_lnd2glc is false, the accumulator isn't created, but this
+          ! subroutine may still be called).
+          if (lndAccum2glc_cnt > 0) then
+             ! If accumulation count is greater than 0, do the averaging
+             call fldbun_average(FB=FBlndAccum2glc_l, count=lndAccum2glc_cnt, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+          else
+             ! If accumulation count is 0, then simply set the averaged field bundle values from the land
+             ! to the import field bundle values
+             call fldbun_copy(FBout=FBlndAccum2glc_l, FBin=is_local%wrap%FBImp(complnd,complnd), rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+          end if
        end if
 
        if (is_local%wrap%ocn2glc_coupling) then

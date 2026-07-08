@@ -31,7 +31,7 @@ module med_phases_prep_rof_mod
   use med_field_info_mod    , only : med_field_info_esmf_fieldcreate
   use perf_mod              , only : t_startf, t_stopf
   use shr_log_mod           , only : shr_log_error
-  
+
   implicit none
   private
 
