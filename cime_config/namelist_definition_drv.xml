@@ -2269,7 +2269,10 @@
     <category>mapping</category>
     <input_pathname>abs</input_pathname>
     <group>MED_attributes</group>
-    <desc>lnd to rof mapping, 'unset' or 'idmap' are normal possible values (mapping file given for mizuRoute grids)</desc>
+    <desc>lnd2rof flux (conservative) mapping file; 'unset' or 'idmap' are normal possible values. (This mapping file is used for both
+    consd and consf mappings; as discussed in https://github.com/ESCOMP/CMEPS/issues/408, the results of these two mappings are the
+    same within roundoff in CMEPS due to the normalization that is done when applying the mapping weights. For simplicity, and because
+    land mesh files generally don't have a mask, this mapping file should be generated with '--norm_type dstarea'.)</desc>
     <values>
       <value>$LND2ROF_FMAPNAME</value>
       <value samegrid_lnd_rof='true'>idmap</value>
