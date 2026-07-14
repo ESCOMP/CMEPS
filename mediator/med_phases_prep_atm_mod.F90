@@ -107,7 +107,7 @@ contains
     !---------------------------------------
     !--- map ocean albedos from ocn to atm grid if appropriate
     !---------------------------------------
-    if (trim(coupling_mode) == 'cesm') then
+    if (trim(coupling_mode) == 'cesm' .or. trim(coupling_mode) == 'noresm') then
        call med_map_field_packed( &
             FBSrc=is_local%wrap%FBMed_ocnalb_o, &
             FBDst=is_local%wrap%FBMed_ocnalb_a, &
@@ -121,7 +121,7 @@ contains
     !---------------------------------------
     !--- map atm/ocn fluxes from ocn to atm grid if appropriate
     !---------------------------------------
-    if (trim(coupling_mode) == 'cesm' .or. &
+    if (trim(coupling_mode) == 'cesm' .or. trim(coupling_mode) == 'noresm' .or. &
          trim(coupling_mode) == 'ufs.frac.aoflux') then
        if (is_local%wrap%aoflux_grid == 'ogrid') then
           call med_aofluxes_map_ogrid2agrid_output(gcomp, rc)
