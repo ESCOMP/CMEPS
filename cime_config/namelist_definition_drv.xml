@@ -2649,6 +2649,22 @@
    </values>
   </entry>
 
+  <entry id="water_tracers_variables_not_checked">
+   <type>char</type>
+   <category>water_tracers</category>
+   <group>ALLCOMP_attributes</group>
+   <desc>
+      Colon-delimited list of variables for which water tracer consistency checks should be skipped.
+
+      Each entry must match the variable name passed to shr_wtracers_check_tracer_ratios.
+      For checks of mediator fields, these are of the form FieldBundleName%FieldName.
+      For example: "FBImpatm%Sa_shum_wtracers:FBExprof%Flrl_irrig_wtracers".
+   </desc>
+   <values>
+      <value></value>
+   </values>
+  </entry>
+
   <!-- =========================== -->
   <!-- CLOCK Attributes            -->
   <!-- =========================== -->

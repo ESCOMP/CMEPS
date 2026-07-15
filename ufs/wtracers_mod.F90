@@ -94,7 +94,7 @@ contains
    end subroutine wtracers_get_bulk_fieldname
 
    !-----------------------------------------------------------------------
-   subroutine wtracers_check_tracer_ratios_1d(tracers, bulk, name)
+   subroutine wtracers_check_tracer_ratios_1d(tracers, bulk, variable_name, check_skipped)
       !
       ! !DESCRIPTION:
       ! Check tracer ratios (tracer/bulk) against expectations
@@ -104,14 +104,16 @@ contains
       ! !ARGUMENTS
       real(r8), intent(in) :: tracers(:,:)  ! dimensioned [tracerNum, gridcell]
       real(r8), intent(in) :: bulk(:)
-      character(len=*), intent(in) :: name  ! for diagnostic output
+      character(len=*), intent(in) :: variable_name
+      logical, intent(out) :: check_skipped  ! true if the check was skipped
       !-----------------------------------------------------------------------
 
       ! Do nothing
+      check_skipped = .true.
    end subroutine wtracers_check_tracer_ratios_1d
 
    !-----------------------------------------------------------------------
-   subroutine wtracers_check_tracer_ratios_2d(tracers, bulk, name)
+   subroutine wtracers_check_tracer_ratios_2d(tracers, bulk, variable_name, check_skipped)
       !
       ! !DESCRIPTION:
       ! Check tracer ratios (tracer/bulk) against expectations for 2-d bulk arrays
@@ -121,10 +123,12 @@ contains
       ! !ARGUMENTS
       real(r8), intent(in) :: tracers(:,:,:)  ! dimensioned [ungriddedDim, tracerNum, gridcell]
       real(r8), intent(in) :: bulk(:,:)       ! dimensioned [ungriddedDim, gridcell]
-      character(len=*), intent(in) :: name  ! for diagnostic output
+      character(len=*), intent(in) :: variable_name
+      logical, intent(out) :: check_skipped  ! true if the check was skipped
       !-----------------------------------------------------------------------
 
       ! Do nothing
+      check_skipped = .true.
    end subroutine wtracers_check_tracer_ratios_2d
 
 end module wtracers_mod
