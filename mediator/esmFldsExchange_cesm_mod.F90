@@ -63,6 +63,7 @@ module esmFldsExchange_cesm_mod
   use med_internalstate_mod , only : mrg_fracname_lnd2atm_state, mrg_fracname_lnd2atm_flux, map_fracname_lnd2atm
   use med_internalstate_mod , only : mrg_fracname_lnd2rof, map_fracname_lnd2rof
   use med_internalstate_mod , only : mrg_fracname_lnd2glc, map_fracname_lnd2glc
+  use med_utils_mod         , only : chkerr => med_utils_chKerr
   use shr_log_mod           , only : shr_log_error
   use wtracers_mod          , only : wtracers_present
   use wtracers_mod          , only : WTRACERS_SUFFIX
@@ -121,7 +122,6 @@ contains
     use ESMF
     use NUOPC
     use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
-    use med_utils_mod         , only : chkerr => med_utils_chkerr
     use med_methods_mod       , only : fldchk => med_methods_FB_FldChk
     use med_internalstate_mod , only : InternalState, logunit, maintask
     use med_internalstate_mod , only : compmed, compatm, complnd, compocn
