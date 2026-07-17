@@ -957,8 +957,8 @@
       (Currently only relevant for ocn_surface_flux_scheme = 0 or 1.)
     </desc>
     <values>
+      <value>.true.</value>
       <value coupling_mode="noresm">.false.</value>
-      <value coupling_mode="cesm">.true.</value>
     </values>
   </entry>
   <entry id="add_gusts">
@@ -2125,6 +2125,7 @@
     <category>aux_hist</category>
     <group>MED_attributes</group>
     <values>
+      <value></value>
       <value coupling_mode="noresm" COMP_WAV="ww3">Sw_hs_avg:Sw_Tm1_avg:Sw_thm_avg:Sw_u_avg:Sw_v_avg:Sw_ustokes_avg:Sw_vstokes_avg:Sw_tusx_avg:Sw_tusy_avg:Sw_thp0_avg:Sw_fp0_avg:Sw_phs0_avg:Sw_phs1_avg:Sw_pdir0_avg:Sw_pdir1_avg:Sw_pTm10_avg:Sw_pTm11_avg</value>
       <value coupling_mode="cesm" COMP_WAV='ww3'>Sw_Hs:Sw_t01:Sw_t0m1:Sw_thm:Sw_lamult:Sw_ustokes:Sw_vstokes</value>
     </values>
