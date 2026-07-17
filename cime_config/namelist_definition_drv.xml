@@ -347,7 +347,7 @@
     <category>nuopc</category>
     <group>ALLCOMP_attributes</group>
     <values>
-      <value cime_model="cesm">cesm</value>
+      <value>cmeps</value>
     </values>
   </entry>
   <entry id="mesh_mask" modify_via_xml="MASK_MESH">
