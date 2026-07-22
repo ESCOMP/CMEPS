@@ -1405,3 +1405,47 @@
      - standard_name: Sw_tusy_avg
        canonical_units: m2/s
        description: Daily averaged stokes meridional transport vector (only needed for med history output)
+     #
+     - standard_name: Sw_lamult_avg
+       canonical_units: 1
+       description: Daily averaged Langmuir multiplier (only needed for med history output)
+     #
+     - standard_name: Sw_charn_avg
+       canonical_units: 1
+       description: Daily averaged Charnock parameter for air-sea friction (only needed for med history output)
+     #
+     - standard_name: Sw_tm02_avg
+       canonical_units: s
+       description: Daily averaged mean wave period of the second moment (only needed for med history output)
+     #
+     - standard_name: Sw_faw_avg
+       canonical_units: W m-2
+       description: Daily averaged wind to wave energy flux (only needed for med history output)
+     #
+     - standard_name: Sw_foc_avg
+       canonical_units: W m-2
+       description: Daily averaged wave to ocean energy flux (only needed for med history output)
+     #
+     - standard_name: Sw_cu_avg
+       canonical_units: m/s
+       description: Daily averaged surface ocean current zonal (only needed for med history output)
+     #
+     - standard_name: Sw_cv_avg
+       canonical_units: m/s
+       description: Daily averaged surface ocean current meridional (only needed for med history output)
+     #
+     - standard_name: Sw_ifrac_avg
+       canonical_units: 1
+       description: Daily averaged sea ice fraction from the ice model (only needed for med history output)
+     #
+     - standard_name: Sw_thick_avg
+       canonical_units: m
+       description: Daily averaged sea ice thickness from the ice model (only needed for med history output)
+     #
+     - standard_name: Sw_tauicex_avg
+       canonical_units: N m-2
+       description: Daily averaged wave to ice stress zonal (only needed for med history output)
+     #
+     - standard_name: Sw_tauicey_avg
+       canonical_units: N m-2
+       description: Daily averaged wave to ice stress meridional (only needed for med history output)

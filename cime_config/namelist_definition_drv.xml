@@ -2125,9 +2125,8 @@
     <category>aux_hist</category>
     <group>MED_attributes</group>
     <values>
-      <value></value>
       <value coupling_mode="noresm" COMP_WAV="ww3">Sw_hs_avg:Sw_Tm1_avg:Sw_thm_avg:Sw_u_avg:Sw_v_avg:Sw_ustokes_avg:Sw_vstokes_avg:Sw_tusx_avg:Sw_tusy_avg:Sw_thp0_avg:Sw_fp0_avg:Sw_phs0_avg:Sw_phs1_avg:Sw_pdir0_avg:Sw_pdir1_avg:Sw_pTm10_avg:Sw_pTm11_avg</value>
-      <value coupling_mode="cesm" COMP_WAV='ww3'>Sw_Hs:Sw_t01:Sw_t0m1:Sw_thm:Sw_lamult:Sw_ustokes:Sw_vstokes</value>
+      <value coupling_mode="cesm" COMP_WAV="ww3">Sw_hs_avg:Sw_Tm1_avg:Sw_thm_avg:Sw_u_avg:Sw_v_avg:Sw_ustokes_avg:Sw_vstokes_avg:Sw_tusx_avg:Sw_tusy_avg:Sw_thp0_avg:Sw_fp0_avg:Sw_phs0_avg:Sw_phs1_avg:Sw_pdir0_avg:Sw_pdir1_avg:Sw_pTm10_avg:Sw_pTm11_avg</value>
     </values>
     <desc>Auxiliary mediator wav2med file1 colon delimited output
     fields. NOTE: these are assumed to be time averaged over a day in
@@ -2159,11 +2158,12 @@
     <group>MED_attributes</group>
     <values>
       <value>.false.</value>
-      <value coupling_mode="noresm" COMP_WAV='ww3'>.false.</value>
-      <value coupling_mode="cesm" COMP_WAV='ww3'>.true.</value>
     </values>
     <desc>Auxiliary mediator wav2med file1 time averaged flag for file output.
-    If this flag is set to .false. only instantaneous output will be created in the auxiliary file.</desc>
+    If this flag is set to .false. only instantaneous output will be created in the auxiliary file.
+    For COMP_WAV=ww3 this must remain .false.: the WW3 cap already produces daily-averaged
+    Sw_*_avg fields (fillvalue between day boundaries), so a second mediator-side average would
+    be meaningless.</desc>
   </entry>
   <entry id="histaux_wav2med_file1_auxname">
     <type>char</type>
