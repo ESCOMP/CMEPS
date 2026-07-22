@@ -10,7 +10,7 @@ import os
 # Query required information/s                                                 #
 ###############################################################################
 
-fv3_path = os.environ['FV3_PATH']
+ufsatm_path = os.environ['UFSATM_PATH']
 
 ###############################################################################
 # Definitions                                                                 #
@@ -24,8 +24,8 @@ HOST_MODEL_IDENTIFIER = "CMEPS"
 # dependencies of these files to the list.
 VARIABLE_DEFINITION_FILES = [
     # actual variable definition files
-    '{}/ccpp/framework/src/ccpp_types.F90'.format(fv3_path),
-    '{}/ccpp/physics/physics/hooks/machine.F'.format(fv3_path),
+    '{}/ccpp/framework/src/ccpp_types.F90'.format(ufsatm_path),
+    '{}/ccpp/physics/physics/hooks/machine.F'.format(ufsatm_path),
     'CMEPS/ufs/ccpp/data/MED_typedefs.F90',
     'CMEPS/ufs/ccpp/data/MED_data.F90'
     ]
@@ -58,13 +58,13 @@ TYPEDEFS_NEW_METADATA = {
 
 # Add all physics scheme files relative to basedir
 SCHEME_FILES = [
-    '{}/ccpp/physics/physics/SFC_Models/Ocean/UFS/sfc_ocean.F'.format(fv3_path),
-    '{}/ccpp/physics/physics/SFC_Layer/UFS/sfc_diff.f'.format(fv3_path),
-    '{}/ccpp/physics/physics/Interstitials/UFS_SCM_NEPTUNE/GFS_surface_loop_control_part1.F90'.format(fv3_path),
-    '{}/ccpp/physics/physics/Interstitials/UFS_SCM_NEPTUNE/GFS_surface_loop_control_part2.F90'.format(fv3_path),
-    '{}/ccpp/physics/physics/Interstitials/UFS_SCM_NEPTUNE/GFS_surface_composites_pre.F90'.format(fv3_path),
-    '{}/ccpp/physics/physics/Interstitials/UFS_SCM_NEPTUNE/GFS_surface_composites_post.F90'.format(fv3_path),
-    '{}/ccpp/physics/physics/SFC_Layer/UFS/sfc_diag.f'.format(fv3_path)
+    '{}/ccpp/physics/physics/SFC_Models/Ocean/UFS/sfc_ocean.F'.format(ufsatm_path),
+    '{}/ccpp/physics/physics/SFC_Layer/UFS/sfc_diff.f'.format(ufsatm_path),
+    '{}/ccpp/physics/physics/Interstitials/UFS_SCM_NEPTUNE/GFS_surface_loop_control_part1.F90'.format(ufsatm_path),
+    '{}/ccpp/physics/physics/Interstitials/UFS_SCM_NEPTUNE/GFS_surface_loop_control_part2.F90'.format(ufsatm_path),
+    '{}/ccpp/physics/physics/Interstitials/UFS_SCM_NEPTUNE/GFS_surface_composites_pre.F90'.format(ufsatm_path),
+    '{}/ccpp/physics/physics/Interstitials/UFS_SCM_NEPTUNE/GFS_surface_composites_post.F90'.format(ufsatm_path),
+    '{}/ccpp/physics/physics/SFC_Layer/UFS/sfc_diag.f'.format(ufsatm_path)
     ]
 
 # Default build dir, relative to current working directory,

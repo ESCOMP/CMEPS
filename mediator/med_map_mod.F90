@@ -296,7 +296,7 @@ contains
   end subroutine med_map_RouteHandles_initfrom_esmflds
 
   !================================================================================
-  subroutine med_map_routehandles_initfrom_fieldbundle(n1, n2, FBsrc, FBdst, mapindex, RouteHandle, rc)
+  subroutine med_map_routehandles_initfrom_fieldbundle(n1, n2, FBsrc, FBdst, mapindex, RouteHandle, mapfile, rc)
 
     use ESMF            , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_LogFlush
     use ESMF            , only : ESMF_Field, ESMF_FieldBundle, ESMF_RouteHandle
@@ -313,6 +313,7 @@ contains
     type(ESMF_FieldBundle) , intent(in)    :: fBdst
     integer                , intent(in)    :: mapindex
     type(ESMF_RouteHandle) , intent(inout) :: RouteHandle(:,:,:)
+    character(len=*), optional, intent(in) :: mapfile  ! read offline weights (ESMF_FieldSMMStore) instead of online regrid
     integer                , intent(out)   :: rc
 
     ! local variables
@@ -333,7 +334,12 @@ contains
     call med_methods_FB_getFieldN(FBDst, 1, flddst, rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    call med_map_routehandles_initfrom_field(n1, n2, fldsrc, flddst, mapindex, routehandle(n1,n2,:), rc=rc)
+    if (present(mapfile)) then
+       call med_map_routehandles_initfrom_field(n1, n2, fldsrc, flddst, mapindex, routehandle(n1,n2,:), &
+            mapfile=mapfile, rc=rc)
+    else
+       call med_map_routehandles_initfrom_field(n1, n2, fldsrc, flddst, mapindex, routehandle(n1,n2,:), rc=rc)
+    end if
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     if (dbug_flag > 1) then
@@ -431,7 +437,7 @@ contains
           dstMaskValue = ispval_mask
        end if
     end if
-    if (coupling_mode(1:4) == 'hafs') then
+    if (trim(coupling_mode) == 'hafs') then
        if (n1 == compatm .and. n2 == compwav) then
           srcMaskValue = ispval_mask
        end if
@@ -446,7 +452,7 @@ contains
          polemethod = ESMF_POLEMETHOD_NONE ! todo: remove this when ESMF tripolar mapping fix is in place.
        endif
     end if
-    if (trim(coupling_mode) == 'hafs.mom6') then
+    if (trim(coupling_mode) == 'hafs') then
        polemethod = ESMF_POLEMETHOD_NONE
     endif
 

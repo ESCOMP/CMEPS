@@ -169,7 +169,7 @@ contains
     ! Initialize FBFrac(:) field bundles
 
     use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO
-    use ESMF                  , only : ESMF_SUCCESS
+    use ESMF                  , only : ESMF_SUCCESS, ESMF_FAILURE, ESMF_LogSetError
     use ESMF                  , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_StateIsCreated
     use ESMF                  , only : ESMF_FieldBundle, ESMF_FieldBundleIsCreated, ESMF_FieldBundleDestroy
     use ESMF                  , only : ESMF_FieldBundleGet
@@ -181,6 +181,7 @@ contains
     use med_internalstate_mod , only : InternalState
     use med_map_mod           , only : med_map_routehandles_init, med_map_rh_is_created
     use med_methods_mod       , only : State_getNumFields => med_methods_State_getNumFields
+    use NUOPC                 , only : NUOPC_CompAttributeGet
     use perf_mod              , only : t_startf, t_stopf
 
     ! input/output variables
@@ -208,6 +209,8 @@ contains
     integer             :: n,n1,ns
     integer             :: maptype
     integer             :: fieldCount
+    logical             :: isPresent, isSet, lexist
+    character(len=CX)   :: lnd2rof_map                  ! lnd->rof mapping file (also used for the consd fraction map here)
     logical, save       :: first_call = .true.
     character(len=*),parameter :: subname=' (med_fraction_init)'
     !---------------------------------------
@@ -584,10 +587,37 @@ contains
        if (is_local%wrap%comp_present(complnd)) then
           maptype = mapconsd
           if (.not. med_map_RH_is_created(is_local%wrap%RH(complnd,comprof,:),maptype, rc=rc)) then
-             call med_map_routehandles_init( complnd, comprof, &
-                  FBSrc=is_local%wrap%FBImp(complnd,complnd), &
-                  FBDst=is_local%wrap%FBImp(complnd,comprof), &
-                  mapindex=maptype, RouteHandle=is_local%wrap%RH, rc=rc)
+             ! The lnd->rof fraction map may be the only grid-crossing conservative coupling
+             ! map in a configuration, and computing its weights online (ESMF_FieldRegridStore)
+             ! can be prohibitively memory-heavy at high resolution. If the 'lnd2rof_map'
+             ! attribute names an offline mapping file, read the weights from that file;
+             ! otherwise ('unset' or 'idmap') compute them online. Although this consd map
+             ! shares its mapping file with the consf lnd->rof flux mappings, the two are the
+             ! same within roundoff in CMEPS due to the normalization applied when the weights
+             ! are used (see https://github.com/ESCOMP/CMEPS/issues/408).
+             call NUOPC_CompAttributeGet(gcomp, name='lnd2rof_map', value=lnd2rof_map, &
+                  isPresent=isPresent, isSet=isSet, rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             if (.not. (isPresent .and. isSet)) lnd2rof_map = 'unset'
+             if (lnd2rof_map /= 'unset' .and. lnd2rof_map /= 'idmap') then
+                inquire(file=lnd2rof_map, exist=lexist)
+                if (.not. lexist) then
+                   call ESMF_LogSetError(ESMF_FAILURE, &
+                        msg=trim(subname)//': lnd2rof_map weight file not found: '//trim(lnd2rof_map), &
+                        line=__LINE__, file=u_FILE_u, rcToReturn=rc)
+                   return
+                end if
+                call med_map_routehandles_init( complnd, comprof, &
+                     FBSrc=is_local%wrap%FBImp(complnd,complnd), &
+                     FBDst=is_local%wrap%FBImp(complnd,comprof), &
+                     mapindex=maptype, RouteHandle=is_local%wrap%RH, &
+                     mapfile=trim(lnd2rof_map), rc=rc)
+             else
+                call med_map_routehandles_init( complnd, comprof, &
+                     FBSrc=is_local%wrap%FBImp(complnd,complnd), &
+                     FBDst=is_local%wrap%FBImp(complnd,comprof), &
+                     mapindex=maptype, RouteHandle=is_local%wrap%RH, rc=rc)
+             end if
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
 

@@ -24,10 +24,11 @@ contains
     use med_methods_mod       , only : FB_diagnose => med_methods_FB_diagnose
     use med_methods_mod       , only : med_methods_FB_check_wtracers
     use med_map_mod           , only : med_map_field_packed
-    use med_internalstate_mod , only : InternalState
+    use med_internalstate_mod , only : InternalState, maintask
     use med_internalstate_mod , only : compwav, compatm, compocn, compice
     use med_phases_history_mod, only : med_phases_history_write_comp
     use perf_mod              , only : t_startf, t_stopf
+    use med_ufs_trace_wrapper_mod, only : ufs_trace_wrapper
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -39,6 +40,7 @@ contains
     character(len=*),parameter :: subname='(med_phases_post_wav)'
     !-------------------------------------------------------------------------------
 
+    if (maintask) call ufs_trace_wrapper("cmeps", "med_phases_post_wav", "B")
     call t_startf('MED:'//subname)
     rc = ESMF_SUCCESS
 
@@ -103,6 +105,7 @@ contains
        call ESMF_LogWrite(subname//' done', ESMF_LOGMSG_INFO)
     end if
 
+    if (maintask) call ufs_trace_wrapper("cmeps", "med_phases_post_wav", "E")
   end subroutine med_phases_post_wav
 
 end module med_phases_post_wav_mod
