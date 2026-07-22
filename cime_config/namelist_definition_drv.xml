@@ -347,7 +347,7 @@
     <category>nuopc</category>
     <group>ALLCOMP_attributes</group>
     <values>
-      <value cime_model="cesm">cesm</value>
+      <value>cmeps</value>
     </values>
   </entry>
   <entry id="mesh_mask" modify_via_xml="MASK_MESH">
@@ -952,16 +952,13 @@
     <group>MED_attributes</group>
     <desc>
       If true, use shr_wv_sat_mod to calculate qsat for atm-ocn flux calculations.
-
       If false, use the older inline calculation of qsat, which uses a different
       formulation.
-
       (Currently only relevant for ocn_surface_flux_scheme = 0 or 1.)
     </desc>
     <values>
-      <!-- Once CIME_MODEL distinguishes between NorESM and CESM, this value will differ
-      between these two. -->
       <value>.true.</value>
+      <value coupling_mode="noresm">.false.</value>
     </values>
   </entry>
   <entry id="add_gusts">
@@ -2116,7 +2113,8 @@
     <group>ALLCOMP_attributes</group>
     <values>
       <value>.false.</value>
-      <value COMP_WAV='ww3'>.true.</value>
+      <value coupling_mode="noresm" COMP_WAV='ww3'>.true.</value>
+      <value coupling_mode="cesm" COMP_WAV='ww3'>.true.</value>
     </values>
     <desc>Auxiliary mediator wav2med average history output every day.
     Note that ww3dev will use this configuration variable and send
@@ -2127,7 +2125,8 @@
     <category>aux_hist</category>
     <group>MED_attributes</group>
     <values>
-      <value>Sw_hs_avg:Sw_Tm1_avg:Sw_thm_avg:Sw_u_avg:Sw_v_avg:Sw_ustokes_avg:Sw_vstokes_avg:Sw_tusx_avg:Sw_tusy_avg:Sw_thp0_avg:Sw_fp0_avg:Sw_phs0_avg:Sw_phs1_avg:Sw_pdir0_avg:Sw_pdir1_avg:Sw_pTm10_avg:Sw_pTm11_avg</value>
+      <value coupling_mode="noresm" COMP_WAV="ww3">Sw_hs_avg:Sw_Tm1_avg:Sw_thm_avg:Sw_u_avg:Sw_v_avg:Sw_ustokes_avg:Sw_vstokes_avg:Sw_tusx_avg:Sw_tusy_avg:Sw_thp0_avg:Sw_fp0_avg:Sw_phs0_avg:Sw_phs1_avg:Sw_pdir0_avg:Sw_pdir1_avg:Sw_pTm10_avg:Sw_pTm11_avg</value>
+      <value coupling_mode="cesm" COMP_WAV="ww3">Sw_hs_avg:Sw_Tm1_avg:Sw_thm_avg:Sw_u_avg:Sw_v_avg:Sw_ustokes_avg:Sw_vstokes_avg:Sw_tusx_avg:Sw_tusy_avg:Sw_thp0_avg:Sw_fp0_avg:Sw_phs0_avg:Sw_phs1_avg:Sw_pdir0_avg:Sw_pdir1_avg:Sw_pTm10_avg:Sw_pTm11_avg</value>
     </values>
     <desc>Auxiliary mediator wav2med file1 colon delimited output
     fields. NOTE: these are assumed to be time averaged over a day in
@@ -2172,7 +2171,7 @@
     <group>MED_attributes</group>
     <values>
       <value>wav.24h.avg</value>
-      <value COMP_WAV='ww3'>ww3</value>
+      <value coupling_mode="cesm" COMP_WAV='ww3'>ww3</value>
     </values>
   </entry>
   <entry id="histaux_wav2med_file1_ntperfile">
@@ -2647,6 +2646,22 @@
    </desc>
    <values>
       <value>.false.</value>
+   </values>
+  </entry>
+
+  <entry id="water_tracers_variables_not_checked">
+   <type>char</type>
+   <category>water_tracers</category>
+   <group>ALLCOMP_attributes</group>
+   <desc>
+      Colon-delimited list of variables for which water tracer consistency checks should be skipped.
+
+      Each entry must match the variable name passed to shr_wtracers_check_tracer_ratios.
+      For checks of mediator fields, these are of the form FieldBundleName%FieldName.
+      For example: "FBImpatm%Sa_shum_wtracers:FBExprof%Flrl_irrig_wtracers".
+   </desc>
+   <values>
+      <value></value>
    </values>
   </entry>
 

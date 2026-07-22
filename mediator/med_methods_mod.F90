@@ -2795,6 +2795,7 @@ contains
     integer :: fieldrank
     logical :: hasSuffix
     logical :: isPresentNonTracer
+    logical :: check_skipped
     type(ESMF_Field) :: fieldTracers
     type(ESMF_Field) :: fieldNonTracer
 
@@ -2831,9 +2832,16 @@ contains
        if (hasSuffix) then
           call ESMF_FieldBundleGet(FB, fieldName=fieldNameNonTracer, isPresent=isPresentNonTracer, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
-          if (isPresentNonTracer) then
+          if (.not. isPresentNonTracer) then
+             ! This is the situation for a small number of fields where we have a tracer
+             ! field without a corresponding non-tracer field.
              if (dbug_flag > 5) then
-                call ESMF_LogWrite(trim(subname)//": Checking <" // trim(fieldNameList(n)) // &
+                call ESMF_LogWrite(trim(subname)//": Skipping check for <" // trim(FBName)//"%"//trim(fieldNameList(n)) // &
+                     "> which has no corresponding non-tracer field", ESMF_LOGMSG_INFO)
+             end if
+          else
+             if (dbug_flag > 5) then
+                call ESMF_LogWrite(trim(subname)//": Checking <" // trim(FBName)//"%"//trim(fieldNameList(n)) // &
                      "> against <" // trim(fieldNameNonTracer) // ">", &
                      ESMF_LOGMSG_INFO)
              end if
@@ -2852,26 +2860,24 @@ contains
                 call ESMF_FieldGet(fieldNonTracer, farrayPtr=dataNonTracer1d, rc=rc)
                 if (chkerr(rc,__LINE__,u_FILE_u)) return
                 call wtracers_check_tracer_ratios(dataTracers2d, dataNonTracer1d, &
-                     trim(FBName)//":"//trim(fieldNameList(n)))
+                     trim(FBName)//"%"//trim(fieldNameList(n)), check_skipped=check_skipped)
              else if (fieldrank == 2) then
                 call ESMF_FieldGet(fieldTracers, farrayPtr=dataTracers3d, rc=rc)
                 if (chkerr(rc,__LINE__,u_FILE_u)) return
                 call ESMF_FieldGet(fieldNonTracer, farrayPtr=dataNonTracer2d, rc=rc)
                 if (chkerr(rc,__LINE__,u_FILE_u)) return
                 call wtracers_check_tracer_ratios(dataTracers3d, dataNonTracer2d, &
-                     trim(FBName)//":"//trim(fieldNameList(n)))
+                     trim(FBName)//"%"//trim(fieldNameList(n)), check_skipped=check_skipped)
              else
                 write(msg,'(a,i0)') subname//": ERROR: unhandled field rank ", fieldrank
                 call shr_log_error(msg, &
                      line=__LINE__, file=u_FILE_u, rc=rc)
                 return
              end if
-          else
-             ! This is the situation for a small number of fields where we have a tracer
-             ! field without a corresponding non-tracer field.
-             if (dbug_flag > 5) then
-                call ESMF_LogWrite(trim(subname)//": Skipping check for <" // trim(fieldNameList(n)) // &
-                     "> which has no corresponding non-tracer field", ESMF_LOGMSG_INFO)
+
+             if (check_skipped .and. dbug_flag > 5) then
+                call ESMF_LogWrite(trim(subname)//": Skipping check for <" // trim(FBName)//"%"//trim(fieldNameList(n)) // &
+                     "> which is in the list of variables not to check", ESMF_LOGMSG_INFO)
              end if
           end if
        end if

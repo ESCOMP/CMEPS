@@ -47,7 +47,8 @@ module med_internalstate_mod
   character(len=CS), public :: glc_name = ''
 
   ! Coupling mode
-  character(len=CS), public :: coupling_mode ! valid values are [cesm,ufs.nfrac,ufs.frac,ufs.nfrac.aoflux,ufs.frac.aoflux,hafs]
+  ! valid values are [cesm,noresm,ufs.nfrac,ufs.frac,ufs.nfrac.aoflux,ufs.frac.aoflux,hafs,hafs.mom6]
+  character(len=CS), public :: coupling_mode 
 
   ! Atmosphere-ocean flux algorithm
   character(len=CS), public :: aoflux_code   ! valid values are [cesm,ccpp]
@@ -70,10 +71,10 @@ module med_internalstate_mod
   integer , public, parameter :: mapnstod_consf    = 8  ! nearest source to destination followed by conservative frac
   integer , public, parameter :: mappatch_uv3d     = 9  ! rotate u,v to 3d cartesian space, map from src->dest, then rotate back
   integer , public, parameter :: mapbilnr_uv3d     = 10 ! rotate u,v to 3d cartesian space, map from src->dest, then rotate back
-  integer , public, parameter :: map_rof2ocn_ice   = 11 ! custom smoothing map to map ice from rof->ocn (cesm only)
-  integer , public, parameter :: map_rof2ocn_liq   = 12 ! custom smoothing map to map liq from rof->ocn (cesm only)
-  integer , public, parameter :: map_glc2ocn_liq   = 13 ! custom smoothing map to map liq from glc->ocn (cesm only)
-  integer , public, parameter :: map_glc2ocn_ice   = 14 ! custom smoothing map to map ice from glc->ocn (cesm only)
+  integer , public, parameter :: map_rof2ocn_ice   = 11 ! custom smoothing map to map ice from rof->ocn (cesm/noresm only)
+  integer , public, parameter :: map_rof2ocn_liq   = 12 ! custom smoothing map to map liq from rof->ocn (cesm/noresm only)
+  integer , public, parameter :: map_glc2ocn_liq   = 13 ! custom smoothing map to map liq from glc->ocn (cesm/noresm only)
+  integer , public, parameter :: map_glc2ocn_ice   = 14 ! custom smoothing map to map ice from glc->ocn (cesm/noresm only)
   integer , public, parameter :: mapfillv_bilnr    = 15 ! fill value followed by bilinear
   integer , public, parameter :: mapbilnr_nstod    = 16 ! bilinear with nstod extrapolation
   integer , public, parameter :: mapconsf_aofrac   = 17 ! conservative with aofrac normalization (ufs only)
@@ -692,7 +693,7 @@ contains
     if ( coupling_mode(1:3) == 'ufs') then
        if (is_local%wrap%comp_present(compatm)) defaultMasks(compatm,2) = 1
     endif
-    if ( coupling_mode /= 'cesm') then
+    if ( trim(coupling_mode) /= 'cesm' .and. trim(coupling_mode) /= 'noresm' ) then
        if (is_local%wrap%comp_present(compatm) .and. atm_name(1:4) == 'datm') then
           defaultMasks(compatm,1) = 0
        end if
