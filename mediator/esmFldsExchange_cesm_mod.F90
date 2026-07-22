@@ -2340,6 +2340,17 @@ contains
        call addfld_from(compwav, 'Sw_v_avg')
        call addfld_from(compwav, 'Sw_tusx_avg')
        call addfld_from(compwav, 'Sw_tusy_avg')
+       call addfld_from(compwav, 'Sw_lamult_avg')
+       call addfld_from(compwav, 'Sw_charn_avg')
+       call addfld_from(compwav, 'Sw_tm02_avg')
+       call addfld_from(compwav, 'Sw_faw_avg')
+       call addfld_from(compwav, 'Sw_foc_avg')
+       call addfld_from(compwav, 'Sw_cu_avg')
+       call addfld_from(compwav, 'Sw_cv_avg')
+       call addfld_from(compwav, 'Sw_ifrac_avg')
+       call addfld_from(compwav, 'Sw_thick_avg')
+       call addfld_from(compwav, 'Sw_tauicex_avg')
+       call addfld_from(compwav, 'Sw_tauicey_avg')
     end if
 
     !-----------------------------
