@@ -142,6 +142,25 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     elif case.get_value("RUN_TYPE") == "branch":
         config["run_type"] = "branch"
 
+        # For a branch run the driver must read the reference case's restart, so
+        # the driver restart pointer must be set explicitly to the dated
+        # rpointer.cpl of that reference case. buildnml does not modify xml
+        # variables, so rather than set DRV_RESTART_POINTER we check that it
+        # matches the expected dated pointer (built from RUN_REFDATE and
+        # RUN_REFTOD) and, if not, fail with the exact xmlchange command needed.
+        # (On a continue run CIME sets DRV_RESTART_POINTER automatically, and a
+        # hybrid run does not read the driver restart, so neither is checked.)
+        if not case.get_value("CONTINUE_RUN"):
+            expected_pointer = "rpointer.cpl.{}-{}".format(
+                case.get_value("RUN_REFDATE"), case.get_value("RUN_REFTOD")
+            )
+            expect(
+                case.get_value("DRV_RESTART_POINTER") == expected_pointer,
+                "For a branch run the driver restart pointer must be set to the "
+                "dated rpointer.cpl of the reference case. Set it with:\n"
+                "  ./xmlchange DRV_RESTART_POINTER={}".format(expected_pointer),
+            )
+
     # determine coupling mode
     config["coupling_mode"] = case.get_value("COUPLING_MODE")
 
