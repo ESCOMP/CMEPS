@@ -23,6 +23,7 @@ module med_phases_prep_wav_mod
   use esmFlds               , only : med_fldList_GetfldListTo
   use med_internalstate_mod , only : compatm, compwav
   use perf_mod              , only : t_startf, t_stopf
+  use med_ufs_trace_wrapper_mod, only : ufs_trace_wrapper
 
   implicit none
   private
@@ -92,6 +93,7 @@ contains
     character(len=*), parameter    :: subname='(med_phases_prep_wav_accum)'
     !---------------------------------------
 
+    if (maintask) call ufs_trace_wrapper("cmeps", "med_phases_prep_wav_accum", "B")
     call t_startf('MED:'//subname)
     if (dbug_flag > 20) then
        call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
@@ -130,7 +132,7 @@ contains
     end if
 
     !---------------------------------------
-    !--- merge all fields to wav 
+    !--- merge all fields to wav
     !---------------------------------------
     call med_merge_auto(&
          is_local%wrap%med_coupling_active(:,compwav), &
@@ -155,6 +157,7 @@ contains
     end if
     call t_stopf('MED:'//subname)
 
+    if (maintask) call ufs_trace_wrapper("cmeps", "med_phases_prep_wav_accum", "E")
   end subroutine med_phases_prep_wav_accum
 
   !-----------------------------------------------------------------------------
@@ -176,6 +179,7 @@ contains
     !---------------------------------------
 
     rc = ESMF_SUCCESS
+    if (maintask) call ufs_trace_wrapper("cmeps", "med_phases_prep_wav_avg", "B")
 
     call t_startf('MED:'//subname)
     if (dbug_flag > 20) then
@@ -232,5 +236,6 @@ contains
     end if
     call t_stopf('MED:'//subname)
 
+    if (maintask) call ufs_trace_wrapper("cmeps", "med_phases_prep_wav_avg", "E")
   end subroutine med_phases_prep_wav_avg
 end module med_phases_prep_wav_mod

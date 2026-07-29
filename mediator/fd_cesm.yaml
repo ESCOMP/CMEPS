@@ -230,10 +230,6 @@
        canonical_units: kg m-2 s-1
        description: lnd export to river
      #
-     - standard_name: Flrl_rofsur_nonh2o
-       canonical_units: kg m-2 s-1
-       description: lnd export to river for non-water liquid tracers
-     #	    
      - standard_name: Flrl_rofsur_wtracers
        canonical_units: kg m-2 s-1
        description: lnd export to river
@@ -320,25 +316,7 @@
        alias: mean_down_lw_flx
        canonical_units: W m-2
        description: atm import to med
-         mean downward LW heat flux
-     #
-     - standard_name: Faxa_hmat
-       alias: mean_down_hmat
-       canonical_units: W m-2
-       description: atm import to med
-         mean downward material enthalpy flux
-     #
-     - standard_name: Faxa_hlat
-       alias: mean_down_hlat
-       canonical_units: W m-2
-       description: atm import to med
-         variable latent heat part of mat.enth.flx
-     #
-     - standard_name: Faxa_hmat_oa
-       alias: mean_down_hmat_oa
-       canonical_units: W m-2
-       description: med export to ocn
-         mean downw. mat. enth. flux, ocean average
+         mean downward SW heat flux
      #
      - standard_name: Faxa_ndep
        canonical_units: kg(N)/m2/sec
@@ -1054,11 +1032,6 @@
        canonical_units: W m-2
        description: med export to ocn heat content of condensation
      #
-     - standard_name: Faxx_hrof
-       alias: heat_content_rof
-       canonical_units: W m-2
-       description: med export to atm gl.avg. of mat.enthalpy of runoff
-     #
      - standard_name: Foxx_hrofl
        alias: heat_content_rofl
        canonical_units: W m-2
@@ -1246,11 +1219,7 @@
      #
      - standard_name: Forr_rofl
        canonical_units: kg m-2 s-1
-       description: river import to med - liquid water flux due to runoff
-     #
-     - standard_name: Forr_rofl_nonh2o
-       canonical_units: kg m-2 s-1
-       description: river import to med - non-water flux due to runoff
+       description: river import to med - water flux due to runoff (liquid)
      #
      - standard_name: Forr_rofl_wtracers
        canonical_units: kg m-2 s-1
@@ -1259,10 +1228,6 @@
      - standard_name: Forr_rofl_glc
        canonical_units: kg m-2 s-1
        description: river import to med - water flux due to runoff originating from glc (liquid)
-     #
-     - standard_name: Forr_rofl_nonh2o
-       canonical_units: kg m-2 s-1
-       description: river import to med - non-water flux(es) due to runoff originating from lnd (liquid)
      #
      - standard_name: Forr_rofl_glc_wtracers
        canonical_units: kg m-2 s-1
@@ -1279,6 +1244,78 @@
      - standard_name: Sw_lamult
        canonical_units: 1
        description: ocean import - Langmuir multiplier
+     #
+     - standard_name: Sw_Hs
+       canonical_units: m
+       description: ocean import - Significant wave height
+     #
+     - standard_name: Sw_t0m1
+       canonical_units: s
+       description: Wind sea mean wave period (Tm0,-1)
+     #
+     - standard_name: Sw_t01
+       canonical_units: s
+       description: Wind sea mean wave period (Tm0,1)
+     #
+     - standard_name: Sw_thm
+       canonical_units: radians
+       description: Mean wave direction
+     #
+     - standard_name: Sw_Fp
+       canonical_units: 1
+       description: ocean import - Peak wave frequency
+     #
+     - standard_name: Sw_Dp
+       canonical_units: 1
+       description: ocean import - Peak wave direction
+     #
+     - standard_name: Sw_ustokes_wavenumber_1
+       canonical_units: m/s
+       description: ocean import - partitioned Stokes drift zonal wavenumber 1
+     #
+     - standard_name: Sw_vstokes_wavenumber_1
+       canonical_units: m/s
+       description: ocean import - partitioned Stokes drift meridional wavenumber 1
+     #
+     - standard_name: Sw_ustokes_wavenumber_2
+       canonical_units: m/s
+       description: ocean import - partitioned Stokes drift zonal wavenumber 2
+     #
+     - standard_name: Sw_vstokes_wavenumber_2
+       canonical_units: m/s
+       description: ocean import - partitioned Stokes drift meridional wavenumber 2
+     #
+     - standard_name: Sw_ustokes_wavenumber_3
+       canonical_units: m/s
+       description: ocean import - partitioned Stokes drift zonal wavenumber 3
+     #
+     - standard_name: Sw_vstokes_wavenumber_3
+       canonical_units: m/s
+       description: ocean import - partitioned Stokes drift meridional wavenumber 3
+     #
+     - standard_name: Sw_ustokes_wavenumber_4
+       canonical_units: m/s
+       description: ocean import - partitioned Stokes drift zonal wavenumber 4
+     #
+     - standard_name: Sw_vstokes_wavenumber_4
+       canonical_units: m/s
+       description: ocean import - partitioned Stokes drift meridional wavenumber 4
+     #
+     - standard_name: Sw_ustokes_wavenumber_5
+       canonical_units: m/s
+       description: ocean import - partitioned Stokes drift zonal wavenumber 5
+     #
+     - standard_name: Sw_vstokes_wavenumber_5
+       canonical_units: m/s
+       description: ocean import - partitioned Stokes drift meridional wavenumber 5
+     #
+     - standard_name: Sw_ustokes_wavenumber_6
+       canonical_units: m/s
+       description: ocean import - partitioned Stokes drift zonal wavenumber 6
+     #
+     - standard_name: Sw_vstokes_wavenumber_6
+       canonical_units: m/s
+       description: ocean import - partitioned Stokes drift meridional wavenumber 6
      #
      - standard_name: Sw_ustokes
        canonical_units: m/s
@@ -1303,113 +1340,68 @@
      #
      - standard_name: Sw_ustokes_avg
        canonical_units: m/s
-       description: Daily averaged stokes drift u component (only needed for mediator history output)
+       description: Daily averaged stokes drift u component (only needed for med history output)
      #
      - standard_name: Sw_vstokes_avg
        canonical_units: m/s
-       description: Daily averaged stokes drift v component (only needed for mediator history output)
+       description: Daily averaged stokes drift v component (only needed for med history output)
      #
      - standard_name: Sw_hs_avg
        canonical_units: m
-       description: Daily averaged significant wave hight (only needed for mediator history output)
+       description: Daily averaged significant wave hight (only needed for med history output)
      #
      - standard_name: Sw_phs0_avg
        canonical_units: m
-       description: Daily averaged averaged wind sea swh (only needed for mediator history output)
+       description: Daily averaged averaged wind sea swh (only needed for med history output)
      #
      - standard_name: Sw_phs1_avg
        canonical_units: m
-       description: Daily averaged swell swh (only needed for mediator history output)
+       description: Daily averaged swell swh (only needed for med history output)
      #
      - standard_name: Sw_pdir0_avg
-       canonical_units: radians
-       description: Daily averaged wind sea swh (only needed for mediator history output)
+       canonical_units: degrees
+       description: Daily averaged wind sea swh (only needed for med history output)
      #
      - standard_name: Sw_pdir1_avg
-       canonical_units: radians
-       description: Daily averaged swell swh (only needed for mediator history output)
+       canonical_units: degrees
+       description: Daily averaged swell swh (only needed for med history output)
      #
      - standard_name: Sw_pTm10_avg
        canonical_units: s
-       description: Daily averaged wind sea mean wave Tm1 period (only needed for mediator history output)
+       description: Daily averaged wind sea mean wave Tm1 period (only needed for med history output)
      #
      - standard_name: Sw_pTm11_avg
        canonical_units: s
-       description: Daily average swell mean wave Tm1 period (only needed for mediator history output)
+       description: Daily average swell mean wave Tm1 period (only needed for med history output)
      #
      - standard_name: Sw_Tm1_avg
        canonical_units: s
-       description: Daily averaged mean wave period of the first moment (only needed for mediator history output)
+       description: Daily averaged mean wave period of the first moment (only needed for med history output)
      #
      - standard_name: Sw_thm_avg
-       canonical_units: radians
-       description: Daily averaged mean wave direction (only needed for mediator history output)
+       canonical_units: degrees
+       description: Daily averaged mean wave direction (only needed for med history output)
      #
      - standard_name: Sw_thp0_avg
-       canonical_units: radians
-       description: Daily averaged peak wave direction (only needed for mediator history output)
+       canonical_units: degrees
+       description: Daily averaged peak wave direction (only needed for med history output)
      #
      - standard_name: Sw_fp0_avg
        canonical_units: 1/s
-       description: Daily averaged peak wave frequency (only needed for mediator history output)
+       description: Daily averaged peak wave frequency (only needed for med history output)
      #
      - standard_name: Sw_u_avg
        canonical_units: m/s
-       description: Daily averaged surface wind zonal (only needed for mediator history output)
+       description: Daily averaged surface wind zonal (only needed for med history output)
      #
      - standard_name: Sw_v_avg
        canonical_units: m/s
-       description: Daily averaged surface wind meridional (only needed for mediator history output)
-     #
-     - standard_name: Sw_cu_avg
-       canonical_units: m/s
-       description: Daily averaged surface zonal current(only needed for mediator history output)
-     #
-     - standard_name: Sw_cv_avg
-       canonical_units: m/s
-       description: Daily averaged surface meridional current (only needed for mediator history output)
+       description: Daily averaged surface wind meridional (only needed for med history output)
      #
      - standard_name: Sw_tusx_avg
        canonical_units: m2/s
-       description: Daily averaged stokes zonal transport vector (only needed for mediator history output)
+       description: Daily averaged stokes zonal transport vector (only needed for med history output)
      #
      - standard_name: Sw_tusy_avg
        canonical_units: m2/s
-       description: Daily averaged stokes meridional transport vector (only needed for mediator history output)
-      #
-     - standard_name: Sw_lamult_avg
-       canonical_units: 1
-       description: Daily averaged Langmuir number (only needed for mediator history output)
-      #
-     - standard_name: Sw_charn_avg
-       canonical_units: 1
-       description: Daily averaged Charnock parameter (only needed for mediator history output)
-     #
-     - standard_name: Sw_tm02_avg
-       canonical_units: s
-       alias: Total_m2-period
-       description: Daily averaged mean wave period of the second moment (only needed for mediator history output)
-     #
-     - standard_name: Sw_foc_avg
-       canonical_units: W/m3
-       description: Daily averaged wave to ocean energy flux (only needed for mediator history output)
-     #
-     - standard_name: Sw_faw_avg
-       canonical_units: W/m3
-       description: Daily averaged wind to wave energy flux (only needed for mediator history output)
-     #
-     - standard_name: Sw_ifrac_avg
-       canonical_units: 1
-       description: Daily averaged sea ice concentration  (only needed for mediator history output)
-     #
-     - standard_name: Sw_thick_avg
-       canonical_units: m
-       description: Daily averaged sea ice thickness (only needed for mediator history output)
-     #
-     - standard_name: Sw_tauicex_avg
-       canonical_units: m2/s2
-       description: Daily averaged x component of momentum flux to sea ice  (only needed for mediator history output)
-     #
-     - standard_name: Sw_tauicey_avg
-       canonical_units: m2/s2
-       description: Daily averaged y component of momentum flux to sea ice (only needed for mediator history output)
+       description: Daily averaged stokes meridional transport vector (only needed for med history output)

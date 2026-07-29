@@ -137,7 +137,7 @@ contains
        call physics%statein%create(nMax,physics%model)
        call physics%stateout%create(nMax)
        call physics%interstitial%create(nMax)
-       call physics%coupling%create(nMax)
+       call physics%coupling%create(nMax,physics%model)
        call physics%grid%create(nMax)
        call physics%sfcprop%create(nMax,physics%model)
        call physics%diag%create(nMax)
