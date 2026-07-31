@@ -1,2 +1,6 @@
 water_tracer_initial_ratios = "0.1:2"
 water_tracers_do_checks = .true.
+
+! Tracers currently aren't mapped properly for irrigation
+! (https://github.com/escomp/cmeps/issues/675), so bypass tracer checks for this field
+water_tracers_variables_not_checked = "FBExprof%Flrl_irrig_wtracers"
