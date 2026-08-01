@@ -2736,8 +2736,8 @@
     <group>CLOCK_attributes</group>
     <valid_values>NO_LEAP,GREGORIAN</valid_values>
     <desc>
-      calendar in use.  [NO_LEAP, GREOGORIAN].
-      set by CALENDAR in env_build.xml
+      calendar in use.  [NO_LEAP, GREGORIAN].
+      set by CALENDAR in env_run.xml
     </desc>
     <values>
       <value>$CALENDAR</value>
