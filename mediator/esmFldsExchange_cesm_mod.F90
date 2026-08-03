@@ -1209,7 +1209,6 @@ contains
                 call addmrg_to(compatm , 'Faxx_evap'//trim(suffix), &
                      mrg_from=compmed, mrg_fld='Faox_evap'//trim(suffix), mrg_type='merge', mrg_fracname='ofrac')
              end if
-
           end if
        end if
        if (trim(coupling_mode) == 'noresm') then
@@ -1744,7 +1743,7 @@ contains
        end if
     end if
     ! ---------------------------------------------------------------------
-    ! to ocn: merged longwave net heat flux
+    ! to ocn: merged longwave net heat flux (cesm)
     ! ---------------------------------------------------------------------
     if (trim(coupling_mode) == 'cesm') then
        if (phase == 'advertise') then
@@ -1763,7 +1762,11 @@ contains
                   mrg_from=compatm, mrg_fld='Faxa_lwdn', mrg_type='merge', mrg_fracname='ofrac')
           end if
        end if
-    else if (trim(coupling_mode) == 'noresm') then
+    end if
+    ! ---------------------------------------------------------------------
+    ! to ocn: longwave down from atm (noresm)
+    ! ---------------------------------------------------------------------
+    if (trim(coupling_mode) == 'noresm') then
        if (phase == 'advertise') then
           call addfld_from(compatm, 'Faxa_lwdn')
           call addfld_to(complnd, 'Faxa_lwdn')
