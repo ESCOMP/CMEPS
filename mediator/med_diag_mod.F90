@@ -142,15 +142,18 @@ module med_diag_mod
   integer :: f_heat_latvap   = unset_index ! heat : latent, vaporization
   integer :: f_heat_latf     = unset_index ! heat : latent, fusion, snow
   integer :: f_heat_ioff     = unset_index ! heat : latent, fusion, frozen runoff
+  integer :: f_heat_ioff_glc = unset_index ! heat : latent, fusion, frozen runoff from glc
   integer :: f_heat_sen      = unset_index ! heat : sensible
   integer :: f_heat_rain     = unset_index ! heat : heat content of rain
   integer :: f_heat_snow     = unset_index ! heat : heat content of snow
   integer :: f_heat_evap     = unset_index ! heat : heat content of evaporation
   integer :: f_heat_cond     = unset_index ! heat : heat content of evaporation
   integer :: f_heat_rofl     = unset_index ! heat : heat content of liquid runoff
+  integer :: f_heat_rofl_glc = unset_index ! heat : heat content of liquid runoff from glc
   integer :: f_heat_rofi     = unset_index ! heat : heat content of ice runoff
-  integer :: f_heat_rofa     = unset_index ! heat : total heat content of runoff to atm (v2)
-  integer :: f_heat_hmat     = unset_index ! heat : surface material enthalpy flux (v2)
+  integer :: f_heat_rofi_glc = unset_index ! heat : heat content of ice runoff from glc
+  integer :: f_heat_rofa     = unset_index ! heat : total heat content of runoff to atm (noresm - v2)
+  integer :: f_heat_hmat     = unset_index ! heat : surface material enthalpy flux (noresm - v2)
 
   integer :: f_watr_frz      = unset_index ! water: freezing
   integer :: f_watr_melt     = unset_index ! water: melting
@@ -159,7 +162,9 @@ module med_diag_mod
   integer :: f_watr_evap     = unset_index ! water: evaporation
   integer :: f_watr_salt     = unset_index ! water: water equivalent of salt flux
   integer :: f_watr_roff     = unset_index ! water: runoff/flood
+  integer :: f_watr_roff_glc = unset_index ! water: runoff/flood from glc
   integer :: f_watr_ioff     = unset_index ! water: frozen runoff
+  integer :: f_watr_ioff_glc = unset_index ! water: frozen runoff from glc
 
   integer :: f_heat_beg      = unset_index ! 1st index  for heat
   integer :: f_heat_end      = unset_index ! Last index for heat
@@ -286,6 +291,7 @@ contains
     call add_to_budget_diag(budget_diags%fields, f_heat_latvap   ,'hlatvap'     ) ! field  heat : latent, vaporization
     call add_to_budget_diag(budget_diags%fields, f_heat_latf     ,'hlatfus'     ) ! field  heat : latent, fusion, snow
     call add_to_budget_diag(budget_diags%fields, f_heat_ioff     ,'hiroff'      ) ! field  heat : latent, fusion, frozen runoff
+    call add_to_budget_diag(budget_diags%fields, f_heat_ioff_glc ,'hiroff_glc'  ) ! field  heat : latent, fusion, frozen runoff from glc
     call add_to_budget_diag(budget_diags%fields, f_heat_sen      ,'hsen'        ) ! field  heat : sensible
     if (trim(budget_table_version) == 'v0') then
        f_heat_beg = f_heat_frz      ! field  first index for heat
@@ -296,9 +302,11 @@ contains
        call add_to_budget_diag(budget_diags%fields, f_heat_evap  ,'hevap'       ) ! field  heat : enthalpy of evaporation
        call add_to_budget_diag(budget_diags%fields, f_heat_cond  ,'hcond'       ) ! field  heat : enthalpy of evaporation
        call add_to_budget_diag(budget_diags%fields, f_heat_rofl  ,'hrofl'       ) ! field  heat : enthalpy of liquid runoff
+       call add_to_budget_diag(budget_diags%fields, f_heat_rofl_glc ,'hrofl_glc') ! field  heat : enthalpy of liquid runoff from glc
        call add_to_budget_diag(budget_diags%fields, f_heat_rofi  ,'hrofi'       ) ! field  heat : enthalpy of ice runoff
+       call add_to_budget_diag(budget_diags%fields, f_heat_rofi_glc ,'hrofi_glc') ! field  heat : enthalpy of ice runoff from glc
        f_heat_beg = f_heat_frz      ! field  first index for heat
-       f_heat_end = f_heat_rofi     ! field  last  index for heat
+       f_heat_end = f_heat_rofi_glc ! field  last  index for heat
     else if (trim(budget_table_version) == 'v2') then
        call add_to_budget_diag(budget_diags%fields, f_heat_rofa  ,'hrofa'       ) ! field  heat : total enthalpy of runoff to atm
        call add_to_budget_diag(budget_diags%fields, f_heat_hmat  ,'hmat'        ) ! field  heat : surface material enthalpy flux
@@ -322,13 +330,15 @@ contains
        call add_to_budget_diag(budget_diags%fields, f_watr_salt  ,'weqsaltf'    ) ! field  water: water equivalent of salt flux
     endif
     call add_to_budget_diag(budget_diags%fields, f_watr_roff     ,'wrunoff'     ) ! field  water: runoff/flood
+    call add_to_budget_diag(budget_diags%fields, f_watr_roff_glc ,'wrunoff_glc' ) ! field  water: runoff/flood from glc
     call add_to_budget_diag(budget_diags%fields, f_watr_ioff     ,'wfrzrof'     ) ! field  water: frozen runoff
+    call add_to_budget_diag(budget_diags%fields, f_watr_ioff_glc ,'wfrzrof_glc' ) ! field  water: frozen runoff from glc
     if (trim(budget_table_version) == 'v0' .or. trim(budget_table_version) == 'v2') then !BLOM for v2
        f_watr_beg = f_watr_frz  ! field  firs  index for water
     else
        f_watr_beg = f_watr_melt ! field  firs  index for water
     end if
-    f_watr_end = f_watr_ioff    ! field  last  index for water
+    f_watr_end = f_watr_ioff_glc ! field  last  index for water
 
     ! -----------------------------------------
     ! Salt fluxes budget terms (for v1 only)
@@ -959,15 +969,18 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if ( fldbun_fldchk(is_local%wrap%FBImp(comprof,comprof), 'Forr_rofl_glc', rc=rc)) then
-      call diag_rof(is_local%wrap%FBImp(comprof,comprof), 'Forr_rofl_glc' , f_watr_roff, ic, areas, budget_local, minus=.true., rc=rc)
-      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call diag_rof(is_local%wrap%FBImp(comprof,comprof), 'Forr_rofl_glc' , f_watr_roff_glc, &
+            ic, areas, budget_local, minus=.true., rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
     if ( fldbun_fldchk(is_local%wrap%FBImp(comprof,comprof), 'Forr_rofi_glc', rc=rc)) then
-      call diag_rof(is_local%wrap%FBImp(comprof,comprof), 'Forr_rofi_glc' , f_watr_ioff, ic, areas, budget_local, minus=.true., rc=rc)
-      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call diag_rof(is_local%wrap%FBImp(comprof,comprof), 'Forr_rofi_glc' , f_watr_ioff_glc, &
+            ic, areas, budget_local, minus=.true., rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
     budget_local(f_heat_ioff,ic,ip) = -budget_local(f_watr_ioff,ic,ip)*shr_const_latice
+    budget_local(f_heat_ioff_glc,ic,ip) = -budget_local(f_watr_ioff_glc,ic,ip)*shr_const_latice
 
     !-------------------------------
     ! to river from mediator
@@ -987,15 +1000,16 @@ contains
     call diag_rof(is_local%wrap%FBExp(comprof), 'Flrl_rofi'  , f_watr_ioff, ic, areas, budget_local, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (fldbun_fldchk(is_local%wrap%FBExp(comprof), 'Fgrg_rofl', rc=rc)) then
-      call diag_rof(is_local%wrap%FBExp(comprof), 'Fgrg_rofl'  , f_watr_roff, ic, areas, budget_local, rc=rc)
+      call diag_rof(is_local%wrap%FBExp(comprof), 'Fgrg_rofl'  , f_watr_roff_glc, ic, areas, budget_local, rc=rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
     if (fldbun_fldchk(is_local%wrap%FBExp(comprof), 'Fgrg_rofi', rc=rc)) then
-      call diag_rof(is_local%wrap%FBExp(comprof), 'Fgrg_rofi'  , f_watr_ioff, ic, areas, budget_local, rc=rc)
+      call diag_rof(is_local%wrap%FBExp(comprof), 'Fgrg_rofi'  , f_watr_ioff_glc, ic, areas, budget_local, rc=rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
     budget_local(f_heat_ioff,ic,ip) = -budget_local(f_watr_ioff,ic,ip)*shr_const_latice
+    budget_local(f_heat_ioff_glc,ic,ip) = -budget_local(f_watr_ioff_glc,ic,ip)*shr_const_latice
 
     call t_stopf('MED:'//subname)
   end subroutine med_phases_diag_rof
@@ -1067,15 +1081,15 @@ contains
 
     do ns = 1,is_local%wrap%num_icesheets
        areas => is_local%wrap%mesh_info(compglc(ns))%areas
-       call diag_glc(is_local%wrap%FBImp(compglc(ns),compglc(ns)), 'Fgrg_rofl', f_watr_roff, ic, areas, budget_local, minus=.true., rc=rc)
+       call diag_glc(is_local%wrap%FBImp(compglc(ns),compglc(ns)), 'Fgrg_rofl', f_watr_roff_glc, ic, areas, budget_local, minus=.true., rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call diag_glc(is_local%wrap%FBImp(compglc(ns),compglc(ns)), 'Fgrg_rofi', f_watr_ioff, ic, areas, budget_local, minus=.true., rc=rc)
+       call diag_glc(is_local%wrap%FBImp(compglc(ns),compglc(ns)), 'Fgrg_rofi', f_watr_ioff_glc, ic, areas, budget_local, minus=.true., rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call diag_glc(is_local%wrap%FBImp(compglc(ns),compglc(ns)), 'Figg_rofi', f_watr_ioff, ic, areas, budget_local, minus=.true., rc=rc)
+       call diag_glc(is_local%wrap%FBImp(compglc(ns),compglc(ns)), 'Figg_rofi', f_watr_ioff_glc, ic, areas, budget_local, minus=.true., rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end do
 
-    budget_local(f_heat_ioff,ic,ip) = -budget_local(f_watr_ioff,ic,ip)*shr_const_latice
+    budget_local(f_heat_ioff_glc,ic,ip) = -budget_local(f_watr_ioff_glc,ic,ip)*shr_const_latice
 
     call t_stopf('MED:'//subname)
   end subroutine med_phases_diag_glc
@@ -1255,40 +1269,44 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if ( fldbun_fldchk(is_local%wrap%FBExp(compocn), 'Forr_rofl_glc' , rc=rc)) then
-      call diag_ocn(is_local%wrap%FBExp(compocn), 'Forr_rofl_glc' , f_watr_roff   , ic, areas, sfrac, budget_local, rc=rc)
+      call diag_ocn(is_local%wrap%FBExp(compocn), 'Forr_rofl_glc' , f_watr_roff_glc, ic, areas, sfrac, budget_local, rc=rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
     if ( fldbun_fldchk(is_local%wrap%FBExp(compocn), 'Forr_rofi_glc' , rc=rc)) then
-      call diag_ocn(is_local%wrap%FBExp(compocn), 'Forr_rofi_glc' , f_watr_ioff   , ic, areas, sfrac, budget_local, rc=rc)
+      call diag_ocn(is_local%wrap%FBExp(compocn), 'Forr_rofi_glc' , f_watr_ioff_glc, ic, areas, sfrac, budget_local, rc=rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
     if (trim(budget_table_version) == 'v1') then
-       call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_hrain', f_heat_rain , ic, areas, sfrac, budget_local, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_hsnow', f_heat_snow , ic, areas, sfrac, budget_local, rc=rc)
-
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_hevap', f_heat_evap , ic, areas, sfrac, budget_local, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_hcond', f_heat_cond , ic, areas, sfrac, budget_local, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_hrofl', f_heat_rofl , ic, areas, sfrac, budget_local, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_hrofi', f_heat_rofi , ic, areas, sfrac, budget_local, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_hrain', f_heat_rain , ic, areas, sfrac, budget_local, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_hsnow', f_heat_snow , ic, areas, sfrac, budget_local, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_hevap', f_heat_evap , ic, areas, sfrac, budget_local, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_hcond', f_heat_cond , ic, areas, sfrac, budget_local, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_hrofl', f_heat_rofl , ic, areas, sfrac, budget_local, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_hrofl_glc', f_heat_rofl_glc , ic, areas, sfrac, budget_local, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_hrofi', f_heat_rofi , ic, areas, sfrac, budget_local, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      call diag_ocn(is_local%wrap%FBExp(compocn), 'Foxx_hrofi_glc', f_heat_rofi_glc , ic, areas, sfrac, budget_local, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
     if (trim(budget_table_version) == 'v2') then
-       ! f_heat_hmat to ocean is sum of contribution from two terms
-       call diag_ocn(is_local%wrap%FBExp(compocn), 'Faxa_hmat', f_heat_hmat , ic, areas, sfrac, budget_local, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call diag_ocn(is_local%wrap%FBExp(compocn), 'Faxa_hmat_oa', f_heat_hmat , ic, areas, sfrac, budget_local, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      ! f_heat_hmat to ocean is sum of contribution from two terms
+      call diag_ocn(is_local%wrap%FBExp(compocn), 'Faxa_hmat', f_heat_hmat , ic, areas, sfrac, budget_local, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      call diag_ocn(is_local%wrap%FBExp(compocn), 'Faxa_hmat_oa', f_heat_hmat , ic, areas, sfrac, budget_local, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
     budget_local(f_heat_latf,ic,ip) = -budget_local(f_watr_snow,ic,ip)*shr_const_latice
     budget_local(f_heat_ioff,ic,ip) = -budget_local(f_watr_ioff,ic,ip)*shr_const_latice
+    budget_local(f_heat_ioff_glc,ic,ip) = -budget_local(f_watr_ioff_glc,ic,ip)*shr_const_latice
 
     deallocate(sfrac)
     call t_stopf('MED:'//subname)
