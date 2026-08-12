@@ -8,13 +8,12 @@ module med_phases_prep_glc_mod
   use NUOPC                 , only : NUOPC_CompAttributeGet
   use NUOPC_Model           , only : NUOPC_ModelGet
   use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_FAILURE
-  use ESMF                  , only : ESMF_VM, ESMF_VMGet, ESMF_VMAllReduce, ESMF_REDUCE_SUM, ESMF_REDUCE_MAX
   use ESMF                  , only : ESMF_Clock, ESMF_ClockCreate, ESMF_ClockIsCreated
   use ESMF                  , only : ESMF_ClockGetAlarm, ESMF_ClockAdvance, ESMF_ClockGet
   use ESMF                  , only : ESMF_Time, ESMF_TimeGet
   use ESMF                  , only : ESMF_Alarm, ESMF_AlarmCreate, ESMF_AlarmSet, ESMF_AlarmGet
   use ESMF                  , only : ESMF_AlarmIsRinging, ESMF_AlarmRingerOff
-  use ESMF                  , only : ESMF_GridComp, ESMF_GridCompGet
+  use ESMF                  , only : ESMF_GridComp
   use ESMF                  , only : ESMF_FieldBundle, ESMF_FieldBundleGet, ESMF_FieldBundleAdd
   use ESMF                  , only : ESMF_FieldBundleCreate, ESMF_FieldBundleIsCreated
   use ESMF                  , only : ESMF_Field, ESMF_FieldGet, ESMF_FieldCreate
@@ -44,6 +43,7 @@ module med_phases_prep_glc_mod
   use med_methods_mod       , only : med_methods_FB_check_wtracers
   use med_field_info_mod    , only : med_field_info_type, med_field_info_array_from_state
   use med_utils_mod         , only : chkerr           => med_utils_ChkErr
+  use med_utils_mod         , only : med_global_sums
   use nuopc_shr_methods     , only : alarmInit
   use glc_elevclass_mod     , only : glc_get_num_elevation_classes
   use glc_elevclass_mod     , only : glc_get_elevation_classes
@@ -51,7 +51,6 @@ module med_phases_prep_glc_mod
   use wtracers_mod          , only : wtracers_present, wtracers_get_num_tracers, WTRACERS_SUFFIX
   use perf_mod              , only : t_startf, t_stopf
   use shr_log_mod           , only : shr_log_error
-  use shr_reprosum_mod      , only : shr_reprosum_calc
 
   implicit none
   private
@@ -66,7 +65,6 @@ module med_phases_prep_glc_mod
   private :: med_phases_prep_glc_renormalize_smb
   private :: renormalize_smb_compute_summands_l
   private :: renormalize_smb_compute_summands_g
-  private :: renormalize_smb_global_sums
   private :: renormalize_smb_do_renormalization
 
   ! -----------------
@@ -82,9 +80,6 @@ module med_phases_prep_glc_mod
   ! Should be set to true for 2-way coupled runs with evolving ice sheets.
   ! Does not need to be true for 1-way coupling.
   logical :: smb_renormalize
-
-  ! if true, compute global sums in a manner that is independent of processor count
-  logical :: bfbflag
 
   type(ESMF_FieldBundle), public :: FBlndAccum2glc_l
   integer               , public :: lndAccum2glc_cnt
@@ -156,7 +151,6 @@ contains
     type(ESMF_Mesh)     :: mesh_o
     type(ESMF_Field)    :: lfield
     character(len=CS)   :: glc_renormalize_smb
-    character(len=CS)   :: cvalue
     integer             :: ungriddedUBound_output(1) ! currently the size must equal 1 for rank 2 fieldds
     character(len=*),parameter  :: subname=' (med_phases_prep_glc_init) '
     !---------------------------------------
@@ -296,14 +290,6 @@ contains
        end select
        if (maintask) then
           write(logunit,'(a,l4)') trim(subname)//' smb_renormalize is ',smb_renormalize
-       end if
-
-       ! Determine whether to compute global sums in a processor-count-independent manner
-       call NUOPC_CompAttributeGet(gcomp, name='bfbflag', value=cvalue, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       read(cvalue,*) bfbflag
-       if (maintask) then
-          write(logunit,'(a,l4)') trim(subname)//' bfbflag is ',bfbflag
        end if
 
        if (smb_renormalize) then
@@ -1128,7 +1114,6 @@ contains
 
     ! local variables
     type(InternalState) :: is_local
-    type(ESMF_VM)       :: vm
     real(r8) , pointer  :: qice_g(:)       ! SMB (Flgl_qice) on glc grid without elev classes
     real(r8) , pointer  :: qice_l_ec(:,:)  ! SMB (Flgl_qice_elev) on land grid with elev classes
     real(r8) , pointer  :: qice_g_wtracers(:,:) ! SMB water tracers (Flgl_qice_wtracers) on glc grid without elev classes
@@ -1268,11 +1253,9 @@ contains
     deallocate(effective_area_l)
 
     ! determine global accum/ablat on the land grid
-    call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
+    call med_global_sums(gcomp, local_accum_lnd, global_accum_lnd, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call renormalize_smb_global_sums(vm, local_accum_lnd, global_accum_lnd, rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call renormalize_smb_global_sums(vm, local_ablat_lnd, global_ablat_lnd, rc)
+    call med_global_sums(gcomp, local_ablat_lnd, global_ablat_lnd, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     deallocate(local_accum_lnd)
     deallocate(local_ablat_lnd)
@@ -1314,9 +1297,9 @@ contains
     end if
 
     ! determine global accum/ablat on the glc grid
-    call renormalize_smb_global_sums(vm, local_accum_glc, global_accum_glc, rc)
+    call med_global_sums(gcomp, local_accum_glc, global_accum_glc, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call renormalize_smb_global_sums(vm, local_ablat_glc, global_ablat_glc, rc)
+    call med_global_sums(gcomp, local_ablat_glc, global_ablat_glc, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     deallocate(local_accum_glc)
     deallocate(local_ablat_glc)
@@ -1412,57 +1395,6 @@ contains
     end do
 
   end subroutine renormalize_smb_compute_summands_g
-
-  !================================================================================================
-  subroutine renormalize_smb_global_sums(vm, local_summands, global_sums, rc)
-
-    ! Compute global sums of the given local summands.
-    !
-    ! local_summands has dimensions [number of local grid cells, number of fields]; global_sums
-    ! has dimensions [number of fields].
-    !
-    ! If bfbflag is true, the sums are computed in a manner that is independent of processor
-    ! count; otherwise a cheaper, processor-count-dependent algorithm is used.
-
-    ! input/output variables
-    type(ESMF_VM)         :: vm
-    real(r8), intent(in)  :: local_summands(:,:)
-    real(r8), intent(out) :: global_sums(:)
-    integer , intent(out) :: rc
-
-    ! local variables
-    integer :: nsummands  ! number of local grid cells
-    integer :: nflds      ! number of fields
-    integer :: n, nf
-    integer :: mpicom     ! MPI communicator of this component
-    real(r8), allocatable :: local_sums(:)  ! local sums over grid cells, for each field
-    !---------------------------------------------------------------
-
-    rc = ESMF_SUCCESS
-
-    nsummands = size(local_summands, 1)
-    nflds = size(local_summands, 2)
-
-    if (bfbflag) then
-       call ESMF_VMGet(vm, mpiCommunicator=mpicom, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call shr_reprosum_calc(arr=local_summands, arr_gsum=global_sums, &
-            nsummands=nsummands, dsummands=nsummands, nflds=nflds, commid=mpicom)
-    else
-       allocate(local_sums(nflds))
-       do nf = 1, nflds
-          local_sums(nf) = 0.0_r8
-          do n = 1, nsummands
-             local_sums(nf) = local_sums(nf) + local_summands(n,nf)
-          end do
-       end do
-       call ESMF_VMAllreduce(vm, senddata=local_sums, recvdata=global_sums, count=nflds, &
-            reduceflag=ESMF_REDUCE_SUM, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       deallocate(local_sums)
-    end if
-
-  end subroutine renormalize_smb_global_sums
 
   !================================================================================================
   subroutine renormalize_smb_do_renormalization(global_accum_lnd, global_ablat_lnd, &
