@@ -14,6 +14,14 @@ module med_utils_mod
   character(*), parameter :: u_FILE_u = &
        __FILE__
 
+  ! med_global_sums is generic over the number of fields being summed: the 1fld version takes
+  ! summands for a single field and returns a scalar sum; the nflds version takes summands for
+  ! an arbitrary number of fields and returns an array of sums.
+  interface med_global_sums
+     module procedure med_global_sums_1fld
+     module procedure med_global_sums_nflds
+  end interface med_global_sums
+
 !===============================================================================
 contains
 !===============================================================================
@@ -103,7 +111,7 @@ contains
 
 !===============================================================================
 
-  subroutine med_global_sums(gcomp, local_summands, global_sums, rc)
+  subroutine med_global_sums_nflds(gcomp, local_summands, global_sums, rc)
 
     ! Compute global sums of the given local summands.
     !
@@ -141,7 +149,7 @@ contains
     logical           :: bfbflag    ! value of the bfbflag attribute
     real(r8) :: local_sums(size(local_summands, 2))  ! local sums over grid cells, for each field
 
-    character(len=*), parameter :: subname = '(med_global_sums)'
+    character(len=*), parameter :: subname = '(med_global_sums_nflds)'
     !---------------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -190,6 +198,42 @@ contains
        if (med_utils_ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
-  end subroutine med_global_sums
+  end subroutine med_global_sums_nflds
+
+!===============================================================================
+
+  subroutine med_global_sums_1fld(gcomp, local_summands, global_sum, rc)
+
+    ! Compute the global sum of the given local summands, for a single field.
+    !
+    ! This is a convenience wrapper around med_global_sums_nflds for the common case of a
+    ! single field; see that routine for details.
+
+    use ESMF , only : ESMF_GridComp, ESMF_SUCCESS
+
+    ! input/output variables
+    type(ESMF_GridComp), intent(in)  :: gcomp
+    real(r8)           , intent(in)  :: local_summands(:)
+    real(r8)           , intent(out) :: global_sum
+    integer            , intent(out) :: rc
+
+    ! local variables
+    ! Note that summands_2d is deliberately allocatable, rather than being an automatic array or
+    ! an inline reshape of local_summands: those would give an array temporary, which some
+    ! compilers place on the stack, and local_summands can be large (e.g., of order the number of
+    ! local grid cells).
+    real(r8), allocatable :: summands_2d(:,:)
+    real(r8)              :: global_sums(1)
+    !---------------------------------------------------------------
+
+    rc = ESMF_SUCCESS
+
+    allocate(summands_2d(size(local_summands), 1))
+    summands_2d(:,1) = local_summands(:)
+    call med_global_sums_nflds(gcomp, summands_2d, global_sums, rc)
+    if (med_utils_ChkErr(rc,__LINE__,u_FILE_u)) return
+    global_sum = global_sums(1)
+
+  end subroutine med_global_sums_1fld
 
 end module med_utils_mod
