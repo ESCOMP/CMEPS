@@ -878,19 +878,6 @@
     </values>
   </entry>
 
-  <entry id="bfbflag" modify_via_xml="BFBFLAG">
-    <type>logical</type>
-    <category>control</category>
-    <group>MED_attributes</group>
-    <desc>
-      If true, perform CMEPS calculations such as global sums in a manner that is
-      bit-for-bit independent of processor count
-    </desc>
-    <values>
-      <value>$BFBFLAG</value>
-    </values>
-  </entry>
-
   <entry id="dbug_flag">
     <type>integer</type>
     <category>expdef</category>
@@ -2676,6 +2663,25 @@
    <values>
       <value></value>
    </values>
+  </entry>
+
+    <!-- Note: the reprosum_* attributes above are DRIVER_attributes, since they configure
+         shr_reprosum_mod itself, which is done in the driver. bfbflag is in
+         ALLCOMP_attributes because it is read by multiple components that perform global
+         sums. -->
+  <entry id="bfbflag" modify_via_xml="BFBFLAG">
+    <type>logical</type>
+    <category>reprosum</category>
+    <group>ALLCOMP_attributes</group>
+    <desc>
+      If true, perform some calculations (in CMEPS and elsewhere) such as global sums in a
+      manner that is bit-for-bit independent of processor count.
+      (This does NOT guarantee that all calculations throughout the model are bit-for-bit
+      independent of processor count.)
+    </desc>
+    <values>
+      <value>$BFBFLAG</value>
+    </values>
   </entry>
 
   <!-- =========================== -->

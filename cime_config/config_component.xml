@@ -1113,7 +1113,12 @@
     <default_value>FALSE</default_value>
     <group>run_flags</group>
     <file>env_run.xml</file>
-    <desc>If TRUE, perform CMEPS calculations such as global sums in a manner that is bit-for-bit independent of processor count</desc>
+    <desc>
+      If TRUE, perform some calculations (in CMEPS and elsewhere) such as global sums in a
+      manner that is bit-for-bit independent of processor count.
+      (This does NOT guarantee that all calculations throughout the model are bit-for-bit
+      independent of processor count.)
+    </desc>
   </entry>
 
   <!-- ===================================================================== -->
