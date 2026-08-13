@@ -347,7 +347,7 @@
     <category>nuopc</category>
     <group>ALLCOMP_attributes</group>
     <values>
-      <value>cmeps</value>
+      <value cime_model="cesm">cesm</value>
     </values>
   </entry>
   <entry id="mesh_mask" modify_via_xml="MASK_MESH">
@@ -605,7 +605,8 @@
       .true. if ocean sends fields at multiple ocean levels to the land-ice component
     </desc>
     <values>
-      <value>.false.</value>
+      <value ocn_multilev=".false.">.false.</value>
+      <value ocn_multilev=".true.">.true.</value>
     </values>
   </entry>
 
@@ -658,6 +659,26 @@
       <value>.true.</value>
       <value atm_grid="T62">.false.</value>
       <value atm_grid="TL319">.false.</value>
+    </values>
+  </entry>
+
+  <!-- =========================================== -->
+  <!-- All components enthalpy computation         -->
+  <!-- =========================================== -->
+
+  <entry id="component_computes_enthalpy_flux">
+    <type>char</type>
+    <category>control</category>
+    <group>ALLCOMP_attributes</group>
+    <valid_values>none,atm,med</valid_values>
+    <desc>
+    if none, no enthaply flux is computed to send to the ocean,
+    if atm, the atm (in this case cam) computes enthalpy to send to the ocn (in this case BLOM)
+    if med, the mediator computes computes enthalpy to send to the ocn (in this case MOM6)
+    </desc>
+    <values>
+      <value>none</value>
+      <value comp_ocn="mom6" comp_atm="cam">med</value>
     </values>
   </entry>
 
@@ -913,6 +934,20 @@
     </values>
   </entry>
 
+  <entry id="ocean_albedo_scheme">
+    <type>integer</type>
+    <category>control</category>
+    <group>MED_attributes</group>
+    <desc>
+      Ocean albedo scheme
+      0 : Briegleb et al. (1986)
+      1 : Taylor et al. (1996)
+    </desc>
+    <values>
+      <value>1</value>
+    </values>
+  </entry>
+
   <entry id="aoflux_grid">
     <type>char</type>
     <category>mapping</category>
@@ -943,6 +978,7 @@
     </desc>
     <values>
       <value>0</value>
+      <value COMP_OCN="blom" COMP_ATM="cam">1</value>
     </values>
   </entry>
   <entry id="aofluxes_use_shr_wv_sat">
@@ -956,8 +992,8 @@
       (Currently only relevant for ocn_surface_flux_scheme = 0 or 1.)
     </desc>
     <values>
-      <value>.true.</value>
       <value coupling_mode="noresm">.false.</value>
+      <value coupling_mode="cesm">.true.</value>
     </values>
   </entry>
   <entry id="add_gusts">
@@ -990,14 +1026,13 @@
     <type>char</type>
     <category>budget</category>
     <group>MED_attributes</group>
-    <valid_values>v0,v1</valid_values>
+    <valid_values>v0,v1,v2</valid_values>
     <desc>
-      currently v0 refers to budgets using POP and v1 refers to budgets using MOM6
+      currently v0 refers to budgets using BLOM and v1 refers to budgets using MOM6
     </desc>
     <values>
       <value>v0</value>
       <value comp_ocn="mom">v1</value>
-      <value comp_ocn="pop">v0</value>
     </values>
   </entry>
 
@@ -1805,7 +1840,71 @@
     </values>
   </entry>
 
-  
+  <!-- MED histaux lnd2med file 1 - all fields from land with instantaneous output-->
+  <entry id="histaux_lnd2med_file2_enabled">
+    <type>logical</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>Auxiliary mediator l2x fields every lnd coupling interval</desc>
+    <values>
+      <value>.false.</value>
+    </values>
+  </entry>
+  <entry id="histaux_lnd2med_file2_flds">
+    <type>char</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>Auxiliary mediator lnd2med output every lnd coupling interval</desc>
+    <values>
+      <value>'Flrl_rofsur:Flrl_rofi:Flrl_rofgwl:Flrl_rofsub'</value>
+    </values>
+  </entry>
+  <entry id="histaux_lnd2med_file2_history_option">
+    <type>char</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>history option type</desc>
+    <values>
+      <value>ndays</value>
+    </values>
+  </entry>
+  <entry id="histaux_lnd2med_file2_history_n">
+    <type>integer</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>history option type</desc>
+    <values>
+      <value>1</value>
+    </values>
+  </entry>
+  <entry id="histaux_lnd2med_file2_doavg">
+    <type>logical</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>If true, use time average for aux file output.</desc>
+    <values>
+      <value>.true.</value>
+    </values>
+  </entry>
+  <entry id="histaux_lnd2med_file2_ntperfile">
+    <type>integer</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>Number of time samples per file.</desc>
+    <values>
+      <value>365</value>
+    </values>
+  </entry>
+  <entry id="histaux_lnd2med_file2_auxname">
+    <type>char</type>
+    <category>aux_hist</category>
+    <group>MED_attributes</group>
+    <desc>Auxiliary name identifier in history name</desc>
+    <values>
+      <value>lnd2rof.24hr.avg</value>
+    </values>
+  </entry>
+
   <!-- MED histaux lnd2med accumulated fields from land needed as glc input specially treated-->
   <!-- note that the following is ALLCOMP attributes since CTSM needs access to this variable to determine -->
   <!-- if it needs to send lnd->glc data to the mediator even if there is no glc -->
@@ -1815,7 +1914,8 @@
     <group>ALLCOMP_attributes</group>
     <desc>Auxiliary mediator lnd2med fields every year</desc>
     <values>
-      <value>.false.</value>
+      <value set_histaux_l2x1yrg=".true." >.true.</value>
+      <value set_histaux_l2x1yrg=".false.">.false.</value>
     </values>
   </entry>
 
@@ -2124,7 +2224,7 @@
     <category>aux_hist</category>
     <group>MED_attributes</group>
     <values>
-      <value></value>
+      <value>""</value>
       <value coupling_mode="noresm" COMP_WAV="ww3">Sw_hs_avg:Sw_Tm1_avg:Sw_thm_avg:Sw_u_avg:Sw_v_avg:Sw_ustokes_avg:Sw_vstokes_avg:Sw_tusx_avg:Sw_tusy_avg:Sw_thp0_avg:Sw_fp0_avg:Sw_phs0_avg:Sw_phs1_avg:Sw_pdir0_avg:Sw_pdir1_avg:Sw_pTm10_avg:Sw_pTm11_avg</value>
       <value coupling_mode="cesm" COMP_WAV='ww3'>Sw_Hs:Sw_t01:Sw_t0m1:Sw_thm:Sw_lamult:Sw_ustokes:Sw_vstokes</value>
     </values>
@@ -2268,10 +2368,7 @@
     <category>mapping</category>
     <input_pathname>abs</input_pathname>
     <group>MED_attributes</group>
-    <desc>lnd2rof flux (conservative) mapping file; 'unset' or 'idmap' are normal possible values. (This mapping file is used for both
-    consd and consf mappings; as discussed in https://github.com/ESCOMP/CMEPS/issues/408, the results of these two mappings are the
-    same within roundoff in CMEPS due to the normalization that is done when applying the mapping weights. For simplicity, and because
-    land mesh files generally don't have a mask, this mapping file should be generated with '--norm_type dstarea'.)</desc>
+    <desc>lnd to rof mapping, 'unset' or 'idmap' are normal possible values (mapping file given for mizuRoute grids)</desc>
     <values>
       <value>$LND2ROF_FMAPNAME</value>
       <value samegrid_lnd_rof='true'>idmap</value>
@@ -2421,10 +2518,9 @@
     <category>expdef</category>
     <group>ALLCOMP_attributes</group>
     <desc>
-      index of scalar containing epbal precipitation factor from ocn (only for POP)
+      index of scalar containing epbal precipitation factor from ocn (only for BLOM)
     </desc>
     <values>
-      <value COMP_OCN="pop">4</value>
       <value COMP_OCN="blom">4</value>
       <value>0</value>
     </values>
@@ -2645,22 +2741,6 @@
    </desc>
    <values>
       <value>.false.</value>
-   </values>
-  </entry>
-
-  <entry id="water_tracers_variables_not_checked">
-   <type>char</type>
-   <category>water_tracers</category>
-   <group>ALLCOMP_attributes</group>
-   <desc>
-      Colon-delimited list of variables for which water tracer consistency checks should be skipped.
-
-      Each entry must match the variable name passed to shr_wtracers_check_tracer_ratios.
-      For checks of mediator fields, these are of the form FieldBundleName%FieldName.
-      For example: "FBImpatm%Sa_shum_wtracers:FBExprof%Flrl_irrig_wtracers".
-   </desc>
-   <values>
-      <value></value>
    </values>
   </entry>
 
@@ -4018,6 +4098,18 @@
     </desc>
     <values>
       <value>$ICE_DOMAIN_MESH</value>
+    </values>
+  </entry>
+  <entry id="eps_imesh">
+    <type>real</type>
+    <category>mapping</category>
+    <group>ICE_attributes</group>
+    <desc>
+      Maximum allowed mesh error
+    </desc>
+    <values>
+      <value>0.1</value>
+      <value ocn_grid="tnx2v1">0.15</value>
     </values>
   </entry>
 

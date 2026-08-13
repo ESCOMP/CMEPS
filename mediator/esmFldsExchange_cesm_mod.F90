@@ -64,6 +64,7 @@ module esmFldsExchange_cesm_mod
   use med_internalstate_mod , only : mrg_fracname_lnd2rof, map_fracname_lnd2rof
   use med_internalstate_mod , only : mrg_fracname_lnd2glc, map_fracname_lnd2glc
   use med_utils_mod         , only : chkerr => med_utils_chkerr
+  use med_internalstate_mod , only : coupling_mode
   use shr_log_mod           , only : shr_log_error
   use wtracers_mod          , only : wtracers_present
   use wtracers_mod          , only : WTRACERS_SUFFIX
@@ -1210,6 +1211,17 @@ contains
              end if
           end if
        end if
+       if (trim(coupling_mode) == 'noresm') then
+          if (phase == 'advertise') then
+             call addfld_to(compatm, 'Faox_evap'//trim(suffix))
+          else
+             if (fldchk(is_local%wrap%FBexp(compatm), 'Faox_evap'//trim(suffix), rc=rc)) then
+                ! unmerged aoflux-only for correct hevap to ocean in cam_out
+                call addmrg_to(compatm, 'Faox_evap'//trim(suffix), &
+                     mrg_from=compmed, mrg_fld='Faox_evap'//trim(suffix), mrg_type='copy')
+             end if
+          end if
+       end if
     end do
 
     if (phase == 'advertise') then
@@ -1731,22 +1743,39 @@ contains
        end if
     end if
     ! ---------------------------------------------------------------------
-    ! to ocn: merged longwave net heat flux
+    ! to ocn: merged longwave net heat flux (cesm)
     ! ---------------------------------------------------------------------
-    if (phase == 'advertise') then
-       call addfld_from(compatm , 'Faxa_lwdn')
-       call addfld_aoflux('Faox_lwup' )
-       call addfld_to(compocn , 'Foxx_lwnet')
-    else
-       ! (mom6) (send longwave net to ocn via auto merge)
-       if ( fldchk(is_local%wrap%FBExp(compocn)        , 'Foxx_lwnet', rc=rc) .and. &
-            fldchk(is_local%wrap%FBMed_aoflux_o        , 'Faox_lwup' , rc=rc) .and. &
-            fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_lwdn' , rc=rc)) then
-          call addmap_from(compatm, 'Faxa_lwdn', compocn, mapconsf, 'one'  , atm2ocn_map)
-          call addmrg_to(compocn, 'Foxx_lwnet', &
-               mrg_from=compmed, mrg_fld='Faox_lwup', mrg_type='merge', mrg_fracname='ofrac')
-          call addmrg_to(compocn, 'Foxx_lwnet', &
-               mrg_from=compatm, mrg_fld='Faxa_lwdn', mrg_type='merge', mrg_fracname='ofrac')
+    if (trim(coupling_mode) == 'cesm') then
+       if (phase == 'advertise') then
+          call addfld_from(compatm , 'Faxa_lwdn')
+          call addfld_aoflux('Faox_lwup' )
+          call addfld_to(compocn , 'Foxx_lwnet')
+       else
+          ! (mom6) (send longwave net to ocn via auto merge)
+          if ( fldchk(is_local%wrap%FBExp(compocn)        , 'Foxx_lwnet', rc=rc) .and. &
+               fldchk(is_local%wrap%FBMed_aoflux_o        , 'Faox_lwup' , rc=rc) .and. &
+               fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_lwdn' , rc=rc)) then
+             call addmap_from(compatm, 'Faxa_lwdn', compocn, mapconsf, 'one'  , atm2ocn_map)
+             call addmrg_to(compocn, 'Foxx_lwnet', &
+                  mrg_from=compmed, mrg_fld='Faox_lwup', mrg_type='merge', mrg_fracname='ofrac')
+             call addmrg_to(compocn, 'Foxx_lwnet', &
+                  mrg_from=compatm, mrg_fld='Faxa_lwdn', mrg_type='merge', mrg_fracname='ofrac')
+          end if
+       end if
+    end if
+    ! ---------------------------------------------------------------------
+    ! to ocn: longwave down from atm (noresm)
+    ! ---------------------------------------------------------------------
+    if (trim(coupling_mode) == 'noresm') then
+       if (phase == 'advertise') then
+          call addfld_from(compatm, 'Faxa_lwdn')
+          call addfld_to(complnd, 'Faxa_lwdn')
+       else
+          if ( fldchk(is_local%wrap%FBexp(complnd)         , 'Faxa_lwdn', rc=rc) .and. &
+               fldchk(is_local%wrap%FBImp(compatm,compatm ), 'Faxa_lwdn', rc=rc)) then
+             call addmap_from(compatm, 'Faxa_lwdn', complnd, mapconsf, 'one', atm2lnd_map)
+             call addmrg_to(complnd, 'Faxa_lwdn', mrg_from=compatm, mrg_fld='Faxa_lwdn', mrg_type='copy')
+          end if
        end if
     end if
     ! ---------------------------------------------------------------------
@@ -1763,6 +1792,35 @@ contains
                mrg_from=compatm, mrg_fld='Faxa_swdn', mrg_type='copy')
        end if
     end if
+    !----------------------------------------------------------------------
+    ! to ocn: downward material enthalpy flux from atm
+    ! ---------------------------------------------------------------------
+    if (trim(coupling_mode) == 'noresm') then
+       if (phase == 'advertise') then
+          call addfld_from(compatm, 'Faxa_hmat')
+          call addfld_to  (compocn, 'Faxa_hmat')
+          call addfld_to  (compocn, 'Faxa_hmat_oa') ! handled in prep_ocn
+          call addfld_from(compatm, 'Faxa_hlat')
+          call addfld_to  (compocn, 'Faxa_hlat')
+          call addfld_to  (compatm, 'Faxx_hrof')   ! enthalpy of runoff, computed in med_phases_prep_ocn
+       else
+          if (fldchk(is_local%wrap%FBImp(compatm, compatm), 'Faxa_hmat', rc=rc) .and. &
+               fldchk(is_local%wrap%FBExp(compocn)         , 'Faxa_hmat', rc=rc)) then
+             call addmap_from(compatm, 'Faxa_hmat', compocn, mapconsf, 'one', atm2ocn_map)
+             call addmrg_to  (compocn, 'Faxa_hmat', mrg_from=compatm ,mrg_fld='Faxa_hmat' &
+                  , mrg_type='copy_with_weights', mrg_fracname='ofrac')
+          end if
+          if (fldchk(is_local%wrap%FBImp(compatm, compatm), 'Faxa_hlat', rc=rc) .and. &
+               fldchk(is_local%wrap%FBExp(compocn)         , 'Faxa_hlat', rc=rc)) then
+             call addmap_from(compatm, 'Faxa_hlat', compocn, mapconsf, 'one', atm2ocn_map)
+             call addmrg_to  (compocn, 'Faxa_hlat', mrg_from=compatm ,mrg_fld='Faxa_hlat' &
+                  , mrg_type='copy_with_weights', mrg_fracname='ofrac')
+          end if
+          !if (fldchk(is_local%wrap%FBExp(compatm),'Faxx_hrof', rc=rc)) &
+          !   call addmap_from(compocn, 'Faxx_hrof', compatm, mapconsf, 'one', atm2ocn_map)
+       end if
+    end if
+
     ! ---------------------------------------------------------------------
     ! to ocn: net shortwave radiation from med
     ! ---------------------------------------------------------------------
@@ -1803,15 +1861,15 @@ contains
        end if
 
        ! import sw from atm by bands
-       if ( fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_swvdr', rc=rc) .and. &
+       if ((fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_swvdr', rc=rc) .and. &
             fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_swvdf', rc=rc) .and. &
             fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_swndr', rc=rc) .and. &
             fldchk(is_local%wrap%FBImp(compatm,compatm), 'Faxa_swndr', rc=rc) .and. &
-            (fldchk(is_local%wrap%FBExp(compocn), 'Foxx_swnet'    , rc=rc)) .or. &
-            (fldchk(is_local%wrap%FBExp(compocn), 'Foxx_swnet_vdr', rc=rc) .and. &
-             fldchk(is_local%wrap%FBExp(compocn), 'Foxx_swnet_vdf', rc=rc) .and. &
-             fldchk(is_local%wrap%FBExp(compocn), 'Foxx_swnet_idr', rc=rc) .and. &
-             fldchk(is_local%wrap%FBExp(compocn), 'Foxx_swnet_idf', rc=rc))) then
+            fldchk(is_local%wrap%FBExp(compocn)        , 'Foxx_swnet', rc=rc)) .or. &
+           (fldchk(is_local%wrap%FBExp(compocn), 'Foxx_swnet_vdr', rc=rc) .and. &
+            fldchk(is_local%wrap%FBExp(compocn), 'Foxx_swnet_vdf', rc=rc) .and. &
+            fldchk(is_local%wrap%FBExp(compocn), 'Foxx_swnet_idr', rc=rc) .and. &
+            fldchk(is_local%wrap%FBExp(compocn), 'Foxx_swnet_idf', rc=rc))) then
           call addmap_from(compatm, 'Faxa_swvdr', compocn, mapconsf, 'one', atm2ocn_map)
           call addmap_from(compatm, 'Faxa_swvdf', compocn, mapconsf, 'one', atm2ocn_map)
           call addmap_from(compatm, 'Faxa_swndr', compocn, mapconsf, 'one', atm2ocn_map)
@@ -2210,6 +2268,23 @@ contains
     ! to ocn: waterflux back to ocn due to flooding from rof
     !-----------------------------
 
+    if (trim(coupling_mode) == 'noresm') then
+       if (phase == 'advertise') then
+          call addfld_from(comprof, 'Forr_rofl_nonh2o')
+          call addfld_to(compocn, 'Forr_rofl_nonh2o')
+       else
+          if (fldchk(is_local%wrap%FBImp(comprof, comprof), 'Forr_rofl_nonh2o' , rc=rc)) then
+             if ( fldchk(is_local%wrap%FBExp(compocn), 'Forr_rofl_nonh2o' , rc=rc)) then
+                if (trim(rof2ocn_liq_rmap) == 'unset') then
+                   call addmap_from(comprof, 'Forr_rofl_nonh2o', compocn, mapconsd, 'one', 'unset')
+                else
+                   call addmap_from(comprof, 'Forr_rofl_nonh2o', compocn, map_rof2ocn_liq, 'none', rof2ocn_liq_rmap)
+                end if
+             end if
+          end if
+       end if
+    end if
+
     do water_bulk_or_tracers_index = 1, water_bulk_or_tracers_max
        call set_suffix_for_water_bulk_or_tracers(water_bulk_or_tracers_index, suffix, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -2335,11 +2410,22 @@ contains
        call addfld_from(compwav, 'Sw_Tm1_avg')
        call addfld_from(compwav, 'Sw_thm_avg')
        call addfld_from(compwav, 'Sw_thp0_avg')
+       call addfld_from(compwav, 'Sw_faw_avg')
        call addfld_from(compwav, 'Sw_fp0_avg')
        call addfld_from(compwav, 'Sw_u_avg')
        call addfld_from(compwav, 'Sw_v_avg')
+       call addfld_from(compwav, 'Sw_cu_avg')
+       call addfld_from(compwav, 'Sw_cv_avg')
        call addfld_from(compwav, 'Sw_tusx_avg')
        call addfld_from(compwav, 'Sw_tusy_avg')
+       call addfld_from(compwav, 'Sw_lamult_avg')
+       call addfld_from(compwav, 'Sw_charn_avg')
+       call addfld_from(compwav, 'Sw_tm02_avg')
+       call addfld_from(compwav, 'Sw_foc_avg')
+       call addfld_from(compwav, 'Sw_ifrac_avg')
+       call addfld_from(compwav, 'Sw_thick_avg')
+       call addfld_from(compwav, 'Sw_tauicex_avg')
+       call addfld_from(compwav, 'Sw_tauicey_avg')
     end if
 
     !-----------------------------
@@ -2394,7 +2480,7 @@ contains
             call addmap_from(compwav, 'Sw_t0m1', compocn,  mapbilnr_nstod, 'one', wav2ocn_map)
             call addmrg_to(compocn, 'Sw_t0m1', mrg_from=compwav, mrg_fld='Sw_t0m1', mrg_type='copy')
          end if
-      end if    
+      end if
       !-----------------------------
       ! to ocn:
       !-----------------------------
@@ -2407,7 +2493,7 @@ contains
             call addmap_from(compwav, 'Sw_t01', compocn,  mapbilnr_nstod, 'one', wav2ocn_map)
             call addmrg_to(compocn, 'Sw_t01', mrg_from=compwav, mrg_fld='Sw_t01', mrg_type='copy')
          end if
-      end if      
+      end if
       !-----------------------------
       ! to ocn:
       !-----------------------------
@@ -2420,7 +2506,7 @@ contains
             call addmap_from(compwav, 'Sw_thm', compocn,  mapbilnr_nstod, 'one', wav2ocn_map)
             call addmrg_to(compocn, 'Sw_thm', mrg_from=compwav, mrg_fld='Sw_thm', mrg_type='copy')
          end if
-      end if      
+      end if
       !-----------------------------
       ! to ocn:
       !-----------------------------
@@ -3327,6 +3413,23 @@ contains
           end if
        end if
     end do
+
+    ! ---------------------------------------------------------------------
+    ! to rof: non-water flux(es) from land (liquid surface)
+    ! ---------------------------------------------------------------------
+    if (trim(coupling_mode) == 'noresm') then
+       if (phase == 'advertise') then
+          call addfld_from(complnd, 'Flrl_rofsur_nonh2o')
+          call addfld_to(comprof, 'Flrl_rofsur_nonh2o')
+       else
+          if ( fldchk(is_local%wrap%FBImp(complnd, complnd), 'Flrl_rofsur_nonh2o', rc=rc) .and. &
+               fldchk(is_local%wrap%FBExp(comprof)         , 'Flrl_rofsur_nonh2o', rc=rc)) then
+             call addmap_from(complnd, 'Flrl_rofsur_nonh2o', comprof, mapconsf, map_fracname_lnd2rof, lnd2rof_map)
+             call addmrg_to(comprof, 'Flrl_rofsur_nonh2o', &
+                  mrg_from=complnd, mrg_fld='Flrl_rofsur_nonh2o', mrg_type='copy_with_weights', mrg_fracname=mrg_fracname_lnd2rof)
+          end if
+       end if
+    end if
 
     ! ---------------------------------------------------------------------
     ! to rof: water flux from land (ice surface)
