@@ -738,12 +738,12 @@
     Must be explicitly set in env_build.xml for userdefined machine.</desc>
   </entry>
 
-  <entry id="CALENDAR">
+  <entry id="CALENDAR" lock_on_restart="true">
     <type>char</type>
     <valid_values>NO_LEAP,GREGORIAN</valid_values>
     <default_value>NO_LEAP</default_value>
-    <group>build_def</group>
-    <file>env_build.xml</file>
+    <group>run_begin_stop_restart</group>
+    <file>env_run.xml</file>
     <desc>calendar type</desc>
   </entry>
 
