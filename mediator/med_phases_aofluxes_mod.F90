@@ -908,7 +908,7 @@ contains
     call ESMF_FieldRegridStore(xgrid, field_a, field_x, routehandle=rh_agrid2xgrid_2ndord, &
          regridmethod=ESMF_REGRIDMETHOD_CONSERVE_2ND, srcTermProcessing=srcTermProcessing_Value, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (trim(coupling_mode) == 'cesm') then
+    if (trim(coupling_mode) == 'cesm' .or. trim(coupling_mode) == 'noresm') then
        call ESMF_FieldRegridStore(field_a, field_x, routehandle=rh_agrid2xgrid_bilinr, &
             regridmethod=ESMF_REGRIDMETHOD_BILINEAR, dstMaskValues=(/0/), &
             srcTermProcessing=srcTermProcessing_Value, rc=rc)
@@ -1306,7 +1306,7 @@ contains
 
        ! Map atm->xgrid
        if (trim(fldnames_atm_in(nf)) == 'Sa_u' .or. (trim(fldnames_atm_in(nf)) == 'Sa_v')) then
-          if (trim(coupling_mode) == 'cesm') then
+          if (trim(coupling_mode) == 'cesm' .or. trim(coupling_mode) == 'noresm') then
              call ESMF_FieldRegrid(field_src, field_dst, routehandle=rh_agrid2xgrid_patch, &
                   termorderflag=ESMF_TERMORDER_SRCSEQ, zeroregion=ESMF_REGION_TOTAL, rc=rc)
           else
@@ -1315,7 +1315,7 @@ contains
           end if
           if (chkerr(rc,__LINE__,u_FILE_u)) return
        else
-          if (trim(coupling_mode) == 'cesm') then
+          if (trim(coupling_mode) == 'cesm' .or. trim(coupling_mode) == 'noresm') then
              call ESMF_FieldRegrid(field_src, field_dst, routehandle=rh_agrid2xgrid_bilinr, &
                   termorderflag=ESMF_TERMORDER_SRCSEQ, zeroregion=ESMF_REGION_TOTAL, rc=rc)
           else
@@ -1648,11 +1648,11 @@ end subroutine med_aofluxes_map_ogrid2xgrid_input
     end if
 
     ! The following conditional captures the cases where aoflux_in%psfc is needed in calls
-    ! to flux_atmocn / flux_atmocn_ccpp. Note that coupling_mode=='cesm' is equivalent to
+    ! to flux_atmocn / flux_atmocn_ccpp. Note that coupling_mode==['cesm','noresm] is equivalent to
     ! the CESMCOUPLED CPP token, and coupling_mode(1:3)=='ufs' is roughly equivalent to
     ! the UFS_AOFLUX CPP token (noting that we should only be in this subroutine if using
     ! one of the aoflux variants of the ufs coupling_mode).
-    if ((trim(coupling_mode) == 'cesm') .or. &
+    if ( (trim(coupling_mode) == 'cesm' .or. trim(coupling_mode) == 'noresm') .or. &
          (coupling_mode(1:3) == 'ufs' .and. trim(aoflux_code) == 'ccpp')) then
        call fldbun_getfldptr(fldbun_a, 'Sa_pslv', aoflux_in%psfc, xgrid=xgrid, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
