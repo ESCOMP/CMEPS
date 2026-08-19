@@ -1340,68 +1340,113 @@
      #
      - standard_name: Sw_ustokes_avg
        canonical_units: m/s
-       description: Daily averaged stokes drift u component (only needed for med history output)
+       description: Daily averaged stokes drift u component (only needed for mediator history output)
      #
      - standard_name: Sw_vstokes_avg
        canonical_units: m/s
-       description: Daily averaged stokes drift v component (only needed for med history output)
+       description: Daily averaged stokes drift v component (only needed for mediator history output)
      #
      - standard_name: Sw_hs_avg
        canonical_units: m
-       description: Daily averaged significant wave hight (only needed for med history output)
+       description: Daily averaged significant wave hight (only needed for mediator history output)
      #
      - standard_name: Sw_phs0_avg
        canonical_units: m
-       description: Daily averaged averaged wind sea swh (only needed for med history output)
+       description: Daily averaged averaged wind sea swh (only needed for mediator history output)
      #
      - standard_name: Sw_phs1_avg
        canonical_units: m
-       description: Daily averaged swell swh (only needed for med history output)
+       description: Daily averaged swell swh (only needed for mediator history output)
      #
      - standard_name: Sw_pdir0_avg
        canonical_units: degrees
-       description: Daily averaged wind sea swh (only needed for med history output)
+       description: Daily averaged wind sea swh (only needed for mediator history output)
      #
      - standard_name: Sw_pdir1_avg
        canonical_units: degrees
-       description: Daily averaged swell swh (only needed for med history output)
+       description: Daily averaged swell swh (only needed for mediator history output)
      #
      - standard_name: Sw_pTm10_avg
        canonical_units: s
-       description: Daily averaged wind sea mean wave Tm1 period (only needed for med history output)
+       description: Daily averaged wind sea mean wave Tm1 period (only needed for mediator history output)
      #
      - standard_name: Sw_pTm11_avg
        canonical_units: s
-       description: Daily average swell mean wave Tm1 period (only needed for med history output)
+       description: Daily average swell mean wave Tm1 period (only needed for mediator history output)
      #
      - standard_name: Sw_Tm1_avg
        canonical_units: s
-       description: Daily averaged mean wave period of the first moment (only needed for med history output)
+       description: Daily averaged mean wave period of the first moment (only needed for mediator history output)
      #
      - standard_name: Sw_thm_avg
        canonical_units: degrees
-       description: Daily averaged mean wave direction (only needed for med history output)
+       description: Daily averaged mean wave direction (only needed for mediator history output)
      #
      - standard_name: Sw_thp0_avg
        canonical_units: degrees
-       description: Daily averaged peak wave direction (only needed for med history output)
+       description: Daily averaged peak wave direction (only needed for mediator history output)
      #
      - standard_name: Sw_fp0_avg
        canonical_units: 1/s
-       description: Daily averaged peak wave frequency (only needed for med history output)
+       description: Daily averaged peak wave frequency (only needed for mediator history output)
      #
      - standard_name: Sw_u_avg
        canonical_units: m/s
-       description: Daily averaged surface wind zonal (only needed for med history output)
+       description: Daily averaged surface wind zonal (only needed for mediator history output)
      #
      - standard_name: Sw_v_avg
        canonical_units: m/s
-       description: Daily averaged surface wind meridional (only needed for med history output)
+       description: Daily averaged surface wind meridional (only needed for mediator history output)
+     #
+     - standard_name: Sw_cu_avg
+       canonical_units: m/s
+       description: Daily averaged surface zonal current(only needed for mediator history output)
+     #
+     - standard_name: Sw_cv_avg
+       canonical_units: m/s
+       description: Daily averaged surface meridional current (only needed for mediator history output)
      #
      - standard_name: Sw_tusx_avg
        canonical_units: m2/s
-       description: Daily averaged stokes zonal transport vector (only needed for med history output)
+       description: Daily averaged stokes zonal transport vector (only needed for mediator history output)
      #
      - standard_name: Sw_tusy_avg
        canonical_units: m2/s
-       description: Daily averaged stokes meridional transport vector (only needed for med history output)
+       description: Daily averaged stokes meridional transport vector (only needed for mediator history output)
+      #
+     - standard_name: Sw_lamult_avg
+       canonical_units: 1
+       description: Daily averaged Langmuir number (only needed for mediator history output)
+      #
+     - standard_name: Sw_charn_avg
+       canonical_units: 1
+       description: Daily averaged Charnock parameter (only needed for mediator history output)
+     #
+     - standard_name: Sw_tm02_avg
+       canonical_units: s
+       alias: Total_m2-period
+       description: Daily averaged mean wave period of the second moment (only needed for mediator history output)
+     #
+     - standard_name: Sw_foc_avg
+       canonical_units: W/m3
+       description: Daily averaged wave to ocean energy flux (only needed for mediator history output)
+     #
+     - standard_name: Sw_faw_avg
+       canonical_units: W/m3
+       description: Daily averaged wind to wave energy flux (only needed for mediator history output)
+     #
+     - standard_name: Sw_ifrac_avg
+       canonical_units: 1
+       description: Daily averaged sea ice concentration  (only needed for mediator history output)
+     #
+     - standard_name: Sw_thick_avg
+       canonical_units: m
+       description: Daily averaged sea ice thickness (only needed for mediator history output)
+     #
+     - standard_name: Sw_tauicex_avg
+       canonical_units: m2/s2
+       description: Daily averaged x component of momentum flux to sea ice  (only needed for mediator history output)
+     #
+     - standard_name: Sw_tauicey_avg
+       canonical_units: m2/s2
+       description: Daily averaged y component of momentum flux to sea ice (only needed for mediator history output)
