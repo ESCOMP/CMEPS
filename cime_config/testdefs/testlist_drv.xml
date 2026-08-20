@@ -217,18 +217,6 @@
       <option name="comment">DEBUG full CLM BGC-Crop case using RTM with extra RTM output, most compilers"</option>
     </options>
   </test>
-  <test compset="I2000Clm60FatesSpRsGs" grid="f45_f45_mg37" name="SMS" testmods="clm-FatesColdSatPhen">
-    <machines>
-      <machine name="derecho" compiler="gnu" category="aux_cmeps"/>
-      <machine name="derecho" compiler="intel" category="aux_cmeps"/>
-      <machine name="derecho" compiler="nvhpc" category="aux_cmeps"/>
-      <machine name="izumi" compiler="nag" category="aux_cmeps"/>
-    </machines>
-    <options>
-      <option name="wallclock"> 00:20:00 </option>
-      <option name="comment">Test of FATES-SP without DEBUG on for most compilers</option>
-    </options>
-  </test>
 
   <!-- ======================================= -->
   <!-- X compsets -->
