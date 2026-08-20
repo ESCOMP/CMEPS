@@ -122,7 +122,7 @@
     <desc>Activates additional CO2-related fields to be exchanged between components. Possible values are:
 
     CO2A: sets the driver namelist variable flds_co2a = .true.; this adds
-    prognostic CO2 and diagnostic CO2 at the lowest model level to be sent from
+    diagnostic CO2 at the lowest model level to be sent from
     the atmosphere to the land and ocean.
 
     CO2B: sets the driver namelist variable flds_co2b = .true.; this adds
@@ -301,7 +301,14 @@
       <!-- N compsets -->
       <!-- =================================================== -->
       <value compset="_DATM.*_BLOM">24</value>
+      <value compset="_DATM.*_BLOM" grid="oi%tnx2">18</value>
       <value compset="_BLOM" grid="oi%tnx0.25v">48</value>
+      <!-- =================================================== -->
+      <!-- WW3Test compset -->
+      <!-- =================================================== -->
+      <value compset="_DATM.*_WW3" grid="w025">72</value>
+      <value compset="_DATM.*_WW3" grid="wtx0.66v1">72</value>
+      <!-- otherwise ww3 buildnml won't be happy. -->
     </values>
     <group>run_coupling</group>
     <file>env_run.xml</file>
@@ -342,6 +349,9 @@
     <values match="last">
       <value compset="_MOM6">24</value>
       <value compset="_BLOM">24</value>
+      <value compset="_BLOM" grid="oi%tnx2">18</value>
+      <!-- quick fix for coupled with 2 deg ocn-->
+      <value compset="_BLOM.*_MOSART" grid="oi%tnx2">24</value>
       <value compset="_DLND.*_CISM\d">1</value>
       <value compset="_NEMO">24</value>
     </values>

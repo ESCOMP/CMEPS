@@ -23,6 +23,7 @@ module med_phases_prep_rof_mod
   use med_methods_mod       , only : fldbun_reset     => med_methods_FB_reset
   use med_methods_mod       , only : fldbun_accum     => med_methods_FB_accum
   use med_methods_mod       , only : fldbun_average   => med_methods_FB_average
+  use med_methods_mod       , only : fldbun_fldChk    => med_methods_FB_FldChk
   use med_methods_mod       , only : field_getdata1d  => med_methods_Field_getdata1d
   use med_methods_mod       , only : FB_check_for_nans => med_methods_FB_check_for_nans
   use med_methods_mod       , only : med_methods_FB_check_wtracers
@@ -128,13 +129,16 @@ contains
     do while(associated(fldptr))
        call med_fld_GetFldInfo(fldptr, stdname=fldname)
        if (trim(fldname) .ne. trim(is_local%wrap%flds_scalar_name)) then
-          n = n+1
-          fldnames_temp(n) = fldname
-       endif
+          if (fldbun_fldchk(is_local%wrap%FBImp(complnd,complnd), trim(fldname), rc=rc) .and. &
+              fldbun_fldchk(is_local%wrap%FBExp(comprof)        , trim(fldname), rc=rc) ) then
+             n = n+1
+             fldnames_temp(n) = fldname
+          endif
+       end if
        fldptr => fldptr%next
     enddo
     allocate(lnd2rof_flds(n))
-    lnd2rof_flds = fldnames_temp(1:n)
+    lnd2rof_flds(1:n) = fldnames_temp(1:n)
     deallocate(fldnames_temp)
 
     ! Get lnd and rof meshes
@@ -208,7 +212,7 @@ contains
     lndAccum2rof_cnt = 0
 
     fldList => med_fldList_GetFldListFr(complnd)
-    ! Create packed mapping from rof->lnd
+    ! Create packed mapping from lnd to rof
 
     call med_map_packed_field_create(destcomp=comprof, &
          flds_scalar_name=is_local%wrap%flds_scalar_name, &
@@ -356,13 +360,14 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     end if
 
-    ! Reset the irrig_flux_field with the map_lnd2rof_irrig calculation below if appropriate
-    if ( NUOPC_IsConnected(is_local%wrap%NStateImp(complnd), fieldname=trim(irrig_flux_field))) then
+    if ( NUOPC_IsConnected(is_local%wrap%NStateImp(complnd), fieldname=trim(irrig_flux_field)) .and. &
+         is_local%wrap%med_coupling_active(comprof,complnd)) then
        call med_phases_prep_rof_irrig( gcomp, rc=rc )
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     else
        ! This will ensure that no irrig is sent from the land
        call fldbun_getdata1d(FBlndAccum2rof_r, irrig_flux_field, dataptr_out, rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
        dataptr_out(:) = czero
     end if
 
