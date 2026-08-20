@@ -63,7 +63,7 @@ module esmFldsExchange_cesm_mod
   use med_internalstate_mod , only : mrg_fracname_lnd2atm_state, mrg_fracname_lnd2atm_flux, map_fracname_lnd2atm
   use med_internalstate_mod , only : mrg_fracname_lnd2rof, map_fracname_lnd2rof
   use med_internalstate_mod , only : mrg_fracname_lnd2glc, map_fracname_lnd2glc
-  use med_utils_mod         , only : chkerr => med_utils_chKerr
+  use med_utils_mod         , only : chkerr => med_utils_chkerr
   use shr_log_mod           , only : shr_log_error
   use wtracers_mod          , only : wtracers_present
   use wtracers_mod          , only : WTRACERS_SUFFIX
@@ -2335,11 +2335,22 @@ contains
        call addfld_from(compwav, 'Sw_Tm1_avg')
        call addfld_from(compwav, 'Sw_thm_avg')
        call addfld_from(compwav, 'Sw_thp0_avg')
+       call addfld_from(compwav, 'Sw_faw_avg')
        call addfld_from(compwav, 'Sw_fp0_avg')
        call addfld_from(compwav, 'Sw_u_avg')
        call addfld_from(compwav, 'Sw_v_avg')
+       call addfld_from(compwav, 'Sw_cu_avg')
+       call addfld_from(compwav, 'Sw_cv_avg')
        call addfld_from(compwav, 'Sw_tusx_avg')
        call addfld_from(compwav, 'Sw_tusy_avg')
+       call addfld_from(compwav, 'Sw_lamult_avg')
+       call addfld_from(compwav, 'Sw_charn_avg')
+       call addfld_from(compwav, 'Sw_tm02_avg')
+       call addfld_from(compwav, 'Sw_foc_avg')
+       call addfld_from(compwav, 'Sw_ifrac_avg')
+       call addfld_from(compwav, 'Sw_thick_avg')
+       call addfld_from(compwav, 'Sw_tauicex_avg')
+       call addfld_from(compwav, 'Sw_tauicey_avg')
     end if
 
     !-----------------------------
@@ -3320,7 +3331,7 @@ contains
        else
           if ( fldchk(is_local%wrap%FBImp(complnd, complnd), 'Flrl_rofsur'//trim(suffix), rc=rc) .and. &
                fldchk(is_local%wrap%FBExp(comprof)         , 'Flrl_rofsur'//trim(suffix), rc=rc)) then
-             call addmap_from(complnd, 'Flrl_rofsur'//trim(suffix), comprof, mapconsf, map_fracname_lnd2rof, 'unset')
+             call addmap_from(complnd, 'Flrl_rofsur'//trim(suffix), comprof, mapconsf, map_fracname_lnd2rof, lnd2rof_map)
              call addmrg_to(comprof, 'Flrl_rofsur'//trim(suffix), &
                   mrg_from=complnd, mrg_fld='Flrl_rofsur'//trim(suffix), &
                   mrg_type='copy_with_weights', mrg_fracname=mrg_fracname_lnd2rof)
@@ -3341,7 +3352,7 @@ contains
        else
           if ( fldchk(is_local%wrap%FBImp(complnd, complnd), 'Flrl_rofi'//trim(suffix), rc=rc) .and. &
                fldchk(is_local%wrap%FBExp(comprof)         , 'Flrl_rofi'//trim(suffix), rc=rc)) then
-             call addmap_from(complnd, 'Flrl_rofi'//trim(suffix), comprof, mapconsf, map_fracname_lnd2rof, 'unset')
+             call addmap_from(complnd, 'Flrl_rofi'//trim(suffix), comprof, mapconsf, map_fracname_lnd2rof, lnd2rof_map)
              call addmrg_to(comprof, 'Flrl_rofi'//trim(suffix), &
                   mrg_from=complnd, mrg_fld='Flrl_rofi'//trim(suffix), &
                   mrg_type='copy_with_weights', mrg_fracname=mrg_fracname_lnd2rof)
@@ -3362,7 +3373,7 @@ contains
        else
           if ( fldchk(is_local%wrap%FBImp(complnd, complnd), 'Flrl_rofgwl'//trim(suffix), rc=rc) .and. &
                fldchk(is_local%wrap%FBExp(comprof)         , 'Flrl_rofgwl'//trim(suffix), rc=rc)) then
-             call addmap_from(complnd, 'Flrl_rofgwl'//trim(suffix), comprof, mapconsf, map_fracname_lnd2rof, 'unset')
+             call addmap_from(complnd, 'Flrl_rofgwl'//trim(suffix), comprof, mapconsf, map_fracname_lnd2rof, lnd2rof_map)
              call addmrg_to(comprof, 'Flrl_rofgwl'//trim(suffix), &
                   mrg_from=complnd, mrg_fld='Flrl_rofgwl'//trim(suffix), &
                   mrg_type='copy_with_weights', mrg_fracname=mrg_fracname_lnd2rof)
@@ -3383,7 +3394,7 @@ contains
        else
           if ( fldchk(is_local%wrap%FBImp(complnd, complnd), 'Flrl_rofsub'//trim(suffix), rc=rc) .and. &
                fldchk(is_local%wrap%FBExp(comprof)         , 'Flrl_rofsub'//trim(suffix), rc=rc)) then
-             call addmap_from(complnd, 'Flrl_rofsub'//trim(suffix), comprof, mapconsf, map_fracname_lnd2rof, 'unset')
+             call addmap_from(complnd, 'Flrl_rofsub'//trim(suffix), comprof, mapconsf, map_fracname_lnd2rof, lnd2rof_map)
              call addmrg_to(comprof, 'Flrl_rofsub'//trim(suffix), &
                   mrg_from=complnd, mrg_fld='Flrl_rofsub'//trim(suffix), &
                   mrg_type='copy_with_weights', mrg_fracname=mrg_fracname_lnd2rof)
@@ -3404,7 +3415,7 @@ contains
        else
           if ( fldchk(is_local%wrap%FBImp(complnd, complnd), 'Flrl_irrig'//trim(suffix), rc=rc) .and. &
                fldchk(is_local%wrap%FBExp(comprof)         , 'Flrl_irrig'//trim(suffix), rc=rc)) then
-             call addmap_from(complnd, 'Flrl_irrig'//trim(suffix), comprof, mapconsf, map_fracname_lnd2rof, 'unset')
+             call addmap_from(complnd, 'Flrl_irrig'//trim(suffix), comprof, mapconsf, map_fracname_lnd2rof, lnd2rof_map)
              call addmrg_to(comprof, 'Flrl_irrig'//trim(suffix), &
                   mrg_from=complnd, mrg_fld='Flrl_irrig'//trim(suffix), &
                   mrg_type='copy_with_weights', mrg_fracname=mrg_fracname_lnd2rof)

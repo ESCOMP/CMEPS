@@ -256,7 +256,13 @@ contains
     ntasks_per_member = PetCount/number_of_members - pio_asyncio_ntasks
     if(modulo(PetCount-pio_asyncio_ntasks*number_of_members, number_of_members) .ne. 0) then
        write (msgstr,'(a,i5,a,i3,a,i3,a)') &
-            "PetCount (",PetCount,") - Async IOtasks (",pio_asyncio_ntasks*number_of_members,") must be evenly divisable by number of members (",number_of_members,")"
+            "PetCount (",PetCount,") - Async IOtasks (",pio_asyncio_ntasks*number_of_members, &
+            ") must be evenly divisable by number of members (",number_of_members, ")."  
+       call ESMF_LogWrite(trim(subname)//": "//trim(msgstr), ESMF_LOGMSG_INFO)
+       write (msgstr,'(3a)') &
+            "Multi-instance (multi-driver): set NINST, NTASKS and MAX_TASKS_PER_NODE ", &
+            "so that the instances are evenly divided across the implied number of nodes ", &
+            "and no extra tasks are requested."
        call ESMF_LogSetError(ESMF_RC_ARG_BAD, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
        return
     endif

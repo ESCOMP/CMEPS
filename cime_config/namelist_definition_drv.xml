@@ -347,7 +347,7 @@
     <category>nuopc</category>
     <group>ALLCOMP_attributes</group>
     <values>
-      <value cime_model="cesm">cesm</value>
+      <value>cmeps</value>
     </values>
   </entry>
   <entry id="mesh_mask" modify_via_xml="MASK_MESH">
@@ -360,7 +360,6 @@
     </desc>
     <values>
       <value>$MASK_MESH</value>
-      <value single_column='true'>null</value>
     </values>
   </entry>
   <entry id="ATM_model" modify_via_xml="COMP_ATM">
@@ -952,16 +951,13 @@
     <group>MED_attributes</group>
     <desc>
       If true, use shr_wv_sat_mod to calculate qsat for atm-ocn flux calculations.
-
       If false, use the older inline calculation of qsat, which uses a different
       formulation.
-
       (Currently only relevant for ocn_surface_flux_scheme = 0 or 1.)
     </desc>
     <values>
-      <!-- Once CIME_MODEL distinguishes between NorESM and CESM, this value will differ
-      between these two. -->
       <value>.true.</value>
+      <value coupling_mode="noresm">.false.</value>
     </values>
   </entry>
   <entry id="add_gusts">
@@ -2116,7 +2112,8 @@
     <group>ALLCOMP_attributes</group>
     <values>
       <value>.false.</value>
-      <value COMP_WAV='ww3'>.true.</value>
+      <value coupling_mode="noresm" COMP_WAV='ww3'>.true.</value>
+      <value coupling_mode="cesm" COMP_WAV='ww3'>.true.</value>
     </values>
     <desc>Auxiliary mediator wav2med average history output every day.
     Note that ww3dev will use this configuration variable and send
@@ -2127,8 +2124,9 @@
     <category>aux_hist</category>
     <group>MED_attributes</group>
     <values>
-      <value>Sw_hs_avg:Sw_Tm1_avg:Sw_thm_avg:Sw_u_avg:Sw_v_avg:Sw_ustokes_avg:Sw_vstokes_avg:Sw_tusx_avg:Sw_tusy_avg:Sw_thp0_avg:Sw_fp0_avg:Sw_phs0_avg:Sw_phs1_avg:Sw_pdir0_avg:Sw_pdir1_avg:Sw_pTm10_avg:Sw_pTm11_avg</value>
-      <value COMP_WAV='ww3'>Sw_Hs:Sw_t01:Sw_t0m1:Sw_thm:Sw_lamult:Sw_ustokes:Sw_vstokes</value>
+      <value>""</value>
+      <value coupling_mode="noresm" COMP_WAV="ww3">Sw_hs_avg:Sw_Tm1_avg:Sw_thm_avg:Sw_u_avg:Sw_v_avg:Sw_ustokes_avg:Sw_vstokes_avg:Sw_tusx_avg:Sw_tusy_avg:Sw_thp0_avg:Sw_fp0_avg:Sw_phs0_avg:Sw_phs1_avg:Sw_pdir0_avg:Sw_pdir1_avg:Sw_pTm10_avg:Sw_pTm11_avg</value>
+      <value coupling_mode="cesm" COMP_WAV="ww3">Sw_hs_avg:Sw_Tm1_avg:Sw_thm_avg:Sw_u_avg:Sw_v_avg:Sw_ustokes_avg:Sw_vstokes_avg:Sw_tusx_avg:Sw_tusy_avg:Sw_thp0_avg:Sw_fp0_avg:Sw_phs0_avg:Sw_phs1_avg:Sw_pdir0_avg:Sw_pdir1_avg:Sw_pTm10_avg:Sw_pTm11_avg</value>
     </values>
     <desc>Auxiliary mediator wav2med file1 colon delimited output
     fields. NOTE: these are assumed to be time averaged over a day in
@@ -2160,10 +2158,12 @@
     <group>MED_attributes</group>
     <values>
       <value>.false.</value>
-      <value COMP_WAV='ww3'>.true.</value>
     </values>
     <desc>Auxiliary mediator wav2med file1 time averaged flag for file output.
-    If this flag is set to .false. only instantaneous output will be created in the auxiliary file.</desc>
+    If this flag is set to .false. only instantaneous output will be created in the auxiliary file.
+    For COMP_WAV=ww3 this must remain .false.: the WW3 cap already produces daily-averaged
+    Sw_*_avg fields (fillvalue between day boundaries), so a second mediator-side average would
+    be meaningless.</desc>
   </entry>
   <entry id="histaux_wav2med_file1_auxname">
     <type>char</type>
@@ -2171,7 +2171,7 @@
     <group>MED_attributes</group>
     <values>
       <value>wav.24h.avg</value>
-      <value COMP_WAV='ww3'>ww3</value>
+      <value coupling_mode="cesm" COMP_WAV='ww3'>ww3</value>
     </values>
   </entry>
   <entry id="histaux_wav2med_file1_ntperfile">
@@ -2269,7 +2269,10 @@
     <category>mapping</category>
     <input_pathname>abs</input_pathname>
     <group>MED_attributes</group>
-    <desc>lnd to rof mapping, 'unset' or 'idmap' are normal possible values (mapping file given for mizuRoute grids)</desc>
+    <desc>lnd2rof flux (conservative) mapping file; 'unset' or 'idmap' are normal possible values. (This mapping file is used for both
+    consd and consf mappings; as discussed in https://github.com/ESCOMP/CMEPS/issues/408, the results of these two mappings are the
+    same within roundoff in CMEPS due to the normalization that is done when applying the mapping weights. For simplicity, and because
+    land mesh files generally don't have a mask, this mapping file should be generated with '--norm_type dstarea'.)</desc>
     <values>
       <value>$LND2ROF_FMAPNAME</value>
       <value samegrid_lnd_rof='true'>idmap</value>
@@ -2646,6 +2649,22 @@
    </values>
   </entry>
 
+  <entry id="water_tracers_variables_not_checked">
+   <type>char</type>
+   <category>water_tracers</category>
+   <group>ALLCOMP_attributes</group>
+   <desc>
+      Colon-delimited list of variables for which water tracer consistency checks should be skipped.
+
+      Each entry must match the variable name passed to shr_wtracers_check_tracer_ratios.
+      For checks of mediator fields, these are of the form FieldBundleName%FieldName.
+      For example: "FBImpatm%Sa_shum_wtracers:FBExprof%Flrl_irrig_wtracers".
+   </desc>
+   <values>
+      <value></value>
+   </values>
+  </entry>
+
   <!-- =========================== -->
   <!-- CLOCK Attributes            -->
   <!-- =========================== -->
@@ -2783,8 +2802,8 @@
     <group>CLOCK_attributes</group>
     <valid_values>NO_LEAP,GREGORIAN</valid_values>
     <desc>
-      calendar in use.  [NO_LEAP, GREOGORIAN].
-      set by CALENDAR in env_build.xml
+      calendar in use.  [NO_LEAP, GREGORIAN].
+      set by CALENDAR in env_run.xml
     </desc>
     <values>
       <value>$CALENDAR</value>

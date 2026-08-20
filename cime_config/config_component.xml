@@ -37,7 +37,7 @@
 
   <entry id="COUPLING_MODE">
     <type>char</type>
-    <valid_values>cesm</valid_values>
+    <valid_values>cesm,noresm</valid_values>
     <default_value>cesm</default_value>
     <group>run_coupling</group>
     <file>env_run.xml</file>
@@ -742,8 +742,8 @@
     <type>char</type>
     <valid_values>NO_LEAP,GREGORIAN</valid_values>
     <default_value>NO_LEAP</default_value>
-    <group>build_def</group>
-    <file>env_build.xml</file>
+    <group>run_begin_stop_restart</group>
+    <file>env_run.xml</file>
     <desc>calendar type</desc>
   </entry>
 
@@ -1412,7 +1412,10 @@
     <default_value>idmap</default_value>
     <group>run_domain</group>
     <file>env_run.xml</file>
-    <desc>lnd2rof flux mapping file</desc>
+    <desc>lnd2rof flux (conservative) mapping file. (This mapping file is used for both consd and consf mappings; as discussed in
+    https://github.com/ESCOMP/CMEPS/issues/408, the results of these two mappings are the same within roundoff in CMEPS due to the
+    normalization that is done when applying the mapping weights. For simplicity, and because land mesh files generally don't have
+    a mask, this mapping file should be generated with '--norm_type dstarea'.)</desc>
   </entry>
 
   <entry id="ROF2LND_FMAPNAME">
