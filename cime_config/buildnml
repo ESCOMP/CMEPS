@@ -93,18 +93,6 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     config["samegrid_lnd_rof"] = "true" if lnd_mesh == rof_mesh else "false"
     config["samegrid_wav_ocn"] = "true" if ocn_mesh == wav_mesh else "false"
 
-    # determine if need to set atm_domainfile
-    scol_lon = float(case.get_value("PTS_LON"))
-    scol_lat = float(case.get_value("PTS_LAT"))
-    if (
-        scol_lon > -999.0
-        and scol_lat > -999.0
-        and case.get_value("ATM_DOMAIN_FILE") != "UNSET"
-    ):
-        config["single_column"] = "true"
-    else:
-        config["single_column"] = "false"
-
     # needed for determining the run sequence
     config["COMP_ATM"] = case.get_value("COMP_ATM")
     config["COMP_ICE"] = case.get_value("COMP_ICE")
@@ -134,9 +122,16 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     elif case.get_value("RUN_TYPE") == "branch":
         config["run_type"] = "branch"
 
-    if config['COMP_WAV'] == 'ww3' and config['COMP_ICE'] == 'cice':
-        config["wav_ice_coupling"] = "on"
+    # determine coupling mode
+    config["coupling_mode"] = case.get_value("COUPLING_MODE")
 
+    # determine wav_ice_coupling
+    config["wav_ice_coupling"] = "off"
+    if config["coupling_mode"] == "cesm" or config["coupling_mode"] == "noresm":
+        if config['COMP_WAV'] == 'ww3' and config['COMP_ICE'] == 'cice':
+            config["wav_ice_coupling"] = "on"
+
+    # determine dms_from_ocn if ocn component is blom
     if config["COMP_OCN"] == "blom":
         if "ecosys" in case.get_value("BLOM_TRACER_MODULES"):
             config["dms_from_ocn"] = "on"
@@ -304,6 +299,11 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
 
         nmlgen.set_value("esp_cpl_dt", value=esp_time)
     # End if pause is active
+
+    # --------------------------------
+    # Overwrite: set water tracers
+    # --------------------------------
+    _add_water_tracers(case.get_value("WATER_TRACERS"), nmlgen)
 
     # --------------------------------
     # Specify input data list file
@@ -551,6 +551,44 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
         nmlgen.init_defaults(infiles, config, skip_entry_loop=skip_entry_loop)
         drv_flds_in = os.path.join(caseroot, "CaseDocs", "drv_flds_in")
         nmlgen.write_output_file(drv_flds_in)
+
+
+###############################################################################
+def _add_water_tracers(water_tracers_xml, nmlgen):
+    ###############################################################################
+
+    if not water_tracers_xml.strip():
+        water_tracers = []
+    else:
+        water_tracers = water_tracers_xml.split(":")
+    tracer_names = []
+    tracer_species = []
+    tracer_initial_ratios = []
+
+    for tracer in water_tracers:
+        # Each item in the list consists of a name and then, optionally, a '%' followed by
+        # the isotope species for this tracer. For standard water tracers (i.e., tracers
+        # of bulk water), the list item will only contain the name (without a '%').
+        expect(
+            tracer.count("%") <= 1,
+            f"Invalid WATER_TRACERS element, '{tracer}': Each element of WATER_TRACERS must contain at most 1 '%' separator",
+        )
+        parts = tracer.split("%")
+        tracer_names.append(parts[0])
+        if len(parts) > 1:
+            tracer_species.append(parts[1])
+            # We could check the validity of the species name here (confirming that it's
+            # one of the handled species), but that would lead to this allowed list being
+            # replicated in multiple places (here as well as in the Fortran), which would
+            # make it more difficult to add new species later. So we're deferring this
+            # check to runtime.
+        else:
+            tracer_species.append("-")
+        tracer_initial_ratios.append("1.0")
+
+    nmlgen.add_default("water_tracer_names", ":".join(tracer_names))
+    nmlgen.add_default("water_tracer_species", ":".join(tracer_species))
+    nmlgen.add_default("water_tracer_initial_ratios", ":".join(tracer_initial_ratios))
 
 
 ###############################################################################

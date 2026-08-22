@@ -20,10 +20,12 @@ module med_phases_prep_ocn_mod
   use med_methods_mod       , only : FB_copy       => med_methods_FB_copy
   use med_methods_mod       , only : FB_reset      => med_methods_FB_reset
   use med_methods_mod       , only : FB_check_for_nans => med_methods_FB_check_for_nans
+  use med_methods_mod       , only : med_methods_FB_check_wtracers
   use med_field_info_mod    , only : med_field_info_type, med_field_info_array_from_state
   use esmFlds               , only : med_fldList_GetfldListTo, med_fldlist_type
   use med_internalstate_mod , only : compocn, compatm, compice, coupling_mode
   use perf_mod              , only : t_startf, t_stopf
+  use med_ufs_trace_wrapper_mod, only : ufs_trace_wrapper
 
   implicit none
   private
@@ -112,6 +114,7 @@ contains
     character(len=*), parameter    :: subname='(med_phases_prep_ocn_accum)'
     !---------------------------------------
 
+    if (maintask) call ufs_trace_wrapper("cmeps", "med_phases_prep_ocn_accum", "B")
     call t_startf('MED:'//subname)
     if (dbug_flag > 20) then
        call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
@@ -275,6 +278,7 @@ contains
     end if
     call t_stopf('MED:'//subname)
 
+    if (maintask) call ufs_trace_wrapper("cmeps", "med_phases_prep_ocn_accum", "E")
   end subroutine med_phases_prep_ocn_accum
 
   !-----------------------------------------------------------------------------
@@ -297,6 +301,7 @@ contains
     !---------------------------------------
 
     rc = ESMF_SUCCESS
+    if (maintask) call ufs_trace_wrapper("cmeps", "med_phases_prep_ocn_avg", "B")
 
     call t_startf('MED:'//subname)
     if (dbug_flag > 20) then
@@ -337,6 +342,12 @@ contains
           call FB_check_for_nans(is_local%wrap%FBExp(compocn), maintask, logunit, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        endif
+
+       ! Check water tracers (if there are no water tracers or these checks aren't enabled,
+       ! this will return without doing anything)
+       call med_methods_FB_check_wtracers(is_local%wrap%FBExp(compocn), rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+
        ! zero accumulator
        is_local%wrap%ExpAccumOcnCnt = 0
        call FB_reset(is_local%wrap%FBExpAccumOcn, value=czero, rc=rc)
@@ -350,6 +361,7 @@ contains
     call t_stopf('MED:'//subname)
     first_call = .false.
 
+    if (maintask) call ufs_trace_wrapper("cmeps", "med_phases_prep_ocn_avg", "E")
   end subroutine med_phases_prep_ocn_avg
 
   !-----------------------------------------------------------------------------
@@ -497,7 +509,7 @@ contains
        end do
        ! Compute sw export to ocean bands if required
        if (export_swnet_by_bands) then
-          if (trim(coupling_mode) == 'cesm') then
+          if (trim(coupling_mode) == 'cesm' .or. trim(coupling_mode) == 'noresm') then
              c1 = 0.285; c2 = 0.285; c3 = 0.215; c4 = 0.215
              Foxx_swnet_vdr(:) = c1 * Foxx_swnet(:)
              Foxx_swnet_vdf(:) = c2 * Foxx_swnet(:)
@@ -618,7 +630,8 @@ contains
     end if
 
     ! Apply precipitation factor from ocean (that scales atm rain and snow back to ocn ) if appropriate
-    if (trim(coupling_mode) == 'cesm' .and. is_local%wrap%flds_scalar_index_precip_factor /= 0) then
+    if ((trim(coupling_mode) == 'cesm' .or. trim(coupling_mode) == 'noresm') .and. &
+         is_local%wrap%flds_scalar_index_precip_factor /= 0) then
 
        ! Note that in med_internal_mod.F90 all is_local%wrap%flds_scalar_index_precip_factor
        ! is initialized to 0.

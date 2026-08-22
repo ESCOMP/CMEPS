@@ -34,6 +34,7 @@ contains
     use med_methods_mod       , only : FB_diagnose  => med_methods_FB_diagnose
     use med_methods_mod       , only : FB_GetFldPtr => med_methods_FB_GetFldPtr
     use med_methods_mod       , only : FB_check_for_nans => med_methods_FB_check_for_nans
+    use med_methods_mod       , only : med_methods_FB_check_wtracers
     use med_constants_mod     , only : dbug_flag    => med_constants_dbug_flag
     use med_merge_mod         , only : med_merge_auto
     use med_internalstate_mod , only : InternalState, logunit, maintask
@@ -41,6 +42,7 @@ contains
     use med_internalstate_mod , only : coupling_mode
     use esmFlds               , only : med_fldList_GetFldListTo
     use perf_mod              , only : t_startf, t_stopf
+    use med_ufs_trace_wrapper_mod, only : ufs_trace_wrapper
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -59,6 +61,7 @@ contains
     character(len=*),parameter     :: subname='(med_phases_prep_ice)'
     !---------------------------------------
 
+    if (maintask) call ufs_trace_wrapper("cmeps", "med_phases_prep_ice", "B")
     call t_startf('MED:'//subname)
 
     if (dbug_flag > 5) then
@@ -87,7 +90,8 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! Apply precipitation factor from ocean (that scales atm rain and snow to ice) if appropriate
-    if (trim(coupling_mode) == 'cesm' .and. is_local%wrap%flds_scalar_index_precip_factor /= 0) then
+    if ( (trim(coupling_mode) == 'cesm' .or. trim(coupling_mode) == 'noresm') .and. &
+         is_local%wrap%flds_scalar_index_precip_factor /= 0) then
 
        ! Note that in med_internal_mod.F90 all is_local%wrap%flds_scalar_index_precip_factor
        ! is initialized to 0.
@@ -153,11 +157,17 @@ contains
     call FB_check_for_nans(is_local%wrap%FBExp(compice), maintask, logunit, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+    ! Check water tracers (if there are no water tracers or these checks aren't enabled,
+    ! this will return without doing anything)
+    call med_methods_FB_check_wtracers(is_local%wrap%FBExp(compice), rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
     if (dbug_flag > 5) then
        call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
     endif
     call t_stopf('MED:'//subname)
 
+    if (maintask) call ufs_trace_wrapper("cmeps", "med_phases_prep_ice", "E")
   end subroutine med_phases_prep_ice
 
 end module med_phases_prep_ice_mod

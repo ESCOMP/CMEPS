@@ -401,6 +401,7 @@ contains
     use shr_wv_sat_mod   , only : shr_wv_sat_make_tables, ShrWVSatTableSpec
     use shr_wv_sat_mod   , only : shr_wv_sat_get_scheme_idx, shr_wv_sat_valid_idx
     use glc_elevclass_mod, only : glc_elevclass_init
+    use shr_wtracers_mod , only : shr_wtracers_init
    !use shr_scam_mod     , only : shr_scam_checkSurface
 
     ! input/output variables
@@ -543,6 +544,13 @@ contains
        mixed_spec  = ShrWVSatTableSpec(ceiling(250._R8/wv_sat_table_spacing), 125._R8, wv_sat_table_spacing)
        call shr_wv_sat_make_tables(liquid_spec, ice_spec, mixed_spec)
     end if
+
+    !----------------------------------------------------------
+    ! Initialize water tracer info
+    !----------------------------------------------------------
+
+    call shr_wtracers_init(driver, maintask, rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
   end subroutine InitAttributes
 

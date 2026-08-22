@@ -45,8 +45,8 @@ module esmflds
   !-----------------------------------------------
 
   type, public :: med_fldList_entry_type
-     character(CS) :: stdname
-     character(CS) :: shortname
+     character(CS) :: stdname = ''
+     character(CS) :: shortname = ''
 
      ! Mapping fldsFr data - for mediator import fields
      integer      , allocatable :: mapindex(:)

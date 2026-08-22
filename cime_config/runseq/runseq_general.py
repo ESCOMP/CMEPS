@@ -58,10 +58,23 @@ def gen_runseq(case, coupling_times):
     # Note that we do some aspects of the GLC outer loop even if run_glc is False
     # (as long as med_to_glc is True).
     #
-    # Note that, in contrast to the other outer_loop variables, this doesn't check glc_cpl_time.
-    # This is for consistency with the logic that was in place before adding this variable;
-    # this seems to implicitly assume that glc_cpl_time > atm_cpl_time.
+    # Note that, in contrast to the other outer_loop variables, the logic for
+    # glc_outer_loop doesn't check glc_cpl_time. For more generality, we could have some
+    # extra logic determining whether we need a glc outer loop based on the relationship
+    # between glc_cpl_time and other cpl times. However, to avoid adding more complex
+    # logic, for now we just force glc coupling to be the coarsest coupling, and so assume
+    # that we have an outer loop for glc regardless of glc_cpl_time. Note that if
+    # glc_cpl_time is equal to one of the other coupling times, we'll end up with two
+    # loops with the same frequency; this is acceptable.
     glc_outer_loop = med_to_glc
+    if glc_outer_loop:
+        # In the following, we only bother checking glc_cpl_time against the other
+        # cpl_time variables that control the existence of time loops; other cpl_times are
+        # guaranteed to be equal to one of these cpl_time variables (as enforced above).
+        expect(((glc_cpl_time >= rof_cpl_time) and
+                (glc_cpl_time >= ocn_cpl_time) and
+                (glc_cpl_time >= atm_cpl_time)),
+                "glc_cpl_time must be greater than or equal to all other components' coupling times")
 
     inner_loop = ((atm_cpl_time < ocn_cpl_time) or
                   (atm_cpl_time < rof_cpl_time) or
