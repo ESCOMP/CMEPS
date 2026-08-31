@@ -1,8 +1,8 @@
 .. _cesm-attributes:
 
-=======================
- CMEPS CESM attributes
-=======================
+==========================
+CESM and NorESM attributes
+==========================
 
 The following *additional* attributes are required for CESM model applications.
 
