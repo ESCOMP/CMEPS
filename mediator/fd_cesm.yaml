@@ -1352,18 +1352,18 @@
      #
      - standard_name: Sw_phs0_avg
        canonical_units: m
-       description: Daily averaged averaged wind sea swh (only needed for mediator history output)
+       description: Daily averaged wind sea swh (only needed for mediator history output)
      #
      - standard_name: Sw_phs1_avg
        canonical_units: m
        description: Daily averaged swell swh (only needed for mediator history output)
      #
      - standard_name: Sw_pdir0_avg
-       canonical_units: degrees
+       canonical_units: radians
        description: Daily averaged wind sea swh (only needed for mediator history output)
      #
      - standard_name: Sw_pdir1_avg
-       canonical_units: degrees
+       canonical_units: radians
        description: Daily averaged swell swh (only needed for mediator history output)
      #
      - standard_name: Sw_pTm10_avg
@@ -1379,11 +1379,11 @@
        description: Daily averaged mean wave period of the first moment (only needed for mediator history output)
      #
      - standard_name: Sw_thm_avg
-       canonical_units: degrees
+       canonical_units: radians
        description: Daily averaged mean wave direction (only needed for mediator history output)
      #
      - standard_name: Sw_thp0_avg
-       canonical_units: degrees
+       canonical_units: radians
        description: Daily averaged peak wave direction (only needed for mediator history output)
      #
      - standard_name: Sw_fp0_avg
