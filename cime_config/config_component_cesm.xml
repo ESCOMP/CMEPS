@@ -107,7 +107,7 @@
     <values match="last">
       <value compset="_CAM">CO2A</value>
       <value compset="_DATM">none</value>
-      <value compset="_DATM%CPLHIST.+BLOM%ECO">CO2A</value>
+      <value compset="_DATM%CPLHIST">CO2A</value>
       <value compset="^OMIP_DATM%IAF.*_MOM6%[^_]*MARBL">CO2A</value>
       <value compset="^OMIP_DATM%JRA.*_MOM6%[^_]*MARBL">CO2A</value>
       <value compset="HIST.*_DATM.*_CLM">CO2A</value>
