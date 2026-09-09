@@ -854,12 +854,23 @@
       <value>on</value>
     </values>
   </entry>
-  <entry id="remove_negative_runoff_lnd">
+  <entry id="remove_negative_runoff_lnd_liq">
     <type>logical</type>
     <category>control</category>
     <group>MED_attributes</group>
     <desc>
-      If true, remove negative runoff generated from the land component by downweighting all positive runoff globally.
+      If true, remove negative liquid runoff generated from the land component by downweighting all positive runoff globally.
+    </desc>
+    <values>
+      <value>.true.</value>
+    </values>
+  </entry>
+  <entry id="remove_negative_runoff_lnd_ice">
+    <type>logical</type>
+    <category>control</category>
+    <group>MED_attributes</group>
+    <desc>
+      If true, remove negative ice runoff generated from the land component by downweighting all positive runoff globally.
     </desc>
     <values>
       <value>.true.</value>
@@ -870,7 +881,7 @@
     <category>control</category>
     <group>MED_attributes</group>
     <desc>
-      If true, remove negative runoff generated from the glc (ice sheet) component by downweighting all positive runoff globally.
+      If true, remove negative runoff (both liq and ice) generated from the glc (ice sheet) component by downweighting all positive runoff globally.
     </desc>
     <values>
       <value>.false.</value>
