@@ -570,20 +570,11 @@ contains
     !----- local -----
     character(len=CS) :: logFilePostFix ! postfix for output log files
     character(len=CL) :: outPathRoot    ! root for output log files
-    character(len=CS) :: cime_model
     character(len=*), parameter :: subname = '(driver_attributes_check) '
     !-------------------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
-
-    call NUOPC_CompAttributeGet(driver, name="cime_model", value=cime_model, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if ( trim(cime_model) /= 'cesm' .and. trim(cime_model) /= 'ufs') then
-       call shr_log_error( subname//': cime_model must be set to cesm or ufs, aborting')
-       rc = ESMF_FAILURE
-       return
-    end if
 
     ! --- LogFile ending name -----
     call NUOPC_CompAttributeGet(driver, name="logFilePostFix", value=logFilePostFix, rc=rc)
