@@ -852,7 +852,7 @@ contains
     ! advertise phase
     call med_fldlist_init1(ncomps)
 
-    if (trim(coupling_mode) == 'cesm') then
+    if (trim(coupling_mode) == 'cesm' .or. trim(coupling_mode) == 'noresm') then
        call esmFldsExchange_cesm(gcomp, phase='advertise', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     else if (coupling_mode(1:3) == 'ufs') then
@@ -1890,7 +1890,7 @@ contains
       ! Initialize memory for fldlistFr(:)%flds(:) and fldlistTo(:)%flds(:) - this is needed for
       ! call below for the initialize phase
 
-      if (trim(coupling_mode) == 'cesm') then
+      if (trim(coupling_mode) == 'cesm' .or. trim(coupling_mode) == 'noresm') then
          call esmFldsExchange_cesm(gcomp, phase='initialize', rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
       else if (coupling_mode(1:3) == 'ufs') then

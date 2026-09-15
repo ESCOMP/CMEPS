@@ -164,7 +164,7 @@ contains
     psixhu(xd) = 2.0_R8 * log((1.0_R8 + xd*xd)/2.0_R8)
 
     ! Convective gustiness appropriate for input precipitation.
-    ! Following Regelsperger et al. (2000, J. Clim)
+    ! Following Redelsperger et al. (2000, J. Clim)
     ! Ug = log(1.0+6.69R-0.476R^2)
     ! Coefficients X by 8640 for mm/s (from cam) -> cm/day (for above forumla)
     ugust(gprec) = log(1._R8+57801.6_r8*gprec-3.55332096e7_r8*(gprec**2))

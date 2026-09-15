@@ -1,7 +1,8 @@
 .. _field_naming_convention:
 
-CMEPS field names
-=================
+===========
+Field names
+===========
 
 The following state names are currently supported. Note that each application might only use a subset of these fields.
 

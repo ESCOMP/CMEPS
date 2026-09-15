@@ -37,7 +37,7 @@
 
   <entry id="COUPLING_MODE">
     <type>char</type>
-    <valid_values>cesm</valid_values>
+    <valid_values>cesm,noresm</valid_values>
     <default_value>cesm</default_value>
     <group>run_coupling</group>
     <file>env_run.xml</file>
@@ -742,8 +742,8 @@
     <type>char</type>
     <valid_values>NO_LEAP,GREGORIAN</valid_values>
     <default_value>NO_LEAP</default_value>
-    <group>build_def</group>
-    <file>env_build.xml</file>
+    <group>run_begin_stop_restart</group>
+    <file>env_run.xml</file>
     <desc>calendar type</desc>
   </entry>
 

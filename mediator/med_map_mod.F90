@@ -421,7 +421,7 @@ contains
     dstMaskValue = defaultMasks(n2,2)
 
     ! override defaults for specific cases
-    if (trim(coupling_mode) == 'cesm') then
+    if (trim(coupling_mode) == 'cesm' .or. trim(coupling_mode) == 'noresm') then
        if (n1 == compwav .and. n2 == compocn) then
          srcMaskValue = 0
          dstMaskValue = ispval_mask
@@ -447,7 +447,7 @@ contains
     call ESMF_LogWrite(trim(string), ESMF_LOGMSG_INFO)
 
     polemethod=ESMF_POLEMETHOD_ALLAVG
-    if (trim(coupling_mode) == 'cesm' .or. coupling_mode(1:3) == 'ufs') then
+    if (trim(coupling_mode) == 'cesm' .or. trim(coupling_mode) == 'noresm' .or. coupling_mode(1:3) == 'ufs') then
        if (n1 == compwav .or. n2 == compwav) then
          polemethod = ESMF_POLEMETHOD_NONE ! todo: remove this when ESMF tripolar mapping fix is in place.
        endif

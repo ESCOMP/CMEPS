@@ -90,7 +90,8 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! Apply precipitation factor from ocean (that scales atm rain and snow to ice) if appropriate
-    if (trim(coupling_mode) == 'cesm' .and. is_local%wrap%flds_scalar_index_precip_factor /= 0) then
+    if ( (trim(coupling_mode) == 'cesm' .or. trim(coupling_mode) == 'noresm') .and. &
+         is_local%wrap%flds_scalar_index_precip_factor /= 0) then
 
        ! Note that in med_internal_mod.F90 all is_local%wrap%flds_scalar_index_precip_factor
        ! is initialized to 0.

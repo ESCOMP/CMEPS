@@ -63,6 +63,7 @@ module esmFldsExchange_cesm_mod
   use med_internalstate_mod , only : mrg_fracname_lnd2atm_state, mrg_fracname_lnd2atm_flux, map_fracname_lnd2atm
   use med_internalstate_mod , only : mrg_fracname_lnd2rof, map_fracname_lnd2rof
   use med_internalstate_mod , only : mrg_fracname_lnd2glc, map_fracname_lnd2glc
+  use med_utils_mod         , only : chkerr => med_utils_chkerr
   use shr_log_mod           , only : shr_log_error
   use wtracers_mod          , only : wtracers_present
   use wtracers_mod          , only : WTRACERS_SUFFIX
@@ -121,7 +122,6 @@ contains
     use ESMF
     use NUOPC
     use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
-    use med_utils_mod         , only : chkerr => med_utils_chkerr
     use med_methods_mod       , only : fldchk => med_methods_FB_FldChk
     use med_internalstate_mod , only : InternalState, logunit, maintask
     use med_internalstate_mod , only : compmed, compatm, complnd, compocn
@@ -2335,11 +2335,22 @@ contains
        call addfld_from(compwav, 'Sw_Tm1_avg')
        call addfld_from(compwav, 'Sw_thm_avg')
        call addfld_from(compwav, 'Sw_thp0_avg')
+       call addfld_from(compwav, 'Sw_faw_avg')
        call addfld_from(compwav, 'Sw_fp0_avg')
        call addfld_from(compwav, 'Sw_u_avg')
        call addfld_from(compwav, 'Sw_v_avg')
+       call addfld_from(compwav, 'Sw_cu_avg')
+       call addfld_from(compwav, 'Sw_cv_avg')
        call addfld_from(compwav, 'Sw_tusx_avg')
        call addfld_from(compwav, 'Sw_tusy_avg')
+       call addfld_from(compwav, 'Sw_lamult_avg')
+       call addfld_from(compwav, 'Sw_charn_avg')
+       call addfld_from(compwav, 'Sw_tm02_avg')
+       call addfld_from(compwav, 'Sw_foc_avg')
+       call addfld_from(compwav, 'Sw_ifrac_avg')
+       call addfld_from(compwav, 'Sw_thick_avg')
+       call addfld_from(compwav, 'Sw_tauicex_avg')
+       call addfld_from(compwav, 'Sw_tauicey_avg')
     end if
 
     !-----------------------------

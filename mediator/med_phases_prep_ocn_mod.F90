@@ -509,7 +509,7 @@ contains
        end do
        ! Compute sw export to ocean bands if required
        if (export_swnet_by_bands) then
-          if (trim(coupling_mode) == 'cesm') then
+          if (trim(coupling_mode) == 'cesm' .or. trim(coupling_mode) == 'noresm') then
              c1 = 0.285; c2 = 0.285; c3 = 0.215; c4 = 0.215
              Foxx_swnet_vdr(:) = c1 * Foxx_swnet(:)
              Foxx_swnet_vdf(:) = c2 * Foxx_swnet(:)
@@ -630,7 +630,8 @@ contains
     end if
 
     ! Apply precipitation factor from ocean (that scales atm rain and snow back to ocn ) if appropriate
-    if (trim(coupling_mode) == 'cesm' .and. is_local%wrap%flds_scalar_index_precip_factor /= 0) then
+    if ((trim(coupling_mode) == 'cesm' .or. trim(coupling_mode) == 'noresm') .and. &
+         is_local%wrap%flds_scalar_index_precip_factor /= 0) then
 
        ! Note that in med_internal_mod.F90 all is_local%wrap%flds_scalar_index_precip_factor
        ! is initialized to 0.

@@ -42,12 +42,14 @@ module med_phases_post_rof_mod
   integer :: num_rof_fields
   character(len=CS), allocatable :: rof_field_names(:)
 
-  logical :: remove_negative_runoff_lnd
+  logical :: remove_negative_runoff_lnd_liq
+  logical :: remove_negative_runoff_lnd_ice
   logical :: remove_negative_runoff_glc
 
-  character(len=9), parameter :: fields_to_remove_negative_runoff_lnd(2) = &
-       ['Forr_rofl', &
-        'Forr_rofi']
+  character(len=9), parameter :: fields_to_remove_negative_runoff_lnd_liq(1) = &
+       ['Forr_rofl']
+  character(len=9), parameter :: fields_to_remove_negative_runoff_lnd_ice(1) = &
+       ['Forr_rofi']
   character(len=13), parameter :: fields_to_remove_negative_runoff_glc(2) = &
        ['Forr_rofl_glc', &
         'Forr_rofi_glc']
@@ -82,12 +84,20 @@ contains
     call med_phases_post_rof_create_rof_field_bundle(gcomp, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call NUOPC_CompAttributeGet(gcomp, name='remove_negative_runoff_lnd', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    call NUOPC_CompAttributeGet(gcomp, name='remove_negative_runoff_lnd_liq', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     if (isPresent .and. isSet) then
-      read(cvalue,*) remove_negative_runoff_lnd
+      read(cvalue,*) remove_negative_runoff_lnd_liq
     else
-      remove_negative_runoff_lnd = .false.
+      remove_negative_runoff_lnd_liq = .false.
+    end if
+
+    call NUOPC_CompAttributeGet(gcomp, name='remove_negative_runoff_lnd_ice', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+      read(cvalue,*) remove_negative_runoff_lnd_ice
+    else
+      remove_negative_runoff_lnd_ice = .false.
     end if
 
     call NUOPC_CompAttributeGet(gcomp, name='remove_negative_runoff_glc', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
@@ -99,8 +109,9 @@ contains
     end if
 
     if (maintask) then
-      write(logunit,'(a,l7)') trim(subname)//' remove_negative_runoff_lnd = ', remove_negative_runoff_lnd
-      write(logunit,'(a,l7)') trim(subname)//' remove_negative_runoff_glc = ', remove_negative_runoff_glc
+      write(logunit,'(a,l7)') trim(subname)//' remove_negative_runoff_lnd_liq = ', remove_negative_runoff_lnd_liq
+      write(logunit,'(a,l7)') trim(subname)//' remove_negative_runoff_lnd_ice = ', remove_negative_runoff_lnd_ice
+      write(logunit,'(a,l7)') trim(subname)//' remove_negative_runoff_glc     = ', remove_negative_runoff_glc
     end if
 
     if (dbug_flag > 20) then
@@ -144,12 +155,22 @@ contains
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end do
 
-    if (remove_negative_runoff_lnd) then
-      do n = 1, size(fields_to_remove_negative_runoff_lnd)
-        call ESMF_FieldBundleGet(FBrof_r, fieldName=trim(fields_to_remove_negative_runoff_lnd(n)), isPresent=exists, rc=rc)
+    if (remove_negative_runoff_lnd_liq) then
+      do n = 1, size(fields_to_remove_negative_runoff_lnd_liq)
+        call ESMF_FieldBundleGet(FBrof_r, fieldName=trim(fields_to_remove_negative_runoff_lnd_liq(n)), isPresent=exists, rc=rc)
         if (ChkErr(rc,__LINE__,u_FILE_u)) return
         if (exists) then
-          call med_phases_post_rof_remove_negative_runoff(gcomp, fields_to_remove_negative_runoff_lnd(n), rc)
+          call med_phases_post_rof_remove_negative_runoff(gcomp, fields_to_remove_negative_runoff_lnd_liq(n), rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+        end if
+      end do
+    end if
+    if (remove_negative_runoff_lnd_ice) then
+      do n = 1, size(fields_to_remove_negative_runoff_lnd_ice)
+        call ESMF_FieldBundleGet(FBrof_r, fieldName=trim(fields_to_remove_negative_runoff_lnd_ice(n)), isPresent=exists, rc=rc)
+        if (ChkErr(rc,__LINE__,u_FILE_u)) return
+        if (exists) then
+          call med_phases_post_rof_remove_negative_runoff(gcomp, fields_to_remove_negative_runoff_lnd_ice(n), rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
         end if
       end do

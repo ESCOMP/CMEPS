@@ -73,7 +73,7 @@ release = u'main'
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = 'en'
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -105,8 +105,17 @@ html_theme = 'sphinx_rtd_theme'
 # nothing). For the other version, we just add a place-holder; its name and value are
 # unimportant because these versions will get replaced dynamically.
 html_theme_options = {}
-html_theme_options['versions'] = {version: ''}
-html_theme_options['versions']['[placeholder]'] = ''
+# The 'versions' dropdown option is only provided by the esmci fork of
+# sphinx_rtd_theme. Set it only when the installed theme actually supports it,
+# so a stock sphinx_rtd_theme build does not emit an "unsupported theme option"
+# warning.
+import os as _os, configparser as _cp
+_theme_conf = _os.path.join(_os.path.dirname(sphinx_rtd_theme.__file__), 'theme.conf')
+_theme_cfg = _cp.ConfigParser()
+_theme_cfg.read(_theme_conf)
+if _theme_cfg.has_option('options', 'versions'):
+    html_theme_options['versions'] = {version: ''}
+    html_theme_options['versions']['[placeholder]'] = ''
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,

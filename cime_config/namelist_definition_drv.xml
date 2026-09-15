@@ -347,7 +347,7 @@
     <category>nuopc</category>
     <group>ALLCOMP_attributes</group>
     <values>
-      <value cime_model="cesm">cesm</value>
+      <value>cmeps</value>
     </values>
   </entry>
   <entry id="mesh_mask" modify_via_xml="MASK_MESH">
@@ -360,7 +360,6 @@
     </desc>
     <values>
       <value>$MASK_MESH</value>
-      <value single_column='true'>null</value>
     </values>
   </entry>
   <entry id="ATM_model" modify_via_xml="COMP_ATM">
@@ -855,12 +854,23 @@
       <value>on</value>
     </values>
   </entry>
-  <entry id="remove_negative_runoff_lnd">
+  <entry id="remove_negative_runoff_lnd_liq">
     <type>logical</type>
     <category>control</category>
     <group>MED_attributes</group>
     <desc>
-      If true, remove negative runoff generated from the land component by downweighting all positive runoff globally.
+      If true, remove negative liquid runoff generated from the land component by downweighting all positive runoff globally.
+    </desc>
+    <values>
+      <value>.true.</value>
+    </values>
+  </entry>
+  <entry id="remove_negative_runoff_lnd_ice">
+    <type>logical</type>
+    <category>control</category>
+    <group>MED_attributes</group>
+    <desc>
+      If true, remove negative ice runoff generated from the land component by downweighting all positive runoff globally.
     </desc>
     <values>
       <value>.true.</value>
@@ -871,7 +881,7 @@
     <category>control</category>
     <group>MED_attributes</group>
     <desc>
-      If true, remove negative runoff generated from the glc (ice sheet) component by downweighting all positive runoff globally.
+      If true, remove negative runoff (both liq and ice) generated from the glc (ice sheet) component by downweighting all positive runoff globally.
     </desc>
     <values>
       <value>.false.</value>
@@ -952,16 +962,13 @@
     <group>MED_attributes</group>
     <desc>
       If true, use shr_wv_sat_mod to calculate qsat for atm-ocn flux calculations.
-
       If false, use the older inline calculation of qsat, which uses a different
       formulation.
-
       (Currently only relevant for ocn_surface_flux_scheme = 0 or 1.)
     </desc>
     <values>
-      <!-- Once CIME_MODEL distinguishes between NorESM and CESM, this value will differ
-      between these two. -->
       <value>.true.</value>
+      <value coupling_mode="noresm">.false.</value>
     </values>
   </entry>
   <entry id="add_gusts">
@@ -2116,7 +2123,8 @@
     <group>ALLCOMP_attributes</group>
     <values>
       <value>.false.</value>
-      <value COMP_WAV='ww3'>.true.</value>
+      <value coupling_mode="noresm" COMP_WAV='ww3'>.true.</value>
+      <value coupling_mode="cesm" COMP_WAV='ww3'>.true.</value>
     </values>
     <desc>Auxiliary mediator wav2med average history output every day.
     Note that ww3dev will use this configuration variable and send
@@ -2127,8 +2135,9 @@
     <category>aux_hist</category>
     <group>MED_attributes</group>
     <values>
-      <value>Sw_hs_avg:Sw_Tm1_avg:Sw_thm_avg:Sw_u_avg:Sw_v_avg:Sw_ustokes_avg:Sw_vstokes_avg:Sw_tusx_avg:Sw_tusy_avg:Sw_thp0_avg:Sw_fp0_avg:Sw_phs0_avg:Sw_phs1_avg:Sw_pdir0_avg:Sw_pdir1_avg:Sw_pTm10_avg:Sw_pTm11_avg</value>
-      <value COMP_WAV='ww3'>Sw_Hs:Sw_t01:Sw_t0m1:Sw_thm:Sw_lamult:Sw_ustokes:Sw_vstokes</value>
+      <value>""</value>
+      <value coupling_mode="noresm" COMP_WAV="ww3">Sw_hs_avg:Sw_Tm1_avg:Sw_thm_avg:Sw_u_avg:Sw_v_avg:Sw_ustokes_avg:Sw_vstokes_avg:Sw_tusx_avg:Sw_tusy_avg:Sw_thp0_avg:Sw_fp0_avg:Sw_phs0_avg:Sw_phs1_avg:Sw_pdir0_avg:Sw_pdir1_avg:Sw_pTm10_avg:Sw_pTm11_avg</value>
+      <value coupling_mode="cesm" COMP_WAV="ww3">Sw_hs_avg:Sw_Tm1_avg:Sw_thm_avg:Sw_u_avg:Sw_v_avg:Sw_ustokes_avg:Sw_vstokes_avg:Sw_tusx_avg:Sw_tusy_avg:Sw_thp0_avg:Sw_fp0_avg:Sw_phs0_avg:Sw_phs1_avg:Sw_pdir0_avg:Sw_pdir1_avg:Sw_pTm10_avg:Sw_pTm11_avg</value>
     </values>
     <desc>Auxiliary mediator wav2med file1 colon delimited output
     fields. NOTE: these are assumed to be time averaged over a day in
@@ -2160,10 +2169,12 @@
     <group>MED_attributes</group>
     <values>
       <value>.false.</value>
-      <value COMP_WAV='ww3'>.true.</value>
     </values>
     <desc>Auxiliary mediator wav2med file1 time averaged flag for file output.
-    If this flag is set to .false. only instantaneous output will be created in the auxiliary file.</desc>
+    If this flag is set to .false. only instantaneous output will be created in the auxiliary file.
+    For COMP_WAV=ww3 this must remain .false.: the WW3 cap already produces daily-averaged
+    Sw_*_avg fields (fillvalue between day boundaries), so a second mediator-side average would
+    be meaningless.</desc>
   </entry>
   <entry id="histaux_wav2med_file1_auxname">
     <type>char</type>
@@ -2171,7 +2182,7 @@
     <group>MED_attributes</group>
     <values>
       <value>wav.24h.avg</value>
-      <value COMP_WAV='ww3'>ww3</value>
+      <value coupling_mode="cesm" COMP_WAV='ww3'>ww3</value>
     </values>
   </entry>
   <entry id="histaux_wav2med_file1_ntperfile">
@@ -2821,8 +2832,8 @@
     <group>CLOCK_attributes</group>
     <valid_values>NO_LEAP,GREGORIAN</valid_values>
     <desc>
-      calendar in use.  [NO_LEAP, GREOGORIAN].
-      set by CALENDAR in env_build.xml
+      calendar in use.  [NO_LEAP, GREGORIAN].
+      set by CALENDAR in env_run.xml
     </desc>
     <values>
       <value>$CALENDAR</value>

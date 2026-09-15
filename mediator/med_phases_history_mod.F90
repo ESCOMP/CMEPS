@@ -1165,13 +1165,13 @@ contains
                 ! TODO: print warning statement if remove field
                 ! TODO: if request field that is NOT in the field definition file - then quit
                 ! Remove all fields from fieldnamelist that are not in FBImp(compid,compid)
-                fieldCount = size(fieldnamelist)
-                do n = 1,fieldcount
-                   if (.not. med_methods_FB_fldchk(is_local%wrap%FBImp(compid,compid), trim(fieldnamelist(n)), rc)) then
-                      do n1 = n, fieldCount-1
-                         fieldnamelist(n1) = fieldnamelist(n1+1)
-                      end do
-                      fieldCount = fieldCount - 1
+                ! The loop invariant (fieldCount <= n) below guarantees that the write index
+                ! never passes the read index, so nothing unread gets overwritten.
+                fieldCount = 0
+                do n = 1,size(fieldnamelist)
+                   if (med_methods_FB_fldchk(is_local%wrap%FBImp(compid,compid), trim(fieldnamelist(n)), rc)) then
+                      fieldCount = fieldCount + 1
+                      fieldnamelist(fieldCount) = fieldnamelist(n)
                    end if
                 end do
 
