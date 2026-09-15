@@ -6,16 +6,16 @@ module med_phases_post_rof_mod
   use NUOPC                 , only : NUOPC_CompAttributeGet
   use ESMF                  , only : ESMF_Clock, ESMF_ClockIsCreated
   use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
-  use ESMF                  , only : ESMF_GridComp, ESMF_GridCompGet
+  use ESMF                  , only : ESMF_GridComp
   use ESMF                  , only : ESMF_Mesh, ESMF_MESHLOC_ELEMENT, ESMF_TYPEKIND_R8
   use ESMF                  , only : ESMF_Field
   use ESMF                  , only : ESMF_FieldBundle, ESMF_FieldBundleCreate
   use ESMF                  , only : ESMF_FieldBundleGet, ESMF_FieldBundleAdd
-  use ESMF                  , only : ESMF_VM, ESMF_VMAllreduce, ESMF_REDUCE_SUM
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
   use med_internalstate_mod , only : complnd, compocn, compice, comprof
   use med_internalstate_mod , only : InternalState, maintask, logunit
   use med_utils_mod         , only : chkerr    => med_utils_ChkErr
+  use med_global_sums_mod   , only : med_global_sums
   use med_constants_mod     , only : dbug_flag => med_constants_dbug_flag
   use med_phases_history_mod, only : med_phases_history_write_comp
   use med_map_mod           , only : med_map_field_packed
@@ -302,15 +302,18 @@ contains
 
     ! local variables
     type(InternalState) :: is_local
-    type(ESMF_VM)       :: vm
     real(r8), pointer   :: runoff_flux(:)  ! temporary 1d pointer
     real(r8), pointer   :: areas(:)
-    real(r8)            :: local_positive(1), global_positive(1)
-    real(r8)            :: local_negative(1), global_negative(1)
+    ! The local_* variables below hold per-grid-cell contributions to the corresponding global
+    ! sums. These are kept per grid cell, rather than being summed up locally here, so that the
+    ! global sums can be computed in a manner that is independent of processor count if bfbflag
+    ! is set.
+    real(r8), allocatable :: local_positive(:), local_negative(:)
+    real(r8)            :: global_positive, global_negative
     real(r8)            :: global_sum
     real(r8)            :: multiplier
-    real(r8)            :: local_positive_final(1), global_positive_final(1)
-    real(r8)            :: local_negative_final(1), global_negative_final(1)
+    real(r8), allocatable :: local_positive_final(:), local_negative_final(:)
+    real(r8)            :: global_positive_final, global_negative_final
     real(r8)            :: global_sum_final
     integer :: n
 
@@ -337,36 +340,36 @@ contains
     call fldbun_getdata1d(FBrof_r, trim(field_name), runoff_flux, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    local_positive(1) = 0.0_r8
-    local_negative(1) = 0.0_r8
+    allocate(local_positive(size(runoff_flux)))
+    allocate(local_negative(size(runoff_flux)))
+    local_positive(:) = 0.0_r8
+    local_negative(:) = 0.0_r8
     do n = 1, size(runoff_flux)
       if (runoff_flux(n) >= 0.0_r8) then
-        local_positive(1) = local_positive(1) + areas(n) * runoff_flux(n)
+        local_positive(n) = areas(n) * runoff_flux(n)
       else
-        local_negative(1) = local_negative(1) + areas(n) * runoff_flux(n)
+        local_negative(n) = areas(n) * runoff_flux(n)
       end if
     end do
 
-    call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
+    call med_global_sums(gcomp, local_positive, global_positive, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_VMAllreduce(vm, senddata=local_positive, recvdata=global_positive, count=1, &
-         reduceflag=ESMF_REDUCE_SUM, rc=rc)
+    call med_global_sums(gcomp, local_negative, global_negative, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_VMAllreduce(vm, senddata=local_negative, recvdata=global_negative, count=1, &
-         reduceflag=ESMF_REDUCE_SUM, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    global_sum = global_positive(1) + global_negative(1)
+    deallocate(local_positive)
+    deallocate(local_negative)
+    global_sum = global_positive + global_negative
     if (maintask .and. dbug_flag > dbug_threshold) then
       write(logunit,'(a)') subname//' Before correction: '//trim(field_name)
-      write(logunit,'(a,e27.17)') subname//' global_positive = ', global_positive(1)
-      write(logunit,'(a,e27.17)') subname//' global_negative = ', global_negative(1)
+      write(logunit,'(a,e27.17)') subname//' global_positive = ', global_positive
+      write(logunit,'(a,e27.17)') subname//' global_negative = ', global_negative
       write(logunit,'(a,e27.17)') subname//' global_sum      = ', global_sum
     end if
 
     if (global_sum > 0.0_r8) then
       ! There is enough positive runoff to absorb all of the negative runoff; so set
       ! negative runoff to 0 and downweight positive runoff to conserve.
-      multiplier = global_sum/global_positive(1)
+      multiplier = global_sum/global_positive
       do n = 1, size(runoff_flux)
         if (runoff_flux(n) > 0.0_r8) then
           runoff_flux(n) = runoff_flux(n) * multiplier
@@ -378,7 +381,7 @@ contains
       ! There is more negative than positive runoff. Hopefully this happens rarely, if
       ! ever; so set positive runoff to 0 and downweight negative runoff to minimize
       ! negative runoff and conserve.
-      multiplier = global_sum/global_negative(1)
+      multiplier = global_sum/global_negative
       do n = 1, size(runoff_flux)
         if (runoff_flux(n) < 0.0_r8) then
           runoff_flux(n) = runoff_flux(n) * multiplier
@@ -396,26 +399,28 @@ contains
 
     if (dbug_flag > dbug_threshold) then
       ! Recompute positives, negatives and total sum for output diagnostic purposes
-      local_positive_final(1) = 0.0_r8
-      local_negative_final(1) = 0.0_r8
+      allocate(local_positive_final(size(runoff_flux)))
+      allocate(local_negative_final(size(runoff_flux)))
+      local_positive_final(:) = 0.0_r8
+      local_negative_final(:) = 0.0_r8
       do n = 1, size(runoff_flux)
         if (runoff_flux(n) >= 0.0_r8) then
-          local_positive_final(1) = local_positive_final(1) + areas(n) * runoff_flux(n)
+          local_positive_final(n) = areas(n) * runoff_flux(n)
         else
-          local_negative_final(1) = local_negative_final(1) + areas(n) * runoff_flux(n)
+          local_negative_final(n) = areas(n) * runoff_flux(n)
         end if
       end do
-      call ESMF_VMAllreduce(vm, senddata=local_positive_final, recvdata=global_positive_final, count=1, &
-           reduceflag=ESMF_REDUCE_SUM, rc=rc)
+      call med_global_sums(gcomp, local_positive_final, global_positive_final, rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-      call ESMF_VMAllreduce(vm, senddata=local_negative_final, recvdata=global_negative_final, count=1, &
-           reduceflag=ESMF_REDUCE_SUM, rc=rc)
+      call med_global_sums(gcomp, local_negative_final, global_negative_final, rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-      global_sum_final = global_positive_final(1) + global_negative_final(1)
+      deallocate(local_positive_final)
+      deallocate(local_negative_final)
+      global_sum_final = global_positive_final + global_negative_final
       if (maintask) then
         write(logunit,'(a)') subname//' After correction: '//trim(field_name)
-        write(logunit,'(a,e27.17)') subname//' global_positive_final = ', global_positive_final(1)
-        write(logunit,'(a,e27.17)') subname//' global_negative_final = ', global_negative_final(1)
+        write(logunit,'(a,e27.17)') subname//' global_positive_final = ', global_positive_final
+        write(logunit,'(a,e27.17)') subname//' global_negative_final = ', global_negative_final
         write(logunit,'(a,e27.17)') subname//' global_sum_final      = ', global_sum_final
       end if
     end if
