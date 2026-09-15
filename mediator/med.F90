@@ -57,7 +57,6 @@ module MED
   use med_ufs_trace_wrapper_mod, only : ufs_trace_init_wrapper, ufs_trace_wrapper, ufs_trace_finalize_wrapper
 
 
-
   implicit none
   private
 
@@ -1972,7 +1971,7 @@ contains
       !---------------------------------------
       ! Initialize rof module field bundles here if appropriate
       !---------------------------------------
-      if (is_local%wrap%med_coupling_active(comprof,complnd)) then
+      if (is_local%wrap%med_coupling_active(complnd,comprof)) then
          call med_phases_prep_rof_init(gcomp, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
       end if
