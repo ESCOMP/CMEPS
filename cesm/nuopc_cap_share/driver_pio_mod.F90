@@ -187,7 +187,7 @@ contains
     integer, intent(out) :: rc
 
     type(ESMF_VM) :: vm
-    integer :: i, npets, default_stride
+    integer :: i, npets, default_stride, lpet
     integer :: j, myid
     integer :: k
     integer :: comp_comm, comp_rank
@@ -275,6 +275,17 @@ contains
        if(associated(gcomp)) then
           petlocal(i) = ESMF_GridCompIsPetLocal(gcomp(i), rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+          ! Under ESMF-managed threading, PETs whose PEs are lent to another PET's
+          ! threads hold no VM for the child; ESMF_VMGet returns localPet = -1 there
+          ! (NUOPC refdoc sec. 2.7.2), so treat them as non-local for PIO setup.
+          if (petlocal(i)) then
+             call ESMF_GridCompGet(gcomp(i), vm=vm, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+             call ESMF_VMGet(vm, localPet=lpet, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+             petlocal(i) = (lpet >= 0)
+          end if
 
           call NUOPC_CompAttributeGet(gcomp(i), name="pio_async_interface", value=cval, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
