@@ -30,8 +30,8 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     # Set up config dictionary
     # --------------------------------
     config = {}
-    cime_model = get_model()
-    config["cime_model"] = cime_model
+    # determine coupling mode
+    config["coupling_mode"] = case.get_value("COUPLING_MODE")
     config["iyear"] = case.get_value("COMPSET").split("_")[0]
     config["BGC_MODE"] = case.get_value("CCSM_BGC")
     config["CPL_I2O_PER_CAT"] = case.get_value("CPL_I2O_PER_CAT")
@@ -147,9 +147,6 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
                 "dated rpointer.cpl of the reference case. Set it with:\n"
                 "  ./xmlchange DRV_RESTART_POINTER={}".format(expected_pointer),
             )
-
-    # determine coupling mode
-    config["coupling_mode"] = case.get_value("COUPLING_MODE")
 
     # determine wav_ice_coupling
     if config["coupling_mode"] == "cesm" or config["coupling_mode"] == "noresm":
