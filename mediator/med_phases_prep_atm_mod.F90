@@ -11,7 +11,7 @@ module med_phases_prep_atm_mod
   use med_constants_mod     , only : dbug_flag   => med_constants_dbug_flag
   use med_utils_mod         , only : memcheck    => med_memcheck
   use med_utils_mod         , only : chkerr      => med_utils_ChkErr
-  use med_utils_mod         , only : med_global_sums
+  use med_global_sums_mod   , only : med_global_sums
   use med_methods_mod       , only : FB_diagnose => med_methods_FB_diagnose
   use med_methods_mod       , only : FB_fldchk   => med_methods_FB_FldChk
   use med_methods_mod       , only : FB_getfldptr=> med_methods_FB_GetFldPtr

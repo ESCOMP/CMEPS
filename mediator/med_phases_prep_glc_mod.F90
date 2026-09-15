@@ -43,7 +43,7 @@ module med_phases_prep_glc_mod
   use med_methods_mod       , only : med_methods_FB_check_wtracers
   use med_field_info_mod    , only : med_field_info_type, med_field_info_array_from_state
   use med_utils_mod         , only : chkerr           => med_utils_ChkErr
-  use med_utils_mod         , only : med_global_sums
+  use med_global_sums_mod   , only : med_global_sums
   use nuopc_shr_methods     , only : alarmInit
   use glc_elevclass_mod     , only : glc_get_num_elevation_classes
   use glc_elevclass_mod     , only : glc_get_elevation_classes
