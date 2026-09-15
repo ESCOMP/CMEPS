@@ -2520,6 +2520,20 @@
    <desc>add aoflux calculation to runseq</desc>
  </entry>
 
+  <!-- ===================================================================== -->
+  <!-- TODO: the following should be deleted. They are still used by  -->
+  <!-- the component testing but are not doing anything in cmeps -->
+  <!-- ===================================================================== -->
+
+  <entry id="BFBFLAG">
+    <type>logical</type>
+    <valid_values>TRUE,FALSE</valid_values>
+    <default_value>FALSE</default_value>
+    <group>run_flags</group>
+    <file>env_run.xml</file>
+    <desc>does not do anything currently in CMEPS</desc>
+  </entry>
+
  <help>
     =========================================
     Notes:
