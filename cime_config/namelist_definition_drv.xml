@@ -2685,10 +2685,11 @@
     <category>reprosum</category>
     <group>ALLCOMP_attributes</group>
     <desc>
-      If true, perform some calculations (in CMEPS and elsewhere) such as global sums in a
-      manner that is bit-for-bit independent of processor count.
-      (This does NOT guarantee that all calculations throughout the model are bit-for-bit
-      independent of processor count.)
+      If true, perform some calculations (in CMEPS and elsewhere) such as global sums
+      using a less efficient algorithm that is independent of processor count. This allows
+      for Bit-For-Bit (BFB) reproducibility when changing PE layouts, for many compsets.
+      However, setting this flag does NOT guarantee that all calculations throughout all
+      model configurations are BFB independent of processor count.
     </desc>
     <values>
       <value>$BFBFLAG</value>
