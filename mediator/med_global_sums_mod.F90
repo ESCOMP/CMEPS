@@ -65,7 +65,9 @@ contains
     integer           :: nsummands  ! number of local grid cells
     integer           :: nflds      ! number of fields
     integer           :: n, nf
+#ifdef CESMCOUPLED
     integer           :: mpicom     ! MPI communicator of this component
+#endif
     character(len=CS) :: cvalue
     logical           :: isPresent, isSet
     logical           :: bfbflag    ! value of the bfbflag attribute
