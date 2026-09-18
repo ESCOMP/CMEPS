@@ -140,10 +140,6 @@ contains
     integer            , intent(out) :: rc
 
     ! local variables
-    ! Note that summands_2d is deliberately allocatable, rather than being an automatic array or
-    ! an inline reshape of local_summands: those would create an array temporary, which some
-    ! compilers place on the stack, and local_summands can be large (e.g., of order the number of
-    ! local grid cells).
     real(r8), allocatable :: summands_2d(:,:)
     real(r8)              :: global_sums(1)
     !---------------------------------------------------------------
