@@ -1107,6 +1107,21 @@
     <desc>pes or cores used relative to MAX_MPITASKS_PER_NODE for accounting (0 means TOTALPES is valid)</desc>
   </entry>
 
+  <entry id="BFBFLAG">
+    <type>logical</type>
+    <valid_values>TRUE,FALSE</valid_values>
+    <default_value>FALSE</default_value>
+    <group>run_flags</group>
+    <file>env_run.xml</file>
+    <desc>
+      If TRUE, perform some calculations (in CMEPS and elsewhere) such as global sums
+      using a less efficient algorithm that is independent of processor count. This allows
+      for Bit-For-Bit (BFB) reproducibility when changing PE layouts, for many compsets.
+      However, setting this flag does NOT guarantee that all calculations throughout all
+      model configurations are BFB independent of processor count.
+    </desc>
+  </entry>
+
   <!-- ===================================================================== -->
   <!-- definitions grid -->
   <!-- ===================================================================== -->
@@ -2514,21 +2529,6 @@
    <file>env_run.xml</file>
    <desc>add aoflux calculation to runseq</desc>
  </entry>
-
-  <!-- ===================================================================== -->
-  <!-- TODO: the following should be deleted. They are still used by  -->
-  <!-- the component testing but are not doing anything in cmeps -->
-  <!-- ===================================================================== -->
-
-  <entry id="BFBFLAG">
-    <type>logical</type>
-    <valid_values>TRUE,FALSE</valid_values>
-    <default_value>FALSE</default_value>
-    <group>run_flags</group>
-    <file>env_run.xml</file>
-    <desc>turns on coupler bit-for-bit reproducibility with varying pe counts</desc>
-  </entry>
-
 
  <help>
     =========================================

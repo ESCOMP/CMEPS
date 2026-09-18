@@ -2676,6 +2676,26 @@
    </values>
   </entry>
 
+    <!-- Note: the reprosum_* attributes above are DRIVER_attributes, since they configure
+         shr_reprosum_mod itself, which is done in the driver. bfbflag is in
+         ALLCOMP_attributes because it is read by multiple components that perform global
+         sums. -->
+  <entry id="bfbflag" modify_via_xml="BFBFLAG">
+    <type>logical</type>
+    <category>reprosum</category>
+    <group>ALLCOMP_attributes</group>
+    <desc>
+      If true, perform some calculations (in CMEPS and elsewhere) such as global sums
+      using a less efficient algorithm that is independent of processor count. This allows
+      for Bit-For-Bit (BFB) reproducibility when changing PE layouts, for many compsets.
+      However, setting this flag does NOT guarantee that all calculations throughout all
+      model configurations are BFB independent of processor count.
+    </desc>
+    <values>
+      <value>$BFBFLAG</value>
+    </values>
+  </entry>
+
   <!-- =========================== -->
   <!-- CLOCK Attributes            -->
   <!-- =========================== -->

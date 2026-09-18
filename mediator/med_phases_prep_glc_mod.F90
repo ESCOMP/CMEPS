@@ -8,13 +8,12 @@ module med_phases_prep_glc_mod
   use NUOPC                 , only : NUOPC_CompAttributeGet
   use NUOPC_Model           , only : NUOPC_ModelGet
   use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_FAILURE
-  use ESMF                  , only : ESMF_VM, ESMF_VMGet, ESMF_VMAllReduce, ESMF_REDUCE_SUM, ESMF_REDUCE_MAX
   use ESMF                  , only : ESMF_Clock, ESMF_ClockCreate, ESMF_ClockIsCreated
   use ESMF                  , only : ESMF_ClockGetAlarm, ESMF_ClockAdvance, ESMF_ClockGet
   use ESMF                  , only : ESMF_Time, ESMF_TimeGet
   use ESMF                  , only : ESMF_Alarm, ESMF_AlarmCreate, ESMF_AlarmSet, ESMF_AlarmGet
   use ESMF                  , only : ESMF_AlarmIsRinging, ESMF_AlarmRingerOff
-  use ESMF                  , only : ESMF_GridComp, ESMF_GridCompGet
+  use ESMF                  , only : ESMF_GridComp
   use ESMF                  , only : ESMF_FieldBundle, ESMF_FieldBundleGet, ESMF_FieldBundleAdd
   use ESMF                  , only : ESMF_FieldBundleCreate, ESMF_FieldBundleIsCreated
   use ESMF                  , only : ESMF_Field, ESMF_FieldGet, ESMF_FieldCreate
@@ -44,6 +43,7 @@ module med_phases_prep_glc_mod
   use med_methods_mod       , only : med_methods_FB_check_wtracers
   use med_field_info_mod    , only : med_field_info_type, med_field_info_array_from_state
   use med_utils_mod         , only : chkerr           => med_utils_ChkErr
+  use med_global_sums_mod   , only : med_global_sums
   use nuopc_shr_methods     , only : alarmInit
   use glc_elevclass_mod     , only : glc_get_num_elevation_classes
   use glc_elevclass_mod     , only : glc_get_elevation_classes
@@ -63,8 +63,8 @@ module med_phases_prep_glc_mod
 
   private :: med_phases_prep_glc_map_lnd2glc
   private :: med_phases_prep_glc_renormalize_smb
-  private :: renormalize_smb_accumulate_sums_l
-  private :: renormalize_smb_accumulate_sums_g
+  private :: renormalize_smb_compute_summands_l
+  private :: renormalize_smb_compute_summands_g
   private :: renormalize_smb_do_renormalization
 
   ! -----------------
@@ -1114,7 +1114,6 @@ contains
 
     ! local variables
     type(InternalState) :: is_local
-    type(ESMF_VM)       :: vm
     real(r8) , pointer  :: qice_g(:)       ! SMB (Flgl_qice) on glc grid without elev classes
     real(r8) , pointer  :: qice_l_ec(:,:)  ! SMB (Flgl_qice_elev) on land grid with elev classes
     real(r8) , pointer  :: qice_g_wtracers(:,:) ! SMB water tracers (Flgl_qice_wtracers) on glc grid without elev classes
@@ -1129,12 +1128,19 @@ contains
     real(r8) , pointer  :: dataptr1d(:)    ! temporary 1d pointer
     integer             :: n, t
 
-    ! local and global sums of accumulation and ablation; used to compute renormalization factors
-    ! the first element of each of these is for bulk water; the remaining elements are for water tracers
-    real(r8) :: local_accum_lnd(1+num_wtracers), global_accum_lnd(1+num_wtracers)
-    real(r8) :: local_accum_glc(1+num_wtracers), global_accum_glc(1+num_wtracers)
-    real(r8) :: local_ablat_lnd(1+num_wtracers), global_ablat_lnd(1+num_wtracers)
-    real(r8) :: local_ablat_glc(1+num_wtracers), global_ablat_glc(1+num_wtracers)
+    ! local summands and global sums of accumulation and ablation; used to compute
+    ! renormalization factors.
+    !
+    ! For the local variables, the first dimension is over local grid cells (on the land or glc
+    ! grid, as appropriate) and the second dimension is over bulk water plus water tracers; the
+    ! global variables have just the latter dimension. For the latter dimension, the first
+    ! element is for bulk water; the remaining elements are for water tracers.
+    real(r8), allocatable :: local_accum_lnd(:,:)
+    real(r8), allocatable :: local_ablat_lnd(:,:)
+    real(r8), allocatable :: local_accum_glc(:,:)
+    real(r8), allocatable :: local_ablat_glc(:,:)
+    real(r8) :: global_accum_lnd(1+num_wtracers), global_ablat_lnd(1+num_wtracers)
+    real(r8) :: global_accum_glc(1+num_wtracers), global_ablat_glc(1+num_wtracers)
 
     ! areas
     real(r8), allocatable :: effective_area_l(:) ! effective areas on the land grid: grid cell area multiplied by min(lndfrac,icemask_l).
@@ -1226,40 +1232,40 @@ contains
        effective_area_l(n) = min(lndfrac(n), icemask_l(n)) * is_local%wrap%mesh_info(complnd)%areas(n)
     end do
 
-    ! determine accumulation and ablation sums for qice on the land grid
+    ! determine accumulation and ablation summands for qice on the land grid
+    allocate(local_accum_lnd(size(lndfrac), 1+num_wtracers))
+    allocate(local_ablat_lnd(size(lndfrac), 1+num_wtracers))
     call fldbun_getdata2d(FBlndAccum2glc_l, trim(qice_elev_fieldname), qice_l_ec, rc)
     if (chkErr(rc,__LINE__,u_FILE_u)) return
-    call renormalize_smb_accumulate_sums_l(qice_l_ec, effective_area_l, frac_l_ec, &
-         local_accum_lnd(1), local_ablat_lnd(1))
+    call renormalize_smb_compute_summands_l(qice_l_ec, effective_area_l, frac_l_ec, &
+         local_accum_lnd(:,1), local_ablat_lnd(:,1))
 
-    ! and, similarly, determine accumulation and ablation sums for qice water tracers on the land grid
+    ! and, similarly, determine accumulation and ablation summands for qice water tracers on the land grid
     if (has_wtracers) then
        call fldbun_getdata3d(FBlndAccum2glc_l, trim(qice_elev_wtracers_fieldname), qice_l_ec_wtracers, rc)
        if (chkErr(rc,__LINE__,u_FILE_u)) return
        do t = 1, num_wtracers
-          call renormalize_smb_accumulate_sums_l(qice_l_ec_wtracers(:,t,:), effective_area_l, frac_l_ec, &
-               local_accum_lnd(1+t), local_ablat_lnd(1+t))
+          call renormalize_smb_compute_summands_l(qice_l_ec_wtracers(:,t,:), effective_area_l, frac_l_ec, &
+               local_accum_lnd(:,1+t), local_ablat_lnd(:,1+t))
        end do
     end if
 
     deallocate(effective_area_l)
 
     ! determine global accum/ablat on the land grid
-    call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
+    call med_global_sums(gcomp, local_accum_lnd, global_accum_lnd, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_VMAllreduce(vm, senddata=local_accum_lnd, recvdata=global_accum_lnd, count=1+num_wtracers, &
-         reduceflag=ESMF_REDUCE_SUM, rc=rc)
+    call med_global_sums(gcomp, local_ablat_lnd, global_ablat_lnd, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_VMAllreduce(vm, senddata=local_ablat_lnd, recvdata=global_ablat_lnd, count=1+num_wtracers, &
-         reduceflag=ESMF_REDUCE_SUM, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    deallocate(local_accum_lnd)
+    deallocate(local_ablat_lnd)
     if (maintask) then
-       write(logunit,'(a,d21.10)') trim(subname)//'global_accum_lnd = ', global_accum_lnd(1)
-       write(logunit,'(a,d21.10)') trim(subname)//'global_ablat_lnd = ', global_ablat_lnd(1)
+       write(logunit,'(a,d28.17)') trim(subname)//'global_accum_lnd = ', global_accum_lnd(1)
+       write(logunit,'(a,d28.17)') trim(subname)//'global_ablat_lnd = ', global_ablat_lnd(1)
        do t = 1, num_wtracers
-          write(logunit,'(a,i0,a,d21.10)') trim(subname)//'tracer #', t, &
+          write(logunit,'(a,i0,a,d28.17)') trim(subname)//'tracer #', t, &
                ': global_accum_lnd = ', global_accum_lnd(1+t)
-          write(logunit,'(a,i0,a,d21.10)') trim(subname)//'tracer #', t, &
+          write(logunit,'(a,i0,a,d28.17)') trim(subname)//'tracer #', t, &
                ': global_ablat_lnd = ', global_ablat_lnd(1+t)
        end do
     endif
@@ -1272,34 +1278,38 @@ contains
     call fldbun_getdata1d(is_local%wrap%FBImp(compglc(ns),compglc(ns)), 'Sg_area', area_g, rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    ! determine accumulation and ablation sums for qice on the glc grid
+    ! determine accumulation and ablation summands for qice on the glc grid
     call fldbun_getdata1d(is_local%wrap%FBExp(compglc(ns)), qice_fieldname, qice_g, rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call renormalize_smb_accumulate_sums_g(qice_g, icemask_g, area_g, &
-         local_accum_glc(1), local_ablat_glc(1))
+    allocate(local_accum_glc(size(qice_g), 1+num_wtracers))
+    allocate(local_ablat_glc(size(qice_g), 1+num_wtracers))
+    call renormalize_smb_compute_summands_g(qice_g, icemask_g, area_g, &
+         local_accum_glc(:,1), local_ablat_glc(:,1))
 
-    ! and, similarly, determine accumulation and ablation sums for qice water tracers on the glc grid
+    ! and, similarly, determine accumulation and ablation summands for qice water tracers on the glc grid
     if (has_wtracers) then
        call fldbun_getdata2d(is_local%wrap%FBExp(compglc(ns)), qice_wtracers_fieldname, qice_g_wtracers, rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        do t = 1, num_wtracers
-          call renormalize_smb_accumulate_sums_g(qice_g_wtracers(t,:), icemask_g, area_g, &
-               local_accum_glc(1+t), local_ablat_glc(1+t))
+          call renormalize_smb_compute_summands_g(qice_g_wtracers(t,:), icemask_g, area_g, &
+               local_accum_glc(:,1+t), local_ablat_glc(:,1+t))
        end do
     end if
 
     ! determine global accum/ablat on the glc grid
-    call ESMF_VMAllreduce(vm, senddata=local_accum_glc, recvdata=global_accum_glc, count=1+num_wtracers, &
-         reduceflag=ESMF_REDUCE_SUM, rc=rc)
-    call ESMF_VMAllreduce(vm, senddata=local_ablat_glc, recvdata=global_ablat_glc, count=1+num_wtracers, &
-         reduceflag=ESMF_REDUCE_SUM, rc=rc)
+    call med_global_sums(gcomp, local_accum_glc, global_accum_glc, rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call med_global_sums(gcomp, local_ablat_glc, global_ablat_glc, rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    deallocate(local_accum_glc)
+    deallocate(local_ablat_glc)
     if (maintask) then
-       write(logunit,'(a,d21.10)') trim(subname)//'global_accum_glc = ', global_accum_glc(1)
-       write(logunit,'(a,d21.10)') trim(subname)//'global_ablat_glc = ', global_ablat_glc(1)
+       write(logunit,'(a,d28.17)') trim(subname)//'global_accum_glc = ', global_accum_glc(1)
+       write(logunit,'(a,d28.17)') trim(subname)//'global_ablat_glc = ', global_ablat_glc(1)
        do t = 1, num_wtracers
-          write(logunit,'(a,i0,a,d21.10)') trim(subname)//'tracer #', t, &
+          write(logunit,'(a,i0,a,d28.17)') trim(subname)//'tracer #', t, &
                ': global_accum_glc = ', global_accum_glc(1+t)
-          write(logunit,'(a,i0,a,d21.10)') trim(subname)//'tracer #', t, &
+          write(logunit,'(a,i0,a,d28.17)') trim(subname)//'tracer #', t, &
                ': global_ablat_glc = ', global_ablat_glc(1+t)
        end do
     endif
@@ -1318,66 +1328,73 @@ contains
   end subroutine med_phases_prep_glc_renormalize_smb
 
   !================================================================================================
-  subroutine renormalize_smb_accumulate_sums_l(qice_l_ec, effective_area_l, frac_l_ec, &
+  subroutine renormalize_smb_compute_summands_l(qice_l_ec, effective_area_l, frac_l_ec, &
        accum_l, ablat_l)
 
-    ! Compute local accumulation and ablation sums on land grid
+    ! Compute the per-grid-cell accumulation and ablation summands on the land grid. These are
+    ! the summands of the global accumulation and ablation sums; they are returned per grid cell
+    ! (rather than being summed here) so that the caller can compute the global sums in a
+    ! processor-count-independent manner if desired. Note that the sum over elevation classes
+    ! for a given grid cell is done here, since that dimension is not distributed.
 
     ! input/output variables
     real(r8), intent(in)  :: qice_l_ec(:,:)
     real(r8), intent(in)  :: effective_area_l(:)
     real(r8), intent(in)  :: frac_l_ec(:,:)
-    real(r8), intent(out) :: accum_l
-    real(r8), intent(out) :: ablat_l
+    real(r8), intent(out) :: accum_l(:)
+    real(r8), intent(out) :: ablat_l(:)
 
     ! local variables
     integer :: n, ec
     !---------------------------------------------------------------
 
-    accum_l = 0.0_r8
-    ablat_l = 0.0_r8
+    accum_l(:) = 0.0_r8
+    ablat_l(:) = 0.0_r8
     do n = 1, size(effective_area_l)
        if (effective_area_l(n) > 0.0_r8) then
           do ec = 1, ungriddedCount
              if (qice_l_ec(ec,n) >= 0.0_r8) then
-                accum_l = accum_l + effective_area_l(n) * frac_l_ec(ec,n) * qice_l_ec(ec,n)
+                accum_l(n) = accum_l(n) + effective_area_l(n) * frac_l_ec(ec,n) * qice_l_ec(ec,n)
              else
-                ablat_l = ablat_l + effective_area_l(n) * frac_l_ec(ec,n) * qice_l_ec(ec,n)
+                ablat_l(n) = ablat_l(n) + effective_area_l(n) * frac_l_ec(ec,n) * qice_l_ec(ec,n)
              end if
           end do
        end if
     end do
 
-  end subroutine renormalize_smb_accumulate_sums_l
+  end subroutine renormalize_smb_compute_summands_l
 
   !================================================================================================
-  subroutine renormalize_smb_accumulate_sums_g(qice_g, icemask_g, area_g, &
+  subroutine renormalize_smb_compute_summands_g(qice_g, icemask_g, area_g, &
        accum_g, ablat_g)
 
-    ! Compute local accumulation and ablation sums on glc grid
+    ! Compute the per-grid-cell accumulation and ablation summands on the glc grid. These are
+    ! the summands of the global accumulation and ablation sums; they are returned per grid cell
+    ! (rather than being summed here) so that the caller can compute the global sums in a
+    ! processor-count-independent manner if desired.
 
     ! input/output variables
     real(r8), intent(in)  :: qice_g(:)
     real(r8), intent(in)  :: icemask_g(:)
     real(r8), intent(in)  :: area_g(:)
-    real(r8), intent(out) :: accum_g
-    real(r8), intent(out) :: ablat_g
+    real(r8), intent(out) :: accum_g(:)
+    real(r8), intent(out) :: ablat_g(:)
 
     ! local variables
     integer :: n
     !---------------------------------------------------------------
 
-    accum_g = 0.0_r8
-    ablat_g = 0.0_r8
+    accum_g(:) = 0.0_r8
+    ablat_g(:) = 0.0_r8
     do n = 1, size(qice_g)
        if (qice_g(n) >= 0.0_r8) then
-          accum_g = accum_g + icemask_g(n) * area_g(n) * qice_g(n)
+          accum_g(n) = icemask_g(n) * area_g(n) * qice_g(n)
        else
-          ablat_g = ablat_g + icemask_g(n) * area_g(n) * qice_g(n)
+          ablat_g(n) = icemask_g(n) * area_g(n) * qice_g(n)
        end if
     end do
 
-  end subroutine renormalize_smb_accumulate_sums_g
+  end subroutine renormalize_smb_compute_summands_g
 
   !================================================================================================
   subroutine renormalize_smb_do_renormalization(global_accum_lnd, global_ablat_lnd, &
@@ -1415,13 +1432,13 @@ contains
     endif
     if (maintask) then
        if (present(tracer_num)) then
-          write(logunit,'(a,i0,a,d21.10)') trim(caller_subname)//'tracer #', tracer_num, &
+          write(logunit,'(a,i0,a,d28.17)') trim(caller_subname)//'tracer #', tracer_num, &
                ': accum_renorm_factor = ', accum_renorm_factor
-          write(logunit,'(a,i0,a,d21.10)') trim(caller_subname)//'tracer #', tracer_num, &
+          write(logunit,'(a,i0,a,d28.17)') trim(caller_subname)//'tracer #', tracer_num, &
                ': ablat_renorm_factor = ', ablat_renorm_factor
        else
-          write(logunit,'(a,d21.10)') trim(caller_subname)//'accum_renorm_factor = ', accum_renorm_factor
-          write(logunit,'(a,d21.10)') trim(caller_subname)//'ablat_renorm_factor = ', ablat_renorm_factor
+          write(logunit,'(a,d28.17)') trim(caller_subname)//'accum_renorm_factor = ', accum_renorm_factor
+          write(logunit,'(a,d28.17)') trim(caller_subname)//'ablat_renorm_factor = ', ablat_renorm_factor
        endif
     endif
 

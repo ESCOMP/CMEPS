@@ -7,10 +7,11 @@ module med_phases_prep_atm_mod
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
   use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
   use ESMF                  , only : ESMF_Field, ESMF_FieldGet, ESMF_FieldBundleGet
-  use ESMF                  , only : ESMF_GridComp, ESMF_GridCompGet
+  use ESMF                  , only : ESMF_GridComp
   use med_constants_mod     , only : dbug_flag   => med_constants_dbug_flag
   use med_utils_mod         , only : memcheck    => med_memcheck
   use med_utils_mod         , only : chkerr      => med_utils_ChkErr
+  use med_global_sums_mod   , only : med_global_sums
   use med_methods_mod       , only : FB_diagnose => med_methods_FB_diagnose
   use med_methods_mod       , only : FB_fldchk   => med_methods_FB_FldChk
   use med_methods_mod       , only : FB_getfldptr=> med_methods_FB_GetFldPtr
@@ -270,9 +271,6 @@ contains
     ! 'Foxx_hrofl','Foxx_rofi','Foxx_hrofi','Foxx_rofl_glc',
     ! 'Foxx_hrofl_glc','Foxx_rofi_glc','Foxx_hrofi_glc'
 
-    use ESMF            , only : ESMF_VMAllreduce, ESMF_GridCompGet, ESMF_REDUCE_SUM
-    use ESMF            , only : ESMF_VM
-
     ! input/output variables
     type(ESMF_GridComp) , intent(in)  :: gcomp
     real(r8)            , intent(in)  :: hcorr(:)
@@ -280,9 +278,6 @@ contains
 
     ! local variables
     type(InternalState) :: is_local
-    integer             :: n
-    real(r8)            :: local_htot_corr(1)
-    type(ESMF_VM)       :: vm
     !---------------------------------------
 
     rc = ESMF_SUCCESS
@@ -291,15 +286,7 @@ contains
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (chkErr(rc,__LINE__,u_FILE_u)) return
 
-    ! Determine sum of enthalpy correction for each hcorr index locally
-    local_htot_corr(1) = 0._r8
-    do n = 1,size(hcorr)
-       local_htot_corr(1) = local_htot_corr(1) + hcorr(n)
-    end do
-    call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_VMAllreduce(vm, senddata=local_htot_corr, recvdata=global_htot_corr, count=1, &
-         reduceflag=ESMF_REDUCE_SUM, rc=rc)
+    call med_global_sums(gcomp, hcorr, global_htot_corr(1), rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
   end subroutine med_phases_prep_atm_enthalpy_correction
