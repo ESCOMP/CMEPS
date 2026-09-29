@@ -39,6 +39,10 @@
     <type>char</type>
     <valid_values>cesm,noresm</valid_values>
     <default_value>cesm</default_value>
+    <values>
+      <value cime_model="cesm">cesm</value>
+      <value cime_model="noresm">noresm</value>
+    </values>
     <group>run_coupling</group>
     <file>env_run.xml</file>
     <desc>coupling mode</desc>
@@ -2510,6 +2514,7 @@
    <default_value></default_value>
    <values>
      <value cime_model="cesm">gptl,pio,csm_share,FTorch,CDEPS</value>
+     <value cime_model="noresm">gptl,pio,csm_share,FTorch,CDEPS</value>
    </values>
    <group>build_def</group>
    <file>env_build.xml</file>

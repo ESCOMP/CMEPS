@@ -53,7 +53,7 @@ module med_phases_post_rof_mod
   character(len=13), parameter :: fields_to_remove_negative_runoff_glc(2) = &
        ['Forr_rofl_glc', &
         'Forr_rofi_glc']
- 
+
   character(*) , parameter :: u_FILE_u = &
        __FILE__
 
@@ -120,7 +120,10 @@ contains
     call t_stopf('MED:'//subname)
   end subroutine med_phases_post_rof_init
 
+  !================================================================================================
   subroutine med_phases_post_rof(gcomp, rc)
+    !---------------------------------------------------------------
+    ! Post runoff phase
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -241,6 +244,7 @@ contains
 
   end subroutine med_phases_post_rof
 
+  !================================================================================================
   subroutine med_phases_post_rof_create_rof_field_bundle(gcomp, rc)
     !---------------------------------------------------------------
     ! Create FBrof_r
@@ -311,6 +315,7 @@ contains
 
   end subroutine med_phases_post_rof_create_rof_field_bundle
 
+  !================================================================================================
   subroutine med_phases_post_rof_remove_negative_runoff(gcomp, field_name, rc)
     !---------------------------------------------------------------
     ! For one runoff field, remove negative runoff by downweighting all positive runoff to
