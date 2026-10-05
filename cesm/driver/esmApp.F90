@@ -41,6 +41,8 @@ program esmApp
 #else
   call MPI_init(rc)
 #endif
+  ! note: this is superseded by the MPI_COMM_split below, which restricts this
+  ! application to its own subset of MPI_COMM_WORLD
   COMP_COMM = MPI_COMM_WORLD
 
   !-----------------------------------------------------------------------------
@@ -49,6 +51,27 @@ program esmApp
 
   ! by default, ESMF_LOGKIND_MULTI_ON_ERROR does not create files PET[N*].ESMF_LogFile unless there is an error
   ! if want those files, comment out the following line and uncomment the line logkindflag = ESMF_LOGKIND_MULTI
+
+  !-----------------------------------------------------------------------------
+  ! Restrict this application to its own subset of MPI_COMM_WORLD.
+  !
+  ! WACCM-X/MAGE runs as a multiple-program (MPMD) job -- the CESM executable and
+  ! the MAGE executables (Gamera, REMIX, RCM) are launched together, so
+  ! MPI_COMM_WORLD spans all of the models.  Splitting on the WACCM-X application
+  ! ID hands CESM a communicator containing only its own ranks; that is the
+  ! communicator passed to ESMF_Initialize below, so the entire CESM component
+  ! tree runs on it.  MPI_COMM_WORLD itself is deliberately left untouched
+  ! because the cross-model coupling in CAM (src/ionosphere/waccmx/mage_module.F90)
+  ! uses it directly as the pool from which the WACCM-X <-> REMIX coupling
+  ! communicator is built.
+  !
+  ! The color (67) must match myAppId in mage_module.F90; the other models split
+  ! the same world with their own IDs.  A key of 0 preserves the existing rank
+  ! ordering.  In a standalone CESM run every rank passes the same color, so the
+  ! result is simply a duplicate of MPI_COMM_WORLD and behavior is unchanged.
+  !-----------------------------------------------------------------------------
+  call MPI_COMM_split(MPI_COMM_WORLD,67,0,COMP_COMM,ier)
+
   call mpi_comm_rank(COMP_COMM, iam, ier)
   if (iam==0) then
      open(newunit=fileunit, status="old", file="drv_in")
