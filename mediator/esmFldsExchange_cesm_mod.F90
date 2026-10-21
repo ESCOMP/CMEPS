@@ -3317,10 +3317,19 @@ contains
           call addmap_from(compatm, 'Sa_u', compwav, mapbilnr, 'one', atm2wav_map)
           call addmrg_to(compwav, 'Sa_u', mrg_from=compatm, mrg_fld='Sa_u', mrg_type='copy')
        end if
-       if ( fldchk(is_local%wrap%FBexp(compwav)         , 'Sa_u10m', rc=rc) .and. &
-            fldchk(is_local%wrap%FBImp(compatm,compatm ), 'Sa_u10m', rc=rc)) then
-          call addmap_from(compatm, 'Sa_u10m', compwav, mapbilnr, 'one', atm2wav_map)
-          call addmrg_to(compwav, 'Sa_u10m', mrg_from=compatm, mrg_fld='Sa_u10m', mrg_type='copy')
+       if (   fldchk(is_local%wrap%FBexp(compwav)         , 'Sa_u10m', rc=rc)) then
+          if (fldchk(is_local%wrap%FBImp(compatm,compatm ), 'Sa_u10m', rc=rc)) then
+             ! If possible, connect ATM's Sa_u10m to WAV's Sa_u10m
+             call addmap_from(compatm, 'Sa_u10m', compwav, mapbilnr, 'one', atm2wav_map)
+             call addmrg_to(compwav, 'Sa_u10m', mrg_from=compatm, mrg_fld='Sa_u10m', mrg_type='copy')
+          else if (fldchk(is_local%wrap%FBImp(compatm,compatm ), 'Sa_u', rc=rc)) then
+             ! ATM doesn't export Sa_u10m. But it exports Sa_u, so connect that to WAV's
+             ! Sa_u10m. This is scientifically incorrect and should probably be changed
+             ! (see https://github.com/ESCOMP/CMEPS/issues/707), but this is how CESM has
+             ! been set up to couple WAV.
+             call addmap_from(compatm, 'Sa_u', compwav, mapbilnr, 'one', atm2wav_map)
+             call addmrg_to(compwav, 'Sa_u10m', mrg_from=compatm, mrg_fld='Sa_u', mrg_type='copy')
+          end if
        end if
     end if
     if (phase == 'advertise') then
@@ -3334,10 +3343,19 @@ contains
           call addmap_from(compatm, 'Sa_v', compwav, mapbilnr, 'one', atm2wav_map)
           call addmrg_to(compwav, 'Sa_v', mrg_from=compatm, mrg_fld='Sa_v', mrg_type='copy')
        end if
-       if ( fldchk(is_local%wrap%FBexp(compwav)         , 'Sa_v10m', rc=rc) .and. &
-            fldchk(is_local%wrap%FBImp(compatm,compatm ), 'Sa_v10m', rc=rc)) then
-          call addmap_from(compatm, 'Sa_v10m', compwav, mapbilnr, 'one', atm2wav_map)
-          call addmrg_to(compwav, 'Sa_v10m', mrg_from=compatm, mrg_fld='Sa_v10m', mrg_type='copy')
+       if (   fldchk(is_local%wrap%FBexp(compwav)         , 'Sa_v10m', rc=rc)) then
+          if (fldchk(is_local%wrap%FBImp(compatm,compatm ), 'Sa_v10m', rc=rc)) then
+             ! If possible, connect ATM's Sa_v10m to WAV's Sa_v10m
+             call addmap_from(compatm, 'Sa_v10m', compwav, mapbilnr, 'one', atm2wav_map)
+             call addmrg_to(compwav, 'Sa_v10m', mrg_from=compatm, mrg_fld='Sa_v10m', mrg_type='copy')
+          else if (fldchk(is_local%wrap%FBImp(compatm,compatm ), 'Sa_v', rc=rc)) then
+             ! ATM doesn't export Sa_v10m. But it exports Sa_v, so connect that to WAV's
+             ! Sa_v10m. This is scientifically incorrect and should probably be changed
+             ! (see https://github.com/ESCOMP/CMEPS/issues/707), but this is how CESM has
+             ! been set up to couple WAV.
+             call addmap_from(compatm, 'Sa_v', compwav, mapbilnr, 'one', atm2wav_map)
+             call addmrg_to(compwav, 'Sa_v10m', mrg_from=compatm, mrg_fld='Sa_v', mrg_type='copy')
+          end if
        end if
     end if
 
