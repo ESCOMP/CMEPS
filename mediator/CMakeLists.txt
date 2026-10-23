@@ -10,6 +10,7 @@ set(SRCFILES esmFldsExchange_cesm_mod.F90 med_fraction_mod.F90
               med_phases_history_mod.F90 med_phases_prep_ocn_mod.F90
               med_utils_mod.F90 esmFlds.F90 med_kind_mod.F90
               med_global_sums_mod.F90
+              med_enthalpy_mod.F90
               med_phases_prep_rof_mod.F90
               med_constants_mod.F90 med_map_mod.F90
               med_phases_prep_atm_mod.F90 med_phases_prep_wav_mod.F90

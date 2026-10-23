@@ -5,14 +5,15 @@ module med_phases_prep_atm_mod
   !-----------------------------------------------------------------------------
 
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
-  use NUOPC                 , only : NUOPC_CompAttributeGet
   use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
   use ESMF                  , only : ESMF_Field, ESMF_FieldGet, ESMF_FieldBundleGet
   use ESMF                  , only : ESMF_GridComp
   use med_constants_mod     , only : dbug_flag   => med_constants_dbug_flag
   use med_utils_mod         , only : memcheck    => med_memcheck
   use med_utils_mod         , only : chkerr      => med_utils_ChkErr
-  use med_global_sums_mod   , only : med_global_sums
+  use med_enthalpy_mod      , only : med_enthalpy_init
+  use med_enthalpy_mod      , only : component_computes_enthalpy_flux
+  use med_enthalpy_mod      , only : global_htot_corr, global_hrof_corr
   use med_methods_mod       , only : FB_diagnose => med_methods_FB_diagnose
   use med_methods_mod       , only : FB_fldchk   => med_methods_FB_FldChk
   use med_methods_mod       , only : FB_getfldptr=> med_methods_FB_GetFldPtr
@@ -32,13 +33,6 @@ module med_phases_prep_atm_mod
   private
 
   public :: med_phases_prep_atm
-  public :: med_phases_prep_atm_enthalpy_correction
-  public :: med_phases_prep_atm_enthalpy_runoff
-
-  character(len=CS) :: component_computes_enthalpy_flux = 'unset'
-
-  real(r8) :: global_htot_corr = 0._r8  ! enthalpy correction from med_phases_prep_ocn
-  real(r8) :: global_hrof_corr = 0._r8  ! enthalpy of run-off from med_phases_prep_ocn
 
   character(len=13) :: fldnames_from_ocn(5) = (/'Faoo_fbrf_ocn','Faoo_fdms_ocn','Faoo_fco2_ocn',&
                                                 'Faoo_fn2o_ocn','Faoo_fnh3_ocn'/)
@@ -64,8 +58,6 @@ contains
     real(R8), pointer          :: ifrac(:)
     real(R8), pointer          :: ofrac(:)
     integer                    :: n,nf
-    character(len=CL)          :: cvalue
-    logical                    :: isPresent, IsSet
     type(med_fldlist_type), pointer :: fldList
     character(len=*),parameter :: subname='(med_phases_prep_atm)'
     !-------------------------------------------------------------------------------
@@ -241,22 +233,17 @@ contains
       end if
     end do
 
-    ! Determine component_computes_enthalpy if it is unset
-    if (component_computes_enthalpy_flux == 'unset') then
-       call NUOPC_CompAttributeGet(gcomp, name="component_computes_enthalpy_flux", value=cvalue, &
-            isPresent=isPresent, isSet=isSet, rc=rc)
+    ! Determine component_computes_enthalpy_flux if it is unset
+    ! (normally already set by med_phases_prep_ocn_init)
+    if (trim(component_computes_enthalpy_flux) == 'unset') then
+       call med_enthalpy_init(gcomp, rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       if (isPresent .and. isSet) then
-          component_computes_enthalpy_flux = trim(cvalue)
-       else
-          component_computes_enthalpy_flux = 'none'
-       end if
     end if
 
     ! Only do the following correction if the mediator is computing the enthalpy to be sent to the ocean
     ! from rain, snow, etc.
     ! Note that global_htot_corr is preset to zero as a module variable - and will only be set differently
-    ! if med_phases_prep_atm_enthalpy_correction is called in component_computes_enthalpy_flux == 'med'
+    ! if med_enthalpy_correction is called in component_computes_enthalpy_flux == 'med'
     if (trim(component_computes_enthalpy_flux) == 'med') then
        if ( FB_FldChk(is_local%wrap%FBExp(compatm), 'Faxx_sen' , rc=rc)) then
           call FB_getfldptr(is_local%wrap%FBExp(compatm), 'Faxx_sen', dataptr1, rc=rc)
@@ -296,50 +283,5 @@ contains
     if (maintask) call ufs_trace_wrapper("cmeps", "med_phases_prep_atm", "E")
   end subroutine med_phases_prep_atm
 
-  !-----------------------------------------------------------------------------
-  subroutine med_phases_prep_atm_enthalpy_correction (gcomp, hcorr, rc)
-
-    ! Enthalpy correction term calculation called by med_phases_prep_ocn_accum in
-    ! med_phases_prep_ocn_mod
-    ! Note that this is only called if the following fields are in FBExp(compocn)
-    ! 'Faxa_rain','Foxx_hrain','Faxa_snow' ,'Foxx_hsnow',
-    ! 'Foxx_evap','Foxx_hevap','Foxx_hcond','Foxx_rofl',
-    ! 'Foxx_hrofl','Foxx_rofi','Foxx_hrofi','Foxx_rofl_glc',
-    ! 'Foxx_hrofl_glc','Foxx_rofi_glc','Foxx_hrofi_glc'
-
-    ! input/output variables
-    type(ESMF_GridComp) , intent(in)  :: gcomp
-    real(r8)            , intent(in)  :: hcorr(:)
-    integer             , intent(out) :: rc
-    !---------------------------------------
-
-    rc = ESMF_SUCCESS
-
-    call med_global_sums(gcomp, hcorr, global_htot_corr, rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-  end subroutine med_phases_prep_atm_enthalpy_correction
-
-  !-----------------------------------------------------------------------------
-  subroutine med_phases_prep_atm_enthalpy_runoff(gcomp, hcorr, rc)
-
-    ! Enthalpy of runoff calculated called by med_phases_prep_ocn_accum in
-    ! med_phases_prep_ocn_mod
-    ! Note that this is only called if the following fields are in FBExp(compocn)
-    ! - Faxa_hmat, Faxa_hlat
-    ! The result (Faxx_hrof) is sent back to the atm in subroutine med_phases_prep_atm
-
-    ! input/output variables
-    type(ESMF_GridComp) , intent(in)  :: gcomp
-    real(r8)            , intent(in)  :: hcorr(:)
-    integer             , intent(out) :: rc
-    !---------------------------------------
-
-    rc = ESMF_SUCCESS
-
-    call med_global_sums(gcomp, hcorr, global_hrof_corr, rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-  end subroutine med_phases_prep_atm_enthalpy_runoff
 
 end module med_phases_prep_atm_mod
