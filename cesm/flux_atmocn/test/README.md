@@ -35,8 +35,7 @@ cmake --build build-flux -j 8
 ctest --test-dir build-flux --output-on-failure
 ```
 
-Useful ctest options: `-L bulk` runs one group of tests, `-R large` runs tests whose names
-match a regex, and `-V` shows the full pFUnit output.
+This runs every unit test. Add `-V` to the `ctest` command to see the full pFUnit output.
 
 ## CESM_share
 
@@ -61,15 +60,14 @@ paths can be tested with `@assertExceptionRaised`.
 | `CMakeLists.txt` | Builds the code under test into one library and one test executable per `.pf` file |
 | `stubs/` | Replacements for CESM_share modules that need ESMF or MPI |
 | `helpers/flux_test_fixtures.F90` | Shared setup/teardown, canned input states, tolerances |
-| `bulk/` | Tests of the bulk flux schemes (Large, COARE, ...) |
+| `unit_tests/` | pFUnit test files (`.pf`) for the flux schemes (Large, COARE, ...) |
 | `run_tests_derecho.sh` | Build-and-run wrapper for Derecho |
 
 ## Adding tests
 
-- A new test file for an existing group: drop a `.pf` file into that directory (for example
-  `bulk/test_flux_ua.pf`). CMake picks it up on the next build.
-- A new group: create the directory and add its name to the `foreach(group ...)` list in
-  `CMakeLists.txt`. Its tests get that group as a ctest label.
+- Drop a `.pf` file into a subdirectory of `test/` (for example `unit_tests/test_flux_ua.pf`, or
+  a new directory such as `wtracers/`). CMake picks it up on the next build, and it runs
+  with all the other tests. Test file names must be unique across subdirectories.
 - Each test module should call `fixture_init()` in its `@before` routine and
   `fixture_reset()` in its `@after` routine. `fixture_init` sets up `shr_wv_sat_mod` the way
   the CESM driver does. `fixture_reset` restores the `shr_flux_mod` settings, so a test that

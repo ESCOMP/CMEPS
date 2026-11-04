@@ -6,8 +6,7 @@
 #   compiler   intel (default, ifx) or gnu (gfortran)
 #   build_dir  default: ./build-flux-<compiler>
 #
-# Extra ctest arguments can be passed through CTEST_ARGS, e.g.
-#   CTEST_ARGS="-L bulk" run_tests_derecho.sh gnu
+# All unit tests are run.
 
 set -euo pipefail
 
@@ -36,4 +35,4 @@ esac
 
 cmake -S "${test_dir}" -B "${build_dir}" -DCMAKE_Fortran_COMPILER=${fc}
 cmake --build "${build_dir}" -j 8
-ctest --test-dir "${build_dir}" --output-on-failure ${CTEST_ARGS:-}
+ctest --test-dir "${build_dir}" --output-on-failure
