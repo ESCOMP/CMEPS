@@ -5,16 +5,20 @@ a Fortran compiler, CMake and pFUnit 4. It does not need CIME, ESMF, PIO or MPI.
 
 ## Running
 
-### Derecho
+### With the environment already set up
+
+If a Fortran compiler, CMake and pFUnit 4 are already in your environment (for example,
+loaded with modules), run from the top of the CMEPS repository:
 
 ```bash
-cesm/flux_atmocn/test/run_tests_derecho.sh          # Intel ifx (default)
-cesm/flux_atmocn/test/run_tests_derecho.sh gnu      # gfortran
+cesm/flux_atmocn/test/run_tests.sh                  # build in ./build-flux
+FC=gfortran cesm/flux_atmocn/test/run_tests.sh      # choose the compiler (FC=GNU / FC=Intel also work)
+cesm/flux_atmocn/test/run_tests.sh my-build -DCESM_SHARE_TAG=<tag/sha>
 ```
 
-The script loads the compiler, `cmake` and `pfunit/4.14.0` modules, then configures,
-builds and runs the tests in `./build-flux-<compiler>`. An optional second argument sets a
-different build directory.
+The script configures, builds and runs the tests. The optional first argument sets the
+build directory, and any further arguments are passed to the `cmake` configure step. If
+CMake cannot find pFUnit, set `CMAKE_PREFIX_PATH` or `PFUNIT_DIR` to your pFUnit install.
 
 ### Any machine
 
@@ -61,7 +65,7 @@ paths can be tested with `@assertExceptionRaised`.
 | `stubs/` | Replacements for CESM_share modules that need ESMF or MPI |
 | `helpers/flux_test_fixtures.F90` | Shared setup/teardown, canned input states, tolerances |
 | `unit_tests/` | pFUnit test files (`.pf`) for the flux schemes (Large, COARE, ...) |
-| `run_tests_derecho.sh` | Build-and-run wrapper for Derecho |
+| `run_tests.sh` | Build-and-run wrapper for an already set-up environment |
 
 ## Adding tests
 

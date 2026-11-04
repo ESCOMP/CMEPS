@@ -2,8 +2,12 @@ name: flux_atmocn unit tests
 
 on:
   pull_request:
+    paths:
+      - 'cesm/flux_atmocn/**'
   push:
     branches: [ main ]
+    paths:
+      - 'cesm/flux_atmocn/**'
 
 jobs:
   pfunit-gnu:
