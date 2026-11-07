@@ -276,8 +276,10 @@ contains
           glc_elevclass(glc_pt) = 0
        else
           ! glc_ice_covered is some value other than 0 or 1
-          ! The lnd -> glc downscaling code would need to be reworked if we wanted to
-          ! handle a continuous fraction between 0 and 1.
+          ! Note: This subroutine assigns a single elevation class to each point, so it
+          ! cannot handle a continuous fraction between 0 and 1. The CMEPS lnd -> glc
+          ! downscaling (med_phases_prep_glc_mod) no longer calls this subroutine; it
+          ! accepts fractional ice_covered values directly.
           write(logunit,*) subname, ': ERROR: glc_ice_covered must be 0 or 1'
           write(logunit,*) 'glc_pt, glc_ice_covered = ', glc_pt, glc_ice_covered(glc_pt)
           call shr_sys_abort(subname//': ERROR: glc_ice_covered must be 0 or 1')
