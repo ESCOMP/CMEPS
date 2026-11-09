@@ -889,9 +889,6 @@ contains
     character(len=5)               :: inst_suffix
     character(CL)                  :: cvalue
     logical                        :: found_comp
-#ifdef ESMF_AWARE_THREADING
-    integer                        :: cnt
-#endif
     integer :: rank, nprocs, ierr
     character(len=*), parameter    :: subname = "(esm_pelayout.F90:esm_init_pelayout)"
     !---------------------------------------
@@ -997,33 +994,10 @@ contains
           return
        endif
 
-       if (allocated(petlist)) then
 #ifdef ESMF_AWARE_THREADING
-          if(size(petlist) .ne. ntasks*nthrds) then
+       petlist = [(ntask, ntask = rootpe, rootpe+nthrds*ntasks*stride-1, stride)]
 #else
-          if(size(petlist) .ne. ntasks) then
-#endif
-             deallocate(petlist)
-          endif
-       endif
-       if(.not. allocated(petlist)) then
-#ifdef ESMF_AWARE_THREADING
-          allocate(petlist(ntasks*nthrds))
-#else
-          allocate(petlist(ntasks))
-#endif
-       endif
-
-#ifdef ESMF_AWARE_THREADING
-       cnt = 1
-       do ntask = rootpe, rootpe+nthrds*ntasks*stride-1, stride
-          petlist(cnt) = ntask
-          cnt = cnt + 1
-       enddo
-#else
-       do ntask = 1, size(petlist)
-          petlist(ntask) = rootpe + (ntask-1)*stride
-       enddo
+       petlist = [(rootpe + (ntask-1)*stride, ntask = 1, ntasks)]
 #endif
 
        comps(i+1) = i+1
