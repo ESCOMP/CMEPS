@@ -91,6 +91,19 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     config["samegrid_lnd_rof"] = "true" if lnd_mesh == rof_mesh else "false"
     config["samegrid_wav_ocn"] = "true" if ocn_mesh == wav_mesh else "false"
 
+    # Single column without a domain file ("mesh" mode): the driver takes the column from
+    # mesh_atm and computes its land/ocean fractions from mesh_mask, as the 3-D components do.
+    # Used when PTS_DOMAINFILE = mesh, and always for a single-column CAM (SCAM), which then
+    # needs no domain file at all; other single-point configurations keep their domain file.
+    scol_lon = float(case.get_value("PTS_LON"))
+    scol_lat = float(case.get_value("PTS_LAT"))
+    scol_mesh = (
+        scol_lon > -999.0
+        and scol_lat > -999.0
+        and (case.get_value("PTS_DOMAINFILE") == "mesh" or case.get_value("COMP_ATM") == "cam")
+    )
+    config["single_column_mesh"] = "true" if scol_mesh else "false"
+
     config["COMP_ATM"] = case.get_value("COMP_ATM")
     config["COMP_ICE"] = case.get_value("COMP_ICE")
     config["COMP_GLC"] = case.get_value("COMP_GLC")
