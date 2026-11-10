@@ -46,7 +46,6 @@ module med_phases_prep_glc_mod
   use med_global_sums_mod   , only : med_global_sums
   use nuopc_shr_methods     , only : alarmInit
   use glc_elevclass_mod     , only : glc_get_num_elevation_classes
-  use glc_elevclass_mod     , only : glc_get_elevation_classes
   use glc_elevclass_mod     , only : glc_get_fractional_icecov
   use wtracers_mod          , only : wtracers_present, wtracers_get_num_tracers, WTRACERS_SUFFIX
   use perf_mod              , only : t_startf, t_stopf
@@ -815,8 +814,7 @@ contains
     type(InternalState) :: is_local
     real(r8), pointer   :: topolnd_g_ec(:,:)      ! topo in elevation classes
     real(r8), pointer   :: topoglc_g(:)           ! ice topographic height on the glc grid extracted from glc import
-    real(r8), pointer   :: ice_covered_g(:)       ! if points on the glc grid is ice-covered (1) or ice-free (0)
-    integer , pointer   :: elevclass_g(:)         ! elevation classes glc grid
+    real(r8), pointer   :: ice_covered_g(:)       ! ice-covered fraction of each glc grid cell, in [0,1]
     real(r8), pointer   :: dataexp1d_g(:)
     real(r8), pointer   :: dataexp2d_g(:,:)
     real(r8), pointer   :: dataptr2d(:,:)
@@ -916,11 +914,18 @@ contains
        call fldbun_getdata1d(is_local%wrap%FBImp(compglc(ns),compglc(ns)), Sg_topo_fieldname, topoglc_g, rc)
        if (chkErr(rc,__LINE__,u_FILE_u)) return
 
-       ! get elevation classes including bare land
-       ! for grid cells that are ice-free, the elevation class is set to 0.
+       ! Note: ice_covered_g can be fractional, in the range [0,1]. The value sent to glc in each
+       ! grid cell is a weighted sum: ice_covered_g times the value vertically interpolated
+       ! between elevation classes, plus (1 - ice_covered_g) times the bare land value.
+       ! For ice_covered_g = 0 or 1, this is the same as choosing one or the other.
        lsize_g = size(ice_covered_g)
-       allocate(elevclass_g(lsize_g))
-       call glc_get_elevation_classes(ice_covered_g, topoglc_g, elevclass_g, logunit)
+       do n = 1, lsize_g
+          if (ice_covered_g(n) < 0._r8 .or. ice_covered_g(n) > 1._r8) then
+             write(logunit,*) subname//' ERROR: ice_covered_g out of range [0,1]: n, value =', n, ice_covered_g(n)
+             call shr_log_error(subname//' ERROR: ice_covered_g out of range [0,1]', rc=rc)
+             return
+          end if
+       end do
 
        ! Determine topo field in multiple elevation classes on the glc grid
        call fldbun_getdata2d(toglc_frlnd(ns)%FBlndAccum2glc_g, 'Sl_topo_elev', topolnd_g_ec, rc=rc)
@@ -1003,14 +1008,11 @@ contains
 
           ! Apply pre-computed vertical interpolation indices and weights
           do n = 1, lsize_g
-             if (elevclass_g(n) /= 0) then
-                ! ice-covered cells: vertically interpolate between bounding ECs
-                dataexp1d_g(n) = dataptr2d(index_lower(n), n) * weight_lower(n) &
-                               + dataptr2d(index_upper(n), n) * weight_upper(n)
-             else
-                ! non ice-covered cells: use bare land value (EC index 1)
-                dataexp1d_g(n) = dataptr2d(1, n)
-             end if
+             ! weighted sum of the vertically interpolated EC value (ice-covered part)
+             ! and the bare land value (EC index 1; ice-free part)
+             dataexp1d_g(n) = ice_covered_g(n) * (dataptr2d(index_lower(n), n) * weight_lower(n)   &
+                                                + dataptr2d(index_upper(n), n) * weight_upper(n))  &
+                            + (1._r8 - ice_covered_g(n)) * dataptr2d(1, n)
           end do
 
        end do ! end loop over fields (nflds)
@@ -1033,18 +1035,12 @@ contains
 
           ! Apply pre-computed vertical interpolation indices and weights
           do n = 1, lsize_g
-             if (elevclass_g(n) /= 0) then
-                ! ice-covered cells: vertically interpolate between bounding ECs
-                do t = 1, num_wtracers
-                   dataexp2d_g(t, n) = dataptr3d(index_lower(n), t, n) * weight_lower(n) &
-                                     + dataptr3d(index_upper(n), t, n) * weight_upper(n)
-                end do
-             else
-                ! non ice-covered cells: use bare land value (EC index 1)
-                do t = 1, num_wtracers
-                   dataexp2d_g(t, n) = dataptr3d(1, t, n)
-                end do
-             end if
+             ! weighted sum, as for the fields above
+             do t = 1, num_wtracers
+                dataexp2d_g(t, n) = ice_covered_g(n) * (dataptr3d(index_lower(n), t, n) * weight_lower(n)   &
+                                                      + dataptr3d(index_upper(n), t, n) * weight_upper(n))  &
+                                  + (1._r8 - ice_covered_g(n)) * dataptr3d(1, t, n)
+             end do
           end do
 
        end if
@@ -1065,7 +1061,6 @@ contains
        end if
 
        ! clean up memory that is ice sheet dependent
-       deallocate(elevclass_g)
        deallocate(index_lower)
        deallocate(index_upper)
        deallocate(weight_lower)
