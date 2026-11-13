@@ -1,0 +1,59 @@
+module test_flux_large
+
+  ! Tests of flux_atmOcn_large (Large and Pond / Large and Yeager bulk scheme)
+
+  use funit
+  use shr_kind_mod,          only : r8 => shr_kind_r8
+  use shr_const_mod,         only : shr_const_latvap
+  use flux_atmOcn_large_mod, only : flux_atmOcn_large
+  use flux_test_fixtures
+
+  implicit none
+
+  integer, parameter :: logunit = 6
+
+contains
+
+  @before
+  subroutine setUp()
+    call fixture_init()
+  end subroutine setUp
+
+  @after
+  subroutine tearDown()
+    call fixture_reset()
+  end subroutine tearDown
+
+  @test
+  subroutine test_unstable_fluxes_are_upward()
+    ! Warm ocean under cooler, drier air: heat and moisture leave the ocean
+    ! so sensible and latent heat and evaporation are negative
+    ! (fluxes are positive downward), and the wind stress is
+    ! in the same direction as the wind.
+    integer, parameter :: nMax = 1
+    type(flux_inputs_t) :: state
+    real(r8), dimension(nMax) :: sen, lat, lwup, evap, taux, tauy, tref, qref
+    real(r8), dimension(nMax) :: duu10n, ugust_out, u10res
+
+    state = make_unstable_state(nMax)
+
+    call flux_atmOcn_large(logunit=logunit, spval=test_spval, nMax=nMax, &
+         zbot=state%zbot, ubot=state%ubot, vbot=state%vbot, thbot=state%thbot, &
+         qbot=state%qbot, rainc=state%rainc, rbot=state%rbot, &
+         tbot=state%tbot, us=state%us, vs=state%vs, pslv=state%pslv, &
+         ts=state%ts, mask=state%mask, seq_flux_atmocn_minwind=test_minwind, &
+         sen=sen, lat=lat, lwup=lwup, evap=evap, &
+         taux=taux, tauy=tauy, tref=tref, qref=qref, &
+         add_gusts=.false., aofluxes_use_shr_wv_sat=.true., &
+         duu10n=duu10n, ugust_out=ugust_out, u10res=u10res)
+
+    @assertLessThan(sen(1), 0.0_r8)
+    @assertLessThan(lat(1), 0.0_r8)
+    @assertLessThan(evap(1), 0.0_r8)
+    @assertEqual(lat(1)/shr_const_latvap, evap(1), tolerance=tol_exact*abs(evap(1)))
+    @assertGreaterThan(taux(1), 0.0_r8)
+    @assertGreaterThan(tauy(1), 0.0_r8)
+
+  end subroutine test_unstable_fluxes_are_upward
+
+end module test_flux_large

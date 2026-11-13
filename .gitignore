@@ -35,3 +35,6 @@ cime_config/buildexec
 *.exe
 *.out
 *.app
+
+# CMake/pFUnit build directories for unit tests
+build-flux*/
