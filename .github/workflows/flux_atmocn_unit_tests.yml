@@ -1,0 +1,41 @@
+name: flux_atmocn unit tests
+
+on:
+  pull_request:
+    paths:
+      - 'cesm/flux_atmocn/**'
+  push:
+    branches: [ main ]
+    paths:
+      - 'cesm/flux_atmocn/**'
+
+jobs:
+  pfunit-gnu:
+    runs-on: ubuntu-latest
+    env:
+      PFUNIT_VERSION: v4.14.0
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install compiler and CMake
+        run: sudo apt-get update && sudo apt-get install -y gfortran cmake
+
+      - name: Cache pFUnit
+        id: cache-pfunit
+        uses: actions/cache@v4
+        with:
+          path: ~/pfunit
+          key: ${{ runner.os }}-gfortran-pfunit-${{ env.PFUNIT_VERSION }}
+
+      - name: Build pFUnit
+        if: steps.cache-pfunit.outputs.cache-hit != 'true'
+        run: |
+          git clone --depth 1 -b $PFUNIT_VERSION https://github.com/Goddard-Fortran-Ecosystem/pFUnit.git pfsrc
+          cmake -S pfsrc -B pfsrc/build -DSKIP_MPI=YES -DSKIP_OPENMP=YES -DCMAKE_INSTALL_PREFIX=$HOME/pfunit
+          cmake --build pfsrc/build -j4 --target install
+
+      - name: Configure, build and run tests
+        run: |
+          cmake -S cesm/flux_atmocn/test -B build -DCMAKE_PREFIX_PATH=$HOME/pfunit
+          cmake --build build -j4
+          ctest --test-dir build --output-on-failure
