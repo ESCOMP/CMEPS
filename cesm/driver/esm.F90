@@ -1247,7 +1247,7 @@ contains
 
     ! Set the special value for single column - if pts_lat or pts_lon are equal to the special value
     ! in the component cap - then single column is not activated
-    write(cvalue,*) scol_spval
+    write(cvalue,'(es24.16e3)') scol_spval  ! 17 digits: exact round trip
     call NUOPC_CompAttributeSet(gcomp, name='scol_spval', value=trim(cvalue), rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
@@ -1283,7 +1283,61 @@ contains
                        'scol_ocnfrac'/), rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-       if (trim(single_column_lnd_domainfile) /= 'UNSET') then
+       if (trim(single_column_lnd_domainfile) == 'mesh') then
+
+          ! No domain file: the column is the element of the atmosphere mesh nearest
+          ! scol_lon/scol_lat, and its land/ocean fractions are computed from the mask
+          ! mesh exactly as DOCN (dshr_set_modelmask) and CTSM
+          ! (lnd_set_lndmask_from_maskmesh) compute them in a 3-D run.
+
+          mesh = ESMF_MeshCreate(filename=trim(single_column_global_meshfile), &
+               fileformat=ESMF_FILEFORMAT_ESMFMESH, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_MeshGet(mesh, spatialDim=spatialDim, numOwnedElements=lsize, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          allocate(ownedElemCoords(spatialDim*lsize))
+          call ESMF_MeshGet(mesh, ownedElemCoords=ownedElemCoords)
+          scol_mesh_n = esm_scol_nearest(ownedElemCoords, lsize, scol_lon, scol_lat)
+          scol_lon = ownedElemCoords(2*scol_mesh_n-1)
+          scol_lat = ownedElemCoords(2*scol_mesh_n)
+
+          lfield = ESMF_FieldCreate(mesh, ESMF_TYPEKIND_r8, name='area', meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_FieldRegridGetArea(lfield, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_FieldGet(lfield, farrayPtr=dataptr, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          scol_area = dataptr(scol_mesh_n)
+
+          call esm_scol_fractions_from_mesh(gcomp, mesh, scol_mesh_n, &
+               scol_lndmask, scol_lndfrac, scol_ocnmask, scol_ocnfrac, rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          if (scol_ocnmask == 0 .and. scol_lndmask == 0) then
+             call shr_log_error(trim(subname)//' in single column mode '&
+                  //' ocean and land mask cannot both be zero')
+          end if
+          deallocate(ownedElemCoords)
+
+          write(cvalue,'(es24.16e3)') scol_lon  ! 17 digits: exact round trip
+          call NUOPC_CompAttributeSet(gcomp, name='scol_lon', value=trim(cvalue), rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          write(cvalue,'(es24.16e3)') scol_lat  ! 17 digits: exact round trip
+          call NUOPC_CompAttributeSet(gcomp, name='scol_lat', value=trim(cvalue), rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          write(cvalue,*) lsize
+          call NUOPC_CompAttributeSet(gcomp, name='scol_ni', value=trim(cvalue), rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          write(cvalue,*) 1
+          call NUOPC_CompAttributeSet(gcomp, name='scol_nj', value=trim(cvalue), rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+          write(logunit,'(a,i8,2(f13.5,2x))')trim(subname)//' mesh element, scol_lon, scol_lat from '&
+               //trim(single_column_global_meshfile)//' are ',scol_mesh_n,scol_lon,scol_lat
+          write(logunit,'(a,i4,es24.16,i4,es24.16)')trim(subname)//&
+               ' scol_lndmask, scol_lndfrac, scol_ocnmask, scol_ocnfrac (from mesh_mask) are ',&
+               scol_lndmask, scol_lndfrac, scol_ocnmask, scol_ocnfrac
+
+       else if (trim(single_column_lnd_domainfile) /= 'UNSET') then
 
           ! In this case the domain file is not a single point file - but normally a
           ! global domain file where a nearest neighbor search will be done to find
@@ -1425,13 +1479,13 @@ contains
           scol_area = dataptr(scol_mesh_n)
 
           ! Set single column attribute values for all components
-          write(cvalue,*) scol_lon
+          write(cvalue,'(es24.16e3)') scol_lon  ! 17 digits: exact round trip
           call NUOPC_CompAttributeSet(gcomp, name='scol_lon', value=trim(cvalue), rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
-          write(cvalue,*) scol_lat
+          write(cvalue,'(es24.16e3)') scol_lat  ! 17 digits: exact round trip
           call NUOPC_CompAttributeSet(gcomp, name='scol_lat', value=trim(cvalue), rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
-          write(cvalue,*) scol_area
+          write(cvalue,'(es24.16e3)') scol_area  ! 17 digits: exact round trip
           call NUOPC_CompAttributeSet(gcomp, name='scol_area', value=trim(cvalue), rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
 
@@ -1476,7 +1530,7 @@ contains
 
        end if
 
-       write(cvalue,*) scol_area
+       write(cvalue,'(es24.16e3)') scol_area  ! 17 digits: exact round trip
        call NUOPC_CompAttributeSet(gcomp, name='scol_area', value=trim(cvalue), rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
@@ -1484,7 +1538,7 @@ contains
        call NUOPC_CompAttributeSet(gcomp, name='scol_lndmask', value=trim(cvalue), rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-       write(cvalue,*) scol_lndfrac
+       write(cvalue,'(es24.16e3)') scol_lndfrac  ! 17 digits: exact round trip
        call NUOPC_CompAttributeSet(gcomp, name='scol_lndfrac', value=trim(cvalue), rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
@@ -1492,13 +1546,138 @@ contains
        call NUOPC_CompAttributeSet(gcomp, name='scol_ocnmask', value=trim(cvalue), rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-       write(cvalue,*) scol_ocnfrac
+       write(cvalue,'(es24.16e3)') scol_ocnfrac  ! 17 digits: exact round trip
        call NUOPC_CompAttributeSet(gcomp, name='scol_ocnfrac', value=trim(cvalue), rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     end if
 
   end subroutine esm_set_single_column_attributes
+
+  !================================================================================
+  integer function esm_scol_nearest(coords, n, lon, lat)
+    ! Index of the mesh element (coords = lon,lat pairs in degrees) nearest lon/lat
+    ! (great-circle distance).
+    use shr_const_mod, only : pi => shr_const_pi
+    real(r8), intent(in) :: coords(:)
+    integer , intent(in) :: n
+    real(r8), intent(in) :: lon, lat
+    real(r8) :: d2r, a, amin
+    integer  :: i
+    d2r  = pi/180._r8
+    amin = huge(1._r8)
+    esm_scol_nearest = 1
+    do i = 1, n
+       a = sin(0.5_r8*d2r*(coords(2*i)-lat))**2 + &
+           cos(d2r*lat)*cos(d2r*coords(2*i))*sin(0.5_r8*d2r*(coords(2*i-1)-lon))**2
+       if (a < amin) then
+          amin = a
+          esm_scol_nearest = i
+       end if
+    end do
+  end function esm_scol_nearest
+
+  !================================================================================
+  subroutine esm_scol_fractions_from_mesh(gcomp, mesh, n, lndmask, lndfrac, ocnmask, ocnfrac, rc)
+    ! Land and ocean fraction and mask of element n of mesh, mapped from the mask mesh
+    ! (attribute mesh_mask) with the same regrid settings and thresholds that DOCN
+    ! (dshr_set_modelmask) and CTSM (lnd_set_lndmask_from_maskmesh) use in a 3-D run,
+    ! so the single column gets bit-for-bit the fractions of the 3-D model.
+
+    use ESMF , only : ESMF_GridComp, ESMF_Mesh, ESMF_MeshCreate, ESMF_MeshGet, ESMF_FILEFORMAT_ESMFMESH
+    use ESMF , only : ESMF_Field, ESMF_FieldCreate, ESMF_FieldGet, ESMF_FieldFill, ESMF_FieldDestroy
+    use ESMF , only : ESMF_FieldRegridStore, ESMF_FieldRegrid, ESMF_RouteHandle, ESMF_RouteHandleDestroy
+    use ESMF , only : ESMF_REGRIDMETHOD_CONSERVE, ESMF_NORMTYPE_DSTAREA, ESMF_UNMAPPEDACTION_IGNORE
+    use ESMF , only : ESMF_TERMORDER_SRCSEQ, ESMF_REGION_TOTAL, ESMF_TYPEKIND_R8, ESMF_MESHLOC_ELEMENT
+    use ESMF , only : ESMF_DistGrid, ESMF_DistGridGet, ESMF_Array, ESMF_ArrayCreate, ESMF_ArrayDestroy
+    use ESMF , only : ESMF_MeshDestroy, ESMF_SUCCESS
+    use NUOPC, only : NUOPC_CompAttributeGet
+
+    type(ESMF_GridComp), intent(inout) :: gcomp
+    type(ESMF_Mesh)    , intent(inout) :: mesh
+    integer            , intent(in)    :: n
+    integer            , intent(out)   :: lndmask, ocnmask
+    real(r8)           , intent(out)   :: lndfrac, ocnfrac
+    integer            , intent(out)   :: rc
+
+    type(ESMF_Mesh)        :: mesh_mask
+    type(ESMF_Field)       :: field_mask, field_dst
+    type(ESMF_RouteHandle) :: rhandle
+    type(ESMF_DistGrid)    :: distgrid_mask
+    type(ESMF_Array)       :: elemMaskArray
+    character(len=CL)      :: meshfile_mask
+    real(r8), pointer      :: dataptr1d(:)
+    real(r8), pointer      :: mask_src(:)  ! pointer: the ESMF_Array references it
+    integer                :: lsize_mask
+    integer                :: srcMaskValue = 0
+    integer                :: dstMaskValue = -987987
+    integer                :: srcTermProcessing_Value = 0
+    real(r8)               :: fminval = 0.001_r8
+    real(r8)               :: fmaxval = 1._r8
+    character(len=*), parameter :: subname = ' (esm_scol_fractions_from_mesh) '
+
+    rc = ESMF_SUCCESS
+    call NUOPC_CompAttributeGet(gcomp, name='mesh_mask', value=meshfile_mask, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    mesh_mask = ESMF_MeshCreate(trim(meshfile_mask), fileformat=ESMF_FILEFORMAT_ESMFMESH, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    field_mask = ESMF_FieldCreate(mesh_mask, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldFill(field_mask, dataFillScheme="const", rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    field_dst = ESMF_FieldCreate(mesh, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    call ESMF_FieldRegridStore(field_mask, field_dst, routehandle=rhandle, &
+         srcMaskValues=(/srcMaskValue/), dstMaskValues=(/dstMaskValue/), &
+         regridmethod=ESMF_REGRIDMETHOD_CONSERVE, normType=ESMF_NORMTYPE_DSTAREA, &
+         srcTermProcessing=srcTermProcessing_Value, &
+         ignoreDegenerate=.true., unmappedaction=ESMF_UNMAPPEDACTION_IGNORE, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    call ESMF_MeshGet(mesh_mask, elementdistGrid=distgrid_mask, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_DistGridGet(distgrid_mask, localDe=0, elementCount=lsize_mask, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    allocate(mask_src(lsize_mask))
+    elemMaskArray = ESMF_ArrayCreate(distgrid_mask, mask_src, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_MeshGet(mesh_mask, elemMaskArray=elemMaskArray, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldGet(field_mask, farrayptr=dataptr1d, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    dataptr1d(:) = mask_src(:)
+
+    call ESMF_FieldRegrid(field_mask, field_dst, routehandle=rhandle, &
+         termorderflag=ESMF_TERMORDER_SRCSEQ, zeroregion=ESMF_REGION_TOTAL, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldGet(field_dst, farrayptr=dataptr1d, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    ! same arithmetic and thresholds as dshr_set_modelmask / lnd_set_lndmask_from_maskmesh
+    lndfrac = 1._r8 - dataptr1d(n)
+    if (lndfrac > fmaxval) lndfrac = 1._r8
+    if (lndfrac < fminval) lndfrac = 0._r8
+    ocnfrac = 1._r8 - lndfrac
+    lndmask = 0
+    if (lndfrac /= 0._r8) lndmask = 1
+    ocnmask = 0
+    if (ocnfrac /= 0._r8) ocnmask = 1
+
+    call ESMF_RouteHandleDestroy(rhandle, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldDestroy(field_mask, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldDestroy(field_dst, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_ArrayDestroy(elemMaskArray, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_MeshDestroy(mesh_mask, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    deallocate(mask_src)
+
+  end subroutine esm_scol_fractions_from_mesh
 
   !================================================================================
   subroutine esm_finalize(driver, rc)
