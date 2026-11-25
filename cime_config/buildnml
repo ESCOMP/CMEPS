@@ -163,7 +163,17 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
     # ----------------------------------------------------
     # Initialize namelist defaults
     # ----------------------------------------------------
-    nmlgen.init_defaults(infile, config, skip_default_for_groups=["modelio"])
+    nmlgen.init_defaults(infile, config, skip_default_for_groups=["modelio", "XCPL_attributes"])
+
+    # ----------------------------------------------------
+    # Add settings for X components only if they're in use
+    # ----------------------------------------------------
+    if _uses_xcpl_comps(case):
+        nmlgen.add_defaults_for_group("XCPL_attributes")
+    else:
+        nmlgen.confirm_group_is_empty(
+            "XCPL_attributes",
+            "XCPL_attributes settings can only be set in cases that use X components")
 
     # ----------------------------------------------------
     # Error checks
@@ -600,6 +610,28 @@ def _create_drv_namelists(case, infile, confdir, nmlgen, files):
         drv_flds_in = os.path.join(caseroot, "CaseDocs", "drv_flds_in")
         nmlgen.write_output_file(drv_flds_in)
 
+
+###############################################################################
+def _uses_xcpl_comps(case):
+    ###############################################################################
+    """Return True if this case uses xcpl (X) components, False otherwise
+
+    Also checks that, if any component is an X component, then all components are either
+    X components or stub components; aborts if this is not the case.
+    """
+    comp_classes = [c for c in case.get_values("COMP_CLASSES") if c != "CPL"]
+    comp_names = {c: case.get_value("COMP_{}".format(c)) for c in comp_classes}
+    is_x_comp = {c: comp_names[c] == "x" + c.lower() for c in comp_classes}
+    is_stub_comp = {c: comp_names[c] == "s" + c.lower() for c in comp_classes}
+
+    any_x_comps = any(is_x_comp.values())
+    if any_x_comps:
+        expect(
+            all(is_x_comp[c] or is_stub_comp[c] for c in comp_classes),
+            "If a compset contains any X components, it must only contain X and stub components; "
+            "components in this case: {}".format(comp_names),
+        )
+    return any_x_comps
 
 ###############################################################################
 def _add_water_tracers(water_tracers_xml, nmlgen):

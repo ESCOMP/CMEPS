@@ -52,6 +52,11 @@ module glc_comp_nuopc
   integer    ,parameter  :: master_task=0        ! task number of master task
   logical                :: mastertask
   integer                :: dbug = 0
+
+  ! Pattern used for the Sg_ice_covered and Sg_topo fields (see xglc_frac_topo_pattern in
+  ! namelist_definition_drv.xml for valid values)
+  character(len=CS)      :: frac_topo_pattern = 'default'
+
   character(*),parameter :: modName =  "(xglc_comp_nuopc)"
   character(*),parameter :: u_FILE_u = &
        __FILE__
@@ -199,6 +204,22 @@ contains
     else
        call shr_sys_abort(subname//'Need to set attribute ScalarFieldIdxGridNY')
     endif
+
+    call NUOPC_CompAttributeGet(gcomp, name="xglc_frac_topo_pattern", value=cvalue, &
+         isPresent=isPresent, isSet=isSet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+       frac_topo_pattern = trim(cvalue)
+    end if
+    select case (trim(frac_topo_pattern))
+    case ('default', 'fractional_ice_cover')
+       ! valid value; nothing more to do here
+    case default
+       call shr_sys_abort(subname//'Unknown value for xglc_frac_topo_pattern: '//trim(frac_topo_pattern))
+    end select
+    if (mastertask) then
+       write(logunit,'(a)') trim(subname)//' xglc_frac_topo_pattern = '//trim(frac_topo_pattern)
+    end if
 
     ! Create nested state for each active ice sheet
     do ns = 1,num_icesheets
