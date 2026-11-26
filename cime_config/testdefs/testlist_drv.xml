@@ -262,6 +262,16 @@
     </options>
   </test>
 
+  <test compset="X" grid="f19_g17" name="SMS_D_Ld2" testmods="drv/xglc_fractional_ice_cover--drv/glc_avg_frequently">
+    <machines>
+      <machine name="derecho" compiler="intel" category="aux_cmeps"/>
+    </machines>
+    <options>
+      <option name="wallclock"> 00:20:00 </option>
+      <option name="comment">Test the coupling of fractional ice cover, using xglc's fractional_ice_cover pattern for Sg_ice_covered and Sg_topo; includes glc_avg_frequently testmod to exercise the lnd-to-glc mapping, which depends on these fields.</option>
+    </options>
+  </test>
+
   <!-- ======================================= -->
   <!-- TG compsets -->
   <!-- ======================================= -->

@@ -52,6 +52,13 @@ module glc_comp_nuopc
   integer    ,parameter  :: master_task=0        ! task number of master task
   logical                :: mastertask
   integer                :: dbug = 0
+
+  ! Pattern used for the Sg_ice_covered and Sg_topo fields (see xglc_frac_topo_pattern in
+  ! namelist_definition_drv.xml for valid values)
+  character(len=CS)      :: frac_topo_pattern = 'default'
+
+  integer, allocatable   :: gindex(:)            ! global index of each owned mesh element
+
   character(*),parameter :: modName =  "(xglc_comp_nuopc)"
   character(*),parameter :: u_FILE_u = &
        __FILE__
@@ -200,6 +207,22 @@ contains
        call shr_sys_abort(subname//'Need to set attribute ScalarFieldIdxGridNY')
     endif
 
+    call NUOPC_CompAttributeGet(gcomp, name="xglc_frac_topo_pattern", value=cvalue, &
+         isPresent=isPresent, isSet=isSet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+       frac_topo_pattern = trim(cvalue)
+    end if
+    select case (trim(frac_topo_pattern))
+    case ('default', 'fractional_ice_cover')
+       ! valid value; nothing more to do here
+    case default
+       call shr_sys_abort(subname//'Unknown value for xglc_frac_topo_pattern: '//trim(frac_topo_pattern))
+    end select
+    if (mastertask) then
+       write(logunit,'(a)') trim(subname)//' xglc_frac_topo_pattern = '//trim(frac_topo_pattern)
+    end if
+
     ! Create nested state for each active ice sheet
     do ns = 1,num_icesheets
        write(cnum,'(i0)') ns
@@ -274,6 +297,8 @@ contains
     ! local variables
     integer                :: n, ns
     character(ESMF_MAXSTR) :: cvalue     ! config data
+    type(ESMF_DistGrid)    :: distgrid
+    integer                :: numOwnedElements
     character(len=*),parameter :: subname=trim(modName)//':(InitializeRealize) '
     !-------------------------------------------------------------------------------
 
@@ -284,6 +309,13 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     mesh = ESMF_MeshCreate(filename=trim(cvalue), fileformat=ESMF_FILEFORMAT_ESMFMESH, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    ! get the global index of each owned element (needed for some export patterns)
+    call ESMF_MeshGet(mesh, elementDistgrid=distgrid, numOwnedElements=numOwnedElements, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    allocate(gindex(numOwnedElements))
+    call ESMF_DistGridGet(distgrid, localDE=0, seqIndexList=gindex, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! realize the actively coupled fields, now that a mesh is established
@@ -418,6 +450,7 @@ contains
 
     ! local variables
     integer           :: i, ncomp
+    integer           :: category
     type(ESMF_Field)  :: lfield
     real(r8), pointer :: data1d(:)
     real(r8), pointer :: data2d(:,:)
@@ -427,6 +460,25 @@ contains
     real(r8)          :: lon_min_l(1), lon_max_l(1), lon_min_g(1), lon_max_g(1)
     real(r8)          :: lon_mid
     real(r8)          :: lon_180(size(lon))  ! longitude with a -180 to 180 convention
+
+    ! Prescribed values used for Sg_ice_covered and Sg_topo when frac_topo_pattern is
+    ! 'fractional_ice_cover'. Each grid cell is assigned to one of these categories based on
+    ! its global index, cycling through the categories in order. When remapped to a much
+    ! coarser grid (such as the land grid), each coarse grid cell should therefore see a
+    ! roughly equal mix of all categories.
+    !
+    ! Approximate values on a coarse-resolution land grid:
+    ! - Area in EC 0 (bare land): 0.6
+    ! - Area in other ECs (in order): 0, 0, 0.066667, 0.155556, 0.066667,
+    !                                 0.11111, 0, 0, 0, 0
+    ! - TOPO in each EC: Bare land (EC 0) = 575.926; other ECs have values of:
+    !                    100 (virtual), 300 (virtual), 616.6667, 857.142857, 1200,
+    !                    1400, 1800 (virtual), 2250 (virtual), 2750 (virtual), 3500 (virtual);
+    integer , parameter :: num_test_categories = 9
+    real(r8), parameter :: test_ice_covered(num_test_categories) = &
+         [  0._r8,   0._r8,  0.1_r8,  0.2_r8,  0.3_r8,  0.4_r8,   1._r8,   0.6_r8,    1._r8]
+    real(r8), parameter :: test_topo(num_test_categories) = &  ! (m)
+         [300._r8, 450._r8, 550._r8, 600._r8, 650._r8, 750._r8, 900._r8, 1200._r8, 1400._r8]
     !--------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -467,44 +519,79 @@ contains
           ! bigger-than-typical correction factors.
           data1d(:) = 1.e-6_r8 * lat(:)/90._r8
        else if (fldname == 'Sg_ice_covered') then
-          ! Split domain into ice-covered (1) and not (0) at the midpoint of the
-          ! longitude range. We convert to [-180, 180) so that data crossing 0
-          ! degrees (the common case for ice sheet grids) is handled correctly.
-          call ESMF_VMGetCurrent(vm, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
+          ! It may not really be necessary to have the two different patterns here
+          ! (fractional_ice_cover / default), for Sg_ice_covered or for Sg_topo: We might
+          ! be able to test everything worth testing with a single pattern. But for now we
+          ! have both, serving somewhat different purposes:
+          !
+          ! - The fractional_ice_cover pattern tests glc cells with fractional ice cover,
+          !   and results in roughly the same values in each land cell to facilitate
+          !   confirmation that it's working as intended
+          !
+          ! - The default pattern gives a gradient of values across the domain, more
+          !   similar to other X compset fields
+          if (frac_topo_pattern == 'fractional_ice_cover') then
+             if (size(data1d) /= size(gindex)) then
+                call shr_sys_abort('field_setexport: size mismatch between Sg_ice_covered and gindex')
+             end if
+             do i = 1, size(data1d)
+                category = modulo(gindex(i) - 1, num_test_categories) + 1
+                data1d(i) = test_ice_covered(category)
+             end do
+          else if (frac_topo_pattern == 'default') then
+             ! Split domain into ice-covered (1) and not (0) at the midpoint of the
+             ! longitude range. We convert to [-180, 180) so that data crossing 0
+             ! degrees (the common case for ice sheet grids) is handled correctly.
+             call ESMF_VMGetCurrent(vm, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-          ! Convert longitudes to -180 to 180 convention. Note that if they already were
-          ! specified as -180 to 180, the following will lead lon_180 to be the same as
-          ! lon.
-          where (lon > 180.0_R8)
-             lon_180 = lon - 360.0_R8
-          elsewhere
-             lon_180 = lon
-          end where
+             ! Convert longitudes to -180 to 180 convention. Note that if they already were
+             ! specified as -180 to 180, the following will lead lon_180 to be the same as
+             ! lon.
+             where (lon > 180.0_R8)
+                lon_180 = lon - 360.0_R8
+             elsewhere
+                lon_180 = lon
+             end where
 
-          lon_min_l(1) = minval(lon_180)
-          lon_max_l(1) = maxval(lon_180)
-          call ESMF_VMAllReduce(vm, lon_min_l, lon_min_g, 1, ESMF_REDUCE_MIN, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call ESMF_VMAllReduce(vm, lon_max_l, lon_max_g, 1, ESMF_REDUCE_MAX, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          lon_mid = (lon_min_g(1) + lon_max_g(1)) * 0.5_R8
-          do i = 1, size(data1d)
-             data1d(i) = merge(1.0_R8, 0.0_R8, lon_180(i) > lon_mid)
-          end do
+             lon_min_l(1) = minval(lon_180)
+             lon_max_l(1) = maxval(lon_180)
+             call ESMF_VMAllReduce(vm, lon_min_l, lon_min_g, 1, ESMF_REDUCE_MIN, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+             call ESMF_VMAllReduce(vm, lon_max_l, lon_max_g, 1, ESMF_REDUCE_MAX, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+             lon_mid = (lon_min_g(1) + lon_max_g(1)) * 0.5_R8
+             do i = 1, size(data1d)
+                data1d(i) = merge(1.0_R8, 0.0_R8, lon_180(i) > lon_mid)
+             end do
+          else
+             call shr_sys_abort('field_setexport: unknown frac_topo_pattern: '//trim(frac_topo_pattern))
+          end if
        else if (fldname == 'Sg_topo') then
-          ! Use topo values ranging from 0 to 3000 based on a latitude gradient
-          call ESMF_VMGetCurrent(vm, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          lat_min_l(1) = minval(lat)
-          lat_max_l(1) = maxval(lat)
-          call ESMF_VMAllReduce(vm, lat_min_l, lat_min_g, 1, ESMF_REDUCE_MIN, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          call ESMF_VMAllReduce(vm, lat_max_l, lat_max_g, 1, ESMF_REDUCE_MAX, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          do i = 1, size(data1d)
-             data1d(i) = (lat(i) - lat_min_g(1)) / (lat_max_g(1) - lat_min_g(1)) * 3000.0_R8
-          end do
+          if (frac_topo_pattern == 'fractional_ice_cover') then
+             if (size(data1d) /= size(gindex)) then
+                call shr_sys_abort('field_setexport: size mismatch between Sg_topo and gindex')
+             end if
+             do i = 1, size(data1d)
+                category = modulo(gindex(i) - 1, num_test_categories) + 1
+                data1d(i) = test_topo(category)
+             end do
+          else if (frac_topo_pattern == 'default') then
+             ! Use topo values ranging from 0 to 3000 based on a latitude gradient
+             call ESMF_VMGetCurrent(vm, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+             lat_min_l(1) = minval(lat)
+             lat_max_l(1) = maxval(lat)
+             call ESMF_VMAllReduce(vm, lat_min_l, lat_min_g, 1, ESMF_REDUCE_MIN, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+             call ESMF_VMAllReduce(vm, lat_max_l, lat_max_g, 1, ESMF_REDUCE_MAX, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+             do i = 1, size(data1d)
+                data1d(i) = (lat(i) - lat_min_g(1)) / (lat_max_g(1) - lat_min_g(1)) * 3000.0_R8
+             end do
+          else
+             call shr_sys_abort('field_setexport: unknown frac_topo_pattern: '//trim(frac_topo_pattern))
+          end if
        else
           do i = 1,size(data1d)
              data1d(i) = (nf*100) &

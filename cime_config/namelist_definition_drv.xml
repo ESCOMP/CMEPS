@@ -4290,6 +4290,43 @@
     </values>
   </entry>
 
+  <!-- ======================================== -->
+  <!--  XCPL attributes                         -->
+  <!--                                          -->
+  <!--  Settings for the xcpl (X) test          -->
+  <!--  components. This section is only        -->
+  <!--  written (and these settings can only    -->
+  <!--  be set) in cases that use X components. -->
+  <!--                                          -->
+  <!--  Note that X components do not have      -->
+  <!--  their own namelist definitions, so any  -->
+  <!--  namelist values they want (besides nx   -->
+  <!--  and ny) need to be defined here. Also   -->
+  <!--  note that, for simplicity, we have a    -->
+  <!--  single group that is shared for all X   -->
+  <!--  components.                             -->
+  <!-- ======================================== -->
+
+  <entry id="xglc_frac_topo_pattern">
+    <type>char</type>
+    <category>xcpl</category>
+    <group>XCPL_attributes</group>
+    <valid_values>default,fractional_ice_cover</valid_values>
+    <desc>
+      Pattern used by xglc for the Sg_ice_covered and Sg_topo fields that it sends.
+      default: Sg_ice_covered is 0 in the western half of the domain and 1 in the eastern
+               half; Sg_topo increases from 0 to 3000 m from south to north.
+      fractional_ice_cover: each grid cell is assigned one of 9 fixed (Sg_ice_covered,
+               Sg_topo) combinations, cycling through them by global grid cell index, so
+               each land grid cell sees a roughly equal mix of all 9. The combinations
+               include 0, 1 and fractional ice cover, at a range of elevations, for testing
+               the coupling of fractional ice cover.
+    </desc>
+    <values>
+      <value>default</value>
+    </values>
+  </entry>
+
   <!-- =========================== -->
   <!-- group modelio               -->
   <!-- =========================== -->

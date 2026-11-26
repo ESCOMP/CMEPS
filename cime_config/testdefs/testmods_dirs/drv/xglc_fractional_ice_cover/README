@@ -1,0 +1,7 @@
+This testmod sets xglc to send Sg_ice_covered and Sg_topo values that cycle through a fixed
+set of combinations, including fractional ice cover at a range of elevations, to test the
+coupling of fractional ice cover. It can only be used with compsets in which all components
+are X or stub components.
+
+It is useful to combine this with the glc_avg_frequently testmod so that the lnd-to-glc
+mapping (which depends on Sg_ice_covered and Sg_topo) is exercised in a short test.

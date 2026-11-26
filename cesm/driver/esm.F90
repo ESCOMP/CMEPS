@@ -665,6 +665,11 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call ReadAttributes(gcomp, config, "ALLCOMP_attributes::", rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
+    ! XCPL_attributes are settings for the xcpl (X) test components. This section only
+    ! appears in nuopc.runconfig for cases with X components, so we use relaxedflag to
+    ! allow it to be absent.
+    call ReadAttributes(gcomp, config, "XCPL_attributes::", relaxedflag=.true., rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     call ESMF_LogWrite(trim(subname)//": call Readattributes for"//trim(compname), ESMF_LOGMSG_INFO)
 
